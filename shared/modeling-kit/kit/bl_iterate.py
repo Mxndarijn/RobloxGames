@@ -61,6 +61,7 @@ def args():
     p.add_argument("--look", default="default", choices=["default", "roblox"])
     p.add_argument("--turntable", type=int, default=0, help="also render N views around the model")
     p.add_argument("--tag", default="", help="suffix for stats/tiles so modes don't overwrite each other")
+    p.add_argument("--ground", default="", help="ground plane colour R,G,B (sRGB 0-255); default dark grey")
     return p.parse_args(argv)
 
 
@@ -213,7 +214,15 @@ def plain_mat(name, color, rough=0.9):
     return m
 
 
-def build_rig(col, lo, hi, ref):
+def ground_color(spec):
+    """'R,G,B' (sRGB 0-255) -> linear RGBA for the ground material; '' -> the default dark grey."""
+    if not spec:
+        return (0.26, 0.27, 0.29, 1)
+    lin = lambda v: v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+    return tuple(lin(int(v) / 255) for v in spec.split(",")) + (1,)
+
+
+def build_rig(col, lo, hi, ref, ground=""):
     """Ground plane + optional 5-stud avatar block for scale. Returns framing bbox."""
     size = hi - lo
     ext = max(size.x, size.y, size.z, 1.0)
@@ -222,7 +231,7 @@ def build_rig(col, lo, hi, ref):
     bmesh.ops.create_grid(bm, x_segments=1, y_segments=1, size=ext * 6)
     bm.to_mesh(me)
     bm.free()
-    me.materials.append(plain_mat("_ground", (0.26, 0.27, 0.29, 1)))
+    me.materials.append(plain_mat("_ground", ground_color(ground)))
     g = add(col, "_ground", me)
     g.location = ((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z)
     flo, fhi = lo.copy(), hi.copy()
@@ -445,7 +454,7 @@ def main():
     t = time.time()
     if objs:
         col = kit_collection()
-        flo, fhi = build_rig(col, lo, hi, not a.no_ref)
+        flo, fhi = build_rig(col, lo, hi, not a.no_ref, a.ground)
         setup_render(a)
         cam = add(col, "_cam", bpy.data.cameras.new("_cam"))
         cam.data.lens = 50
