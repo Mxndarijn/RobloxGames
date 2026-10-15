@@ -122,6 +122,7 @@ local function openDex(w: number, h: number, dex: { string }): any
 	local panel = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
 	local r = Layout.panelFor(Layout.screen(w, h), "Dex")
 	panel.frame.Size = UDim2.fromOffset(math.floor(r.w), math.floor(r.h))
+	panel.setOpen(true)
 	panel.update({ dex = dex, dexTotal = TOTAL })
 	return panel
 end
@@ -183,5 +184,68 @@ describe("SlimeDex panel previews", function()
 			end
 		end
 		expect(live).toBe(SlimePreview.MAX_LIVE)
+	end)
+end)
+
+describe("SlimeDex previews rebuild only while open", function()
+	local NEW = "3:None:Plain:Round"
+	local MORE = { DEX[1], DEX[2], DEX[3], NEW }
+
+	local function closedDex(): any
+		local panel = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
+		local r = Layout.panelFor(Layout.screen(1920, 1080), "Dex")
+		panel.frame.Size = UDim2.fromOffset(math.floor(r.w), math.floor(r.h))
+		return panel
+	end
+
+	it("does not rebuild while closed: the update only marks the list dirty", function()
+		local panel = closedDex()
+		panel.update({ dex = DEX, dexTotal = TOTAL })
+		expect(panel.builds()).toBe(0)
+		expect(UiHarness.find(panel.frame, "Preview")).toBeNil()
+		-- Built once, then closed: a later update leaves the list alone.
+		panel.setOpen(true)
+		panel.setOpen(false)
+		panel.update({ dex = MORE, dexTotal = TOTAL })
+		expect(panel.builds()).toBe(1)
+		expect(UiHarness.find(panel.frame, "List"):FindFirstChild(NEW)).toBeNil()
+		expect(UiHarness.find(panel.frame, "Count").Text).toBe("Discovered 4 / " .. TOTAL) -- header still live
+	end)
+	it("rebuilds on open when dirty (never built, or changed while closed)", function()
+		local panel = closedDex()
+		panel.update({ dex = DEX, dexTotal = TOTAL })
+		panel.setOpen(true)
+		expect(panel.builds()).toBe(1)
+		local list = UiHarness.find(panel.frame, "List")
+		expect(UiHarness.find(list:FindFirstChild(DEX[2]), "World") ~= nil).toBe(true)
+		panel.setOpen(false)
+		panel.update({ dex = MORE, dexTotal = TOTAL })
+		panel.setOpen(true)
+		expect(panel.builds()).toBe(2)
+		expect(UiHarness.find(list:FindFirstChild(NEW), "World") ~= nil).toBe(true)
+	end)
+	it("rebuilds while open when an update makes it dirty", function()
+		local panel = closedDex()
+		panel.setOpen(true)
+		expect(panel.builds()).toBe(0) -- nothing to build before the first state
+		panel.update({ dex = DEX, dexTotal = TOTAL })
+		expect(panel.builds()).toBe(1)
+		panel.update({ dex = MORE, dexTotal = TOTAL })
+		expect(panel.builds()).toBe(2)
+		local list = UiHarness.find(panel.frame, "List")
+		expect(UiHarness.find(list:FindFirstChild(NEW), "World") ~= nil).toBe(true)
+	end)
+	it("does not rebuild redundantly on open, or on an unchanged update, when clean", function()
+		local panel = closedDex()
+		panel.update({ dex = DEX, dexTotal = TOTAL })
+		panel.setOpen(true)
+		local world = UiHarness.find(UiHarness.find(panel.frame, "List"):FindFirstChild(DEX[2]), "World")
+		local model = world:GetChildren()[1]
+		panel.setOpen(false)
+		panel.update({ dex = table.clone(DEX), dexTotal = TOTAL }) -- same rows: stays clean
+		panel.setOpen(true)
+		panel.update({ dex = DEX, dexTotal = TOTAL }) -- init.client updates right after opening
+		expect(panel.builds()).toBe(1)
+		expect(world:GetChildren()[1]).toBe(model)
 	end)
 end)

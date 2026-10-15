@@ -5,6 +5,10 @@
 	dex reward + income bonus when the server sends them, and a scrollable
 	list with a ViewportFrame preview (or image / colour swatch) per
 	discovered slime and silhouettes for the rest (SlimeDex.rows).
+
+	The list (and its previews) is only rebuilt while the panel is open:
+	update() while closed just marks it dirty, and setOpen(true) rebuilds
+	if dirty or never built.
 ]]
 
 local UI = script.Parent.Parent
@@ -201,7 +205,45 @@ function Dex.new(parent: Instance, ctx: any)
 		r.detail.Text = row.detail
 	end)
 
+	-- Rows from the latest update and whether the list is out of date with
+	-- them (never built counts as dirty). Rebuilds only happen while open.
+	local open = false
+	local pending: { SlimeDex.Row }? = nil
+	local pendingSignature: string? = nil
+	local builtSignature: string? = nil
+	local dirty = true
+	local builds = 0
+
+	local function signature(items: { SlimeDex.Row }): string
+		local parts = table.create(#items)
+		for i, row in items do
+			parts[i] =
+				`{row.key}|{row.locked}|{row.title}|{row.detail}|{row.image or ""}|{table.concat(row.color, ",")}`
+		end
+		return table.concat(parts, "\n")
+	end
+
+	local function rebuild()
+		if open and dirty and pending then
+			dirty = false
+			builtSignature = pendingSignature
+			builds += 1
+			rows.sync(pending)
+		end
+	end
+
 	local self = { frame = panel.frame, close = panel.close }
+
+	-- Called by init.client when the menu opens / closes.
+	function self.setOpen(isOpen: boolean)
+		open = isOpen
+		rebuild()
+	end
+
+	-- How many times the list was rebuilt (tests).
+	function self.builds(): number
+		return builds
+	end
 
 	function self.update(state: any)
 		local progress = Progress.dex(state.dex, state.dexTotal, tierNames)
@@ -220,7 +262,11 @@ function Dex.new(parent: Instance, ctx: any)
 		local top = HEADER + 4 + (if rewards.next then 36 else 0)
 		list.Position = UDim2.fromOffset(0, top)
 		list.Size = UDim2.new(1, 0, 1, -top)
-		rows.sync(SlimeDex.rows(state.dex, state.dexTotal, ctx.Config))
+		local items = SlimeDex.rows(state.dex, state.dexTotal, ctx.Config)
+		pending = items
+		pendingSignature = signature(items)
+		dirty = pendingSignature ~= builtSignature
+		rebuild()
 	end
 
 	return self

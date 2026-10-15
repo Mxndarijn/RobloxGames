@@ -57,8 +57,9 @@ local function buildTemplate(locked: boolean): Model
 	model.PrimaryPart = ball("Body", 2, SlimePreview.SILHOUETTE, Vector3.zero, model)
 	local eyeColor = if locked then DIM_EYE else WHITE
 	local pupilColor = if locked then DIM_PUPIL else INK
-	for _, side in { { "L", -0.35 }, { "R", 0.35 } } do
-		local suffix, x = side[1] :: string, side[2] :: number
+	local sides: { { suffix: string, x: number } } = { { suffix = "L", x = -0.35 }, { suffix = "R", x = 0.35 } }
+	for _, side in sides do
+		local suffix, x = side.suffix, side.x
 		local white = ball(`EyeWhite{suffix}`, 0.42, eyeColor, Vector3.new(x, 0.25, 0.72), model)
 		white.Transparency = if locked then 0.35 else 0
 		local pupil = ball(`Pupil{suffix}`, 0.2, pupilColor, Vector3.new(x, 0.22, 0.84), model)
@@ -69,6 +70,28 @@ local function buildTemplate(locked: boolean): Model
 end
 
 local templates: { [boolean]: Model } = {}
+
+local function templateFor(locked: boolean): Model
+	local cached: Model? = templates[locked]
+	if cached then
+		return cached
+	end
+	local built = buildTemplate(locked)
+	templates[locked] = built
+	return built
+end
+
+-- The viewport's WorldModel, created on first use.
+local function worldFor(vf: ViewportFrame): Instance
+	local existing = vf:FindFirstChild("World")
+	if existing then
+		return existing
+	end
+	local created = Instance.new("WorldModel")
+	created.Name = "World"
+	created.Parent = vf
+	return created
+end
 
 local function rgb(colorRgb: { number }): Color3
 	local function channel(i: number): number
@@ -81,12 +104,7 @@ end
 -- (0..255), or the dark silhouette when locked.
 function SlimePreview.build(colorRgb: { number }, opts: Opts?): Model
 	local locked = opts ~= nil and opts.locked == true
-	local template = templates[locked]
-	if template == nil then
-		template = buildTemplate(locked)
-		templates[locked] = template
-	end
-	local model = template:Clone()
+	local model = templateFor(locked):Clone()
 	local body = model:FindFirstChild("Body") :: Part
 	body.Color = if locked then SlimePreview.SILHOUETTE else rgb(colorRgb)
 	return model
@@ -98,12 +116,7 @@ end
 function SlimePreview.mount(viewport: Instance, colorRgb: { number }, opts: Opts?): boolean
 	local ok, err = pcall(function()
 		local vf = viewport :: ViewportFrame
-		local world = vf:FindFirstChild("World")
-		if world == nil then
-			world = Instance.new("WorldModel")
-			world.Name = "World"
-			world.Parent = vf
-		end
+		local world = worldFor(vf)
 		world:ClearAllChildren()
 		local cam = vf:FindFirstChild("PreviewCamera") :: Camera?
 		if cam == nil then
