@@ -104,9 +104,15 @@ function Hint.place(screen: Layout.Screen, hud: Layout.HudLayout, view: View): P
 	local m, r = Layout.MARGIN, Hint.RING
 	local ring = Layout.rect(target.x - r, target.y - r, target.w + r * 2, target.h + r * 2)
 	if view.target.kind == "hud" then
-		local w, h = Hint.bubbleSize(view.text, screen.width - m * 2)
-		local x = math.clamp(target.x + target.w / 2 - w / 2, m, screen.width - m - w)
 		local y = hud.rect.y + hud.rect.h + Hint.GAP
+		-- Right of the nav when the bubble reaches down beside it.
+		local left = screen.nav.x + screen.nav.w + Hint.GAP
+		local w, h = Hint.bubbleSize(view.text, screen.width - m - left)
+		if y + h <= screen.nav.y then
+			left = m
+			w, h = Hint.bubbleSize(view.text, screen.width - m * 2)
+		end
+		local x = math.clamp(target.x + target.w / 2 - w / 2, left, math.max(left, screen.width - m - w))
 		return { target = target, ring = ring, bubble = Layout.rect(x, y, w, h), side = "below" }
 	end
 	local x = screen.nav.x + screen.nav.w + Hint.GAP

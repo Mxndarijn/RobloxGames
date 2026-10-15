@@ -13,9 +13,9 @@
 
 	`LayoutAssert.standard(label, screen)` runs every rule the v18 UI has to
 	meet (see the spec): on-screen boxes, touch sizes, no overlaps between the
-	HUD / nav / side panels / bottom cards, and text that fits (Layout text
-	estimate, unless the descriptor is TextWrapped into a tall-enough box or
-	TextScaled).
+	HUD / nav / bottom cards, full-window menus with a tappable close X, and
+	text that fits (Layout text estimate, unless the descriptor is
+	TextWrapped into a tall-enough box or TextScaled).
 ]]
 
 local Config = require("../../src/shared/Config")
@@ -61,6 +61,16 @@ LayoutAssert.VIEWPORTS = table.freeze({
 	table.freeze({ name = "1920x1080", w = 1920, h = 1080 }),
 })
 
+-- The gate viewports (ScrollLists.spec too): full-window menus are checked
+-- at all five, the whole `standard` rule set at VIEWPORTS.
+LayoutAssert.GATE_VIEWPORTS = table.freeze({
+	table.freeze({ name = "390x844", w = 390, h = 844 }),
+	table.freeze({ name = "844x390", w = 844, h = 390 }),
+	table.freeze({ name = "1024x768", w = 1024, h = 768 }),
+	table.freeze({ name = "1366x768", w = 1366, h = 768 }),
+	table.freeze({ name = "1920x1080", w = 1920, h = 1080 }),
+})
+
 local EPS = 1e-6
 
 local function fmt(r: Rect): string
@@ -68,10 +78,12 @@ local function fmt(r: Rect): string
 end
 LayoutAssert.fmt = fmt
 
--- Every target viewport with the nav collapsed and expanded.
-function LayoutAssert.screens(): { { label: string, screen: Layout.Screen } }
+-- Every target viewport (default VIEWPORTS) with the nav collapsed and expanded.
+function LayoutAssert.screens(
+	viewports: { { name: string, w: number, h: number } }?
+): { { label: string, screen: Layout.Screen } }
 	local out = {}
-	for _, vp in LayoutAssert.VIEWPORTS do
+	for _, vp in viewports or LayoutAssert.VIEWPORTS do
 		for _, collapsed in { true, false } do
 			table.insert(out, {
 				label = `{vp.name} nav {if collapsed then "collapsed" else "expanded"}`,
@@ -349,7 +361,7 @@ function LayoutAssert.carryTexts(screen: Layout.Screen): { TextDesc }
 	}
 end
 
--- Shop rows (side panel body = panel - 24, row = body - 10, text = row - 140;
+-- Shop rows (menu body = panel - 24, row = body - 10, text = row - 140;
 -- 84 px rows: 50 px description, Layout.BUTTON Buy).
 function LayoutAssert.shopTexts(panel: Rect): { TextDesc }
 	local textW = panel.w - 24 - 10 - 140
@@ -398,6 +410,99 @@ function LayoutAssert.shopTexts(panel: Rect): { TextDesc }
 	return out
 end
 
+-- Panel titles as Widgets.panel shows them (Panels/*.luau), per Nav key.
+LayoutAssert.PANEL_TITLES = table.freeze({
+	Plot = "My Plot",
+	Merge = "Merge Vat",
+	Shop = "Shop",
+	Rebirth = "Rebirth",
+	Goals = "Goals",
+	Dex = "SlimeDex",
+	Leaders = "Top Earners",
+})
+
+-- The full-window menu box: right of the nav (+ GAP), under the HUD (+ GAP),
+-- to MARGIN from the right edge and down to the bottom inset.
+function LayoutAssert.expectedPanel(screen: Layout.Screen): Rect
+	local x = screen.nav.x + screen.nav.w + Layout.GAP
+	local y = screen.hud.rect.y + screen.hud.rect.h + Layout.GAP
+	return Layout.rect(x, y, screen.width - Layout.MARGIN - x, screen.height - screen.bottomInset - y)
+end
+
+-- Smallest usable menu body (design px): a couple of list rows.
+LayoutAssert.MIN_BODY = table.freeze({ w = 240, h = 120 })
+
+-- Full-window panel rules for every Nav menu: the expected rect, on screen,
+-- clear of the HUD and nav, a usable body, and a close X that is
+-- MIN_TOUCH, inside the panel, top-right, and never under the HUD or a
+-- bottom card (those draw above menus).
+function LayoutAssert.panelChecks(check: Checker)
+	local screen = check.screen
+	local expected = LayoutAssert.expectedPanel(screen)
+	local c = Layout.PANEL_CHROME
+	for _, entry in Nav.ENTRIES do
+		local key = entry.key
+		local r = Layout.panelFor(screen, key)
+		local name = `Panel.{key}`
+		if
+			math.abs(r.x - expected.x) > EPS
+			or math.abs(r.y - expected.y) > EPS
+			or math.abs(r.w - expected.w) > EPS
+			or math.abs(r.h - expected.h) > EPS
+		then
+			check.fail(`{name} {fmt(r)} is not the full-window rect {fmt(expected)}`)
+		end
+		check.onScreen(name, r, Layout.MARGIN)
+		check.noOverlap(name, r, "Hud", screen.hud.rect)
+		check.noOverlap(name, r, "Nav", screen.nav)
+		local body = Layout.panelBody(r)
+		check.inside(`{name}.Body`, body, name, r)
+		if body.w < LayoutAssert.MIN_BODY.w or body.h < LayoutAssert.MIN_BODY.h then
+			check.fail(`{name}.Body {fmt(body)} is smaller than {LayoutAssert.MIN_BODY.w}x{LayoutAssert.MIN_BODY.h}`)
+		end
+
+		local close = Layout.panelClose(r)
+		local closeName = `{name}.Close`
+		check.touch(closeName, close)
+		check.inside(closeName, close, name, r)
+		if
+			math.abs(close.x + close.w + c.closeInset - (r.x + r.w)) > EPS
+			or math.abs(close.y - c.closeInset - r.y) > EPS
+		then
+			check.fail(`{closeName} {fmt(close)} is not in the top-right corner of {fmt(r)}`)
+		end
+		for _, other in
+			{
+				{ "Hud", screen.hud.rect },
+				{ "Carry", screen.carry },
+				{ "Slap", screen.slap },
+				{ "Tutorial", screen.tutorial },
+				{ "TutorialCarrying", screen.tutorialCarrying },
+			}
+		do
+			check.noOverlap(closeName, close, other[1] :: string, other[2] :: Rect)
+		end
+		local title = Layout.panelTitle(r)
+		check.noOverlap(`{name}.Title`, title, closeName, close)
+		check.text({
+			name = `{name}.Title`,
+			text = LayoutAssert.PANEL_TITLES[key] or key,
+			size = c.titleSize,
+			bold = true,
+			w = title.w,
+			h = title.h,
+		})
+		check.text({ name = closeName, text = "X", size = 24, bold = true, w = close.w, h = close.h })
+	end
+end
+
+-- Just the full-window panel rules (any viewport; `standard` also runs them).
+function LayoutAssert.fullWindow(label: string, screen: Layout.Screen): Checker
+	local check = LayoutAssert.new(label, screen)
+	LayoutAssert.panelChecks(check)
+	return check
+end
+
 -- Every v18 rule for one screen; returns the checker (use `report()`).
 function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	local check = LayoutAssert.new(label, screen)
@@ -441,21 +546,9 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 		check.fail(`nav width {screen.nav.w} ~= Layout.navWidth({screen.navCollapsed})`)
 	end
 
-	-- Side panels: inside the column, clear of HUD / nav / bottom cards.
+	-- Menu panels: full window, close X tappable (LayoutAssert.fullWindow).
 	check.onScreen("column", screen.column, m)
-	for key in Layout.PANEL_SIZES do
-		local r = Layout.panelFor(screen, key)
-		local name = `Panel.{key}`
-		check.onScreen(name, r, m)
-		check.inside(name, r, "column", screen.column)
-		check.noOverlap(name, r, "Hud", hud.rect)
-		check.noOverlap(name, r, "Nav", screen.nav)
-		check.noOverlap(name, r, "Carry", screen.carry)
-		check.noOverlap(name, r, "Slap", screen.slap)
-		check.noOverlap(name, r, "Tutorial", screen.tutorial)
-		check.noOverlap(name, r, "TutorialCarrying", screen.tutorialCarrying)
-		check.touch(`{name} (min side)`, r)
-	end
+	LayoutAssert.panelChecks(check)
 
 	-- Bottom cards: on screen, above the touch-control inset, clear of the nav.
 	local floor = screen.height - screen.bottomInset

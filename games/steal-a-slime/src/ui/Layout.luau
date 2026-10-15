@@ -5,7 +5,7 @@
 	Pure layout rules shared by the UI and its tests (tests/ui/Layout.spec,
 	tests/ui/LayoutAssert): the ZIndex layers of the top-level overlays,
 	scroll list settings, the root UIScale, touch-target sizes and the
-	rectangles of the HUD, left nav, side panels and bottom cards. No
+	rectangles of the HUD, left nav, full-window menu panels and bottom cards. No
 	Instances here; Widgets / Hud / init.client apply them.
 
 	Coordinates are design px: the ScreenGui's AbsoluteSize divided by
@@ -37,8 +37,7 @@ export type Screen = {
 	nav: Rect,
 	navButtons: { Rect }, -- [1] = collapse toggle, then Nav.ENTRIES order
 	column: Rect, -- right of the nav, under the HUD, above the bottom cards
-	clear: Rect, -- column minus the tutorial card stacked over the carry panel
-	panel: Rect,
+	panel: Rect, -- full-window menu box: column width, HUD to bottom inset
 	carry: Rect,
 	slap: Rect,
 	tutorial: Rect,
@@ -50,10 +49,10 @@ local Layout = {}
 
 -- Top-level ZIndex per overlay (ScreenGui uses ZIndexBehavior.Sibling, so
 -- children render with their parent). Higher draws on top: banners over
--- side panels, the tutorial over the daily popup, and the carry panel
+-- menu panels, the tutorial over the daily popup, and the carry panel
 -- (Drop, Slap) over both.
 Layout.ZINDEX = table.freeze({
-	Base = 1, -- HUD, nav, side panels
+	Base = 1, -- HUD, nav, menu panels
 	Banners = 3, -- HUD banners, toasts and the tutorial hint
 	Daily = 5,
 	Tutorial = 15,
@@ -303,7 +302,7 @@ Layout.NAV = table.freeze({
 	padding = 6,
 	gap = 6,
 	button = Layout.BUTTON,
-	expandedWidth = 132,
+	expandedWidth = 148, -- fits the longest label ("SlimeDex")
 	collapsedWidth = 68, -- 56 px icon buttons + padding (~54 screen px on a phone)
 	count = #Nav.ENTRIES + 1, -- + the collapse toggle
 })
@@ -349,18 +348,16 @@ Layout.CARRY_TEXT_RESERVE = 190
 Layout.SLAP = table.freeze({ w = 200, h = Layout.BUTTON })
 Layout.DAILY = table.freeze({ w = 420, h = 300 })
 Layout.TUTORIAL = table.freeze({ w = 520, bodyTop = 68, bodyTextSize = 14, padX = 14, padBottom = 12 })
-Layout.PANEL = table.freeze({ w = 440, h = 480 })
 
--- Preferred side panel sizes (design px) per Nav key; init.client places
--- each one with Layout.panelRect, which shrinks it to fit the screen.
-Layout.PANEL_SIZES = table.freeze({
-	Plot = table.freeze({ w = 440, h = 440 }),
-	Merge = table.freeze({ w = 400, h = 440 }),
-	Shop = table.freeze({ w = 440, h = 480 }),
-	Rebirth = table.freeze({ w = 420, h = 450 }),
-	Goals = table.freeze({ w = 420, h = 460 }),
-	Dex = table.freeze({ w = 420, h = 480 }),
-	Leaders = table.freeze({ w = 360, h = 420 }),
+-- Menu panel chrome (Widgets.panel): the title band holds the title and the
+-- close "X" (top-right, MIN_TOUCH_DESIGN square, same spot on every panel);
+-- the body fills the rest, `pad` in from the sides and bottom.
+Layout.PANEL_CHROME = table.freeze({
+	pad = 12,
+	close = Layout.MIN_TOUCH_DESIGN,
+	closeInset = 6,
+	titleSize = 20,
+	header = Layout.MIN_TOUCH_DESIGN + 12, -- closeInset above and below the X
 })
 Layout.BANNER_WIDTH = 560
 Layout.TOAST_WIDTH = 320
@@ -380,26 +377,35 @@ function Layout.tutorialHeight(width: number): number
 	return math.ceil(t.bodyTop + body + t.padBottom)
 end
 
--- A side panel's box: right of the nav, under the HUD. Centred in `clear`
--- (above the stacked carry + tutorial cards) when it fits there, else
--- top-aligned and clamped to `column` (above a single bottom card).
-function Layout.panelRect(column: Rect, clear: Rect, preferredW: number, preferredH: number): Rect
-	local w = math.min(preferredW, column.w)
-	if preferredH <= clear.h then
-		return Layout.rect(column.x, clear.y + (clear.h - preferredH) / 2, w, preferredH)
-	end
-	return Layout.rect(column.x, column.y, w, math.min(preferredH, column.h))
+-- The full-window menu box: right of the nav (so the player can switch
+-- menus), from under the HUD down to the bottom inset (touch controls on
+-- phones). The bottom cards (carry, tutorial) draw above it (ZINDEX), so
+-- Drop / Slap / Hide stay tappable while a menu is open.
+function Layout.fullWindowRect(columnX: number, top: number, width: number, height: number, inset: number): Rect
+	local w = width - Layout.MARGIN - columnX
+	return Layout.rect(columnX, top, math.max(w, 0), math.max(height - inset - top, 0))
 end
 
--- The box of the side panel for a Nav key (PANEL_SIZES) on `screen`.
-function Layout.panelFor(screen: Screen, key: string): Rect
-	local size = (Layout.PANEL_SIZES :: any)[key] or Layout.PANEL
-	return Layout.panelRect(screen.column, screen.clear, size.w, size.h)
+-- The box of the menu panel for a Nav key on `screen`. Every menu is full
+-- window, so the key only documents the call site.
+function Layout.panelFor(screen: Screen, _key: string): Rect
+	return screen.panel
 end
 
--- Max size a side panel gets on this screen.
-function Layout.panelMaxSize(screen: Screen): (number, number)
-	return screen.column.w, screen.column.h
+-- Close button, title and body boxes inside a panel box (PANEL_CHROME).
+function Layout.panelClose(panel: Rect): Rect
+	local c = Layout.PANEL_CHROME
+	return Layout.rect(panel.x + panel.w - c.closeInset - c.close, panel.y + c.closeInset, c.close, c.close)
+end
+
+function Layout.panelTitle(panel: Rect): Rect
+	local c = Layout.PANEL_CHROME
+	return Layout.rect(panel.x + c.pad, panel.y + c.closeInset, panel.w - c.pad - c.close - c.closeInset * 2, c.close)
+end
+
+function Layout.panelBody(panel: Rect): Rect
+	local c = Layout.PANEL_CHROME
+	return Layout.rect(panel.x + c.pad, panel.y + c.header, panel.w - c.pad * 2, panel.h - c.header - c.pad)
 end
 
 -- `width` centred on the screen, pushed inside [column.x, column right].
@@ -412,8 +418,6 @@ end
 export type ScreenOptions = {
 	navCollapsed: boolean?, -- nil: Layout.navDefaultCollapsed
 	hudVisible: { [string]: boolean }?,
-	panelW: number?,
-	panelH: number?,
 }
 
 -- Every top-level box for a ScreenGui of viewportW x viewportH (see header).
@@ -455,11 +459,10 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local columnX = nav.x + nav.w + gap
 	local columnW = W - m - columnX
 
-	-- Panels stay above the bottom cards (static, so they don't jump when
-	-- the player picks something up).
+	-- The column (right of the nav) above the bottom cards; menus use the
+	-- full-window box, which runs on down to the bottom inset.
 	local column = Layout.rect(columnX, top, columnW, math.min(tutorial.y, carry.y) - gap - top)
-	local clear = Layout.rect(columnX, top, columnW, tutorialCarrying.y - gap - top)
-	local panel = Layout.panelRect(column, clear, opts.panelW or Layout.PANEL.w, opts.panelH or Layout.PANEL.h)
+	local panel = Layout.fullWindowRect(columnX, top, W, H, inset)
 
 	local dailyW = math.min(Layout.DAILY.w, W - m * 2)
 	local dailyH = math.min(Layout.DAILY.h, H - m * 2)
@@ -480,7 +483,6 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		nav = nav,
 		navButtons = Layout.navButtons(nav),
 		column = column,
-		clear = clear,
 		panel = panel,
 		carry = carry,
 		slap = slap,

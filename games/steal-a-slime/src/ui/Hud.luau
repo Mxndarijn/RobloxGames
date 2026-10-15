@@ -195,7 +195,7 @@ function Hud.new(parent: Instance, ctx: any)
 		Size = UDim2.fromOffset(Layout.BANNER_WIDTH, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
-		ZIndex = Layout.ZINDEX.Banners, -- alerts may cover a side panel's title
+		ZIndex = Layout.ZINDEX.Banners, -- alerts may cover a full-window menu title
 		Parent = parent,
 	}, { Widgets.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center) })
 	local steal = banner(banners, "StealAlert", Theme.Bad, 1)

@@ -22,8 +22,7 @@ local Rebirth = {}
 local AHEAD = 3
 
 function Rebirth.new(parent: Instance, ctx: any)
-	local panel =
-		Widgets.panel(parent, "RebirthPanel", "Rebirth", UDim2.fromOffset(420, 450), UDim2.new(0, 96, 0.5, -225))
+	local panel = Widgets.panel(parent, "RebirthPanel", "Rebirth")
 	local layout = Widgets.list(Enum.FillDirection.Vertical, 6)
 	layout.VerticalAlignment = Enum.VerticalAlignment.Top
 	layout.Parent = panel.body
@@ -82,7 +81,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 	warnLine.TextColor3 = Theme.Muted
 	warnLine.Size = UDim2.new(1, 0, 0, 34) -- two lines; grows if it needs more
 	warnLine.AutomaticSize = Enum.AutomaticSize.Y
-	warnLine.Text = "Wipes cash and slimes. Keeps your ★ favourite, pads, shop upgrades and Slimedex."
+	warnLine.Text = "Wipes cash and slimes. Keeps your ★ favourite, pads, shop upgrades and SlimeDex."
 
 	local btn = Widgets.confirmButton(
 		{
@@ -101,7 +100,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 	btn.instance.TextColor3 = Color3.fromRGB(40, 30, 10)
 	btn.instance.Parent = panel.body
 
-	local self = { frame = panel.frame }
+	local self = { frame = panel.frame, close = panel.close }
 
 	function self.update(state: any)
 		local cfg = ctx.Config

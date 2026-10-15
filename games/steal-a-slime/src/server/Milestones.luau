@@ -2,7 +2,7 @@
 --[[
 	Milestones (pure)
 
-	Pays goal stages (Shared.Goals) and Slimedex milestones (Shared.Collection)
+	Pays goal stages (Shared.Goals) and SlimeDex milestones (Shared.Collection)
 	the moment they are reached (CONTRACT.md §8.6, §8.8): GameLoop checks every
 	session once a second and Sessions.join checks on load, so old saves are
 	paid retroactively. Each payment is a Notify with sound "Goal".
@@ -34,7 +34,7 @@ function Milestones.check(world: World.World, session: World.Session): number
 		World.notify(
 			world,
 			session.userId,
-			`Slimedex {paid.count}: +${Economy.formatNumber(paid.reward)} and +{math.floor(paid.bonus * 100 + 0.5)}% income!`,
+			`SlimeDex {paid.count}: +${Economy.formatNumber(paid.reward)} and +{math.floor(paid.bonus * 100 + 0.5)}% income!`,
 			"good",
 			"Goal"
 		)

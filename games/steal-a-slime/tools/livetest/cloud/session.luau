@@ -485,7 +485,7 @@ scenario("ui", function()
 	local dexRewards = Progress.dexRewards(st)
 	local badges = Nav.badges(st)
 	check(
-		"ui: Slimedex panel, nav badge and plot Dex attributes agree",
+		"ui: SlimeDex panel, nav badge and plot Dex attributes agree",
 		dexRewards.next ~= nil
 			and badges.Dex ~= nil
 			and plot:GetAttribute("DexCount") == #st.dex

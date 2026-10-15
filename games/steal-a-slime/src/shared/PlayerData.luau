@@ -4,7 +4,7 @@
 
 	The authoritative per-player state the server keeps in memory and saves,
 	plus pure plot operations on it (pads, adding / removing slimes, buying
-	pads, selling, favourites, Slimedex). No Roblox APIs.
+	pads, selling, favourites, SlimeDex). No Roblox APIs.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -151,7 +151,7 @@ function PlayerData.removeSlime(data: Data, id: string): Slime?
 	return slime
 end
 
--- Plot income incl. rebirth, upgrade, rank and Slimedex bonuses (Perks.incomeMultiplier).
+-- Plot income incl. rebirth, upgrade, rank and SlimeDex bonuses (Perks.incomeMultiplier).
 function PlayerData.incomePerSecond(data: Data, skip: { [string]: boolean }?): number
 	return Economy.plotIncome(data.slimes, data.rebirths, skip) * Perks.bonusMultiplier(data)
 end

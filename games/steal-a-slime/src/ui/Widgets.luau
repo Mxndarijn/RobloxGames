@@ -186,35 +186,51 @@ function Widgets.confirmButton(
 	return btn
 end
 
-export type Panel = { frame: Frame, body: Frame, title: TextLabel }
+export type Panel = { frame: Frame, body: Frame, title: TextLabel, close: TextButton }
 
--- A titled, rounded panel. `body` fills the area under the title.
-function Widgets.panel(parent: Instance, name: string, titleText: string, size: UDim2, position: UDim2): Panel
+-- A titled, rounded menu panel (Layout.PANEL_CHROME): title top-left, a
+-- close "X" top-right, `body` fills the area under them. init.client sizes
+-- the frame (Layout.panelFor) and wires `close` to setOpen(nil).
+function Widgets.panel(parent: Instance, name: string, titleText: string): Panel
+	local c = Layout.PANEL_CHROME
 	local frame = create("Frame", {
 		Name = name,
-		Size = size,
-		Position = position,
+		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Theme.Bg,
-		BackgroundTransparency = 0.08,
+		BackgroundTransparency = 0.04,
 		Parent = parent,
 	}, { Widgets.corner(12), Widgets.stroke(Color3.fromRGB(10, 10, 20), 2) })
 	local title = Widgets.label({
 		Name = "Title",
 		Text = titleText,
 		Font = Theme.Font,
-		TextSize = 20,
-		Size = UDim2.new(1, -24, 0, 30),
-		Position = UDim2.fromOffset(12, 6),
+		TextSize = c.titleSize,
+		Size = UDim2.new(1, -(c.pad + c.close + c.closeInset * 2), 0, c.close),
+		Position = UDim2.fromOffset(c.pad, c.closeInset),
 		Parent = frame,
 	})
+	local close = create("TextButton", {
+		Name = "Close",
+		Text = "X",
+		Font = Theme.Font,
+		TextSize = 24,
+		TextColor3 = Theme.Text,
+		BackgroundColor3 = Theme.Bad,
+		AutoButtonColor = true,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -c.closeInset, 0, c.closeInset),
+		Size = UDim2.fromOffset(c.close, c.close),
+		ZIndex = 2,
+		Parent = frame,
+	}, { Widgets.corner(10) }) :: TextButton
 	local body = create("Frame", {
 		Name = "Body",
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, -24, 1, -48),
-		Position = UDim2.fromOffset(12, 40),
+		Size = UDim2.new(1, -c.pad * 2, 1, -(c.header + c.pad)),
+		Position = UDim2.fromOffset(c.pad, c.header),
 		Parent = frame,
 	})
-	return { frame = frame, body = body, title = title }
+	return { frame = frame, body = body, title = title, close = close }
 end
 
 function Widgets.scroll(props: { [string]: any }): ScrollingFrame

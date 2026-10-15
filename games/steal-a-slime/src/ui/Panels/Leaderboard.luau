@@ -16,13 +16,7 @@ local create = Widgets.create
 local Leaderboard = {}
 
 function Leaderboard.new(parent: Instance, _ctx: any)
-	local panel = Widgets.panel(
-		parent,
-		"LeaderboardPanel",
-		"Top Earners",
-		UDim2.fromOffset(360, 420),
-		UDim2.new(0, 96, 0.5, -200)
-	)
+	local panel = Widgets.panel(parent, "LeaderboardPanel", "Top Earners")
 
 	local empty = Widgets.label({
 		Name = "Empty",
@@ -70,7 +64,7 @@ function Leaderboard.new(parent: Instance, _ctx: any)
 		row.instance.BackgroundColor3 = if isMe then Color3.fromRGB(60, 110, 80) else Theme.Row
 	end)
 
-	local self = { frame = panel.frame }
+	local self = { frame = panel.frame, close = panel.close }
 
 	function self.setBoard(board: any)
 		local entries = if type(board) == "table" and type(board.entries) == "table" then board.entries else {}

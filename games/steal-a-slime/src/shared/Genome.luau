@@ -135,7 +135,7 @@ function Genome.displayName(slime: Slime): string
 	return `{rarity} {slime.name}`
 end
 
--- Slimedex entry: which visible combination this slime is.
+-- SlimeDex entry: which visible combination this slime is.
 function Genome.dexKey(slime: Slime): string
 	return `{slime.tier}:{slime.mutation}:{slime.pattern}:{slime.eyes}`
 end

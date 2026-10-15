@@ -4,7 +4,7 @@
 
 	  * PlotDecor.apply on every workspace.Plots.Plot_<i> at UPDATE_RATE Hz
 	    against workspace:GetServerTimeNow() (lock barrier + countdown sign,
-	    "Free plot" stand, rebirth trim / pillars / banners, Slimedex board),
+	    "Free plot" stand, rebirth trim / pillars / banners, SlimeDex board),
 	    plus a bobbing, spinning Crown on top-band plots.
 	  * RareSpawn effects on wild slimes (State == "Wild") by the RareSpawn
 	    attribute (CONTRACT §8.4, Legendary+) or else Tier, kept in a

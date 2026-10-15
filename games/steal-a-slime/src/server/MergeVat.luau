@@ -29,7 +29,7 @@ function MergeVat.merge(world: World, session: Session, idA: string, idB: string
 	World.notify(
 		world,
 		session.userId,
-		`Merged into a {Genome.displayName(child)}!` .. (if isNew then " (new Slimedex entry)" else ""),
+		`Merged into a {Genome.displayName(child)}!` .. (if isNew then " (new SlimeDex entry)" else ""),
 		"good",
 		"Merge"
 	)

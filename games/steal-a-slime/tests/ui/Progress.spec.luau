@@ -1,5 +1,5 @@
 --!strict
--- Rebirth ladder and Slimedex completion (src/ui/Progress.luau).
+-- Rebirth ladder and SlimeDex completion (src/ui/Progress.luau).
 local Config = require("../../src/shared/Config")
 local Economy = require("../../src/shared/Economy")
 local Progress = require("../../src/ui/Progress")
@@ -99,9 +99,9 @@ describe("Progress v13 rank / dex rewards", function()
 			dexBonus = 0.02,
 		})
 		expect(d.next).toBe("Next reward at 25: +$2.5K and +3% income")
-		expect(d.bonus).toBe("Dex bonus: +2% income")
+		expect(d.bonus).toBe("SlimeDex bonus: +2% income")
 		local all = Progress.dexRewards({ dexRewards = { { count = 10, reward = 1, bonus = 0.02, claimed = true } } })
-		expect(all.next).toBe("All Slimedex rewards collected!")
+		expect(all.next).toBe("All SlimeDex rewards collected!")
 		expect(all.bonus).toBeNil()
 		expect(Progress.dexRewards({}).next).toBeNil()
 	end)

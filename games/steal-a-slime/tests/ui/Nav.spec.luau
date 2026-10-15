@@ -20,6 +20,13 @@ describe("Nav.ENTRIES", function()
 		end
 		expect(seen.Plot and seen.Shop and seen.Rebirth and seen.Dex).toBe(true)
 	end)
+	it("shows the Dex entry as SlimeDex (internal key stays Dex)", function()
+		local labels = {}
+		for _, entry in Nav.ENTRIES do
+			labels[entry.key] = entry.label
+		end
+		expect(labels.Dex).toBe("SlimeDex")
+	end)
 end)
 
 describe("Nav.canMerge", function()

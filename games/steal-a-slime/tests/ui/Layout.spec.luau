@@ -132,7 +132,7 @@ describe("text that must not be cut off (v15 playtest)", function()
 		local src = read("src/ui/Panels/Rebirth.luau")
 		expect(has(src, "warnLine.AutomaticSize = Enum.AutomaticSize.Y")).toBe(true)
 		expect(has(src, "layout.VerticalAlignment = Enum.VerticalAlignment.Top")).toBe(true)
-		expect(has(src, "and Slimedex.")).toBe(true)
+		expect(has(src, "and SlimeDex.")).toBe(true)
 	end)
 end)
 

@@ -17,7 +17,7 @@ local create = Widgets.create
 local Shop = {}
 
 function Shop.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "ShopPanel", "Shop", UDim2.fromOffset(440, 480), UDim2.new(0, 96, 0.5, -240))
+	local panel = Widgets.panel(parent, "ShopPanel", "Shop")
 
 	local list = Widgets.scrollList({ Name = "List", Parent = panel.body }, 6)
 
@@ -93,7 +93,7 @@ function Shop.new(parent: Instance, ctx: any)
 		row.buy.setEnabled(view.enabled)
 	end)
 
-	local self = { frame = panel.frame }
+	local self = { frame = panel.frame, close = panel.close }
 
 	function self.update(state: any)
 		rows.sync(ShopCatalog.views(state, ctx.actions, ctx.Config))

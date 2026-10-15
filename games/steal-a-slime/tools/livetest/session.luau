@@ -676,7 +676,7 @@ end)
 
 ---------------------------------------------------------------------------
 -- ui: the server's real State / attributes / prompts through Jolt's pure UI
--- modules (src/ui): BuyUpgrade shop rows, server goals, Slimedex, lock / pad
+-- modules (src/ui): BuyUpgrade shop rows, server goals, SlimeDex, lock / pad
 -- buttons, owner-only prompt hiding, Boss Slime banner (State.boss)
 ---------------------------------------------------------------------------
 scenario("ui", function()
@@ -749,11 +749,11 @@ scenario("ui", function()
 			or "no goals"
 	)
 
-	-- Slimedex: panel text, nav badge and the plot DexBoard attributes agree.
+	-- SlimeDex: panel text, nav badge and the plot DexBoard attributes agree.
 	local dexRewards = Progress.dexRewards(state)
 	local badges = Nav.badges(state)
 	check(
-		"ui: Slimedex panel, nav badge and plot DexCount/DexTotal/DexTierMask agree",
+		"ui: SlimeDex panel, nav badge and plot DexCount/DexTotal/DexTierMask agree",
 		dexRewards.next ~= nil
 			and badges.Dex ~= nil
 			and plot:GetAttribute("DexCount") == #state.dex

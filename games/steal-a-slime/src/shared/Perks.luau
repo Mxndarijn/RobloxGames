@@ -9,7 +9,7 @@
 	    lock bonuses; the best unlocked value wins, they don't stack;
 	  * upgrade levels (Config.UPGRADES): income, carry slowdown, offline cap,
 	    luck;
-	  * Slimedex milestone bonus (Config.DEX_MILESTONES, data.dexRewards paid).
+	  * SlimeDex milestone bonus (Config.DEX_MILESTONES, data.dexRewards paid).
 	Pure: no Roblox APIs.
 ]]
 
@@ -108,7 +108,7 @@ function Perks.lockBonus(rebirths: number): number
 end
 
 ---------------------------------------------------------------------------
--- Upgrades and Slimedex
+-- Upgrades and SlimeDex
 ---------------------------------------------------------------------------
 
 function Perks.upgradeDef(id: string): Config.Upgrade?
@@ -129,7 +129,7 @@ local function upgradeEffect(data: Progress, id: string): number
 	return if def then Perks.upgradeLevel(data, id) * def.step else 0
 end
 
--- Income bonus from paid Slimedex milestones (0.05 = +5 %).
+-- Income bonus from paid SlimeDex milestones (0.05 = +5 %).
 function Perks.dexBonus(data: Progress): number
 	local total = 0
 	for i = 1, math.clamp(data.dexRewards or 0, 0, #Config.DEX_MILESTONES) do

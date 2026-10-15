@@ -4,7 +4,7 @@
 
 	Everything time-driven, in one call per frame: the volcano and Slime Rain
 	(Spawner), escape bounces and lock expiry (StealService.step), and once a
-	second income (Income.step), wriggle / timeout escapes and goal / Slimedex
+	second income (Income.step), wriggle / timeout escapes and goal / SlimeDex
 	rewards (Milestones.step).
 ]]
 
