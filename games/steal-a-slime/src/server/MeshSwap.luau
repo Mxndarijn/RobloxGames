@@ -43,10 +43,8 @@ end
 local function hide(part: BasePart)
 	part.Transparency = 1
 	for _, d in part:GetChildren() do
-		if d:IsA("Decal") then
-			d.Transparency = 1
-		elseif d:IsA("Texture") then
-			d.Transparency = 1
+		if d:IsA("Decal") or d:IsA("Texture") then
+			(d :: Decal).Transparency = 1
 		end
 	end
 end
