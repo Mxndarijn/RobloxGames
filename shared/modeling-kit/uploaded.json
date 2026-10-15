@@ -1,0 +1,249 @@
+{
+  "phoenix_corner_post": {
+    "assetId": "122993526477202",
+    "assetType": "Model",
+    "meshId": "rbxassetid://119122479393270",
+    "meshSize": [
+      2.8,
+      9.689,
+      2.8
+    ],
+    "sha256": "18a8b28be570ea36",
+    "uploadedAt": "2026-10-15T21:28:34Z",
+    "versions": 1
+  },
+  "phoenix_fence_segment": {
+    "assetId": "92327721520041",
+    "assetType": "Model",
+    "meshId": "rbxassetid://127187149466504",
+    "meshSize": [
+      11.0,
+      9.02,
+      1.8
+    ],
+    "sha256": "99b306a1ccb59f40",
+    "uploadedAt": "2026-10-15T21:28:11Z",
+    "versions": 1
+  },
+  "phoenix_gate": {
+    "assetId": "92840827180297",
+    "assetType": "Model",
+    "meshId": "rbxassetid://95862556594894",
+    "meshSize": [
+      20.2,
+      13.4,
+      2.6
+    ],
+    "sha256": "0b5c8f569048a06f",
+    "uploadedAt": "2026-10-15T21:28:47Z",
+    "versions": 1
+  },
+  "phoenix_pad_crate": {
+    "assetId": "122007188029546",
+    "assetType": "Model",
+    "meshId": "rbxassetid://78946442257134",
+    "meshSize": [
+      7.8,
+      2.61,
+      7.8
+    ],
+    "sha256": "f8ec6ecb3efc80e3",
+    "uploadedAt": "2026-10-15T21:28:56Z",
+    "versions": 1
+  },
+  "phoenix_pad_goo": {
+    "assetId": "108913920722728",
+    "assetType": "Model",
+    "meshId": "rbxassetid://85372957549244",
+    "meshSize": [
+      7.834,
+      2.09,
+      7.861
+    ],
+    "sha256": "19808e4e607dd8fc",
+    "uploadedAt": "2026-10-15T21:29:23Z",
+    "versions": 1
+  },
+  "phoenix_pad_hay": {
+    "assetId": "140052030266744",
+    "assetType": "Model",
+    "meshId": "rbxassetid://113376925245833",
+    "meshSize": [
+      7.957,
+      2.052,
+      7.715
+    ],
+    "sha256": "9a178026af106baf",
+    "uploadedAt": "2026-10-15T21:29:10Z",
+    "versions": 1
+  },
+  "phoenix_pad_stool": {
+    "assetId": "75412207782571",
+    "assetType": "Model",
+    "meshId": "rbxassetid://91205766247208",
+    "meshSize": [
+      7.019,
+      3.344,
+      7.2
+    ],
+    "sha256": "210692f2424daa60",
+    "uploadedAt": "2026-10-15T21:29:35Z",
+    "versions": 1
+  },
+  "phoenix_plaza_podium_1": {
+    "assetId": "77650457545661",
+    "assetType": "Model",
+    "meshId": "rbxassetid://94983834296700",
+    "meshSize": [
+      8.923,
+      7.192,
+      8.58
+    ],
+    "sha256": "ed06033875b7b148",
+    "uploadedAt": "2026-10-15T21:30:29Z",
+    "versions": 1
+  },
+  "phoenix_plaza_podium_2": {
+    "assetId": "97620670705737",
+    "assetType": "Model",
+    "meshId": "rbxassetid://105418025189003",
+    "meshSize": [
+      8.281,
+      5.198,
+      7.991
+    ],
+    "sha256": "76f1a4529e718258",
+    "uploadedAt": "2026-10-15T21:30:38Z",
+    "versions": 1
+  },
+  "phoenix_plaza_podium_3": {
+    "assetId": "131978647736381",
+    "assetType": "Model",
+    "meshId": "rbxassetid://83534651387040",
+    "meshSize": [
+      7.907,
+      4.093,
+      7.586
+    ],
+    "sha256": "ccfb9821352efa5d",
+    "uploadedAt": "2026-10-15T21:30:49Z",
+    "versions": 1
+  },
+  "phoenix_top_earners_board": {
+    "assetId": "126155085567089",
+    "assetType": "Model",
+    "meshId": "rbxassetid://98390738410954",
+    "meshSize": [
+      21.103,
+      19.934,
+      4.097
+    ],
+    "sha256": "4c956e3094afe337",
+    "uploadedAt": "2026-10-15T21:29:51Z",
+    "versions": 1
+  },
+  "ranch_crate": {
+    "assetId": "113390790867779",
+    "assetType": "Model",
+    "meshId": "rbxassetid://120918291298344",
+    "meshSize": [
+      3.0,
+      3.0,
+      3.0
+    ],
+    "sha256": "fa1380ac80b61bd3",
+    "uploadedAt": "2026-10-15T21:30:58Z",
+    "versions": 1
+  },
+  "ranch_crate_goo": {
+    "assetId": "127060204046625",
+    "assetType": "Model",
+    "meshId": "rbxassetid://72755843253725",
+    "meshSize": [
+      3.0,
+      3.0,
+      3.0
+    ],
+    "sha256": "f30a34adcbf05fac",
+    "uploadedAt": "2026-10-15T21:31:08Z",
+    "versions": 1
+  },
+  "ranch_feed_trough": {
+    "assetId": "122284008329780",
+    "assetType": "Model",
+    "meshId": "rbxassetid://118620263144053",
+    "meshSize": [
+      5.95,
+      2.32,
+      2.509
+    ],
+    "sha256": "f68ed529000e333e",
+    "uploadedAt": "2026-10-15T21:31:20Z",
+    "versions": 1
+  },
+  "ranch_hay_bale": {
+    "assetId": "108180914521962",
+    "assetType": "Model",
+    "meshId": "rbxassetid://83011141223539",
+    "meshSize": [
+      4.0,
+      2.617,
+      2.56
+    ],
+    "sha256": "66e531759cd7d93a",
+    "uploadedAt": "2026-10-15T21:32:39Z",
+    "versions": 1
+  },
+  "ranch_plaza_signpost": {
+    "assetId": "131934867179344",
+    "assetType": "Model",
+    "meshId": "rbxassetid://73448923703025",
+    "meshSize": [
+      12.648,
+      14.515,
+      7.55
+    ],
+    "sha256": "65c3dd14a6a08f1b",
+    "uploadedAt": "2026-10-15T21:30:09Z",
+    "versions": 1
+  },
+  "ranch_shed": {
+    "assetId": "84203174193070",
+    "assetType": "Model",
+    "meshId": "rbxassetid://78762155869477",
+    "meshSize": [
+      10.55,
+      9.33,
+      8.55
+    ],
+    "sha256": "2e1b57a8613c1ae9",
+    "uploadedAt": "2026-10-15T21:32:55Z",
+    "versions": 1
+  },
+  "ranch_shop_stand": {
+    "assetId": "102942641234419",
+    "assetType": "Model",
+    "meshId": "rbxassetid://93701432819080",
+    "meshSize": [
+      12.01,
+      14.15,
+      7.454
+    ],
+    "sha256": "f0aaf1aa3ff94bbe",
+    "uploadedAt": "2026-10-15T21:30:18Z",
+    "versions": 1
+  },
+  "slime_fountain": {
+    "assetId": "137335028699292",
+    "assetType": "Model",
+    "meshId": "rbxassetid://109732747899788",
+    "meshSize": [
+      54.45,
+      43.3,
+      63.851
+    ],
+    "sha256": "d395ddc2c3b57e89",
+    "uploadedAt": "2026-10-15T21:27:53Z",
+    "versions": 1
+  }
+}
