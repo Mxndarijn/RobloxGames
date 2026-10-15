@@ -4,7 +4,7 @@
 
 	Makes workspace match the pure World:
 	  * reconciles slime models against Scene.describe (ModelFactory.build,
-	    wrapped by SlimeMesh for the mesh look; parenting, attributes OwnerUserId / State / Price, ProximityPrompt,
+	    wrapped by SlimeMesh for the mesh look; parenting, attributes OwnerUserId / State / Price / DespawnAt, ProximityPrompt,
 	    pad placement, carry weld, volcano drop and escape-home bounce);
 	  * plot attributes OwnerUserId / LockUntil / Rebirths (CONTRACT.md §5.2)
 	    and the owner / stats text on each plot Sign (PlotSigns);
@@ -374,6 +374,8 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 		record.prompt.Enabled = entry.promptEnabled
 		record.prompt:SetAttribute(Constants.PROMPT_HIDE_ATTRIBUTE, entry.hideFromUserId)
 		record.prompt.HoldDuration = if entry.state == "Pad" then 0.4 else 0
+		-- Every reconcile, not only in place(): the telegraph window opens without a key change.
+		record.model:SetAttribute(Constants.DESPAWN_AT_ATTRIBUTE, entry.despawnAt)
 		if record.key ~= entry.key then
 			local previous = if isNew then nil else record.key
 			record.key = entry.key

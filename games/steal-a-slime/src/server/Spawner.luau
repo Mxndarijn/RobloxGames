@@ -14,6 +14,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local DespawnTelegraph = if Shared then require(Shared.DespawnTelegraph) else require("../shared/DespawnTelegraph")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Volcano = if Shared then require(Shared.Volcano) else require("../shared/Volcano")
@@ -161,8 +162,9 @@ function Spawner.step(world: World, now: number)
 		World.markAllDirty(world)
 	end
 
+	-- Removal stays at expiresAt; the telegraph (DespawnAt, Scene) only warns before it.
 	for id, wild in world.wild do
-		if now >= wild.expiresAt and world.carriedBy[id] == nil then
+		if DespawnTelegraph.shouldRemove(now, wild.expiresAt) and world.carriedBy[id] == nil then
 			world.wild[id] = nil
 		end
 	end

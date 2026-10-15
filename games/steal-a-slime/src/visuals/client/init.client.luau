@@ -12,6 +12,7 @@
 	  * tutorial arrow (TutorialArrow) for the Player attribute TutorialStepId
 	  * night sky (NightSky): Sky + Atmosphere, night look on ClockTime
 	  * follow pets (FollowPets) for the Player attribute PetSlimeId
+	  * despawn warning (DespawnTelegraphFx) on wild slimes with DespawnAt
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
 	  * volcano: smoke / embers / "Eruption" emitters on Map.Volcano.Crater
@@ -323,6 +324,14 @@ do
 	end)
 	if not ok then
 		warn(`[VisualsClient] follow pets disabled: {err}`)
+	end
+end
+do
+	local ok, err = pcall(function()
+		require(script:WaitForChild("DespawnTelegraphFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] despawn telegraph disabled: {err}`)
 	end
 end
 do
