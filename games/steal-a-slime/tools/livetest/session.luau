@@ -758,7 +758,7 @@ scenario("ui", function()
 			and badges.Dex ~= nil
 			and plot:GetAttribute("DexCount") == #state.dex
 			and plot:GetAttribute("DexTotal") == state.dexTotal
-			and state.dexTotal == 720
+			and state.dexTotal == 1152
 			and (plot:GetAttribute("DexTierMask") or 0) > 0
 			and plot:GetAttribute("PlotPrice") == nil,
 		`DexCount={plot:GetAttribute("DexCount")}/{plot:GetAttribute("DexTotal")} mask={plot:GetAttribute("DexTierMask")} badge={badges.Dex}; "{dexRewards.next}"`

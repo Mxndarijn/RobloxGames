@@ -65,9 +65,10 @@ function Spawner.pityTier(pity: World.Pity): number?
 end
 
 -- "A LEGENDARY Glow Globble erupted from the volcano!" (Mythic gets "!!").
+-- Mutation save ids use Genome.mutationDisplay ("Lava" -> "Syrup").
 function Spawner.rareText(slime: Genome.Slime): string
 	local rarity = string.upper(Genome.rarity(slime.tier).name)
-	local mutation = if slime.mutation ~= "None" then `{slime.mutation} ` else ""
+	local mutation = if slime.mutation ~= "None" then `{Genome.mutationDisplay(slime.mutation)} ` else ""
 	local bang = if slime.tier >= Config.MAX_TIER then "!!" else "!"
 	return `A {rarity} {mutation}{slime.name} erupted from the volcano{bang}`
 end

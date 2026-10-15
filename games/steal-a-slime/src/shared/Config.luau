@@ -20,6 +20,7 @@ export type Mutation = {
 	name: string,
 	multiplier: number,
 	weight: number, -- relative weight when a mutation is rolled
+	display: string?, -- shown name when it differs from the save id `name`
 }
 
 -- v13 progression (CONTRACT.md §8.8)
@@ -112,10 +113,14 @@ local RARITIES: { Rarity } = {
 }
 
 local MUTATIONS: { Mutation } = {
+	-- Ordered by multiplier (Merge ranks by position). `name` is the save id.
 	{ name = "Glow", multiplier = 1.5, weight = 50 },
-	{ name = "Lava", multiplier = 2, weight = 30 },
+	{ name = "Lava", multiplier = 2, weight = 30, display = "Syrup" },
 	{ name = "Galaxy", multiplier = 3, weight = 15 },
+	{ name = "Rainbow", multiplier = 4, weight = 8 },
 	{ name = "Gold", multiplier = 5, weight = 5 },
+	{ name = "Crystal", multiplier = 7, weight = 2 },
+	{ name = "Eclipse", multiplier = 10, weight = 0.5 },
 }
 
 local REBIRTH_TIERS: { RebirthTier } = {

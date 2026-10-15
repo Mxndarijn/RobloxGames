@@ -74,7 +74,7 @@ describe("SlimeDex.rows", function()
 	end)
 	it("drops a tier's silhouette once it is complete, and survives bad State", function()
 		local all = {}
-		for _, mutation in { "None", "Glow", "Lava", "Galaxy", "Gold" } do
+		for _, mutation in { "None", "Glow", "Lava", "Galaxy", "Rainbow", "Gold", "Crystal", "Eclipse" } do
 			for _, pattern in Config.PATTERNS do
 				for _, eyes in Config.EYES do
 					table.insert(all, `1:{mutation}:{pattern}:{eyes}`)

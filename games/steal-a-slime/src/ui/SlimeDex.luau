@@ -41,6 +41,9 @@ SlimeDex.MUTATION_COLORS = table.freeze({
 	Lava = table.freeze({ 255, 110, 40 }),
 	Galaxy = table.freeze({ 130, 90, 220 }),
 	Gold = table.freeze({ 255, 205, 70 }),
+	Rainbow = table.freeze({ 255, 120, 200 }),
+	Crystal = table.freeze({ 150, 235, 255 }),
+	Eclipse = table.freeze({ 30, 20, 50 }),
 })
 
 function SlimeDex.image(key: string, images: { [string]: string }?): string?

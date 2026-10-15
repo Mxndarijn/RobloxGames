@@ -1,6 +1,6 @@
 --!strict
 --[[
-	SlimeRoster (DRAFT, not wired into gameplay yet)
+	SlimeRoster (wired v28: Genome.generate picks species; Config.MUTATIONS holds the new mutations)
 
 	Named Slime Ranch slime types per rarity tier, plus a Secret tier and the
 	proposed Rainbow / Crystal / Eclipse mutations. Pure data, no Roblox APIs.

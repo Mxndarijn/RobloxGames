@@ -10,6 +10,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
+local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 export type Slime = {
 	id: string,
@@ -22,6 +23,7 @@ export type Slime = {
 	mouth: string,
 	mutation: string, -- "None" or a Config.MUTATIONS name
 	pad: number?, -- home pad on the owner's plot (nil while wild)
+	species: string?, -- SlimeRoster id (wild spawns since v28; nil for older/merged slimes)
 }
 
 export type GenerateOptions = {
@@ -93,6 +95,25 @@ function Genome.rollMutation(chanceRoll: number, pickRoll: number, chance: numbe
 	return Config.MUTATIONS[Rng.weightedIndex(weights, pickRoll)].name
 end
 
+-- Display name of a mutation save id ("Lava" shows as "Syrup").
+function Genome.mutationDisplay(name: string): string
+	local m = Genome.mutationInfo(name)
+	return if m and m.display then m.display else name
+end
+
+-- Picks a roster species of `tier` (uniform within the tier). Secret species
+-- (SlimeRoster.SECRET_TIER) are never returned: no Config rarity exists.
+function Genome.rollSpecies(tier: number, roll: number): SlimeRoster.Entry?
+	if tier < 1 or tier > Config.MAX_TIER then
+		return nil
+	end
+	local list = SlimeRoster.forTier(tier)
+	if #list == 0 then
+		return nil
+	end
+	return list[math.clamp(math.floor(roll * #list) + 1, 1, #list)]
+end
+
 function Genome.rollName(rng: Rng.Rng): string
 	return rng:pick(NAME_START) .. rng:pick(NAME_MID) .. rng:pick(NAME_END)
 end
@@ -108,9 +129,10 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 	local order = rng:int(1, 6)
 	local perms = { { 1, 2, 3 }, { 1, 3, 2 }, { 2, 1, 3 }, { 2, 3, 1 }, { 3, 1, 2 }, { 3, 2, 1 } }
 	local p = perms[order]
+	local species = Genome.rollSpecies(tier, rng:float())
 	return {
 		id = options.id,
-		name = Genome.rollName(rng),
+		name = if species then species.name else Genome.rollName(rng),
 		tier = tier,
 		color = { channels[p[1]], channels[p[2]], channels[p[3]] },
 		size = roundSize(Config.MIN_SIZE + rng:float() * 0.6),
@@ -119,6 +141,7 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 		mouth = rng:pick(Config.MOUTHS),
 		mutation = mutation,
 		pad = nil,
+		species = if species then species.id else nil,
 	}
 end
 
@@ -130,7 +153,7 @@ end
 function Genome.displayName(slime: Slime): string
 	local rarity = Genome.rarity(slime.tier).name
 	if slime.mutation ~= "None" then
-		return `{slime.mutation} {rarity} {slime.name}`
+		return `{Genome.mutationDisplay(slime.mutation)} {rarity} {slime.name}`
 	end
 	return `{rarity} {slime.name}`
 end
@@ -188,6 +211,7 @@ function Genome.sanitize(raw: any): Slime?
 		mouth = if contains(Config.MOUTHS, raw.mouth) then raw.mouth else "Smile",
 		mutation = if Genome.mutationInfo(raw.mutation) then raw.mutation else "None",
 		pad = if pad then math.floor(pad) else nil,
+		species = if type(raw.species) == "string" and SlimeRoster.get(raw.species) then raw.species else nil,
 	}
 end
 
