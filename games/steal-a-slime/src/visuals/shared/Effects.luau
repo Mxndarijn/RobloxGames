@@ -17,8 +17,9 @@
 
 	Effects.emitter(name) / Effects.light(name) build the configured
 	ParticleEmitter / PointLight presets. WorldBuilder places the static lights
-	(only Color3 needed); VisualsClient adds the static emitters (crater
-	smoke / embers / "Eruption", lava-crack bubbles) and bursts "Eruption".
+	(only Color3 needed); VisualsClient adds the static fountain emitters (goo
+	spray, sparkle glints, "Eruption" splash puffs on the crown, goo bubbles on
+	the LavaCrack spills) and bursts "Eruption".
 
 	No services or Roblox APIs are touched at load time; the preset tables are
 	plain data (rgb arrays), so the render proof can read them under Lune.
@@ -141,46 +142,53 @@ Effects.EMITTERS = {
 		lightEmission = 1,
 		texture = FIRE,
 	},
-	-- static, added to the Map by VisualsClient (client-only looks)
-	CraterSmoke = {
+	-- static, added to the Map by VisualsClient (client-only looks). The
+	-- slime fountain still answers to Map.Volcano.Crater (the goo pool on its
+	-- crown), so the preset keys keep their volcano names. Colours are
+	-- THEME.md ranch_goo / goo_hi / pink / lilac / butter: no greys, no
+	-- near-white puffs, everything see-through and barely emissive.
+	CraterSmoke = { -- "Smoke": light pastel goo spray above the crown
 		direction = "Right", -- the Crater cylinder's local +X is world up
-		colors = { { 90, 80, 80 }, { 40, 36, 36 } },
-		-- Kept small and thin so the volcano stays readable (tests/Effects.spec).
-		size = { 2.5, 6 },
-		lifetime = { 3, 5 },
-		speed = { 2.5, 4 },
+		colors = { { 196, 250, 220 }, { 196, 166, 232 } },
+		-- Small soft droplets so the fountain stays readable (tests/Effects.spec).
+		size = { 0.8, 1.6 },
+		lifetime = { 2, 3.5 },
+		speed = { 3, 5 },
 		spread = 15,
 		rate = 2,
 		lightEmission = 0,
-		transparency = { 0.6, 1 },
+		gravity = -3,
+		transparency = { 0.55, 1 },
 		rotSpeed = 30,
 		texture = SMOKE,
 	},
-	CraterEmbers = {
+	CraterEmbers = { -- "Embers": a few butter / pink sparkle glints
 		direction = "Right", -- the Crater cylinder's local +X is world up
-		colors = { { 255, 220, 120 }, { 255, 90, 20 } },
-		size = { 0.5, 0.1 },
-		lifetime = { 1.2, 2 },
-		speed = { 8, 14 },
+		colors = { { 252, 216, 110 }, { 250, 150, 182 } },
+		size = { 0.35, 0.05 },
+		lifetime = { 1, 1.6 },
+		speed = { 5, 9 },
 		spread = 25,
-		rate = 6,
-		lightEmission = 1,
-		gravity = -10,
+		rate = 3,
+		lightEmission = 0.4,
+		gravity = -8,
+		transparency = { 0.2, 1 },
 		texture = SPARK,
 	},
-	Eruption = { -- Rate 0: VisualsClient :Emit()s it every few seconds
+	Eruption = { -- goo splash puffs; Rate 0: VisualsClient :Emit()s it every few seconds
 		direction = "Right", -- the Crater cylinder's local +X is world up
-		colors = { { 255, 240, 160 }, { 255, 120, 30 }, { 120, 40, 20 } },
-		size = { 1.6, 0.5 },
-		lifetime = { 1.2, 2 },
-		speed = { 18, 26 },
+		colors = { { 196, 250, 220 }, { 110, 226, 170 }, { 196, 166, 232 } },
+		size = { 1.2, 0.4 },
+		lifetime = { 1, 1.6 },
+		speed = { 14, 20 },
 		spread = 22,
 		rate = 0,
-		count = 24,
-		lightEmission = 1,
+		count = 18,
+		lightEmission = 0.1,
 		gravity = -40,
-		rotSpeed = 120,
-		texture = FIRE,
+		rotSpeed = 90,
+		transparency = { 0.25, 1 },
+		texture = SMOKE,
 	},
 	RareSparkle = { -- RareSpawn: Rate and Color set per tier
 		colors = { { 255, 255, 255 } },
@@ -193,22 +201,22 @@ Effects.EMITTERS = {
 		rotSpeed = 120,
 		texture = SPARK,
 	},
-	LavaBubbles = {
-		colors = { { 255, 160, 60 }, { 255, 80, 20 } },
-		size = { 0.6, 1.2 },
+	LavaBubbles = { -- soft goo bubbles popping on the LavaCrack* goo spills
+		colors = { { 110, 226, 170 }, { 196, 250, 220 } },
+		size = { 0.4, 0.9 },
 		lifetime = { 0.6, 1 },
-		speed = { 1, 3 },
+		speed = { 1, 2.5 },
 		spread = 10,
 		rate = 3,
-		lightEmission = 0.8,
-		transparency = { 0.1, 1 },
-		texture = SPARK,
+		lightEmission = 0.15,
+		transparency = { 0.3, 1 },
+		texture = SMOKE,
 	},
 } :: { [string]: EmitterPreset }
 
 Effects.LIGHTS = {
-	CraterGlow = { color = { 255, 120, 40 }, brightness = 3, range = 40 },
-	LavaGlow = { color = { 255, 110, 30 }, brightness = 1.5, range = 14 },
+	CraterGlow = { color = { 110, 226, 170 }, brightness = 1.5, range = 32 },
+	LavaGlow = { color = { 110, 226, 170 }, brightness = 0.6, range = 12 }, -- soft goo green
 	TorchGlow = { color = { 255, 180, 90 }, brightness = 1.2, range = 16 },
 	CrystalGlow = { color = { 120, 255, 200 }, brightness = 0.8, range = 10 },
 	MergeFlash = { color = { 200, 150, 255 }, brightness = 4, range = 16 },
