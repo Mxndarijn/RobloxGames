@@ -223,6 +223,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			mouth = slime.mouth,
 			mutation = slime.mutation,
 			pad = slime.pad,
+			species = slime.species, -- optional (v28), dropped on load if unknown
 		})
 	end
 	local dex = {}

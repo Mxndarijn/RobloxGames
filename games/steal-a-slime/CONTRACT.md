@@ -177,10 +177,13 @@ The `slimeData` shape is `Types.SlimeData`, the same as `Genome.Slime` and the s
 	pattern: string,     -- "Plain" | "Spots" | "Stripes" | "Belly"
 	eyes: string,        -- "Round" | "Sleepy" | "Angry" | "Happy" | "Cyclops" | "Wide"
 	mouth: string,       -- "Smile" | "Open" | "Flat" | "Fang"
-	mutation: string,    -- "None" | "Glow" | "Lava" | "Galaxy" | "Gold"
+	mutation: string,    -- "None" | "Glow" | "Lava" | "Galaxy" | "Rainbow" | "Gold" | "Crystal" | "Eclipse"
 	pad: number?,        -- home pad 1..PADS_MAX on the owner's plot; nil while wild/carried
+	species: string?,    -- SlimeRoster id (v28+); nil on older and merged slimes
 }
 ```
+
+**Roster (v28):** wild slimes roll their tier exactly as before, then pick a species of that tier from `SlimeRoster` (uniform within the tier); `name` is the species display name. Saved slimes keep their stored `name`; `species` is optional and an unknown id is dropped on load. Secret species (tier 7) are roster-only and never spawn. Mutations are ordered by multiplier (Merge ranks by position): Glow 1.5/50, Lava 2/30 (shown as "Syrup", save id stays `Lava`), Galaxy 3/15, Rainbow 4/8, Gold 5/5, Crystal 7/2, Eclipse 10/0.5.
 
 **Return value:** a new, **unparented** `Model`:
 - **Name:** `Slime_<id>`.
@@ -226,7 +229,7 @@ The client always replaces its copy and never diffs.
 	carrying: { slime: SlimeData, kind: "wild" | "stolen", ownerUserId: number?,
 	            startedAt: number, escapeAt: number?, walkSpeed: number }?,
 	rain: { active: boolean, endsAt: number?, nextAt: number? },
-	dex: { string }, dexTotal: number,          -- Genome.dexKey values; total = 6*5*4*6 = 720
+	dex: { string }, dexTotal: number,          -- Genome.dexKey values; total = 6*8*4*6 = 1152 (v28; was 720)
 	daily: { available: boolean, streak: number, amount: number, day: number },
 	shop: {
 		LockUpgrade: { price: number?, level: number, maxLevel: number },  -- price nil = maxed
@@ -418,7 +421,7 @@ Every field above is in every snapshot (the server never leaves one out); only t
 | `Pad_<j>` | `Unlocked` (`PAD_UNLOCKED_ATTRIBUTE`) | `boolean`, `j <= PadsUnlocked` (false on a free plot) |
 | `Plot_<i>` | `OwnerUserId`, `LockUntil`, `Rebirths` (§5.2) | set by the server on every reconcile (`WorldView.updatePlots`); Archer's PlotDecor reads them with `Locked`. Wild slime models carry `Tier` (factory), `State = "Wild"` and `RareSpawn` (below), which PlotVisuals/RareSpawn read. |
 | `Plot_<i>` | `DexCount` (`PLOT_DEX_COUNT_ATTRIBUTE`) | `number`, owner's discovered Slimedex entries (0 = free plot) |
-| `Plot_<i>` | `DexTotal` (`PLOT_DEX_TOTAL_ATTRIBUTE`) | `number`, always 720 (= `State.dexTotal`) |
+| `Plot_<i>` | `DexTotal` (`PLOT_DEX_TOTAL_ATTRIBUTE`) | `number`, always 1152 (= `State.dexTotal`) |
 | `Plot_<i>` | `DexTierMask` (`PLOT_DEX_TIER_MASK_ATTRIBUTE`) | `number`, optional for readers: bit k-1 set when the owner has discovered any tier-k slime (0 = free plot) |
 | `Plot_<i>` | `PlotPrice` (`PLOT_PRICE_ATTRIBUTE`) | `number?`, reserved for paid plots; **never set in v13** (plots are free), so readers show no price |
 | wild slime model | `RareSpawn` (`RARE_ATTRIBUTE`) | `number?`, the tier, only on wild Legendary+ (tier >= `RARE_ANNOUNCE_TIER`) drops |

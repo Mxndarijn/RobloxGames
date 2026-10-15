@@ -42,24 +42,19 @@ describe("SlimeRoster", function()
 			expect(SlimeRoster.MUTATION_DISPLAY[keep] ~= nil).toBe(true)
 		end
 		expect(SlimeRoster.MUTATION_DISPLAY.Lava).toBe("Syrup")
+		expect(names.Lava.display).toBe("Syrup")
 		for _, m in SlimeRoster.NEW_MUTATIONS do
-			expect(names[m.name]).toBe(nil)
+			-- v28: wired into Config with the drafted values.
+			expect(names[m.name] ~= nil).toBe(true)
+			expect(names[m.name].multiplier).toBe(m.multiplier)
+			expect(names[m.name].weight).toBe(m.weight)
 			expect(SlimeRoster.MUTATION_DISPLAY[m.name] ~= nil).toBe(true)
 		end
-		-- Combined curve: higher multiplier always means lower weight.
-		local all = {}
-		for _, m in Config.MUTATIONS do
-			table.insert(all, { multiplier = m.multiplier, weight = m.weight })
-		end
-		for _, m in SlimeRoster.NEW_MUTATIONS do
-			table.insert(all, { multiplier = m.multiplier, weight = m.weight })
-		end
-		table.sort(all, function(a, b)
-			return a.multiplier < b.multiplier
-		end)
-		for i = 2, #all do
-			expect(all[i].multiplier > all[i - 1].multiplier).toBe(true)
-			expect(all[i].weight < all[i - 1].weight).toBe(true)
+		-- Config order is the merge rank: multiplier up, weight down.
+		for i = 2, #Config.MUTATIONS do
+			local a, b = Config.MUTATIONS[i - 1], Config.MUTATIONS[i]
+			expect(b.multiplier > a.multiplier).toBe(true)
+			expect(b.weight < a.weight).toBe(true)
 		end
 	end)
 end)

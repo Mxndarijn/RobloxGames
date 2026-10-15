@@ -77,7 +77,13 @@ describe("Genome.rollMutation", function()
 	end)
 	it("picks by weight when the chance roll hits", function()
 		expect(Genome.rollMutation(0.01, 0, 0.1)).toBe("Glow")
-		expect(Genome.rollMutation(0.01, 0.999, 0.1)).toBe("Gold")
+		expect(Genome.rollMutation(0.01, 0.999, 0.1)).toBe("Eclipse")
+	end)
+	it("weights fall as multipliers rise", function()
+		for i = 2, #Config.MUTATIONS do
+			expect(Config.MUTATIONS[i].multiplier > Config.MUTATIONS[i - 1].multiplier).toBe(true)
+			expect(Config.MUTATIONS[i].weight < Config.MUTATIONS[i - 1].weight).toBe(true)
+		end
 	end)
 end)
 
@@ -143,7 +149,68 @@ describe("Genome.sanitize", function()
 		expect(s.pad).toBeNil()
 	end)
 	it("display name includes mutation and rarity", function()
-		expect(Genome.displayName(Fixtures.slime("a", 4, { mutation = "Lava" }))).toBe("Lava Epic Blorp")
+		expect(Genome.displayName(Fixtures.slime("a", 4, { mutation = "Lava" }))).toBe("Syrup Epic Blorp")
 		expect(Genome.displayName(Fixtures.slime("a", 1))).toBe("Common Blorp")
+	end)
+end)
+
+describe("Genome roster wiring (v28)", function()
+	local SlimeRoster = require("../src/shared/SlimeRoster")
+	it("wild slimes get a roster species of their tier and its name", function()
+		local rng = Rng.new(5)
+		local seen = {}
+		for i = 1, 400 do
+			local s = Genome.generate(rng, { id = tostring(i) })
+			local entry = SlimeRoster.get(s.species :: string)
+			expect(entry ~= nil).toBe(true)
+			assert(entry, "expected a value")
+			expect(entry.tier).toBe(s.tier)
+			expect(s.name).toBe(entry.name)
+			seen[entry.id] = true
+		end
+		expect(seen.golden_goose_goo).toBe(nil)
+		expect(seen.moonmilk).toBe(nil)
+	end)
+	it("every Config tier has species and forced tiers map to them", function()
+		for tier = 1, Config.MAX_TIER do
+			expect(#SlimeRoster.forTier(tier) > 0).toBe(true)
+			local s = Genome.generate(Rng.new(tier), { id = "t", tier = tier })
+			expect((SlimeRoster.get(s.species :: string) :: any).tier).toBe(tier)
+		end
+		expect(Genome.rollSpecies(SlimeRoster.SECRET_TIER, 0.5)).toBe(nil)
+	end)
+	it("old saves without species still load and keep their name", function()
+		local s = Genome.sanitize({
+			id = "old",
+			name = "Globble",
+			tier = 3,
+			color = { 1, 2, 3 },
+			size = 1.2,
+			pattern = "Spots",
+			eyes = "Round",
+			mouth = "Smile",
+			mutation = "Lava",
+		})
+		assert(s, "expected a value")
+		expect(s.name).toBe("Globble")
+		expect(s.species).toBe(nil)
+		expect(s.mutation).toBe("Lava")
+		local bad = Genome.sanitize({ id = "x", tier = 1, species = "nope" })
+		assert(bad, "expected a value")
+		expect(bad.species).toBe(nil)
+		local good = Genome.sanitize({ id = "y", tier = 1, species = "pudding" })
+		assert(good, "expected a value")
+		expect(good.species).toBe("pudding")
+	end)
+	it("new mutations load and Lava displays as Syrup", function()
+		for _, m in { "Rainbow", "Crystal", "Eclipse" } do
+			expect(Genome.mutationInfo(m) ~= nil).toBe(true)
+		end
+		expect(Genome.mutationMultiplier("Eclipse")).toBe(10)
+		expect(Genome.mutationDisplay("Lava")).toBe("Syrup")
+		expect(Genome.mutationDisplay("Gold")).toBe("Gold")
+		local s = Genome.generate(Rng.new(1), { id = "x", tier = 1 })
+		s.mutation = "Lava"
+		expect(string.find(Genome.displayName(s), "Syrup", 1, true) ~= nil).toBe(true)
 	end)
 end)
