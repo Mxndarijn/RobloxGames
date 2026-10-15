@@ -51,6 +51,68 @@ describe("Slime Ranch layout", function()
 			true
 		)
 	end)
+	it("covers the landing ring with plaza sand and keeps props off the ring path", function()
+		expect(WorldLayout.PLAZA_RADIUS >= 64 and WorldLayout.PLAZA_RADIUS <= 66).toBe(true)
+		expect(WorldLayout.PLAZA_RADIUS >= 62).toBe(true)
+		for _, spot in WorldLayout.PROP_SPOTS do
+			local r = math.sqrt(spot.pos[1] ^ 2 + spot.pos[3] ^ 2)
+			expect(r >= 88).toBe(true)
+		end
+	end)
+	it("places 18 landing-ring tiles and one goo drain", function()
+		local rings, drains = 0, 0
+		for _, root in nodes do
+			walk(root, function(n)
+				local mesh = n.attributes and n.attributes.MeshAsset
+				if mesh == "ranch_landing_ring" then
+					rings += 1
+					expect(n.canCollide).toBe(false)
+				elseif mesh == "ranch_goo_drain" then
+					drains += 1
+					expect(n.pos[3] > 40).toBe(true)
+				end
+			end)
+		end
+		expect(rings).toBe(18)
+		expect(drains).toBe(1)
+	end)
+	it("sizes the fountain slot to the polished bbox with the silo on the origin", function()
+		local found = false
+		for _, root in nodes do
+			walk(root, function(n)
+				if n.name == "FountainMesh" then
+					found = true
+					expect(n.size[1]).toBeCloseTo(54.45)
+					expect(n.size[2]).toBeCloseTo(43.316)
+					expect(n.size[3]).toBeCloseTo(63.851)
+					-- silo is Roblox (-6.52, -7.75) from the bbox centre
+					expect(n.pos[1] + -6.52).toBeCloseTo(0)
+					expect(n.pos[3] + -7.75).toBeCloseTo(0)
+				end
+			end)
+		end
+		expect(found).toBe(true)
+		local mouth = WorldLayout.slidePosition(1)
+		local r = math.sqrt(mouth[1] ^ 2 + mouth[3] ^ 2)
+		expect(math.abs(r - WorldLayout.SLIDE_END_RADIUS) < 0.25).toBe(true)
+		expect(WorldLayout.SLIDE_END_RADIUS).toBe(35.5)
+	end)
+	it("tags the primitive chute as a fountain stand-in", function()
+		local chute: any = nil
+		for _, root in nodes do
+			walk(root, function(n)
+				if n.name == "Chute" then
+					chute = n
+				end
+			end)
+		end
+		expect(chute ~= nil and chute.primaryPart).toBe("Floor")
+		expect(#chute.children > 8).toBe(true)
+		for _, part in chute.children do
+			expect(part.attributes.MeshStandIn).toBe("slime_fountain")
+			expect(part.canCollide).toBe(false)
+		end
+	end)
 	it("gives every plot one gate with a 14-stud opening", function()
 		local plots = nodes[2].children
 		expect(#plots).toBe(Config.PLOT_COUNT)
