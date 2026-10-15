@@ -333,6 +333,11 @@ local Config = {
 	MAX_WILD_SLIMES = 18,
 	WILD_LIFETIME = 75,
 	DESPAWN_TELEGRAPH_SECONDS = 5, -- wild slimes warn this long before they expire (FEATURES.DespawnTelegraph)
+	-- Despawn telegraph FX: optional one-shot sound with the poof. Off until a real asset is chosen.
+	DESPAWN_POOF_SOUND = false,
+	-- Despawn telegraph FX: PLACEHOLDER id. Replace with a real short pop/poof id before
+	-- enabling DESPAWN_POOF_SOUND. The client never plays id 0; don't ship 0 as "the sound".
+	DESPAWN_POOF_SOUND_ID = "rbxassetid://0",
 	DROP_MUTATION_CHANCE = 0.03,
 	-- v13 rarity curve (CONTRACT.md §8.7): pity per server, Legendary+ drops are announced
 	PITY_EPIC = 30, -- after this many drops without an Epic+, the next one is at least Epic
