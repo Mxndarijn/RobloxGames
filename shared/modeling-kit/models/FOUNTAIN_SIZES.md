@@ -9,6 +9,7 @@ Based on live WorldLayout (map 640², PLOT_SIZE 56, plot ring 120, drop ring 34.
 | Slide/spiral | 0.85–2.2 turns, r ~8 → ~42, length ~55–120, width 7 (6.5–8) | old chute ~50 long, 7 wide; ends inside the landing ring |
 | Landing plaza | flat disc r ~55, `ranch_plaza` sand | shop + HubSpawn on the edge; no ranch_cream on the big floor |
 | Wild landing ring | r 34..62 (unchanged) | |
+| Goo-parade lane | centreline r 68, lane r 64.75..71.25 (6.5 incl. edging; goo channel 4.5 = r 65.75..70.25), 8 x 45 deg = 7 `parade_lane_arc45` + 1 `parade_lane_gate` + `parade_lane_countdown_ring` = 9 MeshParts | between landing ring (62) and ring path (74); edging top <= 1.0 (step over), goo z 0.20 centre; gate arch beam underside 9.6, posts r 63.25 / 72.75; 45-deg chord 54.5 < 64 decor axis |
 | Ring path | r 78, width 8 | was 72/7; moved out for bigger plots |
 | Spokes | width 8 | unchanged |
 | Plot floor | 80 × 80 (6400 vs 3136 = 2.04× v26) | one entrance; pads 4→8 |
