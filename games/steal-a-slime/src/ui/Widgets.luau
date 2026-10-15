@@ -233,21 +233,54 @@ function Widgets.scroll(props: { [string]: any }): ScrollingFrame
 	return create("ScrollingFrame", base)
 end
 
+-- Row gap of a scroll list (attribute on its ScrollingFrame).
+local LIST_GAP = "ListGap"
+
 -- A vertical scroll list: rows from the top (Layout.SCROLL_LIST) with edge
--- padding, so the first and last rows are never clipped and the canvas
--- grows with its rows. Returns the ScrollingFrame; parent rows to it.
+-- padding, so the first and last rows are never clipped. Returns the
+-- ScrollingFrame; parent rows to it (fixed offset heights, no
+-- AutomaticSize) and call Widgets.restack after changing them
+-- (keyedList.sync does). No UIListLayout / UIPadding: see
+-- Layout.SCROLL_LIST for why rows are placed explicitly.
 function Widgets.scrollList(props: { [string]: any }, spacing: number?): ScrollingFrame
-	local rules = Layout.SCROLL_LIST
 	local frame = Widgets.scroll(props)
-	local layout = Widgets.list(Enum.FillDirection.Vertical, spacing)
-	layout.VerticalAlignment = (Enum.VerticalAlignment :: any)[rules.verticalAlignment]
-	layout.Parent = frame
-	create("UIPadding", {
-		PaddingTop = UDim.new(0, rules.paddingTop),
-		PaddingBottom = UDim.new(0, rules.paddingBottom),
-		Parent = frame,
-	})
+	frame.AutomaticCanvasSize = Enum.AutomaticSize.None
+	frame:SetAttribute(LIST_GAP, spacing or 6)
+	Widgets.restack(frame)
 	return frame
+end
+
+-- Places a scroll list's visible rows top to bottom by LayoutOrder (then
+-- Name) at Layout.stackRows offsets and sets the canvas to fit them.
+-- Neither depends on the list's AbsoluteSize, so a hidden list is laid out
+-- the same as a shown one. No-op for anything but a Widgets.scrollList.
+function Widgets.restack(frame: Instance)
+	local gap = frame:GetAttribute(LIST_GAP)
+	if type(gap) ~= "number" then
+		return
+	end
+	local rows: { GuiObject } = {}
+	for _, child in frame:GetChildren() do
+		if child:IsA("GuiObject") and (child :: GuiObject).Visible then
+			table.insert(rows, child :: GuiObject)
+		end
+	end
+	table.sort(rows, function(a, b)
+		if a.LayoutOrder ~= b.LayoutOrder then
+			return a.LayoutOrder < b.LayoutOrder
+		end
+		return a.Name < b.Name
+	end)
+	local heights = {}
+	for i, row in rows do
+		heights[i] = row.Size.Y.Offset
+	end
+	local ys, canvas = Layout.stackRows(heights, gap)
+	for i, row in rows do
+		row.AnchorPoint = Vector2.zero
+		row.Position = UDim2.fromOffset(0, ys[i])
+	end
+	(frame :: ScrollingFrame).CanvasSize = UDim2.fromOffset(0, canvas)
 end
 
 -- A horizontal progress bar; returns the frame and a setter (0..1).
@@ -305,6 +338,7 @@ function Widgets.keyedList<T>(
 				rows[k] = nil
 			end
 		end
+		Widgets.restack(container)
 	end
 	return { sync = sync, rows = rows }
 end
