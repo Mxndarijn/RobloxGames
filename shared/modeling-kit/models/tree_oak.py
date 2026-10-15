@@ -1,10 +1,11 @@
-# tree_oak: stylised cartoon oak for Steal a Slime (replaces v17 tree_oak, same ~11x13 footprint).
+# tree_oak: stylised cartoon oak for Steal a Slime (replaces v17 tree_oak, ~11.5 x 12.6 x 7.9 studs).
+# v2: canopy oval (narrow in Y like the old mesh), whole tree x0.9, darks lifted for the game sun.
 import math, random
 from lib import *
 
 R = random.Random(11)
-BARK, BARK_D = PALETTE["bark"], PALETTE["bark_dark"]
-LEAF_D, LEAF, LEAF_L = PALETTE["leaf_dark"], PALETTE["leaf"], rgb(146, 214, 72)  # lime highlight, a bit more saturated than PALETTE
+BARK, BARK_D = PALETTE["bark"], rgb(104, 70, 48)  # v2: bark_dark +20%
+LEAF_D, LEAF, LEAF_L = rgb(70, 146, 62), PALETTE["leaf"], rgb(146, 214, 72)  # v2: leaf_dark +20% (Roblox look went near-black)  # lime highlight, a bit more saturated than PALETTE
 parts = []
 
 # trunk with flare
@@ -52,4 +53,7 @@ for k, (x, y, rr) in enumerate(((0.9, 0.4, 2.1), (-0.7, -0.5, 1.8))):
 # canopy underside height (ghost decor is fine at any height; collidable needs >= 7)
 leaves = [o for o in parts if o.name[:3] in ("Cor", "Low", "Mid", "Cro")]
 print(f"tree_oak: canopy underside {min(min(v.co.z for v in o.data.vertices) for o in leaves):.1f} studs")
+DEPTH = 0.78  # canopy / branch spread in Y (old mesh: 7.9 deep vs 11.5 wide)
+for o in parts:
+    o.scale = (0.9, 0.9 * (DEPTH if o.name[:3] in ("Cor", "Low", "Mid", "Cro", "Bra") else 1.0), 0.9)
 finish("tree_oak", parts)
