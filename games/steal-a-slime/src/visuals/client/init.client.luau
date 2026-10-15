@@ -15,8 +15,9 @@
 	  * despawn warning (DespawnTelegraphFx) on wild slimes with DespawnAt
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
-	  * volcano: smoke / embers / "Eruption" emitters on Map.Volcano.Crater
-	    and bubbles on Map.Decor.LavaCrack*, with an eruption burst every
+	  * slime fountain (still Map.Volcano.Crater): goo spray ("Smoke"),
+	    sparkle glints ("Embers") and "Eruption" splash puffs on the crown,
+	    goo bubbles on Map.Decor.LavaCrack*, with a splash burst every
 	    ERUPT_EVERY seconds (faster during Slime Rain)
 	Reads attributes only; never fires remotes. One RenderStepped loop, slimes
 	far from the camera are skipped.
@@ -38,7 +39,7 @@ local Effects = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("
 local MAX_DISTANCE = 150
 local BLINK_TIME = 0.12
 local RAIN_ATTRIBUTE = Constants.RAIN_ATTRIBUTE
-local ERUPT_EVERY = { 9, 16 } -- seconds between eruption bursts
+local ERUPT_EVERY = { 9, 16 } -- seconds between fountain splash bursts
 local ERUPT_EVERY_RAIN = { 3, 6 }
 
 type Track = {
@@ -247,7 +248,7 @@ local function setRain(active: boolean)
 	end
 end
 
--- Volcano: client-only emitters on the static map, eruption bursts.
+-- Fountain: client-only goo emitters on the static map, splash bursts.
 local eruption: ParticleEmitter? = nil
 local craterGlow: PointLight? = nil
 local nextEruption = os.clock() + 4

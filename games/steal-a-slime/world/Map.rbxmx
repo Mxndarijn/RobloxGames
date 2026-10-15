@@ -253,13 +253,13 @@
         <Item class="PointLight" referent="9">
           <Properties>
             <string name="Name">CraterGlow</string>
-            <float name="Brightness">3</float>
+            <float name="Brightness">1.5</float>
             <Color3 name="Color">
-              <R>1</R>
-              <G>0.47058824</G>
-              <B>0.15686275</B>
+              <R>0.43137255</R>
+              <G>0.8862745</G>
+              <B>0.6666667</B>
             </Color3>
-            <float name="Range">40</float>
+            <float name="Range">32</float>
             <bool name="Shadows">false</bool>
           </Properties>
         </Item>

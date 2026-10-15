@@ -15,3 +15,8 @@ Based on live WorldLayout (map 640², PLOT_SIZE 56, plot ring 120, drop ring 34.
 | Plot centres | r ~130 (was 120) | inner edge 90 > ring path outer 82; 8 plots, neighbour spacing ~99 > 80, no overlap |
 | Gate / walls | slot 20, clear opening 14, walls 8 tall | fence segments 10; 6×10 + 20 = 80; top beam (if any) ≥ 9 |
 | Scale refs | player 5, slime 3 | |
+
+## Shipped fountain mesh (slime_fountain, goo polish 2026-10-15)
+
+- `slime_fountain` (one MeshPart): 6814 tris, 54.45 x 43.3 x 63.85 studs (W x H x D), silo axis at kit (-6.52, 7.75) from the bbox centre (the script prints `SILO_AXIS`). The goo crown, drips, slide goo and the splash pool at the slide exit are all in this mesh.
+- `slime_fountain_emerge` (optional second MeshPart, `models/slime_fountain_emerge.py`): the 4 gumdrop slimes (3 welling out of the crown, 1 at the slide head), 640 tris, 19.4 x 12.8 x 11.4. Not baked into the fountain any more, so it can be hidden, bobbed or swapped. Place it at fountain bbox centre + EMERGE_OFFSET: kit (-11.20, 8.25, 18.94) = Roblox (X, Y, Z) (-11.20, 18.94, -8.25) for an unrotated fountain (rotate the offset with the fountain). Per-slime base points are printed as `EMERGE_BASE` lines. The Roblox Z sign assumes Studio keeps the FBX axes (forward -Z); check once in Studio.

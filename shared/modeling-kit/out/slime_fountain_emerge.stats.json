@@ -1,0 +1,109 @@
+{
+  "name": "slime_fountain_emerge",
+  "model": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/models/slime_fountain_emerge.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 640,
+  "meshes": [
+    {
+      "name": "slime_fountain_emerge",
+      "tris": 640,
+      "verts": 344,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        19.436,
+        12.798,
+        11.353
+      ],
+      "materials": [
+        "slime_fountain_emerge_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "slime_fountain_emerge_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    19.436,
+    12.798,
+    11.353
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "slime_fountain_emerge_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": null,
+  "fbx_bytes": null,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/.tiles/slime_fountain_emerge_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/.tiles/slime_fountain_emerge_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/.tiles/slime_fountain_emerge_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/.tiles/slime_fountain_emerge_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.307,
+    "stats_s": 0.001,
+    "setup_s": 0.001,
+    "render_s": [
+      0.424,
+      0.361,
+      0.44,
+      0.464
+    ],
+    "export_s": 0.0
+  },
+  "sheet": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/slime_fountain_emerge_sheet.png",
+  "timings": {
+    "wall_s": 2.48,
+    "blender_process_s": 2.39,
+    "compose_s": 0.086,
+    "model_s": 0.307,
+    "stats_s": 0.001,
+    "setup_s": 0.001,
+    "render_s": [
+      0.424,
+      0.361,
+      0.44,
+      0.464
+    ],
+    "export_s": 0.0
+  }
+}
