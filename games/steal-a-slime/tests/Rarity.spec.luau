@@ -99,6 +99,12 @@ describe("Spawner.rareText / pityTier", function()
 		slime.mutation = "None"
 		expect(Spawner.rareText(slime)).toBe("A MYTHIC Globble erupted from the volcano!!")
 	end)
+	it("displays Lava as Syrup in the toast (save id kept)", function()
+		local slime = Genome.generate((require("../src/shared/Rng") :: any).new(1), { id = "x", tier = 5 })
+		slime.mutation = "Lava"
+		slime.name = "Globble"
+		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Syrup Globble erupted from the volcano!")
+	end)
 	it("floors at Epic after PITY_EPIC - 1 misses and Legendary after PITY_LEGENDARY - 1", function()
 		expect(Spawner.pityTier({ sinceEpic = 0, sinceLegendary = 0 })).toBeNil()
 		expect(Spawner.pityTier({ sinceEpic = Config.PITY_EPIC - 1, sinceLegendary = 0 })).toBe(4)

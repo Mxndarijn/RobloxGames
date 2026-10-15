@@ -16,7 +16,7 @@
 	                                Goo Tycoon / Slime Sovereign / Mythic Monarch)
 	  PlotPrice    number?       -> BuyStand price line (absent/0 = no price; not in
 	                                the contract yet, plots are free today)
-	  DexCount / DexTotal        -> DexBoard text + bar (DexTotal default 720)
+	  DexCount / DexTotal        -> DexBoard text + bar (DexTotal default 1152)
 	  DexTierMask  number?       -> DexBoard gem k lit when bit k-1 is set;
 	                                absent = gems light by progress (k/6 of total)
 
@@ -36,7 +36,7 @@ PlotDecor.BARRIER_HEIGHT = 16
 PlotDecor.BARRIER_COLOR = { 90, 200, 255 }
 PlotDecor.BARRIER_TRANSPARENCY = 0.35 -- ForceField: lower = denser shimmer
 PlotDecor.GEM_OFF = { 70, 72, 84 }
-PlotDecor.DEX_TOTAL = 720 -- 6 tiers x 5 mutations x 4 patterns x 6 eyes (State.dexTotal)
+PlotDecor.DEX_TOTAL = 1152 -- 6 tiers x 8 mutations (incl. None) x 4 patterns x 6 eyes (State.dexTotal)
 PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
 PlotDecor.UNLOCKED_COLOR = { 90, 220, 110 }
 PlotDecor.FREE_COLOR = { 255, 205, 60 }
