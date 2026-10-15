@@ -18,7 +18,8 @@ PROFILE = [(0.0, 28.2), (1.2, 27.4), (4, 25.8), (8, 23.6), (12, 21.6), (13, 20.9
 CRATER = [(40.4, 8.4), (40.0, 8.1), (39.3, 7.9), (39.0, 6.0), (38.9, 0.0)]  # inner wall, floor
 LAVA_ANG = [math.radians(a) for a in (45, 135, -135, -45)]
 
-EARTH, ROCK, ROCK_HI, CHAR = rgb(126, 104, 86), rgb(108, 92, 90), rgb(134, 116, 108), rgb(82, 70, 72)
+# Volcanic Meadow: dark basalt body so the lava is the only strong glow
+EARTH, ROCK, ROCK_HI, CHAR = rgb(70, 62, 60), PALETTE["basalt"], PALETTE["basalt_hi"], rgb(44, 40, 44)
 LAVA_EDGE, LAVA, LAVA_HOT = rgb(214, 70, 34), rgb(255, 128, 36), rgb(255, 206, 84)
 
 
@@ -83,7 +84,7 @@ bottom = bm.faces.new(list(reversed(rings[0])))
 bmesh.ops.triangulate(bm, faces=[bottom])
 bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
 
-# paint per corner: earthy foot -> rock -> charred top, ridges lighter, lava streaks, crater glow
+# paint per corner: basalt foot -> rock -> charred top, ridges lighter, lava streaks, crater glow
 col = bm.loops.layers.color.new("Col")
 for f in bm.faces:
     for lp in f.loops:

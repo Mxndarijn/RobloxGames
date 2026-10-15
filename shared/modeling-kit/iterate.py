@@ -118,6 +118,8 @@ def run_once(a):
         cmd.append("--no-export")
     if a.no_ref:
         cmd.append("--no-ref")
+    if a.ground:
+        cmd += ["--ground", a.ground]
     t0 = time.time()
     p = subprocess.run(cmd, capture_output=True, text=True)
     t_blender = time.time() - t0
@@ -224,12 +226,21 @@ def main():
                     help="roblox: approximate the game's in-game look (Cycles; CLAUDE.md lists what still differs)")
     ap.add_argument("--turntable", type=int, nargs="?", const=8, default=0,
                     help="also render N angles (default 8) -> <name>_turntable.png strip + .gif")
+    ap.add_argument("--ground", default="", metavar="R,G,B",
+                    help="ground plane colour, sRGB 0-255 (e.g. 98,160,70 meadow); default dark grey")
     ap.add_argument("--bench", type=int, default=0, help="run N rounds and print wall-time stats")
     ap.add_argument("--blender", default=os.environ.get("BLENDER", "blender"))
     ap.add_argument("-v", "--verbose", action="store_true", help="show Blender output")
     a = ap.parse_args()
     if a.quick and a.look == "roblox":
         ap.error("--quick is shape-only clay; use --look roblox without --quick")
+    if a.ground:
+        try:
+            g = [int(v) for v in a.ground.split(",")]
+            assert len(g) == 3 and all(0 <= v <= 255 for v in g)
+        except (ValueError, AssertionError):
+            ap.error("--ground wants R,G,B with each 0-255, e.g. 98,160,70")
+        a.ground = ",".join(map(str, g))
     if a.watch:
         sys.exit(watch(a))
     if not a.bench:

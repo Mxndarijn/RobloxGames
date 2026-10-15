@@ -42,6 +42,13 @@ PALETTE = {
     "slime": rgb(90, 220, 120),
     "lava": rgb(255, 140, 50),
     "wood": rgb(150, 100, 60),
+    # Volcanic Meadow theme
+    "meadow": rgb(98, 160, 70),
+    "path_sand": rgb(214, 186, 138),
+    "basalt": rgb(58, 52, 56),
+    "basalt_hi": rgb(84, 76, 80),
+    "lava_crack": rgb(255, 96, 24),
+    "stone_warm": rgb(150, 138, 120),
 }
 
 
