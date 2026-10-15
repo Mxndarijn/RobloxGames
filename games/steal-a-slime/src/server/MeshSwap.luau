@@ -25,7 +25,8 @@ local function template(meshId: string): MeshPart?
 	if hit == false then
 		return nil
 	end
-	if hit then
+	-- `if hit then` widens MeshPart | false to MeshPart | true under luau-lsp.
+	if typeof(hit) == "Instance" then
 		return hit
 	end
 	local ok, result = pcall(function()
