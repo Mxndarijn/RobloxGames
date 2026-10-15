@@ -8,6 +8,9 @@
 	faster spawns, RAIN_LUCK, more mutations, double cap), with a heads-up
 	toast RAIN_WARNING_SECONDS before each rain.
 
+	FEATURES.Parade (sketch, off): wilds land on the goo-parade lane and
+	walk to the drain gate as their lifetime runs out (ParadeLane).
+
 	FREE_DROP_CHANCE of drops are free; the rest cost WILD_PRICE_SECONDS of
 	the slime's base income, charged on grab (Carry.grab).
 ]]
@@ -16,6 +19,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local DespawnTelegraph = if Shared then require(Shared.DespawnTelegraph) else require("../shared/DespawnTelegraph")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Volcano = if Shared then require(Shared.Volcano) else require("../shared/Volcano")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -95,6 +99,9 @@ function Spawner.spawnOne(world: World, now: number): string
 		position = nil,
 		rare = rare,
 	}
+	if ParadeLane.enabled() then
+		ParadeLane.place(world.wild[id], now)
+	end
 	return id
 end
 
@@ -119,6 +126,9 @@ function Spawner.spawnBoss(world: World, now: number): string
 		position = nil,
 		boss = true,
 	}
+	if ParadeLane.enabled() then
+		ParadeLane.place(world.wild[id], now)
+	end
 	World.notify(world, nil, `A BOSS SLIME erupted: {Genome.displayName(slime)}! Grab it first!`, "good", "Rain")
 	return id
 end
@@ -167,6 +177,8 @@ function Spawner.step(world: World, now: number)
 	for id, wild in world.wild do
 		if DespawnTelegraph.shouldRemove(now, wild.expiresAt) and world.carriedBy[id] == nil then
 			world.wild[id] = nil
+		elseif ParadeLane.enabled() and world.carriedBy[id] == nil then
+			ParadeLane.place(wild, now) -- walk toward the gate; dropped ones stay put
 		end
 	end
 

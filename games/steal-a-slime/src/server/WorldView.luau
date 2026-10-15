@@ -31,6 +31,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local FallbackWorld = require(script.Parent.FallbackWorld)
 local Genome = require(ReplicatedStorage.Shared.Genome)
+local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local PlotClaim = require(script.Parent.PlotClaim)
@@ -413,6 +414,13 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 			end
 			if isNew and not record.model.Parent then
 				record.model.Parent = workspace:FindFirstChild(Constants.WILD_FOLDER)
+			end
+		elseif ParadeLane.enabled() and entry.state == "Wild" then
+			-- Parade: the key stays the same while the slime walks the lane (Spawner moves angle);
+			-- follow it once the slide ride (HOP_SECONDS) is over.
+			local wild = entry.wild
+			if wild and wild.position == nil and now >= wild.spawnedAt + ParadeLane.HOP_SECONDS then
+				record.model:PivotTo(volcanoLanding(wild))
 			end
 		end
 	end
