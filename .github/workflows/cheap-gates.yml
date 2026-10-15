@@ -1,0 +1,98 @@
+# Cheap gates on every commit: Lune logic tests and rhr static UI layout per game.
+# No secrets, no Open Cloud calls, nothing published. Cloud/Studio gates stay manual
+# (see /guides/roblox-building.md, roblox-cloud-server-test.md).
+name: Cheap gates
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  games:
+    name: list games
+    runs-on: ubuntu-latest
+    outputs:
+      dirs: ${{ steps.ls.outputs.dirs }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - id: ls
+        run: echo "dirs=$(ls -d games/*/ | sed 's#/$##' | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
+
+  gates:
+    name: ${{ matrix.game }}
+    needs: games
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        game: ${{ fromJson(needs.games.outputs.dirs) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.game }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Rokit
+        if: hashFiles(format('{0}/rokit.toml', matrix.game)) != ''
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          path: ${{ matrix.game }}
+          cache: "true"
+          token: ${{ github.token }}
+
+      - name: Install toolchain (rokit.toml pins)
+        if: hashFiles(format('{0}/rokit.toml', matrix.game)) != ''
+        run: rokit install --no-trust-check
+
+      - name: Lune logic tests
+        if: hashFiles(format('{0}/tests/init.luau', matrix.game)) != ''
+        run: lune run tests
+
+      - name: Rojo build
+        id: build
+        if: hashFiles(format('{0}/default.project.json', matrix.game)) != ''
+        run: rojo build -o build.rbxlx && echo "built=true" >> "$GITHUB_OUTPUT"
+
+      # rhr 1.0.0rc1 is a community RC: pin it exactly (PyPI roblox-headless-renderer,
+      # Python 3.12+, skia needs libEGL). Same pin as /guides/roblox-automated-tests.md.
+      - name: Setup Python for rhr
+        if: steps.build.outputs.built == 'true'
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Install rhr 1.0.0rc1
+        if: steps.build.outputs.built == 'true'
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq libegl1 libgles2 libgl1
+          pip install 'roblox-headless-renderer==1.0.0rc1'
+          rhr --version
+
+      # Exit 0 ok, 1 an error finding, 2 nothing to work on / failed.
+      # Code-built UI (no ScreenGui in the place, no stories) = "not checked", reported but not failed.
+      - name: rhr check --devices all
+        if: steps.build.outputs.built == 'true'
+        run: |
+          rc=0
+          rhr check build.rbxlx --devices all --out rhr-check.json 2>&1 | tee rhr.log || rc=${PIPESTATUS[0]}
+          if [ "$rc" = 2 ] && grep -q 'no UI to draw' rhr.log; then
+            echo "::notice title=rhr not checked::${{ matrix.game }}: no ScreenGui in the place (code-built UI needs *.story.luau)"
+            exit 0
+          fi
+          exit "$rc"
+
+      - name: Upload rhr report
+        if: always() && steps.build.outputs.built == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rhr-${{ strategy.job-index }}
+          path: ${{ matrix.game }}/rhr-*
+          if-no-files-found: ignore
