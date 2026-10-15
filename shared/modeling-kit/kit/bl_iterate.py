@@ -42,6 +42,7 @@ VIEWS = [  # (label, direction from target to camera, Blender Z up; model front 
     ("side", (1.0, 0.0, 0.12)),
     ("back-3/4", (0.75, 0.85, 0.45)),
     ("top-3/4", (-0.7, -0.7, 1.15)),
+    ("top", (0.0, -0.02, 1.0)),  # opt-in (--views 4,...): plan view for layouts
 ]
 
 

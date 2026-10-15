@@ -215,7 +215,7 @@ def main():
                     help="cycles (default, fastest on CPU); workbench/eevee are fallbacks (software GL: slower here)")
     ap.add_argument("--res", type=int, default=256, help="pixels per tile (default 256)")
     ap.add_argument("--samples", type=int, default=16, help="render samples (default 16, OIDN denoised)")
-    ap.add_argument("--views", default="0,1,2,3", help="view indices to render (0 front,1 side,2 back-3/4,3 top-3/4)")
+    ap.add_argument("--views", default="0,1,2,3", help="view indices to render (0 front,1 side,2 back-3/4,3 top-3/4,4 top)")
     ap.add_argument("--no-export", action="store_true", help="never write FBX/OBJ")
     ap.add_argument("--no-ref", action="store_true", help="hide the 5-stud avatar block")
     ap.add_argument("--quick", action="store_true",
