@@ -1,0 +1,127 @@
+#
+# Required check name for the ruleset: exactly "pr-gate" (job name).
+# Apply the ruleset only after this workflow has been green once on a PR.
+name: PR checks
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      slime: ${{ steps.f.outputs.slime }}
+      escape: ${{ steps.f.outputs.escape }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - id: f
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
+        with:
+          filters: |
+            slime:
+              - 'games/steal-a-slime/**'
+              - 'shared/release/**'
+              - '.github/workflows/**'
+            escape:
+              - 'games/speed-escape/**'
+              - 'shared/release/**'
+              - '.github/workflows/**'
+
+  steal-a-slime:
+    name: steal-a-slime (rojo, lune, lint, place, types)
+    needs: changes
+    if: needs.changes.outputs.slime == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: games/steal-a-slime
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Setup Rokit
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          path: games/steal-a-slime
+          cache: "true"
+          token: ${{ github.token }}
+      - name: Install toolchain
+        run: rokit install --no-trust-check
+      - name: Wally install
+        run: wally install
+      - name: Rojo build
+        run: rojo build -o build.rbxlx
+      - name: Lune tests
+        run: lune run tests
+      - name: Selene
+        run: selene src tests
+      - name: StyLua
+        run: stylua --check src tests
+      - name: Place safety
+        run: lune run scripts/check-place.luau build.rbxlx
+      - name: Typecheck (server + shared fatal)
+        run: scripts/typecheck.sh
+
+  speed-escape:
+    name: speed-escape (rojo, lune, lint)
+    needs: changes
+    if: needs.changes.outputs.escape == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: games/speed-escape
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Setup Rokit
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          path: games/speed-escape
+          cache: "true"
+          token: ${{ github.token }}
+      - name: Install toolchain
+        run: rokit install --no-trust-check
+      - name: Wally install
+        run: wally install
+      - name: Rojo build
+        run: rojo build -o build.rbxlx
+      - name: Lune tests
+        run: lune run tests
+      - name: Selene
+        run: selene src tests
+      - name: StyLua
+        run: stylua --check src tests
+
+  # Soft / future: rhr is NOT a required gate yet.
+  # Reasons (2026-10-15): SlimeUI is code-built with no *.story.luau, so
+  # `rhr check` on the place finds no ScreenGui ("not checked", not "pass").
+  # Also rhr 1.0.0rc1 needs Python 3.12 + skia + EGL, which the box has via a
+  # custom venv (/home/box/.local/share/rhr-venv) but GHA does not. Add a job
+  # here only after (1) Jolt lands stories and (2) a GHA install path is proven.
+  # Until then: every-commit rhr stays on the box (see /guides/roblox-automated-tests.md).
+
+  pr-gate:
+    name: pr-gate
+    if: always()
+    needs: [changes, steal-a-slime, speed-escape]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require game jobs that ran
+        run: |
+          slime="${{ needs.steal-a-slime.result }}"
+          escape="${{ needs.speed-escape.result }}"
+          echo "steal-a-slime=$slime speed-escape=$escape"
+          # skipped = paths filter said no; success = green; anything else fails the gate
+          ok() { [ "$1" = "success" ] || [ "$1" = "skipped" ]; }
+          if ok "$slime" && ok "$escape"; then
+            echo "pr-gate OK"
+            exit 0
+          fi
+          echo "pr-gate FAIL"
+          exit 1
