@@ -2,7 +2,7 @@
 --[[
 	Spawner (pure)
 
-	The volcano: drops a wild slime every SPAWN_INTERVAL while fewer than
+	The fountain: drops a wild slime every SPAWN_INTERVAL while fewer than
 	MAX_WILD_SLIMES are alive, expires unclaimed ones after WILD_LIFETIME and
 	runs the Slime Rain schedule (every RAIN_INTERVAL for RAIN_DURATION:
 	faster spawns, RAIN_LUCK, more mutations, double cap), with a heads-up
@@ -21,7 +21,7 @@ local DespawnTelegraph = if Shared then require(Shared.DespawnTelegraph) else re
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
-local Volcano = if Shared then require(Shared.Volcano) else require("../shared/Volcano")
+local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -68,18 +68,17 @@ function Spawner.pityTier(pity: World.Pity): number?
 	return nil
 end
 
--- "A LEGENDARY Glow Globble erupted from the volcano!" (Mythic gets "!!").
--- Mutation save ids use Genome.mutationDisplay ("Lava" -> "Syrup").
+-- "A LEGENDARY Glow Globble spilled from the fountain!" (Mythic gets "!!").
 function Spawner.rareText(slime: Genome.Slime): string
 	local rarity = string.upper(Genome.rarity(slime.tier).name)
-	local mutation = if slime.mutation ~= "None" then `{Genome.mutationDisplay(slime.mutation)} ` else ""
+	local mutation = if slime.mutation ~= "None" then `{Genome.mutationDisplayName(slime.mutation)} ` else ""
 	local bang = if slime.tier >= Config.MAX_TIER then "!!" else "!"
-	return `A {rarity} {mutation}{slime.name} erupted from the volcano{bang}`
+	return `A {rarity} {mutation}{slime.name} spilled from the fountain{bang}`
 end
 
 function Spawner.spawnOne(world: World, now: number): string
 	local id = world.newId()
-	local drop = Volcano.roll(world.rng, id, world.raining, Spawner.pityTier(world.pity))
+	local drop = Fountain.roll(world.rng, id, world.raining, Spawner.pityTier(world.pity))
 	local tier = drop.slime.tier
 	local pity = world.pity
 	pity.sinceEpic = if tier >= 4 then 0 else pity.sinceEpic + 1
@@ -109,7 +108,7 @@ end
 -- BOSS_LIFETIME. It ignores the wild cap. Returns its id.
 function Spawner.spawnBoss(world: World, now: number): string
 	local id = world.newId()
-	local drop = Volcano.roll(world.rng, id, true)
+	local drop = Fountain.roll(world.rng, id, true)
 	local slime = drop.slime
 	slime.tier = math.max(slime.tier, Config.BOSS_TIER)
 	slime.size = Config.MAX_SIZE
@@ -129,7 +128,13 @@ function Spawner.spawnBoss(world: World, now: number): string
 	if ParadeLane.enabled() then
 		ParadeLane.place(world.wild[id], now)
 	end
-	World.notify(world, nil, `A BOSS SLIME erupted: {Genome.displayName(slime)}! Grab it first!`, "good", "Rain")
+	World.notify(
+		world,
+		nil,
+		`A BOSS SLIME slid into the plaza: {Genome.displayName(slime)}! Grab it first!`,
+		"good",
+		"Rain"
+	)
 	return id
 end
 
@@ -158,14 +163,14 @@ function Spawner.step(world: World, now: number)
 	local raining, _, nextAt = Spawner.rain(world, now)
 	if not raining and nextAt and nextAt - now <= Config.RAIN_WARNING_SECONDS and not world.rainWarned then
 		world.rainWarned = true
-		World.notify(world, nil, "Slime Rain in 1 minute! Head to the volcano.", "info", nil)
+		World.notify(world, nil, "Slime Rain in 1 minute! Head to the fountain.", "info", nil)
 	end
 	if raining ~= world.raining then
 		world.rainWarned = false
 		world.raining = raining
 		World.emit(world, { type = "Rain", active = raining })
 		if raining then
-			World.notify(world, nil, "SLIME RAIN! The volcano is erupting!", "good", "Rain")
+			World.notify(world, nil, "SLIME RAIN! The fountain is overflowing!", "good", "Rain")
 			world.nextSpawnAt = math.min(world.nextSpawnAt, now)
 		else
 			World.notify(world, nil, "The Slime Rain is over.", "info", nil)
@@ -197,8 +202,8 @@ function Spawner.step(world: World, now: number)
 	end
 
 	if now >= world.nextSpawnAt then
-		world.nextSpawnAt = now + Volcano.spawnInterval(raining)
-		if Volcano.canSpawn(Spawner.wildCount(world), raining) then
+		world.nextSpawnAt = now + Fountain.spawnInterval(raining)
+		if Fountain.canSpawn(Spawner.wildCount(world), raining) then
 			Spawner.spawnOne(world, now)
 		end
 	end

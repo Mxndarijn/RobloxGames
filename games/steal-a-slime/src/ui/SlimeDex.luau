@@ -35,7 +35,8 @@ SlimeDex.IMAGES = table.freeze({} :: { [string]: string })
 
 SlimeDex.SILHOUETTE = table.freeze({ 24, 26, 36 })
 
--- Placeholder swatch per mutation; "None" uses the rarity colour.
+-- Placeholder swatch per mutation save id ("Lava" displays as Syrup); "None"
+-- uses the rarity colour.
 SlimeDex.MUTATION_COLORS = table.freeze({
 	Glow = table.freeze({ 255, 245, 150 }),
 	Lava = table.freeze({ 255, 110, 40 }),
@@ -53,11 +54,16 @@ function SlimeDex.image(key: string, images: { [string]: string }?): string?
 end
 
 -- Discovered rows of each tier (sorted by key), then that tier's silhouette
--- row while some of it is still undiscovered. `config` supplies RARITIES.
+-- row while some of it is still undiscovered. `config` supplies RARITIES and
+-- MUTATIONS (save id -> displayName for the titles).
 function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: string }?): { Row }
 	local tierNames: { string } = {}
 	for i, rarity in config.RARITIES do
 		tierNames[i] = rarity.name
+	end
+	local mutationNames: { [string]: string } = {}
+	for _, m in config.MUTATIONS or {} do
+		mutationNames[m.name] = m.displayName or m.name
 	end
 	local progress = Progress.dex(dex, total, tierNames)
 	local byTier: { [number]: { string } } = {}
@@ -79,7 +85,7 @@ function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: st
 				key = key,
 				tier = tier,
 				locked = false,
-				title = Format.dexLabel(key, tierNames),
+				title = Format.dexLabel(key, tierNames, mutationNames),
 				detail = "Discovered",
 				image = SlimeDex.image(key, images),
 				color = (SlimeDex.MUTATION_COLORS :: any)[mutation or ""] or rarityColor,

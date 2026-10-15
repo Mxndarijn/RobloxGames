@@ -3,9 +3,9 @@
 	MinimapData (FEATURES.Minimap)
 
 	Points of interest for a UI minimap, straight from WorldLayout (no
-	Instances): the volcano, every plot (index i -> workspace Plot with
-	PlotIndex i, whose OwnerUserId attribute says who owns it), the props at
-	PROP_SPOTS and the hub spawn. `toMap` turns world X/Z into 0..1 map
+	Instances): the fountain (map centre), every plot (index i -> workspace
+	Plot with PlotIndex i, whose OwnerUserId attribute says who owns it), the
+	props at PROP_SPOTS and the hub spawn. `toMap` turns world X/Z into 0..1 map
 	coordinates over the Ground (u = +X to the right, v = +Z downwards).
 	Pure; returns no points when the flag is off.
 ]]
@@ -18,7 +18,7 @@ export type Point = { kind: string, name: string, x: number, z: number, plotInde
 
 local MinimapData = {}
 
-MinimapData.WORLD_SIZE = 640 -- Ground size (WorldLayout), centred on the volcano
+MinimapData.WORLD_SIZE = 640 -- Ground size (WorldLayout), centred on the fountain
 -- Hub SpawnLocation (scripts/StaticWorld SPAWN_YAW / SPAWN_RADIUS; tests check they match)
 MinimapData.SPAWN_YAW = 67.5
 MinimapData.SPAWN_RADIUS = 64
@@ -27,7 +27,7 @@ function MinimapData.points(): { Point }
 	if not Config.FEATURES.Minimap then
 		return {}
 	end
-	local points: { Point } = { { kind = "Volcano", name = "Volcano", x = 0, z = 0 } }
+	local points: { Point } = { { kind = "Fountain", name = "Fountain", x = 0, z = 0 } }
 	for i = 1, Config.PLOT_COUNT do
 		local c = WorldLayout.plotCentre(i)
 		table.insert(points, { kind = "Plot", name = `Plot_{i}`, x = c[1], z = c[3], plotIndex = i })

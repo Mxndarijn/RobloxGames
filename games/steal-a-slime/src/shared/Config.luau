@@ -10,17 +10,17 @@ export type Rarity = {
 	tier: number,
 	name: string,
 	income: number, -- cash/sec for a size-1.0, unmutated slime at 0 rebirths
-	weight: number, -- relative volcano drop weight
+	weight: number, -- relative fountain drop weight
 	color: { number }, -- UI colour (RGB 0..255)
 	carrySlow: number, -- base WalkSpeed fraction lost while carrying
 	escapeTime: number, -- seconds a thief may hold it before it escapes for sure
 }
 
 export type Mutation = {
-	name: string,
+	name: string, -- permanent save id (slimes, dex keys); never rename
+	displayName: string, -- what players see (RANCH_RENAME.md: Lava shows as Syrup)
 	multiplier: number,
 	weight: number, -- relative weight when a mutation is rolled
-	display: string?, -- shown name when it differs from the save id `name`
 }
 
 -- v13 progression (CONTRACT.md §8.8)
@@ -113,14 +113,15 @@ local RARITIES: { Rarity } = {
 }
 
 local MUTATIONS: { Mutation } = {
-	-- Ordered by multiplier (Merge ranks by position). `name` is the save id.
-	{ name = "Glow", multiplier = 1.5, weight = 50 },
-	{ name = "Lava", multiplier = 2, weight = 30, display = "Syrup" },
-	{ name = "Galaxy", multiplier = 3, weight = 15 },
-	{ name = "Rainbow", multiplier = 4, weight = 8 },
-	{ name = "Gold", multiplier = 5, weight = 5 },
-	{ name = "Crystal", multiplier = 7, weight = 2 },
-	{ name = "Eclipse", multiplier = 10, weight = 0.5 },
+	-- Ordered by multiplier (Merge ranks by position). `name` is the save id;
+	-- `displayName` is what players see (Lava shows as Syrup).
+	{ name = "Glow", displayName = "Glow", multiplier = 1.5, weight = 50 },
+	{ name = "Lava", displayName = "Syrup", multiplier = 2, weight = 30 },
+	{ name = "Galaxy", displayName = "Galaxy", multiplier = 3, weight = 15 },
+	{ name = "Rainbow", displayName = "Rainbow", multiplier = 4, weight = 8 },
+	{ name = "Gold", displayName = "Gold", multiplier = 5, weight = 5 },
+	{ name = "Crystal", displayName = "Crystal", multiplier = 7, weight = 2 },
+	{ name = "Eclipse", displayName = "Eclipse", multiplier = 10, weight = 0.5 },
 }
 
 local REBIRTH_TIERS: { RebirthTier } = {
@@ -333,7 +334,7 @@ local Config = {
 	MERGE_MUTATION_CHANCE = 0.15,
 	MERGE_SIZE_BONUS = 0.1,
 
-	-- Volcano
+	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = 4,
 	MAX_WILD_SLIMES = 18,
 	WILD_LIFETIME = 75,
@@ -362,7 +363,7 @@ local Config = {
 
 	-- Extras, each behind a flag (CONTRACT.md §2 Extras). false = fully off.
 	FEATURES = table.freeze({
-		BossSlime = true, -- a big free Epic+ slime erupts every BOSS_INTERVAL
+		BossSlime = true, -- a big free Epic+ slime spills from the fountain every BOSS_INTERVAL
 		FollowPets = true, -- your favourite (or best) slime follows you as a small pet (client-only)
 		DayNight = true, -- Lighting.ClockTime cycles every DAY_LENGTH seconds
 		Minimap = true, -- Visuals.MinimapData points of interest for a UI minimap

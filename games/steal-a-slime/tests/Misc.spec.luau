@@ -1,9 +1,9 @@
 --!strict
 local Config = require("../src/shared/Config")
+local Fountain = require("../src/shared/Fountain")
 local Rng = require("../src/shared/Rng")
 local TestRunner = require("./TestRunner")
 local Validate = require("../src/shared/Validate")
-local Volcano = require("../src/shared/Volcano")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -32,12 +32,12 @@ describe("Validate", function()
 	end)
 end)
 
-describe("Volcano", function()
-	it("drops land in the ring around the volcano", function()
+describe("Fountain", function()
+	it("drops land in the ring around the fountain", function()
 		local rng = Rng.new(3)
 		for i = 1, 200 do
-			local d = Volcano.roll(rng, tostring(i), false)
-			expect(d.radius >= Volcano.MIN_RADIUS and d.radius <= Volcano.MAX_RADIUS).toBeTruthy()
+			local d = Fountain.roll(rng, tostring(i), false)
+			expect(d.radius >= Fountain.MIN_RADIUS and d.radius <= Fountain.MAX_RADIUS).toBeTruthy()
 			expect(d.angle >= 0 and d.angle < math.pi * 2).toBeTruthy()
 			expect(d.slime.id).toBe(tostring(i))
 		end
@@ -46,8 +46,8 @@ describe("Volcano", function()
 		local r1, r2 = Rng.new(9), Rng.new(9)
 		local normalMut, rainMut, normalRare, rainRare = 0, 0, 0, 0
 		for i = 1, 3000 do
-			local a = Volcano.roll(r1, tostring(i), false).slime
-			local b = Volcano.roll(r2, tostring(i), true).slime
+			local a = Fountain.roll(r1, tostring(i), false).slime
+			local b = Fountain.roll(r2, tostring(i), true).slime
 			normalMut += if a.mutation ~= "None" then 1 else 0
 			rainMut += if b.mutation ~= "None" then 1 else 0
 			normalRare += if a.tier >= 3 then 1 else 0
@@ -57,10 +57,10 @@ describe("Volcano", function()
 		expect(rainRare > normalRare * 1.5).toBeTruthy()
 	end)
 	it("spawn cap and interval change during rain", function()
-		expect(Volcano.canSpawn(Config.MAX_WILD_SLIMES - 1, false)).toBe(true)
-		expect(Volcano.canSpawn(Config.MAX_WILD_SLIMES, false)).toBe(false)
-		expect(Volcano.canSpawn(Config.MAX_WILD_SLIMES, true)).toBe(true)
-		expect(Volcano.spawnInterval(true) < Volcano.spawnInterval(false)).toBeTruthy()
+		expect(Fountain.canSpawn(Config.MAX_WILD_SLIMES - 1, false)).toBe(true)
+		expect(Fountain.canSpawn(Config.MAX_WILD_SLIMES, false)).toBe(false)
+		expect(Fountain.canSpawn(Config.MAX_WILD_SLIMES, true)).toBe(true)
+		expect(Fountain.spawnInterval(true) < Fountain.spawnInterval(false)).toBeTruthy()
 	end)
 end)
 

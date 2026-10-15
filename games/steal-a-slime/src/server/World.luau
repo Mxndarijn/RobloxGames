@@ -56,11 +56,11 @@ export type Wild = {
 	price: number, -- 0 = free drop
 	spawnedAt: number,
 	expiresAt: number,
-	angle: number, -- landing spot around the crater (Volcano.roll)
+	angle: number, -- landing spot around the crater (Fountain.roll)
 	radius: number,
 	position: any?, -- set when a carrier drops it somewhere else (adapter-defined)
 	boss: boolean?, -- the Boss Slime (Spawner.spawnBoss)
-	rare: number?, -- tier, on announced Legendary+ volcano drops (model attribute RareSpawn)
+	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
 }
 
 -- Drops since the last Epic+ / Legendary+ (Spawner pity, CONTRACT.md §8.7).

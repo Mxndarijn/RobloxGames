@@ -20,14 +20,14 @@ src/shared/      -> ReplicatedStorage.Shared       (ModuleScripts; pure, Lune-sa
   Remotes.luau     remote definitions + Request action arg types; setup()/get()  shared
   Types.luau       network payload types (State, SlimeData, ...)                 shared
   Genome, Rng, Merge, Economy, PlayerData, SaveData, SessionLock,
-  Steal, Progression, Volcano, Validate, Shop, TutorialProgress, DayNight,
+  Steal, Progression, Fountain (legacy alias `Volcano`), Validate, Shop, TutorialProgress, DayNight,
   Perks, Upgrades, Goals, Collection (v13, §8.8)
                    pure gameplay rules                                          Phoenix
 src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts) Phoenix
   init.server.luau thin adapter: Remotes.setup(), Request -> Actions.handle,
                    player lifecycle, Heartbeat loop, autosave, BindToClose
   pure (Lune-safe, unit-tested): World (all live state + outbox), Spawner
-  (volcano + Slime Rain), Carry (grab / deposit / drop), StealService (lock,
+  (fountain + Slime Rain), Carry (grab / deposit / drop), StealService (lock,
   steal, escape home, slap), Income (per-second + capped offline), MergeVat,
   Rebirth, Sessions (join / leave), Actions (Request dispatcher), Snapshot
   (State payload + coalescing), Scene (desired slime models), GameLoop,
@@ -71,7 +71,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 
 ## 2. Gameplay summary (what the server implements)
 
-- **Spawner:** a wild slime drops every `SPAWN_INTERVAL`, up to `MAX_WILD_SLIMES` alive (`Volcano.roll`). Each lives for `WILD_LIFETIME`.
+- **Spawner:** a wild slime drops every `SPAWN_INTERVAL`, up to `MAX_WILD_SLIMES` alive (`Fountain.roll`). Each lives for `WILD_LIFETIME`.
   - `FREE_DROP_CHANCE` of drops are free.
   - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab.
   - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Spawns are faster, luck is ×3 and mutations are more likely (`Progression.rainStatus`).
@@ -117,12 +117,12 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Effects:** the server plays `Effects.play` bursts on gameplay events (§5.4).
 - **Rain heads-up:** `RAIN_WARNING_SECONDS` (60) before each rain everyone gets Notify "Slime Rain in 1 minute! …" (`"info"`).
 - **Extras** (each behind `Config.FEATURES.<name>`; `false` turns it fully off):
-  - `BossSlime`: from `BOSS_FIRST_AT` after start, every `BOSS_INTERVAL` the volcano drops one **Boss Slime** if none is alive (`Spawner.spawnBoss`): a free wild slime of tier ≥ `BOSS_TIER`, size `MAX_SIZE`, at least `Glow`, living `BOSS_LIFETIME`, ignoring the wild cap. Everyone gets Notify (`"Rain"` sound); whoever deposits it triggers a server-wide "<name> caught the Boss Slime!". Its model has attribute `Boss = true` (`Constants.BOSS_ATTRIBUTE`) and its prompt's ObjectText starts with `"BOSS "`. Otherwise it's a normal wild slime (grab, drop, deposit).
+  - `BossSlime`: from `BOSS_FIRST_AT` after start, every `BOSS_INTERVAL` the fountain drops one **Boss Slime** if none is alive (`Spawner.spawnBoss`): a free wild slime of tier ≥ `BOSS_TIER`, size `MAX_SIZE`, at least `Glow`, living `BOSS_LIFETIME`, ignoring the wild cap. Everyone gets Notify (`"Rain"` sound, `"A BOSS SLIME slid into the plaza: <name>! Grab it first!"`); whoever deposits it triggers a server-wide "<name> caught the Boss Slime!". Its model has attribute `Boss = true` (`Constants.BOSS_ATTRIBUTE`) and its prompt's ObjectText starts with `"BOSS "`. Otherwise it's a normal wild slime (grab, drop, deposit).
   - `FollowPets`: the server sets Player attribute `PetSlimeId` (`Constants.PET_ATTRIBUTE`) to `Progression.keeper(data).id` (favourite, else best slime; nil without slimes). VisualsClient (`FollowPets`) clones that slime's replicated model into a local `workspace.ClientPets` folder at 0.45 scale and has it follow its owner. Client-only, cosmetic.
   - `DayNight`: the server sets `Lighting.ClockTime = DayNight.clockTime(elapsed)` twice a second: one day per `DAY_LENGTH` (12 min), daytime 06:30–17:30 for `DAY_FRACTION` (70 %) of it.
-  - `Minimap`: `ReplicatedStorage.Visuals.MinimapData.points()` lists `{ kind, name, x, z, plotIndex? }` for the volcano, `Plot_i`, the three props and HubSpawn from WorldLayout; `toMap(x, z)` gives 0..1 map coordinates over the 640-stud Ground. Data only (no UI yet).
-  - `Parade` (sketch, **default `false`**): wild slimes that aren't carried or dropped walk the goo-parade lane (r 68) from its entry next to the gate round to the gate on +Z; the arc left to walk is the share of lifetime left (`Shared.ParadeLane`). `Spawner` keeps `wild.angle` / `wild.radius` on the lane; spawn cadence, cap and lifetime don't change, and removal is still at `expiresAt`. The ring warning is the `DespawnTelegraph` window (the countdown reads `"leaving! N"`). There is no new HUD. With the flag off, wilds land in the `Volcano.MIN_RADIUS..MAX_RADIUS` band as before.
-- **Out of MVP scope:** volcano tiers, 3-slime vat, sticky floor / bouncer upgrades, Robux products.
+  - `Minimap`: `ReplicatedStorage.Visuals.MinimapData.points()` lists `{ kind, name, x, z, plotIndex? }` for the fountain (`kind = "Fountain"`, map centre), `Plot_i`, the three props and HubSpawn from WorldLayout; `toMap(x, z)` gives 0..1 map coordinates over the 640-stud Ground. Data only (no UI yet).
+  - `Parade` (sketch, **default `false`**): wild slimes that aren't carried or dropped walk the goo-parade lane (r 68) from its entry next to the gate round to the gate on +Z; the arc left to walk is the share of lifetime left (`Shared.ParadeLane`). `Spawner` keeps `wild.angle` / `wild.radius` on the lane; spawn cadence, cap and lifetime don't change, and removal is still at `expiresAt`. The ring warning is the `DespawnTelegraph` window (the countdown reads `"leaving! N"`). There is no new HUD. With the flag off, wilds land in the `Fountain.MIN_RADIUS..MAX_RADIUS` band (`Volcano` is a thin alias) as before.
+- **Out of MVP scope:** fountain / silo tiers (was "volcano tiers"), 3-slime vat, sticky floor / bouncer upgrades, Robux products.
 
 ## 3. Remotes
 
@@ -178,7 +178,7 @@ The `slimeData` shape is `Types.SlimeData`, the same as `Genome.Slime` and the s
 	pattern: string,     -- "Plain" | "Spots" | "Stripes" | "Belly"
 	eyes: string,        -- "Round" | "Sleepy" | "Angry" | "Happy" | "Cyclops" | "Wide"
 	mouth: string,       -- "Smile" | "Open" | "Flat" | "Fang"
-	mutation: string,    -- "None" | "Glow" | "Lava" | "Galaxy" | "Rainbow" | "Gold" | "Crystal" | "Eclipse"
+	mutation: string,    -- save id: "None" | "Glow" | "Lava" | "Galaxy" | "Rainbow" | "Gold" | "Crystal" | "Eclipse" ("Lava" displays as "Syrup": Config.MUTATIONS[].displayName)
 	pad: number?,        -- home pad 1..PADS_MAX on the owner's plot; nil while wild/carried
 	species: string?,    -- SlimeRoster id (v28+); nil on older and merged slimes
 }
@@ -282,7 +282,7 @@ On start the server still calls `ReplicatedStorage.Visuals.WorldBuilder.build(wo
 
 The server finds plots by the `PlotIndex` attribute and pads by `PadIndex` (`Constants.PLOT_INDEX_ATTRIBUTE` / `PAD_INDEX_ATTRIBUTE`, via `PlotLookup`). The `Plot_<i>` / `Pad_<j>` names are only a fallback. Folder names are in `Constants`: `MAP_FOLDER = "Map"`, `PLOTS_FOLDER = "Plots"`, `PLOT_SLIMES_FOLDER = "Slimes"`, `HOME_ZONE = "HomeZone"`. `WorldLayout` hardcodes `"Map"` and `"Slimes"`, and `tests/Integration.spec.luau` checks they match.
 
-- **`workspace.Map`:** `Volcano` (with a `Crater` Part, the spawn origin) and `Chute`. Drops land at `Volcano.roll` angle/radius around the crater.
+- **`workspace.Map`:** `Volcano` (with a `Crater` Part, the spawn origin) and `Chute`. The model keeps its legacy name `Volcano` (it is the slime fountain). Drops land at `Fountain.roll` angle/radius around the crater.
 - **`workspace.Plots.Plot_1..PLOT_COUNT`** (attribute `PlotIndex = i`):
   - `Base`.
   - `Pad_1..Pad_<PADS_MAX>` (attribute `PadIndex = j`). The top surface is where `PivotTo` targets.
@@ -317,7 +317,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `RARITIES[i].escapeTime` | 25, 23, 21, 19, 17, 15 | "15–25 s by rarity" |
 | `RARITIES[i].carrySlow` (+`STOLEN_EXTRA_SLOW` ramp, max `MAX_CARRY_SLOW`) | 0.05…0.30 (+0.25, ≤0.6) | "slows the carrier more the rarer it is" |
 | `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × mutation |
-| `MUTATIONS` | Glow ×1.5, Lava ×2, Galaxy ×3, Gold ×5 | "Glow, Galaxy, Lava, Gold" |
+| `MUTATIONS` | Glow ×1.5, Lava (shown "Syrup") ×2, Galaxy ×3, Gold ×5 | "Glow, Galaxy, Lava, Gold" |
 | `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 3 | "every hour … for 3 minutes" |
 | `PADS_START` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 8 | MVP "8 pads" |
 | `OFFLINE_RATE` / `OFFLINE_CAP_SECONDS` | 0.5 / 7200 | capped offline income |
@@ -444,13 +444,13 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 ### 8.6 Notify sound names (added to §3)
 
-`"Rare"`: a Legendary+ wild drop (everyone, `"good"`: `"A LEGENDARY <name> erupted from the volcano!"`, Mythic: `"A MYTHIC <name> erupted from the volcano!!"`). `"Goal"`: a goal stage or dex milestone paid (`"good"`: `"Goal complete: <title>! +$<n>"`, `"Slimedex <count>: +$<n> and +<pct>% income!"`). **Sound IDs are stand-ins:** Jolt's `src/ui/Sounds` maps `"Rare"` and `"Goal"` to placeholder catalog sounds (Rare reuses Rain `12222200`, Goal reuses Cash `12222140`) until real ones are picked. A new rebirth rank sends `"New rank: <title>! <text>"` (`"good"`, `"Rebirth"`), and a Luck upgrade proc sends `"Lucky! Your <old> slime became <rarity>!"` (`"good"`, `"Cash"`).
+`"Rare"`: a Legendary+ wild drop (everyone, `"good"`: `"A LEGENDARY <name> spilled from the fountain!"`, Mythic: `"A MYTHIC <name> spilled from the fountain!!"`; mutations use their display name). `"Goal"`: a goal stage or dex milestone paid (`"good"`: `"Goal complete: <title>! +$<n>"`, `"Slimedex <count>: +$<n> and +<pct>% income!"`). **Sound IDs are stand-ins:** Jolt's `src/ui/Sounds` maps `"Rare"` and `"Goal"` to placeholder catalog sounds (Rare reuses Rain `12222200`, Goal reuses Cash `12222140`) until real ones are picked. A new rebirth rank sends `"New rank: <title>! <text>"` (`"good"`, `"Rebirth"`), and a Luck upgrade proc sends `"Lucky! Your <old> slime became <rarity>!"` (`"good"`, `"Cash"`).
 
 ### 8.7 Rarity curve
 
 - `Config.RARITIES[i].weight` = 52, 28, 13, 5.2, 1.45, 0.35 (was 60, 25, 10, 4, 0.9, 0.1).
 - **Pity** (per server, `world.pity`): after `PITY_EPIC` (30) drops in a row without an Epic+, the next drop is at least Epic; after `PITY_LEGENDARY` (300) without a Legendary+, at least Legendary. Rain luck stacks.
-- Legendary+ (`RARE_ANNOUNCE_TIER` = 5) wild drops (volcano or rain, not the Boss Slime, which has its own toast) get the `RareSpawn` attribute, update the workspace `RareSpawn*` attributes and send the `"Rare"` Notify to everyone.
+- Legendary+ (`RARE_ANNOUNCE_TIER` = 5) wild drops (fountain or rain, not the Boss Slime, which has its own toast) get the `RareSpawn` attribute, update the workspace `RareSpawn*` attributes and send the `"Rare"` Notify to everyone.
 
 ### 8.8 Progression
 
@@ -517,7 +517,7 @@ Owning the coil makes the server enforce WalkSpeed `SPEED_COIL_WALK_SPEED` (22) 
 
 ### 8.11 Dropped slimes
 
-A dropped wild slime is snapped to the first **collidable** surface under the drop point: raycast from 4 studs above the carrier's root straight down (`RespectCanCollide = true`, excluding characters and slime models), so it lands on the ground, a plot base or a ramp, never on a head, canopy or invisible trigger. No hit within 200 studs: it goes back to its volcano landing spot. It falls there over 0.3 s and stays anchored (§4). The Lune harness checks it (`tools/livetest`).
+A dropped wild slime is snapped to the first **collidable** surface under the drop point: raycast from 4 studs above the carrier's root straight down (`RespectCanCollide = true`, excluding characters and slime models), so it lands on the ground, a plot base or a ramp, never on a head, canopy or invisible trigger. No hit within 200 studs: it goes back to its fountain landing spot. It falls there over 0.3 s and stays anchored (§4). The Lune harness checks it (`tools/livetest`).
 
 ### 8.12 Test hooks (server-only, never live)
 

@@ -167,7 +167,7 @@ describe("Boss Slime (FEATURES.BossSlime)", function()
 		expect(boss.expiresAt).toBe(T0 + Config.BOSS_LIFETIME)
 		expect(Spawner.bossId(world)).toBe(id)
 	end)
-	it("erupts on schedule, one at a time, and announces the catch", function()
+	it("spills on schedule, one at a time, and announces the catch", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
 		local first = T0 + Config.BOSS_FIRST_AT
