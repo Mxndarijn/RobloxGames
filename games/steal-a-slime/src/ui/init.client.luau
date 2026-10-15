@@ -2,8 +2,8 @@
 --[[
 	UI (owner: Jolt) -> StarterPlayerScripts.UI
 
-	Code-built ScreenGui: HUD, plot / merge / shop / rebirth / goals /
-	Slimedex / leaderboard panels, carry overlay (+ Slap), daily reward popup, tutorial
+	Code-built ScreenGui: HUD, full-window plot / merge / shop / rebirth /
+	goals / SlimeDex / leaderboard menus, carry overlay (+ Slap), daily reward popup, tutorial
 	overlay, toasts; plus in-world leaderboard SurfaceGuis (WorldLeaderboard). Renders the latest `State`
 	snapshot (CONTRACT §5.1); every button calls
 	`Request:InvokeServer(action, ...)` (§3). The client never decides outcomes.
@@ -15,6 +15,7 @@
 	hint for tutorial steps that need a HUD / menu button (Hint).
 ]]
 
+local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -142,7 +143,8 @@ local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
 
--- Side panels: one open at a time, toggled from the left nav (Nav.ENTRIES order).
+-- Full-window menus: one open at a time, toggled from the left nav
+-- (Nav.ENTRIES order), closed with their X, Esc or gamepad B.
 local panelByKey: { [string]: any } = {
 	Plot = PlotPanel.new(gui, ctx),
 	Merge = MergePanel.new(gui, ctx),
@@ -289,6 +291,9 @@ for _, entry in panels do
 	button.Activated:Connect(function()
 		setOpen(if openKey == entry.key then nil else entry.key)
 	end)
+	entry.panel.close.Activated:Connect(function()
+		setOpen(nil)
+	end)
 	navButtons[entry.key] = {
 		button = button,
 		label = label,
@@ -360,6 +365,16 @@ end
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyLayout)
 applyLayout()
 setOpen(nil)
+
+-- Esc / gamepad B close the open menu (same as its X). Passed on when no
+-- menu is open, so Esc still reaches whatever else uses it.
+ContextActionService:BindAction("CloseMenu", function(_, inputState: Enum.UserInputState)
+	if inputState ~= Enum.UserInputState.Begin or openKey == nil then
+		return Enum.ContextActionResult.Pass
+	end
+	setOpen(nil)
+	return Enum.ContextActionResult.Sink
+end, false, Enum.KeyCode.Escape, Enum.KeyCode.ButtonB)
 
 local function updateBadges(state: Types.State)
 	local badges = Nav.badges(state)

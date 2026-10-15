@@ -16,7 +16,7 @@ local create = Widgets.create
 local GoalsPanel = {}
 
 function GoalsPanel.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "GoalsPanel", "Goals", UDim2.fromOffset(420, 460), UDim2.new(0, 96, 0.5, -230))
+	local panel = Widgets.panel(parent, "GoalsPanel", "Goals")
 
 	local summary = Widgets.label({
 		Name = "Summary",
@@ -82,7 +82,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		row.instance.BackgroundColor3 = if g.done then Theme.BgLight else Theme.Row
 	end)
 
-	local self = { frame = panel.frame }
+	local self = { frame = panel.frame, close = panel.close }
 
 	function self.update(state: any)
 		local server = Goals.fromServer(state.goals)

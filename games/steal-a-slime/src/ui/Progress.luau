@@ -2,7 +2,7 @@
 --[[
 	Progress
 
-	Rebirth ladder and Slimedex completion for the Rebirth / Dex panels.
+	Rebirth ladder and SlimeDex completion for the Rebirth / SlimeDex panels.
 	Pure (tests/ui/Progress.spec.luau). Reads CONTRACT §5.1 fields, plus the
 	optional v13 fields (§8.2: rebirthTitle, nextRebirthTier, dexRewards,
 	dexBonus) when a server sends them;
@@ -131,13 +131,13 @@ function Progress.rank(state: any): { title: string?, next: string? }
 	return { title = `Rank: {title}`, next = nextText }
 end
 
--- v13 Slimedex rewards; both nil on a server without them.
+-- v13 SlimeDex rewards; both nil on a server without them.
 function Progress.dexRewards(state: any): { next: string?, bonus: string? }
 	local rewards = state.dexRewards
 	if type(rewards) ~= "table" then
 		return { next = nil, bonus = nil }
 	end
-	local nextText = "All Slimedex rewards collected!"
+	local nextText = "All SlimeDex rewards collected!"
 	for _, r in rewards do
 		if type(r) == "table" and r.claimed ~= true then
 			nextText =
@@ -146,7 +146,7 @@ function Progress.dexRewards(state: any): { next: string?, bonus: string? }
 		end
 	end
 	local bonus = num(state.dexBonus)
-	return { next = nextText, bonus = if bonus > 0 then `Dex bonus: +{pct(bonus)} income` else nil }
+	return { next = nextText, bonus = if bonus > 0 then `SlimeDex bonus: +{pct(bonus)} income` else nil }
 end
 
 return table.freeze(Progress)

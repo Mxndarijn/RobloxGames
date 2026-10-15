@@ -18,7 +18,7 @@ export type Goal = { id: string, title: string, detail: string, fraction: number
 
 local Goals = {}
 
--- Slimedex milestones in percent; the first one not yet reached is shown.
+-- SlimeDex milestones in percent; the first one not yet reached is shown.
 Goals.DEX_MILESTONES = table.freeze({ 5, 10, 25, 50, 75, 100 })
 
 local function num(value: any): number
@@ -100,7 +100,7 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 		local need = math.ceil(total * target / 100)
 		table.insert(
 			out,
-			goal("Dex", `Discover {target}% of the Slimedex`, `{found}/{need} slimes ({math.floor(pct)}%)`, found, need)
+			goal("Dex", `Discover {target}% of the SlimeDex`, `{found}/{need} slimes ({math.floor(pct)}%)`, found, need)
 		)
 	end
 

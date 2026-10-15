@@ -1,14 +1,15 @@
 --!strict
 --[[
-	Slimedex panel: completion up top (big percent, bar, discovered/dexTotal,
-	per-rarity counts; see Progress.dex), the v13 next dex reward + income
-	bonus when the server sends them, and a scrollable list of the
-	discovered Genome.dexKey values.
+	SlimeDex panel (Nav key "Dex"): completion up top (big percent, bar,
+	discovered/dexTotal, per-rarity counts; see Progress.dex), the v13 next
+	dex reward + income bonus when the server sends them, and a scrollable
+	list with a picture per discovered slime and silhouettes for the rest
+	(SlimeDex.rows).
 ]]
 
 local UI = script.Parent.Parent
-local Format = require(UI.Format)
 local Progress = require(UI.Progress)
+local SlimeDex = require(UI.SlimeDex)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -17,9 +18,11 @@ local create = Widgets.create
 local Dex = {}
 
 local HEADER = 108
+local ROW = 64 -- row height
+local IMAGE = 56 -- square picture / silhouette at the left of a row
 
 function Dex.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "DexPanel", "Slimedex", UDim2.fromOffset(420, 480), UDim2.new(0, 96, 0.5, -240))
+	local panel = Widgets.panel(parent, "DexPanel", "SlimeDex")
 
 	local percent = Widgets.label({
 		Name = "Percent",
@@ -97,27 +100,72 @@ function Dex.new(parent: Instance, ctx: any)
 		Position = UDim2.fromOffset(0, HEADER + 4),
 		Size = UDim2.new(1, 0, 1, -(HEADER + 4)),
 		Parent = panel.body,
-	}, 2)
+	}, 4)
 
-	local rows = Widgets.keyedList(list, function(key: string)
-		return key
-	end, function(key: string)
-		local tier = tonumber(string.match(key, "^(%d+):"))
-		local rarity = tier and ctx.Config.RARITIES[tier]
-		local label = Widgets.label({
-			Name = key,
-			Text = Format.dexLabel(key, tierNames),
-			TextSize = 14,
-			TextColor3 = if rarity then Widgets.color3(rarity.color) else Theme.Text,
-			Size = UDim2.new(1, -10, 0, 22),
+	-- One row per discovered slime (image + name) and one silhouette row per
+	-- tier for the rest (SlimeDex.rows).
+	local rows = Widgets.keyedList(list, function(row: SlimeDex.Row)
+		return row.key
+	end, function(row: SlimeDex.Row)
+		local frame = create("Frame", {
+			Name = row.key,
+			Size = UDim2.new(1, -10, 0, ROW),
 			BackgroundTransparency = 0.4,
 			BackgroundColor3 = Theme.Row,
+		}, { Widgets.corner(8) })
+		local image = create("Frame", {
+			Name = "Image",
+			Position = UDim2.fromOffset(4, 4),
+			Size = UDim2.fromOffset(IMAGE, IMAGE),
+			Parent = frame,
+		}, { Widgets.corner(18) })
+		local picture = create("ImageLabel", {
+			Name = "Picture",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			ScaleType = Enum.ScaleType.Fit,
+			Parent = image,
 		})
-		create("UIPadding", { PaddingLeft = UDim.new(0, 8), Parent = label })
-		return { instance = label }
-	end, function() end)
+		local glyph = Widgets.label({
+			Name = "Glyph",
+			Text = "?",
+			Font = Theme.Font,
+			TextSize = 28,
+			TextColor3 = Theme.Muted,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.fromScale(1, 1),
+			Parent = image,
+		})
+		local title = Widgets.label({
+			Name = "Title",
+			Font = Theme.Font,
+			TextSize = 15,
+			Position = UDim2.fromOffset(IMAGE + 12, 10),
+			Size = UDim2.new(1, -(IMAGE + 20), 0, 22),
+			Parent = frame,
+		})
+		local detail = Widgets.label({
+			Name = "Detail",
+			TextSize = 13,
+			TextColor3 = Theme.Muted,
+			Position = UDim2.fromOffset(IMAGE + 12, 34),
+			Size = UDim2.new(1, -(IMAGE + 20), 0, 18),
+			Parent = frame,
+		})
+		return { instance = frame, image = image, picture = picture, glyph = glyph, title = title, detail = detail }
+	end, function(r: any, row: SlimeDex.Row)
+		r.instance:SetAttribute("Locked", row.locked)
+		r.image.BackgroundColor3 = Widgets.color3(row.color)
+		r.picture.Image = row.image or ""
+		r.picture.Visible = row.image ~= nil
+		r.glyph.Visible = row.locked
+		r.title.Text = row.title
+		local rarity = ctx.Config.RARITIES[row.tier]
+		r.title.TextColor3 = if row.locked or not rarity then Theme.Muted else Widgets.color3(rarity.color)
+		r.detail.Text = row.detail
+	end)
 
-	local self = { frame = panel.frame }
+	local self = { frame = panel.frame, close = panel.close }
 
 	function self.update(state: any)
 		local progress = Progress.dex(state.dex, state.dexTotal, tierNames)
@@ -136,7 +184,7 @@ function Dex.new(parent: Instance, ctx: any)
 		local top = HEADER + 4 + (if rewards.next then 36 else 0)
 		list.Position = UDim2.fromOffset(0, top)
 		list.Size = UDim2.new(1, 0, 1, -top)
-		rows.sync(state.dex or {})
+		rows.sync(SlimeDex.rows(state.dex, state.dexTotal, ctx.Config))
 	end
 
 	return self

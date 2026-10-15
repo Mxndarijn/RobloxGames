@@ -17,7 +17,7 @@ Nav.ENTRIES = table.freeze({
 	table.freeze({ key = "Shop", icon = "🛒", label = "Shop" }),
 	table.freeze({ key = "Rebirth", icon = "♻️", label = "Rebirth" }),
 	table.freeze({ key = "Goals", icon = "🎯", label = "Goals" }),
-	table.freeze({ key = "Dex", icon = "📖", label = "Dex" }),
+	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex" }),
 	table.freeze({ key = "Leaders", icon = "🏆", label = "Top" }),
 } :: { Entry })
 

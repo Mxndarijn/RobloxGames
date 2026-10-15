@@ -7,6 +7,7 @@ local Config = require("../../src/shared/Config")
 local Hint = require("../../src/ui/Hint")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
+local Nav = require("../../src/ui/Nav")
 local ShopCatalog = require("../../src/ui/ShopCatalog")
 local TestRunner = require("../TestRunner")
 
@@ -57,6 +58,42 @@ describe("v18 layout rules", function()
 	end
 end)
 
+describe("full-window menus at the five gate viewports", function()
+	for _, entry in LayoutAssert.screens(LayoutAssert.GATE_VIEWPORTS) do
+		it(`{entry.label}: full-window rect, close X tappable and inside, clear of HUD / nav`, function()
+			expect(LayoutAssert.fullWindow(entry.label, entry.screen).report()).toBe("")
+		end)
+	end
+	it("the checker rejects a side panel and a small / misplaced close button", function()
+		local s = Layout.screen(390, 844)
+		local side = table.clone(s) :: any
+		side.panel = Layout.rect(s.panel.x, s.panel.y + 40, 300, 300)
+		local report = LayoutAssert.fullWindow("side", side).report()
+		expect(has(report, "is not the full-window rect")).toBe(true)
+		local check = LayoutAssert.new("probe", s)
+		check.touch("Close", Layout.rect(0, 0, 40, 40))
+		expect(#check.problems).toBe(1)
+	end)
+	it("measures the titles the panels really show", function()
+		for key, title in LayoutAssert.PANEL_TITLES do
+			local file = if key == "Leaders" then "Leaderboard" else key
+			expect(has(read(`src/ui/Panels/{file}.luau`), `Widgets.panel(parent, "{file}Panel", "{title}")`)).toBe(true)
+		end
+	end)
+	it("Layout.panelClose is a MIN_TOUCH_DESIGN square in the top-right corner", function()
+		local r = Layout.rect(100, 50, 600, 400)
+		local close = Layout.panelClose(r)
+		expect(close.w).toBe(Layout.MIN_TOUCH_DESIGN)
+		expect(close.h).toBe(Layout.MIN_TOUCH_DESIGN)
+		expect(close.w * Layout.MIN_SCALE >= Layout.MIN_TOUCH).toBe(true)
+		expect(close.x + close.w).toBe(r.x + r.w - Layout.PANEL_CHROME.closeInset)
+		expect(close.y).toBe(r.y + Layout.PANEL_CHROME.closeInset)
+		local body = Layout.panelBody(r)
+		expect(body.y >= close.y + close.h).toBe(true) -- body starts under the X
+		expect(Layout.overlaps(Layout.panelTitle(r), close)).toBe(false)
+	end)
+end)
+
 describe("v18 viewports", function()
 	it("phone: compact, two HUD rows, nav collapsed by default, MIN_SCALE", function()
 		local s = Layout.screen(390, 844)
@@ -77,26 +114,27 @@ describe("v18 viewports", function()
 			expect(s.hud.items[name]).toBeTruthy()
 		end
 	end)
-	it("desktop panels keep their preferred size (shop 440x480, goals 420x460)", function()
+	it("desktop menus fill the window beside the nav, under the HUD", function()
 		for _, collapsed in { true, false } do
 			local s = Layout.screen(1920, 1080, { navCollapsed = collapsed })
-			for key, size in Layout.PANEL_SIZES do
-				local r = Layout.panelFor(s, key)
-				expect(r.w).toBe(size.w)
-				expect(r.h).toBe(size.h)
+			for _, entry in Nav.ENTRIES do
+				local r = Layout.panelFor(s, entry.key)
 				expect(r.x).toBe(s.nav.x + s.nav.w + Layout.GAP) -- right next to the nav
+				expect(r.y).toBe(s.hud.rect.y + s.hud.rect.h + Layout.GAP)
+				expect(r.x + r.w).toBe(s.width - Layout.MARGIN)
+				expect(r.y + r.h).toBe(s.height - s.bottomInset)
+				expect(r.w * r.h > 0.6 * s.width * s.height).toBe(true) -- most of the screen
 			end
 		end
-		expect(Layout.PANEL_SIZES.Shop.w).toBe(440)
-		expect(Layout.PANEL_SIZES.Goals.h).toBe(460)
 	end)
-	it("phone panels shrink to the column and move with the nav width", function()
+	it("phone menus use the full width and move with the nav width", function()
 		local collapsed = Layout.screen(390, 844, { navCollapsed = true })
 		local expanded = Layout.screen(390, 844, { navCollapsed = false })
 		local a, b = Layout.panelFor(collapsed, "Shop"), Layout.panelFor(expanded, "Shop")
 		expect(a.w).toBe(collapsed.column.w)
 		expect(b.x - a.x).toBe(Layout.navWidth(false) - Layout.navWidth(true))
-		expect(a.w < Layout.PANEL_SIZES.Shop.w).toBe(true)
+		expect(a.h > collapsed.column.h).toBe(true) -- runs on under the bottom cards
+		expect(Layout.drawsAbove("Carry", "Base") and Layout.drawsAbove("Tutorial", "Base")).toBe(true)
 	end)
 	it("hint bubbles sit below the HUD (top-bar targets) or right of the nav (menu targets)", function()
 		for _, entry in LayoutAssert.screens() do
@@ -145,6 +183,15 @@ describe("init.client applies Layout for every viewport", function()
 		end
 		expect(has(src, "Layout.panelFor(s, entry.key)")).toBe(true)
 		expect(has(src, "NAV_WIDTH")).toBe(false) -- no hard-coded nav width left
+	end)
+	it("closes the open menu from its X and from Esc / gamepad B (same setOpen(nil))", function()
+		expect(has(src, "entry.panel.close.Activated:Connect(function()\n\t\tsetOpen(nil)")).toBe(true)
+		local bind = string.match(src, 'ContextActionService:BindAction%("CloseMenu"(.-)\nend%)[^\n]*') :: string
+		expect(bind ~= nil).toBe(true)
+		expect(has(bind, "setOpen(nil)")).toBe(true)
+		local line = string.match(src, "end, false, Enum%.KeyCode%.Escape, Enum%.KeyCode%.ButtonB%)")
+		expect(line ~= nil).toBe(true)
+		expect(has(bind, "openKey == nil then\n\t\treturn Enum.ContextActionResult.Pass")).toBe(true)
 	end)
 	it("has a collapse toggle and icon-only collapsed buttons", function()
 		expect(has(src, 'Name = "NavToggle"')).toBe(true)

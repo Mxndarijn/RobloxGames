@@ -16,8 +16,7 @@ local create = Widgets.create
 local Merge = {}
 
 function Merge.new(parent: Instance, ctx: any)
-	local panel =
-		Widgets.panel(parent, "MergePanel", "Merge Vat", UDim2.fromOffset(400, 440), UDim2.new(0, 96, 0.5, -200))
+	local panel = Widgets.panel(parent, "MergePanel", "Merge Vat")
 
 	local hint = Widgets.label({
 		Name = "Hint",
@@ -151,7 +150,7 @@ function Merge.new(parent: Instance, ctx: any)
 		end
 	end
 
-	local self = { frame = panel.frame }
+	local self = { frame = panel.frame, close = panel.close }
 
 	function self.update(state: any)
 		slimes = state.slimes

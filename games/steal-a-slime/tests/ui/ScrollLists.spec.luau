@@ -62,12 +62,12 @@ end
 type ListGeometry = { rows: { RowRect }, gap: number, canvasH: number, listW: number, list: any }
 
 -- Rows of the scroll list `List` in `panel` laid out in box `r`, as drawn:
--- visible GuiObject children in canvas space (Widgets.panel body is the
--- frame minus 24 x 48).
+-- visible GuiObject children in canvas space (Widgets.panel body:
+-- Layout.panelBody).
 local function geometry(panel: any, r: Layout.Rect): ListGeometry
 	local list = UiHarness.find(panel.frame, "List")
 	assert(list, "panel has no List")
-	local bodyW = r.w - 24
+	local bodyW = Layout.panelBody(r).w
 	local listW = axis(list.Size.X, bodyW)
 	local rows = {}
 	for _, child in list:GetChildren() do
@@ -111,7 +111,7 @@ local function ctx(): any
 	}
 end
 
--- A mid-game State: 6 slimes over three tiers, cash for the shop, Slimedex.
+-- A mid-game State: 6 slimes over three tiers, cash for the shop, SlimeDex.
 local function state(): any
 	local slimes = {}
 	for i = 1, 6 do

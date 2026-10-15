@@ -93,7 +93,7 @@ function Format.progress(startedAt: number, endsAt: number, now: number): number
 	return math.clamp((now - startedAt) / span, 0, 1)
 end
 
--- Slimedex key "tier:mutation:pattern:eyes" -> "Rare · Glow · Spots · Happy".
+-- SlimeDex key "tier:mutation:pattern:eyes" -> "Rare · Glow · Spots · Happy".
 -- `tierNames[tier]` supplies rarity names; unknown tiers show "Tier N".
 function Format.dexLabel(key: string, tierNames: { string }): string
 	local parts = string.split(key, ":")

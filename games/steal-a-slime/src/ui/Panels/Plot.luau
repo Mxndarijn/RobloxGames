@@ -16,7 +16,7 @@ local create = Widgets.create
 local Plot = {}
 
 function Plot.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "PlotPanel", "My Plot", UDim2.fromOffset(440, 440), UDim2.new(0, 96, 0.5, -200))
+	local panel = Widgets.panel(parent, "PlotPanel", "My Plot")
 
 	local header = Widgets.label({
 		Name = "Header",
@@ -137,7 +137,7 @@ function Plot.new(parent: Instance, ctx: any)
 		return view.slime.id
 	end, makeRow, updateRow)
 
-	local self = { frame = panel.frame }
+	local self = { frame = panel.frame, close = panel.close }
 
 	function self.update(state: any)
 		favoriteId = state.favoriteId
