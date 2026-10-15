@@ -1,6 +1,6 @@
 # modeling-kit
 
-Headless Blender 4.5 loop for low-poly Roblox props. No GPU, no paid services. Bot rules: `CLAUDE.md`. Lessons: `LESSONS.md`. The process around it: `/workspace/guides/roblox-modeling-process.md`.
+Headless Blender 4.5 loop for low-poly Roblox props. No GPU, no paid services. Bot rules: `CLAUDE.md`. Lessons: `LESSONS.md`. The process around it: `PROCESS.md` (in this kit).
 
 ```sh
 python3 iterate.py models/tree_oak.py --sheet sheets/tree_oak_r01.png   # one round, ~2.5 s

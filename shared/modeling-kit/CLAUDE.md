@@ -1,7 +1,7 @@
 # modeling-kit: rules for bots
 
 Fast loop for low-poly Roblox props: bpy script → 4-view contact sheet + budget check → FBX. CPU only: about 2.5 s per round, 1.2 s for a `--quick` shape check.
-This kit is Merijn's official modeling process: `/workspace/guides/roblox-modeling-process.md`.
+This kit is Merijn's official modeling process: `PROCESS.md` (in this kit).
 
 ## Hard rules
 - **Never upload for real, publish a place or `git push`** without Merijn's explicit OK. `upload.py` is a dry run unless `--go`.
