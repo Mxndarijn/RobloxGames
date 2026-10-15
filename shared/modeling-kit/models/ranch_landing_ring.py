@@ -1,8 +1,9 @@
 # ranch_landing_ring: one curb segment for the wild-slime landing ring around the fountain plaza
-# (Slime Ranch). A curved, soft ranch_plaza curb (outer radius 34 arc, ~12 studs of arc) with
-# wood stake posts + butter caps, and a goo splat puddle on the inner (landing) side where wilds
-# plop down off the slide. Tile it around the ring by rotating about the plaza centre.
-# Local frame: arc centre is at y = +R (plaza centre), curb runs along X, landing side is +Y.
+# (Slime Ranch). A curved, soft ranch_plaza curb on the INNER edge of the wild landing band
+# (r34-62): curb r34-35.7, ~12 studs of arc, wood stake posts + butter caps, and a goo splat
+# puddle beyond r36 on the landing side where wilds plop down off the slide.
+# Local frame: arc centre (fountain/plaza centre) is at y = +R, so +Y faces the fountain and the
+# landing side is -Y (outward). Tile it by rotating copies about the plaza centre.
 import math
 import bmesh
 from lib import *
@@ -47,9 +48,9 @@ for k in range(n):
     a0 = -SPAN / 2 + k * step + 0.25
     a1 = a0 + step - 0.5
     h = 1.25 + 0.08 * ((k * 7) % 3 - 1)
-    parts.append(arc_block(f"Curb{k}", R - 1.7, R, a0, a1, 0, h, 4, PLAZA_LO, PLAZA, bev=0.22))
+    parts.append(arc_block(f"Curb{k}", R, R + 1.7, a0, a1, 0, h, 4, PLAZA_LO, PLAZA, bev=0.22))
 # low path apron under the curb, landing side
-parts.append(arc_block("Apron", R + 0.0, R + 2.2, -SPAN / 2, SPAN / 2, 0, 0.18, 6, PATH, PATH, bev=0.05))
+parts.append(arc_block("Apron", R + 1.7, R + 3.9, -SPAN / 2, SPAN / 2, 0, 0.18, 6, PATH, PATH, bev=0.05))
 
 
 def on_ring(r, deg):
@@ -59,7 +60,7 @@ def on_ring(r, deg):
 
 # wood stakes at both ends of the segment (shared visual rhythm when tiled) with butter caps
 for deg in (-SPAN / 2 + 0.6, SPAN / 2 - 0.6):
-    x, y, yaw = on_ring(R - 0.85, deg)
+    x, y, yaw = on_ring(R + 0.85, deg)
     s = box("Stake", (0.8, 0.8, 2.6), (x, y, 1.3), rot=(0, 0, yaw))
     bevel(s, 0.12)
     gradient(s, WOOD_LO, WOOD)
@@ -68,7 +69,7 @@ for deg in (-SPAN / 2 + 0.6, SPAN / 2 - 0.6):
     gradient(c, mix(BUTTER, WOOD, 0.3), BUTTER)
     parts.append(c)
 # red marker band on the middle stone (readable target from the ring path)
-x, y, yaw = on_ring(R - 0.85, 0)
+x, y, yaw = on_ring(R + 0.85, 0)
 b = box("Band", (2.4, 1.85, 0.25), (x, y, 1.28), rot=(0, 0, yaw))
 bevel(b, 0.08)
 gradient(b, mix(PALETTE["ranch_roof_dark"], ROOF, 0.5), ROOF)
@@ -98,9 +99,9 @@ def splat(name, cx, cy, rad, seg=20, seed=1):
     return obj_from_bm(name, bm)
 
 
-parts.append(splat("Splat", 0.6, 4.4, 2.6, seed=2))
-parts.append(splat("Splat2", -3.6, 3.3, 1.0, seg=12, seed=5))
-for k, (x, y, r) in enumerate(((3.4, 3.0, 0.45), (-1.8, 6.6, 0.35), (2.6, 6.9, 0.3))):
+parts.append(splat("Splat", 0.6, -6.6, 2.6, seed=2))
+parts.append(splat("Splat2", -3.6, -4.2, 1.0, seg=12, seed=5))
+for k, (x, y, r) in enumerate(((3.6, -4.6, 0.45), (-2.0, -8.8, 0.35), (3.0, -9.2, 0.3))):
     d = blob(f"Drop{k}", r, (x, y, r * 0.35), GOO, seed=k, subdiv=2, squash=(1, 1, 0.55), jitter=0.03)
     gradient(d, GOO, GOO_HI)
     parts.append(d)
