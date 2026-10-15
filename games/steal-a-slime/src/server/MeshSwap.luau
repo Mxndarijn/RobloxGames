@@ -22,8 +22,11 @@ local cache: { [string]: MeshPart | false } = {}
 
 local function template(meshId: string): MeshPart?
 	local hit = cache[meshId]
-	if hit ~= nil then
-		return hit or nil
+	if hit == false then
+		return nil
+	end
+	if hit then
+		return hit
 	end
 	local ok, result = pcall(function()
 		return AssetService:CreateMeshPartAsync(meshId)
@@ -40,7 +43,9 @@ end
 local function hide(part: BasePart)
 	part.Transparency = 1
 	for _, d in part:GetChildren() do
-		if d:IsA("Decal") or d:IsA("Texture") then
+		if d:IsA("Decal") then
+			d.Transparency = 1
+		elseif d:IsA("Texture") then
 			d.Transparency = 1
 		end
 	end
