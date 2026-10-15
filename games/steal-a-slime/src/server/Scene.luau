@@ -16,6 +16,8 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local DespawnTelegraph = if Shared then require(Shared.DespawnTelegraph) else require("../shared/DespawnTelegraph")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
@@ -40,6 +42,7 @@ export type Entry = {
 	hideFromUserId: number?, -- the owner, on Steal prompts; nil = visible to everyone
 	boss: boolean, -- wild Boss Slime (model attribute Boss)
 	rare: number?, -- tier of an announced Legendary+ wild drop (model attribute RareSpawn)
+	despawnAt: number?, -- uncarried wild only, inside the telegraph window (model attribute DespawnAt)
 	key: string, -- changes whenever the model must be re-placed
 }
 
@@ -66,6 +69,14 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 			hideFromUserId = nil,
 			boss = wild.boss == true,
 			rare = wild.rare,
+			despawnAt = if carrier
+				then nil
+				else DespawnTelegraph.attributeValue(
+					now,
+					wild.expiresAt,
+					Config.DESPAWN_TELEGRAPH_SECONDS,
+					Config.FEATURES.DespawnTelegraph
+				),
 			key = `{state}|{carrier or 0}|{wild.position ~= nil}|{wild.spawnedAt}`,
 		}
 	end
@@ -93,6 +104,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				hideFromUserId = if state == "Pad" then session.userId else nil,
 				boss = false,
 				rare = nil,
+				despawnAt = nil,
 				key = `{state}|{carrier or 0}|{session.plotIndex}|{slime.pad or 0}`,
 			}
 		end

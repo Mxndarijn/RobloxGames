@@ -61,6 +61,8 @@ return table.freeze({
 	PLOT_DEX_TIER_MASK_ATTRIBUTE = "DexTierMask", -- Plot_<i>: bit k-1 set = owner discovered a tier-k slime
 	PLOT_PRICE_ATTRIBUTE = "PlotPrice", -- Plot_<i>: reserved; nil while plots are free (v13)
 	RARE_ATTRIBUTE = "RareSpawn", -- wild slime model: tier, only on Legendary+ drops
+	-- wild slime model: server time it despawns; nil outside the telegraph window / FEATURES.DespawnTelegraph off
+	DESPAWN_AT_ATTRIBUTE = "DespawnAt",
 	RARE_SPAWN_ID_ATTRIBUTE = "RareSpawnId", -- workspace: latest rare drop
 	RARE_SPAWN_TIER_ATTRIBUTE = "RareSpawnTier",
 	RARE_SPAWN_AT_ATTRIBUTE = "RareSpawnAt", -- workspace: server time of the latest rare drop

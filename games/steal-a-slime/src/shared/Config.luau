@@ -332,6 +332,7 @@ local Config = {
 	SPAWN_INTERVAL = 4,
 	MAX_WILD_SLIMES = 18,
 	WILD_LIFETIME = 75,
+	DESPAWN_TELEGRAPH_SECONDS = 5, -- wild slimes warn this long before they expire (FEATURES.DespawnTelegraph)
 	DROP_MUTATION_CHANCE = 0.03,
 	-- v13 rarity curve (CONTRACT.md §8.7): pity per server, Legendary+ drops are announced
 	PITY_EPIC = 30, -- after this many drops without an Epic+, the next one is at least Epic
@@ -355,6 +356,7 @@ local Config = {
 		FollowPets = true, -- your favourite (or best) slime follows you as a small pet (client-only)
 		DayNight = true, -- Lighting.ClockTime cycles every DAY_LENGTH seconds
 		Minimap = true, -- Visuals.MinimapData points of interest for a UI minimap
+		DespawnTelegraph = true, -- wild slime models get DespawnAt before they expire; false = silent removal
 	}),
 
 	-- Boss Slime event (FEATURES.BossSlime)
