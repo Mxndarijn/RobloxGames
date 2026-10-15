@@ -36,6 +36,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
+local ParadeLane = require(Shared:WaitForChild("ParadeLane"))
 local Timing = require(Shared:WaitForChild("DespawnTelegraph"))
 
 local FX = Timing.FX
@@ -237,7 +238,7 @@ local function track(model: Model)
 	end
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "DespawnCountdown"
-	gui.Size = UDim2.fromOffset(60, 60)
+	gui.Size = if ParadeLane.enabled() then UDim2.fromOffset(140, 60) else UDim2.fromOffset(60, 60) -- room for "leaving! 5"
 	gui.StudsOffsetWorldSpace = Vector3.new(0, body.Size.Y / 2 + 3, 0)
 	gui.AlwaysOnTop = true
 	gui.Adornee = body
@@ -315,7 +316,7 @@ local function step(t: Track, now: number)
 		return
 	end
 	local p = Timing.progress(now, at, Config.DESPAWN_TELEGRAPH_SECONDS)
-	t.label.Text = tostring(math.max(1, Timing.countdownSeconds(now, at)))
+	t.label.Text = ParadeLane.warnText(math.max(1, Timing.countdownSeconds(now, at)), ParadeLane.enabled())
 	local blink = DespawnTelegraphFx.BLINK_HZ
 	local hz = blink[1] + (blink[2] - blink[1]) * p
 	local on = math.sin(now * hz * math.pi * 2) > 0

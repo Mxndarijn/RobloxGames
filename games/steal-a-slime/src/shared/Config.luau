@@ -367,6 +367,7 @@ local Config = {
 		DayNight = true, -- Lighting.ClockTime cycles every DAY_LENGTH seconds
 		Minimap = true, -- Visuals.MinimapData points of interest for a UI minimap
 		DespawnTelegraph = true, -- wild slime models get DespawnAt before they expire; false = silent removal
+		Parade = false, -- sketch: wilds walk the goo-parade lane to the drain gate (ParadeLane); false = landing band as before
 	}),
 
 	-- Boss Slime event (FEATURES.BossSlime)

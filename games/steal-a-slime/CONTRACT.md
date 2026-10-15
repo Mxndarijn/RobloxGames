@@ -121,6 +121,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - `FollowPets`: the server sets Player attribute `PetSlimeId` (`Constants.PET_ATTRIBUTE`) to `Progression.keeper(data).id` (favourite, else best slime; nil without slimes). VisualsClient (`FollowPets`) clones that slime's replicated model into a local `workspace.ClientPets` folder at 0.45 scale and has it follow its owner. Client-only, cosmetic.
   - `DayNight`: the server sets `Lighting.ClockTime = DayNight.clockTime(elapsed)` twice a second: one day per `DAY_LENGTH` (12 min), daytime 06:30–17:30 for `DAY_FRACTION` (70 %) of it.
   - `Minimap`: `ReplicatedStorage.Visuals.MinimapData.points()` lists `{ kind, name, x, z, plotIndex? }` for the volcano, `Plot_i`, the three props and HubSpawn from WorldLayout; `toMap(x, z)` gives 0..1 map coordinates over the 640-stud Ground. Data only (no UI yet).
+  - `Parade` (sketch, **default `false`**): wild slimes that aren't carried or dropped walk the goo-parade lane (r 68) from its entry next to the gate round to the gate on +Z; the arc left to walk is the share of lifetime left (`Shared.ParadeLane`). `Spawner` keeps `wild.angle` / `wild.radius` on the lane; spawn cadence, cap and lifetime don't change, and removal is still at `expiresAt`. The ring warning is the `DespawnTelegraph` window (the countdown reads `"leaving! N"`). There is no new HUD. With the flag off, wilds land in the `Volcano.MIN_RADIUS..MAX_RADIUS` band as before.
 - **Out of MVP scope:** volcano tiers, 3-slime vat, sticky floor / bouncer upgrades, Robux products.
 
 ## 3. Remotes
@@ -327,7 +328,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `LOCK_UPGRADE_MAX` / `LOCK_UPGRADE_SECONDS` / `LOCK_UPGRADE_COSTS` | 5 / 15 / 500, 2 000, 8 000, 30 000, 100 000 | shop: longer locks |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
-| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap` (all `true`) | §2 Extras |
+| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`false`, sketch) | §2 Extras |
 | `BOSS_FIRST_AT` / `BOSS_INTERVAL` / `BOSS_TIER` / `BOSS_LIFETIME` | 480 / 900 / 4 / 120 | Boss Slime |
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
