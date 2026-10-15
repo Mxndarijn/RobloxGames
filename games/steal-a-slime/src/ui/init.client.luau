@@ -366,15 +366,21 @@ gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyLayout)
 applyLayout()
 setOpen(nil)
 
--- Esc / gamepad B close the open menu (same as its X). Passed on when no
--- menu is open, so Esc still reaches whatever else uses it.
-ContextActionService:BindAction("CloseMenu", function(_, inputState: Enum.UserInputState)
+-- Gamepad B always closes the open menu (same as its X). Esc only when
+-- Layout.CLOSE_WITH_ESCAPE is true (default false) so it cannot clash with
+-- Roblox's own menu. Passed on when no menu is open.
+local function closeMenuAction(_: string, inputState: Enum.UserInputState)
 	if inputState ~= Enum.UserInputState.Begin or openKey == nil then
 		return Enum.ContextActionResult.Pass
 	end
 	setOpen(nil)
 	return Enum.ContextActionResult.Sink
-end, false, Enum.KeyCode.Escape, Enum.KeyCode.ButtonB)
+end
+if Layout.CLOSE_WITH_ESCAPE then
+	ContextActionService:BindAction("CloseMenu", closeMenuAction, false, Enum.KeyCode.ButtonB, Enum.KeyCode.Escape)
+else
+	ContextActionService:BindAction("CloseMenu", closeMenuAction, false, Enum.KeyCode.ButtonB)
+end
 
 local function updateBadges(state: Types.State)
 	local badges = Nav.badges(state)

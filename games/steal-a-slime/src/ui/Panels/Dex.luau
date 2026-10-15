@@ -3,13 +3,14 @@
 	SlimeDex panel (Nav key "Dex"): completion up top (big percent, bar,
 	discovered/dexTotal, per-rarity counts; see Progress.dex), the v13 next
 	dex reward + income bonus when the server sends them, and a scrollable
-	list with a picture per discovered slime and silhouettes for the rest
-	(SlimeDex.rows).
+	list with a ViewportFrame preview (or image / colour swatch) per
+	discovered slime and silhouettes for the rest (SlimeDex.rows).
 ]]
 
 local UI = script.Parent.Parent
 local Progress = require(UI.Progress)
 local SlimeDex = require(UI.SlimeDex)
+local SlimePreview = require(UI.SlimePreview)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -102,8 +103,9 @@ function Dex.new(parent: Instance, ctx: any)
 		Parent = panel.body,
 	}, 4)
 
-	-- One row per discovered slime (image + name) and one silhouette row per
-	-- tier for the rest (SlimeDex.rows).
+	-- One row per discovered slime (preview / image + name) and one
+	-- silhouette row per tier for the rest (SlimeDex.rows). ViewportFrames
+	-- are capped (SlimePreview.MAX_LIVE); further rows keep the swatch.
 	local rows = Widgets.keyedList(list, function(row: SlimeDex.Row)
 		return row.key
 	end, function(row: SlimeDex.Row)
@@ -124,6 +126,15 @@ function Dex.new(parent: Instance, ctx: any)
 			BackgroundTransparency = 1,
 			Size = UDim2.fromScale(1, 1),
 			ScaleType = Enum.ScaleType.Fit,
+			ZIndex = 2,
+			Parent = image,
+		})
+		local preview = create("ViewportFrame", {
+			Name = "Preview",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 1,
+			Visible = false,
 			Parent = image,
 		})
 		local glyph = Widgets.label({
@@ -133,6 +144,7 @@ function Dex.new(parent: Instance, ctx: any)
 			TextSize = 28,
 			TextColor3 = Theme.Muted,
 			TextXAlignment = Enum.TextXAlignment.Center,
+			ZIndex = 3,
 			Size = UDim2.fromScale(1, 1),
 			Parent = image,
 		})
@@ -152,13 +164,37 @@ function Dex.new(parent: Instance, ctx: any)
 			Size = UDim2.new(1, -(IMAGE + 20), 0, 18),
 			Parent = frame,
 		})
-		return { instance = frame, image = image, picture = picture, glyph = glyph, title = title, detail = detail }
-	end, function(r: any, row: SlimeDex.Row)
+		return {
+			instance = frame,
+			image = image,
+			picture = picture,
+			preview = preview,
+			glyph = glyph,
+			title = title,
+			detail = detail,
+		}
+	end, function(r: any, row: SlimeDex.Row, index: number)
 		r.instance:SetAttribute("Locked", row.locked)
 		r.image.BackgroundColor3 = Widgets.color3(row.color)
 		r.picture.Image = row.image or ""
-		r.picture.Visible = row.image ~= nil
-		r.glyph.Visible = row.locked
+		local hasImage = row.image ~= nil
+		r.picture.Visible = hasImage
+		r.glyph.Visible = row.locked and not hasImage
+		-- Prefer an uploaded picture; else a ViewportFrame preview while under
+		-- the live cap; else (or if the mount fails) the colour swatch. The
+		-- row's viewport is reused and only remounted when its look changes.
+		if not hasImage and index <= SlimePreview.MAX_LIVE then
+			local look = `{row.locked}:{table.concat(row.color, ",")}`
+			if r.preview:GetAttribute("Look") ~= look then
+				local ok = SlimePreview.mount(r.preview, row.color, { locked = row.locked })
+				r.preview:SetAttribute("Look", look) -- a failed look is not retried
+				r.preview.Visible = ok
+			end
+		elseif r.preview:GetAttribute("Look") ~= nil then
+			SlimePreview.unmount(r.preview)
+			r.preview:SetAttribute("Look", nil)
+			r.preview.Visible = false
+		end
 		r.title.Text = row.title
 		local rarity = ctx.Config.RARITIES[row.tier]
 		r.title.TextColor3 = if row.locked or not rarity then Theme.Muted else Widgets.color3(rarity.color)
