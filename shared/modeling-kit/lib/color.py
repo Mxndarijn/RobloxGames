@@ -49,6 +49,22 @@ PALETTE = {
     "basalt_hi": rgb(84, 76, 80),
     "lava_crack": rgb(255, 96, 24),
     "stone_warm": rgb(150, 138, 120),
+    # Slime Ranch theme (THEME.md)
+    "ranch_field": rgb(120, 196, 108),
+    "ranch_field_light": rgb(156, 216, 124),
+    "ranch_field_dark": rgb(88, 160, 92),
+    "ranch_path": rgb(226, 196, 146),
+    "ranch_cream": rgb(248, 236, 212),
+    "ranch_wood": rgb(196, 138, 86),
+    "ranch_wood_dark": rgb(158, 108, 68),
+    "ranch_roof": rgb(214, 92, 84),
+    "ranch_roof_dark": rgb(176, 70, 70),
+    "ranch_goo": rgb(110, 226, 170),
+    "ranch_goo_hi": rgb(196, 250, 220),
+    "ranch_pink": rgb(250, 150, 182),
+    "ranch_lilac": rgb(196, 166, 232),
+    "ranch_butter": rgb(252, 216, 110),
+    "ranch_metal": rgb(176, 186, 196),
 }
 
 
