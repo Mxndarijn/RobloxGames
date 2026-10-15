@@ -76,3 +76,6 @@ Format: `- [model/YYYY-MM-DD/bot] lesson` — one concrete, reusable sentence or
 
 - [ranch_barn_loft/2026-10-15/gojo] Shed gable+slab roof recipe carries to an elevated loft: open lower bay (posts + beams) + ranch_plaza deck (cream banned on big surfaces) + wood loft walls + open front with hay. Watch under-deck beam axes — a (0.65, 2*WY, 0.65) "BeamX" at y=±(WY-0.5) is a long Y beam that blew depth to 12.9; span X at the front/back edges instead. 1892 tris, 4 rounds.
 - [ranch_barrel/2026-10-15/gojo] `cylinder()` pos is the **base** (stands on pos.z), not the centre — pos=(0,0,H/2) floats the body by H/2. Hoop radius must track a bulged stave profile (`R*(1+bulge*sin(pi*t)) + pad`) or mid hoops sit inside the wood. 292 tris (under 500 OK for a small prop), 4 rounds.
+- [ranch_wagon/2026-10-15/gojo] Axle/wheel cylinders with `rot=(90,0,0)` grow toward **-Y**: base at `+len/2` to centre on y=0 (base at `-len/2` doubles the depth). Hay in a bed needs subdiv=2 or it reads as rocks; keep loose blobs on top only. 1528 tris, 4 rounds.
+- [ranch_goo_bucket/2026-10-15/gojo] Open `cap=False` on a bucket body = boundary nm; keep the top cap, dip its verts, and paint them goo (distance-to-rim → goo_hi). A separate goo disc *under* the wood cap is invisible from above. 350 tris (under-500 OK), 4 rounds.
+
