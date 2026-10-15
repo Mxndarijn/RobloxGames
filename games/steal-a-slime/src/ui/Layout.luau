@@ -62,11 +62,30 @@ Layout.ZINDEX = table.freeze({
 
 -- Scroll lists: rows start at the top (VerticalAlignment Center clipped the
 -- first / last rows, v15 playtest) with padding so neither edge is cut off.
+-- Rows are placed by Layout.stackRows (Widgets.restack), not a UIListLayout:
+-- list sync often runs while the panel is Visible=false (init setOpen) and the
+-- engine then never reflows, stacking every row at Y=0 (v26 live shop).
 Layout.SCROLL_LIST = table.freeze({
-	verticalAlignment = "Top",
 	paddingTop = 4,
 	paddingBottom = 8,
 })
+
+-- Y offsets for scroll-list rows of the given heights (design px; starts at
+-- SCROLL_LIST.paddingTop, `gap` between rows) and the canvas height.
+function Layout.stackRows(heights: { number }, gap: number): ({ number }, number)
+	local rules = Layout.SCROLL_LIST
+	local ys = {}
+	local y = rules.paddingTop
+	for i, h in heights do
+		if i > 1 then
+			y += gap
+		end
+		ys[i] = y
+		y += math.max(h, 0)
+	end
+	return ys, y + rules.paddingBottom
+end
+
 
 -- UIScale for the root ScreenGui: 1 on desktop, smaller on phones. Never
 -- below MIN_SCALE so a MIN_TOUCH_DESIGN button is still a thumb target.

@@ -13,20 +13,20 @@ end
 
 describe("Layout.SCROLL_LIST", function()
 	it("stacks rows from the top with edge padding (v15: Center clipped rows)", function()
-		expect(Layout.SCROLL_LIST.verticalAlignment).toBe("Top")
 		expect(Layout.SCROLL_LIST.paddingTop > 0).toBe(true)
 		expect(Layout.SCROLL_LIST.paddingBottom > 0).toBe(true)
+		local ys = Layout.stackRows({ 20, 20 }, 6)
+		expect(ys[1]).toBe(Layout.SCROLL_LIST.paddingTop)
 	end)
-	it("is what Widgets.scrollList applies, with an auto-growing canvas", function()
+	it("is placed by Widgets.restack, not a UIListLayout (v26 stacked rows)", function()
+		-- Instance-level checks: tests/ui/ScrollLists.spec.luau.
 		local src = read("src/ui/Widgets.luau")
-		local body = string.match(src, "function Widgets%.scrollList(.-)\nend") :: string
+		local body = string.match(src, "function Widgets%.restack(.-)\nend") :: string
 		expect(body ~= nil).toBe(true)
-		expect(string.find(body, "Layout.SCROLL_LIST", 1, true) ~= nil).toBe(true)
-		expect(string.find(body, "VerticalAlignment", 1, true) ~= nil).toBe(true)
-		expect(string.find(body, "UIPadding", 1, true) ~= nil).toBe(true)
-		local scroll = string.match(src, "function Widgets%.scroll%((.-)\nend") :: string
-		expect(string.find(scroll, "AutomaticCanvasSize = Enum.AutomaticSize.Y", 1, true) ~= nil).toBe(true)
-		expect(string.find(scroll, "CanvasSize = UDim2.new()", 1, true) ~= nil).toBe(true)
+		expect(string.find(body, "Layout.stackRows", 1, true) ~= nil).toBe(true)
+		local list = string.match(src, "function Widgets%.scrollList(.-)\nend") :: string
+		expect(string.find(list, "UIListLayout", 1, true)).toBeNil()
+		expect(string.find(list, "Widgets.restack", 1, true) ~= nil).toBe(true)
 	end)
 	it("is used by every panel list (no bare Widgets.scroll + Center list)", function()
 		for _, name in { "Shop", "Goals", "Plot", "Merge", "Dex", "Leaderboard" } do
