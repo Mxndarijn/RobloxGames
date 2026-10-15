@@ -91,6 +91,11 @@ function WorldProps.place(): { [string]: Model }
 		end
 		if model then
 			anchorAll(model)
+			-- Slime Ranch skin (server/MeshSwap) once the kit mesh is uploaded.
+			local mesh = WorldLayout and WorldLayout.PROP_MESHES and WorldLayout.PROP_MESHES[name]
+			if mesh and model:GetAttribute("MeshAsset") == nil then
+				model:SetAttribute("MeshAsset", mesh)
+			end
 			placed[name] = model
 		end
 	end

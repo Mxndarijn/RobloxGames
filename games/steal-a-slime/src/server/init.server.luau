@@ -38,6 +38,7 @@ local Carry = require(script.Carry)
 local DataService = require(script.DataService)
 local GameLoop = require(script.GameLoop)
 local Leaderboard = require(script.Leaderboard)
+local MeshSwap = require(script.MeshSwap)
 local PlotClaim = require(script.PlotClaim)
 local Sessions = require(script.Sessions)
 local Snapshot = require(script.Snapshot)
@@ -61,6 +62,13 @@ do
 		warn(`[Server] WorldProps.place failed: {err}`)
 	end
 end
+-- Slime Ranch kit meshes over the MeshAsset placeholders (yields; never blocks boot).
+task.spawn(function()
+	local ok, err = pcall(MeshSwap.apply)
+	if not ok then
+		warn(`[Server] MeshSwap.apply failed: {err}`)
+	end
+end)
 
 -- Archer's Effects (nil without Visuals): bursts are pcall'd and never block gameplay.
 local Effects: any = nil
