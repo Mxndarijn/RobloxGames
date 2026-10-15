@@ -1,0 +1,111 @@
+{
+  "name": "slime_fountain",
+  "model": "/workspace/roblox/wt-slime-fountain/shared/modeling-kit/models/slime_fountain.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 5764,
+  "meshes": [
+    {
+      "name": "slime_fountain",
+      "tris": 5764,
+      "verts": 2954,
+      "ngons": 32,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        54.45,
+        43.3,
+        63.851
+      ],
+      "materials": [
+        "slime_fountain_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "slime_fountain_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    54.45,
+    43.3,
+    63.851
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "slime_fountain_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [
+    "5764 tris outside prop target 500-2000"
+  ],
+  "fbx": "/workspace/roblox/wt-slime-fountain/shared/modeling-kit/out/slime_fountain.fbx",
+  "fbx_bytes": 124796,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-slime-fountain/shared/modeling-kit/out/.tiles/slime_fountain_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-slime-fountain/shared/modeling-kit/out/.tiles/slime_fountain_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-slime-fountain/shared/modeling-kit/out/.tiles/slime_fountain_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-slime-fountain/shared/modeling-kit/out/.tiles/slime_fountain_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.144,
+    "stats_s": 0.008,
+    "setup_s": 0.001,
+    "render_s": [
+      0.395,
+      0.337,
+      0.386,
+      0.437
+    ],
+    "export_s": 0.078
+  },
+  "sheet": "/workspace/roblox/wt-slime-fountain/shared/modeling-kit/out/slime_fountain_sheet.png",
+  "timings": {
+    "wall_s": 2.26,
+    "blender_process_s": 2.16,
+    "compose_s": 0.1,
+    "model_s": 0.144,
+    "stats_s": 0.008,
+    "setup_s": 0.001,
+    "render_s": [
+      0.395,
+      0.337,
+      0.386,
+      0.437
+    ],
+    "export_s": 0.078
+  }
+}
