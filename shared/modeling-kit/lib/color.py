@@ -54,6 +54,7 @@ PALETTE = {
     "ranch_field_light": rgb(156, 216, 124),
     "ranch_field_dark": rgb(88, 160, 92),
     "ranch_path": rgb(226, 196, 146),
+    "ranch_plaza": rgb(214, 176, 124),  # warmer sand/wood for big floors (cream banned on big surfaces)
     "ranch_cream": rgb(248, 236, 212),
     "ranch_wood": rgb(196, 138, 86),
     "ranch_wood_dark": rgb(158, 108, 68),
@@ -64,7 +65,7 @@ PALETTE = {
     "ranch_pink": rgb(250, 150, 182),
     "ranch_lilac": rgb(196, 166, 232),
     "ranch_butter": rgb(252, 216, 110),
-    "ranch_metal": rgb(176, 186, 196),
+    "ranch_metal": rgb(168, 148, 110),
 }
 
 
