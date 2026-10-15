@@ -40,6 +40,8 @@ Second measurement, after adding the modes (`--bench`, wall per round):
 | `--look roblox` (Cycles) | 3.22 / 2.96 / 3.16 s, mean 3.11 s |
 | `--look roblox --turntable` | 8.5–8.6 s (8 extra Cycles renders ~4.8 s) |
 
+These are on a quiet box. At 18:45 the box was at load 48 (other bots) and a normal round took **29–34 s** (5–6 s per Cycles render), about 10× slower. Check `uptime` before blaming the model; `--quick` suffers least.
+
 First measurement (before the modes):
 | Setting | Wall per round | Notes |
 |---|---|---|
