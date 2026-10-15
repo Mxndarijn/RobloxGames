@@ -8,6 +8,7 @@ exports Y-up FBX. A stud is 0.28 m in Roblox's physics docs, but nothing here us
 metres: never set scene unit scale, just model in studs.
 """
 from .color import PALETTE, flat_material, gradient_bm, hexc, mix, paint_bm, rgb, shade, vcol_material
+from .goo import Ball, frame_quat, metaball_mesh, paint_goo
 from .mesh import (apply_modifiers, apply_transforms, bevel, cleanup, decimate, finish, join,
                    origin_bottom_center, reset_scene, select_only, tris)
 from .shapes import blob, box, cone, cylinder, gradient, jitter_bm, noise_bm, obj_from_bm, rng, tube

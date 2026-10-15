@@ -1,8 +1,12 @@
 # slime_fountain: Steal a Slime hub centrepiece (Slime Ranch theme, THEME.md + FOUNTAIN_SIZES.md).
 # "Ranch silo meets goo fountain": a chunky wooden silo (staves, brass hoops, red dome roof) whose
-# top is a goo basin that overflows; goo streams run over the roof and down the staves as
-# displacements of the silo surface itself (one surface of revolution, never stuck-on tubes).
+# top is a goo basin that overflows. All the goo is METABALLS converted to mesh (lib/goo.py), so it
+# merges like real goo: a bubbling crown, a wavy collar over the roof and drips down the staves
+# that fuse into the collar and end in fat round drops (the shell sits GOO_T proud of the silo and
+# runs into it); teardrop goo lumps on the slide floor; a splash pool where the slide ends.
 # A goo spiral slide leaves the basin lip and winds ~1.5 turns down to the landing ring.
+# The gumdrop slimes welling up out of the crown are NOT in this mesh: they are the optional
+# second MeshPart models/slime_fountain_emerge.py (same silo space; it prints its offset).
 #
 # Kit space: studs, Z up, front -Y, z=0 ground. The silo axis is at the world origin while
 # modelling; finish() re-centres the mesh on its bbox, so the silo axis offset is printed
@@ -11,7 +15,6 @@ import math, random
 import bmesh, bpy
 from mathutils import Vector
 from lib import *
-from models._slime import radius as slime_radius, TIP as SLIME_TIP
 
 P = PALETTE
 WOOD, WOOD_D, CREAM = P["ranch_wood"], P["ranch_wood_dark"], P["ranch_cream"]
@@ -27,9 +30,8 @@ def smooth_layer(bm):
 
 
 # ------------------------------------------------------------------ silo profile (r, z, tag, free)
-# tag = what the band from this ring up to the next one is. "free" rows may slide along the
-# profile per column: they are snapped onto the goo edge (collar line, drip tips), so goo
-# boundaries follow mesh edges instead of stair-stepping across faces.
+# tag = what the band from this ring up to the next one is. "free" is left over from the
+# displaced-goo version (rows snapped per column onto the goo edge); unused since the metaball goo.
 WALL_TOP = 30.0
 
 
@@ -39,7 +41,7 @@ def wall_r(z):
 
 
 PROF = [(13.0, 0.0, "plinth", 0), (13.1, 1.5, "plinth_top", 0), (12.3, 2.3, "trim_lo", 0), (11.2, 2.4, "trim", 0)]
-wall_z = [3.3, ("hoop", 6.5), 9.4, 10.0, 12.5, ("hoop", 15.5), 18.0, 20.5, 23.0, ("hoop", 25.4), 27.8]
+wall_z = [3.3, ("hoop", 6.5), 9.4, 10.0, ("hoop", 15.5), 19.5, ("hoop", 25.4), 27.8]
 for w in wall_z:
     if isinstance(w, tuple):
         h = w[1]
@@ -54,12 +56,8 @@ for deg in (15, 32, 50, 66, 80, 90):  # rounded red shoulder up to the basin
     PROF.append((8.9 + 4.5 * math.cos(phi), Z0 + 4.6 * math.sin(phi), "dome" if deg < 90 else "rim", int(deg < 80)))
 ZP = Z0 + 4.9  # goo level in the basin
 PROF += [(8.5, ZP + 0.3, "rim", 0), (8.0, ZP + 0.7, "rim_in", 0), (7.4, ZP + 0.5, "pool", 0), (7.1, ZP, "pool", 0)]
-# the goo wells up in a fat bubbling dome: the fountain crown
-POOL = [(5.6, ZP + 0.2), (4.4, ZP + 1.4), (3.2, ZP + 2.9), (1.6, ZP + 3.8)]
-PROF += [(r, z, "pool", 0) for r, z in POOL]
-APEX = ZP + 4.05
+APEX = ZP + 0.4  # low basin floor: hidden under the metaball goo dome
 RIM_I = next(i for i, p in enumerate(PROF) if p[2] == "rim_in")  # rim top ring: the goo starts here
-JC = next(i for i, p in enumerate(PROF) if p[2] == "dome" and abs(p[1] - (Z0 + 4.6 * math.sin(math.radians(66)))) < 1e-6)
 
 SB = [0.0]  # arclength from the bottom
 for p0, p1 in zip(PROF, PROF[1:]):
@@ -103,10 +101,13 @@ def collar(a):
 # goo overflow: the wavy collar spilling over the rim (icing) + drips of mixed length:
 # (angle deg, z where the drip tip ends). Short ones stop on the roof, long ones run down the staves.
 # Kept off the slide head (180 deg).
-DRIPS = [(-120, 32.4), (-82, 21.0), (-8, 25.8), (38, 31.0), (64, 17.6), (135, 23.2), (222, 19.2),
-         (292, 27.2)]
+DRIPS = [(-120, 32.4, 1.0), (-82, 21.0, 1.25), (-8, 25.8, 0.85), (38, 31.0, 1.1), (64, 17.6, 1.2), (135, 23.2, 0.9),
+         (222, 19.2, 1.3), (292, 27.2, 0.8)]  # (angle deg, tip z, width)
 
-TIP_RISE = 1.1  # the drip's side columns stop this much higher: round-ish tip
+# metaball goo (lib/goo.py): GOO_T = how far the goo skin stands proud of the silo surface
+GOO_T, COLLAR_N, CROWN_RES, CROWN_TRIS = 0.5, 22, 0.32, 1450
+GOO_LO_Z = Z0 - 1.0
+CROWN_TOP = 7.1  # centre bubble top above the goo level (sets the model height)
 
 
 def plank_tint(k):
@@ -117,39 +118,9 @@ TINTS = [plank_tint(k) for k in range(SEGS // 2)]
 DOOR_A, DOOR_W, DOOR_TOP = -math.pi / 2, 0.29, 10.0  # 4 columns of red planks
 
 
-def goo_layout():
-    """per column: row arclengths (snapped) and G = lowest goo row index; drip centre columns."""
-    nrow = len(PROF)
-    sbs = [list(SB) for _ in range(SEGS)]
-    G = [JC] * SEGS
-    centre = {}
-    sb_rim = SB[RIM_I]
-    for k in range(SEGS):
-        a = k * math.tau / SEGS
-        sbs[k][JC] = min(SB[JC + 1] - 0.3, max(SB[JC - 1] + 0.3, sb_rim - collar(a)))
-    for deg, zend in DRIPS:
-        kc = round(math.radians(deg) / math.tau * SEGS) % SEGS
-        se = sb_of_z(zend)
-        free = [j for j in range(JC) if PROF[j][3]]
-        j = min(free, key=lambda j: abs(SB[j] - se))
-        lo, hi = SB[j - 1] + 0.3, SB[j + 1] - 0.3
-        for dk, rise in ((0, 0.0), (-1, TIP_RISE), (1, TIP_RISE)):
-            kk = (kc + dk) % SEGS
-            sbs[kk][j] = min(hi, max(lo, se + rise))
-            G[kk] = min(G[kk], j)
-        centre[kc] = j
-    return sbs, G, centre
-
-
 def silo():
-    sbs, G, centre = goo_layout()
+    """plain silo surface of revolution; all the overflowing goo is the metaball crown on top."""
     nrow = len(PROF)
-
-    def face_goo(k, j):
-        if PROF[j][2] in ("pool", "rim_in", "rim"):
-            return True
-        return j >= max(G[k], G[(k + 1) % SEGS]) and j < RIM_I
-
     bm = bmesh.new()
     rows = []  # rows[j][k]
     for j in range(nrow):
@@ -157,44 +128,25 @@ def silo():
         row = []
         for k in range(SEGS):
             a = k * math.tau / SEGS
-            r, z, nr, nz = at(sbs[k][j])
-            adj = [face_goo(kk % SEGS, jj) for kk in (k - 1, k) for jj in (j - 1, j) if 0 <= jj < nrow - 1]
-            d = 0.0
-            if j < RIM_I and any(adj):
-                d = 0.4 if all(adj) else 0.1
-                if k in centre and j >= centre[k]:
-                    d += 0.25  # glossy ridge down the drip
-                    if j == centre[k] or j == centre[k] + 1:
-                        d += 0.45  # fat drop at the tip
-            if tag in ("wall", "trim") and k % 2 == 0 and 2.5 < z < WALL_TOP - 0.1 and d == 0:
+            r, z = PROF[j][0], PROF[j][1]
+            if tag in ("wall", "trim") and k % 2 == 0 and 2.5 < z < WALL_TOP - 0.1:
                 r -= 0.16  # stave seams
             if abs(ang_d(a, DOOR_A)) < DOOR_W and 2.4 < z <= DOOR_TOP + 0.01:
                 r -= 0.3  # door set into the staves
-            row.append(bm.verts.new((math.cos(a) * (r + nr * d), math.sin(a) * (r + nr * d), z + nz * d)))
+            row.append(bm.verts.new((math.cos(a) * r, math.sin(a) * r, z)))
         rows.append(row)
     apex = bm.verts.new((0, 0, APEX))
     bot = bm.verts.new((0, 0, 0))
     col = bm.loops.layers.color.new("Col")
-    sm = smooth_layer(bm)
+    smooth_layer(bm)
 
     def paint(f, k, j):
         tag = PROF[j][2]
         ac = (k + 0.5) * math.tau / SEGS
-        goo = face_goo(k, j)
-        if goo:
-            f.smooth = True
-            f[sm] = 1
         for lp in f.loops:
-            v = lp.vert.co
-            z = v.z
-            kk = round(math.atan2(v.y, v.x) / math.tau * SEGS) % SEGS
-            if tag in ("pool", "rim_in"):
-                rad = math.hypot(v.x, v.y)
-                c = mix(GOO, GOO_HI, 0.5 * min(1, max(0, (z - ZP - 0.5) / 3.5)) + (0.4 if rad < 1.6 else 0))
-            elif goo:
-                c = mix(GOO, GOO_HI, 0.45) if (kk in centre and j < JC) else GOO
-                if z < Z0:
-                    c = mix(c, shade(GOO, 0.9), 0.5)
+            z = lp.vert.co.z
+            if tag in ("pool", "rim_in", "rim"):
+                c = GOO  # under the goo crown
             elif tag in ("plinth", "plinth_top"):
                 c = mix(shade(WOOD_D, 0.92), WOOD_D, min(1, z / 2.3))
             elif tag in ("trim", "trim_lo"):
@@ -212,8 +164,6 @@ def silo():
                 if abs(ang_d(ac, DOOR_A)) < DOOR_W and z <= DOOR_TOP + 0.01:
                     plank = 1.0 if (k % 2) else 0.9  # red barn-door planks, thin cream lintel only
                     c = CREAM if PROF[j][1] > DOOR_TOP - 0.61 else shade(mix(ROOF_D, ROOF, min(1, z / 9)), plank)
-
-
             lp[col] = c
 
     for j in range(nrow - 1):
@@ -230,12 +180,70 @@ def silo():
     return obj_from_bm("Silo", bm)
 
 
+# ------------------------------------------------------------------ metaball goo
+def goo_col(co, n, lo=GOO_LO_Z):
+    """goo base, a touch of goo_hi on up-facing upper parts, slightly deeper low down."""
+    c = mix(GOO, GOO_HI, 0.3 * max(0.0, n.z) ** 2 * min(1, max(0, (co.z - ZP) / 3.5)))
+    if co.z < lo:
+        c = mix(c, shade(GOO, 0.95), min(1, (lo - co.z) / 12))
+    return c
+
+
+def surf_frame(a, sb):
+    """point on the silo surface at angle a / profile arclength sb + (down-slope, lateral, normal)."""
+    r, z, nr, nz = at(sb)
+    ca, sa = math.cos(a), math.sin(a)
+    n = Vector((ca * nr, sa * nr, nz)).normalized()
+    lat = Vector((-sa, ca, 0))
+    down = lat.cross(n).normalized()  # (down, lat, n) is right-handed
+    return Vector((ca * r, sa * r, z)), down, lat, n
+
+
+def goo_crown():
+    balls = []
+    # fat bubbling crown welling up out of the basin: a flat lens filling the basin, a ring of fat
+    # bubbles and one big centre bubble (summed fields of nested ellipsoids peak into a cone)
+    balls.append(Ball((0, 0, ZP + 0.3), (8.0, 8.0, 2.0)))
+    for k, (rr, z, s) in enumerate(((4.9, 2.3, 2.2), (4.6, 2.8, 2.0), (5.0, 2.1, 2.3), (4.5, 2.6, 1.9), (4.8, 2.4, 2.1))):
+        a = k * math.tau / 5 + 0.4
+        balls.append(Ball((math.cos(a) * rr, math.sin(a) * rr, ZP + z), s))
+    balls.append(Ball((0.3, 0.2, ZP + CROWN_TOP - 3.0), 3.0))
+    sb_rim = SB[RIM_I]
+    # collar spilling over the rim: flat lenses on the shoulder, reach set by collar()
+    for k in range(COLLAR_N):
+        a = k * math.tau / COLLAR_N
+        reach = collar(a)
+        p, down, lat, n = surf_frame(a, sb_rim - reach * 0.55)
+        balls.append(Ball(p + n * (GOO_T - 0.75), (reach * 0.55 + 0.4, 1.5, 0.75), rot=frame_quat(down, lat, n)))
+    # drips: a chain of flat lenses down the roof / staves, thinning, with a fat round drop at the tip
+    for deg, zend, wd in DRIPS:
+        a = math.radians(deg)
+        s0, s1 = sb_rim - collar(a) * 0.8, sb_of_z(zend)
+        m = max(2, int((s0 - s1) / 0.7))
+        for i in range(m + 1):
+            t = i / m
+            p, down, lat, n = surf_frame(a, s0 + (s1 - s0) * t)
+            w = wd * (1.05 - 0.45 * t)
+            balls.append(Ball(p + n * (GOO_T - 0.6), (0.9, w, 0.6), rot=frame_quat(down, lat, n)))
+        if s0 - s1 > 9:  # long runs carry a bead half way down
+            p, down, lat, n = surf_frame(a, s0 + (s1 - s0) * 0.55)
+            balls.append(Ball(p + n * (GOO_T - 0.6), (1.0, wd * 0.95, 0.75), rot=frame_quat(down, lat, n)))
+        p, down, lat, n = surf_frame(a, s1 + 0.3)
+        tip = 0.6 + 0.25 * wd
+        balls.append(Ball(p + n * (GOO_T + 0.1 - tip), tip))
+    o = metaball_mesh("GooCrown", balls, resolution=CROWN_RES, tris=CROWN_TRIS)
+    return paint_goo(o, goo_col)
+
+
 # ------------------------------------------------------------------ spiral slide
 TURNS, THETA_END = 1.75, -math.pi / 2  # ends at the front (-Y)
 R_START, R_HELIX, R_END = 4.8, 17.2, 35.5
 Z_START, Z_END = ZP + 0.2, 0.7  # floor top; the head is sunk in the goo dome
 FLARE = 0.62  # path fraction where the helix starts to open out to the landing ring
 N = 66
+LUMPS = [(9, 0.3), (17, -0.5), (26, 0.4), (34, -0.2), (44, 0.5), (53, -0.4)]  # (path index, lateral)
+SLIDE_GOO_TRIS, POOL_TRIS = 400, 460
+POOL_D, POOL_R = 4.8, (4.8, 3.3)  # puddle centre past the mouth, radii (along, across)
 
 
 def path_xy(t):
@@ -363,61 +371,58 @@ def supports(pts):
     return out
 
 
-# ------------------------------------------------------------------ slimes popping out of the goo
-def gumdrop(name, pos, scale, color, tilt=(0, 0, 0)):
-    bm = bmesh.new()
-    segs = 10
-    zs = [0.0, 0.35, 1.0, 1.7, 2.35, 2.8]
-
-    rings = [[bm.verts.new((math.cos(k * math.tau / segs) * slime_radius(z) * scale,
-                            math.sin(k * math.tau / segs) * slime_radius(z) * scale, z * scale))
-              for k in range(segs)] for z in zs]
-    top = bm.verts.new((0, 0, SLIME_TIP * scale))
-    bot = bm.verts.new((0, 0, 0))
-    for a, b in zip(rings, rings[1:]):
-        for k in range(segs):
-            j = (k + 1) % segs
-            bm.faces.new((a[k], a[j], b[j], b[k]))
-    for k in range(segs):
-        j = (k + 1) % segs
-        bm.faces.new((rings[-1][k], rings[-1][j], top))
-        bm.faces.new((rings[0][j], rings[0][k], bot))
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    col = bm.loops.layers.color.new("Col")
-    sm = smooth_layer(bm)
-    for f in bm.faces:
-        f.smooth = True
-        f[sm] = 1
-        for lp in f.loops:
-            lp[col] = mix(shade(color, 0.9), mix(color, CREAM, 0.35), min(1, lp.vert.co.z / (SLIME_TIP * scale)))
-    from mathutils import Euler, Matrix
-    m = Matrix.Translation(Vector(pos)) @ Euler([math.radians(x) for x in tilt]).to_matrix().to_4x4()
-    bmesh.ops.transform(bm, matrix=m, verts=bm.verts)
-    o = obj_from_bm(name, bm)
-    eyes = []
-    for s in (-1, 1):
-        e = m @ Vector((s * 0.5 * scale, -slime_radius(1.65) * scale + 0.08, 1.65 * scale))
-        eyes.append(blob(f"{name}Eye{s}", 0.22 * scale, e, WOOD_D, subdiv=1, jitter=0, squash=(0.8, 0.6, 1.2)))
-    return [o] + eyes
+# ------------------------------------------------------------------ goo on the slide + splash pool
+def slide_goo(pts):
+    """flowing goo lumps on the slide floor: teardrops (fat head downstream, thin tail upstream)
+    sunk into the floor so only a low swell shows."""
+    fr = frames(pts)
+    balls = []
+    for i0, lat_off in LUMPS:
+        p0, lat, up = fr[i0]
+        tng = (pts[i0 + 1] - pts[i0 - 1]).normalized()
+        n = lat.cross(tng).normalized()
+        n = n if n.z > 0 else -n
+        ln = n.cross(tng).normalized()
+        for j, (s_al, s_lat, s_up) in enumerate(((1.2, 1.35, 0.7), (1.1, 1.05, 0.55), (1.0, 0.8, 0.45),
+                                                 (0.9, 0.55, 0.38), (0.8, 0.4, 0.32))):
+            p = p0.lerp(pts[i0 - 1], j * 0.27)  # tail trails upstream, ~0.95 studs per element
+            balls.append(Ball(p + ln * lat_off * (1 - 0.15 * j) + n * (s_up * 0.6 - 0.25), (s_al, s_lat, s_up),
+                              rot=frame_quat(tng, ln, n)))
+    o = metaball_mesh("GooSlide", balls, resolution=0.3, tris=SLIDE_GOO_TRIS)
+    return paint_goo(o, lambda co, n: mix(GOO, GOO_HI, 0.7 * max(0.0, n.z) ** 4))
 
 
-def slimes(pts):
-    """slimes welling up out of the goo crown (sunk in, tilted outward) + one setting off down the slide."""
-    out = []
-    out += gumdrop("SlimeA", (0.2, 0.3, ZP + 2.3), 1.6, P["ranch_pink"], tilt=(0, 0, -12))
-    out += gumdrop("SlimeB", (2.6, -3.2, ZP + 0.9), 1.35, P["ranch_lilac"], tilt=(-16, 12, 28))
-    out += gumdrop("SlimeC", (-3.6, -2.4, ZP + 0.4), 1.25, P["ranch_butter"], tilt=(-14, -18, -40))
-    i = next(i for i, p in enumerate(pts) if p.xy.length > 12.5)  # just out of the basin
-    d = (pts[i + 1] - pts[i - 1]).normalized()
-    yaw = math.degrees(math.atan2(d.x, -d.y))
-    out += gumdrop("SlimeD", pts[i] + Vector((0, 0, -0.1)), 1.25, P["ranch_lilac"], tilt=(0, 0, yaw))
-    return out
+def splash_pool(pts):
+    """the goo the riders bring down: a low puddle past the slide mouth, ripple ring, a pour over the
+    mouth lip and a couple of fat droplets merging into the rim. Flat bottom at the ground."""
+    end = pts[-1]
+    d = (pts[-1] - pts[-2]).xy.normalized()
+    d3 = Vector((d.x, d.y, 0))
+    side = Vector((-d.y, d.x, 0))
+    c = end + d3 * POOL_D
+    c.z = 0.0
+    balls = [Ball(c, (POOL_R[0] * 0.8, POOL_R[1] * 0.8, 0.3)),
+             Ball(c - d3 * 2.8, (2.2, 2.0, 0.4))]
+    for k in range(14):  # ripple ring: a raised rim of uneven lenses round a lower middle
+        a = k * math.tau / 14 + 0.3
+        rr = 0.86 + 0.07 * math.sin(3 * a + 1)
+        q = c + d3 * math.cos(a) * POOL_R[0] * rr + side * math.sin(a) * POOL_R[1] * rr
+        tg = (side * math.cos(a) * POOL_R[1] - d3 * math.sin(a) * POOL_R[0]).normalized()
+        balls.append(Ball(q, (1.0 + 0.2 * (k % 3), 0.62, 0.78 - 0.1 * (k % 2)),
+                          rot=frame_quat(tg, Vector((0, 0, 1)).cross(tg), Vector((0, 0, 1)))))
+    for t, z in ((-1.2, 0.55), (0.2, 0.45), (1.2, 0.2), (2.2, 0.05)):  # thin sheet pouring over the mouth lip
+        balls.append(Ball(end + d3 * t + Vector((0, 0, z - end.z)), (0.8, 1.6, 0.4)))
+    for off, h, rad in ((d3 * 2.0 + side * 1.4, 0.75, 0.6), (-d3 * 0.2 - side * 1.6, 0.6, 0.48),
+                        (d3 * 3.4 - side * 0.5, 0.5, 0.42)):  # fat drops landing in the rim
+        balls.append(Ball(c + off + Vector((0, 0, h)), rad))
+    o = metaball_mesh("GooPool", balls, resolution=0.25, tris=POOL_TRIS, clamp_z=0.02)
+    return paint_goo(o, lambda co, n: mix(shade(GOO, 0.95), GOO_HI, 0.35 * max(0.0, n.z) ** 3 * min(1, co.z / 1.2)))
 
 
 def build():
     """all parts in silo space (silo axis at the origin); returns (parts, slide path)."""
     pts = slide_path()
-    parts = [silo(), slide(pts)] + supports(pts) + slimes(pts)
+    parts = [silo(), goo_crown(), slide(pts), slide_goo(pts), splash_pool(pts)] + supports(pts)
     for o in parts:
         if "keep_smooth" not in o.data.attributes:
             o.data.attributes.new("keep_smooth", "INT", "FACE")
