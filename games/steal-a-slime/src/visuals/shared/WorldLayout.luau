@@ -8,12 +8,12 @@
 	(Folder / Model / Part / PointLight) in world space. WorldBuilder turns it into
 	Instances under workspace; the render proof draws it under Lune.
 
-	  Map      Ground (640x640 baseplate), Volcano (Rock tiers, rim rocks,
-	           Crater = the spawn origin at the centre, with a glow;
-	           VisualsClient adds the smoke / embers / Eruption emitters),
-	           Chute (slide down the volcano side), Paths (spokes + ring),
-	           Decor (rocks, crystals, mushrooms, lava cracks, torches,
-	           edge boulders)
+	  Map      Ground (640x640 baseplate), Volcano = the Slime Ranch fountain
+	           (kit slime_fountain; contract name kept, Crater = the goo pool
+	           on top = the drop origin), Chute (the slide), Paths (plaza,
+	           spokes + ring), Plaza (signpost, podiums), Decor (rocks,
+	           mushrooms, ranch props, edge boulders). Kit meshes go on
+	           MeshAsset slots via server/MeshSwap.
 	  Plots    Plot_1..PLOT_COUNT in a ring around the volcano, each facing
 	           it (entrance at local -Z): Base, Pad_1..PADS_MAX, HomeZone,
 	           MergeVat, LockButton, Sign, walls, Slimes folder, and the
@@ -56,11 +56,26 @@ local WorldLayout = {}
 
 WorldLayout.MAP_NAME = "Map"
 WorldLayout.SLIMES_FOLDER = "Slimes"
-WorldLayout.PLOT_RING_RADIUS = 120
-WorldLayout.PLOT_SIZE = 56
-WorldLayout.VOLCANO_HEIGHT = 40
-WorldLayout.CHUTE_YAW = 22.5 -- chute runs out between Plot_5 and Plot_6
-WorldLayout.RING_PATH_RADIUS = 72
+-- Slime Ranch layout (shared/modeling-kit/models/FOUNTAIN_SIZES.md): 80-stud
+-- plots with one gated entrance. FOUNTAIN_SIZES proposes plot centres at
+-- r ~130, but 80-stud squares 45 degrees apart only clear each other's inner
+-- corners from r ~137 (40 / tan 22.5 + 40), so the ring sits at 140.
+WorldLayout.PLOT_RING_RADIUS = 140
+WorldLayout.PLOT_SIZE = 80
+WorldLayout.PLAZA_RADIUS = 55
+WorldLayout.FOUNTAIN_HEIGHT = 40 -- FOUNTAIN_SIZES 28..48; Effects caps rise at h/2
+WorldLayout.FOUNTAIN_DIAMETER = 28
+-- Legacy name: the fountain still answers to Map.Volcano(.Crater) (CONTRACT §5.3).
+WorldLayout.VOLCANO_HEIGHT = WorldLayout.FOUNTAIN_HEIGHT
+WorldLayout.CHUTE_YAW = 22.5 -- slide runs out between Plot_5 and Plot_6
+WorldLayout.RING_PATH_RADIUS = 78
+WorldLayout.RING_PATH_WIDTH = 8
+WorldLayout.GATE_SLOT = 20 -- fence gap at the entrance
+WorldLayout.GATE_CLEAR = 14 -- walkable opening inside the slot
+WorldLayout.WALL_HEIGHT = 8
+-- Pad stand looks (Phoenix kit), cycled per pad.
+WorldLayout.PAD_MESHES =
+	table.freeze({ "phoenix_pad_crate", "phoenix_pad_hay", "phoenix_pad_goo", "phoenix_pad_stool" })
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
@@ -94,12 +109,11 @@ local PLOT_BASE_GREY = { 150, 140, 128 } -- warm grey mixed into the plot accent
 
 local GRASS = { 98, 160, 70 }
 local SAND = { 206, 178, 132 } -- paths
-local BASALT = { 58, 46, 48 }
-local BASALT_RIM = { 84, 66, 60 }
 local ROCK = { 132, 120, 108 } -- scattered decor rocks
-local LAVA = { 255, 118, 36 }
-local CRATER = { 255, 140, 40 }
-local FLAME = { 255, 150, 60 }
+local STONE = { 214, 204, 186 } -- fountain stone (soft ranch cream)
+local STONE_TRIM = { 176, 160, 138 }
+local POOL = { 120, 220, 170 } -- slime-goo water
+local PLAZA = { 222, 198, 150 } -- ranch_plaza sand
 local WOOD = { 110, 74, 48 }
 local SIGN = { 222, 178, 120 }
 local FENCE = { 150, 104, 68 }
@@ -115,6 +129,29 @@ end
 
 local function light(preset: string): WorldNode
 	return { name = preset, class = "PointLight", preset = preset }
+end
+
+-- Kit mesh slot: MeshSwap (server) puts the MeshAssets mesh in this box. With
+-- `standIn` the slot itself is invisible and decor-only (the primitive look
+-- lives in siblings tagged MeshStandIn = name, hidden when the mesh lands).
+local function meshSlot(node: WorldNode, mesh: string, standIn: boolean?): WorldNode
+	local attributes = node.attributes or {}
+	attributes.MeshAsset = mesh
+	node.attributes = attributes
+	if standIn then
+		node.transparency = 1
+		node.canCollide = false
+		node.canQuery = false
+		node.canTouch = false
+	end
+	return node
+end
+
+local function standIn(node: WorldNode, mesh: string): WorldNode
+	local attributes = node.attributes or {}
+	attributes.MeshStandIn = mesh
+	node.attributes = attributes
+	return node
 end
 
 local function block(name: string, size: Vec, pos: Vec, color: Vec, material: string?, rot: Vec?): WorldNode
@@ -162,59 +199,34 @@ end
 
 -- Map --------------------------------------------------------------------
 
+-- Slime fountain (kit slime_fountain), kept under the contract name
+-- Map.Volcano with Crater (the goo pool on top) as the drop origin.
 local function volcano(): WorldNode
-	local h = WorldLayout.VOLCANO_HEIGHT
-	local tiers = { 56, 46, 36, 26, 18 }
-	local step = h / #tiers
-	local children: { WorldNode } = {}
-	for i, diameter in tiers do
-		table.insert(children, disc(`Rock{i}`, step, diameter, { 0, (i - 0.5) * step, 0 }, BASALT, "Basalt"))
-	end
-	-- Lava flows down the four sides, one tier step at a time; CrackedLava
-	-- does not glow by itself, so the top slab of each flow carries a light.
-	for k = 1, 4 do
-		local yaw = 45 + (k - 1) * 90
-		for i = 1, #tiers - 1 do
-			local n = LayoutMath.direction(yaw, 0)
-			local r = tiers[i] / 2
-			local pos = { n[1] * (r - 1.2), i * step + 0.1, n[3] * (r - 1.2) }
-			local flow = block(`LavaFlow{k}_{i}`, { 2, 0.4, 2.6 }, pos, LAVA, "CrackedLava", { 0, yaw, 0 })
-			flow.canCollide = false
-			if i == #tiers - 1 then
-				flow.children = { light("LavaGlow") }
-			end
-			table.insert(children, flow)
-		end
-	end
-	local crater = disc("Crater", 0.6, 15, { 0, h + 0.3, 0 }, CRATER, "Neon")
+	local h = WorldLayout.FOUNTAIN_HEIGHT
+	local d = WorldLayout.FOUNTAIN_DIAMETER
+	local M = "slime_fountain"
+	local children: { WorldNode } = {
+		standIn(disc("Rock1", 3, d, { 0, 1.5, 0 }, STONE, "Slate"), M),
+		standIn(disc("BasinRim", 1, d + 1, { 0, 3.5, 0 }, STONE_TRIM, "Slate"), M),
+		standIn(disc("Pool", 0.4, d - 3, { 0, 3.1, 0 }, POOL, "Glass"), M),
+		standIn(disc("Column", h - 8, 6, { 0, 3 + (h - 8) / 2, 0 }, STONE, "Slate"), M),
+		standIn(disc("Bowl", 3, 14, { 0, h - 3.5, 0 }, STONE_TRIM, "Slate"), M),
+	}
+	local pool = children[3]
+	pool.canCollide = false
+	local crater = disc("Crater", 0.6, 11, { 0, h - 1.7, 0 }, POOL, "Neon")
 	crater.canCollide = false
-	-- Smoke / embers / eruption emitters are added by VisualsClient
-	-- (ParticleEmitters need datatypes the Lune place tests don't inject).
+	-- Client emitters attach here (VisualsClient); the glow keeps the pool lit.
 	crater.children = { light("CraterGlow") }
-	-- Rim ring of jagged rocks around the crater.
-	for k = 1, 10 do
-		local yaw = k * 36
-		local n = LayoutMath.direction(yaw, 0)
-		table.insert(
-			children,
-			block(
-				`Rim{k}`,
-				{ 2.4, 2 + (k % 3) * 0.8, 2.4 },
-				{ n[1] * 8.6, h + 0.8, n[3] * 8.6 },
-				BASALT_RIM,
-				"Basalt",
-				{ 8, yaw, 12 }
-			)
-		)
-	end
 	table.insert(children, crater)
+	table.insert(children, meshSlot(block("FountainMesh", { d, h, d }, { 0, h / 2, 0 }, STONE), M, true))
 	return { name = "Volcano", class = "Model", primaryPart = "Rock1", children = children }
 end
 
 local function chute(): WorldNode
 	local h = WorldLayout.VOLCANO_HEIGHT
 	local at = frame({ 0, 0, 0 }, WorldLayout.CHUTE_YAW)
-	local top: Vec = { 0, h + 1, -10 }
+	local top: Vec = { 0, h - 4, -8 }
 	local bottom: Vec = { 0, 1, -42 }
 	local delta = { bottom[1] - top[1], bottom[2] - top[2], bottom[3] - top[3] }
 	local length = math.sqrt(delta[1] ^ 2 + delta[2] ^ 2 + delta[3] ^ 2)
@@ -234,10 +246,7 @@ local function chute(): WorldNode
 	for i, t in { 0.4, 0.7 } do
 		local p = LayoutMath.add(top, LayoutMath.scale(delta, t))
 		local height = p[2] - 0.6
-		table.insert(
-			children,
-			block(`Support{i}`, { 1.6, height, 1.6 }, at({ p[1], height / 2, p[3] }), BASALT, "Basalt")
-		)
+		table.insert(children, block(`Support{i}`, { 1.6, height, 1.6 }, at({ p[1], height / 2, p[3] }), WOOD, "Wood"))
 	end
 	return { name = "Chute", class = "Model", primaryPart = "Floor", children = children }
 end
@@ -248,7 +257,7 @@ end
 
 local function paths(): WorldNode
 	local children: { WorldNode } = {}
-	local from, to = 30, WorldLayout.PLOT_RING_RADIUS - WorldLayout.PLOT_SIZE / 2
+	local from, to = WorldLayout.PLAZA_RADIUS, WorldLayout.PLOT_RING_RADIUS - WorldLayout.PLOT_SIZE / 2
 	for i = 1, Config.PLOT_COUNT do
 		local yaw = plotYaw(i)
 		local at = frame({ 0, 0, 0 }, yaw)
@@ -262,19 +271,28 @@ local function paths(): WorldNode
 		)
 		table.insert(children, tile)
 	end
-	-- Ring path just outside the drop ring (62), linking every spoke.
-	local segments, ringR = 24, WorldLayout.RING_PATH_RADIUS
+	-- Landing plaza (flat sand disc) the drops land on, under the fountain.
+	table.insert(children, disc("Plaza", 0.2, WorldLayout.PLAZA_RADIUS * 2, { 0, 0.05, 0 }, PLAZA, "Sand"))
+	-- Ring path outside the drop ring (62), linking every spoke.
+	local segments, ringR = 32, WorldLayout.RING_PATH_RADIUS
 	local length = 2 * math.pi * ringR / segments + 1
 	for k = 1, segments do
 		local yaw = (k - 0.5) * 360 / segments
 		local n = LayoutMath.direction(yaw, 0)
 		table.insert(
 			children,
-			block(`Ring{k}`, { length, 0.2, 7 }, { n[1] * ringR, 0.12, n[3] * ringR }, SAND, "Pavement", {
-				0,
-				yaw,
-				0,
-			})
+			block(
+				`Ring{k}`,
+				{ length, 0.2, WorldLayout.RING_PATH_WIDTH },
+				{ n[1] * ringR, 0.12, n[3] * ringR },
+				SAND,
+				"Pavement",
+				{
+					0,
+					yaw,
+					0,
+				}
+			)
 		)
 	end
 	return { name = "Paths", class = "Folder", children = children }
@@ -291,29 +309,16 @@ local function onPolar(yaw: number, r: number, y: number): Vec
 	return { -n[1] * r, y, -n[3] * r }
 end
 
--- Decor rocks are Rock; the edge boulders are Basalt like the volcano.
+-- Decor rocks and edge boulders are plain ranch Rock (no basalt).
 local function rock(name: string, pos: Vec, s: number, salt: number, edge: boolean?): WorldNode
 	return block(
 		name,
 		{ s * (1 + hash(salt, 4) * 0.6), s * (0.6 + hash(salt, 5) * 0.5), s * (1 + hash(salt, 6) * 0.6) },
 		{ pos[1], s * 0.25, pos[3] },
-		if edge then BASALT else ROCK,
-		if edge then "Basalt" else "Rock",
+		if edge then STONE_TRIM else ROCK,
+		"Rock",
 		{ hash(salt, 7) * 20 - 10, hash(salt, 8) * 360, hash(salt, 9) * 20 - 10 }
 	)
-end
-
-local function crystal(name: string, pos: Vec, salt: number): WorldNode
-	local h = 3 + hash(salt, 11) * 3
-	local color = if hash(salt, 12) < 0.5 then { 120, 255, 200 } else { 190, 130, 255 }
-	local c = block(name, { 1.2, h, 1.2 }, { pos[1], h / 2 - 0.3, pos[3] }, color, "Glass", {
-		hash(salt, 13) * 30 - 15,
-		hash(salt, 14) * 90,
-		hash(salt, 15) * 30 - 15,
-	})
-	c.transparency = 0.15
-	c.children = { light("CrystalGlow") }
-	return c
 end
 
 local function mushroom(name: string, pos: Vec, salt: number): WorldNode
@@ -334,21 +339,11 @@ local function mushroom(name: string, pos: Vec, salt: number): WorldNode
 	return m
 end
 
-local function torch(name: string, pos: Vec): WorldNode
-	local t = { name = name, class = "Model", primaryPart = "Post", children = {} :: { WorldNode } }
-	table.insert(t.children :: { WorldNode }, block("Post", { 0.6, 5, 0.6 }, { pos[1], 2.5, pos[3] }, WOOD, "Wood"))
-	local flame = block("Flame", { 1, 1, 1 }, { pos[1], 5.4, pos[3] }, FLAME, "Neon", { 45, 45, 0 })
-	flame.canCollide = false
-	flame.children = { light("TorchGlow") }
-	table.insert(t.children :: { WorldNode }, flame)
-	return t
-end
-
 -- Keeps decor off the drop ring (34..62 + margin), the ring path, plots,
 -- spoke paths, the chute and the prop spots.
 local function clearSpot(pos: Vec, radius: number): boolean
 	local r = math.sqrt(pos[1] ^ 2 + pos[3] ^ 2)
-	if r < 70 + radius then
+	if r < WorldLayout.RING_PATH_RADIUS + 6 + radius then
 		return false
 	end
 	for i = 1, Config.PLOT_COUNT do
@@ -382,21 +377,16 @@ local function decor(): WorldNode
 		end
 		return false
 	end
-	-- Scattered rocks, crystals and mushrooms between and behind the plots.
-	local rocks, crystals, mushrooms = 0, 0, 0
-	for k = 1, 160 do
+	-- Scattered rocks and mushrooms between and behind the plots.
+	local rocks, mushrooms = 0, 0
+	for k = 1, 120 do
 		local yaw = hash(k, 1) * 360
-		local r = 72 + hash(k, 2) * 230
+		local r = 90 + hash(k, 2) * 205
 		local pos = onPolar(yaw, r, 0)
-		local pick = hash(k, 30)
-		if pick < 0.5 then
+		if hash(k, 30) < 0.6 then
 			local s = 2 + hash(k, 31) * 4
 			if add(rock(`Rock{rocks + 1}`, pos, s, k), pos, s) then
 				rocks += 1
-			end
-		elseif pick < 0.75 then
-			if add(crystal(`Crystal{crystals + 1}`, pos, k), pos, 1.5) then
-				crystals += 1
 			end
 		else
 			if add(mushroom(`Mushroom{mushrooms + 1}`, pos, k), pos, 2) then
@@ -404,21 +394,32 @@ local function decor(): WorldNode
 			end
 		end
 	end
-	-- Glowing lava cracks between the volcano foot and the drop ring.
+	-- Sparse ranch props behind the plots, between neighbours (kit meshes).
+	local RANCH = {
+		{ "ranch_hay_bale", { 5, 4, 5 }, { 228, 196, 110 }, "Fabric" },
+		{ "ranch_crate", { 4, 4, 4 }, WOOD, "WoodPlanks" },
+		{ "ranch_feed_trough", { 8, 3, 3 }, WOOD, "Wood" },
+		{ "ranch_crate_goo", { 4, 4, 4 }, { 120, 220, 140 }, "WoodPlanks" },
+	}
 	for k = 1, Config.PLOT_COUNT do
-		local yaw = plotYaw(k) + 360 / Config.PLOT_COUNT / 2 + 8
-		local pos = onPolar(yaw, 30.5, 0.06)
-		local crack = block(`LavaCrack{k}`, { 1.1, 0.12, 5 }, pos, LAVA, "CrackedLava", { 0, yaw, 0 })
-		crack.canCollide = false
-		crack.children = { light("LavaGlow") }
-		table.insert(children, crack)
+		local yaw = plotYaw(k) + 360 / Config.PLOT_COUNT / 2
+		local def = RANCH[(k - 1) % #RANCH + 1]
+		local size = def[2] :: Vec
+		local pos = onPolar(yaw, 200, size[2] / 2)
+		local node =
+			meshSlot(block(`Ranch{k}`, size, pos, def[3] :: Vec, def[4] :: string, { 0, yaw, 0 }), def[1] :: string)
+		add(node, pos, 4)
 	end
-	-- Torches on both sides of every spoke, just outside the ring path.
-	for i = 1, Config.PLOT_COUNT do
-		for side, dx in { L = -5.5, R = 5.5 } do
-			local at = frame({ 0, 0, 0 }, plotYaw(i))
-			table.insert(children, torch(`Torch{i}{side}`, at({ dx, 0, WorldLayout.RING_PATH_RADIUS + 6 })))
-		end
+	for k, yaw in { 90, 270 } do
+		local pos = onPolar(yaw + 22.5, 245, 6)
+		add(
+			meshSlot(
+				block(`Shed{k}`, { 16, 12, 12 }, pos, { 176, 92, 72 }, "WoodPlanks", { 0, yaw + 22.5, 0 }),
+				"ranch_shed"
+			),
+			pos,
+			10
+		)
 	end
 	-- Boulders along the edge of the ground so nobody walks off the world.
 	local edge = 36
@@ -430,12 +431,37 @@ local function decor(): WorldNode
 	return { name = "Decor", class = "Folder", children = children }
 end
 
+-- Plaza showpieces between the drop ring (62) and the ring path, as kit mesh
+-- slots. The Top Earners board and shop stand skin the live WorldProps models
+-- (ShopStand / LeaderboardBoard, MeshAsset on the Model).
+WorldLayout.PLAZA_PROPS = table.freeze({
+	{ name = "Signpost", mesh = "ranch_plaza_signpost", yaw = 112.5, r = 68, size = { 4, 9, 2 } },
+	{ name = "Podium_1", mesh = "phoenix_plaza_podium_1", yaw = 157.5, r = 68, size = { 5, 3, 5 } },
+	{ name = "Podium_2", mesh = "phoenix_plaza_podium_2", yaw = 150, r = 68, size = { 5, 2.2, 5 } },
+	{ name = "Podium_3", mesh = "phoenix_plaza_podium_3", yaw = 165, r = 68, size = { 5, 1.6, 5 } },
+})
+WorldLayout.PROP_MESHES = table.freeze({
+	ShopStand = "ranch_shop_stand",
+	LeaderboardBoard = "phoenix_top_earners_board",
+})
+
+local function plaza(): WorldNode
+	local children: { WorldNode } = {}
+	for _, def in WorldLayout.PLAZA_PROPS do
+		local size = def.size :: Vec
+		local pos = onPolar(def.yaw, def.r, size[2] / 2)
+		-- face the fountain
+		table.insert(children, meshSlot(block(def.name, size, pos, STONE, "Slate", { 0, def.yaw, 0 }), def.mesh))
+	end
+	return { name = "Plaza", class = "Folder", children = children }
+end
+
 local function map(): WorldNode
 	local ground = block("Ground", { 640, 2, 640 }, { 0, -1, 0 }, GRASS, "Grass")
 	return {
 		name = WorldLayout.MAP_NAME,
 		class = "Folder",
-		children = { ground, volcano(), chute(), paths(), decor() },
+		children = { ground, volcano(), chute(), paths(), plaza(), decor() },
 	}
 end
 
@@ -447,7 +473,7 @@ function WorldLayout.padOffset(j: number): (number, number)
 	local perRow = 4
 	local col = (j - 1) % perRow
 	local row = (j - 1) // perRow
-	return (col - (perRow - 1) / 2) * 12, 4 + row * 13
+	return (col - (perRow - 1) / 2) * 16, 2 + row * 16
 end
 
 function WorldLayout.plotCentre(i: number): (Vec, number)
@@ -591,6 +617,9 @@ local function plot(i: number): WorldNode
 		local x, z = WorldLayout.padOffset(j)
 		local pad = block(`Pad_{j}`, { 8, 0.6, 8 }, at({ x, 1.3, z }), color, "SmoothPlastic", { 0, yaw, 0 })
 		pad.attributes = { PadIndex = j }
+		local look = WorldLayout.PAD_MESHES[(j + i - 2) % #WorldLayout.PAD_MESHES + 1]
+		-- Pad stays the gameplay surface; the stand mesh fills the same box.
+		pad.children = { meshSlot(block("Stand", { 8, 0.6, 8 }, at({ x, 1.3, z }), color), look, true) }
 		table.insert(children, pad)
 	end
 
@@ -609,26 +638,83 @@ local function plot(i: number): WorldNode
 		{ block("Pedestal", { 5, 1.5, 5 }, at({ 19, 1.75, -14 }), { 80, 80, 95 }, "Metal", { 0, yaw, 0 }) }
 	table.insert(children, button)
 
-	local sign = block("Sign", { 16, 5, 0.6 }, at({ 0, 10, -s / 2 + 0.5 }), SIGN, "WoodPlanks", { 0, yaw, 0 })
+	-- Sign spans the gate; its bottom edge stays >= 9 above the walkway.
+	local sign = block("Sign", { 16, 5, 0.6 }, at({ 0, 12, -s / 2 + 0.5 }), SIGN, "WoodPlanks", { 0, yaw, 0 })
 	sign.children = {
-		block("PostL", { 0.8, 11, 0.8 }, at({ -8.4, 6.5, -s / 2 + 0.5 }), WOOD, "Wood", { 0, yaw, 0 }),
-		block("PostR", { 0.8, 11, 0.8 }, at({ 8.4, 6.5, -s / 2 + 0.5 }), WOOD, "Wood", { 0, yaw, 0 }),
+		block("PostL", { 0.8, 13, 0.8 }, at({ -8.4, 7.5, -s / 2 + 0.5 }), WOOD, "Wood", { 0, yaw, 0 }),
+		block("PostR", { 0.8, 13, 0.8 }, at({ 8.4, 7.5, -s / 2 + 0.5 }), WOOD, "Wood", { 0, yaw, 0 }),
 	}
 	table.insert(children, sign)
 
-	local wall = FENCE
-	table.insert(
-		children,
-		block("WallBack", { s, 3, 1 }, at({ 0, 2.5, s / 2 - 0.5 }), wall, "WoodPlanks", { 0, yaw, 0 })
-	)
-	table.insert(
-		children,
-		block("WallLeft", { 1, 3, s }, at({ -s / 2 + 0.5, 2.5, 0 }), wall, "WoodPlanks", { 0, yaw, 0 })
-	)
-	table.insert(
-		children,
-		block("WallRight", { 1, 3, s }, at({ s / 2 - 0.5, 2.5, 0 }), wall, "WoodPlanks", { 0, yaw, 0 })
-	)
+	-- Fence: walls WALL_HEIGHT tall on three sides plus the front either side
+	-- of the GATE_SLOT, so the gate is the only way in. Walls stay primitives
+	-- (MeshPart budget, THEME.md: <= 150 per map); corner posts and the gate
+	-- are kit mesh slots.
+	local wh, r = WorldLayout.WALL_HEIGHT, { 0, yaw, 0 }
+	local wy = 1 + wh / 2
+	local slot, clear = WorldLayout.GATE_SLOT, WorldLayout.GATE_CLEAR
+	local front = (s - slot) / 2
+	local F = "phoenix_fence_segment"
+	for _, w in
+		{
+			{ "WallBack", { s, wh, 1 }, { 0, wy, s / 2 - 0.5 } },
+			{ "WallLeft", { 1, wh, s }, { -s / 2 + 0.5, wy, 0 } },
+			{ "WallRight", { 1, wh, s }, { s / 2 - 0.5, wy, 0 } },
+			{ "WallFrontL", { front, wh, 1 }, { -(slot + front) / 2, wy, -s / 2 + 0.5 } },
+			{ "WallFrontR", { front, wh, 1 }, { (slot + front) / 2, wy, -s / 2 + 0.5 } },
+		}
+	do
+		local node = block(w[1] :: string, w[2] :: Vec, at(w[3] :: Vec), FENCE, "WoodPlanks", r)
+		node.attributes = { FenceMesh = F } -- 10-stud segments once the budget allows
+		table.insert(children, node)
+	end
+	for k, c in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+		local post = block(
+			`CornerPost_{k}`,
+			{ 2, wh + 1, 2 },
+			at({ c[1] * (s / 2 - 1), 1 + (wh + 1) / 2, c[2] * (s / 2 - 1) }),
+			WOOD,
+			"Wood",
+			r
+		)
+		table.insert(children, meshSlot(post, "phoenix_corner_post"))
+	end
+	local postW = (slot - clear) / 2
+	local gate: WorldNode = {
+		name = "Gate",
+		class = "Model",
+		primaryPart = "GateMesh",
+		children = {
+			meshSlot(
+				block("GateMesh", { slot, wh + 1, 1 }, at({ 0, 1 + (wh + 1) / 2, -s / 2 + 0.5 }), WOOD),
+				"phoenix_gate",
+				true
+			),
+			standIn(
+				block(
+					"GatePostL",
+					{ postW, wh + 1, 1.2 },
+					at({ -(clear + postW) / 2, 1 + (wh + 1) / 2, -s / 2 + 0.5 }),
+					WOOD,
+					"Wood",
+					r
+				),
+				"phoenix_gate"
+			),
+			standIn(
+				block(
+					"GatePostR",
+					{ postW, wh + 1, 1.2 },
+					at({ (clear + postW) / 2, 1 + (wh + 1) / 2, -s / 2 + 0.5 }),
+					WOOD,
+					"Wood",
+					r
+				),
+				"phoenix_gate"
+			),
+		},
+	}
+	table.insert(children, gate)
 
 	for _, node in cosmetics(at, yaw, s) do
 		table.insert(children, node)
