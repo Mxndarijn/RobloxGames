@@ -16,7 +16,7 @@ function ServerFixtures.world(now: number?): World.World
 end
 
 -- Joins `userId` with the given slimes (pads 1..n) and cash; returns the session.
--- Goal / Slimedex rewards the fixture already qualifies for (8 pads, ...) are
+-- Goal / SlimeDex rewards the fixture already qualifies for (8 pads, ...) are
 -- settled silently first, so cash stays what the test asked for.
 function ServerFixtures.join(
 	world: World.World,

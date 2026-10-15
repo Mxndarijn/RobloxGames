@@ -2,7 +2,7 @@
 --[[
 	Collection
 
-	Slimedex completion rewards (Config.DEX_MILESTONES, CONTRACT.md §8.8): at
+	SlimeDex completion rewards (Config.DEX_MILESTONES, CONTRACT.md §8.8): at
 	each discovered-count milestone the player gets cash (x rebirthMultiplier)
 	and a permanent income bonus (Perks.dexBonus). Paid automatically by
 	`check`; data.dexRewards counts the milestones paid. `view` is

@@ -297,7 +297,7 @@ local Config = {
 	REBIRTH_COST_GROWTH_LATE = 2,
 	REBIRTH_TIERS = table.freeze(REBIRTH_TIERS), -- ranks (CONTRACT.md §8.8)
 
-	-- Permanent upgrades (Request("BuyUpgrade", id)), goals and Slimedex rewards (CONTRACT.md §8.8)
+	-- Permanent upgrades (Request("BuyUpgrade", id)), goals and SlimeDex rewards (CONTRACT.md §8.8)
 	UPGRADES = table.freeze(UPGRADES),
 	GOALS = table.freeze(GOALS),
 	DEX_MILESTONES = table.freeze(DEX_MILESTONES),

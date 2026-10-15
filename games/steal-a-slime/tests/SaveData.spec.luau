@@ -125,7 +125,7 @@ describe("SaveData migration v1 -> v2", function()
 		expect(PlayerData.findSlime(d, "legacy-2").tier).toBe(6)
 		expect(PlayerData.findSlime(d, "old3").tier).toBe(1)
 	end)
-	it("migrated saves get pads and Slimedex entries", function()
+	it("migrated saves get pads and SlimeDex entries", function()
 		local d = SaveData.deserialize(v1)
 		for _, s in d.slimes do
 			expect(s.pad ~= nil).toBeTruthy()

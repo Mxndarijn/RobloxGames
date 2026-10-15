@@ -1,6 +1,6 @@
 --!strict
 -- v13 progression (CONTRACT.md §8.8-§8.9): rebirth ranks past 5, upgrades, goals,
--- Slimedex rewards and the save v3 migration of a v12-shaped save.
+-- SlimeDex rewards and the save v3 migration of a v12-shaped save.
 local Actions = require("../src/server/Actions")
 local Carry = require("../src/server/Carry")
 local Collection = require("../src/shared/Collection")
@@ -130,7 +130,7 @@ describe("Upgrades (BuyUpgrade)", function()
 		s.data.rebirths = 1
 		expect(call(world, 1, "BuyUpgrade", "CarrySpeed").message).toBe("not enough cash")
 	end)
-	it("Income, rank and Slimedex bonuses multiply plot income", function()
+	it("Income, rank and SlimeDex bonuses multiply plot income", function()
 		local data = Fixtures.data({ Fixtures.slime("a", 1) })
 		local base = PlayerData.incomePerSecond(data)
 		data.upgrades.Income = 2
@@ -202,7 +202,7 @@ describe("Upgrades (BuyUpgrade)", function()
 	end)
 end)
 
-describe("Goals and Slimedex rewards", function()
+describe("Goals and SlimeDex rewards", function()
 	it("pays stages as stats grow, x rebirthMultiplier, and tracks real actions", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("m1", 1), Fixtures.slime("m2", 1) }, 1e6)
@@ -248,7 +248,7 @@ describe("Goals and Slimedex rewards", function()
 		data.dex["junk"] = true
 		expect(Collection.tierMask(data)).toBe(0b100101)
 	end)
-	it("pays Slimedex milestones with a permanent income bonus", function()
+	it("pays SlimeDex milestones with a permanent income bonus", function()
 		local data = Fixtures.data()
 		for i = 1, 26 do
 			data.dex[`k{i}`] = true

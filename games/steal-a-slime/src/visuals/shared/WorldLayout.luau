@@ -470,7 +470,7 @@ end
 
 -- Attribute-driven plot cosmetics (PlotDecor; VisualsClient shows / hides
 -- them locally): lock barrier + lock sign, "Free plot" stand, rebirth
--- trim / pillars / banners / crown, Slimedex board. Shipped in their neutral
+-- trim / pillars / banners / crown, SlimeDex board. Shipped in their neutral
 -- state: free plot (stand visible), unlocked, no rebirths, empty dex.
 local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode }
 	local r = { 0, yaw, 0 }
@@ -552,7 +552,7 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	add(crown)
 	table.insert(nodes, rebirth)
 
-	-- Slimedex board on the back wall, facing the entrance.
+	-- SlimeDex board on the back wall, facing the entrance.
 	local dex: WorldNode = {
 		name = "DexBoard",
 		class = "Model",
