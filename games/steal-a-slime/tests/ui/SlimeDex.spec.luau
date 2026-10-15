@@ -98,6 +98,7 @@ local function openDex(w: number, h: number, dex: { string }): (any, Layout.Rect
 	local r = Layout.rect(math.floor(raw.x), math.floor(raw.y), math.floor(raw.w), math.floor(raw.h))
 	panel.frame.Size = UDim2.fromOffset(r.w, r.h)
 	panel.update({ dex = dex, dexTotal = TOTAL })
+	panel.setOpen(true) -- rows are only built while open
 	panel.frame.Visible = true
 	return panel, r
 end

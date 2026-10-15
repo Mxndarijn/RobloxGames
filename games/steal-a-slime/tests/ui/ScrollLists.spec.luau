@@ -148,6 +148,9 @@ local function openPanel(key: string, w: number, h: number): (any, Layout.Rect)
 	if panel.layout then
 		panel.layout(r)
 	end
+	if panel.setOpen then
+		panel.setOpen(true) -- init.client.setOpen, before its update
+	end
 	if panel.update then
 		panel.update(state())
 	end

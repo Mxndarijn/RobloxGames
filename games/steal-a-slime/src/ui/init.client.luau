@@ -208,6 +208,9 @@ local function setOpen(key: string?)
 	for _, entry in panels do
 		local isOpen = entry.key == key
 		entry.panel.frame.Visible = isOpen
+		if entry.panel.setOpen then
+			entry.panel.setOpen(isOpen)
+		end
 		styleNav(navButtons[entry.key], isOpen)
 		if isOpen and latest and entry.panel.update then
 			entry.panel.update(latest)
