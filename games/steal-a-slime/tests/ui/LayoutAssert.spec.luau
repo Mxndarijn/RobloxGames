@@ -184,14 +184,18 @@ describe("init.client applies Layout for every viewport", function()
 		expect(has(src, "Layout.panelFor(s, entry.key)")).toBe(true)
 		expect(has(src, "NAV_WIDTH")).toBe(false) -- no hard-coded nav width left
 	end)
-	it("closes the open menu from its X and from Esc / gamepad B (same setOpen(nil))", function()
+	it("closes the open menu from its X and gamepad B; Esc only when CLOSE_WITH_ESCAPE", function()
+		expect(Layout.CLOSE_WITH_ESCAPE).toBe(false)
 		expect(has(src, "entry.panel.close.Activated:Connect(function()\n\t\tsetOpen(nil)")).toBe(true)
-		local bind = string.match(src, 'ContextActionService:BindAction%("CloseMenu"(.-)\nend%)[^\n]*') :: string
-		expect(bind ~= nil).toBe(true)
-		expect(has(bind, "setOpen(nil)")).toBe(true)
-		local line = string.match(src, "end, false, Enum%.KeyCode%.Escape, Enum%.KeyCode%.ButtonB%)")
-		expect(line ~= nil).toBe(true)
-		expect(has(bind, "openKey == nil then\n\t\treturn Enum.ContextActionResult.Pass")).toBe(true)
+		-- B in both branches; Escape only in the CLOSE_WITH_ESCAPE branch.
+		local bind = 'ContextActionService:BindAction("CloseMenu", closeMenuAction, false, Enum.KeyCode.ButtonB'
+		expect(has(src, `if Layout.CLOSE_WITH_ESCAPE then\n\t{bind}, Enum.KeyCode.Escape)\nelse\n\t{bind})\nend`)).toBe(
+			true
+		)
+		local _, escapes = string.gsub(src, "Enum%.KeyCode%.Escape", "")
+		expect(escapes).toBe(1)
+		expect(has(src, "setOpen(nil)\n\treturn Enum.ContextActionResult.Sink")).toBe(true)
+		expect(has(src, "openKey == nil then\n\t\treturn Enum.ContextActionResult.Pass")).toBe(true)
 	end)
 	it("has a collapse toggle and icon-only collapsed buttons", function()
 		expect(has(src, 'Name = "NavToggle"')).toBe(true)

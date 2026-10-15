@@ -19,6 +19,9 @@ local task = require("@lune/task")
 
 local UiHarness = {}
 
+-- Count of warn() calls from loaded modules.
+UiHarness.warnings = 0
+
 local db = roblox.getReflectionDatabase()
 
 local function isA(className: string, target: string): boolean
@@ -114,6 +117,30 @@ function methods.Destroy(self: any)
 	end
 end
 
+local newInstance: (className: string) -> any
+
+-- Deep copy of the subtree; properties that point into it (e.g.
+-- Model.PrimaryPart) are remapped to the copies, as in Roblox.
+function methods.Clone(self: any): any
+	local copies: { [any]: any } = {}
+	local function copy(source: any): any
+		local c = newInstance(rawget(source, "_class"))
+		copies[source] = c
+		rawset(c, "_attributes", table.clone(rawget(source, "_attributes")))
+		for _, child in rawget(source, "_children") do
+			copy(child).Parent = c
+		end
+		return c
+	end
+	local root = copy(self)
+	for source, c in copies do
+		for key, value in rawget(source, "_props") do
+			c[key] = copies[value] or value
+		end
+	end
+	return root
+end
+
 local function setParent(self: any, parent: any)
 	local old = rawget(self, "_parent")
 	if old then
@@ -168,7 +195,7 @@ Mock.__tostring = function(self: any): string
 	return `{rawget(self, "_class")}:{self.Name}`
 end
 
-local function newInstance(className: string): any
+function newInstance(className: string): any
 	local real = roblox.Instance.new(className)
 	local self = setmetatable({
 		_class = className,
@@ -246,6 +273,7 @@ globals = {
 	UDim2 = roblox.UDim2,
 	Vector2 = roblox.Vector2,
 	Vector3 = roblox.Vector3,
+	CFrame = roblox.CFrame,
 	Color3 = roblox.Color3,
 	ColorSequence = roblox.ColorSequence,
 	ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
@@ -254,6 +282,9 @@ globals = {
 	NumberRange = roblox.NumberRange,
 	Rect = roblox.Rect,
 	task = task,
+	warn = function()
+		UiHarness.warnings += 1
+	end,
 	game = {
 		GetService = function(_self: any, name: string): any
 			return assert(services[name], `service {name} is not mapped`)
