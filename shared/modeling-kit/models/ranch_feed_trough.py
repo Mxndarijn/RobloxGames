@@ -1,7 +1,7 @@
 # ranch_feed_trough: chunky wooden feed trough on two skid feet, filled with slime feed
 # (Slime Ranch theme). ~6 x 2.5 x 2.2 studs, long axis X, front -Y.
-# Goo fill = one closed grid slab with an indented (dipped) surface and a lighter rim
-# where it climbs the walls (meniscus). Not glowing: plain vertex colour, no emissive.
+# Goo fill = lib/goo.py metaballs: fused puddle + meniscus up the walls + 2 spills over the
+# front lip. Not glowing: plain vertex colour, no emissive.
 import math
 import bmesh
 from lib import *
@@ -51,34 +51,73 @@ for sx in (-1, 1):
     parts.append(pbox(f"End{sx}", (0.55, D, h), (x, 0, Z0 + h / 2), WOOD_LO, WOOD_HI, bev=0.18))
 
 
-# goo fill: closed grid slab, surface indented, lighter rim against the walls
-def goo_fill(name, hx, hy, zb, zt, nx=16, ny=6, dip=0.22):
-    bm = bmesh.new()
-    bmesh.ops.create_grid(bm, x_segments=nx, y_segments=ny, size=1.0)
-    bmesh.ops.scale(bm, vec=(hx, hy, 1), verts=bm.verts)
-    bmesh.ops.translate(bm, vec=(0, 0, zb), verts=bm.verts)
-    ext = bmesh.ops.extrude_face_region(bm, geom=list(bm.faces))
-    top = [e for e in ext["geom"] if isinstance(e, bmesh.types.BMVert)]
-    for v in top:
-        u, w = v.co.x / hx, v.co.y / hy
-        edge = max(abs(u) ** 6, abs(w) ** 2)           # 0 centre .. 1 at the walls
-        dimple = 0.06 * math.sin(u * 7.0 + 0.6) * math.cos(w * 2.4)
-        v.co.z = zt - dip * (1 - edge) + dimple * (1 - edge)
-    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-    layer = bm.loops.layers.color.new("Col")
-    for f in bm.faces:
-        for lp in f.loops:
-            v = lp.vert.co
-            t = max(abs(v.x / hx) ** 8, abs(v.y / hy) ** 4)   # only the outer rim goes light
-            lp[layer] = mix(GOO, GOO_HI, min(1.0, t * 1.3)) if v.z > zb + 0.01 else shade(GOO, 0.8)
-    return obj_from_bm(name, bm)
+# goo fill: one metaball skin (lib/goo.py) = flat lenses filling the tub + a meniscus ridge
+# climbing the inner walls + a spill over the front lip that runs down to a fat drop.
+# The lens edges sink into the wood, so only the top and the spill are seen.
+GZ = TOP - 0.2           # goo level (centre of the lenses)
+IX, IY = L / 2 - 0.55, 0.78   # inner wall line (end boards, flared side walls at goo level)
+DRIPS = [(-1.3, 1.0), (1.1, 0.6)]   # front spill: x, length down the outside
+BUBBLES = [(-1.1, 0.3), (0.85, -0.3), (1.95, 0.15)]
 
 
-parts.append(goo_fill("Goo", L / 2 - 0.5, D / 2 - 0.2, Z0 + 0.4, TOP - 0.08, dip=0.18))
+def wall_y(z):
+    """outer face of the flared front wall (sy=-1) at height z."""
+    return -1.087 - (z - 1.13) * 0.173
 
-# a few butter feed pellets resting in the goo
-for k, (x, y) in enumerate(((-1.4, -0.25), (-0.9, 0.3), (0.2, -0.1), (1.1, 0.35), (1.6, -0.3))):
-    parts.append(blob(f"Pellet{k}", 0.24, (x, y, TOP - 0.24), BUTTER, seed=k + 3, subdiv=1, squash=(1.1, 1, 0.75), jitter=0.06))
+
+def goo_balls():
+    bs = []
+    for i in range(7):                      # fused puddle: overlapping flat lenses along the tub
+        x = -IX + 0.25 + i * (2 * IX - 0.5) / 6
+        bs.append(Ball((x, 0.04 * (-1) ** i, GZ - 0.06), (0.62, IY + 0.15, 0.2)))
+    for sy in (-1, 1):                      # meniscus ridge along the side walls
+        for i in range(9):
+            x = -IX + 0.2 + i * (2 * IX - 0.4) / 8
+            bs.append(Ball((x, sy * (IY - 0.02), GZ + 0.01), (0.42, 0.2, 0.13)))
+    for sx in (-1, 1):                      # ... and the end boards
+        for y in (-0.45, 0, 0.45):
+            bs.append(Ball((sx * (IX - 0.02), y, GZ + 0.01), (0.2, 0.36, 0.13)))
+    for x, ln in DRIPS:                     # spill: wide over the lip, tapering run, fat round tip
+        bs.append(Ball((x, -IY - 0.05, GZ + 0.1), (0.45, 0.22, 0.17)))
+        bs.append(Ball((x, -1.08, TOP + 0.02), (0.36, 0.2, 0.14)))
+        n = 4
+        for k in range(n + 1):
+            z = TOP - 0.05 - (ln - 0.15) * k / n
+            w = 0.3 - 0.16 * k / n            # neck narrows toward the drop
+            bs.append(Ball((x + 0.03 * k, wall_y(z) + 0.05, z), (w, 0.11, 0.2)))
+        z = TOP - 0.05 - ln
+        bs.append(Ball((x + 0.12, wall_y(z) - 0.0, z), (0.2, 0.16, 0.21)))
+    for x, y in BUBBLES:                    # half-sunk bubbles fuse into soft bumps
+        bs.append(Ball((x, y, GZ + 0.2), 0.13))
+    return bs
+
+
+def goo_col(co, n):
+    if n.z < 0.3 and co.y > -1.0:           # hidden sides/underside in the tub
+        return shade(GOO, 0.85)
+    if co.y < -1.0:                         # spill: darker run, light tip
+        tip = max(0.0, min(1.0, (TOP - 0.1 - co.z) / 1.0))
+        return mix(mix(GOO, GOO_HI, 0.12), GOO_HI, 0.5 * tip ** 3)   # lifted: the run sits in shade
+    rim = max(abs(co.x) / IX, abs(co.y) / IY)
+    hi = 0.5 * max(0.0, (rim - 0.86) / 0.14) ** 2            # thin glossy meniscus only
+    hi = max(hi, 0.6 * max(0.0, (co.z - GZ - 0.12) / 0.15))   # bubble tops
+    return mix(GOO, GOO_HI, min(0.6, hi))
+
+
+goo = metaball_mesh("Goo", goo_balls(), resolution=0.13, tris=700)
+print("goo nm", goo["nm"], "zmax %.2f" % max(v.co.z for v in goo.data.vertices), "zmin %.2f" % min(v.co.z for v in goo.data.vertices))
+parts.append(paint_goo(goo, goo_col))
+
+# a few butter feed pellets bobbing in the goo
+for k, (x, y) in enumerate(((-1.6, -0.2), (-0.7, 0.3), (0.3, -0.1), (1.6, 0.25))):
+    parts.append(blob(f"Pellet{k}", 0.26, (x, y, GZ + 0.12), BUTTER, seed=k + 3, subdiv=2, squash=(1.1, 1, 0.7), jitter=0.08))
     gradient(parts[-1], BUTTER, mix(BUTTER, CREAM, 0.4))
 
-finish("ranch_feed_trough", parts)
+for o in parts:
+    if "keep_smooth" not in o.data.attributes:
+        o.data.attributes.new("keep_smooth", "INT", "FACE")
+o = finish("ranch_feed_trough", parts)
+a = o.data.attributes["keep_smooth"]
+for p, d in zip(o.data.polygons, a.data):
+    p.use_smooth = bool(d.value)
+o.data.attributes.remove(a)
