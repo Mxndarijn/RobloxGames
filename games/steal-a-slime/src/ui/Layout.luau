@@ -86,7 +86,6 @@ function Layout.stackRows(heights: { number }, gap: number): ({ number }, number
 	return ys, y + rules.paddingBottom
 end
 
-
 -- UIScale for the root ScreenGui: 1 on desktop, smaller on phones. Never
 -- below MIN_SCALE so a MIN_TOUCH_DESIGN button is still a thumb target.
 Layout.DESIGN_WIDTH = 1280
