@@ -44,6 +44,7 @@ local SlimeMesh = require(script.Parent.SlimeMesh)
 local Snapshot = require(script.Parent.Snapshot)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
 local World = require(script.Parent.World)
+local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 local WorldProps = require(script.Parent.WorldProps)
 
 type Record = { model: Model, body: BasePart, prompt: ProximityPrompt, key: string, weld: WeldConstraint? }
@@ -55,7 +56,7 @@ local failed: { [string]: boolean } = {}
 local modelFactory: any = nil
 local plotCache: { [number]: Instance? } = {}
 
-WorldView.DROP_SECONDS = 0.8
+WorldView.DROP_SECONDS = 2.4 -- long enough to read the spiral ride down the fountain
 WorldView.FALL_SECONDS = 0.3 -- a dropped slime falls to the ground
 WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart
 
@@ -246,6 +247,34 @@ local function arc(from: CFrame, to: CFrame, height: number): (t: number) -> CFr
 	end
 end
 
+-- Fountain spiral (WorldLayout.SLIDE_PATH), then a short run out to the
+-- rolled landing. The primitive chute copies the same path and hides once
+-- the mesh is in, so wilds are not sent down the old straight slide.
+local function slideCFrame(t: number): CFrame
+	local path = WorldLayout.SLIDE_PATH
+	local f = math.clamp(t, 0, 1) * (#path - 1)
+	local i = math.floor(f)
+	local k = f - i
+	local a, b = path[i + 1], path[math.min(i + 2, #path)]
+	local p = Vector3.new(a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k)
+	local dir = Vector3.new(b[1] - a[1], b[2] - a[2], b[3] - a[3])
+	if dir.Magnitude < 1e-3 then
+		return CFrame.new(p)
+	end
+	return CFrame.lookAt(p, p + dir)
+end
+
+local function spiralRide(landing: CFrame): (t: number) -> CFrame
+	local mouth = WorldLayout.slidePosition(1)
+	local from = CFrame.new(mouth[1], mouth[2], mouth[3])
+	return function(t: number): CFrame
+		if t < 0.85 then
+			return slideCFrame(t / 0.85)
+		end
+		return from:Lerp(landing, (t - 0.85) / 0.15)
+	end
+end
+
 local function create(entry: Scene.Entry, onPrompt: (Player, string) -> ()): Record?
 	if failed[entry.id] or not modelFactory then
 		return nil
@@ -320,7 +349,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 		end
 		local landing = wildLanding(wild)
 		if previous == nil and wild.position == nil then
-			animate(entry.id, entry.key, WorldView.DROP_SECONDS, arc(CFrame.new(crater()), landing, 12))
+			animate(entry.id, entry.key, WorldView.DROP_SECONDS, spiralRide(landing))
 		elseif previous ~= nil and wild.position ~= nil then
 			animate(entry.id, entry.key, WorldView.FALL_SECONDS, function(t: number): CFrame
 				return from:Lerp(landing, t * t) -- falls out of the carrier's arms

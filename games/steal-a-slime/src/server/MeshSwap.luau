@@ -7,8 +7,11 @@
 	Shared.MeshAssets, creates a MeshPart via AssetService:CreateMeshPartAsync,
 	fits it to the placeholder's box and CFrame, anchors it, makes it visual-only
 	and hides the placeholder (which keeps collision, prompts and contract
-	names). Idempotent (a placeholder with a "Mesh" child is skipped). Any
-	failure leaves the primitive placeholder. Holds no gameplay rules.
+	names). Parts tagged MeshStandIn = that mesh anywhere under the same Map
+	or Plots root hide too (the spiral stand-in lives under Map.Chute, not
+	beside the fountain slot). Idempotent (a placeholder with a "Mesh" child
+	is skipped). Any failure leaves the primitive placeholder. Holds no
+	gameplay rules.
 ]]
 
 local AssetService = game:GetService("AssetService")
@@ -50,9 +53,17 @@ local function hide(part: BasePart)
 	end
 end
 
+local function hideStandIns(scope: Instance, name: string)
+	for _, d in scope:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("MeshStandIn") == name then
+			hide(d)
+		end
+	end
+end
+
 -- A part slot or a whole Model (WorldProps skins: its parts keep collision,
 -- prompts and SurfaceGuis, only their look is hidden).
-local function swap(target: BasePart | Model, name: string): boolean
+local function swap(target: BasePart | Model, name: string, scope: Instance): boolean
 	if target:FindFirstChild("Mesh") then
 		return false
 	end
@@ -83,16 +94,8 @@ local function swap(target: BasePart | Model, name: string): boolean
 		end
 	else
 		hide(target)
-		-- primitive stand-ins for this mesh next to the slot
-		local parent = target.Parent
-		if parent then
-			for _, sibling in parent:GetChildren() do
-				if sibling:IsA("BasePart") and sibling:GetAttribute("MeshStandIn") == name then
-					hide(sibling)
-				end
-			end
-		end
 	end
+	hideStandIns(scope, name)
 	mesh.Parent = target
 	return true
 end
@@ -107,7 +110,7 @@ function MeshSwap.apply(): number
 				if
 					(inst:IsA("BasePart") or inst:IsA("Model"))
 					and typeof(name) == "string"
-					and swap(inst :: any, name)
+					and swap(inst :: any, name, root)
 				then
 					count += 1
 				end

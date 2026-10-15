@@ -35,11 +35,17 @@ local NAMES = {
 	"ranch_feed_trough",
 	"ranch_hay_bale",
 	"ranch_shed",
+	"ranch_landing_ring",
+	"ranch_goo_drain",
+	"slime_fountain_emerge",
 }
 
 local entries: { [string]: Entry } = {}
+-- Size is the polished FBX bbox (goo polish, ~43.316 tall). The asset id is
+-- still the previous upload: Open Cloud was not available to re-upload
+-- out/slime_fountain.fbx. The WorldLayout slot uses this same box.
 entries["slime_fountain"] =
-	{ assetId = 137335028699292, meshId = "rbxassetid://109732747899788", size = { 54.45, 43.3, 63.851 } }
+	{ assetId = 137335028699292, meshId = "rbxassetid://109732747899788", size = { 54.45, 43.316, 63.851 } }
 entries["phoenix_fence_segment"] =
 	{ assetId = 92327721520041, meshId = "rbxassetid://127187149466504", size = { 11, 9.02, 1.8 } }
 entries["phoenix_corner_post"] =
@@ -74,6 +80,10 @@ entries["ranch_hay_bale"] =
 	{ assetId = 108180914521962, meshId = "rbxassetid://83011141223539", size = { 4, 2.617, 2.56 } }
 entries["ranch_shed"] =
 	{ assetId = 84203174193070, meshId = "rbxassetid://78762155869477", size = { 10.55, 9.33, 8.55 } }
+-- Not uploaded (no Open Cloud key). Placeholders stay until meshId is filled.
+entries["ranch_landing_ring"] = { size = { 13.145, 3.145, 10.27 } }
+entries["ranch_goo_drain"] = { size = { 8.8, 4.45, 9.75 } }
+entries["slime_fountain_emerge"] = { size = { 19.436, 12.798, 11.353 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)

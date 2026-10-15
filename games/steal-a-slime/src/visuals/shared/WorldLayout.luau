@@ -10,11 +10,12 @@
 
 	  Map      Ground (640x640 baseplate), Volcano = the Slime Ranch fountain
 	           (kit slime_fountain; contract name kept, Crater = the goo pool
-	           on top = the drop origin), Chute (the slide), Paths (plaza,
-	           spokes + ring), Plaza (signpost, podiums), Decor (rocks,
-	           mushrooms, ranch props, edge boulders). Kit meshes go on
-	           MeshAsset slots via server/MeshSwap.
-	  Plots    Plot_1..PLOT_COUNT in a ring around the volcano, each facing
+	           on top = the drop origin), Chute (primitive slide, hidden once
+	           the fountain mesh loads), Paths (plaza, spokes + ring), Plaza
+	           (signpost, podiums, landing-ring tiles, goo drain), Decor
+	           (rocks, mushrooms, ranch props, edge boulders). Kit meshes go
+	           on MeshAsset slots via server/MeshSwap.
+	  Plots    Plot_1..PLOT_COUNT in a ring around the fountain, each facing
 	           it (entrance at local -Z): Base, Pad_1..PADS_MAX, HomeZone,
 	           MergeVat, LockButton, Sign, walls, Slimes folder, and the
 	           PlotDecor cosmetics (LockBarrier, LockSign, BuyStand,
@@ -22,8 +23,9 @@
 	Every Part is anchored (WorldBuilder forces it). PROP_SPOTS suggests
 	where Props go.
 
-	Volcano drops land MIN_RADIUS..MAX_RADIUS (34..62) studs from the centre,
-	so the volcano foot stays inside 28 studs and plots start past 90.
+	Wild drops land MIN_RADIUS..MAX_RADIUS (34..62) studs from the centre and
+	ride the fountain spiral (end r 35.5) before sliding out to that spot.
+	Plots start past 90.
 ]]
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
@@ -62,12 +64,14 @@ WorldLayout.SLIMES_FOLDER = "Slimes"
 -- corners from r ~137 (40 / tan 22.5 + 40), so the ring sits at 140.
 WorldLayout.PLOT_RING_RADIUS = 140
 WorldLayout.PLOT_SIZE = 80
-WorldLayout.PLAZA_RADIUS = 55
-WorldLayout.FOUNTAIN_HEIGHT = 40 -- FOUNTAIN_SIZES 28..48; Effects caps rise at h/2
+-- Flat sand past the wild landing ring (r62) and the hub spawn (r64).
+WorldLayout.PLAZA_RADIUS = 66
+WorldLayout.FOUNTAIN_HEIGHT = 43.3 -- polished mesh height; Effects caps rise at h/2
 WorldLayout.FOUNTAIN_DIAMETER = 28
 -- Legacy name: the fountain still answers to Map.Volcano(.Crater) (CONTRACT §5.3).
 WorldLayout.VOLCANO_HEIGHT = WorldLayout.FOUNTAIN_HEIGHT
-WorldLayout.CHUTE_YAW = 22.5 -- slide runs out between Plot_5 and Plot_6
+-- The live ride is WorldLayout.SLIDE_PATH (mesh spiral, end r 35.5 on +Z).
+-- The old straight chute bearing was yaw 22.5; that slide is gone.
 WorldLayout.RING_PATH_RADIUS = 78
 WorldLayout.RING_PATH_WIDTH = 8
 WorldLayout.GATE_SLOT = 20 -- fence gap at the entrance
@@ -83,7 +87,8 @@ WorldLayout.PAD_MESHES =
 -- tutorial NPC stands behind the hub SpawnLocation (scripts/StaticWorld,
 -- same bearing) and faces it.
 local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: number }
-	local r, a = 84, math.rad(angle)
+	-- Ring path outer edge is r 82 (78 + 8/2). 90 keeps a shop-sized prop off it.
+	local r, a = 90, math.rad(angle)
 	return { pos = { math.sin(a) * r, 0, math.cos(a) * r }, yaw = if faceVolcano then angle else angle + 180 }
 end
 WorldLayout.PROP_SPOTS = table.freeze({
@@ -92,9 +97,76 @@ WorldLayout.PROP_SPOTS = table.freeze({
 	TutorialNpc = propSpot(247.5, true),
 }) :: { [string]: { pos: Vec, yaw: number } }
 
--- "Volcanic meadow" palette (graphics-strategy.md §4.3): plots get their
--- identity from saturated mid-value accents, neutrals are warm (wood, sand,
--- basalt) and Neon is kept for gameplay signals (lava, buttons, goo, torches).
+-- Spiral the polished slime_fountain slide follows (models/slime_fountain.py):
+-- 1.75 turns, end r 35.5 at the front. Kit (x, y, z-up) -> Roblox (x, z, -y),
+-- silo axis at the world origin. Wilds ride this; the primitive chute copies it
+-- and hides once the fountain mesh loads.
+local SLIDE_TURNS, SLIDE_THETA_END = 1.75, -math.pi / 2
+local SLIDE_R0, SLIDE_RHELIX, SLIDE_REND = 4.8, 17.2, 35.5
+local SLIDE_Z0, SLIDE_Z1, SLIDE_FLARE = 36.4, 0.7, 0.62
+
+local function slideKit(t: number): (number, number)
+	local th = SLIDE_THETA_END + SLIDE_TURNS * math.pi * 2 * (1 - t)
+	local r
+	if t < 0.07 then
+		local u = t / 0.07
+		r = SLIDE_R0 + (SLIDE_RHELIX - SLIDE_R0) * (1 - (1 - u) ^ 2)
+	elseif t < SLIDE_FLARE then
+		r = SLIDE_RHELIX
+	else
+		local u = (t - SLIDE_FLARE) / (1 - SLIDE_FLARE)
+		r = SLIDE_RHELIX + (SLIDE_REND - SLIDE_RHELIX) * (u * u * (3 - 2 * u))
+	end
+	return math.cos(th) * r, math.sin(th) * r
+end
+
+local function buildSlide(): { Vec }
+	local samples = 33
+	local ts, xy = {}, {}
+	for k = 0, samples - 1 do
+		local t = k / (samples - 1)
+		local x, y = slideKit(t)
+		table.insert(ts, t)
+		table.insert(xy, { x, y })
+	end
+	local length = { 0 }
+	for k = 1, samples - 1 do
+		local a, b = xy[k], xy[k + 1]
+		local dist = math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2)
+		local weight = if ts[k] < SLIDE_FLARE then 1.7 else 1
+		length[k + 1] = length[k] + dist * weight
+	end
+	local total = length[samples]
+	local path = {}
+	for k = 1, samples do
+		local u = length[k] / total
+		local drop = math.max(0, 1 - u / 0.9) ^ 1.2
+		local z = SLIDE_Z1 + (SLIDE_Z0 - SLIDE_Z1) * drop
+		local p = xy[k]
+		table.insert(path, { p[1], z, -p[2] })
+	end
+	return path
+end
+
+WorldLayout.SLIDE_END_RADIUS = SLIDE_REND
+WorldLayout.SLIDE_PATH = table.freeze(buildSlide())
+
+function WorldLayout.slidePosition(t: number): Vec
+	local path = WorldLayout.SLIDE_PATH
+	local f = math.clamp(t, 0, 1) * (#path - 1)
+	local i = math.floor(f)
+	local k = f - i
+	local a, b = path[i + 1], path[math.min(i + 2, #path)]
+	return {
+		a[1] + (b[1] - a[1]) * k,
+		a[2] + (b[2] - a[2]) * k,
+		a[3] + (b[3] - a[3]) * k,
+	}
+end
+
+-- Slime Ranch palette: plots get their identity from saturated mid-value
+-- accents, neutrals are warm (wood, sand, ranch stone) and Neon is kept for
+-- gameplay signals (goo, buttons).
 local PLOT_COLORS = {
 	{ 232, 112, 140 },
 	{ 120, 196, 112 },
@@ -110,7 +182,7 @@ local PLOT_BASE_GREY = { 150, 140, 128 } -- warm grey mixed into the plot accent
 local GRASS = { 98, 160, 70 }
 local SAND = { 206, 178, 132 } -- paths
 local ROCK = { 132, 120, 108 } -- scattered decor rocks
-local STONE = { 214, 204, 186 } -- fountain stone (soft ranch cream)
+local STONE = { 196, 150, 102 } -- warm ranch stone (fountain stand-ins, plaza slots)
 local STONE_TRIM = { 176, 160, 138 }
 local POOL = { 120, 220, 170 } -- slime-goo water
 local PLAZA = { 222, 198, 150 } -- ranch_plaza sand
@@ -219,34 +291,50 @@ local function volcano(): WorldNode
 	-- Client emitters attach here (VisualsClient); the glow keeps the pool lit.
 	crater.children = { light("CraterGlow") }
 	table.insert(children, crater)
-	table.insert(children, meshSlot(block("FountainMesh", { d, h, d }, { 0, h / 2, 0 }, STONE), M, true))
+	-- Native bbox of the polished slime_fountain (stats size, no squash).
+	-- Silo axis is kit (-6.52, 7.75) from the bbox centre (FOUNTAIN_SIZES)
+	-- = Roblox X/Z (-6.52, -7.75) with Z = -kit y. The slot sits on the
+	-- opposite point so the silo axis is the world origin and the base is y = 0.
+	local fountainSize: Vec = { 54.45, 43.316, 63.851 }
+	local fountainCentre: Vec = { 6.52, fountainSize[2] / 2, 7.75 }
+	table.insert(children, meshSlot(block("FountainMesh", fountainSize, fountainCentre, STONE), M, true))
+	-- Emerge slimes, split out of the fountain (FOUNTAIN_SIZES). Offset is
+	-- the emerge bbox centre minus the fountain bbox centre, Roblox axes.
+	-- Invisible until its mesh id is filled; bobbing can hook this slot later.
+	local emergePos: Vec = {
+		fountainCentre[1] - 11.2,
+		fountainCentre[2] + 18.94,
+		fountainCentre[3] - 8.25,
+	}
+	table.insert(
+		children,
+		meshSlot(block("EmergeMesh", { 19.436, 12.798, 11.353 }, emergePos, POOL), "slime_fountain_emerge", true)
+	)
 	return { name = "Volcano", class = "Model", primaryPart = "Rock1", children = children }
 end
 
+-- Contract name Map.Chute. A goo ribbon along the mesh spiral (ends r 35.5),
+-- not the old straight yaw-22.5 chute. MeshStandIn hides it once slime_fountain
+-- loads (MeshSwap); it never collides, so a hidden copy can't wall the plaza.
 local function chute(): WorldNode
-	local h = WorldLayout.VOLCANO_HEIGHT
-	local at = frame({ 0, 0, 0 }, WorldLayout.CHUTE_YAW)
-	local top: Vec = { 0, h - 4, -8 }
-	local bottom: Vec = { 0, 1, -42 }
-	local delta = { bottom[1] - top[1], bottom[2] - top[2], bottom[3] - top[3] }
-	local length = math.sqrt(delta[1] ^ 2 + delta[2] ^ 2 + delta[3] ^ 2)
-	local dir = LayoutMath.scale(delta, 1 / length)
-	local mid = LayoutMath.add(top, LayoutMath.scale(delta, 0.5))
-	local rot = LayoutMath.facing(dir)
-	local partRot = { rot[1], rot[2] + WorldLayout.CHUTE_YAW, rot[3] }
-	local tilt = LayoutMath.orientation(rot)
-	local function piece(name: string, size: Vec, offset: Vec, color: Vec, material: string): WorldNode
-		return block(name, size, at(LayoutMath.add(mid, LayoutMath.apply(tilt, offset))), color, material, partRot)
-	end
-	local children: { WorldNode } = {
-		piece("Floor", { 7, 0.6, length }, { 0, 0, 0 }, { 110, 236, 150 }, "Glass"),
-		piece("WallL", { 0.6, 2.4, length }, { -3.8, 0.9, 0 }, { 52, 150, 96 }, "SmoothPlastic"),
-		piece("WallR", { 0.6, 2.4, length }, { 3.8, 0.9, 0 }, { 52, 150, 96 }, "SmoothPlastic"),
-	}
-	for i, t in { 0.4, 0.7 } do
-		local p = LayoutMath.add(top, LayoutMath.scale(delta, t))
-		local height = p[2] - 0.6
-		table.insert(children, block(`Support{i}`, { 1.6, height, 1.6 }, at({ p[1], height / 2, p[3] }), WOOD, "Wood"))
+	local path = WorldLayout.SLIDE_PATH
+	local children: { WorldNode } = {}
+	local width, thick = 7, 0.6
+	for i = 1, #path - 1 do
+		local a, b = path[i], path[i + 1]
+		local delta = { b[1] - a[1], b[2] - a[2], b[3] - a[3] }
+		local length = math.sqrt(delta[1] ^ 2 + delta[2] ^ 2 + delta[3] ^ 2)
+		if length < 1e-3 then
+			continue
+		end
+		local mid = { (a[1] + b[1]) / 2, (a[2] + b[2]) / 2 + thick / 2, (a[3] + b[3]) / 2 }
+		local rot = LayoutMath.facing(LayoutMath.scale(delta, 1 / length))
+		local part =
+			block(if i == 1 then "Floor" else `Span{i}`, { width, thick, length + 0.35 }, mid, GOO, "Glass", rot)
+		part.canCollide = false
+		part.canQuery = false
+		part.canTouch = false
+		table.insert(children, standIn(part, "slime_fountain"))
 	end
 	return { name = "Chute", class = "Model", primaryPart = "Floor", children = children }
 end
@@ -445,6 +533,20 @@ WorldLayout.PROP_MESHES = table.freeze({
 	LeaderboardBoard = "phoenix_top_earners_board",
 })
 
+-- 20° curb tile. Arc centre (plaza origin) is outside the mesh: at yaw 0 the
+-- bbox centre sits on +Z (FBX stake match, ranch_landing_ring). Visual only;
+-- the box is deeper than the stones and must not leave an invisible wall.
+local LANDING_TILES = 18
+local LANDING_SIZE: Vec = { 13.145, 3.145, 10.27 }
+local LANDING_BBOX = 38.678
+
+local function visualMesh(node: WorldNode, mesh: string): WorldNode
+	node.canCollide = false
+	node.canQuery = false
+	node.canTouch = false
+	return meshSlot(node, mesh)
+end
+
 local function plaza(): WorldNode
 	local children: { WorldNode } = {}
 	for _, def in WorldLayout.PLAZA_PROPS do
@@ -453,6 +555,24 @@ local function plaza(): WorldNode
 		-- face the fountain
 		table.insert(children, meshSlot(block(def.name, size, pos, STONE, "Slate", { 0, def.yaw, 0 }), def.mesh))
 	end
+	local tiles: { WorldNode } = {}
+	local y = LANDING_SIZE[2] / 2
+	for i = 0, LANDING_TILES - 1 do
+		local yaw = i * (360 / LANDING_TILES)
+		local a = math.rad(yaw)
+		local pos = { math.sin(a) * LANDING_BBOX, y, math.cos(a) * LANDING_BBOX }
+		table.insert(
+			tiles,
+			visualMesh(block(`Tile{i + 1}`, LANDING_SIZE, pos, PLAZA, "Slate", { 0, yaw, 0 }), "ranch_landing_ring")
+		)
+	end
+	table.insert(children, { name = "LandingRing", class = "Folder", children = tiles })
+	-- On the slide exit (+Z), post toward the fountain, clear of the splash pool.
+	local drainSize: Vec = { 8.8, 4.45, 9.75 }
+	table.insert(
+		children,
+		visualMesh(block("GooDrain", drainSize, { 0, drainSize[2] / 2, 52 }, PLAZA, "Slate"), "ranch_goo_drain")
+	)
 	return { name = "Plaza", class = "Folder", children = children }
 end
 
@@ -559,7 +679,7 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	local function add(node: WorldNode)
 		table.insert(rebirth.children :: { WorldNode }, ghost(node, 1))
 	end
-	local metal = { 200, 200, 210 }
+	local metal = { 168, 148, 110 } -- ranch_metal (pewter); blue-grey is off the ranch palette
 	add(block("Trim_Back", { s, 0.4, 1.3 }, at({ 0, 4.2, h - 0.5 }), metal, "Metal", r))
 	add(block("Trim_Left", { 1.3, 0.4, s }, at({ -h + 0.5, 4.2, 0 }), metal, "Metal", r))
 	add(block("Trim_Right", { 1.3, 0.4, s }, at({ h - 0.5, 4.2, 0 }), metal, "Metal", r))
