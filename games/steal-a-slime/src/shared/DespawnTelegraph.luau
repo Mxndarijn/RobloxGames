@@ -12,10 +12,35 @@
 	and plays the blink / shrink / poof. The server never removes early: it
 	removes only once shouldRemove(now, expiresAt) is true.
 
-	No Roblox APIs at load time.
+	Client FX data and helpers (Visuals DespawnTelegraphFx reads these):
+	  DespawnTelegraph.FX
+	    frozen knobs: poof textures, burst counts, slime-green colours,
+	    warn colour, shrink target, blink rates
+	  DespawnTelegraph.shrinkFactor(progress, shrinkTo)
+	    model scale factor: 1 at progress 0, shrinkTo at progress 1
+	  DespawnTelegraph.fallbackSizeXYZ(x, y, z, factor)
+	    one part's size for the Size fallback (when Model:ScaleTo fails)
+
+	No Roblox APIs at load time (sizes are plain numbers so Lune can test them).
 ]]
 
+local Config = if script then require(script.Parent.Config) else require("./Config")
+
 local DespawnTelegraph = {}
+
+local GOO = Config.RARITIES[1].color -- Common slime green
+
+DespawnTelegraph.FX = table.freeze({
+	texture = "rbxasset://textures/particles/sparkles_main.dds", -- same as Effects SPARK
+	smokeTexture = "rbxasset://textures/particles/smoke_main.dds", -- same as Effects SMOKE
+	count = 28, -- sparkle burst
+	smokeCount = 6, -- soft puff under the sparkles
+	color = table.freeze({ GOO[1], GOO[2], GOO[3] }), -- RGB 0..255, burst end
+	colorBright = table.freeze({ 140, 255, 150 }), -- brighter goo, burst start
+	warnColor = table.freeze({ 255, 90, 90 }), -- countdown text / highlight
+	shrinkTo = 0.55, -- model scale factor at DespawnAt
+	blinkHz = table.freeze({ 2, 8 }), -- blink rate at the start / end of the window
+})
 
 -- Server time the warning begins.
 function DespawnTelegraph.warnStartsAt(expiresAt: number, warnSeconds: number): number
@@ -52,6 +77,18 @@ function DespawnTelegraph.progress(now: number, despawnAt: number, warnSeconds: 
 		return 1
 	end
 	return math.clamp(1 - (despawnAt - now) / warnSeconds, 0, 1)
+end
+
+-- Model scale factor over the window: 1 at progress 0, shrinkTo at 1
+-- (progress clamped to 0..1).
+function DespawnTelegraph.shrinkFactor(progress: number, shrinkTo: number): number
+	return 1 - (1 - shrinkTo) * math.clamp(progress, 0, 1)
+end
+
+-- Size fallback for one part: every axis times factor. Plain numbers so it
+-- runs under Lune; the client wraps the result in Vector3.new.
+function DespawnTelegraph.fallbackSizeXYZ(x: number, y: number, z: number, factor: number): (number, number, number)
+	return x * factor, y * factor, z * factor
 end
 
 return DespawnTelegraph
