@@ -22,7 +22,8 @@ KIT = os.path.dirname(os.path.abspath(__file__))
 RECORD = os.path.join(KIT, "uploaded.json")
 API = "https://apis.roblox.com/assets/v1"
 ENV_FILE = os.path.expanduser("~/.config/roblox-ci.env")
-PROBE = "/workspace/roblox/assets/tools/probe_meshids.py"
+# Luau Execution size-check helper, shipped with the kit; override with MODELING_KIT_PROBE.
+PROBE = os.environ.get("MODELING_KIT_PROBE", os.path.join(KIT, "tools", "probe_meshids.py"))
 USER_ID = "1040646178"
 MAX_BYTES = 20 * 1024 * 1024
 
