@@ -114,12 +114,13 @@ jobs:
     steps:
       - name: Require game jobs that ran
         run: |
+          changes="${{ needs.changes.result }}"
           slime="${{ needs.steal-a-slime.result }}"
           escape="${{ needs.speed-escape.result }}"
-          echo "steal-a-slime=$slime speed-escape=$escape"
-          # skipped = paths filter said no; success = green; anything else fails the gate
-          ok() { [ "$1" = "success" ] || [ "$1" = "skipped" ]; }
-          if ok "$slime" && ok "$escape"; then
+          echo "changes=$changes steal-a-slime=$slime speed-escape=$escape"
+          # changes must succeed; skipped game jobs = paths filter said no; anything else fails
+          ok_game() { [ "$1" = "success" ] || [ "$1" = "skipped" ]; }
+          if [ "$changes" = "success" ] && ok_game "$slime" && ok_game "$escape"; then
             echo "pr-gate OK"
             exit 0
           fi
