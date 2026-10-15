@@ -2,9 +2,9 @@
 
     blender -b --factory-startup -P kit/bl_iterate.py -- --model M --out DIR --name N [...]
 
-One process: reset scene -> build/import the model -> stats -> 4 renders -> FBX export.
-Writes DIR/.tiles/<name>_<view>.png and DIR/<name>.stats.json (iterate.py then
-composes the contact sheet and adds wall time)."""
+One process: reset scene -> build/import the model -> stats -> 4 renders (+ turntable)
+-> FBX export. Writes DIR/.tiles/<stem>_<view>.png and DIR/<stem>.stats.json, where
+stem = name or name_<tag> (quick/roblox); iterate.py then composes the sheet."""
 import argparse, json, math, os, runpy, sys, time
 
 import bmesh, bpy
