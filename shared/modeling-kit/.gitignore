@@ -1,0 +1,7 @@
+__pycache__/
+out/*
+!out/tree_oak.fbx
+!out/tree_oak.obj
+!out/tree_oak.mtl
+!out/tree_oak.stats.json
+!out/tree_oak_sheet.png

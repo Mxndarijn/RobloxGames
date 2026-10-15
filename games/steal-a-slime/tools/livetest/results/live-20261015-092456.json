@@ -1,0 +1,2116 @@
+{
+  "task": "universes/10770917350/places/135787188192378/versions/10/luau-execution-sessions/33692337-5b87-4cde-86f6-6fb7da234f17/tasks/33692337-5b87-4cde-86f6-6fb7da234f17",
+  "state": "COMPLETE",
+  "error": null,
+  "logs": [],
+  "result": {
+    "players": 0,
+    "isRunning": false,
+    "elapsed": 106.8,
+    "placeId": 135787188192378,
+    "logHistory": [
+      "MessageInfo: Configuring as custom script execution server!"
+    ],
+    "placeVersion": 10,
+    "passive": {
+      "booted": false,
+      "snapshot": {
+        "volcano": {
+          "anomalies": [],
+          "class": "Model",
+          "effects": {
+            "PointLight": 1
+          },
+          "workspaceEffects": {
+            "PointLight": 48
+          },
+          "primaryPart": "Rock1",
+          "otherLavaParts": [
+            {
+              "path": "Workspace.Map.Decor.LavaCrack1",
+              "position": [
+                15.47,
+                0.05,
+                26.27
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack2",
+              "position": [
+                29.52,
+                0.05,
+                7.63
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack3",
+              "position": [
+                26.27,
+                0.05,
+                -15.48
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack4",
+              "position": [
+                7.63,
+                0.05,
+                -29.53
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack5",
+              "position": [
+                -15.48,
+                0.05,
+                -26.28
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack6",
+              "position": [
+                -29.53,
+                0.05,
+                -7.64
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack7",
+              "position": [
+                -26.28,
+                0.05,
+                15.47
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack8",
+              "position": [
+                -7.64,
+                0.05,
+                29.52
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            }
+          ],
+          "present": true,
+          "pivot": [
+            0,
+            4,
+            0
+          ],
+          "parts": [
+            {
+              "path": "Rock1",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                4,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                8,
+                56,
+                56
+              ]
+            },
+            {
+              "path": "Rock2",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                12,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                8,
+                46,
+                46
+              ]
+            },
+            {
+              "path": "Rock3",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                20,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                8,
+                36,
+                36
+              ]
+            },
+            {
+              "path": "Rock4",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                28,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                8,
+                26,
+                26
+              ]
+            },
+            {
+              "path": "Rock5",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                36,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                8,
+                18,
+                18
+              ]
+            },
+            {
+              "path": "LavaFlow1_1",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -18.96,
+                8.1,
+                -18.96
+              ],
+              "orientation": [
+                0,
+                45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow1_2",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -15.42,
+                16.1,
+                -15.42
+              ],
+              "orientation": [
+                0,
+                45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow1_3",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -11.88,
+                24.1,
+                -11.88
+              ],
+              "orientation": [
+                0,
+                45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow1_4",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -8.35,
+                32.1,
+                -8.35
+              ],
+              "orientation": [
+                0,
+                45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow2_1",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -18.96,
+                8.1,
+                18.95
+              ],
+              "orientation": [
+                0,
+                135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow2_2",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -15.42,
+                16.1,
+                15.41
+              ],
+              "orientation": [
+                0,
+                135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow2_3",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -11.88,
+                24.1,
+                11.87
+              ],
+              "orientation": [
+                0,
+                135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow2_4",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -8.35,
+                32.1,
+                8.34
+              ],
+              "orientation": [
+                0,
+                135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow3_1",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                18.95,
+                8.1,
+                18.95
+              ],
+              "orientation": [
+                0,
+                -135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow3_2",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                15.41,
+                16.1,
+                15.41
+              ],
+              "orientation": [
+                0,
+                -135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow3_3",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                11.87,
+                24.1,
+                11.87
+              ],
+              "orientation": [
+                0,
+                -135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow3_4",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                8.34,
+                32.1,
+                8.34
+              ],
+              "orientation": [
+                0,
+                -135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow4_1",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                18.95,
+                8.1,
+                -18.96
+              ],
+              "orientation": [
+                0,
+                -45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow4_2",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                15.41,
+                16.1,
+                -15.42
+              ],
+              "orientation": [
+                0,
+                -45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow4_3",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                11.87,
+                24.1,
+                -11.88
+              ],
+              "orientation": [
+                0,
+                -45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow4_4",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                8.34,
+                32.1,
+                -8.35
+              ],
+              "orientation": [
+                0,
+                -45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "Rim1",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -5.06,
+                40.8,
+                -6.96
+              ],
+              "orientation": [
+                8,
+                36,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2.8,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim2",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -8.18,
+                40.8,
+                -2.66
+              ],
+              "orientation": [
+                8,
+                72,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                3.6,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim3",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -8.18,
+                40.8,
+                2.65
+              ],
+              "orientation": [
+                8,
+                108,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim4",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -5.06,
+                40.8,
+                6.95
+              ],
+              "orientation": [
+                8,
+                144,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2.8,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim5",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -0,
+                40.8,
+                8.6
+              ],
+              "orientation": [
+                8,
+                180,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                3.6,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim6",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                5.05,
+                40.8,
+                6.95
+              ],
+              "orientation": [
+                8,
+                -144,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim7",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                8.17,
+                40.8,
+                2.65
+              ],
+              "orientation": [
+                8,
+                -108,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2.8,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim8",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                8.17,
+                40.8,
+                -2.66
+              ],
+              "orientation": [
+                8,
+                -72,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                3.6,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim9",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                5.05,
+                40.8,
+                -6.96
+              ],
+              "orientation": [
+                8,
+                -36,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim10",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                40.8,
+                -8.61
+              ],
+              "orientation": [
+                8,
+                0,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2.8,
+                2.39
+              ]
+            },
+            {
+              "path": "Crater",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "effects": {
+                "PointLight": 1
+              },
+              "transparency": 0,
+              "position": [
+                0,
+                40.3,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                0.6,
+                15,
+                15
+              ]
+            }
+          ]
+        },
+        "remotes": 0,
+        "attributes": {
+          "all": []
+        },
+        "physics": {
+          "unanchored": 0,
+          "belowFloorPaths": [],
+          "badNumbers": [],
+          "unanchoredPaths": [],
+          "floorY": 0,
+          "belowFloor": 0,
+          "parts": 457
+        },
+        "workspaceChildren": [
+          "Camera:Camera",
+          "HubSpawn:SpawnLocation",
+          "Map:Folder",
+          "Plots:Folder",
+          "Terrain:Terrain"
+        ],
+        "Slimes": 0,
+        "slimes": {
+          "folders": [
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_1.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_2.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_3.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_4.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_5.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_6.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_7.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_8.Slimes"
+            }
+          ],
+          "tagged": 0,
+          "examples": [],
+          "taggedInWorkspace": 0
+        },
+        "texts": {
+          "nonEmptyExamples": [],
+          "total": 0,
+          "plotSigns": [
+            {
+              "plot": "Plot_1",
+              "sign": "Workspace.Plots.Plot_1.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_2",
+              "sign": "Workspace.Plots.Plot_2.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_3",
+              "sign": "Workspace.Plots.Plot_3.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_4",
+              "sign": "Workspace.Plots.Plot_4.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_5",
+              "sign": "Workspace.Plots.Plot_5.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_6",
+              "sign": "Workspace.Plots.Plot_6.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_7",
+              "sign": "Workspace.Plots.Plot_7.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_8",
+              "sign": "Workspace.Plots.Plot_8.Sign",
+              "filled": 0,
+              "labels": 0
+            }
+          ],
+          "empty": 0,
+          "emptyPaths": [],
+          "templatesEmpty": []
+        }
+      },
+      "waited": 60
+    },
+    "logs": [],
+    "isServer": true,
+    "jobId": "fd4d8270-87c3-417d-9350-c550549fc398",
+    "errors": [],
+    "kick": {
+      "booted": false,
+      "snapshot": {
+        "volcano": {
+          "anomalies": [],
+          "class": "Model",
+          "effects": {
+            "PointLight": 1
+          },
+          "workspaceEffects": {
+            "PointLight": 48
+          },
+          "primaryPart": "Rock1",
+          "otherLavaParts": [
+            {
+              "path": "Workspace.Map.Decor.LavaCrack1",
+              "position": [
+                15.47,
+                0.05,
+                26.27
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack2",
+              "position": [
+                29.52,
+                0.05,
+                7.63
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack3",
+              "position": [
+                26.27,
+                0.05,
+                -15.48
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack4",
+              "position": [
+                7.63,
+                0.05,
+                -29.53
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack5",
+              "position": [
+                -15.48,
+                0.05,
+                -26.28
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack6",
+              "position": [
+                -29.53,
+                0.05,
+                -7.64
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack7",
+              "position": [
+                -26.28,
+                0.05,
+                15.47
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            },
+            {
+              "path": "Workspace.Map.Decor.LavaCrack8",
+              "position": [
+                -7.64,
+                0.05,
+                29.52
+              ],
+              "transparency": 0,
+              "anchored": true,
+              "material": "Neon",
+              "size": [
+                1.1,
+                0.11,
+                5
+              ]
+            }
+          ],
+          "present": true,
+          "pivot": [
+            0,
+            4,
+            0
+          ],
+          "parts": [
+            {
+              "path": "Rock1",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                4,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                8,
+                56,
+                56
+              ]
+            },
+            {
+              "path": "Rock2",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                12,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                8,
+                46,
+                46
+              ]
+            },
+            {
+              "path": "Rock3",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                20,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                8,
+                36,
+                36
+              ]
+            },
+            {
+              "path": "Rock4",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                28,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                8,
+                26,
+                26
+              ]
+            },
+            {
+              "path": "Rock5",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                36,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                8,
+                18,
+                18
+              ]
+            },
+            {
+              "path": "LavaFlow1_1",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -18.96,
+                8.1,
+                -18.96
+              ],
+              "orientation": [
+                0,
+                45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow1_2",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -15.42,
+                16.1,
+                -15.42
+              ],
+              "orientation": [
+                0,
+                45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow1_3",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -11.88,
+                24.1,
+                -11.88
+              ],
+              "orientation": [
+                0,
+                45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow1_4",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -8.35,
+                32.1,
+                -8.35
+              ],
+              "orientation": [
+                0,
+                45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow2_1",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -18.96,
+                8.1,
+                18.95
+              ],
+              "orientation": [
+                0,
+                135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow2_2",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -15.42,
+                16.1,
+                15.41
+              ],
+              "orientation": [
+                0,
+                135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow2_3",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -11.88,
+                24.1,
+                11.87
+              ],
+              "orientation": [
+                0,
+                135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow2_4",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -8.35,
+                32.1,
+                8.34
+              ],
+              "orientation": [
+                0,
+                135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow3_1",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                18.95,
+                8.1,
+                18.95
+              ],
+              "orientation": [
+                0,
+                -135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow3_2",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                15.41,
+                16.1,
+                15.41
+              ],
+              "orientation": [
+                0,
+                -135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow3_3",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                11.87,
+                24.1,
+                11.87
+              ],
+              "orientation": [
+                0,
+                -135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow3_4",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                8.34,
+                32.1,
+                8.34
+              ],
+              "orientation": [
+                0,
+                -135,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow4_1",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                18.95,
+                8.1,
+                -18.96
+              ],
+              "orientation": [
+                0,
+                -45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow4_2",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                15.41,
+                16.1,
+                -15.42
+              ],
+              "orientation": [
+                0,
+                -45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow4_3",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                11.87,
+                24.1,
+                -11.88
+              ],
+              "orientation": [
+                0,
+                -45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "LavaFlow4_4",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                8.34,
+                32.1,
+                -8.35
+              ],
+              "orientation": [
+                0,
+                -45,
+                0
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                2,
+                0.39,
+                2.6
+              ]
+            },
+            {
+              "path": "Rim1",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -5.06,
+                40.8,
+                -6.96
+              ],
+              "orientation": [
+                8,
+                36,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2.8,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim2",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -8.18,
+                40.8,
+                -2.66
+              ],
+              "orientation": [
+                8,
+                72,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                3.6,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim3",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -8.18,
+                40.8,
+                2.65
+              ],
+              "orientation": [
+                8,
+                108,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim4",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -5.06,
+                40.8,
+                6.95
+              ],
+              "orientation": [
+                8,
+                144,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2.8,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim5",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                -0,
+                40.8,
+                8.6
+              ],
+              "orientation": [
+                8,
+                180,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                3.6,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim6",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                5.05,
+                40.8,
+                6.95
+              ],
+              "orientation": [
+                8,
+                -144,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim7",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                8.17,
+                40.8,
+                2.65
+              ],
+              "orientation": [
+                8,
+                -108,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2.8,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim8",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                8.17,
+                40.8,
+                -2.66
+              ],
+              "orientation": [
+                8,
+                -72,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                3.6,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim9",
+              "canCollide": true,
+              "color": "463432",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                5.05,
+                40.8,
+                -6.96
+              ],
+              "orientation": [
+                8,
+                -36,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2,
+                2.39
+              ]
+            },
+            {
+              "path": "Rim10",
+              "canCollide": true,
+              "color": "5c4642",
+              "class": "Part",
+              "transparency": 0,
+              "position": [
+                0,
+                40.8,
+                -8.61
+              ],
+              "orientation": [
+                8,
+                0,
+                12
+              ],
+              "material": "Basalt",
+              "anchored": true,
+              "size": [
+                2.39,
+                2.8,
+                2.39
+              ]
+            },
+            {
+              "path": "Crater",
+              "canCollide": false,
+              "color": "ff6e1e",
+              "class": "Part",
+              "effects": {
+                "PointLight": 1
+              },
+              "transparency": 0,
+              "position": [
+                0,
+                40.3,
+                0
+              ],
+              "orientation": [
+                0,
+                0,
+                90
+              ],
+              "material": "Neon",
+              "anchored": true,
+              "size": [
+                0.6,
+                15,
+                15
+              ]
+            }
+          ]
+        },
+        "remotes": 0,
+        "attributes": {
+          "all": {
+            "DataStoreMode": "Memory"
+          },
+          "DataStoreMode": "Memory"
+        },
+        "physics": {
+          "unanchored": 0,
+          "belowFloorPaths": [],
+          "badNumbers": [],
+          "unanchoredPaths": [],
+          "floorY": 0,
+          "belowFloor": 0,
+          "parts": 457
+        },
+        "workspaceChildren": [
+          "Camera:Camera",
+          "HubSpawn:SpawnLocation",
+          "Map:Folder",
+          "Plots:Folder",
+          "Terrain:Terrain"
+        ],
+        "Slimes": 0,
+        "slimes": {
+          "folders": [
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_1.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_2.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_3.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_4.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_5.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_6.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_7.Slimes"
+            },
+            {
+              "children": 0,
+              "path": "Workspace.Plots.Plot_8.Slimes"
+            }
+          ],
+          "tagged": 0,
+          "examples": [],
+          "taggedInWorkspace": 0
+        },
+        "texts": {
+          "nonEmptyExamples": [],
+          "total": 0,
+          "plotSigns": [
+            {
+              "plot": "Plot_1",
+              "sign": "Workspace.Plots.Plot_1.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_2",
+              "sign": "Workspace.Plots.Plot_2.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_3",
+              "sign": "Workspace.Plots.Plot_3.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_4",
+              "sign": "Workspace.Plots.Plot_4.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_5",
+              "sign": "Workspace.Plots.Plot_5.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_6",
+              "sign": "Workspace.Plots.Plot_6.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_7",
+              "sign": "Workspace.Plots.Plot_7.Sign",
+              "filled": 0,
+              "labels": 0
+            },
+            {
+              "plot": "Plot_8",
+              "sign": "Workspace.Plots.Plot_8.Sign",
+              "filled": 0,
+              "labels": 0
+            }
+          ],
+          "empty": 0,
+          "emptyPaths": [],
+          "templatesEmpty": []
+        }
+      },
+      "tried": true,
+      "newErrors": 0
+    },
+    "server": {
+      "enabled": true,
+      "class": "Script",
+      "present": true,
+      "runContext": "Legacy"
+    }
+  }
+}

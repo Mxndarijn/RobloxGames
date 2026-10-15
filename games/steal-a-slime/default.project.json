@@ -1,0 +1,125 @@
+{
+  "name": "steal-a-slime",
+  "tree": {
+    "$className": "DataModel",
+    "Workspace": {
+      "$className": "Workspace",
+      "$properties": {
+        "FallenPartsDestroyHeight": -1000
+      },
+      "Map": {
+        "$path": "world/Map.rbxmx"
+      },
+      "Plots": {
+        "$path": "world/Plots.rbxmx"
+      },
+      "HubSpawn": {
+        "$path": "world/HubSpawn.rbxmx"
+      }
+    },
+    "Lighting": {
+      "$className": "Lighting",
+      "$properties": {
+        "Technology": "Future",
+        "GlobalShadows": true,
+        "Brightness": 2.5,
+        "ClockTime": 14.5,
+        "GeographicLatitude": 25,
+        "Ambient": [
+          0.2745,
+          0.2824,
+          0.3333
+        ],
+        "OutdoorAmbient": [
+          0.4902,
+          0.4706,
+          0.549
+        ],
+        "ColorShift_Top": [
+          1.0,
+          0.8824,
+          0.7255
+        ],
+        "EnvironmentDiffuseScale": 1,
+        "EnvironmentSpecularScale": 1,
+        "ShadowSoftness": 0.25,
+        "ExposureCompensation": 0.1
+      },
+      "Atmosphere": {
+        "$className": "Atmosphere",
+        "$properties": {
+          "Density": 0.28,
+          "Offset": 0.15,
+          "Color": [
+            0.7804,
+            0.8118,
+            0.8784
+          ],
+          "Decay": [
+            0.4157,
+            0.4392,
+            0.4902
+          ],
+          "Glare": 0.25,
+          "Haze": 1.2
+        }
+      },
+      "Bloom": {
+        "$className": "BloomEffect",
+        "$properties": {
+          "Intensity": 0.6,
+          "Size": 28,
+          "Threshold": 1.2
+        }
+      },
+      "BaseGrade": {
+        "$className": "ColorCorrectionEffect",
+        "$properties": {
+          "Brightness": 0.02,
+          "Contrast": 0.12,
+          "Saturation": 0.15,
+          "TintColor": [
+            1.0,
+            0.9686,
+            0.9216
+          ]
+        }
+      },
+      "SunRays": {
+        "$className": "SunRaysEffect",
+        "$properties": {
+          "Intensity": 0.08,
+          "Spread": 0.6
+        }
+      }
+    },
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "Visuals": {
+        "$path": "src/visuals/shared"
+      },
+      "Packages": {
+        "$path": {
+          "optional": "Packages"
+        }
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "UI": {
+          "$path": "src/ui"
+        },
+        "VisualsClient": {
+          "$path": "src/visuals/client"
+        }
+      }
+    }
+  }
+}

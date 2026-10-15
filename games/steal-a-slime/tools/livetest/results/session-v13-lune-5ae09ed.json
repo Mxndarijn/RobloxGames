@@ -1,0 +1,182 @@
+{
+  "checks": [
+    {
+      "detail": "memory store",
+      "name": "TestHooks enable on DataStoreMode = Memory",
+      "ok": true
+    },
+    {
+      "detail": "Request ok=true ; WalkSpeed 16 -> 22, TargetWalkSpeed=22",
+      "name": "coil: buying raises WalkSpeed",
+      "ok": true
+    },
+    {
+      "detail": "Backpack.SpeedCoil",
+      "name": "coil: SpeedCoil tool granted",
+      "ok": true
+    },
+    {
+      "detail": "19 -> 22",
+      "name": "coil: server re-applies a foreign WalkSpeed",
+      "ok": true
+    },
+    {
+      "detail": "new character WalkSpeed 22",
+      "name": "coil: kept after respawn",
+      "ok": true
+    },
+    {
+      "detail": "carry WalkSpeed 19.799999237060547, same carry without the coil 14.4",
+      "name": "coil: carrying with the coil beats carrying without it",
+      "ok": true
+    },
+    {
+      "detail": "22",
+      "name": "coil: speed back after drop",
+      "ok": true
+    },
+    {
+      "detail": "Drop ok=true; slime bottom y=0.20001220703125, collidable ground y=0.20000457763671875 (Workspace.Map.Paths.Path3), carrier root y=3.1999969482421875",
+      "name": "drop: lands on the ground (open ground by the volcano)",
+      "ok": true
+    },
+    {
+      "detail": "Drop ok=true; slime bottom y=11.70001220703125, collidable ground y=11.700004577636719 (Workspace.Map.ShopStand.Sign), carrier root y=14.699996948242188",
+      "name": "drop: lands on the ground (next to ShopStand)",
+      "ok": true
+    },
+    {
+      "detail": "Drop ok=true; slime bottom y=0, collidable ground y=0 (Workspace.Map.Ground), carrier root y=3",
+      "name": "drop: lands on the ground (next to LeaderboardBoard)",
+      "ok": true
+    },
+    {
+      "detail": "Drop ok=true; slime bottom y=4, collidable ground y=4 (Workspace.Plots.Plot_2.WallRight), carrier root y=7",
+      "name": "drop: lands on the ground (on another plot's Base)",
+      "ok": true
+    },
+    {
+      "detail": "landed at (45, 0.1999969482421875, 32), 55 studs from the crater, ground y=0.1999969482421875",
+      "name": "drop: over the void it goes back to the volcano ring",
+      "ok": true
+    },
+    {
+      "detail": "\"Extend lock $25\" / \"StandIn's base: LOCKED 0:01\"",
+      "name": "lockbuy: LockPrompt for the owner only",
+      "ok": true
+    },
+    {
+      "detail": "Locked=false \"Lock base $25\" / \"StandIn's base: OPEN\"",
+      "name": "lockbuy: open plot reads OPEN / Lock base $",
+      "ok": true
+    },
+    {
+      "detail": "Locked=true \"Extend lock $25\" / \"StandIn's base: LOCKED 1:00\"",
+      "name": "lockbuy: LockPrompt locks the base",
+      "ok": true
+    },
+    {
+      "detail": "TutorialStepId=BuyPad TutorialStep=4",
+      "name": "lockbuy: tutorial moves Lock -> BuyPad",
+      "ok": true
+    },
+    {
+      "detail": "\"Buy pad $100\" / \"Pad 5 of 8\" on Pad_5",
+      "name": "lockbuy: BuyPadPrompt sits on the lowest locked pad",
+      "ok": true
+    },
+    {
+      "detail": "pads 4 -> 5, prompt now on Pad_6: \"Buy pad $250\"",
+      "name": "lockbuy: BuyPadPrompt buys the pad and moves on",
+      "ok": true
+    },
+    {
+      "detail": "TutorialStepId=Merge",
+      "name": "lockbuy: tutorial moves BuyPad -> Merge",
+      "ok": true
+    },
+    {
+      "detail": "lockUntil unchanged=true; neighbour got \"This is StandIn's base\"",
+      "name": "lockbuy: a neighbour can't use your LockPrompt",
+      "ok": true
+    },
+    {
+      "detail": "RareSpawnId=37EDA504-4D28-402F-AEB0-ACECD61BA784 tier=6 model RareSpawn=6; toast \"A MYTHIC Wobully erupted from the volcano!!\"",
+      "name": "rare: Legendary+ drop announced + attributes",
+      "ok": true
+    },
+    {
+      "detail": "steps Grab -> Deposit -> Lock -> BuyPad -> Merge -> Steal -> Rebirth; steal started=true",
+      "name": "loop: tutorial walks Grab -> Deposit -> Lock -> BuyPad -> Merge -> Steal -> Rebirth",
+      "ok": true
+    },
+    {
+      "detail": "cash 2498 -> 9097 over 10 min",
+      "name": "loop: skipTime pays plot income",
+      "ok": true
+    },
+    {
+      "detail": "rebirths 8; titles Goo Getter > Goo Getter > Slime Wrangler > Slime Wrangler > Blob Baron > Goo Tycoon > Jelly Magnate > Ooze Overlord; failures ",
+      "name": "loop: reaches rebirth 6+ with new ranks",
+      "ok": true
+    },
+    {
+      "detail": "TutorialStepId=nil",
+      "name": "loop: tutorial finished by the rebirth",
+      "ok": true
+    },
+    {
+      "detail": "State.upgrades Income=8 CarrySpeed=4 OfflineCap=4 Luck=4",
+      "name": "loop: upgrades unlock with rebirths and are bought",
+      "ok": true
+    },
+    {
+      "detail": "11 goal toasts; incomeMultiplier=10.098; next rank=Slime Sovereign",
+      "name": "loop: goals pay out (Notify Goal) and State carries v13 fields",
+      "ok": true
+    },
+    {
+      "detail": "slimes on plot after the last rebirth + catch: 3",
+      "name": "loop: Goo Tycoon keeps 2 slimes on rebirth",
+      "ok": true
+    },
+    {
+      "detail": "\"$2K\" Lv 0/10 -> Lv 1/10; Request ok=true",
+      "name": "ui: Shop upgrade row buys Income via BuyUpgrade",
+      "ok": true
+    },
+    {
+      "detail": "7 goals; Catch: \"Catch 1 slime\" / \"0/1 · reward $50 · stage 1/5\"; summary \"0/7 done\"",
+      "name": "ui: Goals panel lists every server goal",
+      "ok": true
+    },
+    {
+      "detail": "DexCount=1/720 mask=1 badge=0%; \"Next reward at 10: +$500 and +2% income\"",
+      "name": "ui: Slimedex panel, nav badge and plot DexCount/DexTotal/DexTierMask agree",
+      "ok": true
+    },
+    {
+      "detail": "HUD \"🔒 Lock $25 +60s\" / prompt \"Lock base $25\"; HUD \"Buy next pad 6/8 $250\" / prompt \"Buy pad $250\"",
+      "name": "ui: Lock / Buy-pad HUD buttons match LockPrompt / BuyPadPrompt",
+      "ok": true
+    },
+    {
+      "detail": "owner nil,nil,nil; neighbour owner,owner,owner",
+      "name": "ui: PromptHide shows Lock/BuyPad/Merge prompts only to the owner",
+      "ok": true
+    },
+    {
+      "detail": "boss false -> true, endsAt in 119s; banner \"👑 BOSS SLIME: Glow Epic Dreemp! Grab it at the volcano - 2:00\"",
+      "name": "ui: State.boss active -> boss banner with countdown",
+      "ok": true
+    },
+    {
+      "detail": "boss.active=false",
+      "name": "ui: State.boss clears when the boss expires",
+      "ok": true
+    }
+  ],
+  "errors": {},
+  "failed": 0,
+  "place": "/workspace/roblox/gate-out/steal-a-slime-5ae09ed.rbxl"
+}

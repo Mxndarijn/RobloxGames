@@ -1,0 +1,46 @@
+--!strict
+local Carry = require("../src/server/Carry")
+local Fixtures = require("./Fixtures")
+local MergeVat = require("../src/server/MergeVat")
+local PlayerData = require("../src/shared/PlayerData")
+local ServerFixtures = require("./ServerFixtures")
+local TestRunner = require("./TestRunner")
+
+local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+local T0 = ServerFixtures.T0
+
+describe("MergeVat.merge", function()
+	it("turns two same-tier slimes into one of the next tier on the first pad", function()
+		local world = ServerFixtures.world()
+		local s =
+			ServerFixtures.join(world, 1, { Fixtures.slime("a", 2), Fixtures.slime("x", 1), Fixtures.slime("b", 2) })
+		expect((MergeVat.merge(world, s, "b", "a"))).toBe(true)
+		expect(#s.data.slimes).toBe(2)
+		expect(PlayerData.findSlime(s.data, "a")).toBeNil()
+		expect(PlayerData.findSlime(s.data, "b")).toBeNil()
+		local child = s.data.slimes[2]
+		expect(child.tier).toBe(3)
+		expect(child.pad).toBe(3)
+		expect(s.dirty).toBe(true)
+		expect(#ServerFixtures.notifications(world, 1)).toBe(1)
+	end)
+	it("rejects different tiers, missing slimes and busy slimes", function()
+		local world = ServerFixtures.world()
+		local s =
+			ServerFixtures.join(world, 1, { Fixtures.slime("a", 2), Fixtures.slime("b", 1), Fixtures.slime("c", 2) })
+		expect(select(2, MergeVat.merge(world, s, "a", "b"))).toBe("slimes must be the same rarity")
+		expect(select(2, MergeVat.merge(world, s, "a", "zzz"))).toBe("missing slime")
+		expect(select(2, MergeVat.merge(world, s, "a", "a"))).toBe("need two different slimes")
+		ServerFixtures.join(world, 2)
+		ServerFixtures.unlock(s)
+		Carry.grab(world, 2, "c", 1, T0)
+		expect(select(2, MergeVat.merge(world, s, "a", "c"))).toBe("slime is busy")
+		expect(#s.data.slimes).toBe(3)
+	end)
+	it("can't merge someone else's slimes", function()
+		local world = ServerFixtures.world()
+		ServerFixtures.join(world, 1, { Fixtures.slime("a", 2), Fixtures.slime("b", 2) })
+		local other = ServerFixtures.join(world, 2)
+		expect(select(2, MergeVat.merge(world, other, "a", "b"))).toBe("missing slime")
+	end)
+end)

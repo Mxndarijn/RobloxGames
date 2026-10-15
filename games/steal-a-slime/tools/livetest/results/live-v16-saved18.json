@@ -1,0 +1,89 @@
+{
+  "ok": true,
+  "timestamp": "20261015-120249",
+  "placeVersion": 18,
+  "shim": false,
+  "loopSeconds": 44.4,
+  "taskSeconds": 42.1,
+  "assertions": [
+    {
+      "pass": true,
+      "name": "server boots (real init.server.luau)",
+      "detail": "ok"
+    },
+    {
+      "pass": true,
+      "name": "slimes spawn (Slime_* > 0 after 40 s)",
+      "detail": "workspace Slime_* = 10, WildSlimes = 10, world.wild = 10"
+    },
+    {
+      "pass": true,
+      "name": "claimed plot sign shows the owner",
+      "detail": "plot 1 sign: \"CI Bot's Plot | $1B  \u2022  0 Rebirths  \u2022  0 Steals | CI Bot's Plot | $1B  \u2022  0 Rebirths  \u2022  0 Steals\""
+    },
+    {
+      "pass": true,
+      "name": "all plot signs have non-empty text",
+      "detail": "8 signs, empty: none"
+    },
+    {
+      "pass": true,
+      "name": "gameplay: grab wild slime -> deposit on own plot",
+      "detail": "grabbed 03772d72-66be-4d34-bb4d-e4e5988cad37, deposited from HomeZone, plot Slime_* 0 -> 1, pad slimes 1"
+    },
+    {
+      "pass": true,
+      "name": "no errors in LogService / ScriptContext",
+      "detail": "0 errors"
+    }
+  ],
+  "task": "universes/10770917350/places/135787188192378/versions/18/luau-execution-sessions/b5031079-9144-4bcd-848d-286673364d10/tasks/b5031079-9144-4bcd-848d-286673364d10",
+  "state": "COMPLETE",
+  "error": null,
+  "logs": [],
+  "report": {
+    "placeVersion": 18,
+    "elapsed": 42.1,
+    "diag": {
+      "heartbeats": 2401,
+      "warnings": [],
+      "rig": "CIBot parts=274",
+      "claimedPlot": 1,
+      "errors": [],
+      "bootSeconds": 0.5
+    },
+    "assertions": [
+      {
+        "pass": true,
+        "name": "server boots (real init.server.luau)",
+        "detail": "ok"
+      },
+      {
+        "pass": true,
+        "name": "slimes spawn (Slime_* > 0 after 40 s)",
+        "detail": "workspace Slime_* = 10, WildSlimes = 10, world.wild = 10"
+      },
+      {
+        "pass": true,
+        "name": "claimed plot sign shows the owner",
+        "detail": "plot 1 sign: \"CI Bot's Plot | $1B  \u2022  0 Rebirths  \u2022  0 Steals | CI Bot's Plot | $1B  \u2022  0 Rebirths  \u2022  0 Steals\""
+      },
+      {
+        "pass": true,
+        "name": "all plot signs have non-empty text",
+        "detail": "8 signs, empty: none"
+      },
+      {
+        "pass": true,
+        "name": "gameplay: grab wild slime -> deposit on own plot",
+        "detail": "grabbed 03772d72-66be-4d34-bb4d-e4e5988cad37, deposited from HomeZone, plot Slime_* 0 -> 1, pad slimes 1"
+      },
+      {
+        "pass": true,
+        "name": "no errors in LogService / ScriptContext",
+        "detail": "0 errors"
+      }
+    ],
+    "shim": false
+  }
+}

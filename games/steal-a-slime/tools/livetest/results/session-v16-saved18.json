@@ -1,0 +1,245 @@
+{
+  "ok": true,
+  "timestamp": "20261015-120336",
+  "placeVersion": 18,
+  "shim": false,
+  "loopSeconds": 53.7,
+  "taskSeconds": 50.7,
+  "assertions": [
+    {
+      "pass": true,
+      "name": "server boots (real init.server.luau)",
+      "detail": "ok"
+    },
+    {
+      "pass": true,
+      "name": "TestHooks enable on DataStoreMode = Memory",
+      "detail": "memory store"
+    },
+    {
+      "pass": true,
+      "name": "coil: buying raises the rig's WalkSpeed",
+      "detail": "ok=true ; WalkSpeed 16 -> 22; tool=true"
+    },
+    {
+      "pass": true,
+      "name": "coil: still faster while carrying",
+      "detail": "carrying WalkSpeed 20.899999618530273 vs 15.2 without the coil"
+    },
+    {
+      "pass": true,
+      "name": "drop: lands on the ground (volcano ring)",
+      "detail": "slime bottom y=0, collidable ground y=0 (Workspace.Map.Ground), carrier root y=3"
+    },
+    {
+      "pass": true,
+      "name": "drop: lands on the ground (beside ShopStand)",
+      "detail": "slime bottom y=0, collidable ground y=0 (Workspace.Map.Ground), carrier root y=3"
+    },
+    {
+      "pass": true,
+      "name": "drop: lands on the ground (another plot's Base)",
+      "detail": "slime bottom y=1, collidable ground y=1 (Workspace.Plots.Plot_2.Base), carrier root y=4"
+    },
+    {
+      "pass": true,
+      "name": "lockbuy: LockPrompt reads OPEN, then LOCKED after a lock",
+      "detail": "\"Lock base $25\" / \"Session Bot's base: OPEN\" -> \"Extend lock $25\" / \"Session Bot's base: LOCKED 1:00\""
+    },
+    {
+      "pass": true,
+      "name": "lockbuy: BuyPadPrompt buys the next pad and moves on",
+      "detail": "\"Buy pad $250\" / \"Pad 6 of 8\" now on Pad_6; PadsUnlocked=5"
+    },
+    {
+      "pass": true,
+      "name": "claim: free plot's BuyStand has an enabled ClaimPrompt, own plot's is off",
+      "detail": "Plot_2: \"Claim plot\" / \"Free plot: everyone gets one on join\""
+    },
+    {
+      "pass": true,
+      "name": "claim: sends a player who has a plot home",
+      "detail": "home -> Plot 1, inHomeZone=true"
+    },
+    {
+      "pass": true,
+      "name": "loop: tutorial walks every step",
+      "detail": "Grab -> Deposit -> Lock -> BuyPad -> Merge -> Steal -> Rebirth"
+    },
+    {
+      "pass": true,
+      "name": "loop: skipTime pays plot income",
+      "detail": "cash 10253 -> 12215"
+    },
+    {
+      "pass": true,
+      "name": "loop: rebirth 8 with new ranks, tutorial done",
+      "detail": "rebirths 8; Goo Getter > Goo Getter > Slime Wrangler > Slime Wrangler > Blob Baron > Goo Tycoon > Jelly Magnate > Ooze Overlord; failures "
+    },
+    {
+      "pass": true,
+      "name": "loop: upgrades bought, goals paid, 2+ slimes kept",
+      "detail": "upgrades Income=8 CarrySpeed=4 OfflineCap=4 Luck=4; goal stages paid 9; slimes 3"
+    },
+    {
+      "pass": true,
+      "name": "ui: Shop upgrade row buys Income via BuyUpgrade",
+      "detail": "\"$2K\" Lv 0/10 -> Lv 1/10"
+    },
+    {
+      "pass": true,
+      "name": "ui: Goals panel lists every server goal",
+      "detail": "7 goals; summary \"0/7 done\""
+    },
+    {
+      "pass": true,
+      "name": "ui: Slimedex panel, nav badge and plot Dex attributes agree",
+      "detail": "DexCount=1/720 mask=1; \"Next reward at 10: +$500 and +2% income\""
+    },
+    {
+      "pass": true,
+      "name": "ui: Lock / Buy-pad HUD buttons match the plot prompts",
+      "detail": "\"\ud83d\udd12 Lock $25 +60s\" / \"Lock base $25\"; \"Buy next pad 6/8 $250\" / \"Buy pad $250\""
+    },
+    {
+      "pass": true,
+      "name": "ui: PromptHide shows owner prompts only to the owner",
+      "detail": "owner nil,nil,nil; other owner,owner,owner"
+    },
+    {
+      "pass": true,
+      "name": "ui: State.boss drives the boss banner and clears on expiry",
+      "detail": "banner \"\ud83d\udc51 BOSS SLIME: Glow Epic Mueedle! Grab it at the volcano - 2:00\"; after expiry active=false"
+    },
+    {
+      "pass": true,
+      "name": "no errors in LogService / ScriptContext",
+      "detail": "0 errors"
+    }
+  ],
+  "task": "universes/10770917350/places/135787188192378/versions/18/luau-execution-sessions/c0df1d68-1d6e-4e0f-ae9d-17ea41421133/tasks/c0df1d68-1d6e-4e0f-ae9d-17ea41421133",
+  "state": "COMPLETE",
+  "error": null,
+  "logs": [],
+  "report": {
+    "placeVersion": 18,
+    "diag": {
+      "errors": [],
+      "warnings": [],
+      "coilCarryId": "a33754d6-adb8-4551-be23-2e0f00a487bc"
+    },
+    "assertions": [
+      {
+        "pass": true,
+        "name": "server boots (real init.server.luau)",
+        "detail": "ok"
+      },
+      {
+        "pass": true,
+        "name": "TestHooks enable on DataStoreMode = Memory",
+        "detail": "memory store"
+      },
+      {
+        "pass": true,
+        "name": "coil: buying raises the rig's WalkSpeed",
+        "detail": "ok=true ; WalkSpeed 16 -> 22; tool=true"
+      },
+      {
+        "pass": true,
+        "name": "coil: still faster while carrying",
+        "detail": "carrying WalkSpeed 20.899999618530273 vs 15.2 without the coil"
+      },
+      {
+        "pass": true,
+        "name": "drop: lands on the ground (volcano ring)",
+        "detail": "slime bottom y=0, collidable ground y=0 (Workspace.Map.Ground), carrier root y=3"
+      },
+      {
+        "pass": true,
+        "name": "drop: lands on the ground (beside ShopStand)",
+        "detail": "slime bottom y=0, collidable ground y=0 (Workspace.Map.Ground), carrier root y=3"
+      },
+      {
+        "pass": true,
+        "name": "drop: lands on the ground (another plot's Base)",
+        "detail": "slime bottom y=1, collidable ground y=1 (Workspace.Plots.Plot_2.Base), carrier root y=4"
+      },
+      {
+        "pass": true,
+        "name": "lockbuy: LockPrompt reads OPEN, then LOCKED after a lock",
+        "detail": "\"Lock base $25\" / \"Session Bot's base: OPEN\" -> \"Extend lock $25\" / \"Session Bot's base: LOCKED 1:00\""
+      },
+      {
+        "pass": true,
+        "name": "lockbuy: BuyPadPrompt buys the next pad and moves on",
+        "detail": "\"Buy pad $250\" / \"Pad 6 of 8\" now on Pad_6; PadsUnlocked=5"
+      },
+      {
+        "pass": true,
+        "name": "claim: free plot's BuyStand has an enabled ClaimPrompt, own plot's is off",
+        "detail": "Plot_2: \"Claim plot\" / \"Free plot: everyone gets one on join\""
+      },
+      {
+        "pass": true,
+        "name": "claim: sends a player who has a plot home",
+        "detail": "home -> Plot 1, inHomeZone=true"
+      },
+      {
+        "pass": true,
+        "name": "loop: tutorial walks every step",
+        "detail": "Grab -> Deposit -> Lock -> BuyPad -> Merge -> Steal -> Rebirth"
+      },
+      {
+        "pass": true,
+        "name": "loop: skipTime pays plot income",
+        "detail": "cash 10253 -> 12215"
+      },
+      {
+        "pass": true,
+        "name": "loop: rebirth 8 with new ranks, tutorial done",
+        "detail": "rebirths 8; Goo Getter > Goo Getter > Slime Wrangler > Slime Wrangler > Blob Baron > Goo Tycoon > Jelly Magnate > Ooze Overlord; failures "
+      },
+      {
+        "pass": true,
+        "name": "loop: upgrades bought, goals paid, 2+ slimes kept",
+        "detail": "upgrades Income=8 CarrySpeed=4 OfflineCap=4 Luck=4; goal stages paid 9; slimes 3"
+      },
+      {
+        "pass": true,
+        "name": "ui: Shop upgrade row buys Income via BuyUpgrade",
+        "detail": "\"$2K\" Lv 0/10 -> Lv 1/10"
+      },
+      {
+        "pass": true,
+        "name": "ui: Goals panel lists every server goal",
+        "detail": "7 goals; summary \"0/7 done\""
+      },
+      {
+        "pass": true,
+        "name": "ui: Slimedex panel, nav badge and plot Dex attributes agree",
+        "detail": "DexCount=1/720 mask=1; \"Next reward at 10: +$500 and +2% income\""
+      },
+      {
+        "pass": true,
+        "name": "ui: Lock / Buy-pad HUD buttons match the plot prompts",
+        "detail": "\"\ud83d\udd12 Lock $25 +60s\" / \"Lock base $25\"; \"Buy next pad 6/8 $250\" / \"Buy pad $250\""
+      },
+      {
+        "pass": true,
+        "name": "ui: PromptHide shows owner prompts only to the owner",
+        "detail": "owner nil,nil,nil; other owner,owner,owner"
+      },
+      {
+        "pass": true,
+        "name": "ui: State.boss drives the boss banner and clears on expiry",
+        "detail": "banner \"\ud83d\udc51 BOSS SLIME: Glow Epic Mueedle! Grab it at the volcano - 2:00\"; after expiry active=false"
+      },
+      {
+        "pass": true,
+        "name": "no errors in LogService / ScriptContext",
+        "detail": "0 errors"
+      }
+    ],
+    "elapsed": 50.7
+  }
+}

@@ -1,0 +1,719 @@
+--!strict
+--[[
+	WorldView (Roblox adapter)
+
+	Makes workspace match the pure World:
+	  * reconciles slime models against Scene.describe (ModelFactory.build,
+	    wrapped by SlimeMesh for the mesh look; parenting, attributes OwnerUserId / State / Price, ProximityPrompt,
+	    pad placement, carry weld, volcano drop and escape-home bounce);
+	  * plot attributes OwnerUserId / LockUntil / Rebirths (CONTRACT.md §5.2)
+	    and the owner / stats text on each plot Sign (PlotSigns);
+	  * per-player WalkSpeed (Speed Coil when not carrying), unequipped
+	    tools, the SpeedCoil tool and the `Carrying` / `TutorialStep` /
+	    `SpeedCoil` attributes;
+	  * the workspace `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt`
+	    attributes;
+	  * HomeZone checks (who is standing in their own plot);
+	  * kill plane (Rescue): fallen characters go back to their plot / HubSpawn.
+	Plots and pads are found by their PlotIndex / PadIndex attributes
+	(PlotLookup), so WorldBuilder's names are only a fallback.
+	Holds no gameplay rules.
+]]
+
+local InsertService = game:GetService("InsertService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Carry = require(script.Parent.Carry)
+local Collection = require(ReplicatedStorage.Shared.Collection)
+local Config = require(ReplicatedStorage.Shared.Config)
+local Constants = require(ReplicatedStorage.Shared.Constants)
+local FallbackWorld = require(script.Parent.FallbackWorld)
+local Genome = require(ReplicatedStorage.Shared.Genome)
+local Perks = require(ReplicatedStorage.Shared.Perks)
+local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
+local PlotClaim = require(script.Parent.PlotClaim)
+local PlotLookup = require(script.Parent.PlotLookup)
+local PlotPrompts = require(script.Parent.PlotPrompts)
+local PlotSigns = require(script.Parent.PlotSigns)
+local Progression = require(ReplicatedStorage.Shared.Progression)
+local Rescue = require(script.Parent.Rescue)
+local Scene = require(script.Parent.Scene)
+local SlimeMesh = require(script.Parent.SlimeMesh)
+local Snapshot = require(script.Parent.Snapshot)
+local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
+local World = require(script.Parent.World)
+local WorldProps = require(script.Parent.WorldProps)
+
+type Record = { model: Model, body: BasePart, prompt: ProximityPrompt, key: string, weld: WeldConstraint? }
+
+local WorldView = {}
+
+local records: { [string]: Record } = {}
+local failed: { [string]: boolean } = {}
+local modelFactory: any = nil
+local plotCache: { [number]: Instance? } = {}
+
+WorldView.DROP_SECONDS = 0.8
+WorldView.FALL_SECONDS = 0.3 -- a dropped slime falls to the ground
+WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart
+
+---------------------------------------------------------------------------
+-- World lookup
+---------------------------------------------------------------------------
+
+function WorldView.setup()
+	-- The world ships static in the place (world/*.rbxmx); WorldBuilder is idempotent and reuses it.
+	-- Build before anything that yields (LoadAsset below): characters may already be spawning.
+	-- Greybox only if the builder is missing or fails.
+	local visuals = ReplicatedStorage:FindFirstChild("Visuals")
+	local builder = visuals and visuals:FindFirstChild("WorldBuilder")
+	if builder then
+		local ok, err = pcall(function()
+			(require(builder :: ModuleScript) :: any).build(workspace)
+		end)
+		if not ok then
+			warn(`[Server] WorldBuilder.build failed: {err}`)
+		end
+	end
+	if not workspace:FindFirstChild(Constants.PLOTS_FOLDER) then
+		FallbackWorld.build()
+	end
+	-- FallenPartsDestroyHeight is plugin-only to write; default.project.json sets it.
+	if workspace.FallenPartsDestroyHeight > Rescue.KILL_PLANE_Y then
+		warn(`[Server] FallenPartsDestroyHeight {workspace.FallenPartsDestroyHeight} is above the kill plane`)
+	end
+	local factory = visuals and visuals:FindFirstChild("ModelFactory")
+	if factory then
+		-- Mesh look over Archer's factory; LoadAsset yields once here, falls back to procedural.
+		local mesh = SlimeMesh.new({
+			factory = require(factory :: ModuleScript) :: any,
+			loadAsset = function(assetId: number): Instance
+				return InsertService:LoadAsset(assetId)
+			end,
+		})
+		workspace:SetAttribute(Constants.SLIME_LOOK_ATTRIBUTE, SlimeMesh.load(mesh))
+		modelFactory = {
+			build = function(slimeData: any): Model
+				return SlimeMesh.build(mesh, slimeData)
+			end,
+		}
+	end
+	WorldView.setRain(false) -- SlimeRain = false until the first rain
+	if not workspace:FindFirstChild(Constants.WILD_FOLDER) then
+		local folder = Instance.new("Folder")
+		folder.Name = Constants.WILD_FOLDER
+		folder.Parent = workspace
+	end
+end
+
+-- Plot model with PlotIndex == index (cached while it stays in workspace.Plots).
+function WorldView.plot(index: number): Instance?
+	local plots = workspace:FindFirstChild(Constants.PLOTS_FOLDER)
+	if not plots then
+		return nil
+	end
+	local cached = plotCache[index]
+	if cached and cached.Parent == plots and cached:GetAttribute(Constants.PLOT_INDEX_ATTRIBUTE) == index then
+		return cached
+	end
+	local plot = PlotLookup.byIndex(plots, Constants.PLOT_INDEX_ATTRIBUTE, index, `Plot_{index}`)
+	plotCache[index] = plot
+	return plot
+end
+
+function WorldView.pad(plotIndex: number, pad: number): BasePart?
+	local plot = WorldView.plot(plotIndex)
+	local part = PlotLookup.byIndex(plot, Constants.PAD_INDEX_ATTRIBUTE, pad, `Pad_{pad}`)
+	if part and part:IsA("BasePart") then
+		return part
+	end
+	return nil
+end
+
+-- Top surface of a pad. Slime models pivot at the bottom centre (ModelFactory sets
+-- Body.PivotOffset), so model:PivotTo(padTop) rests the slime on the pad.
+local function padTop(plotIndex: number, pad: number): CFrame?
+	local part = WorldView.pad(plotIndex, pad)
+	if part then
+		return part.CFrame * CFrame.new(0, part.Size.Y / 2, 0)
+	end
+	return nil
+end
+
+local function crater(): Vector3
+	local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
+	local volcano = map and map:FindFirstChild("Volcano")
+	local part = volcano and volcano:FindFirstChild("Crater")
+	if part and part:IsA("BasePart") then
+		return part.Position
+	end
+	return Vector3.new(0, 20, 0)
+end
+
+-- Slime models and characters never count as ground (a ray that hits the carrier's head made
+-- dropped slimes float, CONTRACT.md §8.11).
+local function groundParams(): RaycastParams
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.RespectCanCollide = true -- canopies, HomeZones and other triggers are not ground
+	local exclude: { Instance } = {}
+	local wildFolder = workspace:FindFirstChild(Constants.WILD_FOLDER)
+	if wildFolder then
+		table.insert(exclude, wildFolder)
+	end
+	local plots = workspace:FindFirstChild(Constants.PLOTS_FOLDER)
+	for _, plot in if plots then plots:GetChildren() else {} do
+		local slimes = plot:FindFirstChild(Constants.PLOT_SLIMES_FOLDER)
+		if slimes then
+			table.insert(exclude, slimes)
+		end
+	end
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(exclude, player.Character)
+		end
+	end
+	params.FilterDescendantsInstances = exclude
+	return params
+end
+
+-- First collidable surface below `origin` within `depth` studs, or nil.
+local function surfaceBelow(origin: Vector3, depth: number): CFrame?
+	local hit = workspace:Raycast(origin, Vector3.new(0, -depth, 0), groundParams())
+	if hit then
+		return CFrame.new(origin.X, hit.Position.Y, origin.Z)
+	end
+	return nil
+end
+
+WorldView.DROP_RAY_UP = 4 -- studs above the carrier's root the drop ray starts (below canopies)
+WorldView.DROP_RAY_DEPTH = 200
+
+local function volcanoLanding(wild: World.Wild): CFrame
+	local origin = crater()
+	local offset = Vector3.new(math.cos(wild.angle), 0, math.sin(wild.angle)) * wild.radius
+	local spot = origin + offset
+	return surfaceBelow(Vector3.new(spot.X, origin.Y + 200, spot.Z), 400) or CFrame.new(spot.X, 0, spot.Z)
+end
+
+local function wildLanding(wild: World.Wild): CFrame
+	if typeof(wild.position) == "Vector3" then
+		local dropped = surfaceBelow(wild.position + Vector3.new(0, WorldView.DROP_RAY_UP, 0), WorldView.DROP_RAY_DEPTH)
+		if dropped then
+			return dropped
+		end
+	end
+	return volcanoLanding(wild) -- dropped over the void: back to its volcano spot
+end
+
+function WorldView.rootPart(player: Player?): BasePart?
+	local character = player and player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then
+		return root
+	end
+	return nil
+end
+
+---------------------------------------------------------------------------
+-- Slime models
+---------------------------------------------------------------------------
+
+-- Moves the model along a path over `seconds`, unless its record changed.
+local function animate(id: string, key: string, seconds: number, path: (t: number) -> CFrame)
+	task.spawn(function()
+		local start = os.clock()
+		while true do
+			local record = records[id]
+			if not record or record.key ~= key or not record.model.Parent then
+				return
+			end
+			local t = math.min((os.clock() - start) / seconds, 1)
+			record.model:PivotTo(path(t))
+			if t >= 1 then
+				return
+			end
+			RunService.Heartbeat:Wait()
+		end
+	end)
+end
+
+local function arc(from: CFrame, to: CFrame, height: number): (t: number) -> CFrame
+	return function(t: number): CFrame
+		return from:Lerp(to, t) + Vector3.new(0, math.sin(t * math.pi) * height, 0)
+	end
+end
+
+local function create(entry: Scene.Entry, onPrompt: (Player, string) -> ()): Record?
+	if failed[entry.id] or not modelFactory then
+		return nil
+	end
+	local ok, model = pcall(modelFactory.build, entry.slime)
+	if not ok or typeof(model) ~= "Instance" or not model:IsA("Model") then
+		failed[entry.id] = true
+		warn(`[Server] ModelFactory.build failed for {entry.id}: {model}`)
+		return nil
+	end
+	local body = model.PrimaryPart or model:FindFirstChild("Body")
+	if not body or not body:IsA("BasePart") then
+		failed[entry.id] = true
+		model:Destroy()
+		return nil
+	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = Constants.GRAB_PROMPT_NAME
+	prompt.ObjectText = (if entry.boss then "BOSS " else "") .. Genome.displayName(entry.slime)
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.RequiresLineOfSight = false
+	prompt.MaxActivationDistance = Config.STEAL_REACH - 2
+	prompt.Parent = body
+	local id = entry.id
+	prompt.Triggered:Connect(function(player: Player)
+		onPrompt(player, id)
+	end)
+	return { model = model, body = body, prompt = prompt, key = "", weld = nil }
+end
+
+local function unweld(record: Record)
+	if record.weld then
+		record.weld:Destroy()
+		record.weld = nil
+	end
+	record.body.Anchored = true
+end
+
+-- Returns false when the model couldn't be placed yet (retried next reconcile).
+local function place(record: Record, entry: Scene.Entry, previous: string?): boolean
+	local model = record.model
+	model:SetAttribute("OwnerUserId", entry.ownerUserId)
+	model:SetAttribute("State", entry.state)
+	model:SetAttribute("Price", entry.price)
+	model:SetAttribute(Constants.BOSS_ATTRIBUTE, if entry.boss then true else nil)
+	model:SetAttribute(Constants.RARE_ATTRIBUTE, entry.rare)
+
+	if entry.state == "Carried" then
+		local carrier = entry.carrierUserId and Players:GetPlayerByUserId(entry.carrierUserId)
+		local root = WorldView.rootPart(carrier)
+		if not root then
+			return false
+		end
+		unweld(record)
+		model:PivotTo(root.CFrame * CFrame.new(0, WorldView.CARRY_HEIGHT, 0))
+		local weld = Instance.new("WeldConstraint")
+		weld.Part0 = root
+		weld.Part1 = record.body
+		weld.Parent = record.body
+		record.weld = weld
+		record.body.Anchored = false
+		return true
+	end
+
+	local from = model:GetPivot()
+	unweld(record)
+	if entry.state == "Wild" then
+		model.Parent = workspace:FindFirstChild(Constants.WILD_FOLDER)
+		local wild = entry.wild
+		if not wild then
+			return true
+		end
+		local landing = wildLanding(wild)
+		if previous == nil and wild.position == nil then
+			animate(entry.id, entry.key, WorldView.DROP_SECONDS, arc(CFrame.new(crater()), landing, 12))
+		elseif previous ~= nil and wild.position ~= nil then
+			animate(entry.id, entry.key, WorldView.FALL_SECONDS, function(t: number): CFrame
+				return from:Lerp(landing, t * t) -- falls out of the carrier's arms
+			end)
+		else
+			model:PivotTo(landing)
+		end
+		return true
+	end
+
+	local plot = entry.plotIndex and WorldView.plot(entry.plotIndex)
+	local folder = plot and plot:FindFirstChild(Constants.PLOT_SLIMES_FOLDER)
+	model.Parent = folder or plot
+	local target = entry.plotIndex and entry.pad and padTop(entry.plotIndex, entry.pad)
+	if not target then
+		return true
+	end
+	if entry.state == "Escaping" and previous ~= nil then
+		animate(entry.id, entry.key, World.ESCAPE_BOUNCE_SECONDS, arc(from, target, 10))
+	else
+		model:PivotTo(target)
+	end
+	return true
+end
+
+--[[
+	Creates, moves and destroys slime models to match the World. Call a few
+	times a second and after any action.
+]]
+function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player, string) -> ())
+	local entries = Scene.describe(world, now)
+	for id, record in records do
+		if not entries[id] then
+			record.model:Destroy()
+			records[id] = nil
+		end
+	end
+	for id, entry in entries do
+		local record: Record? = records[id]
+		local isNew = false
+		if not record then
+			record = create(entry, onPrompt)
+			if not record then
+				continue
+			end
+			records[id] = record
+			isNew = true
+		end
+		assert(record, "record")
+		record.prompt.ActionText = entry.promptText
+		record.prompt.Enabled = entry.promptEnabled
+		record.prompt:SetAttribute(Constants.PROMPT_HIDE_ATTRIBUTE, entry.hideFromUserId)
+		record.prompt.HoldDuration = if entry.state == "Pad" then 0.4 else 0
+		if record.key ~= entry.key then
+			local previous = if isNew then nil else record.key
+			record.key = entry.key
+			if not place(record, entry, previous) then
+				record.key = "" -- retry next time
+			end
+			if isNew and not record.model.Parent then
+				record.model.Parent = workspace:FindFirstChild(Constants.WILD_FOLDER)
+			end
+		end
+	end
+	for id in failed do
+		if not entries[id] then
+			failed[id] = nil
+		end
+	end
+end
+
+-- A slime model's Body (Effects target), or nil if it has no model.
+function WorldView.slimeBody(id: string): BasePart?
+	local record = records[id]
+	return record and record.body
+end
+
+-- Server-side position of a slime's Body (for reach checks).
+function WorldView.slimePosition(id: string): Vector3?
+	local record = records[id]
+	return record and record.body.Position
+end
+
+---------------------------------------------------------------------------
+-- Plots and players
+---------------------------------------------------------------------------
+
+local plotPromptParts: { [string]: string } = {
+	[Constants.LOCK_PROMPT_NAME] = "LockButton",
+	[Constants.MERGE_PROMPT_NAME] = "MergeVat",
+}
+local plotPrompts: { [number]: { [string]: ProximityPrompt } } = {}
+
+--[[
+	Creates the owner-only plot prompts (CONTRACT.md §8.5): LockPrompt on
+	LockButton, MergePrompt on MergeVat and BuyPadPrompt (moved onto the
+	lowest locked pad by updatePlots). `onTrigger(player, plotIndex, kind)`
+	with kind "Lock" | "Merge" | "BuyPad". Texts / Enabled / ShowOnlyToUserId
+	are kept current by updatePlots.
+]]
+function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
+	local kinds = {
+		[Constants.LOCK_PROMPT_NAME] = "Lock",
+		[Constants.MERGE_PROMPT_NAME] = "Merge",
+		[Constants.BUY_PAD_PROMPT_NAME] = "BuyPad",
+	}
+	for index = 1, Config.PLOT_COUNT do
+		local plot = WorldView.plot(index)
+		if not plot then
+			continue
+		end
+		plotPrompts[index] = {}
+		for name, kind in kinds do
+			local parent = if plotPromptParts[name]
+				then plot:FindFirstChild(plotPromptParts[name])
+				else WorldView.pad(index, Config.PADS_START + 1)
+			if not parent or not parent:IsA("BasePart") then
+				continue
+			end
+			local prompt = Instance.new("ProximityPrompt")
+			prompt.Name = name
+			prompt.KeyboardKeyCode = Enum.KeyCode.E
+			prompt.HoldDuration = 0
+			prompt.RequiresLineOfSight = false
+			prompt.MaxActivationDistance = 10
+			prompt.Enabled = false
+			prompt.Parent = parent
+			prompt.Triggered:Connect(function(player: Player)
+				onTrigger(player, index, kind)
+			end)
+			plotPrompts[index][name] = prompt
+		end
+	end
+end
+
+local claimPrompts: { [number]: ProximityPrompt } = {}
+
+--[[
+	ClaimPrompt on each plot's BuyStand.Counter (CONTRACT.md §9.1), enabled by
+	updatePlots while the plot is free. Plots without a BuyStand get none.
+	`onTrigger(player, plotIndex)`.
+]]
+function WorldView.addClaimPrompts(onTrigger: (Player, number) -> ())
+	for index = 1, Config.PLOT_COUNT do
+		local plot = WorldView.plot(index)
+		local stand = plot and plot:FindFirstChild("BuyStand")
+		local counter = stand and stand:FindFirstChild("Counter")
+		if not counter or not counter:IsA("BasePart") then
+			continue
+		end
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = Constants.CLAIM_PROMPT_NAME
+		prompt.ActionText = PlotClaim.ACTION_TEXT
+		prompt.ObjectText = PlotClaim.OBJECT_TEXT
+		prompt.KeyboardKeyCode = Enum.KeyCode.E
+		prompt.HoldDuration = 0
+		prompt.RequiresLineOfSight = false
+		prompt.MaxActivationDistance = 10
+		prompt.Enabled = false
+		prompt.Parent = counter
+		prompt.Triggered:Connect(function(player: Player)
+			onTrigger(player, index)
+		end)
+		claimPrompts[index] = prompt
+	end
+end
+
+local function applyPrompt(prompt: ProximityPrompt?, view: PlotPrompts.Prompt, owner: number?)
+	if not prompt then
+		return
+	end
+	if prompt.ActionText ~= view.actionText then
+		prompt.ActionText = view.actionText
+	end
+	if prompt.ObjectText ~= view.objectText then
+		prompt.ObjectText = view.objectText
+	end
+	local enabled = view.enabled and owner ~= nil
+	if prompt.Enabled ~= enabled then
+		prompt.Enabled = enabled
+	end
+	if prompt:GetAttribute(Constants.PROMPT_OWNER_ATTRIBUTE) ~= owner then
+		prompt:SetAttribute(Constants.PROMPT_OWNER_ATTRIBUTE, owner)
+	end
+end
+
+local function setIfChanged(instance: Instance, name: string, value: any)
+	if instance:GetAttribute(name) ~= value then
+		instance:SetAttribute(name, value)
+	end
+end
+
+-- DexTierMask per plot, recomputed only when the owner or dex count changes.
+local dexMasks: { [number]: { userId: number, count: number, mask: number } } = {}
+
+local function dexMask(index: number, session: World.Session, count: number): number
+	local cached = dexMasks[index]
+	if cached and cached.userId == session.userId and cached.count == count then
+		return cached.mask
+	end
+	local fresh = { userId = session.userId, count = count, mask = Collection.tierMask(session.data) }
+	dexMasks[index] = fresh
+	return fresh.mask
+end
+
+function WorldView.updatePlots(world: World.World, now: number)
+	for index = 1, world.plotCount do
+		local plot = WorldView.plot(index)
+		if plot then
+			local userId = world.plots[index]
+			local session = userId and world.sessions[userId]
+			local view = PlotPrompts.describe(world, index, now)
+			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)
+			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
+			setIfChanged(plot, "Rebirths", if session then session.data.rebirths else 0)
+			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
+			setIfChanged(plot, Constants.PLOT_LOCK_COST_ATTRIBUTE, view.lockCost)
+			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
+			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)
+			local dexCount = if session then PlayerData.dexCount(session.data) else 0
+			setIfChanged(plot, Constants.PLOT_DEX_COUNT_ATTRIBUTE, dexCount)
+			setIfChanged(plot, Constants.PLOT_DEX_TOTAL_ATTRIBUTE, Snapshot.DEX_TOTAL)
+			setIfChanged(
+				plot,
+				Constants.PLOT_DEX_TIER_MASK_ATTRIBUTE,
+				if session then dexMask(index, session, dexCount) else 0
+			)
+			for pad = 1, Config.PADS_MAX do
+				local part = WorldView.pad(index, pad)
+				if part then
+					setIfChanged(part, Constants.PAD_UNLOCKED_ATTRIBUTE, pad <= view.padsUnlocked)
+				end
+			end
+			local prompts = plotPrompts[index]
+			if prompts then
+				applyPrompt(prompts[Constants.LOCK_PROMPT_NAME], view.lock, view.ownerUserId)
+				applyPrompt(prompts[Constants.MERGE_PROMPT_NAME], view.merge, view.ownerUserId)
+				local buyPad = prompts[Constants.BUY_PAD_PROMPT_NAME]
+				local padPart = WorldView.pad(index, view.buyPad.pad)
+				if buyPad and padPart and buyPad.Parent ~= padPart then
+					buyPad.Parent = padPart
+				end
+				applyPrompt(buyPad, view.buyPad, view.ownerUserId)
+			end
+			local claim = claimPrompts[index]
+			if claim then
+				local claimView = PlotClaim.describe(world, index)
+				if claim.Enabled ~= claimView.enabled then
+					claim.Enabled = claimView.enabled
+				end
+			end
+			local sign = plot:FindFirstChild("Sign")
+			if sign then
+				PlotSigns.apply(sign, PlotSigns.lines(index, session))
+			end
+		end
+	end
+end
+
+-- True if the player's root part is inside their own plot's HomeZone.
+function WorldView.inHomeZone(player: Player, plotIndex: number): boolean
+	local root = WorldView.rootPart(player)
+	local plot = WorldView.plot(plotIndex)
+	local zone = plot and plot:FindFirstChild(Constants.HOME_ZONE)
+	if not root or not zone or not zone:IsA("BasePart") then
+		return false
+	end
+	local p = zone.CFrame:PointToObjectSpace(root.Position)
+	local half = zone.Size / 2
+	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= half.Y + 8
+end
+
+-- Spawn point on top of the plot's Base.
+function WorldView.plotSpawn(plotIndex: number): CFrame?
+	local plot = WorldView.plot(plotIndex)
+	local base = plot and plot:FindFirstChild("Base")
+	if base and base:IsA("BasePart") then
+		return base.CFrame * CFrame.new(0, base.Size.Y / 2 + 4, 0)
+	end
+	return nil
+end
+
+-- Moves a living character onto its plot's Base (ClaimPrompt "home", §9.1).
+function WorldView.sendHome(player: Player, plotIndex: number): boolean
+	local character = player.Character
+	local spawn = WorldView.plotSpawn(plotIndex)
+	if not character or not spawn or not WorldView.rootPart(player) then
+		return false
+	end
+	character:PivotTo(spawn)
+	return true
+end
+
+-- Spawn point on top of the hub SpawnLocation (world/HubSpawn.rbxmx), or any SpawnLocation.
+function WorldView.hubSpawn(): CFrame?
+	local spawn = workspace:FindFirstChild("HubSpawn")
+	if not (spawn and spawn:IsA("SpawnLocation")) then
+		spawn = workspace:FindFirstChildWhichIsA("SpawnLocation", true)
+	end
+	if spawn and spawn:IsA("SpawnLocation") then
+		return spawn.CFrame * CFrame.new(0, spawn.Size.Y / 2 + 4, 0)
+	end
+	return nil
+end
+
+-- Kill plane (Rescue): puts a living character that fell below the plane back on
+-- its plot / the hub. Returns true if it moved the character.
+function WorldView.rescue(player: Player, plotIndex: number?): boolean
+	local character = player.Character
+	local root = WorldView.rootPart(player)
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not character or not root or not humanoid then
+		return false
+	end
+	if not Rescue.shouldRescue(root.Position.Y, humanoid.Health > 0) then
+		return false
+	end
+	local plotSpawn = if plotIndex then WorldView.plotSpawn(plotIndex) else nil
+	character:PivotTo(Rescue.target(plotSpawn, WorldView.hubSpawn(), CFrame.new(0, 50, 0)))
+	for _, part in character:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.AssemblyLinearVelocity = Vector3.zero
+			part.AssemblyAngularVelocity = Vector3.zero
+		end
+	end
+	return true
+end
+
+local function setAttribute(instance: Instance, name: string, value: any)
+	if instance:GetAttribute(name) ~= value then
+		instance:SetAttribute(name, value)
+	end
+end
+
+-- Keeps one SpeedCoil tool in the Backpack or character while it's owned.
+local function ensureSpeedCoil(player: Player)
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	local character = player.Character
+	if not backpack or backpack:FindFirstChild(Constants.SPEED_COIL_TOOL) then
+		return
+	end
+	if character and character:FindFirstChild(Constants.SPEED_COIL_TOOL) then
+		return
+	end
+	local tool = WorldProps.speedCoil()
+	if tool then
+		tool.ToolTip = "Speed Coil: always on"
+		tool.Parent = backpack
+	end
+end
+
+function WorldView.updatePlayer(player: Player, session: World.Session, now: number)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local carry = session.carry
+	local data = session.data
+	WorldView.setCarrying(player, carry and carry.slimeId)
+	setAttribute(player, Constants.TUTORIAL_STEP_ATTRIBUTE, TutorialProgress.current(data))
+	setAttribute(player, Constants.TUTORIAL_STEP_ID_ATTRIBUTE, TutorialProgress.currentId(data))
+	setAttribute(player, Constants.SPEED_COIL_ATTRIBUTE, if data.speedCoil then true else nil)
+	setAttribute(player, Constants.REBIRTH_TITLE_ATTRIBUTE, Perks.title(data.rebirths))
+	local pet = if Config.FEATURES.FollowPets then Progression.keeper(data) else nil
+	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
+	if data.speedCoil then
+		ensureSpeedCoil(player)
+	end
+	local target = Carry.targetWalkSpeed(session, now)
+	setAttribute(player, Constants.WALK_SPEED_ATTRIBUTE, target)
+	if not humanoid then
+		return
+	end
+	-- Always enforce the server's speed (v12 only overwrote speeds it recognised, so any
+	-- other start value locked the coil out). WalkSpeed is a float32: compare loosely.
+	if math.abs(humanoid.WalkSpeed - target) > 0.01 then
+		humanoid.WalkSpeed = target
+	end
+	if carry and character and character:FindFirstChildOfClass("Tool") then
+		humanoid:UnequipTools()
+	end
+end
+
+-- Player attribute `Carrying` (CONTRACT.md §5.2): slime id while carrying, cleared otherwise.
+function WorldView.setCarrying(player: Player, slimeId: string?)
+	if player:GetAttribute(Constants.CARRYING_ATTRIBUTE) ~= slimeId then
+		player:SetAttribute(Constants.CARRYING_ATTRIBUTE, slimeId)
+	end
+end
+
+function WorldView.setRain(active: boolean, endsAt: number?, nextAt: number?)
+	workspace:SetAttribute(Constants.RAIN_ATTRIBUTE, active)
+	workspace:SetAttribute(Constants.RAIN_ACTIVE_ATTRIBUTE, active)
+	workspace:SetAttribute(Constants.RAIN_ENDS_AT_ATTRIBUTE, endsAt)
+	workspace:SetAttribute(Constants.RAIN_NEXT_AT_ATTRIBUTE, nextAt)
+end
+
+return WorldView

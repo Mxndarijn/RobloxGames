@@ -1,0 +1,633 @@
+--!strict
+--[[
+	Server entry (owner: Phoenix) -> ServerScriptService.Server
+
+	Thin Roblox adapter around the pure gameplay modules next to this file
+	(World, Spawner, Carry, StealService, Income, MergeVat, Rebirth, Actions,
+	Snapshot, Scene, Sessions, DataService, Leaderboard; see CONTRACT.md §1-§3):
+	  * creates the remotes and routes `Request` to Actions.handle;
+	  * player lifecycle: DataService load (session-locked, retried), plot +
+	    join lock + offline income (Sessions.join), save on leave, autosave
+	    and BindToClose;
+	  * Heartbeat: GameLoop.step, HomeZone deposits, WorldView reconcile,
+	    Notify / State / leaderstats pushes; global leaderboard refresh;
+	    kill plane (fallen characters go back to their plot, WorldView.rescue).
+	  * Instance attributes: Player `Carrying`, workspace `SlimeRain` (§5.2).
+	  * World props (WorldProps: ShopStand prompts, LeaderboardBoard rows,
+	    TutorialNpc) and Effects.play bursts from World "Effect" events (§5.3-5.4).
+]]
+
+local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
+local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"))
+local Constants = require(Shared:WaitForChild("Constants"))
+local DayNight = require(Shared:WaitForChild("DayNight"))
+local Merge = require(Shared:WaitForChild("Merge"))
+local PlayerData = require(Shared:WaitForChild("PlayerData"))
+local Remotes = require(Shared:WaitForChild("Remotes"))
+local Types = require(Shared:WaitForChild("Types"))
+
+local Actions = require(script.Actions)
+local Carry = require(script.Carry)
+local DataService = require(script.DataService)
+local GameLoop = require(script.GameLoop)
+local Leaderboard = require(script.Leaderboard)
+local PlotClaim = require(script.PlotClaim)
+local Sessions = require(script.Sessions)
+local Snapshot = require(script.Snapshot)
+local Spawner = require(script.Spawner)
+local World = require(script.World)
+local WorldProps = require(script.WorldProps)
+local WorldView = require(script.WorldView)
+
+local VIEW_INTERVAL = 0.1
+local SHUTDOWN_TIMEOUT = 25
+
+local function now(): number
+	return workspace:GetServerTimeNow()
+end
+
+Remotes.setup()
+WorldView.setup()
+do
+	local ok, err = pcall(WorldProps.place)
+	if not ok then
+		warn(`[Server] WorldProps.place failed: {err}`)
+	end
+end
+
+-- Archer's Effects (nil without Visuals): bursts are pcall'd and never block gameplay.
+local Effects: any = nil
+do
+	local visuals = ReplicatedStorage:FindFirstChild("Visuals")
+	local module = visuals and visuals:FindFirstChild("Effects")
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		Effects = if ok then result else nil
+	end
+end
+
+local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
+local stateEvent = Remotes.get(Constants.STATE) :: RemoteEvent
+local notifyEvent = Remotes.get(Constants.NOTIFY) :: RemoteEvent
+local leaderboardEvent = Remotes.get(Constants.LEADERBOARD) :: RemoteEvent
+
+local world = World.new({
+	now = now(),
+	seed = math.floor(os.clock() * 1e6) + os.time(),
+	newId = function()
+		return HttpService:GenerateGUID(false)
+	end,
+	plotCount = Config.PLOT_COUNT,
+})
+
+---------------------------------------------------------------------------
+-- Persistence backends
+---------------------------------------------------------------------------
+
+-- workspace.DataStoreStatus: "Ok" | "Memory" (DataStoreMode set) | "Unavailable"
+-- (no DataStore, nothing saves) | "Error" (last load / save failed). Warns on each change.
+local function setStoreStatus(status: string, reason: string?)
+	if workspace:GetAttribute(Constants.DATASTORE_STATUS_ATTRIBUTE) == status then
+		return
+	end
+	workspace:SetAttribute(Constants.DATASTORE_STATUS_ATTRIBUTE, status)
+	if status ~= "Ok" and status ~= "Memory" then
+		warn(`[Server] DataStoreStatus = {status}: {reason or "?"}`)
+	end
+end
+
+local memoryMode = workspace:GetAttribute(Constants.DATASTORE_MODE_ATTRIBUTE) == "Memory"
+local storeOk, dataStore = pcall(function()
+	return DataStoreService:GetDataStore(Constants.DATASTORE_NAME)
+end)
+if memoryMode then
+	setStoreStatus("Memory")
+elseif not storeOk then
+	setStoreStatus("Unavailable", `{dataStore}; using the in-memory store, progress will NOT save`)
+	memoryMode = true
+else
+	setStoreStatus("Ok")
+end
+local backend: DataService.Backend
+local orderedStore: OrderedDataStore? = nil
+if memoryMode then
+	backend = DataService.memoryBackend()
+else
+	backend = {
+		update = function(key: string, transform: (any) -> any?): any
+			return dataStore:UpdateAsync(key, function(old: any)
+				return transform(old)
+			end)
+		end,
+	}
+	orderedStore = DataStoreService:GetOrderedDataStore(Constants.LEADERBOARD_STORE)
+end
+
+local data = DataService.new({
+	backend = backend,
+	jobId = if game.JobId ~= "" then game.JobId else `studio-{HttpService:GenerateGUID(false)}`,
+	now = os.time,
+	wait = function(seconds: number)
+		task.wait(seconds)
+	end,
+})
+
+local homeZoneFull: { [number]: string } = {} -- userId -> slime id told "plot full" during this zone visit
+local unsaved: { [number]: boolean } = {} -- Studio fallback profiles: never written
+local pendingSaves = 0
+
+local function save(userId: number, playerData: PlayerData.Data, release: boolean)
+	if unsaved[userId] then
+		if release then
+			unsaved[userId] = nil
+		end
+		return
+	end
+	pendingSaves += 1
+	local ok, reason = DataService.save(data, userId, playerData, release)
+	if not ok then
+		warn(`[Server] save failed for {userId}: {reason}`)
+		if reason == "DataStore error" then
+			setStoreStatus("Error", `save failed for {userId}`)
+		end
+	elseif not memoryMode then
+		setStoreStatus("Ok")
+	end
+	if orderedStore then
+		local store = orderedStore
+		pcall(function()
+			store:SetAsync(DataService.key(userId), Leaderboard.storeValue(playerData))
+		end)
+	end
+	pendingSaves -= 1
+end
+
+---------------------------------------------------------------------------
+-- Pushes
+---------------------------------------------------------------------------
+
+local function effectTarget(event: World.Event): Instance?
+	if event.slimeId then
+		local body = WorldView.slimeBody(event.slimeId)
+		if body then
+			return body
+		end
+	end
+	if event.plotIndex then
+		local plot = WorldView.plot(event.plotIndex)
+		local vat = plot and plot:FindFirstChild("MergeVat")
+		if vat and vat:IsA("BasePart") then
+			return vat
+		end
+	end
+	return if event.userId then WorldView.rootPart(Players:GetPlayerByUserId(event.userId)) else nil
+end
+
+-- Never errors: a failed burst must not drop the rest of the drained events.
+local function playEffect(event: World.Event)
+	if not Effects or not event.effect then
+		return
+	end
+	local ok, err = pcall(function()
+		local target = effectTarget(event)
+		if target then
+			Effects.play(event.effect, target)
+		end
+	end)
+	if not ok then
+		warn(`[Server] Effects.play {event.effect} failed: {err}`)
+	end
+end
+
+local function flushEvents()
+	for _, event in World.drain(world) do
+		if event.type == "Effect" then
+			playEffect(event)
+		end
+		if event.type == "Rare" then
+			-- Latest Legendary+ drop for client effects (CONTRACT.md §8.4); At changes on every one.
+			workspace:SetAttribute(Constants.RARE_SPAWN_ID_ATTRIBUTE, event.slimeId)
+			workspace:SetAttribute(Constants.RARE_SPAWN_TIER_ATTRIBUTE, event.tier)
+			workspace:SetAttribute(Constants.RARE_SPAWN_AT_ATTRIBUTE, now())
+		end
+		if event.type == "Notify" and event.text then
+			if event.userId then
+				local player = Players:GetPlayerByUserId(event.userId)
+				if player then
+					notifyEvent:FireClient(player, event.text, event.kind or "info", event.sound)
+				end
+			else
+				notifyEvent:FireAllClients(event.text, event.kind or "info", event.sound)
+			end
+		end
+	end
+end
+
+local function flushStates(t: number)
+	for userId, session in world.sessions do
+		local player = Players:GetPlayerByUserId(userId)
+		if player and Snapshot.due(session, t) then
+			stateEvent:FireClient(player, Snapshot.build(world, session, t))
+			Snapshot.pushed(session, t)
+		end
+	end
+end
+
+local function updateLeaderstats(player: Player, session: World.Session)
+	local folder = player:FindFirstChild("leaderstats")
+	if not folder then
+		return
+	end
+	for name, value in Leaderboard.stats(session.data) do
+		local stat = folder:FindFirstChild(name)
+		if stat and stat:IsA("IntValue") and stat.Value ~= value then
+			stat.Value = value
+		end
+	end
+end
+
+local function createLeaderstats(player: Player)
+	local folder = Instance.new("Folder")
+	folder.Name = "leaderstats"
+	for _, name in Leaderboard.STATS do
+		local stat = Instance.new("IntValue")
+		stat.Name = name
+		stat.Parent = folder
+	end
+	folder.Parent = player
+end
+
+local names: { [number]: string } = {}
+local function nameOf(userId: number): string
+	local player = Players:GetPlayerByUserId(userId)
+	if player then
+		return player.DisplayName
+	end
+	if not names[userId] then
+		local ok, name = pcall(function()
+			return Players:GetNameFromUserIdAsync(userId)
+		end)
+		names[userId] = if ok and type(name) == "string" then name else `Player {userId}`
+	end
+	return names[userId]
+end
+
+local latestBoard: Types.Leaderboard? = nil
+
+-- Fetches the global board (this server's players in memory mode) and pushes it to everyone.
+local function refreshLeaderboard()
+	local ok, page
+	if orderedStore then
+		local store = orderedStore
+		ok, page = pcall(function()
+			return store:GetSortedAsync(false, Config.LEADERBOARD_SIZE):GetCurrentPage()
+		end)
+	else
+		ok, page = true, Leaderboard.pageFromSessions(world.sessions :: any) -- memory mode: this server only
+	end
+	if ok and type(page) == "table" then
+		latestBoard = Leaderboard.fromPage(page, nameOf)
+		-- Fill the world board first so clients re-render (own-row highlight) after it replicates.
+		local filled, err = pcall(WorldProps.fillBoard :: any, latestBoard)
+		if not filled then
+			warn(`[Server] leaderboard board fill failed: {err}`)
+		end
+		leaderboardEvent:FireAllClients(latestBoard)
+	end
+end
+
+---------------------------------------------------------------------------
+-- World queries for Actions / prompts
+---------------------------------------------------------------------------
+
+local function distanceBetween(a: number, b: number): number
+	local ra = WorldView.rootPart(Players:GetPlayerByUserId(a))
+	local rb = WorldView.rootPart(Players:GetPlayerByUserId(b))
+	if not ra or not rb then
+		return math.huge
+	end
+	return (ra.Position - rb.Position).Magnitude
+end
+
+local function positionOf(userId: number): Vector3?
+	local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
+	return root and root.Position
+end
+
+local ctx: Actions.Context = { distanceBetween = distanceBetween, positionOf = positionOf }
+
+-- Player attribute `Carrying` follows the World right away (pickup, drop, deposit, escape, death).
+local function syncCarrying()
+	for _, player in Players:GetPlayers() do
+		WorldView.setCarrying(player, Carry.carryingId(world, player.UserId))
+	end
+end
+
+local function refreshView(t: number)
+	WorldView.reconcile(world, t, function(player: Player, slimeId: string)
+		local root = WorldView.rootPart(player)
+		local position = WorldView.slimePosition(slimeId)
+		local distance = if root and position then (root.Position - position).Magnitude else math.huge
+		local ok, reason = Carry.grab(world, player.UserId, slimeId, distance, now())
+		if not ok and reason then
+			World.notify(world, player.UserId, reason, "info", nil)
+		end
+	end)
+	WorldView.updatePlots(world, t)
+	syncCarrying()
+	flushEvents()
+end
+
+request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.RequestResult
+	local args = table.pack(...)
+	local ok, res = pcall(Actions.handle, world, player.UserId, action, args, now(), ctx)
+	if not ok then
+		return { ok = false, message = "server error" }
+	end
+	-- Never error to the client: a view hiccup must not turn a done action into a failure.
+	local t = now()
+	local pushed, err = pcall(function()
+		refreshView(t)
+		flushStates(t)
+	end)
+	if not pushed then
+		warn(`[Server] push after {action} failed: {err}`)
+	end
+	return res
+end
+
+---------------------------------------------------------------------------
+-- Plot props: lock button and merge vat prompts (owner only)
+---------------------------------------------------------------------------
+
+local function ownerOfPlot(player: Player, plotIndex: number): World.Session?
+	local session = World.session(world, player.UserId)
+	if session and session.plotIndex == plotIndex then
+		return session
+	end
+	return nil
+end
+
+-- Owner-only plot prompts (CONTRACT.md §8.5): LockPrompt, BuyPadPrompt, MergePrompt.
+WorldView.addPlotPrompts(function(player: Player, index: number, kind: string)
+	local session = ownerOfPlot(player, index)
+	if not session then
+		local ownerId = world.plots[index]
+		local owner = ownerId and world.sessions[ownerId]
+		World.notify(
+			world,
+			player.UserId,
+			if owner then `This is {owner.name}'s base` else "Nobody owns this plot",
+			"info",
+			nil
+		)
+		refreshView(now())
+		return
+	end
+	local action, args = kind, {}
+	if kind == "Merge" then
+		local a, b = Merge.findPair(session.data.slimes, World.busySet(world), session.data.favoriteId)
+		if not a or not b then
+			World.notify(world, player.UserId, "Need two slimes of the same rarity", "info", nil)
+			refreshView(now())
+			return
+		end
+		args = { a, b }
+	end
+	local res = Actions.handle(world, player.UserId, action, args, now(), ctx)
+	if not res.ok and res.message then
+		World.notify(world, player.UserId, res.message, "info", nil)
+	end
+	refreshView(now())
+end)
+
+-- ClaimPrompt on a free plot's BuyStand (CONTRACT.md §9.1): plots are auto-assigned,
+-- so it sends the player home (or reserves the plot while their data loads).
+WorldView.addClaimPrompts(function(player: Player, index: number)
+	local outcome, plotIndex = PlotClaim.claim(world, player.UserId, index)
+	if outcome == "home" then
+		WorldView.sendHome(player, plotIndex)
+	end
+	refreshView(now())
+end)
+
+-- ShopStand prompts: same as the HUD Shop panel's Request actions.
+WorldProps.addShopPrompts(function(player: Player, action: string)
+	local res = Actions.handle(world, player.UserId, action, {}, now(), ctx)
+	if not res.ok and res.message then
+		World.notify(world, player.UserId, res.message, "info", nil)
+	end
+	refreshView(now())
+end)
+pcall(WorldProps.fillBoard, nil) -- "No entries yet" until the first refresh
+
+---------------------------------------------------------------------------
+-- Player lifecycle
+---------------------------------------------------------------------------
+
+local function onCharacter(player: Player, character: Model)
+	local session = World.session(world, player.UserId)
+	local spawn = session and WorldView.plotSpawn(session.plotIndex)
+	if spawn then
+		task.defer(function()
+			if character.Parent then
+				character:PivotTo(spawn)
+			end
+		end)
+	end
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	if humanoid and humanoid:IsA("Humanoid") then
+		-- Speed Coil etc. right away, not on the next 0.1 s tick (CONTRACT.md §8.10).
+		local current = World.session(world, player.UserId)
+		if current then
+			WorldView.updatePlayer(player, current, now())
+		end
+		humanoid.Died:Connect(function()
+			Carry.release(world, player.UserId, now(), positionOf(player.UserId), "drop")
+			refreshView(now())
+		end)
+	end
+end
+
+local function onPlayerAdded(player: Player)
+	local userId = player.UserId
+	local ok, result = DataService.load(data, userId)
+	if not player.Parent then
+		if ok then
+			DataService.save(data, userId, result :: PlayerData.Data, true) -- left while loading: release
+		end
+		return
+	end
+	if not memoryMode then
+		if ok then
+			setStoreStatus("Ok")
+		elseif result == "DataStore error" then
+			setStoreStatus("Error", `load failed for {userId}`)
+		end
+	end
+	local playerData: PlayerData.Data
+	if ok then
+		playerData = result :: PlayerData.Data
+	elseif RunService:IsStudio() then
+		warn(`[Server] DataStore unavailable ({result}); using an unsaved profile`)
+		playerData = PlayerData.new()
+		unsaved[userId] = true
+	else
+		player:Kick(`Couldn't load your slimes: {result}. Please rejoin.`)
+		return
+	end
+
+	local session, reason = Sessions.join(world, userId, player.DisplayName, playerData, now())
+	if not session then
+		save(userId, playerData, true)
+		player:Kick(reason or "Server is full")
+		return
+	end
+	createLeaderstats(player)
+	updateLeaderstats(player, session)
+
+	player.CharacterAdded:Connect(function(character)
+		onCharacter(player, character)
+	end)
+	player.CharacterRemoving:Connect(function()
+		Carry.release(world, userId, now(), positionOf(userId), "drop")
+		refreshView(now())
+	end)
+	if player.Character then
+		onCharacter(player, player.Character)
+	end
+	refreshView(now())
+	if not orderedStore then
+		task.spawn(refreshLeaderboard) -- memory mode: rank the newcomer now, not in a minute
+	end
+end
+
+local function onPlayerRemoving(player: Player)
+	local session = Sessions.leave(world, player.UserId, now())
+	WorldView.setCarrying(player, nil)
+	homeZoneFull[player.UserId] = nil
+	if session then
+		refreshView(now()) -- a stolen slime in their arms bounces home
+		save(player.UserId, session.data, true)
+	end
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerRemoving:Connect(onPlayerRemoving)
+for _, player in Players:GetPlayers() do
+	task.spawn(onPlayerAdded, player)
+end
+
+game:BindToClose(function()
+	for userId in world.sessions do
+		local session = Sessions.leave(world, userId, now())
+		if session then
+			task.spawn(save, userId, session.data, true)
+		end
+	end
+	local deadline = os.clock() + SHUTDOWN_TIMEOUT
+	while pendingSaves > 0 and os.clock() < deadline do
+		task.wait(0.1)
+	end
+end)
+
+---------------------------------------------------------------------------
+-- Loops
+---------------------------------------------------------------------------
+
+local lastView = 0
+local lastClock = -math.huge
+local wasRaining: boolean? = nil
+local function stepPlayers(t: number)
+	for userId, session in world.sessions do
+		local player = Players:GetPlayerByUserId(userId)
+		if player then
+			local carryId = session.carry and session.carry.slimeId
+			if carryId and WorldView.inHomeZone(player, session.plotIndex) then
+				local ok, reason = Carry.deposit(world, userId)
+				-- Toast once per zone visit, not every tick while standing in a full plot.
+				if not ok and reason == "plot full" and homeZoneFull[userId] ~= carryId then
+					homeZoneFull[userId] = carryId
+					World.notify(world, userId, "Your plot is full! Sell or merge a slime.", "bad", nil)
+				end
+			else
+				homeZoneFull[userId] = nil
+			end
+			WorldView.updatePlayer(player, session, t)
+			updateLeaderstats(player, session)
+		end
+	end
+	if world.raining ~= wasRaining then
+		wasRaining = world.raining
+		WorldView.setRain(Spawner.rain(world, t))
+	end
+end
+
+-- Kill plane: every player (loaded or not) who falls off the world goes back up.
+local function rescueFallen()
+	for _, player in Players:GetPlayers() do
+		local session = World.session(world, player.UserId)
+		if WorldView.rescue(player, session and session.plotIndex) then
+			World.notify(world, player.UserId, "Whoa! Back to safety.", "info", nil)
+		end
+	end
+end
+
+RunService.Heartbeat:Connect(function()
+	local t = now()
+	local rescued, rescueErr = pcall(rescueFallen :: any)
+	if not rescued then
+		warn(`[Server] rescue failed: {rescueErr}`)
+	end
+	GameLoop.step(world, t)
+	if t - lastView < VIEW_INTERVAL then
+		return
+	end
+	lastView = t
+	if Config.FEATURES.DayNight and t - lastClock >= 0.5 then
+		lastClock = t
+		Lighting.ClockTime = DayNight.clockTime(t - world.startedAt)
+	end
+	-- Each stage is isolated so one failing player or model never stops the State / Notify pushes.
+	local ok, err = pcall(stepPlayers :: any, t)
+	if not ok then
+		warn(`[Server] player step failed: {err}`)
+	end
+	ok, err = pcall(refreshView, t)
+	if not ok then
+		warn(`[Server] view refresh failed: {err}`)
+	end
+	flushStates(t)
+end)
+
+task.spawn(function()
+	while true do
+		task.wait(Config.AUTOSAVE_INTERVAL)
+		for userId, session in world.sessions do
+			task.spawn(save, userId, session.data, false)
+		end
+	end
+end)
+
+Players.PlayerAdded:Connect(function(player)
+	if latestBoard then
+		leaderboardEvent:FireClient(player, latestBoard)
+	end
+end)
+
+task.spawn(function()
+	while true do
+		local ok, err = pcall(refreshLeaderboard :: any)
+		if not ok then
+			warn(`[Server] leaderboard refresh failed: {err}`)
+		end
+		task.wait(Config.LEADERBOARD_INTERVAL)
+	end
+end)

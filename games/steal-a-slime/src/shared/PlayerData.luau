@@ -1,0 +1,215 @@
+--!strict
+--[[
+	PlayerData
+
+	The authoritative per-player state the server keeps in memory and saves,
+	plus pure plot operations on it (pads, adding / removing slimes, buying
+	pads, selling, favourites, Slimedex). No Roblox APIs.
+]]
+
+local Config = if script then require(script.Parent.Config) else require("./Config")
+local Economy = if script then require(script.Parent.Economy) else require("./Economy")
+local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local Perks = if script then require(script.Parent.Perks) else require("./Perks")
+
+type Slime = Genome.Slime
+
+export type Daily = { lastDay: number, streak: number }
+
+-- Counters for goals (CONTRACT.md §8.8); stolen / earned / rebirths / pads live elsewhere.
+export type Stats = { caught: number, merges: number, locks: number, sold: number }
+
+export type Data = {
+	version: number,
+	cash: number,
+	rebirths: number,
+	padsUnlocked: number,
+	slimes: { Slime },
+	favoriteId: string?,
+	lastOnline: number, -- unix seconds of the last save while playing
+	daily: Daily,
+	dex: { [string]: boolean },
+	totalEarned: number,
+	totalStolen: number,
+	lockLevel: number, -- Shop: lock upgrade level 0..LOCK_UPGRADE_MAX
+	speedCoil: boolean, -- Shop: Speed Coil owned
+	tutorialStep: number, -- TutorialProgress: 1..#STEPS, 0 = finished
+	-- v3 (CONTRACT.md §8.9)
+	upgrades: { [string]: number }, -- Config.UPGRADES id -> level
+	stats: Stats,
+	goals: { [string]: number }, -- Config.GOALS id -> stages paid
+	dexRewards: number, -- Config.DEX_MILESTONES paid
+}
+
+local PlayerData = {}
+
+function PlayerData.new(): Data
+	return {
+		version = Config.SAVE_VERSION,
+		cash = Config.STARTING_CASH,
+		rebirths = 0,
+		padsUnlocked = Config.PADS_START,
+		slimes = {},
+		favoriteId = nil,
+		lastOnline = 0,
+		daily = { lastDay = 0, streak = 0 },
+		dex = {},
+		totalEarned = 0,
+		totalStolen = 0,
+		lockLevel = 0,
+		speedCoil = false,
+		tutorialStep = 1,
+		upgrades = {},
+		stats = { caught = 0, merges = 0, locks = 0, sold = 0 },
+		goals = {},
+		dexRewards = 0,
+	}
+end
+
+function PlayerData.findSlime(data: Data, id: string): (Slime?, number?)
+	for i, slime in data.slimes do
+		if slime.id == id then
+			return slime, i
+		end
+	end
+	return nil, nil
+end
+
+function PlayerData.slimeOnPad(data: Data, pad: number): Slime?
+	for _, slime in data.slimes do
+		if slime.pad == pad then
+			return slime
+		end
+	end
+	return nil
+end
+
+-- Lowest unlocked pad with no slime on it, or nil if the plot is full.
+function PlayerData.freePad(data: Data): number?
+	local used = {}
+	for _, slime in data.slimes do
+		if slime.pad then
+			used[slime.pad] = true
+		end
+	end
+	for pad = 1, data.padsUnlocked do
+		if not used[pad] then
+			return pad
+		end
+	end
+	return nil
+end
+
+function PlayerData.discover(data: Data, slime: Slime): boolean
+	local key = Genome.dexKey(slime)
+	if data.dex[key] then
+		return false
+	end
+	data.dex[key] = true
+	return true
+end
+
+function PlayerData.dexCount(data: Data): number
+	local n = 0
+	for _ in data.dex do
+		n += 1
+	end
+	return n
+end
+
+-- Puts a slime on a free pad (or `pad` if given and free). Returns the pad.
+function PlayerData.addSlime(data: Data, slime: Slime, pad: number?): (boolean, number? | string)
+	if PlayerData.findSlime(data, slime.id) then
+		return false, "duplicate"
+	end
+	local target = pad
+	if target then
+		if target < 1 or target > data.padsUnlocked or PlayerData.slimeOnPad(data, target) then
+			return false, "pad taken"
+		end
+	else
+		target = PlayerData.freePad(data)
+	end
+	if not target then
+		return false, "plot full"
+	end
+	slime.pad = target
+	table.insert(data.slimes, slime)
+	PlayerData.discover(data, slime)
+	return true, target
+end
+
+function PlayerData.removeSlime(data: Data, id: string): Slime?
+	local slime, index = PlayerData.findSlime(data, id)
+	if not slime or not index then
+		return nil
+	end
+	table.remove(data.slimes, index)
+	if data.favoriteId == id then
+		data.favoriteId = nil
+	end
+	return slime
+end
+
+-- Plot income incl. rebirth, upgrade, rank and Slimedex bonuses (Perks.incomeMultiplier).
+function PlayerData.incomePerSecond(data: Data, skip: { [string]: boolean }?): number
+	return Economy.plotIncome(data.slimes, data.rebirths, skip) * Perks.bonusMultiplier(data)
+end
+
+-- One slime's income for this player (State SlimeView.income).
+function PlayerData.slimeIncome(data: Data, slime: Slime): number
+	return Economy.slimeIncome(slime, data.rebirths) * Perks.bonusMultiplier(data)
+end
+
+function PlayerData.earn(data: Data, amount: number)
+	if amount > 0 then
+		data.cash += amount
+		data.totalEarned += amount
+	end
+end
+
+function PlayerData.spend(data: Data, amount: number): boolean
+	if amount < 0 or data.cash < amount then
+		return false
+	end
+	data.cash -= amount
+	return true
+end
+
+function PlayerData.buyPad(data: Data): (boolean, string?)
+	local cost = Economy.padCost(data.padsUnlocked)
+	if not cost then
+		return false, "all pads unlocked"
+	end
+	if not PlayerData.spend(data, cost) then
+		return false, "not enough cash"
+	end
+	data.padsUnlocked += 1
+	return true, nil
+end
+
+function PlayerData.sell(data: Data, id: string): (boolean, number | string)
+	local slime = PlayerData.findSlime(data, id)
+	if not slime then
+		return false, "not your slime"
+	end
+	local price = Economy.sellPrice(slime, data.rebirths)
+	PlayerData.removeSlime(data, id)
+	PlayerData.earn(data, price)
+	data.stats.sold += 1
+	return true, price
+end
+
+function PlayerData.setFavorite(data: Data, id: string?): boolean
+	if id == nil then
+		data.favoriteId = nil
+		return true
+	end
+	if not PlayerData.findSlime(data, id) then
+		return false
+	end
+	data.favoriteId = id
+	return true
+end
+
+return PlayerData
