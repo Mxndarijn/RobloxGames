@@ -1,6 +1,8 @@
 # RobloxGames
+# DO NOT TRUST THIS REPO, every line is written by AI and only reviewed by AI.
 
-Private monorepo for Merijn’s Roblox projects. One repo, shared tooling, a folder per game.
+
+Public monorepo for Merijn’s Roblox projects. One repo, shared tooling, a folder per game.
 
 ## Layout
 
