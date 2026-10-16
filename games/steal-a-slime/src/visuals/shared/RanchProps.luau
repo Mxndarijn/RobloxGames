@@ -70,6 +70,12 @@ RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
 	slime_acc_crown = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
 	slime_acc_crystal = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
 	slime_wobble = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
+	phoenix_pad_hay = "old per-pad stand look, retired when every pad became the crate pad (v30 C4)",
+	phoenix_pad_goo = "old per-pad stand look, retired when every pad became the crate pad (v30 C4)",
+	phoenix_pad_stool = "old per-pad stand look, retired when every pad became the crate pad (v30 C4)",
+	phoenix_pad_barrel_top = "old per-pad stand look, retired when every pad became the crate pad (v30 C4)",
+	phoenix_pad_flower_bed = "old per-pad stand look, retired when every pad became the crate pad (v30 C4)",
+	phoenix_pad_mushroom = "old per-pad stand look, retired when every pad became the crate pad (v30 C4)",
 }) :: { [string]: string }
 
 local rows: { Placement } = {}
