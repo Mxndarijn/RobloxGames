@@ -12,7 +12,18 @@ local WeatherLook = {}
 -- TintColor is r, g, b 0..255: plain data, so the Lune tests can load this module.
 export type Tint = { TintColor: { number }, Brightness: number, Contrast: number, Saturation: number }
 export type Emitter = { rate: number, lifetime: number, share: number }
-export type Look = { tint: Tint, emitter: string?, emitters: { [string]: Emitter } }
+-- Scene grade on top of the tint: Atmosphere (Color mixed by fogMix, Density / Haze added), Lighting Ambient /
+-- OutdoorAmbient mixed by ambientMix and ExposureCompensation added. NightSky applies it on the day / night look.
+export type Atmo = {
+	fog: { number },
+	fogMix: number,
+	density: number,
+	haze: number,
+	ambient: { number },
+	ambientMix: number,
+	exposure: number,
+}
+export type Look = { tint: Tint, atmo: Atmo, emitter: string?, emitters: { [string]: Emitter } }
 
 WeatherLook.NEUTRAL = table.freeze({
 	TintColor = table.freeze({ 255, 255, 255 }),
@@ -20,6 +31,16 @@ WeatherLook.NEUTRAL = table.freeze({
 	Contrast = 0,
 	Saturation = 0,
 }) :: Tint
+
+WeatherLook.NEUTRAL_ATMO = table.freeze({
+	fog = table.freeze({ 200, 210, 225 }),
+	fogMix = 0,
+	density = 0,
+	haze = 0,
+	ambient = table.freeze({ 200, 210, 225 }),
+	ambientMix = 0,
+	exposure = 0,
+}) :: Atmo
 
 -- Emitter names under the camera part. share = this emitter's part of Config.WEATHER_PARTICLE_CAP.
 WeatherLook.EMITTERS = table.freeze({
@@ -30,13 +51,22 @@ WeatherLook.EMITTERS = table.freeze({
 }) :: { [string]: Emitter }
 
 WeatherLook.LOOKS = table.freeze({
-	Clear = table.freeze({ tint = WeatherLook.NEUTRAL, emitters = table.freeze({}) }),
+	Clear = table.freeze({ tint = WeatherLook.NEUTRAL, atmo = WeatherLook.NEUTRAL_ATMO, emitters = table.freeze({}) }),
 	Rain = table.freeze({
 		tint = table.freeze({
 			TintColor = table.freeze({ 190, 205, 230 }),
 			Brightness = -0.06,
 			Contrast = 0.05,
 			Saturation = -0.15,
+		}),
+		atmo = table.freeze({
+			fog = table.freeze({ 120, 135, 160 }),
+			fogMix = 0.35,
+			density = 0.12,
+			haze = 1.2,
+			ambient = table.freeze({ 110, 125, 150 }),
+			ambientMix = 0.35,
+			exposure = -0.15,
 		}),
 		emitters = table.freeze({ "Drops" }),
 	}),
@@ -47,6 +77,15 @@ WeatherLook.LOOKS = table.freeze({
 			Contrast = -0.03,
 			Saturation = -0.2,
 		}),
+		atmo = table.freeze({
+			fog = table.freeze({ 225, 235, 248 }),
+			fogMix = 0.45,
+			density = 0.1,
+			haze = 0.8,
+			ambient = table.freeze({ 200, 215, 240 }),
+			ambientMix = 0.35,
+			exposure = 0.1,
+		}),
 		emitters = table.freeze({ "Flakes" }),
 	}),
 	Starfall = table.freeze({
@@ -55,6 +94,15 @@ WeatherLook.LOOKS = table.freeze({
 			Brightness = -0.08,
 			Contrast = 0.08,
 			Saturation = 0.15,
+		}),
+		atmo = table.freeze({
+			fog = table.freeze({ 90, 70, 150 }),
+			fogMix = 0.3,
+			density = 0.04,
+			haze = 0.4,
+			ambient = table.freeze({ 120, 100, 190 }),
+			ambientMix = 0.3,
+			exposure = -0.1,
 		}),
 		emitters = table.freeze({ "Stars", "Glints" }),
 	}),

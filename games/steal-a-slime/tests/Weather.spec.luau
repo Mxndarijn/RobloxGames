@@ -187,3 +187,74 @@ describe("Weather hook for #8", function()
 		end
 	)
 end)
+
+describe("Weather grade (F1)", function()
+	local WeatherGrade = require("../src/visuals/shared/WeatherGrade")
+	it("every weather id has a complete numeric grade; Clear is neutral", function()
+		for _, id in Config.WEATHER_ORDER do
+			local g = WeatherGrade.of(id)
+			for _, key in WeatherGrade.KEYS do
+				expect(type(g[key])).toBe("number")
+			end
+		end
+		expect(WeatherGrade.of("Clear").FogMix).toBe(0)
+		expect(WeatherGrade.of("Clear").AmbMix).toBe(0)
+		expect(WeatherGrade.of("Clear").Density).toBe(0)
+		expect(WeatherGrade.of("Nope").TintR).toBe(255)
+	end)
+	it("lerp hits the endpoints and moves every key together", function()
+		local a, b = WeatherGrade.of("Clear"), WeatherGrade.of("Snow")
+		for _, key in WeatherGrade.KEYS do
+			expect(WeatherGrade.lerp(a, b, 0)[key]).toBe(a[key])
+			expect(math.abs(WeatherGrade.lerp(a, b, 1)[key] - b[key]) < 1e-9).toBe(true)
+		end
+		local mid, e = WeatherGrade.lerp(a, b, 0.3), WeatherGrade.ease(0.3)
+		for _, key in WeatherGrade.KEYS do
+			expect(math.abs(mid[key] - (a[key] + (b[key] - a[key]) * e)) < 1e-9).toBe(true)
+		end
+	end)
+	it("ease is monotonic, clamped and symmetric", function()
+		local last = -1
+		for i = 0, 20 do
+			local v = WeatherGrade.ease(i / 20)
+			expect(v >= last).toBe(true)
+			last = v
+		end
+		expect(WeatherGrade.ease(-3)).toBe(0)
+		expect(WeatherGrade.ease(9)).toBe(1)
+		expect(math.abs(WeatherGrade.ease(0.5) - 0.5) < 1e-9).toBe(true)
+	end)
+	it("a re-target mid tween continues from what is on screen (no jump)", function()
+		local half = WeatherGrade.lerp(WeatherGrade.of("Clear"), WeatherGrade.of("Rain"), 0.5)
+		local back = WeatherGrade.lerp(half, WeatherGrade.of("Snow"), 0)
+		for _, key in WeatherGrade.KEYS do
+			expect(back[key]).toBe(half[key])
+		end
+	end)
+	it("atmosphere helpers stay inside the Roblox ranges and mix colours", function()
+		local snow = WeatherGrade.of("Snow")
+		expect(WeatherGrade.density(0.95, snow)).toBe(1)
+		expect(WeatherGrade.haze(9.9, snow)).toBe(10)
+		expect(WeatherGrade.density(0.3, WeatherGrade.NEUTRAL)).toBe(0.3)
+		local c = WeatherGrade.mixColor({ 0, 100, 200 }, { 100, 200, 100 }, 0.5)
+		expect(c[1]).toBe(50)
+		expect(c[2]).toBe(150)
+		expect(c[3]).toBe(150)
+	end)
+	it("set notifies listeners and get returns the last grade", function()
+		local seen = 0
+		local conn = WeatherGrade.onChanged(function()
+			seen += 1
+		end)
+		local g = WeatherGrade.of("Rain")
+		WeatherGrade.set(g)
+		expect(seen).toBe(1)
+		expect(WeatherGrade.get()).toBe(g)
+		conn.Disconnect()
+		WeatherGrade.set(WeatherGrade.NEUTRAL)
+		expect(seen).toBe(1)
+	end)
+	it("fade is a few seconds", function()
+		expect(Config.WEATHER_FADE_SECONDS >= 3 and Config.WEATHER_FADE_SECONDS <= 5).toBe(true)
+	end)
+end)

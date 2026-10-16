@@ -1,0 +1,19 @@
+{
+  "id": "18-weather-Snow-mid-phone",
+  "todo": "18",
+  "kind": "world",
+  "pos": [
+    0,
+    30,
+    70
+  ],
+  "look": [
+    0,
+    8,
+    0
+  ],
+  "weather": "Snow",
+  "wait": 1.2,
+  "note": "F1: Snow weather grade mid-transition (1.2 s into the 3.5 s one-tween colour change) [phone]",
+  "device": "phone-portrait"
+}

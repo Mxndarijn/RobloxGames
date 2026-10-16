@@ -1,0 +1,19 @@
+{
+  "id": "18-weather-Starfall-mid-phone",
+  "todo": "18",
+  "kind": "world",
+  "pos": [
+    0,
+    30,
+    70
+  ],
+  "look": [
+    0,
+    8,
+    0
+  ],
+  "weather": "Starfall",
+  "wait": 1.2,
+  "note": "F1: Starfall weather grade mid-transition (1.2 s into the 3.5 s one-tween colour change) [phone]",
+  "device": "phone-portrait"
+}

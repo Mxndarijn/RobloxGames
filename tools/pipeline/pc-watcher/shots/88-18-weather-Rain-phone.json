@@ -13,7 +13,7 @@
     0
   ],
   "weather": "Rain",
-  "wait": 2.5,
-  "note": "TODO 18: Rain weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 2 s tween in [phone-portrait]",
+  "wait": 3.9,
+  "note": "TODO 18: Rain weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 3.5 s grade tween (tint + atmosphere + ambient, settled) [phone-portrait]",
   "device": "phone-portrait"
 }

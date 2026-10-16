@@ -20,6 +20,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local Weather = require(Shared:WaitForChild("Weather"))
+local WeatherGrade = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherGrade"))
 local WeatherLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherLook"))
 
 local WeatherFx = {}
@@ -117,7 +118,16 @@ local function ensureFx()
 	end
 end
 
+local driver: NumberValue? = nil
+local driverTween: Tween? = nil
+local driverConn: RBXScriptConnection? = nil
+
 local function teardown()
+	if driverConn then
+		driverConn:Disconnect()
+		driverConn = nil
+	end
+	WeatherGrade.set(WeatherGrade.NEUTRAL)
 	if heartbeat then
 		heartbeat:Disconnect()
 		heartbeat = nil
@@ -132,8 +142,53 @@ local function teardown()
 	end
 end
 
-local function tween(instance: Instance, goal: { [string]: any })
-	TweenService:Create(instance, TweenInfo.new(Config.WEATHER_FADE_SECONDS, Enum.EasingStyle.Sine), goal):Play()
+local function applyGrade(grade: WeatherGrade.Grade)
+	if tint then
+		tint.TintColor = Color3.fromRGB(grade.TintR, grade.TintG, grade.TintB)
+		tint.Brightness = grade.Brightness
+		tint.Contrast = grade.Contrast
+		tint.Saturation = grade.Saturation
+	end
+	WeatherGrade.set(grade) -- NightSky re-applies Atmosphere + ambient in the same frame
+end
+
+-- One tween (0 -> 1 on a NumberValue) moves the tint, the Atmosphere / ambient grade and the emitter rates
+-- together, so the screen changes colour in a single smooth go. A change during a tween starts from what is
+-- on screen now.
+local function transition(goal: WeatherGrade.Grade, rates: { [string]: number })
+	if driverTween then
+		driverTween:Cancel()
+	end
+	if driverConn then
+		driverConn:Disconnect()
+	end
+	if not driver then
+		driver = Instance.new("NumberValue")
+	end
+	local from = WeatherGrade.get()
+	local fromRates: { [string]: number } = {}
+	for name in rates do
+		local emitter = (part :: Part):FindFirstChild(name)
+		fromRates[name] = if emitter and emitter:IsA("ParticleEmitter") then emitter.Rate else 0
+	end
+	local value = driver :: NumberValue
+	value.Value = 0
+	local function step()
+		local alpha = value.Value
+		applyGrade(WeatherGrade.lerp(from, goal, alpha))
+		local e = WeatherGrade.ease(alpha)
+		for name, rate in rates do
+			local emitter = part and part:FindFirstChild(name)
+			if emitter and emitter:IsA("ParticleEmitter") then
+				emitter.Rate = fromRates[name] + (rate - fromRates[name]) * e
+			end
+		end
+	end
+	driverConn = value.Changed:Connect(step)
+	local info = TweenInfo.new(Config.WEATHER_FADE_SECONDS, Enum.EasingStyle.Linear)
+	local t = TweenService:Create(value, info, { Value = 1 })
+	driverTween = t
+	t:Play()
 end
 
 -- Draws weather `id` ("Clear" fades everything out, then removes the instances).
@@ -154,20 +209,11 @@ function WeatherFx.show(id: string)
 	for _, name in look.emitters do
 		active[name] = true
 	end
+	local rates: { [string]: number } = {}
 	for name, spec in WeatherLook.EMITTERS do
-		local emitter = (part :: Part):FindFirstChild(name)
-		if emitter and emitter:IsA("ParticleEmitter") then
-			local rate = if active[name] then Weather.emitterRate(spec.rate, spec.lifetime, scale, spec.share) else 0
-			tween(emitter, { Rate = rate })
-		end
+		rates[name] = if active[name] then Weather.emitterRate(spec.rate, spec.lifetime, scale, spec.share) else 0
 	end
-	local rgb = look.tint.TintColor
-	tween(tint :: ColorCorrectionEffect, {
-		TintColor = Color3.fromRGB(rgb[1], rgb[2], rgb[3]),
-		Brightness = look.tint.Brightness,
-		Contrast = look.tint.Contrast,
-		Saturation = look.tint.Saturation,
-	})
+	transition(WeatherGrade.of(id), rates)
 	if id == Weather.CLEAR then
 		task.delay(Config.WEATHER_FADE_SECONDS + 4, function()
 			if token == mine then
