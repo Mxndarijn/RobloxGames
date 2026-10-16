@@ -252,6 +252,20 @@ local function installShims()
 	impl("Model", "PivotTo", pivotTo)
 	impl("BasePart", "PivotTo", pivotTo)
 	impl("Model", "GetPivot", getPivot)
+	-- Axis-aligned (Roblox orients the box to the pivot; fine for the fake runtime).
+	impl("Model", "GetBoundingBox", function(self)
+		local lo, hi = Vector3.new(math.huge, math.huge, math.huge), Vector3.new(-math.huge, -math.huge, -math.huge)
+		for _, d in self:GetDescendants() do
+			if d:IsA("BasePart") then
+				local a, b = bounds(d)
+				lo, hi = lo:Min(a), hi:Max(b)
+			end
+		end
+		if lo.X > hi.X then
+			return getPivot(self), Vector3.zero
+		end
+		return CFrame.new((lo + hi) / 2), hi - lo
+	end)
 	impl("BasePart", "GetPivot", getPivot)
 	storedProperty("Model", "WorldPivot", CFrame.new())
 	roblox.implementProperty("BasePart", "Position", function(self)
@@ -377,6 +391,15 @@ local function installShims()
 			return loader(assetId)
 		end
 		error(`livetest: InsertService:LoadAsset({assetId}) not available (pass opts.loadAsset)`)
+	end)
+
+	-- MeshSwap: fails (primitive placeholders stay) unless opts.createMeshPart is given.
+	impl("AssetService", "CreateMeshPartAsync", function(_, meshId)
+		local create = current.opts.createMeshPart
+		if create then
+			return create(meshId)
+		end
+		error(`livetest: AssetService:CreateMeshPartAsync({meshId}) not available (pass opts.createMeshPart)`)
 	end)
 
 	impl("Debris", "AddItem", function(_, inst, seconds)

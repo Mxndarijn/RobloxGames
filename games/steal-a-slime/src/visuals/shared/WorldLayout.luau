@@ -71,6 +71,18 @@ WorldLayout.PLOT_SIZE = 80
 WorldLayout.PLAZA_RADIUS = 66
 WorldLayout.FOUNTAIN_HEIGHT = 43.3 -- polished mesh height; Effects caps rise at h/2
 WorldLayout.FOUNTAIN_DIAMETER = 28
+-- The fountain mesh's silo profile (kit models/slime_fountain.py PROF, studs,
+-- silo axis at the origin, kit z = Roblox y). The fountain colliders are built
+-- from these numbers, not from the primitive stand-ins.
+WorldLayout.FOUNTAIN_PROFILE = table.freeze({
+	plinthRadius = 13.1, -- "plinth_top" (13.0 at the foot)
+	plinthTop = 1.5,
+	trimRadius = 12.3, -- "trim_lo", the bevel up to the staves
+	trimTop = 2.4,
+	wallRadius = 11.2, -- staves at foot and top (wall_r, 11.7 mid-bulge)
+	wallTop = 30.0, -- WALL_TOP, the eave underside
+	eaveTop = 31.3, -- Z0, eave edge top (the red dome starts here)
+})
 -- Legacy name: the fountain still answers to Map.Volcano(.Crater) (CONTRACT §5.3).
 WorldLayout.VOLCANO_HEIGHT = WorldLayout.FOUNTAIN_HEIGHT
 -- The live ride is WorldLayout.SLIDE_PATH (mesh spiral, end r 35.5 on +Z).
@@ -314,13 +326,34 @@ local function volcano(): WorldNode
 	-- Client emitters attach here (VisualsClient); the glow keeps the pool lit.
 	crater.children = { light("CraterGlow") }
 	table.insert(children, crater)
+	-- The fountain's collision, shaped like the mesh (FOUNTAIN_PROFILE): a
+	-- walkable plinth (ground to its 1.5-stud top) and the silo wall from the
+	-- plinth top to the eave. Both invisible and anchored, tagged
+	-- MeshCollider = M and off until the mesh loads: MeshSwap flips them on
+	-- and the stand-ins off in one step (MeshStandInsCollide). While loading
+	-- or failed the visible stand-ins are the only collision.
+	local fp = WorldLayout.FOUNTAIN_PROFILE
+	local wallHeight = fp.eaveTop - fp.plinthTop
+	local plinth = disc("BasinCollider", fp.plinthTop, fp.plinthRadius * 2, { 0, fp.plinthTop / 2, 0 }, STONE_TRIM)
+	local wall = disc("SiloCollider", wallHeight, fp.wallRadius * 2, { 0, fp.plinthTop + wallHeight / 2, 0 }, STONE)
+	for _, c in { plinth, wall } do
+		c.attributes = { MeshCollider = M }
+		c.transparency = 1
+		c.canCollide = false
+		c.canQuery = false
+		c.canTouch = false
+		table.insert(children, c)
+	end
 	-- Native bbox of the polished slime_fountain (stats size, no squash).
 	-- Silo axis is kit (-6.52, 7.75) from the bbox centre (FOUNTAIN_SIZES)
 	-- = Roblox X/Z (-6.52, -7.75) with Z = -kit y. The slot sits on the
 	-- opposite point so the silo axis is the world origin and the base is y = 0.
 	local fountainSize: Vec = { 54.45, 43.316, 63.851 }
 	local fountainCentre: Vec = { 6.52, fountainSize[2] / 2, 7.75 }
-	table.insert(children, meshSlot(block("FountainMesh", fountainSize, fountainCentre, STONE), M, true))
+	local slot = meshSlot(block("FountainMesh", fountainSize, fountainCentre, STONE), M, true)
+	slot.attributes = slot.attributes or {}
+	slot.attributes.MeshStandInsCollide = false
+	table.insert(children, slot)
 	-- Emerge slimes, split out of the fountain (FOUNTAIN_SIZES). Offset is
 	-- the emerge bbox centre minus the fountain bbox centre, Roblox axes.
 	-- Invisible until its mesh id is filled; bobbing can hook this slot later.
