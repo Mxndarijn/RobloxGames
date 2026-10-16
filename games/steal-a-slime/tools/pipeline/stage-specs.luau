@@ -23,6 +23,11 @@
 -- TestRunner gets one extra line, `TestRunner._tests = tests`, so
 -- tools/pipeline/cloud-tests.luau can run the tests itself and report each
 -- failure by name.
+--
+-- A ModuleScript must return exactly one value, but specs are side-effect
+-- scripts that fall off the end. Each staged *.spec without a top-level
+-- return gets `return true` appended, so require() doesn't fail after the
+-- tests have registered.
 
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -133,6 +138,24 @@ local patched, count =
 	string.gsub(runner, "\nreturn TestRunner%s*$", "\nTestRunner._tests = tests\nreturn TestRunner\n")
 assert(count == 1, "tests/TestRunner.luau no longer ends with `return TestRunner`")
 staged.TestRunner = patched
+
+-- True if the last code line (skipping blanks and -- comments) is a return.
+local function endsWithReturn(source: string): boolean
+	local lines = string.split(source, "\n")
+	for i = #lines, 1, -1 do
+		local line = string.gsub(string.gsub(lines[i], "%-%-.*$", ""), "^%s+", "")
+		if string.match(line, "%S") then
+			return string.match(line, "^return%f[%W]") ~= nil
+		end
+	end
+	return false
+end
+
+for module, source in staged do
+	if string.match(module, "%.spec$") and not endsWithReturn(source) then
+		staged[module] = string.gsub(source, "%s*$", "") .. "\n\nreturn true\n"
+	end
+end
 
 if fs.isDir(outDir) then
 	fs.removeDir(outDir)

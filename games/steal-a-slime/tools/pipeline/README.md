@@ -22,7 +22,10 @@ Exit 0 = pass, 1 = test failures, 2 = error (build, upload or task).
    and so is anything that names a DataStore API. The status lists them under
    `skipped_specs`; those specs keep running under `lune run tests` only.
    `TestRunner` gets one line, `TestRunner._tests = tests`, so the runner can
-   report each failure by name.
+   report each failure by name. Specs are side-effect scripts with no
+   `return`, but a ModuleScript must return exactly one value, so each staged
+   `*.spec` without a top-level return gets `return true` appended. Otherwise
+   Open Cloud reports "Module code did not return exactly one value" per spec.
 2. **Build.** `rojo build` of `default.project.json`, plus
    `ServerStorage.CloudTests` (the staged specs). The project is generated
    in a temp dir with absolute `$path`s, so the checkout isn't touched.
