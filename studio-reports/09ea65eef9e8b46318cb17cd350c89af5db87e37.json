@@ -7820,5 +7820,16 @@
       ]
     }
   },
-  "frames_dir": "09ea65eef9e8b46318cb17cd350c89af5db87e37/"
+  "frames_dir": "09ea65eef9e8b46318cb17cd350c89af5db87e37/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "Phone backdrop (#137): menus at 390x844 and 844x390 (shop, rebirth, codes and the rest) sit on a uniform dark backdrop. The panels are fully readable, the titles and the red X are uncovered, and the event banners are hidden.",
+    "Shots 97/98 (22-menu-over-banner phone portrait/landscape) are NOT in this run: they landed on main after 09ea65e. They will be checked on b84f795.",
+    "Slide top-to-bottom frame looks fine; appraise, Mystery Egg and badge toast unchanged.",
+    "02e-admin-event-banner and 21-weather-mutation-dex were skipped because the run budget ran out; the 900 s budget from #140 fixes that.",
+    "All steps pass, focus_stolen [], close pass, no leftovers."
+  ]
 }
