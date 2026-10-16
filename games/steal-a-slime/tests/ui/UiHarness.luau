@@ -278,6 +278,12 @@ end
 
 local players = { LocalPlayer = nil }
 local services: { [string]: any } = { Players = players }
+-- Not Studio here, so the PcwHold test hook in Widgets.holdButton stays off.
+services.RunService = {
+	IsStudio = function(_self: any): boolean
+		return false
+	end,
+}
 -- ReplicatedStorage:WaitForChild("Shared") -> src/shared.
 services.ReplicatedStorage = setmetatable({}, {
 	__index = function(_, key: string): any

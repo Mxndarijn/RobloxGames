@@ -157,6 +157,15 @@ function Widgets.holdProgress(startedAt: number, now: number, duration: number):
 	return math.clamp((now - startedAt) / duration, 0, 1)
 end
 
+-- Studio hook (PcwHold): the fill shown for real progress `p` when a test asked to pause at `pauseAt`
+-- (nil = no pause) and whether the hold is paused there (pure).
+function Widgets.holdPause(p: number, pauseAt: number?): (number, boolean)
+	if pauseAt and pauseAt < 1 and p >= pauseAt then
+		return math.max(pauseAt, 0), true
+	end
+	return p, false
+end
+
 local HOLD_INPUTS = {
 	[Enum.UserInputType.MouseButton1] = true,
 	[Enum.UserInputType.Touch] = true,
@@ -187,6 +196,7 @@ function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm:
 	local enabled = true
 	local startedAt: number? = nil
 	local conn: RBXScriptConnection? = nil
+	local pauseAt: number? = nil -- Studio PcwHold hook only
 	local function stop()
 		startedAt = nil
 		if conn then
@@ -204,9 +214,15 @@ function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm:
 		startedAt = began
 		fill.Visible = true
 		conn = game:GetService("RunService").RenderStepped:Connect(function()
-			local p = Widgets.holdProgress(began, os.clock(), duration)
+			local p, paused = Widgets.holdPause(Widgets.holdProgress(began, os.clock(), duration), pauseAt)
 			fill.Size = UDim2.fromScale(p, 1)
-			if p >= 1 then
+			if paused then
+				-- held mid-way: stays pressed (startedAt set) with the fill frozen, never confirms
+				if conn then
+					conn:Disconnect()
+					conn = nil
+				end
+			elseif p >= 1 then
 				stop()
 				onConfirm()
 			end
@@ -219,6 +235,20 @@ function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm:
 	end)
 	inst.InputEnded:Connect(stop)
 	inst.MouseLeave:Connect(stop)
+	-- Studio-only test hook for the PC watcher: attribute "PcwHold" = fraction (0..1) starts the same hold
+	-- routine a real press starts and pauses at that fill without confirming; nil/false releases it (stop).
+	if game:GetService("RunService"):IsStudio() then
+		inst:GetAttributeChangedSignal("PcwHold"):Connect(function()
+			local v = inst:GetAttribute("PcwHold")
+			stop()
+			if type(v) == "number" then
+				pauseAt = v
+				start()
+			else
+				pauseAt = nil
+			end
+		end)
+	end
 	local setEnabled = btn.setEnabled
 	function btn.setEnabled(value: boolean)
 		enabled = value
