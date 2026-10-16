@@ -1424,7 +1424,7 @@ def open_panel(run, key):
     p = ui_probe(run)
     res["tried"].append({"path": "panel_visible", "result": d if ok else str(d)[:160]})
     if panel in (p.get("open_panels") or []):
-        res["method"] = "visible_fallback"
+        res["method"] = "pcw_open_hook" if ok and isinstance(d, dict) and d.get("via") == "pcw_open_hook" else "visible_fallback"
     return res
 
 

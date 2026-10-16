@@ -446,6 +446,16 @@ gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyLayout)
 applyLayout()
 setOpen(nil)
 
+-- Studio-only test hook for the PC watcher (tools/pipeline/pc-watcher): setting the
+-- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path
+-- (contents rendered), "" closes it. Never active in live servers.
+if game:GetService("RunService"):IsStudio() then
+	gui:GetAttributeChangedSignal("PcwOpen"):Connect(function()
+		local key = gui:GetAttribute("PcwOpen")
+		setOpen(if type(key) == "string" and key ~= "" then key else nil)
+	end)
+end
+
 -- Gamepad B always closes the open menu (same as its X), and Esc too while
 -- Layout.CLOSE_WITH_ESCAPE is true (v27 default). Passed on when no menu is
 -- open, so Esc still reaches Roblox's own menu then.

@@ -17,7 +17,7 @@
   {"id": "11-signpost", "todo": "11", "kind": "world", "target": "Signpost", "note": "TODO 11"},
   {"id": "12-fountain-slide", "todo": "12", "kind": "world", "target": "slide", "note": "TODO 12: slime slide ride"},
   {"id": "13-fountain-colliders", "todo": "13", "kind": "world", "target": "FountainMesh", "note": "TODO 13: fountain solid (close-up)"},
-  {"id": "14-podium-1", "todo": "14", "kind": "world", "target": "Podium_1", "note": "TODO 14: top podiums with avatars"},
+  {"id": "14-podium-1", "todo": "14", "kind": "world", "target": "Podium_1", "from": "centre", "dist": 28, "height": 12, "note": "TODO 14: top podiums with avatars"},
   {"id": "14-podiums", "todo": "14", "kind": "world", "target": "Podium_2", "note": "TODO 14"},
   {"id": "15-slime-pad", "todo": "15", "kind": "world", "target": "Pad_1", "note": "TODO 15: new slime textures"},
   {"id": "06-silo-top", "todo": "6", "kind": "world", "pos": [0, 60, 0.5], "look": [0, 0, 0], "note": "TODO 6/13: straight down above the origin, silo ring should be concentric with the frame centre"},
