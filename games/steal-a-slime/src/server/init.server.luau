@@ -775,7 +775,9 @@ RunService.Heartbeat:Connect(function()
 	lastView = t
 	if Config.FEATURES.DayNight and t - lastClock >= 0.5 then
 		lastClock = t
-		Lighting.ClockTime = DayNight.clockTime(t - world.startedAt)
+		-- Studio-only PC watcher hook: Lighting attribute "PcwClock" pins the time of day (daytime border shots)
+		local pinned = if RunService:IsStudio() and memoryMode then Lighting:GetAttribute("PcwClock") else nil
+		Lighting.ClockTime = if type(pinned) == "number" then pinned else DayNight.clockTime(t - world.startedAt)
 	end
 	-- Each stage is isolated so one failing player or model never stops the State / Notify pushes.
 	local ok, err = pcall(stepPlayers :: any, t)
