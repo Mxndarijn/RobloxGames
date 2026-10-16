@@ -1,0 +1,19 @@
+{
+  "id": "31-border-far-pc",
+  "todo": "border-v31",
+  "kind": "world",
+  "pos": [
+    40,
+    170,
+    -20
+  ],
+  "look": [
+    -70,
+    4,
+    160
+  ],
+  "wait": 1.0,
+  "note": "border v31: the whole edge from high up: clustered groves, varied hill heights, bushes and rocks filling the gaps in [desktop]",
+  "device": "desktop",
+  "clock": 14
+}

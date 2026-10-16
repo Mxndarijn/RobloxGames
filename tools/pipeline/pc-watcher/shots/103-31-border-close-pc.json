@@ -1,0 +1,19 @@
+{
+  "id": "31-border-close-pc",
+  "todo": "border-v31",
+  "kind": "world",
+  "pos": [
+    89.6,
+    6,
+    246.2
+  ],
+  "look": [
+    170.6,
+    6,
+    252.9
+  ],
+  "wait": 2.0,
+  "note": "border v31: close along the edge at eye height: runs of fences and hedges with open ground, leaning trees, bushes and rocks between, no two neighbours alike in [desktop]",
+  "device": "desktop",
+  "clock": 14
+}

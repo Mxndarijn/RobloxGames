@@ -3,7 +3,9 @@
 -- and rock groves, backdrop hills) is deterministic and never repeats a
 -- stretch, the invisible collider ring closes the whole perimeter, and the
 -- border stays inside its MeshPart slot share (88 of the THEME.md 400) and
--- part budget (700).
+-- part budget (700). v31: inner fences and hedges come in runs with open
+-- ground between, trees and rocks lean a little, each grove has its own
+-- height, and primitive bushes and rocks fill in round the meshes.
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -373,7 +375,7 @@ describe("WorldBorder decor", function()
 		expect(slots <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
 		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(88)
 		expect(parts <= WorldLayout.BORDER_PART_BUDGET).toBe(true)
-		expect(parts).toBe(WorldBorder.WALL_SEGMENTS + #pieces)
+		expect(parts).toBe(WorldBorder.WALL_SEGMENTS + #pieces + #WorldBorder.fillers())
 	end)
 	it("builds at most 88 slots whatever the seed", function()
 		for seed = 1, 12 do
@@ -444,7 +446,7 @@ describe("WorldBorder decor", function()
 				end
 			end
 		end
-		expect(count >= 310).toBe(true)
+		expect(count >= 295).toBe(true)
 		local longest, run = 0, 0
 		for k = 0, 719 do
 			if covered[k % 360 + 1] then
@@ -454,7 +456,7 @@ describe("WorldBorder decor", function()
 				longest = math.max(longest, run)
 			end
 		end
-		expect(longest <= 10).toBe(true)
+		expect(longest <= 16).toBe(true)
 	end)
 	it("never collides and keeps each slot at the mesh's native proportions", function()
 		local border = child(child(WorldLayout.build()[1], "Border"), "Decor")
@@ -497,5 +499,126 @@ describe("WorldBorder decor", function()
 			expect(p.uploaded).toBe(true)
 			expect(table.find(meshes, p.mesh) ~= nil).toBe(true)
 		end
+	end)
+end)
+
+describe("WorldBorder v31 variety", function()
+	local fillers = WorldBorder.fillers()
+	it("clusters the inner fences and hedges into runs with open ground between", function()
+		local seq = layer(pieces, "inner")
+		local tight, open = 0, 0
+		for i, p in seq do
+			local q = seq[i % #seq + 1]
+			local d = math.rad((q.angle - p.angle) % 360) * p.radius - (p.size[1] + q.size[1]) / 2
+			if d < 6 then
+				tight += 1
+			elseif d > 20 then
+				open += 1
+			end
+		end
+		expect(tight >= 8).toBe(true)
+		expect(open >= 3).toBe(true)
+	end)
+	it("never puts two neighbours of the same design side by side, on any layer or seed", function()
+		for seed = 1, 6 do
+			local other = WorldBorder.pieces(seed * 977)
+			for _, name in LAYERS do
+				local seq = layer(other, name)
+				for i, p in seq do
+					local q = seq[i % #seq + 1]
+					if p.kind ~= "Accent" and q.kind ~= "Accent" then
+						expect(p.mesh ~= q.mesh).toBe(true)
+					end
+				end
+			end
+		end
+	end)
+	it("leans trees and rocks a little, but never fences, hedges or hills", function()
+		local leaning = 0
+		for _, p in pieces do
+			expect(math.abs(p.pitch) <= 3 and math.abs(p.roll) <= 3).toBe(true)
+			if p.pitch ~= 0 then
+				leaning += 1
+				expect(p.row == "mid").toBe(true)
+			end
+		end
+		expect(leaning >= 8).toBe(true)
+	end)
+	it("gives each grove its own height (scale mean differs between clusters)", function()
+		local seq = layer(pieces, "mid")
+		local lo, hi = math.huge, -math.huge
+		for _, p in seq do
+			for _, d in WorldBorder.DEFS do
+				if d.mesh == p.mesh then
+					local t = (p.scale - d.scale[1]) / (d.scale[2] - d.scale[1])
+					lo, hi = math.min(lo, t), math.max(hi, t)
+				end
+			end
+		end
+		expect(hi - lo > 0.6).toBe(true)
+	end)
+	it("scatters primitive bushes and rocks, deterministic and under the part budget", function()
+		expect(#fillers >= 60).toBe(true)
+		expect(#fillers <= WorldBorder.FILLER_CAP).toBe(true)
+		expect(WorldBorder.fillers()).toEqual(fillers)
+		local kinds: { [string]: number } = {}
+		local colors: { [string]: boolean } = {}
+		for _, f in fillers do
+			kinds[f.kind] = (kinds[f.kind] or 0) + 1
+			colors[table.concat(f.color, ",")] = true
+		end
+		expect((kinds.Bush or 0) >= 10).toBe(true)
+		expect((kinds.Rock or 0) >= 10).toBe(true)
+		local n = 0
+		for _ in colors do
+			n += 1
+		end
+		expect(n >= 20).toBe(true)
+	end)
+	it("keeps fillers on the Ground, past the wall line, touching the grass and clear of every mesh slot", function()
+		for _, f in fillers do
+			local reach = math.max(f.size[1], f.size[3]) / 2
+			expect(math.sqrt(f.pos[1] ^ 2 + f.pos[3] ^ 2) - reach >= WorldBorder.RADIUS).toBe(true)
+			expect(math.abs(f.pos[1]) + reach <= WorldBorder.GROUND_HALF).toBe(true)
+			expect(math.abs(f.pos[3]) + reach <= WorldBorder.GROUND_HALF).toBe(true)
+			local bottom = f.pos[2] - f.size[2] / 2
+			local sunk = if f.shape == "Ball" then f.size[2] * 0.35 else 0.05
+			expect(bottom <= 0.05).toBe(true)
+			expect(bottom >= -sunk).toBe(true)
+			expect(f.pos[2] + f.size[2] / 2 > 0.5).toBe(true)
+			for _, p in pieces do
+				local l = LayoutMath.apply(
+					LayoutMath.orientation({ 0, -p.yaw, 0 }),
+					{ f.pos[1] - p.pos[1], 0, f.pos[3] - p.pos[3] }
+				)
+				expect(math.abs(l[1]) > p.size[1] / 2 or math.abs(l[3]) > p.size[3] / 2).toBe(true)
+			end
+		end
+	end)
+	it("keeps fillers off the paths and parade lane (they live past the wall line)", function()
+		for _, f in fillers do
+			expect(math.sqrt(f.pos[1] ^ 2 + f.pos[3] ^ 2) > WorldBorder.RADIUS).toBe(true)
+		end
+	end)
+	it("ships fillers as non-colliding Parts in Border/Filler, with no mesh slot", function()
+		local folder = child(child(WorldLayout.build()[1], "Border"), "Filler")
+		expect(#folder.children).toBe(#fillers)
+		for _, n in folder.children do
+			expect(n.canCollide).toBe(false)
+			expect(n.attributes == nil or n.attributes.MeshAsset == nil).toBe(true)
+		end
+	end)
+	it("varies filler size and spacing", function()
+		local sizes, steps = {}, {}
+		local sorted = table.clone(fillers)
+		table.sort(sorted, function(a, b)
+			return a.angle < b.angle
+		end)
+		for i, f in sorted do
+			table.insert(sizes, f.size[1])
+			table.insert(steps, (sorted[i % #sorted + 1].angle - f.angle) % 360)
+		end
+		expect(spread(sizes) > 0.2).toBe(true)
+		expect(spread(steps) > 0.8).toBe(true)
 	end)
 end)

@@ -62,6 +62,20 @@ export type Node = {
 
 export type Collider = { pos: Vec, size: Vec, yaw: number }
 
+-- A primitive stand-in scattered between the mesh pieces (bushes, rocks,
+-- slabs): plain Parts, no MeshAsset slot.
+export type Filler = {
+	kind: string, -- "Bush" | "Rock" | "Slab"
+	shape: string, -- "Ball" | "Block"
+	pos: Vec,
+	size: Vec,
+	yaw: number,
+	color: Vec,
+	material: string,
+	angle: number,
+	radius: number,
+}
+
 export type Piece = {
 	kind: string,
 	mesh: string, -- MeshAssets name (chunk design + "_m" when mirrored)
@@ -75,6 +89,8 @@ export type Piece = {
 	pos: Vec, -- slot centre; y = half height, so it stands on the ground
 	size: Vec, -- native mesh size x scale
 	yaw: number,
+	pitch: number, -- small lean off upright, degrees (0 for fences, hedges, hills)
+	roll: number,
 	scale: number,
 	mirrored: boolean,
 	uploaded: boolean, -- MeshAssets has a meshId (MeshSwap can skin the slot)
@@ -96,6 +112,7 @@ type Def = {
 	weights: { [string]: number },
 	scale: { number },
 	turn: number,
+	tilt: number?,
 }
 
 local WorldBorder = {}
@@ -174,6 +191,7 @@ WorldBorder.DEFS = table.freeze({
 		weights = { pines = 3, meadow = 0.3, rocky = 0.6 },
 		scale = { 0.9, 1.45 },
 		turn = 180,
+		tilt = 2.5,
 	},
 	{
 		kind = "PineBroad",
@@ -182,6 +200,7 @@ WorldBorder.DEFS = table.freeze({
 		weights = { pines = 2.5, meadow = 0.6 },
 		scale = { 0.9, 1.5 },
 		turn = 180,
+		tilt = 2.5,
 	},
 	{
 		kind = "Oak",
@@ -190,6 +209,7 @@ WorldBorder.DEFS = table.freeze({
 		weights = { pines = 0.4, meadow = 3 },
 		scale = { 0.9, 1.45 },
 		turn = 180,
+		tilt = 2.5,
 	},
 	{
 		kind = "Saplings",
@@ -198,6 +218,7 @@ WorldBorder.DEFS = table.freeze({
 		weights = { pines = 1.5, meadow = 2, rocky = 1 },
 		scale = { 0.95, 1.5 },
 		turn = 180,
+		tilt = 3,
 	},
 	{
 		kind = "Boulder",
@@ -206,6 +227,7 @@ WorldBorder.DEFS = table.freeze({
 		weights = { pines = 0.5, meadow = 1, rocky = 2 },
 		scale = { 0.7, 1.5 },
 		turn = 180,
+		tilt = 3,
 	},
 	{
 		kind = "Slab",
@@ -214,6 +236,7 @@ WorldBorder.DEFS = table.freeze({
 		weights = { pines = 0.3, meadow = 1.2, rocky = 1.5 },
 		scale = { 0.75, 1.5 },
 		turn = 180,
+		tilt = 2,
 	},
 	{
 		kind = "RockHeap",
@@ -222,6 +245,7 @@ WorldBorder.DEFS = table.freeze({
 		weights = { meadow = 0.3, rocky = 2.5 },
 		scale = { 0.75, 1.4 },
 		turn = 180,
+		tilt = 3,
 	},
 	{
 		kind = "GrovePine",
@@ -252,7 +276,7 @@ WorldBorder.DEFS = table.freeze({
 		mesh = "ranch_border_hill_ridge",
 		layer = "outer",
 		weights = { all = 2 },
-		scale = { 0.85, 1.1 },
+		scale = { 0.8, 1.1 },
 		turn = 30,
 	},
 	{
@@ -260,7 +284,7 @@ WorldBorder.DEFS = table.freeze({
 		mesh = "ranch_border_hill_dome",
 		layer = "outer",
 		weights = { all = 1.5 },
-		scale = { 0.85, 1.0 },
+		scale = { 0.8, 1.1 },
 		turn = 35,
 	},
 	{
@@ -268,7 +292,7 @@ WorldBorder.DEFS = table.freeze({
 		mesh = "ranch_border_hill_twin",
 		layer = "outer",
 		weights = { all = 1.6 },
-		scale = { 0.85, 1.15 },
+		scale = { 0.75, 1.12 },
 		turn = 30,
 	},
 } :: { Def })
@@ -278,7 +302,7 @@ WorldBorder.DEFS = table.freeze({
 -- neighbours along the edge (< 0 overlaps), o = offset of a piece's inner
 -- edge past the wall line (a piece is pulled in to stay on the Ground).
 WorldBorder.LAYERS = table.freeze({
-	inner = { base = 4, cap = 28, gap = { -1.5, 2.5 }, o = { 0.5, 2.5 }, opening = { 8, 22 }, openingChance = 0.1 },
+	inner = { base = 4, cap = 28, gap = { -1.5, 2.5 }, o = { 0.5, 3.5 }, cluster = { 2, 5 }, open = { 22, 90 } },
 	mid = { base = 14, cap = 32, gap = { -4, 1 }, o = { 5, 22 }, open = { 20, 80 }, cluster = { 3, 6 } },
 	outer = { base = 34, cap = 12, gap = { 30, 120 }, o = { 14, 40 } },
 })
@@ -290,6 +314,9 @@ WorldBorder.THEMES = table.freeze({
 WorldBorder.WINDOW = 4 -- no run of this many pieces repeats its (mesh, rotation, scale) pattern
 WorldBorder.ROT_BUCKET = 30 -- degrees
 WorldBorder.SCALE_BUCKETS = 4
+WorldBorder.FILLER_CAP = 190 -- primitives (Parts, no mesh slots) on top of the 80 mesh pieces
+WorldBorder.FILLER_STRAYS = 20
+WorldBorder.HOLE_MIN = 5 -- degrees of bare edge that get filler families -- loose rock/bush families out in the open ground
 WorldBorder.SPILL = 1.5 -- studs a footprint may hang over the Ground
 
 -- Uploaded ranch props mixed into the inner layer as accents:
@@ -367,6 +394,8 @@ local function newPiece(kind: string, mesh: string, row: string, scale: number, 
 		pos = { 0, size[2] / 2, 0 },
 		size = size,
 		yaw = 0,
+		pitch = 0,
+		roll = 0,
 		scale = scale,
 		mirrored = mirrored,
 		uploaded = MeshAssets.meshId(name) ~= nil,
@@ -440,9 +469,18 @@ local function signature(p: Piece): string
 end
 
 -- One piece of `def` with its own scale and turn.
-local function roll(rng: Rng.Rng, def: Def): Piece
-	local p = newPiece(def.kind, def.mesh, def.layer, lerp(def.scale, rng:float()), false)
+-- `bias` (0..1) is the cluster's height rhythm: a tall grove, a low one.
+local function roll(rng: Rng.Rng, def: Def, bias: number?): Piece
+	local t0 = rng:float()
+	if bias then
+		t0 = math.clamp(bias + (t0 - 0.5) * 0.55, 0, 1)
+	end
+	local p = newPiece(def.kind, def.mesh, def.layer, lerp(def.scale, t0), false)
 	p.turn = (rng:float() * 2 - 1) * def.turn
+	if def.tilt then
+		p.pitch = (rng:float() * 2 - 1) * def.tilt
+		p.roll = (rng:float() * 2 - 1) * def.tilt
+	end
 	p.rotBucket = bucketOfTurn(p.turn)
 	local t = (p.scale - def.scale[1]) / (def.scale[2] - def.scale[1])
 	p.scaleBucket = math.max(0, math.min(WorldBorder.SCALE_BUCKETS - 1, math.floor(t * WorldBorder.SCALE_BUCKETS)))
@@ -479,11 +517,16 @@ local function draftLayer(rng: Rng.Rng, name: string): ({ Draft }, number)
 	local last, beforeLast = 0, 0
 	local uses: { number } = {}
 	local left, theme = 0, "all"
+	local bias = 0.5
 	local accentsLeft = if name == "inner" then WorldBorder.ACCENT_COUNT else 0
 	local accentPool = table.clone(WorldBorder.ACCENTS) :: { string }
 	local nextAccent = (0.3 + rng:float() * 0.4) * WorldBorder.ACCENT_SPACING
 	while total < circumference and #drafts < cfg.cap do
 		local gap = lerp(cfg.gap, rng:float())
+		if not cfg.cluster then
+			-- height rhythm: tall and low pieces take turns round the ring
+			bias = if #drafts % 2 == 0 then 0.15 else 0.85
+		end
 		if cfg.opening and rng:float() < cfg.openingChance then
 			gap += lerp(cfg.opening, rng:float())
 		end
@@ -491,6 +534,7 @@ local function draftLayer(rng: Rng.Rng, name: string): ({ Draft }, number)
 			if left == 0 then
 				theme = WorldBorder.THEMES[Rng.weightedIndex(themeWeights, rng:float())].name
 				left = rng:int(cfg.cluster[1], cfg.cluster[2])
+				bias = 0.1 + rng:float() * 0.8
 				if #drafts > 0 then
 					gap = lerp(cfg.open, rng:float())
 				end
@@ -530,7 +574,7 @@ local function draftLayer(rng: Rng.Rng, name: string): ({ Draft }, number)
 			local i, p
 			for _ = 1, 40 do
 				i = Rng.weightedIndex(weights, rng:float())
-				p = roll(rng, defs[i])
+				p = roll(rng, defs[i], bias)
 				if #sigs < W - 1 then
 					break
 				end
@@ -555,8 +599,19 @@ local function draftLayer(rng: Rng.Rng, name: string): ({ Draft }, number)
 	end
 	-- Windows across the seam (the last pieces followed by the first) must be
 	-- new too: re-roll the last piece until they are.
+	-- The last piece must not share its design with the first (the ring closes).
 	local n = #drafts
 	local lastDraft = drafts[n]
+	if n > W and lastDraft.def and lastDraft.piece.mesh == drafts[1].piece.mesh then
+		for _, d in defs do
+			if d.mesh ~= drafts[1].piece.mesh and d.mesh ~= drafts[n - 1].piece.mesh then
+				lastDraft.def = d
+				lastDraft.piece = roll(rng, d)
+				sigs[n] = signature(lastDraft.piece)
+				break
+			end
+		end
+	end
 	if n > W and lastDraft.def then
 		for _ = 1, 40 do
 			local clash = false
@@ -630,7 +685,7 @@ local function placeLayer(rng: Rng.Rng, name: string, drafts: { Draft }, circumf
 		local room = groundDepth(angle % 360, span) + WorldBorder.SPILL - 2 * half
 		place(p, angle, R + math.max(0, math.min(d.o, room)) + half)
 		-- a hill's rim is low and tapered: it may reach back over the wall line
-		clampToGround(p, 2, R + half * (if name == "outer" then 0.55 else 1))
+		clampToGround(p, 2, R + half * (if name == "outer" then 0.6 else 1))
 		table.insert(pieces, p)
 	end
 	return pieces
@@ -688,6 +743,180 @@ function WorldBorder.pieces(seed: number?): { Piece }
 	return all
 end
 
+-- Fillers ----------------------------------------------------------------
+
+local BUSH_COLORS = { { 88, 150, 80 }, { 72, 136, 76 }, { 106, 160, 84 }, { 122, 168, 72 }, { 84, 146, 100 } }
+local ROCK_COLORS = { { 142, 140, 146 }, { 122, 120, 128 }, { 158, 150, 140 }, { 108, 112, 120 } }
+
+local function jitter(rng: Rng.Rng, c: Vec, amount: number): Vec
+	local out = {}
+	for i = 1, 3 do
+		out[i] = math.clamp(math.floor(c[i] + (rng:float() * 2 - 1) * amount + 0.5), 0, 255)
+	end
+	return out
+end
+
+-- Is (x, z) within `margin` of a mesh piece's slot footprint?
+local function covered(pieces: { Piece }, x: number, z: number, margin: number): boolean
+	for _, p in pieces do
+		local reach = math.max(p.size[1], p.size[3]) * 0.75 + margin
+		if math.abs(x - p.pos[1]) < reach and math.abs(z - p.pos[3]) < reach then
+			local l = LayoutMath.apply(LayoutMath.orientation({ 0, -p.yaw, 0 }), { x - p.pos[1], 0, z - p.pos[3] })
+			if math.abs(l[1]) <= p.size[1] / 2 + margin and math.abs(l[3]) <= p.size[3] / 2 + margin then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- One bush or rock near (cx, cz), or nil when the spot is taken, over the
+-- wall line or off the Ground. Rocks sit sunk into the grass, slabs lie flat.
+local function fillerAt(
+	rng: Rng.Rng,
+	pieces: { Piece },
+	placed: { Filler },
+	cx: number,
+	cz: number,
+	rocky: boolean
+): Filler?
+	local kindRoll = rng:float()
+	local kind = if kindRoll < (if rocky then 0.2 else 0.62) then "Bush" elseif kindRoll < 0.9 then "Rock" else "Slab"
+	local d = if kind == "Bush"
+		then 3 + rng:float() * 4.5
+		elseif kind == "Rock" then 1.6 + rng:float() * 4
+		else 3 + rng:float() * 3.5
+	local a = rng:float() * math.pi * 2
+	local off = rng:float() * 5
+	local x, z = cx + math.sin(a) * off, cz + math.cos(a) * off
+	local r = math.sqrt(x * x + z * z)
+	local reach = d * 0.8
+	if
+		r < WorldBorder.RADIUS + 2 + reach
+		or math.abs(x) + reach > WorldBorder.GROUND_HALF - 1
+		or math.abs(z) + reach > WorldBorder.GROUND_HALF - 1
+		or covered(pieces, x, z, reach)
+	then
+		return nil
+	end
+	for _, f in placed do
+		if (f.pos[1] - x) ^ 2 + (f.pos[3] - z) ^ 2 < ((f.size[1] + d) * 0.45) ^ 2 then
+			return nil
+		end
+	end
+	local angle = math.deg(math.atan2(x, z)) % 360
+	local yaw = rng:float() * 360
+	if kind == "Slab" then
+		local h = d * (0.3 + rng:float() * 0.2)
+		return {
+			kind = kind,
+			shape = "Block",
+			pos = { x, h / 2, z },
+			size = { d, h, d * (0.55 + rng:float() * 0.3) },
+			yaw = yaw,
+			color = jitter(rng, ROCK_COLORS[rng:int(1, #ROCK_COLORS)], 6),
+			material = "Slate",
+			angle = angle,
+			radius = r,
+		}
+	end
+	local sink = if kind == "Bush" then 0.2 else 0.3
+	return {
+		kind = kind,
+		shape = "Ball",
+		pos = { x, d * (0.5 - sink), z },
+		size = { d, d, d },
+		yaw = yaw,
+		color = if kind == "Bush"
+			then jitter(rng, BUSH_COLORS[rng:int(1, #BUSH_COLORS)], 7)
+			else jitter(rng, ROCK_COLORS[rng:int(1, #ROCK_COLORS)], 6),
+		material = if kind == "Bush" then "Grass" else "Rock",
+		angle = angle,
+		radius = r,
+	}
+end
+
+-- Primitive bushes and rocks tucked round the mesh pieces (more beside rocky
+-- groves and hedge ends) plus loose families out in the open ground, so no
+-- stretch of the edge is just a line of the same few meshes. Nothing sits on
+-- a slot footprint, inside the wall line or off the Ground.
+function WorldBorder.fillers(seed: number?): { Filler }
+	local pieces = WorldBorder.pieces(seed)
+	local rng = Rng.new((seed or WorldBorder.SEED) + 130003)
+	local out: { Filler } = {}
+	local function add(cx: number, cz: number, rocky: boolean)
+		for _ = 1, 4 do
+			if #out >= WorldBorder.FILLER_CAP then
+				return
+			end
+			local f = fillerAt(rng, pieces, out, cx, cz, rocky)
+			if f then
+				table.insert(out, f)
+				return
+			end
+		end
+	end
+	for _, p in pieces do
+		if p.row == "mid" or p.row == "inner" then
+			local rocky = p.mesh:find("rock") ~= nil
+			local n = if rocky then rng:int(2, 4) elseif p.row == "mid" then rng:int(0, 2) else rng:int(0, 1)
+			local spread = math.max(p.size[1], p.size[3]) * (0.5 + rng:float() * 0.25)
+			for _ = 1, n do
+				local a = rng:float() * math.pi * 2
+				add(p.pos[1] + math.sin(a) * spread, p.pos[3] + math.cos(a) * spread, rocky)
+			end
+		end
+	end
+	for _ = 1, WorldBorder.FILLER_STRAYS do
+		local angle = rng:float() * 360
+		local r = WorldBorder.RADIUS + 5 + rng:float() * 18
+		local rocky = rng:float() < 0.5
+		local cx, cz = polar(angle, r, 0)[1], polar(angle, r, 0)[3]
+		for _ = 1, rng:int(2, 4) do
+			add(cx, cz, rocky)
+		end
+	end
+	-- Holes where no mesh piece stands behind the wall get a family of
+	-- primitives every few degrees, so open ground never reads as bare edge.
+	local covered_: { boolean } = {}
+	for deg = 0, 359 do
+		for _, p in pieces do
+			local half = math.deg(math.max(p.size[1], p.size[3]) / 2 / p.radius)
+			if math.abs((deg - p.angle + 180) % 360 - 180) <= half then
+				covered_[deg + 1] = true
+				break
+			end
+		end
+	end
+	local start = 0
+	while start < 360 and not covered_[start + 1] do
+		start += 1
+	end
+	if start < 360 then
+		local run = 0
+		for k = start, start + 360 do
+			if covered_[k % 360 + 1] then
+				if run >= WorldBorder.HOLE_MIN then
+					local families = math.ceil(run / 4)
+					for i = 1, families do
+						local angle = k - run + (i - 0.5) * run / families
+						local r = WorldBorder.RADIUS + 5 + rng:float() * 16
+						local cx, cz = polar(angle, r, 0)[1], polar(angle, r, 0)[3]
+						local rocky = rng:float() < 0.4
+						for _ = 1, rng:int(2, 3) do
+							add(cx, cz, rocky)
+						end
+					end
+				end
+				run = 0
+			else
+				run += 1
+			end
+		end
+	end
+	return out
+end
+
 -- Nodes ------------------------------------------------------------------
 
 -- One MeshAsset slot per piece, never colliding. Chunk slots are invisible
@@ -701,7 +930,7 @@ local function pieceNode(p: Piece, name: string): Node
 		shape = "Block",
 		size = p.size,
 		pos = p.pos,
-		rot = { 0, p.yaw, 0 },
+		rot = { p.pitch, p.yaw, p.roll },
 		color = if accent then WOOD else FOLIAGE,
 		material = if accent then "WoodPlanks" else "Grass",
 		transparency = if accent then nil else 1,
@@ -736,12 +965,31 @@ function WorldBorder.build(seed: number?): Node
 		counts[p.kind] = (counts[p.kind] or 0) + 1
 		table.insert(decor, pieceNode(p, `{p.kind}{counts[p.kind]}`))
 	end
+	local filler: { Node } = {}
+	local fillerCounts: { [string]: number } = {}
+	for _, f in WorldBorder.fillers(seed) do
+		fillerCounts[f.kind] = (fillerCounts[f.kind] or 0) + 1
+		table.insert(filler, {
+			name = `{f.kind}{fillerCounts[f.kind]}`,
+			class = "Part",
+			shape = f.shape,
+			size = f.size,
+			pos = f.pos,
+			rot = { 0, f.yaw, 0 },
+			color = f.color,
+			material = f.material,
+			canCollide = false,
+			canQuery = false,
+			canTouch = false,
+		})
+	end
 	return {
 		name = "Border",
 		class = "Folder",
 		children = {
 			{ name = "Walls", class = "Folder", children = walls },
 			{ name = "Decor", class = "Folder", children = decor },
+			{ name = "Filler", class = "Folder", children = filler },
 		},
 	}
 end
