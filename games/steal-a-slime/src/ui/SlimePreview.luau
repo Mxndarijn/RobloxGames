@@ -11,13 +11,37 @@
 	small ViewportFrame and always builds. Real mesh/ModelFactory previews
 	remain a later upgrade once shared client builders exist.
 
-	One untinted template per look (open / locked) is built on first use;
-	every preview is a Clone of it with the body tinted. mount() recycles the
-	viewport's WorldModel and camera and only swaps the model.
+	Mutations get a finish (FINISHES, keyed by save id): body material plus
+	an optional accent behind or on the slime, so the v28 Rainbow / Crystal /
+	Eclipse rows read apart from plain tints (a dark Eclipse body gets a
+	bright corona, never the locked look).
+
+	One untinted template per look (locked, open, or open + mutation) is
+	built on first use; every preview is a Clone of it with the body tinted.
+	mount() recycles the viewport's WorldModel and camera and only swaps the
+	model.
 ]]
 
 export type Opts = {
 	locked: boolean?,
+	mutation: string?, -- save id ("Lava", "Eclipse", ...); "None" / nil = plain
+}
+
+-- A disc (thin cylinder facing the camera) behind the body, or a small
+-- block on top of it.
+export type Accent = {
+	name: string,
+	kind: "Disc" | "Shard",
+	diameter: number,
+	color: { number },
+	z: number?, -- disc depth behind the body (negative)
+}
+
+export type Finish = {
+	material: Enum.Material?,
+	transparency: number?,
+	reflectance: number?,
+	accents: { Accent }?,
 }
 
 local SlimePreview = {}
@@ -32,6 +56,38 @@ local WHITE = Color3.fromRGB(245, 248, 255)
 local INK = Color3.fromRGB(20, 22, 30)
 local DIM_EYE = Color3.fromRGB(70, 72, 84)
 local DIM_PUPIL = Color3.fromRGB(40, 42, 50)
+
+-- Per mutation save id. Lava displays as Syrup (RANCH_RENAME.md).
+SlimePreview.FINISHES = table.freeze({
+	Glow = table.freeze({ material = Enum.Material.Neon }),
+	Lava = table.freeze({ reflectance = 0.15 }),
+	Galaxy = table.freeze({
+		accents = table.freeze({
+			table.freeze({ name = "Nebula", kind = "Disc", diameter = 2.5, color = { 70, 40, 140 }, z = -0.7 }),
+		}),
+	}),
+	Rainbow = table.freeze({
+		accents = table.freeze({
+			table.freeze({ name = "BandRed", kind = "Disc", diameter = 2.9, color = { 255, 80, 90 }, z = -0.7 }),
+			table.freeze({ name = "BandYellow", kind = "Disc", diameter = 2.6, color = { 255, 220, 80 }, z = -0.68 }),
+			table.freeze({ name = "BandBlue", kind = "Disc", diameter = 2.3, color = { 90, 170, 255 }, z = -0.66 }),
+		}),
+	}),
+	Gold = table.freeze({ material = Enum.Material.Foil, reflectance = 0.35 }),
+	Crystal = table.freeze({
+		material = Enum.Material.Glass,
+		transparency = 0.25,
+		reflectance = 0.3,
+		accents = table.freeze({
+			table.freeze({ name = "Shard", kind = "Shard", diameter = 0.5, color = { 200, 245, 255 } }),
+		}),
+	}),
+	Eclipse = table.freeze({
+		accents = table.freeze({
+			table.freeze({ name = "Corona", kind = "Disc", diameter = 2.7, color = { 255, 214, 140 }, z = -0.7 }),
+		}),
+	}),
+} :: { [string]: Finish })
 
 local function ball(name: string, diameter: number, color: Color3, position: Vector3, parent: Instance): Part
 	local p = Instance.new("Part")
@@ -50,8 +106,25 @@ local function ball(name: string, diameter: number, color: Color3, position: Vec
 	return p
 end
 
+local function accentPart(accent: Accent, parent: Instance): Part
+	local p = ball(accent.name, accent.diameter, Color3.fromRGB(255, 255, 255), Vector3.zero, parent)
+	p.Color = Color3.fromRGB(accent.color[1], accent.color[2], accent.color[3])
+	p.Material = Enum.Material.Neon
+	if accent.kind == "Disc" then
+		p.Shape = Enum.PartType.Cylinder
+		p.Size = Vector3.new(0.05, accent.diameter, accent.diameter)
+		-- Cylinder axis is X: turn it to Z so the disc faces the camera.
+		p.CFrame = CFrame.new(0, 0, accent.z or -0.7) * CFrame.Angles(0, math.rad(90), 0)
+	else
+		p.Shape = Enum.PartType.Block
+		p.Size = Vector3.new(accent.diameter * 0.6, accent.diameter, accent.diameter * 0.6)
+		p.CFrame = CFrame.new(0.2, 1.05, 0) * CFrame.Angles(0, math.rad(45), math.rad(-15))
+	end
+	return p
+end
+
 -- 2-stud body at the origin, eyes on the +Z face (towards the camera).
-local function buildTemplate(locked: boolean): Model
+local function buildTemplate(locked: boolean, mutation: string?): Model
 	local model = Instance.new("Model")
 	model.Name = if locked then "SlimePreviewLocked" else "SlimePreview"
 	model.PrimaryPart = ball("Body", 2, SlimePreview.SILHOUETTE, Vector3.zero, model)
@@ -66,18 +139,32 @@ local function buildTemplate(locked: boolean): Model
 		pupil.Transparency = if locked then 0.5 else 0
 	end
 	model:SetAttribute("Locked", locked)
+	local finish: Finish? = if mutation then SlimePreview.FINISHES[mutation] else nil
+	if finish then
+		local body = model.PrimaryPart :: Part
+		body.Material = finish.material or body.Material
+		body.Transparency = finish.transparency or 0
+		body.Reflectance = finish.reflectance or 0
+		for _, accent in finish.accents or {} do
+			accentPart(accent, model)
+		end
+		model:SetAttribute("Mutation", mutation)
+	end
 	return model
 end
 
-local templates: { [boolean]: Model } = {}
+local templates: { [string]: Model } = {}
 
-local function templateFor(locked: boolean): Model
-	local cached: Model? = templates[locked]
+-- Locked rows never show a mutation; unknown mutations use the plain look.
+local function templateFor(locked: boolean, mutation: string?): Model
+	local finished = if not locked and mutation and SlimePreview.FINISHES[mutation] then mutation else nil
+	local key = if locked then "locked" elseif finished then `open:{finished}` else "open"
+	local cached: Model? = templates[key]
 	if cached then
 		return cached
 	end
-	local built = buildTemplate(locked)
-	templates[locked] = built
+	local built = buildTemplate(locked, finished)
+	templates[key] = built
 	return built
 end
 
@@ -101,10 +188,10 @@ local function rgb(colorRgb: { number }): Color3
 end
 
 -- Unparented Model cloned from the template: body tinted to colorRgb
--- (0..255), or the dark silhouette when locked.
+-- (0..255) with the mutation's finish, or the dark silhouette when locked.
 function SlimePreview.build(colorRgb: { number }, opts: Opts?): Model
 	local locked = opts ~= nil and opts.locked == true
-	local model = templateFor(locked):Clone()
+	local model = templateFor(locked, if opts then opts.mutation else nil):Clone()
 	local body = model:FindFirstChild("Body") :: Part
 	body.Color = if locked then SlimePreview.SILHOUETTE else rgb(colorRgb)
 	return model

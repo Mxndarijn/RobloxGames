@@ -9,9 +9,8 @@
 	mutation (or rarity) colour. Undiscovered entries are not listed one by
 	one (dexTotal is 720 keys, mostly locked: too many rows on a phone);
 	each tier gets one silhouette row instead (dark fill, "?", no names).
-	A ViewportFrame of the real slime model is the planned upgrade
-	(UI-PLAN.md): models are built server-side, the client has none to
-	render.
+	Panels/Dex renders a SlimePreview ViewportFrame per row from `color` and
+	`mutation` (the mutation's finish, e.g. the Eclipse corona).
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
@@ -25,6 +24,7 @@ export type Row = {
 	detail: string,
 	image: string?, -- rbxassetid://..., nil = placeholder swatch
 	color: { number }, -- swatch / silhouette fill (RGB 0..255)
+	mutation: string?, -- save id of a discovered row ("None", "Lava", ...); nil when locked
 }
 
 local SlimeDex = {}
@@ -89,6 +89,7 @@ function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: st
 				detail = "Discovered",
 				image = SlimeDex.image(key, images),
 				color = (SlimeDex.MUTATION_COLORS :: any)[mutation or ""] or rarityColor,
+				mutation = mutation,
 			})
 		end
 		local t = progress.byTier[tier]

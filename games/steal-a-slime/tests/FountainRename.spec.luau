@@ -76,8 +76,16 @@ describe("Mutation display names", function()
 			table.insert(ids, m.name)
 			shown[m.name] = m.displayName
 		end
-		expect(ids).toEqual({ "Glow", "Lava", "Galaxy", "Gold" })
-		expect(shown).toEqual({ Glow = "Glow", Lava = "Syrup", Galaxy = "Galaxy", Gold = "Gold" })
+		expect(ids).toEqual({ "Glow", "Lava", "Galaxy", "Rainbow", "Gold", "Crystal", "Eclipse" })
+		expect(shown).toEqual({
+			Glow = "Glow",
+			Lava = "Syrup",
+			Galaxy = "Galaxy",
+			Rainbow = "Rainbow",
+			Gold = "Gold",
+			Crystal = "Crystal",
+			Eclipse = "Eclipse",
+		})
 		for _, m in Config.MUTATIONS do
 			expect(banned(m.displayName)).toBeNil()
 			expect(SlimeRoster.MUTATION_DISPLAY[m.name]).toBe(m.displayName)
@@ -89,6 +97,7 @@ describe("Mutation display names", function()
 		expect(Genome.mutationDisplayName("None")).toBe("None")
 		expect(Genome.mutationDisplayName("Nope")).toBe("Nope")
 		expect(Genome.mutationMultiplier("Lava")).toBe(2)
+		expect(Genome.mutationDisplay).toBe(Genome.mutationDisplayName) -- v28 alias
 	end)
 end)
 

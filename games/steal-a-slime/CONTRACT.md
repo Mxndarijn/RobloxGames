@@ -317,7 +317,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `RARITIES[i].escapeTime` | 25, 23, 21, 19, 17, 15 | "15–25 s by rarity" |
 | `RARITIES[i].carrySlow` (+`STOLEN_EXTRA_SLOW` ramp, max `MAX_CARRY_SLOW`) | 0.05…0.30 (+0.25, ≤0.6) | "slows the carrier more the rarer it is" |
 | `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × mutation |
-| `MUTATIONS` | Glow ×1.5, Lava (shown "Syrup") ×2, Galaxy ×3, Gold ×5 | "Glow, Galaxy, Lava, Gold" |
+| `MUTATIONS` | Glow ×1.5, Lava (shown "Syrup") ×2, Galaxy ×3, Rainbow ×4, Gold ×5, Crystal ×7, Eclipse ×10 | "Glow, Galaxy, Lava, Gold" + v28 roster (§2 Roster) |
 | `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 3 | "every hour … for 3 minutes" |
 | `PADS_START` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 8 | MVP "8 pads" |
 | `OFFLINE_RATE` / `OFFLINE_CAP_SECONDS` | 0.5 / 7200 | capped offline income |

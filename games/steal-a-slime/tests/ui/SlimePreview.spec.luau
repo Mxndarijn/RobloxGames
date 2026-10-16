@@ -11,6 +11,7 @@ local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local Remotes = require("../../src/shared/Remotes")
 local SlimeDex = require("../../src/ui/SlimeDex")
+local SlimeRoster = require("../../src/shared/SlimeRoster")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
@@ -86,6 +87,51 @@ describe("SlimePreview.build", function()
 	end)
 end)
 
+describe("SlimePreview mutation finishes", function()
+	it("covers every Config mutation (v28 Rainbow / Crystal / Eclipse included)", function()
+		for _, m in Config.MUTATIONS do
+			expect(SlimePreview.FINISHES[m.name] ~= nil).toBe(true)
+			expect((SlimeDex.MUTATION_COLORS :: any)[m.name] ~= nil).toBe(true)
+		end
+		for _, m in SlimeRoster.NEW_MUTATIONS do
+			local finish = SlimePreview.FINISHES[m.name]
+			expect(finish.material ~= nil or finish.accents ~= nil).toBe(true) -- more than a tint
+		end
+	end)
+	it("Rainbow gets three bands, Crystal a glass body + shard, Eclipse a bright corona", function()
+		local rainbow = SlimePreview.build(SlimeDex.MUTATION_COLORS.Rainbow, { mutation = "Rainbow" })
+		expect(rainbow:GetAttribute("Mutation")).toBe("Rainbow")
+		for _, name in { "BandRed", "BandYellow", "BandBlue" } do
+			local band = rainbow:FindFirstChild(name)
+			expect(band.Shape).toBe(Enum.PartType.Cylinder)
+			expect(band.CFrame.Position.Z < 0).toBe(true) -- behind the body, eyes stay visible
+		end
+		local crystal = SlimePreview.build(SlimeDex.MUTATION_COLORS.Crystal, { mutation = "Crystal" })
+		expect(crystal:FindFirstChild("Body").Material).toBe(Enum.Material.Glass)
+		expect(crystal:FindFirstChild("Body").Transparency > 0).toBe(true)
+		expect(crystal:FindFirstChild("Shard").CFrame.Position.Y > 0.9).toBe(true)
+		local eclipse = SlimePreview.build(SlimeDex.MUTATION_COLORS.Eclipse, { mutation = "Eclipse" })
+		expect(eclipse:FindFirstChild("Body").Color).toBe(rgb(SlimeDex.MUTATION_COLORS.Eclipse))
+		expect(eclipse:FindFirstChild("Corona").Material).toBe(Enum.Material.Neon)
+		expect(eclipse:GetAttribute("Locked")).toBe(false) -- dark, but not the locked look
+		for _, model in { rainbow, crystal, eclipse } do
+			for _, name in PARTS do
+				expect(model:FindFirstChild(name) ~= nil).toBe(true)
+			end
+		end
+	end)
+	it("locked rows and unknown / None mutations use the plain look", function()
+		local locked = SlimePreview.build({ 1, 2, 3 }, { locked = true, mutation = "Eclipse" })
+		expect(locked:FindFirstChild("Corona")).toBeNil()
+		expect(locked:GetAttribute("Mutation")).toBeNil()
+		for _, mutation in { "None", "Nope" } do
+			local model = SlimePreview.build({ 1, 2, 3 }, { mutation = mutation })
+			expect(#model:GetChildren()).toBe(#PARTS)
+			expect(model:GetAttribute("Mutation")).toBeNil()
+		end
+	end)
+end)
+
 describe("SlimePreview.mount", function()
 	it("adds a WorldModel with the slime and a framed camera", function()
 		local vf = UiHarness.Instance.new("ViewportFrame")
@@ -153,6 +199,47 @@ describe("SlimeDex panel previews", function()
 			expect(locked:FindFirstChild("Glyph").Visible).toBe(true) -- ? over the silhouette
 		end)
 	end
+	local NEW_ROWS = {
+		"5:Rainbow:Plain:Round",
+		"6:Crystal:Spots:Happy",
+		"6:Eclipse:Plain:Round",
+		"4:Lava:Spots:Happy", -- old save id, shows as Syrup
+	}
+	for _, vp in LayoutAssert.GATE_VIEWPORTS do
+		it(`{vp.name}: v28 mutation rows (and Lava/Syrup) get a finished ViewportFrame preview`, function()
+			local panel = openDex(vp.w, vp.h, NEW_ROWS)
+			local list = UiHarness.find(panel.frame, "List")
+			local accent = { Rainbow = "BandRed", Crystal = "Shard", Eclipse = "Corona", Lava = nil }
+			for _, key in NEW_ROWS do
+				local mutation = string.match(key, "^%d+:([^:]+)") :: string
+				local row = list:FindFirstChild(key)
+				local image = row:FindFirstChild("Image")
+				local preview = image:FindFirstChild("Preview")
+				expect(preview.ClassName).toBe("ViewportFrame")
+				expect(preview.Visible).toBe(true)
+				expect(image.Size.Y.Offset <= row.Size.Y.Offset).toBe(true)
+				local model = preview:FindFirstChild("World"):GetChildren()[1]
+				expect(model:GetAttribute("Mutation")).toBe(mutation)
+				expect(model:FindFirstChild("Body").Color).toBe(rgb((SlimeDex.MUTATION_COLORS :: any)[mutation]))
+				if accent[mutation] then
+					expect(model:FindFirstChild(accent[mutation]) ~= nil).toBe(true)
+				end
+				local title = row:FindFirstChild("Title").Text
+				expect(string.find(string.lower(title), "lava", 1, true)).toBeNil()
+			end
+			expect(list:FindFirstChild("4:Lava:Spots:Happy"):FindFirstChild("Title").Text).toBe(
+				"Epic · Syrup · Spots · Happy"
+			)
+		end)
+	end
+	it("remounts a row's preview when only its mutation finish changes", function()
+		local panel = openDex(1920, 1080, { "6:Crystal:Plain:Round" })
+		local list = UiHarness.find(panel.frame, "List")
+		local world = UiHarness.find(list:FindFirstChild("6:Crystal:Plain:Round"), "World")
+		expect(world:GetChildren()[1]:GetAttribute("Mutation")).toBe("Crystal")
+		panel.update({ dex = { "6:Crystal:Plain:Round" }, dexTotal = TOTAL })
+		expect(world:GetChildren()[1]:FindFirstChild("Shard") ~= nil).toBe(true)
+	end)
 	it("keeps the same viewport model across updates with an unchanged row", function()
 		local panel = openDex(1920, 1080, DEX)
 		local list = UiHarness.find(panel.frame, "List")
