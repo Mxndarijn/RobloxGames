@@ -17,7 +17,9 @@
 	text that fits (Layout text estimate, unless the descriptor is
 	TextWrapped into a tall-enough box or TextScaled).
 	`navReachable` (v27 gate N1) checks every nav button is on screen with
-	nothing drawn over it, `noNegativeSizes` that no box has w or h < 0.
+	nothing drawn over it, `noNegativeSizes` that no box has w or h < 0,
+	`notSquashed` (PR gate) that one uniform scale maps design px to the
+	viewport and every button keeps its design aspect ratio.
 ]]
 
 local Config = require("../../src/shared/Config")
@@ -53,6 +55,7 @@ export type Checker = {
 	inside: (name: string, r: Rect, outerName: string, outer: Rect) -> (),
 	touch: (name: string, r: Rect) -> (),
 	noOverlap: (aName: string, a: Rect, bName: string, b: Rect) -> (),
+	aspect: (name: string, r: Rect, designW: number, designH: number, tolerance: number?) -> (),
 	text: (desc: TextDesc) -> (),
 	report: () -> string,
 }
@@ -168,6 +171,29 @@ function LayoutAssert.new(label: string, screen: Layout.Screen): Checker
 	function self.noOverlap(aName: string, a: Rect, bName: string, b: Rect)
 		if Layout.overlaps(a, b) then
 			self.fail(`{aName} {fmt(a)} overlaps {bName} {fmt(b)}`)
+		end
+	end
+
+	-- w / h within `tolerance` (default ASPECT_TOLERANCE) of designW / designH.
+	function self.aspect(name: string, r: Rect, designW: number, designH: number, tolerance: number?)
+		local tol = tolerance or LayoutAssert.ASPECT_TOLERANCE
+		if r.h <= EPS or designH <= EPS then
+			self.fail(`{name} {fmt(r)} has no height (squashed)`)
+			return
+		end
+		local ratio = (r.w / r.h) / (designW / designH)
+		if math.abs(ratio - 1) > tol + EPS then
+			self.fail(
+				string.format(
+					"%s %s is squashed: aspect %.3f vs design %.3f (%dx%d)",
+					name,
+					fmt(r),
+					r.w / r.h,
+					designW / designH,
+					designW,
+					designH
+				)
+			)
 		end
 	end
 
@@ -602,6 +628,47 @@ function LayoutAssert.noNegativeSizes(check: Checker)
 		if listH < SlimeDex.MIN_LIST then
 			check.fail(`Dex list is {listH} px in a {body.h} px body (rewards {rewards}; want >= {SlimeDex.MIN_LIST})`)
 		end
+	end
+end
+
+-- Largest allowed w/h drift from the design aspect for `aspect`.
+LayoutAssert.ASPECT_TOLERANCE = 0.02
+
+-- PR gate: no aspect-ratio distortion. One UIScale maps design px to the
+-- viewport on both axes; HUD items, nav buttons (square when collapsed), the
+-- menu close X and Slap keep their design proportions. Slap may narrow with a
+-- narrow carry card, but never below 3/4 of its design aspect.
+function LayoutAssert.notSquashed(check: Checker)
+	local screen = check.screen
+	local sx, sy = screen.width * screen.scale, screen.height * screen.scale
+	if math.abs(sx - screen.viewportW) > 0.01 or math.abs(sy - screen.viewportH) > 0.01 then
+		check.fail(
+			string.format(
+				"scale is not uniform: %.2f x %.2f design px at %.3f is not %dx%d",
+				screen.width,
+				screen.height,
+				screen.scale,
+				screen.viewportW,
+				screen.viewportH
+			)
+		)
+	end
+	for name, r in screen.hud.items do
+		local item = (Layout.HUD_ITEMS :: any)[name]
+		check.aspect(`Hud.{name}`, r, if screen.compact then item.cw else item.w, item.h)
+	end
+	local nav = Layout.NAV
+	local cell = (if screen.navCollapsed then nav.collapsedWidth else nav.expandedWidth) - nav.padding * 2
+	for i, b in screen.navButtons do
+		local name = if i == 1 then "Nav.Toggle" else `Nav.{Nav.ENTRIES[i - 1].key}`
+		check.aspect(name, b, cell, nav.button)
+	end
+	local close = Layout.panelClose(screen.panel)
+	check.aspect("Panel.Close", close, Layout.PANEL_CHROME.close, Layout.PANEL_CHROME.close)
+	local slap = screen.slap
+	local design = Layout.SLAP.w / Layout.SLAP.h
+	if slap.h <= EPS or slap.w / slap.h > design + EPS or slap.w / slap.h < design * 0.75 - EPS then
+		check.fail(string.format("Slap %s is squashed: aspect outside [%.2f, %.2f]", fmt(slap), design * 0.75, design))
 	end
 end
 
