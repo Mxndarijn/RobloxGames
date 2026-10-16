@@ -1,0 +1,7 @@
+{
+  "id": "v18-solo-steal-skip",
+  "todo": "v18",
+  "kind": "world",
+  "target": "TutorialNpc",
+  "note": "v18: guide NPC on a solo server; the Steal tutorial step now skips itself after TUTORIAL_STEAL_SKIP_SECONDS with nobody to steal from (tests/TutorialSolo.spec)"
+}

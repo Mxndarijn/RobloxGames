@@ -27,6 +27,7 @@ local Types = if Shared then require(Shared.Types) else require("../shared/Types
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -102,7 +103,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		favoriteId = data.favoriteId,
 		lockUntil = session.lockUntil,
 		lockStartedAt = session.lockStartedAt,
-		lockCost = Economy.lockCost(income),
+		lockCost = Economy.lockCost(income) * Revenge.lockMultiplier(world, session.userId, now),
 		lockDuration = Steal.lockDuration(rebirths, data.lockLevel),
 		carrying = carrying,
 		rain = { active = rainActive, endsAt = endsAt, nextAt = nextAt },

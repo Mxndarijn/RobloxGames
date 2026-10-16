@@ -342,7 +342,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `MYSTERY_EGG_PRICE` / `MYSTERY_EGG_MUTATION_CHANCE` / `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 2 000 / 0.05 / 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | mystery egg: cash-only hatch |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
-| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `Habitats` (`false`); `SlimeAnimations` (`false`); `SlimeLod` (`false`) | §2 Extras |
+| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `Revenge` (`true`); `Habitats` (`true`); `SlimeAnimations` (`false`); `SlimeLod` (`true`) | §2 Extras |
 | `BOSS_FIRST_AT` / `BOSS_INTERVAL` / `BOSS_TIER` / `BOSS_LIFETIME` | 480 / 900 / 4 / 120 | Boss Slime |
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
@@ -575,7 +575,7 @@ Plots are **auto-assigned on join** (`Sessions.join`, lowest free plot) and free
 Replaces the "finishes that step and every step before it" rule of §2 / §8.3. `TutorialProgress.complete(data, name)`:
 
 - The **current** step's action finishes it. A **later** step's action no longer jumps ahead (buying a pad at step 1 used to skip Deposit and Lock); an earlier step's action still does nothing.
-- After any action the server **skips every step the player has already done**, judged from saved data (`TutorialProgress.isDone`): Grab / Deposit `stats.caught > 0`, Lock `stats.locks > 0`, BuyPad `padsUnlocked > PADS_START`, Merge `stats.merges > 0`, Steal `totalStolen > 0` or `rebirths > 0` (solo servers can't steal), Rebirth `rebirths > 0`.
+- After any action the server **skips every step the player has already done**, judged from saved data (`TutorialProgress.isDone`): Grab / Deposit `stats.caught > 0`, Lock `stats.locks > 0`, BuyPad `padsUnlocked > PADS_START`, Merge `stats.merges > 0`, Steal `totalStolen > 0` or `rebirths > 0` (solo servers can't steal: `StealService.tickTutorial` skips Steal after `TUTORIAL_STEAL_SKIP_SECONDS` = 20 s with no other player's pad slime), Rebirth `rebirths > 0`.
 - So a player sees every step they haven't done yet, in order. Save format, step names and `State.tutorialStep` / `tutorialStepId` are unchanged.
 
 ### 9.3 `State.lockStartedAt` (finding "lock bar scaled to 300 s")
@@ -639,3 +639,10 @@ The HUD lock bar can show `(lockUntil - now) / (lockUntil - lockStartedAt)`, so 
 - **Visuals (client, `PlotDecor.applySkin`):** floor `Base` colour + material, fence / gate mesh tint, and the skin's decor mesh stands in for the plot's `Mailbox_<i>` slot. **No new mesh slots:** the decor meshes are templates in `ReplicatedStorage.PlotSkinMeshes` (server-published), not world slots. `WorldLayout.build` is unchanged.
 - **Studio-only debug:** SlimeUI attribute `PcwPlotSkin` (skin id) forces Plot_1's skin and the picker view for shots.
 
+## 16. Revenge steal (FEATURES.Revenge, default `true`)
+
+- When a steal completes (`Carry.deposit(world, thiefId, now)` of a stolen slime), the victim gets a window of `Config.REVENGE_SECONDS` (60) on that thief. Robbing the same victim again refreshes it. Server state: `world.revenge[victimId][thiefId] = window end` (`server/Revenge`).
+- **Lock cost:** while the thief is inside any victim's window their lock costs `Config.REVENGE_LOCK_COST_MULT` (2) x `Economy.lockCost`; several windows do not stack. It applies to the purchase (`Steal.buyLock` 5th arg), `State.lockCost` and the `Plot_<i>.LockCost` attribute. Lock length is unchanged.
+- **Highlight:** Player attribute `RevengePlots` (`Constants.REVENGE_PLOTS_ATTRIBUTE`, string "3,5" via `Shared.RevengePlots`) is set on the **victim only**: plot indexes of thieves in their window who are still in the server; nil = none. `VisualsClient/RevengeFx` draws one local `Highlight` (`RevengeHighlight`) per plot on `Plot_<i>.Base`.
+- A window ends at expiry (`StealService.step` prunes it), or when the thief or the victim leaves (`Sessions.leave` -> `Revenge.forget`). State is pushed to the thief so `lockCost` drops back. Nothing is saved.
+- Flag off: no marks, no attribute, normal lock price.

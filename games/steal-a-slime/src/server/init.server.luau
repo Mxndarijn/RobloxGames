@@ -50,6 +50,7 @@ local MeshSwap = require(script.MeshSwap)
 local ParadeView = require(script.ParadeView)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
+local Revenge = require(script.Revenge)
 local RitualService = require(script.RitualService)
 local RitualView = require(script.RitualView)
 local Sessions = require(script.Sessions)
@@ -725,7 +726,7 @@ local function stepPlayers(t: number)
 		if player then
 			local carryId = session.carry and session.carry.slimeId
 			if carryId and WorldView.inHomeZone(player, session.plotIndex) then
-				local ok, reason = Carry.deposit(world, userId)
+				local ok, reason = Carry.deposit(world, userId, t)
 				-- Toast once per zone visit, not every tick while standing in a full plot.
 				if not ok and reason == "plot full" and homeZoneFull[userId] ~= carryId then
 					homeZoneFull[userId] = carryId
@@ -735,6 +736,7 @@ local function stepPlayers(t: number)
 				homeZoneFull[userId] = nil
 			end
 			WorldView.updatePlayer(player, session, t)
+			WorldView.setRevengePlots(player, Revenge.plotsFor(world, userId, t))
 			updateLeaderstats(player, session)
 		end
 	end

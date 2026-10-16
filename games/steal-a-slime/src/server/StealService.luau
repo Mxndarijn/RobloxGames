@@ -13,8 +13,11 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
+local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
+local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -27,7 +30,13 @@ function StealService.isLocked(session: Session, now: number): boolean
 end
 
 function StealService.buyLock(world: World, session: Session, now: number): (boolean, string?)
-	local ok, lockUntil, result = Steal.buyLock(session.data, session.lockUntil, now, World.incomeOf(world, session))
+	local ok, lockUntil, result = Steal.buyLock(
+		session.data,
+		session.lockUntil,
+		now,
+		World.incomeOf(world, session),
+		Revenge.lockMultiplier(world, session.userId, now)
+	)
 	if not ok then
 		return false, result :: string
 	end
@@ -165,8 +174,39 @@ function StealService.tickEscapes(world: World, now: number)
 	end
 end
 
+-- True when some other player has a slime on a pad (a possible Steal target).
+local function hasStealTarget(world: World, session: Session): boolean
+	for userId, other in world.sessions do
+		if userId ~= session.userId then
+			for _, slime in other.data.slimes do
+				if slime.pad ~= nil then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
+-- Call once per second: a player on the tutorial's Steal step with nobody to steal from
+-- (solo server, or empty plots) gets the step skipped after TUTORIAL_STEAL_SKIP_SECONDS.
+function StealService.tickTutorial(world: World, now: number)
+	for _, session in world.sessions do
+		if TutorialProgress.currentId(session.data) ~= "Steal" or hasStealTarget(world, session) then
+			session.stealWaitSince = nil
+		elseif not session.stealWaitSince then
+			session.stealWaitSince = now
+		elseif now - session.stealWaitSince >= Config.TUTORIAL_STEAL_SKIP_SECONDS then
+			session.stealWaitSince = nil
+			World.notify(world, session.userId, "Nobody to steal from here, so Steal is skipped.", "good", nil)
+			World.tutorial(world, session, "Steal")
+		end
+	end
+end
+
 -- Call every frame: finishes escape bounces and pushes State on lock expiry.
 function StealService.step(world: World, now: number)
+	Revenge.prune(world, now)
 	for id, untilTime in world.escaping do
 		if now >= untilTime then
 			world.escaping[id] = nil
