@@ -11,6 +11,8 @@
 
 local UI = script.Parent.Parent
 local Format = require(UI.Format)
+local ItemIconView = require(UI.ItemIconView)
+local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
 local ShopCatalog = require(UI.ShopCatalog)
 local Widgets = require(UI.Widgets)
@@ -47,6 +49,8 @@ function Shop.new(parent: Instance, ctx: any)
 		Parent = panel.body,
 	}, 6)
 
+	local isOpen = false
+	local icons: { [string]: any } = {}
 	local rows = Widgets.keyedList(list, function(view: ShopCatalog.ItemView)
 		return view.item.id
 	end, function(view: ShopCatalog.ItemView)
@@ -56,11 +60,16 @@ function Shop.new(parent: Instance, ctx: any)
 			Size = UDim2.new(1, -10, 0, Shop.ROW),
 			BackgroundColor3 = Theme.Row,
 		}, { Widgets.corner(12) })
-		local badge = Widgets.iconBadge({
+		local icon = ItemIconView.new({
+			Name = "Icon",
+			Id = item.id,
 			AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.new(0, 8, 0.5, 0),
+			Size = Shop.BADGE,
 			Parent = frame,
-		}, view.icon, Theme.BgLight, Shop.BADGE)
+		}, ItemIcons.of(ctx))
+		icon.setActive(isOpen)
+		icons[item.id] = icon
 		local level = Widgets.label({
 			Name = "Level",
 			Font = Theme.Font,
@@ -116,7 +125,7 @@ function Shop.new(parent: Instance, ctx: any)
 		buy.instance.Parent = frame
 		return {
 			instance = frame,
-			badge = badge,
+			icon = icon,
 			level = level,
 			name = name,
 			desc = desc,
@@ -129,12 +138,21 @@ function Shop.new(parent: Instance, ctx: any)
 		row.setView(view)
 		row.level.Text = view.levelText or ""
 		row.desc.Text = view.description
-		row.badge.BackgroundColor3 = if view.maxed then Theme.Gold elseif view.enabled then Theme.Good else Theme.BgLight
+		-- Frame colour: gold when maxed / owned, green when you can buy it.
+		row.icon.setFrame(if view.maxed then Theme.Gold elseif view.enabled then Theme.Good else nil)
 		row.buy.setText(view.buttonText)
 		row.buy.setEnabled(view.enabled)
 	end)
 
 	local self = { frame = panel.frame, close = panel.close }
+
+	-- Model icons only render while the shop is open.
+	function self.setOpen(open: boolean)
+		isOpen = open
+		for _, icon in icons do
+			icon.setActive(open)
+		end
+	end
 
 	function self.update(state: any)
 		cash.Text = `💰 {Format.formatCash(if type(state.cash) == "number" then state.cash else 0)}`

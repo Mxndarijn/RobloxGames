@@ -342,7 +342,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `MYSTERY_EGG_PRICE` / `MYSTERY_EGG_MUTATION_CHANCE` / `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 2 000 / 0.05 / 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | mystery egg: cash-only hatch |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
-| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `Habitats` (`true`); `SlimeAnimations` (`false`); `SlimeLod` (`true`) | §2 Extras |
+| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `Revenge` (`true`); `Habitats` (`true`); `SlimeAnimations` (`false`); `SlimeLod` (`true`) | §2 Extras |
 | `BOSS_FIRST_AT` / `BOSS_INTERVAL` / `BOSS_TIER` / `BOSS_LIFETIME` | 480 / 900 / 4 / 120 | Boss Slime |
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
@@ -441,6 +441,7 @@ Every field above is in every snapshot (the server never leaves one out); only t
 | `Plot_<i>` | `PlotPrice` (`PLOT_PRICE_ATTRIBUTE`) | `number?`, reserved for paid plots; **never set in v13** (plots are free), so readers show no price |
 | slime model (server SlimeMesh) | `Species` (`SPECIES_ATTRIBUTE`) | `string?`, the SlimeRoster id of a typed slime (v28); nil for untyped / older slimes. Its colour and material come from `Shared.SlimeLooks` (unmutated slimes only: a mutation material wins). |
 | wild slime model | `RareSpawn` (`RARE_ATTRIBUTE`) | `number?`, the tier, only on wild Legendary+ (tier >= `RARE_ANNOUNCE_TIER`) drops |
+| wild slime model | `Riding` (`RIDING_ATTRIBUTE`) | `true` while the slime rides the fountain slide (emerge to landing / lane entry), else `nil`; the pc-watcher ring_slimes probe skips these |
 | wild slime model | `DespawnAt` (`DESPAWN_AT_ATTRIBUTE`) | `number?`, server time the slime is removed (= its expiry). Set only for the last `Config.DESPAWN_TELEGRAPH_SECONDS` (5) while uncarried, and only with `FEATURES.DespawnTelegraph`; nil otherwise. Clients count down `DespawnAt - workspace:GetServerTimeNow()` (`Shared.DespawnTelegraph`). The server still removes only at expiry, never earlier. Flag off = silent removal as before. The client countdown + shrink never fade, blink or highlight the slime (v30 C8). |
 | `Pad_<j>` | `Habitat` / `HabitatFrom` / `HabitatAt` (`HABITAT_ATTRIBUTE` / `HABITAT_FROM_ATTRIBUTE` / `HABITAT_AT_ATTRIBUTE`) | `string` / `string` / `number` (server time): current habitat id, the one before it, when it changed. Only with `FEATURES.Habitats`; never set when off. |
 | `workspace` | `RareSpawnId` / `RareSpawnTier` / `RareSpawnAt` (`RARE_SPAWN_ID_ATTRIBUTE` / `RARE_SPAWN_TIER_ATTRIBUTE` / `RARE_SPAWN_AT_ATTRIBUTE`) | `string` / `number` / `number` (server time) of the latest rare drop; set together on each one (effects key on `RareSpawnAt` changing) |
@@ -638,3 +639,10 @@ The HUD lock bar can show `(lockUntil - now) / (lockUntil - lockStartedAt)`, so 
 - **Visuals (client, `PlotDecor.applySkin`):** floor `Base` colour + material, fence / gate mesh tint, and the skin's decor mesh stands in for the plot's `Mailbox_<i>` slot. **No new mesh slots:** the decor meshes are templates in `ReplicatedStorage.PlotSkinMeshes` (server-published), not world slots. `WorldLayout.build` is unchanged.
 - **Studio-only debug:** SlimeUI attribute `PcwPlotSkin` (skin id) forces Plot_1's skin and the picker view for shots.
 
+## 16. Revenge steal (FEATURES.Revenge, default `true`)
+
+- When a steal completes (`Carry.deposit(world, thiefId, now)` of a stolen slime), the victim gets a window of `Config.REVENGE_SECONDS` (60) on that thief. Robbing the same victim again refreshes it. Server state: `world.revenge[victimId][thiefId] = window end` (`server/Revenge`).
+- **Lock cost:** while the thief is inside any victim's window their lock costs `Config.REVENGE_LOCK_COST_MULT` (2) x `Economy.lockCost`; several windows do not stack. It applies to the purchase (`Steal.buyLock` 5th arg), `State.lockCost` and the `Plot_<i>.LockCost` attribute. Lock length is unchanged.
+- **Highlight:** Player attribute `RevengePlots` (`Constants.REVENGE_PLOTS_ATTRIBUTE`, string "3,5" via `Shared.RevengePlots`) is set on the **victim only**: plot indexes of thieves in their window who are still in the server; nil = none. `VisualsClient/RevengeFx` draws one local `Highlight` (`RevengeHighlight`) per plot on `Plot_<i>.Base`.
+- A window ends at expiry (`StealService.step` prunes it), or when the thief or the victim leaves (`Sessions.leave` -> `Revenge.forget`). State is pushed to the thief so `lockCost` drops back. Nothing is saved.
+- Flag off: no marks, no attribute, normal lock price.

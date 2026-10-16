@@ -258,7 +258,7 @@ for _ = 1, SIM_SECONDS * FPS do
 			tracks[model.Name] = track
 		end
 		seen[model.Name] = true
-		table.insert(track.frames, { t = rt.T, p = { p.X, p.Y, p.Z } })
+		table.insert(track.frames, { t = rt.T, p = { p.X, p.Y, p.Z }, riding = model:GetAttribute("Riding") })
 		track.anchored = track.anchored and model.PrimaryPart.Anchored and not model.PrimaryPart.CanCollide
 	end
 	for name, track in tracks do
@@ -297,6 +297,24 @@ describe("FountainRide: the live server rides every spawned slime", function()
 			expect(nearMouth <= FountainRide.SLIDE_SPEED / FPS).toBe(true)
 		end
 	end)
+	it(
+		"each one carries Riding from the crown to its landing and not after (pc-watcher ring_slimes skips it)",
+		function()
+			for _, track in finished do
+				expect(track.frames[1].riding).toBe(true)
+				for _, f in track.frames do
+					local r = math.sqrt(f.p[1] ^ 2 + f.p[3] ^ 2)
+					-- crossing the landing ring's band is only ever the ride's run-out, never a resting wild
+					if r < Fountain.RING_BAND_OUTER then
+						expect(f.riding).toBe(true)
+					end
+					if f.t >= track.born + LANE_RIDE_SECONDS + 0.3 then
+						expect(f.riding).toBeNil()
+					end
+				end
+			end
+		end
+	)
 	it("none vanishes or despawns early (still in WildSlimes, anchored, non-colliding)", function()
 		for _, track in finished do
 			expect(track.gone).toBe(nil)

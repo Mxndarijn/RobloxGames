@@ -450,6 +450,8 @@ local Config = {
 	LOCK_SECONDS_PER_REBIRTH = 10,
 	LOCK_MAX_REMAINING = 300, -- extending can never push the lock past 5 min
 	LOCK_BASE_COST = 25,
+	REVENGE_SECONDS = 60, -- FEATURES.Revenge: how long a robbed player sees the thief's plot, and the thief pays more for locks
+	REVENGE_LOCK_COST_MULT = 2, -- FEATURES.Revenge: lock price multiplier for a thief inside any victim's window
 	LOCK_INCOME_SECONDS = 15, -- lock costs this many seconds of plot income (or base cost)
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
@@ -535,6 +537,7 @@ local Config = {
 		PetPassives = true, -- the favourite (follow) slime grants a small capped perk by tier / mutations: income, luck or merge mutation chance (Perks.petPassive, CONTRACT.md §14); false = cosmetic only
 		CoopRitual = true, -- 3-4 players stand on the plaza ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
 		PlotSkins = false, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
+		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 

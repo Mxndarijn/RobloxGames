@@ -1562,6 +1562,14 @@ def step_shots(run):
                                                    cover=float(shot.get("snow_cover", -1)))
                     if not res["weather"].get("ok"):
                         run.note("shot %s: no weather emitter active (%s)" % (sid, res["weather"].get("rates")))
+                if shot.get("revenge_plot"):
+                    # v21 Revenge: the Client gets RevengePlots (client-only Player attribute) and must draw ONE
+                    # RevengeHighlight on that plot's Base
+                    res["revenge"] = run.need_luau("revenge_set", "Client", timeout=30, plot=int(shot["revenge_plot"]),
+                                                   wait=float(shot.get("wait", 1.5)))
+                    if not res["revenge"].get("ok"):
+                        run.note("shot %s: no single RevengeHighlight on plot %s (%s)" % (
+                            sid, shot["revenge_plot"], res["revenge"].get("highlights")))
                 if shot.get("motion") and (res.get("target") or {}).get("path"):
                     # motion proof: the Client plays Idle / Hop / LookLeft / LookRight on the pad's slime through
                     # SlimeLifeRunner (SlimeMotor on the Motor6Ds) and compares the pose before / `wait` s later;
@@ -1647,6 +1655,11 @@ def step_shots(run):
         pass
     if cur_device and cur_device != run.cfg["devices"][0][0] and run.hwnd:
         converge_viewport(run, run.hwnd, tuple(run.cfg["devices"][0][1:]))  # back to the first (desktop) size
+    if any(shot.get("revenge_plot") for shot in shots):
+        try:
+            run.luau("revenge_set", "Client", timeout=15, plot=0, wait=0.1)  # drop the RevengePlots preview
+        except Exception:
+            pass
     if any(shot.get("weather") for shot in shots):
         try:
             run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1, cover=-1)  # drop the WeatherDebug preview

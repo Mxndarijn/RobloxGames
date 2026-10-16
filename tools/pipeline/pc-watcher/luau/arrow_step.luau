@@ -3,7 +3,7 @@
 -- from the character, waits for its 0.5 s poll, then reports the TutorialArrow Beam's attachment distance next to
 -- the character-to-target distance. Pair with fx_streaks, which fails any Beam longer than its cap.
 local player = game:GetService("Players").LocalPlayer
-local step = "%%STEP%%"
+local step = %%STEP%%
 if step == "" then
 	player:SetAttribute("TutorialStepId", player:GetAttribute("PcwTutPrev"))
 	player:SetAttribute("PcwTutPrev", nil)

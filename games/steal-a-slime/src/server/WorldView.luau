@@ -45,6 +45,7 @@ local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Rescue = require(script.Parent.Rescue)
+local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local Scene = require(script.Parent.Scene)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local Snapshot = require(script.Parent.Snapshot)
@@ -256,6 +257,7 @@ local function animate(id: string, key: string, seconds: number, path: (t: numbe
 			local t = math.min((os.clock() - start) / seconds, 1)
 			record.model:PivotTo(path(t))
 			if t >= 1 then
+				record.model:SetAttribute(Constants.RIDING_ATTRIBUTE, nil)
 				return
 			end
 			RunService.Heartbeat:Wait()
@@ -391,6 +393,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	local from = model:GetPivot()
 	unweld(record)
 	record.rideUntil = 0
+	model:SetAttribute(Constants.RIDING_ATTRIBUTE, nil)
 	if entry.state == "Wild" then
 		model.Parent = workspace:FindFirstChild(Constants.WILD_FOLDER)
 		local wild = entry.wild
@@ -403,6 +406,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 			if previous == nil and ParadeLane.phase(wild.spawnedAt, wild.expiresAt, now) == "Ride" then
 				local seconds, ride = fountainRide(laneEntry(wild))
 				record.rideUntil = os.clock() + seconds
+				model:SetAttribute(Constants.RIDING_ATTRIBUTE, true)
 				animate(entry.id, entry.key, seconds, ride)
 			else
 				model:PivotTo(laneCFrame(wild, now))
@@ -414,6 +418,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 		if previous == nil and wild.position == nil then
 			local seconds, ride = fountainRide(landing)
 			record.rideUntil = os.clock() + seconds
+			model:SetAttribute(Constants.RIDING_ATTRIBUTE, true)
 			animate(entry.id, entry.key, seconds, ride)
 		elseif previous ~= nil and wild.position ~= nil then
 			animate(entry.id, entry.key, WorldView.FALL_SECONDS, function(t: number): CFrame
@@ -770,6 +775,11 @@ function WorldView.setCarrying(player: Player, slimeId: string?)
 	if player:GetAttribute(Constants.CARRYING_ATTRIBUTE) ~= slimeId then
 		player:SetAttribute(Constants.CARRYING_ATTRIBUTE, slimeId)
 	end
+end
+
+-- Player attribute `RevengePlots` (FEATURES.Revenge): thief plot indexes, "3,5", nil = none. Victim only.
+function WorldView.setRevengePlots(player: Player, plots: { number })
+	setAttribute(player, Constants.REVENGE_PLOTS_ATTRIBUTE, RevengePlots.format(plots))
 end
 
 function WorldView.setRain(active: boolean, endsAt: number?, nextAt: number?)

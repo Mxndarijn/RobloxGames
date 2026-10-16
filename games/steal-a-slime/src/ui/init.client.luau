@@ -17,6 +17,7 @@
 	hint for tutorial steps that need a HUD / menu button (Hint).
 ]]
 
+local AssetService = game:GetService("AssetService")
 local ContextActionService = game:GetService("ContextActionService")
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
@@ -28,6 +29,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local FriendBonus = require(Shared:WaitForChild("FriendBonus"))
 local Genome = require(Shared:WaitForChild("Genome"))
+local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Types = require(Shared:WaitForChild("Types"))
@@ -36,6 +38,8 @@ local Format = require(script.Format)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
 local Icons = require(script.Icons)
+local ItemIconView = require(script.ItemIconView)
+local ItemIcons = require(script.ItemIcons)
 local Layout = require(script.Layout)
 local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
@@ -90,7 +94,10 @@ local function serverNow(): number
 	return workspace:GetServerTimeNow()
 end
 
-local toasts = Toasts.new(gui)
+-- One item icon registry for every item UI (ItemIcons); kit meshes render in viewports.
+local itemIcons = ItemIcons.build(Config)
+ItemIconView.builders.mesh = ItemIconView.meshBuilder(MeshAssets, AssetService)
+local toasts = Toasts.new(gui, itemIcons, Config)
 
 -- Display names for UserIds (thieves, carriers). Async lookup for players who left.
 local names: { [number]: string } = {}
@@ -177,6 +184,7 @@ local ctx: { [string]: any } = {
 	serverNow = serverNow,
 	playerName = playerName,
 	toast = toasts.push,
+	itemIcons = itemIcons,
 	buildSlime = if modelFactory then buildSlime else nil,
 }
 
@@ -784,11 +792,14 @@ notifyEvent.OnClientEvent:Connect(function(text: string, kind: Types.NotifyKind,
 	hud.onNotify(message, sound)
 end)
 
--- Studio-only PC watcher hook: the SlimeUI attribute "PcwBadgeToast" (a badge name) shows the unlock toast.
+-- Studio-only PC watcher hook: the SlimeUI attribute "PcwBadgeToast" (a badge name) shows the unlock toast;
+-- "toast:<text>" shows a plain toast with that text instead.
 if isStudio then
 	gui:GetAttributeChangedSignal("PcwBadgeToast"):Connect(function()
 		local name = gui:GetAttribute("PcwBadgeToast")
-		if type(name) == "string" and name ~= "" then
+		if type(name) == "string" and string.sub(name, 1, 6) == "toast:" then
+			toasts.push(string.sub(name, 7), "good", nil) -- an item toast (icon from the text), for the watcher
+		elseif type(name) == "string" and name ~= "" then
 			toasts.push(`Badge unlocked: {name}`, "badge", nil)
 		end
 	end)
