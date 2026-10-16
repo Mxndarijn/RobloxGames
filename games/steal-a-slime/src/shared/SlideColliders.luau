@@ -107,7 +107,7 @@ local function innerSide(path: { Vec }, j: number): (number, number)
 	return (if toward > 0 then 1 else -1), math.sqrt((1 - cosTurn) / (1 + cosTurn))
 end
 
-function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
+function SlideColliders.buildRaw(path: { Vec }, full: boolean?): { Spec }
 	local out: { Spec } = {}
 	local n = #path
 	for i = 1, n - 1 do
@@ -289,6 +289,68 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 			forward = f,
 			size = { (half + SlideColliders.WALL_OUT) * 2, SlideColliders.CEILING_THICK, jointWallLength },
 		})
+	end
+	return out
+end
+
+-- lookAt frame of a spec (right is horizontal, up = right x forward).
+local function frameOf(spec: Spec): (Vec, Vec, Vec)
+	local f = spec.forward
+	local right = normalize(-f[3], 0, f[1])
+	local up = {
+		right[2] * f[3] - right[3] * f[2],
+		right[3] * f[1] - right[1] * f[3],
+		right[1] * f[2] - right[2] * f[1],
+	}
+	return right, up, f
+end
+
+-- True when every corner of `inner` lies inside `outer` (boxes are convex: then inner is a subset of outer).
+function SlideColliders.contains(outer: Spec, inner: Spec): boolean
+	local oRight, oUp, oF = frameOf(outer)
+	local iRight, iUp, iF = frameOf(inner)
+	for _, sx in { -1, 1 } do
+		for _, sy in { -1, 1 } do
+			for _, sz in { -1, 1 } do
+				local x, y, z = sx * inner.size[1] / 2, sy * inner.size[2] / 2, sz * inner.size[3] / 2
+				local d = {
+					inner.centre[1] + iRight[1] * x + iUp[1] * y + iF[1] * z - outer.centre[1],
+					inner.centre[2] + iRight[2] * x + iUp[2] * y + iF[2] * z - outer.centre[2],
+					inner.centre[3] + iRight[3] * x + iUp[3] * y + iF[3] * z - outer.centre[3],
+				}
+				if
+					math.abs(d[1] * oRight[1] + d[2] * oRight[2] + d[3] * oRight[3]) > outer.size[1] / 2 + 1e-6
+					or math.abs(d[1] * oUp[1] + d[2] * oUp[2] + d[3] * oUp[3]) > outer.size[2] / 2 + 1e-6
+					or math.abs(d[1] * oF[1] + d[2] * oF[2] + d[3] * oF[3]) > outer.size[3] / 2 + 1e-6
+				then
+					return false
+				end
+			end
+		end
+	end
+	return true
+end
+
+-- The colliders of build(), minus every skirt that a floor slab already holds whole (the lowest segments,
+-- where the thick floor reaches the ground): the same solid volume in fewer Parts. The segments' boxes
+-- point along a spiral, so no two of them are coplanar and none can be merged; dropping a box that
+-- another contains is the only change that leaves the collision envelope exactly as it was.
+function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
+	local raw = SlideColliders.buildRaw(path, full)
+	local out: { Spec } = {}
+	for _, spec in raw do
+		local held = false
+		if spec.kind == "Skirt" then
+			for _, other in raw do
+				if other.kind == "Floor" and SlideColliders.contains(other, spec) then
+					held = true
+					break
+				end
+			end
+		end
+		if not held then
+			table.insert(out, spec)
+		end
 	end
 	return out
 end
