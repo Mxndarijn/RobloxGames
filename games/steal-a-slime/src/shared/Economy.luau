@@ -8,6 +8,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local NumberFormat = if script then require(script.Parent.NumberFormat) else require("./NumberFormat")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 
 type Slime = Genome.Slime
@@ -108,25 +109,8 @@ function Economy.lockCost(incomePerSec: number): number
 	return math.max(Config.LOCK_BASE_COST, math.floor(income * Config.LOCK_INCOME_SECONDS))
 end
 
-local SUFFIXES = { "", "K", "M", "B", "T", "Qa", "Qi" }
-
 function Economy.formatNumber(n: number): string
-	if n ~= n then
-		return "0"
-	end
-	local sign = if n < 0 then "-" else ""
-	local v = math.abs(n)
-	local i = 1
-	while v >= 1000 and i < #SUFFIXES do
-		v /= 1000
-		i += 1
-	end
-	if i == 1 then
-		return sign .. tostring(math.floor(v))
-	end
-	local text = string.format("%.1f", math.floor(v * 10) / 10)
-	text = string.gsub(text, "%.0$", "")
-	return sign .. text .. SUFFIXES[i]
+	return NumberFormat.short(n)
 end
 
 return Economy

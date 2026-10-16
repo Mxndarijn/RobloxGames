@@ -19,6 +19,7 @@ local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
+local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -98,10 +99,11 @@ end
 
 --[[
 	The carrier reached their own HomeZone. Wild slimes go on a free pad;
-	stolen ones move to the thief with Steal.complete. A full plot keeps the
+	stolen ones move to the thief with Steal.complete (and, given `now`, open the
+	victim's Revenge window). A full plot keeps the
 	slime in your arms (and the escape timer keeps running).
 ]]
-function Carry.deposit(world: World, userId: number): (boolean, string?)
+function Carry.deposit(world: World, userId: number, now: number?): (boolean, string?)
 	local session = World.session(world, userId)
 	local carry = session and session.carry
 	if not session or not carry then
@@ -160,6 +162,9 @@ function Carry.deposit(world: World, userId: number): (boolean, string?)
 	World.markDirty(owner)
 	World.notify(world, userId, `You stole a {name}!`, "good", "Stolen")
 	World.notify(world, owner.userId, `{session.name} stole your {name}!`, "bad", "Stolen")
+	if now then
+		Revenge.mark(world, owner.userId, userId, now) -- FEATURES.Revenge: the victim's window opens
+	end
 	World.effect(world, "Collect", { userId = userId })
 	World.tutorial(world, session, "Deposit")
 	return true, nil
