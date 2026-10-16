@@ -46,6 +46,8 @@
 	      Value labels), at most Props.LEADERBOARD_ROWS.
 ]]
 
+local RareSpawn = if script then require(script.Parent.RareSpawn) else require("./RareSpawn")
+
 local Props = {}
 
 Props.LEADERBOARD_ROWS = 10
@@ -302,21 +304,50 @@ Props.ARROW_BANDS = 3
 Props.ARROW_CHEVRONS = 14 -- pool size; at most this many show
 Props.ARROW_SPACING = 6 -- studs between chevrons along the curve
 Props.ARROW_CURVE = 6 -- studs the beam rises out of / drops onto its ends
+-- Same cap as the rare-spawn beams (v30 C11): a 256-stud neon Beam is a night streak, so the arrow is a short
+-- marker leading off from the character towards the target (guarded by the fx_streaks watcher shot).
+Props.ARROW_MAX_LENGTH = RareSpawn.MAX_BEAM_HEIGHT
 
--- Attachment at local `position` in `p` whose X axis (Beam curve axis) is world-up.
-local function upAttachment(p: BasePart, name: string, position: Vector3): Attachment
+-- Local CFrame at `position` in `p` whose X axis (Beam curve axis) is world-up.
+local function upFrame(p: BasePart, position: Vector3): CFrame
 	local x = p.CFrame:VectorToObjectSpace(Vector3.new(0, 1, 0))
 	local ref = if math.abs(x.Z) < 0.9 then Vector3.new(0, 0, 1) else Vector3.new(1, 0, 0)
+	return CFrame.fromMatrix(position, x, ref:Cross(x).Unit)
+end
+
+local function upAttachment(p: BasePart, name: string, position: Vector3): Attachment
 	local a = Instance.new("Attachment")
 	a.Name = name
-	a.CFrame = CFrame.fromMatrix(position, x, ref:Cross(x).Unit)
+	a.CFrame = upFrame(p, position)
 	a.Parent = p
 	return a
 end
 
+-- Where the arrow's far end sits: on the target when it is within ARROW_MAX_LENGTH, else that far from `from`
+-- towards it (world position).
+local function arrowEnd(from: BasePart, to: BasePart): Vector3
+	local top = to.Position + Vector3.new(0, to.Size.Y / 2 + 0.5, 0)
+	local offset = top - from.Position
+	if offset.Magnitude <= Props.ARROW_MAX_LENGTH then
+		return top
+	end
+	return from.Position + offset.Unit * Props.ARROW_MAX_LENGTH
+end
+
+-- Re-aims a capped arrow's end attachment (lives on `from` when the target is too far); call as either moves.
+function Props.arrowAim(a1: Attachment, from: BasePart, to: BasePart)
+	local owner = a1.Parent :: BasePart
+	if owner == from then
+		a1.CFrame = upFrame(from, from.CFrame:PointToObjectSpace(arrowEnd(from, to)))
+	end
+end
+
 function Props.tutorialArrow(from: BasePart, to: BasePart, fromAttachment: Attachment?): (Beam, Attachment, Attachment)
 	local a0 = fromAttachment or upAttachment(from, "ArrowFrom", Vector3.new(0, 0, 0))
-	local a1 = upAttachment(to, "ArrowTo", Vector3.new(0, to.Size.Y / 2 + 0.5, 0))
+	local near = (to.Position - from.Position).Magnitude <= Props.ARROW_MAX_LENGTH
+	local a1 = if near
+		then upAttachment(to, "ArrowTo", Vector3.new(0, to.Size.Y / 2 + 0.5, 0))
+		else upAttachment(from, "ArrowTo", from.CFrame:PointToObjectSpace(arrowEnd(from, to)))
 	local beam = Instance.new("Beam")
 	beam.Name = "TutorialArrow"
 	beam.Attachment0 = a0

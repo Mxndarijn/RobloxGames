@@ -1468,6 +1468,8 @@ def step_shots(run):
                     run.luau("daily_popup", "Client", timeout=15, on=False)
                 if shot.get("dex_weather"):
                     run.luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=False)
+                if shot.get("tutorial_arrow"):
+                    run.luau("arrow_step", "Client", timeout=15, step="")
             else:
                 if shot.get("pos"):
                     eye, at = shot["pos"], shot.get("look") or [0, 0, 0]
@@ -1596,6 +1598,11 @@ def step_shots(run):
                     # optional uploaded-animation proof: the Client plays it on the pad slime's Animator, waits `wait` s
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
                                                 anim=shot["anim"], id=shot["animId"], wait=float(shot.get("wait", 0.5)))
+                if shot.get("tutorial_arrow"):
+                    # v30 C11: force a TutorialArrow towards a far target; fx_streaks below must see it capped
+                    res["tutorial_arrow"] = run.need_luau("arrow_step", "Client", timeout=30, step=shot["tutorial_arrow"])
+                    if not res["tutorial_arrow"].get("found"):
+                        run.note("shot %s: no TutorialArrow Beam for step %s" % (sid, shot["tutorial_arrow"]))
                 if shot.get("fx_streaks"):
                     # v30 C11 night proof: no Beam / Trail / Neon part longer than `fx_streaks` studs anywhere in the workspace
                     res["fx_streaks"] = run.need_luau("fx_streaks", "Client", timeout=30, max=float(shot["fx_streaks"]))
