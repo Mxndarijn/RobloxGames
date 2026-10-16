@@ -6471,5 +6471,15 @@
       ]
     }
   },
-  "frames_dir": "98e3f1c7712f1869c8b74397f6abd4c67bccdf78/"
+  "frames_dir": "98e3f1c7712f1869c8b74397f6abd4c67bccdf78/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "#118: the event banners are hidden while a menu is open. The rebirth, shop and other menus at 390x844, 844x390 and desktop show the full title and an uncovered red X.",
+    "#5 rebirth slime: shot-04-rebirth-slime-missing shows Sprout Slime with a dark icon and 'Missing'; -owned shows the green icon and 'Owned'. The button is disabled with the reason when the slime is missing.",
+    "B6 slide: slide_walk ok (from bb41f17/#113); the top-to-bottom frame is clean.",
+    "Rest OK: all steps pass, focus_stolen [], close pass, no leftovers; motor motion, seat gap ~0, HUD 'Menu'."
+  ]
 }
