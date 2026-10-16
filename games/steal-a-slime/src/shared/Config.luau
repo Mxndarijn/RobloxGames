@@ -562,6 +562,29 @@ local Config = {
 	CODE_MAX_LENGTH = 24,
 	CODE_BOOST_MAX_MULT = 10,
 
+	-- Roblox badges (server/Badges, v29-BADGES-NEEDED.md). `badgeId` is the Roblox badge id to paste once the
+	-- badge exists on the experience; nil = placeholder, the milestone is skipped (no BadgeService call).
+	-- `trigger` + `value` are read by Badges.reached.
+	BADGES = table.freeze({
+		table.freeze({ key = "FirstSlime", name = "First Slime", trigger = "caught", value = 1, badgeId = nil }),
+		table.freeze({ key = "FirstSteal", name = "Sticky Fingers", trigger = "stolen", value = 1, badgeId = nil }),
+		table.freeze({ key = "FirstRebirth", name = "Reborn", trigger = "rebirths", value = 1, badgeId = nil }),
+		table.freeze({ key = "Rebirth5", name = "Born Again x5", trigger = "rebirths", value = 5, badgeId = nil }),
+		table.freeze({ key = "Dex25", name = "Dex Explorer", trigger = "dexPercent", value = 25, badgeId = nil }),
+		table.freeze({ key = "Dex50", name = "Dex Collector", trigger = "dexPercent", value = 50, badgeId = nil }),
+		table.freeze({ key = "Dex100", name = "Dex Master", trigger = "dexPercent", value = 100, badgeId = nil }),
+		table.freeze({ key = "FirstLegendary", name = "Legend Spotted", trigger = "tier", value = 5, badgeId = nil }),
+		table.freeze({ key = "FirstSecret", name = "Secret Keeper", trigger = "tier", value = 7, badgeId = nil }),
+		table.freeze({
+			key = "Millionaire",
+			name = "Slime Millionaire",
+			trigger = "earned",
+			value = 1000000,
+			badgeId = nil,
+		}),
+	}),
+	BADGE_RETRIES = 4, -- BadgeService attempts per badge (backoff 2, 4, 8 s)
+
 	-- Friend income bonus (FEATURES.FriendBonus, CONTRACT.md §11)
 	FRIEND_BONUS_PER_FRIEND = 0.1, -- +10% income per friend in the same server
 	FRIEND_BONUS_CAP = 0.3, -- at most +30%
