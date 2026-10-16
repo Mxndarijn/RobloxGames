@@ -9,11 +9,9 @@
 	last Config.DESPAWN_TELEGRAPH_SECONDS before the server removes them.
 	While it is set this shows, client-only:
 	  * a countdown "5", "4", ... "1" above the slime (BillboardGui)
-	  * skin blinking (LocalTransparencyModifier on Body and the dressed
-	    "Mesh" part), faster towards the end
-	  * a red Highlight whose fill and outline pulse with the blink
 	  * a shrink to SHRINK_TO (factor from Shared.DespawnTelegraph.shrinkFactor)
-	and, once the model is removed after DespawnAt, a slime-green sparkle
+	No fade, blink or highlight: the slime stays fully opaque until the drop.
+	Once the model is removed after DespawnAt, a slime-green sparkle
 	poof with a small smoke puff at its last position, plus an optional
 	sound (Config.DESPAWN_POOF_SOUND; skipped while the id is the 0
 	placeholder).
@@ -44,12 +42,10 @@ local FX = Timing.FX
 local DespawnTelegraphFx = {}
 
 DespawnTelegraphFx.SHRINK_TO = FX.shrinkTo -- model scale factor at DespawnAt
-DespawnTelegraphFx.BLINK_HZ = FX.blinkHz -- blink rate at the start / end of the window
 DespawnTelegraphFx.POOF_TEXTURE = FX.texture
 DespawnTelegraphFx.POOF_COUNT = FX.count
 DespawnTelegraphFx.POOF_GRACE = 1.5 -- removed within this many seconds after DespawnAt = despawn (not a grab)
 DespawnTelegraphFx.POOF_LIFETIME = 1 -- seconds before the poof part is destroyed (longer with a sound)
-DespawnTelegraphFx.MESH_NAME = "Mesh" -- SlimeMesh.MESH_NAME: the dressed, visible skin
 
 local function rgb(c: { number }): Color3
 	return Color3.fromRGB(c[1], c[2], c[3])
@@ -62,13 +58,11 @@ type Fallback = { part: BasePart, size: Vector3, offset: CFrame }
 type Track = {
 	model: Model,
 	body: BasePart,
-	skin: { BasePart },
 	baseScale: number?, -- nil: GetScale unavailable, use the Size fallback
 	fallback: { Fallback }?, -- set once the Size fallback is in use
 	factor: number, -- last applied shrink factor
 	label: TextLabel,
 	gui: BillboardGui,
-	highlight: Highlight,
 }
 
 local tracks: { [Model]: Track } = {}
@@ -212,12 +206,6 @@ local function setFactor(t: Track, factor: number)
 	applyFallback(t, factor)
 end
 
-local function setSkin(t: Track, modifier: number)
-	for _, part in t.skin do
-		part.LocalTransparencyModifier = modifier
-	end
-end
-
 local function untrack(model: Model)
 	local t = tracks[model]
 	if not t then
@@ -225,9 +213,7 @@ local function untrack(model: Model)
 	end
 	tracks[model] = nil
 	t.gui:Destroy()
-	t.highlight:Destroy()
 	if t.model.Parent then
-		setSkin(t, 0)
 		setFactor(t, 1)
 	end
 end
@@ -236,11 +222,6 @@ local function track(model: Model)
 	local body = model:FindFirstChild("Body")
 	if tracks[model] or not (body and body:IsA("BasePart")) then
 		return
-	end
-	local skin = { body }
-	local mesh = model:FindFirstChild(DespawnTelegraphFx.MESH_NAME)
-	if mesh and mesh:IsA("BasePart") then
-		table.insert(skin, mesh)
 	end
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "DespawnCountdown"
@@ -257,24 +238,15 @@ local function track(model: Model)
 	label.TextStrokeTransparency = 0
 	label.Parent = gui
 	gui.Parent = body
-	local highlight = Instance.new("Highlight")
-	highlight.FillColor = WARN
-	highlight.FillTransparency = 1
-	highlight.OutlineColor = WARN
-	highlight.OutlineTransparency = 0.7
-	highlight.Adornee = model
-	highlight.Parent = model
 	local okScale, scale = pcall(model.GetScale, model)
 	local t: Track = {
 		model = model,
 		body = body,
-		skin = skin,
 		baseScale = if okScale and type(scale) == "number" and scale > 0 then scale else nil,
 		fallback = nil,
 		factor = 1,
 		label = label,
 		gui = gui,
-		highlight = highlight,
 	}
 	if not t.baseScale then
 		startFallback(t)
@@ -323,12 +295,6 @@ local function step(t: Track, now: number)
 	end
 	local p = Timing.progress(now, at, Config.DESPAWN_TELEGRAPH_SECONDS)
 	t.label.Text = ParadeLane.warnText(math.max(1, Timing.countdownSeconds(now, at)), ParadeLane.enabled())
-	local blink = DespawnTelegraphFx.BLINK_HZ
-	local hz = blink[1] + (blink[2] - blink[1]) * p
-	local on = math.sin(now * hz * math.pi * 2) > 0
-	setSkin(t, if on then 0.6 else 0)
-	t.highlight.OutlineTransparency = if on then 0 else 0.7
-	t.highlight.FillTransparency = if on then 0.7 else 1
 	-- ScaleTo pivots at the bottom centre, so the slime shrinks into the ground.
 	setFactor(t, Timing.shrinkFactor(p, DespawnTelegraphFx.SHRINK_TO))
 end

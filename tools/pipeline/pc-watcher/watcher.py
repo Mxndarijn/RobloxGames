@@ -1523,6 +1523,13 @@ def step_shots(run):
                     res["habitat"] = run.need_luau("habitat_set", "Client", timeout=30, path=res["target"]["path"],
                                                    habitat=shot["habitat"], wait=float(shot.get("wait", 1.5)),
                                                    leave=bool(shot.get("leave")))
+                if shot.get("despawn_fx") and (res.get("target") or {}).get("path"):
+                    # v30 C8: the Client puts the seated slime in its despawn window and samples it for `wait` s;
+                    # ok only if nothing faded / blinked and no Highlight appeared
+                    res["despawn_fx"] = run.need_luau("despawn_fx", "Client", timeout=30, path=res["target"]["path"],
+                                                      wait=float(shot.get("wait", 1.5)))
+                    if not res["despawn_fx"].get("ok"):
+                        run.note("shot %s: despawn FX faded or highlighted the slime (%s)" % (sid, res["despawn_fx"]))
                 if shot.get("weather"):
                     # weather proof: the Client forces WeatherDebug (client-only attribute) and waits `wait` s for the tween in
                     res["weather"] = run.need_luau("weather_set", "Client", timeout=30, weather=shot["weather"],

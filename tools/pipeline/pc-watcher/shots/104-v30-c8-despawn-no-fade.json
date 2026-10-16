@@ -1,0 +1,12 @@
+{
+  "id": "v30-c8-despawn-no-fade",
+  "todo": "v30 C8",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "despawn_fx": true,
+  "wait": 1.5,
+  "dist": 14,
+  "height": 6,
+  "note": "v30 C8: a slime inside its despawn window stays opaque (no blink, fade or highlight); only the countdown label and the shrink remain"
+}
