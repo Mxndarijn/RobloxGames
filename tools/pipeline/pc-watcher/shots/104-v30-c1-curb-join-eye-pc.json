@@ -1,0 +1,19 @@
+{
+  "id": "31-v30-c1-curb-join-eye-pc",
+  "todo": "v30-c1",
+  "kind": "world",
+  "pos": [
+    0,
+    5,
+    52
+  ],
+  "look": [
+    0,
+    0.5,
+    43.8
+  ],
+  "wait": 2.0,
+  "note": "v30 C1: player eye (5 studs) just outside the landing-ring curb on +Z looking at its foot: the sand strip starts at the curb's outer edge (r 43.8), no sand under or through the stones, no z-fight [desktop]",
+  "device": "desktop",
+  "clock": 14
+}

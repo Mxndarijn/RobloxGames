@@ -627,6 +627,16 @@ local function plotYaw(i: number): number
 	return (i - 1) * 360 / Config.PLOT_COUNT
 end
 
+-- 20° curb tile. Arc centre (plaza origin) is outside the mesh: at yaw 0 the
+-- bbox centre sits on +Z (FBX stake match, ranch_landing_ring). Visual only;
+-- the box is deeper than the stones and must not leave an invisible wall.
+local LANDING_TILES = 18
+local LANDING_SIZE: Vec = { 13.145, 3.145, 10.27 }
+local LANDING_BBOX = 38.678
+
+-- Outer edge of the curb on +Z (r 43.8): the slide exit strip starts here.
+WorldLayout.LANDING_OUTER_RADIUS = LANDING_BBOX + LANDING_SIZE[3] / 2
+
 -- Path tops (v29 B5): every path part is flush with the Ground (top 0) apart
 -- from a hair, so there is no step to trip on and no tile edge to see. The
 -- parts overlap (spokes cross the ring, ring segments meet at their ends), and
@@ -657,13 +667,15 @@ local function paths(): WorldNode
 		local mid = at({ 0, 0, (from + to) / 2 })
 		table.insert(children, pathBlock(`Path{i}`, 8, to - from, mid[1], mid[3], WorldLayout.PATH_TOPS.spoke, yaw))
 	end
-	-- Slide exit path (v30 C1): the slide ends at r SLIDE_END_RADIUS on +Z. This
-	-- strip starts exactly there (the end of SLIDE_PATH) and runs out over the
-	-- plaza to where spoke 1 begins, so the way from the slide to the plots is
-	-- one unbroken sand band. Its top sits between the plaza and the spokes so
-	-- neither z-fights it; the end under the spoke overlaps by 1 stud.
-	local exitPos = WorldLayout.SLIDE_PATH[#WorldLayout.SLIDE_PATH]
-	local exitFrom = exitPos[3]
+	-- Slide exit path (v30 C1): the slide ends at r SLIDE_END_RADIUS on +Z, inside
+	-- the landing-ring curb (r 33.5..43.8), which stands over the plaza sand. The
+	-- strip must not run under the curb (clipped stones, z-fight at its foot), so
+	-- it starts at the curb's outer edge and runs out over the plaza to where
+	-- spoke 1 begins, one sand band from the curb to the plots. Its top sits
+	-- between the plaza and the spokes so neither z-fights it; the end under the
+	-- spoke overlaps by 1 stud.
+	local exitX = WorldLayout.SLIDE_PATH[#WorldLayout.SLIDE_PATH][1]
+	local exitFrom = WorldLayout.LANDING_OUTER_RADIUS
 	local exitTo = from + 1
 	table.insert(
 		children,
@@ -671,7 +683,7 @@ local function paths(): WorldNode
 			"SlideExit",
 			WorldLayout.SLIDE_EXIT_WIDTH,
 			exitTo - exitFrom,
-			exitPos[1],
+			exitX,
 			(exitFrom + exitTo) / 2,
 			WorldLayout.PATH_TOPS.slideExit,
 			0
@@ -922,13 +934,6 @@ WorldLayout.PROP_MESHES = table.freeze({
 	ShopStand = WorldLayout.BUY_STAND_MESH,
 	LeaderboardBoard = "phoenix_top_earners_board",
 })
-
--- 20° curb tile. Arc centre (plaza origin) is outside the mesh: at yaw 0 the
--- bbox centre sits on +Z (FBX stake match, ranch_landing_ring). Visual only;
--- the box is deeper than the stones and must not leave an invisible wall.
-local LANDING_TILES = 18
-local LANDING_SIZE: Vec = { 13.145, 3.145, 10.27 }
-local LANDING_BBOX = 38.678
 
 local function visualMesh(node: WorldNode, mesh: string): WorldNode
 	node.canCollide = false
