@@ -25,7 +25,7 @@ UNIVERSE_ID="${UNIVERSE_ID:-10770917350}"
 PLACE_ID="${PLACE_ID:-135787188192378}"
 STATUS_DIR="${STATUS_DIR:-/workspace/roblox/pipeline/status}"
 STUDIO_REPORTS="${STUDIO_REPORTS:-/workspace/roblox/pipeline/studio-reports}"
-AUTO_PUBLISH="${AUTO_PUBLISH:-0}" # ignored: publish_hook never publishes
+AUTO_PUBLISH="${AUTO_PUBLISH:-0}" # 1 = publish.sh may publish (see docs/release-pipeline.md)
 TASK_TIMEOUT="${TASK_TIMEOUT:-120s}"
 POLL_LIMIT_S="${POLL_LIMIT_S:-180}"
 # CLAUDE.md: 409 "Server is busy" backoff 1, 2, 4, 8 min, then stop.
@@ -82,11 +82,15 @@ studio_report() {
   fi
 }
 
-# Publishing is disabled. Releases follow /guides/roblox-release-process.md
-# and need Merijn's OK; this stage only ever uploads Saved versions. This
-# hook only logs, whatever AUTO_PUBLISH or gate_ready say.
+# Hands the sha to publish.sh, which evaluates the gate (cloud pass + Studio
+# report) and only publishes with AUTO_PUBLISH=1. A pending gate (no report
+# yet) is fine: the watcher re-checks it every tick.
 publish_hook() {
-  log "publish disabled (AUTO_PUBLISH=$AUTO_PUBLISH, gate_ready=$1); nothing published"
+  [[ "$1" == pass ]] || { log "publish hook: cloud status $1, skipped"; return 0; }
+  log "publish hook: AUTO_PUBLISH=$AUTO_PUBLISH"
+  AUTO_PUBLISH="$AUTO_PUBLISH" STATUS_DIR="$STATUS_DIR" \
+    STUDIO_REPORTS_DIR="$STUDIO_REPORTS" "$HERE/publish.sh" "$CHECKOUT" "$SHA" >>"$LOG" 2>&1
+  log "publish hook: publish.sh rc=$?"
   return 0
 }
 
@@ -121,7 +125,7 @@ finish() {
   mv "$STATUS_DIR/$SHA.json.tmp" "$STATUS_DIR/$SHA.json"
   cp "$STATUS_DIR/$SHA.json" "$STATUS_DIR/latest.json.tmp"
   mv "$STATUS_DIR/latest.json.tmp" "$STATUS_DIR/latest.json"
-  publish_hook "$gate_ready"
+  publish_hook "$status"
   case "$status" in
     pass) exit 0 ;;
     fail) exit 1 ;;

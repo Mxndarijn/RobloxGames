@@ -2,7 +2,7 @@
 
 `tools/pipeline/cloud-test.sh` runs the server specs inside a real Roblox
 server for one commit. It uploads the build as a **Saved** version and never
-publishes.
+publishes; `publish.sh` is the separate, gated release step.
 
 ```sh
 ROBLOX_OPEN_CLOUD_API_KEY=... tools/pipeline/cloud-test.sh <repo-checkout> <sha>
@@ -40,7 +40,7 @@ Exit 0 = pass, 1 = test failures, 2 = error (build, upload or task).
    `{ok, passed, failed, total, specs, failures: [{name, error}]}`. A spec
    that fails to load counts as one failure named `<spec> (load)`.
 5. **Write the status file**, check for a Studio report, and call the
-   publish hook, which only logs.
+   publish hook (`publish.sh`).
 
 ### Why a test-only build
 
@@ -62,7 +62,7 @@ can test an older sha.
 | `ROBLOX_OPEN_CLOUD_API_KEY` | required. Sent to curl on stdin (`-H @-`), never in argv, logs or on disk |
 | `STATUS_DIR` | `/workspace/roblox/pipeline/status` |
 | `STUDIO_REPORTS` | `/workspace/roblox/pipeline/studio-reports` |
-| `AUTO_PUBLISH` | `0`. Ignored: the publish hook never publishes |
+| `AUTO_PUBLISH` | `0`. Passed to `publish.sh`; `1` allows publishing after the gate |
 | `TASK_TIMEOUT` / `POLL_LIMIT_S` | `120s` / `180` |
 | `UPLOAD_BACKOFF` / `TASK_BACKOFF` | `60 120 240 480` / `5 10 20` (seconds) |
 
@@ -98,7 +98,7 @@ missing result). It says nothing about the code.
 
 ## Studio report (Phoenix PC)
 
-Phoenix's PC Studio check writes `/workspace/roblox/pipeline/studio-reports/<sha>.json`:
+Phoenix's PC Studio check pushes `<sha>.json` to the `studio-reports` branch (mirrored to `/workspace/roblox/pipeline/studio-reports/`); the full format, with `frames_reviewed`/`reviewed_by`, is in `docs/release-pipeline.md`:
 
 ```json
 { "sha": "<full sha>", "status": "pass | fail", "checked_at": "<ISO 8601>", "studio_version": "0.6xx...", "notes": "..." }
@@ -109,13 +109,17 @@ The report is copied into `studio_report` when its `sha` matches.
 `pass`. The script reads the report each run, so a report that arrives later
 shows up on the next run for that sha.
 
-## Publishing is disabled
+## Publishing: publish.sh
 
-`publish_hook` only logs `publish disabled (...)` and returns, whatever
-`AUTO_PUBLISH` or `gate_ready` say. The script never sends
-`versionType=Published`. A release needs Merijn's OK and goes through
-`/guides/roblox-release-process.md`. `gate_ready` is a signal for that
-human step, not a trigger.
+`publish_hook` calls `tools/pipeline/publish.sh <checkout> <sha>` after a cloud
+pass. It evaluates the gate (cloud pass + Studio report on the `studio-reports`
+branch with `frames_reviewed` and `reviewed_by`) and only publishes with
+`AUTO_PUBLISH=1` (default 0): clean build (no `CloudTests`), Saved upload,
+smoke test on that version, then `versionType=Published` of the clean file.
+The test Saved version from this stage is never promoted. `DRY_RUN=1` makes
+no network writes. A missing report 10 min after the cloud pass marks the sha
+`no-publish`. Full description, handoff JSON and flags:
+`docs/release-pipeline.md`.
 
 ## Running it on every main commit
 
