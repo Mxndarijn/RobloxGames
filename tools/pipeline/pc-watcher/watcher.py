@@ -1412,6 +1412,10 @@ def step_shots(run):
                     sa = res["steal_alert"] = run.need_luau("steal_alert", "Client", timeout=15, on=True)
                     if not sa.get("fx") or not sa.get("arrow_visible"):
                         res["error"] = "steal alert fx not drawn (fx %s, arrow %s)" % (sa.get("fx"), sa.get("arrow_visible"))
+                if shot.get("weekly_event"):  # v21: the server's WeeklyEvent attribute must be present and well formed
+                    res["weekly_event"] = run.need_luau("weekly_event", "Client", timeout=15)
+                    if not res["weekly_event"].get("ok"):
+                        res["error"] = "WeeklyEvent attribute missing or malformed: %s" % res["weekly_event"].get("raw")
                 if shot.get("plot_skin"):  # gaps #15: fake the plot skin picker (Studio only)
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
                 if shot.get("dex_rows"):  # v29 menus: fake a long Dex list (Studio only)

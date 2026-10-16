@@ -57,6 +57,7 @@ local Sessions = require(script.Sessions)
 local Snapshot = require(script.Snapshot)
 local Spawner = require(script.Spawner)
 local WeatherService = require(script.WeatherService)
+local WeeklyEventService = require(script.WeeklyEventService)
 local World = require(script.World)
 local WorldProps = require(script.WorldProps)
 local WorldView = require(script.WorldView)
@@ -787,6 +788,8 @@ end
 if Config.FEATURES.Weather then
 	WeatherService.start(workspace, now)
 end
+
+WeeklyEventService.start(workspace, os.time)
 
 RunService.Heartbeat:Connect(function()
 	local t = now()
