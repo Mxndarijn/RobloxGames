@@ -1368,6 +1368,8 @@ def step_shots(run):
                         res["error"] = "overlay visible with no menu open: %s" % ", ".join(over)
                 if shot.get("rebirth_slime"):  # v29: force the required-slime state (owned / missing) in Studio
                     res["rebirth_slime"] = run.need_luau("rebirth_slime", "Client", timeout=15, state=shot["rebirth_slime"])
+                if shot.get("plot_slime"):  # fake owned slime so the Appraise button shows
+                    res["plot_slime"] = run.need_luau("plot_slime", "Client", timeout=15, state="1")
                 opened = open_panel(run, key) if key else None
                 if opened:
                     res["open"] = opened
@@ -1395,6 +1397,8 @@ def step_shots(run):
                     res["closed_by"] = close_panel(run, opened["panel"])
                 if shot.get("rebirth_slime"):
                     run.luau("rebirth_slime", "Client", timeout=15, state="")
+                if shot.get("plot_slime"):
+                    run.luau("plot_slime", "Client", timeout=15, state="")
             else:
                 if shot.get("pos"):
                     eye, at = shot["pos"], shot.get("look") or [0, 0, 0]

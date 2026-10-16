@@ -236,7 +236,7 @@ def t_files():
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(),
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "panel_scroll": {"PANEL", "TARGET"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "plot_slime": {"STATE"}, "panel_scroll": {"PANEL", "TARGET"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]

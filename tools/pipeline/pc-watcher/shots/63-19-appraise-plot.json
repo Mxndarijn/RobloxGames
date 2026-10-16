@@ -3,5 +3,7 @@
   "todo": "19",
   "kind": "ui",
   "open": "plot",
+  "plot_slime": true,
+  "scroll_to": "Appraise",
   "note": "TODO 19: Plot panel rows show the Appraise button with its cost (30% of value, FEATURES.Appraise)"
 }
