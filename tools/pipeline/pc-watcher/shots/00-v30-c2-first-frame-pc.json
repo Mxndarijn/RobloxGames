@@ -1,0 +1,19 @@
+{
+  "id": "00-v30-c2-first-frame-pc",
+  "todo": "v30-c2",
+  "kind": "world",
+  "pos": [
+    -59.1,
+    5,
+    -24.5
+  ],
+  "look": [
+    0,
+    12,
+    0
+  ],
+  "wait": 0,
+  "note": "v30 C2: the first frame after spawn, nothing moved (no pre-wait, camera at the spawn point looking at the plaza): kit meshes (fountain, landing ring, plaza props) must already be fully loaded and textured, same as after walking [desktop]",
+  "device": "desktop",
+  "clock": 14
+}

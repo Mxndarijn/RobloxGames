@@ -298,6 +298,15 @@ end
 
 task.spawn(setupVolcano)
 do
+	-- v30 C2: warm every kit mesh at once so nothing pops in after the first move.
+	local ok, err = pcall(function()
+		require(script:WaitForChild("Preload")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] mesh preload disabled: {err}`)
+	end
+end
+do
 	local ok, err = pcall(function()
 		require(script:WaitForChild("TutorialArrow")).start()
 	end)
