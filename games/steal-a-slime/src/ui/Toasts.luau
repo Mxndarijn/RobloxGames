@@ -2,7 +2,7 @@
 --[[
 	Toasts: stacked messages from the `Notify` RemoteEvent (and failed
 	Request messages). Kinds info / good / bad, plus the UI's own "rare"
-	(Boss Slime news: gold, bigger, stays longer) and "badge" (Roblox badge unlocked:
+	(Boss Slime news: gold, bigger, stays longer), "away" (steal join notice: red, stays 9 s) and "badge" (Roblox badge unlocked:
 	gold star icon + text, stays longer); each hides after LIFETIME
 	(per kind) s; at most MAX visible (oldest dropped).
 ]]
@@ -20,7 +20,7 @@ local create = Widgets.create
 
 local MAX = 4
 local LIFETIME = 3
-local LIFETIMES = { rare = 7, badge = 6 }
+local LIFETIMES = { rare = 7, badge = 6, away = 9 }
 
 local COLORS = {
 	info = Theme.Info,
@@ -28,6 +28,7 @@ local COLORS = {
 	bad = Theme.Bad,
 	rare = Theme.Gold,
 	badge = Theme.Gold,
+	away = Theme.Bad, -- StealAlert join notice (FEATURES.StealAlerts): long text, stays longer
 }
 
 local Toasts = {}

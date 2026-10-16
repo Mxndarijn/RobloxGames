@@ -91,5 +91,8 @@ return table.freeze({
 	HABITAT_ATTRIBUTE = "Habitat", -- Pad_<j>: Shared.Habitats id, "base" = empty pad
 	HABITAT_FROM_ATTRIBUTE = "HabitatFrom", -- Pad_<j>: the id before the latest change
 	HABITAT_AT_ATTRIBUTE = "HabitatAt", -- Pad_<j>: server time of the latest change
+	-- Full steal alerts (FEATURES.StealAlerts, CONTRACT.md §17): Player attributes, set only with the flag on.
+	STEALING_ATTRIBUTE = "Stealing", -- Player: true while carrying a stolen slime (the client draws the thief trail), nil otherwise
+	SLAP_HIT_ATTRIBUTE = "SlapHitAt", -- Player: server time the player was last slapped off a stolen slime (the client draws the hit effect)
 	HABITAT_FOLDER = "ClientHabitats", -- client-only workspace folder for habitat looks
 })

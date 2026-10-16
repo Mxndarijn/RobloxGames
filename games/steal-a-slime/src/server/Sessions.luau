@@ -10,6 +10,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
@@ -54,6 +55,11 @@ function Sessions.join(
 	}
 	world.plots[plotIndex] = userId
 	world.sessions[userId] = session
+	if Config.FEATURES.StealAlerts then
+		-- Thefts saved since the last visit become this join's notice; the saved log starts empty again.
+		session.awayLog = data.stealLog
+		data.stealLog = {}
+	end
 	Codes.expireBoost(session.data, now) -- a boost never pays for time spent offline
 	Income.applyOffline(world, session, now)
 	Milestones.check(world, session) -- old saves get past goal stages / dex milestones now

@@ -21,6 +21,7 @@ local Genome = if Shared then require(Shared.Genome) else require("../shared/Gen
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
+local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
 
@@ -52,6 +53,7 @@ export type Session = {
 	lastPushAt: number,
 	friends: number?, -- friends in this server (Friends.refresh), runtime only
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch for the reveal banner (never saved)
+	awayLog: { StealAlert.Entry }?, -- FEATURES.StealAlerts: the saved thefts read at join, for the join notice (never saved)
 }
 
 export type Wild = {
@@ -78,6 +80,7 @@ export type Event = {
 	slimeId: string?,
 	ownerUserId: number?,
 	carrierUserId: number?,
+	reason: string?, -- Escaped: "wriggle" | "timeout" | "slap" | "drop" | "left"
 	active: boolean?,
 	effect: string?, -- Effect: Effects.KINDS name ("Collect" | "Steal" | "Merge" | "Rebirth")
 	plotIndex: number?, -- Effect: plot whose MergeVat is the target

@@ -537,7 +537,23 @@ local Config = {
 		CoopRitual = true, -- 3-4 players stand on the plaza ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
 		PlotSkins = false, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
 		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
+		StealAlerts = false, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
+	}),
+
+	-- Full steal alerts (FEATURES.StealAlerts, StealAlert / ui/StealAlertFx). Client timings in seconds.
+	STEAL_ALERT = table.freeze({
+		FLASH_SECONDS = 1.2, -- red screen-edge flash when a theft starts
+		FLASH_PULSES = 2,
+		ALARM_REPEAT = 3, -- the toast already plays the first Alarm; it sounds again this often ...
+		ALARM_REPEATS = 2, -- ... at most this many extra times per theft
+		ARROW_MARGIN = 56, -- px from the viewport edge the direction arrow stays inside
+		PING_HIDE_STUDS = 14, -- thief ping hides inside this distance (you can see them)
+		TRAIL_LIFETIME = 0.6, -- the thief's trail (under the 2 s fx cap)
+		SLAP_FX_SECONDS = 0.5,
+		LOG_CAP = 12, -- saved theft entries kept per player (oldest dropped)
+		SUMMARY_NAMES = 3, -- thief names listed in the join notice ("... and 2 more")
+		NAME_MAX = 20,
 	}),
 
 	-- Slime motion LOD (FEATURES.SlimeLod, ui/SlimeLod). Studs from the camera: full motion up to

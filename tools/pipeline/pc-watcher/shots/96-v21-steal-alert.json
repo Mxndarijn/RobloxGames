@@ -1,0 +1,7 @@
+{
+  "id": "v21-steal-alert",
+  "todo": "v21",
+  "kind": "ui",
+  "steal_alert": true,
+  "note": "v21 full steal alerts: red screen-edge flash, direction arrow to the thief with its distance, and the 'While you were away N slimes were stolen by ...' toast; no menu open (Studio fake via SlimeUI.PcwStealAlert)"
+}

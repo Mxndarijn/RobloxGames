@@ -32,6 +32,7 @@ local Genome = require(Shared:WaitForChild("Genome"))
 local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local Types = require(Shared:WaitForChild("Types"))
 
 local Format = require(script.Format)
@@ -46,6 +47,7 @@ local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
 local PopupQueue = require(script.PopupQueue)
 local RareAnnounce = require(script.RareAnnounce)
+local StealAlertFx = require(script.StealAlertFx)
 local Toasts = require(script.Toasts)
 local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
@@ -189,6 +191,13 @@ local ctx: { [string]: any } = {
 }
 
 local hud = Hud.new(gui, ctx)
+local stealFx = StealAlertFx.new(gui, {
+	Config = Config,
+	Constants = Constants,
+	StealAlert = StealAlert,
+	serverNow = serverNow,
+	toast = toasts.push,
+})
 local carry = CarryPanel.new(gui, ctx)
 local leaderboard = LeaderboardPanel.new(gui, ctx)
 local dailyPopup = DailyPopup.new(gui, ctx)
@@ -319,6 +328,21 @@ local function forceAdminEvent(state: any): any
 		endsAt = state.serverTime + 540,
 		icon = def.icon,
 	}
+	return view
+end
+
+-- Studio-only: the SlimeUI attribute "PcwStealAlert" = true fakes the join notice (State.stealAway);
+-- StealAlertFx fakes the flash and arrow itself.
+local function forceStealAlert(state: any): any
+	if not isStudio or gui:GetAttribute("PcwStealAlert") ~= true then
+		return state
+	end
+	local view = table.clone(state)
+	view.stealAway = StealAlert.summary({
+		{ thief = "Rex", slime = "Blob", at = 0 },
+		{ thief = "Mia", slime = "Pip", at = 0 },
+		{ thief = "Rex", slime = "Gus", at = 0 },
+	})
 	return view
 end
 
@@ -742,8 +766,9 @@ function ctx.openDaily()
 end
 
 local function render(realState: Types.State)
-	local state: Types.State = forceDex(forceWeekend(forceAdminEvent(forceFriends(realState))))
+	local state: Types.State = forceStealAlert(forceDex(forceWeekend(forceAdminEvent(forceFriends(realState)))))
 	hud.update(state)
+	stealFx.update(state)
 	carry.update(state)
 	dailyPopup.update(state)
 	tutorial.update(state)
@@ -762,7 +787,9 @@ local function render(realState: Types.State)
 end
 
 if isStudio then
-	for _, attribute in { "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin", "PcwDexRows" } do
+	for _, attribute in
+		{ "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin", "PcwDexRows", "PcwStealAlert" }
+	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
 			if latest then
 				pcall(render, latest)

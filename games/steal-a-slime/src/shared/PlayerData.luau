@@ -11,6 +11,7 @@ local Config = if script then require(script.Parent.Config) else require("./Conf
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Perks = if script then require(script.Parent.Perks) else require("./Perks")
+local StealAlert = if script then require(script.Parent.StealAlert) else require("./StealAlert")
 
 type Slime = Genome.Slime
 
@@ -47,6 +48,7 @@ export type Data = {
 	friendBonus: number?, -- runtime only (never saved): friends in this server, FriendBonus.bonus; nil = none
 	ritualBonus: number?, -- runtime only (never saved): "Blessed" income bonus from the co-op ritual; nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
+	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
 }
 
 local PlayerData = {}
@@ -75,6 +77,7 @@ function PlayerData.new(): Data
 		redeemed = {},
 		boostMult = 1,
 		boostUntil = 0,
+		stealLog = {},
 	}
 end
 

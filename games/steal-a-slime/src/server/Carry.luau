@@ -20,6 +20,7 @@ local PlayerData = if Shared then require(Shared.PlayerData) else require("../sh
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
+local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -160,6 +161,9 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 	world.carriedBy[carry.slimeId] = nil
 	World.markDirty(session)
 	World.markDirty(owner)
+	if Config.FEATURES.StealAlerts then
+		StealAlert.record(owner.data.stealLog, session.name, name, os.time())
+	end
 	World.notify(world, userId, `You stole a {name}!`, "good", "Stolen")
 	World.notify(world, owner.userId, `{session.name} stole your {name}!`, "bad", "Stolen")
 	if now then
