@@ -1,0 +1,109 @@
+{
+  "name": "ranch_fence_20",
+  "model": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/models/ranch_fence_20.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1116,
+  "meshes": [
+    {
+      "name": "ranch_fence_20",
+      "tris": 1116,
+      "verts": 612,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        22.0,
+        9.02,
+        1.8
+      ],
+      "materials": [
+        "ranch_fence_20_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "ranch_fence_20_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    22.0,
+    9.02,
+    1.8
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "ranch_fence_20_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/ranch_fence_20.fbx",
+  "fbx_bytes": 31596,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.15,
+    "stats_s": 0.002,
+    "setup_s": 0.002,
+    "render_s": [
+      0.477,
+      0.409,
+      0.505,
+      0.505
+    ],
+    "export_s": 0.075
+  },
+  "sheet": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/ranch_fence_20_roblox_sheet.png",
+  "timings": {
+    "wall_s": 2.85,
+    "blender_process_s": 2.6,
+    "compose_s": 0.244,
+    "model_s": 0.15,
+    "stats_s": 0.002,
+    "setup_s": 0.002,
+    "render_s": [
+      0.477,
+      0.409,
+      0.505,
+      0.505
+    ],
+    "export_s": 0.075
+  }
+}

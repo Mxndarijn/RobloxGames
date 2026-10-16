@@ -1,8 +1,9 @@
 --!nocheck
 -- Fountain collision in the fake runtime, every MeshSwap state. The fountain
--- mesh is visual-only, so two invisible cylinders shaped like the mesh's silo
--- profile are its collision: BasinCollider (the walkable plinth) and
--- SiloCollider (the wall up to the eave). Their numbers come from
+-- mesh is visual-only, so three invisible cylinders shaped like the mesh's silo
+-- profile are its collision: BasinCollider (the walkable plinth),
+-- TrimCollider (the bevel at the foot of the staves) and SiloCollider (the
+-- wall up to the eave). Their numbers come from
 -- WorldLayout.FOUNTAIN_PROFILE, checked here against the modeling kit source.
 -- One switch (MeshSwap.setMeshCollision) hands collision over: the colliders
 -- start off and go on at the moment the mesh lands, when the stand-ins go
@@ -21,7 +22,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 local M = "slime_fountain"
 local SOLID_STAND_INS = { "Rock1", "BasinRim", "Column", "Bowl" }
-local COLLIDERS = { "BasinCollider", "SiloCollider" }
+local COLLIDERS = { "BasinCollider", "SiloCollider", "TrimCollider" }
 local EPS = 1e-3 -- Part sizes are float32
 local MAX_STEP = 2 -- highest ledge a player may meet unseen
 local FP = WorldLayout.FOUNTAIN_PROFILE
@@ -48,7 +49,7 @@ local path = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-collider-{os.time()}.
 local built = process.exec("rojo", { "build", "-o", path })
 assert(built.ok, `rojo build failed: {built.stderr}`)
 
-local STATE_PARTS = { "BasinCollider", "SiloCollider", "Rock1", "BasinRim", "Column", "Bowl" }
+local STATE_PARTS = { "BasinCollider", "TrimCollider", "SiloCollider", "Rock1", "BasinRim", "Column", "Bowl" }
 
 -- CanCollide of the colliders and the solid stand-ins, right now.
 local function collision(volcano): { [string]: boolean }
@@ -59,10 +60,24 @@ local function collision(volcano): { [string]: boolean }
 	return out
 end
 
-local LOADING =
-	{ BasinCollider = false, SiloCollider = false, Rock1 = true, BasinRim = true, Column = true, Bowl = true }
-local LOADED =
-	{ BasinCollider = true, SiloCollider = true, Rock1 = false, BasinRim = false, Column = false, Bowl = false }
+local LOADING = {
+	BasinCollider = false,
+	TrimCollider = false,
+	SiloCollider = false,
+	Rock1 = true,
+	BasinRim = true,
+	Column = true,
+	Bowl = true,
+}
+local LOADED = {
+	BasinCollider = true,
+	TrimCollider = true,
+	SiloCollider = true,
+	Rock1 = false,
+	BasinRim = false,
+	Column = false,
+	Bowl = false,
+}
 
 -- `create` stands in for CreateMeshPartAsync; each call snapshots the
 -- fountain's collision while that fetch is in flight (still loading).
@@ -139,10 +154,13 @@ local function expectColliders(volcano, on: boolean)
 		expect(c.CFrame.Position.X).toBeCloseTo(0, EPS)
 		expect(c.CFrame.Position.Z).toBeCloseTo(0, EPS)
 	end
-	local plinth, wall = volcano.BasinCollider, volcano.SiloCollider
+	local plinth, trim, wall = volcano.BasinCollider, volcano.TrimCollider, volcano.SiloCollider
 	expect(bottom(plinth)).toBeCloseTo(0, EPS)
 	expect(radius(plinth)).toBeCloseTo(KIT.rings.plinth_top.r, EPS)
 	expect(top(plinth)).toBeCloseTo(KIT.rings.plinth_top.z, EPS)
+	expect(radius(trim)).toBeCloseTo(KIT.rings.trim_lo.r, EPS)
+	expect(bottom(trim)).toBeCloseTo(top(plinth), EPS)
+	expect(top(trim)).toBeCloseTo(KIT.rings.trim.z, EPS)
 	expect(radius(wall)).toBeCloseTo(KIT.wallRadius, EPS)
 	expect(bottom(wall)).toBeCloseTo(top(plinth), EPS)
 	expect(top(wall) >= KIT.wallTop).toBe(true)
@@ -150,13 +168,16 @@ local function expectColliders(volcano, on: boolean)
 end
 
 -- Every unseen ledge a player meets walking in from the ground: the plinth
--- top, then the wall, which must be taller than any jump-free step.
+-- top, the trim bevel, then the wall, which must be taller than any
+-- jump-free step.
 local function expectNoLedge(volcano)
-	local plinth, wall = volcano.BasinCollider, volcano.SiloCollider
+	local plinth, trim, wall = volcano.BasinCollider, volcano.TrimCollider, volcano.SiloCollider
 	expect(top(plinth) <= MAX_STEP).toBe(true)
-	expect(radius(wall) < radius(plinth)).toBe(true)
+	expect(radius(trim) < radius(plinth)).toBe(true)
+	expect(radius(wall) < radius(trim)).toBe(true)
+	expect(top(trim) - top(plinth) <= MAX_STEP).toBe(true)
 	expect(bottom(wall) <= top(plinth) + EPS).toBe(true)
-	expect(top(wall) - top(plinth) > MAX_STEP).toBe(true)
+	expect(top(wall) - top(trim) > MAX_STEP).toBe(true)
 end
 
 describe("fountain profile matches the modeling kit", function()
@@ -199,11 +220,11 @@ local function decorStandIns(map): { string }
 end
 
 describe("fountain collider, mesh loading", function()
-	it("starts with no mesh and both colliders off, on the kit profile", function()
+	it("starts with no mesh and every collider off, on the kit profile", function()
 		expect(loadingVolcano.FountainMesh:FindFirstChild("Mesh")).toBe(nil)
 		expectColliders(loadingVolcano, false)
 	end)
-	it("tags only the two colliders MeshCollider = slime_fountain", function()
+	it("tags only the three colliders MeshCollider = slime_fountain", function()
 		local tagged = {}
 		for _, d in loadingMap:GetDescendants() do
 			if d:GetAttribute("MeshCollider") ~= nil then
@@ -244,7 +265,7 @@ describe("fountain collider, mesh loaded", function()
 		expect(mesh.CanCollide).toBe(false)
 		expect(mesh.Anchored).toBe(true)
 	end)
-	it("switches both colliders on and the stand-ins off in the same step", function()
+	it("switches all three colliders on and the stand-ins off in the same step", function()
 		expect(collision(loadedVolcano)).toEqual(LOADED)
 	end)
 	it("keeps the plinth and silo colliders on the kit profile", function()
@@ -264,7 +285,7 @@ describe("fountain collider, mesh loaded", function()
 		end
 		expect(n > #SOLID_STAND_INS).toBe(true)
 	end)
-	it("leaves no invisible step around the base (only the two colliders collide unseen)", function()
+	it("leaves no invisible step around the base (only the three colliders collide unseen)", function()
 		expect(invisibleColliders(loadedMap)).toEqual(COLLIDERS)
 	end)
 	it("setMeshCollision is the one switch: off restores the stand-ins, on again matches MeshSwap", function()
@@ -283,7 +304,7 @@ describe("fountain collider, mesh failed", function()
 	it("keeps the primitive placeholder (no mesh)", function()
 		expect(failedVolcano.FountainMesh:FindFirstChild("Mesh")).toBe(nil)
 	end)
-	it("keeps both colliders off, on the kit profile", function()
+	it("keeps every collider off, on the kit profile", function()
 		expectColliders(failedVolcano, false)
 	end)
 	it("keeps the visible stand-ins solid", function()
@@ -294,9 +315,73 @@ describe("fountain collider, mesh failed", function()
 	end)
 	it("has no unseen collision (the plinth sits inside the visible base)", function()
 		expect(invisibleColliders(failedMap)).toEqual({})
-		local plinth = failedVolcano.BasinCollider
 		local rock = failedVolcano.Rock1
-		expect(radius(plinth) <= radius(rock) + EPS).toBe(true)
-		expect(top(plinth) <= top(rock) + EPS).toBe(true)
+		for _, name in { "BasinCollider", "TrimCollider" } do
+			local c = failedVolcano[name]
+			expect(radius(c) <= radius(rock) + EPS).toBe(true)
+			expect(top(c) <= top(rock) + EPS).toBe(true)
+		end
+	end)
+end)
+
+-- The Studio report numbers (kit PROF, studs): feet sank ~1.1 between h1.5
+-- and h2.4 because nothing filled the trim bevel. Literal numbers on purpose.
+local REAL = {
+	BasinCollider = { r = 13.1, bottom = 0, top = 1.5 },
+	TrimCollider = { r = 12.3, bottom = 1.5, top = 2.4 },
+	SiloCollider = { r = 11.2, bottom = 1.5, top = 31.3 },
+}
+
+-- Highest colliding top a foot meets at distance `r` from the silo axis.
+local function surfaceAt(volcano, r: number): number
+	local h = 0
+	for _, name in COLLIDERS do
+		local c = volcano[name]
+		if c.CanCollide and radius(c) >= r then
+			h = math.max(h, top(c))
+		end
+	end
+	return h
+end
+
+describe("fountain bevel collider, real numbers", function()
+	for _, case in { { "loading", loading, false }, { "loaded", loaded, true }, { "failed", failed, false } } do
+		local state, run, on = case[1], case[2], case[3]
+		it(`{state}: plinth r13.1 h0-1.5, bevel r12.3 h1.5-2.4, wall r11.2 h1.5-31.3`, function()
+			for name, want in REAL do
+				local c = run.volcano[name]
+				expect(radius(c)).toBeCloseTo(want.r, EPS)
+				expect(bottom(c)).toBeCloseTo(want.bottom, EPS)
+				expect(top(c)).toBeCloseTo(want.top, EPS)
+				expect(c:GetAttribute("MeshCollider")).toBe(M)
+				expect(c.CanCollide).toBe(on)
+				expect(c.Transparency).toBe(1)
+			end
+		end)
+	end
+	it("loaded: the collision silhouette follows the profile (no sink between h1.5 and h2.4)", function()
+		local v = loadedVolcano
+		expect(surfaceAt(v, 13.0)).toBeCloseTo(1.5, EPS)
+		expect(surfaceAt(v, 12.5)).toBeCloseTo(1.5, EPS)
+		expect(surfaceAt(v, 12.2)).toBeCloseTo(2.4, EPS)
+		expect(surfaceAt(v, 11.5)).toBeCloseTo(2.4, EPS)
+		expect(surfaceAt(v, 11.1)).toBeCloseTo(31.3, EPS)
+		expect(surfaceAt(v, 13.2)).toBe(0)
+	end)
+	it("loading / failed: no collider collides, the stand-ins carry the collision", function()
+		for _, run in { loading, failed } do
+			for _, r in { 13.0, 12.2, 11.1 } do
+				expect(surfaceAt(run.volcano, r)).toBe(0)
+			end
+			expect(run.volcano.Rock1.CanCollide).toBe(true)
+		end
+	end)
+	it("the switch flips the bevel with the other colliders", function()
+		local run = toggled
+		local MeshSwap = run.rt:require(run.rt.game:GetService("ServerScriptService").Server.MeshSwap)
+		MeshSwap.setMeshCollision(run.map, M, false)
+		expect(run.volcano.TrimCollider.CanCollide).toBe(false)
+		MeshSwap.setMeshCollision(run.map, M, true)
+		expect(run.volcano.TrimCollider.CanCollide).toBe(true)
 	end)
 end)

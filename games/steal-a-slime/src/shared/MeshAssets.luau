@@ -9,8 +9,8 @@
 	still nil keeps its primitive placeholder, so the map plays without uploads.
 
 	Filled from shared/modeling-kit/uploaded.json (Open Cloud Model uploads).
-	size = the mesh's native size (studs); MeshSwap fits the MeshPart to the
-	placeholder box either way.
+	size = the mesh's native size (studs). MeshSwap fits the MeshPart into the
+	placeholder box at one uniform scale (MeshAssets.fit), never stretched.
 ]]
 
 export type Entry = { assetId: number?, meshId: string?, size: { number }? }
@@ -81,6 +81,7 @@ local NAMES = {
 	"ranch_border_rocks",
 	"habitat_crystal_grotto",
 	"habitat_candy_patch",
+	"ranch_fence_20",
 }
 
 local entries: { [string]: Entry } = {}
@@ -215,6 +216,9 @@ entries["habitat_crystal_grotto"] =
 	{ assetId = 109901060316213, meshId = "rbxassetid://87315770149394", size = { 7.8, 5.0, 7.8 } }
 entries["habitat_candy_patch"] =
 	{ assetId = 133666024913667, meshId = "rbxassetid://114045594160776", size = { 7.8, 4.5, 7.8 } }
+-- 20-stud plot fence (models/ranch_fence_20.py): not uploaded yet. Until it
+-- has an id WorldLayout lays two phoenix_fence_segment per 20-stud slot.
+entries["ranch_fence_20"] = { size = { 22, 9.02, 1.8 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)
@@ -228,6 +232,21 @@ end
 function MeshAssets.meshId(name: string): string?
 	local e = entries[name]
 	return e and e.meshId
+end
+
+-- Uniform fit of `name` into a box: the largest native size x one scale that
+-- fits inside `box` (keeps the mesh's proportions), and how far the box
+-- centre sits above the mesh centre when the mesh stands on the box bottom.
+-- Without a native size the box is used as is (scale nil).
+function MeshAssets.fit(name: string, box: { number }): ({ number }, number?, number)
+	local e = entries[name]
+	local native = e and e.size
+	if not native then
+		return { box[1], box[2], box[3] }, nil, 0
+	end
+	local scale = math.min(box[1] / native[1], box[2] / native[2], box[3] / native[3])
+	local size = { native[1] * scale, native[2] * scale, native[3] * scale }
+	return size, scale, (box[2] - size[2]) / 2
 end
 
 return MeshAssets
