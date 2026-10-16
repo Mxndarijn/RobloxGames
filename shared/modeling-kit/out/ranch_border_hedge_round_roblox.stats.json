@@ -1,0 +1,109 @@
+{
+  "name": "ranch_border_hedge_round",
+  "model": "/workspace/roblox/wt-border-v3/shared/modeling-kit/models/ranch_border_hedge_round.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 604,
+  "meshes": [
+    {
+      "name": "ranch_border_hedge_round",
+      "tris": 604,
+      "verts": 338,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        15.064,
+        5.506,
+        5.786
+      ],
+      "materials": [
+        "ranch_border_hedge_round_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "ranch_border_hedge_round_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    15.064,
+    5.506,
+    5.786
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "ranch_border_hedge_round_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_hedge_round.fbx",
+  "fbx_bytes": 35180,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_hedge_round_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_hedge_round_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_hedge_round_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_hedge_round_roblox_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.133,
+    "stats_s": 0.002,
+    "setup_s": 0.003,
+    "render_s": [
+      0.681,
+      0.618,
+      0.669,
+      0.715
+    ],
+    "export_s": 0.084
+  },
+  "sheet": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_hedge_round_roblox_sheet.png",
+  "timings": {
+    "wall_s": 3.78,
+    "blender_process_s": 3.4,
+    "compose_s": 0.386,
+    "model_s": 0.133,
+    "stats_s": 0.002,
+    "setup_s": 0.003,
+    "render_s": [
+      0.681,
+      0.618,
+      0.669,
+      0.715
+    ],
+    "export_s": 0.084
+  }
+}

@@ -1,7 +1,9 @@
 --!strict
--- World border (WorldBorder): seeded chunk decor is deterministic and varied,
--- the invisible collider ring closes the whole perimeter, and the border
--- stays inside its MeshPart slot share (<= 120 of the THEME.md 400).
+-- World border (WorldBorder): seeded layered decor (fences and hedges, tree
+-- and rock groves, backdrop hills) is deterministic and never repeats a
+-- stretch, the invisible collider ring closes the whole perimeter, and the
+-- border stays inside its MeshPart slot share (104 of the THEME.md 400) and
+-- part budget (700).
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -35,18 +37,7 @@ local function inside(x: number, z: number, pos: Vec, size: Vec, yaw: number): b
 	return math.abs(local_[1]) <= size[1] / 2 and math.abs(local_[3]) <= size[3] / 2
 end
 
-local function front(pieces: { WorldBorder.Piece }): { WorldBorder.Piece }
-	local out = {}
-	for _, p in pieces do
-		if p.row == "front" then
-			table.insert(out, p)
-		end
-	end
-	return out
-end
-
 local pieces = WorldBorder.pieces()
-local frontRow = front(pieces)
 
 describe("WorldBorder determinism", function()
 	it("builds the same border every time for one seed", function()
@@ -148,21 +139,44 @@ describe("WorldBorder collider ring", function()
 	end)
 end)
 
-local function chunks(list: { WorldBorder.Piece }): { WorldBorder.Piece }
+local LAYERS = { "inner", "mid", "outer" }
+local W = WorldBorder.WINDOW
+
+local function layer(list: { WorldBorder.Piece }, row: string): { WorldBorder.Piece }
 	local out = {}
 	for _, p in list do
-		if p.kind ~= "Accent" then
+		if p.row == row then
 			table.insert(out, p)
 		end
 	end
+	table.sort(out, function(a, b)
+		return a.order < b.order
+	end)
 	return out
 end
 
-local function design(p: WorldBorder.Piece): string
-	return (string.gsub(p.mesh, "_m$", ""))
+local function sig(p: WorldBorder.Piece): string
+	return `{p.mesh}|{p.rotBucket}|{p.scaleBucket}`
 end
 
-local frontChunks = chunks(frontRow)
+-- First repeated window of W consecutive signatures in `seq`, going round
+-- the ring (the last pieces are followed by the first), or nil.
+local function repeatedWindow(seq: { WorldBorder.Piece }): string?
+	local n = #seq
+	local seen: { [string]: boolean } = {}
+	for start = 1, n do
+		local run = {}
+		for j = 0, W - 1 do
+			table.insert(run, sig(seq[(start + j - 1) % n + 1]))
+		end
+		local key = table.concat(run, "/")
+		if seen[key] then
+			return key
+		end
+		seen[key] = true
+	end
+	return nil
+end
 
 local function overhang(p: WorldBorder.Piece): number
 	local worst = -math.huge
@@ -172,124 +186,237 @@ local function overhang(p: WorldBorder.Piece): number
 	return worst - WorldBorder.GROUND_HALF
 end
 
-describe("WorldBorder decor", function()
-	it("rings the whole edge with no see-through gaps in the front row", function()
-		local sorted = table.clone(frontRow)
-		table.sort(sorted, function(a, b)
-			return a.angle < b.angle
-		end)
-		local worst = -math.huge
-		for i, p in sorted do
-			local q = sorted[i % #sorted + 1]
-			local d = (q.angle - p.angle) % 360
-			-- arc between the two footprints along the wall line
-			local gap = math.rad(d) * WorldBorder.RADIUS - (p.size[1] + q.size[1]) / 2
-			worst = math.max(worst, gap)
-		end
-		expect(worst < 3).toBe(true)
+local function spread(values: { number }): number
+	local mean = 0
+	for _, v in values do
+		mean += v / #values
+	end
+	local var = 0
+	for _, v in values do
+		var += (v - mean) ^ 2 / #values
+	end
+	return math.sqrt(var) / math.max(math.abs(mean), 1e-6)
+end
+
+local function borderNodes(): { any }
+	local out = {}
+	walk(child(WorldLayout.build()[1], "Border"), function(n)
+		table.insert(out, n)
 	end)
-	it("builds the edge from 30-40 chunk placements of the chunk meshes", function()
-		local all = chunks(pieces)
-		expect(#all >= 30 and #all <= 40).toBe(true)
-		local meshes: { [string]: boolean } = {}
-		for _, p in all do
-			meshes[p.mesh] = true
+	return out
+end
+
+describe("WorldBorder layers", function()
+	it("walks an inner, a mid and an outer layer plus corner groves, each within its cap", function()
+		for _, name in LAYERS do
+			local n = #layer(pieces, name)
+			expect(n >= 8).toBe(true)
+			local cap = (WorldBorder.LAYERS :: any)[name].cap
+			expect(n <= cap).toBe(true)
+		end
+		expect(#layer(pieces, "corner")).toBe(4 * WorldBorder.CORNER_CHUNKS)
+		expect(#pieces).toBe(
+			#layer(pieces, "inner") + #layer(pieces, "mid") + #layer(pieces, "outer") + 4 * WorldBorder.CORNER_CHUNKS
+		)
+	end)
+	it("keeps fences and hedges inside, trees and rocks in the middle, hills outside", function()
+		local function mean(row: string): number
+			local sum, list = 0, layer(pieces, row)
+			for _, p in list do
+				sum += p.radius
+			end
+			return sum / #list
+		end
+		expect(mean("inner") < mean("mid")).toBe(true)
+		expect(mean("mid") < mean("outer")).toBe(true)
+		for _, p in layer(pieces, "inner") do
+			expect(p.kind == "Accent" or p.mesh:find("fence") ~= nil or p.mesh:find("hedge") ~= nil).toBe(true)
+		end
+		for _, p in layer(pieces, "outer") do
+			expect(p.mesh:find("^ranch_border_hill_") ~= nil).toBe(true)
+		end
+	end)
+	it("uses every piece design somewhere on the ring", function()
+		local used: { [string]: number } = {}
+		for _, p in pieces do
+			used[p.mesh] = (used[p.mesh] or 0) + 1
+		end
+		for _, d in WorldBorder.DEFS do
+			expect((used[d.mesh] or 0) >= 1).toBe(true)
 		end
 		local n = 0
-		for _ in meshes do
+		for _ in used do
 			n += 1
 		end
-		-- reuse: far fewer meshes than placements
-		expect(n <= #WorldBorder.CHUNKS * 2).toBe(true)
-		expect(n * 2 <= #all).toBe(true)
+		expect(n >= 20).toBe(true)
 	end)
-	it("uses at most 120 MeshPart slots for the whole border", function()
-		local slots = 0
-		walk(WorldBorder.build(), function(n)
+	it("has 3+ trees, 3+ hedges, 3+ rocks, 2+ fences and 2+ hills to scatter", function()
+		local count = {
+			Pine = 0,
+			Oak = 0,
+			Saplings = 0,
+			Hedge = 0,
+			Boulder = 0,
+			Slab = 0,
+			RockHeap = 0,
+			Spire = 0,
+			Fence = 0,
+			Hill = 0,
+		}
+		for _, d in WorldBorder.DEFS do
+			for key in count do
+				if d.kind:find("^" .. key) or (key == "Fence" and d.kind == "BrokenFence") then
+					count[key] += 1
+				end
+			end
+		end
+		expect(count.Pine + count.Oak + count.Saplings >= 3).toBe(true)
+		expect(count.Hedge >= 3).toBe(true)
+		expect(count.Boulder + count.Slab + count.RockHeap + count.Spire >= 3).toBe(true)
+		expect(count.Fence >= 2).toBe(true)
+		expect(count.Hill >= 2).toBe(true)
+	end)
+end)
+
+describe("WorldBorder no repeating sequence", function()
+	it("never repeats a window of 4 consecutive pieces (mesh, rotation bucket, scale bucket) in a layer", function()
+		for _, name in LAYERS do
+			expect(repeatedWindow(layer(pieces, name))).toBe(nil)
+		end
+	end)
+	it("never repeats one either when the layers are read together bearing by bearing", function()
+		local all = {}
+		for _, name in LAYERS do
+			for _, p in layer(pieces, name) do
+				table.insert(all, p)
+			end
+		end
+		table.sort(all, function(a, b)
+			return a.angle < b.angle
+		end)
+		expect(repeatedWindow(all)).toBe(nil)
+	end)
+	it("holds for other seeds too", function()
+		for seed = 1, 12 do
+			local other = WorldBorder.pieces(seed * 977)
+			for _, name in LAYERS do
+				expect(repeatedWindow(layer(other, name))).toBe(nil)
+			end
+		end
+	end)
+	it("never puts one design twice within two neighbours", function()
+		for _, name in LAYERS do
+			local seq = layer(pieces, name)
+			for i = 1, #seq - 2 do
+				local a, b, c = seq[i], seq[i + 1], seq[i + 2]
+				if a.kind ~= "Accent" and b.kind ~= "Accent" and c.kind ~= "Accent" then
+					expect(a.mesh ~= b.mesh and b.mesh ~= c.mesh).toBe(true)
+				end
+			end
+		end
+	end)
+	it("varies scale, rotation, spacing and depth along every layer", function()
+		for _, name in LAYERS do
+			local seq = layer(pieces, name)
+			local scales, buckets, steps, depths = {}, {}, {}, {}
+			local nb = 0
+			for i, p in seq do
+				local q = seq[i % #seq + 1]
+				table.insert(scales, p.scale)
+				table.insert(steps, (q.angle - p.angle) % 360)
+				table.insert(depths, p.radius)
+				if not buckets[p.rotBucket] then
+					buckets[p.rotBucket] = true
+					nb += 1
+				end
+			end
+			expect(spread(scales) > 0.06).toBe(true)
+			expect(spread(steps) > 0.1).toBe(true)
+			expect(spread(depths) > 0.002).toBe(true)
+			expect(nb >= (if name == "mid" then 6 else 2)).toBe(true)
+		end
+	end)
+	it("clusters the trees and rocks into groves with open ground between", function()
+		local seq = layer(pieces, "mid")
+		local gaps = {}
+		for i, p in seq do
+			local q = seq[i % #seq + 1]
+			local d = math.rad((q.angle - p.angle) % 360) * p.radius - (p.size[1] + q.size[1]) / 2
+			table.insert(gaps, d)
+		end
+		local tight, open = 0, 0
+		for _, g in gaps do
+			if g < 6 then
+				tight += 1
+			elseif g > 40 then
+				open += 1
+			end
+		end
+		expect(tight >= 8).toBe(true)
+		expect(open >= 4).toBe(true)
+	end)
+end)
+
+describe("WorldBorder decor", function()
+	it("stays inside the MeshPart slot share (<= 104) and the border part budget (<= 700)", function()
+		local slots, parts = 0, 0
+		for _, n in borderNodes() do
+			if n.class == "Part" then
+				parts += 1
+			end
 			if n.attributes and n.attributes.MeshAsset then
 				slots += 1
 			end
-		end)
+		end
 		expect(slots).toBe(#pieces)
-		expect(slots <= 120).toBe(true)
-		expect(slots).toBe(#chunks(pieces) + WorldBorder.ACCENT_COUNT)
+		expect(slots).toBe(WorldLayout.BORDER_SLOT_COUNT)
+		expect(slots <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
+		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(104)
+		expect(parts <= WorldLayout.BORDER_PART_BUDGET).toBe(true)
+		expect(parts).toBe(WorldBorder.WALL_SEGMENTS + #pieces)
 	end)
-	it("mixes every front design, never one design twice within three neighbours", function()
-		local seen: { [string]: number } = {}
-		for _, p in frontChunks do
-			seen[p.kind] = (seen[p.kind] or 0) + 1
-		end
-		for _, c in WorldBorder.CHUNKS do
-			if c.front > 0 then
-				expect((seen[c.kind] or 0) >= 2).toBe(true)
-			end
-		end
-		for i = 1, #frontChunks - 2 do
-			local a, b, c = frontChunks[i], frontChunks[i + 1], frontChunks[i + 2]
-			expect(a.kind ~= b.kind and b.kind ~= c.kind and a.kind ~= c.kind).toBe(true)
+	it("builds at most 104 slots whatever the seed", function()
+		for seed = 1, 12 do
+			expect(#WorldBorder.pieces(seed * 977) <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
 		end
 	end)
-	it("mirrors about half the chunks, never three of one hand in a row", function()
-		local mirrored = 0
-		for i, p in frontChunks do
-			if p.mirrored then
-				mirrored += 1
-				expect(string.sub(p.mesh, -2)).toBe("_m")
-			else
-				expect(string.sub(p.mesh, -2) ~= "_m").toBe(true)
-			end
-			if i >= 3 then
-				local a, b = frontChunks[i - 1].mirrored, frontChunks[i - 2].mirrored
-				expect(a == b and b == p.mirrored).toBe(false)
-			end
+	it("stands on the Ground: flat on y = 0 and at most 3 studs over the edge", function()
+		for _, p in pieces do
+			expect(p.pos[2] - p.size[2] / 2).toBeCloseTo(0, 1)
+			expect(math.abs(p.pos[2] - p.size[2] / 2) <= 0.1).toBe(true)
+			expect(overhang(p) <= 3).toBe(true)
 		end
-		expect(mirrored >= #frontChunks * 0.3 and mirrored <= #frontChunks * 0.7).toBe(true)
 	end)
-	it("varies scale, yaw, spacing and inset (no repeating period)", function()
-		local function spread(values: { number }): number
-			local mean = 0
-			for _, v in values do
-				mean += v / #values
+	it("keeps the footprints outside the wall line, so nothing sits on the walkable ground", function()
+		for _, p in pieces do
+			local reach = p.radius - (if p.row == "corner" then p.size[3] / 2 else 0)
+			local worst = math.huge
+			for _, c in WorldBorder.corners(p) do
+				worst = math.min(worst, math.sqrt(c[1] ^ 2 + c[3] ^ 2))
 			end
-			local var = 0
-			for _, v in values do
-				var += (v - mean) ^ 2 / #values
-			end
-			return math.sqrt(var) / math.max(math.abs(mean), 1e-6)
+			expect(reach >= WorldBorder.RADIUS).toBe(true)
+			-- outer hills have a low tapered rim that may reach back over the wall line
+			expect(worst >= WorldBorder.RADIUS - (if p.row == "outer" then 8 else 1)).toBe(true)
 		end
-		local steps, scales, insets, turns = {}, {}, {}, {}
-		for i, p in frontRow do
-			local q = frontRow[i % #frontRow + 1]
-			table.insert(steps, (q.angle - p.angle) % 360)
-			table.insert(scales, p.scale)
-			table.insert(insets, p.radius)
-			table.insert(turns, ((p.yaw - p.angle - 180 + 540) % 360) - 180)
+	end)
+	it("keeps every decor axis within MAX_AXIS (v17 decor)", function()
+		for _, p in pieces do
+			expect(math.max(p.size[1], p.size[2], p.size[3]) <= WorldBorder.MAX_AXIS + 1e-6).toBe(true)
 		end
-		expect(spread(steps) > 0.05).toBe(true)
-		expect(spread(scales) > 0.03).toBe(true)
-		expect(spread(insets) > 0.003).toBe(true)
-		local distinct: { [string]: boolean } = {}
-		local n = 0
-		for _, t in turns do
-			local key = string.format("%.1f", t)
-			if not distinct[key] then
-				distinct[key] = true
-				n += 1
-			end
-		end
-		expect(n > #turns * 0.8).toBe(true)
-		-- the (design, hand) sequence never repeats with a short period
-		for period = 1, 8 do
-			local same = 0
-			for i = 1, #frontChunks - period do
-				if frontChunks[i].mesh == frontChunks[i + period].mesh then
-					same += 1
+	end)
+	it("keeps scales within each design's range", function()
+		for _, p in pieces do
+			if p.row ~= "corner" and p.kind ~= "Accent" then
+				for _, d in WorldBorder.DEFS do
+					if d.mesh == p.mesh then
+						expect(p.scale <= d.scale[2] + 1e-6).toBe(true)
+						expect(p.scale >= math.min(d.scale[1], WorldBorder.MAX_AXIS / 57) - 1e-6).toBe(true)
+					end
 				end
 			end
-			expect(same / (#frontChunks - period) < 0.4).toBe(true)
 		end
 	end)
-	it("fills each Ground corner with corner groves behind the front row", function()
+	it("fills each Ground corner with corner groves past the wall", function()
 		local perCorner = { 0, 0, 0, 0 }
 		for _, p in pieces do
 			if p.row == "corner" then
@@ -297,23 +424,37 @@ describe("WorldBorder decor", function()
 				perCorner[q] += 1
 				-- within 15 degrees of the diagonal, past the wall line
 				expect(math.abs(p.angle - ((q - 1) * 90 + 45)) <= 15).toBe(true)
-				expect(p.radius - p.size[3] / 2 >= WorldBorder.RADIUS + 10).toBe(true)
+				expect(p.radius - p.size[3] / 2 >= WorldBorder.RADIUS + WorldBorder.CORNER_TUCK - 1e-6).toBe(true)
 			end
 		end
 		for _, n in perCorner do
 			expect(n).toBe(WorldBorder.CORNER_CHUNKS)
 		end
 	end)
-	it("stands on the Ground (footprint corners at most 3 studs over the edge)", function()
-		for _, p in pieces do
-			expect(overhang(p) <= 3).toBe(true)
-			expect(p.pos[2]).toBeCloseTo(p.size[2] / 2)
+	it("leaves no stretch of the edge open: every bearing has something behind the wall", function()
+		local covered: { boolean } = {}
+		local count = 0
+		for deg = 0, 359 do
+			for _, p in pieces do
+				local half = math.deg(math.max(p.size[1], p.size[3]) / 2 / p.radius)
+				if math.abs((deg - p.angle + 180) % 360 - 180) <= half then
+					covered[deg + 1] = true
+					count += 1
+					break
+				end
+			end
 		end
-	end)
-	it("keeps every decor axis within MAX_AXIS (v17 decor)", function()
-		for _, p in pieces do
-			expect(math.max(p.size[1], p.size[2], p.size[3]) <= WorldBorder.MAX_AXIS + 1e-6).toBe(true)
+		expect(count >= 310).toBe(true)
+		local longest, run = 0, 0
+		for k = 0, 719 do
+			if covered[k % 360 + 1] then
+				run = 0
+			else
+				run += 1
+				longest = math.max(longest, run)
+			end
 		end
+		expect(longest <= 10).toBe(true)
 	end)
 	it("never collides and keeps each slot at the mesh's native proportions", function()
 		local border = child(child(WorldLayout.build()[1], "Border"), "Decor")
@@ -334,20 +475,27 @@ describe("WorldBorder decor", function()
 		end)
 		expect(meshed).toBe(#WorldBorder.pieces())
 	end)
-	it("wires every chunk mesh and its mirrored twin into MeshAssets with uploaded meshIds", function()
+	it("wires every border mesh into MeshAssets with an uploaded meshId and size", function()
+		local meshes: { string } = {}
+		for _, d in WorldBorder.DEFS do
+			table.insert(meshes, d.mesh)
+		end
 		for _, c in WorldBorder.CHUNKS do
-			for _, mesh in { c.mesh, c.mesh .. "_m" } do
-				local entry = MeshAssets.get(mesh)
-				expect(entry ~= nil and entry.size ~= nil).toBe(true)
-				expect(MeshAssets.meshId(mesh) ~= nil).toBe(true)
-				expect(table.find(MeshAssets.NAMES, mesh) ~= nil).toBe(true)
-			end
+			table.insert(meshes, c.mesh)
+			table.insert(meshes, c.mesh .. "_m")
+		end
+		for _, a in WorldBorder.ACCENTS do
+			table.insert(meshes, a)
+		end
+		for _, mesh in meshes do
+			local entry = MeshAssets.get(mesh)
+			expect(entry ~= nil and entry.size ~= nil).toBe(true)
+			expect(MeshAssets.meshId(mesh) ~= nil).toBe(true)
+			expect(table.find(MeshAssets.NAMES, mesh) ~= nil).toBe(true)
 		end
 		for _, p in pieces do
 			expect(p.uploaded).toBe(true)
-			if p.kind ~= "Accent" then
-				expect(string.find(design(p), "^ranch_border_chunk_") ~= nil).toBe(true)
-			end
+			expect(table.find(meshes, p.mesh) ~= nil).toBe(true)
 		end
 	end)
 end)

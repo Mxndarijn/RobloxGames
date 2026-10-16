@@ -1,0 +1,111 @@
+{
+  "name": "ranch_border_rock_spire",
+  "model": "/workspace/roblox/wt-border-v3/shared/modeling-kit/models/ranch_border_rock_spire.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 304,
+  "meshes": [
+    {
+      "name": "ranch_border_rock_spire",
+      "tris": 304,
+      "verts": 166,
+      "ngons": 23,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        9.91,
+        10.517,
+        6.254
+      ],
+      "materials": [
+        "ranch_border_rock_spire_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "ranch_border_rock_spire_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    9.91,
+    10.517,
+    6.254
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "ranch_border_rock_spire_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [
+    "304 tris outside prop target 500-2000"
+  ],
+  "fbx": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_rock_spire.fbx",
+  "fbx_bytes": 22572,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_rock_spire_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_rock_spire_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_rock_spire_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_rock_spire_roblox_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.107,
+    "stats_s": 0.001,
+    "setup_s": 0.003,
+    "render_s": [
+      0.561,
+      0.516,
+      0.526,
+      0.568
+    ],
+    "export_s": 0.083
+  },
+  "sheet": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_rock_spire_roblox_sheet.png",
+  "timings": {
+    "wall_s": 3.18,
+    "blender_process_s": 2.83,
+    "compose_s": 0.35,
+    "model_s": 0.107,
+    "stats_s": 0.001,
+    "setup_s": 0.003,
+    "render_s": [
+      0.561,
+      0.516,
+      0.526,
+      0.568
+    ],
+    "export_s": 0.083
+  }
+}

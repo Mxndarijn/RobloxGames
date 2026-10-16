@@ -1,0 +1,18 @@
+{
+  "id": "21-border-aerial-pc",
+  "todo": "border-v3",
+  "kind": "world",
+  "pos": [
+    48,
+    150,
+    132
+  ],
+  "look": [
+    -100,
+    6,
+    -274
+  ],
+  "wait": 0.5,
+  "note": "border v3: the layered world border from high up across the plaza (fences/hedges inner, groves mid, hills outer) in [desktop]",
+  "device": "desktop"
+}

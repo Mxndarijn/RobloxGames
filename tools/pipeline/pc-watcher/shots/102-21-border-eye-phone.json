@@ -1,0 +1,18 @@
+{
+  "id": "21-border-eye-phone",
+  "todo": "border-v3",
+  "kind": "world",
+  "pos": [
+    -22,
+    5,
+    -249
+  ],
+  "look": [
+    -78,
+    7,
+    -290
+  ],
+  "wait": 0.5,
+  "note": "border v3: player eye looking out at the border in [phone-portrait]",
+  "device": "phone-portrait"
+}

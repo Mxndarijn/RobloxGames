@@ -1,0 +1,111 @@
+{
+  "name": "ranch_border_fence_straight",
+  "model": "/workspace/roblox/wt-border-v3/shared/modeling-kit/models/ranch_border_fence_straight.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 496,
+  "meshes": [
+    {
+      "name": "ranch_border_fence_straight",
+      "tris": 496,
+      "verts": 306,
+      "ngons": 36,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        25.623,
+        4.783,
+        2.701
+      ],
+      "materials": [
+        "ranch_border_fence_straight_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "ranch_border_fence_straight_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    25.623,
+    4.783,
+    2.701
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "ranch_border_fence_straight_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [
+    "496 tris outside prop target 500-2000"
+  ],
+  "fbx": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_fence_straight.fbx",
+  "fbx_bytes": 25756,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_fence_straight_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_fence_straight_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_fence_straight_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_fence_straight_roblox_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.107,
+    "stats_s": 0.001,
+    "setup_s": 0.002,
+    "render_s": [
+      0.566,
+      0.563,
+      1.0,
+      0.653
+    ],
+    "export_s": 0.086
+  },
+  "sheet": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_fence_straight_roblox_sheet.png",
+  "timings": {
+    "wall_s": 3.85,
+    "blender_process_s": 3.47,
+    "compose_s": 0.381,
+    "model_s": 0.107,
+    "stats_s": 0.001,
+    "setup_s": 0.002,
+    "render_s": [
+      0.566,
+      0.563,
+      1.0,
+      0.653
+    ],
+    "export_s": 0.086
+  }
+}

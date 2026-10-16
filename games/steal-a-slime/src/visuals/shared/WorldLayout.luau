@@ -144,8 +144,10 @@ WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 --           corner shows one post; the run that ends at the gate has none
 --           there, and this post closes it, mirroring the post beside the
 --           other gate stub. Paid for by the border share (112 -> 104).
---   border  Map.Border's share (104). The ring uses BORDER_SLOT_COUNT (44)
---           since #56 (WorldBorder set meshes); main #54's first ring was 228.
+--   border  Map.Border's share (104). The ring uses BORDER_SLOT_COUNT (102)
+--           since border v3 (single hedge, fence, tree, rock and hill
+--           pieces scattered in layers); #56's chunk ring used 44, main
+--           #54's first ring 228.
 --   decor   everything else: ranch props, pad stands, fountain, plaza,
 --           landing ring, gates, plot dex boards and buy stands, WorldProps
 --           skins. Capped at 160 = MESH_SLOT_BUDGET - fence - posts - border
@@ -157,7 +159,7 @@ WorldLayout.MESH_SLOT_BUDGET = 400
 WorldLayout.FENCE_SLOT_BUDGET = 128
 WorldLayout.GATE_POST_SLOT_BUDGET = 8
 WorldLayout.BORDER_SLOT_BUDGET = 104
-WorldLayout.BORDER_SLOT_COUNT = 44
+WorldLayout.BORDER_SLOT_COUNT = 102
 WorldLayout.DECOR_SLOT_BUDGET = 160
 WorldLayout.MESH_SLOT_BUDGET_FALLBACK = WorldLayout.MESH_SLOT_BUDGET + 112
 -- Parts outside Map.Border (THEME.md asked <= 1200; raised to 1400 for the

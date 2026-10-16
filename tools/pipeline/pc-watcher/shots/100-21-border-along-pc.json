@@ -1,0 +1,18 @@
+{
+  "id": "21-border-along-pc",
+  "todo": "border-v3",
+  "kind": "world",
+  "pos": [
+    61,
+    22,
+    -228
+  ],
+  "look": [
+    -101,
+    5,
+    -278
+  ],
+  "wait": 0.5,
+  "note": "border v3: mid height along the edge: piece mix, rotation, spacing and clusters should differ every stretch in [desktop]",
+  "device": "desktop"
+}

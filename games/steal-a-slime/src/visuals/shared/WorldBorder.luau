@@ -12,19 +12,25 @@
 	           inner faces form a closed polygon at RADIUS, WALL_HEIGHT tall
 	           so nobody jumps out. CanQuery/CanTouch off: drop raycasts,
 	           prompts and the camera ignore them.
-	  Decor    border chunks: one kit mesh per ~55 studs of edge that already
-	           combines hedge / rail fence / pines / hill / rocks / goo
-	           (ranch_border_chunk_a..h, each with a mirrored "_m" twin, since
-	           a MeshPart can't take a negative scale). A front row of chunks
-	           (+ a few uploaded ranch props as accents) closes the ring just
-	           outside the wall line, and CORNER_CHUNKS deep groves per Ground
-	           corner fill the square past it (it reaches r 452 on the
-	           diagonals). Design, mirror, scale, yaw jitter, spacing and inset
-	           come from one Rng: every build is identical, no visible period.
+	  Decor    single kit pieces scattered in three layers just outside the
+	           wall line, each walked round the ring by its own seeded Rng:
+	             inner  fences and hedges hugging the wall, with openings
+	                    (+ a few uploaded ranch props as accents)
+	             mid    groves: clusters of pines, oaks, saplings and rocks
+	                    (a pine grove, a meadow or a rocky patch each),
+	                    open ground between them, depth jittered
+	             outer  backdrop hills (ridge, dome, twin) closing the horizon
+	           plus CORNER_CHUNKS deep groves per Ground corner (the square
+	           reaches r 452 on the diagonals) from the old chunk meshes.
+	         Every piece rolls its own scale, yaw and spacing. A piece never
+	         repeats either of the two before it, and no window of
+	         WINDOW consecutive pieces of a layer repeats the same
+	         (mesh, rotation bucket, scale bucket) pattern anywhere in the
+	         ring, so no stretch looks copy-pasted. Every build is identical.
 
 	Decor never collides; the walls are the only collision. Every decor piece
-	is one MeshAsset slot (MeshSwap skins it): ~43 slots, against ~228 when the
-	edge was built from single hedges, fences and pines (THEME.md budget 400).
+	is one MeshAsset slot (MeshSwap skins it); the border share is
+	WorldLayout.BORDER_SLOT_BUDGET (104), the pieces stay under it.
 ]]
 
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
@@ -59,7 +65,11 @@ export type Collider = { pos: Vec, size: Vec, yaw: number }
 export type Piece = {
 	kind: string,
 	mesh: string, -- MeshAssets name (chunk design + "_m" when mirrored)
-	row: string, -- "front" | "corner"
+	row: string, -- "inner" | "mid" | "outer" | "corner"
+	order: number, -- position in its layer's walk (1-based; corner groves 0)
+	turn: number, -- yaw off facing the map, -180..180 degrees
+	rotBucket: number, -- turn / ROT_BUCKET, 0-based (0 for corner groves)
+	scaleBucket: number, -- 0..SCALE_BUCKETS - 1 across the def's scale range
 	angle: number, -- polar bearing in degrees (0 = +Z, 90 = +X)
 	radius: number, -- slot centre distance from the map centre
 	pos: Vec, -- slot centre; y = half height, so it stands on the ground
@@ -73,8 +83,19 @@ export type Piece = {
 type Chunk = {
 	kind: string,
 	mesh: string, -- base design; "<mesh>_m" is its mirrored twin
-	front: number, -- front-row weight
-	corner: number, -- corner-grove weight
+	corner: number, -- placements in the corner set (half plain, half mirrored)
+}
+
+-- One kit mesh scattered along a layer. weights: per theme (the mid layer's
+-- clusters pick a theme; inner and outer use "all"). turn: largest yaw
+-- jitter in degrees off facing the map (180 = any heading).
+type Def = {
+	kind: string,
+	mesh: string,
+	layer: string,
+	weights: { [string]: number },
+	scale: { number },
+	turn: number,
 }
 
 local WorldBorder = {}
@@ -90,27 +111,220 @@ WorldBorder.WALL_HEIGHT = 80 -- a default jump is ~7.2 studs
 WorldBorder.WALL_OVERLAP = 1 -- extra length past the outer polygon corner
 WorldBorder.MAX_AXIS = 64 -- v17 decor (CONTRACT §10): no axis over 64 studs
 
--- Chunk designs (shared/modeling-kit models/ranch_border_chunk_*.py), each
--- ~53-57 studs along the edge. Front (-Y in the kit) faces the map.
+-- Corner groves: the old chunk meshes (shared/modeling-kit
+-- models/ranch_border_chunk_*.py), each with a mirrored "_m" twin (a
+-- MeshPart can't take a negative scale). Front (-Y in the kit) faces the map.
 WorldBorder.CHUNKS = table.freeze({
-	{ kind = "HedgeFence", mesh = "ranch_border_chunk_a", front = 16, corner = 0 },
-	{ kind = "HillRocks", mesh = "ranch_border_chunk_b", front = 14, corner = 2 },
-	{ kind = "FenceMound", mesh = "ranch_border_chunk_c", front = 14, corner = 0 },
-	{ kind = "PineGrove", mesh = "ranch_border_chunk_d", front = 14, corner = 3 },
-	{ kind = "HedgeHill", mesh = "ranch_border_chunk_e", front = 14, corner = 0 },
-	{ kind = "Outcrop", mesh = "ranch_border_chunk_f", front = 12, corner = 0 },
-	{ kind = "SteppedFence", mesh = "ranch_border_chunk_g", front = 14, corner = 0 },
-	{ kind = "CornerGrove", mesh = "ranch_border_chunk_h", front = 0, corner = 8 },
+	{ kind = "HillRocks", mesh = "ranch_border_chunk_b", corner = 2 },
+	{ kind = "PineGrove", mesh = "ranch_border_chunk_d", corner = 2 },
+	{ kind = "CornerGrove", mesh = "ranch_border_chunk_h", corner = 4 },
 } :: { Chunk })
-WorldBorder.FRONT_SCALE = { 1.0, 1.15 }
-WorldBorder.FRONT_GAP = { -1, 1.5 } -- studs between neighbours along the edge (< 0 overlaps)
-WorldBorder.FRONT_YAW_JITTER = 5
-WorldBorder.FRONT_INSET = { -0.15, 0.2 } -- radial offset in slot half-depths past the wall line
 WorldBorder.CORNER_CHUNKS = 2 -- per Ground corner
-WorldBorder.CORNER_SCALE = { 0.95, 1.1 }
-WorldBorder.CORNER_TUCK = 14 -- corner groves start this far past the wall, over the front row's back
+WorldBorder.CORNER_SCALE = { 0.85, 1.0 }
+WorldBorder.CORNER_TUCK = 24 -- corner groves start this far past the wall, over the back of the hills
 
--- Uploaded ranch props mixed into the front row as accents:
+-- Scatter pieces (shared/modeling-kit models/ranch_border_*.py). Footprints
+-- are shallow (fence 3, hedge 5, trees 9-16) so the layers fit the 28 studs
+-- of ground past the wall on the axes; only the hills are deep.
+WorldBorder.DEFS = table.freeze({
+	{
+		kind = "Fence",
+		mesh = "ranch_border_fence_straight",
+		layer = "inner",
+		weights = { all = 3 },
+		scale = { 0.92, 1.2 },
+		turn = 7,
+	},
+	{
+		kind = "BrokenFence",
+		mesh = "ranch_border_fence_broken",
+		layer = "inner",
+		weights = { all = 1.4 },
+		scale = { 0.92, 1.2 },
+		turn = 9,
+	},
+	{
+		kind = "HedgeLong",
+		mesh = "ranch_border_hedge_long",
+		layer = "inner",
+		weights = { all = 2.4 },
+		scale = { 0.92, 1.25 },
+		turn = 6,
+	},
+	{
+		kind = "HedgeRound",
+		mesh = "ranch_border_hedge_round",
+		layer = "inner",
+		weights = { all = 2 },
+		scale = { 0.95, 1.35 },
+		turn = 6,
+	},
+	{
+		kind = "HedgeStepped",
+		mesh = "ranch_border_hedge_stepped",
+		layer = "inner",
+		weights = { all = 1.6 },
+		scale = { 0.92, 1.2 },
+		turn = 6,
+	},
+	{
+		kind = "FenceLong",
+		mesh = "ranch_border_fence_long",
+		layer = "inner",
+		weights = { all = 2.2 },
+		scale = { 0.95, 1.15 },
+		turn = 5,
+	},
+	{
+		kind = "HedgeXL",
+		mesh = "ranch_border_hedge_xl",
+		layer = "inner",
+		weights = { all = 2 },
+		scale = { 0.95, 1.15 },
+		turn = 5,
+	},
+	{
+		kind = "PineTall",
+		mesh = "ranch_border_pine_tall",
+		layer = "mid",
+		weights = { pines = 3, meadow = 0.3, rocky = 0.6 },
+		scale = { 0.9, 1.45 },
+		turn = 180,
+	},
+	{
+		kind = "PineBroad",
+		mesh = "ranch_border_pine_broad",
+		layer = "mid",
+		weights = { pines = 2.5, meadow = 0.6 },
+		scale = { 0.9, 1.5 },
+		turn = 180,
+	},
+	{
+		kind = "PineTwin",
+		mesh = "ranch_border_pine_twin",
+		layer = "mid",
+		weights = { pines = 2, meadow = 0.2 },
+		scale = { 0.9, 1.4 },
+		turn = 180,
+	},
+	{
+		kind = "Oak",
+		mesh = "ranch_border_oak_round",
+		layer = "mid",
+		weights = { pines = 0.4, meadow = 3 },
+		scale = { 0.9, 1.45 },
+		turn = 180,
+	},
+	{
+		kind = "Saplings",
+		mesh = "ranch_border_sapling_trio",
+		layer = "mid",
+		weights = { pines = 1.5, meadow = 2, rocky = 1 },
+		scale = { 0.95, 1.5 },
+		turn = 180,
+	},
+	{
+		kind = "Boulder",
+		mesh = "ranch_border_rock_boulder",
+		layer = "mid",
+		weights = { pines = 0.5, meadow = 1, rocky = 2 },
+		scale = { 0.7, 1.5 },
+		turn = 180,
+	},
+	{
+		kind = "Slab",
+		mesh = "ranch_border_rock_slab",
+		layer = "mid",
+		weights = { pines = 0.3, meadow = 1.2, rocky = 1.5 },
+		scale = { 0.75, 1.5 },
+		turn = 180,
+	},
+	{
+		kind = "RockHeap",
+		mesh = "ranch_border_rock_cluster",
+		layer = "mid",
+		weights = { meadow = 0.3, rocky = 2.5 },
+		scale = { 0.75, 1.4 },
+		turn = 180,
+	},
+	{
+		kind = "Spire",
+		mesh = "ranch_border_rock_spire",
+		layer = "mid",
+		weights = { rocky = 1.5 },
+		scale = { 0.75, 1.35 },
+		turn = 180,
+	},
+	{
+		kind = "GrovePine",
+		mesh = "ranch_border_grove_pine",
+		layer = "mid",
+		weights = { pines = 6, meadow = 1.5, rocky = 1 },
+		scale = { 0.95, 1.3 },
+		turn = 15,
+	},
+	{
+		kind = "GroveMixed",
+		mesh = "ranch_border_grove_mixed",
+		layer = "mid",
+		weights = { pines = 2, meadow = 7 },
+		scale = { 0.95, 1.3 },
+		turn = 15,
+	},
+	{
+		kind = "GroveRocky",
+		mesh = "ranch_border_grove_rocky",
+		layer = "mid",
+		weights = { pines = 1, meadow = 1.5, rocky = 6 },
+		scale = { 0.95, 1.3 },
+		turn = 15,
+	},
+	{
+		kind = "HillRidge",
+		mesh = "ranch_border_hill_ridge",
+		layer = "outer",
+		weights = { all = 2 },
+		scale = { 0.85, 1.1 },
+		turn = 30,
+	},
+	{
+		kind = "HillDome",
+		mesh = "ranch_border_hill_dome",
+		layer = "outer",
+		weights = { all = 1.5 },
+		scale = { 0.85, 1.0 },
+		turn = 35,
+	},
+	{
+		kind = "HillTwin",
+		mesh = "ranch_border_hill_twin",
+		layer = "outer",
+		weights = { all = 1.6 },
+		scale = { 0.85, 1.15 },
+		turn = 30,
+	},
+} :: { Def })
+
+-- Layers, innermost first. base = mean offset past the wall (sets the arc
+-- length it is walked at), cap = most pieces, gap = studs between
+-- neighbours along the edge (< 0 overlaps), o = offset of a piece's inner
+-- edge past the wall line (a piece is pulled in to stay on the Ground).
+WorldBorder.LAYERS = table.freeze({
+	inner = { base = 4, cap = 36, gap = { -1.5, 2.5 }, o = { 0.5, 2.5 }, opening = { 8, 22 }, openingChance = 0.1 },
+	mid = { base = 14, cap = 42, gap = { -4, 1 }, o = { 5, 22 }, open = { 20, 90 }, cluster = { 3, 6 } },
+	outer = { base = 34, cap = 16, gap = { 30, 120 }, o = { 14, 40 } },
+})
+WorldBorder.THEMES = table.freeze({
+	{ name = "pines", weight = 4 },
+	{ name = "meadow", weight = 3 },
+	{ name = "rocky", weight = 2 },
+})
+WorldBorder.WINDOW = 4 -- no run of this many pieces repeats its (mesh, rotation, scale) pattern
+WorldBorder.ROT_BUCKET = 30 -- degrees
+WorldBorder.SCALE_BUCKETS = 4
+WorldBorder.SPILL = 1.5 -- studs a footprint may hang over the Ground
+
+-- Uploaded ranch props mixed into the inner layer as accents:
 -- ACCENT_COUNT of them, each mesh once.
 WorldBorder.ACCENTS = table.freeze({
 	"ranch_windmill",
@@ -169,13 +383,17 @@ end
 local function newPiece(kind: string, mesh: string, row: string, scale: number, mirrored: boolean): Piece
 	local name = if mirrored then mesh .. "_m" else mesh
 	local n = native(name)
-	-- Wide chunks stay within MAX_AXIS whatever the roll.
+	-- Wide pieces stay within MAX_AXIS whatever the roll.
 	scale = math.min(scale, WorldBorder.MAX_AXIS / math.max(n[1], n[2], n[3]))
 	local size = { n[1] * scale, n[2] * scale, n[3] * scale }
 	return {
 		kind = kind,
 		mesh = name,
 		row = row,
+		order = 0,
+		turn = 0,
+		rotBucket = 0,
+		scaleBucket = 0,
 		angle = 0,
 		radius = 0,
 		pos = { 0, size[2] / 2, 0 },
@@ -226,113 +444,240 @@ local function radialHalf(size: Vec, turn: number): number
 	return (math.abs(math.sin(a)) * size[1] + math.abs(math.cos(a)) * size[3]) / 2
 end
 
-type Draft = { piece: Piece, gap: number, yawJitter: number, inset: { number } }
+-- Half extent along the edge of a slot turned `turn` degrees.
+local function tangentHalf(size: Vec, turn: number): number
+	local a = math.rad(turn)
+	return (math.abs(math.cos(a)) * size[1] + math.abs(math.sin(a)) * size[3]) / 2
+end
 
-local function frontRow(rng: Rng.Rng): { Piece }
-	local R = WorldBorder.RADIUS
-	local circumference = 2 * math.pi * R
-	local weights = {}
-	for i, c in WorldBorder.CHUNKS do
-		weights[i] = c.front
+-- Studs of Ground past the wall line: the least over `half` degrees either
+-- side of `angle` (the Ground is narrowest on the axes).
+local function groundDepth(angle: number, half: number): number
+	local least = math.huge
+	for i = -2, 2 do
+		least = math.min(least, WorldBorder.groundRadius(angle + half * i / 2))
 	end
-	-- 1. The sequence, with each piece's nominal advance along the edge.
+	if math.abs(angle - math.floor((angle + 45) / 90) * 90) <= half then
+		least = math.min(least, WorldBorder.GROUND_HALF)
+	end
+	return least - WorldBorder.RADIUS
+end
+
+local function bucketOfTurn(turn: number): number
+	return math.floor(((turn + 180) % 360) / WorldBorder.ROT_BUCKET)
+end
+
+local function signature(p: Piece): string
+	return `{p.mesh}|{p.rotBucket}|{p.scaleBucket}`
+end
+
+-- One piece of `def` with its own scale and turn.
+local function roll(rng: Rng.Rng, def: Def): Piece
+	local p = newPiece(def.kind, def.mesh, def.layer, lerp(def.scale, rng:float()), false)
+	p.turn = (rng:float() * 2 - 1) * def.turn
+	p.rotBucket = bucketOfTurn(p.turn)
+	local t = (p.scale - def.scale[1]) / (def.scale[2] - def.scale[1])
+	p.scaleBucket = math.max(0, math.min(WorldBorder.SCALE_BUCKETS - 1, math.floor(t * WorldBorder.SCALE_BUCKETS)))
+	return p
+end
+
+type Draft = { piece: Piece, def: Def?, gap: number, o: number }
+
+local function advance(prev: Draft, d: Draft): number
+	return tangentHalf(prev.piece.size, prev.piece.turn) + d.gap + tangentHalf(d.piece.size, d.piece.turn)
+end
+
+-- Walks one layer round the ring: the sequence of pieces with their gaps
+-- and radial offsets, in arc order. Never repeats a piece's design within
+-- two neighbours, and never completes a WINDOW-run pattern seen before.
+local function draftLayer(rng: Rng.Rng, name: string): ({ Draft }, number)
+	local cfg = (WorldBorder.LAYERS :: any)[name]
+	local circumference = 2 * math.pi * (WorldBorder.RADIUS + cfg.base)
+	local W = WorldBorder.WINDOW
+	local defs: { Def } = {}
+	for _, d in WorldBorder.DEFS do
+		if d.layer == name then
+			table.insert(defs, d)
+		end
+	end
+	local themeWeights = {}
+	for i, t in WorldBorder.THEMES do
+		themeWeights[i] = t.weight
+	end
 	local drafts: { Draft } = {}
-	local total, lastKind, kindBefore = 0, 0, 0
-	local hands: { boolean } = {} -- mirrored flag of every chunk so far
-	local accentsLeft = WorldBorder.ACCENT_COUNT
+	local sigs: { string } = {}
+	local seen: { [string]: boolean } = {}
+	local total = 0
+	local last, beforeLast = 0, 0
+	local uses: { number } = {}
+	local left, theme = 0, "all"
+	local accentsLeft = if name == "inner" then WorldBorder.ACCENT_COUNT else 0
 	local accentPool = table.clone(WorldBorder.ACCENTS) :: { string }
 	local nextAccent = (0.3 + rng:float() * 0.4) * WorldBorder.ACCENT_SPACING
-	-- total = sum of centre-to-centre advances so far (the first piece has none).
-	local function push(d: Draft)
+	while total < circumference and #drafts < cfg.cap do
+		local gap = lerp(cfg.gap, rng:float())
+		if cfg.opening and rng:float() < cfg.openingChance then
+			gap += lerp(cfg.opening, rng:float())
+		end
+		if cfg.cluster then
+			if left == 0 then
+				theme = WorldBorder.THEMES[Rng.weightedIndex(themeWeights, rng:float())].name
+				left = rng:int(cfg.cluster[1], cfg.cluster[2])
+				if #drafts > 0 then
+					gap = lerp(cfg.open, rng:float())
+				end
+			end
+			left -= 1
+		end
+		local draft: Draft
+		if accentsLeft > 0 and total / circumference * 360 >= nextAccent then
+			local mesh = table.remove(accentPool, rng:int(1, #accentPool)) :: string
+			local p = newPiece("Accent", mesh, name, lerp({ 1.15, 1.5 }, rng:float()), false)
+			p.turn = (rng:float() * 2 - 1) * 10
+			p.rotBucket = bucketOfTurn(p.turn)
+			p.scaleBucket =
+				math.min(WorldBorder.SCALE_BUCKETS - 1, math.floor((p.scale - 1.15) / 0.35 * WorldBorder.SCALE_BUCKETS))
+			draft = { piece = p, def = nil, gap = 0.5 + rng:float() * 1.5, o = lerp({ 2, 6 }, rng:float()) }
+			accentsLeft -= 1
+			nextAccent = total / circumference * 360 + WorldBorder.ACCENT_SPACING * (1 + rng:float() * 0.6)
+		else
+			local weights = {}
+			local any = 0
+			for i, d in defs do
+				local w = d.weights[theme] or d.weights.all or 0
+				-- never the design of either of the two before it (just the
+				-- last one when there are too few designs to dodge both)
+				if i == last or (#defs > 3 and i == beforeLast) then
+					w = 0
+				end
+				-- a design not yet on this layer is three times as likely
+				weights[i] = if (uses[i] or 0) == 0 then w * 3 else w
+				any += w
+			end
+			if any <= 0 then
+				for i, d in defs do
+					weights[i] = if i == last then 0 else d.weights[theme] or d.weights.all or 0.1
+				end
+			end
+			local i, p
+			for _ = 1, 40 do
+				i = Rng.weightedIndex(weights, rng:float())
+				p = roll(rng, defs[i])
+				if #sigs < W - 1 then
+					break
+				end
+				local key = table.concat(sigs, "/", #sigs - W + 2, #sigs) .. "/" .. signature(p)
+				if not seen[key] then
+					break
+				end
+			end
+			beforeLast, last = last, i
+			uses[i] = (uses[i] or 0) + 1
+			draft = { piece = p, def = defs[i], gap = gap, o = lerp(cfg.o, rng:float()) }
+		end
 		local prev = drafts[#drafts]
 		if prev then
-			total += prev.piece.size[1] / 2 + d.gap + d.piece.size[1] / 2
+			total += advance(prev, draft)
 		end
-		table.insert(drafts, d)
+		table.insert(drafts, draft)
+		table.insert(sigs, signature(draft.piece))
+		if #sigs >= W then
+			seen[table.concat(sigs, "/", #sigs - W + 1, #sigs)] = true
+		end
 	end
-	while total < circumference do
-		local here = total / circumference * 360
-		if accentsLeft > 0 and here >= nextAccent then
-			local mesh = table.remove(accentPool, rng:int(1, #accentPool)) :: string
-			local p = newPiece("Accent", mesh, "front", 1.15 + rng:float() * 0.35, false)
-			push({ piece = p, gap = 0.5 + rng:float() * 1.5, yawJitter = 10, inset = { 0.1, 0.5 } })
-			accentsLeft -= 1
-			nextAccent = here + WorldBorder.ACCENT_SPACING * (1 + rng:float() * 0.6)
-		else
-			-- Never the design of either of the two chunks before it, so any
-			-- three neighbours are three different designs.
-			local i
-			repeat
-				i = Rng.weightedIndex(weights, rng:float())
-			until i ~= lastKind and i ~= kindBefore
-			kindBefore, lastKind = lastKind, i
-			-- Mirror is a coin flip, but never three of one hand in a row.
-			local mirrored = rng:float() < 0.5
-			local n = #hands
-			if n >= 2 and hands[n] == hands[n - 1] then
-				mirrored = not hands[n]
+	-- Windows across the seam (the last pieces followed by the first) must be
+	-- new too: re-roll the last piece until they are.
+	local n = #drafts
+	local lastDraft = drafts[n]
+	if n > W and lastDraft.def then
+		for _ = 1, 40 do
+			local clash = false
+			for start = n - W + 2, n do
+				local run = {}
+				for j = 0, W - 1 do
+					table.insert(run, sigs[(start + j - 1) % n + 1])
+				end
+				if seen[table.concat(run, "/")] then
+					clash = true
+				end
 			end
-			table.insert(hands, mirrored)
-			local def = WorldBorder.CHUNKS[i]
-			local p = newPiece(def.kind, def.mesh, "front", lerp(WorldBorder.FRONT_SCALE, rng:float()), mirrored)
-			push({
-				piece = p,
-				gap = lerp(WorldBorder.FRONT_GAP, rng:float()),
-				yawJitter = WorldBorder.FRONT_YAW_JITTER,
-				inset = WorldBorder.FRONT_INSET,
-			})
+			if not clash then
+				break
+			end
+			local p = roll(rng, lastDraft.def)
+			lastDraft.piece = p
+			sigs[n] = signature(p)
 		end
 	end
-	-- 2. Close the loop: scale every advance so the last piece meets the
-	-- first (closing advance = last half + first gap + first half).
+	return drafts, circumference
+end
+
+-- Spreads a layer's drafts round the ring (closing the loop: every advance
+-- is scaled so the last piece meets the first), turns each to face the
+-- map, and keeps it on the Ground.
+local function placeLayer(rng: Rng.Rng, name: string, drafts: { Draft }, circumference: number): { Piece }
+	local R = WorldBorder.RADIUS
+	local cfg = (WorldBorder.LAYERS :: any)[name]
 	local first, final = drafts[1], drafts[#drafts]
-	total += final.piece.size[1] / 2 + first.gap + first.piece.size[1] / 2
+	local total = 0
+	for i = 2, #drafts do
+		total += advance(drafts[i - 1], drafts[i])
+	end
+	total += tangentHalf(final.piece.size, final.piece.turn) + first.gap + tangentHalf(
+		first.piece.size,
+		first.piece.turn
+	)
 	local k = circumference / total
-	-- 3. Bearings, radii, yaws.
 	local start = rng:float() * 360
 	local s = 0
 	local pieces = {}
 	for idx, d in drafts do
 		if idx > 1 then
-			local prev = drafts[idx - 1]
-			s += (prev.piece.size[1] / 2 + d.gap + d.piece.size[1] / 2) * k
+			s += advance(drafts[idx - 1], d) * k
 		end
 		local p = d.piece
-		local jitter = (rng:float() * 2 - 1) * d.yawJitter
+		p.order = idx
+		local angle = start + s / circumference * 360
 		-- Kit fronts face Roblox +Z: turn 180 so the front faces the centre.
-		p.yaw = (start + s / circumference * 360 + 180 + jitter) % 360
-		-- inset > 0 pushes the slot out past the wall line; < 0 lets its
-		-- front reach over it (ghost decor: players brush into it, never onto it).
-		local half = radialHalf(p.size, jitter)
-		place(p, start + s / circumference * 360, R + half * (1 + 2 * lerp(d.inset, rng:float())))
-		clampToGround(p, 2, R - half)
+		p.yaw = (angle + 180 + p.turn) % 360
+		local half = radialHalf(p.size, p.turn)
+		local span = math.deg(tangentHalf(p.size, p.turn) / (R + cfg.base))
+		local room = groundDepth(angle % 360, span) + WorldBorder.SPILL - 2 * half
+		place(p, angle, R + math.max(0, math.min(d.o, room)) + half)
+		-- a hill's rim is low and tapered: it may reach back over the wall line
+		clampToGround(p, 2, R + half * (if name == "outer" then 0.55 else 1))
 		table.insert(pieces, p)
 	end
 	return pieces
 end
 
--- Corner groves: CORNER_CHUNKS per Ground corner, tucked over the back of
--- the front row (both are ghost decor), either side of the diagonal.
+-- Corner groves: CORNER_CHUNKS per Ground corner, deep in the square past
+-- the hills, either side of the diagonal. The 8 placements are the corner
+-- set (every chunk design in both hands) dealt out in a seeded shuffle.
 local function cornerRow(rng: Rng.Rng): { Piece }
-	local weights, defs = {}, {}
+	local set: { { def: Chunk, mirrored: boolean } } = {}
 	for _, c in WorldBorder.CHUNKS do
-		if c.corner > 0 then
-			table.insert(weights, c.corner)
-			table.insert(defs, c)
+		for k = 1, c.corner do
+			table.insert(set, { def = c, mirrored = k % 2 == 0 })
 		end
+	end
+	for i = #set, 2, -1 do
+		local j = rng:int(1, i)
+		set[i], set[j] = set[j], set[i]
 	end
 	local out = {}
 	for corner = 0, 3 do
 		local diagonal = 45 + corner * 90
 		local side = if rng:float() < 0.5 then -1 else 1
-		for _ = 1, WorldBorder.CORNER_CHUNKS do
-			local def = defs[Rng.weightedIndex(weights, rng:float())]
-			local p =
-				newPiece(def.kind, def.mesh, "corner", lerp(WorldBorder.CORNER_SCALE, rng:float()), rng:float() < 0.5)
-			-- Alternate sides of the diagonal, 5-11 degrees off it.
-			local angle = diagonal + side * (5 + rng:float() * 6)
+		for k = 1, WorldBorder.CORNER_CHUNKS do
+			local pick = set[corner * WorldBorder.CORNER_CHUNKS + k]
+			local def = pick.def
+			local p = newPiece(def.kind, def.mesh, "corner", lerp(WorldBorder.CORNER_SCALE, rng:float()), pick.mirrored)
+			-- Alternate sides of the diagonal, 3-8 degrees off it (the corner is a narrow wedge).
+			local angle = diagonal + side * (3 + rng:float() * 5)
 			side = -side
-			p.yaw = (angle + 180 + (rng:float() * 2 - 1) * 12) % 360
+			p.turn = (rng:float() * 2 - 1) * 12
+			p.yaw = (angle + 180 + p.turn) % 360
 			local inner = WorldBorder.RADIUS + WorldBorder.CORNER_TUCK + p.size[3] / 2
 			place(p, angle, inner + (WorldBorder.groundRadius(angle) - inner) * (0.1 + rng:float() * 0.5))
 			clampToGround(p, 1, inner)
@@ -343,9 +688,16 @@ local function cornerRow(rng: Rng.Rng): { Piece }
 end
 
 function WorldBorder.pieces(seed: number?): { Piece }
-	local rng = Rng.new(seed or WorldBorder.SEED)
-	local all = frontRow(rng)
-	for _, p in cornerRow(rng) do
+	local base = seed or WorldBorder.SEED
+	local all: { Piece } = {}
+	for i, name in { "inner", "mid", "outer" } do
+		local rng = Rng.new(base + i * 7919)
+		local drafts, circumference = draftLayer(rng, name)
+		for _, p in placeLayer(rng, name, drafts, circumference) do
+			table.insert(all, p)
+		end
+	end
+	for _, p in cornerRow(Rng.new(base + 104729)) do
 		table.insert(all, p)
 	end
 	return all

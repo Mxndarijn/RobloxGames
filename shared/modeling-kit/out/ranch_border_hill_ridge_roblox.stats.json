@@ -1,0 +1,109 @@
+{
+  "name": "ranch_border_hill_ridge",
+  "model": "/workspace/roblox/wt-border-v3/shared/modeling-kit/models/ranch_border_hill_ridge.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1564,
+  "meshes": [
+    {
+      "name": "ranch_border_hill_ridge",
+      "tris": 1564,
+      "verts": 890,
+      "ngons": 17,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        57.682,
+        21.673,
+        20.0
+      ],
+      "materials": [
+        "ranch_border_hill_ridge_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "ranch_border_hill_ridge_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    57.682,
+    21.673,
+    20.0
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "ranch_border_hill_ridge_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_hill_ridge.fbx",
+  "fbx_bytes": 52716,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_hill_ridge_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_hill_ridge_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_hill_ridge_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_hill_ridge_roblox_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.113,
+    "stats_s": 0.004,
+    "setup_s": 0.002,
+    "render_s": [
+      0.572,
+      0.529,
+      0.648,
+      0.678
+    ],
+    "export_s": 0.083
+  },
+  "sheet": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_hill_ridge_roblox_sheet.png",
+  "timings": {
+    "wall_s": 3.43,
+    "blender_process_s": 3.07,
+    "compose_s": 0.354,
+    "model_s": 0.113,
+    "stats_s": 0.004,
+    "setup_s": 0.002,
+    "render_s": [
+      0.572,
+      0.529,
+      0.648,
+      0.678
+    ],
+    "export_s": 0.083
+  }
+}

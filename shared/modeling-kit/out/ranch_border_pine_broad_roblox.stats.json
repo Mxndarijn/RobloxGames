@@ -1,0 +1,111 @@
+{
+  "name": "ranch_border_pine_broad",
+  "model": "/workspace/roblox/wt-border-v3/shared/modeling-kit/models/ranch_border_pine_broad.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 212,
+  "meshes": [
+    {
+      "name": "ranch_border_pine_broad",
+      "tris": 212,
+      "verts": 130,
+      "ngons": 2,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        12.347,
+        13.54,
+        12.134
+      ],
+      "materials": [
+        "ranch_border_pine_broad_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "ranch_border_pine_broad_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    12.347,
+    13.54,
+    12.134
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "ranch_border_pine_broad_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [
+    "212 tris outside prop target 500-2000"
+  ],
+  "fbx": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_pine_broad.fbx",
+  "fbx_bytes": 21964,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_pine_broad_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_pine_broad_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_pine_broad_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_pine_broad_roblox_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.122,
+    "stats_s": 0.001,
+    "setup_s": 0.003,
+    "render_s": [
+      0.582,
+      0.627,
+      0.697,
+      0.706
+    ],
+    "export_s": 0.081
+  },
+  "sheet": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_pine_broad_roblox_sheet.png",
+  "timings": {
+    "wall_s": 3.7,
+    "blender_process_s": 3.36,
+    "compose_s": 0.331,
+    "model_s": 0.122,
+    "stats_s": 0.001,
+    "setup_s": 0.003,
+    "render_s": [
+      0.582,
+      0.627,
+      0.697,
+      0.706
+    ],
+    "export_s": 0.081
+  }
+}

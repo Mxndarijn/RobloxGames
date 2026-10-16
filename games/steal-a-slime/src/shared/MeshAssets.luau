@@ -74,20 +74,32 @@ local NAMES = {
 	"ranch_wheelbarrow",
 	"ranch_windmill",
 	"slime_fountain_emerge",
-	"ranch_border_chunk_a",
-	"ranch_border_chunk_a_m",
+	"ranch_border_fence_straight",
+	"ranch_border_fence_broken",
+	"ranch_border_hedge_long",
+	"ranch_border_hedge_round",
+	"ranch_border_hedge_stepped",
+	"ranch_border_pine_tall",
+	"ranch_border_pine_broad",
+	"ranch_border_pine_twin",
+	"ranch_border_oak_round",
+	"ranch_border_sapling_trio",
+	"ranch_border_rock_boulder",
+	"ranch_border_rock_slab",
+	"ranch_border_rock_cluster",
+	"ranch_border_rock_spire",
+	"ranch_border_hill_ridge",
+	"ranch_border_hill_dome",
+	"ranch_border_hill_twin",
+	"ranch_border_fence_long",
+	"ranch_border_hedge_xl",
+	"ranch_border_grove_pine",
+	"ranch_border_grove_mixed",
+	"ranch_border_grove_rocky",
 	"ranch_border_chunk_b",
 	"ranch_border_chunk_b_m",
-	"ranch_border_chunk_c",
-	"ranch_border_chunk_c_m",
 	"ranch_border_chunk_d",
 	"ranch_border_chunk_d_m",
-	"ranch_border_chunk_e",
-	"ranch_border_chunk_e_m",
-	"ranch_border_chunk_f",
-	"ranch_border_chunk_f_m",
-	"ranch_border_chunk_g",
-	"ranch_border_chunk_g_m",
 	"ranch_border_chunk_h",
 	"ranch_border_chunk_h_m",
 	"habitat_crystal_grotto",
@@ -228,36 +240,61 @@ entries["ranch_windmill"] =
 	{ assetId = 122612940835932, meshId = "rbxassetid://120542952502577", size = { 8.382, 17.386, 9.65 } }
 entries["slime_fountain_emerge"] =
 	{ assetId = 100517882708695, meshId = "rbxassetid://74501501975558", size = { 19.436, 12.798, 11.353 } }
--- World border chunks (WorldBorder): one MeshAsset slot per ~55 studs of edge; "_m" = mirrored twin.
+-- World border v3 pieces (WorldBorder layers: fence/hedge inner, trees + rocks mid, hills outer): Open Cloud size-check.
+entries["ranch_border_fence_straight"] =
+	{ assetId = 112218798566397, meshId = "rbxassetid://103571944991059", size = { 25.623, 4.783, 2.701 } }
+entries["ranch_border_fence_broken"] =
+	{ assetId = 103533217929074, meshId = "rbxassetid://121373752619996", size = { 19.074, 4.888, 4.043 } }
+entries["ranch_border_hedge_long"] =
+	{ assetId = 83794062389872, meshId = "rbxassetid://116685603875924", size = { 24.968, 5.065, 4.92 } }
+entries["ranch_border_hedge_round"] =
+	{ assetId = 90045428838607, meshId = "rbxassetid://83546390836622", size = { 15.064, 5.506, 5.786 } }
+entries["ranch_border_hedge_stepped"] =
+	{ assetId = 105237080216235, meshId = "rbxassetid://113985027071790", size = { 21.347, 7.546, 4.909 } }
+entries["ranch_border_pine_tall"] =
+	{ assetId = 95807680722627, meshId = "rbxassetid://99083195396108", size = { 9.123, 24.87, 8.989 } }
+entries["ranch_border_pine_broad"] =
+	{ assetId = 112666291556200, meshId = "rbxassetid://84373547344968", size = { 12.347, 13.54, 12.134 } }
+entries["ranch_border_pine_twin"] =
+	{ assetId = 114991667389583, meshId = "rbxassetid://120168980685941", size = { 15.519, 19.72, 10.903 } }
+entries["ranch_border_oak_round"] =
+	{ assetId = 128068407623828, meshId = "rbxassetid://136470489381235", size = { 16.645, 16.443, 14.28 } }
+entries["ranch_border_sapling_trio"] =
+	{ assetId = 90720861579866, meshId = "rbxassetid://121306657581529", size = { 12.187, 9.351, 7.743 } }
+entries["ranch_border_rock_boulder"] =
+	{ assetId = 132240144452008, meshId = "rbxassetid://125140741014560", size = { 11.813, 6.674, 7.583 } }
+entries["ranch_border_rock_slab"] =
+	{ assetId = 133289868664978, meshId = "rbxassetid://85815223547935", size = { 13.767, 3.171, 6.564 } }
+entries["ranch_border_rock_cluster"] =
+	{ assetId = 123208953203128, meshId = "rbxassetid://109013245235520", size = { 14.179, 4.765, 9.208 } }
+entries["ranch_border_rock_spire"] =
+	{ assetId = 128652155245495, meshId = "rbxassetid://101473511078404", size = { 9.91, 10.517, 6.254 } }
+entries["ranch_border_hill_ridge"] =
+	{ assetId = 111594495650865, meshId = "rbxassetid://123304503530946", size = { 57.682, 21.673, 20 } }
+entries["ranch_border_hill_dome"] =
+	{ assetId = 129259673741850, meshId = "rbxassetid://131846670153688", size = { 41.736, 26.641, 29.811 } }
+entries["ranch_border_hill_twin"] =
+	{ assetId = 72142562438736, meshId = "rbxassetid://108674008696866", size = { 49.686, 21.282, 21.862 } }
+entries["ranch_border_fence_long"] =
+	{ assetId = 92527416818808, meshId = "rbxassetid://73361473495488", size = { 51.074, 5.612, 7.18 } }
+entries["ranch_border_hedge_xl"] =
+	{ assetId = 128259914576860, meshId = "rbxassetid://108264493248314", size = { 41.199, 6.755, 5.147 } }
+entries["ranch_border_grove_pine"] =
+	{ assetId = 110166328268913, meshId = "rbxassetid://132972161278608", size = { 36.498, 21.78, 15.243 } }
+entries["ranch_border_grove_mixed"] =
+	{ assetId = 102848305698195, meshId = "rbxassetid://119275936779741", size = { 31.183, 16.659, 15.66 } }
+entries["ranch_border_grove_rocky"] =
+	{ assetId = 131823405838760, meshId = "rbxassetid://73641376964456", size = { 33.409, 15.6, 12.811 } }
+-- World border corner groves (WorldBorder CHUNKS): one MeshAsset slot per ~55 studs; "_m" = mirrored twin.
 -- size = the probed MeshPart size (upload.py --size-check), else the kit stats.
-entries["ranch_border_chunk_a"] =
-	{ assetId = 94925331158619, meshId = "rbxassetid://92545803715039", size = { 53.774, 18.158, 18.784 } }
-entries["ranch_border_chunk_a_m"] =
-	{ assetId = 100781636247729, meshId = "rbxassetid://75208315249940", size = { 53.774, 18.158, 18.784 } }
 entries["ranch_border_chunk_b"] =
 	{ assetId = 71941409109721, meshId = "rbxassetid://82003799367581", size = { 56.891, 17.815, 21.716 } }
 entries["ranch_border_chunk_b_m"] =
 	{ assetId = 128326484353168, meshId = "rbxassetid://96881136657782", size = { 56.891, 17.815, 21.716 } }
-entries["ranch_border_chunk_c"] =
-	{ assetId = 92690189745758, meshId = "rbxassetid://77575505128375", size = { 55.829, 17.028, 18.597 } }
-entries["ranch_border_chunk_c_m"] =
-	{ assetId = 138313013473619, meshId = "rbxassetid://80884596375037", size = { 55.829, 17.028, 18.597 } }
 entries["ranch_border_chunk_d"] =
 	{ assetId = 137067804676236, meshId = "rbxassetid://97405969708559", size = { 55.355, 19.042, 19.384 } }
 entries["ranch_border_chunk_d_m"] =
 	{ assetId = 75235346512732, meshId = "rbxassetid://87662768383786", size = { 55.355, 19.042, 19.384 } }
-entries["ranch_border_chunk_e"] =
-	{ assetId = 109242744894138, meshId = "rbxassetid://132885194666319", size = { 56.401, 16.452, 23.796 } }
-entries["ranch_border_chunk_e_m"] =
-	{ assetId = 109365054036525, meshId = "rbxassetid://93903621590503", size = { 56.401, 16.452, 23.796 } }
-entries["ranch_border_chunk_f"] =
-	{ assetId = 80693531899144, meshId = "rbxassetid://77858255742515", size = { 54.459, 15.538, 19.699 } }
-entries["ranch_border_chunk_f_m"] =
-	{ assetId = 96662590834377, meshId = "rbxassetid://120762785944746", size = { 54.459, 15.538, 19.699 } }
-entries["ranch_border_chunk_g"] =
-	{ assetId = 127711380621535, meshId = "rbxassetid://135118890139766", size = { 54.983, 20.237, 22.209 } }
-entries["ranch_border_chunk_g_m"] =
-	{ assetId = 115480470444754, meshId = "rbxassetid://83216549463379", size = { 54.983, 20.237, 22.209 } }
 entries["ranch_border_chunk_h"] =
 	{ assetId = 73419946109730, meshId = "rbxassetid://111017472008949", size = { 53.606, 28.241, 42 } }
 entries["ranch_border_chunk_h_m"] =

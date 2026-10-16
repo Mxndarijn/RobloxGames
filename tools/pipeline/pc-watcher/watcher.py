@@ -343,7 +343,7 @@ def load_shots(folder=None):
     them; unreadable files are skipped with a note. shots is None if the folder is missing or empty."""
     folder = folder or os.path.join(HERE, "shots")
     shots, notes = [], []
-    for path in sorted(glob.glob(os.path.join(folder, "*.json"))):
+    for path in sorted(glob.glob(os.path.join(folder, "*.json")), key=lambda p: (int(re.match(r"\d+", os.path.basename(p)).group()) if re.match(r"\d+", os.path.basename(p)) else 10**9, os.path.basename(p))):
         name = os.path.basename(path)
         data = read_json(path, None)
         if isinstance(data, dict):
