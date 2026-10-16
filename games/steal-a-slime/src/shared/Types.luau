@@ -114,7 +114,8 @@ export type ModifierView = {
 	label: string,
 	luck: number,
 	mutation: number,
-	endsAt: number?, -- server time the dawn / dusk phase ends
+	endsAt: number?, -- server time the dawn / dusk phase ends (or the admin event)
+	icon: string?, -- FEATURES.AdminEvents: emoji of a live admin event, nil for dawn / dusk modifiers
 }
 
 export type StatsView = {

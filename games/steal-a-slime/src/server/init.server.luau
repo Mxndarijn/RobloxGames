@@ -35,6 +35,7 @@ local Rng = require(Shared:WaitForChild("Rng"))
 local Types = require(Shared:WaitForChild("Types"))
 
 local Actions = require(script.Actions)
+local AdminEventsService = require(script.AdminEventsService)
 local Badges = require(script.Badges)
 local Carry = require(script.Carry)
 local DataService = require(script.DataService)
@@ -536,8 +537,32 @@ local function refreshFriends()
 	Friends.refresh(friendCache, world, now())
 end
 
+-- Live admin events (CONTRACT.md §12): chat command from an admin, MessagingService between servers.
+local creatorOk, creatorId = pcall(function()
+	return if game.CreatorType == Enum.CreatorType.User then game.CreatorId else nil
+end)
+local adminEvents = AdminEventsService.new(world, if creatorOk then creatorId else nil, nil)
+if Config.FEATURES.AdminEvents then
+	AdminEventsService.start(adminEvents, now)
+end
+
+local function watchAdminChat(player: Player)
+	if not Config.FEATURES.AdminEvents then
+		return
+	end
+	pcall(function() -- the Lune live-boot Player stand-in has no Chatted
+		player.Chatted:Connect(function(text)
+			local reply = AdminEventsService.command(adminEvents, player.UserId, text, now())
+			if reply then
+				World.notify(world, player.UserId, reply, "info", nil)
+			end
+		end)
+	end)
+end
+
 local function onPlayerAdded(player: Player)
 	local userId = player.UserId
+	watchAdminChat(player)
 	local ok, result = DataService.load(data, userId)
 	if not player.Parent then
 		if ok then

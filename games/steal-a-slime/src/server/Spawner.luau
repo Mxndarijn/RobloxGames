@@ -164,6 +164,23 @@ end
 -- FEATURES.CycleModifier: re-rolls the server modifier when the DayNight phase
 -- (dawn / dusk) changes; the previous one ends right there. Pushes State to everyone.
 function Spawner.stepModifier(world: World, now: number)
+	local admin = world.adminEvent
+	if admin then
+		if now < admin.endsAt then
+			if world.modifier ~= admin.modifier then
+				world.modifier = admin.modifier
+				World.markAllDirty(world)
+			end
+			world.modifierEndsAt = admin.endsAt
+			return
+		end
+		-- Over: fall back to the dawn / dusk roll for this phase.
+		world.adminEvent = nil
+		world.modifier = CycleModifier.NONE
+		world.modifierPhase = -1
+		world.modifierEndsAt = nil
+		World.markAllDirty(world)
+	end
 	if not (Config.FEATURES.CycleModifier and Config.FEATURES.DayNight) then
 		return
 	end

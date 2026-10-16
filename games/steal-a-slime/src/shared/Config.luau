@@ -467,6 +467,7 @@ local Config = {
 		Weather = true, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md
 		SlimeLod = true, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
 		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
+		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -503,6 +504,20 @@ local Config = {
 		table.freeze({ name = "MutationSurge", label = "Mutation Surge", weight = 3, luck = 1, mutation = 3 }),
 		table.freeze({ name = "GoldenHour", label = "Golden Hour", weight = 1, luck = 1.5, mutation = 2 }),
 	}),
+
+	-- Live admin events (FEATURES.AdminEvents, CONTRACT.md §12). Only these UserIds (plus the place
+	-- owner when the creator is a user) may trigger one. Chat: "/event luck 10" (minutes).
+	ADMIN_USER_IDS = table.freeze({} :: { number }),
+	ADMIN_EVENTS = table.freeze({
+		table.freeze({ id = "luck", label = "Luck Event", icon = "🍀", luck = 3, mutation = 1 }),
+		table.freeze({ id = "mutation", label = "Mutation Event", icon = "🧬", luck = 1, mutation = 4 }),
+		table.freeze({ id = "rain", label = "Slime Rain", icon = "🌧", luck = 1, mutation = 1 }), -- Spawner.forceRain
+	}),
+	ADMIN_EVENT_DEFAULT_SECONDS = 600,
+	ADMIN_EVENT_MIN_SECONDS = 30,
+	ADMIN_EVENT_MAX_SECONDS = 1800,
+	ADMIN_EVENT_COOLDOWN = 20, -- seconds between two accepted triggers (local and received)
+	ADMIN_EVENT_TOPIC = "SlimeAdminEvent",
 
 	-- Mystery Egg (FEATURES.MysteryEgg): bought with in-game cash only, never Robux. The price is
 	-- MYSTERY_EGG_PRICE x the rebirth multiplier, so selling the hatch never beats the price.

@@ -286,6 +286,31 @@ local function forceFriends(state: any): any
 	return view
 end
 
+-- Studio-only: the SlimeUI attribute "PcwAdminEvent" ("luck" | "mutation") fakes a live admin event
+-- in State.modifier so the banner can be shot without a second admin account.
+local function forceAdminEvent(state: any): any
+	local id = if isStudio then gui:GetAttribute("PcwAdminEvent") else nil
+	local def = nil
+	for _, candidate in Config.ADMIN_EVENTS do
+		if candidate.id == id then
+			def = candidate
+		end
+	end
+	if not def or type(state.serverTime) ~= "number" then
+		return state
+	end
+	local view = table.clone(state)
+	view.modifier = {
+		name = "Admin_" .. def.id,
+		label = def.label,
+		luck = def.luck,
+		mutation = def.mutation,
+		endsAt = state.serverTime + 540,
+		icon = def.icon,
+	}
+	return view
+end
+
 local function panelState(key: string, realState: any): any
 	local state = forceFriends(realState)
 	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
@@ -620,7 +645,7 @@ function ctx.openDaily()
 end
 
 local function render(realState: Types.State)
-	local state: Types.State = forceFriends(realState)
+	local state: Types.State = forceAdminEvent(forceFriends(realState))
 	hud.update(state)
 	carry.update(state)
 	dailyPopup.update(state)
@@ -639,11 +664,13 @@ local function render(realState: Types.State)
 end
 
 if isStudio then
-	gui:GetAttributeChangedSignal("PcwFriendBonus"):Connect(function()
-		if latest then
-			pcall(render, latest)
-		end
-	end)
+	for _, attribute in { "PcwFriendBonus", "PcwAdminEvent" } do
+		gui:GetAttributeChangedSignal(attribute):Connect(function()
+			if latest then
+				pcall(render, latest)
+			end
+		end)
+	end
 end
 
 stateEvent.OnClientEvent:Connect(function(state: Types.State)

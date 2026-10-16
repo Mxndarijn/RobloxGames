@@ -1379,6 +1379,8 @@ def step_shots(run):
                     res["badge_toast"] = run.need_luau("badge_toast", "Client", timeout=15, name=shot["badge_toast"])
                 if shot.get("friend_bonus"):  # v29 #4: fake N friends in the server (badge + income line)
                     res["friend_bonus"] = run.need_luau("friend_bonus", "Client", timeout=15, count=int(shot["friend_bonus"]))
+                if shot.get("admin_event"):  # v29 #10: fake a live admin event banner (Studio only)
+                    res["admin_event"] = run.need_luau("admin_event", "Client", timeout=15, event=shot["admin_event"])
                 if shot.get("plot_slime"):  # fake owned slime so the Appraise button shows
                     res["plot_slime"] = run.need_luau("plot_slime", "Client", timeout=15, state="1")
                 opened = open_panel(run, key) if key else None
@@ -1416,6 +1418,8 @@ def step_shots(run):
                     run.luau("rebirth_slime", "Client", timeout=15, state="")
                 if shot.get("friend_bonus"):
                     run.luau("friend_bonus", "Client", timeout=15, count=0)
+                if shot.get("admin_event"):
+                    run.luau("admin_event", "Client", timeout=15, event="")
                 if shot.get("plot_slime"):
                     run.luau("plot_slime", "Client", timeout=15, state="")
             else:
