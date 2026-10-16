@@ -1,0 +1,19 @@
+{
+  "id": "22-border-aerial-slots",
+  "todo": "border-v3",
+  "kind": "world",
+  "pos": [
+    48,
+    150,
+    132
+  ],
+  "look": [
+    -100,
+    6,
+    -274
+  ],
+  "wait": 0.5,
+  "mesh_slots_max": 400,
+  "note": "perf proof (HARD): the border aerial with the play-world mesh slots (perf_server, wild slimes and characters excluded) asserted <= 400; the gate read 414 at b84f795, border v3 trimmed to 78 slots",
+  "device": "desktop"
+}
