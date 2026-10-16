@@ -7781,5 +7781,18 @@
       ]
     }
   },
-  "frames_dir": "304342009e57fc70f50bf15af02ad8b568da09b2/"
+  "frames_dir": "304342009e57fc70f50bf15af02ad8b568da09b2/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "18-slide-top-to-bottom (B6): PASS. slide_walk ok: 32 segments, 96 samples, 0 violations, worst clearance 0.76 studs, top 36.3 -> bottom 0.7; the frame is clean.",
+    "19-appraise-plot: PASS. The My Plot panel shows a slime row (Rare Blorp) with the Appraise $135 button and the sell button.",
+    "19b-mystery-egg-shop: PASS. The shop is scrolled to the Mystery Egg row ('Hatches a random slime. Cash only', $2K).",
+    "v29-11-slime-growth-pad: the slime is seated on Pad_1 and renders fine, but no 'Growth %' label is visible. The fresh test slime has probably not grown yet, so this is unproven, not broken.",
+    "21-weather-mutation-dex: the Dex opens fine at 1920x1080. Wet/Frozen are not visible without scrolling, so this is unproven. Minor: the rarity counts block in the Dex header overlaps the 'Next reward at 10' line (Secret 0/288 runs under it). Cosmetic, not blocking.",
+    "02c-badge-toast and 18-hold-ring-rebirth were not captured because of a watcher bug (need_luau name= kwarg clash), fixed in PR #132. The game is not at fault.",
+    "Rest OK: all steps pass, focus_stolen [], close pass, no leftovers."
+  ]
 }
