@@ -89,6 +89,18 @@ WorldLayout.FOUNTAIN_PROFILE = table.freeze({
 	wallTop = 30.0, -- WALL_TOP, the eave underside
 	eaveTop = 31.3, -- Z0, eave edge top (the red dome starts here)
 })
+-- The silo axis is the map centre: every fountain piece (mesh slot, emerge
+-- slot, colliders, crater, slide, landing ring, goo drain) is laid out from
+-- FOUNTAIN_CENTRE. The slime_fountain mesh's silo axis is SILO_OFFSET (X, Z)
+-- from its bbox centre (kit SILO_AXIS (-6.52, 7.75), Roblox Z = -kit y; an
+-- OBJ circle fit of the staves gives the same), so its slot sits at
+-- FOUNTAIN_CENTRE - SILO_OFFSET. EMERGE_OFFSET = emerge bbox centre minus
+-- fountain bbox centre (FOUNTAIN_SIZES.md). Unrotated: rotate both with the
+-- fountain if it ever turns.
+WorldLayout.FOUNTAIN_CENTRE = table.freeze({ 0, 0, 0 }) :: Vec
+WorldLayout.FOUNTAIN_MESH_SIZE = table.freeze({ 54.45, 43.316, 63.851 }) :: Vec
+WorldLayout.FOUNTAIN_SILO_OFFSET = table.freeze({ -6.52, 0, -7.75 }) :: Vec
+WorldLayout.FOUNTAIN_EMERGE_OFFSET = table.freeze({ -11.2, 18.94, -8.25 }) :: Vec
 -- Legacy name: the fountain still answers to Map.Volcano(.Crater) (CONTRACT §5.3).
 WorldLayout.VOLCANO_HEIGHT = WorldLayout.FOUNTAIN_HEIGHT
 -- The live ride is WorldLayout.SLIDE_PATH (mesh spiral, end r 35.5 on +Z).
@@ -291,7 +303,7 @@ WorldLayout.PROP_SPOTS = table.freeze({
 
 -- Spiral the polished slime_fountain slide follows (models/slime_fountain.py):
 -- 1.75 turns, end r 35.5 at the front. Kit (x, y, z-up) -> Roblox (x, z, -y),
--- silo axis at the world origin. Wilds ride this; the primitive chute copies it
+-- about the silo axis (FOUNTAIN_CENTRE, the world origin). Wilds ride this; the primitive chute copies it
 -- and hides once the fountain mesh loads.
 local SLIDE_TURNS, SLIDE_THETA_END = 1.75, -math.pi / 2
 local SLIDE_R0, SLIDE_RHELIX, SLIDE_REND = 4.8, 17.2, 35.5
@@ -334,8 +346,8 @@ local function buildSlide(): { Vec }
 		local u = length[k] / total
 		local drop = math.max(0, 1 - u / 0.9) ^ 1.2
 		local z = SLIDE_Z1 + (SLIDE_Z0 - SLIDE_Z1) * drop
-		local p = xy[k]
-		table.insert(path, { p[1], z, -p[2] })
+		local p, c = xy[k], WorldLayout.FOUNTAIN_CENTRE
+		table.insert(path, { c[1] + p[1], c[2] + z, c[3] - p[2] })
 	end
 	return path
 end
@@ -479,18 +491,22 @@ local function volcano(): WorldNode
 	local h = WorldLayout.FOUNTAIN_HEIGHT
 	local d = WorldLayout.FOUNTAIN_DIAMETER
 	local M = "slime_fountain"
+	local c = WorldLayout.FOUNTAIN_CENTRE
+	local function onAxis(y: number): Vec
+		return { c[1], c[2] + y, c[3] }
+	end
 	local children: { WorldNode } = {
-		standIn(disc("Rock1", 3, d, { 0, 1.5, 0 }, STONE, "Slate"), M),
-		standIn(disc("BasinRim", 1, d + 1, { 0, 3.5, 0 }, STONE_TRIM, "Slate"), M),
-		standIn(disc("Pool", 0.4, d - 3, { 0, 3.1, 0 }, POOL, "Glass"), M),
-		standIn(disc("Column", h - 8, 6, { 0, 3 + (h - 8) / 2, 0 }, STONE, "Slate"), M),
-		standIn(disc("Bowl", 3, 14, { 0, h - 3.5, 0 }, STONE_TRIM, "Slate"), M),
+		standIn(disc("Rock1", 3, d, onAxis(1.5), STONE, "Slate"), M),
+		standIn(disc("BasinRim", 1, d + 1, onAxis(3.5), STONE_TRIM, "Slate"), M),
+		standIn(disc("Pool", 0.4, d - 3, onAxis(3.1), POOL, "Glass"), M),
+		standIn(disc("Column", h - 8, 6, onAxis(3 + (h - 8) / 2), STONE, "Slate"), M),
+		standIn(disc("Bowl", 3, 14, onAxis(h - 3.5), STONE_TRIM, "Slate"), M),
 	}
 	local pool = children[3]
 	pool.canCollide = false
 	-- Stand-in too: once the mesh is in, a d11 neon plate poked out round the
 	-- mesh's own goo crown. It keeps its place as the drop origin and emitter host.
-	local crater = standIn(disc("Crater", 0.6, 11, { 0, h - 1.7, 0 }, POOL, "Neon"), M)
+	local crater = standIn(disc("Crater", 0.6, 11, onAxis(h - 1.7), POOL, "Neon"), M)
 	crater.canCollide = false
 	-- Client emitters attach here (VisualsClient); the glow keeps the pool lit.
 	crater.children = { light("CraterGlow") }
@@ -506,36 +522,29 @@ local function volcano(): WorldNode
 	local fp = WorldLayout.FOUNTAIN_PROFILE
 	local wallHeight = fp.eaveTop - fp.plinthTop
 	local trimHeight = fp.trimTop - fp.plinthTop
-	local plinth = disc("BasinCollider", fp.plinthTop, fp.plinthRadius * 2, { 0, fp.plinthTop / 2, 0 }, STONE_TRIM)
-	local trim =
-		disc("TrimCollider", trimHeight, fp.trimRadius * 2, { 0, fp.plinthTop + trimHeight / 2, 0 }, STONE_TRIM)
-	local wall = disc("SiloCollider", wallHeight, fp.wallRadius * 2, { 0, fp.plinthTop + wallHeight / 2, 0 }, STONE)
-	for _, c in { plinth, trim, wall } do
-		c.attributes = { MeshCollider = M }
-		c.transparency = 1
-		c.canCollide = false
-		c.canQuery = false
-		c.canTouch = false
-		table.insert(children, c)
+	local plinth = disc("BasinCollider", fp.plinthTop, fp.plinthRadius * 2, onAxis(fp.plinthTop / 2), STONE_TRIM)
+	local trim = disc("TrimCollider", trimHeight, fp.trimRadius * 2, onAxis(fp.plinthTop + trimHeight / 2), STONE_TRIM)
+	local wall = disc("SiloCollider", wallHeight, fp.wallRadius * 2, onAxis(fp.plinthTop + wallHeight / 2), STONE)
+	for _, collider in { plinth, trim, wall } do
+		collider.attributes = { MeshCollider = M }
+		collider.transparency = 1
+		collider.canCollide = false
+		collider.canQuery = false
+		collider.canTouch = false
+		table.insert(children, collider)
 	end
-	-- Native bbox of the polished slime_fountain (stats size, no squash).
-	-- Silo axis is kit (-6.52, 7.75) from the bbox centre (FOUNTAIN_SIZES)
-	-- = Roblox X/Z (-6.52, -7.75) with Z = -kit y. The slot sits on the
-	-- opposite point so the silo axis is the world origin and the base is y = 0.
-	local fountainSize: Vec = { 54.45, 43.316, 63.851 }
-	local fountainCentre: Vec = { 6.52, fountainSize[2] / 2, 7.75 }
+	-- Native bbox of the polished slime_fountain (stats size, no squash),
+	-- placed so its silo axis is FOUNTAIN_CENTRE and its base is the ground.
+	local fountainSize, silo = WorldLayout.FOUNTAIN_MESH_SIZE, WorldLayout.FOUNTAIN_SILO_OFFSET
+	local fountainCentre: Vec = { c[1] - silo[1], c[2] + fountainSize[2] / 2, c[3] - silo[3] }
 	local slot = meshSlot(block("FountainMesh", fountainSize, fountainCentre, STONE), M, true)
 	slot.attributes = slot.attributes or {}
 	slot.attributes.MeshStandInsCollide = false
 	table.insert(children, slot)
-	-- Emerge slimes, split out of the fountain (FOUNTAIN_SIZES). Offset is
-	-- the emerge bbox centre minus the fountain bbox centre, Roblox axes.
-	-- Invisible until its mesh id is filled; bobbing can hook this slot later.
-	local emergePos: Vec = {
-		fountainCentre[1] - 11.2,
-		fountainCentre[2] + 18.94,
-		fountainCentre[3] - 8.25,
-	}
+	-- Emerge slimes, split out of the fountain (FOUNTAIN_SIZES): the same
+	-- bbox-centre offset. Invisible until its mesh id is filled; bobbing can
+	-- hook this slot later.
+	local emergePos = LayoutMath.add(fountainCentre, WorldLayout.FOUNTAIN_EMERGE_OFFSET)
 	table.insert(
 		children,
 		meshSlot(block("EmergeMesh", { 19.436, 12.798, 11.353 }, emergePos, POOL), "slime_fountain_emerge", true)
@@ -853,7 +862,8 @@ local function plaza(): WorldNode
 	for i = 0, LANDING_TILES - 1 do
 		local yaw = i * (360 / LANDING_TILES)
 		local a = math.rad(yaw)
-		local pos = { math.sin(a) * LANDING_BBOX, y, math.cos(a) * LANDING_BBOX }
+		local c = WorldLayout.FOUNTAIN_CENTRE
+		local pos = { c[1] + math.sin(a) * LANDING_BBOX, c[2] + y, c[3] + math.cos(a) * LANDING_BBOX }
 		table.insert(
 			tiles,
 			visualMesh(block(`Tile{i + 1}`, LANDING_SIZE, pos, PLAZA, "Slate", { 0, yaw, 0 }), "ranch_landing_ring")
@@ -864,7 +874,16 @@ local function plaza(): WorldNode
 	local drainSize: Vec = { 8.8, 4.45, 9.75 }
 	table.insert(
 		children,
-		visualMesh(block("GooDrain", drainSize, { 0, drainSize[2] / 2, 52 }, PLAZA, "Slate"), "ranch_goo_drain")
+		visualMesh(
+			block(
+				"GooDrain",
+				drainSize,
+				LayoutMath.add(WorldLayout.FOUNTAIN_CENTRE, { 0, drainSize[2] / 2, 52 }),
+				PLAZA,
+				"Slate"
+			),
+			"ranch_goo_drain"
+		)
 	)
 	return { name = "Plaza", class = "Folder", children = children }
 end
