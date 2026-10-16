@@ -45,4 +45,19 @@ function MenuState.bannerRect(openKey: string?, idleRect: Rect): Rect?
 	return nil
 end
 
+-- The tutorial card and its hint ring / bubble sit over a content-sized card's
+-- inputs on phone landscape (Codes box + Redeem): they show only with no menu
+-- open. The step itself is untouched; closing the menu brings the same card back.
+function MenuState.tutorialVisible(openKey: string?): boolean
+	return openKey == nil
+end
+
+-- A tutorial box (card, hint ring or bubble) for the open key: nil while a menu is open.
+function MenuState.tutorialRect(openKey: string?, idleRect: Rect): Rect?
+	if MenuState.tutorialVisible(openKey) then
+		return idleRect
+	end
+	return nil
+end
+
 return MenuState

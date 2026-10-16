@@ -376,6 +376,7 @@ local function syncMenus()
 	end
 	openKey = visibleKey
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
+	tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))
 	backdrop.Visible = visibleKey ~= nil
 	refreshHint()
 end
@@ -724,7 +725,7 @@ task.spawn(function()
 			hud.tick(now)
 			carry.tick(now)
 			panelByKey.Codes.tick(now)
-			hintOverlay.tick(now, tutorial.frame.Visible)
+			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
 		end
 	end
 end)
