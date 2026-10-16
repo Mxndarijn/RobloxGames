@@ -176,7 +176,8 @@ function Carry.release(world: World, userId: number, now: number, position: any?
 	local wild = world.wild[carry.slimeId]
 	if wild then
 		wild.position = position
-		wild.expiresAt = now + Config.WILD_LIFETIME
+		-- A dropped Boss Slime keeps the boss lifetime (DespawnTelegraph warns before either).
+		wild.expiresAt = now + (if wild.boss then Config.BOSS_LIFETIME else Config.WILD_LIFETIME)
 	end
 	World.markDirty(session)
 	return true
