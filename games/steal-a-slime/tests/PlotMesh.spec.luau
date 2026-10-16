@@ -1,0 +1,197 @@
+--!strict
+-- Plot kit meshes (v31): MeshSwap fits a mesh to its slot box, so every slot
+-- must be the mesh's native size times one scale. Pad stands, gates and the
+-- ranch hay bale were squashed (stand 1.03/0.23/1.03, gate 0.99/0.67/0.38,
+-- hay bale 1.25/1.53/1.95), and the stand and gate slots ignored the plot yaw.
+local Config = require("../src/shared/Config")
+local LayoutMath = require("../src/visuals/shared/LayoutMath")
+local MeshAssets = require("../src/shared/MeshAssets")
+local TestRunner = require("./TestRunner")
+local WorldLayout = require("../src/visuals/shared/WorldLayout")
+
+local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+
+type Node = WorldLayout.WorldNode
+type Vec = LayoutMath.Vec
+
+local function walk(nodes: { Node }?, visit: (Node) -> ())
+	for _, node in nodes or {} do
+		visit(node)
+		walk(node.children, visit)
+	end
+end
+
+local function child(node: Node, name: string): Node
+	for _, c in node.children or {} do
+		if c.name == name then
+			return c
+		end
+	end
+	error(`{node.name} has no {name}`)
+end
+
+local function native(mesh: string): Vec
+	return (MeshAssets.get(mesh) :: any).size :: Vec
+end
+
+-- Per-axis slot / native ratios.
+local function ratios(node: Node, mesh: string): Vec
+	local size, n = node.size :: Vec, native(mesh)
+	return { size[1] / n[1], size[2] / n[2], size[3] / n[3] }
+end
+
+local function uniform(r: Vec): boolean
+	local lo, hi = math.min(r[1], r[2], r[3]), math.max(r[1], r[2], r[3])
+	return hi / lo < 1.01
+end
+
+local function meshOf(node: Node): string?
+	local attributes = node.attributes
+	return attributes and attributes.MeshAsset
+end
+
+-- `pos` in the plot's own frame (entrance at local -Z).
+local function toPlot(i: number, pos: Vec): Vec
+	local centre, yaw = WorldLayout.plotCentre(i)
+	local d = { pos[1] - centre[1], pos[2] - centre[2], pos[3] - centre[3] }
+	return LayoutMath.apply(LayoutMath.orientation({ 0, -yaw, 0 }), d)
+end
+
+local function sameAngle(a: number, b: number): boolean
+	return math.abs((a - b + 180) % 360 - 180) < 1e-6
+end
+
+local world = WorldLayout.build()
+local plots = world[2].children :: { Node }
+local BASE_TOP = 1
+
+describe("kit mesh slots keep the mesh's proportions", function()
+	it("sizes every block slot as the native mesh times one scale", function()
+		local bad, checked = {}, 0
+		walk(world, function(node)
+			local mesh = meshOf(node)
+			if node.class == "Part" and node.shape == "Block" and mesh and (MeshAssets.get(mesh) :: any).size then
+				checked += 1
+				local r = ratios(node, mesh)
+				if not uniform(r) then
+					table.insert(bad, `{node.name} ({mesh}) {r[1]}/{r[2]}/{r[3]}`)
+				end
+			end
+		end)
+		expect(table.concat(bad, "; ")).toBe("")
+		-- 8 plots x (PADS_MAX stands + gate + 4 corner posts) + plaza + decor
+		expect(checked >= Config.PLOT_COUNT * (Config.PADS_MAX + 5)).toBe(true)
+	end)
+	it("gives the ranch hay bale behind the plots its native proportions", function()
+		local found = 0
+		walk(world, function(node)
+			if meshOf(node) == "ranch_hay_bale" then
+				found += 1
+				local r = ratios(node, "ranch_hay_bale")
+				expect(uniform(r)).toBe(true)
+				-- stands on the ground
+				expect((node.pos :: Vec)[2] - (node.size :: Vec)[2] / 2).toBeCloseTo(0)
+			end
+		end)
+		expect(found > 0).toBe(true)
+	end)
+end)
+
+describe("pad stands", function()
+	it("puts each stand on the Base at native size, turned with the plot", function()
+		for i, plot in plots do
+			local _, yaw = WorldLayout.plotCentre(i)
+			for j = 1, Config.PADS_MAX do
+				local pad = child(plot, `Pad_{j}`)
+				local stand = child(pad, "Stand")
+				local look = meshOf(stand) :: string
+				local r = ratios(stand, look)
+				expect(r[1]).toBeCloseTo(1)
+				expect(r[2]).toBeCloseTo(1)
+				expect(r[3]).toBeCloseTo(1)
+				local p = toPlot(i, stand.pos :: Vec)
+				expect(p[2] - (stand.size :: Vec)[2] / 2).toBeCloseTo(BASE_TOP)
+				expect(sameAngle((stand.rot :: Vec)[2], yaw)).toBe(true)
+				expect(sameAngle((pad.rot :: Vec)[2], yaw)).toBe(true)
+				-- same spot as the Pad
+				local q = toPlot(i, pad.pos :: Vec)
+				expect(p[1]).toBeCloseTo(q[1])
+				expect(p[3]).toBeCloseTo(q[3])
+			end
+		end
+	end)
+	it("tops the Pad at the stand's seat, so slimes rest on the mesh", function()
+		for i, plot in plots do
+			for j = 1, Config.PADS_MAX do
+				local pad = child(plot, `Pad_{j}`)
+				local look = meshOf(child(pad, "Stand")) :: string
+				local seat = WorldLayout.PAD_SEAT[look]
+				expect(seat ~= nil and seat > 0 and seat <= native(look)[2]).toBe(true)
+				local p = toPlot(i, pad.pos :: Vec)
+				local h = (pad.size :: Vec)[2]
+				expect(p[2] - h / 2).toBeCloseTo(BASE_TOP)
+				expect(p[2] + h / 2).toBeCloseTo(BASE_TOP + seat)
+				-- the primitive Pad hides once its stand mesh lands (it keeps collision and the prompt)
+				expect((pad.attributes :: any).MeshStandIn).toBe(look)
+				expect((pad.attributes :: any).PadIndex).toBe(j)
+				expect(pad.canCollide ~= false).toBe(true)
+			end
+		end
+	end)
+	it("has a seat for every stand look", function()
+		for _, look in WorldLayout.PAD_MESHES do
+			expect(WorldLayout.PAD_SEAT[look] ~= nil).toBe(true)
+		end
+	end)
+end)
+
+describe("plot gate", function()
+	local board = WorldLayout.GATE_BOARD
+	it("fills the gate slot at native size, board facing out of the entrance", function()
+		for i, plot in plots do
+			local _, yaw = WorldLayout.plotCentre(i)
+			local mesh = child(child(plot, "Gate"), "GateMesh")
+			local r = ratios(mesh, "phoenix_gate")
+			expect(r[1]).toBeCloseTo(1)
+			expect(r[2]).toBeCloseTo(1)
+			expect(r[3]).toBeCloseTo(1)
+			expect(math.abs((mesh.size :: Vec)[1] - WorldLayout.GATE_SLOT) < 0.5).toBe(true)
+			local p = toPlot(i, mesh.pos :: Vec)
+			expect(p[1]).toBeCloseTo(0)
+			expect(p[2] - (mesh.size :: Vec)[2] / 2).toBeCloseTo(BASE_TOP)
+			expect(p[3]).toBeCloseTo(-WorldLayout.PLOT_SIZE / 2 + 0.5)
+			-- kit fronts face Roblox +Z, the entrance is local -Z
+			expect(sameAngle((mesh.rot :: Vec)[2], yaw + 180)).toBe(true)
+		end
+	end)
+	it("puts the plot Sign on the mesh's name board, readable from both sides", function()
+		local wallZ = -WorldLayout.PLOT_SIZE / 2 + 0.5
+		for i, plot in plots do
+			local sign = child(plot, "Sign")
+			local size = sign.size :: Vec
+			local p = toPlot(i, sign.pos :: Vec)
+			expect(size[1]).toBeCloseTo(board.width)
+			expect(size[2]).toBeCloseTo(board.height)
+			expect(p[1]).toBeCloseTo(0)
+			expect(p[2]).toBeCloseTo(BASE_TOP + board.centreY)
+			-- bottom edge stays >= 9 above the walkway
+			expect(p[2] - size[2] / 2 >= BASE_TOP + 9).toBe(true)
+			-- front face just proud of the board, back face behind the gate (half depth 1.3)
+			local front, back = p[3] - size[3] / 2, p[3] + size[3] / 2
+			expect(front < wallZ - board.front and front > wallZ - board.front - 0.2).toBe(true)
+			expect(back > wallZ + 0.5).toBe(true)
+			-- inside the gate mesh's top, which ends 13.4 up
+			expect(p[2] + size[2] / 2 < BASE_TOP + native("phoenix_gate")[2]).toBe(true)
+		end
+	end)
+	it("hides the primitive sign board, posts and beam once the gate mesh lands", function()
+		for _, plot in plots do
+			local sign = child(plot, "Sign")
+			expect((sign.attributes :: any).MeshStandIn).toBe("phoenix_gate")
+			for _, c in sign.children or {} do
+				expect((c.attributes :: any).MeshStandIn).toBe("phoenix_gate")
+			end
+			expect(#(sign.children or {})).toBe(3)
+		end
+	end)
+end)

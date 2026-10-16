@@ -83,6 +83,17 @@ WorldLayout.WALL_HEIGHT = 8
 -- Pad stand looks (Phoenix kit), cycled per pad.
 WorldLayout.PAD_MESHES =
 	table.freeze({ "phoenix_pad_crate", "phoenix_pad_hay", "phoenix_pad_goo", "phoenix_pad_stool" })
+-- Where a slime sits on each stand at native size (kit model headers): the Pad
+-- top goes here, so slimes rest on the mesh instead of sinking into it.
+WorldLayout.PAD_SEAT = table.freeze({
+	phoenix_pad_crate = 2.4,
+	phoenix_pad_hay = 1.0,
+	phoenix_pad_goo = 1.5,
+	phoenix_pad_stool = 3.0,
+})
+-- phoenix_gate's cream name board at native size (models/phoenix_gate.py
+-- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line).
+WorldLayout.GATE_BOARD = table.freeze({ width = 9, height = 2.4, centreY = 10.5, front = 1.1 })
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
@@ -227,6 +238,13 @@ local function standIn(node: WorldNode, mesh: string): WorldNode
 	attributes.MeshStandIn = mesh
 	node.attributes = attributes
 	return node
+end
+
+-- MeshSwap fits a mesh to its slot box, so a slot that isn't the mesh's native
+-- size times one `scale` squashes it (a 4x9x2 box made the signpost 0.32/0.62/0.26).
+local function meshSize(mesh: string, scale: number): Vec
+	local native = (MeshAssets.get(mesh) :: any).size :: Vec
+	return { native[1] * scale, native[2] * scale, native[3] * scale }
 end
 
 local function block(name: string, size: Vec, pos: Vec, color: Vec, material: string?, rot: Vec?): WorldNode
@@ -489,10 +507,10 @@ local function decor(): WorldNode
 	end
 	-- Sparse ranch props behind the plots, between neighbours (kit meshes).
 	local RANCH = {
-		{ "ranch_hay_bale", { 5, 4, 5 }, { 228, 196, 110 }, "Fabric" },
-		{ "ranch_crate", { 4, 4, 4 }, WOOD, "WoodPlanks" },
-		{ "ranch_feed_trough", { 8, 3, 3 }, WOOD, "Wood" },
-		{ "ranch_crate_goo", { 4, 4, 4 }, { 120, 220, 140 }, "WoodPlanks" },
+		{ "ranch_hay_bale", meshSize("ranch_hay_bale", 1.25), { 228, 196, 110 }, "Fabric" },
+		{ "ranch_crate", meshSize("ranch_crate", 4 / 3), WOOD, "WoodPlanks" },
+		{ "ranch_feed_trough", meshSize("ranch_feed_trough", 1.3), WOOD, "Wood" },
+		{ "ranch_crate_goo", meshSize("ranch_crate_goo", 4 / 3), { 120, 220, 140 }, "WoodPlanks" },
 	}
 	for k = 1, Config.PLOT_COUNT do
 		local yaw = plotYaw(k) + 360 / Config.PLOT_COUNT / 2
@@ -504,12 +522,10 @@ local function decor(): WorldNode
 		add(node, pos, 4)
 	end
 	for k, yaw in { 90, 270 } do
-		local pos = onPolar(yaw + 22.5, 245, 6)
+		local size = meshSize("ranch_shed", 1.4)
+		local pos = onPolar(yaw + 22.5, 245, size[2] / 2)
 		add(
-			meshSlot(
-				block(`Shed{k}`, { 16, 12, 12 }, pos, { 176, 92, 72 }, "WoodPlanks", { 0, yaw + 22.5, 0 }),
-				"ranch_shed"
-			),
+			meshSlot(block(`Shed{k}`, size, pos, { 176, 92, 72 }, "WoodPlanks", { 0, yaw + 22.5, 0 }), "ranch_shed"),
 			pos,
 			10
 		)
@@ -527,12 +543,8 @@ end
 -- Plaza showpieces between the drop ring (62) and the ring path, as kit mesh
 -- slots. The Top Earners board and shop stand skin the live WorldProps models
 -- (ShopStand / LeaderboardBoard, MeshAsset on the Model).
--- MeshSwap fits a mesh to its slot box, so each slot is the mesh's native
--- size times one `scale` (a 4x9x2 box squashed the signpost to 0.32/0.62/0.26).
 local function plazaProp(name: string, mesh: string, yaw: number, r: number, scale: number)
-	local native = (MeshAssets.get(mesh) :: any).size :: Vec
-	local size = { native[1] * scale, native[2] * scale, native[3] * scale }
-	return { name = name, mesh = mesh, yaw = yaw, r = r, size = size }
+	return { name = name, mesh = mesh, yaw = yaw, r = r, size = meshSize(mesh, scale) }
 end
 WorldLayout.PLAZA_PROPS = table.freeze({
 	plazaProp("Signpost", "ranch_plaza_signpost", 112.5, 68, 0.62),
@@ -752,11 +764,17 @@ local function plot(i: number): WorldNode
 	}
 	for j = 1, Config.PADS_MAX do
 		local x, z = WorldLayout.padOffset(j)
-		local pad = block(`Pad_{j}`, { 8, 0.6, 8 }, at({ x, 1.3, z }), color, "SmoothPlastic", { 0, yaw, 0 })
-		pad.attributes = { PadIndex = j }
 		local look = WorldLayout.PAD_MESHES[(j + i - 2) % #WorldLayout.PAD_MESHES + 1]
-		-- Pad stays the gameplay surface; the stand mesh fills the same box.
-		pad.children = { meshSlot(block("Stand", { 8, 0.6, 8 }, at({ x, 1.3, z }), color), look, true) }
+		-- Pad stays the gameplay surface (collision, prompt, slimes rest on its
+		-- top) from the Base up to the stand's seat; the stand mesh sits on the
+		-- Base at native size and the Pad hides under it once it lands.
+		local seat = WorldLayout.PAD_SEAT[look]
+		local pad = block(`Pad_{j}`, { 8, seat, 8 }, at({ x, 1 + seat / 2, z }), color, "SmoothPlastic", { 0, yaw, 0 })
+		pad.attributes = { PadIndex = j }
+		standIn(pad, look)
+		local stand = meshSize(look, 1)
+		pad.children =
+			{ meshSlot(block("Stand", stand, at({ x, 1 + stand[2] / 2, z }), color, nil, { 0, yaw, 0 }), look, true) }
 		table.insert(children, pad)
 	end
 
@@ -775,11 +793,39 @@ local function plot(i: number): WorldNode
 		{ block("Pedestal", { 5, 1.5, 5 }, at({ 19, 1.75, -14 }), { 80, 80, 95 }, "Metal", { 0, yaw, 0 }) }
 	table.insert(children, button)
 
-	-- Sign spans the gate; its bottom edge stays >= 9 above the walkway.
-	local sign = block("Sign", { 16, 5, 0.6 }, at({ 0, 12, -s / 2 + 0.5 }), SIGN, "WoodPlanks", { 0, yaw, 0 })
+	-- Sign = the gate mesh's cream name board (PlotSigns writes on it), its
+	-- bottom edge >= 9 above the walkway. Deep enough to come out just in front
+	-- of the board and just behind the beam, so both text faces stay readable.
+	-- Board, posts and beam are stand-ins: the mesh draws them once it lands.
+	local wallZ = -s / 2 + 0.5
+	local board = WorldLayout.GATE_BOARD
+	local signY = 1 + board.centreY
+	local signFront, signBack = wallZ - board.front - 0.05, wallZ + 0.55
+	local sign = standIn(
+		block(
+			"Sign",
+			{ board.width, board.height, signBack - signFront },
+			at({ 0, signY, (signFront + signBack) / 2 }),
+			SIGN,
+			"WoodPlanks",
+			{ 0, yaw, 0 }
+		),
+		"phoenix_gate"
+	)
+	local postH = signY + 1.2 - 1
 	sign.children = {
-		block("PostL", { 0.8, 13, 0.8 }, at({ -8.4, 7.5, -s / 2 + 0.5 }), WOOD, "Wood", { 0, yaw, 0 }),
-		block("PostR", { 0.8, 13, 0.8 }, at({ 8.4, 7.5, -s / 2 + 0.5 }), WOOD, "Wood", { 0, yaw, 0 }),
+		standIn(
+			block("PostL", { 0.8, postH, 0.8 }, at({ -8.4, 1 + postH / 2, wallZ }), WOOD, "Wood", { 0, yaw, 0 }),
+			"phoenix_gate"
+		),
+		standIn(
+			block("PostR", { 0.8, postH, 0.8 }, at({ 8.4, 1 + postH / 2, wallZ }), WOOD, "Wood", { 0, yaw, 0 }),
+			"phoenix_gate"
+		),
+		standIn(
+			block("Beam", { 17.6, 1.2, 0.8 }, at({ 0, signY + 1.2 + 0.6, wallZ }), WOOD, "Wood", { 0, yaw, 0 }),
+			"phoenix_gate"
+		),
 	}
 	table.insert(children, sign)
 
@@ -805,11 +851,13 @@ local function plot(i: number): WorldNode
 		node.attributes = { FenceMesh = F } -- 10-stud segments once the budget allows
 		table.insert(children, node)
 	end
+	local postSize = meshSize("phoenix_corner_post", (wh + 1) / (MeshAssets.get("phoenix_corner_post") :: any).size[2])
 	for k, c in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
+		local inset = postSize[1] / 2
 		local post = block(
 			`CornerPost_{k}`,
-			{ 2, wh + 1, 2 },
-			at({ c[1] * (s / 2 - 1), 1 + (wh + 1) / 2, c[2] * (s / 2 - 1) }),
+			postSize,
+			at({ c[1] * (s / 2 - inset), 1 + (wh + 1) / 2, c[2] * (s / 2 - inset) }),
 			WOOD,
 			"Wood",
 			r
@@ -817,13 +865,17 @@ local function plot(i: number): WorldNode
 		table.insert(children, meshSlot(post, "phoenix_corner_post"))
 	end
 	local postW = (slot - clear) / 2
+	-- The kit gate is built for this slot (14 clear, stubs to +-10): native size.
+	-- Kit FBX fronts face Roblox +Z (LESSONS kit gotcha): turn it 180 so the
+	-- name board faces out of the entrance.
+	local gateSize = meshSize("phoenix_gate", 1)
 	local gate: WorldNode = {
 		name = "Gate",
 		class = "Model",
 		primaryPart = "GateMesh",
 		children = {
 			meshSlot(
-				block("GateMesh", { slot, wh + 1, 1 }, at({ 0, 1 + (wh + 1) / 2, -s / 2 + 0.5 }), WOOD),
+				block("GateMesh", gateSize, at({ 0, 1 + gateSize[2] / 2, wallZ }), WOOD, nil, { 0, yaw + 180, 0 }),
 				"phoenix_gate",
 				true
 			),
