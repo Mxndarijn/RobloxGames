@@ -93,6 +93,13 @@ local NAMES = {
 	"habitat_crystal_grotto",
 	"habitat_candy_patch",
 	"ranch_fence_20",
+	"slime_base",
+	"slime_acc_leaf",
+	"slime_ears",
+	"slime_horns",
+	"slime_acc_crown",
+	"slime_acc_crystal",
+	"slime_wobble",
 }
 
 local entries: { [string]: Entry } = {}
@@ -257,6 +264,19 @@ entries["habitat_candy_patch"] =
 -- 20-stud plot fence (models/ranch_fence_20.py): Open Cloud size-check.
 entries["ranch_fence_20"] =
 	{ assetId = 93657150564692, meshId = "rbxassetid://124018567196524", size = { 22, 9.02, 1.8 } }
+-- Per-type slime kit (SlimeLooks.kit; server SlimeMesh, NOT world slots: they are
+-- cloned per slime, so they never count against WorldLayout.MESH_SLOT_BUDGET).
+entries["slime_base"] = { assetId = 133281767866632, meshId = "rbxassetid://96069569027056", size = { 3, 3, 3 } }
+entries["slime_acc_leaf"] =
+	{ assetId = 106754639859242, meshId = "rbxassetid://97059324837657", size = { 0.764, 1.207, 0.42 } }
+entries["slime_ears"] = { assetId = 133539750305742, meshId = "rbxassetid://117281005651852", size = { 3, 3.012, 3 } }
+entries["slime_horns"] = { assetId = 105609409091359, meshId = "rbxassetid://92010370751646", size = { 3, 3.522, 3 } }
+entries["slime_acc_crown"] =
+	{ assetId = 74364823935489, meshId = "rbxassetid://92341925509131", size = { 2.122, 0.855, 2.061 } }
+entries["slime_acc_crystal"] =
+	{ assetId = 81793700384926, meshId = "rbxassetid://95064860572309", size = { 1.595, 1.599, 1.146 } }
+entries["slime_wobble"] =
+	{ assetId = 73195420238991, meshId = "rbxassetid://122483175823891", size = { 3.23, 3, 3.307 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)

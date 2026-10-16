@@ -57,7 +57,15 @@ RanchProps.CLUSTERS = table.freeze({ "plaza", "entrance", "farm" })
 -- Uploaded kit meshes that never get a slot of their own. Empty on purpose:
 -- every MeshAssets entry has a slot today. Add { mesh = reason } here rather
 -- than leaving an asset silently unused (tests/RanchProps.spec enforces it).
-RanchProps.INTENTIONALLY_UNPLACED = table.freeze({}) :: { [string]: string }
+RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
+	slime_base = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
+	slime_acc_leaf = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
+	slime_ears = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
+	slime_horns = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
+	slime_acc_crown = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
+	slime_acc_crystal = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
+	slime_wobble = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
+}) :: { [string]: string }
 
 local rows: { Placement } = {}
 

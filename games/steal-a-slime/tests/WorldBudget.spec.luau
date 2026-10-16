@@ -12,6 +12,7 @@
 -- primitive stand-ins) is held to BORDER_PART_BUDGET on its own.
 local Config = require("../src/shared/Config")
 local MeshAssets = require("../src/shared/MeshAssets")
+local SlimeLooks = require("../src/shared/SlimeLooks")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -163,6 +164,24 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 		expect(budgeted <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 		-- the budget is the real count, not a ceiling far above it
 		expect(WorldLayout.MESH_SLOT_BUDGET - budgeted < 10).toBe(true)
+	end)
+	it("does not spend world slots on the per-type slime kit meshes", function()
+		local kits = {}
+		for _, kit in SlimeLooks.KITS do
+			kits[kit] = true
+		end
+		for _, node in buildUploaded() do
+			local stack = { node }
+			while #stack > 0 do
+				local n = table.remove(stack) :: any
+				local a = n.attributes or {}
+				expect(kits[a.MeshAsset] == nil and kits[a.BorderMesh] == nil).toBe(true)
+				for _, child in n.children or {} do
+					table.insert(stack, child)
+				end
+			end
+		end
+		expect(uploaded.total <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 	end)
 	it("holds the border to its share, pinned at BORDER_SLOT_COUNT", function()
 		-- Any change to the ring trips this so the budget is re-read.

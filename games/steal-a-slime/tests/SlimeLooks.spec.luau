@@ -79,9 +79,11 @@ describe("SlimeLooks roster audit", function()
 	it("only names real uploaded ids for kit meshes that are in MeshAssets", function()
 		for _, kit in SlimeLooks.KITS do
 			local meshId = MeshAssets.meshId(kit)
-			if meshId then
-				expect(string.match(meshId, "^rbxassetid://%d+$") ~= nil).toBe(true)
-			end
+			expect(meshId ~= nil).toBe(true) -- uploaded (v28 slime meshes)
+			expect(string.match(meshId :: string, "^rbxassetid://%d+$") ~= nil).toBe(true)
+			local entry = MeshAssets.get(kit) :: MeshAssets.Entry
+			expect(entry.assetId ~= nil and entry.assetId > 0).toBe(true)
+			expect(#(entry.size :: { number })).toBe(3)
 		end
 		expect(Config.SLIME_MESH_ASSET_ID > 0).toBe(true)
 	end)
