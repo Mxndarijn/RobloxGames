@@ -12,8 +12,13 @@
 # DRY_RUN=1 evaluates the gate, builds + asserts, prints the calls it would make
 # and writes nothing outside $WORK. The key reaches curl on stdin only.
 #
+# Newest only: a sha with a newer cloud-passed sha on main (first-parent order of
+# $MAIN_REF) is never published; it gets status skipped-superseded. Checked at the
+# start and again right before each upload. SUPERSEDE_ONLY=1 stops after that check.
+#
 # Exit: 0 live / ready / dry-run ok, 3 pending (retry next tick),
-#       4 no-publish (terminal), 2 error (retry), 5 smoke failed (terminal-ish: not published).
+#       4 no-publish or skipped-superseded (terminal), 2 error (retry),
+#       5 smoke failed (terminal-ish: not published).
 set -uo pipefail
 
 CHECKOUT="${1:?usage: publish.sh <checkout-dir> <sha>}"
@@ -30,7 +35,9 @@ LIVE_DIR="${LIVE_DIR:-$PIPE/live}"
 AUTO_PUBLISH="${AUTO_PUBLISH:-0}"
 DRY_RUN="${DRY_RUN:-0}"
 REPO_SLUG="${REPO_SLUG:-Mxndarijn/RobloxGames}"
-REPORT_TIMEOUT_S="${REPORT_TIMEOUT_S:-600}"
+REPORT_TIMEOUT_S="${REPORT_TIMEOUT_S:-1800}"
+MAIN_REF="${MAIN_REF:-origin/main}"
+SUPERSEDE_ONLY="${SUPERSEDE_ONLY:-0}"
 MIRROR_STALE_S="${MIRROR_STALE_S:-300}"
 UPLOAD_BACKOFF="${UPLOAD_BACKOFF-60 120 240 480}"
 API="https://apis.roblox.com"
@@ -77,7 +84,43 @@ terminal() {
     '{sha: $sha, status: $status, reason: $reason, at: $at}' | write_json "$STATUS_DIR/$SHA.publish.json"
 }
 
+# newer_passed: prints the newest sha after $SHA on $MAIN_REF (first-parent order)
+# whose cloud status is pass; nothing if none (or $SHA is not on main's first-parent line).
+newer_passed() {
+  local n found=0 newer=()
+  while read -r n; do
+    [[ "$n" == "$SHA" ]] && { found=1; break; }
+    newer+=("$n")
+  done < <(git -C "$CHECKOUT" rev-list --first-parent "$MAIN_REF" 2>/dev/null)
+  [[ $found == 1 ]] || return 0
+  for n in "${newer[@]}"; do # newest first
+    if [[ -f "$STATUS_DIR/$n.json" && "$(jq -r .status "$STATUS_DIR/$n.json" 2>/dev/null)" == pass ]]; then
+      echo "$n"; return 0
+    fi
+  done
+}
+# check_superseded: writes skipped-superseded and exits 4 when a newer sha passed.
+# Shas that already ended live / no-publish / smoke-failed are left alone.
+check_superseded() {
+  local cur newer
+  cur="$(jq -r .status "$STATUS_DIR/$SHA.publish.json" 2>/dev/null)"
+  case "$cur" in "" | ready) ;; *) return 0 ;; esac
+  newer="$(newer_passed)"
+  [[ -n "$newer" ]] || return 0
+  log "skipped-superseded: newer sha $newer on $MAIN_REF has cloud status pass"
+  if [[ "$DRY_RUN" == 1 ]]; then
+    log "DRY_RUN: would write $STATUS_DIR/$SHA.publish.json status=skipped-superseded superseded_by=$newer"
+  else
+    jq -n --arg sha "$SHA" --arg by "$newer" --arg at "$(date -Iseconds)" \
+      '{sha: $sha, status: "skipped-superseded", superseded_by: $by, reason: "newer sha passed cloud tests", at: $at}' |
+      write_json "$STATUS_DIR/$SHA.publish.json"
+  fi
+  exit 4
+}
+
 # ---- gate ----------------------------------------------------------------
+check_superseded
+[[ "$SUPERSEDE_ONLY" == 1 ]] && exit 0
 CLOUD_STATUS="$STATUS_DIR/$SHA.json"
 [[ -f "$CLOUD_STATUS" ]] || { log "blocked: no cloud-test status for $SHA"; exit 3; }
 CLOUD="$(jq -r .status "$CLOUD_STATUS")"
@@ -146,6 +189,7 @@ fi
 log "gate: PASS (cloud pass, studio report pass, reviewed_by=$(echo "$REPORT" | jq -c .reviewed_by))"
 
 if [[ "$AUTO_PUBLISH" != 1 ]]; then
+  check_superseded
   terminal ready "gate passed; AUTO_PUBLISH!=1, not publishing"
   exit 0
 fi
@@ -179,6 +223,7 @@ upload() { # upload <Saved|Published> -> version number on stdout
   jq -r '.versionNumber // empty' "$WORK/resp"
 }
 
+check_superseded
 SAVED="$(upload Saved)" && [[ "$SAVED" =~ ^[0-9]+$ ]] || { log "error: upload Saved failed"; exit 2; }
 
 # ---- smoke test the saved version ------------------------------------------
@@ -196,6 +241,7 @@ if [[ "$SMOKE" != pass ]]; then
 fi
 
 # ---- publish the clean file -------------------------------------------------
+check_superseded # a newer sha may have passed while this one was building / smoking
 PUBLISHED="$(upload Published)" && [[ "$PUBLISHED" =~ ^[0-9]+$ ]] || { log "error: upload Published failed"; exit 2; }
 log "LIVE: $SHA published as place version $PUBLISHED (clean saved $SAVED)"
 mkdir -p "$LIVE_DIR"

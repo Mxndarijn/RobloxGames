@@ -117,8 +117,13 @@ branch with `frames_reviewed` and `reviewed_by`) and only publishes with
 `AUTO_PUBLISH=1` (default 0): clean build (no `CloudTests`), Saved upload,
 smoke test on that version, then `versionType=Published` of the clean file.
 The test Saved version from this stage is never promoted. `DRY_RUN=1` makes
-no network writes. A missing report 10 min after the cloud pass marks the sha
-`no-publish`. Full description, handoff JSON and flags:
+no network writes. A missing report 30 min (`REPORT_TIMEOUT_S`=1800) after the
+cloud pass marks the sha `no-publish`. Newest only: when a newer sha on
+`origin/main` (first-parent order) has cloud status `pass`, an older pending,
+passing or `ready` sha gets `status/<sha>.publish.json`
+`{"status":"skipped-superseded","superseded_by":"<sha>"}` and never publishes;
+this is re-checked right before each upload. Test it with
+`tools/pipeline/test-publish-dryrun.sh` (temp dirs, no network). Full description, handoff JSON and flags:
 `docs/release-pipeline.md`.
 
 ## Running it on every main commit
@@ -133,3 +138,12 @@ is retried on later ticks, up to 3 times per sha.
 - systemd: `~/.config/systemd/user/roblox-cloud-tests.{service,timer}`
   (every 2 min): `systemctl --user enable --now roblox-cloud-tests.timer`
 - no user systemd: `nohup /workspace/roblox/pipeline/watch-loop.sh >/dev/null 2>&1 &`
+
+**Newest only.** `publish.sh` never publishes a sha when a newer sha on
+`origin/main` (first-parent order, `MAIN_REF`) has cloud status `pass`. A
+pending or passing/`ready` older sha gets `status/<sha>.publish.json`
+`{"status":"skipped-superseded","superseded_by":"<sha>"}` (exit 4). `live`,
+`no-publish` and `smoke-failed` are left alone. The check runs at the start and
+right before each upload; `SUPERSEDE_ONLY=1` runs just the check (`watch.sh`
+uses it for `ready` shas). `tools/pipeline/test-publish-dryrun.sh` tests this
+offline with temp status dirs and real shas from main, with no network.
