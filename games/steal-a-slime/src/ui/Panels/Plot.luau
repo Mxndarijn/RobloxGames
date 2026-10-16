@@ -10,6 +10,8 @@
 local UI = script.Parent.Parent
 local Format = require(UI.Format)
 local Icons = require(UI.Icons)
+local ItemIconView = require(UI.ItemIconView)
+local ItemIcons = require(UI.ItemIcons)
 local Selection = require(UI.Selection)
 local Widgets = require(UI.Widgets)
 
@@ -68,14 +70,23 @@ function Plot.new(parent: Instance, ctx: any)
 	local function popupLabel(name: string, y: number, props: { [string]: any }?): TextLabel
 		local p = props or {}
 		p.Name = name
-		p.Size = UDim2.new(1, -16, 0, 24)
+		p.Size = p.Size or UDim2.new(1, -16, 0, 24)
 		p.Position = UDim2.fromOffset(8, y)
 		p.ZIndex = 21
 		p.Parent = popup
 		return Widgets.label(p)
 	end
-	local popupTitle = popupLabel("Title", 6, { Font = Theme.Font, TextSize = 18 })
-	local popupNow = popupLabel("Now", 34, { TextColor3 = Theme.Muted })
+	ItemIconView.new({
+		Name = "AppraiseIcon",
+		Id = "Appraise",
+		Size = 44,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -8, 0, 4),
+		ZIndex = 21,
+		Parent = popup,
+	}, ItemIcons.of(ctx)).setActive(true)
+	local popupTitle = popupLabel("Title", 6, { Font = Theme.Font, TextSize = 18, Size = UDim2.new(1, -64, 0, 24) })
+	local popupNow = popupLabel("Now", 34, { TextColor3 = Theme.Muted, Size = UDim2.new(1, -64, 0, 24) })
 	local popupCost = popupLabel("Cost", 60, { TextColor3 = Theme.Gold })
 	local popupBefore = popupLabel("Before", 92, { Text = "" })
 	local popupAfter = popupLabel("After", 118, { Font = Theme.Font, Text = "" })

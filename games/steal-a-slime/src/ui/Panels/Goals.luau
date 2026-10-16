@@ -8,12 +8,16 @@
 
 local UI = script.Parent.Parent
 local Goals = require(UI.Goals)
+local ItemIconView = require(UI.ItemIconView)
+local ItemIcons = require(UI.ItemIcons)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
 local create = Widgets.create
 
 local GoalsPanel = {}
+
+GoalsPanel.ICON = 40 -- item icon at the row's left (row is 58 tall)
 
 function GoalsPanel.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "GoalsPanel", "Goals", "🎯", Color3.fromRGB(220, 110, 70))
@@ -49,6 +53,8 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		rarityNames[i] = rarity.name
 	end
 
+	local isOpen = false
+	local icons: { [string]: any } = {}
 	local rows = Widgets.keyedList(list, function(g: Goals.Goal)
 		return g.id
 	end, function(g: Goals.Goal)
@@ -57,22 +63,34 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 			Size = UDim2.new(1, -10, 0, 58),
 			BackgroundColor3 = Theme.Row,
 		}, { Widgets.corner(8) })
+		local icon = ItemIconView.new({
+			Name = "Icon",
+			Id = ItemIcons.forGoal(ItemIcons.of(ctx), g.id),
+			Size = GoalsPanel.ICON,
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 8, 0.5, -3),
+			Parent = frame,
+		}, ItemIcons.of(ctx))
+		icon.setActive(isOpen)
+		icons[g.id] = icon
+		local textX = 8 + GoalsPanel.ICON + 8
 		local title = Widgets.label({
 			Name = "GoalTitle",
 			Font = Theme.Font,
-			Size = UDim2.new(1, -20, 0, 20),
-			Position = UDim2.fromOffset(10, 6),
+			Size = UDim2.new(1, -(textX + 10), 0, 20),
+			Position = UDim2.fromOffset(textX, 6),
 			Parent = frame,
 		})
 		local detail = Widgets.label({
 			Name = "Detail",
 			TextSize = 13,
 			TextColor3 = Theme.Muted,
-			Size = UDim2.new(1, -20, 0, 16),
-			Position = UDim2.fromOffset(10, 26),
+			Size = UDim2.new(1, -(textX + 10), 0, 16),
+			Position = UDim2.fromOffset(textX, 26),
 			Parent = frame,
 		})
-		local _, setBar = Widgets.bar(frame, Theme.Accent, UDim2.new(1, -20, 0, 6), UDim2.new(0, 10, 1, -12))
+		local _, setBar =
+			Widgets.bar(frame, Theme.Accent, UDim2.new(1, -(textX + 10), 0, 6), UDim2.new(0, textX, 1, -12))
 		return { instance = frame, title = title, detail = detail, setBar = setBar }
 	end, function(row: any, g: Goals.Goal)
 		row.title.Text = (if g.done then "✅ " else "🎯 ") .. g.title
@@ -83,6 +101,13 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	end)
 
 	local self = { frame = panel.frame, close = panel.close }
+
+	function self.setOpen(open: boolean)
+		isOpen = open
+		for _, icon in icons do
+			icon.setActive(open)
+		end
+	end
 
 	function self.update(state: any)
 		local server = Goals.fromServer(state.goals)

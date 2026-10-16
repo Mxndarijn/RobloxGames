@@ -9,6 +9,8 @@
 
 local UI = script.Parent.Parent
 local Format = require(UI.Format)
+local ItemIconView = require(UI.ItemIconView)
+local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
@@ -41,11 +43,13 @@ function Codes.new(parent: Instance, ctx: any)
 		Parent = panel.body,
 	})
 
-	Widgets.iconBadge({
+	ItemIconView.new({
 		Name = "Gift",
+		Id = "Gift",
+		Size = Codes.BADGE,
 		Position = UDim2.fromOffset(0, rows.input.y),
-	}, "🎁", Color3.fromRGB(190, 90, 200), Codes.BADGE).Parent =
-		content
+		Parent = content,
+	}, ItemIcons.of(ctx)).setActive(true)
 
 	local box = create("TextBox", {
 		Name = "CodeBox",
@@ -99,6 +103,17 @@ function Codes.new(parent: Instance, ctx: any)
 		Parent = content,
 	})
 	Widgets.corner(10).Parent = boost
+	-- The active boost shows its potion icon at the left end of the chip.
+	local boostIcon = ItemIconView.new({
+		Name = "BoostIcon",
+		Id = "Boost_Code",
+		Size = rows.boost.h - 8,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 4, 0.5, 0),
+		ZIndex = 2,
+		Parent = boost,
+	}, ItemIcons.of(ctx))
+	boostIcon.instance.Visible = false
 
 	Widgets.label({
 		Name = "Note",
@@ -121,7 +136,9 @@ function Codes.new(parent: Instance, ctx: any)
 		if left > 0 then
 			boost.Text = `⚡ {Format.formatMultiplier(info.boostMult)} income · {Format.formatDuration(left)} left`
 			boost.TextColor3 = Theme.Gold
+			boostIcon.instance.Visible = true
 		else
+			boostIcon.instance.Visible = false
 			boost.Text = Codes.NO_BOOST
 			boost.TextColor3 = Theme.Muted
 		end

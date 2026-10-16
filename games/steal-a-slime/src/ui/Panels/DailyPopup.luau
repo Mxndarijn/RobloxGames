@@ -10,6 +10,8 @@
 local UI = script.Parent.Parent
 local Daily = require(UI.Daily)
 local Format = require(UI.Format)
+local ItemIconView = require(UI.ItemIconView)
+local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
@@ -64,6 +66,14 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		Size = UDim2.new(1, 0, 0, 34),
 		Position = UDim2.fromOffset(0, 12),
 	})
+	ItemIconView.new({
+		Name = "DailyIcon",
+		Id = "Daily",
+		Size = 32,
+		Position = UDim2.fromOffset(14, 12),
+		ZIndex = 22,
+		Parent = card,
+	}, ItemIcons.of(ctx)).setActive(true)
 	local streakLine = text({
 		Name = "Streak",
 		TextColor3 = Theme.Muted,
@@ -109,6 +119,14 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		Size = UDim2.new(1, 0, 0, 44),
 		Position = UDim2.fromOffset(0, 136),
 	})
+	ItemIconView.new({
+		Name = "CashIcon",
+		Id = "Cash",
+		Size = 36,
+		Position = UDim2.fromOffset(16, 140),
+		ZIndex = 22,
+		Parent = card,
+	}, ItemIcons.of(ctx)).setActive(true)
 	local hint = text({
 		Name = "Hint",
 		TextSize = 13,
