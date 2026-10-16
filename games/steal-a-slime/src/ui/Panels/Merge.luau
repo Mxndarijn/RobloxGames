@@ -51,7 +51,7 @@ function Merge.new(parent: Instance, ctx: any)
 	local slimes: { any } = {}
 	local refresh: () -> ()
 
-	local mergeBtn = Widgets.button(
+	local mergeBtn = Widgets.holdButton(
 		{
 			Name = "MergeButton",
 			Text = "🧪 Merge",
@@ -68,7 +68,8 @@ function Merge.new(parent: Instance, ctx: any)
 				ctx.send("Merge", a, b)
 				refresh()
 			end
-		end
+		end,
+		ctx.Config.HOLD_CONFIRM_SECONDS
 	)
 	mergeBtn.instance.TextColor3 = Color3.fromRGB(20, 40, 25)
 	mergeBtn.instance.Parent = panel.body

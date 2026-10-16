@@ -1,7 +1,7 @@
 --!strict
 --[[
 	Plot panel: every slime on the plot with tier, income and sell price.
-	Buttons: Sell(slimeId) (two clicks), Favorite(slimeId) / Favorite(nil),
+	Buttons: Sell(slimeId) (hold to confirm), Favorite(slimeId) / Favorite(nil),
 	Appraise (FEATURES.Appraise): opens a popup with the cost; Appraise(slimeId,
 	"mutation" | "size") rerolls it and the popup shows before -> after.
 	Rows being stolen turn red and show the thief.
@@ -96,14 +96,14 @@ function Plot.new(parent: Instance, ctx: any)
 		end, id, kind)
 	end
 	local function popupButton(name: string, text: string, x: number, color: Color3, onClick: () -> ())
-		local btn = Widgets.button({
+		local btn = Widgets.holdButton({
 			Name = name,
 			Text = text,
 			TextSize = 14,
 			Position = UDim2.new(x, 8, 0, 152),
 			Size = UDim2.new(0.5, -12, 0, 36),
 			ZIndex = 21,
-		}, color, onClick)
+		}, color, onClick, ctx.Config.HOLD_CONFIRM_SECONDS)
 		btn.instance.Parent = popup
 		return btn
 	end
@@ -190,7 +190,7 @@ function Plot.new(parent: Instance, ctx: any)
 			end
 		)
 		fav.instance.Parent = frame
-		local sell = Widgets.confirmButton(
+		local sell = Widgets.holdButton(
 			{
 				Name = "Sell",
 				Text = "Sell",
@@ -200,10 +200,10 @@ function Plot.new(parent: Instance, ctx: any)
 				Size = UDim2.fromOffset(104, 36),
 			},
 			Theme.Bad,
-			"Sure?",
 			function()
 				ctx.send("Sell", id)
-			end
+			end,
+			ctx.Config.HOLD_CONFIRM_SECONDS
 		)
 		sell.instance.Parent = frame
 		local appraise = Widgets.button(

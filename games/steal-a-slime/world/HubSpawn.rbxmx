@@ -6,7 +6,7 @@
       <token name="BottomSurface">0</token>
       <CoordinateFrame name="CFrame">
         <X>-59.128296</X>
-        <Y>0.1000061</Y>
+        <Y>0.024993896</Y>
         <Z>-24.491745</Z>
         <R00>1</R00>
         <R01>0</R01>
@@ -26,7 +26,7 @@
       <bool name="Neutral">true</bool>
       <Vector3 name="size">
         <X>12</X>
-        <Y>0.19999695</Y>
+        <Y>0.05000305</Y>
         <Z>12</Z>
       </Vector3>
       <token name="TopSurface">0</token>

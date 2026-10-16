@@ -16,6 +16,7 @@
 
 local CollectionService = game:GetService("CollectionService")
 
+local EggReveal = require(script.Parent.EggReveal)
 local Format = require(script.Parent.Format)
 local Layout = require(script.Parent.Layout)
 local LockHud = require(script.Parent.LockHud)
@@ -146,22 +147,24 @@ function Hud.new(parent: Instance, ctx: any)
 	local _, setLockBar = Widgets.bar(lockBox, Color3.new(1, 1, 1), UDim2.new(1, -16, 0, 6), UDim2.new(0, 8, 1, -10))
 	items.LockStatus = lockBox
 
-	local lockBtn = Widgets.button(
+	local lockBtn = Widgets.holdButton(
 		{ Name = "Lock", Text = "Lock", Size = UDim2.fromOffset(130, Layout.BUTTON), TextSize = 16 },
 		Theme.Info,
 		function()
 			ctx.send("Lock")
-		end
+		end,
+		ctx.Config.HOLD_CONFIRM_SECONDS
 	)
 	lockBtn.instance.Parent = bar
 	items.Lock = lockBtn.instance
 
-	local padBtn = Widgets.button(
+	local padBtn = Widgets.holdButton(
 		{ Name = "BuyPad", Text = "Buy next pad", Size = UDim2.fromOffset(160, Layout.BUTTON), TextSize = 15 },
 		Theme.Good,
 		function()
 			ctx.send("BuyPad")
-		end
+		end,
+		ctx.Config.HOLD_CONFIRM_SECONDS
 	)
 	padBtn.instance.Parent = bar
 	items.BuyPad = padBtn.instance
@@ -209,6 +212,8 @@ function Hud.new(parent: Instance, ctx: any)
 	local rain = banner(banners, "RainBanner", Color3.fromRGB(90, 70, 200), 3)
 	local modifier = banner(banners, "ModifierBadge", Color3.fromRGB(30, 120, 110), 5)
 	modifier.TextSize = 15
+	local egg = banner(banners, "EggReveal", Color3.fromRGB(190, 120, 30), 6)
+	egg.TextSize = 17
 	local hint = banner(banners, "PadHint", Color3.fromRGB(150, 100, 20), 4)
 	hint.TextSize = 16
 
@@ -216,6 +221,7 @@ function Hud.new(parent: Instance, ctx: any)
 
 	-- Workspace rain attributes, kept fresh by change signals (read in tick).
 	local rainAttrs: RainTimer.Rain? = nil
+	local menuOpen = false -- set by init.client via setMenuOpen
 	local function readRainAttrs()
 		rainAttrs = RainTimer.fromAttributes(
 			workspace:GetAttribute("RainActive"),
@@ -441,17 +447,32 @@ function Hud.new(parent: Instance, ctx: any)
 		end
 
 		local info = RainTimer.banner(RainTimer.resolve(rainAttrs, current.rain), now, ctx.Config.RAIN_LUCK)
-		rain.Visible = info ~= nil
+		rain.Visible = info ~= nil and not menuOpen
 		if info then
 			rain.Text = info.text
 			rain.BackgroundColor3 = RAIN_COLORS[info.kind]
 			rain.TextSize = if info.kind == "active" then 18 else 15
 		end
 
+		local eggText =
+			EggReveal.banner(current.egg, now, ctx.Config.MYSTERY_EGG_REVEAL_SECONDS, ctx.Genome.displayName)
+		egg.Visible = eggText ~= nil
+		if eggText then
+			egg.Text = eggText
+		end
+
 		local modifierText = ModifierBadge.banner(current.modifier, now, ctx.Config.FEATURES.CycleModifier == true)
-		modifier.Visible = modifierText ~= nil
+		modifier.Visible = modifierText ~= nil and not menuOpen
 		if modifierText then
 			modifier.Text = modifierText
+		end
+	end
+
+	-- A menu card open hides the rain / modifier banners (MenuState.bannersVisible).
+	function self.setMenuOpen(isOpen: boolean)
+		if menuOpen ~= isOpen then
+			menuOpen = isOpen
+			self.tick(ctx.serverNow())
 		end
 	end
 

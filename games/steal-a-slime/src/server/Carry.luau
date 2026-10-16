@@ -38,6 +38,15 @@ function Carry.actionText(price: number?): string
 	return `Buy ${Economy.formatNumber(price)}`
 end
 
+-- Hold needed on a slime prompt: only a free grab of a wild slime is instant
+-- (costs nothing, takes nothing from anyone); buying or stealing needs a hold.
+function Carry.holdDuration(price: number?): number
+	if price ~= nil and price <= 0 then
+		return 0
+	end
+	return Config.HOLD_CONFIRM_SECONDS
+end
+
 function Carry.grabWild(
 	world: World,
 	session: Session,

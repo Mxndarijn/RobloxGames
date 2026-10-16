@@ -23,6 +23,7 @@ local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
+local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -109,6 +110,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		},
 		codes = Codes.view(data),
 		shop = Shop.view(data),
+		egg = MysteryEgg.view(data, session.egg),
 		tutorialStep = TutorialProgress.current(data),
 		walkSpeed = Shop.walkSpeed(data),
 		tutorialStepId = TutorialProgress.currentId(data),

@@ -1361,7 +1361,13 @@ def step_shots(run):
                     res["press"] = press_check(run, opened, shot["press"], shot.get("expect", "closed"))
                     if res["press"]["status"] != "pass":
                         res["error"] = "%s did not leave %s %s" % (shot["press"], opened["panel"], shot.get("expect", "closed"))
+                if opened and shot.get("scroll_to"):  # card below the scroll fold at small viewports
+                    res["scroll"] = run.luau("panel_scroll", "Client", timeout=15, panel=opened["panel"], target=shot["scroll_to"])[1]
                 keep = opened["panel"] if opened and not shot.get("press") else ""
+                if shot.get("hold"):  # hold ring mid-hold (B1): show the button's HoldFill half full
+                    res["hold"] = run.need_luau("hold_fill", "Client", timeout=15, name=shot["hold"], on=True)
+                    if not res["hold"].get("found"):
+                        res["error"] = "no HoldFill on a button named %s" % shot["hold"]
                 ok, iso = run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=True)
                 res["isolated"] = iso if ok else str(iso)[:160]
                 try:
@@ -1369,6 +1375,8 @@ def step_shots(run):
                                                  open_method=opened and opened["method"])
                 finally:
                     run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=False)
+                    if shot.get("hold"):
+                        run.luau("hold_fill", "Client", timeout=15, name=shot["hold"], on=False)
                 if opened and not shot.get("press") and opened["method"] != "already open":
                     res["closed_by"] = close_panel(run, opened["panel"])
                 if shot.get("rebirth_slime"):

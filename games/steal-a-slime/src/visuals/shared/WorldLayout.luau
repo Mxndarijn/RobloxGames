@@ -303,8 +303,8 @@ WorldLayout.BUY_STAND_COUNTER = table.freeze({ x = 0, z = 0.53, width = 11, dept
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
--- two spokes. The shop faces the fountain (Props front = local -Z; every shop
--- faces the map centre, TODO v28 #10), the two-sided board faces the plots;
+-- two spokes. The shop and the Top Earners board face the fountain (Props
+-- front = local -Z; every shop faces the map centre, TODO v28 #10, v29 B3);
 -- the tutorial NPC stands behind the hub SpawnLocation (scripts/StaticWorld,
 -- same bearing) and faces it.
 local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: number }
@@ -314,7 +314,7 @@ local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: 
 end
 WorldLayout.PROP_SPOTS = table.freeze({
 	ShopStand = propSpot(67.5, true),
-	LeaderboardBoard = propSpot(157.5),
+	LeaderboardBoard = propSpot(157.5, true),
 	TutorialNpc = propSpot(247.5, true),
 }) :: { [string]: { pos: Vec, yaw: number } }
 
@@ -605,48 +605,51 @@ local function plotYaw(i: number): number
 	return (i - 1) * 360 / Config.PLOT_COUNT
 end
 
+-- Path tops (v29 B5): every path part is flush with the Ground (top 0) apart
+-- from a hair, so there is no step to trip on and no tile edge to see. The
+-- parts overlap (spokes cross the ring, ring segments meet at their ends), and
+-- coplanar tops z-fight, so each layer sits 0.005..0.01 above the last: the
+-- whole path spans 0.018 (tests/WorldLook "path"). SmoothPlastic, not
+-- Pavement: Pavement's texture follows each part's own axes, which showed
+-- every tile edge as a seam.
+WorldLayout.PATH_TOPS = table.freeze({ plaza = 0.032, ringLow = 0.04, ringHigh = 0.045, spoke = 0.05 })
+WorldLayout.PATH_THICK = 0.1 -- sunk into the Ground, so only the top shows
+WorldLayout.PATH_RING_SEGMENTS = 32
+
+-- A path block sx x sz (X, Z in its own frame, turned by yaw) centred over (x, z), top at `top`.
+local function pathBlock(name: string, sx: number, sz: number, x: number, z: number, top: number, yaw: number)
+	local thick = WorldLayout.PATH_THICK
+	return block(name, { sx, thick, sz }, { x, top - thick / 2, z }, SAND, "SmoothPlastic", { 0, yaw, 0 })
+end
+
 local function paths(): WorldNode
 	local children: { WorldNode } = {}
-	local from, to = WorldLayout.PLAZA_RADIUS, WorldLayout.PLOT_RING_RADIUS - WorldLayout.PLOT_SIZE / 2
+	-- Spokes start 1 stud inside the plaza disc so its round edge never leaves
+	-- a sliver between the disc and the spoke's straight end.
+	local from, to = WorldLayout.PLAZA_RADIUS - 1, WorldLayout.PLOT_RING_RADIUS - WorldLayout.PLOT_SIZE / 2
 	for i = 1, Config.PLOT_COUNT do
 		local yaw = plotYaw(i)
 		local at = frame({ 0, 0, 0 }, yaw)
-		local tile = block(
-			`Path{i}`,
-			{ 8, 0.2, to - from },
-			at({ 0, 0.1, (from + to) / 2 }),
-			SAND,
-			"Pavement",
-			{ 0, yaw, 0 }
-		)
-		table.insert(children, tile)
+		local mid = at({ 0, 0, (from + to) / 2 })
+		table.insert(children, pathBlock(`Path{i}`, 8, to - from, mid[1], mid[3], WorldLayout.PATH_TOPS.spoke, yaw))
 	end
 	-- Landing plaza (flat sand disc) the drops land on, under the fountain.
-	table.insert(children, disc("Plaza", 0.2, WorldLayout.PLAZA_RADIUS * 2, { 0, 0.05, 0 }, PLAZA, "Sand"))
-	-- Ring path outside the drop ring (62), linking every spoke.
-	local segments, ringR = 32, WorldLayout.RING_PATH_RADIUS
-	local length = 2 * math.pi * ringR / segments + 1
-	-- Neighbours overlap at the ends; every other segment stands 0.03 taller so
-	-- the overlaps never share a top face (coplanar tops z-fought: render review).
+	local plazaTop, thick = WorldLayout.PATH_TOPS.plaza, WorldLayout.PATH_THICK
+	table.insert(
+		children,
+		disc("Plaza", thick, WorldLayout.PLAZA_RADIUS * 2, { 0, plazaTop - thick / 2, 0 }, PLAZA, "Sand")
+	)
+	-- Ring path outside the drop ring (62), linking every spoke. Each segment
+	-- is long enough that its outer corners meet its neighbour's: no gap on the
+	-- outer edge, the overlap falls on the inner edge.
+	local segments, ringR = WorldLayout.PATH_RING_SEGMENTS, WorldLayout.RING_PATH_RADIUS
+	local width = WorldLayout.RING_PATH_WIDTH
+	local length = 2 * (ringR + width / 2) * math.tan(math.pi / segments) + 0.1
 	for k = 1, segments do
 		local yaw = (k - 0.5) * 360 / segments
 		local n = LayoutMath.direction(yaw, 0)
-		local thick = if k % 2 == 0 then 0.23 else 0.2
-		table.insert(
-			children,
-			block(
-				`Ring{k}`,
-				{ length, thick, WorldLayout.RING_PATH_WIDTH },
-				{ n[1] * ringR, 0.02 + thick / 2, n[3] * ringR },
-				SAND,
-				"Pavement",
-				{
-					0,
-					yaw,
-					0,
-				}
-			)
-		)
+		local top = if k % 2 == 0 then WorldLayout.PATH_TOPS.ringHigh else WorldLayout.PATH_TOPS.ringLow
+		table.insert(children, pathBlock(`Ring{k}`, length, width, n[1] * ringR, n[3] * ringR, top, yaw))
 	end
 	return { name = "Paths", class = "Folder", children = children }
 end
@@ -1072,8 +1075,8 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 			part("PostR", { 0.6, postH, 0.6 }, onStand(-5.2, 6.7, -3.07), WOOD, "Wood"),
 			part(
 				"Board",
-				{ sign.width * ks, sign.height * ks, 0.3 },
-				st({ sign.x * ks, sign.y * ks, sign.front * ks + 0.02 + 0.15 }),
+				{ sign.width * ks, sign.height * ks, 0.03 },
+				st({ sign.x * ks, sign.y * ks, sign.front * ks + 0.01 + 0.015 }),
 				{ 40, 150, 70 },
 				"SmoothPlastic"
 			),

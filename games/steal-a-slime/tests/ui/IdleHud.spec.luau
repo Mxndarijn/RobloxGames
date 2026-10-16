@@ -60,3 +60,20 @@ describe("idle HUD: no menu overlay", function()
 		expect(has('entry.panel.frame:GetPropertyChangedSignal("Visible")')).toBe(true)
 	end)
 end)
+
+describe("top-centre banners vs open menu", function()
+	it("rain / modifier banners show only with no menu open", function()
+		expect(MenuState.bannersVisible(nil)).toBe(true)
+		for _, key in keys do
+			expect(MenuState.bannersVisible(key)).toBe(false)
+		end
+	end)
+	it("init.client feeds the open key to the HUD and Hud gates both banners on it", function()
+		expect(has("hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))")).toBe(true)
+		local hudSrc = fs.readFile("src/ui/Hud.luau")
+		expect(string.find(hudSrc, "rain.Visible = info ~= nil and not menuOpen", 1, true) ~= nil).toBe(true)
+		expect(string.find(hudSrc, "modifier.Visible = modifierText ~= nil and not menuOpen", 1, true) ~= nil).toBe(
+			true
+		)
+	end)
+end)

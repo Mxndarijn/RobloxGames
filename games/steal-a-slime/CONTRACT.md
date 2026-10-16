@@ -153,6 +153,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"Daily"` | none | Claims the daily reward (`Progression.claimDaily`). |
 | `"BuyLockUpgrade"` | none | Buys the next lock-time upgrade level for `Shop.lockUpgradeCost(level)`. Each level makes every bought lock last `LOCK_UPGRADE_SECONDS` longer, up to `LOCK_UPGRADE_MAX` levels. Permanent: saved and kept on rebirth. |
 | `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While you're not carrying, WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Permanent: saved and kept on rebirth. |
+| `"BuyEgg"` | none | `FEATURES.MysteryEgg`. Buys a Mystery Egg with cash only (`Shared.MysteryEgg.price` = `MYSTERY_EGG_PRICE` x rebirth multiplier). It hatches a slime rolled from `MYSTERY_EGG_DROPS` onto the lowest free pad via `PlayerData.addSlime`; `State.egg.hatched` carries it for the reveal banner. Failures: `"not enough cash"`, `"plot full"` (nothing charged), `"eggs are off"`. Save format unchanged. Events: server-only `Server/MysteryEgg.spawnForEvent(world, userId, count, now)` hatches free eggs, no remote. |
 | `"Slap"` | `targetUserId: number` | Slaps a carrier within `SLAP_REACH`. The slime escapes home. |
 | `"Drop"` | none | Drops what you're carrying. Wild → falls to the ground; stolen → escapes home. |
 | `"Appraise"` | `slimeId: string, kind: "mutation" \| "size"` | `FEATURES.Appraise`: pays `Appraise.cost` (`APPRAISE_COST_FRACTION` = 30% of `Economy.sellPrice`) to reroll that owned, not-busy slime's mutation or size. Only `mutation` / `size` change. Success returns `{ ok = true, appraisal = Types.Appraisal }` (before / after, cost). Fails with `"not your slime"`, `"not enough cash"`, `"slime is busy"`, `"appraise is off"`. `SlimeView.appraiseCost` is nil when the flag is off. |
@@ -241,7 +242,9 @@ The client always replaces its copy and never diffs.
 	shop: {
 		LockUpgrade: { price: number?, level: number, maxLevel: number },  -- price nil = maxed
 		SpeedCoil: { price: number?, owned: boolean },                      -- price nil = owned
+		MysteryEgg: { price: number }?,                                      -- FEATURES.MysteryEgg only
 	},
+	egg: { enabled: boolean, price: number, hatched: { slime: SlimeData, at: number }? },  -- newest hatch, never saved
 	tutorialStep: number?,   -- 1..6 (§2 Tutorial); nil = finished
 }
 ```
@@ -332,6 +335,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `STATE_MIN_INTERVAL` / `LEADERBOARD_INTERVAL` | 0.25 / 60 | §5.1, §2 |
 
 | `LOCK_UPGRADE_MAX` / `LOCK_UPGRADE_SECONDS` / `LOCK_UPGRADE_COSTS` | 5 / 15 / 500, 2 000, 8 000, 30 000, 100 000 | shop: longer locks |
+| `MYSTERY_EGG_PRICE` / `MYSTERY_EGG_MUTATION_CHANCE` / `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 2 000 / 0.05 / 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | mystery egg: cash-only hatch |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
 | `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `Habitats` (`false`); `SlimeAnimations` (`false`) | §2 Extras |

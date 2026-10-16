@@ -346,6 +346,9 @@ local Config = {
 	LOCK_MAX_REMAINING = 300, -- extending can never push the lock past 5 min
 	LOCK_BASE_COST = 25,
 	LOCK_INCOME_SECONDS = 15, -- lock costs this many seconds of plot income (or base cost)
+	-- B1: seconds a ProximityPrompt / UI button must be held for any important
+	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
+	HOLD_CONFIRM_SECONDS = 0.8,
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	SLAP_REACH = 10,
 	SLAP_COOLDOWN = 1.5,
@@ -409,6 +412,7 @@ local Config = {
 		CycleModifier = true, -- a server modifier (Luck Surge, Mutation Surge, ...) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); needs DayNight; false = no modifier
 		SlideCollision = true, -- invisible colliders along the FULL fountain slide, top to mouth (B6: players fell through above LOW_SLIDE_Y); false = low stretch only
 		Appraise = true, -- pay APPRAISE_COST_FRACTION of a slime's value to reroll its mutation or size (Appraise)
+		MysteryEgg = true, -- a cash-only Mystery Egg in the Shop hatches a random slime (MysteryEgg); false = no egg, BuyEgg refused
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -430,6 +434,20 @@ local Config = {
 		table.freeze({ name = "LuckSurge", label = "Luck Surge", weight = 3, luck = 2, mutation = 1 }),
 		table.freeze({ name = "MutationSurge", label = "Mutation Surge", weight = 3, luck = 1, mutation = 3 }),
 		table.freeze({ name = "GoldenHour", label = "Golden Hour", weight = 1, luck = 1.5, mutation = 2 }),
+	}),
+
+	-- Mystery Egg (FEATURES.MysteryEgg): bought with in-game cash only, never Robux. The price is
+	-- MYSTERY_EGG_PRICE x the rebirth multiplier, so selling the hatch never beats the price.
+	-- `tier` is a Config.RARITIES tier, `weight` its share of the drop table (Common and Secret never drop).
+	MYSTERY_EGG_PRICE = 2000,
+	MYSTERY_EGG_MUTATION_CHANCE = 0.05,
+	MYSTERY_EGG_REVEAL_SECONDS = 6, -- how long the hatch banner stays up
+	MYSTERY_EGG_DROPS = table.freeze({
+		table.freeze({ tier = 2, weight = 50 }),
+		table.freeze({ tier = 3, weight = 30 }),
+		table.freeze({ tier = 4, weight = 14 }),
+		table.freeze({ tier = 5, weight = 5 }),
+		table.freeze({ tier = 6, weight = 1 }),
 	}),
 
 	-- Daily reward

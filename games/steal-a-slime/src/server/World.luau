@@ -50,6 +50,7 @@ export type Session = {
 	incomeRemainder: number,
 	dirty: boolean,
 	lastPushAt: number,
+	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch for the reveal banner (never saved)
 }
 
 export type Wild = {

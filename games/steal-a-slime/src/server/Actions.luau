@@ -27,6 +27,7 @@ local Types = if Shared then require(Shared.Types) else require("../shared/Types
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
@@ -223,6 +224,8 @@ local function dispatch(
 		return buyUpgrade(world, session, args[1])
 	elseif action == "Appraise" then
 		return appraise(world, session, args[1], args[2], now, ctx)
+	elseif action == "BuyEgg" then
+		return result(MysteryEgg.buy(world, session, now))
 	elseif action == "Slap" then
 		local target = args[1]
 		return result(StealService.slap(world, session, target, ctx.distanceBetween(session.userId, target), now))

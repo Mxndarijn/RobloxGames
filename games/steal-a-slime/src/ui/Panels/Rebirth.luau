@@ -3,7 +3,7 @@
 	Rebirth panel (v28): only the NEXT rebirth. One requirement card (its
 	cash cost, a progress bar and how much is still missing), one line of
 	what it gives (income multiplier, lock time), the keeper and the
-	Rebirth button (state.canRebirth, two clicks). No ladder of later tiers,
+	Rebirth button (state.canRebirth, hold to confirm). No ladder of later tiers,
 	no rank essay: Progress.nextRebirth has the numbers.
 ]]
 
@@ -168,7 +168,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		Parent = content,
 	})
 
-	local btn = Widgets.confirmButton(
+	local btn = Widgets.holdButton(
 		{
 			Name = "RebirthButton",
 			Text = "♻️ Rebirth",
@@ -177,10 +177,10 @@ function Rebirth.new(parent: Instance, ctx: any)
 			TextSize = 20,
 		},
 		Theme.Gold,
-		"Tap again to rebirth",
 		function()
 			ctx.send("Rebirth")
-		end
+		end,
+		ctx.Config.HOLD_CONFIRM_SECONDS
 	)
 	btn.instance.TextColor3 = Color3.fromRGB(40, 30, 10)
 	btn.instance.Parent = content
