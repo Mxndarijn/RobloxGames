@@ -29,6 +29,7 @@ return table.freeze({
 	PAD_INDEX_ATTRIBUTE = "PadIndex", -- Pad_<j> part: j
 	HOME_ZONE = "HomeZone",
 	-- Instance attributes (CONTRACT.md §5.2)
+	REVENGE_PLOTS_ATTRIBUTE = "RevengePlots", -- Player (victim only): "3,5" = plot indexes of thieves inside the revenge window (FEATURES.Revenge), nil = none
 	CARRYING_ATTRIBUTE = "Carrying", -- Player: carried slime id, nil when empty-handed
 	WEATHER_ATTRIBUTE = "Weather", -- workspace, set by the server (WeatherService): "Clear" | "Rain" | "Snow" | "Starfall"
 	WEATHER_STARTED_ATTRIBUTE = "WeatherStartedAt", -- workspace, server time (GetServerTimeNow) the current weather began; set before WEATHER_ATTRIBUTE
