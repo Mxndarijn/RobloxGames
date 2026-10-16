@@ -37,11 +37,13 @@ src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts
   PlotPrompts (plot prompt texts / lock + pad attributes, §8.5), Milestones
   (goal + Slimedex payouts, §8.8), TestHooks (test sessions only, §8.12),
   PlotClaim (ClaimPrompt on the FREE PLOT stand, §9.1), HabitatPads (pad
-  habitat state, FEATURES.Habitats)
+  habitat state, FEATURES.Habitats), PodiumAvatars (top-3 podium rigs:
+  description cache, fallback, debounced refresh; adapter injected)
   Roblox adapters: WorldView (models, prompts, plot attributes, HomeZone,
   WalkSpeed, Speed Coil tool, kill-plane rescue), WorldProps (ShopStand,
   LeaderboardBoard, TutorialNpc, §5.3), FallbackWorld (greybox §5.3 if
-  WorldBuilder is missing)
+  WorldBuilder is missing), PodiumRigs (R15 avatar rigs on Podium_1..3 in
+  workspace.PodiumAvatars, BillboardGui NameLabel)
 src/visuals/shared/ -> ReplicatedStorage.Visuals   (ModuleScripts)              Archer
   ModelFactory.luau  slimeData -> Model (§4)
   WorldBuilder.luau  WorldBuilder.build(parent) -> Map, Plots (§5.3); layout in WorldLayout
