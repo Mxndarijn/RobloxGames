@@ -5,22 +5,28 @@
 -- meshes (one uniform fit into each slot, standing on its bottom; slot and
 -- MeshStandIn parts hidden), stages a few habitat pads, and writes every
 -- visible part and mesh with its world CFrame to tools/render/out/scene.json
--- for render_world.py. --pending also swaps meshes that are in the kit but
+-- for render_world.py. --skin <id> wears a Config.PLOT_SKINS skin on Plot_1 (real PlotDecor.applySkin
+-- floor, fence / gate tint on the meshes, the skin decor in the Mailbox_1 slot) and writes
+-- scene[_pending]_skin_<id>.json. --pending also swaps meshes that are in the kit but
 -- not uploaded yet (ranch_fence_20, the BorderMesh ring): the intended look.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("../../src/visuals/tools/LuneGlobals")
 local serde = require("@lune/serde")
 
+local Config = require("../../src/shared/Config")
 local Habitats = require("../../src/shared/Habitats")
 local MeshAssets = require("../../src/shared/MeshAssets")
 local Props = require("../../src/visuals/shared/Props")
 local WorldBorder = require("../../src/visuals/shared/WorldBorder")
 local WorldBuilder = require("../../src/visuals/shared/WorldBuilder")
+local PlotDecor = require("../../src/visuals/shared/PlotDecor")
 local WorldLayout = require("../../src/visuals/shared/WorldLayout")
 
 local PENDING = table.find(process.args, "--pending") ~= nil
 local OUT = "tools/render/out"
+local SKIN_ARG = table.find(process.args, "--skin")
+local SKIN = if SKIN_ARG then process.args[SKIN_ARG + 1] else nil
 
 -- Render staging: which pads show a new habitat mesh (plot, pad, habitat id).
 local HABITAT_PADS = {
@@ -61,6 +67,14 @@ do
 		model:SetAttribute("MeshAsset", mesh)
 	end
 	model.Parent = built.map
+end
+
+-- Plot skin on Plot_1 (the floor colour / material through the real PlotDecor.applySkin).
+local skinDef = nil
+if SKIN then
+	skinDef = PlotDecor.skin(SKIN)
+	assert(skinDef.id == SKIN, `unknown plot skin {SKIN}`)
+	PlotDecor.applySkin(built.plots:FindFirstChild("Plot_1"), SKIN, nil, nil)
 end
 
 local hidden: { [Instance]: boolean } = {}
@@ -111,7 +125,20 @@ for _, scope in { built.map, built.plots } do
 			-- no turn here. A WorldProps Model skin keeps the upload's own front
 			-- (turned IMPORT_YAW from the kit axes) and its MeshSize, like MeshSwap.
 			local turn = 0
-			if inst:IsA("Model") then
+			local tint = nil
+			if skinDef and skinDef.fence and inst:IsDescendantOf(built.plots:FindFirstChild("Plot_1")) then
+				tint = { skinDef.fence[1] / 255, skinDef.fence[2] / 255, skinDef.fence[3] / 255 }
+			end
+			local skinMesh = skinDef and skinDef.decor and inst.Name == "Mailbox_1"
+			if skinMesh then
+				-- The skin decor stands where the mailbox mesh stands, same scale (PlotDecor.applySkinDecor).
+				local native = (MeshAssets.get(skinDef.decor) :: any).size
+				local scale = inst.Size.Y / (MeshAssets.get("ranch_mailbox") :: any).size[2]
+				name = skinDef.decor
+				cf, box = inst.CFrame, inst.Size
+				size = { native[1] * scale, native[2] * scale, native[3] * scale }
+				drop = (box.Y - size[2]) / 2
+			elseif inst:IsA("Model") then
 				cf, box = boundingBox(inst)
 				for _, d in inst:GetDescendants() do
 					hidden[d] = true
@@ -127,6 +154,7 @@ for _, scope in { built.map, built.plots } do
 			end
 			hidden[inst] = true
 			table.insert(meshes, {
+				tint = tint,
 				mesh = name,
 				cf = cfOf(cf * CFrame.new(0, -drop, 0) * CFrame.Angles(0, turn, 0)),
 				size = size,
@@ -197,8 +225,9 @@ for _, scope in { built.map, built.plots } do
 end
 
 fs.writeDir(OUT)
+local suffix = (if PENDING then "_pending" else "") .. (if SKIN then `_skin_{SKIN}` else "")
 fs.writeFile(
-	`{OUT}/{if PENDING then "scene_pending" else "scene"}.json`,
+	`{OUT}/scene{suffix}.json`,
 	serde.encode("json", {
 		pending = PENDING,
 		parts = parts,
@@ -214,5 +243,5 @@ for _, m in meshes do
 	counts[m.mesh] = (counts[m.mesh] or 0) + 1
 end
 print(
-	`wrote {OUT}/{if PENDING then "scene_pending" else "scene"}.json: {#parts} parts, {#meshes} meshes, {#lights} lights (pending={PENDING})`
+	`wrote {OUT}/scene{suffix}.json: {#parts} parts, {#meshes} meshes, {#lights} lights (pending={PENDING})`
 )

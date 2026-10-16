@@ -1399,6 +1399,8 @@ def step_shots(run):
                     res["admin_event"] = run.need_luau("admin_event", "Client", timeout=15, event=shot["admin_event"])
                 if shot.get("weekend"):  # competitor-gaps #17: fake a live x2 Weekend chip (Studio only)
                     res["weekend"] = run.need_luau("weekend", "Client", timeout=15, on=True)
+                if shot.get("plot_skin"):  # gaps #15: fake the plot skin picker (Studio only)
+                    res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
                 if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
                     res["dex_weather"] = run.need_luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=True)
                     time.sleep(0.6)  # State push
@@ -1446,6 +1448,8 @@ def step_shots(run):
                     run.luau("admin_event", "Client", timeout=15, event="")
                 if shot.get("weekend"):
                     run.luau("weekend", "Client", timeout=15, on=False)
+                if shot.get("plot_skin"):
+                    run.luau("plot_skin", "Client", timeout=15, skin="classic")
                 if shot.get("plot_slime"):
                     run.luau("plot_slime", "Client", timeout=15, state="")
                 if shot.get("dex_weather"):
@@ -1485,6 +1489,8 @@ def step_shots(run):
                     # optional uploaded-animation check: a rigged slime must sit on the pad (PcwPad clone)
                     pad_seat = run.need_luau("pad_seat", "Server", timeout=30, path=res["target"]["path"])
                     res["pad_seat"] = pad_seat
+                if shot.get("plot_skin"):  # gaps #15: Plot_1 wears the skin (floor, fence tint, decor mesh), Studio only
+                    res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
                 if shot.get("grow"):  # v29 #11: real growth on the pad 1 slime (Studio hook); WorldView draws it
                     # no watcher seat clone may stand on the pad: the frame must show the slime WorldView renders
                     if (res.get("target") or {}).get("path"):
@@ -1577,6 +1583,8 @@ def step_shots(run):
                 finally:
                     if shot.get("clock") is not None:
                         run.luau("pcw_clock", "Server", timeout=15, time=False)
+                if shot.get("plot_skin"):
+                    run.luau("plot_skin", "Client", timeout=15, skin="classic")
         except Exception as e:
             res["error"] = repr(e)[:200]
             if not res.get("frame"):
@@ -1590,6 +1598,11 @@ def step_shots(run):
     if any(shot.get("weather") for shot in shots):
         try:
             run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1, cover=-1)  # drop the WeatherDebug preview
+        except Exception:
+            pass
+    if any(shot.get("plot_skin") for shot in shots):
+        try:
+            run.luau("plot_skin", "Client", timeout=15, skin="")  # drop the PcwPlotSkin override (shots set "classic" first)
         except Exception:
             pass
     if any(r.get("seat") for r in results):
