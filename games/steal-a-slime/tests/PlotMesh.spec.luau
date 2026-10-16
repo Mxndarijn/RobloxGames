@@ -164,7 +164,7 @@ describe("plot gate", function()
 			expect(sameAngle((mesh.rot :: Vec)[2], yaw + 180)).toBe(true)
 		end
 	end)
-	it("puts the plot Sign on the mesh's name board, readable from both sides", function()
+	it("puts the plot Sign on the mesh's name board, text on its front face only", function()
 		local wallZ = -WorldLayout.PLOT_SIZE / 2 + 0.5
 		for i, plot in plots do
 			local sign = child(plot, "Sign")
@@ -176,10 +176,12 @@ describe("plot gate", function()
 			expect(p[2]).toBeCloseTo(BASE_TOP + board.centreY)
 			-- bottom edge stays >= 9 above the walkway
 			expect(p[2] - size[2] / 2 >= BASE_TOP + 9).toBe(true)
-			-- front face just proud of the board, back face behind the gate (half depth 1.3)
+			-- front face just proud of the board, back face on the board's rim
+			-- (in front of the beam, which spans the wall line +-0.5)
 			local front, back = p[3] - size[3] / 2, p[3] + size[3] / 2
 			expect(front < wallZ - board.front and front > wallZ - board.front - 0.2).toBe(true)
-			expect(back > wallZ + 0.5).toBe(true)
+			expect(back).toBeCloseTo(wallZ - board.back)
+			expect(back < wallZ - 0.3).toBe(true)
 			-- inside the gate mesh's top, which ends 13.4 up
 			expect(p[2] + size[2] / 2 < BASE_TOP + native("phoenix_gate")[2]).toBe(true)
 		end

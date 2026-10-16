@@ -262,8 +262,9 @@ WorldLayout.PAD_SEAT = table.freeze({
 	phoenix_pad_mushroom = 3.0, -- flat mesa top of the cap
 })
 -- phoenix_gate's cream name board at native size (models/phoenix_gate.py
--- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line).
-WorldLayout.GATE_BOARD = table.freeze({ width = 9, height = 2.4, centreY = 10.5, front = 1.1 })
+-- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line;
+-- "SignRim" behind it ends 0.4 in front of the wall line).
+WorldLayout.GATE_BOARD = table.freeze({ width = 9, height = 2.4, centreY = 10.5, front = 1.1, back = 0.4 })
 -- The plot SlimeDex board skins the two-sided phoenix_top_earners_board at
 -- DEX_SCALE (14.8 x 14 x 2.9, about the gate's height). DEX_FACE = its front
 -- cream panel at native size, measured on out/phoenix_top_earners_board.fbx
@@ -1166,14 +1167,16 @@ local function plot(i: number): WorldNode
 	button.children = { block("Pedestal", { 5, 1.5, 5 }, at({ 19, 1.75, -14 }), FENCE, "WoodPlanks", { 0, yaw, 0 }) }
 	table.insert(children, button)
 
-	-- Sign = the gate mesh's cream name board (PlotSigns writes on it), its
-	-- bottom edge >= 9 above the walkway. Deep enough to come out just in front
-	-- of the board and just behind the beam, so both text faces stay readable.
-	-- Board, posts and beam are stand-ins: the mesh draws them once it lands.
+	-- Sign = the gate mesh's cream name board (PlotSigns writes on its Front
+	-- face), its bottom edge >= 9 above the walkway. Its front face sits just
+	-- proud of the board, its back face on the board's rim back: the text
+	-- sits on the board, nothing floats behind the beam (v28: "Plot 2 / Empty
+	-- plot" hung off the gate's back). Board, posts and beam are stand-ins:
+	-- the mesh draws them once it lands.
 	local wallZ = -s / 2 + 0.5
 	local board = WorldLayout.GATE_BOARD
 	local signY = 1 + board.centreY
-	local signFront, signBack = wallZ - board.front - 0.05, wallZ + 0.55
+	local signFront, signBack = wallZ - board.front - 0.05, wallZ - board.back
 	local sign = standIn(
 		block(
 			"Sign",
