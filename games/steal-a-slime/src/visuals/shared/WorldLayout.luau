@@ -862,8 +862,12 @@ local function plaza(): WorldNode
 	for _, def in WorldLayout.PLAZA_PROPS do
 		local size = def.size :: Vec
 		local pos = onPolar(def.yaw, def.r, size[2] / 2)
-		-- face the fountain
-		table.insert(children, meshSlot(block(def.name, size, pos, STONE, "Slate", { 0, def.yaw, 0 }), def.mesh))
+		-- Kit front (+Z) faces the fountain: the slot at (sin, cos) * r turned
+		-- yaw + 180 (yaw alone put the podium plaques and sign faces outward).
+		table.insert(
+			children,
+			meshSlot(block(def.name, size, pos, STONE, "Slate", { 0, (def.yaw + 180) % 360, 0 }), def.mesh)
+		)
 	end
 	local tiles: { WorldNode } = {}
 	local y = LANDING_SIZE[2] / 2
@@ -1345,8 +1349,19 @@ end
 
 -- Kit props from the RanchProps table, resolved to world slots (deterministic).
 local ranchProps: { RanchProp } = {}
+local byName: { [string]: RanchProp } = {}
 for _, p in RanchProps.PLACEMENTS do
-	table.insert(ranchProps, resolveProp(p))
+	local prop = resolveProp(p)
+	table.insert(ranchProps, prop)
+	byName[prop.name] = prop
+end
+-- `face`: turn the kit front (+Z) at another prop.
+for k, p in RanchProps.PLACEMENTS do
+	if p.face then
+		local prop, target = ranchProps[k], byName[p.face]
+		assert(target, `RanchProps {p.name} faces unknown {p.face}`)
+		prop.yaw = math.deg(math.atan2(target.pos[1] - prop.pos[1], target.pos[3] - prop.pos[3])) % 360
+	end
 end
 WorldLayout.RANCH_PROPS = table.freeze(ranchProps)
 
