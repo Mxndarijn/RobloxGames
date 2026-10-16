@@ -7,6 +7,7 @@
 	BASE (the pad as built today). Habitat ids are never saved.
 
 	  Habitats.forSlime(slime)     type (SlimeRoster id) > tier family > BASE
+	  Habitats.resolve(id)         known id, else BASE (server and client)
 	  Habitats.transition(prev, target, now)
 	                               server pad state; a change restamps `at`
 	  Habitats.initialWeights(id)  client, first sight: final state, no tween
@@ -122,15 +123,21 @@ function Habitats.get(id: string): Habitat?
 	return byId[id]
 end
 
+-- A known habitat id, else BASE: a pad never shows a look the table lacks
+-- (TYPE / FAMILY drift, a stale or bad attribute).
+function Habitats.resolve(id: any): string
+	return if type(id) == "string" and byId[id] then id else Habitats.BASE
+end
+
 -- Habitat for a slime type, given its tier for the family fallback.
 function Habitats.forType(species: string?, tier: number?): string
 	local typed = species and TYPE[species]
 	if typed then
-		return typed
+		return Habitats.resolve(typed)
 	end
 	local entry = species and SlimeRoster.get(species)
 	local family = FAMILY_BY_TIER[if entry then entry.tier else tier or 0]
-	return family and FAMILY[family] or Habitats.BASE
+	return Habitats.resolve(family and FAMILY[family])
 end
 
 function Habitats.forSlime(slime: { species: string?, tier: number }): string

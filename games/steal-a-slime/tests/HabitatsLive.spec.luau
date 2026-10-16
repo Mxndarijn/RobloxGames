@@ -6,6 +6,7 @@
 -- shipped Config keeps it off (Habitats.spec, LiveBoot.spec).
 local fs = require("@lune/fs")
 local process = require("@lune/process")
+local roblox = require("@lune/roblox")
 
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
@@ -19,8 +20,8 @@ local rt = Runtime.new(path, {})
 fs.removeFile(path)
 rt.workspace:SetAttribute("DataStoreMode", "Memory")
 local config = rt.game:GetService("ReplicatedStorage").Shared.Config
-local patched, n = string.gsub(config.Source, "Habitats = false,", "Habitats = true,")
-assert(n == 1, "FEATURES.Habitats not found in Config")
+local patched, replaced = string.gsub(config.Source, "Habitats = false,", "Habitats = true,")
+assert(replaced == 1, "FEATURES.Habitats not found in Config")
 config.Source = patched
 local server = rt.game:GetService("ServerScriptService"):FindFirstChild("Server")
 server.Source = server.Source .. "\n_G.__habitats = { world = world }\n"
@@ -67,6 +68,91 @@ world.carriedBy.hab1 = 999 -- carried off by a thief
 rt:advance(1)
 local stolen = read(pad(3))
 
+-- Client lifecycle smoke (HabitatFx, the VisualsClient module) on the same
+-- runtime. The fake runtime doesn't fire attribute / descendant signals by
+-- itself, so the test fires them the way the engine would.
+local signalOf = Runtime.signalOf
+local emits = 0
+roblox.implementMethod("ParticleEmitter", "Emit", function() -- engine-only; counted here
+	emits += 1
+end)
+local HabitatFx = rt:require(rt.game:GetService("StarterPlayer").StarterPlayerScripts.VisualsClient.HabitatFx)
+local plots = rt.workspace:FindFirstChild("Plots")
+HabitatFx.attach(plots)
+local tracked = HabitatFx.count()
+local part = pad(3)
+local function frames(seconds)
+	for _ = 1, math.round(seconds / 0.05) do
+		HabitatFx.step(0.05)
+	end
+	rt:runDue()
+end
+local function fire()
+	signalOf(part, "Attr:Habitat"):Fire()
+	rt:runDue()
+end
+local function looksOf(p)
+	local n = 0
+	local root = rt.workspace:FindFirstChild("ClientHabitats")
+	for _, m in if root then root:GetChildren() else {} do
+		local prefix = `{p.Parent.Name}_{p.Name}_` -- HabitatFx look name: <plot>_<pad>_<id>
+		if m.Name:sub(1, #prefix) == prefix then
+			n += 1
+		end
+	end
+	return n
+end
+local function burstsOf(p)
+	local n = 0
+	for _, c in p:GetChildren() do
+		if c.Name == "HabitatBurst" then
+			n += 1
+		end
+	end
+	return n
+end
+local maxLooks, maxBursts = 0, 0
+for _ = 1, 5 do
+	world.carriedBy.hab1 = nil -- enters (lands on pad 3)
+	rt:advance(0.5)
+	fire()
+	frames(0.4) -- mid-transform
+	maxLooks, maxBursts = math.max(maxLooks, looksOf(part)), math.max(maxBursts, burstsOf(part))
+	world.carriedBy.hab1 = 999 -- leaves
+	rt:advance(0.5)
+	fire()
+	frames(0.3)
+	maxLooks, maxBursts = math.max(maxLooks, looksOf(part)), math.max(maxBursts, burstsOf(part))
+end
+frames(1.5)
+local settledLooks = looksOf(part)
+world.carriedBy.hab1 = nil -- back on the pad, fully grown
+rt:advance(0.5)
+fire()
+frames(1.5)
+local grownLooks = looksOf(part)
+local grownHidden = part.Stand.LocalTransparencyModifier
+part:SetAttribute("Habitat", "not_a_habitat") -- table drift / bad attribute
+fire()
+frames(1.5)
+local driftLooks = looksOf(part)
+local driftHidden = part.Stand.LocalTransparencyModifier
+local function listeners(p)
+	local n = 0
+	for _, h in signalOf(p, "Attr:Habitat").handlers do
+		if h.connected then
+			n += 1
+		end
+	end
+	return n
+end
+local before = listeners(part)
+signalOf(plots, "DescendantRemoving"):Fire(part)
+rt:runDue()
+local after = listeners(part)
+local afterCount = HabitatFx.count()
+HabitatFx.clear()
+
 describe("Habitats live (FEATURES.Habitats on, fake runtime)", function()
 	it("boots without script errors", function()
 		expect(#rt.errors).toBe(0)
@@ -81,5 +167,29 @@ describe("Habitats live (FEATURES.Habitats on, fake runtime)", function()
 	it("reverts the pad to base when the slime is carried off", function()
 		expect(stolen).toEqual({ "base", "crystal_grotto" })
 		expect(pad(3):GetAttribute("HabitatAt") > placedAt).toBe(true)
+	end)
+end)
+
+describe("HabitatFx client lifecycle (fake runtime)", function()
+	it("tracks every pad from one pass over Plots", function()
+		expect(tracked > 0).toBe(true)
+	end)
+	it("5x enter / leave leaves at most 1 look and 1 burst per pad", function()
+		expect(maxLooks <= 2).toBe(true) -- 1 growing + 0 or 1 shrinking mid-swap
+		expect(maxBursts).toBe(1)
+		expect(emits).toBe(12) -- 10 transforms + grow again + the drift to base
+		expect(settledLooks).toBe(0) -- ended at base: no look left
+		expect(#rt.errors).toBe(0)
+	end)
+	it("shows the base pad for an unknown habitat id", function()
+		expect(grownLooks).toBe(1)
+		expect(grownHidden).toBe(1) -- Stand hidden under the look
+		expect(driftLooks).toBe(0)
+		expect(driftHidden).toBe(0) -- Stand shows again (old readId hid it for good)
+	end)
+	it("disconnects the pad's Habitat listener when the pad is removed", function()
+		expect(before).toBe(1)
+		expect(after).toBe(0)
+		expect(afterCount).toBe(tracked - 1)
 	end)
 end)

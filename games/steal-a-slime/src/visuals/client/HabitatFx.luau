@@ -26,7 +26,6 @@ local Habitats = require(Shared:WaitForChild("Habitats"))
 
 local HabitatFx = {}
 
-HabitatFx.POLL = 0.5 -- seconds between scans for new / removed pads
 HabitatFx.SPARK = "rbxasset://textures/particles/sparkles_main.dds" -- built-in, same as Effects SPARK
 HabitatFx.BURST = 24
 
@@ -35,9 +34,11 @@ type Look = { model: Model, pieces: { Piece } }
 type Track = {
 	pad: BasePart,
 	id: string,
+	seen: boolean, -- false until the pad's first Habitat attribute
 	weights: Habitats.Weights,
 	looks: { [string]: Look },
 	burst: ParticleEmitter?,
+	conn: RBXScriptConnection, -- Habitat attribute listener, disconnected in drop
 }
 
 local tracks: { [BasePart]: Track } = {}
@@ -229,9 +230,9 @@ local function emitBurst(track: Track, id: string)
 	emitter:Emit(HabitatFx.BURST)
 end
 
-local function readId(pad: BasePart): string?
-	local id = pad:GetAttribute(Constants.HABITAT_ATTRIBUTE)
-	return if type(id) == "string" then id else nil
+-- Unknown or missing ids read as BASE, so table drift never hides a pad.
+local function readId(pad: BasePart): string
+	return Habitats.resolve(pad:GetAttribute(Constants.HABITAT_ATTRIBUTE))
 end
 
 local function apply(track: Track)
@@ -263,6 +264,7 @@ local function drop(pad: BasePart)
 	if not track then
 		return
 	end
+	track.conn:Disconnect()
 	for _, look in track.looks do
 		look.model:Destroy()
 	end
@@ -275,40 +277,102 @@ local function drop(pad: BasePart)
 	tracks[pad] = nil
 end
 
-local function watch(pad: BasePart)
-	local id = readId(pad)
-	if tracks[pad] or not id then
-		return
-	end
-	-- First sight: final state, no tween, no burst.
-	local track: Track = { pad = pad, id = id, weights = Habitats.initialWeights(id), looks = {}, burst = nil }
-	tracks[pad] = track
+-- First sight (join in progress, streamed in, or the first Habitat the
+-- server writes): the final state, no tween, no burst.
+local function snap(track: Track)
+	track.seen = true
+	track.id = readId(track.pad)
+	track.weights = Habitats.initialWeights(track.id)
 	ensureLooks(track)
 	apply(track)
-	pad:GetAttributeChangedSignal(Constants.HABITAT_ATTRIBUTE):Connect(function()
-		local current = tracks[pad]
-		local nextId = readId(pad)
-		if current and nextId and nextId ~= current.id then
-			current.id = nextId
-			emitBurst(current, nextId)
-		end
-	end)
 end
 
-local function scan()
-	local plots = workspace:FindFirstChild(Constants.PLOTS_FOLDER)
-	if plots then
-		for _, d in plots:GetDescendants() do
-			if d:IsA("BasePart") and d:GetAttribute(Constants.PAD_INDEX_ATTRIBUTE) ~= nil then
-				watch(d)
+local function onHabitat(track: Track)
+	if not track.seen then
+		snap(track)
+		return
+	end
+	local nextId = readId(track.pad)
+	if nextId ~= track.id then
+		track.id = nextId
+		emitBurst(track, nextId)
+	end
+end
+
+local function watch(pad: BasePart)
+	if tracks[pad] then
+		return
+	end
+	local track: Track
+	track = {
+		pad = pad,
+		id = Habitats.BASE,
+		seen = false,
+		weights = {},
+		looks = {},
+		burst = nil,
+		conn = pad:GetAttributeChangedSignal(Constants.HABITAT_ATTRIBUTE):Connect(function()
+			onHabitat(track)
+		end),
+	}
+	tracks[pad] = track
+	if pad:GetAttribute(Constants.HABITAT_ATTRIBUTE) ~= nil then
+		snap(track)
+	end
+end
+
+local function isPad(d: Instance): boolean
+	return d:IsA("BasePart") and d:GetAttribute(Constants.PAD_INDEX_ATTRIBUTE) ~= nil
+end
+
+-- Event-driven: one pass over Plots at start, then DescendantAdded /
+-- DescendantRemoving (streaming, plot rebuilds). No periodic rescans.
+function HabitatFx.attach(plots: Instance): { RBXScriptConnection }
+	local conns = {
+		plots.DescendantAdded:Connect(function(d)
+			if isPad(d) then
+				watch(d :: BasePart)
 			end
+		end),
+		plots.DescendantRemoving:Connect(function(d)
+			if tracks[d :: any] then
+				drop(d :: BasePart)
+			end
+		end),
+	}
+	for _, d in plots:GetDescendants() do
+		if isPad(d) then
+			watch(d :: BasePart)
 		end
 	end
+	return conns
+end
+
+-- Moves every unsettled pad one frame along (RenderStepped).
+function HabitatFx.step(dt: number)
+	for _, track in tracks do
+		if not Habitats.isSettled(track.weights, track.id) then
+			track.weights = Habitats.stepWeights(track.weights, track.id, dt)
+			ensureLooks(track)
+			apply(track)
+		end
+	end
+end
+
+-- Test / teardown hook: drops every pad (looks, burst, listener).
+function HabitatFx.clear()
 	for pad in tracks do
-		if not pad:IsDescendantOf(workspace) then
-			drop(pad)
-		end
+		drop(pad)
 	end
+end
+
+-- Pads currently tracked (tests).
+function HabitatFx.count(): number
+	local n = 0
+	for _ in tracks do
+		n += 1
+	end
+	return n
 end
 
 function HabitatFx.start()
@@ -316,23 +380,13 @@ function HabitatFx.start()
 		return
 	end
 	task.spawn(function()
-		while true do
-			local ok, err = pcall(scan)
-			if not ok then
-				warn(`[VisualsClient] HabitatFx scan: {err}`)
-			end
-			task.wait(HabitatFx.POLL)
+		local plots = workspace:WaitForChild(Constants.PLOTS_FOLDER)
+		local ok, err = pcall(HabitatFx.attach, plots)
+		if not ok then
+			warn(`[VisualsClient] HabitatFx attach: {err}`)
 		end
 	end)
-	RunService.RenderStepped:Connect(function(dt: number)
-		for _, track in tracks do
-			if not Habitats.isSettled(track.weights, track.id) then
-				track.weights = Habitats.stepWeights(track.weights, track.id, dt)
-				ensureLooks(track)
-				apply(track)
-			end
-		end
-	end)
+	RunService.RenderStepped:Connect(HabitatFx.step)
 end
 
 return HabitatFx

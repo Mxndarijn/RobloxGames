@@ -1,4 +1,5 @@
 --!strict
+local Actions = require("../src/server/Actions")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
@@ -9,7 +10,9 @@ local PlayerData = require("../src/shared/PlayerData")
 local ServerFixtures = require("./ServerFixtures")
 local Sessions = require("../src/server/Sessions")
 local SlimeRoster = require("../src/shared/SlimeRoster")
+local StealService = require("../src/server/StealService")
 local TestRunner = require("./TestRunner")
+local World = require("../src/server/World")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
@@ -25,6 +28,15 @@ end
 local function tick(state, world, now: number)
 	return HabitatPads.step(state, world, now, true)
 end
+
+local ctx: Actions.Context = {
+	distanceBetween = function()
+		return 2
+	end,
+	positionOf = function()
+		return "pos"
+	end,
+}
 
 local function padId(state, plotIndex: number, pad: number): string?
 	local s = HabitatPads.get(state, plotIndex, pad)
@@ -58,6 +70,20 @@ describe("Habitats table", function()
 		expect(Habitats.forSlime(Fixtures.slime("m", 2))).toBe("flower_bed")
 		expect(Habitats.forSlime(Fixtures.slime("m", 6))).toBe("crystal_grotto")
 		expect(Habitats.forType("not_a_type", 0)).toBe(BASE)
+	end)
+	it("resolves unknown or missing habitat ids to the base pad", function()
+		expect(Habitats.resolve("crystal_grotto")).toBe("crystal_grotto")
+		expect(Habitats.resolve("not_a_habitat")).toBe(BASE)
+		expect(Habitats.resolve(nil)).toBe(BASE)
+		expect(Habitats.resolve(42)).toBe(BASE)
+	end)
+	it("maps every TYPE and FAMILY entry to a known habitat (no drift)", function()
+		for _, id in Habitats.TYPE do
+			expect(Habitats.get(id) ~= nil).toBe(true)
+		end
+		for _, id in Habitats.FAMILY do
+			expect(Habitats.get(id) ~= nil).toBe(true)
+		end
 	end)
 	it("prefers a per-type habitat over the family", function()
 		expect(Habitats.forSlime(species("a", "honey_queen"))).toBe("syrup_pool")
@@ -98,7 +124,7 @@ describe("HabitatPads (server pad state)", function()
 		expect(s.from).toBe("syrup_pool")
 		expect(s.at).toBe(T0 + 5)
 	end)
-	it("reverts the pad to base when the slime is stolen, and back when it escapes home", function()
+	it("reverts the pad to base when the slime is stolen, and back when the carry ends", function()
 		local world = ServerFixtures.world()
 		local state = HabitatPads.new()
 		local victim = ServerFixtures.join(world, 1, { species("gem", "billy_gum") })
@@ -112,6 +138,76 @@ describe("HabitatPads (server pad state)", function()
 		world.carriedBy.gem = nil -- bounced home and landed
 		tick(state, world, T0 + 20)
 		expect(padId(state, victim.plotIndex, 1)).toBe("candy_patch")
+	end)
+	it("is base while a stolen slime bounces home, and back once it lands", function()
+		local world = ServerFixtures.world()
+		local state = HabitatPads.new()
+		local victim = ServerFixtures.join(world, 1, { species("gem", "billy_gum") })
+		local thief = ServerFixtures.join(world, 2)
+		ServerFixtures.unlock(victim)
+		tick(state, world, T0)
+		expect((Carry.grab(world, 2, "gem", 1, T0 + 1))).toBe(true)
+		tick(state, world, T0 + 1)
+		expect(StealService.escape(world, thief, T0 + 2, "slap")).toBe("gem")
+		expect(world.escaping.gem ~= nil).toBe(true)
+		expect(world.carriedBy.gem).toBeNil()
+		tick(state, world, T0 + 2)
+		expect(padId(state, victim.plotIndex, 1)).toBe(BASE) -- still bouncing
+		local landed = T0 + 2 + World.ESCAPE_BOUNCE_SECONDS
+		StealService.step(world, landed)
+		expect(world.escaping.gem).toBeNil()
+		tick(state, world, landed)
+		local s = HabitatPads.get(state, victim.plotIndex, 1) :: Habitats.PadState
+		expect(s.id).toBe("candy_patch")
+		expect(s.from).toBe(BASE)
+		expect(s.at).toBe(landed)
+	end)
+	it("moves with a stolen slime to the thief's pad; the victim's pad reverts", function()
+		local world = ServerFixtures.world()
+		local state = HabitatPads.new()
+		local victim = ServerFixtures.join(world, 1, { species("gem", "billy_gum") })
+		local thief = ServerFixtures.join(world, 2)
+		ServerFixtures.unlock(victim)
+		tick(state, world, T0)
+		expect((Carry.grab(world, 2, "gem", 1, T0 + 1))).toBe(true)
+		expect((Carry.deposit(world, 2))).toBe(true)
+		tick(state, world, T0 + 2)
+		local moved = PlayerData.findSlime(thief.data, "gem")
+		assert(moved and moved.pad, "deposited on a pad")
+		expect(padId(state, victim.plotIndex, 1)).toBe(BASE)
+		local s = HabitatPads.get(state, thief.plotIndex, moved.pad) :: Habitats.PadState
+		expect(s.id).toBe("candy_patch")
+		expect(s.from).toBe(BASE)
+		expect(s.at).toBe(T0 + 2)
+	end)
+	it("moves between pads of the same plot: old pad reverts, new pad updates", function()
+		local world = ServerFixtures.world()
+		local state = HabitatPads.new()
+		local owner = ServerFixtures.join(world, 1, { species("a", "pudding") })
+		tick(state, world, T0)
+		local slime = PlayerData.findSlime(owner.data, "a")
+		assert(slime, "slime")
+		expect(slime.pad).toBe(1)
+		slime.pad = 3 -- rebirth / re-seat moves a slime's pad index
+		tick(state, world, T0 + 1)
+		local old = HabitatPads.get(state, owner.plotIndex, 1) :: Habitats.PadState
+		local new = HabitatPads.get(state, owner.plotIndex, 3) :: Habitats.PadState
+		expect({ old.id, old.from, old.at }).toEqual({ BASE, "syrup_pool", T0 + 1 })
+		expect({ new.id, new.from, new.at }).toEqual({ "syrup_pool", BASE, T0 + 1 })
+	end)
+	it("reverts the pad to base when the slime is sold", function()
+		local world = ServerFixtures.world()
+		local state = HabitatPads.new()
+		local owner = ServerFixtures.join(world, 1, { species("a", "rock_candy"), species("b", "pudding") })
+		tick(state, world, T0)
+		expect(padId(state, owner.plotIndex, 1)).toBe("crystal_grotto")
+		local res = Actions.handle(world, 1, "Sell", { "a" }, T0 + 3, ctx)
+		expect(res.ok).toBe(true)
+		expect(PlayerData.findSlime(owner.data, "a")).toBeNil()
+		tick(state, world, T0 + 3)
+		local s = HabitatPads.get(state, owner.plotIndex, 1) :: Habitats.PadState
+		expect({ s.id, s.from, s.at }).toEqual({ BASE, "crystal_grotto", T0 + 3 })
+		expect(padId(state, owner.plotIndex, 2)).toBe("syrup_pool") -- the other pad is untouched
 	end)
 	it("steal mid-transform ends at base", function()
 		local world = ServerFixtures.world()
