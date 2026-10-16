@@ -13,6 +13,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local Types = if script then require(script.Parent.Types) else require("./Types")
 
@@ -64,7 +65,9 @@ function Shop.walkSpeed(data: Data): number
 end
 
 function Shop.view(data: Data): Types.ShopView
+	local egg = if Config.FEATURES.MysteryEgg then { price = MysteryEgg.price(data) } else nil
 	return {
+		MysteryEgg = egg,
 		LockUpgrade = {
 			price = Shop.lockUpgradeCost(data.lockLevel),
 			level = data.lockLevel,
