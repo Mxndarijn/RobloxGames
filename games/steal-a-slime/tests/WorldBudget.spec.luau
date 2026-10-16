@@ -7,8 +7,8 @@
 -- Mesh slots = MeshAsset slots + pending BorderMesh slots + the WorldProps
 -- skins (PROP_MESHES), split into fence / gate posts / border / decor (ranch
 -- props, pad stands and everything else). See WorldLayout.MESH_SLOT_BUDGET.
--- Parts = Part nodes outside Map.Border must stay under PART_BUDGET (THEME.md
--- 1200) in both modes; Map.Border (main #54: walls, invisible slots and
+-- Parts = Part nodes outside Map.Border must stay under PART_BUDGET (1400)
+-- in both modes; Map.Border (main #54: walls, invisible slots and
 -- primitive stand-ins) is held to BORDER_PART_BUDGET on its own.
 local Config = require("../src/shared/Config")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -199,6 +199,9 @@ describe("world budget: mesh slots (fallback until ranch_fence_20 is uploaded)",
 end)
 
 describe("world budget: parts", function()
+	it("sets PART_BUDGET to 1400 outside Map.Border", function()
+		expect(WorldLayout.PART_BUDGET).toBe(1400)
+	end)
 	it("keeps the parts outside Map.Border under PART_BUDGET, uploaded and fallback", function()
 		expect(uploaded.parts < WorldLayout.PART_BUDGET).toBe(true)
 		if fallback then
