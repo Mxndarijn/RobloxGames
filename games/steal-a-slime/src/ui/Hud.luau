@@ -219,6 +219,7 @@ function Hud.new(parent: Instance, ctx: any)
 
 	-- Workspace rain attributes, kept fresh by change signals (read in tick).
 	local rainAttrs: RainTimer.Rain? = nil
+	local menuOpen = false -- set by init.client via setMenuOpen
 	local function readRainAttrs()
 		rainAttrs = RainTimer.fromAttributes(
 			workspace:GetAttribute("RainActive"),
@@ -444,7 +445,7 @@ function Hud.new(parent: Instance, ctx: any)
 		end
 
 		local info = RainTimer.banner(RainTimer.resolve(rainAttrs, current.rain), now, ctx.Config.RAIN_LUCK)
-		rain.Visible = info ~= nil
+		rain.Visible = info ~= nil and not menuOpen
 		if info then
 			rain.Text = info.text
 			rain.BackgroundColor3 = RAIN_COLORS[info.kind]
@@ -459,9 +460,17 @@ function Hud.new(parent: Instance, ctx: any)
 		end
 
 		local modifierText = ModifierBadge.banner(current.modifier, now, ctx.Config.FEATURES.CycleModifier == true)
-		modifier.Visible = modifierText ~= nil
+		modifier.Visible = modifierText ~= nil and not menuOpen
 		if modifierText then
 			modifier.Text = modifierText
+		end
+	end
+
+	-- A menu card open hides the rain / modifier banners (MenuState.bannersVisible).
+	function self.setMenuOpen(isOpen: boolean)
+		if menuOpen ~= isOpen then
+			menuOpen = isOpen
+			self.tick(ctx.serverNow())
 		end
 	end
 
