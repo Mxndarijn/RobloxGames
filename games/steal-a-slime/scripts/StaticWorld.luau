@@ -25,7 +25,11 @@ StaticWorld.SPAWN_NAME = "HubSpawn"
 -- plinth (r 13.4) and the plaza props, well inside the 640-stud Ground.
 StaticWorld.SPAWN_YAW = 67.5
 StaticWorld.SPAWN_RADIUS = 64
-StaticWorld.SPAWN_SIZE = { 12, 1, 12 }
+-- An invisible pad flush with the plaza sand (top 0.2, the sand disc's is
+-- 0.15): the old visible 12 x 1 x 12 butter slab read as a random yellow
+-- box on the plaza (v28 playtest) and wild slimes landed on it.
+StaticWorld.SPAWN_SIZE = { 12, 0.2, 12 }
+StaticWorld.SPAWN_TRANSPARENCY = 1
 
 -- Loads a src/visuals/shared module with Roblox datatypes (Instance, CFrame,
 -- NumberSequence, ...) from @lune/roblox as globals; its "./X" requires load
@@ -79,7 +83,8 @@ local function spawnLocation(): any
 	spawn.Enabled = true
 	spawn.Duration = 3
 	spawn.Material = roblox.Enum.Material.SmoothPlastic
-	spawn.Color = roblox.Color3.fromRGB(255, 220, 120)
+	spawn.Color = roblox.Color3.fromRGB(222, 198, 150) -- plaza sand, if it ever shows
+	spawn.Transparency = StaticWorld.SPAWN_TRANSPARENCY
 	spawn.TopSurface = roblox.Enum.SurfaceType.Smooth
 	spawn.BottomSurface = roblox.Enum.SurfaceType.Smooth
 	return spawn
