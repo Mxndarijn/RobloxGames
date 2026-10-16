@@ -1,21 +1,31 @@
-"""Steal a Slime PC watcher (MVP): on each new origin/main sha, build, open in Studio, play, measure,
-screenshot, and push a JSON report + frames to the orphan branch `studio-reports`.
+#!/usr/bin/env python3
+"""Steal a Slime PC watcher: Studio checks for every new origin/main sha, on Merijn's PC.
 
-  python watcher.py once [--sha SHA] [--no-sync]
-  python watcher.py loop
-  python watcher.py shots-only [--sha TAG]     (against an already running Studio, play already started)
+  watcher.py loop                       poll `git ls-remote` every 60 s, run new shas
+  watcher.py once [--sha SHA]           full run for one sha (default: origin/main), ignores last-sha
+  watcher.py step build|launch|perf|play|devices|twoplayer|close|sync [--sha SHA]
+  watcher.py tools                      dump StudioMCP tool schemas (needs a running Studio for most calls)
+  watcher.py mcp TOOL [JSON_ARGS]       one raw tools/call ("$studio" in args = the watcher's studio id)
+  watcher.py capture [--out f.png]      capture the watcher's Studio window client area
+  watcher.py selftest                   pure checks, any OS
+Global flags: --home DIR (default C:\\gate\\pc-watcher or $PCW_HOME), --dry-run, -v.
 
-Runs on the Windows PC only (Studio + Win32). See README.md.
+Studio is driven only through StudioMCP.exe (stdio JSON-RPC) plus Win32 for window size and
+capture. See README.md for the flow, report format and limits.
 """
 
 import argparse
 import datetime
 import json
 import logging
+import logging.handlers
 import os
+import re
+import shutil
 import subprocess
 import sys
 import time
+import traceback
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -24,704 +34,1445 @@ import imaging  # noqa: E402
 import mcp_client  # noqa: E402
 import win32  # noqa: E402
 
-ROOT = os.environ.get("PCW_ROOT", r"C:\gate\pc-watcher")
-REPO = os.path.join(ROOT, "repo")
-ROJO = os.path.join(ROOT, "bin", "rojo.exe")
-BUILDS = os.path.join(ROOT, "builds")
-REPORTS = os.path.join(ROOT, "reports")  # git clone, branch studio-reports
-REPORT_DIR = os.path.join(REPORTS, "studio-reports")
-LAST_SHA = os.path.join(ROOT, "last-sha")
-PIDS_FILE = os.path.join(ROOT, "studio-pids.json")
-LOCK = os.path.join(ROOT, "watcher.lock")
-LOG_DIR = os.path.join(ROOT, "logs")
-GAME = "games/steal-a-slime"
-SHOTS = os.path.join(HERE, "shots.json")
-BRANCH = "main"
-REPORT_BRANCH = "studio-reports"
-POLL_S = 60
-MESH_BUDGET = 400
-KEEP_BUILDS = 5
-UI_NAME = "SlimeUI"
-ONBOARD_WORDS = ["next", "continue", "ok", "skip", "got it", "start"]
-
-GIT_ENV = dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never")
+VERSION = "1.0.0"
 log = logging.getLogger("pcw")
 
-
-# ---------------------------------------------------------------------------
-# Luau snippets (bodies for mcp_client.wrap_luau: must `return` a table)
-# ---------------------------------------------------------------------------
-
-LUA_HELPERS = r"""
-local Players = game:GetService("Players")
-local GuiService = game:GetService("GuiService")
-local VIM = game:GetService("VirtualInputManager")
-local function slimeUI()
-	local pg = Players.LocalPlayer:WaitForChild("PlayerGui", 10)
-	return pg and pg:FindFirstChild("__UI__")
-end
-local function shown(g)
-	if g.AbsoluteSize.X <= 0 or g.AbsoluteSize.Y <= 0 then return false end
-	local a = g
-	while a do
-		if a:IsA("GuiObject") and not a.Visible then return false end
-		if a:IsA("LayerCollector") then return a.Enabled end
-		a = a.Parent
-	end
-	return false
-end
-local function label(b)
-	local t = ""
-	if b:IsA("TextButton") then t = b.Text end
-	return string.lower(b.Name .. " " .. t)
-end
-local function findButton(words)
-	local ui = slimeUI()
-	if not ui then return nil end
-	for _, w in words do
-		for _, b in ui:GetDescendants() do
-			local hit = if #w <= 2 then string.find(label(b), "%f[%w]" .. w .. "%f[%W]") else string.find(label(b), w, 1, true)
-			if b:IsA("GuiButton") and shown(b) and hit then return b end
-		end
-	end
-	return nil
-end
-local function click(b)
-	local inset = GuiService:GetGuiInset()
-	local sg = b:FindFirstAncestorWhichIsA("ScreenGui")
-	local dy = if sg and sg.IgnoreGuiInset then 0 else inset.Y
-	local x = b.AbsolutePosition.X + b.AbsoluteSize.X / 2
-	local y = b.AbsolutePosition.Y + b.AbsoluteSize.Y / 2 + dy
-	VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
-	task.wait(0.08)
-	VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
-	return { name = b:GetFullName(), x = math.floor(x), y = math.floor(y) }
-end
-local function openPanels()
-	local ui = slimeUI()
-	local out = {}
-	if not ui then return out end
-	for _, f in ui:GetDescendants() do
-		if f:IsA("GuiObject") and string.find(string.lower(f.Name), "panel$") and shown(f) then
-			table.insert(out, f.Name)
-		end
-	end
-	return out
-end
-""".replace("__UI__", UI_NAME)
-
-LUA_SERVER_PERF = r"""
-local meshes, parts, uniq, nuniq = 0, 0, {}, 0
-for _, d in workspace:GetDescendants() do
-	if d:IsA("BasePart") then parts += 1 end
-	if d:IsA("MeshPart") then
-		meshes += 1
-		if not uniq[d.MeshId] then uniq[d.MeshId] = true; nuniq += 1 end
-	end
-end
-return { mesh_parts = meshes, unique_meshes = nuniq, base_parts = parts }
-"""
-
-LUA_CLIENT_PERF = r"""
-local RS = game:GetService("RunService")
-local total, frames = 0, 0
-local conn = RS.RenderStepped:Connect(function(dt) total += dt; frames += 1 end)
-task.wait(3)
-conn:Disconnect()
-local vp = workspace.CurrentCamera.ViewportSize
-return {
-	frame_time_ms = if frames > 0 then total / frames * 1000 else nil,
-	frames = frames,
-	memory_mb = game:GetService("Stats"):GetTotalMemoryUsageMb(),
-	viewport = { math.floor(vp.X), math.floor(vp.Y) },
+DEFAULTS = {
+    "remote": "origin",
+    "branch": "main",
+    "game_dir": "games/steal-a-slime",
+    "project": "default.project.json",
+    "keep_builds": 5,
+    "poll_s": 60,
+    "busy_retry_s": 300,
+    "run_budget_s": 480,
+    "mesh_slot_budget": 400,
+    "launch_timeout_s": 120,
+    "client_timeout_s": 90,
+    "stats_seconds": 5,
+    "devices": [["desktop", 1920, 1080], ["phone-portrait", 390, 844], ["phone-landscape", 844, 390]],
+    "device_iterations": 5,
+    # kind (mouse_down, mouse_up, key_down, key_up) -> action template, "$x" / "$y" / "$key" filled in.
+    # Empty = built from the tool's inputSchema (see mcp_client.build_action).
+    "input_overrides": {},
+    "twoplayer_cmdline": True,
+    "twoplayer_port": 53640,
+    "twoplayer_server_args": ["-task", "StartServer", "-placeId", "0", "-universeId", "0", "-port", "$port",
+                              "-creatorId", "0", "-creatorType", "0", "$rbxl"],
+    "twoplayer_client_args": ["-task", "StartClient", "-port", "$port"],
+    "twoplayer_clients": 2,
+    "twoplayer_server_wait_s": 20,
+    "twoplayer_timeout_s": 120,
+    "reports_branch": "studio-reports",
+    "push_retries": 3,
+    "jpeg_quality": 80,
+    "sync": True,
 }
-"""
 
-LUA_HUD = LUA_HELPERS + r"""
-local ui = slimeUI()
-local vp = workspace.CurrentCamera.ViewportSize
-local res = { viewport = { math.floor(vp.X), math.floor(vp.Y) }, found = ui ~= nil, checked = 0, offenders = {} }
-if not ui then return res end
-local inset = GuiService:GetGuiInset()
-local dy = if ui.IgnoreGuiInset then 0 else inset.Y
-for _, b in ui:GetDescendants() do
-	if b:IsA("GuiButton") and shown(b) then
-		res.checked += 1
-		local p, s = b.AbsolutePosition, b.AbsoluteSize
-		local x0, y0 = p.X, p.Y + dy
-		if x0 < -1 or y0 < -1 or x0 + s.X > vp.X + 1 or y0 + s.Y > vp.Y + 1 then
-			table.insert(res.offenders, { name = b:GetFullName(), x = x0, y = y0, w = s.X, h = s.Y })
-		end
-	end
-end
-return res
-"""
-
-LUA_ONBOARD = LUA_HELPERS + r"""
-local clicks = {}
-for _ = 1, 8 do
-	local b = findButton(__WORDS__)
-	if not b then break end
-	table.insert(clicks, click(b))
-	task.wait(0.7)
-end
-return { clicks = clicks, panels = openPanels() }
-"""
-
-LUA_OPEN = LUA_HELPERS + r"""
-local b = findButton(__WORDS__)
-if not b then return { clicked = false, panels = openPanels() } end
-local c = click(b)
-task.wait(0.8)
-return { clicked = true, button = c, panels = openPanels() }
-"""
-
-LUA_ESCAPE = LUA_HELPERS + r"""
-local before = openPanels()
-VIM:SendKeyEvent(true, Enum.KeyCode.Escape, false, game)
-task.wait(0.08)
-VIM:SendKeyEvent(false, Enum.KeyCode.Escape, false, game)
-task.wait(0.6)
-local menu = GuiService.MenuIsOpen
-if menu then -- nothing of ours consumed Escape: the Roblox menu opened, close it again
-	VIM:SendKeyEvent(true, Enum.KeyCode.Escape, false, game)
-	task.wait(0.08)
-	VIM:SendKeyEvent(false, Enum.KeyCode.Escape, false, game)
-	task.wait(0.4)
-end
-return { before = before, after = openPanels(), roblox_menu = menu }
-"""
-
-# Server sees the whole world (client may be streaming), so locate targets there.
-LUA_FIND = r"""
-local pat = string.lower(%s)
-local exact, loose
-for _, d in workspace:GetDescendants() do
-	if (d:IsA("Model") or d:IsA("BasePart")) and not game:GetService("Players"):GetPlayerFromCharacter(d) then
-		local n = string.lower(d.Name)
-		if n == pat then exact = d; break end
-		if not loose and string.find(n, pat, 1, true) then loose = d end
-	end
-end
-local hit = exact or loose
-if not hit then return { found = false } end
-local cf, size
-if hit:IsA("Model") then cf, size = hit:GetBoundingBox() else cf, size = hit.CFrame, hit.Size end
-local p, lv = cf.Position, cf.LookVector
-return { found = true, path = hit:GetFullName(), pos = { p.X, p.Y, p.Z }, look = { lv.X, lv.Y, lv.Z },
-	size = { size.X, size.Y, size.Z } }
-"""
-
-LUA_CAMERA = r"""
-local eye, at = Vector3.new(%s), Vector3.new(%s)
-pcall(function() game:GetService("Players").LocalPlayer:RequestStreamAroundAsync(at, 5) end)
-local cam = workspace.CurrentCamera
-cam.CameraType = Enum.CameraType.Scriptable
-cam.CFrame = CFrame.lookAt(eye, at)
-task.wait(1)
-return { ok = true }
-"""
-
-LUA_CAMERA_RESET = r"""
-workspace.CurrentCamera.CameraType = Enum.CameraType.Custom
-return { ok = true }
-"""
+# A step outside these that ends "fail" still fails the run; these also fail it when skipped.
+HARD_STEPS = ("build", "launch", "perf", "play", "onboarding", "shop", "esc", "devices")
+STEP_ORDER = ("build", "launch", "perf", "play", "onboarding", "shop", "esc", "devices", "two_player", "shots")
+SOFT_STEPS = ("shots",)  # never fail the run; missing = fine
+GIT_ENV = {"GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
 
 
-def lua_str(s):
-    return json.dumps(s)  # JSON string literal is a valid Luau string literal for plain text
+class StepFail(Exception):
+    """A hard failure of the current step (message goes to the report)."""
 
 
-def lua_list(words):
-    return "{ " + ", ".join(lua_str(w) for w in words) + " }"
+class StudioBusy(Exception):
+    pass
+
+
+def utc_now():
+    return datetime.datetime.now(datetime.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+# ---------------------------------------------------------------------------
+# Pure helpers (selftest.py)
+# ---------------------------------------------------------------------------
+
+def parse_ls_remote(text, branch):
+    ref = "refs/heads/" + branch
+    for line in (text or "").splitlines():
+        parts = line.split()
+        if len(parts) == 2 and parts[1] == ref and re.fullmatch(r"[0-9a-f]{40}", parts[0]):
+            return parts[0]
+    return None
+
+
+def builds_to_prune(entries, keep):
+    """entries: [(path, mtime)] -> paths beyond the newest `keep`."""
+    ordered = sorted(entries, key=lambda e: e[1], reverse=True)
+    return [p for p, _ in ordered[keep:]]
+
+
+def test_project(project, attributes=None):
+    """default.project.json + Workspace $attributes DataStoreMode=Memory (test build only, never shipped)."""
+    p = json.loads(json.dumps(project))
+    ws = p.setdefault("tree", {}).setdefault("Workspace", {"$className": "Workspace"})
+    attrs = ws.setdefault("$attributes", {})
+    attrs.update(attributes or {"DataStoreMode": "Memory"})
+    return p
+
+
+def fill_args(template, values):
+    return [values.get(a[1:], a) if isinstance(a, str) and a.startswith("$") else a for a in template]
+
+
+def next_client_guess(target, samples):
+    """Next client size to try so the viewport hits `target`.
+
+    samples: [((client_w, client_h), (vp_w, vp_h))], newest last. Uses the secant slope per axis
+    when two samples differ on that axis, else assumes viewport changes 1:1 with the client.
+    """
+    (cw, ch), (vw, vh) = samples[-1]
+    guess = []
+    for axis, (c, v, t) in enumerate(((cw, vw, target[0]), (ch, vh, target[1]))):
+        slope = 1.0
+        for (pc, pv) in reversed([(s[0][axis], s[1][axis]) for s in samples[:-1]]):
+            if pc != c and pv != v:
+                slope = min(3.0, max(0.33, (c - pc) / float(v - pv)))
+                break
+        guess.append(int(round(c + (t - v) * slope)))
+    return tuple(guess)
+
+
+def luau_literal(v):
+    """Placeholder value -> Luau source: number, "x, y, z" for a sequence, quoted string otherwise."""
+    if isinstance(v, bool):
+        return "true" if v else "false"
+    if isinstance(v, int):
+        return str(v)
+    if isinstance(v, float):
+        return repr(round(v, 3))
+    if isinstance(v, (list, tuple)):
+        return ", ".join(luau_literal(float(x)) for x in v)
+    return json.dumps(str(v))  # a JSON string literal is a valid Luau string literal
 
 
 def shot_camera(target):
     """Server bounding box -> (eye, at): in front of the target, raised, 1.6x its size back."""
     px, py, pz = target["pos"]
     lx, _, lz = target["look"]
-    size = max(target["size"])
-    dist = max(size * 1.6, 14.0)
+    dist = max(max(target["size"]) * 1.6, 14.0)
     flat = (lx * lx + lz * lz) ** 0.5 or 1.0
-    eye = (px + lx / flat * dist, py + dist * 0.45, pz + lz / flat * dist)
-    return eye, (px, py, pz)
+    return (px + lx / flat * dist, py + dist * 0.45, pz + lz / flat * dist), (px, py, pz)
+
+
+def viewport_error(vp, target):
+    return abs(vp[0] - target[0]) + abs(vp[1] - target[1])
+
+
+def overall_status(steps):
+    for name, s in steps.items():
+        st = s.get("status")
+        if name in SOFT_STEPS:
+            continue
+        if st == "fail":
+            return "fail"
+        if name in HARD_STEPS and st not in ("pass", "warn"):
+            return "fail"
+    for name in HARD_STEPS:
+        if name not in steps:
+            return "fail"
+    return "pass"
+
+
+def frame_title_ok(title, needles):
+    low = (title or "").lower()
+    return "roblox studio" in low or any(n and n.lower() in low for n in needles)
 
 
 # ---------------------------------------------------------------------------
-# Small utilities
+# Config, paths, logging
 # ---------------------------------------------------------------------------
 
-def run(cmd, cwd=None, timeout=300, check=True):
-    log.info("$ %s", " ".join(cmd))
-    r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=GIT_ENV,
-                       creationflags=win32.NO_WINDOW if os.name == "nt" else 0)
-    if check and r.returncode != 0:
-        raise RuntimeError("%s failed (%d): %s" % (cmd[0], r.returncode, (r.stderr or r.stdout)[-600:]))
-    return r
+class Paths:
+    def __init__(self, home):
+        self.home = home
+        self.repo = os.path.join(home, "repo")
+        self.bin = os.path.join(home, "bin")
+        self.builds = os.path.join(home, "builds")
+        self.out = os.path.join(home, "out")
+        self.logs = os.path.join(home, "logs")
+        self.state = os.path.join(home, "state")
+        self.reports = os.path.join(home, "reports")
+        for d in (self.builds, self.out, self.logs, self.state):
+            os.makedirs(d, exist_ok=True)
+
+    def st(self, name):
+        return os.path.join(self.state, name)
 
 
-def read(path, default=None):
+def load_config(paths):
+    cfg = dict(DEFAULTS)
+    f = os.path.join(paths.home, "config.json")
+    if os.path.isfile(f):
+        with open(f, encoding="utf-8") as fh:
+            cfg.update(json.load(fh))
+    return cfg
+
+
+def setup_logging(paths, verbose):
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+    fh = logging.handlers.RotatingFileHandler(
+        os.path.join(paths.logs, "watcher.log"), maxBytes=5_000_000, backupCount=5, encoding="utf-8")
+    fh.setFormatter(fmt)
+    fh.setLevel(logging.DEBUG)
+    root.addHandler(fh)
+    if sys.stderr is not None:  # pythonw has no console
+        sh = logging.StreamHandler(sys.stderr)
+        sh.setFormatter(fmt)
+        sh.setLevel(logging.DEBUG if verbose else logging.INFO)
+        root.addHandler(sh)
+
+
+def read_json(path, default=None):
     try:
         with open(path, encoding="utf-8") as f:
-            return f.read().strip()
-    except OSError:
+            return json.load(f)
+    except Exception:
         return default
 
 
-def write(path, text):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(text)
-
-
-def now_iso():
-    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def remote_sha():
-    r = run(["git", "ls-remote", "origin", "refs/heads/" + BRANCH], cwd=REPO, timeout=60)
-    return r.stdout.split()[0] if r.stdout.strip() else None
+def write_json(path, data):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, sort_keys=False)
+        f.write("\n")
+    os.replace(tmp, path)
 
 
 class Lock:
-    def __enter__(self):
-        os.makedirs(ROOT, exist_ok=True)
-        if os.path.exists(LOCK) and time.time() - os.path.getmtime(LOCK) > 1800:
-            os.remove(LOCK)  # stale (crashed run)
-        self.fd = os.open(LOCK, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        os.write(self.fd, str(os.getpid()).encode())
-        return self
+    """Exclusive lock file holding our pid; a lock whose pid is gone (or older than max_age) is stale."""
 
-    def __exit__(self, *exc):
-        os.close(self.fd)
-        os.remove(LOCK)
+    def __init__(self, path, max_age=1800):
+        self.path, self.max_age, self.held = path, max_age, False
+
+    def acquire(self):
+        for _ in range(2):
+            try:
+                fd = os.open(self.path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            except FileExistsError:
+                info = read_json(self.path, {}) or {}
+                pid, at = info.get("pid"), info.get("at", 0)
+                alive = pid and (win32.pid_alive(pid) if os.name == "nt" else _posix_alive(pid))
+                if alive and time.time() - at < self.max_age:
+                    return False
+                log.warning("removing stale lock %s (%s)", self.path, info)
+                try:
+                    os.remove(self.path)
+                except OSError:
+                    pass
+                continue
+            with os.fdopen(fd, "w") as f:
+                json.dump({"pid": os.getpid(), "at": time.time()}, f)
+            self.held = True
+            return True
+        return False
+
+    def release(self):
+        if self.held:
+            try:
+                os.remove(self.path)
+            except OSError:
+                pass
+            self.held = False
+
+
+def _posix_alive(pid):
+    try:
+        os.kill(int(pid), 0)
+        return True
+    except Exception:
+        return False
 
 
 # ---------------------------------------------------------------------------
-# Run state
+# Run context
 # ---------------------------------------------------------------------------
 
 class Run:
-    def __init__(self, sha):
-        self.sha = sha
+    def __init__(self, paths, cfg, sha, dry=False):
+        self.paths, self.cfg, self.sha, self.dry = paths, cfg, sha, dry
         self.t0 = time.time()
         self.notes = []
         self.steps = {}
-        self.perf = {"budget": MESH_BUDGET}
+        self.perf = {"mesh_slots": None, "unique_meshes": None, "budget": cfg["mesh_slot_budget"],
+                     "frame_time_ms": None, "memory_mb": None}
         self.frames = []
-        self.hard_fail = False
-        self.studio_dir = mcp_client.find_studio_dir()
+        self.extra = {}
+        self.studio_dir = None
+        self.studio_version = None
         self.mcp = None
         self.studio_id = None
-        self.pids = []
         self.hwnd = None
-        self.frame_dir = os.path.join(REPORT_DIR, sha)
+        self.rbxl = os.path.join(paths.builds, "%s.rbxl" % sha) if sha else None
+        self.outdir = os.path.join(paths.out, "dry-run" if dry else "", sha) if sha else None
+        self.playing = False
+        if self.outdir:
+            os.makedirs(self.outdir, exist_ok=True)
 
-    def step(self, name, ok, detail=None, hard=True):
-        self.steps[name] = {"ok": bool(ok), "detail": detail}
-        log.info("step %s: %s %s", name, "ok" if ok else "FAIL", json.dumps(detail, default=str)[:400])
-        if not ok and hard:
-            self.hard_fail = True
-        return ok
+    # --- budget ---
+    def remaining(self):
+        return self.cfg["run_budget_s"] - (time.time() - self.t0)
 
     def note(self, msg):
         log.info("note: %s", msg)
         self.notes.append(msg)
 
-    def luau(self, body, datamodel, timeout=60):
-        ok, data, _ = self.mcp.luau(self.studio_id, body, datamodel=datamodel, timeout=timeout)
+    # --- shell ---
+    def cmd(self, args, cwd=None, timeout=120, check=True, env=None):
+        log.info("$ %s", " ".join(str(a) for a in args))
+        if self.dry:
+            return subprocess.CompletedProcess(args, 0, "", "")
+        e = dict(os.environ)
+        e.update(GIT_ENV)
+        e.update(env or {})
+        r = subprocess.run(args, cwd=cwd, capture_output=True, text=True, timeout=timeout, env=e,
+                           creationflags=win32.NO_WINDOW if os.name == "nt" else 0)
+        if r.returncode != 0:
+            log.warning("rc=%s stdout=%s stderr=%s", r.returncode, r.stdout[-800:], r.stderr[-1500:])
+            if check:
+                raise StepFail("%s failed (rc %s): %s" % (os.path.basename(str(args[0])), r.returncode,
+                                                          (r.stderr or r.stdout).strip()[-300:]))
+        return r
+
+    def git(self, *args, cwd=None, timeout=180, check=True):
+        return self.cmd(["git", "-C", cwd or self.paths.repo] + list(args), timeout=timeout, check=check)
+
+    # --- Studio / MCP ---
+    def studio_exe(self):
+        if not self.studio_dir:
+            self.studio_dir = mcp_client.find_studio_dir()
+        if not self.studio_dir:
+            raise StepFail("no Roblox Studio under %LOCALAPPDATA%\\Roblox\\Versions")
+        return os.path.join(self.studio_dir, "RobloxStudioBeta.exe")
+
+    def session(self):
+        if self.mcp and self.mcp.alive():
+            return self.mcp
+        if self.mcp is not None:
+            self.note("StudioMCP process died; started a new session")
+        exe = os.path.join(os.path.dirname(self.studio_exe()), "StudioMCP.exe")
+        if not os.path.isfile(exe):
+            raise StepFail("StudioMCP.exe missing in %s" % self.studio_dir)
+        self.mcp = mcp_client.McpSession(exe, client_name="pc-watcher-" + VERSION).start()
+        schema_file = os.path.join(self.paths.state, "mcp-tools.json")
+        write_json(schema_file, {"server": self.mcp.server_info, "tools": self.mcp.schemas})
+        return self.mcp
+
+    def luau(self, name, datamodel="Edit", timeout=60, **subs):
+        with open(os.path.join(HERE, "luau", name + ".luau"), encoding="utf-8") as f:
+            body = f.read()
+        for k, v in subs.items():
+            body = body.replace("%%" + k.upper() + "%%", luau_literal(v))
+        ok, data, _ = self.session().luau(self.studio_id, body, datamodel, timeout=timeout)
+        log.debug("luau %s/%s ok=%s %s", name, datamodel, ok, json.dumps(data)[:600])
         return ok, data
 
-    # --- capture ---
-    def capture(self, fid):
-        """Studio client area -> <sha>/<sha>-<fid>.jpg. Returns the frame record."""
-        rec = {"id": fid, "file": None, "ok": False}
-        if not self.hwnd:
-            rec["error"] = "no studio window"
-            self.frames.append(rec)
-            return rec
-        try:
-            win32.bring_to_front(self.hwnd)
-            time.sleep(0.3)
-            got = win32.capture_client(self.hwnd)
-        except Exception as e:
-            rec["error"] = repr(e)
-            self.frames.append(rec)
-            return rec
-        rec.update({"method": got["method"], "w": got["w"], "h": got["h"], "stats": got["stats"]})
-        if got["rgb"] is None or got["blank"]:
-            rec["error"] = "blank frame (%s)" % "; ".join(got["tried"])
-            self.frames.append(rec)
-            return rec
-        os.makedirs(self.frame_dir, exist_ok=True)
-        base = os.path.join(self.frame_dir, "%s-%s" % (self.sha, fid))
-        imaging.save_png(base + ".png", got["w"], got["h"], got["rgb"])
-        if imaging.to_jpeg(base + ".png", base + ".jpg", 80):
-            os.remove(base + ".png")
-            rec["file"] = os.path.basename(base) + ".jpg"
-        else:
-            rec["file"] = os.path.basename(base) + ".png"
-        rec["ok"] = True
-        self.frames.append(rec)
-        return rec
+    def need_luau(self, name, datamodel="Edit", timeout=60, **subs):
+        ok, data = self.luau(name, datamodel, timeout, **subs)
+        if not ok:
+            raise StepFail("%s (%s): %s" % (name, datamodel, str(data)[:300]))
+        return data
 
-    def report(self):
-        status = "fail" if self.hard_fail else "pass"
-        return {
-            "sha": self.sha,
-            "status": status,
-            "checked_at": now_iso(),
-            "studio_version": os.path.basename(self.studio_dir) if self.studio_dir else None,
-            "notes": self.notes,
-            "duration_s": round(time.time() - self.t0, 1),
-            "perf": self.perf,
-            "steps": self.steps,
-            "frames": self.frames,
-        }
+    def tool(self, name, timeout=60, **args):
+        args.setdefault("studio_id", self.studio_id)
+        return self.session().call(name, args, timeout=timeout)
+
+    # --- persisted context for `step` subcommands ---
+    def save_current(self):
+        write_json(self.paths.st("current.json"), {
+            "sha": self.sha, "rbxl": self.rbxl, "studio_id": self.studio_id, "hwnd": self.hwnd,
+            "studio_dir": self.studio_dir, "studio_version": self.studio_version, "playing": self.playing,
+        })
+
+    def load_current(self):
+        cur = read_json(self.paths.st("current.json"), {}) or {}
+        if not self.sha and cur.get("sha"):
+            self.sha = cur["sha"]
+            self.rbxl = os.path.join(self.paths.builds, "%s.rbxl" % self.sha)
+            self.outdir = os.path.join(self.paths.out, "dry-run" if self.dry else "", self.sha)
+            os.makedirs(self.outdir, exist_ok=True)
+        if cur.get("sha") == self.sha:
+            self.rbxl = cur.get("rbxl") or self.rbxl
+            self.studio_id = cur.get("studio_id")
+            self.hwnd = cur.get("hwnd")
+            self.studio_dir = cur.get("studio_dir")
+            self.studio_version = cur.get("studio_version")
+            self.playing = bool(cur.get("playing"))
+        return cur
+
+    def close(self):
+        if self.mcp:
+            self.mcp.close()
+            self.mcp = None
+
+
+def tracked_pids(paths):
+    return set(read_json(paths.st("pids.json"), []) or [])
+
+
+def save_pids(paths, pids):
+    write_json(paths.st("pids.json"), sorted(int(p) for p in pids))
 
 
 # ---------------------------------------------------------------------------
 # Steps
 # ---------------------------------------------------------------------------
 
-def step_build(r):
-    run(["git", "fetch", "--quiet", "origin", BRANCH], cwd=REPO, timeout=180)
-    run(["git", "checkout", "--quiet", "--force", "--detach", r.sha], cwd=REPO)
-    os.makedirs(BUILDS, exist_ok=True)
-    out = os.path.join(BUILDS, r.sha + ".rbxl")
-    run([ROJO, "build", os.path.join(REPO, GAME, "default.project.json"), "-o", out], timeout=120)
-    olds = sorted((os.path.join(BUILDS, f) for f in os.listdir(BUILDS) if f.endswith(".rbxl")),
-                  key=os.path.getmtime)
-    for old in olds[:-KEEP_BUILDS]:
-        os.remove(old)
-    r.step("build", True, out)
-    return out
-
-
-def tracked_pids():
+def step_build(run):
+    p, cfg = run.paths, run.cfg
+    if not os.path.isdir(os.path.join(p.repo, ".git")) and not run.dry:
+        raise StepFail("repo clone missing: %s (run install.ps1)" % p.repo)
+    run.git("fetch", "--prune", cfg["remote"], timeout=300)
+    run.git("checkout", "--detach", "--force", run.sha)
+    run.git("clean", "-ffdx", timeout=120)
+    if not run.dry:
+        head = run.git("rev-parse", "HEAD").stdout.strip()
+        if head != run.sha:
+            raise StepFail("checkout gave %s, wanted %s" % (head, run.sha))
+    game = os.path.join(p.repo, cfg["game_dir"].replace("/", os.sep))
+    # world/*.rbxmx are tracked; scripts/gen-world and the untracked src/visuals/static output are
+    # not in the Rojo tree, so a plain rojo build is the whole place.
+    tmp = os.path.join(game, ".pcwatcher.project.json")
+    if not run.dry:
+        project = read_json(os.path.join(game, cfg["project"]))
+        if not project:
+            raise StepFail("cannot read %s/%s" % (cfg["game_dir"], cfg["project"]))
+        write_json(tmp, test_project(project))
+    rojo = os.path.join(p.bin, "rojo.exe")
+    if not os.path.isfile(rojo):
+        rojo = shutil.which("rojo") or rojo
+    t0 = time.time()
     try:
-        return json.loads(read(PIDS_FILE, "[]"))
-    except ValueError:
-        return []
+        run.cmd([rojo, "build", tmp, "-o", run.rbxl], cwd=game, timeout=300)
+    finally:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    size = os.path.getsize(run.rbxl) if os.path.exists(run.rbxl) else 0
+    if not run.dry and size < 10_000:
+        raise StepFail("build output missing or tiny (%d bytes)" % size)
+    entries = [(os.path.join(p.builds, f), os.path.getmtime(os.path.join(p.builds, f)))
+               for f in os.listdir(p.builds) if f.endswith(".rbxl")]
+    for old in builds_to_prune(entries, cfg["keep_builds"]):
+        log.info("prune build %s", old)
+        os.remove(old)
+    return "pass", {"rbxl": run.rbxl, "size_mb": round(size / 1e6, 2), "rojo_s": round(time.time() - t0, 1),
+                    "datastore_mode": "Memory (Workspace $attributes, test build only)"}
 
 
-def step_launch(r, rbxl):
-    if not r.studio_dir:
-        return r.step("launch", False, "Studio not found under %LOCALAPPDATA%\\Roblox\\Versions")
-    for pid in tracked_pids():  # leftovers from a crashed run of ours
+def studio_version_of(exe_dir):
+    exe = os.path.join(exe_dir, "RobloxStudioBeta.exe")
+    try:
+        r = subprocess.run(
+            ["powershell", "-NoProfile", "-NonInteractive", "-Command", "(Get-Item '%s').VersionInfo.ProductVersion" % exe],
+            capture_output=True, text=True, timeout=20, creationflags=win32.NO_WINDOW)
+        v = r.stdout.strip()
+        if v:
+            return "%s (%s)" % (v, os.path.basename(exe_dir))
+    except Exception:
+        pass
+    return os.path.basename(exe_dir)
+
+
+def kill_strays(run):
+    """Kills Studio processes an earlier watcher run started; refuses to touch anyone else's."""
+    mine = tracked_pids(run.paths)
+    killed = []
+    for pid in sorted(mine):
         if win32.pid_alive(pid):
             win32.kill_pid(pid)
-    time.sleep(1)
-    before = set(win32.list_pids())
-    if before:
-        return r.step("launch", False, "studio busy: user Studio running (pids %s)" % sorted(before))
-    p = subprocess.Popen([os.path.join(r.studio_dir, win32.STUDIO_IMAGE), rbxl])
-    r.pids = [p.pid]
-    write(PIDS_FILE, json.dumps(r.pids))
-    r.mcp = mcp_client.McpSession(os.path.join(r.studio_dir, "StudioMCP.exe")).start()
-    name = os.path.basename(rbxl)
-    deadline = time.time() + 120
+            killed.append(pid)
+    save_pids(run.paths, set())
+    if killed:
+        run.note("killed stray watcher Studio pids %s" % killed)
+        time.sleep(2)
+    foreign = [pid for pid in win32.list_pids() if pid not in mine]
+    busy = []
+    for pid in foreign:
+        for w in win32.top_windows([pid]):
+            if w["visible"] and win32.title_has_place(w["title"]):
+                busy.append("%s (pid %s)" % (w["title"], pid))
+    if busy:
+        raise StudioBusy("studio busy: user Studio with a place open: " + "; ".join(busy))
+    if foreign:
+        run.note("user Studio without a place open (pids %s) left alone" % foreign)
+
+
+def find_our_studio(run, mcp):
+    studios, raw = mcp.list_studios()
+    stem = os.path.splitext(os.path.basename(run.rbxl))[0]
+    return mcp_client.pick_studio(studios, [os.path.basename(run.rbxl), stem, run.sha[:12]]), studios, raw
+
+
+def step_launch(run):
+    if run.dry:
+        return "skip", {"dry_run": True}
+    exe = run.studio_exe()
+    run.studio_version = studio_version_of(run.studio_dir)
+    if not os.path.isfile(run.rbxl):
+        raise StepFail("build missing: %s" % run.rbxl)
+    kill_strays(run)
+    proc = subprocess.Popen([exe, run.rbxl], cwd=run.studio_dir)
+    ours = {proc.pid}
+
+    def grow(pids):
+        # Only processes descending from the one we started (never a Studio the user opens meanwhile).
+        return win32.descendants(win32.process_table(), pids) & (set(win32.list_pids()) | pids)
+
+    save_pids(run.paths, ours)
+    log.info("launched Studio pid %s: %s", proc.pid, run.rbxl)
+    mcp = run.session()
+    deadline = time.time() + run.cfg["launch_timeout_s"]
+    found, last = None, None
     while time.time() < deadline:
-        studios, _ = r.mcp.list_studios()
-        hit = mcp_client.pick_studio(studios, [name, r.sha])
-        if hit:
-            r.studio_id = hit["id"]
+        ours = grow(ours)
+        save_pids(run.paths, ours)
+        found, studios, raw = find_our_studio(run, mcp)
+        last = raw.brief(400)
+        if found:
+            state = run.tool("get_studio_state", studio_id=found["id"], timeout=30)
+            if state.ok:
+                break
+            found = None
+        time.sleep(3)
+    if not found:
+        raise StepFail("Studio not listed by MCP within %ss (last list: %s)" % (run.cfg["launch_timeout_s"], last))
+    run.studio_id = found["id"]
+    win = None
+    for _ in range(20):
+        ours = grow(ours)
+        win = win32.studio_main_window(ours)
+        if win:
             break
-        time.sleep(2)
-    r.pids = sorted(set(r.pids) | (set(win32.list_pids()) - before))
-    write(PIDS_FILE, json.dumps(r.pids))
-    if not r.studio_id:
-        return r.step("launch", False, "MCP did not list %s within 120s" % name)
-    win = win32.studio_main_window(r.pids)
-    r.hwnd = win["hwnd"] if win else None
-    return r.step("launch", True, {"studio_id": r.studio_id, "pids": r.pids, "window": win and win["title"]})
-
-
-def step_play(r):
-    res = r.mcp.call("start_stop_play", {"studio_id": r.studio_id, "is_start": True}, timeout=60)
-    if not res.ok:
-        return r.step("play", False, res.brief())
-    time.sleep(3)
-    deadline = time.time() + 60
-    while time.time() < deadline:
-        ok, data = r.luau("return { ready = #workspace:GetChildren() }", "Server", timeout=20)
-        if ok:
-            return r.step("play", True, res.brief(80))
-        time.sleep(2)
-    return r.step("play", False, "Server datamodel not reachable after play start")
-
-
-def step_perf(r):
-    ok, data = r.luau(LUA_SERVER_PERF, "Server")
-    if ok:
-        r.perf.update(data)
-        r.step("perf_meshes", data["mesh_parts"] <= MESH_BUDGET, data)
-    else:
-        r.step("perf_meshes", False, data)
-    ok, data = r.luau(LUA_CLIENT_PERF, "Client", timeout=30)
-    if ok:
-        r.perf.update({k: data.get(k) for k in ("frame_time_ms", "memory_mb")})
-        r.perf["viewport"] = data.get("viewport")
-    r.step("perf_client", ok, data, hard=False)
-
-
-def step_hud(r, tag):
-    ok, data = r.luau(LUA_HUD, "Client")
-    good = ok and data.get("found") and not data.get("offenders")
-    r.step("hud_" + tag, good, data)
-    return data if ok else None
-
-
-def step_devices(r):
-    try:
-        orig = win32.window_rect(r.hwnd)
-        maxed = win32.is_maximized(r.hwnd)
-        got = win32.set_client_size(r.hwnd, 1920, 1080, 0, 0)
-        time.sleep(1.5)
-        hud = step_hud(r, "pc")
-        r.capture("pc")
-        r.note("pc: window client %sx%s, game viewport %s (Studio device emulator state decides the viewport)"
-               % (got[0], got[1], hud and hud.get("viewport")))
-        if maxed:
-            win32.maximize(r.hwnd)
-        else:
-            win32.set_window_rect(r.hwnd, *orig)
-        time.sleep(1.5)
-    except Exception as e:
-        r.step("devices", False, repr(e), hard=False)
-    hud = step_hud(r, "current")
-    r.capture("current")
-    r.note("phone sizes not driven: device emulator is not scriptable; captured current viewport %s"
-           % (hud and hud.get("viewport")))
-
-
-def step_onboarding_shop(r):
-    ok, data = r.luau(LUA_ONBOARD.replace("__WORDS__", lua_list(ONBOARD_WORDS)), "Client", timeout=40)
-    r.step("onboarding", ok, data, hard=False)
-    r.capture("onboarding")
-    ok, data = r.luau(LUA_OPEN.replace("__WORDS__", lua_list(["shop"])), "Client")
-    opened = ok and data.get("clicked") and any("shop" in p.lower() for p in data.get("panels", []))
-    r.step("shop", opened, data)
-    r.capture("shop")
-    ok, data = r.luau(LUA_ESCAPE, "Client")
-    r.step("esc", ok and not any("shop" in p.lower() for p in data.get("after", [])), data, hard=False)
-
-
-def run_shots(r):
-    try:
-        with open(SHOTS, encoding="utf-8") as f:
-            shots = json.load(f)
-    except (OSError, ValueError) as e:
-        r.note("shots.json unreadable: %r" % (e,))
-        return
-    done = 0
-    for s in shots:
-        sid = s.get("id", "shot")
-        try:
-            if s.get("kind") == "world":
-                if "pos" in s:
-                    eye, at = s["pos"], s.get("look", [0, 0, 0])
-                else:
-                    ok, t = r.luau(LUA_FIND % lua_str(s.get("target", "")), "Server")
-                    if not ok or not t.get("found"):
-                        r.note("shot %s: target %r not found" % (sid, s.get("target")))
-                        continue
-                    eye, at = shot_camera(t)
-                ok, err = r.luau(LUA_CAMERA % (", ".join("%.2f" % v for v in eye),
-                                               ", ".join("%.2f" % v for v in at)), "Client")
-                if not ok:
-                    r.note("shot %s: camera failed: %s" % (sid, err))
-                    continue
-                rec = r.capture(sid)
-            else:
-                if s.get("open"):
-                    ok, data = r.luau(LUA_OPEN.replace("__WORDS__", lua_list([s["open"].lower()])), "Client")
-                    if not (ok and data.get("clicked")):
-                        r.note("shot %s: no visible button matching %r" % (sid, s["open"]))
-                        continue
-                rec = r.capture(sid)
-                if s.get("open"):
-                    r.luau(LUA_ESCAPE, "Client")
-            if rec["ok"]:
-                done += 1
-            else:
-                r.note("shot %s: %s" % (sid, rec.get("error")))
-        except Exception as e:
-            r.note("shot %s: %r" % (sid, e))
-    r.luau(LUA_CAMERA_RESET, "Client")
-    r.step("shots", True, "%d/%d captured" % (done, len(shots)), hard=False)
-
-
-def step_two_player(r):
-    r.step("two_player", True, "TODO: not run in MVP", hard=False)
-    r.note("two_player: not run (TODO)")
-
-
-def step_close(r):
-    if r.mcp and r.studio_id:
-        try:
-            r.mcp.call("start_stop_play", {"studio_id": r.studio_id, "is_start": False}, timeout=30)
-        except Exception as e:
-            log.warning("stop play: %r", e)
-    if r.mcp:
-        r.mcp.close()
-    if r.hwnd:
-        try:
-            win32.post_close(r.hwnd)
-        except Exception:
-            pass
-    deadline = time.time() + 15
-    while time.time() < deadline and any(win32.pid_alive(p) for p in r.pids):
         time.sleep(1)
-    for p in r.pids:
-        if win32.pid_alive(p):
-            win32.kill_pid(p)  # also kills the "save changes?" prompt
-    write(PIDS_FILE, "[]")
+    save_pids(run.paths, ours)
+    run.hwnd = win["hwnd"] if win else None
+    if not win:
+        run.note("Studio main window not found (device sizes / frames will be skipped)")
+    run.save_current()
+    prepare_edit(run)
+    detail = {"studio_id": run.studio_id, "pids": sorted(ours), "window": win and win["title"],
+              "seconds_to_ready": round(run.cfg["launch_timeout_s"] - (deadline - time.time()), 1)}
+    # Edit-time frame from MCP screen_capture (soft).
+    try:
+        shot = run.tool("screen_capture", timeout=60)
+        img = shot.image_bytes()
+        if img:
+            name = save_mcp_image(run, img, "edit")
+            if name:
+                detail["edit_frame"] = name
+        else:
+            run.note("screen_capture returned no image (%s)" % shot.brief(120))
+    except Exception as e:
+        run.note("screen_capture failed: %r" % (e,))
+    return "pass", detail
 
 
-def write_report(r):
-    os.makedirs(REPORT_DIR, exist_ok=True)
-    rep = r.report()
-    write(os.path.join(REPORT_DIR, r.sha + ".json"), json.dumps(rep, indent=2, default=str))
-    log.info("report %s: %s (%ss)", r.sha, rep["status"], rep["duration_s"])
-    return rep
+def save_mcp_image(run, img, device):
+    mime, data = img
+    ext = "jpg" if "jpeg" in mime or "jpg" in mime else "png"
+    name = "%s-%s.%s" % (run.sha, device, ext)
+    path = os.path.join(run.outdir, name)
+    with open(path, "wb") as f:
+        f.write(data)
+    if ext == "png":
+        try:
+            w, h, mode, px = imaging.decode_png(data)
+            if imaging.is_blank(imaging.frame_stats(w, h, px, mode)):
+                run.note("%s frame is blank, not kept" % device)
+                os.replace(path, path.replace(".png", "-rejected.png"))
+                return None
+        except ValueError as e:
+            log.info("cannot check %s: %s", name, e)
+    run.frames.append(name)
+    return name
 
 
-# ---------------------------------------------------------------------------
-# Sync to the orphan branch
-# ---------------------------------------------------------------------------
+def prepare_edit(run):
+    """Edit datamodel: counts (info) and DataStoreMode=Memory before anything plays."""
+    deadline = time.time() + 40  # the place may still be loading right after MCP lists the studio
+    while True:
+        ok, d = run.luau("perf_edit", "Edit", timeout=30)
+        if ok or time.time() > deadline:
+            break
+        time.sleep(3)
+    if not ok:
+        raise StepFail("Edit execute_luau failed: %s" % str(d)[:300])
+    run.extra["edit_counts"] = d
+    if d.get("datastore_mode") != "Memory":
+        raise StepFail("could not put the session on DataStoreMode=Memory")
+    if d.get("datastore_mode_before") != "Memory":
+        run.note("build lacked DataStoreMode=Memory; set it in the Edit session (not saved)")
+    return d
 
-def ensure_reports_repo():
-    if os.path.isdir(os.path.join(REPORTS, ".git")):
+
+def step_perf(run):
+    """Mesh slots in the Server datamodel once MeshSwap has settled (Edit has none: see perf_server.luau)."""
+    if run.dry:
+        return "skip", {"dry_run": True}
+    budget = run.cfg["mesh_slot_budget"]
+    deadline, counts, d = time.time() + 45, [], None
+    while time.time() < deadline:
+        d = run.need_luau("perf_server", "Server", timeout=30)
+        counts.append(d.get("mesh_slots") or 0)
+        if len(counts) >= 3 and counts[-1] == counts[-2] == counts[-3] and counts[-1] > 0:
+            break
+        time.sleep(3)
+    settled = len(counts) >= 3 and counts[-1] == counts[-2] == counts[-3]
+    run.perf.update({"mesh_slots": d.get("mesh_slots"), "unique_meshes": d.get("unique_meshes"),
+                     "parts": d.get("parts"), "triangles": None})
+    detail = dict(d, budget=budget, samples=counts, settled=settled, edit=run.extra.get("edit_counts"),
+                  triangles="not available from Luau (pr-gate budget.sh counts FBX triangles)")
+    if not settled:
+        run.note("mesh count still changing after 45 s: %s" % counts[-4:])
+    if (d.get("mesh_slots") or 0) > budget:
+        return "fail", dict(detail, error="mesh slots %s > budget %s" % (d.get("mesh_slots"), budget))
+    if not d.get("mesh_slots"):
+        return "fail", dict(detail, error="no MeshParts in the play world (MeshSwap did not run?)")
+    return "pass", detail
+
+
+def wait_client(run, timeout):
+    """Client up: LocalPlayer + character + SlimeUI + a TutorialStepId (the server sent State).
+    After 30 s, GUI + character alone are accepted (a profile without a tutorial step)."""
+    t0 = time.time()
+    deadline, last = t0 + timeout, None
+    while time.time() < deadline:
+        ok, d = run.luau("client_ready", "Client", timeout=20)
+        if ok and (d.get("ready") or (time.time() - t0 > 30 and d.get("has_gui") and d.get("has_character"))):
+            return d
+        last = d
+        time.sleep(2)
+    raise StepFail("Client not ready within %ss: %s" % (timeout, str(last)[:200]))
+
+
+def start_play(run):
+    r = run.tool("start_stop_play", is_start=True, timeout=60)
+    if not r.ok:
+        raise StepFail("start_stop_play(true): %s" % r.brief())
+    run.playing = True
+    run.save_current()
+    return wait_client(run, run.cfg["client_timeout_s"])
+
+
+def stop_play(run):
+    if not run.studio_id:
         return
-    url = run(["git", "remote", "get-url", "origin"], cwd=REPO).stdout.strip()
-    os.makedirs(REPORTS, exist_ok=True)
-    run(["git", "init", "--quiet"], cwd=REPORTS)
-    run(["git", "remote", "add", "origin", url], cwd=REPORTS)
-    exists = run(["git", "ls-remote", "origin", "refs/heads/" + REPORT_BRANCH], cwd=REPORTS, timeout=60).stdout
-    if exists.strip():
-        run(["git", "fetch", "--quiet", "origin", REPORT_BRANCH], cwd=REPORTS, timeout=180)
-        run(["git", "checkout", "--quiet", "-B", REPORT_BRANCH, "FETCH_HEAD"], cwd=REPORTS)
-    else:
-        run(["git", "checkout", "--quiet", "--orphan", REPORT_BRANCH], cwd=REPORTS)
+    r = run.tool("start_stop_play", is_start=False, timeout=60)
+    run.playing = False
+    run.save_current()
+    if not r.ok:
+        log.warning("stop play: %s", r.brief())
+    time.sleep(3)
 
 
-def sync(sha):
-    ensure_reports_repo()
-    run(["git", "add", "studio-reports"], cwd=REPORTS)
-    if run(["git", "diff", "--cached", "--quiet"], cwd=REPORTS, check=False).returncode == 0:
-        log.info("sync: nothing to commit")
+def step_play(run):
+    if run.dry:
+        return "skip", {"dry_run": True}
+    t0 = time.time()
+    ready = start_play(run)
+    stats = run.need_luau("client_stats", "Client", timeout=run.cfg["stats_seconds"] + 40,
+                          seconds=run.cfg["stats_seconds"])
+    run.perf["frame_time_ms"] = _r(stats.get("frame_time_ms"))
+    run.perf["memory_mb"] = _r(stats.get("memory_mb"))
+    run.perf["play"] = {k: _r(v) for k, v in stats.items()}
+    if ready.get("store_status") not in (None, "Memory", "Unavailable"):
+        run.note("DataStoreStatus in play = %s (expected Memory)" % ready.get("store_status"))
+    run.note("frame time is Studio play-mode on the PC (window may be throttled when unfocused)")
+    return "pass", {"client": ready, "seconds_to_client": round(time.time() - t0, 1), "stats": run.perf["play"]}
+
+
+def _r(v):
+    return round(v, 2) if isinstance(v, float) else v
+
+
+def ui_probe(run):
+    return run.need_luau("ui_probe", "Client", timeout=30)
+
+
+def click_target(run, probe, path):
+    t = (probe.get("targets") or {}).get(path) or {}
+    if not t.get("found") or not t.get("shown"):
+        return False, {"error": "%s not on screen (%s)" % (path, t)}
+    ok, info = run.session().click(run.studio_id, t["cx"], t["cy"], run.cfg["input_overrides"])
+    info["at"] = [round(t["cx"]), round(t["cy"])]
+    time.sleep(0.7)
+    return ok, info
+
+
+def step_onboarding(run):
+    if run.dry:
+        return "skip", {"dry_run": True}
+    before = ui_probe(run)
+    detail = {"step_id": before.get("step_id"), "counter": before.get("tutorial_counter"),
+              "title": before.get("tutorial_title"), "card_visible": before.get("tutorial_visible")}
+    if not before.get("tutorial_visible"):
+        return "fail", dict(detail, error="tutorial card not shown for a fresh profile")
+    ok, info = click_target(run, before, "TutorialOverlay.Hide")
+    after = ui_probe(run)
+    detail["hide_click"] = info
+    detail["card_visible_after_hide"] = after.get("tutorial_visible")
+    if after.get("tutorial_visible"):
+        return "fail", dict(detail, error="clicking Hide did not hide the tutorial card")
+    return "pass", detail
+
+
+def step_shop(run):
+    if run.dry:
+        return "skip", {"dry_run": True}
+    p = ui_probe(run)
+    detail = {"open_before": p.get("shop_open"), "inset": p.get("inset"), "viewport": p.get("viewport")}
+    if p.get("shop_open"):
+        return "fail", dict(detail, error="shop already open before any click")
+    hud = (p.get("targets") or {}).get("Hud.Shop") or {}
+    methods = {}
+    # 1) VirtualInputManager from the Client execute_luau (expected to be blocked).
+    if hud.get("found"):
+        ok, vim = run.luau("vim_probe", "Client", timeout=20, x=hud["cx"], y=hud["cy"])
+        p = ui_probe(run)
+        if not ok:
+            methods["virtual_input_manager"] = "error: %s" % str(vim)[:160]
+        elif not vim.get("ok"):
+            methods["virtual_input_manager"] = "blocked: %s" % str(vim.get("error"))[:160]
+        else:
+            methods["virtual_input_manager"] = "works" if p.get("shop_open") else "no effect"
+    # 2) StudioMCP user_mouse_input on the HUD Shop button, then the nav Shop button.
+    for path in ("Hud.Shop", "Nav.Shop"):
+        if p.get("shop_open"):
+            break
+        ok, info = click_target(run, p, path)
+        p = ui_probe(run)
+        methods["mcp_mouse:" + path] = ("works" if p.get("shop_open") else "no effect") if ok else info
+    run.extra["input_methods"] = methods
+    detail.update(methods=methods, open_after=p.get("shop_open"), open_panels=p.get("open_panels"))
+    if not p.get("shop_open"):
+        return "fail", dict(detail, error="no click opened the shop")
+    return "pass", detail
+
+
+def step_esc(run):
+    if run.dry:
+        return "skip", {"dry_run": True}
+    p = ui_probe(run)
+    if not p.get("shop_open"):
+        return "skip", {"reason": "shop not open"}
+    ok, info = run.session().key(run.studio_id, "Escape", run.cfg["input_overrides"])
+    time.sleep(0.8)
+    after = ui_probe(run)
+    detail = {"key": info, "open_after": after.get("shop_open"), "open_panels": after.get("open_panels")}
+    run.extra.setdefault("input_methods", {})["mcp_keyboard:Escape"] = (
+        "works" if not after.get("shop_open") else "no effect") if ok else info
+    if after.get("shop_open"):
+        click_target(run, after, "ShopPanel.Close")  # tidy up for the next steps
+        return "fail", dict(detail, error="Escape did not close the shop")
+    return "pass", detail
+
+
+def tutorial_advance(run):
+    """Soft: grab a wild slime with a real E press and see the tutorial step move on."""
+    try:
+        before = ui_probe(run).get("step_id")
+        ok, d = run.luau("grab_attempt", "Client", timeout=20)
+        if not ok or not d.get("moved"):
+            return {"ran": False, "why": str(d)[:200]}
+        time.sleep(1.0)
+        run.session().key(run.studio_id, "E", run.cfg["input_overrides"])
+        time.sleep(2.0)
+        after = ui_probe(run)
+        res = {"ran": True, "slime": d.get("name"), "price": d.get("price"), "step_before": before,
+               "step_after": after.get("step_id"), "carrying": after.get("carrying")}
+        res["advanced"] = before != after.get("step_id")
+        return res
+    except Exception as e:
+        return {"ran": False, "why": repr(e)[:200]}
+
+
+def converge_viewport(run, hwnd, target):
+    """Resizes the Studio window until the play viewport is `target` (or as close as Studio allows)."""
+    samples, best = [], None
+    client = win32.client_size(hwnd)
+    vp = _viewport(run)
+    samples.append((client, vp))
+    guess = (target[0] + client[0] - vp[0], target[1] + client[1] - vp[1])
+    for _ in range(run.cfg["device_iterations"]):
+        reached = win32.set_client_size(hwnd, guess[0], guess[1], 0, 0)
+        time.sleep(1.2)
+        vp = _viewport(run)
+        samples.append((reached, vp))
+        err = viewport_error(vp, target)
+        if best is None or err < best[0]:
+            best = (err, reached, vp)
+        if err == 0:
+            break
+        nxt = next_client_guess(target, samples)
+        if nxt == guess or (len(samples) >= 3 and samples[-1][0] == samples[-2][0]):
+            break  # Studio / Windows clamps the window: closest reachable
+        guess = nxt
+    if best and best[2] != vp:
+        win32.set_client_size(hwnd, best[1][0], best[1][1], 0, 0)
+        time.sleep(1.2)
+        vp = _viewport(run)
+    return vp, [list(s[0]) + list(s[1]) for s in samples]
+
+
+def _viewport(run):
+    d = run.need_luau("client_ready", "Client", timeout=20)
+    v = d.get("viewport") or [0, 0]
+    return int(round(v[0])), int(round(v[1]))
+
+
+def capture_frame(run, hwnd, device):
+    fg = win32.bring_to_front(hwnd)
+    time.sleep(0.6)
+    title = win32.title_of(hwnd)
+    cap = win32.capture_client(hwnd)
+    info = {"method": cap["method"], "foreground": fg, "title": title, "stats": cap["stats"], "tried": cap["tried"],
+            "size": [cap["w"], cap["h"]]}
+    reasons = []
+    if cap["rgb"] is None:
+        reasons.append("capture failed")
+    if cap["blank"]:
+        reasons.append("blank frame")
+    if not frame_title_ok(title, [run.sha[:7]]):
+        reasons.append("window title %r is not Studio" % title)
+    if cap["method"] == "screen" and not (fg and win32.foreground_hwnd() == hwnd):
+        reasons.append("screen copy while Studio was not the foreground window")
+    name = "%s-%s.png" % (run.sha, device)
+    if cap["rgb"] is not None:
+        path = os.path.join(run.outdir, name if not reasons else name.replace(".png", "-rejected.png"))
+        imaging.save_png(path, cap["w"], cap["h"], cap["rgb"])
+    if reasons:
+        info["rejected"] = reasons
+        run.note("%s frame rejected: %s" % (device, ", ".join(reasons)))
     else:
-        run(["git", "-c", "user.name=pc-watcher", "-c", "user.email=pc-watcher@localhost",
-             "commit", "--quiet", "-m", "studio report %s" % sha], cwd=REPORTS)
-    for attempt in range(3):
-        if run(["git", "push", "origin", "HEAD:" + REPORT_BRANCH], cwd=REPORTS, timeout=180,
-               check=False).returncode == 0:
+        run.frames.append(name)
+        info["file"] = name
+    return info
+
+
+def step_devices(run):
+    if run.dry:
+        return "skip", {"dry_run": True}
+    hwnd = run.hwnd
+    if not hwnd:
+        win = win32.studio_main_window(tracked_pids(run.paths))
+        hwnd = run.hwnd = win and win["hwnd"]
+    if not hwnd:
+        raise StepFail("no Studio window to resize")
+    x, y, w, h = win32.window_rect(hwnd)
+    was_max = win32.is_maximized(hwnd)
+    results, failed = {}, []
+    try:
+        for device, tw, th in run.cfg["devices"]:
+            if run.remaining() < 45:
+                results[device] = {"skipped": "run budget"}
+                run.note("device %s skipped: run budget" % device)
+                continue
+            vp, samples = converge_viewport(run, hwnd, (tw, th))
+            res = {"target": [tw, th], "viewport": list(vp), "exact": tuple(vp) == (tw, th), "samples": samples}
+            if not res["exact"]:
+                run.note("%s: viewport %dx%d is the closest Studio allows to %dx%d" % (device, vp[0], vp[1], tw, th))
+            hud = run.need_luau("hud_check", "Client", timeout=30)
+            res["hud"] = hud
+            if hud.get("offscreen") or hud.get("missing"):
+                failed.append(device)
+                res["error"] = "off-screen %s missing %s" % (hud.get("offscreen"), hud.get("missing"))
+            res["frame"] = capture_frame(run, hwnd, device)
+            results[device] = res
+    finally:
+        try:
+            win32.set_window_rect(hwnd, x, y, w, h)
+            if was_max:
+                win32.maximize(hwnd)
+        except Exception as e:
+            run.note("could not restore the Studio window: %r" % (e,))
+    detail = {"devices": results}
+    if failed:
+        return "fail", dict(detail, error="HUD/nav off-screen or missing at: %s" % ", ".join(failed))
+    if not any(r.get("hud") for r in results.values()):
+        return "fail", dict(detail, error="no device size was checked")
+    return "pass", detail
+
+
+def twoplayer_cmdline(run):
+    """Mode (b): a local test server plus clients started from the Studio command line."""
+    cfg = run.cfg
+    exe = run.studio_exe()
+    values = {"port": str(cfg["twoplayer_port"]), "rbxl": run.rbxl}
+    before_pids = set(win32.list_pids())
+    mcp = run.session()
+    known = {s["id"] for s in mcp.list_studios()[0]}
+    started = []
+    try:
+        started.append(subprocess.Popen([exe] + fill_args(cfg["twoplayer_server_args"], values), cwd=run.studio_dir))
+        time.sleep(cfg["twoplayer_server_wait_s"])
+        for _ in range(cfg["twoplayer_clients"]):
+            started.append(subprocess.Popen([exe] + fill_args(cfg["twoplayer_client_args"], values), cwd=run.studio_dir))
+            time.sleep(2)
+        deadline = time.time() + max(20, min(cfg["twoplayer_timeout_s"], run.remaining() - 100))  # leave room for mode c
+        server, clients, last = None, [], None
+        while time.time() < deadline:
+            fresh = [s for s in mcp.list_studios()[0] if s["id"] not in known]
+            for s in fresh:
+                ok, d, _ = mcp.luau(s["id"], _body("server_players"), "Server", timeout=20)
+                if ok and len(d.get("players") or []) >= 2:
+                    server = (s["id"], d)
+                last = d
+            if server:
+                for s in fresh:
+                    if s["id"] == server[0]:
+                        continue
+                    ok, d, _ = mcp.luau(s["id"], _body("client_plots"), "Client", timeout=20)
+                    if ok:
+                        clients.append(d)
+                break
+            time.sleep(4)
+        if not server:
+            return None, "MCP saw no test server with 2 players (%d new studios; last %s)" % (
+                len([s for s in mcp.list_studios()[0] if s["id"] not in known]), str(last)[:160])
+        sd = server[1]
+        ok = len(sd.get("plot_owners") or []) >= 2 and any(len(c.get("plot_owners") or []) >= 2 for c in clients)
+        return {"mode": "b-cmdline", "pass": ok, "server": sd, "clients": clients,
+                "assertion": "server has >=2 players on distinct plots and a client sees both plots owned"}, None
+    finally:
+        # Kill only the process trees we started; a Studio that appeared otherwise is the user's.
+        table = win32.process_table()
+        mine = win32.descendants(table, [p.pid for p in started])
+        for pid in mine:
+            win32.kill_pid(pid, tree=False)
+        for p in started:
+            try:
+                p.kill()
+            except Exception:
+                pass
+        left = set(win32.list_pids()) - before_pids - mine - tracked_pids(run.paths)
+        if left:
+            run.note("two_player: new Studio pids %s not started by the watcher were left alone" % sorted(left))
+
+
+def _body(name):
+    with open(os.path.join(HERE, "luau", name + ".luau"), encoding="utf-8") as f:
+        return f.read()
+
+
+def step_twoplayer(run):
+    if run.dry:
+        return "skip", {"dry_run": True}
+    if run.playing:
+        stop_play(run)
+    detail, tried = {}, []
+    # (a) a scriptable multi-client API? Probe only.
+    ok, probe = run.luau("testservice_probe", "Edit", timeout=20)
+    detail["a_probe"] = probe
+    tried.append("a: no multi-client API in StudioTestService/TestService (probe only)")
+    # (b) command-line test server + clients.
+    if run.cfg["twoplayer_cmdline"] and run.remaining() > 150:
+        try:
+            res, why = twoplayer_cmdline(run)
+        except Exception as e:
+            res, why = None, "error %r" % (e,)
+        if res:
+            detail.update(res)
+            return ("pass" if res["pass"] else "fail"), detail
+        tried.append("b: " + why)
+    else:
+        tried.append("b: skipped (%s)" % ("disabled" if not run.cfg["twoplayer_cmdline"] else "run budget"))
+    # (c) two stand-in sessions on the real server modules inside a play session.
+    if run.remaining() < 60:
+        tried.append("c: skipped (run budget)")
+        run.note("two_player not run: " + " | ".join(tried))
+        return "warn", dict(detail, mode="not run", tried=tried)
+    start_play(run)
+    try:
+        d = run.need_luau("server_steal_sim", "Server", timeout=40)
+    finally:
+        stop_play(run)
+    passed = bool(d.get("distinct_plots") and d.get("grab_ok") and d.get("deposit_ok")
+                  and d.get("thief_has") and not d.get("victim_has"))
+    detail.update(mode="c-server-sim", tried=tried, result=d, pass_=passed,
+                  assertion="two stand-in sessions get distinct plots; thief steals + deposits victim's slime")
+    run.note("two_player ran mode c (pure server modules in one play session), not two real clients")
+    return ("pass" if passed else "fail"), detail
+
+
+UI_SHOT_BUTTONS = {"shop": "Nav.Shop", "dex": "Nav.Dex", "rebirth": "Nav.Rebirth", "goals": "Nav.Goals",
+                   "plot": "Nav.Plot", "merge": "Nav.Merge", "leaders": "Nav.Leaders"}
+
+
+def step_shots(run):
+    """Soft: proof frames from shots.json (bots add theirs in PRs). Missing targets are notes, never failures."""
+    if run.dry:
+        return "skip", {"dry_run": True}
+    shots = read_json(os.path.join(HERE, "shots.json"), None)
+    if not isinstance(shots, list):
+        return "skip", {"reason": "shots.json missing or unreadable"}
+    hwnd = run.hwnd
+    if not hwnd:
+        return "skip", {"reason": "no Studio window"}
+    results = []
+    for shot in shots:
+        sid = re.sub(r"[^A-Za-z0-9_.-]", "_", str(shot.get("id", "shot")))
+        res = {"id": sid, "note": shot.get("note")}
+        if run.remaining() < 90:
+            res["skipped"] = "run budget"
+            results.append(res)
+            continue
+        try:
+            if shot.get("kind") == "ui":
+                key = shot.get("open")
+                if key:
+                    path = UI_SHOT_BUTTONS.get(str(key).lower(), "Nav." + str(key))
+                    ok, info = click_target(run, ui_probe(run), path)
+                    res["click"] = path if ok else info
+                res["frame"] = capture_frame(run, hwnd, "shot-" + sid)
+                if key:
+                    run.session().key(run.studio_id, "Escape", run.cfg["input_overrides"])
+                    time.sleep(0.6)
+            else:
+                if shot.get("pos"):
+                    eye, at = shot["pos"], shot.get("look") or [0, 0, 0]
+                else:
+                    ok, t = run.luau("shot_find", "Server", timeout=30, target=shot.get("target", ""))
+                    if not ok or not t.get("found"):
+                        res["missing"] = "target %r not found" % shot.get("target")
+                        results.append(res)
+                        continue
+                    res["target"] = t.get("path")
+                    eye, at = shot_camera(t)
+                run.need_luau("shot_camera", "Client", timeout=20, eye=eye, at=at)
+                res["frame"] = capture_frame(run, hwnd, "shot-" + sid)
+        except Exception as e:
+            res["error"] = repr(e)[:200]
+        results.append(res)
+    try:
+        run.luau("shot_camera_reset", "Client", timeout=15)
+    except Exception:
+        pass
+    done = len([r for r in results if (r.get("frame") or {}).get("file")])
+    return "pass" if done else "warn", {"captured": done, "total": len(shots), "shots": results}
+
+
+def step_close(run):
+    if run.dry:
+        return "skip", {"dry_run": True}
+    detail = {}
+    if run.studio_id and run.mcp:
+        try:
+            con = run.tool("get_console_output", timeout=20)
+            with open(os.path.join(run.outdir, "%s-console.txt" % run.sha), "w", encoding="utf-8") as f:
+                f.write(con.text)
+            detail["console_lines"] = len(con.text.splitlines())
+            detail["console_errors"] = len([ln for ln in con.text.splitlines() if re.search(r"(?i)\berror\b", ln)])
+        except Exception as e:
+            log.warning("console: %r", e)
+        if run.playing:
+            try:
+                stop_play(run)
+            except Exception:
+                pass
+    pids = tracked_pids(run.paths)
+    win = win32.studio_main_window(pids) if pids else None
+    if win:
+        win32.post_close(win["hwnd"])
+    deadline = time.time() + 15
+    while time.time() < deadline and any(win32.pid_alive(p) for p in pids):
+        time.sleep(1)
+    killed = [p for p in pids if win32.pid_alive(p) and win32.kill_pid(p)]
+    save_pids(run.paths, set())
+    run.studio_id, run.hwnd = None, None
+    run.save_current()
+    run.close()
+    detail.update(closed=sorted(pids), killed=killed)
+    return "pass", detail
+
+
+# ---------------------------------------------------------------------------
+# Report + sync
+# ---------------------------------------------------------------------------
+
+def build_report(run):
+    steps = {k: run.steps[k] for k in STEP_ORDER if k in run.steps}
+    status = overall_status(steps)
+    return {
+        "sha": run.sha,
+        "status": status,
+        "checked_at": utc_now(),
+        "studio_version": run.studio_version,
+        "notes": "; ".join(run.notes) if run.notes else "",
+        "duration_s": round(time.time() - run.t0, 1),
+        "steps": steps,
+        "perf": run.perf,
+        "frames": list(run.frames),
+        "input_methods": run.extra.get("input_methods"),
+        "watcher_version": VERSION,
+    }
+
+
+def report_path(run):
+    return os.path.join(run.outdir, "%s.json" % run.sha)
+
+
+def run_step(run, name, fn):
+    if run.remaining() <= 0 and name not in ("close",):
+        run.steps[name] = {"status": "skip", "seconds": 0, "detail": {"reason": "run budget exceeded"}}
+        return False
+    t0 = time.time()
+    log.info("== step %s", name)
+    try:
+        status, detail = fn(run)
+    except StudioBusy:
+        raise
+    except StepFail as e:
+        status, detail = "fail", {"error": str(e)}
+    except Exception as e:
+        status, detail = "fail", {"error": "%r" % (e,), "trace": traceback.format_exc()[-1500:]}
+    run.steps[name] = {"status": status, "seconds": round(time.time() - t0, 1), "detail": detail}
+    log.info("== step %s: %s (%.1fs) %s", name, status, time.time() - t0, str(detail.get("error", ""))[:300])
+    return status in ("pass", "warn")
+
+
+def full_run(paths, cfg, sha, dry=False):
+    """Steps 1-8 for one sha. Returns (report, busy)."""
+    run = Run(paths, cfg, sha, dry)
+    busy = False
+    try:
+        ok = run_step(run, "build", step_build)
+        ok = ok and run_step(run, "launch", step_launch)
+        if ok:
+            if run_step(run, "play", step_play):
+                run_step(run, "perf", step_perf)
+                run_step(run, "onboarding", step_onboarding)
+                run_step(run, "shop", step_shop)
+                run_step(run, "esc", step_esc)
+                if not dry and run.remaining() > 40:
+                    run.steps["onboarding"].setdefault("detail", {})["advance"] = tutorial_advance(run)
+                run_step(run, "devices", step_devices)
+                if run.remaining() > 200:
+                    run_step(run, "shots", step_shots)
+            run_step(run, "two_player", step_twoplayer)
+    except StudioBusy as e:
+        busy = True
+        run.steps["launch"] = {"status": "fail", "seconds": 0, "detail": {"error": str(e)}}
+        run.note(str(e))
+    finally:
+        if not dry:
+            try:
+                run_step(run, "close", step_close)
+            except Exception:
+                log.exception("close")
+        run.close()
+    for name in STEP_ORDER:
+        if name not in SOFT_STEPS:
+            run.steps.setdefault(name, {"status": "skip", "seconds": 0, "detail": {"reason": "earlier step failed"}})
+    if dry:
+        run.note("dry-run: nothing was executed")
+    close = run.steps.pop("close", None)
+    report = build_report(run)
+    if close:
+        report["close"] = close
+    write_json(report_path(run), report)
+    log.info("report %s: %s (%ss) %s", report_path(run), report["status"], report["duration_s"], report["notes"][:300])
+    return report, busy
+
+
+def _stage_report(run, src_dir, sha, report, rdir):
+    """Copies out/<sha> into the reports clone (frames -> JPEG with Pillow). Returns the synced report."""
+    dest = os.path.join(rdir, "studio-reports")
+    frames_dir = os.path.join(dest, sha)
+    shutil.rmtree(frames_dir, ignore_errors=True)
+    os.makedirs(frames_dir, exist_ok=True)
+    synced = []
+    for name in report.get("frames", []):
+        src = os.path.join(src_dir, name)
+        if not os.path.isfile(src):
+            continue
+        out = name
+        if name.endswith(".png") and imaging.have_pillow():
+            out = name[:-4] + ".jpg"
+            imaging.to_jpeg(src, os.path.join(frames_dir, out), run.cfg["jpeg_quality"])
+        else:
+            shutil.copy2(src, os.path.join(frames_dir, out))
+        synced.append(out)
+    synced_report = dict(report, frames=synced, frames_dir="%s/" % sha)
+    write_json(os.path.join(dest, "%s.json" % sha), synced_report)
+    return synced_report
+
+
+def sync_report(paths, cfg, sha, dry=False):
+    """Commits out/<sha> to the orphan `studio-reports` branch and pushes (retries: fetch, rebase / restage)."""
+    src_dir = os.path.join(paths.out, sha)
+    report = read_json(os.path.join(src_dir, "%s.json" % sha))
+    if not report:
+        raise StepFail("no report for %s" % sha)
+    run = Run(paths, cfg, None, dry)
+    if dry:
+        log.info("dry-run: would push %s to %s", sha, cfg["reports_branch"])
+        return True
+    branch, rdir = cfg["reports_branch"], paths.reports
+    url = run.git("remote", "get-url", cfg["remote"]).stdout.strip()
+    if not os.path.isdir(os.path.join(rdir, ".git")):
+        os.makedirs(rdir, exist_ok=True)
+        run.git("init", "-q", "-b", branch, cwd=rdir)
+        run.git("remote", "add", "origin", url, cwd=rdir)
+    else:
+        run.git("remote", "set-url", "origin", url, cwd=rdir)
+    ident = ["-c", "user.name=pc-watcher", "-c", "user.email=pc-watcher@users.noreply.github.com"]
+
+    def reset_to_remote():
+        """Local branch = origin/<branch>, or a fresh orphan when the branch does not exist yet."""
+        if run.git("fetch", "-q", "origin", branch, cwd=rdir, check=False).returncode == 0:
+            run.git("checkout", "-q", "-f", "-B", branch, "FETCH_HEAD", cwd=rdir)
+        else:
+            run.git("symbolic-ref", "HEAD", "refs/heads/" + branch, cwd=rdir)
+        run.git("clean", "-q", "-ffdx", cwd=rdir, check=False)
+
+    for attempt in range(1, cfg["push_retries"] + 1):
+        reset_to_remote()
+        synced = _stage_report(run, src_dir, sha, report, rdir)
+        run.git("add", "-A", "studio-reports", cwd=rdir)
+        if run.git("diff", "--cached", "--quiet", cwd=rdir, check=False).returncode == 0:
+            log.info("sync: %s already up to date on %s", sha[:12], branch)
             return True
-        log.warning("push failed (attempt %d), pull --rebase", attempt + 1)
-        run(["git", "pull", "--rebase", "--quiet", "origin", REPORT_BRANCH], cwd=REPORTS, timeout=180, check=False)
+        run.git(*ident, "commit", "-q", "-m", "studio-report %s %s" % (sha[:12], synced["status"]), cwd=rdir)
+        r = run.git("push", "-q", "origin", "HEAD:refs/heads/" + branch, cwd=rdir, timeout=180, check=False)
+        if r.returncode == 0:
+            log.info("sync: pushed %s (try %d)", sha[:12], attempt)
+            return True
+        log.warning("push try %d failed: %s", attempt, (r.stderr or "").strip()[-300:])
+        time.sleep(5 * attempt)  # then re-fetch, restage on top of the new remote head and retry
     return False
+
+
+def sync_pending(paths, cfg):
+    """Retries reports whose push failed earlier (state/unsynced.json)."""
+    pending = read_json(paths.st("unsynced.json"), []) or []
+    left = []
+    for sha in pending:
+        try:
+            if not sync_report(paths, cfg, sha):
+                left.append(sha)
+        except Exception:
+            log.exception("sync %s", sha)
+            left.append(sha)
+    if pending != left:
+        write_json(paths.st("unsynced.json"), left)
+
+
+def mark_unsynced(paths, sha):
+    pending = read_json(paths.st("unsynced.json"), []) or []
+    if sha not in pending:
+        write_json(paths.st("unsynced.json"), pending + [sha])
+
+
+def remote_sha(paths, cfg):
+    run = Run(paths, cfg, None)
+    r = run.git("ls-remote", cfg["remote"], "refs/heads/" + cfg["branch"], timeout=60)
+    sha = parse_ls_remote(r.stdout, cfg["branch"])
+    if not sha:
+        raise StepFail("ls-remote gave no %s" % cfg["branch"])
+    return sha
 
 
 # ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
 
-def once(sha=None, do_sync=True):
-    sha = sha or remote_sha()
-    r = Run(sha)
-    log.info("=== run %s (studio %s)", sha, r.studio_dir)
+def cmd_once(paths, cfg, sha, dry, sync=True):
+    lock = Lock(paths.st("run.lock"))
+    if not lock.acquire():
+        log.error("another watcher run holds %s", lock.path)
+        return 3, False
     try:
-        ensure_reports_repo()
-    except Exception as e:
-        r.note("reports repo setup failed: %r" % (e,))
-    try:
-        rbxl = step_build(r)
-        if step_launch(r, rbxl) and step_play(r):
-            for fn in (step_perf, step_devices, step_onboarding_shop, run_shots, step_two_player):
-                try:
-                    fn(r)
-                except Exception as e:
-                    r.step(fn.__name__, False, repr(e))
-    except Exception as e:
-        log.exception("run failed")
-        r.step("error", False, repr(e))
+        sha = sha or remote_sha(paths, cfg)
+        log.info("run %s", sha)
+        report, busy = full_run(paths, cfg, sha, dry)
+        if sync and cfg["sync"] and not dry:
+            try:
+                synced = sync_report(paths, cfg, sha)
+            except Exception:
+                log.exception("sync")
+                synced = False
+            if not synced:
+                log.error("sync failed for %s (report stays in %s; retried next loop)", sha, paths.out)
+                mark_unsynced(paths, sha)
+        return (0 if report["status"] == "pass" else 1), busy
     finally:
-        try:
-            step_close(r)
-        except Exception as e:
-            r.note("close: %r" % (e,))
-    rep = write_report(r)
-    if do_sync:
-        try:
-            if not sync(sha):
-                log.error("sync: push failed after 3 attempts")
-        except Exception as e:
-            log.error("sync failed: %r", e)
-    return rep
+        lock.release()
 
 
-def loop():
-    while True:
-        try:
-            sha = remote_sha()
-            if sha and sha != read(LAST_SHA):
-                with Lock():
-                    once(sha)
-                write(LAST_SHA, sha)
-        except Exception:
-            log.exception("loop iteration failed")
-        time.sleep(POLL_S)
-
-
-def shots_only(tag):
-    """Attach to the running Studio (play already started) and run only the shot list."""
-    r = Run(tag)
-    r.mcp = mcp_client.McpSession(os.path.join(r.studio_dir, "StudioMCP.exe")).start()
-    studios, _ = r.mcp.list_studios()
-    if not studios:
-        raise SystemExit("no Studio listed by MCP")
-    r.studio_id = studios[0]["id"]
-    win = win32.studio_main_window(win32.list_pids())
-    r.hwnd = win["hwnd"] if win else None
+def cmd_loop(paths, cfg, dry):
+    loop_lock = Lock(paths.st("loop.lock"), max_age=10 ** 9)
+    if not loop_lock.acquire():
+        log.error("a watcher loop is already running (%s)", loop_lock.path)
+        return 3
+    log.info("loop: polling %s/%s every %ss", cfg["remote"], cfg["branch"], cfg["poll_s"])
+    busy_until = 0
     try:
-        run_shots(r)
+        while True:
+            try:
+                if cfg["sync"] and not dry:
+                    sync_pending(paths, cfg)
+                sha = remote_sha(paths, cfg)
+                last = (read_json(paths.st("last-sha.json"), {}) or {}).get("sha")
+                if sha != last and time.time() >= busy_until:
+                    _, busy = cmd_once(paths, cfg, sha, dry, sync=True)
+                    if busy:
+                        busy_until = time.time() + cfg["busy_retry_s"]
+                        log.info("studio busy; retry %s in %ss", sha[:12], cfg["busy_retry_s"])
+                    elif not dry:
+                        write_json(paths.st("last-sha.json"), {"sha": sha, "at": utc_now()})
+            except Exception:
+                log.exception("loop iteration")
+            time.sleep(cfg["poll_s"])
+    except KeyboardInterrupt:
+        return 0
     finally:
-        r.mcp.close()
-    rep = write_report(r)
-    print(json.dumps({"frames": rep["frames"], "notes": rep["notes"]}, indent=2))
+        loop_lock.release()
+
+
+STEP_FNS = {
+    "build": step_build, "launch": step_launch, "perf": step_perf, "play": step_play,
+    "devices": step_devices, "shots": step_shots, "twoplayer": step_twoplayer, "close": step_close,
+}
+
+
+def cmd_step(paths, cfg, name, sha, dry):
+    if name == "sync":
+        sha = sha or (read_json(paths.st("current.json"), {}) or {}).get("sha")
+        if not sha:
+            log.error("step sync needs --sha")
+            return 2
+        return 0 if sync_report(paths, cfg, sha, dry) else 1
+    if name == "build" and not sha:
+        sha = remote_sha(paths, cfg)
+    run = Run(paths, cfg, sha, dry)
+    run.load_current()
+    if not run.sha:
+        log.error("no sha: pass --sha or run `step build` first")
+        return 2
+    if name not in ("build", "launch", "close") and not run.studio_id and not dry:
+        log.error("no watcher Studio in state/current.json: run `step launch` first")
+        return 2
+    if name not in ("build", "launch") and run.studio_id and not dry:
+        found, _, _ = find_our_studio(run, run.session())
+        if found:
+            run.studio_id = found["id"]
+    if name == "play":
+        steps = [("play", step_play), ("perf", step_perf), ("onboarding", step_onboarding), ("shop", step_shop),
+                 ("esc", step_esc)]
+    elif name in ("perf", "devices", "shots"):
+        steps = [(name, STEP_FNS[name])]
+        if not dry:
+            ok, d = run.luau("client_ready", "Client", timeout=15)
+            if not (ok and d.get("ready")):
+                start_play(run)
+    else:
+        steps = [(name, STEP_FNS[name])]
+    try:
+        for sname, fn in steps:
+            run.steps.pop(sname, None)
+            try:
+                run_step(run, sname, fn)
+            except StudioBusy as e:
+                run.steps[sname] = {"status": "fail", "detail": {"error": str(e)}}
+    finally:
+        run.save_current() if name != "close" else None
+        run.close()
+    print(json.dumps({"steps": run.steps, "perf": run.perf, "frames": run.frames, "notes": run.notes},
+                     indent=2, default=str))
+    return 0 if all(s["status"] in ("pass", "warn", "skip") for s in run.steps.values()) else 1
+
+
+def cmd_mcp(paths, cfg, tool, args_json):
+    run = Run(paths, cfg, None)
+    run.load_current()
+    args = json.loads(args_json) if args_json else {}
+    for k, v in list(args.items()):
+        if v == "$studio":
+            args[k] = run.studio_id
+    try:
+        if tool == "tools":
+            print(json.dumps(run.session().schemas, indent=2))
+            return 0
+        r = run.session().call(tool, args, timeout=120)
+        out = {"isError": r.is_error, "error": r.error, "text": r.text, "structured": r.structured,
+               "images": [(m, len(d)) for m, d in r.images]}
+        print(json.dumps(out, indent=2, default=str)[:200000])
+        return 0 if r.ok else 1
+    finally:
+        run.close()
+
+
+def cmd_capture(paths, cfg, out):
+    win = win32.studio_main_window(tracked_pids(paths) or win32.list_pids())
+    if not win:
+        print("no Studio window")
+        return 1
+    cap = win32.capture_client(win["hwnd"])
+    if cap["rgb"] is None:
+        print("capture failed: %s" % cap["tried"])
+        return 1
+    out = out or os.path.join(paths.out, "capture-test.png")
+    imaging.save_png(out, cap["w"], cap["h"], cap["rgb"])
+    print(json.dumps({"file": out, "title": win["title"], "method": cap["method"], "blank": cap["blank"],
+                      "stats": cap["stats"], "tried": cap["tried"]}, indent=2))
+    return 0
 
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--home", default=os.environ.get("PCW_HOME", r"C:\gate\pc-watcher"))
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("-v", "--verbose", action="store_true")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("once")
-    p.add_argument("--sha")
-    p.add_argument("--no-sync", action="store_true")
+    p_once = sub.add_parser("once")
+    p_once.add_argument("--sha")
+    p_once.add_argument("--no-sync", action="store_true")
     sub.add_parser("loop")
-    p = sub.add_parser("shots-only")
-    p.add_argument("--sha", default="manual-" + time.strftime("%Y%m%d-%H%M%S"))
+    p_step = sub.add_parser("step")
+    p_step.add_argument("name", choices=sorted(list(STEP_FNS) + ["sync"]))
+    p_step.add_argument("--sha")
+    sub.add_parser("tools")
+    p_mcp = sub.add_parser("mcp")
+    p_mcp.add_argument("tool")
+    p_mcp.add_argument("args", nargs="?")
+    p_cap = sub.add_parser("capture")
+    p_cap.add_argument("--out")
+    sub.add_parser("selftest")
     a = ap.parse_args(argv)
 
-    os.makedirs(LOG_DIR, exist_ok=True)
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-        handlers=[logging.FileHandler(os.path.join(LOG_DIR, "watcher.log"), encoding="utf-8"),
-                  logging.StreamHandler()],
-    )
-    try:
-        win32.set_dpi_aware()
-    except Exception:
-        pass
+    if a.cmd == "selftest":
+        import selftest
+        return selftest.main()
+    paths = Paths(a.home)
+    setup_logging(paths, a.verbose)
+    cfg = load_config(paths)
+    win32.set_dpi_aware()
+    log.info("pc-watcher %s: %s (home %s%s)", VERSION, a.cmd, paths.home, ", dry-run" if a.dry_run else "")
+    sha = getattr(a, "sha", None)
+    if sha and not re.fullmatch(r"[0-9a-f]{40}", sha):
+        log.error("--sha must be a full 40-char sha")
+        return 2
     if a.cmd == "once":
-        with Lock():
-            rep = once(a.sha, not a.no_sync)
-        print(json.dumps({"sha": rep["sha"], "status": rep["status"]}))
-    elif a.cmd == "loop":
-        loop()
-    else:
-        shots_only(a.sha)
+        return cmd_once(paths, cfg, a.sha, a.dry_run, sync=not a.no_sync)[0]
+    if a.cmd == "loop":
+        return cmd_loop(paths, cfg, a.dry_run)
+    if a.cmd == "step":
+        return cmd_step(paths, cfg, a.name, a.sha, a.dry_run)
+    if a.cmd == "tools":
+        return cmd_mcp(paths, cfg, "tools", None)
+    if a.cmd == "mcp":
+        return cmd_mcp(paths, cfg, a.tool, a.args)
+    if a.cmd == "capture":
+        return cmd_capture(paths, cfg, a.out)
+    return 2
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
