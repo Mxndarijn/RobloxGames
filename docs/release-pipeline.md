@@ -48,36 +48,30 @@ Outcomes (exit code of `publish.sh`):
 | Case | Result |
 |---|---|
 | Gate passes | continue (exit 0) |
-| Report missing/incomplete/stale `checked_at`, less than 30 min after cloud pass finished | **pending**, exit 3; watcher re-checks each tick |
-| Same, more than 30 min (`REPORT_TIMEOUT_S`=1800) after cloud pass | `status/X.publish.json` `{"status":"no-publish","reason":...}`, exit 4, never retried |
+| Report missing/incomplete/stale `checked_at` | **waiting**, exit 3, not terminal (no timeout while no newer sha is gated); watcher re-checks each tick |
 | Report `status == "fail"`, or cloud tests `fail` | `no-publish`, exit 4 |
 | Cloud status `error` | pending (the watcher retries the cloud run) |
-| A newer sha on `origin/main` (first-parent order) has cloud status `pass` | `status/X.publish.json` `{"status":"skipped-superseded","superseded_by":"<newer sha>"}`, exit 4, never published |
+| A newer sha (first-parent order) is fully gated or published, or a live sha descends from X | `status/X.publish.json` `{"status":"skipped-superseded","superseded_by":"<sha>"}`, exit 4, never published |
 
-### Newest only
+### Newest fully-gated only
 
-Only the newest cloud-passed commit on main ships. For sha X, `publish.sh` walks `git rev-list --first-parent origin/main`
-(`MAIN_REF`); if any commit newer than X has `status/<newer>.json` `status == "pass"`, X is skipped. This applies to any X
-that is pending (no or incomplete report, no cloud status yet) or passing/`ready`. X that already ended `live`, `no-publish`
-or `smoke-failed` is left alone, and a newer sha that is `fail`/`error`/missing does not supersede. The check runs at the
-start, before each upload (Saved and Published), and `watch.sh` re-runs it (`SUPERSEDE_ONLY=1`) for `ready` shas each tick.
-Test: `tools/pipeline/test-publish-dryrun.sh`.
+"Fully gated" = cloud status `pass` + Studio report `status: pass`, `frames_reviewed: true`, non-empty `reviewed_by`, `checked_at` after the merge. For sha X, `publish.sh` walks `git rev-list --first-parent $MAIN_REF` (default `origin/main`):
 
-A sha that is already `live` / `smoke-failed` / `no-publish` / `skipped-superseded` (or whose `live/<sha>.json` has `status: "live"`, even if `publish.json` is empty or corrupt) is a no-op: `publish.sh` logs `noop: already <status>`, exits 0 and uploads nothing. The live JSON embeds the studio report via `jq --slurpfile` from a temp file, never argv (ARG_MAX).
-| A newer sha on `origin/main` (first-parent order) has cloud status `pass` | `status/X.publish.json` `{"status":"skipped-superseded","superseded_by":"<newer sha>"}`, exit 4, never published |
+1. X is **never published if it is older than (an ancestor of) a live sha**, or if a newer sha is already published. It becomes `skipped-superseded` (`superseded_by` = that sha).
+2. X is `skipped-superseded` **only** when a newer sha is itself fully gated (or published). A newer sha that is merely cloud-passed (no report / frames not yet reviewed) does **not** supersede X: if X is gated it publishes, so review lag on newer merges cannot starve the pipeline (previously every sha was superseded before its own review finished).
+3. Result: the newest fully-gated sha publishes, even if newer un-gated shas exist.
+4. An un-gated X whose newer shas are all un-gated stays **waiting** (exit 3, not terminal). There is no terminal timeout for waiting: `REPORT_TIMEOUT_S` (1800s) only adds "still waiting" to the log, because a timeout would terminate the sha with nothing progressing. Once a newer sha is gated, X is superseded anyway. Report `fail` / cloud `fail` stay terminal `no-publish`.
 
-### Newest only
+Shas that already ended `live`, `no-publish` or `smoke-failed` are left alone, as is a sha not on main's first-parent line. The check runs at the start, before writing `ready`, before the Saved upload, and again right before the Published upload. `SUPERSEDE_ONLY=1` stops after the first check; `watch.sh` uses it to retire `ready` shas. Dry-run tests: `tools/pipeline/test-publish-dryrun.sh`.
 
-Only the newest cloud-passed commit on main may go live. For sha X, `publish.sh` walks `git rev-list --first-parent $MAIN_REF` (default `origin/main`) and looks at every sha newer than X. If any has `status/<newer>.json` `status == "pass"`, X is marked `skipped-superseded` (X's own state may be pending, passing or `ready`). The newest such sha is recorded as `superseded_by`. Shas that already ended `live`, `no-publish` or `smoke-failed` are left alone, as is a sha that is not on main's first-parent line.
-
-The check runs at the start, again before writing `ready`, before the Saved upload, and again right before the Published upload (a newer sha can pass while X builds or is smoke-tested). `SUPERSEDE_ONLY=1` stops after the first check; `watch.sh` uses it to retire `ready` shas. Dry-run tests: `tools/pipeline/test-publish-dryrun.sh`.
+An already `live` / `smoke-failed` / `no-publish` / `skipped-superseded` sha (or one whose `live/<sha>.json` has `status: "live"`, even if `publish.json` is empty or corrupt) is a no-op: `publish.sh` logs `noop: already <status>`, exits 0 and uploads nothing. The live JSON embeds the studio report via `jq --slurpfile` from a temp file, never argv (ARG_MAX).
 
 ### Needs-review markers
 
-So Gojo can ping Phoenix, `publish.sh` keeps an empty file `$NEEDS_REVIEW_DIR/<full 40-char sha>` (default `/workspace/roblox/pipeline/needs-review`, created with `mkdir -p`) while X has cloud `pass` and frames still need review:
+So Gojo can ping Phoenix, `publish.sh` keeps an empty file `$NEEDS_REVIEW_DIR/<full 40-char sha>` (default `/workspace/roblox/pipeline/needs-review`, created with `mkdir -p`) while X has cloud `pass`, frames still need review, and X is the **newest** such un-reviewed sha (a newer un-reviewed cloud-pass sha takes the marker; older ones lose it):
 
 - written when there is no Studio report yet, or the report has `status == "pass"` but `frames_reviewed` is not `true`;
-- removed when `frames_reviewed` is `true`, the report is `fail`, or X ends `live`, `skipped-superseded`, `no-publish` or `smoke-failed` (including the `SUPERSEDE_ONLY=1` path). A sha with a terminal publish status is never re-marked.
+- removed when `frames_reviewed` is `true`, the report is `fail`, X is older than a live sha or older than a gated sha, or X ends `live`, `skipped-superseded`, `no-publish` or `smoke-failed` (including the `SUPERSEDE_ONLY=1` path). A sha with a terminal publish status is never re-marked.
 
 Every `publish.sh` run that evaluates the gate refreshes the marker. `NEEDS_REVIEW_DIR` is honoured under `DRY_RUN=1` (the tests point it at a temp dir). Cloud `fail`/`error`/pending shas get no marker.
 
