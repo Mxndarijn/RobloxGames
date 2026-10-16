@@ -5,8 +5,8 @@
 --   fallback  no id yet (today): two phoenix_fence_segment per panel, so one
 --             extra slot per panel (MESH_SLOT_BUDGET_FALLBACK).
 -- Mesh slots = MeshAsset slots + pending BorderMesh slots + the WorldProps
--- skins (PROP_MESHES), split into fence / border / decor (ranch props, pad
--- stands and everything else). See WorldLayout.MESH_SLOT_BUDGET.
+-- skins (PROP_MESHES), split into fence / gate posts / border / decor (ranch
+-- props, pad stands and everything else). See WorldLayout.MESH_SLOT_BUDGET.
 -- Parts = Part nodes outside Map.Border must stay under PART_BUDGET (THEME.md
 -- 1200) in both modes; Map.Border (main #54: walls, invisible slots and
 -- primitive stand-ins) is held to BORDER_PART_BUDGET on its own.
@@ -19,6 +19,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 type Counts = {
 	fence: number,
+	posts: number, -- the GatePost closing the fence run at each gate
 	props: number,
 	pads: number,
 	dex: number, -- plot DexBoard skins (in other)
@@ -41,6 +42,7 @@ end
 local function count(nodes: { any }): Counts
 	local c: Counts = {
 		fence = 0,
+		posts = 0,
 		props = 0,
 		pads = 0,
 		dex = 0,
@@ -67,6 +69,8 @@ local function count(nodes: { any }): Counts
 		if mesh then
 			if inBorder then
 				c.border += 1
+			elseif mesh == WorldLayout.GATE_POST_MESH and n.name == "GatePost" then
+				c.posts += 1
 			elseif mesh == WorldLayout.FENCE_MESH or mesh == WorldLayout.FENCE_SEGMENT then
 				c.fence += 1
 				if mesh == WorldLayout.FENCE_MESH then
@@ -99,7 +103,7 @@ local function count(nodes: { any }): Counts
 		c.other += 1
 	end
 	c.decor = c.props + c.pads + c.other
-	c.total = c.fence + c.decor + c.border
+	c.total = c.fence + c.posts + c.decor + c.border
 	return c
 end
 
@@ -127,6 +131,11 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 		expect(uploaded.fence).toBe(16 * P)
 		expect(uploaded.fence <= WorldLayout.FENCE_SLOT_BUDGET).toBe(true)
 	end)
+	it("closes each gate's open fence end with one GatePost, GATE_POST_SLOT_BUDGET", function()
+		expect(uploaded.posts).toBe(P)
+		expect(uploaded.posts).toBe(WorldLayout.GATE_POST_SLOT_BUDGET)
+		expect(current.posts).toBe(uploaded.posts)
+	end)
 	it("keeps ranch props + pad stands + the rest under DECOR_SLOT_BUDGET", function()
 		expect(uploaded.props).toBe(#WorldLayout.RANCH_PROPS)
 		expect(uploaded.pads).toBe(Config.PADS_MAX * P)
@@ -141,25 +150,28 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 			end
 		end
 		expect(entrance).toBe(P)
-		expect(uploaded.fence + uploaded.decor + WorldLayout.BORDER_SLOT_BUDGET <= WorldLayout.MESH_SLOT_BUDGET).toBe(
-			true
-		)
+		local budgeted = uploaded.fence + uploaded.posts + uploaded.decor + WorldLayout.BORDER_SLOT_BUDGET
+		expect(budgeted <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 	end)
 	it("skins one BuyStand a plot (ranch_shop_stand), filling decor to its cap", function()
 		expect(uploaded.buy).toBe(P)
 		expect(uploaded.decor).toBe(WorldLayout.DECOR_SLOT_BUDGET)
 	end)
-	it("splits MESH_SLOT_BUDGET 400 into fence 128 + border 112 + decor 160", function()
+	it("splits MESH_SLOT_BUDGET 400 into fence 128 + gate posts 8 + border 104 + decor 160", function()
 		expect(WorldLayout.MESH_SLOT_BUDGET).toBe(400)
 		expect(WorldLayout.FENCE_SLOT_BUDGET).toBe(128)
-		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(112)
+		expect(WorldLayout.GATE_POST_SLOT_BUDGET).toBe(8)
+		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(104)
 		expect(WorldLayout.DECOR_SLOT_BUDGET).toBe(160)
-		expect(WorldLayout.FENCE_SLOT_BUDGET + WorldLayout.BORDER_SLOT_BUDGET + WorldLayout.DECOR_SLOT_BUDGET).toBe(
-			WorldLayout.MESH_SLOT_BUDGET
-		)
+		expect(
+			WorldLayout.FENCE_SLOT_BUDGET
+				+ WorldLayout.GATE_POST_SLOT_BUDGET
+				+ WorldLayout.BORDER_SLOT_BUDGET
+				+ WorldLayout.DECOR_SLOT_BUDGET
+		).toBe(WorldLayout.MESH_SLOT_BUDGET)
 	end)
 	it("fits MESH_SLOT_BUDGET with the border at its share", function()
-		local budgeted = uploaded.fence + uploaded.decor + WorldLayout.BORDER_SLOT_BUDGET
+		local budgeted = uploaded.fence + uploaded.posts + uploaded.decor + WorldLayout.BORDER_SLOT_BUDGET
 		expect(budgeted <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 		-- the budget is the real count, not a ceiling far above it
 		expect(WorldLayout.MESH_SLOT_BUDGET - budgeted < 10).toBe(true)
@@ -180,7 +192,7 @@ describe("world budget: mesh slots (fallback until ranch_fence_20 is uploaded)",
 			expect(fallback.segments).toBe(30 * P)
 			expect(fallback.fence).toBe(uploaded.fence + 14 * P)
 			expect(fallback.decor).toBe(uploaded.decor)
-			local budgeted = fallback.fence + fallback.decor + WorldLayout.BORDER_SLOT_BUDGET
+			local budgeted = fallback.fence + fallback.posts + fallback.decor + WorldLayout.BORDER_SLOT_BUDGET
 			expect(budgeted <= WorldLayout.MESH_SLOT_BUDGET_FALLBACK).toBe(true)
 		end
 	end)

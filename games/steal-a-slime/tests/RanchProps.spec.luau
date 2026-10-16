@@ -417,6 +417,9 @@ describe("plot fence", function()
 				expect(n.size[2]).toBeCloseTo(native(WorldLayout.FENCE_SEGMENT)[2] * WorldLayout.FENCE_SCALE)
 			end
 			for _, seg in fence.children do
+				if seg.name == "GatePost" then
+					continue -- checked in "shows one post at every joint"
+				end
 				local side = string.match(seg.name, "^Segment(%a+)_%d+$") :: string
 				expect(spans[side] ~= nil).toBe(true)
 				local cx, cz, length
@@ -501,8 +504,92 @@ describe("plot fence", function()
 		expect(ok).toBe(true)
 		checkFence(built, false)
 	end)
-	-- The corners close on the panels' end posts (each side is covered corner
-	-- to corner, checked above), so there is no plot corner post slot.
+	-- Kit pieces carry one post, at their -X end (+ the panel's mid post).
+	-- Round the loop each joint and corner gets the next piece's post and the
+	-- gate's right stub gets the GatePost: exactly one post at every piece end,
+	-- never two side by side, in both fence modes.
+	local function checkPosts(built: { any })
+		local inset = WorldLayout.FENCE_POST_INSET
+		for i, plot in built[2].children do
+			local _, plotYaw = WorldLayout.plotCentre(i)
+			local posts: { { number } } = {}
+			local ends: { { number } } = {}
+			local gatePosts = 0
+			local function piece(n: any, mid: boolean)
+				local x, z = toLocal(i, n.pos[1], n.pos[3])
+				local a = math.rad(n.rot[2] - plotYaw)
+				local dx, dz = math.cos(a), -math.sin(a)
+				local half = n.size[1] / 2
+				table.insert(posts, { x + dx * (inset - half), z + dz * (inset - half) })
+				if mid then
+					table.insert(posts, { x + dx * inset, z + dz * inset })
+				end
+				table.insert(ends, { x - dx * half, z - dz * half })
+				table.insert(ends, { x + dx * half, z + dz * half })
+			end
+			for _, n in plotChild(plot, "Fence").children do
+				if n.name == "GatePost" then
+					expect(n.attributes.MeshAsset).toBe(WorldLayout.GATE_POST_MESH)
+					expect(n.canCollide).toBe(false)
+					local x, z = toLocal(i, n.pos[1], n.pos[3])
+					table.insert(posts, { x, z })
+					gatePosts += 1
+					-- mirrors the left gate segment's post across the gate
+					expect(x).toBeCloseTo(WorldLayout.GATE_SLOT / 2 + inset)
+					expect(z).toBeCloseTo(-line)
+				elseif n.class == "Model" then
+					piece(n.children[1], false)
+					piece(n.children[2], false)
+				else
+					piece(n, n.attributes.MeshAsset == WorldLayout.FENCE_MESH)
+				end
+			end
+			expect(gatePosts).toBe(1)
+			-- every piece end (joints, corners, both gate stubs): one post within 1.5
+			for _, e in ends do
+				local near = 0
+				for _, p in posts do
+					if (p[1] - e[1]) ^ 2 + (p[2] - e[2]) ^ 2 < 1.5 ^ 2 then
+						near += 1
+					end
+				end
+				expect(near).toBe(1)
+			end
+			-- no doubled posts anywhere: posts at least a post width apart
+			for a = 1, #posts do
+				for b = a + 1, #posts do
+					local d = math.sqrt((posts[a][1] - posts[b][1]) ^ 2 + (posts[a][2] - posts[b][2]) ^ 2)
+					expect(d > 2).toBe(true)
+				end
+			end
+			-- and one at each gate stub, mirrored
+			for _, sx in { -1, 1 } do
+				local near = 0
+				for _, p in posts do
+					if
+						math.abs(p[1] - sx * (WorldLayout.GATE_SLOT / 2 + inset)) < 1e-6
+						and math.abs(p[2] + line) < 1e-6
+					then
+						near += 1
+					end
+				end
+				expect(near).toBe(1)
+			end
+		end
+	end
+	it("shows one post at every joint, corner and gate stub (uploaded and fallback)", function()
+		local entry = MeshAssets.entries[WorldLayout.FENCE_MESH] :: any
+		local was = entry.meshId
+		for _, up in { true, false } do
+			entry.meshId = if up then "rbxassetid://0" else nil
+			local ok, built = pcall(WorldLayout.build)
+			entry.meshId = was
+			expect(ok).toBe(true)
+			checkPosts(built)
+		end
+	end)
+	-- The corners close on the next side's -X end post (checked above), so
+	-- there is no plot corner post slot.
 	it("keeps the gate as a kit model and no corner post slots", function()
 		for _, plot in plots do
 			for k = 1, 4 do

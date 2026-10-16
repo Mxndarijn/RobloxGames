@@ -114,16 +114,22 @@ WorldLayout.WALL_HEIGHT = 8
 -- The gate side is 30 + 20 (GATE_SLOT) + 30, so it takes a panel at each
 -- corner and a 10-stud phoenix_fence_segment beside each gate post: 14
 -- panels + 2 segments per plot. Both kit pieces are 11 native studs per 10
--- grid studs (end posts overlap the neighbour's), so one uniform scale of
--- 10/11 tiles them on the grid at the same 8.2 height. Until ranch_fence_20
+-- grid studs with one post, at their -X end (the neighbour's post closes the
+-- +X end), so one uniform scale of 10/11 tiles them on the grid at the same
+-- 8.2 height. Until ranch_fence_20
 -- is uploaded each panel slot is a Model tagged FenceMesh = FENCE_MESH holding
 -- two FENCE_SEGMENT halves (the same look: the panel is two segments sharing
 -- the mid post).
 WorldLayout.FENCE_MESH = "ranch_fence_20"
 WorldLayout.FENCE_SEGMENT = "phoenix_fence_segment"
+-- Closes the fence run that ends at the gate's right stub (GatePost slot).
+WorldLayout.GATE_POST_MESH = "phoenix_corner_post"
 WorldLayout.FENCE_GRID = 20
 WorldLayout.FENCE_SEGMENT_GRID = 10
 WorldLayout.FENCE_SCALE = 10 / 11
+-- Post centre in from a piece's -X end: the kit post cap is 1.8 wide, and
+-- its centre 0.9 in from the bbox edge, at FENCE_SCALE.
+WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 -- Mesh slots in the whole world (MeshAsset + pending BorderMesh / FenceMesh
 -- slots + the WorldProps skins), counted with ranch_fence_20 uploaded
 -- (tests/WorldBudget.spec), split into caps that add up to MESH_SLOT_BUDGET:
@@ -132,18 +138,24 @@ WorldLayout.FENCE_SCALE = 10 / 11
 --           (80 / 20) and each 30-stud half of the gate side needs a panel
 --           and a segment, so 16 a plot (128) is the minimum with the gate
 --           slot centred.
---   border  Map.Border's share (112). The ring uses BORDER_SLOT_COUNT (44)
+--   posts   one GATE_POST_MESH a plot (8). Panels and segments carry a post
+--           at their -X end only, so round the fence loop every joint and
+--           corner shows one post; the run that ends at the gate has none
+--           there, and this post closes it, mirroring the post beside the
+--           other gate stub. Paid for by the border share (112 -> 104).
+--   border  Map.Border's share (104). The ring uses BORDER_SLOT_COUNT (44)
 --           since #56 (WorldBorder set meshes); main #54's first ring was 228.
 --   decor   everything else: ranch props, pad stands, fountain, plaza,
 --           landing ring, gates, plot dex boards and buy stands, WorldProps
---           skins. Capped at 160 = MESH_SLOT_BUDGET - fence - border share:
---           full, with the 8 BuyStand (ranch_shop_stand) slots paid for by
---           the border share (120 -> 112).
+--           skins. Capped at 160 = MESH_SLOT_BUDGET - fence - posts - border
+--           share: full, with the 8 BuyStand (ranch_shop_stand) slots paid
+--           for by the border share (120 -> 112).
 -- The fallback (two segments per panel until the upload) adds one slot per
 -- panel: 112.
 WorldLayout.MESH_SLOT_BUDGET = 400
 WorldLayout.FENCE_SLOT_BUDGET = 128
-WorldLayout.BORDER_SLOT_BUDGET = 112
+WorldLayout.GATE_POST_SLOT_BUDGET = 8
+WorldLayout.BORDER_SLOT_BUDGET = 104
 WorldLayout.BORDER_SLOT_COUNT = 44
 WorldLayout.DECOR_SLOT_BUDGET = 160
 WorldLayout.MESH_SLOT_BUDGET_FALLBACK = WorldLayout.MESH_SLOT_BUDGET + 112
@@ -1276,10 +1288,22 @@ local function plot(i: number): WorldNode
 		end
 		table.insert(fence.children :: { WorldNode }, node)
 	end
+	-- Each piece has its post at its -X end and the sides run one way round
+	-- the loop (Back +X, Right -Z, Front -X, Left +Z), so the next piece's
+	-- post closes every joint and corner: one post each, never two. The gate
+	-- breaks the loop: the left gate segment starts there (post 0.82 out from
+	-- the stub), the right one ends there without a post, so a GATE_POST_MESH
+	-- mirrors that post on the right (GATE_POST_SLOT_BUDGET).
+	local postSize = meshSize(WorldLayout.GATE_POST_MESH, WorldLayout.FENCE_SCALE)
+	local postX = slot / 2 + WorldLayout.FENCE_POST_INSET
+	table.insert(
+		fence.children :: { WorldNode },
+		meshSlot(
+			ghost(block("GatePost", postSize, at({ postX, 1 + postSize[2] / 2, wallZ }), FENCE, "Wood", r)),
+			WorldLayout.GATE_POST_MESH
+		)
+	)
 	table.insert(children, fence)
-	-- No corner posts: the two panels meeting at a corner put their end posts
-	-- on the same spot, which closes it (MESH_SLOT_BUDGET; the kit corner post
-	-- stands once in RanchProps).
 	local postW = (slot - clear) / 2
 	-- The kit gate is built for this slot (14 clear, stubs to +-10): native size.
 	-- Kit FBX fronts face Roblox +Z (LESSONS kit gotcha): turn it 180 so the
