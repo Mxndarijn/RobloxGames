@@ -34,6 +34,7 @@ ap.add_argument("--samples", type=int, default=128)
 ap.add_argument("--engine", default="cycles")
 ap.add_argument("--suffix", default="")
 ap.add_argument("--blend", default="")
+ap.add_argument("--rename", default="")  # view=file pairs, e.g. 08=border_terrain_along: the file name (no .png, no suffix) of a view
 ap.add_argument("--skin", default="")  # plot skin id of the scene (export --skin): names view 10 plot_skin_<id>.png
 args = ap.parse_args(argv)
 
@@ -278,6 +279,57 @@ for m in data["meshes"]:
         o.material_slots[0].link = "OBJECT"
         o.material_slots[0].material = vcol_material(me.color_attributes[0].name, m["tint"])
     coll_world.objects.link(o)
+
+
+def build_terrain(t):
+    """The border hills (server/BorderTerrainView): the seeded heightfield as a vertex-coloured mesh.
+
+    Vertices sit at the grid cell centres; a face is drawn when any corner is past the Ground edge
+    (flat vertices dip 5 cm so they never z-fight the Ground part, which ends at `inner`)."""
+    n, step, lo, inner = t["n"], t["step"], t["min"], t["inner"]
+    heights, mats = t["heights"], t["materials"]
+    pal = {k: tuple(c / 255 for c in v) for k, v in t["colors"].items()}
+    by_letter = {"G": pal["Grass"], "L": pal["LeafyGrass"], "R": pal["Rock"]}
+    verts, cols = [], []
+    for j in range(n):
+        z = lo + j * step
+        for i in range(n):
+            x = lo + i * step
+            h = heights[j * n + i]
+            verts.append(rbx(x, h if h > 0 else -0.05, z))
+            cols.append(by_letter[mats[j * n + i]])
+
+    def far(i, j):
+        return max(abs(lo + i * step), abs(lo + j * step)) > inner
+
+    faces = []
+    for j in range(n - 1):
+        for i in range(n - 1):
+            if not (far(i, j) or far(i + 1, j) or far(i, j + 1) or far(i + 1, j + 1)):
+                continue
+            if not any(heights[(j + dj) * n + i + di] > 0 for dj in (0, 1) for di in (0, 1)):
+                continue
+            a = j * n + i
+            faces.append((a, a + n, a + n + 1, a + 1))
+    me = bpy.data.meshes.new("border_terrain")
+    me.from_pydata([tuple(v) for v in verts], [], faces)
+    me.update()
+    for p in me.polygons:
+        p.use_smooth = True
+    ca = me.color_attributes.new("terrain", "FLOAT_COLOR", "POINT")
+    for k, c in enumerate(cols):
+        ca.data[k].color = (*(srgb_to_linear(v) for v in c), 1)
+    me.materials.append(vcol_material("terrain"))
+    o = bpy.data.objects.new("border_terrain", me)
+    coll_world.objects.link(o)
+    # Normals as Blender flips them: face winding above is +Y (Blender Z) up.
+    return len(faces)
+
+
+if data.get("terrain"):
+    tf = build_terrain(data["terrain"])
+    print(f"terrain mesh: {tf} faces")
+
 print(f"built {len(data['parts'])} parts, {len(data['meshes'])} meshes in {time.time() - t0:.1f}s; missing {missing}")
 
 # Light and sky ------------------------------------------------------------
@@ -441,6 +493,7 @@ VIEWS = {
     "06_path_eye": lambda: look((2, 5, 58), (-6, 1, 100), lens=30),
     # world border v3: the ring from high up across the plaza, mid height along
     # the edge, and a player's eye (5 studs) looking out at it
+    "13_border_terrain_aerial": lambda: look(polar(337.5, 140, 1180), polar(157.5, 20, 0), lens=19),
     "07_border_aerial": lambda: look(polar(337.5, 40, 430), polar(157.5, 170, 0), lens=22),
     "08_border_along": lambda: look(polar(140, 240, 20), polar(178, 300, 6), lens=30),
     "09_border_eye": lambda: look(polar(157.5, 246, 5), polar(172, 300, 7), lens=30),
@@ -463,9 +516,11 @@ for name, setup in VIEWS.items():
     # ortho_scale spans the frame height for the top view
     top = name.startswith("01")
     cam_data.sensor_fit = "VERTICAL" if top else "AUTO"
-    amount.inputs[1].default_value = 0.0 if top else 0.6
-    r.filepath = os.path.join(args.out, name + args.suffix + ".png")
-    if name.startswith("07"):
+    amount.inputs[1].default_value = 0.0 if (top or name.startswith("13")) else 0.6
+    renames = dict(kv.split("=") for kv in args.rename.split(",") if kv)
+    base = renames.get(name[:2], name)
+    r.filepath = os.path.join(args.out, base + args.suffix + ".png")
+    if name.startswith("12"):
         r.filepath = os.path.join(args.out, f"plot_skin_{args.skin or 'classic'}{args.suffix}.png")
     t = time.time()
     bpy.ops.render.render(write_still=True)

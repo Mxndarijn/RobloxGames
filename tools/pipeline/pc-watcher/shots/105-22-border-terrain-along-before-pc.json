@@ -1,0 +1,19 @@
+{
+  "id": "22-border-terrain-along-before-pc",
+  "kind": "world",
+  "pos": [
+    133.0,
+    14,
+    -230.4
+  ],
+  "look": [
+    20.6,
+    5,
+    -295.3
+  ],
+  "device": "desktop",
+  "clock": 14,
+  "todo": "border-terrain",
+  "wait": 2.0,
+  "note": "border terrain: BEFORE frame, the thin side (same camera as 21-border-along-pc): capture on main (no terrain); open grass ends in a straight edge into the sky in [desktop]"
+}
