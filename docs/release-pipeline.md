@@ -70,6 +70,15 @@ Only the newest cloud-passed commit on main may go live. For sha X, `publish.sh`
 
 The check runs at the start, again before writing `ready`, before the Saved upload, and again right before the Published upload (a newer sha can pass while X builds or is smoke-tested). `SUPERSEDE_ONLY=1` stops after the first check; `watch.sh` uses it to retire `ready` shas. Dry-run tests: `tools/pipeline/test-publish-dryrun.sh`.
 
+### Needs-review markers
+
+So Gojo can ping Phoenix, `publish.sh` keeps an empty file `$NEEDS_REVIEW_DIR/<full 40-char sha>` (default `/workspace/roblox/pipeline/needs-review`, created with `mkdir -p`) while X has cloud `pass` and frames still need review:
+
+- written when there is no Studio report yet, or the report has `status == "pass"` but `frames_reviewed` is not `true`;
+- removed when `frames_reviewed` is `true`, the report is `fail`, or X ends `live`, `skipped-superseded`, `no-publish` or `smoke-failed` (including the `SUPERSEDE_ONLY=1` path). A sha with a terminal publish status is never re-marked.
+
+Every `publish.sh` run that evaluates the gate refreshes the marker. `NEEDS_REVIEW_DIR` is honoured under `DRY_RUN=1` (the tests point it at a temp dir). Cloud `fail`/`error`/pending shas get no marker.
+
 ## Publishing
 
 `AUTO_PUBLISH` (default `0`). With `0`, a passing gate only writes `status/X.publish.json` `{"status":"ready"}`; nothing is uploaded.

@@ -16,6 +16,12 @@
 # $MAIN_REF) is never published; it gets status skipped-superseded. Checked at the
 # start and again right before each upload. SUPERSEDE_ONLY=1 stops after that check.
 #
+# Needs-review marker: while $SHA has cloud pass but Phoenix has not yet reviewed
+# frames (no Studio report, or report status=pass with frames_reviewed != true) an
+# empty file $NEEDS_REVIEW_DIR/<40-char sha> exists so Gojo can ping Phoenix. It is
+# removed once frames_reviewed is true, the report is fail, or the sha ends
+# live / skipped-superseded / no-publish / smoke-failed. Honoured under DRY_RUN too.
+#
 # Exit: 0 live / ready / dry-run ok, 3 pending (retry next tick),
 #       4 no-publish or skipped-superseded (terminal), 2 error (retry),
 #       5 smoke failed (terminal-ish: not published).
@@ -40,6 +46,7 @@ MAIN_REF="${MAIN_REF:-origin/main}"
 SUPERSEDE_ONLY="${SUPERSEDE_ONLY:-0}"
 MIRROR_STALE_S="${MIRROR_STALE_S:-300}"
 UPLOAD_BACKOFF="${UPLOAD_BACKOFF-60 120 240 480}"
+NEEDS_REVIEW_DIR="${NEEDS_REVIEW_DIR:-$PIPE/needs-review}"
 API="https://apis.roblox.com"
 
 mkdir -p "$STATUS_DIR"
@@ -68,6 +75,24 @@ cloud_retry() {
   printf '%s' "$resp" >"$WORK/resp"
 }
 
+# Marker file name is always the full 40-char sha.
+FULL_SHA="$SHA"
+[[ "$FULL_SHA" =~ ^[0-9a-f]{40}$ ]] || FULL_SHA="$(git -C "$CHECKOUT" rev-parse --verify -q "$SHA^{commit}" 2>/dev/null || true)"
+needs_review_set() {
+  [[ -n "$FULL_SHA" ]] || return 0
+  case "$(jq -r .status "$STATUS_DIR/$SHA.publish.json" 2>/dev/null)" in "" | ready) ;; *) return 0 ;; esac # terminal: never re-mark
+  mkdir -p "$NEEDS_REVIEW_DIR" && touch "$NEEDS_REVIEW_DIR/$FULL_SHA"
+  log "needs-review: marker set ($NEEDS_REVIEW_DIR/$FULL_SHA)"
+}
+needs_review_clear() {
+  [[ -n "$FULL_SHA" ]] || return 0
+  mkdir -p "$NEEDS_REVIEW_DIR"
+  if [[ -e "$NEEDS_REVIEW_DIR/$FULL_SHA" ]]; then
+    rm -f "$NEEDS_REVIEW_DIR/$FULL_SHA"
+    log "needs-review: marker removed"
+  fi
+}
+
 write_json() { # write_json <path> (stdin)
   cat >"$1.tmp" && mv "$1.tmp" "$1"
 }
@@ -76,6 +101,7 @@ write_json() { # write_json <path> (stdin)
 terminal() {
   local status="$1" reason="$2"
   log "$status: $reason"
+  needs_review_clear
   if [[ "$DRY_RUN" == 1 ]]; then
     log "DRY_RUN: would write $STATUS_DIR/$SHA.publish.json status=$status"
     return
@@ -104,10 +130,11 @@ newer_passed() {
 check_superseded() {
   local cur newer
   cur="$(jq -r .status "$STATUS_DIR/$SHA.publish.json" 2>/dev/null)"
-  case "$cur" in "" | ready) ;; *) return 0 ;; esac
+  case "$cur" in "" | ready) ;; *) needs_review_clear; return 0 ;; esac
   newer="$(newer_passed)"
   [[ -n "$newer" ]] || return 0
   log "skipped-superseded: newer sha $newer on $MAIN_REF has cloud status pass"
+  needs_review_clear
   if [[ "$DRY_RUN" == 1 ]]; then
     log "DRY_RUN: would write $STATUS_DIR/$SHA.publish.json status=skipped-superseded superseded_by=$newer"
   else
@@ -154,6 +181,15 @@ fetch_report() { # prints report JSON on stdout, empty if none
   if [[ -n "$api" ]]; then echo "$api"; elif [[ -f "$f" ]]; then cat "$f"; fi # API down: stale mirror beats nothing
 }
 REPORT="$(fetch_report)"
+
+# Needs-review marker: set while Phoenix still has to review frames, clear otherwise.
+if [[ -z "$REPORT" ]]; then
+  needs_review_set
+elif echo "$REPORT" | jq -e --arg sha "$SHA" '.sha == $sha and .status == "pass" and .frames_reviewed != true' >/dev/null 2>&1; then
+  needs_review_set
+else
+  needs_review_clear
+fi
 
 # Returns reason on stdout when the report is missing/incomplete, nothing when valid.
 report_problem() {
@@ -235,6 +271,7 @@ else
 fi
 log "smoke on saved version $SAVED: $SMOKE"
 if [[ "$SMOKE" != pass ]]; then
+  needs_review_clear
   jq -n --arg sha "$SHA" --argjson saved "$SAVED" --arg at "$(date -Iseconds)" \
     '{sha: $sha, status: "smoke-failed", saved_version: $saved, smoke: "fail", at: $at}' | write_json "$STATUS_DIR/$SHA.publish.json"
   exit 5
@@ -251,4 +288,5 @@ jq -n --arg sha "$SHA" --argjson saved "$SAVED" --argjson published "$PUBLISHED"
     place: $place, merged_at: $merged, published_at: $at, studio_report: $report}' >"$WORK/live.json"
 write_json "$STATUS_DIR/$SHA.publish.json" <"$WORK/live.json"
 write_json "$LIVE_DIR/$SHA.json" <"$WORK/live.json"
+needs_review_clear
 exit 0
