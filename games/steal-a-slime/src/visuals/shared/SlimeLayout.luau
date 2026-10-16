@@ -15,12 +15,17 @@
 	  * pattern Plain / Spots / Stripes / Belly
 	  * eyes Round / Sleepy / Angry / Happy / Cyclops / Wide
 	  * mouth Smile / Open / Flat / Fang
+	  * body material: the slime type's SlimeLooks material (unmutated only;
+	    unknown type -> SmoothPlastic)
 	  * mutation None / Glow (neon + light) / Lava (crust + cracks) /
 	    Galaxy (dark purple + stars) / Gold (foil + sparkles)
 ]]
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
+local SlimeLooks = if script
+	then require(script.Parent.Parent.Shared.SlimeLooks)
+	else require("../../shared/SlimeLooks")
 local Types = if script then require(script.Parent.Parent.Shared.Types) else require("../../shared/Types")
 
 type Vec = LayoutMath.Vec
@@ -152,6 +157,12 @@ local function bodyLook(slime: Types.SlimeData): (Vec, string)
 		return mix(c, { 170, 240, 255 }, 0.5), "Glass"
 	elseif slime.mutation == "Eclipse" then
 		return { 26, 18, 40 }, "Neon"
+	end
+	-- Unmutated: the slime type's SlimeLooks material; unknown or missing
+	-- types (merged/older slimes, bad names) keep plain plastic.
+	local look = SlimeLooks.get(slime.species)
+	if look and SlimeLooks.isMaterial(look.material) then
+		return c, look.material
 	end
 	return c, "SmoothPlastic"
 end
