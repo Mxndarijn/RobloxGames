@@ -33,6 +33,7 @@ local Format = require(script.Format)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
 local Layout = require(script.Layout)
+local MenuClose = require(script.MenuClose)
 local Nav = require(script.Nav)
 local PopupQueue = require(script.PopupQueue)
 local RareAnnounce = require(script.RareAnnounce)
@@ -368,10 +369,7 @@ end)
 
 -- "Open Shop" at the ShopStand and "Talk" at the Guide NPC (CONTRACT.md
 -- §5.3): the server only places the prompts; this client opens the menu.
-local PROMPT_MENUS: { [string]: string } = {
-	[Constants.SHOP_PROMPT_NAME] = "Shop",
-	[Constants.GUIDE_PROMPT_NAME] = "Guide",
-}
+local PROMPT_MENUS = MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME)
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, who: Player)
 	local key = PROMPT_MENUS[prompt.Name]
 	if key and who == player then
@@ -447,20 +445,12 @@ applyLayout()
 setOpen(nil)
 
 -- Gamepad B always closes the open menu (same as its X), and Esc too while
--- Layout.CLOSE_WITH_ESCAPE is true (v27 default). Passed on when no menu is
--- open, so Esc still reaches Roblox's own menu then.
-local function closeMenuAction(_: string, inputState: Enum.UserInputState)
-	if inputState ~= Enum.UserInputState.Begin or openKey == nil then
-		return Enum.ContextActionResult.Pass
-	end
+-- Layout.CLOSE_WITH_ESCAPE is true (v27 default); see MenuClose.
+MenuClose.bind(ContextActionService, Layout.CLOSE_WITH_ESCAPE, function()
+	return openKey
+end, function()
 	setOpen(nil)
-	return Enum.ContextActionResult.Sink
-end
-if Layout.CLOSE_WITH_ESCAPE then
-	ContextActionService:BindAction("CloseMenu", closeMenuAction, false, Enum.KeyCode.ButtonB, Enum.KeyCode.Escape)
-else
-	ContextActionService:BindAction("CloseMenu", closeMenuAction, false, Enum.KeyCode.ButtonB)
-end
+end)
 
 local function updateBadges(state: Types.State)
 	local badges = Nav.badges(state)

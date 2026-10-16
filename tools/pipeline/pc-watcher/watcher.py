@@ -1428,6 +1428,28 @@ def open_panel(run, key):
     return res
 
 
+def press_check(run, opened, key, expect="closed"):
+    """Presses `key` (MCP user_keyboard_input, Client datamodel) with the panel open and asserts it closed.
+    A panel opened by the Visible fallback has no game state behind it, so the key cannot close it: inconclusive."""
+    panel = opened["panel"]
+    out = {"key": key, "panel": panel, "expect": expect}
+    if opened["method"] == "visible_fallback":
+        return dict(out, status="warn", why="panel opened by Visible=true; the game's menu state is not open")
+    if not run.input_ok:
+        return dict(out, status="warn", why="mcp input disabled (moved OS cursor)")
+    ok, info = run.key(key)
+    time.sleep(0.8)
+    p = ui_probe(run)
+    is_open = panel in (p.get("open_panels") or [])
+    out.update(key_ok=ok, key_call=info, open_after=is_open)
+    if not ok:
+        return dict(out, status="fail", why="key call failed: %s" % (info,))
+    if is_open != (expect == "open"):
+        close_panel(run, panel)  # tidy up for the next shot
+        return dict(out, status="fail")
+    return dict(out, status="pass")
+
+
 def close_panel(run, panel):
     """Escape (MCP key); then the panel's Close button; then Visible=false. Returns the method that closed it."""
     if run.input_ok:
@@ -1491,6 +1513,11 @@ def step_shots(run):
                         continue
                     if opened["method"] == "visible_fallback":
                         run.note("shot %s: no click opened %s; set Visible directly" % (sid, opened["panel"]))
+                if opened and shot.get("press"):
+                    res["press"] = press_check(run, opened, shot["press"], shot.get("expect", "closed"))
+                    if res["press"]["status"] != "pass":
+                        res["error"] = "%s did not leave %s %s" % (shot["press"], opened["panel"], shot.get("expect", "closed"))
+                    continue
                 keep = opened["panel"] if opened else ""
                 ok, iso = run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=True)
                 res["isolated"] = iso if ok else str(iso)[:160]
@@ -1539,7 +1566,11 @@ def step_shots(run):
     except Exception:
         pass
     done = len([r for r in results if (r.get("frame") or {}).get("file")])
-    return "pass" if done else "warn", {"captured": done, "total": len(shots), "shots": results,
+    pressed = [r for r in results if r.get("press")]
+    if any(r["press"]["status"] != "pass" for r in pressed):
+        return "warn", {"captured": done, "total": len(shots), "shots": results, "press_failed": True,
+                        "viewport_rect": run.extra.get("viewport_rect")}
+    return "pass" if (done or pressed) else "warn", {"captured": done, "total": len(shots), "shots": results,
                                         "viewport_rect": run.extra.get("viewport_rect")}
 
 
