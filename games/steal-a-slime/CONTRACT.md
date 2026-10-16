@@ -343,7 +343,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
 | `REBIRTH_LATE_FROM` / `REBIRTH_COST_GROWTH_LATE` / `REBIRTH_TIERS` / `UPGRADES` / `GOALS` / `DEX_MILESTONES` | 5 / 2 / tables | v13 progression (§8.8) |
-| `SAVE_VERSION` | 3 | v13 schema (§8.9) |
+| `SAVE_VERSION` | 4 | v13 schema (§8.9), v4 = `slimes[i].mutations` (§8.9a) |
 
 All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ShopStand` / `LeaderboardBoard` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
 
@@ -520,7 +520,7 @@ rebirth wipe and keeper rule apply, so it only survives as a keeper. State gains
 `rebirthSlime: { id, name, tier, color, owned }?` (nil at `MAX_REBIRTHS`); `canRebirth`
 already includes the slime check.
 
-### 8.9 DataStore schema v3 (`Config.SAVE_VERSION = 3`)
+### 8.9 DataStore schema v3 (superseded by v4, §8.9a)
 
 Same store and key. v3 = v2 plus:
 
@@ -532,6 +532,13 @@ dexRewards = n,                                                       -- dex mil
 ```
 
 Migration (`SaveData.migrate`, pure, tested with a v12-shaped save): v1 -> v2 as before; v2 (or a version-less v2 shape) -> v3 adds zero upgrades / stats / goals / dexRewards, seeds `stats.caught = max(#slimes, dex count)`, and remaps `tutorialStep` 4..6 -> 5..7 (§8.3). Unknown or newer versions are read field by field with the v3 sanitizer. Everything is clamped (levels to `maxLevel`, stages to `#targets`).
+
+
+### 8.9a DataStore schema v4: stacking mutations (`Config.SAVE_VERSION = 4`)
+
+Same store and key; no key or field is renamed. v4 = v3 plus `slimes[i].mutations = { name, ... }` (at most `Config.MAX_MUTATIONS`; a fused combo from `Config.COMBOS` is stored by its combo name). The single `mutation` field is still written (the strongest entry, "None" when empty): v3 readers, visuals and dex keys use it.
+
+`SaveData.migrateV3` (v1/v2/v3 -> v4) is pure, returns a copy and is idempotent: `mutations = {}` for "None" / missing, else `{ mutation }`; a slime that already has a list is untouched. Value is the product of the list (a single entry = the v3 value). A version above 4 is never rewritten by the migration; `Genome.sanitize` reads both fields. `FEATURES.MutationStacking` (default on) only controls new rolls (stack chance `STACK_MUTATION_CHANCE`, combo fusing, merge carry-over); migration and loading always run. The Dex counts a stacked slime under its primary mutation (`DEX_TOTAL` adds `#COMBOS` with the flag on).
 
 ### 8.10 Speed Coil (replaces the §2 bullet)
 

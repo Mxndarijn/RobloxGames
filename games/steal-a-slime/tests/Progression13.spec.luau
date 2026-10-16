@@ -329,7 +329,7 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 
 	it("keeps every v2 field and adds zeroed v3 progression", function()
 		local d = SaveData.deserialize(v12Save())
-		expect(d.version).toBe(3)
+		expect(d.version).toBe(Config.SAVE_VERSION)
 		expect(d.cash).toBe(1234567)
 		expect(d.rebirths).toBe(5)
 		expect(#d.slimes).toBe(8)
@@ -373,7 +373,7 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		d.goals.Merge = 1
 		d.dexRewards = 2
 		local raw = SaveData.serialize(d, T0)
-		expect(raw.version).toBe(3)
+		expect(raw.version).toBe(Config.SAVE_VERSION)
 		local back = SaveData.deserialize(raw)
 		expect(back.upgrades.Income).toBe(3)
 		expect(back.upgrades.Luck).toBe(5) -- clamped to maxLevel

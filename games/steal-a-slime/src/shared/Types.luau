@@ -24,6 +24,8 @@ export type Appraisal = {
 	cost: number,
 	beforeMutation: string,
 	afterMutation: string,
+	beforeMutations: { string }?, -- every mutation (FEATURES.MutationStacking); beforeMutation is the primary
+	afterMutations: { string }?,
 	beforeSize: number,
 	afterSize: number,
 }

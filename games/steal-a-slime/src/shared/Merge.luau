@@ -58,7 +58,10 @@ function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string): Slime
 	local maxed = a.tier >= Config.MAX_TIER
 	local tier = math.min(a.tier + 1, Config.MAX_TIER)
 
-	local mutation = Merge.inheritedMutation(a.mutation, b.mutation)
+	local mutation = Merge.inheritedMutation(
+		Genome.primaryMutation(Genome.mutationList(a)),
+		Genome.primaryMutation(Genome.mutationList(b))
+	)
 	local chance = if maxed then 1 else Config.MERGE_MUTATION_CHANCE
 	local rolled = Genome.rollMutation(rng:float(), rng:float(), chance)
 	if mutationRank(rolled) > mutationRank(mutation) then
@@ -83,7 +86,32 @@ function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string): Slime
 		name = nameA
 	end
 
-	return {
+	-- FEATURES.MutationStacking: the child also keeps the parents' other mutations (strongest
+	-- first, as many as fit, combos fuse) and may roll one more. The rng draws below only happen
+	-- with the flag on and a mutation present, after every other draw.
+	local mutations: { string } = if mutation == "None" then {} else { mutation }
+	if Config.FEATURES.MutationStacking then
+		-- Only the secondary mutations: the primaries were already merged by inheritedMutation.
+		local carried: { string } = {}
+		for _, parent in { a, b } do
+			local list = Genome.mutationList(parent)
+			local primary = Genome.primaryMutation(list)
+			for _, m in list do
+				if m ~= primary and not table.find(carried, m) then
+					table.insert(carried, m)
+				end
+			end
+		end
+		table.sort(carried, function(x, y)
+			return Genome.mutationMultiplier(x) > Genome.mutationMultiplier(y)
+		end)
+		for _, m in carried do
+			mutations = Genome.addMutation(mutations, m)
+		end
+		mutations = Genome.stackMutations(mutations, rng)
+	end
+
+	local child: Slime = {
 		id = id,
 		name = name,
 		tier = tier,
@@ -95,6 +123,8 @@ function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string): Slime
 		mutation = mutation,
 		pad = nil,
 	}
+	Genome.setMutations(child, mutations)
+	return child
 end
 
 --[[

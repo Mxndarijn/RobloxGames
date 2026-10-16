@@ -18,6 +18,12 @@ local create = Widgets.create
 
 local Plot = {}
 
+-- Every mutation of a slime for the labels ("Glow Syrup"), or "None".
+local function mutationsText(ctx: any, list: { string }): string
+	local shown = ctx.Genome.mutationsDisplay(list)
+	return if shown == "" then "None" else shown
+end
+
 function Plot.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "PlotPanel", "My Plot", "🏠", Color3.fromRGB(70, 130, 220))
 
@@ -87,8 +93,8 @@ function Plot.new(parent: Instance, ctx: any)
 				return
 			end
 			if a.kind == "mutation" then
-				popupBefore.Text = `Before: {ctx.Genome.mutationDisplayName(a.beforeMutation)}`
-				popupAfter.Text = `After: {ctx.Genome.mutationDisplayName(a.afterMutation)}`
+				popupBefore.Text = `Before: {mutationsText(ctx, a.beforeMutations or { a.beforeMutation })}`
+				popupAfter.Text = `After: {mutationsText(ctx, a.afterMutations or { a.afterMutation })}`
 			else
 				popupBefore.Text = `Before: size {string.format("%.2f", a.beforeSize)}`
 				popupAfter.Text = `After: size {string.format("%.2f", a.afterSize)}`
@@ -139,7 +145,7 @@ function Plot.new(parent: Instance, ctx: any)
 		local slime = view.slime
 		popupTitle.Text = `Appraise {ctx.Genome.displayName(slime)}`
 		popupNow.Text =
-			`Mutation: {ctx.Genome.mutationDisplayName(slime.mutation)} · size {string.format("%.2f", slime.size)}`
+			`Mutation: {mutationsText(ctx, ctx.Genome.mutationList(slime))} · size {string.format("%.2f", slime.size)}`
 		popupCost.Text = `Cost: 💰 {Format.formatCash(view.appraiseCost or 0)} per reroll`
 	end
 
