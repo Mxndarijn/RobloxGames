@@ -40,10 +40,10 @@ reset; cloud "$NEW" pass
 run "$OLD"; check "older sha without any status superseded" 4 "superseded_by=$NEW"
 
 reset; cloud "$NEW" pass; echo '{"status":"live"}' >"$STATUS_DIR/$OLD.publish.json"
-run "$OLD"; check "already live sha left alone" 3 "blocked: no cloud-test status" "skipped-superseded: newer"
+run "$OLD"; check "already live sha is a noop" 0 "noop: already live" "skipped-superseded: newer"
 
 reset; cloud "$NEW" pass; echo '{"status":"no-publish"}' >"$STATUS_DIR/$OLD.publish.json"; cloud "$OLD" pass
-run "$OLD"; check "no-publish sha left alone" 3 "blocked:" "skipped-superseded: newer"
+run "$OLD"; check "no-publish sha is a noop" 0 "noop: already no-publish" "skipped-superseded: newer"
 
 reset; cloud "$NEW" pass; echo '{"status":"ready"}' >"$STATUS_DIR/$OLD.publish.json"; cloud "$OLD" pass
 run "$OLD"; check "ready sha is superseded" 4 "superseded_by=$NEW"
@@ -107,6 +107,36 @@ for st in live no-publish smoke-failed skipped-superseded; do
   reset; cloud "$OLD" pass; echo "{\"status\":\"$st\"}" >"$STATUS_DIR/$OLD.publish.json"; mkdir -p "$NEEDS_REVIEW_DIR"; touch "$(mk "$OLD")"
   run "$OLD"; expect "terminal $st -> marker removed" "$OLD" absent
 done
+
+# ---- already-live / terminal no-op -------------------------------------------
+export AUTO_PUBLISH=1
+for st in live smoke-failed no-publish skipped-superseded; do
+  reset; cloud "$NEW" pass; cloud "$OLD" pass; echo "{\"status\":\"$st\"}" >"$STATUS_DIR/$OLD.publish.json"
+  run "$OLD"; check "terminal $st is a noop" 0 "noop: already $st" "upload\|skipped-superseded: newer"
+  grep -q "\"$st\"" "$STATUS_DIR/$OLD.publish.json" && echo "ok   $st publish.json untouched" || { echo "FAIL $st rewritten"; fails=$((fails + 1)); }
+done
+for bad in "" "{not json"; do
+  reset; cloud "$NEW" pass; cloud "$OLD" pass; printf '%s' "$bad" >"$STATUS_DIR/$OLD.publish.json"
+  mkdir -p "$LIVE_DIR"; echo '{"status":"live"}' >"$LIVE_DIR/$OLD.json"
+  run "$OLD"; check "bad publish.json ('$bad') + live/<sha>.json live is a noop" 0 "noop: already live" "upload\|skipped-superseded: newer"
+done
+reset; cloud "$NEW" pass; cloud "$OLD" pass; : >"$STATUS_DIR/$OLD.publish.json"; mkdir -p "$LIVE_DIR"; : >"$LIVE_DIR/$OLD.json"
+run "$OLD"; check "empty publish.json + empty live file is not a noop" 4 "superseded_by=$NEW" "noop"
+
+# ---- live json is built from files, not argv ---------------------------------
+reset
+BIG="$T/big_report.json"
+jq -n --arg sha "$OLD" '{sha: $sha, status: "pass", frames_reviewed: true, reviewed_by: ["phoenix"], blob: ([range(0; 8000) | "frame-detail-line-padding-padding-padding-\(.)"] | join(","))}' >"$BIG"
+[[ $(stat -c %s "$BIG") -gt 200000 ]] || { echo "FAIL fake report too small"; fails=$((fails + 1)); }
+LIVE_OUT="$(
+  PUBLISH_LIB_ONLY=1 DRY_RUN=0 source "$HERE/publish.sh" "$CHECKOUT" "$OLD" 2>/dev/null
+  REPORT="$(cat "$BIG")"
+  write_live_status 12 34 2024-01-01T00:00:00+00:00 2>&1 && echo WROTE
+)"
+if [[ "$LIVE_OUT" == *WROTE ]] && for f in "$STATUS_DIR/$OLD.publish.json" "$LIVE_DIR/$OLD.json"; do
+  jq -e --arg sha "$OLD" '.sha == $sha and .status == "live" and .saved_version == 12 and .published_version == 34 and .smoke == "pass" and (.studio_report.blob | length) > 100000 and (.merged_at | type) == "string"' "$f" >/dev/null || exit 1
+done; then echo "ok   write_live_status builds live json from a 200KB report (no argv)"
+else echo "FAIL write_live_status: $LIVE_OUT"; fails=$((fails + 1)); fi
 
 if (( fails )); then echo "$fails FAILED"; exit 1; fi
 echo "all passed"

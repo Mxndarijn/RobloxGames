@@ -62,6 +62,8 @@ that is pending (no or incomplete report, no cloud status yet) or passing/`ready
 or `smoke-failed` is left alone, and a newer sha that is `fail`/`error`/missing does not supersede. The check runs at the
 start, before each upload (Saved and Published), and `watch.sh` re-runs it (`SUPERSEDE_ONLY=1`) for `ready` shas each tick.
 Test: `tools/pipeline/test-publish-dryrun.sh`.
+
+A sha that is already `live` / `smoke-failed` / `no-publish` / `skipped-superseded` (or whose `live/<sha>.json` has `status: "live"`, even if `publish.json` is empty or corrupt) is a no-op: `publish.sh` logs `noop: already <status>`, exits 0 and uploads nothing. The live JSON embeds the studio report via `jq --slurpfile` from a temp file, never argv (ARG_MAX).
 | A newer sha on `origin/main` (first-parent order) has cloud status `pass` | `status/X.publish.json` `{"status":"skipped-superseded","superseded_by":"<newer sha>"}`, exit 4, never published |
 
 ### Newest only

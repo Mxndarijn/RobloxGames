@@ -22,7 +22,10 @@
 # removed once frames_reviewed is true, the report is fail, or the sha ends
 # live / skipped-superseded / no-publish / smoke-failed. Honoured under DRY_RUN too.
 #
-# Exit: 0 live / ready / dry-run ok, 3 pending (retry next tick),
+# A sha already live / smoke-failed / no-publish / skipped-superseded (or with live/<sha>.json
+# status live) is a no-op: exit 0, nothing uploaded.
+#
+# Exit: 0 live / ready / noop / dry-run ok, 3 pending (retry next tick),
 #       4 no-publish or skipped-superseded (terminal), 2 error (retry),
 #       5 smoke failed (terminal-ish: not published).
 set -uo pipefail
@@ -145,7 +148,38 @@ check_superseded() {
   exit 4
 }
 
+# write_live_status <saved> <published> <merged_at>: writes status/<sha>.publish.json and
+# live/<sha>.json. The ~150KB studio report goes in via a file (--slurpfile), never argv
+# (--argjson "$REPORT" died with "Argument list too long").
+write_live_status() {
+  mkdir -p "$LIVE_DIR" "$STATUS_DIR"
+  printf '%s' "$REPORT" >"$WORK/studio_report.json"
+  jq -n --arg sha "$SHA" --argjson saved "$1" --argjson published "$2" --arg at "$(date -Iseconds)" \
+    --arg place "$UNIVERSE_ID/$PLACE_ID" --slurpfile report "$WORK/studio_report.json" --arg merged "$3" \
+    '{sha: $sha, status: "live", saved_version: $saved, published_version: $published, smoke: "pass",
+      place: $place, merged_at: $merged, published_at: $at, studio_report: $report[0]}' >"$WORK/live.json" || return 1
+  write_json "$STATUS_DIR/$SHA.publish.json" <"$WORK/live.json" &&
+    write_json "$LIVE_DIR/$SHA.json" <"$WORK/live.json"
+}
+[[ "${PUBLISH_LIB_ONLY:-0}" == 1 ]] && return 0 # tests source the helpers above
+
+# noop_if_done: exit 0 when $SHA already ended in a terminal state, or live/<sha>.json says
+# live (covers an empty/corrupt publish.json left by a publish that died at the final write).
+noop_if_done() {
+  local cur live_st
+  cur="$(jq -r '.status // empty' "$STATUS_DIR/$SHA.publish.json" 2>/dev/null)"
+  case "$cur" in live | smoke-failed | no-publish | skipped-superseded) ;; *)
+    live_st="$(jq -r '.status // empty' "$LIVE_DIR/$SHA.json" 2>/dev/null)"
+    [[ "$live_st" == live ]] || return 0
+    cur="live (live/$SHA.json)" ;;
+  esac
+  log "noop: already $cur"
+  needs_review_clear
+  exit 0
+}
+
 # ---- gate ----------------------------------------------------------------
+noop_if_done
 check_superseded
 [[ "$SUPERSEDE_ONLY" == 1 ]] && exit 0
 CLOUD_STATUS="$STATUS_DIR/$SHA.json"
@@ -281,12 +315,6 @@ fi
 check_superseded # a newer sha may have passed while this one was building / smoking
 PUBLISHED="$(upload Published)" && [[ "$PUBLISHED" =~ ^[0-9]+$ ]] || { log "error: upload Published failed"; exit 2; }
 log "LIVE: $SHA published as place version $PUBLISHED (clean saved $SAVED)"
-mkdir -p "$LIVE_DIR"
-jq -n --arg sha "$SHA" --argjson saved "$SAVED" --argjson published "$PUBLISHED" --arg at "$(date -Iseconds)" \
-  --arg place "$UNIVERSE_ID/$PLACE_ID" --argjson report "$REPORT" --arg merged "$MERGE_TIME" \
-  '{sha: $sha, status: "live", saved_version: $saved, published_version: $published, smoke: "pass",
-    place: $place, merged_at: $merged, published_at: $at, studio_report: $report}' >"$WORK/live.json"
-write_json "$STATUS_DIR/$SHA.publish.json" <"$WORK/live.json"
-write_json "$LIVE_DIR/$SHA.json" <"$WORK/live.json"
+write_live_status "$SAVED" "$PUBLISHED" "$MERGE_TIME"
 needs_review_clear
 exit 0
