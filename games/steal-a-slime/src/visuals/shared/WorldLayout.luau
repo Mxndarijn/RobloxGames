@@ -13,13 +13,14 @@
 	           on top = the drop origin), Chute (primitive slide, hidden once
 	           the fountain mesh loads), Paths (plaza, spokes + ring), Plaza
 	           (signpost, podiums, landing-ring tiles, goo drain), Decor
-	           (rocks, mushrooms, ranch props), Border (WorldBorder: the
-	           invisible wall ring + seeded hedges, fences, pines, hills,
-	           rocks along the edge). Kit meshes go on MeshAsset slots via
-	           server/MeshSwap.
+	           (rocks, mushrooms, the RanchProps kit props), Border
+	           (WorldBorder: the invisible wall ring + seeded hedges, fences,
+	           pines, hills, rocks along the edge). Kit meshes go on MeshAsset
+	           slots via server/MeshSwap.
 	  Plots    Plot_1..PLOT_COUNT in a ring around the fountain, each facing
 	           it (entrance at local -Z): Base, Pad_1..PADS_MAX, HomeZone,
-	           MergeVat, LockButton, Sign, walls, Slimes folder, and the
+	           MergeVat, LockButton, Sign, walls (invisible colliders) +
+	           Fence (phoenix_fence_segment slots), Slimes folder, and the
 	           PlotDecor cosmetics (LockBarrier, LockSign, BuyStand,
 	           RebirthDecor, DexBoard)
 	Every Part is anchored (WorldBuilder forces it). PROP_SPOTS suggests
@@ -37,6 +38,7 @@ local MeshAssets = if script
 	else require("../../shared/MeshAssets")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
 local PlotDecor = if script then require(script.Parent.PlotDecor) else require("./PlotDecor")
+local RanchProps = if script then require(script.Parent.RanchProps) else require("./RanchProps")
 local WorldBorder = if script then require(script.Parent.WorldBorder) else require("./WorldBorder")
 
 type Vec = LayoutMath.Vec
@@ -95,9 +97,84 @@ WorldLayout.RING_PATH_WIDTH = 8
 WorldLayout.GATE_SLOT = 20 -- fence gap at the entrance
 WorldLayout.GATE_CLEAR = 14 -- walkable opening inside the slot
 WorldLayout.WALL_HEIGHT = 8
+-- Plot fence look: kit segments on the 10-stud grid (THEME: 10-stud fence +
+-- 20-stud gate slot), 8 per side and 3 + 3 beside the gate. The kit segment
+-- is 11 long (its end posts overlap the neighbour's), so one uniform scale
+-- of 10/11 tiles it end to end on the grid: 10 x 8.2 x 1.64.
+WorldLayout.FENCE_SEGMENT = "phoenix_fence_segment"
+WorldLayout.FENCE_GRID = 10
+WorldLayout.FENCE_SCALE = WorldLayout.FENCE_GRID / 11
+-- MeshAsset slots in the whole world (Map + Plots + the WorldProps skins).
+-- THEME.md asks <= 150 MeshParts; the kit fence (240 segments, one mesh,
+-- instanced) and the placed ranch props take it past that on purpose.
+WorldLayout.MESH_SLOT_BUDGET = 460
+
+export type FenceSegment = { name: string, side: string, x: number, z: number, yaw: number }
+
+-- Plot-local fence segments (centre on the wall line, yaw relative to the
+-- plot, kit front facing out). The front skips the gate slot.
+function WorldLayout.fenceSegments(): { FenceSegment }
+	local s, g = WorldLayout.PLOT_SIZE, WorldLayout.FENCE_GRID
+	local line = s / 2 - 0.5
+	local out: { FenceSegment } = {}
+	for _, side in
+		{
+			{
+				"Back",
+				0,
+				function(t: number): (number, number)
+					return t, line
+				end,
+			},
+			{
+				"Left",
+				270,
+				function(t: number): (number, number)
+					return -line, t
+				end,
+			},
+			{
+				"Right",
+				90,
+				function(t: number): (number, number)
+					return line, t
+				end,
+			},
+			{
+				"Front",
+				180,
+				function(t: number): (number, number)
+					return t, -line
+				end,
+			},
+		}
+	do
+		local n = 0
+		for k = 0, s // g - 1 do
+			local t = -s / 2 + g / 2 + k * g
+			if side[1] == "Front" and math.abs(t) < WorldLayout.GATE_SLOT / 2 then
+				continue
+			end
+			n += 1
+			local x, z = (side[3] :: any)(t)
+			table.insert(
+				out,
+				{ name = `Segment{side[1]}_{n}`, side = side[1] :: string, x = x, z = z, yaw = side[2] :: number }
+			)
+		end
+	end
+	return out
+end
 -- Pad stand looks (Phoenix kit), cycled per pad.
-WorldLayout.PAD_MESHES =
-	table.freeze({ "phoenix_pad_crate", "phoenix_pad_hay", "phoenix_pad_goo", "phoenix_pad_stool" })
+WorldLayout.PAD_MESHES = table.freeze({
+	"phoenix_pad_crate",
+	"phoenix_pad_hay",
+	"phoenix_pad_goo",
+	"phoenix_pad_stool",
+	"phoenix_pad_barrel_top",
+	"phoenix_pad_flower_bed",
+	"phoenix_pad_mushroom",
+})
 -- Where a slime sits on each stand at native size (kit model headers): the Pad
 -- top goes here, so slimes rest on the mesh instead of sinking into it.
 WorldLayout.PAD_SEAT = table.freeze({
@@ -105,6 +182,9 @@ WorldLayout.PAD_SEAT = table.freeze({
 	phoenix_pad_hay = 1.0,
 	phoenix_pad_goo = 1.5,
 	phoenix_pad_stool = 3.0,
+	phoenix_pad_barrel_top = 2.4, -- goo fill inside the sawn rim
+	phoenix_pad_flower_bed = 2.4, -- stump top
+	phoenix_pad_mushroom = 3.0, -- flat mesa top of the cap
 })
 -- phoenix_gate's cream name board at native size (models/phoenix_gate.py
 -- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line).
@@ -330,16 +410,21 @@ local function volcano(): WorldNode
 	crater.children = { light("CraterGlow") }
 	table.insert(children, crater)
 	-- The fountain's collision, shaped like the mesh (FOUNTAIN_PROFILE): a
-	-- walkable plinth (ground to its 1.5-stud top) and the silo wall from the
-	-- plinth top to the eave. Both invisible and anchored, tagged
-	-- MeshCollider = M and off until the mesh loads: MeshSwap flips them on
-	-- and the stand-ins off in one step (MeshStandInsCollide). While loading
-	-- or failed the visible stand-ins are the only collision.
+	-- walkable plinth (ground to its 1.5-stud top), the trim bevel round the
+	-- foot of the staves (r 12.3 up to 2.4; without it feet sank 1.1 studs
+	-- into the bevel) and the silo wall from the plinth top to the eave. All
+	-- invisible and anchored, tagged MeshCollider = M and off until the mesh
+	-- loads: MeshSwap flips them on and the stand-ins off in one step
+	-- (MeshStandInsCollide). While loading or failed the visible stand-ins
+	-- are the only collision.
 	local fp = WorldLayout.FOUNTAIN_PROFILE
 	local wallHeight = fp.eaveTop - fp.plinthTop
+	local trimHeight = fp.trimTop - fp.plinthTop
 	local plinth = disc("BasinCollider", fp.plinthTop, fp.plinthRadius * 2, { 0, fp.plinthTop / 2, 0 }, STONE_TRIM)
+	local trim =
+		disc("TrimCollider", trimHeight, fp.trimRadius * 2, { 0, fp.plinthTop + trimHeight / 2, 0 }, STONE_TRIM)
 	local wall = disc("SiloCollider", wallHeight, fp.wallRadius * 2, { 0, fp.plinthTop + wallHeight / 2, 0 }, STONE)
-	for _, c in { plinth, wall } do
+	for _, c in { plinth, trim, wall } do
 		c.attributes = { MeshCollider = M }
 		c.transparency = 1
 		c.canCollide = false
@@ -512,7 +597,69 @@ local function clearSpot(pos: Vec, radius: number): boolean
 			return false
 		end
 	end
+	for _, prop in WorldLayout.RANCH_PROPS do
+		if (pos[1] - prop.pos[1]) ^ 2 + (pos[3] - prop.pos[3]) ^ 2 < (prop.radius + 2 + radius) ^ 2 then
+			return false
+		end
+	end
 	return true
+end
+
+-- Placeholder look per kit prop (shown only while its mesh isn't in);
+-- anything not listed is plain planks.
+local RANCH_LOOKS: { [string]: { any } } = {
+	ranch_hay_bale = { { 228, 196, 110 }, "Fabric" },
+	ranch_crate_goo = { { 120, 220, 140 }, "WoodPlanks" },
+	ranch_feed_trough = { WOOD, "Wood" },
+	ranch_shed = { { 176, 92, 72 }, "WoodPlanks" },
+	ranch_barn_loft = { { 176, 92, 72 }, "WoodPlanks" },
+	ranch_well = { ROCK, "Slate" },
+	ranch_campfire = { { 236, 140, 60 }, "SmoothPlastic" },
+	ranch_sunflower_patch = { { 240, 200, 80 }, "Grass" },
+	ranch_pumpkin_patch = { { 236, 140, 60 }, "Grass" },
+	ranch_flower_planter = { { 250, 150, 182 }, "WoodPlanks" },
+	ranch_lantern_post = { { 168, 148, 110 }, "Metal" },
+	ranch_mailbox = { { 168, 148, 110 }, "Metal" },
+	ranch_milk_churn = { { 168, 148, 110 }, "Metal" },
+	ranch_goo_bucket = { { 120, 220, 140 }, "WoodPlanks" },
+	ranch_goo_hive = { { 228, 196, 110 }, "Fabric" },
+	ranch_horseshoe_pit = { SAND, "Sand" },
+}
+
+export type RanchProp = {
+	name: string,
+	mesh: string,
+	cluster: string,
+	scale: number,
+	pos: Vec, -- slot centre (base on the ground)
+	yaw: number, -- world orientation, degrees
+	size: Vec, -- native size * scale
+	radius: number, -- half the XZ diagonal: a circle that holds the footprint
+}
+
+local function resolveProp(p: RanchProps.Placement): RanchProp
+	local size = meshSize(p.mesh, p.scale)
+	local pos: Vec, yaw: number
+	if p.plot then
+		local centre, plotTurn = WorldLayout.plotCentre(p.plot)
+		pos = frame(centre, plotTurn)({ p.x :: number, size[2] / 2, p.z :: number })
+		yaw = plotTurn + p.yaw
+	else
+		local a = math.rad(p.angle :: number)
+		local r = p.r :: number
+		pos = { math.sin(a) * r, size[2] / 2, math.cos(a) * r }
+		yaw = (p.angle :: number) + p.yaw
+	end
+	return {
+		name = p.name,
+		mesh = p.mesh,
+		cluster = p.cluster,
+		scale = p.scale,
+		pos = pos,
+		yaw = yaw % 360,
+		size = size,
+		radius = math.sqrt(size[1] ^ 2 + size[3] ^ 2) / 2,
+	}
 end
 
 local function decor(): WorldNode
@@ -541,29 +688,13 @@ local function decor(): WorldNode
 			end
 		end
 	end
-	-- Sparse ranch props behind the plots, between neighbours (kit meshes).
-	local RANCH = {
-		{ "ranch_hay_bale", meshSize("ranch_hay_bale", 1.25), { 228, 196, 110 }, "Fabric" },
-		{ "ranch_crate", meshSize("ranch_crate", 4 / 3), WOOD, "WoodPlanks" },
-		{ "ranch_feed_trough", meshSize("ranch_feed_trough", 1.3), WOOD, "Wood" },
-		{ "ranch_crate_goo", meshSize("ranch_crate_goo", 4 / 3), { 120, 220, 140 }, "WoodPlanks" },
-	}
-	for k = 1, Config.PLOT_COUNT do
-		local yaw = plotYaw(k) + 360 / Config.PLOT_COUNT / 2
-		local def = RANCH[(k - 1) % #RANCH + 1]
-		local size = def[2] :: Vec
-		local pos = onPolar(yaw, 200, size[2] / 2)
-		local node =
-			meshSlot(block(`Ranch{k}`, size, pos, def[3] :: Vec, def[4] :: string, { 0, yaw, 0 }), def[1] :: string)
-		add(node, pos, 4)
-	end
-	for k, yaw in { 90, 270 } do
-		local size = meshSize("ranch_shed", 1.4)
-		local pos = onPolar(yaw + 22.5, 245, size[2] / 2)
-		add(
-			meshSlot(block(`Shed{k}`, size, pos, { 176, 92, 72 }, "WoodPlanks", { 0, yaw + 22.5, 0 }), "ranch_shed"),
-			pos,
-			10
+	-- Kit ranch props (RanchProps table, PropClearance keeps them off the
+	-- lanes); the rocks and mushrooms above already stepped round them.
+	for _, prop in WorldLayout.RANCH_PROPS do
+		local look = RANCH_LOOKS[prop.mesh] or { WOOD, "WoodPlanks" }
+		table.insert(
+			children,
+			meshSlot(block(prop.name, prop.size, prop.pos, look[1], look[2], { 0, prop.yaw, 0 }), prop.mesh)
 		)
 	end
 	-- The map edge (walls + edge decor) is WorldBorder, built as Map.Border.
@@ -860,14 +991,14 @@ local function plot(i: number): WorldNode
 	table.insert(children, sign)
 
 	-- Fence: walls WALL_HEIGHT tall on three sides plus the front either side
-	-- of the GATE_SLOT, so the gate is the only way in. Walls stay primitives
-	-- (MeshPart budget, THEME.md: <= 150 per map); corner posts and the gate
-	-- are kit mesh slots.
+	-- of the GATE_SLOT, so the gate is the only way in. The walls are the
+	-- collision and are invisible; the look is FENCE_SEGMENT kit slots on the
+	-- 10-stud grid (visual only, primitive boxes until the mesh lands).
+	-- Corner posts and the gate are kit mesh slots too.
 	local wh, r = WorldLayout.WALL_HEIGHT, { 0, yaw, 0 }
 	local wy = 1 + wh / 2
 	local slot, clear = WorldLayout.GATE_SLOT, WorldLayout.GATE_CLEAR
 	local front = (s - slot) / 2
-	local F = "phoenix_fence_segment"
 	for _, w in
 		{
 			{ "WallBack", { s, wh, 1 }, { 0, wy, s / 2 - 0.5 } },
@@ -878,9 +1009,18 @@ local function plot(i: number): WorldNode
 		}
 	do
 		local node = block(w[1] :: string, w[2] :: Vec, at(w[3] :: Vec), FENCE, "WoodPlanks", r)
-		node.attributes = { FenceMesh = F } -- 10-stud segments once the budget allows
+		node.transparency = 1
+		node.attributes = { FenceCollider = true }
 		table.insert(children, node)
 	end
+	local fence: WorldNode = { name = "Fence", class = "Model", children = {} }
+	for _, seg in WorldLayout.fenceSegments() do
+		local size = meshSize(WorldLayout.FENCE_SEGMENT, WorldLayout.FENCE_SCALE)
+		local node =
+			block(seg.name, size, at({ seg.x, 1 + size[2] / 2, seg.z }), FENCE, "WoodPlanks", { 0, yaw + seg.yaw, 0 })
+		table.insert(fence.children :: { WorldNode }, meshSlot(ghost(node), WorldLayout.FENCE_SEGMENT))
+	end
+	table.insert(children, fence)
 	local postSize = meshSize("phoenix_corner_post", (wh + 1) / (MeshAssets.get("phoenix_corner_post") :: any).size[2])
 	for k, c in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
 		local inset = postSize[1] / 2
@@ -960,5 +1100,12 @@ function WorldLayout.build(): { WorldNode }
 		{ name = Constants.PLOTS_FOLDER, class = "Folder", children = plots },
 	}
 end
+
+-- Kit props from the RanchProps table, resolved to world slots (deterministic).
+local ranchProps: { RanchProp } = {}
+for _, p in RanchProps.PLACEMENTS do
+	table.insert(ranchProps, resolveProp(p))
+end
+WorldLayout.RANCH_PROPS = table.freeze(ranchProps)
 
 return table.freeze(WorldLayout)

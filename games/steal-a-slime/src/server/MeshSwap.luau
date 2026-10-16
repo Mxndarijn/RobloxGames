@@ -12,7 +12,7 @@
 	beside the fountain slot). A slot with MeshStandInsCollide = false hands
 	collision over in one step (setMeshCollision): its stand-ins' CanCollide
 	goes off and parts tagged MeshCollider = that mesh go on (the fountain's
-	Basin/Silo colliders, off in the map until then). Loading or failed, the
+	Basin/Trim/Silo colliders, off in the map until then). Loading or failed, the
 	colliders stay off and the stand-ins keep collision. Idempotent (a placeholder with a "Mesh" child
 	is skipped). Any failure leaves the primitive placeholder. Holds no
 	gameplay rules.
