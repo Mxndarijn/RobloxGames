@@ -14,6 +14,6 @@
   "wait": 6.0,
   "device": "desktop",
   "clock": 14,
-  "todo": "border-terrain",
-  "note": "border terrain: one aerial over the plaza toward the border: near hills, mid hills and the backdrop ridge ring round the horizon in [desktop]"
+  "todo": "border-v4",
+  "note": "border v4: terrain aerial over the plaza toward the border: mountains layered behind the hills round the horizon; no glowing bar over the lower left (the tutorial arrow Beam + neon chevrons start beside the parked character next to the lens; shot_camera now hides them) in [desktop]"
 }

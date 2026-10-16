@@ -38,6 +38,7 @@ local MeshAssets = if script
 	then require(script.Parent.Parent.Shared.MeshAssets)
 	else require("../../shared/MeshAssets")
 local Rng = if script then require(script.Parent.Parent.Shared.Rng) else require("../../shared/Rng")
+local BorderTerrain = if script then require(script.Parent.BorderTerrain) else require("./BorderTerrain")
 
 type Vec = LayoutMath.Vec
 
@@ -286,6 +287,17 @@ WorldBorder.THEMES = table.freeze({
 	{ name = "pines", weight = 4 },
 	{ name = "meadow", weight = 3 },
 	{ name = "rocky", weight = 2 },
+})
+-- Giants (border v4): a few existing tree meshes scaled up and set on the
+-- terrain hills, spread round the ring by sector (one per sector, jittered).
+-- Each is one MeshAsset slot (BORDER_SLOT_COUNT 80 + GIANT_COUNT).
+WorldBorder.GIANT_COUNT = 6
+WorldBorder.GIANT_MAX_AXIS = 120
+WorldBorder.GIANT_OFFSET = { 50, 150 } -- studs past the Ground edge, along the bearing
+WorldBorder.GIANT_DEFS = table.freeze({
+	{ kind = "GiantPine", mesh = "ranch_border_pine_tall", scale = { 3.4, 4.6 } },
+	{ kind = "GiantBroad", mesh = "ranch_border_pine_broad", scale = { 4.4, 5.6 } },
+	{ kind = "GiantOak", mesh = "ranch_border_oak_round", scale = { 3.8, 4.8 } },
 })
 WorldBorder.WINDOW = 4 -- no run of this many pieces repeats its (mesh, rotation, scale) pattern
 WorldBorder.ROT_BUCKET = 30 -- degrees
@@ -672,6 +684,58 @@ local function cornerRow(rng: Rng.Rng): { Piece }
 	return out
 end
 
+-- Giants: GIANT_COUNT big trees round the ring, one per sector in a seeded
+-- design order that never repeats a neighbour, standing on the border
+-- terrain (lowest of five footprint samples, sunk a stud so no root floats).
+function WorldBorder.giants(seed: number?): { Piece }
+	local rng = Rng.new((seed or WorldBorder.SEED) + 15485863)
+	local field = BorderTerrain.field()
+	local count = WorldBorder.GIANT_COUNT
+	local start = rng:float() * 360
+	local out: { Piece } = {}
+	local last = 0
+	for k = 1, count do
+		local i
+		repeat
+			i = rng:int(1, #WorldBorder.GIANT_DEFS)
+		until i ~= last or #WorldBorder.GIANT_DEFS == 1
+		last = i
+		local def = WorldBorder.GIANT_DEFS[i]
+		local n = native(def.mesh)
+		local scale = math.min(lerp(def.scale, rng:float()), WorldBorder.GIANT_MAX_AXIS / math.max(n[1], n[2], n[3]))
+		local size = { n[1] * scale, n[2] * scale, n[3] * scale }
+		local sector = 360 / count
+		local angle = start + (k - 1) * sector + (0.2 + rng:float() * 0.6) * sector
+		local r = WorldBorder.groundRadius(angle) + lerp(WorldBorder.GIANT_OFFSET, rng:float())
+		local x, _, z = table.unpack(polar(angle, r, 0))
+		local reach = math.min(size[1], size[3]) * 0.3
+		local ground = math.huge
+		for _, o in { { 0, 0 }, { reach, 0 }, { -reach, 0 }, { 0, reach }, { 0, -reach } } do
+			ground = math.min(ground, field.height(x + o[1], z + o[2]))
+		end
+		local turn = (rng:float() * 2 - 1) * 180
+		local p: Piece = {
+			kind = def.kind,
+			mesh = def.mesh,
+			row = "giant",
+			order = k,
+			turn = turn,
+			rotBucket = bucketOfTurn(turn),
+			scaleBucket = 0,
+			angle = angle % 360,
+			radius = r,
+			pos = { x, ground - 1 + size[2] / 2, z },
+			size = size,
+			yaw = (angle + 180 + turn) % 360,
+			scale = scale,
+			mirrored = false,
+			uploaded = MeshAssets.meshId(def.mesh) ~= nil,
+		}
+		table.insert(out, p)
+	end
+	return out
+end
+
 function WorldBorder.pieces(seed: number?): { Piece }
 	local base = seed or WorldBorder.SEED
 	local all: { Piece } = {}
@@ -733,6 +797,10 @@ function WorldBorder.build(seed: number?): Node
 	local decor: { Node } = {}
 	local counts: { [string]: number } = {}
 	for _, p in WorldBorder.pieces(seed) do
+		counts[p.kind] = (counts[p.kind] or 0) + 1
+		table.insert(decor, pieceNode(p, `{p.kind}{counts[p.kind]}`))
+	end
+	for _, p in WorldBorder.giants(seed) do
 		counts[p.kind] = (counts[p.kind] or 0) + 1
 		table.insert(decor, pieceNode(p, `{p.kind}{counts[p.kind]}`))
 	end

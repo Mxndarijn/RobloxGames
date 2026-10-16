@@ -172,7 +172,8 @@ WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 --           corner shows one post; the run that ends at the gate has none
 --           there, and this post closes it, mirroring the post beside the
 --           other gate stub. Paid for by the border share (112 -> 104).
---   border  Map.Border's share (88). The ring uses BORDER_SLOT_COUNT (80)
+--   border  Map.Border's share (88). The ring uses BORDER_SLOT_COUNT (86:
+--           80 decor pieces + 6 giant trees of border v4)
 --           since border v3 (single hedge, fence, tree, rock and hill
 --           pieces scattered in layers; 102 slots / 12 designs more until
 --           the pc-watcher perf gate read 414 > 400); #56's chunk ring
@@ -192,7 +193,7 @@ WorldLayout.MESH_SLOT_BUDGET = 400
 WorldLayout.FENCE_SLOT_BUDGET = 128
 WorldLayout.GATE_POST_SLOT_BUDGET = 8
 WorldLayout.BORDER_SLOT_BUDGET = 88
-WorldLayout.BORDER_SLOT_COUNT = 80
+WorldLayout.BORDER_SLOT_COUNT = 86
 WorldLayout.DECOR_SLOT_BUDGET = 160
 WorldLayout.RUNTIME_SLOT_ALLOWANCE = 16
 WorldLayout.MESH_SLOT_BUDGET_FALLBACK = WorldLayout.MESH_SLOT_BUDGET + 112
