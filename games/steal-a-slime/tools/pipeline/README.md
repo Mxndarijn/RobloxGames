@@ -126,6 +126,12 @@ this is re-checked right before each upload. Test it with
 `tools/pipeline/test-publish-dryrun.sh` (temp dirs, no network). Full description, handoff JSON and flags:
 `docs/release-pipeline.md`.
 
+Needs-review marker: while a sha has cloud `pass` but no Studio report, or a
+`pass` report with `frames_reviewed` not true, `publish.sh` touches an empty
+`$NEEDS_REVIEW_DIR/<40-char sha>` (default `/workspace/roblox/pipeline/needs-review`).
+It removes it once frames are reviewed, on report `fail`, or when the sha ends
+`live` / `skipped-superseded` / `no-publish` / `smoke-failed`.
+
 ## Running it on every main commit
 
 Outside the repo, `/workspace/roblox/pipeline/watch.sh` uses a `flock` and
