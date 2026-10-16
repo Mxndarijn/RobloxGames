@@ -90,14 +90,20 @@ describe("SlimeDex.rows", function()
 	end)
 end)
 
--- The SlimeDex panel built for real, sized like a full-window menu.
-local function openDex(w: number, h: number, dex: { string }): (any, Layout.Rect)
+-- The SlimeDex panel built for real, sized like a full-window menu
+-- (init.client applyLayout: frame size, then panel.layout).
+local function openDex(w: number, h: number, dex: { string }, extra: { [string]: any }?): (any, Layout.Rect)
 	local panel = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
 	panel.frame.Visible = false
 	local raw = Layout.panelFor(Layout.screen(w, h), "Dex")
 	local r = Layout.rect(math.floor(raw.x), math.floor(raw.y), math.floor(raw.w), math.floor(raw.h))
 	panel.frame.Size = UDim2.fromOffset(r.w, r.h)
-	panel.update({ dex = dex, dexTotal = TOTAL })
+	panel.layout(r)
+	local state: { [string]: any } = { dex = dex, dexTotal = TOTAL }
+	for k, v in extra or {} do
+		state[k] = v
+	end
+	panel.update(state)
 	panel.setOpen(true) -- rows are only built while open
 	panel.frame.Visible = true
 	return panel, r
@@ -162,6 +168,44 @@ describe("SlimeDex panel", function()
 		local body = Layout.panelBody(Layout.panelFor(Layout.screen(390, 844), "Dex"))
 		expect(canvas > body.h).toBe(true) -- taller than the panel: it scrolls
 	end)
+end)
+
+describe("SlimeDex.header (short panel bodies)", function()
+	it("keeps the full header (tiers at 108, list at 112 / 148 with rewards) on a tall body", function()
+		local h = SlimeDex.header(700, true)
+		expect(h.tiers and h.bar and h.rewards).toBe(true)
+		expect(h.rewardsY).toBe(108)
+		expect(h.listTop).toBe(148)
+		expect(SlimeDex.header(700, false).listTop).toBe(112)
+	end)
+	it("drops the tier grid, then rewards, then the bar until a list row fits", function()
+		local noTiers = SlimeDex.header(180, true) -- 180 - 148 < MIN_LIST
+		expect(noTiers.tiers).toBe(false)
+		expect(noTiers.rewards).toBe(true)
+		expect(noTiers.listTop).toBe(64 + 4 + 36)
+		local noRewards = SlimeDex.header(150, true) -- 150 - 104 < MIN_LIST <= 150 - 68
+		expect(noRewards.rewards).toBe(false)
+		expect(noRewards.bar).toBe(true)
+		local minimal = SlimeDex.header(131, true) -- the 844x332 body
+		expect(minimal.bar).toBe(false)
+		expect(131 - minimal.listTop >= SlimeDex.MIN_LIST).toBe(true)
+	end)
+	for _, vp in { { 390, 844 }, { 844, 390 }, { 844, 332 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } } do
+		it(`{vp[1]}x{vp[2]}: the real panel's list is at least one row tall`, function()
+			local panel, r = openDex(vp[1], vp[2], DEX, {
+				dexRewards = { { count = 10, reward = 1000, bonus = 0.02, claimed = false } },
+			})
+			local list = UiHarness.find(panel.frame, "List")
+			local bodyH = Layout.panelBody(r).h
+			local listH = list.Size.Y.Scale * bodyH + list.Size.Y.Offset
+			expect(listH >= SlimeDex.MIN_LIST).toBe(true)
+			expect(list.Position.Y.Offset + listH <= bodyH + 1e-6).toBe(true)
+			local rewards = UiHarness.find(panel.frame, "Rewards")
+			if rewards.Visible then
+				expect(rewards.Position.Y.Offset + rewards.Size.Y.Offset <= list.Position.Y.Offset).toBe(true)
+			end
+		end)
+	end
 end)
 
 describe("menu close button (Widgets.panel)", function()

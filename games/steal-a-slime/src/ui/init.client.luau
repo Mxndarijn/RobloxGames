@@ -361,6 +361,9 @@ function applyLayout()
 		frame.AnchorPoint = Vector2.zero
 		frame.Position = UDim2.fromOffset(r.x, r.y)
 		frame.Size = UDim2.fromOffset(r.w, r.h)
+		if entry.panel.layout then
+			entry.panel.layout(r)
+		end
 	end
 	refreshHint()
 end

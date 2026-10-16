@@ -16,6 +16,8 @@
 	HUD / nav / bottom cards, full-window menus with a tappable close X, and
 	text that fits (Layout text estimate, unless the descriptor is
 	TextWrapped into a tall-enough box or TextScaled).
+	`navReachable` (v27 gate N1) checks every nav button is on screen with
+	nothing drawn over it, `noNegativeSizes` that no box has w or h < 0.
 ]]
 
 local Config = require("../../src/shared/Config")
@@ -25,6 +27,7 @@ local Layout = require("../../src/ui/Layout")
 local LockHud = require("../../src/ui/LockHud")
 local Nav = require("../../src/ui/Nav")
 local ShopCatalog = require("../../src/ui/ShopCatalog")
+local SlimeDex = require("../../src/ui/SlimeDex")
 local Tutorial = require("../../src/ui/Tutorial")
 
 type Rect = Layout.Rect
@@ -69,6 +72,14 @@ LayoutAssert.GATE_VIEWPORTS = table.freeze({
 	table.freeze({ name = "1024x768", w = 1024, h = 768 }),
 	table.freeze({ name = "1366x768", w = 1366, h = 768 }),
 	table.freeze({ name = "1920x1080", w = 1920, h = 1080 }),
+})
+
+-- Landscape phone (v27 gate N1): Studio's 844x390, and 844x332 = its
+-- ScreenGui under the Roblox top bar (58 px). Both get `standard` and
+-- `navReachable`.
+LayoutAssert.LANDSCAPE_VIEWPORTS = table.freeze({
+	table.freeze({ name = "844x390", w = 844, h = 390 }),
+	table.freeze({ name = "844x332", w = 844, h = 332 }),
 })
 
 local EPS = 1e-6
@@ -516,6 +527,84 @@ function LayoutAssert.fullWindow(label: string, screen: Layout.Screen): Checker
 	return check
 end
 
+-- Boxes that draw over (or beside) the nav while no menu is open, plus the
+-- menu box itself. Banners grow down from their top, so their whole column
+-- counts.
+function LayoutAssert.overlays(screen: Layout.Screen): { { name: string, rect: Rect } }
+	local b = screen.banners
+	local out = {
+		{ name = "Hud", rect = screen.hud.rect },
+		{ name = "Toasts", rect = screen.toasts },
+		{ name = "Banners", rect = Layout.rect(b.x, b.y, b.w, screen.height - b.y) },
+		{ name = "Panel", rect = screen.panel },
+		{ name = "Carry", rect = screen.carry },
+		{ name = "Slap", rect = screen.slap },
+		{ name = "Tutorial", rect = screen.tutorial },
+		{ name = "TutorialCarrying", rect = screen.tutorialCarrying },
+	}
+	for name, r in screen.hud.items do
+		table.insert(out, { name = `Hud.{name}`, rect = r })
+	end
+	for id, hint in Hint.STEPS do
+		local place = Hint.place(screen, screen.hud, { id = id, text = hint.text, target = hint.target })
+		if place then
+			table.insert(out, { name = `Hint.{id} bubble`, rect = place.bubble })
+		end
+	end
+	return out
+end
+
+-- v27 gate N1: every nav button (toggle + Nav.ENTRIES) is fully on screen
+-- and nothing above overlaps it, so a tap on it reaches it.
+function LayoutAssert.navReachable(check: Checker)
+	local screen = check.screen
+	if #screen.navButtons ~= #Nav.ENTRIES + 1 then
+		check.fail(`nav has {#screen.navButtons} buttons (want {#Nav.ENTRIES + 1})`)
+	end
+	local overlays = LayoutAssert.overlays(screen)
+	for i, b in screen.navButtons do
+		local name = if i == 1 then "Nav.Toggle" else `Nav.{Nav.ENTRIES[i - 1].key}`
+		check.onScreen(name, b)
+		check.inside(name, b, "Nav", screen.nav)
+		check.touch(name, b)
+		for _, o in overlays do
+			check.noOverlap(name, b, o.name, o.rect)
+		end
+	end
+end
+
+-- Every box on `screen` (and the menu chrome and Dex list inside the menu
+-- box) has w >= 0 and h >= 0.
+function LayoutAssert.noNegativeSizes(check: Checker)
+	local screen = check.screen
+	local function visit(name: string, value: any)
+		if type(value) ~= "table" then
+			return
+		end
+		if type(value.w) == "number" and type(value.h) == "number" then
+			if value.w < -EPS or value.h < -EPS then
+				check.fail(`{name} {fmt(value)} has a negative size`)
+			end
+			return
+		end
+		for k, v in value do
+			visit(`{name}.{k}`, v)
+		end
+	end
+	visit("screen", screen)
+	local body = Layout.panelBody(screen.panel)
+	visit("Panel.Body", body)
+	visit("Panel.Close", Layout.panelClose(screen.panel))
+	visit("Panel.Title", Layout.panelTitle(screen.panel))
+	for _, rewards in { false, true } do
+		local header = SlimeDex.header(body.h, rewards)
+		local listH = body.h - header.listTop
+		if listH < SlimeDex.MIN_LIST then
+			check.fail(`Dex list is {listH} px in a {body.h} px body (rewards {rewards}; want >= {SlimeDex.MIN_LIST})`)
+		end
+	end
+end
+
 -- Every v18 rule for one screen; returns the checker (use `report()`).
 function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	local check = LayoutAssert.new(label, screen)
@@ -539,7 +628,9 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			check.noOverlap(`Hud.{name}`, r, `Hud.{names[j]}`, hud.items[names[j]])
 		end
 	end
-	if screen.compact and #hud.rows ~= 2 then
+	if screen.short and #hud.rows ~= 1 then
+		check.fail(`short HUD has {#hud.rows} rows (want 1)`)
+	elseif screen.compact and not screen.short and #hud.rows ~= 2 then
 		check.fail(`compact HUD has {#hud.rows} rows (want 2)`)
 	elseif not screen.compact and #hud.rows ~= 1 then
 		check.fail(`desktop HUD has {#hud.rows} rows (want 1)`)
@@ -555,8 +646,13 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 		check.touch(`NavButton{i}`, b)
 		check.inside(`NavButton{i}`, b, "Nav", screen.nav)
 	end
-	if screen.nav.w ~= Layout.navWidth(screen.navCollapsed) then
-		check.fail(`nav width {screen.nav.w} ~= Layout.navWidth({screen.navCollapsed})`)
+	if screen.nav.w ~= Layout.navWidth(screen.navCollapsed, screen.navColumns) then
+		check.fail(`nav width {screen.nav.w} ~= Layout.navWidth({screen.navCollapsed}, {screen.navColumns})`)
+	end
+	for i = 1, #screen.navButtons do
+		for j = i + 1, #screen.navButtons do
+			check.noOverlap(`NavButton{i}`, screen.navButtons[i], `NavButton{j}`, screen.navButtons[j])
+		end
 	end
 
 	-- Menu panels: full window, close X tappable (LayoutAssert.fullWindow).

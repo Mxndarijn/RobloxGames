@@ -8,10 +8,12 @@
 
 	The list (and its previews) is only rebuilt while the panel is open:
 	update() while closed just marks it dirty, and setOpen(true) rebuilds
-	if dirty or never built.
+	if dirty or never built. layout(rect) gets the panel box: on a short
+	body the header drops rows (SlimeDex.header) so the list keeps room.
 ]]
 
 local UI = script.Parent.Parent
+local Layout = require(UI.Layout)
 local Progress = require(UI.Progress)
 local SlimeDex = require(UI.SlimeDex)
 local SlimePreview = require(UI.SlimePreview)
@@ -22,7 +24,7 @@ local create = Widgets.create
 
 local Dex = {}
 
-local HEADER = 108
+local HEADER = SlimeDex.HEADER.tiers
 local ROW = 64 -- row height
 local IMAGE = 56 -- square picture / silhouette at the left of a row
 
@@ -54,7 +56,7 @@ function Dex.new(parent: Instance, ctx: any)
 		Position = UDim2.fromOffset(116, 22),
 		Parent = panel.body,
 	})
-	local _, setBar = Widgets.bar(panel.body, Theme.Accent, UDim2.new(1, 0, 0, 14), UDim2.fromOffset(0, 46))
+	local bar, setBar = Widgets.bar(panel.body, Theme.Accent, UDim2.new(1, 0, 0, 14), UDim2.fromOffset(0, 46))
 
 	local tierNames: { string } = {}
 	for i, rarity in ctx.Config.RARITIES do
@@ -106,6 +108,21 @@ function Dex.new(parent: Instance, ctx: any)
 		Size = UDim2.new(1, 0, 1, -(HEADER + 4)),
 		Parent = panel.body,
 	}, 4)
+
+	local hasRewards = false
+	-- Body height from layout(); nil = tall enough for the full header.
+	local bodyH: number? = nil
+	local function placeList()
+		local header = SlimeDex.header(bodyH or math.huge, hasRewards)
+		bar.Visible = header.bar
+		grid.Visible = header.tiers
+		rewardLine.Visible = header.rewards
+		rewardLine.Position = UDim2.fromOffset(0, header.rewardsY)
+		list.Position = UDim2.fromOffset(0, header.listTop)
+		list.Size = if bodyH and bodyH < header.listTop
+			then UDim2.fromScale(1, 0)
+			else UDim2.new(1, 0, 1, -header.listTop)
+	end
 
 	-- One row per discovered slime (preview / image + name) and one
 	-- silhouette row per tier for the rest (SlimeDex.rows). ViewportFrames
@@ -240,6 +257,12 @@ function Dex.new(parent: Instance, ctx: any)
 		rebuild()
 	end
 
+	-- Called by init.client with the panel box (Layout.panelFor).
+	function self.layout(r: Layout.Rect)
+		bodyH = Layout.panelBody(r).h
+		placeList()
+	end
+
 	-- How many times the list was rebuilt (tests).
 	function self.builds(): number
 		return builds
@@ -255,13 +278,11 @@ function Dex.new(parent: Instance, ctx: any)
 			cell.Text = if t.total then `{t.name} {t.count}/{t.total}` else `{t.name} {t.count}`
 		end
 		local rewards = Progress.dexRewards(state)
-		rewardLine.Visible = rewards.next ~= nil
+		hasRewards = rewards.next ~= nil
 		if rewards.next then
 			rewardLine.Text = if rewards.bonus then `{rewards.next}\n{rewards.bonus}` else rewards.next
 		end
-		local top = HEADER + 4 + (if rewards.next then 36 else 0)
-		list.Position = UDim2.fromOffset(0, top)
-		list.Size = UDim2.new(1, 0, 1, -top)
+		placeList()
 		local items = SlimeDex.rows(state.dex, state.dexTotal, ctx.Config)
 		pending = items
 		pendingSignature = signature(items)

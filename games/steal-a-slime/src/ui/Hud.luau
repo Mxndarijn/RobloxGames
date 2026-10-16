@@ -5,8 +5,8 @@
 	Always-visible top bar: cash, income/sec, rebirths + multiplier, pads,
 	a large lock block (LOCKED m:ss / UNLOCKED, see LockHud) + Lock button,
 	Buy-next-pad, Shop, Daily (opens the daily popup). Items are placed from
-	Layout.hud (one row on desktop, two on a phone; `layout(screen)` from
-	init.client). A stack of banners
+	Layout.hud (one row on desktop, two on a phone, one on a landscape
+	phone; `layout(screen)` from init.client). A stack of banners
 	below it (hidden ones collapse): "your slime is being stolen", Slime Rain
 	(workspace RainActive / RainEndsAt / RainNextAt attributes, else
 	State.rain; see RainTimer), the Boss Slime / Legendary+ drops (see
@@ -300,7 +300,7 @@ function Hud.new(parent: Instance, ctx: any)
 		if screen == nil then
 			return
 		end
-		local hud = Layout.hud(screen.width, compact, shown)
+		local hud = Layout.hud(screen.width, compact, shown, screen.short)
 		laidOut = hud
 		bar.Size = UDim2.fromOffset(hud.rect.w, hud.rect.h)
 		for name, item in items do

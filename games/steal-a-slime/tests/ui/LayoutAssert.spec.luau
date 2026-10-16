@@ -154,6 +154,84 @@ describe("v18 viewports", function()
 	end)
 end)
 
+-- Position of a Nav key in Nav.ENTRIES (navButtons[1] is the toggle).
+local function navIndex(key: string): number
+	for i, entry in Nav.ENTRIES do
+		if entry.key == key then
+			return i
+		end
+	end
+	error(`no nav entry {key}`)
+end
+
+describe("landscape phone (v27 gate N1)", function()
+	for _, vp in LayoutAssert.LANDSCAPE_VIEWPORTS do
+		for _, collapsed in { true, false } do
+			local label = `{vp.name} nav {if collapsed then "collapsed" else "expanded"}`
+			local s = Layout.screen(vp.w, vp.h, { navCollapsed = collapsed })
+			it(`{label}: every v18 rule`, function()
+				expect(LayoutAssert.standard(label, s).report()).toBe("")
+			end)
+			it(`{label}: every nav button on screen and clear of HUD, toasts, banners, cards, panel`, function()
+				local check = LayoutAssert.new(label, s)
+				LayoutAssert.navReachable(check)
+				expect(check.report()).toBe("")
+			end)
+			it(`{label}: no negative sizes, Dex list keeps a row`, function()
+				local check = LayoutAssert.new(label, s)
+				LayoutAssert.noNegativeSizes(check)
+				expect(check.report()).toBe("")
+			end)
+		end
+	end
+	it("844x332 (gate N1 numbers): short, 3 nav columns, Dex button on screen, panel most of the window", function()
+		local s = Layout.screen(844, 332)
+		expect(s.short).toBe(true)
+		expect(s.navColumns).toBe(3)
+		expect(#s.hud.rows).toBe(1)
+		local dex = s.navButtons[1 + navIndex("Dex")]
+		expect(dex.y + dex.h <= s.height).toBe(true)
+		expect(s.nav.y + s.nav.h <= s.height - s.bottomInset).toBe(true)
+		expect(s.panel.w >= 0.75 * s.width).toBe(true)
+		expect(s.panel.h >= 0.5 * s.height).toBe(true)
+	end)
+	it("portrait, tablet and desktop keep one nav column and their HUD rows", function()
+		for _, vp in { { 390, 844, 2 }, { 1024, 768, 2 }, { 1366, 768, 1 }, { 1920, 1080, 1 } } do
+			local s = Layout.screen(vp[1], vp[2])
+			expect(s.short).toBe(false)
+			expect(s.navColumns).toBe(1)
+			expect(#s.hud.rows).toBe(vp[3])
+		end
+	end)
+	it("the checks catch a nav button pushed off screen or covered", function()
+		local s = table.clone(Layout.screen(844, 332)) :: any
+		s.navButtons = table.clone(s.navButtons)
+		s.navButtons[1 + navIndex("Dex")] = Layout.rect(18, s.height - 20, 56, 56)
+		local check = LayoutAssert.new("probe", s)
+		LayoutAssert.navReachable(check)
+		expect(has(check.report(), "Nav.Dex")).toBe(true)
+		expect(has(check.report(), "is off the")).toBe(true)
+		local covered = table.clone(Layout.screen(844, 332)) :: any
+		covered.toasts = covered.navButtons[1 + navIndex("Dex")]
+		local check2 = LayoutAssert.new("probe", covered)
+		LayoutAssert.navReachable(check2)
+		expect(has(check2.report(), "overlaps Toasts")).toBe(true)
+	end)
+	it("noNegativeSizes flags a negative box and a Dex list with no room", function()
+		local s = table.clone(Layout.screen(844, 332)) :: any
+		s.column = Layout.rect(0, 0, 10, -5)
+		s.panel = Layout.rect(s.panel.x, s.panel.y, s.panel.w, 100)
+		local check = LayoutAssert.new("probe", s)
+		LayoutAssert.noNegativeSizes(check)
+		expect(has(check.report(), "screen.column")).toBe(true)
+		expect(has(check.report(), "Dex list is")).toBe(true)
+	end)
+	it("init.client places panels via panel.layout and the HUD uses the short row", function()
+		expect(has(read("src/ui/init.client.luau"), "entry.panel.layout(r)")).toBe(true)
+		expect(has(read("src/ui/Hud.luau"), "Layout.hud(screen.width, compact, shown, screen.short)")).toBe(true)
+	end)
+end)
+
 describe("ZIndex order", function()
 	it("Daily < Tutorial < Carry, banners / hint over the side panels", function()
 		expect(LayoutAssert.zOrder({ "Base", "Banners", "Daily", "Tutorial", "Carry" })).toBeNil()

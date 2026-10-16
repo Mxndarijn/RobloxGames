@@ -15,6 +15,9 @@
 	Target viewports (v18): 390x844 phone (scale MIN_SCALE, "compact": two
 	HUD rows, nav collapsed to an icon strip, room kept for Roblox's touch
 	controls) and 1920x1080 desktop (scale 1, one HUD row, labelled nav).
+	v27: landscape phone (844x390, 844x332 under the top bar) is "short":
+	one compact HUD row, the nav as a grid of columns and the bottom cards
+	right of it, so every nav button stays on screen (Layout.screen).
 ]]
 
 local Nav = if script then require(script.Parent.Nav) else require("./Nav")
@@ -29,7 +32,9 @@ export type Screen = {
 	width: number, -- design px
 	height: number,
 	compact: boolean,
+	short: boolean, -- landscape phone: one HUD row, nav grid (Layout.screen)
 	navCollapsed: boolean,
+	navColumns: number,
 	bottomInset: number,
 	hud: HudLayout,
 	banners: Rect,
@@ -256,15 +261,23 @@ Layout.HUD_ROWS = table.freeze({
 		table.freeze({ "Cash", "Income", "Rebirths", "Pads", "Daily" }),
 		table.freeze({ "LockStatus", "Lock", "BuyPad" }),
 	}),
+	-- Short landscape phone (Layout.screen): the compact items on one row.
+	compactOneRow = table.freeze({
+		table.freeze({ "Cash", "Income", "Rebirths", "Pads", "Daily", "LockStatus", "Lock", "BuyPad" }),
+	}),
 })
 
 -- HUD bar (top centre) and its items in screen design px. `visible[name] ==
--- false` hides an item.
-function Layout.hud(width: number, compact: boolean, visible: { [string]: boolean }?): HudLayout
+-- false` hides an item. `oneRow` puts the compact items on a single row.
+function Layout.hud(width: number, compact: boolean, visible: { [string]: boolean }?, oneRow: boolean?): HudLayout
 	local pad, gap = Layout.HUD_PADDING, Layout.HUD_GAP
 	local rows: { { string } } = {}
 	local rowWidths: { number } = {}
-	for _, row in (if compact then Layout.HUD_ROWS.compact else Layout.HUD_ROWS.wide) :: { { string } } do
+	local layoutRows = if not compact
+		then Layout.HUD_ROWS.wide
+		elseif oneRow then Layout.HUD_ROWS.compactOneRow
+		else Layout.HUD_ROWS.compact
+	for _, row in layoutRows :: { { string } } do
 		local names = {}
 		local w = 0
 		for _, name in row do
@@ -312,13 +325,30 @@ Layout.NAV = table.freeze({
 	count = #Nav.ENTRIES + 1, -- + the collapse toggle
 })
 
-function Layout.navWidth(collapsed: boolean): number
-	return if collapsed then Layout.NAV.collapsedWidth else Layout.NAV.expandedWidth
+-- Nav width for `columns` button columns (default 1).
+function Layout.navWidth(collapsed: boolean, columns: number?): number
+	local one = if collapsed then Layout.NAV.collapsedWidth else Layout.NAV.expandedWidth
+	local cols = columns or 1
+	local p = Layout.NAV.padding
+	return p * 2 + cols * (one - p * 2) + (cols - 1) * Layout.NAV.gap
 end
 
-function Layout.navHeight(count: number?): number
-	local n = count or Layout.NAV.count
+-- Nav height for `count` buttons (default all) in `columns` columns.
+function Layout.navHeight(count: number?, columns: number?): number
+	local n = math.ceil((count or Layout.NAV.count) / (columns or 1))
 	return Layout.NAV.padding * 2 + n * Layout.NAV.button + math.max(n - 1, 0) * Layout.NAV.gap
+end
+
+-- Fewest columns (1..count) whose nav fits in `height`; all columns (one
+-- row) when nothing fits.
+function Layout.navColumns(height: number, count: number?): number
+	local n = count or Layout.NAV.count
+	for cols = 1, n do
+		if Layout.navHeight(n, cols) <= height then
+			return cols
+		end
+	end
+	return n
 end
 
 -- Collapsed on phones / small windows, labelled on desktop.
@@ -328,19 +358,23 @@ end
 
 -- The nav: left edge, centred in the band between `top` and `bottom`, never
 -- above `top`.
-function Layout.navRect(collapsed: boolean, top: number, bottom: number, count: number?): Rect
-	local h = Layout.navHeight(count)
+function Layout.navRect(collapsed: boolean, top: number, bottom: number, count: number?, columns: number?): Rect
+	local h = Layout.navHeight(count, columns)
 	local y = math.max(top, top + (bottom - top - h) / 2)
-	return Layout.rect(Layout.NAV.left, y, Layout.navWidth(collapsed), h)
+	return Layout.rect(Layout.NAV.left, y, Layout.navWidth(collapsed, columns), h)
 end
 
--- Button boxes inside a nav rect ([1] = toggle).
-function Layout.navButtons(nav: Rect, count: number?): { Rect }
+-- Button boxes inside a nav rect ([1] = toggle), filled column by column.
+function Layout.navButtons(nav: Rect, count: number?, columns: number?): { Rect }
 	local out = {}
-	local p = Layout.NAV.padding
-	for i = 1, count or Layout.NAV.count do
-		local y = nav.y + p + (i - 1) * (Layout.NAV.button + Layout.NAV.gap)
-		table.insert(out, Layout.rect(nav.x + p, y, nav.w - p * 2, Layout.NAV.button))
+	local p, gap, size = Layout.NAV.padding, Layout.NAV.gap, Layout.NAV.button
+	local n = count or Layout.NAV.count
+	local cols = columns or 1
+	local perColumn = math.ceil(n / cols)
+	local w = (nav.w - p * 2 - (cols - 1) * gap) / cols
+	for i = 1, n do
+		local col, row = (i - 1) // perColumn, (i - 1) % perColumn
+		table.insert(out, Layout.rect(nav.x + p + col * (w + gap), nav.y + p + row * (size + gap), w, size))
 	end
 	return out
 end
@@ -425,7 +459,32 @@ export type ScreenOptions = {
 	hudVisible: { [string]: boolean }?,
 }
 
+-- Bottom cards centred on the screen inside `row` (x / w only): carry on the
+-- bottom line, tutorial above the inset, and above the carry card while
+-- carrying, or (`beside`) the carry card at the row's left and the
+-- tutorial next to it.
+local function bottomCards(row: Rect, W: number, H: number, inset: number, beside: boolean?)
+	local gap = Layout.GAP
+	local carryX, carryW = centredIn(row, W, Layout.CARRY.w)
+	local carry = Layout.rect(carryX, H - inset - Layout.CARRY.h, carryW, Layout.CARRY.h)
+	local tutX, tutW = centredIn(row, W, Layout.TUTORIAL.w)
+	local tutH = Layout.tutorialHeight(tutW)
+	local tutorial = Layout.rect(tutX, H - inset - tutH, tutW, tutH)
+	local tutorialCarrying = Layout.rect(tutX, carry.y - gap - tutH, tutW, tutH)
+	if beside then
+		carry = Layout.rect(row.x, carry.y, carryW, carry.h)
+		local besideW = math.max(math.min(Layout.TUTORIAL.w, row.w - carryW - gap), 0)
+		local besideH = Layout.tutorialHeight(besideW)
+		tutorialCarrying = Layout.rect(carry.x + carryW + gap, H - inset - besideH, besideW, besideH)
+	end
+	local slapW = math.min(Layout.SLAP.w, carry.w)
+	local slap = Layout.rect(carry.x + (carry.w - slapW) / 2, carry.y + carry.h - Layout.SLAP.h, slapW, Layout.SLAP.h)
+	return carry, slap, tutorial, tutorialCarrying
+end
+
 -- Every top-level box for a ScreenGui of viewportW x viewportH (see header).
+-- One pass in priority order: HUD, nav, bottom cards, then the menu column
+-- and overlays in what is left, so nothing has to be moved afterwards.
 function Layout.screen(viewportW: number, viewportH: number, options: ScreenOptions?): Screen
 	local opts: ScreenOptions = options or {}
 	local scale = Layout.uiScale(viewportW, viewportH)
@@ -437,43 +496,66 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local m, gap = Layout.MARGIN, Layout.GAP
 	local inset = Layout.bottomInset(compact)
 
+	-- 1. HUD. "Short" (landscape phone): one nav column won't fit between a
+	-- two-row compact HUD and the bottom inset, so the HUD takes one row when
+	-- that row fits the width.
 	local hud = Layout.hud(W, compact, opts.hudVisible)
+	local short = false
+	if compact and hud.rect.y + hud.rect.h + gap + Layout.navHeight() > H - inset then
+		local oneRow = Layout.hud(W, compact, opts.hudVisible, true)
+		if oneRow.rect.w <= W - m * 2 then
+			short, hud = true, oneRow
+		end
+	end
 	local hudBottom = hud.rect.y + hud.rect.h
 	local top = hudBottom + gap
+	-- Short and too low to stack the tutorial over the carry card: they go
+	-- side by side, which leaves no width for a labelled nav grid.
+	local beside = short and H - inset - top < Layout.CARRY.h + gap + Layout.tutorialHeight(Layout.TUTORIAL.w)
+	if beside then
+		collapsed = true
+	end
 
-	-- Banners and toasts draw above menus, so both keep clear of the menu
+	-- 2. Nav: centred between the HUD and the highest bottom card. Short: as
+	-- many columns as it takes to fit from the HUD down to the bottom inset;
+	-- the bottom cards then sit right of it (step 3).
+	local fullRow = Layout.rect(m, 0, W - m * 2, 0)
+	local _, _, tutorial0, tutorialCarrying0 = bottomCards(fullRow, W, H, inset)
+	local columns = if short then Layout.navColumns(H - inset - top) else 1
+	local navBottom = if short then H - inset else math.min(tutorial0.y, tutorialCarrying0.y) - gap
+	local nav = Layout.navRect(collapsed, top, navBottom, nil, columns)
+	local columnX = nav.x + nav.w + gap
+	local columnW = W - m - columnX
+
+	-- 3. Bottom cards. Full screen width (the nav ends above them), so a
+	-- phone card doesn't shrink when the nav is expanded; short: right of the
+	-- nav, which runs down beside them.
+	local row = if short then Layout.rect(columnX, 0, math.max(columnW, 0), 0) else fullRow
+	local carry, slap, tutorial, tutorialCarrying = bottomCards(row, W, H, inset, beside)
+
+	-- 4. The column (right of the nav) above the bottom cards; menus use the
+	-- full-window box, which runs on down to the bottom inset.
+	local column = Layout.rect(columnX, top, columnW, math.max(math.min(tutorial.y, carry.y) - gap - top, 0))
+	local panel = Layout.fullWindowRect(columnX, top, W, H, inset)
+
+	-- 5. Overlays. Banners and toasts draw above menus, so both keep clear of the menu
 	-- close X (top-right of the panel; its x / y don't depend on the nav).
 	-- Banners may cover a menu title, but stay centred left of the X column;
 	-- toasts stack under the X row.
 	local close = Layout.panelClose(Layout.fullWindowRect(0, top, W, H, inset))
-	local bannerW = math.min(Layout.BANNER_WIDTH, W - m * 2, 2 * (close.x - gap) - W)
-	local banners = Layout.rect((W - bannerW) / 2, hudBottom + 8, bannerW, 0)
+	-- Short: the nav runs up to the HUD, so banners also keep right of it.
+	local bannerX, bannerW
+	if short then
+		local span = Layout.rect(columnX, 0, math.max(close.x - gap - columnX, 0), 0)
+		bannerX, bannerW = centredIn(span, W, Layout.BANNER_WIDTH)
+	else
+		bannerW = math.min(Layout.BANNER_WIDTH, W - m * 2, 2 * (close.x - gap) - W)
+		bannerX = (W - bannerW) / 2
+	end
+	local banners = Layout.rect(bannerX, hudBottom + 8, bannerW, 0)
 	local toastW = math.min(Layout.TOAST_WIDTH, W - m * 2)
 	local toastY = close.y + close.h + gap
 	local toasts = Layout.rect(W - m - toastW, toastY, toastW, math.max(math.min(300, H - m - toastY), 0))
-
-	-- Bottom cards: carry on the bottom line, tutorial above it while
-	-- carrying. Full screen width (the nav ends above them), so a phone
-	-- card doesn't shrink when the nav is expanded.
-	local row = Layout.rect(m, 0, W - m * 2, 0)
-	local carryX, carryW = centredIn(row, W, Layout.CARRY.w)
-	local carry = Layout.rect(carryX, H - inset - Layout.CARRY.h, carryW, Layout.CARRY.h)
-	local slapX, slapW = centredIn(row, W, Layout.SLAP.w)
-	local slap = Layout.rect(slapX, carry.y + carry.h - Layout.SLAP.h, slapW, Layout.SLAP.h)
-	local tutX, tutW = centredIn(row, W, Layout.TUTORIAL.w)
-	local tutH = Layout.tutorialHeight(tutW)
-	local tutorial = Layout.rect(tutX, H - inset - tutH, tutW, tutH)
-	local tutorialCarrying = Layout.rect(tutX, carry.y - gap - tutH, tutW, tutH)
-
-	-- Nav: centred between the HUD and the highest bottom card.
-	local nav = Layout.navRect(collapsed, top, math.min(tutorial.y, tutorialCarrying.y) - gap)
-	local columnX = nav.x + nav.w + gap
-	local columnW = W - m - columnX
-
-	-- The column (right of the nav) above the bottom cards; menus use the
-	-- full-window box, which runs on down to the bottom inset.
-	local column = Layout.rect(columnX, top, columnW, math.min(tutorial.y, carry.y) - gap - top)
-	local panel = Layout.fullWindowRect(columnX, top, W, H, inset)
 
 	local dailyW = math.min(Layout.DAILY.w, W - m * 2)
 	local dailyH = math.min(Layout.DAILY.h, H - m * 2)
@@ -486,13 +568,15 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		width = W,
 		height = H,
 		compact = compact,
+		short = short,
 		navCollapsed = collapsed,
+		navColumns = columns,
 		bottomInset = inset,
 		hud = hud,
 		banners = banners,
 		toasts = toasts,
 		nav = nav,
-		navButtons = Layout.navButtons(nav),
+		navButtons = Layout.navButtons(nav, nil, columns),
 		column = column,
 		panel = panel,
 		carry = carry,
