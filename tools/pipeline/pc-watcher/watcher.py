@@ -263,7 +263,7 @@ def viewport_error(vp, target):
 
 def overall_status(steps):
     # B6: the slide_walk shot is a HARD assertion even though the rest of "shots" is soft
-    if (steps.get("shots", {}).get("detail") or {}).get("slide_walk_failed"):
+    if (steps.get("shots", {}).get("detail") or {}).get("slide_walk_failed") or (steps.get("shots", {}).get("detail") or {}).get("fountain_walk_failed"):
         return "fail"
     if (steps.get("shots", {}).get("detail") or {}).get("mesh_slots_failed"):
         return "fail"
@@ -1484,10 +1484,19 @@ def step_shots(run):
                     res["growth"] = gw
                     if gw.get("found") and gw.get("pos"):
                         # aim the camera at the real slime model
-                        eye, at = shot_camera_from({"pos": gw["pos"], "size": [4, 4, 4], "look": (res["target"].get("front") or [0, 0, 1])},
-                                                   shot.get("from", "look"), None, shot.get("dist"), shot.get("height"))
-                        lp = gw.get("label_pos")  # the real GrowthLabel position: aim at it so slime and label both fit
-                        at = (at[0], lp[1] - 0.5, at[2]) if lp else (at[0], at[1] + 2.0, at[2])
+                        # frame bottom (slime base) to top (real GrowthLabel) from outside the grown slime:
+                        # aim at the vertical midpoint, back off along the pad front far enough for the whole span
+                        px, py, pz = gw["pos"]
+                        lp = gw.get("label_pos")
+                        top = lp[1] + 0.8 if lp else py + 7.0
+                        mid = (py + top) / 2.0
+                        span = max(top - py, 4.0)
+                        f = res["target"].get("front") or [0, 0, 1]
+                        fl = math.hypot(f[0], f[2]) or 1.0
+                        back = max(float(shot.get("dist") or 0), span * 1.9)  # ~60 deg vertical FOV, 1.9x span fits
+                        eye = (px + f[0] / fl * back, mid + 1.0, pz + f[2] / fl * back)
+                        at = (px, mid, pz)
+                        res["framing"] = {"span": round(span, 2), "back": round(back, 2)}
                         res["aim"] = run.need_luau("shot_aim", "Client", timeout=25, eye=eye, at=at)
                         time.sleep(1.0)  # BillboardGui replication to the Client
                     else:
@@ -1526,6 +1535,12 @@ def step_shots(run):
                     ms["ok"] = 0 < (ms.get("mesh_slots") or 0) <= ms["max"]
                     if not ms["ok"]:
                         run.note("shot %s: mesh slots %s not in 1..%s" % (sid, ms.get("mesh_slots"), ms["max"]))
+                if shot.get("fountain_walk"):
+                    # C10: free balls dropped over the whole fountain top (eave, dome, basin) must never sink into it
+                    res["fountain_walk"] = run.need_luau("fountain_walk", "Server", timeout=60)
+                    if not res["fountain_walk"].get("ok"):
+                        run.note("shot %s: sank into the fountain top: %s" % (
+                            sid, str(res["fountain_walk"].get("violations") or res["fountain_walk"].get("error"))[:200]))
                 if shot.get("anim") and (res.get("target") or {}).get("path"):
                     # optional uploaded-animation proof: the Client plays it on the pad slime's Animator, waits `wait` s
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
@@ -1560,6 +1575,8 @@ def step_shots(run):
         except Exception:
             pass
     done = len([r for r in results if (r.get("frame") or {}).get("file")])
+    if any(r.get("fountain_walk") and not r["fountain_walk"].get("ok") for r in results):
+        return "fail", {"captured": done, "total": len(shots), "shots": results, "fountain_walk_failed": True}
     pressed = [r for r in results if r.get("press")]
     if any(r["press"]["status"] != "pass" for r in pressed):
         return "warn", {"captured": done, "total": len(shots), "shots": results, "press_failed": True}

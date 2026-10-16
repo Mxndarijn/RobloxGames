@@ -236,7 +236,7 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "weather_set": {"WEATHER", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(),
+        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "weather_set": {"WEATHER", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "fountain_walk": set(),
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
         "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"},
     }
@@ -285,6 +285,14 @@ def t_files():
     check("a failing mesh_slots_max shot fails the run (hard)",
           'mesh_slots_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
           and watcher.overall_status({"shots": {"status": "pass", "detail": {"mesh_slots_failed": True}}}) == "fail")
+    fwalks = [s for s in shots if s.get("fountain_walk")]
+    check("a fountain_walk shot proves nobody sinks into the fountain top (C10)",
+          len(fwalks) == 1 and fwalks[0].get("target") == "FountainMesh", fwalks)
+    fw = open(os.path.join(HERE, "luau", "fountain_walk.luau"), encoding="utf-8").read()
+    check("fountain_walk is dense (polar grid, resting + rolling, character-sized balls, no self-collision)",
+          all(x in fw for x in ("ri * 0.5", "AssemblyLinearVelocity", "{ 2, 4 }", "CollisionGroupSetCollidable", "TopCollider")), None)
+    check("a failing fountain_walk fails the run (hard), not just warns",
+          '"fountain_walk_failed": True}' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read())
     weathers = {s["weather"]: s for s in shots if s.get("weather")}
     check("weather shots cover Rain, Snow and Starfall with a short wait",
           set(weathers) == {"Rain", "Snow", "Starfall"} and all(0 < float(s.get("wait", 0)) <= 4 for s in weathers.values()), sorted(weathers))
