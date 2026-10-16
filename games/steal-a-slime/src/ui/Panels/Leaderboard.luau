@@ -15,8 +15,10 @@ local create = Widgets.create
 
 local Leaderboard = {}
 
+local MEDALS = { "🥇", "🥈", "🥉" }
+
 function Leaderboard.new(parent: Instance, _ctx: any)
-	local panel = Widgets.panel(parent, "LeaderboardPanel", "Top Earners")
+	local panel = Widgets.panel(parent, "LeaderboardPanel", "Top Earners", "🏆", Color3.fromRGB(210, 170, 40))
 
 	local empty = Widgets.label({
 		Name = "Empty",
@@ -57,7 +59,7 @@ function Leaderboard.new(parent: Instance, _ctx: any)
 		return { instance = frame, rank = rank, name = name, value = value }
 	end, function(row: any, entry: any)
 		local isMe = Players.LocalPlayer and entry.userId == Players.LocalPlayer.UserId
-		row.rank.Text = `#{entry.rank}`
+		row.rank.Text = MEDALS[entry.rank] or `#{entry.rank}`
 		row.rank.TextColor3 = if entry.rank <= 3 then Theme.Gold else Theme.Text
 		row.name.Text = tostring(entry.name)
 		row.value.Text = Format.formatCash(entry.value)

@@ -21,7 +21,8 @@ local Format = if script then require(script.Parent.Format) else require("./Form
 export type Item = {
 	id: string,
 	name: string,
-	description: string,
+	icon: string, -- emoji on the item's round badge (v28: icons over text)
+	description: string, -- short: at most two lines on a phone
 	action: string,
 	args: { any },
 }
@@ -31,6 +32,7 @@ export type ItemStatus = { price: number?, level: number?, maxLevel: number?, ow
 
 export type ItemView = {
 	item: Item,
+	icon: string,
 	description: string,
 	price: number?,
 	available: boolean, -- the server knows this action
@@ -46,25 +48,49 @@ ShopCatalog.ITEMS = table.freeze({
 	table.freeze({
 		id = "Lock",
 		name = "Lock base",
-		description = "Locks your plot now. Thieves can't grab your slimes until it runs out.",
+		icon = "🔒",
+		description = "Blocks thieves.",
 		action = "Lock",
 		args = {},
 	}),
 	table.freeze({
 		id = "LockUpgrade",
 		name = "Longer locks",
-		description = "Permanent: every lock you buy lasts longer.",
+		icon = "⏱️",
+		description = "Every lock lasts longer.",
 		action = "BuyLockUpgrade", -- TODO(CONTRACT): expected action name
 		args = {},
 	}),
 	table.freeze({
 		id = "SpeedCoil",
 		name = "Speed Coil",
-		description = "Walk faster, also while carrying a slime.",
+		icon = "⚡",
+		description = "Run faster, also while carrying",
 		action = "BuySpeedCoil", -- TODO(CONTRACT): expected action name
 		args = {},
 	}),
 } :: { Item })
+
+-- Badge emoji per v13 upgrade id (Config.UPGRADES); unknown ids get ⬆️.
+ShopCatalog.UPGRADE_ICONS = table.freeze({
+	Income = "🍪",
+	CarrySpeed = "💪",
+	OfflineCap = "🌙",
+	Luck = "🍀",
+})
+
+-- v28 short row text per upgrade id: the leading number of `text` (e.g.
+-- "+4%") + this phrase. Unknown ids (or no number) keep the server text.
+ShopCatalog.UPGRADE_SHORT = table.freeze({
+	Luck = "rarity-up chance",
+})
+
+-- The one-line description of a v13 upgrade row.
+function ShopCatalog.upgradeText(id: string, text: string): string
+	local phrase = (ShopCatalog.UPGRADE_SHORT :: any)[id]
+	local amount = string.match(text, "^([%+%-]%d+%.?%d*%%?)")
+	return if phrase and amount then `{amount} {phrase}` else text
+end
 
 function ShopCatalog.find(id: string): Item?
 	for _, item in ShopCatalog.ITEMS do
@@ -97,7 +123,7 @@ function ShopCatalog.speedCoilText(config: any): string?
 	if type(base) ~= "number" or type(coil) ~= "number" then
 		return nil
 	end
-	return `Walk speed {base} → {coil} (also helps while carrying).`
+	return `Speed {base} → {coil}, also while carrying`
 end
 
 -- `config` (optional, Shared Config) fills in numbers for some descriptions.
@@ -114,7 +140,7 @@ function ShopCatalog.view(item: Item, state: any, actions: { [string]: any }, co
 
 	local description = item.description
 	if item.id == "Lock" and type(state) == "table" and type(state.lockDuration) == "number" then
-		description = `{description} +{math.floor(state.lockDuration)}s per buy.`
+		description = `Blocks thieves +{math.floor(state.lockDuration)}s.`
 	elseif item.id == "SpeedCoil" then
 		description = ShopCatalog.speedCoilText(config) or description
 	end
@@ -132,6 +158,7 @@ function ShopCatalog.view(item: Item, state: any, actions: { [string]: any }, co
 
 	return {
 		item = item,
+		icon = item.icon,
 		description = description,
 		price = price,
 		available = available,
@@ -146,7 +173,7 @@ end
 
 -- v13 upgrades (CONTRACT §8.1 / §8.2): one row per `State.upgrades` entry,
 -- bought with Request("BuyUpgrade", id). Empty when the field is missing.
--- Locked rows say which rebirth unlocks them.
+-- Locked rows say which rebirth unlocks them (on the button).
 function ShopCatalog.upgradeViews(state: any, actions: { [string]: any }): { ItemView }
 	local out = {}
 	local upgrades = if type(state) == "table" then state.upgrades else nil
@@ -174,18 +201,19 @@ function ShopCatalog.upgradeViews(state: any, actions: { [string]: any }): { Ite
 			else
 				buttonText = "Buy"
 			end
-			local text = if type(u.text) == "string" then u.text else ""
+			local text = ShopCatalog.upgradeText(u.id, if type(u.text) == "string" then u.text else "")
+			local icon = (ShopCatalog.UPGRADE_ICONS :: any)[u.id] or "⬆️"
 			table.insert(out, {
 				item = {
 					id = `Upgrade_{u.id}`,
 					name = if type(u.name) == "string" then u.name else u.id,
+					icon = icon,
 					description = text,
 					action = "BuyUpgrade",
 					args = { u.id },
 				},
-				description = if unlocked
-					then `Permanent: {text} per level.`
-					else `Unlocks at {u.requires or "?"} rebirths: {text} per level.`,
+				icon = icon,
+				description = text,
 				price = price,
 				available = available,
 				maxed = maxed,

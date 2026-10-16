@@ -226,6 +226,59 @@ function SlimePreview.mount(viewport: Instance, colorRgb: { number }, opts: Opts
 	return true
 end
 
+-- Puts an already built slime Model (Visuals.ModelFactory: pivot at the
+-- bottom centre, front = -Z) into `viewport`, framed from the front-above.
+-- Every part is anchored (a viewport runs no physics) and lights /
+-- sparkles are dropped; `locked` paints it as the dark silhouette. Returns
+-- false on failure (caller falls back to SlimePreview.mount).
+function SlimePreview.mountModel(viewport: Instance, model: Model, opts: Opts?): boolean
+	local ok, err = pcall(function()
+		local locked = opts ~= nil and opts.locked == true
+		for _, inst in model:GetDescendants() do
+			if inst:IsA("BasePart") then
+				local part = inst :: BasePart
+				part.Anchored = true
+				if locked then
+					part.Color = SlimePreview.SILHOUETTE
+					part.Material = Enum.Material.SmoothPlastic
+					part.Reflectance = 0
+				end
+			elseif inst:IsA("Light") or inst:IsA("Sparkles") or inst:IsA("ParticleEmitter") then
+				inst:Destroy()
+			end
+		end
+		local vf = viewport :: ViewportFrame
+		local world = worldFor(vf)
+		world:ClearAllChildren()
+		local box, size = model:GetBoundingBox()
+		local extent = math.max(size.X, size.Y, size.Z, 0.5)
+		local cam = vf:FindFirstChild("PreviewCamera") :: Camera?
+		if cam == nil then
+			local created = Instance.new("Camera")
+			created.Name = "PreviewCamera"
+			created.Parent = vf
+			cam = created
+		end
+		local camera = cam :: Camera
+		camera.FieldOfView = 40
+		-- Distance that fits `extent` in a 40 degree view, plus a margin.
+		local distance = extent / (2 * math.tan(math.rad(20))) * 1.15
+		local centre = box.Position
+		camera.CFrame = CFrame.lookAt(centre + Vector3.new(0, extent * 0.25, -distance), centre)
+		vf.CurrentCamera = camera
+		vf.Ambient = Color3.fromRGB(190, 190, 205)
+		vf.LightColor = Color3.fromRGB(255, 255, 255)
+		vf.LightDirection = Vector3.new(0.4, -1, 0.6)
+		model.Parent = world
+	end)
+	if not ok then
+		warn(`[SlimePreview] model mount failed: {err}`)
+		SlimePreview.unmount(viewport)
+		return false
+	end
+	return true
+end
+
 -- Drops the model, WorldModel and camera from `viewport`.
 function SlimePreview.unmount(viewport: Instance)
 	for _, child in viewport:GetChildren() do

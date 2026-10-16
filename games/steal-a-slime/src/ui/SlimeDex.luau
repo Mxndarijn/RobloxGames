@@ -9,8 +9,10 @@
 	mutation (or rarity) colour. Undiscovered entries are not listed one by
 	one (dexTotal is 720 keys, mostly locked: too many rows on a phone);
 	each tier gets one silhouette row instead (dark fill, "?", no names).
-	Panels/Dex renders a SlimePreview ViewportFrame per row from `color` and
-	`mutation` (the mutation's finish, e.g. the Eclipse corona).
+	Panels/Dex renders a ViewportFrame per row: the real in-world slime
+	model (Visuals.ModelFactory, from SlimeDex.genome) when the client has
+	it, else the SlimePreview blob from `color` and `mutation`. Uploaded
+	thumbnails still win: see v28-NEEDS-UPLOAD.md for the files to make.
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
@@ -51,6 +53,33 @@ function SlimeDex.image(key: string, images: { [string]: string }?): string?
 	local map = images or SlimeDex.IMAGES
 	local tierMutation = string.match(key, "^(%d+:[^:]+)")
 	return map[key] or (if tierMutation then map[tierMutation] else nil)
+end
+
+-- A display genome for a dex row (Genome.Slime shape, for
+-- Visuals.ModelFactory.build): the dexKey's tier, mutation, pattern and eyes
+-- on a size-1 body in the row colour, smiling. Locked rows get the tier's
+-- plain look (the panel paints it as a silhouette). nil for a bad key.
+function SlimeDex.genome(row: Row): { [string]: any }?
+	local tier, mutation, pattern, eyes = string.match(row.key, "^(%d+):([^:]+):([^:]+):([^:]+)$")
+	if row.locked then
+		tier = string.match(row.key, "^locked:(%d+)$")
+		mutation, pattern, eyes = "None", "Plain", "Round"
+	end
+	local t = tonumber(tier)
+	if t == nil then
+		return nil
+	end
+	return {
+		id = `Dex_{row.key}`,
+		name = "",
+		tier = t,
+		color = { row.color[1], row.color[2], row.color[3] },
+		size = 1,
+		pattern = pattern,
+		eyes = eyes,
+		mouth = "Smile",
+		mutation = mutation,
+	}
 end
 
 -- Discovered rows of each tier (sorted by key), then that tier's silhouette
@@ -113,8 +142,8 @@ end
 -- (40), the bar (to 64), the per-rarity grid (to 108), then the rewards
 -- line (36) when there is one.
 SlimeDex.HEADER = table.freeze({ count = 40, bar = 64, tiers = 108, rewards = 36, gap = 4 })
--- The list keeps at least one 64 px row + scroll padding.
-SlimeDex.MIN_LIST = 64 + 12
+-- The list keeps at least one 72 px row (Panels/Dex) + scroll padding.
+SlimeDex.MIN_LIST = 72 + 12
 
 export type Header = { bar: boolean, tiers: boolean, rewards: boolean, rewardsY: number, listTop: number }
 

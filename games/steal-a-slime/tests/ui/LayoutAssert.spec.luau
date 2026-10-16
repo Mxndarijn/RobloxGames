@@ -58,11 +58,14 @@ describe("v18 layout rules", function()
 	end
 end)
 
-describe("full-window menus at the five gate viewports", function()
+describe("menus at the five gate viewports (v28: full-window backdrop, content-sized cards)", function()
 	for _, entry in LayoutAssert.screens(LayoutAssert.GATE_VIEWPORTS) do
-		it(`{entry.label}: full-window rect, close X tappable and inside, clear of HUD / nav`, function()
-			expect(LayoutAssert.fullWindow(entry.label, entry.screen).report()).toBe("")
-		end)
+		it(
+			`{entry.label}: full-window backdrop, centred cards, close X tappable and inside, clear of HUD / nav`,
+			function()
+				expect(LayoutAssert.fullWindow(entry.label, entry.screen).report()).toBe("")
+			end
+		)
 	end
 	it("the checker rejects a side panel and a small / misplaced close button", function()
 		local s = Layout.screen(390, 844)
@@ -70,6 +73,9 @@ describe("full-window menus at the five gate viewports", function()
 		side.panel = Layout.rect(s.panel.x, s.panel.y + 40, 300, 300)
 		local report = LayoutAssert.fullWindow("side", side).report()
 		expect(has(report, "is not the full-window rect")).toBe(true)
+		local wide = table.clone(s) :: any
+		wide.menuW = s.menuW - 40
+		expect(has(LayoutAssert.fullWindow("narrow card", wide).report(), "content-sized card")).toBe(true)
 		local check = LayoutAssert.new("probe", s)
 		check.touch("Close", Layout.rect(0, 0, 40, 40))
 		expect(#check.problems).toBe(1)
@@ -77,7 +83,31 @@ describe("full-window menus at the five gate viewports", function()
 	it("measures the titles the panels really show", function()
 		for key, title in LayoutAssert.PANEL_TITLES do
 			local file = if key == "Leaders" then "Leaderboard" else key
-			expect(has(read(`src/ui/Panels/{file}.luau`), `Widgets.panel(parent, "{file}Panel", "{title}")`)).toBe(true)
+			expect(has(read(`src/ui/Panels/{file}.luau`), `Widgets.panel(parent, "{file}Panel", "{title}", `)).toBe(
+				true
+			)
+		end
+	end)
+	it("mirrors the panels' row geometry (Shop, Rebirth, Guide)", function()
+		local shop = read("src/ui/Panels/Shop.luau")
+		expect(has(shop, "Shop.BADGE = 48")).toBe(true)
+		expect(has(shop, "Shop.BUY_W = 110")).toBe(true)
+		expect(has(shop, "Shop.DESC_H = 32")).toBe(true)
+		local guide = read("src/ui/Panels/Guide.luau")
+		expect(has(guide, "Guide.TIP_H = 44")).toBe(true)
+		local rebirth = read("src/ui/Panels/Rebirth.luau")
+		expect(has(rebirth, "gives = { y = 120, h = 40 }")).toBe(true)
+		expect(has(rebirth, "button = { y = 196, h = Layout.BUTTON }")).toBe(true)
+		expect(has(rebirth, "note = { y = 258, h = 18 }")).toBe(true)
+	end)
+	it("every card fits its content at the tallest gate viewport (no scroll on desktop)", function()
+		local s = Layout.screen(1920, 1080)
+		local chrome = Layout.PANEL_CHROME.header + Layout.PANEL_CHROME.pad
+		expect(Layout.panelFor(s, "Rebirth").h >= chrome + 276).toBe(true) -- Rebirth.CONTENT_H
+		expect(Layout.panelFor(s, "Guide").h >= chrome + 96 + 8 + 3 * (44 + 8)).toBe(true) -- Guide.CONTENT_H
+		for _, key in LayoutAssert.menuKeys() do
+			local r = Layout.panelFor(s, key)
+			expect(r.w < s.panel.w and r.h < s.panel.h).toBe(true) -- smaller than the window
 		end
 	end)
 	it("Layout.panelClose is a MIN_TOUCH_DESIGN square in the top-right corner", function()
@@ -114,16 +144,19 @@ describe("v18 viewports", function()
 			expect(s.hud.items[name]).toBeTruthy()
 		end
 	end)
-	it("desktop menus fill the window beside the nav, under the HUD", function()
+	it("desktop: the backdrop fills the window beside the nav, cards are centred in it", function()
 		for _, collapsed in { true, false } do
 			local s = Layout.screen(1920, 1080, { navCollapsed = collapsed })
+			local back = s.panel
+			expect(back.x).toBe(s.nav.x + s.nav.w + Layout.GAP) -- right next to the nav
+			expect(back.y).toBe(s.hud.rect.y + s.hud.rect.h + Layout.GAP)
+			expect(back.x + back.w).toBe(s.width - Layout.MARGIN)
+			expect(back.y + back.h).toBe(s.height - s.bottomInset)
 			for _, entry in Nav.ENTRIES do
 				local r = Layout.panelFor(s, entry.key)
-				expect(r.x).toBe(s.nav.x + s.nav.w + Layout.GAP) -- right next to the nav
-				expect(r.y).toBe(s.hud.rect.y + s.hud.rect.h + Layout.GAP)
-				expect(r.x + r.w).toBe(s.width - Layout.MARGIN)
-				expect(r.y + r.h).toBe(s.height - s.bottomInset)
-				expect(r.w * r.h > 0.6 * s.width * s.height).toBe(true) -- most of the screen
+				expect(r.w).toBe(Layout.MENU_WIDTH)
+				expect(r.h).toBe(Layout.menuHeight(entry.key))
+				expect(r.w * r.h < 0.3 * s.width * s.height).toBe(true) -- a card, not the whole screen
 			end
 		end
 	end)
@@ -133,7 +166,7 @@ describe("v18 viewports", function()
 		local a, b = Layout.panelFor(collapsed, "Shop"), Layout.panelFor(expanded, "Shop")
 		expect(a.w).toBe(collapsed.column.w)
 		expect(b.x - a.x).toBe(Layout.navWidth(false) - Layout.navWidth(true))
-		expect(a.h > collapsed.column.h).toBe(true) -- runs on under the bottom cards
+		expect(collapsed.panel.h > collapsed.column.h).toBe(true) -- the backdrop runs on under the bottom cards
 		expect(Layout.drawsAbove("Carry", "Base") and Layout.drawsAbove("Tutorial", "Base")).toBe(true)
 	end)
 	it("hint bubbles sit below the HUD (top-bar targets) or right of the nav (menu targets)", function()
@@ -346,10 +379,11 @@ describe("phone nav + panels", function()
 		expect(has(body, "screen.compact and not screen.navCollapsed")).toBe(true)
 		expect(has(body, "navChoice = true")).toBe(true)
 	end)
-	it("Shop rows fit three description lines and a touch-size Buy", function()
+	it("Shop rows (v28): compact 68 px rows, two description lines, a touch-size Buy", function()
 		local src = read("src/ui/Panels/Shop.luau")
-		expect(has(src, "Size = UDim2.new(1, -10, 0, 84)")).toBe(true)
-		expect(has(src, "Size = UDim2.new(1, -140, 0, 50)")).toBe(true)
-		expect(has(src, "Size = UDim2.fromOffset(110, Layout.BUTTON)")).toBe(true)
+		expect(has(src, "Shop.ROW = 68")).toBe(true)
+		expect(has(src, "Shop.DESC_H = 32")).toBe(true)
+		expect(has(src, "Size = UDim2.fromOffset(Shop.BUY_W, Layout.BUTTON)")).toBe(true)
+		expect(has(src, "6 + Shop.NAME_H + 2")).toBe(true) -- name 6..28, description 30..62 in a 68 px row
 	end)
 end)

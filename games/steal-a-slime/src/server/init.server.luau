@@ -438,14 +438,9 @@ WorldView.addClaimPrompts(function(player: Player, index: number)
 	refreshView(now())
 end)
 
--- ShopStand prompts: same as the HUD Shop panel's Request actions.
-WorldProps.addShopPrompts(function(player: Player, action: string)
-	local res = Actions.handle(world, player.UserId, action, {}, now(), ctx)
-	if not res.ok and res.message then
-		World.notify(world, player.UserId, res.message, "info", nil)
-	end
-	refreshView(now())
-end)
+-- "Open Shop" (ShopStand) and "Talk" (TutorialNpc) prompts: the client opens
+-- the Shop / Guide menu; purchases go through Request from the Shop menu.
+WorldProps.addShopPrompts()
 pcall(WorldProps.fillBoard, nil) -- "No entries yet" until the first refresh
 
 ---------------------------------------------------------------------------

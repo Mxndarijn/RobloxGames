@@ -16,11 +16,11 @@ local create = Widgets.create
 local Merge = {}
 
 function Merge.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "MergePanel", "Merge Vat")
+	local panel = Widgets.panel(parent, "MergePanel", "Merge Vat", "🧪", Color3.fromRGB(60, 170, 150))
 
 	local hint = Widgets.label({
 		Name = "Hint",
-		Text = "Pick two slimes of the same tier. Both are used up; you get one of the next tier.",
+		Text = "Pick 2 of the same rarity → 1 rarer slime",
 		TextColor3 = Theme.Muted,
 		TextSize = 13,
 		TextWrapped = true,
@@ -54,7 +54,7 @@ function Merge.new(parent: Instance, ctx: any)
 	local mergeBtn = Widgets.button(
 		{
 			Name = "MergeButton",
-			Text = "Merge",
+			Text = "🧪 Merge",
 			AnchorPoint = Vector2.new(0, 1),
 			Position = UDim2.fromScale(0, 1),
 			Size = UDim2.new(1, 0, 0, 40),
@@ -135,17 +135,17 @@ function Merge.new(parent: Instance, ctx: any)
 		selected = Selection.prune(selected, slimes)
 		local sorted = Selection.sorted(slimes, nil)
 		rows.sync(sorted)
-		local ok, reason = Selection.canMergePair(slimes, selected[1], selected[2])
+		local ok = Selection.canMergePair(slimes, selected[1], selected[2])
 		mergeBtn.setEnabled(ok)
 		if ok then
 			local a = Selection.findSlime(slimes, selected[1])
 			local tier = if a then a.slime.tier else 1
 			local nextTier = math.min(tier + 1, ctx.Config.MAX_TIER)
 			local rarity = ctx.Config.RARITIES[nextTier]
-			status.Text = `Result: {if rarity then rarity.name else "?"} slime`
+			status.Text = `✨ You get: {if rarity then rarity.name else "?"}`
 			status.TextColor3 = Theme.Accent
 		else
-			status.Text = `{#selected}/2 selected · {reason or ""}`
+			status.Text = `{#selected}/2 picked`
 			status.TextColor3 = Theme.Muted
 		end
 	end

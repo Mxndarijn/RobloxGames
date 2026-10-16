@@ -16,7 +16,7 @@ local create = Widgets.create
 local GoalsPanel = {}
 
 function GoalsPanel.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "GoalsPanel", "Goals")
+	local panel = Widgets.panel(parent, "GoalsPanel", "Goals", "🎯", Color3.fromRGB(220, 110, 70))
 
 	local summary = Widgets.label({
 		Name = "Summary",
@@ -24,16 +24,16 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 		TextColor3 = Theme.Accent,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 10),
-		Size = UDim2.fromOffset(120, 24),
-		Parent = panel.frame,
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.fromOffset(120, 18),
+		Parent = panel.body, -- on the note line, clear of the X
 	})
 	local note = Widgets.label({
 		Name = "Note",
-		Text = "Local goals from your stats - just for fun, no rewards.",
+		Text = "Just for fun",
 		TextSize = 13,
 		TextColor3 = Theme.Muted,
-		Size = UDim2.new(1, 0, 0, 18),
+		Size = UDim2.new(1, -124, 0, 18),
 		Parent = panel.body,
 	})
 
@@ -87,9 +87,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	function self.update(state: any)
 		local server = Goals.fromServer(state.goals)
 		local goals = server or Goals.derive(state, rarityNames)
-		note.Text = if server
-			then "Finish a stage and the reward is paid automatically."
-			else "Local goals from your stats - just for fun, no rewards."
+		note.Text = if server then "🎁 Rewards pay out automatically" else "Just for fun"
 		summary.Text = Goals.summary(goals)
 		rows.sync(Goals.sorted(goals))
 	end
