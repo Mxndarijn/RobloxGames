@@ -1,13 +1,13 @@
-# Cheap gates on every commit: Lune logic tests and rhr static UI layout per game.
+# Cheap gates on every push to main: Lune logic tests and rhr static UI layout per game.
 # No secrets, no Open Cloud calls, nothing published. Cloud/Studio gates stay manual
 # (see /guides/roblox-building.md, roblox-cloud-server-test.md).
 name: Cheap gates
 
+# Push to main only: PRs are covered by pr-checks.yml (pr-gate), so running this on
+# pull_request as well double-billed every PR. '!studio-reports' keeps #85's exclusion.
 on:
   push:
-    branches-ignore: [studio-reports]
-  pull_request:
-    branches: [main]
+    branches: [main, "!studio-reports"]
 
 permissions:
   contents: read
@@ -24,12 +24,37 @@ jobs:
       dirs: ${{ steps.ls.outputs.dirs }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - id: f
+        uses: dorny/paths-filter@0e4a8c6effa4802afeda77dc8d303f8176d7dfad # v3.0.4
+        with:
+          filters: |
+            slime:
+              - 'games/steal-a-slime/**'
+              - 'shared/**'
+              - '.github/workflows/**'
+            escape:
+              - 'games/speed-escape/**'
+              - 'shared/**'
+              - '.github/workflows/**'
+      # Only games whose paths (or shared deps) changed; unknown new games always run.
       - id: ls
-        run: echo "dirs=$(ls -d games/*/ | sed 's#/$##' | jq -Rnc '[inputs]')" >> "$GITHUB_OUTPUT"
+        env:
+          SLIME: ${{ steps.f.outputs.slime }}
+          ESCAPE: ${{ steps.f.outputs.escape }}
+        run: |
+          for g in games/*/; do
+            g="${g%/}"
+            case "$g" in
+              games/steal-a-slime) [ "$SLIME" = true ] || continue ;;
+              games/speed-escape) [ "$ESCAPE" = true ] || continue ;;
+            esac
+            echo "$g"
+          done | jq -Rnc '[inputs]' | sed 's/^/dirs=/' >> "$GITHUB_OUTPUT"
 
   gates:
     name: ${{ matrix.game }}
     needs: games
+    if: needs.games.outputs.dirs != '[]'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
