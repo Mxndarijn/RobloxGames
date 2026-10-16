@@ -1,6 +1,8 @@
 #
 # Required check name for the ruleset: exactly "pr-gate" (job name).
 # Apply the ruleset only after this workflow has been green once on a PR.
+# pr-gate also runs tools/pr-gate/run.sh (logic, layout, budget; ~1-2 min);
+# when it is green, automerge turns on squash auto-merge for the PR.
 name: PR checks
 
 on:
@@ -111,6 +113,7 @@ jobs:
     if: always()
     needs: [changes, steal-a-slime, speed-escape]
     runs-on: ubuntu-latest
+    timeout-minutes: 6
     steps:
       - name: Require game jobs that ran
         run: |
@@ -121,8 +124,55 @@ jobs:
           # changes must succeed; skipped game jobs = paths filter said no; anything else fails
           ok_game() { [ "$1" = "success" ] || [ "$1" = "skipped" ]; }
           if [ "$changes" = "success" ] && ok_game "$slime" && ok_game "$escape"; then
-            echo "pr-gate OK"
+            echo "game jobs OK"
             exit 0
           fi
           echo "pr-gate FAIL"
           exit 1
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Setup Rokit
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          path: games/steal-a-slime
+          cache: "true"
+          token: ${{ github.token }}
+      - name: Install toolchain
+        working-directory: games/steal-a-slime
+        run: rokit install --no-trust-check
+      # Optional: without rhr the layout check's render step skips with a notice
+      # and the Lune LayoutAssert part still gates (tools/pr-gate/README.md).
+      - name: Setup Python for rhr
+        continue-on-error: true
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+      - name: Install rhr 1.0.0rc1 (optional)
+        continue-on-error: true
+        timeout-minutes: 2
+        run: |
+          sudo apt-get install -y -qq --no-install-recommends libegl1 libgles2 libgl1 >/dev/null
+          pip install -q 'roblox-headless-renderer==1.0.0rc1'
+          rhr --version
+      - name: PR gate (logic, layout, budget)
+        run: tools/pr-gate/run.sh
+
+  # Squash auto-merge once pr-gate is green. Same-repo, non-draft PRs only (a
+  # fork's token can't merge). Needs "Allow auto-merge" in the repo settings;
+  # GitHub then merges when every required check passes.
+  automerge:
+    name: automerge
+    needs: pr-gate
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Enable squash auto-merge
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: gh pr merge --squash --auto "$PR_URL"
