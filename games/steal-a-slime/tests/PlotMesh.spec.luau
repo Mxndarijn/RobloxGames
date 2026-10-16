@@ -275,7 +275,25 @@ describe("plot walls, DexBoard and BuyStand (C6)", function()
 			end
 		end
 	end)
-	it("skins each BuyStand with BUY_STAND_MESH at BUY_STAND_SCALE, outside the entrance, facing out", function()
+	-- `pos` in a node's own frame (its yaw only: every slot here is upright).
+	local function toNode(node: Node, pos: Vec): Vec
+		local c = node.pos :: Vec
+		local d = { pos[1] - c[1], pos[2] - c[2], pos[3] - c[3] }
+		return LayoutMath.apply(LayoutMath.orientation({ 0, -(node.rot :: Vec)[2], 0 }), d)
+	end
+	-- Plot-local footprint corners (x, z) of an upright slot.
+	local function footprint(i: number, node: Node): { Vec }
+		local m = LayoutMath.orientation({ 0, (node.rot :: Vec)[2], 0 })
+		local size, out = node.size :: Vec, {}
+		for _, sx in { -1, 1 } do
+			for _, sz in { -1, 1 } do
+				local v = LayoutMath.apply(m, { sx * size[1] / 2, 0, sz * size[3] / 2 })
+				table.insert(out, toPlot(i, LayoutMath.add(node.pos :: Vec, v)))
+			end
+		end
+		return out
+	end
+	it("skins each BuyStand with BUY_STAND_MESH at BUY_STAND_SCALE, outside the entrance, facing the centre", function()
 		local k = WorldLayout.BUY_STAND_SCALE
 		local gateFront = -h + 0.5 - native("phoenix_gate")[3] / 2
 		for i, plot in plots do
@@ -289,13 +307,18 @@ describe("plot walls, DexBoard and BuyStand (C6)", function()
 			-- invisible, decor-only slot: the mesh lands in it
 			expect(slot.transparency).toBe(1)
 			expect(slot.canCollide).toBe(false)
-			expect(sameAngle((slot.rot :: Vec)[2], yaw + 180)).toBe(true)
-			local p, size = toPlot(i, slot.pos :: Vec), slot.size :: Vec
+			-- kit front (+Z) at the map centre, about out of the entrance (plot -Z)
+			local pos = slot.pos :: Vec
+			expect(sameAngle((slot.rot :: Vec)[2], math.deg(math.atan2(-pos[1], -pos[3])))).toBe(true)
+			expect(math.abs(((slot.rot :: Vec)[2] - (yaw + 180) + 180) % 360 - 180) < 10).toBe(true)
+			local p, size = toPlot(i, pos), slot.size :: Vec
 			-- on the grass (ground top 0), back face in front of the gate mesh,
 			-- clear of the spoke path (half width 6) on the left of the entrance
 			expect(p[2] - size[2] / 2).toBeCloseTo(0)
-			expect(p[3] + size[3] / 2 < gateFront).toBe(true)
-			expect(p[1] + size[1] / 2 < -6).toBe(true)
+			for _, corner in footprint(i, slot) do
+				expect(corner[3] < gateFront).toBe(true)
+				expect(corner[1] < -6).toBe(true)
+			end
 			-- exactly one mesh slot on the stand
 			local slots = 0
 			walk({ stand }, function(node)
@@ -307,11 +330,11 @@ describe("plot walls, DexBoard and BuyStand (C6)", function()
 		end
 	end)
 	it("keeps the Counter (ClaimPrompt) as the stand's primary part, primitives as stand-ins", function()
-		for i, plot in plots do
+		for _, plot in plots do
 			local stand = child(plot, "BuyStand")
 			expect(stand.primaryPart).toBe("Counter")
 			local slot = child(stand, "StandMesh")
-			local sp, half = toPlot(i, slot.pos :: Vec), slot.size :: Vec
+			local half = slot.size :: Vec
 			for _, c in stand.children or {} do
 				if c.name == "StandMesh" then
 					continue
@@ -320,9 +343,9 @@ describe("plot walls, DexBoard and BuyStand (C6)", function()
 				-- decor only, as before the mesh (PlotDecor hides it on owned plots)
 				expect(c.canCollide).toBe(false)
 				-- inside the mesh's box
-				local p = toPlot(i, c.pos :: Vec)
+				local p = toNode(slot, c.pos :: Vec)
 				for axis = 1, 3 do
-					expect(math.abs(p[axis] - sp[axis]) <= half[axis] / 2 + 1e-6).toBe(true)
+					expect(math.abs(p[axis]) <= half[axis] / 2 + 1e-6).toBe(true)
 				end
 			end
 			local counter = child(stand, "Counter")
@@ -331,16 +354,18 @@ describe("plot walls, DexBoard and BuyStand (C6)", function()
 	end)
 	it("puts the Board (PlotDecor's text) just in front of the mesh's SHOP sign", function()
 		local k, face = WorldLayout.BUY_STAND_SCALE, WorldLayout.BUY_STAND_FACE
-		for i, plot in plots do
+		for _, plot in plots do
 			local stand = child(plot, "BuyStand")
-			local slot = toPlot(i, child(stand, "StandMesh").pos :: Vec)
+			local slot = child(stand, "StandMesh")
 			local board = child(stand, "Board")
-			local p, size = toPlot(i, board.pos :: Vec), board.size :: Vec
-			-- kit front (+Z) turned 180: the sign face sits at plot -Z of the mesh frame
-			local faceZ = slot[3] - face.front * k
-			expect(p[3] + size[3] / 2 <= faceZ).toBe(true)
-			expect(p[3] + size[3] / 2 > faceZ - 0.1).toBe(true)
-			expect(p[2]).toBeCloseTo(face.y * k)
+			-- in the mesh's own frame (kit front +Z): just in front of the sign face
+			local p, size = toNode(slot, board.pos :: Vec), board.size :: Vec
+			local faceZ = face.front * k
+			expect(p[3] - size[3] / 2 >= faceZ).toBe(true)
+			expect(p[3] - size[3] / 2 < faceZ + 0.1).toBe(true)
+			expect(p[2] + (slot.size :: Vec)[2] / 2).toBeCloseTo(face.y * k)
+			-- the Board's Front (-Z) face looks the way the mesh front does
+			expect(sameAngle((board.rot :: Vec)[2], (slot.rot :: Vec)[2] + 180)).toBe(true)
 			expect(size[1]).toBeCloseTo(face.width * k)
 			expect(size[2]).toBeCloseTo(face.height * k)
 		end

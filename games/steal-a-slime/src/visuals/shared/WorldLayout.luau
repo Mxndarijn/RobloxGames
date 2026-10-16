@@ -288,8 +288,9 @@ WorldLayout.BUY_STAND_COUNTER = table.freeze({ x = 0, z = 0.53, width = 11, dept
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
--- two spokes. Shop and board face outward (local -Z towards the plots); the
--- tutorial NPC stands behind the hub SpawnLocation (scripts/StaticWorld,
+-- two spokes. The shop faces the fountain (Props front = local -Z; every shop
+-- faces the map centre, TODO v28 #10), the two-sided board faces the plots;
+-- the tutorial NPC stands behind the hub SpawnLocation (scripts/StaticWorld,
 -- same bearing) and faces it.
 local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: number }
 	-- Ring path outer edge is r 82 (78 + 8/2). 90 keeps a shop-sized prop off it.
@@ -297,7 +298,7 @@ local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: 
 	return { pos = { math.sin(a) * r, 0, math.cos(a) * r }, yaw = if faceVolcano then angle else angle + 180 }
 end
 WorldLayout.PROP_SPOTS = table.freeze({
-	ShopStand = propSpot(67.5),
+	ShopStand = propSpot(67.5, true),
 	LeaderboardBoard = propSpot(157.5),
 	TutorialNpc = propSpot(247.5, true),
 }) :: { [string]: { pos: Vec, yaw: number } }
@@ -482,6 +483,12 @@ local function frame(origin: Vec, yaw: number): (Vec) -> Vec
 	return function(v: Vec): Vec
 		return LayoutMath.add(origin, LayoutMath.apply(m, v))
 	end
+end
+
+-- Yaw (degrees) that turns a kit front (+Z) at `pos` to face FOUNTAIN_CENTRE.
+function WorldLayout.facingCentre(pos: Vec): number
+	local c = WorldLayout.FOUNTAIN_CENTRE
+	return math.deg(math.atan2(c[1] - pos[1], c[3] - pos[3]))
 end
 
 -- Map --------------------------------------------------------------------
@@ -963,30 +970,35 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 
 	-- "Free plot" stand on the grass just outside the entrance, left of the
 	-- path and clear of the Sign (shown while OwnerUserId == 0): a
-	-- BUY_STAND_MESH slot (kit front turned 180 to face out of the entrance).
-	-- The primitives are its stand-ins, laid on the mesh: Counter (the
-	-- ClaimPrompt) on its counter, Board (PlotDecor's text, which stays once
-	-- the part hides) on its SHOP sign, back posts, and an upright Coin on the
-	-- counter facing the volcano. Decor only, as before: PlotDecor hides the
-	-- stand on owned plots, so it never collides.
-	local bx, bz = -13, -h - 5
+	-- BUY_STAND_MESH slot turned so its kit front faces the map centre (every
+	-- shop does, TODO v28 #10; the plot's own -Z misses it by ~4 degrees).
+	-- The primitives are its stand-ins, laid on the mesh in the stand's frame
+	-- (kit front = +Z): Counter (the ClaimPrompt) on its counter, Board
+	-- (PlotDecor's text, which stays once the part hides) on its SHOP sign,
+	-- back posts, and an upright Coin on the counter. Decor only, as before:
+	-- PlotDecor hides the stand on owned plots, so it never collides.
+	local base = at({ -13, 0, -h - 5 })
+	local standYaw = WorldLayout.facingCentre(base)
+	local st = frame(base, standYaw)
 	local ks, sign, top = WorldLayout.BUY_STAND_SCALE, WorldLayout.BUY_STAND_FACE, WorldLayout.BUY_STAND_COUNTER
 	local standSize = meshSize(WorldLayout.BUY_STAND_MESH, ks)
-	-- Mesh frame (x, y up from the bottom, z + = front) to plot-local.
+	-- Mesh frame at native size (x, y up from the bottom, z + = front) to world.
 	local function onStand(x: number, y: number, z: number): Vec
-		return at({ bx - x * ks, y * ks, bz - z * ks })
+		return st({ x * ks, y * ks, z * ks })
 	end
+	-- Stand-in parts' Front (-Z) faces the kit front.
+	local sr = { 0, standYaw + 180, 0 }
 	local topY = top.top * ks
 	local function part(name: string, size: Vec, pos: Vec, color: Vec, material: string, rot: Vec?): WorldNode
-		return standIn(ghost(block(name, size, pos, color, material, rot or r)), WorldLayout.BUY_STAND_MESH)
+		return standIn(ghost(block(name, size, pos, color, material, rot or sr)), WorldLayout.BUY_STAND_MESH)
 	end
 	local coin = part(
 		"Coin",
 		{ 0.4, 1.8, 1.8 },
-		at({ bx + 2, topY + 0.3 + 0.9, bz - top.z * ks }),
+		st({ -2, topY + 0.3 + 0.9, top.z * ks }),
 		{ 255, 205, 60 },
 		"Neon",
-		{ 0, yaw + 90, 0 }
+		{ 0, standYaw - 90, 0 }
 	)
 	coin.shape = "Cylinder"
 	local postH = 13.4 * ks
@@ -996,7 +1008,7 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 		primaryPart = "Counter",
 		children = {
 			meshSlot(
-				block("StandMesh", standSize, at({ bx, standSize[2] / 2, bz }), WOOD, nil, { 0, yaw + 180, 0 }),
+				block("StandMesh", standSize, st({ 0, standSize[2] / 2, 0 }), WOOD, nil, { 0, standYaw, 0 }),
 				WorldLayout.BUY_STAND_MESH,
 				true
 			),
@@ -1010,7 +1022,7 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 			part(
 				"CounterTop",
 				{ top.width * ks + 0.6, 0.3, top.depth * ks + 0.5 },
-				at({ bx, topY + 0.15, bz - top.z * ks }),
+				st({ 0, topY + 0.15, top.z * ks }),
 				{ 240, 200, 70 },
 				"SmoothPlastic"
 			),
@@ -1019,7 +1031,7 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 			part(
 				"Board",
 				{ sign.width * ks, sign.height * ks, 0.3 },
-				at({ bx - sign.x * ks, sign.y * ks, bz - sign.front * ks - 0.02 - 0.15 }),
+				st({ sign.x * ks, sign.y * ks, sign.front * ks + 0.02 + 0.15 }),
 				{ 40, 150, 70 },
 				"SmoothPlastic"
 			),
