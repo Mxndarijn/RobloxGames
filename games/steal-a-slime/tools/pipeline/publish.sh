@@ -127,7 +127,8 @@ write_live_status() {
   jq -n --arg sha "$SHA" --argjson saved "$1" --argjson published "$2" --arg at "$(date -Iseconds)" \
     --arg place "$UNIVERSE_ID/$PLACE_ID" --slurpfile report "$WORK/studio_report.json" --arg merged "$3" \
     '{sha: $sha, status: "live", saved_version: $saved, published_version: $published, smoke: "pass",
-      place: $place, merged_at: $merged, published_at: $at, studio_report: $report[0]}' >"$WORK/live.json" || return 1
+      place: $place, merged_at: $merged, published_at: $at, studio_report: $report[0],
+      frames_reviewed: ($report[0].frames_reviewed // false), reviewed_by: ($report[0].reviewed_by // [])}' >"$WORK/live.json" || return 1
   write_json "$STATUS_DIR/$SHA.publish.json" <"$WORK/live.json" &&
     write_json "$LIVE_DIR/$SHA.json" <"$WORK/live.json"
 }
