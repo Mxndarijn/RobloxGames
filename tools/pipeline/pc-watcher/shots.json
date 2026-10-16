@@ -56,5 +56,6 @@
   {"id": "17-motion-idlesquish", "todo": "17", "kind": "world", "target": "Pad_1", "seat": true, "motion": "Idle", "wait": 0.6, "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), idle squish: two samples 0.6 s apart must differ (Transform + Mesh size)"},
   {"id": "17-motion-hop", "todo": "17", "kind": "world", "target": "Pad_1", "seat": true, "motion": "Hop", "wait": 0.35, "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), hop apex (FaceRoot/SkinRoot lifted, body squashed/stretched)"},
   {"id": "17-motion-lookleft", "todo": "17", "kind": "world", "target": "Pad_1", "seat": true, "motion": "LookLeft", "wait": 0.35, "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), look left (FaceRoot/SkinRoot yaw)"},
-  {"id": "17-motion-lookright", "todo": "17", "kind": "world", "target": "Pad_1", "seat": true, "motion": "LookRight", "wait": 0.35, "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), look right (FaceRoot/SkinRoot yaw)"}
+  {"id": "17-motion-lookright", "todo": "17", "kind": "world", "target": "Pad_1", "seat": true, "motion": "LookRight", "wait": 0.35, "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), look right (FaceRoot/SkinRoot yaw)"},
+  {"id": "18-modifier-badge", "todo": "18", "kind": "ui", "note": "TODO 18: server modifier HUD badge (ModifierBadge: name, multipliers, time left) under the rain banner; HUD as-is, no click. Needs a non-None modifier phase (FEATURES.CycleModifier)"}
 ]
