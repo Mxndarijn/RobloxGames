@@ -19,6 +19,7 @@ return table.freeze({
 	-- workspace attribute set by the server: "Ok" | "Memory" | "Unavailable" | "Error" (CONTRACT.md §2)
 	DATASTORE_STATUS_ATTRIBUTE = "DataStoreStatus",
 	SLIME_LOOK_ATTRIBUTE = "SlimeLook", -- workspace attribute set by the server: "Mesh" | "Procedural"
+	SPECIES_ATTRIBUTE = "Species", -- slime model: SlimeRoster id (v28 typed slimes only; SlimeLooks)
 	-- World folders. "Map" and "Slimes" are hardcoded in src/visuals (WorldLayout); keep them in sync.
 	MAP_FOLDER = "Map",
 	PLOTS_FOLDER = "Plots",

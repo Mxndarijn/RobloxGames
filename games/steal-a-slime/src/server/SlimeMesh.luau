@@ -18,12 +18,17 @@
 	the Body ball. Tier rim / crown / halo, mutation parts, eyes, mouth and pattern
 	stay. If dressing errors the slime is rebuilt procedurally.
 
+	Typed slimes (v28 `species`) also get the Species attribute and, when
+	unmutated, their SlimeLooks material on Body and Mesh (both looks).
+
 	Pure apart from the injected functions: Lune tests cover the fallback paths.
 ]]
 
 -- Shared lives in ReplicatedStorage, not next to ServerScriptService.Server.
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
+local SlimeLooks = if Shared then require(Shared.SlimeLooks) else require("../shared/SlimeLooks")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 
 export type Look = "Mesh" | "Procedural"
@@ -103,19 +108,46 @@ local function dress(model: Model, template: MeshPart)
 	body.CastShadow = false
 end
 
+-- The type's material on Body and Mesh; a mutation keeps its own material.
+local function applySpecies(model: Model, slimeData: Types.SlimeData)
+	local look = SlimeLooks.get(slimeData.species)
+	if not look then
+		return
+	end
+	model:SetAttribute(Constants.SPECIES_ATTRIBUTE, look.id)
+	if slimeData.mutation ~= "None" then
+		return
+	end
+	local material = (Enum.Material :: any)[look.material]
+	for _, name in { "Body", SlimeMesh.MESH_NAME } do
+		local part = model:FindFirstChild(name)
+		if part and part:IsA("BasePart") then
+			part.Material = material
+		end
+	end
+end
+
+local function finish(self: SlimeMesh, model: Model, slimeData: Types.SlimeData): Model
+	local ok, err = pcall(applySpecies :: any, model, slimeData)
+	if not ok then
+		report(self, `slime type look failed for {slimeData.id} ({err})`)
+	end
+	return model
+end
+
 function SlimeMesh.build(self: SlimeMesh, slimeData: Types.SlimeData): Model
 	local model = self.deps.factory.build(slimeData)
 	local template = self.template
 	if not template then
-		return model
+		return finish(self, model, slimeData)
 	end
 	local ok, err = pcall(dress :: any, model, template)
 	if ok then
-		return model
+		return finish(self, model, slimeData)
 	end
 	report(self, `slime mesh dress failed for {slimeData.id} ({err}); using procedural`)
 	model:Destroy()
-	return self.deps.factory.build(slimeData)
+	return finish(self, self.deps.factory.build(slimeData), slimeData)
 end
 
 return SlimeMesh
