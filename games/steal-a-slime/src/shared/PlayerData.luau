@@ -43,6 +43,7 @@ export type Data = {
 	redeemed: { [string]: boolean }, -- normalized codes already used
 	boostMult: number, -- active income boost (1 = none)
 	friendBonus: number?, -- runtime only (never saved): friends in this server, FriendBonus.bonus; nil = none
+	ritualBonus: number?, -- runtime only (never saved): "Blessed" income bonus from the co-op ritual; nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
 }
 

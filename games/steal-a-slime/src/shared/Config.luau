@@ -468,6 +468,7 @@ local Config = {
 		SlimeLod = true, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
 		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
 		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
+		CoopRitual = true, -- 3-4 players stand on the plaza ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -518,6 +519,24 @@ local Config = {
 	ADMIN_EVENT_MAX_SECONDS = 1800,
 	ADMIN_EVENT_COOLDOWN = 20, -- seconds between two accepted triggers (local and received)
 	ADMIN_EVENT_TOPIC = "SlimeAdminEvent",
+
+	-- Co-op ritual (FEATURES.CoopRitual, CONTRACT.md §13). The circle sits outside the ring path between two
+	-- spokes (bearing: 0 = +Z, like WorldLayout.PROP_SPOTS). Every number is server-side.
+	RITUAL = table.freeze({
+		BEARING = 247.5, -- degrees round the fountain
+		DISTANCE = 46, -- studs from the fountain axis
+		CIRCLE_RADIUS = 8, -- the painted disc
+		SPOTS = 4, -- glowing stand spots
+		SPOT_DISTANCE = 5, -- spot centre from the circle centre
+		STAND_RADIUS = 2.4, -- a player counts on the nearest spot within this (horizontal)
+		STAND_HEIGHT = 8, -- and a root part at most this high above the plaza ground (not on the fountain)
+		MIN_PLAYERS = 3,
+		HOLD_SECONDS = 6, -- everyone must keep standing this long
+		SERVER_COOLDOWN = 240, -- seconds the circle rests after a ritual
+		PLAYER_COOLDOWN = 600, -- seconds before the same player can count again
+		BLESS_SECONDS = 180,
+		BONUS = table.freeze({ [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants
+	}),
 
 	-- Mystery Egg (FEATURES.MysteryEgg): bought with in-game cash only, never Robux. The price is
 	-- MYSTERY_EGG_PRICE x the rebirth multiplier, so selling the hatch never beats the price.
