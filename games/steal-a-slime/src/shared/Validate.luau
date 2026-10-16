@@ -19,6 +19,7 @@ Validate.ACTIONS = table.freeze({
 	Favorite = 0.25,
 	BuyPad = 0.5,
 	Daily = 1,
+	ClaimQuest = 0.3,
 	BuyLockUpgrade = 0.5,
 	BuySpeedCoil = 0.5,
 	BuyUpgrade = 0.5,

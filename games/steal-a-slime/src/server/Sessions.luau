@@ -62,7 +62,7 @@ function Sessions.join(
 	end
 	Codes.expireBoost(session.data, now) -- a boost never pays for time spent offline
 	Income.applyOffline(world, session, now)
-	Milestones.check(world, session) -- old saves get past goal stages / dex milestones now
+	Milestones.check(world, session, now) -- old saves get past goal stages / dex milestones now
 	return session, nil
 end
 

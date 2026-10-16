@@ -73,6 +73,18 @@ export type PlotSkinView = PlotSkins.View
 
 export type CodesView = { boostMult: number, boostEndsAt: number, redeemed: number }
 
+export type QuestView = {
+	id: string,
+	title: string,
+	icon: string,
+	progress: number,
+	target: number,
+	done: boolean,
+	claimed: boolean,
+	reward: string,
+	rewardKind: string,
+}
+export type DailyQuestsView = { day: number, resetsIn: number, quests: { QuestView } }
 export type DailyView = { available: boolean, streak: number, amount: number, day: number }
 
 -- Keys are the UI's ShopCatalog item ids. price nil = maxed / owned.
@@ -163,6 +175,7 @@ export type State = {
 	dex: { string }, -- discovered Genome.dexKey values, sorted
 	dexTotal: number,
 	daily: DailyView,
+	dailyQuests: DailyQuestsView?, -- Quests.view: nil on a server without daily quests
 	codes: CodesView,
 	shop: ShopView,
 	tutorialStep: number?, -- 1..#TutorialProgress.STEPS; nil = finished

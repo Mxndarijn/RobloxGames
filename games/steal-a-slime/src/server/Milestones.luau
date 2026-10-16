@@ -11,15 +11,19 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Badges = if script then require(script.Parent.Badges) else require("./Badges")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
+local Quests = if Shared then require(Shared.Quests) else require("../shared/Quests")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
 local World = if script then require(script.Parent.World) else require("./World")
 
 local Milestones = {}
 
--- Returns how many rewards were paid.
-function Milestones.check(world: World.World, session: World.Session): number
+-- Returns how many rewards were paid. Also rolls the day's daily quests (they pay on claim, not here).
+function Milestones.check(world: World.World, session: World.Session, now: number?): number
 	local n = 0
+	if Quests.sync(session.data, now or os.time(), session.userId) then
+		World.markDirty(session)
+	end
 	for _, paid in Goals.check(session.data) do
 		n += 1
 		World.notify(
@@ -46,9 +50,9 @@ function Milestones.check(world: World.World, session: World.Session): number
 	return n
 end
 
-function Milestones.step(world: World.World)
+function Milestones.step(world: World.World, now: number?)
 	for _, session in world.sessions do
-		Milestones.check(world, session)
+		Milestones.check(world, session, now)
 		Badges.check(world, session)
 	end
 end

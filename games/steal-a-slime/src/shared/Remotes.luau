@@ -36,6 +36,7 @@ Remotes.ACTIONS = table.freeze({
 	Favorite = table.freeze({ args = { "string?" } }), -- slimeId, nil clears
 	BuyPad = table.freeze({ args = {} }),
 	Daily = table.freeze({ args = {} }),
+	ClaimQuest = table.freeze({ args = { "number" } }), -- daily quest slot 1..Config.DAILY_QUESTS.count (Quests.claim)
 	BuyLockUpgrade = table.freeze({ args = {} }),
 	BuySpeedCoil = table.freeze({ args = {} }),
 	BuyUpgrade = table.freeze({ args = { "string" } }), -- Config.UPGRADES id (CONTRACT.md §8.1)

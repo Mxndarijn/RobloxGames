@@ -41,7 +41,7 @@ function Codes.normalize(text: any): string?
 end
 
 -- Applies a boost: the higher multiplier wins, and the time adds up.
-local function addBoost(data: Data, mult: number, minutes: number, now: number)
+function Codes.addBoost(data: Data, mult: number, minutes: number, now: number)
 	data.boostMult = math.max(data.boostMult, math.clamp(mult, 1, Config.CODE_BOOST_MAX_MULT))
 	data.boostUntil = math.max(data.boostUntil, now) + minutes * 60
 end
@@ -63,7 +63,7 @@ function Codes.redeem(data: Data, text: any, now: number): (boolean, Status, Rew
 	if reward.kind == "cash" then
 		PlayerData.earn(data, reward.amount or 0)
 	elseif reward.kind == "boost" then
-		addBoost(data, reward.mult or 1, reward.minutes or 0, now)
+		Codes.addBoost(data, reward.mult or 1, reward.minutes or 0, now)
 	else
 		return false, "invalid", nil
 	end
