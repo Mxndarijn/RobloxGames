@@ -2,44 +2,23 @@
 --[[
 	Format
 
-	Pure text / time helpers for the UI. No Roblox APIs and no requires, so it
+	Pure text / time helpers for the UI. No Roblox APIs, so it
 	loads unchanged in the client and under Lune (tests/ui/Format.spec.luau).
 ]]
 
 local Format = {}
 
-local SUFFIXES = { "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc" }
+local NumberFormat = if script
+	then require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("NumberFormat") :: any)
+	else require("../shared/NumberFormat")
 
 local function trimZero(text: string): string
 	return (string.gsub(text, "%.0$", ""))
 end
 
--- 950 -> "950", 1234 -> "1.2K", 15300000 -> "15.3M". Non-finite values -> "0".
-function Format.shortNumber(value: number): string
-	if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
-		return "0"
-	end
-	local sign = if value < 0 then "-" else ""
-	local n = math.abs(value)
-	if n < 1000 then
-		return sign .. tostring(math.floor(n))
-	end
-	local index = 1
-	while n >= 1000 and index < #SUFFIXES do
-		n /= 1000
-		index += 1
-	end
-	local text = if n < 100 then string.format("%.1f", math.floor(n * 10) / 10) else tostring(math.floor(n))
-	return sign .. trimZero(text) .. SUFFIXES[index]
-end
-
-function Format.formatCash(value: number): string
-	local text = Format.shortNumber(value)
-	if string.sub(text, 1, 1) == "-" then
-		return "-$" .. string.sub(text, 2)
-	end
-	return "$" .. text
-end
+-- 950 -> "950", 1250 -> "1.25K", 15300000 -> "15.3M". Non-finite values -> "0".
+Format.shortNumber = NumberFormat.short
+Format.formatCash = NumberFormat.cash
 
 -- Income per second. Small fractional rates keep one decimal: "$1.5/s".
 function Format.formatRate(value: number): string
