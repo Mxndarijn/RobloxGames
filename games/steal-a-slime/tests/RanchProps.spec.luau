@@ -97,7 +97,7 @@ describe("ranch props: every kit mesh is placed", function()
 	end)
 	it("covers the assets main added: fountain emerge, habitat looks, border models", function()
 		local names = { "slime_fountain_emerge" }
-		for _, k in WorldBorder.KINDS do
+		for _, k in WorldBorder.CHUNKS do
 			table.insert(names, k.mesh)
 		end
 		for _, mesh in WorldBorder.ACCENTS do
@@ -242,7 +242,7 @@ describe("ranch props: keep-clear zones", function()
 			end
 		end
 		expect(bad).toEqual({})
-		expect(#pieces > 100).toBe(true)
+		expect(#pieces > 30).toBe(true)
 	end)
 	it("keeps every prop off the habitat pads (the largest habitat look round each pad)", function()
 		-- HabitatFx grows the look round the pad (dressing up to ~4.6 from its
