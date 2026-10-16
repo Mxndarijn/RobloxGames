@@ -88,18 +88,22 @@ function TutorialArrow.start()
 	local chevrons: Model? = nil
 	local from: BasePart? = nil
 	local to: BasePart? = nil
+	local tip: Attachment? = nil
 	local function clear()
 		if current then
 			for _, instance in current do
 				instance:Destroy()
 			end
 		end
-		current, from, to, beam, chevrons = nil, nil, nil, nil, nil
+		current, from, to, beam, chevrons, tip = nil, nil, nil, nil, nil, nil
 	end
 	local function animate(now: number)
 		local camera = workspace.CurrentCamera
 		if not (beam and chevrons and camera and beam.Parent) then
 			return
+		end
+		if tip and from and to then
+			Props.arrowAim(tip, from, to) -- the capped end follows the character / target
 		end
 		local phase = (now * TutorialArrow.FLOW) % 1
 		Props.placeChevrons(chevrons, Props.arrowCurve(beam), phase, camera.CFrame.Position, now)
@@ -113,7 +117,15 @@ function TutorialArrow.start()
 			clear()
 			return
 		end
-		if root == from and goal == to and current and current[1].Parent then
+		-- rebuild when the target crosses the cap distance (the end attachment lives on the goal when near, on the root when far)
+		local near = (goal.Position - root.Position).Magnitude <= Props.ARROW_MAX_LENGTH
+		if
+			root == from
+			and goal == to
+			and current
+			and current[1].Parent
+			and (tip ~= nil and (tip.Parent == goal) == near)
+		then
 			return
 		end
 		clear()
@@ -121,7 +133,7 @@ function TutorialArrow.start()
 		local newChevrons = Props.tutorialChevrons()
 		newChevrons.Parent = workspace.CurrentCamera or workspace
 		current, from, to = { newBeam, a0, a1, newChevrons }, root, goal
-		beam, chevrons = newBeam, newChevrons
+		beam, chevrons, tip = newBeam, newChevrons, a1
 		animate(os.clock())
 	end
 	RunService.RenderStepped:Connect(function()

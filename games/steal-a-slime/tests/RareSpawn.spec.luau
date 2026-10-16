@@ -49,3 +49,23 @@ describe("PlotVisuals rare fx lifetime", function()
 		expect(string.find(src, "GetInstanceRemovedSignal", 1, true) ~= nil).toBe(true)
 	end)
 end)
+
+describe("TutorialArrow beam cap", function()
+	local props = fs.readFile("src/visuals/shared/Props.luau")
+	local arrow = fs.readFile("src/visuals/client/TutorialArrow.luau")
+
+	it("shares the rare-spawn beam cap, under the fx_streaks shot's 30 studs", function()
+		expect(string.find(props, "Props.ARROW_MAX_LENGTH = RareSpawn.MAX_BEAM_HEIGHT", 1, true) ~= nil).toBe(true)
+		expect(RareSpawn.MAX_BEAM_HEIGHT <= 30).toBe(true)
+	end)
+
+	it("clamps a far target's end attachment and keeps it aimed", function()
+		expect(string.find(props, "offset.Unit * Props.ARROW_MAX_LENGTH", 1, true) ~= nil).toBe(true)
+		expect(string.find(arrow, "Props.arrowAim", 1, true) ~= nil).toBe(true)
+	end)
+
+	it("is covered by the fx_streaks watcher shot", function()
+		local shots = fs.readFile("../../tools/pipeline/pc-watcher/shots/103-v30-c11-night-streaks.json")
+		expect(string.find(shots, '"tutorial_arrow"', 1, true) ~= nil).toBe(true)
+	end)
+end)
