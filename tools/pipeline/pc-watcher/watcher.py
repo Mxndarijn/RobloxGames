@@ -1423,7 +1423,7 @@ def step_shots(run):
                             sid, res["motion"].get("mode"), res["motion"].get("moved")))
                 if shot.get("slide_walk"):
                     # B6: free balls dropped onto every slide segment, top to bottom, must never sink under the slide
-                    res["slide_walk"] = run.need_luau("slide_walk", "Server", timeout=90)
+                    res["slide_walk"] = run.need_luau("slide_walk", "Server", timeout=60)
                     if not res["slide_walk"].get("ok"):
                         run.note("shot %s: fell through the slide: %s" % (
                             sid, str(res["slide_walk"].get("violations") or res["slide_walk"].get("error"))[:200]))

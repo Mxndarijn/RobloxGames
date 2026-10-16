@@ -48,6 +48,8 @@ ball.CanTouch = false
 ball.Transparency = 1
 local bad, samples, worst = {}, 0, math.huge
 local topY, bottomY = -math.huge, math.huge
+-- All balls are dropped at once and watched together (sequential runs exceeded the tool timeout).
+local active = {}
 for i = 1, #floors do
 	local p = floors[i]
 	if not p then
@@ -61,24 +63,36 @@ for i = 1, #floors do
 		b.Position = s + Vector3.new(0, 5, 0)
 		b.Parent = workspace
 		samples += 1
-		local t0 = os.clock()
-		while os.clock() - t0 < 1.2 do
-			task.wait()
-			local c = clearance(b.Position)
-			if c then
-				worst = math.min(worst, c)
-				if c < -0.1 then
-					bad[#bad + 1] = string.format("segment %d k=%.2f ball %.2f below the slide", i, k, -c)
-					break
-				end
-			end
-			if b.Position.Y < -1 then
-				bad[#bad + 1] = string.format("segment %d k=%.2f ball fell to y=%.1f", i, k, b.Position.Y)
-				break
+		active[#active + 1] = { part = b, i = i, k = k }
+	end
+end
+local t0 = os.clock()
+while os.clock() - t0 < 1.2 and #active > 0 do
+	task.wait()
+	for n = #active, 1, -1 do
+		local a = active[n]
+		local pos = a.part.Position
+		local c = clearance(pos)
+		local failed = false
+		if c then
+			worst = math.min(worst, c)
+			if c < -0.1 then
+				bad[#bad + 1] = string.format("segment %d k=%.2f ball %.2f below the slide", a.i, a.k, -c)
+				failed = true
 			end
 		end
-		b:Destroy()
+		if not failed and pos.Y < -1 then
+			bad[#bad + 1] = string.format("segment %d k=%.2f ball fell to y=%.1f", a.i, a.k, pos.Y)
+			failed = true
+		end
+		if failed then
+			a.part:Destroy()
+			table.remove(active, n)
+		end
 	end
+end
+for _, a in active do
+	a.part:Destroy()
 end
 ball:Destroy()
 return {
