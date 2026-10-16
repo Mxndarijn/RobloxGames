@@ -5724,5 +5724,15 @@
       ]
     }
   },
-  "frames_dir": "bb41f17e8d94940ab4af4981d65e2c1adf48121b/"
+  "frames_dir": "bb41f17e8d94940ab4af4981d65e2c1adf48121b/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "HOLD (UI overlap): the event banners 'Slime Rain in x' and the new 'Luck Surge x2 luck' (#108) stack over the top of open menus at phone sizes. In menu-rebirth-phone-portrait and the shot-04 frames they cover the panel title and most of the red X close button. The second banner (#108) pushes the stack down into the panel header. Fix: hide or shrink the banners while a menu is open, or offset the menu below the banner stack.",
+    "B6 slide (#110 + #113): slide_walk ok. 32 segments, 96 samples, 0 violations, worst clearance 0.83 studs, top 36.3 -> bottom 0.7 into the plaza. shot-18-slide-top-to-bottom is clean.",
+    "#5 rebirth slime (#111): the desktop and phone-portrait menus show the 'And this slime' card (Sprout Slime icon, greyed 'Missing'), and the button is disabled with the reason. The owned state is NOT visually verified: shot-04-rebirth-slime-owned/missing use the 844x390 crop, where the card is below the panel's scroll fold. rebirth_slime reports state owned:true. Watcher follow-up from me.",
+    "Rest OK: all steps pass, focus_stolen [], close pass, no leftovers. Motor motion with pose change, slime seated on habitats, HUD 'Menu', modifier badge shown."
+  ]
 }
