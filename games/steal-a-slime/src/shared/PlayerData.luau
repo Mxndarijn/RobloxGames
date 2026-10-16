@@ -42,6 +42,7 @@ export type Data = {
 	-- Redeem codes (Codes, CONTRACT.md §10)
 	redeemed: { [string]: boolean }, -- normalized codes already used
 	boostMult: number, -- active income boost (1 = none)
+	weekendMult: number?, -- runtime only (never saved): x2 Weekend multiplier set by Income.step, nil = none
 	friendBonus: number?, -- runtime only (never saved): friends in this server, FriendBonus.bonus; nil = none
 	ritualBonus: number?, -- runtime only (never saved): "Blessed" income bonus from the co-op ritual; nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)

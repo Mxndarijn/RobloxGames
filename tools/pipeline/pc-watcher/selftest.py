@@ -238,7 +238,7 @@ def t_files():
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "weather_set": {"WEATHER", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(),
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -279,6 +279,12 @@ def t_files():
     check("a failing slide_walk fails the run (hard), not just warns",
           'return "fail", {"captured": done, "total": len(shots), "shots": results, "slide_walk_failed": True}'
           in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read())
+    caps = [s for s in shots if s.get("mesh_slots_max")]
+    check("a mesh_slots_max shot asserts the play-world mesh slots <= 400 (hard)",
+          len(caps) == 1 and caps[0]["mesh_slots_max"] <= 400 and caps[0].get("todo") == "border-v3", caps)
+    check("a failing mesh_slots_max shot fails the run (hard)",
+          'mesh_slots_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
+          and watcher.overall_status({"shots": {"status": "pass", "detail": {"mesh_slots_failed": True}}}) == "fail")
     weathers = {s["weather"]: s for s in shots if s.get("weather")}
     check("weather shots cover Rain, Snow and Starfall with a short wait",
           set(weathers) == {"Rain", "Snow", "Starfall"} and all(0 < float(s.get("wait", 0)) <= 4 for s in weathers.values()), sorted(weathers))

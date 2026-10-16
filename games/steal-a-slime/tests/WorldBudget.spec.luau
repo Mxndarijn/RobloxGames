@@ -158,21 +158,26 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 		expect(uploaded.buy).toBe(0)
 		expect(uploaded.decor <= WorldLayout.DECOR_SLOT_BUDGET).toBe(true)
 	end)
-	it("splits MESH_SLOT_BUDGET 400 into fence 128 + gate posts 8 + border 104 + decor 160", function()
+	it("splits MESH_SLOT_BUDGET 400 into fence 128 + gate posts 8 + border 88 + decor 160 + runtime 16", function()
 		expect(WorldLayout.MESH_SLOT_BUDGET).toBe(400)
 		expect(WorldLayout.FENCE_SLOT_BUDGET).toBe(128)
 		expect(WorldLayout.GATE_POST_SLOT_BUDGET).toBe(8)
-		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(104)
+		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(88)
 		expect(WorldLayout.DECOR_SLOT_BUDGET).toBe(160)
 		expect(
 			WorldLayout.FENCE_SLOT_BUDGET
 				+ WorldLayout.GATE_POST_SLOT_BUDGET
 				+ WorldLayout.BORDER_SLOT_BUDGET
 				+ WorldLayout.DECOR_SLOT_BUDGET
+				+ WorldLayout.RUNTIME_SLOT_ALLOWANCE
 		).toBe(WorldLayout.MESH_SLOT_BUDGET)
 	end)
 	it("fits MESH_SLOT_BUDGET with the border at its share", function()
-		local budgeted = uploaded.fence + uploaded.posts + uploaded.decor + WorldLayout.BORDER_SLOT_BUDGET
+		local budgeted = uploaded.fence
+			+ uploaded.posts
+			+ uploaded.decor
+			+ WorldLayout.BORDER_SLOT_BUDGET
+			+ WorldLayout.RUNTIME_SLOT_ALLOWANCE
 		expect(budgeted <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 		-- the budget is the real count, not a ceiling far above it
 		expect(WorldLayout.MESH_SLOT_BUDGET - budgeted < 10).toBe(true)
@@ -199,7 +204,7 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 		-- Any change to the ring trips this so the budget is re-read.
 		expect(uploaded.border).toBe(WorldLayout.BORDER_SLOT_COUNT)
 		expect(uploaded.border <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
-		expect(uploaded.total <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
+		expect(uploaded.total + WorldLayout.RUNTIME_SLOT_ALLOWANCE <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 		expect(current.border).toBe(uploaded.border)
 	end)
 end)

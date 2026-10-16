@@ -265,6 +265,8 @@ def overall_status(steps):
     # B6: the slide_walk shot is a HARD assertion even though the rest of "shots" is soft
     if (steps.get("shots", {}).get("detail") or {}).get("slide_walk_failed"):
         return "fail"
+    if (steps.get("shots", {}).get("detail") or {}).get("mesh_slots_failed"):
+        return "fail"
     for name, s in steps.items():
         st = s.get("status")
         if name in SOFT_STEPS:
@@ -1384,6 +1386,8 @@ def step_shots(run):
                     res["friend_bonus"] = run.need_luau("friend_bonus", "Client", timeout=15, count=int(shot["friend_bonus"]))
                 if shot.get("admin_event"):  # v29 #10: fake a live admin event banner (Studio only)
                     res["admin_event"] = run.need_luau("admin_event", "Client", timeout=15, event=shot["admin_event"])
+                if shot.get("weekend"):  # competitor-gaps #17: fake a live x2 Weekend chip (Studio only)
+                    res["weekend"] = run.need_luau("weekend", "Client", timeout=15, on=True)
                 if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
                     res["dex_weather"] = run.need_luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=True)
                     time.sleep(0.6)  # State push
@@ -1429,6 +1433,8 @@ def step_shots(run):
                     run.luau("friend_bonus", "Client", timeout=15, count=0)
                 if shot.get("admin_event"):
                     run.luau("admin_event", "Client", timeout=15, event="")
+                if shot.get("weekend"):
+                    run.luau("weekend", "Client", timeout=15, on=False)
                 if shot.get("plot_slime"):
                     run.luau("plot_slime", "Client", timeout=15, state="")
                 if shot.get("dex_weather"):
@@ -1513,6 +1519,13 @@ def step_shots(run):
                     if not res["slide_walk"].get("ok"):
                         run.note("shot %s: fell through the slide: %s" % (
                             sid, str(res["slide_walk"].get("violations") or res["slide_walk"].get("error"))[:200]))
+                if shot.get("mesh_slots_max"):
+                    # perf proof (HARD): the same Server count as step_perf, asserted at the shot's own limit
+                    ms = res["mesh_slots"] = run.need_luau("perf_server", "Server", timeout=30)
+                    ms["max"] = int(shot["mesh_slots_max"])
+                    ms["ok"] = 0 < (ms.get("mesh_slots") or 0) <= ms["max"]
+                    if not ms["ok"]:
+                        run.note("shot %s: mesh slots %s not in 1..%s" % (sid, ms.get("mesh_slots"), ms["max"]))
                 if shot.get("anim") and (res.get("target") or {}).get("path"):
                     # optional uploaded-animation proof: the Client plays it on the pad slime's Animator, waits `wait` s
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
@@ -1552,6 +1565,8 @@ def step_shots(run):
         return "warn", {"captured": done, "total": len(shots), "shots": results, "press_failed": True}
     if any(r.get("slide_walk") and not r["slide_walk"].get("ok") for r in results):
         return "fail", {"captured": done, "total": len(shots), "shots": results, "slide_walk_failed": True}
+    if any(r.get("mesh_slots") and not r["mesh_slots"].get("ok") for r in results):
+        return "fail", {"captured": done, "total": len(shots), "shots": results, "mesh_slots_failed": True}
     return "pass" if (done or pressed) else "warn", {"captured": done, "total": len(shots), "shots": results}
 
 

@@ -131,7 +131,7 @@ WorldLayout.FENCE_SCALE = 10 / 11
 -- Post centre in from a piece's -X end: the kit post cap is 1.8 wide, and
 -- its centre 0.9 in from the bbox edge, at FENCE_SCALE.
 WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
--- Mesh slots in the whole world (MeshAsset + pending BorderMesh / FenceMesh
+-- Mesh slots in the whole world, as the pc-watcher counts MeshParts (MeshAsset + pending BorderMesh / FenceMesh
 -- slots + the WorldProps skins), counted with ranch_fence_20 uploaded
 -- (tests/WorldBudget.spec), split into caps that add up to MESH_SLOT_BUDGET:
 --   fence   panels + gate segments. The target was 15 a plot (120), but the
@@ -144,10 +144,15 @@ WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 --           corner shows one post; the run that ends at the gate has none
 --           there, and this post closes it, mirroring the post beside the
 --           other gate stub. Paid for by the border share (112 -> 104).
---   border  Map.Border's share (104). The ring uses BORDER_SLOT_COUNT (102)
+--   border  Map.Border's share (88). The ring uses BORDER_SLOT_COUNT (80)
 --           since border v3 (single hedge, fence, tree, rock and hill
---           pieces scattered in layers); #56's chunk ring used 44, main
---           #54's first ring 228.
+--           pieces scattered in layers; 102 slots / 12 designs more until
+--           the pc-watcher perf gate read 414 > 400); #56's chunk ring
+--           used 44, main #54's first ring 228.
+--   runtime MeshParts the pc-watcher counts in the play world that
+--           WorldLayout.build() does not produce: 16, the constant gap
+--           between the build count and the watcher's (340 vs 356 at
+--           09ea65e, 398 vs 414 at b84f795). RUNTIME_SLOT_ALLOWANCE.
 --   decor   everything else: ranch props, pad stands, fountain, plaza,
 --           landing ring, gates, plot dex boards, WorldProps
 --           skins. Capped at 160 = MESH_SLOT_BUDGET - fence - posts - border
@@ -158,9 +163,10 @@ WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 WorldLayout.MESH_SLOT_BUDGET = 400
 WorldLayout.FENCE_SLOT_BUDGET = 128
 WorldLayout.GATE_POST_SLOT_BUDGET = 8
-WorldLayout.BORDER_SLOT_BUDGET = 104
-WorldLayout.BORDER_SLOT_COUNT = 102
+WorldLayout.BORDER_SLOT_BUDGET = 88
+WorldLayout.BORDER_SLOT_COUNT = 80
 WorldLayout.DECOR_SLOT_BUDGET = 160
+WorldLayout.RUNTIME_SLOT_ALLOWANCE = 16
 WorldLayout.MESH_SLOT_BUDGET_FALLBACK = WorldLayout.MESH_SLOT_BUDGET + 112
 -- Parts outside Map.Border (THEME.md asked <= 1200; raised to 1400 for the
 -- primitive meadow clusters in the grass band behind the plots). Asserted

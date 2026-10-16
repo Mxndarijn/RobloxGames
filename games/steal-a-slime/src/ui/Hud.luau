@@ -26,6 +26,7 @@ local Nav = require(script.Parent.Nav)
 local RainTimer = require(script.Parent.RainTimer)
 local RareAnnounce = require(script.Parent.RareAnnounce)
 local Tutorial = require(script.Parent.Tutorial)
+local WeekendBadge = require(script.Parent.WeekendBadge)
 local Widgets = require(script.Parent.Widgets)
 
 local Theme = Widgets.Theme
@@ -215,6 +216,8 @@ function Hud.new(parent: Instance, ctx: any)
 	modifier.TextSize = 15
 	local friends = banner(banners, "FriendBadge", Color3.fromRGB(40, 130, 80), 7)
 	friends.TextSize = 15
+	local weekend = banner(banners, "WeekendChip", Color3.fromRGB(190, 130, 20), 8)
+	weekend.TextSize = 15
 	local egg = banner(banners, "EggReveal", Color3.fromRGB(190, 120, 30), 6)
 	egg.TextSize = 17
 	local hint = banner(banners, "PadHint", Color3.fromRGB(150, 100, 20), 4)
@@ -468,6 +471,12 @@ function Hud.new(parent: Instance, ctx: any)
 		modifier.Visible = modifierText ~= nil
 		if modifierText then
 			modifier.Text = modifierText
+		end
+
+		local weekendText = WeekendBadge.banner(current.weekend, now)
+		weekend.Visible = weekendText ~= nil
+		if weekendText then
+			weekend.Text = weekendText
 		end
 
 		local friendText = FriendBadge.banner(current.friends, ctx.Config.FEATURES.FriendBonus == true)

@@ -100,7 +100,7 @@ type Def = {
 
 local WorldBorder = {}
 
-WorldBorder.SEED = 20261016
+WorldBorder.SEED = 20261018
 WorldBorder.GROUND_HALF = 320 -- WorldLayout Ground is 640 x 640, centred
 -- Inner face of the wall ring. The plots end at r ~197, the sheds at
 -- ~253; WorldLayout keeps scattered decor inside RADIUS - 10.
@@ -131,56 +131,40 @@ WorldBorder.DEFS = table.freeze({
 		kind = "Fence",
 		mesh = "ranch_border_fence_straight",
 		layer = "inner",
-		weights = { all = 3 },
-		scale = { 0.92, 1.2 },
+		weights = { all = 2.4 },
+		scale = { 1, 1.4 },
 		turn = 7,
-	},
-	{
-		kind = "BrokenFence",
-		mesh = "ranch_border_fence_broken",
-		layer = "inner",
-		weights = { all = 1.4 },
-		scale = { 0.92, 1.2 },
-		turn = 9,
 	},
 	{
 		kind = "HedgeLong",
 		mesh = "ranch_border_hedge_long",
 		layer = "inner",
-		weights = { all = 2.4 },
-		scale = { 0.92, 1.25 },
+		weights = { all = 3 },
+		scale = { 1, 1.4 },
 		turn = 6,
 	},
 	{
 		kind = "HedgeRound",
 		mesh = "ranch_border_hedge_round",
 		layer = "inner",
-		weights = { all = 2 },
-		scale = { 0.95, 1.35 },
-		turn = 6,
-	},
-	{
-		kind = "HedgeStepped",
-		mesh = "ranch_border_hedge_stepped",
-		layer = "inner",
-		weights = { all = 1.6 },
-		scale = { 0.92, 1.2 },
+		weights = { all = 0.8 },
+		scale = { 1, 1.5 },
 		turn = 6,
 	},
 	{
 		kind = "FenceLong",
 		mesh = "ranch_border_fence_long",
 		layer = "inner",
-		weights = { all = 2.2 },
-		scale = { 0.95, 1.15 },
+		weights = { all = 3.2 },
+		scale = { 1, 1.2 },
 		turn = 5,
 	},
 	{
 		kind = "HedgeXL",
 		mesh = "ranch_border_hedge_xl",
 		layer = "inner",
-		weights = { all = 2 },
-		scale = { 0.95, 1.15 },
+		weights = { all = 3.2 },
+		scale = { 1, 1.25 },
 		turn = 5,
 	},
 	{
@@ -197,14 +181,6 @@ WorldBorder.DEFS = table.freeze({
 		layer = "mid",
 		weights = { pines = 2.5, meadow = 0.6 },
 		scale = { 0.9, 1.5 },
-		turn = 180,
-	},
-	{
-		kind = "PineTwin",
-		mesh = "ranch_border_pine_twin",
-		layer = "mid",
-		weights = { pines = 2, meadow = 0.2 },
-		scale = { 0.9, 1.4 },
 		turn = 180,
 	},
 	{
@@ -248,35 +224,27 @@ WorldBorder.DEFS = table.freeze({
 		turn = 180,
 	},
 	{
-		kind = "Spire",
-		mesh = "ranch_border_rock_spire",
-		layer = "mid",
-		weights = { rocky = 1.5 },
-		scale = { 0.75, 1.35 },
-		turn = 180,
-	},
-	{
 		kind = "GrovePine",
 		mesh = "ranch_border_grove_pine",
 		layer = "mid",
-		weights = { pines = 6, meadow = 1.5, rocky = 1 },
-		scale = { 0.95, 1.3 },
+		weights = { pines = 12, meadow = 3, rocky = 3 },
+		scale = { 1, 1.35 },
 		turn = 15,
 	},
 	{
 		kind = "GroveMixed",
 		mesh = "ranch_border_grove_mixed",
 		layer = "mid",
-		weights = { pines = 2, meadow = 7 },
-		scale = { 0.95, 1.3 },
+		weights = { pines = 4, meadow = 12, rocky = 1.5 },
+		scale = { 1, 1.35 },
 		turn = 15,
 	},
 	{
 		kind = "GroveRocky",
 		mesh = "ranch_border_grove_rocky",
 		layer = "mid",
-		weights = { pines = 1, meadow = 1.5, rocky = 6 },
-		scale = { 0.95, 1.3 },
+		weights = { pines = 3, meadow = 3, rocky = 11 },
+		scale = { 1, 1.35 },
 		turn = 15,
 	},
 	{
@@ -310,9 +278,9 @@ WorldBorder.DEFS = table.freeze({
 -- neighbours along the edge (< 0 overlaps), o = offset of a piece's inner
 -- edge past the wall line (a piece is pulled in to stay on the Ground).
 WorldBorder.LAYERS = table.freeze({
-	inner = { base = 4, cap = 36, gap = { -1.5, 2.5 }, o = { 0.5, 2.5 }, opening = { 8, 22 }, openingChance = 0.1 },
-	mid = { base = 14, cap = 42, gap = { -4, 1 }, o = { 5, 22 }, open = { 20, 90 }, cluster = { 3, 6 } },
-	outer = { base = 34, cap = 16, gap = { 30, 120 }, o = { 14, 40 } },
+	inner = { base = 4, cap = 28, gap = { -1.5, 2.5 }, o = { 0.5, 2.5 }, opening = { 8, 22 }, openingChance = 0.1 },
+	mid = { base = 14, cap = 32, gap = { -4, 1 }, o = { 5, 22 }, open = { 20, 80 }, cluster = { 3, 6 } },
+	outer = { base = 34, cap = 12, gap = { 30, 120 }, o = { 14, 40 } },
 })
 WorldBorder.THEMES = table.freeze({
 	{ name = "pines", weight = 4 },
@@ -628,12 +596,29 @@ local function placeLayer(rng: Rng.Rng, name: string, drafts: { Draft }, circumf
 		first.piece.turn
 	)
 	local k = circumference / total
+	-- A layer cut short by its cap (fewer slots than the ring needs) has ring
+	-- left over. Clustered layers hand it to the open ground between
+	-- clusters, so a grove stays a grove; the others stretch every advance.
+	local extra: { number } = {}
+	if cfg.cluster and k > 1 then
+		local openTotal = 0
+		for i = 2, #drafts do
+			openTotal += math.max(0, drafts[i].gap - cfg.open[1] * 0.5)
+		end
+		if openTotal > 0 then
+			for i = 2, #drafts do
+				extra[i] = math.max(0, drafts[i].gap - cfg.open[1] * 0.5) / openTotal * (circumference - total)
+			end
+			extra[1] = math.max(0, first.gap - cfg.open[1] * 0.5) / openTotal * (circumference - total)
+			k = 1
+		end
+	end
 	local start = rng:float() * 360
 	local s = 0
 	local pieces = {}
 	for idx, d in drafts do
 		if idx > 1 then
-			s += advance(drafts[idx - 1], d) * k
+			s += advance(drafts[idx - 1], d) * k + (extra[idx] or 0)
 		end
 		local p = d.piece
 		p.order = idx
