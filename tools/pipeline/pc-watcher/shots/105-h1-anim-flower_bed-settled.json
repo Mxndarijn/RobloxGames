@@ -1,0 +1,10 @@
+{
+  "id": "h1-anim-flower_bed-settled",
+  "todo": "v30 H1",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "flower_bed",
+  "wait": 1.8,
+  "note": "v30 H1: flower_bed habitat settled after the rise = the static habitat"
+}

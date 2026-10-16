@@ -8,8 +8,12 @@
 	.stepWeights): the current habitat grows to 1 and every other look
 	shrinks to 0 over Habitats.TRANSFORM_SECONDS, with a sparkle burst when a
 	transform starts. The pad's own Stand fades out locally
-	(LocalTransparencyModifier) while a habitat shows. The first time a pad is
-	seen it snaps to its final state (join in progress), no burst.
+	(LocalTransparencyModifier) while a habitat shows, tinted toward the
+	habitat accent on the way (exact colours restored at base). Props rise
+	staggered with an overshoot and go in reverse (HabitatMorph). Quality
+	"snap" (reduced motion, far from the camera, too many pads morphing) or
+	"simple" (mid distance) cut the tween / puff. The first time a pad is seen
+	it snaps to its final state (join in progress), no burst.
 
 	Mesh slots (Habitats.MESH_SLOTS) draw their uploaded mesh when
 	Habitats.slotMesh(id) has one (MeshAssets meshId): a Part with a FileMesh
@@ -20,18 +24,20 @@
 	Reads attributes only; never fires remotes. Nothing replicates.
 ]]
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
+local HabitatMorph = require(Shared:WaitForChild("HabitatMorph"))
 local Habitats = require(Shared:WaitForChild("Habitats"))
 
 local HabitatFx = {}
 
 HabitatFx.SPARK = "rbxasset://textures/particles/sparkles_main.dds" -- built-in, same as Effects SPARK
-HabitatFx.BURST = 24
+HabitatFx.BURST = Config.HABITAT_ANIM.BURST_FULL
 
 type Piece = {
 	part: BasePart,
@@ -47,8 +53,10 @@ type Track = {
 	id: string,
 	seen: boolean, -- false until the pad's first Habitat attribute
 	weights: Habitats.Weights,
+	quality: HabitatMorph.Quality,
 	looks: { [string]: Look },
 	burst: ParticleEmitter?,
+	colors: { [BasePart]: Color3 }, -- exact base colours, kept while the pad is tinted
 	conn: RBXScriptConnection, -- Habitat attribute listener, disconnected in drop
 }
 
@@ -216,19 +224,20 @@ local function buildLook(pad: BasePart, id: string): Look?
 	return { model = model, pieces = pieces }
 end
 
--- Grows from the ground: size and height scale with an eased weight, fades in.
-local function poseLook(pad: BasePart, look: Look, w: number)
-	local e = 1 - (1 - w) ^ 3
-	local s = 0.05 + 0.95 * e
+-- Grows from the ground: each prop's scale follows HabitatMorph.propScale
+-- (staggered, overshoot while rising); it fades in with the weight.
+local function poseLook(pad: BasePart, look: Look, w: number, rising: boolean, quality: HabitatMorph.Quality)
 	local bottom = pad.CFrame * CFrame.new(0, -pad.Size.Y / 2, 0)
-	for _, p in look.pieces do
+	local n = #look.pieces
+	for i, p in look.pieces do
+		local s = HabitatMorph.propScale(quality, w, i, n, rising, Config.HABITAT_ANIM)
 		local o = p.offset
 		p.part.Size = p.size * s
 		if p.mesh and p.scale then
 			p.mesh.Scale = p.scale * s
 		end
 		p.part.CFrame = bottom * CFrame.new(o.Position * Vector3.new(1, s, 1)) * o.Rotation
-		p.part.Transparency = 1 - w * (1 - p.transparency)
+		p.part.Transparency = 1 - math.min(1, w * 1.5) * (1 - p.transparency)
 	end
 end
 
@@ -248,7 +257,42 @@ local function setStandVisible(pad: BasePart, visibility: number)
 	end
 end
 
-local function emitBurst(track: Track, id: string)
+-- Pad (and its Stand) colour shifts toward the habitat accent while a look
+-- grows, and returns to the exact stored colours at base.
+local function tintPad(track: Track, id: string, amount: number)
+	local pad = track.pad
+	local parts: { BasePart } = { pad }
+	local stand = pad:FindFirstChild("Stand")
+	if stand then
+		if stand:IsA("BasePart") then
+			table.insert(parts, stand)
+		end
+		for _, d in stand:GetDescendants() do
+			if d:IsA("BasePart") then
+				table.insert(parts, d)
+			end
+		end
+	end
+	local habitat = Habitats.get(id)
+	for _, part in parts do
+		local base = track.colors[part]
+		if not base then
+			if amount <= 0 then
+				continue
+			end
+			base = part.Color
+			track.colors[part] = base
+		end
+		if amount <= 0 or not habitat then
+			part.Color = base
+			track.colors[part] = nil
+		else
+			part.Color = base:Lerp(rgb(habitat.accent), amount)
+		end
+	end
+end
+
+local function emitBurst(track: Track, id: string, count: number)
 	local habitat = Habitats.get(id) or Habitats.get(Habitats.BASE)
 	if not habitat then
 		return
@@ -273,7 +317,7 @@ local function emitBurst(track: Track, id: string)
 	end
 	assert(emitter, "emitter")
 	emitter.Color = ColorSequence.new(rgb(habitat.accent), rgb(habitat.color))
-	emitter:Emit(HabitatFx.BURST)
+	emitter:Emit(count)
 end
 
 -- Unknown or missing ids read as BASE, so table drift never hides a pad.
@@ -282,16 +326,23 @@ local function readId(pad: BasePart): string
 end
 
 local function apply(track: Track)
+	local top, topId = 0, Habitats.BASE
+	for id, w in track.weights do
+		if w > top then
+			top, topId = w, id
+		end
+	end
 	for id, look in track.looks do
 		local w = track.weights[id]
 		if w then
-			poseLook(track.pad, look, w)
+			poseLook(track.pad, look, w, id == track.id, track.quality)
 		else
 			look.model:Destroy()
 			track.looks[id] = nil
 		end
 	end
 	setStandVisible(track.pad, Habitats.baseVisibility(track.weights))
+	tintPad(track, topId, HabitatMorph.tint(top))
 end
 
 local function ensureLooks(track: Track)
@@ -319,6 +370,7 @@ local function drop(pad: BasePart)
 	end
 	if pad.Parent then
 		setStandVisible(pad, 1)
+		tintPad(track, Habitats.BASE, 0)
 	end
 	tracks[pad] = nil
 end
@@ -333,16 +385,44 @@ local function snap(track: Track)
 	apply(track)
 end
 
+local function reducedMotion(): boolean
+	local player = Players.LocalPlayer
+	return player ~= nil and player:GetAttribute(Config.HABITAT_ANIM.REDUCED_ATTRIBUTE) == true
+end
+
+local function cameraDistance(pad: BasePart): number?
+	local camera = workspace.CurrentCamera
+	return if camera then (camera.CFrame.Position - pad.Position).Magnitude else nil
+end
+
+local function animating(): number
+	local n = 0
+	for _, track in tracks do
+		if not Habitats.isSettled(track.weights, track.id) then
+			n += 1
+		end
+	end
+	return n
+end
+
 local function onHabitat(track: Track)
 	if not track.seen then
 		snap(track)
 		return
 	end
 	local nextId = readId(track.pad)
-	if nextId ~= track.id then
-		track.id = nextId
-		emitBurst(track, nextId)
+	if nextId == track.id then
+		return
 	end
+	local quality: HabitatMorph.Quality =
+		HabitatMorph.quality(Config.HABITAT_ANIM, reducedMotion(), cameraDistance(track.pad), animating())
+	track.quality = quality
+	if quality == "snap" then
+		snap(track) -- final state at once, no puff
+		return
+	end
+	track.id = nextId
+	emitBurst(track, nextId, HabitatMorph.burst(Config.HABITAT_ANIM, quality))
 end
 
 local function watch(pad: BasePart)
@@ -355,8 +435,10 @@ local function watch(pad: BasePart)
 		id = Habitats.BASE,
 		seen = false,
 		weights = {},
+		quality = "full",
 		looks = {},
 		burst = nil,
+		colors = {},
 		conn = pad:GetAttributeChangedSignal(Constants.HABITAT_ATTRIBUTE):Connect(function()
 			onHabitat(track)
 		end),

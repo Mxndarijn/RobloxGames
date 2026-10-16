@@ -2,6 +2,8 @@
 -- shot_find path of the shots/*.json target) on THIS client only, so HabitatFx tweens the look. First
 -- puts the pad back to base for 1.3 s (the revert tween is 1 s), then sets %%HABITAT%% and waits
 -- %%WAIT%% s so the capture lands mid-morph (short wait) or after it (>= 1.2 s).
+-- %%LEAVE%% = true: the slime leaves instead: sets %%HABITAT%% and lets it settle (1.4 s), then puts the
+-- pad back to base and waits %%WAIT%% s (short = mid-shrink, >= 1.2 s = the exact base pad again).
 local node = game
 for part in string.gmatch(%%PATH%%, "[^.]+") do
 	if node == game and part == "Workspace" then
@@ -15,9 +17,16 @@ if not node then
 end
 local ATTR = "Habitat"
 local before = node:GetAttribute(ATTR)
-node:SetAttribute(ATTR, "base")
-task.wait(1.3)
-node:SetAttribute(ATTR, %%HABITAT%%)
+local LEAVE = %%LEAVE%%
+if LEAVE then
+	node:SetAttribute(ATTR, %%HABITAT%%)
+	task.wait(1.4)
+	node:SetAttribute(ATTR, "base")
+else
+	node:SetAttribute(ATTR, "base")
+	task.wait(1.3)
+	node:SetAttribute(ATTR, %%HABITAT%%)
+end
 task.wait(%%WAIT%%)
 -- Seat height: bottom Y of the pad_seat slime (PcwPad) vs top Y of the habitat look model HabitatFx
 -- built (client-side, named <plot>_<pad>_<habitat>); seat_delta > 0 = slime floats above the habitat.
@@ -29,7 +38,7 @@ for _, m in game:GetService("CollectionService"):GetTagged("Slime") do
 end
 local look = workspace:FindFirstChild(node.Parent.Name .. "_" .. node.Name .. "_" .. %%HABITAT%%, true)
 local seat
-if slime and look and look:IsA("Model") then
+if not LEAVE and slime and look and look:IsA("Model") then
 	local sc, ss = slime:GetBoundingBox()
 	local lc, ls = look:GetBoundingBox()
 	local bottom, top = sc.Position.Y - ss.Y / 2, lc.Position.Y + ls.Y / 2

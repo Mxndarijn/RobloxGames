@@ -1515,7 +1515,8 @@ def step_shots(run):
                 if shot.get("habitat") and (res.get("target") or {}).get("path"):
                     # morph proof: the Client sets the pad's Habitat and waits `wait` s (mid-morph < 1, done >= 1.2)
                     res["habitat"] = run.need_luau("habitat_set", "Client", timeout=30, path=res["target"]["path"],
-                                                   habitat=shot["habitat"], wait=float(shot.get("wait", 1.5)))
+                                                   habitat=shot["habitat"], wait=float(shot.get("wait", 1.5)),
+                                                   leave=bool(shot.get("leave")))
                 if shot.get("weather"):
                     # weather proof: the Client forces WeatherDebug (client-only attribute) and waits `wait` s for the tween in
                     res["weather"] = run.need_luau("weather_set", "Client", timeout=30, weather=shot["weather"],

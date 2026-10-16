@@ -487,6 +487,21 @@ local Config = {
 		HYSTERESIS = 0.1, -- share of a radius a slime must cross back to change tier again (selection runs 4x a second)
 	}),
 
+	-- Habitat morph feel (HabitatFx / HabitatMorph, HABITATS.md "Animation"). Client only.
+	-- STAGGER = share of the morph the last prop waits before it starts; OVERSHOOT = easeOutBack
+	-- strength when rising; BURST_* = puff particles per transform by quality; MAX_ANIMATING = pads
+	-- morphing at once before a new change snaps (cap); SNAP_BEYOND = studs from the camera beyond
+	-- which a change snaps with no puff.
+	HABITAT_ANIM = table.freeze({
+		STAGGER = 0.35,
+		OVERSHOOT = 1.6,
+		BURST_FULL = 24,
+		BURST_SIMPLE = 8,
+		MAX_ANIMATING = 6,
+		SNAP_BEYOND = 90,
+		REDUCED_ATTRIBUTE = "ReducedMotion", -- LocalPlayer attribute; true = no tween, no puff
+	}),
+
 	-- Boss Slime event (FEATURES.BossSlime)
 	BOSS_FIRST_AT = 8 * 60, -- seconds after server start
 	BOSS_INTERVAL = 15 * 60,
