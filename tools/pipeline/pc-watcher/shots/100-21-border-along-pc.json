@@ -14,5 +14,6 @@
   ],
   "wait": 2.0,
   "note": "border v3: mid height along the edge: piece mix, rotation, spacing and clusters should differ every stretch in [desktop]",
-  "device": "desktop"
+  "device": "desktop",
+  "clock": 14
 }

@@ -1484,7 +1484,8 @@ def step_shots(run):
                         # aim the camera at the real slime model
                         eye, at = shot_camera_from({"pos": gw["pos"], "size": [4, 4, 4], "look": (res["target"].get("front") or [0, 0, 1])},
                                                    shot.get("from", "look"), None, shot.get("dist"), shot.get("height"))
-                        at = (at[0], at[1] + 1.5, at[2])
+                        lp = gw.get("label_pos")  # the real GrowthLabel position: aim at it so slime and label both fit
+                        at = (at[0], lp[1] - 0.5, at[2]) if lp else (at[0], at[1] + 2.0, at[2])
                         res["aim"] = run.need_luau("shot_aim", "Client", timeout=25, eye=eye, at=at)
                         time.sleep(1.0)  # BillboardGui replication to the Client
                     else:
@@ -1520,8 +1521,15 @@ def step_shots(run):
                     # optional uploaded-animation proof: the Client plays it on the pad slime's Animator, waits `wait` s
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
                                                 anim=shot["anim"], id=shot["animId"], wait=float(shot.get("wait", 0.5)))
-                res["frame"] = capture_frame(run, fid, todo=todo, kind="shot",
-                                             target=(res.get("target") or {}).get("path"))
+                if shot.get("clock") is not None:
+                    # daytime shot: the Server's DayNight cycle rewrites ClockTime, so pin it (Studio hook), restore after
+                    res["clock"] = run.need_luau("pcw_clock", "Server", timeout=15, time=float(shot["clock"]))
+                try:
+                    res["frame"] = capture_frame(run, fid, todo=todo, kind="shot",
+                                                 target=(res.get("target") or {}).get("path"))
+                finally:
+                    if shot.get("clock") is not None:
+                        run.luau("pcw_clock", "Server", timeout=15, time=False)
         except Exception as e:
             res["error"] = repr(e)[:200]
             if not res.get("frame"):
