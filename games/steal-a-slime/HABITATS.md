@@ -1,6 +1,6 @@
 # Slime habitats (spec)
 
-**Status:** draft, behind `Config.FEATURES.Habitats = false` (default off; v27 is unaffected). **Date:** 2026-10-16. **Owners:** data + pad state Phoenix (`src/shared`, `src/server`), habitat FX Archer (`src/visuals`). Written by Jolt.
+**Status:** every type has its own uploaded mesh; `Config.FEATURES.Habitats = true`. **Date:** 2026-10-16. **Owners:** data + pad state Phoenix (`src/shared`, `src/server`), habitat FX Archer (`src/visuals`). Written by Jolt.
 
 When a slime sits on a pad, the pad turns into that slime's habitat in about 1 s (tween + FX). When the pad empties (slime stolen, carried off, sold, merged, owner leaves) it turns back into the base pad.
 
@@ -8,20 +8,20 @@ When a slime sits on a pad, the pad turns into that slime's habitat in about 1 s
 
 - **Habitat ids** are plain strings, never saved. `base` = the pad as built today (its `WorldLayout.PAD_MESHES` stand plus the kit's `pad_trim` plinth).
 - **Lookup:** `Habitats.forSlime(slime)`: the per-type table (`TYPE`, by `SlimeRoster` id) wins, then the family of the slime's tier (`FAMILY_BY_TIER` -> `FAMILY`), else `base`. Merged / pre-v28 slimes have no `species`, so they fall back to their tier's family.
-- **Looks reuse the Phoenix pad kit** (`shared/modeling-kit/models/phoenix_pad_*.py`, FBX in `out/`). All seven already have mesh ids in `src/shared/MeshAssets.luau`; `pad_trim` has no id in the repo (placeholder). v1 draws primitive stand-ins only (no asset ids).
+- **Looks are per-type kit meshes** (`shared/modeling-kit/models/habitat_<id>.py`, ids in `MeshAssets`, `uploaded.json`): 7.8 wide, 3.6-5.0 tall, seat 2.4 (FOUNTAIN_SIZES.md). `base` keeps the pad stand + `pad_trim`.
 
 | Habitat | Kit look | Seat | Used by |
 |---|---|---|---|
 | `base` | pad's own stand + `pad_trim` | (pad) | empty pad, flag off |
-| `hay_nest` | `phoenix_pad_hay` | 1.0 | family field (Common); `golden_goose_goo` |
-| `mushroom_ring` | `phoenix_pad_mushroom` | 3.0 | `clover`, `moonmilk` |
-| `flower_bed` | `phoenix_pad_flower_bed` | 2.4 | family sprout (Uncommon) |
-| `barn_crate` | `phoenix_pad_crate` | 2.4 | family critter (Rare) |
-| `rodeo_barrel` | `phoenix_pad_barrel_top` | 2.4 | `rodeo_ram` |
-| `syrup_pool` | `phoenix_pad_goo` | 1.5 | `pudding`, `puddle`, `honey_queen` |
-| `show_stool` | `phoenix_pad_stool` | 3.0 | family royal (Legendary) |
-| `candy_patch` | **new mesh** | 2.4 | family horned (Epic); `gumdrop_titan` |
-| `crystal_grotto` | **new mesh** | 2.4 | family crystal (Mythic), family secret |
+| `hay_nest` | `habitat_hay_nest` | 2.4 | family field (Common); `golden_goose_goo` |
+| `mushroom_ring` | `habitat_mushroom_ring` | 2.4 | `clover`, `moonmilk` |
+| `flower_bed` | `habitat_flower_bed` | 2.4 | family sprout (Uncommon) |
+| `barn_crate` | `habitat_barn_crate` | 2.4 | family critter (Rare) |
+| `rodeo_barrel` | `habitat_rodeo_barrel` | 2.4 | `rodeo_ram` |
+| `syrup_pool` | `habitat_syrup_pool` | 2.4 | `pudding`, `puddle`, `honey_queen` |
+| `show_stool` | `habitat_show_stool` | 2.4 | family royal (Legendary) |
+| `candy_patch` | `habitat_candy_patch` | 2.4 | family horned (Epic); `gumdrop_titan` |
+| `crystal_grotto` | `habitat_crystal_grotto` | 2.4 | family crystal (Mythic), family secret |
 
 ## Server owns pad state: `src/server/HabitatPads.luau` (pure) + `WorldView.updatePlots`
 
@@ -52,3 +52,7 @@ Same slot rules as the pad kit (`models/_phoenix_pad.py`): footprint <= 7.96 x 7
 | `candy_patch` | `habitat_candy_patch` | 7.8 x 4.5 x 7.8 | 2.4 | sugar-soil mound with gumdrops and two lollipops at the rim, flat biscuit seat |
 
 Both models landed (Archer #57, `shared/modeling-kit/out/habitat_*.fbx`) but are **not uploaded**: `MeshAssets` lists them with sizes and no `meshId`. `Habitats.slotMesh(id)` returns the slot's meshId + native size once one is filled in, and `HabitatFx` then draws it (FileMesh SpecialMesh, Y fit so the 2.4 seat meets the pad top); until then both draw primitive placeholders. The seven kit pads are already uploaded; swapping their meshes into `HabitatFx` is a follow-up (MeshSwap is server-side today).
+
+## All habitats uploaded
+
+All nine looks are uploaded (Open Cloud, see `uploaded.json`) and wired in `MeshAssets`; `Habitats.slotMesh` draws them for every id. `tests/Habitats.spec` checks each type maps to a mesh id with a 7.8 footprint and seat 2.4. `tools/pipeline/pc-watcher/shots.json` has a mid-morph and a done shot per habitat (TODO 16).

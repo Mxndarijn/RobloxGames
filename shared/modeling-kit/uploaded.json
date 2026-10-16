@@ -1,4 +1,17 @@
 {
+  "habitat_barn_crate": {
+    "assetId": "89583070931756",
+    "assetType": "Model",
+    "meshId": "rbxassetid://98462960817471",
+    "meshSize": [
+      7.8,
+      4.2,
+      7.8
+    ],
+    "sha256": "fe92bda8dfb6ba48",
+    "uploadedAt": "2026-10-16T11:07:07Z",
+    "versions": 1
+  },
   "habitat_candy_patch": {
     "assetId": "133666024913667",
     "assetType": "Model",
@@ -23,6 +36,84 @@
     ],
     "sha256": "aad5848e61f94577",
     "uploadedAt": "2026-10-16T08:04:12Z",
+    "versions": 1
+  },
+  "habitat_flower_bed": {
+    "assetId": "122318217311799",
+    "assetType": "Model",
+    "meshId": "rbxassetid://95838335102537",
+    "meshSize": [
+      7.8,
+      4.0,
+      7.8
+    ],
+    "sha256": "7601380504f5d75d",
+    "uploadedAt": "2026-10-16T11:06:52Z",
+    "versions": 1
+  },
+  "habitat_hay_nest": {
+    "assetId": "120365465161287",
+    "assetType": "Model",
+    "meshId": "rbxassetid://137434987788443",
+    "meshSize": [
+      7.8,
+      4.0,
+      7.8
+    ],
+    "sha256": "436ae3171f03f4db",
+    "uploadedAt": "2026-10-16T11:06:27Z",
+    "versions": 1
+  },
+  "habitat_mushroom_ring": {
+    "assetId": "125411498762649",
+    "assetType": "Model",
+    "meshId": "rbxassetid://117664485324932",
+    "meshSize": [
+      7.8,
+      4.2,
+      7.8
+    ],
+    "sha256": "6f92c0d603c56eb7",
+    "uploadedAt": "2026-10-16T11:06:41Z",
+    "versions": 1
+  },
+  "habitat_rodeo_barrel": {
+    "assetId": "98071962509034",
+    "assetType": "Model",
+    "meshId": "rbxassetid://124673945500348",
+    "meshSize": [
+      7.8,
+      4.5,
+      7.8
+    ],
+    "sha256": "5f54767dbc000b36",
+    "uploadedAt": "2026-10-16T11:07:22Z",
+    "versions": 1
+  },
+  "habitat_show_stool": {
+    "assetId": "74338867735483",
+    "assetType": "Model",
+    "meshId": "rbxassetid://132522416455664",
+    "meshSize": [
+      7.8,
+      4.6,
+      7.8
+    ],
+    "sha256": "f973eed1cccfeb57",
+    "uploadedAt": "2026-10-16T11:07:40Z",
+    "versions": 1
+  },
+  "habitat_syrup_pool": {
+    "assetId": "84228432405913",
+    "assetType": "Model",
+    "meshId": "rbxassetid://103442186480271",
+    "meshSize": [
+      7.8,
+      3.6,
+      7.8
+    ],
+    "sha256": "c6533063989058fa",
+    "uploadedAt": "2026-10-16T11:07:30Z",
     "versions": 1
   },
   "phoenix_corner_post": {

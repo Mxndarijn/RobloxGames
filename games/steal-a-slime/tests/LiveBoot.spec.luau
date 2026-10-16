@@ -12,6 +12,7 @@ local process = require("@lune/process")
 local Checks = require("../tools/livetest/Checks")
 local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
+local Habitats = require("../src/shared/Habitats")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
 
@@ -115,12 +116,15 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 			end
 		end
 	)
-	it("sets no habitat attributes or parts with FEATURES.Habitats off", function()
+	it("with FEATURES.Habitats on, every pad carries a known habitat id and the server builds no looks", function()
 		local found = {}
+		local pads = 0
 		for _, d in rt.workspace:GetDescendants() do
-			for _, name in { "Habitat", "HabitatFrom", "HabitatAt" } do
-				if d:GetAttribute(name) ~= nil then
-					table.insert(found, `{d:GetFullName()}.{name}`)
+			local id = d:GetAttribute("Habitat")
+			if id ~= nil then
+				pads += 1
+				if Habitats.resolve(id) ~= id then
+					table.insert(found, `{d:GetFullName()}.Habitat={tostring(id)}`)
 				end
 			end
 			if d.Name == "ClientHabitats" or d.Name == "HabitatBurst" then
@@ -130,6 +134,8 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 		if #found > 0 then
 			print(`    {table.concat(found, ", ")}`)
 		end
+		expect(Config.FEATURES.Habitats).toBe(true)
+		expect(pads > 0).toBe(true)
 		expect(#found).toBe(0)
 	end)
 end)
