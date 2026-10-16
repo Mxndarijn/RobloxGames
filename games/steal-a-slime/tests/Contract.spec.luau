@@ -52,7 +52,7 @@ describe("Config matches the design", function()
 		local last = math.huge
 		for _, rarity in Config.RARITIES do
 			expect(rarity.escapeTime >= 15 and rarity.escapeTime <= 25).toBeTruthy()
-			expect(rarity.escapeTime < last).toBeTruthy()
+			expect(rarity.escapeTime <= last).toBeTruthy()
 			last = rarity.escapeTime
 		end
 	end)

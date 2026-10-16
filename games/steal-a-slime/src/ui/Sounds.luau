@@ -28,6 +28,8 @@ Sounds.IDS = table.freeze({
 	-- v13 (CONTRACT §8.6); stand-ins reusing the Rain / Cash sounds.
 	Rare = "rbxassetid://12222200",
 	Goal = "rbxassetid://12222140",
+	-- Secret spawn announcement; stand-in reusing the Rebirth fanfare.
+	Secret = "rbxassetid://12222225",
 })
 
 -- "Alarm" -> its asset id; raw "rbxassetid://123" passes through; anything

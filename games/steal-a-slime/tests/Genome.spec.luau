@@ -168,8 +168,6 @@ describe("Genome roster wiring (v28)", function()
 			expect(s.name).toBe(entry.name)
 			seen[entry.id] = true
 		end
-		expect(seen.golden_goose_goo).toBe(nil)
-		expect(seen.moonmilk).toBe(nil)
 	end)
 	it("every Config tier has species and forced tiers map to them", function()
 		for tier = 1, Config.MAX_TIER do
@@ -177,7 +175,7 @@ describe("Genome roster wiring (v28)", function()
 			local s = Genome.generate(Rng.new(tier), { id = "t", tier = tier })
 			expect((SlimeRoster.get(s.species :: string) :: any).tier).toBe(tier)
 		end
-		expect(Genome.rollSpecies(SlimeRoster.SECRET_TIER, 0.5)).toBe(nil)
+		expect(Genome.rollSpecies(SlimeRoster.SECRET_TIER, 0.5) ~= nil).toBe(true)
 	end)
 	it("old saves without species still load and keep their name", function()
 		local s = Genome.sanitize({

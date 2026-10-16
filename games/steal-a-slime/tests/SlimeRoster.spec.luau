@@ -7,15 +7,16 @@ local TestRunner = require("./TestRunner")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 describe("SlimeRoster", function()
-	it("has 6/6/5/5/4/3 named slimes per tier plus 1-2 Secret", function()
-		local expected = { 6, 6, 5, 5, 4, 3 }
+	it("has 6/6/5/5/4/3 named slimes per tier (Secret = 7)", function()
+		local expected = { 6, 6, 5, 5, 4, 3, 2 }
 		expect(#expected).toBe(Config.MAX_TIER)
+		expect(Config.SECRET_TIER).toBe(Config.MAX_TIER)
 		for tier, count in expected do
 			expect(#SlimeRoster.forTier(tier)).toBe(count)
 		end
 		local secret = #SlimeRoster.forTier(SlimeRoster.SECRET_TIER)
 		expect(secret >= 1 and secret <= 2).toBe(true)
-		expect(SlimeRoster.SECRET_TIER).toBe(Config.MAX_TIER + 1)
+		expect(SlimeRoster.SECRET_TIER).toBe(Config.MAX_TIER)
 	end)
 
 	it("uses unique lower-case ids with a name and look note", function()

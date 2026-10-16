@@ -110,6 +110,16 @@ local RARITIES: { Rarity } = {
 		carrySlow = 0.3,
 		escapeTime = 15,
 	},
+	{
+		-- Secret: ~1 in 1000 wild spawns (0.1 / (100 + 0.1)); announced to everyone.
+		tier = 7,
+		name = "Secret",
+		income = 800,
+		weight = 0.1,
+		color = { 20, 240, 220 },
+		carrySlow = 0.35,
+		escapeTime = 15,
+	},
 }
 
 local MUTATIONS: { Mutation } = {
@@ -348,6 +358,7 @@ local Config = {
 	-- v13 rarity curve (CONTRACT.md §8.7): pity per server, Legendary+ drops are announced
 	PITY_EPIC = 30, -- after this many drops without an Epic+, the next one is at least Epic
 	PITY_LEGENDARY = 300, -- same for Legendary+
+	SECRET_TIER = 7, -- Config.RARITIES tier of the Secret slimes (SlimeRoster.SECRET_TIER)
 	RARE_ANNOUNCE_TIER = 5, -- wild drops of this tier or higher: Notify everyone + RareSpawn attributes
 	FREE_DROP_CHANCE = 0.25, -- share of wild slimes that cost nothing to grab
 	WILD_PRICE_SECONDS = 20, -- other wild slimes cost this many seconds of their income

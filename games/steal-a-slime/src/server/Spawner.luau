@@ -75,7 +75,7 @@ end
 function Spawner.rareText(slime: Genome.Slime): string
 	local rarity = string.upper(Genome.rarity(slime.tier).name)
 	local mutation = if slime.mutation ~= "None" then `{Genome.mutationDisplayName(slime.mutation)} ` else ""
-	local bang = if slime.tier >= Config.MAX_TIER then "!!" else "!"
+	local bang = if slime.tier >= Config.SECRET_TIER - 1 then "!!" else "!"
 	return `A {rarity} {mutation}{slime.name} spilled from the fountain{bang}`
 end
 
@@ -88,7 +88,9 @@ function Spawner.spawnOne(world: World, now: number): string
 	pity.sinceLegendary = if tier >= 5 then 0 else pity.sinceLegendary + 1
 	local rare = if tier >= Config.RARE_ANNOUNCE_TIER then tier else nil
 	if rare then
-		World.notify(world, nil, Spawner.rareText(drop.slime), "good", "Rare")
+		-- Secrets get their own fanfare; both Notifies go to every player (userId nil).
+		local sound = if tier >= Config.SECRET_TIER then "Secret" else "Rare"
+		World.notify(world, nil, Spawner.rareText(drop.slime), "good", sound)
 		World.emit(world, { type = "Rare", slimeId = id, tier = tier })
 	end
 	world.wild[id] = {

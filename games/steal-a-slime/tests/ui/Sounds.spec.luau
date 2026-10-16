@@ -21,6 +21,7 @@ local CONTRACT_NAMES = {
 	"Rebirth",
 	"Rare", -- v13, §8.6
 	"Goal",
+	"Secret", -- v28 Secret spawn announcement
 }
 
 describe("Sounds.resolve", function()

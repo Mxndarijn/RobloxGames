@@ -85,7 +85,7 @@ describe("Steal carry", function()
 		expect(Steal.escapeTime(1)).toBe(25)
 		expect(Steal.escapeTime(Config.MAX_TIER)).toBe(15)
 		for t = 2, Config.MAX_TIER do
-			expect(Steal.escapeTime(t) < Steal.escapeTime(t - 1)).toBeTruthy()
+			expect(Steal.escapeTime(t) <= Steal.escapeTime(t - 1)).toBeTruthy()
 		end
 	end)
 	it("wild carries never escape and have no timer", function()

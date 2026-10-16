@@ -106,8 +106,7 @@ end
 -- Alias of mutationDisplayName (v28 name).
 Genome.mutationDisplay = Genome.mutationDisplayName
 
--- Picks a roster species of `tier` (uniform within the tier). Secret species
--- (SlimeRoster.SECRET_TIER) are never returned: no Config rarity exists.
+-- Picks a roster species of `tier` (uniform within the tier).
 function Genome.rollSpecies(tier: number, roll: number): SlimeRoster.Entry?
 	if tier < 1 or tier > Config.MAX_TIER then
 		return nil

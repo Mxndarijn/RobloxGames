@@ -41,6 +41,9 @@ RareAnnounce.CAUGHT_SECONDS = 6
 -- How long a Legendary+ drop banner stays up.
 RareAnnounce.DROP_SECONDS = 10
 RareAnnounce.DROP_SOUND = "Rare"
+-- Secret drops (Config.SECRET_TIER) ring their own sound and get a bigger banner mark.
+RareAnnounce.SECRET_SOUND = "Secret"
+RareAnnounce.SECRET_TIER = 7
 
 -- "spawn" / "caught" (boss), "drop" (Legendary+) or nil for a Notify.
 function RareAnnounce.classify(text: any, sound: any): ("spawn" | "caught" | "drop")?
@@ -54,7 +57,11 @@ function RareAnnounce.classify(text: any, sound: any): ("spawn" | "caught" | "dr
 	if string.find(lower, "boss slime", 1, true) then
 		return "spawn"
 	end
-	if sound == RareAnnounce.DROP_SOUND or string.find(lower, "spilled from the fountain", 1, true) then
+	if
+		sound == RareAnnounce.DROP_SOUND
+		or sound == RareAnnounce.SECRET_SOUND
+		or string.find(lower, "spilled from the fountain", 1, true)
+	then
 		return "drop"
 	end
 	return nil
@@ -73,11 +80,12 @@ function RareAnnounce.dropBanner(drop: Drop?, now: number, tierNames: { string }
 	if drop == nil or now - drop.at >= RareAnnounce.DROP_SECONDS or now < drop.at - 5 then
 		return nil
 	end
+	local mark = if drop.tier == RareAnnounce.SECRET_TIER then "🌌 SECRET 🌌" else "✨"
 	if drop.text then
-		return { text = `✨ {drop.text}`, kind = "drop" }
+		return { text = `{mark} {drop.text}`, kind = "drop" }
 	end
 	local name = if drop.tier and tierNames[drop.tier] then string.upper(tierNames[drop.tier]) else "RARE"
-	return { text = `✨ A {name} slime spilled from the fountain! Grab it!`, kind = "drop" }
+	return { text = `{mark} A {name} slime spilled from the fountain! Grab it!`, kind = "drop" }
 end
 
 -- Slime name from the spawn Notify ("... slid into the plaza: Glow Globble! ..."), else nil.
