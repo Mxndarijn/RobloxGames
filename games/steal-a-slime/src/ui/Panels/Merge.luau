@@ -118,7 +118,7 @@ function Merge.new(parent: Instance, ctx: any)
 		local isSelected = table.find(selected, slime.id) ~= nil
 		row.stolen = view.stolenBy ~= nil
 		row.swatch.BackgroundColor3 = Widgets.color3(slime.color)
-		row.name.Text = (if isSelected then "✔ " else "") .. ctx.Genome.displayName(slime)
+		row.name.Text = (if isSelected then "✅ " else "") .. ctx.Genome.displayName(slime)
 		row.name.TextColor3 = if rarity then Widgets.color3(rarity.color) else Theme.Text
 		row.info.Text = if row.stolen then "being stolen" else `T{slime.tier} · {Format.formatRate(view.income)}`
 		row.instance.BackgroundColor3 = if isSelected
