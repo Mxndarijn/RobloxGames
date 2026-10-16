@@ -262,6 +262,9 @@ def viewport_error(vp, target):
 
 
 def overall_status(steps):
+    # B6: the slide_walk shot is a HARD assertion even though the rest of "shots" is soft
+    if (steps.get("shots", {}).get("detail") or {}).get("slide_walk_failed"):
+        return "fail"
     for name, s in steps.items():
         st = s.get("status")
         if name in SOFT_STEPS:
@@ -1523,7 +1526,7 @@ def step_shots(run):
     if any(r["press"]["status"] != "pass" for r in pressed):
         return "warn", {"captured": done, "total": len(shots), "shots": results, "press_failed": True}
     if any(r.get("slide_walk") and not r["slide_walk"].get("ok") for r in results):
-        return "warn", {"captured": done, "total": len(shots), "shots": results, "slide_walk_failed": True}
+        return "fail", {"captured": done, "total": len(shots), "shots": results, "slide_walk_failed": True}
     return "pass" if (done or pressed) else "warn", {"captured": done, "total": len(shots), "shots": results}
 
 

@@ -288,6 +288,203 @@ describe("slide collision covers the whole slide, top to bottom", function()
 	end)
 end)
 
+describe("slide collision has no gap at any join and follows the visual path (B6 root cause)", function()
+	-- B6 (still open after FEATURES.SlideCollision): the slide is a polyline of straight boxes; on a bend the
+	-- outer edge of two neighbouring boxes opens a wedge, walls were barely above the ball, slabs were 2 studs.
+	-- Joint fillers on the bisector, taller walls and 4-stud slabs close that; these pin it at every join.
+	local function solidAt(p, kinds)
+		local hit = false
+		for _, spec in SPECS do
+			if kinds[spec.kind] and depth(spec, p) > 0 then
+				hit = true
+			end
+		end
+		return hit
+	end
+	local FLOORISH = { Floor = true, Joint = true }
+	local function pathPoint(i, k)
+		local a, b = PATH[i], PATH[i + 1]
+		return { a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k }
+	end
+	local function specOf(name)
+		for _, spec in SPECS do
+			if spec.name == name then
+				return spec
+			end
+		end
+		error(`no spec {name}`)
+	end
+	local KS = { 0, 0.01, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 0.99, 1 }
+
+	it("has a joint floor and joint walls at every interior join of the full path", function()
+		local names = byName()
+		for i = 1, #PATH - 2 do
+			expect(names[`SlideJoint{i}`] ~= nil).toBe(true)
+			-- one wall piece, on the outer side of the bend (the inner walls already overlap)
+			expect((names[`SlideJointWallL{i}`] ~= nil) ~= (names[`SlideJointWallR{i}`] ~= nil)).toBe(true)
+		end
+	end)
+	it("consecutive slabs: orientation is consistent and the top surfaces meet at the join", function()
+		for i = 1, #PATH - 2 do
+			local s1, s2 = specOf(`SlideFloor{i}`), specOf(`SlideFloor{i + 1}`)
+			expect(dot(s1.forward, s2.forward) > math.cos(math.rad(60))).toBe(true)
+			-- both top planes pass through the shared path point
+			local joint = PATH[i + 2 - 1]
+			for _, s in { s1, s2 } do
+				local _, up = frame(s)
+				local topY = dot(sub(joint, s.centre), up) - s.size[2] / 2
+				expect(math.abs(topY) < 1e-3).toBe(true)
+			end
+			-- the far end of one slab's top face lies on the next slab's top plane (within a stud-fraction)
+			local r1, u1, f1 = frame(s1)
+			local end1 = {}
+			for c = 1, 3 do
+				end1[c] = s1.centre[c] + u1[c] * s1.size[2] / 2 + f1[c] * s1.size[3] / 2
+			end
+			local _, u2 = frame(s2)
+			local gap = dot(sub(end1, s2.centre), u2) - s2.size[2] / 2
+			expect(math.abs(gap) < 0.25).toBe(true)
+			expect(r1[2]).toBe(0)
+		end
+	end)
+	it("slabs and joint fillers are at least MIN_THICK thick, walls stand above the kit lip", function()
+		expect(SlideColliders.MIN_THICK >= 4).toBe(true)
+		for _, spec in SPECS do
+			if FLOORISH[spec.kind] then
+				expect(spec.size[2] >= SlideColliders.MIN_THICK).toBe(true)
+			elseif spec.kind == "Wall" then
+				expect(
+					spec.size[2] >= SlideColliders.LIP * 0.55 + SlideColliders.FLOOR + SlideColliders.WALL_EXTRA - 1e-6
+				).toBe(true)
+			end
+		end
+	end)
+	it("the slab edge to edge is held up at every k, 0 and 1 included, joints and bends too", function()
+		for i = 1, #PATH - 1 do
+			local spec = specOf(`SlideFloor{i}`)
+			local right = frame(spec)
+			local half = spec.size[1] / 2 - 0.1
+			for _, k in KS do
+				local c = pathPoint(i, k)
+				for _, side in { -1, -0.5, 0, 0.5, 1 } do
+					local p = { c[1] + right[1] * side * half, c[2] - 0.05, c[3] + right[3] * side * half }
+					if not solidAt(p, FLOORISH) then
+						error(`gap in the slide: segment {i} k={k} side={side}`)
+					end
+					-- and nothing solid hides above the surface: the ride is free
+					-- (a joint filler's plane tilts off the segment's on a sharp bend, so only the middle half is checked, for ledges over a stud)
+					if math.abs(side) <= 0.5 and solidAt({ p[1], p[2] + 0.9, p[3] }, FLOORISH) then
+						error(`solid 0.9 above the surface: segment {i} k={k} side={side}`)
+					end
+				end
+			end
+		end
+	end)
+	it(
+		"no ball-sized hole in the floor at any join (every 0.25 stud across the width and along the bisector)",
+		function()
+			for i = 1, #PATH - 2 do
+				local joint = PATH[i + 1]
+				local d1 = normalize(sub(joint, PATH[i]))
+				local d2 = normalize(sub(PATH[i + 2], joint))
+				local f = normalize({ d1[1] + d2[1], d1[2] + d2[2], d1[3] + d2[3] })
+				local right = normalize({ -f[3], 0, f[1] })
+				local half = specOf(`SlideFloor{i}`).size[1] / 2 - 0.1
+				for along = -1.2, 1.2, 0.25 do
+					for lat = -half, half, 0.25 do
+						local p = {}
+						for c = 1, 3 do
+							p[c] = joint[c] + f[c] * along + right[c] * lat
+						end
+						-- 0.7 below the bisector's surface line (the segments' planes differ by a few tenths on a bend)
+						p[2] -= 0.7 + math.abs(along) * 0.3
+						if not solidAt(p, FLOORISH) then
+							error(`hole at join {i}: along={along} lat={lat}`)
+						end
+					end
+				end
+			end
+		end
+	)
+	it("no way out sideways at any join: every outward line at ball height meets a wall, both sides", function()
+		for i = 1, #PATH - 2 do
+			local joint = PATH[i + 1]
+			local a, c = PATH[i], PATH[i + 2]
+			local d1 = normalize(sub(joint, a))
+			local d2 = normalize(sub(c, joint))
+			local f = normalize({ d1[1] + d2[1], d1[2] + d2[2], d1[3] + d2[3] })
+			local right = normalize({ -f[3], 0, f[1] })
+			local up = { 0, 1, 0 }
+			for _, side in { -1, 1 } do
+				for along = -1.5, 1.5, 0.1 do
+					local met = false
+					for lat = 0, 5, 0.05 do
+						local p = {}
+						for k = 1, 3 do
+							p[k] = joint[k] + f[k] * along + right[k] * side * lat + up[k] * 1.5
+						end
+						if solidAt(p, { Wall = true }) then
+							met = true
+							break
+						end
+					end
+					if not met then
+						error(`open side at join {i}: side={side} along={along}`)
+					end
+				end
+			end
+		end
+	end)
+	it("the collider path matches the visual slide path at every sample (WorldLayout.slidePosition)", function()
+		local n = 3000
+		for s = 0, n do
+			local p = WorldLayout.slidePosition(s / n)
+			if not solidAt({ p[1], p[2] - 0.05, p[3] }, FLOORISH) then
+				error(`visual slide point t={s / n} is not held up by a collider`)
+			end
+			expect(solidAt({ p[1], p[2] + 0.4, p[3] }, FLOORISH)).toBe(false)
+		end
+		-- every floor slab is centred on its own path segment, nothing generated from another path
+		for i = 1, #PATH - 1 do
+			local spec = specOf(`SlideFloor{i}`)
+			local _, up = frame(spec)
+			local mid = pathPoint(i, 0.5)
+			local top = {}
+			for c = 1, 3 do
+				top[c] = spec.centre[c] + up[c] * spec.size[2] / 2
+			end
+			expect(math.abs(top[1] - mid[1]) + math.abs(top[2] - mid[2]) + math.abs(top[3] - mid[3]) < 1e-3).toBe(true)
+		end
+	end)
+	it("a falling ball over any k (joins included) and any lateral offset lands on the slide, top to bottom", function()
+		local landed = 0
+		for i = 1, #PATH - 1 do
+			local spec = specOf(`SlideFloor{i}`)
+			local right = frame(spec)
+			for _, k in KS do
+				local c = pathPoint(i, k)
+				for _, side in { -0.8, 0, 0.8 } do
+					local x = c[1] + right[1] * side * spec.size[1] / 2
+					local z = c[3] + right[3] * side * spec.size[1] / 2
+					local y = c[2] + 40
+					local stopped = false
+					while y > c[2] - 10 do
+						if solidAt({ x, y, z }, FLOORISH) then
+							stopped = true
+							break
+						end
+						y -= 1.5
+					end
+					expect(stopped).toBe(true)
+					expect(y >= c[2] - SlideColliders.MIN_THICK - 1.6).toBe(true)
+					landed += 1
+				end
+			end
+		end
+		expect(landed > 1000).toBe(true)
+	end)
+end)
+
 describe("fountain colliders leave the ride path clear", function()
 	local rng = Rng.new(13)
 	local rides = {}
