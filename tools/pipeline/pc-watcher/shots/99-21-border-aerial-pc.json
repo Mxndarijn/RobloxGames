@@ -14,5 +14,6 @@
   ],
   "wait": 0.5,
   "note": "border v3: the layered world border from high up across the plaza (fences/hedges inner, groves mid, hills outer) in [desktop]",
-  "device": "desktop"
+  "device": "desktop",
+  "clock": 14
 }

@@ -4,5 +4,6 @@
   "kind": "ui",
   "open": "rebirth",
   "hold": "RebirthButton",
+  "scroll_to": "RebirthButton",
   "note": "B1: hold-to-confirm Rebirth button with its fill ring half full (mid-hold)"
 }

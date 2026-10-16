@@ -14,5 +14,6 @@
   ],
   "wait": 2.0,
   "note": "border v3: player eye (5 studs) looking out at the border: fence/hedge line, groves behind, hills closing the horizon in [desktop]",
-  "device": "desktop"
+  "device": "desktop",
+  "clock": 14
 }

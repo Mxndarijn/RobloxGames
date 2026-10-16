@@ -1,6 +1,7 @@
 -- Server datamodel: waits (up to %%WAIT%% s) until the REAL pad slime (a tagged Slime model near the pad at
 -- %%PATH%%, never a PcwSeat / PcwPad clone) carries the Growth attribute that WorldView.showGrowth sets, plus
--- its GrowthLabel BillboardGui on the Body. Returns {found, percent, label_text, path, pos}.
+-- its GrowthLabel BillboardGui on the Body. Returns {found, percent, label_text, path, pos, label_pos} (label_pos = the BillboardGui's
+-- Adornee position plus its StudsOffsetWorldSpace, i.e. where the label is drawn).
 local CollectionService = game:GetService("CollectionService")
 local node = game
 for part in string.gmatch(%%PATH%%, "[^.]+") do
@@ -38,12 +39,17 @@ while true do
 		end
 		local text = gui and gui:FindFirstChild("Text")
 		local pos = best:GetPivot().Position
+		local labelPos = pos
+		if gui and gui.Adornee and gui.Adornee:IsA("BasePart") then
+			labelPos = gui.Adornee.Position + gui.StudsOffsetWorldSpace
+		end
 		last = {
 			found = percent ~= nil or gui ~= nil,
 			percent = percent,
 			label_text = if text and text:IsA("TextLabel") then text.Text else nil,
 			path = best:GetFullName(),
 			pos = { pos.X, pos.Y, pos.Z },
+			label_pos = { labelPos.X, labelPos.Y, labelPos.Z },
 		}
 		if percent ~= nil and gui ~= nil then
 			break
