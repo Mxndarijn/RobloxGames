@@ -89,6 +89,7 @@ describe("Perks: rebirth ranks", function()
 			Fixtures.slime("fav", 2),
 			Fixtures.slime("best", 6),
 			Fixtures.slime("second", 5),
+			Fixtures.slime("need", 1, { species = "honey_queen" }),
 		}, 1e12)
 		data.rebirths = 6
 		data.favoriteId = "fav"
@@ -104,7 +105,7 @@ describe("Perks: rebirth ranks", function()
 	end)
 	it("announces a new rank on the rebirth that reaches it", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1) }, 1e12)
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 1, { species = "rodeo_ram" }) }, 1e12)
 		s.data.rebirths = 5
 		expect(call(world, 1, "Rebirth").ok).toBe(true)
 		local texts = table.concat(ServerFixtures.notifications(world, 1), "\n")

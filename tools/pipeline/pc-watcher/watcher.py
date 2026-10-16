@@ -1346,6 +1346,8 @@ def step_shots(run):
                     res["overlays"] = over
                     if over:
                         res["error"] = "overlay visible with no menu open: %s" % ", ".join(over)
+                if shot.get("rebirth_slime"):  # v29: force the required-slime state (owned / missing) in Studio
+                    res["rebirth_slime"] = run.need_luau("rebirth_slime", "Client", timeout=15, state=shot["rebirth_slime"])
                 opened = open_panel(run, key) if key else None
                 if opened:
                     res["open"] = opened
@@ -1369,6 +1371,8 @@ def step_shots(run):
                     run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=False)
                 if opened and not shot.get("press") and opened["method"] != "already open":
                     res["closed_by"] = close_panel(run, opened["panel"])
+                if shot.get("rebirth_slime"):
+                    run.luau("rebirth_slime", "Client", timeout=15, state="")
             else:
                 if shot.get("pos"):
                     eye, at = shot["pos"], shot.get("look") or [0, 0, 0]

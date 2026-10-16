@@ -267,6 +267,23 @@ end
 -- setOpen (Esc, a script, a debug tool) can never strand a dim overlay.
 local wasOpen: { [string]: boolean } = {}
 
+-- Studio-only PC watcher hook: the SlimeUI attribute "PcwRebirthSlime" ("owned" / "missing")
+-- forces the Rebirth panel's required-slime state so both shots can be taken without a real
+-- slime. Live servers (not Studio) always get the server's State untouched.
+local isStudio = game:GetService("RunService"):IsStudio()
+local function panelState(key: string, state: any): any
+	local force = if isStudio and key == "Rebirth" then gui:GetAttribute("PcwRebirthSlime") else nil
+	local need = state.rebirthSlime
+	if (force ~= "owned" and force ~= "missing") or type(need) ~= "table" then
+		return state
+	end
+	local view = table.clone(state)
+	view.rebirthSlime = table.clone(need)
+	view.rebirthSlime.owned = force == "owned"
+	view.canRebirth = view.rebirthSlime.owned and state.cash >= state.rebirthCost
+	return view
+end
+
 local function syncMenus()
 	local visibleKey: string? = nil
 	for _, entry in allPanels do
@@ -280,7 +297,7 @@ local function syncMenus()
 				entry.panel.setOpen(isOpen)
 			end
 			if isOpen and latest and entry.panel.update then
-				entry.panel.update(latest)
+				entry.panel.update(panelState(entry.key, latest))
 			end
 		end
 		if navButtons[entry.key] then
@@ -493,6 +510,13 @@ if game:GetService("RunService"):IsStudio() then
 		local key = gui:GetAttribute("PcwOpen")
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
 	end)
+	gui:GetAttributeChangedSignal("PcwRebirthSlime"):Connect(function()
+		for _, entry in allPanels do
+			if entry.key == "Rebirth" and latest and entry.panel.frame.Visible then
+				entry.panel.update(panelState(entry.key, latest))
+			end
+		end
+	end)
 end
 
 -- Gamepad B always closes the open menu (same as its X), and Esc too while
@@ -559,7 +583,7 @@ local function render(state: Types.State)
 	refreshHint()
 	for _, entry in allPanels do
 		if entry.key == openKey and entry.panel.update then
-			entry.panel.update(state)
+			entry.panel.update(panelState(entry.key, state))
 		end
 	end
 end

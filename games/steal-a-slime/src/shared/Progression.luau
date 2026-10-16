@@ -8,15 +8,21 @@
 	STARTING_CASH) and every slime except one keeper: the favourite, or the
 	highest-income slime if no favourite is set. Pads stay unlocked. Gives
 	+REBIRTH_MULTIPLIER_STEP income multiplier and +10 s lock duration.
+	v29: it also needs the Config.REBIRTH_SLIMES species for that level to be
+	owned (in data.slimes). The slime is not consumed beyond the normal wipe.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local SlimeLooks = if script then require(script.Parent.SlimeLooks) else require("./SlimeLooks")
+local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 local Perks = if script then require(script.Parent.Perks) else require("./Perks")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 
 type Slime = Genome.Slime
+
+export type Requirement = { id: string, name: string, tier: number, color: { number }, owned: boolean }
 
 local Progression = {}
 
@@ -24,12 +30,57 @@ local Progression = {}
 -- Rebirth
 ---------------------------------------------------------------------------
 
+-- SlimeRoster species id the next rebirth (data.rebirths + 1) needs: the
+-- Config.REBIRTH_SLIMES entry for that level, else the last one below it.
+function Progression.requiredSpecies(rebirths: number): string?
+	for level = rebirths + 1, 1, -1 do
+		local id = Config.REBIRTH_SLIMES[level]
+		if id then
+			return id
+		end
+	end
+	return nil
+end
+
+function Progression.ownsSpecies(data: PlayerData.Data, species: string): boolean
+	for _, s in data.slimes do
+		if s.species == species then
+			return true
+		end
+	end
+	return false
+end
+
+-- { id, name, tier, color, owned } of the slime the next rebirth needs; nil at max or when none is required.
+function Progression.requiredSlime(data: PlayerData.Data): Requirement?
+	if data.rebirths >= Config.MAX_REBIRTHS then
+		return nil
+	end
+	local id = Progression.requiredSpecies(data.rebirths)
+	local entry = id and SlimeRoster.get(id)
+	if not entry then
+		return nil
+	end
+	local look = SlimeLooks.get(entry.id)
+	return {
+		id = entry.id,
+		name = entry.name,
+		tier = entry.tier,
+		color = if look then { look.color[1], look.color[2], look.color[3] } else { 170, 220, 170 },
+		owned = Progression.ownsSpecies(data, entry.id),
+	}
+end
+
 function Progression.canRebirth(data: PlayerData.Data): (boolean, string?)
 	if data.rebirths >= Config.MAX_REBIRTHS then
 		return false, "max rebirths reached"
 	end
 	if data.cash < Economy.rebirthCost(data.rebirths) then
 		return false, "not enough cash"
+	end
+	local need = Progression.requiredSlime(data)
+	if need and not need.owned then
+		return false, `need a {need.name}`
 	end
 	return true, nil
 end

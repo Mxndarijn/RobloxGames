@@ -134,6 +134,26 @@ local MUTATIONS: { Mutation } = {
 	{ name = "Eclipse", displayName = "Eclipse", multiplier = 10, weight = 0.5 },
 }
 
+-- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player
+-- to own one slime of this SlimeRoster species (data.slimes, i.e. on a pad).
+-- Not consumed: the normal rebirth wipe applies, so keep it as the keeper if
+-- the next level needs it again. Rarity escalates; a level without an entry
+-- uses the last entry below it (Progression.requiredSpecies).
+local REBIRTH_SLIMES: { [number]: string } = {
+	[1] = "sprout", -- Uncommon
+	[2] = "carrot",
+	[3] = "bunny_puff", -- Rare
+	[4] = "piglet",
+	[5] = "billy_gum", -- Epic
+	[6] = "rodeo_ram",
+	[7] = "honey_queen", -- Legendary
+	[8] = "harvest_king",
+	[9] = "rock_candy", -- Mythic
+	[10] = "gumdrop_titan",
+	[15] = "moonmilk", -- Secret
+	[20] = "golden_goose_goo",
+}
+
 local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 0, title = "Slime Rookie" },
 	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed" },
@@ -311,6 +331,7 @@ local Config = {
 	MAX_REBIRTHS = 50,
 	REBIRTH_LATE_FROM = 5, -- from this many rebirths on, the cost grows by REBIRTH_COST_GROWTH_LATE
 	REBIRTH_COST_GROWTH_LATE = 2,
+	REBIRTH_SLIMES = table.freeze(REBIRTH_SLIMES), -- required species per rebirth level
 	REBIRTH_TIERS = table.freeze(REBIRTH_TIERS), -- ranks (CONTRACT.md §8.8)
 
 	-- Permanent upgrades (Request("BuyUpgrade", id)), goals and SlimeDex rewards (CONTRACT.md §8.8)

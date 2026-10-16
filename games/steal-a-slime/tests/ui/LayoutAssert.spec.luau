@@ -96,14 +96,14 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 		local guide = read("src/ui/Panels/Guide.luau")
 		expect(has(guide, "Guide.TIP_H = 44")).toBe(true)
 		local rebirth = read("src/ui/Panels/Rebirth.luau")
-		expect(has(rebirth, "gives = { y = 120, h = 40 }")).toBe(true)
-		expect(has(rebirth, "button = { y = 196, h = Layout.BUTTON }")).toBe(true)
-		expect(has(rebirth, "note = { y = 258, h = 18 }")).toBe(true)
+		expect(has(rebirth, "slime = { y = 120, h = 72 }")).toBe(true)
+		expect(has(rebirth, "button = { y = 276, h = Layout.BUTTON }")).toBe(true)
+		expect(has(rebirth, "note = { y = 338, h = 18 }")).toBe(true)
 	end)
 	it("every card fits its content at the tallest gate viewport (no scroll on desktop)", function()
 		local s = Layout.screen(1920, 1080)
 		local chrome = Layout.PANEL_CHROME.header + Layout.PANEL_CHROME.pad
-		expect(Layout.panelFor(s, "Rebirth").h >= chrome + 276).toBe(true) -- Rebirth.CONTENT_H
+		expect(Layout.panelFor(s, "Rebirth").h >= chrome + 356).toBe(true) -- Rebirth.CONTENT_H
 		expect(Layout.panelFor(s, "Guide").h >= chrome + 96 + 8 + 3 * (44 + 8)).toBe(true) -- Guide.CONTENT_H
 		for _, key in LayoutAssert.menuKeys() do
 			local r = Layout.panelFor(s, key)

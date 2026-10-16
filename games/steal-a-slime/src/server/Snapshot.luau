@@ -86,6 +86,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		rebirthMultiplier = Economy.rebirthMultiplier(rebirths),
 		rebirthCost = Economy.rebirthCost(rebirths),
 		canRebirth = canRebirth,
+		rebirthSlime = Progression.requiredSlime(data),
 		padsUnlocked = data.padsUnlocked,
 		padsMax = Config.PADS_MAX,
 		nextPadCost = Economy.padCost(data.padsUnlocked),
