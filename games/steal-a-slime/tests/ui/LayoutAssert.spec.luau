@@ -298,15 +298,10 @@ describe("init.client applies Layout for every viewport", function()
 	it("closes the open menu from its X, gamepad B and Esc (CLOSE_WITH_ESCAPE on)", function()
 		expect(Layout.CLOSE_WITH_ESCAPE).toBe(true)
 		expect(has(src, "entry.panel.close.Activated:Connect(function()\n\t\tsetOpen(nil)")).toBe(true)
-		-- B in both branches; Escape only in the CLOSE_WITH_ESCAPE branch.
-		local bind = 'ContextActionService:BindAction("CloseMenu", closeMenuAction, false, Enum.KeyCode.ButtonB'
-		expect(has(src, `if Layout.CLOSE_WITH_ESCAPE then\n\t{bind}, Enum.KeyCode.Escape)\nelse\n\t{bind})\nend`)).toBe(
-			true
-		)
+		-- Binding itself is MenuClose (tests/ui/MenuClose.spec drives it).
+		expect(has(src, "MenuClose.bind(ContextActionService, Layout.CLOSE_WITH_ESCAPE")).toBe(true)
 		local _, escapes = string.gsub(src, "Enum%.KeyCode%.Escape", "")
-		expect(escapes).toBe(1)
-		expect(has(src, "setOpen(nil)\n\treturn Enum.ContextActionResult.Sink")).toBe(true)
-		expect(has(src, "openKey == nil then\n\t\treturn Enum.ContextActionResult.Pass")).toBe(true)
+		expect(escapes).toBe(0)
 	end)
 	it("has a collapse toggle and icon-only collapsed buttons", function()
 		expect(has(src, 'Name = "NavToggle"')).toBe(true)

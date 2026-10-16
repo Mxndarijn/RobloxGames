@@ -120,6 +120,15 @@ def t_actions():
     o = mcp_client.build_action(schema, "key_up", {"key": "E"}, {"kind": "up", "k": "$key"})
     check("override template", o == {"kind": "up", "k": "E"}, o)
 
+    # Both key events must carry datamodel_type (the c935374 report: "datamodel_type is required").
+    sent = []
+    sess = mcp_client.McpSession.__new__(mcp_client.McpSession)
+    sess.schemas = {}
+    sess.call = lambda tool, args=None, timeout=0: (sent.append((tool, args)), mcp_client.ToolResult(tool, {}))[1]
+    sess.key("s1", "Escape", hold=0)
+    check("key sends datamodel_type=Client on down and up",
+          len(sent) == 2 and all(a["datamodel_type"] == "Client" for _, a in sent), sent)
+
 
 def t_watcher():
     sha = "a" * 40

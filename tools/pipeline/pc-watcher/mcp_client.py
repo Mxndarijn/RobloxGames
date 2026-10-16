@@ -449,10 +449,10 @@ class McpSession:
         r2, a2 = self._input("user_mouse_input", studio_id, "mouse_up", {"x": x, "y": y}, overrides, datamodel)
         return (r1.ok and r2.ok), {"down": a1, "up": a2, "results": [r1.brief(160), r2.brief(160)]}
 
-    def key(self, studio_id, key, overrides=None, hold=0.1):
-        r1, a1 = self._input("user_keyboard_input", studio_id, "key_down", {"key": key}, overrides)
+    def key(self, studio_id, key, overrides=None, hold=0.1, datamodel="Client"):
+        r1, a1 = self._input("user_keyboard_input", studio_id, "key_down", {"key": key}, overrides, datamodel)
         time.sleep(hold)
-        r2, a2 = self._input("user_keyboard_input", studio_id, "key_up", {"key": key}, overrides)
+        r2, a2 = self._input("user_keyboard_input", studio_id, "key_up", {"key": key}, overrides, datamodel)
         return (r1.ok and r2.ok), {"down": a1, "up": a2, "results": [r1.brief(160), r2.brief(160)]}
 
 
