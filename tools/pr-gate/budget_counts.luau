@@ -3,7 +3,8 @@
 -- Run from games/steal-a-slime (tools/pr-gate/budget.sh does):
 --   lune run ../../tools/pr-gate/budget_counts.luau
 -- Counts WorldLayout.build() the same way tests/WorldBudget.spec does:
---   mesh_slots   MeshAsset + BorderMesh slots + WorldProps skins (PROP_MESHES),
+--   mesh_slots   MeshAsset + BorderMesh slots + WorldProps skins (PROP_MESHES)
+--                + RUNTIME_SLOT_ALLOWANCE (what pc-watcher's perf_server counts),
 --                the number THEME.md / WorldLayout.MESH_SLOT_BUDGET hold to 400
 --   parts        Part nodes outside Map.Border (THEME.md 1200)
 --   border_parts Part nodes inside Map.Border (WorldLayout.BORDER_PART_BUDGET)
@@ -51,6 +52,11 @@ end
 for _, mesh in WorldLayout.PROP_MESHES do
 	addMesh(mesh)
 end
+-- The pc-watcher counts every MeshPart in the play world (tools/pipeline/
+-- pc-watcher/luau/perf_server.luau), which includes some WorldLayout.build()
+-- does not make: count them the same way or the gate passes what the watcher fails.
+counts.build_mesh_slots = counts.mesh_slots
+counts.mesh_slots += WorldLayout.RUNTIME_SLOT_ALLOWANCE
 
 counts.source_budgets = {
 	MESH_SLOT_BUDGET = WorldLayout.MESH_SLOT_BUDGET,

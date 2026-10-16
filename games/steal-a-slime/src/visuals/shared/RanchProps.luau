@@ -59,6 +59,10 @@ RanchProps.CLUSTERS = table.freeze({ "plaza", "entrance", "farm" })
 -- than leaving an asset silently unused (tests/RanchProps.spec enforces it).
 RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
 	ranch_lantern_post = "its entrance slots became the odd plots' mailboxes (v29 B2); no spare decor slot",
+	ranch_border_fence_broken = "border v3 slot trim: merged into a sibling design to stay under the 400 mesh-slot gate; mesh kept uploaded",
+	ranch_border_hedge_stepped = "border v3 slot trim: merged into a sibling design to stay under the 400 mesh-slot gate; mesh kept uploaded",
+	ranch_border_pine_twin = "border v3 slot trim: merged into a sibling design to stay under the 400 mesh-slot gate; mesh kept uploaded",
+	ranch_border_rock_spire = "border v3 slot trim: merged into a sibling design to stay under the 400 mesh-slot gate; mesh kept uploaded",
 	slime_base = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
 	slime_acc_leaf = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
 	slime_ears = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",

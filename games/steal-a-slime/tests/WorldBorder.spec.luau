@@ -2,7 +2,7 @@
 -- World border (WorldBorder): seeded layered decor (fences and hedges, tree
 -- and rock groves, backdrop hills) is deterministic and never repeats a
 -- stretch, the invisible collider ring closes the whole perimeter, and the
--- border stays inside its MeshPart slot share (104 of the THEME.md 400) and
+-- border stays inside its MeshPart slot share (88 of the THEME.md 400) and
 -- part budget (700).
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
@@ -358,7 +358,7 @@ describe("WorldBorder no repeating sequence", function()
 end)
 
 describe("WorldBorder decor", function()
-	it("stays inside the MeshPart slot share (<= 104) and the border part budget (<= 700)", function()
+	it("stays inside the MeshPart slot share (<= 88) and the border part budget (<= 700)", function()
 		local slots, parts = 0, 0
 		for _, n in borderNodes() do
 			if n.class == "Part" then
@@ -371,11 +371,11 @@ describe("WorldBorder decor", function()
 		expect(slots).toBe(#pieces)
 		expect(slots).toBe(WorldLayout.BORDER_SLOT_COUNT)
 		expect(slots <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
-		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(104)
+		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(88)
 		expect(parts <= WorldLayout.BORDER_PART_BUDGET).toBe(true)
 		expect(parts).toBe(WorldBorder.WALL_SEGMENTS + #pieces)
 	end)
-	it("builds at most 104 slots whatever the seed", function()
+	it("builds at most 88 slots whatever the seed", function()
 		for seed = 1, 12 do
 			expect(#WorldBorder.pieces(seed * 977) <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
 		end

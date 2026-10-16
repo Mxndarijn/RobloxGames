@@ -1,0 +1,7 @@
+{
+  "id": "gap17-x2-weekend-chip",
+  "todo": "gaps-17",
+  "kind": "ui",
+  "weekend": true,
+  "note": "competitor-gaps #17: x2 Weekend active, HUD chip '<money bag> x2 Weekend - 1d 4h left' under the top bar, no menu open (Studio fake via SlimeUI.PcwWeekend)"
+}

@@ -662,6 +662,14 @@ local Config = {
 	FRIEND_CACHE_SECONDS = 600, -- a Player:IsFriendsWith answer is reused this long
 	FRIEND_RETRY_SECONDS = 30, -- after a failed check, don't ask again for this long
 
+	-- x2 Weekends (Weekend, competitor-gaps #17): server clock, UTC, nothing saved.
+	WEEKEND = table.freeze({
+		enabled = true, -- false = never double
+		multiplier = 2, -- cash income x this while active (stacks with the other boosts)
+		weekdays = table.freeze({ 6, 0 }), -- UTC weekdays (0 = Sunday .. 6 = Saturday): Sat 00:00 - Sun 23:59
+		overrideDates = table.freeze({} :: { string }), -- extra whole UTC days "YYYY-MM-DD" (a holiday event)
+	}),
+
 	-- Persistence
 	SAVE_VERSION = 5, -- CONTRACT.md §8.9 (v4: slime.mutations list, SaveData.migrateV3; v5: weather mutations Wet/Frozen, SaveData.migrateV4)
 	AUTOSAVE_INTERVAL = 60,
