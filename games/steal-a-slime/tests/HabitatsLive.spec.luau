@@ -20,9 +20,7 @@ local rt = Runtime.new(path, {})
 fs.removeFile(path)
 rt.workspace:SetAttribute("DataStoreMode", "Memory")
 local config = rt.game:GetService("ReplicatedStorage").Shared.Config
-local patched, replaced = string.gsub(config.Source, "Habitats = false,", "Habitats = true,")
-assert(replaced == 1, "FEATURES.Habitats not found in Config")
-config.Source = patched
+assert(string.find(config.Source, "Habitats = true,", 1, true), "FEATURES.Habitats not on in Config")
 local server = rt.game:GetService("ServerScriptService"):FindFirstChild("Server")
 server.Source = server.Source .. "\n_G.__habitats = { world = world }\n"
 rt:boot()
@@ -78,8 +76,11 @@ roblox.implementMethod("ParticleEmitter", "Emit", function() -- engine-only; cou
 end)
 -- Clear habitat meshIds so the placeholder path still runs even after uploads.
 local meshAssets = rt:require(rt.game:GetService("ReplicatedStorage").Shared.MeshAssets)
-meshAssets.entries.habitat_crystal_grotto.meshId = nil
-meshAssets.entries.habitat_candy_patch.meshId = nil
+for name, entry in meshAssets.entries do
+	if string.sub(name, 1, 8) == "habitat_" then
+		entry.meshId = nil
+	end
+end
 local HabitatFx = rt:require(rt.game:GetService("StarterPlayer").StarterPlayerScripts.VisualsClient.HabitatFx)
 local plots = rt.workspace:FindFirstChild("Plots")
 HabitatFx.attach(plots)

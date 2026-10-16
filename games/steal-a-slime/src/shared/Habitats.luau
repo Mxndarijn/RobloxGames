@@ -63,13 +63,13 @@ end
 
 local LIST: { Habitat } = {
 	h("base", "Pad", nil, false, 0, { 200, 200, 200 }, { 255, 255, 255 }),
-	h("hay_nest", "Hay Nest", "phoenix_pad_hay", false, 1.0, { 222, 190, 110 }, { 250, 230, 160 }),
-	h("mushroom_ring", "Mushroom Ring", "phoenix_pad_mushroom", false, 3.0, { 200, 60, 55 }, { 250, 240, 220 }),
-	h("flower_bed", "Flower Bed", "phoenix_pad_flower_bed", false, 2.4, { 120, 85, 55 }, { 255, 140, 190 }),
-	h("barn_crate", "Barn Crate", "phoenix_pad_crate", false, 2.4, { 170, 120, 70 }, { 150, 50, 40 }),
-	h("rodeo_barrel", "Rodeo Barrel", "phoenix_pad_barrel_top", false, 2.4, { 140, 90, 50 }, { 120, 220, 110 }),
-	h("syrup_pool", "Syrup Pool", "phoenix_pad_goo", false, 1.5, { 230, 150, 40 }, { 255, 210, 120 }),
-	h("show_stool", "Show Stool", "phoenix_pad_stool", false, 3.0, { 70, 110, 200 }, { 255, 215, 80 }),
+	h("hay_nest", "Hay Nest", "habitat_hay_nest", true, 2.4, { 222, 190, 110 }, { 250, 230, 160 }),
+	h("mushroom_ring", "Mushroom Ring", "habitat_mushroom_ring", true, 2.4, { 200, 60, 55 }, { 250, 240, 220 }),
+	h("flower_bed", "Flower Bed", "habitat_flower_bed", true, 2.4, { 120, 85, 55 }, { 255, 140, 190 }),
+	h("barn_crate", "Barn Crate", "habitat_barn_crate", true, 2.4, { 170, 120, 70 }, { 150, 50, 40 }),
+	h("rodeo_barrel", "Rodeo Barrel", "habitat_rodeo_barrel", true, 2.4, { 140, 90, 50 }, { 120, 220, 110 }),
+	h("syrup_pool", "Syrup Pool", "habitat_syrup_pool", true, 2.4, { 230, 150, 40 }, { 255, 210, 120 }),
+	h("show_stool", "Show Stool", "habitat_show_stool", true, 2.4, { 70, 110, 200 }, { 255, 215, 80 }),
 	h("candy_patch", "Candy Patch", "habitat_candy_patch", true, 2.4, { 255, 170, 210 }, { 120, 230, 200 }),
 	h("crystal_grotto", "Crystal Grotto", "habitat_crystal_grotto", true, 2.4, { 110, 100, 130 }, { 190, 150, 255 }),
 }

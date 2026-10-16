@@ -379,7 +379,7 @@ local Config = {
 		DayNight = true, -- Lighting.ClockTime cycles every DAY_LENGTH seconds
 		Minimap = true, -- Visuals.MinimapData points of interest for a UI minimap
 		DespawnTelegraph = true, -- wild slime models get DespawnAt before they expire; false = silent removal
-		Habitats = false, -- pads turn into their slime's habitat (HABITATS.md); false = pads as before
+		Habitats = true, -- pads turn into their slime's habitat (HABITATS.md); false = pads as before
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
