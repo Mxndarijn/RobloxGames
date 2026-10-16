@@ -195,3 +195,89 @@ describe("plot gate", function()
 		end
 	end)
 end)
+
+-- max / min of the per-axis slot / native ratios: 1 = the mesh's own proportions.
+local function anisotropy(node: Node, mesh: string): number
+	local r = ratios(node, mesh)
+	return math.max(r[1], r[2], r[3]) / math.min(r[1], r[2], r[3])
+end
+
+describe("plot walls, DexBoard and BuyStand (C6)", function()
+	local h = WorldLayout.PLOT_SIZE / 2
+	it("skins every fence piece with a kit fence mesh at FENCE_SCALE, walls stay the colliders", function()
+		local fenceMeshes = { [WorldLayout.FENCE_SEGMENT] = true, [WorldLayout.FENCE_MESH] = true }
+		for _, plot in plots do
+			local slots = 0
+			walk(child(plot, "Fence").children, function(node)
+				local mesh = meshOf(node)
+				if node.class == "Part" then
+					expect(mesh ~= nil and fenceMeshes[mesh] == true).toBe(true)
+					slots += 1
+					expect(anisotropy(node, mesh :: string)).toBeCloseTo(1)
+					expect(ratios(node, mesh :: string)[1]).toBeCloseTo(WorldLayout.FENCE_SCALE)
+					expect(node.canCollide).toBe(false)
+				end
+			end)
+			expect(slots).toBe(if WorldLayout.fenceUploaded() then 16 else 30)
+			for _, name in { "WallBack", "WallLeft", "WallRight", "WallFrontL", "WallFrontR" } do
+				local wall = child(plot, name)
+				expect(meshOf(wall)).toBe(nil)
+				expect((wall.attributes :: any).FenceCollider).toBe(true)
+				expect(wall.canCollide ~= false).toBe(true)
+			end
+		end
+	end)
+	it("skins the DexBoard with DEX_MESH at DEX_SCALE, on the Base, facing the entrance, clear of the fence", function()
+		for i, plot in plots do
+			local _, yaw = WorldLayout.plotCentre(i)
+			local dex = child(plot, "DexBoard")
+			local slot = child(dex, "DexMesh")
+			expect(meshOf(slot)).toBe(WorldLayout.DEX_MESH)
+			expect(anisotropy(slot, WorldLayout.DEX_MESH)).toBeCloseTo(1)
+			expect(ratios(slot, WorldLayout.DEX_MESH)[2]).toBeCloseTo(WorldLayout.DEX_SCALE)
+			-- invisible, decor-only slot: the mesh lands in it
+			expect(slot.transparency).toBe(1)
+			expect(slot.canCollide).toBe(false)
+			expect(sameAngle((slot.rot :: Vec)[2], yaw + 180)).toBe(true)
+			local p, size = toPlot(i, slot.pos :: Vec), slot.size :: Vec
+			expect(p[1]).toBeCloseTo(0)
+			expect(p[2] - size[2] / 2).toBeCloseTo(BASE_TOP)
+			-- back face in front of the fence pieces (1.64 deep on the line h - 0.5)
+			expect(p[3] + size[3] / 2 < h - 0.5 - 0.82).toBe(true)
+		end
+	end)
+	it("keeps the dex text, bar and gems on the mesh's front panel and hides only the primitive frame", function()
+		local k, face = WorldLayout.DEX_SCALE, WorldLayout.DEX_FACE
+		for i, plot in plots do
+			local dex = child(plot, "DexBoard")
+			local slot = toPlot(i, child(dex, "DexMesh").pos :: Vec)
+			local panelZ = slot[3] - face.front * k
+			local fx, fy = -face.x * k, BASE_TOP + face.y * k
+			local w, hh = face.width * k / 2, face.height * k / 2
+			for _, c in dex.children or {} do
+				if c.name == "DexMesh" then
+					continue
+				end
+				local stand = (c.attributes or {} :: any).MeshStandIn
+				local p, size = toPlot(i, c.pos :: Vec), c.size :: Vec
+				if c.name == "Frame" or c.name == "LegL" or c.name == "LegR" or c.name == "Shelf" then
+					expect(stand).toBe(WorldLayout.DEX_MESH)
+				else
+					-- PlotDecor draws on these: they stay, in front of the panel, inside it
+					expect(stand).toBe(nil)
+					expect(p[3] + size[3] / 2 <= panelZ + 1e-6).toBe(true)
+					expect(math.abs(p[1] - fx) + size[1] / 2 <= w).toBe(true)
+					expect(math.abs(p[2] - fy) + size[2] / 2 <= hh).toBe(true)
+				end
+				expect(c.canCollide).toBe(false)
+			end
+		end
+	end)
+	it("leaves the BuyStand primitive: decor has no room for ranch_shop_stand (WorldBudget.spec)", function()
+		for _, plot in plots do
+			walk({ child(plot, "BuyStand") }, function(node)
+				expect(meshOf(node)).toBe(nil)
+			end)
+		end
+	end)
+end)

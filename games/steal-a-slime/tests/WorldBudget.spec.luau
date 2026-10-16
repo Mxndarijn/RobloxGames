@@ -21,6 +21,7 @@ type Counts = {
 	fence: number,
 	props: number,
 	pads: number,
+	dex: number, -- plot DexBoard skins (in other)
 	border: number,
 	other: number,
 	decor: number, -- props + pads + other
@@ -41,6 +42,7 @@ local function count(nodes: { any }): Counts
 		fence = 0,
 		props = 0,
 		pads = 0,
+		dex = 0,
 		border = 0,
 		other = 0,
 		decor = 0,
@@ -75,6 +77,9 @@ local function count(nodes: { any }): Counts
 			elseif n.name == "Stand" then
 				c.pads += 1
 			else
+				if mesh == WorldLayout.DEX_MESH and n.name == "DexMesh" then
+					c.dex += 1
+				end
 				c.other += 1
 			end
 		end
@@ -122,6 +127,26 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 		expect(uploaded.props).toBe(#WorldLayout.RANCH_PROPS)
 		expect(uploaded.pads).toBe(Config.PADS_MAX * P)
 		expect(uploaded.decor <= WorldLayout.DECOR_SLOT_BUDGET).toBe(true)
+	end)
+	it("skins one DexBoard a plot inside the decor cap (C6), paid for by one entrance prop a plot", function()
+		expect(uploaded.dex).toBe(P)
+		local entrance = 0
+		for _, p in WorldLayout.RANCH_PROPS do
+			if p.cluster == "entrance" then
+				entrance += 1
+			end
+		end
+		expect(entrance).toBe(P)
+		expect(uploaded.fence + uploaded.decor + WorldLayout.BORDER_SLOT_BUDGET <= WorldLayout.MESH_SLOT_BUDGET).toBe(
+			true
+		)
+	end)
+	it("has no room for a BuyStand skin (ranch_shop_stand, 1 a plot): tag it once this trips", function()
+		local room = math.min(
+			WorldLayout.DECOR_SLOT_BUDGET,
+			WorldLayout.MESH_SLOT_BUDGET - uploaded.fence - WorldLayout.BORDER_SLOT_BUDGET
+		) - uploaded.decor
+		expect(room < P).toBe(true)
 	end)
 	it("fits MESH_SLOT_BUDGET with the border at its share", function()
 		local budgeted = uploaded.fence + uploaded.decor + WorldLayout.BORDER_SLOT_BUDGET
