@@ -314,13 +314,25 @@ local function volcano(): WorldNode
 	-- Client emitters attach here (VisualsClient); the glow keeps the pool lit.
 	crater.children = { light("CraterGlow") }
 	table.insert(children, crater)
+	-- The fountain's one collider: an invisible cylinder flush with BasinRim
+	-- (same radius, ground to rim top). The mesh is visual-only, so once it
+	-- loads MeshSwap drops the stand-ins' collision (MeshStandInsCollide) and
+	-- this is all a player bumps into; no hidden part can leave a step.
+	local collider = disc("BasinCollider", 4, d + 1, { 0, 2, 0 }, STONE_TRIM, "Slate")
+	collider.transparency = 1
+	collider.canQuery = false
+	collider.canTouch = false
+	table.insert(children, collider)
 	-- Native bbox of the polished slime_fountain (stats size, no squash).
 	-- Silo axis is kit (-6.52, 7.75) from the bbox centre (FOUNTAIN_SIZES)
 	-- = Roblox X/Z (-6.52, -7.75) with Z = -kit y. The slot sits on the
 	-- opposite point so the silo axis is the world origin and the base is y = 0.
 	local fountainSize: Vec = { 54.45, 43.316, 63.851 }
 	local fountainCentre: Vec = { 6.52, fountainSize[2] / 2, 7.75 }
-	table.insert(children, meshSlot(block("FountainMesh", fountainSize, fountainCentre, STONE), M, true))
+	local slot = meshSlot(block("FountainMesh", fountainSize, fountainCentre, STONE), M, true)
+	slot.attributes = slot.attributes or {}
+	slot.attributes.MeshStandInsCollide = false
+	table.insert(children, slot)
 	-- Emerge slimes, split out of the fountain (FOUNTAIN_SIZES). Offset is
 	-- the emerge bbox centre minus the fountain bbox centre, Roblox axes.
 	-- Invisible until its mesh id is filled; bobbing can hook this slot later.

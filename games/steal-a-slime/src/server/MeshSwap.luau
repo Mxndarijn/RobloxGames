@@ -9,7 +9,9 @@
 	and hides the placeholder (which keeps collision, prompts and contract
 	names). Parts tagged MeshStandIn = that mesh anywhere under the same Map
 	or Plots root hide too (the spiral stand-in lives under Map.Chute, not
-	beside the fountain slot). Idempotent (a placeholder with a "Mesh" child
+	beside the fountain slot). A slot with MeshStandInsCollide = false also
+	turns its stand-ins' CanCollide off (the fountain: its BasinCollider
+	stays the only collision). Idempotent (a placeholder with a "Mesh" child
 	is skipped). Any failure leaves the primitive placeholder. Holds no
 	gameplay rules.
 ]]
@@ -53,10 +55,13 @@ local function hide(part: BasePart)
 	end
 end
 
-local function hideStandIns(scope: Instance, name: string)
+local function hideStandIns(scope: Instance, name: string, collide: boolean)
 	for _, d in scope:GetDescendants() do
 		if d:IsA("BasePart") and d:GetAttribute("MeshStandIn") == name then
 			hide(d)
+			if not collide then
+				d.CanCollide = false
+			end
 		end
 	end
 end
@@ -95,7 +100,7 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	else
 		hide(target)
 	end
-	hideStandIns(scope, name)
+	hideStandIns(scope, name, target:GetAttribute("MeshStandInsCollide") ~= false)
 	mesh.Parent = target
 	return true
 end
