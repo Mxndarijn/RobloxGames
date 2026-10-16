@@ -1,7 +1,10 @@
 --!strict
 local Config = require("../src/shared/Config")
 local Fountain = require("../src/shared/Fountain")
+local ParadeLane = require("../src/shared/ParadeLane")
 local Rng = require("../src/shared/Rng")
+local ServerFixtures = require("./ServerFixtures")
+local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
 local Validate = require("../src/shared/Validate")
 
@@ -40,6 +43,41 @@ describe("Fountain", function()
 			expect(d.radius >= Fountain.MIN_RADIUS and d.radius <= Fountain.MAX_RADIUS).toBeTruthy()
 			expect(d.angle >= 0 and d.angle < math.pi * 2).toBeTruthy()
 			expect(d.slime.id).toBe(tostring(i))
+		end
+	end)
+	it("no spawn, boss, dropped spot or lane step lands in the ring band (r 31-34, plus margin)", function()
+		local SAFE = Fountain.RING_BAND_OUTER + Fountain.SLIME_RADIUS -- whole slime past the curb
+		expect(Fountain.RING_BAND_INNER <= 31 and Fountain.RING_BAND_OUTER >= 34).toBe(true)
+		local world = ServerFixtures.world()
+		for i = 1, 300 do
+			local id = if i % 10 == 0 then Spawner.spawnBoss(world, 0) else Spawner.spawnOne(world, 0)
+			local wild = world.wild[id]
+			expect(wild.radius >= SAFE).toBe(true)
+			-- walking the lane (the wander route), whatever lateral offset the roll gives
+			local lateral = ParadeLane.lateral(wild.radius, Fountain.MIN_RADIUS, Fountain.MAX_RADIUS)
+			for k = 0, 40 do
+				local pose = ParadeLane.pose(0, 100, lateral, k * 2.5)
+				local r = math.sqrt(pose.position[1] ^ 2 + pose.position[3] ^ 2)
+				expect(r >= SAFE).toBe(true)
+			end
+		end
+		-- dropped spots anywhere in or near the band are pushed out; others are untouched
+		for r = 0, 70, 0.5 do
+			for a = 0, 330, 30 do
+				local x, z = Fountain.clearOfRing(math.cos(math.rad(a)) * r, math.sin(math.rad(a)) * r)
+				local out = math.sqrt(x * x + z * z)
+				expect(out <= Fountain.RING_BAND_INNER - Fountain.SLIME_RADIUS or out >= Fountain.MIN_RADIUS - 1e-6).toBe(
+					true
+				)
+				if r >= Fountain.MIN_RADIUS or r < Fountain.RING_BAND_INNER - Fountain.SLIME_RADIUS - 1e-6 then
+					expect(out).toBeCloseTo(r)
+				end
+			end
+		end
+		for _, r in { 31, 32.5, 34, 38, 44.4 } do
+			local x, z = Fountain.clearOfRing(r, 0)
+			expect(x).toBeCloseTo(Fountain.MIN_RADIUS)
+			expect(z).toBeCloseTo(0)
 		end
 	end)
 	it("Slime Rain drops more mutations and rarer slimes", function()
