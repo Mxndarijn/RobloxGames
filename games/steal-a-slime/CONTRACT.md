@@ -21,7 +21,7 @@ src/shared/      -> ReplicatedStorage.Shared       (ModuleScripts; pure, Lune-sa
   Types.luau       network payload types (State, SlimeData, ...)                 shared
   Genome, Rng, Merge, Economy, PlayerData, SaveData, SessionLock,
   Steal, Progression, Fountain (legacy alias `Volcano`), Validate, Shop, TutorialProgress, DayNight,
-  Perks, Upgrades, Goals, Collection (v13, §8.8)
+  Perks, Upgrades, Goals, Collection (v13, §8.8), Habitats (FEATURES.Habitats)
                    pure gameplay rules                                          Phoenix
 src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts) Phoenix
   init.server.luau thin adapter: Remotes.setup(), Request -> Actions.handle,
@@ -36,7 +36,8 @@ src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts
   (mesh look over ModelFactory, loader + factory injected), Rescue (kill plane),
   PlotPrompts (plot prompt texts / lock + pad attributes, §8.5), Milestones
   (goal + Slimedex payouts, §8.8), TestHooks (test sessions only, §8.12),
-  PlotClaim (ClaimPrompt on the FREE PLOT stand, §9.1)
+  PlotClaim (ClaimPrompt on the FREE PLOT stand, §9.1), HabitatPads (pad
+  habitat state, FEATURES.Habitats)
   Roblox adapters: WorldView (models, prompts, plot attributes, HomeZone,
   WalkSpeed, Speed Coil tool, kill-plane rescue), WorldProps (ShopStand,
   LeaderboardBoard, TutorialNpc, §5.3), FallbackWorld (greybox §5.3 if
@@ -122,6 +123,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - `DayNight`: the server sets `Lighting.ClockTime = DayNight.clockTime(elapsed)` twice a second: one day per `DAY_LENGTH` (12 min), daytime 06:30–17:30 for `DAY_FRACTION` (70 %) of it.
   - `Minimap`: `ReplicatedStorage.Visuals.MinimapData.points()` lists `{ kind, name, x, z, plotIndex? }` for the fountain (`kind = "Fountain"`, map centre), `Plot_i`, the three props and HubSpawn from WorldLayout; `toMap(x, z)` gives 0..1 map coordinates over the 640-stud Ground. Data only (no UI yet).
   - `Parade` (sketch, **default `false`**): wild slimes that aren't carried or dropped walk the goo-parade lane (r 68) from its entry next to the gate round to the gate on +Z; the arc left to walk is the share of lifetime left (`Shared.ParadeLane`). `Spawner` keeps `wild.angle` / `wild.radius` on the lane; spawn cadence, cap and lifetime don't change, and removal is still at `expiresAt`. The ring warning is the `DespawnTelegraph` window (the countdown reads `"leaving! N"`). There is no new HUD. With the flag off, wilds land in the `Fountain.MIN_RADIUS..MAX_RADIUS` band (`Volcano` is a thin alias) as before.
+  - `Habitats` (**default `false`**, `HABITATS.md`): a pad whose slime rests on it shows that slime's habitat (`Shared.Habitats.forSlime`: type, then tier family, else `base`); empty / stolen / escaping = `base`. Server state in `HabitatPads` (never saved), written as the `Pad_<j>` attributes below; `VisualsClient.HabitatFx` tweens a local look in `workspace.ClientHabitats` over 1 s. Flag off = no attributes, no parts.
 - **Out of MVP scope:** fountain / silo tiers (was "volcano tiers"), 3-slime vat, sticky floor / bouncer upgrades, Robux products.
 
 ## 3. Remotes
@@ -328,7 +330,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `LOCK_UPGRADE_MAX` / `LOCK_UPGRADE_SECONDS` / `LOCK_UPGRADE_COSTS` | 5 / 15 / 500, 2 000, 8 000, 30 000, 100 000 | shop: longer locks |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
-| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`false`, sketch) | §2 Extras |
+| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`false`, sketch); `Habitats` (`false`) | §2 Extras |
 | `BOSS_FIRST_AT` / `BOSS_INTERVAL` / `BOSS_TIER` / `BOSS_LIFETIME` | 480 / 900 / 4 / 120 | Boss Slime |
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
@@ -427,6 +429,7 @@ Every field above is in every snapshot (the server never leaves one out); only t
 | `Plot_<i>` | `PlotPrice` (`PLOT_PRICE_ATTRIBUTE`) | `number?`, reserved for paid plots; **never set in v13** (plots are free), so readers show no price |
 | wild slime model | `RareSpawn` (`RARE_ATTRIBUTE`) | `number?`, the tier, only on wild Legendary+ (tier >= `RARE_ANNOUNCE_TIER`) drops |
 | wild slime model | `DespawnAt` (`DESPAWN_AT_ATTRIBUTE`) | `number?`, server time the slime is removed (= its expiry). Set only for the last `Config.DESPAWN_TELEGRAPH_SECONDS` (5) while uncarried, and only with `FEATURES.DespawnTelegraph`; nil otherwise. Clients count down `DespawnAt - workspace:GetServerTimeNow()` (`Shared.DespawnTelegraph`). The server still removes only at expiry, never earlier. Flag off = silent removal as before. |
+| `Pad_<j>` | `Habitat` / `HabitatFrom` / `HabitatAt` (`HABITAT_ATTRIBUTE` / `HABITAT_FROM_ATTRIBUTE` / `HABITAT_AT_ATTRIBUTE`) | `string` / `string` / `number` (server time): current habitat id, the one before it, when it changed. Only with `FEATURES.Habitats`; never set when off. |
 | `workspace` | `RareSpawnId` / `RareSpawnTier` / `RareSpawnAt` (`RARE_SPAWN_ID_ATTRIBUTE` / `RARE_SPAWN_TIER_ATTRIBUTE` / `RARE_SPAWN_AT_ATTRIBUTE`) | `string` / `number` / `number` (server time) of the latest rare drop; set together on each one (effects key on `RareSpawnAt` changing) |
 | owner-only `ProximityPrompt` | `ShowOnlyToUserId` (`PROMPT_OWNER_ATTRIBUTE`) | `number?`, the plot owner. **Clients other than that user keep the prompt disabled locally** (same rule as `HideFromUserId`, inverted; Jolt's PromptHide). nil (free plot) = prompt is also server-disabled. The server refuses non-owners anyway (Notify `"This is <name>'s base"`). |
 
