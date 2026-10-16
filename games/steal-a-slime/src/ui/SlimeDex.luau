@@ -47,6 +47,11 @@ SlimeDex.MUTATION_COLORS = table.freeze({
 	Rainbow = table.freeze({ 255, 120, 200 }),
 	Crystal = table.freeze({ 150, 235, 255 }),
 	Eclipse = table.freeze({ 30, 20, 50 }),
+	-- Combos (Config.COMBOS)
+	Solar = table.freeze({ 255, 170, 90 }),
+	Nebula = table.freeze({ 190, 80, 160 }),
+	Aurora = table.freeze({ 120, 255, 190 }),
+	Royal = table.freeze({ 255, 225, 120 }),
 })
 
 function SlimeDex.image(key: string, images: { [string]: string }?): string?
@@ -93,6 +98,9 @@ function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: st
 	local mutationNames: { [string]: string } = {}
 	for _, m in config.MUTATIONS or {} do
 		mutationNames[m.name] = m.displayName or m.name
+	end
+	for _, c in config.COMBOS or {} do
+		mutationNames[c.name] = c.displayName or c.name
 	end
 	local progress = Progress.dex(dex, total, tierNames)
 	local byTier: { [number]: { string } } = {}

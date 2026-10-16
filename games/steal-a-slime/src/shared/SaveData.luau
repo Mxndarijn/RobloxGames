@@ -20,7 +20,14 @@
 	    plus (no bump; missing -> none) redeemed = { code }, boost = { mult, untilAt }
 	    v2 -> v3: zero upgrades / goals / dexRewards, stats.caught seeded with
 	    max(#slimes, dex count), tutorialStep 4..6 -> 5..7 (BuyPad step).
-	Unknown/newer versions are read field-by-field with the v3 sanitizer.
+	  v4 (current): v3 plus slimes[i].mutations = { name } (every mutation, at most
+	    Config.MAX_MUTATIONS; combos stored by their combo name). The single
+	    `mutation` field is still written (the primary = strongest mutation) so a v3
+	    reader keeps working and DataStore keys/field names never change.
+	    v3 -> v4 (migrateV3): mutations = {} for "None"/missing, else { mutation };
+	    pure, idempotent, never touches a slime that already has a list.
+	Unknown/newer versions are read field-by-field with the v4 sanitizer (both
+	`mutations` and the legacy `mutation` are understood, nothing is dropped).
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -79,7 +86,37 @@ function SaveData.migrateV1(raw: { [string]: any }): { [string]: any }
 	}
 end
 
--- Returns a v2-shaped raw table (still untrusted) from any stored value.
+-- v3 (or older v2-shaped) -> v4. Pure: returns a copy, never mutates `raw`. Adds
+-- `mutations` to every slime table that has none, from the legacy `mutation` field.
+-- Idempotent. `migratedFrom` remembers the version it came from (deserialize needs
+-- it for the v2 -> v3 steps); it is never serialized.
+function SaveData.migrateV3(raw: { [string]: any }): { [string]: any }
+	local out = table.clone(raw)
+	local from = tonumber(raw.version)
+	if from == nil or from ~= from then
+		from = 0
+	end
+	out.migratedFrom = raw.migratedFrom or from
+	if type(raw.slimes) == "table" then
+		local slimes = {}
+		for i, old in raw.slimes do
+			if type(old) == "table" and type(old.mutations) ~= "table" then
+				local slime = table.clone(old)
+				local m = old.mutation
+				slime.mutations = if type(m) == "string" and m ~= "None" then { m } else {}
+				slimes[i] = slime
+			else
+				slimes[i] = old
+			end
+		end
+		out.slimes = slimes
+	end
+	out.version = 4
+	return out
+end
+
+-- Returns a v4-shaped raw table (still untrusted) from any stored value. Saves
+-- from a newer version than we know are returned as they are.
 function SaveData.migrate(raw: any): { [string]: any }?
 	if type(raw) ~= "table" then
 		return nil
@@ -87,9 +124,12 @@ function SaveData.migrate(raw: any): { [string]: any }?
 	local version = tonumber(raw.version)
 	if version == nil then
 		if raw.Cash ~= nil or raw.Slimes ~= nil or raw.Rebirths ~= nil then
-			return SaveData.migrateV1(raw)
+			return SaveData.migrateV3(SaveData.migrateV1(raw))
 		end
 		return nil
+	end
+	if version < 4 then
+		return SaveData.migrateV3(raw)
 	end
 	return raw
 end
@@ -165,7 +205,7 @@ function SaveData.deserialize(stored: any): Data
 	if raw.tutorialStep ~= nil then
 		local step = num(raw.tutorialStep, 0, 0, #TutorialProgress.STEPS)
 		-- v3 inserted "BuyPad" as step 4: an older save's Merge / Steal / Rebirth (4..6) moves up one.
-		if (tonumber(raw.version) or 0) < 3 and step >= 4 then
+		if (tonumber(raw.migratedFrom or raw.version) or 0) < 3 and step >= 4 then
 			step = math.min(step + 1, #TutorialProgress.STEPS)
 		end
 		data.tutorialStep = step
@@ -190,7 +230,7 @@ function SaveData.deserialize(stored: any): Data
 		locks = num(stats.locks, 0, 0, 1e9),
 		sold = num(stats.sold, 0, 0, 1e9),
 	}
-	if (tonumber(raw.version) or 0) < 3 then
+	if (tonumber(raw.migratedFrom or raw.version) or 0) < 3 then
 		-- v2 never counted catches: every slime on the plot / dex entry was caught or merged at least.
 		data.stats.caught = math.max(#data.slimes, PlayerData.dexCount(data))
 	end
@@ -240,7 +280,8 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			pattern = slime.pattern,
 			eyes = slime.eyes,
 			mouth = slime.mouth,
-			mutation = slime.mutation,
+			mutation = Genome.primaryMutation(Genome.mutationList(slime)), -- legacy field, kept for v3 readers
+			mutations = Genome.mutationList(slime),
 			pad = slime.pad,
 			species = slime.species, -- optional (v28), dropped on load if unknown
 		})

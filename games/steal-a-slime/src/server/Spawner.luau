@@ -76,7 +76,8 @@ end
 -- "A LEGENDARY Glow Globble spilled from the fountain!" (Mythic gets "!!").
 function Spawner.rareText(slime: Genome.Slime): string
 	local rarity = string.upper(Genome.rarity(slime.tier).name)
-	local mutation = if slime.mutation ~= "None" then `{Genome.mutationDisplayName(slime.mutation)} ` else ""
+	local shown = Genome.mutationsDisplay(Genome.mutationList(slime))
+	local mutation = if shown ~= "" then `{shown} ` else ""
 	local bang = if slime.tier >= Config.SECRET_TIER - 1 then "!!" else "!"
 	return `A {rarity} {mutation}{slime.name} spilled from the fountain{bang}`
 end
@@ -118,7 +119,7 @@ function Spawner.spawnBoss(world: World, now: number): string
 	slime.tier = math.max(slime.tier, Config.BOSS_TIER)
 	slime.size = Config.MAX_SIZE
 	if slime.mutation == "None" then
-		slime.mutation = "Glow"
+		Genome.setMutations(slime, { "Glow" })
 	end
 	world.wild[id] = {
 		slime = slime,

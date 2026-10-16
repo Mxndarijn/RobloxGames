@@ -58,12 +58,17 @@ function Appraise.reroll(
 		cost = cost,
 		beforeMutation = slime.mutation,
 		afterMutation = slime.mutation,
+		beforeMutations = Genome.mutationList(slime),
+		afterMutations = Genome.mutationList(slime),
 		beforeSize = slime.size,
 		afterSize = slime.size,
 	}
 	if kind == "mutation" then
-		slime.mutation = Genome.rollMutation(rng:float(), rng:float(), Config.APPRAISE_MUTATION_CHANCE)
+		local first = Genome.rollMutation(rng:float(), rng:float(), Config.APPRAISE_MUTATION_CHANCE)
+		-- A reroll replaces the whole list; with stacking it can land on several (and combos).
+		Genome.setMutations(slime, Genome.stackMutations(if first == "None" then {} else { first }, rng))
 		appraisal.afterMutation = slime.mutation
+		appraisal.afterMutations = Genome.mutationList(slime)
 		PlayerData.discover(data, slime)
 	else
 		slime.size = Appraise.rollSize(rng:float())

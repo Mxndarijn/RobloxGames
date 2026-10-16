@@ -32,7 +32,11 @@ local function call(world: any, userId: number, seed: number, now: number, ...: 
 end
 
 local function slime()
-	return Fixtures.slime("a", 4, { mutation = "Glow", size = 1.2, pattern = "Spots", eyes = "Happy" })
+	return Fixtures.slime(
+		"a",
+		4,
+		{ mutation = "Glow", mutations = { "Glow" }, size = 1.2, pattern = "Spots", eyes = "Happy" }
+	)
 end
 
 describe("Appraise", function()
@@ -101,6 +105,7 @@ describe("Appraise", function()
 			local after = data.slimes[1]
 			local expected = Genome.copy(before)
 			expected.mutation = after.mutation
+			expected.mutations = after.mutations
 			expect(Genome.copy(after)).toEqual(expected)
 
 			data = Fixtures.data({ slime() }, 1_000_000)
