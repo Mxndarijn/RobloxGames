@@ -195,10 +195,20 @@ describe("SlideColliders specs", function()
 			local bottom = math.min(a[2], b[2]) - SlideColliders.FLOOR
 			local skirt = names[`SlideSkirt{i}`]
 			if bottom > 0.05 and bottom <= SlideColliders.WALK_UNDER then
-				expect(skirt ~= nil).toBe(true)
-				expect(skirt.forward[2]).toBe(0)
-				expect(skirt.centre[2] - skirt.size[2] / 2).toBeCloseTo(0, EPS)
-				expect(skirt.centre[2] + skirt.size[2] / 2).toBeCloseTo(bottom, EPS)
+				-- (a skirt the segment's own floor slab holds whole is not spawned: see "merged colliders")
+				local raw = nil
+				for _, spec in SlideColliders.buildRaw(PATH, true) do
+					if spec.name == `SlideSkirt{i}` then
+						raw = spec
+					end
+				end
+				expect(raw ~= nil).toBe(true)
+				expect(raw.forward[2]).toBe(0)
+				expect(raw.centre[2] - raw.size[2] / 2).toBeCloseTo(0, EPS)
+				expect(raw.centre[2] + raw.size[2] / 2).toBeCloseTo(bottom, EPS)
+				if skirt == nil then
+					expect(SlideColliders.contains(names[`SlideFloor{i}`], raw)).toBe(true)
+				end
 			else
 				expect(skirt).toBe(nil)
 			end
@@ -1126,6 +1136,122 @@ describe("SlideColliders in the live server", function()
 		end
 		for _, name in { "Rock1", "BasinRim", "Column" } do
 			expect(failedRt.workspace.Map.Volcano[name].CanCollide).toBe(true)
+		end
+	end)
+end)
+
+-- Part-count cut: the colliders that other colliders hold whole are not spawned. The segment boxes lie
+-- along a spiral (no two are coplanar), so containment is the only exact merge.
+describe("merged slide colliders keep the collision envelope exactly", function()
+	local RAW = SlideColliders.buildRaw(PATH, true)
+	local STEP = 0.1
+	local function inside(specs, p)
+		for _, spec in specs do
+			if depth(spec, p) >= -1e-6 then
+				return true
+			end
+		end
+		return false
+	end
+	it("drop only skirts, and fewer Parts than before", function()
+		expect(#SPECS < #RAW).toBe(true)
+		local kept = {}
+		for _, spec in SPECS do
+			kept[spec.name] = spec
+		end
+		for _, spec in RAW do
+			if kept[spec.name] == nil then
+				expect(spec.kind).toBe("Skirt")
+			else
+				expect(kept[spec.name].kind).toBe(spec.kind) -- kept specs are untouched (values checked below)
+			end
+		end
+	end)
+	it("keep every kept Part's properties (kind, segment, forward, size) as built", function()
+		local byRaw = {}
+		for _, spec in RAW do
+			byRaw[spec.name] = spec
+		end
+		for _, spec in SPECS do
+			local raw = byRaw[spec.name]
+			expect(spec.kind).toBe(raw.kind)
+			expect(spec.segment).toBe(raw.segment)
+			for k = 1, 3 do
+				expect(spec.centre[k]).toBe(raw.centre[k])
+				expect(spec.size[k]).toBe(raw.size[k])
+				expect(spec.forward[k]).toBe(raw.forward[k])
+			end
+		end
+	end)
+	it("fill the same volume: every sampled point is solid after exactly when it was before", function()
+		-- every dropped box sampled on a 0.1 grid, plus a ring of points just outside it (nothing may be added either)
+		local kept = {}
+		for _, spec in SPECS do
+			kept[spec.name] = true
+		end
+		local checked = 0
+		for _, spec in RAW do
+			if not kept[spec.name] then
+				local right, up, f = frame(spec)
+				local nx, ny, nz =
+					math.ceil(spec.size[1] / STEP), math.ceil(spec.size[2] / STEP), math.ceil(spec.size[3] / STEP)
+				for a = 0, nx do
+					for b = 0, ny do
+						for c = 0, nz do
+							local x, y, z =
+								(a / nx - 0.5) * spec.size[1],
+								(b / ny - 0.5) * spec.size[2],
+								(c / nz - 0.5) * spec.size[3]
+							local p = {
+								spec.centre[1] + right[1] * x + up[1] * y + f[1] * z,
+								spec.centre[2] + right[2] * x + up[2] * y + f[2] * z,
+								spec.centre[3] + right[3] * x + up[3] * y + f[3] * z,
+							}
+							expect(inside(SPECS, p)).toBe(true)
+							checked += 1
+						end
+					end
+				end
+			end
+		end
+		expect(checked > 0).toBe(true)
+		-- and on a grid over the neighbourhood of the dropped boxes, both sets agree point by point
+		local lo, hi = { math.huge, math.huge, math.huge }, { -math.huge, -math.huge, -math.huge }
+		for _, spec in RAW do
+			if not kept[spec.name] then
+				for k = 1, 3 do
+					lo[k] = math.min(lo[k], spec.centre[k] - spec.size[3] / 2 - 3)
+					hi[k] = math.max(hi[k], spec.centre[k] + spec.size[3] / 2 + 3)
+				end
+			end
+		end
+		lo[2] = -1
+		local x = lo[1]
+		while x <= hi[1] do
+			local z = lo[3]
+			while z <= hi[3] do
+				local y = lo[2]
+				while y <= hi[2] do
+					local p = { x, y, z }
+					expect(inside(SPECS, p)).toBe(inside(RAW, p))
+					y += 0.7
+				end
+				z += 0.7
+			end
+			x += 0.7
+		end
+	end)
+	it("keep the slide surface: the floor top height along the path is the ride line, before and after", function()
+		for i = 1, #PATH - 1 do
+			local a, b = PATH[i], PATH[i + 1]
+			for _, k in { 0.1, 0.3, 0.5, 0.7, 0.9 } do
+				local p = { a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k }
+				-- top surface: solid just under the ride line, open just above it (inside the tube)
+				for _, set in { RAW, SPECS } do
+					expect(inside(set, { p[1], p[2] - 0.05, p[3] })).toBe(true)
+					expect(inside(set, { p[1], p[2] + 0.5, p[3] })).toBe(false)
+				end
+			end
 		end
 	end)
 end)
