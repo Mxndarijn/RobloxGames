@@ -1555,6 +1555,10 @@ def step_shots(run):
                 res["camera"] = cam = run.need_luau("shot_camera", "Client", timeout=25, eye=eye, at=at)
                 if not cam.get("locked"):
                     run.note("shot %s: camera drifted %.2f studs from the render-step lock" % (sid, cam.get("drift") or -1))
+                if shot.get("habitat") and (res.get("target") or {}).get("path"):
+                    # morph proof: the Client sets the pad's Habitat and waits `wait` s (mid-morph < 1, done >= 1.2)
+                    res["habitat"] = run.need_luau("habitat_set", "Client", timeout=30, path=res["target"]["path"],
+                                                   habitat=shot["habitat"], wait=float(shot.get("wait", 1.5)))
                 res["frame"] = capture_frame(run, hwnd, fid, crop=True, todo=todo, kind="shot",
                                              target=(res.get("target") or {}).get("path"))
         except Exception as e:

@@ -278,7 +278,7 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"}, "viewport_probe": {"SHOW"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"},
+        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
