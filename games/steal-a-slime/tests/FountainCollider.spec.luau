@@ -23,9 +23,20 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local M = "slime_fountain"
 local SOLID_STAND_INS = { "Rock1", "BasinRim", "Column", "Bowl" }
 local COLLIDERS = { "BasinCollider", "SiloCollider", "TrimCollider" }
+local TIERS = WorldLayout.fountainTopTiers()
+local TOP_COLLIDERS = {}
+for i = 1, #TIERS do
+	table.insert(TOP_COLLIDERS, `TopCollider{i}`)
+end
+local ALL_COLLIDERS = table.clone(COLLIDERS)
+for _, name in TOP_COLLIDERS do
+	table.insert(ALL_COLLIDERS, name)
+end
+table.sort(ALL_COLLIDERS)
 local EPS = 1e-3 -- Part sizes are float32
 local MAX_STEP = 2 -- highest ledge a player may meet unseen
 local FP = WorldLayout.FOUNTAIN_PROFILE
+local BASIN = FP.eaveTop + FP.domeRise -- 35.9: the dome's top, the basin floor
 local FOUNTAIN_MESH_ID = MeshAssets.meshId(M)
 
 -- The kit's silo profile, read from the model source (literal PROF rings,
@@ -50,6 +61,9 @@ local built = process.exec("rojo", { "build", "-o", path })
 assert(built.ok, `rojo build failed: {built.stderr}`)
 
 local STATE_PARTS = { "BasinCollider", "TrimCollider", "SiloCollider", "Rock1", "BasinRim", "Column", "Bowl" }
+for _, name in TOP_COLLIDERS do
+	table.insert(STATE_PARTS, name)
+end
 
 -- CanCollide of the colliders and the solid stand-ins, right now.
 local function collision(volcano): { [string]: boolean }
@@ -69,6 +83,9 @@ local LOADING = {
 	Column = true,
 	Bowl = true,
 }
+for _, name in TOP_COLLIDERS do
+	LOADING[name] = false
+end
 local LOADED = {
 	BasinCollider = true,
 	TrimCollider = true,
@@ -78,6 +95,9 @@ local LOADED = {
 	Column = false,
 	Bowl = false,
 }
+for _, name in TOP_COLLIDERS do
+	LOADED[name] = true
+end
 
 -- `create` stands in for CreateMeshPartAsync; each call snapshots the
 -- fountain's collision while that fetch is in flight (still loading).
@@ -230,7 +250,7 @@ describe("fountain collider, mesh loading", function()
 		expect(loadingVolcano.FountainMesh:FindFirstChild("Mesh")).toBe(nil)
 		expectColliders(loadingVolcano, false)
 	end)
-	it("tags only the three colliders MeshCollider = slime_fountain", function()
+	it("tags only the colliders MeshCollider = slime_fountain", function()
 		local tagged = {}
 		for _, d in loadingMap:GetDescendants() do
 			if d:GetAttribute("MeshCollider") ~= nil then
@@ -239,7 +259,7 @@ describe("fountain collider, mesh loading", function()
 			end
 		end
 		table.sort(tagged)
-		expect(tagged).toEqual(COLLIDERS)
+		expect(tagged).toEqual(ALL_COLLIDERS)
 	end)
 	it("keeps the visible stand-ins solid", function()
 		expect(collision(loadingVolcano)).toEqual(LOADING)
@@ -291,8 +311,8 @@ describe("fountain collider, mesh loaded", function()
 		end
 		expect(n > #SOLID_STAND_INS).toBe(true)
 	end)
-	it("leaves no invisible step around the base (only the three colliders collide unseen)", function()
-		expect(invisibleColliders(loadedMap)).toEqual(COLLIDERS)
+	it("leaves no invisible step around the base (only the base and top colliders collide unseen)", function()
+		expect(invisibleColliders(loadedMap)).toEqual(ALL_COLLIDERS)
 	end)
 	it("setMeshCollision is the one switch: off restores the stand-ins, on again matches MeshSwap", function()
 		local run = toggled
@@ -390,4 +410,139 @@ describe("fountain bevel collider, real numbers", function()
 		MeshSwap.setMeshCollision(run.map, M, true)
 		expect(run.volcano.TrimCollider.CanCollide).toBe(true)
 	end)
+end)
+
+-- The top of the fountain (v30 C10): above the silo wall (31.3) the mesh has
+-- the eave, the red dome shoulder and the basin floor; none of it collided, so
+-- players walked through the top. Kit numbers, read from the model source.
+local TOP = (function()
+	local src = fs.readFile("../../shared/modeling-kit/models/slime_fountain.py")
+	assert(string.find(src, "8.9 + 4.5 * math.cos(phi), Z0 + 4.6 * math.sin(phi)", 1, true), "kit dome formula changed")
+	return { floor = KIT.eaveTop + 4.6 }
+end)()
+
+-- Height of the kit's solid top at distance r from the axis (dome outline, then the basin floor).
+local function profileTop(r: number): number
+	if r > FP.eaveRadius then
+		return 0
+	end
+	if r <= FP.domeCentre then
+		return BASIN
+	end
+	local c = (r - FP.domeCentre) / FP.domeSpan
+	return FP.eaveTop + FP.domeRise * math.sqrt(1 - c * c)
+end
+
+describe("fountain top collider, profile", function()
+	it("reads the dome top (the basin floor) from the kit", function()
+		expect(BASIN).toBeCloseTo(TOP.floor, EPS)
+		expect(FP.domeCentre).toBe(8.9)
+		expect(FP.domeSpan).toBe(4.5)
+		expect(FP.domeRise).toBe(4.6)
+		expect(FP.eaveRadius).toBeCloseTo(13.4)
+	end)
+	it("stacks invisible upright cylinders on the silo axis from the eave to the basin floor", function()
+		local prevTop = FP.wallTop
+		for i, name in TOP_COLLIDERS do
+			local c = loadedVolcano[name]
+			expect(c.ClassName).toBe("Part")
+			expect(c.Shape).toBe(roblox.Enum.PartType.Cylinder)
+			expect(c.Anchored).toBe(true)
+			expect(c.CanCollide).toBe(true)
+			expect(c.CanQuery).toBe(false)
+			expect(c.Transparency).toBe(1)
+			expect(c.CFrame.Position.X).toBeCloseTo(0, EPS)
+			expect(c.CFrame.Position.Z).toBeCloseTo(0, EPS)
+			expect(c:GetAttribute("MeshCollider")).toBe(M)
+			expect(bottom(c)).toBeCloseTo(prevTop, EPS) -- no gap between tiers
+			expect(top(c) > prevTop).toBe(true)
+			expect(i == 1 or top(c) - prevTop <= 0.7).toBe(true) -- no unseen step above the eave
+			prevTop = top(c)
+			expect(i <= #TIERS).toBe(true)
+		end
+		expect(prevTop).toBeCloseTo(BASIN, EPS)
+		expect(bottom(loadedVolcano.TopCollider1)).toBeCloseTo(FP.wallTop, EPS)
+		expect(radius(loadedVolcano.TopCollider1)).toBeCloseTo(FP.eaveRadius, EPS)
+	end)
+	it("adds no mesh (invisible Parts only)", function()
+		for _, name in TOP_COLLIDERS do
+			expect(loadedVolcano[name]:IsA("MeshPart")).toBe(false)
+		end
+	end)
+end)
+
+-- Highest colliding top over distance r, among colliders that collide now (silo included).
+local function surfaceNow(volcano, r: number): number
+	local h = 0
+	for _, name in ALL_COLLIDERS do
+		local c = volcano[name]
+		if c.CanCollide and radius(c) >= r then
+			h = math.max(h, top(c))
+		end
+	end
+	return h
+end
+
+describe("fountain top collider, no holes", function()
+	-- Dense grid over the top, every 0.05 stud out from the axis to the eave edge.
+	it("loaded: the collision covers the dome, never under the profile, never far over it", function()
+		local worstUnder, worstOver = 0, 0
+		local samples = 0
+		for i = 0, 268 do
+			local r = i * 0.05
+			if r < 0.01 then
+				continue
+			end
+			local want = if r <= FP.wallRadius then math.max(profileTop(r), FP.eaveTop) else profileTop(r)
+			local got = surfaceNow(loadedVolcano, r)
+			samples += 1
+			worstUnder = math.min(worstUnder, got - want)
+			worstOver = math.max(worstOver, got - want)
+		end
+		expect(samples > 250).toBe(true)
+		expect(worstUnder >= -EPS).toBe(true) -- feet never sink under the visible top
+		expect(worstOver <= 0.5).toBe(true) -- and no bump over half a stud
+	end)
+	it("loaded: every radius from the axis to the eave edge has a collider top above the wall", function()
+		for i = 1, 268 do
+			expect(surfaceNow(loadedVolcano, i * 0.05) >= FP.eaveTop).toBe(true)
+		end
+		expect(surfaceNow(loadedVolcano, FP.eaveRadius + 0.2) <= FP.trimTop).toBe(true)
+	end)
+	it("states: loading and failed keep the top colliders off, the visible bowl solid", function()
+		for _, run in { loading, failed } do
+			for _, name in TOP_COLLIDERS do
+				expect(run.volcano[name].CanCollide).toBe(false)
+			end
+			expect(run.volcano.Bowl.CanCollide).toBe(true)
+			expect(run.volcano.Column.CanCollide).toBe(true)
+		end
+	end)
+	it("states: loaded and loading are never both off or both on", function()
+		for _, name in TOP_COLLIDERS do
+			expect(loadedVolcano[name].CanCollide).toBe(true)
+			expect(loadingVolcano[name].CanCollide).toBe(false)
+			expect(loadedVolcano[name]:GetAttribute("MeshCollider")).toBe(M)
+		end
+	end)
+	it("the switch flips the whole top with the rest", function()
+		local run = toggled
+		local MeshSwap = run.rt:require(run.rt.game:GetService("ServerScriptService").Server.MeshSwap)
+		MeshSwap.setMeshCollision(run.map, M, false)
+		for _, name in TOP_COLLIDERS do
+			expect(run.volcano[name].CanCollide).toBe(false)
+		end
+		MeshSwap.setMeshCollision(run.map, M, true)
+		for _, name in TOP_COLLIDERS do
+			expect(run.volcano[name].CanCollide).toBe(true)
+		end
+	end)
+	it(
+		"keeps the slide head enterable: the basin floor sits under the slide's first point, so the ride starts in the open",
+		function()
+			local head = WorldLayout.SLIDE_PATH[1]
+			expect(head[2] >= BASIN and head[2] - BASIN <= 1).toBe(true)
+			expect(math.sqrt(head[1] ^ 2 + head[3] ^ 2) < FP.domeCentre).toBe(true)
+		end
+	)
 end)

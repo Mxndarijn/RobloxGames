@@ -89,7 +89,31 @@ WorldLayout.FOUNTAIN_PROFILE = table.freeze({
 	wallRadius = 11.2, -- staves at foot and top (wall_r, 11.7 mid-bulge)
 	wallTop = 30.0, -- WALL_TOP, the eave underside
 	eaveTop = 31.3, -- Z0, eave edge top (the red dome starts here)
+	eaveRadius = 13.4, -- the eave edge's outer radius at its top
+	domeCentre = 8.9, -- dome shoulder: r = domeCentre + domeSpan * cos(phi), z = eaveTop + domeRise * sin(phi)
+	domeSpan = 4.5,
+	domeRise = 4.6,
 })
+local DOME_STEPS = 18 -- 5 degrees each: no tier rises more than 0.4 studs
+
+-- The solid top of the fountain mesh, above the silo wall: stacked upright
+-- cylinders {radius, bottom, top} from the eave over the dome to the rim top
+-- (eaveTop + domeRise: the basin's flat floor, a stud under the slide's head). Each tier
+-- is as wide as the profile at its foot, so the collision never sits inside
+-- the visible surface (feet never sink) and pokes out at most one tier rise.
+-- The goo crown above stays open: the slide starts in it.
+function WorldLayout.fountainTopTiers(): { { number } }
+	local fp = WorldLayout.FOUNTAIN_PROFILE
+	local tiers = { { fp.eaveRadius, fp.wallTop, fp.eaveTop } }
+	local lastZ = fp.eaveTop
+	for i = 0, DOME_STEPS - 1 do
+		local a, b = math.rad(i * 90 / DOME_STEPS), math.rad((i + 1) * 90 / DOME_STEPS)
+		local top = fp.eaveTop + fp.domeRise * math.sin(b)
+		table.insert(tiers, { fp.domeCentre + fp.domeSpan * math.cos(a), lastZ, top })
+		lastZ = top
+	end
+	return tiers
+end
 -- The silo axis is the map centre: every fountain piece (mesh slot, emerge
 -- slot, colliders, crater, slide, landing ring, goo drain) is laid out from
 -- FOUNTAIN_CENTRE. The slime_fountain mesh's silo axis is SILO_OFFSET (X, Z)
@@ -541,7 +565,12 @@ local function volcano(): WorldNode
 	local plinth = disc("BasinCollider", fp.plinthTop, fp.plinthRadius * 2, onAxis(fp.plinthTop / 2), STONE_TRIM)
 	local trim = disc("TrimCollider", trimHeight, fp.trimRadius * 2, onAxis(fp.plinthTop + trimHeight / 2), STONE_TRIM)
 	local wall = disc("SiloCollider", wallHeight, fp.wallRadius * 2, onAxis(fp.plinthTop + wallHeight / 2), STONE)
-	for _, collider in { plinth, trim, wall } do
+	local colliders = { plinth, trim, wall }
+	for i, tier in WorldLayout.fountainTopTiers() do
+		local height = tier[3] - tier[2]
+		table.insert(colliders, disc(`TopCollider{i}`, height, tier[1] * 2, onAxis(tier[2] + height / 2), STONE))
+	end
+	for _, collider in colliders do
 		collider.attributes = { MeshCollider = M }
 		collider.transparency = 1
 		collider.canCollide = false
