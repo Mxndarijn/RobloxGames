@@ -2,8 +2,7 @@
 -- Look fixes from the whole-world render review (tools/render):
 -- Map.Decor scattered rocks (WorldLayout rock()) are low boulders and flat
 -- stones (Balls) sunk into the Ground, never an upright grey box or a slab
--- that reads as a paving tile; the ring path's overlapping segments never share a top face; the plot
--- lock sign and button pedestal are ranch wood, not gunmetal.
+-- that reads as a paving tile; the plot lock sign and button pedestal are ranch wood, not gunmetal.
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -51,25 +50,6 @@ describe("decor rocks", function()
 	it("is sunk: every rock's centre is under the Ground top", function()
 		for _, n in all do
 			expect(n.pos[2] < 0).toBe(true)
-		end
-	end)
-end)
-
-describe("ring path", function()
-	it("staggers neighbouring segment tops (no coplanar overlap) on one bottom", function()
-		local ring = folder("Paths", "^Ring%d+$")
-		local function index(n: any): number
-			return tonumber(string.match(n.name, "%d+")) or 0
-		end
-		table.sort(ring, function(a, b)
-			return index(a) < index(b)
-		end)
-		expect(#ring >= 16).toBe(true)
-		for k, n in ring do
-			local nxt = ring[k % #ring + 1]
-			local top, nextTop = n.pos[2] + n.size[2] / 2, nxt.pos[2] + nxt.size[2] / 2
-			expect(math.abs(top - nextTop) >= 0.02).toBe(true)
-			expect(n.pos[2] - n.size[2] / 2).toBeCloseTo(0.02)
 		end
 	end)
 end)

@@ -718,5 +718,36 @@
     "kind": "ui",
     "open": "shop",
     "note": "TODO 19b: Shop menu shows the Mystery Egg row (egg badge, cash price, Buy button; FEATURES.MysteryEgg); no click"
+  },
+  {
+    "id": "v29-b5-path-eye-spoke",
+    "todo": "v29 B5",
+    "kind": "world",
+    "target": "Path1",
+    "index": 1,
+    "from": "centre",
+    "dist": 30,
+    "height": 5,
+    "note": "v29 B5: spoke path at player eye level, flush with the ground, no raised tile edges"
+  },
+  {
+    "id": "v29-b5-path-eye-ring",
+    "todo": "v29 B5",
+    "kind": "world",
+    "target": "Ring8",
+    "from": "centre",
+    "dist": 26,
+    "height": 5,
+    "note": "v29 B5: ring path at player eye level, one smooth surface across its segment joints"
+  },
+  {
+    "id": "v29-b5-path-junction",
+    "todo": "v29 B5",
+    "kind": "world",
+    "target": "Ring1",
+    "from": "look",
+    "dist": 22,
+    "height": 5,
+    "note": "v29 B5: ring and spoke junction at eye level, no step or seam where they cross"
   }
 ]
