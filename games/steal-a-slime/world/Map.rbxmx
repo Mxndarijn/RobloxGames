@@ -2516,7 +2516,7 @@
           <CoordinateFrame name="CFrame">
             <X>0</X>
             <Y>-0.011993408</Y>
-            <Z>50.75</Z>
+            <Z>54.90651</Z>
             <R00>1</R00>
             <R01>0</R01>
             <R02>0</R02>
@@ -2536,7 +2536,7 @@
           <Vector3 name="size">
             <X>8</X>
             <Y>0.1000061</Y>
-            <Z>30.5</Z>
+            <Z>22.186996</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
