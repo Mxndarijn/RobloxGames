@@ -289,8 +289,8 @@ describe("LOD tiers (FEATURES.SlimeLod)", function()
 		return out
 	end
 
-	it("is off by default and the thresholds are in Config", function()
-		expect(Config.FEATURES.SlimeLod).toBe(false)
+	it("is on and the thresholds are in Config", function()
+		expect(Config.FEATURES.SlimeLod).toBe(true)
 		expect(cfg.NEAR < cfg.MID).toBe(true)
 		expect(cfg.NEAR_LOW < cfg.NEAR and cfg.MID_LOW < cfg.MID).toBe(true)
 		expect(cfg.MID < SlimeLife.MAX_DISTANCE).toBe(true)

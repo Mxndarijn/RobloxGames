@@ -1324,7 +1324,7 @@ def step_shots(run):
     shots = read_json(os.path.join(HERE, "shots.json"), None)
     if not isinstance(shots, list):
         return "skip", {"reason": "shots.json missing or unreadable"}
-    results, world_mode, pad_seat = [], False, None
+    results, world_mode, pad_seat, cur_device = [], False, None, None
     for shot in shots:
         sid = re.sub(r"[^A-Za-z0-9_.-]", "_", str(shot.get("id", "shot")))
         fid = "shot-" + sid
@@ -1335,6 +1335,13 @@ def step_shots(run):
             res["skipped"] = "run budget"
             run.add_frame(fid, status="missing", todo=todo, kind="shot", error="run budget")
             continue
+        want = shot.get("device")
+        if want and want != cur_device and run.hwnd:
+            # optional per-shot viewport: a device name from cfg["devices"] (desktop / phone-portrait / phone-landscape)
+            for device, tw, th in run.cfg["devices"]:
+                if device == want:
+                    res["viewport"] = list(converge_viewport(run, run.hwnd, (tw, th))[0])
+                    cur_device = want
         try:
             if shot.get("kind") == "ui":
                 if world_mode:
@@ -1457,6 +1464,8 @@ def step_shots(run):
         run.luau("shot_camera_reset", "Client", timeout=15)
     except Exception:
         pass
+    if cur_device and cur_device != run.cfg["devices"][0][0] and run.hwnd:
+        converge_viewport(run, run.hwnd, tuple(run.cfg["devices"][0][1:]))  # back to the first (desktop) size
     if any(shot.get("weather") for shot in shots):
         try:
             run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1)  # drop the WeatherDebug preview
