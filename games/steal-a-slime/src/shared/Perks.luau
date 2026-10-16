@@ -23,6 +23,7 @@ export type Progress = {
 	dexRewards: number,
 	boostMult: number?, -- redeem-code income boost while active (Codes), nil / 1 = none
 	friendBonus: number?, -- runtime friend bonus (FriendBonus, never saved), nil / 0 = none
+	ritualBonus: number?, -- runtime "Blessed" bonus from the co-op ritual (Ritual, never saved), nil / 0 = none
 }
 
 local Perks = {}
@@ -140,13 +141,14 @@ function Perks.dexBonus(data: Progress): number
 	return total
 end
 
--- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends.
+-- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual.
 function Perks.bonusMultiplier(data: Progress): number
 	return (1 + upgradeEffect(data, "Income"))
 		* (1 + Perks.rankIncomeBonus(data.rebirths))
 		* (1 + Perks.dexBonus(data))
 		* math.max(data.boostMult or 1, 1)
 		* (1 + math.max(data.friendBonus or 0, 0))
+		* (1 + math.max(data.ritualBonus or 0, 0))
 end
 
 -- State.incomeMultiplier: rebirth x upgrade x rank x dex.

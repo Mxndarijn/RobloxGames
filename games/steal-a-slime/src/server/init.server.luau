@@ -32,6 +32,7 @@ local Genome = require(Shared:WaitForChild("Genome"))
 local Merge = require(Shared:WaitForChild("Merge"))
 local PlayerData = require(Shared:WaitForChild("PlayerData"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Ritual = require(Shared:WaitForChild("Ritual"))
 local Rng = require(Shared:WaitForChild("Rng"))
 local Types = require(Shared:WaitForChild("Types"))
 
@@ -49,6 +50,8 @@ local ParadeView = require(script.ParadeView)
 local PlotClaim = require(script.PlotClaim)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
+local RitualService = require(script.RitualService)
+local RitualView = require(script.RitualView)
 local Sessions = require(script.Sessions)
 local Snapshot = require(script.Snapshot)
 local Spawner = require(script.Spawner)
@@ -70,6 +73,14 @@ do
 	local ok, err = pcall(WorldProps.place)
 	if not ok then
 		warn(`[Server] WorldProps.place failed: {err}`)
+	end
+end
+-- Co-op ritual circle in the plaza (CONTRACT.md §13).
+local ritual = Ritual.new()
+do
+	local ok, err = pcall(RitualView.setup)
+	if not ok then
+		warn(`[Server] RitualView.setup failed: {err}`)
 	end
 end
 -- The low fountain slide blocks players (its trough and posts were walk-through).
@@ -622,6 +633,7 @@ local function onPlayerRemoving(player: Player)
 	homeZoneFull[player.UserId] = nil
 	badges.release(player.UserId)
 	Friends.forget(friendCache, player.UserId)
+	RitualService.leave(ritual, player.UserId)
 	task.spawn(refreshFriends)
 	if session then
 		refreshView(now()) -- a stolen slime in their arms bounces home
@@ -719,6 +731,15 @@ local function stepPlayers(t: number)
 			end
 			WorldView.updatePlayer(player, session, t)
 			updateLeaderstats(player, session)
+		end
+	end
+	if Config.FEATURES.CoopRitual then
+		local ok, err = pcall(function()
+			RitualService.step(ritual, world, RitualView.positions(), t)
+			RitualView.update(ritual, t)
+		end)
+		if not ok then
+			warn(`[Server] ritual step failed: {err}`)
 		end
 	end
 	if world.raining ~= wasRaining then

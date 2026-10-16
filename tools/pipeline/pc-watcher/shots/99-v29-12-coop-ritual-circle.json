@@ -1,0 +1,10 @@
+{
+  "id": "v29-12-coop-ritual-circle",
+  "todo": "v29 12",
+  "kind": "world",
+  "target": "RitualCircle",
+  "from": "look",
+  "dist": 22,
+  "height": 12,
+  "note": "v29 #12: plaza co-op ritual circle (FEATURES.CoopRitual): 4 glowing stand spots, an orb and a 'Slime Ritual 0/3 players' billboard, clear of the ring path and the fountain slide"
+}
