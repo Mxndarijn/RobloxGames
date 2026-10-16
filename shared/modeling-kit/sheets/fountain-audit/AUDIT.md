@@ -51,3 +51,7 @@ Why the slide length stays: `WorldLayout.SLIDE_PATH` is a port of this exact spi
 ## Outcome
 
 Fountain + slide match, so this went to **branch 2b**: two new plaza/farm props (`ranch_sunflower_patch`, `ranch_log_pile`). See their sheets and `_rounds.md` files.
+
+## Studio check attempt (2026-10-16 ~08:45 CEST, archer)
+- Route: Claude Code on Merijn's PC with the Roblox_Studio MCP (guides/roblox-live-testing.md). The MCP connected, but `get_studio_state` returned "Place is not open" (Studio sat on its start screen).
+- Read-only run stopped there. Nothing opened, saved, imported or published. The emerge offset (-11.20, 18.94, -8.25) after Roblox import and the prop scale vs rig are **still unverified in Studio**. Next step: open the place in Studio, then rerun the read-only check.
