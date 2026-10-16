@@ -1,6 +1,9 @@
 --!strict
 -- Fountain / plaza wiring (v30): kit mesh slots in the plaza, the Crater
 -- drop origin and the run-out from the spiral mouth to a rolled landing.
+local fs = require("@lune/fs")
+
+local Effects = require("../src/visuals/shared/Effects")
 local Fountain = require("../src/shared/Fountain")
 local MeshAssets = require("../src/shared/MeshAssets")
 local Rng = require("../src/shared/Rng")
@@ -152,5 +155,36 @@ describe("Fountain.runOut (spiral mouth -> rolled landing)", function()
 			end
 		end
 		expect(checked > 50).toBe(true)
+	end)
+end)
+
+describe("VisualsClient fountain wiring", function()
+	local src = fs.readFile("src/visuals/client/init.client.luau")
+	it("only attaches emitter presets Effects defines", function()
+		local n = 0
+		for preset in string.gmatch(src, 'addEmitter%(%w+, "(%w+)"') do
+			n += 1
+			expect(Effects.EMITTERS[preset] ~= nil).toBe(true)
+		end
+		expect(n >= 3).toBe(true)
+	end)
+	it("never looks up map parts the generated world doesn't have (old volcano decor)", function()
+		local names: { [string]: boolean } = {}
+		walk(world, function(node)
+			names[node.name] = true
+		end)
+		for pattern in string.gmatch(src, 'string%.find%(child%.Name, "%^(%w+)"%)') do
+			local hit = false
+			for name in names do
+				hit = hit or string.find(name, "^" .. pattern) ~= nil
+			end
+			expect(hit).toBe(true)
+		end
+		for name in string.gmatch(src, ':WaitForChild%("(%w+)"') do
+			if name == "Volcano" or name == "Crater" then
+				expect(names[name]).toBe(true)
+			end
+		end
+		expect(string.find(src, "LavaCrack", 1, true)).toBeNil()
 	end)
 end)

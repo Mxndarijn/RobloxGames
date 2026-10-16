@@ -17,7 +17,7 @@
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
 	  * slime fountain (still Map.Volcano.Crater): goo spray ("Smoke"),
 	    sparkle glints ("Embers") and "Eruption" splash puffs on the crown,
-	    goo bubbles on Map.Decor.LavaCrack*, with a splash burst every
+	    with a splash burst every
 	    ERUPT_EVERY seconds (faster during Slime Rain)
 	Reads attributes only; never fires remotes. One RenderStepped loop, slimes
 	far from the camera are skipped.
@@ -276,14 +276,6 @@ local function setupVolcano()
 	addEmitter(crater, "CraterEmbers", "Embers")
 	eruption = addEmitter(crater, "Eruption")
 	craterGlow = crater:FindFirstChildWhichIsA("PointLight")
-	local decor = map:FindFirstChild("Decor")
-	if decor then
-		for _, child in decor:GetChildren() do
-			if child:IsA("BasePart") and string.find(child.Name, "^LavaCrack") then
-				addEmitter(child, "LavaBubbles")
-			end
-		end
-	end
 end
 
 local function stepVolcano(now: number)

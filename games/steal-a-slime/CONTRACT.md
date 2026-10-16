@@ -307,7 +307,7 @@ The server finds plots by the `PlotIndex` attribute and pads by `PadIndex` (`Con
 
 Server-played bursts replicate to everyone (emitters run for `Effects.BURST_TIME`, cleaned up by Debris).
 
-Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers` / `Eruption` on `Map.Volcano.Crater` with an eruption burst + `CraterGlow` flash every 9–16 s (3–6 s during Slime Rain), `LavaBubbles` on `Map.Decor.LavaCrack*`, and while `workspace.SlimeRain` is true a camera-following `SlimeRainEmitter` (`Drops` + `Blobs`) plus a `SlimeRainTint` ColorCorrectionEffect in Lighting. The static map carries the PointLights (`CraterGlow`, `LavaGlow`, `TorchGlow`, `CrystalGlow`).
+Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers` / `Eruption` on `Map.Volcano.Crater` with an eruption burst + `CraterGlow` flash every 9–16 s (3–6 s during Slime Rain), and while `workspace.SlimeRain` is true a camera-following `SlimeRainEmitter` (`Drops` + `Blobs`) plus a `SlimeRainTint` ColorCorrectionEffect in Lighting. The static map carries the `CraterGlow` PointLight on `Map.Volcano.Crater`.
 
 ## 6. Shared config (`src/shared/Config.luau`)
 

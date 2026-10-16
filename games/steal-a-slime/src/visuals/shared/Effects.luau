@@ -18,8 +18,8 @@
 	Effects.emitter(name) / Effects.light(name) build the configured
 	ParticleEmitter / PointLight presets. WorldBuilder places the static lights
 	(only Color3 needed); VisualsClient adds the static fountain emitters (goo
-	spray, sparkle glints, "Eruption" splash puffs on the crown, goo bubbles on
-	the LavaCrack spills) and bursts "Eruption".
+	spray, sparkle glints, "Eruption" splash puffs on the crown) and bursts
+	"Eruption".
 
 	No services or Roblox APIs are touched at load time; the preset tables are
 	plain data (rgb arrays), so the render proof can read them under Lune.
@@ -201,22 +201,10 @@ Effects.EMITTERS = {
 		rotSpeed = 120,
 		texture = SPARK,
 	},
-	LavaBubbles = { -- soft goo bubbles popping on the LavaCrack* goo spills
-		colors = { { 110, 226, 170 }, { 196, 250, 220 } },
-		size = { 0.4, 0.9 },
-		lifetime = { 0.6, 1 },
-		speed = { 1, 2.5 },
-		spread = 10,
-		rate = 3,
-		lightEmission = 0.15,
-		transparency = { 0.3, 1 },
-		texture = SMOKE,
-	},
 } :: { [string]: EmitterPreset }
 
 Effects.LIGHTS = {
 	CraterGlow = { color = { 110, 226, 170 }, brightness = 1.5, range = 32 },
-	LavaGlow = { color = { 110, 226, 170 }, brightness = 0.6, range = 12 }, -- soft goo green
 	TorchGlow = { color = { 255, 180, 90 }, brightness = 1.2, range = 16 },
 	CrystalGlow = { color = { 120, 255, 200 }, brightness = 0.8, range = 10 },
 	MergeFlash = { color = { 200, 150, 255 }, brightness = 4, range = 16 },

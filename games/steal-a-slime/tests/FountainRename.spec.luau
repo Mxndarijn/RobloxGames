@@ -29,8 +29,6 @@ local INTERNAL = {
 	["Lava"] = true,
 	["Map.Volcano.Crater"] = true,
 	["Eruption"] = true,
-	["LavaBubbles"] = true,
-	["^LavaCrack"] = true,
 }
 
 local function banned(text: string): string?
