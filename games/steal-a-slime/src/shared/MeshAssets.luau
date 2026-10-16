@@ -74,6 +74,11 @@ local NAMES = {
 	"ranch_wheelbarrow",
 	"ranch_windmill",
 	"slime_fountain_emerge",
+	"ranch_hedge_segment",
+	"ranch_rail_fence",
+	"ranch_pine_cluster",
+	"ranch_border_hill",
+	"ranch_border_rocks",
 }
 
 local entries: { [string]: Entry } = {}
@@ -195,6 +200,13 @@ entries["ranch_windmill"] =
 	{ assetId = 122612940835932, meshId = "rbxassetid://120542952502577", size = { 8.382, 17.386, 9.65 } }
 entries["slime_fountain_emerge"] =
 	{ assetId = 100517882708695, meshId = "rbxassetid://74501501975558", size = { 19.436, 12.798, 11.353 } }
+-- World border set (WorldBorder): tagged BorderMesh, not MeshAsset, until the
+-- 150 MeshPart budget allows; sizes are the kit stats (out/<name>_roblox.stats.json).
+entries["ranch_hedge_segment"] = { size = { 12.748, 5.209, 4.118 } }
+entries["ranch_rail_fence"] = { size = { 11.974, 4.83, 1.652 } }
+entries["ranch_pine_cluster"] = { size = { 14.184, 16.426, 10.241 } }
+entries["ranch_border_hill"] = { size = { 29, 9.009, 17.296 } }
+entries["ranch_border_rocks"] = { size = { 12.733, 6.131, 7.809 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)

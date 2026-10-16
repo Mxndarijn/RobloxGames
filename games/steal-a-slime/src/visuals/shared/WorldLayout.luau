@@ -13,8 +13,10 @@
 	           on top = the drop origin), Chute (primitive slide, hidden once
 	           the fountain mesh loads), Paths (plaza, spokes + ring), Plaza
 	           (signpost, podiums, landing-ring tiles, goo drain), Decor
-	           (rocks, mushrooms, ranch props, edge boulders). Kit meshes go
-	           on MeshAsset slots via server/MeshSwap.
+	           (rocks, mushrooms, ranch props), Border (WorldBorder: the
+	           invisible wall ring + seeded hedges, fences, pines, hills,
+	           rocks along the edge). Kit meshes go on MeshAsset slots via
+	           server/MeshSwap.
 	  Plots    Plot_1..PLOT_COUNT in a ring around the fountain, each facing
 	           it (entrance at local -Z): Base, Pad_1..PADS_MAX, HomeZone,
 	           MergeVat, LockButton, Sign, walls, Slimes folder, and the
@@ -35,6 +37,7 @@ local MeshAssets = if script
 	else require("../../shared/MeshAssets")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
 local PlotDecor = if script then require(script.Parent.PlotDecor) else require("./PlotDecor")
+local WorldBorder = if script then require(script.Parent.WorldBorder) else require("./WorldBorder")
 
 type Vec = LayoutMath.Vec
 
@@ -453,13 +456,13 @@ local function onPolar(yaw: number, r: number, y: number): Vec
 	return { -n[1] * r, y, -n[3] * r }
 end
 
--- Decor rocks and edge boulders are plain ranch Rock (no basalt).
-local function rock(name: string, pos: Vec, s: number, salt: number, edge: boolean?): WorldNode
+-- Decor rocks are plain ranch Rock (no basalt).
+local function rock(name: string, pos: Vec, s: number, salt: number): WorldNode
 	return block(
 		name,
 		{ s * (1 + hash(salt, 4) * 0.6), s * (0.6 + hash(salt, 5) * 0.5), s * (1 + hash(salt, 6) * 0.6) },
 		{ pos[1], s * 0.25, pos[3] },
-		if edge then STONE_TRIM else ROCK,
+		ROCK,
 		"Rock",
 		{ hash(salt, 7) * 20 - 10, hash(salt, 8) * 360, hash(salt, 9) * 20 - 10 }
 	)
@@ -484,10 +487,10 @@ local function mushroom(name: string, pos: Vec, salt: number): WorldNode
 end
 
 -- Keeps decor off the drop ring (34..62 + margin), the ring path, plots,
--- spoke paths, the chute and the prop spots.
+-- spoke paths, the chute, the prop spots and the border wall.
 local function clearSpot(pos: Vec, radius: number): boolean
 	local r = math.sqrt(pos[1] ^ 2 + pos[3] ^ 2)
-	if r < WorldLayout.RING_PATH_RADIUS + 6 + radius then
+	if r < WorldLayout.RING_PATH_RADIUS + 6 + radius or r > WorldBorder.RADIUS - 10 - radius then
 		return false
 	end
 	for i = 1, Config.PLOT_COUNT do
@@ -563,13 +566,7 @@ local function decor(): WorldNode
 			10
 		)
 	end
-	-- Boulders along the edge of the ground so nobody walks off the world.
-	local edge = 36
-	for k = 1, edge do
-		local yaw = k * 360 / edge
-		local pos = onPolar(yaw, 300, 0)
-		table.insert(children, rock(`Edge{k}`, pos, 12 + hash(k, 40) * 6, 100 + k, true))
-	end
+	-- The map edge (walls + edge decor) is WorldBorder, built as Map.Border.
 	return { name = "Decor", class = "Folder", children = children }
 end
 
@@ -643,7 +640,7 @@ local function map(): WorldNode
 	return {
 		name = WorldLayout.MAP_NAME,
 		class = "Folder",
-		children = { ground, volcano(), chute(), paths(), plaza(), decor() },
+		children = { ground, volcano(), chute(), paths(), plaza(), decor(), WorldBorder.build() :: any },
 	}
 end
 
