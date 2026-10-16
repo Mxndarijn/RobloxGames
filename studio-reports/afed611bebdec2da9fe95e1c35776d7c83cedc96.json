@@ -4903,5 +4903,18 @@
       ]
     }
   },
-  "frames_dir": "afed611bebdec2da9fe95e1c35776d7c83cedc96/"
+  "frames_dir": "afed611bebdec2da9fe95e1c35776d7c83cedc96/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "HOLD: #99/#101 animations do not play: phone_perf found 20 slimes near the player but 0 animating (wanted 16) in both phone sizes; the rbxmx anims probably don't load. Jitter/drift can't be judged while nothing animates.",
+    "No anim shots: the watcher's shots.json has no 4 anim shots yet.",
+    "Habitats #94: the 9 habitat shots + 9 -mid shots exist and habitat_set does drive the morph (the centre-right pad changes hay_nest -> crystal_grotto etc.). No slime sits on a habitat in these frames, so seat height is NOT verified.",
+    "#75 IMPORT_YAW=180 OK: bench faces the campfire (shot-11-bench-campfire-close); shops ring the centre and face it (shot-06-map-top). Geometry step pass.",
+    "Minor: one HUD button shows an empty glyph box (top-left of the side menu) in idle HUD and phone frames.",
+    "Esc fail: afed611 lacks the Studio-only PcwPress hook (PR #102 adds it), so not a game verdict.",
+    "Background OK: focus_stolen [], mcp_input false, close pass, no leftovers. Perf 60 fps, 356/400 mesh slots."
+  ]
 }
