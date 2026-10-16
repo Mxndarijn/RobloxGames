@@ -686,6 +686,47 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 		end
 	end)
 
+	it(
+		"no gap between wall top and ceiling underside: every wall reaches into a ceiling slab, segments and joints, both sides",
+		function()
+			local names = byName()
+			local function check(wallName, ceilingName)
+				local w, c = names[wallName], names[ceilingName]
+				expect(w ~= nil and c ~= nil).toBe(true)
+				local right, up, f = frame(w)
+				-- dense sample up the wall's top edge, across its 2-stud thickness and along its length
+				for along = -w.size[3] / 2 + 0.1, w.size[3] / 2 - 0.1, 0.5 do
+					for across = -w.size[1] / 2 + 0.1, w.size[1] / 2 - 0.1, 0.45 do
+						local p = {}
+						for a = 1, 3 do
+							p[a] = w.centre[a] + right[a] * across + f[a] * along + up[a] * (w.size[2] / 2 - 0.05)
+						end
+						expect(solidIn(p, { Ceiling = true })).toBe(true)
+					end
+				end
+			end
+			for i = 1, #PATH - 1 do
+				for _, side in { "L", "R" } do
+					check(`SlideWall{side}{i}`, `SlideCeiling{i}`)
+					-- no air column between wall and ceiling at the wall's mid-height either
+					local w = names[`SlideWall{side}{i}`]
+					expect(w.size[2] >= SlideColliders.CEILING + SlideColliders.FLOOR + 0.1).toBe(true)
+				end
+			end
+			for i = 1, #PATH - 2 do
+				for _, side in { "L", "R" } do
+					check(`SlideJointWall{side}{i}`, `SlideJointCeiling{i}`)
+				end
+				local c, w = names[`SlideJointCeiling{i}`], names[`SlideJointWallL{i}`]
+				expect(
+					c.size[1] >= w.size[1] + w.size[1] + 2 * 3.5 - 1e-6
+						or c.size[1] >= 2 * (3.5 + SlideColliders.WALL_OUT) - 1e-6
+				).toBe(true)
+				expect(w.size[3] >= SlideColliders.JOINT_LENGTH + 2 * SlideColliders.JOINT_MARGIN - 1e-6).toBe(true)
+			end
+		end
+	)
+
 	-- A 2-stud ball (Roblox plastic: elasticity 0.5, friction 0.3) against the solid specs.
 	local GRAVITY = 196.2
 	local function closestPush(spec, c)
@@ -791,7 +832,7 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 	end
 
 	it(
-		"simulated probe: a 2-stud ball launched at 40 studs/s along every segment at side -2.4 / 0 / 2.4 stays in",
+		"simulated probe: a 2-stud ball launched at 40 and 60 studs/s along every segment at side -2.4 / 0 / 2.4 stays in",
 		function()
 			local trials, failed = 0, {}
 			-- (not the open ends, where a ball rightly leaves: the last two segments run out of the mouth, and
@@ -805,7 +846,12 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 					end
 					local c = pathPoint(i, k)
 					for _, side in { -2.4, 0, 2.4 } do
-						for _, speed in { 40 } do
+						for _, speed in { 40, 60 } do
+							-- at 60 studs/s a ball launched in the last segments before the mouth simply runs out of it
+							-- within the 0.9 s window (an open end, not a side escape)
+							if speed == 60 and i > #PATH - 4 then
+								continue
+							end
 							-- the probe's drop: world +5 above the surface point
 							local x = {
 								c[1] + right[1] * side,
@@ -828,6 +874,27 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 			expect(trials > 500).toBe(true)
 		end
 	)
+	it("segment 3 outer side: dense k at v 40 / 60, sides +-2.4, zero escapes", function()
+		local failed = {}
+		local spec = specOf("SlideFloor3")
+		local right, _, f = frame(spec)
+		for k = 0, 1.0001, 0.05 do
+			local c = pathPoint(3, math.min(k, 1))
+			for _, side in { -2.4, 2.4 } do
+				for _, speed in { 40, 60 } do
+					local x = { c[1] + right[1] * side, c[2] + 5, c[3] + right[3] * side }
+					local v = { f[1] * speed, f[2] * speed, f[3] * speed }
+					local ok, why = simulate(x, v, 0.9)
+					if not ok then
+						table.insert(failed, `k={k} side={side} v={speed}: {why}`)
+					end
+				end
+			end
+		end
+		if #failed > 0 then
+			error(`{#failed} segment 3 escapes:\n{table.concat(failed, "\n")}`)
+		end
+	end)
 end)
 
 describe("fountain colliders leave the ride path clear", function()
