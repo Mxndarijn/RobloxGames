@@ -161,7 +161,7 @@ the earlier modes did not (`tried`).
     "two_player": {"detail": {"mode": "c-server-sim", "tried": [...], "assertion": "..."}},
     "shots": ...
   },
-  "perf": {"mesh_slots": 324, "unique_meshes": 61, "budget": 400, "frame_time_ms": 16.7, "memory_mb": 1450.2,
+  "perf": {"mesh_slots": 324, "unique_meshes": 61, "budget": 400, "runtime_parts": 1500, "runtime_parts_transient": 70, "runtime_part_budget": 2230, "frame_time_ms": 16.7, "memory_mb": 1450.2,
            "parts": 1100, "play": {...},
            "phone": {"phone-portrait": {"avg_ms": 9.8, "p95_ms": 14.1, "max_ms": 31.0, "fps": 102.0, "memory_mb": 1460.0,
                                         "animating": 16, "slimes_near": 22, "fill": {...}, "pass": true,
