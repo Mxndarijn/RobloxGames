@@ -1,0 +1,111 @@
+{
+  "name": "ranch_border_rock_cluster",
+  "model": "/workspace/roblox/wt-border-v3/shared/modeling-kit/models/ranch_border_rock_cluster.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 478,
+  "meshes": [
+    {
+      "name": "ranch_border_rock_cluster",
+      "tris": 478,
+      "verts": 263,
+      "ngons": 26,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        14.179,
+        4.765,
+        9.208
+      ],
+      "materials": [
+        "ranch_border_rock_cluster_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "ranch_border_rock_cluster_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    14.179,
+    4.765,
+    9.208
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "ranch_border_rock_cluster_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [
+    "478 tris outside prop target 500-2000"
+  ],
+  "fbx": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_rock_cluster.fbx",
+  "fbx_bytes": 27644,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_rock_cluster_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_rock_cluster_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_rock_cluster_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_rock_cluster_roblox_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.125,
+    "stats_s": 0.002,
+    "setup_s": 0.003,
+    "render_s": [
+      0.518,
+      0.527,
+      0.605,
+      0.632
+    ],
+    "export_s": 0.079
+  },
+  "sheet": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_rock_cluster_roblox_sheet.png",
+  "timings": {
+    "wall_s": 3.45,
+    "blender_process_s": 3.06,
+    "compose_s": 0.393,
+    "model_s": 0.125,
+    "stats_s": 0.002,
+    "setup_s": 0.003,
+    "render_s": [
+      0.518,
+      0.527,
+      0.605,
+      0.632
+    ],
+    "export_s": 0.079
+  }
+}
