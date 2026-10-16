@@ -1,0 +1,6045 @@
+{
+  "sha": "9673a603c9fccdf0c579d5bd32a75c675d9b5400",
+  "status": "fail",
+  "checked_at": "2026-10-16T11:37:01Z",
+  "studio_version": "0, 743, 0, 7431133 (version-4f087c32742644ab)",
+  "notes": "FOCUS STOLEN at step launch (foreground hwnd 3280186, Studio pid 60436); frame time is Studio play-mode on the PC (window may be throttled when unfocused); FOCUS STOLEN at step play (foreground hwnd 3280186, Studio pid 60436); FOCUS STOLEN at step perf (foreground hwnd 3280186, Studio pid 60436); FOCUS STOLEN at step geometry (foreground hwnd 3280186, Studio pid 60436); FOCUS STOLEN at step onboarding (foreground hwnd 3280186, Studio pid 60436); FOCUS STOLEN at step shop (foreground hwnd 3280186, Studio pid 60436); FOCUS STOLEN at step esc (foreground hwnd 3280186, Studio pid 60436); mcp input moved OS cursor (click 86,265: (1410, 1139) -> (1280, 707), delta -130,-432 = 451 px; a small delta can be the user moving the mouse); MCP input disabled for the rest of the run, panels set Visible instead; phone_perf phone-landscape: avg FPS 15.0 < 30; menus are content-sized cards since #76 (not full-window): frac_w / frac_h are reported, only on-screen + a visible close button decide pass; phone_perf is Studio on the PC (unfocused, off-screen window), not real phone hardware; two_player ran mode c (pure server modules in one play session), not two real clients",
+  "duration_s": 429.2,
+  "steps": {
+    "build": {
+      "status": "pass",
+      "seconds": 0.8,
+      "detail": {
+        "rbxl": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl",
+        "size_mb": 0.44,
+        "rojo_s": 0.1,
+        "datastore_mode": "Memory (Workspace $attributes, test build only)"
+      }
+    },
+    "launch": {
+      "status": "pass",
+      "seconds": 11.2,
+      "detail": {
+        "studio_id": "f221cf9d-413d-4288-9394-3cb972594df5",
+        "pids": [
+          60436
+        ],
+        "window": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+        "seconds_to_ready": 10.5,
+        "edit_frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-edit.jpg",
+        "focus_stolen": true
+      }
+    },
+    "perf": {
+      "status": "pass",
+      "seconds": 18.5,
+      "detail": {
+        "unique_meshes": 91,
+        "slime_and_character_meshes": 26,
+        "store_status": "Memory",
+        "parts": 2042,
+        "mesh_slots": 356,
+        "budget": 400,
+        "samples": [
+          68,
+          83,
+          104,
+          153,
+          356,
+          356,
+          356
+        ],
+        "settled": true,
+        "edit": {
+          "place_id": 0,
+          "unique_meshes": 0,
+          "place_name": "9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl",
+          "datastore_mode": "Memory",
+          "descendants": 1596,
+          "datastore_mode_before": "Memory",
+          "parts": 1470,
+          "mesh_slots": 0
+        },
+        "triangles": "not available from Luau (pr-gate budget.sh counts FBX triangles)",
+        "focus_stolen": true
+      }
+    },
+    "geometry": {
+      "status": "pass",
+      "seconds": 0.1,
+      "detail": {
+        "checks": {
+          "bench_faces_campfire": 1,
+          "shops_face_centre": 9,
+          "silo_centred": 1,
+          "plot_signs": 8
+        },
+        "focus_stolen": true
+      }
+    },
+    "play": {
+      "status": "pass",
+      "seconds": 7.4,
+      "detail": {
+        "client": {
+          "player": "Mxndarijn",
+          "has_gui": true,
+          "viewport": [
+            844,
+            390
+          ],
+          "store_status": "Memory",
+          "step_id": "Grab",
+          "has_character": true,
+          "ready": true
+        },
+        "seconds_to_client": 7.4,
+        "stats": {
+          "play_mesh_parts": 85,
+          "memory_mb": 3592.07,
+          "p95_ms": 18.03,
+          "max_ms": 19.82,
+          "frames": 300,
+          "fps": 60.01,
+          "primitives": 1881,
+          "instance_count": 52198,
+          "play_parts": 1881,
+          "frame_time_ms": 16.66
+        },
+        "focus_stolen": true
+      }
+    },
+    "onboarding": {
+      "status": "pass",
+      "seconds": 3.3,
+      "detail": {
+        "step_id": "Grab",
+        "counter": "Step 1 of 7",
+        "title": "Grab a slime",
+        "card_visible": true,
+        "hide_click": {
+          "at": [
+            593,
+            167
+          ],
+          "inset": "no_inset",
+          "attempts": [
+            {
+              "down": {
+                "action": "mouseButtonDown",
+                "x": 593,
+                "y": 225,
+                "mouse_button": "left"
+              },
+              "up": {
+                "action": "mouseButtonUp",
+                "x": 593,
+                "y": 225,
+                "mouse_button": "left"
+              },
+              "results": [
+                "Success",
+                "Success"
+              ],
+              "at": [
+                593,
+                225
+              ],
+              "inset": "inset",
+              "ok": true,
+              "effect": false
+            },
+            {
+              "down": {
+                "action": "mouseButtonDown",
+                "x": 593,
+                "y": 167,
+                "mouse_button": "left"
+              },
+              "up": {
+                "action": "mouseButtonUp",
+                "x": 593,
+                "y": 167,
+                "mouse_button": "left"
+              },
+              "results": [
+                "Success",
+                "Success"
+              ],
+              "at": [
+                593,
+                167
+              ],
+              "inset": "no_inset",
+              "ok": true,
+              "effect": true
+            }
+          ],
+          "effect": true
+        },
+        "card_visible_after_hide": false,
+        "focus_stolen": true,
+        "advance": {
+          "ran": true,
+          "slime": "Slime_21ca15f3-6439-4bfd-8dcd-c1ac4a05d108",
+          "price": 0,
+          "step_before": "Grab",
+          "step_after": "Grab",
+          "carrying": null,
+          "advanced": false
+        }
+      }
+    },
+    "shop": {
+      "status": "pass",
+      "seconds": 3.3,
+      "detail": {
+        "open_before": false,
+        "inset": [
+          0,
+          58
+        ],
+        "viewport": [
+          844,
+          390
+        ],
+        "methods": {
+          "virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau",
+          "mcp_mouse:Hud.Shop": {
+            "error": "Hud.Shop not on screen ({'shown': False, 'w': 80, 'y': 6.400001525878906, 'found': True, 'cy': 86.80000114440918, 'cx': 141.19998168945312, 'ry': 28.80000114440918, 'rx': 141.19998168945312, 'h': 44.79999923706055, 'x': 101.19998168945312})",
+            "result": "click failed"
+          },
+          "mcp_mouse:Nav.Shop": {
+            "at": [
+              86,
+              108
+            ],
+            "inset": "no_inset",
+            "attempts": [
+              {
+                "down": {
+                  "action": "mouseButtonDown",
+                  "x": 86,
+                  "y": 166,
+                  "mouse_button": "left"
+                },
+                "up": {
+                  "action": "mouseButtonUp",
+                  "x": 86,
+                  "y": 166,
+                  "mouse_button": "left"
+                },
+                "results": [
+                  "Success",
+                  "Success"
+                ],
+                "at": [
+                  86,
+                  166
+                ],
+                "inset": "inset",
+                "ok": true,
+                "effect": false
+              },
+              {
+                "down": {
+                  "action": "mouseButtonDown",
+                  "x": 86,
+                  "y": 108,
+                  "mouse_button": "left"
+                },
+                "up": {
+                  "action": "mouseButtonUp",
+                  "x": 86,
+                  "y": 108,
+                  "mouse_button": "left"
+                },
+                "results": [
+                  "Success",
+                  "Success"
+                ],
+                "at": [
+                  86,
+                  108
+                ],
+                "inset": "no_inset",
+                "ok": true,
+                "effect": true
+              }
+            ],
+            "effect": true,
+            "result": "works (no_inset)"
+          },
+          "mcp_keyboard:Escape": "no effect"
+        },
+        "open_after": true,
+        "open_panels": [
+          "ShopPanel"
+        ],
+        "focus_stolen": true
+      }
+    },
+    "esc": {
+      "status": "fail",
+      "seconds": 4.4,
+      "detail": {
+        "key": {
+          "down": {
+            "action": "keyDown",
+            "key_code": "Escape"
+          },
+          "up": {
+            "action": "keyUp",
+            "key_code": "Escape"
+          },
+          "results": [
+            "Success",
+            "Success"
+          ]
+        },
+        "open_after": true,
+        "open_panels": [
+          "ShopPanel"
+        ],
+        "error": "Escape did not close the shop",
+        "focus_stolen": true
+      }
+    },
+    "devices": {
+      "status": "pass",
+      "seconds": 199.9,
+      "detail": {
+        "devices": {
+          "desktop": {
+            "target": [
+              1920,
+              1080
+            ],
+            "viewport": [
+              1920,
+              1080
+            ],
+            "exact": true,
+            "samples": [
+              [
+                1312,
+                606,
+                844,
+                390
+              ],
+              [
+                2388,
+                1296,
+                1920,
+                1080
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                1920,
+                1022
+              ],
+              "checked": 18,
+              "hidden": [
+                "Hud.Daily"
+              ],
+              "viewport": [
+                1920,
+                1080
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 31.8,
+                "variance": 560.57,
+                "distinct": 191,
+                "samples": 4272
+              },
+              "tried": [
+                "printwindow: var=561 distinct=191"
+              ],
+              "size": [
+                2388,
+                1296
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-desktop.png"
+            }
+          },
+          "phone-portrait": {
+            "target": [
+              390,
+              844
+            ],
+            "viewport": [
+              390,
+              844
+            ],
+            "exact": true,
+            "samples": [
+              [
+                2388,
+                1296,
+                1920,
+                1080
+              ],
+              [
+                858,
+                1060,
+                390,
+                844
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                390,
+                786
+              ],
+              "checked": 17,
+              "hidden": [
+                "Hud.Shop",
+                "Hud.Daily"
+              ],
+              "viewport": [
+                390,
+                844
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 73.68,
+                "variance": 4998.24,
+                "distinct": 489,
+                "samples": 4712
+              },
+              "tried": [
+                "printwindow: var=4998 distinct=489"
+              ],
+              "size": [
+                858,
+                1060
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-phone-portrait.png"
+            }
+          },
+          "phone-landscape": {
+            "target": [
+              844,
+              390
+            ],
+            "viewport": [
+              844,
+              390
+            ],
+            "exact": true,
+            "samples": [
+              [
+                858,
+                1060,
+                390,
+                844
+              ],
+              [
+                1312,
+                606,
+                844,
+                390
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                844,
+                332
+              ],
+              "checked": 17,
+              "hidden": [
+                "Hud.Shop",
+                "Hud.Daily"
+              ],
+              "viewport": [
+                844,
+                390
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 78.46,
+                "variance": 5332.28,
+                "distinct": 568,
+                "samples": 4747
+              },
+              "tried": [
+                "printwindow: var=5332 distinct=568"
+              ],
+              "size": [
+                1312,
+                606
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-phone-landscape.png"
+            }
+          }
+        }
+      }
+    },
+    "menus": {
+      "status": "pass",
+      "seconds": 177.6,
+      "detail": {
+        "panels": [
+          "plot",
+          "merge",
+          "shop",
+          "rebirth",
+          "goals",
+          "dex",
+          "leaders",
+          "guide"
+        ],
+        "devices": [
+          "desktop",
+          "phone-portrait",
+          "phone-landscape"
+        ]
+      }
+    },
+    "phone_perf": {
+      "status": "fail",
+      "seconds": 14.7,
+      "detail": {
+        "min_fps": 30,
+        "devices": [
+          "phone-portrait",
+          "phone-landscape"
+        ],
+        "error": "avg FPS below 30 or not measured at: phone-landscape"
+      }
+    },
+    "two_player": {
+      "status": "pass",
+      "seconds": 10.5,
+      "detail": {
+        "a_probe": {
+          "TestService": {
+            "members": [
+              "NumberOfPlayers:number",
+              "Run:function"
+            ],
+            "available": true
+          },
+          "StudioTestService": {
+            "members": [
+              "ExecutePlayModeAsync:function",
+              "ExecuteRunModeAsync:function",
+              "EndTest:function",
+              "GetTestArgs:function"
+            ],
+            "available": true
+          }
+        },
+        "mode": "c-server-sim",
+        "tried": [
+          "a: no multi-client API in StudioTestService/TestService (probe only)",
+          "b: removed (extra -task StartServer/StartClient Studio windows were visible)"
+        ],
+        "result": {
+          "real_players": 1,
+          "distinct_plots": true,
+          "grab_ok": true,
+          "thief_stolen": 1,
+          "real_owned_plots": 1,
+          "victim_has": false,
+          "deposit_ok": true,
+          "thief_has": true
+        },
+        "pass_": true,
+        "assertion": "two stand-in sessions get distinct plots; thief steals + deposits victim's slime"
+      }
+    },
+    "shots": {
+      "status": "warn",
+      "seconds": 162.5,
+      "detail": {
+        "captured": 53,
+        "total": 54,
+        "shots": [
+          {
+            "id": "01-hud-menus",
+            "todo": "1",
+            "note": "TODO 1: menus size/look (HUD as-is, no click)",
+            "isolated": {
+              "changed": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 153.65,
+                "variance": 6276.35,
+                "distinct": 729,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=6405 distinct=481"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-01-hud-menus.png"
+            }
+          },
+          {
+            "id": "01b-idle-hud",
+            "todo": "1",
+            "note": "TODO 1: idle HUD, no menu open: no MenuBackdrop / card overlay may be visible (v28 blocker)",
+            "overlays": [],
+            "isolated": {
+              "changed": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 149.84,
+                "variance": 6505.34,
+                "distinct": 726,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=6255 distinct=456"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-01b-idle-hud.png"
+            }
+          },
+          {
+            "id": "02-dex-menu",
+            "todo": "2",
+            "note": "TODO 2: SlimeDex images",
+            "open": {
+              "panel": "DexPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "Nav.Dex",
+                  "click_ok": false,
+                  "opened": false,
+                  "error": "mcp input disabled: mcp input moved OS cursor",
+                  "attempts": null
+                },
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "isolated": {
+              "changed": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 107.92,
+                "variance": 5537.7,
+                "distinct": 628,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3933 distinct=430"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-02-dex-menu.png"
+            },
+            "closed_by": "visible_fallback"
+          },
+          {
+            "id": "03-shop-menu",
+            "todo": "3",
+            "note": "TODO 3: one shop menu",
+            "open": {
+              "panel": "ShopPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "Nav.Shop",
+                  "click_ok": false,
+                  "opened": false,
+                  "error": "mcp input disabled: mcp input moved OS cursor",
+                  "attempts": null
+                },
+                {
+                  "path": "Hud.Shop",
+                  "click_ok": false,
+                  "opened": false,
+                  "error": "Hud.Shop not on screen ({'shown': False, 'w': 80, 'y': 12.800003051757812, 'found': True, 'cy': 93.20000267028809, 'cx': 877.199951171875, 'ry': 35.200002670288086, 'rx': 877.199951171875, 'h': 44.79999923706055, 'x': 837.199951171875})",
+                  "attempts": null
+                },
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "isolated": {
+              "changed": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 115.02,
+                "variance": 5841.94,
+                "distinct": 614,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4322 distinct=429"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-03-shop-menu.png"
+            },
+            "closed_by": "visible_fallback"
+          },
+          {
+            "id": "04-rebirth-menu",
+            "todo": "4",
+            "note": "TODO 4: rebirth shows next upgrade only",
+            "open": {
+              "panel": "RebirthPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "Nav.Rebirth",
+                  "click_ok": false,
+                  "opened": false,
+                  "error": "mcp input disabled: mcp input moved OS cursor",
+                  "attempts": null
+                },
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "isolated": {
+              "changed": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 114.78,
+                "variance": 5702.09,
+                "distinct": 589,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4236 distinct=410"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-04-rebirth-menu.png"
+            },
+            "closed_by": "visible_fallback"
+          },
+          {
+            "id": "05-guide-npc",
+            "todo": "5",
+            "note": "TODO 5: guide NPC",
+            "target": {
+              "path": "Workspace.Map.TutorialNpc",
+              "pos": [
+                -83.27984619140625,
+                3.125,
+                -34.12599563598633
+              ],
+              "size": [
+                4.683011054992676,
+                6.25,
+                1.3000000715255737
+              ],
+              "front": [
+                0.9238795042037964,
+                0,
+                0.38268357515335083
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 5,
+              "hidden_billboards": 7,
+              "hidden_prompts": 30,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 132.18,
+                "variance": 1819.64,
+                "distinct": 517,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3351 distinct=427"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-05-guide-npc.png"
+            }
+          },
+          {
+            "id": "06-fountain-centre",
+            "todo": "6",
+            "note": "TODO 6/13: fountain in exact middle",
+            "target": {
+              "path": "Workspace.Map.Volcano.FountainMesh",
+              "pos": [
+                6.5200042724609375,
+                21.658004760742188,
+                7.75
+              ],
+              "size": [
+                54.44999694824219,
+                43.316009521484375,
+                63.85099792480469
+              ],
+              "front": [
+                8.742277657347586e-08,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 156.31,
+                "variance": 2104.39,
+                "distinct": 691,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4793 distinct=465"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-06-fountain-centre.png"
+            }
+          },
+          {
+            "id": "06-map-top",
+            "todo": "6",
+            "note": "TODO 6/8/9: top-down overview (fountain at centre, stray boxes)",
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 177.32,
+                "variance": 2113.48,
+                "distinct": 392,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=6098 distinct=306"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-06-map-top.png"
+            }
+          },
+          {
+            "id": "07-lock-sign",
+            "todo": "7",
+            "note": "TODO 7",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.LockSign",
+              "pos": [
+                19,
+                7.1999969482421875,
+                122.80000305175781
+              ],
+              "size": [
+                7,
+                2.600006103515625,
+                0.3000030517578125
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 134.98,
+                "variance": 1250.34,
+                "distinct": 456,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3215 distinct=361"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-07-lock-sign.png"
+            }
+          },
+          {
+            "id": "07-plot-sign",
+            "todo": "7",
+            "note": "TODO 7: plot sign text on board",
+            "target": {
+              "path": "Workspace.Map.ShopStand.Sign",
+              "pos": [
+                80.93184661865234,
+                10.800000190734863,
+                33.523067474365234
+              ],
+              "size": [
+                7,
+                1.7999999523162842,
+                0.30000001192092896
+              ],
+              "front": [
+                0.9238795042037964,
+                0,
+                0.3826834261417389
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 135.54,
+                "variance": 1738.55,
+                "distinct": 462,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3546 distinct=379"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-07-plot-sign.png"
+            }
+          },
+          {
+            "id": "08-stray-box",
+            "todo": "8",
+            "note": "TODO 8: yellow box/slab gone (angled overview of plaza)",
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 151.49,
+                "variance": 1275.08,
+                "distinct": 588,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4042 distinct=412"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-08-stray-box.png"
+            }
+          },
+          {
+            "id": "09-floating",
+            "todo": "9",
+            "note": "TODO 9: nothing floating (low angled overview)",
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 149.04,
+                "variance": 759.89,
+                "distinct": 389,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3766 distinct=289"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-09-floating.png"
+            }
+          },
+          {
+            "id": "10-shop-stand",
+            "todo": "10",
+            "note": "TODO 10: shops face the middle",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.BuyStand",
+              "pos": [
+                -13,
+                5.660003662109375,
+                95
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                0.1355743408203125,
+                0,
+                -0.9907684326171875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 130.76,
+                "variance": 1638.81,
+                "distinct": 525,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3223 distinct=408"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-stand.png"
+            }
+          },
+          {
+            "id": "11-campfire",
+            "todo": "11",
+            "note": "TODO 11",
+            "target": {
+              "path": "Workspace.Map.Decor.Campfire",
+              "pos": [
+                35.206878662109375,
+                2.95880126953125,
+                84.99691772460938
+              ],
+              "size": [
+                5.545806884765625,
+                5.9176025390625,
+                5.528900146484375
+              ],
+              "front": [
+                -0.38269051909446716,
+                0,
+                -0.9238738417625427
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 136.78,
+                "variance": 2827.76,
+                "distinct": 605,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4000 distinct=447"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-11-campfire.png"
+            }
+          },
+          {
+            "id": "11-campfire-bench",
+            "todo": "11",
+            "note": "TODO 11: bench faces campfire",
+            "target": {
+              "path": "Workspace.Map.Decor.CampBench",
+              "pos": [
+                26.129409790039062,
+                2.4102020263671875,
+                88.21142578125
+              ],
+              "size": [
+                7.1999969482421875,
+                4.820404052734375,
+                2.8511962890625
+              ],
+              "front": [
+                0.9426422119140625,
+                0,
+                -0.33380135893821716
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 141.61,
+                "variance": 2690.16,
+                "distinct": 603,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4283 distinct=438"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-11-campfire-bench.png"
+            }
+          },
+          {
+            "id": "11-mailbox",
+            "todo": "11",
+            "note": "TODO 11: mailbox faces path",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_2",
+              "pos": [
+                79.19596862792969,
+                3.225006103515625,
+                55.154327392578125
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ],
+              "front": [
+                -0.7071074843406677,
+                0,
+                0.7071076035499573
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 139.47,
+                "variance": 3006.61,
+                "distinct": 642,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4249 distinct=441"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-11-mailbox.png"
+            }
+          },
+          {
+            "id": "11-signpost",
+            "todo": "11",
+            "note": "TODO 11",
+            "target": {
+              "path": "Workspace.Map.Plaza.Signpost",
+              "pos": [
+                62.82380676269531,
+                4.4996490478515625,
+                -26.022476196289062
+              ],
+              "size": [
+                7.841766357421875,
+                8.999298095703125,
+                4.680999755859375
+              ],
+              "front": [
+                -0.9238738417625427,
+                0,
+                0.38269051909446716
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 154.11,
+                "variance": 2446.64,
+                "distinct": 525,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4801 distinct=380"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-11-signpost.png"
+            }
+          },
+          {
+            "id": "12-fountain-slide",
+            "todo": "12",
+            "note": "TODO 12: slime slide ride",
+            "target": {
+              "path": "Workspace.Map.Volcano.SlideColliders.SlideFloor19",
+              "pos": [
+                -16.9163818359375,
+                9.084811210632324,
+                -1.0362257957458496
+              ],
+              "size": [
+                7,
+                2.1041293144226074,
+                6.35309362411499
+              ],
+              "front": [
+                -0.07206917554140091,
+                0.20058444142341614,
+                0.9770220518112183
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 152.47,
+                "variance": 5371.4,
+                "distinct": 489,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=6009 distinct=367"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-12-fountain-slide.png"
+            }
+          },
+          {
+            "id": "13-fountain-colliders",
+            "todo": "13",
+            "note": "TODO 13: fountain solid (close-up)",
+            "target": {
+              "path": "Workspace.Map.Volcano.FountainMesh",
+              "pos": [
+                6.5200042724609375,
+                21.658004760742188,
+                7.75
+              ],
+              "size": [
+                54.44999694824219,
+                43.316009521484375,
+                63.85099792480469
+              ],
+              "front": [
+                8.742277657347586e-08,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 155.77,
+                "variance": 1964.83,
+                "distinct": 598,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4685 distinct=423"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-13-fountain-colliders.png"
+            }
+          },
+          {
+            "id": "14-podium-1",
+            "todo": "14",
+            "note": "TODO 14: top podiums with avatars",
+            "target": {
+              "path": "Workspace.Map.Plaza.Podium_1",
+              "pos": [
+                26.022476196289062,
+                2.5171966552734375,
+                -62.82380676269531
+              ],
+              "size": [
+                6.24609375,
+                5.034393310546875,
+                6.0059967041015625
+              ],
+              "front": [
+                -0.38269034028053284,
+                0,
+                0.9238739609718323
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 174.99,
+                "variance": 3642.6,
+                "distinct": 484,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=6652 distinct=386"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-14-podium-1.png"
+            }
+          },
+          {
+            "id": "14-podiums",
+            "todo": "14",
+            "note": "TODO 14",
+            "target": {
+              "path": "Workspace.Map.Plaza.Podium_2",
+              "pos": [
+                34,
+                1.819305419921875,
+                -58.88972473144531
+              ],
+              "size": [
+                5.7967071533203125,
+                3.6385955810546875,
+                5.5937042236328125
+              ],
+              "front": [
+                -0.49999991059303284,
+                0,
+                0.8660278916358948
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 151.0,
+                "variance": 3260.4,
+                "distinct": 680,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4900 distinct=475"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-14-podiums.png"
+            }
+          },
+          {
+            "id": "15-slime-pad",
+            "todo": "15",
+            "note": "TODO 15: new slime textures",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 136.9,
+                "variance": 1967.49,
+                "distinct": 485,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3702 distinct=395"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-15-slime-pad.png"
+            }
+          },
+          {
+            "id": "06-silo-top",
+            "todo": "6",
+            "note": "TODO 6/13: straight down above the origin, silo ring should be concentric with the frame centre",
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 202.31,
+                "variance": 1933.87,
+                "distinct": 773,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=7854 distinct=574"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-06-silo-top.png"
+            }
+          },
+          {
+            "id": "07-plot-sign-front-1",
+            "todo": "7",
+            "note": "TODO 7: Plot_1 sign from outside the plot, text must read (not mirrored)",
+            "target": {
+              "path": "Workspace.Map.ShopStand.Sign",
+              "pos": [
+                80.93184661865234,
+                10.800000190734863,
+                33.523067474365234
+              ],
+              "size": [
+                7,
+                1.7999999523162842,
+                0.30000001192092896
+              ],
+              "front": [
+                0.9238795042037964,
+                0,
+                0.3826834261417389
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 147.03,
+                "variance": 1673.14,
+                "distinct": 556,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4010 distinct=434"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-07-plot-sign-front-1.png"
+            }
+          },
+          {
+            "id": "07-plot-sign-front-2",
+            "todo": "7",
+            "note": "TODO 7: Plot_2 sign from outside the plot, text must read (not mirrored)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Sign",
+              "pos": [
+                0,
+                11.5,
+                99.72500610351562
+              ],
+              "size": [
+                9,
+                2.399993896484375,
+                0.75
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 130.7,
+                "variance": 2417.02,
+                "distinct": 504,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3465 distinct=394"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-07-plot-sign-front-2.png"
+            }
+          },
+          {
+            "id": "11-bench-campfire-close",
+            "todo": "11",
+            "note": "TODO 11: camera behind the bench looking over it at the campfire",
+            "target": {
+              "path": "Workspace.Map.Decor.CampBench",
+              "pos": [
+                26.129409790039062,
+                2.4102020263671875,
+                88.21142578125
+              ],
+              "size": [
+                7.1999969482421875,
+                4.820404052734375,
+                2.8511962890625
+              ],
+              "front": [
+                0.9426422119140625,
+                0,
+                -0.33380135893821716
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 139.6,
+                "variance": 2698.38,
+                "distinct": 536,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4050 distinct=445"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-11-bench-campfire-close.png"
+            }
+          },
+          {
+            "id": "10-shop-front-1",
+            "todo": "10",
+            "note": "TODO 10: ShopStand #1 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Map.ShopStand",
+              "pos": [
+                83.51869201660156,
+                5.850000381469727,
+                34.594573974609375
+              ],
+              "size": [
+                11.599998474121094,
+                11.700000762939453,
+                6.259584903717041
+              ],
+              "front": [
+                -0.9238795042037964,
+                0,
+                -0.3826834261417389
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 146.62,
+                "variance": 1538.64,
+                "distinct": 605,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3862 distinct=447"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-1.png"
+            }
+          },
+          {
+            "id": "10-shop-front-2",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #1 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.BuyStand",
+              "pos": [
+                -13,
+                5.660003662109375,
+                95
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                0.1355743408203125,
+                0,
+                -0.9907684326171875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 128.68,
+                "variance": 1854.67,
+                "distinct": 570,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3176 distinct=417"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-2.png"
+            }
+          },
+          {
+            "id": "10-shop-front-3",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #2 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_2.BuyStand",
+              "pos": [
+                57.98276138305664,
+                5.660003662109375,
+                76.36754608154297
+              ],
+              "size": [
+                9.607983589172363,
+                11.32000732421875,
+                5.9631853103637695
+              ],
+              "front": [
+                -0.604705810546875,
+                0,
+                -0.79644775390625
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 130.91,
+                "variance": 1687.54,
+                "distinct": 627,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3231 distinct=467"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-3.png"
+            }
+          },
+          {
+            "id": "10-shop-front-4",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #3 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_3.BuyStand",
+              "pos": [
+                95,
+                5.660003662109375,
+                13
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                -0.9907684326171875,
+                0,
+                -0.1355743408203125
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 134.5,
+                "variance": 1543.04,
+                "distinct": 598,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3345 distinct=451"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-4.png"
+            }
+          },
+          {
+            "id": "10-shop-front-5",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #4 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_4.BuyStand",
+              "pos": [
+                76.36754608154297,
+                5.660003662109375,
+                -57.98276138305664
+              ],
+              "size": [
+                9.607983589172363,
+                11.32000732421875,
+                5.9631853103637695
+              ],
+              "front": [
+                -0.79644775390625,
+                0,
+                0.604705810546875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 131.99,
+                "variance": 1371.05,
+                "distinct": 607,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3121 distinct=476"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-5.png"
+            }
+          },
+          {
+            "id": "10-shop-front-6",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #5 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_5.BuyStand",
+              "pos": [
+                13,
+                5.660003662109375,
+                -95
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                -0.1355743408203125,
+                0,
+                0.9907684326171875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 127.47,
+                "variance": 1636.23,
+                "distinct": 508,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3033 distinct=420"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-6.png"
+            }
+          },
+          {
+            "id": "10-shop-front-7",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #6 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_6.BuyStand",
+              "pos": [
+                -57.98276138305664,
+                5.660003662109375,
+                -76.36754608154297
+              ],
+              "size": [
+                9.607983589172363,
+                11.32000732421875,
+                5.9631853103637695
+              ],
+              "front": [
+                0.604705810546875,
+                0,
+                0.79644775390625
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 127.48,
+                "variance": 1671.42,
+                "distinct": 579,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3065 distinct=441"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-7.png"
+            }
+          },
+          {
+            "id": "10-shop-front-8",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #7 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_7.BuyStand",
+              "pos": [
+                -95,
+                5.660003662109375,
+                -13
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                0.9907684326171875,
+                0,
+                0.1355743408203125
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 127.17,
+                "variance": 1773.93,
+                "distinct": 535,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3102 distinct=413"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-8.png"
+            }
+          },
+          {
+            "id": "10-shop-front-9",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #8 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_8.BuyStand",
+              "pos": [
+                -76.36754608154297,
+                5.660003662109375,
+                57.98276138305664
+              ],
+              "size": [
+                9.607983589172363,
+                11.32000732421875,
+                5.9631853103637695
+              ],
+              "front": [
+                0.79644775390625,
+                0,
+                -0.604705810546875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 128.94,
+                "variance": 1777.15,
+                "distinct": 576,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3190 distinct=436"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-9.png"
+            }
+          },
+          {
+            "id": "16-shop-esc",
+            "todo": "16",
+            "note": "TODO 16: open the shop, press Esc (user_keyboard_input, Client), ShopPanel must close",
+            "open": {
+              "panel": "ShopPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "Nav.Shop",
+                  "click_ok": false,
+                  "opened": false,
+                  "error": "mcp input disabled: mcp input moved OS cursor",
+                  "attempts": null
+                },
+                {
+                  "path": "Hud.Shop",
+                  "click_ok": false,
+                  "opened": false,
+                  "error": "Hud.Shop not on screen ({'shown': False, 'w': 80, 'y': 12.800003051757812, 'found': True, 'cy': 93.20000267028809, 'cx': 877.199951171875, 'ry': 35.200002670288086, 'rx': 877.199951171875, 'h': 44.79999923706055, 'x': 837.199951171875})",
+                  "attempts": null
+                },
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "press": {
+              "key": "Escape",
+              "panel": "ShopPanel",
+              "expect": "closed",
+              "status": "warn",
+              "why": "mcp input disabled (moved OS cursor)"
+            },
+            "error": "Escape did not leave ShopPanel closed"
+          },
+          {
+            "id": "16-habitat-hay_nest-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into hay_nest (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 5,
+              "hidden_billboards": 5,
+              "hidden_prompts": 48,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "hay_nest",
+              "before": "base"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 129.84,
+                "variance": 1814.58,
+                "distinct": 538,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3291 distinct=426"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-hay_nest-mid.png"
+            }
+          },
+          {
+            "id": "16-habitat-hay_nest",
+            "todo": "16",
+            "note": "TODO 16: pad turned into hay_nest",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "hay_nest",
+              "before": "hay_nest"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 129.25,
+                "variance": 1810.92,
+                "distinct": 548,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3262 distinct=421"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-hay_nest.png"
+            }
+          },
+          {
+            "id": "16-habitat-mushroom_ring-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into mushroom_ring (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 2,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "mushroom_ring",
+              "before": "hay_nest"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 128.75,
+                "variance": 1797.41,
+                "distinct": 546,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3219 distinct=430"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-mushroom_ring-mid.png"
+            }
+          },
+          {
+            "id": "16-habitat-mushroom_ring",
+            "todo": "16",
+            "note": "TODO 16: pad turned into mushroom_ring",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "mushroom_ring",
+              "before": "mushroom_ring"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 128.12,
+                "variance": 1794.11,
+                "distinct": 555,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3189 distinct=435"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-mushroom_ring.png"
+            }
+          },
+          {
+            "id": "16-habitat-flower_bed-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into flower_bed (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "flower_bed",
+              "before": "mushroom_ring"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 127.66,
+                "variance": 1795.97,
+                "distinct": 565,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3169 distinct=433"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-flower_bed-mid.png"
+            }
+          },
+          {
+            "id": "16-habitat-flower_bed",
+            "todo": "16",
+            "note": "TODO 16: pad turned into flower_bed",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "flower_bed",
+              "before": "flower_bed"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 127.06,
+                "variance": 1796.88,
+                "distinct": 576,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3142 distinct=433"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-flower_bed.png"
+            }
+          },
+          {
+            "id": "16-habitat-barn_crate-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into barn_crate (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "barn_crate",
+              "before": "flower_bed"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 125.14,
+                "variance": 1649.29,
+                "distinct": 536,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=2998 distinct=412"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-barn_crate-mid.png"
+            }
+          },
+          {
+            "id": "16-habitat-barn_crate",
+            "todo": "16",
+            "note": "TODO 16: pad turned into barn_crate",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "barn_crate",
+              "before": "barn_crate"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 125.95,
+                "variance": 1813.44,
+                "distinct": 548,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3107 distinct=435"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-barn_crate.png"
+            }
+          },
+          {
+            "id": "16-habitat-rodeo_barrel-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into rodeo_barrel (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "rodeo_barrel",
+              "before": "barn_crate"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 124.95,
+                "variance": 1774.01,
+                "distinct": 566,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3045 distinct=434"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-rodeo_barrel-mid.png"
+            }
+          },
+          {
+            "id": "16-habitat-rodeo_barrel",
+            "todo": "16",
+            "note": "TODO 16: pad turned into rodeo_barrel",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "rodeo_barrel",
+              "before": "rodeo_barrel"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 123.92,
+                "variance": 1784.1,
+                "distinct": 561,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3003 distinct=439"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-rodeo_barrel.png"
+            }
+          },
+          {
+            "id": "16-habitat-syrup_pool-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into syrup_pool (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "syrup_pool",
+              "before": "rodeo_barrel"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 122.93,
+                "variance": 1781.13,
+                "distinct": 575,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=2960 distinct=455"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-syrup_pool-mid.png"
+            }
+          },
+          {
+            "id": "16-habitat-syrup_pool",
+            "todo": "16",
+            "note": "TODO 16: pad turned into syrup_pool",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "syrup_pool",
+              "before": "syrup_pool"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 122.07,
+                "variance": 1781.78,
+                "distinct": 585,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=2920 distinct=444"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-syrup_pool.png"
+            }
+          },
+          {
+            "id": "16-habitat-show_stool-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into show_stool (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 5,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "show_stool",
+              "before": "syrup_pool"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 121.52,
+                "variance": 1812.81,
+                "distinct": 587,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=2907 distinct=448"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-show_stool-mid.png"
+            }
+          },
+          {
+            "id": "16-habitat-show_stool",
+            "todo": "16",
+            "note": "TODO 16: pad turned into show_stool",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 5,
+              "hidden_prompts": 4,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "show_stool",
+              "before": "show_stool"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 120.84,
+                "variance": 1829.05,
+                "distinct": 613,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=2884 distinct=469"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-show_stool.png"
+            }
+          },
+          {
+            "id": "16-habitat-candy_patch-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into candy_patch (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 6,
+              "hidden_prompts": 7,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "candy_patch",
+              "before": "show_stool"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 119.6,
+                "variance": 1811.75,
+                "distinct": 573,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=2825 distinct=447"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-candy_patch-mid.png"
+            }
+          },
+          {
+            "id": "16-habitat-candy_patch",
+            "todo": "16",
+            "note": "TODO 16: pad turned into candy_patch",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 5,
+              "hidden_prompts": 5,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "candy_patch",
+              "before": "candy_patch"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 118.62,
+                "variance": 1819.13,
+                "distinct": 561,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=2785 distinct=441"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-candy_patch.png"
+            }
+          },
+          {
+            "id": "16-habitat-crystal_grotto-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into crystal_grotto (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 6,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "crystal_grotto",
+              "before": "candy_patch"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 117.76,
+                "variance": 1823.28,
+                "distinct": 571,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=2752 distinct=445"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-crystal_grotto-mid.png"
+            }
+          },
+          {
+            "id": "16-habitat-crystal_grotto",
+            "todo": "16",
+            "note": "TODO 16: pad turned into crystal_grotto",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "habitat": {
+              "ok": true,
+              "now": "crystal_grotto",
+              "before": "crystal_grotto"
+            },
+            "frame": {
+              "method": "printwindow",
+              "title": "C:\\gate\\pc-watcher\\builds\\9673a603c9fccdf0c579d5bd32a75c675d9b5400.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 116.71,
+                "variance": 1829.72,
+                "distinct": 583,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=2712 distinct=442"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-crystal_grotto.png"
+            }
+          }
+        ],
+        "press_failed": true,
+        "viewport_rect": {
+          "client": [
+            1312,
+            606
+          ],
+          "rect": [
+            286,
+            144,
+            844,
+            390
+          ],
+          "viewport": [
+            844,
+            390
+          ],
+          "method": "printwindow",
+          "scale": 1.0
+        }
+      }
+    }
+  },
+  "perf": {
+    "mesh_slots": 356,
+    "unique_meshes": 91,
+    "budget": 400,
+    "frame_time_ms": 16.66,
+    "memory_mb": 3592.07,
+    "play": {
+      "play_mesh_parts": 85,
+      "memory_mb": 3592.07,
+      "p95_ms": 18.03,
+      "max_ms": 19.82,
+      "frames": 300,
+      "fps": 60.01,
+      "primitives": 1881,
+      "instance_count": 52198,
+      "play_parts": 1881,
+      "frame_time_ms": 16.66
+    },
+    "parts": 2042,
+    "triangles": null,
+    "phone": {
+      "phone-portrait": {
+        "pass": true,
+        "fill": {
+          "near_after": 20,
+          "near_before": 6,
+          "added": 14,
+          "sources": 17
+        },
+        "avg_ms": 16.66,
+        "p95_ms": 18.72,
+        "max_ms": 19.58,
+        "fps": 60.01,
+        "memory_mb": 3763.43,
+        "animating": 16,
+        "animating_at_start": 16,
+        "slimes_near": 21,
+        "frames": 300,
+        "viewport": [
+          390,
+          844
+        ],
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-phone-perf-phone-portrait.jpg"
+      },
+      "phone-landscape": {
+        "pass": false,
+        "fill": {
+          "near_after": 20,
+          "near_before": 6,
+          "added": 14,
+          "sources": 16
+        },
+        "avg_ms": 66.67,
+        "p95_ms": 68.02,
+        "max_ms": 69.27,
+        "fps": 15.0,
+        "memory_mb": 3780.27,
+        "animating": 16,
+        "animating_at_start": 16,
+        "slimes_near": 21,
+        "frames": 75,
+        "viewport": [
+          844,
+          390
+        ],
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-phone-perf-phone-landscape.jpg",
+        "problems": [
+          "avg FPS 15.0 < 30"
+        ]
+      }
+    }
+  },
+  "geometry": {
+    "bench_faces_campfire": {
+      "pass": true,
+      "items": [
+        {
+          "angle_deg": 0,
+          "name": "Workspace.Map.Decor.CampBench",
+          "front_src": "Mesh",
+          "campfire": "Workspace.Map.Decor.Campfire",
+          "distance": 9.63,
+          "dot": 1,
+          "front": [
+            0.943,
+            0,
+            -0.334
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    "shops_face_centre": {
+      "pass": true,
+      "items": [
+        {
+          "name": "Workspace.Map.ShopStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.924,
+            0,
+            -0.383
+          ],
+          "pos": [
+            83.519,
+            5.85,
+            34.595
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_1.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            0.136,
+            0,
+            -0.991
+          ],
+          "pos": [
+            -13,
+            5.66,
+            95
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_2.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.605,
+            0,
+            -0.796
+          ],
+          "pos": [
+            57.983,
+            5.66,
+            76.368
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_3.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.991,
+            0,
+            -0.136
+          ],
+          "pos": [
+            95,
+            5.66,
+            13
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_4.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.796,
+            0,
+            0.605
+          ],
+          "pos": [
+            76.368,
+            5.66,
+            -57.983
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_5.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.136,
+            0,
+            0.991
+          ],
+          "pos": [
+            13,
+            5.66,
+            -95
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_6.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            0.605,
+            0,
+            0.796
+          ],
+          "pos": [
+            -57.983,
+            5.66,
+            -76.368
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_7.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            0.991,
+            0,
+            0.136
+          ],
+          "pos": [
+            -95,
+            5.66,
+            -13
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_8.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            0.796,
+            0,
+            -0.605
+          ],
+          "pos": [
+            -76.368,
+            5.66,
+            57.983
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    "silo_centred": {
+      "pass": true,
+      "items": [
+        {
+          "mesh_turn_deg": 180,
+          "silo_offset": [
+            -6.52,
+            -7.75
+          ],
+          "name": "Workspace.Map.Volcano.FountainMesh",
+          "dist": 0,
+          "raw_bbox_dist": 10.128,
+          "mesh_bbox_centre": [
+            6.52,
+            21.658,
+            7.75
+          ],
+          "silo_axis_xz": [
+            0,
+            0
+          ],
+          "bbox_centre": [
+            6.52,
+            21.658,
+            7.75
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    "plot_signs": {
+      "pass": true,
+      "items": [
+        {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_1/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Mxndarijn's Plot",
+            "Stats": "$25  \u2022  0 Rebirths  \u2022  0 Steals"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            -0.707,
+            0,
+            -0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_2/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 2",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_3/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 3",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            -0.707,
+            0,
+            0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_4/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 4",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_5/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 5",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            0.707,
+            0,
+            0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_6/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 6",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_7/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 7",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            0.707,
+            0,
+            -0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_8/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 8",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    }
+  },
+  "frames": [
+    {
+      "id": "edit",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-edit.jpg",
+      "status": "captured",
+      "todo": null,
+      "kind": "edit"
+    },
+    {
+      "id": "desktop",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        2388,
+        1296
+      ],
+      "crop": null,
+      "kind": "device"
+    },
+    {
+      "id": "menu-plot-desktop",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-plot-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Plot:no_inset"
+    },
+    {
+      "id": "menu-merge-desktop",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-merge-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Merge:no_inset"
+    },
+    {
+      "id": "menu-shop-desktop",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-shop-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Shop:no_inset"
+    },
+    {
+      "id": "menu-rebirth-desktop",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-rebirth-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Rebirth:no_inset"
+    },
+    {
+      "id": "menu-goals-desktop",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-goals-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Goals:no_inset"
+    },
+    {
+      "id": "menu-dex-desktop",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-dex-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Dex:no_inset"
+    },
+    {
+      "id": "menu-leaders-desktop",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-leaders-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Leaders:no_inset"
+    },
+    {
+      "id": "menu-guide-desktop",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-guide-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "phone-portrait",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        858,
+        1060
+      ],
+      "crop": null,
+      "kind": "device"
+    },
+    {
+      "id": "menu-plot-phone-portrait",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-plot-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "phone-portrait",
+      "open_method": "mcp_click:Nav.Plot:no_inset"
+    },
+    {
+      "id": "menu-merge-phone-portrait",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-merge-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "phone-portrait",
+      "open_method": "mcp_click:Nav.Merge:no_inset"
+    },
+    {
+      "id": "menu-shop-phone-portrait",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-shop-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "phone-portrait",
+      "open_method": "mcp_click:Nav.Shop:no_inset"
+    },
+    {
+      "id": "menu-rebirth-phone-portrait",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-rebirth-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "phone-portrait",
+      "open_method": "mcp_click:Nav.Rebirth:no_inset"
+    },
+    {
+      "id": "menu-goals-phone-portrait",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-goals-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "phone-portrait",
+      "open_method": "mcp_click:Nav.Goals:no_inset"
+    },
+    {
+      "id": "menu-dex-phone-portrait",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-dex-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "phone-portrait",
+      "open_method": "mcp_click:Nav.Dex:no_inset"
+    },
+    {
+      "id": "menu-leaders-phone-portrait",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-leaders-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "phone-portrait",
+      "open_method": "mcp_click:Nav.Leaders:no_inset"
+    },
+    {
+      "id": "menu-guide-phone-portrait",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-guide-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "phone-perf-phone-portrait",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-phone-perf-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "perf",
+      "for_device": "phone-portrait"
+    },
+    {
+      "id": "phone-landscape",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1312,
+        606
+      ],
+      "crop": null,
+      "kind": "device"
+    },
+    {
+      "id": "menu-plot-phone-landscape",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-plot-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "phone-landscape",
+      "open_method": "mcp_click:Nav.Plot:no_inset"
+    },
+    {
+      "id": "menu-merge-phone-landscape",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-merge-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "phone-landscape",
+      "open_method": "mcp_click:Nav.Merge:no_inset"
+    },
+    {
+      "id": "menu-shop-phone-landscape",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-shop-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "phone-landscape",
+      "open_method": "mcp_click:Nav.Shop:no_inset"
+    },
+    {
+      "id": "menu-rebirth-phone-landscape",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-rebirth-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "phone-landscape",
+      "open_method": "mcp_click:Nav.Rebirth:no_inset"
+    },
+    {
+      "id": "menu-goals-phone-landscape",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-goals-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-dex-phone-landscape",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-dex-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-leaders-phone-landscape",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-leaders-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-guide-phone-landscape",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-guide-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "phone-perf-phone-landscape",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-phone-perf-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "perf",
+      "for_device": "phone-landscape"
+    },
+    {
+      "id": "shot-01-hud-menus",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-01-hud-menus.jpg",
+      "status": "captured",
+      "todo": "1",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-01b-idle-hud",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-01b-idle-hud.jpg",
+      "status": "captured",
+      "todo": "1",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-02-dex-menu",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-02-dex-menu.jpg",
+      "status": "captured",
+      "todo": "2",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-03-shop-menu",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-03-shop-menu.jpg",
+      "status": "captured",
+      "todo": "3",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-04-rebirth-menu",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-04-rebirth-menu.jpg",
+      "status": "captured",
+      "todo": "4",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-05-guide-npc",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-05-guide-npc.jpg",
+      "status": "captured",
+      "todo": "5",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.TutorialNpc"
+    },
+    {
+      "id": "shot-06-fountain-centre",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-06-fountain-centre.jpg",
+      "status": "captured",
+      "todo": "6",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.FountainMesh"
+    },
+    {
+      "id": "shot-06-map-top",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-06-map-top.jpg",
+      "status": "captured",
+      "todo": "6",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-07-lock-sign",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-07-lock-sign.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.LockSign"
+    },
+    {
+      "id": "shot-07-plot-sign",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-07-plot-sign.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand.Sign"
+    },
+    {
+      "id": "shot-08-stray-box",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-08-stray-box.jpg",
+      "status": "captured",
+      "todo": "8",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-09-floating",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-09-floating.jpg",
+      "status": "captured",
+      "todo": "9",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-10-shop-stand",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-stand.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.BuyStand"
+    },
+    {
+      "id": "shot-11-campfire",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-11-campfire.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Campfire"
+    },
+    {
+      "id": "shot-11-campfire-bench",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-11-campfire-bench.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.CampBench"
+    },
+    {
+      "id": "shot-11-mailbox",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-11-mailbox.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_2"
+    },
+    {
+      "id": "shot-11-signpost",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-11-signpost.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Signpost"
+    },
+    {
+      "id": "shot-12-fountain-slide",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-12-fountain-slide.jpg",
+      "status": "captured",
+      "todo": "12",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.SlideColliders.SlideFloor19"
+    },
+    {
+      "id": "shot-13-fountain-colliders",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-13-fountain-colliders.jpg",
+      "status": "captured",
+      "todo": "13",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.FountainMesh"
+    },
+    {
+      "id": "shot-14-podium-1",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-14-podium-1.jpg",
+      "status": "captured",
+      "todo": "14",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Podium_1"
+    },
+    {
+      "id": "shot-14-podiums",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-14-podiums.jpg",
+      "status": "captured",
+      "todo": "14",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Podium_2"
+    },
+    {
+      "id": "shot-15-slime-pad",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-15-slime-pad.jpg",
+      "status": "captured",
+      "todo": "15",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-06-silo-top",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-06-silo-top.jpg",
+      "status": "captured",
+      "todo": "6",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-07-plot-sign-front-1",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-07-plot-sign-front-1.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand.Sign"
+    },
+    {
+      "id": "shot-07-plot-sign-front-2",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-07-plot-sign-front-2.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Sign"
+    },
+    {
+      "id": "shot-11-bench-campfire-close",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-11-bench-campfire-close.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.CampBench"
+    },
+    {
+      "id": "shot-10-shop-front-1",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-1.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand"
+    },
+    {
+      "id": "shot-10-shop-front-2",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-2.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-3",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-3.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_2.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-4",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-4.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_3.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-5",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-5.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_4.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-6",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-6.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_5.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-7",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-7.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_6.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-8",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-8.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_7.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-9",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-10-shop-front-9.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_8.BuyStand"
+    },
+    {
+      "id": "shot-16-habitat-hay_nest-mid",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-hay_nest-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-hay_nest",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-hay_nest.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-mushroom_ring-mid",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-mushroom_ring-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-mushroom_ring",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-mushroom_ring.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-flower_bed-mid",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-flower_bed-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-flower_bed",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-flower_bed.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-barn_crate-mid",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-barn_crate-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-barn_crate",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-barn_crate.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-rodeo_barrel-mid",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-rodeo_barrel-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-rodeo_barrel",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-rodeo_barrel.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-syrup_pool-mid",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-syrup_pool-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-syrup_pool",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-syrup_pool.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-show_stool-mid",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-show_stool-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-show_stool",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-show_stool.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-candy_patch-mid",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-candy_patch-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-candy_patch",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-candy_patch.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-crystal_grotto-mid",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-crystal_grotto-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-crystal_grotto",
+      "file": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-shot-16-habitat-crystal_grotto.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    }
+  ],
+  "input_methods": {
+    "virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau",
+    "mcp_mouse:Hud.Shop": {
+      "error": "Hud.Shop not on screen ({'shown': False, 'w': 80, 'y': 6.400001525878906, 'found': True, 'cy': 86.80000114440918, 'cx': 141.19998168945312, 'ry': 28.80000114440918, 'rx': 141.19998168945312, 'h': 44.79999923706055, 'x': 101.19998168945312})",
+      "result": "click failed"
+    },
+    "mcp_mouse:Nav.Shop": {
+      "at": [
+        86,
+        108
+      ],
+      "inset": "no_inset",
+      "attempts": [
+        {
+          "down": {
+            "action": "mouseButtonDown",
+            "x": 86,
+            "y": 166,
+            "mouse_button": "left"
+          },
+          "up": {
+            "action": "mouseButtonUp",
+            "x": 86,
+            "y": 166,
+            "mouse_button": "left"
+          },
+          "results": [
+            "Success",
+            "Success"
+          ],
+          "at": [
+            86,
+            166
+          ],
+          "inset": "inset",
+          "ok": true,
+          "effect": false
+        },
+        {
+          "down": {
+            "action": "mouseButtonDown",
+            "x": 86,
+            "y": 108,
+            "mouse_button": "left"
+          },
+          "up": {
+            "action": "mouseButtonUp",
+            "x": 86,
+            "y": 108,
+            "mouse_button": "left"
+          },
+          "results": [
+            "Success",
+            "Success"
+          ],
+          "at": [
+            86,
+            108
+          ],
+          "inset": "no_inset",
+          "ok": true,
+          "effect": true
+        }
+      ],
+      "effect": true,
+      "result": "works (no_inset)"
+    },
+    "mcp_keyboard:Escape": "no effect"
+  },
+  "menus": {
+    "desktop": {
+      "plot": {
+        "frac_w": 0.292,
+        "frac_h": 0.481,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-plot-desktop.jpg",
+        "open_method": "mcp_click:Nav.Plot:no_inset"
+      },
+      "merge": {
+        "frac_w": 0.292,
+        "frac_h": 0.481,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-merge-desktop.jpg",
+        "open_method": "mcp_click:Nav.Merge:no_inset"
+      },
+      "shop": {
+        "frac_w": 0.292,
+        "frac_h": 0.481,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-shop-desktop.jpg",
+        "open_method": "mcp_click:Nav.Shop:no_inset"
+      },
+      "rebirth": {
+        "frac_w": 0.292,
+        "frac_h": 0.37,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-rebirth-desktop.jpg",
+        "open_method": "mcp_click:Nav.Rebirth:no_inset"
+      },
+      "goals": {
+        "frac_w": 0.292,
+        "frac_h": 0.463,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-goals-desktop.jpg",
+        "open_method": "mcp_click:Nav.Goals:no_inset"
+      },
+      "dex": {
+        "frac_w": 0.292,
+        "frac_h": 0.556,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-dex-desktop.jpg",
+        "open_method": "mcp_click:Nav.Dex:no_inset"
+      },
+      "leaders": {
+        "frac_w": 0.292,
+        "frac_h": 0.426,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-leaders-desktop.jpg",
+        "open_method": "mcp_click:Nav.Leaders:no_inset"
+      },
+      "guide": {
+        "frac_w": 0.292,
+        "frac_h": 0.352,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-guide-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      }
+    },
+    "phone-portrait": {
+      "plot": {
+        "frac_w": 0.786,
+        "frac_h": 0.493,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-plot-phone-portrait.jpg",
+        "open_method": "mcp_click:Nav.Plot:no_inset"
+      },
+      "merge": {
+        "frac_w": 0.786,
+        "frac_h": 0.493,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-merge-phone-portrait.jpg",
+        "open_method": "mcp_click:Nav.Merge:no_inset"
+      },
+      "shop": {
+        "frac_w": 0.786,
+        "frac_h": 0.493,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-shop-phone-portrait.jpg",
+        "open_method": "mcp_click:Nav.Shop:no_inset"
+      },
+      "rebirth": {
+        "frac_w": 0.786,
+        "frac_h": 0.379,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-rebirth-phone-portrait.jpg",
+        "open_method": "mcp_click:Nav.Rebirth:no_inset"
+      },
+      "goals": {
+        "frac_w": 0.786,
+        "frac_h": 0.474,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-goals-phone-portrait.jpg",
+        "open_method": "mcp_click:Nav.Goals:no_inset"
+      },
+      "dex": {
+        "frac_w": 0.786,
+        "frac_h": 0.569,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-dex-phone-portrait.jpg",
+        "open_method": "mcp_click:Nav.Dex:no_inset"
+      },
+      "leaders": {
+        "frac_w": 0.786,
+        "frac_h": 0.436,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-leaders-phone-portrait.jpg",
+        "open_method": "mcp_click:Nav.Leaders:no_inset"
+      },
+      "guide": {
+        "frac_w": 0.786,
+        "frac_h": 0.36,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-guide-phone-portrait.jpg",
+        "open_method": "visible_fallback"
+      }
+    },
+    "phone-landscape": {
+      "plot": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-plot-phone-landscape.jpg",
+        "open_method": "mcp_click:Nav.Plot:no_inset"
+      },
+      "merge": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-merge-phone-landscape.jpg",
+        "open_method": "mcp_click:Nav.Merge:no_inset"
+      },
+      "shop": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-shop-phone-landscape.jpg",
+        "open_method": "mcp_click:Nav.Shop:no_inset"
+      },
+      "rebirth": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-rebirth-phone-landscape.jpg",
+        "open_method": "mcp_click:Nav.Rebirth:no_inset"
+      },
+      "goals": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-goals-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "dex": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-dex-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "leaders": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-leaders-phone-landscape.jpg",
+        "open_method": "visible_fallback"
+      },
+      "guide": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "9673a603c9fccdf0c579d5bd32a75c675d9b5400-menu-guide-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      }
+    }
+  },
+  "background": {
+    "foreground_at_start": [
+      200786,
+      14108
+    ],
+    "focus_stolen": [
+      "FOCUS STOLEN at step launch",
+      "FOCUS STOLEN at step play",
+      "FOCUS STOLEN at step perf",
+      "FOCUS STOLEN at step geometry",
+      "FOCUS STOLEN at step onboarding",
+      "FOCUS STOLEN at step shop",
+      "FOCUS STOLEN at step esc"
+    ],
+    "mcp_input": false,
+    "cursor_events": [
+      {
+        "call": "click 86,265",
+        "before": [
+          1410,
+          1139
+        ],
+        "after": [
+          1280,
+          707
+        ],
+        "delta": [
+          -130,
+          -432
+        ],
+        "dist_px": 451.1
+      }
+    ]
+  },
+  "watcher_version": "1.0.0",
+  "close": {
+    "status": "pass",
+    "seconds": 3.9,
+    "detail": {
+      "console_lines": 87,
+      "console_errors": 0,
+      "leftovers": [],
+      "stray": [],
+      "remaining": [],
+      "closed": [
+        60436
+      ],
+      "killed": [
+        60436
+      ]
+    }
+  },
+  "frames_dir": "9673a603c9fccdf0c579d5bd32a75c675d9b5400/"
+}
