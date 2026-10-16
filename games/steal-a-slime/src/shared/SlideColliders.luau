@@ -109,12 +109,12 @@ function SlideColliders.build(path: { Vec }): { Spec }
 		})
 		local wallHeight = lip + SlideColliders.FLOOR
 		local wallLift = (lip - SlideColliders.FLOOR) / 2
-		for _, side in { { "L", -1 }, { "R", 1 } } do
+		for _, side in { { name = "L", sign = -1 }, { name = "R", sign = 1 } } do
 			table.insert(out, {
-				name = `SlideWall{side[1]}{i}`,
+				name = `SlideWall{side.name}{i}`,
 				kind = "Wall",
 				segment = i,
-				centre = at((side[2] :: number) * (half - SlideColliders.WALL / 2), wallLift),
+				centre = at(side.sign * (half - SlideColliders.WALL / 2), wallLift),
 				forward = f,
 				size = { SlideColliders.WALL, wallHeight, long },
 			})
