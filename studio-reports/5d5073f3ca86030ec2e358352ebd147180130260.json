@@ -575,7 +575,7 @@
           {
             "id": "02c-friend-bonus-hud",
             "todo": "v29-4",
-            "note": "v29 #4: friend income bonus, 2 friends in the server: HUD badge '\ud83d\udc65 +20% friends' under the top bar, no menu open",
+            "note": "v29 #4: friend income bonus, 2 friends in the server: HUD badge '👥 +20% friends' under the top bar, no menu open",
             "friend_bonus": {
               "count": 2,
               "found": true
@@ -901,7 +901,7 @@
                 63.85099792480469
               ],
               "front": [
-                8.742277657347586e-08,
+                8.742277657347586E-8,
                 0,
                 1
               ]
@@ -1290,7 +1290,7 @@
               "front": [
                 -1,
                 0,
-                8.742277657347586e-08
+                8.742277657347586E-8
               ]
             },
             "camera": {
@@ -1435,7 +1435,7 @@
                 63.85099792480469
               ],
               "front": [
-                8.742277657347586e-08,
+                8.742277657347586E-8,
                 0,
                 1
               ]
@@ -2326,7 +2326,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -1.9073486328125e-06,
+              "gap": -0.0000019073486328125,
               "slime": "Workspace.Slime_7aeba774-4422-4f4e-ad58-95c6c356adda",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -2390,7 +2390,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -2.384185791015625e-07,
+              "gap": -2.384185791015625E-7,
               "slime": "Workspace.Slime_7aeba774-4422-4f4e-ad58-95c6c356adda",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -2454,7 +2454,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -2.384185791015625e-07,
+              "gap": -2.384185791015625E-7,
               "slime": "Workspace.Slime_7aeba774-4422-4f4e-ad58-95c6c356adda",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -2518,7 +2518,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -2.384185791015625e-07,
+              "gap": -2.384185791015625E-7,
               "slime": "Workspace.Slime_7aeba774-4422-4f4e-ad58-95c6c356adda",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -2582,7 +2582,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -2.384185791015625e-07,
+              "gap": -2.384185791015625E-7,
               "slime": "Workspace.Slime_7aeba774-4422-4f4e-ad58-95c6c356adda",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -2710,7 +2710,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -2.384185791015625e-07,
+              "gap": -2.384185791015625E-7,
               "slime": "Workspace.Slime_7aeba774-4422-4f4e-ad58-95c6c356adda",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -2902,7 +2902,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 1.1920928955078125e-07,
+              "gap": 1.1920928955078125E-7,
               "slime": "Workspace.Slime_bd6a808c-67c9-42de-8032-34ff6a0a6fe3",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -3158,7 +3158,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -3.5762786865234375e-07,
+              "gap": -3.5762786865234375E-7,
               "slime": "Workspace.Slime_bd6a808c-67c9-42de-8032-34ff6a0a6fe3",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -3414,7 +3414,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -3.5762786865234375e-07,
+              "gap": -3.5762786865234375E-7,
               "slime": "Workspace.Slime_bd6a808c-67c9-42de-8032-34ff6a0a6fe3",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -3478,7 +3478,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -3.5762786865234375e-07,
+              "gap": -3.5762786865234375E-7,
               "slime": "Workspace.Slime_bd6a808c-67c9-42de-8032-34ff6a0a6fe3",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -3488,7 +3488,7 @@
                 "y": -0.01141822338104248,
                 "skin_same": true,
                 "sy": 2.7076921463012695,
-                "yaw": 1.3715345303921822e-08
+                "yaw": 1.3715345303921822E-8
               },
               "tiers": {
                 "mid": 0,
@@ -3502,7 +3502,7 @@
                 "y": 0.04456639289855957,
                 "skin_same": true,
                 "sy": 2.8192477226257324,
-                "yaw": -9.190810890125078e-10
+                "yaw": -9.190810890125078E-10
               },
               "mode": "motor",
               "slime": "Slime_bd6a808c-67c9-42de-8032-34ff6a0a6fe3",
@@ -3561,7 +3561,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -3.5762786865234375e-07,
+              "gap": -3.5762786865234375E-7,
               "slime": "Workspace.Slime_bd6a808c-67c9-42de-8032-34ff6a0a6fe3",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -3571,7 +3571,7 @@
                 "y": 0.42853713035583496,
                 "skin_same": true,
                 "sy": 2.813288927078247,
-                "yaw": 1.6015528458979134e-08
+                "yaw": 1.6015528458979134E-8
               },
               "tiers": {
                 "mid": 0,
@@ -3585,7 +3585,7 @@
                 "y": 0.013732552528381348,
                 "skin_same": true,
                 "sy": 2.757822275161743,
-                "yaw": -7.268990742659298e-09
+                "yaw": -7.268990742659298E-9
               },
               "mode": "motor",
               "slime": "Slime_bd6a808c-67c9-42de-8032-34ff6a0a6fe3",
@@ -3727,7 +3727,7 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -3.5762786865234375e-07,
+              "gap": -3.5762786865234375E-7,
               "slime": "Workspace.Slime_bd6a808c-67c9-42de-8032-34ff6a0a6fe3",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
@@ -3952,7 +3952,7 @@
               "front": [
                 -1,
                 0,
-                8.742277657347586e-08
+                8.742277657347586E-8
               ]
             },
             "camera": {
@@ -4048,7 +4048,7 @@
                 3.264007568359375
               ],
               "front": [
-                8.742277657347586e-08,
+                8.742277657347586E-8,
                 0,
                 1
               ]
@@ -4148,7 +4148,7 @@
               "front": [
                 1,
                 0,
-                -8.742277657347586e-08
+                -8.742277657347586E-8
               ]
             },
             "camera": {
@@ -4244,7 +4244,7 @@
                 3.264007568359375
               ],
               "front": [
-                -8.742277657347586e-08,
+                -8.742277657347586E-8,
                 0,
                 -1
               ]
@@ -5035,7 +5035,7 @@
                 "y": -0.08252096176147461,
                 "skin_same": true,
                 "sy": 3.168077230453491,
-                "yaw": 3.2015157191978005e-10
+                "yaw": 3.2015157191978005E-10
               },
               "tiers": {
                 "mid": 0,
@@ -5049,7 +5049,7 @@
                 "y": 0.028560876846313477,
                 "skin_same": true,
                 "sy": 3.38883638381958,
-                "yaw": 2.0670047895521293e-09
+                "yaw": 2.0670047895521293E-9
               },
               "mode": "motor",
               "slime": "Slime_9412e45f-dc9f-428a-8588-662632b25281",
@@ -5596,7 +5596,7 @@
           "frame_det": 1,
           "text": {
             "Title": "Mxndarijn's Plot",
-            "Stats": "$25  \u2022  0 Rebirths  \u2022  0 Steals"
+            "Stats": "$25  •  0 Rebirths  •  0 Steals"
           },
           "size": [
             9,
@@ -7728,5 +7728,10 @@
       ]
     }
   },
-  "frames_dir": "5d5073f3ca86030ec2e358352ebd147180130260/"
+  "frames_dir": "5d5073f3ca86030ec2e358352ebd147180130260/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Gojo"
+  ],
+  "review_notes": "Gojo review: NOT acceptable. (1) shot-19-appraise-plot: event banner (LEGENDARY ... spilled from the fountain) covers the My Plot title, same class of issue Phoenix rejected bb41f17 for. (2) Dark translucent backdrop panel extends beyond menus (desktop/landscape: wide panel behind the menu; menu-shop-phone-portrait: dark panel runs well below the menu), possible dark-overlay regression. (3) shot-v29-11-slime-growth-pad shows no growth label. (4) shot-18 slide fall-through known/live in v72, not a blocker by itself. Only a sample of frames was spot-checked; Phoenix should re-review after fixes."
 }
