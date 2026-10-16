@@ -187,10 +187,10 @@ function Progress.rank(state: any): { title: string?, next: string? }
 end
 
 -- v13 SlimeDex rewards; both nil on a server without them.
-function Progress.dexRewards(state: any): { next: string?, bonus: string? }
+function Progress.dexRewards(state: any): { next: string?, bonus: string?, dexPercent: string? }
 	local rewards = state.dexRewards
 	if type(rewards) ~= "table" then
-		return { next = nil, bonus = nil }
+		return { next = nil, bonus = nil, dexPercent = nil }
 	end
 	local nextText = "All SlimeDex rewards collected!"
 	for _, r in rewards do
@@ -201,7 +201,22 @@ function Progress.dexRewards(state: any): { next: string?, bonus: string? }
 		end
 	end
 	local bonus = num(state.dexBonus)
-	return { next = nextText, bonus = if bonus > 0 then `SlimeDex bonus: +{pct(bonus)} income` else nil }
+	return {
+		next = nextText,
+		bonus = if bonus > 0 then `SlimeDex bonus: +{pct(bonus)} income` else nil,
+		dexPercent = if bonus > 0 then `+{pct(bonus)}` else nil,
+	}
+end
+
+-- One income-breakdown line from the SlimeDex bonus ("+5%") and the friend line
+-- ("Friends +20% income"): "SlimeDex +5% · Friends +20% income"; either may be nil.
+function Progress.incomeLine(dexPercent: string?, friends: string?): string?
+	if dexPercent and friends then
+		return `SlimeDex {dexPercent} · {friends}`
+	elseif dexPercent then
+		return `SlimeDex bonus: {dexPercent} income`
+	end
+	return friends
 end
 
 return table.freeze(Progress)

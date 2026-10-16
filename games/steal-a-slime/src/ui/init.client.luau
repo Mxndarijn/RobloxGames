@@ -25,6 +25,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
+local FriendBonus = require(Shared:WaitForChild("FriendBonus"))
 local Genome = require(Shared:WaitForChild("Genome"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Types = require(Shared:WaitForChild("Types"))
@@ -273,7 +274,20 @@ local wasOpen: { [string]: boolean } = {}
 -- forces the Rebirth panel's required-slime state so both shots can be taken without a real
 -- slime. Live servers (not Studio) always get the server's State untouched.
 local isStudio = game:GetService("RunService"):IsStudio()
-local function panelState(key: string, state: any): any
+-- Studio-only: the SlimeUI attribute "PcwFriendBonus" (a friend count) fakes State.friends
+-- so the friend badge and income line can be shot on a solo server.
+local function forceFriends(state: any): any
+	local count = if isStudio then gui:GetAttribute("PcwFriendBonus") else nil
+	if type(count) ~= "number" or count < 1 then
+		return state
+	end
+	local view = table.clone(state)
+	view.friends = { count = count, bonus = FriendBonus.bonus(count) }
+	return view
+end
+
+local function panelState(key: string, realState: any): any
+	local state = forceFriends(realState)
 	local force = if isStudio and key == "Rebirth" then gui:GetAttribute("PcwRebirthSlime") else nil
 	local need = state.rebirthSlime
 	if (force ~= "owned" and force ~= "missing") or type(need) ~= "table" then
@@ -573,7 +587,8 @@ function ctx.openDaily()
 	dailyPopup.open()
 end
 
-local function render(state: Types.State)
+local function render(realState: Types.State)
+	local state: Types.State = forceFriends(realState)
 	hud.update(state)
 	carry.update(state)
 	dailyPopup.update(state)
@@ -589,6 +604,14 @@ local function render(state: Types.State)
 			entry.panel.update(panelState(entry.key, state))
 		end
 	end
+end
+
+if isStudio then
+	gui:GetAttributeChangedSignal("PcwFriendBonus"):Connect(function()
+		if latest then
+			pcall(render, latest)
+		end
+	end)
 end
 
 stateEvent.OnClientEvent:Connect(function(state: Types.State)

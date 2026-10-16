@@ -115,6 +115,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		walkSpeed = Shop.walkSpeed(data),
 		tutorialStepId = TutorialProgress.currentId(data),
 		incomeMultiplier = Perks.incomeMultiplier(data),
+		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		rebirthTitle = Perks.title(rebirths),
 		rebirthTiers = Snapshot.rebirthTiers(rebirths),
 		nextRebirthTier = Snapshot.nextRebirthTier(rebirths),

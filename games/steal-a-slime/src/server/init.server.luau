@@ -38,6 +38,7 @@ local Actions = require(script.Actions)
 local Carry = require(script.Carry)
 local DataService = require(script.DataService)
 local FountainColliders = require(script.FountainColliders)
+local Friends = require(script.Friends)
 local GameLoop = require(script.GameLoop)
 local Leaderboard = require(script.Leaderboard)
 local MeshSwap = require(script.MeshSwap)
@@ -490,6 +491,26 @@ local function onCharacter(player: Player, character: Model)
 	end
 end
 
+-- Friend income bonus (Friends): Player:IsFriendsWith yields and can throw, so the
+-- cache wraps it; a refresh runs on every join and leave.
+local friendCache = Friends.new(function(a: number, b: number): boolean
+	local player, other = Players:GetPlayerByUserId(a), b
+	if not player then
+		player, other = Players:GetPlayerByUserId(b), a
+	end
+	if not player then
+		error("player left")
+	end
+	return player:IsFriendsWith(other)
+end)
+
+local function refreshFriends()
+	if Config.FEATURES.FriendBonus ~= true then
+		return
+	end
+	Friends.refresh(friendCache, world, now())
+end
+
 local function onPlayerAdded(player: Player)
 	local userId = player.UserId
 	local ok, result = DataService.load(data, userId)
@@ -538,6 +559,7 @@ local function onPlayerAdded(player: Player)
 		onCharacter(player, player.Character)
 	end
 	refreshView(now())
+	task.spawn(refreshFriends)
 	if not orderedStore then
 		task.spawn(refreshLeaderboard) -- memory mode: rank the newcomer now, not in a minute
 	end
@@ -547,6 +569,8 @@ local function onPlayerRemoving(player: Player)
 	local session = Sessions.leave(world, player.UserId, now())
 	WorldView.setCarrying(player, nil)
 	homeZoneFull[player.UserId] = nil
+	Friends.forget(friendCache, player.UserId)
+	task.spawn(refreshFriends)
 	if session then
 		refreshView(now()) -- a stolen slime in their arms bounces home
 		save(player.UserId, session.data, true)

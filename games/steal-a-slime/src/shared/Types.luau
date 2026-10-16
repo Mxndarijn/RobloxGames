@@ -56,6 +56,9 @@ export type RainView = {
 -- day: the streak day the pending claim pays (1..DAILY_STREAK_CAP); when
 -- nothing is pending, the day the last claim paid.
 -- Redeem codes (CONTRACT.md §10): the active income boost (1 / 0 = none).
+-- Friend income bonus (CONTRACT.md §11): friends in this server and the income bonus they give (0.2 = +20%).
+export type FriendsView = { count: number, bonus: number }
+
 export type CodesView = { boostMult: number, boostEndsAt: number, redeemed: number }
 
 export type DailyView = { available: boolean, streak: number, amount: number, day: number }
@@ -165,6 +168,7 @@ export type State = {
 	boss: BossView,
 	modifier: ModifierView, -- FEATURES.CycleModifier
 	egg: EggView, -- FEATURES.MysteryEgg
+	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
 }
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }
