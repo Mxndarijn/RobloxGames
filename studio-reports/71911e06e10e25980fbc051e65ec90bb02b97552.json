@@ -4332,5 +4332,10 @@
       ]
     }
   },
-  "frames_dir": "71911e06e10e25980fbc051e65ec90bb02b97552/"
+  "frames_dir": "71911e06e10e25980fbc051e65ec90bb02b97552/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix sampled desktop/phone-portrait/phone-landscape views, all 8 menus on all three devices and every TODO shot (34): real Studio views; the 6b115fc full-viewport dark overlay is gone (fixed). World, plots, fountain/slide, plaza, shop fronts, campfire/bench, podiums render; menus on-screen with close buttons. Non-blocking: SlimeDex/Guide/Rebirth/Goals/Shop still show placeholder 'Label' text (Visible-fallback open, not the client handler); shot-14-podium-1 camera clipped inside geometry; phone-landscape is cramped (onboarding 'Grab a slime' card overlaps the buy prompt)."
 }
