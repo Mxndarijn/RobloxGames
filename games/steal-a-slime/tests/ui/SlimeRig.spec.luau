@@ -142,15 +142,19 @@ describe("procedural fallback", function()
 		end) ~= nil).toBe(true)
 	end)
 
-	it("the runner only animates with ids and an Animator, and falls back to the LifeRoot rig", function()
-		local src = read("src/ui/SlimeLifeRunner.client.luau")
-		expect(string.find(src, "SlimeAnim.ids(MeshAssets.animationId)", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "if animationIds then", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "pcall(acquire, model)", 1, true) ~= nil).toBe(true)
-		-- no Size writes in the animated path
-		local anim = string.match(src, "local function stepAnim.-\nend\n") :: string
-		expect(string.find(anim, ".Size", 1, true)).toBeNil()
-	end)
+	it(
+		"the runner only plays uploaded animations behind the flag, and keeps the LifeRoot rig for unrigged slimes",
+		function()
+			local src = read("src/ui/SlimeLifeRunner.client.luau")
+			expect(string.find(src, "if animationsOn then SlimeAnim.ids(MeshAssets.animationId)", 1, true) ~= nil).toBe(
+				true
+			)
+			expect(string.find(src, "pcall(acquire, model)", 1, true) ~= nil).toBe(true)
+			-- no Size writes in the animated path
+			local anim = string.match(src, "local function stepAnim.-\nend\n") :: string
+			expect(string.find(anim, ".Size", 1, true)).toBeNil()
+		end
+	)
 
 	it("SlimeLife still poses slimes without any asset", function()
 		local params = SlimeLife.params(3, "Wild")

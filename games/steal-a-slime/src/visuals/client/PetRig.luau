@@ -7,7 +7,8 @@
 	  * slime rig (src/visuals/shared/SlimeRig, animated life): the
 	    AnimationController + Animator are removed (pets never animate), Motor6D
 	    Transforms are reset to identity (a clone taken mid-hop must not freeze
-	    in that pose) and the "LifeSparkle" emitter (parented to SkinRoot) goes.
+	    in that pose), the "Mesh" skin's Size is restored (SlimeMotor squash)
+	    and the "LifeSparkle" emitter (parented to SkinRoot) goes.
 	The FaceRoot / SkinRoot parts and their Motor6Ds stay: they are the pet's
 	joints.
 ]]
@@ -21,6 +22,15 @@ PetRig.CONTROLLER_NAME = "AnimationController"
 
 function PetRig.stripLife(pet: Instance)
 	pet:SetAttribute("LifeAnimating", nil) -- set by SlimeLifeRunner on an animated slime
+	pet:SetAttribute("LifeMode", nil)
+	pet:SetAttribute("LifeForce", nil)
+	-- SlimeMotor squashes the "Mesh" skin by Size; a clone taken mid-squash gets its rest size back.
+	local restSize = pet:GetAttribute("LifeSkinSize")
+	local skin = pet:FindFirstChild("Mesh")
+	if typeof(restSize) == "Vector3" and skin and skin:IsA("MeshPart") then
+		skin.Size = restSize
+	end
+	pet:SetAttribute("LifeSkinSize", nil)
 	for _, inst in pet:GetDescendants() do
 		local name = inst.Name
 		if

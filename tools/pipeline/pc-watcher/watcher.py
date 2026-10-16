@@ -1396,17 +1396,29 @@ def step_shots(run):
                 res["camera"] = cam = run.need_luau("shot_camera", "Client", timeout=25, eye=eye, at=at)
                 if not cam.get("locked"):
                     run.note("shot %s: camera drifted %.2f studs from the render-step lock" % (sid, cam.get("drift") or -1))
-                if (shot.get("habitat") or shot.get("anim")) and pad_seat is None and (res.get("target") or {}).get("path"):
-                    # a rigged slime must sit on the pad so the frames show its seat height / the animation
+                if shot.get("seat") and (res.get("target") or {}).get("path"):
+                    # a slime seated on the pad (reused or cloned on the Server), so the frame shows the seat height
+                    res["seat"] = run.need_luau("slime_seat", "Server", timeout=30, path=res["target"]["path"])
+                    time.sleep(0.6)  # replication
+                elif shot.get("anim") and pad_seat is None and (res.get("target") or {}).get("path"):
+                    # optional uploaded-animation check: a rigged slime must sit on the pad (PcwPad clone)
                     pad_seat = run.need_luau("pad_seat", "Server", timeout=30, path=res["target"]["path"])
                     res["pad_seat"] = pad_seat
                 if shot.get("habitat") and (res.get("target") or {}).get("path"):
                     # morph proof: the Client sets the pad's Habitat and waits `wait` s (mid-morph < 1, done >= 1.2)
                     res["habitat"] = run.need_luau("habitat_set", "Client", timeout=30, path=res["target"]["path"],
                                                    habitat=shot["habitat"], wait=float(shot.get("wait", 1.5)))
+                if shot.get("motion") and (res.get("target") or {}).get("path"):
+                    # motion proof: the Client plays Idle / Hop / LookLeft / LookRight on the pad's slime through
+                    # SlimeLifeRunner (SlimeMotor on the Motor6Ds) and compares the pose before / `wait` s later;
+                    # ok only when the slime is driven (LifeMode) and the pose really changed
+                    res["motion"] = run.need_luau("slime_motion", "Client", timeout=30, path=res["target"]["path"],
+                                                  kind=shot["motion"], wait=float(shot.get("wait", 0.35)))
+                    if not res["motion"].get("ok"):
+                        run.note("shot %s: slime not moving (mode %s, moved %s)" % (
+                            sid, res["motion"].get("mode"), res["motion"].get("moved")))
                 if shot.get("anim") and (res.get("target") or {}).get("path"):
-                    # rig proof: the Client plays the animation on the pad's slime Animator and waits `wait` s
-                    # (SlimeHop apex 0.45, SlimeLookLeft/Right peak 0.2, SlimeIdleSquish low 1.25)
+                    # optional uploaded-animation proof: the Client plays it on the pad slime's Animator, waits `wait` s
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
                                                 anim=shot["anim"], id=shot["animId"], wait=float(shot.get("wait", 0.5)))
                 res["frame"] = capture_frame(run, fid, todo=todo, kind="shot",
@@ -1419,6 +1431,11 @@ def step_shots(run):
         run.luau("shot_camera_reset", "Client", timeout=15)
     except Exception:
         pass
+    if any(r.get("seat") for r in results):
+        try:
+            run.luau("slime_seat", "Server", timeout=15, path="")  # drop the PcwSeat clones
+        except Exception:
+            pass
     done = len([r for r in results if (r.get("frame") or {}).get("file")])
     pressed = [r for r in results if r.get("press")]
     if any(r["press"]["status"] != "pass" for r in pressed):

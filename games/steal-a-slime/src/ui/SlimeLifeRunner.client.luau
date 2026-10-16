@@ -21,13 +21,19 @@
 	carry weld and VisualsClient's wriggle take over), gets DespawnAt
 	(DespawnTelegraphFx shrinks it) or gains / loses a part.
 
-	Animated path (slime rig, src/visuals/shared/SlimeRig): when the slime has
-	its Animator and MeshAssets.ANIMATIONS has idle, hop and both looks, the
-	same selection plays SlimeIdleSquish (loop), SlimeHop and SlimeLookLeft /
-	Right on that Animator instead (SlimeAnim schedules the events), with no
-	LifeRoot, no weld or Size writes and no per-frame work. The Animation
-	instances are shared by every rig and each rig loads its tracks once.
-	Missing ids or no Animator: the procedural path below runs unchanged.
+	Three drivers, picked per slime by SlimeAnim.mode (never none, a slime
+	must not freeze):
+	  "motor"  the default on a rigged slime (src/visuals/shared/SlimeRig):
+	           SlimeMotor writes the pose to the FaceRoot / SkinRoot Motor6D
+	           Transforms (+ the skin squash). No asset, no Animator.
+	  "anim"   only with Config.FEATURES.SlimeAnimations on AND after a probe
+	           (one LoadAnimation of SlimeIdleSquish, off the select loop) saw
+	           Length > 0: the slime's Animator plays the uploaded
+	           SlimeIdleSquish (loop), SlimeHop and SlimeLookLeft / Right
+	           (SlimeAnim schedules the events). A rig whose idle track is not
+	           playing with Length > 0 after SlimeAnim.LOAD_TIMEOUT marks the
+	           probe failed and every slime goes back to "motor".
+	  "weld"   an unrigged slime: the LifeRoot / Weld path below.
 	Both paths share the LOD: nearest SlimeLife.MAX_ACTIVE slimes, within
 	MAX_DISTANCE and on screen.
 
@@ -41,10 +47,12 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local MeshAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MeshAssets"))
 local SlimeAnim = require(script.Parent:WaitForChild("SlimeAnim"))
 local SlimeLife = require(script.Parent:WaitForChild("SlimeLife"))
+local SlimeMotor = require(script.Parent:WaitForChild("SlimeMotor"))
 
 local SELECT_EVERY = 0.25
 local ACQUIRE_PER_TICK = 4
@@ -73,8 +81,18 @@ type Rig = {
 	dirty: boolean,
 }
 
+type MotorRig = {
+	model: Model,
+	motor: SlimeMotor.Motor,
+	params: SlimeLife.Params,
+	sparkle: ParticleEmitter?,
+	conns: { RBXScriptConnection },
+}
+
 type AnimRig = {
 	model: Model,
+	startedAt: number,
+	checked: boolean,
 	animator: Animator,
 	tracks: SlimeAnim.Tracks,
 	params: SlimeLife.Params,
@@ -86,8 +104,12 @@ type AnimRig = {
 local slimes: { [Model]: boolean } = {}
 local rigs: { [Model]: Rig } = {}
 local animRigs: { [Model]: AnimRig } = {}
+local motorRigs: { [Model]: MotorRig } = {}
+local noMotor: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any -- motor step threw: this slime uses welds
 local trackSets: { [Model]: SlimeAnim.Tracks } = setmetatable({}, { __mode = "k" }) :: any
-local animationIds = SlimeAnim.ids(MeshAssets.animationId)
+local animationsOn = Config.FEATURES.SlimeAnimations == true
+local animationIds = if animationsOn then SlimeAnim.ids(MeshAssets.animationId) else nil
+local probe: SlimeAnim.Verdict? = nil -- nil = not started; "wait" | "ok" | "failed"
 local animationInstances: { [string]: Animation } = {} -- one per id, shared by every rig
 local active: { [string]: boolean } = {}
 
@@ -138,6 +160,7 @@ local function release(model: Model)
 	-- then free for a moment, so put it back on Body before its WeldConstraint
 	-- re-captures the offset. All synchronous: no physics step in between.
 	rig.root:Destroy()
+	model:SetAttribute("LifeMode", nil)
 	for _, piece in rig.pieces do
 		if piece.part.Parent == model and rig.body.Parent == model then
 			piece.part.CFrame = rig.body.CFrame * piece.offset
@@ -162,6 +185,7 @@ local function acquire(model: Model): Rig?
 		return nil
 	end
 	local params = SlimeLife.params(model:GetAttribute("Tier") :: number?, model:GetAttribute("State") :: string?)
+	model:SetAttribute("LifeMode", "weld")
 
 	local root = Instance.new("Part")
 	root.Name = ROOT_NAME
@@ -305,6 +329,7 @@ local function releaseAnim(model: Model)
 	end
 	animRigs[model] = nil
 	model:SetAttribute("LifeAnimating", nil)
+	model:SetAttribute("LifeMode", nil)
 	for _, conn in rig.conns do
 		conn:Disconnect()
 	end
@@ -333,11 +358,14 @@ local function acquireAnim(model: Model): AnimRig?
 		return nil
 	end
 	model:SetAttribute("LifeAnimating", true) -- client-only; tools/pipeline/pc-watcher counts it
+	model:SetAttribute("LifeMode", "anim")
 	-- Random start so a crowd doesn't breathe in step.
 	idle:Play(SlimeAnim.FADE)
 	idle.TimePosition = math.random() * math.max(idle.Length - 0.01, 0)
 	local rig: AnimRig = {
 		model = model,
+		startedAt = os.clock(),
+		checked = false,
 		animator = animator,
 		tracks = tracks,
 		params = params,
@@ -355,6 +383,16 @@ local function acquireAnim(model: Model): AnimRig?
 end
 
 local function stepAnim(rig: AnimRig, now: number)
+	if not rig.checked then
+		local idle = rig.tracks:get("idle")
+		local verdict = if idle then SlimeAnim.verdict(idle.Length, now - rig.startedAt, idle.IsPlaying) else "failed"
+		if verdict == "failed" then
+			probe = "failed" -- every slime falls back to SlimeMotor at the next select
+			error("idle track never played (Length 0 / not playing)")
+		elseif verdict == "ok" then
+			rig.checked = true
+		end
+	end
 	for _, event in SlimeAnim.tick(rig.sched, rig.params, now, math.random) do
 		if event == "Land" then
 			if rig.sparkle and rig.params.landBurst > 0 then
@@ -368,6 +406,74 @@ local function stepAnim(rig: AnimRig, now: number)
 			end
 		end
 	end
+end
+
+local function releaseMotor(model: Model)
+	local rig = motorRigs[model]
+	if not rig then
+		return
+	end
+	motorRigs[model] = nil
+	model:SetAttribute("LifeAnimating", nil)
+	model:SetAttribute("LifeMode", nil)
+	for _, conn in rig.conns do
+		conn:Disconnect()
+	end
+	pcall(SlimeMotor.release, rig.motor)
+	if rig.sparkle then
+		rig.sparkle:Destroy()
+	end
+end
+
+-- Procedural path on a rigged slime: SlimeMotor drives the Motor6D Transforms.
+local function acquireMotor(model: Model): MotorRig?
+	local body = bodyOf(model)
+	if not (body and body.Anchored) or noMotor[model] then
+		return nil
+	end
+	local motor = SlimeMotor.attach(model, os.clock(), math.random)
+	if not motor then
+		return nil
+	end
+	model:SetAttribute("LifeAnimating", true)
+	model:SetAttribute("LifeMode", "motor")
+	local rig: MotorRig = { model = model, motor = motor, params = motor.params, sparkle = nil, conns = {} }
+	local function drop()
+		releaseMotor(model)
+	end
+	table.insert(rig.conns, model:GetAttributeChangedSignal("State"):Connect(drop))
+	table.insert(rig.conns, model:GetAttributeChangedSignal(Constants.DESPAWN_AT_ATTRIBUTE):Connect(drop))
+	table.insert(rig.conns, body:GetPropertyChangedSignal("Anchored"):Connect(drop))
+	return rig
+end
+
+-- One LoadAnimation of the idle animation, off the select loop (it yields
+-- until the asset loads or fails). Length > 0 = the uploaded animations work
+-- here (owner, moderation, format); anything else keeps every slime on SlimeMotor.
+local function startProbe(animator: Animator, ids: SlimeAnim.Ids)
+	probe = "wait"
+	task.spawn(function()
+		local t0 = os.clock()
+		local ok, track = pcall(function()
+			return animator:LoadAnimation(animationFor(ids.idle))
+		end)
+		if not ok then
+			probe = "failed"
+			return
+		end
+		local t = track :: AnimationTrack
+		local verdict: SlimeAnim.Verdict = "wait"
+		while verdict == "wait" do
+			verdict = SlimeAnim.verdict(t.Length, os.clock() - t0)
+			if verdict == "wait" then
+				task.wait(0.25)
+			end
+		end
+		probe = verdict
+		pcall(function()
+			t:Destroy()
+		end)
+	end)
 end
 
 local function setSparkle(rig: any, on: boolean)
@@ -438,8 +544,13 @@ local function reselect(camera: Camera)
 		end
 	end
 	for model in animRigs do
-		if not model:IsDescendantOf(workspace) then
+		if probe == "failed" or not model:IsDescendantOf(workspace) then
 			releaseAnim(model)
+		end
+	end
+	for model in motorRigs do
+		if not model:IsDescendantOf(workspace) then
+			releaseMotor(model)
 		end
 	end
 	local cands = candidates(camera)
@@ -458,24 +569,44 @@ local function reselect(camera: Camera)
 			releaseAnim(model)
 		end
 	end
+	for model in motorRigs do
+		if not wanted[slimeId(model)] then
+			releaseMotor(model)
+		end
+	end
 	local budget = ACQUIRE_PER_TICK
 	for id in wanted do
 		local model = byId[id]
-		if model and not rigs[model] and not animRigs[model] and budget > 0 then
+		if model and not rigs[model] and not animRigs[model] and not motorRigs[model] and budget > 0 then
 			budget -= 1
-			local animated = nil
-			if animationIds then
+			local animator = animatorOf(model)
+			if animationIds and animator and probe == nil then
+				startProbe(animator, animationIds)
+			end
+			local mode = SlimeAnim.mode(animationsOn, animationIds, animator ~= nil, probe, animator ~= nil)
+			if mode == "anim" then
 				local okAnim, anim = pcall(acquireAnim, model)
-				if okAnim then
-					animated = anim
-				else
+				if okAnim and anim then
+					animRigs[model] = anim
+					continue
+				end
+				if not okAnim then
 					warn(`[SlimeLife] {id}: {anim}`)
 					pcall(releaseAnim, model)
 				end
+				mode = "motor"
 			end
-			if animated then
-				animRigs[model] = animated
-				continue
+			if mode == "motor" then
+				local okMotor, motorRig = pcall(acquireMotor, model)
+				if okMotor and motorRig then
+					motorRigs[model] = motorRig
+					continue
+				end
+				if not okMotor then
+					warn(`[SlimeLife] {id}: {motorRig}`)
+					noMotor[model] = true
+					pcall(releaseMotor, model)
+				end
 			end
 			local ok, result = pcall(acquire, model)
 			if ok and result then
@@ -502,11 +633,17 @@ local function reselect(camera: Camera)
 	for model in animRigs do
 		active[slimeId(model)] = true
 	end
+	for model in motorRigs do
+		active[slimeId(model)] = true
+	end
 	local sparkling = SlimeLife.sparkleSet(cands, active)
 	for model, rig in rigs do
 		setSparkle(rig, sparkling[slimeId(model)] == true)
 	end
 	for model, rig in animRigs do
+		setSparkle(rig, sparkling[slimeId(model)] == true)
+	end
+	for model, rig in motorRigs do
 		setSparkle(rig, sparkling[slimeId(model)] == true)
 	end
 end
@@ -548,6 +685,7 @@ local function onSlimeRemoved(instance: Instance)
 		slimes[instance] = nil
 		release(instance)
 		releaseAnim(instance)
+		releaseMotor(instance)
 	end
 end
 
@@ -574,6 +712,18 @@ RunService.RenderStepped:Connect(function()
 			if not ok then
 				warn(`[SlimeLife] anim step: {err}`)
 				releaseAnim(model)
+			end
+		end
+	end
+	for model, rig in motorRigs do
+		if model.Parent then
+			local ok, result = pcall(SlimeMotor.step, rig.motor, now, math.random)
+			if not ok then
+				warn(`[SlimeLife] motor step: {result}`)
+				noMotor[model] = true
+				releaseMotor(model)
+			elseif result and rig.sparkle and rig.params.landBurst > 0 then
+				rig.sparkle:Emit(rig.params.landBurst)
 			end
 		end
 	end
