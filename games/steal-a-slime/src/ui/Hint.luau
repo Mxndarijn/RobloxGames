@@ -105,14 +105,16 @@ function Hint.place(screen: Layout.Screen, hud: Layout.HudLayout, view: View): P
 	local ring = Layout.rect(target.x - r, target.y - r, target.w + r * 2, target.h + r * 2)
 	if view.target.kind == "hud" then
 		local y = hud.rect.y + hud.rect.h + Hint.GAP
-		-- Right of the nav when the bubble reaches down beside it.
+		-- Right of the nav when the bubble reaches down beside it. Left of a
+		-- menu's close X: top-bar hints stay up while a menu is open.
 		local left = screen.nav.x + screen.nav.w + Hint.GAP
-		local w, h = Hint.bubbleSize(view.text, screen.width - m - left)
+		local right = Layout.panelClose(screen.panel).x - Hint.GAP
+		local w, h = Hint.bubbleSize(view.text, right - left)
 		if y + h <= screen.nav.y then
 			left = m
-			w, h = Hint.bubbleSize(view.text, screen.width - m * 2)
+			w, h = Hint.bubbleSize(view.text, right - m)
 		end
-		local x = math.clamp(target.x + target.w / 2 - w / 2, left, math.max(left, screen.width - m - w))
+		local x = math.clamp(target.x + target.w / 2 - w / 2, left, math.max(left, right - w))
 		return { target = target, ring = ring, bubble = Layout.rect(x, y, w, h), side = "below" }
 	end
 	local x = screen.nav.x + screen.nav.w + Hint.GAP

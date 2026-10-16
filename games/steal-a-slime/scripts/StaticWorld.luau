@@ -21,8 +21,8 @@ local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local StaticWorld = {}
 
 StaticWorld.SPAWN_NAME = "HubSpawn"
--- On the ground between the Plot_2 / Plot_3 paths, clear of the volcano
--- foot (28) and the chute (yaw 22.5), well inside the 640-stud Ground.
+-- On the ground between the Plot_2 / Plot_3 paths, clear of the fountain
+-- plinth (r 13.4) and the plaza props, well inside the 640-stud Ground.
 StaticWorld.SPAWN_YAW = 67.5
 StaticWorld.SPAWN_RADIUS = 64
 StaticWorld.SPAWN_SIZE = { 12, 1, 12 }

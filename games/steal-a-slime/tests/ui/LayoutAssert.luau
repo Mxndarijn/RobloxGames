@@ -482,6 +482,11 @@ function LayoutAssert.panelChecks(check: Checker)
 		do
 			check.noOverlap(closeName, close, other[1] :: string, other[2] :: Rect)
 		end
+		-- Toasts and banners draw above menus too. Banners grow down from
+		-- their top as alerts stack, so their whole column must miss the X.
+		check.noOverlap(closeName, close, "Toasts", screen.toasts)
+		local b = screen.banners
+		check.noOverlap(closeName, close, "Banners", Layout.rect(b.x, b.y, b.w, screen.height - b.y))
 		local title = Layout.panelTitle(r)
 		check.noOverlap(`{name}.Title`, title, closeName, close)
 		check.text({
@@ -493,6 +498,14 @@ function LayoutAssert.panelChecks(check: Checker)
 			h = title.h,
 		})
 		check.text({ name = closeName, text = "X", size = 24, bold = true, w = close.w, h = close.h })
+	end
+	-- Top-bar hints stay up while a menu is open and draw above it.
+	local close = Layout.panelClose(screen.panel)
+	for id, hint in Hint.STEPS do
+		local place = Hint.place(screen, screen.hud, { id = id, text = hint.text, target = hint.target })
+		if place then
+			check.noOverlap(`Hint.{id} bubble`, place.bubble, "Panel.Close", close)
+		end
 	end
 end
 

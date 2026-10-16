@@ -1,8 +1,12 @@
 --!strict
+local fs = require("@lune/fs")
+
+local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local DespawnTelegraph = require("../src/shared/DespawnTelegraph")
 local Scene = require("../src/server/Scene")
 local ServerFixtures = require("./ServerFixtures")
+local SlimeMesh = require("../src/server/SlimeMesh")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
 
@@ -152,5 +156,57 @@ describe("DespawnTelegraph in Scene / Spawner", function()
 		world.nextSpawnAt = math.huge
 		Spawner.step(world, T0 + Config.WILD_LIFETIME + 10)
 		expect(world.wild[id] ~= nil).toBeTruthy()
+	end)
+end)
+
+describe("DespawnTelegraph after a carry", function()
+	local enabled = Config.FEATURES.DespawnTelegraph
+	local WINDOW = Config.DESPAWN_TELEGRAPH_SECONDS
+
+	local function grabAndDrop(boss: boolean, dropAt: number): (any, string)
+		local world = ServerFixtures.world()
+		ServerFixtures.join(world, 1, nil, 1e9)
+		local id = if boss then Spawner.spawnBoss(world, T0) else Spawner.spawnOne(world, T0)
+		expect((Carry.grab(world, 1, id, 5, T0 + 1))).toBe(true)
+		expect(Carry.release(world, 1, dropAt, nil, "drop")).toBe(true)
+		return world, id
+	end
+
+	it("a dropped wild slime gets a fresh WILD_LIFETIME and warns again before it", function()
+		local dropAt = T0 + 30
+		local world, id = grabAndDrop(false, dropAt)
+		local expiresAt = dropAt + Config.WILD_LIFETIME
+		expect(world.wild[id].expiresAt).toBe(expiresAt)
+		expect(Scene.describe(world, expiresAt - WINDOW - 0.1)[id].despawnAt).toBeNil()
+		expect(Scene.describe(world, expiresAt - WINDOW)[id].despawnAt).toBe(if enabled then expiresAt else nil)
+	end)
+	it("a dropped Boss Slime keeps the boss lifetime, not the normal one", function()
+		local dropAt = T0 + 30
+		local world, id = grabAndDrop(true, dropAt)
+		expect(world.wild[id].expiresAt).toBe(dropAt + Config.BOSS_LIFETIME)
+		local early = dropAt + Config.WILD_LIFETIME - 1 -- the old (wrong) window
+		expect(Scene.describe(world, early)[id].despawnAt).toBeNil()
+	end)
+	it("the warning window closes in the same step the slime is removed", function()
+		local world = ServerFixtures.world()
+		local id = Spawner.spawnOne(world, T0)
+		world.nextSpawnAt = math.huge
+		local expiresAt = world.wild[id].expiresAt
+		expect(Scene.describe(world, expiresAt - 0.01)[id].despawnAt).toBe(if enabled then expiresAt else nil)
+		Spawner.step(world, expiresAt)
+		expect(world.wild[id]).toBeNil()
+		expect(Scene.describe(world, expiresAt)[id]).toBeNil()
+	end)
+	it("the Size fallback never sets CFrame on welded parts (that drags the whole slime)", function()
+		local fx = fs.readFile("src/visuals/client/DespawnTelegraphFx.luau")
+		local body = string.match(fx, "local function applyFallback.-\nend\n") or ""
+		expect(body ~= "").toBe(true)
+		expect(string.find(body, "%.CFrame%s*=") == nil).toBe(true)
+		expect(string.find(body, "f.part.Position = ", 1, true) ~= nil).toBe(true)
+	end)
+	it("the client FX blinks the part SlimeMesh dresses the slime with", function()
+		-- Body is invisible under the mesh: if these names drift the blink silently stops.
+		local fx = fs.readFile("src/visuals/client/DespawnTelegraphFx.luau")
+		expect(string.find(fx, `MESH_NAME = "{SlimeMesh.MESH_NAME}"`, 1, true) ~= nil).toBe(true)
 	end)
 end)

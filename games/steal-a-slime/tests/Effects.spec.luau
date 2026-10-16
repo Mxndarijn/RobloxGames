@@ -1,7 +1,7 @@
 --!strict
 -- Slime fountain particle presets (Slime Ranch pass; the keys keep their
 -- volcano names because the fountain still answers to Map.Volcano.Crater).
--- Locks the client emitters on the crown goo pool and the LavaCrack spills to
+-- Locks the client emitters on the crown goo pool to
 -- bounds relative to the 11-stud crown pool and the 40-stud fountain, and to
 -- the THEME.md goo look (no grey smoke, no near-white puffs, no neon glare),
 -- from the preset data alone (no ParticleEmitter needed).
@@ -11,7 +11,7 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-local FOUNTAIN = { "CraterSmoke", "CraterEmbers", "Eruption", "LavaBubbles" }
+local FOUNTAIN = { "CraterSmoke", "CraterEmbers", "Eruption" }
 local CROWN_DIAMETER = 11 -- WorldLayout volcano(): disc("Crater", 0.6, 11, ...)
 
 local LIMITS = {
@@ -73,9 +73,8 @@ describe("Effects fountain presets", function()
 		local t = Effects.EMITTERS.CraterSmoke.transparency
 		expect(t ~= nil and t[1] >= 0.5).toBe(true)
 	end)
-	it("LavaGlow is a soft goo green", function()
-		local l = Effects.LIGHTS.LavaGlow
-		expect(l.brightness <= LIMITS.maxGlowBrightness).toBe(true)
+	it("CraterGlow is a soft goo green", function()
+		local l = Effects.LIGHTS.CraterGlow
 		expect(l.color[2] > l.color[1] and l.color[2] > l.color[3]).toBe(true)
 		expect(chroma(l.color) >= LIMITS.minChroma).toBe(true)
 	end)

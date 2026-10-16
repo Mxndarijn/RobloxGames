@@ -169,7 +169,13 @@ local function applyFallback(t: Track, factor: number)
 		if f.part.Parent then
 			f.part.Size = Vector3.new(Timing.fallbackSizeXYZ(f.size.X, f.size.Y, f.size.Z, factor))
 			if f.part ~= t.body then
-				f.part.CFrame = bodyCFrame * CFrame.new(f.offset.Position * factor) * f.offset.Rotation
+				-- Position / Orientation, not CFrame: setting CFrame on a part joined
+				-- by a WeldConstraint moves the whole assembly (Body included);
+				-- these move only this part and re-base its weld.
+				local cf = bodyCFrame * CFrame.new(f.offset.Position * factor) * f.offset.Rotation
+				local rx, ry, rz = cf:ToOrientation()
+				f.part.Position = cf.Position
+				f.part.Orientation = Vector3.new(math.deg(rx), math.deg(ry), math.deg(rz))
 			end
 		end
 	end

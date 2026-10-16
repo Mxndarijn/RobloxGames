@@ -221,6 +221,7 @@
         <Properties>
           <string name="Name">Crater</string>
           <bool name="Anchored">true</bool>
+          <BinaryString name="AttributesSerialize">AQAAAAsAAABNZXNoU3RhbmRJbgIOAAAAc2xpbWVfZm91bnRhaW4=</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>0</X>
@@ -2872,7 +2873,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>62.823807</X>
-            <Y>4.5</Y>
+            <Y>4.499649</Y>
             <Z>-26.022476</Z>
             <R00>-0.38269043</R00>
             <R01>0</R01>
@@ -2891,9 +2892,9 @@
           <token name="Material">800</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>4</X>
-            <Y>9</Y>
-            <Z>2</Z>
+            <X>7.8417664</X>
+            <Y>8.999298</Y>
+            <Z>4.6809998</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
@@ -2907,7 +2908,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>26.022476</X>
-            <Y>1.5</Y>
+            <Y>2.5171967</Y>
             <Z>-62.823807</Z>
             <R00>-0.9238739</R00>
             <R01>0</R01>
@@ -2926,9 +2927,9 @@
           <token name="Material">800</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>5</X>
-            <Y>3</Y>
-            <Z>5</Z>
+            <X>6.2460938</X>
+            <Y>5.0343933</Y>
+            <Z>6.0059967</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
@@ -2942,7 +2943,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>34</X>
-            <Y>1.1000061</Y>
+            <Y>1.8193054</Y>
             <Z>-58.889725</Z>
             <R00>-0.86602783</R00>
             <R01>0</R01>
@@ -2961,9 +2962,9 @@
           <token name="Material">800</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>5</X>
-            <Y>2.199997</Y>
-            <Z>5</Z>
+            <X>5.796707</X>
+            <Y>3.6385956</Y>
+            <Z>5.593704</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
@@ -2977,7 +2978,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>17.5997</X>
-            <Y>0.80000305</Y>
+            <Y>1.4325562</Y>
             <Z>-65.68295</Z>
             <R00>-0.9659271</R00>
             <R01>0</R01>
@@ -2996,9 +2997,9 @@
           <token name="Material">800</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>5</X>
-            <Y>1.6000061</Y>
-            <Z>5</Z>
+            <X>5.534897</X>
+            <Y>2.865097</Y>
+            <Z>5.310196</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
@@ -3040,7 +3041,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="94">
@@ -3075,7 +3076,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="95">
@@ -3110,7 +3111,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="96">
@@ -3145,7 +3146,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="97">
@@ -3180,7 +3181,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="98">
@@ -3215,7 +3216,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="99">
@@ -3250,7 +3251,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="100">
@@ -3285,7 +3286,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="101">
@@ -3320,7 +3321,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="102">
@@ -3355,7 +3356,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="103">
@@ -3390,7 +3391,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="104">
@@ -3425,7 +3426,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="105">
@@ -3460,7 +3461,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="106">
@@ -3495,7 +3496,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="107">
@@ -3530,7 +3531,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="108">
@@ -3565,7 +3566,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="109">
@@ -3600,7 +3601,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
         <Item class="Part" referent="110">
@@ -3635,7 +3636,7 @@
               <Z>10.270004</Z>
             </Vector3>
             <token name="TopSurface">0</token>
-            <float name="Transparency">0</float>
+            <float name="Transparency">1</float>
           </Properties>
         </Item>
       </Item>
@@ -3671,7 +3672,7 @@
             <Z>9.75</Z>
           </Vector3>
           <token name="TopSurface">0</token>
-          <float name="Transparency">0</float>
+          <float name="Transparency">1</float>
         </Properties>
       </Item>
     </Item>
