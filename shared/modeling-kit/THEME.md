@@ -44,7 +44,7 @@ Player 5 · slime 3 · plot floor 80 × 80 · fence segment 10 · gate slot 20 (
 
 ## Budgets
 - Tris per prop 500–2000 target; hero centrepiece up to ~6000; kit fails at ≥ 10,000 per mesh.
-- MeshParts per map ≤ 400 (count the whole map before splitting into small pieces; raised from 150 for the world-border mesh set). Decor ≤ 1500 instances / 1200 parts / 850 decor parts / 80 lights (CONTRACT §10). Max decor axis 64 unless agreed.
+- MeshParts per map ≤ 400 (count the whole map before splitting into small pieces; raised from 150 for the world-border mesh set). Decor ≤ 1500 instances / 1400 parts / 850 decor parts / 80 lights (CONTRACT §10). Max decor axis 64 unless agreed.
 - One material per MeshPart; colour lives in vertex colours `Col`.
 
 ## Per-model checklist
