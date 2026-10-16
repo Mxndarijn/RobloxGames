@@ -131,7 +131,24 @@ function Props.shopStand(): Model
 			{ material = "Fabric" }
 		)
 	end
-	local sign = part(m, "Sign", Vector3.new(7, 1.8, 0.3), CFrame.new(0, 10.8, -2.4), rgb(255, 245, 220), {})
+	-- The SHOP text lies on the kit stand's own sign face (WorldProps skins
+	-- this Model with ranch_shop_stand, scaled to the Model's 11.7 height and
+	-- flush with its front): BUY_STAND_FACE x 0.827, in the Model's frame the
+	-- face is 2.353 behind the front, 10.09 up. A 0.03 thin Sign touches that
+	-- face, so the text sits on it instead of floating in front (v29 B4).
+	-- "HeightMarker" (invisible) keeps the Model 11.7 tall, so the skin's scale
+	-- does not shrink with the lower sign.
+	local sign = part(m, "Sign", Vector3.new(6.284, 1.654, 0.03), CFrame.new(0, 10.088, 2.338), rgb(255, 245, 220), {})
+	local marker = part(
+		m,
+		"HeightMarker",
+		Vector3.new(0.1, 0.1, 0.1),
+		CFrame.new(0, 11.65, 3.2),
+		rgb(255, 255, 255),
+		{ transparency = 1, canCollide = false }
+	)
+	marker.CanQuery = false
+	marker.CanTouch = false
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "SignGui"
 	gui.Face = Enum.NormalId.Front

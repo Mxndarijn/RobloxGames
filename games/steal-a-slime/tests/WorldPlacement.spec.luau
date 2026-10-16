@@ -189,6 +189,14 @@ describe("shops face the map centre (TODO #10)", function()
 		expect(math.abs(diff) < FACE_TOL).toBe(true)
 		expect(WorldLayout.PROP_MESHES[Constants.SHOP_STAND]).toBe(WorldLayout.BUY_STAND_MESH)
 	end)
+	it(
+		"turns the Top Earners board's front (-Z, the SurfaceGui) at the map centre within 3 degrees (v29 B3)",
+		function()
+			local spot = WorldLayout.PROP_SPOTS[Constants.LEADERBOARD_BOARD]
+			local diff = angleDiff(spot.yaw + 180, bearing(spot.pos, WorldLayout.FOUNTAIN_CENTRE))
+			expect(math.abs(diff) < 3).toBe(true)
+		end
+	)
 	it("turns every plot BuyStand (ranch_shop_stand) front at the fountain", function()
 		for i = 1, Config.PLOT_COUNT do
 			local stand = find(`/Plots/Plot_{i}/BuyStand/StandMesh`)
@@ -214,11 +222,13 @@ describe("prop facing audit (TODO #11)", function()
 	it("sits the camp bench facing its campfire", function()
 		faces("CampBench", props.Campfire.pos)
 	end)
-	it("turns each mailbox door at the spoke path and hangs each lantern over it", function()
+	it("gives every plot a mailbox and turns its door at the spoke path", function()
 		for i = 1, Config.PLOT_COUNT do
 			local _, plotYaw = WorldLayout.plotCentre(i)
-			local name = if i % 2 == 1 then `Lantern_{i}` else `Mailbox_{i}`
+			local name = `Mailbox_{i}`
 			local p = props[name]
+			expect(p ~= nil).toBe(true)
+			expect(p.mesh).toBe("ranch_mailbox")
 			-- the spoke path runs along the plot's local z axis (x = 0)
 			local centre = WorldLayout.plotCentre(i)
 			local local_ = LayoutMath.apply(
@@ -233,12 +243,7 @@ describe("prop facing audit (TODO #11)", function()
 					local_[3],
 				})
 			)
-			if i % 2 == 1 then
-				-- lantern arm = kit +X = yaw - 90 as a bearing
-				expect(math.abs(angleDiff(p.yaw + 90, bearing(p.pos, foot))) < FACE_TOL).toBe(true)
-			else
-				faces(name, foot)
-			end
+			faces(name, foot)
 			expect(RanchProps.ENTRANCE_PATH_YAW[p.mesh] ~= nil).toBe(true)
 		end
 	end)

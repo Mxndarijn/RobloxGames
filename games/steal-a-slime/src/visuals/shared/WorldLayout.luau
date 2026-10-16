@@ -303,8 +303,8 @@ WorldLayout.BUY_STAND_COUNTER = table.freeze({ x = 0, z = 0.53, width = 11, dept
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
--- two spokes. The shop faces the fountain (Props front = local -Z; every shop
--- faces the map centre, TODO v28 #10), the two-sided board faces the plots;
+-- two spokes. The shop and the Top Earners board face the fountain (Props
+-- front = local -Z; every shop faces the map centre, TODO v28 #10, v29 B3);
 -- the tutorial NPC stands behind the hub SpawnLocation (scripts/StaticWorld,
 -- same bearing) and faces it.
 local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: number }
@@ -314,7 +314,7 @@ local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: 
 end
 WorldLayout.PROP_SPOTS = table.freeze({
 	ShopStand = propSpot(67.5, true),
-	LeaderboardBoard = propSpot(157.5),
+	LeaderboardBoard = propSpot(157.5, true),
 	TutorialNpc = propSpot(247.5, true),
 }) :: { [string]: { pos: Vec, yaw: number } }
 
@@ -1072,8 +1072,8 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 			part("PostR", { 0.6, postH, 0.6 }, onStand(-5.2, 6.7, -3.07), WOOD, "Wood"),
 			part(
 				"Board",
-				{ sign.width * ks, sign.height * ks, 0.3 },
-				st({ sign.x * ks, sign.y * ks, sign.front * ks + 0.02 + 0.15 }),
+				{ sign.width * ks, sign.height * ks, 0.03 },
+				st({ sign.x * ks, sign.y * ks, sign.front * ks + 0.01 + 0.015 }),
 				{ 40, 150, 70 },
 				"SmoothPlastic"
 			),
