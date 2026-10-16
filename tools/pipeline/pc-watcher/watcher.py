@@ -340,10 +340,20 @@ def read_json(path, default=None):
         return default
 
 
-def load_shots(folder=None):
+def data_path(repo, rel):
+    """(path, src) of a watcher data file: the tested repo checkout's tools/pipeline/pc-watcher/<rel> when it
+    exists (the installed app\\ copy goes stale), else the app copy next to this file. src is "repo" or "app"."""
+    if repo:
+        p = os.path.join(repo, "tools", "pipeline", "pc-watcher", *rel.split("/"))
+        if os.path.exists(p):
+            return p, "repo"
+    return os.path.join(HERE, *rel.split("/")), "app"
+
+
+def load_shots(folder=None, repo=None):
     """(shots, notes) from shots/*.json sorted by filename. A file holds one entry object or a list of
     them; unreadable files are skipped with a note. shots is None if the folder is missing or empty."""
-    folder = folder or os.path.join(HERE, "shots")
+    folder = folder or data_path(repo, "shots")[0]
     shots, notes = [], []
     for path in sorted(glob.glob(os.path.join(folder, "*.json")), key=lambda p: (int(re.match(r"\d+", os.path.basename(p)).group()) if re.match(r"\d+", os.path.basename(p)) else 10**9, os.path.basename(p))):
         name = os.path.basename(path)
@@ -839,7 +849,8 @@ def step_geometry(run):
     """Facing / centring numbers (checks.json, luau/geometry) for #75; report.geometry = {check: {pass, items}}."""
     if run.dry:
         return "skip", {"dry_run": True}
-    checks = read_json(os.path.join(HERE, "checks.json"), None)
+    path, checks_src = data_path(run.paths.repo, "checks.json")
+    checks = read_json(path, None)
     if not isinstance(checks, dict):
         raise StepFail("checks.json missing or unreadable")
     verdict = {}
@@ -852,8 +863,8 @@ def step_geometry(run):
     run.extra["geometry"] = verdict
     bad = {k: (v["errors"] or [i.get("name") for i in v["items"] if not i["pass"]]) for k, v in verdict.items() if not v["pass"]}
     if bad:
-        return "fail", {"error": "geometry failed: %s" % json.dumps(bad)[:400], "failed": sorted(bad)}
-    return "pass", {"checks": {k: len(v["items"]) for k, v in verdict.items()}}
+        return "fail", {"error": "geometry failed: %s" % json.dumps(bad)[:400], "failed": sorted(bad), "checks_src": checks_src}
+    return "pass", {"checks": {k: len(v["items"]) for k, v in verdict.items()}, "checks_src": checks_src}
 
 
 def wait_client(run, timeout):
@@ -1344,7 +1355,7 @@ def step_shots(run):
     """
     if run.dry:
         return "skip", {"dry_run": True}
-    shots, shot_notes = load_shots()
+    shots, shot_notes = load_shots(repo=run.paths.repo)
     for n in shot_notes:
         run.note(n)
     if not shots:
