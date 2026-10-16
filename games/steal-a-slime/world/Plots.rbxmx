@@ -117,11 +117,11 @@
         <Properties>
           <string name="Name">Pad_2</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfaGF5CAAAAFBhZEluZGV4BQAAAEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-8</X>
-            <Y>1.5</Y>
+            <Y>2.199997</Y>
             <Z>142</Z>
             <R00>1</R00>
             <R01>0</R01>
@@ -141,7 +141,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -151,11 +151,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2hheQ==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-8</X>
-              <Y>2.026001</Y>
+              <Y>2.3049927</Y>
               <Z>142</Z>
               <R00>1</R00>
               <R01>0</R01>
@@ -174,9 +174,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.9570007</X>
-              <Y>2.052002</Y>
-              <Z>7.7149963</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -187,11 +187,11 @@
         <Properties>
           <string name="Name">Pad_3</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfZ29vCAAAAFBhZEluZGV4BQAAQEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAABAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>8</X>
-            <Y>1.75</Y>
+            <Y>2.199997</Y>
             <Z>142</Z>
             <R00>1</R00>
             <R01>0</R01>
@@ -211,7 +211,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1.5</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -221,11 +221,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2dvbw==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>8</X>
-              <Y>2.0449982</Y>
+              <Y>2.3049927</Y>
               <Z>142</Z>
               <R00>1</R00>
               <R01>0</R01>
@@ -244,9 +244,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.8339996</X>
-              <Y>2.0899963</Y>
-              <Z>7.8610077</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -257,11 +257,11 @@
         <Properties>
           <string name="Name">Pad_4</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfc3Rvb2wIAAAAUGFkSW5kZXgFAACAQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>24</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>142</Z>
             <R00>1</R00>
             <R01>0</R01>
@@ -281,7 +281,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -291,11 +291,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX3N0b29s</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>24</X>
-              <Y>2.671997</Y>
+              <Y>2.3049927</Y>
               <Z>142</Z>
               <R00>1</R00>
               <R01>0</R01>
@@ -314,9 +314,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.018997</X>
-              <Y>3.3439941</Y>
-              <Z>7.199997</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -327,7 +327,7 @@
         <Properties>
           <string name="Name">Pad_5</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfYmFycmVsX3RvcAgAAABQYWRJbmRleAUAAKBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-24</X>
@@ -361,11 +361,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2JhcnJlbF90b3A=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-24</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>158</Z>
               <R00>1</R00>
               <R01>0</R01>
@@ -384,9 +384,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.600006</X>
-              <Y>2.399994</Y>
-              <Z>7.0839996</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -397,7 +397,7 @@
         <Properties>
           <string name="Name">Pad_6</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfZmxvd2VyX2JlZAgAAABQYWRJbmRleAUAAMBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-8</X>
@@ -431,81 +431,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2Zsb3dlcl9iZWQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-8</X>
-              <Y>2.199997</Y>
-              <Z>158</Z>
-              <R00>1</R00>
-              <R01>0</R01>
-              <R02>0</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0</R20>
-              <R21>0</R21>
-              <R22>1</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">15233164</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>7.7879944</X>
-              <Y>2.399994</Y>
-              <Z>7.7879944</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-      </Item>
-      <Item class="Part" referent="15">
-        <Properties>
-          <string name="Name">Pad_7</string>
-          <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIUAAAAcGhvZW5peF9wYWRfbXVzaHJvb20IAAAAUGFkSW5kZXgFAADgQA==</BinaryString>
-          <token name="BottomSurface">0</token>
-          <CoordinateFrame name="CFrame">
-            <X>8</X>
-            <Y>2.5</Y>
-            <Z>158</Z>
-            <R00>1</R00>
-            <R01>0</R01>
-            <R02>0</R02>
-            <R10>0</R10>
-            <R11>1</R11>
-            <R12>0</R12>
-            <R20>0</R20>
-            <R21>0</R21>
-            <R22>1</R22>
-          </CoordinateFrame>
-          <bool name="CanCollide">true</bool>
-          <bool name="CanQuery">true</bool>
-          <bool name="CanTouch">true</bool>
-          <Color3uint8 name="Color3uint8">15233164</Color3uint8>
-          <token name="Material">272</token>
-          <token name="shape">1</token>
-          <Vector3 name="size">
-            <X>8</X>
-            <Y>3</Y>
-            <Z>8</Z>
-          </Vector3>
-          <token name="TopSurface">0</token>
-          <float name="Transparency">0</float>
-        </Properties>
-        <Item class="Part" referent="16">
-          <Properties>
-            <string name="Name">Stand</string>
-            <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHBob2VuaXhfcGFkX211c2hyb29t</BinaryString>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>8</X>
-              <Y>2.5</Y>
+              <Y>2.3049927</Y>
               <Z>158</Z>
               <R00>1</R00>
               <R01>0</R01>
@@ -525,8 +455,78 @@
             <token name="shape">1</token>
             <Vector3 name="size">
               <X>7.800003</X>
-              <Y>3</Y>
-              <Z>7.682007</Z>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="Part" referent="15">
+        <Properties>
+          <string name="Name">Pad_7</string>
+          <bool name="Anchored">true</bool>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADgQA==</BinaryString>
+          <token name="BottomSurface">0</token>
+          <CoordinateFrame name="CFrame">
+            <X>8</X>
+            <Y>2.199997</Y>
+            <Z>158</Z>
+            <R00>1</R00>
+            <R01>0</R01>
+            <R02>0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>1</R22>
+          </CoordinateFrame>
+          <bool name="CanCollide">true</bool>
+          <bool name="CanQuery">true</bool>
+          <bool name="CanTouch">true</bool>
+          <Color3uint8 name="Color3uint8">15233164</Color3uint8>
+          <token name="Material">272</token>
+          <token name="shape">1</token>
+          <Vector3 name="size">
+            <X>8</X>
+            <Y>2.399994</Y>
+            <Z>8</Z>
+          </Vector3>
+          <token name="TopSurface">0</token>
+          <float name="Transparency">0</float>
+        </Properties>
+        <Item class="Part" referent="16">
+          <Properties>
+            <string name="Name">Stand</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>8</X>
+              <Y>2.3049927</Y>
+              <Z>158</Z>
+              <R00>1</R00>
+              <R01>0</R01>
+              <R02>0</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0</R12>
+              <R20>0</R20>
+              <R21>0</R21>
+              <R22>1</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">15233164</Color3uint8>
+            <token name="Material">272</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -3345,11 +3345,11 @@
         <Properties>
           <string name="Name">Pad_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfaGF5CAAAAFBhZEluZGV4BQAAgD8=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAPw==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>83.4386</X>
-            <Y>1.5</Y>
+            <Y>2.199997</Y>
             <Z>117.37973</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
@@ -3369,7 +3369,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -3379,11 +3379,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2hheQ==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>83.4386</X>
-              <Y>2.026001</Y>
+              <Y>2.3049927</Y>
               <Z>117.37973</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -3402,9 +3402,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.9570007</X>
-              <Y>2.052002</Y>
-              <Z>7.7149963</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -3415,11 +3415,11 @@
         <Properties>
           <string name="Name">Pad_2</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfZ29vCAAAAFBhZEluZGV4BQAAAEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>94.75232</X>
-            <Y>1.75</Y>
+            <Y>2.199997</Y>
             <Z>106.066025</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
@@ -3439,7 +3439,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1.5</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -3449,11 +3449,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2dvbw==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>94.75232</X>
-              <Y>2.0449982</Y>
+              <Y>2.3049927</Y>
               <Z>106.066025</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -3472,9 +3472,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.8339996</X>
-              <Y>2.0899963</Y>
-              <Z>7.8610077</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -3485,11 +3485,11 @@
         <Properties>
           <string name="Name">Pad_3</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfc3Rvb2wIAAAAUGFkSW5kZXgFAABAQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAABAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>106.066025</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>94.75232</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
@@ -3509,7 +3509,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -3519,11 +3519,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX3N0b29s</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>106.066025</X>
-              <Y>2.671997</Y>
+              <Y>2.3049927</Y>
               <Z>94.75232</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -3542,9 +3542,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.018997</X>
-              <Y>3.3439941</Y>
-              <Z>7.199997</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -3555,7 +3555,7 @@
         <Properties>
           <string name="Name">Pad_4</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfYmFycmVsX3RvcAgAAABQYWRJbmRleAUAAIBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>117.37973</X>
@@ -3589,11 +3589,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2JhcnJlbF90b3A=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>117.37973</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>83.4386</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -3612,9 +3612,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.600006</X>
-              <Y>2.399994</Y>
-              <Z>7.0839996</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -3625,7 +3625,7 @@
         <Properties>
           <string name="Name">Pad_5</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfZmxvd2VyX2JlZAgAAABQYWRJbmRleAUAAKBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>94.75232</X>
@@ -3659,11 +3659,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2Zsb3dlcl9iZWQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>94.75232</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>128.69344</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -3682,9 +3682,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.7879944</X>
-              <Y>2.399994</Y>
-              <Z>7.7879944</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -3695,11 +3695,11 @@
         <Properties>
           <string name="Name">Pad_6</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIUAAAAcGhvZW5peF9wYWRfbXVzaHJvb20IAAAAUGFkSW5kZXgFAADAQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>106.066025</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>117.37973</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
@@ -3719,7 +3719,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -3729,11 +3729,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHBob2VuaXhfcGFkX211c2hyb29t</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>106.066025</X>
-              <Y>2.5</Y>
+              <Y>2.3049927</Y>
               <Z>117.37973</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -3753,8 +3753,8 @@
             <token name="shape">1</token>
             <Vector3 name="size">
               <X>7.800003</X>
-              <Y>3</Y>
-              <Z>7.682007</Z>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -3835,11 +3835,11 @@
         <Properties>
           <string name="Name">Pad_8</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfaGF5CAAAAFBhZEluZGV4BQAAAEE=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>128.69344</X>
-            <Y>1.5</Y>
+            <Y>2.199997</Y>
             <Z>94.75232</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
@@ -3859,7 +3859,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -3869,11 +3869,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2hheQ==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>128.69344</X>
-              <Y>2.026001</Y>
+              <Y>2.3049927</Y>
               <Z>94.75232</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -3892,9 +3892,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.9570007</X>
-              <Y>2.052002</Y>
-              <Z>7.7149963</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -6643,11 +6643,11 @@
         <Properties>
           <string name="Name">Pad_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfZ29vCAAAAFBhZEluZGV4BQAAgD8=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAPw==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>142</X>
-            <Y>1.75</Y>
+            <Y>2.199997</Y>
             <Z>24</Z>
             <R00>-0</R00>
             <R01>0</R01>
@@ -6667,7 +6667,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1.5</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -6677,11 +6677,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2dvbw==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>142</X>
-              <Y>2.0449982</Y>
+              <Y>2.3049927</Y>
               <Z>24</Z>
               <R00>-0</R00>
               <R01>0</R01>
@@ -6700,9 +6700,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.8339996</X>
-              <Y>2.0899963</Y>
-              <Z>7.8610077</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -6713,11 +6713,11 @@
         <Properties>
           <string name="Name">Pad_2</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfc3Rvb2wIAAAAUGFkSW5kZXgFAAAAQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>142</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>8</Z>
             <R00>-0</R00>
             <R01>0</R01>
@@ -6737,7 +6737,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -6747,11 +6747,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX3N0b29s</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>142</X>
-              <Y>2.671997</Y>
+              <Y>2.3049927</Y>
               <Z>8</Z>
               <R00>-0</R00>
               <R01>0</R01>
@@ -6770,9 +6770,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.018997</X>
-              <Y>3.3439941</Y>
-              <Z>7.199997</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -6783,7 +6783,7 @@
         <Properties>
           <string name="Name">Pad_3</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfYmFycmVsX3RvcAgAAABQYWRJbmRleAUAAEBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAABAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>142</X>
@@ -6817,11 +6817,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2JhcnJlbF90b3A=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>142</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>-8</Z>
               <R00>-0</R00>
               <R01>0</R01>
@@ -6840,9 +6840,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.600006</X>
-              <Y>2.399994</Y>
-              <Z>7.0839996</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -6853,7 +6853,7 @@
         <Properties>
           <string name="Name">Pad_4</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfZmxvd2VyX2JlZAgAAABQYWRJbmRleAUAAIBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>142</X>
@@ -6887,11 +6887,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2Zsb3dlcl9iZWQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>142</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>-24</Z>
               <R00>-0</R00>
               <R01>0</R01>
@@ -6910,9 +6910,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.7879944</X>
-              <Y>2.399994</Y>
-              <Z>7.7879944</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -6923,11 +6923,11 @@
         <Properties>
           <string name="Name">Pad_5</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIUAAAAcGhvZW5peF9wYWRfbXVzaHJvb20IAAAAUGFkSW5kZXgFAACgQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>158</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>24</Z>
             <R00>-0</R00>
             <R01>0</R01>
@@ -6947,7 +6947,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -6957,11 +6957,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHBob2VuaXhfcGFkX211c2hyb29t</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>158</X>
-              <Y>2.5</Y>
+              <Y>2.3049927</Y>
               <Z>24</Z>
               <R00>-0</R00>
               <R01>0</R01>
@@ -6981,8 +6981,8 @@
             <token name="shape">1</token>
             <Vector3 name="size">
               <X>7.800003</X>
-              <Y>3</Y>
-              <Z>7.682007</Z>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -7063,11 +7063,11 @@
         <Properties>
           <string name="Name">Pad_7</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfaGF5CAAAAFBhZEluZGV4BQAA4EA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>158</X>
-            <Y>1.5</Y>
+            <Y>2.199997</Y>
             <Z>-8</Z>
             <R00>-0</R00>
             <R01>0</R01>
@@ -7087,7 +7087,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -7097,11 +7097,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2hheQ==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>158</X>
-              <Y>2.026001</Y>
+              <Y>2.3049927</Y>
               <Z>-8</Z>
               <R00>-0</R00>
               <R01>0</R01>
@@ -7120,9 +7120,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.9570007</X>
-              <Y>2.052002</Y>
-              <Z>7.7149963</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -7133,11 +7133,11 @@
         <Properties>
           <string name="Name">Pad_8</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfZ29vCAAAAFBhZEluZGV4BQAAAEE=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>158</X>
-            <Y>1.75</Y>
+            <Y>2.199997</Y>
             <Z>-24</Z>
             <R00>-0</R00>
             <R01>0</R01>
@@ -7157,7 +7157,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1.5</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -7167,11 +7167,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2dvbw==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>158</X>
-              <Y>2.0449982</Y>
+              <Y>2.3049927</Y>
               <Z>-24</Z>
               <R00>-0</R00>
               <R01>0</R01>
@@ -7190,9 +7190,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.8339996</X>
-              <Y>2.0899963</Y>
-              <Z>7.8610077</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -9941,11 +9941,11 @@
         <Properties>
           <string name="Name">Pad_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfc3Rvb2wIAAAAUGFkSW5kZXgFAACAPw==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAPw==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>117.37973</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>-83.4386</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
@@ -9965,7 +9965,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -9975,11 +9975,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX3N0b29s</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>117.37973</X>
-              <Y>2.671997</Y>
+              <Y>2.3049927</Y>
               <Z>-83.4386</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -9998,9 +9998,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.018997</X>
-              <Y>3.3439941</Y>
-              <Z>7.199997</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -10011,7 +10011,7 @@
         <Properties>
           <string name="Name">Pad_2</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfYmFycmVsX3RvcAgAAABQYWRJbmRleAUAAABA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>106.066025</X>
@@ -10045,11 +10045,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2JhcnJlbF90b3A=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>106.066025</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>-94.75232</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -10068,9 +10068,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.600006</X>
-              <Y>2.399994</Y>
-              <Z>7.0839996</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -10081,7 +10081,7 @@
         <Properties>
           <string name="Name">Pad_3</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfZmxvd2VyX2JlZAgAAABQYWRJbmRleAUAAEBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAABAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>94.75232</X>
@@ -10115,11 +10115,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2Zsb3dlcl9iZWQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>94.75232</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>-106.066025</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -10138,9 +10138,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.7879944</X>
-              <Y>2.399994</Y>
-              <Z>7.7879944</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -10151,11 +10151,11 @@
         <Properties>
           <string name="Name">Pad_4</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIUAAAAcGhvZW5peF9wYWRfbXVzaHJvb20IAAAAUGFkSW5kZXgFAACAQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>83.4386</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>-117.37973</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
@@ -10175,7 +10175,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -10185,11 +10185,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHBob2VuaXhfcGFkX211c2hyb29t</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>83.4386</X>
-              <Y>2.5</Y>
+              <Y>2.3049927</Y>
               <Z>-117.37973</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -10209,8 +10209,8 @@
             <token name="shape">1</token>
             <Vector3 name="size">
               <X>7.800003</X>
-              <Y>3</Y>
-              <Z>7.682007</Z>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -10291,11 +10291,11 @@
         <Properties>
           <string name="Name">Pad_6</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfaGF5CAAAAFBhZEluZGV4BQAAwEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>117.37973</X>
-            <Y>1.5</Y>
+            <Y>2.199997</Y>
             <Z>-106.066025</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
@@ -10315,7 +10315,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -10325,11 +10325,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2hheQ==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>117.37973</X>
-              <Y>2.026001</Y>
+              <Y>2.3049927</Y>
               <Z>-106.066025</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -10348,9 +10348,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.9570007</X>
-              <Y>2.052002</Y>
-              <Z>7.7149963</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -10361,11 +10361,11 @@
         <Properties>
           <string name="Name">Pad_7</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfZ29vCAAAAFBhZEluZGV4BQAA4EA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>106.066025</X>
-            <Y>1.75</Y>
+            <Y>2.199997</Y>
             <Z>-117.37973</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
@@ -10385,7 +10385,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1.5</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -10395,11 +10395,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2dvbw==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>106.066025</X>
-              <Y>2.0449982</Y>
+              <Y>2.3049927</Y>
               <Z>-117.37973</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -10418,9 +10418,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.8339996</X>
-              <Y>2.0899963</Y>
-              <Z>7.8610077</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -10431,11 +10431,11 @@
         <Properties>
           <string name="Name">Pad_8</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfc3Rvb2wIAAAAUGFkSW5kZXgFAAAAQQ==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>94.75232</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>-128.69344</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
@@ -10455,7 +10455,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -10465,11 +10465,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX3N0b29s</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>94.75232</X>
-              <Y>2.671997</Y>
+              <Y>2.3049927</Y>
               <Z>-128.69344</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -10488,9 +10488,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.018997</X>
-              <Y>3.3439941</Y>
-              <Z>7.199997</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -13239,7 +13239,7 @@
         <Properties>
           <string name="Name">Pad_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfYmFycmVsX3RvcAgAAABQYWRJbmRleAUAAIA/</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAPw==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>24</X>
@@ -13273,11 +13273,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2JhcnJlbF90b3A=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>24</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>-142</Z>
               <R00>-1</R00>
               <R01>0</R01>
@@ -13296,9 +13296,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.600006</X>
-              <Y>2.399994</Y>
-              <Z>7.0839996</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -13309,7 +13309,7 @@
         <Properties>
           <string name="Name">Pad_2</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfZmxvd2VyX2JlZAgAAABQYWRJbmRleAUAAABA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>8</X>
@@ -13343,81 +13343,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2Zsb3dlcl9iZWQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>8</X>
-              <Y>2.199997</Y>
-              <Z>-142</Z>
-              <R00>-1</R00>
-              <R01>0</R01>
-              <R02>-0</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0</R20>
-              <R21>0</R21>
-              <R22>-1</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5683908</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>7.7879944</X>
-              <Y>2.399994</Y>
-              <Z>7.7879944</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-      </Item>
-      <Item class="Part" referent="415">
-        <Properties>
-          <string name="Name">Pad_3</string>
-          <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIUAAAAcGhvZW5peF9wYWRfbXVzaHJvb20IAAAAUGFkSW5kZXgFAABAQA==</BinaryString>
-          <token name="BottomSurface">0</token>
-          <CoordinateFrame name="CFrame">
-            <X>-8</X>
-            <Y>2.5</Y>
-            <Z>-142</Z>
-            <R00>-1</R00>
-            <R01>0</R01>
-            <R02>-0</R02>
-            <R10>0</R10>
-            <R11>1</R11>
-            <R12>0</R12>
-            <R20>0</R20>
-            <R21>0</R21>
-            <R22>-1</R22>
-          </CoordinateFrame>
-          <bool name="CanCollide">true</bool>
-          <bool name="CanQuery">true</bool>
-          <bool name="CanTouch">true</bool>
-          <Color3uint8 name="Color3uint8">5683908</Color3uint8>
-          <token name="Material">272</token>
-          <token name="shape">1</token>
-          <Vector3 name="size">
-            <X>8</X>
-            <Y>3</Y>
-            <Z>8</Z>
-          </Vector3>
-          <token name="TopSurface">0</token>
-          <float name="Transparency">0</float>
-        </Properties>
-        <Item class="Part" referent="416">
-          <Properties>
-            <string name="Name">Stand</string>
-            <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHBob2VuaXhfcGFkX211c2hyb29t</BinaryString>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>-8</X>
-              <Y>2.5</Y>
+              <Y>2.3049927</Y>
               <Z>-142</Z>
               <R00>-1</R00>
               <R01>0</R01>
@@ -13437,8 +13367,78 @@
             <token name="shape">1</token>
             <Vector3 name="size">
               <X>7.800003</X>
-              <Y>3</Y>
-              <Z>7.682007</Z>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+      </Item>
+      <Item class="Part" referent="415">
+        <Properties>
+          <string name="Name">Pad_3</string>
+          <bool name="Anchored">true</bool>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAABAQA==</BinaryString>
+          <token name="BottomSurface">0</token>
+          <CoordinateFrame name="CFrame">
+            <X>-8</X>
+            <Y>2.199997</Y>
+            <Z>-142</Z>
+            <R00>-1</R00>
+            <R01>0</R01>
+            <R02>-0</R02>
+            <R10>0</R10>
+            <R11>1</R11>
+            <R12>0</R12>
+            <R20>0</R20>
+            <R21>0</R21>
+            <R22>-1</R22>
+          </CoordinateFrame>
+          <bool name="CanCollide">true</bool>
+          <bool name="CanQuery">true</bool>
+          <bool name="CanTouch">true</bool>
+          <Color3uint8 name="Color3uint8">5683908</Color3uint8>
+          <token name="Material">272</token>
+          <token name="shape">1</token>
+          <Vector3 name="size">
+            <X>8</X>
+            <Y>2.399994</Y>
+            <Z>8</Z>
+          </Vector3>
+          <token name="TopSurface">0</token>
+          <float name="Transparency">0</float>
+        </Properties>
+        <Item class="Part" referent="416">
+          <Properties>
+            <string name="Name">Stand</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>-8</X>
+              <Y>2.3049927</Y>
+              <Z>-142</Z>
+              <R00>-1</R00>
+              <R01>0</R01>
+              <R02>-0</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0</R12>
+              <R20>0</R20>
+              <R21>0</R21>
+              <R22>-1</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">5683908</Color3uint8>
+            <token name="Material">272</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -13519,11 +13519,11 @@
         <Properties>
           <string name="Name">Pad_5</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfaGF5CAAAAFBhZEluZGV4BQAAoEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>24</X>
-            <Y>1.5</Y>
+            <Y>2.199997</Y>
             <Z>-158</Z>
             <R00>-1</R00>
             <R01>0</R01>
@@ -13543,7 +13543,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -13553,11 +13553,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2hheQ==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>24</X>
-              <Y>2.026001</Y>
+              <Y>2.3049927</Y>
               <Z>-158</Z>
               <R00>-1</R00>
               <R01>0</R01>
@@ -13576,9 +13576,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.9570007</X>
-              <Y>2.052002</Y>
-              <Z>7.7149963</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -13589,11 +13589,11 @@
         <Properties>
           <string name="Name">Pad_6</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfZ29vCAAAAFBhZEluZGV4BQAAwEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>8</X>
-            <Y>1.75</Y>
+            <Y>2.199997</Y>
             <Z>-158</Z>
             <R00>-1</R00>
             <R01>0</R01>
@@ -13613,7 +13613,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1.5</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -13623,11 +13623,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2dvbw==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>8</X>
-              <Y>2.0449982</Y>
+              <Y>2.3049927</Y>
               <Z>-158</Z>
               <R00>-1</R00>
               <R01>0</R01>
@@ -13646,9 +13646,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.8339996</X>
-              <Y>2.0899963</Y>
-              <Z>7.8610077</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -13659,11 +13659,11 @@
         <Properties>
           <string name="Name">Pad_7</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfc3Rvb2wIAAAAUGFkSW5kZXgFAADgQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-8</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>-158</Z>
             <R00>-1</R00>
             <R01>0</R01>
@@ -13683,7 +13683,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -13693,11 +13693,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX3N0b29s</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-8</X>
-              <Y>2.671997</Y>
+              <Y>2.3049927</Y>
               <Z>-158</Z>
               <R00>-1</R00>
               <R01>0</R01>
@@ -13716,9 +13716,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.018997</X>
-              <Y>3.3439941</Y>
-              <Z>7.199997</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -13729,7 +13729,7 @@
         <Properties>
           <string name="Name">Pad_8</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfYmFycmVsX3RvcAgAAABQYWRJbmRleAUAAABB</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-24</X>
@@ -13763,11 +13763,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2JhcnJlbF90b3A=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-24</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>-158</Z>
               <R00>-1</R00>
               <R01>0</R01>
@@ -13786,9 +13786,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.600006</X>
-              <Y>2.399994</Y>
-              <Z>7.0839996</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -16537,7 +16537,7 @@
         <Properties>
           <string name="Name">Pad_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfZmxvd2VyX2JlZAgAAABQYWRJbmRleAUAAIA/</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAPw==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-83.4386</X>
@@ -16571,11 +16571,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2Zsb3dlcl9iZWQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-83.4386</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>-117.37973</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -16594,9 +16594,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.7879944</X>
-              <Y>2.399994</Y>
-              <Z>7.7879944</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -16607,11 +16607,11 @@
         <Properties>
           <string name="Name">Pad_2</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIUAAAAcGhvZW5peF9wYWRfbXVzaHJvb20IAAAAUGFkSW5kZXgFAAAAQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-94.75232</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>-106.066025</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
@@ -16631,7 +16631,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -16641,11 +16641,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHBob2VuaXhfcGFkX211c2hyb29t</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-94.75232</X>
-              <Y>2.5</Y>
+              <Y>2.3049927</Y>
               <Z>-106.066025</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -16665,8 +16665,8 @@
             <token name="shape">1</token>
             <Vector3 name="size">
               <X>7.800003</X>
-              <Y>3</Y>
-              <Z>7.682007</Z>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -16747,11 +16747,11 @@
         <Properties>
           <string name="Name">Pad_4</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfaGF5CAAAAFBhZEluZGV4BQAAgEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-117.37973</X>
-            <Y>1.5</Y>
+            <Y>2.199997</Y>
             <Z>-83.4386</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
@@ -16771,7 +16771,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -16781,11 +16781,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2hheQ==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-117.37973</X>
-              <Y>2.026001</Y>
+              <Y>2.3049927</Y>
               <Z>-83.4386</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -16804,9 +16804,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.9570007</X>
-              <Y>2.052002</Y>
-              <Z>7.7149963</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -16817,11 +16817,11 @@
         <Properties>
           <string name="Name">Pad_5</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfZ29vCAAAAFBhZEluZGV4BQAAoEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-94.75232</X>
-            <Y>1.75</Y>
+            <Y>2.199997</Y>
             <Z>-128.69344</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
@@ -16841,7 +16841,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1.5</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -16851,11 +16851,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2dvbw==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-94.75232</X>
-              <Y>2.0449982</Y>
+              <Y>2.3049927</Y>
               <Z>-128.69344</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -16874,9 +16874,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.8339996</X>
-              <Y>2.0899963</Y>
-              <Z>7.8610077</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -16887,11 +16887,11 @@
         <Properties>
           <string name="Name">Pad_6</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfc3Rvb2wIAAAAUGFkSW5kZXgFAADAQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-106.066025</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>-117.37973</Z>
             <R00>-0.70710754</R00>
             <R01>0</R01>
@@ -16911,7 +16911,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -16921,11 +16921,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX3N0b29s</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-106.066025</X>
-              <Y>2.671997</Y>
+              <Y>2.3049927</Y>
               <Z>-117.37973</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -16944,9 +16944,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.018997</X>
-              <Y>3.3439941</Y>
-              <Z>7.199997</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -16957,7 +16957,7 @@
         <Properties>
           <string name="Name">Pad_7</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfYmFycmVsX3RvcAgAAABQYWRJbmRleAUAAOBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-117.37973</X>
@@ -16991,11 +16991,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2JhcnJlbF90b3A=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-117.37973</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>-106.066025</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -17014,9 +17014,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.600006</X>
-              <Y>2.399994</Y>
-              <Z>7.0839996</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -17027,7 +17027,7 @@
         <Properties>
           <string name="Name">Pad_8</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfZmxvd2VyX2JlZAgAAABQYWRJbmRleAUAAABB</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-128.69344</X>
@@ -17061,11 +17061,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2Zsb3dlcl9iZWQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-128.69344</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>-94.75232</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
@@ -17084,9 +17084,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.7879944</X>
-              <Y>2.399994</Y>
-              <Z>7.7879944</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -19835,11 +19835,11 @@
         <Properties>
           <string name="Name">Pad_1</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIUAAAAcGhvZW5peF9wYWRfbXVzaHJvb20IAAAAUGFkSW5kZXgFAACAPw==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAPw==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-142</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>-24</Z>
             <R00>0</R00>
             <R01>0</R01>
@@ -19859,7 +19859,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -19869,11 +19869,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHBob2VuaXhfcGFkX211c2hyb29t</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-142</X>
-              <Y>2.5</Y>
+              <Y>2.3049927</Y>
               <Z>-24</Z>
               <R00>0</R00>
               <R01>0</R01>
@@ -19893,8 +19893,8 @@
             <token name="shape">1</token>
             <Vector3 name="size">
               <X>7.800003</X>
-              <Y>3</Y>
-              <Z>7.682007</Z>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -19975,11 +19975,11 @@
         <Properties>
           <string name="Name">Pad_3</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfaGF5CAAAAFBhZEluZGV4BQAAQEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAABAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-142</X>
-            <Y>1.5</Y>
+            <Y>2.199997</Y>
             <Z>8</Z>
             <R00>0</R00>
             <R01>0</R01>
@@ -19999,7 +19999,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -20009,11 +20009,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2hheQ==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-142</X>
-              <Y>2.026001</Y>
+              <Y>2.3049927</Y>
               <Z>8</Z>
               <R00>0</R00>
               <R01>0</R01>
@@ -20032,9 +20032,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.9570007</X>
-              <Y>2.052002</Y>
-              <Z>7.7149963</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -20045,11 +20045,11 @@
         <Properties>
           <string name="Name">Pad_4</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfZ29vCAAAAFBhZEluZGV4BQAAgEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-142</X>
-            <Y>1.75</Y>
+            <Y>2.199997</Y>
             <Z>24</Z>
             <R00>0</R00>
             <R01>0</R01>
@@ -20069,7 +20069,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1.5</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -20079,11 +20079,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2dvbw==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-142</X>
-              <Y>2.0449982</Y>
+              <Y>2.3049927</Y>
               <Z>24</Z>
               <R00>0</R00>
               <R01>0</R01>
@@ -20102,9 +20102,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.8339996</X>
-              <Y>2.0899963</Y>
-              <Z>7.8610077</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -20115,11 +20115,11 @@
         <Properties>
           <string name="Name">Pad_5</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfc3Rvb2wIAAAAUGFkSW5kZXgFAACgQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-158</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>-24</Z>
             <R00>0</R00>
             <R01>0</R01>
@@ -20139,7 +20139,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -20149,11 +20149,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX3N0b29s</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-158</X>
-              <Y>2.671997</Y>
+              <Y>2.3049927</Y>
               <Z>-24</Z>
               <R00>0</R00>
               <R01>0</R01>
@@ -20172,9 +20172,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.018997</X>
-              <Y>3.3439941</Y>
-              <Z>7.199997</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -20185,7 +20185,7 @@
         <Properties>
           <string name="Name">Pad_6</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfYmFycmVsX3RvcAgAAABQYWRJbmRleAUAAMBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-158</X>
@@ -20219,11 +20219,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2JhcnJlbF90b3A=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-158</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>-8</Z>
               <R00>0</R00>
               <R01>0</R01>
@@ -20242,9 +20242,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.600006</X>
-              <Y>2.399994</Y>
-              <Z>7.0839996</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -20255,7 +20255,7 @@
         <Properties>
           <string name="Name">Pad_7</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfZmxvd2VyX2JlZAgAAABQYWRJbmRleAUAAOBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-158</X>
@@ -20289,11 +20289,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2Zsb3dlcl9iZWQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-158</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>8</Z>
               <R00>0</R00>
               <R01>0</R01>
@@ -20312,9 +20312,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.7879944</X>
-              <Y>2.399994</Y>
-              <Z>7.7879944</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -20325,11 +20325,11 @@
         <Properties>
           <string name="Name">Pad_8</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIUAAAAcGhvZW5peF9wYWRfbXVzaHJvb20IAAAAUGFkSW5kZXgFAAAAQQ==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQQ==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-158</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>24</Z>
             <R00>0</R00>
             <R01>0</R01>
@@ -20349,7 +20349,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -20359,11 +20359,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHBob2VuaXhfcGFkX211c2hyb29t</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-158</X>
-              <Y>2.5</Y>
+              <Y>2.3049927</Y>
               <Z>24</Z>
               <R00>0</R00>
               <R01>0</R01>
@@ -20383,8 +20383,8 @@
             <token name="shape">1</token>
             <Vector3 name="size">
               <X>7.800003</X>
-              <Y>3</Y>
-              <Z>7.682007</Z>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -23203,11 +23203,11 @@
         <Properties>
           <string name="Name">Pad_2</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfaGF5CAAAAFBhZEluZGV4BQAAAEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAAAAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-106.066025</X>
-            <Y>1.5</Y>
+            <Y>2.199997</Y>
             <Z>94.75232</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
@@ -23227,7 +23227,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -23237,11 +23237,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2hheQ==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-106.066025</X>
-              <Y>2.026001</Y>
+              <Y>2.3049927</Y>
               <Z>94.75232</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -23260,9 +23260,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.9570007</X>
-              <Y>2.052002</Y>
-              <Z>7.7149963</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -23273,11 +23273,11 @@
         <Properties>
           <string name="Name">Pad_3</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIPAAAAcGhvZW5peF9wYWRfZ29vCAAAAFBhZEluZGV4BQAAQEA=</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAABAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-94.75232</X>
-            <Y>1.75</Y>
+            <Y>2.199997</Y>
             <Z>106.066025</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
@@ -23297,7 +23297,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>1.5</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -23307,11 +23307,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCDwAAAHBob2VuaXhfcGFkX2dvbw==</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-94.75232</X>
-              <Y>2.0449982</Y>
+              <Y>2.3049927</Y>
               <Z>106.066025</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -23330,9 +23330,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.8339996</X>
-              <Y>2.0899963</Y>
-              <Z>7.8610077</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -23343,11 +23343,11 @@
         <Properties>
           <string name="Name">Pad_4</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfc3Rvb2wIAAAAUGFkSW5kZXgFAACAQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-83.4386</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>117.37973</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
@@ -23367,7 +23367,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -23377,11 +23377,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX3N0b29s</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-83.4386</X>
-              <Y>2.671997</Y>
+              <Y>2.3049927</Y>
               <Z>117.37973</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -23400,9 +23400,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.018997</X>
-              <Y>3.3439941</Y>
-              <Z>7.199997</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -23413,7 +23413,7 @@
         <Properties>
           <string name="Name">Pad_5</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfYmFycmVsX3RvcAgAAABQYWRJbmRleAUAAKBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAACgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-128.69344</X>
@@ -23447,11 +23447,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2JhcnJlbF90b3A=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-128.69344</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>94.75232</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -23470,9 +23470,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.600006</X>
-              <Y>2.399994</Y>
-              <Z>7.0839996</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -23483,7 +23483,7 @@
         <Properties>
           <string name="Name">Pad_6</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIWAAAAcGhvZW5peF9wYWRfZmxvd2VyX2JlZAgAAABQYWRJbmRleAUAAMBA</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADAQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-117.37973</X>
@@ -23517,11 +23517,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHBob2VuaXhfcGFkX2Zsb3dlcl9iZWQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-117.37973</X>
-              <Y>2.199997</Y>
+              <Y>2.3049927</Y>
               <Z>106.066025</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -23540,9 +23540,9 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>7.7879944</X>
-              <Y>2.399994</Y>
-              <Z>7.7879944</Z>
+              <X>7.800003</X>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -23553,11 +23553,11 @@
         <Properties>
           <string name="Name">Pad_7</string>
           <bool name="Anchored">true</bool>
-          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIUAAAAcGhvZW5peF9wYWRfbXVzaHJvb20IAAAAUGFkSW5kZXgFAADgQA==</BinaryString>
+          <BinaryString name="AttributesSerialize">AgAAAAsAAABNZXNoU3RhbmRJbgIRAAAAcGhvZW5peF9wYWRfY3JhdGUIAAAAUGFkSW5kZXgFAADgQA==</BinaryString>
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-106.066025</X>
-            <Y>2.5</Y>
+            <Y>2.199997</Y>
             <Z>117.37973</Z>
             <R00>0.70710754</R00>
             <R01>0</R01>
@@ -23577,7 +23577,7 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>8</X>
-            <Y>3</Y>
+            <Y>2.399994</Y>
             <Z>8</Z>
           </Vector3>
           <token name="TopSurface">0</token>
@@ -23587,11 +23587,11 @@
           <Properties>
             <string name="Name">Stand</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHBob2VuaXhfcGFkX211c2hyb29t</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCEQAAAHBob2VuaXhfcGFkX2NyYXRl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
               <X>-106.066025</X>
-              <Y>2.5</Y>
+              <Y>2.3049927</Y>
               <Z>117.37973</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
@@ -23611,8 +23611,8 @@
             <token name="shape">1</token>
             <Vector3 name="size">
               <X>7.800003</X>
-              <Y>3</Y>
-              <Z>7.682007</Z>
+              <Y>2.6100006</Y>
+              <Z>7.800003</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>

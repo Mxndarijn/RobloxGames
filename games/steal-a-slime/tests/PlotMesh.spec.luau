@@ -125,8 +125,8 @@ describe("pad stands", function()
 			for j = 1, Config.PADS_MAX do
 				local pad = child(plot, `Pad_{j}`)
 				local look = meshOf(child(pad, "Stand")) :: string
-				local seat = WorldLayout.PAD_SEAT[look]
-				expect(seat ~= nil and seat > 0 and seat <= native(look)[2]).toBe(true)
+				local seat = WorldLayout.PAD_SEAT_Y
+				expect(seat > 0 and seat <= native(look)[2]).toBe(true)
 				local p = toPlot(i, pad.pos :: Vec)
 				local h = (pad.size :: Vec)[2]
 				expect(p[2] - h / 2).toBeCloseTo(BASE_TOP)
@@ -138,9 +138,15 @@ describe("pad stands", function()
 			end
 		end
 	end)
-	it("has a seat for every stand look", function()
-		for _, look in WorldLayout.PAD_MESHES do
-			expect(WorldLayout.PAD_SEAT[look] ~= nil).toBe(true)
+	it("uses the one crate pad on every spot, with a constant seat", function()
+		expect(WorldLayout.PAD_MESH).toBe("phoenix_pad_crate")
+		expect(WorldLayout.PAD_SEAT_Y).toBe(2.4)
+		for _, plot in plots do
+			for j = 1, Config.PADS_MAX do
+				local pad = child(plot, `Pad_{j}`)
+				expect(meshOf(child(pad, "Stand"))).toBe(WorldLayout.PAD_MESH)
+				expect((pad.size :: Vec)[2]).toBeCloseTo(WorldLayout.PAD_SEAT_Y)
+			end
 		end
 	end)
 end)

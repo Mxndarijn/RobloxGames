@@ -6,7 +6,7 @@ When a slime sits on a pad, the pad turns into that slime's habitat in about 1 s
 
 ## Data: `src/shared/Habitats.luau` (pure)
 
-- **Habitat ids** are plain strings, never saved. `base` = the pad as built today (its `WorldLayout.PAD_MESHES` stand plus the kit's `pad_trim` plinth).
+- **Habitat ids** are plain strings, never saved. `base` = the pad as built today (the one `WorldLayout.PAD_MESH` crate stand (all pads identical) plus the kit's `pad_trim` plinth).
 - **Lookup:** `Habitats.forSlime(slime)`: the per-type table (`TYPE`, by `SlimeRoster` id) wins, then the family of the slime's tier (`FAMILY_BY_TIER` -> `FAMILY`), else `base`. Merged / pre-v28 slimes have no `species`, so they fall back to their tier's family.
 - **Looks are per-type kit meshes** (`shared/modeling-kit/models/habitat_<id>.py`, ids in `MeshAssets`, `uploaded.json`): 7.8 wide, 3.6-5.0 tall, seat 2.4 (FOUNTAIN_SIZES.md). `base` keeps the pad stand + `pad_trim`.
 
