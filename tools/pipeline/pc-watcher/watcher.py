@@ -1197,7 +1197,7 @@ def menus_at_device(run, hwnd, device):
                 m = run.need_luau("menu_measure", "Client", timeout=20, panel=panel)
                 run.luau("ui_isolate", "Client", timeout=15, keep=panel, hide=True)
                 try:
-                    info = capture_frame(run, hwnd, fid, crop=True, kind="menu", panel=panel, device=device,
+                    info = capture_frame(run, hwnd, fid, crop=True, kind="menu", panel=panel, for_device=device,
                                          open_method=opened["method"])
                     frame = info.get("file")
                 finally:
