@@ -1519,7 +1519,8 @@ def step_shots(run):
                 if shot.get("weather"):
                     # weather proof: the Client forces WeatherDebug (client-only attribute) and waits `wait` s for the tween in
                     res["weather"] = run.need_luau("weather_set", "Client", timeout=30, weather=shot["weather"],
-                                                   wait=float(shot.get("wait", 2.5)))
+                                                   wait=float(shot.get("wait", 2.5)),
+                                                   cover=float(shot.get("snow_cover", -1)))
                     if not res["weather"].get("ok"):
                         run.note("shot %s: no weather emitter active (%s)" % (sid, res["weather"].get("rates")))
                 if shot.get("motion") and (res.get("target") or {}).get("path"):
@@ -1577,7 +1578,7 @@ def step_shots(run):
         converge_viewport(run, run.hwnd, tuple(run.cfg["devices"][0][1:]))  # back to the first (desktop) size
     if any(shot.get("weather") for shot in shots):
         try:
-            run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1)  # drop the WeatherDebug preview
+            run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1, cover=-1)  # drop the WeatherDebug preview
         except Exception:
             pass
     if any(r.get("seat") for r in results):
