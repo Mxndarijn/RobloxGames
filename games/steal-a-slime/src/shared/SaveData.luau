@@ -30,7 +30,7 @@
 	field changes: `mutations` / `mutation` keep their shape and old saves load unchanged.
 	v4 -> v5 (migrateV4): drops duplicate / empty / non-string entries from each slime's
 	`mutations` and rebuilds a missing or all-invalid list from `mutation`; pure, idempotent.
-	plotSkin (FEATURES.PlotSkins, CONTRACT.md §14) was added without a version bump, like `growth` and
+	plotSkin (FEATURES.PlotSkins, CONTRACT.md §15) was added without a version bump, like `growth` and
 	`redeemed`: missing / unknown / not unlocked -> "classic" (SaveData.migratePlotSkin, run by deserialize).
 	Unknown/newer versions are read field-by-field with the v5 sanitizer (both
 	`mutations` and the legacy `mutation` are understood, nothing is dropped).

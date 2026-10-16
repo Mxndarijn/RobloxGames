@@ -191,7 +191,7 @@ entries["ranch_lantern_post"] =
 	{ assetId = 124004679363569, meshId = "rbxassetid://99456773451008", size = { 3.65, 9.3, 1.6 } }
 entries["ranch_log_pile"] =
 	{ assetId = 112182235851209, meshId = "rbxassetid://107529832767130", size = { 10.935, 4.011, 6.812 } }
--- Plot skin decor (Config.PLOT_SKINS): templates for the client, never world slots (CONTRACT.md §14).
+-- Plot skin decor (Config.PLOT_SKINS): templates for the client, never world slots (CONTRACT.md §15).
 entries["plot_skin_mushroom"] =
 	{ assetId = 136516938638177, meshId = "rbxassetid://106478306368033", size = { 5.8, 6.171, 5.4 } }
 entries["plot_skin_candy"] =

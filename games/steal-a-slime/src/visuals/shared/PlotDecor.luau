@@ -26,7 +26,6 @@
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
 local Constants = if script then require(script.Parent.Parent.Shared.Constants) else require("../../shared/Constants")
-local Economy = if script then require(script.Parent.Parent.Shared.Economy) else require("../../shared/Economy")
 local MeshAssets = if script
 	then require(script.Parent.Parent.Shared.MeshAssets)
 	else require("../../shared/MeshAssets")
@@ -253,7 +252,7 @@ local function applyDex(plot: Instance, owned: boolean)
 	end
 end
 
--- Plot skins (FEATURES.PlotSkins, CONTRACT.md §14) ---------------------------------
+-- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15) ---------------------------------
 
 PlotDecor.SKIN_DECOR_NAME = "SkinDecor"
 local ORIG_COLOR, ORIG_MATERIAL, ORIG_TRANSPARENCY = "SkinOrigColor", "SkinOrigMaterial", "SkinOrigTransparency"

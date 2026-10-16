@@ -1,5 +1,5 @@
 --!strict
--- Plot skins unlocked by SlimeDex sets (gaps #15, CONTRACT.md §14): unlock thresholds, the equip
+-- Plot skins unlocked by SlimeDex sets (gaps #15, CONTRACT.md §15): unlock thresholds, the equip
 -- remote, the save field, the per-plot visuals and the mesh budget. FEATURES.PlotSkins is off.
 local fs = require("@lune/fs")
 local roblox = require("@lune/roblox") :: any

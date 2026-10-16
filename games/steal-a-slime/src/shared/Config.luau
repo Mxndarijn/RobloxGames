@@ -64,7 +64,7 @@ export type Goal = {
 
 export type DexMilestone = { count: number, reward: number, bonus: number }
 
--- Plot skins (FEATURES.PlotSkins, CONTRACT.md §14). `set` = rarity tier whose SlimeDex set must be
+-- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15). `set` = rarity tier whose SlimeDex set must be
 -- `threshold` complete. Colours are RGB 0..255; `fence` multiplies the fence / gate mesh colours (white = none).
 export type PlotSkin = {
 	id: string, -- permanent save id; never rename
@@ -435,7 +435,7 @@ local Config = {
 	UPGRADES = table.freeze(UPGRADES),
 	GOALS = table.freeze(GOALS),
 	DEX_MILESTONES = table.freeze(DEX_MILESTONES),
-	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §14)
+	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §15)
 	PLOT_SKIN_DEFAULT = "classic",
 
 	-- Lock / steal
@@ -525,7 +525,7 @@ local Config = {
 		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		PetPassives = true, -- the favourite (follow) slime grants a small capped perk by tier / mutations: income, luck or merge mutation chance (Perks.petPassive, CONTRACT.md §14); false = cosmetic only
 		CoopRitual = true, -- 3-4 players stand on the plaza ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
-		PlotSkins = false, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §14); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
+		PlotSkins = false, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
