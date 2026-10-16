@@ -56,12 +56,17 @@ local function clearance(pos)
 	end
 	return best
 end
--- True when the ball is within 8 studs of a slab's surface but outside every slab's width (left the trough).
+-- True when the ball is in the tube's height band over a slab (floor top up to the ceiling underside,
+-- SlideColliders.CEILING = 9, plus the ball radius) but outside every slab's width (left the trough).
+-- The band was 8: a ball riding the ceiling at a join (centre 8.0 above its own floor) dropped out of
+-- its own slab's band and was flagged against the next, lower slab it is beside (e727c47: local x 1.9,
+-- inside segment 3's walls, top touching the ceiling).
+local TUBE_BAND = 9 + 1
 local function escaped(pos)
 	local near = false
 	for _, p in slabs do
 		local l = p.CFrame:PointToObjectSpace(pos)
-		if math.abs(l.Z) < p.Size.Z / 2 and math.abs(l.Y - p.Size.Y / 2) < 8 then
+		if math.abs(l.Z) < p.Size.Z / 2 and math.abs(l.Y - p.Size.Y / 2) < TUBE_BAND then
 			if math.abs(l.X) < p.Size.X / 2 + 0.2 then
 				return false
 			end
