@@ -254,9 +254,9 @@ entries["habitat_crystal_grotto"] =
 	{ assetId = 109901060316213, meshId = "rbxassetid://87315770149394", size = { 7.8, 5.0, 7.8 } }
 entries["habitat_candy_patch"] =
 	{ assetId = 133666024913667, meshId = "rbxassetid://114045594160776", size = { 7.8, 4.5, 7.8 } }
--- 20-stud plot fence (models/ranch_fence_20.py): not uploaded yet. Until it
--- has an id WorldLayout lays two phoenix_fence_segment per 20-stud slot.
-entries["ranch_fence_20"] = { size = { 22, 9.02, 1.8 } }
+-- 20-stud plot fence (models/ranch_fence_20.py): Open Cloud size-check.
+entries["ranch_fence_20"] =
+	{ assetId = 93657150564692, meshId = "rbxassetid://124018567196524", size = { 22, 9.02, 1.8 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)

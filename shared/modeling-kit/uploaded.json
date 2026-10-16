@@ -584,6 +584,19 @@
     "uploadedAt": "2026-10-15T21:31:20Z",
     "versions": 1
   },
+  "ranch_fence_20": {
+    "assetId": "93657150564692",
+    "assetType": "Model",
+    "meshId": "rbxassetid://124018567196524",
+    "meshSize": [
+      22.0,
+      9.02,
+      1.8
+    ],
+    "sha256": "1b15b78882dc259d",
+    "uploadedAt": "2026-10-16T08:16:50Z",
+    "versions": 1
+  },
   "ranch_fence_stile": {
     "assetId": "109953899748949",
     "assetType": "Model",
