@@ -347,7 +347,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
 | `REBIRTH_LATE_FROM` / `REBIRTH_COST_GROWTH_LATE` / `REBIRTH_TIERS` / `UPGRADES` / `GOALS` / `DEX_MILESTONES` | 5 / 2 / tables | v13 progression (§8.8) |
-| `SAVE_VERSION` | 4 | v13 schema (§8.9), v4 = `slimes[i].mutations` (§8.9a) |
+| `SAVE_VERSION` | 5 | v13 schema (§8.9), v4 = `slimes[i].mutations` (§8.9a), v5 = weather mutations Wet / Frozen (§8.9b) |
 
 All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ShopStand` / `LeaderboardBoard` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
 
@@ -543,6 +543,11 @@ Migration (`SaveData.migrate`, pure, tested with a v12-shaped save): v1 -> v2 as
 Same store and key; no key or field is renamed. v4 = v3 plus `slimes[i].mutations = { name, ... }` (at most `Config.MAX_MUTATIONS`; a fused combo from `Config.COMBOS` is stored by its combo name). The single `mutation` field is still written (the strongest entry, "None" when empty): v3 readers, visuals and dex keys use it.
 
 `SaveData.migrateV3` (v1/v2/v3 -> v4) is pure, returns a copy and is idempotent: `mutations = {}` for "None" / missing, else `{ mutation }`; a slime that already has a list is untouched. Value is the product of the list (a single entry = the v3 value). A version above 4 is never rewritten by the migration; `Genome.sanitize` reads both fields. `FEATURES.MutationStacking` (default on) only controls new rolls (stack chance `STACK_MUTATION_CHANCE`, combo fusing, merge carry-over); migration and loading always run. The Dex counts a stacked slime under its primary mutation (`DEX_TOTAL` adds `#COMBOS` with the flag on).
+
+
+### 8.9b DataStore schema v5: weather mutations (`Config.SAVE_VERSION = 5`)
+
+No field changes. `SaveData.migrateV4` (v4 -> v5, pure, idempotent) drops duplicate / "None" / non-string entries from each slime's `mutations` and rebuilds a missing list from `mutation`; clean slimes pass through untouched. New mutation ids `Wet`, `Frozen` and combos `Sleet`, `Comet` are added; no id or key is renamed. `FEATURES.WeatherMutations` (default on) gates only the roll bonus from `Config.WEATHER[id].mutation / chanceBonus` (WEATHER.md); loading never depends on it.
 
 ### 8.10 Speed Coil (replaces the §2 bullet)
 

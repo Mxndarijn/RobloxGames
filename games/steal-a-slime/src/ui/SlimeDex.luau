@@ -42,6 +42,8 @@ SlimeDex.SILHOUETTE = table.freeze({ 24, 26, 36 })
 SlimeDex.MUTATION_COLORS = table.freeze({
 	Glow = table.freeze({ 255, 245, 150 }),
 	Lava = table.freeze({ 255, 110, 40 }),
+	Wet = table.freeze({ 70, 150, 255 }),
+	Frozen = table.freeze({ 190, 235, 255 }),
 	Galaxy = table.freeze({ 130, 90, 220 }),
 	Gold = table.freeze({ 255, 205, 70 }),
 	Rainbow = table.freeze({ 255, 120, 200 }),
@@ -52,6 +54,8 @@ SlimeDex.MUTATION_COLORS = table.freeze({
 	Nebula = table.freeze({ 190, 80, 160 }),
 	Aurora = table.freeze({ 120, 255, 190 }),
 	Royal = table.freeze({ 255, 225, 120 }),
+	Sleet = table.freeze({ 120, 190, 235 }),
+	Comet = table.freeze({ 150, 170, 255 }),
 })
 
 function SlimeDex.image(key: string, images: { [string]: string }?): string?
@@ -101,6 +105,11 @@ function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: st
 	end
 	for _, c in config.COMBOS or {} do
 		mutationNames[c.name] = c.displayName or c.name
+	end
+	for _, list in { config.WEATHER_MUTATIONS or {}, config.WEATHER_COMBOS or {} } do
+		for _, m in list do
+			mutationNames[m.name] = m.displayName or m.name
+		end
 	end
 	local progress = Progress.dex(dex, total, tierNames)
 	local byTier: { [number]: { string } } = {}

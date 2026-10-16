@@ -26,7 +26,11 @@
 	    reader keeps working and DataStore keys/field names never change.
 	    v3 -> v4 (migrateV3): mutations = {} for "None"/missing, else { mutation };
 	    pure, idempotent, never touches a slime that already has a list.
-	Unknown/newer versions are read field-by-field with the v4 sanitizer (both
+	v5 (current): v4 plus the weather mutations Wet / Frozen (and combos Sleet / Comet). No
+	field changes: `mutations` / `mutation` keep their shape and old saves load unchanged.
+	v4 -> v5 (migrateV4): drops duplicate / empty / non-string entries from each slime's
+	`mutations` and rebuilds a missing or all-invalid list from `mutation`; pure, idempotent.
+	Unknown/newer versions are read field-by-field with the v5 sanitizer (both
 	`mutations` and the legacy `mutation` are understood, nothing is dropped).
 ]]
 
@@ -115,7 +119,54 @@ function SaveData.migrateV3(raw: { [string]: any }): { [string]: any }
 	return out
 end
 
--- Returns a v4-shaped raw table (still untrusted) from any stored value. Saves
+-- v4 -> v5. Pure copy, idempotent. Normalises each slime's `mutations` list: strings only, no
+-- "None", no duplicates, order kept; a missing list (or one with nothing valid) is rebuilt from the
+-- legacy `mutation`. Names are NOT checked against Config.MUTATIONS here (Genome.sanitize does
+-- that on load), so a name this build does not know yet survives the migration. A slime with a
+-- clean list is returned as the same table.
+function SaveData.migrateV4(raw: { [string]: any }): { [string]: any }
+	local out = table.clone(raw)
+	local from = tonumber(raw.version)
+	if from == nil or from ~= from then
+		from = 0
+	end
+	out.migratedFrom = raw.migratedFrom or from
+	if type(raw.slimes) == "table" then
+		local slimes = {}
+		for i, old in raw.slimes do
+			if type(old) ~= "table" then
+				slimes[i] = old
+				continue
+			end
+			local list, seen, dirty = {}, {}, type(old.mutations) ~= "table"
+			if not dirty then
+				for _, m in old.mutations do
+					if type(m) == "string" and m ~= "None" and m ~= "" and not seen[m] then
+						seen[m] = true
+						table.insert(list, m)
+					else
+						dirty = true
+					end
+				end
+			end
+			if dirty then
+				if #list == 0 and type(old.mutation) == "string" and old.mutation ~= "None" and old.mutation ~= "" then
+					list = { old.mutation }
+				end
+				local slime = table.clone(old)
+				slime.mutations = list
+				slimes[i] = slime
+			else
+				slimes[i] = old
+			end
+		end
+		out.slimes = slimes
+	end
+	out.version = 5
+	return out
+end
+
+-- Returns a v5-shaped raw table (still untrusted) from any stored value. Saves
 -- from a newer version than we know are returned as they are.
 function SaveData.migrate(raw: any): { [string]: any }?
 	if type(raw) ~= "table" then
@@ -124,12 +175,15 @@ function SaveData.migrate(raw: any): { [string]: any }?
 	local version = tonumber(raw.version)
 	if version == nil then
 		if raw.Cash ~= nil or raw.Slimes ~= nil or raw.Rebirths ~= nil then
-			return SaveData.migrateV3(SaveData.migrateV1(raw))
+			return SaveData.migrateV4(SaveData.migrateV3(SaveData.migrateV1(raw)))
 		end
 		return nil
 	end
 	if version < 4 then
-		return SaveData.migrateV3(raw)
+		return SaveData.migrateV4(SaveData.migrateV3(raw))
+	end
+	if version < 5 then
+		return SaveData.migrateV4(raw)
 	end
 	return raw
 end

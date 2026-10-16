@@ -162,7 +162,7 @@ describe("SaveData.migrate / deserialize of old saves", function()
 	it("migrating twice (migrate of a migrate) changes nothing", function()
 		local first = SaveData.migrate(v3Save({ v3Slime("s1", "Crystal", 1) })) :: any
 		local second = SaveData.migrate(first) :: any
-		expect(second.version).toBe(4)
+		expect(second.version).toBe(5)
 		expect(second.migratedFrom).toBe(3)
 		expect(second.slimes[1].mutations[1]).toBe("Crystal")
 	end)
@@ -187,10 +187,10 @@ describe("SaveData.migrate / deserialize of old saves", function()
 end)
 
 describe("SaveData round trip (v4)", function()
-	it("serialize writes version 4, the list and the legacy field", function()
+	it("serialize writes the current version, the list and the legacy field", function()
 		local d = SaveData.deserialize(v3Save({ v3Slime("s1", "Lava", 1) }))
 		local out = SaveData.serialize(d, 2000)
-		expect(out.version).toBe(4)
+		expect(out.version).toBe(Config.SAVE_VERSION)
 		local s = (out.slimes :: any)[1]
 		expect(s.mutation).toBe("Lava")
 		expect(s.mutations).toEqual({ "Lava" })

@@ -174,20 +174,16 @@ describe("Weather flag", function()
 end)
 
 describe("Weather hook for #8", function()
-	it("exposes getCurrent, Changed and Config.WEATHER[id] with mutation nil / chanceBonus 0", function()
-		expect(type(Weather.getCurrent)).toBe("function")
-		expect(type(Weather.Changed.Connect)).toBe("function")
-		for _, id in Config.WEATHER_ORDER do
-			local data = Weather.data(id)
-			expect(data.mutation).toBeNil()
-			expect(data.chanceBonus).toBe(0)
+	it(
+		"exposes getCurrent, Changed and Config.WEATHER[id] with a mutation and chanceBonus on every weather but Clear",
+		function()
+			expect(type(Weather.getCurrent)).toBe("function")
+			expect(type(Weather.Changed.Connect)).toBe("function")
+			for _, id in Config.WEATHER_ORDER do
+				local data = Weather.data(id)
+				expect(data.chanceBonus >= 0).toBe(true)
+				expect((data.mutation == nil) == (data.chanceBonus == 0)).toBe(true)
+			end
 		end
-	end)
-	it("adds no mutation ids", function()
-		local names: { string } = {}
-		for _, m in Config.MUTATIONS do
-			table.insert(names, m.name)
-		end
-		expect(names).toEqual({ "Glow", "Lava", "Galaxy", "Rainbow", "Gold", "Crystal", "Eclipse" })
-	end)
+	)
 end)

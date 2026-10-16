@@ -43,3 +43,12 @@ New ids are appended to `Config.MUTATIONS` by #8 (the array is ordered by multip
 
 `tests/Weather.spec.luau` (cycle, replication, quality scaling and cap, flag off, hook API). Watcher shots
 `18-weather-Rain|Snow|Starfall` (`shots/*.json`, `weather` + `wait`, `luau/weather_set`).
+
+## Weather mutations (#8, FEATURES.WeatherMutations, save v5)
+
+`Config.WEATHER`: Rain -> `Wet` (+0.10), Snow -> `Frozen` (+0.10), Starfall -> `Galaxy` (+0.05), Clear none. `Genome.rollMutation`
+reads `Weather.data(Weather.getCurrent())` through a cache refreshed from `Weather.Changed` (`Genome.bindWeather`): while a weather with a
+mutation is current, roll values in `[chance, chance + chanceBonus)` land on that mutation. No other mutation's chance changes, and Clear is
+identical to before. `Wet` (x1.75) and `Frozen` (x2.5) have weight 0, so they only come from weather (or a merge ladder step); combos
+`Sleet` (Wet + Frozen) and `Comet` (Frozen + Galaxy). Save v4 -> v5 (`SaveData.migrateV4`) only normalises each slime's `mutations` list;
+ids and keys are unchanged. Tests: `tests/WeatherMutations.spec.luau`. Shot: `21-weather-mutation-dex` (`shots/95-21-weather-mutation-dex.json`).

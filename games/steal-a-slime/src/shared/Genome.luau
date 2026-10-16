@@ -12,6 +12,7 @@ local Config = if script then require(script.Parent.Config) else require("./Conf
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 local SlimeLooks = if script then require(script.Parent.SlimeLooks) else require("./SlimeLooks")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
+local Weather = if script then require(script.Parent.Weather) else require("./Weather")
 
 export type Slime = {
 	id: string,
@@ -68,7 +69,17 @@ function Genome.mutationInfo(name: any): MutationInfo?
 			return m
 		end
 	end
+	for _, m in Config.WEATHER_MUTATIONS do
+		if m.name == name then
+			return m
+		end
+	end
 	for _, c in Config.COMBOS do
+		if c.name == name then
+			return c
+		end
+	end
+	for _, c in Config.WEATHER_COMBOS do
 		if c.name == name then
 			return c
 		end
@@ -127,9 +138,11 @@ function Genome.setMutations(slime: Slime, list: { string })
 end
 
 local function comboOf(a: string, b: string): Config.Combo?
-	for _, c in Config.COMBOS do
-		if (c.a == a and c.b == b) or (c.a == b and c.b == a) then
-			return c
+	for _, list in { Config.COMBOS, Config.WEATHER_COMBOS } do
+		for _, c in list do
+			if (c.a == a and c.b == b) or (c.a == b and c.b == a) then
+				return c
+			end
 		end
 	end
 	return nil
@@ -204,9 +217,43 @@ function Genome.rollTier(roll: number, luck: number?, minTier: number?): number
 	return Rng.weightedIndex(weights, roll)
 end
 
--- Returns "None" unless `chanceRoll < chance`, then picks a mutation by weight.
+-- Weather bonus (FEATURES.WeatherMutations): the current weather's mutation and extra roll chance,
+-- cached and refreshed from Weather.Changed so a roll does no lookup.
+local weatherMutation: string? = nil
+local weatherBonus = 0
+local weatherConnection: { Disconnect: (any) -> () }? = nil
+
+local function refreshWeather()
+	local w = Weather.data(Weather.getCurrent())
+	if Config.FEATURES.WeatherMutations and w and w.mutation and w.chanceBonus > 0 then
+		weatherMutation, weatherBonus = w.mutation, w.chanceBonus
+	else
+		weatherMutation, weatherBonus = nil, 0
+	end
+end
+
+-- Idempotent (re-binding replaces the old listener). Runs once at load; tests call it again after Weather.reset().
+function Genome.bindWeather()
+	if weatherConnection then
+		weatherConnection:Disconnect()
+	end
+	weatherConnection = Weather.Changed:Connect(refreshWeather)
+	refreshWeather()
+end
+
+-- The (mutation, extra chance) the current weather adds to rolls; nil, 0 when none.
+function Genome.weatherBoost(): (string?, number)
+	return weatherMutation, weatherBonus
+end
+
+-- Returns "None" unless `chanceRoll < chance`, then picks a mutation by weight. While a weather with a
+-- mutation is current, the next `chanceBonus` of the roll range (chance <= roll < chance + bonus) lands on
+-- that weather's mutation, so its chance is raised and no other mutation's is.
 function Genome.rollMutation(chanceRoll: number, pickRoll: number, chance: number): string
 	if chanceRoll >= chance then
+		if weatherMutation and chanceRoll < chance + weatherBonus then
+			return weatherMutation
+		end
 		return "None"
 	end
 	local weights = {}
@@ -385,5 +432,7 @@ function Genome.sanitize(raw: any): Slime?
 		growth = if growth then math.floor(math.min(growth, 1) * 1e4 + 0.5) / 1e4 else nil,
 	}
 end
+
+Genome.bindWeather()
 
 return Genome
