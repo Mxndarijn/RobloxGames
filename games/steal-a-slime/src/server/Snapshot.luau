@@ -125,6 +125,13 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			rebirths = rebirths,
 		},
 		boss = { active = bossActive, endsAt = bossEndsAt },
+		modifier = {
+			name = world.modifier.name,
+			label = world.modifier.label,
+			luck = world.modifier.luck,
+			mutation = world.modifier.mutation,
+			endsAt = world.modifierEndsAt,
+		},
 	}
 end
 

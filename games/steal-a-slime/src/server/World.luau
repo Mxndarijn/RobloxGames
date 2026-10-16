@@ -16,6 +16,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
@@ -100,6 +101,10 @@ export type World = {
 	nextBossAt: number, -- server time of the next Boss Slime (FEATURES.BossSlime)
 	bossActive: boolean, -- last Spawner.boss values, so a change pushes State to everyone
 	bossEndsAt: number?,
+	modifier: CycleModifier.Modifier, -- FEATURES.CycleModifier: active dawn / dusk modifier
+	modifierPhase: number, -- DayNight.phase it was rolled for (-1 = not yet)
+	modifierEndsAt: number?, -- server time the phase ends
+	modifierSeed: number,
 	pity: Pity,
 	outbox: { Event },
 }
@@ -139,6 +144,10 @@ function World.new(options: Options): World
 		nextBossAt = options.now + Config.BOSS_FIRST_AT,
 		bossActive = false,
 		bossEndsAt = nil,
+		modifier = CycleModifier.NONE,
+		modifierPhase = -1,
+		modifierEndsAt = nil,
+		modifierSeed = options.seed or 1,
 		pity = { sinceEpic = 0, sinceLegendary = 0 },
 		outbox = {},
 	}

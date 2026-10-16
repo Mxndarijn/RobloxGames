@@ -21,6 +21,8 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local DespawnTelegraph = if Shared then require(Shared.DespawnTelegraph) else require("../shared/DespawnTelegraph")
+local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
+local DayNight = if Shared then require(Shared.DayNight) else require("../shared/DayNight")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
@@ -81,7 +83,8 @@ end
 
 function Spawner.spawnOne(world: World, now: number): string
 	local id = world.newId()
-	local drop = Fountain.roll(world.rng, id, world.raining, Spawner.pityTier(world.pity))
+	local luckMult, mutationMult = CycleModifier.multipliers(world.modifier)
+	local drop = Fountain.roll(world.rng, id, world.raining, Spawner.pityTier(world.pity), luckMult, mutationMult)
 	local tier = drop.slime.tier
 	local pity = world.pity
 	pity.sinceEpic = if tier >= 4 then 0 else pity.sinceEpic + 1
@@ -157,8 +160,39 @@ function Spawner.boss(world: World): (boolean, number?)
 	return true, world.wild[id].expiresAt
 end
 
+-- FEATURES.CycleModifier: re-rolls the server modifier when the DayNight phase
+-- (dawn / dusk) changes; the previous one ends right there. Pushes State to everyone.
+function Spawner.stepModifier(world: World, now: number)
+	if not (Config.FEATURES.CycleModifier and Config.FEATURES.DayNight) then
+		return
+	end
+	local phase, left = DayNight.phase(now - world.startedAt)
+	world.modifierEndsAt = now + left
+	if phase == world.modifierPhase then
+		return
+	end
+	local first = world.modifierPhase < 0
+	world.modifierPhase = phase
+	local modifier = CycleModifier.forPhase(world.modifierSeed, phase)
+	if modifier == world.modifier and first then
+		return
+	end
+	world.modifier = modifier
+	if modifier.name ~= "None" then
+		World.notify(
+			world,
+			nil,
+			`{modifier.label}! Active until {if phase % 2 == 0 then "dusk" else "dawn"}.`,
+			"good",
+			nil
+		)
+	end
+	World.markAllDirty(world)
+end
+
 -- Call every frame (or at least every few tenths of a second).
 function Spawner.step(world: World, now: number)
+	Spawner.stepModifier(world, now)
 	local raining, _, nextAt = Spawner.rain(world, now)
 	if not raining and nextAt and nextAt - now <= Config.RAIN_WARNING_SECONDS and not world.rainWarned then
 		world.rainWarned = true
