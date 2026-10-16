@@ -5522,5 +5522,14 @@
       ]
     }
   },
-  "frames_dir": "544f0359d316250b68aaff5a75a9058d0a14a365/"
+  "frames_dir": "544f0359d316250b68aaff5a75a9058d0a14a365/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "HOLD (B6 unproven, not seen broken): shot-18-slide-top-to-bottom is missing. luau slide_walk timed out (MCP tools/call 90s) because it drops 3 balls per segment sequentially and watches each for 1.2s, which takes longer than 90s for the full slide. So there's no collider evidence from the top or along the full length. Fix: drop all balls in parallel and watch once (about 2s), or chunk the segments.",
+    "Visual: shot-12-fountain-slide, shot-13-fountain-colliders and shot-06 look right. The slide spirals intact into the plaza with nothing out of place. The top-down map-top view is partly covered by the yellow guide arrow.",
+    "Rest clean: all other steps pass, focus_stolen [], close pass, no leftovers. HUD 'Menu' OK; motor motion OK."
+  ]
 }
