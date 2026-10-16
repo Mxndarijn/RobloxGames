@@ -193,8 +193,8 @@ entries["ranch_wheelbarrow"] =
 	{ assetId = 76889567988116, meshId = "rbxassetid://109036150127137", size = { 6.595, 3.45, 3.799 } }
 entries["ranch_windmill"] =
 	{ assetId = 122612940835932, meshId = "rbxassetid://120542952502577", size = { 8.382, 17.386, 9.65 } }
--- Not uploaded yet. Placeholder stays until meshId is filled.
-entries["slime_fountain_emerge"] = { size = { 19.436, 12.798, 11.353 } }
+entries["slime_fountain_emerge"] =
+	{ assetId = 100517882708695, meshId = "rbxassetid://74501501975558", size = { 19.436, 12.798, 11.353 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)
