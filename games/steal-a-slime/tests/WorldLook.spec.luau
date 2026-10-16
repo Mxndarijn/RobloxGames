@@ -1,10 +1,9 @@
 --!strict
 -- Look fixes from the whole-world render review (tools/render):
--- Map.Decor scattered rocks (WorldLayout rock()) are low boulders and slabs
--- sunk into the Ground, never an upright grey box or a corner floating over
--- it; the ring path's overlapping segments never share a top face; the plot
+-- Map.Decor scattered rocks (WorldLayout rock()) are low boulders and flat
+-- stones (Balls) sunk into the Ground, never an upright grey box or a slab
+-- that reads as a paving tile; the ring path's overlapping segments never share a top face; the plot
 -- lock sign and button pedestal are ranch wood, not gunmetal.
-local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -26,18 +25,22 @@ end
 
 describe("decor rocks", function()
 	local all = folder("Decor", "^Rock%d+$")
-	it("keeps the scatter (boulders and slabs, same count)", function()
-		local balls, blocks = 0, 0
+	it("keeps the scatter (boulders and flat stones, same count, no slabs)", function()
+		local boulders, flats = 0, 0
 		for _, n in all do
-			if n.shape == "Ball" then
-				balls += 1
-			else
-				blocks += 1
+			-- Blocks read as paving tiles in the renders: Balls only
+			expect(n.shape).toBe("Ball")
+			local show = (n.pos[2] + n.size[2] / 2) / n.size[2]
+			if show > 0.25 then
+				boulders += 1
+			elseif show <= 0.21 then
+				flats += 1
 			end
 		end
 		expect(#all >= 30).toBe(true)
-		expect(balls >= 10).toBe(true)
-		expect(blocks >= 10).toBe(true)
+		expect(boulders >= 10).toBe(true)
+		expect(flats >= 10).toBe(true)
+		expect(boulders + flats).toBe(#all)
 	end)
 	it("stands low: never taller above the Ground than half its width", function()
 		for _, n in all do
@@ -45,18 +48,9 @@ describe("decor rocks", function()
 			expect(top <= 0.5 * math.max(n.size[1], n.size[3])).toBe(true)
 		end
 	end)
-	it("is sunk: every bottom corner of a slab is at or under the Ground top", function()
+	it("is sunk: every rock's centre is under the Ground top", function()
 		for _, n in all do
-			if n.shape == "Ball" then
-				expect(n.pos[2] < 0).toBe(true)
-			else
-				local m = LayoutMath.orientation(n.rot)
-				local h = { n.size[1] / 2, n.size[2] / 2, n.size[3] / 2 }
-				for _, s in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
-					local corner = LayoutMath.apply(m, { h[1] * s[1], -h[2], h[3] * s[2] })
-					expect(n.pos[2] + corner[2] <= 0.001).toBe(true)
-				end
-			end
+			expect(n.pos[2] < 0).toBe(true)
 		end
 	end)
 end)

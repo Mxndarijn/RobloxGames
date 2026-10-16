@@ -663,29 +663,28 @@ local function onPolar(yaw: number, r: number, y: number): Vec
 end
 
 -- Decor rocks are plain ranch Rock (no basalt). Upright boxes read as grey
--- crates from the plaza (tools/render review), so half are boulders (a Ball
--- sunk to a low dome) and the rest low tilted slabs sunk until no bottom
--- corner lifts off the Ground. Same part count as before.
+-- crates from the plaza and low tilted slabs as paving tiles (tools/render
+-- review), so every rock is a Ball: half boulders sunk to a low dome, half
+-- wider flat stones sunk to their top sixth. Same part count as before.
 local function rock(name: string, pos: Vec, s: number, salt: number): WorldNode
+	local d, y
 	if hash(salt, 10) < 0.5 then
-		local d = s * (1.2 + hash(salt, 4) * 0.5)
-		return {
-			name = name,
-			class = "Part",
-			shape = "Ball",
-			size = { d, d, d },
-			pos = { pos[1], -d * 0.22, pos[3] },
-			rot = { 0, 0, 0 },
-			color = ROCK,
-			material = "Rock",
-		}
+		d = s * (1.2 + hash(salt, 4) * 0.5)
+		y = -d * 0.22
+	else
+		d = s * (1.3 + hash(salt, 4) * 0.5)
+		y = d * (0.15 + hash(salt, 5) * 0.05 - 0.5)
 	end
-	local size = { s * (1.1 + hash(salt, 4) * 0.6), s * (0.35 + hash(salt, 5) * 0.25), s * (0.8 + hash(salt, 6) * 0.5) }
-	local rx, rz = hash(salt, 7) * 20 - 10, hash(salt, 9) * 20 - 10
-	-- How far the tilt lifts the highest bottom corner, plus a quarter sunk.
-	local lift = size[1] / 2 * math.sin(math.rad(math.abs(rz))) + size[3] / 2 * math.sin(math.rad(math.abs(rx)))
-	local y = size[2] / 2 - lift - size[2] * 0.25
-	return block(name, size, { pos[1], y, pos[3] }, ROCK, "Rock", { rx, hash(salt, 8) * 360, rz })
+	return {
+		name = name,
+		class = "Part",
+		shape = "Ball",
+		size = { d, d, d },
+		pos = { pos[1], y, pos[3] },
+		rot = { 0, 0, 0 },
+		color = ROCK,
+		material = "Rock",
+	}
 end
 
 local function mushroom(name: string, pos: Vec, salt: number): WorldNode
