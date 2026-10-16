@@ -50,7 +50,7 @@ DEFAULTS = {
     "keep_builds": 5,
     "poll_s": 60,
     "busy_retry_s": 300,
-    "run_budget_s": 600,
+    "run_budget_s": 900,
     "mesh_slot_budget": 400,
     "launch_timeout_s": 120,
     "client_timeout_s": 90,
@@ -1405,13 +1405,16 @@ def step_shots(run):
                 if opened and shot.get("scroll_to"):  # card below the scroll fold at small viewports
                     res["scroll"] = run.luau("panel_scroll", "Client", timeout=15, panel=opened["panel"], target=shot["scroll_to"])[1]
                 keep = opened["panel"] if opened and not shot.get("press") else ""
-                if shot.get("hold"):  # hold ring mid-hold (B1): show the button's HoldFill half full
-                    res["hold"] = run.need_luau("hold_fill", "Client", timeout=15, name=shot["hold"], on=True)
-                    if not res["hold"].get("found"):
-                        res["error"] = "no HoldFill on a button named %s" % shot["hold"]
                 ok, iso = run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=True)
                 res["isolated"] = iso if ok else str(iso)[:160]
                 try:
+                    if shot.get("hold"):  # hold ring mid-hold (B1): hold the fill half full AFTER the isolate, capture, release
+                        h = res["hold"] = run.need_luau("hold_fill", "Client", timeout=15, name=shot["hold"], on=True)
+                        if not h.get("found"):
+                            res["error"] = "no visible HoldFill on a button named %s" % shot["hold"]
+                        elif not h.get("on_screen") or abs((h.get("fraction") or 0) - 0.5) > 0.1:
+                            res["error"] = "hold ring not ~50%% and on screen (fraction %s, on_screen %s)" % (
+                                h.get("fraction"), h.get("on_screen"))
                     res["frame"] = capture_frame(run, fid, todo=todo, kind="shot",
                                                  open_method=opened and opened["method"])
                 finally:
@@ -1466,8 +1469,22 @@ def step_shots(run):
                     pad_seat = run.need_luau("pad_seat", "Server", timeout=30, path=res["target"]["path"])
                     res["pad_seat"] = pad_seat
                 if shot.get("grow"):  # v29 #11: real growth on the pad 1 slime (Studio hook); WorldView draws it
+                    # no watcher seat clone may stand on the pad: the frame must show the slime WorldView renders
+                    if (res.get("target") or {}).get("path"):
+                        res["seat_cleared"] = run.need_luau("seat_clear", "Server", timeout=15)  # PcwSeat + PcwPad clones
+                        pad_seat = None
                     res["grow"] = run.need_luau("pcw_attr", "Server", timeout=15, name="PcwGrowth", value=int(shot["grow"]))
-                    time.sleep(1.5)  # WorldView reconcile + replication
+                    gw = run.need_luau("growth_wait", "Server", timeout=30, path=(res.get("target") or {}).get("path", ""), wait=12)
+                    res["growth"] = gw
+                    if gw.get("found") and gw.get("pos"):
+                        # aim the camera at the real slime model
+                        eye, at = shot_camera_from({"pos": gw["pos"], "size": [4, 4, 4], "look": (res["target"].get("front") or [0, 0, 1])},
+                                                   shot.get("from", "look"), None, shot.get("dist"), shot.get("height"))
+                        at = (at[0], at[1] + 1.5, at[2])
+                        res["aim"] = run.need_luau("shot_aim", "Client", timeout=25, eye=eye, at=at)
+                        time.sleep(1.0)  # BillboardGui replication to the Client
+                    else:
+                        res["error"] = "pad slime has no Growth attribute / GrowthLabel (%s)" % json.dumps(gw)[:160]
                 if shot.get("habitat") and (res.get("target") or {}).get("path"):
                     # morph proof: the Client sets the pad's Habitat and waits `wait` s (mid-morph < 1, done >= 1.2)
                     res["habitat"] = run.need_luau("habitat_set", "Client", timeout=30, path=res["target"]["path"],
