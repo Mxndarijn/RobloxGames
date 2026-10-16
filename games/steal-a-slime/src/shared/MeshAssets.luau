@@ -21,9 +21,6 @@ local NAMES = {
 	"phoenix_corner_post",
 	"phoenix_gate",
 	"phoenix_pad_crate",
-	"phoenix_pad_hay",
-	"phoenix_pad_goo",
-	"phoenix_pad_stool",
 	"phoenix_top_earners_board",
 	"ranch_plaza_signpost",
 	"ranch_shop_stand",
@@ -37,9 +34,6 @@ local NAMES = {
 	"ranch_shed",
 	"ranch_landing_ring",
 	"ranch_goo_drain",
-	"phoenix_pad_barrel_top",
-	"phoenix_pad_flower_bed",
-	"phoenix_pad_mushroom",
 	"ranch_barn_loft",
 	"ranch_barrel",
 	"ranch_barrel_stack",
@@ -135,12 +129,6 @@ entries["phoenix_gate"] =
 	{ assetId = 92840827180297, meshId = "rbxassetid://95862556594894", size = { 20.2, 13.4, 2.6 } }
 entries["phoenix_pad_crate"] =
 	{ assetId = 122007188029546, meshId = "rbxassetid://78946442257134", size = { 7.8, 2.61, 7.8 } }
-entries["phoenix_pad_hay"] =
-	{ assetId = 140052030266744, meshId = "rbxassetid://113376925245833", size = { 7.957, 2.052, 7.715 } }
-entries["phoenix_pad_goo"] =
-	{ assetId = 108913920722728, meshId = "rbxassetid://85372957549244", size = { 7.834, 2.09, 7.861 } }
-entries["phoenix_pad_stool"] =
-	{ assetId = 75412207782571, meshId = "rbxassetid://91205766247208", size = { 7.019, 3.344, 7.2 } }
 entries["phoenix_top_earners_board"] =
 	{ assetId = 126155085567089, meshId = "rbxassetid://98390738410954", size = { 21.103, 19.934, 4.097 } }
 entries["ranch_plaza_signpost"] =
@@ -161,13 +149,7 @@ entries["ranch_hay_bale"] =
 	{ assetId = 108180914521962, meshId = "rbxassetid://83011141223539", size = { 4, 2.617, 2.56 } }
 entries["ranch_shed"] =
 	{ assetId = 84203174193070, meshId = "rbxassetid://78762155869477", size = { 10.55, 9.33, 8.55 } }
--- 2026-10-16 upload (landing ring, goo drain, ranch/pad props).
-entries["phoenix_pad_barrel_top"] =
-	{ assetId = 82809982076949, meshId = "rbxassetid://83664398449787", size = { 7.6, 2.4, 7.084 } }
-entries["phoenix_pad_flower_bed"] =
-	{ assetId = 77026508844150, meshId = "rbxassetid://118881206271839", size = { 7.788, 2.4, 7.788 } }
-entries["phoenix_pad_mushroom"] =
-	{ assetId = 111001907276189, meshId = "rbxassetid://116498512852323", size = { 7.8, 3, 7.682 } }
+-- 2026-10-16 upload (landing ring, goo drain, ranch props).
 entries["ranch_barn_loft"] =
 	{ assetId = 136936166477639, meshId = "rbxassetid://93201775446947", size = { 13.296, 11.352, 8.637 } }
 entries["ranch_barrel"] =
