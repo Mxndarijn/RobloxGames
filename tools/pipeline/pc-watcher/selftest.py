@@ -113,6 +113,7 @@ def t_watcher():
     ok = {k: {"status": "pass"} for k in watcher.HARD_STEPS}
     check("status pass", watcher.overall_status(dict(ok, two_player={"status": "warn"})) == "pass")
     check("status soft fail ignored", watcher.overall_status(dict(ok, shots={"status": "fail"})) == "pass")
+    check("status slide_walk fail is hard", watcher.overall_status(dict(ok, shots={"status": "fail", "detail": {"slide_walk_failed": True}})) == "fail")
     check("status 2p fail", watcher.overall_status(dict(ok, two_player={"status": "fail"})) == "fail")
     check("status skip hard", watcher.overall_status(dict(ok, esc={"status": "skip"})) == "fail")
     check("status missing hard", watcher.overall_status({"build": {"status": "pass"}}) == "fail")
@@ -271,6 +272,12 @@ def t_files():
     walks = [s for s in shots if s.get("slide_walk")]
     check("a slide_walk shot proves nobody falls through the slide, top to bottom",
           len(walks) == 1 and walks[0].get("target") == "slide" and walks[0].get("todo") == "B6", walks)
+    sw = open(os.path.join(HERE, "luau", "slide_walk.luau"), encoding="utf-8").read()
+    check("slide_walk is dense (joins, k=1.0, launched balls, no self-collision) and counts joint fillers",
+          all(x in sw for x in ("0.98, 1 }", "AssemblyLinearVelocity", "SlideJoint", "escaped(")), None)
+    check("a failing slide_walk fails the run (hard), not just warns",
+          'return "fail", {"captured": done, "total": len(shots), "shots": results, "slide_walk_failed": True}'
+          in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read())
     weathers = {s["weather"]: s for s in shots if s.get("weather")}
     check("weather shots cover Rain, Snow and Starfall with a short wait",
           set(weathers) == {"Rain", "Snow", "Starfall"} and all(0 < float(s.get("wait", 0)) <= 4 for s in weathers.values()), sorted(weathers))
