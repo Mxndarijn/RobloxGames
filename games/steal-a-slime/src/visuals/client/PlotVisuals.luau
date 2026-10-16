@@ -10,10 +10,14 @@
 	    attribute (CONTRACT §8.4, Legendary+) or else Tier, kept in a
 	    local workspace folder "ClientRareFx" and posed on the slime's pivot
 	    every frame; removed when the slime stops being wild or goes away.
+	  * Plot skins (FEATURES.PlotSkins, CONTRACT.md §15): PlotDecor.applySkin from the plot's
+	    PlotSkin attribute (absent = flag off = untouched). Studio only: the SlimeUI attribute
+	    PcwPlotSkin (a skin id) forces Plot_1's skin, for the shots.
 	Reads attributes only; never fires remotes. Local changes only.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -25,7 +29,7 @@ local RareSpawn = require(Visuals:WaitForChild("RareSpawn"))
 local PlotVisuals = {}
 
 PlotVisuals.UPDATE_RATE = 4 -- plot decor refreshes per second
-PlotVisuals.MAX_FX_DISTANCE = 600 -- beams are visible from far away on purpose
+PlotVisuals.MAX_FX_DISTANCE = 150 -- beyond this the fx is unparented, never left behind at a stale spot
 
 type Crown = { part: BasePart, base: CFrame }
 
@@ -43,6 +47,32 @@ local function folder(): Folder
 	return fxFolder :: Folder
 end
 
+-- The skin a plot shows: the Studio-only PcwPlotSkin override on Plot_1, else its PlotSkin attribute.
+local function skinOf(plot: Model): string?
+	if RunService:IsStudio() and plot:GetAttribute(Constants.PLOT_INDEX_ATTRIBUTE) == 1 then
+		local gui = Players.LocalPlayer and Players.LocalPlayer:FindFirstChild("PlayerGui")
+		local ui = gui and gui:FindFirstChild("SlimeUI")
+		local forced = ui and ui:GetAttribute("PcwPlotSkin")
+		if type(forced) == "string" and forced ~= "" then
+			return forced
+		end
+	end
+	local id = plot:GetAttribute(Constants.PLOT_SKIN_ATTRIBUTE)
+	return if type(id) == "string" then id else nil
+end
+
+local function refreshSkin(plot: Model)
+	local id = skinOf(plot)
+	if id == nil then
+		return
+	end
+	local index = plot:GetAttribute(Constants.PLOT_INDEX_ATTRIBUTE)
+	local map = workspace:FindFirstChild("Map")
+	local decor = map and map:FindFirstChild("Decor")
+	local slot = decor and decor:FindFirstChild(`Mailbox_{index}`)
+	PlotDecor.applySkin(plot, id, slot, ReplicatedStorage:FindFirstChild("PlotSkinMeshes"))
+end
+
 local function refreshPlots(now: number)
 	local plots = workspace:FindFirstChild(Constants.PLOTS_FOLDER)
 	if not plots then
@@ -53,6 +83,10 @@ local function refreshPlots(now: number)
 			local ok, err = pcall(PlotDecor.apply, plot, now)
 			if not ok then
 				warn(`[VisualsClient] PlotDecor {plot.Name}: {err}`)
+			end
+			local skinOk, skinErr = pcall(refreshSkin, plot)
+			if not skinOk then
+				warn(`[VisualsClient] PlotSkin {plot.Name}: {skinErr}`)
 			end
 			local decor = plot:FindFirstChild("RebirthDecor")
 			local crown = decor and decor:FindFirstChild("Crown")
@@ -137,6 +171,9 @@ local function stepFx(t: number, cameraPos: Vector3)
 		end
 		local pivot = slime:GetPivot()
 		if (pivot.Position - cameraPos).Magnitude <= PlotVisuals.MAX_FX_DISTANCE then
+			if not model.Parent then
+				model.Parent = folder()
+			end
 			RareSpawn.place(model, pivot, t)
 			if model:GetAttribute("Tier") == 6 then
 				local beam = model:FindFirstChild("Beam")
@@ -144,6 +181,8 @@ local function stepFx(t: number, cameraPos: Vector3)
 					beam.Color = Color3.fromHSV((t * 0.15) % 1, 0.55, 1)
 				end
 			end
+		elseif model.Parent then
+			model.Parent = nil
 		end
 	end
 end

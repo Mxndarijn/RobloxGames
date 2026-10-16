@@ -39,6 +39,7 @@ export type Data = {
 	stats: Stats,
 	goals: { [string]: number }, -- Config.GOALS id -> stages paid
 	dexRewards: number, -- Config.DEX_MILESTONES paid
+	plotSkin: string, -- equipped Config.PLOT_SKINS id (PlotSkins; "classic" = default)
 	-- Redeem codes (Codes, CONTRACT.md §10)
 	redeemed: { [string]: boolean }, -- normalized codes already used
 	boostMult: number, -- active income boost (1 = none)
@@ -70,6 +71,7 @@ function PlayerData.new(): Data
 		stats = { caught = 0, merges = 0, locks = 0, sold = 0 },
 		goals = {},
 		dexRewards = 0,
+		plotSkin = Config.PLOT_SKIN_DEFAULT,
 		redeemed = {},
 		boostMult = 1,
 		boostUntil = 0,

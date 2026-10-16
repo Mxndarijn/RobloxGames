@@ -15,7 +15,7 @@
 	  SlideFloor<i>   the trough floor, its top exactly on the ride line, deep
 	                  enough to meet the skirt under the segment's high end;
 	  SlideWallL<i> / SlideWallR<i>  the side walls, BOT below the floor up
-	                  to the lip plus WALL_EXTRA, 2 studs thick (the trough edge
+	                  up INTO the ceiling slab (no slot), 2 studs thick (the trough edge
 	                  to WALL_OUT past it), outside the slime's lane;
 	  SlideCeiling<i> an invisible guard CEILING above the floor, over the
 	                  walls too: nothing leaves the slide upward;
@@ -51,9 +51,11 @@ SlideColliders.WALL_OUT = 1.4 -- the wall goes this far past the trough edge too
 SlideColliders.MOUTH_SHARE = 0.1 -- last share of the path that flares into the mouth
 SlideColliders.WALK_UNDER = 6 -- trough bottoms lower than this get a skirt (no walking under)
 SlideColliders.MIN_THICK = 4 -- floor slab never thinner than this (a falling player moves ~2 studs a frame)
-SlideColliders.WALL_EXTRA = 4 -- walls stand this far above the kit lip: a bouncing player / ball cannot hop out on a bend
+SlideColliders.WALL_EXTRA = 4 -- (unused by the walls now: they run up to the ceiling) old wall extra above the kit lip
 SlideColliders.CEILING = 9 -- invisible ceiling guard: its underside this far above the floor top (a standing player + jump fits, nothing leaves upward)
 SlideColliders.CEILING_THICK = 2
+SlideColliders.WALL_TO_CEILING = 0.5 -- walls reach this far INTO the ceiling slab: the tube has no slot between wall top and ceiling (B6 round 4)
+SlideColliders.JOINT_MARGIN = 1.5 -- joint walls reach this much further along both segments than the joint floor
 SlideColliders.JOINT_LENGTH = 4 -- joint filler floor: at least this long along the bisector of the two segments it joins
 SlideColliders.OVERLAP = 0.8 -- extra length so neighbouring segments close their joints (0.4 past each join: a pitch change leaves a ledge of at most 0.4 * tan(5 deg))
 SlideColliders.END_EXTRA = 0.175 -- the slide head / mouth end reaches this far past the path
@@ -98,7 +100,6 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 		}
 		local m = flare((i - 0.5) / (n - 1))
 		local half = SlideColliders.HALF_WIDTH * (1 + 0.2 * m)
-		local lip = SlideColliders.LIP * (1 - 0.45 * m)
 		local mid = { (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, (a[3] + b[3]) / 2 }
 		-- Each slab reaches OVERLAP / 2 past a join; the free ends (the slide head, where the
 		-- slime emerges from below, and the mouth) only END_EXTRA.
@@ -124,8 +125,9 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 			forward = f,
 			size = { half * 2, thick, long },
 		})
-		local wallHeight = lip + SlideColliders.FLOOR + SlideColliders.WALL_EXTRA
-		local wallLift = (lip + SlideColliders.WALL_EXTRA - SlideColliders.FLOOR) / 2
+		local wallTop = SlideColliders.CEILING + SlideColliders.WALL_TO_CEILING -- above the floor top: into the ceiling
+		local wallHeight = wallTop + SlideColliders.FLOOR
+		local wallLift = (wallTop - SlideColliders.FLOOR) / 2
 		local wallThick = SlideColliders.WALL + SlideColliders.WALL_OUT
 		local wallOffset = half + (SlideColliders.WALL_OUT - SlideColliders.WALL) / 2
 		for _, side in { { name = "L", sign = -1 }, { name = "R", sign = 1 } } do
@@ -186,7 +188,6 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 		}
 		local m = flare((i - 1) / (n - 1))
 		local half = SlideColliders.HALF_WIDTH * (1 + 0.2 * m)
-		local lip = SlideColliders.LIP * (1 - 0.45 * m)
 		local reach = half * math.sqrt((1 - cosTurn) / (1 + cosTurn)) -- tan(turn / 2) * half
 		local function at(side: number, lift: number): Vec
 			return {
@@ -206,11 +207,13 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 		})
 		-- Walls on BOTH sides (the outer one closes the wedge, the inner one the overlap
 		-- of two thick walls), and the ceiling guard across the join.
-		local wallHeight = lip + SlideColliders.FLOOR + SlideColliders.WALL_EXTRA
-		local wallLift = (lip + SlideColliders.WALL_EXTRA - SlideColliders.FLOOR) / 2
+		local wallTop = SlideColliders.CEILING + SlideColliders.WALL_TO_CEILING -- above the floor top: into the ceiling
+		local wallHeight = wallTop + SlideColliders.FLOOR
+		local wallLift = (wallTop - SlideColliders.FLOOR) / 2
 		local wallThick = SlideColliders.WALL + SlideColliders.WALL_OUT
 		local wallOffset = half + (SlideColliders.WALL_OUT - SlideColliders.WALL) / 2
 		local jointLength = math.max(SlideColliders.JOINT_LENGTH, 2 * reach + 2)
+		local jointWallLength = jointLength + 2 * SlideColliders.JOINT_MARGIN
 		for _, side in { { name = "L", sign = -1 }, { name = "R", sign = 1 } } do
 			table.insert(out, {
 				name = `SlideJointWall{side.name}{i - 1}`,
@@ -218,7 +221,7 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 				segment = i - 1,
 				centre = at(side.sign * wallOffset, wallLift),
 				forward = f,
-				size = { wallThick, wallHeight, jointLength },
+				size = { wallThick, wallHeight, jointWallLength },
 			})
 		end
 		table.insert(out, {
@@ -227,7 +230,7 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 			segment = i - 1,
 			centre = at(0, SlideColliders.CEILING + SlideColliders.CEILING_THICK / 2),
 			forward = f,
-			size = { (half + SlideColliders.WALL_OUT) * 2, SlideColliders.CEILING_THICK, jointLength },
+			size = { (half + SlideColliders.WALL_OUT) * 2, SlideColliders.CEILING_THICK, jointWallLength },
 		})
 	end
 	return out

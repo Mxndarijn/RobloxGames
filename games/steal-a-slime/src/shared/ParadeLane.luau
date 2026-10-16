@@ -65,7 +65,7 @@ ParadeLane.CLEARANCE = math.max(ParadeLane.HALF_WIDTH, ParadeLane.SPREAD / 2 + P
 ParadeLane.LANE_Y = 0.35 -- top of the goo strip (ParadeView); slime pivots stand on it
 ParadeLane.STRIP_THICKNESS = 0.3
 -- Ride + hop on: every ride to ENTRY lands well before this (tests/ParadeLane.spec).
-ParadeLane.HOP_SECONDS = 9
+ParadeLane.HOP_SECONDS = 10
 ParadeLane.DRAIN_SECONDS = 1.5
 ParadeLane.HOP_HEIGHT = 1.2 -- studs at the top of each hop while walking
 ParadeLane.HOP_PERIOD = 0.5 -- seconds per hop (rounded so the walk holds a whole number)
@@ -174,7 +174,7 @@ function ParadeLane.phase(spawnedAt: number, expiresAt: number, now: number): Ph
 	end
 	local p = ParadeLane.progress(spawnedAt, expiresAt, now)
 	local start, stop = ParadeLane.walkWindow(expiresAt - spawnedAt)
-	if p < start then
+	if p < start - 1e-9 then -- float slack: now = spawnedAt + HOP_SECONDS is the first Walk instant
 		return "Ride"
 	elseif p < stop then
 		return "Walk"

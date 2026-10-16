@@ -326,6 +326,45 @@
     "uploadedAt": "2026-10-15T21:29:51Z",
     "versions": 1
   },
+  "plot_skin_candy": {
+    "assetId": "121061336707847",
+    "assetType": "Model",
+    "sha256": "3597bd121f9898d4",
+    "uploadedAt": "2026-10-16T16:15:14Z",
+    "versions": 1,
+    "meshId": "rbxassetid://122784364834934",
+    "meshSize": [
+      5.312,
+      6.651,
+      3.956
+    ]
+  },
+  "plot_skin_crystal": {
+    "assetId": "114982396568572",
+    "assetType": "Model",
+    "sha256": "c0c8ff418d9bc005",
+    "uploadedAt": "2026-10-16T16:15:33Z",
+    "versions": 1,
+    "meshId": "rbxassetid://140403985164021",
+    "meshSize": [
+      4.972,
+      6.636,
+      5.238
+    ]
+  },
+  "plot_skin_mushroom": {
+    "assetId": "136516938638177",
+    "assetType": "Model",
+    "sha256": "57769b96ae6037bf",
+    "uploadedAt": "2026-10-16T16:14:54Z",
+    "versions": 1,
+    "meshId": "rbxassetid://106478306368033",
+    "meshSize": [
+      5.8,
+      6.171,
+      5.4
+    ]
+  },
   "ranch_barn_loft": {
     "assetId": "136936166477639",
     "assetType": "Model",

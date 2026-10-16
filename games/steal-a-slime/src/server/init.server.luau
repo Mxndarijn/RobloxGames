@@ -104,6 +104,14 @@ task.spawn(function()
 	end
 end)
 
+-- FEATURES.PlotSkins: decor templates for the clients (no world slots; no-op while the flag is off).
+task.spawn(function()
+	local ok, err = pcall(MeshSwap.publishSkinTemplates)
+	if not ok then
+		warn(`[Server] MeshSwap.publishSkinTemplates failed: {err}`)
+	end
+end)
+
 -- Archer's Effects (nil without Visuals): bursts are pcall'd and never block gameplay.
 local Effects: any = nil
 do

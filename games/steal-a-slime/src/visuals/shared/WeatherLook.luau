@@ -45,7 +45,7 @@ WeatherLook.NEUTRAL_ATMO = table.freeze({
 -- Emitter names under the camera part. share = this emitter's part of Config.WEATHER_PARTICLE_CAP.
 WeatherLook.EMITTERS = table.freeze({
 	Drops = table.freeze({ rate = 220, lifetime = 1.1, share = 0.5 }),
-	Flakes = table.freeze({ rate = 90, lifetime = 7, share = 0.7 }),
+	Flakes = table.freeze({ rate = 90, lifetime = 8, share = 0.7 }),
 	Stars = table.freeze({ rate = 14, lifetime = 5, share = 0.4 }),
 	Glints = table.freeze({ rate = 30, lifetime = 3, share = 0.3 }),
 }) :: { [string]: Emitter }

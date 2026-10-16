@@ -42,6 +42,7 @@ local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
 local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
+local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Rescue = require(script.Parent.Rescue)
 local Scene = require(script.Parent.Scene)
@@ -602,6 +603,13 @@ function WorldView.updatePlots(world: World.World, now: number)
 			setIfChanged(plot, Constants.PLOT_LOCK_COST_ATTRIBUTE, view.lockCost)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
 			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)
+			if Config.FEATURES.PlotSkins then
+				setIfChanged(
+					plot,
+					Constants.PLOT_SKIN_ATTRIBUTE,
+					if session then PlotSkins.current(session.data) else Config.PLOT_SKIN_DEFAULT
+				)
+			end
 			local dexCount = if session then PlayerData.dexCount(session.data) else 0
 			setIfChanged(plot, Constants.PLOT_DEX_COUNT_ATTRIBUTE, dexCount)
 			setIfChanged(plot, Constants.PLOT_DEX_TOTAL_ATTRIBUTE, Snapshot.DEX_TOTAL)

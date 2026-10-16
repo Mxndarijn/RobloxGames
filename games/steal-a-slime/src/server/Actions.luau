@@ -19,6 +19,7 @@ local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
+local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Remotes = if Shared then require(Shared.Remotes) else require("../shared/Remotes")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
@@ -41,6 +42,7 @@ export type Context = {
 	distanceBetween: (a: number, b: number) -> number,
 	positionOf: (userId: number) -> any?,
 	rng: Rng.Rng?, -- Appraise rolls; nil = seeded from the clock and the player
+	plotSkins: boolean?, -- FEATURES.PlotSkins override (tests); nil = Config.FEATURES.PlotSkins
 }
 
 local Actions = {}
@@ -170,6 +172,23 @@ local function buyUpgrade(world: World, session: Session, id: string): Result
 	return OK
 end
 
+local function equipPlotSkin(world: World, session: Session, id: string, ctx: Context): Result
+	local on = ctx.plotSkins
+	if on == nil then
+		on = Config.FEATURES.PlotSkins
+	end
+	if not on then
+		return fail("plot skins are off")
+	end
+	local ok, reason = PlotSkins.equip(session.data, id)
+	if not ok then
+		return fail(reason or "failed")
+	end
+	local skin = PlotSkins.get(id)
+	World.notify(world, session.userId, `Plot skin: {skin and skin.name or id}`, "good")
+	return OK
+end
+
 local function appraise(world: World, session: Session, id: string, kind: string, now: number, ctx: Context): Result
 	if not Config.FEATURES.Appraise then
 		return fail("appraise is off")
@@ -222,6 +241,8 @@ local function dispatch(
 		return buySpeedCoil(world, session)
 	elseif action == "BuyUpgrade" then
 		return buyUpgrade(world, session, args[1])
+	elseif action == "EquipPlotSkin" then
+		return equipPlotSkin(world, session, args[1], ctx)
 	elseif action == "Appraise" then
 		return appraise(world, session, args[1], args[2], now, ctx)
 	elseif action == "BuyEgg" then

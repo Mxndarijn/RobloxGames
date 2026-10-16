@@ -1399,6 +1399,8 @@ def step_shots(run):
                     res["admin_event"] = run.need_luau("admin_event", "Client", timeout=15, event=shot["admin_event"])
                 if shot.get("weekend"):  # competitor-gaps #17: fake a live x2 Weekend chip (Studio only)
                     res["weekend"] = run.need_luau("weekend", "Client", timeout=15, on=True)
+                if shot.get("plot_skin"):  # gaps #15: fake the plot skin picker (Studio only)
+                    res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
                 if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
                     res["dex_weather"] = run.need_luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=True)
                     time.sleep(0.6)  # State push
@@ -1446,6 +1448,8 @@ def step_shots(run):
                     run.luau("admin_event", "Client", timeout=15, event="")
                 if shot.get("weekend"):
                     run.luau("weekend", "Client", timeout=15, on=False)
+                if shot.get("plot_skin"):
+                    run.luau("plot_skin", "Client", timeout=15, skin="classic")
                 if shot.get("plot_slime"):
                     run.luau("plot_slime", "Client", timeout=15, state="")
                 if shot.get("dex_weather"):
@@ -1485,6 +1489,8 @@ def step_shots(run):
                     # optional uploaded-animation check: a rigged slime must sit on the pad (PcwPad clone)
                     pad_seat = run.need_luau("pad_seat", "Server", timeout=30, path=res["target"]["path"])
                     res["pad_seat"] = pad_seat
+                if shot.get("plot_skin"):  # gaps #15: Plot_1 wears the skin (floor, fence tint, decor mesh), Studio only
+                    res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
                 if shot.get("grow"):  # v29 #11: real growth on the pad 1 slime (Studio hook); WorldView draws it
                     # no watcher seat clone may stand on the pad: the frame must show the slime WorldView renders
                     if (res.get("target") or {}).get("path"):
@@ -1520,7 +1526,8 @@ def step_shots(run):
                 if shot.get("weather"):
                     # weather proof: the Client forces WeatherDebug (client-only attribute) and waits `wait` s for the tween in
                     res["weather"] = run.need_luau("weather_set", "Client", timeout=30, weather=shot["weather"],
-                                                   wait=float(shot.get("wait", 2.5)))
+                                                   wait=float(shot.get("wait", 2.5)),
+                                                   cover=float(shot.get("snow_cover", -1)))
                     if not res["weather"].get("ok"):
                         run.note("shot %s: no weather emitter active (%s)" % (sid, res["weather"].get("rates")))
                 if shot.get("motion") and (res.get("target") or {}).get("path"):
@@ -1540,6 +1547,12 @@ def step_shots(run):
                     if not res["slide_walk"].get("ok"):
                         run.note("shot %s: fell through the slide: %s" % (
                             sid, str(res["slide_walk"].get("violations") or res["slide_walk"].get("error"))[:200]))
+                if shot.get("ring_slimes"):
+                    # v30 C3: no wild slime inside the plaza's landing ring over a few seconds (soft: a note)
+                    res["ring_slimes"] = run.need_luau("ring_slimes", "Server", timeout=30)
+                    if not res["ring_slimes"].get("ok"):
+                        run.note("shot %s: wild slime inside the landing ring: %s" % (
+                            sid, str(res["ring_slimes"].get("violations") or res["ring_slimes"].get("error"))[:200]))
                 if shot.get("mesh_slots_max"):
                     # perf proof (HARD): the same Server count as step_perf, asserted at the shot's own limit
                     ms = res["mesh_slots"] = run.need_luau("perf_server", "Server", timeout=30)
@@ -1557,6 +1570,11 @@ def step_shots(run):
                     # optional uploaded-animation proof: the Client plays it on the pad slime's Animator, waits `wait` s
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
                                                 anim=shot["anim"], id=shot["animId"], wait=float(shot.get("wait", 0.5)))
+                if shot.get("fx_streaks"):
+                    # v30 C11 night proof: no Beam / Trail / Neon part longer than `fx_streaks` studs anywhere in the workspace
+                    res["fx_streaks"] = run.need_luau("fx_streaks", "Client", timeout=30, max=float(shot["fx_streaks"]))
+                    if not res["fx_streaks"].get("ok"):
+                        run.note("shot %s: streak longer than %s studs: %s" % (sid, shot["fx_streaks"], json.dumps(res["fx_streaks"].get("bad"))[:200]))
                 if shot.get("clock") is not None:
                     # daytime shot: the Server's DayNight cycle rewrites ClockTime, so pin it (Studio hook), restore after
                     res["clock"] = run.need_luau("pcw_clock", "Server", timeout=15, time=float(shot["clock"]))
@@ -1566,6 +1584,8 @@ def step_shots(run):
                 finally:
                     if shot.get("clock") is not None:
                         run.luau("pcw_clock", "Server", timeout=15, time=False)
+                if shot.get("plot_skin"):
+                    run.luau("plot_skin", "Client", timeout=15, skin="classic")
         except Exception as e:
             res["error"] = repr(e)[:200]
             if not res.get("frame"):
@@ -1578,7 +1598,12 @@ def step_shots(run):
         converge_viewport(run, run.hwnd, tuple(run.cfg["devices"][0][1:]))  # back to the first (desktop) size
     if any(shot.get("weather") for shot in shots):
         try:
-            run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1)  # drop the WeatherDebug preview
+            run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1, cover=-1)  # drop the WeatherDebug preview
+        except Exception:
+            pass
+    if any(shot.get("plot_skin") for shot in shots):
+        try:
+            run.luau("plot_skin", "Client", timeout=15, skin="")  # drop the PcwPlotSkin override (shots set "classic" first)
         except Exception:
             pass
     if any(r.get("seat") for r in results):

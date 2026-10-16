@@ -27,6 +27,7 @@ export type Row = {
 	image: string?, -- rbxassetid://..., nil = placeholder swatch
 	color: { number }, -- swatch / silhouette fill (RGB 0..255)
 	mutation: string?, -- save id of a discovered row ("None", "Lava", ...); nil when locked
+	skin: { id: string, unlocked: boolean, equipped: boolean }?, -- plot skin card (FEATURES.PlotSkins), not a slime row
 }
 
 local SlimeDex = {}
@@ -149,6 +150,41 @@ function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: st
 				detail = `{left} more to discover`,
 				image = nil,
 				color = SlimeDex.SILHOUETTE,
+			})
+		end
+	end
+	return out
+end
+
+-- Plot skin cards (FEATURES.PlotSkins, CONTRACT.md §15) shown above the slime rows: one per
+-- State.plotSkins entry, locked / unlocked with the SlimeDex set progress. Empty without the field.
+function SlimeDex.skinRows(plotSkins: any, config: any): { Row }
+	local out: { Row } = {}
+	if type(plotSkins) ~= "table" then
+		return out
+	end
+	local floors: { [string]: { number } } = {}
+	for _, def in config.PLOT_SKINS or {} do
+		floors[def.id] = if def.floor then def.floor.color else { 214, 176, 124 } -- classic: ranch_plaza
+	end
+	for _, skin in plotSkins :: { any } do
+		if type(skin) == "table" and type(skin.id) == "string" then
+			local set = if skin.setName then `{skin.setName} set` else "Default look"
+			local unlocked, equipped = skin.unlocked == true, skin.equipped == true
+			local detail = if equipped
+				then `Equipped · {set}`
+				elseif unlocked then `Unlocked · {set}`
+				else `{set}: {skin.owned}/{skin.needed} to unlock`
+			table.insert(out, {
+				key = `skin:{skin.id}`,
+				tier = skin.tier or 0,
+				locked = not unlocked,
+				title = `Plot skin · {skin.name}`,
+				detail = detail,
+				image = nil,
+				color = floors[skin.id] or SlimeDex.SILHOUETTE,
+				mutation = nil,
+				skin = { id = skin.id, unlocked = unlocked, equipped = equipped },
 			})
 		end
 	end
