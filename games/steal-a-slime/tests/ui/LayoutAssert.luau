@@ -40,10 +40,11 @@ local GuidePanel = { TIP_H = 44 }
 local RebirthPanel = {
 	ROWS = {
 		need = { y = 0, h = 112 },
-		gives = { y = 120, h = 40 },
-		keeper = { y = 166, h = 22 },
-		button = { y = 196, h = Layout.BUTTON },
-		note = { y = 258, h = 18 },
+		slime = { y = 120, h = 72 },
+		gives = { y = 200, h = 40 },
+		keeper = { y = 246, h = 22 },
+		button = { y = 276, h = Layout.BUTTON },
+		note = { y = 338, h = 18 },
 	},
 }
 local ShopPanel = { BADGE = 48, BUY_W = 110, DESC_H = 32 }

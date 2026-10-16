@@ -109,6 +109,7 @@ export type State = {
 	rebirthMultiplier: number,
 	rebirthCost: number,
 	canRebirth: boolean,
+	rebirthSlime: { id: string, name: string, tier: number, color: { number }, owned: boolean }?, -- v29: species the next rebirth also needs (nil at max)
 	padsUnlocked: number,
 	padsMax: number,
 	nextPadCost: number?, -- nil when every pad is unlocked

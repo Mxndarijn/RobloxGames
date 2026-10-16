@@ -4,6 +4,8 @@
   {"id": "02-dex-menu", "todo": "2", "kind": "ui", "open": "dex", "note": "TODO 2: SlimeDex images"},
   {"id": "03-shop-menu", "todo": "3", "kind": "ui", "open": "shop", "note": "TODO 3: one shop menu"},
   {"id": "04-rebirth-menu", "todo": "4", "kind": "ui", "open": "rebirth", "note": "TODO 4: rebirth shows next upgrade only"},
+  {"id": "04-rebirth-slime-missing", "todo": "29", "kind": "ui", "open": "rebirth", "rebirth_slime": "missing", "note": "v29 #5: rebirth menu, required slime MISSING (greyed silhouette, 'Missing', button disabled 'Need <slime>')"},
+  {"id": "04-rebirth-slime-owned", "todo": "29", "kind": "ui", "open": "rebirth", "rebirth_slime": "owned", "note": "v29 #5: rebirth menu, required slime OWNED (slime render + green check 'Owned')"},
   {"id": "05-guide-npc", "todo": "5", "kind": "world", "target": "TutorialNpc", "note": "TODO 5: guide NPC"},
   {"id": "06-fountain-centre", "todo": "6", "kind": "world", "target": "FountainMesh", "note": "TODO 6/13: fountain in exact middle"},
   {"id": "06-map-top", "todo": "6", "kind": "world", "pos": [0, 260, 1], "look": [0, 0, 0], "note": "TODO 6/8/9: top-down overview (fountain at centre, stray boxes)"},

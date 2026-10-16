@@ -505,6 +505,16 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
   Stats: `caught` (wild slimes deposited), `merges`, `locks` (locks bought), `sold`, `stolen` (= `totalStolen`), `earned` (= `totalEarned`), `rebirths`, `pads` (= `padsUnlocked`).
 - **Slimedex rewards** (`Config.DEX_MILESTONES`, `src/shared/Collection.luau`): at 10 / 25 / 50 / 100 / 200 / 400 / 720 discovered: cash 500 / 2.5K / 10K / 50K / 250K / 1.5M / 10M (x rebirthMultiplier) and a permanent income bonus +2 / +3 / +5 / +5 / +10 / +15 / +25 %.
 
+### 8.8a Rebirth needs a slime (v29)
+
+Rebirth number N also needs one owned slime (`data.slimes`, i.e. on a pad) of the
+`Config.REBIRTH_SLIMES[N]` species (a SlimeRoster id; a level without an entry uses the
+last entry below it). The cash cost stays. `Progression.canRebirth` rejects with
+`need a <Species Name>` when it is missing. The slime is **not consumed**: the normal
+rebirth wipe and keeper rule apply, so it only survives as a keeper. State gains
+`rebirthSlime: { id, name, tier, color, owned }?` (nil at `MAX_REBIRTHS`); `canRebirth`
+already includes the slime check.
+
 ### 8.9 DataStore schema v3 (`Config.SAVE_VERSION = 3`)
 
 Same store and key. v3 = v2 plus:

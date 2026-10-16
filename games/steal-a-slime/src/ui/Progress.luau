@@ -84,6 +84,7 @@ function Progress.rebirthStatus(state: any, maxRebirths: number): RebirthStatus
 	}
 end
 
+export type SlimeNeed = { id: string, name: string, tier: number, color: { number }, owned: boolean }
 export type NextRebirth = {
 	maxed: boolean,
 	ready: boolean,
@@ -95,6 +96,8 @@ export type NextRebirth = {
 	progress: string, -- "$1.2K / $5K"
 	multiplier: number, -- income multiplier after it
 	lockGain: number, -- extra lock seconds it adds
+	slime: SlimeNeed?, -- v29: the species this rebirth also needs (nil at max / from an older server)
+	slimeMissing: boolean, -- slime required and not owned
 }
 
 -- v28 Rebirth panel: only what the NEXT rebirth needs (its cash cost and
@@ -105,6 +108,17 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 	local have = num(state.cash)
 	local maxed = r >= cfg.MAX_REBIRTHS
 	local ready = not maxed and state.canRebirth == true
+	local raw = state.rebirthSlime
+	local slime: SlimeNeed? = nil
+	if not maxed and type(raw) == "table" and type(raw.name) == "string" then
+		slime = {
+			id = tostring(raw.id),
+			name = raw.name,
+			tier = num(raw.tier),
+			color = if type(raw.color) == "table" then raw.color else { 170, 220, 170 },
+			owned = raw.owned == true,
+		}
+	end
 	local fraction = if maxed or ready then 1 elseif cost > 0 then math.clamp(have / cost, 0, 1) else 1
 	return {
 		maxed = maxed,
@@ -120,6 +134,8 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 		progress = `{Format.formatCash(have)} / {Format.formatCash(cost)}`,
 		multiplier = num(state.rebirthMultiplier) + cfg.REBIRTH_MULTIPLIER_STEP,
 		lockGain = cfg.LOCK_SECONDS_PER_REBIRTH,
+		slime = slime,
+		slimeMissing = slime ~= nil and not slime.owned,
 	}
 end
 
