@@ -153,6 +153,21 @@ def to_jpeg(src_png, dst_jpg, quality=80):
     return True
 
 
+def jpeg_stats(data):
+    """frame_stats of JPEG bytes (Pillow) plus w/h, or None without Pillow / on undecodable data."""
+    if Image is None:
+        return None
+    import io
+    try:
+        with Image.open(io.BytesIO(data)) as im:
+            rgb = im.convert("RGB")
+            st = frame_stats(rgb.width, rgb.height, rgb.tobytes())
+            st.update(w=rgb.width, h=rgb.height)
+            return st
+    except Exception:
+        return None
+
+
 def crop_rgb(width, height, rgb, x, y, w, h):
     """Packed RGB rows -> (w, h, rgb) of the rect clamped to the image."""
     x0, y0 = max(0, int(x)), max(0, int(y))

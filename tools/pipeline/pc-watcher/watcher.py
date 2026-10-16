@@ -6,14 +6,14 @@
   watcher.py step build|launch|perf|play|devices|twoplayer|close|sync [--sha SHA]
   watcher.py tools                      dump StudioMCP tool schemas (needs a running Studio for most calls)
   watcher.py mcp TOOL [JSON_ARGS]       one raw tools/call ("$studio" in args = the watcher's studio id)
-  watcher.py capture [--out f.png]      capture the watcher's Studio window client area
+  watcher.py capture [--out f.jpg]      StudioMCP screen_capture of the watcher's Studio (the game viewport)
   watcher.py selftest                   pure checks, any OS
 Global flags: --home DIR (default C:\\gate\\pc-watcher or $PCW_HOME), --dry-run, -v.
 
-Studio is driven only through StudioMCP.exe (stdio JSON-RPC) plus Win32 for window size and
-capture. It runs in the background: Studio starts minimized-not-active, lives off-screen, is
-captured with PrintWindow and never gets focus or real mouse/keyboard input (README "Runs in the
-background"). See README.md for the flow, report format and limits.
+Studio is driven only through StudioMCP.exe (stdio JSON-RPC) plus Win32 for window size. It runs in
+the background on its own Win32 desktop ("pcw-studio"), so it cannot take focus on the user's desktop;
+frames come from StudioMCP screen_capture and nothing sends real mouse/keyboard input (README "Runs in
+the background"). See README.md for the flow, report format and limits.
 """
 
 import argparse
@@ -61,7 +61,6 @@ DEFAULTS = {
     "phone_min_slimes": 16,  # SlimeLife.MAX_ACTIVE: animating slimes wanted near the camera
     # kind (mouse_down, mouse_up, key_down, key_up) -> action template, "$x" / "$y" / "$key" filled in.
     # Empty = built from the tool's inputSchema (see mcp_client.build_action).
-    "input_overrides": {},
     "reports_branch": "studio-reports",
     "push_retries": 3,
     "jpeg_quality": 80,
@@ -131,12 +130,6 @@ def next_client_guess(target, samples):
                 break
         guess.append(int(round(c + (t - v) * slope)))
     return tuple(guess)
-
-
-def cursor_delta(before, after):
-    """(dx, dy, distance in px) between two GetCursorPos points."""
-    dx, dy = after[0] - before[0], after[1] - before[1]
-    return dx, dy, math.hypot(dx, dy)
 
 
 def menu_record(m, frame=None, error=None):
@@ -416,10 +409,12 @@ class Run:
         self.rbxl = os.path.join(paths.builds, "%s.rbxl" % sha) if sha else None
         self.outdir = os.path.join(paths.out, "dry-run" if dry else "", sha) if sha else None
         self.playing = False
+        self.hdesk = None  # CreateDesktopW handle of the Studio desktop (closed in close())
+        self.worker = None  # win32.DesktopWorker: window calls run on its desktop thread
+        self.frame_seq = 0
         self.our_pids = set()  # every Studio pid this run started (focus guard)
         self.fg_start = None  # (hwnd, pid) of the foreground window when the run began
         self.focus_stolen = []  # "FOCUS STOLEN at step X"
-        self.input_ok = True  # MCP input allowed (off once a call moved the OS cursor)
         if self.outdir:
             os.makedirs(self.outdir, exist_ok=True)
 
@@ -457,38 +452,6 @@ class Run:
             self.focus_stolen.append(msg)
             self.note("%s (foreground hwnd %s, Studio pid %s)" % (msg, hwnd, pid))
         return True
-
-    def _mcp_input(self, what, fn):
-        """One StudioMCP input call with the OS-cursor guard.
-
-        user_mouse_input / user_keyboard_input inject into the engine, not via OS SendInput. The
-        cursor position is read before and after; if it moved, MCP input is off for the rest of
-        the run and callers fall back to setting panels Visible.
-        """
-        if not self.input_ok:
-            return False, {"error": "mcp input disabled: mcp input moved OS cursor"}
-        before = _cursor()
-        ok, info = fn()
-        after = _cursor()
-        if before is not None and after is not None and before != after:
-            self.input_ok = False
-            dx, dy, dist = cursor_delta(before, after)
-            info["os_cursor_moved"] = [list(before), list(after)]
-            info["os_cursor_delta_px"] = [dx, dy, round(dist, 1)]
-            self.extra.setdefault("cursor_events", []).append(
-                {"call": what, "before": list(before), "after": list(after), "delta": [dx, dy], "dist_px": round(dist, 1)})
-            self.note("mcp input moved OS cursor (%s: %s -> %s, delta %+d,%+d = %.0f px; a small delta can be the "
-                      "user moving the mouse); MCP input disabled for the rest of the run, panels set Visible "
-                      "instead" % (what, before, after, dx, dy, dist))
-        return ok, info
-
-    def click(self, x, y):
-        return self._mcp_input("click %d,%d" % (round(x), round(y)),
-                               lambda: self.session().click(self.studio_id, x, y, self.cfg["input_overrides"]))
-
-    def key(self, key):
-        return self._mcp_input("key " + key,
-                               lambda: self.session().key(self.studio_id, key, self.cfg["input_overrides"]))
 
     def add_frame(self, fid, file=None, status="captured", **extra):
         """One report.frames entry: {id, file, status: captured|missing|blank, todo, ...}."""
@@ -579,19 +542,27 @@ class Run:
             self.playing = bool(cur.get("playing"))
         return cur
 
+    def desktop(self):
+        """The Studio desktop's worker thread (creates the desktop on first use)."""
+        if self.worker is None:
+            self.hdesk = win32.create_desktop()
+            self.worker = win32.DesktopWorker()
+        return self.worker
+
+    def on_desktop(self, fn, *args):
+        """Runs a window call (win32.client_size, set_client_size, ...) on the desktop thread."""
+        return self.desktop().call(fn, *args)
+
     def close(self):
         if self.mcp:
             self.mcp.close()
             self.mcp = None
-
-
-def _cursor():
-    if os.name != "nt":
-        return None
-    try:
-        return win32.cursor_pos()
-    except Exception:
-        return None
+        if self.worker:
+            self.worker.close()
+            self.worker = None
+        if self.hdesk:
+            win32.close_desktop(self.hdesk)
+            self.hdesk = None
 
 
 def tracked_pids(paths):
@@ -699,7 +670,8 @@ def step_launch(run):
     if not os.path.isfile(run.rbxl):
         raise StepFail("build missing: %s" % run.rbxl)
     kill_strays(run)
-    proc = win32.launch_background([exe, run.rbxl], cwd=run.studio_dir)  # SW_SHOWMINNOACTIVE
+    run.desktop()
+    proc = win32.launch_on_desktop([exe, run.rbxl], cwd=run.studio_dir)  # CreateProcessW, lpDesktop pcw-studio
     ours = {proc.pid}
     run.our_pids |= ours
 
@@ -708,7 +680,7 @@ def step_launch(run):
         return win32.descendants(win32.process_table(), pids) & (set(win32.list_pids()) | pids)
 
     save_pids(run.paths, ours)
-    log.info("launched Studio pid %s (minimized, not activated): %s", proc.pid, run.rbxl)
+    log.info("launched Studio pid %s on desktop %s: %s", proc.pid, win32.DESKTOP_NAME, run.rbxl)
     mcp = run.session()
     deadline = time.time() + run.cfg["launch_timeout_s"]
     found, last = None, None
@@ -716,7 +688,7 @@ def step_launch(run):
         ours = grow(ours)
         run.our_pids |= ours
         save_pids(run.paths, ours)
-        park_window(run, ours)
+        find_window(run, ours)
         found, studios, raw = find_our_studio(run, mcp)
         last = raw.brief(400)
         if found:
@@ -732,7 +704,7 @@ def step_launch(run):
     for _ in range(20):
         ours = grow(ours)
         run.our_pids |= ours
-        win = park_window(run, ours)
+        win = find_window(run, ours)
         if win:
             break
         time.sleep(1)
@@ -760,21 +732,18 @@ def step_launch(run):
     return "pass", detail
 
 
-def park_window(run, pids):
-    """Finds the Studio main window of `pids` (iconic ones too) and moves it off-screen, un-minimized,
-    without activating it (win32.place_offscreen). Returns the window row or None."""
+def find_window(run, pids):
+    """The largest top-level window of `pids` on the Studio desktop (EnumDesktopWindows on the worker
+    thread), or None. No move, no activation."""
     try:
-        win = win32.studio_main_window(pids)
+        win = run.desktop().main_window(pids)
         if not win:
             return None
         for p in pids:
             win32.disable_power_throttling(p)
-        if win["iconic"] or not win32.is_offscreen(win["hwnd"]):
-            rect = win32.place_offscreen(win["hwnd"])
-            log.info("parked Studio window %s (%r) off-screen at %s", win["hwnd"], win["title"], rect)
         return win
     except Exception as e:
-        log.warning("park window: %r", e)
+        log.warning("find window: %r", e)
         return None
 
 
@@ -922,50 +891,6 @@ def ui_probe(run):
     return run.need_luau("ui_probe", "Client", timeout=30)
 
 
-def click_points(t):
-    """Click centres to try for a ui_probe target: with the GuiInset, then without it if that differs."""
-    pts = [("inset", t["cx"], t["cy"])]
-    if t.get("rx") is not None and (round(t["rx"]), round(t["ry"])) != (round(t["cx"]), round(t["cy"])):
-        pts.append(("no_inset", t["rx"], t["ry"]))
-    return pts
-
-
-def click_target(run, probe, path, check=None):
-    """MCP user_mouse_input click on a ui_probe target. Returns (ok, info, probe_after).
-
-    Clicks the centre with the GuiInset added; when `check(probe_after)` is False it retries at the
-    centre without the GuiInset (StudioMCP may count y from below the top bar). Every attempt's
-    coordinates, actions and MCP results are logged and kept in info["attempts"].
-    """
-    t = (probe.get("targets") or {}).get(path) or {}
-    if not t.get("found") or not t.get("shown"):
-        return False, {"error": "%s not on screen (%s)" % (path, t)}, probe
-    if not run.input_ok:
-        return False, {"error": "mcp input disabled: mcp input moved OS cursor"}, probe
-    attempts, ok, after = [], False, probe
-    for mode, x, y in click_points(t)[:2 if check else 1]:
-        if not run.input_ok:
-            break
-        ok, info = run.click(x, y)
-        time.sleep(0.7)
-        after = ui_probe(run)
-        info.update(at=[round(x), round(y)], inset=mode, ok=ok)
-        if check:
-            info["effect"] = bool(check(after))
-        log.info("click %s at %s (%s): ok=%s effect=%s results=%s", path, info["at"], mode, ok,
-                 info.get("effect"), info.get("results"))
-        attempts.append(info)
-        if not check or info["effect"]:
-            break
-    if not attempts:
-        return False, {"error": "mcp input disabled: mcp input moved OS cursor"}, after
-    last = attempts[-1]
-    out = {"at": last["at"], "inset": last["inset"], "attempts": attempts}
-    if check:
-        out["effect"] = last["effect"]
-    return ok, out, after
-
-
 def step_onboarding(run):
     if run.dry:
         return "skip", {"dry_run": True}
@@ -974,27 +899,23 @@ def step_onboarding(run):
               "title": before.get("tutorial_title"), "card_visible": before.get("tutorial_visible")}
     if not before.get("tutorial_visible"):
         return "fail", dict(detail, error="tutorial card not shown for a fresh profile")
-    ok, info, after = click_target(run, before, "TutorialOverlay.Hide", lambda q: not q.get("tutorial_visible"))
-    detail["hide_click"] = info
-    detail["card_visible_after_hide"] = after.get("tutorial_visible")
-    if after.get("tutorial_visible") and not run.input_ok:
-        hidden = set_visible(run, "TutorialOverlay", False)
-        detail.update(hide_method="visible_fallback", card_visible_after_hide=not hidden)
-        if hidden:
-            return "warn", dict(detail, why="mcp input moved OS cursor: card hidden with Visible=false, Hide not clicked")
-    if after.get("tutorial_visible"):
-        return "fail", dict(detail, error="clicking Hide did not hide the tutorial card")
+    # No MCP mouse input (it moves the real OS cursor): hide through the in-engine hook / Visible.
+    hidden, via = set_visible(run, "TutorialOverlay", False)
+    detail.update(hide_method=via, card_visible_after_hide=not hidden)
+    if not hidden:
+        return "fail", dict(detail, error="could not hide the tutorial card in-engine")
     return "pass", detail
 
 
 def set_visible(run, name, show):
-    """luau/panel_visible on SlimeUI.<name>; True when it ends in the wanted state."""
-    run.luau("panel_visible", "Client", timeout=15, panel=name, show=show)
+    """luau/panel_visible on SlimeUI.<name>. Returns (ends in the wanted state, method)."""
+    ok, d = run.luau("panel_visible", "Client", timeout=15, panel=name, show=show)
     time.sleep(0.4)
     p = ui_probe(run)
+    via = d.get("via", "visible_fallback") if ok and isinstance(d, dict) else "error: %s" % str(d)[:120]
     if name == "TutorialOverlay":
-        return bool(p.get("tutorial_visible")) == show
-    return (name in (p.get("open_panels") or [])) == show
+        return bool(p.get("tutorial_visible")) == show, via
+    return (name in (p.get("open_panels") or [])) == show, via
 
 
 def step_shop(run):
@@ -1003,28 +924,33 @@ def step_shop(run):
     p = ui_probe(run)
     detail = {"open_before": p.get("shop_open"), "inset": p.get("inset"), "viewport": p.get("viewport")}
     if p.get("shop_open"):
-        return "fail", dict(detail, error="shop already open before any click")
-    # VirtualInputManager is not tried: the first PC run (c39fc38) got "cannot call
-    # 'SendMouseButtonEvent' (lacking capability RobloxScript)" from execute_luau, same for SendKeyEvent.
-    methods = {"virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau"}
-    # StudioMCP user_mouse_input on the HUD Shop button, then the nav Shop button.
-    for path in ("Hud.Shop", "Nav.Shop"):
-        if p.get("shop_open"):
-            break
-        ok, info, p = click_target(run, p, path, lambda q: q.get("shop_open"))
-        methods["mcp_mouse:" + path] = dict(info, result=("works (%s)" % info["inset"] if p.get("shop_open")
-                                                         else "no effect") if ok else "click failed")
+        return "fail", dict(detail, error="shop already open before opening it")
+    # No input injection at all: VirtualInputManager is not allowed in execute_luau (lacking capability
+    # RobloxScript) and StudioMCP user_mouse_input moves the real OS cursor.
+    opened, via = set_visible(run, "ShopPanel", True)
+    methods = {"open": via, "virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau",
+               "mcp_mouse": "never used: moves the OS cursor"}
     run.extra["input_methods"] = methods
-    detail.update(methods=methods, open_after=p.get("shop_open"), open_panels=p.get("open_panels"))
-    if not p.get("shop_open") and not run.input_ok:
-        opened = set_visible(run, "ShopPanel", True)
-        methods["visible_fallback"] = "opened" if opened else "no effect"
-        detail["open_after"] = opened
-        if opened:
-            return "warn", dict(detail, why="mcp input moved OS cursor: shop opened with Visible=true, not a click")
+    p = ui_probe(run)
+    detail.update(methods=methods, open_method=via, open_after=p.get("shop_open"), open_panels=p.get("open_panels"))
     if not p.get("shop_open"):
-        return "fail", dict(detail, error="no click opened the shop")
+        return "fail", dict(detail, error="PcwOpen hook / Visible did not open the shop")
+    if via != "pcw_open_hook":
+        return "warn", dict(detail, why="shop opened with Visible=true, not the PcwOpen hook (menu state not open)")
     return "pass", detail
+
+
+def cas_close(run):
+    """Esc without input: the Studio-only SlimeUI PcwPress='Escape' hook runs the game's CloseMenu action
+    handler (the one the CAS binding uses). Tests the close logic, not real key routing."""
+    ok, d = run.luau("cas_close", "Client", timeout=15)
+    time.sleep(0.8)
+    info = {"method": "pcw_press_hook"}
+    if ok and isinstance(d, dict):
+        info.update(called=d.get("called"), error=d.get("error"), bound=d.get("bound"), result=d.get("result"))
+    else:
+        info.update(called=False, error=str(d)[:200])
+    return bool(info["called"]), info
 
 
 def step_esc(run):
@@ -1034,57 +960,31 @@ def step_esc(run):
     if not p.get("shop_open"):
         return "skip", {"reason": "shop not open"}
     methods = run.extra.setdefault("input_methods", {})
-    if not run.input_ok:
-        closed = set_visible(run, "ShopPanel", False)
-        methods["mcp_keyboard:Escape"] = "not pressed: mcp input disabled (moved OS cursor)"
-        return ("warn" if closed else "fail"), {
-            "key": None, "open_after": not closed, "why": "mcp input moved OS cursor: Escape not tested, "
-                                                          "shop closed with Visible=false"}
-    # StudioMCP user_keyboard_input goes into the engine, not OS SendInput (cursor guard in run.key).
-    ok, info = run.key("Escape")
-    time.sleep(0.8)
+    called, info = cas_close(run)
     after = ui_probe(run)
-    detail = {"key": info, "open_after": after.get("shop_open"), "open_panels": after.get("open_panels")}
-    methods["mcp_keyboard:Escape"] = ("works" if not after.get("shop_open") else "no effect") if ok else info
-    if after.get("shop_open") and not run.input_ok:
-        set_visible(run, "ShopPanel", False)
-        return "warn", dict(detail, why="mcp input moved OS cursor during Escape; shop closed with Visible=false")
+    detail = {"key": info, "method": "pcw_press_hook", "tests": "close logic, not real key routing",
+              "open_after": after.get("shop_open"),
+              "open_panels": after.get("open_panels")}
+    methods["esc"] = "pcw_press_hook (close logic, not real key routing): " + ("closed" if called and not after.get("shop_open") else
+                                              ("no effect" if called else "hook failed: %s" % info.get("error")))
+    if not called:
+        close_panel(run, "ShopPanel")  # tidy up for the next steps
+        return "fail", dict(detail, error="PcwPress hook failed: %s" % info.get("error"))
     if after.get("shop_open"):
-        click_target(run, after, "ShopPanel.Close", lambda q: not q.get("shop_open"))  # tidy up for the next steps
-        return "fail", dict(detail, error="Escape did not close the shop")
+        close_panel(run, "ShopPanel")
+        return "fail", dict(detail, error="CloseMenu action (PcwPress hook) did not close the shop")
     return "pass", detail
-
-
-def tutorial_advance(run):
-    """Soft: grab a wild slime with a real E press and see the tutorial step move on."""
-    try:
-        before = ui_probe(run).get("step_id")
-        ok, d = run.luau("grab_attempt", "Client", timeout=20)
-        if not ok or not d.get("moved"):
-            return {"ran": False, "why": str(d)[:200]}
-        time.sleep(1.0)
-        if not run.input_ok:
-            return {"ran": False, "why": "mcp input disabled (moved OS cursor)"}
-        run.key("E")
-        time.sleep(2.0)
-        after = ui_probe(run)
-        res = {"ran": True, "slime": d.get("name"), "price": d.get("price"), "step_before": before,
-               "step_after": after.get("step_id"), "carrying": after.get("carrying")}
-        res["advanced"] = before != after.get("step_id")
-        return res
-    except Exception as e:
-        return {"ran": False, "why": repr(e)[:200]}
 
 
 def converge_viewport(run, hwnd, target):
     """Resizes the Studio window until the play viewport is `target` (or as close as Studio allows)."""
     samples, best = [], None
-    client = win32.client_size(hwnd)
+    client = run.on_desktop(win32.client_size, hwnd)
     vp = _viewport(run)
     samples.append((client, vp))
     guess = (target[0] + client[0] - vp[0], target[1] + client[1] - vp[1])
     for _ in range(run.cfg["device_iterations"]):
-        reached = win32.set_client_size(hwnd, guess[0], guess[1])
+        reached = run.on_desktop(win32.set_client_size, hwnd, guess[0], guess[1])
         time.sleep(1.2)
         vp = _viewport(run)
         samples.append((reached, vp))
@@ -1098,7 +998,7 @@ def converge_viewport(run, hwnd, target):
             break  # Studio / Windows clamps the window: closest reachable
         guess = nxt
     if best and best[2] != vp:
-        win32.set_client_size(hwnd, best[1][0], best[1][1])
+        run.on_desktop(win32.set_client_size, hwnd, best[1][0], best[1][1])
         time.sleep(1.2)
         vp = _viewport(run)
     return vp, [list(s[0]) + list(s[1]) for s in samples]
@@ -1110,89 +1010,45 @@ def _viewport(run):
     return int(round(v[0])), int(round(v[1]))
 
 
-PROBE_RGB = (255, 0, 255)  # luau/viewport_probe.luau
-
-
-def viewport_rect(run, hwnd):
-    """(x, y, w, h) of the game viewport inside the Studio client area, or None.
-
-    Shows a full-screen magenta ScreenGui (luau/viewport_probe), captures the window and takes the
-    magenta bounding box. Cached per client-area size (devices resizes the window).
-    """
-    client = list(win32.client_size(hwnd))
-    cached = run.extra.get("viewport_rect")
-    if cached and cached.get("client") == client:
-        return cached.get("rect")
-    res = {"client": client, "rect": None}
-    try:
-        ok, d = run.luau("viewport_probe", "Client", timeout=20, show=True)
-        if not ok:
-            res["error"] = str(d)[:200]
-        else:
-            res["viewport"] = d.get("viewport")
-            time.sleep(0.4)
-            cap = win32.capture_client(hwnd)
-            res["method"] = cap["method"]
-            if cap["rgb"] is not None:
-                rect = imaging.find_colour_rect(cap["w"], cap["h"], cap["rgb"], PROBE_RGB, tol=12)
-                res["rect"] = list(rect) if rect else None
-    finally:
-        run.luau("viewport_probe", "Client", timeout=20, show=False)
-    vp = res.get("viewport")
-    if res["rect"] and vp and vp[0] > 0:
-        res["scale"] = round(res["rect"][2] / float(vp[0]), 3)  # capture px per viewport px (DPI)
-    if not res["rect"]:
-        run.note("viewport probe not found in the capture (%s): frames stay full-window" % res.get("error", "no magenta"))
-    run.extra["viewport_rect"] = res
-    log.info("viewport rect %s", res)
-    return res["rect"]
-
-
-def capture_frame(run, hwnd, device, crop=False, **rec):
-    """Captures the Studio client area to <sha>-<device>.png and adds a report.frames entry.
-
-    crop=True cuts the frame to the game viewport (viewport_rect); device frames stay full-window.
-    `rec` goes into the frames entry (todo, kind, ...).
-    """
-    rect = viewport_rect(run, hwnd) if crop else None
+def capture_frame(run, device, **rec):
+    """StudioMCP screen_capture of the game viewport (GUI included, play mode too) -> <sha>-<device>.jpg
+    plus a report.frames entry. No window capture and no crop. A blank frame (Pillow check) is retried
+    up to 3 times, then rejected. `rec` goes into the frames entry (todo, kind, ...)."""
     time.sleep(0.6)
-    title = win32.title_of(hwnd)
-    cap = win32.capture_client(hwnd)  # PrintWindow(PW_RENDERFULLCONTENT): off-screen, unfocused
-    for _ in range(3):  # throttled/stale off-screen window: nudge a repaint (no activation) and retry
-        if cap["rgb"] is not None and not cap["blank"]:
+    img, stats, blank, err = None, None, True, "no image"
+    for attempt in range(3):
+        run.frame_seq += 1
+        shot = run.tool("screen_capture", timeout=60, capture_id="pcw-%s-%d-%d" % (device, run.frame_seq, int(time.time())))
+        img = shot.image_bytes() if shot.ok else None
+        if not img:
+            err = "screen_capture returned no image (%s)" % shot.brief(120)
+            time.sleep(1.0)
+            continue
+        stats = imaging.jpeg_stats(img[1])
+        blank = bool(stats) and imaging.is_blank(stats)
+        if not blank:
             break
-        win32.nudge_repaint(hwnd)
+        err = "blank frame"
         time.sleep(1.0)
-        cap = win32.capture_client(hwnd)
-    info = {"method": cap["method"], "title": title, "stats": cap["stats"], "tried": cap["tried"],
-            "size": [cap["w"], cap["h"]]}
-    if rect and cap["rgb"] is not None:
-        try:
-            w, h, rgb = imaging.crop_rgb(cap["w"], cap["h"], cap["rgb"], *rect)
-            stats = imaging.frame_stats(w, h, rgb)
-            cap = dict(cap, w=w, h=h, rgb=rgb, stats=stats, blank=imaging.is_blank(stats))
-            info.update(crop=list(rect), size=[w, h], stats=stats)
-        except ValueError as e:
-            info["crop_error"] = str(e)
+    info = {"method": "mcp_screen_capture", "stats": stats, "size": stats and [stats["w"], stats["h"]]}
+    name = "%s-%s.jpg" % (run.sha, device)
     reasons = []
-    if cap["rgb"] is None:
+    if not img:
         reasons.append("capture failed")
-    if cap["blank"]:
+    elif blank:
         reasons.append("blank frame")
-    if not frame_title_ok(title, [run.sha[:7]]):
-        reasons.append("window title %r is not Studio" % title)
-    name = "%s-%s.png" % (run.sha, device)
-    if cap["rgb"] is not None:
-        path = os.path.join(run.outdir, name if not reasons else name.replace(".png", "-rejected.png"))
-        imaging.save_png(path, cap["w"], cap["h"], cap["rgb"])
+    if img:
+        path = os.path.join(run.outdir, name if not reasons else name.replace(".jpg", "-rejected.jpg"))
+        with open(path, "wb") as f:
+            f.write(img[1])
     if reasons:
         info["rejected"] = reasons
-        run.note("%s frame rejected: %s" % (device, ", ".join(reasons)))
+        run.note("%s frame rejected: %s (%s)" % (device, ", ".join(reasons), err))
         status = "blank" if "blank frame" in reasons else "missing"
         run.add_frame(device, status=status, error=", ".join(reasons), **rec)
     else:
         info["file"] = name
-        run.add_frame(device, name, method=cap["method"], size=info["size"], crop=info.get("crop"), **rec)
+        run.add_frame(device, name, method=info["method"], size=info["size"], **rec)
     return info
 
 
@@ -1201,13 +1057,10 @@ def step_devices(run):
         return "skip", {"dry_run": True}
     hwnd = run.hwnd
     if not hwnd:
-        win = win32.studio_main_window(tracked_pids(run.paths))
+        win = run.desktop().main_window(tracked_pids(run.paths))
         hwnd = run.hwnd = win and win["hwnd"]
     if not hwnd:
         raise StepFail("no Studio window to resize")
-    if not win32.is_offscreen(hwnd):
-        win32.place_offscreen(hwnd)
-    x, y, w, h = win32.window_rect(hwnd)
     results, failed = {}, []
     menus, phone, menu_s, perf_s, filled = {}, {}, 0.0, 0.0, False
     try:
@@ -1225,14 +1078,15 @@ def step_devices(run):
             if hud.get("offscreen") or hud.get("missing"):
                 failed.append(device)
                 res["error"] = "off-screen %s missing %s" % (hud.get("offscreen"), hud.get("missing"))
-            res["frame"] = capture_frame(run, hwnd, device, kind="device")
+            res["idle"] = close_all_panels(run)  # idle HUD: every panel closed, nothing else hidden
+            res["frame"] = capture_frame(run, device, kind="device")
             results[device] = res
             t1 = time.time()
-            menus[device] = menus_at_device(run, hwnd, device)
+            menus[device] = menus_at_device(run, device)
             menu_s += time.time() - t1
             if device.startswith("phone"):
                 t1 = time.time()
-                phone[device] = phone_perf_at_device(run, hwnd, device, first=not filled)
+                phone[device] = phone_perf_at_device(run, device, first=not filled)
                 filled = True
                 perf_s += time.time() - t1
     finally:
@@ -1241,10 +1095,6 @@ def step_devices(run):
                 run.luau("slime_fill", "Server", timeout=20, target=0)
             except Exception as e:
                 run.note("could not remove the phone_perf slime clones: %r" % (e,))
-        try:
-            win32.set_window_rect(hwnd, x, y, w, h)  # back to the off-screen rect; never maximized
-        except Exception as e:
-            run.note("could not put the Studio window back to its off-screen rect: %r" % (e,))
     set_menus_and_perf_steps(run, menus, phone, menu_s, perf_s)
     detail = {"devices": results}
     if failed:
@@ -1254,11 +1104,11 @@ def step_devices(run):
     return "pass", detail
 
 
-def menus_at_device(run, hwnd, device):
+def menus_at_device(run, device):
     """Opens every menu panel at the current size, measures it, captures it and closes it again.
 
     Opening: MCP click on the nav icon when the cursor guard allows, else the Visible fallback
-    (open_panel). Returns {panel key: menu_record}. Frames: <sha>-menu-<panel>-<device>.png.
+    (open_panel). Returns {panel key: menu_record}. Frames: <sha>-menu-<panel>-<device>.jpg.
     """
     out = {}
     for key in run.cfg["menu_panels"]:
@@ -1277,7 +1127,7 @@ def menus_at_device(run, hwnd, device):
                 m = run.need_luau("menu_measure", "Client", timeout=20, panel=panel)
                 run.luau("ui_isolate", "Client", timeout=15, keep=panel, hide=True)
                 try:
-                    info = capture_frame(run, hwnd, fid, crop=True, kind="menu", panel=panel, for_device=device,
+                    info = capture_frame(run, fid, kind="menu", panel=panel, for_device=device,
                                          open_method=opened["method"])
                     frame = info.get("file")
                 finally:
@@ -1297,7 +1147,7 @@ def menus_at_device(run, hwnd, device):
     return out
 
 
-def phone_perf_at_device(run, hwnd, device, first):
+def phone_perf_at_device(run, device, first):
     """Phone size: >= phone_min_slimes animated slimes near the camera, then RenderStepped dt over
     stats_seconds. slime_fill (Server) clones wild/pad slimes around the character when short."""
     res = {"pass": False}
@@ -1315,7 +1165,7 @@ def phone_perf_at_device(run, hwnd, device, first):
         stats = run.need_luau("phone_perf", "Client", timeout=seconds + 60, seconds=seconds)
         res.update({k: _r(stats.get(k)) for k in ("avg_ms", "p95_ms", "max_ms", "fps", "memory_mb", "animating",
                                                   "animating_at_start", "slimes_near", "frames", "viewport")})
-        info = capture_frame(run, hwnd, "phone-perf-" + device, crop=True, kind="perf", for_device=device)
+        info = capture_frame(run, "phone-perf-" + device, kind="perf", for_device=device)
         res["frame"] = info.get("file")
         ok, problems = phone_perf_verdict(stats, run.cfg["phone_min_fps"], run.cfg["phone_min_slimes"])
         res["pass"] = ok
@@ -1344,7 +1194,7 @@ def set_menus_and_perf_steps(run, menus, phone, menu_s, perf_s):
         {"min_fps": run.cfg["phone_min_fps"], "devices": list(phone)},
         **({} if okp else {"error": "avg FPS below %s or not measured at: %s" % (
             run.cfg["phone_min_fps"], ", ".join(badp or ["any phone size"]))}))}
-    run.note("phone_perf is Studio on the PC (unfocused, off-screen window), not real phone hardware")
+    run.note("phone_perf is Studio on the PC (own desktop, unfocused), not real phone hardware")
 
 
 def _body(name):
@@ -1393,32 +1243,34 @@ def panel_for(key):
     return UI_SHOT_PANELS.get(k, k[:1].upper() + k[1:] + "Panel")
 
 
+def close_all_panels(run):
+    """PcwOpen='' (setOpen(nil)): closes whichever menu is open. Returns the panels still open (should be [])."""
+    run.luau("panel_visible", "Client", timeout=15, panel="ShopPanel", show=False)
+    time.sleep(0.4)
+    left = ui_probe(run).get("open_panels") or []
+    for panel in list(left):
+        run.luau("panel_visible", "Client", timeout=15, panel=panel, show=False)
+    if left:
+        time.sleep(0.4)
+        left = ui_probe(run).get("open_panels") or []
+    if left:
+        run.note("panels still open before the idle device frame: %s" % ", ".join(left))
+    return left
+
+
 def open_panel(run, key):
     """Opens a SlimeUI panel for a ui shot. Returns {panel, method, tried}; method None = not opened.
 
-    1) MCP user_mouse_input on its nav icon (Nav.<Key>), then a HUD button (Hud.<Key>) if any;
-    2) fallback: luau/panel_visible sets <Key>Panel.Visible directly (no UI open hook exists),
-       so the panel's update() did not run and its contents can be stale.
+    No input injection: luau/panel_visible sets the Studio-only SlimeUI attribute PcwOpen (method
+    "pcw_open_hook": setOpen ran, contents rendered); if that does not show the panel it sets
+    <Key>Panel.Visible directly ("visible_fallback": contents can be stale).
     """
-    k = str(key).lower()
-    panel = panel_for(k)
-    nav = UI_SHOT_BUTTONS.get(k, "Nav." + k[:1].upper() + k[1:])
+    panel = panel_for(key)
     res = {"panel": panel, "method": None, "tried": []}
     p = ui_probe(run)
     if panel in (p.get("open_panels") or []):
         res["method"] = "already open"
         return res
-    for path in (nav, "Hud." + nav.split(".", 1)[1]):
-        t = (p.get("targets") or {}).get(path) or {}
-        if not t.get("found"):
-            continue
-        ok, info, p = click_target(run, p, path, lambda q: panel in (q.get("open_panels") or []))
-        opened = panel in (p.get("open_panels") or [])
-        res["tried"].append({"path": path, "click_ok": ok, "opened": opened, "error": info.get("error"),
-                             "attempts": info.get("attempts")})
-        if opened:
-            res["method"] = "mcp_click:%s:%s" % (path, info["inset"])
-            return res
     ok, d = run.luau("panel_visible", "Client", timeout=15, panel=panel, show=True)
     time.sleep(0.4)
     p = ui_probe(run)
@@ -1429,21 +1281,20 @@ def open_panel(run, key):
 
 
 def press_check(run, opened, key, expect="closed"):
-    """Presses `key` (MCP user_keyboard_input, Client datamodel) with the panel open and asserts it closed.
-    A panel opened by the Visible fallback has no game state behind it, so the key cannot close it: inconclusive."""
+    """The Esc test without key injection: cas_close (the Studio-only PcwPress='Escape' hook running the game's
+    CloseMenu action handler) with the panel open, then asserts the panel closed. A panel opened by the Visible fallback has no game
+    state behind it, so the action cannot close it: inconclusive."""
     panel = opened["panel"]
-    out = {"key": key, "panel": panel, "expect": expect}
+    out = {"key": key, "panel": panel, "expect": expect, "method": "pcw_press_hook"}
     if opened["method"] == "visible_fallback":
         return dict(out, status="warn", why="panel opened by Visible=true; the game's menu state is not open")
-    if not run.input_ok:
-        return dict(out, status="warn", why="mcp input disabled (moved OS cursor)")
-    ok, info = run.key(key)
-    time.sleep(0.8)
+    ok, info = cas_close(run)
     p = ui_probe(run)
     is_open = panel in (p.get("open_panels") or [])
     out.update(key_ok=ok, key_call=info, open_after=is_open)
     if not ok:
-        return dict(out, status="fail", why="key call failed: %s" % (info,))
+        close_panel(run, panel)
+        return dict(out, status="fail", why="PcwPress hook failed: %s" % (info.get("error"),))
     if is_open != (expect == "open"):
         close_panel(run, panel)  # tidy up for the next shot
         return dict(out, status="fail")
@@ -1451,22 +1302,11 @@ def press_check(run, opened, key, expect="closed"):
 
 
 def close_panel(run, panel):
-    """Escape (MCP key); then the panel's Close button; then Visible=false. Returns the method that closed it."""
-    if run.input_ok:
-        run.key("Escape")
-        time.sleep(0.6)
-        p = ui_probe(run)
-        if p.get("menu_open") and run.input_ok:  # nothing of ours took Escape: the Roblox menu opened, close it again
-            run.key("Escape")
-            time.sleep(0.6)
-            p = ui_probe(run)
-        if panel not in (p.get("open_panels") or []):
-            return "escape"
-    else:
-        p = ui_probe(run)
-    ok, _, p = click_target(run, p, panel + ".Close", lambda q: panel not in (q.get("open_panels") or []))
-    if ok and panel not in (p.get("open_panels") or []):
-        return "close_button"
+    """PcwOpen='' (setOpen(nil)), then Visible=false. Returns the method that closed it."""
+    ok, d = run.luau("panel_visible", "Client", timeout=15, panel=panel, show=False)
+    time.sleep(0.4)
+    if panel not in (ui_probe(run).get("open_panels") or []):
+        return d.get("via", "visible_fallback") if ok and isinstance(d, dict) else "visible_fallback"
     run.luau("panel_visible", "Client", timeout=15, panel=panel, show=False)
     return "visible_fallback"
 
@@ -1484,9 +1324,6 @@ def step_shots(run):
     shots = read_json(os.path.join(HERE, "shots.json"), None)
     if not isinstance(shots, list):
         return "skip", {"reason": "shots.json missing or unreadable"}
-    hwnd = run.hwnd
-    if not hwnd:
-        return "skip", {"reason": "no Studio window"}
     results, world_mode = [], False
     for shot in shots:
         sid = re.sub(r"[^A-Za-z0-9_.-]", "_", str(shot.get("id", "shot")))
@@ -1522,16 +1359,15 @@ def step_shots(run):
                     res["press"] = press_check(run, opened, shot["press"], shot.get("expect", "closed"))
                     if res["press"]["status"] != "pass":
                         res["error"] = "%s did not leave %s %s" % (shot["press"], opened["panel"], shot.get("expect", "closed"))
-                    continue
-                keep = opened["panel"] if opened else ""
+                keep = opened["panel"] if opened and not shot.get("press") else ""
                 ok, iso = run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=True)
                 res["isolated"] = iso if ok else str(iso)[:160]
                 try:
-                    res["frame"] = capture_frame(run, hwnd, fid, crop=True, todo=todo, kind="shot",
+                    res["frame"] = capture_frame(run, fid, todo=todo, kind="shot",
                                                  open_method=opened and opened["method"])
                 finally:
                     run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=False)
-                if opened and opened["method"] != "already open":
+                if opened and not shot.get("press") and opened["method"] != "already open":
                     res["closed_by"] = close_panel(run, opened["panel"])
             else:
                 if shot.get("pos"):
@@ -1569,7 +1405,7 @@ def step_shots(run):
                     # (SlimeHop apex 0.45, SlimeLookLeft/Right peak 0.2, SlimeIdleSquish low 1.25)
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
                                                 anim=shot["anim"], id=shot["animId"], wait=float(shot.get("wait", 0.5)))
-                res["frame"] = capture_frame(run, hwnd, fid, crop=True, todo=todo, kind="shot",
+                res["frame"] = capture_frame(run, fid, todo=todo, kind="shot",
                                              target=(res.get("target") or {}).get("path"))
         except Exception as e:
             res["error"] = repr(e)[:200]
@@ -1582,10 +1418,8 @@ def step_shots(run):
     done = len([r for r in results if (r.get("frame") or {}).get("file")])
     pressed = [r for r in results if r.get("press")]
     if any(r["press"]["status"] != "pass" for r in pressed):
-        return "warn", {"captured": done, "total": len(shots), "shots": results, "press_failed": True,
-                        "viewport_rect": run.extra.get("viewport_rect")}
-    return "pass" if (done or pressed) else "warn", {"captured": done, "total": len(shots), "shots": results,
-                                        "viewport_rect": run.extra.get("viewport_rect")}
+        return "warn", {"captured": done, "total": len(shots), "shots": results, "press_failed": True}
+    return "pass" if (done or pressed) else "warn", {"captured": done, "total": len(shots), "shots": results}
 
 
 def watcher_studio_pids(paths):
@@ -1673,8 +1507,7 @@ def build_report(run):
         "input_methods": run.extra.get("input_methods"),
         "menus": run.extra.get("menus"),
         "background": {"foreground_at_start": list(run.fg_start) if run.fg_start else None,
-                       "focus_stolen": list(run.focus_stolen), "mcp_input": run.input_ok,
-                       "cursor_events": run.extra.get("cursor_events", [])},
+                       "focus_stolen": list(run.focus_stolen), "mcp_input": False},
         "watcher_version": VERSION,
     }
 
@@ -1719,8 +1552,6 @@ def full_run(paths, cfg, sha, dry=False):
                 run_step(run, "onboarding", step_onboarding)
                 run_step(run, "shop", step_shop)
                 run_step(run, "esc", step_esc)
-                if not dry and run.remaining() > 40:
-                    run.steps["onboarding"].setdefault("detail", {})["advance"] = tutorial_advance(run)
                 run_step(run, "devices", step_devices)
                 if run.remaining() > 200:
                     run_step(run, "shots", step_shots)
@@ -1967,7 +1798,7 @@ def cmd_step(paths, cfg, name, sha, dry):
         run.save_current() if name != "close" else None
         run.close()
     print(json.dumps({"steps": run.steps, "perf": run.perf, "frames": run.frames, "notes": run.notes,
-                      "focus_stolen": run.focus_stolen, "mcp_input": run.input_ok}, indent=2, default=str))
+                      "focus_stolen": run.focus_stolen, "mcp_input": False}, indent=2, default=str))
     if run.focus_stolen:
         return 1
     return 0 if all(s["status"] in ("pass", "warn", "skip") for s in run.steps.values()) else 1
@@ -1994,19 +1825,26 @@ def cmd_mcp(paths, cfg, tool, args_json):
 
 
 def cmd_capture(paths, cfg, out):
-    win = win32.studio_main_window(tracked_pids(paths) or win32.list_pids())
-    if not win:
-        print("no Studio window")
+    run = Run(paths, cfg, None)
+    run.load_current()
+    if not run.studio_id:
+        print("no watcher Studio in state/current.json")
         return 1
-    cap = win32.capture_client(win["hwnd"])
-    if cap["rgb"] is None:
-        print("capture failed: %s" % cap["tried"])
-        return 1
-    out = out or os.path.join(paths.out, "capture-test.png")
-    imaging.save_png(out, cap["w"], cap["h"], cap["rgb"])
-    print(json.dumps({"file": out, "title": win["title"], "method": cap["method"], "blank": cap["blank"],
-                      "stats": cap["stats"], "tried": cap["tried"]}, indent=2))
-    return 0
+    try:
+        shot = run.tool("screen_capture", timeout=60, capture_id="pcw-capture-%d" % int(time.time()))
+        img = shot.image_bytes()
+        if not img:
+            print("capture failed: %s" % shot.brief(200))
+            return 1
+        out = out or os.path.join(paths.out, "capture-test.jpg")
+        with open(out, "wb") as f:
+            f.write(img[1])
+        stats = imaging.jpeg_stats(img[1])
+        print(json.dumps({"file": out, "method": "mcp_screen_capture", "mime": img[0], "bytes": len(img[1]),
+                          "blank": bool(stats) and imaging.is_blank(stats), "stats": stats}, indent=2))
+        return 0
+    finally:
+        run.close()
 
 
 def main(argv=None):

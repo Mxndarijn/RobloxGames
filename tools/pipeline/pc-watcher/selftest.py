@@ -92,44 +92,6 @@ def t_studios():
     check("no pick for strangers", mcp_client.pick_studio(st, ["deadbeef"]) is None)
 
 
-def t_actions():
-    schema = {"properties": {"actions": {"type": "array", "items": {"oneOf": [
-        {"properties": {"type": {"const": "mouseMove"}, "x": {}, "y": {}}, "required": ["type", "x", "y"]},
-        {"properties": {"type": {"const": "mouseButtonDown"}, "button": {"enum": ["Left", "Right"]},
-                        "position": {}}, "required": ["type", "position"]},
-        {"properties": {"type": {"const": "mouseButtonUp"}, "button": {"enum": ["Left", "Right"]},
-                        "position": {}}, "required": ["type"]},
-    ]}}}}
-    a = mcp_client.build_action(schema, "mouse_down", {"x": 5, "y": 6})
-    check("schema mouse down", a == {"type": "mouseButtonDown", "position": {"x": 5, "y": 6}, "button": "Left"}, a)
-    kschema = {"properties": {"actions": {"items": {"properties": {
-        "action": {"enum": ["keyDown", "keyUp"]}, "key": {"enum": ["Down", "Escape", "E"]}}}}}}
-    k = mcp_client.build_action(kschema, "key_down", {"key": "Escape"})
-    check("schema key down (not the Down key)", k == {"action": "keyDown", "key": "Escape"}, k)
-    flat = {"properties": {"actions": {"items": {"properties": {
-        "action": {"enum": ["mouseMove", "mouseButtonDown", "mouseButtonUp"]}, "x": {}, "y": {}}}}}}
-    m = mcp_client.build_action(flat, "mouse_down", {"x": 3, "y": 4})
-    check("schema without button field gets mouse_button", m == {
-        "action": "mouseButtonDown", "x": 3, "y": 4, "mouse_button": "left"}, m)
-    sb = {"properties": {"actions": {"items": {"properties": {
-        "action": {"enum": ["mouseButtonUp"]}, "mouse_button": {"enum": ["left", "right"]}, "x": {}, "y": {}}}}}}
-    m = mcp_client.build_action(sb, "mouse_up", {"x": 3, "y": 4})
-    check("schema mouse_button", m.get("mouse_button") == "left" and m.get("action") == "mouseButtonUp", m)
-    d = mcp_client.build_action(None, "mouse_up", {"x": 1, "y": 2})
-    check("default guess", d["type"] == "mouseButtonUp" and d["x"] == 1, d)
-    o = mcp_client.build_action(schema, "key_up", {"key": "E"}, {"kind": "up", "k": "$key"})
-    check("override template", o == {"kind": "up", "k": "E"}, o)
-
-    # Both key events must carry datamodel_type (the c935374 report: "datamodel_type is required").
-    sent = []
-    sess = mcp_client.McpSession.__new__(mcp_client.McpSession)
-    sess.schemas = {}
-    sess.call = lambda tool, args=None, timeout=0: (sent.append((tool, args)), mcp_client.ToolResult(tool, {}))[1]
-    sess.key("s1", "Escape", hold=0)
-    check("key sends datamodel_type=Client on down and up",
-          len(sent) == 2 and all(a["datamodel_type"] == "Client" for _, a in sent), sent)
-
-
 def t_watcher():
     sha = "a" * 40
     ls = "%s\trefs/heads/main\n%s\trefs/heads/mainline\n" % (sha, "b" * 40)
@@ -168,13 +130,8 @@ def t_watcher():
     check("shot todo", watcher.shot_todo({"todo": "6/13"}) == "6/13"
           and watcher.shot_todo({"note": "TODO 11: bench"}) == "11" and watcher.shot_todo({"note": "x"}) is None)
     check("panel names", watcher.panel_for("dex") == "DexPanel" and watcher.panel_for("Leaders") == "LeaderboardPanel")
-    pts = watcher.click_points({"cx": 86, "cy": 166, "rx": 86, "ry": 108})
-    check("click points: inset then without", [m for m, _, _ in pts] == ["inset", "no_inset"] and pts[1][2] == 108, pts)
-    pts = watcher.click_points({"cx": 86, "cy": 108, "rx": 86, "ry": 108})
-    check("click points: IgnoreGuiInset = one point", len(pts) == 1, pts)
     check("two_player mode b removed", not any(k.startswith("twoplayer_") for k in watcher.DEFAULTS)
           and not hasattr(watcher, "twoplayer_cmdline"))
-    check("cursor delta", watcher.cursor_delta((100, 100), (110, 109)) == (10, 9, math.hypot(10, 9)))
     m = {"found": True, "shown": True, "on_screen": True, "size": [195, 422], "viewport": [390, 844],
          "close": {"found": True, "shown": True, "on_screen": True}}
     r = watcher.menu_record(m, "f.jpg")
@@ -204,9 +161,8 @@ def t_win32_pure():
 
 
 def t_background():
-    """Runs in the background: off-screen maths, window pick (iconic too), focus + cursor guards, and
-    no focus-stealing / OS-input / screen-copy call left in the code."""
-    check("offscreen x", win32.offscreen_x(0, 1936) == -2036 and win32.offscreen_x(-1920, 800) == -2820)
+    """Runs in the background: window pick (iconic too), focus guard, own-desktop launch, and
+    no focus-stealing / OS-input / window-capture call left in the code."""
     row = dict(owned=False, visible=False, iconic=False, w=0, h=0, nw=0, nh=0)
     iconic = dict(row, hwnd=1, title="abc.rbxl - Roblox Studio", iconic=True, w=160, h=28, nw=1600, nh=900)
     splash = dict(row, hwnd=2, title="", visible=True, w=500, h=300, nw=500, nh=300)
@@ -223,23 +179,14 @@ def t_background():
     st = {k: {"status": "pass"} for k in watcher.HARD_STEPS}
     run = watcher.Run.__new__(watcher.Run)
     run.steps, run.focus_stolen, run.notes, run.perf, run.frames, run.extra = st, ["FOCUS STOLEN at step devices"], [], {}, [], {}
-    run.sha, run.studio_version, run.t0, run.fg_start, run.input_ok = "a" * 40, None, 0, None, True
+    run.sha, run.studio_version, run.t0, run.fg_start = "a" * 40, None, 0, None
     rep = watcher.build_report(run)
     check("focus stolen fails the run", rep["status"] == "fail" and rep["background"]["focus_stolen"], rep["background"])
-    calls = []
-    run.input_ok, run.notes = True, []
-    real_cursor, watcher._cursor = watcher._cursor, iter([(10, 10), (10, 10), (10, 10), (99, 10)]).__next__
-    try:
-        ok1, _ = run._mcp_input("a", lambda: (calls.append(1) or True, {}))
-        ok2, info2 = run._mcp_input("b", lambda: (calls.append(2) or True, {}))
-        ok3, info3 = run._mcp_input("c", lambda: (calls.append(3) or True, {}))
-    finally:
-        watcher._cursor = real_cursor
-    check("cursor guard trips once moved", ok1 and "os_cursor_moved" in info2 and not run.input_ok
-          and not ok3 and calls == [1, 2] and any("mcp input moved OS cursor" in n for n in run.notes), (calls, run.notes))
     banned = {"SetForegroundWindow", "BringWindowToTop", "SetActiveWindow", "SetFocus", "ShowWindow", "keybd_event",
               "SendInput", "mouse_event", "SetCursorPos", "BitBlt", "bring_to_front", "maximize", "restore",
-              "SW_MAXIMIZE", "SW_RESTORE", "twoplayer_cmdline"}
+              "SW_MAXIMIZE", "SW_RESTORE", "SetForegroundWindow", "place_offscreen", "hide_taskbar_button", "PrintWindow",
+              "capture_client", "launch_background", "twoplayer_cmdline", "user_mouse_input", "user_keyboard_input",
+              "mouse_down", "mouse_up", "key_down", "key_up", "mouseButtonDown", "keyboardInput"}
     for f in ("win32.py", "watcher.py", "mcp_client.py"):
         with open(os.path.join(HERE, f), encoding="utf-8") as fh:
             toks = list(tokenize.generate_tokens(fh.readline))
@@ -248,6 +195,16 @@ def t_background():
                 if (t.type == tokenize.NAME and t.string in banned)
                 or (t.type == tokenize.STRING and t.string.strip("\"'") in banned)]
         check("no focus/OS-input calls in %s" % f, not hits, hits[:3])
+
+
+def t_desktop():
+    src = open(os.path.join(HERE, "win32.py"), encoding="utf-8").read()
+    for needle in ("CreateDesktopW", "CreateProcessW", "lpDesktop", "OpenDesktopW", "SetThreadDesktop", "EnumDesktopWindows"):
+        check("win32 uses %s" % needle, needle in src)
+    wsrc = open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
+    check("launch on the Studio desktop", "launch_on_desktop" in wsrc and "screen_capture" in wsrc)
+    luau = open(os.path.join(HERE, "luau", "cas_close.luau"), encoding="utf-8").read()
+    check("esc uses the PcwPress hook", "PcwPress" in luau and ":CallFunction(" not in luau)
 
 
 def t_lock():
@@ -275,7 +232,7 @@ def t_files():
             print(e)
         check("py_compile %s" % os.path.basename(f), ok)
     used = {
-        "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"}, "viewport_probe": {"SHOW"},
+        "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "slime_anim": {"PATH", "ANIM", "ID", "WAIT"},
@@ -329,7 +286,7 @@ def t_geometry():
 
 
 def main():
-    for t in (t_png, t_crop, t_marked, t_studios, t_actions, t_watcher, t_win32_pure, t_background, t_lock,
+    for t in (t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
               t_files, t_geometry):
         try:
             t()

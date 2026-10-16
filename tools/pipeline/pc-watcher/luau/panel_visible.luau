@@ -1,6 +1,5 @@
--- Client datamodel: fallback when no click opens a panel: SlimeUI.%%PANEL%%.Visible = %%SHOW%%
--- directly (the UI's own setOpen is a local in src/ui/init.client.luau; there is no BindableEvent).
--- Showing one hides the other *Panel frames, like setOpen does.
+-- Client datamodel: opens (SHOW) or closes SlimeUI.%%PANEL%%: first the Studio-only PcwOpen hook, else Visible =
+-- %%SHOW%% directly (no input injection). Showing one hides the other *Panel frames, like setOpen does.
 local gui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("SlimeUI")
 local panel = gui and gui:FindFirstChild(%%PANEL%%)
 if not panel or not panel:IsA("GuiObject") then
@@ -10,6 +9,7 @@ end
 -- through setOpen, so its contents render. Falls back to Visible below.
 do
 	local key = string.gsub(%%PANEL%%, "Panel$", "")
+	gui:SetAttribute("PcwOpen", nil) -- an unchanged value fires no signal; nil -> setOpen(nil) first
 	gui:SetAttribute("PcwOpen", if %%SHOW%% then key else "")
 	task.wait(0.3)
 	if panel.Visible == %%SHOW%% then
@@ -24,4 +24,4 @@ if %%SHOW%% then
 	end
 end
 panel.Visible = %%SHOW%%
-return { found = true, visible = panel.Visible }
+return { found = true, visible = panel.Visible, via = "visible_fallback" }
