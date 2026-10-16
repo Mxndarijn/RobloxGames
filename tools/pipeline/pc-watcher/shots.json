@@ -52,5 +52,9 @@
   {"id": "16-habitat-candy_patch-mid", "todo": "16", "kind": "world", "target": "Pad_1", "habitat": "candy_patch", "wait": 0.4, "note": "TODO 16: pad morphing into candy_patch (mid-morph, about 40%)"},
   {"id": "16-habitat-candy_patch", "todo": "16", "kind": "world", "target": "Pad_1", "habitat": "candy_patch", "wait": 1.5, "note": "TODO 16: pad turned into candy_patch"},
   {"id": "16-habitat-crystal_grotto-mid", "todo": "16", "kind": "world", "target": "Pad_1", "habitat": "crystal_grotto", "wait": 0.4, "note": "TODO 16: pad morphing into crystal_grotto (mid-morph, about 40%)"},
-  {"id": "16-habitat-crystal_grotto", "todo": "16", "kind": "world", "target": "Pad_1", "habitat": "crystal_grotto", "wait": 1.5, "note": "TODO 16: pad turned into crystal_grotto"}
+  {"id": "16-habitat-crystal_grotto", "todo": "16", "kind": "world", "target": "Pad_1", "habitat": "crystal_grotto", "wait": 1.5, "note": "TODO 16: pad turned into crystal_grotto"},
+  {"id": "17-anim-idlesquish", "todo": "17", "kind": "world", "target": "Pad_1", "anim": "SlimeIdleSquish", "animId": "rbxassetid://84521119840854", "wait": 1.25, "note": "TODO 17: rig animation SlimeIdleSquish mid-play (pose at 1.25 s)"},
+  {"id": "17-anim-hop", "todo": "17", "kind": "world", "target": "Pad_1", "anim": "SlimeHop", "animId": "rbxassetid://115750614378002", "wait": 0.45, "note": "TODO 17: rig animation SlimeHop mid-play (pose at 0.45 s)"},
+  {"id": "17-anim-lookleft", "todo": "17", "kind": "world", "target": "Pad_1", "anim": "SlimeLookLeft", "animId": "rbxassetid://92824733933660", "wait": 0.2, "note": "TODO 17: rig animation SlimeLookLeft mid-play (pose at 0.2 s)"},
+  {"id": "17-anim-lookright", "todo": "17", "kind": "world", "target": "Pad_1", "anim": "SlimeLookRight", "animId": "rbxassetid://128985562979073", "wait": 0.2, "note": "TODO 17: rig animation SlimeLookRight mid-play (pose at 0.2 s)"}
 ]

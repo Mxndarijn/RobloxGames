@@ -8,6 +8,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 local PetRig = UiHarness.ui("../visuals/client/PetRig")
 local new = UiHarness.Instance.new
+local CFrame = (require("@lune/roblox") :: any).CFrame
 
 -- A slime as SlimeLifeRunner leaves it: LifeRoot + welds + sparkle, LifeSquash
 -- on Body, factory WeldConstraint disabled.
@@ -65,5 +66,53 @@ describe("PetRig.stripLife", function()
 		part.Parent = model
 		PetRig.stripLife(model)
 		expect(#model:GetChildren()).toBe(1)
+	end)
+end)
+
+-- A rigged slime (src/visuals/shared/SlimeRig) mid-animation: Animator, a
+-- moved Motor6D and the animated sparkle under SkinRoot.
+local function animatedSlime(): any
+	local model = new("Model")
+	local body = new("Part")
+	body.Name = "Body"
+	body.Parent = model
+	local skin = new("Part")
+	skin.Name = "SkinRoot"
+	skin.Parent = model
+	local motor = new("Motor6D")
+	motor.Name = "SkinRoot"
+	motor.Part0 = body
+	motor.Part1 = skin
+	motor.Transform = CFrame.new(0, 0.9, 0) :: any
+	motor.Parent = body
+	local controller = new("AnimationController")
+	controller.Name = "AnimationController"
+	controller.Parent = model
+	local animator = new("Animator")
+	animator.Name = "Animator"
+	animator.Parent = controller
+	local sparkle = new("ParticleEmitter")
+	sparkle.Name = "LifeSparkle"
+	sparkle.Parent = skin
+	return model
+end
+
+describe("PetRig.stripLife on a rigged, animated slime", function()
+	it("removes the Animator and the sparkle, keeps the joints and resets the pose", function()
+		local pet = animatedSlime():Clone()
+		PetRig.stripLife(pet)
+		expect(UiHarness.find(pet, "AnimationController")).toBeNil()
+		expect(UiHarness.find(pet, "Animator")).toBeNil()
+		expect(UiHarness.find(pet, "LifeSparkle")).toBeNil()
+		local motor = UiHarness.find(pet, "SkinRoot")
+		expect(motor ~= nil).toBe(true)
+		local joints = 0
+		for _, inst in UiHarness.descendants(pet) do
+			if inst:IsA("Motor6D") then
+				joints += 1
+				expect(inst.Transform.Position.Y).toBe(0)
+			end
+		end
+		expect(joints).toBe(1)
 	end)
 end)

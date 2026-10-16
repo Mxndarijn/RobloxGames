@@ -137,6 +137,13 @@ function SlimeMesh.load(self: SlimeMesh): Look
 	return self.look
 end
 
+-- The rig's SkinRoot (src/visuals/shared/SlimeRig) when the factory made one,
+-- so a mesh look moves with the SlimeIdle / Hop animations; else Body.
+local function anchorFor(model: Model, body: BasePart): BasePart
+	local skin = model:FindFirstChild("SkinRoot")
+	return if skin and skin:IsA("BasePart") then skin else body
+end
+
 -- kit: a MeshAssets name; its native size is fitted uniformly into Body's box
 -- (never stretched). nil = the shared package, stretched to the box as before.
 local function dress(model: Model, template: MeshPart, kit: string?)
@@ -163,7 +170,7 @@ local function dress(model: Model, template: MeshPart, kit: string?)
 		child:Destroy() -- no scripts / welds from the package
 	end
 	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = body
+	weld.Part0 = anchorFor(model, body)
 	weld.Part1 = mesh
 	weld.Parent = mesh
 	mesh.Parent = model
@@ -195,7 +202,7 @@ local function addAccessory(model: Model, template: MeshPart, kit: string)
 		child:Destroy()
 	end
 	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = body
+	weld.Part0 = anchorFor(model, body)
 	weld.Part1 = acc
 	weld.Parent = acc
 	acc.Parent = model

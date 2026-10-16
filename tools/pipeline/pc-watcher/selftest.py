@@ -278,7 +278,7 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"}, "viewport_probe": {"SHOW"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"},
+        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "slime_anim": {"PATH", "ANIM", "ID", "WAIT"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -291,6 +291,11 @@ def t_files():
     check("shots.json is a list with ids", isinstance(shots, list) and all("id" in s for s in shots))
     check("shots.json has the idle-HUD overlay guard",
           any(s.get("kind") == "ui" and not s.get("open") and s.get("expect_no_overlay") for s in shots))
+    up = json.load(open(os.path.join(HERE, "..", "..", "..", "shared", "modeling-kit", "uploaded.json"), encoding="utf-8"))
+    anims = [s for s in shots if s.get("anim")]
+    check("anim shots name an uploaded Animation with its real id", len(anims) >= 4 and all(
+        up.get(s["anim"], {}).get("assetType") == "Animation"
+        and s.get("animId") == "rbxassetid://" + up[s["anim"]]["assetId"] for s in anims), anims)
 
 
 def t_geometry():

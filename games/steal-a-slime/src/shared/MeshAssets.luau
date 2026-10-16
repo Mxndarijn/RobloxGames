@@ -316,6 +316,22 @@ MeshAssets.entries = entries
 -- and take no turn.
 MeshAssets.IMPORT_YAW = 180
 
+-- Slime rig animations (KeyframeSequences from animations/*.rbxmx, uploaded as
+-- Animation assets; ids in shared/modeling-kit/uploaded.json). A nil / missing
+-- id keeps SlimeLife's procedural idle. SlimeBlink is not authored.
+MeshAssets.ANIMATIONS = table.freeze({
+	SlimeIdleSquish = 84521119840854,
+	SlimeHop = 115750614378002,
+	SlimeLookLeft = 92824733933660,
+	SlimeLookRight = 128985562979073,
+} :: { [string]: number })
+
+-- "rbxassetid://<id>" for an animation, or nil while it isn't uploaded.
+function MeshAssets.animationId(name: string): string?
+	local id = MeshAssets.ANIMATIONS[name]
+	return if id then `rbxassetid://{id}` else nil
+end
+
 function MeshAssets.get(name: string): Entry?
 	return entries[name]
 end

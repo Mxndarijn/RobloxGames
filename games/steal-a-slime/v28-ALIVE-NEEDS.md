@@ -1,19 +1,22 @@
-# v28 living slimes (TODO #17): what's still needed
+# v28 living slimes (TODO #17): rig and animations
 
-The idle life ships procedurally and client-only (`src/ui/SlimeLife.luau` and `src/ui/SlimeLifeRunner.client.luau`). It needs no animation assets. Nothing was created or uploaded.
+The idle life ships in two forms, both client-only and chosen per slime by `src/ui/SlimeLifeRunner.client.luau`:
 
-## Optional assets (no blocker)
+- **Animated (new):** the slime rig plus four uploaded animations. Used when the slime has its Animator and `MeshAssets.ANIMATIONS` has all four ids.
+- **Procedural (kept as fallback):** `src/ui/SlimeLife.luau` (LifeRoot welds, skin Size squash). Runs when an id is missing, the slime has no Animator or loading a track fails.
 
-Slimes have no rig, `Humanoid`/`AnimationController` or `Animator`, so an `AnimationId` can't play on them today. Real animations would need all of the following:
+Both share the LOD: nearest `SlimeLife.MAX_ACTIVE` (16) slimes within 80 studs and on screen (`Candidate.onScreen`).
 
-- **Rig (Archer, ModelFactory/SlimeLayout):** Motor6Ds from `Body` to a face root and a skin root. Today all decorations use `WeldConstraint`s. Also an `AnimationController` + `Animator` on each slime model.
-- **Animations (Archer, upload by whoever holds Open Cloud):** `SlimeIdleSquish` (loop, ~2.5 s), `SlimeHop` (~0.75 s), `SlimeLookLeft`/`SlimeLookRight` (~0.4 s), `SlimeBlink` (only if eyes become one mesh with a lid). Upload them as `Saved` assets only, then add the ids to `Shared.MeshAssets` or Config.
-- **Skinned slime mesh:** a squash bone in the kit mesh, so the Mesh look squashes without a per-frame `Size` write.
+## What exists
 
-The procedural version covers squish/bounce, hops, look-around and rarity wobble and sparkle. Rigging would only make these look nicer and cost less.
+- **Rig** (`src/visuals/shared/SlimeRig.luau`, called by `ModelFactory.build`): Motor6Ds `FaceRoot` and `SkinRoot` from `Body`, an `AnimationController` + `Animator`. Eyes and mouth are welded to FaceRoot, every other decoration and the mesh look (`SlimeMesh` Mesh / Accessory) to SkinRoot. Body stays anchored, the PrimaryPart and the prompt target.
+- **Mesh:** the four kit body meshes (`slime_base`, `slime_ears`, `slime_horns`, `slime_wobble`) now export with a `Root` + `Squash` armature (`models/_slime.py rig_squash`; FBX in `shared/modeling-kit/out`). **Not re-uploaded:** the skinned import is untested in Studio, so the live mesh ids still point at the unskinned meshes.
+- **Animations** (`animations/*.rbxmx`, made by `tools/gen_slime_animations.py`): `SlimeIdleSquish` (2.5 s loop), `SlimeHop` (0.75 s), `SlimeLookLeft` / `SlimeLookRight` (0.4 s). Uploaded through the Open Cloud Assets API (assetType `Animation`, `.rbxmx`); ids in `shared/modeling-kit/uploaded.json` and `MeshAssets.ANIMATIONS`. `SlimeBlink` is not made: the eyes are separate parts without a lid.
+- **Pets:** `PetRig.stripLife` also removes the Animator, resets Motor6D transforms and drops the sparkle.
 
-## Follow-ups for other owners
+## Studio checks still needed (nobody ran Studio)
 
-- **Archer, `FollowPets`:** clone the source slime after removing client-only children named `LifeRoot` (holds `LifeWeld`s and `LifeSparkle`) and `Body.LifeSquash`, and re-enable the disabled `WeldConstraint`s. A pet cloned while its slime is rigged otherwise keeps the frozen pose and the sparkles.
-- **Archer, VisualsClient:** blinking is still VisualsClient's job (it blinks every tagged slime). SlimeLife doesn't touch the eyes. Its motion rides on top of VisualsClient's pivot bob/tilt.
-- **Studio check (anyone with Studio, not done here):** confirm that `Weld.C0` writes on the anchored slime assembly render smoothly at 16 rigs on a phone. Also confirm that VisualsClient's per-frame `PivotTo` keeps the rigged decorations attached, with no drift or jitter.
+1. Do the animations load and play? They were written by a script, not saved from Studio (the docs warn that such .rbxm may not work). Play one on a slime (`tools/pipeline/pc-watcher` shots `17-anim-*`).
+2. Does an Animator on the anchored slime move FaceRoot / SkinRoot (Motor6D `Transform`) while VisualsClient's per-frame `PivotTo` runs, with no drift or jitter, at 16 rigs on a phone?
+3. Skinned mesh: upload the new FBX with `upload.py --update`, check that LoadAsset + `CreateMeshPartAsync` keep the Bones, then the `Squash` pose in the animations (a Motor6D chain `SkinRoot > Mesh` may be needed for the Animator to find the Bone).
+4. Animation ownership: the asset must be playable by the experience's owner (uploaded under user 1040646178).

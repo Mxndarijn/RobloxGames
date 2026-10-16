@@ -1564,6 +1564,11 @@ def step_shots(run):
                     # morph proof: the Client sets the pad's Habitat and waits `wait` s (mid-morph < 1, done >= 1.2)
                     res["habitat"] = run.need_luau("habitat_set", "Client", timeout=30, path=res["target"]["path"],
                                                    habitat=shot["habitat"], wait=float(shot.get("wait", 1.5)))
+                if shot.get("anim") and (res.get("target") or {}).get("path"):
+                    # rig proof: the Client plays the animation on the pad's slime Animator and waits `wait` s
+                    # (SlimeHop apex 0.45, SlimeLookLeft/Right peak 0.2, SlimeIdleSquish low 1.25)
+                    res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
+                                                anim=shot["anim"], id=shot["animId"], wait=float(shot.get("wait", 0.5)))
                 res["frame"] = capture_frame(run, hwnd, fid, crop=True, todo=todo, kind="shot",
                                              target=(res.get("target") or {}).get("path"))
         except Exception as e:

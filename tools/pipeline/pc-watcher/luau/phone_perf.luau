@@ -1,5 +1,5 @@
 -- Client datamodel: %%SECONDS%% s of RenderStepped dt (avg / p95 / max ms, FPS), memory and the number of
--- slimes SlimeLife is animating (a slime with a LifeRoot child, see src/ui/SlimeLifeRunner) and of tagged
+-- slimes SlimeLife is animating (a slime with a LifeRoot child or the client-only LifeAnimating attribute, see src/ui/SlimeLifeRunner) and of tagged
 -- slimes within SlimeLife.MAX_DISTANCE (80 studs) of the camera. Waits up to 8 s for >= 16 animating first.
 local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
@@ -13,7 +13,7 @@ local function count()
 			if body and (body.Position - cam.CFrame.Position).Magnitude <= 80 then
 				near += 1
 			end
-			if m:FindFirstChild("LifeRoot") then
+			if m:FindFirstChild("LifeRoot") or m:GetAttribute("LifeAnimating") then
 				animating += 1
 			end
 		end

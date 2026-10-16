@@ -6,7 +6,8 @@
 
 	Turns a slime genome into an unparented Model. Contract (CONTRACT.md §4):
 	  * Name "Slime_<id>", PrimaryPart "Body" (Ball Part, diameter
-	    SLIME_BASE_DIAMETER * size), every other part welded to Body.
+	    SLIME_BASE_DIAMETER * size), every other part held to Body (decorations through the
+    FaceRoot / SkinRoot Motor6D rig of SlimeRig, plus an Animator).
 	  * Body.Anchored = true, every part Massless and CanCollide = false;
 	    Body.CanQuery = true so ProximityPrompts / raycasts can hit it.
 	  * WorldPivot sits at the bottom centre: model:PivotTo(padTopCFrame)
@@ -24,6 +25,7 @@
 local CollectionService = game:GetService("CollectionService")
 
 local Constants = if script then require(script.Parent.Parent.Shared.Constants) else require("../../shared/Constants")
+local SlimeRig = if script then require(script.Parent.SlimeRig) else require("./SlimeRig")
 local SlimeLayout = if script then require(script.Parent.SlimeLayout) else require("./SlimeLayout")
 local Types = if script then require(script.Parent.Parent.Shared.Types) else require("../../shared/Types")
 
@@ -96,6 +98,7 @@ function ModelFactory.build(slimeData: Types.SlimeData): Model
 		part.Parent = model
 	end
 
+	SlimeRig.attach(model, body)
 	model.PrimaryPart = body
 	model.WorldPivot = CFrame.new()
 	model:SetAttribute("SlimeId", slimeData.id)

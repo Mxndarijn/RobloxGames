@@ -40,11 +40,20 @@ def load_env_file():
         os.environ.setdefault(k.strip(), v.strip().strip("'\""))
 
 
+def ctype_of(path):
+    return "model/x-rbxm" if path.endswith((".rbxm", ".rbxmx")) else "model/fbx"
+
+
+def asset_type_of(path):
+    """Animation = KeyframeSequence .rbxm/.rbxmx (Assets API, assetType Animation); everything else is a Model FBX."""
+    return "Animation" if path.endswith((".rbxm", ".rbxmx")) else "Model"
+
+
 def multipart(request, path):
     boundary = uuid.uuid4().hex
     body = (f'--{boundary}\r\nContent-Disposition: form-data; name="request"\r\n\r\n{json.dumps(request)}\r\n'
             f'--{boundary}\r\nContent-Disposition: form-data; name="fileContent"; filename="{os.path.basename(path)}"\r\n'
-            "Content-Type: model/fbx\r\n\r\n").encode() + open(path, "rb").read() + f"\r\n--{boundary}--\r\n".encode()
+            f"Content-Type: {ctype_of(path)}\r\n\r\n").encode() + open(path, "rb").read() + f"\r\n--{boundary}--\r\n".encode()
     return body, f"multipart/form-data; boundary={boundary}"
 
 
@@ -77,9 +86,9 @@ def plan(a, name, fbx):
         return "PATCH", f"{a.api}/assets/{a.update}", {"assetId": int(a.update)}
     who = {"groupId": a.group_id} if a.group_id else {"userId": a.user_id}
     return "POST", f"{a.api}/assets", {
-        "assetType": "Model",
+        "assetType": asset_type_of(fbx),
         "displayName": a.display_name or name,
-        "description": a.description or f"{name}: low-poly mesh made with modeling-kit (own work)",
+        "description": a.description or (f"{name}: slime animation (KeyframeSequence, own work)" if asset_type_of(fbx) == "Animation" else f"{name}: low-poly mesh made with modeling-kit (own work)"),
         "creationContext": {"creator": who},
     }
 
@@ -107,8 +116,8 @@ def main():
 
     fbx = os.path.abspath(a.fbx)
     name = a.name or os.path.splitext(os.path.basename(fbx))[0]
-    if not fbx.endswith(".fbx") or not os.path.isfile(fbx):
-        sys.exit(f"upload: {a.fbx} is not an existing .fbx")
+    if not fbx.endswith((".fbx", ".rbxm", ".rbxmx")) or not os.path.isfile(fbx):
+        sys.exit(f"upload: {a.fbx} is not an existing .fbx / .rbxm / .rbxmx")
     size = os.path.getsize(fbx)
     if size >= MAX_BYTES:
         sys.exit(f"upload: {size} B >= 20 MB Open Cloud limit")
@@ -126,7 +135,7 @@ def main():
     print(f"{'SEND' if a.go else 'would send'}: {method} {url}")
     print("  headers: x-api-key: <ROBLOX_OPEN_CLOUD_API_KEY, not shown>, Content-Type: multipart/form-data")
     print(f"  request: {json.dumps(request)}")
-    print(f"  fileContent: {os.path.basename(fbx)} ({size} B, sha256 {sha}..., model/fbx)")
+    print(f"  fileContent: {os.path.basename(fbx)} ({size} B, sha256 {sha}..., {ctype_of(fbx)})")
     print("  then: poll GET {api}/operations/<id> until done -> assetId -> uploaded.json".format(api=a.api))
     if a.size_check:
         print(f"  then: size check: python3 {PROBE} <tmp json {{{name}: {{assetId}}}}> (Luau Execution, loads the asset only)")
@@ -149,7 +158,7 @@ def main():
     asset_id = op.get("response", {}).get("assetId") or a.update
     record = json.load(open(RECORD)) if os.path.isfile(RECORD) else {}
     entry = record.get(name, {})
-    entry.update({"assetId": str(asset_id), "assetType": "Model", "sha256": sha,
+    entry.update({"assetId": str(asset_id), "assetType": asset_type_of(fbx), "sha256": sha,
                   "uploadedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                   "versions": entry.get("versions", 0) + 1})
     record[name] = entry
