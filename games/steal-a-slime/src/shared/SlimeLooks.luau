@@ -11,8 +11,8 @@
 	Colour: Genome.generate gives wild spawns their type's colour. Material:
 	server SlimeMesh sets it on Body / Mesh of an unmutated slime (a mutation
 	material always wins). Kit: the modeling-kit mesh the type is meant to use
-	(MeshAssets name); none is uploaded yet, so every type renders with the
-	shared slime package (Config.SLIME_MESH_ASSET_ID) or the procedural ball.
+	(MeshAssets name, uploaded); server SlimeMesh wears it, falling back to the
+	shared slime package (Config.SLIME_MESH_ASSET_ID), then the procedural ball.
 
 	Animations: slimes are not rigs and no AnimationIds exist. Every state is
 	the procedural fallback played by the visuals client (VisualsClient step):

@@ -1039,6 +1039,71 @@
     "uploadedAt": "2026-10-16T07:11:56Z",
     "versions": 1
   },
+  "slime_acc_crown": {
+    "assetId": "74364823935489",
+    "assetType": "Model",
+    "meshId": "rbxassetid://92341925509131",
+    "meshSize": [
+      2.122,
+      0.855,
+      2.061
+    ],
+    "sha256": "9d5c5ca158322ba0",
+    "uploadedAt": "2026-10-16T10:38:30Z",
+    "versions": 1
+  },
+  "slime_acc_crystal": {
+    "assetId": "81793700384926",
+    "assetType": "Model",
+    "meshId": "rbxassetid://95064860572309",
+    "meshSize": [
+      1.595,
+      1.599,
+      1.146
+    ],
+    "sha256": "a38ece16eea828b3",
+    "uploadedAt": "2026-10-16T10:38:38Z",
+    "versions": 1
+  },
+  "slime_acc_leaf": {
+    "assetId": "106754639859242",
+    "assetType": "Model",
+    "meshId": "rbxassetid://97059324837657",
+    "meshSize": [
+      0.764,
+      1.207,
+      0.42
+    ],
+    "sha256": "501e4be90c31facc",
+    "uploadedAt": "2026-10-16T10:37:34Z",
+    "versions": 1
+  },
+  "slime_base": {
+    "assetId": "133281767866632",
+    "assetType": "Model",
+    "meshId": "rbxassetid://96069569027056",
+    "meshSize": [
+      3.0,
+      3.0,
+      3.0
+    ],
+    "sha256": "541f4d070c6b3938",
+    "uploadedAt": "2026-10-16T10:37:17Z",
+    "versions": 1
+  },
+  "slime_ears": {
+    "assetId": "133539750305742",
+    "assetType": "Model",
+    "meshId": "rbxassetid://117281005651852",
+    "meshSize": [
+      3.0,
+      3.012,
+      3.0
+    ],
+    "sha256": "e31ad4012fc1d306",
+    "uploadedAt": "2026-10-16T10:37:53Z",
+    "versions": 1
+  },
   "slime_fountain": {
     "assetId": "137335028699292",
     "assetType": "Model",
@@ -1063,6 +1128,32 @@
     ],
     "sha256": "ae85bc1351e57f69",
     "uploadedAt": "2026-10-16T07:27:34Z",
+    "versions": 1
+  },
+  "slime_horns": {
+    "assetId": "105609409091359",
+    "assetType": "Model",
+    "meshId": "rbxassetid://92010370751646",
+    "meshSize": [
+      3.0,
+      3.522,
+      3.0
+    ],
+    "sha256": "e6450620c4637fd0",
+    "uploadedAt": "2026-10-16T10:38:12Z",
+    "versions": 1
+  },
+  "slime_wobble": {
+    "assetId": "73195420238991",
+    "assetType": "Model",
+    "meshId": "rbxassetid://122483175823891",
+    "meshSize": [
+      3.23,
+      3.0,
+      3.307
+    ],
+    "sha256": "2bb083b94d66ae70",
+    "uploadedAt": "2026-10-16T10:38:55Z",
     "versions": 1
   }
 }
