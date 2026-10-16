@@ -26,6 +26,7 @@ export type Slime = {
 	mutations: { string }?, -- every mutation (Config.MUTATIONS / COMBOS names, at most Config.MAX_MUTATIONS); nil = just `mutation`
 	pad: number?, -- home pad on the owner's plot (nil while wild)
 	species: string?, -- SlimeRoster id (wild spawns since v28; nil for older/merged slimes)
+	growth: number?, -- 0..1 (FEATURES.GrowingSlimes, Growth); nil = not grown yet (old saves, wild, merged slimes)
 }
 
 export type GenerateOptions = {
@@ -271,9 +272,22 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 	return slime
 end
 
--- Cash/sec before the rebirth multiplier.
+-- Growth 0..1 that counts: 0 with FEATURES.GrowingSlimes off or no/garbage `growth`.
+function Genome.growthFraction(slime: Slime): number
+	local g = slime.growth
+	if not Config.FEATURES.GrowingSlimes or type(g) ~= "number" or g ~= g then
+		return 0
+	end
+	return math.clamp(g, 0, 1)
+end
+
+-- Cash/sec before the rebirth multiplier (incl. growth).
 function Genome.baseIncome(slime: Slime): number
-	return Genome.rarity(slime.tier).income * slime.size * Genome.mutationsMultiplier(Genome.mutationList(slime))
+	local growth = 1 + Config.GROWTH_MAX_INCOME_BONUS * Genome.growthFraction(slime)
+	return Genome.rarity(slime.tier).income
+		* slime.size
+		* Genome.mutationsMultiplier(Genome.mutationList(slime))
+		* growth
 end
 
 -- Every mutation's player-facing name, space separated ("Glow Syrup"); "" for none.
@@ -351,6 +365,10 @@ function Genome.sanitize(raw: any): Slime?
 			table.insert(mutations, m)
 		end
 	end
+	local growth = tonumber(raw.growth)
+	if growth and (growth ~= growth or growth <= 0) then
+		growth = nil
+	end
 	return {
 		id = id,
 		name = name,
@@ -364,6 +382,7 @@ function Genome.sanitize(raw: any): Slime?
 		mutations = mutations,
 		pad = if pad then math.floor(pad) else nil,
 		species = if type(raw.species) == "string" and SlimeRoster.get(raw.species) then raw.species else nil,
+		growth = if growth then math.floor(math.min(growth, 1) * 1e4 + 0.5) / 1e4 else nil,
 	}
 end
 

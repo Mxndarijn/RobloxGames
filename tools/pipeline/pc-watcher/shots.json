@@ -942,5 +942,79 @@
     "wait": 0.6,
     "device": "desktop",
     "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod on), camera 120 studs from the pad: records near / mid / far tier counts (res.motion.tiers)"
+  },
+  {
+    "id": "18-weather-Rain",
+    "todo": "18",
+    "kind": "world",
+    "pos": [
+      0,
+      30,
+      70
+    ],
+    "look": [
+      0,
+      8,
+      0
+    ],
+    "weather": "Rain",
+    "wait": 2.5,
+    "note": "TODO 18: Rain weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
+  },
+  {
+    "id": "18-weather-Snow",
+    "todo": "18",
+    "kind": "world",
+    "pos": [
+      0,
+      30,
+      70
+    ],
+    "look": [
+      0,
+      8,
+      0
+    ],
+    "weather": "Snow",
+    "wait": 2.5,
+    "note": "TODO 18: Snow weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
+  },
+  {
+    "id": "18-weather-Starfall",
+    "todo": "18",
+    "kind": "world",
+    "pos": [
+      0,
+      30,
+      70
+    ],
+    "look": [
+      0,
+      8,
+      0
+    ],
+    "weather": "Starfall",
+    "wait": 2.5,
+    "note": "TODO 18: Starfall weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
+  },
+  {
+    "id": "17-motion-lod-tiers",
+    "todo": "17",
+    "kind": "world",
+    "target": "Pad_1",
+    "seat": true,
+    "motion": "Tiers",
+    "wait": 0.6,
+    "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod): records the near / mid / far tier counts of the animated slimes around the pad (res.motion.tiers); with the flag off all are near"
+  },
+  {
+    "id": "v29-11-slime-growth-pad",
+    "todo": "v29 11",
+    "kind": "world",
+    "target": "Pad_1",
+    "from": "look",
+    "dist": 8,
+    "height": 4,
+    "note": "v29 #11: a grown slime on Pad_1 is drawn slightly larger with a small 'Growth %' label above it (FEATURES.GrowingSlimes)"
   }
 ]

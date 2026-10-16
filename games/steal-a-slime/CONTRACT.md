@@ -189,10 +189,13 @@ The `slimeData` shape is `Types.SlimeData`, the same as `Genome.Slime` and the s
 	mutation: string,    -- save id: "None" | "Glow" | "Lava" | "Galaxy" | "Rainbow" | "Gold" | "Crystal" | "Eclipse" ("Lava" displays as "Syrup": Config.MUTATIONS[].displayName)
 	pad: number?,        -- home pad 1..PADS_MAX on the owner's plot; nil while wild/carried
 	species: string?,    -- SlimeRoster id (v28+); nil on older and merged slimes
+	growth: number?,     -- 0..1 (FEATURES.GrowingSlimes); nil = 0, old saves load unchanged
 }
 ```
 
 **Roster (v28):** wild slimes roll their tier exactly as before, then pick a species of that tier from `SlimeRoster` (uniform within the tier); `name` is the species display name. Saved slimes keep their stored `name`; `species` is optional and an unknown id is dropped on load. Secret species (tier 7) are roster-only and never spawn. Mutations are ordered by multiplier (Merge ranks by position): Glow 1.5/50, Lava 2/30 (shown as "Syrup", save id stays `Lava`), Galaxy 3/15, Rainbow 4/8, Gold 5/5, Crystal 7/2, Eclipse 10/0.5.
+
+**Growth (FEATURES.GrowingSlimes, `Shared.Growth`):** a pad slime's `growth` rises by `dt / GROWTH_SECONDS` (Income.step, carried slimes skip); on join `(now - lastOnline)` capped at `GROWTH_OFFLINE_CAP_SECONDS` counts too. `Genome.baseIncome` x `1 + GROWTH_MAX_INCOME_BONUS * growth` (so sell price too). Saved as optional `growth` per slime (rounded to 4 decimals); missing = 0, `SAVE_VERSION` stays 3. The server scales the model by `Growth.scale` and shows a `GrowthLabel` "Growth N%" (model attribute `Growth`).
 
 **Return value:** a new, **unparented** `Model`:
 - **Name:** `Slime_<id>`.
