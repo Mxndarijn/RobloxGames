@@ -4,6 +4,8 @@
   {"id": "02-dex-menu", "todo": "2", "kind": "ui", "open": "dex", "note": "TODO 2: SlimeDex images"},
   {"id": "03-shop-menu", "todo": "3", "kind": "ui", "open": "shop", "note": "TODO 3: one shop menu"},
   {"id": "04-rebirth-menu", "todo": "4", "kind": "ui", "open": "rebirth", "note": "TODO 4: rebirth shows next upgrade only"},
+  {"id": "04-rebirth-slime-missing", "todo": "29", "kind": "ui", "open": "rebirth", "rebirth_slime": "missing", "note": "v29 #5: rebirth menu, required slime MISSING (greyed silhouette, 'Missing', button disabled 'Need <slime>')"},
+  {"id": "04-rebirth-slime-owned", "todo": "29", "kind": "ui", "open": "rebirth", "rebirth_slime": "owned", "note": "v29 #5: rebirth menu, required slime OWNED (slime render + green check 'Owned')"},
   {"id": "05-guide-npc", "todo": "5", "kind": "world", "target": "TutorialNpc", "note": "TODO 5: guide NPC"},
   {"id": "06-fountain-centre", "todo": "6", "kind": "world", "target": "FountainMesh", "note": "TODO 6/13: fountain in exact middle"},
   {"id": "06-map-top", "todo": "6", "kind": "world", "pos": [0, 260, 1], "look": [0, 0, 0], "note": "TODO 6/8/9: top-down overview (fountain at centre, stray boxes)"},
@@ -59,5 +61,6 @@
   {"id": "17-motion-lookright", "todo": "17", "kind": "world", "target": "Pad_1", "seat": true, "motion": "LookRight", "wait": 0.35, "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), look right (FaceRoot/SkinRoot yaw)"},
   {"id": "18-hold-ring-rebirth", "todo": "18", "kind": "ui", "open": "rebirth", "hold": "RebirthButton", "note": "B1: hold-to-confirm Rebirth button with its fill ring half full (mid-hold)"},
   {"id": "18-modifier-badge", "todo": "18", "kind": "ui", "note": "TODO 18: server modifier HUD badge (ModifierBadge: name, multipliers, time left) under the rain banner; HUD as-is, no click. Needs a non-None modifier phase (FEATURES.CycleModifier)"},
-  {"id": "18-slide-top-to-bottom", "todo": "B6", "kind": "world", "target": "slide", "from": "centre", "dist": 90, "height": 60, "slide_walk": true, "note": "TODO B6: slide collision along the FULL length: free balls dropped from 4 studs onto every segment, very top to bottom, must never sink under the surface (luau/slide_walk, soft fail = warn)"}
+  {"id": "18-slide-top-to-bottom", "todo": "B6", "kind": "world", "target": "slide", "from": "centre", "dist": 90, "height": 60, "slide_walk": true, "note": "TODO B6: slide collision along the FULL length: free balls dropped from 4 studs onto every segment, very top to bottom, must never sink under the surface (luau/slide_walk, soft fail = warn)"},
+  {"id": "19-appraise-plot", "todo": "19", "kind": "ui", "open": "plot", "note": "TODO 19: Plot panel rows show the Appraise button with its cost (30% of value, FEATURES.Appraise)"}
 ]

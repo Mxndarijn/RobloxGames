@@ -155,6 +155,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While you're not carrying, WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Permanent: saved and kept on rebirth. |
 | `"Slap"` | `targetUserId: number` | Slaps a carrier within `SLAP_REACH`. The slime escapes home. |
 | `"Drop"` | none | Drops what you're carrying. Wild → falls to the ground; stolen → escapes home. |
+| `"Appraise"` | `slimeId: string, kind: "mutation" \| "size"` | `FEATURES.Appraise`: pays `Appraise.cost` (`APPRAISE_COST_FRACTION` = 30% of `Economy.sellPrice`) to reroll that owned, not-busy slime's mutation or size. Only `mutation` / `size` change. Success returns `{ ok = true, appraisal = Types.Appraisal }` (before / after, cost). Fails with `"not your slime"`, `"not enough cash"`, `"slime is busy"`, `"appraise is off"`. `SlimeView.appraiseCost` is nil when the flag is off. |
 | `"Sync"` | none | The server re-sends `State` right away. The UI calls it once on start. |
 
 `Notify` sound names: `"Alarm"` (your slime is being stolen), `"Grab"`, `"Stolen"`, `"Escape"`, `"Slap"`, `"Lock"`, `"Unlock"`, `"Merge"`, `"Cash"`, `"Deposit"`, `"Rain"`, `"Rebirth"`, or `nil`. The sound name doubles as the **effect hook**: clients may also play a particle burst or screen effect keyed on it (the world-space bursts themselves are server-played, §5.4). Purchases (pads, shop upgrades) and the daily reward use `"Cash"`; finishing the tutorial sends Notify "Tutorial complete!" (`"good"`, no sound).
@@ -504,6 +505,16 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
   Stats: `caught` (wild slimes deposited), `merges`, `locks` (locks bought), `sold`, `stolen` (= `totalStolen`), `earned` (= `totalEarned`), `rebirths`, `pads` (= `padsUnlocked`).
 - **Slimedex rewards** (`Config.DEX_MILESTONES`, `src/shared/Collection.luau`): at 10 / 25 / 50 / 100 / 200 / 400 / 720 discovered: cash 500 / 2.5K / 10K / 50K / 250K / 1.5M / 10M (x rebirthMultiplier) and a permanent income bonus +2 / +3 / +5 / +5 / +10 / +15 / +25 %.
+
+### 8.8a Rebirth needs a slime (v29)
+
+Rebirth number N also needs one owned slime (`data.slimes`, i.e. on a pad) of the
+`Config.REBIRTH_SLIMES[N]` species (a SlimeRoster id; a level without an entry uses the
+last entry below it). The cash cost stays. `Progression.canRebirth` rejects with
+`need a <Species Name>` when it is missing. The slime is **not consumed**: the normal
+rebirth wipe and keeper rule apply, so it only survives as a keeper. State gains
+`rebirthSlime: { id, name, tier, color, owned }?` (nil at `MAX_REBIRTHS`); `canRebirth`
+already includes the slime check.
 
 ### 8.9 DataStore schema v3 (`Config.SAVE_VERSION = 3`)
 

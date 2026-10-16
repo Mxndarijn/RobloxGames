@@ -12,6 +12,7 @@ local Format = require(UI.Format)
 local Layout = require(UI.Layout)
 local Progress = require(UI.Progress)
 local Selection = require(UI.Selection)
+local SlimePreview = require(UI.SlimePreview)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -23,12 +24,14 @@ local Rebirth = {}
 -- Rebirth card, MENU_HEIGHTS.Rebirth tall).
 Rebirth.ROWS = table.freeze({
 	need = { y = 0, h = 112 }, -- requirement card
-	gives = { y = 120, h = 40 }, -- reward chips
-	keeper = { y = 166, h = 22 },
-	button = { y = 196, h = Layout.BUTTON },
-	note = { y = 258, h = 18 },
+	slime = { y = 120, h = 72 }, -- v29: the slime it also needs
+	gives = { y = 200, h = 40 }, -- reward chips
+	keeper = { y = 246, h = 22 },
+	button = { y = 276, h = Layout.BUTTON },
+	note = { y = 338, h = 18 },
 })
-Rebirth.CONTENT_H = 276 -- note.y + note.h
+Rebirth.CONTENT_H = 356 -- note.y + note.h
+Rebirth.SLIME_IMAGE = 56
 
 function Rebirth.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "RebirthPanel", "Rebirth", "♻️", Color3.fromRGB(200, 150, 40))
@@ -75,6 +78,67 @@ function Rebirth.new(parent: Instance, ctx: any)
 		Position = UDim2.fromOffset(12, 86),
 		Size = UDim2.new(1, -24, 0, 18),
 		Parent = need,
+	})
+
+	-- v29: the slime this rebirth also needs. Image first (the real slime in a
+	-- viewport, a dark silhouette while missing), its name, then Owned / Missing.
+	local slimeCard = create("Frame", {
+		Name = "SlimeNeed",
+		BackgroundColor3 = Theme.Row,
+		Position = UDim2.fromOffset(0, rows.slime.y),
+		Size = UDim2.new(1, 0, 0, rows.slime.h),
+		Parent = content,
+	}, { Widgets.corner(12) })
+	local imageSize = Rebirth.SLIME_IMAGE
+	local slimeImage = create("Frame", {
+		Name = "Image",
+		Position = UDim2.fromOffset(8, (rows.slime.h - imageSize) // 2),
+		Size = UDim2.fromOffset(imageSize, imageSize),
+		BackgroundTransparency = 0.55,
+		Parent = slimeCard,
+	}, { Widgets.corner(14) })
+	local slimeView = create("ViewportFrame", {
+		Name = "Preview",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		Parent = slimeImage,
+	})
+	local slimeGlyph = Widgets.label({
+		Name = "Glyph",
+		Text = "?",
+		Font = Theme.Font,
+		TextSize = 28,
+		TextColor3 = Theme.Muted,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		ZIndex = 3,
+		Size = UDim2.fromScale(1, 1),
+		Parent = slimeImage,
+	})
+	local slimeHeading = Widgets.label({
+		Name = "SlimeHeading",
+		Font = Theme.Font,
+		TextSize = 12,
+		TextColor3 = Theme.Muted,
+		Position = UDim2.fromOffset(imageSize + 18, 8),
+		Size = UDim2.new(1, -(imageSize + 26), 0, 16),
+		Parent = slimeCard,
+	})
+	local slimeName = Widgets.label({
+		Name = "SlimeName",
+		Font = Theme.Font,
+		TextSize = 18,
+		Position = UDim2.fromOffset(imageSize + 18, 24),
+		Size = UDim2.new(1, -(imageSize + 26), 0, 22),
+		Parent = slimeCard,
+	})
+	local slimeState = Widgets.label({
+		Name = "SlimeState",
+		Font = Theme.Font,
+		TextSize = 15,
+		Position = UDim2.fromOffset(imageSize + 18, 46),
+		Size = UDim2.new(1, -(imageSize + 26), 0, 18),
+		Parent = slimeCard,
 	})
 
 	-- What the next rebirth gives: two chips.
@@ -150,7 +214,52 @@ function Rebirth.new(parent: Instance, ctx: any)
 		keepLine.Text = if fav then `⭐ Keeps {ctx.Genome.displayName(fav.slime)}` else "⭐ Keeps your best slime"
 		keepLine.TextColor3 = if fav then Theme.Gold else Theme.Muted
 
-		btn.setText(if nextUp.ready then "♻️ Rebirth!" else `♻️ Need {nextUp.need}`)
+		slimeCard.Visible = nextUp.slime ~= nil
+		local slimeNeed = nextUp.slime
+		if slimeNeed then
+			slimeHeading.Text = "AND THIS SLIME"
+			slimeName.Text = slimeNeed.name
+			slimeCard.BackgroundTransparency = if slimeNeed.owned then 0 else 0.35
+			slimeName.TextColor3 = if slimeNeed.owned then Theme.Text else Theme.Muted
+			slimeState.Text = if slimeNeed.owned then "✅ Owned" else "Missing"
+			slimeState.TextColor3 = if slimeNeed.owned then Theme.Accent else Theme.Muted
+			slimeImage.BackgroundColor3 = Widgets.color3(slimeNeed.color)
+			local look = `{slimeNeed.id}:{slimeNeed.owned}`
+			if slimeView:GetAttribute("Look") ~= look then
+				local opts = { locked = not slimeNeed.owned }
+				local ok = false
+				if ctx.buildSlime then
+					local genome = {
+						id = `Rebirth_{slimeNeed.id}`,
+						name = slimeNeed.name,
+						tier = slimeNeed.tier,
+						color = slimeNeed.color,
+						size = 1,
+						pattern = "Plain",
+						eyes = "Round",
+						mouth = "Smile",
+						mutation = "None",
+						species = slimeNeed.id,
+					}
+					local built, model = pcall(ctx.buildSlime, genome)
+					ok = built and model ~= nil and SlimePreview.mountModel(slimeView, model, opts)
+				end
+				if not ok then
+					ok = SlimePreview.mount(slimeView, slimeNeed.color, opts)
+				end
+				slimeView:SetAttribute("Look", look)
+				slimeView.Visible = ok
+			end
+			slimeGlyph.Visible = not slimeNeed.owned and not slimeView.Visible
+		end
+
+		local reason = if nextUp.ready
+			then "♻️ Rebirth!"
+			elseif
+				nextUp.slimeMissing and nextUp.have >= nextUp.cost
+			then `♻️ Need {slimeNeed and slimeNeed.name or "a slime"}`
+			else `♻️ Need {nextUp.need}`
+		btn.setText(reason)
 		btn.setEnabled(nextUp.ready)
 	end
 

@@ -90,6 +90,11 @@ describe("B1: hold-to-confirm buttons", function()
 		expect(importantButtons("src/ui/Hud.luau", "Lock")).toBe("holdButton")
 		expect(importantButtons("src/ui/Hud.luau", "BuyPad")).toBe("holdButton")
 		expect(importantButtons("src/ui/Panels/Plot.luau", "Sell")).toBe("holdButton")
+		-- Appraise rerolls spend cash: both popup buttons are built by popupButton -> holdButton.
+		expect(importantButtons("src/ui/Panels/Plot.luau", "Appraise")).toBe("button") -- opener is free
+		local plot = read("src/ui/Panels/Plot.luau")
+		local popupFn = string.match(plot, "local function popupButton.-\n\tend\n")
+		expect(popupFn ~= nil and string.find(popupFn, "Widgets.holdButton(", 1, true) ~= nil).toBe(true)
 		expect(importantButtons("src/ui/Panels/Rebirth.luau", "RebirthButton")).toBe("holdButton")
 		expect(importantButtons("src/ui/Panels/Shop.luau", "Buy")).toBe("holdButton")
 		expect(importantButtons("src/ui/Panels/Merge.luau", "MergeButton")).toBe("holdButton")

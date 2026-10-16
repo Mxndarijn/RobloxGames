@@ -1346,6 +1346,8 @@ def step_shots(run):
                     res["overlays"] = over
                     if over:
                         res["error"] = "overlay visible with no menu open: %s" % ", ".join(over)
+                if shot.get("rebirth_slime"):  # v29: force the required-slime state (owned / missing) in Studio
+                    res["rebirth_slime"] = run.need_luau("rebirth_slime", "Client", timeout=15, state=shot["rebirth_slime"])
                 opened = open_panel(run, key) if key else None
                 if opened:
                     res["open"] = opened
@@ -1375,6 +1377,8 @@ def step_shots(run):
                         run.luau("hold_fill", "Client", timeout=15, name=shot["hold"], on=False)
                 if opened and not shot.get("press") and opened["method"] != "already open":
                     res["closed_by"] = close_panel(run, opened["panel"])
+                if shot.get("rebirth_slime"):
+                    run.luau("rebirth_slime", "Client", timeout=15, state="")
             else:
                 if shot.get("pos"):
                     eye, at = shot["pos"], shot.get("look") or [0, 0, 0]
@@ -1425,7 +1429,7 @@ def step_shots(run):
                             sid, res["motion"].get("mode"), res["motion"].get("moved")))
                 if shot.get("slide_walk"):
                     # B6: free balls dropped onto every slide segment, top to bottom, must never sink under the slide
-                    res["slide_walk"] = run.need_luau("slide_walk", "Server", timeout=90)
+                    res["slide_walk"] = run.need_luau("slide_walk", "Server", timeout=60)
                     if not res["slide_walk"].get("ok"):
                         run.note("shot %s: fell through the slide: %s" % (
                             sid, str(res["slide_walk"].get("violations") or res["slide_walk"].get("error"))[:200]))

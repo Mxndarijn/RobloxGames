@@ -10,6 +10,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local Appraise = if Shared then require(Shared.Appraise) else require("../shared/Appraise")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
@@ -44,6 +45,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			slime = slime,
 			income = if carrier then 0 else PlayerData.slimeIncome(data, slime),
 			sellPrice = Economy.sellPrice(slime, rebirths),
+			appraiseCost = if Config.FEATURES.Appraise then Appraise.cost(slime, rebirths) else nil,
 			stolenBy = carrier,
 		})
 	end
@@ -84,6 +86,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		rebirthMultiplier = Economy.rebirthMultiplier(rebirths),
 		rebirthCost = Economy.rebirthCost(rebirths),
 		canRebirth = canRebirth,
+		rebirthSlime = Progression.requiredSlime(data),
 		padsUnlocked = data.padsUnlocked,
 		padsMax = Config.PADS_MAX,
 		nextPadCost = Economy.padCost(data.padsUnlocked),
