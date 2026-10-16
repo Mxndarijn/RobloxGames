@@ -161,9 +161,8 @@ def t_win32_pure():
 
 
 def t_background():
-    """Runs in the background: off-screen maths, window pick (iconic too), focus + cursor guards, and
-    no focus-stealing / OS-input / screen-copy call left in the code."""
-    check("offscreen x", win32.offscreen_x(0, 1936) == -2036 and win32.offscreen_x(-1920, 800) == -2820)
+    """Runs in the background: window pick (iconic too), focus guard, own-desktop launch, and
+    no focus-stealing / OS-input / window-capture call left in the code."""
     row = dict(owned=False, visible=False, iconic=False, w=0, h=0, nw=0, nh=0)
     iconic = dict(row, hwnd=1, title="abc.rbxl - Roblox Studio", iconic=True, w=160, h=28, nw=1600, nh=900)
     splash = dict(row, hwnd=2, title="", visible=True, w=500, h=300, nw=500, nh=300)
@@ -185,9 +184,9 @@ def t_background():
     check("focus stolen fails the run", rep["status"] == "fail" and rep["background"]["focus_stolen"], rep["background"])
     banned = {"SetForegroundWindow", "BringWindowToTop", "SetActiveWindow", "SetFocus", "ShowWindow", "keybd_event",
               "SendInput", "mouse_event", "SetCursorPos", "BitBlt", "bring_to_front", "maximize", "restore",
-              "SW_MAXIMIZE", "SW_RESTORE", "twoplayer_cmdline", "user_mouse_input", "user_keyboard_input",
+              "SW_MAXIMIZE", "SW_RESTORE", "SetForegroundWindow", "place_offscreen", "hide_taskbar_button", "PrintWindow",
+              "capture_client", "launch_background", "twoplayer_cmdline", "user_mouse_input", "user_keyboard_input",
               "mouse_down", "mouse_up", "key_down", "key_up", "mouseButtonDown", "keyboardInput"}
-    show_ok = re.compile(r"ShowWindow\(hwnd, (SW_HIDE|SW_SHOWNOACTIVATE)\)|\(user32, \"ShowWindow\"\)")
     for f in ("win32.py", "watcher.py", "mcp_client.py"):
         with open(os.path.join(HERE, f), encoding="utf-8") as fh:
             toks = list(tokenize.generate_tokens(fh.readline))
@@ -195,11 +194,17 @@ def t_background():
         hits = ["%s:%d %s" % (f, t.start[0], t.string) for t in toks
                 if (t.type == tokenize.NAME and t.string in banned)
                 or (t.type == tokenize.STRING and t.string.strip("\"'") in banned)]
-        lines = open(os.path.join(HERE, f), encoding="utf-8").read().split("\n")
-        # ShowWindow: only SW_HIDE / SW_SHOWNOACTIVATE calls (and its ctypes signature) in win32.py's helper.
-        hits = [h for h in hits if not (f == "win32.py" and h.strip("\"'").endswith("ShowWindow")
-                                         and show_ok.search(lines[int(h.split(":")[1].split()[0]) - 1]))]
         check("no focus/OS-input calls in %s" % f, not hits, hits[:3])
+
+
+def t_desktop():
+    src = open(os.path.join(HERE, "win32.py"), encoding="utf-8").read()
+    for needle in ("CreateDesktopW", "CreateProcessW", "lpDesktop", "OpenDesktopW", "SetThreadDesktop", "EnumDesktopWindows"):
+        check("win32 uses %s" % needle, needle in src)
+    wsrc = open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
+    check("launch on the Studio desktop", "launch_on_desktop" in wsrc and "screen_capture" in wsrc)
+    luau = open(os.path.join(HERE, "luau", "cas_close.luau"), encoding="utf-8").read()
+    check("esc uses the PcwPress hook", "PcwPress" in luau and ":CallFunction(" not in luau)
 
 
 def t_lock():
@@ -227,7 +232,7 @@ def t_files():
             print(e)
         check("py_compile %s" % os.path.basename(f), ok)
     used = {
-        "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"}, "viewport_probe": {"SHOW"},
+        "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "slime_anim": {"PATH", "ANIM", "ID", "WAIT"},
@@ -281,7 +286,7 @@ def t_geometry():
 
 
 def main():
-    for t in (t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_lock,
+    for t in (t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
               t_files, t_geometry):
         try:
             t()

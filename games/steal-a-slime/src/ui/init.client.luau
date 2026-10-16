@@ -485,11 +485,31 @@ end
 
 -- Gamepad B always closes the open menu (same as its X), and Esc too while
 -- Layout.CLOSE_WITH_ESCAPE is true (v27 default); see MenuClose.
-MenuClose.bind(ContextActionService, Layout.CLOSE_WITH_ESCAPE, function()
+local closeMenuAction = MenuClose.bind(ContextActionService, Layout.CLOSE_WITH_ESCAPE, function()
 	return openKey
 end, function()
 	setOpen(nil)
 end)
+
+-- Studio-only test hook for the PC watcher: setting the SlimeUI attribute "PcwPress" to
+-- "Escape" runs the same CloseMenu action handler as the CAS binding (execute_luau cannot
+-- call ContextActionService:CallFunction: lacking capability RobloxScript). It tests the
+-- close logic, not real key routing. The hook clears "PcwPress" and writes "PcwPressResult":
+-- "closed" / "pass" (no menu open), or "not_bound" when Esc is not bound (CLOSE_WITH_ESCAPE off).
+if game:GetService("RunService"):IsStudio() then
+	gui:GetAttributeChangedSignal("PcwPress"):Connect(function()
+		if gui:GetAttribute("PcwPress") ~= "Escape" then
+			return
+		end
+		if not Layout.CLOSE_WITH_ESCAPE then
+			gui:SetAttribute("PcwPressResult", "not_bound")
+		else
+			local result = closeMenuAction("CloseMenu", Enum.UserInputState.Begin)
+			gui:SetAttribute("PcwPressResult", if result == Enum.ContextActionResult.Sink then "closed" else "pass")
+		end
+		gui:SetAttribute("PcwPress", nil)
+	end)
+end
 
 local function updateBadges(state: Types.State)
 	local badges = Nav.badges(state)

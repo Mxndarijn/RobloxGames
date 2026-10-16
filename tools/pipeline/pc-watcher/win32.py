@@ -1,9 +1,10 @@
-"""Win32 helpers via ctypes: processes, Studio windows, off-screen sizing, PrintWindow capture.
+"""Win32 helpers via ctypes: processes, a separate desktop for Studio, its windows, focus guard.
 
-Background-only: nothing here activates a window, changes the foreground or sends OS input.
-Studio starts minimized-not-active, is moved left of all monitors with SetWindowPlacement
-(SW_SHOWNOACTIVATE), resized with SetWindowPos(SWP_NOACTIVATE | ...), captured with
-PrintWindow(PW_RENDERFULLCONTENT) and closed with a posted WM_CLOSE.
+Background-only: Studio runs on its own Win32 desktop ("pcw-studio", CreateDesktopW +
+CreateProcessW with lpDesktop), so it can never take the foreground on the user's desktop. Window
+operations (find, resize) run on a DesktopWorker thread attached to that desktop. Nothing here
+activates a window, changes the foreground or sends OS input. Frames come from StudioMCP
+screen_capture (watcher.py), not from a window capture.
 
 Imports fine on any OS; every function that needs user32/gdi32 calls _api() first,
 which raises OSError off Windows. parse_tasklist_csv is pure (selftest.py).
@@ -12,14 +13,19 @@ which raises OSError off Windows. parse_tasklist_csv is pure (selftest.py).
 import csv
 import ctypes
 import io
+import logging
 import os
+import queue
 import subprocess
+import threading
 import time
-
-import imaging
 
 STUDIO_IMAGE = "RobloxStudioBeta.exe"
 NO_WINDOW = 0x08000000
+DESKTOP_NAME = "pcw-studio"
+GENERIC_ALL = 0x10000000
+
+log = logging.getLogger("pcw.win32")
 
 _API = None
 
@@ -42,8 +48,29 @@ def _api():
         _fields_ = [("length", wt.UINT), ("flags", wt.UINT), ("showCmd", wt.UINT), ("ptMinPosition", wt.POINT),
                     ("ptMaxPosition", wt.POINT), ("rcNormalPosition", wt.RECT)]
 
+    class STARTUPINFOW(ctypes.Structure):
+        _fields_ = [
+            ("cb", wt.DWORD), ("lpReserved", wt.LPWSTR), ("lpDesktop", wt.LPWSTR), ("lpTitle", wt.LPWSTR),
+            ("dwX", wt.DWORD), ("dwY", wt.DWORD), ("dwXSize", wt.DWORD), ("dwYSize", wt.DWORD),
+            ("dwXCountChars", wt.DWORD), ("dwYCountChars", wt.DWORD), ("dwFillAttribute", wt.DWORD),
+            ("dwFlags", wt.DWORD), ("wShowWindow", wt.WORD), ("cbReserved2", wt.WORD),
+            ("lpReserved2", ctypes.c_void_p), ("hStdInput", wt.HANDLE), ("hStdOutput", wt.HANDLE),
+            ("hStdError", wt.HANDLE),
+        ]
+
+    class PROCESS_INFORMATION(ctypes.Structure):
+        _fields_ = [("hProcess", wt.HANDLE), ("hThread", wt.HANDLE), ("dwProcessId", wt.DWORD),
+                    ("dwThreadId", wt.DWORD)]
+
     sig = {
-        (user32, "EnumWindows"): (wt.BOOL, [WNDENUMPROC, wt.LPARAM]),
+        (user32, "EnumDesktopWindows"): (wt.BOOL, [wt.HANDLE, WNDENUMPROC, wt.LPARAM]),
+        (user32, "CreateDesktopW"): (wt.HANDLE, [wt.LPCWSTR, wt.LPCWSTR, ctypes.c_void_p, wt.DWORD, wt.DWORD, ctypes.c_void_p]),
+        (user32, "OpenDesktopW"): (wt.HANDLE, [wt.LPCWSTR, wt.DWORD, wt.BOOL, wt.DWORD]),
+        (user32, "CloseDesktop"): (wt.BOOL, [wt.HANDLE]),
+        (user32, "SetThreadDesktop"): (wt.BOOL, [wt.HANDLE]),
+        (kernel32, "CreateProcessW"): (wt.BOOL, [wt.LPCWSTR, wt.LPWSTR, ctypes.c_void_p, ctypes.c_void_p, wt.BOOL, wt.DWORD,
+                                                  ctypes.c_void_p, wt.LPCWSTR, ctypes.POINTER(STARTUPINFOW),
+                                                  ctypes.POINTER(PROCESS_INFORMATION)]),
         (user32, "GetWindowThreadProcessId"): (wt.DWORD, [wt.HWND, ctypes.POINTER(wt.DWORD)]),
         (user32, "IsWindowVisible"): (wt.BOOL, [wt.HWND]),
         (user32, "IsIconic"): (wt.BOOL, [wt.HWND]),
@@ -52,26 +79,13 @@ def _api():
         (user32, "GetWindowTextW"): (ctypes.c_int, [wt.HWND, wt.LPWSTR, ctypes.c_int]),
         (user32, "GetWindowRect"): (wt.BOOL, [wt.HWND, ctypes.POINTER(wt.RECT)]),
         (user32, "GetClientRect"): (wt.BOOL, [wt.HWND, ctypes.POINTER(wt.RECT)]),
-        (user32, "ClientToScreen"): (wt.BOOL, [wt.HWND, ctypes.POINTER(wt.POINT)]),
         (user32, "GetWindow"): (wt.HWND, [wt.HWND, wt.UINT]),
-        (user32, "ShowWindow"): (wt.BOOL, [wt.HWND, ctypes.c_int]),
-        (user32, "GetWindowLongPtrW"): (ctypes.c_ssize_t, [wt.HWND, ctypes.c_int]),
-        (user32, "SetWindowLongPtrW"): (ctypes.c_ssize_t, [wt.HWND, ctypes.c_int, ctypes.c_ssize_t]),
         (user32, "SetWindowPos"): (wt.BOOL, [wt.HWND, wt.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wt.UINT]),
         (user32, "GetWindowPlacement"): (wt.BOOL, [wt.HWND, ctypes.POINTER(WINDOWPLACEMENT)]),
-        (user32, "SetWindowPlacement"): (wt.BOOL, [wt.HWND, ctypes.POINTER(WINDOWPLACEMENT)]),
         (user32, "GetSystemMetrics"): (ctypes.c_int, [ctypes.c_int]),
         (user32, "GetForegroundWindow"): (wt.HWND, []),
         (user32, "GetCursorPos"): (wt.BOOL, [ctypes.POINTER(wt.POINT)]),
         (user32, "PostMessageW"): (wt.BOOL, [wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM]),
-        (user32, "GetDC"): (wt.HDC, [wt.HWND]),
-        (user32, "ReleaseDC"): (ctypes.c_int, [wt.HWND, wt.HDC]),
-        (user32, "PrintWindow"): (wt.BOOL, [wt.HWND, wt.HDC, wt.UINT]),
-        (gdi32, "CreateCompatibleDC"): (wt.HDC, [wt.HDC]),
-        (gdi32, "DeleteDC"): (wt.BOOL, [wt.HDC]),
-        (gdi32, "CreateDIBSection"): (wt.HBITMAP, [wt.HDC, ctypes.c_void_p, wt.UINT, ctypes.POINTER(ctypes.c_void_p), wt.HANDLE, wt.DWORD]),
-        (gdi32, "SelectObject"): (wt.HGDIOBJ, [wt.HDC, wt.HGDIOBJ]),
-        (gdi32, "DeleteObject"): (wt.BOOL, [wt.HGDIOBJ]),
         (kernel32, "OpenProcess"): (wt.HANDLE, [wt.DWORD, wt.BOOL, wt.DWORD]),
         (kernel32, "GetExitCodeProcess"): (wt.BOOL, [wt.HANDLE, ctypes.POINTER(wt.DWORD)]),
         (kernel32, "CloseHandle"): (wt.BOOL, [wt.HANDLE]),
@@ -88,6 +102,7 @@ def _api():
     a.wt, a.user32, a.gdi32, a.kernel32 = wt, user32, gdi32, kernel32
     a.WNDENUMPROC = WNDENUMPROC
     a.WINDOWPLACEMENT = WINDOWPLACEMENT
+    a.STARTUPINFOW, a.PROCESS_INFORMATION = STARTUPINFOW, PROCESS_INFORMATION
     _API = a
     return a
 
@@ -212,12 +227,13 @@ def _title(a, hwnd):
     return buf.value
 
 
-def top_windows(pids=None):
+def top_windows(pids=None, hdesk=None):
     """Top-level windows -> [{hwnd, pid, title, visible, iconic, owned, w, h, nw, nh}] (only `pids` if given).
 
     Every top-level window of the pid, whatever its visibility: Studio launched SW_SHOWMINNOACTIVE
     has an iconic main window whose GetWindowRect is a tiny caption at -32000, so nw/nh (the
-    restored size, rcNormalPosition) is the size to judge it by.
+    restored size, rcNormalPosition) is the size to judge it by. With `hdesk` the windows of that desktop
+    are enumerated (EnumDesktopWindows); call it from a thread attached to the desktop (DesktopWorker).
     """
     a = _api()
     wanted = set(int(p) for p in pids) if pids is not None else None
@@ -239,7 +255,10 @@ def top_windows(pids=None):
             })
         return True
 
-    a.user32.EnumWindows(a.WNDENUMPROC(cb), 0)
+    if hdesk is None:
+        a.user32.EnumWindows(a.WNDENUMPROC(cb), 0)
+    else:
+        a.user32.EnumDesktopWindows(hdesk, a.WNDENUMPROC(cb), 0)
     return found
 
 
@@ -264,9 +283,9 @@ def pick_main_window(wins):
     return None
 
 
-def studio_main_window(pids):
-    """Main window of `pids` (visible, hidden or minimized), or None."""
-    return pick_main_window(top_windows(pids))
+def studio_main_window(pids, hdesk=None):
+    """Largest main window of `pids` (visible, hidden or minimized), or None."""
+    return pick_main_window(top_windows(pids, hdesk))
 
 
 def window_pid(hwnd):
@@ -303,32 +322,116 @@ def window_rect(hwnd):
 
 SWP_NOZORDER, SWP_NOACTIVATE, SWP_NOOWNERZORDER = 0x0004, 0x0010, 0x0200
 SWP_QUIET = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER  # never activates, never reorders
-SW_HIDE, SW_SHOWMINNOACTIVE, SW_SHOWNOACTIVATE = 0, 7, 4
-GWL_EXSTYLE, WS_EX_TOOLWINDOW, WS_EX_APPWINDOW = -20, 0x80, 0x40000
-SWP_NOSIZE, SWP_NOMOVE, SWP_FRAMECHANGED = 0x0001, 0x0002, 0x0020
 STARTF_USESHOWWINDOW = 0x1
-SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN = 76, 77
-OFFSCREEN_MARGIN = 100
+SW_SHOWNOACTIVATE = 4
 GW_OWNER = 4
-PW_RENDERFULLCONTENT = 2
 
 
-def launch_background(args, cwd=None):
-    """Popen with STARTUPINFO SW_SHOWMINNOACTIVE: the first window opens minimized and not active."""
-    si = subprocess.STARTUPINFO()
-    si.dwFlags |= STARTF_USESHOWWINDOW
-    si.wShowWindow = SW_SHOWMINNOACTIVE
-    return subprocess.Popen(args, cwd=cwd, startupinfo=si)
-
-
-def offscreen_x(virtual_left, window_w, margin=OFFSCREEN_MARGIN):
-    """Pure: left edge that puts a window_w wide window `margin` px left of every monitor."""
-    return int(virtual_left) - int(window_w) - int(margin)
-
-
-def virtual_origin():
+def create_desktop(name=DESKTOP_NAME):
+    """CreateDesktopW(name, ..., GENERIC_ALL): Studio's own desktop (an existing one of that name is opened).
+    Returns the handle; CloseDesktop it with close_desktop at the end of the run."""
     a = _api()
-    return a.user32.GetSystemMetrics(SM_XVIRTUALSCREEN), a.user32.GetSystemMetrics(SM_YVIRTUALSCREEN)
+    h = a.user32.CreateDesktopW(name, None, None, 0, GENERIC_ALL, None)
+    if not h:
+        raise OSError("CreateDesktopW(%s) failed (%d)" % (name, ctypes.get_last_error()))
+    return h
+
+
+def close_desktop(hdesk):
+    if not hdesk:
+        return False
+    return bool(_api().user32.CloseDesktop(hdesk))
+
+
+class Launched:
+    """A process started by launch_on_desktop (pid only; the handles are closed)."""
+
+    def __init__(self, pid):
+        self.pid = pid
+
+
+def launch_on_desktop(args, cwd=None, desktop=DESKTOP_NAME):
+    """CreateProcessW with STARTUPINFOW.lpDesktop = desktop: the process and its windows live on that
+    desktop, so nothing it does can take focus on the user's desktop. Returns Launched(pid)."""
+    a = _api()
+    si = a.STARTUPINFOW()
+    si.cb = ctypes.sizeof(a.STARTUPINFOW)
+    si.lpDesktop = desktop
+    si.dwFlags = STARTF_USESHOWWINDOW
+    si.wShowWindow = SW_SHOWNOACTIVATE
+    pi = a.PROCESS_INFORMATION()
+    cmdline = ctypes.create_unicode_buffer(subprocess.list2cmdline([str(x) for x in args]))
+    if not a.kernel32.CreateProcessW(None, cmdline, None, None, False, 0, None, cwd, ctypes.byref(si), ctypes.byref(pi)):
+        raise OSError("CreateProcessW failed (%d)" % ctypes.get_last_error())
+    a.kernel32.CloseHandle(pi.hThread)
+    a.kernel32.CloseHandle(pi.hProcess)
+    return Launched(pi.dwProcessId)
+
+
+class DesktopWorker:
+    """A dedicated thread attached to the Studio desktop (OpenDesktopW + SetThreadDesktop).
+
+    SetThreadDesktop fails on a thread that owns windows or hooks, so this is a fresh
+    threading.Thread that never creates any. Window calls on the desktop's windows (find,
+    resize, size queries) are marshalled to it with call(fn, *args).
+    """
+
+    def __init__(self, name=DESKTOP_NAME):
+        self.name = name
+        self.hdesk = None
+        self._q = queue.Queue()
+        self._ready = threading.Event()
+        self._err = None
+        self._t = threading.Thread(target=self._run, name="pcw-desktop", daemon=True)
+        self._t.start()
+        self._ready.wait(15)
+        if self._err:
+            raise OSError(self._err)
+
+    def _run(self):
+        try:
+            a = _api()
+            self.hdesk = a.user32.OpenDesktopW(self.name, 0, False, GENERIC_ALL)
+            if not self.hdesk:
+                raise OSError("OpenDesktopW(%s) failed (%d)" % (self.name, ctypes.get_last_error()))
+            if not a.user32.SetThreadDesktop(self.hdesk):
+                raise OSError("SetThreadDesktop failed (%d)" % ctypes.get_last_error())
+        except Exception as e:
+            self._err = "desktop worker: %s" % (e,)
+            return
+        finally:
+            self._ready.set()
+        while True:
+            job = self._q.get()
+            if job is None:
+                break
+            fn, args, box, done = job
+            try:
+                box.append((True, fn(*args)))
+            except Exception as e:
+                box.append((False, e))
+            done.set()
+        _api().user32.CloseDesktop(self.hdesk)
+
+    def call(self, fn, *args, timeout=60):
+        """Runs fn(*args) on the desktop thread; returns its result or re-raises its exception."""
+        box, done = [], threading.Event()
+        self._q.put((fn, args, box, done))
+        if not done.wait(timeout):
+            raise TimeoutError("desktop worker call timed out: %s" % getattr(fn, "__name__", fn))
+        ok, val = box[0]
+        if not ok:
+            raise val
+        return val
+
+    def main_window(self, pids):
+        """Largest top-level window of `pids` on the desktop (EnumDesktopWindows), or None."""
+        return self.call(studio_main_window, pids, self.hdesk)
+
+    def close(self):
+        if self._t.is_alive():
+            self._q.put(None)
+            self._t.join(5)
 
 
 def _placement(a, hwnd):
@@ -337,75 +440,17 @@ def _placement(a, hwnd):
     return pl if a.user32.GetWindowPlacement(hwnd, ctypes.byref(pl)) else None
 
 
-def place_offscreen(hwnd, w=None, h=None):
-    """Un-minimizes `hwnd` to a normal window left of all monitors, without activating it.
-
-    SetWindowPlacement with showCmd SW_SHOWNOACTIVATE and rcNormalPosition off-screen (w x h, default:
-    its current restored size). It never restores or maximizes through ShowWindow and never sets the
-    foreground window.
-    Returns the window rect (x, y, w, h).
-    """
-    a = _api()
-    pl = _placement(a, hwnd)
-    if pl is None:
-        raise OSError("GetWindowPlacement failed (%d)" % ctypes.get_last_error())
-    n = pl.rcNormalPosition
-    w = int(w or (n.right - n.left))
-    h = int(h or (n.bottom - n.top))
-    vx, vy = virtual_origin()
-    x = offscreen_x(vx, w)
-    n.left, n.top, n.right, n.bottom = x, vy, x + w, vy + h
-    pl.flags = 0
-    pl.showCmd = SW_SHOWNOACTIVATE
-    if not a.user32.SetWindowPlacement(hwnd, ctypes.byref(pl)):
-        raise OSError("SetWindowPlacement failed (%d)" % ctypes.get_last_error())
-    time.sleep(0.3)
-    return window_rect(hwnd)
-
-
-def hide_taskbar_button(hwnd):
-    """Removes the window's taskbar button without activating it (the user may click it by accident and
-    steal focus): WS_EX_TOOLWINDOW on, WS_EX_APPWINDOW off, then ShowWindow SW_HIDE + SW_SHOWNOACTIVATE
-    (the taskbar re-reads the style on show; neither call activates) and SetWindowPos with
-    SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER. The only ShowWindow
-    use in the watcher. Returns True when the style was changed (False = already a tool window)."""
-    a = _api()
-    ex = a.user32.GetWindowLongPtrW(hwnd, GWL_EXSTYLE)
-    new = (ex | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW
-    if new == ex:
-        return False
-    a.user32.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, new)
-    a.user32.ShowWindow(hwnd, SW_HIDE)
-    a.user32.ShowWindow(hwnd, SW_SHOWNOACTIVATE)
-    a.user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, SWP_QUIET | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED)
-    time.sleep(0.3)
-    return True
-
-
-def is_offscreen(hwnd):
-    """True when the window rect lies entirely left of the virtual screen."""
-    x, _, w, _ = window_rect(hwnd)
-    return x + w <= virtual_origin()[0]
-
-
 def set_client_size(hwnd, cw, ch):
-    """Resizes so the client area is cw x ch, kept off-screen (SetWindowPos SWP_NOACTIVATE |
-    SWP_NOZORDER | SWP_NOOWNERZORDER). Windows / Studio may clamp. Returns the client size reached."""
+    """Resizes so the client area is cw x ch at 0,0 (SetWindowPos SWP_NOZORDER | SWP_NOACTIVATE |
+    SWP_NOOWNERZORDER). Windows / Studio may clamp. Returns the client size reached. Run it on the
+    DesktopWorker thread."""
     a = _api()
-    if a.user32.IsIconic(hwnd) or a.user32.IsZoomed(hwnd):
-        place_offscreen(hwnd)  # SetWindowPlacement SW_SHOWNOACTIVATE, not SW_RESTORE
     _, _, ww, wh = window_rect(hwnd)
     cur_w, cur_h = client_size(hwnd)
     fw, fh = ww - cur_w, wh - cur_h  # frame + title bar
-    nw, nh = int(cw + fw), int(ch + fh)
-    vx, vy = virtual_origin()
-    a.user32.SetWindowPos(hwnd, None, offscreen_x(vx, nw), vy, nw, nh, SWP_QUIET)
+    a.user32.SetWindowPos(hwnd, None, 0, 0, int(cw + fw), int(ch + fh), SWP_QUIET)
     time.sleep(0.3)
     return client_size(hwnd)
-
-
-def set_window_rect(hwnd, x, y, w, h):
-    _api().user32.SetWindowPos(hwnd, None, int(x), int(y), int(w), int(h), SWP_QUIET)
 
 
 def foreground_hwnd():
@@ -435,82 +480,9 @@ def post_close(hwnd):
     return bool(_api().user32.PostMessageW(hwnd, 0x0010, 0, 0))
 
 
-# ---------------------------------------------------------------------------
-# Capture
-# ---------------------------------------------------------------------------
-
-def _dib(a, hdc, w, h):
-    class BITMAPINFOHEADER(ctypes.Structure):
-        _fields_ = [
-            ("biSize", ctypes.c_uint32), ("biWidth", ctypes.c_int32), ("biHeight", ctypes.c_int32),
-            ("biPlanes", ctypes.c_uint16), ("biBitCount", ctypes.c_uint16), ("biCompression", ctypes.c_uint32),
-            ("biSizeImage", ctypes.c_uint32), ("biXPelsPerMeter", ctypes.c_int32), ("biYPelsPerMeter", ctypes.c_int32),
-            ("biClrUsed", ctypes.c_uint32), ("biClrImportant", ctypes.c_uint32),
-        ]
-
-    bmi = (ctypes.c_byte * (ctypes.sizeof(BITMAPINFOHEADER) + 16))()
-    hdr = BITMAPINFOHEADER.from_buffer(bmi)
-    hdr.biSize = ctypes.sizeof(BITMAPINFOHEADER)
-    hdr.biWidth, hdr.biHeight = w, -h  # negative: top-down rows
-    hdr.biPlanes, hdr.biBitCount, hdr.biCompression = 1, 32, 0
-    bits = ctypes.c_void_p()
-    hbmp = a.gdi32.CreateDIBSection(hdc, ctypes.byref(bmi), 0, ctypes.byref(bits), None, 0)
-    return hbmp, bits
-
-
-def _grab(hwnd):
-    """PrintWindow(PW_RENDERFULLCONTENT) of the whole window, cropped to the client area.
-
-    Works off-screen and unfocused: the window renders itself into our DC; nothing is read from
-    the screen.
-    """
-    a = _api()
-    wx, wy, ww, wh = window_rect(hwnd)
-    cw, ch = client_size(hwnd)
-    if ww <= 0 or wh <= 0 or cw <= 0 or ch <= 0:
-        return None
-    pt = a.wt.POINT(0, 0)
-    a.user32.ClientToScreen(hwnd, ctypes.byref(pt))
-    ox, oy = pt.x - wx, pt.y - wy  # client origin inside the window rect
-    src = a.user32.GetDC(hwnd)
-    mem = a.gdi32.CreateCompatibleDC(src)
-    hbmp, bits = _dib(a, src, ww, wh)
-    old = a.gdi32.SelectObject(mem, hbmp)
-    try:
-        if not a.user32.PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT):
-            return None
-        rgb = imaging.bgra_to_rgb(ww, wh, ctypes.string_at(bits, ww * wh * 4))
-    finally:
-        a.gdi32.SelectObject(mem, old)
-        a.gdi32.DeleteObject(hbmp)
-        a.gdi32.DeleteDC(mem)
-        a.user32.ReleaseDC(hwnd, src)
-    return imaging.crop_rgb(ww, wh, rgb, ox, oy, cw, ch)  # clamps to the window bitmap
-
-
-def capture_client(hwnd):
-    """Client-area pixels of `hwnd` via PrintWindow(PW_RENDERFULLCONTENT), the only capture method.
-
-    Returns {"w","h","rgb","method","stats","blank","tried"}; rgb is None when it failed.
-    """
-    try:
-        got = _grab(hwnd)
-    except Exception as e:
-        got, err = None, "printwindow: %r" % (e,)
-    else:
-        err = None if got else "printwindow: failed"
-    if not got:
-        return {"w": 0, "h": 0, "rgb": None, "method": None, "stats": None, "blank": True, "tried": [err]}
-    w, h, rgb = got
-    stats = imaging.frame_stats(w, h, rgb)
-    return {"w": w, "h": h, "rgb": rgb, "method": "printwindow", "stats": stats, "blank": imaging.is_blank(stats),
-            "tried": ["printwindow: var=%.0f distinct=%d" % (stats["variance"], stats["distinct"])]}
-
-
 def disable_power_throttling(pid):
     """Opt a process out of Windows background power throttling (EcoQoS / timer coalescing), which
-    otherwise drops a background, off-screen Studio to ~15 fps and blank PrintWindow frames after a
-    few minutes. SetProcessInformation(ProcessPowerThrottling): no window, focus or input involved."""
+    otherwise drops a background Studio to ~15 fps after a few minutes. SetProcessInformation(ProcessPowerThrottling): no window, focus or input involved."""
     try:
         import ctypes
         from ctypes import wintypes as wt
@@ -528,11 +500,3 @@ def disable_power_throttling(pid):
         return ok
     except Exception:
         return False
-
-
-def nudge_repaint(hwnd):
-    """Forces a re-render of an off-screen window: grow the client by 1 px and back (no activation)."""
-    cw, ch = client_size(hwnd)
-    if cw and ch:
-        set_client_size(hwnd, cw + 1, ch)
-        set_client_size(hwnd, cw, ch)
