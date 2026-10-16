@@ -1361,6 +1361,8 @@ def step_shots(run):
                     res["press"] = press_check(run, opened, shot["press"], shot.get("expect", "closed"))
                     if res["press"]["status"] != "pass":
                         res["error"] = "%s did not leave %s %s" % (shot["press"], opened["panel"], shot.get("expect", "closed"))
+                if opened and shot.get("scroll_to"):  # card below the scroll fold at small viewports
+                    res["scroll"] = run.luau("panel_scroll", "Client", timeout=15, panel=opened["panel"], target=shot["scroll_to"])[1]
                 keep = opened["panel"] if opened and not shot.get("press") else ""
                 if shot.get("hold"):  # hold ring mid-hold (B1): show the button's HoldFill half full
                     res["hold"] = run.need_luau("hold_fill", "Client", timeout=15, name=shot["hold"], on=True)

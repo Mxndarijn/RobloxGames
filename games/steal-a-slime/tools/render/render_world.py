@@ -420,6 +420,9 @@ VIEWS = {
     "04_world_border": lambda: look(polar(-22.5 + 180, W - 70, 26), polar(-22.5 + 180 + 28, W + 6, 4), lens=26),
     # player eye: across the plaza toward plot 1's gate
     "05_player_eye": lambda: look((-50, 5, 45), (P1[0], 8, P1[2] - 40), lens=26),
+    # v29 B5, player eye height (5 studs) on plot 1's spoke path: the ring path
+    # crosses ahead, both flush with the ground
+    "06_path_eye": lambda: look((2, 5, 58), (-6, 1, 100), lens=30),
 }
 
 os.makedirs(args.out, exist_ok=True)

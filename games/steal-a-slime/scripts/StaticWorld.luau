@@ -25,10 +25,10 @@ StaticWorld.SPAWN_NAME = "HubSpawn"
 -- plinth (r 13.4) and the plaza props, well inside the 640-stud Ground.
 StaticWorld.SPAWN_YAW = 67.5
 StaticWorld.SPAWN_RADIUS = 64
--- An invisible pad flush with the plaza sand (top 0.2, the sand disc's is
--- 0.15): the old visible 12 x 1 x 12 butter slab read as a random yellow
+-- An invisible pad flush with the plaza sand (top 0.05, the sand disc's is
+-- WorldLayout.PATH_TOPS.plaza = 0.032, on the Ground): the old visible 12 x 1 x 12 butter slab read as a random yellow
 -- box on the plaza (v28 playtest) and wild slimes landed on it.
-StaticWorld.SPAWN_SIZE = { 12, 0.2, 12 }
+StaticWorld.SPAWN_SIZE = { 12, 0.05, 12 }
 StaticWorld.SPAWN_TRANSPARENCY = 1
 
 -- Loads a src/visuals/shared module with Roblox datatypes (Instance, CFrame,
