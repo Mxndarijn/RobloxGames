@@ -13,3 +13,9 @@ Previews: `border_v3_preview_{trees,hedges_rocks,fences_hills}.png` (`--look rob
 
 Tris are below the 500 prop target on purpose: border pieces are seen from 20+ studs away and a slot
 costs nothing per triangle at that size; the hills (1.3-1.6k) carry the most.
+
+## Round 2 (placement review): five denser pieces
+The first scattered ring (single trees, 15-25 stud fences) rendered as sparse specks next to the old
+continuous band. Added, still one mesh each: `fence_long` (51 studs, 8 bays, open field gate),
+`hedge_xl` (41 studs, three heights), `grove_pine` (6 firs), `grove_mixed` (2 oaks + 2 firs + bush),
+`grove_rocky` (2 firs, oak, rock heap, spire, goo seep). Preview: `border_v3_preview_groves_long.png`.

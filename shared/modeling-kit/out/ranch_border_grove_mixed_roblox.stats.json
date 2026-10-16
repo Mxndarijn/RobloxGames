@@ -1,0 +1,109 @@
+{
+  "name": "ranch_border_grove_mixed",
+  "model": "/workspace/roblox/wt-border-v3/shared/modeling-kit/models/ranch_border_grove_mixed.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1262,
+  "meshes": [
+    {
+      "name": "ranch_border_grove_mixed",
+      "tris": 1262,
+      "verts": 701,
+      "ngons": 17,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        31.183,
+        16.659,
+        15.66
+      ],
+      "materials": [
+        "ranch_border_grove_mixed_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "ranch_border_grove_mixed_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    31.183,
+    16.659,
+    15.66
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "ranch_border_grove_mixed_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_grove_mixed.fbx",
+  "fbx_bytes": 54524,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_grove_mixed_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_grove_mixed_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_grove_mixed_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/.tiles/ranch_border_grove_mixed_roblox_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.137,
+    "stats_s": 0.003,
+    "setup_s": 0.002,
+    "render_s": [
+      0.552,
+      0.508,
+      0.525,
+      0.568
+    ],
+    "export_s": 0.085
+  },
+  "sheet": "/workspace/roblox/wt-border-v3/shared/modeling-kit/out/ranch_border_grove_mixed_roblox_sheet.png",
+  "timings": {
+    "wall_s": 3.13,
+    "blender_process_s": 2.86,
+    "compose_s": 0.269,
+    "model_s": 0.137,
+    "stats_s": 0.003,
+    "setup_s": 0.002,
+    "render_s": [
+      0.552,
+      0.508,
+      0.525,
+      0.568
+    ],
+    "export_s": 0.085
+  }
+}
