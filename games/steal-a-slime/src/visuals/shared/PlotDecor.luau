@@ -26,6 +26,10 @@
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
 local Constants = if script then require(script.Parent.Parent.Shared.Constants) else require("../../shared/Constants")
+local Economy = if script then require(script.Parent.Parent.Shared.Economy) else require("../../shared/Economy")
+local MeshAssets = if script
+	then require(script.Parent.Parent.Shared.MeshAssets)
+	else require("../../shared/MeshAssets")
 
 local PlotDecor = {}
 
@@ -246,6 +250,134 @@ local function applyDex(plot: Instance, owned: boolean)
 			set(gem, "Color", rgb(if on then Config.RARITIES[k].color else PlotDecor.GEM_OFF))
 			set(gem, "Material", if on then Enum.Material.Neon else Enum.Material.Glass)
 		end
+	end
+end
+
+-- Plot skins (FEATURES.PlotSkins, CONTRACT.md §13) ---------------------------------
+
+PlotDecor.SKIN_DECOR_NAME = "SkinDecor"
+local ORIG_COLOR, ORIG_MATERIAL, ORIG_TRANSPARENCY = "SkinOrigColor", "SkinOrigMaterial", "SkinOrigTransparency"
+
+function PlotDecor.skin(id: any): Config.PlotSkin
+	for _, skin in Config.PLOT_SKINS do
+		if skin.id == id then
+			return skin
+		end
+	end
+	return Config.PLOT_SKINS[1]
+end
+
+-- Remembers a part's own look once, so a later "classic" can put it back.
+local function remember(part: BasePart)
+	if part:GetAttribute(ORIG_COLOR) == nil then
+		part:SetAttribute(ORIG_COLOR, part.Color)
+		part:SetAttribute(ORIG_MATERIAL, part.Material.Name)
+	end
+end
+
+local function recall(part: BasePart)
+	local color = part:GetAttribute(ORIG_COLOR)
+	if typeof(color) == "Color3" then
+		set(part, "Color", color)
+		local material = part:GetAttribute(ORIG_MATERIAL)
+		if type(material) == "string" then
+			set(part, "Material", (Enum.Material :: any)[material])
+		end
+	end
+end
+
+-- Fence panels, gate and gate post as they show: kit Mesh children, or the primitive
+-- placeholders while no mesh landed (hidden placeholders are skipped).
+local function eachFencePart(plot: Instance, visit: (BasePart) -> ())
+	for _, name in { "Fence", "Gate" } do
+		local group = plot:FindFirstChild(name)
+		if group then
+			for _, d in group:GetDescendants() do
+				if d:IsA("BasePart") and d.Transparency < 1 then
+					visit(d)
+				end
+			end
+		end
+	end
+end
+
+-- Floor colour / material, fence + gate tint and the decor mesh of one plot for skin `id`.
+-- `slot` = the plot's Mailbox_<i> kit slot (Map.Decor) and `templates` =
+-- ReplicatedStorage.PlotSkinMeshes: the skin decor is a clone of its template standing where the
+-- slot's own mesh stands (that mesh is only hidden), so no world mesh slot is added. Idempotent;
+-- only writes what changed. "classic" puts back whatever a skin changed.
+function PlotDecor.applySkin(plot: Instance, id: any, slot: Instance?, templates: Instance?)
+	local skin = PlotDecor.skin(id)
+	local base = plot:FindFirstChild("Base")
+	if base and base:IsA("BasePart") then
+		local floor = skin.floor
+		if floor then
+			remember(base)
+			set(base, "Color", rgb(floor.color))
+			set(base, "Material", (Enum.Material :: any)[floor.material])
+		else
+			recall(base)
+		end
+	end
+	local tint = skin.fence
+	eachFencePart(plot, function(part)
+		if tint then
+			remember(part)
+			local own = part:GetAttribute(ORIG_COLOR)
+			if part:IsA("MeshPart") then
+				-- A kit mesh keeps its vertex colours; Color multiplies them.
+				set(part, "Color", rgb(tint))
+			elseif typeof(own) == "Color3" then
+				set(part, "Color", Color3.new(own.R * tint[1] / 255, own.G * tint[2] / 255, own.B * tint[3] / 255))
+			end
+		else
+			recall(part)
+		end
+	end)
+	PlotDecor.applySkinDecor(slot, skin.decor, templates)
+end
+
+-- The decor mesh over `slot` (a BasePart): `meshName` from `templates`, or none (slot back as built).
+function PlotDecor.applySkinDecor(slot: Instance?, meshName: string?, templates: Instance?)
+	if not slot or not slot:IsA("BasePart") then
+		return
+	end
+	local current = slot:FindFirstChild(PlotDecor.SKIN_DECOR_NAME)
+	local template = if meshName and templates then templates:FindFirstChild(meshName) else nil
+	local own = slot:FindFirstChild("Mesh") -- the slot's kit mesh (MeshSwap), or the slot itself while not loaded
+	local hideTarget: BasePart = if own and own:IsA("BasePart") then own else slot
+	if not (template and template:IsA("BasePart")) then
+		if current then
+			current:Destroy()
+		end
+		local was = hideTarget:GetAttribute(ORIG_TRANSPARENCY)
+		if type(was) == "number" then
+			set(hideTarget, "Transparency", was)
+			hideTarget:SetAttribute(ORIG_TRANSPARENCY, nil)
+		end
+		return
+	end
+	if hideTarget:GetAttribute(ORIG_TRANSPARENCY) == nil then
+		hideTarget:SetAttribute(ORIG_TRANSPARENCY, hideTarget.Transparency)
+	end
+	set(hideTarget, "Transparency", 1)
+	if current and current:GetAttribute("Skin") ~= meshName then
+		current:Destroy()
+		current = nil
+	end
+	if not current then
+		local mesh = template:Clone()
+		mesh.Name = PlotDecor.SKIN_DECOR_NAME
+		mesh:SetAttribute("Skin", meshName)
+		-- The slot is the mailbox at its RanchProps scale: the skin decor stands on the same
+		-- bottom at the same scale, turned like every kit mesh (MeshAssets.IMPORT_YAW).
+		local mailbox = MeshAssets.get("ranch_mailbox")
+		local scale = if mailbox and mailbox.size then slot.Size.Y / mailbox.size[2] else 1
+		mesh.Size = (template :: BasePart).Size * scale
+		mesh.CFrame = slot.CFrame
+			* CFrame.new(0, -slot.Size.Y / 2 + mesh.Size.Y / 2, 0)
+			* CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
+		mesh.Parent = slot
 	end
 end
 

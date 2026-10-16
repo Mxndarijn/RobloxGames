@@ -30,6 +30,8 @@
 	field changes: `mutations` / `mutation` keep their shape and old saves load unchanged.
 	v4 -> v5 (migrateV4): drops duplicate / empty / non-string entries from each slime's
 	`mutations` and rebuilds a missing or all-invalid list from `mutation`; pure, idempotent.
+	plotSkin (FEATURES.PlotSkins, CONTRACT.md §13) was added without a version bump, like `growth` and
+	`redeemed`: missing / unknown / not unlocked -> "classic" (SaveData.migratePlotSkin, run by deserialize).
 	Unknown/newer versions are read field-by-field with the v5 sanitizer (both
 	`mutations` and the legacy `mutation` are understood, nothing is dropped).
 ]]
@@ -37,6 +39,7 @@
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
+local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
 local TutorialProgress = if script then require(script.Parent.TutorialProgress) else require("./TutorialProgress")
 
 type Data = PlayerData.Data
@@ -164,6 +167,16 @@ function SaveData.migrateV4(raw: { [string]: any }): { [string]: any }
 	end
 	out.version = 5
 	return out
+end
+
+-- Equipped plot skin of a stored profile: the saved id when it is a known skin the player has
+-- unlocked in `data` (so the dex must already be loaded), else "classic". Pure.
+function SaveData.migratePlotSkin(raw: any, data: Data): string
+	local skin = if type(raw) == "table" then PlotSkins.get(raw.plotSkin) else nil
+	if skin and PlotSkins.unlocked(data, skin) then
+		return skin.id
+	end
+	return Config.PLOT_SKIN_DEFAULT
 end
 
 -- Returns a v5-shaped raw table (still untrusted) from any stored value. Saves
@@ -297,6 +310,7 @@ function SaveData.deserialize(stored: any): Data
 		end
 	end
 	data.dexRewards = num(raw.dexRewards, 0, 0, #Config.DEX_MILESTONES)
+	data.plotSkin = SaveData.migratePlotSkin(raw, data)
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
 	if type(raw.redeemed) == "table" then
@@ -375,6 +389,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		},
 		goals = table.clone(data.goals),
 		dexRewards = data.dexRewards,
+		plotSkin = data.plotSkin,
 		redeemed = redeemed,
 		boost = { mult = data.boostMult, untilAt = math.floor(data.boostUntil) },
 	}

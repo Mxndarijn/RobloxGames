@@ -113,6 +113,9 @@ local NAMES = {
 	"slime_acc_crown",
 	"slime_acc_crystal",
 	"slime_wobble",
+	"plot_skin_mushroom",
+	"plot_skin_candy",
+	"plot_skin_crystal",
 }
 
 local entries: { [string]: Entry } = {}
@@ -188,6 +191,13 @@ entries["ranch_lantern_post"] =
 	{ assetId = 124004679363569, meshId = "rbxassetid://99456773451008", size = { 3.65, 9.3, 1.6 } }
 entries["ranch_log_pile"] =
 	{ assetId = 112182235851209, meshId = "rbxassetid://107529832767130", size = { 10.935, 4.011, 6.812 } }
+-- Plot skin decor (Config.PLOT_SKINS): templates for the client, never world slots (CONTRACT.md §13).
+entries["plot_skin_mushroom"] =
+	{ assetId = 136516938638177, meshId = "rbxassetid://106478306368033", size = { 5.8, 6.171, 5.4 } }
+entries["plot_skin_candy"] =
+	{ assetId = 121061336707847, meshId = "rbxassetid://122784364834934", size = { 5.312, 6.651, 3.956 } }
+entries["plot_skin_crystal"] =
+	{ assetId = 114982396568572, meshId = "rbxassetid://140403985164021", size = { 4.972, 6.636, 5.238 } }
 entries["ranch_mailbox"] =
 	{ assetId = 123381594112643, meshId = "rbxassetid://103027857940649", size = { 1.38, 5.375, 2.72 } }
 entries["ranch_milk_churn"] =

@@ -10,6 +10,7 @@
 ]]
 
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
 
 -- The full slimeData shape (= Genome.Slime). Passed to ModelFactory.build.
 export type SlimeData = Genome.Slime
@@ -66,6 +67,8 @@ export type WeekendView = { active: boolean, multiplier: number, endsAt: number?
 
 -- Follow-pet passive (CONTRACT.md §14): the favourite slime's perk, text "+5% luck".
 export type PetPerkView = { kind: string, value: number, icon: string, text: string }
+-- Plot skins (CONTRACT.md §15): one skin with its SlimeDex set progress.
+export type PlotSkinView = PlotSkins.View
 
 export type CodesView = { boostMult: number, boostEndsAt: number, redeemed: number }
 
@@ -180,6 +183,8 @@ export type State = {
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
 	petPerk: PetPerkView?, -- FEATURES.PetPassives; nil without a favourite
+	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
+	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
 }
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }

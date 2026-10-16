@@ -18,6 +18,7 @@ local Weekend = if Shared then require(Shared.Weekend) else require("../shared/W
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
+local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
@@ -122,6 +123,8 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		incomeMultiplier = Perks.incomeMultiplier(data),
 		petPerk = Perks.petPassive(data),
 		weekend = Weekend.view(now),
+		plotSkin = if Config.FEATURES.PlotSkins then PlotSkins.current(data) else nil,
+		plotSkins = if Config.FEATURES.PlotSkins then PlotSkins.view(data) else nil,
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		rebirthTitle = Perks.title(rebirths),
 		rebirthTiers = Snapshot.rebirthTiers(rebirths),

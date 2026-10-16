@@ -64,6 +64,18 @@ export type Goal = {
 
 export type DexMilestone = { count: number, reward: number, bonus: number }
 
+-- Plot skins (FEATURES.PlotSkins, CONTRACT.md §13). `set` = rarity tier whose SlimeDex set must be
+-- `threshold` complete. Colours are RGB 0..255; `fence` multiplies the fence / gate mesh colours (white = none).
+export type PlotSkin = {
+	id: string, -- permanent save id; never rename
+	name: string,
+	set: number?, -- Config.RARITIES tier; nil = always unlocked
+	threshold: number?,
+	floor: { color: { number }, material: string }?, -- plot Base; nil = leave as built
+	fence: { number }?,
+	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
+}
+
 local RARITIES: { Rarity } = {
 	{
 		tier = 1,
@@ -307,10 +319,51 @@ local DEX_MILESTONES: { DexMilestone } = {
 	{ count = 720, reward = 1e7, bonus = 0.25 },
 }
 
+local PLOT_SKINS: { PlotSkin } = {
+	{ id = "classic", name = "Classic Ranch" },
+	{
+		id = "mushroom",
+		name = "Mushroom Meadow",
+		set = 1,
+		threshold = 0.75,
+		floor = { color = { 128, 178, 98 }, material = "Grass" },
+		fence = { 255, 214, 196 },
+		decor = "plot_skin_mushroom",
+	},
+	{
+		id = "candy",
+		name = "Candy Patch",
+		set = 2,
+		threshold = 0.75,
+		floor = { color = { 236, 170, 192 }, material = "Sand" },
+		fence = { 255, 190, 214 },
+		decor = "plot_skin_candy",
+	},
+	{
+		id = "crystal",
+		name = "Crystal Grotto",
+		set = 3,
+		threshold = 0.75,
+		floor = { color = { 172, 150, 208 }, material = "Slate" },
+		fence = { 214, 196, 255 },
+		decor = "plot_skin_crystal",
+	},
+}
+
 for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES } :: { { any } } do
 	for _, entry in list do
 		table.freeze(entry)
 	end
+end
+for _, skin in PLOT_SKINS do
+	if skin.floor then
+		table.freeze(skin.floor.color)
+		table.freeze(skin.floor)
+	end
+	if skin.fence then
+		table.freeze(skin.fence)
+	end
+	table.freeze(skin)
 end
 for _, goal in GOALS do
 	table.freeze(goal.targets)
@@ -382,6 +435,8 @@ local Config = {
 	UPGRADES = table.freeze(UPGRADES),
 	GOALS = table.freeze(GOALS),
 	DEX_MILESTONES = table.freeze(DEX_MILESTONES),
+	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §13)
+	PLOT_SKIN_DEFAULT = "classic",
 
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 45,
@@ -470,6 +525,7 @@ local Config = {
 		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		PetPassives = true, -- the favourite (follow) slime grants a small capped perk by tier / mutations: income, luck or merge mutation chance (Perks.petPassive, CONTRACT.md §14); false = cosmetic only
 		CoopRitual = true, -- 3-4 players stand on the plaza ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
+		PlotSkins = false, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §14); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 

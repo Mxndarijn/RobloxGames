@@ -25,6 +25,7 @@
 local AssetService = game:GetService("AssetService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
 
 local MeshSwap = {}
@@ -160,6 +161,41 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 		MeshSwap.setMeshCollision(scope, name, true)
 	end
 	return true
+end
+
+-- FEATURES.PlotSkins (CONTRACT.md §13): one MeshPart template per skin decor in
+-- ReplicatedStorage.PlotSkinMeshes (named by mesh, native size). Clients clone
+-- them over a plot's Mailbox_<i> slot (Visuals.PlotDecor.applySkin), so the skins
+-- take no world mesh slot of their own. Yields; returns how many were published.
+function MeshSwap.publishSkinTemplates(): number
+	if not Config.FEATURES.PlotSkins then
+		return 0
+	end
+	local folder = ReplicatedStorage:FindFirstChild("PlotSkinMeshes")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "PlotSkinMeshes"
+		folder.Parent = ReplicatedStorage
+	end
+	local count = 0
+	for _, skin in Config.PLOT_SKINS do
+		local name = skin.decor
+		local meshId = name and MeshAssets.meshId(name)
+		local entry = name and MeshAssets.get(name)
+		local base = meshId and template(meshId)
+		if name and entry and entry.size and base and not (folder :: Folder):FindFirstChild(name) then
+			local mesh = base:Clone()
+			mesh.Name = name
+			mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+			mesh.Anchored = true
+			mesh.CanCollide = false
+			mesh.CanQuery = false
+			mesh.CanTouch = false
+			mesh.Parent = folder
+			count += 1
+		end
+	end
+	return count
 end
 
 -- Returns how many placeholders got a mesh.
