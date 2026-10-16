@@ -9,6 +9,7 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
@@ -21,11 +22,16 @@ local Income = {}
 
 Income.MAX_TICK = 5 -- seconds: a stalled server doesn't pay a huge lump
 
--- Call about once a second with the real elapsed time.
-function Income.step(world: World, dt: number)
+-- Call about once a second with the real elapsed time. `now` (unix seconds)
+-- ends redeem-code boosts whose time is up.
+function Income.step(world: World, dt: number, now: number?)
 	local seconds = math.clamp(dt, 0, Income.MAX_TICK)
 	local carried = World.carriedSet(world)
 	for _, session in world.sessions do
+		if now and Codes.expireBoost(session.data, now) then
+			World.notify(world, session.userId, "Your income boost ended", "info", nil)
+			World.markDirty(session)
+		end
 		local perSec = PlayerData.incomePerSecond(session.data, carried)
 		if perSec > 0 then
 			local paid, remainder = Economy.tickIncome(0, session.incomeRemainder, perSec, seconds)

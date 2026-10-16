@@ -43,6 +43,7 @@ Remotes.ACTIONS = table.freeze({
 	BuyEgg = table.freeze({ args = {} }), -- Mystery Egg: cash only, hatches into a slime on your plot
 	Drop = table.freeze({ args = {} }),
 	Appraise = table.freeze({ args = { "string", "string" } }), -- slimeId, "mutation" | "size" (FEATURES.Appraise)
+	Redeem = table.freeze({ args = { "code" } }), -- typed code text (Codes.normalize on the server)
 	Sync = table.freeze({ args = {} }), -- server re-sends State
 } :: { [string]: ActionDef })
 

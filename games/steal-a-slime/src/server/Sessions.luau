@@ -9,6 +9,7 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
@@ -53,6 +54,7 @@ function Sessions.join(
 	world.plots[plotIndex] = userId
 	world.claims[userId] = nil
 	world.sessions[userId] = session
+	Codes.expireBoost(session.data, now) -- a boost never pays for time spent offline
 	Income.applyOffline(world, session, now)
 	Milestones.check(world, session) -- old saves get past goal stages / dex milestones now
 	return session, nil

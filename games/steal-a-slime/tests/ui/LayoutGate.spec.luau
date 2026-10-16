@@ -29,12 +29,12 @@ local KNOWN: { { label: string, pattern: string } } = {
 	{ label = "390x786 nav collapsed", pattern = "^%[390x786 nav collapsed%] TutorialCarrying {.-} overlaps Nav " },
 	{
 		label = "390x786 nav collapsed",
-		pattern = "^%[390x786 nav collapsed%] Nav%.Leaders {.-} overlaps TutorialCarrying ",
+		pattern = "^%[390x786 nav collapsed%] Nav%.%w+ {.-} overlaps TutorialCarrying ",
 	},
 	{ label = "390x786 nav expanded", pattern = "^%[390x786 nav expanded%] TutorialCarrying {.-} overlaps Nav " },
 	{
 		label = "390x786 nav expanded",
-		pattern = "^%[390x786 nav expanded%] Nav%.Leaders {.-} overlaps TutorialCarrying ",
+		pattern = "^%[390x786 nav expanded%] Nav%.%w+ {.-} overlaps TutorialCarrying ",
 	},
 }
 

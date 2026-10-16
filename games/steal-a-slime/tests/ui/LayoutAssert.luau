@@ -527,6 +527,7 @@ LayoutAssert.PANEL_TITLES = table.freeze({
 	Goals = "Goals",
 	Dex = "SlimeDex",
 	Leaders = "Top Earners",
+	Codes = "Codes",
 	Guide = "Guide",
 })
 

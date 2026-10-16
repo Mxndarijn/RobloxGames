@@ -454,6 +454,20 @@ local Config = {
 	DAILY_BASE = 100,
 	DAILY_STREAK_CAP = 7,
 
+	-- Redeem codes (CONTRACT.md §10). Keys are UPPERCASE; players type any case.
+	-- reward: { kind = "cash", amount } or { kind = "boost", mult, minutes };
+	-- expiresAt = unix seconds (nil = never). Once per player, kept in the save.
+	CODES = table.freeze({
+		WELCOME = table.freeze({ reward = table.freeze({ kind = "cash", amount = 1000 }) }),
+		SLIMEBOOST = table.freeze({ reward = table.freeze({ kind = "boost", mult = 2, minutes = 10 }) }),
+		LAUNCH = table.freeze({
+			reward = table.freeze({ kind = "cash", amount = 5000 }),
+			expiresAt = 1830297600, -- 2028-01-01 00:00:00 UTC
+		}),
+	}),
+	CODE_MAX_LENGTH = 24,
+	CODE_BOOST_MAX_MULT = 10,
+
 	-- Persistence
 	SAVE_VERSION = 3, -- CONTRACT.md §8.9
 	AUTOSAVE_INTERVAL = 60,

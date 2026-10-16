@@ -56,7 +56,7 @@ DEFAULTS = {
     "stats_seconds": 5,
     "devices": [["desktop", 1920, 1080], ["phone-portrait", 390, 844], ["phone-landscape", 844, 390]],
     "device_iterations": 5,
-    "menu_panels": ["plot", "merge", "shop", "rebirth", "goals", "dex", "leaders", "guide"],  # src/ui/init.client allPanels
+    "menu_panels": ["plot", "merge", "shop", "rebirth", "goals", "dex", "leaders", "codes", "guide"],  # src/ui/init.client allPanels
     "phone_min_fps": 30,  # phone_perf fails below this average FPS (Studio on a PC, not phone hardware)
     "phone_min_slimes": 16,  # SlimeLife.MAX_ACTIVE: animating slimes wanted near the camera
     # kind (mouse_down, mouse_up, key_down, key_up) -> action template, "$x" / "$y" / "$key" filled in.
@@ -1234,7 +1234,7 @@ def step_twoplayer(run):
 
 
 UI_SHOT_BUTTONS = {"shop": "Nav.Shop", "dex": "Nav.Dex", "rebirth": "Nav.Rebirth", "goals": "Nav.Goals",
-                   "plot": "Nav.Plot", "merge": "Nav.Merge", "leaders": "Nav.Leaders"}
+                   "plot": "Nav.Plot", "merge": "Nav.Merge", "leaders": "Nav.Leaders", "codes": "Nav.Codes"}
 UI_SHOT_PANELS = {"leaders": "LeaderboardPanel"}  # else <Key>Panel (src/ui/Panels: Widgets.panel names)
 
 

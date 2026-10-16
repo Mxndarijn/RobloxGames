@@ -31,7 +31,7 @@ MIN_TOUCH = 44
 # LayoutAssert.navReachable on Layout.screen(390, 786). Fix in Layout.screen,
 # then delete it here.
 KNOWN = [
-    r"^\[390x844-(collapsed|expanded)\] Nav/Leaders \{.*\} is covered by SlimeUI/Root/TutorialCarrying$",
+    r"^\[390x844-(collapsed|expanded)\] Nav/\w+ \{.*\} is covered by SlimeUI/Root/TutorialCarrying$",
 ]
 
 

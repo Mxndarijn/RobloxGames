@@ -55,6 +55,9 @@ export type RainView = {
 
 -- day: the streak day the pending claim pays (1..DAILY_STREAK_CAP); when
 -- nothing is pending, the day the last claim paid.
+-- Redeem codes (CONTRACT.md §10): the active income boost (1 / 0 = none).
+export type CodesView = { boostMult: number, boostEndsAt: number, redeemed: number }
+
 export type DailyView = { available: boolean, streak: number, amount: number, day: number }
 
 -- Keys are the UI's ShopCatalog item ids. price nil = maxed / owned.
@@ -144,6 +147,7 @@ export type State = {
 	dex: { string }, -- discovered Genome.dexKey values, sorted
 	dexTotal: number,
 	daily: DailyView,
+	codes: CodesView,
 	shop: ShopView,
 	tutorialStep: number?, -- 1..#TutorialProgress.STEPS; nil = finished
 	-- v13 (CONTRACT.md §8.2)

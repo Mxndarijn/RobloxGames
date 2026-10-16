@@ -21,6 +21,7 @@ export type Progress = {
 	rebirths: number,
 	upgrades: { [string]: number },
 	dexRewards: number,
+	boostMult: number?, -- redeem-code income boost while active (Codes), nil / 1 = none
 }
 
 local Perks = {}
@@ -138,9 +139,12 @@ function Perks.dexBonus(data: Progress): number
 	return total
 end
 
--- Everything except the rebirth multiplier: upgrade x rank x dex.
+-- Everything except the rebirth multiplier: upgrade x rank x dex x code boost.
 function Perks.bonusMultiplier(data: Progress): number
-	return (1 + upgradeEffect(data, "Income")) * (1 + Perks.rankIncomeBonus(data.rebirths)) * (1 + Perks.dexBonus(data))
+	return (1 + upgradeEffect(data, "Income"))
+		* (1 + Perks.rankIncomeBonus(data.rebirths))
+		* (1 + Perks.dexBonus(data))
+		* math.max(data.boostMult or 1, 1)
 end
 
 -- State.incomeMultiplier: rebirth x upgrade x rank x dex.

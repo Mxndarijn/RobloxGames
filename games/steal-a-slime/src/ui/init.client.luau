@@ -44,6 +44,7 @@ local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
 local Panels = script.Panels
 local CarryPanel = require(Panels.Carry)
+local CodesPanel = require(Panels.Codes)
 local DailyPopup = require(Panels.DailyPopup)
 local DexPanel = require(Panels.Dex)
 local GoalsPanel = require(Panels.Goals)
@@ -209,6 +210,7 @@ local panelByKey: { [string]: any } = {
 	Goals = GoalsPanel.new(gui, ctx),
 	Dex = DexPanel.new(gui, ctx),
 	Leaders = leaderboard,
+	Codes = CodesPanel.new(gui, ctx),
 }
 type PanelEntry = { key: string, nav: Nav.Entry?, panel: any }
 local panels: { PanelEntry } = {}
@@ -623,6 +625,7 @@ task.spawn(function()
 			local now = serverNow()
 			hud.tick(now)
 			carry.tick(now)
+			panelByKey.Codes.tick(now)
 			hintOverlay.tick(now, tutorial.frame.Visible)
 		end
 	end

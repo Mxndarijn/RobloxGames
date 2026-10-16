@@ -15,6 +15,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Appraise = if Shared then require(Shared.Appraise) else require("../shared/Appraise")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
@@ -79,6 +80,12 @@ function Actions.parseArgs(action: string, raw: { any }): ({ any }?, string?)
 				end
 				out[i] = id
 			end
+		elseif kind == "code" then
+			-- Free text: only bounded here; Codes.normalize words the result.
+			if type(value) ~= "string" or #value > 64 then
+				return nil, "bad argument"
+			end
+			out[i] = value
 		elseif kind == "number" then
 			if type(value) ~= "number" or value ~= value or math.abs(value) == math.huge then
 				return nil, "bad argument"
@@ -118,6 +125,18 @@ local function daily(world: World, session: Session, now: number): Result
 		return fail(value :: string)
 	end
 	World.notify(world, session.userId, `Daily reward: ${Economy.formatNumber(value :: number)}`, "good", "Cash")
+	return OK
+end
+
+local function redeem(world: World, session: Session, text: string, now: number): Result
+	local ok, status, reward = Codes.redeem(session.data, text, now)
+	if not ok or not reward then
+		return fail(Codes.MESSAGES[status] or "That code doesn't work")
+	end
+	local what = if reward.kind == "boost"
+		then `{reward.mult}x income for {reward.minutes} min`
+		else `${Economy.formatNumber(reward.amount or 0)}`
+	World.notify(world, session.userId, `Code redeemed: {what}!`, "good", "Cash")
 	return OK
 end
 
@@ -195,6 +214,8 @@ local function dispatch(
 		return buyPad(world, session)
 	elseif action == "Daily" then
 		return daily(world, session, now)
+	elseif action == "Redeem" then
+		return redeem(world, session, args[1], now)
 	elseif action == "BuyLockUpgrade" then
 		return buyLockUpgrade(world, session)
 	elseif action == "BuySpeedCoil" then
