@@ -1,0 +1,19 @@
+{
+  "id": "22-border-terrain-aerial-pc",
+  "kind": "world",
+  "pos": [
+    60.0,
+    260,
+    140
+  ],
+  "look": [
+    -70.0,
+    25,
+    -330
+  ],
+  "wait": 6.0,
+  "device": "desktop",
+  "clock": 14,
+  "todo": "border-terrain",
+  "note": "border terrain: one aerial over the plaza toward the border: near hills, mid hills and the backdrop ridge ring round the horizon in [desktop]"
+}
