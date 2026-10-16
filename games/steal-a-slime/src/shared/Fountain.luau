@@ -19,7 +19,14 @@ export type Drop = {
 
 local Fountain = {}
 
-Fountain.MIN_RADIUS = 34
+-- The landing-ring curb (WorldLayout Plaza.LandingRing: 18 tiles, bbox centre r 38.678, 13.145 x 10.27):
+-- its farthest corner is at r 44.30. It is visual-only (no collider; slimes are anchored and script
+-- moved, so no collision group could stop them), so wilds must never be placed or run through it.
+Fountain.LANDING_RING_OUTER = 44.4
+-- Biggest slime body radius (Config.SLIME_BASE_DIAMETER 3 x MAX_SIZE 2 / 2).
+Fountain.SLIME_RADIUS = Config.SLIME_BASE_DIAMETER * Config.MAX_SIZE / 2
+-- Landings start one margin stud past the curb for the widest slime (was 34: inside the ring).
+Fountain.MIN_RADIUS = Fountain.LANDING_RING_OUTER + Fountain.SLIME_RADIUS + 1
 Fountain.MAX_RADIUS = 62
 
 function Fountain.spawnInterval(raining: boolean): number

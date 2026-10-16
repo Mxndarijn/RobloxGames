@@ -62,7 +62,7 @@ local OLD_SAVE = [[{
 describe("Fountain module", function()
 	it("Volcano is a thin alias for Fountain (same behaviour)", function()
 		expect(Volcano).toBe(Fountain)
-		expect(Fountain.MIN_RADIUS).toBe(34)
+		expect(Fountain.MIN_RADIUS).toBeCloseTo(48.4)
 		expect(Fountain.MAX_RADIUS).toBe(62)
 	end)
 end)

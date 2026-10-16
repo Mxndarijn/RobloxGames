@@ -49,7 +49,15 @@ FountainRide.RUN_DECEL = 60 -- studs/s^2 from SLIDE_SPEED down to RUN_SPEED
 FountainRide.RUN_SPEED = 20 -- studs/s walking round the plaza
 FountainRide.STOP_DISTANCE = 3 -- studs over which it eases to a stop
 FountainRide.MIN_SPEED = 2 -- floor of the stop ease, so the ride always ends
-FountainRide.EXIT_RUN = 9 -- studs straight out of the mouth before it curls
+FountainRide.EXIT_RUN = 9 -- least studs straight out of the mouth before it curls (more, until it clears the landing ring)
+-- The plaza's landing ring (WorldLayout Plaza.LandingRing, visual-only curbs): farthest corner r 44.3, 3.145 tall.
+-- The slide mouth (r 35.5) sits inside it, so the run-out hops OVER the curb: pivot (= slime bottom) above its top
+-- until the whole slime is past the outer edge, then back to the ground. tests/FountainRide.spec keeps these
+-- equal to Fountain.LANDING_RING_OUTER and the tile geometry.
+FountainRide.RING_OUTER = 44.4
+FountainRide.RING_TOP = 3.3
+FountainRide.HOP_DOWN = 2.5 -- studs past the slime clearing the curb over which it drops back to the ground
+FountainRide.RING_CLEAR = FountainRide.RING_OUTER + 3 + FountainRide.HOP_DOWN -- the run is back on the ground here
 FountainRide.LOW_SLIDE_Y = 10 -- slide segments at or below this are on posts near the ground
 -- Slide lip half-width 3.5, 20 % wider at the mouth, plus the biggest slime
 -- (SLIME_BASE_DIAMETER 3 x MAX_SIZE 2, half of it).
@@ -161,10 +169,21 @@ local function runOut(path: { Vec }, landing: Vec): { Vec }
 	local before = path[#path - 1]
 	local dx, dz = mouth[1] - before[1], mouth[3] - before[3]
 	local len = math.max(math.sqrt(dx * dx + dz * dz), 1e-6)
-	local exit =
-		v3(mouth[1] + dx / len * FountainRide.EXIT_RUN, landing[2], mouth[3] + dz / len * FountainRide.EXIT_RUN)
+	-- Straight on until the slime is clear of the landing ring (the mouth leaves it at a slant).
+	local run = FountainRide.EXIT_RUN
+	while run < 80 and dist2(0, 0, mouth[1] + dx / len * run, mouth[3] + dz / len * run) < FountainRide.RING_CLEAR do
+		run += 0.25
+	end
+	local exit = v3(mouth[1] + dx / len * run, landing[2], mouth[3] + dz / len * run)
 	local out = {}
 	subdivide(out, mouth, exit)
+	-- Over the curb: the pivot rides RING_TOP above the ground while any of the slime can overlap it.
+	for _, p in out do
+		local r = dist2(0, 0, p[1], p[3])
+		local down = math.clamp((r - (FountainRide.RING_OUTER + 3)) / FountainRide.HOP_DOWN, 0, 1)
+		local up = math.clamp(dist2(mouth[1], mouth[3], p[1], p[3]) / 3, 0, 1) -- lift off over the first 3 studs
+		p[2] = landing[2] + FountainRide.RING_TOP * up * (1 - down * down * (3 - 2 * down))
+	end
 	local a0 = math.atan2(exit[3], exit[1])
 	local d = (math.atan2(landing[3], landing[1]) - a0) % (math.pi * 2)
 	local ahead = curl(path, exit, landing, d)

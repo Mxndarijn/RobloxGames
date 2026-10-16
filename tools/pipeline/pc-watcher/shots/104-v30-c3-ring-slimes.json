@@ -1,0 +1,11 @@
+{
+  "id": "v30-c3-ring-slimes",
+  "todo": "v30 C3",
+  "kind": "world",
+  "target": "Tile1",
+  "from": "centre",
+  "dist": 70,
+  "height": 45,
+  "ring_slimes": true,
+  "note": "v30 C3: wild slimes around the plaza's middle ring (landing-ring curbs) never stand inside it; luau/ring_slimes samples every wild slime for 4 s (a violation is a note on the step)"
+}
