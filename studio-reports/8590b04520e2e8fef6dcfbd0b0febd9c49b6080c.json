@@ -9554,5 +9554,10 @@
       ]
     }
   },
-  "frames_dir": "8590b04520e2e8fef6dcfbd0b0febd9c49b6080c/"
+  "frames_dir": "8590b04520e2e8fef6dcfbd0b0febd9c49b6080c/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Includes #172 (B6 round 5) + #173 probe nits. Slide probe 0 violations, spawned_inside empty (1728 samples). Humanoid R15 runs (WalkSpeed 16, 6x: centre/outer-hug/no-steer/jump) never left the tube; walk speed on the slide 19-26 studs/s. Mesh slots 384 (world meshes back after #168). Shot 103: desktop daytime whole plot, 8 uniform pads, flower_bed morph clear. Growth: slime framed whole, still night, no growth label in frame (note). Notes, not blocks: plot-skin shots x4 failed on a Studio ExecuteLuau tool error (unproven, feature off); fountain_walk 0 violations; C3 note wild slime inside landing ring r 31-34 (slide run-out?); C11 note: 256-stud TutorialArrow beam on the player; LOD-far slime not moving."
 }
