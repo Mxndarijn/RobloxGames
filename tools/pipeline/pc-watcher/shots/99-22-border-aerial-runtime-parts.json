@@ -1,0 +1,19 @@
+{
+  "id": "22-border-aerial-runtime-parts",
+  "todo": "runtime-parts",
+  "kind": "world",
+  "pos": [
+    48,
+    150,
+    132
+  ],
+  "look": [
+    -100,
+    6,
+    -274
+  ],
+  "wait": 0.5,
+  "runtime_parts_max": 2350,
+  "note": "perf proof (HARD): the border aerial with the world BaseParts in Workspace (perf_server runtime_parts, parade lane and slide colliders spawned; wild/pad slimes, characters and transients reported separately as runtime_parts_transient) asserted <= 2350. Ratchet: only ever lower it; target 1800. The build-time 1400 Part cap stays in WorldBudget.spec",
+  "device": "desktop"
+}
