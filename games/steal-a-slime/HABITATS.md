@@ -51,4 +51,4 @@ Same slot rules as the pad kit (`models/_phoenix_pad.py`): footprint <= 7.96 x 7
 | `crystal_grotto` | `habitat_crystal_grotto` | 7.8 x 5.0 x 7.8 | 2.4 | rock bowl with a flat stone seat; lilac / aqua crystal clusters on the rim only (keep the seat area clear up to 5.0) |
 | `candy_patch` | `habitat_candy_patch` | 7.8 x 4.5 x 7.8 | 2.4 | sugar-soil mound with gumdrops and two lollipops at the rim, flat biscuit seat |
 
-Until those land, both draw primitive placeholders. The seven kit pads are already uploaded; swapping their meshes into `HabitatFx` is a follow-up (MeshSwap is server-side today).
+Both models landed (Archer #57, `shared/modeling-kit/out/habitat_*.fbx`) but are **not uploaded**: `MeshAssets` lists them with sizes and no `meshId`. `Habitats.slotMesh(id)` returns the slot's meshId + native size once one is filled in, and `HabitatFx` then draws it (FileMesh SpecialMesh, Y fit so the 2.4 seat meets the pad top); until then both draw primitive placeholders. The seven kit pads are already uploaded; swapping their meshes into `HabitatFx` is a follow-up (MeshSwap is server-side today).

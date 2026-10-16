@@ -97,6 +97,38 @@ describe("Habitats table", function()
 		end
 		expect(Habitats.MESH_SLOTS).toEqual({ "candy_patch", "crystal_grotto" })
 	end)
+	it("lists each mesh slot's kit in MeshAssets at the HABITATS.md slot size", function()
+		local sizes = { candy_patch = { 7.8, 4.5, 7.8 }, crystal_grotto = { 7.8, 5.0, 7.8 } }
+		for _, id in Habitats.MESH_SLOTS do
+			local kit = (Habitats.get(id) :: Habitats.Habitat).kit :: string
+			expect(table.find(MeshAssets.NAMES, kit) ~= nil).toBe(true)
+			expect((MeshAssets.get(kit) :: MeshAssets.Entry).size).toEqual(sizes[id])
+		end
+	end)
+	it("keeps the placeholder for a mesh slot with no uploaded meshId", function()
+		for _, id in Habitats.MESH_SLOTS do
+			local kit = (Habitats.get(id) :: Habitats.Habitat).kit :: string
+			expect(Habitats.slotMesh(id) == nil).toBe(MeshAssets.meshId(kit) == nil)
+		end
+		local entry = MeshAssets.get("habitat_candy_patch") :: MeshAssets.Entry
+		local saved = entry.meshId
+		entry.meshId = nil
+		expect(Habitats.slotMesh("candy_patch")).toBe(nil)
+		entry.meshId = saved
+	end)
+	it("resolves a mesh slot to its MeshAssets meshId and native size once uploaded", function()
+		local entry = MeshAssets.get("habitat_crystal_grotto") :: MeshAssets.Entry
+		local saved = entry.meshId
+		entry.meshId = "rbxassetid://123"
+		local slot = Habitats.slotMesh("crystal_grotto")
+		entry.meshId = saved
+		expect(slot).toEqual({ meshId = "rbxassetid://123", size = { 7.8, 5.0, 7.8 } })
+	end)
+	it("never gives base, kit-pad looks or unknown ids a slot mesh", function()
+		expect(Habitats.slotMesh(BASE)).toBe(nil)
+		expect(Habitats.slotMesh("hay_nest")).toBe(nil) -- uploaded kit pad, not a slot
+		expect(Habitats.slotMesh("not_a_habitat")).toBe(nil)
+	end)
 end)
 
 describe("HabitatPads (server pad state)", function()

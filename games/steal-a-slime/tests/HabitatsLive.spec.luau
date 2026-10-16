@@ -131,6 +131,12 @@ rt:advance(0.5)
 fire()
 frames(1.5)
 local grownLooks = looksOf(part)
+local function lookOf(p, id)
+	local root = rt.workspace:FindFirstChild("ClientHabitats")
+	return root and root:FindFirstChild(`{p.Parent.Name}_{p.Name}_{id}`)
+end
+local grown = lookOf(part, "crystal_grotto")
+local grownPlaceholder = { grown:FindFirstChild("Seat") ~= nil, grown:FindFirstChild("Mesh") ~= nil }
 local grownHidden = part.Stand.LocalTransparencyModifier
 part:SetAttribute("Habitat", "not_a_habitat") -- table drift / bad attribute
 fire()
@@ -152,6 +158,28 @@ rt:runDue()
 local after = listeners(part)
 local afterCount = HabitatFx.count()
 HabitatFx.clear()
+
+-- Same pad once habitat_crystal_grotto has a meshId (set on the runtime's
+-- MeshAssets copy only; the repo has none yet): one FileMesh piece.
+local meshAssets = rt:require(rt.game:GetService("ReplicatedStorage").Shared.MeshAssets)
+meshAssets.entries.habitat_crystal_grotto.meshId = "rbxassetid://123"
+part:SetAttribute("Habitat", "crystal_grotto")
+local meshConns = HabitatFx.attach(plots)
+local meshLook = lookOf(part, "crystal_grotto")
+local meshPart = meshLook and meshLook:FindFirstChild("Mesh")
+local special = meshPart and meshPart:FindFirstChildOfClass("SpecialMesh")
+local meshShape = {
+	meshLook and #meshLook:GetChildren(),
+	special and special.MeshType == roblox.Enum.MeshType.FileMesh,
+	special and tostring(special.MeshId),
+	special and math.abs(special.Scale.Y - part.Size.Y / 2.4) < 1e-4,
+	meshPart and math.abs(meshPart.Size.X - 7.8) < 1e-4,
+}
+for _, c in meshConns do
+	c:Disconnect()
+end
+HabitatFx.clear()
+meshAssets.entries.habitat_crystal_grotto.meshId = nil
 
 describe("Habitats live (FEATURES.Habitats on, fake runtime)", function()
 	it("boots without script errors", function()
@@ -179,6 +207,13 @@ describe("HabitatFx client lifecycle (fake runtime)", function()
 		expect(maxBursts).toBe(1)
 		expect(emits).toBe(12) -- 10 transforms + grow again + the drift to base
 		expect(settledLooks).toBe(0) -- ended at base: no look left
+		expect(#rt.errors).toBe(0)
+	end)
+	it("draws the placeholder for a mesh slot with no meshId in the repo", function()
+		expect(grownPlaceholder).toEqual({ true, false })
+	end)
+	it("draws the slot mesh (FileMesh, seat fit to the pad) once a meshId exists", function()
+		expect(meshShape).toEqual({ 1, true, "rbxassetid://123", true, true })
 		expect(#rt.errors).toBe(0)
 	end)
 	it("shows the base pad for an unknown habitat id", function()

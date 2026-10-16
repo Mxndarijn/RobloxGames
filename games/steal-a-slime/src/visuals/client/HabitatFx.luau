@@ -11,8 +11,12 @@
 	(LocalTransparencyModifier) while a habitat shows. The first time a pad is
 	seen it snaps to its final state (join in progress), no burst.
 
-	PLACEHOLDER looks: primitive parts in Habitats colours, no asset ids. The
-	kit meshes (Habitats.get(id).kit) and Archer's MESH_SLOTS replace them.
+	Mesh slots (Habitats.MESH_SLOTS) draw their uploaded mesh when
+	Habitats.slotMesh(id) has one (MeshAssets meshId): a Part with a FileMesh
+	SpecialMesh (MeshPart.MeshId can't be set from a script), footprint at
+	native size, height fit so the mesh seat lands on the pad top. No meshId
+	yet = PLACEHOLDER primitive parts in Habitats colours, as do the seven kit
+	pad looks (swapping those in is a follow-up).
 	Reads attributes only; never fires remotes. Nothing replicates.
 ]]
 
@@ -29,7 +33,14 @@ local HabitatFx = {}
 HabitatFx.SPARK = "rbxasset://textures/particles/sparkles_main.dds" -- built-in, same as Effects SPARK
 HabitatFx.BURST = 24
 
-type Piece = { part: BasePart, size: Vector3, offset: CFrame, transparency: number }
+type Piece = {
+	part: BasePart,
+	size: Vector3,
+	offset: CFrame,
+	transparency: number,
+	mesh: SpecialMesh?, -- slot mesh look: Scale grows with the look, not Size
+	scale: Vector3?,
+}
 type Look = { model: Model, pieces: { Piece } }
 type Track = {
 	pad: BasePart,
@@ -84,6 +95,32 @@ local function piece(
 	return { part = part, size = size, offset = offset, transparency = transparency or 0 }
 end
 
+-- One FileMesh piece for an uploaded slot mesh. Footprint stays native (the
+-- slot is built to <= 7.96 on the 8-stud pad); Y scales by pad height / seat
+-- so the mesh seat sits on the pad top, where the slime rests.
+local function meshPiece(model: Model, pad: BasePart, slot: Habitats.SlotMesh, seat: number): Piece
+	local native = Vector3.new(slot.size[1], slot.size[2], slot.size[3])
+	local scale = Vector3.new(1, if seat > 0 then pad.Size.Y / seat else 1, 1)
+	local size = native * scale
+	local p = piece(
+		model,
+		"Mesh",
+		Enum.PartType.Block,
+		size,
+		CFrame.new(0, size.Y / 2, 0), -- FileMesh origin is its bbox centre
+		Color3.new(1, 1, 1),
+		Enum.Material.SmoothPlastic
+	)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.FileMesh
+	mesh.MeshId = slot.meshId
+	mesh.Scale = scale
+	mesh.Parent = p.part
+	p.mesh = mesh
+	p.scale = scale
+	return p
+end
+
 -- Offsets are from the pad's bottom centre (pad local space, +Y up).
 local CORNERS = { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }
 
@@ -94,6 +131,12 @@ local function buildLook(pad: BasePart, id: string): Look?
 	end
 	local model = Instance.new("Model")
 	model.Name = `{pad.Parent and pad.Parent.Name or "Plot"}_{pad.Name}_{id}`
+	local slot = Habitats.slotMesh(id)
+	if slot then
+		local pieces = { meshPiece(model, pad, slot, habitat.seat) }
+		model.Parent = folder()
+		return { model = model, pieces = pieces }
+	end
 	local color, accent = rgb(habitat.color), rgb(habitat.accent)
 	local seatH = pad.Size.Y
 	local pieces: { Piece } = {}
@@ -181,6 +224,9 @@ local function poseLook(pad: BasePart, look: Look, w: number)
 	for _, p in look.pieces do
 		local o = p.offset
 		p.part.Size = p.size * s
+		if p.mesh and p.scale then
+			p.mesh.Scale = p.scale * s
+		end
 		p.part.CFrame = bottom * CFrame.new(o.Position * Vector3.new(1, s, 1)) * o.Rotation
 		p.part.Transparency = 1 - w * (1 - p.transparency)
 	end
