@@ -739,5 +739,18 @@
     "sha256": "d395ddc2c3b57e89",
     "uploadedAt": "2026-10-15T21:27:53Z",
     "versions": 1
+  },
+  "slime_fountain_emerge": {
+    "assetId": "100517882708695",
+    "assetType": "Model",
+    "meshId": "rbxassetid://74501501975558",
+    "meshSize": [
+      19.436,
+      12.798,
+      11.353
+    ],
+    "sha256": "ae85bc1351e57f69",
+    "uploadedAt": "2026-10-16T07:27:34Z",
+    "versions": 1
   }
 }
