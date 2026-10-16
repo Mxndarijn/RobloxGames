@@ -1,0 +1,6476 @@
+{
+  "sha": "5a66ce0020e4ea657d9f8ff374da357add20b15f",
+  "status": "pass",
+  "checked_at": "2026-10-16T14:55:38Z",
+  "studio_version": "0, 743, 0, 7431133 (version-4f087c32742644ab)",
+  "notes": "frame time is Studio play-mode on the PC (window may be throttled when unfocused); phone_perf phone-portrait: only 3 animating slimes (wanted 16); phone_perf phone-landscape: only 9 animating slimes (wanted 16); menus are content-sized cards since #76 (not full-window): frac_w / frac_h are reported, only on-screen + a visible close button decide pass; phone_perf is Studio on the PC (own desktop, unfocused), not real phone hardware; two_player ran mode c (pure server modules in one play session), not two real clients",
+  "duration_s": 430.2,
+  "steps": {
+    "build": {
+      "status": "pass",
+      "seconds": 1.6,
+      "detail": {
+        "rbxl": "C:\\gate\\pc-watcher\\builds\\5a66ce0020e4ea657d9f8ff374da357add20b15f.rbxl",
+        "size_mb": 0.48,
+        "rojo_s": 0.1,
+        "datastore_mode": "Memory (Workspace $attributes, test build only)"
+      }
+    },
+    "launch": {
+      "status": "pass",
+      "seconds": 10.1,
+      "detail": {
+        "studio_id": "1fe624e8-2cc3-4497-8994-4695cc97e4ec",
+        "pids": [
+          65112
+        ],
+        "window": "C:\\gate\\pc-watcher\\builds\\5a66ce0020e4ea657d9f8ff374da357add20b15f.rbxl - Roblox Studio",
+        "seconds_to_ready": 9.2,
+        "edit_frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-edit.jpg"
+      }
+    },
+    "perf": {
+      "status": "pass",
+      "seconds": 18.5,
+      "detail": {
+        "unique_meshes": 90,
+        "slime_and_character_meshes": 24,
+        "store_status": "Memory",
+        "parts": 2097,
+        "mesh_slots": 356,
+        "budget": 400,
+        "samples": [
+          68,
+          84,
+          115,
+          157,
+          356,
+          356,
+          356
+        ],
+        "settled": true,
+        "edit": {
+          "place_id": 0,
+          "unique_meshes": 0,
+          "place_name": "5a66ce0020e4ea657d9f8ff374da357add20b15f.rbxl",
+          "datastore_mode": "Memory",
+          "descendants": 1596,
+          "datastore_mode_before": "Memory",
+          "parts": 1470,
+          "mesh_slots": 0
+        },
+        "triangles": "not available from Luau (pr-gate budget.sh counts FBX triangles)"
+      }
+    },
+    "geometry": {
+      "status": "pass",
+      "seconds": 0.1,
+      "detail": {
+        "checks": {
+          "bench_faces_campfire": 1,
+          "shops_face_centre": 9,
+          "silo_centred": 1,
+          "plot_signs": 8
+        }
+      }
+    },
+    "play": {
+      "status": "pass",
+      "seconds": 7.3,
+      "detail": {
+        "client": {
+          "player": "Mxndarijn",
+          "has_gui": true,
+          "viewport": [
+            844,
+            390
+          ],
+          "store_status": "Memory",
+          "step_id": "Grab",
+          "has_character": true,
+          "ready": true
+        },
+        "seconds_to_client": 7.3,
+        "stats": {
+          "play_mesh_parts": 86,
+          "memory_mb": 3548.39,
+          "p95_ms": 18.02,
+          "max_ms": 19.61,
+          "frames": 300,
+          "fps": 60.0,
+          "primitives": 1925,
+          "instance_count": 52275,
+          "play_parts": 1925,
+          "frame_time_ms": 16.67
+        }
+      }
+    },
+    "onboarding": {
+      "status": "pass",
+      "seconds": 1.0,
+      "detail": {
+        "step_id": "Grab",
+        "counter": "Step 1 of 7",
+        "title": "Grab a slime",
+        "card_visible": true,
+        "hide_method": "visible_fallback",
+        "card_visible_after_hide": false
+      }
+    },
+    "shop": {
+      "status": "pass",
+      "seconds": 1.1,
+      "detail": {
+        "open_before": false,
+        "inset": [
+          0,
+          58
+        ],
+        "viewport": [
+          844,
+          390
+        ],
+        "methods": {
+          "open": "pcw_open_hook",
+          "virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau",
+          "mcp_mouse": "never used: moves the OS cursor",
+          "esc": "pcw_press_hook (close logic, not real key routing): closed"
+        },
+        "open_method": "pcw_open_hook",
+        "open_after": true,
+        "open_panels": [
+          "ShopPanel"
+        ]
+      }
+    },
+    "esc": {
+      "status": "pass",
+      "seconds": 1.1,
+      "detail": {
+        "key": {
+          "method": "pcw_press_hook",
+          "called": true,
+          "error": null,
+          "bound": true,
+          "result": "closed"
+        },
+        "method": "pcw_press_hook",
+        "tests": "close logic, not real key routing",
+        "open_after": false,
+        "open_panels": []
+      }
+    },
+    "devices": {
+      "status": "pass",
+      "seconds": 126.9,
+      "detail": {
+        "devices": {
+          "desktop": {
+            "target": [
+              1920,
+              1080
+            ],
+            "viewport": [
+              1920,
+              1080
+            ],
+            "exact": true,
+            "samples": [
+              [
+                1312,
+                606,
+                844,
+                390
+              ],
+              [
+                2388,
+                1296,
+                1920,
+                1080
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                1920,
+                1022
+              ],
+              "checked": 18,
+              "hidden": [
+                "Hud.Daily"
+              ],
+              "viewport": [
+                1920,
+                1080
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "idle": [],
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 103.34,
+                "variance": 3025.8,
+                "distinct": 786,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-desktop.jpg"
+            }
+          },
+          "phone-portrait": {
+            "target": [
+              390,
+              844
+            ],
+            "viewport": [
+              390,
+              844
+            ],
+            "exact": true,
+            "samples": [
+              [
+                2388,
+                1296,
+                1920,
+                1080
+              ],
+              [
+                858,
+                1060,
+                390,
+                844
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                390,
+                786
+              ],
+              "checked": 17,
+              "hidden": [
+                "Hud.Shop",
+                "Hud.Daily"
+              ],
+              "viewport": [
+                390,
+                844
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "idle": [],
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 95.11,
+                "variance": 2700.47,
+                "distinct": 991,
+                "samples": 5194,
+                "w": 390,
+                "h": 844
+              },
+              "size": [
+                390,
+                844
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-phone-portrait.jpg"
+            }
+          },
+          "phone-landscape": {
+            "target": [
+              844,
+              390
+            ],
+            "viewport": [
+              844,
+              390
+            ],
+            "exact": true,
+            "samples": [
+              [
+                858,
+                1060,
+                390,
+                844
+              ],
+              [
+                1312,
+                606,
+                844,
+                390
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                844,
+                332
+              ],
+              "checked": 17,
+              "hidden": [
+                "Hud.Shop",
+                "Hud.Daily"
+              ],
+              "viewport": [
+                844,
+                390
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "idle": [],
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 108.42,
+                "variance": 3377.24,
+                "distinct": 1223,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-phone-landscape.jpg"
+            }
+          }
+        }
+      }
+    },
+    "menus": {
+      "status": "pass",
+      "seconds": 84.7,
+      "detail": {
+        "panels": [
+          "plot",
+          "merge",
+          "shop",
+          "rebirth",
+          "goals",
+          "dex",
+          "leaders",
+          "guide"
+        ],
+        "devices": [
+          "desktop",
+          "phone-portrait",
+          "phone-landscape"
+        ]
+      }
+    },
+    "phone_perf": {
+      "status": "pass",
+      "seconds": 31.3,
+      "detail": {
+        "min_fps": 30,
+        "devices": [
+          "phone-portrait",
+          "phone-landscape"
+        ]
+      }
+    },
+    "two_player": {
+      "status": "pass",
+      "seconds": 10.5,
+      "detail": {
+        "a_probe": {
+          "TestService": {
+            "members": [
+              "NumberOfPlayers:number",
+              "Run:function"
+            ],
+            "available": true
+          },
+          "StudioTestService": {
+            "members": [
+              "ExecutePlayModeAsync:function",
+              "ExecuteRunModeAsync:function",
+              "EndTest:function",
+              "GetTestArgs:function"
+            ],
+            "available": true
+          }
+        },
+        "mode": "c-server-sim",
+        "tried": [
+          "a: no multi-client API in StudioTestService/TestService (probe only)",
+          "b: removed (extra -task StartServer/StartClient Studio windows were visible)"
+        ],
+        "result": {
+          "real_players": 1,
+          "distinct_plots": true,
+          "grab_ok": true,
+          "thief_stolen": 1,
+          "real_owned_plots": 1,
+          "victim_has": false,
+          "deposit_ok": true,
+          "thief_has": true
+        },
+        "pass_": true,
+        "assertion": "two stand-in sessions get distinct plots; thief steals + deposits victim's slime"
+      }
+    },
+    "shots": {
+      "status": "pass",
+      "seconds": 248.3,
+      "detail": {
+        "captured": 75,
+        "total": 75,
+        "shots": [
+          {
+            "id": "01-hud-menus",
+            "todo": "1",
+            "note": "TODO 1: menus size/look (HUD as-is, no click)",
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 122.87,
+                "variance": 2679.29,
+                "distinct": 1030,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-01-hud-menus.jpg"
+            }
+          },
+          {
+            "id": "01b-idle-hud",
+            "todo": "1",
+            "note": "TODO 1: idle HUD, no menu open: no MenuBackdrop / card overlay may be visible (v28 blocker)",
+            "overlays": [],
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 122.92,
+                "variance": 2673.5,
+                "distinct": 1013,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-01b-idle-hud.jpg"
+            }
+          },
+          {
+            "id": "02-dex-menu",
+            "todo": "2",
+            "note": "TODO 2: SlimeDex images",
+            "open": {
+              "panel": "DexPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 103.61,
+                "variance": 3293.12,
+                "distinct": 887,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-02-dex-menu.jpg"
+            },
+            "closed_by": "pcw_open_hook"
+          },
+          {
+            "id": "03-shop-menu",
+            "todo": "3",
+            "note": "TODO 3: one shop menu",
+            "open": {
+              "panel": "ShopPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 105.67,
+                "variance": 3214.59,
+                "distinct": 889,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-03-shop-menu.jpg"
+            },
+            "closed_by": "pcw_open_hook"
+          },
+          {
+            "id": "04-rebirth-menu",
+            "todo": "4",
+            "note": "TODO 4: rebirth shows next upgrade only",
+            "open": {
+              "panel": "RebirthPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 106.55,
+                "variance": 3228.26,
+                "distinct": 881,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-04-rebirth-menu.jpg"
+            },
+            "closed_by": "pcw_open_hook"
+          },
+          {
+            "id": "04-rebirth-slime-missing",
+            "todo": "29",
+            "note": "v29 #5: rebirth menu, required slime MISSING (greyed silhouette, 'Missing', button disabled 'Need <slime>')",
+            "rebirth_slime": {
+              "state": "missing",
+              "found": true
+            },
+            "open": {
+              "panel": "RebirthPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "scroll": {
+              "target": true,
+              "found": true,
+              "scrolled": 1
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 105.07,
+                "variance": 3314.28,
+                "distinct": 901,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-04-rebirth-slime-missing.jpg"
+            },
+            "closed_by": "pcw_open_hook"
+          },
+          {
+            "id": "04-rebirth-slime-owned",
+            "todo": "29",
+            "note": "v29 #5: rebirth menu, required slime OWNED (slime render + green check 'Owned')",
+            "rebirth_slime": {
+              "state": "owned",
+              "found": true
+            },
+            "open": {
+              "panel": "RebirthPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "scroll": {
+              "target": true,
+              "found": true,
+              "scrolled": 1
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 106.41,
+                "variance": 3288.26,
+                "distinct": 898,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-04-rebirth-slime-owned.jpg"
+            },
+            "closed_by": "pcw_open_hook"
+          },
+          {
+            "id": "05-guide-npc",
+            "todo": "5",
+            "note": "TODO 5: guide NPC",
+            "target": {
+              "path": "Workspace.Map.TutorialNpc",
+              "pos": [
+                -83.27984619140625,
+                3.125,
+                -34.12599563598633
+              ],
+              "size": [
+                4.683011054992676,
+                6.25,
+                1.3000000715255737
+              ],
+              "front": [
+                0.9238795042037964,
+                0,
+                0.38268357515335083
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 4,
+              "hidden_billboards": 5,
+              "hidden_prompts": 30,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 153.55,
+                "variance": 2999.13,
+                "distinct": 1025,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-05-guide-npc.jpg"
+            }
+          },
+          {
+            "id": "06-fountain-centre",
+            "todo": "6",
+            "note": "TODO 6/13: fountain in exact middle",
+            "target": {
+              "path": "Workspace.Map.Volcano.FountainMesh",
+              "pos": [
+                6.5200042724609375,
+                21.658004760742188,
+                7.75
+              ],
+              "size": [
+                54.44999694824219,
+                43.316009521484375,
+                63.85099792480469
+              ],
+              "front": [
+                8.742277657347586e-08,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 154.45,
+                "variance": 1666.16,
+                "distinct": 1149,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-06-fountain-centre.jpg"
+            }
+          },
+          {
+            "id": "06-map-top",
+            "todo": "6",
+            "note": "TODO 6/8/9: top-down overview (fountain at centre, stray boxes)",
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 179.52,
+                "variance": 2708.24,
+                "distinct": 739,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-06-map-top.jpg"
+            }
+          },
+          {
+            "id": "07-lock-sign",
+            "todo": "7",
+            "note": "TODO 7",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.LockSign",
+              "pos": [
+                19,
+                7.1999969482421875,
+                122.80000305175781
+              ],
+              "size": [
+                7,
+                2.600006103515625,
+                0.3000030517578125
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 125.83,
+                "variance": 1246.71,
+                "distinct": 1038,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-07-lock-sign.jpg"
+            }
+          },
+          {
+            "id": "07-plot-sign",
+            "todo": "7",
+            "note": "TODO 7: plot sign text on board",
+            "target": {
+              "path": "Workspace.Map.ShopStand.Sign",
+              "pos": [
+                85.30918884277344,
+                10.088000297546387,
+                35.33622360229492
+              ],
+              "size": [
+                6.283999919891357,
+                1.6540000438690186,
+                0.029999999329447746
+              ],
+              "front": [
+                0.9238795042037964,
+                0,
+                0.3826834261417389
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 131.17,
+                "variance": 2468.3,
+                "distinct": 1136,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-07-plot-sign.jpg"
+            }
+          },
+          {
+            "id": "08-stray-box",
+            "todo": "8",
+            "note": "TODO 8: yellow box/slab gone (angled overview of plaza)",
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 149.64,
+                "variance": 1109.06,
+                "distinct": 1119,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-08-stray-box.jpg"
+            }
+          },
+          {
+            "id": "09-floating",
+            "todo": "9",
+            "note": "TODO 9: nothing floating (low angled overview)",
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 149.45,
+                "variance": 556.37,
+                "distinct": 671,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-09-floating.jpg"
+            }
+          },
+          {
+            "id": "10-shop-stand",
+            "todo": "10",
+            "note": "TODO 10: shops face the middle",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.BuyStand",
+              "pos": [
+                -13,
+                5.660003662109375,
+                95
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                0.1355743408203125,
+                0,
+                -0.9907684326171875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 136.76,
+                "variance": 2569.9,
+                "distinct": 1130,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-stand.jpg"
+            }
+          },
+          {
+            "id": "11-campfire",
+            "todo": "11",
+            "note": "TODO 11",
+            "target": {
+              "path": "Workspace.Map.Decor.Campfire",
+              "pos": [
+                35.206878662109375,
+                2.95880126953125,
+                84.99691772460938
+              ],
+              "size": [
+                5.545806884765625,
+                5.9176025390625,
+                5.528900146484375
+              ],
+              "front": [
+                -0.38269051909446716,
+                0,
+                -0.9238738417625427
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 140.51,
+                "variance": 2799.44,
+                "distinct": 1293,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-11-campfire.jpg"
+            }
+          },
+          {
+            "id": "11-campfire-bench",
+            "todo": "11",
+            "note": "TODO 11: bench faces campfire",
+            "target": {
+              "path": "Workspace.Map.Decor.CampBench",
+              "pos": [
+                26.129409790039062,
+                2.4102020263671875,
+                88.21142578125
+              ],
+              "size": [
+                7.1999969482421875,
+                4.820404052734375,
+                2.8511962890625
+              ],
+              "front": [
+                0.9426422119140625,
+                0,
+                -0.33380135893821716
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 142.83,
+                "variance": 3243.99,
+                "distinct": 1194,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-11-campfire-bench.jpg"
+            }
+          },
+          {
+            "id": "11-mailbox",
+            "todo": "11",
+            "note": "TODO 11: mailbox faces path",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_1",
+              "pos": [
+                17,
+                3.225006103515625,
+                95
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ],
+              "front": [
+                -1,
+                0,
+                8.742277657347586e-08
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 148.2,
+                "variance": 2402.11,
+                "distinct": 1240,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-11-mailbox.jpg"
+            }
+          },
+          {
+            "id": "11-signpost",
+            "todo": "11",
+            "note": "TODO 11",
+            "target": {
+              "path": "Workspace.Map.Plaza.Signpost",
+              "pos": [
+                62.82380676269531,
+                4.4996490478515625,
+                -26.022476196289062
+              ],
+              "size": [
+                7.841766357421875,
+                8.999298095703125,
+                4.680999755859375
+              ],
+              "front": [
+                -0.9238738417625427,
+                0,
+                0.38269051909446716
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 174.85,
+                "variance": 3133.38,
+                "distinct": 1049,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-11-signpost.jpg"
+            }
+          },
+          {
+            "id": "12-fountain-slide",
+            "todo": "12",
+            "note": "TODO 12: slime slide ride",
+            "target": {
+              "path": "Workspace.Map.Volcano.SlideColliders.SlideFloor1",
+              "pos": [
+                -8.367389678955078,
+                33.70370101928711,
+                -2.0602400302886963
+              ],
+              "size": [
+                7,
+                3.195587635040283,
+                9.6640625
+              ],
+              "front": [
+                0.8392486572265625,
+                0.24646377563476562,
+                0.4846827983856201
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 159.32,
+                "variance": 2764.21,
+                "distinct": 1524,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-12-fountain-slide.jpg"
+            }
+          },
+          {
+            "id": "13-fountain-colliders",
+            "todo": "13",
+            "note": "TODO 13: fountain solid (close-up)",
+            "target": {
+              "path": "Workspace.Map.Volcano.FountainMesh",
+              "pos": [
+                6.5200042724609375,
+                21.658004760742188,
+                7.75
+              ],
+              "size": [
+                54.44999694824219,
+                43.316009521484375,
+                63.85099792480469
+              ],
+              "front": [
+                8.742277657347586e-08,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 156.07,
+                "variance": 1706.49,
+                "distinct": 1158,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-13-fountain-colliders.jpg"
+            }
+          },
+          {
+            "id": "14-podium-1",
+            "todo": "14",
+            "note": "TODO 14: top podiums with avatars",
+            "target": {
+              "path": "Workspace.Map.Plaza.Podium_1",
+              "pos": [
+                26.022476196289062,
+                2.5171966552734375,
+                -62.82380676269531
+              ],
+              "size": [
+                6.24609375,
+                5.034393310546875,
+                6.0059967041015625
+              ],
+              "front": [
+                -0.38269034028053284,
+                0,
+                0.9238739609718323
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 170.8,
+                "variance": 3588.85,
+                "distinct": 956,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-14-podium-1.jpg"
+            }
+          },
+          {
+            "id": "14-podiums",
+            "todo": "14",
+            "note": "TODO 14",
+            "target": {
+              "path": "Workspace.Map.Plaza.Podium_2",
+              "pos": [
+                34,
+                1.819305419921875,
+                -58.88972473144531
+              ],
+              "size": [
+                5.7967071533203125,
+                3.6385955810546875,
+                5.5937042236328125
+              ],
+              "front": [
+                -0.49999991059303284,
+                0,
+                0.8660278916358948
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 185.82,
+                "variance": 3551.46,
+                "distinct": 1030,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-14-podiums.jpg"
+            }
+          },
+          {
+            "id": "15-slime-pad",
+            "todo": "15",
+            "note": "TODO 15: new slime textures",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 137.13,
+                "variance": 1754.09,
+                "distinct": 998,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-15-slime-pad.jpg"
+            }
+          },
+          {
+            "id": "06-silo-top",
+            "todo": "6",
+            "note": "TODO 6/13: straight down above the origin, silo ring should be concentric with the frame centre",
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 199.99,
+                "variance": 1710.15,
+                "distinct": 1017,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-06-silo-top.jpg"
+            }
+          },
+          {
+            "id": "07-plot-sign-front-1",
+            "todo": "7",
+            "note": "TODO 7: Plot_1 sign from outside the plot, text must read (not mirrored)",
+            "target": {
+              "path": "Workspace.Map.ShopStand.Sign",
+              "pos": [
+                85.30918884277344,
+                10.088000297546387,
+                35.33622360229492
+              ],
+              "size": [
+                6.283999919891357,
+                1.6540000438690186,
+                0.029999999329447746
+              ],
+              "front": [
+                0.9238795042037964,
+                0,
+                0.3826834261417389
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 138.86,
+                "variance": 2263.29,
+                "distinct": 1047,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-07-plot-sign-front-1.jpg"
+            }
+          },
+          {
+            "id": "07-plot-sign-front-2",
+            "todo": "7",
+            "note": "TODO 7: Plot_2 sign from outside the plot, text must read (not mirrored)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Sign",
+              "pos": [
+                0,
+                11.5,
+                99.72500610351562
+              ],
+              "size": [
+                9,
+                2.399993896484375,
+                0.75
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 133.83,
+                "variance": 2526.28,
+                "distinct": 912,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-07-plot-sign-front-2.jpg"
+            }
+          },
+          {
+            "id": "11-bench-campfire-close",
+            "todo": "11",
+            "note": "TODO 11: camera behind the bench looking over it at the campfire",
+            "target": {
+              "path": "Workspace.Map.Decor.CampBench",
+              "pos": [
+                26.129409790039062,
+                2.4102020263671875,
+                88.21142578125
+              ],
+              "size": [
+                7.1999969482421875,
+                4.820404052734375,
+                2.8511962890625
+              ],
+              "front": [
+                0.9426422119140625,
+                0,
+                -0.33380135893821716
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 142.06,
+                "variance": 3690.64,
+                "distinct": 934,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-11-bench-campfire-close.jpg"
+            }
+          },
+          {
+            "id": "10-shop-front-1",
+            "todo": "10",
+            "note": "TODO 10: ShopStand #1 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Map.ShopStand",
+              "pos": [
+                83.51869201660156,
+                5.850000381469727,
+                34.594573974609375
+              ],
+              "size": [
+                11.599998474121094,
+                11.700000762939453,
+                6.259584903717041
+              ],
+              "front": [
+                -0.9238795042037964,
+                0,
+                -0.3826834261417389
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 162.29,
+                "variance": 3555.82,
+                "distinct": 968,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-1.jpg"
+            }
+          },
+          {
+            "id": "10-shop-front-2",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #1 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.BuyStand",
+              "pos": [
+                -13,
+                5.660003662109375,
+                95
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                0.1355743408203125,
+                0,
+                -0.9907684326171875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 143.56,
+                "variance": 2760.05,
+                "distinct": 1000,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-2.jpg"
+            }
+          },
+          {
+            "id": "10-shop-front-3",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #2 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_2.BuyStand",
+              "pos": [
+                57.98276138305664,
+                5.660003662109375,
+                76.36754608154297
+              ],
+              "size": [
+                9.607983589172363,
+                11.32000732421875,
+                5.9631853103637695
+              ],
+              "front": [
+                -0.604705810546875,
+                0,
+                -0.79644775390625
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 142.46,
+                "variance": 2949.39,
+                "distinct": 1032,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-3.jpg"
+            }
+          },
+          {
+            "id": "10-shop-front-4",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #3 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_3.BuyStand",
+              "pos": [
+                95,
+                5.660003662109375,
+                13
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                -0.9907684326171875,
+                0,
+                -0.1355743408203125
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 143.09,
+                "variance": 2903.01,
+                "distinct": 972,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-4.jpg"
+            }
+          },
+          {
+            "id": "10-shop-front-5",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #4 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_4.BuyStand",
+              "pos": [
+                76.36754608154297,
+                5.660003662109375,
+                -57.98276138305664
+              ],
+              "size": [
+                9.607983589172363,
+                11.32000732421875,
+                5.9631853103637695
+              ],
+              "front": [
+                -0.79644775390625,
+                0,
+                0.604705810546875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 142.13,
+                "variance": 2718.04,
+                "distinct": 994,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-5.jpg"
+            }
+          },
+          {
+            "id": "10-shop-front-6",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #5 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_5.BuyStand",
+              "pos": [
+                13,
+                5.660003662109375,
+                -95
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                -0.1355743408203125,
+                0,
+                0.9907684326171875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 126.97,
+                "variance": 4361.91,
+                "distinct": 855,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-6.jpg"
+            }
+          },
+          {
+            "id": "10-shop-front-7",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #6 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_6.BuyStand",
+              "pos": [
+                -57.98276138305664,
+                5.660003662109375,
+                -76.36754608154297
+              ],
+              "size": [
+                9.607983589172363,
+                11.32000732421875,
+                5.9631853103637695
+              ],
+              "front": [
+                0.604705810546875,
+                0,
+                0.79644775390625
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 142.37,
+                "variance": 2518.48,
+                "distinct": 1029,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-7.jpg"
+            }
+          },
+          {
+            "id": "10-shop-front-8",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #7 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_7.BuyStand",
+              "pos": [
+                -95,
+                5.660003662109375,
+                -13
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                0.9907684326171875,
+                0,
+                0.1355743408203125
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 143.92,
+                "variance": 2474.74,
+                "distinct": 926,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-8.jpg"
+            }
+          },
+          {
+            "id": "10-shop-front-9",
+            "todo": "10",
+            "note": "TODO 10: BuyStand #8 seen from the plaza centre side (should show its front)",
+            "target": {
+              "path": "Workspace.Plots.Plot_8.BuyStand",
+              "pos": [
+                -76.36754608154297,
+                5.660003662109375,
+                57.98276138305664
+              ],
+              "size": [
+                9.607983589172363,
+                11.32000732421875,
+                5.9631853103637695
+              ],
+              "front": [
+                0.79644775390625,
+                0,
+                -0.604705810546875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 144.62,
+                "variance": 2593.03,
+                "distinct": 949,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-9.jpg"
+            }
+          },
+          {
+            "id": "16-shop-esc",
+            "todo": "16",
+            "note": "TODO 16: open the shop, run the CloseMenu action in-engine via the PcwPress hook (pcw_press_hook: tests the close logic, not real key routing), ShopPanel must close",
+            "open": {
+              "panel": "ShopPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "press": {
+              "key": "Escape",
+              "panel": "ShopPanel",
+              "expect": "closed",
+              "method": "pcw_press_hook",
+              "key_ok": true,
+              "key_call": {
+                "method": "pcw_press_hook",
+                "called": true,
+                "error": null,
+                "bound": true,
+                "result": "closed"
+              },
+              "open_after": false,
+              "status": "pass"
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 132.22,
+                "variance": 3666.35,
+                "distinct": 836,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-shop-esc.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-hay_nest-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into hay_nest (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 4,
+              "hidden_billboards": 5,
+              "hidden_prompts": 30,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 2.384185791015625e-07,
+              "slime": "Workspace.Slime_f7c4d237-8e54-4ce5-b883-11ff3a7763f9",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "hay_nest",
+              "slime_found": false,
+              "before": "base"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 137.15,
+                "variance": 1984.6,
+                "distinct": 970,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-hay_nest-mid.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-hay_nest",
+            "todo": "16",
+            "note": "TODO 16: pad turned into hay_nest",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 2,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 4.76837158203125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "hay_nest",
+              "slime_found": false,
+              "before": "hay_nest"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 136.59,
+                "variance": 2030.71,
+                "distinct": 959,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-hay_nest.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-mushroom_ring-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into mushroom_ring (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 4.76837158203125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "mushroom_ring",
+              "slime_found": false,
+              "before": "hay_nest"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 136.68,
+                "variance": 2016.97,
+                "distinct": 975,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-mushroom_ring-mid.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-mushroom_ring",
+            "todo": "16",
+            "note": "TODO 16: pad turned into mushroom_ring",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "mushroom_ring",
+              "slime_found": false,
+              "before": "mushroom_ring"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 136.38,
+                "variance": 2009.04,
+                "distinct": 986,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-mushroom_ring.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-flower_bed-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into flower_bed (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 4.76837158203125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "flower_bed",
+              "slime_found": false,
+              "before": "mushroom_ring"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 136.03,
+                "variance": 2015.88,
+                "distinct": 985,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-flower_bed-mid.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-flower_bed",
+            "todo": "16",
+            "note": "TODO 16: pad turned into flower_bed",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "flower_bed",
+              "slime_found": false,
+              "before": "flower_bed"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 135.59,
+                "variance": 2024.92,
+                "distinct": 1000,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-flower_bed.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-barn_crate-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into barn_crate (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 2,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 4.76837158203125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "barn_crate",
+              "slime_found": false,
+              "before": "flower_bed"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 135.29,
+                "variance": 2066.59,
+                "distinct": 998,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-barn_crate-mid.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-barn_crate",
+            "todo": "16",
+            "note": "TODO 16: pad turned into barn_crate",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "barn_crate",
+              "slime_found": false,
+              "before": "barn_crate"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 134.88,
+                "variance": 2063.11,
+                "distinct": 1023,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-barn_crate.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-rodeo_barrel-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into rodeo_barrel (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 4.76837158203125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "rodeo_barrel",
+              "slime_found": false,
+              "before": "barn_crate"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 134.14,
+                "variance": 2046.57,
+                "distinct": 1022,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-rodeo_barrel-mid.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-rodeo_barrel",
+            "todo": "16",
+            "note": "TODO 16: pad turned into rodeo_barrel",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "rodeo_barrel",
+              "slime_found": false,
+              "before": "rodeo_barrel"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 127.91,
+                "variance": 1877.04,
+                "distinct": 1046,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-rodeo_barrel.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-syrup_pool-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into syrup_pool (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 9,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 4.76837158203125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "syrup_pool",
+              "slime_found": false,
+              "before": "rodeo_barrel"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 127.3,
+                "variance": 1891.47,
+                "distinct": 1055,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-syrup_pool-mid.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-syrup_pool",
+            "todo": "16",
+            "note": "TODO 16: pad turned into syrup_pool",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 7,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 4.76837158203125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "syrup_pool",
+              "slime_found": false,
+              "before": "syrup_pool"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 126.74,
+                "variance": 1890.69,
+                "distinct": 1088,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-syrup_pool.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-show_stool-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into show_stool (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 9,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 4.76837158203125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "show_stool",
+              "slime_found": false,
+              "before": "syrup_pool"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 126.79,
+                "variance": 1925.84,
+                "distinct": 1086,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-show_stool-mid.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-show_stool",
+            "todo": "16",
+            "note": "TODO 16: pad turned into show_stool",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Slime_8312cbc6-c209-491c-95db-14a6a1c5a45f",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "show_stool",
+              "slime_found": false,
+              "before": "show_stool"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 126.46,
+                "variance": 1909.55,
+                "distinct": 1119,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-show_stool.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-candy_patch-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into candy_patch (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 2,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Slime_34fc4215-a71d-44b8-91d5-4759fb61887c",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "candy_patch",
+              "slime_found": false,
+              "before": "show_stool"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 125.19,
+                "variance": 1926.53,
+                "distinct": 1125,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-candy_patch-mid.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-candy_patch",
+            "todo": "16",
+            "note": "TODO 16: pad turned into candy_patch",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": -4.76837158203125e-07,
+              "slime": "Workspace.Slime_b60d327b-43fc-4fda-a4f2-a4866cd519a3",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "candy_patch",
+              "slime_found": false,
+              "before": "candy_patch"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 124.33,
+                "variance": 1941.1,
+                "distinct": 1122,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-candy_patch.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-crystal_grotto-mid",
+            "todo": "16",
+            "note": "TODO 16: pad morphing into crystal_grotto (mid-morph, about 40%)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 1.1920928955078125e-06,
+              "slime": "Workspace.Slime_040223d8-20a4-4787-a743-aa1c061a79a9",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "crystal_grotto",
+              "slime_found": false,
+              "before": "candy_patch"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 123.61,
+                "variance": 1945.81,
+                "distinct": 1138,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-crystal_grotto-mid.jpg"
+            }
+          },
+          {
+            "id": "16-habitat-crystal_grotto",
+            "todo": "16",
+            "note": "TODO 16: pad turned into crystal_grotto",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 2,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 7.152557373046875e-07,
+              "slime": "Workspace.Slime_040223d8-20a4-4787-a743-aa1c061a79a9",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "crystal_grotto",
+              "slime_found": false,
+              "before": "crystal_grotto"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 122.83,
+                "variance": 1943.39,
+                "distinct": 1154,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-crystal_grotto.jpg"
+            }
+          },
+          {
+            "id": "17-motion-idlesquish",
+            "todo": "17",
+            "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), idle squish: two samples 0.6 s apart must differ (Transform + Mesh size)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 0,
+              "slime": "Workspace.Slime_040223d8-20a4-4787-a743-aa1c061a79a9",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "motion": {
+              "ok": true,
+              "b": {
+                "y": 0.0338134765625,
+                "skin_same": true,
+                "sy": 3.1880033016204834,
+                "yaw": 4.704456380011379e-09
+              },
+              "near": 1,
+              "animating": 1,
+              "moved": 0.27642405611251475,
+              "a": {
+                "y": -0.058682799339294434,
+                "skin_same": true,
+                "sy": 3.004075527191162,
+                "yaw": -1.0769426461720855e-09
+              },
+              "mode": "motor",
+              "slime": "Slime_040223d8-20a4-4787-a743-aa1c061a79a9",
+              "kind": "Idle"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 122.28,
+                "variance": 1952.01,
+                "distinct": 1169,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-17-motion-idlesquish.jpg"
+            }
+          },
+          {
+            "id": "17-motion-hop",
+            "todo": "17",
+            "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), hop apex (FaceRoot/SkinRoot lifted, body squashed/stretched)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 2.384185791015625e-07,
+              "slime": "Workspace.Slime_040223d8-20a4-4787-a743-aa1c061a79a9",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "motion": {
+              "ok": true,
+              "b": {
+                "y": 0.4996159076690674,
+                "skin_same": true,
+                "sy": 3.2110037803649902,
+                "yaw": 2.9982125671068616e-09
+              },
+              "near": 2,
+              "animating": 1,
+              "moved": 0.729844337257118,
+              "a": {
+                "y": -0.04686570167541504,
+                "skin_same": true,
+                "sy": 3.0276410579681396,
+                "yaw": 8.513997507009208e-09
+              },
+              "mode": "motor",
+              "slime": "Slime_040223d8-20a4-4787-a743-aa1c061a79a9",
+              "kind": "Hop"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 121.79,
+                "variance": 1954.12,
+                "distinct": 1175,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-17-motion-hop.jpg"
+            }
+          },
+          {
+            "id": "17-motion-lookleft",
+            "todo": "17",
+            "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), look left (FaceRoot/SkinRoot yaw)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 0,
+              "slime": "Workspace.Slime_040223d8-20a4-4787-a743-aa1c061a79a9",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "motion": {
+              "ok": true,
+              "b": {
+                "y": -0.0343555212020874,
+                "skin_same": true,
+                "sy": 3.05340576171875,
+                "yaw": 0.4499998986721039
+              },
+              "near": 2,
+              "animating": 1,
+              "moved": 0.5369053622707725,
+              "a": {
+                "y": -0.06645774841308594,
+                "skin_same": true,
+                "sy": 2.9875025749206543,
+                "yaw": 0.011099950410425663
+              },
+              "mode": "motor",
+              "slime": "Slime_040223d8-20a4-4787-a743-aa1c061a79a9",
+              "kind": "LookLeft"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 121.19,
+                "variance": 1956.8,
+                "distinct": 1151,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-17-motion-lookleft.jpg"
+            }
+          },
+          {
+            "id": "17-motion-lookright",
+            "todo": "17",
+            "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), look right (FaceRoot/SkinRoot yaw)",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": true,
+              "pad_top": 3.399993896484375,
+              "gap": 2.384185791015625e-07,
+              "slime": "Workspace.Slime_040223d8-20a4-4787-a743-aa1c061a79a9",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "motion": {
+              "ok": true,
+              "b": {
+                "y": 0.032657623291015625,
+                "skin_same": true,
+                "sy": 3.1874990463256836,
+                "yaw": -0.44999992847442627
+              },
+              "near": 1,
+              "animating": 1,
+              "moved": 0.6187550369650126,
+              "a": {
+                "y": -0.02685225009918213,
+                "skin_same": true,
+                "sy": 3.0669121742248535,
+                "yaw": -0.011341637000441551
+              },
+              "mode": "motor",
+              "slime": "Slime_040223d8-20a4-4787-a743-aa1c061a79a9",
+              "kind": "LookRight"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 120.5,
+                "variance": 1966.57,
+                "distinct": 1161,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-17-motion-lookright.jpg"
+            }
+          },
+          {
+            "id": "18-modifier-badge",
+            "todo": "18",
+            "note": "TODO 18: server modifier HUD badge (ModifierBadge: name, multipliers, time left) under the rain banner; HUD as-is, no click. Needs a non-None modifier phase (FEATURES.CycleModifier)",
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 112.94,
+                "variance": 2607.67,
+                "distinct": 1221,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-18-modifier-badge.jpg"
+            }
+          },
+          {
+            "id": "18-slide-top-to-bottom",
+            "todo": "B6",
+            "note": "TODO B6: slide collision along the FULL length: free balls dropped from 4 studs onto every segment, very top to bottom, must never sink under the surface (luau/slide_walk, soft fail = warn)",
+            "target": {
+              "path": "Workspace.Map.Volcano.SlideColliders.SlideFloor1",
+              "pos": [
+                -8.367389678955078,
+                33.70370101928711,
+                -2.0602400302886963
+              ],
+              "size": [
+                7,
+                3.195587635040283,
+                9.6640625
+              ],
+              "front": [
+                0.8392486572265625,
+                0.24646377563476562,
+                0.4846827983856201
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 4,
+              "hidden_billboards": 5,
+              "hidden_prompts": 49,
+              "locked": true,
+              "character_moved": true
+            },
+            "slide_walk": {
+              "ok": true,
+              "segments": 32,
+              "worst_clearance": 0.8689329624176025,
+              "violations": [],
+              "samples": 96,
+              "bottom_y": 0.7000001072883606,
+              "top_y": 36.28521728515625
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 147.87,
+                "variance": 1738.87,
+                "distinct": 1357,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-18-slide-top-to-bottom.jpg"
+            }
+          },
+          {
+            "id": "19-appraise-plot",
+            "todo": "19",
+            "note": "TODO 19: Plot panel rows show the Appraise button with its cost (30% of value, FEATURES.Appraise)",
+            "open": {
+              "panel": "PlotPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 110.91,
+                "variance": 4251.9,
+                "distinct": 943,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-19-appraise-plot.jpg"
+            },
+            "closed_by": "pcw_open_hook"
+          },
+          {
+            "id": "v29-b2-mailbox-1",
+            "todo": "v29 B2",
+            "note": "v29 B2: Mailbox_1 stands at plot 1's entrance (every plot has one)",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_1",
+              "pos": [
+                17,
+                3.225006103515625,
+                95
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ],
+              "front": [
+                -1,
+                0,
+                8.742277657347586e-08
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 4,
+              "hidden_billboards": 8,
+              "hidden_prompts": 49,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 117.68,
+                "variance": 2391.79,
+                "distinct": 1177,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-1.jpg"
+            }
+          },
+          {
+            "id": "v29-b2-mailbox-2",
+            "todo": "v29 B2",
+            "note": "v29 B2: Mailbox_2 stands at plot 2's entrance (every plot has one)",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_2",
+              "pos": [
+                79.19596862792969,
+                3.225006103515625,
+                55.154327392578125
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ],
+              "front": [
+                -0.7071074843406677,
+                0,
+                0.7071076035499573
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 3,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 122.91,
+                "variance": 2072.91,
+                "distinct": 1140,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-2.jpg"
+            }
+          },
+          {
+            "id": "v29-b2-mailbox-3",
+            "todo": "v29 B2",
+            "note": "v29 B2: Mailbox_3 stands at plot 3's entrance (every plot has one)",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_3",
+              "pos": [
+                95,
+                3.225006103515625,
+                -17
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ],
+              "front": [
+                8.742277657347586e-08,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 3,
+              "hidden_prompts": 4,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 125.48,
+                "variance": 1879.95,
+                "distinct": 1087,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-3.jpg"
+            }
+          },
+          {
+            "id": "v29-b2-mailbox-4",
+            "todo": "v29 B2",
+            "note": "v29 B2: Mailbox_4 stands at plot 4's entrance (every plot has one)",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_4",
+              "pos": [
+                55.154327392578125,
+                3.225006103515625,
+                -79.19596862792969
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ],
+              "front": [
+                0.7071076035499573,
+                0,
+                0.7071074843406677
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 4,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 113.13,
+                "variance": 2436.14,
+                "distinct": 1048,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-4.jpg"
+            }
+          },
+          {
+            "id": "v29-b2-mailbox-5",
+            "todo": "v29 B2",
+            "note": "v29 B2: Mailbox_5 stands at plot 5's entrance (every plot has one)",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_5",
+              "pos": [
+                -17,
+                3.225006103515625,
+                -95
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ],
+              "front": [
+                1,
+                0,
+                -8.742277657347586e-08
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 3,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 111.04,
+                "variance": 2461.5,
+                "distinct": 1136,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-5.jpg"
+            }
+          },
+          {
+            "id": "v29-b2-mailbox-6",
+            "todo": "v29 B2",
+            "note": "v29 B2: Mailbox_6 stands at plot 6's entrance (every plot has one)",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_6",
+              "pos": [
+                -79.19596862792969,
+                3.225006103515625,
+                -55.154327392578125
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ],
+              "front": [
+                0.7071074843406677,
+                0,
+                -0.7071076035499573
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 3,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 112.04,
+                "variance": 2266.38,
+                "distinct": 936,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-6.jpg"
+            }
+          },
+          {
+            "id": "v29-b2-mailbox-7",
+            "todo": "v29 B2",
+            "note": "v29 B2: Mailbox_7 stands at plot 7's entrance (every plot has one)",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_7",
+              "pos": [
+                -95,
+                3.225006103515625,
+                17
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ],
+              "front": [
+                -8.742277657347586e-08,
+                0,
+                -1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 2,
+              "hidden_prompts": 4,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 107.71,
+                "variance": 2563.42,
+                "distinct": 970,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-7.jpg"
+            }
+          },
+          {
+            "id": "v29-b2-mailbox-8",
+            "todo": "v29 B2",
+            "note": "v29 B2: Mailbox_8 stands at plot 8's entrance (every plot has one)",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_8",
+              "pos": [
+                -55.154327392578125,
+                3.225006103515625,
+                79.19596862792969
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ],
+              "front": [
+                -0.7071076035499573,
+                0,
+                -0.7071074843406677
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 107.51,
+                "variance": 2652.04,
+                "distinct": 1151,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-8.jpg"
+            }
+          },
+          {
+            "id": "v29-b3-topearners-facing",
+            "todo": "v29 B3",
+            "note": "v29 B3: Top Earners board seen from the plaza centre shows its front (rows readable, not the back)",
+            "target": {
+              "path": "Workspace.Map.LeaderboardBoard",
+              "pos": [
+                35.05552673339844,
+                9.75,
+                -84.63086700439453
+              ],
+              "size": [
+                20.64304542541504,
+                19.5,
+                4.007800579071045
+              ],
+              "front": [
+                -0.38268348574638367,
+                0,
+                0.9238795042037964
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 142.69,
+                "variance": 2409.15,
+                "distinct": 1174,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b3-topearners-facing.jpg"
+            }
+          },
+          {
+            "id": "v29-b4-shop-sign-close",
+            "todo": "v29 B4",
+            "note": "v29 B4: plaza shop close-up, SHOP text sits flush on the sign board, not floating",
+            "target": {
+              "path": "Workspace.Map.ShopStand",
+              "pos": [
+                83.51869201660156,
+                5.850000381469727,
+                34.594573974609375
+              ],
+              "size": [
+                11.599998474121094,
+                11.700000762939453,
+                6.259584903717041
+              ],
+              "front": [
+                -0.9238795042037964,
+                0,
+                -0.3826834261417389
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 118.61,
+                "variance": 1136.95,
+                "distinct": 1255,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b4-shop-sign-close.jpg"
+            }
+          },
+          {
+            "id": "v29-b4-buystand-sign-close",
+            "todo": "v29 B4",
+            "note": "v29 B4: Free plot stand close-up, sign text flush on the board face",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.BuyStand",
+              "pos": [
+                -13,
+                5.660003662109375,
+                95
+              ],
+              "size": [
+                9.608025550842285,
+                11.32000732421875,
+                5.963211536407471
+              ],
+              "front": [
+                0.1355743408203125,
+                0,
+                -0.9907684326171875
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 101.17,
+                "variance": 2104.29,
+                "distinct": 915,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b4-buystand-sign-close.jpg"
+            }
+          },
+          {
+            "id": "19b-mystery-egg-shop",
+            "todo": "19b",
+            "note": "TODO 19b: Shop menu shows the Mystery Egg row (egg badge, cash price, Buy button; FEATURES.MysteryEgg); no click",
+            "open": {
+              "panel": "ShopPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 87.14,
+                "variance": 2479.08,
+                "distinct": 906,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-19b-mystery-egg-shop.jpg"
+            },
+            "closed_by": "pcw_open_hook"
+          }
+        ]
+      }
+    }
+  },
+  "perf": {
+    "mesh_slots": 356,
+    "unique_meshes": 90,
+    "budget": 400,
+    "frame_time_ms": 16.67,
+    "memory_mb": 3548.39,
+    "play": {
+      "play_mesh_parts": 86,
+      "memory_mb": 3548.39,
+      "p95_ms": 18.02,
+      "max_ms": 19.61,
+      "frames": 300,
+      "fps": 60.0,
+      "primitives": 1925,
+      "instance_count": 52275,
+      "play_parts": 1925,
+      "frame_time_ms": 16.67
+    },
+    "parts": 2097,
+    "triangles": null,
+    "phone": {
+      "phone-portrait": {
+        "pass": true,
+        "fill": {
+          "near_after": 20,
+          "near_before": 0,
+          "added": 20,
+          "sources": 17
+        },
+        "avg_ms": 16.67,
+        "p95_ms": 18.08,
+        "max_ms": 18.83,
+        "fps": 60.0,
+        "memory_mb": 3491.66,
+        "animating": 3,
+        "animating_at_start": 3,
+        "slimes_near": 20,
+        "frames": 300,
+        "viewport": [
+          390,
+          844
+        ],
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-phone-perf-phone-portrait.jpg",
+        "problems": [
+          "only 3 animating slimes (wanted 16)"
+        ]
+      },
+      "phone-landscape": {
+        "pass": true,
+        "fill": {
+          "near_after": 20,
+          "near_before": 0,
+          "added": 20,
+          "sources": 16
+        },
+        "avg_ms": 16.66,
+        "p95_ms": 18.15,
+        "max_ms": 19.59,
+        "fps": 60.01,
+        "memory_mb": 2477.57,
+        "animating": 9,
+        "animating_at_start": 9,
+        "slimes_near": 20,
+        "frames": 301,
+        "viewport": [
+          844,
+          390
+        ],
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-phone-perf-phone-landscape.jpg",
+        "problems": [
+          "only 9 animating slimes (wanted 16)"
+        ]
+      }
+    }
+  },
+  "geometry": {
+    "bench_faces_campfire": {
+      "pass": true,
+      "items": [
+        {
+          "angle_deg": 0,
+          "name": "Workspace.Map.Decor.CampBench",
+          "front_src": "Mesh",
+          "campfire": "Workspace.Map.Decor.Campfire",
+          "distance": 9.63,
+          "dot": 1,
+          "front": [
+            0.943,
+            0,
+            -0.334
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    "shops_face_centre": {
+      "pass": true,
+      "items": [
+        {
+          "name": "Workspace.Map.ShopStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.924,
+            0,
+            -0.383
+          ],
+          "pos": [
+            83.519,
+            5.85,
+            34.595
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_1.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            0.136,
+            0,
+            -0.991
+          ],
+          "pos": [
+            -13,
+            5.66,
+            95
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_2.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.605,
+            0,
+            -0.796
+          ],
+          "pos": [
+            57.983,
+            5.66,
+            76.368
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_3.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.991,
+            0,
+            -0.136
+          ],
+          "pos": [
+            95,
+            5.66,
+            13
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_4.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.796,
+            0,
+            0.605
+          ],
+          "pos": [
+            76.368,
+            5.66,
+            -57.983
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_5.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.136,
+            0,
+            0.991
+          ],
+          "pos": [
+            13,
+            5.66,
+            -95
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_6.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            0.605,
+            0,
+            0.796
+          ],
+          "pos": [
+            -57.983,
+            5.66,
+            -76.368
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_7.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            0.991,
+            0,
+            0.136
+          ],
+          "pos": [
+            -95,
+            5.66,
+            -13
+          ],
+          "pass": true
+        },
+        {
+          "name": "Workspace.Plots.Plot_8.BuyStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            0.796,
+            0,
+            -0.605
+          ],
+          "pos": [
+            -76.368,
+            5.66,
+            57.983
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    "silo_centred": {
+      "pass": true,
+      "items": [
+        {
+          "mesh_turn_deg": 180,
+          "silo_offset": [
+            -6.52,
+            -7.75
+          ],
+          "name": "Workspace.Map.Volcano.FountainMesh",
+          "dist": 0,
+          "raw_bbox_dist": 10.128,
+          "mesh_bbox_centre": [
+            6.52,
+            21.658,
+            7.75
+          ],
+          "silo_axis_xz": [
+            0,
+            0
+          ],
+          "bbox_centre": [
+            6.52,
+            21.658,
+            7.75
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    "plot_signs": {
+      "pass": true,
+      "items": [
+        {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_1/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Mxndarijn's Plot",
+            "Stats": "$25  \u2022  0 Rebirths  \u2022  0 Steals"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            -0.707,
+            0,
+            -0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_2/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 2",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_3/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 3",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            -0.707,
+            0,
+            0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_4/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 4",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_5/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 5",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            0.707,
+            0,
+            0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_6/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 6",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_7/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 7",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            0.707,
+            0,
+            -0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_8/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 8",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    }
+  },
+  "frames": [
+    {
+      "id": "edit",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-edit.jpg",
+      "status": "captured",
+      "todo": null,
+      "kind": "edit"
+    },
+    {
+      "id": "desktop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "device"
+    },
+    {
+      "id": "menu-plot-desktop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-plot-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-merge-desktop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-merge-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-shop-desktop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-shop-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-rebirth-desktop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-rebirth-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-goals-desktop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-goals-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-dex-desktop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-dex-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-leaders-desktop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-leaders-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "desktop",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-guide-desktop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-guide-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "phone-portrait",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "device"
+    },
+    {
+      "id": "menu-plot-phone-portrait",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-plot-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-merge-phone-portrait",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-merge-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-shop-phone-portrait",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-shop-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-rebirth-phone-portrait",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-rebirth-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-goals-phone-portrait",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-goals-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-dex-phone-portrait",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-dex-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-leaders-phone-portrait",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-leaders-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-guide-phone-portrait",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-guide-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "phone-perf-phone-portrait",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-phone-perf-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "perf",
+      "for_device": "phone-portrait"
+    },
+    {
+      "id": "phone-landscape",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "device"
+    },
+    {
+      "id": "menu-plot-phone-landscape",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-plot-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-merge-phone-landscape",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-merge-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-shop-phone-landscape",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-shop-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-rebirth-phone-landscape",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-rebirth-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-goals-phone-landscape",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-goals-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-dex-phone-landscape",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-dex-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-leaders-phone-landscape",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-leaders-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-guide-phone-landscape",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-guide-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "phone-perf-phone-landscape",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-phone-perf-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "perf",
+      "for_device": "phone-landscape"
+    },
+    {
+      "id": "shot-01-hud-menus",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-01-hud-menus.jpg",
+      "status": "captured",
+      "todo": "1",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-01b-idle-hud",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-01b-idle-hud.jpg",
+      "status": "captured",
+      "todo": "1",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-02-dex-menu",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-02-dex-menu.jpg",
+      "status": "captured",
+      "todo": "2",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-03-shop-menu",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-03-shop-menu.jpg",
+      "status": "captured",
+      "todo": "3",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-04-rebirth-menu",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-04-rebirth-menu.jpg",
+      "status": "captured",
+      "todo": "4",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-04-rebirth-slime-missing",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-04-rebirth-slime-missing.jpg",
+      "status": "captured",
+      "todo": "29",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-04-rebirth-slime-owned",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-04-rebirth-slime-owned.jpg",
+      "status": "captured",
+      "todo": "29",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-05-guide-npc",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-05-guide-npc.jpg",
+      "status": "captured",
+      "todo": "5",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.TutorialNpc"
+    },
+    {
+      "id": "shot-06-fountain-centre",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-06-fountain-centre.jpg",
+      "status": "captured",
+      "todo": "6",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.FountainMesh"
+    },
+    {
+      "id": "shot-06-map-top",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-06-map-top.jpg",
+      "status": "captured",
+      "todo": "6",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-07-lock-sign",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-07-lock-sign.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.LockSign"
+    },
+    {
+      "id": "shot-07-plot-sign",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-07-plot-sign.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand.Sign"
+    },
+    {
+      "id": "shot-08-stray-box",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-08-stray-box.jpg",
+      "status": "captured",
+      "todo": "8",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-09-floating",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-09-floating.jpg",
+      "status": "captured",
+      "todo": "9",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-10-shop-stand",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-stand.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.BuyStand"
+    },
+    {
+      "id": "shot-11-campfire",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-11-campfire.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Campfire"
+    },
+    {
+      "id": "shot-11-campfire-bench",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-11-campfire-bench.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.CampBench"
+    },
+    {
+      "id": "shot-11-mailbox",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-11-mailbox.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_1"
+    },
+    {
+      "id": "shot-11-signpost",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-11-signpost.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Signpost"
+    },
+    {
+      "id": "shot-12-fountain-slide",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-12-fountain-slide.jpg",
+      "status": "captured",
+      "todo": "12",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.SlideColliders.SlideFloor1"
+    },
+    {
+      "id": "shot-13-fountain-colliders",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-13-fountain-colliders.jpg",
+      "status": "captured",
+      "todo": "13",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.FountainMesh"
+    },
+    {
+      "id": "shot-14-podium-1",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-14-podium-1.jpg",
+      "status": "captured",
+      "todo": "14",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Podium_1"
+    },
+    {
+      "id": "shot-14-podiums",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-14-podiums.jpg",
+      "status": "captured",
+      "todo": "14",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Podium_2"
+    },
+    {
+      "id": "shot-15-slime-pad",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-15-slime-pad.jpg",
+      "status": "captured",
+      "todo": "15",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-06-silo-top",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-06-silo-top.jpg",
+      "status": "captured",
+      "todo": "6",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-07-plot-sign-front-1",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-07-plot-sign-front-1.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand.Sign"
+    },
+    {
+      "id": "shot-07-plot-sign-front-2",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-07-plot-sign-front-2.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Sign"
+    },
+    {
+      "id": "shot-11-bench-campfire-close",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-11-bench-campfire-close.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.CampBench"
+    },
+    {
+      "id": "shot-10-shop-front-1",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-1.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand"
+    },
+    {
+      "id": "shot-10-shop-front-2",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-2.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-3",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-3.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_2.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-4",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-4.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_3.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-5",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-5.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_4.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-6",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-6.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_5.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-7",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-7.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_6.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-8",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-8.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_7.BuyStand"
+    },
+    {
+      "id": "shot-10-shop-front-9",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-10-shop-front-9.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_8.BuyStand"
+    },
+    {
+      "id": "shot-16-shop-esc",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-shop-esc.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-16-habitat-hay_nest-mid",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-hay_nest-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-hay_nest",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-hay_nest.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-mushroom_ring-mid",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-mushroom_ring-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-mushroom_ring",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-mushroom_ring.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-flower_bed-mid",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-flower_bed-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-flower_bed",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-flower_bed.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-barn_crate-mid",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-barn_crate-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-barn_crate",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-barn_crate.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-rodeo_barrel-mid",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-rodeo_barrel-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-rodeo_barrel",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-rodeo_barrel.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-syrup_pool-mid",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-syrup_pool-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-syrup_pool",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-syrup_pool.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-show_stool-mid",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-show_stool-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-show_stool",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-show_stool.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-candy_patch-mid",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-candy_patch-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-candy_patch",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-candy_patch.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-crystal_grotto-mid",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-crystal_grotto-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-crystal_grotto",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-16-habitat-crystal_grotto.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-17-motion-idlesquish",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-17-motion-idlesquish.jpg",
+      "status": "captured",
+      "todo": "17",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-17-motion-hop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-17-motion-hop.jpg",
+      "status": "captured",
+      "todo": "17",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-17-motion-lookleft",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-17-motion-lookleft.jpg",
+      "status": "captured",
+      "todo": "17",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-17-motion-lookright",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-17-motion-lookright.jpg",
+      "status": "captured",
+      "todo": "17",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-18-modifier-badge",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-18-modifier-badge.jpg",
+      "status": "captured",
+      "todo": "18",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-18-slide-top-to-bottom",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-18-slide-top-to-bottom.jpg",
+      "status": "captured",
+      "todo": "B6",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.SlideColliders.SlideFloor1"
+    },
+    {
+      "id": "shot-19-appraise-plot",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-19-appraise-plot.jpg",
+      "status": "captured",
+      "todo": "19",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-1",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-1.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_1"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-2",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-2.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_2"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-3",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-3.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_3"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-4",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-4.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_4"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-5",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-5.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_5"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-6",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-6.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_6"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-7",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-7.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_7"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-8",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b2-mailbox-8.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_8"
+    },
+    {
+      "id": "shot-v29-b3-topearners-facing",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b3-topearners-facing.jpg",
+      "status": "captured",
+      "todo": "v29 B3",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.LeaderboardBoard"
+    },
+    {
+      "id": "shot-v29-b4-shop-sign-close",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b4-shop-sign-close.jpg",
+      "status": "captured",
+      "todo": "v29 B4",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand"
+    },
+    {
+      "id": "shot-v29-b4-buystand-sign-close",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-v29-b4-buystand-sign-close.jpg",
+      "status": "captured",
+      "todo": "v29 B4",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.BuyStand"
+    },
+    {
+      "id": "shot-19b-mystery-egg-shop",
+      "file": "5a66ce0020e4ea657d9f8ff374da357add20b15f-shot-19b-mystery-egg-shop.jpg",
+      "status": "captured",
+      "todo": "19b",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    }
+  ],
+  "input_methods": {
+    "open": "pcw_open_hook",
+    "virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau",
+    "mcp_mouse": "never used: moves the OS cursor",
+    "esc": "pcw_press_hook (close logic, not real key routing): closed"
+  },
+  "menus": {
+    "desktop": {
+      "plot": {
+        "frac_w": 0.292,
+        "frac_h": 0.481,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-plot-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "merge": {
+        "frac_w": 0.292,
+        "frac_h": 0.481,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-merge-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "shop": {
+        "frac_w": 0.292,
+        "frac_h": 0.481,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-shop-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "rebirth": {
+        "frac_w": 0.292,
+        "frac_h": 0.435,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-rebirth-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "goals": {
+        "frac_w": 0.292,
+        "frac_h": 0.463,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-goals-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "dex": {
+        "frac_w": 0.292,
+        "frac_h": 0.556,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-dex-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "leaders": {
+        "frac_w": 0.292,
+        "frac_h": 0.426,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-leaders-desktop.jpg",
+        "open_method": "visible_fallback"
+      },
+      "guide": {
+        "frac_w": 0.292,
+        "frac_h": 0.352,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-guide-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      }
+    },
+    "phone-portrait": {
+      "plot": {
+        "frac_w": 0.786,
+        "frac_h": 0.493,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-plot-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "merge": {
+        "frac_w": 0.786,
+        "frac_h": 0.493,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-merge-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "shop": {
+        "frac_w": 0.786,
+        "frac_h": 0.493,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-shop-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "rebirth": {
+        "frac_w": 0.786,
+        "frac_h": 0.445,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-rebirth-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "goals": {
+        "frac_w": 0.786,
+        "frac_h": 0.474,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-goals-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "dex": {
+        "frac_w": 0.786,
+        "frac_h": 0.569,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-dex-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "leaders": {
+        "frac_w": 0.786,
+        "frac_h": 0.436,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-leaders-phone-portrait.jpg",
+        "open_method": "visible_fallback"
+      },
+      "guide": {
+        "frac_w": 0.786,
+        "frac_h": 0.36,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-guide-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      }
+    },
+    "phone-landscape": {
+      "plot": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-plot-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "merge": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-merge-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "shop": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-shop-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "rebirth": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-rebirth-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "goals": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-goals-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "dex": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-dex-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "leaders": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-leaders-phone-landscape.jpg",
+        "open_method": "visible_fallback"
+      },
+      "guide": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "5a66ce0020e4ea657d9f8ff374da357add20b15f-menu-guide-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      }
+    }
+  },
+  "background": {
+    "foreground_at_start": [
+      723862,
+      34504
+    ],
+    "focus_stolen": [],
+    "mcp_input": false
+  },
+  "watcher_version": "1.0.0",
+  "close": {
+    "status": "pass",
+    "seconds": 3.9,
+    "detail": {
+      "console_lines": 87,
+      "console_errors": 0,
+      "leftovers": [],
+      "stray": [],
+      "remaining": [],
+      "closed": [
+        65112
+      ],
+      "killed": [
+        65112
+      ]
+    }
+  },
+  "frames_dir": "5a66ce0020e4ea657d9f8ff374da357add20b15f/"
+}
