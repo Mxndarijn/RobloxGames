@@ -219,7 +219,11 @@ end
 
 local function wildLanding(wild: World.Wild): CFrame
 	if typeof(wild.position) == "Vector3" then
-		local dropped = surfaceBelow(wild.position + Vector3.new(0, WorldView.DROP_RAY_UP, 0), WorldView.DROP_RAY_DEPTH)
+		-- A wild put down inside the landing ring's band rests just outside it (Fountain.clearOfRing).
+		local origin = crater()
+		local x, z = Fountain.clearOfRing(wild.position.X - origin.X, wild.position.Z - origin.Z)
+		local spot = Vector3.new(origin.X + x, wild.position.Y, origin.Z + z)
+		local dropped = surfaceBelow(spot + Vector3.new(0, WorldView.DROP_RAY_UP, 0), WorldView.DROP_RAY_DEPTH)
 		if dropped then
 			return dropped
 		end

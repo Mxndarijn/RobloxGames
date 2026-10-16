@@ -28,6 +28,26 @@ Fountain.SLIME_RADIUS = Config.SLIME_BASE_DIAMETER * Config.MAX_SIZE / 2
 -- Landings start one margin stud past the curb for the widest slime (was 34: inside the ring).
 Fountain.MIN_RADIUS = Fountain.LANDING_RING_OUTER + Fountain.SLIME_RADIUS + 1
 Fountain.MAX_RADIUS = 62
+-- The band no resting wild slime may occupy: from the old landing radius (31, inside the ring stones'
+-- reach with the biggest slime) out to the curb's farthest corner. Spawns, lane/landing spots and
+-- dropped wilds all go through clearOfRing, so they share this one band.
+Fountain.RING_BAND_INNER = 31
+Fountain.RING_BAND_OUTER = Fountain.LANDING_RING_OUTER
+
+-- Whether a slime centred `r` studs from the axis overlaps the ring band (body radius SLIME_RADIUS).
+function Fountain.inRingBand(r: number): boolean
+	return r > Fountain.RING_BAND_INNER - Fountain.SLIME_RADIUS and r < Fountain.MIN_RADIUS
+end
+
+-- (x, z) moved straight out from the axis to MIN_RADIUS when it sits in the ring band.
+function Fountain.clearOfRing(x: number, z: number): (number, number)
+	local r = math.sqrt(x * x + z * z)
+	if not Fountain.inRingBand(r) then
+		return x, z
+	end
+	local angle = math.atan2(z, x)
+	return math.cos(angle) * Fountain.MIN_RADIUS, math.sin(angle) * Fountain.MIN_RADIUS
+end
 
 function Fountain.spawnInterval(raining: boolean): number
 	return if raining then Config.RAIN_SPAWN_INTERVAL else Config.SPAWN_INTERVAL
