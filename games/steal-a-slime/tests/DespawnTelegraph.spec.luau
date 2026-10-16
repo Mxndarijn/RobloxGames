@@ -161,7 +161,7 @@ end)
 
 describe("DespawnTelegraph after a carry", function()
 	local enabled = Config.FEATURES.DespawnTelegraph
-	local W = Config.DESPAWN_TELEGRAPH_SECONDS
+	local WINDOW = Config.DESPAWN_TELEGRAPH_SECONDS
 
 	local function grabAndDrop(boss: boolean, dropAt: number): (any, string)
 		local world = ServerFixtures.world()
@@ -177,8 +177,8 @@ describe("DespawnTelegraph after a carry", function()
 		local world, id = grabAndDrop(false, dropAt)
 		local expiresAt = dropAt + Config.WILD_LIFETIME
 		expect(world.wild[id].expiresAt).toBe(expiresAt)
-		expect(Scene.describe(world, expiresAt - W - 0.1)[id].despawnAt).toBeNil()
-		expect(Scene.describe(world, expiresAt - W)[id].despawnAt).toBe(if enabled then expiresAt else nil)
+		expect(Scene.describe(world, expiresAt - WINDOW - 0.1)[id].despawnAt).toBeNil()
+		expect(Scene.describe(world, expiresAt - WINDOW)[id].despawnAt).toBe(if enabled then expiresAt else nil)
 	end)
 	it("a dropped Boss Slime keeps the boss lifetime, not the normal one", function()
 		local dropAt = T0 + 30
