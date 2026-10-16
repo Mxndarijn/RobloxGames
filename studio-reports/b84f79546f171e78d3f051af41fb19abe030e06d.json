@@ -8340,5 +8340,18 @@
       ]
     }
   },
-  "frames_dir": "b84f79546f171e78d3f051af41fb19abe030e06d/"
+  "frames_dir": "b84f79546f171e78d3f051af41fb19abe030e06d/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "HOLD, B6 slide (#135) NOT fixed: the run status is fail on 18-slide-top-to-bottom. The new hard dense probe (slide_walk, 1728 samples) has 38 violations, all on the inner side (side=-2.4) at v=40 near segment ends (k 0.90-1.00, the bends). Segments 1-8: 'ball left the trough sideways'. Segments 19-20: ball about 19-20 studs below the slide, i.e. fell through. The inner wall at the bends is too low or has gaps for fast riders, and there's a hole at the segment 19/20 joint.",
+    "22-menu-over-banner (Jolt, shots 97/98): portrait OK, the Codes menu is clear and the event banners are hidden. Landscape (844x390): the tutorial card 'Step 1 of 7 Grab a slime' sits ON TOP of the Codes panel and covers its content (the input and Redeem button). The tutorial card should hide or move while a menu is open, like the banners do.",
+    "02e-admin-event-banner: PASS. The Luck event line shows under the boss banner. 21-weather-mutation-dex: PASS. The Dex lists 'Common \u00b7 Frozen \u00b7 Plain \u00b7 Round' and 'Common \u00b7 Wet \u00b7 Plain \u00b7 Round'.",
+    "v29-11-slime-growth-pad: data PASS, the real pad slime reports label 'Growth 60%' (growth_wait found it). In the frame the label is small and hard to read; the framing is a watcher follow-up.",
+    "18-hold-ring-rebirth: the PcwHold hook didn't take (fraction 0, fill not visible). Watcher/hook follow-up from me, not a game defect.",
+    "21-border-along-pc and 21-border-eye-phone: blank frames (watcher/camera, follow-up). 17-motion-lod-far: no slime moving at far tier (mode None), probably expected for the far LOD tier, so check with Archer.",
+    "Rest: focus_stolen [], close pass, no leftovers."
+  ]
 }
