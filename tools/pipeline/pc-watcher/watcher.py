@@ -1324,7 +1324,7 @@ def step_shots(run):
     shots = read_json(os.path.join(HERE, "shots.json"), None)
     if not isinstance(shots, list):
         return "skip", {"reason": "shots.json missing or unreadable"}
-    results, world_mode, pad_seat = [], False, None
+    results, world_mode, pad_seat, cur_device = [], False, None, None
     for shot in shots:
         sid = re.sub(r"[^A-Za-z0-9_.-]", "_", str(shot.get("id", "shot")))
         fid = "shot-" + sid
@@ -1335,6 +1335,13 @@ def step_shots(run):
             res["skipped"] = "run budget"
             run.add_frame(fid, status="missing", todo=todo, kind="shot", error="run budget")
             continue
+        want = shot.get("device")
+        if want and want != cur_device and run.hwnd:
+            # optional per-shot viewport: a device name from cfg["devices"] (desktop / phone-portrait / phone-landscape)
+            for device, tw, th in run.cfg["devices"]:
+                if device == want:
+                    res["viewport"] = list(converge_viewport(run, run.hwnd, (tw, th))[0])
+                    cur_device = want
         try:
             if shot.get("kind") == "ui":
                 if world_mode:
@@ -1348,6 +1355,8 @@ def step_shots(run):
                         res["error"] = "overlay visible with no menu open: %s" % ", ".join(over)
                 if shot.get("rebirth_slime"):  # v29: force the required-slime state (owned / missing) in Studio
                     res["rebirth_slime"] = run.need_luau("rebirth_slime", "Client", timeout=15, state=shot["rebirth_slime"])
+                if shot.get("badge_toast"):  # v29 #6: show the badge-unlocked toast (Studio-only hook)
+                    res["badge_toast"] = run.need_luau("badge_toast", "Client", timeout=15, name=shot["badge_toast"])
                 if shot.get("friend_bonus"):  # v29 #4: fake N friends in the server (badge + income line)
                     res["friend_bonus"] = run.need_luau("friend_bonus", "Client", timeout=15, count=int(shot["friend_bonus"]))
                 if shot.get("admin_event"):  # v29 #10: fake a live admin event banner (Studio only)
@@ -1465,6 +1474,8 @@ def step_shots(run):
         run.luau("shot_camera_reset", "Client", timeout=15)
     except Exception:
         pass
+    if cur_device and cur_device != run.cfg["devices"][0][0] and run.hwnd:
+        converge_viewport(run, run.hwnd, tuple(run.cfg["devices"][0][1:]))  # back to the first (desktop) size
     if any(shot.get("weather") for shot in shots):
         try:
             run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1)  # drop the WeatherDebug preview

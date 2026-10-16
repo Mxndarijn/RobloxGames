@@ -9,6 +9,7 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Badges = if script then require(script.Parent.Badges) else require("./Badges")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
@@ -48,6 +49,7 @@ end
 function Milestones.step(world: World.World)
 	for _, session in world.sessions do
 		Milestones.check(world, session)
+		Badges.check(world, session)
 	end
 end
 

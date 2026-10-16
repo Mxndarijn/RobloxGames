@@ -441,8 +441,9 @@ local Config = {
 		MysteryEgg = true, -- a cash-only Mystery Egg in the Shop hatches a random slime (MysteryEgg); false = no egg, BuyEgg refused
 		FriendBonus = true, -- +FRIEND_BONUS_PER_FRIEND income per friend in the same server, up to FRIEND_BONUS_CAP (FriendBonus); false = no bonus
 		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
-		Weather = false, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md. Off until frame-reviewed
-		SlimeLod = false, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
+		Weather = true, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md
+		SlimeLod = true, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
+		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
 		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
@@ -550,6 +551,14 @@ local Config = {
 	WEATHER_FADE_SECONDS = 2, -- client tween in / out
 	WEATHER_PARTICLE_CAP = 160, -- hard cap on weather particles alive at once, whatever the quality level
 
+	-- Slime growth (FEATURES.GrowingSlimes): a slime's `growth` (0..1) rises by dt / GROWTH_SECONDS while it
+	-- sits on a pad. Offline time counts too, up to GROWTH_OFFLINE_CAP_SECONDS. At growth 1 a slime earns
+	-- (and sells for) 1 + GROWTH_MAX_INCOME_BONUS times its base income and is drawn GROWTH_MAX_SCALE_BONUS bigger.
+	GROWTH_SECONDS = 12 * 60 * 60,
+	GROWTH_OFFLINE_CAP_SECONDS = 8 * 60 * 60,
+	GROWTH_MAX_INCOME_BONUS = 0.5,
+	GROWTH_MAX_SCALE_BONUS = 0.1,
+
 	-- Daily reward
 	DAILY_BASE = 100,
 	DAILY_STREAK_CAP = 7,
@@ -567,6 +576,29 @@ local Config = {
 	}),
 	CODE_MAX_LENGTH = 24,
 	CODE_BOOST_MAX_MULT = 10,
+
+	-- Roblox badges (server/Badges, v29-BADGES-NEEDED.md). `badgeId` is the Roblox badge id to paste once the
+	-- badge exists on the experience; nil = placeholder, the milestone is skipped (no BadgeService call).
+	-- `trigger` + `value` are read by Badges.reached.
+	BADGES = table.freeze({
+		table.freeze({ key = "FirstSlime", name = "First Slime", trigger = "caught", value = 1, badgeId = nil }),
+		table.freeze({ key = "FirstSteal", name = "Sticky Fingers", trigger = "stolen", value = 1, badgeId = nil }),
+		table.freeze({ key = "FirstRebirth", name = "Reborn", trigger = "rebirths", value = 1, badgeId = nil }),
+		table.freeze({ key = "Rebirth5", name = "Born Again x5", trigger = "rebirths", value = 5, badgeId = nil }),
+		table.freeze({ key = "Dex25", name = "Dex Explorer", trigger = "dexPercent", value = 25, badgeId = nil }),
+		table.freeze({ key = "Dex50", name = "Dex Collector", trigger = "dexPercent", value = 50, badgeId = nil }),
+		table.freeze({ key = "Dex100", name = "Dex Master", trigger = "dexPercent", value = 100, badgeId = nil }),
+		table.freeze({ key = "FirstLegendary", name = "Legend Spotted", trigger = "tier", value = 5, badgeId = nil }),
+		table.freeze({ key = "FirstSecret", name = "Secret Keeper", trigger = "tier", value = 7, badgeId = nil }),
+		table.freeze({
+			key = "Millionaire",
+			name = "Slime Millionaire",
+			trigger = "earned",
+			value = 1000000,
+			badgeId = nil,
+		}),
+	}),
+	BADGE_RETRIES = 4, -- BadgeService attempts per badge (backoff 2, 4, 8 s)
 
 	-- Friend income bonus (FEATURES.FriendBonus, CONTRACT.md §11)
 	FRIEND_BONUS_PER_FRIEND = 0.1, -- +10% income per friend in the same server

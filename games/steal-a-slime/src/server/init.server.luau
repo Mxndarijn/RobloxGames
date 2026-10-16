@@ -36,6 +36,7 @@ local Types = require(Shared:WaitForChild("Types"))
 
 local Actions = require(script.Actions)
 local AdminEventsService = require(script.AdminEventsService)
+local Badges = require(script.Badges)
 local Carry = require(script.Carry)
 local DataService = require(script.DataService)
 local FountainColliders = require(script.FountainColliders)
@@ -106,6 +107,26 @@ end
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
 local stateEvent = Remotes.get(Constants.STATE) :: RemoteEvent
 local notifyEvent = Remotes.get(Constants.NOTIFY) :: RemoteEvent
+
+-- Roblox badges (Badges): BadgeService behind pcall + retries, off the game loop (grant yields).
+local BadgeService = game:GetService("BadgeService")
+local badges = Badges.service({
+	backend = {
+		hasBadge = function(userId, badgeId)
+			return BadgeService:UserHasBadgeAsync(userId, badgeId)
+		end,
+		award = function(userId, badgeId)
+			return BadgeService:AwardBadge(userId, badgeId)
+		end,
+	},
+	wait = task.wait,
+	notify = function(userId, text)
+		local player = Players:GetPlayerByUserId(userId)
+		if player then
+			notifyEvent:FireClient(player, text, "badge", "Goal")
+		end
+	end,
+})
 local leaderboardEvent = Remotes.get(Constants.LEADERBOARD) :: RemoteEvent
 
 local world = World.new({
@@ -252,6 +273,9 @@ local function flushEvents()
 			workspace:SetAttribute(Constants.RARE_SPAWN_ID_ATTRIBUTE, event.slimeId)
 			workspace:SetAttribute(Constants.RARE_SPAWN_TIER_ATTRIBUTE, event.tier)
 			workspace:SetAttribute(Constants.RARE_SPAWN_AT_ATTRIBUTE, now())
+		end
+		if event.type == "Badge" and event.userId and event.badge then
+			task.spawn(badges.grant, event.userId, event.badge)
 		end
 		if event.type == "Notify" and event.text then
 			if event.userId then
@@ -595,6 +619,7 @@ local function onPlayerRemoving(player: Player)
 	local session = Sessions.leave(world, player.UserId, now())
 	WorldView.setCarrying(player, nil)
 	homeZoneFull[player.UserId] = nil
+	badges.release(player.UserId)
 	Friends.forget(friendCache, player.UserId)
 	task.spawn(refreshFriends)
 	if session then

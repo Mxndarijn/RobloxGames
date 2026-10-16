@@ -30,7 +30,7 @@ export type Appraisal = {
 	afterSize: number,
 }
 
-export type NotifyKind = "info" | "good" | "bad"
+export type NotifyKind = "info" | "good" | "bad" | "badge"
 
 export type SlimeView = {
 	slime: SlimeData,

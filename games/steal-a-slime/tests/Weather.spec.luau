@@ -156,8 +156,8 @@ describe("Weather visual quality", function()
 end)
 
 describe("Weather flag", function()
-	it("is off by default", function()
-		expect(Config.FEATURES.Weather).toBe(false)
+	it("is on", function()
+		expect(Config.FEATURES.Weather).toBe(true)
 	end)
 	it("flag off draws nothing for any server id, unless a debug preview is set", function()
 		for _, id in Config.WEATHER_ORDER do

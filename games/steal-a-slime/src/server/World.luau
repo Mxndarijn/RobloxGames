@@ -70,7 +70,7 @@ export type Wild = {
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
 export type Event = {
-	type: "Notify" | "Escaped" | "Rain" | "Effect" | "Rare" | "Drained", -- Drained: a lane slime left down the goo drain (FEATURES.Parade)
+	type: "Notify" | "Escaped" | "Rain" | "Effect" | "Rare" | "Drained" | "Badge", -- Drained: a lane slime left down the goo drain (FEATURES.Parade)
 	userId: number?, -- Notify target; nil = everyone
 	text: string?,
 	kind: string?, -- "info" | "good" | "bad"
@@ -81,6 +81,7 @@ export type Event = {
 	active: boolean?,
 	effect: string?, -- Effect: Effects.KINDS name ("Collect" | "Steal" | "Merge" | "Rebirth")
 	plotIndex: number?, -- Effect: plot whose MergeVat is the target
+	badge: string?, -- Badge: Config.BADGES key just reached (userId = the player)
 	tier: number?, -- Rare: the drop's tier (workspace RareSpawn* attributes)
 }
 

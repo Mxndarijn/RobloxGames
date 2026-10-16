@@ -34,6 +34,7 @@ local FallbackWorld = require(script.Parent.FallbackWorld)
 local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
+local Growth = require(ReplicatedStorage.Shared.Growth)
 local HabitatPads = require(script.Parent.HabitatPads)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
@@ -318,6 +319,49 @@ local function followLane(id: string, key: string, wild: World.Wild)
 	end)
 end
 
+-- FEATURES.GrowingSlimes: scales the model and keeps a small "Growth %" label above it.
+-- Re-applied only when the whole percent changes (model attribute Growth).
+local function showGrowth(record: Record, slime: Genome.Slime)
+	local percent = Growth.percent(slime)
+	local shown = record.model:GetAttribute(Constants.GROWTH_ATTRIBUTE) or 0
+	if shown == percent then
+		return
+	end
+	record.model:SetAttribute(Constants.GROWTH_ATTRIBUTE, percent)
+	record.model:ScaleTo(Growth.scale(slime))
+	local gui = record.body:FindFirstChild(Constants.GROWTH_LABEL_NAME)
+	local text = Growth.label(slime)
+	if not text then
+		if gui then
+			gui:Destroy()
+		end
+		return
+	end
+	if not gui then
+		local billboard = Instance.new("BillboardGui")
+		billboard.Name = Constants.GROWTH_LABEL_NAME
+		billboard.Size = UDim2.fromOffset(90, 18)
+		billboard.StudsOffsetWorldSpace = Vector3.new(0, record.body.Size.Y / 2 + 1.5, 0)
+		billboard.MaxDistance = 60
+		billboard.AlwaysOnTop = false
+		local label = Instance.new("TextLabel")
+		label.Name = "Text"
+		label.Size = UDim2.fromScale(1, 1)
+		label.BackgroundTransparency = 1
+		label.TextColor3 = Color3.fromRGB(190, 255, 170)
+		label.TextStrokeTransparency = 0.3
+		label.Font = Enum.Font.GothamBold
+		label.TextScaled = true
+		label.Parent = billboard
+		billboard.Parent = record.body
+		gui = billboard
+	end
+	local label = (gui :: Instance):FindFirstChild("Text")
+	if label and label:IsA("TextLabel") then
+		label.Text = text
+	end
+end
+
 local function create(entry: Scene.Entry, onPrompt: (Player, string) -> ()): Record?
 	if failed[entry.id] or not modelFactory then
 		return nil
@@ -465,6 +509,7 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 		record.prompt.HoldDuration = entry.promptHold
 		-- Every reconcile, not only in place(): the telegraph window opens without a key change.
 		record.model:SetAttribute(Constants.DESPAWN_AT_ATTRIBUTE, entry.despawnAt)
+		showGrowth(record, entry.slime)
 		if record.key ~= entry.key then
 			local previous = if isNew then nil else record.key
 			record.key = entry.key
