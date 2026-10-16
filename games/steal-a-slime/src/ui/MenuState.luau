@@ -27,4 +27,10 @@ function MenuState.cardHidden(openKey: string?, key: string, visible: boolean): 
 	return openKey == key and not visible
 end
 
+-- The Slime Rain / server-modifier banners sit top-centre, right over a
+-- content-sized card's title and X on phones: they show only with no menu open.
+function MenuState.bannersVisible(openKey: string?): boolean
+	return openKey == nil
+end
+
 return MenuState
