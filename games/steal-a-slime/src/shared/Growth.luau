@@ -28,21 +28,47 @@ end
 
 -- Model scale factor (1 = unchanged).
 function Growth.scale(slime: Slime): number
-	return 1 + Config.GROWTH_MAX_SCALE_BONUS * Genome.growthFraction(slime)
+	return Growth.scaleAt(Genome.growthFraction(slime))
+end
+
+-- Scale factor at a growth fraction 0..1 (garbage counts as 0).
+function Growth.scaleAt(fraction: number): number
+	return 1 + Config.GROWTH_MAX_SCALE_BONUS * Growth.clampFraction(fraction)
+end
+
+function Growth.clampFraction(fraction: number): number
+	if type(fraction) ~= "number" or fraction ~= fraction then
+		return 0
+	end
+	return math.clamp(fraction, 0, 1)
 end
 
 -- Whole percent 0..100 for the "Growth %" label.
 function Growth.percent(slime: Slime): number
-	return math.floor(Genome.growthFraction(slime) * 100 + 0.5)
+	return Growth.percentAt(Genome.growthFraction(slime))
+end
+
+function Growth.percentAt(fraction: number): number
+	return math.floor(Growth.clampFraction(fraction) * 100 + 0.5)
+end
+
+-- Label text for a whole percent, or nil when there is nothing to show (not grown yet).
+function Growth.labelText(percent: number): string?
+	if type(percent) ~= "number" or percent ~= percent or percent < 1 then
+		return nil
+	end
+	return `Growth {math.min(100, math.floor(percent + 0.5))}%`
 end
 
 -- Label text, or nil when there is nothing to show (feature off / not grown yet).
 function Growth.label(slime: Slime): string?
-	local percent = Growth.percent(slime)
-	if percent <= 0 then
-		return nil
-	end
-	return `Growth {percent}%`
+	return Growth.labelText(Growth.percent(slime))
+end
+
+-- Studs from the slime Body's centre to the label centre: `topAbove` = how far the model's
+-- highest part (crown, hat, halo) is above that centre, so the label clears the whole slime.
+function Growth.labelOffset(topAbove: number): number
+	return math.max(topAbove, 0) + Config.GROWTH_LABEL_GAP
 end
 
 -- Grows one slime by `seconds` of pad time. Returns true if it changed.
