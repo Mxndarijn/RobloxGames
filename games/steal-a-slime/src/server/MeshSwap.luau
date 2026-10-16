@@ -42,7 +42,11 @@ local function template(meshId: string): MeshPart?
 		return hit
 	end
 	local ok, result = pcall(function()
-		return AssetService:CreateMeshPartAsync(meshId)
+		-- v30 C2: Automatic fidelity drops to a coarse LOD with distance and re-meshes as the camera
+		-- moves (the "wrong until I walk" pop); the kit meshes are low-poly, so draw them whole. Set
+		-- here: game scripts cannot write MeshPart.RenderFidelity (PluginOrOpenCloud only), which made
+		-- apply() throw and left every world slot a primitive since #155.
+		return AssetService:CreateMeshPartAsync(meshId, { RenderFidelity = Enum.RenderFidelity.Precise })
 	end)
 	if ok and typeof(result) == "Instance" and result:IsA("MeshPart") then
 		cache[meshId] = result
@@ -138,10 +142,7 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	-- axis). WorldProps Models want the import front (-Z) as it comes.
 	local turn = if target:IsA("Model") then 0 else math.rad(MeshAssets.IMPORT_YAW)
 	mesh.CFrame = cf * CFrame.new(0, -drop, 0) * CFrame.Angles(0, turn, 0)
-	-- v30 C2: Automatic fidelity drops to a coarse LOD with distance and
-	-- re-meshes as the camera moves (the "wrong until I walk" pop); the kit
-	-- meshes are low-poly already, so always draw them whole.
-	mesh.RenderFidelity = Enum.RenderFidelity.Precise
+	-- RenderFidelity is Precise from the template (CreateMeshPartAsync options, v30 C2).
 	mesh.Anchored = true
 	mesh.CanCollide = false
 	mesh.CanQuery = false

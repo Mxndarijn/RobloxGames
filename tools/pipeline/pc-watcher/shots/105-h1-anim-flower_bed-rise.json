@@ -1,0 +1,10 @@
+{
+  "id": "h1-anim-flower_bed-rise",
+  "todo": "v30 H1",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "flower_bed",
+  "wait": 0.35,
+  "note": "v30 H1: flower_bed habitat rising on the pad: props staggered with overshoot, pad tinted to the accent, sparkle puff"
+}

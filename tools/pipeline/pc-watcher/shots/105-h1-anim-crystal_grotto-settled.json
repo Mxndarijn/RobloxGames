@@ -1,0 +1,10 @@
+{
+  "id": "h1-anim-crystal_grotto-settled",
+  "todo": "v30 H1",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "crystal_grotto",
+  "wait": 1.8,
+  "note": "v30 H1: crystal_grotto habitat settled after the rise = the static habitat"
+}

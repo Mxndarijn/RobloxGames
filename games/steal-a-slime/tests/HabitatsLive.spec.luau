@@ -86,6 +86,12 @@ local plots = rt.workspace:FindFirstChild("Plots")
 HabitatFx.attach(plots)
 local tracked = HabitatFx.count()
 local part = pad(3)
+-- The fake camera sits far from the plots (quality snap beyond SNAP_BEYOND): put it by the pad.
+local camera = rt.workspace.CurrentCamera
+local function cameraAt(distance)
+	camera.CFrame = roblox.CFrame.new(part.CFrame.Position + roblox.Vector3.new(0, 0, distance))
+end
+cameraAt(20)
 local function frames(seconds)
 	for _ = 1, math.round(seconds / 0.05) do
 		HabitatFx.step(0.05)
@@ -184,6 +190,149 @@ for _, c in meshConns do
 end
 HabitatFx.clear()
 
+local emitsLifecycle = emits
+-- Morph behaviour (HabitatMorph through HabitatFx), placeholder looks, camera near the pad.
+meshAssets.entries.habitat_crystal_grotto.meshId = nil
+cameraAt(20)
+local standColor, padColor
+local function worldParts()
+	local n, meshes = 0, 0
+	for _, d in rt.workspace:GetDescendants() do
+		if d:IsA("BasePart") then
+			n += 1
+			if d:IsA("MeshPart") or d:FindFirstChildOfClass("SpecialMesh") then
+				meshes += 1
+			end
+		end
+	end
+	return n, meshes
+end
+local function sig(id)
+	local m = lookOf(part, id)
+	local out = {}
+	if m then
+		for _, c in m:GetChildren() do
+			table.insert(out, `{c.Name}:{c.Size}:{c.CFrame.Position}:{c.Transparency}`)
+		end
+		table.sort(out)
+	end
+	return table.concat(out, "|")
+end
+local function setHabitat(id)
+	part:SetAttribute("Habitat", id)
+	fire()
+end
+local function atBase()
+	return part.Stand.Color == standColor
+		and part.Color == padColor
+		and part.Stand.LocalTransparencyModifier == 0
+		and looksOf(part) == 0
+end
+part:SetAttribute("Habitat", "base")
+HabitatFx.attach(plots)
+standColor, padColor = part.Stand.Color, part.Color
+local partsAtBase, meshesAtBase = worldParts()
+local emitsBefore = emits
+setHabitat("crystal_grotto")
+frames(0.2)
+local early = lookOf(part, "crystal_grotto")
+local stagger = { early.Seat.Size.Y > 0.5, early.Crystal4.Size.Y < 0.3 } -- seat up, last prop not started
+local peak = 0
+for _ = 1, 18 do
+	frames(0.05)
+	peak = math.max(peak, early.Seat.Size.Y)
+end
+local midTinted = part.Stand.Color ~= standColor
+frames(1.5)
+local enterSig = sig("crystal_grotto")
+local enterSettled = { part.Stand.LocalTransparencyModifier, looksOf(part), emits - emitsBefore }
+setHabitat("base")
+frames(0.5)
+local leaveMid = lookOf(part, "crystal_grotto")
+local leaving = leaveMid ~= nil and leaveMid.Seat.Size.Y < 7.2 and part.Stand.LocalTransparencyModifier < 1
+frames(1.2)
+local leftBase = atBase()
+local partsAfterLeave, meshesAfterLeave = worldParts()
+-- Interrupt mid-tween both ways, then settle: still the exact static look, then the exact base pad.
+setHabitat("crystal_grotto")
+frames(0.4)
+setHabitat("base")
+frames(0.3)
+setHabitat("crystal_grotto")
+frames(0.2)
+setHabitat("candy_patch")
+frames(0.2)
+setHabitat("crystal_grotto")
+local interruptLooks = 0
+for _ = 1, 40 do
+	frames(0.05)
+	interruptLooks = math.max(interruptLooks, looksOf(part))
+end
+local interruptSig = sig("crystal_grotto")
+setHabitat("base")
+frames(0.3)
+setHabitat("crystal_grotto")
+frames(0.1)
+setHabitat("base")
+frames(2)
+local interruptBase = atBase()
+local partsAfterInterrupt = worldParts()
+-- Late joiner: first sight is the static final state, no puff.
+HabitatFx.clear()
+local colorsAfterClear = part.Stand.Color == standColor and part.Color == padColor
+local emitsLate = emits
+part:SetAttribute("Habitat", "crystal_grotto")
+HabitatFx.attach(plots)
+local lateSig, lateEmits = sig("crystal_grotto"), emits - emitsLate
+HabitatFx.clear()
+-- Far from the camera: the change snaps (final state at once, no puff), the leave too.
+cameraAt(300)
+part:SetAttribute("Habitat", "base")
+HabitatFx.attach(plots)
+emitsLate = emits
+setHabitat("crystal_grotto")
+local farSig, farEmits = sig("crystal_grotto"), emits - emitsLate
+setHabitat("base")
+local farLeft = atBase()
+HabitatFx.clear()
+
+describe("Habitat morph (HabitatFx + HabitatMorph, fake runtime)", function()
+	it("rises with stagger and overshoots, tinting the pad on the way", function()
+		expect(stagger).toEqual({ true, true })
+		expect(peak > 7.2).toBe(true)
+		expect(midTinted).toBe(true)
+	end)
+	it("settles to exactly the late-join static habitat", function()
+		expect(enterSettled).toEqual({ 1, 1, 1 })
+		expect(enterSig ~= "").toBe(true)
+		expect(interruptSig).toBe(enterSig)
+		expect(lateSig).toBe(enterSig)
+		expect(lateEmits).toBe(0)
+	end)
+	it("leave goes back through a shrinking look to the exact base pad", function()
+		expect(leaving).toBe(true)
+		expect(leftBase).toBe(true)
+		expect(interruptBase).toBe(true)
+		expect(colorsAfterClear).toBe(true)
+	end)
+	it("leaves no parts behind and builds no mesh", function()
+		local partsNow, meshesNow = worldParts()
+		expect(partsAfterLeave).toBe(partsAtBase)
+		expect(partsAfterInterrupt).toBe(partsAtBase)
+		expect(meshesAfterLeave).toBe(meshesAtBase)
+		expect(meshesNow).toBe(meshesAtBase)
+		expect(partsNow).toBe(partsAtBase)
+	end)
+	it("keeps one look per habitat through interrupts (at most grown + shrinking + new)", function()
+		expect(interruptLooks <= 3).toBe(true)
+	end)
+	it("snaps with no puff when far from the camera", function()
+		expect(farSig).toBe(enterSig)
+		expect(farEmits).toBe(0)
+		expect(farLeft).toBe(true)
+	end)
+end)
+
 describe("Habitats live (FEATURES.Habitats on, fake runtime)", function()
 	it("boots without script errors", function()
 		expect(#rt.errors).toBe(0)
@@ -208,7 +357,7 @@ describe("HabitatFx client lifecycle (fake runtime)", function()
 	it("5x enter / leave leaves at most 1 look and 1 burst per pad", function()
 		expect(maxLooks <= 2).toBe(true) -- 1 growing + 0 or 1 shrinking mid-swap
 		expect(maxBursts).toBe(1)
-		expect(emits).toBe(12) -- 10 transforms + grow again + the drift to base
+		expect(emitsLifecycle).toBe(12) -- 10 transforms + grow again + the drift to base
 		expect(settledLooks).toBe(0) -- ended at base: no look left
 		expect(#rt.errors).toBe(0)
 	end)

@@ -1,0 +1,10 @@
+{
+  "id": "h1-anim-crystal_grotto-rise",
+  "todo": "v30 H1",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "crystal_grotto",
+  "wait": 0.35,
+  "note": "v30 H1: crystal_grotto habitat rising on the pad: props staggered with overshoot, pad tinted to the accent, sparkle puff"
+}

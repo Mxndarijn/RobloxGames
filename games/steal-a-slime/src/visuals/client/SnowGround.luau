@@ -3,7 +3,7 @@
 	SnowGround (VisualsClient module, v30 F2, FEATURES.Weather)
 
 	Client-only ground snow: ONE anchored, non-colliding Snow-material Part flush over the Ground whose
-	Transparency follows the cover level (SnowCover; builds up during Snow, melts after). Created on first snow, destroyed
+	Transparency follows the cover level (SnowCover; builds up during Snow, melts after; a late joiner starts at the level the server stamps imply). Created on first snow, destroyed
 	once fully melted. Heartbeat only runs while the level moves. Cost: 1 part, 0 mesh slots.
 
 	The pc-watcher can pin the level with the client-local workspace attribute SnowCoverDebug (0..1).
@@ -82,7 +82,28 @@ function SnowGround.setSnowing(value: boolean)
 	end
 end
 
-function SnowGround.start()
+-- Late joiners: place the level from the server's stamps (WeatherStartedAt / SnowEndedAt) and the server clock.
+-- A SnowCoverDebug pin or a WeatherDebug preview builds up from 0 instead, so the shots can show it mid-way.
+local function place()
+	local pinned = forced() ~= nil or workspace:GetAttribute(Constants.WEATHER_DEBUG_ATTRIBUTE) ~= nil
+	snowing = workspace:GetAttribute(Constants.WEATHER_ATTRIBUTE) == "Snow"
+	level = SnowCover.levelAt(
+		snowing,
+		workspace:GetAttribute(Constants.WEATHER_STARTED_ATTRIBUTE),
+		workspace:GetAttribute(Constants.SNOW_ENDED_ATTRIBUTE),
+		workspace:GetServerTimeNow(),
+		pinned
+	)
+	draw()
+	if forced() or not SnowCover.settled(level, snowing) then
+		run()
+	end
+end
+
+function SnowGround.start(enabled: boolean)
+	if enabled then
+		place()
+	end
 	workspace:GetAttributeChangedSignal(Constants.SNOW_COVER_DEBUG_ATTRIBUTE):Connect(function()
 		run()
 	end)

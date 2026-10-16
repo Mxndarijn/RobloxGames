@@ -18,6 +18,7 @@ local Config = require("../../src/shared/Config")
 local Habitats = require("../../src/shared/Habitats")
 local MeshAssets = require("../../src/shared/MeshAssets")
 local Props = require("../../src/visuals/shared/Props")
+local BorderTerrain = require("../../src/visuals/shared/BorderTerrain")
 local WorldBorder = require("../../src/visuals/shared/WorldBorder")
 local WorldBuilder = require("../../src/visuals/shared/WorldBuilder")
 local PlotDecor = require("../../src/visuals/shared/PlotDecor")
@@ -224,6 +225,29 @@ for _, scope in { built.map, built.plots } do
 	end
 end
 
+-- The border hills (server/BorderTerrainView writes them as voxel terrain): the same seeded
+-- heightfield sampled on an 8-stud grid; render_world.py turns it into a coloured mesh.
+local terrain = nil
+if not table.find(process.args, "--no-terrain") then
+	local grid = BorderTerrain.sample(BorderTerrain.field(), 8)
+	local heights, mats = {}, {}
+	local letter = { Grass = "G", LeafyGrass = "L", Rock = "R" }
+	for i, h in grid.heights do
+		heights[i] = math.floor(h * 10 + 0.5) / 10
+		mats[i] = letter[grid.materials[i]]
+	end
+	terrain = {
+		step = grid.step,
+		min = grid.min,
+		n = grid.n,
+		heights = heights,
+		materials = table.concat(mats),
+		colors = BorderTerrain.COLORS,
+		inner = BorderTerrain.INNER,
+		floor = BorderTerrain.FLOOR,
+	}
+end
+
 fs.writeDir(OUT)
 local suffix = (if PENDING then "_pending" else "") .. (if SKIN then `_skin_{SKIN}` else "")
 fs.writeFile(
@@ -236,6 +260,7 @@ fs.writeFile(
 		plots = plots,
 		wallRadius = WorldBorder.RADIUS,
 		ringPath = WorldLayout.RING_PATH_RADIUS,
+		terrain = terrain,
 	})
 )
 local counts = {}

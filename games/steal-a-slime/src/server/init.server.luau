@@ -39,6 +39,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Actions = require(script.Actions)
 local AdminEventsService = require(script.AdminEventsService)
 local Badges = require(script.Badges)
+local BorderTerrainView = require(script.BorderTerrainView)
 local Carry = require(script.Carry)
 local DataService = require(script.DataService)
 local FountainColliders = require(script.FountainColliders)
@@ -96,6 +97,13 @@ if Config.FEATURES.Parade then
 		warn(`[Server] ParadeView.place failed: {err}`)
 	end
 end
+-- Hills behind the world border: voxel terrain (no parts, no mesh slots); yields between tiles.
+task.spawn(function()
+	local ok, err = pcall(BorderTerrainView.place)
+	if not ok then
+		warn(`[Server] BorderTerrainView.place failed: {err}`)
+	end
+end)
 -- Slime Ranch kit meshes over the MeshAsset placeholders (yields; never blocks boot).
 task.spawn(function()
 	local ok, err = pcall(MeshSwap.apply)

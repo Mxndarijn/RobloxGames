@@ -1,0 +1,19 @@
+{
+  "id": "22-border-terrain-along-after-pc",
+  "kind": "world",
+  "pos": [
+    133.0,
+    14,
+    -230.4
+  ],
+  "look": [
+    20.6,
+    5,
+    -295.3
+  ],
+  "device": "desktop",
+  "clock": 14,
+  "todo": "border-terrain",
+  "wait": 6.0,
+  "note": "border terrain: AFTER frame, same camera as the before: seeded Terrain hills (Grass/LeafyGrass/Rock) rise behind the border props, no straight edge into the sky in [desktop]"
+}

@@ -107,6 +107,28 @@ describe("Weather replication", function()
 		expect(log).toEqual({ "Clear>Snow", "Snow>Rain", "Rain>Clear" })
 		Weather.reset()
 	end)
+	it("stamps the start of each weather and the end of Snow for late joiners", function()
+		Weather.reset()
+		local holder = fakeHolder()
+		local state = WeatherService.new(0)
+		WeatherService.publish(state, holder, 100)
+		expect(holder:GetAttribute(Constants.WEATHER_STARTED_ATTRIBUTE)).toBe(100)
+		expect(holder:GetAttribute(Constants.SNOW_ENDED_ATTRIBUTE)).toBe(nil)
+		state.id = "Snow"
+		WeatherService.publish(state, holder, 200)
+		expect(holder:GetAttribute(Constants.WEATHER_STARTED_ATTRIBUTE)).toBe(200)
+		expect(holder:GetAttribute(Constants.SNOW_ENDED_ATTRIBUTE)).toBe(nil)
+		WeatherService.publish(state, holder, 250) -- same id: stamps untouched
+		expect(holder:GetAttribute(Constants.WEATHER_STARTED_ATTRIBUTE)).toBe(200)
+		state.id = "Rain"
+		WeatherService.publish(state, holder, 400)
+		expect(holder:GetAttribute(Constants.WEATHER_STARTED_ATTRIBUTE)).toBe(400)
+		expect(holder:GetAttribute(Constants.SNOW_ENDED_ATTRIBUTE)).toBe(400)
+		state.id = "Starfall"
+		WeatherService.publish(state, holder, 500) -- a later non-Snow change keeps the Snow end time
+		expect(holder:GetAttribute(Constants.SNOW_ENDED_ATTRIBUTE)).toBe(400)
+		Weather.reset()
+	end)
 	it("a late-joining client reads the value already set", function()
 		Weather.reset()
 		local holder = fakeHolder()

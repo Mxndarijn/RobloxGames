@@ -31,6 +31,8 @@ return table.freeze({
 	-- Instance attributes (CONTRACT.md §5.2)
 	CARRYING_ATTRIBUTE = "Carrying", -- Player: carried slime id, nil when empty-handed
 	WEATHER_ATTRIBUTE = "Weather", -- workspace, set by the server (WeatherService): "Clear" | "Rain" | "Snow" | "Starfall"
+	WEATHER_STARTED_ATTRIBUTE = "WeatherStartedAt", -- workspace, server time (GetServerTimeNow) the current weather began; set before WEATHER_ATTRIBUTE
+	SNOW_ENDED_ATTRIBUTE = "SnowEndedAt", -- workspace, server time Snow last ended; cleared (nil) while Snow shows. Late joiners derive ground snow from both
 	WEATHER_DEBUG_ATTRIBUTE = "WeatherDebug", -- workspace, set on ONE client only (pc-watcher shots): forces that weather's visuals
 	SNOW_COVER_DEBUG_ATTRIBUTE = "SnowCoverDebug", -- workspace, client-local number 0..1 (pc-watcher snow shots): pins the ground snow cover level
 	RAIN_ATTRIBUTE = "SlimeRain", -- workspace: true during Slime Rain
