@@ -12,13 +12,18 @@
 # DRY_RUN=1 evaluates the gate, builds + asserts, prints the calls it would make
 # and writes nothing outside $WORK. The key reaches curl on stdin only.
 #
-# Newest only: a sha with a newer cloud-passed sha on main (first-parent order of
-# $MAIN_REF) is never published; it gets status skipped-superseded. Checked at the
-# start and again right before each upload. SUPERSEDE_ONLY=1 stops after that check.
+# Newest fully-gated only (first-parent order of $MAIN_REF). Fully gated = cloud pass +
+# Studio report pass + frames_reviewed + reviewed_by + checked_at after merge. A sha is
+# skipped-superseded ONLY when a newer sha is itself fully gated or published, or when a
+# live sha already descends from it (never publish older than live). A newer sha that is
+# merely cloud-passed does not supersede, so review lag cannot starve the pipeline: the
+# newest gated sha publishes while newer un-reviewed ones keep waiting. A waiting sha has
+# no terminal timeout (REPORT_TIMEOUT_S only flavours the log). Checked at the start and
+# again right before each upload. SUPERSEDE_ONLY=1 stops after that check.
 #
 # Needs-review marker: while $SHA has cloud pass but Phoenix has not yet reviewed
-# frames (no Studio report, or report status=pass with frames_reviewed != true) an
-# empty file $NEEDS_REVIEW_DIR/<40-char sha> exists so Gojo can ping Phoenix. It is
+# frames (no Studio report, or report status=pass with frames_reviewed != true) and no
+# newer sha is also waiting for review (only the newest keeps it), an empty file $NEEDS_REVIEW_DIR/<40-char sha> exists so Gojo can ping Phoenix. It is
 # removed once frames_reviewed is true, the report is fail, or the sha ends
 # live / skipped-superseded / no-publish / smoke-failed. Honoured under DRY_RUN too.
 #
@@ -113,41 +118,6 @@ terminal() {
     '{sha: $sha, status: $status, reason: $reason, at: $at}' | write_json "$STATUS_DIR/$SHA.publish.json"
 }
 
-# newer_passed: prints the newest sha after $SHA on $MAIN_REF (first-parent order)
-# whose cloud status is pass; nothing if none (or $SHA is not on main's first-parent line).
-newer_passed() {
-  local n found=0 newer=()
-  while read -r n; do
-    [[ "$n" == "$SHA" ]] && { found=1; break; }
-    newer+=("$n")
-  done < <(git -C "$CHECKOUT" rev-list --first-parent "$MAIN_REF" 2>/dev/null)
-  [[ $found == 1 ]] || return 0
-  for n in "${newer[@]}"; do # newest first
-    if [[ -f "$STATUS_DIR/$n.json" && "$(jq -r .status "$STATUS_DIR/$n.json" 2>/dev/null)" == pass ]]; then
-      echo "$n"; return 0
-    fi
-  done
-}
-# check_superseded: writes skipped-superseded and exits 4 when a newer sha passed.
-# Shas that already ended live / no-publish / smoke-failed are left alone.
-check_superseded() {
-  local cur newer
-  cur="$(jq -r .status "$STATUS_DIR/$SHA.publish.json" 2>/dev/null)"
-  case "$cur" in "" | ready) ;; *) needs_review_clear; return 0 ;; esac
-  newer="$(newer_passed)"
-  [[ -n "$newer" ]] || return 0
-  log "skipped-superseded: newer sha $newer on $MAIN_REF has cloud status pass"
-  needs_review_clear
-  if [[ "$DRY_RUN" == 1 ]]; then
-    log "DRY_RUN: would write $STATUS_DIR/$SHA.publish.json status=skipped-superseded superseded_by=$newer"
-  else
-    jq -n --arg sha "$SHA" --arg by "$newer" --arg at "$(date -Iseconds)" \
-      '{sha: $sha, status: "skipped-superseded", superseded_by: $by, reason: "newer sha passed cloud tests", at: $at}' |
-      write_json "$STATUS_DIR/$SHA.publish.json"
-  fi
-  exit 4
-}
-
 # write_live_status <saved> <published> <merged_at>: writes status/<sha>.publish.json and
 # live/<sha>.json. The ~150KB studio report goes in via a file (--slurpfile), never argv
 # (--argjson "$REPORT" died with "Argument list too long").
@@ -178,23 +148,7 @@ noop_if_done() {
   exit 0
 }
 
-# ---- gate ----------------------------------------------------------------
-noop_if_done
-check_superseded
-[[ "$SUPERSEDE_ONLY" == 1 ]] && exit 0
-CLOUD_STATUS="$STATUS_DIR/$SHA.json"
-[[ -f "$CLOUD_STATUS" ]] || { log "blocked: no cloud-test status for $SHA"; exit 3; }
-CLOUD="$(jq -r .status "$CLOUD_STATUS")"
-case "$CLOUD" in
-  pass) ;;
-  fail | error)
-    if [[ "$CLOUD" == fail ]]; then terminal no-publish "cloud tests failed"; exit 4; fi
-    log "blocked: cloud tests errored (watcher retries)"; exit 3 ;;
-  *) log "blocked: cloud status '$CLOUD'"; exit 3 ;;
-esac
-CLOUD_FINISHED="$(jq -r '.finished // empty' "$CLOUD_STATUS")"
-MERGE_TIME="$(git -C "$CHECKOUT" show -s --format=%cI "$SHA" 2>/dev/null)" || { log "error: sha $SHA not in checkout"; exit 2; }
-
+# ---- gate helpers ------------------------------------------------------------
 # Report source: local mirror, GitHub API when the mirror file is missing or
 # the mirror hasn't been refreshed for MIRROR_STALE_S.
 mirror_fresh() {
@@ -204,58 +158,170 @@ mirror_fresh() {
   now="$(date +%s)"
   [[ -n "$newest" ]] && (( now - ${newest%.*} <= MIRROR_STALE_S ))
 }
-fetch_report() { # prints report JSON on stdout, empty if none
-  local f="$STUDIO_REPORTS_DIR/$SHA.json" api
+fetch_report() { # fetch_report <sha>: prints report JSON on stdout, empty if none
+  local f="$STUDIO_REPORTS_DIR/$1.json" api
   if [[ -f "$f" ]] && mirror_fresh; then
     cat "$f"
     return
   fi
-  log "report: mirror file missing or mirror stale; GET repos/$REPO_SLUG/contents/$SHA.json?ref=studio-reports"
-  api="$(ghbot-gojo api "repos/$REPO_SLUG/contents/$SHA.json?ref=studio-reports" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null)"
+  log "report: mirror file missing or mirror stale; GET repos/$REPO_SLUG/contents/$1.json?ref=studio-reports"
+  api="$(ghbot-gojo api "repos/$REPO_SLUG/contents/$1.json?ref=studio-reports" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null)"
   if [[ -n "$api" ]]; then echo "$api"; elif [[ -f "$f" ]]; then cat "$f"; fi # API down: stale mirror beats nothing
 }
-REPORT="$(fetch_report)"
 
-# Needs-review marker: set while Phoenix still has to review frames, clear otherwise.
-if [[ -z "$REPORT" ]]; then
-  needs_review_set
-elif echo "$REPORT" | jq -e --arg sha "$SHA" '.sha == $sha and .status == "pass" and .frames_reviewed != true' >/dev/null 2>&1; then
-  needs_review_set
-else
-  needs_review_clear
-fi
-
-# Returns reason on stdout when the report is missing/incomplete, nothing when valid.
+# report_problem <sha> <report> <merge-time>: reason on stdout when the report is
+# missing/incomplete/stale, nothing when valid (a valid status=fail report is "valid").
 report_problem() {
-  [[ -n "$REPORT" ]] || { echo "no studio report"; return; }
-  echo "$REPORT" | jq -e . >/dev/null 2>&1 || { echo "report is not valid JSON"; return; }
-  echo "$REPORT" | jq -r --arg sha "$SHA" '
+  local sha="$1" report="$2" merge="$3" checked
+  [[ -n "$report" ]] || { echo "no studio report"; return; }
+  echo "$report" | jq -e . >/dev/null 2>&1 || { echo "report is not valid JSON"; return; }
+  echo "$report" | jq -r --arg sha "$sha" '
     if .sha != $sha then "report sha mismatch"
     elif .status != "pass" and .status != "fail" then "report status not pass|fail"
     elif (.checked_at | type) != "string" then "report has no checked_at"
     elif .frames_reviewed != true then "frames_reviewed is not true"
     elif ((.reviewed_by | type) != "array") or ((.reviewed_by | length) == 0) or (any(.reviewed_by[]; (type != "string") or . == "")) then "reviewed_by empty"
-    else empty end'
+    else empty end' | { read -r p; echo "$p"; } | grep . && return
+  checked="$(epoch "$(echo "$report" | jq -r .checked_at)")" || checked=""
+  if [[ -z "$checked" ]]; then echo "checked_at unparseable"
+  elif (( checked <= $(epoch "$merge") )); then echo "checked_at ($(echo "$report" | jq -r .checked_at)) is not later than merge time ($merge)"
+  fi
 }
-PROBLEM="$(report_problem)"
-if [[ -z "$PROBLEM" ]]; then
-  if [[ "$(echo "$REPORT" | jq -r .status)" == fail ]]; then
-    terminal no-publish "studio report status=fail"; exit 4
+
+# eval_gate <sha>: sets G_STATE, G_REPORT, G_PROBLEM, G_UNREVIEWED, G_MERGE.
+#   G_STATE: nocloud (no/pending status) | cloudfail | cloudpass-only (waiting on the
+#            Studio report/frame review) | reportfail | gated (cloud pass + valid pass report)
+#   G_UNREVIEWED=1: cloud pass and Phoenix has not reviewed frames yet (needs-review).
+eval_gate() {
+  local s="$1" cloud
+  G_STATE=nocloud G_REPORT="" G_PROBLEM="" G_UNREVIEWED=0 G_MERGE=""
+  [[ -f "$STATUS_DIR/$s.json" ]] || { G_PROBLEM="no cloud-test status for $s"; return; }
+  cloud="$(jq -r .status "$STATUS_DIR/$s.json" 2>/dev/null)"
+  case "$cloud" in
+    pass) ;;
+    fail) G_STATE=cloudfail; G_PROBLEM="cloud tests failed"; return ;;
+    *) G_PROBLEM="cloud status '$cloud'"; return ;;
+  esac
+  G_MERGE="$(git -C "$CHECKOUT" show -s --format=%cI "$s" 2>/dev/null)" || { G_MERGE=""; G_PROBLEM="sha $s not in checkout"; return; }
+  G_REPORT="$(fetch_report "$s")"
+  if [[ -z "$G_REPORT" ]] ||
+    echo "$G_REPORT" | jq -e --arg sha "$s" '.sha == $sha and .status == "pass" and .frames_reviewed != true' >/dev/null 2>&1; then
+    G_UNREVIEWED=1
   fi
-  CHECKED="$(epoch "$(echo "$REPORT" | jq -r .checked_at)")" || CHECKED=""
-  if [[ -z "$CHECKED" ]]; then PROBLEM="checked_at unparseable"
-  elif (( CHECKED <= $(epoch "$MERGE_TIME") )); then PROBLEM="checked_at ($(echo "$REPORT" | jq -r .checked_at)) is not later than merge time ($MERGE_TIME)"
+  G_PROBLEM="$(report_problem "$s" "$G_REPORT" "$G_MERGE")"
+  G_STATE=cloudpass-only
+  if [[ -z "$G_PROBLEM" ]]; then
+    if [[ "$(echo "$G_REPORT" | jq -r .status)" == fail ]]; then G_STATE=reportfail; else G_STATE=gated; fi
   fi
-fi
-if [[ -n "$PROBLEM" ]]; then
+}
+
+# sha_terminal <sha>: true when status/<sha>.publish.json is a terminal state.
+sha_terminal() {
+  case "$(jq -r '.status // empty' "$STATUS_DIR/$1.publish.json" 2>/dev/null)" in
+    live | smoke-failed | no-publish | skipped-superseded) return 0 ;;
+  esac
+  [[ "$(jq -r '.status // empty' "$LIVE_DIR/$1.json" 2>/dev/null)" == live ]]
+}
+
+# live_shas: every sha with live/<sha>.json status live.
+live_shas() {
+  local f
+  for f in "$LIVE_DIR"/*.json; do
+    [[ -f "$f" ]] || continue
+    [[ "$(jq -r '.status // empty' "$f" 2>/dev/null)" == live ]] && basename "$f" .json
+  done
+}
+
+# newer_shas: shas strictly newer than $SHA on $MAIN_REF (first-parent), newest first.
+# Prints nothing when $SHA is not on the first-parent line.
+newer_shas() {
+  local n found=0 newer=()
+  while read -r n; do
+    [[ "$n" == "$SHA" ]] && { found=1; break; }
+    newer+=("$n")
+  done < <(git -C "$CHECKOUT" rev-list --first-parent "$MAIN_REF" 2>/dev/null)
+  [[ $found == 1 ]] && printf '%s\n' "${newer[@]}"
+}
+
+# superseder: prints "<sha> <why>" when $SHA must not be published: a live sha that
+# $SHA is an ancestor of (never publish older than live), or a newer sha that is fully
+# gated or already published. Nothing otherwise. A newer sha that is merely cloud-passed
+# does NOT supersede (that is the starvation bug).
+superseder() {
+  local l n
+  FULL="${FULL_SHA:-$SHA}"
+  while read -r l; do
+    [[ "$l" == "$FULL" || "$l" == "$SHA" ]] && continue
+    git -C "$CHECKOUT" merge-base --is-ancestor "$FULL" "$l" 2>/dev/null && { echo "$l already live (not older than live)"; return; }
+  done < <(live_shas)
+  while read -r n; do
+    [[ -n "$n" ]] || continue
+    sha_terminal "$n" && [[ "$(jq -r '.status // empty' "$STATUS_DIR/$n.publish.json" 2>/dev/null)" == live ]] && { echo "$n published"; return; }
+    eval_gate "$n"
+    [[ "$G_STATE" == gated ]] && { echo "$n fully gated"; return; }
+  done < <(newer_shas)
+}
+# check_superseded: writes skipped-superseded and exits 4 when superseder() finds one.
+# Shas that already ended live / no-publish / smoke-failed are left alone.
+check_superseded() {
+  local cur by why
+  cur="$(jq -r .status "$STATUS_DIR/$SHA.publish.json" 2>/dev/null)"
+  case "$cur" in "" | ready) ;; *) needs_review_clear; return 0 ;; esac
+  read -r by why <<<"$(superseder)"
+  [[ -n "$by" ]] || return 0
+  log "skipped-superseded: $by $why (superseded_by=$by)"
+  needs_review_clear
+  if [[ "$DRY_RUN" == 1 ]]; then
+    log "DRY_RUN: would write $STATUS_DIR/$SHA.publish.json status=skipped-superseded superseded_by=$by"
+  else
+    jq -n --arg sha "$SHA" --arg by "$by" --arg why "$why" --arg at "$(date -Iseconds)" \
+      '{sha: $sha, status: "skipped-superseded", superseded_by: $by, reason: ("newer sha " + $why), at: $at}' |
+      write_json "$STATUS_DIR/$SHA.publish.json"
+  fi
+  exit 4
+}
+
+# newest_unreviewed_here: true when no sha newer than $SHA is itself a live candidate
+# waiting for frame review (cloud pass, non-terminal, unreviewed). Only the newest one
+# keeps a needs-review marker.
+newest_unreviewed_here() {
+  local n
+  while read -r n; do
+    [[ -n "$n" ]] || continue
+    sha_terminal "$n" && continue
+    eval_gate "$n"
+    [[ "$G_STATE" == cloudpass-only && "$G_UNREVIEWED" == 1 ]] && return 1
+  done < <(newer_shas)
+  return 0
+}
+
+# ---- gate ----------------------------------------------------------------
+noop_if_done
+check_superseded
+[[ "$SUPERSEDE_ONLY" == 1 ]] && exit 0
+eval_gate "$SHA"
+CLOUD_FINISHED="$(jq -r '.finished // empty' "$STATUS_DIR/$SHA.json" 2>/dev/null)"
+case "$G_STATE" in
+  nocloud) log "blocked: $G_PROBLEM"; exit 3 ;;
+  cloudfail) terminal no-publish "cloud tests failed"; exit 4 ;;
+esac
+if [[ -z "$G_MERGE" ]]; then log "error: $G_PROBLEM"; exit 2; fi
+MERGE_TIME="$G_MERGE"
+
+# Needs-review marker: only the newest un-reviewed cloud-pass sha keeps one.
+if [[ "$G_UNREVIEWED" == 1 ]] && newest_unreviewed_here; then needs_review_set; else needs_review_clear; fi
+eval_gate "$SHA" # newest_unreviewed_here clobbered the G_* state
+
+if [[ "$G_STATE" == reportfail ]]; then terminal no-publish "studio report status=fail"; exit 4; fi
+if [[ "$G_STATE" != gated ]]; then
+  # Never terminal: a sha waiting for review only loses to a newer *gated* sha
+  # (handled by check_superseded above), so it cannot starve the pipeline.
   FIN="$(epoch "$CLOUD_FINISHED" || echo 0)"
   AGE=$(( $(date +%s) - FIN ))
-  if (( AGE > REPORT_TIMEOUT_S )); then
-    terminal no-publish "$PROBLEM; ${AGE}s after cloud pass (limit ${REPORT_TIMEOUT_S}s)"; exit 4
-  fi
-  log "blocked: $PROBLEM (cloud pass ${AGE}s ago, timeout in $((REPORT_TIMEOUT_S - AGE))s)"
+  log "blocked: $G_PROBLEM (cloud pass ${AGE}s ago$( ((AGE > REPORT_TIMEOUT_S)) && echo ", past ${REPORT_TIMEOUT_S}s: still waiting, no newer gated sha"))"
   exit 3
 fi
+REPORT="$G_REPORT"
 log "gate: PASS (cloud pass, studio report pass, reviewed_by=$(echo "$REPORT" | jq -c .reviewed_by))"
 
 if [[ "$AUTO_PUBLISH" != 1 ]]; then
