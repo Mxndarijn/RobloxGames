@@ -1408,6 +1408,10 @@ def step_shots(run):
                     res["admin_event"] = run.need_luau("admin_event", "Client", timeout=15, event=shot["admin_event"])
                 if shot.get("weekend"):  # competitor-gaps #17: fake a live x2 Weekend chip (Studio only)
                     res["weekend"] = run.need_luau("weekend", "Client", timeout=15, on=True)
+                if shot.get("steal_alert"):  # v21: fake a theft of my slime: edge flash, arrow, join notice (Studio only)
+                    sa = res["steal_alert"] = run.need_luau("steal_alert", "Client", timeout=15, on=True)
+                    if not sa.get("fx") or not sa.get("arrow_visible"):
+                        res["error"] = "steal alert fx not drawn (fx %s, arrow %s)" % (sa.get("fx"), sa.get("arrow_visible"))
                 if shot.get("plot_skin"):  # gaps #15: fake the plot skin picker (Studio only)
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
                 if shot.get("dex_rows"):  # v29 menus: fake a long Dex list (Studio only)
@@ -1467,6 +1471,8 @@ def step_shots(run):
                     run.luau("admin_event", "Client", timeout=15, event="")
                 if shot.get("weekend"):
                     run.luau("weekend", "Client", timeout=15, on=False)
+                if shot.get("steal_alert"):
+                    run.luau("steal_alert", "Client", timeout=15, on=False)
                 if shot.get("plot_skin"):
                     run.luau("plot_skin", "Client", timeout=15, skin="classic")
                 if shot.get("plot_slime"):

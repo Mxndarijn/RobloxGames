@@ -121,6 +121,7 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 		slimeId = carry.slimeId,
 		ownerUserId = owner.userId,
 		carrierUserId = carrier.userId,
+		reason = reason,
 	})
 	local name = Genome.displayName(carry.slime)
 	if reason == "slap" then
