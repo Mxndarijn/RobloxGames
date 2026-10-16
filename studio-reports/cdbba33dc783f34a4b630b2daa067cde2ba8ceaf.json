@@ -6472,5 +6472,15 @@
       ]
     }
   },
-  "frames_dir": "cdbba33dc783f34a4b630b2daa067cde2ba8ceaf/"
+  "frames_dir": "cdbba33dc783f34a4b630b2daa067cde2ba8ceaf/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "B5 (#116): ring and spoke paths look flush and seamless in shot-06-map-top and fountain-centre, with no gaps or z-fighting.",
+    "B2-B4 (#114): there's a mailbox at every plot (v29-b2-mailbox-1..8), the Top Earners board faces the centre (v29-b3), and the shop sign text is flush.",
+    "Not proven by these frames (no breakage seen): shot-19-appraise-plot shows an empty plot with no appraise UI, and shot-19b-mystery-egg-shop shows the Shop scrolled to the top, so the egg item isn't visible. Watcher shot follow-up from me: scroll to the egg item and seat a slime for appraise.",
+    "Rest OK: all steps pass, focus_stolen [], close pass, no leftovers. Banners are hidden with menus open, the rebirth slime card is OK, motion is OK and the slime is seated."
+  ]
 }
