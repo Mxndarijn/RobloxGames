@@ -192,9 +192,9 @@ function SlimeDex.skinRows(plotSkins: any, config: any): { Row }
 end
 
 -- Panel header above the list (Panels/Dex, design px): percent + count
--- (40), the bar (to 64), the per-rarity grid (to 108), then the rewards
--- line (36) when there is one.
-SlimeDex.HEADER = table.freeze({ count = 40, bar = 64, tiers = 108, rewards = 36, gap = 4 })
+-- (40), the bar (to 64), the per-rarity grid (7 rarities, three per row =
+-- three 18 px rows, to 128), then the rewards line (36) when there is one.
+SlimeDex.HEADER = table.freeze({ count = 40, bar = 64, tiers = 128, rewards = 36, gap = 4 })
 -- The list keeps at least one 72 px row (Panels/Dex) + scroll padding.
 SlimeDex.MIN_LIST = 72 + 12
 

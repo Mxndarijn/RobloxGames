@@ -460,13 +460,25 @@ function Layout.menuHeight(key: string): number
 	return tallest
 end
 
+-- Smallest content-sized card (design px): the title band, the X and a row.
+Layout.CARD_MIN = 220
+
+-- Card height for a measured body content height (Widgets.contentHeight):
+-- the chrome header and bottom pad around it, at least CARD_MIN.
+function Layout.cardHeight(contentH: number): number
+	local c = Layout.PANEL_CHROME
+	return math.max(Layout.CARD_MIN, math.ceil(c.header + contentH + c.pad))
+end
+
 -- The menu card for a Nav key (or "Guide") on `screen`: screen.menuX /
--- menuW, MENU_HEIGHTS tall (at most the backdrop). Centred in the backdrop
+-- menuW, as tall as its measured body content (`contentH`, Widgets.contentHeight;
+-- MENU_HEIGHTS when nil), at most the backdrop. Centred in the backdrop
 -- unless that would push its X under the toasts (phones: the card spans the
 -- width), then at the top of the backdrop, where the X has always been.
-function Layout.panelFor(screen: Screen, key: string): Rect
+function Layout.panelFor(screen: Screen, key: string, contentH: number?): Rect
 	local back = screen.panel
-	local h = math.min(Layout.menuHeight(key), back.h)
+	local want = if contentH then Layout.cardHeight(contentH) else Layout.menuHeight(key)
+	local h = math.min(want, back.h)
 	local y = back.y + math.floor((back.h - h) / 2)
 	local close = Layout.panelClose(Layout.rect(screen.menuX, y, screen.menuW, h))
 	if Layout.overlaps(close, screen.toasts) or Layout.overlaps(close, screen.hud.rect) then

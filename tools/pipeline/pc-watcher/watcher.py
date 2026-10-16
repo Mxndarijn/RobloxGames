@@ -1401,12 +1401,16 @@ def step_shots(run):
                     res["weekend"] = run.need_luau("weekend", "Client", timeout=15, on=True)
                 if shot.get("plot_skin"):  # gaps #15: fake the plot skin picker (Studio only)
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
+                if shot.get("dex_rows"):  # v29 menus: fake a long Dex list (Studio only)
+                    res["dex_rows"] = run.need_luau("dex_rows", "Client", timeout=15, count=int(shot["dex_rows"]))
                 if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
                     res["dex_weather"] = run.need_luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=True)
                     time.sleep(0.6)  # State push
                 if shot.get("plot_slime"):  # fake owned slime so the Appraise button shows
                     res["plot_slime"] = run.need_luau("plot_slime", "Client", timeout=15, state="1")
                 opened = open_panel(run, key) if key else None
+                if shot.get("daily_popup"):  # v29 menus: the Daily popup over the idle HUD (Studio only)
+                    res["daily_popup"] = run.need_luau("daily_popup", "Client", timeout=15, on=True)
                 if opened:
                     res["open"] = opened
                     if not opened["method"]:
@@ -1421,7 +1425,13 @@ def step_shots(run):
                         res["error"] = "%s did not leave %s %s" % (shot["press"], opened["panel"], shot.get("expect", "closed"))
                 if opened and shot.get("scroll_to"):  # card below the scroll fold at small viewports
                     res["scroll"] = run.luau("panel_scroll", "Client", timeout=15, panel=opened["panel"], target=shot["scroll_to"])[1]
+                if opened and shot.get("scroll_row"):  # v29 menus: Dex list scrolled to a row; its preview must be live
+                    sr = res["scroll_row"] = run.need_luau("panel_scroll_row", "Client", timeout=15, panel=opened["panel"], row=int(shot["scroll_row"]))
+                    if not sr.get("row_found") or not sr.get("row_live"):
+                        res["error"] = "row %s has no live preview (found %s, live previews %s)" % (shot["scroll_row"], sr.get("row_found"), sr.get("live"))
                 keep = opened["panel"] if opened and not shot.get("press") else ""
+                if shot.get("daily_popup"):
+                    keep = "DailyPopup"
                 ok, iso = run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=True)
                 res["isolated"] = iso if ok else str(iso)[:160]
                 try:
@@ -1452,6 +1462,10 @@ def step_shots(run):
                     run.luau("plot_skin", "Client", timeout=15, skin="classic")
                 if shot.get("plot_slime"):
                     run.luau("plot_slime", "Client", timeout=15, state="")
+                if shot.get("dex_rows"):
+                    run.luau("dex_rows", "Client", timeout=15, count=0)
+                if shot.get("daily_popup"):
+                    run.luau("daily_popup", "Client", timeout=15, on=False)
                 if shot.get("dex_weather"):
                     run.luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=False)
             else:

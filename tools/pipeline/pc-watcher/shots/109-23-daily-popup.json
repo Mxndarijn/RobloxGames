@@ -1,0 +1,7 @@
+{
+  "id": "23-daily-popup",
+  "todo": "v29-menus",
+  "kind": "ui",
+  "daily_popup": true,
+  "note": "v29 menus: the Daily reward popup open over the dimmed idle HUD; Esc / gamepad B closes it through MenuClose (tests/ui/MenuGaps.spec)"
+}

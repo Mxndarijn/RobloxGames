@@ -1,0 +1,9 @@
+{
+  "id": "23-dex-scrolled-row40",
+  "todo": "v29-menus",
+  "kind": "ui",
+  "open": "dex",
+  "dex_rows": 60,
+  "scroll_row": 40,
+  "note": "v29 menus: SlimeDex with 60 faked discovered slimes, list scrolled to row 40: every visible row shows its live slime (previews virtualised, at most SlimePreview.MAX_LIVE mounted); the shot errors if row 40 has no live ViewportFrame. Header: tier counts, then reward line, no overlap"
+}

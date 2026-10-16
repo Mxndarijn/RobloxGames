@@ -422,6 +422,28 @@ function Widgets.restack(frame: Instance)
 	(frame :: ScrollingFrame).CanvasSize = UDim2.fromOffset(0, canvas)
 end
 
+-- Design-px height of a panel body's content: the lowest top-anchored child
+-- (a scroll frame counts as its position plus canvas), plus whatever sits
+-- pinned to the bottom edge (Position.Y.Scale 1, negative offset). Children
+-- sized by scale are ignored. Drives Layout.panelFor's content-sized cards.
+function Widgets.contentHeight(body: Instance): number
+	local top, bottomReserve = 0, 0
+	for _, child in body:GetChildren() do
+		if child:IsA("GuiObject") and (child :: GuiObject).Visible then
+			local g = child :: GuiObject
+			local pos, size = g.Position.Y, g.Size.Y
+			if g:IsA("ScrollingFrame") then
+				top = math.max(top, pos.Offset + (g :: ScrollingFrame).CanvasSize.Y.Offset)
+			elseif pos.Scale == 0 and size.Scale == 0 then
+				top = math.max(top, pos.Offset + size.Offset)
+			elseif pos.Scale == 1 and size.Scale == 0 then
+				bottomReserve = math.max(bottomReserve, -pos.Offset)
+			end
+		end
+	end
+	return top + bottomReserve
+end
+
 -- A horizontal progress bar; returns the frame and a setter (0..1).
 function Widgets.bar(parent: Instance, color: Color3, size: UDim2, position: UDim2?): (Frame, (number) -> ())
 	local back = create("Frame", {

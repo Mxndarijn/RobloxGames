@@ -258,6 +258,7 @@ local navChoice: boolean? = nil
 local screen: Layout.Screen? = nil
 local applyLayout: () -> ()
 local refreshHint: () -> ()
+local layoutCards: () -> ()
 
 local function styleNav(btn: NavButton, selected: boolean)
 	btn.button.BackgroundColor3 = if selected then Theme.Accent else Theme.BgLight
@@ -320,6 +321,28 @@ local function forceWeekend(state: any): any
 	end
 	local view = table.clone(state)
 	view.weekend = { active = true, multiplier = Config.WEEKEND.multiplier, endsAt = state.serverTime + 100800 }
+	return view
+end
+
+-- Studio-only: the SlimeUI attribute "PcwDexRows" = N fakes N discovered Dex keys (State.dex, every
+-- tier / pattern / eyes combination in order) so the virtualised Dex list can be shot scrolled far down.
+local function forceDex(state: any): any
+	local count = if isStudio then gui:GetAttribute("PcwDexRows") else nil
+	if type(count) ~= "number" or count <= 0 then
+		return state
+	end
+	local keys: { string } = {}
+	for tier = 1, Config.MAX_TIER do
+		for _, pattern in Config.PATTERNS do
+			for _, eyes in Config.EYES do
+				if #keys < count then
+					table.insert(keys, `{tier}:None:{pattern}:{eyes}`)
+				end
+			end
+		end
+	end
+	local view = table.clone(state)
+	view.dex = keys
 	return view
 end
 
@@ -410,6 +433,7 @@ local function syncMenus()
 			end
 			if isOpen and latest and entry.panel.update then
 				entry.panel.update(panelState(entry.key, latest))
+				layoutCards()
 			end
 		end
 		if navButtons[entry.key] then
@@ -582,6 +606,27 @@ function refreshHint()
 	hintOverlay.set(Hint.place(screen, hudBoxes, lastHint), lastHint.text)
 end
 
+-- Sizes every menu card to its measured body content (Widgets.contentHeight),
+-- clamped to the backdrop. Runs on resize and again whenever an open panel's
+-- content changes (setOpen, state updates).
+function layoutCards()
+	local s = screen
+	if s == nil then
+		return
+	end
+	for _, entry in allPanels do
+		local body = entry.panel.frame:FindFirstChild("Body")
+		local r = Layout.panelFor(s, entry.key, Widgets.contentHeight(body or entry.panel.frame))
+		local frame = entry.panel.frame
+		frame.AnchorPoint = Vector2.zero
+		frame.Position = UDim2.fromOffset(r.x, r.y)
+		frame.Size = UDim2.fromOffset(r.w, r.h)
+		if entry.panel.layout then
+			entry.panel.layout(r)
+		end
+	end
+end
+
 -- Every top-level box for the current ScreenGui size (and nav choice).
 function applyLayout()
 	local size = gui.AbsoluteSize
@@ -601,16 +646,7 @@ function applyLayout()
 	local back = Layout.backdrop(s, guiInset.X, guiInset.Y)
 	backdrop.Position = UDim2.fromOffset(back.x, back.y)
 	backdrop.Size = UDim2.fromOffset(back.w, back.h)
-	for _, entry in allPanels do
-		local r = Layout.panelFor(s, entry.key)
-		local frame = entry.panel.frame
-		frame.AnchorPoint = Vector2.zero
-		frame.Position = UDim2.fromOffset(r.x, r.y)
-		frame.Size = UDim2.fromOffset(r.w, r.h)
-		if entry.panel.layout then
-			entry.panel.layout(r)
-		end
-	end
+	layoutCards()
 	refreshHint()
 end
 
@@ -645,9 +681,13 @@ end
 -- Gamepad B always closes the open menu (same as its X), and Esc too while
 -- Layout.CLOSE_WITH_ESCAPE is true (v27 default); see MenuClose.
 local closeMenuAction = MenuClose.bind(ContextActionService, Layout.CLOSE_WITH_ESCAPE, function()
-	return openKey
+	return MenuClose.topKey(openKey, dailyPopup.isOpen())
 end, function()
-	setOpen(nil)
+	if dailyPopup.isOpen() then
+		dailyPopup.close()
+	else
+		setOpen(nil)
+	end
 end)
 
 -- Studio-only test hook for the PC watcher: setting the SlimeUI attribute "PcwPress" to
@@ -694,7 +734,7 @@ function ctx.openDaily()
 end
 
 local function render(realState: Types.State)
-	local state: Types.State = forceWeekend(forceAdminEvent(forceFriends(realState)))
+	local state: Types.State = forceDex(forceWeekend(forceAdminEvent(forceFriends(realState))))
 	hud.update(state)
 	carry.update(state)
 	dailyPopup.update(state)
@@ -708,12 +748,13 @@ local function render(realState: Types.State)
 	for _, entry in allPanels do
 		if entry.key == openKey and entry.panel.update then
 			entry.panel.update(panelState(entry.key, state))
+			layoutCards()
 		end
 	end
 end
 
 if isStudio then
-	for _, attribute in { "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin" } do
+	for _, attribute in { "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin", "PcwDexRows" } do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
 			if latest then
 				pcall(render, latest)
