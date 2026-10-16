@@ -1,25 +1,42 @@
 --!strict
 --[[
-	PetRig: undo the client-only life rig (src/ui/SlimeLifeRunner, #71) on a
-	cloned slime so a FollowPets copy is a plain rigid model. The runner adds
-	"LifeRoot" (with its LifeJoint / LifeWeld welds and LifeSparkle emitter
-	as children) and Body.LifeSquash, and disables the factory WeldConstraints.
+	PetRig: undo the client-only life on a cloned slime so a FollowPets copy is
+	a plain rigid model.
+	  * #71 procedural life: "LifeRoot" (with its LifeJoint / LifeWeld welds)
+	    and Body.LifeSquash, and disabled factory WeldConstraints.
+	  * slime rig (src/visuals/shared/SlimeRig, animated life): the
+	    AnimationController + Animator are removed (pets never animate), Motor6D
+	    Transforms are reset to identity (a clone taken mid-hop must not freeze
+	    in that pose) and the "LifeSparkle" emitter (parented to SkinRoot) goes.
+	The FaceRoot / SkinRoot parts and their Motor6Ds stay: they are the pet's
+	joints.
 ]]
 
 local PetRig = {}
 
 PetRig.ROOT_NAME = "LifeRoot"
 PetRig.SQUASH_NAME = "LifeSquash"
+PetRig.SPARKLE_NAME = "LifeSparkle"
+PetRig.CONTROLLER_NAME = "AnimationController"
 
 function PetRig.stripLife(pet: Instance)
+	pet:SetAttribute("LifeAnimating", nil) -- set by SlimeLifeRunner on an animated slime
 	for _, inst in pet:GetDescendants() do
-		if inst.Name == PetRig.ROOT_NAME or inst.Name == PetRig.SQUASH_NAME then
+		local name = inst.Name
+		if
+			name == PetRig.ROOT_NAME
+			or name == PetRig.SQUASH_NAME
+			or name == PetRig.SPARKLE_NAME
+			or name == PetRig.CONTROLLER_NAME
+		then
 			inst:Destroy()
 		end
 	end
 	for _, inst in pet:GetDescendants() do
 		if inst:IsA("WeldConstraint") then
 			inst.Enabled = true
+		elseif inst:IsA("Motor6D") then
+			inst.Transform = CFrame.new()
 		end
 	end
 end
