@@ -1,13 +1,13 @@
 {
   "name": "ranch_fence_20",
-  "model": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/models/ranch_fence_20.py",
+  "model": "/workspace/roblox/wt-fence-decor/shared/modeling-kit/models/ranch_fence_20.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
-  "tris": 1116,
+  "tris": 1008,
   "meshes": [
     {
       "name": "ranch_fence_20",
-      "tris": 1116,
-      "verts": 612,
+      "tris": 1008,
+      "verts": 552,
       "ngons": 0,
       "non_manifold_edges": 0,
       "size_studs": [
@@ -52,8 +52,8 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/ranch_fence_20.fbx",
-  "fbx_bytes": 31596,
+  "fbx": null,
+  "fbx_bytes": null,
   "engine": "cycles",
   "mode": "full",
   "look": "roblox",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_0.png"
+      "path": "/workspace/roblox/wt-fence-decor/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_0.png"
     },
     {
       "view": "side",
-      "path": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_1.png"
+      "path": "/workspace/roblox/wt-fence-decor/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_2.png"
+      "path": "/workspace/roblox/wt-fence-decor/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_3.png"
+      "path": "/workspace/roblox/wt-fence-decor/shared/modeling-kit/out/.tiles/ranch_fence_20_roblox_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.15,
+    "model_s": 0.163,
     "stats_s": 0.002,
     "setup_s": 0.002,
     "render_s": [
-      0.477,
-      0.409,
-      0.505,
-      0.505
+      0.58,
+      0.53,
+      0.64,
+      0.516
     ],
-    "export_s": 0.075
+    "export_s": 0.0
   },
-  "sheet": "/workspace/roblox/wt-place-ranch-props/shared/modeling-kit/out/ranch_fence_20_roblox_sheet.png",
+  "sheet": "/workspace/roblox/wt-fence-decor/shared/modeling-kit/out/ranch_fence_20_roblox_sheet.png",
   "timings": {
-    "wall_s": 2.85,
-    "blender_process_s": 2.6,
-    "compose_s": 0.244,
-    "model_s": 0.15,
+    "wall_s": 3.16,
+    "blender_process_s": 2.9,
+    "compose_s": 0.26,
+    "model_s": 0.163,
     "stats_s": 0.002,
     "setup_s": 0.002,
     "render_s": [
-      0.477,
-      0.409,
-      0.505,
-      0.505
+      0.58,
+      0.53,
+      0.64,
+      0.516
     ],
-    "export_s": 0.075
+    "export_s": 0.0
   }
 }
