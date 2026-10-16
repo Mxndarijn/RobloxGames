@@ -8305,5 +8305,18 @@
       ]
     }
   },
-  "frames_dir": "7872a1716fc760eb86bed83089854d8e5f8691e3/"
+  "frames_dir": "7872a1716fc760eb86bed83089854d8e5f8691e3/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "HOLD (known, owners working): B6 slide still fails the hard probe (32 violations; Gojo fixing), and the mesh-slot budget is over: 414 > 400 (Archer fixing).",
+    "98 / 22-menu-over-banner-phone-landscape: FIXED by #143. The Codes panel is fully clear at 844x390 (no tutorial card, no banners).",
+    "18-hold-ring-rebirth: the hook now runs the game's real hold routine and measures fill 0.5 (214/429 px). But the 844x390 crop shows the Rebirth panel scrolled to the slime card, with the hold button below the fold, so the fill isn't visible in the frame. Watcher follow-up: scroll to the button.",
+    "v29-11-slime-growth-pad: the real pad slime reports 'Growth 60%', and the closer camera fills the frame with the slime, but the label (above the slime) is cut off. Watcher follow-up: aim higher.",
+    "21-border-along-pc / eye-phone: still blank. The aerial border shot shows night lighting, so these ground-level shots are probably too dark at night. Watcher follow-up: pin daytime for border shots.",
+    "17-motion-lod-far static: expected per Archer (far tier is static by design).",
+    "focus_stolen [], close pass, no leftovers."
+  ]
 }
