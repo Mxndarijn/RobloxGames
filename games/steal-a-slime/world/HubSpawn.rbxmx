@@ -6,7 +6,7 @@
       <token name="BottomSurface">0</token>
       <CoordinateFrame name="CFrame">
         <X>-59.128296</X>
-        <Y>0.5</Y>
+        <Y>0.1000061</Y>
         <Z>-24.491745</Z>
         <R00>1</R00>
         <R01>0</R01>
@@ -19,17 +19,18 @@
         <R22>1</R22>
       </CoordinateFrame>
       <bool name="CanCollide">true</bool>
-      <Color3uint8 name="Color3uint8">16768120</Color3uint8>
+      <Color3uint8 name="Color3uint8">14599830</Color3uint8>
       <int name="Duration">3</int>
       <bool name="Enabled">true</bool>
       <token name="Material">272</token>
       <bool name="Neutral">true</bool>
       <Vector3 name="size">
         <X>12</X>
-        <Y>1</Y>
+        <Y>0.19999695</Y>
         <Z>12</Z>
       </Vector3>
       <token name="TopSurface">0</token>
+      <float name="Transparency">1</float>
     </Properties>
   </Item>
 </roblox>
