@@ -1324,7 +1324,7 @@ def step_shots(run):
     shots = read_json(os.path.join(HERE, "shots.json"), None)
     if not isinstance(shots, list):
         return "skip", {"reason": "shots.json missing or unreadable"}
-    results, world_mode = [], False
+    results, world_mode, pad_seat = [], False, None
     for shot in shots:
         sid = re.sub(r"[^A-Za-z0-9_.-]", "_", str(shot.get("id", "shot")))
         fid = "shot-" + sid
@@ -1396,6 +1396,10 @@ def step_shots(run):
                 res["camera"] = cam = run.need_luau("shot_camera", "Client", timeout=25, eye=eye, at=at)
                 if not cam.get("locked"):
                     run.note("shot %s: camera drifted %.2f studs from the render-step lock" % (sid, cam.get("drift") or -1))
+                if (shot.get("habitat") or shot.get("anim")) and pad_seat is None and (res.get("target") or {}).get("path"):
+                    # a rigged slime must sit on the pad so the frames show its seat height / the animation
+                    pad_seat = run.need_luau("pad_seat", "Server", timeout=30, path=res["target"]["path"])
+                    res["pad_seat"] = pad_seat
                 if shot.get("habitat") and (res.get("target") or {}).get("path"):
                     # morph proof: the Client sets the pad's Habitat and waits `wait` s (mid-morph < 1, done >= 1.2)
                     res["habitat"] = run.need_luau("habitat_set", "Client", timeout=30, path=res["target"]["path"],

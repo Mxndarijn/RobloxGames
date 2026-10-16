@@ -19,6 +19,10 @@ local origin = if node:IsA("Model") then node:GetPivot().Position else (node :: 
 local CollectionService = game:GetService("CollectionService")
 local slime, best = nil, 14
 for _, m in CollectionService:GetTagged("Slime") do
+	if m:GetAttribute("PcwPad") and m:FindFirstChild("AnimationController") then
+		slime, best = m, 0 -- the pad_seat slime wins
+		break
+	end
 	local body = m:IsA("Model") and (m.PrimaryPart or m:FindFirstChild("Body"))
 	if body and m:FindFirstChild("AnimationController") then
 		local d = (body.Position - origin).Magnitude
