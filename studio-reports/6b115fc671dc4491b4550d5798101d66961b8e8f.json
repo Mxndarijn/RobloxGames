@@ -4475,5 +4475,10 @@
       ]
     }
   },
-  "frames_dir": "6b115fc671dc4491b4550d5798101d66961b8e8f/"
+  "frames_dir": "6b115fc671dc4491b4550d5798101d66961b8e8f/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "DEFECT: a large translucent dark rounded rectangle covers most of the game viewport in every device view, even with no menu open (desktop.jpg, phone-portrait, phone-perf-phone-portrait, and behind every menu). Not present at 6781433, so a regression from #80-#87 (likely an always-visible empty GUI frame/backdrop). Also non-blocking: SlimeDex and Guide still show placeholder 'Label' text (Visible-fallback open); shot-14-podium-1 camera clipped. World, plots, fountain, shop fronts and other TODO shots look fine."
 }

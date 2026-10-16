@@ -2877,5 +2877,10 @@
       ]
     }
   },
-  "frames_dir": "6781433a338f325c58a94e503a6a196ff4a41fd5/"
+  "frames_dir": "6781433a338f325c58a94e503a6a196ff4a41fd5/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix sampled desktop/phone views, all 8 menus (desktop+phone) and all 21 TODO shots: real Studio views, world/plots/fountain/plaza render, menus on-screen with close buttons. Non-blocking: SlimeDex/Rebirth show placeholder 'Label' text and Shop list is empty (likely because panels were opened via Visible fallback, not the client open handler); shot-14-podium-1 camera is clipped inside geometry."
 }
