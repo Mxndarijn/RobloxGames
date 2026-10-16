@@ -78,6 +78,7 @@ export type Event = {
 	text: string?,
 	kind: string?, -- "info" | "good" | "bad"
 	sound: string?,
+	itemId: string?, -- Notify: ItemIcons registry id the toast is about (client falls back to text matching)
 	slimeId: string?,
 	ownerUserId: number?,
 	carrierUserId: number?,
@@ -190,8 +191,8 @@ function World.emit(world: World, event: Event)
 end
 
 -- Queues a toast for one player (`userId`) or everyone (`nil`).
-function World.notify(world: World, userId: number?, text: string, kind: string, sound: string?)
-	World.emit(world, { type = "Notify", userId = userId, text = text, kind = kind, sound = sound })
+function World.notify(world: World, userId: number?, text: string, kind: string, sound: string?, itemId: string?)
+	World.emit(world, { type = "Notify", userId = userId, text = text, kind = kind, sound = sound, itemId = itemId })
 end
 
 -- Queues an Effects.play burst (CONTRACT.md §5.4). The adapter resolves the

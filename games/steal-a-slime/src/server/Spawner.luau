@@ -21,6 +21,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local DespawnTelegraph = if Shared then require(Shared.DespawnTelegraph) else require("../shared/DespawnTelegraph")
+local WeeklyEvents = if Shared then require(Shared.WeeklyEvents) else require("../shared/WeeklyEvents")
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local DayNight = if Shared then require(Shared.DayNight) else require("../shared/DayNight")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
@@ -32,6 +33,10 @@ local World = if script then require(script.Parent.World) else require("./World"
 type World = World.World
 
 local Spawner = {}
+
+-- Unix seconds for the weekly schedule (WeeklyEvents is a function of wall-clock UTC, not server uptime);
+-- tests replace it (tests/ServerFixtures pins it to nil = no weekly schedule, so seeded drops never depend on the date).
+Spawner.unixTime = os.time :: () -> number?
 
 -- Price of a wild slime: 0 when `roll` < FREE_DROP_CHANCE.
 function Spawner.price(slime: Genome.Slime, roll: number): number
@@ -85,7 +90,25 @@ end
 function Spawner.spawnOne(world: World, now: number): string
 	local id = world.newId()
 	local luckMult, mutationMult = CycleModifier.multipliers(world.modifier)
-	local drop = Fountain.roll(world.rng, id, world.raining, Spawner.pityTier(world.pity), luckMult, mutationMult)
+	local weeklyMutation, weeklyBonus = nil, 0
+	-- A live admin event replaces the weekly boosts (never stacks with them): see CONTRACT.md §17.
+	local unix = Spawner.unixTime()
+	if world.adminEvent == nil and unix then
+		local weeklyLuck, weeklyMutationMult = WeeklyEvents.multipliers(unix)
+		luckMult *= weeklyLuck
+		mutationMult *= weeklyMutationMult
+		weeklyMutation, weeklyBonus = WeeklyEvents.mutationBoost(unix)
+	end
+	local drop = Fountain.roll(
+		world.rng,
+		id,
+		world.raining,
+		Spawner.pityTier(world.pity),
+		luckMult,
+		mutationMult,
+		weeklyMutation,
+		weeklyBonus
+	)
 	local tier = drop.slime.tier
 	local pity = world.pity
 	pity.sinceEpic = if tier >= 4 then 0 else pity.sinceEpic + 1

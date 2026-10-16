@@ -584,6 +584,28 @@ local Config = {
 	RAIN_LUCK = 3, -- rarity weights for tier >= 3 multiplied by this during rain
 	RAIN_WARNING_SECONDS = 60, -- everyone gets a heads-up toast this long before a rain
 
+	-- Weekly event rotation (FEATURES.WeeklyEvents, CONTRACT.md §17). The whole schedule is a pure function
+	-- of unix time (UTC), so every server agrees. Weeks run Monday 00:00 - Sunday 24:00 UTC (ISO weeks).
+	-- Each week's mutation is MUTATION_ROTATION[week % n]; on that week's Saturday, `TRAIT_START_HOUR`
+	-- (UTC) a TRAITS[week % m] event runs for TRAIT_SECONDS (shorter than a day, so it never spills over).
+	-- `chanceBonus` is added to the wild drop mutation chance for that mutation only (the same roll window
+	-- as the weather bonus); `luck` / `mutation` multiply the rarity luck / mutation chance like a
+	-- CycleModifier. WeeklyEvents clamps every value to MAX_* whatever is written here.
+	WEEKLY = table.freeze({
+		MUTATION_ROTATION = table.freeze({ "Glow", "Lava", "Galaxy", "Rainbow", "Gold", "Crystal" }), -- Config.MUTATIONS names; "Eclipse" stays rare
+		MUTATION_CHANCE_BONUS = 0.03, -- doubles the base 3 % drop chance for the week's mutation, no more
+		TRAIT_WEEKDAY = 6, -- Saturday (0 = Sunday)
+		TRAIT_START_HOUR = 18, -- UTC
+		TRAIT_SECONDS = 2 * 60 * 60,
+		TRAITS = table.freeze({
+			table.freeze({ id = "lucky", label = "Lucky Saturday", icon = "🍀", luck = 1.5, mutation = 1 }),
+			table.freeze({ id = "mutant", label = "Mutant Saturday", icon = "🧬", luck = 1, mutation = 1.5 }),
+		}),
+		MAX_CHANCE_BONUS = 0.05,
+		MAX_MULTIPLIER = 2,
+		SYNC_SECONDS = 60, -- the server re-checks the schedule at least this often
+	}),
+
 	-- Extras, each behind a flag (CONTRACT.md §2 Extras). false = fully off.
 	FEATURES = table.freeze({
 		BossSlime = true, -- a big free Epic+ slime spills from the fountain every BOSS_INTERVAL
@@ -609,6 +631,7 @@ local Config = {
 		PlotSkins = false, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
 		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
 		StealAlerts = false, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
+		WeeklyEvents = false, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
