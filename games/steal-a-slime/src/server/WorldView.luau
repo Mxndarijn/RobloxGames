@@ -339,6 +339,7 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> ()): Rec
 	prompt.ObjectText = (if entry.boss then "BOSS " else "") .. Genome.displayName(entry.slime)
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.RequiresLineOfSight = false
+	prompt.HoldDuration = Config.HOLD_CONFIRM_SECONDS -- reconcile sets the real value per state
 	prompt.MaxActivationDistance = Config.STEAL_REACH - 2
 	prompt.Parent = body
 	local id = entry.id
@@ -461,7 +462,7 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 		record.prompt.ActionText = entry.promptText
 		record.prompt.Enabled = entry.promptEnabled
 		record.prompt:SetAttribute(Constants.PROMPT_HIDE_ATTRIBUTE, entry.hideFromUserId)
-		record.prompt.HoldDuration = if entry.state == "Pad" then 0.4 else 0
+		record.prompt.HoldDuration = entry.promptHold
 		-- Every reconcile, not only in place(): the telegraph window opens without a key change.
 		record.model:SetAttribute(Constants.DESPAWN_AT_ATTRIBUTE, entry.despawnAt)
 		if record.key ~= entry.key then
@@ -533,7 +534,7 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 			local prompt = Instance.new("ProximityPrompt")
 			prompt.Name = name
 			prompt.KeyboardKeyCode = Enum.KeyCode.E
-			prompt.HoldDuration = 0
+			prompt.HoldDuration = Config.HOLD_CONFIRM_SECONDS
 			prompt.RequiresLineOfSight = false
 			prompt.MaxActivationDistance = 10
 			prompt.Enabled = false
@@ -566,7 +567,7 @@ function WorldView.addClaimPrompts(onTrigger: (Player, number) -> ())
 		prompt.ActionText = PlotClaim.ACTION_TEXT
 		prompt.ObjectText = PlotClaim.OBJECT_TEXT
 		prompt.KeyboardKeyCode = Enum.KeyCode.E
-		prompt.HoldDuration = 0
+		prompt.HoldDuration = Config.HOLD_CONFIRM_SECONDS
 		prompt.RequiresLineOfSight = false
 		prompt.MaxActivationDistance = 10
 		prompt.Enabled = false

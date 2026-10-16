@@ -97,7 +97,7 @@ function Shop.new(parent: Instance, ctx: any)
 			Parent = frame,
 		})
 		local current = view
-		local buy = Widgets.button(
+		local buy = Widgets.holdButton(
 			{
 				Name = "Buy",
 				AnchorPoint = Vector2.new(1, 0.5),
@@ -110,7 +110,8 @@ function Shop.new(parent: Instance, ctx: any)
 				if current.available and current.enabled then
 					ctx.send(item.action, table.unpack(item.args))
 				end
-			end
+			end,
+			ctx.Config.HOLD_CONFIRM_SECONDS
 		)
 		buy.instance.Parent = frame
 		return {

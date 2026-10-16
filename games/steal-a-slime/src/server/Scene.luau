@@ -38,6 +38,7 @@ export type Entry = {
 	carrierUserId: number?,
 	wild: World.Wild?, -- wild only: landing angle / radius / dropped position
 	promptText: string,
+	promptHold: number, -- ProximityPrompt.HoldDuration (B1)
 	promptEnabled: boolean,
 	hideFromUserId: number?, -- the owner, on Steal prompts; nil = visible to everyone
 	boss: boolean, -- wild Boss Slime (model attribute Boss)
@@ -65,6 +66,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 			carrierUserId = carrier,
 			wild = wild,
 			promptText = Carry.actionText(wild.price),
+			promptHold = Carry.holdDuration(wild.price),
 			promptEnabled = carrier == nil,
 			hideFromUserId = nil,
 			boss = wild.boss == true,
@@ -100,6 +102,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				carrierUserId = carrier,
 				wild = nil,
 				promptText = Carry.actionText(nil),
+				promptHold = Carry.holdDuration(nil),
 				promptEnabled = state == "Pad" and unlocked,
 				hideFromUserId = if state == "Pad" then session.userId else nil,
 				boss = false,

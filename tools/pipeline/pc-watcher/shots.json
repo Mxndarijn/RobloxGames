@@ -578,6 +578,14 @@
     "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), look right (FaceRoot/SkinRoot yaw)"
   },
   {
+    "id": "18-hold-ring-rebirth",
+    "todo": "18",
+    "kind": "ui",
+    "open": "rebirth",
+    "hold": "RebirthButton",
+    "note": "B1: hold-to-confirm Rebirth button with its fill ring half full (mid-hold)"
+  },
+  {
     "id": "18-modifier-badge",
     "todo": "18",
     "kind": "ui",
