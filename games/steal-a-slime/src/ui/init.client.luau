@@ -555,22 +555,22 @@ for _, entry in panels do
 		Name = "Badge",
 		Visible = false,
 		Font = Theme.Font,
-		TextSize = 12,
+		TextSize = Layout.NAV_BADGE.textSize,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextTruncate = Enum.TextTruncate.None,
 		BackgroundTransparency = 0,
 		BackgroundColor3 = Theme.Bad,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 4, 0, -4),
-		Size = UDim2.fromOffset(20, 20),
+		Position = UDim2.new(1, -Layout.NAV_BADGE.inset, 0, Layout.NAV_BADGE.inset),
+		Size = UDim2.fromOffset(Layout.NAV_BADGE.minWidth, Layout.NAV_BADGE.height),
 		AutomaticSize = Enum.AutomaticSize.X,
 		ZIndex = 3,
 		Parent = button,
 	})
-	Widgets.corner(10).Parent = badge
+	Widgets.corner(Layout.NAV_BADGE.height // 2).Parent = badge
 	Widgets.create("UIPadding", {
-		PaddingLeft = UDim.new(0, 4),
-		PaddingRight = UDim.new(0, 4),
+		PaddingLeft = UDim.new(0, Layout.NAV_BADGE.padding),
+		PaddingRight = UDim.new(0, Layout.NAV_BADGE.padding),
 		Parent = badge,
 	})
 	button.Activated:Connect(function()

@@ -693,6 +693,22 @@ function LayoutAssert.navReachable(check: Checker)
 	end
 end
 
+-- Worst-case badge texts sit fully inside their nav button, clear of the icon.
+function LayoutAssert.navBadges(check: Checker)
+	for i, entry in Nav.ENTRIES do
+		local b = check.screen.navButtons[i + 1]
+		local icon = Layout.rect(b.x + 4, b.y + 20, 36, b.h - 20)
+		for _, text in { "!", "$", "100%" } do
+			local name = `Nav.{entry.key} badge "{text}"`
+			local r = Layout.navBadge(b, text)
+			check.inside(name, r, `Nav.{entry.key}`, b)
+			if not check.screen.navCollapsed then
+				check.noOverlap(name, r, `Nav.{entry.key} icon`, icon)
+			end
+		end
+	end
+end
+
 -- Every box on `screen` (and the menu chrome and Dex list inside the menu
 -- box) has w >= 0 and h >= 0.
 function LayoutAssert.noNegativeSizes(check: Checker)
