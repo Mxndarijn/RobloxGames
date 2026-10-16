@@ -253,7 +253,7 @@ local function applyDex(plot: Instance, owned: boolean)
 	end
 end
 
--- Plot skins (FEATURES.PlotSkins, CONTRACT.md §13) ---------------------------------
+-- Plot skins (FEATURES.PlotSkins, CONTRACT.md §14) ---------------------------------
 
 PlotDecor.SKIN_DECOR_NAME = "SkinDecor"
 local ORIG_COLOR, ORIG_MATERIAL, ORIG_TRANSPARENCY = "SkinOrigColor", "SkinOrigMaterial", "SkinOrigTransparency"

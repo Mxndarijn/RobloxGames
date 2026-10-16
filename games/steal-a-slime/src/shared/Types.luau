@@ -67,6 +67,7 @@ export type WeekendView = { active: boolean, multiplier: number, endsAt: number?
 
 -- Follow-pet passive (CONTRACT.md §14): the favourite slime's perk, text "+5% luck".
 export type PetPerkView = { kind: string, value: number, icon: string, text: string }
+
 -- Plot skins (CONTRACT.md §15): one skin with its SlimeDex set progress.
 export type PlotSkinView = PlotSkins.View
 

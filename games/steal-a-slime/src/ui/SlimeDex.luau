@@ -156,7 +156,7 @@ function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: st
 	return out
 end
 
--- Plot skin cards (FEATURES.PlotSkins, CONTRACT.md §13) shown above the slime rows: one per
+-- Plot skin cards (FEATURES.PlotSkins, CONTRACT.md §14) shown above the slime rows: one per
 -- State.plotSkins entry, locked / unlocked with the SlimeDex set progress. Empty without the field.
 function SlimeDex.skinRows(plotSkins: any, config: any): { Row }
 	local out: { Row } = {}

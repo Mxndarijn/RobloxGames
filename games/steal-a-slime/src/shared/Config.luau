@@ -64,7 +64,7 @@ export type Goal = {
 
 export type DexMilestone = { count: number, reward: number, bonus: number }
 
--- Plot skins (FEATURES.PlotSkins, CONTRACT.md §13). `set` = rarity tier whose SlimeDex set must be
+-- Plot skins (FEATURES.PlotSkins, CONTRACT.md §14). `set` = rarity tier whose SlimeDex set must be
 -- `threshold` complete. Colours are RGB 0..255; `fence` multiplies the fence / gate mesh colours (white = none).
 export type PlotSkin = {
 	id: string, -- permanent save id; never rename
@@ -435,7 +435,7 @@ local Config = {
 	UPGRADES = table.freeze(UPGRADES),
 	GOALS = table.freeze(GOALS),
 	DEX_MILESTONES = table.freeze(DEX_MILESTONES),
-	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §13)
+	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §14)
 	PLOT_SKIN_DEFAULT = "classic",
 
 	-- Lock / steal

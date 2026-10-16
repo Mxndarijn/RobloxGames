@@ -163,7 +163,7 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	return true
 end
 
--- FEATURES.PlotSkins (CONTRACT.md §13): one MeshPart template per skin decor in
+-- FEATURES.PlotSkins (CONTRACT.md §14): one MeshPart template per skin decor in
 -- ReplicatedStorage.PlotSkinMeshes (named by mesh, native size). Clients clone
 -- them over a plot's Mailbox_<i> slot (Visuals.PlotDecor.applySkin), so the skins
 -- take no world mesh slot of their own. Yields; returns how many were published.

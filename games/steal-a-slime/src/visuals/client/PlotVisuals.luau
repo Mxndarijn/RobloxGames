@@ -10,7 +10,7 @@
 	    attribute (CONTRACT §8.4, Legendary+) or else Tier, kept in a
 	    local workspace folder "ClientRareFx" and posed on the slime's pivot
 	    every frame; removed when the slime stops being wild or goes away.
-	  * Plot skins (FEATURES.PlotSkins, CONTRACT.md §13): PlotDecor.applySkin from the plot's
+	  * Plot skins (FEATURES.PlotSkins, CONTRACT.md §14): PlotDecor.applySkin from the plot's
 	    PlotSkin attribute (absent = flag off = untouched). Studio only: the SlimeUI attribute
 	    PcwPlotSkin (a skin id) forces Plot_1's skin, for the shots.
 	Reads attributes only; never fires remotes. Local changes only.
