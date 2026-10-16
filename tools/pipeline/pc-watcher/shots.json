@@ -1,5 +1,6 @@
 [
   {"id": "01-hud-menus", "todo": "1", "kind": "ui", "note": "TODO 1: menus size/look (HUD as-is, no click)"},
+  {"id": "01b-idle-hud", "todo": "1", "kind": "ui", "expect_no_overlay": true, "note": "TODO 1: idle HUD, no menu open: no MenuBackdrop / card overlay may be visible (v28 blocker)"},
   {"id": "02-dex-menu", "todo": "2", "kind": "ui", "open": "dex", "note": "TODO 2: SlimeDex images"},
   {"id": "03-shop-menu", "todo": "3", "kind": "ui", "open": "shop", "note": "TODO 3: one shop menu"},
   {"id": "04-rebirth-menu", "todo": "4", "kind": "ui", "open": "rebirth", "note": "TODO 4: rebirth shows next upgrade only"},

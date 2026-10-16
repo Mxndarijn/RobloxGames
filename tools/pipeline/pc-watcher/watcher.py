@@ -1504,6 +1504,11 @@ def step_shots(run):
                     run.luau("shot_camera_reset", "Client", timeout=15)
                     world_mode = False
                 key = shot.get("open")
+                if shot.get("expect_no_overlay"):  # idle HUD: no backdrop / card may be shown (v28 blocker)
+                    over = ui_probe(run).get("overlays") or []
+                    res["overlays"] = over
+                    if over:
+                        res["error"] = "overlay visible with no menu open: %s" % ", ".join(over)
                 opened = open_panel(run, key) if key else None
                 if opened:
                     res["open"] = opened

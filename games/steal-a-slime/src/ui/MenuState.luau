@@ -1,0 +1,30 @@
+--!strict
+--[[
+	MenuState
+
+	What is on screen for the open menu key (nil = idle HUD): the dimmed
+	backdrop, each card and its nav highlight all follow the one key, so with
+	no menu open nothing of the menu layer shows. init.client applies this in
+	setOpen; tests/ui/IdleHud.spec.luau checks the idle case at every gate size.
+]]
+
+local MenuState = {}
+
+export type View = { backdrop: boolean, cards: { [string]: boolean }, nav: { [string]: boolean } }
+
+function MenuState.view(openKey: string?, keys: { string }): View
+	local cards, nav = {}, {}
+	for _, key in keys do
+		cards[key] = key == openKey
+		nav[key] = key == openKey
+	end
+	return { backdrop = openKey ~= nil, cards = cards, nav = nav }
+end
+
+-- A card hidden from outside (its Visible set false by a script, not setOpen)
+-- closes the menu with it: true when the open key must drop to nil.
+function MenuState.cardHidden(openKey: string?, key: string, visible: boolean): boolean
+	return openKey == key and not visible
+end
+
+return MenuState

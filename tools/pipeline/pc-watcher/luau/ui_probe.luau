@@ -50,7 +50,8 @@ end
 
 -- Fixed paths, plus every nav / HUD button (the nav is text-less icon buttons named by Nav.ENTRIES key)
 -- and every <Key>Panel with its Close.
-local paths = { "Hud.Shop", "Nav.Shop", "ShopPanel", "ShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" }
+local paths =
+	{ "Hud.Shop", "Nav.Shop", "ShopPanel", "ShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" }
 for _, holder in { "Nav", "Hud" } do
 	local h = gui:FindFirstChild(holder)
 	for _, c in (if h then h:GetChildren() else {}) do
@@ -75,6 +76,15 @@ for _, child in gui:GetChildren() do
 		table.insert(openPanels, child.Name)
 	end
 end
+-- Idle-HUD guard: any shown full-window dimmer (MenuBackdrop) or *Panel card is an overlay.
+local backdrop = find("MenuBackdrop")
+local overlays = {}
+if backdrop and backdrop:IsA("GuiObject") and shown(backdrop) then
+	table.insert(overlays, "MenuBackdrop")
+end
+for _, name in openPanels do
+	table.insert(overlays, name)
+end
 local counter = find("TutorialOverlay.Counter")
 local title = find("TutorialOverlay.Title")
 return {
@@ -82,6 +92,7 @@ return {
 	inset = { inset.X, inset.Y },
 	viewport = { vp.X, vp.Y },
 	gui_size = { gui.AbsoluteSize.X, gui.AbsoluteSize.Y },
+	overlays = overlays,
 	shop_open = targets.ShopPanel.found and targets.ShopPanel.shown,
 	tutorial_visible = targets.TutorialOverlay.found and targets.TutorialOverlay.shown,
 	tutorial_counter = if counter then counter.Text else nil,

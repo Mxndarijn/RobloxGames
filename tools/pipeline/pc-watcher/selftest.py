@@ -289,6 +289,8 @@ def t_files():
         check("luau %s returns" % name, re.search(r"^return ", src, re.M) is not None)
     shots = json.load(open(os.path.join(HERE, "shots.json"), encoding="utf-8"))
     check("shots.json is a list with ids", isinstance(shots, list) and all("id" in s for s in shots))
+    check("shots.json has the idle-HUD overlay guard",
+          any(s.get("kind") == "ui" and not s.get("open") and s.get("expect_no_overlay") for s in shots))
 
 
 def t_geometry():

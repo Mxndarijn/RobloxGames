@@ -34,6 +34,7 @@ local Hint = require(script.Hint)
 local Hud = require(script.Hud)
 local Layout = require(script.Layout)
 local MenuClose = require(script.MenuClose)
+local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
 local PopupQueue = require(script.PopupQueue)
 local RareAnnounce = require(script.RareAnnounce)
@@ -213,6 +214,11 @@ end
 local allPanels: { PanelEntry } = table.clone(panels)
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
 
+local allKeys: { string } = {}
+for _, entry in allPanels do
+	table.insert(allKeys, entry.key)
+end
+
 local nav = Widgets.create("Frame", {
 	Name = "Nav",
 	BackgroundColor3 = Theme.Bg,
@@ -255,9 +261,10 @@ local function setOpen(key: string?)
 		navChoice = true
 		applyLayout()
 	end
-	backdrop.Visible = key ~= nil
+	local view = MenuState.view(key, allKeys)
+	backdrop.Visible = view.backdrop
 	for _, entry in allPanels do
-		local isOpen = entry.key == key
+		local isOpen = view.cards[entry.key]
 		entry.panel.frame.Visible = isOpen
 		if entry.panel.setOpen then
 			entry.panel.setOpen(isOpen)
@@ -443,6 +450,16 @@ end
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyLayout)
 applyLayout()
 setOpen(nil)
+
+-- A card hidden from outside (a script setting its Visible) must not leave the
+-- backdrop and nav highlight up with no card on screen: close the menu with it.
+for _, entry in allPanels do
+	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(function()
+		if MenuState.cardHidden(openKey, entry.key, entry.panel.frame.Visible) then
+			setOpen(nil)
+		end
+	end)
+end
 
 -- Studio-only test hook for the PC watcher (tools/pipeline/pc-watcher): setting the
 -- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path
