@@ -32,6 +32,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Format = require(script.Format)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
+local Icons = require(script.Icons)
 local Layout = require(script.Layout)
 local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
@@ -302,11 +303,15 @@ for _, entry in allPanels do
 end
 
 -- Collapse / expand toggle: navButtons rect [1].
-local navToggle = Widgets.button({ Name = "NavToggle", Text = "☰", TextSize = 22 }, Theme.BgLight, function()
-	local collapsed = if screen then screen.navCollapsed else true
-	navChoice = not collapsed
-	applyLayout()
-end)
+local navToggle = Widgets.button(
+	{ Name = "NavToggle", Text = Icons.NAV_COLLAPSED, TextSize = 13 },
+	Theme.BgLight,
+	function()
+		local collapsed = if screen then screen.navCollapsed else true
+		navChoice = not collapsed
+		applyLayout()
+	end
+)
 navToggle.instance.TextColor3 = Theme.Muted
 navToggle.instance.Parent = nav
 
@@ -416,8 +421,8 @@ local function layoutNav(s: Layout.Screen)
 		inst.Size = UDim2.fromOffset(b.w, b.h)
 	end
 	place(navToggle.instance, s.navButtons[1])
-	navToggle.setText(if s.navCollapsed then "☰" else "◀ Menu")
-	navToggle.instance.TextSize = if s.navCollapsed then 22 else 16
+	navToggle.setText(if s.navCollapsed then Icons.NAV_COLLAPSED else Icons.NAV_EXPANDED)
+	navToggle.instance.TextSize = if s.navCollapsed then 13 else 16
 	for i, entry in panels do
 		local btn = navButtons[entry.key]
 		place(btn.button, s.navButtons[i + 1])

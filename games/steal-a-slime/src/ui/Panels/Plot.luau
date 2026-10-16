@@ -7,6 +7,7 @@
 
 local UI = script.Parent.Parent
 local Format = require(UI.Format)
+local Icons = require(UI.Icons)
 local Selection = require(UI.Selection)
 local Widgets = require(UI.Widgets)
 
@@ -75,7 +76,7 @@ function Plot.new(parent: Instance, ctx: any)
 		local fav = Widgets.button(
 			{
 				Name = "Favorite",
-				Text = "☆",
+				Text = Icons.FAV_OFF,
 				TextSize = 20,
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -120, 0.5, 0),
@@ -117,7 +118,7 @@ function Plot.new(parent: Instance, ctx: any)
 		row.swatch.BackgroundColor3 = Widgets.color3(slime.color)
 		row.name.Text = (if isFav then "★ " else "") .. ctx.Genome.displayName(slime)
 		row.name.TextColor3 = if rarity then Widgets.color3(rarity.color) else Theme.Text
-		row.fav.setText(if isFav then "★" else "☆")
+		row.fav.setText(if isFav then Icons.FAV_ON else Icons.FAV_OFF)
 		row.fav.setColor(if isFav then Theme.Gold else Theme.BgLight)
 		row.sell.setText(`💰 {Format.formatCash(view.sellPrice)}`)
 		if view.stolenBy ~= nil then

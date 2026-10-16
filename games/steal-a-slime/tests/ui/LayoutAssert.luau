@@ -27,6 +27,7 @@ local Config = require("../../src/shared/Config")
 local Format = require("../../src/ui/Format")
 local GuideTips = require("../../src/ui/GuideTips")
 local Hint = require("../../src/ui/Hint")
+local Icons = require("../../src/ui/Icons")
 local Layout = require("../../src/ui/Layout")
 local LockHud = require("../../src/ui/LockHud")
 local Nav = require("../../src/ui/Nav")
@@ -302,8 +303,8 @@ function LayoutAssert.navTexts(screen: Layout.Screen): { TextDesc }
 	local toggle = screen.navButtons[1]
 	table.insert(out, {
 		name = "NavToggle",
-		text = if screen.navCollapsed then "☰" else "◀ Menu",
-		size = if screen.navCollapsed then 22 else 16,
+		text = if screen.navCollapsed then Icons.NAV_COLLAPSED else Icons.NAV_EXPANDED,
+		size = if screen.navCollapsed then 13 else 16,
 		bold = true,
 		w = toggle.w,
 		h = toggle.h,
