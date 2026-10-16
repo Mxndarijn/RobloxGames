@@ -43,6 +43,7 @@ local STATE_KEYS = {
 	"stats",
 	"boss",
 	"modifier",
+	"egg",
 }
 
 describe("Snapshot.build", function()

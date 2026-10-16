@@ -58,6 +58,7 @@ RanchProps.CLUSTERS = table.freeze({ "plaza", "entrance", "farm" })
 -- every MeshAssets entry has a slot today. Add { mesh = reason } here rather
 -- than leaving an asset silently unused (tests/RanchProps.spec enforces it).
 RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
+	ranch_lantern_post = "its entrance slots became the odd plots' mailboxes (v29 B2); no spare decor slot",
 	slime_base = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
 	slime_acc_leaf = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
 	slime_ears = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
@@ -101,26 +102,23 @@ rows[#rows].face = "Campfire"
 polar("Well", "ranch_well", "plaza", 112.5, 92, 180, 1.2)
 polar("WellPump", "ranch_water_pump", "plaza", 120, 91, 180, 1.2)
 polar("PicnicTable", "ranch_picnic_table", "plaza", 202.5, 91, 180, 1.2)
-polar("Sunflowers", "ranch_sunflower_patch", "plaza", 194, 94, 180, 1)
+polar("Sunflowers", "ranch_sunflower_patch", "plaza", 196, 94, 180, 1)
 polar("HorseshoePit", "ranch_horseshoe_pit", "plaza", 292.5, 90, 180, 1.2)
 polar("GooSign", "ranch_goo_sign", "plaza", 337.5, 91, 180, 1.2)
 polar("Birdhouse", "ranch_birdhouse", "plaza", 330, 93, 180, 1.2)
 polar("Planter", "ranch_flower_planter", "plaza", 56, 90, 180, 1.2)
 
 -- Entrances --------------------------------------------------------------
--- A lantern on the left of the entrance corridor where it meets the ring
--- path (odd plots), or a mailbox by the gate on the side away from the "Free
--- plot" stand (even plots). One each a plot paid for the plot DexBoard meshes
--- (DECOR_SLOT_BUDGET, C6). Both turn to the spoke path (plot-local x 0): the
--- lantern's arm (kit +X) reaches over it (yaw 0), the mailbox door (kit
--- front) faces it (yaw 270 = front towards plot -X).
+-- A mailbox by the gate on the side away from the "Free plot" stand, on every
+-- plot (v29 B2: odd plots used to get a lantern instead, so half the plots had
+-- no mailbox). One each a plot paid for the plot DexBoard meshes
+-- (DECOR_SLOT_BUDGET, C6); the lanterns' slots became the odd plots' mailboxes,
+-- so the budget is unchanged. The mailbox door (kit front) faces the spoke path
+-- (plot-local x 0): yaw 270 = front towards plot -X. ENTRANCE_PATH_YAW keeps the
+-- lantern's old yaw for when it gets a slot again.
 RanchProps.ENTRANCE_PATH_YAW = table.freeze({ ranch_lantern_post = 0, ranch_mailbox = 270 })
 for i = 1, Config.PLOT_COUNT do
-	if i % 2 == 1 then
-		onPlot(`Lantern_{i}`, "ranch_lantern_post", "entrance", i, -14, -55, 0, 1.2)
-	else
-		onPlot(`Mailbox_{i}`, "ranch_mailbox", "entrance", i, 17, -45, 270, 1.2)
-	end
+	onPlot(`Mailbox_{i}`, "ranch_mailbox", "entrance", i, 17, -45, 270, 1.2)
 end
 
 -- Farm -------------------------------------------------------------------

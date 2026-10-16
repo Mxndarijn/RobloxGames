@@ -16,6 +16,7 @@
 
 local CollectionService = game:GetService("CollectionService")
 
+local EggReveal = require(script.Parent.EggReveal)
 local Format = require(script.Parent.Format)
 local Layout = require(script.Parent.Layout)
 local LockHud = require(script.Parent.LockHud)
@@ -211,6 +212,8 @@ function Hud.new(parent: Instance, ctx: any)
 	local rain = banner(banners, "RainBanner", Color3.fromRGB(90, 70, 200), 3)
 	local modifier = banner(banners, "ModifierBadge", Color3.fromRGB(30, 120, 110), 5)
 	modifier.TextSize = 15
+	local egg = banner(banners, "EggReveal", Color3.fromRGB(190, 120, 30), 6)
+	egg.TextSize = 17
 	local hint = banner(banners, "PadHint", Color3.fromRGB(150, 100, 20), 4)
 	hint.TextSize = 16
 
@@ -448,6 +451,13 @@ function Hud.new(parent: Instance, ctx: any)
 			rain.Text = info.text
 			rain.BackgroundColor3 = RAIN_COLORS[info.kind]
 			rain.TextSize = if info.kind == "active" then 18 else 15
+		end
+
+		local eggText =
+			EggReveal.banner(current.egg, now, ctx.Config.MYSTERY_EGG_REVEAL_SECONDS, ctx.Genome.displayName)
+		egg.Visible = eggText ~= nil
+		if eggText then
+			egg.Text = eggText
 		end
 
 		local modifierText = ModifierBadge.banner(current.modifier, now, ctx.Config.FEATURES.CycleModifier == true)

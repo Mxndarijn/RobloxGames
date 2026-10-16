@@ -84,6 +84,50 @@ describe("WorldProps skins keep their mesh proportions (gate B3)", function()
 		end)
 	end
 
+	it("puts the plaza ShopStand's SHOP text on the skin's own sign face (v29 B4)", function()
+		local model = map:FindFirstChild(Constants.SHOP_STAND)
+		local sign = model:FindFirstChild("Sign")
+		local native = (MeshAssets.get(WorldLayout.BUY_STAND_MESH) :: any).size
+		local face = WorldLayout.BUY_STAND_FACE
+		-- Roblox orients Model:GetBoundingBox to the pivot (the fake runtime's is
+		-- axis-aligned), so the skin's box is rebuilt here in the pivot's frame.
+		local inv = model:GetPivot():Inverse()
+		local lo, hi = math.huge, -math.huge
+		local bottom, top, front, back = math.huge, -math.huge, math.huge, -math.huge
+		for _, d in model:GetDescendants() do
+			if d:IsA("BasePart") and d.Name ~= "Mesh" then
+				for _, sx in { -1, 1 } do
+					for _, sy in { -1, 1 } do
+						for _, sz in { -1, 1 } do
+							local c = inv:PointToWorldSpace(
+								d.CFrame:PointToWorldSpace(
+									roblox.Vector3.new(sx * d.Size.X / 2, sy * d.Size.Y / 2, sz * d.Size.Z / 2)
+								)
+							)
+							lo, hi = math.min(lo, c.X), math.max(hi, c.X)
+							bottom, top = math.min(bottom, c.Y), math.max(top, c.Y)
+							front, back = math.min(front, c.Z), math.max(back, c.Z)
+						end
+					end
+				end
+			end
+		end
+		local k = (top - bottom) / native[2]
+		-- the skin stands on the box bottom, its front (-Z) on the box front
+		local meshZ = front + native[3] * k / 2
+		local text = inv:PointToWorldSpace(sign.CFrame:PointToWorldSpace(roblox.Vector3.new(0, 0, -sign.Size.Z / 2)))
+		local kitFace = meshZ - face.front * k -- kit +Z is local -Z
+		if math.abs(text.Z - kitFace) > 0.05 then
+			error(`SHOP text at z {text.Z}, sign face at {kitFace}`)
+		end
+		expect(math.abs(text.X - (lo + hi) / 2 - face.x * k) <= 0.05).toBe(true)
+		expect(math.abs(text.Y - bottom - face.y * k) <= 0.05).toBe(true)
+		expect(sign.Size.X).toBeCloseTo(face.width * k, 0.05)
+		expect(sign.Size.Y).toBeCloseTo(face.height * k, 0.05)
+		-- the text faces out of the skin's front
+		expect(inv:VectorToWorldSpace(sign.CFrame.LookVector).Z < -0.99).toBe(true)
+	end)
+
 	it("WorldLayout.meshSize is native x one scale (the helper WorldProps uses)", function()
 		local native = (MeshAssets.get("phoenix_top_earners_board") :: any).size
 		local size = WorldLayout.meshSize("phoenix_top_earners_board", 0.5)
