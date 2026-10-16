@@ -5440,5 +5440,17 @@
       ]
     }
   },
-  "frames_dir": "4859103b2b5cff2483d4070938da5787339af760/"
+  "frames_dir": "4859103b2b5cff2483d4070938da5787339af760/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "Motion (#106): LifeMode=motor on all 4 shot-17-motion shots, with two samples each and a pose change (moved 0.58/0.51/0.03/0.61 for lookleft/lookright/idlesquish/hop, yaw +/-0.45 on the look shots). A slime is visible on Pad_1 in every frame. No visible jitter or drift: the body y stays within about 0.1 except during the hop.",
+    "Phone: 3 (portrait) and 9 (landscape) of 16 slimes animating. Note only, since 16 is a cap; on-screen slimes are not static.",
+    "Seat: every habitat shot seats a slime and the gap is about 0 (|gap| <= 1.2e-6 studs, pad_top 3.40). Frames show the slime sitting on the habitat.",
+    "#75 IMPORT_YAW=180 unchanged and OK (geometry pass; bench faces the campfire, shops face the centre).",
+    "HUD: the nav toggle now reads 'Menu' (#105); the tofu box is gone in shot-01b-idle-hud.",
+    "Run clean: all steps pass including Esc; focus_stolen [], no MCP input, close pass, no leftovers."
+  ]
 }
