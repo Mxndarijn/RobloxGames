@@ -166,4 +166,26 @@ describe("flush path (v29 B5)", function()
 			expect((n.attributes or {}).MeshAsset).toBe(nil)
 		end
 	end)
+	it("starts exactly at the slide exit and runs unbroken to spoke 1 (v30 C1)", function()
+		local exit = WorldLayout.SLIDE_PATH[#WorldLayout.SLIDE_PATH]
+		local slideExit
+		for _, n in parts do
+			if n.name == "SlideExit" then
+				slideExit = n
+			end
+		end
+		expect(slideExit ~= nil).toBe(true)
+		-- its near end is the last slide point
+		expect(math.abs(slideExit.pos[3] - slideExit.size[3] / 2 - exit[3]) < 1e-6).toBe(true)
+		expect(math.abs(slideExit.pos[1] - exit[1]) < 1e-6).toBe(true)
+		local d = exit[3]
+		while d <= WorldLayout.PLAZA_RADIUS + 4 do
+			for _, off in { -3.9, 0, 3.9 } do
+				if not covered(parts, exit[1] + off, d) then
+					error(`slide exit path uncovered at z {d}, off {off}`)
+				end
+			end
+			d += 0.05
+		end
+	end)
 end)

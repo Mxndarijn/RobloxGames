@@ -634,7 +634,9 @@ end
 -- whole path spans 0.018 (tests/WorldLook "path"). SmoothPlastic, not
 -- Pavement: Pavement's texture follows each part's own axes, which showed
 -- every tile edge as a seam.
-WorldLayout.PATH_TOPS = table.freeze({ plaza = 0.032, ringLow = 0.04, ringHigh = 0.045, spoke = 0.05 })
+WorldLayout.PATH_TOPS =
+	table.freeze({ plaza = 0.032, ringLow = 0.04, ringHigh = 0.045, spoke = 0.05, slideExit = 0.038 })
+WorldLayout.SLIDE_EXIT_WIDTH = 8 -- as wide as a spoke
 WorldLayout.PATH_THICK = 0.1 -- sunk into the Ground, so only the top shows
 WorldLayout.PATH_RING_SEGMENTS = 32
 
@@ -655,6 +657,26 @@ local function paths(): WorldNode
 		local mid = at({ 0, 0, (from + to) / 2 })
 		table.insert(children, pathBlock(`Path{i}`, 8, to - from, mid[1], mid[3], WorldLayout.PATH_TOPS.spoke, yaw))
 	end
+	-- Slide exit path (v30 C1): the slide ends at r SLIDE_END_RADIUS on +Z. This
+	-- strip starts exactly there (the end of SLIDE_PATH) and runs out over the
+	-- plaza to where spoke 1 begins, so the way from the slide to the plots is
+	-- one unbroken sand band. Its top sits between the plaza and the spokes so
+	-- neither z-fights it; the end under the spoke overlaps by 1 stud.
+	local exitPos = WorldLayout.SLIDE_PATH[#WorldLayout.SLIDE_PATH]
+	local exitFrom = exitPos[3]
+	local exitTo = from + 1
+	table.insert(
+		children,
+		pathBlock(
+			"SlideExit",
+			WorldLayout.SLIDE_EXIT_WIDTH,
+			exitTo - exitFrom,
+			exitPos[1],
+			(exitFrom + exitTo) / 2,
+			WorldLayout.PATH_TOPS.slideExit,
+			0
+		)
+	)
 	-- Landing plaza (flat sand disc) the drops land on, under the fountain.
 	local plazaTop, thick = WorldLayout.PATH_TOPS.plaza, WorldLayout.PATH_THICK
 	table.insert(
