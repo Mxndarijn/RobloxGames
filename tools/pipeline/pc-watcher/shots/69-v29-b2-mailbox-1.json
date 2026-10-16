@@ -1,0 +1,10 @@
+{
+  "id": "v29-b2-mailbox-1",
+  "todo": "v29 B2",
+  "kind": "world",
+  "target": "Mailbox_1",
+  "from": "centre",
+  "dist": 16,
+  "height": 7,
+  "note": "v29 B2: Mailbox_1 stands at plot 1's entrance (every plot has one)"
+}

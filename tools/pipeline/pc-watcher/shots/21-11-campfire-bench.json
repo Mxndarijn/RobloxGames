@@ -1,0 +1,7 @@
+{
+  "id": "11-campfire-bench",
+  "todo": "11",
+  "kind": "world",
+  "target": "CampBench",
+  "note": "TODO 11: bench faces campfire"
+}

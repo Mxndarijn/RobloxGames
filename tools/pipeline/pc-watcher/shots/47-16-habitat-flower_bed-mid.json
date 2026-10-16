@@ -1,0 +1,10 @@
+{
+  "id": "16-habitat-flower_bed-mid",
+  "todo": "16",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "flower_bed",
+  "wait": 0.4,
+  "note": "TODO 16: pad morphing into flower_bed (mid-morph, about 40%)"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "06-fountain-centre",
+  "todo": "6",
+  "kind": "world",
+  "target": "FountainMesh",
+  "note": "TODO 6/13: fountain in exact middle"
+}

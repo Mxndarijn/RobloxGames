@@ -1,0 +1,9 @@
+{
+  "id": "04-rebirth-slime-missing",
+  "todo": "29",
+  "kind": "ui",
+  "open": "rebirth",
+  "rebirth_slime": "missing",
+  "scroll_to": "SlimeNeed",
+  "note": "v29 #5: rebirth menu, required slime MISSING (greyed silhouette, 'Missing', button disabled 'Need <slime>')"
+}

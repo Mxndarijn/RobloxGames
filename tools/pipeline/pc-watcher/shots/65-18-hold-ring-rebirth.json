@@ -1,0 +1,8 @@
+{
+  "id": "18-hold-ring-rebirth",
+  "todo": "18",
+  "kind": "ui",
+  "open": "rebirth",
+  "hold": "RebirthButton",
+  "note": "B1: hold-to-confirm Rebirth button with its fill ring half full (mid-hold)"
+}

@@ -1,0 +1,10 @@
+{
+  "id": "14-podium-1",
+  "todo": "14",
+  "kind": "world",
+  "target": "Podium_1",
+  "from": "centre",
+  "dist": 28,
+  "height": 12,
+  "note": "TODO 14: top podiums with avatars"
+}

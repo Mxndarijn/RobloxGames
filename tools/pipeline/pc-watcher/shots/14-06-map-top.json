@@ -1,0 +1,16 @@
+{
+  "id": "06-map-top",
+  "todo": "6",
+  "kind": "world",
+  "pos": [
+    0,
+    260,
+    1
+  ],
+  "look": [
+    0,
+    0,
+    0
+  ],
+  "note": "TODO 6/8/9: top-down overview (fountain at centre, stray boxes)"
+}

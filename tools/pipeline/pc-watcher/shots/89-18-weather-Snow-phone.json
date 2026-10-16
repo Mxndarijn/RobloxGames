@@ -1,0 +1,19 @@
+{
+  "id": "18-weather-Snow-phone",
+  "todo": "18",
+  "kind": "world",
+  "pos": [
+    0,
+    30,
+    70
+  ],
+  "look": [
+    0,
+    8,
+    0
+  ],
+  "weather": "Snow",
+  "wait": 2.5,
+  "note": "TODO 18: Snow weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 2 s tween in [phone-portrait]",
+  "device": "phone-portrait"
+}

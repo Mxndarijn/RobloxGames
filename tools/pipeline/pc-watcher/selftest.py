@@ -237,7 +237,7 @@ def t_files():
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "weather_set": {"WEATHER", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(),
         "hold_fill": {"NAME", "ON"},
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "panel_scroll": {"PANEL", "TARGET"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "panel_scroll": {"PANEL", "TARGET"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -248,9 +248,17 @@ def t_files():
         if name == "pad_seat":
             check("luau pad_seat returns seat_y and pad_top_y", "seat_y =" in src and "pad_top_y =" in src)
         check("luau %s returns" % name, re.search(r"^return ", src, re.M) is not None)
-    shots = json.load(open(os.path.join(HERE, "shots.json"), encoding="utf-8"))
-    check("shots.json is a list with ids", isinstance(shots, list) and all("id" in s for s in shots))
-    check("shots.json has the idle-HUD overlay guard",
+    shots, shot_notes = watcher.load_shots()
+    check("shots/*.json load as a list with ids", bool(shots) and not shot_notes and all("id" in s for s in shots), shot_notes)
+    files = sorted(glob.glob(os.path.join(HERE, "shots", "*.json")))
+    per_file = [json.load(open(f, encoding="utf-8")) for f in files]
+    file_ids = [s["id"] for d in per_file for s in (d if isinstance(d, list) else [d])]
+    check("shot ids are unique across files", len(file_ids) == len(set(file_ids)),
+          sorted({i for i in file_ids if file_ids.count(i) > 1}))
+    check("shot order matches filename order", file_ids == [s["id"] for s in shots])
+    check("shot filenames are <NN>-<id>.json in sequence",
+          all(os.path.basename(f).startswith("%02d-" % (i + 1)) for i, f in enumerate(files)))
+    check("shots/*.json has the idle-HUD overlay guard",
           any(s.get("kind") == "ui" and not s.get("open") and s.get("expect_no_overlay") for s in shots))
     holds = [s for s in shots if s.get("hold")]
     check("a ui shot shows a hold ring mid-hold on an important button",
@@ -268,7 +276,7 @@ def t_files():
           set(weathers) == {"Rain", "Snow", "Starfall"} and all(0 < float(s.get("wait", 0)) <= 4 for s in weathers.values()), sorted(weathers))
     devs = {(s["weather"], s.get("device")) for s in shots if s.get("weather")}
     check("every weather type has a phone and a desktop shot",
-          all((w, d) in devs for w in ("Rain", "Snow", "Starfall") for d in ("desktop", "phone-portrait")), sorted(devs))
+          all((w, d) in devs for w in ("Rain", "Snow", "Starfall") for d in ("desktop", "phone-portrait")), sorted(devs, key=str))
     check("LOD tier shots at near, mid and far camera distances",
           sorted(s["dist"] for s in shots if s.get("motion") == "Tiers") == [20, 60, 120])
     known = {d[0] for d in watcher.DEFAULTS["devices"]} if hasattr(watcher, "DEFAULTS") else None

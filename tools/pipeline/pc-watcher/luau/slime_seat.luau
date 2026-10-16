@@ -1,4 +1,4 @@
--- Server datamodel: seat a slime on the pad at %%PATH%% (the shot_find path of the shots.json target), so
+-- Server datamodel: seat a slime on the pad at %%PATH%% (the shot_find path of the shots/*.json target), so
 -- habitat and motion shots always have a slime to look at, and report its seat height. Reuses a tagged
 -- slime already standing on the pad (<= 4 studs sideways), else clones a rigged Wild / Pad slime onto the
 -- pad top (PcwSeat, unique SlimeId, State "Pad"). Reports gap = slime bottom - pad top (studs): about 0

@@ -1,0 +1,10 @@
+{
+  "id": "17-motion-lookright",
+  "todo": "17",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "motion": "LookRight",
+  "wait": 0.35,
+  "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), look right (FaceRoot/SkinRoot yaw)"
+}

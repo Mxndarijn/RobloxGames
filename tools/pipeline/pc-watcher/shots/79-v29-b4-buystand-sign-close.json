@@ -1,0 +1,11 @@
+{
+  "id": "v29-b4-buystand-sign-close",
+  "todo": "v29 B4",
+  "kind": "world",
+  "target": "BuyStand",
+  "index": 1,
+  "from": "centre",
+  "dist": 10,
+  "height": 9,
+  "note": "v29 B4: Free plot stand close-up, sign text flush on the board face"
+}

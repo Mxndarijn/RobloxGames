@@ -1,0 +1,10 @@
+{
+  "id": "16-habitat-candy_patch",
+  "todo": "16",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "candy_patch",
+  "wait": 1.5,
+  "note": "TODO 16: pad turned into candy_patch"
+}

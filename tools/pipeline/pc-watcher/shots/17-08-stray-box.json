@@ -1,0 +1,16 @@
+{
+  "id": "08-stray-box",
+  "todo": "8",
+  "kind": "world",
+  "pos": [
+    0,
+    120,
+    140
+  ],
+  "look": [
+    0,
+    0,
+    0
+  ],
+  "note": "TODO 8: yellow box/slab gone (angled overview of plaza)"
+}

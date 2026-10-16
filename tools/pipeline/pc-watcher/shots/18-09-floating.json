@@ -1,0 +1,16 @@
+{
+  "id": "09-floating",
+  "todo": "9",
+  "kind": "world",
+  "pos": [
+    220,
+    90,
+    220
+  ],
+  "look": [
+    0,
+    0,
+    0
+  ],
+  "note": "TODO 9: nothing floating (low angled overview)"
+}
