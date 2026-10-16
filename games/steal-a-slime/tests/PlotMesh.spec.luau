@@ -207,7 +207,11 @@ end
 describe("plot walls, DexBoard and BuyStand (C6)", function()
 	local h = WorldLayout.PLOT_SIZE / 2
 	it("skins every fence piece with a kit fence mesh at FENCE_SCALE, walls stay the colliders", function()
-		local fenceMeshes = { [WorldLayout.FENCE_SEGMENT] = true, [WorldLayout.FENCE_MESH] = true }
+		local fenceMeshes = {
+			[WorldLayout.FENCE_SEGMENT] = true,
+			[WorldLayout.FENCE_MESH] = true,
+			[WorldLayout.GATE_POST_MESH] = true,
+		}
 		for _, plot in plots do
 			local slots = 0
 			walk(child(plot, "Fence").children, function(node)
@@ -220,7 +224,8 @@ describe("plot walls, DexBoard and BuyStand (C6)", function()
 					expect(node.canCollide).toBe(false)
 				end
 			end)
-			expect(slots).toBe(if WorldLayout.fenceUploaded() then 16 else 30)
+			-- + the GatePost closing the fence run at the gate's right stub
+			expect(slots).toBe(if WorldLayout.fenceUploaded() then 17 else 31)
 			for _, name in { "WallBack", "WallLeft", "WallRight", "WallFrontL", "WallFrontR" } do
 				local wall = child(plot, name)
 				expect(meshOf(wall)).toBe(nil)

@@ -1,6 +1,6 @@
 # ranch_landing_ring: one curb segment for the wild-slime landing ring around the fountain plaza
 # (Slime Ranch). A curved, soft ranch_plaza curb on the INNER edge of the wild landing band
-# (r34-62): curb r34-35.7, ~12 studs of arc, wood stake posts + butter caps, and a goo splat
+# (r34-62): curb r34-35.7, ~12 studs of arc, a wood stake post + butter cap at the -X end, and a goo splat
 # puddle beyond r36 on the landing side where wilds plop down off the slide.
 # Local frame: arc centre (fountain/plaza centre) is at y = +R, so +Y faces the fountain and the
 # landing side is -Y (outward). Tile it by rotating copies about the plaza centre.
@@ -58,8 +58,9 @@ def on_ring(r, deg):
     return math.sin(a) * r, R - math.cos(a) * r, -deg  # x, y, yaw
 
 
-# wood stakes at both ends of the segment (shared visual rhythm when tiled) with butter caps
-for deg in (-SPAN / 2 + 0.6, SPAN / 2 - 0.6):
+# one wood stake per segment, at its -X end, with a butter cap: tiled, the next segment's stake
+# closes this one's +X end, so each seam shows ONE stake (r01 had both ends: doubled at every seam)
+for deg in (-SPAN / 2 + 0.6,):
     x, y, yaw = on_ring(R + 0.85, deg)
     s = box("Stake", (0.8, 0.8, 2.6), (x, y, 1.3), rot=(0, 0, yaw))
     bevel(s, 0.12)

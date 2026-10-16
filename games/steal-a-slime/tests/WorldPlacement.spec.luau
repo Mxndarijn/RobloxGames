@@ -9,6 +9,7 @@ local fs = require("@lune/fs")
 local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
+local Meadow = require("../src/visuals/shared/Meadow")
 local MeshAssets = require("../src/shared/MeshAssets")
 local RanchProps = require("../src/visuals/shared/RanchProps")
 local StaticWorld = require("../scripts/StaticWorld")
@@ -325,6 +326,29 @@ describe("ground contact (TODO #9)", function()
 			end
 		end)
 		expect(n > 300).toBe(true)
+		expect(bad).toEqual({})
+	end)
+	it("rests every Map.Decor.Meadow piece on its floor (none floats, none buried)", function()
+		local bad, n = {}, 0
+		walk(find("/Map/Decor/Meadow").children, function(node, path)
+			if node.class ~= "Part" then
+				return
+			end
+			n += 1
+			local p, size = node.pos :: Vec, node.size :: Vec
+			local floor = floorAt(p[1], p[3])
+			local low = if node.shape == "Ball"
+				then p[2] - size[1] / 2
+				else Meadow.blockBottom(size, p, node.rot or { 0, 0, 0 })
+			local high = if node.shape == "Ball" then p[2] + size[1] / 2 else 2 * p[2] - low
+			-- flower heads rest on their stem / leaves (tests/Meadow.spec); every
+			-- other piece touches (or sinks into) the floor, and shows above it
+			local head = string.match(node.name, "Head%d*$") ~= nil
+			if (not head and low > floor + GROUND_TOL) or high < floor + GROUND_TOL then
+				table.insert(bad, `{path} bottom {low}, top {high}, floor {floor}`)
+			end
+		end, "/Map/Decor/Meadow")
+		expect(n > 100).toBe(true)
 		expect(bad).toEqual({})
 	end)
 	it("stands every RanchProps prop on the ground", function()

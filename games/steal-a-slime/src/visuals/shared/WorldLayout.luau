@@ -38,6 +38,7 @@ local MeshAssets = if script
 	then require(script.Parent.Parent.Shared.MeshAssets)
 	else require("../../shared/MeshAssets")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
+local Meadow = if script then require(script.Parent.Meadow) else require("./Meadow")
 local PlotDecor = if script then require(script.Parent.PlotDecor) else require("./PlotDecor")
 local RanchProps = if script then require(script.Parent.RanchProps) else require("./RanchProps")
 local WorldBorder = if script then require(script.Parent.WorldBorder) else require("./WorldBorder")
@@ -114,16 +115,22 @@ WorldLayout.WALL_HEIGHT = 8
 -- The gate side is 30 + 20 (GATE_SLOT) + 30, so it takes a panel at each
 -- corner and a 10-stud phoenix_fence_segment beside each gate post: 14
 -- panels + 2 segments per plot. Both kit pieces are 11 native studs per 10
--- grid studs (end posts overlap the neighbour's), so one uniform scale of
--- 10/11 tiles them on the grid at the same 8.2 height. Until ranch_fence_20
+-- grid studs with one post, at their -X end (the neighbour's post closes the
+-- +X end), so one uniform scale of 10/11 tiles them on the grid at the same
+-- 8.2 height. Until ranch_fence_20
 -- is uploaded each panel slot is a Model tagged FenceMesh = FENCE_MESH holding
 -- two FENCE_SEGMENT halves (the same look: the panel is two segments sharing
 -- the mid post).
 WorldLayout.FENCE_MESH = "ranch_fence_20"
 WorldLayout.FENCE_SEGMENT = "phoenix_fence_segment"
+-- Closes the fence run that ends at the gate's right stub (GatePost slot).
+WorldLayout.GATE_POST_MESH = "phoenix_corner_post"
 WorldLayout.FENCE_GRID = 20
 WorldLayout.FENCE_SEGMENT_GRID = 10
 WorldLayout.FENCE_SCALE = 10 / 11
+-- Post centre in from a piece's -X end: the kit post cap is 1.8 wide, and
+-- its centre 0.9 in from the bbox edge, at FENCE_SCALE.
+WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 -- Mesh slots in the whole world (MeshAsset + pending BorderMesh / FenceMesh
 -- slots + the WorldProps skins), counted with ranch_fence_20 uploaded
 -- (tests/WorldBudget.spec), split into caps that add up to MESH_SLOT_BUDGET:
@@ -132,25 +139,33 @@ WorldLayout.FENCE_SCALE = 10 / 11
 --           (80 / 20) and each 30-stud half of the gate side needs a panel
 --           and a segment, so 16 a plot (128) is the minimum with the gate
 --           slot centred.
---   border  Map.Border's share (112). The ring uses BORDER_SLOT_COUNT (44)
+--   posts   one GATE_POST_MESH a plot (8). Panels and segments carry a post
+--           at their -X end only, so round the fence loop every joint and
+--           corner shows one post; the run that ends at the gate has none
+--           there, and this post closes it, mirroring the post beside the
+--           other gate stub. Paid for by the border share (112 -> 104).
+--   border  Map.Border's share (104). The ring uses BORDER_SLOT_COUNT (44)
 --           since #56 (WorldBorder set meshes); main #54's first ring was 228.
 --   decor   everything else: ranch props, pad stands, fountain, plaza,
 --           landing ring, gates, plot dex boards and buy stands, WorldProps
---           skins. Capped at 160 = MESH_SLOT_BUDGET - fence - border share:
---           full, with the 8 BuyStand (ranch_shop_stand) slots paid for by
---           the border share (120 -> 112).
+--           skins. Capped at 160 = MESH_SLOT_BUDGET - fence - posts - border
+--           share: full, with the 8 BuyStand (ranch_shop_stand) slots paid
+--           for by the border share (120 -> 112).
 -- The fallback (two segments per panel until the upload) adds one slot per
 -- panel: 112.
 WorldLayout.MESH_SLOT_BUDGET = 400
 WorldLayout.FENCE_SLOT_BUDGET = 128
-WorldLayout.BORDER_SLOT_BUDGET = 112
+WorldLayout.GATE_POST_SLOT_BUDGET = 8
+WorldLayout.BORDER_SLOT_BUDGET = 104
 WorldLayout.BORDER_SLOT_COUNT = 44
 WorldLayout.DECOR_SLOT_BUDGET = 160
 WorldLayout.MESH_SLOT_BUDGET_FALLBACK = WorldLayout.MESH_SLOT_BUDGET + 112
--- THEME.md: <= 1200 parts. Asserted over the world WorldLayout builds outside
--- Map.Border; the border ring (main #54) is held to its own budget, since its
--- pieces still carry an invisible slot plus primitive stand-ins each.
-WorldLayout.PART_BUDGET = 1200
+-- Parts outside Map.Border (THEME.md asked <= 1200; raised to 1400 for the
+-- primitive meadow clusters in the grass band behind the plots). Asserted
+-- over the world WorldLayout builds outside Map.Border; the border ring
+-- (main #54) is held to its own budget, since its pieces still carry an
+-- invisible slot plus primitive stand-ins each.
+WorldLayout.PART_BUDGET = 1400
 WorldLayout.BORDER_PART_BUDGET = 700
 
 export type FenceSegment = {
@@ -648,29 +663,28 @@ local function onPolar(yaw: number, r: number, y: number): Vec
 end
 
 -- Decor rocks are plain ranch Rock (no basalt). Upright boxes read as grey
--- crates from the plaza (tools/render review), so half are boulders (a Ball
--- sunk to a low dome) and the rest low tilted slabs sunk until no bottom
--- corner lifts off the Ground. Same part count as before.
+-- crates from the plaza and low tilted slabs as paving tiles (tools/render
+-- review), so every rock is a Ball: half boulders sunk to a low dome, half
+-- wider flat stones sunk to their top sixth. Same part count as before.
 local function rock(name: string, pos: Vec, s: number, salt: number): WorldNode
+	local d, y
 	if hash(salt, 10) < 0.5 then
-		local d = s * (1.2 + hash(salt, 4) * 0.5)
-		return {
-			name = name,
-			class = "Part",
-			shape = "Ball",
-			size = { d, d, d },
-			pos = { pos[1], -d * 0.22, pos[3] },
-			rot = { 0, 0, 0 },
-			color = ROCK,
-			material = "Rock",
-		}
+		d = s * (1.2 + hash(salt, 4) * 0.5)
+		y = -d * 0.22
+	else
+		d = s * (1.3 + hash(salt, 4) * 0.5)
+		y = d * (0.15 + hash(salt, 5) * 0.05 - 0.5)
 	end
-	local size = { s * (1.1 + hash(salt, 4) * 0.6), s * (0.35 + hash(salt, 5) * 0.25), s * (0.8 + hash(salt, 6) * 0.5) }
-	local rx, rz = hash(salt, 7) * 20 - 10, hash(salt, 9) * 20 - 10
-	-- How far the tilt lifts the highest bottom corner, plus a quarter sunk.
-	local lift = size[1] / 2 * math.sin(math.rad(math.abs(rz))) + size[3] / 2 * math.sin(math.rad(math.abs(rx)))
-	local y = size[2] / 2 - lift - size[2] * 0.25
-	return block(name, size, { pos[1], y, pos[3] }, ROCK, "Rock", { rx, hash(salt, 8) * 360, rz })
+	return {
+		name = name,
+		class = "Part",
+		shape = "Ball",
+		size = { d, d, d },
+		pos = { pos[1], y, pos[3] },
+		rot = { 0, 0, 0 },
+		color = ROCK,
+		material = "Rock",
+	}
 end
 
 local function mushroom(name: string, pos: Vec, salt: number): WorldNode
@@ -782,16 +796,19 @@ local function resolveProp(p: RanchProps.Placement): RanchProp
 	}
 end
 
-local function decor(): WorldNode
+-- Scattered rocks and mushrooms between and behind the plots, and where they
+-- landed (x, z, radius).
+local function scatter(): ({ WorldNode }, { { number } })
 	local children: { WorldNode } = {}
+	local placed: { { number } } = {}
 	local function add(node: WorldNode, pos: Vec, radius: number): boolean
 		if clearSpot(pos, radius) then
 			table.insert(children, node)
+			table.insert(placed, { pos[1], pos[3], radius })
 			return true
 		end
 		return false
 	end
-	-- Scattered rocks and mushrooms between and behind the plots.
 	local rocks, mushrooms = 0, 0
 	for k = 1, 120 do
 		local yaw = hash(k, 1) * 360
@@ -808,6 +825,27 @@ local function decor(): WorldNode
 			end
 		end
 	end
+	return children, placed
+end
+
+-- Meadow clusters in the grass band behind the plots (Meadow), clear of the
+-- same ground as the scatter (plots, spoke paths, prop spots, kit props) and
+-- of the scattered rocks and mushrooms themselves.
+function WorldLayout.meadowClusters(): { Meadow.Cluster }
+	local _, placed = scatter()
+	return Meadow.clusters(function(x: number, z: number, radius: number): boolean
+		for _, p in placed do
+			if (p[1] - x) ^ 2 + (p[2] - z) ^ 2 < (p[3] + radius + 2) ^ 2 then
+				return false
+			end
+		end
+		return clearSpot({ x, 0, z }, radius)
+	end)
+end
+
+local function decor(): WorldNode
+	local children = scatter()
+	table.insert(children, Meadow.build(WorldLayout.meadowClusters()) :: any)
 	-- Kit ranch props (RanchProps table, PropClearance keeps them off the
 	-- lanes); the rocks and mushrooms above already stepped round them.
 	for _, prop in WorldLayout.RANCH_PROPS do
@@ -1276,10 +1314,22 @@ local function plot(i: number): WorldNode
 		end
 		table.insert(fence.children :: { WorldNode }, node)
 	end
+	-- Each piece has its post at its -X end and the sides run one way round
+	-- the loop (Back +X, Right -Z, Front -X, Left +Z), so the next piece's
+	-- post closes every joint and corner: one post each, never two. The gate
+	-- breaks the loop: the left gate segment starts there (post 0.82 out from
+	-- the stub), the right one ends there without a post, so a GATE_POST_MESH
+	-- mirrors that post on the right (GATE_POST_SLOT_BUDGET).
+	local postSize = meshSize(WorldLayout.GATE_POST_MESH, WorldLayout.FENCE_SCALE)
+	local postX = slot / 2 + WorldLayout.FENCE_POST_INSET
+	table.insert(
+		fence.children :: { WorldNode },
+		meshSlot(
+			ghost(block("GatePost", postSize, at({ postX, 1 + postSize[2] / 2, wallZ }), FENCE, "Wood", r)),
+			WorldLayout.GATE_POST_MESH
+		)
+	)
 	table.insert(children, fence)
-	-- No corner posts: the two panels meeting at a corner put their end posts
-	-- on the same spot, which closes it (MESH_SLOT_BUDGET; the kit corner post
-	-- stands once in RanchProps).
 	local postW = (slot - clear) / 2
 	-- The kit gate is built for this slot (14 clear, stubs to +-10): native size.
 	-- Kit FBX fronts face Roblox +Z (LESSONS kit gotcha): turn it 180 so the
