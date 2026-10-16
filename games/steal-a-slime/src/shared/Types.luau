@@ -15,7 +15,18 @@ local Genome = if script then require(script.Parent.Genome) else require("./Geno
 export type SlimeData = Genome.Slime
 
 -- Return value of every `Request` invoke.
-export type RequestResult = { ok: boolean, message: string? }
+export type RequestResult = { ok: boolean, message: string?, appraisal: Appraisal? }
+
+-- Result of a successful Appraise (shared/Appraise): what was rerolled, before and after.
+export type Appraisal = {
+	slimeId: string,
+	kind: "mutation" | "size",
+	cost: number,
+	beforeMutation: string,
+	afterMutation: string,
+	beforeSize: number,
+	afterSize: number,
+}
 
 export type NotifyKind = "info" | "good" | "bad"
 
@@ -23,6 +34,7 @@ export type SlimeView = {
 	slime: SlimeData,
 	income: number, -- cash/sec incl. rebirth multiplier (0 while stolenBy ~= nil)
 	sellPrice: number,
+	appraiseCost: number?, -- Appraise price (FEATURES.Appraise); nil when the feature is off
 	stolenBy: number?, -- UserId of the player currently carrying it away
 }
 

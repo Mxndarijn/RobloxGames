@@ -13,11 +13,14 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local Appraise = if Shared then require(Shared.Appraise) else require("../shared/Appraise")
+local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Remotes = if Shared then require(Shared.Remotes) else require("../shared/Remotes")
+local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
@@ -35,6 +38,7 @@ type Result = Types.RequestResult
 export type Context = {
 	distanceBetween: (a: number, b: number) -> number,
 	positionOf: (userId: number) -> any?,
+	rng: Rng.Rng?, -- Appraise rolls; nil = seeded from the clock and the player
 }
 
 local Actions = {}
@@ -146,6 +150,23 @@ local function buyUpgrade(world: World, session: Session, id: string): Result
 	return OK
 end
 
+local function appraise(world: World, session: Session, id: string, kind: string, now: number, ctx: Context): Result
+	if not Config.FEATURES.Appraise then
+		return fail("appraise is off")
+	end
+	if World.isBusy(world, id) then
+		return fail("slime is busy")
+	end
+	local rng = ctx.rng or Rng.new(math.floor(now * 1000) + session.userId)
+	local ok, value = Appraise.reroll(session.data, id, kind, rng)
+	if not ok then
+		return fail(value :: string)
+	end
+	local appraisal = value :: Types.Appraisal
+	World.notify(world, session.userId, `Appraised for ${Economy.formatNumber(appraisal.cost)}`, "good", "Cash")
+	return { ok = true, appraisal = appraisal }
+end
+
 local function dispatch(
 	world: World,
 	session: Session,
@@ -179,6 +200,8 @@ local function dispatch(
 		return buySpeedCoil(world, session)
 	elseif action == "BuyUpgrade" then
 		return buyUpgrade(world, session, args[1])
+	elseif action == "Appraise" then
+		return appraise(world, session, args[1], args[2], now, ctx)
 	elseif action == "Slap" then
 		local target = args[1]
 		return result(StealService.slap(world, session, target, ctx.distanceBetween(session.userId, target), now))

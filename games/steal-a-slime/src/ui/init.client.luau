@@ -107,9 +107,10 @@ local function playerName(userId: number): string
 	return names[userId]
 end
 
--- One in-flight call per action; failures surface as a "bad" toast.
+-- One in-flight call per action; failures surface as a "bad" toast. `onResult`
+-- (optional) gets the RequestResult of a call that reached the server.
 local busy: { [string]: boolean } = {}
-local function send(action: string, ...: any)
+local function invoke(action: string, onResult: ((any) -> ())?, ...: any)
 	assert(Remotes.ACTIONS[action], `unknown action {action}`)
 	if busy[action] then
 		return
@@ -125,8 +126,13 @@ local function send(action: string, ...: any)
 			toasts.push(`{action} failed - try again`, "bad")
 		elseif type(result) == "table" and result.ok == false then
 			toasts.push(if type(result.message) == "string" then result.message else `{action} failed`, "bad")
+		elseif onResult then
+			onResult(result)
 		end
 	end)
+end
+local function send(action: string, ...: any)
+	invoke(action, nil, ...)
 end
 
 -- SlimeDex pictures: the real slime model from Archer's
@@ -163,6 +169,7 @@ local ctx: { [string]: any } = {
 	Genome = Genome,
 	actions = Remotes.ACTIONS,
 	send = send,
+	request = invoke,
 	serverNow = serverNow,
 	playerName = playerName,
 	toast = toasts.push,

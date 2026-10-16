@@ -31,6 +31,7 @@ local DayNight = require(Shared:WaitForChild("DayNight"))
 local Merge = require(Shared:WaitForChild("Merge"))
 local PlayerData = require(Shared:WaitForChild("PlayerData"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local Rng = require(Shared:WaitForChild("Rng"))
 local Types = require(Shared:WaitForChild("Types"))
 
 local Actions = require(script.Actions)
@@ -355,7 +356,11 @@ local function positionOf(userId: number): Vector3?
 	return root and root.Position
 end
 
-local ctx: Actions.Context = { distanceBetween = distanceBetween, positionOf = positionOf }
+local ctx: Actions.Context = {
+	distanceBetween = distanceBetween,
+	positionOf = positionOf,
+	rng = Rng.new(Random.new():NextInteger(1, 2147483646)),
+}
 
 -- Player attribute `Carrying` follows the World right away (pickup, drop, deposit, escape, death).
 local function syncCarrying()

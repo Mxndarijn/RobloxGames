@@ -41,6 +41,7 @@ Remotes.ACTIONS = table.freeze({
 	BuyUpgrade = table.freeze({ args = { "string" } }), -- Config.UPGRADES id (CONTRACT.md §8.1)
 	Slap = table.freeze({ args = { "number" } }), -- target UserId
 	Drop = table.freeze({ args = {} }),
+	Appraise = table.freeze({ args = { "string", "string" } }), -- slimeId, "mutation" | "size" (FEATURES.Appraise)
 	Sync = table.freeze({ args = {} }), -- server re-sends State
 } :: { [string]: ActionDef })
 
