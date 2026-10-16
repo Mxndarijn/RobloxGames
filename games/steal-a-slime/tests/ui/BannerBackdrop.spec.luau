@@ -5,10 +5,12 @@
 -- exists while a menu is open, so none can touch a card's title bar or close X.
 local fs = require("@lune/fs")
 
+local Hint = require("../../src/ui/Hint")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local MenuState = require("../../src/ui/MenuState")
 local TestRunner = require("../TestRunner")
+local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -69,5 +71,64 @@ describe("banners never cover an open menu card's title or X", function()
 		do
 			expect(string.find(hud, `banner(banners, "{name}"`, 1, true) ~= nil).toBe(true)
 		end
+	end)
+end)
+
+-- v29 (shot 98): the "Step 1 of 7 Grab a slime" card covered the Codes input and Redeem on phone
+-- landscape; the tutorial card and its hint ring / bubble hide while any menu is open.
+describe("tutorial UI never covers an open menu card", function()
+	local GRAB = { tutorialStepId = "Grab" }
+	for _, entry in LayoutAssert.screens(LayoutAssert.GATE_VIEWPORTS) do
+		it(`{entry.label}: no tutorial card / hint rect while any menu is open`, function()
+			local s = entry.screen
+			for _, key in LayoutAssert.menuKeys() do
+				for _, idle in { s.tutorial, s.tutorialCarrying } do
+					expect(MenuState.tutorialRect(key, idle)).toBeNil()
+				end
+				for _, step in { "Lock", "BuyPad", "Merge", "Rebirth" } do
+					local view = Hint.fromState({ tutorialStepId = step }, nil)
+					local p = if view then Hint.place(s, s.hud, view) else nil
+					if p then
+						expect(MenuState.tutorialRect(key, p.ring)).toBeNil()
+						expect(MenuState.tutorialRect(key, p.bubble)).toBeNil()
+					end
+				end
+			end
+			expect(MenuState.tutorialRect(nil, s.tutorial)).toBe(s.tutorial)
+		end)
+	end
+	it("TutorialOverlay hides with a menu open and returns on the same step", function()
+		local overlay = UiHarness.ui("Panels/TutorialOverlay").new(UiHarness.root(), {})
+		overlay.update(GRAB)
+		local title = UiHarness.find(overlay.frame, "Title").Text
+		expect(overlay.frame.Visible).toBe(true)
+		overlay.setMenuOpen(true)
+		expect(overlay.frame.Visible).toBe(false)
+		overlay.update(GRAB) -- a State push while the menu is open must not re-show it
+		expect(overlay.frame.Visible).toBe(false)
+		expect(overlay.shown()).toBe(true)
+		overlay.setMenuOpen(false)
+		expect(overlay.frame.Visible).toBe(true)
+		expect(UiHarness.find(overlay.frame, "Title").Text).toBe(title)
+	end)
+	it("a step change while a menu is open shows the new step when it closes", function()
+		local overlay = UiHarness.ui("Panels/TutorialOverlay").new(UiHarness.root(), {})
+		overlay.update(GRAB)
+		overlay.setMenuOpen(true)
+		overlay.update({ tutorialStepId = "Deposit" }) -- the server moved on under the menu
+		expect(overlay.frame.Visible).toBe(false)
+		overlay.setMenuOpen(false)
+		expect(overlay.frame.Visible).toBe(true)
+		overlay.update({}) -- tutorial finished: stays hidden, menu or not
+		overlay.setMenuOpen(true)
+		overlay.setMenuOpen(false)
+		expect(overlay.frame.Visible).toBe(false)
+	end)
+	it("init.client gates the card and the hint on the menu", function()
+		local src = fs.readFile("src/ui/init.client.luau")
+		expect(string.find(src, "tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))", 1, true) ~= nil).toBe(
+			true
+		)
+		expect(string.find(src, "MenuState.tutorialVisible(openKey))", 1, true) ~= nil).toBe(true)
 	end)
 end)
