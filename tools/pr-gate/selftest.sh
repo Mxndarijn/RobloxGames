@@ -130,7 +130,7 @@ clean_rc=$?
 secs="$(awk -v a="$t0" -v b="$(date +%s.%N)" 'BEGIN { printf "%.1f", b - a }')"
 echo "$clean_out" | sed -n '/=== pr-gate summary ===/,$p'
 if [ "$clean_rc" -eq 0 ]; then
-	rows+=("ok    PASS on clean tree  ${secs}s  run.sh (logic, layout, budget)")
+	rows+=("ok    PASS on clean tree  ${secs}s  run.sh (logic, layout, budget, typecheck)")
 	ok=$((ok + 1))
 else
 	rows+=("BAD   clean tree failed (exit $clean_rc)  run.sh")
