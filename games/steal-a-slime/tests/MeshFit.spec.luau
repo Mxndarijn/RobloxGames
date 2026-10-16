@@ -100,7 +100,7 @@ describe("MeshSwap uniform scale (live boot, every upload answered)", function()
 		end
 		expect(bad).toEqual({})
 	end)
-	it("routes every WorldProps-built mesh through the fit: in its box, on its bottom, centred", function()
+	it("routes every WorldProps-built mesh at native proportions, on its bottom (MeshSize or the fit)", function()
 		local seen = 0
 		for name, mesh in WorldLayout.PROP_MESHES do
 			local model = rt.workspace.Map:FindFirstChild(name)
@@ -119,15 +119,23 @@ describe("MeshSwap uniform scale (live boot, every upload answered)", function()
 			-- The old stretch would have been off by more than 1 %: this test bites.
 			local stretched = uniform({ box.X, box.Y, box.Z }, native)
 			expect(stretched).toBe(false)
-			local fits = m.Size.X <= box.X + 1e-3 and m.Size.Y <= box.Y + 1e-3 and m.Size.Z <= box.Z + 1e-3
-			expect(fits).toBe(true)
-			-- one axis touches the box (largest uniform fit)
-			local touch = math.max(m.Size.X / box.X, m.Size.Y / box.Y, m.Size.Z / box.Z)
-			expect(touch).toBeCloseTo(1, 3)
 			local rel = cf:ToObjectSpace(m.CFrame)
 			expect(rel.Position.X).toBeCloseTo(0, 3)
-			expect(rel.Position.Z).toBeCloseTo(0, 3)
 			expect(rel.Position.Y - m.Size.Y / 2).toBeCloseTo(-box.Y / 2, 3)
+			local fixed = model:GetAttribute("MeshSize")
+			if typeof(fixed) == "Vector3" then
+				-- WorldProps MeshSize (gate B3, tests/PropMesh.spec): as tall as
+				-- the Model, front (-Z) face on the box's front.
+				expect(m.Size.Y).toBeCloseTo(box.Y, 3)
+				expect(rel.Position.Z - m.Size.Z / 2).toBeCloseTo(-box.Z / 2, 3)
+			else
+				local fits = m.Size.X <= box.X + 1e-3 and m.Size.Y <= box.Y + 1e-3 and m.Size.Z <= box.Z + 1e-3
+				expect(fits).toBe(true)
+				-- one axis touches the box (largest uniform fit)
+				local touch = math.max(m.Size.X / box.X, m.Size.Y / box.Y, m.Size.Z / box.Z)
+				expect(touch).toBeCloseTo(1, 3)
+				expect(rel.Position.Z).toBeCloseTo(0, 3)
+			end
 			if not ok then
 				print(name, ratios)
 			end

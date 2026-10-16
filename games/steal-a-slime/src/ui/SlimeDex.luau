@@ -109,4 +109,41 @@ function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: st
 	return out
 end
 
+-- Panel header above the list (Panels/Dex, design px): percent + count
+-- (40), the bar (to 64), the per-rarity grid (to 108), then the rewards
+-- line (36) when there is one.
+SlimeDex.HEADER = table.freeze({ count = 40, bar = 64, tiers = 108, rewards = 36, gap = 4 })
+-- The list keeps at least one 64 px row + scroll padding.
+SlimeDex.MIN_LIST = 64 + 12
+
+export type Header = { bar: boolean, tiers: boolean, rewards: boolean, rewardsY: number, listTop: number }
+
+-- What fits above the list in a `bodyH` tall panel body: the tier grid goes
+-- first, then the rewards line, then the bar, until the list is MIN_LIST
+-- tall (short landscape phones). The list height is never negative.
+function SlimeDex.header(bodyH: number, hasRewards: boolean): Header
+	local h = SlimeDex.HEADER
+	local options = {
+		{ bar = true, tiers = true, rewards = hasRewards },
+		{ bar = true, tiers = false, rewards = hasRewards },
+		{ bar = true, tiers = false, rewards = false },
+		{ bar = false, tiers = false, rewards = false },
+	}
+	local out: Header
+	for _, o in options do
+		local top = if o.tiers then h.tiers elseif o.bar then h.bar else h.count
+		out = {
+			bar = o.bar,
+			tiers = o.tiers,
+			rewards = o.rewards,
+			rewardsY = top,
+			listTop = top + h.gap + (if o.rewards then h.rewards else 0),
+		}
+		if bodyH - out.listTop >= SlimeDex.MIN_LIST then
+			break
+		end
+	end
+	return out
+end
+
 return table.freeze(SlimeDex)

@@ -6,7 +6,8 @@
 	attribute MeshAsset (WorldLayout placeholders) whose id is in
 	Shared.MeshAssets, creates a MeshPart via AssetService:CreateMeshPartAsync,
 	fits it into the placeholder's box at one uniform scale (MeshAssets.fit:
-	native proportions, standing on the box bottom), anchors it, makes it visual-only
+	native proportions, standing on the box bottom; a Model with a MeshSize
+	attribute keeps that size: WorldProps), anchors it, makes it visual-only
 	and hides the placeholder (which keeps collision, prompts and contract
 	names). Parts tagged MeshStandIn = that mesh anywhere under the same Map
 	or Plots root hide too (the spiral stand-in lives under Map.Chute, not
@@ -101,16 +102,31 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 		return false
 	end
 	local cf, box
+	local fixed = nil
 	if target:IsA("Model") then
 		cf, box = target:GetBoundingBox()
+		-- WorldProps skins carry their own MeshSize (native x one scale, as
+		-- tall as the Model): the mesh stands on the box's bottom with its
+		-- front (-Z) face on the box's front, where the board's SurfaceGui is.
+		local attr = target:GetAttribute("MeshSize")
+		if typeof(attr) == "Vector3" then
+			fixed = attr
+		end
 	else
 		cf, box = target.CFrame, target.Size
 	end
-	-- One uniform scale into the box, standing on its bottom: a WorldProps
-	-- Model's bounding box is the primitive prop's, not the mesh's, and
-	-- stretching to it squashed the board 3.08:1 (WorldLayout slots are
-	-- native x scale already, so they fit exactly).
-	local size, _, drop = MeshAssets.fit(name, { box.X, box.Y, box.Z })
+	local size: { number }, drop: number
+	if fixed then
+		size, drop = { fixed.X, fixed.Y, fixed.Z }, 0
+		cf = cf * CFrame.new(0, (fixed.Y - box.Y) / 2, (fixed.Z - box.Z) / 2)
+	else
+		-- One uniform scale into the box, standing on its bottom: a WorldProps
+		-- Model's bounding box is the primitive prop's, not the mesh's, and
+		-- stretching to it squashed the board 3.08:1 (WorldLayout slots are
+		-- native x scale already, so they fit exactly).
+		local fit, _, below = MeshAssets.fit(name, { box.X, box.Y, box.Z })
+		size, drop = fit, below
+	end
 	local mesh = base:Clone()
 	mesh.Name = "Mesh"
 	mesh.Size = Vector3.new(size[1], size[2], size[3])

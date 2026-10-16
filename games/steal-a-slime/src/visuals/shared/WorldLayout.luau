@@ -402,6 +402,8 @@ local function meshSize(mesh: string, scale: number): Vec
 	local native = (MeshAssets.get(mesh) :: any).size :: Vec
 	return { native[1] * scale, native[2] * scale, native[3] * scale }
 end
+-- Also for the WorldProps skins (server/WorldProps sets their MeshSize).
+WorldLayout.meshSize = meshSize
 
 local function block(name: string, size: Vec, pos: Vec, color: Vec, material: string?, rot: Vec?): WorldNode
 	return {

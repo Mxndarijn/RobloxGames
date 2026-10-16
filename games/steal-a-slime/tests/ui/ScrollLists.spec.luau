@@ -22,7 +22,8 @@ local UiHarness = require("./UiHarness")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local Enum, UDim2 = roblox.Enum, roblox.UDim2
 
-local VIEWPORTS = { { 390, 844 }, { 844, 390 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } }
+-- The five gate viewports + 844x332 (844x390 under the Roblox top bar).
+local VIEWPORTS = { { 390, 844 }, { 844, 390 }, { 844, 332 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } }
 
 type RowRect = { name: string, x: number, y: number, w: number, h: number }
 

@@ -63,6 +63,23 @@ end
 
 local placed: { [string]: Model } = {}
 
+-- The skin's size on `model`: native x one uniform scale (WorldLayout.meshSize,
+-- as #47 does for the plot slots), the scale matching the Model's height.
+-- Fitting the Model's box per axis squashed the top earners board 3.08:1
+-- (v27 gate B3). nil when the mesh has no native size.
+function WorldProps.meshSize(WorldLayout: any, mesh: string, model: Model): Vector3?
+	if not (WorldLayout and WorldLayout.meshSize) then
+		return nil
+	end
+	local ok, unit = pcall(WorldLayout.meshSize, mesh, 1)
+	if not ok or type(unit) ~= "table" or not (unit[2] and unit[2] > 0) then
+		return nil
+	end
+	local _, box = model:GetBoundingBox()
+	local size = WorldLayout.meshSize(mesh, box.Y / unit[2])
+	return Vector3.new(size[1], size[2], size[3])
+end
+
 -- Places any missing prop. Returns the props by name (missing ones are absent).
 function WorldProps.place(): { [string]: Model }
 	local Props = visual("Props")
@@ -95,6 +112,13 @@ function WorldProps.place(): { [string]: Model }
 			local mesh = WorldLayout and WorldLayout.PROP_MESHES and WorldLayout.PROP_MESHES[name]
 			if mesh and model:GetAttribute("MeshAsset") == nil then
 				model:SetAttribute("MeshAsset", mesh)
+			end
+			local skin = model:GetAttribute("MeshAsset")
+			if typeof(skin) == "string" and model:GetAttribute("MeshSize") == nil then
+				local size = WorldProps.meshSize(WorldLayout, skin, model)
+				if size then
+					model:SetAttribute("MeshSize", size)
+				end
 			end
 			placed[name] = model
 		end
