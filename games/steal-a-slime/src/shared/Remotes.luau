@@ -42,6 +42,7 @@ Remotes.ACTIONS = table.freeze({
 	Slap = table.freeze({ args = { "number" } }), -- target UserId
 	Drop = table.freeze({ args = {} }),
 	Appraise = table.freeze({ args = { "string", "string" } }), -- slimeId, "mutation" | "size" (FEATURES.Appraise)
+	Redeem = table.freeze({ args = { "code" } }), -- typed code text (Codes.normalize on the server)
 	Sync = table.freeze({ args = {} }), -- server re-sends State
 } :: { [string]: ActionDef })
 

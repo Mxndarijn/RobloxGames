@@ -49,6 +49,7 @@ local MENUS = {
 	Goals = "Goals",
 	Dex = "Dex",
 	Leaders = "Leaderboard",
+	Codes = "Codes",
 	Guide = "Guide",
 }
 

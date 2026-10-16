@@ -39,6 +39,10 @@ export type Data = {
 	stats: Stats,
 	goals: { [string]: number }, -- Config.GOALS id -> stages paid
 	dexRewards: number, -- Config.DEX_MILESTONES paid
+	-- Redeem codes (Codes, CONTRACT.md §10)
+	redeemed: { [string]: boolean }, -- normalized codes already used
+	boostMult: number, -- active income boost (1 = none)
+	boostUntil: number, -- unix seconds the boost ends (0 = none)
 }
 
 local PlayerData = {}
@@ -63,6 +67,9 @@ function PlayerData.new(): Data
 		stats = { caught = 0, merges = 0, locks = 0, sold = 0 },
 		goals = {},
 		dexRewards = 0,
+		redeemed = {},
+		boostMult = 1,
+		boostUntil = 0,
 	}
 end
 

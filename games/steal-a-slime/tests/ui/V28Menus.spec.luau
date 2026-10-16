@@ -81,7 +81,7 @@ describe("v28 item 1: friendlier, content-sized menus", function()
 		expect(panel.frame.ZIndex).toBe(Layout.ZINDEX.Menu)
 	end)
 	it("every panel passes an icon to Widgets.panel", function()
-		for _, file in { "Plot", "Merge", "Shop", "Rebirth", "Goals", "Dex", "Leaderboard", "Guide" } do
+		for _, file in { "Plot", "Merge", "Shop", "Rebirth", "Goals", "Dex", "Leaderboard", "Codes", "Guide" } do
 			local src = read(`src/ui/Panels/{file}.luau`)
 			local call = string.match(src, 'Widgets%.panel%(parent, "%a+", "[^"]+", "([^"]+)"')
 			expect(call ~= nil and #call > 0).toBe(true)

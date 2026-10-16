@@ -22,7 +22,7 @@ function GameLoop.step(world: World.World, now: number)
 	local elapsed = now - world.lastSecondAt
 	if elapsed >= 1 then
 		world.lastSecondAt = now
-		Income.step(world, elapsed)
+		Income.step(world, elapsed, now)
 		StealService.tickEscapes(world, now)
 		Milestones.step(world)
 	end

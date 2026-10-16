@@ -11,6 +11,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Appraise = if Shared then require(Shared.Appraise) else require("../shared/Appraise")
+local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
@@ -106,6 +107,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			amount = Progression.dailyAmount(dailyDay, rebirths),
 			day = dailyDay,
 		},
+		codes = Codes.view(data),
 		shop = Shop.view(data),
 		tutorialStep = TutorialProgress.current(data),
 		walkSpeed = Shop.walkSpeed(data),

@@ -17,6 +17,7 @@
 	  v3 (current, CONTRACT.md §8.9): v2 plus
 	    upgrades = { [id] = level }, stats = { caught, merges, locks, sold },
 	    goals = { [goalId] = stagesPaid }, dexRewards = n
+	    plus (no bump; missing -> none) redeemed = { code }, boost = { mult, untilAt }
 	    v2 -> v3: zero upgrades / goals / dexRewards, stats.caught seeded with
 	    max(#slimes, dex count), tutorialStep 4..6 -> 5..7 (BuyPad step).
 	Unknown/newer versions are read field-by-field with the v3 sanitizer.
@@ -202,6 +203,24 @@ function SaveData.deserialize(stored: any): Data
 		end
 	end
 	data.dexRewards = num(raw.dexRewards, 0, 0, #Config.DEX_MILESTONES)
+
+	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
+	if type(raw.redeemed) == "table" then
+		local count = 0
+		for _, code in raw.redeemed do
+			if type(code) == "string" and #code <= Config.CODE_MAX_LENGTH and count < 256 then
+				data.redeemed[code] = true
+				count += 1
+			end
+		end
+	end
+	if type(raw.boost) == "table" then
+		local until_ = num(raw.boost.untilAt, 0, 0, 1e11)
+		local mult = num(raw.boost.mult, 1, 1, Config.CODE_BOOST_MAX_MULT)
+		if until_ > 0 and mult > 1 then
+			data.boostMult, data.boostUntil = mult, until_
+		end
+	end
 	return data
 end
 
@@ -231,6 +250,11 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		table.insert(dex, key)
 	end
 	table.sort(dex)
+	local redeemed = {}
+	for code in data.redeemed do
+		table.insert(redeemed, code)
+	end
+	table.sort(redeemed)
 	return {
 		version = Config.SAVE_VERSION,
 		cash = math.floor(data.cash),
@@ -255,6 +279,8 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		},
 		goals = table.clone(data.goals),
 		dexRewards = data.dexRewards,
+		redeemed = redeemed,
+		boost = { mult = data.boostMult, untilAt = math.floor(data.boostUntil) },
 	}
 end
 

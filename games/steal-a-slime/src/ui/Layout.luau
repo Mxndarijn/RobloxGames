@@ -321,7 +321,7 @@ end
 Layout.NAV = table.freeze({
 	left = Layout.MARGIN,
 	padding = 6,
-	gap = 6,
+	gap = 3, -- 9 buttons still fit a 390x844 phone above the bottom cards
 	button = Layout.BUTTON,
 	expandedWidth = 148, -- fits the longest label ("SlimeDex")
 	collapsedWidth = 68, -- 56 px icon buttons + padding (~54 screen px on a phone)
@@ -417,6 +417,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Goals = 500,
 	Dex = 600,
 	Leaders = 460,
+	Codes = 300,
 	Guide = 380,
 })
 Layout.BANNER_WIDTH = 560
@@ -567,6 +568,9 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local _, _, tutorial0, tutorialCarrying0 = bottomCards(fullRow, W, H, inset)
 	local columns = if short then Layout.navColumns(H - inset - top) else 1
 	local navBottom = if short then H - inset else math.min(tutorial0.y, tutorialCarrying0.y) - gap
+	if columns > 2 then
+		collapsed = true -- a labelled 3-column grid would squeeze the bottom cards and menus
+	end
 	local nav = Layout.navRect(collapsed, top, navBottom, nil, columns)
 	local columnX = nav.x + nav.w + gap
 	local columnW = W - m - columnX

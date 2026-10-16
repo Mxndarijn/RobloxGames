@@ -25,6 +25,7 @@ Validate.ACTIONS = table.freeze({
 	Slap = 0.3,
 	Drop = 0.3,
 	Appraise = 0.5,
+	Redeem = 2,
 })
 
 function Validate.slimeId(value: any): string?

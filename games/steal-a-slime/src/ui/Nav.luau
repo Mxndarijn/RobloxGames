@@ -19,6 +19,7 @@ Nav.ENTRIES = table.freeze({
 	table.freeze({ key = "Goals", icon = "🎯", label = "Goals" }),
 	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex" }),
 	table.freeze({ key = "Leaders", icon = "🏆", label = "Top" }),
+	table.freeze({ key = "Codes", icon = "🎁", label = "Codes" }),
 } :: { Entry })
 
 local function num(value: any): number
