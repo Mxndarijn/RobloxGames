@@ -128,6 +128,65 @@ describe("WorldProps skins keep their mesh proportions (gate B3)", function()
 		expect(inv:VectorToWorldSpace(sign.CFrame.LookVector).Z < -0.99).toBe(true)
 	end)
 
+	describe("Top Earners text is on the board's own face (v30 C7)", function()
+		local model = map:FindFirstChild(Constants.LEADERBOARD_BOARD)
+		local board = model:FindFirstChild("Board")
+		local gui = board and board:FindFirstChild("BoardGui")
+		local mesh = model:FindFirstChild("Mesh")
+		local inv = model:GetPivot():Inverse()
+		local native = (MeshAssets.get("phoenix_top_earners_board") :: any).size
+		local k = mesh.Size.Y / native[2]
+		local face = WorldLayout.DEX_FACE
+
+		it("hangs the SurfaceGui on the board part, front face, adornee set", function()
+			expect(gui ~= nil).toBe(true)
+			expect(gui.ClassName).toBe("SurfaceGui")
+			expect(gui.Parent).toBe(board)
+			expect(gui.Adornee).toBe(board)
+			expect(gui.Face).toBe(roblox.Enum.NormalId.Front)
+			expect(model.PrimaryPart ~= nil).toBe(true)
+		end)
+
+		it("has no slab: no part but the board carries a SurfaceGui, and none is sized like a slab", function()
+			for _, d in model:GetDescendants() do
+				if d:IsA("SurfaceGui") then
+					expect(d.Parent).toBe(board)
+				end
+			end
+			local seen = 0
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") and d.Name == "Board" then
+					seen += 1
+					-- thin face panel, not the old 14 x 16 x 0.8 slab
+					expect(d.Size.Z <= 0.05).toBe(true)
+				end
+			end
+			expect(seen).toBe(1)
+		end)
+
+		it("is the skin's front cream panel: size, place and orientation", function()
+			expect(board.Size.X).toBeCloseTo(face.width * k, 0.02)
+			expect(board.Size.Y).toBeCloseTo(face.height * k, 0.02)
+			local c = inv:PointToWorldSpace(board.CFrame.Position)
+			local meshC = inv:PointToWorldSpace(mesh.CFrame.Position)
+			local meshBottom = meshC.Y - mesh.Size.Y / 2
+			-- kit front +Z is the Model's -Z (x mirrors with it)
+			-- (the fake runtime's bounding box is axis-aligned, so x is read in the
+			-- pivot's own frame, whose build x = 0 is the skin's box centre)
+			expect(c.X).toBeCloseTo(-face.x * k, 0.02)
+			expect(c.Y - meshBottom).toBeCloseTo(face.y * k, 0.02)
+			-- the skin's front is flush with the Model's front (the Collider's)
+			local collider = model:FindFirstChild("Collider")
+			local front = inv:PointToWorldSpace(collider.CFrame.Position).Z - collider.Size.Z / 2
+			local kitFace = front + mesh.Size.Z / 2 - face.front * k
+			expect(math.abs(c.Z - kitFace) < 0.05).toBe(true)
+			-- the Front face (and the text) looks out of the skin's front, -Z
+			expect(inv:VectorToWorldSpace(board.CFrame.LookVector).Z < -0.99).toBe(true)
+			-- behind the skin's front, so the mesh does not cover it
+			expect(c.Z > front).toBe(true)
+		end)
+	end)
+
 	it("WorldLayout.meshSize is native x one scale (the helper WorldProps uses)", function()
 		local native = (MeshAssets.get("phoenix_top_earners_board") :: any).size
 		local size = WorldLayout.meshSize("phoenix_top_earners_board", 0.5)
