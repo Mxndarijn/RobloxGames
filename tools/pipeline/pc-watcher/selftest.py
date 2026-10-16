@@ -266,7 +266,7 @@ def t_files():
             print(e)
         check("py_compile %s" % os.path.basename(f), ok)
     used = {
-        "client_stats": {"SECONDS"}, "shot_find": {"TARGET"}, "viewport_probe": {"SHOW"},
+        "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"}, "viewport_probe": {"SHOW"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"},
@@ -282,9 +282,39 @@ def t_files():
     check("shots.json is a list with ids", isinstance(shots, list) and all("id" in s for s in shots))
 
 
+def t_geometry():
+    checks = json.load(open(os.path.join(HERE, "checks.json"), encoding="utf-8"))
+    good = {
+        "bench_faces_campfire": {"items": [{"name": "b", "dot": 0.99}]},
+        "shops_face_centre": {"items": [{"name": "a", "dot": 1.0}, {"name": "b", "dot": 0.95}]},
+        "silo_centred": {"items": [{"name": "s", "dist": 0.01}]},
+        "plot_signs": {"items": [{"name": "p", "dot_out": 0.99, "dot_gate_front": 0.98, "mirrored": False, "enabled": True}]},
+    }
+    v = watcher.geometry_verdict(good, checks)
+    check("geometry all pass", all(x["pass"] for x in v.values()), v)
+    bad = json.loads(json.dumps(good))
+    bad["bench_faces_campfire"]["items"][0]["dot"] = -0.99
+    bad["silo_centred"]["items"][0]["dist"] = 7.9
+    bad["plot_signs"]["items"][0]["mirrored"] = True
+    bad["shops_face_centre"] = {"items": [], "errors": ["no shop instance found"]}
+    v = watcher.geometry_verdict(bad, checks)
+    check("geometry fails flagged", [k for k, x in v.items() if not x["pass"]] ==
+          ["bench_faces_campfire", "shops_face_centre", "silo_centred", "plot_signs"], v)
+    check("geometry missing check fails", not watcher.geometry_verdict({}, checks)["silo_centred"]["pass"])
+    t = {"pos": [10, 0, 0], "look": [0, 0, -1], "front": [1, 0, 0], "size": [4, 4, 4]}
+    eye, at = watcher.shot_camera_from(t, "front", dist=10, height=3)
+    check("shot from front", eye == (20.0, 3.0, 0.0) and at == (10, 0, 0), eye)
+    eye, _ = watcher.shot_camera_from(t, "centre", dist=10, height=3)
+    check("shot from centre", abs(eye[0]) < 1e-9 + 0.0 or abs(eye[0] - 0.0) < 1e-6, eye)
+    eye, at = watcher.shot_camera_from(t, "behind", aim=[0, 0, 0], dist=5, height=2)
+    check("shot from behind aim", eye == (15.0, 2.0, 0.0) and at == (0, 0, 0), eye)
+    eye, _ = watcher.shot_camera_from(t, "look", dist=5, height=0)
+    check("shot from look", eye[2] == -5.0, eye)
+
+
 def main():
     for t in (t_png, t_crop, t_marked, t_studios, t_actions, t_watcher, t_win32_pure, t_background, t_lock,
-              t_files):
+              t_files, t_geometry):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going
