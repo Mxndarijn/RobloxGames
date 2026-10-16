@@ -151,3 +151,69 @@ def to_jpeg(src_png, dst_jpg, quality=80):
     with Image.open(src_png) as im:
         im.convert("RGB").save(dst_jpg, "JPEG", quality=quality, optimize=True)
     return True
+
+
+def crop_rgb(width, height, rgb, x, y, w, h):
+    """Packed RGB rows -> (w, h, rgb) of the rect clamped to the image."""
+    x0, y0 = max(0, int(x)), max(0, int(y))
+    x1, y1 = min(width, int(x) + int(w)), min(height, int(y) + int(h))
+    if x1 <= x0 or y1 <= y0:
+        raise ValueError("crop %r outside %dx%d" % ((x, y, w, h), width, height))
+    out = bytearray()
+    for row in range(y0, y1):
+        o = (row * width + x0) * 3
+        out += rgb[o:o + (x1 - x0) * 3]
+    return x1 - x0, y1 - y0, bytes(out)
+
+
+def _row_span(row, colour, tol):
+    """(first, last) pixel index in one packed RGB row within `tol` of `colour`, or None."""
+    if tol == 0:
+        needle = bytes(colour)
+        i = row.find(needle)
+        while i != -1 and i % 3:
+            i = row.find(needle, i + 1)
+        if i == -1:
+            return None
+        j = row.rfind(needle)
+        while j != -1 and j % 3:
+            j = row.rfind(needle, 0, j + 2)
+        return i // 3, j // 3
+    r0, g0, b0 = colour
+    hits = [i for i in range(0, len(row), 3)
+            if abs(row[i] - r0) <= tol and abs(row[i + 1] - g0) <= tol and abs(row[i + 2] - b0) <= tol]
+    return (hits[0] // 3, hits[-1] // 3) if hits else None
+
+
+def find_colour_rect(width, height, rgb, colour=(255, 0, 255), tol=0, min_fill=0.8):
+    """Bounding rect (x, y, w, h) of a flat `colour` region, e.g. a full-screen probe frame.
+
+    Exact match first, then `tol` (slow pure-Python path). None when absent or when the colour
+    covers less than `min_fill` of its rect on a sample grid (a stray pixel, not a probe).
+    """
+    for t in ([0] if tol == 0 else [0, tol]):
+        rows = []
+        for y in range(height):
+            span = _row_span(rgb[y * width * 3:(y + 1) * width * 3], colour, t)
+            if span:
+                rows.append((y, span))
+        if not rows:
+            continue
+        x0 = min(s[0] for _, s in rows)
+        x1 = max(s[1] for _, s in rows)
+        y0, y1 = rows[0][0], rows[-1][0]
+        rect = (x0, y0, x1 - x0 + 1, y1 - y0 + 1)
+        if _fill(width, rgb, rect, colour, max(t, 8)) >= min_fill:
+            return rect
+    return None
+
+
+def _fill(width, rgb, rect, colour, tol, grid=24):
+    x, y, w, h = rect
+    hit = n = 0
+    for gy in range(grid):
+        for gx in range(grid):
+            o = ((y + gy * h // grid) * width + x + gx * w // grid) * 3
+            n += 1
+            hit += all(abs(rgb[o + c] - colour[c]) <= tol for c in range(3))
+    return hit / float(n)

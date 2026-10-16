@@ -105,9 +105,60 @@ def parse_tasklist_csv(text):
     return out
 
 
+def descendants(table, roots):
+    """table: [(pid, ppid, image)] -> roots plus every process whose parent chain reaches them."""
+    out = set(int(r) for r in roots)
+    grew = True
+    while grew:
+        grew = False
+        for pid, ppid, _ in table:
+            if ppid in out and pid not in out:
+                out.add(pid)
+                grew = True
+    return out
+
+
+def process_table():
+    """[(pid, ppid, image)] via a Toolhelp32 snapshot."""
+    a = _api()
+    from ctypes import wintypes as wt
+
+    class PROCESSENTRY32W(ctypes.Structure):
+        _fields_ = [
+            ("dwSize", wt.DWORD), ("cntUsage", wt.DWORD), ("th32ProcessID", wt.DWORD),
+            ("th32DefaultHeapID", ctypes.c_void_p), ("th32ModuleID", wt.DWORD), ("cntThreads", wt.DWORD),
+            ("th32ParentProcessID", wt.DWORD), ("pcPriClassBase", ctypes.c_long), ("dwFlags", wt.DWORD),
+            ("szExeFile", ctypes.c_wchar * 260),
+        ]
+
+    k = a.kernel32
+    k.CreateToolhelp32Snapshot.restype = wt.HANDLE
+    k.CreateToolhelp32Snapshot.argtypes = [wt.DWORD, wt.DWORD]
+    k.Process32FirstW.argtypes = [wt.HANDLE, ctypes.POINTER(PROCESSENTRY32W)]
+    k.Process32NextW.argtypes = [wt.HANDLE, ctypes.POINTER(PROCESSENTRY32W)]
+    snap = k.CreateToolhelp32Snapshot(0x2, 0)  # TH32CS_SNAPPROCESS
+    if not snap or snap == ctypes.c_void_p(-1).value:
+        return []
+    out = []
+    try:
+        e = PROCESSENTRY32W()
+        e.dwSize = ctypes.sizeof(PROCESSENTRY32W)
+        ok = k.Process32FirstW(snap, ctypes.byref(e))
+        while ok:
+            out.append((e.th32ProcessID, e.th32ParentProcessID, e.szExeFile))
+            ok = k.Process32NextW(snap, ctypes.byref(e))
+    finally:
+        k.CloseHandle(snap)
+    return out
+
+
 def list_pids(image=STUDIO_IMAGE):
     if os.name != "nt":
         return []
+    try:
+        return [pid for pid, _, img in process_table() if img.lower() == image.lower()]
+    except Exception:
+        pass
     r = subprocess.run(
         ["tasklist", "/FO", "CSV", "/NH", "/FI", "IMAGENAME eq %s" % image],
         capture_output=True, text=True, timeout=30, creationflags=NO_WINDOW,

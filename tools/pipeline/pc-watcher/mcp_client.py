@@ -186,8 +186,8 @@ KIND_PATTERNS = {
 }
 
 DEFAULT_ACTIONS = {
-    "mouse_down": {"type": "mouseButtonDown", "button": "left", "x": "$x", "y": "$y"},
-    "mouse_up": {"type": "mouseButtonUp", "button": "left", "x": "$x", "y": "$y"},
+    "mouse_down": {"type": "mouseButtonDown", "mouse_button": "left", "x": "$x", "y": "$y"},
+    "mouse_up": {"type": "mouseButtonUp", "mouse_button": "left", "x": "$x", "y": "$y"},
     "mouse_move": {"type": "mouseMove", "x": "$x", "y": "$y"},
     "key_down": {"type": "keyDown", "key": "$key"},
     "key_up": {"type": "keyUp", "key": "$key"},
@@ -195,7 +195,8 @@ DEFAULT_ACTIONS = {
 
 
 DISCRIMINATORS = ("type", "action", "kind", "event", "eventType", "inputType", "actionType")
-VALUE_FIELDS = ("key", "keyCode", "keycode", "keyName", "code", "button", "mouseButton")
+BUTTON_FIELDS = ("button", "mouseButton", "mouse_button")
+VALUE_FIELDS = ("key", "keyCode", "keycode", "key_code", "keyName", "code") + BUTTON_FIELDS
 
 
 def _fill(template, values):
@@ -266,13 +267,17 @@ def build_action(tool_schema, kind, values, override=None):
                 if pname in props and "x" in values:
                     action[pname] = {"x": values["x"], "y": values["y"]}
                     break
-        for bname in ("button", "mouseButton"):
-            if bname in props:
-                opts = _choices(props[bname])
-                left = [o for o in opts if re.search(r"(?i)left|button1|^1$|primary", str(o))]
-                action[bname] = left[0] if left else (opts[0] if opts else "left")
+        buttons = [b for b in BUTTON_FIELDS if b in props]
+        for bname in buttons:
+            opts = _choices(props[bname])
+            left = [o for o in opts if re.search(r"(?i)left|button1|^1$|primary", str(o))]
+            action[bname] = left[0] if left else (opts[0] if opts else "left")
+        if not buttons and kind in ("mouse_down", "mouse_up"):
+            # StudioMCP 0.743 lists no button field yet answers 'mouse_button ("left" or "right") is
+            # required for mouseButtonDown' (first PC run, 91a2c21).
+            action["mouse_button"] = "left"
         if "key" in values:
-            for kname in ("key", "keyCode", "keycode", "keyName", "code"):
+            for kname in ("key", "keyCode", "keycode", "key_code", "keyName", "code"):
                 if kname in props:
                     opts = _choices(props[kname])
                     want = [o for o in opts if str(o).lower() in (values["key"].lower(), "keycode." + values["key"].lower())]

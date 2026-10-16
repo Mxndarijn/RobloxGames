@@ -1,5 +1,5 @@
--- Client datamodel: SlimeUI state plus click centres (viewport px, GuiInset added) of the
--- buttons the watcher clicks. Names come from src/ui (init.client, Hud, Nav, Widgets.panel,
+-- Client datamodel: SlimeUI state plus click centres of the buttons the watcher clicks: cx/cy with
+-- the GuiInset added (unless IgnoreGuiInset), rx/ry without it (the watcher's retry). Names come from src/ui (init.client, Hud, Nav, Widgets.panel,
 -- Panels/TutorialOverlay).
 local GuiService = game:GetService("GuiService")
 local p = game:GetService("Players").LocalPlayer
@@ -43,11 +43,30 @@ local function rect(path)
 		h = as.Y,
 		cx = ap.X + as.X / 2 + off.X,
 		cy = ap.Y + as.Y / 2 + off.Y,
+		rx = ap.X + as.X / 2,
+		ry = ap.Y + as.Y / 2,
 	}
 end
 
+-- Fixed paths, plus every nav / HUD button (the nav is text-less icon buttons named by Nav.ENTRIES key)
+-- and every <Key>Panel with its Close.
+local paths = { "Hud.Shop", "Nav.Shop", "ShopPanel", "ShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" }
+for _, holder in { "Nav", "Hud" } do
+	local h = gui:FindFirstChild(holder)
+	for _, c in (if h then h:GetChildren() else {}) do
+		if c:IsA("GuiButton") then
+			table.insert(paths, holder .. "." .. c.Name)
+		end
+	end
+end
+for _, c in gui:GetChildren() do
+	if c:IsA("GuiObject") and string.sub(c.Name, -5) == "Panel" then
+		table.insert(paths, c.Name)
+		table.insert(paths, c.Name .. ".Close")
+	end
+end
 local targets = {}
-for _, path in { "Hud.Shop", "Nav.Shop", "ShopPanel", "ShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" } do
+for _, path in paths do
 	targets[path] = rect(path)
 end
 local openPanels = {}
@@ -71,5 +90,6 @@ return {
 	step_id = p:GetAttribute("TutorialStepId"),
 	carrying = p:GetAttribute("Carrying"),
 	open_panels = openPanels,
+	menu_open = GuiService.MenuIsOpen,
 	targets = targets,
 }
