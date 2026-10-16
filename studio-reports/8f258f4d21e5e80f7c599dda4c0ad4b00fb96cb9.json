@@ -4428,5 +4428,10 @@
       ]
     }
   },
-  "frames_dir": "8f258f4d21e5e80f7c599dda4c0ad4b00fb96cb9/"
+  "frames_dir": "8f258f4d21e5e80f7c599dda4c0ad4b00fb96cb9/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix: menus not populated: SlimeDex shows placeholder 'Label' text with no tiers, Goals and Shop panels empty on desktop and shot-02/03; shot-14-podium-1 camera clipped inside a wall. Superseded by 1b08cd7, which renders all of these correctly, so do not publish 8f258f4 itself."
 }

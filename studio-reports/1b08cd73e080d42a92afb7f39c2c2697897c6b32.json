@@ -4418,5 +4418,10 @@
       ]
     }
   },
-  "frames_dir": "1b08cd73e080d42a92afb7f39c2c2697897c6b32/"
+  "frames_dir": "1b08cd73e080d42a92afb7f39c2c2697897c6b32/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix sampled desktop/phone-portrait/phone-landscape views, all 8 menus on all three devices and every TODO shot (35): real Studio views, world/fountain/plots/shops present, menus populated (SlimeDex 0/1344 tiers, Goals, Shop items) with close buttons and on-screen. 8f258f4's unpopulated menus and clipped podium shot are fixed here. Non-blocking: Leaders/Merge sparse in solo test; desktop menus still ~29% width panels."
 }
