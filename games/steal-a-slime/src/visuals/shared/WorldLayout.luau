@@ -263,27 +263,12 @@ function WorldLayout.fenceSegments(): { FenceSegment }
 	end
 	return out
 end
--- Pad stand looks (Phoenix kit), cycled per pad.
-WorldLayout.PAD_MESHES = table.freeze({
-	"phoenix_pad_crate",
-	"phoenix_pad_hay",
-	"phoenix_pad_goo",
-	"phoenix_pad_stool",
-	"phoenix_pad_barrel_top",
-	"phoenix_pad_flower_bed",
-	"phoenix_pad_mushroom",
-})
--- Where a slime sits on each stand at native size (kit model headers): the Pad
+-- Every slime spot uses the one square crate pad (red mat rectangle); only
+-- the habitat on top changes per slime type (Habitats / HabitatFx).
+WorldLayout.PAD_MESH = "phoenix_pad_crate"
+-- Where a slime sits on the stand at native size (kit model header): the Pad
 -- top goes here, so slimes rest on the mesh instead of sinking into it.
-WorldLayout.PAD_SEAT = table.freeze({
-	phoenix_pad_crate = 2.4,
-	phoenix_pad_hay = 1.0,
-	phoenix_pad_goo = 1.5,
-	phoenix_pad_stool = 3.0,
-	phoenix_pad_barrel_top = 2.4, -- goo fill inside the sawn rim
-	phoenix_pad_flower_bed = 2.4, -- stump top
-	phoenix_pad_mushroom = 3.0, -- flat mesa top of the cap
-})
+WorldLayout.PAD_SEAT_Y = 2.4
 -- phoenix_gate's cream name board at native size (models/phoenix_gate.py
 -- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line;
 -- "SignRim" behind it ends 0.4 in front of the wall line).
@@ -1133,11 +1118,11 @@ local function plot(i: number): WorldNode
 	}
 	for j = 1, Config.PADS_MAX do
 		local x, z = WorldLayout.padOffset(j)
-		local look = WorldLayout.PAD_MESHES[(j + i - 2) % #WorldLayout.PAD_MESHES + 1]
+		local look = WorldLayout.PAD_MESH
 		-- Pad stays the gameplay surface (collision, prompt, slimes rest on its
 		-- top) from the Base up to the stand's seat; the stand mesh sits on the
 		-- Base at native size and the Pad hides under it once it lands.
-		local seat = WorldLayout.PAD_SEAT[look]
+		local seat = WorldLayout.PAD_SEAT_Y
 		local pad = block(`Pad_{j}`, { 8, seat, 8 }, at({ x, 1 + seat / 2, z }), color, "SmoothPlastic", { 0, yaw, 0 })
 		pad.attributes = { PadIndex = j }
 		standIn(pad, look)
