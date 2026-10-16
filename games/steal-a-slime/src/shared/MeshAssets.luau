@@ -74,11 +74,22 @@ local NAMES = {
 	"ranch_wheelbarrow",
 	"ranch_windmill",
 	"slime_fountain_emerge",
-	"ranch_hedge_segment",
-	"ranch_rail_fence",
-	"ranch_pine_cluster",
-	"ranch_border_hill",
-	"ranch_border_rocks",
+	"ranch_border_chunk_a",
+	"ranch_border_chunk_a_m",
+	"ranch_border_chunk_b",
+	"ranch_border_chunk_b_m",
+	"ranch_border_chunk_c",
+	"ranch_border_chunk_c_m",
+	"ranch_border_chunk_d",
+	"ranch_border_chunk_d_m",
+	"ranch_border_chunk_e",
+	"ranch_border_chunk_e_m",
+	"ranch_border_chunk_f",
+	"ranch_border_chunk_f_m",
+	"ranch_border_chunk_g",
+	"ranch_border_chunk_g_m",
+	"ranch_border_chunk_h",
+	"ranch_border_chunk_h_m",
 	"habitat_crystal_grotto",
 	"habitat_candy_patch",
 	"ranch_fence_20",
@@ -203,17 +214,40 @@ entries["ranch_windmill"] =
 	{ assetId = 122612940835932, meshId = "rbxassetid://120542952502577", size = { 8.382, 17.386, 9.65 } }
 entries["slime_fountain_emerge"] =
 	{ assetId = 100517882708695, meshId = "rbxassetid://74501501975558", size = { 19.436, 12.798, 11.353 } }
--- World border set (WorldBorder): uploaded; slots use MeshAsset (budget raised to 400).
-entries["ranch_hedge_segment"] =
-	{ assetId = 119247422503736, meshId = "rbxassetid://71512319503971", size = { 12.748, 5.209, 4.118 } }
-entries["ranch_rail_fence"] =
-	{ assetId = 87100683813184, meshId = "rbxassetid://132406051212178", size = { 11.974, 4.83, 1.652 } }
-entries["ranch_pine_cluster"] =
-	{ assetId = 96068092218228, meshId = "rbxassetid://126099578006873", size = { 14.184, 16.426, 10.241 } }
-entries["ranch_border_hill"] =
-	{ assetId = 132262123100385, meshId = "rbxassetid://80631608777270", size = { 29, 9.009, 17.296 } }
-entries["ranch_border_rocks"] =
-	{ assetId = 106283479556559, meshId = "rbxassetid://138899187398329", size = { 12.733, 6.131, 7.809 } }
+-- World border chunks (WorldBorder): one MeshAsset slot per ~55 studs of edge; "_m" = mirrored twin.
+-- size = the probed MeshPart size (upload.py --size-check), else the kit stats.
+entries["ranch_border_chunk_a"] =
+	{ assetId = 94925331158619, meshId = "rbxassetid://92545803715039", size = { 53.774, 18.158, 18.784 } }
+entries["ranch_border_chunk_a_m"] =
+	{ assetId = 100781636247729, meshId = "rbxassetid://75208315249940", size = { 53.774, 18.158, 18.784 } }
+entries["ranch_border_chunk_b"] =
+	{ assetId = 71941409109721, meshId = "rbxassetid://82003799367581", size = { 56.891, 17.815, 21.716 } }
+entries["ranch_border_chunk_b_m"] =
+	{ assetId = 128326484353168, meshId = "rbxassetid://96881136657782", size = { 56.891, 17.815, 21.716 } }
+entries["ranch_border_chunk_c"] =
+	{ assetId = 92690189745758, meshId = "rbxassetid://77575505128375", size = { 55.829, 17.028, 18.597 } }
+entries["ranch_border_chunk_c_m"] =
+	{ assetId = 138313013473619, meshId = "rbxassetid://80884596375037", size = { 55.829, 17.028, 18.597 } }
+entries["ranch_border_chunk_d"] =
+	{ assetId = 137067804676236, meshId = "rbxassetid://97405969708559", size = { 55.355, 19.042, 19.384 } }
+entries["ranch_border_chunk_d_m"] =
+	{ assetId = 75235346512732, meshId = "rbxassetid://87662768383786", size = { 55.355, 19.042, 19.384 } }
+entries["ranch_border_chunk_e"] =
+	{ assetId = 109242744894138, meshId = "rbxassetid://132885194666319", size = { 56.401, 16.452, 23.796 } }
+entries["ranch_border_chunk_e_m"] =
+	{ assetId = 109365054036525, meshId = "rbxassetid://93903621590503", size = { 56.401, 16.452, 23.796 } }
+entries["ranch_border_chunk_f"] =
+	{ assetId = 80693531899144, meshId = "rbxassetid://77858255742515", size = { 54.459, 15.538, 19.699 } }
+entries["ranch_border_chunk_f_m"] =
+	{ assetId = 96662590834377, meshId = "rbxassetid://120762785944746", size = { 54.459, 15.538, 19.699 } }
+entries["ranch_border_chunk_g"] =
+	{ assetId = 127711380621535, meshId = "rbxassetid://135118890139766", size = { 54.983, 20.237, 22.209 } }
+entries["ranch_border_chunk_g_m"] =
+	{ assetId = 115480470444754, meshId = "rbxassetid://83216549463379", size = { 54.983, 20.237, 22.209 } }
+entries["ranch_border_chunk_h"] =
+	{ assetId = 73419946109730, meshId = "rbxassetid://111017472008949", size = { 53.606, 28.241, 42 } }
+entries["ranch_border_chunk_h_m"] =
+	{ assetId = 88966428868581, meshId = "rbxassetid://104548969463535", size = { 53.606, 28.241, 42 } }
 -- Habitat mesh slots (Habitats.MESH_SLOTS, HABITATS.md): Archer #57 models.
 -- Sizes from Open Cloud size-check (seat 2.4 per FOUNTAIN_SIZES.md).
 entries["habitat_crystal_grotto"] =

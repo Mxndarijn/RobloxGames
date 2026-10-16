@@ -272,6 +272,214 @@
     "uploadedAt": "2026-10-16T07:03:05Z",
     "versions": 1
   },
+  "ranch_border_chunk_a": {
+    "assetId": "94925331158619",
+    "assetType": "Model",
+    "meshId": "rbxassetid://92545803715039",
+    "meshSize": [
+      53.774,
+      18.158,
+      18.784
+    ],
+    "sha256": "72df0303609ad570",
+    "uploadedAt": "2026-10-16T08:08:31Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_a_m": {
+    "assetId": "100781636247729",
+    "assetType": "Model",
+    "meshId": "rbxassetid://75208315249940",
+    "meshSize": [
+      53.774,
+      18.158,
+      18.784
+    ],
+    "sha256": "12f088a19c80cb1b",
+    "uploadedAt": "2026-10-16T08:08:45Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_b": {
+    "assetId": "71941409109721",
+    "assetType": "Model",
+    "meshId": "rbxassetid://82003799367581",
+    "meshSize": [
+      56.891,
+      17.815,
+      21.716
+    ],
+    "sha256": "749456e64b0bbc8a",
+    "uploadedAt": "2026-10-16T08:08:56Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_b_m": {
+    "assetId": "128326484353168",
+    "assetType": "Model",
+    "meshId": "rbxassetid://96881136657782",
+    "meshSize": [
+      56.891,
+      17.815,
+      21.716
+    ],
+    "sha256": "8cf0ec1adbbb1c02",
+    "uploadedAt": "2026-10-16T08:09:10Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_c": {
+    "assetId": "92690189745758",
+    "assetType": "Model",
+    "meshId": "rbxassetid://77575505128375",
+    "meshSize": [
+      55.829,
+      17.028,
+      18.597
+    ],
+    "sha256": "7727d676d53b4feb",
+    "uploadedAt": "2026-10-16T08:09:26Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_c_m": {
+    "assetId": "138313013473619",
+    "assetType": "Model",
+    "meshId": "rbxassetid://80884596375037",
+    "meshSize": [
+      55.829,
+      17.028,
+      18.597
+    ],
+    "sha256": "06824d56825b5f85",
+    "uploadedAt": "2026-10-16T08:09:45Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_d": {
+    "assetId": "137067804676236",
+    "assetType": "Model",
+    "meshId": "rbxassetid://97405969708559",
+    "meshSize": [
+      55.355,
+      19.042,
+      19.384
+    ],
+    "sha256": "b1aa4de9289b5fb8",
+    "uploadedAt": "2026-10-16T08:09:54Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_d_m": {
+    "assetId": "75235346512732",
+    "assetType": "Model",
+    "meshId": "rbxassetid://87662768383786",
+    "meshSize": [
+      55.355,
+      19.042,
+      19.384
+    ],
+    "sha256": "7faa214bf2f3dd94",
+    "uploadedAt": "2026-10-16T08:10:10Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_e": {
+    "assetId": "109242744894138",
+    "assetType": "Model",
+    "meshId": "rbxassetid://132885194666319",
+    "meshSize": [
+      56.401,
+      16.452,
+      23.796
+    ],
+    "sha256": "4099fd7bd04def33",
+    "uploadedAt": "2026-10-16T08:10:26Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_e_m": {
+    "assetId": "109365054036525",
+    "assetType": "Model",
+    "meshId": "rbxassetid://93903621590503",
+    "meshSize": [
+      56.401,
+      16.452,
+      23.796
+    ],
+    "sha256": "2c2ed13a62f0ace3",
+    "uploadedAt": "2026-10-16T08:10:45Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_f": {
+    "assetId": "80693531899144",
+    "assetType": "Model",
+    "meshId": "rbxassetid://77858255742515",
+    "meshSize": [
+      54.459,
+      15.538,
+      19.699
+    ],
+    "sha256": "5b150302cdd28c9a",
+    "uploadedAt": "2026-10-16T08:10:54Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_f_m": {
+    "assetId": "96662590834377",
+    "assetType": "Model",
+    "meshId": "rbxassetid://120762785944746",
+    "meshSize": [
+      54.459,
+      15.538,
+      19.699
+    ],
+    "sha256": "fd1163b040f34627",
+    "uploadedAt": "2026-10-16T08:11:08Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_g": {
+    "assetId": "127711380621535",
+    "assetType": "Model",
+    "meshId": "rbxassetid://135118890139766",
+    "meshSize": [
+      54.983,
+      20.237,
+      22.209
+    ],
+    "sha256": "f03591c389bb2b22",
+    "uploadedAt": "2026-10-16T08:11:29Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_g_m": {
+    "assetId": "115480470444754",
+    "assetType": "Model",
+    "meshId": "rbxassetid://83216549463379",
+    "meshSize": [
+      54.983,
+      20.237,
+      22.209
+    ],
+    "sha256": "ec7391574f38bf74",
+    "uploadedAt": "2026-10-16T08:11:45Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_h": {
+    "assetId": "73419946109730",
+    "assetType": "Model",
+    "meshId": "rbxassetid://111017472008949",
+    "meshSize": [
+      53.606,
+      28.241,
+      42.0
+    ],
+    "sha256": "a5257b360c1d2a13",
+    "uploadedAt": "2026-10-16T08:11:59Z",
+    "versions": 1
+  },
+  "ranch_border_chunk_h_m": {
+    "assetId": "88966428868581",
+    "assetType": "Model",
+    "meshId": "rbxassetid://104548969463535",
+    "meshSize": [
+      53.606,
+      28.241,
+      42.0
+    ],
+    "sha256": "04bcd75870e64613",
+    "uploadedAt": "2026-10-16T08:12:13Z",
+    "versions": 1
+  },
   "ranch_border_hill": {
     "assetId": "132262123100385",
     "assetType": "Model",
