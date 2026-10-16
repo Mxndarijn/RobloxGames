@@ -60,6 +60,25 @@ local function depth(spec, p): number
 	return math.min(s[1] / 2 - math.abs(dot(d, right)), s[2] / 2 - math.abs(dot(d, up)), s[3] / 2 - math.abs(dot(d, f)))
 end
 
+-- True when p lies in ANOTHER segment's lane (over its floor slab, within its width, near its top): on this
+-- tight spiral the inner side of a bend is the next segment's lane, so a wall cannot (and must not) be there.
+local function inOtherLane(p, i): boolean
+	for _, spec in SPECS do
+		if spec.kind == "Floor" and spec.segment ~= i then
+			local right, up, f = frame(spec)
+			local d = sub(p, spec.centre)
+			if
+				math.abs(dot(d, right)) < spec.size[1] / 2
+				and math.abs(dot(d, f)) < spec.size[3] / 2
+				and math.abs(dot(d, up) - spec.size[2] / 2) < 6
+			then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 local function insideAny(p): (boolean, string?)
 	for _, spec in SPECS do
 		if depth(spec, p) > RIDE_EPS then
@@ -139,8 +158,13 @@ describe("SlideColliders specs", function()
 				local half = names[`SlideFloor{i}`].size[1] / 2
 				for _, side in { -1, 1 } do
 					local wall = names[if side < 0 then `SlideWallL{i}` else `SlideWallR{i}`]
-					local q = { p[1] + right[1] * side * (half - 0.3), p[2] + 1, p[3] + right[3] * side * (half - 0.3) }
-					expect(depth(wall, q) > 0).toBe(true)
+					local q = { p[1] + right[1] * side * (half + 0.6), p[2] + 1, p[3] + right[3] * side * (half + 0.6) }
+					-- (a bend's inner wall stops short of the join where the two inner faces meet, B6 round 5:
+					-- near its ends only the middle sample must be in it; the corner behind is sealed by both faces)
+					local cut = wall.size[3] < names[`SlideFloor{i}`].size[3] - 1e-6
+					if not inOtherLane(q, i) and (k == 0.5 or not cut) then
+						expect(depth(wall, q) > 0).toBe(true)
+					end
 				end
 			end
 		end
@@ -421,7 +445,7 @@ describe("slide collision has no gap at any join and follows the visual path (B6
 			for _, side in { -1, 1 } do
 				for along = -1.5, 1.5, 0.1 do
 					local met = false
-					for lat = 0, 5, 0.05 do
+					for lat = 0, 8, 0.05 do
 						local p = {}
 						for k = 1, 3 do
 							p[k] = joint[k] + f[k] * along + right[k] * side * lat + up[k] * 1.5
@@ -556,14 +580,14 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 				for _, k in { 0, 0.1, 0.5, 0.9, 1 } do
 					local c = pathPoint(i, k)
 					for _, side in { -1, 1 } do
-						for _, lat in { half - 0.5, half, half + 0.5 } do
+						for _, lat in { half + 0.2, half + 1, half + 1.8 } do
 							local h = 0.1
 							while h < 5 do
 								local p = {}
 								for a = 1, 3 do
 									p[a] = c[a] + right[a] * side * lat + up[a] * h
 								end
-								if not solidIn(p, { Wall = true }) then
+								if not solidIn(p, { Wall = true }) and not inOtherLane(p, i) then
 									error(`wall gap: segment {i} k={k} side={side} lat={lat} height={h}`)
 								end
 								h += 0.5
@@ -717,12 +741,19 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 				for _, side in { "L", "R" } do
 					check(`SlideJointWall{side}{i}`, `SlideJointCeiling{i}`)
 				end
-				local c, w = names[`SlideJointCeiling{i}`], names[`SlideJointWallL{i}`]
+				-- the OUTER joint wall (the long one; the inner one is a corner piece, B6 round 5)
+				local c = names[`SlideJointCeiling{i}`]
+				local w = names[`SlideJointWallL{i}`]
+				if names[`SlideJointWallR{i}`].size[3] > w.size[3] then
+					w = names[`SlideJointWallR{i}`]
+				end
 				expect(
 					c.size[1] >= w.size[1] + w.size[1] + 2 * 3.5 - 1e-6
 						or c.size[1] >= 2 * (3.5 + SlideColliders.WALL_OUT) - 1e-6
 				).toBe(true)
-				expect(w.size[3] >= SlideColliders.JOINT_LENGTH + 2 * SlideColliders.JOINT_MARGIN - 1e-6).toBe(true)
+				-- (the last join, at the mouth on the ground, keeps to the joint floor's length)
+				local margin = if i == #PATH - 2 then 0 else 2 * SlideColliders.JOINT_MARGIN
+				expect(w.size[3] >= SlideColliders.JOINT_LENGTH + margin - 1e-6).toBe(true)
 			end
 		end
 	)
@@ -811,20 +842,24 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 			if x[2] < -1 then
 				return false, `fell to y={x[2]}`
 			end
-			local over = false
+			-- the Studio probe's own test (pc-watcher/luau/slide_walk.luau escaped()): within a slab's length and
+			-- 8 studs of its top face but outside every such slab's width + 0.2 = left the trough sideways
+			local near, inside = false, false
 			for _, spec in slabs do
-				local right, _, f = frame(spec)
+				local right, up, f = frame(spec)
 				local d = sub(x, spec.centre)
-				if
-					math.abs(dot(d, right)) < spec.size[1] / 2 + SlideColliders.WALL_OUT
-					and math.abs(dot(d, f)) < spec.size[3] / 2
-					and math.abs(d[2]) < 12
-				then
-					over = true
-					break
+				if math.abs(dot(d, f)) < spec.size[3] / 2 and math.abs(dot(d, up) - spec.size[2] / 2) < 8 then
+					if math.abs(dot(d, right)) < spec.size[1] / 2 + 0.2 then
+						inside = true
+						break
+					end
+					near = true
 				end
 			end
-			if not over then
+			if near and not inside then
+				return false, "left the trough sideways (probe test)"
+			end
+			if not inside then
 				return false, "left the slide"
 			end
 		end
@@ -848,7 +883,7 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 					for _, side in { -2.4, 0, 2.4 } do
 						for _, speed in { 40, 60 } do
 							-- at 60 studs/s a ball launched in the last segments before the mouth simply runs out of it
-							-- within the 0.9 s window (an open end, not a side escape)
+							-- within the probe's 1.5 s window (an open end, not a side escape)
 							if speed == 60 and i > #PATH - 4 then
 								continue
 							end
@@ -859,7 +894,7 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 								c[3] + right[3] * side,
 							}
 							local v = { f[1] * speed, f[2] * speed, f[3] * speed }
-							local ok, why = simulate(x, v, 0.9)
+							local ok, why = simulate(x, v, 1.5)
 							trials += 1
 							if not ok then
 								table.insert(failed, `segment {i} k={k} side={side} v={speed}: {why}`)
@@ -874,6 +909,33 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 			expect(trials > 500).toBe(true)
 		end
 	)
+	it(
+		"no probe ball spawns inside a wall: every slide_walk drop point (k, side 0 / +-2.4, +5) clears every solid by its radius",
+		function()
+			local bad = {}
+			for i = 1, #PATH - 1 do
+				local spec = specOf(`SlideFloor{i}`)
+				local right = frame(spec)
+				for _, k in { 0, 0.02, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 1 } do
+					local c = pathPoint(i, k)
+					for _, side in { -2.4, 0, 2.4 } do
+						local x = { c[1] + right[1] * side, c[2] + 5, c[3] + right[3] * side }
+						for _, other in SPECS do
+							if other.kind ~= "Skirt" then
+								local _, dist = closestPush(other, x)
+								if dist < 1 then
+									table.insert(bad, `segment {i} k={k} side={side} overlaps {other.name} ({dist})`)
+								end
+							end
+						end
+					end
+				end
+			end
+			if #bad > 0 then
+				error(`{#bad} probe spawn overlaps:\n{table.concat(bad, "\n", 1, math.min(#bad, 20))}`)
+			end
+		end
+	)
 	it("segment 3 outer side: dense k at v 40 / 60, sides +-2.4, zero escapes", function()
 		local failed = {}
 		local spec = specOf("SlideFloor3")
@@ -884,7 +946,7 @@ describe("slide walls, joints and ceiling hold a fast ball (B6 round 3)", functi
 				for _, speed in { 40, 60 } do
 					local x = { c[1] + right[1] * side, c[2] + 5, c[3] + right[3] * side }
 					local v = { f[1] * speed, f[2] * speed, f[3] * speed }
-					local ok, why = simulate(x, v, 0.9)
+					local ok, why = simulate(x, v, 1.5)
 					if not ok then
 						table.insert(failed, `k={k} side={side} v={speed}: {why}`)
 					end

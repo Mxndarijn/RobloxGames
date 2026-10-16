@@ -46,8 +46,13 @@ local SlideColliders = {}
 SlideColliders.HALF_WIDTH = 3.5 -- kit HW
 SlideColliders.LIP = 1.9 -- kit LIP: wall top above the floor
 SlideColliders.FLOOR = 0.7 -- kit -BOT: trough bottom below the floor top
-SlideColliders.WALL = 0.6 -- kit HW - IW: the wall's inner part (inside the trough width)
-SlideColliders.WALL_OUT = 1.4 -- the wall goes this far past the trough edge too: 2 studs thick in all, a fast ball cannot tunnel it
+SlideColliders.WALL = -0.8 -- the wall's inner face sits this far INSIDE the trough edge; negative = outside it (B6 round 5:
+-- at 0.6 the inner face was 2.9 from the centreline, so the Studio probe's 2-stud balls dropped at side +-2.4 spawned
+-- 0.5 studs INSIDE the wall (and inside neighbouring segments' walls on this tight spiral), and Roblox
+-- depenetrated one out of the trough: segment 3, k=0.90. Now the face is at HALF_WIDTH + 0.8 = 4.3: every probe drop
+-- point clears every wall by the ball's radius, and a ball pressed on the wall (centre 3.3) is still inside the
+-- probe's trough test, |x| < HALF_WIDTH + 0.2. The floor slabs widen to the wall faces, so there is no slot.)
+SlideColliders.WALL_OUT = 2.8 -- the wall's outer face this far past the trough edge: WALL + WALL_OUT = 2 studs thick, a fast ball cannot tunnel it
 SlideColliders.MOUTH_SHARE = 0.1 -- last share of the path that flares into the mouth
 SlideColliders.WALK_UNDER = 6 -- trough bottoms lower than this get a skirt (no walking under)
 SlideColliders.MIN_THICK = 4 -- floor slab never thinner than this (a falling player moves ~2 studs a frame)
@@ -75,6 +80,31 @@ end
 -- True for the segment a -> b that gets colliders.
 function SlideColliders.isLow(a: Vec, b: Vec): boolean
 	return math.min(a[2], b[2]) <= FountainRide.LOW_SLIDE_Y
+end
+
+-- Which side is the INNER side of the bend at path[j] (between segments j - 1 and j): +1 = the segment's
+-- right (+X), -1 = its left, 0 = no bend there (path end or straight).
+local function innerSide(path: { Vec }, j: number): (number, number)
+	if j <= 1 or j >= #path then
+		return 0, 0
+	end
+	local a, b, c = path[j - 1], path[j], path[j + 1]
+	local d1x, d1z = b[1] - a[1], b[3] - a[3]
+	local d2x, d2z = c[1] - b[1], c[3] - b[3]
+	-- right = (-f.z, 0, f.x): the bend turns toward +right when d2 . right1 > 0
+	local toward = d2x * -d1z + d2z * d1x
+	if math.abs(toward) < 1e-6 then
+		return 0, 0
+	end
+	-- tan(turn / 2), from the full 3D directions (as the joint fillers measure the turn)
+	local l1 = math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2 + (b[3] - a[3]) ^ 2)
+	local l2 = math.sqrt((c[1] - b[1]) ^ 2 + (c[2] - b[2]) ^ 2 + (c[3] - b[3]) ^ 2)
+	local cosTurn = math.clamp(
+		((b[1] - a[1]) * (c[1] - b[1]) + (b[2] - a[2]) * (c[2] - b[2]) + (b[3] - a[3]) * (c[3] - b[3])) / (l1 * l2),
+		-0.99,
+		1
+	)
+	return (if toward > 0 then 1 else -1), math.sqrt((1 - cosTurn) / (1 + cosTurn))
 end
 
 function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
@@ -123,21 +153,35 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 			segment = i,
 			centre = at(0, -thick / 2),
 			forward = f,
-			size = { half * 2, thick, long },
+			size = { (half - SlideColliders.WALL) * 2, thick, long },
 		})
 		local wallTop = SlideColliders.CEILING + SlideColliders.WALL_TO_CEILING -- above the floor top: into the ceiling
 		local wallHeight = wallTop + SlideColliders.FLOOR
 		local wallLift = (wallTop - SlideColliders.FLOOR) / 2
 		local wallThick = SlideColliders.WALL + SlideColliders.WALL_OUT
 		local wallOffset = half + (SlideColliders.WALL_OUT - SlideColliders.WALL) / 2
+		-- B6 round 5: on a bend's INNER side a wall must stop at the join. The slide spirals tightly (55 deg bends
+		-- at the head, ~20 deg below), so a straight wall running OVERLAP / 2 past the join on the inner side
+		-- cut into the next segment's lane, where the probe's balls spawned inside it and Roblox shot them out.
+		-- The outer side keeps the overlap (the joint wall closes the wedge there).
+		-- It stops where the two segments' inner wall FACES meet (face * tan(turn / 2) short of the join), so
+		-- neither its face nor its outer corner pokes into the next lane; the inner joint wall fills the corner.
+		local startInner, startTan = innerSide(path, i)
+		local endInner, endTan = innerSide(path, i + 1)
+		local face = half - SlideColliders.WALL
 		for _, side in { { name = "L", sign = -1 }, { name = "R", sign = 1 } } do
+			local wb = if startInner == side.sign then -face * startTan else before
+			local wa = if endInner == side.sign then -face * endTan else after
+			local wlong = length + wb + wa
+			local wshift = (wa - wb) / 2 - shift
+			local c = at(side.sign * wallOffset, wallLift)
 			table.insert(out, {
 				name = `SlideWall{side.name}{i}`,
 				kind = "Wall",
 				segment = i,
-				centre = at(side.sign * wallOffset, wallLift),
+				centre = { c[1] + f[1] * wshift, c[2] + f[2] * wshift, c[3] + f[3] * wshift },
 				forward = f,
-				size = { wallThick, wallHeight, long },
+				size = { wallThick, wallHeight, wlong },
 			})
 		end
 		-- Ceiling guard: nothing leaves the slide upward either.
@@ -203,7 +247,7 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 			segment = i - 1,
 			centre = at(0, -thick / 2),
 			forward = f,
-			size = { half * 2, thick, math.max(SlideColliders.JOINT_LENGTH, 2 * reach + 2) },
+			size = { (half - SlideColliders.WALL) * 2, thick, math.max(SlideColliders.JOINT_LENGTH, 2 * reach + 2) },
 		})
 		-- Walls on BOTH sides (the outer one closes the wedge, the inner one the overlap
 		-- of two thick walls), and the ceiling guard across the join.
@@ -213,15 +257,28 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 		local wallThick = SlideColliders.WALL + SlideColliders.WALL_OUT
 		local wallOffset = half + (SlideColliders.WALL_OUT - SlideColliders.WALL) / 2
 		local jointLength = math.max(SlideColliders.JOINT_LENGTH, 2 * reach + 2)
-		local jointWallLength = jointLength + 2 * SlideColliders.JOINT_MARGIN
+		-- (the last join sits at the ground by the mouth, where riding slimes walk off to their landing: its
+		-- walls, now further out (B6 round 5), keep to the joint floor's length there)
+		local jointWallLength = jointLength + if i == n - 1 then 0 else 2 * SlideColliders.JOINT_MARGIN
+		-- The inner joint wall sits OUT at the corner where the two segments' inner wall faces meet
+		-- (face / cos(turn / 2) from the join) and is only as long as it is thick, so no part of it reaches
+		-- into either lane (B6 round 5); the outer one runs the full joint length and closes the wedge.
+		local inner = innerSide(path, i)
+		-- (corner piece: a wallThick cube in the wedge behind the corner, its lane-side edges on the faces' far side)
+		local cosHalf = math.sqrt((1 + cosTurn) / 2)
 		for _, side in { { name = "L", sign = -1 }, { name = "R", sign = 1 } } do
+			local isInner = side.sign == inner
+			local face = half - SlideColliders.WALL
+			local offset = if isInner
+				then face / cosHalf + (wallThick / 2) * (reach / half) + wallThick / 2
+				else wallOffset
 			table.insert(out, {
 				name = `SlideJointWall{side.name}{i - 1}`,
 				kind = "Wall",
 				segment = i - 1,
-				centre = at(side.sign * wallOffset, wallLift),
+				centre = at(side.sign * offset, wallLift),
 				forward = f,
-				size = { wallThick, wallHeight, jointWallLength },
+				size = { wallThick, wallHeight, if isInner then wallThick else jointWallLength },
 			})
 		end
 		table.insert(out, {
