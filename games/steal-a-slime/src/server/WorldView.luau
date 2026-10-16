@@ -31,6 +31,7 @@ local Collection = require(ReplicatedStorage.Shared.Collection)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local FallbackWorld = require(script.Parent.FallbackWorld)
+local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
@@ -280,6 +281,43 @@ local function fountainRide(landing: CFrame): (number, (t: number) -> CFrame)
 		end
 end
 
+-- FEATURES.Parade: the slime's sideways offset on the goo lane and its pose there.
+local function laneLateral(wild: World.Wild): number
+	return ParadeLane.lateral(wild.radius, Fountain.MIN_RADIUS, Fountain.MAX_RADIUS)
+end
+
+local function laneCFrame(wild: World.Wild, now: number): CFrame
+	local pose = ParadeLane.pose(wild.spawnedAt, wild.expiresAt, laneLateral(wild), now)
+	local p, h = pose.position, pose.heading
+	local at = Vector3.new(p[1], p[2], p[3])
+	return CFrame.lookAt(at, at + Vector3.new(h[1], 0, h[2]))
+end
+
+-- Where the fountain ride drops a parade slime: the lane entry, facing along the lane.
+local function laneEntry(wild: World.Wild): CFrame
+	local e = ParadeLane.entrySpot(laneLateral(wild))
+	local _, _, hx, hz = ParadeLane.pointAt(0)
+	local at = Vector3.new(e[1], e[2], e[3])
+	return CFrame.lookAt(at, at + Vector3.new(hx, 0, hz))
+end
+
+-- Pivots a lane slime along the parade every frame (after its ride lands)
+-- until its record changes (grabbed, dropped) or the model is gone.
+local function followLane(id: string, key: string, wild: World.Wild)
+	task.spawn(function()
+		while true do
+			local record = records[id]
+			if not record or record.key ~= key or not record.model.Parent then
+				return
+			end
+			if os.clock() >= record.rideUntil then
+				record.model:PivotTo(laneCFrame(wild, workspace:GetServerTimeNow()))
+			end
+			RunService.Heartbeat:Wait()
+		end
+	end)
+end
+
 local function create(entry: Scene.Entry, onPrompt: (Player, string) -> ()): Record?
 	if failed[entry.id] or not modelFactory then
 		return nil
@@ -353,6 +391,19 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 		if not wild then
 			return true
 		end
+		if ParadeLane.enabled() and wild.position == nil then
+			-- Fresh drops ride the slide onto the lane entry; later ones (a rebuilt model) join where they are.
+			local now = workspace:GetServerTimeNow()
+			if previous == nil and ParadeLane.phase(wild.spawnedAt, wild.expiresAt, now) == "Ride" then
+				local seconds, ride = fountainRide(laneEntry(wild))
+				record.rideUntil = os.clock() + seconds
+				animate(entry.id, entry.key, seconds, ride)
+			else
+				model:PivotTo(laneCFrame(wild, now))
+			end
+			followLane(entry.id, entry.key, wild)
+			return true
+		end
 		local landing = wildLanding(wild)
 		if previous == nil and wild.position == nil then
 			local seconds, ride = fountainRide(landing)
@@ -421,18 +472,6 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 			end
 			if isNew and not record.model.Parent then
 				record.model.Parent = workspace:FindFirstChild(Constants.WILD_FOLDER)
-			end
-		elseif ParadeLane.enabled() and entry.state == "Wild" then
-			-- Parade: the key stays the same while the slime walks the lane (Spawner moves angle);
-			-- follow it once the fountain ride has landed.
-			local wild = entry.wild
-			if
-				wild
-				and wild.position == nil
-				and now >= wild.spawnedAt + ParadeLane.HOP_SECONDS
-				and os.clock() >= record.rideUntil
-			then
-				record.model:PivotTo(volcanoLanding(wild))
 			end
 		end
 	end

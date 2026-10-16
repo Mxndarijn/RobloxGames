@@ -4,13 +4,16 @@
 -- the way WorldView plays it (emerge -> every slide waypoint in order ->
 -- run-out round the plaza), checked for order, speed, clearance and the
 -- final spot. Live: the real server in the fake runtime, every wild model
--- tracked frame by frame from the crown to its resting spot on the plaza.
+-- tracked frame by frame from the crown to its resting spot: with
+-- FEATURES.Parade the head of the goo lane (ParadeLane.entrySpot), where it
+-- waits until the hop-on window ends (tests/ParadeLane.spec has the walk).
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
 local Config = require("../src/shared/Config")
 local Fountain = require("../src/shared/Fountain")
 local FountainRide = require("../src/shared/FountainRide")
+local ParadeLane = require("../src/shared/ParadeLane")
 local Rng = require("../src/shared/Rng")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
@@ -238,6 +241,11 @@ require("@lune/fs").removeFile(placePath)
 rt:boot()
 local tracks = {}
 local SIM_SECONDS = 50
+-- Longest ride onto the lane entry (either edge of the lateral spread).
+local LANE_RIDE_SECONDS = 0
+for _, lateral in { -ParadeLane.SPREAD / 2, 0, ParadeLane.SPREAD / 2 } do
+	LANE_RIDE_SECONDS = math.max(LANE_RIDE_SECONDS, FountainRide.new(PATH, ParadeLane.entrySpot(lateral)).duration)
+end
 for _ = 1, SIM_SECONDS * FPS do
 	rt:step(1 / FPS)
 	local folder = rt.workspace:FindFirstChild("WildSlimes")
@@ -304,17 +312,25 @@ describe("FountainRide: the live server rides every spawned slime", function()
 			end
 		end
 	end)
-	it("each one ends at rest on the plaza ground, clear of the slide", function()
+	it("each one ends at rest on the lane entry, clear of the slide, until it hops on", function()
+		expect(Config.FEATURES.Parade).toBe(true)
+		local entry = ParadeLane.ENTRY
 		for _, track in finished do
-			local frames = track.frames
-			local last = frames[#frames].p
-			expect(last[2]).toBeCloseTo(GROUND, 1e-3)
-			expect(radius(last) >= Fountain.MIN_RADIUS - 1e-3).toBe(true)
-			expect(radius(last) <= WorldLayout.PLAZA_RADIUS).toBe(true)
+			-- Rest window: after the longest ride to the entry, before HOP_SECONDS (minus a reconcile tick).
+			local rest = {}
+			for _, f in track.frames do
+				if f.t >= track.born + LANE_RIDE_SECONDS + 0.2 and f.t <= track.born + ParadeLane.HOP_SECONDS - 0.2 then
+					table.insert(rest, f.p)
+				end
+			end
+			expect(#rest >= FPS / 2).toBe(true)
+			local last = rest[#rest]
+			expect(last[2]).toBeCloseTo(ParadeLane.LANE_Y, 1e-3)
+			local off = math.sqrt((last[1] - entry[1]) ^ 2 + (last[3] - entry[2]) ^ 2)
+			expect(off <= ParadeLane.SPREAD / 2 + 1e-3).toBe(true)
 			expect(FountainRide.clearance(PATH, last[1], last[3]) >= FountainRide.FOOTPRINT).toBe(true)
-			-- still for the last second
-			for i = #frames - FPS, #frames do
-				expect(dist(frames[i].p, last) < 1e-6).toBe(true)
+			for _, p in rest do
+				expect(dist(p, last) < 1e-3).toBe(true) -- float32 CFrames
 			end
 		end
 	end)

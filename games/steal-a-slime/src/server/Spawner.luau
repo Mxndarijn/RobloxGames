@@ -8,8 +8,11 @@
 	faster spawns, RAIN_LUCK, more mutations, double cap), with a heads-up
 	toast RAIN_WARNING_SECONDS before each rain.
 
-	FEATURES.Parade (sketch, off): wilds land on the goo-parade lane and
-	walk to the drain gate as their lifetime runs out (ParadeLane).
+	FEATURES.Parade: a wild's spot is a pure function of time left
+	(ParadeLane: ride, hop along the goo lane round the plaza, slide into the
+	goo drain). The world keeps its Fountain.roll angle / radius (the lateral
+	offset on the lane); removal stays at expiresAt, and a slime that leaves
+	from the lane emits a "Drained" event (the splash at the drain).
 
 	FREE_DROP_CHANCE of drops are free; the rest cost WILD_PRICE_SECONDS of
 	the slime's base income, charged on grab (Carry.grab).
@@ -98,9 +101,6 @@ function Spawner.spawnOne(world: World, now: number): string
 		position = nil,
 		rare = rare,
 	}
-	if ParadeLane.enabled() then
-		ParadeLane.place(world.wild[id], now)
-	end
 	return id
 end
 
@@ -125,9 +125,6 @@ function Spawner.spawnBoss(world: World, now: number): string
 		position = nil,
 		boss = true,
 	}
-	if ParadeLane.enabled() then
-		ParadeLane.place(world.wild[id], now)
-	end
 	World.notify(
 		world,
 		nil,
@@ -182,8 +179,9 @@ function Spawner.step(world: World, now: number)
 	for id, wild in world.wild do
 		if DespawnTelegraph.shouldRemove(now, wild.expiresAt) and world.carriedBy[id] == nil then
 			world.wild[id] = nil
-		elseif ParadeLane.enabled() and world.carriedBy[id] == nil then
-			ParadeLane.place(wild, now) -- walk toward the gate; dropped ones stay put
+			if ParadeLane.enabled() and ParadeLane.onLane(wild, false) then
+				World.emit(world, { type = "Drained", slimeId = id })
+			end
 		end
 	end
 
