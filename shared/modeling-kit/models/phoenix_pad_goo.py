@@ -18,6 +18,12 @@ parts.append(blob("GooDome", 3.2, (0, 0, 1.55), GOO, subdiv=2, squash=(1, 1, 0.1
 for k,(x,y) in enumerate(((-1.2,0.8),(1.0,-1.3),(0.3,1.6))):
     parts.append(blob(f"Bub{k}", 0.35, (x, y, 1.85), GOO_HI, subdiv=1, squash=(1,1,0.6), jitter=0, seed=k))
 # spill: goo sliding over the rim at one side (r04: pulled in 0.3 so footprint <=8.0)
-parts.append(blob("Spill", 0.9, (3.45, 0.6, 1.4), GOO, subdiv=2, squash=(0.6, 1.0, 0.7), jitter=0.05))
-parts.append(blob("Spill2", 0.55, (3.65, 0.7, 0.85), GOO, subdiv=2, squash=(0.6, 0.9, 1.2), jitter=0.05))
+# fix 2026-10-16: the two icosphere spill blobs read as a lumpy clump; one metaball lip roll + short drip
+# down the stave face (ends above the upper hoop, stays inside the 7.86 footprint) fuses into the rim.
+from lib.goo import Ball, metaball_mesh, paint_goo
+balls = [Ball((3.35, 0.6, 1.8), (0.6, 0.55, 0.13)), Ball((3.78, 0.62, 1.66), (0.14, 0.42, 0.2))]
+for j, (z, w) in enumerate(((1.62, 0.4), (1.5, 0.33), (1.42, 0.27))):
+    balls.append(Ball((3.86, 0.62 + 0.03 * j, z), (0.1, w, 0.16)))
+balls.append(Ball((3.87, 0.7, 1.36), 0.2))
+parts.append(paint_goo(metaball_mesh("Spill", balls, resolution=0.08, tris=240), lambda co, n: mix(GOO, GOO_HI, 0.12)))
 finish("phoenix_pad_goo", parts)
