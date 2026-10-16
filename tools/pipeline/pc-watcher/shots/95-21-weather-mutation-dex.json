@@ -1,0 +1,7 @@
+{
+  "id": "21-weather-mutation-dex",
+  "todo": "21",
+  "kind": "ui",
+  "open": "dex",
+  "note": "TODO 21: Dex menu lists the weather mutations Wet (Rain) and Frozen (Snow) with their own swatches next to the older mutations (FEATURES.WeatherMutations, save v5)"
+}

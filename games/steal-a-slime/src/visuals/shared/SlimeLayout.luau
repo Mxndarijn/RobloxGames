@@ -147,6 +147,10 @@ local function bodyLook(slime: Types.SlimeData): (Vec, string)
 		return mix(c, WHITE, 0.15), "Neon"
 	elseif slime.mutation == "Lava" then
 		return { 58, 28, 22 }, "Basalt"
+	elseif slime.mutation == "Wet" then
+		return mix(c, { 70, 150, 255 }, 0.5), "Glass"
+	elseif slime.mutation == "Frozen" then
+		return mix(c, { 200, 240, 255 }, 0.6), "Ice"
 	elseif slime.mutation == "Galaxy" then
 		return { 48, 18, 92 }, "SmoothPlastic"
 	elseif slime.mutation == "Gold" then

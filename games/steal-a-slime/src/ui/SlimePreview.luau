@@ -61,6 +61,14 @@ local DIM_PUPIL = Color3.fromRGB(40, 42, 50)
 SlimePreview.FINISHES = table.freeze({
 	Glow = table.freeze({ material = Enum.Material.Neon }),
 	Lava = table.freeze({ reflectance = 0.15 }),
+	Wet = table.freeze({ material = Enum.Material.Glass, transparency = 0.1, reflectance = 0.2 }),
+	Frozen = table.freeze({
+		material = Enum.Material.Ice,
+		reflectance = 0.25,
+		accents = table.freeze({
+			table.freeze({ name = "Frost", kind = "Shard", diameter = 0.4, color = { 235, 250, 255 } }),
+		}),
+	}),
 	Galaxy = table.freeze({
 		accents = table.freeze({
 			table.freeze({ name = "Nebula", kind = "Disc", diameter = 2.5, color = { 70, 40, 140 }, z = -0.7 }),
