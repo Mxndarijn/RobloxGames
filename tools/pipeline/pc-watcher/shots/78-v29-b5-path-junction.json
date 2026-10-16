@@ -1,0 +1,10 @@
+{
+  "id": "v29-b5-path-junction",
+  "todo": "v29 B5",
+  "kind": "world",
+  "target": "Ring1",
+  "from": "look",
+  "dist": 22,
+  "height": 5,
+  "note": "v29 B5: ring and spoke junction at eye level, no step or seam where they cross"
+}

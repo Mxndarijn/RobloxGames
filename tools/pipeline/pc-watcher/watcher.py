@@ -19,6 +19,7 @@ the background"). See README.md for the flow, report format and limits.
 import argparse
 import copy
 import datetime
+import glob
 import json
 import logging
 import logging.handlers
@@ -224,7 +225,7 @@ def shot_camera(target, pitch_deg=35.0):
 
 
 def shot_camera_from(target, mode, aim=None, dist=None, height=None, centre=(0.0, 0.0), pitch_deg=35.0):
-    """Eye/at for a shots.json "from" entry: the eye stands `dist` studs from the target (flat) on the side
+    """Eye/at for a shots/*.json "from" entry: the eye stands `dist` studs from the target (flat) on the side
     given by `mode`, `height` up, looking at `aim` (second target's pos) or at the target.
       front   along the target's #75 front vector       look    along its raw LookVector (SurfaceGui Front)
       back    opposite its front                        centre  towards the plaza centre
@@ -249,7 +250,7 @@ def shot_camera_from(target, mode, aim=None, dist=None, height=None, centre=(0.0
 
 
 def shot_todo(shot):
-    """TODO item number(s) of a shots.json entry: its "todo", else "TODO 6/13:" at the start of its note."""
+    """TODO item number(s) of a shots/*.json entry: its "todo", else "TODO 6/13:" at the start of its note."""
     if shot.get("todo"):
         return str(shot["todo"])
     m = re.match(r"\s*TODO\s+([\d/]+)", str(shot.get("note") or ""))
@@ -332,6 +333,23 @@ def read_json(path, default=None):
             return json.load(f)
     except Exception:
         return default
+
+
+def load_shots(folder=None):
+    """(shots, notes) from shots/*.json sorted by filename. A file holds one entry object or a list of
+    them; unreadable files are skipped with a note. shots is None if the folder is missing or empty."""
+    folder = folder or os.path.join(HERE, "shots")
+    shots, notes = [], []
+    for path in sorted(glob.glob(os.path.join(folder, "*.json"))):
+        name = os.path.basename(path)
+        data = read_json(path, None)
+        if isinstance(data, dict):
+            data = [data]
+        if not isinstance(data, list) or not all(isinstance(s, dict) for s in data):
+            notes.append("skipped unreadable shot file " + name)
+            continue
+        shots.extend(data)
+    return (shots or None), notes
 
 
 def write_json(path, data):
@@ -1312,7 +1330,7 @@ def close_panel(run, panel):
 
 
 def step_shots(run):
-    """Soft: proof frames from shots.json (bots add theirs in PRs). Missing targets are notes, never failures.
+    """Soft: proof frames from shots/*.json (bots add theirs in PRs). Missing targets are notes, never failures.
 
     ui shots open a panel (open_panel), hide the tutorial card and every other panel (ui_isolate,
     restored after) and capture the viewport with the UI. world shots hide every ScreenGui,
@@ -1321,9 +1339,11 @@ def step_shots(run):
     """
     if run.dry:
         return "skip", {"dry_run": True}
-    shots = read_json(os.path.join(HERE, "shots.json"), None)
-    if not isinstance(shots, list):
-        return "skip", {"reason": "shots.json missing or unreadable"}
+    shots, shot_notes = load_shots()
+    for n in shot_notes:
+        run.note(n)
+    if not shots:
+        return "skip", {"reason": "shots/ missing or empty"}
     results, world_mode, pad_seat = [], False, None
     for shot in shots:
         sid = re.sub(r"[^A-Za-z0-9_.-]", "_", str(shot.get("id", "shot")))

@@ -1,0 +1,7 @@
+{
+  "id": "01b-idle-hud",
+  "todo": "1",
+  "kind": "ui",
+  "expect_no_overlay": true,
+  "note": "TODO 1: idle HUD, no menu open: no MenuBackdrop / card overlay may be visible (v28 blocker)"
+}

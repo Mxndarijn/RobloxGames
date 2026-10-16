@@ -1,0 +1,10 @@
+{
+  "id": "16-habitat-barn_crate-mid",
+  "todo": "16",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "barn_crate",
+  "wait": 0.4,
+  "note": "TODO 16: pad morphing into barn_crate (mid-morph, about 40%)"
+}

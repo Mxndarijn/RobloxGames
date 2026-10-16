@@ -1,0 +1,16 @@
+{
+  "id": "06-silo-top",
+  "todo": "6",
+  "kind": "world",
+  "pos": [
+    0,
+    60,
+    0.5
+  ],
+  "look": [
+    0,
+    0,
+    0
+  ],
+  "note": "TODO 6/13: straight down above the origin, silo ring should be concentric with the frame centre"
+}

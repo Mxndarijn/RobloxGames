@@ -1,0 +1,11 @@
+{
+  "id": "18-slide-top-to-bottom",
+  "todo": "B6",
+  "kind": "world",
+  "target": "slide",
+  "from": "centre",
+  "dist": 90,
+  "height": 60,
+  "slide_walk": true,
+  "note": "TODO B6: slide collision along the FULL length: free balls dropped from 4 studs onto every segment, very top to bottom, must never sink under the surface (luau/slide_walk, soft fail = warn)"
+}

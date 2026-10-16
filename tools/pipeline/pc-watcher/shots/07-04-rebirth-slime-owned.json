@@ -1,0 +1,9 @@
+{
+  "id": "04-rebirth-slime-owned",
+  "todo": "29",
+  "kind": "ui",
+  "open": "rebirth",
+  "rebirth_slime": "owned",
+  "scroll_to": "SlimeNeed",
+  "note": "v29 #5: rebirth menu, required slime OWNED (slime render + green check 'Owned')"
+}

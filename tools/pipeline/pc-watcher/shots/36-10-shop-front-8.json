@@ -1,0 +1,11 @@
+{
+  "id": "10-shop-front-8",
+  "todo": "10",
+  "kind": "world",
+  "target": "BuyStand",
+  "index": 7,
+  "from": "centre",
+  "dist": 28,
+  "height": 12,
+  "note": "TODO 10: BuyStand #7 seen from the plaza centre side (should show its front)"
+}

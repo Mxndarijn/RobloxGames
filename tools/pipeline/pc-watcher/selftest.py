@@ -247,9 +247,17 @@ def t_files():
         if name == "pad_seat":
             check("luau pad_seat returns seat_y and pad_top_y", "seat_y =" in src and "pad_top_y =" in src)
         check("luau %s returns" % name, re.search(r"^return ", src, re.M) is not None)
-    shots = json.load(open(os.path.join(HERE, "shots.json"), encoding="utf-8"))
-    check("shots.json is a list with ids", isinstance(shots, list) and all("id" in s for s in shots))
-    check("shots.json has the idle-HUD overlay guard",
+    shots, shot_notes = watcher.load_shots()
+    check("shots/*.json load as a list with ids", bool(shots) and not shot_notes and all("id" in s for s in shots), shot_notes)
+    files = sorted(glob.glob(os.path.join(HERE, "shots", "*.json")))
+    per_file = [json.load(open(f, encoding="utf-8")) for f in files]
+    file_ids = [s["id"] for d in per_file for s in (d if isinstance(d, list) else [d])]
+    check("shot ids are unique across files", len(file_ids) == len(set(file_ids)),
+          sorted({i for i in file_ids if file_ids.count(i) > 1}))
+    check("shot order matches filename order", file_ids == [s["id"] for s in shots])
+    check("shot filenames are <NN>-<id>.json in sequence",
+          all(os.path.basename(f).startswith("%02d-" % (i + 1)) for i, f in enumerate(files)))
+    check("shots/*.json has the idle-HUD overlay guard",
           any(s.get("kind") == "ui" and not s.get("open") and s.get("expect_no_overlay") for s in shots))
     motions = {s["motion"]: s for s in shots if s.get("motion")}
     check("motion shots cover idle squish, hop, look left and look right",

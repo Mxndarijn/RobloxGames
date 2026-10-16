@@ -1,0 +1,10 @@
+{
+  "id": "16-habitat-crystal_grotto",
+  "todo": "16",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "crystal_grotto",
+  "wait": 1.5,
+  "note": "TODO 16: pad turned into crystal_grotto"
+}

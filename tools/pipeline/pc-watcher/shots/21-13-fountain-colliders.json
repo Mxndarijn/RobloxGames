@@ -1,0 +1,7 @@
+{
+  "id": "13-fountain-colliders",
+  "todo": "13",
+  "kind": "world",
+  "target": "FountainMesh",
+  "note": "TODO 13: fountain solid (close-up)"
+}
