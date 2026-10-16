@@ -1,0 +1,11 @@
+{
+  "id": "11-bench-campfire-close",
+  "todo": "11",
+  "kind": "world",
+  "target": "CampBench",
+  "from": "behind",
+  "aim": "Campfire",
+  "dist": 9,
+  "height": 5,
+  "note": "TODO 11: camera behind the bench looking over it at the campfire"
+}

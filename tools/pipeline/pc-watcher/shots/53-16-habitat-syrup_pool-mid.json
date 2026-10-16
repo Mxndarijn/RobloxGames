@@ -1,0 +1,10 @@
+{
+  "id": "16-habitat-syrup_pool-mid",
+  "todo": "16",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "syrup_pool",
+  "wait": 0.4,
+  "note": "TODO 16: pad morphing into syrup_pool (mid-morph, about 40%)"
+}

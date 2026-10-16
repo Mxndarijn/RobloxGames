@@ -1,0 +1,14 @@
+{
+  "id": "17-motion-lod-near",
+  "todo": "17",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "from": "front",
+  "dist": 20,
+  "height": 8,
+  "motion": "Tiers",
+  "wait": 0.6,
+  "device": "desktop",
+  "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod on), camera 20 studs from the pad: records near / mid / far tier counts (res.motion.tiers)"
+}

@@ -1,0 +1,7 @@
+{
+  "id": "02c-friend-bonus-hud",
+  "todo": "v29-4",
+  "kind": "ui",
+  "friend_bonus": 2,
+  "note": "v29 #4: friend income bonus, 2 friends in the server: HUD badge '\ud83d\udc65 +20% friends' under the top bar, no menu open"
+}

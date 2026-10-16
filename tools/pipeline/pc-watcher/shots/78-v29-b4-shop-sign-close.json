@@ -1,0 +1,10 @@
+{
+  "id": "v29-b4-shop-sign-close",
+  "todo": "v29 B4",
+  "kind": "world",
+  "target": "ShopStand",
+  "from": "centre",
+  "dist": 14,
+  "height": 9,
+  "note": "v29 B4: plaza shop close-up, SHOP text sits flush on the sign board, not floating"
+}

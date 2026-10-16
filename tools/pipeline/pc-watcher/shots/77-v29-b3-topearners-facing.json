@@ -1,0 +1,10 @@
+{
+  "id": "v29-b3-topearners-facing",
+  "todo": "v29 B3",
+  "kind": "world",
+  "target": "LeaderboardBoard",
+  "from": "centre",
+  "dist": 45,
+  "height": 12,
+  "note": "v29 B3: Top Earners board seen from the plaza centre shows its front (rows readable, not the back)"
+}

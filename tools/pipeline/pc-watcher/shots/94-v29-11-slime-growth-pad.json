@@ -1,0 +1,10 @@
+{
+  "id": "v29-11-slime-growth-pad",
+  "todo": "v29 11",
+  "kind": "world",
+  "target": "Pad_1",
+  "from": "look",
+  "dist": 8,
+  "height": 4,
+  "note": "v29 #11: a grown slime on Pad_1 is drawn slightly larger with a small 'Growth %' label above it (FEATURES.GrowingSlimes)"
+}

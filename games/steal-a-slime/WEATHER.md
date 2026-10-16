@@ -42,4 +42,4 @@ New ids are appended to `Config.MUTATIONS` by #8 (the array is ordered by multip
 ## Tests and proof
 
 `tests/Weather.spec.luau` (cycle, replication, quality scaling and cap, flag off, hook API). Watcher shots
-`18-weather-Rain|Snow|Starfall` (`shots.json`, `weather` + `wait`, `luau/weather_set`).
+`18-weather-Rain|Snow|Starfall` (`shots/*.json`, `weather` + `wait`, `luau/weather_set`).

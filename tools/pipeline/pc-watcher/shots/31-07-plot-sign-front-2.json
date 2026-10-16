@@ -1,0 +1,11 @@
+{
+  "id": "07-plot-sign-front-2",
+  "todo": "7",
+  "kind": "world",
+  "target": "Sign",
+  "index": 2,
+  "from": "look",
+  "dist": 24,
+  "height": 8,
+  "note": "TODO 7: Plot_2 sign from outside the plot, text must read (not mirrored)"
+}

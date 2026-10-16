@@ -55,4 +55,4 @@ Both models landed (Archer #57, `shared/modeling-kit/out/habitat_*.fbx`) but are
 
 ## All habitats uploaded
 
-All nine looks are uploaded (Open Cloud, see `uploaded.json`) and wired in `MeshAssets`; `Habitats.slotMesh` draws them for every id. `tests/Habitats.spec` checks each type maps to a mesh id with a 7.8 footprint and seat 2.4. `tools/pipeline/pc-watcher/shots.json` has a mid-morph and a done shot per habitat (TODO 16).
+All nine looks are uploaded (Open Cloud, see `uploaded.json`) and wired in `MeshAssets`; `Habitats.slotMesh` draws them for every id. `tests/Habitats.spec` checks each type maps to a mesh id with a 7.8 footprint and seat 2.4. `tools/pipeline/pc-watcher/shots/` has a mid-morph and a done shot per habitat (TODO 16).

@@ -1,0 +1,6 @@
+{
+  "id": "18-modifier-badge",
+  "todo": "18",
+  "kind": "ui",
+  "note": "TODO 18: server modifier HUD badge (ModifierBadge: name, multipliers, time left) under the rain banner; HUD as-is, no click. Needs a non-None modifier phase (FEATURES.CycleModifier)"
+}

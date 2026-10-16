@@ -1,0 +1,11 @@
+{
+  "id": "v29-b5-path-eye-spoke",
+  "todo": "v29 B5",
+  "kind": "world",
+  "target": "Path1",
+  "index": 1,
+  "from": "centre",
+  "dist": 30,
+  "height": 5,
+  "note": "v29 B5: spoke path at player eye level, flush with the ground, no raised tile edges"
+}

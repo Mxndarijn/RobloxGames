@@ -1,0 +1,10 @@
+{
+  "id": "17-motion-idlesquish",
+  "todo": "17",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "motion": "Idle",
+  "wait": 0.6,
+  "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), idle squish: two samples 0.6 s apart must differ (Transform + Mesh size)"
+}

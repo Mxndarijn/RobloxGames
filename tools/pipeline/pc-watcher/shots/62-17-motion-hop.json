@@ -1,0 +1,10 @@
+{
+  "id": "17-motion-hop",
+  "todo": "17",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "motion": "Hop",
+  "wait": 0.35,
+  "note": "TODO 17: procedural slime motion (SlimeMotor, Motor6D Transform), hop apex (FaceRoot/SkinRoot lifted, body squashed/stretched)"
+}
