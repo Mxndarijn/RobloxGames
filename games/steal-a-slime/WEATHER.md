@@ -51,4 +51,4 @@ reads `Weather.data(Weather.getCurrent())` through a cache refreshed from `Weath
 mutation is current, roll values in `[chance, chance + chanceBonus)` land on that mutation. No other mutation's chance changes, and Clear is
 identical to before. `Wet` (x1.75) and `Frozen` (x2.5) have weight 0, so they only come from weather (or a merge ladder step); combos
 `Sleet` (Wet + Frozen) and `Comet` (Frozen + Galaxy). Save v4 -> v5 (`SaveData.migrateV4`) only normalises each slime's `mutations` list;
-ids and keys are unchanged. Tests: `tests/WeatherMutations.spec.luau`. Shot: `21-weather-mutation-dex` (`shots/95-21-weather-mutation-dex.json`).
+ids and keys are unchanged. Tests: `tests/WeatherMutations.spec.luau`. Shot: `21-weather-mutation-dex` (`shots/96-21-weather-mutation-dex.json`).
