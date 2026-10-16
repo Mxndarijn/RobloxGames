@@ -200,7 +200,7 @@ function Hud.new(parent: Instance, ctx: any)
 		Size = UDim2.fromOffset(Layout.BANNER_WIDTH, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
-		ZIndex = Layout.ZINDEX.Banners, -- alerts may cover a full-window menu title
+		ZIndex = Layout.ZINDEX.Banners,
 		Parent = parent,
 	}, { Widgets.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center) })
 	local steal = banner(banners, "StealAlert", Theme.Bad, 1)
@@ -450,7 +450,7 @@ function Hud.new(parent: Instance, ctx: any)
 		end
 
 		local info = RainTimer.banner(RainTimer.resolve(rainAttrs, current.rain), now, ctx.Config.RAIN_LUCK)
-		rain.Visible = info ~= nil and not menuOpen
+		rain.Visible = info ~= nil
 		if info then
 			rain.Text = info.text
 			rain.BackgroundColor3 = RAIN_COLORS[info.kind]
@@ -465,23 +465,24 @@ function Hud.new(parent: Instance, ctx: any)
 		end
 
 		local modifierText = ModifierBadge.banner(current.modifier, now, ctx.Config.FEATURES.CycleModifier == true)
-		modifier.Visible = modifierText ~= nil and not menuOpen
+		modifier.Visible = modifierText ~= nil
 		if modifierText then
 			modifier.Text = modifierText
 		end
 
 		local friendText = FriendBadge.banner(current.friends, ctx.Config.FEATURES.FriendBonus == true)
-		friends.Visible = friendText ~= nil and not menuOpen
+		friends.Visible = friendText ~= nil
 		if friendText then
 			friends.Text = friendText
 		end
 	end
 
-	-- A menu card open hides the rain / modifier banners (MenuState.bannersVisible).
+	-- A menu card open hides the whole banner stack (MenuState.bannersVisible):
+	-- no banner can cover a card's title or X.
 	function self.setMenuOpen(isOpen: boolean)
 		if menuOpen ~= isOpen then
 			menuOpen = isOpen
-			self.tick(ctx.serverNow())
+			banners.Visible = not menuOpen
 		end
 	end
 

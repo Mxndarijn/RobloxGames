@@ -1,0 +1,9 @@
+{
+  "id": "22-menu-over-banner-phone-portrait",
+  "todo": "v29-pr6",
+  "kind": "ui",
+  "device": "phone-portrait",
+  "admin_event": "luck",
+  "open": "codes",
+  "note": "v29 PR6: Codes menu opened while the admin-event banner is active, phone portrait. The banner stack must be hidden (never over the card title / X) and the backdrop must dim the whole window evenly, no partial rounded rectangle"
+}

@@ -475,6 +475,20 @@ function Layout.panelFor(screen: Screen, key: string): Rect
 	return Layout.rect(screen.menuX, y, screen.menuW, h)
 end
 
+-- The menu backdrop: the whole window in design px (UIScale'd), reaching under
+-- the Roblox top bar and any side insets (`guiInsetX/Y` px, GuiService:GetGuiInset
+-- with IgnoreGuiInset off) so the dim leaves no strip. Not screen.panel, which is
+-- only the card column.
+function Layout.backdrop(screen: Screen, guiInsetX: number, guiInsetY: number): Rect
+	local s = screen.scale
+	return Layout.rect(
+		-guiInsetX / s,
+		-guiInsetY / s,
+		(screen.viewportW + guiInsetX) / s,
+		(screen.viewportH + guiInsetY) / s
+	)
+end
+
 -- Close button, title and body boxes inside a panel box (PANEL_CHROME).
 function Layout.panelClose(panel: Rect): Rect
 	local c = Layout.PANEL_CHROME

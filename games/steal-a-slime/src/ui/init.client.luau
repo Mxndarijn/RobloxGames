@@ -18,6 +18,7 @@
 ]]
 
 local ContextActionService = game:GetService("ContextActionService")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -187,7 +188,7 @@ local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
 
--- The dimmed full-window backdrop behind an open menu card (screen.panel).
+-- The dimmed full-window backdrop (Layout.backdrop: the whole viewport, top bar included, square) behind an open menu card (screen.panel).
 -- Made before the panels so their cards draw over it; a tap on it closes
 -- the menu, like the X.
 local backdrop = Widgets.create("TextButton", {
@@ -198,7 +199,7 @@ local backdrop = Widgets.create("TextButton", {
 	BackgroundTransparency = 0.45,
 	Visible = false,
 	Parent = gui,
-}, { Widgets.corner(16) }) :: TextButton
+}) :: TextButton
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
 -- order) or a world prompt, closed with their X, the backdrop, Esc or
@@ -550,8 +551,10 @@ function applyLayout()
 	tutorial.layout(s)
 	dailyPopup.layout(s)
 	layoutNav(s)
-	backdrop.Position = UDim2.fromOffset(s.panel.x, s.panel.y)
-	backdrop.Size = UDim2.fromOffset(s.panel.w, s.panel.h)
+	local guiInset = GuiService:GetGuiInset()
+	local back = Layout.backdrop(s, guiInset.X, guiInset.Y)
+	backdrop.Position = UDim2.fromOffset(back.x, back.y)
+	backdrop.Size = UDim2.fromOffset(back.w, back.h)
 	for _, entry in allPanels do
 		local r = Layout.panelFor(s, entry.key)
 		local frame = entry.panel.frame
