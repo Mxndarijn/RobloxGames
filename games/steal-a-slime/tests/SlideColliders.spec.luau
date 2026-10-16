@@ -18,6 +18,7 @@ local Runtime = require("../tools/livetest/Runtime")
 local SlideColliders = require("../src/shared/SlideColliders")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
+local TOP_DIP = 1.0 -- deepest the slide's ride line sinks into the dome colliders (a steppable bump)
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -951,7 +952,7 @@ describe("SlideColliders in the live server", function()
 					table.insert(colliders, d)
 				end
 			end
-			expect(#colliders).toBe(#SPECS + 3)
+			expect(#colliders).toBe(#SPECS + 3 + #WorldLayout.fountainTopTiers())
 			for _, r in rides do
 				if emerging({ r.p.X, r.p.Y, r.p.Z }) then
 					continue
@@ -961,8 +962,11 @@ describe("SlideColliders in the live server", function()
 					local s = part.Size
 					local inside
 					if part.Shape == roblox.Enum.PartType.Cylinder then
-						inside = math.abs(l.X) < s.X / 2 - LIVE_EPS
-							and math.sqrt(l.Y ^ 2 + l.Z ^ 2) < s.Y / 2 - LIVE_EPS
+						-- The ride line is straight chords across the dome shoulder, so it dips up to
+						-- TOP_DIP into the fountain's top colliders: a bump a player steps over in the
+						-- trough, while the anchored slimes never collide.
+						local dip = if string.sub(part.Name, 1, 11) == "TopCollider" then TOP_DIP else LIVE_EPS
+						inside = math.abs(l.X) < s.X / 2 - dip and math.sqrt(l.Y ^ 2 + l.Z ^ 2) < s.Y / 2 - LIVE_EPS
 					else
 						inside = math.abs(l.X) < s.X / 2 - LIVE_EPS
 							and math.abs(l.Y) < s.Y / 2 - LIVE_EPS

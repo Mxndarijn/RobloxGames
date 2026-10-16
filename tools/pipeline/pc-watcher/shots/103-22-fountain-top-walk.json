@@ -1,0 +1,11 @@
+{
+  "id": "22-fountain-top-walk",
+  "todo": "C10",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 60,
+  "height": 45,
+  "fountain_walk": true,
+  "note": "C10: the fountain TOP is solid (HARD): free balls and character-sized balls (at rest and rolling inward) dropped over the whole eave / dome / basin grid must never sink under the visual top surface or fall to the ground (luau/fountain_walk, a violation fails the run)"
+}
