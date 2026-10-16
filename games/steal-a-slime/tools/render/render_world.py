@@ -423,6 +423,11 @@ VIEWS = {
     # v29 B5, player eye height (5 studs) on plot 1's spoke path: the ring path
     # crosses ahead, both flush with the ground
     "06_path_eye": lambda: look((2, 5, 58), (-6, 1, 100), lens=30),
+    # world border v3: the ring from high up across the plaza, mid height along
+    # the edge, and a player's eye (5 studs) looking out at it
+    "07_border_aerial": lambda: look(polar(337.5, 40, 430), polar(157.5, 170, 0), lens=22),
+    "08_border_along": lambda: look(polar(140, 240, 20), polar(178, 300, 6), lens=30),
+    "09_border_eye": lambda: look(polar(157.5, 246, 5), polar(172, 300, 7), lens=30),
 }
 
 os.makedirs(args.out, exist_ok=True)
