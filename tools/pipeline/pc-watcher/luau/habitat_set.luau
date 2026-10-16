@@ -19,4 +19,20 @@ node:SetAttribute(ATTR, "base")
 task.wait(1.3)
 node:SetAttribute(ATTR, %%HABITAT%%)
 task.wait(%%WAIT%%)
-return { ok = true, before = before, now = node:GetAttribute(ATTR) }
+-- Seat height: bottom Y of the pad_seat slime (PcwPad) vs top Y of the habitat look model HabitatFx
+-- built (client-side, named <plot>_<pad>_<habitat>); seat_delta > 0 = slime floats above the habitat.
+local slime
+for _, m in game:GetService("CollectionService"):GetTagged("Slime") do
+	if m:GetAttribute("PcwPad") then
+		slime = m
+	end
+end
+local look = workspace:FindFirstChild(node.Parent.Name .. "_" .. node.Name .. "_" .. %%HABITAT%%, true)
+local seat
+if slime and look and look:IsA("Model") then
+	local sc, ss = slime:GetBoundingBox()
+	local lc, ls = look:GetBoundingBox()
+	local bottom, top = sc.Position.Y - ss.Y / 2, lc.Position.Y + ls.Y / 2
+	seat = { slime_bottom_y = bottom, habitat_top_y = top, seat_delta = bottom - top }
+end
+return { ok = true, before = before, now = node:GetAttribute(ATTR), seat = seat, slime_found = slime ~= nil, look_found = look ~= nil }

@@ -236,6 +236,7 @@ def t_files():
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "slime_anim": {"PATH", "ANIM", "ID", "WAIT"},
+        "pad_seat": {"PATH"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -243,6 +244,8 @@ def t_files():
             src = fh.read()
         found = set(re.findall(r"%%([A-Z]+)%%", src))
         check("luau %s placeholders" % name, found == used.get(name, set()), found)
+        if name == "pad_seat":
+            check("luau pad_seat returns seat_y and pad_top_y", "seat_y =" in src and "pad_top_y =" in src)
         check("luau %s returns" % name, re.search(r"^return ", src, re.M) is not None)
     shots = json.load(open(os.path.join(HERE, "shots.json"), encoding="utf-8"))
     check("shots.json is a list with ids", isinstance(shots, list) and all("id" in s for s in shots))
