@@ -3,16 +3,16 @@
   "todo": "border-v3",
   "kind": "world",
   "pos": [
-    -22,
+    -69.4,
     5,
-    -249
+    -258.9
   ],
   "look": [
-    -78,
-    7,
-    -290
+    -77.6,
+    9,
+    -289.8
   ],
-  "wait": 0.5,
+  "wait": 2.0,
   "note": "border v3: player eye (5 studs) looking out at the border: fence/hedge line, groves behind, hills closing the horizon in [desktop]",
   "device": "desktop"
 }

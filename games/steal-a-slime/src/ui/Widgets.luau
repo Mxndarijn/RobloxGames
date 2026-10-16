@@ -206,8 +206,8 @@ function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm:
 		fill.Visible = false
 		fill.Size = UDim2.fromScale(0, 1)
 	end
-	local function start()
-		if not enabled or startedAt then
+	local function start(display: boolean?)
+		if (not enabled and not display) or startedAt then
 			return
 		end
 		local began = os.clock()
@@ -243,7 +243,7 @@ function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm:
 			stop()
 			if type(v) == "number" then
 				pauseAt = v
-				start()
+				start(true) -- display only: also on a disabled (unaffordable) button, which never confirms
 			else
 				pauseAt = nil
 			end
@@ -252,7 +252,7 @@ function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm:
 	local setEnabled = btn.setEnabled
 	function btn.setEnabled(value: boolean)
 		enabled = value
-		if not value then
+		if not value and not pauseAt then -- a PcwHold display hold survives the panel's state refresh
 			stop()
 		end
 		setEnabled(value)

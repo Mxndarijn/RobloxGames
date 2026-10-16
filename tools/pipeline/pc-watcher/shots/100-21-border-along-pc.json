@@ -3,16 +3,16 @@
   "todo": "border-v3",
   "kind": "world",
   "pos": [
-    61,
-    22,
-    -228
+    133.0,
+    14,
+    -230.4
   ],
   "look": [
-    -101,
+    20.6,
     5,
-    -278
+    -295.3
   ],
-  "wait": 0.5,
+  "wait": 2.0,
   "note": "border v3: mid height along the edge: piece mix, rotation, spacing and clusters should differ every stretch in [desktop]",
   "device": "desktop"
 }

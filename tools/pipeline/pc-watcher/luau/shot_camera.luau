@@ -71,6 +71,7 @@ if char then
 end
 
 pcall(function()
+	player:RequestStreamAroundAsync(eye, 5)
 	player:RequestStreamAroundAsync(at, 5)
 end)
 local cam = workspace.CurrentCamera
