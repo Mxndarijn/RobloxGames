@@ -104,6 +104,15 @@ def t_actions():
         "action": {"enum": ["keyDown", "keyUp"]}, "key": {"enum": ["Down", "Escape", "E"]}}}}}}
     k = mcp_client.build_action(kschema, "key_down", {"key": "Escape"})
     check("schema key down (not the Down key)", k == {"action": "keyDown", "key": "Escape"}, k)
+    flat = {"properties": {"actions": {"items": {"properties": {
+        "action": {"enum": ["mouseMove", "mouseButtonDown", "mouseButtonUp"]}, "x": {}, "y": {}}}}}}
+    m = mcp_client.build_action(flat, "mouse_down", {"x": 3, "y": 4})
+    check("schema without button field gets mouse_button", m == {
+        "action": "mouseButtonDown", "x": 3, "y": 4, "mouse_button": "left"}, m)
+    sb = {"properties": {"actions": {"items": {"properties": {
+        "action": {"enum": ["mouseButtonUp"]}, "mouse_button": {"enum": ["left", "right"]}, "x": {}, "y": {}}}}}}
+    m = mcp_client.build_action(sb, "mouse_up", {"x": 3, "y": 4})
+    check("schema mouse_button", m.get("mouse_button") == "left" and m.get("action") == "mouseButtonUp", m)
     d = mcp_client.build_action(None, "mouse_up", {"x": 1, "y": 2})
     check("default guess", d["type"] == "mouseButtonUp" and d["x"] == 1, d)
     o = mcp_client.build_action(schema, "key_up", {"key": "E"}, {"kind": "up", "k": "$key"})
@@ -150,6 +159,11 @@ def t_watcher():
     check("shot todo", watcher.shot_todo({"todo": "6/13"}) == "6/13"
           and watcher.shot_todo({"note": "TODO 11: bench"}) == "11" and watcher.shot_todo({"note": "x"}) is None)
     check("panel names", watcher.panel_for("dex") == "DexPanel" and watcher.panel_for("Leaders") == "LeaderboardPanel")
+    pts = watcher.click_points({"cx": 86, "cy": 166, "rx": 86, "ry": 108})
+    check("click points: inset then without", [m for m, _, _ in pts] == ["inset", "no_inset"] and pts[1][2] == 108, pts)
+    pts = watcher.click_points({"cx": 86, "cy": 108, "rx": 86, "ry": 108})
+    check("click points: IgnoreGuiInset = one point", len(pts) == 1, pts)
+    check("two_player capped at 45 s", watcher.DEFAULTS["twoplayer_timeout_s"] <= 45)
     check("title ok", watcher.frame_title_ok("abc - Roblox Studio", []) and not watcher.frame_title_ok("Notepad", ["zz"]))
 
 
@@ -187,7 +201,7 @@ def t_files():
         check("py_compile %s" % os.path.basename(f), ok)
     used = {
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET"}, "viewport_probe": {"SHOW"},
-        "panel_visible": {"PANEL", "SHOW"},
+        "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):

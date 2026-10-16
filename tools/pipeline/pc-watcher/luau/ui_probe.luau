@@ -1,5 +1,5 @@
--- Client datamodel: SlimeUI state plus click centres (viewport px, GuiInset added) of the
--- buttons the watcher clicks. Names come from src/ui (init.client, Hud, Nav, Widgets.panel,
+-- Client datamodel: SlimeUI state plus click centres of the buttons the watcher clicks: cx/cy with
+-- the GuiInset added (unless IgnoreGuiInset), rx/ry without it (the watcher's retry). Names come from src/ui (init.client, Hud, Nav, Widgets.panel,
 -- Panels/TutorialOverlay).
 local GuiService = game:GetService("GuiService")
 local p = game:GetService("Players").LocalPlayer
@@ -43,6 +43,8 @@ local function rect(path)
 		h = as.Y,
 		cx = ap.X + as.X / 2 + off.X,
 		cy = ap.Y + as.Y / 2 + off.Y,
+		rx = ap.X + as.X / 2,
+		ry = ap.Y + as.Y / 2,
 	}
 end
 

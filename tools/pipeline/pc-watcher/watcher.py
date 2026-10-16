@@ -63,7 +63,7 @@ DEFAULTS = {
     "twoplayer_client_args": ["-task", "StartClient", "-port", "$port"],
     "twoplayer_clients": 2,
     "twoplayer_server_wait_s": 20,
-    "twoplayer_timeout_s": 120,
+    "twoplayer_timeout_s": 45,  # whole mode (b) attempt, server wait included (91a2c21 spent 158 s on it)
     "reports_branch": "studio-reports",
     "push_retries": 3,
     "jpeg_quality": 80,
@@ -716,14 +716,42 @@ def ui_probe(run):
     return run.need_luau("ui_probe", "Client", timeout=30)
 
 
-def click_target(run, probe, path):
+def click_points(t):
+    """Click centres to try for a ui_probe target: with the GuiInset, then without it if that differs."""
+    pts = [("inset", t["cx"], t["cy"])]
+    if t.get("rx") is not None and (round(t["rx"]), round(t["ry"])) != (round(t["cx"]), round(t["cy"])):
+        pts.append(("no_inset", t["rx"], t["ry"]))
+    return pts
+
+
+def click_target(run, probe, path, check=None):
+    """MCP user_mouse_input click on a ui_probe target. Returns (ok, info, probe_after).
+
+    Clicks the centre with the GuiInset added; when `check(probe_after)` is False it retries at the
+    centre without the GuiInset (StudioMCP may count y from below the top bar). Every attempt's
+    coordinates, actions and MCP results are logged and kept in info["attempts"].
+    """
     t = (probe.get("targets") or {}).get(path) or {}
     if not t.get("found") or not t.get("shown"):
-        return False, {"error": "%s not on screen (%s)" % (path, t)}
-    ok, info = run.session().click(run.studio_id, t["cx"], t["cy"], run.cfg["input_overrides"])
-    info["at"] = [round(t["cx"]), round(t["cy"])]
-    time.sleep(0.7)
-    return ok, info
+        return False, {"error": "%s not on screen (%s)" % (path, t)}, probe
+    attempts, ok, after = [], False, probe
+    for mode, x, y in click_points(t)[:2 if check else 1]:
+        ok, info = run.session().click(run.studio_id, x, y, run.cfg["input_overrides"])
+        time.sleep(0.7)
+        after = ui_probe(run)
+        info.update(at=[round(x), round(y)], inset=mode, ok=ok)
+        if check:
+            info["effect"] = bool(check(after))
+        log.info("click %s at %s (%s): ok=%s effect=%s results=%s", path, info["at"], mode, ok,
+                 info.get("effect"), info.get("results"))
+        attempts.append(info)
+        if not check or info["effect"]:
+            break
+    last = attempts[-1]
+    out = {"at": last["at"], "inset": last["inset"], "attempts": attempts}
+    if check:
+        out["effect"] = last["effect"]
+    return ok, out, after
 
 
 def step_onboarding(run):
@@ -734,8 +762,7 @@ def step_onboarding(run):
               "title": before.get("tutorial_title"), "card_visible": before.get("tutorial_visible")}
     if not before.get("tutorial_visible"):
         return "fail", dict(detail, error="tutorial card not shown for a fresh profile")
-    ok, info = click_target(run, before, "TutorialOverlay.Hide")
-    after = ui_probe(run)
+    ok, info, after = click_target(run, before, "TutorialOverlay.Hide", lambda q: not q.get("tutorial_visible"))
     detail["hide_click"] = info
     detail["card_visible_after_hide"] = after.get("tutorial_visible")
     if after.get("tutorial_visible"):
@@ -757,9 +784,9 @@ def step_shop(run):
     for path in ("Hud.Shop", "Nav.Shop"):
         if p.get("shop_open"):
             break
-        ok, info = click_target(run, p, path)
-        p = ui_probe(run)
-        methods["mcp_mouse:" + path] = ("works" if p.get("shop_open") else "no effect") if ok else info
+        ok, info, p = click_target(run, p, path, lambda q: q.get("shop_open"))
+        methods["mcp_mouse:" + path] = dict(info, result=("works (%s)" % info["inset"] if p.get("shop_open")
+                                                         else "no effect") if ok else "click failed")
     run.extra["input_methods"] = methods
     detail.update(methods=methods, open_after=p.get("shop_open"), open_panels=p.get("open_panels"))
     if not p.get("shop_open"):
@@ -780,7 +807,7 @@ def step_esc(run):
     run.extra.setdefault("input_methods", {})["mcp_keyboard:Escape"] = (
         "works" if not after.get("shop_open") else "no effect") if ok else info
     if after.get("shop_open"):
-        click_target(run, after, "ShopPanel.Close")  # tidy up for the next steps
+        click_target(run, after, "ShopPanel.Close", lambda q: not q.get("shop_open"))  # tidy up for the next steps
         return "fail", dict(detail, error="Escape did not close the shop")
     return "pass", detail
 
@@ -975,18 +1002,24 @@ def twoplayer_cmdline(run):
     mcp = run.session()
     known = {s["id"] for s in mcp.list_studios()[0]}
     started = []
+    deadline = time.time() + max(15, min(cfg["twoplayer_timeout_s"], run.remaining() - 100))  # leave room for mode c
+
+    def left(cap):
+        return max(3, min(cap, deadline - time.time()))
+
     try:
         started.append(subprocess.Popen([exe] + fill_args(cfg["twoplayer_server_args"], values), cwd=run.studio_dir))
-        time.sleep(cfg["twoplayer_server_wait_s"])
+        time.sleep(min(cfg["twoplayer_server_wait_s"], max(0, deadline - time.time() - 10)))
         for _ in range(cfg["twoplayer_clients"]):
             started.append(subprocess.Popen([exe] + fill_args(cfg["twoplayer_client_args"], values), cwd=run.studio_dir))
             time.sleep(2)
-        deadline = time.time() + max(20, min(cfg["twoplayer_timeout_s"], run.remaining() - 100))  # leave room for mode c
         server, clients, last = None, [], None
         while time.time() < deadline:
             fresh = [s for s in mcp.list_studios()[0] if s["id"] not in known]
             for s in fresh:
-                ok, d, _ = mcp.luau(s["id"], _body("server_players"), "Server", timeout=20)
+                if time.time() >= deadline:
+                    break
+                ok, d, _ = mcp.luau(s["id"], _body("server_players"), "Server", timeout=left(20))
                 if ok and len(d.get("players") or []) >= 2:
                     server = (s["id"], d)
                 last = d
@@ -994,13 +1027,14 @@ def twoplayer_cmdline(run):
                 for s in fresh:
                     if s["id"] == server[0]:
                         continue
-                    ok, d, _ = mcp.luau(s["id"], _body("client_plots"), "Client", timeout=20)
+                    ok, d, _ = mcp.luau(s["id"], _body("client_plots"), "Client", timeout=left(20))
                     if ok:
                         clients.append(d)
                 break
-            time.sleep(4)
+            time.sleep(min(4, max(0, deadline - time.time())))
         if not server:
-            return None, "MCP saw no test server with 2 players (%d new studios; last %s)" % (
+            return None, "MCP saw no test server with 2 players within %ds (%d new studios; last %s)" % (
+                cfg["twoplayer_timeout_s"],
                 len([s for s in mcp.list_studios()[0] if s["id"] not in known]), str(last)[:160])
         sd = server[1]
         ok = len(sd.get("plot_owners") or []) >= 2 and any(len(c.get("plot_owners") or []) >= 2 for c in clients)
@@ -1038,7 +1072,7 @@ def step_twoplayer(run):
     detail["a_probe"] = probe
     tried.append("a: no multi-client API in StudioTestService/TestService (probe only)")
     # (b) command-line test server + clients.
-    if run.cfg["twoplayer_cmdline"] and run.remaining() > 150:
+    if run.cfg["twoplayer_cmdline"] and run.remaining() > run.cfg["twoplayer_timeout_s"] + 100:
         try:
             res, why = twoplayer_cmdline(run)
         except Exception as e:
@@ -1096,13 +1130,12 @@ def open_panel(run, key):
         t = (p.get("targets") or {}).get(path) or {}
         if not t.get("found"):
             continue
-        ok, info = click_target(run, p, path)
-        p = ui_probe(run)
+        ok, info, p = click_target(run, p, path, lambda q: panel in (q.get("open_panels") or []))
         opened = panel in (p.get("open_panels") or [])
-        res["tried"].append({"path": path, "at": info.get("at"), "click_ok": ok, "opened": opened,
-                             "error": info.get("error")})
+        res["tried"].append({"path": path, "click_ok": ok, "opened": opened, "error": info.get("error"),
+                             "attempts": info.get("attempts")})
         if opened:
-            res["method"] = "mcp_click:" + path
+            res["method"] = "mcp_click:%s:%s" % (path, info["inset"])
             return res
     ok, d = run.luau("panel_visible", "Client", timeout=15, panel=panel, show=True)
     time.sleep(0.4)
@@ -1124,8 +1157,7 @@ def close_panel(run, panel):
         p = ui_probe(run)
     if panel not in (p.get("open_panels") or []):
         return "escape"
-    ok, _ = click_target(run, p, panel + ".Close")
-    p = ui_probe(run)
+    ok, _, p = click_target(run, p, panel + ".Close", lambda q: panel not in (q.get("open_panels") or []))
     if ok and panel not in (p.get("open_panels") or []):
         return "close_button"
     run.luau("panel_visible", "Client", timeout=15, panel=panel, show=False)
@@ -1135,9 +1167,10 @@ def close_panel(run, panel):
 def step_shots(run):
     """Soft: proof frames from shots.json (bots add theirs in PRs). Missing targets are notes, never failures.
 
-    ui shots open a panel (open_panel) and capture the viewport with the UI. world shots hide every
-    ScreenGui and the character, frame the target from the Server bounding box (shot_camera) and
-    capture the viewport. Every shot adds a report.frames entry with its todo and status.
+    ui shots open a panel (open_panel), hide the tutorial card and every other panel (ui_isolate,
+    restored after) and capture the viewport with the UI. world shots hide every ScreenGui,
+    BillboardGui and ProximityPrompt, move the character behind the camera, lock the camera with a
+    render step (shot_camera) on the target's Server bounding box and capture the viewport. Every shot adds a report.frames entry with its todo and status.
     """
     if run.dry:
         return "skip", {"dry_run": True}
@@ -1173,8 +1206,14 @@ def step_shots(run):
                         continue
                     if opened["method"] == "visible_fallback":
                         run.note("shot %s: no click opened %s; set Visible directly" % (sid, opened["panel"]))
-                res["frame"] = capture_frame(run, hwnd, fid, crop=True, todo=todo, kind="shot",
-                                             open_method=opened and opened["method"])
+                keep = opened["panel"] if opened else ""
+                ok, iso = run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=True)
+                res["isolated"] = iso if ok else str(iso)[:160]
+                try:
+                    res["frame"] = capture_frame(run, hwnd, fid, crop=True, todo=todo, kind="shot",
+                                                 open_method=opened and opened["method"])
+                finally:
+                    run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=False)
                 if opened and opened["method"] != "already open":
                     res["closed_by"] = close_panel(run, opened["panel"])
             else:
@@ -1189,7 +1228,9 @@ def step_shots(run):
                     res["target"] = {k: t.get(k) for k in ("path", "pos", "size")}
                     eye, at = shot_camera(t)
                 world_mode = True
-                res["camera"] = run.need_luau("shot_camera", "Client", timeout=25, eye=eye, at=at)
+                res["camera"] = cam = run.need_luau("shot_camera", "Client", timeout=25, eye=eye, at=at)
+                if not cam.get("locked"):
+                    run.note("shot %s: camera drifted %.2f studs from the render-step lock" % (sid, cam.get("drift") or -1))
                 res["frame"] = capture_frame(run, hwnd, fid, crop=True, todo=todo, kind="shot",
                                              target=(res.get("target") or {}).get("path"))
         except Exception as e:

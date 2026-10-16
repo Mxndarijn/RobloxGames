@@ -1,15 +1,24 @@
--- Client datamodel: undo shot_camera: ScreenGuis, CoreGui, character, camera back to the player.
+-- Client datamodel: undo shot_camera: render-step lock, ScreenGuis / BillboardGuis / ProximityPrompts,
+-- CoreGui, character (pivot, Anchored, transparency), camera back to the player.
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 local pg = player.PlayerGui
 
+pcall(function()
+	RunService:UnbindFromRenderStep("PcwShotCam")
+end)
+pg:SetAttribute("PcwShotCam", nil)
+
 local restored = 0
-for _, g in pg:GetChildren() do
-	if g:GetAttribute("PcwHidden") then
-		g.Enabled = true
-		g:SetAttribute("PcwHidden", nil)
-		restored += 1
+for _, root in { pg, workspace } do
+	for _, d in root:GetDescendants() do
+		if d:GetAttribute("PcwHidden") and (d:IsA("LayerCollector") or d:IsA("ProximityPrompt")) then
+			d.Enabled = true
+			d:SetAttribute("PcwHidden", nil)
+			restored += 1
+		end
 	end
 end
 local core = pg:GetAttribute("PcwCore")
@@ -24,6 +33,10 @@ end
 
 local char = player.Character
 local root = char and char:FindFirstChild("HumanoidRootPart")
+if char and char:GetAttribute("PcwPivot") ~= nil then
+	char:PivotTo(char:GetAttribute("PcwPivot"))
+	char:SetAttribute("PcwPivot", nil)
+end
 if root and root:GetAttribute("PcwAnchored") ~= nil then
 	root.Anchored = root:GetAttribute("PcwAnchored")
 	root:SetAttribute("PcwAnchored", nil)
@@ -42,4 +55,4 @@ local hum = char and char:FindFirstChildOfClass("Humanoid")
 if hum then
 	cam.CameraSubject = hum
 end
-return { restored_guis = restored }
+return { restored = restored }
