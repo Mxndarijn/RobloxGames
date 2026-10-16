@@ -6472,5 +6472,15 @@
       ]
     }
   },
-  "frames_dir": "5a66ce0020e4ea657d9f8ff374da357add20b15f/"
+  "frames_dir": "5a66ce0020e4ea657d9f8ff374da357add20b15f/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "All steps pass; focus_stolen [], close pass, no leftovers, no missing frames.",
+    "#117 codes: the new Codes nav entry (gift icon) shows in the HUD menu at desktop and phone sizes with no layout breakage. There's no dedicated shot of the codes panel yet.",
+    "#109 hold-to-confirm and #122 stacking mutations: nothing broken in the menus, prompts or slime frames. There are no dedicated shots yet, so these features are unproven visually; I'll add shots after the freeze.",
+    "Mystery Egg row is visible in the phone shop menu. Banners are hidden while menus are open; the rebirth slime card is OK; motor motion and slime seat OK; mailboxes, Top Earners and signs OK."
+  ]
 }
