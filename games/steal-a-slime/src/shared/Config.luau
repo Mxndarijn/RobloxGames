@@ -613,6 +613,7 @@ local Config = {
 	GROWTH_OFFLINE_CAP_SECONDS = 8 * 60 * 60,
 	GROWTH_MAX_INCOME_BONUS = 0.5,
 	GROWTH_MAX_SCALE_BONUS = 0.1,
+	GROWTH_LABEL_GAP = 1.5, -- studs between the top of the slime and its "Growth %" label
 
 	-- Daily reward
 	DAILY_BASE = 100,

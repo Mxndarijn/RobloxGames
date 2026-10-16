@@ -68,6 +68,7 @@ return table.freeze({
 	DESPAWN_AT_ATTRIBUTE = "DespawnAt",
 	GROWTH_ATTRIBUTE = "Growth", -- slime model: whole percent 0..100 (FEATURES.GrowingSlimes)
 	GROWTH_LABEL_NAME = "GrowthLabel", -- BillboardGui on the slime Body
+	GROWTH_OVERRIDE_ATTRIBUTE = "PcwGrowth", -- slime model: Studio-only whole percent shown instead of the real growth (pc-watcher shot)
 	RARE_SPAWN_ID_ATTRIBUTE = "RareSpawnId", -- workspace: latest rare drop
 	RARE_SPAWN_TIER_ATTRIBUTE = "RareSpawnTier",
 	RARE_SPAWN_AT_ATTRIBUTE = "RareSpawnAt", -- workspace: server time of the latest rare drop
