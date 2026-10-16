@@ -475,6 +475,7 @@ local function syncMenus()
 	openKey = visibleKey
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))
+	toasts.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	backdrop.Visible = visibleKey ~= nil
 	refreshHint()
 end

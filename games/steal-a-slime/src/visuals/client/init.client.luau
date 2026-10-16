@@ -14,6 +14,7 @@
 	  * follow pets (FollowPets) for the Player attribute PetSlimeId
 	  * despawn warning (DespawnTelegraphFx) on wild slimes with DespawnAt
 	  * revenge (RevengeFx, FEATURES.Revenge): highlight on the plots in the local Player attribute RevengePlots
+	  * fountain tiers (FountainTierFx, FEATURES.FountainTiers): ring / crest / glow from the workspace attribute FountainTier
 	  * weather (WeatherFx, FEATURES.Weather): Rain / Snow / Starfall emitters + tint from the workspace attribute Weather
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
@@ -361,6 +362,14 @@ do
 	end)
 	if not ok then
 		warn(`[VisualsClient] weather disabled: {err}`)
+	end
+end
+do
+	local ok, err = pcall(function()
+		require(script:WaitForChild("FountainTierFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] fountain tiers disabled: {err}`)
 	end
 end
 do

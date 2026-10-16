@@ -1,0 +1,7 @@
+{
+  "id": "toast-queue",
+  "todo": "toast-queue",
+  "kind": "ui",
+  "badge_toast": "toast:Your egg hatched: Epic Blorp!",
+  "note": "Toast queue (v18): merged bursts ('(xN)'), steal/rare above routine, max 4 visible, hidden while a menu is open; shot shows the item toast top right under the HUD"
+}

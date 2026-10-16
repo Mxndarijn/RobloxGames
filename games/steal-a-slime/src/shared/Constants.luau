@@ -76,6 +76,7 @@ return table.freeze({
 	GROWTH_ATTRIBUTE = "Growth", -- slime model: whole percent 0..100 (FEATURES.GrowingSlimes)
 	GROWTH_LABEL_NAME = "GrowthLabel", -- BillboardGui on the slime Body
 	GROWTH_OVERRIDE_ATTRIBUTE = "PcwGrowth", -- slime model: Studio-only whole percent shown instead of the real growth (pc-watcher shot)
+	FOUNTAIN_TIER_ATTRIBUTE = "FountainTier", -- workspace: fountain tier 1..4 (FEATURES.FountainTiers, FountainTiers); clients draw the ring / crest / glow from it
 	RARE_SPAWN_ID_ATTRIBUTE = "RareSpawnId", -- workspace: latest rare drop
 	RARE_SPAWN_TIER_ATTRIBUTE = "RareSpawnTier",
 	RARE_SPAWN_AT_ATTRIBUTE = "RareSpawnAt", -- workspace: server time of the latest rare drop

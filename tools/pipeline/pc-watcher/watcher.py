@@ -1526,6 +1526,8 @@ def step_shots(run):
                     res["pad_seat"] = pad_seat
                 if shot.get("plot_skin"):  # gaps #15: Plot_1 wears the skin (floor, fence tint, decor mesh), Studio only
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
+                if shot.get("fountain_tier"):  # v19: the fountain wears this tier's ring / crest / glow, Studio only
+                    res["fountain_tier"] = run.need_luau("fountain_tier", "Client", timeout=15, tier=int(shot["fountain_tier"]))
                 if shot.get("grow"):  # v29 #11: real growth on the pad 1 slime (Studio hook); WorldView draws it
                     # no watcher seat clone may stand on the pad: the frame must show the slime WorldView renders
                     if (res.get("target") or {}).get("path"):
@@ -1655,6 +1657,8 @@ def step_shots(run):
                         run.luau("pcw_clock", "Server", timeout=15, time=False)
                 if shot.get("plot_skin"):
                     run.luau("plot_skin", "Client", timeout=15, skin="classic")
+                if shot.get("fountain_tier"):
+                    run.luau("fountain_tier", "Client", timeout=15, tier=0)
         except Exception as e:
             res["error"] = repr(e)[:200]
             if not res.get("frame"):
@@ -1673,6 +1677,11 @@ def step_shots(run):
     if any(shot.get("weather") for shot in shots):
         try:
             run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1, cover=-1)  # drop the WeatherDebug preview
+        except Exception:
+            pass
+    if any(shot.get("fountain_tier") for shot in shots):
+        try:
+            run.luau("fountain_tier", "Client", timeout=15, tier=0)  # drop the PcwFountainTier override
         except Exception:
             pass
     if any(shot.get("plot_skin") for shot in shots):

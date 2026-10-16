@@ -8,6 +8,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local FountainTiers = if script then require(script.Parent.FountainTiers) else require("./FountainTiers")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 
@@ -56,6 +57,8 @@ end
 -- `minTier` (optional, pity) keeps the rarity at or above that tier.
 -- `luckMult` / `mutationMult` (optional, CycleModifier) scale the rarity luck and mutation chance.
 -- `weeklyMutation` / `weeklyBonus` (optional, WeeklyEvents) raise one mutation's chance.
+-- `familyPool` (optional, FEATURES.FountainTiers: FountainTiers.pool of the server's fountain tier) lets some
+-- drops be a family type with that family's luck; nil (or empty) draws nothing extra from `rng`.
 function Fountain.roll(
 	rng: Rng.Rng,
 	id: string,
@@ -64,16 +67,19 @@ function Fountain.roll(
 	luckMult: number?,
 	mutationMult: number?,
 	weeklyMutation: string?,
-	weeklyBonus: number?
+	weeklyBonus: number?,
+	familyPool: { string }?
 ): Drop
 	local baseChance = if raining then Config.RAIN_MUTATION_CHANCE else Config.DROP_MUTATION_CHANCE
+	local family = if familyPool then FountainTiers.roll(rng, familyPool) else nil
 	local slime = Genome.generate(rng, {
 		id = id,
 		minTier = minTier,
 		mutationChance = math.min(1, baseChance * (mutationMult or 1)),
-		luck = (if raining then Config.RAIN_LUCK else 1) * (luckMult or 1),
+		luck = (if raining then Config.RAIN_LUCK else 1) * (luckMult or 1) * FountainTiers.luck(family),
 		weeklyMutation = weeklyMutation,
 		weeklyBonus = weeklyBonus,
+		family = family,
 	})
 	return {
 		slime = slime,

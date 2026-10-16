@@ -40,6 +40,7 @@ export type RebirthTier = {
 	keep: number?, -- slimes kept on rebirth
 	income: number?, -- income bonus (0.25 = +25 %)
 	lock: number?, -- extra seconds per bought lock
+	family: string?, -- FountainTiers family id this rank opens (FEATURES.FountainTiers; FountainTiers.FAMILIES)
 }
 
 export type Upgrade = {
@@ -211,12 +212,12 @@ local REBIRTH_SLIMES: { [number]: string } = {
 local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 0, title = "Slime Rookie" },
 	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed" },
-	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap" },
+	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard" },
 	{ rebirths = 5, title = "Blob Baron", unlock = "Luck" },
-	{ rebirths = 6, title = "Goo Tycoon", keep = 2 },
+	{ rebirths = 6, title = "Goo Tycoon", keep = 2, family = "frost" },
 	{ rebirths = 7, title = "Jelly Magnate", income = 0.1 },
 	{ rebirths = 8, title = "Ooze Overlord", lock = 30 },
-	{ rebirths = 10, title = "Slime Sovereign", keep = 3, income = 0.25 },
+	{ rebirths = 10, title = "Slime Sovereign", keep = 3, income = 0.25, family = "starlight" },
 	{ rebirths = 12, title = "Gel Emperor", lock = 60 },
 	{ rebirths = 15, title = "Gelatinous Legend", keep = 4, income = 0.5 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1 },
@@ -573,6 +574,7 @@ local Config = {
 	SECRET_TIER = 7, -- Config.RARITIES tier of the Secret slimes (SlimeRoster.SECRET_TIER)
 	RARE_ANNOUNCE_TIER = 5, -- wild drops of this tier or higher: Notify everyone + RareSpawn attributes
 	FREE_DROP_CHANCE = 0.25, -- share of wild slimes that cost nothing to grab
+	FAMILY_DROP_CHANCE = 0.3, -- FEATURES.FountainTiers: share of fountain drops that are a family slime (from the families the server's fountain tier has opened)
 	WILD_PRICE_SECONDS = 20, -- other wild slimes cost this many seconds of their income
 
 	-- Slime Rain event
@@ -632,6 +634,7 @@ local Config = {
 		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
 		StealAlerts = false, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
 		WeeklyEvents = false, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
+		FountainTiers = false, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 

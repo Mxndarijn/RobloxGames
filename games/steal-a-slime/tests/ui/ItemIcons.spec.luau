@@ -339,7 +339,7 @@ describe("item icons: server ids, Dex skins, gear", function()
 		local toasts = UiHarness.ui("Toasts").new(root, registry, Config)
 		toasts.push("Anything at all", "good", nil, "Upgrade_Luck")
 		toasts.push("Speed Coil bought! You run faster now.", "good", nil, "not-an-item")
-		toasts.push("Speed Coil bought! You run faster now.", "good")
+		toasts.push("Speed Coil bought! You run faster now.", "info") -- other kind: not merged with the line above
 		toasts.push("You walked", "info", nil, "Slap")
 		local seen = {}
 		for _, inst in UiHarness.descendants(root) do

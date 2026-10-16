@@ -99,6 +99,25 @@ for _, look in
 		-- Secret
 		l("golden_goose_goo", { 255, 200, 60 }, "Foil", "slime_wobble"),
 		l("moonmilk", { 36, 44, 110 }, "SmoothPlastic", "slime_ears"),
+		-- v19 families (FountainTiers): the same kit per tier as Classic
+		l("apple_pop", { 226, 52, 56 }, "SmoothPlastic", "slime_base"),
+		l("pear_drop", { 176, 214, 64 }, "SmoothPlastic", "slime_acc_leaf"),
+		l("peach_fuzz", { 255, 176, 128 }, "SmoothPlastic", "slime_ears"),
+		l("plum_stag", { 132, 62, 168 }, "SmoothPlastic", "slime_horns"),
+		l("cherry_baron", { 150, 22, 52 }, "SmoothPlastic", "slime_acc_crown"),
+		l("citrine_quince", { 250, 214, 52 }, "Glass", "slime_acc_crystal"),
+		l("vanilla_scoop", { 255, 244, 212 }, "SmoothPlastic", "slime_base"),
+		l("mint_chip", { 128, 232, 188 }, "SmoothPlastic", "slime_acc_leaf"),
+		l("sherbet_bunny", { 255, 150, 112 }, "SmoothPlastic", "slime_ears"),
+		l("icicle_ibex", { 150, 214, 255 }, "SmoothPlastic", "slime_horns"),
+		l("snowcone_duke", { 206, 232, 255 }, "SmoothPlastic", "slime_acc_crown"),
+		l("glacier_gem", { 70, 214, 232 }, "Glass", "slime_acc_crystal"),
+		l("stardust_blob", { 150, 110, 240 }, "SmoothPlastic", "slime_base"),
+		l("nebula_sprout", { 224, 80, 200 }, "SmoothPlastic", "slime_acc_leaf"),
+		l("comet_kitty", { 80, 84, 200 }, "SmoothPlastic", "slime_ears"),
+		l("meteor_ram", { 255, 120, 56 }, "SmoothPlastic", "slime_horns"),
+		l("aurora_queen", { 60, 226, 190 }, "SmoothPlastic", "slime_acc_crown"),
+		l("supernova_titan", { 255, 236, 170 }, "Foil", "slime_acc_crystal"),
 	}
 do
 	LOOKS[look.id] = look
