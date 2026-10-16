@@ -14,6 +14,13 @@
 # tools/luau-lsp/globalTypes.None.d.luau (luau-lsp 1.70.1, committed for offline runs).
 set -euo pipefail
 
+for tool in rojo luau-lsp; do
+	if ! command -v "$tool" >/dev/null 2>&1; then
+		echo "typecheck: $tool not found on PATH; install via rokit (rokit install)" >&2
+		exit 1
+	fi
+done
+
 all=0
 [[ "${1:-}" == "--all" ]] && all=1
 root="$(cd "$(dirname "$0")/.." && pwd)"
