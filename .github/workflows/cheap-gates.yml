@@ -30,11 +30,11 @@ jobs:
           filters: |
             slime:
               - 'games/steal-a-slime/**'
-              - 'shared/**'
+              - 'shared/modeling-kit/out/**'
+              - 'shared/modeling-kit/models/slime_fountain.py'
               - '.github/workflows/**'
             escape:
               - 'games/speed-escape/**'
-              - 'shared/**'
               - '.github/workflows/**'
       # Only games whose paths (or shared deps) changed; unknown new games always run.
       - id: ls

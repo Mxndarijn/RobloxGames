@@ -48,10 +48,27 @@ Outcomes (exit code of `publish.sh`):
 | Case | Result |
 |---|---|
 | Gate passes | continue (exit 0) |
-| Report missing/incomplete/stale `checked_at`, less than 10 min after cloud pass finished | **pending**, exit 3; watcher re-checks each tick |
-| Same, more than 10 min (`REPORT_TIMEOUT_S`=600) after cloud pass | `status/X.publish.json` `{"status":"no-publish","reason":...}`, exit 4, never retried |
+| Report missing/incomplete/stale `checked_at`, less than 30 min after cloud pass finished | **pending**, exit 3; watcher re-checks each tick |
+| Same, more than 30 min (`REPORT_TIMEOUT_S`=1800) after cloud pass | `status/X.publish.json` `{"status":"no-publish","reason":...}`, exit 4, never retried |
 | Report `status == "fail"`, or cloud tests `fail` | `no-publish`, exit 4 |
 | Cloud status `error` | pending (the watcher retries the cloud run) |
+| A newer sha on `origin/main` (first-parent order) has cloud status `pass` | `status/X.publish.json` `{"status":"skipped-superseded","superseded_by":"<newer sha>"}`, exit 4, never published |
+
+### Newest only
+
+Only the newest cloud-passed commit on main ships. For sha X, `publish.sh` walks `git rev-list --first-parent origin/main`
+(`MAIN_REF`); if any commit newer than X has `status/<newer>.json` `status == "pass"`, X is skipped. This applies to any X
+that is pending (no or incomplete report, no cloud status yet) or passing/`ready`. X that already ended `live`, `no-publish`
+or `smoke-failed` is left alone, and a newer sha that is `fail`/`error`/missing does not supersede. The check runs at the
+start, before each upload (Saved and Published), and `watch.sh` re-runs it (`SUPERSEDE_ONLY=1`) for `ready` shas each tick.
+Test: `tools/pipeline/test-publish-dryrun.sh`.
+| A newer sha on `origin/main` (first-parent order) has cloud status `pass` | `status/X.publish.json` `{"status":"skipped-superseded","superseded_by":"<newer sha>"}`, exit 4, never published |
+
+### Newest only
+
+Only the newest cloud-passed commit on main may go live. For sha X, `publish.sh` walks `git rev-list --first-parent $MAIN_REF` (default `origin/main`) and looks at every sha newer than X. If any has `status/<newer>.json` `status == "pass"`, X is marked `skipped-superseded` (X's own state may be pending, passing or `ready`). The newest such sha is recorded as `superseded_by`. Shas that already ended `live`, `no-publish` or `smoke-failed` are left alone, as is a sha that is not on main's first-parent line.
+
+The check runs at the start, again before writing `ready`, before the Saved upload, and again right before the Published upload (a newer sha can pass while X builds or is smoke-tested). `SUPERSEDE_ONLY=1` stops after the first check; `watch.sh` uses it to retire `ready` shas. Dry-run tests: `tools/pipeline/test-publish-dryrun.sh`.
 
 ## Publishing
 
@@ -73,4 +90,4 @@ The Saved version from stage 1 is never promoted. The key is sent to curl on std
 ## Wiring
 
 - `cloud-test.sh`'s `publish_hook` calls `publish.sh` after a pass (the report is usually not there yet, so it stays pending).
-- `watch.sh` runs `publish.sh` each tick for every cloud-passed sha (last 2 days) without a `status/<sha>.publish.json`, so pending shas are re-checked until they end `live`, `ready`, `no-publish` or `smoke-failed`. `AUTO_PUBLISH` comes from `~/.config/roblox-ci.env`.
+- `watch.sh` runs `publish.sh` each tick for every cloud-passed sha (last 2 days) without a `status/<sha>.publish.json`, so pending shas are re-checked until they end `live`, `no-publish`, `skipped-superseded` or `smoke-failed`. A `ready` sha is re-checked every tick with `SUPERSEDE_ONLY=1` so a newer pass still retires it. `AUTO_PUBLISH` comes from `~/.config/roblox-ci.env`.
