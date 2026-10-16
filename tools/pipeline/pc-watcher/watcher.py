@@ -1560,6 +1560,11 @@ def step_shots(run):
                     if not res["ring_slimes"].get("ok"):
                         run.note("shot %s: wild slime inside the landing ring: %s" % (
                             sid, str(res["ring_slimes"].get("violations") or res["ring_slimes"].get("error"))[:200]))
+                if shot.get("wild_pace"):
+                    # v30 C9: a lane slime's displacement over N s vs the Config pace (soft: needs a live wild on the lane)
+                    res["wild_pace"] = run.need_luau("wild_pace", "Server", timeout=30, seconds=float(shot["wild_pace"]))
+                    if not res["wild_pace"].get("ok"):
+                        run.note("shot %s: wild pace off: %s" % (sid, str(res["wild_pace"])[:200]))
                 if shot.get("mesh_slots_max"):
                     # perf proof (HARD): the same Server count as step_perf, asserted at the shot's own limit
                     ms = res["mesh_slots"] = run.need_luau("perf_server", "Server", timeout=30)

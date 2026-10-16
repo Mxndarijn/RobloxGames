@@ -115,6 +115,27 @@ describe("ParadeLane timing: lane position is time left", function()
 		expect(ParadeLane.phase(T0, E, E - 0.01)).toBe("Drain")
 		expect(ParadeLane.phase(T0, E, E)).toBe("Gone")
 	end)
+	it("C9: wild pace reads Config.SLIME_MOVE_SPEED_MULT: the lane walk and hop rate are slower by it", function()
+		local mult = Config.SLIME_MOVE_SPEED_MULT
+		expect(mult < 1 and mult >= 0.6 and mult <= 0.7).toBe(true) -- ~30-40% slower
+		local OLD_LIFE = Config.WILD_BASE_LIFETIME
+		local oldSpeed = ParadeLane.walkSpeed(OLD_LIFE)
+		local newSpeed = ParadeLane.walkSpeed(Config.WILD_LIFETIME)
+		expect(newSpeed < oldSpeed).toBe(true)
+		-- the lifetime stretches by ~1 / mult, so the speed drops by about mult (within the fixed hop + drain)
+		expect(newSpeed / oldSpeed <= 0.7 and newSpeed / oldSpeed >= 0.6).toBe(true)
+		expect(Config.WILD_LIFETIME).toBe(math.round(OLD_LIFE / mult))
+		expect(ParadeLane.HOP_PERIOD).toBeCloseTo(0.5 / mult, 1e-9)
+		-- the drain is still reached at expiry: the walk ends exactly DRAIN_SECONDS before it
+		local E = T0 + LIFE
+		expect(ParadeLane.distance(T0, E, E - ParadeLane.DRAIN_SECONDS)).toBeCloseTo(ParadeLane.LENGTH, 1e-6)
+		-- measured: studs covered in 10 s mid-walk match walkSpeed
+		local a = ParadeLane.distance(T0, E, T0 + 40)
+		local b = ParadeLane.distance(T0, E, T0 + 50)
+		expect(b - a).toBeCloseTo(newSpeed * 10, 1e-6)
+		-- the ride still lands well before the walk starts and the warning still fits the walk
+		expect(HOP + ParadeLane.DRAIN_SECONDS < LIFE - Config.DESPAWN_TELEGRAPH_SECONDS).toBe(true)
+	end)
 	it("distance walked is linear in time left: equal time left, equal share of the lane", function()
 		for _, life in { LIFE, Config.BOSS_LIFETIME } do
 			local walk = life - HOP - ParadeLane.DRAIN_SECONDS
@@ -161,7 +182,7 @@ describe("ParadeLane timing: lane position is time left", function()
 		"walking slimes stay on the lane: within SPREAD / 2 of the centreline, hopping no higher than HOP_HEIGHT",
 		function()
 			for _, lateral in { -ParadeLane.SPREAD / 2, 0.4, ParadeLane.SPREAD / 2 } do
-				for t = HOP, LIFE - ParadeLane.DRAIN_SECONDS, 0.37 do
+				for t = HOP + 0.01, LIFE - ParadeLane.DRAIN_SECONDS - 0.01, 0.37 do
 					local pose = ParadeLane.pose(T0, T0 + LIFE, lateral, T0 + t)
 					local p = pose.position
 					expect(pose.phase).toBe("Walk")
@@ -512,8 +533,9 @@ describe("ParadeLane: the despawn telegraph stays readable", function()
 	it("consecutive drops are far apart on the lane, so countdowns never stack", function()
 		local gap = ParadeLane.distance(T0, T0 + LIFE, T0 + 40)
 			- ParadeLane.distance(T0 + Config.SPAWN_INTERVAL, T0 + Config.SPAWN_INTERVAL + LIFE, T0 + 40)
-		-- four of the biggest slimes between neighbours
-		expect(gap >= 8 * ParadeLane.SLIME_RADIUS).toBe(true)
+		-- two of the biggest slimes between neighbours (slower pace, C9: the drops sit closer on the lane)
+		expect(gap >= 4 * ParadeLane.SLIME_RADIUS).toBe(true)
+		expect(gap).toBeCloseTo(Config.SPAWN_INTERVAL * ParadeLane.walkSpeed(LIFE), 1e-6)
 		-- at most two countdowns at once at the normal cadence
 		expect(math.ceil(ParadeLane.WARN_SECONDS / Config.SPAWN_INTERVAL) <= 2).toBe(true)
 	end)

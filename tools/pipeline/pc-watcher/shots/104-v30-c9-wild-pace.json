@@ -1,0 +1,11 @@
+{
+  "id": "v30-c9-wild-pace",
+  "todo": "v30-c9",
+  "kind": "world",
+  "target": "slide",
+  "from": "centre",
+  "dist": 90,
+  "height": 60,
+  "wild_pace": 6,
+  "note": "v30 C9: wild slimes walk the parade lane ~35% slower (Config.SLIME_MOVE_SPEED_MULT): luau/wild_pace measures a lane slime's horizontal displacement over 6 s against ParadeLane.walkSpeed(WILD_LIFETIME)"
+}

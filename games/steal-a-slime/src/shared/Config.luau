@@ -388,6 +388,12 @@ for _, combo in WEATHER_COMBOS do
 	table.freeze(combo)
 end
 
+-- v30 C9: wild slimes moved too fast. Every wild-slime pace (the parade lane walk, its hop rate) scales by this;
+-- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
+-- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
+local SLIME_MOVE_SPEED_MULT = 0.65
+local WILD_BASE_LIFETIME = 75 -- seconds at the old pace
+
 local Config = {
 	RARITIES = table.freeze(RARITIES),
 	MUTATIONS = table.freeze(MUTATIONS),
@@ -478,7 +484,9 @@ local Config = {
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = 4,
 	MAX_WILD_SLIMES = 18,
-	WILD_LIFETIME = 75,
+	SLIME_MOVE_SPEED_MULT = SLIME_MOVE_SPEED_MULT,
+	WILD_BASE_LIFETIME = WILD_BASE_LIFETIME,
+	WILD_LIFETIME = math.round(WILD_BASE_LIFETIME / SLIME_MOVE_SPEED_MULT), -- 115: walk + hop slower, drain still at expiry
 	DESPAWN_TELEGRAPH_SECONDS = 5, -- wild slimes warn this long before they expire (FEATURES.DespawnTelegraph)
 	-- Despawn telegraph FX: optional one-shot sound with the poof. Off until a real asset is chosen.
 	DESPAWN_POOF_SOUND = false,
