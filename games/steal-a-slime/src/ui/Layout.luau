@@ -438,12 +438,18 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 
 	local hud = Layout.hud(W, compact, opts.hudVisible)
 	local hudBottom = hud.rect.y + hud.rect.h
-	local bannerW = math.min(Layout.BANNER_WIDTH, W - m * 2)
+	local top = hudBottom + gap
+
+	-- Banners and toasts draw above menus, so both keep clear of the menu
+	-- close X (top-right of the panel; its x / y don't depend on the nav).
+	-- Banners may cover a menu title, but stay centred left of the X column;
+	-- toasts stack under the X row.
+	local close = Layout.panelClose(Layout.fullWindowRect(0, top, W, H, inset))
+	local bannerW = math.min(Layout.BANNER_WIDTH, W - m * 2, 2 * (close.x - gap) - W)
 	local banners = Layout.rect((W - bannerW) / 2, hudBottom + 8, bannerW, 0)
 	local toastW = math.min(Layout.TOAST_WIDTH, W - m * 2)
-	local toasts = Layout.rect(W - m - toastW, hudBottom + 8, toastW, 300)
-
-	local top = hudBottom + gap
+	local toastY = close.y + close.h + gap
+	local toasts = Layout.rect(W - m - toastW, toastY, toastW, math.max(math.min(300, H - m - toastY), 0))
 
 	-- Bottom cards: carry on the bottom line, tutorial above it while
 	-- carrying. Full screen width (the nav ends above them), so a phone

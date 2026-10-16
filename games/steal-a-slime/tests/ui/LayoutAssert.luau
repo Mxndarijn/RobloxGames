@@ -482,6 +482,11 @@ function LayoutAssert.panelChecks(check: Checker)
 		do
 			check.noOverlap(closeName, close, other[1] :: string, other[2] :: Rect)
 		end
+		-- Toasts and banners draw above menus too. Banners grow down from
+		-- their top as alerts stack, so their whole column must miss the X.
+		check.noOverlap(closeName, close, "Toasts", screen.toasts)
+		local b = screen.banners
+		check.noOverlap(closeName, close, "Banners", Layout.rect(b.x, b.y, b.w, screen.height - b.y))
 		local title = Layout.panelTitle(r)
 		check.noOverlap(`{name}.Title`, title, closeName, close)
 		check.text({
