@@ -291,10 +291,25 @@ local function panelState(key: string, realState: any): any
 	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
 		-- Studio-only: one fake owned slime so the My Plot row shows its Appraise button.
 		local view = table.clone(state)
-		view.slimes = { {
-			slime = { id = "pcw-plot", name = "Blorp", tier = 3, color = { 90, 200, 120 }, size = 1.2, pattern = "None", eyes = "Round", mouth = "Smile", mutation = "None", pad = 1 },
-			income = 12, sellPrice = 450, appraiseCost = 135,
-		} }
+		view.slimes = {
+			{
+				slime = {
+					id = "pcw-plot",
+					name = "Blorp",
+					tier = 3,
+					color = { 90, 200, 120 },
+					size = 1.2,
+					pattern = "None",
+					eyes = "Round",
+					mouth = "Smile",
+					mutation = "None",
+					pad = 1,
+				},
+				income = 12,
+				sellPrice = 450,
+				appraiseCost = 135,
+			},
+		}
 		view.padsUnlocked = math.max(1, state.padsUnlocked or 1)
 		return view
 	end
