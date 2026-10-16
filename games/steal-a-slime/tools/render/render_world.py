@@ -34,7 +34,7 @@ ap.add_argument("--samples", type=int, default=128)
 ap.add_argument("--engine", default="cycles")
 ap.add_argument("--suffix", default="")
 ap.add_argument("--blend", default="")
-ap.add_argument("--skin", default="")  # plot skin id of the scene (export --skin): names view 07 plot_skin_<id>.png
+ap.add_argument("--skin", default="")  # plot skin id of the scene (export --skin): names view 10 plot_skin_<id>.png
 args = ap.parse_args(argv)
 
 # Roblox -> Blender axes.

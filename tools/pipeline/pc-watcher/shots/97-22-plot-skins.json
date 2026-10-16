@@ -1,0 +1,43 @@
+[
+  {
+    "id": "22-plot-skin-mushroom",
+    "todo": "gaps-15",
+    "kind": "world",
+    "target": "Mailbox_1",
+    "from": "centre",
+    "dist": 24,
+    "height": 14,
+    "plot_skin": "mushroom",
+    "note": "gaps #15: Plot_1 wears the mushroom plot skin (forced with SlimeUI.PcwPlotSkin, FEATURES.PlotSkins off): floor colour, fence + gate tint and the skin decor standing in the Mailbox_1 slot"
+  },
+  {
+    "id": "22-plot-skin-candy",
+    "todo": "gaps-15",
+    "kind": "world",
+    "target": "Mailbox_1",
+    "from": "centre",
+    "dist": 24,
+    "height": 14,
+    "plot_skin": "candy",
+    "note": "gaps #15: Plot_1 wears the candy plot skin (forced with SlimeUI.PcwPlotSkin, FEATURES.PlotSkins off): floor colour, fence + gate tint and the skin decor standing in the Mailbox_1 slot"
+  },
+  {
+    "id": "22-plot-skin-crystal",
+    "todo": "gaps-15",
+    "kind": "world",
+    "target": "Mailbox_1",
+    "from": "centre",
+    "dist": 24,
+    "height": 14,
+    "plot_skin": "crystal",
+    "note": "gaps #15: Plot_1 wears the crystal plot skin (forced with SlimeUI.PcwPlotSkin, FEATURES.PlotSkins off): floor colour, fence + gate tint and the skin decor standing in the Mailbox_1 slot"
+  },
+  {
+    "id": "22-plot-skin-picker",
+    "todo": "gaps-15",
+    "kind": "ui",
+    "open": "dex",
+    "plot_skin": "candy",
+    "note": "gaps #15: plot skin picker cards at the top of the SlimeDex panel: Classic, Mushroom Meadow and Crystal Grotto locked with set progress, Candy Patch equipped (faked with SlimeUI.PcwPlotSkin)"
+  }
+]
