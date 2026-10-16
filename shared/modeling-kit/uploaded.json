@@ -599,6 +599,136 @@
     "uploadedAt": "2026-10-16T08:12:13Z",
     "versions": 1
   },
+  "ranch_border_fence_broken": {
+    "assetId": "103533217929074",
+    "assetType": "Model",
+    "meshId": "rbxassetid://121373752619996",
+    "meshSize": [
+      19.074,
+      4.888,
+      4.043
+    ],
+    "sha256": "f96591091c91f7d0",
+    "uploadedAt": "2026-10-16T15:21:33Z",
+    "versions": 1
+  },
+  "ranch_border_fence_long": {
+    "assetId": "92527416818808",
+    "assetType": "Model",
+    "sha256": "a89e18925cb1222b",
+    "uploadedAt": "2026-10-16T15:33:23Z",
+    "versions": 1,
+    "meshId": "rbxassetid://73361473495488",
+    "meshSize": [
+      51.074,
+      5.612,
+      7.18
+    ]
+  },
+  "ranch_border_fence_straight": {
+    "assetId": "112218798566397",
+    "assetType": "Model",
+    "meshId": "rbxassetid://103571944991059",
+    "meshSize": [
+      25.623,
+      4.783,
+      2.701
+    ],
+    "sha256": "22fff431a3d93196",
+    "uploadedAt": "2026-10-16T15:21:17Z",
+    "versions": 1
+  },
+  "ranch_border_grove_mixed": {
+    "assetId": "102848305698195",
+    "assetType": "Model",
+    "sha256": "f5f0770408f8699a",
+    "uploadedAt": "2026-10-16T15:34:13Z",
+    "versions": 1,
+    "meshId": "rbxassetid://119275936779741",
+    "meshSize": [
+      31.183,
+      16.659,
+      15.66
+    ]
+  },
+  "ranch_border_grove_pine": {
+    "assetId": "110166328268913",
+    "assetType": "Model",
+    "sha256": "4aaa4fdb714849ba",
+    "uploadedAt": "2026-10-16T15:33:59Z",
+    "versions": 1,
+    "meshId": "rbxassetid://132972161278608",
+    "meshSize": [
+      36.498,
+      21.78,
+      15.243
+    ]
+  },
+  "ranch_border_grove_rocky": {
+    "assetId": "131823405838760",
+    "assetType": "Model",
+    "sha256": "ed7b9e273bfbde5e",
+    "uploadedAt": "2026-10-16T15:34:20Z",
+    "versions": 1,
+    "meshId": "rbxassetid://73641376964456",
+    "meshSize": [
+      33.409,
+      15.6,
+      12.811
+    ]
+  },
+  "ranch_border_hedge_long": {
+    "assetId": "83794062389872",
+    "assetType": "Model",
+    "meshId": "rbxassetid://116685603875924",
+    "meshSize": [
+      24.968,
+      5.065,
+      4.92
+    ],
+    "sha256": "cdf4c1ac6c968c58",
+    "uploadedAt": "2026-10-16T15:20:04Z",
+    "versions": 1
+  },
+  "ranch_border_hedge_round": {
+    "assetId": "90045428838607",
+    "assetType": "Model",
+    "meshId": "rbxassetid://83546390836622",
+    "meshSize": [
+      15.064,
+      5.506,
+      5.786
+    ],
+    "sha256": "b8ecb1320ecec16f",
+    "uploadedAt": "2026-10-16T15:20:17Z",
+    "versions": 1
+  },
+  "ranch_border_hedge_stepped": {
+    "assetId": "105237080216235",
+    "assetType": "Model",
+    "meshId": "rbxassetid://113985027071790",
+    "meshSize": [
+      21.347,
+      7.546,
+      4.909
+    ],
+    "sha256": "918df99252960f18",
+    "uploadedAt": "2026-10-16T15:20:30Z",
+    "versions": 1
+  },
+  "ranch_border_hedge_xl": {
+    "assetId": "128259914576860",
+    "assetType": "Model",
+    "sha256": "2e5e096dc6aac135",
+    "uploadedAt": "2026-10-16T15:33:41Z",
+    "versions": 1,
+    "meshId": "rbxassetid://108264493248314",
+    "meshSize": [
+      41.199,
+      6.755,
+      5.147
+    ]
+  },
   "ranch_border_hill": {
     "assetId": "132262123100385",
     "assetType": "Model",
@@ -612,6 +742,149 @@
     "uploadedAt": "2026-10-16T07:49:52Z",
     "versions": 1
   },
+  "ranch_border_hill_dome": {
+    "assetId": "129259673741850",
+    "assetType": "Model",
+    "meshId": "rbxassetid://131846670153688",
+    "meshSize": [
+      41.736,
+      26.641,
+      29.811
+    ],
+    "sha256": "95edd301684b70a7",
+    "uploadedAt": "2026-10-16T15:21:55Z",
+    "versions": 1
+  },
+  "ranch_border_hill_ridge": {
+    "assetId": "111594495650865",
+    "assetType": "Model",
+    "meshId": "rbxassetid://123304503530946",
+    "meshSize": [
+      57.682,
+      21.673,
+      20.0
+    ],
+    "sha256": "d63ccc0004bb05fe",
+    "uploadedAt": "2026-10-16T15:21:42Z",
+    "versions": 1
+  },
+  "ranch_border_hill_twin": {
+    "assetId": "72142562438736",
+    "assetType": "Model",
+    "meshId": "rbxassetid://108674008696866",
+    "meshSize": [
+      49.686,
+      21.282,
+      21.862
+    ],
+    "sha256": "6ed3d5404941cd52",
+    "uploadedAt": "2026-10-16T15:22:08Z",
+    "versions": 1
+  },
+  "ranch_border_oak_round": {
+    "assetId": "128068407623828",
+    "assetType": "Model",
+    "meshId": "rbxassetid://136470489381235",
+    "meshSize": [
+      16.645,
+      16.443,
+      14.28
+    ],
+    "sha256": "729da8b071aa10ca",
+    "uploadedAt": "2026-10-16T15:19:39Z",
+    "versions": 1
+  },
+  "ranch_border_pine_broad": {
+    "assetId": "112666291556200",
+    "assetType": "Model",
+    "meshId": "rbxassetid://84373547344968",
+    "meshSize": [
+      12.347,
+      13.54,
+      12.134
+    ],
+    "sha256": "d645d098f6ed0ea9",
+    "uploadedAt": "2026-10-16T15:19:17Z",
+    "versions": 1
+  },
+  "ranch_border_pine_tall": {
+    "assetId": "95807680722627",
+    "assetType": "Model",
+    "meshId": "rbxassetid://99083195396108",
+    "meshSize": [
+      9.123,
+      24.87,
+      8.989
+    ],
+    "sha256": "02612eec68eb808b",
+    "uploadedAt": "2026-10-16T15:19:04Z",
+    "versions": 1
+  },
+  "ranch_border_pine_twin": {
+    "assetId": "114991667389583",
+    "assetType": "Model",
+    "meshId": "rbxassetid://120168980685941",
+    "meshSize": [
+      15.519,
+      19.72,
+      10.903
+    ],
+    "sha256": "ff6ce4620c48d046",
+    "uploadedAt": "2026-10-16T15:19:31Z",
+    "versions": 1
+  },
+  "ranch_border_rock_boulder": {
+    "assetId": "132240144452008",
+    "assetType": "Model",
+    "meshId": "rbxassetid://125140741014560",
+    "meshSize": [
+      11.813,
+      6.674,
+      7.583
+    ],
+    "sha256": "2cbcb29caf82657a",
+    "uploadedAt": "2026-10-16T15:20:39Z",
+    "versions": 1
+  },
+  "ranch_border_rock_cluster": {
+    "assetId": "123208953203128",
+    "assetType": "Model",
+    "meshId": "rbxassetid://109013245235520",
+    "meshSize": [
+      14.179,
+      4.765,
+      9.208
+    ],
+    "sha256": "cb7661672a0bea46",
+    "uploadedAt": "2026-10-16T15:20:59Z",
+    "versions": 1
+  },
+  "ranch_border_rock_slab": {
+    "assetId": "133289868664978",
+    "assetType": "Model",
+    "meshId": "rbxassetid://85815223547935",
+    "meshSize": [
+      13.767,
+      3.171,
+      6.564
+    ],
+    "sha256": "4c985de6921b56e2",
+    "uploadedAt": "2026-10-16T15:20:50Z",
+    "versions": 1
+  },
+  "ranch_border_rock_spire": {
+    "assetId": "128652155245495",
+    "assetType": "Model",
+    "meshId": "rbxassetid://101473511078404",
+    "meshSize": [
+      9.91,
+      10.517,
+      6.254
+    ],
+    "sha256": "a8286b22319b355d",
+    "uploadedAt": "2026-10-16T15:21:09Z",
+    "versions": 1
+  },
   "ranch_border_rocks": {
     "assetId": "106283479556559",
     "assetType": "Model",
@@ -623,6 +896,19 @@
     ],
     "sha256": "b8a193e7c77bca03",
     "uploadedAt": "2026-10-16T07:50:05Z",
+    "versions": 1
+  },
+  "ranch_border_sapling_trio": {
+    "assetId": "90720861579866",
+    "assetType": "Model",
+    "meshId": "rbxassetid://121306657581529",
+    "meshSize": [
+      12.187,
+      9.351,
+      7.743
+    ],
+    "sha256": "f05cf0c0741bc092",
+    "uploadedAt": "2026-10-16T15:19:53Z",
     "versions": 1
   },
   "ranch_campfire": {
