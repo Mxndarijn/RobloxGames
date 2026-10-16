@@ -428,6 +428,11 @@ VIEWS = {
     "07_border_aerial": lambda: look(polar(337.5, 40, 430), polar(157.5, 170, 0), lens=22),
     "08_border_along": lambda: look(polar(140, 240, 20), polar(178, 300, 6), lens=30),
     "09_border_eye": lambda: look(polar(157.5, 246, 5), polar(172, 300, 7), lens=30),
+    # v30 C5: close-up of plot 1's back fence outside the left corner: two panel
+    # joints (posts, planks, rail) and the corner where two sides meet
+    "10_fence_closeup": lambda: look((P1[0] - 22, 6.5, P1[2] + 62), (P1[0] - 30, 3.5, P1[2] + 39.5), lens=34),
+    # v30 C5: gate side of plot 1, from outside: panel, segment and gate post joints
+    "11_fence_gate_side": lambda: look((P1[0] + 38, 6.5, P1[2] - 66), (P1[0] + 25, 3.5, P1[2] - 40.5), lens=34),
 }
 
 os.makedirs(args.out, exist_ok=True)

@@ -160,15 +160,15 @@
   "phoenix_fence_segment": {
     "assetId": "92327721520041",
     "assetType": "Model",
-    "meshId": "rbxassetid://127187149466504",
+    "meshId": "rbxassetid://88430332942524",
     "meshSize": [
       11.0,
       9.02,
       1.8
     ],
-    "sha256": "99b306a1ccb59f40",
-    "uploadedAt": "2026-10-15T21:28:11Z",
-    "versions": 1
+    "sha256": "2ed6bff29376e720",
+    "uploadedAt": "2026-10-16T17:56:05Z",
+    "versions": 2
   },
   "phoenix_gate": {
     "assetId": "92840827180297",
@@ -992,15 +992,15 @@
   "ranch_fence_20": {
     "assetId": "93657150564692",
     "assetType": "Model",
-    "meshId": "rbxassetid://111846611380833",
+    "meshId": "rbxassetid://90306341034018",
     "meshSize": [
       22.0,
       9.02,
       1.8
     ],
-    "sha256": "8104e950ccd34813",
-    "uploadedAt": "2026-10-16T10:56:27Z",
-    "versions": 2
+    "sha256": "58b252f835a8959c",
+    "uploadedAt": "2026-10-16T17:55:46Z",
+    "versions": 3
   },
   "ranch_fence_stile": {
     "assetId": "109953899748949",
