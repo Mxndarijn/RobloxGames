@@ -42,7 +42,8 @@ describe("PlotSigns.lines", function()
 end)
 
 describe("PlotSigns.apply", function()
-	it("adds a SurfaceGui with Title / Stats on the front and back of a bare Sign", function()
+	it("adds a SurfaceGui with Title / Stats on the front (the board face) of a bare Sign", function()
+		expect(PlotSigns.FACES).toEqual({ "Front" })
 		local sign = roblox.Instance.new("Part")
 		sign.Name = "Sign"
 		PlotSigns.apply(sign, PlotSigns.lines(2, nil), DEPS)

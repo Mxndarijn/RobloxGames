@@ -13,8 +13,16 @@
 	  plot   { plot, x, z } in plot i's frame (WorldLayout.plotCentre: local
 	                        -Z = the entrance, +Z = behind the back fence).
 	                        Turn = plot yaw + yaw, so yaw 180 faces the entrance side.
-	Kit fronts face local +Z (LESSONS kit gotcha), so yaw 180 shows the front to
-	a player coming from the plaza. `scale` is uniform: slot = native size * scale.
+	Kit fronts face local +Z (LESSONS kit gotcha; MeshSwap turns the upload
+	onto that, MeshAssets.IMPORT_YAW), so yaw 180 shows the front to a player
+	coming from the plaza. `face` = another row's name turns the front at it
+	instead (the camp bench at its campfire). `scale` is uniform: slot =
+	native size * scale.
+
+	Facing (TODO v28 #11, tests/WorldPlacement.spec): seats face what they
+	are for, signs / boards / doors face the way players come (the plaza for
+	the plaza edge and the wedges, the entrance side for the farmyards),
+	mailboxes face the spoke path, lantern arms hang over it.
 
 	Clusters (map colours, PropClearance zones):
 	  plaza     the plaza edge between the ring path (r 82) and the plot fronts
@@ -39,6 +47,7 @@ export type Placement = {
 	plot: number?, -- plot anchor
 	x: number?,
 	z: number?,
+	face: string?, -- name of another placement: turn the kit front at it (yaw ignored)
 }
 
 local RanchProps = {}
@@ -80,6 +89,7 @@ end
 -- planter beside the shop (67.5) PROP_SPOT.
 polar("Campfire", "ranch_campfire", "plaza", 22.5, 92, 180, 1.3)
 polar("CampBench", "ranch_bench", "plaza", 16.5, 92, 90, 1.2)
+rows[#rows].face = "Campfire"
 polar("Well", "ranch_well", "plaza", 112.5, 92, 180, 1.2)
 polar("WellPump", "ranch_water_pump", "plaza", 120, 91, 180, 1.2)
 polar("PicnicTable", "ranch_picnic_table", "plaza", 202.5, 91, 180, 1.2)
@@ -93,12 +103,15 @@ polar("Planter", "ranch_flower_planter", "plaza", 56, 90, 180, 1.2)
 -- A lantern on the left of the entrance corridor where it meets the ring
 -- path (odd plots), or a mailbox by the gate on the side away from the "Free
 -- plot" stand (even plots). One each a plot paid for the plot DexBoard meshes
--- (DECOR_SLOT_BUDGET, C6).
+-- (DECOR_SLOT_BUDGET, C6). Both turn to the spoke path (plot-local x 0): the
+-- lantern's arm (kit +X) reaches over it (yaw 0), the mailbox door (kit
+-- front) faces it (yaw 270 = front towards plot -X).
+RanchProps.ENTRANCE_PATH_YAW = table.freeze({ ranch_lantern_post = 0, ranch_mailbox = 270 })
 for i = 1, Config.PLOT_COUNT do
 	if i % 2 == 1 then
-		onPlot(`Lantern_{i}`, "ranch_lantern_post", "entrance", i, -14, -55, 180, 1.2)
+		onPlot(`Lantern_{i}`, "ranch_lantern_post", "entrance", i, -14, -55, 0, 1.2)
 	else
-		onPlot(`Mailbox_{i}`, "ranch_mailbox", "entrance", i, 17, -45, 180, 1.2)
+		onPlot(`Mailbox_{i}`, "ranch_mailbox", "entrance", i, 17, -45, 270, 1.2)
 	end
 end
 
@@ -137,7 +150,8 @@ onPlot("StilePost_8", "phoenix_corner_post", "farm", 8, -23, 52, 180, 1)
 onPlot("Barrel_8", "ranch_barrel", "farm", 8, 13, 51, 180, 1.2)
 
 -- ... and the sparse props in the wedges between neighbours (every other
--- bisector, r 200, and the shed at r 245; the old Decor Ranch / Shed slots).
+-- bisector, r 200, and the shed at r 245; the old Decor Ranch / Shed slots),
+-- fronts (the shed's door) towards the plaza players come from.
 local WEDGE = {
 	{ "ranch_hay_bale", 1.25 },
 	{ "ranch_crate", 4 / 3 },
@@ -146,9 +160,9 @@ local WEDGE = {
 }
 for k, def in WEDGE do
 	local angle = (2 * k - 2) * 360 / Config.PLOT_COUNT + 180 / Config.PLOT_COUNT
-	polar(`Ranch{k}`, def[1], "farm", angle, 200, 0, def[2])
+	polar(`Ranch{k}`, def[1], "farm", angle, 200, 180, def[2])
 end
-polar("Shed", "ranch_shed", "farm", 112.5, 245, 0, 1.4)
+polar("Shed", "ranch_shed", "farm", 112.5, 245, 180, 1.4)
 
 RanchProps.PLACEMENTS = table.freeze(rows)
 

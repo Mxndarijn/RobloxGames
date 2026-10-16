@@ -262,6 +262,18 @@ local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)
 MeshAssets.entries = entries
 
+-- Yaw (degrees) MeshSwap adds to a mesh in a WorldLayout slot. WorldLayout
+-- lays slots out with the kit's documented axes (FBX Lcl Rotation: Roblox
+-- (X, Y, Z) = (kit x, kit z, -kit y), so a kit front at -Y faces slot +Z),
+-- but the uploaded meshes come into Roblox turned 180 about Y from that:
+-- the v28 playtest (live v27) showed the camp bench's back to its campfire,
+-- the plot name text on the back of the gate's sign, the shop stall opening
+-- away from its Props front and the fountain silo ~20 studs off the map
+-- centre (its axis is off the mesh's bbox centre, so the turn moves it).
+-- MeshSize models (WorldProps skins) already expect that import front (-Z)
+-- and take no turn.
+MeshAssets.IMPORT_YAW = 180
+
 function MeshAssets.get(name: string): Entry?
 	return entries[name]
 end

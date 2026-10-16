@@ -4,8 +4,10 @@
 
 	Writes the owner and stats onto each plot's `Sign` part. The static world
 	(world/Plots.rbxmx, WorldLayout) ships the Sign as a bare board with no
-	SurfaceGui, so the server adds one per readable face (Front, Back) with a
-	Title and a Stats TextLabel and updates them from the plot's session.
+	SurfaceGui, so the server adds one on its Front face (the gate board's
+	cream face, out of the entrance) with a Title and a Stats TextLabel and
+	updates them from the plot's session. No Back face: behind the board is
+	the gate beam, and text there floated off the mesh (v28 playtest).
 	Server-side so the text replicates to every client.
 
 	PlotSigns.lines(plotIndex, session?) -> { title, stats }   -- pure
@@ -27,7 +29,7 @@ type Deps = { Instance: any, Enum: any, UDim2: any, Color3: any }
 local PlotSigns = {}
 
 PlotSigns.GUI_PREFIX = "SignGui"
-PlotSigns.FACES = table.freeze({ "Front", "Back" })
+PlotSigns.FACES = table.freeze({ "Front" })
 PlotSigns.PIXELS_PER_STUD = 50
 
 local function plural(n: number, word: string): string

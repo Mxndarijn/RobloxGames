@@ -145,3 +145,34 @@ describe("MeshSwap uniform scale (live boot, every upload answered)", function()
 		expect(WorldLayout.PROP_MESHES[Constants.LEADERBOARD_BOARD] ~= nil).toBe(true)
 	end)
 end)
+
+describe("MeshSwap import turn (v28: kit fronts came in turned 180)", function()
+	it("turns every Part slot's mesh MeshAssets.IMPORT_YAW about the slot's own axis", function()
+		expect(MeshAssets.IMPORT_YAW).toBe(180)
+		local bad, parts = {}, 0
+		for _, s in swapped do
+			if s.target:IsA("BasePart") then
+				parts += 1
+				local rel = s.target.CFrame:ToObjectSpace(s.mesh.CFrame)
+				local look = rel.LookVector -- -Z of the mesh in the slot's frame
+				if
+					math.abs(rel.Position.X) > 1e-3
+					or math.abs(rel.Position.Z) > 1e-3
+					or math.abs(look.Z - 1) > 1e-4 -- mesh -Z = slot +Z
+				then
+					table.insert(bad, s.target:GetFullName())
+				end
+			end
+		end
+		expect(parts > 0).toBe(true)
+		expect(bad).toEqual({})
+	end)
+	it("leaves WorldProps Model skins on the Model's own front (-Z)", function()
+		for _, s in swapped do
+			if s.target:IsA("Model") then
+				local cf = s.target:GetBoundingBox()
+				expect(cf:ToObjectSpace(s.mesh.CFrame).LookVector.Z).toBeCloseTo(-1, 4)
+			end
+		end
+	end)
+end)

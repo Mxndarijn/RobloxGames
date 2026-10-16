@@ -89,6 +89,18 @@ WorldLayout.FOUNTAIN_PROFILE = table.freeze({
 	wallTop = 30.0, -- WALL_TOP, the eave underside
 	eaveTop = 31.3, -- Z0, eave edge top (the red dome starts here)
 })
+-- The silo axis is the map centre: every fountain piece (mesh slot, emerge
+-- slot, colliders, crater, slide, landing ring, goo drain) is laid out from
+-- FOUNTAIN_CENTRE. The slime_fountain mesh's silo axis is SILO_OFFSET (X, Z)
+-- from its bbox centre (kit SILO_AXIS (-6.52, 7.75), Roblox Z = -kit y; an
+-- OBJ circle fit of the staves gives the same), so its slot sits at
+-- FOUNTAIN_CENTRE - SILO_OFFSET. EMERGE_OFFSET = emerge bbox centre minus
+-- fountain bbox centre (FOUNTAIN_SIZES.md). Unrotated: rotate both with the
+-- fountain if it ever turns.
+WorldLayout.FOUNTAIN_CENTRE = table.freeze({ 0, 0, 0 }) :: Vec
+WorldLayout.FOUNTAIN_MESH_SIZE = table.freeze({ 54.45, 43.316, 63.851 }) :: Vec
+WorldLayout.FOUNTAIN_SILO_OFFSET = table.freeze({ -6.52, 0, -7.75 }) :: Vec
+WorldLayout.FOUNTAIN_EMERGE_OFFSET = table.freeze({ -11.2, 18.94, -8.25 }) :: Vec
 -- Legacy name: the fountain still answers to Map.Volcano(.Crater) (CONTRACT §5.3).
 WorldLayout.VOLCANO_HEIGHT = WorldLayout.FOUNTAIN_HEIGHT
 -- The live ride is WorldLayout.SLIDE_PATH (mesh spiral, end r 35.5 on +Z).
@@ -250,8 +262,9 @@ WorldLayout.PAD_SEAT = table.freeze({
 	phoenix_pad_mushroom = 3.0, -- flat mesa top of the cap
 })
 -- phoenix_gate's cream name board at native size (models/phoenix_gate.py
--- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line).
-WorldLayout.GATE_BOARD = table.freeze({ width = 9, height = 2.4, centreY = 10.5, front = 1.1 })
+-- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line;
+-- "SignRim" behind it ends 0.4 in front of the wall line).
+WorldLayout.GATE_BOARD = table.freeze({ width = 9, height = 2.4, centreY = 10.5, front = 1.1, back = 0.4 })
 -- The plot SlimeDex board skins the two-sided phoenix_top_earners_board at
 -- DEX_SCALE (14.8 x 14 x 2.9, about the gate's height). DEX_FACE = its front
 -- cream panel at native size, measured on out/phoenix_top_earners_board.fbx
@@ -275,8 +288,9 @@ WorldLayout.BUY_STAND_COUNTER = table.freeze({ x = 0, z = 0.53, width = 11, dept
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
--- two spokes. Shop and board face outward (local -Z towards the plots); the
--- tutorial NPC stands behind the hub SpawnLocation (scripts/StaticWorld,
+-- two spokes. The shop faces the fountain (Props front = local -Z; every shop
+-- faces the map centre, TODO v28 #10), the two-sided board faces the plots;
+-- the tutorial NPC stands behind the hub SpawnLocation (scripts/StaticWorld,
 -- same bearing) and faces it.
 local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: number }
 	-- Ring path outer edge is r 82 (78 + 8/2). 90 keeps a shop-sized prop off it.
@@ -284,14 +298,14 @@ local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: 
 	return { pos = { math.sin(a) * r, 0, math.cos(a) * r }, yaw = if faceVolcano then angle else angle + 180 }
 end
 WorldLayout.PROP_SPOTS = table.freeze({
-	ShopStand = propSpot(67.5),
+	ShopStand = propSpot(67.5, true),
 	LeaderboardBoard = propSpot(157.5),
 	TutorialNpc = propSpot(247.5, true),
 }) :: { [string]: { pos: Vec, yaw: number } }
 
 -- Spiral the polished slime_fountain slide follows (models/slime_fountain.py):
 -- 1.75 turns, end r 35.5 at the front. Kit (x, y, z-up) -> Roblox (x, z, -y),
--- silo axis at the world origin. Wilds ride this; the primitive chute copies it
+-- about the silo axis (FOUNTAIN_CENTRE, the world origin). Wilds ride this; the primitive chute copies it
 -- and hides once the fountain mesh loads.
 local SLIDE_TURNS, SLIDE_THETA_END = 1.75, -math.pi / 2
 local SLIDE_R0, SLIDE_RHELIX, SLIDE_REND = 4.8, 17.2, 35.5
@@ -334,8 +348,8 @@ local function buildSlide(): { Vec }
 		local u = length[k] / total
 		local drop = math.max(0, 1 - u / 0.9) ^ 1.2
 		local z = SLIDE_Z1 + (SLIDE_Z0 - SLIDE_Z1) * drop
-		local p = xy[k]
-		table.insert(path, { p[1], z, -p[2] })
+		local p, c = xy[k], WorldLayout.FOUNTAIN_CENTRE
+		table.insert(path, { c[1] + p[1], c[2] + z, c[3] - p[2] })
 	end
 	return path
 end
@@ -471,6 +485,12 @@ local function frame(origin: Vec, yaw: number): (Vec) -> Vec
 	end
 end
 
+-- Yaw (degrees) that turns a kit front (+Z) at `pos` to face FOUNTAIN_CENTRE.
+function WorldLayout.facingCentre(pos: Vec): number
+	local c = WorldLayout.FOUNTAIN_CENTRE
+	return math.deg(math.atan2(c[1] - pos[1], c[3] - pos[3]))
+end
+
 -- Map --------------------------------------------------------------------
 
 -- Slime fountain (kit slime_fountain), kept under the contract name
@@ -479,18 +499,22 @@ local function volcano(): WorldNode
 	local h = WorldLayout.FOUNTAIN_HEIGHT
 	local d = WorldLayout.FOUNTAIN_DIAMETER
 	local M = "slime_fountain"
+	local c = WorldLayout.FOUNTAIN_CENTRE
+	local function onAxis(y: number): Vec
+		return { c[1], c[2] + y, c[3] }
+	end
 	local children: { WorldNode } = {
-		standIn(disc("Rock1", 3, d, { 0, 1.5, 0 }, STONE, "Slate"), M),
-		standIn(disc("BasinRim", 1, d + 1, { 0, 3.5, 0 }, STONE_TRIM, "Slate"), M),
-		standIn(disc("Pool", 0.4, d - 3, { 0, 3.1, 0 }, POOL, "Glass"), M),
-		standIn(disc("Column", h - 8, 6, { 0, 3 + (h - 8) / 2, 0 }, STONE, "Slate"), M),
-		standIn(disc("Bowl", 3, 14, { 0, h - 3.5, 0 }, STONE_TRIM, "Slate"), M),
+		standIn(disc("Rock1", 3, d, onAxis(1.5), STONE, "Slate"), M),
+		standIn(disc("BasinRim", 1, d + 1, onAxis(3.5), STONE_TRIM, "Slate"), M),
+		standIn(disc("Pool", 0.4, d - 3, onAxis(3.1), POOL, "Glass"), M),
+		standIn(disc("Column", h - 8, 6, onAxis(3 + (h - 8) / 2), STONE, "Slate"), M),
+		standIn(disc("Bowl", 3, 14, onAxis(h - 3.5), STONE_TRIM, "Slate"), M),
 	}
 	local pool = children[3]
 	pool.canCollide = false
 	-- Stand-in too: once the mesh is in, a d11 neon plate poked out round the
 	-- mesh's own goo crown. It keeps its place as the drop origin and emitter host.
-	local crater = standIn(disc("Crater", 0.6, 11, { 0, h - 1.7, 0 }, POOL, "Neon"), M)
+	local crater = standIn(disc("Crater", 0.6, 11, onAxis(h - 1.7), POOL, "Neon"), M)
 	crater.canCollide = false
 	-- Client emitters attach here (VisualsClient); the glow keeps the pool lit.
 	crater.children = { light("CraterGlow") }
@@ -506,36 +530,29 @@ local function volcano(): WorldNode
 	local fp = WorldLayout.FOUNTAIN_PROFILE
 	local wallHeight = fp.eaveTop - fp.plinthTop
 	local trimHeight = fp.trimTop - fp.plinthTop
-	local plinth = disc("BasinCollider", fp.plinthTop, fp.plinthRadius * 2, { 0, fp.plinthTop / 2, 0 }, STONE_TRIM)
-	local trim =
-		disc("TrimCollider", trimHeight, fp.trimRadius * 2, { 0, fp.plinthTop + trimHeight / 2, 0 }, STONE_TRIM)
-	local wall = disc("SiloCollider", wallHeight, fp.wallRadius * 2, { 0, fp.plinthTop + wallHeight / 2, 0 }, STONE)
-	for _, c in { plinth, trim, wall } do
-		c.attributes = { MeshCollider = M }
-		c.transparency = 1
-		c.canCollide = false
-		c.canQuery = false
-		c.canTouch = false
-		table.insert(children, c)
+	local plinth = disc("BasinCollider", fp.plinthTop, fp.plinthRadius * 2, onAxis(fp.plinthTop / 2), STONE_TRIM)
+	local trim = disc("TrimCollider", trimHeight, fp.trimRadius * 2, onAxis(fp.plinthTop + trimHeight / 2), STONE_TRIM)
+	local wall = disc("SiloCollider", wallHeight, fp.wallRadius * 2, onAxis(fp.plinthTop + wallHeight / 2), STONE)
+	for _, collider in { plinth, trim, wall } do
+		collider.attributes = { MeshCollider = M }
+		collider.transparency = 1
+		collider.canCollide = false
+		collider.canQuery = false
+		collider.canTouch = false
+		table.insert(children, collider)
 	end
-	-- Native bbox of the polished slime_fountain (stats size, no squash).
-	-- Silo axis is kit (-6.52, 7.75) from the bbox centre (FOUNTAIN_SIZES)
-	-- = Roblox X/Z (-6.52, -7.75) with Z = -kit y. The slot sits on the
-	-- opposite point so the silo axis is the world origin and the base is y = 0.
-	local fountainSize: Vec = { 54.45, 43.316, 63.851 }
-	local fountainCentre: Vec = { 6.52, fountainSize[2] / 2, 7.75 }
+	-- Native bbox of the polished slime_fountain (stats size, no squash),
+	-- placed so its silo axis is FOUNTAIN_CENTRE and its base is the ground.
+	local fountainSize, silo = WorldLayout.FOUNTAIN_MESH_SIZE, WorldLayout.FOUNTAIN_SILO_OFFSET
+	local fountainCentre: Vec = { c[1] - silo[1], c[2] + fountainSize[2] / 2, c[3] - silo[3] }
 	local slot = meshSlot(block("FountainMesh", fountainSize, fountainCentre, STONE), M, true)
 	slot.attributes = slot.attributes or {}
 	slot.attributes.MeshStandInsCollide = false
 	table.insert(children, slot)
-	-- Emerge slimes, split out of the fountain (FOUNTAIN_SIZES). Offset is
-	-- the emerge bbox centre minus the fountain bbox centre, Roblox axes.
-	-- Invisible until its mesh id is filled; bobbing can hook this slot later.
-	local emergePos: Vec = {
-		fountainCentre[1] - 11.2,
-		fountainCentre[2] + 18.94,
-		fountainCentre[3] - 8.25,
-	}
+	-- Emerge slimes, split out of the fountain (FOUNTAIN_SIZES): the same
+	-- bbox-centre offset. Invisible until its mesh id is filled; bobbing can
+	-- hook this slot later.
+	local emergePos = LayoutMath.add(fountainCentre, WorldLayout.FOUNTAIN_EMERGE_OFFSET)
 	table.insert(
 		children,
 		meshSlot(block("EmergeMesh", { 19.436, 12.798, 11.353 }, emergePos, POOL), "slime_fountain_emerge", true)
@@ -845,15 +862,20 @@ local function plaza(): WorldNode
 	for _, def in WorldLayout.PLAZA_PROPS do
 		local size = def.size :: Vec
 		local pos = onPolar(def.yaw, def.r, size[2] / 2)
-		-- face the fountain
-		table.insert(children, meshSlot(block(def.name, size, pos, STONE, "Slate", { 0, def.yaw, 0 }), def.mesh))
+		-- Kit front (+Z) faces the fountain: the slot at (sin, cos) * r turned
+		-- yaw + 180 (yaw alone put the podium plaques and sign faces outward).
+		table.insert(
+			children,
+			meshSlot(block(def.name, size, pos, STONE, "Slate", { 0, (def.yaw + 180) % 360, 0 }), def.mesh)
+		)
 	end
 	local tiles: { WorldNode } = {}
 	local y = LANDING_SIZE[2] / 2
 	for i = 0, LANDING_TILES - 1 do
 		local yaw = i * (360 / LANDING_TILES)
 		local a = math.rad(yaw)
-		local pos = { math.sin(a) * LANDING_BBOX, y, math.cos(a) * LANDING_BBOX }
+		local c = WorldLayout.FOUNTAIN_CENTRE
+		local pos = { c[1] + math.sin(a) * LANDING_BBOX, c[2] + y, c[3] + math.cos(a) * LANDING_BBOX }
 		table.insert(
 			tiles,
 			visualMesh(block(`Tile{i + 1}`, LANDING_SIZE, pos, PLAZA, "Slate", { 0, yaw, 0 }), "ranch_landing_ring")
@@ -864,7 +886,16 @@ local function plaza(): WorldNode
 	local drainSize: Vec = { 8.8, 4.45, 9.75 }
 	table.insert(
 		children,
-		visualMesh(block("GooDrain", drainSize, { 0, drainSize[2] / 2, 52 }, PLAZA, "Slate"), "ranch_goo_drain")
+		visualMesh(
+			block(
+				"GooDrain",
+				drainSize,
+				LayoutMath.add(WorldLayout.FOUNTAIN_CENTRE, { 0, drainSize[2] / 2, 52 }),
+				PLAZA,
+				"Slate"
+			),
+			"ranch_goo_drain"
+		)
 	)
 	return { name = "Plaza", class = "Folder", children = children }
 end
@@ -943,30 +974,35 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 
 	-- "Free plot" stand on the grass just outside the entrance, left of the
 	-- path and clear of the Sign (shown while OwnerUserId == 0): a
-	-- BUY_STAND_MESH slot (kit front turned 180 to face out of the entrance).
-	-- The primitives are its stand-ins, laid on the mesh: Counter (the
-	-- ClaimPrompt) on its counter, Board (PlotDecor's text, which stays once
-	-- the part hides) on its SHOP sign, back posts, and an upright Coin on the
-	-- counter facing the volcano. Decor only, as before: PlotDecor hides the
-	-- stand on owned plots, so it never collides.
-	local bx, bz = -13, -h - 5
+	-- BUY_STAND_MESH slot turned so its kit front faces the map centre (every
+	-- shop does, TODO v28 #10; the plot's own -Z misses it by ~4 degrees).
+	-- The primitives are its stand-ins, laid on the mesh in the stand's frame
+	-- (kit front = +Z): Counter (the ClaimPrompt) on its counter, Board
+	-- (PlotDecor's text, which stays once the part hides) on its SHOP sign,
+	-- back posts, and an upright Coin on the counter. Decor only, as before:
+	-- PlotDecor hides the stand on owned plots, so it never collides.
+	local base = at({ -13, 0, -h - 5 })
+	local standYaw = WorldLayout.facingCentre(base)
+	local st = frame(base, standYaw)
 	local ks, sign, top = WorldLayout.BUY_STAND_SCALE, WorldLayout.BUY_STAND_FACE, WorldLayout.BUY_STAND_COUNTER
 	local standSize = meshSize(WorldLayout.BUY_STAND_MESH, ks)
-	-- Mesh frame (x, y up from the bottom, z + = front) to plot-local.
+	-- Mesh frame at native size (x, y up from the bottom, z + = front) to world.
 	local function onStand(x: number, y: number, z: number): Vec
-		return at({ bx - x * ks, y * ks, bz - z * ks })
+		return st({ x * ks, y * ks, z * ks })
 	end
+	-- Stand-in parts' Front (-Z) faces the kit front.
+	local sr = { 0, standYaw + 180, 0 }
 	local topY = top.top * ks
 	local function part(name: string, size: Vec, pos: Vec, color: Vec, material: string, rot: Vec?): WorldNode
-		return standIn(ghost(block(name, size, pos, color, material, rot or r)), WorldLayout.BUY_STAND_MESH)
+		return standIn(ghost(block(name, size, pos, color, material, rot or sr)), WorldLayout.BUY_STAND_MESH)
 	end
 	local coin = part(
 		"Coin",
 		{ 0.4, 1.8, 1.8 },
-		at({ bx + 2, topY + 0.3 + 0.9, bz - top.z * ks }),
+		st({ -2, topY + 0.3 + 0.9, top.z * ks }),
 		{ 255, 205, 60 },
 		"Neon",
-		{ 0, yaw + 90, 0 }
+		{ 0, standYaw - 90, 0 }
 	)
 	coin.shape = "Cylinder"
 	local postH = 13.4 * ks
@@ -976,7 +1012,7 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 		primaryPart = "Counter",
 		children = {
 			meshSlot(
-				block("StandMesh", standSize, at({ bx, standSize[2] / 2, bz }), WOOD, nil, { 0, yaw + 180, 0 }),
+				block("StandMesh", standSize, st({ 0, standSize[2] / 2, 0 }), WOOD, nil, { 0, standYaw, 0 }),
 				WorldLayout.BUY_STAND_MESH,
 				true
 			),
@@ -990,7 +1026,7 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 			part(
 				"CounterTop",
 				{ top.width * ks + 0.6, 0.3, top.depth * ks + 0.5 },
-				at({ bx, topY + 0.15, bz - top.z * ks }),
+				st({ 0, topY + 0.15, top.z * ks }),
 				{ 240, 200, 70 },
 				"SmoothPlastic"
 			),
@@ -999,7 +1035,7 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 			part(
 				"Board",
 				{ sign.width * ks, sign.height * ks, 0.3 },
-				at({ bx - sign.x * ks, sign.y * ks, bz - sign.front * ks - 0.02 - 0.15 }),
+				st({ sign.x * ks, sign.y * ks, sign.front * ks + 0.02 + 0.15 }),
 				{ 40, 150, 70 },
 				"SmoothPlastic"
 			),
@@ -1147,14 +1183,16 @@ local function plot(i: number): WorldNode
 	button.children = { block("Pedestal", { 5, 1.5, 5 }, at({ 19, 1.75, -14 }), FENCE, "WoodPlanks", { 0, yaw, 0 }) }
 	table.insert(children, button)
 
-	-- Sign = the gate mesh's cream name board (PlotSigns writes on it), its
-	-- bottom edge >= 9 above the walkway. Deep enough to come out just in front
-	-- of the board and just behind the beam, so both text faces stay readable.
-	-- Board, posts and beam are stand-ins: the mesh draws them once it lands.
+	-- Sign = the gate mesh's cream name board (PlotSigns writes on its Front
+	-- face), its bottom edge >= 9 above the walkway. Its front face sits just
+	-- proud of the board, its back face on the board's rim back: the text
+	-- sits on the board, nothing floats behind the beam (v28: "Plot 2 / Empty
+	-- plot" hung off the gate's back). Board, posts and beam are stand-ins:
+	-- the mesh draws them once it lands.
 	local wallZ = -s / 2 + 0.5
 	local board = WorldLayout.GATE_BOARD
 	local signY = 1 + board.centreY
-	local signFront, signBack = wallZ - board.front - 0.05, wallZ + 0.55
+	local signFront, signBack = wallZ - board.front - 0.05, wallZ - board.back
 	local sign = standIn(
 		block(
 			"Sign",
@@ -1311,8 +1349,19 @@ end
 
 -- Kit props from the RanchProps table, resolved to world slots (deterministic).
 local ranchProps: { RanchProp } = {}
+local byName: { [string]: RanchProp } = {}
 for _, p in RanchProps.PLACEMENTS do
-	table.insert(ranchProps, resolveProp(p))
+	local prop = resolveProp(p)
+	table.insert(ranchProps, prop)
+	byName[prop.name] = prop
+end
+-- `face`: turn the kit front (+Z) at another prop.
+for k, p in RanchProps.PLACEMENTS do
+	if p.face then
+		local prop, target = ranchProps[k], byName[p.face]
+		assert(target, `RanchProps {p.name} faces unknown {p.face}`)
+		prop.yaw = math.deg(math.atan2(target.pos[1] - prop.pos[1], target.pos[3] - prop.pos[3])) % 360
+	end
 end
 WorldLayout.RANCH_PROPS = table.freeze(ranchProps)
 
