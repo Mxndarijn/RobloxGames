@@ -6,6 +6,16 @@ local panel = gui and gui:FindFirstChild(%%PANEL%%)
 if not panel or not panel:IsA("GuiObject") then
 	return { found = false }
 end
+-- Preferred: the UI's Studio-only "PcwOpen" hook (src/ui/init.client.luau) opens the panel
+-- through setOpen, so its contents render. Falls back to Visible below.
+do
+	local key = string.gsub(%%PANEL%%, "Panel$", "")
+	gui:SetAttribute("PcwOpen", if %%SHOW%% then key else "")
+	task.wait(0.3)
+	if panel.Visible == %%SHOW%% then
+		return { found = true, visible = panel.Visible, via = "pcw_open_hook" }
+	end
+end
 if %%SHOW%% then
 	for _, c in gui:GetChildren() do
 		if c ~= panel and c:IsA("GuiObject") and string.sub(c.Name, -5) == "Panel" then
