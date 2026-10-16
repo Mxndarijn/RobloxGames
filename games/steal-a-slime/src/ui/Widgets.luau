@@ -186,27 +186,54 @@ function Widgets.confirmButton(
 	return btn
 end
 
-export type Panel = { frame: Frame, body: Frame, title: TextLabel, close: TextButton }
+export type Panel = { frame: Frame, body: Frame, title: TextLabel, close: TextButton, icon: TextLabel }
 
--- A titled, rounded menu panel (Layout.PANEL_CHROME): title top-left, a
--- close "X" top-right, `body` fills the area under them. init.client sizes
--- the frame (Layout.panelFor) and wires `close` to setOpen(nil).
-function Widgets.panel(parent: Instance, name: string, titleText: string): Panel
+-- A menu card (Layout.PANEL_CHROME): a coloured title band with the menu's
+-- emoji `icon`, the title and a close "X" top-right; `body` fills the area
+-- under them. init.client sizes the frame (Layout.panelFor) over the dimmed
+-- backdrop and wires `close` to setOpen(nil).
+function Widgets.panel(parent: Instance, name: string, titleText: string, icon: string?, color: Color3?): Panel
 	local c = Layout.PANEL_CHROME
+	local accent = color or Theme.Info
 	local frame = create("Frame", {
 		Name = name,
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Theme.Bg,
-		BackgroundTransparency = 0.04,
+		BackgroundTransparency = 0,
+		ZIndex = Layout.ZINDEX.Menu,
 		Parent = parent,
-	}, { Widgets.corner(12), Widgets.stroke(Color3.fromRGB(10, 10, 20), 2) })
+	}, { Widgets.corner(18), Widgets.stroke(Color3.fromRGB(10, 10, 20), 3) })
+	create("Frame", {
+		Name = "Band",
+		BorderSizePixel = 0,
+		BackgroundColor3 = accent,
+		Size = UDim2.new(1, 0, 0, c.header - 4),
+		Parent = frame,
+	}, {
+		Widgets.corner(18),
+		create("UIGradient", {
+			Rotation = 90,
+			Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 190)),
+		}),
+	})
+	local iconLabel = Widgets.label({
+		Name = "Icon",
+		Text = icon or "",
+		TextSize = 28,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextTruncate = Enum.TextTruncate.None,
+		Size = UDim2.fromOffset(c.icon, c.close),
+		Position = UDim2.fromOffset(c.pad, c.closeInset),
+		Parent = frame,
+	})
 	local title = Widgets.label({
 		Name = "Title",
 		Text = titleText,
 		Font = Theme.Font,
 		TextSize = c.titleSize,
-		Size = UDim2.new(1, -(c.pad + c.close + c.closeInset * 2), 0, c.close),
-		Position = UDim2.fromOffset(c.pad, c.closeInset),
+		TextStrokeTransparency = 0.4,
+		Size = UDim2.new(1, -(c.pad + c.icon + 6 + c.close + c.closeInset * 2), 0, c.close),
+		Position = UDim2.fromOffset(c.pad + c.icon + 6, c.closeInset),
 		Parent = frame,
 	})
 	local close = create("TextButton", {
@@ -222,7 +249,7 @@ function Widgets.panel(parent: Instance, name: string, titleText: string): Panel
 		Size = UDim2.fromOffset(c.close, c.close),
 		ZIndex = 2,
 		Parent = frame,
-	}, { Widgets.corner(10) }) :: TextButton
+	}, { Widgets.corner(12), Widgets.stroke(Color3.fromRGB(90, 20, 30), 2) }) :: TextButton
 	local body = create("Frame", {
 		Name = "Body",
 		BackgroundTransparency = 1,
@@ -230,7 +257,28 @@ function Widgets.panel(parent: Instance, name: string, titleText: string): Panel
 		Position = UDim2.fromOffset(c.pad, c.header),
 		Parent = frame,
 	})
-	return { frame = frame, body = body, title = title, close = close }
+	return { frame = frame, body = body, title = title, close = close, icon = iconLabel }
+end
+
+-- A round emoji badge (shop items, rebirth rewards, goals): `size` square,
+-- `color` fill.
+function Widgets.iconBadge(props: { [string]: any }, icon: string, color: Color3, size: number): TextLabel
+	local base = {
+		Name = "Icon",
+		Text = icon,
+		TextSize = math.floor(size * 0.55),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextTruncate = Enum.TextTruncate.None,
+		BackgroundTransparency = 0,
+		BackgroundColor3 = color,
+		Size = UDim2.fromOffset(size, size),
+	}
+	for k, v in props do
+		base[k] = v
+	end
+	local badge = Widgets.label(base)
+	Widgets.corner(math.floor(size / 2)).Parent = badge
+	return badge
 end
 
 function Widgets.scroll(props: { [string]: any }): ScrollingFrame

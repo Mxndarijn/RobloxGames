@@ -3,8 +3,11 @@
 	SlimeDex panel (Nav key "Dex"): completion up top (big percent, bar,
 	discovered/dexTotal, per-rarity counts; see Progress.dex), the v13 next
 	dex reward + income bonus when the server sends them, and a scrollable
-	list with a ViewportFrame preview (or image / colour swatch) per
-	discovered slime and silhouettes for the rest (SlimeDex.rows).
+	list with a picture per discovered slime and silhouettes for the rest
+	(SlimeDex.rows). v28 pictures: an uploaded image when SlimeDex.IMAGES
+	has one, else a ViewportFrame of the real in-world slime model
+	(`ctx.buildSlime` = Visuals.ModelFactory.build, init.client), else the
+	SlimePreview blob, else the colour swatch.
 
 	The list (and its previews) is only rebuilt while the panel is open:
 	update() while closed just marks it dirty, and setOpen(true) rebuilds
@@ -25,11 +28,11 @@ local create = Widgets.create
 local Dex = {}
 
 local HEADER = SlimeDex.HEADER.tiers
-local ROW = 64 -- row height
-local IMAGE = 56 -- square picture / silhouette at the left of a row
+local ROW = 72 -- row height (SlimeDex.MIN_LIST)
+local IMAGE = 64 -- square picture / silhouette at the left of a row
 
 function Dex.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "DexPanel", "SlimeDex")
+	local panel = Widgets.panel(parent, "DexPanel", "SlimeDex", "📖", Color3.fromRGB(150, 90, 220))
 
 	local percent = Widgets.label({
 		Name = "Percent",
@@ -133,15 +136,15 @@ function Dex.new(parent: Instance, ctx: any)
 		local frame = create("Frame", {
 			Name = row.key,
 			Size = UDim2.new(1, -10, 0, ROW),
-			BackgroundTransparency = 0.4,
+			BackgroundTransparency = 0.2,
 			BackgroundColor3 = Theme.Row,
-		}, { Widgets.corner(8) })
+		}, { Widgets.corner(12) })
 		local image = create("Frame", {
 			Name = "Image",
 			Position = UDim2.fromOffset(4, 4),
 			Size = UDim2.fromOffset(IMAGE, IMAGE),
 			Parent = frame,
-		}, { Widgets.corner(18) })
+		}, { Widgets.corner(14) })
 		local picture = create("ImageLabel", {
 			Name = "Picture",
 			BackgroundTransparency = 1,
@@ -172,8 +175,8 @@ function Dex.new(parent: Instance, ctx: any)
 		local title = Widgets.label({
 			Name = "Title",
 			Font = Theme.Font,
-			TextSize = 15,
-			Position = UDim2.fromOffset(IMAGE + 12, 10),
+			TextSize = 16,
+			Position = UDim2.fromOffset(IMAGE + 12, 14),
 			Size = UDim2.new(1, -(IMAGE + 20), 0, 22),
 			Parent = frame,
 		})
@@ -181,7 +184,7 @@ function Dex.new(parent: Instance, ctx: any)
 			Name = "Detail",
 			TextSize = 13,
 			TextColor3 = Theme.Muted,
-			Position = UDim2.fromOffset(IMAGE + 12, 34),
+			Position = UDim2.fromOffset(IMAGE + 12, 40),
 			Size = UDim2.new(1, -(IMAGE + 20), 0, 18),
 			Parent = frame,
 		})
@@ -201,15 +204,27 @@ function Dex.new(parent: Instance, ctx: any)
 		local hasImage = row.image ~= nil
 		r.picture.Visible = hasImage
 		r.glyph.Visible = row.locked and not hasImage
-		-- Prefer an uploaded picture; else a ViewportFrame preview while under
-		-- the live cap; else (or if the mount fails) the colour swatch. The
-		-- row's viewport is reused and only remounted when its look changes.
+		-- Prefer an uploaded picture; else a ViewportFrame while under the
+		-- live cap: the real slime model, or the blob if that fails; else
+		-- (or if both fail) the colour swatch. The row's viewport is reused
+		-- and only remounted when its look changes.
 		if not hasImage and index <= SlimePreview.MAX_LIVE then
-			local look = `{row.locked}:{row.mutation or ""}:{table.concat(row.color, ",")}`
+			local look = `{row.key}:{row.locked}:{table.concat(row.color, ",")}`
 			if r.preview:GetAttribute("Look") ~= look then
-				local ok = SlimePreview.mount(r.preview, row.color, { locked = row.locked, mutation = row.mutation })
+				local opts = { locked = row.locked, mutation = row.mutation }
+				local ok = false
+				local genome = SlimeDex.genome(row)
+				if ctx.buildSlime and genome then
+					local built, model = pcall(ctx.buildSlime, genome)
+					ok = built and model ~= nil and SlimePreview.mountModel(r.preview, model, opts)
+				end
+				if not ok then
+					ok = SlimePreview.mount(r.preview, row.color, opts)
+				end
 				r.preview:SetAttribute("Look", look) -- a failed look is not retried
 				r.preview.Visible = ok
+				-- A rendered slime sits on a soft tile, not a flat colour block.
+				r.image.BackgroundTransparency = if ok then 0.55 else 0
 			end
 		elseif r.preview:GetAttribute("Look") ~= nil then
 			SlimePreview.unmount(r.preview)

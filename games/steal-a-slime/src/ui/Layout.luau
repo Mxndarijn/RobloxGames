@@ -42,7 +42,9 @@ export type Screen = {
 	nav: Rect,
 	navButtons: { Rect }, -- [1] = collapse toggle, then Nav.ENTRIES order
 	column: Rect, -- right of the nav, under the HUD, above the bottom cards
-	panel: Rect, -- full-window menu box: column width, HUD to bottom inset
+	panel: Rect, -- full-window menu backdrop: column width, HUD to bottom inset
+	menuX: number, -- left edge of every menu card (Layout.panelFor)
+	menuW: number, -- width of every menu card
 	carry: Rect,
 	slap: Rect,
 	tutorial: Rect,
@@ -62,7 +64,8 @@ Layout.CLOSE_WITH_ESCAPE = true
 -- menu panels, the tutorial over the daily popup, and the carry panel
 -- (Drop, Slap) over both.
 Layout.ZINDEX = table.freeze({
-	Base = 1, -- HUD, nav, menu panels
+	Base = 1, -- HUD, nav, the menu backdrop
+	Menu = 2, -- menu cards (over the backdrop, whatever their sibling order)
 	Banners = 3, -- HUD banners, toasts and the tutorial hint
 	Daily = 5,
 	Tutorial = 15,
@@ -388,15 +391,33 @@ Layout.SLAP = table.freeze({ w = 200, h = Layout.BUTTON })
 Layout.DAILY = table.freeze({ w = 420, h = 300 })
 Layout.TUTORIAL = table.freeze({ w = 520, bodyTop = 68, bodyTextSize = 14, padX = 14, padBottom = 12 })
 
--- Menu panel chrome (Widgets.panel): the title band holds the title and the
--- close "X" (top-right, MIN_TOUCH_DESIGN square, same spot on every panel);
--- the body fills the rest, `pad` in from the sides and bottom.
+-- Menu panel chrome (Widgets.panel): the coloured title band holds the
+-- menu icon, the title and the close "X" (top-right, MIN_TOUCH_DESIGN
+-- square, same spot on every panel); the body fills the rest, `pad` in from
+-- the sides and bottom.
 Layout.PANEL_CHROME = table.freeze({
 	pad = 12,
 	close = Layout.MIN_TOUCH_DESIGN,
 	closeInset = 6,
-	titleSize = 20,
+	titleSize = 22,
+	icon = 36, -- emoji icon left of the title
 	header = Layout.MIN_TOUCH_DESIGN + 12, -- closeInset above and below the X
+})
+
+-- v28 (Merijn: "like Steal a Brainrot"): every menu is a card sized to its
+-- content, centred in the full-window backdrop (screen.panel, dimmed; a tap
+-- on it closes the menu). One width for every card so the X sits in the
+-- same column; heights per Nav key (design px), clamped to the backdrop.
+Layout.MENU_WIDTH = 560
+Layout.MENU_HEIGHTS = table.freeze({
+	Plot = 520,
+	Merge = 520,
+	Shop = 520,
+	Rebirth = 400,
+	Goals = 500,
+	Dex = 600,
+	Leaders = 460,
+	Guide = 380,
 })
 Layout.BANNER_WIDTH = 560
 Layout.TOAST_WIDTH = 320
@@ -425,10 +446,32 @@ function Layout.fullWindowRect(columnX: number, top: number, width: number, heig
 	return Layout.rect(columnX, top, math.max(w, 0), math.max(height - inset - top, 0))
 end
 
--- The box of the menu panel for a Nav key on `screen`. Every menu is full
--- window, so the key only documents the call site.
-function Layout.panelFor(screen: Screen, _key: string): Rect
-	return screen.panel
+-- Height of the menu card for `key` (MENU_HEIGHTS, default the tallest).
+function Layout.menuHeight(key: string): number
+	local h = (Layout.MENU_HEIGHTS :: any)[key]
+	if type(h) == "number" then
+		return h
+	end
+	local tallest = 0
+	for _, v in Layout.MENU_HEIGHTS :: any do
+		tallest = math.max(tallest, v)
+	end
+	return tallest
+end
+
+-- The menu card for a Nav key (or "Guide") on `screen`: screen.menuX /
+-- menuW, MENU_HEIGHTS tall (at most the backdrop). Centred in the backdrop
+-- unless that would push its X under the toasts (phones: the card spans the
+-- width), then at the top of the backdrop, where the X has always been.
+function Layout.panelFor(screen: Screen, key: string): Rect
+	local back = screen.panel
+	local h = math.min(Layout.menuHeight(key), back.h)
+	local y = back.y + math.floor((back.h - h) / 2)
+	local close = Layout.panelClose(Layout.rect(screen.menuX, y, screen.menuW, h))
+	if Layout.overlaps(close, screen.toasts) or Layout.overlaps(close, screen.hud.rect) then
+		y = back.y
+	end
+	return Layout.rect(screen.menuX, y, screen.menuW, h)
 end
 
 -- Close button, title and body boxes inside a panel box (PANEL_CHROME).
@@ -439,7 +482,8 @@ end
 
 function Layout.panelTitle(panel: Rect): Rect
 	local c = Layout.PANEL_CHROME
-	return Layout.rect(panel.x + c.pad, panel.y + c.closeInset, panel.w - c.pad - c.close - c.closeInset * 2, c.close)
+	local left = c.pad + c.icon + 6
+	return Layout.rect(panel.x + left, panel.y + c.closeInset, panel.w - left - c.close - c.closeInset * 2, c.close)
 end
 
 function Layout.panelBody(panel: Rect): Rect
@@ -538,11 +582,17 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local column = Layout.rect(columnX, top, columnW, math.max(math.min(tutorial.y, carry.y) - gap - top, 0))
 	local panel = Layout.fullWindowRect(columnX, top, W, H, inset)
 
+	-- Menu cards: MENU_WIDTH (at most the backdrop), centred in it.
+	local menuW = math.min(Layout.MENU_WIDTH, panel.w)
+	local menuX = panel.x + math.floor((panel.w - menuW) / 2)
+
 	-- 5. Overlays. Banners and toasts draw above menus, so both keep clear of the menu
-	-- close X (top-right of the panel; its x / y don't depend on the nav).
-	-- Banners may cover a menu title, but stay centred left of the X column;
-	-- toasts stack under the X row.
-	local close = Layout.panelClose(Layout.fullWindowRect(0, top, W, H, inset))
+	-- close X (top-right of the card / the full-window box). Banners may cover
+	-- a menu title, but stay centred left of the X column; toasts stack under
+	-- the X row.
+	local wideClose = Layout.panelClose(Layout.fullWindowRect(0, top, W, H, inset))
+	local cardClose = Layout.panelClose(Layout.rect(menuX, top, menuW, 0))
+	local close = if cardClose.x < wideClose.x then cardClose else wideClose
 	-- Short: the nav runs up to the HUD, so banners also keep right of it.
 	local bannerX, bannerW
 	if short then
@@ -554,7 +604,7 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	end
 	local banners = Layout.rect(bannerX, hudBottom + 8, bannerW, 0)
 	local toastW = math.min(Layout.TOAST_WIDTH, W - m * 2)
-	local toastY = close.y + close.h + gap
+	local toastY = wideClose.y + wideClose.h + gap
 	local toasts = Layout.rect(W - m - toastW, toastY, toastW, math.max(math.min(300, H - m - toastY), 0))
 
 	local dailyW = math.min(Layout.DAILY.w, W - m * 2)
@@ -579,6 +629,8 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		navButtons = Layout.navButtons(nav, nil, columns),
 		column = column,
 		panel = panel,
+		menuX = menuX,
+		menuW = menuW,
 		carry = carry,
 		slap = slap,
 		tutorial = tutorial,

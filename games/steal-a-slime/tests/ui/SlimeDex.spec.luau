@@ -179,11 +179,12 @@ describe("SlimeDex.header (short panel bodies)", function()
 		expect(SlimeDex.header(700, false).listTop).toBe(112)
 	end)
 	it("drops the tier grid, then rewards, then the bar until a list row fits", function()
-		local noTiers = SlimeDex.header(180, true) -- 180 - 148 < MIN_LIST
+		expect(SlimeDex.MIN_LIST).toBe(84) -- one 72 px row (v28) + scroll padding
+		local noTiers = SlimeDex.header(200, true) -- 200 - 148 < MIN_LIST <= 200 - 104
 		expect(noTiers.tiers).toBe(false)
 		expect(noTiers.rewards).toBe(true)
 		expect(noTiers.listTop).toBe(64 + 4 + 36)
-		local noRewards = SlimeDex.header(150, true) -- 150 - 104 < MIN_LIST <= 150 - 68
+		local noRewards = SlimeDex.header(160, true) -- 160 - 104 < MIN_LIST <= 160 - 68
 		expect(noRewards.rewards).toBe(false)
 		expect(noRewards.bar).toBe(true)
 		local minimal = SlimeDex.header(131, true) -- the 844x332 body

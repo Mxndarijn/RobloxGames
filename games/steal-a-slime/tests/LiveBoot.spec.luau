@@ -89,6 +89,32 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 		expect(stands).toBe(Config.PLOT_COUNT)
 		expect(#missing).toBe(0)
 	end)
+	it(
+		"v28: one 'Open Shop' prompt on the ShopStand, one 'Talk' prompt on the Guide NPC, no per-item prompts",
+		function()
+			local prompts = {}
+			for _, d in rt.workspace:GetDescendants() do
+				if d:IsA("ProximityPrompt") then
+					local model = d:FindFirstAncestorWhichIsA("Model")
+					local owner = if model then model.Name else "?"
+					prompts[owner] = prompts[owner] or {}
+					table.insert(prompts[owner], d)
+				end
+			end
+			local shop = prompts[Constants.SHOP_STAND] or {}
+			local guide = prompts[Constants.TUTORIAL_NPC] or {}
+			expect(#shop).toBe(1)
+			expect(shop[1].Name).toBe(Constants.SHOP_PROMPT_NAME)
+			expect(shop[1].ActionText).toBe("Open Shop")
+			expect(shop[1].KeyboardKeyCode.Name).toBe("E")
+			expect(#guide).toBe(1)
+			expect(guide[1].Name).toBe(Constants.GUIDE_PROMPT_NAME)
+			expect(guide[1].ActionText).toBe("Talk")
+			for _, d in rt.workspace:GetDescendants() do
+				expect(string.find(d.Name, "ShopPrompt_", 1, true)).toBeNil()
+			end
+		end
+	)
 	it("sets no habitat attributes or parts with FEATURES.Habitats off", function()
 		local found = {}
 		for _, d in rt.workspace:GetDescendants() do

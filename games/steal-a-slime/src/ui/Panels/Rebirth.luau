@@ -1,144 +1,157 @@
 --!strict
 --[[
-	Rebirth panel: v13 rank + next rank (when sent), readiness (READY / $ more needed + bar), the rebirth ladder
-	(current tier and the next ones: income multiplier, lock length, cost; see
-	Progress.rebirthTiers) and which slime is kept (favourite). The Rebirth
-	button follows state.canRebirth (two clicks).
+	Rebirth panel (v28): only the NEXT rebirth. One requirement card (its
+	cash cost, a progress bar and how much is still missing), one line of
+	what it gives (income multiplier, lock time), the keeper and the
+	Rebirth button (state.canRebirth, two clicks). No ladder of later tiers,
+	no rank essay: Progress.nextRebirth has the numbers.
 ]]
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local UI = script.Parent.Parent
-local Economy = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Economy"))
 local Format = require(UI.Format)
+local Layout = require(UI.Layout)
 local Progress = require(UI.Progress)
 local Selection = require(UI.Selection)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
+local create = Widgets.create
 
 local Rebirth = {}
 
-local AHEAD = 3
+-- Body rows top to bottom (design px; the body is Layout.panelBody of the
+-- Rebirth card, MENU_HEIGHTS.Rebirth tall).
+Rebirth.ROWS = table.freeze({
+	need = { y = 0, h = 112 }, -- requirement card
+	gives = { y = 120, h = 40 }, -- reward chips
+	keeper = { y = 166, h = 22 },
+	button = { y = 196, h = Layout.BUTTON },
+	note = { y = 258, h = 18 },
+})
+Rebirth.CONTENT_H = 276 -- note.y + note.h
 
 function Rebirth.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "RebirthPanel", "Rebirth")
-	local layout = Widgets.list(Enum.FillDirection.Vertical, 6)
-	layout.VerticalAlignment = Enum.VerticalAlignment.Top
-	layout.Parent = panel.body
+	local panel = Widgets.panel(parent, "RebirthPanel", "Rebirth", "♻️", Color3.fromRGB(200, 150, 40))
+	local rows = Rebirth.ROWS
+	-- Scrolls only when the card is shorter than the content (landscape
+	-- phones); a fixed canvas, nothing in it moves.
+	local content = Widgets.scroll({
+		Name = "Content",
+		AutomaticCanvasSize = Enum.AutomaticSize.None,
+		CanvasSize = UDim2.fromOffset(0, Rebirth.CONTENT_H),
+		Parent = panel.body,
+	})
 
-	local function line(order: number, size: number?): TextLabel
-		return Widgets.label({
-			LayoutOrder = order,
-			TextSize = size or 16,
-			TextWrapped = true,
-			TextTruncate = Enum.TextTruncate.None,
-			Size = UDim2.new(1, 0, 0, (size or 16) + 6),
-			Parent = panel.body,
+	-- Requirement card: "NEXT: REBIRTH n", the cost, a bar, what's missing.
+	local need = create("Frame", {
+		Name = "Need",
+		BackgroundColor3 = Theme.Row,
+		Position = UDim2.fromOffset(0, rows.need.y),
+		Size = UDim2.new(1, 0, 0, rows.need.h),
+		Parent = content,
+	}, { Widgets.corner(12) })
+	local heading = Widgets.label({
+		Name = "Heading",
+		Font = Theme.Font,
+		TextSize = 14,
+		TextColor3 = Theme.Muted,
+		Position = UDim2.fromOffset(12, 8),
+		Size = UDim2.new(1, -24, 0, 18),
+		Parent = need,
+	})
+	local cost = Widgets.label({
+		Name = "Cost",
+		Font = Theme.Font,
+		TextSize = 30,
+		TextColor3 = Theme.Gold,
+		Position = UDim2.fromOffset(12, 28),
+		Size = UDim2.new(1, -24, 0, 36),
+		Parent = need,
+	})
+	local _, setBar = Widgets.bar(need, Theme.Gold, UDim2.new(1, -24, 0, 14), UDim2.fromOffset(12, 68))
+	local missing = Widgets.label({
+		Name = "Missing",
+		TextSize = 14,
+		Position = UDim2.fromOffset(12, 86),
+		Size = UDim2.new(1, -24, 0, 18),
+		Parent = need,
+	})
+
+	-- What the next rebirth gives: two chips.
+	local function chip(name: string, x: UDim): TextLabel
+		local label = Widgets.label({
+			Name = name,
+			Font = Theme.Font,
+			TextSize = 16,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			BackgroundTransparency = 0,
+			BackgroundColor3 = Theme.BgLight,
+			Position = UDim2.new(x, UDim.new(0, rows.gives.y)),
+			Size = UDim2.new(0.5, -4, 0, rows.gives.h),
+			Parent = content,
 		})
+		Widgets.corner(10).Parent = label
+		return label
 	end
+	local incomeChip = chip("Income", UDim.new(0, 0))
+	local lockChip = chip("LockTime", UDim.new(0.5, 4))
 
-	-- v13 rank (hidden on servers without ranks).
-	local rankLine = line(-2, 18)
-	rankLine.Font = Theme.Font
-	rankLine.TextColor3 = Theme.Gold
-	local nextRankLine = line(-1, 13)
-	nextRankLine.Size = UDim2.new(1, 0, 0, 34)
-	nextRankLine.TextColor3 = Theme.Muted
-	nextRankLine.TextYAlignment = Enum.TextYAlignment.Top
-
-	local statusLine = line(1, 22)
-	statusLine.Font = Theme.Font
-	local barFrame, setBar = Widgets.bar(panel.body, Theme.Gold, UDim2.new(1, 0, 0, 14))
-	barFrame.LayoutOrder = 2
-	local costLine = line(3, 14)
-	costLine.TextColor3 = Theme.Muted
-
-	local ladderTitle = line(4, 14)
-	ladderTitle.Font = Theme.Font
-	ladderTitle.TextColor3 = Theme.Muted
-	ladderTitle.Text = "EACH REBIRTH: +income multiplier, +lock time"
-
-	local tierRows: { TextLabel } = {}
-	for i = 1, AHEAD + 1 do
-		local row = Widgets.label({
-			Name = `Tier{i}`,
-			LayoutOrder = 4 + i,
-			TextSize = 14,
-			BackgroundTransparency = 0.3,
-			BackgroundColor3 = Theme.Row,
-			Size = UDim2.new(1, 0, 0, 24),
-			Parent = panel.body,
-		})
-		Widgets.corner(6).Parent = row
-		Widgets.create("UIPadding", { PaddingLeft = UDim.new(0, 8), Parent = row })
-		tierRows[i] = row
-	end
-
-	local keepLine = line(20)
-	keepLine.Size = UDim2.new(1, 0, 0, 40)
-	local warnLine = line(21, 13)
-	warnLine.TextColor3 = Theme.Muted
-	warnLine.Size = UDim2.new(1, 0, 0, 34) -- two lines; grows if it needs more
-	warnLine.AutomaticSize = Enum.AutomaticSize.Y
-	warnLine.Text = "Wipes cash and slimes. Keeps your ★ favourite, pads, shop upgrades and SlimeDex."
+	local keepLine = Widgets.label({
+		Name = "Keeper",
+		TextSize = 15,
+		Position = UDim2.fromOffset(0, rows.keeper.y),
+		Size = UDim2.new(1, 0, 0, rows.keeper.h),
+		Parent = content,
+	})
 
 	local btn = Widgets.confirmButton(
 		{
 			Name = "RebirthButton",
-			Text = "Rebirth",
-			LayoutOrder = 22,
-			Size = UDim2.new(1, 0, 0, 44),
-			TextSize = 18,
+			Text = "♻️ Rebirth",
+			Position = UDim2.fromOffset(0, rows.button.y),
+			Size = UDim2.new(1, 0, 0, rows.button.h),
+			TextSize = 20,
 		},
 		Theme.Gold,
-		"Click again to rebirth",
+		"Tap again to rebirth",
 		function()
 			ctx.send("Rebirth")
 		end
 	)
 	btn.instance.TextColor3 = Color3.fromRGB(40, 30, 10)
-	btn.instance.Parent = panel.body
+	btn.instance.Parent = content
+
+	Widgets.label({
+		Name = "Note",
+		Text = "Resets cash and slimes. Keeps ★, pads, upgrades.",
+		TextSize = 12,
+		TextColor3 = Theme.Muted,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Position = UDim2.fromOffset(0, rows.note.y),
+		Size = UDim2.new(1, 0, 0, rows.note.h),
+		Parent = content,
+	})
 
 	local self = { frame = panel.frame, close = panel.close }
 
 	function self.update(state: any)
-		local cfg = ctx.Config
-		local rank = Progress.rank(state)
-		rankLine.Visible = rank.title ~= nil
-		nextRankLine.Visible = rank.next ~= nil
-		rankLine.Text = rank.title or ""
-		nextRankLine.Text = rank.next or ""
-		panel.frame.Size = UDim2.fromOffset(420, if rank.title then 510 else 450)
-
-		local status = Progress.rebirthStatus(state, cfg.MAX_REBIRTHS)
-		statusLine.Text = status.text
-		statusLine.TextColor3 = if status.ready then Theme.Gold else Theme.Text
-		setBar(status.fraction)
-		costLine.Text =
-			`Next rebirth costs {Format.formatCash(state.rebirthCost)} · you have {Format.formatCash(state.cash)}`
-
-		local tiers = Progress.rebirthTiers(state, cfg, Economy.rebirthCost, AHEAD)
-		for i, row in tierRows do
-			local tier = tiers[i]
-			row.Visible = tier ~= nil
-			if tier then
-				row.Text = Progress.tierText(tier)
-				row.TextColor3 = if tier.current then Theme.Accent elseif i == 2 then Theme.Gold else Theme.Text
-				row.Font = if tier.current or i == 2 then Theme.Font else Theme.FontBody
-			end
-		end
+		local nextUp = Progress.nextRebirth(state, ctx.Config)
+		heading.Text = if nextUp.maxed then "ALL REBIRTHS DONE" else `TO REBIRTH {nextUp.rebirth} YOU NEED`
+		cost.Text = if nextUp.maxed then "🏆 Max" else `💰 {Format.formatCash(nextUp.cost)}`
+		setBar(nextUp.fraction)
+		missing.Text = if nextUp.maxed then "" else `{nextUp.progress} · {nextUp.need}`
+		missing.TextColor3 = if nextUp.ready then Theme.Accent else Theme.Text
+		incomeChip.Text = `📈 {Format.formatMultiplier(nextUp.multiplier)} income`
+		lockChip.Text = `🔒 +{nextUp.lockGain}s lock`
+		incomeChip.Visible = not nextUp.maxed
+		lockChip.Visible = not nextUp.maxed
 
 		local fav = Selection.findSlime(state.slimes, state.favoriteId)
-		if fav then
-			keepLine.Text = `Keeper: ★ {ctx.Genome.displayName(fav.slime)}`
-			keepLine.TextColor3 = Theme.Gold
-		else
-			keepLine.Text = "Keeper: your best slime (set a ★ favourite on the Plot panel to choose)"
-			keepLine.TextColor3 = Theme.Muted
-		end
+		keepLine.Text = if fav then `⭐ Keeps {ctx.Genome.displayName(fav.slime)}` else "⭐ Keeps your best slime"
+		keepLine.TextColor3 = if fav then Theme.Gold else Theme.Muted
 
-		btn.setEnabled(state.canRebirth == true)
+		btn.setText(if nextUp.ready then "♻️ Rebirth!" else `♻️ Need {nextUp.need}`)
+		btn.setEnabled(nextUp.ready)
 	end
 
 	return self

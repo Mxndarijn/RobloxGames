@@ -251,15 +251,15 @@ describe("Scroll list panels (opened hidden, as setOpen did)", function()
 		end
 	end
 
-	it("Shop lists every catalogue item as its own 84px row", function()
+	it("Shop lists every catalogue item as its own 68px row (v28)", function()
 		local panel, r = openPanel("Shop", 390, 844)
 		local g = geometry(panel, r)
 		expect(#g.rows).toBe(#ShopCatalog.views(state(), Remotes.ACTIONS, Config))
 		expect(#g.rows >= 5).toBe(true)
 		for i, row in g.rows do
-			expect(row.h).toBe(84)
+			expect(row.h).toBe(68)
 			if i > 1 then
-				expect(row.y - g.rows[i - 1].y).toBe(84 + g.gap)
+				expect(row.y - g.rows[i - 1].y).toBe(68 + g.gap)
 			end
 		end
 	end)

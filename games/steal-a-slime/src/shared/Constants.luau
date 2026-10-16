@@ -74,6 +74,10 @@ return table.freeze({
 	MERGE_PROMPT_NAME = "MergePrompt", -- on MergeVat
 	-- v16 (CONTRACT.md §9.1): "Claim plot" on a free plot's BuyStand.Counter, everyone sees it.
 	CLAIM_PROMPT_NAME = "ClaimPrompt",
+	-- v28 (CONTRACT.md §5.3): "Open Shop" (E) on ShopStand.Counter and "Talk" (E) on the
+	-- TutorialNpc. Client-only effect: the UI opens the Shop / Guide menu on PromptTriggered.
+	SHOP_PROMPT_NAME = "ShopPrompt",
+	GUIDE_PROMPT_NAME = "GuidePrompt",
 	-- Slime habitats (FEATURES.Habitats, HABITATS.md): Pad_<j> attributes, only set with the flag on.
 	HABITAT_ATTRIBUTE = "Habitat", -- Pad_<j>: Shared.Habitats id, "base" = empty pad
 	HABITAT_FROM_ATTRIBUTE = "HabitatFrom", -- Pad_<j>: the id before the latest change

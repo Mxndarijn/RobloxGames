@@ -4,8 +4,8 @@
 
 	Places the world props from Archer's ReplicatedStorage.Visuals.Props at
 	WorldLayout.PROP_SPOTS under workspace.Map (CONTRACT.md §5.3):
-	ShopStand (with the two shop ProximityPrompts on Counter),
-	LeaderboardBoard and TutorialNpc. A prop that already exists anywhere
+	ShopStand (with the "Open Shop" ProximityPrompt on Counter),
+	LeaderboardBoard and TutorialNpc (with the "Talk" prompt). A prop that already exists anywhere
 	under workspace (e.g. a static copy) is reused. Every part is anchored.
 	Also writes the leaderboard rows into the board and builds the Speed Coil
 	tool. Holds no gameplay rules; a missing Visuals module just means no props.
@@ -13,22 +13,22 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
-local Economy = require(ReplicatedStorage.Shared.Economy)
 local Leaderboard = require(script.Parent.Leaderboard)
 
 local WorldProps = {}
 
--- Shop prompts on the ShopStand's Counter: name -> Request action.
-WorldProps.SHOP_PROMPTS = table.freeze({
-	{
-		name = "ShopPrompt_SpeedCoil",
-		action = "BuySpeedCoil",
-		text = `Speed Coil ${Economy.formatNumber(Config.SPEED_COIL_PRICE)}`,
-		key = Enum.KeyCode.E,
-	},
-	{ name = "ShopPrompt_LockUpgrade", action = "BuyLockUpgrade", text = "Longer locks", key = Enum.KeyCode.F },
+-- v28: one prompt per prop. Both only open a client menu (the UI listens
+-- for PromptTriggered); nothing is bought or changed on the server.
+WorldProps.SHOP_PROMPT = table.freeze({
+	name = Constants.SHOP_PROMPT_NAME,
+	objectText = "Shop",
+	actionText = "Open Shop",
+})
+WorldProps.GUIDE_PROMPT = table.freeze({
+	name = Constants.GUIDE_PROMPT_NAME,
+	objectText = "Guide",
+	actionText = "Talk",
 })
 
 local function visual(name: string): any
@@ -126,29 +126,28 @@ function WorldProps.place(): { [string]: Model }
 	return placed
 end
 
--- Adds the shop prompts to the ShopStand's Counter. `onTrigger(player, action)`.
-function WorldProps.addShopPrompts(onTrigger: (Player, string) -> ())
-	local stand = placed[Constants.SHOP_STAND]
-	local counter = stand and (stand:FindFirstChild("Counter") or stand.PrimaryPart)
-	if not counter or not counter:IsA("BasePart") then
+local function addPrompt(part: Instance?, def: { name: string, objectText: string, actionText: string })
+	if not part or not part:IsA("BasePart") or part:FindFirstChild(def.name) then
 		return
 	end
-	for _, def in WorldProps.SHOP_PROMPTS do
-		if not counter:FindFirstChild(def.name) then
-			local prompt = Instance.new("ProximityPrompt")
-			prompt.Name = def.name
-			prompt.ObjectText = "Shop"
-			prompt.ActionText = def.text
-			prompt.KeyboardKeyCode = def.key
-			prompt.RequiresLineOfSight = false
-			prompt.MaxActivationDistance = 12
-			prompt.Parent = counter
-			local action = def.action
-			prompt.Triggered:Connect(function(player: Player)
-				onTrigger(player, action)
-			end)
-		end
-	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = def.name
+	prompt.ObjectText = def.objectText
+	prompt.ActionText = def.actionText
+	prompt.KeyboardKeyCode = Enum.KeyCode.E
+	prompt.HoldDuration = 0
+	prompt.RequiresLineOfSight = false
+	prompt.MaxActivationDistance = 12
+	prompt.Parent = part
+end
+
+-- "Open Shop" on the ShopStand's Counter and "Talk" on the TutorialNpc's
+-- root (CONTRACT.md §5.3). Call after place().
+function WorldProps.addShopPrompts()
+	local stand = placed[Constants.SHOP_STAND]
+	addPrompt(stand and (stand:FindFirstChild("Counter") or stand.PrimaryPart), WorldProps.SHOP_PROMPT)
+	local npc = placed[Constants.TUTORIAL_NPC]
+	addPrompt(npc and (npc:FindFirstChild("HumanoidRootPart") or npc.PrimaryPart), WorldProps.GUIDE_PROMPT)
 end
 
 -- Writes Leaderboard.boardRows into the board's Rows frame (in place when the

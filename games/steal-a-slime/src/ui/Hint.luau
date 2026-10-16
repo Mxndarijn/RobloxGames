@@ -115,6 +115,15 @@ function Hint.place(screen: Layout.Screen, hud: Layout.HudLayout, view: View): P
 			w, h = Hint.bubbleSize(view.text, right - m)
 		end
 		local x = math.clamp(target.x + target.w / 2 - w / 2, left, math.max(left, right - w))
+		-- v28 menus are centred cards: when the highest card's X would sit
+		-- under the bubble, keep left of that X column instead.
+		local cardClose = Layout.panelClose(Layout.panelFor(screen, ""))
+		if Layout.overlaps(Layout.rect(x, y, w, h), cardClose) then
+			right = math.min(right, cardClose.x - Hint.GAP)
+			left = math.min(left, right)
+			w, h = Hint.bubbleSize(view.text, right - left)
+			x = math.clamp(target.x + target.w / 2 - w / 2, left, math.max(left, right - w))
+		end
 		return { target = target, ring = ring, bubble = Layout.rect(x, y, w, h), side = "below" }
 	end
 	local x = screen.nav.x + screen.nav.w + Hint.GAP

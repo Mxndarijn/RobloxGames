@@ -104,6 +104,31 @@ function methods.GetPropertyChangedSignal(): any
 	return signal
 end
 
+function methods.GetDescendants(self: any): { any }
+	local out = {}
+	local function walk(node: any)
+		for _, child in rawget(node, "_children") do
+			table.insert(out, child)
+			walk(child)
+		end
+	end
+	walk(self)
+	return out
+end
+
+-- Model:GetBoundingBox stand-in: no positions are tracked, so the box is
+-- centred at the origin and as big as the largest part on each axis.
+function methods.GetBoundingBox(self: any): (any, any)
+	local x, y, z = 0, 0, 0
+	for _, node in methods.GetDescendants(self) do
+		if node:IsA("BasePart") then
+			local s = node.Size
+			x, y, z = math.max(x, s.X), math.max(y, s.Y), math.max(z, s.Z)
+		end
+	end
+	return roblox.CFrame.new(), roblox.Vector3.new(x, y, z)
+end
+
 function methods.ClearAllChildren(self: any)
 	for _, child in methods.GetChildren(self) do
 		child:Destroy()

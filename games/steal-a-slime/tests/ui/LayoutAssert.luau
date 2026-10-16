@@ -13,7 +13,8 @@
 
 	`LayoutAssert.standard(label, screen)` runs every rule the v18 UI has to
 	meet (see the spec): on-screen boxes, touch sizes, no overlaps between the
-	HUD / nav / bottom cards, full-window menus with a tappable close X, and
+	HUD / nav / bottom cards, a full-window menu backdrop with content-sized
+	menu cards (v28) each with a tappable close X, and
 	text that fits (Layout text estimate, unless the descriptor is
 	TextWrapped into a tall-enough box or TextScaled).
 	`navReachable` (v27 gate N1) checks every nav button is on screen with
@@ -24,6 +25,7 @@
 
 local Config = require("../../src/shared/Config")
 local Format = require("../../src/ui/Format")
+local GuideTips = require("../../src/ui/GuideTips")
 local Hint = require("../../src/ui/Hint")
 local Layout = require("../../src/ui/Layout")
 local LockHud = require("../../src/ui/LockHud")
@@ -31,6 +33,19 @@ local Nav = require("../../src/ui/Nav")
 local ShopCatalog = require("../../src/ui/ShopCatalog")
 local SlimeDex = require("../../src/ui/SlimeDex")
 local Tutorial = require("../../src/ui/Tutorial")
+
+-- Row geometry constants only (Panels/* build Instances in .new, never at load).
+local GuidePanel = { TIP_H = 44 }
+local RebirthPanel = {
+	ROWS = {
+		need = { y = 0, h = 112 },
+		gives = { y = 120, h = 40 },
+		keeper = { y = 166, h = 22 },
+		button = { y = 196, h = Layout.BUTTON },
+		note = { y = 258, h = 18 },
+	},
+}
+local ShopPanel = { BADGE = 48, BUY_W = 110, DESC_H = 32 }
 
 type Rect = Layout.Rect
 
@@ -398,10 +413,11 @@ function LayoutAssert.carryTexts(screen: Layout.Screen): { TextDesc }
 	}
 end
 
--- Shop rows (menu body = panel - 24, row = body - 10, text = row - 140;
--- 84 px rows: 50 px description, Layout.BUTTON Buy).
+-- Shop rows (Panels/Shop, v28): body = card - 24 (PANEL_CHROME.pad), row =
+-- body - 10, text = row - badge column - Buy column; ROW-high rows, one
+-- line of name, up to two of description, the level chip under the badge.
 function LayoutAssert.shopTexts(panel: Rect): { TextDesc }
-	local textW = panel.w - 24 - 10 - 140
+	local textW = panel.w - Layout.PANEL_CHROME.pad * 2 - 10 - (8 + ShopPanel.BADGE + 10) - (ShopPanel.BUY_W + 16)
 	local out: { TextDesc } = {}
 	local state = { cash = 0, lockCost = 987.6e12, lockDuration = 310, shop = {} }
 	local actions = { Lock = true, BuyLockUpgrade = true, BuySpeedCoil = true, BuyUpgrade = true }
@@ -416,8 +432,8 @@ function LayoutAssert.shopTexts(panel: Rect): { TextDesc }
 						id = u.id,
 						name = u.name,
 						text = u.text,
-						level = 0,
-						maxLevel = 5,
+						level = 9,
+						maxLevel = 10,
 						price = 987.6e12,
 						unlocked = false,
 						requires = 50,
@@ -429,25 +445,78 @@ function LayoutAssert.shopTexts(panel: Rect): { TextDesc }
 	for _, view in views do
 		table.insert(
 			out,
-			{ name = `Shop {view.item.id} name`, text = view.item.name, size = 16, bold = true, w = textW, h = 20 }
+			{ name = `Shop {view.item.id} name`, text = view.item.name, size = 17, bold = true, w = textW, h = 22 }
 		)
-		table.insert(
-			out,
-			{ name = `Shop {view.item.id} desc`, text = view.description, size = 13, w = textW, h = 50, wrapped = true }
-		)
+		if view.levelText then
+			local chip = { name = `Shop {view.item.id} level`, text = view.levelText, size = 11, bold = true }
+			chip.w, chip.h = ShopPanel.BADGE + 8, 14
+			table.insert(out, chip :: any)
+		end
+		table.insert(out, {
+			name = `Shop {view.item.id} desc`,
+			text = view.description,
+			size = 13,
+			w = textW,
+			h = ShopPanel.DESC_H,
+			wrapped = true,
+		})
 		table.insert(out, {
 			name = `Shop {view.item.id} buy`,
 			text = view.buttonText,
-			size = 15,
+			size = 16,
 			bold = true,
-			w = 110,
+			w = ShopPanel.BUY_W,
 			h = Layout.BUTTON,
 		})
 	end
 	return out
 end
 
--- Panel titles as Widgets.panel shows them (Panels/*.luau), per Nav key.
+-- Rebirth card texts (Panels/Rebirth.ROWS), worst-case numbers: body = card - 24.
+function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
+	local w = panel.w - Layout.PANEL_CHROME.pad * 2
+	local rows = RebirthPanel.ROWS
+	local chipW = w / 2 - 4
+	return {
+		{ name = "Rebirth heading", text = "TO REBIRTH 100 YOU NEED", size = 14, bold = true, w = w - 24, h = 18 },
+		{ name = "Rebirth cost", text = "💰 $987.6Qa", size = 30, bold = true, w = w - 24, h = 36 },
+		{ name = "Rebirth missing", text = "$987.6Qa / $987.6Qa · $987.6Qa more", size = 14, w = w - 24, h = 18 },
+		{ name = "Rebirth income", text = "📈 x99.5 income", size = 16, bold = true, w = chipW, h = rows.gives.h },
+		{ name = "Rebirth lock", text = "🔒 +60s lock", size = 16, bold = true, w = chipW, h = rows.gives.h },
+		{
+			name = "Rebirth button",
+			text = "♻️ Need $987.6Qa more",
+			size = 20,
+			bold = true,
+			w = w,
+			h = rows.button.h,
+		},
+		{
+			name = "Rebirth note",
+			text = "Resets cash and slimes. Keeps ★, pads, upgrades.",
+			size = 12,
+			w = w,
+			h = rows.note.h,
+		},
+	}
+end
+
+-- Guide tips (Panels/Guide): one line each, body = card - 24, row - 8 - padding 12.
+function LayoutAssert.guideTexts(panel: Rect): { TextDesc }
+	local w = panel.w - Layout.PANEL_CHROME.pad * 2 - 8 - 12
+	local out: { TextDesc } = {}
+	local tips = { "A thief has your slime: chase and SLAP!", "Free pad: bring home another slime" }
+	for _, tip in GuideTips.GENERAL do
+		table.insert(tips, tip.text)
+	end
+	for i, text in tips do
+		table.insert(out, { name = `Guide tip {i}`, text = `🚨  {text}`, size = 15, w = w, h = GuidePanel.TIP_H })
+	end
+	return out
+end
+
+-- Panel titles as Widgets.panel shows them (Panels/*.luau), per menu key
+-- (the Nav keys plus the Guide card, which has no nav button).
 LayoutAssert.PANEL_TITLES = table.freeze({
 	Plot = "My Plot",
 	Merge = "Merge Vat",
@@ -456,10 +525,22 @@ LayoutAssert.PANEL_TITLES = table.freeze({
 	Goals = "Goals",
 	Dex = "SlimeDex",
 	Leaders = "Top Earners",
+	Guide = "Guide",
 })
 
--- The full-window menu box: right of the nav (+ GAP), under the HUD (+ GAP),
--- to MARGIN from the right edge and down to the bottom inset.
+-- Every menu key the UI opens: Nav.ENTRIES order, then "Guide".
+function LayoutAssert.menuKeys(): { string }
+	local keys = {}
+	for _, entry in Nav.ENTRIES do
+		table.insert(keys, entry.key)
+	end
+	table.insert(keys, "Guide")
+	return keys
+end
+
+-- The full-window menu backdrop (screen.panel): right of the nav (+ GAP),
+-- under the HUD (+ GAP), to MARGIN from the right edge and down to the
+-- bottom inset.
 function LayoutAssert.expectedPanel(screen: Layout.Screen): Rect
 	local x = screen.nav.x + screen.nav.w + Layout.GAP
 	local y = screen.hud.rect.y + screen.hud.rect.h + Layout.GAP
@@ -469,26 +550,37 @@ end
 -- Smallest usable menu body (design px): a couple of list rows.
 LayoutAssert.MIN_BODY = table.freeze({ w = 240, h = 120 })
 
--- Full-window panel rules for every Nav menu: the expected rect, on screen,
--- clear of the HUD and nav, a usable body, and a close X that is
--- MIN_TOUCH, inside the panel, top-right, and never under the HUD or a
--- bottom card (those draw above menus).
+-- v28 menu rules: the dimmed backdrop is the full-window rect; every menu
+-- card (Nav keys + Guide) is MENU_WIDTH (or the backdrop width), centred
+-- in it horizontally, MENU_HEIGHTS tall (or the backdrop height), inside
+-- it, clear of the HUD and nav, with a usable body and a close X that is
+-- MIN_TOUCH, inside the card, top-right, and never under the HUD, a
+-- bottom card, the toasts or the banners (those draw above menus).
 function LayoutAssert.panelChecks(check: Checker)
 	local screen = check.screen
 	local expected = LayoutAssert.expectedPanel(screen)
+	local back = screen.panel
 	local c = Layout.PANEL_CHROME
-	for _, entry in Nav.ENTRIES do
-		local key = entry.key
+	if
+		math.abs(back.x - expected.x) > EPS
+		or math.abs(back.y - expected.y) > EPS
+		or math.abs(back.w - expected.w) > EPS
+		or math.abs(back.h - expected.h) > EPS
+	then
+		check.fail(`Panel backdrop {fmt(back)} is not the full-window rect {fmt(expected)}`)
+	end
+	local wantW = math.min(Layout.MENU_WIDTH, back.w)
+	for _, key in LayoutAssert.menuKeys() do
 		local r = Layout.panelFor(screen, key)
 		local name = `Panel.{key}`
-		if
-			math.abs(r.x - expected.x) > EPS
-			or math.abs(r.y - expected.y) > EPS
-			or math.abs(r.w - expected.w) > EPS
-			or math.abs(r.h - expected.h) > EPS
-		then
-			check.fail(`{name} {fmt(r)} is not the full-window rect {fmt(expected)}`)
+		local wantH = math.min(Layout.menuHeight(key), back.h)
+		if math.abs(r.w - wantW) > EPS or math.abs(r.h - wantH) > EPS then
+			check.fail(`{name} {fmt(r)} is not {wantW}x{wantH} (content-sized card)`)
 		end
+		if math.abs((r.x + r.w / 2) - (back.x + back.w / 2)) > 1 then
+			check.fail(`{name} {fmt(r)} is not centred in the backdrop {fmt(back)}`)
+		end
+		check.inside(name, r, "Panel backdrop", back)
 		check.onScreen(name, r, Layout.MARGIN)
 		check.noOverlap(name, r, "Hud", screen.hud.rect)
 		check.noOverlap(name, r, "Nav", screen.nav)
@@ -535,13 +627,12 @@ function LayoutAssert.panelChecks(check: Checker)
 			h = title.h,
 		})
 		check.text({ name = closeName, text = "X", size = 24, bold = true, w = close.w, h = close.h })
-	end
-	-- Top-bar hints stay up while a menu is open and draw above it.
-	local close = Layout.panelClose(screen.panel)
-	for id, hint in Hint.STEPS do
-		local place = Hint.place(screen, screen.hud, { id = id, text = hint.text, target = hint.target })
-		if place then
-			check.noOverlap(`Hint.{id} bubble`, place.bubble, "Panel.Close", close)
+		-- Top-bar hints stay up while a menu is open and draw above it.
+		for id, hint in Hint.STEPS do
+			local place = Hint.place(screen, screen.hud, { id = id, text = hint.text, target = hint.target })
+			if place then
+				check.noOverlap(`Hint.{id} bubble`, place.bubble, closeName, close)
+			end
 		end
 	end
 end
@@ -618,10 +709,14 @@ function LayoutAssert.noNegativeSizes(check: Checker)
 		end
 	end
 	visit("screen", screen)
-	local body = Layout.panelBody(screen.panel)
-	visit("Panel.Body", body)
-	visit("Panel.Close", Layout.panelClose(screen.panel))
-	visit("Panel.Title", Layout.panelTitle(screen.panel))
+	for _, key in LayoutAssert.menuKeys() do
+		local card = Layout.panelFor(screen, key)
+		visit(`Panel.{key}`, card)
+		visit(`Panel.{key}.Body`, Layout.panelBody(card))
+		visit(`Panel.{key}.Close`, Layout.panelClose(card))
+		visit(`Panel.{key}.Title`, Layout.panelTitle(card))
+	end
+	local body = Layout.panelBody(Layout.panelFor(screen, "Dex"))
 	for _, rewards in { false, true } do
 		local header = SlimeDex.header(body.h, rewards)
 		local listH = body.h - header.listTop
@@ -663,7 +758,7 @@ function LayoutAssert.notSquashed(check: Checker)
 		local name = if i == 1 then "Nav.Toggle" else `Nav.{Nav.ENTRIES[i - 1].key}`
 		check.aspect(name, b, cell, nav.button)
 	end
-	local close = Layout.panelClose(screen.panel)
+	local close = Layout.panelClose(Layout.panelFor(screen, "Shop"))
 	check.aspect("Panel.Close", close, Layout.PANEL_CHROME.close, Layout.PANEL_CHROME.close)
 	local slap = screen.slap
 	local design = Layout.SLAP.w / Layout.SLAP.h
@@ -722,7 +817,7 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 		end
 	end
 
-	-- Menu panels: full window, close X tappable (LayoutAssert.fullWindow).
+	-- Menus: full-window backdrop, content-sized cards, close X tappable.
 	check.onScreen("column", screen.column, m)
 	LayoutAssert.panelChecks(check)
 
@@ -789,6 +884,8 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			LayoutAssert.dailyTexts(screen),
 			LayoutAssert.carryTexts(screen),
 			LayoutAssert.shopTexts(Layout.panelFor(panelScreen, "Shop")),
+			LayoutAssert.rebirthTexts(Layout.panelFor(panelScreen, "Rebirth")),
+			LayoutAssert.guideTexts(Layout.panelFor(panelScreen, "Guide")),
 		}
 	do
 		for _, desc in list do

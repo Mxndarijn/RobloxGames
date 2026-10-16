@@ -1,12 +1,16 @@
 --!strict
 --[[
-	Shop panel: lock time, lock upgrades, the Speed Coil and the v13 upgrades
-	(Slime Snacks, Strong Arms, ...) from ShopCatalog.
-	Each Buy calls `Request(item.action, ...item.args)`. Items whose action
-	isn't in Remotes.ACTIONS yet show "Coming soon" (UI-CONTRACT-GAPS.md).
+	Shop panel: the ONE shop menu (v28). Opened from the nav, the HUD Shop
+	button or "Open Shop" (E) at the ShopStand (init.client, ShopPrompt).
+	Lists every ShopCatalog item in one scroll list: lock time, lock
+	upgrades, the Speed Coil and the v13 upgrades (Slime Snacks, Strong
+	Arms, ...). Each row is an icon badge (level chip under it), the name, a short
+	(at most two-line) description and a price button that calls `Request(item.action, ...item.args)`.
+	Items whose action isn't in Remotes.ACTIONS yet show "Coming soon".
 ]]
 
 local UI = script.Parent.Parent
+local Format = require(UI.Format)
 local Layout = require(UI.Layout)
 local ShopCatalog = require(UI.ShopCatalog)
 local Widgets = require(UI.Widgets)
@@ -16,10 +20,32 @@ local create = Widgets.create
 
 local Shop = {}
 
-function Shop.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "ShopPanel", "Shop")
+-- Row geometry (design px): Layout.BUTTON tall price button, ROW-high rows.
+Shop.ROW = 68
+Shop.BADGE = 48
+Shop.BUY_W = 110
+Shop.CASH_H = 26
+Shop.NAME_H = 22
+Shop.DESC_H = 32
 
-	local list = Widgets.scrollList({ Name = "List", Parent = panel.body }, 6)
+function Shop.new(parent: Instance, ctx: any)
+	local panel = Widgets.panel(parent, "ShopPanel", "Shop", "🛒", Color3.fromRGB(70, 160, 90))
+
+	local cash = Widgets.label({
+		Name = "Cash",
+		Font = Theme.Font,
+		TextSize = 18,
+		TextColor3 = Theme.Gold,
+		Size = UDim2.new(1, 0, 0, Shop.CASH_H - 4),
+		Parent = panel.body,
+	})
+
+	local list = Widgets.scrollList({
+		Name = "List",
+		Position = UDim2.fromOffset(0, Shop.CASH_H),
+		Size = UDim2.new(1, 0, 1, -Shop.CASH_H),
+		Parent = panel.body,
+	}, 6)
 
 	local rows = Widgets.keyedList(list, function(view: ShopCatalog.ItemView)
 		return view.item.id
@@ -27,25 +53,36 @@ function Shop.new(parent: Instance, ctx: any)
 		local item = view.item
 		local frame = create("Frame", {
 			Name = item.id,
-			Size = UDim2.new(1, -10, 0, 84), -- 3 description lines
+			Size = UDim2.new(1, -10, 0, Shop.ROW),
 			BackgroundColor3 = Theme.Row,
-		}, { Widgets.corner(8) })
+		}, { Widgets.corner(12) })
+		local badge = Widgets.iconBadge({
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 8, 0.5, 0),
+			Parent = frame,
+		}, view.icon, Theme.BgLight, Shop.BADGE)
+		local level = Widgets.label({
+			Name = "Level",
+			Font = Theme.Font,
+			TextSize = 11,
+			TextColor3 = Theme.Gold,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextStrokeTransparency = 0.3,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0, 8 + Shop.BADGE / 2, 1, -1),
+			Size = UDim2.fromOffset(Shop.BADGE + 8, 14),
+			ZIndex = 2,
+			Parent = frame,
+		})
+		local textX = 8 + Shop.BADGE + 10
+		local textW = -(textX + Shop.BUY_W + 16)
 		local name = Widgets.label({
 			Name = "ItemName",
 			Font = Theme.Font,
+			TextSize = 17,
 			Text = item.name,
-			Size = UDim2.new(1, -140, 0, 20),
-			Position = UDim2.fromOffset(10, 6),
-			Parent = frame,
-		})
-		local level = Widgets.label({
-			Name = "Level",
-			TextSize = 13,
-			TextColor3 = Theme.Gold,
-			TextXAlignment = Enum.TextXAlignment.Right,
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -128, 0, 8),
-			Size = UDim2.fromOffset(60, 18),
+			Size = UDim2.new(1, textW, 0, Shop.NAME_H),
+			Position = UDim2.fromOffset(textX, 6),
 			Parent = frame,
 		})
 		local desc = Widgets.label({
@@ -55,8 +92,8 @@ function Shop.new(parent: Instance, ctx: any)
 			TextWrapped = true,
 			TextTruncate = Enum.TextTruncate.None,
 			TextYAlignment = Enum.TextYAlignment.Top,
-			Size = UDim2.new(1, -140, 0, 50),
-			Position = UDim2.fromOffset(10, 28),
+			Size = UDim2.new(1, textW, 0, Shop.DESC_H), -- two lines on a phone
+			Position = UDim2.fromOffset(textX, 6 + Shop.NAME_H + 2),
 			Parent = frame,
 		})
 		local current = view
@@ -64,8 +101,9 @@ function Shop.new(parent: Instance, ctx: any)
 			{
 				Name = "Buy",
 				AnchorPoint = Vector2.new(1, 0.5),
-				Position = UDim2.new(1, -10, 0.5, 0),
-				Size = UDim2.fromOffset(110, Layout.BUTTON),
+				Position = UDim2.new(1, -8, 0.5, 0),
+				Size = UDim2.fromOffset(Shop.BUY_W, Layout.BUTTON),
+				TextSize = 16,
 			},
 			Theme.Good,
 			function()
@@ -77,8 +115,9 @@ function Shop.new(parent: Instance, ctx: any)
 		buy.instance.Parent = frame
 		return {
 			instance = frame,
-			name = name,
+			badge = badge,
 			level = level,
+			name = name,
 			desc = desc,
 			buy = buy,
 			setView = function(v: ShopCatalog.ItemView)
@@ -87,8 +126,9 @@ function Shop.new(parent: Instance, ctx: any)
 		}
 	end, function(row: any, view: ShopCatalog.ItemView)
 		row.setView(view)
-		row.desc.Text = view.description
 		row.level.Text = view.levelText or ""
+		row.desc.Text = view.description
+		row.badge.BackgroundColor3 = if view.maxed then Theme.Gold elseif view.enabled then Theme.Good else Theme.BgLight
 		row.buy.setText(view.buttonText)
 		row.buy.setEnabled(view.enabled)
 	end)
@@ -96,6 +136,7 @@ function Shop.new(parent: Instance, ctx: any)
 	local self = { frame = panel.frame, close = panel.close }
 
 	function self.update(state: any)
+		cash.Text = `💰 {Format.formatCash(if type(state.cash) == "number" then state.cash else 0)}`
 		rows.sync(ShopCatalog.views(state, ctx.actions, ctx.Config))
 	end
 

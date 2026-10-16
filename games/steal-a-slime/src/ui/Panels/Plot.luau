@@ -16,7 +16,7 @@ local create = Widgets.create
 local Plot = {}
 
 function Plot.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "PlotPanel", "My Plot")
+	local panel = Widgets.panel(parent, "PlotPanel", "My Plot", "🏠", Color3.fromRGB(70, 130, 220))
 
 	local header = Widgets.label({
 		Name = "Header",
@@ -35,7 +35,7 @@ function Plot.new(parent: Instance, ctx: any)
 
 	local empty = Widgets.label({
 		Name = "Empty",
-		Text = "No slimes yet - grab one from the fountain!",
+		Text = "No slimes yet! Grab one at the fountain ⛲",
 		TextColor3 = Theme.Muted,
 		TextWrapped = true,
 		Size = UDim2.new(1, -8, 0, 40),
@@ -119,15 +119,15 @@ function Plot.new(parent: Instance, ctx: any)
 		row.name.TextColor3 = if rarity then Widgets.color3(rarity.color) else Theme.Text
 		row.fav.setText(if isFav then "★" else "☆")
 		row.fav.setColor(if isFav then Theme.Gold else Theme.BgLight)
-		row.sell.setText(`Sell {Format.formatCash(view.sellPrice)}`)
+		row.sell.setText(`💰 {Format.formatCash(view.sellPrice)}`)
 		if view.stolenBy ~= nil then
 			row.instance.BackgroundColor3 = Color3.fromRGB(120, 40, 55)
-			row.sub.Text = `BEING STOLEN by {ctx.playerName(view.stolenBy)}!`
+			row.sub.Text = `🚨 {ctx.playerName(view.stolenBy)} is stealing it!`
 			row.sub.TextColor3 = Theme.Warn
 			row.sell.instance.Visible = false
 		else
 			row.instance.BackgroundColor3 = if isFav then Color3.fromRGB(78, 70, 40) else Theme.Row
-			row.sub.Text = `Tier {slime.tier} · {Format.formatRate(view.income)} · size {slime.size}`
+			row.sub.Text = `💰 {Format.formatRate(view.income)}`
 			row.sub.TextColor3 = Theme.Muted
 			row.sell.instance.Visible = true
 		end
@@ -142,8 +142,7 @@ function Plot.new(parent: Instance, ctx: any)
 	function self.update(state: any)
 		favoriteId = state.favoriteId
 		local count = #state.slimes
-		header.Text =
-			`{count} slimes · pads {state.padsUnlocked}/{state.padsMax} · {Format.formatRate(state.incomePerSec)}`
+		header.Text = `🟢 {count}/{state.padsUnlocked} pads · 💰 {Format.formatRate(state.incomePerSec)}`
 		empty.Visible = count == 0
 		rows.sync(Selection.sorted(state.slimes, favoriteId))
 	end

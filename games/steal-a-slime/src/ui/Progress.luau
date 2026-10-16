@@ -84,6 +84,45 @@ function Progress.rebirthStatus(state: any, maxRebirths: number): RebirthStatus
 	}
 end
 
+export type NextRebirth = {
+	maxed: boolean,
+	ready: boolean,
+	rebirth: number, -- the rebirth this unlocks (rebirths + 1)
+	cost: number,
+	have: number,
+	fraction: number, -- cash / cost, 0..1
+	need: string, -- "$3.7K more" / "Ready!" / "Max rebirths"
+	progress: string, -- "$1.2K / $5K"
+	multiplier: number, -- income multiplier after it
+	lockGain: number, -- extra lock seconds it adds
+}
+
+-- v28 Rebirth panel: only what the NEXT rebirth needs (its cash cost and
+-- how far along the player is) and what it gives.
+function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
+	local r = num(state.rebirths)
+	local cost = num(state.rebirthCost)
+	local have = num(state.cash)
+	local maxed = r >= cfg.MAX_REBIRTHS
+	local ready = not maxed and state.canRebirth == true
+	local fraction = if maxed or ready then 1 elseif cost > 0 then math.clamp(have / cost, 0, 1) else 1
+	return {
+		maxed = maxed,
+		ready = ready,
+		rebirth = r + 1,
+		cost = cost,
+		have = have,
+		fraction = fraction,
+		need = if maxed
+			then "Max rebirths"
+			elseif ready then "Ready!"
+			else `{Format.formatCash(math.max(0, cost - have))} more`,
+		progress = `{Format.formatCash(have)} / {Format.formatCash(cost)}`,
+		multiplier = num(state.rebirthMultiplier) + cfg.REBIRTH_MULTIPLIER_STEP,
+		lockGain = cfg.LOCK_SECONDS_PER_REBIRTH,
+	}
+end
+
 -- Dex keys are "tier:mutation:pattern:eyes" (Genome.dexKey); every tier has
 -- the same number of combinations, so the per-tier total is total / #tiers.
 function Progress.dex(dex: any, total: any, tierNames: { string }): DexProgress

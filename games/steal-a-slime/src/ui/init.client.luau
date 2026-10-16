@@ -2,8 +2,10 @@
 --[[
 	UI (owner: Jolt) -> StarterPlayerScripts.UI
 
-	Code-built ScreenGui: HUD, full-window plot / merge / shop / rebirth /
-	goals / SlimeDex / leaderboard menus, carry overlay (+ Slap), daily reward popup, tutorial
+	Code-built ScreenGui: HUD, plot / merge / shop / rebirth / goals /
+	SlimeDex / leaderboard menus (v28: content-sized cards over a dimmed
+	full-window backdrop) and the Guide card (opened by "Talk" at the
+	TutorialNpc; "Open Shop" at the ShopStand opens the Shop), carry overlay (+ Slap), daily reward popup, tutorial
 	overlay, toasts; plus in-world leaderboard SurfaceGuis (WorldLeaderboard). Renders the latest `State`
 	snapshot (CONTRACT §5.1); every button calls
 	`Request:InvokeServer(action, ...)` (§3). The client never decides outcomes.
@@ -17,6 +19,7 @@
 
 local ContextActionService = game:GetService("ContextActionService")
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -41,6 +44,7 @@ local CarryPanel = require(Panels.Carry)
 local DailyPopup = require(Panels.DailyPopup)
 local DexPanel = require(Panels.Dex)
 local GoalsPanel = require(Panels.Goals)
+local GuidePanel = require(Panels.Guide)
 local HintOverlay = require(Panels.HintOverlay)
 local LeaderboardPanel = require(Panels.Leaderboard)
 local MergePanel = require(Panels.Merge)
@@ -122,6 +126,33 @@ local function send(action: string, ...: any)
 	end)
 end
 
+-- SlimeDex pictures: the real slime model from Archer's
+-- Visuals.ModelFactory (same builder as the in-world slimes), untagged so
+-- no slime-tag listener picks up the viewport copy. nil = no Visuals.
+local modelFactory: any = nil
+do
+	local visuals = ReplicatedStorage:FindFirstChild("Visuals")
+	local module = visuals and visuals:FindFirstChild("ModelFactory")
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		if ok then
+			modelFactory = result
+		else
+			warn("[UI] Visuals.ModelFactory failed to load:", result)
+		end
+	end
+end
+local function buildSlime(genome: any): Model?
+	if modelFactory == nil then
+		return nil
+	end
+	local model = modelFactory.build(genome) :: Model
+	for _, tag in model:GetTags() do
+		model:RemoveTag(tag)
+	end
+	return model
+end
+
 -- togglePanel / openDaily are filled in below, once the panels exist.
 local ctx: { [string]: any } = {
 	Config = Config,
@@ -132,6 +163,7 @@ local ctx: { [string]: any } = {
 	serverNow = serverNow,
 	playerName = playerName,
 	toast = toasts.push,
+	buildSlime = if modelFactory then buildSlime else nil,
 }
 
 local hud = Hud.new(gui, ctx)
@@ -143,8 +175,22 @@ local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
 
--- Full-window menus: one open at a time, toggled from the left nav
--- (Nav.ENTRIES order), closed with their X, Esc or gamepad B.
+-- The dimmed full-window backdrop behind an open menu card (screen.panel).
+-- Made before the panels so their cards draw over it; a tap on it closes
+-- the menu, like the X.
+local backdrop = Widgets.create("TextButton", {
+	Name = "MenuBackdrop",
+	Text = "",
+	AutoButtonColor = false,
+	BackgroundColor3 = Color3.new(0, 0, 0),
+	BackgroundTransparency = 0.45,
+	Visible = false,
+	Parent = gui,
+}, { Widgets.corner(16) }) :: TextButton
+
+-- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
+-- order) or a world prompt, closed with their X, the backdrop, Esc or
+-- gamepad B.
 local panelByKey: { [string]: any } = {
 	Plot = PlotPanel.new(gui, ctx),
 	Merge = MergePanel.new(gui, ctx),
@@ -154,7 +200,7 @@ local panelByKey: { [string]: any } = {
 	Dex = DexPanel.new(gui, ctx),
 	Leaders = leaderboard,
 }
-type PanelEntry = { key: string, nav: Nav.Entry, panel: any }
+type PanelEntry = { key: string, nav: Nav.Entry?, panel: any }
 local panels: { PanelEntry } = {}
 for _, navEntry in Nav.ENTRIES do
 	local panel = panelByKey[navEntry.key]
@@ -162,6 +208,9 @@ for _, navEntry in Nav.ENTRIES do
 		table.insert(panels, { key = navEntry.key, nav = navEntry, panel = panel })
 	end
 end
+-- Every menu: the nav ones plus the Guide card (no nav button).
+local allPanels: { PanelEntry } = table.clone(panels)
+table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
 
 local nav = Widgets.create("Frame", {
 	Name = "Nav",
@@ -205,13 +254,16 @@ local function setOpen(key: string?)
 		navChoice = true
 		applyLayout()
 	end
-	for _, entry in panels do
+	backdrop.Visible = key ~= nil
+	for _, entry in allPanels do
 		local isOpen = entry.key == key
 		entry.panel.frame.Visible = isOpen
 		if entry.panel.setOpen then
 			entry.panel.setOpen(isOpen)
 		end
-		styleNav(navButtons[entry.key], isOpen)
+		if navButtons[entry.key] then
+			styleNav(navButtons[entry.key], isOpen)
+		end
 		if isOpen and latest and entry.panel.update then
 			entry.panel.update(latest)
 		end
@@ -249,9 +301,10 @@ for _, entry in panels do
 		Size = UDim2.fromOffset(4, 36),
 		Parent = button,
 	}, { Widgets.corner(2) })
+	local navEntry = entry.nav :: Nav.Entry
 	local icon = Widgets.label({
 		Name = "Icon",
-		Text = entry.nav.icon,
+		Text = navEntry.icon,
 		TextSize = 26,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextTruncate = Enum.TextTruncate.None,
@@ -261,7 +314,7 @@ for _, entry in panels do
 	})
 	local label = Widgets.label({
 		Name = "Label",
-		Text = entry.nav.label,
+		Text = navEntry.label,
 		Font = Theme.Font,
 		TextSize = 18,
 		TextStrokeTransparency = 0.6,
@@ -294,9 +347,6 @@ for _, entry in panels do
 	button.Activated:Connect(function()
 		setOpen(if openKey == entry.key then nil else entry.key)
 	end)
-	entry.panel.close.Activated:Connect(function()
-		setOpen(nil)
-	end)
 	navButtons[entry.key] = {
 		button = button,
 		label = label,
@@ -306,6 +356,28 @@ for _, entry in panels do
 		badge = badge,
 	}
 end
+
+for _, entry in allPanels do
+	entry.panel.close.Activated:Connect(function()
+		setOpen(nil)
+	end)
+end
+backdrop.Activated:Connect(function()
+	setOpen(nil)
+end)
+
+-- "Open Shop" at the ShopStand and "Talk" at the Guide NPC (CONTRACT.md
+-- §5.3): the server only places the prompts; this client opens the menu.
+local PROMPT_MENUS: { [string]: string } = {
+	[Constants.SHOP_PROMPT_NAME] = "Shop",
+	[Constants.GUIDE_PROMPT_NAME] = "Guide",
+}
+ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, who: Player)
+	local key = PROMPT_MENUS[prompt.Name]
+	if key and who == player then
+		setOpen(key)
+	end
+end)
 
 -- Nav, toggle and buttons from Layout.screen; collapsed = icons only.
 local function layoutNav(s: Layout.Screen)
@@ -355,7 +427,9 @@ function applyLayout()
 	tutorial.layout(s)
 	dailyPopup.layout(s)
 	layoutNav(s)
-	for _, entry in panels do
+	backdrop.Position = UDim2.fromOffset(s.panel.x, s.panel.y)
+	backdrop.Size = UDim2.fromOffset(s.panel.w, s.panel.h)
+	for _, entry in allPanels do
 		local r = Layout.panelFor(s, entry.key)
 		local frame = entry.panel.frame
 		frame.AnchorPoint = Vector2.zero
@@ -422,7 +496,7 @@ local function render(state: Types.State)
 		dailyPopup.open()
 	end
 	refreshHint()
-	for _, entry in panels do
+	for _, entry in allPanels do
 		if entry.key == openKey and entry.panel.update then
 			entry.panel.update(state)
 		end
