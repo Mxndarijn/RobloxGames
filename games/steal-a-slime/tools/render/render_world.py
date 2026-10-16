@@ -34,6 +34,7 @@ ap.add_argument("--samples", type=int, default=128)
 ap.add_argument("--engine", default="cycles")
 ap.add_argument("--suffix", default="")
 ap.add_argument("--blend", default="")
+ap.add_argument("--skin", default="")  # plot skin id of the scene (export --skin): names view 07 plot_skin_<id>.png
 args = ap.parse_args(argv)
 
 # Roblox -> Blender axes.
@@ -149,11 +150,13 @@ def part_material(p):
                       alpha=1 - p["transparency"])
 
 
-def vcol_material(layer):
-    key = ("vcol", layer)
+def vcol_material(layer, tint=None):
+    """Vertex colours; `tint` (r, g, b 0..1, sRGB) multiplies them like a MeshPart.Color does."""
+    tint = tuple(round(c, 3) for c in tint) if tint else None
+    key = ("vcol", layer, tint)
     if key in _mats:
         return _mats[key]
-    m = bpy.data.materials.new("kit_" + layer)
+    m = bpy.data.materials.new("kit_" + layer + ("_tint" if tint else ""))
     m.use_nodes = True
     nt = m.node_tree
     b = nt.nodes["Principled BSDF"]
@@ -161,7 +164,16 @@ def vcol_material(layer):
     b.inputs["Specular IOR Level"].default_value = 0.3
     a = nt.nodes.new("ShaderNodeVertexColor")
     a.layer_name = layer
-    nt.links.new(a.outputs["Color"], b.inputs["Base Color"])
+    if tint:
+        mul = nt.nodes.new("ShaderNodeMix")
+        mul.data_type = "RGBA"
+        mul.blend_type = "MULTIPLY"
+        mul.inputs["Factor"].default_value = 1.0
+        mul.inputs["B"].default_value = (*[srgb_to_linear(c) for c in tint], 1)
+        nt.links.new(a.outputs["Color"], mul.inputs["A"])
+        nt.links.new(mul.outputs["Result"], b.inputs["Base Color"])
+    else:
+        nt.links.new(a.outputs["Color"], b.inputs["Base Color"])
     _mats[key] = m
     return m
 
@@ -261,6 +273,10 @@ for m in data["meshes"]:
     s = [m["size"][i] / native[i] for i in range(3)]
     o = bpy.data.objects.new(m["mesh"], me)
     o.matrix_world = C @ cf_matrix(m["cf"]) @ Matrix.Diagonal((s[0], s[1], s[2], 1)) @ CI
+    if m.get("tint") and me.materials and len(me.color_attributes):
+        # Own material slot on the object: the datablock is shared by every slot of this mesh.
+        o.material_slots[0].link = "OBJECT"
+        o.material_slots[0].material = vcol_material(me.color_attributes[0].name, m["tint"])
     coll_world.objects.link(o)
 print(f"built {len(data['parts'])} parts, {len(data['meshes'])} meshes in {time.time() - t0:.1f}s; missing {missing}")
 
@@ -433,6 +449,9 @@ VIEWS = {
     "10_fence_closeup": lambda: look((P1[0] - 22, 6.5, P1[2] + 62), (P1[0] - 30, 3.5, P1[2] + 39.5), lens=34),
     # v30 C5: gate side of plot 1, from outside: panel, segment and gate post joints
     "11_fence_gate_side": lambda: look((P1[0] + 38, 6.5, P1[2] - 66), (P1[0] + 25, 3.5, P1[2] - 40.5), lens=34),
+    # plot skin close-up (plot 1 wears the scene's skin, export --skin): the entrance side, the
+    # skin decor beside the gate, the floor through the open front
+    "12_plot_skin": lambda: look((P1[0] + 31, 17, P1[2] - 72), (P1[0] + 4, 3, P1[2] - 38), lens=30),
 }
 
 os.makedirs(args.out, exist_ok=True)
@@ -446,6 +465,8 @@ for name, setup in VIEWS.items():
     cam_data.sensor_fit = "VERTICAL" if top else "AUTO"
     amount.inputs[1].default_value = 0.0 if top else 0.6
     r.filepath = os.path.join(args.out, name + args.suffix + ".png")
+    if name.startswith("07"):
+        r.filepath = os.path.join(args.out, f"plot_skin_{args.skin or 'classic'}{args.suffix}.png")
     t = time.time()
     bpy.ops.render.render(write_still=True)
     print(f"rendered {r.filepath} in {time.time() - t:.1f}s", flush=True)
