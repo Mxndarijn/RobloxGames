@@ -37,6 +37,13 @@
 	Both paths share the LOD: nearest SlimeLife.MAX_ACTIVE slimes, within
 	MAX_DISTANCE and on screen.
 
+	LOD (Config.FEATURES.SlimeLod, off by default; SlimeLod, Config.SLIME_LOD):
+	the "motor" rigs get a tier per reselect from the camera distance and the
+	saved graphics quality. near = full motion every frame, mid = squish only
+	(smaller, every MID_EVERY frames), far = Transform reset once, then
+	skipped. The model attribute LifeTier ("near" | "mid" | "far", client-only)
+	says which; pc-watcher counts it. Flag off = every motor slime is near.
+
 	Cost: at most SlimeLife.MAX_ACTIVE rigs within SlimeLife.MAX_DISTANCE of
 	the camera, 3-4 property writes each per frame, selection 4x a second,
 	at most ACQUIRE_PER_TICK new rigs per tick, at most SlimeLife
@@ -52,6 +59,7 @@ local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild(
 local MeshAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MeshAssets"))
 local SlimeAnim = require(script.Parent:WaitForChild("SlimeAnim"))
 local SlimeLife = require(script.Parent:WaitForChild("SlimeLife"))
+local SlimeLod = require(script.Parent:WaitForChild("SlimeLod"))
 local SlimeMotor = require(script.Parent:WaitForChild("SlimeMotor"))
 
 local SELECT_EVERY = 0.25
@@ -83,6 +91,8 @@ type Rig = {
 
 type MotorRig = {
 	model: Model,
+	tier: SlimeLod.Tier,
+	slot: number, -- staggers the mid-tier frames across slimes
 	motor: SlimeMotor.Motor,
 	params: SlimeLife.Params,
 	sparkle: ParticleEmitter?,
@@ -112,6 +122,19 @@ local animationIds = if animationsOn then SlimeAnim.ids(MeshAssets.animationId) 
 local probe: SlimeAnim.Verdict? = nil -- nil = not started; "wait" | "ok" | "failed"
 local animationInstances: { [string]: Animation } = {} -- one per id, shared by every rig
 local active: { [string]: boolean } = {}
+local lodOn = Config.FEATURES.SlimeLod == true
+local lodConfig: SlimeLod.Cfg = Config.SLIME_LOD
+local qualityLevel: number? = nil
+local frame = 0
+local slotCounter = 0
+
+-- UserGameSettings.SavedQualityLevel, read safely (UserSettings() can throw outside a full client).
+local function refreshQuality()
+	local ok, settings = pcall(function()
+		return UserSettings():GetService("UserGameSettings")
+	end)
+	qualityLevel = if ok then SlimeLod.readQuality(settings) else nil
+end
 
 local function slimeId(model: Model): string
 	local id = model:GetAttribute("SlimeId")
@@ -416,6 +439,7 @@ local function releaseMotor(model: Model)
 	motorRigs[model] = nil
 	model:SetAttribute("LifeAnimating", nil)
 	model:SetAttribute("LifeMode", nil)
+	model:SetAttribute("LifeTier", nil)
 	for _, conn in rig.conns do
 		conn:Disconnect()
 	end
@@ -437,7 +461,17 @@ local function acquireMotor(model: Model): MotorRig?
 	end
 	model:SetAttribute("LifeAnimating", true)
 	model:SetAttribute("LifeMode", "motor")
-	local rig: MotorRig = { model = model, motor = motor, params = motor.params, sparkle = nil, conns = {} }
+	slotCounter = (slotCounter + 1) % lodConfig.MID_EVERY
+	local rig: MotorRig = {
+		model = model,
+		tier = "near",
+		slot = slotCounter,
+		motor = motor,
+		params = motor.params,
+		sparkle = nil,
+		conns = {},
+	}
+	model:SetAttribute("LifeTier", "near")
 	local function drop()
 		releaseMotor(model)
 	end
@@ -636,6 +670,20 @@ local function reselect(camera: Camera)
 	for model in motorRigs do
 		active[slimeId(model)] = true
 	end
+	-- LOD tiers for the motor rigs, from the distances this selection already measured.
+	if lodOn then
+		refreshQuality()
+		for _, c in cands do
+			local rig = motorRigs[(c :: any).model]
+			if rig then
+				local tier = SlimeLod.tierFor(lodConfig, qualityLevel, c.distance, rig.tier)
+				if tier ~= rig.tier then
+					rig.tier = tier
+					rig.model:SetAttribute("LifeTier", tier)
+				end
+			end
+		end
+	end
 	local sparkling = SlimeLife.sparkleSet(cands, active)
 	for model, rig in rigs do
 		setSparkle(rig, sparkling[slimeId(model)] == true)
@@ -715,9 +763,18 @@ RunService.RenderStepped:Connect(function()
 			end
 		end
 	end
+	frame += 1
 	for model, rig in motorRigs do
 		if model.Parent then
-			local ok, result = pcall(SlimeMotor.step, rig.motor, now, math.random)
+			local tier = rig.tier
+			local ok, result = true, false :: any
+			if tier == "near" then
+				ok, result = pcall(SlimeMotor.step, rig.motor, now, math.random)
+			elseif SlimeLod.due(tier, frame, rig.slot, lodConfig) then
+				ok, result = pcall(SlimeMotor.stepSquish, rig.motor, now, lodConfig.MID_AMPLITUDE)
+			elseif tier == "far" then
+				ok, result = pcall(SlimeMotor.park, rig.motor)
+			end
 			if not ok then
 				warn(`[SlimeLife] motor step: {result}`)
 				noMotor[model] = true

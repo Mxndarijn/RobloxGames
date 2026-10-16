@@ -4,6 +4,9 @@
 -- = frozen), then plays %%KIND%% ("Idle" = just watch, "Hop" / "LookLeft" / "LookRight" via the LifeForce
 -- attribute) and compares the FaceRoot / SkinRoot Transform and the Mesh size A -> B, %%WAIT%% s apart
 -- (the capture lands on B: hop apex ~0.35, look peak ~0.35, idle any). moved = how far B is from A.
+-- %%KIND%% "Tiers" behaves like "Idle" (nothing forced). Every kind also reports tiers = { near, mid, far }:
+-- the LifeTier attribute (SlimeLifeRunner, FEATURES.SlimeLod) of the animated slimes within 80 studs of
+-- the pad (all "near" while the flag is off).
 local node = game
 for part in string.gmatch(%%PATH%%, "[^.]+") do
 	if node == game and part == "Workspace" then
@@ -44,7 +47,7 @@ local function sample()
 	return { y = ft.Position.Y, yaw = yaw, sy = if mesh then mesh.Size.Y else 0, skin_same = skin ~= nil and face ~= nil and skin.Transform == face.Transform }
 end
 local kind = %%KIND%%
-if kind ~= "Idle" then
+if kind ~= "Idle" and kind ~= "Tiers" then
 	slime:SetAttribute("LifeForce", kind)
 end
 task.wait(0.05)
@@ -53,6 +56,7 @@ task.wait(%%WAIT%%)
 local b = sample()
 local moved = math.abs(b.y - a.y) + math.abs(b.yaw - a.yaw) + math.abs(b.sy - a.sy)
 local animating, near = 0, 0
+local tiers = { near = 0, mid = 0, far = 0 }
 for _, m in CollectionService:GetTagged("Slime") do
 	local mb = m:IsA("Model") and (m.PrimaryPart or m:FindFirstChild("Body"))
 	if mb and (mb.Position - origin).Magnitude <= 80 then
@@ -60,6 +64,10 @@ for _, m in CollectionService:GetTagged("Slime") do
 		if m:GetAttribute("LifeAnimating") or m:FindFirstChild("LifeRoot") then
 			animating += 1
 		end
+		local tier = m:GetAttribute("LifeTier")
+		if tiers[tier] then
+			tiers[tier] += 1
+		end
 	end
 end
-return { ok = mode ~= nil and moved > 0.01, slime = slime.Name, mode = mode, kind = kind, a = a, b = b, moved = moved, animating = animating, near = near }
+return { ok = mode ~= nil and moved > 0.01, slime = slime.Name, mode = mode, kind = kind, a = a, b = b, moved = moved, animating = animating, near = near, tiers = tiers }

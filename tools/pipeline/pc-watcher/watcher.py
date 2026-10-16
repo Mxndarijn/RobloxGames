@@ -1432,6 +1432,8 @@ def step_shots(run):
                     # ok only when the slime is driven (LifeMode) and the pose really changed
                     res["motion"] = run.need_luau("slime_motion", "Client", timeout=30, path=res["target"]["path"],
                                                   kind=shot["motion"], wait=float(shot.get("wait", 0.35)))
+                    if shot["motion"] == "Tiers":
+                        run.note("shot %s: slime LOD tiers %s" % (sid, res["motion"].get("tiers")))
                     if not res["motion"].get("ok"):
                         run.note("shot %s: slime not moving (mode %s, moved %s)" % (
                             sid, res["motion"].get("mode"), res["motion"].get("moved")))

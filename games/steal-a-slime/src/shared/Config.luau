@@ -441,7 +441,22 @@ local Config = {
 		MysteryEgg = true, -- a cash-only Mystery Egg in the Shop hatches a random slime (MysteryEgg); false = no egg, BuyEgg refused
 		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
 		Weather = false, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md. Off until frame-reviewed
+		SlimeLod = false, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
+	}),
+
+	-- Slime motion LOD (FEATURES.SlimeLod, ui/SlimeLod). Studs from the camera: full motion up to
+	-- NEAR, squish only (smaller, every MID_EVERY frames) up to MID, static beyond. At a saved
+	-- graphics quality level of 1..LOW_QUALITY_MAX (0 = Automatic counts as normal) the *_LOW radii apply.
+	SLIME_LOD = table.freeze({
+		NEAR = 30,
+		MID = 60,
+		NEAR_LOW = 15,
+		MID_LOW = 35,
+		LOW_QUALITY_MAX = 4,
+		MID_EVERY = 3,
+		MID_AMPLITUDE = 0.5,
+		HYSTERESIS = 0.1, -- share of a radius a slime must cross back to change tier again (selection runs 4x a second)
 	}),
 
 	-- Boss Slime event (FEATURES.BossSlime)

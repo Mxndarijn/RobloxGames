@@ -825,5 +825,15 @@
     "weather": "Starfall",
     "wait": 2.5,
     "note": "TODO 18: Starfall weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
+  },
+  {
+    "id": "17-motion-lod-tiers",
+    "todo": "17",
+    "kind": "world",
+    "target": "Pad_1",
+    "seat": true,
+    "motion": "Tiers",
+    "wait": 0.6,
+    "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod): records the near / mid / far tier counts of the animated slimes around the pad (res.motion.tiers); with the flag off all are near"
   }
 ]

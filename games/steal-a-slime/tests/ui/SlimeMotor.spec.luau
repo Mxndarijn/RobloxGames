@@ -12,6 +12,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local SlimeAnim = UiHarness.ui("SlimeAnim")
 local SlimeLife = UiHarness.ui("SlimeLife")
 local SlimeMotor = UiHarness.ui("SlimeMotor")
+local SlimeLod = UiHarness.ui("SlimeLod")
 local SlimeRig = UiHarness.ui("../visuals/shared/SlimeRig")
 local PetRig = UiHarness.ui("../visuals/client/PetRig")
 local Config = UiHarness.ui("../shared/Config")
@@ -275,5 +276,162 @@ describe("pets stay static", function()
 		expect(string.find(fs.readFile("src/visuals/client/FollowPets.luau"), "PetRig.stripLife(pet)", 1, true) ~= nil).toBe(
 			true
 		)
+	end)
+end)
+
+describe("LOD tiers (FEATURES.SlimeLod)", function()
+	local cfg = Config.SLIME_LOD
+	local function tiers(level: number?, distances: { number }): { string }
+		local out = {}
+		for _, d in distances do
+			table.insert(out, SlimeLod.tierFor(cfg, level, d, nil))
+		end
+		return out
+	end
+
+	it("is off by default and the thresholds are in Config", function()
+		expect(Config.FEATURES.SlimeLod).toBe(false)
+		expect(cfg.NEAR < cfg.MID).toBe(true)
+		expect(cfg.NEAR_LOW < cfg.NEAR and cfg.MID_LOW < cfg.MID).toBe(true)
+		expect(cfg.MID < SlimeLife.MAX_DISTANCE).toBe(true)
+		expect(cfg.MID_EVERY >= 2 and cfg.MID_AMPLITUDE < 1).toBe(true)
+	end)
+
+	it("picks near / mid / far by distance, with smaller radii at low quality", function()
+		local d = { 5, cfg.NEAR + 1, cfg.MID + 1, 79 }
+		local normal = tiers(10, d)
+		expect(normal[1]).toBe("near")
+		expect(normal[2]).toBe("mid")
+		expect(normal[3]).toBe("far")
+		expect(normal[4]).toBe("far")
+		expect(tiers(nil, d)[2]).toBe("mid")
+		expect(tiers(0, d)[2]).toBe("mid") -- Automatic counts as normal
+		-- the same distances one tier down at low quality
+		local low = tiers(2, { cfg.NEAR_LOW + 1, cfg.MID_LOW + 1, cfg.NEAR - 1 })
+		expect(low[1]).toBe("mid")
+		expect(low[2]).toBe("far")
+		expect(low[3]).toBe("mid")
+		expect(SlimeLod.tierFor(cfg, 1, 0 / 0, nil)).toBe("far")
+	end)
+
+	it("hysteresis keeps a slime on the border in its tier", function()
+		local d = cfg.NEAR * (1 + cfg.HYSTERESIS / 2)
+		expect(SlimeLod.tierFor(cfg, 10, d, "near")).toBe("near")
+		expect(SlimeLod.tierFor(cfg, 10, d, "mid")).toBe("mid")
+		expect(SlimeLod.tierFor(cfg, 10, d, nil)).toBe("mid")
+	end)
+
+	it("reads the saved quality level safely (enum item, number, error, nothing)", function()
+		expect(SlimeLod.readQuality({ SavedQualityLevel = { Value = 3 } })).toBe(3)
+		expect(SlimeLod.readQuality({ SavedQualityLevel = 7 })).toBe(7)
+		expect(SlimeLod.readQuality(setmetatable({}, {
+			__index = function()
+				error("no access")
+			end,
+		}))).toBeNil()
+		expect(SlimeLod.readQuality({})).toBeNil()
+		expect(SlimeLod.readQuality(nil)).toBeNil()
+	end)
+
+	it("mid slimes are written every MID_EVERY frames, near every frame, far never", function()
+		local mid, near, far = 0, 0, 0
+		for frame = 1, cfg.MID_EVERY * 10 do
+			mid += if SlimeLod.due("mid", frame, 1, cfg) then 1 else 0
+			near += if SlimeLod.due("near", frame, 1, cfg) then 1 else 0
+			far += if SlimeLod.due("far", frame, 1, cfg) then 1 else 0
+		end
+		expect(mid).toBe(10)
+		expect(near).toBe(cfg.MID_EVERY * 10)
+		expect(far).toBe(0)
+		-- slots stagger: across MID_EVERY slots exactly one slime is due per frame
+		for frame = 1, 6 do
+			local due = 0
+			for slot = 0, cfg.MID_EVERY - 1 do
+				due += if SlimeLod.due("mid", frame, slot, cfg) then 1 else 0
+			end
+			expect(due).toBe(1)
+		end
+	end)
+
+	it("the mid tier squishes with a smaller amplitude and nothing else", function()
+		local model = slime()
+		local motor = SlimeMotor.attach(model, 0, rand(2))
+		local face = motorOf(model, "FaceRoot")
+		local mesh = model:FindFirstChild("Mesh")
+		local rest = mesh.Size
+		local fullLo, fullHi, midLo, midHi = 9, -9, 9, -9
+		for i = 0, 200 do
+			local now = i / 20
+			local sy = SlimeLife.squishY(motor.params, motor.clock, now, 1)
+			fullLo, fullHi = math.min(fullLo, sy), math.max(fullHi, sy)
+			SlimeMotor.stepSquish(motor, now, cfg.MID_AMPLITUDE)
+			midLo, midHi = math.min(midLo, mesh.Size.Y / rest.Y), math.max(midHi, mesh.Size.Y / rest.Y)
+			local _, yaw = face.Transform:ToEulerAnglesYXZ()
+			expect(math.abs(yaw) < 1e-6).toBe(true) -- no look
+			expect(face.Transform.Position.Y <= 0.5).toBe(true) -- no hop
+			expect(face.Transform == motorOf(model, "SkinRoot").Transform).toBe(true)
+		end
+		expect(midHi - midLo > 0.01).toBe(true)
+		expect(midHi - midLo < (fullHi - fullLo) * 0.75).toBe(true)
+	end)
+
+	it("a far slime is reset to identity once, then skipped; stepping wakes it", function()
+		local model = slime()
+		local r = rand(8)
+		local motor = SlimeMotor.attach(model, 0, r)
+		local face, skin = motorOf(model, "FaceRoot"), motorOf(model, "SkinRoot")
+		local mesh = model:FindFirstChild("Mesh")
+		local rest = mesh.Size
+		for i = 0, 40 do
+			SlimeMotor.step(motor, i / 30, r)
+		end
+		expect(face.Transform ~= CFrame.new() or mesh.Size ~= rest).toBe(true)
+		expect(SlimeMotor.park(motor)).toBe(true)
+		expect(face.Transform == CFrame.new()).toBe(true)
+		expect(skin.Transform == CFrame.new()).toBe(true)
+		expect(mesh.Size == rest).toBe(true)
+		-- skipped: a changed Transform is not overwritten by further parks
+		local mark = CFrame.new(0, 7, 0)
+		face.Transform = mark
+		expect(SlimeMotor.park(motor)).toBe(false)
+		expect(face.Transform == mark).toBe(true)
+		SlimeMotor.step(motor, 5, r)
+		expect(motor.parked).toBe(false)
+		expect(SlimeMotor.park(motor)).toBe(true)
+	end)
+
+	it("the cap of 16 and the on-screen check hold with the LOD on", function()
+		local cands = {}
+		for i = 1, 40 do
+			table.insert(
+				cands,
+				{ id = `s{i}`, distance = 5 + i * 1.8, onScreen = i % 4 ~= 0, state = "Wild", tier = 3 }
+			)
+		end
+		local wanted = SlimeLife.select(cands, {})
+		local count, counts = 0, { near = 0, mid = 0, far = 0 }
+		for _, c in cands do
+			if wanted[c.id] then
+				count += 1
+				expect(c.onScreen).toBe(true)
+				local t = SlimeLod.tierFor(cfg, 10, c.distance, nil)
+				counts[t] += 1
+			end
+		end
+		expect(count).toBe(SlimeLife.MAX_ACTIVE)
+		expect(counts.near + counts.mid + counts.far).toBe(16)
+		expect(counts.near > 0 and counts.mid > 0).toBe(true)
+	end)
+
+	it("the runner gates tiers on the flag, reselects 4x a second and reads quality via the module", function()
+		local src = fs.readFile("src/ui/SlimeLifeRunner.client.luau")
+		expect(string.find(src, "Config.FEATURES.SlimeLod == true", 1, true) ~= nil).toBe(true)
+		expect(string.find(src, "SELECT_EVERY = 0.25", 1, true) ~= nil).toBe(true)
+		expect(string.find(src, "SlimeLod.tierFor(", 1, true) ~= nil).toBe(true)
+		expect(string.find(src, "SlimeMotor.park", 1, true) ~= nil).toBe(true)
+		expect(string.find(src, "SlimeLod.readQuality(", 1, true) ~= nil).toBe(true)
+		-- the per-frame loop sorts nothing
+		local frameLoop = string.match(src, "RenderStepped:Connect.*$") :: string
+		expect(string.find(frameLoop, "table.sort", 1, true)).toBeNil()
 	end)
 end)
