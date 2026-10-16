@@ -73,4 +73,9 @@ return table.freeze({
 	MERGE_PROMPT_NAME = "MergePrompt", -- on MergeVat
 	-- v16 (CONTRACT.md §9.1): "Claim plot" on a free plot's BuyStand.Counter, everyone sees it.
 	CLAIM_PROMPT_NAME = "ClaimPrompt",
+	-- Slime habitats (FEATURES.Habitats, HABITATS.md): Pad_<j> attributes, only set with the flag on.
+	HABITAT_ATTRIBUTE = "Habitat", -- Pad_<j>: Shared.Habitats id, "base" = empty pad
+	HABITAT_FROM_ATTRIBUTE = "HabitatFrom", -- Pad_<j>: the id before the latest change
+	HABITAT_AT_ATTRIBUTE = "HabitatAt", -- Pad_<j>: server time of the latest change
+	HABITAT_FOLDER = "ClientHabitats", -- client-only workspace folder for habitat looks
 })
