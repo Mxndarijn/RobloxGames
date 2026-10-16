@@ -344,6 +344,10 @@ local Config = {
 	MERGE_MUTATION_CHANCE = 0.15,
 	MERGE_SIZE_BONUS = 0.1,
 
+	-- Appraise (FEATURES.Appraise): reroll one owned slime's mutation or size
+	APPRAISE_COST_FRACTION = 0.3, -- of the slime's current value (Economy.sellPrice)
+	APPRAISE_MUTATION_CHANCE = 0.6, -- chance a mutation reroll lands on a mutation (else None)
+
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = 4,
 	MAX_WILD_SLIMES = 18,
@@ -383,6 +387,7 @@ local Config = {
 		SlimeAnimations = false, -- slimes play the uploaded KeyframeSequences (MeshAssets.ANIMATIONS) once a probe track loads; false = procedural Motor6D motion (ui/SlimeMotor)
 		CycleModifier = true, -- a server modifier (Luck Surge, Mutation Surge, ...) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); needs DayNight; false = no modifier
 		SlideCollision = true, -- invisible colliders along the FULL fountain slide, top to mouth (B6: players fell through above LOW_SLIDE_Y); false = low stretch only
+		Appraise = true, -- pay APPRAISE_COST_FRACTION of a slime's value to reroll its mutation or size (Appraise)
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
