@@ -23,6 +23,8 @@ export type Progress = {
 	dexRewards: number,
 	boostMult: number?, -- redeem-code income boost while active (Codes), nil / 1 = none
 	friendBonus: number?, -- runtime friend bonus (FriendBonus, never saved), nil / 0 = none
+	slimes: { any }?, -- owned slimes (follow-pet passive lookup)
+	favoriteId: string?, -- the follow pet; nil = no passive
 	ritualBonus: number?, -- runtime "Blessed" bonus from the co-op ritual (Ritual, never saved), nil / 0 = none
 }
 
@@ -141,7 +143,57 @@ function Perks.dexBonus(data: Progress): number
 	return total
 end
 
--- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual.
+---------------------------------------------------------------------------
+-- Follow-pet passive (FEATURES.PetPassives): derived from the saved favourite, never stored
+---------------------------------------------------------------------------
+
+export type PetPassive = { kind: string, value: number, icon: string, text: string }
+
+local function mutationCount(slime: any): number
+	if slime.mutations then
+		return #slime.mutations
+	end
+	return if slime.mutation ~= nil and slime.mutation ~= "None" then 1 else 0
+end
+
+-- The favourite slime's perk, or nil with the feature off, no favourite or an unknown tier.
+function Perks.petPassive(data: Progress): PetPassive?
+	local cfg = Config.PET_PASSIVES
+	if not Config.FEATURES.PetPassives or not data.favoriteId or not data.slimes then
+		return nil
+	end
+	for _, slime in data.slimes do
+		if slime.id == data.favoriteId then
+			local kind = cfg.KIND_BY_TIER[slime.tier]
+			local def = if kind then cfg.KINDS[kind] else nil
+			if not def then
+				return nil
+			end
+			local value = math.min(slime.tier * def.perTier + mutationCount(slime) * cfg.MUTATION_STEP, def.cap)
+			value = math.floor(value * 1000 + 0.5) / 1000
+			return {
+				kind = kind,
+				value = value,
+				icon = def.icon,
+				text = `+{math.floor(value * 100 + 0.5)}% {def.word}`,
+			}
+		end
+	end
+	return nil
+end
+
+-- The passive's value when it is of `kind`, else 0.
+local function petValue(data: Progress, kind: string): number
+	local perk = Perks.petPassive(data)
+	return if perk and perk.kind == kind then perk.value else 0
+end
+
+-- Added to Config.MERGE_MUTATION_CHANCE (Merge.apply).
+function Perks.petMutationBonus(data: Progress): number
+	return petValue(data, "mutation")
+end
+
+-- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual x pet.
 function Perks.bonusMultiplier(data: Progress): number
 	return (1 + upgradeEffect(data, "Income"))
 		* (1 + Perks.rankIncomeBonus(data.rebirths))
@@ -149,6 +201,7 @@ function Perks.bonusMultiplier(data: Progress): number
 		* math.max(data.boostMult or 1, 1)
 		* (1 + math.max(data.friendBonus or 0, 0))
 		* (1 + math.max(data.ritualBonus or 0, 0))
+		* (1 + petValue(data, "income"))
 end
 
 -- State.incomeMultiplier: rebirth x upgrade x rank x dex.
@@ -167,7 +220,7 @@ end
 
 -- Chance that a wild slime this player deposits is one rarity higher.
 function Perks.luckChance(data: Progress): number
-	return upgradeEffect(data, "Luck")
+	return upgradeEffect(data, "Luck") + petValue(data, "luck")
 end
 
 return table.freeze(Perks)

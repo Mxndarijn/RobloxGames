@@ -120,6 +120,7 @@ local function state(): any
 	end
 	local world = ServerFixtures.world()
 	local session = ServerFixtures.join(world, 1, slimes, 5000)
+	session.data.favoriteId = "s3" -- tier 1: the Plot row shows its perk chip
 	local s: any = Snapshot.build(world, session, ServerFixtures.T0)
 	if #s.dex < 3 then
 		s.dex = { "1:Plain", "2:Plain", "3:Plain", "1:Spots" }

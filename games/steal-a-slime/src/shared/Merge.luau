@@ -13,6 +13,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local Perks = if script then require(script.Parent.Perks) else require("./Perks")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 
@@ -54,7 +55,7 @@ function Merge.inheritedMutation(a: string, b: string): string
 	return b
 end
 
-function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string): Slime
+function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string, chanceBonus: number?): Slime
 	local maxed = a.tier >= Config.MAX_TIER
 	local tier = math.min(a.tier + 1, Config.MAX_TIER)
 
@@ -62,7 +63,7 @@ function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string): Slime
 		Genome.primaryMutation(Genome.mutationList(a)),
 		Genome.primaryMutation(Genome.mutationList(b))
 	)
-	local chance = if maxed then 1 else Config.MERGE_MUTATION_CHANCE
+	local chance = if maxed then 1 else math.min(1, Config.MERGE_MUTATION_CHANCE + (chanceBonus or 0))
 	local rolled = Genome.rollMutation(rng:float(), rng:float(), chance)
 	if mutationRank(rolled) > mutationRank(mutation) then
 		mutation = rolled
@@ -184,7 +185,7 @@ function Merge.apply(
 	end
 	local pad = a.pad
 	local wasFavorite = data.favoriteId == idA or data.favoriteId == idB
-	local child = Merge.merge(a, b, rng, newId)
+	local child = Merge.merge(a, b, rng, newId, Perks.petMutationBonus(data))
 	PlayerData.removeSlime(data, idA)
 	PlayerData.removeSlime(data, idB)
 	PlayerData.addSlime(data, child, pad)

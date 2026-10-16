@@ -468,6 +468,7 @@ local Config = {
 		SlimeLod = true, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
 		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
 		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
+		PetPassives = true, -- the favourite (follow) slime grants a small capped perk by tier / mutations: income, luck or merge mutation chance (Perks.petPassive, CONTRACT.md §14); false = cosmetic only
 		CoopRitual = true, -- 3-4 players stand on the plaza ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
@@ -536,6 +537,18 @@ local Config = {
 		PLAYER_COOLDOWN = 600, -- seconds before the same player can count again
 		BLESS_SECONDS = 180,
 		BONUS = table.freeze({ [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants
+	}),
+
+	-- Follow-pet passives (FEATURES.PetPassives, CONTRACT.md §14). The kind comes from the favourite slime's tier;
+	-- value = tier * perTier + MUTATION_STEP per mutation, capped per kind. All additive and server-side.
+	PET_PASSIVES = table.freeze({
+		MUTATION_STEP = 0.01, -- extra per mutation on the slime
+		KIND_BY_TIER = table.freeze({ "income", "income", "luck", "luck", "mutation", "mutation", "luck" }),
+		KINDS = table.freeze({
+			income = table.freeze({ icon = "💰", word = "income", perTier = 0.01, cap = 0.08 }), -- x(1 + value) income
+			luck = table.freeze({ icon = "🍀", word = "luck", perTier = 0.01, cap = 0.06 }), -- added to Perks.luckChance
+			mutation = table.freeze({ icon = "🧬", word = "mutation", perTier = 0.02, cap = 0.12 }), -- added to the merge mutation chance
+		}),
 	}),
 
 	-- Mystery Egg (FEATURES.MysteryEgg): bought with in-game cash only, never Robux. The price is

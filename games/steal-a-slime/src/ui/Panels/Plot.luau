@@ -52,6 +52,7 @@ function Plot.new(parent: Instance, ctx: any)
 	})
 
 	local favoriteId: string? = nil
+	local petPerk: any = nil -- State.petPerk: the favourite's passive, shown as a chip on its row
 	local latestViews: { [string]: any } = {}
 
 	-- Appraise popup: covers the list while open.
@@ -231,7 +232,27 @@ function Plot.new(parent: Instance, ctx: any)
 			end
 		)
 		appraise.instance.Parent = frame
+		-- Follow-pet perk chip ("🍀 +5% luck"), only on the favourite row (which grows to fit it).
+		local chip = create("Frame", {
+			Name = "PerkChip",
+			Visible = false,
+			Position = UDim2.fromOffset(52, 54),
+			Size = UDim2.fromOffset(150, 20),
+			BackgroundColor3 = Color3.fromRGB(60, 52, 24),
+			Parent = frame,
+		}, { Widgets.corner(10) })
+		local chipText = Widgets.label({
+			Name = "Text",
+			Text = "",
+			TextSize = 13,
+			TextColor3 = Theme.Gold,
+			Position = UDim2.fromOffset(8, 0),
+			Size = UDim2.new(1, -12, 1, 0),
+			Parent = chip,
+		})
 		return {
+			chip = chip,
+			chipText = chipText,
 			instance = frame,
 			swatch = swatch,
 			name = name,
@@ -252,6 +273,12 @@ function Plot.new(parent: Instance, ctx: any)
 		row.fav.setText(if isFav then Icons.FAV_ON else Icons.FAV_OFF)
 		row.fav.setColor(if isFav then Theme.Gold else Theme.BgLight)
 		row.sell.setText(`💰 {Format.formatCash(view.sellPrice)}`)
+		local showChip = isFav and petPerk ~= nil
+		row.chip.Visible = showChip
+		row.instance.Size = UDim2.new(1, -10, 0, if showChip then 80 else 56)
+		if showChip then
+			row.chipText.Text = `{petPerk.icon} {petPerk.text}`
+		end
 		if view.stolenBy ~= nil then
 			row.instance.BackgroundColor3 = Color3.fromRGB(120, 40, 55)
 			row.sub.Text = `🚨 {ctx.playerName(view.stolenBy)} is stealing it!`
@@ -278,6 +305,7 @@ function Plot.new(parent: Instance, ctx: any)
 
 	function self.update(state: any)
 		favoriteId = state.favoriteId
+		petPerk = state.petPerk
 		latestViews = {}
 		for _, view in state.slimes do
 			latestViews[view.slime.id] = view

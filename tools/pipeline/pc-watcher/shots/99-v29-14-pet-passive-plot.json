@@ -1,0 +1,8 @@
+{
+  "id": "v29-14-pet-passive-plot",
+  "todo": "v29 14",
+  "kind": "ui",
+  "open": "plot",
+  "plot_slime": true,
+  "note": "v29 #14: My Plot panel; the favourite slime's row carries the follow-pet perk chip (icon + '+3% luck', FEATURES.PetPassives)"
+}
