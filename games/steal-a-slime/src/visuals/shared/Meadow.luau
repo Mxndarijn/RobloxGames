@@ -264,22 +264,19 @@ local function tuft(rng: Rng.Rng, name: string, x: number, z: number, out: { Nod
 	end
 end
 
--- A small rock: a sunk boulder dome or a low tilted slab.
+-- A small rock: a sunk boulder dome or a flat stone (a wider ball sunk to
+-- its top sixth). Blocks read as paving slabs from the plots, so no slabs.
 local function stone(rng: Rng.Rng, name: string, x: number, z: number, s: number, out: { Node })
 	local col = shadeOf(STONES[rng:int(1, #STONES)], 0.92 + rng:float() * 0.14)
+	local d, show
 	if rng:float() < 0.55 then
-		local d = s * (1 + rng:float() * 0.5)
-		table.insert(
-			out,
-			part(name, "Ball", { d, d, d }, { x, -d * (0.18 + rng:float() * 0.12), z }, { 0, 0, 0 }, col, "Rock")
-		)
-		return
+		d = s * (1 + rng:float() * 0.5)
+		show = 0.2 + rng:float() * 0.12
+	else
+		d = s * (1.2 + rng:float() * 0.4)
+		show = 0.12 + rng:float() * 0.06
 	end
-	local size = { s * (1 + rng:float() * 0.6), s * (0.35 + rng:float() * 0.25), s * (0.7 + rng:float() * 0.4) }
-	local rot = { rng:float() * 16 - 8, rng:float() * 360, rng:float() * 16 - 8 }
-	local pos = { x, 0, z }
-	pos[2] = -blockBottom(size, pos, rot) - size[2] * 0.25
-	table.insert(out, part(name, "Block", size, pos, rot, col, "Rock"))
+	table.insert(out, part(name, "Ball", { d, d, d }, { x, d * (show - 0.5), z }, { 0, 0, 0 }, col, "Rock"))
 end
 
 -- Piece spot inside a cluster: centre-weighted darts, each piece keeping
