@@ -95,7 +95,8 @@ end
 
 -- SlimeDex key "tier:mutation:pattern:eyes" -> "Rare · Glow · Spots · Happy".
 -- `tierNames[tier]` supplies rarity names; unknown tiers show "Tier N".
-function Format.dexLabel(key: string, tierNames: { string }): string
+-- `mutationNames` maps mutation save ids to display names ("Lava" -> "Syrup").
+function Format.dexLabel(key: string, tierNames: { string }, mutationNames: { [string]: string }?): string
 	local parts = string.split(key, ":")
 	if #parts ~= 4 then
 		return key
@@ -106,7 +107,8 @@ function Format.dexLabel(key: string, tierNames: { string }): string
 	if mutation == "None" then
 		return `{tierName} · {parts[3]} · {parts[4]}`
 	end
-	return `{tierName} · {mutation} · {parts[3]} · {parts[4]}`
+	local shown = if mutationNames and mutationNames[mutation] then mutationNames[mutation] else mutation
+	return `{tierName} · {shown} · {parts[3]} · {parts[4]}`
 end
 
 -- "12 / 720 (2%)"

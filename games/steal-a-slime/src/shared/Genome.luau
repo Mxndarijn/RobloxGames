@@ -65,6 +65,13 @@ function Genome.mutationInfo(name: string): Config.Mutation?
 	return nil
 end
 
+-- Player-facing mutation name for a save id ("Lava" -> "Syrup"). Unknown ids
+-- and "None" come back unchanged.
+function Genome.mutationDisplayName(name: string): string
+	local m = Genome.mutationInfo(name)
+	return if m then m.displayName else name
+end
+
 function Genome.mutationMultiplier(name: string): number
 	local m = Genome.mutationInfo(name)
 	return if m then m.multiplier else 1
@@ -95,11 +102,8 @@ function Genome.rollMutation(chanceRoll: number, pickRoll: number, chance: numbe
 	return Config.MUTATIONS[Rng.weightedIndex(weights, pickRoll)].name
 end
 
--- Display name of a mutation save id ("Lava" shows as "Syrup").
-function Genome.mutationDisplay(name: string): string
-	local m = Genome.mutationInfo(name)
-	return if m and m.display then m.display else name
-end
+-- Alias of mutationDisplayName (v28 name).
+Genome.mutationDisplay = Genome.mutationDisplayName
 
 -- Picks a roster species of `tier` (uniform within the tier). Secret species
 -- (SlimeRoster.SECRET_TIER) are never returned: no Config rarity exists.
@@ -153,7 +157,7 @@ end
 function Genome.displayName(slime: Slime): string
 	local rarity = Genome.rarity(slime.tier).name
 	if slime.mutation ~= "None" then
-		return `{Genome.mutationDisplay(slime.mutation)} {rarity} {slime.name}`
+		return `{Genome.mutationDisplayName(slime.mutation)} {rarity} {slime.name}`
 	end
 	return `{rarity} {slime.name}`
 end

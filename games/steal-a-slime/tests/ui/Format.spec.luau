@@ -82,6 +82,10 @@ describe("Format.dexLabel / dexCount", function()
 		expect(Format.dexLabel("1:None:Plain:Round", names)).toBe("Common · Plain · Round")
 		expect(Format.dexLabel("9:None:Plain:Round", names)).toBe("Tier 9 · Plain · Round")
 		expect(Format.dexLabel("garbage", names)).toBe("garbage")
+		-- Save id "Lava" displays as "Syrup" (RANCH_RENAME.md); unmapped ids show as-is.
+		local shown = { Lava = "Syrup" }
+		expect(Format.dexLabel("3:Lava:Spots:Happy", names, shown)).toBe("Rare · Syrup · Spots · Happy")
+		expect(Format.dexLabel("3:Glow:Spots:Happy", names, shown)).toBe("Rare · Glow · Spots · Happy")
 	end)
 	it("counts discoveries", function()
 		expect(Format.dexCount(36, 720)).toBe("36 / 720 (5%)")

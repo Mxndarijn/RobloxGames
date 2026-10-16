@@ -42,7 +42,7 @@ describe("SlimeRoster", function()
 			expect(SlimeRoster.MUTATION_DISPLAY[keep] ~= nil).toBe(true)
 		end
 		expect(SlimeRoster.MUTATION_DISPLAY.Lava).toBe("Syrup")
-		expect(names.Lava.display).toBe("Syrup")
+		expect(names.Lava.displayName).toBe("Syrup")
 		for _, m in SlimeRoster.NEW_MUTATIONS do
 			-- v28: wired into Config with the drafted values.
 			expect(names[m.name] ~= nil).toBe(true)

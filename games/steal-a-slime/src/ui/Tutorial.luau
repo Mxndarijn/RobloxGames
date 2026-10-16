@@ -22,7 +22,7 @@ Tutorial.STEPS = table.freeze({
 	table.freeze({
 		id = "Grab",
 		title = "Grab a slime",
-		body = "Slimes drop from the volcano. Walk up to one and press E (or tap the prompt). "
+		body = "Slimes spill from the fountain. Walk up to one and press E (or tap the prompt). "
 			.. '"Grab" is free; "Buy $X" costs cash.',
 	}),
 	table.freeze({

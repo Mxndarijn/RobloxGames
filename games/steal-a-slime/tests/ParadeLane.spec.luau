@@ -1,10 +1,10 @@
 --!strict
 local Config = require("../src/shared/Config")
+local Fountain = require("../src/shared/Fountain")
 local ParadeLane = require("../src/shared/ParadeLane")
 local ServerFixtures = require("./ServerFixtures")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
-local Volcano = require("../src/shared/Volcano")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
@@ -107,12 +107,12 @@ describe("Parade flag off (default): wild placement unchanged", function()
 		expect(ParadeLane.enabled({ Parade = true })).toBe(true)
 		expect(ParadeLane.enabled({})).toBe(false)
 	end)
-	it("spawnOne keeps the Volcano.roll landing (same rng stream)", function()
+	it("spawnOne keeps the Fountain.roll landing (same rng stream)", function()
 		local a = ServerFixtures.world()
 		local b = ServerFixtures.world()
 		for _ = 1, 50 do
 			local id = Spawner.spawnOne(a, T0)
-			local drop = Volcano.roll(b.rng, b.newId(), false, Spawner.pityTier(b.pity))
+			local drop = Fountain.roll(b.rng, b.newId(), false, Spawner.pityTier(b.pity))
 			b.rng:float() -- Spawner.price roll
 			local tier = drop.slime.tier
 			b.pity.sinceEpic = if tier >= 4 then 0 else b.pity.sinceEpic + 1
@@ -132,7 +132,7 @@ describe("Parade flag off (default): wild placement unchanged", function()
 			Spawner.step(world, t)
 		end
 		for id, wild in world.wild do
-			expect(wild.radius >= Volcano.MIN_RADIUS and wild.radius <= Volcano.MAX_RADIUS).toBeTruthy()
+			expect(wild.radius >= Fountain.MIN_RADIUS and wild.radius <= Fountain.MAX_RADIUS).toBeTruthy()
 			local was = before[id]
 			if was then
 				expect(wild.angle).toBe(was[1])

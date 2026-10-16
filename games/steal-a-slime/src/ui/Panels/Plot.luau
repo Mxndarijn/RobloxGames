@@ -35,7 +35,7 @@ function Plot.new(parent: Instance, ctx: any)
 
 	local empty = Widgets.label({
 		Name = "Empty",
-		Text = "No slimes yet - grab one from the volcano!",
+		Text = "No slimes yet - grab one from the fountain!",
 		TextColor3 = Theme.Muted,
 		TextWrapped = true,
 		Size = UDim2.new(1, -8, 0, 40),

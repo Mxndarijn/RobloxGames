@@ -188,9 +188,9 @@ function Dex.new(parent: Instance, ctx: any)
 		-- the live cap; else (or if the mount fails) the colour swatch. The
 		-- row's viewport is reused and only remounted when its look changes.
 		if not hasImage and index <= SlimePreview.MAX_LIVE then
-			local look = `{row.locked}:{table.concat(row.color, ",")}`
+			local look = `{row.locked}:{row.mutation or ""}:{table.concat(row.color, ",")}`
 			if r.preview:GetAttribute("Look") ~= look then
-				local ok = SlimePreview.mount(r.preview, row.color, { locked = row.locked })
+				local ok = SlimePreview.mount(r.preview, row.color, { locked = row.locked, mutation = row.mutation })
 				r.preview:SetAttribute("Look", look) -- a failed look is not retried
 				r.preview.Visible = ok
 			end

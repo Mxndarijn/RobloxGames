@@ -93,13 +93,14 @@ end)
 
 describe("MinimapData (FEATURES.Minimap)", function()
 	local MinimapData = require("../src/visuals/shared/MinimapData")
-	it("lists the volcano, every plot, the props and the spawn", function()
+	it("lists the fountain, every plot, the props and the spawn", function()
 		local points = MinimapData.points()
 		local kinds = {}
 		for _, p in points do
 			kinds[p.kind] = (kinds[p.kind] or 0) + 1
 		end
-		expect(kinds.Volcano).toBe(1)
+		expect(kinds.Fountain).toBe(1)
+		expect(kinds.Volcano).toBeNil()
 		expect(kinds.Plot).toBe(Config.PLOT_COUNT)
 		expect(kinds.Spawn).toBe(1)
 		for name in WorldLayout.PROP_SPOTS do

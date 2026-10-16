@@ -1,6 +1,6 @@
 --!strict
 -- v13 rarity curve (CONTRACT.md §8.7): weights, pity floors, Legendary+ announcements.
--- Logs the spawn distribution of a long simulated volcano run.
+-- Logs the spawn distribution of a long simulated fountain run.
 local Config = require("../src/shared/Config")
 local Genome = require("../src/shared/Genome")
 local ServerFixtures = require("./ServerFixtures")
@@ -12,7 +12,7 @@ local T0 = ServerFixtures.T0
 
 local DROPS = 100000
 
--- Runs DROPS volcano drops (no rain) and returns counts, longest droughts and announcements.
+-- Runs DROPS fountain drops (no rain) and returns counts, longest droughts and announcements.
 local function simulate(seed: number)
 	local world = ServerFixtures.world()
 	world.rng = (require("../src/shared/Rng") :: any).new(seed)
@@ -49,7 +49,7 @@ describe("Rarity curve", function()
 	for _, r in Config.RARITIES do
 		totalWeight += r.weight
 	end
-	print(`    spawn distribution over {DROPS} volcano drops (seed 2026, pity on):`)
+	print(`    spawn distribution over {DROPS} fountain drops (seed 2026, pity on):`)
 	for tier, r in Config.RARITIES do
 		local n = counts[tier] or 0
 		print(
@@ -94,16 +94,16 @@ describe("Spawner.rareText / pityTier", function()
 		local slime = Genome.generate((require("../src/shared/Rng") :: any).new(1), { id = "x", tier = 5 })
 		slime.mutation = "Gold"
 		slime.name = "Globble"
-		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Gold Globble erupted from the volcano!")
+		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Gold Globble spilled from the fountain!")
 		slime.tier = 6
 		slime.mutation = "None"
-		expect(Spawner.rareText(slime)).toBe("A MYTHIC Globble erupted from the volcano!!")
+		expect(Spawner.rareText(slime)).toBe("A MYTHIC Globble spilled from the fountain!!")
 	end)
 	it("displays Lava as Syrup in the toast (save id kept)", function()
 		local slime = Genome.generate((require("../src/shared/Rng") :: any).new(1), { id = "x", tier = 5 })
 		slime.mutation = "Lava"
 		slime.name = "Globble"
-		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Syrup Globble erupted from the volcano!")
+		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Syrup Globble spilled from the fountain!")
 	end)
 	it("floors at Epic after PITY_EPIC - 1 misses and Legendary after PITY_LEGENDARY - 1", function()
 		expect(Spawner.pityTier({ sinceEpic = 0, sinceLegendary = 0 })).toBeNil()

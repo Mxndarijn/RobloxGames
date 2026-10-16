@@ -9,9 +9,8 @@
 	mutation (or rarity) colour. Undiscovered entries are not listed one by
 	one (dexTotal is 720 keys, mostly locked: too many rows on a phone);
 	each tier gets one silhouette row instead (dark fill, "?", no names).
-	A ViewportFrame of the real slime model is the planned upgrade
-	(UI-PLAN.md): models are built server-side, the client has none to
-	render.
+	Panels/Dex renders a SlimePreview ViewportFrame per row from `color` and
+	`mutation` (the mutation's finish, e.g. the Eclipse corona).
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
@@ -25,6 +24,7 @@ export type Row = {
 	detail: string,
 	image: string?, -- rbxassetid://..., nil = placeholder swatch
 	color: { number }, -- swatch / silhouette fill (RGB 0..255)
+	mutation: string?, -- save id of a discovered row ("None", "Lava", ...); nil when locked
 }
 
 local SlimeDex = {}
@@ -35,7 +35,8 @@ SlimeDex.IMAGES = table.freeze({} :: { [string]: string })
 
 SlimeDex.SILHOUETTE = table.freeze({ 24, 26, 36 })
 
--- Placeholder swatch per mutation; "None" uses the rarity colour.
+-- Placeholder swatch per mutation save id ("Lava" displays as Syrup); "None"
+-- uses the rarity colour.
 SlimeDex.MUTATION_COLORS = table.freeze({
 	Glow = table.freeze({ 255, 245, 150 }),
 	Lava = table.freeze({ 255, 110, 40 }),
@@ -53,11 +54,16 @@ function SlimeDex.image(key: string, images: { [string]: string }?): string?
 end
 
 -- Discovered rows of each tier (sorted by key), then that tier's silhouette
--- row while some of it is still undiscovered. `config` supplies RARITIES.
+-- row while some of it is still undiscovered. `config` supplies RARITIES and
+-- MUTATIONS (save id -> displayName for the titles).
 function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: string }?): { Row }
 	local tierNames: { string } = {}
 	for i, rarity in config.RARITIES do
 		tierNames[i] = rarity.name
+	end
+	local mutationNames: { [string]: string } = {}
+	for _, m in config.MUTATIONS or {} do
+		mutationNames[m.name] = m.displayName or m.name
 	end
 	local progress = Progress.dex(dex, total, tierNames)
 	local byTier: { [number]: { string } } = {}
@@ -79,10 +85,11 @@ function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: st
 				key = key,
 				tier = tier,
 				locked = false,
-				title = Format.dexLabel(key, tierNames),
+				title = Format.dexLabel(key, tierNames, mutationNames),
 				detail = "Discovered",
 				image = SlimeDex.image(key, images),
 				color = (SlimeDex.MUTATION_COLORS :: any)[mutation or ""] or rarityColor,
+				mutation = mutation,
 			})
 		end
 		local t = progress.byTier[tier]

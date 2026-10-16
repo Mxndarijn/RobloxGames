@@ -8,7 +8,7 @@
 
 	Legendary+ drops are contracted: workspace `RareSpawnId` / `RareSpawnTier`
 	/ `RareSpawnAt` (set together per drop) and a Notify with sound "Rare"
-	("A LEGENDARY <name> erupted from the volcano!"). The Notify text is used
+	("A LEGENDARY <name> spilled from the fountain!"). The Notify text is used
 	when it arrives; the attributes alone give a generic banner.
 
 	CONTRACT §2 Extras gives no State field for the boss, so the client
@@ -17,7 +17,7 @@
 	     (Constants.BOSS_ATTRIBUTE); its GrabPrompt ObjectText starts with
 	     "BOSS ". Authoritative while the model is replicated.
 	  2. Notify text heuristic (the spawn Notify uses sound "Rain"; text
-	     "A BOSS SLIME erupted: <name>! ..."; the catch is "<who> caught the
+	     "A BOSS SLIME slid into the plaza: <name>! ..."; the catch is "<who> caught the
 	     Boss Slime!"). Covers streamed-out models. If the server wording
 	     changes, only the patterns below need updating.
 	A future `State.boss` / Notify kind would replace both (UI-CONTRACT-GAPS.md).
@@ -54,7 +54,7 @@ function RareAnnounce.classify(text: any, sound: any): ("spawn" | "caught" | "dr
 	if string.find(lower, "boss slime", 1, true) then
 		return "spawn"
 	end
-	if sound == RareAnnounce.DROP_SOUND or string.find(lower, "erupted from the volcano", 1, true) then
+	if sound == RareAnnounce.DROP_SOUND or string.find(lower, "spilled from the fountain", 1, true) then
 		return "drop"
 	end
 	return nil
@@ -77,10 +77,10 @@ function RareAnnounce.dropBanner(drop: Drop?, now: number, tierNames: { string }
 		return { text = `✨ {drop.text}`, kind = "drop" }
 	end
 	local name = if drop.tier and tierNames[drop.tier] then string.upper(tierNames[drop.tier]) else "RARE"
-	return { text = `✨ A {name} slime erupted from the volcano! Grab it!`, kind = "drop" }
+	return { text = `✨ A {name} slime spilled from the fountain! Grab it!`, kind = "drop" }
 end
 
--- Slime name from the spawn Notify ("... erupted: Glow Globble! ..."), else nil.
+-- Slime name from the spawn Notify ("... slid into the plaza: Glow Globble! ..."), else nil.
 function RareAnnounce.nameFromNotify(text: string): string?
 	local name = string.match(text, ":%s*(.-)!")
 	return if name and #name > 0 then name else nil
@@ -117,7 +117,7 @@ function RareAnnounce.banner(boss: Boss?, caught: { text: string, untilTime: num
 		return { text = `👑 BOSS SLIME{name} is being carried - chase & slap!`, kind = "boss" }
 	end
 	local timer = if left then ` - {Format.formatDuration(left)}` else ""
-	return { text = `👑 BOSS SLIME{name}! Grab it at the volcano{timer}`, kind = "boss" }
+	return { text = `👑 BOSS SLIME{name}! Grab it at the fountain{timer}`, kind = "boss" }
 end
 
 return table.freeze(RareAnnounce)

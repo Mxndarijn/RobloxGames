@@ -149,7 +149,7 @@ describe("Genome.sanitize", function()
 		expect(s.pad).toBeNil()
 	end)
 	it("display name includes mutation and rarity", function()
-		expect(Genome.displayName(Fixtures.slime("a", 4, { mutation = "Lava" }))).toBe("Syrup Epic Blorp")
+		expect(Genome.displayName(Fixtures.slime("a", 4, { mutation = "Lava" }))).toBe("Syrup Epic Blorp") -- save id Lava, display Syrup
 		expect(Genome.displayName(Fixtures.slime("a", 1))).toBe("Common Blorp")
 	end)
 end)

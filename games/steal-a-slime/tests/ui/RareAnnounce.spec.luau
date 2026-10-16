@@ -8,7 +8,7 @@ local TestRunner = require("../TestRunner")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 -- Exact server wording (src/server/Spawner.luau, Carry.luau).
-local SPAWN = "A BOSS SLIME erupted: Glow Globble! Grab it first!"
+local SPAWN = "A BOSS SLIME slid into the plaza: Glow Globble! Grab it first!"
 local CAUGHT = "Ann caught the Boss Slime!"
 
 describe("RareAnnounce.classify", function()
@@ -19,7 +19,7 @@ describe("RareAnnounce.classify", function()
 	it("still matches the wording in the server source (drift guard)", function()
 		local spawner = fs.readFile("src/server/Spawner.luau")
 		local carry = fs.readFile("src/server/Carry.luau")
-		expect(string.find(spawner, "A BOSS SLIME erupted: {", 1, true) ~= nil).toBe(true)
+		expect(string.find(spawner, "A BOSS SLIME slid into the plaza: {", 1, true) ~= nil).toBe(true)
 		expect(string.find(carry, "caught the Boss Slime!", 1, true) ~= nil).toBe(true)
 		expect(string.find(fs.readFile("src/server/WorldView.luau"), '"BOSS "', 1, true) ~= nil).toBe(true)
 	end)
@@ -46,12 +46,12 @@ describe("RareAnnounce.banner", function()
 		local boss = { name = "Glow Globble", expiresAt = 1090, carried = false }
 		local b = RareAnnounce.banner(boss, nil, 1000) :: RareAnnounce.Banner
 		expect(b.kind).toBe("boss")
-		expect(b.text).toBe("👑 BOSS SLIME: Glow Globble! Grab it at the volcano - 1:30")
+		expect(b.text).toBe("👑 BOSS SLIME: Glow Globble! Grab it at the fountain - 1:30")
 		expect(RareAnnounce.banner(boss, nil, 1090)).toBeNil()
 	end)
 	it("works without a name or timer (model seen after joining)", function()
 		local b = RareAnnounce.banner({ carried = false }, nil, 0) :: RareAnnounce.Banner
-		expect(b.text).toBe("👑 BOSS SLIME! Grab it at the volcano")
+		expect(b.text).toBe("👑 BOSS SLIME! Grab it at the fountain")
 	end)
 	it("says chase when it's being carried", function()
 		local b = RareAnnounce.banner({ name = "Zed", carried = true }, nil, 0) :: RareAnnounce.Banner
@@ -70,8 +70,8 @@ end)
 describe("RareAnnounce Legendary+ drops (CONTRACT §8.6 / §8.7)", function()
 	local TIERS = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }
 	it("classifies the Rare Notify by sound or wording", function()
-		expect(RareAnnounce.classify("A LEGENDARY Glow Globble erupted from the volcano!", "Rare")).toBe("drop")
-		expect(RareAnnounce.classify("A MYTHIC Zed erupted from the volcano!!", nil)).toBe("drop")
+		expect(RareAnnounce.classify("A LEGENDARY Glow Globble spilled from the fountain!", "Rare")).toBe("drop")
+		expect(RareAnnounce.classify("A MYTHIC Zed spilled from the fountain!!", nil)).toBe("drop")
 		expect(RareAnnounce.classify("Goal complete: Catch 10 slimes! +$500", "Goal")).toBeNil()
 	end)
 	it("reads the workspace RareSpawn attributes", function()
@@ -84,9 +84,9 @@ describe("RareAnnounce Legendary+ drops (CONTRACT §8.6 / §8.7)", function()
 	it("shows the Notify text, else a generic line, for DROP_SECONDS", function()
 		local generic = RareAnnounce.dropBanner({ tier = 5, at = 1000 }, 1001, TIERS) :: RareAnnounce.Banner
 		expect(generic.kind).toBe("drop")
-		expect(generic.text).toBe("✨ A LEGENDARY slime erupted from the volcano! Grab it!")
-		local named = RareAnnounce.dropBanner({ tier = 6, at = 1000, text = "A MYTHIC Zed erupted!!" }, 1000, TIERS)
-		expect((named :: RareAnnounce.Banner).text).toBe("✨ A MYTHIC Zed erupted!!")
+		expect(generic.text).toBe("✨ A LEGENDARY slime spilled from the fountain! Grab it!")
+		local named = RareAnnounce.dropBanner({ tier = 6, at = 1000, text = "A MYTHIC Zed spilled!!" }, 1000, TIERS)
+		expect((named :: RareAnnounce.Banner).text).toBe("✨ A MYTHIC Zed spilled!!")
 		expect(RareAnnounce.dropBanner({ at = 1000 }, 1000, TIERS) ~= nil).toBe(true)
 		expect(RareAnnounce.dropBanner({ tier = 5, at = 1000 }, 1000 + RareAnnounce.DROP_SECONDS, TIERS)).toBeNil()
 		expect(RareAnnounce.dropBanner(nil, 0, TIERS)).toBeNil()
