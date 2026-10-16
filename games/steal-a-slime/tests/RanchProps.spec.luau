@@ -510,6 +510,13 @@ describe("plot fence", function()
 	-- never two side by side, in both fence modes.
 	local function checkPosts(built: { any })
 		local inset = WorldLayout.FENCE_POST_INSET
+		-- An upload comes in turned 180 from the kit axes (kit x -> import -x)
+		-- and MeshSwap turns each Part slot's mesh MeshAssets.IMPORT_YAW back,
+		-- so a kit -X post must land on the slot's -X end.
+		local turn = math.cos(math.rad(MeshAssets.IMPORT_YAW))
+		local function slotX(kitX: number): number
+			return turn * -kitX
+		end
 		for i, plot in built[2].children do
 			local _, plotYaw = WorldLayout.plotCentre(i)
 			local posts: { { number } } = {}
@@ -520,9 +527,11 @@ describe("plot fence", function()
 				local a = math.rad(n.rot[2] - plotYaw)
 				local dx, dz = math.cos(a), -math.sin(a)
 				local half = n.size[1] / 2
-				table.insert(posts, { x + dx * (inset - half), z + dz * (inset - half) })
+				local post = slotX(inset - half)
+				table.insert(posts, { x + dx * post, z + dz * post })
 				if mid then
-					table.insert(posts, { x + dx * inset, z + dz * inset })
+					local m = slotX(inset)
+					table.insert(posts, { x + dx * m, z + dz * m })
 				end
 				table.insert(ends, { x - dx * half, z - dz * half })
 				table.insert(ends, { x + dx * half, z + dz * half })
