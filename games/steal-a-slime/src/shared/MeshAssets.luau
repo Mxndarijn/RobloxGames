@@ -92,6 +92,13 @@ local NAMES = {
 	"ranch_border_chunk_h_m",
 	"habitat_crystal_grotto",
 	"habitat_candy_patch",
+	"habitat_barn_crate",
+	"habitat_flower_bed",
+	"habitat_hay_nest",
+	"habitat_mushroom_ring",
+	"habitat_rodeo_barrel",
+	"habitat_show_stool",
+	"habitat_syrup_pool",
 	"ranch_fence_20",
 	"slime_base",
 	"slime_acc_leaf",
@@ -261,6 +268,21 @@ entries["habitat_crystal_grotto"] =
 	{ assetId = 109901060316213, meshId = "rbxassetid://87315770149394", size = { 7.8, 5.0, 7.8 } }
 entries["habitat_candy_patch"] =
 	{ assetId = 133666024913667, meshId = "rbxassetid://114045594160776", size = { 7.8, 4.5, 7.8 } }
+-- Per-type habitats (HABITATS.md): seat 2.4, 7.8 wide; Open Cloud size-check.
+entries["habitat_barn_crate"] =
+	{ assetId = 89583070931756, meshId = "rbxassetid://98462960817471", size = { 7.8, 4.2, 7.8 } }
+entries["habitat_flower_bed"] =
+	{ assetId = 122318217311799, meshId = "rbxassetid://95838335102537", size = { 7.8, 4.0, 7.8 } }
+entries["habitat_hay_nest"] =
+	{ assetId = 120365465161287, meshId = "rbxassetid://137434987788443", size = { 7.8, 4.0, 7.8 } }
+entries["habitat_mushroom_ring"] =
+	{ assetId = 125411498762649, meshId = "rbxassetid://117664485324932", size = { 7.8, 4.2, 7.8 } }
+entries["habitat_rodeo_barrel"] =
+	{ assetId = 98071962509034, meshId = "rbxassetid://124673945500348", size = { 7.8, 4.5, 7.8 } }
+entries["habitat_show_stool"] =
+	{ assetId = 74338867735483, meshId = "rbxassetid://132522416455664", size = { 7.8, 4.6, 7.8 } }
+entries["habitat_syrup_pool"] =
+	{ assetId = 84228432405913, meshId = "rbxassetid://103442186480271", size = { 7.8, 3.6, 7.8 } }
 -- 20-stud plot fence (models/ranch_fence_20.py): Open Cloud size-check.
 entries["ranch_fence_20"] =
 	{ assetId = 93657150564692, meshId = "rbxassetid://111846611380833", size = { 22, 9.02, 1.8 } }
