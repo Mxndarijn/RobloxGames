@@ -310,6 +310,25 @@ def t_files():
     check("no shot plays the uploaded animations", not [s for s in shots if s.get("anim") or s.get("animId")])
 
 
+def t_data_path():
+    import tempfile
+    with tempfile.TemporaryDirectory() as repo:
+        p, src = watcher.data_path(repo, "checks.json")
+        check("data_path falls back to app copy", src == "app" and p == os.path.join(HERE, "checks.json"), (p, src))
+        d = os.path.join(repo, "tools", "pipeline", "pc-watcher")
+        os.makedirs(os.path.join(d, "shots"))
+        with open(os.path.join(d, "checks.json"), "w", encoding="utf-8") as fh:
+            fh.write("{}")
+        p, src = watcher.data_path(repo, "checks.json")
+        check("data_path prefers the repo copy", src == "repo" and p == os.path.join(d, "checks.json"), (p, src))
+        p, src = watcher.data_path(repo, "shots")
+        check("data_path resolves shots/ in the repo", src == "repo" and p == os.path.join(d, "shots"), (p, src))
+        check("load_shots(repo=) reads the repo folder (empty -> None)", watcher.load_shots(repo=repo)[0] is None)
+    check("data_path without a repo uses the app copy", watcher.data_path(None, "checks.json")[1] == "app")
+    names = json.load(open(os.path.join(HERE, "checks.json"), encoding="utf-8"))["shops_face_centre"]
+    check("shops_face_centre checks ShopStand only", names["names"] == ["ShopStand"] and names["min_items"] == 1 and names["min_dot"] == 0.9, names)
+
+
 def t_geometry():
     checks = json.load(open(os.path.join(HERE, "checks.json"), encoding="utf-8"))
     good = {
@@ -342,7 +361,7 @@ def t_geometry():
 
 def main():
     for t in (t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry):
+              t_files, t_geometry, t_data_path):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going
