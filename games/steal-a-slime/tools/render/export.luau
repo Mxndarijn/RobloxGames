@@ -105,20 +105,33 @@ for _, scope in { built.map, built.plots } do
 			or (PENDING and (inst:GetAttribute("BorderMesh") or inst:GetAttribute("FenceMesh")))
 		if typeof(name) == "string" and (inst:IsA("BasePart") or inst:IsA("Model")) and swappable(name) then
 			local cf, box
+			local size, drop
+			-- Blender imports the kit FBX on its documented axes, which is where
+			-- MeshSwap turns a Part slot's upload back to (MeshAssets.IMPORT_YAW):
+			-- no turn here. A WorldProps Model skin keeps the upload's own front
+			-- (turned IMPORT_YAW from the kit axes) and its MeshSize, like MeshSwap.
+			local turn = 0
 			if inst:IsA("Model") then
 				cf, box = boundingBox(inst)
 				for _, d in inst:GetDescendants() do
 					hidden[d] = true
 				end
+				local unit = WorldLayout.meshSize(name, 1)
+				local fixed = WorldLayout.meshSize(name, box.Y / unit[2])
+				size, drop = fixed, 0
+				cf = cf * CFrame.new(0, (fixed[2] - box.Y) / 2, (fixed[3] - box.Z) / 2)
+				turn = math.rad(MeshAssets.IMPORT_YAW)
 			else
 				cf, box = inst.CFrame, inst.Size
+				size, _, drop = MeshAssets.fit(name, { box.X, box.Y, box.Z })
 			end
 			hidden[inst] = true
-			local size, _, drop = MeshAssets.fit(name, { box.X, box.Y, box.Z })
-			table.insert(
-				meshes,
-				{ mesh = name, cf = cfOf(cf * CFrame.new(0, -drop, 0)), size = size, path = inst:GetFullName() }
-			)
+			table.insert(meshes, {
+				mesh = name,
+				cf = cfOf(cf * CFrame.new(0, -drop, 0) * CFrame.Angles(0, turn, 0)),
+				size = size,
+				path = inst:GetFullName(),
+			})
 			swapped[scope][name] = true
 		end
 	end

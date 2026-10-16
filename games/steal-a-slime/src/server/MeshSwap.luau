@@ -9,8 +9,10 @@
 	native proportions, standing on the box bottom; a Model with a MeshSize
 	attribute keeps that size: WorldProps), anchors it, makes it visual-only
 	and hides the placeholder (which keeps collision, prompts and contract
-	names). Parts tagged MeshStandIn = that mesh anywhere under the same Map
-	or Plots root hide too (the spiral stand-in lives under Map.Chute, not
+	names). A Part slot's mesh is turned MeshAssets.IMPORT_YAW about its own
+	vertical axis (the upload's front vs WorldLayout's kit axes). Parts
+	tagged MeshStandIn = that mesh anywhere under the same Map or Plots root
+	hide too (the spiral stand-in lives under Map.Chute, not
 	beside the fountain slot). A slot with MeshStandInsCollide = false hands
 	collision over in one step (setMeshCollision): its stand-ins' CanCollide
 	goes off and parts tagged MeshCollider = that mesh go on (the fountain's
@@ -130,7 +132,11 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	local mesh = base:Clone()
 	mesh.Name = "Mesh"
 	mesh.Size = Vector3.new(size[1], size[2], size[3])
-	mesh.CFrame = cf * CFrame.new(0, -drop, 0)
+	-- WorldLayout slots (Parts) assume the kit's documented axes; turn the
+	-- imported mesh back onto them (MeshAssets.IMPORT_YAW, about the box's own
+	-- axis). WorldProps Models want the import front (-Z) as it comes.
+	local turn = if target:IsA("Model") then 0 else math.rad(MeshAssets.IMPORT_YAW)
+	mesh.CFrame = cf * CFrame.new(0, -drop, 0) * CFrame.Angles(0, turn, 0)
 	mesh.Anchored = true
 	mesh.CanCollide = false
 	mesh.CanQuery = false
