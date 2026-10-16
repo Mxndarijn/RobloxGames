@@ -3,24 +3,22 @@
 	Toasts: stacked messages from the `Notify` RemoteEvent (and failed
 	Request messages). Kinds info / good / bad, plus the UI's own "rare"
 	(Boss Slime news: gold, bigger, stays longer) and "badge" (Roblox badge unlocked:
-	gold star icon + text, stays longer); each hides after LIFETIME
-	(per kind) s; at most MAX visible (oldest dropped).
+	gold star icon + text, stays longer). What shows (merged bursts, priority,
+	cap, staleness, hidden behind menus) is decided by ToastQueue.
 ]]
 
 local SoundService = game:GetService("SoundService")
-local TweenService = game:GetService("TweenService")
 
 local ItemIconView = require(script.Parent.ItemIconView)
 local ItemIcons = require(script.Parent.ItemIcons)
 local Sounds = require(script.Parent.Sounds)
+local ToastQueue = require(script.Parent.ToastQueue)
 local Widgets = require(script.Parent.Widgets)
 
 local Theme = Widgets.Theme
 local create = Widgets.create
 
-local MAX = 4
-local LIFETIME = 3
-local LIFETIMES = { rare = 7, badge = 6 }
+local MAX = ToastQueue.MAX
 
 local COLORS = {
 	info = Theme.Info,
@@ -59,8 +57,9 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 	layout.VerticalAlignment = Enum.VerticalAlignment.Top
 	layout.Parent = holder
 
-	local active: { Frame } = {}
-	local counter = 0
+	local queue = ToastQueue.new(MAX)
+	local frames: { [number]: Frame } = {}
+	local menuOpen = false
 
 	local self = {}
 
@@ -68,14 +67,6 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 	function self.layout(rect: { x: number, y: number, w: number, h: number })
 		holder.Position = UDim2.fromOffset(rect.x + rect.w, rect.y)
 		holder.Size = UDim2.fromOffset(rect.w, rect.h)
-	end
-
-	local function remove(frame: Frame)
-		local index = table.find(active, frame)
-		if index then
-			table.remove(active, index)
-		end
-		frame:Destroy()
 	end
 
 	local function playSound(sound: string?)
@@ -91,12 +82,12 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 		end)
 	end
 
-	function self.push(text: string, kind: string?, sound: string?)
-		counter += 1
-		local color = COLORS[kind or "info"] or Theme.Info
+	local function build(entry: any): Frame
+		local text, kind = entry.text, entry.kind
+		local color = COLORS[kind] or Theme.Info
 		local frame = create("Frame", {
-			Name = `Toast{counter}`,
-			LayoutOrder = counter,
+			Name = `Toast{entry.id}`,
+			LayoutOrder = -entry.priority * 1000 + entry.id, -- steal alerts / rare above routine
 			Size = UDim2.fromScale(1, 0), -- holder width (Layout: narrower on phones)
 			AutomaticSize = Enum.AutomaticSize.Y,
 			BackgroundColor3 = Theme.Bg,
@@ -117,6 +108,7 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 			}, registry).setActive(true)
 		end
 		local label = Widgets.label({
+			Name = "Text",
 			Text = tostring(text),
 			TextWrapped = true,
 			TextTruncate = Enum.TextTruncate.None,
@@ -132,27 +124,60 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 			label.TextXAlignment = Enum.TextXAlignment.Left
 			create("UISizeConstraint", { MinSize = Vector2.new(0, Toasts.ICON), Parent = label })
 		end
-		if isBadge then
-			local name = string.gsub(label.Text, "^Badge unlocked: ", "")
-			label.Text = `Badge unlocked!\n{name}`
-		end
-		table.insert(active, frame)
-		while #active > MAX do
-			remove(active[1])
-		end
-		playSound(sound)
-
-		task.delay(LIFETIMES[kind or "info"] or LIFETIME, function()
-			if frame.Parent == nil then
-				return
-			end
-			local info = TweenInfo.new(0.3)
-			TweenService:Create(frame, info, { BackgroundTransparency = 1 }):Play()
-			TweenService:Create(label, info, { TextTransparency = 1 }):Play()
-			task.wait(0.3)
-			remove(frame)
-		end)
+		return frame
 	end
+
+	local function labelText(entry: any): string
+		if entry.kind == "badge" then
+			local name = string.gsub(entry.text, "^Badge unlocked: ", "")
+			return `Badge unlocked!\n{name}`
+		end
+		return entry.text
+	end
+
+	-- Draw exactly the entries the queue says are visible.
+	local function sync()
+		local visible = queue.step(os.clock(), menuOpen)
+		local live: { [number]: boolean } = {}
+		for _, entry in visible do
+			live[entry.id] = true
+			local frame = frames[entry.id]
+			if not frame then
+				frame = build(entry)
+				frames[entry.id] = frame
+			end
+			local label = frame:FindFirstChild("Text") :: TextLabel
+			label.Text = labelText(entry)
+		end
+		for id, frame in frames do
+			if not live[id] then
+				frames[id] = nil
+				frame:Destroy()
+			end
+		end
+		holder.Visible = not menuOpen
+	end
+
+	function self.push(text: string, kind: string?, sound: string?)
+		local _, merged = queue.push(text, kind, os.clock())
+		if not merged then
+			playSound(sound)
+		end
+		sync()
+	end
+
+	-- A menu open hides the stack (MenuState.bannersVisible); toasts wait, unaged.
+	function self.setMenuOpen(open: boolean)
+		menuOpen = open
+		sync()
+	end
+
+	task.spawn(function()
+		while holder.Parent do
+			task.wait(0.25)
+			sync()
+		end
+	end)
 
 	return self
 end
