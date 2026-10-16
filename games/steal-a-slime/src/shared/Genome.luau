@@ -22,7 +22,8 @@ export type Slime = {
 	pattern: string,
 	eyes: string,
 	mouth: string,
-	mutation: string, -- "None" or a Config.MUTATIONS name
+	mutation: string, -- primary (highest multiplier) of `mutations`; "None" when it is empty. Kept for visuals, dex keys and old saves
+	mutations: { string }?, -- every mutation (Config.MUTATIONS / COMBOS names, at most Config.MAX_MUTATIONS); nil = just `mutation`
 	pad: number?, -- home pad on the owner's plot (nil while wild)
 	species: string?, -- SlimeRoster id (wild spawns since v28; nil for older/merged slimes)
 }
@@ -57,10 +58,18 @@ function Genome.rarity(tier: number): Config.Rarity
 	return Config.RARITIES[math.clamp(math.floor(tonumber(tier) or 1), 1, Config.MAX_TIER)]
 end
 
-function Genome.mutationInfo(name: string): Config.Mutation?
+export type MutationInfo = { name: string, displayName: string, multiplier: number }
+
+-- A single mutation or a combo (Config.COMBOS) by save id.
+function Genome.mutationInfo(name: any): MutationInfo?
 	for _, m in Config.MUTATIONS do
 		if m.name == name then
 			return m
+		end
+	end
+	for _, c in Config.COMBOS do
+		if c.name == name then
+			return c
 		end
 	end
 	return nil
@@ -76,6 +85,109 @@ end
 function Genome.mutationMultiplier(name: string): number
 	local m = Genome.mutationInfo(name)
 	return if m then m.multiplier else 1
+end
+
+-- Every mutation of a slime as a fresh list (empty = none). Slimes built before
+-- the list existed (or by hand) fall back to the single `mutation` field.
+function Genome.mutationList(slime: { mutation: string, mutations: { string }? }): { string }
+	local list = slime.mutations
+	-- A list that no longer matches `mutation` is stale (something set the single field): trust the field.
+	if type(list) == "table" and Genome.primaryMutation(list) == slime.mutation then
+		return table.clone(list)
+	end
+	return if slime.mutation ~= "None" and slime.mutation ~= nil then { slime.mutation } else {}
+end
+
+-- The strongest mutation of a list ("None" when empty): the legacy `mutation` field.
+function Genome.primaryMutation(list: { string }): string
+	local best, bestMult = "None", 0
+	for _, name in list do
+		local mult = Genome.mutationMultiplier(name)
+		if mult > bestMult then
+			best, bestMult = name, mult
+		end
+	end
+	return best
+end
+
+-- Total value multiplier of a mutation list: the product of its entries.
+function Genome.mutationsMultiplier(list: { string }): number
+	local total = 1
+	for _, name in list do
+		total *= Genome.mutationMultiplier(name)
+	end
+	return total
+end
+
+-- Sets both the list and the primary `mutation` of a slime in one go.
+function Genome.setMutations(slime: Slime, list: { string })
+	slime.mutations = list
+	slime.mutation = Genome.primaryMutation(list)
+end
+
+local function comboOf(a: string, b: string): Config.Combo?
+	for _, c in Config.COMBOS do
+		if (c.a == a and c.b == b) or (c.a == b and c.b == a) then
+			return c
+		end
+	end
+	return nil
+end
+
+-- Fuses every combo pair in the list (repeats: a combo can fuse again). New list.
+function Genome.fuseCombos(list: { string }): { string }
+	local out = table.clone(list)
+	local changed = true
+	while changed do
+		changed = false
+		for i = 1, #out do
+			for j = i + 1, #out do
+				local combo = comboOf(out[i], out[j])
+				if combo then
+					out[i] = combo.name
+					table.remove(out, j)
+					changed = true
+					break
+				end
+			end
+			if changed then
+				break
+			end
+		end
+	end
+	return out
+end
+
+-- Adds `name` to a list: ignored if already there or "None"/unknown; fuses combos;
+-- left unchanged when it would not fit under Config.MAX_MUTATIONS. New list.
+function Genome.addMutation(list: { string }, name: string): { string }
+	if name == "None" or not Genome.mutationInfo(name) or table.find(list, name) then
+		return table.clone(list)
+	end
+	local out = table.clone(list)
+	table.insert(out, name)
+	out = Genome.fuseCombos(out)
+	if #out > Config.MAX_MUTATIONS then
+		return table.clone(list)
+	end
+	return out
+end
+
+-- With FEATURES.MutationStacking a mutated slime may roll more mutations: per free
+-- slot STACK_MUTATION_CHANCE (two draws each). No draw at all when it carries none or the flag is off.
+function Genome.stackMutations(list: { string }, rng: Rng.Rng): { string }
+	if not Config.FEATURES.MutationStacking or #list == 0 then
+		return list
+	end
+	local out = list
+	for _ = #list + 1, Config.MAX_MUTATIONS do
+		local extra = Genome.rollMutation(rng:float(), rng:float(), Config.STACK_MUTATION_CHANCE)
+		if extra == "None" then
+			break
+		end
+		out = Genome.addMutation(out, extra)
+	end
+	return out
 end
 
 -- Rolls a rarity tier. `luck` multiplies the weight of tiers >= 3; tiers below
@@ -140,7 +252,7 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 	local color = if look
 		then { look.color[1], look.color[2], look.color[3] }
 		else { channels[p[1]], channels[p[2]], channels[p[3]] }
-	return {
+	local slime: Slime = {
 		id = options.id,
 		name = if species then species.name else Genome.rollName(rng),
 		tier = tier,
@@ -150,27 +262,42 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 		eyes = rng:pick(Config.EYES),
 		mouth = rng:pick(Config.MOUTHS),
 		mutation = mutation,
+		mutations = if mutation == "None" then {} else { mutation },
 		pad = nil,
 		species = if species then species.id else nil,
 	}
+	-- Stack rolls come last so a seed's other traits (and unmutated slimes) are unchanged.
+	Genome.setMutations(slime, Genome.stackMutations(slime.mutations :: { string }, rng))
+	return slime
 end
 
 -- Cash/sec before the rebirth multiplier.
 function Genome.baseIncome(slime: Slime): number
-	return Genome.rarity(slime.tier).income * slime.size * Genome.mutationMultiplier(slime.mutation)
+	return Genome.rarity(slime.tier).income * slime.size * Genome.mutationsMultiplier(Genome.mutationList(slime))
+end
+
+-- Every mutation's player-facing name, space separated ("Glow Syrup"); "" for none.
+function Genome.mutationsDisplay(list: { string }): string
+	local names = {}
+	for _, name in list do
+		table.insert(names, Genome.mutationDisplayName(name))
+	end
+	return table.concat(names, " ")
 end
 
 function Genome.displayName(slime: Slime): string
 	local rarity = Genome.rarity(slime.tier).name
-	if slime.mutation ~= "None" then
-		return `{Genome.mutationDisplayName(slime.mutation)} {rarity} {slime.name}`
+	local mutations = Genome.mutationsDisplay(Genome.mutationList(slime))
+	if mutations ~= "" then
+		return `{mutations} {rarity} {slime.name}`
 	end
 	return `{rarity} {slime.name}`
 end
 
--- SlimeDex entry: which visible combination this slime is.
+-- SlimeDex entry: which visible combination this slime is (its primary mutation, so the
+-- dex stays a fixed size: stacks count as their strongest mutation, combos have their own).
 function Genome.dexKey(slime: Slime): string
-	return `{slime.tier}:{slime.mutation}:{slime.pattern}:{slime.eyes}`
+	return `{slime.tier}:{Genome.primaryMutation(Genome.mutationList(slime))}:{slime.pattern}:{slime.eyes}`
 end
 
 function Genome.copy(slime: Slime): Slime
@@ -210,6 +337,20 @@ function Genome.sanitize(raw: any): Slime?
 	if pad and (pad ~= pad or pad < 1 or pad > Config.PADS_MAX) then
 		pad = nil
 	end
+	-- v4 `mutations` list; older saves only have the single `mutation` (SaveData.migrateV3 builds the list).
+	local source: { any } = if type(raw.mutations) == "table" then raw.mutations else { raw.mutation }
+	local mutations: { string } = {}
+	for _, m in source do
+		if
+			type(m) == "string"
+			and m ~= "None"
+			and Genome.mutationInfo(m)
+			and not table.find(mutations, m)
+			and #mutations < Config.MAX_MUTATIONS
+		then
+			table.insert(mutations, m)
+		end
+	end
 	return {
 		id = id,
 		name = name,
@@ -219,7 +360,8 @@ function Genome.sanitize(raw: any): Slime?
 		pattern = if contains(Config.PATTERNS, raw.pattern) then raw.pattern else "Plain",
 		eyes = if contains(Config.EYES, raw.eyes) then raw.eyes else "Round",
 		mouth = if contains(Config.MOUTHS, raw.mouth) then raw.mouth else "Smile",
-		mutation = if Genome.mutationInfo(raw.mutation) then raw.mutation else "None",
+		mutation = Genome.primaryMutation(mutations),
+		mutations = mutations,
 		pad = if pad then math.floor(pad) else nil,
 		species = if type(raw.species) == "string" and SlimeRoster.get(raw.species) then raw.species else nil,
 	}

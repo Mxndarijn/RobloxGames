@@ -23,21 +23,57 @@ check() { # check <name> <expected rc> <grep pattern|->
   else echo "FAIL $1 (rc=$RC, want $2 /$3/)"; sed 's/^/     /' <<<"$OUT"; fails=$((fails + 1)); fi
 }
 
-reset; cloud "$NEW" pass; cloud "$OLD" pass
-run "$OLD"; check "older passing sha is superseded by newest" 4 "superseded_by=$NEW"
+# NB: AUTO_PUBLISH=1 below; the dry run prints "DRY_RUN steps" when the sha would publish.
+report() { # report <sha> <status> <frames_reviewed>
+  jq -n --arg sha "$1" --arg st "$2" --argjson fr "$3" --arg at "$(date -d '+1 hour' -Iseconds)" \
+    '{sha: $sha, status: $st, checked_at: $at, frames_reviewed: $fr, reviewed_by: ["phoenix"]}' >"$STUDIO_REPORTS_DIR/$1.json"
+}
+gate() { cloud "$1" pass; report "$1" pass true; } # fully gated
+no_publish_steps() { ! grep -q "DRY_RUN steps" <<<"$OUT"; }
+
+# superseded only by a newer sha that is itself fully gated
+reset; gate "$NEW"; gate "$OLD"
+run "$OLD"; check "older gated sha is superseded by newer gated sha" 4 "superseded_by=$NEW"
 [[ ! -e "$STATUS_DIR/$OLD.publish.json" ]] && echo "ok   dry-run wrote no publish.json" || { echo "FAIL dry-run wrote a file"; fails=$((fails + 1)); }
 
-reset; cloud "$MID" pass; cloud "$OLD" pass # newest has no status yet -> next newer passed wins
-run "$OLD"; check "superseded by nearest passed newer sha (newest has no status)" 4 "superseded_by=$MID"
+reset; gate "$MID"; gate "$OLD" # newest has no status yet -> nearest gated newer sha wins
+run "$OLD"; check "superseded by nearest gated newer sha (newest has no status)" 4 "superseded_by=$MID"
 
-reset; cloud "$NEW" fail; cloud "$OLD" pass
-run "$OLD"; check "newer sha with cloud fail does not supersede" 3 "blocked: " "skipped-superseded: newer"
+reset; cloud "$NEW" pass; gate "$OLD" # starvation: newer sha is cloud-pass only, no report
+run "$OLD"; check "gated A, newer B cloud-pass without report: A publishes" 0 "DRY_RUN steps" "skipped-superseded"
+reset; cloud "$NEW" pass; gate "$OLD"; report "$NEW" pass false
+run "$OLD"; check "gated A, newer B report frames_reviewed=false: A publishes" 0 "DRY_RUN steps" "skipped-superseded"
 
-reset; cloud "$OLD" pending; cloud "$NEW" pass
-run "$OLD"; check "pending older sha superseded" 4 "superseded_by=$NEW"
+reset; cloud "$NEW" fail; gate "$OLD"
+run "$OLD"; check "newer sha with cloud fail does not supersede" 0 "DRY_RUN steps" "skipped-superseded"
 
-reset; cloud "$NEW" pass
-run "$OLD"; check "older sha without any status superseded" 4 "superseded_by=$NEW"
+reset; cloud "$NEW" pass; cloud "$OLD" pass # waiting A, newer B also waiting: both stay waiting
+run "$OLD"; check "ungated A with only newer ungated shas stays waiting" 3 "blocked: no studio report" "skipped-superseded"
+run "$NEW"; check "ungated newest sha waits" 3 "blocked: no studio report"
+
+reset; cloud "$NEW" pass; cloud "$OLD" pass
+jq -n '{status:"pass",finished:"2000-01-01T00:00:00+00:00"}' >"$STATUS_DIR/$OLD.json"
+run "$OLD"; check "timeout alone never makes a waiting sha terminal" 3 "still waiting" "no-publish"
+
+reset; gate "$NEW"; cloud "$OLD" pending
+run "$OLD"; check "pending older sha superseded by gated newer" 4 "superseded_by=$NEW"
+
+reset; gate "$NEW"
+run "$OLD"; check "older sha without any status superseded by gated newer" 4 "superseded_by=$NEW"
+
+# ordering / never older than live
+reset; gate "$NEW"; gate "$OLD"
+run "$NEW"; check "A and B gated: B (newest) publishes" 0 "DRY_RUN steps"
+reset; gate "$NEW"; gate "$OLD"; mkdir -p "$LIVE_DIR"; echo '{"status":"live"}' >"$LIVE_DIR/$NEW.json"
+run "$OLD"; check "live newer than candidate: no publish" 4 "superseded_by=$NEW" "DRY_RUN steps"
+reset; gate "$MID"; gate "$OLD"; mkdir -p "$LIVE_DIR"; echo '{"status":"live"}' >"$LIVE_DIR/$MID.json"
+run "$OLD"; check "never older than live (candidate is ancestor of live)" 4 "already live" "DRY_RUN steps"
+reset; gate "$NEW"; mkdir -p "$LIVE_DIR"; echo '{"status":"live"}' >"$LIVE_DIR/$OLD.json"
+run "$NEW"; check "candidate newer than live publishes" 0 "DRY_RUN steps"
+reset; gate "$OLD"; mkdir -p "$LIVE_DIR"; echo '{"status":"live"}' >"$LIVE_DIR/$NEW.json"
+run "$OLD"; check "ungated-newer irrelevant; live newer blocks even without cloud status of live sha" 4 "already live"
+reset; cloud "$OLD" pass; mkdir -p "$LIVE_DIR"; echo '{"status":"live"}' >"$LIVE_DIR/$MID.json"
+run "$OLD"; check "ungated candidate older than live is superseded" 4 "already live"
 
 reset; cloud "$NEW" pass; echo '{"status":"live"}' >"$STATUS_DIR/$OLD.publish.json"
 run "$OLD"; check "already live sha is a noop" 0 "noop: already live" "skipped-superseded: newer"
@@ -45,14 +81,14 @@ run "$OLD"; check "already live sha is a noop" 0 "noop: already live" "skipped-s
 reset; cloud "$NEW" pass; echo '{"status":"no-publish"}' >"$STATUS_DIR/$OLD.publish.json"; cloud "$OLD" pass
 run "$OLD"; check "no-publish sha is a noop" 0 "noop: already no-publish" "skipped-superseded: newer"
 
-reset; cloud "$NEW" pass; echo '{"status":"ready"}' >"$STATUS_DIR/$OLD.publish.json"; cloud "$OLD" pass
-run "$OLD"; check "ready sha is superseded" 4 "superseded_by=$NEW"
+reset; gate "$NEW"; echo '{"status":"ready"}' >"$STATUS_DIR/$OLD.publish.json"; gate "$OLD"
+run "$OLD"; check "ready sha is superseded by gated newer" 4 "superseded_by=$NEW"
 
-reset; cloud "$NEW" pass; cloud "$OLD" pass
+reset; gate "$NEW"; gate "$OLD"
 SO=1 run "$OLD"; check "SUPERSEDE_ONLY still marks superseded" 4 "superseded_by=$NEW"
 
-reset; cloud "$NEW" pass; cloud "$MID" pass
-SO=1 run "$NEW"; check "newest sha is never superseded (SUPERSEDE_ONLY)" 0 - "skipped-superseded: newer"
+reset; gate "$NEW"; gate "$MID"
+SO=1 run "$NEW"; check "newest sha is never superseded (SUPERSEDE_ONLY)" 0 - "skipped-superseded"
 
 reset; cloud "$NEW" pass
 run "0000000000000000000000000000000000000000"; check "sha not on main first-parent line is not marked" 3 "blocked: no cloud-test" "skipped-superseded: newer"
@@ -66,10 +102,6 @@ mk() { echo "$NEEDS_REVIEW_DIR/$1"; }
 expect() { # expect <name> <marker sha> <present|absent>
   if [[ ( $3 == present && -e "$(mk "$2")" ) || ( $3 == absent && ! -e "$(mk "$2")" ) ]]; then echo "ok   $1"
   else echo "FAIL $1 (marker should be $3)"; fails=$((fails + 1)); fi
-}
-report() { # report <sha> <status> <frames_reviewed>
-  jq -n --arg sha "$1" --arg st "$2" --argjson fr "$3" --arg at "$(date -d '+1 hour' -Iseconds)" \
-    '{sha: $sha, status: $st, checked_at: $at, frames_reviewed: $fr, reviewed_by: ["phoenix"]}' >"$STUDIO_REPORTS_DIR/$1.json"
 }
 export AUTO_PUBLISH=0
 
@@ -96,11 +128,11 @@ run "$NEW"; expect "report fail, frames not reviewed -> no marker" "$NEW" absent
 reset; cloud "$NEW" fail
 run "$NEW"; expect "cloud fail -> no marker" "$NEW" absent
 
-reset; cloud "$NEW" pass; cloud "$OLD" pass; mkdir -p "$NEEDS_REVIEW_DIR"; touch "$(mk "$OLD")"
+reset; gate "$NEW"; cloud "$OLD" pass; mkdir -p "$NEEDS_REVIEW_DIR"; touch "$(mk "$OLD")"
 run "$OLD"; check "superseded sha" 4 "superseded_by=$NEW"
 expect "skipped-superseded -> marker removed" "$OLD" absent
 
-reset; cloud "$NEW" pass; cloud "$OLD" pass; mkdir -p "$NEEDS_REVIEW_DIR"; touch "$(mk "$OLD")"
+reset; gate "$NEW"; cloud "$OLD" pass; mkdir -p "$NEEDS_REVIEW_DIR"; touch "$(mk "$OLD")"
 SO=1 run "$OLD"; expect "SUPERSEDE_ONLY superseded -> marker removed" "$OLD" absent
 
 for st in live no-publish smoke-failed skipped-superseded; do
@@ -108,19 +140,34 @@ for st in live no-publish smoke-failed skipped-superseded; do
   run "$OLD"; expect "terminal $st -> marker removed" "$OLD" absent
 done
 
+# newest-only marker: A (older) and B (newer) both cloud-pass, un-reviewed
+reset; cloud "$NEW" pass; cloud "$OLD" pass
+run "$OLD"; expect "older un-reviewed sha has no marker when newer one waits" "$OLD" absent
+run "$NEW"; expect "newest un-reviewed sha keeps marker" "$NEW" present
+# starvation case: A gated publishes, B keeps its marker
+reset; gate "$OLD"; cloud "$NEW" pass; export AUTO_PUBLISH=1
+run "$OLD"; check "starvation: A gated publishes" 0 "DRY_RUN steps"
+run "$NEW"; check "starvation: B still waiting" 3 "blocked: no studio report"
+expect "starvation: B keeps marker" "$NEW" present
+export AUTO_PUBLISH=0
+reset; gate "$NEW"; cloud "$OLD" pass; mkdir -p "$NEEDS_REVIEW_DIR"; touch "$(mk "$OLD")"
+run "$OLD"; expect "marker of sha older than gated sha removed" "$OLD" absent
+reset; cloud "$OLD" pass; mkdir -p "$LIVE_DIR" "$NEEDS_REVIEW_DIR"; touch "$(mk "$OLD")"; echo '{"status":"live"}' >"$LIVE_DIR/$MID.json"
+run "$OLD"; expect "marker of sha older than live removed" "$OLD" absent
+
 # ---- already-live / terminal no-op -------------------------------------------
 export AUTO_PUBLISH=1
 for st in live smoke-failed no-publish skipped-superseded; do
   reset; cloud "$NEW" pass; cloud "$OLD" pass; echo "{\"status\":\"$st\"}" >"$STATUS_DIR/$OLD.publish.json"
-  run "$OLD"; check "terminal $st is a noop" 0 "noop: already $st" "upload\|skipped-superseded: newer"
+  run "$OLD"; check "terminal $st is a noop" 0 "noop: already $st" "upload\|skipped-superseded: "
   grep -q "\"$st\"" "$STATUS_DIR/$OLD.publish.json" && echo "ok   $st publish.json untouched" || { echo "FAIL $st rewritten"; fails=$((fails + 1)); }
 done
 for bad in "" "{not json"; do
   reset; cloud "$NEW" pass; cloud "$OLD" pass; printf '%s' "$bad" >"$STATUS_DIR/$OLD.publish.json"
   mkdir -p "$LIVE_DIR"; echo '{"status":"live"}' >"$LIVE_DIR/$OLD.json"
-  run "$OLD"; check "bad publish.json ('$bad') + live/<sha>.json live is a noop" 0 "noop: already live" "upload\|skipped-superseded: newer"
+  run "$OLD"; check "bad publish.json ('$bad') + live/<sha>.json live is a noop" 0 "noop: already live" "upload\|skipped-superseded: "
 done
-reset; cloud "$NEW" pass; cloud "$OLD" pass; : >"$STATUS_DIR/$OLD.publish.json"; mkdir -p "$LIVE_DIR"; : >"$LIVE_DIR/$OLD.json"
+reset; gate "$NEW"; cloud "$OLD" pass; : >"$STATUS_DIR/$OLD.publish.json"; mkdir -p "$LIVE_DIR"; : >"$LIVE_DIR/$OLD.json"
 run "$OLD"; check "empty publish.json + empty live file is not a noop" 4 "superseded_by=$NEW" "noop"
 
 # ---- live json is built from files, not argv ---------------------------------

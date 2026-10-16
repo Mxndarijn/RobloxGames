@@ -33,8 +33,12 @@ type Session = World.Session
 
 local Snapshot = {}
 
--- 6 tiers x 5 mutations (incl. None) x 4 patterns x 6 eyes = 720.
-Snapshot.DEX_TOTAL = Config.MAX_TIER * (#Config.MUTATIONS + 1) * #Config.PATTERNS * #Config.EYES
+-- tiers x (None + mutations + combos with FEATURES.MutationStacking) x patterns x eyes.
+-- A stacked slime counts as its primary mutation, so the total stays fixed.
+Snapshot.DEX_TOTAL = Config.MAX_TIER
+	* (#Config.MUTATIONS + 1 + (if Config.FEATURES.MutationStacking then #Config.COMBOS else 0))
+	* #Config.PATTERNS
+	* #Config.EYES
 
 function Snapshot.build(world: World, session: Session, now: number): Types.State
 	local data = session.data

@@ -49,6 +49,7 @@ local PodiumRigs = require(script.PodiumRigs)
 local Sessions = require(script.Sessions)
 local Snapshot = require(script.Snapshot)
 local Spawner = require(script.Spawner)
+local WeatherService = require(script.WeatherService)
 local World = require(script.World)
 local WorldProps = require(script.WorldProps)
 local WorldView = require(script.WorldView)
@@ -636,6 +637,10 @@ local function rescueFallen()
 			World.notify(world, player.UserId, "Whoa! Back to safety.", "info", nil)
 		end
 	end
+end
+
+if Config.FEATURES.Weather then
+	WeatherService.start(workspace, now)
 end
 
 RunService.Heartbeat:Connect(function()

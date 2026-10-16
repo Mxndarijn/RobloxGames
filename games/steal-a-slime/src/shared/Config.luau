@@ -23,6 +23,15 @@ export type Mutation = {
 	weight: number, -- relative weight when a mutation is rolled
 }
 
+-- A pair of mutations that fuse into one combo mutation (FEATURES.MutationStacking).
+export type Combo = {
+	a: string, -- Config.MUTATIONS names (order does not matter)
+	b: string,
+	name: string, -- combo save id; never rename, never collides with a MUTATIONS name
+	displayName: string,
+	multiplier: number, -- total multiplier of the combo (above a * b)
+}
+
 -- v13 progression (CONTRACT.md §8.8)
 export type RebirthTier = {
 	rebirths: number, -- reached at this many rebirths
@@ -132,6 +141,15 @@ local MUTATIONS: { Mutation } = {
 	{ name = "Gold", displayName = "Gold", multiplier = 5, weight = 5 },
 	{ name = "Crystal", displayName = "Crystal", multiplier = 7, weight = 2 },
 	{ name = "Eclipse", displayName = "Eclipse", multiplier = 10, weight = 0.5 },
+}
+
+-- Combo mutations (FEATURES.MutationStacking): when a slime holds both `a` and `b` they fuse into
+-- `name`, worth `multiplier` instead of a * b. Dex keys use the combo name.
+local COMBOS: { Combo } = {
+	{ a = "Glow", b = "Lava", name = "Solar", displayName = "Solar", multiplier = 4 }, -- 1.5 * 2 = 3
+	{ a = "Lava", b = "Galaxy", name = "Nebula", displayName = "Nebula", multiplier = 8 }, -- 2 * 3 = 6
+	{ a = "Galaxy", b = "Rainbow", name = "Aurora", displayName = "Aurora", multiplier = 15 }, -- 3 * 4 = 12
+	{ a = "Gold", b = "Crystal", name = "Royal", displayName = "Royal", multiplier = 45 }, -- 5 * 7 = 35
 }
 
 -- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player
@@ -293,10 +311,14 @@ end
 for _, mutation in MUTATIONS do
 	table.freeze(mutation)
 end
+for _, combo in COMBOS do
+	table.freeze(combo)
+end
 
 local Config = {
 	RARITIES = table.freeze(RARITIES),
 	MUTATIONS = table.freeze(MUTATIONS),
+	COMBOS = table.freeze(COMBOS),
 	MAX_TIER = #RARITIES,
 
 	PATTERNS = table.freeze({ "Plain", "Spots", "Stripes", "Belly" }),
@@ -368,6 +390,10 @@ local Config = {
 	MERGE_MUTATION_CHANCE = 0.15,
 	MERGE_SIZE_BONUS = 0.1,
 
+	-- Stacking mutations (FEATURES.MutationStacking)
+	MAX_MUTATIONS = 3, -- a slime carries at most this many mutations (a fused combo counts as one)
+	STACK_MUTATION_CHANCE = 0.25, -- chance per free slot that a mutated slime rolls one more (drops, merges, Appraise)
+
 	-- Appraise (FEATURES.Appraise): reroll one owned slime's mutation or size
 	APPRAISE_COST_FRACTION = 0.3, -- of the slime's current value (Economy.sellPrice)
 	APPRAISE_MUTATION_CHANCE = 0.6, -- chance a mutation reroll lands on a mutation (else None)
@@ -414,6 +440,8 @@ local Config = {
 		Appraise = true, -- pay APPRAISE_COST_FRACTION of a slime's value to reroll its mutation or size (Appraise)
 		MysteryEgg = true, -- a cash-only Mystery Egg in the Shop hatches a random slime (MysteryEgg); false = no egg, BuyEgg refused
 		FriendBonus = true, -- +FRIEND_BONUS_PER_FRIEND income per friend in the same server, up to FRIEND_BONUS_CAP (FriendBonus); false = no bonus
+		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
+		Weather = false, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md. Off until frame-reviewed
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -450,6 +478,47 @@ local Config = {
 		table.freeze({ tier = 5, weight = 5 }),
 		table.freeze({ tier = 6, weight = 1 }),
 	}),
+	-- Weather (FEATURES.Weather, WEATHER.md). Clear plus three visual types, cycled by the server.
+	-- `mutation` (a Config.MUTATIONS name) and `chanceBonus` (added to the mutation roll chance) are the
+	-- hook for #8 and stay nil / 0 here: this change adds no mutation ids and touches no mutation rolls.
+	WEATHER_ORDER = table.freeze({ "Clear", "Rain", "Snow", "Starfall" }),
+	WEATHER = table.freeze({
+		Clear = table.freeze({
+			displayName = "Clear",
+			mutation = nil,
+			chanceBonus = 0,
+			weight = 4,
+			minSeconds = 240,
+			maxSeconds = 420,
+		}),
+		Rain = table.freeze({
+			displayName = "Rain",
+			mutation = nil,
+			chanceBonus = 0,
+			weight = 3,
+			minSeconds = 120,
+			maxSeconds = 210,
+		}),
+		Snow = table.freeze({
+			displayName = "Snow",
+			mutation = nil,
+			chanceBonus = 0,
+			weight = 3,
+			minSeconds = 120,
+			maxSeconds = 210,
+		}),
+		Starfall = table.freeze({
+			displayName = "Starfall",
+			mutation = nil,
+			chanceBonus = 0,
+			weight = 1,
+			minSeconds = 90,
+			maxSeconds = 150,
+		}),
+	}),
+	WEATHER_FIRST_AT = 60, -- seconds after server start before the first change away from Clear
+	WEATHER_FADE_SECONDS = 2, -- client tween in / out
+	WEATHER_PARTICLE_CAP = 160, -- hard cap on weather particles alive at once, whatever the quality level
 
 	-- Daily reward
 	DAILY_BASE = 100,
@@ -476,7 +545,7 @@ local Config = {
 	FRIEND_RETRY_SECONDS = 30, -- after a failed check, don't ask again for this long
 
 	-- Persistence
-	SAVE_VERSION = 3, -- CONTRACT.md §8.9
+	SAVE_VERSION = 4, -- CONTRACT.md §8.9 (v4: slime.mutations list, SaveData.migrateV3)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
 	MAX_SLIMES_SAVED = 64,

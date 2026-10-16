@@ -235,7 +235,7 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(),
+        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "weather_set": {"WEATHER", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(),
         "hold_fill": {"NAME", "ON"},
         "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "friend_bonus": {"COUNT"}, "panel_scroll": {"PANEL", "TARGET"},
     }
@@ -262,6 +262,9 @@ def t_files():
     walks = [s for s in shots if s.get("slide_walk")]
     check("a slide_walk shot proves nobody falls through the slide, top to bottom",
           len(walks) == 1 and walks[0].get("target") == "slide" and walks[0].get("todo") == "B6", walks)
+    weathers = {s["weather"]: s for s in shots if s.get("weather")}
+    check("weather shots cover Rain, Snow and Starfall with a short wait",
+          set(weathers) == {"Rain", "Snow", "Starfall"} and all(0 < float(s.get("wait", 0)) <= 4 for s in weathers.values()), sorted(weathers))
     habitats = [s for s in shots if s.get("habitat")]
     types = {s["habitat"] for s in habitats}
     check("every habitat type has a shot with a slime seated on it",

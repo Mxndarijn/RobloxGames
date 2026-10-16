@@ -1424,6 +1424,12 @@ def step_shots(run):
                     # morph proof: the Client sets the pad's Habitat and waits `wait` s (mid-morph < 1, done >= 1.2)
                     res["habitat"] = run.need_luau("habitat_set", "Client", timeout=30, path=res["target"]["path"],
                                                    habitat=shot["habitat"], wait=float(shot.get("wait", 1.5)))
+                if shot.get("weather"):
+                    # weather proof: the Client forces WeatherDebug (client-only attribute) and waits `wait` s for the tween in
+                    res["weather"] = run.need_luau("weather_set", "Client", timeout=30, weather=shot["weather"],
+                                                   wait=float(shot.get("wait", 2.5)))
+                    if not res["weather"].get("ok"):
+                        run.note("shot %s: no weather emitter active (%s)" % (sid, res["weather"].get("rates")))
                 if shot.get("motion") and (res.get("target") or {}).get("path"):
                     # motion proof: the Client plays Idle / Hop / LookLeft / LookRight on the pad's slime through
                     # SlimeLifeRunner (SlimeMotor on the Motor6Ds) and compares the pose before / `wait` s later;
@@ -1453,6 +1459,11 @@ def step_shots(run):
         run.luau("shot_camera_reset", "Client", timeout=15)
     except Exception:
         pass
+    if any(shot.get("weather") for shot in shots):
+        try:
+            run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1)  # drop the WeatherDebug preview
+        except Exception:
+            pass
     if any(r.get("seat") for r in results):
         try:
             run.luau("slime_seat", "Server", timeout=15, path="")  # drop the PcwSeat clones
