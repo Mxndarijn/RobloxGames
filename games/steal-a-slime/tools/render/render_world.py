@@ -98,15 +98,16 @@ def noise_tinted(name, color, scale=0.15, var=0.18, rough=0.9, bump=0.3):
     nt = m.node_tree
     b = nt.nodes["Principled BSDF"]
     b.inputs["Roughness"].default_value = rough
-    tc = nt.nodes.new("ShaderNodeTexCoord")
+    # World position: object coords on the shared unit cube would stretch.
+    tc = nt.nodes.new("ShaderNodeNewGeometry")
     n1 = nt.nodes.new("ShaderNodeTexNoise")
     n1.inputs["Scale"].default_value = scale
     n1.inputs["Detail"].default_value = 6
     n2 = nt.nodes.new("ShaderNodeTexNoise")
     n2.inputs["Scale"].default_value = scale * 18
     n2.inputs["Detail"].default_value = 4
-    nt.links.new(tc.outputs["Object"], n1.inputs["Vector"])
-    nt.links.new(tc.outputs["Object"], n2.inputs["Vector"])
+    nt.links.new(tc.outputs["Position"], n1.inputs["Vector"])
+    nt.links.new(tc.outputs["Position"], n2.inputs["Vector"])
     mix = nt.nodes.new("ShaderNodeMix")
     mix.data_type = "FLOAT"
     mix.inputs["Factor"].default_value = 0.35
@@ -139,9 +140,9 @@ def part_material(p):
     if mat == "Neon":
         return principled("Neon", col, emit=3.0)
     if mat == "Grass":
-        return noise_tinted("Grass", col, scale=0.02, var=0.22, bump=0.2)
+        return noise_tinted("Grass", col, scale=0.012, var=0.16, bump=0.15)
     if mat in ("Sand", "Pavement"):
-        return noise_tinted(mat, col, scale=0.05, var=0.1, bump=0.15)
+        return noise_tinted(mat, col, scale=0.08, var=0.06, bump=0.08)
     if mat == "Glass":
         return principled("Glass", col, rough=0.05, transmission=0.6, alpha=max(0.35, 1 - p["transparency"]))
     return principled(mat, col, rough=ROUGH.get(mat, 0.6), metal=0.6 if mat == "Metal" else 0.0,
