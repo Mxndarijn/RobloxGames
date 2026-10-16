@@ -18,6 +18,8 @@ local RunService = game:GetService("RunService")
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 
+local PetRig = require(script.Parent:WaitForChild("PetRig"))
+
 local FollowPets = {}
 
 FollowPets.SCALE = 0.45
@@ -43,6 +45,7 @@ local function makePet(source: Model, userId: number): Model?
 		return nil
 	end
 	pet.Name = `Pet_{userId}`
+	PetRig.stripLife(pet) -- the clone may carry the #71 life rig; pets are rigid
 	CollectionService:RemoveTag(pet, Constants.SLIME_TAG)
 	for _, name in { "OwnerUserId", "State", "Price", Constants.BOSS_ATTRIBUTE } do
 		pet:SetAttribute(name, nil)
