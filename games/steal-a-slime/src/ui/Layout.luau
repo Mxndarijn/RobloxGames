@@ -328,6 +328,17 @@ Layout.NAV = table.freeze({
 	count = #Nav.ENTRIES + 1, -- + the collapse toggle
 })
 
+-- Nav badge chip: top-right corner of its button, inset so it never leaves the
+-- button (init.client builds the same numbers).
+Layout.NAV_BADGE = table.freeze({ inset = 2, height = 16, minWidth = 16, textSize = 11, padding = 4 })
+
+function Layout.navBadge(button: Rect, text: string): Rect
+	local b = Layout.NAV_BADGE
+	local w = math.max(b.minWidth, math.ceil(Layout.lineWidth(text, b.textSize, true)) + b.padding * 2)
+	w = math.min(w, button.w - b.inset * 2)
+	return Layout.rect(button.x + button.w - b.inset - w, button.y + b.inset, w, b.height)
+end
+
 -- Nav width for `columns` button columns (default 1).
 function Layout.navWidth(collapsed: boolean, columns: number?): number
 	local one = if collapsed then Layout.NAV.collapsedWidth else Layout.NAV.expandedWidth

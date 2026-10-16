@@ -1,5 +1,5 @@
 -- Client datamodel: undo shot_camera: render-step lock, ScreenGuis / BillboardGuis / ProximityPrompts,
--- CoreGui, character (pivot, Anchored, transparency), camera back to the player.
+-- CoreGui, tutorial arrow, character (pivot, Anchored, transparency), camera back to the player.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
@@ -14,10 +14,18 @@ pg:SetAttribute("PcwShotCam", nil)
 local restored = 0
 for _, root in { pg, workspace } do
 	for _, d in root:GetDescendants() do
-		if d:GetAttribute("PcwHidden") and (d:IsA("LayerCollector") or d:IsA("ProximityPrompt")) then
+		if d:GetAttribute("PcwHidden") and (d:IsA("LayerCollector") or d:IsA("ProximityPrompt") or d:IsA("Beam")) then
 			d.Enabled = true
 			d:SetAttribute("PcwHidden", nil)
 			restored += 1
+		end
+	end
+end
+local chevrons = workspace.CurrentCamera:FindFirstChild("TutorialChevrons")
+if chevrons then
+	for _, d in chevrons:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.LocalTransparencyModifier = 0
 		end
 	end
 end

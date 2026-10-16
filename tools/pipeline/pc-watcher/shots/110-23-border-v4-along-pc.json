@@ -1,0 +1,19 @@
+{
+  "id": "23-border-v4-along-pc",
+  "pos": [
+    -154.3,
+    20,
+    183.8
+  ],
+  "look": [
+    -10.5,
+    6,
+    299.8
+  ],
+  "note": "border v4: along the edge at 20 studs: giant pines and oaks (existing tree meshes scaled up) stand on the terrain hills and tall rock-topped mountains layer behind them, no hard edge into the sky in [desktop]",
+  "kind": "world",
+  "wait": 6.0,
+  "device": "desktop",
+  "clock": 14,
+  "todo": "border-v4"
+}

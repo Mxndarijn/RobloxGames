@@ -17,20 +17,25 @@
 	  mid     broader, taller hills further out
 	  ridge   a ring of backdrop hills round the whole horizon, each bearing
 	          its own height, width and distance
+	  peak    v4: a ring of tall mountains layered behind all of that, each
+	          with its own height, width, depth and ridged flanks; rock on
+	          the upper slopes, grass below
 
 	Every hill rolls its own height, width and spacing from the seed; no
 	window of WINDOW neighbours repeats the same (height, width) profile.
 	Nothing exists inside the Ground square (INNER studs from the centre,
 	Chebyshev), so paths, plots, plaza, slide and parade lane are never
-	covered; nothing is taller than MAX_HEIGHT, under the 80-stud invisible
-	walls of WorldBorder (which sit at r 292, inside the Ground, out of reach).
+	covered; everything within PEAK_CLEAR studs of the Ground edge is no taller
+	than MAX_HEIGHT and the mountains stand further out (peak base starts past
+	it, up to PEAK_MAX_HEIGHT); the 80-stud invisible walls of WorldBorder sit
+	at r 292, inside the Ground, out of reach of all of it.
 	The top surface is a heightfield: columns are filled from FLOOR up.
 ]]
 
 local Rng = if script then require(script.Parent.Parent.Shared.Rng) else require("../../shared/Rng")
 
 export type Hill = {
-	layer: string, -- "near" | "mid"
+	layer: string, -- "near" | "mid" | "peak"
 	order: number, -- 1-based, in ring order within its layer
 	x: number,
 	z: number,
@@ -71,6 +76,8 @@ BorderTerrain.CELL = 4 -- voxel size
 BorderTerrain.TILE_CELLS = 32
 BorderTerrain.FLOOR = -8 -- columns are filled from here up (a multiple of CELL)
 BorderTerrain.MAX_HEIGHT = 68 -- soft ceiling; the walls are 80 (WorldBorder.WALL_HEIGHT)
+BorderTerrain.PEAK_MAX_HEIGHT = 230 -- soft ceiling of the mountains (nobody can reach them)
+BorderTerrain.PEAK_CLEAR = 90 -- Chebyshev studs past INNER where only the low land (<= MAX_HEIGHT) exists
 BorderTerrain.WINDOW = 3
 BorderTerrain.H_BUCKETS = 5
 BorderTerrain.W_BUCKETS = 4
@@ -83,6 +90,7 @@ BorderTerrain.COLORS = table.freeze({
 } :: { [string]: { number } })
 
 local SOFT_KNEE = 46
+local PEAK_KNEE = 180
 
 -- near / mid hill layers. d: centre offset past the Ground edge is
 -- `lead * across + jitter`.
@@ -102,6 +110,17 @@ local LAYERS = {
 		gap = { 0, 0.9 },
 		lead = 0.95,
 		jitter = 90,
+	},
+	-- tall mountains behind the ridge ring: `offset` keeps their feet past PEAK_CLEAR
+	peak = {
+		along = { 120, 280 },
+		across = { 90, 190 },
+		height = { 85, 200 },
+		gap = { 0, 0.5 },
+		lead = 0.9,
+		jitter = 150,
+		offset = 130,
+		sideAligned = true, -- long axis parallel to its side of the square: the foot never swings inward at the corners
 	},
 }
 
@@ -183,7 +202,7 @@ end
 -- the ring so the last meets the first.
 local function rollLayer(rng: Rng.Rng, name: string): { Hill }
 	local cfg = LAYERS[name]
-	local perimeter = 8 * (BorderTerrain.INNER + cfg.across[2] * 1.2 + cfg.jitter)
+	local perimeter = 8 * (BorderTerrain.INNER + (cfg.offset or 0) + cfg.across[2] * 1.2 + cfg.jitter)
 	local avg = (cfg.along[1] + cfg.along[2]) / 2
 	local want = math.floor(perimeter / (2 * avg * (1 + (cfg.gap[1] + cfg.gap[2]) / 2 - 0.2)))
 	local hills: { Hill } = {}
@@ -201,7 +220,7 @@ local function rollLayer(rng: Rng.Rng, name: string): { Hill }
 				order = i,
 				x = 0,
 				z = 0,
-				d = BorderTerrain.INNER + cfg.lead * across + rng:float() * cfg.jitter,
+				d = BorderTerrain.INNER + (cfg.offset or 0) + cfg.lead * across + rng:float() * cfg.jitter,
 				yaw = 0,
 				along = along,
 				across = across,
@@ -264,24 +283,26 @@ local function rollLayer(rng: Rng.Rng, name: string): { Hill }
 		-- long axis tangent to the ring
 		local r = math.sqrt(hill.x * hill.x + hill.z * hill.z)
 		hill.yaw = math.deg(math.atan2(-hill.x / r, hill.z / r)) % 360
+		if cfg.sideAligned then
+			hill.yaw = if math.abs(hill.z) >= math.abs(hill.x) then 90 else 0
+		end
 		s += advances[i]
 	end
 	return hills
 end
 
 -- 'p-norm' union of the hills so overlaps merge instead of stacking.
-local function softCap(h: number): number
-	local top = BorderTerrain.MAX_HEIGHT
-	if h <= SOFT_KNEE then
+local function softCap(h: number, knee: number, top: number): number
+	if h <= knee then
 		return h
 	end
-	return SOFT_KNEE + (top - SOFT_KNEE) * math.tanh((h - SOFT_KNEE) / (top - SOFT_KNEE))
+	return knee + (top - knee) * math.tanh((h - knee) / (top - knee))
 end
 
 function BorderTerrain.field(seed: number?): Field
 	local base = seed or BorderTerrain.SEED
 	local hills: { Hill } = {}
-	for i, name in { "near", "mid" } do
+	for i, name in { "near", "mid", "peak" } do
 		for _, hill in rollLayer(Rng.new(base + i * 7919), name) do
 			table.insert(hills, hill)
 		end
@@ -309,7 +330,7 @@ function BorderTerrain.field(seed: number?): Field
 			return 0
 		end
 		local ramp = smoothstep(INNER, INNER + RAMP, d)
-		local sum = 0
+		local sum, peakSum = 0, 0
 		for i, hill in hills do
 			local box = boxes[i]
 			if x > box[1] and x < box[2] and z > box[3] and z < box[4] then
@@ -320,9 +341,17 @@ function BorderTerrain.field(seed: number?): Field
 				if u < 1 then
 					local b = (1 - u) * (1 - u)
 					local h = hill.height * b
-					-- surface ripple, strongest on the flanks
-					h *= 0.88 + 0.24 * noise2(x / 38 + hill.ripple, z / 38, 5)
-					sum += h * h * h
+					if hill.layer == "peak" then
+						-- steeper crown, ridged flanks (ridge lines run down the slope)
+						h = hill.height * b * (1 - u * 0.35)
+						local ridge = 1 - math.abs(2 * noise2(x / 64 + hill.ripple, z / 64, 21) - 1)
+						h *= 0.78 + 0.34 * ridge
+						peakSum += h * h * h
+					else
+						-- surface ripple, strongest on the flanks
+						h *= 0.88 + 0.24 * noise2(x / 38 + hill.ripple, z / 38, 5)
+						sum += h * h * h
+					end
 				end
 			end
 		end
@@ -338,7 +367,10 @@ function BorderTerrain.field(seed: number?): Field
 			sum += h * h * h
 		end
 		local rolling = 2.5 + 5 * noise2(x / 80, z / 80, 3) + 2 * noise2(x / 23, z / 23, 4)
-		local h = softCap(sum ^ (1 / 3) + rolling)
+		local low = softCap(sum ^ (1 / 3) + rolling, SOFT_KNEE, BorderTerrain.MAX_HEIGHT)
+		local peak = softCap(peakSum ^ (1 / 3), PEAK_KNEE, BorderTerrain.PEAK_MAX_HEIGHT)
+		-- the mountains rise out of the low land: p-norm union
+		local h = (low ^ 3 + peak ^ 3) ^ (1 / 3)
 		return h * ramp
 	end
 
@@ -349,7 +381,10 @@ function BorderTerrain.field(seed: number?): Field
 		if h < 3 then
 			return "Grass"
 		end
-		if slope > 0.95 or h > 0.8 * BorderTerrain.MAX_HEIGHT then
+		-- rock above a wandering snow-free line, or on cliffs (the mountains' flanks are steeper, so the cliff slope grows with height)
+		local rockLine = 48 + 36 * noise2(x / 90, z / 90, 13)
+		local cliff = 0.95 + 1.5 * smoothstep(30, 80, h)
+		if slope > cliff or h > rockLine then
 			return "Rock"
 		end
 		if noise2(x / 52, z / 52, 11) > 0.6 then

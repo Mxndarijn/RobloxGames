@@ -186,6 +186,7 @@ export type State = {
 	petPerk: PetPerkView?, -- FEATURES.PetPassives; nil without a favourite
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
+	stealAway: string?, -- FEATURES.StealAlerts: "While you were away N slimes were stolen by ..." from the saved steal log; nil = none (CONTRACT.md §17)
 }
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }

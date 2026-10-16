@@ -13,8 +13,9 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
--- tools/pr-gate/budget_counts: mesh slots before this change (and after it).
-local BASELINE_MESH_SLOTS = 384
+-- tools/pr-gate/budget_counts: mesh slots before border terrain (384) plus
+-- the six giant trees of border v4 (the terrain itself adds none).
+local BASELINE_MESH_SLOTS = 384 + WorldBorder.GIANT_COUNT
 -- Part nodes outside Map.Border before this change (and after it).
 local BASELINE_PARTS = 1340
 
@@ -50,7 +51,7 @@ local function range(values: { number }): (number, number)
 end
 
 describe("BorderTerrain budget", function()
-	it("adds no mesh slot: the world still counts 384 of 400", function()
+	it("adds no mesh slot of its own: 384 + the giant trees stays under 400", function()
 		local slots = 0
 		walk({ name = "root", children = WorldLayout.build() }, function(n)
 			local a = n.attributes or {}
@@ -108,12 +109,13 @@ describe("BorderTerrain hills", function()
 		return out
 	end
 
-	it("has a ring of near and mid hills", function()
+	it("has a ring of near and mid hills and of tall peaks behind them", function()
 		expect(#layer("near") >= 12).toBe(true)
 		expect(#layer("mid") >= 8).toBe(true)
+		expect(#layer("peak") >= 10).toBe(true)
 	end)
 	it("varies height, width and spacing", function()
-		for _, name in { "near", "mid" } do
+		for _, name in { "near", "mid", "peak" } do
 			local hills = layer(name)
 			local heights, widths, gaps = {}, {}, {}
 			for i, h in hills do
@@ -131,7 +133,7 @@ describe("BorderTerrain hills", function()
 	end)
 	it("never repeats a window of WINDOW neighbours' (height, width) profile", function()
 		local W = BorderTerrain.WINDOW
-		for _, name in { "near", "mid" } do
+		for _, name in { "near", "mid", "peak" } do
 			local hills = layer(name)
 			local n = #hills
 			local seen: { [string]: number } = {}
@@ -149,12 +151,84 @@ describe("BorderTerrain hills", function()
 			end
 		end
 	end)
-	it("is no taller than MAX_HEIGHT, well under the 80-stud walls", function()
+	it("keeps the land near the walls no taller than MAX_HEIGHT, well under the 80-stud walls", function()
 		local grid = BorderTerrain.sample(field, 16)
-		local _, hi = range(grid.heights)
+		local near = {}
+		for j = 0, grid.n - 1 do
+			for i = 0, grid.n - 1 do
+				local x, z = grid.min + i * grid.step, grid.min + j * grid.step
+				if math.max(math.abs(x), math.abs(z)) <= INNER + BorderTerrain.PEAK_CLEAR then
+					table.insert(near, grid.heights[j * grid.n + i + 1])
+				end
+			end
+		end
+		local _, hi = range(near)
 		expect(hi <= BorderTerrain.MAX_HEIGHT).toBe(true)
 		expect(hi >= 40).toBe(true)
 		expect(BorderTerrain.MAX_HEIGHT <= WorldBorder.WALL_HEIGHT - 10).toBe(true)
+	end)
+	it("raises the mountains well above the walls, never past PEAK_MAX_HEIGHT", function()
+		local grid = BorderTerrain.sample(field, 16)
+		local _, hi = range(grid.heights)
+		expect(hi <= BorderTerrain.PEAK_MAX_HEIGHT).toBe(true)
+		expect(hi >= 2 * WorldBorder.WALL_HEIGHT).toBe(true)
+	end)
+	it("keeps every mountain's foot past PEAK_CLEAR so the low land is all a player could ever near", function()
+		for _, h in field.hills do
+			if h.layer == "peak" then
+				for a = 0, 355, 5 do
+					local rad = math.rad(a)
+					-- the rim of the footprint ellipse (long axis tangent, yaw degrees)
+					local yaw = math.rad(h.yaw)
+					local lx, lz = math.cos(rad) * h.across, math.sin(rad) * h.along
+					local x = h.x + lx * math.cos(yaw) + lz * math.sin(yaw)
+					local z = h.z - lx * math.sin(yaw) + lz * math.cos(yaw)
+					expect(math.max(math.abs(x), math.abs(z)) >= INNER + BorderTerrain.PEAK_CLEAR).toBe(true)
+				end
+			end
+		end
+	end)
+	it("layers the peaks behind the hills: taller than the ridge ring at their crest, many different peaks", function()
+		local tops: { number } = {}
+		for _, h in field.hills do
+			if h.layer == "peak" then
+				table.insert(tops, field.height(h.x, h.z))
+			end
+		end
+		local lo, hi = range(tops)
+		expect(lo >= 60).toBe(true)
+		expect(hi >= 150).toBe(true)
+		expect(hi - lo >= 60).toBe(true)
+		-- no two peak crests at the same height
+		table.sort(tops)
+		for i = 2, #tops do
+			expect(math.abs(tops[i] - tops[i - 1]) > 0.5).toBe(true)
+		end
+	end)
+	it("wears rock on the upper slopes and grass on the lower ones of a mountain", function()
+		local tallest
+		for _, h in field.hills do
+			if h.layer == "peak" and (tallest == nil or h.height > tallest.height) then
+				tallest = h
+			end
+		end
+		local rockLow, lows, grassHigh = 0, 0, 0
+		for dx = -200, 200, 8 do
+			for dz = -200, 200, 8 do
+				local x, z = tallest.x + dx, tallest.z + dz
+				local h = field.height(x, z)
+				if h > 110 and field.material(x, z) ~= "Rock" then
+					grassHigh += 1
+				elseif h > 3 and h < 25 then
+					lows += 1
+					if field.material(x, z) == "Rock" then
+						rockLow += 1
+					end
+				end
+			end
+		end
+		expect(grassHigh).toBe(0)
+		expect(lows >= 100 and rockLow <= lows * 0.2).toBe(true)
 	end)
 	it("closes the horizon: every bearing has a crest, none the same height", function()
 		local crests = {}
