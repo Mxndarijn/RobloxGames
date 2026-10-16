@@ -4,8 +4,9 @@
 
 	ParadeView.place(): Folder?
 	  Lays the goo lane (Shared.ParadeLane.WAYPOINTS) on the plaza under
-	  workspace.Map.Plaza.ParadeLane: one flat goo strip Part per waypoint
-	  pair, HALF_WIDTH * 2 wide, top at LANE_Y. Visual only: anchored, no
+	  workspace.Map.Plaza.ParadeLane: one flat goo strip Part per
+	  segment of the route simplified to ParadeLane.STRIP_TOLERANCE (about a
+	  quarter of the waypoint pairs, same look), HALF_WIDTH * 2 wide, top at LANE_Y. Visual only: anchored, no
 	  collision, query or touch, so players walk over it and ground
 	  raycasts (drops, landings) pass through. Neighbours overlap at the
 	  joints; every other strip stands 0.03 taller so overlaps never share a
@@ -45,7 +46,7 @@ function ParadeView.place(): Folder?
 	end
 	local folder = Instance.new("Folder")
 	folder.Name = ParadeView.FOLDER
-	local points = ParadeLane.WAYPOINTS
+	local points = ParadeLane.stripPoints()
 	local width = ParadeLane.HALF_WIDTH * 2
 	for i = 1, #points - 1 do
 		local a, b = points[i], points[i + 1]
