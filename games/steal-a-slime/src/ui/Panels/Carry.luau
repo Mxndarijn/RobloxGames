@@ -12,6 +12,8 @@ local Players = game:GetService("Players")
 
 local UI = script.Parent.Parent
 local Format = require(UI.Format)
+local ItemIconView = require(UI.ItemIconView)
+local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
 local Selection = require(UI.Selection)
 local Widgets = require(UI.Widgets)
@@ -104,13 +106,23 @@ function Carry.new(parent: Instance, ctx: any)
 	)
 	slap.instance.TextColor3 = Color3.fromRGB(40, 25, 5)
 	create("UITextSizeConstraint", { MaxTextSize = 22, Parent = slap.instance })
+	local SLAP_ICON = 30
 	create("UIPadding", {
-		PaddingLeft = UDim.new(0, 8),
+		PaddingLeft = UDim.new(0, 8 + SLAP_ICON + 4),
 		PaddingRight = UDim.new(0, 8),
 		PaddingTop = UDim.new(0, 4),
 		PaddingBottom = UDim.new(0, 4),
 		Parent = slap.instance,
 	})
+	-- The Slap gear's item icon, in the padding left of the label.
+	ItemIconView.new({
+		Name = "SlapIcon",
+		Id = "Slap",
+		Size = SLAP_ICON,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, -(SLAP_ICON + 4), 0.5, 0),
+		Parent = slap.instance,
+	}, ItemIcons.of(ctx)).setActive(true)
 	slap.instance.Parent = parent
 
 	local carrying: any = nil

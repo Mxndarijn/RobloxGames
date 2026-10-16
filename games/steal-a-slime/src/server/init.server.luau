@@ -308,10 +308,10 @@ local function flushEvents()
 			if event.userId then
 				local player = Players:GetPlayerByUserId(event.userId)
 				if player then
-					notifyEvent:FireClient(player, event.text, event.kind or "info", event.sound)
+					notifyEvent:FireClient(player, event.text, event.kind or "info", event.sound, event.itemId)
 				end
 			else
-				notifyEvent:FireAllClients(event.text, event.kind or "info", event.sound)
+				notifyEvent:FireAllClients(event.text, event.kind or "info", event.sound, event.itemId)
 			end
 		end
 	end

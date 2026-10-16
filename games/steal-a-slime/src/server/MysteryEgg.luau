@@ -24,7 +24,7 @@ MysteryEgg.MAX_EVENT_EGGS = 16 -- per spawnForEvent call
 local function reveal(world: World, session: Session, slime: Genome.Slime, now: number)
 	session.egg = { slime = slime, at = now }
 	World.markDirty(session)
-	World.notify(world, session.userId, `Your egg hatched: {Genome.displayName(slime)}!`, "good", "Cash")
+	World.notify(world, session.userId, `Your egg hatched: {Genome.displayName(slime)}!`, "good", "Cash", "MysteryEgg")
 end
 
 -- Returns (ok, reason?). Charges cash.

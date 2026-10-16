@@ -38,7 +38,7 @@ function StealService.buyLock(world: World, session: Session, now: number): (boo
 	session.locked = true
 	session.data.stats.locks += 1
 	World.markDirty(session)
-	World.notify(world, session.userId, `Base locked for {math.floor(lockUntil - now + 0.5)}s`, "good", "Lock")
+	World.notify(world, session.userId, `Base locked for {math.floor(lockUntil - now + 0.5)}s`, "good", "Lock", "Lock")
 	World.tutorial(world, session, "Lock")
 	return true, nil
 end
@@ -115,7 +115,7 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 	})
 	local name = Genome.displayName(carry.slime)
 	if reason == "slap" then
-		World.notify(world, carrier.userId, `You got slapped! The {name} bounced home.`, "bad", "Slap")
+		World.notify(world, carrier.userId, `You got slapped! The {name} bounced home.`, "bad", "Slap", "Slap")
 	elseif reason ~= "left" then
 		World.notify(world, carrier.userId, `The {name} wriggled free!`, "bad", "Escape")
 	end
@@ -145,7 +145,7 @@ function StealService.slap(
 	end
 	slapper.lastSlapAt = now
 	StealService.escape(world, target, now, "slap")
-	World.notify(world, slapper.userId, `You slapped {target.name}!`, "good", "Slap")
+	World.notify(world, slapper.userId, `You slapped {target.name}!`, "good", "Slap", "Slap")
 	World.tutorial(world, slapper, "Steal")
 	return true, nil
 end
@@ -180,7 +180,7 @@ function StealService.step(world: World, now: number)
 			session.locked = locked
 			World.markDirty(session)
 			if not locked then
-				World.notify(world, session.userId, "Your base is unlocked!", "bad", "Unlock")
+				World.notify(world, session.userId, "Your base is unlocked!", "bad", "Unlock", "Lock")
 			end
 		end
 	end

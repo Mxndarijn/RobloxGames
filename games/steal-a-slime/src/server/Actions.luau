@@ -108,7 +108,7 @@ local function sell(world: World, session: Session, id: string): Result
 	if not ok then
 		return fail(value :: string)
 	end
-	World.notify(world, session.userId, `Sold for ${Economy.formatNumber(value :: number)}`, "good", "Cash")
+	World.notify(world, session.userId, `Sold for ${Economy.formatNumber(value :: number)}`, "good", "Cash", "Cash")
 	return OK
 end
 
@@ -126,7 +126,14 @@ local function daily(world: World, session: Session, now: number): Result
 	if not ok then
 		return fail(value :: string)
 	end
-	World.notify(world, session.userId, `Daily reward: ${Economy.formatNumber(value :: number)}`, "good", "Cash")
+	World.notify(
+		world,
+		session.userId,
+		`Daily reward: ${Economy.formatNumber(value :: number)}`,
+		"good",
+		"Cash",
+		"Daily"
+	)
 	return OK
 end
 
@@ -138,7 +145,7 @@ local function redeem(world: World, session: Session, text: string, now: number)
 	local what = if reward.kind == "boost"
 		then `{reward.mult}x income for {reward.minutes} min`
 		else `${Economy.formatNumber(reward.amount or 0)}`
-	World.notify(world, session.userId, `Code redeemed: {what}!`, "good", "Cash")
+	World.notify(world, session.userId, `Code redeemed: {what}!`, "good", "Cash", "Gift")
 	return OK
 end
 
@@ -148,7 +155,14 @@ local function buyLockUpgrade(world: World, session: Session): Result
 		return fail(value :: string)
 	end
 	local level = session.data.lockLevel
-	World.notify(world, session.userId, `Longer locks level {level}! Locks last longer now.`, "good", "Cash")
+	World.notify(
+		world,
+		session.userId,
+		`Longer locks level {level}! Locks last longer now.`,
+		"good",
+		"Cash",
+		"LockUpgrade"
+	)
 	return OK
 end
 
@@ -157,7 +171,7 @@ local function buySpeedCoil(world: World, session: Session): Result
 	if not ok then
 		return fail(value :: string)
 	end
-	World.notify(world, session.userId, "Speed Coil bought! You run faster now.", "good", "Cash")
+	World.notify(world, session.userId, "Speed Coil bought! You run faster now.", "good", "Cash", "SpeedCoil")
 	return OK
 end
 
@@ -168,7 +182,7 @@ local function buyUpgrade(world: World, session: Session, id: string): Result
 	end
 	local def = Perks.upgradeDef(id)
 	local level = session.data.upgrades[id]
-	World.notify(world, session.userId, `{def and def.name or id} level {level}!`, "good", "Cash")
+	World.notify(world, session.userId, `{def and def.name or id} level {level}!`, "good", "Cash", `Upgrade_{id}`)
 	return OK
 end
 
@@ -185,7 +199,7 @@ local function equipPlotSkin(world: World, session: Session, id: string, ctx: Co
 		return fail(reason or "failed")
 	end
 	local skin = PlotSkins.get(id)
-	World.notify(world, session.userId, `Plot skin: {skin and skin.name or id}`, "good")
+	World.notify(world, session.userId, `Plot skin: {skin and skin.name or id}`, "good", nil, `PlotSkin_{id}`)
 	return OK
 end
 
@@ -202,7 +216,14 @@ local function appraise(world: World, session: Session, id: string, kind: string
 		return fail(value :: string)
 	end
 	local appraisal = value :: Types.Appraisal
-	World.notify(world, session.userId, `Appraised for ${Economy.formatNumber(appraisal.cost)}`, "good", "Cash")
+	World.notify(
+		world,
+		session.userId,
+		`Appraised for ${Economy.formatNumber(appraisal.cost)}`,
+		"good",
+		"Cash",
+		"Appraise"
+	)
 	return { ok = true, appraisal = appraisal }
 end
 

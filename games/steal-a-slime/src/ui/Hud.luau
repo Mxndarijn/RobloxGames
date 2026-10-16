@@ -19,6 +19,8 @@ local CollectionService = game:GetService("CollectionService")
 local EggReveal = require(script.Parent.EggReveal)
 local Format = require(script.Parent.Format)
 local FriendBadge = require(script.Parent.FriendBadge)
+local ItemIconView = require(script.Parent.ItemIconView)
+local ItemIcons = require(script.Parent.ItemIcons)
 local Layout = require(script.Parent.Layout)
 local LockHud = require(script.Parent.LockHud)
 local ModifierBadge = require(script.Parent.ModifierBadge)
@@ -158,6 +160,17 @@ function Hud.new(parent: Instance, ctx: any)
 		ctx.Config.HOLD_CONFIRM_SECONDS
 	)
 	lockBtn.instance.Parent = bar
+	-- The Lock gear's item icon in the button's left padding (LockHud text drops its lock emoji).
+	local LOCK_ICON = 24
+	create("UIPadding", { PaddingLeft = UDim.new(0, LOCK_ICON + 6), Parent = lockBtn.instance })
+	ItemIconView.new({
+		Name = "LockIcon",
+		Id = "Lock",
+		Size = LOCK_ICON,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, -(LOCK_ICON + 4), 0.5, 0),
+		Parent = lockBtn.instance,
+	}, ItemIcons.of(ctx)).setActive(true)
 	items.Lock = lockBtn.instance
 
 	local padBtn = Widgets.holdButton(
@@ -220,6 +233,18 @@ function Hud.new(parent: Instance, ctx: any)
 	weekend.TextSize = 15
 	local egg = banner(banners, "EggReveal", Color3.fromRGB(190, 120, 30), 6)
 	egg.TextSize = 17
+	-- The Mystery Egg's item icon sits at the banner's left edge (the text drops its egg emoji).
+	local EGG_ICON = 28
+	local eggPad = egg:FindFirstChildOfClass("UIPadding") :: UIPadding
+	eggPad.PaddingLeft = UDim.new(0, 10 + EGG_ICON + 6)
+	local eggIcon = ItemIconView.new({
+		Name = "EggIcon",
+		Id = "MysteryEgg",
+		Size = EGG_ICON,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, -(EGG_ICON + 6), 0.5, 0),
+		Parent = egg,
+	}, ItemIcons.of(ctx))
 	local hint = banner(banners, "PadHint", Color3.fromRGB(150, 100, 20), 4)
 	hint.TextSize = 16
 
@@ -435,7 +460,8 @@ function Hud.new(parent: Instance, ctx: any)
 		lockBox.BackgroundColor3 = LOCK_COLORS[status.level]:Lerp(Color3.new(1, 1, 1), if blink then 0.25 else 0)
 
 		local lockView = LockHud.lockButton(current, now, maxLock)
-		lockBtn.setText(lockView.text)
+		local lockText = string.gsub(lockView.text, "^🔒 ", "")
+		lockBtn.setText((string.gsub(lockText, "^🔓 ", "")))
 		lockBtn.setColor(if lockView.enabled then Theme.Info else Theme.Disabled)
 
 		local rareInfo = RareAnnounce.banner(currentBoss(), caught, now)
@@ -463,8 +489,9 @@ function Hud.new(parent: Instance, ctx: any)
 		local eggText =
 			EggReveal.banner(current.egg, now, ctx.Config.MYSTERY_EGG_REVEAL_SECONDS, ctx.Genome.displayName)
 		egg.Visible = eggText ~= nil
+		eggIcon.setActive(eggText ~= nil)
 		if eggText then
-			egg.Text = eggText
+			egg.Text = string.gsub(eggText, "^🥚 ", "")
 		end
 
 		local modifierText = ModifierBadge.banner(current.modifier, now, ctx.Config.FEATURES.CycleModifier == true)

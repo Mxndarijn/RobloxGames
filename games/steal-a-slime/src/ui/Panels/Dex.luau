@@ -17,6 +17,8 @@
 
 local UI = script.Parent.Parent
 local FriendBadge = require(UI.FriendBadge)
+local ItemIconView = require(UI.ItemIconView)
+local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
 local Progress = require(UI.Progress)
 local SlimeDex = require(UI.SlimeDex)
@@ -134,6 +136,7 @@ function Dex.new(parent: Instance, ctx: any)
 	-- silhouette row per tier for the rest (SlimeDex.rows). ViewportFrames
 	-- are virtualised (refreshPreviews): only rows in or near the scroll
 	-- window are mounted, at most SlimePreview.MAX_LIVE at once.
+	local open = false
 	local rows = Widgets.keyedList(list, function(row: SlimeDex.Row)
 		return row.key
 	end, function(row: SlimeDex.Row)
@@ -176,6 +179,16 @@ function Dex.new(parent: Instance, ctx: any)
 			Size = UDim2.fromScale(1, 1),
 			Parent = image,
 		})
+		-- Plot skin cards show the skin's item icon (3D kit model, picture or tile) in place of the glyph.
+		local skinIcon = if row.skin
+			then ItemIconView.new({
+				Name = "SkinIcon",
+				Id = `PlotSkin_{row.skin.id}`,
+				Size = IMAGE,
+				ZIndex = 2,
+				Parent = image,
+			}, ItemIcons.of(ctx))
+			else nil
 		local title = Widgets.label({
 			Name = "Title",
 			Font = Theme.Font,
@@ -219,6 +232,7 @@ function Dex.new(parent: Instance, ctx: any)
 			picture = picture,
 			preview = preview,
 			glyph = glyph,
+			skinIcon = skinIcon,
 			title = title,
 			detail = detail,
 		}
@@ -247,8 +261,18 @@ function Dex.new(parent: Instance, ctx: any)
 				r.preview:SetAttribute("Look", nil)
 				r.preview.Visible = false
 			end
-			r.glyph.Visible = true
-			r.glyph.Text = if skin.unlocked then "🏡" else "🔒"
+			-- The icon is the picture; a locked card only keeps a small lock badge in the corner.
+			r.glyph.Visible = not skin.unlocked
+			r.glyph.Text = "🔒"
+			r.glyph.TextSize = 20
+			r.glyph.ZIndex = 8 -- above the icon (its tile / picture sit at z + 1..2)
+			r.glyph.AnchorPoint = Vector2.new(1, 1)
+			r.glyph.Position = UDim2.fromScale(1, 1)
+			r.glyph.Size = UDim2.fromOffset(26, 26)
+			if r.skinIcon then
+				r.skinIcon.setFrame(if skin.unlocked then nil else Theme.Muted)
+				r.skinIcon.setActive(open)
+			end
 			r.image.BackgroundTransparency = 0
 		end
 		r.row = row
@@ -263,7 +287,6 @@ function Dex.new(parent: Instance, ctx: any)
 
 	-- Rows from the latest update and whether the list is out of date with
 	-- them (never built counts as dirty). Rebuilds only happen while open.
-	local open = false
 	local pending: { SlimeDex.Row }? = nil
 	local pendingSignature: string? = nil
 	local builtSignature: string? = nil
@@ -366,6 +389,11 @@ function Dex.new(parent: Instance, ctx: any)
 	-- Called by init.client when the menu opens / closes.
 	function self.setOpen(isOpen: boolean)
 		open = isOpen
+		for _, r in rows.rows do
+			if r.skinIcon then
+				r.skinIcon.setActive(isOpen)
+			end
+		end
 		rebuild()
 	end
 

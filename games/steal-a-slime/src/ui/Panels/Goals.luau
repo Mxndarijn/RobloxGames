@@ -93,7 +93,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 			Widgets.bar(frame, Theme.Accent, UDim2.new(1, -(textX + 10), 0, 6), UDim2.new(0, textX, 1, -12))
 		return { instance = frame, title = title, detail = detail, setBar = setBar }
 	end, function(row: any, g: Goals.Goal)
-		row.title.Text = (if g.done then "✅ " else "🎯 ") .. g.title
+		row.title.Text = (if g.done then "✅ " else "") .. g.title
 		row.title.TextColor3 = if g.done then Theme.Muted else Theme.Text
 		row.detail.Text = g.detail
 		row.setBar(g.fraction)

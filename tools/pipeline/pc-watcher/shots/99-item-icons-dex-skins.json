@@ -1,0 +1,7 @@
+{
+  "id": "item-icons-dex-skins",
+  "todo": "item-icons",
+  "kind": "ui",
+  "open": "dex",
+  "note": "Item icons follow-up: the SlimeDex plot-skin cards at the top of the list show the skin's ItemIconView (3D kit model or tile) instead of a house / lock emoji; locked cards keep a small lock badge in the corner"
+}
