@@ -13,7 +13,7 @@
     0
   ],
   "weather": "Starfall",
-  "wait": 2.5,
-  "note": "TODO 18: Starfall weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 2 s tween in [desktop]",
+  "wait": 3.9,
+  "note": "TODO 18: Starfall weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 3.5 s grade tween (tint + atmosphere + ambient, settled) [desktop]",
   "device": "desktop"
 }

@@ -16,6 +16,15 @@ Server cycles **Clear -> Rain / Snow / Starfall** (never the same id twice in a 
   `WeatherDebug` attribute (`Constants.WEATHER_DEBUG_ATTRIBUTE`) that the pc-watcher sets for the `18-weather-*`
   shots; it is never replicated and never set by game code.
 
+## Whole-screen grade (v30 F1)
+
+A weather change is one `WEATHER_FADE_SECONDS` (3.5 s) tween on a single NumberValue. Each frame `WeatherGrade.lerp`
+(`visuals/shared/WeatherGrade`, pure, Lune-tested) blends one flat vector (ColorCorrection tint / brightness / contrast /
+saturation, Atmosphere colour mix + density + haze, ambient mix, exposure) and the emitter rates with the same eased alpha, so
+nothing changes piecemeal. `WeatherFx` writes the tint; `NightSky` listens to `WeatherGrade.onChanged` and layers the
+Atmosphere / ambient part on top of the day-night look. A change mid-tween starts from what is on screen. Targets live in
+`WeatherLook.LOOKS[id].tint / atmo`. Shots: `18-weather-<id>-<device>` (settled, 3.9 s) and `18-weather-<id>-mid-<device>` (1.2 s).
+
 ## Hook for #8
 
 For Gojo (stacking mutations + combos). Nothing in the mutation code reads weather yet.

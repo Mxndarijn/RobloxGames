@@ -603,7 +603,7 @@ local Config = {
 		}),
 	}),
 	WEATHER_FIRST_AT = 60, -- seconds after server start before the first change away from Clear
-	WEATHER_FADE_SECONDS = 2, -- client tween in / out
+	WEATHER_FADE_SECONDS = 3.5, -- client grade (tint, atmosphere, ambient, emitter rates) tween in / out, one tween
 	WEATHER_PARTICLE_CAP = 160, -- hard cap on weather particles alive at once, whatever the quality level
 
 	-- Slime growth (FEATURES.GrowingSlimes): a slime's `growth` (0..1) rises by dt / GROWTH_SECONDS while it
