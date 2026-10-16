@@ -248,7 +248,10 @@ def t_files():
     check("shots.json is a list with ids", isinstance(shots, list) and all("id" in s for s in shots))
     check("shots.json has the idle-HUD overlay guard",
           any(s.get("kind") == "ui" and not s.get("open") and s.get("expect_no_overlay") for s in shots))
-    up = json.load(open(os.path.join(HERE, "..", "..", "..", "shared", "modeling-kit", "uploaded.json"), encoding="utf-8"))
+    upf = os.path.join(HERE, "..", "..", "..", "shared", "modeling-kit", "uploaded.json")
+    if not os.path.exists(upf):  # installed copy (C:\gate\pc-watcher\app) has no repo around it
+        return
+    up = json.load(open(upf, encoding="utf-8"))
     anims = [s for s in shots if s.get("anim")]
     check("anim shots name an uploaded Animation with its real id", len(anims) >= 4 and all(
         up.get(s["anim"], {}).get("assetType") == "Animation"
