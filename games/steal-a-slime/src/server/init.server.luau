@@ -28,6 +28,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local DayNight = require(Shared:WaitForChild("DayNight"))
+local Genome = require(Shared:WaitForChild("Genome"))
 local Merge = require(Shared:WaitForChild("Merge"))
 local PlayerData = require(Shared:WaitForChild("PlayerData"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
@@ -632,6 +633,52 @@ Players.PlayerAdded:Connect(onPlayerAdded)
 Players.PlayerRemoving:Connect(onPlayerRemoving)
 for _, player in Players:GetPlayers() do
 	task.spawn(onPlayerAdded, player)
+end
+
+-- Studio-only PC watcher hooks: the Player attributes "PcwGrowth" (percent) and "PcwDexWeather" (true)
+-- change the player's real session data (growth of the pad 1 slime; Wet / Frozen discovered in the Dex),
+-- so WorldView and the Dex panel draw the result with their own code. Studio and the in-memory store only:
+-- never active in live servers, never writes a real DataStore.
+if RunService:IsStudio() and memoryMode then
+	local function applyPcw(player: Player)
+		local session = World.session(world, player.UserId)
+		if not session then
+			return
+		end
+		local profile = session.data
+		local percent = player:GetAttribute("PcwGrowth")
+		if type(percent) == "number" then
+			local slime = PlayerData.slimeOnPad(profile, 1)
+			if not slime then
+				slime = Genome.generate(world.rng, { id = HttpService:GenerateGUID(false), tier = 1 })
+				PlayerData.addSlime(profile, slime, 1)
+			end
+			slime.growth = math.clamp(percent, 0, 100) / 100
+		end
+		if player:GetAttribute("PcwDexWeather") == true then
+			for _, mutation in { "Wet", "Frozen" } do
+				local slime = Genome.generate(world.rng, { id = "pcw-dex", tier = 1 })
+				slime.pattern, slime.eyes = "Plain", "Round"
+				Genome.setMutations(slime, { mutation })
+				PlayerData.discover(profile, slime)
+			end
+		end
+		World.markDirty(session)
+		local t = now()
+		refreshView(t)
+		flushStates(t)
+	end
+	local function watchPcw(player: Player)
+		for _, attribute in { "PcwGrowth", "PcwDexWeather" } do
+			player:GetAttributeChangedSignal(attribute):Connect(function()
+				pcall(applyPcw, player)
+			end)
+		end
+	end
+	Players.PlayerAdded:Connect(watchPcw)
+	for _, player in Players:GetPlayers() do
+		watchPcw(player)
+	end
 end
 
 game:BindToClose(function()
