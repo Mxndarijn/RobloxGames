@@ -40,6 +40,8 @@ local GameLoop = require(script.GameLoop)
 local Leaderboard = require(script.Leaderboard)
 local MeshSwap = require(script.MeshSwap)
 local PlotClaim = require(script.PlotClaim)
+local PodiumAvatars = require(script.PodiumAvatars)
+local PodiumRigs = require(script.PodiumRigs)
 local Sessions = require(script.Sessions)
 local Snapshot = require(script.Snapshot)
 local Spawner = require(script.Spawner)
@@ -288,6 +290,7 @@ local function nameOf(userId: number): string
 end
 
 local latestBoard: Types.Leaderboard? = nil
+local podiums = PodiumAvatars.new(PodiumRigs.adapter())
 
 -- Fetches the global board (this server's players in memory mode) and pushes it to everyone.
 local function refreshLeaderboard()
@@ -308,6 +311,7 @@ local function refreshLeaderboard()
 			warn(`[Server] leaderboard board fill failed: {err}`)
 		end
 		leaderboardEvent:FireAllClients(latestBoard)
+		podiums:request(latestBoard)
 	end
 end
 
