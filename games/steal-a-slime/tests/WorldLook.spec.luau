@@ -2,7 +2,8 @@
 -- Look fixes from the whole-world render review (tools/render):
 -- Map.Decor scattered rocks (WorldLayout rock()) are low boulders and slabs
 -- sunk into the Ground, never an upright grey box or a corner floating over
--- it; the ring path's overlapping segments never share a top face.
+-- it; the ring path's overlapping segments never share a top face; the plot
+-- lock sign and button pedestal are ranch wood, not gunmetal.
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
@@ -75,6 +76,27 @@ describe("ring path", function()
 			local top, nextTop = n.pos[2] + n.size[2] / 2, nxt.pos[2] + nxt.size[2] / 2
 			expect(math.abs(top - nextTop) >= 0.02).toBe(true)
 			expect(n.pos[2] - n.size[2] / 2).toBeCloseTo(0.02)
+		end
+	end)
+end)
+
+describe("plot lock pieces", function()
+	it("builds the LockSign, its Post and the LockButton Pedestal in wood", function()
+		local function child(n: any, name: string): any
+			for _, c in n.children or {} do
+				if c.name == name then
+					return c
+				end
+			end
+			error(`no {name} under {n.name}`)
+		end
+		for _, plot in WorldLayout.build()[2].children do
+			local sign = child(plot, "LockSign")
+			for _, n in { sign, child(sign, "Post"), child(child(plot, "LockButton"), "Pedestal") } do
+				expect(string.find(n.material, "Wood") ~= nil).toBe(true)
+			end
+			-- Dark enough that the FREE / LOCKED / UNLOCKED text stays readable.
+			expect(math.max(sign.color[1], sign.color[2], sign.color[3]) <= 80).toBe(true)
 		end
 	end)
 end)

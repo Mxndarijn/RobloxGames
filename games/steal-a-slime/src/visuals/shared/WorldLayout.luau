@@ -381,6 +381,7 @@ local PLAZA = { 222, 198, 150 } -- ranch_plaza sand
 local WOOD = { 110, 74, 48 }
 local SIGN = { 222, 178, 120 }
 local FENCE = { 150, 104, 68 }
+local SIGN_BOARD = { 62, 42, 30 } -- dark wood: the lock sign's coloured text stays readable
 local GOO = { 120, 255, 140 }
 
 local function mix(a: Vec, b: Vec, t: number): Vec
@@ -931,10 +932,11 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	end
 	table.insert(nodes, barrier)
 
-	-- Lock sign next to the LockButton, facing the entrance (Front face).
-	local lockSign = ghost(block("LockSign", { 7, 2.6, 0.3 }, at({ 19, 7.2, -17.2 }), { 60, 60, 70 }, "Metal", r))
+	-- Lock sign next to the LockButton, facing the entrance (Front face). Wood
+	-- like the kit fence, not gunmetal (read as a grey slab: tools/render review).
+	local lockSign = ghost(block("LockSign", { 7, 2.6, 0.3 }, at({ 19, 7.2, -17.2 }), SIGN_BOARD, "Wood", r))
 	lockSign.children = {
-		ghost(block("Post", { 0.5, 5.6, 0.5 }, at({ 19, 3.8, -16.8 }), { 80, 80, 95 }, "Metal", r)),
+		ghost(block("Post", { 0.5, 5.6, 0.5 }, at({ 19, 3.8, -16.8 }), FENCE, "Wood", r)),
 		ghost(disc("Lamp", 0.4, 1.3, at({ 19, 8.7, -17.2 }), { 90, 220, 110 }, "Neon", yaw)),
 	}
 	table.insert(nodes, lockSign)
@@ -1142,8 +1144,7 @@ local function plot(i: number): WorldNode
 	table.insert(children, vat)
 
 	local button = disc("LockButton", 0.6, 4, at({ 19, 2.8, -14 }), { 255, 70, 70 }, "Neon", yaw)
-	button.children =
-		{ block("Pedestal", { 5, 1.5, 5 }, at({ 19, 1.75, -14 }), { 80, 80, 95 }, "Metal", { 0, yaw, 0 }) }
+	button.children = { block("Pedestal", { 5, 1.5, 5 }, at({ 19, 1.75, -14 }), FENCE, "WoodPlanks", { 0, yaw, 0 }) }
 	table.insert(children, button)
 
 	-- Sign = the gate mesh's cream name board (PlotSigns writes on it), its
