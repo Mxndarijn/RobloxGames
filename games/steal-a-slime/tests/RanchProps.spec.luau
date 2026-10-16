@@ -62,8 +62,18 @@ for _, root in nodes do
 	end)
 end
 
+-- Habitat looks with their own mesh (Habitats.MESH_SLOTS, main #57/#58) are
+-- placed by HabitatFx on the pads at runtime, not by WorldLayout.
+local habitatMeshes: { [string]: boolean } = {}
+for _, id in Habitats.MESH_SLOTS do
+	local kit = (Habitats.get(id) :: any).kit
+	if kit then
+		habitatMeshes[kit] = true
+	end
+end
+
 local function placed(mesh: string): boolean
-	if slots[mesh] or pending[mesh] then
+	if slots[mesh] or pending[mesh] or habitatMeshes[mesh] then
 		return true
 	end
 	for _, m in WorldLayout.PROP_MESHES do
@@ -491,10 +501,12 @@ describe("plot fence", function()
 		expect(ok).toBe(true)
 		checkFence(built, false)
 	end)
-	it("keeps the corner posts and the gate as kit models", function()
+	-- The corners close on the panels' end posts (each side is covered corner
+	-- to corner, checked above), so there is no plot corner post slot.
+	it("keeps the gate as a kit model and no corner post slots", function()
 		for _, plot in plots do
 			for k = 1, 4 do
-				expect(plotChild(plot, `CornerPost_{k}`).attributes.MeshAsset).toBe("phoenix_corner_post")
+				expect(plotChild(plot, `CornerPost_{k}`)).toBe(nil)
 			end
 			expect(plotChild(plot, "Gate") ~= nil).toBe(true)
 		end

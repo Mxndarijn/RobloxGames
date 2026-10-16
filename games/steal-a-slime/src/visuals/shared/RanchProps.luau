@@ -72,30 +72,28 @@ local function onPlot(
 	)
 end
 
+-- Budget (tests/WorldBudget.spec): every kit mesh once, plus one lantern and
+-- one mailbox per plot entrance. No second copies of a decorative piece.
+
 -- Plaza edge -------------------------------------------------------------
--- Vignettes on the free bisectors (22.5, 112.5, 202.5, 292.5, 337.5) and
--- planters beside the shop (67.5) and the tutorial NPC (247.5) PROP_SPOTS.
+-- Vignettes on the free bisectors (22.5, 112.5, 202.5, 292.5, 337.5) and a
+-- planter beside the shop (67.5) PROP_SPOT.
 polar("Campfire", "ranch_campfire", "plaza", 22.5, 92, 180, 1.3)
-polar("CampBench_1", "ranch_bench", "plaza", 16.5, 92, 90, 1.2)
-polar("CampBench_2", "ranch_bench", "plaza", 28.5, 92, -90, 1.2)
+polar("CampBench", "ranch_bench", "plaza", 16.5, 92, 90, 1.2)
 polar("Well", "ranch_well", "plaza", 112.5, 92, 180, 1.2)
 polar("WellPump", "ranch_water_pump", "plaza", 120, 91, 180, 1.2)
 polar("PicnicTable", "ranch_picnic_table", "plaza", 202.5, 91, 180, 1.2)
-polar("Sunflowers_1", "ranch_sunflower_patch", "plaza", 194, 94, 180, 1)
-polar("Sunflowers_2", "ranch_sunflower_patch", "plaza", 211, 94, 180, 1)
+polar("Sunflowers", "ranch_sunflower_patch", "plaza", 194, 94, 180, 1)
 polar("HorseshoePit", "ranch_horseshoe_pit", "plaza", 292.5, 90, 180, 1.2)
-polar("PitBench", "ranch_bench", "plaza", 292.5, 97, 180, 1.2)
 polar("GooSign", "ranch_goo_sign", "plaza", 337.5, 91, 180, 1.2)
 polar("Birdhouse", "ranch_birdhouse", "plaza", 330, 93, 180, 1.2)
-polar("Planter_Shop", "ranch_flower_planter", "plaza", 56, 90, 180, 1.2)
-polar("Planter_Npc", "ranch_flower_planter", "plaza", 236, 90, 180, 1.2)
+polar("Planter", "ranch_flower_planter", "plaza", 56, 90, 180, 1.2)
 
 -- Entrances --------------------------------------------------------------
--- A lantern each side of the entrance corridor where it meets the ring path,
--- and a mailbox by the gate on the side away from the "Free plot" stand.
+-- A lantern on the left of the entrance corridor where it meets the ring
+-- path, and a mailbox by the gate on the side away from the "Free plot" stand.
 for i = 1, Config.PLOT_COUNT do
-	onPlot(`Lantern_{i}_L`, "ranch_lantern_post", "entrance", i, -14, -55, 180, 1.2)
-	onPlot(`Lantern_{i}_R`, "ranch_lantern_post", "entrance", i, 14, -55, 180, 1.2)
+	onPlot(`Lantern_{i}`, "ranch_lantern_post", "entrance", i, -14, -55, 180, 1.2)
 	onPlot(`Mailbox_{i}`, "ranch_mailbox", "entrance", i, 17, -45, 180, 1.2)
 end
 
@@ -109,14 +107,11 @@ onPlot("BarnLoft_2", "ranch_barn_loft", "farm", 2, 0, 62, 180, 1.4)
 onPlot("Weathervane_2", "ranch_weathervane", "farm", 2, 16, 54, 180, 1.2)
 onPlot("ToolRack_2", "ranch_tool_rack", "farm", 2, -17, 52, 180, 1.1)
 
-onPlot("SlimeCoop_3", "ranch_slime_coop", "farm", 3, -10, 58, 180, 1.3)
 onPlot("GooHive_3", "ranch_goo_hive", "farm", 3, 6, 52, 180, 1.2)
-onPlot("GooHive_3b", "ranch_goo_hive", "farm", 3, 13, 56, 200, 1.2)
 onPlot("GooBucket_3", "ranch_goo_bucket", "farm", 3, 8, 60, 180, 1.2)
 
 onPlot("Pumpkins_4", "ranch_pumpkin_patch", "farm", 4, -12, 54, 180, 1.3)
 onPlot("Scarecrow_4", "ranch_scarecrow", "farm", 4, 0, 60, 180, 1.2)
-onPlot("Pumpkins_4b", "ranch_pumpkin_patch", "farm", 4, 12, 54, 180, 1.3)
 
 onPlot("LogPile_5", "ranch_log_pile", "farm", 5, -12, 54, 180, 1.2)
 onPlot("CompostBin_5", "ranch_compost_bin", "farm", 5, 10, 53, 180, 1.2)
@@ -125,36 +120,30 @@ onPlot("Wagon_5", "ranch_wagon", "farm", 5, 0, 68, 180, 1.3)
 onPlot("WaterTrough_6", "ranch_water_trough", "farm", 6, -12, 52, 180, 1.2)
 onPlot("HitchingPost_6", "ranch_hitching_post", "farm", 6, 8, 52, 180, 1.2)
 onPlot("MilkChurn_6", "ranch_milk_churn", "farm", 6, 17, 52, 180, 1.2)
-onPlot("MilkChurn_6b", "ranch_milk_churn", "farm", 6, 21, 57, 180, 1.2)
 
-onPlot("Windmill_7", "ranch_windmill", "farm", 7, 0, 64, 180, 1.6)
 onPlot("BarrelStack_7", "ranch_barrel_stack", "farm", 7, -16, 52, 180, 1.2)
 onPlot("RainBarrel_7", "ranch_rain_barrel", "farm", 7, 16, 52, 180, 1.2)
 
 onPlot("SlimeCoop_8", "ranch_slime_coop", "farm", 8, 0, 60, 180, 1.3)
 onPlot("FenceStile_8", "ranch_fence_stile", "farm", 8, -16, 52, 180, 1.2)
+-- The plots' fence corners close on the panels' own end posts, so the kit
+-- corner post stands here once, as the stile's gatepost.
+onPlot("StilePost_8", "phoenix_corner_post", "farm", 8, -23, 52, 180, 1)
 onPlot("Barrel_8", "ranch_barrel", "farm", 8, 13, 51, 180, 1.2)
-onPlot("Barrel_8b", "ranch_barrel", "farm", 8, 17, 52, 180, 1.2)
-onPlot("GooBucket_8", "ranch_goo_bucket", "farm", 8, 14, 57, 180, 1.2)
 
--- ... and the sparse props in the wedges between neighbours (bisectors,
--- r 200 and the two sheds at r 245; the old Decor Ranch / Shed slots).
+-- ... and the sparse props in the wedges between neighbours (every other
+-- bisector, r 200, and the shed at r 245; the old Decor Ranch / Shed slots).
 local WEDGE = {
 	{ "ranch_hay_bale", 1.25 },
 	{ "ranch_crate", 4 / 3 },
 	{ "ranch_feed_trough", 1.3 },
 	{ "ranch_crate_goo", 4 / 3 },
 }
-for k = 1, Config.PLOT_COUNT do
-	local angle = (k - 1) * 360 / Config.PLOT_COUNT + 180 / Config.PLOT_COUNT
-	local def = WEDGE[(k - 1) % #WEDGE + 1]
+for k, def in WEDGE do
+	local angle = (2 * k - 2) * 360 / Config.PLOT_COUNT + 180 / Config.PLOT_COUNT
 	polar(`Ranch{k}`, def[1], "farm", angle, 200, 0, def[2])
 end
-polar("Shed1", "ranch_shed", "farm", 112.5, 245, 0, 1.4)
-polar("Shed2", "ranch_shed", "farm", 292.5, 245, 0, 1.4)
-polar("FenceStile_Wedge", "ranch_fence_stile", "farm", 67.5, 170, 90, 1.2)
-polar("Wheelbarrow_Wedge", "ranch_wheelbarrow", "farm", 337.5, 180, 30, 1.2)
-polar("FeedSacks_Wedge", "ranch_feed_sacks", "farm", 157.5, 185, 0, 1.2)
+polar("Shed", "ranch_shed", "farm", 112.5, 245, 0, 1.4)
 
 RanchProps.PLACEMENTS = table.freeze(rows)
 

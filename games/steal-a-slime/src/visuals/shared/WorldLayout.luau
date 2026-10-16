@@ -112,12 +112,26 @@ WorldLayout.FENCE_SEGMENT = "phoenix_fence_segment"
 WorldLayout.FENCE_GRID = 20
 WorldLayout.FENCE_SEGMENT_GRID = 10
 WorldLayout.FENCE_SCALE = 10 / 11
--- MeshAsset slots in the whole world (Map + Plots + the WorldProps skins),
--- counted with ranch_fence_20 uploaded (tests/WorldBudget.spec). THEME.md
--- asks <= 150 MeshParts; the kit fence and the placed ranch props take it
--- past that on purpose. The fallback (two segments per panel until the
--- upload) adds one slot per panel: 112.
-WorldLayout.MESH_SLOT_BUDGET = 342
+-- Mesh slots in the whole world (MeshAsset + pending BorderMesh / FenceMesh
+-- slots + the WorldProps skins), counted with ranch_fence_20 uploaded
+-- (tests/WorldBudget.spec), split into caps that add up to MESH_SLOT_BUDGET:
+--   fence   panels + gate segments. The target was 15 a plot (120), but the
+--           kit pieces are 20 and 10 long: each closed side needs 4 panels
+--           (80 / 20) and each 30-stud half of the gate side needs a panel
+--           and a segment, so 16 a plot (128) is the minimum with the gate
+--           slot centred.
+--   border  Map.Border's share (120). Main #54's ring is BORDER_SLOT_COUNT
+--           today, over its share until it is slimmed; asserted on its own.
+--   decor   everything else: ranch props, pad stands, fountain, plaza,
+--           landing ring, gates, WorldProps skins. Capped at 160, and at
+--           MESH_SLOT_BUDGET - fence - border share (152) while the fence is 128.
+-- The fallback (two segments per panel until the upload) adds one slot per
+-- panel: 112.
+WorldLayout.MESH_SLOT_BUDGET = 400
+WorldLayout.FENCE_SLOT_BUDGET = 128
+WorldLayout.BORDER_SLOT_BUDGET = 120
+WorldLayout.BORDER_SLOT_COUNT = 228
+WorldLayout.DECOR_SLOT_BUDGET = 160
 WorldLayout.MESH_SLOT_BUDGET_FALLBACK = WorldLayout.MESH_SLOT_BUDGET + 112
 -- THEME.md: <= 1200 parts. Asserted over the world WorldLayout builds outside
 -- Map.Border; the border ring (main #54) is held to its own budget, since its
@@ -1042,7 +1056,7 @@ local function plot(i: number): WorldNode
 	-- collision and are invisible; the look is FENCE_MESH panels on the
 	-- 20-stud grid (FENCE_SEGMENT halves until it is uploaded, and beside the
 	-- gate), visual only, primitive boxes until the mesh lands.
-	-- Corner posts and the gate are kit mesh slots too.
+	-- The gate is a kit mesh slot too.
 	local wh, r = WorldLayout.WALL_HEIGHT, { 0, yaw, 0 }
 	local wy = 1 + wh / 2
 	local slot, clear = WorldLayout.GATE_SLOT, WorldLayout.GATE_CLEAR
@@ -1093,19 +1107,9 @@ local function plot(i: number): WorldNode
 		table.insert(fence.children :: { WorldNode }, node)
 	end
 	table.insert(children, fence)
-	local postSize = meshSize("phoenix_corner_post", (wh + 1) / (MeshAssets.get("phoenix_corner_post") :: any).size[2])
-	for k, c in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
-		local inset = postSize[1] / 2
-		local post = block(
-			`CornerPost_{k}`,
-			postSize,
-			at({ c[1] * (s / 2 - inset), 1 + (wh + 1) / 2, c[2] * (s / 2 - inset) }),
-			WOOD,
-			"Wood",
-			r
-		)
-		table.insert(children, meshSlot(post, "phoenix_corner_post"))
-	end
+	-- No corner posts: the two panels meeting at a corner put their end posts
+	-- on the same spot, which closes it (MESH_SLOT_BUDGET; the kit corner post
+	-- stands once in RanchProps).
 	local postW = (slot - clear) / 2
 	-- The kit gate is built for this slot (14 clear, stubs to +-10): native size.
 	-- Kit FBX fronts face Roblox +Z (LESSONS kit gotcha): turn it 180 so the

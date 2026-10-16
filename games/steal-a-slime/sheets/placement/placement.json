@@ -4236,26 +4236,13 @@
     {
       "cluster": "plaza",
       "mesh": "ranch_bench",
-      "name": "CampBench_1",
+      "name": "CampBench",
       "rect": {
         "cx": 26.129411712760884,
         "cz": 88.21141560787376,
         "hx": 3.5999999999999996,
         "hz": 1.4256,
         "yaw": 106.5
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "plaza",
-      "mesh": "ranch_bench",
-      "name": "CampBench_2",
-      "rect": {
-        "cx": 43.89860594388397,
-        "cz": 80.85117436490081,
-        "hx": 3.5999999999999996,
-        "hz": 1.4256,
-        "yaw": 298.5
       },
       "scale": 1.2
     },
@@ -4301,26 +4288,13 @@
     {
       "cluster": "plaza",
       "mesh": "ranch_sunflower_patch",
-      "name": "Sunflowers_1",
+      "name": "Sunflowers",
       "rect": {
         "cx": -22.740658186368744,
         "cz": -91.20779826994367,
         "hx": 4.3575,
         "hz": 3.049,
         "yaw": 14
-      },
-      "scale": 1
-    },
-    {
-      "cluster": "plaza",
-      "mesh": "ranch_sunflower_patch",
-      "name": "Sunflowers_2",
-      "rect": {
-        "cx": -48.41357904154509,
-        "cz": -80.57372626599856,
-        "hx": 4.3575,
-        "hz": 3.049,
-        "yaw": 31
       },
       "scale": 1
     },
@@ -4333,19 +4307,6 @@
         "cz": 34.4415089128581,
         "hx": 5.7,
         "hz": 2.82,
-        "yaw": 112.5
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "plaza",
-      "mesh": "ranch_bench",
-      "name": "PitBench",
-      "rect": {
-        "cx": -89.6163146535948,
-        "cz": 37.12029293941373,
-        "hx": 3.5999999999999996,
-        "hz": 1.4256,
         "yaw": 112.5
       },
       "scale": 1.2
@@ -4379,7 +4340,7 @@
     {
       "cluster": "plaza",
       "mesh": "ranch_flower_planter",
-      "name": "Planter_Shop",
+      "name": "Planter",
       "rect": {
         "cx": 74.61338152995376,
         "cz": 50.32736131236721,
@@ -4390,37 +4351,11 @@
       "scale": 1.2
     },
     {
-      "cluster": "plaza",
-      "mesh": "ranch_flower_planter",
-      "name": "Planter_Npc",
-      "rect": {
-        "cx": -74.61338152995377,
-        "cz": -50.32736131236719,
-        "hx": 3.12,
-        "hz": 1.2,
-        "yaw": 56
-      },
-      "scale": 1.2
-    },
-    {
       "cluster": "entrance",
       "mesh": "ranch_lantern_post",
-      "name": "Lantern_1_L",
+      "name": "Lantern_1",
       "rect": {
         "cx": -14,
-        "cz": 85,
-        "hx": 2.19,
-        "hz": 0.96,
-        "yaw": 180
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "entrance",
-      "mesh": "ranch_lantern_post",
-      "name": "Lantern_1_R",
-      "rect": {
-        "cx": 14,
         "cz": 85,
         "hx": 2.19,
         "hz": 0.96,
@@ -4444,23 +4379,10 @@
     {
       "cluster": "entrance",
       "mesh": "ranch_lantern_post",
-      "name": "Lantern_2_L",
+      "name": "Lantern_2",
       "rect": {
         "cx": 50.20458146424487,
         "cz": 70.0035713374682,
-        "hx": 2.19,
-        "hz": 0.96,
-        "yaw": 225
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "entrance",
-      "mesh": "ranch_lantern_post",
-      "name": "Lantern_2_R",
-      "rect": {
-        "cx": 70.0035713374682,
-        "cz": 50.20458146424488,
         "hx": 2.19,
         "hz": 0.96,
         "yaw": 225
@@ -4483,23 +4405,10 @@
     {
       "cluster": "entrance",
       "mesh": "ranch_lantern_post",
-      "name": "Lantern_3_L",
+      "name": "Lantern_3",
       "rect": {
         "cx": 85,
         "cz": 14.000000000000005,
-        "hx": 2.19,
-        "hz": 0.96,
-        "yaw": 270
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "entrance",
-      "mesh": "ranch_lantern_post",
-      "name": "Lantern_3_R",
-      "rect": {
-        "cx": 85,
-        "cz": -13.999999999999995,
         "hx": 2.19,
         "hz": 0.96,
         "yaw": 270
@@ -4522,23 +4431,10 @@
     {
       "cluster": "entrance",
       "mesh": "ranch_lantern_post",
-      "name": "Lantern_4_L",
+      "name": "Lantern_4",
       "rect": {
         "cx": 70.0035713374682,
         "cz": -50.20458146424487,
-        "hx": 2.19,
-        "hz": 0.96,
-        "yaw": 315
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "entrance",
-      "mesh": "ranch_lantern_post",
-      "name": "Lantern_4_R",
-      "rect": {
-        "cx": 50.20458146424488,
-        "cz": -70.0035713374682,
         "hx": 2.19,
         "hz": 0.96,
         "yaw": 315
@@ -4561,22 +4457,9 @@
     {
       "cluster": "entrance",
       "mesh": "ranch_lantern_post",
-      "name": "Lantern_5_L",
+      "name": "Lantern_5",
       "rect": {
         "cx": 14.00000000000001,
-        "cz": -85,
-        "hx": 2.19,
-        "hz": 0.96,
-        "yaw": 0
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "entrance",
-      "mesh": "ranch_lantern_post",
-      "name": "Lantern_5_R",
-      "rect": {
-        "cx": -13.99999999999999,
         "cz": -85,
         "hx": 2.19,
         "hz": 0.96,
@@ -4600,23 +4483,10 @@
     {
       "cluster": "entrance",
       "mesh": "ranch_lantern_post",
-      "name": "Lantern_6_L",
+      "name": "Lantern_6",
       "rect": {
         "cx": -50.20458146424487,
         "cz": -70.00357133746822,
-        "hx": 2.19,
-        "hz": 0.96,
-        "yaw": 45
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "entrance",
-      "mesh": "ranch_lantern_post",
-      "name": "Lantern_6_R",
-      "rect": {
-        "cx": -70.0035713374682,
-        "cz": -50.20458146424488,
         "hx": 2.19,
         "hz": 0.96,
         "yaw": 45
@@ -4639,23 +4509,10 @@
     {
       "cluster": "entrance",
       "mesh": "ranch_lantern_post",
-      "name": "Lantern_7_L",
+      "name": "Lantern_7",
       "rect": {
         "cx": -85,
         "cz": -14.000000000000014,
-        "hx": 2.19,
-        "hz": 0.96,
-        "yaw": 90
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "entrance",
-      "mesh": "ranch_lantern_post",
-      "name": "Lantern_7_R",
-      "rect": {
-        "cx": -85,
-        "cz": 13.999999999999986,
         "hx": 2.19,
         "hz": 0.96,
         "yaw": 90
@@ -4678,23 +4535,10 @@
     {
       "cluster": "entrance",
       "mesh": "ranch_lantern_post",
-      "name": "Lantern_8_L",
+      "name": "Lantern_8",
       "rect": {
         "cx": -70.00357133746822,
         "cz": 50.20458146424486,
-        "hx": 2.19,
-        "hz": 0.96,
-        "yaw": 135
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "entrance",
-      "mesh": "ranch_lantern_post",
-      "name": "Lantern_8_R",
-      "rect": {
-        "cx": -50.20458146424488,
-        "cz": 70.0035713374682,
         "hx": 2.19,
         "hz": 0.96,
         "yaw": 135
@@ -4794,19 +4638,6 @@
     },
     {
       "cluster": "farm",
-      "mesh": "ranch_slime_coop",
-      "name": "SlimeCoop_3",
-      "rect": {
-        "cx": 198,
-        "cz": 10.000000000000012,
-        "hx": 4.8100000000000005,
-        "hz": 5.0674,
-        "yaw": 270
-      },
-      "scale": 1.3
-    },
-    {
-      "cluster": "farm",
       "mesh": "ranch_goo_hive",
       "name": "GooHive_3",
       "rect": {
@@ -4815,19 +4646,6 @@
         "hx": 2.292,
         "hz": 2.8698,
         "yaw": 270
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_goo_hive",
-      "name": "GooHive_3b",
-      "rect": {
-        "cx": 196,
-        "cz": -12.999999999999988,
-        "hx": 2.292,
-        "hz": 2.8698,
-        "yaw": 290
       },
       "scale": 1.2
     },
@@ -4869,19 +4687,6 @@
         "yaw": 315
       },
       "scale": 1.2
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_pumpkin_patch",
-      "name": "Pumpkins_4b",
-      "rect": {
-        "cx": 128.69343417595167,
-        "cz": -145.66399692442877,
-        "hx": 4.21395,
-        "hz": 4.13465,
-        "yaw": 315
-      },
-      "scale": 1.3
     },
     {
       "cluster": "farm",
@@ -4963,32 +4768,6 @@
     },
     {
       "cluster": "farm",
-      "mesh": "ranch_milk_churn",
-      "name": "MilkChurn_6b",
-      "rect": {
-        "cx": -154.14927829866735,
-        "cz": -124.45079348883239,
-        "hx": 1.5923999999999998,
-        "hz": 1.5006,
-        "yaw": 45
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_windmill",
-      "name": "Windmill_7",
-      "rect": {
-        "cx": -204,
-        "cz": -3.7474192053909006e-14,
-        "hx": 6.7056000000000004,
-        "hz": 7.720000000000001,
-        "yaw": 90
-      },
-      "scale": 1.6
-    },
-    {
-      "cluster": "farm",
       "mesh": "ranch_barrel_stack",
       "name": "BarrelStack_7",
       "rect": {
@@ -5041,6 +4820,19 @@
     },
     {
       "cluster": "farm",
+      "mesh": "phoenix_corner_post",
+      "name": "StilePost_8",
+      "rect": {
+        "cx": -152.02795795510775,
+        "cz": 119.5010460205265,
+        "hx": 1.4,
+        "hz": 1.4,
+        "yaw": 135
+      },
+      "scale": 1
+    },
+    {
+      "cluster": "farm",
       "mesh": "ranch_barrel",
       "name": "Barrel_8",
       "rect": {
@@ -5048,32 +4840,6 @@
         "cz": 144.24978336205567,
         "hx": 1.5216,
         "hz": 1.6464,
-        "yaw": 135
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_barrel",
-      "name": "Barrel_8b",
-      "rect": {
-        "cx": -123.74368670764585,
-        "cz": 147.7853172679884,
-        "hx": 1.5216,
-        "hz": 1.6464,
-        "yaw": 135
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_goo_bucket",
-      "name": "GooBucket_8",
-      "rect": {
-        "cx": -129.40054095713822,
-        "cz": 149.19953083036148,
-        "hx": 1.2984,
-        "hz": 1.2539999999999998,
         "yaw": 135
       },
       "scale": 1.2
@@ -5097,10 +4863,10 @@
       "name": "Ranch2",
       "rect": {
         "cx": 184.77590650225736,
-        "cz": 76.53668647301797,
+        "cz": -76.53668647301795,
         "hx": 2,
         "hz": 2,
-        "yaw": 67.5
+        "yaw": 112.5
       },
       "scale": 1.3333333333333333
     },
@@ -5109,11 +4875,11 @@
       "mesh": "ranch_feed_trough",
       "name": "Ranch3",
       "rect": {
-        "cx": 184.77590650225736,
-        "cz": -76.53668647301795,
+        "cx": -76.53668647301794,
+        "cz": -184.77590650225736,
         "hx": 3.8675,
         "hz": 1.63085,
-        "yaw": 112.5
+        "yaw": 202.5
       },
       "scale": 1.3
     },
@@ -5122,70 +4888,18 @@
       "mesh": "ranch_crate_goo",
       "name": "Ranch4",
       "rect": {
-        "cx": 76.53668647301798,
-        "cz": -184.77590650225736,
-        "hx": 2,
-        "hz": 2,
-        "yaw": 157.5
-      },
-      "scale": 1.3333333333333333
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_hay_bale",
-      "name": "Ranch5",
-      "rect": {
-        "cx": -76.53668647301794,
-        "cz": -184.77590650225736,
-        "hx": 2.5,
-        "hz": 1.6,
-        "yaw": 202.5
-      },
-      "scale": 1.25
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_crate",
-      "name": "Ranch6",
-      "rect": {
-        "cx": -184.77590650225736,
-        "cz": -76.5366864730179,
-        "hx": 2,
-        "hz": 2,
-        "yaw": 247.5
-      },
-      "scale": 1.3333333333333333
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_feed_trough",
-      "name": "Ranch7",
-      "rect": {
         "cx": -184.77590650225733,
         "cz": 76.536686473018,
-        "hx": 3.8675,
-        "hz": 1.63085,
-        "yaw": 292.5
-      },
-      "scale": 1.3
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_crate_goo",
-      "name": "Ranch8",
-      "rect": {
-        "cx": -76.53668647301791,
-        "cz": 184.77590650225736,
         "hx": 2,
         "hz": 2,
-        "yaw": 337.5
+        "yaw": 292.5
       },
       "scale": 1.3333333333333333
     },
     {
       "cluster": "farm",
       "mesh": "ranch_shed",
-      "name": "Shed1",
+      "name": "Shed",
       "rect": {
         "cx": 226.35048546526525,
         "cz": -93.75744092944699,
@@ -5194,58 +4908,6 @@
         "yaw": 112.5
       },
       "scale": 1.4
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_shed",
-      "name": "Shed2",
-      "rect": {
-        "cx": -226.35048546526522,
-        "cz": 93.75744092944706,
-        "hx": 7.385,
-        "hz": 5.985,
-        "yaw": 292.5
-      },
-      "scale": 1.4
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_fence_stile",
-      "name": "FenceStile_Wedge",
-      "rect": {
-        "cx": 157.05952052691873,
-        "cz": 65.05618350206527,
-        "hx": 2.9099999999999997,
-        "hz": 2.4599999999999995,
-        "yaw": 157.5
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_wheelbarrow",
-      "name": "Wheelbarrow_Wedge",
-      "rect": {
-        "cx": -68.88301782571612,
-        "cz": 166.29831585203164,
-        "hx": 3.957,
-        "hz": 2.2794,
-        "yaw": 7.5
-      },
-      "scale": 1.2
-    },
-    {
-      "cluster": "farm",
-      "mesh": "ranch_feed_sacks",
-      "name": "FeedSacks_Wedge",
-      "rect": {
-        "cx": 70.79643498754163,
-        "cz": -170.91771351458806,
-        "hx": 3.093,
-        "hz": 3.1872000000000003,
-        "yaw": 157.5
-      },
-      "scale": 1.2
     }
   ],
   "ringPath": {
