@@ -648,10 +648,11 @@ if RunService:IsStudio() and memoryMode then
 		local profile = session.data
 		local percent = player:GetAttribute("PcwGrowth")
 		if type(percent) == "number" then
-			local slime = PlayerData.slimeOnPad(profile, 1)
-			if not slime then
-				slime = Genome.generate(world.rng, { id = HttpService:GenerateGUID(false), tier = 1 })
-				PlayerData.addSlime(profile, slime, 1)
+			local slime: any = PlayerData.slimeOnPad(profile, 1)
+			if slime == nil then
+				local fresh: any = Genome.generate(world.rng, { id = HttpService:GenerateGUID(false), tier = 1 })
+				PlayerData.addSlime(profile, fresh, 1)
+				slime = fresh
 			end
 			slime.growth = math.clamp(percent, 0, 100) / 100
 		end
