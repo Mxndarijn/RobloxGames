@@ -30,6 +30,9 @@
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
 local Constants = if script then require(script.Parent.Parent.Shared.Constants) else require("../../shared/Constants")
+local MeshAssets = if script
+	then require(script.Parent.Parent.Shared.MeshAssets)
+	else require("../../shared/MeshAssets")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
 local PlotDecor = if script then require(script.Parent.PlotDecor) else require("./PlotDecor")
 
@@ -286,7 +289,9 @@ local function volcano(): WorldNode
 	}
 	local pool = children[3]
 	pool.canCollide = false
-	local crater = disc("Crater", 0.6, 11, { 0, h - 1.7, 0 }, POOL, "Neon")
+	-- Stand-in too: once the mesh is in, a d11 neon plate poked out round the
+	-- mesh's own goo crown. It keeps its place as the drop origin and emitter host.
+	local crater = standIn(disc("Crater", 0.6, 11, { 0, h - 1.7, 0 }, POOL, "Neon"), M)
 	crater.canCollide = false
 	-- Client emitters attach here (VisualsClient); the glow keeps the pool lit.
 	crater.children = { light("CraterGlow") }
@@ -522,11 +527,18 @@ end
 -- Plaza showpieces between the drop ring (62) and the ring path, as kit mesh
 -- slots. The Top Earners board and shop stand skin the live WorldProps models
 -- (ShopStand / LeaderboardBoard, MeshAsset on the Model).
+-- MeshSwap fits a mesh to its slot box, so each slot is the mesh's native
+-- size times one `scale` (a 4x9x2 box squashed the signpost to 0.32/0.62/0.26).
+local function plazaProp(name: string, mesh: string, yaw: number, r: number, scale: number)
+	local native = (MeshAssets.get(mesh) :: any).size :: Vec
+	local size = { native[1] * scale, native[2] * scale, native[3] * scale }
+	return { name = name, mesh = mesh, yaw = yaw, r = r, size = size }
+end
 WorldLayout.PLAZA_PROPS = table.freeze({
-	{ name = "Signpost", mesh = "ranch_plaza_signpost", yaw = 112.5, r = 68, size = { 4, 9, 2 } },
-	{ name = "Podium_1", mesh = "phoenix_plaza_podium_1", yaw = 157.5, r = 68, size = { 5, 3, 5 } },
-	{ name = "Podium_2", mesh = "phoenix_plaza_podium_2", yaw = 150, r = 68, size = { 5, 2.2, 5 } },
-	{ name = "Podium_3", mesh = "phoenix_plaza_podium_3", yaw = 165, r = 68, size = { 5, 1.6, 5 } },
+	plazaProp("Signpost", "ranch_plaza_signpost", 112.5, 68, 0.62),
+	plazaProp("Podium_1", "phoenix_plaza_podium_1", 157.5, 68, 0.7),
+	plazaProp("Podium_2", "phoenix_plaza_podium_2", 150, 68, 0.7),
+	plazaProp("Podium_3", "phoenix_plaza_podium_3", 165, 68, 0.7),
 })
 WorldLayout.PROP_MESHES = table.freeze({
 	ShopStand = "ranch_shop_stand",
@@ -544,6 +556,11 @@ local function visualMesh(node: WorldNode, mesh: string): WorldNode
 	node.canCollide = false
 	node.canQuery = false
 	node.canTouch = false
+	-- Not uploaded yet: a visible box that never collides buried the wilds that
+	-- landed in it (landing ring r33.5..43.8, goo drain). Hidden until the id lands.
+	if MeshAssets.meshId(mesh) == nil then
+		node.transparency = 1
+	end
 	return meshSlot(node, mesh)
 end
 

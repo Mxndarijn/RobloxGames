@@ -30,6 +30,7 @@ local Collection = require(ReplicatedStorage.Shared.Collection)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local FallbackWorld = require(script.Parent.FallbackWorld)
+local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
@@ -248,15 +249,19 @@ local function arc(from: CFrame, to: CFrame, height: number): (t: number) -> CFr
 	end
 end
 
--- Fountain spiral (WorldLayout.SLIDE_PATH), then a short run out to the
--- rolled landing. The primitive chute copies the same path and hides once
--- the mesh is in, so wilds are not sent down the old straight slide.
+-- Fountain spiral (WorldLayout.SLIDE_PATH), then a run out to the rolled
+-- landing that curls round the fountain (Fountain.runOut) instead of a
+-- straight line through it. The primitive chute copies the same path and
+-- hides once the mesh is in, so wilds are not sent down the old straight slide.
+WorldView.SLIDE_SHARE = 0.75 -- of DROP_SECONDS on the spiral, the rest on the run-out
+WorldView.TURN_SHARE = 0.2 -- of the run-out spent turning from the slide heading
+
 local function slideCFrame(t: number): CFrame
 	local path = WorldLayout.SLIDE_PATH
 	local f = math.clamp(t, 0, 1) * (#path - 1)
-	local i = math.floor(f)
+	local i = math.min(math.floor(f), #path - 2) -- t = 1 keeps the last segment's heading
 	local k = f - i
-	local a, b = path[i + 1], path[math.min(i + 2, #path)]
+	local a, b = path[i + 1], path[i + 2]
 	local p = Vector3.new(a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k)
 	local dir = Vector3.new(b[1] - a[1], b[2] - a[2], b[3] - a[3])
 	if dir.Magnitude < 1e-3 then
@@ -267,12 +272,26 @@ end
 
 local function spiralRide(landing: CFrame): (t: number) -> CFrame
 	local mouth = WorldLayout.slidePosition(1)
-	local from = CFrame.new(mouth[1], mouth[2], mouth[3])
+	local to = { landing.X, landing.Y, landing.Z }
+	local exitRotation = slideCFrame(1).Rotation
+	local function at(u: number): Vector3
+		return Vector3.new(Fountain.runOut(mouth, to, u))
+	end
 	return function(t: number): CFrame
-		if t < 0.85 then
-			return slideCFrame(t / 0.85)
+		local split = WorldView.SLIDE_SHARE
+		if t < split then
+			return slideCFrame(t / split)
 		end
-		return from:Lerp(landing, (t - 0.85) / 0.15)
+		local u = (t - split) / (1 - split)
+		local p = at(u)
+		local dir = at(math.min(u + 0.01, 1)) - at(math.max(u - 0.01, 0))
+		dir = Vector3.new(dir.X, 0, dir.Z)
+		if dir.Magnitude < 1e-3 then
+			return exitRotation + p
+		end
+		local facing = CFrame.lookAt(Vector3.zero, dir)
+		-- Ease out of the slide's heading: no snap at the hand-off.
+		return exitRotation:Lerp(facing, math.min(u / WorldView.TURN_SHARE, 1)) + p
 	end
 end
 
