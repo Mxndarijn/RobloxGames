@@ -75,7 +75,7 @@ function PlotDecor.clock(seconds: number): string
 	return string.format("%d:%02d", s // 60, s % 60)
 end
 
--- Which of the 6 tier gems are lit.
+-- Which of the tier gems are lit.
 function PlotDecor.dexGems(count: number, total: number, mask: number?): { boolean }
 	local lit = {}
 	for k = 1, #Config.RARITIES do

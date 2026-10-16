@@ -8,8 +8,8 @@
 	Save safety: ids are new, lower-case and permanent. Nothing here renames a
 	Config.RARITIES tier or a Config.MUTATIONS name (Glow/Lava/Galaxy/Gold);
 	Lava keeps its save id and only displays as "Syrup" (RANCH_RENAME.md).
-	Tiers 1..6 match Config.RARITIES; SECRET_TIER (7) is roster-only until a
-	Secret rarity is added to Config.
+	Tiers 1..7 match Config.RARITIES (SECRET_TIER = 7, the Secret
+	rarity).
 ]]
 
 export type Entry = {

@@ -31,7 +31,11 @@ local function simulate(seed: number)
 			rareModels += 1
 		end
 		for _, event in world.outbox do
-			if event.type == "Notify" and event.sound == "Rare" and event.userId == nil then
+			if
+				event.type == "Notify"
+				and (event.sound == "Rare" or event.sound == "Secret")
+				and event.userId == nil
+			then
 				announced += 1
 			elseif event.type == "Rare" then
 				rareEvents += 1
@@ -82,7 +86,7 @@ describe("Rarity curve", function()
 		expect(((counts[5] or 0) + (counts[6] or 0)) / DROPS < 0.04).toBe(true)
 	end)
 	it("announces every Legendary+ drop to everyone, once, with a Rare event and attribute", function()
-		local rare = (counts[5] or 0) + (counts[6] or 0)
+		local rare = (counts[5] or 0) + (counts[6] or 0) + (counts[7] or 0)
 		expect(announced).toBe(rare)
 		expect(rareEvents).toBe(rare)
 		expect(rareModels).toBe(rare)
@@ -90,7 +94,7 @@ describe("Rarity curve", function()
 end)
 
 describe("Spawner.rareText / pityTier", function()
-	it("names the rarity in capitals, Mythic gets two bangs", function()
+	it("names the rarity in capitals, Mythic and Secret get two bangs", function()
 		local slime = Genome.generate((require("../src/shared/Rng") :: any).new(1), { id = "x", tier = 5 })
 		slime.mutation = "Gold"
 		slime.name = "Globble"

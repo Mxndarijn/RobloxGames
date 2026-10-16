@@ -1174,7 +1174,7 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 		local d = 1.3 * a
 		local gem = { name = `Gem_{g}`, class = "Part", shape = "Ball", size = { d, d, d } } :: WorldNode
 		-- Front faces read along local -X, so tier 1 sits at +X (the viewer's left).
-		gem.pos, gem.rot = on((3.5 - g) * 2.1, -2.95, -0.8), r
+		gem.pos, gem.rot = on((4 - g) * 1.75, -2.95, -0.8), r
 		gem.color, gem.material = PlotDecor.GEM_OFF, "Glass"
 		table.insert(dex.children :: { WorldNode }, ghost(gem))
 	end
