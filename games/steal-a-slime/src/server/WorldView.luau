@@ -39,7 +39,6 @@ local HabitatPads = require(script.Parent.HabitatPads)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
-local PlotClaim = require(script.Parent.PlotClaim)
 local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
@@ -549,38 +548,6 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 	end
 end
 
-local claimPrompts: { [number]: ProximityPrompt } = {}
-
---[[
-	ClaimPrompt on each plot's BuyStand.Counter (CONTRACT.md §9.1), enabled by
-	updatePlots while the plot is free. Plots without a BuyStand get none.
-	`onTrigger(player, plotIndex)`.
-]]
-function WorldView.addClaimPrompts(onTrigger: (Player, number) -> ())
-	for index = 1, Config.PLOT_COUNT do
-		local plot = WorldView.plot(index)
-		local stand = plot and plot:FindFirstChild("BuyStand")
-		local counter = stand and stand:FindFirstChild("Counter")
-		if not counter or not counter:IsA("BasePart") then
-			continue
-		end
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = Constants.CLAIM_PROMPT_NAME
-		prompt.ActionText = PlotClaim.ACTION_TEXT
-		prompt.ObjectText = PlotClaim.OBJECT_TEXT
-		prompt.KeyboardKeyCode = Enum.KeyCode.E
-		prompt.HoldDuration = Config.HOLD_CONFIRM_SECONDS
-		prompt.RequiresLineOfSight = false
-		prompt.MaxActivationDistance = 10
-		prompt.Enabled = false
-		prompt.Parent = counter
-		prompt.Triggered:Connect(function(player: Player)
-			onTrigger(player, index)
-		end)
-		claimPrompts[index] = prompt
-	end
-end
-
 local function applyPrompt(prompt: ProximityPrompt?, view: PlotPrompts.Prompt, owner: number?)
 	if not prompt then
 		return
@@ -667,13 +634,6 @@ function WorldView.updatePlots(world: World.World, now: number)
 				end
 				applyPrompt(buyPad, view.buyPad, view.ownerUserId)
 			end
-			local claim = claimPrompts[index]
-			if claim then
-				local claimView = PlotClaim.describe(world, index)
-				if claim.Enabled ~= claimView.enabled then
-					claim.Enabled = claimView.enabled
-				end
-			end
 			local sign = plot:FindFirstChild("Sign")
 			if sign then
 				PlotSigns.apply(sign, PlotSigns.lines(index, session))
@@ -703,17 +663,6 @@ function WorldView.plotSpawn(plotIndex: number): CFrame?
 		return base.CFrame * CFrame.new(0, base.Size.Y / 2 + 4, 0)
 	end
 	return nil
-end
-
--- Moves a living character onto its plot's Base (ClaimPrompt "home", §9.1).
-function WorldView.sendHome(player: Player, plotIndex: number): boolean
-	local character = player.Character
-	local spawn = WorldView.plotSpawn(plotIndex)
-	if not character or not spawn or not WorldView.rootPart(player) then
-		return false
-	end
-	character:PivotTo(spawn)
-	return true
 end
 
 -- Spawn point on top of the hub SpawnLocation (world/HubSpawn.rbxmx), or any SpawnLocation.

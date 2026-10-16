@@ -8,14 +8,12 @@
 	and only changes them locally (nothing replicates, no remotes).
 
 	Plot attributes read (CONTRACT.md §5.2 + new ones, all optional):
-	  OwnerUserId  0 = free      -> BuyStand shown, LockSign "FREE PLOT"
+	  OwnerUserId  0 = free      -> LockSign "FREE PLOT"
 	  LockUntil    server time   -> LockBarrier + LockSign "LOCKED m:ss" / "UNLOCKED"
 	  Locked       boolean (§8.4) -> used only when LockUntil is missing
 	  Rebirths                   -> RebirthDecor by PlotDecor.band (bands start at
 	                                the §8.8 ranks Goo Getter / Slime Wrangler /
 	                                Goo Tycoon / Slime Sovereign / Mythic Monarch)
-	  PlotPrice    number?       -> BuyStand price line (absent/0 = no price; not in
-	                                the contract yet, plots are free today)
 	  DexCount / DexTotal        -> DexBoard text + bar (DexTotal default 1152)
 	  DexTierMask  number?       -> DexBoard gem k lit when bit k-1 is set;
 	                                absent = gems light by progress (k/6 of total)
@@ -28,7 +26,6 @@
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
 local Constants = if script then require(script.Parent.Parent.Shared.Constants) else require("../../shared/Constants")
-local Economy = if script then require(script.Parent.Parent.Shared.Economy) else require("../../shared/Economy")
 
 local PlotDecor = {}
 
@@ -164,39 +161,6 @@ local function applyLock(plot: Instance, owned: boolean, locked: boolean, remain
 	set(lines[2], "Text", if not owned then "" elseif locked then PlotDecor.clock(remaining) else "stealable!")
 end
 
-local function applyBuy(plot: Instance, owned: boolean)
-	local stand = plot:FindFirstChild("BuyStand")
-	if not stand then
-		return
-	end
-	-- The kit mesh slot (MeshAsset) stays invisible; once MeshSwap put its
-	-- "Mesh" in, that Mesh is the stand and the MeshStandIn primitives stay
-	-- hidden (Board's text still shows: SurfaceGuis draw on hidden parts).
-	local mesh: Instance? = nil
-	for _, part in stand:GetChildren() do
-		if part:GetAttribute("MeshAsset") ~= nil then
-			mesh = mesh or part:FindFirstChild("Mesh")
-		end
-	end
-	for _, part in stand:GetChildren() do
-		if part:GetAttribute("MeshAsset") ~= nil then
-			continue
-		end
-		show(part, not owned and not (mesh and part:GetAttribute("MeshStandIn") ~= nil))
-	end
-	show(mesh, not owned)
-	local board = stand:FindFirstChild("Board")
-	if board then
-		local lines = labels(board, { 0.45, 0.3, 0.25 })
-		local price = plot:GetAttribute("PlotPrice")
-		local priced = type(price) == "number" and price > 0
-		set(lines[1], "Text", if owned then "" else "FREE PLOT")
-		set(lines[2], "Text", if owned then "" else "Claim plot")
-		set(lines[3], "Text", if owned or not priced then "" else `${Economy.formatNumber(price)}`)
-		set(lines[3], "TextColor3", rgb(PlotDecor.FREE_COLOR))
-	end
-end
-
 local function applyRebirth(plot: Instance, band: number)
 	local decor = plot:FindFirstChild("RebirthDecor")
 	if not decor then
@@ -296,7 +260,6 @@ function PlotDecor.apply(plot: Instance, now: number)
 	end
 	local rebirths = plot:GetAttribute("Rebirths")
 	applyLock(plot, owned, locked, remaining)
-	applyBuy(plot, owned)
 	applyRebirth(plot, if owned and type(rebirths) == "number" then PlotDecor.band(rebirths) else 0)
 	applyDex(plot, owned)
 end

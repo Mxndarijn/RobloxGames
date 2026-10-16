@@ -94,7 +94,6 @@ export type AdminEvent = {
 export type World = {
 	sessions: { [number]: Session },
 	plots: { [number]: number }, -- plotIndex -> userId
-	claims: { [number]: number }, -- userId -> plot reserved by ClaimPrompt before their data loaded (§9.1)
 	plotCount: number,
 	wild: { [string]: Wild },
 	carriedBy: { [string]: number }, -- slimeId -> carrier userId
@@ -135,7 +134,6 @@ function World.new(options: Options): World
 	local world: World = {
 		sessions = {},
 		plots = {},
-		claims = {},
 		plotCount = options.plotCount or 8,
 		wild = {},
 		carriedBy = {},
@@ -219,29 +217,14 @@ function World.drain(world: World): { Event }
 	return events
 end
 
--- Plot for `userId` to join on: the plot they claimed if it's still free, else
--- the lowest free plot nobody else claimed, else any free plot; nil when full.
-function World.freePlot(world: World, userId: number?): number?
-	local claimed = if userId then world.claims[userId] else nil
-	if claimed and world.plots[claimed] == nil and claimed >= 1 and claimed <= world.plotCount then
-		return claimed
-	end
-	local reserved = {}
-	for other, index in world.claims do
-		if other ~= userId then
-			reserved[index] = true
-		end
-	end
-	local fallback = nil
+-- The lowest free plot, nil when full. Every joining player gets one automatically.
+function World.freePlot(world: World): number?
 	for index = 1, world.plotCount do
 		if world.plots[index] == nil then
-			if not reserved[index] then
-				return index
-			end
-			fallback = fallback or index
+			return index
 		end
 	end
-	return fallback
+	return nil
 end
 
 -- Slimes that can't be merged, sold or stolen right now.

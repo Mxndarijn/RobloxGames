@@ -119,7 +119,7 @@ polar("Birdhouse", "ranch_birdhouse", "plaza", 330, 93, 180, 1.2)
 polar("Planter", "ranch_flower_planter", "plaza", 56, 90, 180, 1.2)
 
 -- Entrances --------------------------------------------------------------
--- A mailbox by the gate on the side away from the "Free plot" stand, on every
+-- A mailbox by the gate on every
 -- plot (v29 B2: odd plots used to get a lantern instead, so half the plots had
 -- no mailbox). One each a plot paid for the plot DexBoard meshes
 -- (DECOR_SLOT_BUDGET, C6); the lanterns' slots became the odd plots' mailboxes,

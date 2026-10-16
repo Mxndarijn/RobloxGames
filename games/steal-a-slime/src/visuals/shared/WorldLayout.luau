@@ -178,10 +178,10 @@ WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 --           between the build count and the watcher's (340 vs 356 at
 --           09ea65e, 398 vs 414 at b84f795). RUNTIME_SLOT_ALLOWANCE.
 --   decor   everything else: ranch props, pad stands, fountain, plaza,
---           landing ring, gates, plot dex boards and buy stands, WorldProps
+--           landing ring, gates, plot dex boards, WorldProps
 --           skins. Capped at 160 = MESH_SLOT_BUDGET - fence - posts - border
---           share: full, with the 8 BuyStand (ranch_shop_stand) slots paid
---           for by the border share (120 -> 112).
+--           share (the plots no longer carry a BuyStand: 8 slots free;
+--           the shop skin is the one ranch_shop_stand).
 -- The fallback (two segments per panel until the upload) adds one slot per
 -- panel: 112.
 WorldLayout.MESH_SLOT_BUDGET = 400
@@ -307,7 +307,7 @@ WorldLayout.DEX_MESH = "phoenix_top_earners_board"
 WorldLayout.DEX_SCALE = 0.7
 WorldLayout.DEX_CONTENT_SCALE = 0.6
 WorldLayout.DEX_FACE = table.freeze({ x = -0.35, y = 11.53, front = 0.4, width = 12.9, height = 11.5 })
--- The "Free plot" BuyStand skins ranch_shop_stand at BUY_STAND_SCALE (9.6 x
+-- The plaza ShopStand skins ranch_shop_stand at BUY_STAND_SCALE (9.6 x
 -- 11.3 x 6, about the old primitive stand). BUY_STAND_FACE = its butter SHOP
 -- sign face and BUY_STAND_COUNTER = its counter, at native size from the kit
 -- source (models/ranch_shop_stand.py) in the mesh's own frame (front +Z):
@@ -1002,9 +1002,9 @@ local function ghost(node: WorldNode, transparency: number?): WorldNode
 end
 
 -- Attribute-driven plot cosmetics (PlotDecor; VisualsClient shows / hides
--- them locally): lock barrier + lock sign, "Free plot" stand, rebirth
+-- them locally): lock barrier + lock sign, rebirth
 -- trim / pillars / banners / crown, SlimeDex board. Shipped in their neutral
--- state: free plot (stand visible), unlocked, no rebirths, empty dex.
+-- state: free plot, unlocked, no rebirths, empty dex.
 local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode }
 	local r = { 0, yaw, 0 }
 	local h = s / 2
@@ -1034,77 +1034,6 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 		ghost(disc("Lamp", 0.4, 1.3, at({ 19, 8.7, -17.2 }), { 90, 220, 110 }, "Neon", yaw)),
 	}
 	table.insert(nodes, lockSign)
-
-	-- "Free plot" stand on the grass just outside the entrance, left of the
-	-- path and clear of the Sign (shown while OwnerUserId == 0): a
-	-- BUY_STAND_MESH slot turned so its kit front faces the map centre (every
-	-- shop does, TODO v28 #10; the plot's own -Z misses it by ~4 degrees).
-	-- The primitives are its stand-ins, laid on the mesh in the stand's frame
-	-- (kit front = +Z): Counter (the ClaimPrompt) on its counter, Board
-	-- (PlotDecor's text, which stays once the part hides) on its SHOP sign,
-	-- back posts, and an upright Coin on the counter. Decor only, as before:
-	-- PlotDecor hides the stand on owned plots, so it never collides.
-	local base = at({ -13, 0, -h - 5 })
-	local standYaw = WorldLayout.facingCentre(base)
-	local st = frame(base, standYaw)
-	local ks, sign, top = WorldLayout.BUY_STAND_SCALE, WorldLayout.BUY_STAND_FACE, WorldLayout.BUY_STAND_COUNTER
-	local standSize = meshSize(WorldLayout.BUY_STAND_MESH, ks)
-	-- Mesh frame at native size (x, y up from the bottom, z + = front) to world.
-	local function onStand(x: number, y: number, z: number): Vec
-		return st({ x * ks, y * ks, z * ks })
-	end
-	-- Stand-in parts' Front (-Z) faces the kit front.
-	local sr = { 0, standYaw + 180, 0 }
-	local topY = top.top * ks
-	local function part(name: string, size: Vec, pos: Vec, color: Vec, material: string, rot: Vec?): WorldNode
-		return standIn(ghost(block(name, size, pos, color, material, rot or sr)), WorldLayout.BUY_STAND_MESH)
-	end
-	local coin = part(
-		"Coin",
-		{ 0.4, 1.8, 1.8 },
-		st({ -2, topY + 0.3 + 0.9, top.z * ks }),
-		{ 255, 205, 60 },
-		"Neon",
-		{ 0, standYaw - 90, 0 }
-	)
-	coin.shape = "Cylinder"
-	local postH = 13.4 * ks
-	table.insert(nodes, {
-		name = "BuyStand",
-		class = "Model",
-		primaryPart = "Counter",
-		children = {
-			meshSlot(
-				block("StandMesh", standSize, st({ 0, standSize[2] / 2, 0 }), WOOD, nil, { 0, standYaw, 0 }),
-				WorldLayout.BUY_STAND_MESH,
-				true
-			),
-			part(
-				"Counter",
-				{ top.width * ks, topY, top.depth * ks },
-				onStand(top.x, top.top / 2, top.z),
-				WOOD,
-				"WoodPlanks"
-			),
-			part(
-				"CounterTop",
-				{ top.width * ks + 0.6, 0.3, top.depth * ks + 0.5 },
-				st({ 0, topY + 0.15, top.z * ks }),
-				{ 240, 200, 70 },
-				"SmoothPlastic"
-			),
-			part("PostL", { 0.6, postH, 0.6 }, onStand(5.2, 6.7, -3.07), WOOD, "Wood"),
-			part("PostR", { 0.6, postH, 0.6 }, onStand(-5.2, 6.7, -3.07), WOOD, "Wood"),
-			part(
-				"Board",
-				{ sign.width * ks, sign.height * ks, 0.03 },
-				st({ sign.x * ks, sign.y * ks, sign.front * ks + 0.01 + 0.015 }),
-				{ 40, 150, 70 },
-				"SmoothPlastic"
-			),
-			coin,
-		},
-	})
 
 	-- Rebirth cosmetics (PlotDecor.band): trim, pillars, banners, crown.
 	local rebirth: WorldNode = { name = "RebirthDecor", class = "Model", children = {} }

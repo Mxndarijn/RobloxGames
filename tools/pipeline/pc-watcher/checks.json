@@ -1,8 +1,8 @@
 {
   "plaza_centre": [0, 0],
-  "front_parts": {"BuyStand": "StandMesh", "Gate": "GateMesh"},
+  "front_parts": {"Gate": "GateMesh"},
   "bench_faces_campfire": {"bench": "CampBench", "target": "Campfire", "min_dot": 0.9, "min_items": 1},
-  "shops_face_centre": {"names": ["ShopStand", "BuyStand"], "min_dot": 0.9, "min_items": 2},
+  "shops_face_centre": {"names": ["ShopStand"], "min_dot": 0.9, "min_items": 1},
   "silo_centred": {"slot": "FountainMesh", "silo_offset": [-6.52, -7.75], "centre": [0, 0], "max_dist": 0.05},
   "plot_signs": {"plots_folder": "Plots", "sign": "Sign", "gate": "Gate", "min_dot": 0.9, "min_items": 1}
 }

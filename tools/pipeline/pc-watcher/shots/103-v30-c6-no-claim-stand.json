@@ -1,0 +1,11 @@
+{
+  "id": "v30-c6-no-claim-stand",
+  "todo": "v30 C6",
+  "kind": "world",
+  "target": "Sign",
+  "index": 1,
+  "from": "centre",
+  "dist": 30,
+  "height": 10,
+  "note": "v30 C6: plot 1 entrance seen from the plaza side; the old 'Free plot' claim stand (BuyStand) is gone, no 'Claim plot' prompt. Lune proof: tests/PlotAutoAssign.spec, PlotMesh.spec, LiveBoot.spec"
+}

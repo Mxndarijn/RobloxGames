@@ -117,7 +117,6 @@ describe("UI gaps closed (UI-CONTRACT-GAPS.md)", function()
 				Constants.PLOT_DEX_COUNT_ATTRIBUTE,
 				Constants.PLOT_DEX_TOTAL_ATTRIBUTE,
 				Constants.PLOT_DEX_TIER_MASK_ATTRIBUTE,
-				Constants.PLOT_PRICE_ATTRIBUTE,
 			}
 		do
 			expect(string.find(source, `"{name}"`, 1, true) ~= nil).toBe(true)

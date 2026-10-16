@@ -32,7 +32,7 @@ function Sessions.join(
 	if world.sessions[userId] then
 		return world.sessions[userId], nil
 	end
-	local plotIndex = World.freePlot(world, userId)
+	local plotIndex = World.freePlot(world)
 	if not plotIndex then
 		return nil, "server is full"
 	end
@@ -52,7 +52,6 @@ function Sessions.join(
 		lastPushAt = -math.huge,
 	}
 	world.plots[plotIndex] = userId
-	world.claims[userId] = nil
 	world.sessions[userId] = session
 	Codes.expireBoost(session.data, now) -- a boost never pays for time spent offline
 	Income.applyOffline(world, session, now)
@@ -62,7 +61,6 @@ end
 
 -- Returns the leaving session (so the caller can save its data) or nil.
 function Sessions.leave(world: World, userId: number, now: number): Session?
-	world.claims[userId] = nil -- left before their data loaded
 	local session = world.sessions[userId]
 	if not session then
 		return nil

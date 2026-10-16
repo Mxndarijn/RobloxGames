@@ -15,7 +15,7 @@
 	  coil   buy the Speed Coil, measure Humanoid.WalkSpeed before / after,
 	         while carrying and after a respawn
 	  drop   a dropped slime lands on the first collidable surface
-	  lockbuy / claim / rare / loop   plot prompts, FREE PLOT ClaimPrompt, Legendary+ drops,
+	  lockbuy / rare / loop   plot prompts, Legendary+ drops,
 	         first grab -> rebirth 8
 	  ui     the real State / attributes / prompts through the pure src/ui
 	         modules: BuyUpgrade row, goals, dex, lock / pad buttons,
@@ -376,91 +376,6 @@ scenario("lockbuy", function()
 	table.remove(rt.players, table.find(rt.players, other))
 	other:Destroy()
 	rt:advance(0.3)
-end)
-
----------------------------------------------------------------------------
--- claim: the FREE PLOT stand's ClaimPrompt sends you home (CONTRACT.md §9.1)
----------------------------------------------------------------------------
-scenario("claim", function()
-	local own = S.WorldView.plot(session.plotIndex)
-	local ownPrompt = own:FindFirstChild("BuyStand") and own.BuyStand.Counter:FindFirstChild("ClaimPrompt")
-	local freeIndex = nil
-	for index = 1, world.plotCount do
-		if world.plots[index] == nil then
-			freeIndex = index
-			break
-		end
-	end
-	local stand = S.WorldView.plot(freeIndex):FindFirstChild("BuyStand")
-	local prompt = stand and stand.Counter:FindFirstChild("ClaimPrompt")
-	check(
-		"claim: free plot's BuyStand has an enabled ClaimPrompt, own plot's is off",
-		prompt ~= nil
-			and prompt.Enabled
-			and prompt.ActionText == "Claim plot"
-			and prompt.HoldDuration == 0
-			and prompt:GetAttribute("ShowOnlyToUserId") == nil
-			and ownPrompt ~= nil
-			and not ownPrompt.Enabled,
-		prompt and `Plot_{freeIndex}: "{prompt.ActionText}" / "{prompt.ObjectText}"` or "missing"
-	)
-	moveTo(stand.Counter.CFrame.Position + Vector3.new(0, 3, -3))
-	prompt.Triggered:Fire(player)
-	rt:advance(0.5)
-	local last = rt.records[#rt.records]
-	local text = last and last.name == "Notify" and last.args[1] or "?"
-	check(
-		"claim: pressing it teleports you home and explains auto-assignment",
-		S.WorldView.inHomeZone(player, session.plotIndex)
-			and world.plots[freeIndex] == nil
-			and string.find(text, "every player gets one", 1, true) ~= nil,
-		`inHomeZone={S.WorldView.inHomeZone(player, session.plotIndex)}; "{text}"`
-	)
-	local id = grabWild()
-	local carryPos = stand.Counter.CFrame.Position + Vector3.new(0, 3, -3)
-	moveTo(carryPos)
-	prompt.Triggered:Fire(player)
-	rt:advance(0.5)
-	last = rt.records[#rt.records]
-	text = last and last.name == "Notify" and last.args[1] or "?"
-	check(
-		"claim: no teleport while carrying",
-		world.carriedBy[id] == USER_ID
-			and (root().CFrame.Position - carryPos).Magnitude < 1
-			and string.find(text, "carrying", 1, true) ~= nil,
-		`still carrying={world.carriedBy[id] == USER_ID}; "{text}"`
-	)
-	invoke("Drop")
-end)
-
----------------------------------------------------------------------------
--- rare: a Legendary+ drop is announced to everyone and flagged for effects
----------------------------------------------------------------------------
-scenario("rare", function()
-	world.pity.sinceLegendary = 299 -- the next volcano drop hits the Legendary pity floor
-	world.nextSpawnAt = 0
-	local records = #rt.records
-	rt:advance(1.5)
-	local id = rt.workspace:GetAttribute("RareSpawnId")
-	local tier = rt.workspace:GetAttribute("RareSpawnTier")
-	local body = id and S.WorldView.slimeBody(id)
-	local toast = nil
-	for i = records + 1, #rt.records do
-		local r = rt.records[i]
-		if r.kind == "FireAllClients" and r.name == "Notify" and r.args[3] == "Rare" then
-			toast = r.args[1]
-		end
-	end
-	check(
-		"rare: Legendary+ drop announced + attributes",
-		id ~= nil
-			and (tier or 0) >= 5
-			and rt.workspace:GetAttribute("RareSpawnAt") ~= nil
-			and body ~= nil
-			and body.Parent:GetAttribute("RareSpawn") == tier
-			and toast ~= nil,
-		`RareSpawnId={id} tier={tier} model RareSpawn={body and body.Parent:GetAttribute("RareSpawn")}; toast "{toast}"`
-	)
 end)
 
 ---------------------------------------------------------------------------

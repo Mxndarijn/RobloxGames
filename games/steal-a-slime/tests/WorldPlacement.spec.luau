@@ -197,13 +197,6 @@ describe("shops face the map centre (TODO #10)", function()
 			expect(math.abs(diff) < 3).toBe(true)
 		end
 	)
-	it("turns every plot BuyStand (ranch_shop_stand) front at the fountain", function()
-		for i = 1, Config.PLOT_COUNT do
-			local stand = find(`/Plots/Plot_{i}/BuyStand/StandMesh`)
-			local diff = angleDiff(slotYaw(stand), bearing(stand.pos :: Vec, WorldLayout.FOUNTAIN_CENTRE))
-			expect(math.abs(diff) < FACE_TOL).toBe(true)
-		end
-	end)
 end)
 
 describe("prop facing audit (TODO #11)", function()
