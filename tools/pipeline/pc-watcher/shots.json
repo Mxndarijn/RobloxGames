@@ -788,7 +788,7 @@
     "note": "TODO 20: Plot panel rows/appraise popup list ALL of a slime's mutations (\"Glow Syrup\", combos like Solar) instead of one (FEATURES.MutationStacking, cap MAX_MUTATIONS)"
   },
   {
-    "id": "18-weather-Rain",
+    "id": "18-weather-Rain-pc",
     "todo": "18",
     "kind": "world",
     "pos": [
@@ -803,10 +803,11 @@
     ],
     "weather": "Rain",
     "wait": 2.5,
-    "note": "TODO 18: Rain weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
+    "note": "TODO 18: Rain weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 2 s tween in [desktop]",
+    "device": "desktop"
   },
   {
-    "id": "18-weather-Snow",
+    "id": "18-weather-Snow-pc",
     "todo": "18",
     "kind": "world",
     "pos": [
@@ -821,10 +822,11 @@
     ],
     "weather": "Snow",
     "wait": 2.5,
-    "note": "TODO 18: Snow weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
+    "note": "TODO 18: Snow weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 2 s tween in [desktop]",
+    "device": "desktop"
   },
   {
-    "id": "18-weather-Starfall",
+    "id": "18-weather-Starfall-pc",
     "todo": "18",
     "kind": "world",
     "pos": [
@@ -839,16 +841,106 @@
     ],
     "weather": "Starfall",
     "wait": 2.5,
-    "note": "TODO 18: Starfall weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
+    "note": "TODO 18: Starfall weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 2 s tween in [desktop]",
+    "device": "desktop"
   },
   {
-    "id": "17-motion-lod-tiers",
+    "id": "18-weather-Rain-phone",
+    "todo": "18",
+    "kind": "world",
+    "pos": [
+      0,
+      30,
+      70
+    ],
+    "look": [
+      0,
+      8,
+      0
+    ],
+    "weather": "Rain",
+    "wait": 2.5,
+    "note": "TODO 18: Rain weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 2 s tween in [phone-portrait]",
+    "device": "phone-portrait"
+  },
+  {
+    "id": "18-weather-Snow-phone",
+    "todo": "18",
+    "kind": "world",
+    "pos": [
+      0,
+      30,
+      70
+    ],
+    "look": [
+      0,
+      8,
+      0
+    ],
+    "weather": "Snow",
+    "wait": 2.5,
+    "note": "TODO 18: Snow weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 2 s tween in [phone-portrait]",
+    "device": "phone-portrait"
+  },
+  {
+    "id": "18-weather-Starfall-phone",
+    "todo": "18",
+    "kind": "world",
+    "pos": [
+      0,
+      30,
+      70
+    ],
+    "look": [
+      0,
+      8,
+      0
+    ],
+    "weather": "Starfall",
+    "wait": 2.5,
+    "note": "TODO 18: Starfall weather (FEATURES.Weather, flag on, client-only WeatherDebug forces the type): camera-attached particles + tint after the 2 s tween in [phone-portrait]",
+    "device": "phone-portrait"
+  },
+  {
+    "id": "17-motion-lod-near",
     "todo": "17",
     "kind": "world",
     "target": "Pad_1",
     "seat": true,
+    "from": "front",
+    "dist": 20,
+    "height": 8,
     "motion": "Tiers",
     "wait": 0.6,
-    "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod): records the near / mid / far tier counts of the animated slimes around the pad (res.motion.tiers); with the flag off all are near"
+    "device": "desktop",
+    "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod on), camera 20 studs from the pad: records near / mid / far tier counts (res.motion.tiers)"
+  },
+  {
+    "id": "17-motion-lod-mid",
+    "todo": "17",
+    "kind": "world",
+    "target": "Pad_1",
+    "seat": true,
+    "from": "front",
+    "dist": 60,
+    "height": 8,
+    "motion": "Tiers",
+    "wait": 0.6,
+    "device": "desktop",
+    "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod on), camera 60 studs from the pad: records near / mid / far tier counts (res.motion.tiers)"
+  },
+  {
+    "id": "17-motion-lod-far",
+    "todo": "17",
+    "kind": "world",
+    "target": "Pad_1",
+    "seat": true,
+    "from": "front",
+    "dist": 120,
+    "height": 8,
+    "motion": "Tiers",
+    "wait": 0.6,
+    "device": "desktop",
+    "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod on), camera 120 studs from the pad: records near / mid / far tier counts (res.motion.tiers)"
   }
 ]

@@ -441,8 +441,8 @@ local Config = {
 		MysteryEgg = true, -- a cash-only Mystery Egg in the Shop hatches a random slime (MysteryEgg); false = no egg, BuyEgg refused
 		FriendBonus = true, -- +FRIEND_BONUS_PER_FRIEND income per friend in the same server, up to FRIEND_BONUS_CAP (FriendBonus); false = no bonus
 		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
-		Weather = false, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md. Off until frame-reviewed
-		SlimeLod = false, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
+		Weather = true, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md
+		SlimeLod = true, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
