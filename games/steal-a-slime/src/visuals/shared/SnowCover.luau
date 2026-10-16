@@ -43,6 +43,27 @@ function SnowCover.visible(level: number): boolean
 	return level > 0.001
 end
 
+-- Level a client starts at. The server stamps when the current weather began (`startedAt`) and when Snow
+-- last ended (`endedAt`), both in server time (workspace:GetServerTimeNow), so a late joiner lands inside the
+-- build-up or the melt. Snow lasts at least 120 s (> BUILD_SECONDS), so a melt always starts from 1.
+-- Missing stamps fall back sanely: snowing without a start counts as full, melting without an end as bare.
+-- `pinned` (the SnowCoverDebug pin or the WeatherDebug preview) ignores the stamps and starts from 0.
+function SnowCover.levelAt(snowing: boolean, startedAt: any, endedAt: any, now: number, pinned: boolean?): number
+	if pinned then
+		return 0
+	end
+	if snowing then
+		if type(startedAt) ~= "number" then
+			return 1
+		end
+		return math.clamp((now - startedAt) / SnowCover.BUILD_SECONDS, 0, 1)
+	end
+	if type(endedAt) ~= "number" then
+		return 0
+	end
+	return math.clamp(1 - (now - endedAt) / SnowCover.MELT_SECONDS, 0, 1)
+end
+
 -- True while level still has to move (Heartbeat can stop otherwise).
 function SnowCover.settled(level: number, snowing: boolean): boolean
 	return (snowing and level >= 1) or (not snowing and level <= 0)

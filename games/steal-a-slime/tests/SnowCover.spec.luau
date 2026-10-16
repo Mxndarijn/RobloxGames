@@ -81,3 +81,46 @@ describe("SnowCover (F2)", function()
 		expect(Config.WEATHER_PARTICLE_CAP >= 1).toBe(true)
 	end)
 end)
+
+describe("SnowCover late join", function()
+	local B, M = SnowCover.BUILD_SECONDS, SnowCover.MELT_SECONDS
+
+	it("joining 10 s into the build-up shows the partial level", function()
+		local level = SnowCover.levelAt(true, 1000, nil, 1010)
+		expect(math.abs(level - 10 / B) < 1e-9).toBe(true)
+		expect(SnowCover.levelAt(true, 1000, nil, 1000)).toBe(0)
+		expect(SnowCover.levelAt(true, 1000, nil, 1000 + B)).toBe(1)
+		expect(SnowCover.levelAt(true, 1000, nil, 1000 + B * 5)).toBe(1)
+	end)
+
+	it("joining mid-melt shows the partial level, and a finished melt is bare", function()
+		local level = SnowCover.levelAt(false, 2000, 2000, 2000 + M / 3)
+		expect(math.abs(level - 2 / 3) < 1e-9).toBe(true)
+		expect(SnowCover.levelAt(false, 2000, 2000, 2000 + M)).toBe(0)
+		expect(SnowCover.levelAt(false, 2000, 2000, 2000 + M * 4)).toBe(0)
+	end)
+
+	it("clamps a client clock that reads slightly before the stamp", function()
+		expect(SnowCover.levelAt(true, 1000, nil, 999)).toBe(0)
+		expect(SnowCover.levelAt(false, 1000, 1000, 999)).toBe(1)
+	end)
+
+	it("falls back when the stamps are missing", function()
+		expect(SnowCover.levelAt(true, nil, nil, 500)).toBe(1) -- mid-snow, unknown start: full
+		expect(SnowCover.levelAt(false, nil, nil, 500)).toBe(0) -- clear, unknown end: bare
+		expect(SnowCover.levelAt(false, 100, nil, 500)).toBe(0)
+		expect(SnowCover.levelAt(true, nil, 100, 500)).toBe(1)
+	end)
+
+	it("a pinned / debug-preview client builds up from 0 whatever the stamps say", function()
+		expect(SnowCover.levelAt(true, 1000, nil, 1020, true)).toBe(0)
+		expect(SnowCover.levelAt(true, nil, nil, 1020, true)).toBe(0)
+		expect(SnowCover.levelAt(false, 1000, 1000, 1001, true)).toBe(0)
+	end)
+
+	it("continues from the placed level with step", function()
+		local level = SnowCover.levelAt(true, 0, nil, B / 2)
+		expect(math.abs(level - 0.5) < 1e-9).toBe(true)
+		expect(SnowCover.step(level, B / 2, true)).toBe(1)
+	end)
+end)
