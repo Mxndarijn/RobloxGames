@@ -1,0 +1,6 @@
+{
+  "id": "v18-nav-badge-inset",
+  "todo": "v18",
+  "kind": "ui",
+  "note": "v18: nav badges (SlimeDex % chip, ! and $) sit fully inside their button corner, not clipped or overlapping neighbours"
+}
