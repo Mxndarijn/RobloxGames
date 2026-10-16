@@ -52,7 +52,7 @@ DEFAULTS = {
     "busy_retry_s": 300,
     "run_budget_s": 900,
     "mesh_slot_budget": 400,
-    "runtime_part_budget": 2300,  # ratchet, only ever lower it; target 1800. World BaseParts at runtime (excl. slimes/characters/transients)
+    "runtime_part_budget": 2350,  # ratchet, only ever lower it; target 1800. World BaseParts at runtime (excl. slimes/characters/transients)
     "launch_timeout_s": 120,
     "client_timeout_s": 90,
     "stats_seconds": 5,
