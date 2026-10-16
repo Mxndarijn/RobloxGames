@@ -8596,5 +8596,15 @@
       ]
     }
   },
-  "frames_dir": "91f987855205bd0e48d83350341c9fa9fe771eaa/"
+  "frames_dir": "91f987855205bd0e48d83350341c9fa9fe771eaa/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "HOLD, B6 slide: same as caf7f20. The hard probe has 1/1728 violations: 'segment 3 k=0.90 side=2.4 v=40 ball left the trough sideways'. Needs 0.",
+    "Mesh slots 392 <= 400: PASS.",
+    "c4-uniform-pads-plot (#152): the visible pads are identical square crate pads with the red rectangle mat: PASS. The slime sits flush on Pad_1 (seat gap 0, pad_top 3.40) and on the morphed habitat (habitat_set now=flower_bed). Caveats: the frame is a 390x844 phone-portrait crop at night (dark purple tint) and shows only 3 of the other pads, not the whole plot. The morphed Pad_1 reads more like a pale octagon than a flower bed in the night light. Suggest a desktop or daytime framing for this shot.",
+    "focus_stolen [], close pass, no leftovers."
+  ]
 }
