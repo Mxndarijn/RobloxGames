@@ -11,7 +11,9 @@
 Global flags: --home DIR (default C:\\gate\\pc-watcher or $PCW_HOME), --dry-run, -v.
 
 Studio is driven only through StudioMCP.exe (stdio JSON-RPC) plus Win32 for window size and
-capture. See README.md for the flow, report format and limits.
+capture. It runs in the background: Studio starts minimized-not-active, lives off-screen, is
+captured with PrintWindow and never gets focus or real mouse/keyboard input (README "Runs in the
+background"). See README.md for the flow, report format and limits.
 """
 
 import argparse
@@ -56,14 +58,6 @@ DEFAULTS = {
     # kind (mouse_down, mouse_up, key_down, key_up) -> action template, "$x" / "$y" / "$key" filled in.
     # Empty = built from the tool's inputSchema (see mcp_client.build_action).
     "input_overrides": {},
-    "twoplayer_cmdline": True,
-    "twoplayer_port": 53640,
-    "twoplayer_server_args": ["-task", "StartServer", "-placeId", "0", "-universeId", "0", "-port", "$port",
-                              "-creatorId", "0", "-creatorType", "0", "$rbxl"],
-    "twoplayer_client_args": ["-task", "StartClient", "-port", "$port"],
-    "twoplayer_clients": 2,
-    "twoplayer_server_wait_s": 20,
-    "twoplayer_timeout_s": 45,  # whole mode (b) attempt, server wait included (91a2c21 spent 158 s on it)
     "reports_branch": "studio-reports",
     "push_retries": 3,
     "jpeg_quality": 80,
@@ -115,10 +109,6 @@ def test_project(project, attributes=None):
     attrs = ws.setdefault("$attributes", {})
     attrs.update(attributes or {"DataStoreMode": "Memory"})
     return p
-
-
-def fill_args(template, values):
-    return [values.get(a[1:], a) if isinstance(a, str) and a.startswith("$") else a for a in template]
 
 
 def next_client_guess(target, samples):
@@ -326,6 +316,10 @@ class Run:
         self.rbxl = os.path.join(paths.builds, "%s.rbxl" % sha) if sha else None
         self.outdir = os.path.join(paths.out, "dry-run" if dry else "", sha) if sha else None
         self.playing = False
+        self.our_pids = set()  # every Studio pid this run started (focus guard)
+        self.fg_start = None  # (hwnd, pid) of the foreground window when the run began
+        self.focus_stolen = []  # "FOCUS STOLEN at step X"
+        self.input_ok = True  # MCP input allowed (off once a call moved the OS cursor)
         if self.outdir:
             os.makedirs(self.outdir, exist_ok=True)
 
@@ -336,6 +330,60 @@ class Run:
     def note(self, msg):
         log.info("note: %s", msg)
         self.notes.append(msg)
+
+    # --- background guards ---
+    def record_foreground(self):
+        if self.dry or os.name != "nt":
+            return
+        try:
+            self.fg_start = win32.foreground_pid()
+        except Exception as e:
+            log.warning("foreground: %r", e)
+
+    def check_focus(self, where):
+        """Notes 'FOCUS STOLEN at step X' when a Studio we started is the foreground window.
+        Only looks: nothing ever hands the focus back (that would be one more focus change)."""
+        if self.dry or os.name != "nt":
+            return False
+        try:
+            hwnd, pid = win32.foreground_pid()
+        except Exception as e:
+            log.warning("foreground: %r", e)
+            return False
+        if not win32.focus_stolen(pid, self.our_pids | tracked_pids(self.paths)):
+            return False
+        msg = "FOCUS STOLEN at step %s" % where
+        if msg not in self.focus_stolen:
+            self.focus_stolen.append(msg)
+            self.note("%s (foreground hwnd %s, Studio pid %s)" % (msg, hwnd, pid))
+        return True
+
+    def _mcp_input(self, what, fn):
+        """One StudioMCP input call with the OS-cursor guard.
+
+        user_mouse_input / user_keyboard_input inject into the engine, not via OS SendInput. The
+        cursor position is read before and after; if it moved, MCP input is off for the rest of
+        the run and callers fall back to setting panels Visible.
+        """
+        if not self.input_ok:
+            return False, {"error": "mcp input disabled: mcp input moved OS cursor"}
+        before = _cursor()
+        ok, info = fn()
+        after = _cursor()
+        if before is not None and after is not None and before != after:
+            self.input_ok = False
+            info["os_cursor_moved"] = [list(before), list(after)]
+            self.note("mcp input moved OS cursor (%s: %s -> %s); MCP input disabled for the rest of the run, "
+                      "panels set Visible instead" % (what, before, after))
+        return ok, info
+
+    def click(self, x, y):
+        return self._mcp_input("click %d,%d" % (round(x), round(y)),
+                               lambda: self.session().click(self.studio_id, x, y, self.cfg["input_overrides"]))
+
+    def key(self, key):
+        return self._mcp_input("key " + key,
+                               lambda: self.session().key(self.studio_id, key, self.cfg["input_overrides"]))
 
     def add_frame(self, fid, file=None, status="captured", **extra):
         """One report.frames entry: {id, file, status: captured|missing|blank, todo, ...}."""
@@ -430,6 +478,15 @@ class Run:
         if self.mcp:
             self.mcp.close()
             self.mcp = None
+
+
+def _cursor():
+    if os.name != "nt":
+        return None
+    try:
+        return win32.cursor_pos()
+    except Exception:
+        return None
 
 
 def tracked_pids(paths):
@@ -537,21 +594,24 @@ def step_launch(run):
     if not os.path.isfile(run.rbxl):
         raise StepFail("build missing: %s" % run.rbxl)
     kill_strays(run)
-    proc = subprocess.Popen([exe, run.rbxl], cwd=run.studio_dir)
+    proc = win32.launch_background([exe, run.rbxl], cwd=run.studio_dir)  # SW_SHOWMINNOACTIVE
     ours = {proc.pid}
+    run.our_pids |= ours
 
     def grow(pids):
         # Only processes descending from the one we started (never a Studio the user opens meanwhile).
         return win32.descendants(win32.process_table(), pids) & (set(win32.list_pids()) | pids)
 
     save_pids(run.paths, ours)
-    log.info("launched Studio pid %s: %s", proc.pid, run.rbxl)
+    log.info("launched Studio pid %s (minimized, not activated): %s", proc.pid, run.rbxl)
     mcp = run.session()
     deadline = time.time() + run.cfg["launch_timeout_s"]
     found, last = None, None
     while time.time() < deadline:
         ours = grow(ours)
+        run.our_pids |= ours
         save_pids(run.paths, ours)
+        park_window(run, ours)
         found, studios, raw = find_our_studio(run, mcp)
         last = raw.brief(400)
         if found:
@@ -566,7 +626,8 @@ def step_launch(run):
     win = None
     for _ in range(20):
         ours = grow(ours)
-        win = win32.studio_main_window(ours)
+        run.our_pids |= ours
+        win = park_window(run, ours)
         if win:
             break
         time.sleep(1)
@@ -574,6 +635,7 @@ def step_launch(run):
     run.hwnd = win["hwnd"] if win else None
     if not win:
         run.note("Studio main window not found (device sizes / frames will be skipped)")
+    run.check_focus("launch")
     run.save_current()
     prepare_edit(run)
     detail = {"studio_id": run.studio_id, "pids": sorted(ours), "window": win and win["title"],
@@ -591,6 +653,22 @@ def step_launch(run):
     except Exception as e:
         run.note("screen_capture failed: %r" % (e,))
     return "pass", detail
+
+
+def park_window(run, pids):
+    """Finds the Studio main window of `pids` (iconic ones too) and moves it off-screen, un-minimized,
+    without activating it (win32.place_offscreen). Returns the window row or None."""
+    try:
+        win = win32.studio_main_window(pids)
+        if not win:
+            return None
+        if win["iconic"] or not win32.is_offscreen(win["hwnd"]):
+            rect = win32.place_offscreen(win["hwnd"])
+            log.info("parked Studio window %s (%r) off-screen at %s", win["hwnd"], win["title"], rect)
+        return win
+    except Exception as e:
+        log.warning("park window: %r", e)
+        return None
 
 
 def save_mcp_image(run, img, device):
@@ -734,9 +812,13 @@ def click_target(run, probe, path, check=None):
     t = (probe.get("targets") or {}).get(path) or {}
     if not t.get("found") or not t.get("shown"):
         return False, {"error": "%s not on screen (%s)" % (path, t)}, probe
+    if not run.input_ok:
+        return False, {"error": "mcp input disabled: mcp input moved OS cursor"}, probe
     attempts, ok, after = [], False, probe
     for mode, x, y in click_points(t)[:2 if check else 1]:
-        ok, info = run.session().click(run.studio_id, x, y, run.cfg["input_overrides"])
+        if not run.input_ok:
+            break
+        ok, info = run.click(x, y)
         time.sleep(0.7)
         after = ui_probe(run)
         info.update(at=[round(x), round(y)], inset=mode, ok=ok)
@@ -747,6 +829,8 @@ def click_target(run, probe, path, check=None):
         attempts.append(info)
         if not check or info["effect"]:
             break
+    if not attempts:
+        return False, {"error": "mcp input disabled: mcp input moved OS cursor"}, after
     last = attempts[-1]
     out = {"at": last["at"], "inset": last["inset"], "attempts": attempts}
     if check:
@@ -765,9 +849,24 @@ def step_onboarding(run):
     ok, info, after = click_target(run, before, "TutorialOverlay.Hide", lambda q: not q.get("tutorial_visible"))
     detail["hide_click"] = info
     detail["card_visible_after_hide"] = after.get("tutorial_visible")
+    if after.get("tutorial_visible") and not run.input_ok:
+        hidden = set_visible(run, "TutorialOverlay", False)
+        detail.update(hide_method="visible_fallback", card_visible_after_hide=not hidden)
+        if hidden:
+            return "warn", dict(detail, why="mcp input moved OS cursor: card hidden with Visible=false, Hide not clicked")
     if after.get("tutorial_visible"):
         return "fail", dict(detail, error="clicking Hide did not hide the tutorial card")
     return "pass", detail
+
+
+def set_visible(run, name, show):
+    """luau/panel_visible on SlimeUI.<name>; True when it ends in the wanted state."""
+    run.luau("panel_visible", "Client", timeout=15, panel=name, show=show)
+    time.sleep(0.4)
+    p = ui_probe(run)
+    if name == "TutorialOverlay":
+        return bool(p.get("tutorial_visible")) == show
+    return (name in (p.get("open_panels") or [])) == show
 
 
 def step_shop(run):
@@ -789,6 +888,12 @@ def step_shop(run):
                                                          else "no effect") if ok else "click failed")
     run.extra["input_methods"] = methods
     detail.update(methods=methods, open_after=p.get("shop_open"), open_panels=p.get("open_panels"))
+    if not p.get("shop_open") and not run.input_ok:
+        opened = set_visible(run, "ShopPanel", True)
+        methods["visible_fallback"] = "opened" if opened else "no effect"
+        detail["open_after"] = opened
+        if opened:
+            return "warn", dict(detail, why="mcp input moved OS cursor: shop opened with Visible=true, not a click")
     if not p.get("shop_open"):
         return "fail", dict(detail, error="no click opened the shop")
     return "pass", detail
@@ -800,12 +905,22 @@ def step_esc(run):
     p = ui_probe(run)
     if not p.get("shop_open"):
         return "skip", {"reason": "shop not open"}
-    ok, info = run.session().key(run.studio_id, "Escape", run.cfg["input_overrides"])
+    methods = run.extra.setdefault("input_methods", {})
+    if not run.input_ok:
+        closed = set_visible(run, "ShopPanel", False)
+        methods["mcp_keyboard:Escape"] = "not pressed: mcp input disabled (moved OS cursor)"
+        return ("warn" if closed else "fail"), {
+            "key": None, "open_after": not closed, "why": "mcp input moved OS cursor: Escape not tested, "
+                                                          "shop closed with Visible=false"}
+    # StudioMCP user_keyboard_input goes into the engine, not OS SendInput (cursor guard in run.key).
+    ok, info = run.key("Escape")
     time.sleep(0.8)
     after = ui_probe(run)
     detail = {"key": info, "open_after": after.get("shop_open"), "open_panels": after.get("open_panels")}
-    run.extra.setdefault("input_methods", {})["mcp_keyboard:Escape"] = (
-        "works" if not after.get("shop_open") else "no effect") if ok else info
+    methods["mcp_keyboard:Escape"] = ("works" if not after.get("shop_open") else "no effect") if ok else info
+    if after.get("shop_open") and not run.input_ok:
+        set_visible(run, "ShopPanel", False)
+        return "warn", dict(detail, why="mcp input moved OS cursor during Escape; shop closed with Visible=false")
     if after.get("shop_open"):
         click_target(run, after, "ShopPanel.Close", lambda q: not q.get("shop_open"))  # tidy up for the next steps
         return "fail", dict(detail, error="Escape did not close the shop")
@@ -820,7 +935,9 @@ def tutorial_advance(run):
         if not ok or not d.get("moved"):
             return {"ran": False, "why": str(d)[:200]}
         time.sleep(1.0)
-        run.session().key(run.studio_id, "E", run.cfg["input_overrides"])
+        if not run.input_ok:
+            return {"ran": False, "why": "mcp input disabled (moved OS cursor)"}
+        run.key("E")
         time.sleep(2.0)
         after = ui_probe(run)
         res = {"ran": True, "slime": d.get("name"), "price": d.get("price"), "step_before": before,
@@ -839,7 +956,7 @@ def converge_viewport(run, hwnd, target):
     samples.append((client, vp))
     guess = (target[0] + client[0] - vp[0], target[1] + client[1] - vp[1])
     for _ in range(run.cfg["device_iterations"]):
-        reached = win32.set_client_size(hwnd, guess[0], guess[1], 0, 0)
+        reached = win32.set_client_size(hwnd, guess[0], guess[1])
         time.sleep(1.2)
         vp = _viewport(run)
         samples.append((reached, vp))
@@ -853,7 +970,7 @@ def converge_viewport(run, hwnd, target):
             break  # Studio / Windows clamps the window: closest reachable
         guess = nxt
     if best and best[2] != vp:
-        win32.set_client_size(hwnd, best[1][0], best[1][1], 0, 0)
+        win32.set_client_size(hwnd, best[1][0], best[1][1])
         time.sleep(1.2)
         vp = _viewport(run)
     return vp, [list(s[0]) + list(s[1]) for s in samples]
@@ -885,7 +1002,6 @@ def viewport_rect(run, hwnd):
             res["error"] = str(d)[:200]
         else:
             res["viewport"] = d.get("viewport")
-            win32.bring_to_front(hwnd)
             time.sleep(0.4)
             cap = win32.capture_client(hwnd)
             res["method"] = cap["method"]
@@ -911,11 +1027,10 @@ def capture_frame(run, hwnd, device, crop=False, **rec):
     `rec` goes into the frames entry (todo, kind, ...).
     """
     rect = viewport_rect(run, hwnd) if crop else None
-    fg = win32.bring_to_front(hwnd)
     time.sleep(0.6)
     title = win32.title_of(hwnd)
-    cap = win32.capture_client(hwnd)
-    info = {"method": cap["method"], "foreground": fg, "title": title, "stats": cap["stats"], "tried": cap["tried"],
+    cap = win32.capture_client(hwnd)  # PrintWindow(PW_RENDERFULLCONTENT): off-screen, unfocused
+    info = {"method": cap["method"], "title": title, "stats": cap["stats"], "tried": cap["tried"],
             "size": [cap["w"], cap["h"]]}
     if rect and cap["rgb"] is not None:
         try:
@@ -932,8 +1047,6 @@ def capture_frame(run, hwnd, device, crop=False, **rec):
         reasons.append("blank frame")
     if not frame_title_ok(title, [run.sha[:7]]):
         reasons.append("window title %r is not Studio" % title)
-    if cap["method"] == "screen" and not (fg and win32.foreground_hwnd() == hwnd):
-        reasons.append("screen copy while Studio was not the foreground window")
     name = "%s-%s.png" % (run.sha, device)
     if cap["rgb"] is not None:
         path = os.path.join(run.outdir, name if not reasons else name.replace(".png", "-rejected.png"))
@@ -958,8 +1071,9 @@ def step_devices(run):
         hwnd = run.hwnd = win and win["hwnd"]
     if not hwnd:
         raise StepFail("no Studio window to resize")
+    if not win32.is_offscreen(hwnd):
+        win32.place_offscreen(hwnd)
     x, y, w, h = win32.window_rect(hwnd)
-    was_max = win32.is_maximized(hwnd)
     results, failed = {}, []
     try:
         for device, tw, th in run.cfg["devices"]:
@@ -980,80 +1094,15 @@ def step_devices(run):
             results[device] = res
     finally:
         try:
-            win32.set_window_rect(hwnd, x, y, w, h)
-            if was_max:
-                win32.maximize(hwnd)
+            win32.set_window_rect(hwnd, x, y, w, h)  # back to the off-screen rect; never maximized
         except Exception as e:
-            run.note("could not restore the Studio window: %r" % (e,))
+            run.note("could not put the Studio window back to its off-screen rect: %r" % (e,))
     detail = {"devices": results}
     if failed:
         return "fail", dict(detail, error="HUD/nav off-screen or missing at: %s" % ", ".join(failed))
     if not any(r.get("hud") for r in results.values()):
         return "fail", dict(detail, error="no device size was checked")
     return "pass", detail
-
-
-def twoplayer_cmdline(run):
-    """Mode (b): a local test server plus clients started from the Studio command line."""
-    cfg = run.cfg
-    exe = run.studio_exe()
-    values = {"port": str(cfg["twoplayer_port"]), "rbxl": run.rbxl}
-    before_pids = set(win32.list_pids())
-    mcp = run.session()
-    known = {s["id"] for s in mcp.list_studios()[0]}
-    started = []
-    deadline = time.time() + max(15, min(cfg["twoplayer_timeout_s"], run.remaining() - 100))  # leave room for mode c
-
-    def left(cap):
-        return max(3, min(cap, deadline - time.time()))
-
-    try:
-        started.append(subprocess.Popen([exe] + fill_args(cfg["twoplayer_server_args"], values), cwd=run.studio_dir))
-        time.sleep(min(cfg["twoplayer_server_wait_s"], max(0, deadline - time.time() - 10)))
-        for _ in range(cfg["twoplayer_clients"]):
-            started.append(subprocess.Popen([exe] + fill_args(cfg["twoplayer_client_args"], values), cwd=run.studio_dir))
-            time.sleep(2)
-        server, clients, last = None, [], None
-        while time.time() < deadline:
-            fresh = [s for s in mcp.list_studios()[0] if s["id"] not in known]
-            for s in fresh:
-                if time.time() >= deadline:
-                    break
-                ok, d, _ = mcp.luau(s["id"], _body("server_players"), "Server", timeout=left(20))
-                if ok and len(d.get("players") or []) >= 2:
-                    server = (s["id"], d)
-                last = d
-            if server:
-                for s in fresh:
-                    if s["id"] == server[0]:
-                        continue
-                    ok, d, _ = mcp.luau(s["id"], _body("client_plots"), "Client", timeout=left(20))
-                    if ok:
-                        clients.append(d)
-                break
-            time.sleep(min(4, max(0, deadline - time.time())))
-        if not server:
-            return None, "MCP saw no test server with 2 players within %ds (%d new studios; last %s)" % (
-                cfg["twoplayer_timeout_s"],
-                len([s for s in mcp.list_studios()[0] if s["id"] not in known]), str(last)[:160])
-        sd = server[1]
-        ok = len(sd.get("plot_owners") or []) >= 2 and any(len(c.get("plot_owners") or []) >= 2 for c in clients)
-        return {"mode": "b-cmdline", "pass": ok, "server": sd, "clients": clients,
-                "assertion": "server has >=2 players on distinct plots and a client sees both plots owned"}, None
-    finally:
-        # Kill only the process trees we started; a Studio that appeared otherwise is the user's.
-        table = win32.process_table()
-        mine = win32.descendants(table, [p.pid for p in started])
-        for pid in mine:
-            win32.kill_pid(pid, tree=False)
-        for p in started:
-            try:
-                p.kill()
-            except Exception:
-                pass
-        left = set(win32.list_pids()) - before_pids - mine - tracked_pids(run.paths)
-        if left:
-            run.note("two_player: new Studio pids %s not started by the watcher were left alone" % sorted(left))
 
 
 def _body(name):
@@ -1071,18 +1120,9 @@ def step_twoplayer(run):
     ok, probe = run.luau("testservice_probe", "Edit", timeout=20)
     detail["a_probe"] = probe
     tried.append("a: no multi-client API in StudioTestService/TestService (probe only)")
-    # (b) command-line test server + clients.
-    if run.cfg["twoplayer_cmdline"] and run.remaining() > run.cfg["twoplayer_timeout_s"] + 100:
-        try:
-            res, why = twoplayer_cmdline(run)
-        except Exception as e:
-            res, why = None, "error %r" % (e,)
-        if res:
-            detail.update(res)
-            return ("pass" if res["pass"] else "fail"), detail
-        tried.append("b: " + why)
-    else:
-        tried.append("b: skipped (%s)" % ("disabled" if not run.cfg["twoplayer_cmdline"] else "run budget"))
+    # (b) a command-line test server + clients (-task StartServer / StartClient) is removed: it
+    # opened extra visible Studio windows, which breaks "runs in the background".
+    tried.append("b: removed (extra -task StartServer/StartClient Studio windows were visible)")
     # (c) two stand-in sessions on the real server modules inside a play session.
     if run.remaining() < 60:
         tried.append("c: skipped (run budget)")
@@ -1148,15 +1188,18 @@ def open_panel(run, key):
 
 def close_panel(run, panel):
     """Escape (MCP key); then the panel's Close button; then Visible=false. Returns the method that closed it."""
-    run.session().key(run.studio_id, "Escape", run.cfg["input_overrides"])
-    time.sleep(0.6)
-    p = ui_probe(run)
-    if p.get("menu_open"):  # nothing of ours took Escape: the Roblox menu opened, close it again
-        run.session().key(run.studio_id, "Escape", run.cfg["input_overrides"])
+    if run.input_ok:
+        run.key("Escape")
         time.sleep(0.6)
         p = ui_probe(run)
-    if panel not in (p.get("open_panels") or []):
-        return "escape"
+        if p.get("menu_open") and run.input_ok:  # nothing of ours took Escape: the Roblox menu opened, close it again
+            run.key("Escape")
+            time.sleep(0.6)
+            p = ui_probe(run)
+        if panel not in (p.get("open_panels") or []):
+            return "escape"
+    else:
+        p = ui_probe(run)
     ok, _, p = click_target(run, p, panel + ".Close", lambda q: panel not in (q.get("open_panels") or []))
     if ok and panel not in (p.get("open_panels") or []):
         return "close_button"
@@ -1265,13 +1308,14 @@ def step_close(run):
             except Exception:
                 pass
     pids = tracked_pids(run.paths)
+    run.our_pids |= pids
     win = win32.studio_main_window(pids) if pids else None
     if win:
-        win32.post_close(win["hwnd"])
+        win32.post_close(win["hwnd"])  # PostMessage WM_CLOSE: no activation
     deadline = time.time() + 15
     while time.time() < deadline and any(win32.pid_alive(p) for p in pids):
         time.sleep(1)
-    killed = [p for p in pids if win32.pid_alive(p) and win32.kill_pid(p)]
+    killed = [p for p in pids if win32.pid_alive(p) and win32.kill_pid(p, tree=True)]  # our trees only
     save_pids(run.paths, set())
     run.studio_id, run.hwnd = None, None
     run.save_current()
@@ -1286,7 +1330,7 @@ def step_close(run):
 
 def build_report(run):
     steps = {k: run.steps[k] for k in STEP_ORDER if k in run.steps}
-    status = overall_status(steps)
+    status = "fail" if run.focus_stolen else overall_status(steps)
     return {
         "sha": run.sha,
         "status": status,
@@ -1298,6 +1342,8 @@ def build_report(run):
         "perf": run.perf,
         "frames": list(run.frames),
         "input_methods": run.extra.get("input_methods"),
+        "background": {"foreground_at_start": list(run.fg_start) if run.fg_start else None,
+                       "focus_stolen": list(run.focus_stolen), "mcp_input": run.input_ok},
         "watcher_version": VERSION,
     }
 
@@ -1320,6 +1366,8 @@ def run_step(run, name, fn):
         status, detail = "fail", {"error": str(e)}
     except Exception as e:
         status, detail = "fail", {"error": "%r" % (e,), "trace": traceback.format_exc()[-1500:]}
+    if run.check_focus(name):
+        detail = dict(detail, focus_stolen=True)
     run.steps[name] = {"status": status, "seconds": round(time.time() - t0, 1), "detail": detail}
     log.info("== step %s: %s (%.1fs) %s", name, status, time.time() - t0, str(detail.get("error", ""))[:300])
     return status in ("pass", "warn")
@@ -1328,6 +1376,7 @@ def run_step(run, name, fn):
 def full_run(paths, cfg, sha, dry=False):
     """Steps 1-8 for one sha. Returns (report, busy)."""
     run = Run(paths, cfg, sha, dry)
+    run.record_foreground()
     busy = False
     try:
         ok = run_step(run, "build", step_build)
@@ -1544,6 +1593,7 @@ def cmd_step(paths, cfg, name, sha, dry):
     if name == "build" and not sha:
         sha = remote_sha(paths, cfg)
     run = Run(paths, cfg, sha, dry)
+    run.record_foreground()
     run.load_current()
     if not run.sha:
         log.error("no sha: pass --sha or run `step build` first")
@@ -1576,8 +1626,10 @@ def cmd_step(paths, cfg, name, sha, dry):
     finally:
         run.save_current() if name != "close" else None
         run.close()
-    print(json.dumps({"steps": run.steps, "perf": run.perf, "frames": run.frames, "notes": run.notes},
-                     indent=2, default=str))
+    print(json.dumps({"steps": run.steps, "perf": run.perf, "frames": run.frames, "notes": run.notes,
+                      "focus_stolen": run.focus_stolen, "mcp_input": run.input_ok}, indent=2, default=str))
+    if run.focus_stolen:
+        return 1
     return 0 if all(s["status"] in ("pass", "warn", "skip") for s in run.steps.values()) else 1
 
 

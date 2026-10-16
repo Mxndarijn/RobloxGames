@@ -1,4 +1,9 @@
-"""Win32 helpers via ctypes: processes, Studio windows, resizing, client-area capture.
+"""Win32 helpers via ctypes: processes, Studio windows, off-screen sizing, PrintWindow capture.
+
+Background-only: nothing here activates a window, changes the foreground or sends OS input.
+Studio starts minimized-not-active, is moved left of all monitors with SetWindowPlacement
+(SW_SHOWNOACTIVATE), resized with SetWindowPos(SWP_NOACTIVATE | ...), captured with
+PrintWindow(PW_RENDERFULLCONTENT) and closed with a posted WM_CLOSE.
 
 Imports fine on any OS; every function that needs user32/gdi32 calls _api() first,
 which raises OSError off Windows. parse_tasklist_csv is pure (selftest.py).
@@ -32,6 +37,11 @@ def _api():
     kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
 
     WNDENUMPROC = ctypes.WINFUNCTYPE(wt.BOOL, wt.HWND, wt.LPARAM)
+
+    class WINDOWPLACEMENT(ctypes.Structure):
+        _fields_ = [("length", wt.UINT), ("flags", wt.UINT), ("showCmd", wt.UINT), ("ptMinPosition", wt.POINT),
+                    ("ptMaxPosition", wt.POINT), ("rcNormalPosition", wt.RECT)]
+
     sig = {
         (user32, "EnumWindows"): (wt.BOOL, [WNDENUMPROC, wt.LPARAM]),
         (user32, "GetWindowThreadProcessId"): (wt.DWORD, [wt.HWND, ctypes.POINTER(wt.DWORD)]),
@@ -45,11 +55,11 @@ def _api():
         (user32, "ClientToScreen"): (wt.BOOL, [wt.HWND, ctypes.POINTER(wt.POINT)]),
         (user32, "GetWindow"): (wt.HWND, [wt.HWND, wt.UINT]),
         (user32, "SetWindowPos"): (wt.BOOL, [wt.HWND, wt.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wt.UINT]),
-        (user32, "ShowWindow"): (wt.BOOL, [wt.HWND, ctypes.c_int]),
-        (user32, "SetForegroundWindow"): (wt.BOOL, [wt.HWND]),
+        (user32, "GetWindowPlacement"): (wt.BOOL, [wt.HWND, ctypes.POINTER(WINDOWPLACEMENT)]),
+        (user32, "SetWindowPlacement"): (wt.BOOL, [wt.HWND, ctypes.POINTER(WINDOWPLACEMENT)]),
+        (user32, "GetSystemMetrics"): (ctypes.c_int, [ctypes.c_int]),
         (user32, "GetForegroundWindow"): (wt.HWND, []),
-        (user32, "BringWindowToTop"): (wt.BOOL, [wt.HWND]),
-        (user32, "keybd_event"): (None, [wt.BYTE, wt.BYTE, wt.DWORD, ctypes.c_void_p]),
+        (user32, "GetCursorPos"): (wt.BOOL, [ctypes.POINTER(wt.POINT)]),
         (user32, "PostMessageW"): (wt.BOOL, [wt.HWND, wt.UINT, wt.WPARAM, wt.LPARAM]),
         (user32, "GetDC"): (wt.HDC, [wt.HWND]),
         (user32, "ReleaseDC"): (ctypes.c_int, [wt.HWND, wt.HDC]),
@@ -59,7 +69,6 @@ def _api():
         (gdi32, "CreateDIBSection"): (wt.HBITMAP, [wt.HDC, ctypes.c_void_p, wt.UINT, ctypes.POINTER(ctypes.c_void_p), wt.HANDLE, wt.DWORD]),
         (gdi32, "SelectObject"): (wt.HGDIOBJ, [wt.HDC, wt.HGDIOBJ]),
         (gdi32, "DeleteObject"): (wt.BOOL, [wt.HGDIOBJ]),
-        (gdi32, "BitBlt"): (wt.BOOL, [wt.HDC, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wt.HDC, ctypes.c_int, ctypes.c_int, wt.DWORD]),
         (kernel32, "OpenProcess"): (wt.HANDLE, [wt.DWORD, wt.BOOL, wt.DWORD]),
         (kernel32, "GetExitCodeProcess"): (wt.BOOL, [wt.HANDLE, ctypes.POINTER(wt.DWORD)]),
         (kernel32, "CloseHandle"): (wt.BOOL, [wt.HANDLE]),
@@ -75,6 +84,7 @@ def _api():
     a = API()
     a.wt, a.user32, a.gdi32, a.kernel32 = wt, user32, gdi32, kernel32
     a.WNDENUMPROC = WNDENUMPROC
+    a.WINDOWPLACEMENT = WINDOWPLACEMENT
     _API = a
     return a
 
@@ -200,7 +210,12 @@ def _title(a, hwnd):
 
 
 def top_windows(pids=None):
-    """Top-level windows -> [{hwnd, pid, title, visible, w, h}] (only `pids` if given)."""
+    """Top-level windows -> [{hwnd, pid, title, visible, iconic, owned, w, h, nw, nh}] (only `pids` if given).
+
+    Every top-level window of the pid, whatever its visibility: Studio launched SW_SHOWMINNOACTIVE
+    has an iconic main window whose GetWindowRect is a tiny caption at -32000, so nw/nh (the
+    restored size, rcNormalPosition) is the size to judge it by.
+    """
     a = _api()
     wanted = set(int(p) for p in pids) if pids is not None else None
     found = []
@@ -211,10 +226,13 @@ def top_windows(pids=None):
         if wanted is None or pid.value in wanted:
             r = a.wt.RECT()
             a.user32.GetWindowRect(hwnd, ctypes.byref(r))
+            pl = _placement(a, hwnd)
+            n = pl.rcNormalPosition if pl else r
             found.append({
                 "hwnd": hwnd, "pid": pid.value, "title": _title(a, hwnd),
-                "visible": bool(a.user32.IsWindowVisible(hwnd)),
-                "w": r.right - r.left, "h": r.bottom - r.top,
+                "visible": bool(a.user32.IsWindowVisible(hwnd)), "iconic": bool(a.user32.IsIconic(hwnd)),
+                "owned": bool(a.user32.GetWindow(hwnd, GW_OWNER)),
+                "w": r.right - r.left, "h": r.bottom - r.top, "nw": n.right - n.left, "nh": n.bottom - n.top,
             })
         return True
 
@@ -222,11 +240,37 @@ def top_windows(pids=None):
     return found
 
 
+def pick_main_window(wins):
+    """Pure: the Studio main window among top_windows() rows, or None.
+
+    Unowned titled windows only, visible or not (an iconic one counts). Prefers 'Roblox Studio'
+    titles, then a restored size over 300x200, then the largest restored size. Falls back to any
+    unowned window of the pid (like .NET's Process.MainWindowHandle) when none has a title yet.
+    """
+    def area(w):
+        return max(0, w.get("nw", w["w"])) * max(0, w.get("nh", w["h"]))
+
+    def big(w):
+        return w.get("nw", w["w"]) > 300 and w.get("nh", w["h"]) > 200
+
+    unowned = [w for w in wins if not w.get("owned")]
+    titled = [w for w in unowned if w["title"]]
+    for pool in ([w for w in titled if "roblox studio" in w["title"].lower()], titled, unowned):
+        if pool:
+            return max(pool, key=lambda w: (big(w), w["visible"] or w.get("iconic", False), area(w)))
+    return None
+
+
 def studio_main_window(pids):
-    """Largest visible titled window of `pids` that looks like the Studio main window, or None."""
-    wins = [w for w in top_windows(pids) if w["visible"] and w["title"] and w["w"] > 300 and w["h"] > 200]
-    studio = [w for w in wins if "roblox studio" in w["title"].lower()] or wins
-    return max(studio, key=lambda w: w["w"] * w["h"]) if studio else None
+    """Main window of `pids` (visible, hidden or minimized), or None."""
+    return pick_main_window(top_windows(pids))
+
+
+def window_pid(hwnd):
+    a = _api()
+    pid = a.wt.DWORD()
+    a.user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+    return pid.value
 
 
 def title_has_place(title):
@@ -254,61 +298,117 @@ def window_rect(hwnd):
     return r.left, r.top, r.right - r.left, r.bottom - r.top
 
 
-def is_maximized(hwnd):
-    return bool(_api().user32.IsZoomed(hwnd))
+SWP_NOZORDER, SWP_NOACTIVATE, SWP_NOOWNERZORDER = 0x0004, 0x0010, 0x0200
+SWP_QUIET = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER  # never activates, never reorders
+SW_SHOWMINNOACTIVE, SW_SHOWNOACTIVATE = 7, 4
+STARTF_USESHOWWINDOW = 0x1
+SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN = 76, 77
+OFFSCREEN_MARGIN = 100
+GW_OWNER = 4
+PW_RENDERFULLCONTENT = 2
 
 
-SWP_NOZORDER, SWP_NOACTIVATE, SWP_NOMOVE = 0x0004, 0x0010, 0x0002
+def launch_background(args, cwd=None):
+    """Popen with STARTUPINFO SW_SHOWMINNOACTIVE: the first window opens minimized and not active."""
+    si = subprocess.STARTUPINFO()
+    si.dwFlags |= STARTF_USESHOWWINDOW
+    si.wShowWindow = SW_SHOWMINNOACTIVE
+    return subprocess.Popen(args, cwd=cwd, startupinfo=si)
 
 
-def restore(hwnd):
-    _api().user32.ShowWindow(hwnd, 9)  # SW_RESTORE
+def offscreen_x(virtual_left, window_w, margin=OFFSCREEN_MARGIN):
+    """Pure: left edge that puts a window_w wide window `margin` px left of every monitor."""
+    return int(virtual_left) - int(window_w) - int(margin)
 
 
-def maximize(hwnd):
-    _api().user32.ShowWindow(hwnd, 3)  # SW_MAXIMIZE
-
-
-def set_client_size(hwnd, cw, ch, x=None, y=None):
-    """Resizes so the client area is cw x ch (Windows / Studio may clamp). Returns the client size reached."""
+def virtual_origin():
     a = _api()
-    if a.user32.IsZoomed(hwnd) or a.user32.IsIconic(hwnd):
-        restore(hwnd)
-        time.sleep(0.4)
-    left, top, ww, wh = window_rect(hwnd)
+    return a.user32.GetSystemMetrics(SM_XVIRTUALSCREEN), a.user32.GetSystemMetrics(SM_YVIRTUALSCREEN)
+
+
+def _placement(a, hwnd):
+    pl = a.WINDOWPLACEMENT()
+    pl.length = ctypes.sizeof(a.WINDOWPLACEMENT)
+    return pl if a.user32.GetWindowPlacement(hwnd, ctypes.byref(pl)) else None
+
+
+def place_offscreen(hwnd, w=None, h=None):
+    """Un-minimizes `hwnd` to a normal window left of all monitors, without activating it.
+
+    SetWindowPlacement with showCmd SW_SHOWNOACTIVATE and rcNormalPosition off-screen (w x h, default:
+    its current restored size). It never restores or maximizes through ShowWindow and never sets the
+    foreground window.
+    Returns the window rect (x, y, w, h).
+    """
+    a = _api()
+    pl = _placement(a, hwnd)
+    if pl is None:
+        raise OSError("GetWindowPlacement failed (%d)" % ctypes.get_last_error())
+    n = pl.rcNormalPosition
+    w = int(w or (n.right - n.left))
+    h = int(h or (n.bottom - n.top))
+    vx, vy = virtual_origin()
+    x = offscreen_x(vx, w)
+    n.left, n.top, n.right, n.bottom = x, vy, x + w, vy + h
+    pl.flags = 0
+    pl.showCmd = SW_SHOWNOACTIVATE
+    if not a.user32.SetWindowPlacement(hwnd, ctypes.byref(pl)):
+        raise OSError("SetWindowPlacement failed (%d)" % ctypes.get_last_error())
+    time.sleep(0.3)
+    return window_rect(hwnd)
+
+
+def is_offscreen(hwnd):
+    """True when the window rect lies entirely left of the virtual screen."""
+    x, _, w, _ = window_rect(hwnd)
+    return x + w <= virtual_origin()[0]
+
+
+def set_client_size(hwnd, cw, ch):
+    """Resizes so the client area is cw x ch, kept off-screen (SetWindowPos SWP_NOACTIVATE |
+    SWP_NOZORDER | SWP_NOOWNERZORDER). Windows / Studio may clamp. Returns the client size reached."""
+    a = _api()
+    if a.user32.IsIconic(hwnd) or a.user32.IsZoomed(hwnd):
+        place_offscreen(hwnd)  # SetWindowPlacement SW_SHOWNOACTIVATE, not SW_RESTORE
+    _, _, ww, wh = window_rect(hwnd)
     cur_w, cur_h = client_size(hwnd)
     fw, fh = ww - cur_w, wh - cur_h  # frame + title bar
-    flags = SWP_NOZORDER | SWP_NOACTIVATE
-    if x is None:
-        x, y = left, top
-    a.user32.SetWindowPos(hwnd, None, int(x), int(y), int(cw + fw), int(ch + fh), flags)
+    nw, nh = int(cw + fw), int(ch + fh)
+    vx, vy = virtual_origin()
+    a.user32.SetWindowPos(hwnd, None, offscreen_x(vx, nw), vy, nw, nh, SWP_QUIET)
     time.sleep(0.3)
     return client_size(hwnd)
 
 
 def set_window_rect(hwnd, x, y, w, h):
-    _api().user32.SetWindowPos(hwnd, None, int(x), int(y), int(w), int(h), SWP_NOZORDER | SWP_NOACTIVATE)
-
-
-def bring_to_front(hwnd):
-    """Best effort foreground (Windows refuses SetForegroundWindow from background apps; an Alt tap unlocks it)."""
-    a = _api()
-    if a.user32.IsIconic(hwnd):
-        restore(hwnd)
-    a.user32.keybd_event(0x12, 0, 0, None)  # Alt down
-    a.user32.keybd_event(0x12, 0, 2, None)  # Alt up
-    a.user32.BringWindowToTop(hwnd)
-    a.user32.SetForegroundWindow(hwnd)
-    time.sleep(0.3)
-    return a.user32.GetForegroundWindow() == hwnd
+    _api().user32.SetWindowPos(hwnd, None, int(x), int(y), int(w), int(h), SWP_QUIET)
 
 
 def foreground_hwnd():
     return _api().user32.GetForegroundWindow()
 
 
+def foreground_pid():
+    """(hwnd, pid) of the foreground window; pid 0 when there is none."""
+    h = foreground_hwnd()
+    return h, (window_pid(h) if h else 0)
+
+
+def focus_stolen(fg_pid, our_pids):
+    """Pure: the foreground window belongs to a Studio process the watcher started."""
+    return bool(fg_pid) and int(fg_pid) in set(int(p) for p in our_pids)
+
+
+def cursor_pos():
+    a = _api()
+    pt = a.wt.POINT()
+    a.user32.GetCursorPos(ctypes.byref(pt))
+    return pt.x, pt.y
+
+
 def post_close(hwnd):
-    return bool(_api().user32.PostMessageW(hwnd, 0x0010, 0, 0))  # WM_CLOSE
+    """WM_CLOSE by PostMessage: asks the window to close without activating it."""
+    return bool(_api().user32.PostMessageW(hwnd, 0x0010, 0, 0))
 
 
 # ---------------------------------------------------------------------------
@@ -334,59 +434,50 @@ def _dib(a, hdc, w, h):
     return hbmp, bits
 
 
-def _grab(hwnd, method):
+def _grab(hwnd):
+    """PrintWindow(PW_RENDERFULLCONTENT) of the whole window, cropped to the client area.
+
+    Works off-screen and unfocused: the window renders itself into our DC; nothing is read from
+    the screen.
+    """
     a = _api()
-    w, h = client_size(hwnd)
-    if w <= 0 or h <= 0:
+    wx, wy, ww, wh = window_rect(hwnd)
+    cw, ch = client_size(hwnd)
+    if ww <= 0 or wh <= 0 or cw <= 0 or ch <= 0:
         return None
-    src_hwnd = None if method == "screen" else hwnd
-    src = a.user32.GetDC(src_hwnd)
+    pt = a.wt.POINT(0, 0)
+    a.user32.ClientToScreen(hwnd, ctypes.byref(pt))
+    ox, oy = pt.x - wx, pt.y - wy  # client origin inside the window rect
+    src = a.user32.GetDC(hwnd)
     mem = a.gdi32.CreateCompatibleDC(src)
-    hbmp, bits = _dib(a, src, w, h)
+    hbmp, bits = _dib(a, src, ww, wh)
     old = a.gdi32.SelectObject(mem, hbmp)
     try:
-        if method == "printwindow":
-            ok = a.user32.PrintWindow(hwnd, mem, 3)  # PW_CLIENTONLY | PW_RENDERFULLCONTENT
-        elif method == "bitblt":
-            ok = a.gdi32.BitBlt(mem, 0, 0, w, h, src, 0, 0, 0x00CC0020 | 0x40000000)  # SRCCOPY | CAPTUREBLT
-        else:
-            pt = a.wt.POINT(0, 0)
-            a.user32.ClientToScreen(hwnd, ctypes.byref(pt))
-            ok = a.gdi32.BitBlt(mem, 0, 0, w, h, src, pt.x, pt.y, 0x00CC0020 | 0x40000000)
-        if not ok:
+        if not a.user32.PrintWindow(hwnd, mem, PW_RENDERFULLCONTENT):
             return None
-        raw = ctypes.string_at(bits, w * h * 4)
-        return w, h, imaging.bgra_to_rgb(w, h, raw)
+        rgb = imaging.bgra_to_rgb(ww, wh, ctypes.string_at(bits, ww * wh * 4))
     finally:
         a.gdi32.SelectObject(mem, old)
         a.gdi32.DeleteObject(hbmp)
         a.gdi32.DeleteDC(mem)
-        a.user32.ReleaseDC(src_hwnd, src)
+        a.user32.ReleaseDC(hwnd, src)
+    return imaging.crop_rgb(ww, wh, rgb, ox, oy, cw, ch)  # clamps to the window bitmap
 
 
-def capture_client(hwnd, methods=("printwindow", "bitblt", "screen")):
-    """Client-area pixels of `hwnd`: first method whose frame is not blank.
+def capture_client(hwnd):
+    """Client-area pixels of `hwnd` via PrintWindow(PW_RENDERFULLCONTENT), the only capture method.
 
-    Returns {"w","h","rgb","method","stats","blank","tried"}; rgb is None when every method failed.
-    "screen" copies the desktop at the window's position, so it is only valid while the window is on top.
+    Returns {"w","h","rgb","method","stats","blank","tried"}; rgb is None when it failed.
     """
-    tried, last = [], None
-    for m in methods:
-        try:
-            got = _grab(hwnd, m)
-        except Exception as e:
-            tried.append("%s: %r" % (m, e))
-            continue
-        if not got:
-            tried.append("%s: failed" % m)
-            continue
-        w, h, rgb = got
-        stats = imaging.frame_stats(w, h, rgb)
-        blank = imaging.is_blank(stats)
-        tried.append("%s: var=%.0f distinct=%d" % (m, stats["variance"], stats["distinct"]))
-        last = {"w": w, "h": h, "rgb": rgb, "method": m, "stats": stats, "blank": blank}
-        if not blank:
-            break
-    out = last or {"w": 0, "h": 0, "rgb": None, "method": None, "stats": None, "blank": True}
-    out["tried"] = tried
-    return out
+    try:
+        got = _grab(hwnd)
+    except Exception as e:
+        got, err = None, "printwindow: %r" % (e,)
+    else:
+        err = None if got else "printwindow: failed"
+    if not got:
+        return {"w": 0, "h": 0, "rgb": None, "method": None, "stats": None, "blank": True, "tried": [err]}
+    w, h, rgb = got
+    stats = imaging.frame_stats(w, h, rgb)
+    return {"w": w, "h": h, "rgb": rgb, "method": "printwindow", "stats": stats, "blank": imaging.is_blank(stats),
+            "tried": ["printwindow: var=%.0f distinct=%d" % (stats["variance"], stats["distinct"])]}
