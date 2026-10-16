@@ -9,13 +9,13 @@
 
 	The client shows the countdown from
 	  DespawnTelegraph.countdownSeconds(workspace:GetServerTimeNow(), DespawnAt)
-	and plays the blink / shrink / poof. The server never removes early: it
+	and plays the shrink / poof (no blink or fade). The server never removes early: it
 	removes only once shouldRemove(now, expiresAt) is true.
 
 	Client FX data and helpers (Visuals DespawnTelegraphFx reads these):
 	  DespawnTelegraph.FX
 	    frozen knobs: poof textures, burst counts, slime-green colours,
-	    warn colour, shrink target, blink rates
+	    warn colour, shrink target
 	  DespawnTelegraph.shrinkFactor(progress, shrinkTo)
 	    model scale factor: 1 at progress 0, shrinkTo at progress 1
 	  DespawnTelegraph.fallbackSizeXYZ(x, y, z, factor)
@@ -37,9 +37,8 @@ DespawnTelegraph.FX = table.freeze({
 	smokeCount = 6, -- soft puff under the sparkles
 	color = table.freeze({ GOO[1], GOO[2], GOO[3] }), -- RGB 0..255, burst end
 	colorBright = table.freeze({ 140, 255, 150 }), -- brighter goo, burst start
-	warnColor = table.freeze({ 255, 90, 90 }), -- countdown text / highlight
+	warnColor = table.freeze({ 255, 90, 90 }), -- countdown text
 	shrinkTo = 0.55, -- model scale factor at DespawnAt
-	blinkHz = table.freeze({ 2, 8 }), -- blink rate at the start / end of the window
 })
 
 -- Server time the warning begins.
@@ -71,7 +70,7 @@ function DespawnTelegraph.countdownSeconds(now: number, despawnAt: number): numb
 	return math.max(0, math.ceil(despawnAt - now))
 end
 
--- 0 at the start of the window, 1 at despawnAt (drives blink rate / shrink).
+-- 0 at the start of the window, 1 at despawnAt (drives the shrink).
 function DespawnTelegraph.progress(now: number, despawnAt: number, warnSeconds: number): number
 	if warnSeconds <= 0 then
 		return 1
