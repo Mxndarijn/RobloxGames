@@ -368,6 +368,8 @@ describe("plot walls, DexBoard and BuyStand (C6)", function()
 			local faceZ = face.front * k
 			expect(p[3] - size[3] / 2 >= faceZ).toBe(true)
 			expect(p[3] - size[3] / 2 < faceZ + 0.1).toBe(true)
+			-- the text surface (Board's Front face) is flush with the sign face (v29 B4)
+			expect(math.abs(p[3] + size[3] / 2 - faceZ) <= 0.05).toBe(true)
 			expect(p[2] + (slot.size :: Vec)[2] / 2).toBeCloseTo(face.y * k)
 			-- the Board's Front (-Z) face looks the way the mesh front does
 			expect(sameAngle((board.rot :: Vec)[2], (slot.rot :: Vec)[2] + 180)).toBe(true)
