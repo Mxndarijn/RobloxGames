@@ -189,8 +189,29 @@ function Dex.new(parent: Instance, ctx: any)
 			Size = UDim2.new(1, -(IMAGE + 20), 0, 18),
 			Parent = frame,
 		})
+		-- Plot skin cards only (SlimeDex.skinRows): Equip / Equipped / locked.
+		local equip = Widgets.button(
+			{
+				Name = "Equip",
+				Text = "Equip",
+				TextSize = 14,
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -8, 0.5, 0),
+				Size = UDim2.fromOffset(78, 32),
+				Visible = false,
+				Parent = frame,
+			},
+			Theme.Accent,
+			function()
+				local id = frame:GetAttribute("SkinId")
+				if type(id) == "string" and ctx.request then
+					ctx.request("EquipPlotSkin", function() end, id)
+				end
+			end
+		)
 		return {
 			instance = frame,
+			equip = equip,
 			image = image,
 			picture = picture,
 			preview = preview,
@@ -200,6 +221,15 @@ function Dex.new(parent: Instance, ctx: any)
 		}
 	end, function(r: any, row: SlimeDex.Row, index: number)
 		r.instance:SetAttribute("Locked", row.locked)
+		r.instance:SetAttribute("SkinId", if row.skin then row.skin.id else nil)
+		local skin = row.skin
+		r.equip.instance.Visible = skin ~= nil
+		r.title.Size = UDim2.new(1, -(IMAGE + 20 + if skin then 84 else 0), 0, 22)
+		r.detail.Size = UDim2.new(1, -(IMAGE + 20 + if skin then 84 else 0), 0, 18)
+		if skin then
+			r.equip.setText(if skin.equipped then "Equipped" elseif skin.unlocked then "Equip" else "Locked")
+			r.equip.setEnabled(skin.unlocked and not skin.equipped)
+		end
 		r.image.BackgroundColor3 = Widgets.color3(row.color)
 		r.picture.Image = row.image or ""
 		local hasImage = row.image ~= nil
@@ -209,7 +239,16 @@ function Dex.new(parent: Instance, ctx: any)
 		-- live cap: the real slime model, or the blob if that fails; else
 		-- (or if both fail) the colour swatch. The row's viewport is reused
 		-- and only remounted when its look changes.
-		if not hasImage and index <= SlimePreview.MAX_LIVE then
+		if skin then
+			if r.preview:GetAttribute("Look") ~= nil then
+				SlimePreview.unmount(r.preview)
+				r.preview:SetAttribute("Look", nil)
+				r.preview.Visible = false
+			end
+			r.glyph.Visible = true
+			r.glyph.Text = if skin.unlocked then "🏡" else "🔒"
+			r.image.BackgroundTransparency = 0
+		elseif not hasImage and index <= SlimePreview.MAX_LIVE then
 			local look = `{row.key}:{row.locked}:{table.concat(row.color, ",")}`
 			if r.preview:GetAttribute("Look") ~= look then
 				local opts = { locked = row.locked, mutation = row.mutation }
@@ -234,7 +273,10 @@ function Dex.new(parent: Instance, ctx: any)
 		end
 		r.title.Text = row.title
 		local rarity = ctx.Config.RARITIES[row.tier]
-		r.title.TextColor3 = if row.locked or not rarity then Theme.Muted else Widgets.color3(rarity.color)
+		r.title.TextColor3 = if skin
+			then (if skin.unlocked then Theme.Text else Theme.Muted)
+			elseif row.locked or not rarity then Theme.Muted
+			else Widgets.color3(rarity.color)
 		r.detail.Text = row.detail
 	end)
 
@@ -302,6 +344,11 @@ function Dex.new(parent: Instance, ctx: any)
 		end
 		placeList()
 		local items = SlimeDex.rows(state.dex, state.dexTotal, ctx.Config)
+		local skins = SlimeDex.skinRows(state.plotSkins, ctx.Config)
+		if #skins > 0 then
+			table.move(items, 1, #items, #skins + 1)
+			table.move(skins, 1, #skins, 1, items)
+		end
 		pending = items
 		pendingSignature = signature(items)
 		dirty = pendingSignature ~= builtSignature

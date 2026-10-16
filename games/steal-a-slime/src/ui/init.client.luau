@@ -28,6 +28,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local FriendBonus = require(Shared:WaitForChild("FriendBonus"))
 local Genome = require(Shared:WaitForChild("Genome"))
+local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local Types = require(Shared:WaitForChild("Types"))
 
@@ -322,8 +323,39 @@ local function forceWeekend(state: any): any
 	return view
 end
 
+-- Studio-only: the SlimeUI attribute "PcwPlotSkin" (a skin id) fakes State.plotSkins with that skin
+-- unlocked and equipped (every other skin locked at 0 owned), so the picker can be shot with
+-- FEATURES.PlotSkins off. Live servers (not Studio) always get the server's State untouched.
+local function forcePlotSkins(state: any): any
+	local id = if isStudio then gui:GetAttribute("PcwPlotSkin") else nil
+	if type(id) ~= "string" or id == "" or state.plotSkins ~= nil then
+		return state
+	end
+	local total = PlotSkins.setSize()
+	local view = table.clone(state)
+	view.plotSkin = id
+	view.plotSkins = {}
+	for _, skin in Config.PLOT_SKINS do
+		local rarity = if skin.set then Config.RARITIES[skin.set] else nil
+		local on = skin.id == id
+		table.insert(view.plotSkins, {
+			id = skin.id,
+			name = skin.name,
+			setName = if rarity then rarity.name else nil,
+			tier = skin.set,
+			owned = if on or skin.set == nil then total else 0,
+			total = total,
+			needed = if skin.set then PlotSkins.needed(skin) else 0,
+			fraction = if on or skin.set == nil then 1 else 0,
+			unlocked = on or skin.set == nil,
+			equipped = on,
+		})
+	end
+	return view
+end
+
 local function panelState(key: string, realState: any): any
-	local state = forceFriends(realState)
+	local state = forcePlotSkins(forceFriends(realState))
 	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
 		-- Studio-only: one fake owned slime so the My Plot row shows its Appraise button.
 		local view = table.clone(state)
@@ -681,7 +713,7 @@ local function render(realState: Types.State)
 end
 
 if isStudio then
-	for _, attribute in { "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend" } do
+	for _, attribute in { "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin" } do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
 			if latest then
 				pcall(render, latest)
