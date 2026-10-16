@@ -7,6 +7,9 @@
 	BASE (the pad as built today). Habitat ids are never saved.
 
 	  Habitats.forSlime(slime)     type (SlimeRoster id) > tier family > BASE
+	  Habitats.resolve(id)         known id, else BASE (server and client)
+	  Habitats.slotMesh(id)        a mesh slot's uploaded mesh (MeshAssets),
+	                               nil = keep the primitive placeholder
 	  Habitats.transition(prev, target, now)
 	                               server pad state; a change restamps `at`
 	  Habitats.initialWeights(id)  client, first sight: final state, no tween
@@ -17,6 +20,7 @@
 	No Roblox APIs at load time.
 ]]
 
+local MeshAssets = if script then require(script.Parent.MeshAssets) else require("./MeshAssets")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 export type Habitat = {
@@ -30,6 +34,7 @@ export type Habitat = {
 }
 
 export type PadState = { id: string, from: string, at: number }
+export type SlotMesh = { meshId: string, size: { number } } -- size: native W x H x D studs
 
 local Habitats = {}
 
@@ -122,15 +127,36 @@ function Habitats.get(id: string): Habitat?
 	return byId[id]
 end
 
+-- A known habitat id, else BASE: a pad never shows a look the table lacks
+-- (TYPE / FAMILY drift, a stale or bad attribute).
+function Habitats.resolve(id: any): string
+	return if type(id) == "string" and byId[id] then id else Habitats.BASE
+end
+
+-- The uploaded mesh for a mesh slot (newMesh habitat): its MeshAssets meshId
+-- and native size. nil for BASE, the kit-pad looks, unknown ids, or a slot
+-- whose kit has no meshId yet; HabitatFx then draws the primitive placeholder.
+function Habitats.slotMesh(id: string): SlotMesh?
+	local habitat = byId[id]
+	if not habitat or not habitat.newMesh or not habitat.kit then
+		return nil
+	end
+	local entry = MeshAssets.get(habitat.kit)
+	if not entry or not entry.meshId or not entry.size then
+		return nil
+	end
+	return { meshId = entry.meshId, size = entry.size }
+end
+
 -- Habitat for a slime type, given its tier for the family fallback.
 function Habitats.forType(species: string?, tier: number?): string
 	local typed = species and TYPE[species]
 	if typed then
-		return typed
+		return Habitats.resolve(typed)
 	end
 	local entry = species and SlimeRoster.get(species)
 	local family = FAMILY_BY_TIER[if entry then entry.tier else tier or 0]
-	return family and FAMILY[family] or Habitats.BASE
+	return Habitats.resolve(family and FAMILY[family])
 end
 
 function Habitats.forSlime(slime: { species: string?, tier: number }): string
