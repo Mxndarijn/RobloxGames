@@ -1350,6 +1350,8 @@ def step_shots(run):
                     res["rebirth_slime"] = run.need_luau("rebirth_slime", "Client", timeout=15, state=shot["rebirth_slime"])
                 if shot.get("badge_toast"):  # v29 #6: show the badge-unlocked toast (Studio-only hook)
                     res["badge_toast"] = run.need_luau("badge_toast", "Client", timeout=15, name=shot["badge_toast"])
+                if shot.get("friend_bonus"):  # v29 #4: fake N friends in the server (badge + income line)
+                    res["friend_bonus"] = run.need_luau("friend_bonus", "Client", timeout=15, count=int(shot["friend_bonus"]))
                 opened = open_panel(run, key) if key else None
                 if opened:
                     res["open"] = opened
@@ -1383,6 +1385,8 @@ def step_shots(run):
                     res["closed_by"] = close_panel(run, opened["panel"])
                 if shot.get("rebirth_slime"):
                     run.luau("rebirth_slime", "Client", timeout=15, state="")
+                if shot.get("friend_bonus"):
+                    run.luau("friend_bonus", "Client", timeout=15, count=0)
             else:
                 if shot.get("pos"):
                     eye, at = shot["pos"], shot.get("look") or [0, 0, 0]
@@ -1434,6 +1438,8 @@ def step_shots(run):
                     # ok only when the slime is driven (LifeMode) and the pose really changed
                     res["motion"] = run.need_luau("slime_motion", "Client", timeout=30, path=res["target"]["path"],
                                                   kind=shot["motion"], wait=float(shot.get("wait", 0.35)))
+                    if shot["motion"] == "Tiers":
+                        run.note("shot %s: slime LOD tiers %s" % (sid, res["motion"].get("tiers")))
                     if not res["motion"].get("ok"):
                         run.note("shot %s: slime not moving (mode %s, moved %s)" % (
                             sid, res["motion"].get("mode"), res["motion"].get("moved")))

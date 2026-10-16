@@ -250,22 +250,29 @@ function SlimeLife.hop(params: Params, clock: Clock, now: number): (number, numb
 	return 0, 0
 end
 
-function SlimeLife.pose(params: Params, clock: Clock, now: number): Pose
+-- Idle breathing only, scaled by `amp` (the LOD mid tier): the sy of pose() without hop or wobble.
+function SlimeLife.squishY(params: Params, clock: Clock, now: number, amp: number): number
+	local squash = math.sin((now + clock.phase) * params.squishSpeed) * params.squishAmp * amp
+	return math.clamp(1 - squash, SlimeLife.SQUASH_LIMIT[1], SlimeLife.SQUASH_LIMIT[2])
+end
+
+-- `out` (optional) is filled and returned instead of a new table, so a per-frame caller allocates nothing.
+function SlimeLife.pose(params: Params, clock: Clock, now: number, out: Pose?): Pose
 	local t = now + clock.phase
 	local lift, hopSquash = SlimeLife.hop(params, clock, now)
 	local squash = math.sin(t * params.squishSpeed) * params.squishAmp + hopSquash
 	local sy = math.clamp(1 - squash, SlimeLife.SQUASH_LIMIT[1], SlimeLife.SQUASH_LIMIT[2])
 	-- Keep the volume roughly constant: flatter = wider.
 	local sxz = 1 / math.sqrt(sy)
-	return {
-		lift = lift,
-		yaw = SlimeLife.lookYaw(clock, now),
-		pitch = math.sin(t * params.wobbleSpeed * 0.7 + 1) * params.wobble * 0.6,
-		roll = math.sin(t * params.wobbleSpeed) * params.wobble,
-		sx = sxz,
-		sy = sy,
-		sz = sxz,
-	}
+	local pose: Pose = out or {} :: any
+	pose.lift = lift
+	pose.yaw = SlimeLife.lookYaw(clock, now)
+	pose.pitch = math.sin(t * params.wobbleSpeed * 0.7 + 1) * params.wobble * 0.6
+	pose.roll = math.sin(t * params.wobbleSpeed) * params.wobble
+	pose.sx = sxz
+	pose.sy = sy
+	pose.sz = sxz
+	return pose
 end
 
 return SlimeLife

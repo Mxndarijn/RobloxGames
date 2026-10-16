@@ -16,6 +16,7 @@
 ]]
 
 local UI = script.Parent.Parent
+local FriendBadge = require(UI.FriendBadge)
 local Layout = require(UI.Layout)
 local Progress = require(UI.Progress)
 local SlimeDex = require(UI.SlimeDex)
@@ -295,7 +296,9 @@ function Dex.new(parent: Instance, ctx: any)
 		local rewards = Progress.dexRewards(state)
 		hasRewards = rewards.next ~= nil
 		if rewards.next then
-			rewardLine.Text = if rewards.bonus then `{rewards.next}\n{rewards.bonus}` else rewards.next
+			local friendLine = FriendBadge.line(state.friends, ctx.Config.FEATURES.FriendBonus == true)
+			local bonus = Progress.incomeLine(rewards.dexPercent, friendLine)
+			rewardLine.Text = if bonus then `{rewards.next}\n{bonus}` else rewards.next
 		end
 		placeList()
 		local items = SlimeDex.rows(state.dex, state.dexTotal, ctx.Config)

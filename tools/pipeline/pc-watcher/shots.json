@@ -34,6 +34,21 @@
     "note": "v29 #6: Roblox badge unlock toast (gold star icon, 'Badge unlocked!' + badge name), top right under the HUD"
   },
   {
+    "id": "02c-friend-bonus-hud",
+    "todo": "v29-4",
+    "kind": "ui",
+    "friend_bonus": 2,
+    "note": "v29 #4: friend income bonus, 2 friends in the server: HUD badge '👥 +20% friends' under the top bar, no menu open"
+  },
+  {
+    "id": "02d-friend-bonus-dex",
+    "todo": "v29-4",
+    "kind": "ui",
+    "open": "dex",
+    "friend_bonus": 3,
+    "note": "v29 #4: income breakdown in the SlimeDex card shows 'Friends +30% income' (3 friends = the +30% cap)"
+  },
+  {
     "id": "03-shop-menu",
     "todo": "3",
     "kind": "ui",
@@ -832,5 +847,15 @@
     "weather": "Starfall",
     "wait": 2.5,
     "note": "TODO 18: Starfall weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
+  },
+  {
+    "id": "17-motion-lod-tiers",
+    "todo": "17",
+    "kind": "world",
+    "target": "Pad_1",
+    "seat": true,
+    "motion": "Tiers",
+    "wait": 0.6,
+    "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod): records the near / mid / far tier counts of the animated slimes around the pad (res.motion.tiers); with the flag off all are near"
   }
 ]

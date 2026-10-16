@@ -237,7 +237,7 @@ def t_files():
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "weather_set": {"WEATHER", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(),
         "hold_fill": {"NAME", "ON"},
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "panel_scroll": {"PANEL", "TARGET"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "panel_scroll": {"PANEL", "TARGET"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -256,8 +256,9 @@ def t_files():
     check("a ui shot shows a hold ring mid-hold on an important button",
           any(s.get("kind") == "ui" and s.get("open") and s["hold"] for s in holds), holds)
     motions = {s["motion"]: s for s in shots if s.get("motion")}
-    check("motion shots cover idle squish, hop, look left and look right",
-          set(motions) == {"Idle", "Hop", "LookLeft", "LookRight"}, sorted(motions))
+    check("motion shots cover idle squish, hop, look left and look right and the LOD tier counts",
+          set(motions) == {"Idle", "Hop", "LookLeft", "LookRight", "Tiers"}, sorted(motions))
+    check("luau slime_motion reports the LOD tier counts", "LifeTier" in open(os.path.join(HERE, "luau", "slime_motion.luau"), encoding="utf-8").read())
     check("motion shots seat a slime and wait", all(s.get("seat") and float(s.get("wait", 0)) > 0 for s in motions.values()))
     walks = [s for s in shots if s.get("slide_walk")]
     check("a slide_walk shot proves nobody falls through the slide, top to bottom",

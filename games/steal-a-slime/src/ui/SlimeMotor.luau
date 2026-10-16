@@ -42,6 +42,8 @@ export type Motor = {
 	squash: SpecialMesh?,
 	params: SlimeLife.Params,
 	clock: SlimeLife.Clock,
+	pose: SlimeLife.Pose, -- scratch, reused every frame
+	parked: boolean, -- far LOD tier: Transforms already reset, nothing written until it wakes
 }
 
 type Rand = () -> number
@@ -90,6 +92,8 @@ function SlimeMotor.attach(model: Model, now: number, rand: Rand): Motor?
 		squash = squash,
 		params = params,
 		clock = SlimeLife.newClock(params, now, rand),
+		pose = { lift = 0, yaw = 0, pitch = 0, roll = 0, sx = 1, sy = 1, sz = 1 },
+		parked = false,
 	}
 end
 
@@ -113,7 +117,8 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand): boolean
 		SlimeMotor.force(motor, forced, now)
 	end
 	local landed = SlimeLife.advance(motor.clock, motor.params, now, rand)
-	local pose = SlimeLife.pose(motor.params, motor.clock, now)
+	motor.parked = false
+	local pose = SlimeLife.pose(motor.params, motor.clock, now, motor.pose)
 	local size = (motor.model:GetAttribute("Size") :: number?) or 1
 	local r = motor.body.Size.Y / 2
 	local lift = pose.lift * size
@@ -135,12 +140,51 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand): boolean
 	return landed
 end
 
-function SlimeMotor.release(motor: Motor)
+-- LOD mid tier: idle squish only (no hop, look or wobble), `amp` times the normal amplitude.
+-- The caller decides how often (every Nth frame); the bottom stays on the ground.
+function SlimeMotor.stepSquish(motor: Motor, now: number, amp: number)
+	motor.parked = false
+	local sy = SlimeLife.squishY(motor.params, motor.clock, now, amp)
+	local sxz = 1 / math.sqrt(sy)
+	local r = motor.body.Size.Y / 2
+	local transform = CFrame.new(0, r * (sy - 1), 0)
+	motor.face.Transform = transform
+	motor.skinJoint.Transform = transform
+	local scale = Vector3.new(sxz, sy, sxz)
+	if motor.skin and motor.skinSize then
+		motor.skin.Size = motor.skinSize * scale
+	end
+	if motor.squash then
+		motor.squash.Scale = scale
+		motor.squash.Offset = Vector3.new(0, -r * (1 - sy), 0)
+	end
+end
+
+local function rest(motor: Motor)
 	motor.face.Transform = CFrame.new()
 	motor.skinJoint.Transform = CFrame.new()
 	if motor.skin and motor.skinSize then
 		motor.skin.Size = motor.skinSize
 	end
+	if motor.squash then
+		motor.squash.Scale = Vector3.one
+		motor.squash.Offset = Vector3.zero
+	end
+end
+
+-- LOD far tier: back to the exact rest pose once, then a no-op until a step wakes it.
+-- Returns true on the call that wrote.
+function SlimeMotor.park(motor: Motor): boolean
+	if motor.parked then
+		return false
+	end
+	motor.parked = true
+	rest(motor)
+	return true
+end
+
+function SlimeMotor.release(motor: Motor)
+	rest(motor)
 	if motor.squash then
 		motor.squash:Destroy()
 	end
