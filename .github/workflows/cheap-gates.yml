@@ -5,6 +5,7 @@ name: Cheap gates
 
 on:
   push:
+    branches-ignore: [studio-reports]
   pull_request:
     branches: [main]
 
