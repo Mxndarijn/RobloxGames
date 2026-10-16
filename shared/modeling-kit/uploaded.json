@@ -170,6 +170,19 @@
     "uploadedAt": "2026-10-16T11:07:30Z",
     "versions": 1
   },
+  "merge_vat": {
+    "assetId": "122090902536570",
+    "assetType": "Model",
+    "meshId": "rbxassetid://94063238729318",
+    "meshSize": [
+      10.808,
+      7.625,
+      10.764
+    ],
+    "sha256": "083b2cd6c58f6a5c",
+    "uploadedAt": "2026-10-16T23:21:26Z",
+    "versions": 1
+  },
   "phoenix_corner_post": {
     "assetId": "122993526477202",
     "assetType": "Model",

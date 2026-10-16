@@ -30,6 +30,7 @@ Remotes.DEFINITIONS = table.freeze({
 
 Remotes.ACTIONS = table.freeze({
 	Merge = table.freeze({ args = { "string", "string" } }), -- slimeIdA, slimeIdB
+	Merge3 = table.freeze({ args = { "string", "string", "string" } }), -- three slime ids (FEATURES.MergeVat3, CONTRACT.md §21)
 	Lock = table.freeze({ args = {} }),
 	Rebirth = table.freeze({ args = {} }),
 	Sell = table.freeze({ args = { "string" } }), -- slimeId

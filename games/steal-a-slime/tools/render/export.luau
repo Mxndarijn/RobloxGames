@@ -8,7 +8,8 @@
 -- for render_world.py. --skin <id> wears a Config.PLOT_SKINS skin on Plot_1 (real PlotDecor.applySkin
 -- floor, fence / gate tint on the meshes, the skin decor in the Mailbox_1 slot) and writes
 -- scene[_pending]_skin_<id>.json. --pending also swaps meshes that are in the kit but
--- not uploaded yet (ranch_fence_20, the BorderMesh ring): the intended look. --fountain-tier <1..4> shows the
+-- not uploaded yet (ranch_fence_20, the BorderMesh ring): the intended look. --vat stands the FEATURES.MergeVat3
+-- vat (real VatDecor.pose) over Plot_1's MergeVat disc and writes scene[_pending]_vat.json. --fountain-tier <1..4> shows the
 -- FEATURES.FountainTiers look (real FountainTierDecor poses + FountainTiers.LOOKS glow) and writes
 -- scene[_pending]_tier_<n>.json.
 local fs = require("@lune/fs")
@@ -16,21 +17,23 @@ local process = require("@lune/process")
 local roblox = require("../../src/visuals/tools/LuneGlobals")
 local serde = require("@lune/serde")
 
+local BorderTerrain = require("../../src/visuals/shared/BorderTerrain")
 local Config = require("../../src/shared/Config")
 local Habitats = require("../../src/shared/Habitats")
 local MeshAssets = require("../../src/shared/MeshAssets")
+local PlotDecor = require("../../src/visuals/shared/PlotDecor")
 local Props = require("../../src/visuals/shared/Props")
-local BorderTerrain = require("../../src/visuals/shared/BorderTerrain")
+local VatDecor = require("../../src/visuals/shared/VatDecor")
 local WorldBorder = require("../../src/visuals/shared/WorldBorder")
 local WorldBuilder = require("../../src/visuals/shared/WorldBuilder")
 local FountainTierDecor = require("../../src/visuals/shared/FountainTierDecor")
 local FountainTiers = require("../../src/shared/FountainTiers")
-local PlotDecor = require("../../src/visuals/shared/PlotDecor")
 local WorldLayout = require("../../src/visuals/shared/WorldLayout")
 
 local PENDING = table.find(process.args, "--pending") ~= nil
 local OUT = "tools/render/out"
 local SKIN_ARG = table.find(process.args, "--skin")
+local VAT = table.find(process.args, "--vat") ~= nil
 local SKIN = if SKIN_ARG then process.args[SKIN_ARG + 1] else nil
 local TIER_ARG = table.find(process.args, "--fountain-tier")
 local TIER = if TIER_ARG then tonumber(process.args[TIER_ARG + 1]) else nil
@@ -192,6 +195,26 @@ if TIER then
 	end
 end
 
+-- Merge vat (client VatFx): the mesh over Plot_1's disc, the disc and its goo hidden.
+local vatFocus = nil
+if VAT then
+	local disc = built.plots:FindFirstChild("Plot_1"):FindFirstChild("MergeVat")
+	local pos = disc.CFrame.Position
+	local pose = VatDecor.pose(pos.X, pos.Y, pos.Z)
+	local base = built.plots:FindFirstChild("Plot_1"):FindFirstChild("Base")
+	hidden[disc] = true
+	for _, d in disc:GetDescendants() do
+		hidden[d] = true
+	end
+	table.insert(meshes, {
+		mesh = VatDecor.MESH,
+		cf = cfOf(CFrame.new(pose.position[1], pose.position[2], pose.position[3]) * base.CFrame.Rotation),
+		size = pose.size,
+		path = "Workspace.ClientMergeVat.merge_vat",
+	})
+	vatFocus = { pos.X, pos.Y, pos.Z }
+end
+
 -- Habitat pads (client HabitatFx): the mesh at native footprint on the pad
 -- bottom, Y scaled to pad height / seat; the stand and pad hide.
 for _, h in HABITAT_PADS do
@@ -276,6 +299,7 @@ fs.writeDir(OUT)
 local suffix = (if PENDING then "_pending" else "")
 	.. (if SKIN then `_skin_{SKIN}` else "")
 	.. (if TIER then `_tier_{TIER}` else "")
+	.. (if VAT then "_vat" else "")
 fs.writeFile(
 	`{OUT}/scene{suffix}.json`,
 	serde.encode("json", {
@@ -287,12 +311,11 @@ fs.writeFile(
 		wallRadius = WorldBorder.RADIUS,
 		ringPath = WorldLayout.RING_PATH_RADIUS,
 		terrain = terrain,
+		vat = vatFocus,
 	})
 )
 local counts = {}
 for _, m in meshes do
 	counts[m.mesh] = (counts[m.mesh] or 0) + 1
 end
-print(
-	`wrote {OUT}/scene{suffix}.json: {#parts} parts, {#meshes} meshes, {#lights} lights (pending={PENDING})`
-)
+print(`wrote {OUT}/scene{suffix}.json: {#parts} parts, {#meshes} meshes, {#lights} lights (pending={PENDING})`)

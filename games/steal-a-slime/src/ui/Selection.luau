@@ -48,6 +48,34 @@ function Selection.canMergePair(slimes: { SlimeViewLike }, a: string?, b: string
 	return true, nil
 end
 
+-- Whether ids a, b, c are a valid 3-slime vat load (FEATURES.MergeVat3): three distinct owned slimes of
+-- one tier, none being stolen. Returns a reason when not.
+function Selection.canMergeTriple(slimes: { SlimeViewLike }, ids: { string }): (boolean, string?)
+	if #ids < 3 then
+		return false, "Pick three slimes"
+	end
+	local views = {}
+	for i = 1, 3 do
+		local view = Selection.findSlime(slimes, ids[i])
+		if view == nil then
+			return false, "Slime no longer on your plot"
+		end
+		views[i] = view
+	end
+	if ids[1] == ids[2] or ids[2] == ids[3] or ids[1] == ids[3] then
+		return false, "Pick three different slimes"
+	end
+	for _, view in views do
+		if view.stolenBy ~= nil then
+			return false, "A slime is being stolen"
+		end
+	end
+	if views[1].slime.tier ~= views[2].slime.tier or views[2].slime.tier ~= views[3].slime.tier then
+		return false, "Slimes must be the same tier"
+	end
+	return true, nil
+end
+
 -- Toggles `id` in a selection of at most `max` ids (oldest dropped first).
 -- Returns a new list; the input is not modified.
 function Selection.toggle(selection: { string }, id: string, max: number?): { string }

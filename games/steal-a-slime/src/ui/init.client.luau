@@ -33,6 +33,7 @@ local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
 local StealAlert = require(Shared:WaitForChild("StealAlert"))
+local TripleMerge = require(Shared:WaitForChild("TripleMerge"))
 local Types = require(Shared:WaitForChild("Types"))
 
 local Format = require(script.Format)
@@ -180,6 +181,11 @@ local ctx: { [string]: any } = {
 	Config = Config,
 	Constants = Constants,
 	Genome = Genome,
+	TripleMerge = TripleMerge,
+	-- Studio only: SlimeUI.PcwMergeVat = true shows the 3-slime vat panel with FEATURES.MergeVat3 off (pc-watcher shot).
+	vat3Forced = function(): boolean
+		return game:GetService("RunService"):IsStudio() and gui:GetAttribute("PcwMergeVat") == true
+	end,
 	actions = Remotes.ACTIONS,
 	send = send,
 	request = invoke,
@@ -789,7 +795,7 @@ end
 
 if isStudio then
 	for _, attribute in
-		{ "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin", "PcwDexRows", "PcwStealAlert" }
+		{ "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin", "PcwDexRows", "PcwStealAlert", "PcwMergeVat" }
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
 			if latest then
