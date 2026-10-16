@@ -235,8 +235,8 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "slime_anim": {"PATH", "ANIM", "ID", "WAIT"},
-        "pad_seat": {"PATH"},
+        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -251,14 +251,15 @@ def t_files():
     check("shots.json is a list with ids", isinstance(shots, list) and all("id" in s for s in shots))
     check("shots.json has the idle-HUD overlay guard",
           any(s.get("kind") == "ui" and not s.get("open") and s.get("expect_no_overlay") for s in shots))
-    upf = os.path.join(HERE, "..", "..", "..", "shared", "modeling-kit", "uploaded.json")
-    if not os.path.exists(upf):  # installed copy (C:\gate\pc-watcher\app) has no repo around it
-        return
-    up = json.load(open(upf, encoding="utf-8"))
-    anims = [s for s in shots if s.get("anim")]
-    check("anim shots name an uploaded Animation with its real id", len(anims) >= 4 and all(
-        up.get(s["anim"], {}).get("assetType") == "Animation"
-        and s.get("animId") == "rbxassetid://" + up[s["anim"]]["assetId"] for s in anims), anims)
+    motions = {s["motion"]: s for s in shots if s.get("motion")}
+    check("motion shots cover idle squish, hop, look left and look right",
+          set(motions) == {"Idle", "Hop", "LookLeft", "LookRight"}, sorted(motions))
+    check("motion shots seat a slime and wait", all(s.get("seat") and float(s.get("wait", 0)) > 0 for s in motions.values()))
+    habitats = [s for s in shots if s.get("habitat")]
+    types = {s["habitat"] for s in habitats}
+    check("every habitat type has a shot with a slime seated on it",
+          len(types) >= 9 and all(any(s["habitat"] == t and s.get("seat") for s in habitats) for t in types), sorted(types))
+    check("no shot plays the uploaded animations", not [s for s in shots if s.get("anim") or s.get("animId")])
 
 
 def t_geometry():

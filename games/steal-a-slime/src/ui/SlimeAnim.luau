@@ -36,6 +36,12 @@ SlimeAnim.LAND_AT = 0.6 -- seconds into SlimeHop when it touches down
 SlimeAnim.LOOK_LENGTH = 0.4
 SlimeAnim.FADE = 0.15
 
+SlimeAnim.LOAD_TIMEOUT = 3 -- seconds a track may take to report Length > 0 before it counts as failed
+
+export type Mode = "anim" | "motor" | "weld"
+
+export type Verdict = "ok" | "wait" | "failed"
+
 export type Ids = { idle: string, hop: string, lookLeft: string, lookRight: string }
 
 export type Schedule = { hopAt: number, landAt: number?, lookAt: number }
@@ -56,6 +62,26 @@ function SlimeAnim.ids(lookup: (string) -> string?): Ids?
 		ids[key] = id
 	end
 	return ids
+end
+
+-- `length` is AnimationTrack.Length (0 until the asset loaded, stays 0 when it
+-- can't: wrong owner, moderation, bad data); `age` seconds since the load
+-- started; `playing` (optional) IsPlaying of a track that was Played.
+function SlimeAnim.verdict(length: number?, age: number, playing: boolean?): Verdict
+	if length ~= nil and length > 0 and playing ~= false then
+		return "ok"
+	end
+	if age < SlimeAnim.LOAD_TIMEOUT then
+		return "wait"
+	end
+	return "failed"
+end
+
+function SlimeAnim.mode(flag: boolean, ids: Ids?, hasAnimator: boolean, verdict: Verdict?, rigged: boolean): Mode
+	if flag and ids and hasAnimator and verdict == "ok" then
+		return "anim"
+	end
+	return if rigged then "motor" else "weld"
 end
 
 local function between(range: { number }, rand: Rand): number
