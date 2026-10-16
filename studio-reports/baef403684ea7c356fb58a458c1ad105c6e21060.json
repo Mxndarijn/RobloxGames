@@ -7823,5 +7823,17 @@
       ]
     }
   },
-  "frames_dir": "baef403684ea7c356fb58a458c1ad105c6e21060/"
+  "frames_dir": "baef403684ea7c356fb58a458c1ad105c6e21060/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "02c-badge-toast: PASS. The 'Badge unlocked! First Slime' toast shows top-right without covering the HUD.",
+    "18-hold-ring-rebirth: the hold was driven for 0.8 s and the rebirth panel is open, but the fill ring isn't clearly visible in the frame, so it's unproven.",
+    "v29-11-slime-growth-pad: PcwGrowth was set, but no 'Growth %' label is visible on the slime in the frame, so it's still unproven. The shot probably frames the watcher's seat clone instead of the real pad slime. Follow-up from me.",
+    "02e-admin-event-banner and 21-weather-mutation-dex: skipped because the 600 s run budget ran out (run took 526 s plus setup). Follow-up: raise the budget.",
+    "Cosmetic (not blocking, the X stays visible): the fountain spill announcement 'A LEGENDARY ... spilled from the fountain!' overlaps the open menu's title (rebirth, plot). #118 hid the Slime Rain/modifier banners while a menu is open, but not this toast.",
+    "19-appraise, Mystery Egg and B6 slide unchanged and OK. All steps pass, focus_stolen [], close pass, no leftovers."
+  ]
 }
