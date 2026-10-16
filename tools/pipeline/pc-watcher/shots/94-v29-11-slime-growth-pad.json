@@ -4,8 +4,8 @@
   "kind": "world",
   "target": "Pad_1",
   "from": "look",
-  "dist": 8,
-  "height": 4,
+  "dist": 4.5,
+  "height": 2.8,
   "note": "v29 #11: a grown slime on Pad_1 is drawn slightly larger with a small 'Growth %' label above it (FEATURES.GrowingSlimes)",
   "grow": 60
 }
