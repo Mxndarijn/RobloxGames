@@ -128,7 +128,7 @@ local entries: { [string]: Entry } = {}
 entries["slime_fountain"] =
 	{ assetId = 137335028699292, meshId = "rbxassetid://109732747899788", size = { 54.45, 43.316, 63.851 } }
 entries["phoenix_fence_segment"] =
-	{ assetId = 92327721520041, meshId = "rbxassetid://127187149466504", size = { 11, 9.02, 1.8 } }
+	{ assetId = 92327721520041, meshId = "rbxassetid://88430332942524", size = { 11, 9.02, 1.8 } }
 entries["phoenix_corner_post"] =
 	{ assetId = 122993526477202, meshId = "rbxassetid://119122479393270", size = { 2.8, 9.689, 2.8 } }
 entries["phoenix_gate"] =
@@ -322,7 +322,7 @@ entries["habitat_syrup_pool"] =
 	{ assetId = 84228432405913, meshId = "rbxassetid://103442186480271", size = { 7.8, 3.6, 7.8 } }
 -- 20-stud plot fence (models/ranch_fence_20.py): Open Cloud size-check.
 entries["ranch_fence_20"] =
-	{ assetId = 93657150564692, meshId = "rbxassetid://111846611380833", size = { 22, 9.02, 1.8 } }
+	{ assetId = 93657150564692, meshId = "rbxassetid://90306341034018", size = { 22, 9.02, 1.8 } }
 -- Per-type slime kit (SlimeLooks.kit; server SlimeMesh, NOT world slots: they are
 -- cloned per slime, so they never count against WorldLayout.MESH_SLOT_BUDGET).
 entries["slime_base"] = { assetId = 133281767866632, meshId = "rbxassetid://96069569027056", size = { 3, 3, 3 } }
