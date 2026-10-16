@@ -499,6 +499,14 @@ function LayoutAssert.panelChecks(check: Checker)
 		})
 		check.text({ name = closeName, text = "X", size = 24, bold = true, w = close.w, h = close.h })
 	end
+	-- Top-bar hints stay up while a menu is open and draw above it.
+	local close = Layout.panelClose(screen.panel)
+	for id, hint in Hint.STEPS do
+		local place = Hint.place(screen, screen.hud, { id = id, text = hint.text, target = hint.target })
+		if place then
+			check.noOverlap(`Hint.{id} bubble`, place.bubble, "Panel.Close", close)
+		end
+	end
 end
 
 -- Just the full-window panel rules (any viewport; `standard` also runs them).
