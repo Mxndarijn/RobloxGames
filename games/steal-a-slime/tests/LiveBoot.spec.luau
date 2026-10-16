@@ -10,6 +10,8 @@ local fs = require("@lune/fs")
 local process = require("@lune/process")
 
 local Checks = require("../tools/livetest/Checks")
+local Config = require("../src/shared/Config")
+local Constants = require("../src/shared/Constants")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
 
@@ -61,6 +63,31 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 	it("writes the owner's name on their plot Sign after joining", function()
 		show(ownerSigns)
 		expect(ownerSigns.ok).toBe(true)
+	end)
+	it("keeps the ClaimPrompt on every BuyStand.Counter beside its ranch_shop_stand slot", function()
+		local plots = rt.workspace:FindFirstChild("Plots")
+		local missing, stands = {}, 0
+		for _, plot in (if plots then plots:GetChildren() else {}) do
+			local stand = plot:FindFirstChild("BuyStand")
+			if not stand then
+				continue
+			end
+			stands += 1
+			local slot = stand:FindFirstChild("StandMesh")
+			local counter = stand:FindFirstChild("Counter")
+			local prompt = counter and counter:FindFirstChild(Constants.CLAIM_PROMPT_NAME)
+			if not (slot and slot:GetAttribute("MeshAsset") == "ranch_shop_stand") then
+				table.insert(missing, `{plot.Name}.BuyStand.StandMesh`)
+			end
+			if not (prompt and prompt:IsA("ProximityPrompt")) then
+				table.insert(missing, `{plot.Name}.BuyStand.Counter.{Constants.CLAIM_PROMPT_NAME}`)
+			end
+		end
+		if #missing > 0 then
+			print(`    missing: {table.concat(missing, ", ")}`)
+		end
+		expect(stands).toBe(Config.PLOT_COUNT)
+		expect(#missing).toBe(0)
 	end)
 	it("sets no habitat attributes or parts with FEATURES.Habitats off", function()
 		local found = {}

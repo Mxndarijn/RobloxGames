@@ -22,6 +22,7 @@ type Counts = {
 	props: number,
 	pads: number,
 	dex: number, -- plot DexBoard skins (in other)
+	buy: number, -- plot BuyStand skins (in other)
 	border: number,
 	other: number,
 	decor: number, -- props + pads + other
@@ -43,6 +44,7 @@ local function count(nodes: { any }): Counts
 		props = 0,
 		pads = 0,
 		dex = 0,
+		buy = 0,
 		border = 0,
 		other = 0,
 		decor = 0,
@@ -79,6 +81,8 @@ local function count(nodes: { any }): Counts
 			else
 				if mesh == WorldLayout.DEX_MESH and n.name == "DexMesh" then
 					c.dex += 1
+				elseif mesh == WorldLayout.BUY_STAND_MESH and n.name == "StandMesh" then
+					c.buy += 1
 				end
 				c.other += 1
 			end
@@ -141,12 +145,18 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 			true
 		)
 	end)
-	it("has no room for a BuyStand skin (ranch_shop_stand, 1 a plot): tag it once this trips", function()
-		local room = math.min(
-			WorldLayout.DECOR_SLOT_BUDGET,
-			WorldLayout.MESH_SLOT_BUDGET - uploaded.fence - WorldLayout.BORDER_SLOT_BUDGET
-		) - uploaded.decor
-		expect(room < P).toBe(true)
+	it("skins one BuyStand a plot (ranch_shop_stand), filling decor to its cap", function()
+		expect(uploaded.buy).toBe(P)
+		expect(uploaded.decor).toBe(WorldLayout.DECOR_SLOT_BUDGET)
+	end)
+	it("splits MESH_SLOT_BUDGET 400 into fence 128 + border 112 + decor 160", function()
+		expect(WorldLayout.MESH_SLOT_BUDGET).toBe(400)
+		expect(WorldLayout.FENCE_SLOT_BUDGET).toBe(128)
+		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(112)
+		expect(WorldLayout.DECOR_SLOT_BUDGET).toBe(160)
+		expect(WorldLayout.FENCE_SLOT_BUDGET + WorldLayout.BORDER_SLOT_BUDGET + WorldLayout.DECOR_SLOT_BUDGET).toBe(
+			WorldLayout.MESH_SLOT_BUDGET
+		)
 	end)
 	it("fits MESH_SLOT_BUDGET with the border at its share", function()
 		local budgeted = uploaded.fence + uploaded.decor + WorldLayout.BORDER_SLOT_BUDGET
@@ -154,14 +164,11 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 		-- the budget is the real count, not a ceiling far above it
 		expect(WorldLayout.MESH_SLOT_BUDGET - budgeted < 10).toBe(true)
 	end)
-	it("holds the border to its share, or pins main's larger ring at BORDER_SLOT_COUNT", function()
-		if uploaded.border <= WorldLayout.BORDER_SLOT_BUDGET then
-			expect(uploaded.total <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
-		else
-			-- Over its share (main #54): any change to the ring trips this so the
-			-- budget is re-read, instead of the overflow growing unnoticed.
-			expect(uploaded.border).toBe(WorldLayout.BORDER_SLOT_COUNT)
-		end
+	it("holds the border to its share, pinned at BORDER_SLOT_COUNT", function()
+		-- Any change to the ring trips this so the budget is re-read.
+		expect(uploaded.border).toBe(WorldLayout.BORDER_SLOT_COUNT)
+		expect(uploaded.border <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
+		expect(uploaded.total <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 		expect(current.border).toBe(uploaded.border)
 	end)
 end)
