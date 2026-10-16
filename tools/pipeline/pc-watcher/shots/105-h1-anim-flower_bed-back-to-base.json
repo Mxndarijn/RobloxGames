@@ -1,0 +1,11 @@
+{
+  "id": "h1-anim-flower_bed-back-to-base",
+  "todo": "v30 H1",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "flower_bed",
+  "leave": true,
+  "wait": 1.8,
+  "note": "v30 H1: slime left: flower_bed folded away, exact uniform base pad back (same colour, no leftover parts)"
+}

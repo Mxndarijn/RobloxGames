@@ -34,6 +34,17 @@ When a slime sits on a pad, the pad turns into that slime's habitat in about 1 s
 - One local look per habitat per pad (folder `workspace.ClientHabitats`, CanCollide / CanQuery / CanTouch off). Each look has a weight 0..1 that moves toward 1 (current `Habitat`) or 0 (any other) at `1 / TRANSFORM_SECONDS` (1 s): scale + fade, a sparkle burst when a transform starts, and the base stand fades out locally (`LocalTransparencyModifier`) while a habitat shows. Revert is the same tween backwards.
 - Weights live in `Habitats.stepWeights` (pure, Lune-tested).
 
+## Animation feel: `src/shared/HabitatMorph.luau` (pure) + `Config.HABITAT_ANIM`
+
+Client only, on top of the weights above; no new mesh, no new remote, no replicated animation.
+
+- **Rise:** prop `i` of `n` starts at weight `STAGGER * (i-1)/(n-1)` and scales with easeOutBack (overshoot while rising only); leaving uses the same curve with the weight falling, so the last prop is the first to go. A mesh slot look is one prop (no stagger, still overshoots).
+- **Pad colour:** the pad and its Stand shift toward the habitat accent (fully by half way). The exact base colours are stored and restored when the look is gone.
+- **Puff:** the existing sparkle emitter, `BURST_FULL` particles (`BURST_SIMPLE` at mid distance).
+- **Quality:** `HabitatMorph.quality` -> `snap` (LocalPlayer attribute `ReducedMotion` = true, camera beyond `SNAP_BEYOND` studs, or `MAX_ANIMATING` pads already morphing): the change shows its final state at once, no puff; `simple` (beyond half of `SNAP_BEYOND`): plain ease, small puff; else `full`.
+- **Late joiners** still snap to the final state (`initialWeights`); settled weights equal the static habitat exactly.
+- Proof: `tests/HabitatMorph.spec`, `tests/HabitatsLive.spec` (enter / leave / interrupt, exact base restore, no leftover parts, no mesh built); shots `105-h1-anim-*` (`"leave": true` plays the leave in `luau/habitat_set`).
+
 ## Edge cases
 
 - **Steal mid-transform:** the server flips the pad straight to `base` (`HabitatFrom` = the half-grown habitat). The client tweens the half-grown look back down from where it was; it ends at `base`.

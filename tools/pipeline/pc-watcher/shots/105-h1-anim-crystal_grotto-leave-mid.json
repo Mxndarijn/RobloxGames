@@ -1,0 +1,11 @@
+{
+  "id": "h1-anim-crystal_grotto-leave-mid",
+  "todo": "v30 H1",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "crystal_grotto",
+  "leave": true,
+  "wait": 0.35,
+  "note": "v30 H1: slime left: crystal_grotto shrinking mid-leave, last props first"
+}
