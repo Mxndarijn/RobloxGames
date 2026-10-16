@@ -47,7 +47,10 @@ the real mouse or keyboard.
    steps fall back to setting `Visible` (`luau/panel_visible`): onboarding hides `TutorialOverlay`, shop
    opens `ShopPanel`, esc closes it, shots open and close panels. Those steps then end `warn` (input not
    tested), not `pass`. The Escape press is kept because it goes through `user_keyboard_input` too. A
-   real mouse move by Merijn during the call also trips the guard; that only costs input coverage.
+   real mouse move by Merijn during the call also trips the guard; that only costs input coverage. The
+   fallback stays, and the guard now logs the delta: the note and `background.cursor_events` (`call`,
+   `before`, `after`, `delta`, `dist_px`) show how far the cursor moved, so a ~14 px nudge (probably the
+   user's own mouse) can be told from a real injected-input jump.
 6. **Focus guard.** At run start the watcher records `GetForegroundWindow` (report
    `background.foreground_at_start`). After every step it checks whether the foreground window belongs to
    a Studio pid the watcher started. If so, the report notes `FOCUS STOLEN at step X`, lists it in
@@ -77,7 +80,7 @@ python watcher.py step build [--sha SHA]        # debug one step at a time, in t
 python watcher.py step launch                   #   opens Studio and leaves it open (state\current.json)
 python watcher.py step perf                     #   starts play if needed
 python watcher.py step play                     #   play + perf + onboarding + shop + esc
-python watcher.py step devices                  #   starts play if needed
+python watcher.py step devices                  #   starts play if needed  # also runs menus + phone_perf
 python watcher.py step shots
 python watcher.py step twoplayer
 python watcher.py step close
@@ -107,7 +110,7 @@ input call misbehaves.
 | `logs\watcher.log` | rotating log, 5 x 5 MB |
 | `config.json` | optional overrides of `watcher.DEFAULTS` (budget, devices, input templates, 2-player args, ...) |
 
-## Flow per sha (budget about 8 min, `run_budget_s` 480)
+## Flow per sha (budget about 10 min, `run_budget_s` 600)
 
 | # | Step | What | Hard fail on | Typical |
 |---|---|---|---|---|
@@ -118,7 +121,9 @@ input call misbehaves.
 | 5 | onboarding | The tutorial card (`SlimeUI.TutorialOverlay`) must show for the fresh memory profile. Click its `Hide`; the card must hide. Later (soft): teleport next to the cheapest wild slime, press **E** through `user_keyboard_input`, and record whether `TutorialStepId` moved past `Grab`. | card missing / Hide no effect | 5 s |
 | 6 | shop | `VirtualInputManager` is not used: on the PC, execute_luau gets "lacking capability RobloxScript" for `SendMouseButtonEvent` and `SendKeyEvent`. Clicks use `user_mouse_input` (down, 120 ms, up, `mouse_button: "left"`) at the centre of `Hud.Shop` (then `Nav.Shop`): AbsolutePosition + AbsoluteSize/2 + GuiInset. If that has no effect, the click is retried without the GuiInset. `ShopPanel` must become visible. Every attempt's coordinates and MCP results are logged and go in `input_methods`. | shop not opened | 5 s |
 | 7 | esc | `user_keyboard_input` Escape; `ShopPanel` must close (game binds Esc via ContextActionService). | still open | 2 s |
-| 8 | devices | Resize the off-screen Studio main window (SetWindowPos with SWP_NOACTIVATE, DPI-aware) until Client `CurrentCamera.ViewportSize` is 1920x1080, 390x844 and 844x390. The first guess is target + (client - viewport). Then secant steps, up to 5 tries. When Studio or Windows clamps the size, the closest size reached is kept and noted. At each size: HUD + nav buttons (`Hud.*`, `Nav.*` by name) must be inside the ScreenGui rect (viewport minus top bar, 1 px), then one frame is captured. The window goes back to its off-screen rect afterwards. | an element off-screen or missing | 60-90 s |
+| 8 | devices | Resize the off-screen Studio main window (SetWindowPos with SWP_NOACTIVATE, DPI-aware) until Client `CurrentCamera.ViewportSize` is 1920x1080, 390x844 and 844x390. The first guess is target + (client - viewport). Then secant steps, up to 5 tries. When Studio or Windows clamps the size, the closest size reached is kept and noted. At each size: HUD + nav buttons (`Hud.*`, `Nav.*` by name) must be inside the ScreenGui rect (viewport minus top bar, 1 px), then one frame is captured. The window goes back to its off-screen rect afterwards. Inside this loop, at each size, the **menus** and **phone_perf** steps below run. | an element off-screen or missing | 60-90 s |
+| 8a | menus | Runs in the devices loop, at every size. For each panel in `menu_panels` (plot, merge, shop, rebirth, goals, dex, leaders, guide: `allPanels` in `src/ui/init.client`) `open_panel` opens it (MCP click on `Nav.<Key>` if the cursor guard allows, else `luau/panel_visible`; Guide has no nav button, so it is always the Visible path). `luau/menu_measure` reads AbsoluteSize / ViewportSize, whether the panel is shown and inside the ScreenGui rect (1 px), and whether its `Close` button exists, is shown and is on screen. A cropped frame `<sha>-menu-<panel>-<device>` is captured with the other panels hidden, then the panel is closed (Esc, `Close`, `Visible=false`). **Pass = every panel on screen with a visible close button at every size.** Since #76 the menus are content-sized cards, so `frac_w` / `frac_h` are only reported; a non-full-window panel never fails (a note says so). | any panel off-screen, not openable, or no visible close button | 40-80 s |
+| 8b | phone_perf | Runs in the devices loop at the phone sizes (device names starting `phone`). `luau/slime_fill` (Server) counts tagged wild/pad slimes within 70 studs of the character and clones existing ones into a ring around it until there are `phone_min_slimes + 4` (clones carry `PcwFill` and a unique `SlimeId`, because SlimeLife keys on it; the live `World` is a local of `src/server`, so `Spawner.spawnOne` is not reachable from execute_luau). `luau/phone_perf` (Client) waits up to 8 s for 16 slimes with a `LifeRoot` (the #71 `SlimeLifeRunner` rig; `SlimeLife.MAX_ACTIVE` = 16), then measures `stats_seconds` of RenderStepped dt: avg / p95 / max ms, FPS, memory MB, animating count, slimes within 80 studs. Frame `<sha>-phone-perf-<device>`. The clones are removed after the loop. **Fail if avg FPS < `phone_min_fps` (30).** Fewer than 16 animating is a note, not a failure. Studio on the PC is not phone hardware. | avg FPS < 30 | 25-40 s |
 | 9 | shots (soft) | `shots.json` proof frames, cropped to the game viewport (see Frames). `ui`: open `<Key>Panel` by an MCP click on the text-less nav icon `Nav.<Key>` (then `Hud.<Key>`). If no click opens it, set `Visible` directly (`luau/panel_visible`; the UI has no open hook, so contents may be stale). The method goes in the frame entry. The tutorial card, popups and every other `*Panel` are hidden for the capture (`luau/ui_isolate`) and shown again after. Capture, then close with Esc, else `<Key>Panel.Close`, else `Visible=false`. `world`: the Server finds the target (exact name, else substring) and its bounding box. The Client hides every PlayerGui ScreenGui, the CoreGui and every BillboardGui and ProximityPrompt, moves the character behind the camera and anchors it, and locks a Scriptable camera with `BindToRenderStep` at `RenderPriority.Last + 1` (after the default camera scripts) on the target's front side: 35 degrees down, `max(extent)*1.8+15` studs away. `shot_camera_reset` unbinds and restores all of it. Missing targets are frame entries with status `missing`. | never | 0-90 s |
 | 10 | two_player | See below (mode c only). | mode c assertion false | 30-40 s |
 | 11 | close | Save the console output, stop play, PostMessage WM_CLOSE to the main window, wait 15 s, then `taskkill /T /F` the tracked pids. This also kills a "save changes?" prompt. | - | 5-20 s |
@@ -164,20 +169,26 @@ the earlier modes did not (`tried`).
   "steps": {
     "build": {"status": "pass|fail|warn|skip", "seconds": 8.1, "detail": {...}},
     "launch": ..., "perf": ..., "play": ..., "onboarding": ..., "shop": ..., "esc": ...,
+    "menus": {"detail": {"panels": [...], "devices": [...]}}, "phone_perf": {"detail": {...}},
     "devices": {"detail": {"devices": {"desktop": {"target": [1920,1080], "viewport": [1900,1002], "exact": false,
                                                    "hud": {"offscreen": [], "missing": []}, "frame": {...}}}}},
     "two_player": {"detail": {"mode": "c-server-sim", "tried": [...], "assertion": "..."}},
     "shots": ...
   },
   "perf": {"mesh_slots": 324, "unique_meshes": 61, "budget": 400, "frame_time_ms": 16.7, "memory_mb": 1450.2,
-           "parts": 1100, "play": {...}},
+           "parts": 1100, "play": {...},
+           "phone": {"phone-portrait": {"avg_ms": 9.8, "p95_ms": 14.1, "max_ms": 31.0, "fps": 102.0, "memory_mb": 1460.0,
+                                        "animating": 16, "slimes_near": 22, "fill": {...}, "pass": true,
+                                        "frame": "<sha>-phone-perf-phone-portrait.jpg"}}},
+  "menus": {"phone-portrait": {"shop": {"frac_w": 0.82, "frac_h": 0.61, "on_screen": true, "close_button": true,
+                                          "frame": "<sha>-menu-shop-phone-portrait.jpg"}}},
   "frames": [
     {"id": "desktop", "file": "<sha>-desktop.png", "status": "captured", "todo": null, "kind": "device", "method": "printwindow", "size": [1920, 1080], "crop": null},
     {"id": "shot-02-dex-menu", "file": "<sha>-shot-02-dex-menu.png", "status": "captured", "todo": "2", "kind": "shot", "crop": [312, 96, 1280, 720], "open_method": "mcp_click:Nav.Dex"},
     {"id": "shot-11-signpost", "file": null, "status": "missing", "todo": "11", "kind": "shot", "error": "target 'Signpost' not found"}
   ],
   "input_methods": {"virtual_input_manager": "not tried: ...", "mcp_mouse:Hud.Shop": "works", "mcp_keyboard:Escape": "works"},
-  "background": {"foreground_at_start": [131330, 8812], "focus_stolen": [], "mcp_input": true},
+  "background": {"foreground_at_start": [131330, 8812], "focus_stolen": [], "mcp_input": true, "cursor_events": []},
   "close": {...}, "watcher_version": "1.0.0"
 }
 ```

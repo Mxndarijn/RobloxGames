@@ -9,6 +9,7 @@ placeholder the watcher fills.
 
 import glob
 import json
+import math
 import os
 import py_compile
 import re
@@ -164,6 +165,24 @@ def t_watcher():
     check("click points: IgnoreGuiInset = one point", len(pts) == 1, pts)
     check("two_player mode b removed", not any(k.startswith("twoplayer_") for k in watcher.DEFAULTS)
           and not hasattr(watcher, "twoplayer_cmdline"))
+    check("cursor delta", watcher.cursor_delta((100, 100), (110, 109)) == (10, 9, math.hypot(10, 9)))
+    m = {"found": True, "shown": True, "on_screen": True, "size": [195, 422], "viewport": [390, 844],
+         "close": {"found": True, "shown": True, "on_screen": True}}
+    r = watcher.menu_record(m, "f.jpg")
+    check("menu record card", r == {"frac_w": 0.5, "frac_h": 0.5, "on_screen": True, "close_button": True,
+                                    "frame": "f.jpg"}, r)
+    off = dict(m, on_screen=False, close={"found": True, "shown": True, "on_screen": False})
+    r2 = watcher.menu_record(off)
+    check("menu record off-screen", not r2["on_screen"] and not r2["close_button"])
+    check("menu record missing", not watcher.menu_record(None)["on_screen"])
+    check("menus_failed", watcher.menus_failed({"d": {"shop": r, "dex": r2, "gone": watcher.menu_record(None)}})
+          == ["d/dex", "d/gone"])
+    check("phone perf pass", watcher.phone_perf_verdict({"fps": 45.0, "animating": 16}, 30, 16) == (True, []))
+    ok, pr = watcher.phone_perf_verdict({"fps": 24.0, "animating": 9}, 30, 16)
+    check("phone perf fail", not ok and len(pr) == 2, pr)
+    check("phone perf animating only warns", watcher.phone_perf_verdict({"fps": 60.0, "animating": 3}, 30, 16)[0])
+    check("menus/phone_perf are hard steps", all(s in watcher.HARD_STEPS and s in watcher.STEP_ORDER
+                                                 for s in ("menus", "phone_perf")))
     check("title ok", watcher.frame_title_ok("abc - Roblox Studio", []) and not watcher.frame_title_ok("Notepad", ["zz"]))
 
 
@@ -249,7 +268,8 @@ def t_files():
     used = {
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET"}, "viewport_probe": {"SHOW"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
-        "shot_camera": {"EYE", "AT"},
+        "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
+        "phone_perf": {"SECONDS"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]

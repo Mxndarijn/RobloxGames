@@ -17,6 +17,7 @@ background"). See README.md for the flow, report format and limits.
 """
 
 import argparse
+import copy
 import datetime
 import json
 import logging
@@ -48,13 +49,16 @@ DEFAULTS = {
     "keep_builds": 5,
     "poll_s": 60,
     "busy_retry_s": 300,
-    "run_budget_s": 480,
+    "run_budget_s": 600,
     "mesh_slot_budget": 400,
     "launch_timeout_s": 120,
     "client_timeout_s": 90,
     "stats_seconds": 5,
     "devices": [["desktop", 1920, 1080], ["phone-portrait", 390, 844], ["phone-landscape", 844, 390]],
     "device_iterations": 5,
+    "menu_panels": ["plot", "merge", "shop", "rebirth", "goals", "dex", "leaders", "guide"],  # src/ui/init.client allPanels
+    "phone_min_fps": 30,  # phone_perf fails below this average FPS (Studio on a PC, not phone hardware)
+    "phone_min_slimes": 16,  # SlimeLife.MAX_ACTIVE: animating slimes wanted near the camera
     # kind (mouse_down, mouse_up, key_down, key_up) -> action template, "$x" / "$y" / "$key" filled in.
     # Empty = built from the tool's inputSchema (see mcp_client.build_action).
     "input_overrides": {},
@@ -65,8 +69,8 @@ DEFAULTS = {
 }
 
 # A step outside these that ends "fail" still fails the run; these also fail it when skipped.
-HARD_STEPS = ("build", "launch", "perf", "play", "onboarding", "shop", "esc", "devices")
-STEP_ORDER = ("build", "launch", "perf", "play", "onboarding", "shop", "esc", "devices", "two_player", "shots")
+HARD_STEPS = ("build", "launch", "perf", "play", "onboarding", "shop", "esc", "devices", "menus", "phone_perf")
+STEP_ORDER = ("build", "launch", "perf", "play", "onboarding", "shop", "esc", "devices", "menus", "phone_perf", "two_player", "shots")
 SOFT_STEPS = ("shots",)  # never fail the run; missing = fine
 GIT_ENV = {"GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
 
@@ -127,6 +131,51 @@ def next_client_guess(target, samples):
                 break
         guess.append(int(round(c + (t - v) * slope)))
     return tuple(guess)
+
+
+def cursor_delta(before, after):
+    """(dx, dy, distance in px) between two GetCursorPos points."""
+    dx, dy = after[0] - before[0], after[1] - before[1]
+    return dx, dy, math.hypot(dx, dy)
+
+
+def menu_record(m, frame=None, error=None):
+    """report.menus[device][panel] from a luau/menu_measure result (None = panel not found / not opened).
+
+    frac_* = AbsoluteSize / ViewportSize. #76 menus are content-sized cards, so a fraction below 1 is
+    normal and never fails; a panel passes when it is on screen and its Close button is visible and on screen.
+    """
+    rec = {"frac_w": None, "frac_h": None, "on_screen": False, "close_button": False, "frame": frame}
+    if error:
+        rec["error"] = error
+    if not m or not m.get("found"):
+        rec.setdefault("error", "panel not found")
+        return rec
+    vw, vh = m["viewport"]
+    rec["frac_w"] = round(m["size"][0] / vw, 3) if vw else None
+    rec["frac_h"] = round(m["size"][1] / vh, 3) if vh else None
+    rec["on_screen"] = bool(m.get("shown") and m.get("on_screen"))
+    c = m.get("close") or {}
+    rec["close_button"] = bool(c.get("found") and c.get("shown") and c.get("on_screen"))
+    return rec
+
+
+def menus_failed(menus):
+    """['device/panel', ...] of every panel that is not on screen with a visible close button."""
+    return ["%s/%s" % (d, p) for d, panels in menus.items() for p, r in panels.items()
+            if not (r.get("on_screen") and r.get("close_button"))]
+
+
+def phone_perf_verdict(stats, min_fps, min_slimes):
+    """(ok, problems): ok = average FPS >= min_fps. Too few animating slimes is a problem but not a failure."""
+    problems = []
+    fps = stats.get("fps")
+    ok = fps is not None and fps >= min_fps
+    if not ok:
+        problems.append("avg FPS %s < %s" % (None if fps is None else round(fps, 1), min_fps))
+    if (stats.get("animating") or 0) < min_slimes:
+        problems.append("only %s animating slimes (wanted %s)" % (stats.get("animating"), min_slimes))
+    return ok, problems
 
 
 def luau_literal(v):
@@ -372,9 +421,14 @@ class Run:
         after = _cursor()
         if before is not None and after is not None and before != after:
             self.input_ok = False
+            dx, dy, dist = cursor_delta(before, after)
             info["os_cursor_moved"] = [list(before), list(after)]
-            self.note("mcp input moved OS cursor (%s: %s -> %s); MCP input disabled for the rest of the run, "
-                      "panels set Visible instead" % (what, before, after))
+            info["os_cursor_delta_px"] = [dx, dy, round(dist, 1)]
+            self.extra.setdefault("cursor_events", []).append(
+                {"call": what, "before": list(before), "after": list(after), "delta": [dx, dy], "dist_px": round(dist, 1)})
+            self.note("mcp input moved OS cursor (%s: %s -> %s, delta %+d,%+d = %.0f px; a small delta can be the "
+                      "user moving the mouse); MCP input disabled for the rest of the run, panels set Visible "
+                      "instead" % (what, before, after, dx, dy, dist))
         return ok, info
 
     def click(self, x, y):
@@ -1075,6 +1129,7 @@ def step_devices(run):
         win32.place_offscreen(hwnd)
     x, y, w, h = win32.window_rect(hwnd)
     results, failed = {}, []
+    menus, phone, menu_s, perf_s, filled = {}, {}, 0.0, 0.0, False
     try:
         for device, tw, th in run.cfg["devices"]:
             if run.remaining() < 45:
@@ -1092,17 +1147,124 @@ def step_devices(run):
                 res["error"] = "off-screen %s missing %s" % (hud.get("offscreen"), hud.get("missing"))
             res["frame"] = capture_frame(run, hwnd, device, kind="device")
             results[device] = res
+            t1 = time.time()
+            menus[device] = menus_at_device(run, hwnd, device)
+            menu_s += time.time() - t1
+            if device.startswith("phone"):
+                t1 = time.time()
+                phone[device] = phone_perf_at_device(run, hwnd, device, first=not filled)
+                filled = True
+                perf_s += time.time() - t1
     finally:
+        if filled:
+            try:
+                run.luau("slime_fill", "Server", timeout=20, target=0)
+            except Exception as e:
+                run.note("could not remove the phone_perf slime clones: %r" % (e,))
         try:
             win32.set_window_rect(hwnd, x, y, w, h)  # back to the off-screen rect; never maximized
         except Exception as e:
             run.note("could not put the Studio window back to its off-screen rect: %r" % (e,))
+    set_menus_and_perf_steps(run, menus, phone, menu_s, perf_s)
     detail = {"devices": results}
     if failed:
         return "fail", dict(detail, error="HUD/nav off-screen or missing at: %s" % ", ".join(failed))
     if not any(r.get("hud") for r in results.values()):
         return "fail", dict(detail, error="no device size was checked")
     return "pass", detail
+
+
+def menus_at_device(run, hwnd, device):
+    """Opens every menu panel at the current size, measures it, captures it and closes it again.
+
+    Opening: MCP click on the nav icon when the cursor guard allows, else the Visible fallback
+    (open_panel). Returns {panel key: menu_record}. Frames: <sha>-menu-<panel>-<device>.png.
+    """
+    out = {}
+    for key in run.cfg["menu_panels"]:
+        panel = panel_for(key)
+        fid = "menu-%s-%s" % (key, device)
+        if run.remaining() < 40:
+            out[key] = menu_record(None, error="run budget")
+            continue
+        frame, m, err, opened = None, None, None, None
+        try:
+            opened = open_panel(run, key)
+            if not opened["method"]:
+                err = "could not open %s" % panel
+            else:
+                time.sleep(0.5)  # let the panel's own layout settle
+                m = run.need_luau("menu_measure", "Client", timeout=20, panel=panel)
+                run.luau("ui_isolate", "Client", timeout=15, keep=panel, hide=True)
+                try:
+                    info = capture_frame(run, hwnd, fid, crop=True, kind="menu", panel=panel, device=device,
+                                         open_method=opened["method"])
+                    frame = info.get("file")
+                finally:
+                    run.luau("ui_isolate", "Client", timeout=15, keep=panel, hide=False)
+        except Exception as e:
+            err = repr(e)[:200]
+        finally:
+            if opened and opened.get("method") and opened["method"] != "already open":
+                try:
+                    close_panel(run, panel)
+                except Exception as e:
+                    run.note("menu %s/%s: close failed: %r" % (device, key, e))
+        rec = menu_record(m, frame, err)
+        if opened and opened.get("method"):
+            rec["open_method"] = opened["method"]
+        out[key] = rec
+    return out
+
+
+def phone_perf_at_device(run, hwnd, device, first):
+    """Phone size: >= phone_min_slimes animated slimes near the camera, then RenderStepped dt over
+    stats_seconds. slime_fill (Server) clones wild/pad slimes around the character when short."""
+    res = {"pass": False}
+    if run.remaining() < 40:
+        res["error"] = "run budget"
+        return res
+    seconds = run.cfg["stats_seconds"]
+    try:
+        want = run.cfg["phone_min_slimes"] + 4  # a few extra: only the 16 nearest animate
+        ok, fill = run.luau("slime_fill", "Server", timeout=30, target=want)
+        res["fill"] = fill if ok else str(fill)[:200]
+        if ok and fill.get("error"):
+            run.note("phone_perf %s: slime fill: %s" % (device, fill["error"]))
+        time.sleep(1.5)  # replication, then SlimeLifeRunner picks 4 rigs per 0.25 s tick
+        stats = run.need_luau("phone_perf", "Client", timeout=seconds + 60, seconds=seconds)
+        res.update({k: _r(stats.get(k)) for k in ("avg_ms", "p95_ms", "max_ms", "fps", "memory_mb", "animating",
+                                                  "animating_at_start", "slimes_near", "frames", "viewport")})
+        info = capture_frame(run, hwnd, "phone-perf-" + device, crop=True, kind="perf", device=device)
+        res["frame"] = info.get("file")
+        ok, problems = phone_perf_verdict(stats, run.cfg["phone_min_fps"], run.cfg["phone_min_slimes"])
+        res["pass"] = ok
+        if problems:
+            res["problems"] = problems
+            run.note("phone_perf %s: %s" % (device, "; ".join(problems)))
+    except Exception as e:
+        res["error"] = repr(e)[:200]
+    return res
+
+
+def set_menus_and_perf_steps(run, menus, phone, menu_s, perf_s):
+    """The menus and phone_perf steps run inside the devices loop; this records them as steps + report keys."""
+    run.extra["menus"] = menus
+    bad = menus_failed(menus)
+    ok = bool(menus) and not bad
+    run.steps["menus"] = {"status": "pass" if ok else "fail", "seconds": round(menu_s, 1), "detail": dict(
+        {"panels": list(run.cfg["menu_panels"]), "devices": list(menus)},
+        **({} if ok else {"error": "not on screen with a visible close button: %s" % ", ".join(bad or ["nothing measured"])}))}
+    run.note("menus are content-sized cards since #76 (not full-window): frac_w / frac_h are reported, "
+             "only on-screen + a visible close button decide pass")
+    run.perf["phone"] = phone
+    badp = [d for d, r in phone.items() if not r.get("pass")]
+    okp = bool(phone) and not badp
+    run.steps["phone_perf"] = {"status": "pass" if okp else "fail", "seconds": round(perf_s, 1), "detail": dict(
+        {"min_fps": run.cfg["phone_min_fps"], "devices": list(phone)},
+        **({} if okp else {"error": "avg FPS below %s or not measured at: %s" % (
+            run.cfg["phone_min_fps"], ", ".join(badp or ["any phone size"]))}))}
+    run.note("phone_perf is Studio on the PC (unfocused, off-screen window), not real phone hardware")
 
 
 def _body(name):
@@ -1342,8 +1504,10 @@ def build_report(run):
         "perf": run.perf,
         "frames": list(run.frames),
         "input_methods": run.extra.get("input_methods"),
+        "menus": run.extra.get("menus"),
         "background": {"foreground_at_start": list(run.fg_start) if run.fg_start else None,
-                       "focus_stolen": list(run.focus_stolen), "mcp_input": run.input_ok},
+                       "focus_stolen": list(run.focus_stolen), "mcp_input": run.input_ok,
+                       "cursor_events": run.extra.get("cursor_events", [])},
         "watcher_version": VERSION,
     }
 
@@ -1440,7 +1604,15 @@ def _stage_report(run, src_dir, sha, report, rdir):
         elif name:
             rec.update(file=None, status="missing", error="frame file not found at sync")
         synced.append(rec)
-    synced_report = dict(report, frames=synced, frames_dir="%s/" % sha)
+    synced_report = dict(copy.deepcopy(report), frames=synced, frames_dir="%s/" % sha)
+    names = {r["id"]: r["file"] for r in synced if isinstance(r, dict) and r.get("file")}
+    for dev, panels in (synced_report.get("menus") or {}).items():
+        for key, r in panels.items():
+            if r.get("frame"):
+                r["frame"] = names.get("menu-%s-%s" % (key, dev))
+    for dev, r in ((synced_report.get("perf") or {}).get("phone") or {}).items():
+        if r.get("frame"):
+            r["frame"] = names.get("phone-perf-" + dev)
     write_json(os.path.join(dest, "%s.json" % sha), synced_report)
     return synced_report
 
