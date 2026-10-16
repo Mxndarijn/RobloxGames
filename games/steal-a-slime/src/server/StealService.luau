@@ -15,6 +15,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
+local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -27,7 +28,13 @@ function StealService.isLocked(session: Session, now: number): boolean
 end
 
 function StealService.buyLock(world: World, session: Session, now: number): (boolean, string?)
-	local ok, lockUntil, result = Steal.buyLock(session.data, session.lockUntil, now, World.incomeOf(world, session))
+	local ok, lockUntil, result = Steal.buyLock(
+		session.data,
+		session.lockUntil,
+		now,
+		World.incomeOf(world, session),
+		Revenge.lockMultiplier(world, session.userId, now)
+	)
 	if not ok then
 		return false, result :: string
 	end
@@ -167,6 +174,7 @@ end
 
 -- Call every frame: finishes escape bounces and pushes State on lock expiry.
 function StealService.step(world: World, now: number)
+	Revenge.prune(world, now)
 	for id, untilTime in world.escaping do
 		if now >= untilTime then
 			world.escaping[id] = nil

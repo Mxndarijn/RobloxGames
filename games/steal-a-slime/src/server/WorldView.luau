@@ -45,6 +45,7 @@ local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local Rescue = require(script.Parent.Rescue)
+local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local Scene = require(script.Parent.Scene)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local Snapshot = require(script.Parent.Snapshot)
@@ -774,6 +775,11 @@ function WorldView.setCarrying(player: Player, slimeId: string?)
 	if player:GetAttribute(Constants.CARRYING_ATTRIBUTE) ~= slimeId then
 		player:SetAttribute(Constants.CARRYING_ATTRIBUTE, slimeId)
 	end
+end
+
+-- Player attribute `RevengePlots` (FEATURES.Revenge): thief plot indexes, "3,5", nil = none. Victim only.
+function WorldView.setRevengePlots(player: Player, plots: { number })
+	setAttribute(player, Constants.REVENGE_PLOTS_ATTRIBUTE, RevengePlots.format(plots))
 end
 
 function WorldView.setRain(active: boolean, endsAt: number?, nextAt: number?)

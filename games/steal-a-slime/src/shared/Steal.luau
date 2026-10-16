@@ -90,13 +90,14 @@ function Steal.buyLock(
 	data: PlayerData.Data,
 	lockUntil: number,
 	now: number,
-	incomePerSec: number
+	incomePerSec: number,
+	costMult: number? -- FEATURES.Revenge: x2 while inside a victim's window
 ): (boolean, number, number | string)
 	local remaining = Steal.lockRemaining(lockUntil, now)
 	if remaining >= Config.LOCK_MAX_REMAINING - 1 then
 		return false, lockUntil, "lock is already at max"
 	end
-	local cost = Economy.lockCost(incomePerSec)
+	local cost = Economy.lockCost(incomePerSec) * (costMult or 1)
 	if not PlayerData.spend(data, cost) then
 		return false, lockUntil, "not enough cash"
 	end
