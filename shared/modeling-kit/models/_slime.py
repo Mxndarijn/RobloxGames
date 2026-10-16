@@ -416,6 +416,39 @@ RARITY_RGB = {"Common": (170, 220, 170), "Uncommon": (90, 200, 255), "Rare": (60
 
 
 # ---------------------------------------------------------------- shipping
+BODY_MESHES = ("slime_base", "slime_ears", "slime_horns", "slime_wobble")
+
+
+def rig_squash(o):
+    """Skin the body to a two-bone armature: Root (fixed, at the foot) and Squash (child of Root,
+    head at mid height). Weights go 0 at the foot to 1 at the crown, so moving the Squash bone down
+    in the SlimeIdleSquish / SlimeHop animations flattens the slime without a per-frame Size write.
+    Roblox imports the Armature as Bones under the MeshPart. The armature is exported next to the
+    mesh (bl_iterate.py picks up the parent Armature of every exported mesh)."""
+    import bpy
+    zs = [v.co.z for v in o.data.vertices]
+    lo, hi = min(zs), max(zs)
+    arm = bpy.data.armatures.new(o.name + "_rig")
+    ao = bpy.data.objects.new(o.name + "_rig", arm)
+    bpy.context.scene.collection.objects.link(ao)
+    bpy.context.view_layer.objects.active = ao
+    bpy.ops.object.mode_set(mode="EDIT")
+    root = arm.edit_bones.new("Root")
+    root.head, root.tail = (0, 0, lo), (0, 0, lo + 0.25 * (hi - lo))
+    sq = arm.edit_bones.new("Squash")
+    sq.head, sq.tail = (0, 0, lo + 0.5 * (hi - lo)), (0, 0, hi)
+    sq.parent = root
+    bpy.ops.object.mode_set(mode="OBJECT")
+    vg_root, vg_sq = o.vertex_groups.new(name="Root"), o.vertex_groups.new(name="Squash")
+    for v in o.data.vertices:
+        h = (v.co.z - lo) / max(hi - lo, 1e-6)
+        w = min(1.0, max(0.0, h)) ** 1.5  # foot stays put, crown follows the bone fully
+        vg_sq.add([v.index], w, "REPLACE")
+        vg_root.add([v.index], 1.0 - w, "REPLACE")
+    o.parent = ao
+    o.modifiers.new("Armature", "ARMATURE").object = ao
+
+
 def ship(name, parts):
     """finish() + keep smooth flags + turn to face Roblox -Z (unless SLIME_PREVIEW=1) and
     record where this mesh sits relative to the slime's bottom centre (Roblox axes)."""
@@ -436,6 +469,8 @@ def ship(name, parts):
             for i in range(3):
                 lo[i], hi[i] = min(lo[i], w[i]), max(hi[i], w[i])
     o = finish(name, parts)
+    if name in BODY_MESHES and not preview:
+        rig_squash(o)
     a = o.data.attributes["keep_smooth"]
     for p, d in zip(o.data.polygons, a.data):
         p.use_smooth = bool(d.value)

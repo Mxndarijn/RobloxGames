@@ -508,10 +508,15 @@ def main():
         bpy.ops.object.select_all(action="DESELECT")
         for o in objs:
             o.select_set(True)
+        # A skinned mesh (models/_slime.py rig_squash) exports with its parent Armature -> Bones in Roblox.
+        rigs = [o.parent for o in objs if o.parent and o.parent.type == "ARMATURE"]
+        for r in rigs:
+            r.select_set(True)
         bpy.context.view_layer.objects.active = objs[0]
         fbx = os.path.join(a.out, a.name + ".fbx")
         bpy.ops.export_scene.fbx(  # same settings as v17 make_meshes.py (proven in Roblox)
-            filepath=fbx, use_selection=True, object_types={"MESH"}, use_mesh_modifiers=True,
+            filepath=fbx, use_selection=True, object_types={"MESH", "ARMATURE"} if rigs else {"MESH"},
+            use_mesh_modifiers=True,
             apply_scale_options="FBX_SCALE_UNITS", axis_forward="-Z", axis_up="Y",
             mesh_smooth_type="FACE", colors_type="SRGB", add_leaf_bones=False, bake_anim=False,
         )
