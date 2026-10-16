@@ -587,15 +587,15 @@
   "ranch_fence_20": {
     "assetId": "93657150564692",
     "assetType": "Model",
-    "meshId": "rbxassetid://124018567196524",
+    "meshId": "rbxassetid://111846611380833",
     "meshSize": [
       22.0,
       9.02,
       1.8
     ],
-    "sha256": "1b15b78882dc259d",
-    "uploadedAt": "2026-10-16T08:16:50Z",
-    "versions": 1
+    "sha256": "8104e950ccd34813",
+    "uploadedAt": "2026-10-16T10:56:27Z",
+    "versions": 2
   },
   "ranch_fence_stile": {
     "assetId": "109953899748949",
@@ -730,15 +730,15 @@
   "ranch_landing_ring": {
     "assetId": "126479458852729",
     "assetType": "Model",
-    "meshId": "rbxassetid://105175088358977",
+    "meshId": "rbxassetid://84246485274936",
     "meshSize": [
       13.145,
       3.145,
       10.27
     ],
-    "sha256": "4d63700b98f57650",
-    "uploadedAt": "2026-10-16T07:06:45Z",
-    "versions": 1
+    "sha256": "7b29f3828740df47",
+    "uploadedAt": "2026-10-16T10:56:39Z",
+    "versions": 2
   },
   "ranch_lantern_post": {
     "assetId": "124004679363569",

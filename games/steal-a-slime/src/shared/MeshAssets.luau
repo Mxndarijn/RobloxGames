@@ -182,7 +182,7 @@ entries["ranch_hitching_post"] =
 entries["ranch_horseshoe_pit"] =
 	{ assetId = 111228780556669, meshId = "rbxassetid://118739723434350", size = { 9.5, 1.8, 4.7 } }
 entries["ranch_landing_ring"] =
-	{ assetId = 126479458852729, meshId = "rbxassetid://105175088358977", size = { 13.145, 3.145, 10.27 } }
+	{ assetId = 126479458852729, meshId = "rbxassetid://84246485274936", size = { 13.145, 3.145, 10.27 } }
 entries["ranch_lantern_post"] =
 	{ assetId = 124004679363569, meshId = "rbxassetid://99456773451008", size = { 3.65, 9.3, 1.6 } }
 entries["ranch_log_pile"] =
@@ -263,7 +263,7 @@ entries["habitat_candy_patch"] =
 	{ assetId = 133666024913667, meshId = "rbxassetid://114045594160776", size = { 7.8, 4.5, 7.8 } }
 -- 20-stud plot fence (models/ranch_fence_20.py): Open Cloud size-check.
 entries["ranch_fence_20"] =
-	{ assetId = 93657150564692, meshId = "rbxassetid://124018567196524", size = { 22, 9.02, 1.8 } }
+	{ assetId = 93657150564692, meshId = "rbxassetid://111846611380833", size = { 22, 9.02, 1.8 } }
 -- Per-type slime kit (SlimeLooks.kit; server SlimeMesh, NOT world slots: they are
 -- cloned per slime, so they never count against WorldLayout.MESH_SLOT_BUDGET).
 entries["slime_base"] = { assetId = 133281767866632, meshId = "rbxassetid://96069569027056", size = { 3, 3, 3 } }
