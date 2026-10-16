@@ -68,10 +68,25 @@ local function textReport()
 	for _, d in workspace:GetDescendants() do
 		if d:IsA("TextLabel") or d:IsA("TextButton") then
 			labels += 1
-			if d.Text == "" or d.Text == "Label" then
+			-- An empty leaderboard shows one "No entries yet" row whose Rank/Value are blank by design.
+			local nameLabel = if d.Parent then d.Parent:FindFirstChild("Name") else nil
+			local placeholderRow = (d.Name == "Rank" or d.Name == "Value")
+				and nameLabel ~= nil
+				and nameLabel:IsA("TextLabel")
+				and nameLabel.Text == "No entries yet"
+			if (d.Text == "" or d.Text == "Label") and not placeholderRow then
 				table.insert(empty, d:GetFullName())
 			end
 		elseif d:IsA("BasePart") and string.find(d.Name, "Sign") then
+			-- Only signs that carry a SurfaceGui, plus each plot's own Sign (the server writes its
+			-- text via PlotSigns). Kit mesh props (Signpost, GooSign) have no text, and
+			-- LockSign's labels are made client-side by PlotDecor, so a playerless server has none.
+			local plotSign = d.Name == "Sign"
+				and d.Parent ~= nil
+				and d.Parent.Parent == workspace:FindFirstChild("Plots")
+			if not plotSign and not d:FindFirstChildWhichIsA("SurfaceGui", true) then
+				continue
+			end
 			local hasText = false
 			for _, g in d:GetDescendants() do
 				if (g:IsA("TextLabel") or g:IsA("TextButton")) and g.Text ~= "" then
@@ -126,6 +141,7 @@ local ok, err = pcall(function()
 		local t = workspace:GetServerTimeNow()
 		GameLoop.step(world, t)
 		WorldView.reconcile(world, t, function() end)
+		WorldView.updatePlots(world, t)
 		World.drain(world)
 		task.wait(0.1)
 	end
