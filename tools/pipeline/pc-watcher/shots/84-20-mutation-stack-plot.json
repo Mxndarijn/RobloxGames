@@ -1,0 +1,7 @@
+{
+  "id": "20-mutation-stack-plot",
+  "todo": "20",
+  "kind": "ui",
+  "open": "plot",
+  "note": "TODO 20: Plot panel rows/appraise popup list ALL of a slime's mutations (\"Glow Syrup\", combos like Solar) instead of one (FEATURES.MutationStacking, cap MAX_MUTATIONS)"
+}

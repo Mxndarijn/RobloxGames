@@ -1,0 +1,10 @@
+{
+  "id": "16-habitat-show_stool-mid",
+  "todo": "16",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "show_stool",
+  "wait": 0.4,
+  "note": "TODO 16: pad morphing into show_stool (mid-morph, about 40%)"
+}

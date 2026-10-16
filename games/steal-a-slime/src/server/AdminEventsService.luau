@@ -52,7 +52,7 @@ function AdminEventsService.apply(service: Service, payload: AdminShared.Payload
 		Spawner.forceRain(world, now)
 	else
 		world.adminEvent = {
-			def = def,
+			def = { id = def.id, label = def.label, icon = def.icon }, -- table props are invariant: a full Def would not fit World.AdminEvent.def
 			endsAt = now + payload.seconds,
 			modifier = {
 				name = "Admin_" .. def.id,

@@ -1,7 +1,7 @@
 -- Client datamodel: rig animation proof shot. Finds the tagged slime on the pad at %%PATH%% (the Server
--- shot_find path of the shots.json target) that has the slime rig (Motor6Ds FaceRoot / SkinRoot and an
+-- shot_find path of the shots/*.json target) that has the slime rig (Motor6Ds FaceRoot / SkinRoot and an
 -- AnimationController > Animator, src/visuals/shared/SlimeRig), plays the animation %%ANIM%% on THIS
--- client's Animator (asset id from shots.json "animId" = MeshAssets.ANIMATIONS) and waits %%WAIT%% s,
+-- client's Animator (asset id from shots/*.json "animId" = MeshAssets.ANIMATIONS) and waits %%WAIT%% s,
 -- so the capture lands at the pose of that moment (SlimeHop apex 0.45, look peak 0.2, idle low 1.25).
 -- Reports the joints and the largest Motor6D offset seen while it played, as numbers for the report.
 local node = game

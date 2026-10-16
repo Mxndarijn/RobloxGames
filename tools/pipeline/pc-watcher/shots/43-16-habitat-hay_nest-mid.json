@@ -1,0 +1,10 @@
+{
+  "id": "16-habitat-hay_nest-mid",
+  "todo": "16",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "hay_nest",
+  "wait": 0.4,
+  "note": "TODO 16: pad morphing into hay_nest (mid-morph, about 40%)"
+}

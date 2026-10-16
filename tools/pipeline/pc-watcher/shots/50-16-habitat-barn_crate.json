@@ -1,0 +1,10 @@
+{
+  "id": "16-habitat-barn_crate",
+  "todo": "16",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "barn_crate",
+  "wait": 1.5,
+  "note": "TODO 16: pad turned into barn_crate"
+}

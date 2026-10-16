@@ -1,0 +1,10 @@
+{
+  "id": "16-habitat-mushroom_ring",
+  "todo": "16",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "mushroom_ring",
+  "wait": 1.5,
+  "note": "TODO 16: pad turned into mushroom_ring"
+}

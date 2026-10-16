@@ -1,0 +1,10 @@
+{
+  "id": "16-habitat-candy_patch-mid",
+  "todo": "16",
+  "kind": "world",
+  "target": "Pad_1",
+  "seat": true,
+  "habitat": "candy_patch",
+  "wait": 0.4,
+  "note": "TODO 16: pad morphing into candy_patch (mid-morph, about 40%)"
+}

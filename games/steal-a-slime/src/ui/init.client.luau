@@ -313,6 +313,31 @@ end
 
 local function panelState(key: string, realState: any): any
 	local state = forceFriends(realState)
+	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
+		-- Studio-only: one fake owned slime so the My Plot row shows its Appraise button.
+		local view = table.clone(state)
+		view.slimes = {
+			{
+				slime = {
+					id = "pcw-plot",
+					name = "Blorp",
+					tier = 3,
+					color = { 90, 200, 120 },
+					size = 1.2,
+					pattern = "None",
+					eyes = "Round",
+					mouth = "Smile",
+					mutation = "None",
+					pad = 1,
+				},
+				income = 12,
+				sellPrice = 450,
+				appraiseCost = 135,
+			},
+		}
+		view.padsUnlocked = math.max(1, state.padsUnlocked or 1)
+		return view
+	end
 	local force = if isStudio and key == "Rebirth" then gui:GetAttribute("PcwRebirthSlime") else nil
 	local need = state.rebirthSlime
 	if (force ~= "owned" and force ~= "missing") or type(need) ~= "table" then
@@ -551,6 +576,13 @@ if game:GetService("RunService"):IsStudio() then
 	gui:GetAttributeChangedSignal("PcwOpen"):Connect(function()
 		local key = gui:GetAttribute("PcwOpen")
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
+	end)
+	gui:GetAttributeChangedSignal("PcwPlotSlime"):Connect(function()
+		for _, entry in allPanels do
+			if entry.key == "Plot" and latest and entry.panel.frame.Visible then
+				entry.panel.update(panelState(entry.key, latest))
+			end
+		end
 	end)
 	gui:GetAttributeChangedSignal("PcwRebirthSlime"):Connect(function()
 		for _, entry in allPanels do

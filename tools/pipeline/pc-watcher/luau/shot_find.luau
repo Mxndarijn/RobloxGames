@@ -1,4 +1,4 @@
--- Server datamodel: locate a shots.json target by name. Exact-name matches sorted by full name (the
+-- Server datamodel: locate a shots/*.json target by name. Exact-name matches sorted by full name (the
 -- %%INDEX%%th, 1-based), else the first substring match. `front` = the #75 front (see geometry.luau):
 -- the "Mesh" child's LookVector, else -LookVector of a Part slot / the pivot LookVector of a Model.
 local pat = string.lower(%%TARGET%%)

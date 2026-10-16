@@ -4,7 +4,7 @@
 #   powershell -ExecutionPolicy Bypass -File install.ps1 [-WatcherHome C:\gate\pc-watcher] [-NoStart]
 #
 # The watcher checks the repo clone out at every sha it tests, so it must not run from that clone:
-# this script copies watcher.py, its modules, luau\ and shots.json to <Home>\app and the task runs
+# this script copies watcher.py, its modules, luau\ and shots\ to <Home>\app and the task runs
 # that copy. Re-run install.ps1 to update the app. Remove with uninstall.ps1.
 param(
     [string]$WatcherHome = "C:\gate\pc-watcher",
@@ -21,7 +21,12 @@ foreach ($d in "app", "app\luau", "bin", "builds", "out", "logs", "state") {
 # App copy (from wherever this script lives: a checkout of tools/pipeline/pc-watcher).
 $App = Join-Path $WatcherHome "app"
 Copy-Item -Force (Join-Path $PSScriptRoot "*.py") $App
-Copy-Item -Force (Join-Path $PSScriptRoot "shots.json") $App
+# Stale copies must not linger: old shots.json, shots\ files and luau scripts that were removed or renamed.
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $App "shots.json")
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $App "shots")
+New-Item -ItemType Directory -Force -Path (Join-Path $App "shots") | Out-Null
+Copy-Item -Force (Join-Path $PSScriptRoot "shots\*.json") (Join-Path $App "shots")
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $App "luau\*.luau")
 Copy-Item -Force (Join-Path $PSScriptRoot "checks.json") $App
 Copy-Item -Force (Join-Path $PSScriptRoot "luau\*.luau") (Join-Path $App "luau")
 

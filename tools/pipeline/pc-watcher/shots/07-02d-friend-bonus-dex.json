@@ -1,0 +1,8 @@
+{
+  "id": "02d-friend-bonus-dex",
+  "todo": "v29-4",
+  "kind": "ui",
+  "open": "dex",
+  "friend_bonus": 3,
+  "note": "v29 #4: income breakdown in the SlimeDex card shows 'Friends +30% income' (3 friends = the +30% cap)"
+}
