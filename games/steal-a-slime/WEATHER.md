@@ -33,6 +33,11 @@ Ground and path tops, under pads/props) whose Transparency follows `SnowCover` (
 and melts over 35 s after. The part exists only while the level is above 0; Heartbeat runs only while it moves. Cost: 1 runtime
 part, 0 mesh slots (`tests/SnowCover.spec`). Props/roofs get no cover. Shots: `18c-snow-ground-early|late-<device>`
 (client-local `SnowCoverDebug` attribute pins the level 0.25 / 1).
+Late joiners: the server (`WeatherService.publish`) stamps workspace attributes `WeatherStartedAt` (server time the current weather
+began) and `SnowEndedAt` (server time Snow last ended, cleared while Snow shows), written before `Weather`. `SnowCover.levelAt`
+turns them plus `workspace:GetServerTimeNow()` into the level (10 s into the 50 s build-up = 0.2; mid-melt = partly melted; Snow
+lasts >= 120 s so a melt starts from 1). Missing stamps: full while snowing, bare while clear. `SnowCoverDebug` / `WeatherDebug`
+start from 0 and ignore the stamps. `SnowGround.start` places the level once.
 
 ## Hook for #8
 
