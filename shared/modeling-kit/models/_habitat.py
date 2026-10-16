@@ -71,3 +71,10 @@ def place(o, pos, tilt_deg, toward_deg, spin_deg=0.0):
     m = (Matrix.Translation(Vector(pos)) @ Matrix.Rotation(math.radians(toward_deg), 4, "Z")
          @ Matrix.Rotation(math.radians(tilt_deg), 4, "Y") @ Matrix.Rotation(math.radians(spin_deg), 4, "Z"))
     return frame_obj(o, m)
+
+
+def seat_disc(name, r, col, edge=None, z0=1.9, segs=14):
+    """Flat round seat: top face exactly at SEAT, slightly bevelled rim. col = top colour, edge = rim colour."""
+    edge = edge or shade(col, 0.8)
+    return lathe(name, [(0, z0), (r, z0), (r + 0.05, SEAT - 0.18), (r - 0.12, SEAT), (0, SEAT)], segs=segs,
+                 color_fn=lambda i, k, z: col if i >= 3 else edge)
