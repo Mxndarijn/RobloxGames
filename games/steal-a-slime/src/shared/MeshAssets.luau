@@ -379,6 +379,21 @@ function MeshAssets.meshId(name: string): string?
 	return e and e.meshId
 end
 
+-- Every uploaded mesh id (kit meshes + slime kit), sorted and de-duplicated:
+-- the client preloads them all (visuals/client/Preload) so no mesh pops in.
+function MeshAssets.allMeshIds(): { string }
+	local seen, out = {}, {}
+	for _, e in entries do
+		local id = e.meshId
+		if id and not seen[id] then
+			seen[id] = true
+			table.insert(out, id)
+		end
+	end
+	table.sort(out)
+	return out
+end
+
 -- Uniform fit of `name` into a box: the largest native size x one scale that
 -- fits inside `box` (keeps the mesh's proportions), and how far the box
 -- centre sits above the mesh centre when the mesh stands on the box bottom.

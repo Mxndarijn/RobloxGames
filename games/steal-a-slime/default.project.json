@@ -5,7 +5,8 @@
     "Workspace": {
       "$className": "Workspace",
       "$properties": {
-        "FallenPartsDestroyHeight": -1000
+        "FallenPartsDestroyHeight": -1000,
+        "StreamingEnabled": false
       },
       "Map": {
         "$path": "world/Map.rbxmx"
