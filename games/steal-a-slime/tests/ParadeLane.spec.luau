@@ -606,12 +606,12 @@ for _ = 1, SIM * HZ do
 end
 
 describe("ParadeLane in the live server", function()
-	it("boots clean and lays Map.Plaza.ParadeLane: one walk-through goo strip per lane segment", function()
+	it("boots clean and lays Map.Plaza.ParadeLane: one walk-through goo strip per simplified lane segment", function()
 		expect(#rt.errors).toBe(0)
 		local lane = rt.workspace.Map.Plaza:FindFirstChild("ParadeLane")
 		expect(lane ~= nil).toBe(true)
 		local parts = lane:GetChildren()
-		expect(#parts).toBe(#POINTS - 1)
+		expect(#parts).toBe(#ParadeLane.stripPoints() - 1)
 		for _, part in parts do
 			expect(part.Anchored).toBe(true)
 			expect(part.CanCollide).toBe(false)
