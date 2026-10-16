@@ -61,6 +61,14 @@ export type DailyView = { available: boolean, streak: number, amount: number, da
 export type ShopView = {
 	LockUpgrade: { price: number?, level: number, maxLevel: number },
 	SpeedCoil: { price: number?, owned: boolean },
+	MysteryEgg: { price: number }?, -- FEATURES.MysteryEgg only
+}
+
+-- State.egg: the newest hatch, for the reveal banner (never saved).
+export type EggView = {
+	enabled: boolean,
+	price: number,
+	hatched: { slime: SlimeData, at: number }?,
 }
 
 -- v13 progression views (CONTRACT.md §8.2)
@@ -152,6 +160,7 @@ export type State = {
 	stats: StatsView,
 	boss: BossView,
 	modifier: ModifierView, -- FEATURES.CycleModifier
+	egg: EggView, -- FEATURES.MysteryEgg
 }
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }
