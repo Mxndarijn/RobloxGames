@@ -54,6 +54,9 @@ def _api():
         (user32, "GetClientRect"): (wt.BOOL, [wt.HWND, ctypes.POINTER(wt.RECT)]),
         (user32, "ClientToScreen"): (wt.BOOL, [wt.HWND, ctypes.POINTER(wt.POINT)]),
         (user32, "GetWindow"): (wt.HWND, [wt.HWND, wt.UINT]),
+        (user32, "ShowWindow"): (wt.BOOL, [wt.HWND, ctypes.c_int]),
+        (user32, "GetWindowLongPtrW"): (ctypes.c_ssize_t, [wt.HWND, ctypes.c_int]),
+        (user32, "SetWindowLongPtrW"): (ctypes.c_ssize_t, [wt.HWND, ctypes.c_int, ctypes.c_ssize_t]),
         (user32, "SetWindowPos"): (wt.BOOL, [wt.HWND, wt.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wt.UINT]),
         (user32, "GetWindowPlacement"): (wt.BOOL, [wt.HWND, ctypes.POINTER(WINDOWPLACEMENT)]),
         (user32, "SetWindowPlacement"): (wt.BOOL, [wt.HWND, ctypes.POINTER(WINDOWPLACEMENT)]),
@@ -300,7 +303,9 @@ def window_rect(hwnd):
 
 SWP_NOZORDER, SWP_NOACTIVATE, SWP_NOOWNERZORDER = 0x0004, 0x0010, 0x0200
 SWP_QUIET = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOOWNERZORDER  # never activates, never reorders
-SW_SHOWMINNOACTIVE, SW_SHOWNOACTIVATE = 7, 4
+SW_HIDE, SW_SHOWMINNOACTIVE, SW_SHOWNOACTIVATE = 0, 7, 4
+GWL_EXSTYLE, WS_EX_TOOLWINDOW, WS_EX_APPWINDOW = -20, 0x80, 0x40000
+SWP_NOSIZE, SWP_NOMOVE, SWP_FRAMECHANGED = 0x0001, 0x0002, 0x0020
 STARTF_USESHOWWINDOW = 0x1
 SM_XVIRTUALSCREEN, SM_YVIRTUALSCREEN = 76, 77
 OFFSCREEN_MARGIN = 100
@@ -356,6 +361,25 @@ def place_offscreen(hwnd, w=None, h=None):
         raise OSError("SetWindowPlacement failed (%d)" % ctypes.get_last_error())
     time.sleep(0.3)
     return window_rect(hwnd)
+
+
+def hide_taskbar_button(hwnd):
+    """Removes the window's taskbar button without activating it (the user may click it by accident and
+    steal focus): WS_EX_TOOLWINDOW on, WS_EX_APPWINDOW off, then ShowWindow SW_HIDE + SW_SHOWNOACTIVATE
+    (the taskbar re-reads the style on show; neither call activates) and SetWindowPos with
+    SWP_NOACTIVATE | SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER. The only ShowWindow
+    use in the watcher. Returns True when the style was changed (False = already a tool window)."""
+    a = _api()
+    ex = a.user32.GetWindowLongPtrW(hwnd, GWL_EXSTYLE)
+    new = (ex | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW
+    if new == ex:
+        return False
+    a.user32.SetWindowLongPtrW(hwnd, GWL_EXSTYLE, new)
+    a.user32.ShowWindow(hwnd, SW_HIDE)
+    a.user32.ShowWindow(hwnd, SW_SHOWNOACTIVATE)
+    a.user32.SetWindowPos(hwnd, None, 0, 0, 0, 0, SWP_QUIET | SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED)
+    time.sleep(0.3)
+    return True
 
 
 def is_offscreen(hwnd):
