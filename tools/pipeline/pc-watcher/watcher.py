@@ -1348,6 +1348,8 @@ def step_shots(run):
                         res["error"] = "overlay visible with no menu open: %s" % ", ".join(over)
                 if shot.get("rebirth_slime"):  # v29: force the required-slime state (owned / missing) in Studio
                     res["rebirth_slime"] = run.need_luau("rebirth_slime", "Client", timeout=15, state=shot["rebirth_slime"])
+                if shot.get("badge_toast"):  # v29 #6: show the badge-unlocked toast (Studio-only hook)
+                    res["badge_toast"] = run.need_luau("badge_toast", "Client", timeout=15, name=shot["badge_toast"])
                 opened = open_panel(run, key) if key else None
                 if opened:
                     res["open"] = opened

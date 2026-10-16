@@ -27,6 +27,13 @@
     "note": "v29 #3: Codes menu, small card with text box + Redeem button + gift badge, opened from Nav.Codes"
   },
   {
+    "id": "02c-badge-toast",
+    "todo": "v29-6",
+    "kind": "ui",
+    "badge_toast": "First Slime",
+    "note": "v29 #6: Roblox badge unlock toast (gold star icon, 'Badge unlocked!' + badge name), top right under the HUD"
+  },
+  {
     "id": "03-shop-menu",
     "todo": "3",
     "kind": "ui",

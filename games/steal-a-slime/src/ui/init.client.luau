@@ -612,6 +612,16 @@ notifyEvent.OnClientEvent:Connect(function(text: string, kind: Types.NotifyKind,
 	hud.onNotify(message, sound)
 end)
 
+-- Studio-only PC watcher hook: the SlimeUI attribute "PcwBadgeToast" (a badge name) shows the unlock toast.
+if isStudio then
+	gui:GetAttributeChangedSignal("PcwBadgeToast"):Connect(function()
+		local name = gui:GetAttribute("PcwBadgeToast")
+		if type(name) == "string" and name ~= "" then
+			toasts.push(`Badge unlocked: {name}`, "badge", nil)
+		end
+	end)
+end
+
 leaderboardEvent.OnClientEvent:Connect(function(board: Types.Leaderboard)
 	leaderboard.setBoard(board)
 	worldBoards.setBoard(board)
