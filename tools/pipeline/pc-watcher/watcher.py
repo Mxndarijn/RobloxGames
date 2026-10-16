@@ -518,7 +518,7 @@ class Run:
         write_json(schema_file, {"server": self.mcp.server_info, "tools": self.mcp.schemas})
         return self.mcp
 
-    def luau(self, name, datamodel="Edit", timeout=60, **subs):
+    def luau(self, name, datamodel="Edit", timeout=60, /, **subs):
         with open(os.path.join(HERE, "luau", name + ".luau"), encoding="utf-8") as f:
             body = f.read()
         for k, v in subs.items():
@@ -527,7 +527,7 @@ class Run:
         log.debug("luau %s/%s ok=%s %s", name, datamodel, ok, json.dumps(data)[:600])
         return ok, data
 
-    def need_luau(self, name, datamodel="Edit", timeout=60, **subs):
+    def need_luau(self, name, datamodel="Edit", timeout=60, /, **subs):
         ok, data = self.luau(name, datamodel, timeout, **subs)
         if not ok:
             raise StepFail("%s (%s): %s" % (name, datamodel, str(data)[:300]))
