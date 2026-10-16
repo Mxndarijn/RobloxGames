@@ -286,7 +286,7 @@ On start the server still calls `ReplicatedStorage.Visuals.WorldBuilder.build(wo
 
 The server finds plots by the `PlotIndex` attribute and pads by `PadIndex` (`Constants.PLOT_INDEX_ATTRIBUTE` / `PAD_INDEX_ATTRIBUTE`, via `PlotLookup`). The `Plot_<i>` / `Pad_<j>` names are only a fallback. Folder names are in `Constants`: `MAP_FOLDER = "Map"`, `PLOTS_FOLDER = "Plots"`, `PLOT_SLIMES_FOLDER = "Slimes"`, `HOME_ZONE = "HomeZone"`. `WorldLayout` hardcodes `"Map"` and `"Slimes"`, and `tests/Integration.spec.luau` checks they match.
 
-- **`workspace.Map`:** `Volcano` (with a `Crater` Part, the spawn origin) and `Chute`. The model keeps its legacy name `Volcano` (it is the slime fountain). Drops land at `Fountain.roll` angle/radius around the crater.
+- **`workspace.Map`:** `Volcano` (with a `Crater` Part, the spawn origin) and `Chute`. The model keeps its legacy name `Volcano` (it is the slime fountain). Drops land at `Fountain.roll` angle/radius around the crater (moved straight out past the low slide when they would land on it, `FountainRide.clearLanding`) after the slide ride (`FountainRide`: emerge, every `SLIDE_PATH` waypoint, run-out round the plaza).
 - **`workspace.Plots.Plot_1..PLOT_COUNT`** (attribute `PlotIndex = i`):
   - `Base`.
   - `Pad_1..Pad_<PADS_MAX>` (attribute `PadIndex = j`). The top surface is where `PivotTo` targets.

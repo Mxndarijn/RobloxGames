@@ -36,7 +36,7 @@ ParadeLane.LANE_RADIUS = 68 -- FOUNTAIN_SIZES goo-parade centreline
 ParadeLane.GATE_ANGLE = math.pi / 2 -- +Z, see header
 ParadeLane.GATE_HALF_WIDTH = math.pi / 8 -- the gate piece spans 45°
 ParadeLane.SWEEP = math.pi * 2 - ParadeLane.GATE_HALF_WIDTH -- entry edge round to the gate centre
-ParadeLane.HOP_SECONDS = 2.4 -- = WorldView.DROP_SECONDS: wait at the entry while the slide ride lands
+ParadeLane.HOP_SECONDS = 2.4 -- wait at the entry; WorldView also waits for the fountain ride (FountainRide) to land
 ParadeLane.WARN_SECONDS = Config.DESPAWN_TELEGRAPH_SECONDS -- ring warn = despawn telegraph window
 
 function ParadeLane.enabled(features: { [string]: boolean }?): boolean

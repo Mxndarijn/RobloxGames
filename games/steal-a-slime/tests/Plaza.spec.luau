@@ -1,12 +1,11 @@
 --!strict
 -- Fountain / plaza wiring (v30): kit mesh slots in the plaza, the Crater
--- drop origin and the run-out from the spiral mouth to a rolled landing.
+-- drop origin (the slide ride itself: FountainRide.spec).
 local fs = require("@lune/fs")
 
 local Effects = require("../src/visuals/shared/Effects")
 local Fountain = require("../src/shared/Fountain")
 local MeshAssets = require("../src/shared/MeshAssets")
-local Rng = require("../src/shared/Rng")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -41,7 +40,6 @@ local function walk(nodes: { Node }?, visit: (Node) -> ())
 end
 
 local world = WorldLayout.build()
-local SILO_RADIUS = 13.4 -- slime_fountain plinth / silo footprint (FOUNTAIN_SIZES)
 
 describe("plaza mesh slots", function()
 	it("a visible placeholder that never collides has an uploaded mesh (else wilds land inside it)", function()
@@ -105,56 +103,6 @@ describe("fountain centre", function()
 		expect(crater.canCollide).toBe(false)
 		-- a neon plate wider than the mesh's centre bubble poked out of the crown
 		expect((crater.attributes :: any).MeshStandIn).toBe("slime_fountain")
-	end)
-end)
-
-describe("Fountain.runOut (spiral mouth -> rolled landing)", function()
-	local mouth = WorldLayout.slidePosition(1)
-	local path = WorldLayout.SLIDE_PATH
-	local a, b = path[#path - 1], path[#path]
-	local exit = { b[1] - a[1], b[3] - a[3] }
-
-	local function landing(rng: Rng.Rng): { number }
-		local drop = Fountain.roll(rng, "x", false)
-		return { math.cos(drop.angle) * drop.radius, 0.15, math.sin(drop.angle) * drop.radius }
-	end
-
-	it("starts at the mouth and ends at the landing", function()
-		local rng = Rng.new(7)
-		for _ = 1, 50 do
-			local to = landing(rng)
-			local x0, y0, z0 = Fountain.runOut(mouth, to, 0)
-			local x1, y1, z1 = Fountain.runOut(mouth, to, 1)
-			expect(math.abs(x0 - mouth[1]) + math.abs(y0 - mouth[2]) + math.abs(z0 - mouth[3]) < 1e-6).toBe(true)
-			expect(math.abs(x1 - to[1]) + math.abs(y1 - to[2]) + math.abs(z1 - to[3]) < 1e-6).toBe(true)
-		end
-	end)
-	it("never cuts through the fountain silo", function()
-		local rng = Rng.new(11)
-		for _ = 1, 400 do
-			local to = landing(rng)
-			for k = 0, 40 do
-				local x, _, z = Fountain.runOut(mouth, to, k / 40)
-				expect(math.sqrt(x * x + z * z) > SILO_RADIUS).toBe(true)
-			end
-		end
-	end)
-	it("leaves the mouth the way the slide was going when the landing is ahead", function()
-		local rng = Rng.new(3)
-		local checked = 0
-		for _ = 1, 200 do
-			local to = landing(rng)
-			local x0, _, z0 = Fountain.runOut(mouth, to, 0)
-			local x1, _, z1 = Fountain.runOut(mouth, to, 0.02)
-			local dx, dz = x1 - x0, z1 - z0
-			local ahead = (dx * exit[1] + dz * exit[2]) > 0
-			local len = math.sqrt(dx * dx + dz * dz)
-			if len > 1e-3 and Fountain.runOutAhead(mouth, to) then
-				checked += 1
-				expect(ahead).toBe(true)
-			end
-		end
-		expect(checked > 50).toBe(true)
 	end)
 end)
 
