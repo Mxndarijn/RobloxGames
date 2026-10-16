@@ -16,7 +16,7 @@ local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
-local Color3, UDim2, Enum = roblox.Color3, roblox.UDim2, roblox.Enum
+local Color3, UDim2, Enum, Vector2 = roblox.Color3, roblox.UDim2, roblox.Enum, roblox.Vector2
 
 local SlimePreview = UiHarness.ui("SlimePreview")
 local PARTS = { "Body", "EyeWhiteL", "EyeWhiteR", "PupilL", "PupilR" }
@@ -213,6 +213,8 @@ describe("SlimeDex panel previews", function()
 			for _, key in NEW_ROWS do
 				local mutation = string.match(key, "^%d+:([^:]+)") :: string
 				local row = list:FindFirstChild(key)
+				list.CanvasPosition = Vector2.new(0, row.Position.Y.Offset - 4) -- previews follow the scroll window
+				panel.refreshPreviews()
 				local image = row:FindFirstChild("Image")
 				local preview = image:FindFirstChild("Preview")
 				expect(preview.ClassName).toBe("ViewportFrame")
@@ -248,7 +250,7 @@ describe("SlimeDex panel previews", function()
 		panel.update({ dex = DEX, dexTotal = TOTAL })
 		expect(world:GetChildren()[1]).toBe(model)
 	end)
-	it(`mounts at most MAX_LIVE previews; later rows keep the swatch`, function()
+	it(`mounts at most MAX_LIVE previews, for the rows in the scroll window only`, function()
 		local many = {}
 		for _, pattern in Config.PATTERNS do
 			for _, eyes in Config.EYES do
@@ -258,19 +260,23 @@ describe("SlimeDex panel previews", function()
 		expect(#many + Config.MAX_TIER > SlimePreview.MAX_LIVE).toBe(true)
 		local panel = openDex(390, 844, many)
 		local list = UiHarness.find(panel.frame, "List")
-		local live = 0
+		local live, first, last = 0, false, false
 		for _, row in list:GetChildren() do
 			local preview = row:IsA("GuiObject") and UiHarness.find(row, "Preview")
 			if preview then
 				if preview.Visible then
 					live += 1
-					expect(row.LayoutOrder <= SlimePreview.MAX_LIVE).toBe(true)
+					first = first or row.LayoutOrder == 1
 				else
 					expect(preview:FindFirstChild("World")).toBeNil()
+					last = last or row.LayoutOrder == #many + Config.MAX_TIER
 				end
 			end
 		end
-		expect(live).toBe(SlimePreview.MAX_LIVE)
+		expect(first).toBe(true)
+		expect(last).toBe(true)
+		expect(live > 0 and live <= SlimePreview.MAX_LIVE).toBe(true)
+		expect(panel.liveCount()).toBe(live)
 	end)
 end)
 

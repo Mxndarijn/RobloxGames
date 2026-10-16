@@ -1,0 +1,266 @@
+--!strict
+-- v29 menu gaps: Esc / gamepad B close the Daily popup, menu cards are as tall
+-- as their measured content (clamped to the viewport), the SlimeDex header
+-- does not overlap, and Dex previews are virtualised to the scroll window.
+local fs = require("@lune/fs")
+local roblox = require("@lune/roblox") :: any
+
+local Config = require("../../src/shared/Config")
+local Constants = require("../../src/shared/Constants")
+local Genome = require("../../src/shared/Genome")
+local Layout = require("../../src/ui/Layout")
+local LayoutAssert = require("./LayoutAssert")
+local Remotes = require("../../src/shared/Remotes")
+local SlimeDex = require("../../src/ui/SlimeDex")
+local TestRunner = require("../TestRunner")
+local UiHarness = require("./UiHarness")
+
+local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+local Enum, UDim2, Vector2 = roblox.Enum, roblox.UDim2, roblox.Vector2
+local SlimePreview = UiHarness.ui("SlimePreview")
+local MenuClose = UiHarness.ui("MenuClose")
+local Widgets = UiHarness.ui("Widgets")
+
+local TOTAL = Config.MAX_TIER * (#Config.MUTATIONS + 1) * #Config.PATTERNS * #Config.EYES
+
+local function ctx(): any
+	return {
+		Config = Config,
+		Constants = Constants,
+		Genome = Genome,
+		actions = Remotes.ACTIONS,
+		send = function() end,
+		serverNow = function()
+			return 0
+		end,
+		playerName = function()
+			return "Tester"
+		end,
+		toast = function() end,
+	}
+end
+
+describe("Esc / B closes the Daily popup", function()
+	-- Mirrors init.client: the popup wins over the open card.
+	local function client(dailyOpen: boolean, menu: string?)
+		local c: any = { daily = dailyOpen, menu = menu, handler = nil }
+		MenuClose.bind(
+			{
+				BindAction = function(_: any, _name: string, handler: any)
+					c.handler = handler
+				end,
+			},
+			true,
+			function()
+				return MenuClose.topKey(c.menu, c.daily)
+			end,
+			function()
+				if c.daily then
+					c.daily = false
+				else
+					c.menu = nil
+				end
+			end
+		)
+		return c
+	end
+
+	it("closes the Daily popup alone and sinks the key", function()
+		local c = client(true, nil)
+		expect(c.handler("CloseMenu", Enum.UserInputState.Begin)).toBe(Enum.ContextActionResult.Sink)
+		expect(c.daily).toBe(false)
+	end)
+	it("closes the popup first when a card is open under it, then the card", function()
+		local c = client(true, "Shop")
+		c.handler("CloseMenu", Enum.UserInputState.Begin)
+		expect(c.daily).toBe(false)
+		expect(c.menu).toBe("Shop")
+		c.handler("CloseMenu", Enum.UserInputState.Begin)
+		expect(c.menu).toBe(nil)
+	end)
+	it("still passes the key on with nothing open", function()
+		local c = client(false, nil)
+		expect(c.handler("CloseMenu", Enum.UserInputState.Begin)).toBe(Enum.ContextActionResult.Pass)
+	end)
+	it("the client wires the popup into the same CloseMenu action", function()
+		local src = fs.readFile("src/ui/init.client.luau")
+		expect(string.find(src, "MenuClose.topKey(openKey, dailyPopup.isOpen())", 1, true) ~= nil).toBe(true)
+		expect(string.find(src, "dailyPopup.close()", 1, true) ~= nil).toBe(true)
+	end)
+end)
+
+-- A fake body: `rows` fixed rows of 40 px.
+local function bodyWith(rows: number): any
+	local body = UiHarness.Instance.new("Frame")
+	for i = 1, rows do
+		local row = UiHarness.Instance.new("Frame")
+		row.Position = UDim2.fromOffset(0, (i - 1) * 40)
+		row.Size = UDim2.fromOffset(100, 40)
+		row.Parent = body
+	end
+	return body
+end
+
+describe("content-sized menu cards", function()
+	it("Widgets.contentHeight measures fixed rows, lists and bottom-pinned buttons", function()
+		expect(Widgets.contentHeight(bodyWith(3))).toBe(120)
+		local body = bodyWith(2)
+		local list = Widgets.scrollList({ Name = "List", Position = UDim2.fromOffset(0, 80), Parent = body }, 4)
+		list.CanvasSize = UDim2.fromOffset(0, 300)
+		expect(Widgets.contentHeight(body)).toBe(380)
+		local button = UiHarness.Instance.new("Frame")
+		button.Position = UDim2.new(0, 0, 1, -48)
+		button.Size = UDim2.fromOffset(100, 40)
+		button.Parent = body
+		expect(Widgets.contentHeight(body)).toBe(428)
+	end)
+	for _, vp in LayoutAssert.GATE_VIEWPORTS do
+		it(`{vp.name}: card height follows content and stays on screen`, function()
+			local screen = Layout.screen(vp.w, vp.h)
+			local back = screen.panel
+			local last = 0
+			for _, rows in { 1, 3, 6, 40 } do
+				local content = Widgets.contentHeight(bodyWith(rows))
+				local card = Layout.panelFor(screen, "Shop", content)
+				local want = math.min(Layout.cardHeight(content), back.h)
+				expect(card.h).toBe(want)
+				expect(card.h >= last).toBe(true)
+				last = card.h
+				if Layout.cardHeight(content) <= back.h then
+					expect(card.h >= content + Layout.PANEL_CHROME.header).toBe(true)
+				end
+				local check = LayoutAssert.new(vp.name, screen)
+				check.inside("card", card, "backdrop", back)
+				check.onScreen("card", card)
+				expect(#check.problems).toBe(0)
+			end
+			expect(Layout.panelFor(screen, "Shop", 100).h < Layout.panelFor(screen, "Shop", 400).h).toBe(
+				Layout.cardHeight(100) < back.h and Layout.cardHeight(400) > Layout.cardHeight(100)
+			)
+		end)
+		it(`{vp.name}: real Codes, Guide and Dex bodies size their card to what they hold`, function()
+			local screen = Layout.screen(vp.w, vp.h)
+			for _, name in { "Codes", "Guide", "Dex" } do
+				local panel = UiHarness.ui(`Panels/{name}`).new(UiHarness.root(), ctx())
+				if name == "Dex" then
+					panel.update({ dex = { "1:None:Plain:Round" }, dexTotal = TOTAL })
+					panel.setOpen(true)
+				end
+				local content = Widgets.contentHeight(UiHarness.find(panel.frame, "Body"))
+				expect(content > 0).toBe(true)
+				local card = Layout.panelFor(screen, name, content)
+				local check = LayoutAssert.new(vp.name, screen)
+				check.inside(name, card, "backdrop", screen.panel)
+				expect(#check.problems).toBe(0)
+				if Layout.cardHeight(content) <= screen.panel.h then
+					expect(Layout.panelBody(card).h >= content).toBe(true)
+				end
+			end
+		end)
+	end
+end)
+
+local function openDex(w: number, h: number, dex: { string }, extra: { [string]: any }?): any
+	local panel = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
+	panel.frame.Visible = false
+	local raw = Layout.panelFor(Layout.screen(w, h), "Dex")
+	local r = Layout.rect(math.floor(raw.x), math.floor(raw.y), math.floor(raw.w), math.floor(raw.h))
+	panel.frame.Size = UDim2.fromOffset(r.w, r.h)
+	panel.layout(r)
+	local state: { [string]: any } = { dex = dex, dexTotal = TOTAL }
+	for k, v in extra or {} do
+		state[k] = v
+	end
+	panel.update(state)
+	panel.setOpen(true)
+	panel.frame.Visible = true
+	return panel
+end
+
+local function rect(inst: any): Layout.Rect
+	return Layout.rect(inst.Position.X.Offset, inst.Position.Y.Offset, inst.Size.X.Offset, inst.Size.Y.Offset)
+end
+
+describe("SlimeDex header", function()
+	for _, vp in LayoutAssert.GATE_VIEWPORTS do
+		it(`{vp.name}: tier counts, reward line and list do not overlap`, function()
+			local panel = openDex(vp.w, vp.h, { "1:None:Plain:Round" }, {
+				dexRewards = { { count = 10, reward = 1000, bonus = 0.02, claimed = false } },
+			})
+			local check = LayoutAssert.new(vp.name, Layout.screen(vp.w, vp.h))
+			local tiers = UiHarness.find(panel.frame, "Tiers")
+			local rewards = UiHarness.find(panel.frame, "Rewards")
+			local list = UiHarness.find(panel.frame, "List")
+			local bar = UiHarness.find(panel.frame, "Percent")
+			local shown = {}
+			for _, item in { { "Tiers", tiers }, { "Rewards", rewards }, { "List", list } } do
+				if item[2].Visible then
+					table.insert(shown, item)
+				end
+			end
+			for i = 1, #shown do
+				for j = i + 1, #shown do
+					check.noOverlap(shown[i][1], rect(shown[i][2]), shown[j][1], rect(shown[j][2]))
+				end
+			end
+			expect(bar ~= nil).toBe(true)
+			expect(#check.problems).toBe(0)
+		end)
+	end
+	it("the tier grid is tall enough for every rarity at three per row", function()
+		local rows = math.ceil(Config.MAX_TIER / 3)
+		local need = rows * 18 + (rows - 1) * 4
+		local panel = openDex(1920, 1080, {})
+		expect(UiHarness.find(panel.frame, "Tiers").Size.Y.Offset >= need).toBe(true)
+		expect(UiHarness.find(panel.frame, "Tiers").Position.Y.Offset + need <= SlimeDex.HEADER.tiers).toBe(true)
+	end)
+end)
+
+describe("SlimeDex virtualised previews", function()
+	local many = {}
+	for _, mutation in { "None", "Glow" } do
+		for _, pattern in Config.PATTERNS do
+			for _, eyes in Config.EYES do
+				table.insert(many, `2:{mutation}:{pattern}:{eyes}`)
+			end
+		end
+	end
+	local function rowAt(list: any, index: number): any
+		for _, row in list:GetChildren() do
+			if row:IsA("GuiObject") and row.LayoutOrder == index then
+				return row
+			end
+		end
+		return nil
+	end
+	local function previewLive(row: any): boolean
+		local preview = UiHarness.find(row, "Preview")
+		return preview.Visible and UiHarness.find(preview, "World") ~= nil
+	end
+
+	it("a row at index 40 scrolled into view gets a live preview; live count stays <= cap", function()
+		local panel = openDex(390, 844, many)
+		local list = UiHarness.find(panel.frame, "List")
+		expect(#many > 40).toBe(true)
+		local row = rowAt(list, 40)
+		expect(previewLive(row)).toBe(false) -- off screen at the top: swatch only
+		expect(panel.liveCount() <= SlimePreview.MAX_LIVE).toBe(true)
+		list.CanvasPosition = Vector2.new(0, row.Position.Y.Offset - 40)
+		panel.refreshPreviews()
+		expect(previewLive(rowAt(list, 40))).toBe(true)
+		expect(panel.liveCount() <= SlimePreview.MAX_LIVE).toBe(true)
+		expect(panel.liveCount() > 0).toBe(true)
+		-- recycled: the top rows gave their previews back
+		expect(previewLive(rowAt(list, 1))).toBe(false)
+	end)
+	it("never mounts more than MAX_LIVE even on a tall window", function()
+		local panel = openDex(1920, 1080, many)
+		expect(panel.liveCount() <= SlimePreview.MAX_LIVE).toBe(true)
+		local list = UiHarness.find(panel.frame, "List")
+		for y = 0, list.CanvasSize.Y.Offset, 300 do
+			list.CanvasPosition = Vector2.new(0, y)
+			panel.refreshPreviews()
+			expect(panel.liveCount() <= SlimePreview.MAX_LIVE).toBe(true)
+		end
+	end)
+end)

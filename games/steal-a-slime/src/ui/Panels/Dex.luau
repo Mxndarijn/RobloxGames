@@ -30,6 +30,8 @@ local Dex = {}
 
 local HEADER = SlimeDex.HEADER.tiers
 local ROW = 72 -- row height (SlimeDex.MIN_LIST)
+local TIER_ROWS_H = SlimeDex.HEADER.tiers - SlimeDex.HEADER.bar - 2 -- three rows of 18 + 4 gaps (7 rarities, 3 per row)
+local PREVIEW_MARGIN = ROW * 3 -- rows this far past the scroll window keep their preview
 local IMAGE = 64 -- square picture / silhouette at the left of a row
 
 function Dex.new(parent: Instance, ctx: any)
@@ -67,12 +69,12 @@ function Dex.new(parent: Instance, ctx: any)
 		tierNames[i] = rarity.name
 	end
 
-	-- Per-rarity counts: one small cell per tier, two rows of three.
+	-- Per-rarity counts: one small cell per tier, three per row.
 	local grid = create("Frame", {
 		Name = "Tiers",
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 40),
-		Position = UDim2.fromOffset(0, 66),
+		Size = UDim2.new(1, 0, 0, TIER_ROWS_H),
+		Position = UDim2.fromOffset(0, SlimeDex.HEADER.bar + 2),
 		Parent = panel.body,
 	}, {
 		create("UIGridLayout", {
@@ -130,7 +132,8 @@ function Dex.new(parent: Instance, ctx: any)
 
 	-- One row per discovered slime (preview / image + name) and one
 	-- silhouette row per tier for the rest (SlimeDex.rows). ViewportFrames
-	-- are capped (SlimePreview.MAX_LIVE); further rows keep the swatch.
+	-- are virtualised (refreshPreviews): only rows in or near the scroll
+	-- window are mounted, at most SlimePreview.MAX_LIVE at once.
 	local rows = Widgets.keyedList(list, function(row: SlimeDex.Row)
 		return row.key
 	end, function(row: SlimeDex.Row)
@@ -219,7 +222,7 @@ function Dex.new(parent: Instance, ctx: any)
 			title = title,
 			detail = detail,
 		}
-	end, function(r: any, row: SlimeDex.Row, index: number)
+	end, function(r: any, row: SlimeDex.Row)
 		r.instance:SetAttribute("Locked", row.locked)
 		r.instance:SetAttribute("SkinId", if row.skin then row.skin.id else nil)
 		local skin = row.skin
@@ -235,10 +238,9 @@ function Dex.new(parent: Instance, ctx: any)
 		local hasImage = row.image ~= nil
 		r.picture.Visible = hasImage
 		r.glyph.Visible = row.locked and not hasImage
-		-- Prefer an uploaded picture; else a ViewportFrame while under the
-		-- live cap: the real slime model, or the blob if that fails; else
-		-- (or if both fail) the colour swatch. The row's viewport is reused
-		-- and only remounted when its look changes.
+		-- An uploaded picture wins; else refreshPreviews mounts a ViewportFrame
+		-- (the real slime model, or the blob if that fails) while the row is in
+		-- the scroll window; else (or if both fail) the colour swatch.
 		if skin then
 			if r.preview:GetAttribute("Look") ~= nil then
 				SlimePreview.unmount(r.preview)
@@ -248,29 +250,8 @@ function Dex.new(parent: Instance, ctx: any)
 			r.glyph.Visible = true
 			r.glyph.Text = if skin.unlocked then "🏡" else "🔒"
 			r.image.BackgroundTransparency = 0
-		elseif not hasImage and index <= SlimePreview.MAX_LIVE then
-			local look = `{row.key}:{row.locked}:{table.concat(row.color, ",")}`
-			if r.preview:GetAttribute("Look") ~= look then
-				local opts = { locked = row.locked, mutation = row.mutation }
-				local ok = false
-				local genome = SlimeDex.genome(row)
-				if ctx.buildSlime and genome then
-					local built, model = pcall(ctx.buildSlime, genome)
-					ok = built and model ~= nil and SlimePreview.mountModel(r.preview, model, opts)
-				end
-				if not ok then
-					ok = SlimePreview.mount(r.preview, row.color, opts)
-				end
-				r.preview:SetAttribute("Look", look) -- a failed look is not retried
-				r.preview.Visible = ok
-				-- A rendered slime sits on a soft tile, not a flat colour block.
-				r.image.BackgroundTransparency = if ok then 0.55 else 0
-			end
-		elseif r.preview:GetAttribute("Look") ~= nil then
-			SlimePreview.unmount(r.preview)
-			r.preview:SetAttribute("Look", nil)
-			r.preview.Visible = false
 		end
+		r.row = row
 		r.title.Text = row.title
 		local rarity = ctx.Config.RARITIES[row.tier]
 		r.title.TextColor3 = if skin
@@ -298,12 +279,85 @@ function Dex.new(parent: Instance, ctx: any)
 		return table.concat(parts, "\n")
 	end
 
+	-- Mounts the ViewportFrame of every row in or near the scroll window
+	-- (nearest the window centre first, at most SlimePreview.MAX_LIVE) and
+	-- unmounts the rest, so a row at any index shows its live slime once
+	-- scrolled to. A row's viewport is reused and only remounted when its look
+	-- changes (a failed look is not retried).
+	local function viewHeight(): number
+		-- From the card (init.client sizes its frame in offsets), not
+		-- AbsoluteSize: that is 0 until the first layout pass.
+		local c = Layout.PANEL_CHROME
+		return math.max(panel.frame.Size.Y.Offset - c.header - c.pad - list.Position.Y.Offset, ROW)
+	end
+
+	local function mountLook(r: any, row: SlimeDex.Row)
+		local look = `{row.key}:{row.locked}:{table.concat(row.color, ",")}`
+		if r.preview:GetAttribute("Look") == look then
+			return
+		end
+		local opts = { locked = row.locked, mutation = row.mutation }
+		local ok = false
+		local genome = SlimeDex.genome(row)
+		if ctx.buildSlime and genome then
+			local built, model = pcall(ctx.buildSlime, genome)
+			ok = built and model ~= nil and SlimePreview.mountModel(r.preview, model, opts)
+		end
+		if not ok then
+			ok = SlimePreview.mount(r.preview, row.color, opts)
+		end
+		r.preview:SetAttribute("Look", look)
+		r.preview.Visible = ok
+		-- A rendered slime sits on a soft tile, not a flat colour block.
+		r.image.BackgroundTransparency = if ok then 0.55 else 0
+	end
+
+	local function unmountLook(r: any)
+		if r.preview:GetAttribute("Look") ~= nil then
+			SlimePreview.unmount(r.preview)
+			r.preview:SetAttribute("Look", nil)
+			r.preview.Visible = false
+		end
+		r.image.BackgroundTransparency = 0
+	end
+
+	local function refreshPreviews()
+		if not open then
+			return
+		end
+		local top = list.CanvasPosition.Y - PREVIEW_MARGIN
+		local bottom = list.CanvasPosition.Y + viewHeight() + PREVIEW_MARGIN
+		local middle = (top + bottom) / 2
+		local near: { { r: any, dist: number } } = {}
+		for _, r in rows.rows do
+			local y = r.instance.Position.Y.Offset
+			local mine: SlimeDex.Row = r.row
+			if mine and mine.skin == nil and not mine.image and y + ROW > top and y < bottom then
+				table.insert(near, { r = r, dist = math.abs(y + ROW / 2 - middle) })
+			else
+				unmountLook(r)
+			end
+		end
+		table.sort(near, function(a, b)
+			return a.dist < b.dist
+		end)
+		for i, entry in near do
+			if i <= SlimePreview.MAX_LIVE then
+				mountLook(entry.r, entry.r.row)
+			else
+				unmountLook(entry.r)
+			end
+		end
+	end
+	list:GetPropertyChangedSignal("CanvasPosition"):Connect(refreshPreviews)
+
 	local function rebuild()
 		if open and dirty and pending then
 			dirty = false
 			builtSignature = pendingSignature
 			builds += 1
 			rows.sync(pending)
+			refreshPreviews()
 		end
 	end
 
@@ -320,6 +374,18 @@ function Dex.new(parent: Instance, ctx: any)
 		bodyH = Layout.panelBody(r).h
 		placeList()
 	end
+
+	-- Live (mounted) slime previews now, and a manual refresh (tests).
+	function self.liveCount(): number
+		local n = 0
+		for _, r in rows.rows do
+			if r.preview:GetAttribute("Look") ~= nil then
+				n += 1
+			end
+		end
+		return n
+	end
+	self.refreshPreviews = refreshPreviews
 
 	-- How many times the list was rebuilt (tests).
 	function self.builds(): number

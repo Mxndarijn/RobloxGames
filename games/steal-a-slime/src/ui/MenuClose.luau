@@ -19,6 +19,11 @@ function MenuClose.promptMenus(shopPrompt: string, guidePrompt: string): { [stri
 	return { [shopPrompt] = "Shop", [guidePrompt] = "Guide" }
 end
 
+-- What Esc / B closes: the Daily popup sits over every card, so it wins.
+function MenuClose.topKey(openKey: string?, dailyOpen: boolean): string?
+	return if dailyOpen then "Daily" else openKey
+end
+
 export type Service = {
 	BindAction: (
 		self: any,

@@ -292,7 +292,7 @@ describe("init.client applies Layout for every viewport", function()
 		do
 			expect(has(src, call)).toBe(true)
 		end
-		expect(has(src, "Layout.panelFor(s, entry.key)")).toBe(true)
+		expect(has(src, "Layout.panelFor(s, entry.key, Widgets.contentHeight(")).toBe(true)
 		expect(has(src, "NAV_WIDTH")).toBe(false) -- no hard-coded nav width left
 	end)
 	it("closes the open menu from its X, gamepad B and Esc (CLOSE_WITH_ESCAPE on)", function()

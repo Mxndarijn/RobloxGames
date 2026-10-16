@@ -171,16 +171,16 @@ describe("SlimeDex panel", function()
 end)
 
 describe("SlimeDex.header (short panel bodies)", function()
-	it("keeps the full header (tiers at 108, list at 112 / 148 with rewards) on a tall body", function()
+	it("keeps the full header (tiers at 128, list at 132 / 168 with rewards) on a tall body", function()
 		local h = SlimeDex.header(700, true)
 		expect(h.tiers and h.bar and h.rewards).toBe(true)
-		expect(h.rewardsY).toBe(108)
-		expect(h.listTop).toBe(148)
-		expect(SlimeDex.header(700, false).listTop).toBe(112)
+		expect(h.rewardsY).toBe(128)
+		expect(h.listTop).toBe(168)
+		expect(SlimeDex.header(700, false).listTop).toBe(132)
 	end)
 	it("drops the tier grid, then rewards, then the bar until a list row fits", function()
 		expect(SlimeDex.MIN_LIST).toBe(84) -- one 72 px row (v28) + scroll padding
-		local noTiers = SlimeDex.header(200, true) -- 200 - 148 < MIN_LIST <= 200 - 104
+		local noTiers = SlimeDex.header(200, true) -- 200 - 168 < MIN_LIST <= 200 - 104
 		expect(noTiers.tiers).toBe(false)
 		expect(noTiers.rewards).toBe(true)
 		expect(noTiers.listTop).toBe(64 + 4 + 36)
