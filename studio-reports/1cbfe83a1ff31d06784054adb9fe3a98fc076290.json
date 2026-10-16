@@ -5441,5 +5441,13 @@
       ]
     }
   },
-  "frames_dir": "1cbfe83a1ff31d06784054adb9fe3a98fc076290/"
+  "frames_dir": "1cbfe83a1ff31d06784054adb9fe3a98fc076290/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "Game code is identical to the reviewed 4859103: #107 only touches publish.sh and its test.",
+    "All steps pass, focus_stolen [], close pass. Motion is LifeMode=motor with a pose change; the slime sits on the habitats; HUD shows 'Menu'; the bench faces the campfire; the phone shop menu fits."
+  ]
 }
