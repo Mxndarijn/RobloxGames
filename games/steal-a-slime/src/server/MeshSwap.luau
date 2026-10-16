@@ -199,6 +199,39 @@ function MeshSwap.publishSkinTemplates(): number
 	return count
 end
 
+-- FEATURES.FountainTiers: the ring and crest meshes as templates in ReplicatedStorage.FountainTierMeshes
+-- (named by mesh, native size); the client clones them round / over the fountain (FountainTierFx), so they
+-- take no WorldLayout slot. Yields; returns how many were published.
+function MeshSwap.publishFountainTierTemplates(): number
+	if not Config.FEATURES.FountainTiers then
+		return 0
+	end
+	local folder = ReplicatedStorage:FindFirstChild("FountainTierMeshes")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "FountainTierMeshes"
+		folder.Parent = ReplicatedStorage
+	end
+	local count = 0
+	for _, name in { "fountain_tier_ring", "fountain_tier_crest" } do
+		local meshId = MeshAssets.meshId(name)
+		local entry = MeshAssets.get(name)
+		local base = meshId and template(meshId)
+		if entry and entry.size and base and not (folder :: Folder):FindFirstChild(name) then
+			local mesh = base:Clone()
+			mesh.Name = name
+			mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+			mesh.Anchored = true
+			mesh.CanCollide = false
+			mesh.CanQuery = false
+			mesh.CanTouch = false
+			mesh.Parent = folder
+			count += 1
+		end
+	end
+	return count
+end
+
 -- Returns how many placeholders got a mesh.
 function MeshSwap.apply(): number
 	local count = 0
