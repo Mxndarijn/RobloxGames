@@ -7,6 +7,15 @@ PR_GATE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PR_GATE_ROOT="${PR_GATE_ROOT:-$(cd "$PR_GATE_DIR/../.." && pwd)}"
 GAME_DIR="${GAME_DIR:-$PR_GATE_ROOT/games/steal-a-slime}"
 
+# Private TMPDIR per pr-gate run (bots share /tmp on the box and collided there). The outermost
+# script makes it and removes it on exit; nested check scripts inherit it. PR_GATE_SHARED_TMP=1 opts out.
+if [ -z "${PR_GATE_PRIVATE_TMP:-}" ] && [ "${PR_GATE_SHARED_TMP:-0}" != 1 ]; then
+	PR_GATE_PRIVATE_TMP="$(mktemp -d "${TMPDIR:-/tmp}/pr-gate-XXXXXXXX")"
+	export PR_GATE_PRIVATE_TMP
+	export TMPDIR="$PR_GATE_PRIVATE_TMP"
+	trap 'rm -rf "$PR_GATE_PRIVATE_TMP"' EXIT
+fi
+
 need() {
 	if ! command -v "$1" >/dev/null 2>&1; then
 		echo "pr-gate: '$1' not found on PATH (rokit install in $GAME_DIR, or see tools/pr-gate/README.md)" >&2

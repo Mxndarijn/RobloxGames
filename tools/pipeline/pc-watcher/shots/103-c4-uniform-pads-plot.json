@@ -4,10 +4,12 @@
   "kind": "world",
   "target": "Pad_1",
   "from": "look",
-  "dist": 34,
-  "height": 40,
+  "dist": 60,
+  "height": 70,
   "seat": true,
   "habitat": "flower_bed",
   "wait": 1.5,
-  "note": "v30 C4: whole plot from above: every pad is the same square crate pad with the red mat; only Pad_1 has morphed into its flower_bed habitat"
+  "note": "v30 C4: whole plot from high above at daytime on desktop: all pads uniform and the flower_bed habitat morph clearly visible",
+  "device": "desktop",
+  "clock": 14
 }
