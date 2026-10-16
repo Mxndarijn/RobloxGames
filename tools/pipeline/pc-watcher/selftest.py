@@ -9,11 +9,13 @@ placeholder the watcher fills.
 
 import glob
 import json
+import math
 import os
 import py_compile
 import re
 import sys
 import tempfile
+import tokenize
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -131,8 +133,6 @@ def t_watcher():
     tp = watcher.test_project(proj)
     check("test project memory attr", tp["tree"]["Workspace"]["$attributes"] == {"DataStoreMode": "Memory"}
           and "$attributes" not in proj["tree"]["Workspace"])
-    check("fill args", watcher.fill_args(["-port", "$port", "$rbxl", "$nope"], {"port": "1", "rbxl": "f"})
-          == ["-port", "1", "f", "$nope"])
     # Viewport = client - (468, 216): one step from the first guess.
     g = watcher.next_client_guess((390, 844), [((1000, 800), (532, 584))])
     check("viewport guess 1:1", g == (858, 1060), g)
@@ -163,7 +163,26 @@ def t_watcher():
     check("click points: inset then without", [m for m, _, _ in pts] == ["inset", "no_inset"] and pts[1][2] == 108, pts)
     pts = watcher.click_points({"cx": 86, "cy": 108, "rx": 86, "ry": 108})
     check("click points: IgnoreGuiInset = one point", len(pts) == 1, pts)
-    check("two_player capped at 45 s", watcher.DEFAULTS["twoplayer_timeout_s"] <= 45)
+    check("two_player mode b removed", not any(k.startswith("twoplayer_") for k in watcher.DEFAULTS)
+          and not hasattr(watcher, "twoplayer_cmdline"))
+    check("cursor delta", watcher.cursor_delta((100, 100), (110, 109)) == (10, 9, math.hypot(10, 9)))
+    m = {"found": True, "shown": True, "on_screen": True, "size": [195, 422], "viewport": [390, 844],
+         "close": {"found": True, "shown": True, "on_screen": True}}
+    r = watcher.menu_record(m, "f.jpg")
+    check("menu record card", r == {"frac_w": 0.5, "frac_h": 0.5, "on_screen": True, "close_button": True,
+                                    "frame": "f.jpg"}, r)
+    off = dict(m, on_screen=False, close={"found": True, "shown": True, "on_screen": False})
+    r2 = watcher.menu_record(off)
+    check("menu record off-screen", not r2["on_screen"] and not r2["close_button"])
+    check("menu record missing", not watcher.menu_record(None)["on_screen"])
+    check("menus_failed", watcher.menus_failed({"d": {"shop": r, "dex": r2, "gone": watcher.menu_record(None)}})
+          == ["d/dex", "d/gone"])
+    check("phone perf pass", watcher.phone_perf_verdict({"fps": 45.0, "animating": 16}, 30, 16) == (True, []))
+    ok, pr = watcher.phone_perf_verdict({"fps": 24.0, "animating": 9}, 30, 16)
+    check("phone perf fail", not ok and len(pr) == 2, pr)
+    check("phone perf animating only warns", watcher.phone_perf_verdict({"fps": 60.0, "animating": 3}, 30, 16)[0])
+    check("menus/phone_perf are hard steps", all(s in watcher.HARD_STEPS and s in watcher.STEP_ORDER
+                                                 for s in ("menus", "phone_perf")))
     check("title ok", watcher.frame_title_ok("abc - Roblox Studio", []) and not watcher.frame_title_ok("Notepad", ["zz"]))
 
 
@@ -173,6 +192,53 @@ def t_win32_pure():
     table = [(10, 1, "a"), (11, 10, "b"), (12, 11, "c"), (13, 2, "d")]
     check("descendants", win32.descendants(table, [10]) == {10, 11, 12})
     check("title has place", win32.title_has_place("abc.rbxl - Roblox Studio") and not win32.title_has_place("Roblox Studio"))
+
+
+def t_background():
+    """Runs in the background: off-screen maths, window pick (iconic too), focus + cursor guards, and
+    no focus-stealing / OS-input / screen-copy call left in the code."""
+    check("offscreen x", win32.offscreen_x(0, 1936) == -2036 and win32.offscreen_x(-1920, 800) == -2820)
+    row = dict(owned=False, visible=False, iconic=False, w=0, h=0, nw=0, nh=0)
+    iconic = dict(row, hwnd=1, title="abc.rbxl - Roblox Studio", iconic=True, w=160, h=28, nw=1600, nh=900)
+    splash = dict(row, hwnd=2, title="", visible=True, w=500, h=300, nw=500, nh=300)
+    tool = dict(row, hwnd=3, title="Roblox Studio", owned=True, visible=True, w=1900, h=1000, nw=1900, nh=1000)
+    ime = dict(row, hwnd=4, title="Default IME", nw=0, nh=0)
+    pick = win32.pick_main_window([splash, tool, ime, iconic])
+    check("main window: iconic Studio title wins", pick and pick["hwnd"] == 1, pick)
+    hidden = dict(iconic, iconic=False, hwnd=5)
+    check("main window: hidden window still found", (win32.pick_main_window([hidden]) or {}).get("hwnd") == 5)
+    check("main window: untitled fallback", (win32.pick_main_window([splash]) or {}).get("hwnd") == 2)
+    check("main window: owned only = none", win32.pick_main_window([tool]) is None)
+    check("focus stolen", win32.focus_stolen(42, {41, 42}) and not win32.focus_stolen(7, {41, 42})
+          and not win32.focus_stolen(0, {0}))
+    st = {k: {"status": "pass"} for k in watcher.HARD_STEPS}
+    run = watcher.Run.__new__(watcher.Run)
+    run.steps, run.focus_stolen, run.notes, run.perf, run.frames, run.extra = st, ["FOCUS STOLEN at step devices"], [], {}, [], {}
+    run.sha, run.studio_version, run.t0, run.fg_start, run.input_ok = "a" * 40, None, 0, None, True
+    rep = watcher.build_report(run)
+    check("focus stolen fails the run", rep["status"] == "fail" and rep["background"]["focus_stolen"], rep["background"])
+    calls = []
+    run.input_ok, run.notes = True, []
+    real_cursor, watcher._cursor = watcher._cursor, iter([(10, 10), (10, 10), (10, 10), (99, 10)]).__next__
+    try:
+        ok1, _ = run._mcp_input("a", lambda: (calls.append(1) or True, {}))
+        ok2, info2 = run._mcp_input("b", lambda: (calls.append(2) or True, {}))
+        ok3, info3 = run._mcp_input("c", lambda: (calls.append(3) or True, {}))
+    finally:
+        watcher._cursor = real_cursor
+    check("cursor guard trips once moved", ok1 and "os_cursor_moved" in info2 and not run.input_ok
+          and not ok3 and calls == [1, 2] and any("mcp input moved OS cursor" in n for n in run.notes), (calls, run.notes))
+    banned = {"SetForegroundWindow", "BringWindowToTop", "SetActiveWindow", "SetFocus", "ShowWindow", "keybd_event",
+              "SendInput", "mouse_event", "SetCursorPos", "BitBlt", "bring_to_front", "maximize", "restore",
+              "SW_MAXIMIZE", "SW_RESTORE", "twoplayer_cmdline"}
+    for f in ("win32.py", "watcher.py", "mcp_client.py"):
+        with open(os.path.join(HERE, f), encoding="utf-8") as fh:
+            toks = list(tokenize.generate_tokens(fh.readline))
+        # Names and exact quoted names ("ShowWindow" in a ctypes signature); comments/docstrings may explain.
+        hits = ["%s:%d %s" % (f, t.start[0], t.string) for t in toks
+                if (t.type == tokenize.NAME and t.string in banned)
+                or (t.type == tokenize.STRING and t.string.strip("\"'") in banned)]
+        check("no focus/OS-input calls in %s" % f, not hits, hits[:3])
 
 
 def t_lock():
@@ -202,7 +268,8 @@ def t_files():
     used = {
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET"}, "viewport_probe": {"SHOW"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
-        "shot_camera": {"EYE", "AT"},
+        "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
+        "phone_perf": {"SECONDS"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -216,7 +283,8 @@ def t_files():
 
 
 def main():
-    for t in (t_png, t_crop, t_marked, t_studios, t_actions, t_watcher, t_win32_pure, t_lock, t_files):
+    for t in (t_png, t_crop, t_marked, t_studios, t_actions, t_watcher, t_win32_pure, t_background, t_lock,
+              t_files):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going
