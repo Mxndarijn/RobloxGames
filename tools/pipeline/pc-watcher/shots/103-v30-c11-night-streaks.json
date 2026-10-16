@@ -1,0 +1,20 @@
+{
+  "id": "v30-c11-night-streaks",
+  "todo": "c11-night-streaks",
+  "kind": "world",
+  "pos": [
+    -69.4,
+    5,
+    -258.9
+  ],
+  "look": [
+    -77.6,
+    9,
+    -289.8
+  ],
+  "wait": 2.0,
+  "note": "v30 C11: at NIGHT (clock pinned to 0) rare / mutated slimes carry only small rarity markers, never glowing sky streaks; the probe fails the shot when any Beam / Trail / Neon part is longer than 30 studs",
+  "device": "desktop",
+  "clock": 0,
+  "fx_streaks": 30
+}

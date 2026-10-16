@@ -1557,6 +1557,11 @@ def step_shots(run):
                     # optional uploaded-animation proof: the Client plays it on the pad slime's Animator, waits `wait` s
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
                                                 anim=shot["anim"], id=shot["animId"], wait=float(shot.get("wait", 0.5)))
+                if shot.get("fx_streaks"):
+                    # v30 C11 night proof: no Beam / Trail / Neon part longer than `fx_streaks` studs anywhere in the workspace
+                    res["fx_streaks"] = run.need_luau("fx_streaks", "Client", timeout=30, max=float(shot["fx_streaks"]))
+                    if not res["fx_streaks"].get("ok"):
+                        run.note("shot %s: streak longer than %s studs: %s" % (sid, shot["fx_streaks"], json.dumps(res["fx_streaks"].get("bad"))[:200]))
                 if shot.get("clock") is not None:
                     # daytime shot: the Server's DayNight cycle rewrites ClockTime, so pin it (Studio hook), restore after
                     res["clock"] = run.need_luau("pcw_clock", "Server", timeout=15, time=float(shot["clock"]))

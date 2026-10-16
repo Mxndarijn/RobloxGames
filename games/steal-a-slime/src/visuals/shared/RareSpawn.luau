@@ -7,10 +7,10 @@
 
 	  tier 1  nothing
 	  tier 2  soft PointLight glow, faint ground ring
-	  tier 3  + sparkles, short thin sky beam
+	  tier 3  + sparkles, short thin beam
 	  tier 4  + taller beam, brighter ring
-	  tier 5  + tall beam with a white core, more sparkles
-	  tier 6  + very tall wide beam, second ring, strongest glow
+	  tier 5  + beam with a white core, more sparkles
+	  tier 6  + tallest beam (still MAX_BEAM_HEIGHT), second ring, strongest glow
 	            (VisualsClient cycles its colour)
 
 	RareSpawn.build(tier, size?) -> Model?   (nil for tier 1 / unknown)
@@ -35,21 +35,27 @@ export type TierFx = {
 
 local RareSpawn = {}
 
+-- A beam is a marker over its slime, not a sky pillar: at night the Neon beams (rarity colours, bloom) read as
+-- huge glowing streaks, so every tier stays under these bounds (guarded by tests/RareSpawn.spec.luau).
+RareSpawn.MAX_BEAM_HEIGHT = 24
+RareSpawn.MAX_BEAM_WIDTH = 1
+RareSpawn.BEAM_TRANSPARENCY = 0.7
+
 RareSpawn.TIERS = table.freeze({
 	{},
 	{ glow = { brightness = 1.5, range = 8 }, rings = 1 },
-	{ glow = { brightness = 1.5, range = 10 }, sparkles = 4, beam = { height = 18, width = 0.5 } },
-	{ glow = { brightness = 2, range = 14 }, sparkles = 7, beam = { height = 40, width = 1 }, rings = 1 },
+	{ glow = { brightness = 1.5, range = 10 }, sparkles = 4, beam = { height = 8, width = 0.3 } },
+	{ glow = { brightness = 2, range = 14 }, sparkles = 7, beam = { height = 12, width = 0.45 }, rings = 1 },
 	{
 		glow = { brightness = 3, range = 18 },
 		sparkles = 10,
-		beam = { height = 80, width = 1.8, core = true },
+		beam = { height = 16, width = 0.6, core = true },
 		rings = 1,
 	},
 	{
 		glow = { brightness = 4, range = 24 },
 		sparkles = 14,
-		beam = { height = 150, width = 3, core = true },
+		beam = { height = 22, width = 0.8, core = true },
 		rings = 2,
 	},
 }) :: { TierFx }
@@ -119,13 +125,19 @@ function RareSpawn.build(tier: number, size: number?): Model?
 		local b = fx.beam
 		-- Roblox cylinders run along X: roll 90 degrees to stand them up.
 		local up = CFrame.new(0, b.height / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
-		local beam = part("Beam", Enum.PartType.Cylinder, Vector3.new(b.height, b.width, b.width), color, 0.45)
+		local beam = part(
+			"Beam",
+			Enum.PartType.Cylinder,
+			Vector3.new(b.height, b.width, b.width),
+			color,
+			RareSpawn.BEAM_TRANSPARENCY
+		)
 		at(beam, up)
 		beam.Parent = model
 		if b.core then
 			local w = b.width * 0.4
 			local inner =
-				part("BeamCore", Enum.PartType.Cylinder, Vector3.new(b.height, w, w), Color3.new(1, 1, 1), 0.2)
+				part("BeamCore", Enum.PartType.Cylinder, Vector3.new(b.height, w, w), Color3.new(1, 1, 1), 0.5)
 			at(inner, up)
 			inner.Parent = model
 		end
@@ -153,7 +165,7 @@ function RareSpawn.place(fx: Model, pivot: CFrame, t: number)
 	end
 	local beam = fx:FindFirstChild("Beam")
 	if beam and beam:IsA("BasePart") then
-		beam.Transparency = 0.45 + 0.15 * math.sin(t * 3)
+		beam.Transparency = RareSpawn.BEAM_TRANSPARENCY + 0.1 * math.sin(t * 3)
 	end
 end
 
