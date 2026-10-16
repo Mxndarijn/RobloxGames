@@ -8,7 +8,9 @@
 -- for render_world.py. --skin <id> wears a Config.PLOT_SKINS skin on Plot_1 (real PlotDecor.applySkin
 -- floor, fence / gate tint on the meshes, the skin decor in the Mailbox_1 slot) and writes
 -- scene[_pending]_skin_<id>.json. --pending also swaps meshes that are in the kit but
--- not uploaded yet (ranch_fence_20, the BorderMesh ring): the intended look.
+-- not uploaded yet (ranch_fence_20, the BorderMesh ring): the intended look. --fountain-tier <1..4> shows the
+-- FEATURES.FountainTiers look (real FountainTierDecor poses + FountainTiers.LOOKS glow) and writes
+-- scene[_pending]_tier_<n>.json.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("../../src/visuals/tools/LuneGlobals")
@@ -21,6 +23,8 @@ local Props = require("../../src/visuals/shared/Props")
 local BorderTerrain = require("../../src/visuals/shared/BorderTerrain")
 local WorldBorder = require("../../src/visuals/shared/WorldBorder")
 local WorldBuilder = require("../../src/visuals/shared/WorldBuilder")
+local FountainTierDecor = require("../../src/visuals/shared/FountainTierDecor")
+local FountainTiers = require("../../src/shared/FountainTiers")
 local PlotDecor = require("../../src/visuals/shared/PlotDecor")
 local WorldLayout = require("../../src/visuals/shared/WorldLayout")
 
@@ -28,6 +32,9 @@ local PENDING = table.find(process.args, "--pending") ~= nil
 local OUT = "tools/render/out"
 local SKIN_ARG = table.find(process.args, "--skin")
 local SKIN = if SKIN_ARG then process.args[SKIN_ARG + 1] else nil
+local TIER_ARG = table.find(process.args, "--fountain-tier")
+local TIER = if TIER_ARG then tonumber(process.args[TIER_ARG + 1]) else nil
+assert(not TIER_ARG or (TIER and TIER >= 1 and TIER <= FountainTiers.MAX_TIER), "--fountain-tier needs 1..4")
 
 -- Render staging: which pads show a new habitat mesh (plot, pad, habitat id).
 local HABITAT_PADS = {
@@ -172,6 +179,19 @@ for _, scope in { built.map, built.plots } do
 	end
 end
 
+-- Fountain tier decor (client FountainTierFx): the ring / crest poses at the tier, tinted like MeshPart.Color.
+if TIER then
+	for _, pose in FountainTierDecor.poses(TIER) do
+		table.insert(meshes, {
+			tint = { pose.color[1] / 255, pose.color[2] / 255, pose.color[3] / 255 },
+			mesh = pose.mesh,
+			cf = cfOf(CFrame.new(pose.position[1], pose.position[2], pose.position[3])),
+			size = pose.size,
+			path = `Workspace.FountainTier.{pose.mesh}`,
+		})
+	end
+end
+
 -- Habitat pads (client HabitatFx): the mesh at native footprint on the pad
 -- bottom, Y scaled to pad height / seat; the stand and pad hide.
 for _, h in HABITAT_PADS do
@@ -217,6 +237,10 @@ for _, scope in { built.map, built.plots } do
 			})
 		elseif d:IsA("PointLight") and d.Parent:IsA("BasePart") then
 			local c, p = d.Color, d.Parent.CFrame.Position
+			if TIER and TIER > 1 and d.Name == "CraterGlow" then
+				local look = FountainTiers.look(TIER)
+				c = Color3.fromRGB(look.glow[1], look.glow[2], look.glow[3])
+			end
 			table.insert(
 				lights,
 				{ pos = { p.X, p.Y, p.Z }, color = { c.R, c.G, c.B }, range = d.Range, brightness = d.Brightness }
@@ -249,7 +273,9 @@ if not table.find(process.args, "--no-terrain") then
 end
 
 fs.writeDir(OUT)
-local suffix = (if PENDING then "_pending" else "") .. (if SKIN then `_skin_{SKIN}` else "")
+local suffix = (if PENDING then "_pending" else "")
+	.. (if SKIN then `_skin_{SKIN}` else "")
+	.. (if TIER then `_tier_{TIER}` else "")
 fs.writeFile(
 	`{OUT}/scene{suffix}.json`,
 	serde.encode("json", {

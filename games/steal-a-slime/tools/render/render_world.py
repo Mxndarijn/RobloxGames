@@ -505,6 +505,10 @@ VIEWS = {
     # plot skin close-up (plot 1 wears the scene's skin, export --skin): the entrance side, the
     # skin decor beside the gate, the floor through the open front
     "12_plot_skin": lambda: look((P1[0] + 31, 17, P1[2] - 72), (P1[0] + 4, 3, P1[2] - 38), lens=30),
+    # v19 fountain tiers (export --fountain-tier N): the whole fountain from the plaza, ring at its
+    # foot and the crest over the goo crown; and a low close-up of the ring posts
+    "14_fountain_tier": lambda: look((-70, 22, -92), (0, 22, 0), lens=26),
+    "15_fountain_tier_ring": lambda: look((-30, 6, -46), (-4, 4, -6), lens=28),
 }
 
 os.makedirs(args.out, exist_ok=True)
