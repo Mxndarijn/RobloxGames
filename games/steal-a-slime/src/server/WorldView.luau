@@ -6,7 +6,8 @@
 	  * reconciles slime models against Scene.describe (ModelFactory.build,
 	    wrapped by SlimeMesh for the mesh look; parenting, attributes OwnerUserId / State / Price / DespawnAt, ProximityPrompt,
 	    pad placement, carry weld, volcano drop and escape-home bounce);
-	  * plot attributes OwnerUserId / LockUntil / Rebirths (CONTRACT.md §5.2)
+	  * plot attributes OwnerUserId / LockUntil / Rebirths (CONTRACT.md §5.2);
+	    with FEATURES.Habitats, Pad Habitat / HabitatFrom / HabitatAt (HabitatPads)
 	    and the owner / stats text on each plot Sign (PlotSigns);
 	  * per-player WalkSpeed (Speed Coil when not carrying), unequipped
 	    tools, the SpeedCoil tool and the `Carrying` / `TutorialStep` /
@@ -32,6 +33,7 @@ local Constants = require(ReplicatedStorage.Shared.Constants)
 local FallbackWorld = require(script.Parent.FallbackWorld)
 local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local Genome = require(ReplicatedStorage.Shared.Genome)
+local HabitatPads = require(script.Parent.HabitatPads)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
@@ -57,6 +59,7 @@ local records: { [string]: Record } = {}
 local failed: { [string]: boolean } = {}
 local modelFactory: any = nil
 local plotCache: { [number]: Instance? } = {}
+local habitats = HabitatPads.new() -- FEATURES.Habitats pad state (never saved)
 
 WorldView.DROP_SECONDS = 2.4 -- long enough to read the spiral ride down the fountain
 WorldView.FALL_SECONDS = 0.3 -- a dropped slime falls to the ground
@@ -585,6 +588,8 @@ local function dexMask(index: number, session: World.Session, count: number): nu
 end
 
 function WorldView.updatePlots(world: World.World, now: number)
+	local habitatsOn = Config.FEATURES.Habitats
+	HabitatPads.step(habitats, world, now, habitatsOn)
 	for index = 1, world.plotCount do
 		local plot = WorldView.plot(index)
 		if plot then
@@ -610,6 +615,13 @@ function WorldView.updatePlots(world: World.World, now: number)
 				local part = WorldView.pad(index, pad)
 				if part then
 					setIfChanged(part, Constants.PAD_UNLOCKED_ATTRIBUTE, pad <= view.padsUnlocked)
+					local habitat = if habitatsOn then HabitatPads.get(habitats, index, pad) else nil
+					if habitat then
+						-- At first so a client that sees Habitat change also reads the matching stamp.
+						setIfChanged(part, Constants.HABITAT_AT_ATTRIBUTE, habitat.at)
+						setIfChanged(part, Constants.HABITAT_FROM_ATTRIBUTE, habitat.from)
+						setIfChanged(part, Constants.HABITAT_ATTRIBUTE, habitat.id)
+					end
 				end
 			end
 			local prompts = plotPrompts[index]

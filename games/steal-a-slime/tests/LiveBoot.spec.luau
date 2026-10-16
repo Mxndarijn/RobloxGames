@@ -62,4 +62,21 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 		show(ownerSigns)
 		expect(ownerSigns.ok).toBe(true)
 	end)
+	it("sets no habitat attributes or parts with FEATURES.Habitats off", function()
+		local found = {}
+		for _, d in rt.workspace:GetDescendants() do
+			for _, name in { "Habitat", "HabitatFrom", "HabitatAt" } do
+				if d:GetAttribute(name) ~= nil then
+					table.insert(found, `{d:GetFullName()}.{name}`)
+				end
+			end
+			if d.Name == "ClientHabitats" or d.Name == "HabitatBurst" then
+				table.insert(found, d:GetFullName())
+			end
+		end
+		if #found > 0 then
+			print(`    {table.concat(found, ", ")}`)
+		end
+		expect(#found).toBe(0)
+	end)
 end)
