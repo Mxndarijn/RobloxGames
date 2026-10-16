@@ -1,14 +1,14 @@
 {
   "sha": "374ca4a2188293c980461a91281218bff52fee18",
   "status": "fail",
-  "checked_at": "2026-10-16T10:42:44Z",
+  "checked_at": "2026-10-16T10:47:08Z",
   "studio_version": "0, 743, 0, 7431133 (version-4f087c32742644ab)",
-  "notes": "frame time is Studio play-mode on the PC (window may be throttled when unfocused); mcp input moved OS cursor (click 1286,376: (1280, 707) -> (1277, 708), delta -3,+1 = 3 px; a small delta can be the user moving the mouse); MCP input disabled for the rest of the run, panels set Visible instead; menus are content-sized cards since #76 (not full-window): frac_w / frac_h are reported, only on-screen + a visible close button decide pass; phone_perf is Studio on the PC (unfocused, off-screen window), not real phone hardware; shot 02-dex-menu: no click opened DexPanel; set Visible directly; shot 03-shop-menu: no click opened ShopPanel; set Visible directly; shot 04-rebirth-menu: no click opened RebirthPanel; set Visible directly; two_player ran mode c (pure server modules in one play session), not two real clients",
-  "duration_s": 170.6,
+  "notes": "frame time is Studio play-mode on the PC (window may be throttled when unfocused); mcp input moved OS cursor (click 1286,436: (1286, 706) -> (1281, 707), delta -5,+1 = 5 px; a small delta can be the user moving the mouse); MCP input disabled for the rest of the run, panels set Visible instead; menu-shop-phone-landscape frame rejected: capture failed, blank frame; menu-rebirth-phone-landscape frame rejected: capture failed, blank frame; menu-goals-phone-landscape frame rejected: capture failed, blank frame; menu-dex-phone-landscape frame rejected: capture failed, blank frame; menu-leaders-phone-landscape frame rejected: capture failed, blank frame; menu-guide-phone-landscape frame rejected: capture failed, blank frame; phone-perf-phone-landscape frame rejected: capture failed, blank frame; phone_perf phone-landscape: avg FPS 15.0 < 30; menus are content-sized cards since #76 (not full-window): frac_w / frac_h are reported, only on-screen + a visible close button decide pass; phone_perf is Studio on the PC (unfocused, off-screen window), not real phone hardware; shot-01-hud-menus frame rejected: capture failed, blank frame; shot 02-dex-menu: no click opened DexPanel; set Visible directly; shot-02-dex-menu frame rejected: capture failed, blank frame; shot 03-shop-menu: no click opened ShopPanel; set Visible directly; shot-03-shop-menu frame rejected: capture failed, blank frame; shot 04-rebirth-menu: no click opened RebirthPanel; set Visible directly; shot-04-rebirth-menu frame rejected: capture failed, blank frame; shot-05-guide-npc frame rejected: capture failed, blank frame; shot-06-fountain-centre frame rejected: capture failed, blank frame; shot-06-map-top frame rejected: capture failed, blank frame; shot-07-lock-sign frame rejected: capture failed, blank frame; shot-07-plot-sign frame rejected: capture failed, blank frame; shot-08-stray-box frame rejected: capture failed, blank frame; shot-09-floating frame rejected: capture failed, blank frame; shot-10-shop-stand frame rejected: capture failed, blank frame; shot-11-campfire frame rejected: capture failed, blank frame; shot-11-campfire-bench frame rejected: capture failed, blank frame; shot-11-mailbox frame rejected: capture failed, blank frame; shot-11-signpost frame rejected: capture failed, blank frame; shot-12-fountain-slide frame rejected: capture failed, blank frame; shot-13-fountain-colliders frame rejected: capture failed, blank frame; shot-14-podium-1 frame rejected: capture failed, blank frame; shot-14-podiums frame rejected: capture failed, blank frame; shot-15-slime-pad frame rejected: capture failed, blank frame; two_player ran mode c (pure server modules in one play session), not two real clients",
+  "duration_s": 207.0,
   "steps": {
     "build": {
       "status": "pass",
-      "seconds": 2.6,
+      "seconds": 1.5,
       "detail": {
         "rbxl": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl",
         "size_mb": 0.4,
@@ -18,32 +18,31 @@
     },
     "launch": {
       "status": "pass",
-      "seconds": 12.0,
+      "seconds": 11.4,
       "detail": {
-        "studio_id": "44194485-28dd-485c-93ee-68a0655e143d",
+        "studio_id": "455c35b2-7384-437f-b78f-6a0067ed7a79",
         "pids": [
-          22704
+          51728
         ],
         "window": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-        "seconds_to_ready": 11.1,
+        "seconds_to_ready": 10.6,
         "edit_frame": "374ca4a2188293c980461a91281218bff52fee18-edit.jpg"
       }
     },
     "perf": {
       "status": "pass",
-      "seconds": 18.5,
+      "seconds": 15.4,
       "detail": {
         "unique_meshes": 91,
-        "slime_and_character_meshes": 23,
+        "slime_and_character_meshes": 22,
         "store_status": "Memory",
         "parts": 1622,
         "mesh_slots": 348,
         "budget": 400,
         "samples": [
           68,
-          83,
-          104,
-          156,
+          84,
+          115,
           348,
           348,
           348
@@ -80,16 +79,16 @@
         },
         "seconds_to_client": 7.4,
         "stats": {
-          "play_mesh_parts": 85,
-          "memory_mb": 3514.44,
-          "p95_ms": 18.09,
-          "max_ms": 19.52,
+          "play_mesh_parts": 86,
+          "memory_mb": 3550.2,
+          "p95_ms": 18.03,
+          "max_ms": 19.0,
           "frames": 300,
-          "fps": 60.03,
+          "fps": 59.99,
           "primitives": 1448,
-          "instance_count": 51632,
+          "instance_count": 51631,
           "play_parts": 1448,
-          "frame_time_ms": 16.66
+          "frame_time_ms": 16.67
         }
       }
     },
@@ -164,7 +163,7 @@
         "card_visible_after_hide": false,
         "advance": {
           "ran": true,
-          "slime": "Slime_dbdee5fb-c10d-4e3b-bb4c-689fca72f1f2",
+          "slime": "Slime_7545ca4b-5366-4140-8cac-aaf8a46dc5ba",
           "price": 0,
           "step_before": "Grab",
           "step_after": "Grab",
@@ -175,7 +174,7 @@
     },
     "shop": {
       "status": "pass",
-      "seconds": 3.4,
+      "seconds": 3.3,
       "detail": {
         "open_before": false,
         "inset": [
@@ -301,7 +300,7 @@
     },
     "devices": {
       "status": "pass",
-      "seconds": 65.0,
+      "seconds": 98.7,
       "detail": {
         "devices": {
           "desktop": {
@@ -349,13 +348,13 @@
               "method": "printwindow",
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
               "stats": {
-                "mean": 108.09,
-                "variance": 4963.05,
-                "distinct": 705,
+                "mean": 104.76,
+                "variance": 4728.56,
+                "distinct": 704,
                 "samples": 4272
               },
               "tried": [
-                "printwindow: var=4963 distinct=705"
+                "printwindow: var=4729 distinct=704"
               ],
               "size": [
                 2388,
@@ -410,13 +409,13 @@
               "method": "printwindow",
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
               "stats": {
-                "mean": 72.93,
-                "variance": 4424.5,
-                "distinct": 480,
+                "mean": 72.24,
+                "variance": 4445.01,
+                "distinct": 542,
                 "samples": 4712
               },
               "tried": [
-                "printwindow: var=4424 distinct=480"
+                "printwindow: var=4445 distinct=542"
               ],
               "size": [
                 858,
@@ -471,13 +470,13 @@
               "method": "printwindow",
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
               "stats": {
-                "mean": 76.39,
-                "variance": 4448.45,
-                "distinct": 625,
+                "mean": 78.72,
+                "variance": 4788.84,
+                "distinct": 624,
                 "samples": 4747
               },
               "tried": [
-                "printwindow: var=4448 distinct=625"
+                "printwindow: var=4789 distinct=624"
               ],
               "size": [
                 1312,
@@ -491,7 +490,7 @@
     },
     "menus": {
       "status": "pass",
-      "seconds": 40.7,
+      "seconds": 76.4,
       "detail": {
         "panels": [
           "plot",
@@ -511,19 +510,20 @@
       }
     },
     "phone_perf": {
-      "status": "pass",
-      "seconds": 16.6,
+      "status": "fail",
+      "seconds": 14.6,
       "detail": {
         "min_fps": 30,
         "devices": [
           "phone-portrait",
           "phone-landscape"
-        ]
+        ],
+        "error": "avg FPS below 30 or not measured at: phone-landscape"
       }
     },
     "two_player": {
       "status": "pass",
-      "seconds": 10.7,
+      "seconds": 10.8,
       "detail": {
         "a_probe": {
           "TestService": {
@@ -563,11 +563,11 @@
       }
     },
     "shots": {
-      "status": "pass",
-      "seconds": 36.1,
+      "status": "warn",
+      "seconds": 43.4,
       "detail": {
-        "captured": 17,
-        "total": 18,
+        "captured": 0,
+        "total": 21,
         "shots": [
           {
             "id": "01-hud-menus",
@@ -578,28 +578,20 @@
               "gui": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 140.07,
-                "variance": 4169.9,
-                "distinct": 804,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=4724 distinct=526"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-01-hud-menus.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             }
           },
           {
@@ -631,28 +623,20 @@
               "gui": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 117.31,
-                "variance": 4884.75,
-                "distinct": 578,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=3959 distinct=421"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-02-dex-menu.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             },
             "closed_by": "visible_fallback"
           },
@@ -692,28 +676,20 @@
               "gui": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 121.63,
-                "variance": 4509.53,
-                "distinct": 597,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=4005 distinct=425"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-03-shop-menu.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             },
             "closed_by": "visible_fallback"
           },
@@ -746,28 +722,20 @@
               "gui": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 121.85,
-                "variance": 4427.84,
-                "distinct": 593,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=3966 distinct=413"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-04-rebirth-menu.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             },
             "closed_by": "visible_fallback"
           },
@@ -775,11 +743,49 @@
             "id": "05-guide-npc",
             "todo": "5",
             "note": "TODO 5: guide NPC",
-            "missing": "target 'guide' not found"
+            "target": {
+              "path": "Workspace.Map.TutorialNpc",
+              "pos": [
+                -83.27984619140625,
+                3.125,
+                -34.12599563598633
+              ],
+              "size": [
+                4.683011054992676,
+                6.25,
+                1.3000000715255737
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 5,
+              "hidden_billboards": 6,
+              "hidden_prompts": 29,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": null,
+              "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
+              "stats": null,
+              "tried": [
+                "printwindow: failed"
+              ],
+              "size": [
+                0,
+                0
+              ],
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
+            }
           },
           {
             "id": "06-fountain-centre",
-            "todo": "6/13",
+            "todo": "6",
             "note": "TODO 6/13: fountain in exact middle",
             "target": {
               "path": "Workspace.Map.Volcano.FountainMesh",
@@ -798,126 +804,58 @@
               "drift": 0,
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
-              "hidden_guis": 5,
-              "hidden_billboards": 6,
-              "hidden_prompts": 30,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 142.54,
-                "variance": 1519.33,
-                "distinct": 1012,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=3758 distinct=619"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-06-fountain-centre.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             }
           },
           {
             "id": "06-map-top",
-            "todo": "6/8/9",
+            "todo": "6",
             "note": "TODO 6/8/9: top-down overview (fountain at centre, stray boxes)",
             "camera": {
               "drift": 0,
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 1,
+              "hidden_billboards": 0,
               "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 172.42,
-                "variance": 3257.68,
-                "distinct": 601,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=6229 distinct=417"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-06-map-top.png"
-            }
-          },
-          {
-            "id": "07-plot-sign",
-            "todo": "7",
-            "note": "TODO 7: plot sign text on board",
-            "target": {
-              "path": "Workspace.Map.ShopStand.Sign",
-              "pos": [
-                80.93184661865234,
-                10.800000190734863,
-                33.523067474365234
-              ],
-              "size": [
-                7,
-                1.7999999523162842,
-                0.30000001192092896
+              "rejected": [
+                "capture failed",
+                "blank frame"
               ]
-            },
-            "camera": {
-              "drift": 0,
-              "camera_type": "Scriptable",
-              "core_gui_hidden": true,
-              "hidden_guis": 0,
-              "hidden_billboards": 1,
-              "hidden_prompts": 1,
-              "locked": true,
-              "character_moved": true
-            },
-            "frame": {
-              "method": "printwindow",
-              "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 116.13,
-                "variance": 1767.45,
-                "distinct": 876,
-                "samples": 5194
-              },
-              "tried": [
-                "printwindow: var=2627 distinct=625"
-              ],
-              "size": [
-                844,
-                390
-              ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-07-plot-sign.png"
             }
           },
           {
@@ -942,34 +880,132 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": null,
+              "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
+              "stats": null,
+              "tried": [
+                "printwindow: failed"
+              ],
+              "size": [
+                0,
+                0
+              ],
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
+            }
+          },
+          {
+            "id": "07-plot-sign",
+            "todo": "7",
+            "note": "TODO 7: plot sign text on board",
+            "target": {
+              "path": "Workspace.Map.ShopStand.Sign",
+              "pos": [
+                80.93184661865234,
+                10.800000190734863,
+                33.523067474365234
+              ],
+              "size": [
+                7,
+                1.7999999523162842,
+                0.30000001192092896
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": null,
+              "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
+              "stats": null,
+              "tried": [
+                "printwindow: failed"
+              ],
+              "size": [
+                0,
+                0
+              ],
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
+            }
+          },
+          {
+            "id": "08-stray-box",
+            "todo": "8",
+            "note": "TODO 8: yellow box/slab gone (angled overview of plaza)",
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": null,
+              "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
+              "stats": null,
+              "tried": [
+                "printwindow: failed"
+              ],
+              "size": [
+                0,
+                0
+              ],
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
+            }
+          },
+          {
+            "id": "09-floating",
+            "todo": "9",
+            "note": "TODO 9: nothing floating (low angled overview)",
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
               "hidden_billboards": 0,
               "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 113.79,
-                "variance": 1369.83,
-                "distinct": 848,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=2367 distinct=563"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-07-lock-sign.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             }
           },
           {
@@ -1000,80 +1036,20 @@
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 118.27,
-                "variance": 1221.86,
-                "distinct": 922,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=2518 distinct=605"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-10-shop-stand.png"
-            }
-          },
-          {
-            "id": "11-campfire-bench",
-            "todo": "11",
-            "note": "TODO 11: bench faces campfire",
-            "target": {
-              "path": "Workspace.Map.Decor.CampBench",
-              "pos": [
-                26.129409790039062,
-                2.4102020263671875,
-                88.21142578125
-              ],
-              "size": [
-                7.1999969482421875,
-                4.820404052734375,
-                2.8511962890625
+              "rejected": [
+                "capture failed",
+                "blank frame"
               ]
-            },
-            "camera": {
-              "drift": 0,
-              "camera_type": "Scriptable",
-              "core_gui_hidden": true,
-              "hidden_guis": 0,
-              "hidden_billboards": 0,
-              "hidden_prompts": 1,
-              "locked": true,
-              "character_moved": true
-            },
-            "frame": {
-              "method": "printwindow",
-              "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 123.84,
-                "variance": 2303.37,
-                "distinct": 1000,
-                "samples": 5194
-              },
-              "tried": [
-                "printwindow: var=3212 distinct=659"
-              ],
-              "size": [
-                844,
-                390
-              ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-11-campfire-bench.png"
             }
           },
           {
@@ -1098,34 +1074,70 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": null,
+              "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
+              "stats": null,
+              "tried": [
+                "printwindow: failed"
+              ],
+              "size": [
+                0,
+                0
+              ],
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
+            }
+          },
+          {
+            "id": "11-campfire-bench",
+            "todo": "11",
+            "note": "TODO 11: bench faces campfire",
+            "target": {
+              "path": "Workspace.Map.Decor.CampBench",
+              "pos": [
+                26.129409790039062,
+                2.4102020263671875,
+                88.21142578125
+              ],
+              "size": [
+                7.1999969482421875,
+                4.820404052734375,
+                2.8511962890625
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
               "hidden_billboards": 1,
               "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 124.33,
-                "variance": 2007.43,
-                "distinct": 1169,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=3089 distinct=724"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-11-campfire.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             }
           },
           {
@@ -1156,28 +1168,20 @@
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 129.74,
-                "variance": 2057.5,
-                "distinct": 1092,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=3347 distinct=709"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-11-mailbox.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             }
           },
           {
@@ -1208,28 +1212,20 @@
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 141.14,
-                "variance": 1749.69,
-                "distinct": 945,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=3770 distinct=587"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-11-signpost.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             }
           },
           {
@@ -1260,28 +1256,64 @@
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 112.85,
-                "variance": 3478.34,
-                "distinct": 837,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=3245 distinct=557"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
+            }
+          },
+          {
+            "id": "13-fountain-colliders",
+            "todo": "13",
+            "note": "TODO 13: fountain solid (close-up)",
+            "target": {
+              "path": "Workspace.Map.Volcano.FountainMesh",
+              "pos": [
+                6.5200042724609375,
+                21.658004760742188,
+                7.75
               ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-12-fountain-slide.png"
+              "size": [
+                54.44999694824219,
+                43.316009521484375,
+                63.85099792480469
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": null,
+              "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
+              "stats": null,
+              "tried": [
+                "printwindow: failed"
+              ],
+              "size": [
+                0,
+                0
+              ],
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             }
           },
           {
@@ -1306,34 +1338,26 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 0,
-              "hidden_prompts": 1,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 104.85,
-                "variance": 1493.83,
-                "distinct": 87,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=2122 distinct=142"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-14-podium-1.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             }
           },
           {
@@ -1358,34 +1382,26 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 1,
-              "hidden_prompts": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 142.5,
-                "variance": 1795.19,
-                "distinct": 957,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=3896 distinct=604"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-14-podiums.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             }
           },
           {
@@ -1410,41 +1426,33 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 0,
-              "hidden_prompts": 1,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
             },
             "frame": {
-              "method": "printwindow",
+              "method": null,
               "title": "C:\\gate\\pc-watcher\\builds\\374ca4a2188293c980461a91281218bff52fee18.rbxl - Roblox Studio",
-              "stats": {
-                "mean": 130.74,
-                "variance": 1822.53,
-                "distinct": 853,
-                "samples": 5194
-              },
+              "stats": null,
               "tried": [
-                "printwindow: var=3324 distinct=568"
+                "printwindow: failed"
               ],
               "size": [
-                844,
-                390
+                0,
+                0
               ],
-              "crop": [
-                286,
-                144,
-                844,
-                390
-              ],
-              "file": "374ca4a2188293c980461a91281218bff52fee18-shot-15-slime-pad.png"
+              "rejected": [
+                "capture failed",
+                "blank frame"
+              ]
             }
           }
         ],
         "viewport_rect": {
           "client": [
-            1312,
-            606
+            0,
+            0
           ],
           "rect": [
             286,
@@ -1466,19 +1474,19 @@
     "mesh_slots": 348,
     "unique_meshes": 91,
     "budget": 400,
-    "frame_time_ms": 16.66,
-    "memory_mb": 3514.44,
+    "frame_time_ms": 16.67,
+    "memory_mb": 3550.2,
     "play": {
-      "play_mesh_parts": 85,
-      "memory_mb": 3514.44,
-      "p95_ms": 18.09,
-      "max_ms": 19.52,
+      "play_mesh_parts": 86,
+      "memory_mb": 3550.2,
+      "p95_ms": 18.03,
+      "max_ms": 19.0,
       "frames": 300,
-      "fps": 60.03,
+      "fps": 59.99,
       "primitives": 1448,
-      "instance_count": 51632,
+      "instance_count": 51631,
       "play_parts": 1448,
-      "frame_time_ms": 16.66
+      "frame_time_ms": 16.67
     },
     "parts": 1622,
     "triangles": null,
@@ -1489,17 +1497,17 @@
           "near_after": 20,
           "near_before": 6,
           "added": 14,
-          "sources": 17
+          "sources": 16
         },
-        "avg_ms": 16.67,
-        "p95_ms": 18.55,
-        "max_ms": 19.58,
-        "fps": 60.0,
-        "memory_mb": 3576.2,
+        "avg_ms": 16.66,
+        "p95_ms": 18.08,
+        "max_ms": 18.93,
+        "fps": 60.02,
+        "memory_mb": 3605.8,
         "animating": 16,
         "animating_at_start": 16,
-        "slimes_near": 22,
-        "frames": 301,
+        "slimes_near": 21,
+        "frames": 300,
         "viewport": [
           390,
           844
@@ -1507,27 +1515,30 @@
         "frame": "374ca4a2188293c980461a91281218bff52fee18-phone-perf-phone-portrait.jpg"
       },
       "phone-landscape": {
-        "pass": true,
+        "pass": false,
         "fill": {
           "near_after": 20,
-          "near_before": 7,
-          "added": 13,
+          "near_before": 8,
+          "added": 12,
           "sources": 16
         },
-        "avg_ms": 16.67,
-        "p95_ms": 18.45,
-        "max_ms": 19.55,
-        "fps": 59.99,
-        "memory_mb": 3591.81,
+        "avg_ms": 66.66,
+        "p95_ms": 67.88,
+        "max_ms": 68.63,
+        "fps": 15.0,
+        "memory_mb": 3614.12,
         "animating": 16,
         "animating_at_start": 16,
         "slimes_near": 20,
-        "frames": 301,
+        "frames": 75,
         "viewport": [
           844,
           390
         ],
-        "frame": "374ca4a2188293c980461a91281218bff52fee18-phone-perf-phone-landscape.jpg"
+        "frame": null,
+        "problems": [
+          "avg FPS 15.0 < 30"
+        ]
       }
     }
   },
@@ -1553,6 +1564,174 @@
       "kind": "device"
     },
     {
+      "id": "menu-plot-desktop",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-plot-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Plot:no_inset"
+    },
+    {
+      "id": "menu-merge-desktop",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-merge-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Merge:no_inset"
+    },
+    {
+      "id": "menu-shop-desktop",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-shop-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Shop:no_inset"
+    },
+    {
+      "id": "menu-rebirth-desktop",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-rebirth-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "desktop",
+      "open_method": "mcp_click:Nav.Rebirth:no_inset"
+    },
+    {
+      "id": "menu-goals-desktop",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-goals-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "desktop",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-dex-desktop",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-dex-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "desktop",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-leaders-desktop",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-leaders-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "desktop",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-guide-desktop",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-guide-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1920,
+        1080
+      ],
+      "crop": [
+        286,
+        144,
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "desktop",
+      "open_method": "visible_fallback"
+    },
+    {
       "id": "phone-portrait",
       "file": "374ca4a2188293c980461a91281218bff52fee18-phone-portrait.jpg",
       "status": "captured",
@@ -1564,6 +1743,174 @@
       ],
       "crop": null,
       "kind": "device"
+    },
+    {
+      "id": "menu-plot-phone-portrait",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-plot-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-merge-phone-portrait",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-merge-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-shop-phone-portrait",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-shop-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-rebirth-phone-portrait",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-rebirth-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-goals-phone-portrait",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-goals-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-dex-phone-portrait",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-dex-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-leaders-phone-portrait",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-leaders-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-guide-phone-portrait",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-guide-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        390,
+        844
+      ],
+      "crop": [
+        286,
+        144,
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
     },
     {
       "id": "phone-perf-phone-portrait",
@@ -1598,8 +1945,8 @@
       "kind": "device"
     },
     {
-      "id": "phone-perf-phone-landscape",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-phone-perf-phone-landscape.jpg",
+      "id": "menu-plot-phone-landscape",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-plot-phone-landscape.jpg",
       "status": "captured",
       "todo": null,
       "method": "printwindow",
@@ -1613,337 +1960,293 @@
         844,
         390
       ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-merge-phone-landscape",
+      "file": "374ca4a2188293c980461a91281218bff52fee18-menu-merge-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-shop-phone-landscape",
+      "file": null,
+      "status": "blank",
+      "todo": null,
+      "error": "capture failed, blank frame",
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-rebirth-phone-landscape",
+      "file": null,
+      "status": "blank",
+      "todo": null,
+      "error": "capture failed, blank frame",
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-goals-phone-landscape",
+      "file": null,
+      "status": "blank",
+      "todo": null,
+      "error": "capture failed, blank frame",
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-dex-phone-landscape",
+      "file": null,
+      "status": "blank",
+      "todo": null,
+      "error": "capture failed, blank frame",
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-leaders-phone-landscape",
+      "file": null,
+      "status": "blank",
+      "todo": null,
+      "error": "capture failed, blank frame",
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-guide-phone-landscape",
+      "file": null,
+      "status": "blank",
+      "todo": null,
+      "error": "capture failed, blank frame",
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "phone-perf-phone-landscape",
+      "file": null,
+      "status": "blank",
+      "todo": null,
+      "error": "capture failed, blank frame",
       "kind": "perf",
       "for_device": "phone-landscape"
     },
     {
       "id": "shot-01-hud-menus",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-01-hud-menus.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "1",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "open_method": null
     },
     {
       "id": "shot-02-dex-menu",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-02-dex-menu.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "2",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "open_method": "visible_fallback"
     },
     {
       "id": "shot-03-shop-menu",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-03-shop-menu.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "3",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "open_method": "visible_fallback"
     },
     {
       "id": "shot-04-rebirth-menu",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-04-rebirth-menu.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "4",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "open_method": "visible_fallback"
     },
     {
       "id": "shot-05-guide-npc",
       "file": null,
-      "status": "missing",
+      "status": "blank",
       "todo": "5",
+      "error": "capture failed, blank frame",
       "kind": "shot",
-      "error": "target 'guide' not found"
+      "target": "Workspace.Map.TutorialNpc"
     },
     {
       "id": "shot-06-fountain-centre",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-06-fountain-centre.jpg",
-      "status": "captured",
-      "todo": "6/13",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "file": null,
+      "status": "blank",
+      "todo": "6",
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": "Workspace.Map.Volcano.FountainMesh"
     },
     {
       "id": "shot-06-map-top",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-06-map-top.jpg",
-      "status": "captured",
-      "todo": "6/8/9",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "file": null,
+      "status": "blank",
+      "todo": "6",
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": null
     },
     {
-      "id": "shot-07-plot-sign",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-07-plot-sign.jpg",
-      "status": "captured",
-      "todo": "7",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
-      "kind": "shot",
-      "target": "Workspace.Map.ShopStand.Sign"
-    },
-    {
       "id": "shot-07-lock-sign",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-07-lock-sign.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "7",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": "Workspace.Plots.Plot_1.LockSign"
     },
     {
+      "id": "shot-07-plot-sign",
+      "file": null,
+      "status": "blank",
+      "todo": "7",
+      "error": "capture failed, blank frame",
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand.Sign"
+    },
+    {
+      "id": "shot-08-stray-box",
+      "file": null,
+      "status": "blank",
+      "todo": "8",
+      "error": "capture failed, blank frame",
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-09-floating",
+      "file": null,
+      "status": "blank",
+      "todo": "9",
+      "error": "capture failed, blank frame",
+      "kind": "shot",
+      "target": null
+    },
+    {
       "id": "shot-10-shop-stand",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-10-shop-stand.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "10",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": "Workspace.Plots.Plot_1.BuyStand"
     },
     {
-      "id": "shot-11-campfire-bench",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-11-campfire-bench.jpg",
-      "status": "captured",
-      "todo": "11",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
-      "kind": "shot",
-      "target": "Workspace.Map.Decor.CampBench"
-    },
-    {
       "id": "shot-11-campfire",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-11-campfire.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "11",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": "Workspace.Map.Decor.Campfire"
     },
     {
-      "id": "shot-11-mailbox",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-11-mailbox.jpg",
-      "status": "captured",
+      "id": "shot-11-campfire-bench",
+      "file": null,
+      "status": "blank",
       "todo": "11",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.CampBench"
+    },
+    {
+      "id": "shot-11-mailbox",
+      "file": null,
+      "status": "blank",
+      "todo": "11",
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": "Workspace.Map.Decor.Mailbox_2"
     },
     {
       "id": "shot-11-signpost",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-11-signpost.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "11",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": "Workspace.Map.Plaza.Signpost"
     },
     {
       "id": "shot-12-fountain-slide",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-12-fountain-slide.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "12",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": "Workspace.Map.Volcano.SlideColliders.SlideFloor19"
     },
     {
+      "id": "shot-13-fountain-colliders",
+      "file": null,
+      "status": "blank",
+      "todo": "13",
+      "error": "capture failed, blank frame",
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.FountainMesh"
+    },
+    {
       "id": "shot-14-podium-1",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-14-podium-1.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "14",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": "Workspace.Map.Plaza.Podium_1"
     },
     {
       "id": "shot-14-podiums",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-14-podiums.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "14",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": "Workspace.Map.Plaza.Podium_2"
     },
     {
       "id": "shot-15-slime-pad",
-      "file": "374ca4a2188293c980461a91281218bff52fee18-shot-15-slime-pad.jpg",
-      "status": "captured",
+      "file": null,
+      "status": "blank",
       "todo": "15",
-      "method": "printwindow",
-      "size": [
-        844,
-        390
-      ],
-      "crop": [
-        286,
-        144,
-        844,
-        390
-      ],
+      "error": "capture failed, blank frame",
       "kind": "shot",
       "target": "Workspace.Plots.Plot_1.Pad_1"
     }
@@ -2037,8 +2340,7 @@
         "frac_h": 0.481,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-plot-desktop.jpg",
         "open_method": "mcp_click:Nav.Plot:no_inset"
       },
       "merge": {
@@ -2046,35 +2348,31 @@
         "frac_h": 0.481,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
-        "open_method": "visible_fallback"
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-merge-desktop.jpg",
+        "open_method": "mcp_click:Nav.Merge:no_inset"
       },
       "shop": {
         "frac_w": 0.292,
         "frac_h": 0.481,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
-        "open_method": "visible_fallback"
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-shop-desktop.jpg",
+        "open_method": "mcp_click:Nav.Shop:no_inset"
       },
       "rebirth": {
         "frac_w": 0.292,
         "frac_h": 0.37,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
-        "open_method": "visible_fallback"
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-rebirth-desktop.jpg",
+        "open_method": "mcp_click:Nav.Rebirth:no_inset"
       },
       "goals": {
         "frac_w": 0.292,
         "frac_h": 0.463,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-goals-desktop.jpg",
         "open_method": "visible_fallback"
       },
       "dex": {
@@ -2082,8 +2380,7 @@
         "frac_h": 0.556,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-dex-desktop.jpg",
         "open_method": "visible_fallback"
       },
       "leaders": {
@@ -2091,8 +2388,7 @@
         "frac_h": 0.426,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-leaders-desktop.jpg",
         "open_method": "visible_fallback"
       },
       "guide": {
@@ -2100,8 +2396,7 @@
         "frac_h": 0.352,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-guide-desktop.jpg",
         "open_method": "visible_fallback"
       }
     },
@@ -2111,8 +2406,7 @@
         "frac_h": 0.493,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-plot-phone-portrait.jpg",
         "open_method": "visible_fallback"
       },
       "merge": {
@@ -2120,8 +2414,7 @@
         "frac_h": 0.493,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-merge-phone-portrait.jpg",
         "open_method": "visible_fallback"
       },
       "shop": {
@@ -2129,8 +2422,7 @@
         "frac_h": 0.493,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-shop-phone-portrait.jpg",
         "open_method": "visible_fallback"
       },
       "rebirth": {
@@ -2138,8 +2430,7 @@
         "frac_h": 0.379,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-rebirth-phone-portrait.jpg",
         "open_method": "visible_fallback"
       },
       "goals": {
@@ -2147,8 +2438,7 @@
         "frac_h": 0.474,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-goals-phone-portrait.jpg",
         "open_method": "visible_fallback"
       },
       "dex": {
@@ -2156,8 +2446,7 @@
         "frac_h": 0.569,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-dex-phone-portrait.jpg",
         "open_method": "visible_fallback"
       },
       "leaders": {
@@ -2165,8 +2454,7 @@
         "frac_h": 0.436,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-leaders-phone-portrait.jpg",
         "open_method": "visible_fallback"
       },
       "guide": {
@@ -2174,8 +2462,7 @@
         "frac_h": 0.36,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-guide-phone-portrait.jpg",
         "open_method": "visible_fallback"
       }
     },
@@ -2185,8 +2472,7 @@
         "frac_h": 0.431,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-plot-phone-landscape.jpg",
         "open_method": "visible_fallback"
       },
       "merge": {
@@ -2194,8 +2480,7 @@
         "frac_h": 0.431,
         "on_screen": true,
         "close_button": true,
-        "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
+        "frame": "374ca4a2188293c980461a91281218bff52fee18-menu-merge-phone-landscape.jpg",
         "open_method": "visible_fallback"
       },
       "shop": {
@@ -2204,7 +2489,6 @@
         "on_screen": true,
         "close_button": true,
         "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
         "open_method": "visible_fallback"
       },
       "rebirth": {
@@ -2213,7 +2497,6 @@
         "on_screen": true,
         "close_button": true,
         "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
         "open_method": "visible_fallback"
       },
       "goals": {
@@ -2222,7 +2505,6 @@
         "on_screen": true,
         "close_button": true,
         "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
         "open_method": "visible_fallback"
       },
       "dex": {
@@ -2231,7 +2513,6 @@
         "on_screen": true,
         "close_button": true,
         "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
         "open_method": "visible_fallback"
       },
       "leaders": {
@@ -2240,7 +2521,6 @@
         "on_screen": true,
         "close_button": true,
         "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
         "open_method": "visible_fallback"
       },
       "guide": {
@@ -2249,7 +2529,6 @@
         "on_screen": true,
         "close_button": true,
         "frame": null,
-        "error": "TypeError(\"capture_frame() got multiple values for argument 'device'\")",
         "open_method": "visible_fallback"
       }
     }
@@ -2263,20 +2542,20 @@
     "mcp_input": false,
     "cursor_events": [
       {
-        "call": "click 1286,376",
+        "call": "click 1286,436",
         "before": [
-          1280,
-          707
+          1286,
+          706
         ],
         "after": [
-          1277,
-          708
+          1281,
+          707
         ],
         "delta": [
-          -3,
+          -5,
           1
         ],
-        "dist_px": 3.2
+        "dist_px": 5.1
       }
     ]
   },
@@ -2291,10 +2570,10 @@
       "stray": [],
       "remaining": [],
       "closed": [
-        22704
+        51728
       ],
       "killed": [
-        22704
+        51728
       ]
     }
   },
