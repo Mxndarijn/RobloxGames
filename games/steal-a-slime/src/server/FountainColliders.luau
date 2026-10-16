@@ -4,7 +4,7 @@
 
 	FountainColliders.place(): Folder?
 
-	Adds the low fountain slide's collision (Shared.SlideColliders) under
+	Adds the fountain slide's collision (the whole path with FEATURES.SlideCollision, else only the low stretch) (Shared.SlideColliders) under
 	workspace.Map.Volcano.SlideColliders: invisible, anchored, CanCollide
 	Parts, no touch or query. Unlike the silo's Basin / Trim / Silo colliders
 	(MeshCollider, switched by MeshSwap) they stay on in every state: the
@@ -16,6 +16,7 @@
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local SlideColliders = require(ReplicatedStorage.Shared.SlideColliders)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
@@ -36,7 +37,7 @@ function FountainColliders.place(): Folder?
 	end
 	local folder = Instance.new("Folder")
 	folder.Name = SlideColliders.FOLDER
-	for _, spec in SlideColliders.build(WorldLayout.SLIDE_PATH) do
+	for _, spec in SlideColliders.build(WorldLayout.SLIDE_PATH, Config.FEATURES.SlideCollision) do
 		local c, f, s = spec.centre, spec.forward, spec.size
 		local centre = Vector3.new(c[1], c[2], c[3])
 		local part = Instance.new("Part")

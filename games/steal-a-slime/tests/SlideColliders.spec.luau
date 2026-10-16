@@ -23,8 +23,10 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 local PATH = WorldLayout.SLIDE_PATH
 local FP = WorldLayout.FOUNTAIN_PROFILE
-local SPECS = SlideColliders.build(PATH)
+local Config = require("../src/shared/Config")
+local SPECS = SlideColliders.build(PATH, true)
 local EPS = 1e-3
+local LIVE_EPS = 0.01 -- Part CFrames are float32; a pivot on the floor top reads ~1e-3 inside
 local PLAYER_HEIGHT = 5 -- R15 character, feet to head
 local BODY_LIFT = 1.5 -- body centre above the pivot for a size-1 slime
 
@@ -88,6 +90,13 @@ for i = 1, #PATH - 1 do
 	end
 end
 
+-- The emerge rise (inside the goo crown, under the slide head) is the one stretch
+-- of the ride that sits in the first floor slab; riders are anchored and non-colliding.
+local HEAD = PATH[1]
+local function emerging(p): boolean
+	return math.abs(p[1] - HEAD[1]) < 1e-3 and math.abs(p[3] - HEAD[3]) < 1e-3 and p[2] < HEAD[2] - 1e-3
+end
+
 local function byName(): { [string]: any }
 	local out = {}
 	for _, spec in SPECS do
@@ -97,21 +106,28 @@ local function byName(): { [string]: any }
 end
 
 describe("SlideColliders specs", function()
-	it("cover every low slide segment (floor + both walls), only the low ones", function()
+	it("cover every slide segment (floor + both walls), top to mouth", function()
 		local names = byName()
 		expect(#LOW >= 10).toBe(true)
-		for _, i in LOW do
+		for i = 1, #PATH - 1 do
 			expect(names[`SlideFloor{i}`] ~= nil).toBe(true)
 			expect(names[`SlideWallL{i}`] ~= nil).toBe(true)
 			expect(names[`SlideWallR{i}`] ~= nil).toBe(true)
 		end
 		for _, spec in SPECS do
+			expect(spec.segment >= 1 and spec.segment <= #PATH - 1).toBe(true)
+		end
+	end)
+	it("flag off keeps the old low-only stretch", function()
+		for _, spec in SlideColliders.build(PATH) do
 			expect(SlideColliders.isLow(PATH[spec.segment], PATH[spec.segment + 1])).toBe(true)
 		end
+		expect(#SlideColliders.build(PATH) < #SPECS).toBe(true)
+		expect(Config.FEATURES.SlideCollision).toBe(true)
 	end)
 	it("put the floor top exactly on the ride line, the walls either side of it", function()
 		local names = byName()
-		for _, i in LOW do
+		for i = 1, #PATH - 1 do
 			local a, b = PATH[i], PATH[i + 1]
 			for _, k in { 0.1, 0.5, 0.9 } do
 				local p = { a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k }
@@ -164,6 +180,114 @@ describe("SlideColliders specs", function()
 	end)
 end)
 
+-- Playtest B6: players fell through the slide above LOW_SLIDE_Y (no colliders there).
+describe("slide collision covers the whole slide, top to bottom", function()
+	local function floorsAt(p, below)
+		-- floor specs whose slab holds p (p lowered by `below` studs along -Y)
+		local hit = {}
+		for _, spec in SPECS do
+			if spec.kind == "Floor" and depth(spec, { p[1], p[2] - below, p[3] }) > 0 then
+				table.insert(hit, spec)
+			end
+		end
+		return hit
+	end
+	it("has a floor, both walls for every segment of the path, first to last, none skipped", function()
+		local names = byName()
+		local topSegment = #PATH - 1
+		expect(PATH[1][2] > SlideColliders.WALK_UNDER * 4).toBe(true) -- the top really is high
+		for i = 1, topSegment do
+			expect(names[`SlideFloor{i}`] ~= nil and names[`SlideWallL{i}`] ~= nil and names[`SlideWallR{i}`] ~= nil).toBe(
+				true
+			)
+		end
+	end)
+	it("every point of the centreline, very top to mouth, is held up by a floor slab (no gaps)", function()
+		local steps = 0
+		for i = 1, #PATH - 1 do
+			local a, b = PATH[i], PATH[i + 1]
+			local n =
+				math.max(8, math.ceil(math.sqrt((b[1] - a[1]) ^ 2 + (b[3] - a[3]) ^ 2 + (b[2] - a[2]) ^ 2) / 0.25))
+			for s = 0, n do
+				local k = s / n
+				local p = { a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k }
+				-- just below the surface: inside a slab; just above: clear
+				if #floorsAt(p, 0.05) == 0 then
+					error(`gap in the slide floor near segment {i} k={k} at ({p[1]}, {p[2]}, {p[3]})`)
+				end
+				expect(#floorsAt(p, -0.05)).toBe(0)
+				steps += 1
+			end
+		end
+		expect(steps > 100).toBe(true)
+	end)
+	it("a point right across the trough width (floor edge to edge) is held up along the whole slide", function()
+		for i = 1, #PATH - 1 do
+			local a, b = PATH[i], PATH[i + 1]
+			local spec = nil
+			for _, c in SPECS do
+				if c.name == `SlideFloor{i}` then
+					spec = c
+				end
+			end
+			local right = frame(spec)
+			local half = spec.size[1] / 2 - 0.1
+			for _, k in { 0.02, 0.5, 0.98 } do
+				for _, side in { -1, 1 } do
+					local p = {
+						a[1] + (b[1] - a[1]) * k + right[1] * side * half,
+						a[2] + (b[2] - a[2]) * k,
+						a[3] + (b[3] - a[3]) * k + right[3] * side * half,
+					}
+					-- the edge sits at the ride-line height only on a flat cross-section (right is horizontal)
+					if #floorsAt(p, 0.05) == 0 then
+						error(`gap at the trough edge, segment {i} k={k} side={side}`)
+					end
+				end
+			end
+		end
+	end)
+	it("neighbouring floor slabs overlap at every joint, the steep ones too", function()
+		for i = 1, #PATH - 2 do
+			local joint = PATH[i + 1]
+			local held = {}
+			for _, spec in floorsAt(joint, 0.05) do
+				held[spec.segment] = true
+			end
+			expect(held[i]).toBe(true)
+			expect(held[i + 1]).toBe(true)
+		end
+	end)
+	it("slabs are thick enough for a falling player, nothing is a thin sheet", function()
+		for _, spec in SPECS do
+			if spec.kind == "Floor" then
+				expect(spec.size[2] >= SlideColliders.MIN_THICK).toBe(true)
+				expect(spec.size[2] >= 2).toBe(true)
+			elseif spec.kind == "Wall" then
+				expect(spec.size[1] >= SlideColliders.WALL).toBe(true)
+			end
+		end
+	end)
+	it("a player dropped from above lands on the slide at every height, top to bottom", function()
+		-- fall straight down onto the centreline in 1 stud/frame steps from 40 studs up; must stop on the surface
+		for i = 1, #PATH - 1 do
+			local a, b = PATH[i], PATH[i + 1]
+			local p = { (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, (a[3] + b[3]) / 2 }
+			local y = p[2] + 40
+			local landed = false
+			while y > p[2] - 10 do
+				if #floorsAt({ p[1], y, p[3] }, 0) > 0 then
+					landed = true
+					break
+				end
+				y -= 1.5 -- ~90 studs/s at 60 Hz, well under terminal speed
+			end
+			expect(landed).toBe(true)
+			expect(y >= p[2] - SlideColliders.MIN_THICK - 1.6).toBe(true)
+		end
+	end)
+end)
+
 describe("fountain colliders leave the ride path clear", function()
 	local rng = Rng.new(13)
 	local rides = {}
@@ -177,7 +301,7 @@ describe("fountain colliders leave the ride path clear", function()
 		for _, ride in rides do
 			for _, p in ride.points do
 				local inside, name = insideAny(p)
-				if inside then
+				if inside and not emerging(p) then
 					error(`ride point ({p[1]}, {p[2]}, {p[3]}) inside {name}`)
 				end
 				expect(insideSilo(p)).toBe(false)
@@ -188,6 +312,9 @@ describe("fountain colliders leave the ride path clear", function()
 		for k = 1, 60 do
 			for _, p in rides[k].points do
 				local body = { p[1], p[2] + BODY_LIFT, p[3] }
+				if emerging(p) then
+					continue
+				end
 				expect((insideAny(body))).toBe(false)
 				expect(insideSilo(body)).toBe(false)
 			end
@@ -285,16 +412,20 @@ describe("SlideColliders in the live server", function()
 			end
 			expect(#colliders).toBe(#SPECS + 3)
 			for _, r in rides do
+				if emerging({ r.p.X, r.p.Y, r.p.Z }) then
+					continue
+				end
 				for _, part in colliders do
 					local l = part.CFrame:PointToObjectSpace(r.p)
 					local s = part.Size
 					local inside
 					if part.Shape == roblox.Enum.PartType.Cylinder then
-						inside = math.abs(l.X) < s.X / 2 - EPS and math.sqrt(l.Y ^ 2 + l.Z ^ 2) < s.Y / 2 - EPS
+						inside = math.abs(l.X) < s.X / 2 - LIVE_EPS
+							and math.sqrt(l.Y ^ 2 + l.Z ^ 2) < s.Y / 2 - LIVE_EPS
 					else
-						inside = math.abs(l.X) < s.X / 2 - EPS
-							and math.abs(l.Y) < s.Y / 2 - EPS
-							and math.abs(l.Z) < s.Z / 2 - EPS
+						inside = math.abs(l.X) < s.X / 2 - LIVE_EPS
+							and math.abs(l.Y) < s.Y / 2 - LIVE_EPS
+							and math.abs(l.Z) < s.Z / 2 - LIVE_EPS
 					end
 					if inside then
 						error(`slime pivot {r.p} inside {part.Name}`)
