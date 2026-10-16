@@ -1,5 +1,5 @@
 --!nocheck
--- Runtime part budget (target 1800, ratchet 2350: only ever lower it). WorldBudget.spec holds the build-time
+-- Runtime part budget (target 1800, ratchet 2230: only ever lower it). WorldBudget.spec holds the build-time
 -- Part nodes to 1400; this boots the real server (rojo place, fake runtime) and counts
 -- every BasePart in Workspace once the parade lane, the slide colliders, WorldProps,
 -- the ritual circle and MeshSwap have spawned. pc-watcher's perf_server reports the same
@@ -18,7 +18,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local RUNTIME_PARTS_MAX = 1800 -- the target
 -- Ratchet (same number as the pc-watcher runtime_part_budget and the shot's runtime_parts_max): the
 -- fake-runtime world measured 2272 BaseParts when this test landed. Only ever lower it; target 1800.
-local WORLD_RATCHET = 2350
+local WORLD_RATCHET = 2230
 
 local placePath = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-rtparts-{os.time()}-{math.random(1, 1e9)}.rbxlx`
 local built = process.exec("rojo", { "build", "-o", placePath })
