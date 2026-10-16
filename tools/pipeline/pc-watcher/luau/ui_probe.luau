@@ -46,8 +46,25 @@ local function rect(path)
 	}
 end
 
+-- Fixed paths, plus every nav / HUD button (the nav is text-less icon buttons named by Nav.ENTRIES key)
+-- and every <Key>Panel with its Close.
+local paths = { "Hud.Shop", "Nav.Shop", "ShopPanel", "ShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" }
+for _, holder in { "Nav", "Hud" } do
+	local h = gui:FindFirstChild(holder)
+	for _, c in (if h then h:GetChildren() else {}) do
+		if c:IsA("GuiButton") then
+			table.insert(paths, holder .. "." .. c.Name)
+		end
+	end
+end
+for _, c in gui:GetChildren() do
+	if c:IsA("GuiObject") and string.sub(c.Name, -5) == "Panel" then
+		table.insert(paths, c.Name)
+		table.insert(paths, c.Name .. ".Close")
+	end
+end
 local targets = {}
-for _, path in { "Hud.Shop", "Nav.Shop", "ShopPanel", "ShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" } do
+for _, path in paths do
 	targets[path] = rect(path)
 end
 local openPanels = {}
@@ -71,5 +88,6 @@ return {
 	step_id = p:GetAttribute("TutorialStepId"),
 	carrying = p:GetAttribute("Carrying"),
 	open_panels = openPanels,
+	menu_open = GuiService.MenuIsOpen,
 	targets = targets,
 }

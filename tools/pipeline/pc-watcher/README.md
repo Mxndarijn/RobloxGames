@@ -66,10 +66,10 @@ input call misbehaves.
 | 3 | play | `start_stop_play true`, wait for the Client (LocalPlayer, character, `SlimeUI`, `TutorialStepId`; 90 s). Then Heartbeat dt over 5 s (avg / p95 / max / fps), `Stats:GetTotalMemoryUsageMb()`, `InstanceCount`, part counts. | client not up | 20-40 s |
 | 4 | perf | Server datamodel: MeshParts in Workspace (wild slimes and characters excluded) and unique MeshIds, polled until three equal counts (max 45 s). Budget is 400. The tracked world has **0** MeshParts: `src/server/MeshSwap` creates them at run time, so the Edit count is info only. | > 400, or 0 | 10-15 s |
 | 5 | onboarding | The tutorial card (`SlimeUI.TutorialOverlay`) must show for the fresh memory profile. Click its `Hide`; the card must hide. Later (soft): teleport next to the cheapest wild slime, press **E** through `user_keyboard_input`, and record whether `TutorialStepId` moved past `Grab`. | card missing / Hide no effect | 5 s |
-| 6 | shop | Try `VirtualInputManager:SendMouseButtonEvent` from the Client execute_luau first. It is expected to be blocked ("lacking capability RobloxScript"); the result is recorded. Then `user_mouse_input` (down, 120 ms, up) at the centre of `Hud.Shop` (then `Nav.Shop`): AbsolutePosition + AbsoluteSize/2 + GuiInset. `ShopPanel` must become visible. Results go in `input_methods`. | shop not opened | 5 s |
+| 6 | shop | `VirtualInputManager` is not used: on the PC, execute_luau gets "lacking capability RobloxScript" for `SendMouseButtonEvent` and `SendKeyEvent`. Clicks use `user_mouse_input` (down, 120 ms, up) at the centre of `Hud.Shop` (then `Nav.Shop`): AbsolutePosition + AbsoluteSize/2 + GuiInset. `ShopPanel` must become visible. Results go in `input_methods`. | shop not opened | 5 s |
 | 7 | esc | `user_keyboard_input` Escape; `ShopPanel` must close (game binds Esc via ContextActionService). | still open | 2 s |
 | 8 | devices | Resize the Studio main window (SetWindowPos, DPI-aware) until Client `CurrentCamera.ViewportSize` is 1920x1080, 390x844 and 844x390. The first guess is target + (client - viewport). Then secant steps, up to 5 tries. When Studio or Windows clamps the size, the closest size reached is kept and noted. At each size: HUD + nav buttons (`Hud.*`, `Nav.*` by name) must be inside the ScreenGui rect (viewport minus top bar, 1 px), then one frame is captured. The window is restored afterwards. | an element off-screen or missing | 60-90 s |
-| 9 | shots (soft) | `shots.json` proof frames: `ui` (click `Nav.<key>`, capture, Esc) and `world` (Server finds target, Client scriptable camera). Missing targets are notes. | never | 0-60 s |
+| 9 | shots (soft) | `shots.json` proof frames, cropped to the game viewport (see Frames). `ui`: open `<Key>Panel` by an MCP click on the text-less nav icon `Nav.<Key>` (then `Hud.<Key>`). If no click opens it, set `Visible` directly (`luau/panel_visible`; the UI has no open hook, so contents may be stale). The method goes in the frame entry. Capture, then close with Esc, else `<Key>Panel.Close`, else `Visible=false`. `world`: the Server finds the target (exact name, else substring) and its bounding box. The Client hides every PlayerGui ScreenGui and the CoreGui, anchors and hides the character, and holds a Scriptable camera on the target's front side: 35 degrees down, `max(extent)*1.8+15` studs away, re-asserted after 1.5 s. `shot_camera_reset` restores all of it. Missing targets are frame entries with status `missing`. | never | 0-90 s |
 | 10 | two_player | See below. | mode b/c assertion false | 40-150 s |
 | 11 | close | Save the console output, stop play, WM_CLOSE the main window, wait 15 s, then `taskkill /T /F` the tracked pids. This also kills a "save changes?" prompt. | - | 5-20 s |
 | 12 | report + sync | Write `out\<sha>\<sha>.json`, then commit to `studio-reports` and push. | - | 5 s |
@@ -80,9 +80,14 @@ fails the run. Exceptions: `shots`, and `two_player` reporting "not run".
 ### Frames
 
 `<sha>-<device>.png` holds the client area of the Studio window (`PrintWindow` with
-`PW_RENDERFULLCONTENT`, else `BitBlt`, else a screen copy). The frame includes Studio's panels; the
-game viewport is the part described by `devices.<name>.viewport`. A frame is **rejected** (kept as
-`*-rejected.png`, listed in `notes`, not in `frames`) when it is blank (luma variance < 40 or < 12
+`PW_RENDERFULLCONTENT`, else `BitBlt`, else a screen copy). Device frames are full-window, so they
+include Studio's panels. Shot frames (`<sha>-shot-<id>.png`) are cropped to the game viewport. To
+find it, `luau/viewport_probe` shows a full-screen magenta ScreenGui above everything. The watcher
+captures the window and takes the magenta bounding box (exact colour, else within 12). The rect is
+cached per window size and recorded in `steps.shots.detail.viewport_rect`, with `scale` = capture px
+per ViewportSize px. If the probe is not found, frames stay full-window and a note says so. A frame
+is **rejected** (kept as `*-rejected.png`, listed in `notes`, frame entry status `blank` or
+`missing`) when it is blank (luma variance < 40 or < 12
 colours on a 64x64 sample grid), when the window title is not Studio's, or when it is a screen copy
 taken while Studio was not the foreground window.
 
@@ -117,11 +122,19 @@ the earlier modes did not (`tried`).
   },
   "perf": {"mesh_slots": 324, "unique_meshes": 61, "budget": 400, "frame_time_ms": 16.7, "memory_mb": 1450.2,
            "parts": 1100, "play": {...}},
-  "frames": ["<sha>-edit.png", "<sha>-desktop.png", "<sha>-phone-portrait.png", "<sha>-phone-landscape.png"],
-  "input_methods": {"virtual_input_manager": "blocked: ...", "mcp_mouse:Hud.Shop": "works", "mcp_keyboard:Escape": "works"},
+  "frames": [
+    {"id": "desktop", "file": "<sha>-desktop.png", "status": "captured", "todo": null, "kind": "device", "method": "printwindow", "size": [1920, 1080], "crop": null},
+    {"id": "shot-02-dex-menu", "file": "<sha>-shot-02-dex-menu.png", "status": "captured", "todo": "2", "kind": "shot", "crop": [312, 96, 1280, 720], "open_method": "mcp_click:Nav.Dex"},
+    {"id": "shot-11-signpost", "file": null, "status": "missing", "todo": "11", "kind": "shot", "error": "target 'Signpost' not found"}
+  ],
+  "input_methods": {"virtual_input_manager": "not tried: ...", "mcp_mouse:Hud.Shop": "works", "mcp_keyboard:Escape": "works"},
   "close": {...}, "watcher_version": "1.0.0"
 }
 ```
+
+`frames[].status` is `captured`, `missing` (no target or button, capture failed, run budget) or `blank`.
+`todo` is the shot's TODO item (shots.json `todo`, else the `TODO n:` prefix of its `note`). The
+sync rewrites `file` to the `.jpg` name when it converts.
 
 `cloud-test.sh` reads only `sha`, `status`, `checked_at`, `studio_version` and `notes`.
 

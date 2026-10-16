@@ -19,6 +19,7 @@ import datetime
 import json
 import logging
 import logging.handlers
+import math
 import os
 import re
 import shutil
@@ -151,13 +152,25 @@ def luau_literal(v):
     return json.dumps(str(v))  # a JSON string literal is a valid Luau string literal
 
 
-def shot_camera(target):
-    """Server bounding box -> (eye, at): in front of the target, raised, 1.6x its size back."""
+def shot_camera(target, pitch_deg=35.0):
+    """Server bounding box -> (eye, at): on the target's front (LookVector) side, looking down
+    `pitch_deg` at the box centre from max(extent) * 1.8 + 15 studs away."""
     px, py, pz = target["pos"]
     lx, _, lz = target["look"]
-    dist = max(max(target["size"]) * 1.6, 14.0)
-    flat = (lx * lx + lz * lz) ** 0.5 or 1.0
-    return (px + lx / flat * dist, py + dist * 0.45, pz + lz / flat * dist), (px, py, pz)
+    flat = math.hypot(lx, lz)
+    hx, hz = (lx / flat, lz / flat) if flat > 1e-3 else (0.0, 1.0)  # looking straight up/down: any side
+    dist = max(target["size"]) * 1.8 + 15
+    pitch = math.radians(pitch_deg)
+    across, up = math.cos(pitch) * dist, math.sin(pitch) * dist
+    return (px + hx * across, py + up, pz + hz * across), (px, py, pz)
+
+
+def shot_todo(shot):
+    """TODO item number(s) of a shots.json entry: its "todo", else "TODO 6/13:" at the start of its note."""
+    if shot.get("todo"):
+        return str(shot["todo"])
+    m = re.match(r"\s*TODO\s+([\d/]+)", str(shot.get("note") or ""))
+    return m.group(1) if m else None
 
 
 def viewport_error(vp, target):
@@ -323,6 +336,12 @@ class Run:
     def note(self, msg):
         log.info("note: %s", msg)
         self.notes.append(msg)
+
+    def add_frame(self, fid, file=None, status="captured", **extra):
+        """One report.frames entry: {id, file, status: captured|missing|blank, todo, ...}."""
+        rec = dict({"id": fid, "file": file, "status": status, "todo": None}, **extra)
+        self.frames.append(rec)
+        return rec
 
     # --- shell ---
     def cmd(self, args, cwd=None, timeout=120, check=True, env=None):
@@ -587,10 +606,11 @@ def save_mcp_image(run, img, device):
             if imaging.is_blank(imaging.frame_stats(w, h, px, mode)):
                 run.note("%s frame is blank, not kept" % device)
                 os.replace(path, path.replace(".png", "-rejected.png"))
+                run.add_frame(device, status="blank", kind="edit")
                 return None
         except ValueError as e:
             log.info("cannot check %s: %s", name, e)
-    run.frames.append(name)
+    run.add_frame(device, name, kind="edit")
     return name
 
 
@@ -730,19 +750,10 @@ def step_shop(run):
     detail = {"open_before": p.get("shop_open"), "inset": p.get("inset"), "viewport": p.get("viewport")}
     if p.get("shop_open"):
         return "fail", dict(detail, error="shop already open before any click")
-    hud = (p.get("targets") or {}).get("Hud.Shop") or {}
-    methods = {}
-    # 1) VirtualInputManager from the Client execute_luau (expected to be blocked).
-    if hud.get("found"):
-        ok, vim = run.luau("vim_probe", "Client", timeout=20, x=hud["cx"], y=hud["cy"])
-        p = ui_probe(run)
-        if not ok:
-            methods["virtual_input_manager"] = "error: %s" % str(vim)[:160]
-        elif not vim.get("ok"):
-            methods["virtual_input_manager"] = "blocked: %s" % str(vim.get("error"))[:160]
-        else:
-            methods["virtual_input_manager"] = "works" if p.get("shop_open") else "no effect"
-    # 2) StudioMCP user_mouse_input on the HUD Shop button, then the nav Shop button.
+    # VirtualInputManager is not tried: the first PC run (c39fc38) got "cannot call
+    # 'SendMouseButtonEvent' (lacking capability RobloxScript)" from execute_luau, same for SendKeyEvent.
+    methods = {"virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau"}
+    # StudioMCP user_mouse_input on the HUD Shop button, then the nav Shop button.
     for path in ("Hud.Shop", "Nav.Shop"):
         if p.get("shop_open"):
             break
@@ -827,13 +838,66 @@ def _viewport(run):
     return int(round(v[0])), int(round(v[1]))
 
 
-def capture_frame(run, hwnd, device):
+PROBE_RGB = (255, 0, 255)  # luau/viewport_probe.luau
+
+
+def viewport_rect(run, hwnd):
+    """(x, y, w, h) of the game viewport inside the Studio client area, or None.
+
+    Shows a full-screen magenta ScreenGui (luau/viewport_probe), captures the window and takes the
+    magenta bounding box. Cached per client-area size (devices resizes the window).
+    """
+    client = list(win32.client_size(hwnd))
+    cached = run.extra.get("viewport_rect")
+    if cached and cached.get("client") == client:
+        return cached.get("rect")
+    res = {"client": client, "rect": None}
+    try:
+        ok, d = run.luau("viewport_probe", "Client", timeout=20, show=True)
+        if not ok:
+            res["error"] = str(d)[:200]
+        else:
+            res["viewport"] = d.get("viewport")
+            win32.bring_to_front(hwnd)
+            time.sleep(0.4)
+            cap = win32.capture_client(hwnd)
+            res["method"] = cap["method"]
+            if cap["rgb"] is not None:
+                rect = imaging.find_colour_rect(cap["w"], cap["h"], cap["rgb"], PROBE_RGB, tol=12)
+                res["rect"] = list(rect) if rect else None
+    finally:
+        run.luau("viewport_probe", "Client", timeout=20, show=False)
+    vp = res.get("viewport")
+    if res["rect"] and vp and vp[0] > 0:
+        res["scale"] = round(res["rect"][2] / float(vp[0]), 3)  # capture px per viewport px (DPI)
+    if not res["rect"]:
+        run.note("viewport probe not found in the capture (%s): frames stay full-window" % res.get("error", "no magenta"))
+    run.extra["viewport_rect"] = res
+    log.info("viewport rect %s", res)
+    return res["rect"]
+
+
+def capture_frame(run, hwnd, device, crop=False, **rec):
+    """Captures the Studio client area to <sha>-<device>.png and adds a report.frames entry.
+
+    crop=True cuts the frame to the game viewport (viewport_rect); device frames stay full-window.
+    `rec` goes into the frames entry (todo, kind, ...).
+    """
+    rect = viewport_rect(run, hwnd) if crop else None
     fg = win32.bring_to_front(hwnd)
     time.sleep(0.6)
     title = win32.title_of(hwnd)
     cap = win32.capture_client(hwnd)
     info = {"method": cap["method"], "foreground": fg, "title": title, "stats": cap["stats"], "tried": cap["tried"],
             "size": [cap["w"], cap["h"]]}
+    if rect and cap["rgb"] is not None:
+        try:
+            w, h, rgb = imaging.crop_rgb(cap["w"], cap["h"], cap["rgb"], *rect)
+            stats = imaging.frame_stats(w, h, rgb)
+            cap = dict(cap, w=w, h=h, rgb=rgb, stats=stats, blank=imaging.is_blank(stats))
+            info.update(crop=list(rect), size=[w, h], stats=stats)
+        except ValueError as e:
+            info["crop_error"] = str(e)
     reasons = []
     if cap["rgb"] is None:
         reasons.append("capture failed")
@@ -850,9 +914,11 @@ def capture_frame(run, hwnd, device):
     if reasons:
         info["rejected"] = reasons
         run.note("%s frame rejected: %s" % (device, ", ".join(reasons)))
+        status = "blank" if "blank frame" in reasons else "missing"
+        run.add_frame(device, status=status, error=", ".join(reasons), **rec)
     else:
-        run.frames.append(name)
         info["file"] = name
+        run.add_frame(device, name, method=cap["method"], size=info["size"], crop=info.get("crop"), **rec)
     return info
 
 
@@ -883,7 +949,7 @@ def step_devices(run):
             if hud.get("offscreen") or hud.get("missing"):
                 failed.append(device)
                 res["error"] = "off-screen %s missing %s" % (hud.get("offscreen"), hud.get("missing"))
-            res["frame"] = capture_frame(run, hwnd, device)
+            res["frame"] = capture_frame(run, hwnd, device, kind="device")
             results[device] = res
     finally:
         try:
@@ -1003,10 +1069,76 @@ def step_twoplayer(run):
 
 UI_SHOT_BUTTONS = {"shop": "Nav.Shop", "dex": "Nav.Dex", "rebirth": "Nav.Rebirth", "goals": "Nav.Goals",
                    "plot": "Nav.Plot", "merge": "Nav.Merge", "leaders": "Nav.Leaders"}
+UI_SHOT_PANELS = {"leaders": "LeaderboardPanel"}  # else <Key>Panel (src/ui/Panels: Widgets.panel names)
+
+
+def panel_for(key):
+    k = str(key).lower()
+    return UI_SHOT_PANELS.get(k, k[:1].upper() + k[1:] + "Panel")
+
+
+def open_panel(run, key):
+    """Opens a SlimeUI panel for a ui shot. Returns {panel, method, tried}; method None = not opened.
+
+    1) MCP user_mouse_input on its nav icon (Nav.<Key>), then a HUD button (Hud.<Key>) if any;
+    2) fallback: luau/panel_visible sets <Key>Panel.Visible directly (no UI open hook exists),
+       so the panel's update() did not run and its contents can be stale.
+    """
+    k = str(key).lower()
+    panel = panel_for(k)
+    nav = UI_SHOT_BUTTONS.get(k, "Nav." + k[:1].upper() + k[1:])
+    res = {"panel": panel, "method": None, "tried": []}
+    p = ui_probe(run)
+    if panel in (p.get("open_panels") or []):
+        res["method"] = "already open"
+        return res
+    for path in (nav, "Hud." + nav.split(".", 1)[1]):
+        t = (p.get("targets") or {}).get(path) or {}
+        if not t.get("found"):
+            continue
+        ok, info = click_target(run, p, path)
+        p = ui_probe(run)
+        opened = panel in (p.get("open_panels") or [])
+        res["tried"].append({"path": path, "at": info.get("at"), "click_ok": ok, "opened": opened,
+                             "error": info.get("error")})
+        if opened:
+            res["method"] = "mcp_click:" + path
+            return res
+    ok, d = run.luau("panel_visible", "Client", timeout=15, panel=panel, show=True)
+    time.sleep(0.4)
+    p = ui_probe(run)
+    res["tried"].append({"path": "panel_visible", "result": d if ok else str(d)[:160]})
+    if panel in (p.get("open_panels") or []):
+        res["method"] = "visible_fallback"
+    return res
+
+
+def close_panel(run, panel):
+    """Escape (MCP key); then the panel's Close button; then Visible=false. Returns the method that closed it."""
+    run.session().key(run.studio_id, "Escape", run.cfg["input_overrides"])
+    time.sleep(0.6)
+    p = ui_probe(run)
+    if p.get("menu_open"):  # nothing of ours took Escape: the Roblox menu opened, close it again
+        run.session().key(run.studio_id, "Escape", run.cfg["input_overrides"])
+        time.sleep(0.6)
+        p = ui_probe(run)
+    if panel not in (p.get("open_panels") or []):
+        return "escape"
+    ok, _ = click_target(run, p, panel + ".Close")
+    p = ui_probe(run)
+    if ok and panel not in (p.get("open_panels") or []):
+        return "close_button"
+    run.luau("panel_visible", "Client", timeout=15, panel=panel, show=False)
+    return "visible_fallback"
 
 
 def step_shots(run):
-    """Soft: proof frames from shots.json (bots add theirs in PRs). Missing targets are notes, never failures."""
+    """Soft: proof frames from shots.json (bots add theirs in PRs). Missing targets are notes, never failures.
+
+    ui shots open a panel (open_panel) and capture the viewport with the UI. world shots hide every
+    ScreenGui and the character, frame the target from the Server bounding box (shot_camera) and
+    capture the viewport. Every shot adds a report.frames entry with its todo and status.
+    """
     if run.dry:
         return "skip", {"dry_run": True}
     shots = read_json(os.path.join(HERE, "shots.json"), None)
@@ -1015,25 +1147,36 @@ def step_shots(run):
     hwnd = run.hwnd
     if not hwnd:
         return "skip", {"reason": "no Studio window"}
-    results = []
+    results, world_mode = [], False
     for shot in shots:
         sid = re.sub(r"[^A-Za-z0-9_.-]", "_", str(shot.get("id", "shot")))
-        res = {"id": sid, "note": shot.get("note")}
+        fid = "shot-" + sid
+        todo = shot_todo(shot)
+        res = {"id": sid, "todo": todo, "note": shot.get("note")}
+        results.append(res)
         if run.remaining() < 90:
             res["skipped"] = "run budget"
-            results.append(res)
+            run.add_frame(fid, status="missing", todo=todo, kind="shot", error="run budget")
             continue
         try:
             if shot.get("kind") == "ui":
+                if world_mode:
+                    run.luau("shot_camera_reset", "Client", timeout=15)
+                    world_mode = False
                 key = shot.get("open")
-                if key:
-                    path = UI_SHOT_BUTTONS.get(str(key).lower(), "Nav." + str(key))
-                    ok, info = click_target(run, ui_probe(run), path)
-                    res["click"] = path if ok else info
-                res["frame"] = capture_frame(run, hwnd, "shot-" + sid)
-                if key:
-                    run.session().key(run.studio_id, "Escape", run.cfg["input_overrides"])
-                    time.sleep(0.6)
+                opened = open_panel(run, key) if key else None
+                if opened:
+                    res["open"] = opened
+                    if not opened["method"]:
+                        res["missing"] = "could not open %s" % opened["panel"]
+                        run.add_frame(fid, status="missing", todo=todo, kind="shot", error=res["missing"])
+                        continue
+                    if opened["method"] == "visible_fallback":
+                        run.note("shot %s: no click opened %s; set Visible directly" % (sid, opened["panel"]))
+                res["frame"] = capture_frame(run, hwnd, fid, crop=True, todo=todo, kind="shot",
+                                             open_method=opened and opened["method"])
+                if opened and opened["method"] != "already open":
+                    res["closed_by"] = close_panel(run, opened["panel"])
             else:
                 if shot.get("pos"):
                     eye, at = shot["pos"], shot.get("look") or [0, 0, 0]
@@ -1041,21 +1184,25 @@ def step_shots(run):
                     ok, t = run.luau("shot_find", "Server", timeout=30, target=shot.get("target", ""))
                     if not ok or not t.get("found"):
                         res["missing"] = "target %r not found" % shot.get("target")
-                        results.append(res)
+                        run.add_frame(fid, status="missing", todo=todo, kind="shot", error=res["missing"])
                         continue
-                    res["target"] = t.get("path")
+                    res["target"] = {k: t.get(k) for k in ("path", "pos", "size")}
                     eye, at = shot_camera(t)
-                run.need_luau("shot_camera", "Client", timeout=20, eye=eye, at=at)
-                res["frame"] = capture_frame(run, hwnd, "shot-" + sid)
+                world_mode = True
+                res["camera"] = run.need_luau("shot_camera", "Client", timeout=25, eye=eye, at=at)
+                res["frame"] = capture_frame(run, hwnd, fid, crop=True, todo=todo, kind="shot",
+                                             target=(res.get("target") or {}).get("path"))
         except Exception as e:
             res["error"] = repr(e)[:200]
-        results.append(res)
+            if not res.get("frame"):
+                run.add_frame(fid, status="missing", todo=todo, kind="shot", error=res["error"])
     try:
         run.luau("shot_camera_reset", "Client", timeout=15)
     except Exception:
         pass
     done = len([r for r in results if (r.get("frame") or {}).get("file")])
-    return "pass" if done else "warn", {"captured": done, "total": len(shots), "shots": results}
+    return "pass" if done else "warn", {"captured": done, "total": len(shots), "shots": results,
+                                        "viewport_rect": run.extra.get("viewport_rect")}
 
 
 def step_close(run):
@@ -1188,17 +1335,21 @@ def _stage_report(run, src_dir, sha, report, rdir):
     shutil.rmtree(frames_dir, ignore_errors=True)
     os.makedirs(frames_dir, exist_ok=True)
     synced = []
-    for name in report.get("frames", []):
-        src = os.path.join(src_dir, name)
-        if not os.path.isfile(src):
-            continue
-        out = name
-        if name.endswith(".png") and imaging.have_pillow():
-            out = name[:-4] + ".jpg"
-            imaging.to_jpeg(src, os.path.join(frames_dir, out), run.cfg["jpeg_quality"])
-        else:
-            shutil.copy2(src, os.path.join(frames_dir, out))
-        synced.append(out)
+    for rec in report.get("frames", []):
+        rec = dict(rec) if isinstance(rec, dict) else {"id": rec, "file": rec, "status": "captured"}
+        name = rec.get("file")
+        src = os.path.join(src_dir, name) if name else None
+        if src and os.path.isfile(src):
+            out = name
+            if name.endswith(".png") and imaging.have_pillow():
+                out = name[:-4] + ".jpg"
+                imaging.to_jpeg(src, os.path.join(frames_dir, out), run.cfg["jpeg_quality"])
+            else:
+                shutil.copy2(src, os.path.join(frames_dir, out))
+            rec["file"] = out
+        elif name:
+            rec.update(file=None, status="missing", error="frame file not found at sync")
+        synced.append(rec)
     synced_report = dict(report, frames=synced, frames_dir="%s/" % sha)
     write_json(os.path.join(dest, "%s.json" % sha), synced_report)
     return synced_report

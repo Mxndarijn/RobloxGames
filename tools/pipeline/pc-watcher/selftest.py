@@ -47,6 +47,22 @@ def t_png():
     check("blank: noise is not blank", not imaging.is_blank(st), st)
 
 
+def t_crop():
+    w, h = 50, 40
+    px = bytearray(b"\x10\x20\x30" * w * h)
+    for y in range(5, 35):
+        for x in range(7, 47):
+            px[(y * w + x) * 3:(y * w + x) * 3 + 3] = b"\xff\x00\xff"
+    px[(6 * w + 8) * 3:(6 * w + 8) * 3 + 3] = b"\x00\x00\x00"  # a top-bar icon over the probe
+    rect = imaging.find_colour_rect(w, h, bytes(px))
+    check("probe rect", rect == (7, 5, 40, 30), rect)
+    soft = bytes(250 if b == 255 else b for b in px)
+    check("probe rect tolerance", imaging.find_colour_rect(w, h, soft, tol=10) == (7, 5, 40, 30))
+    check("probe absent", imaging.find_colour_rect(w, h, b"\x10\x20\x30" * w * h) is None)
+    cw, ch, crop = imaging.crop_rgb(w, h, bytes(px), 7, 5, 40, 30)
+    check("crop", (cw, ch, len(crop)) == (40, 30, 40 * 30 * 3) and crop[-3:] == b"\xff\x00\xff")
+
+
 def t_marked():
     payload = {"ok": True, "data": {"n": 3, "s": "a\"b"}}
     raw = json.dumps(payload)
@@ -124,6 +140,16 @@ def t_watcher():
           and watcher.luau_literal(7) == "7")
     eye, at = watcher.shot_camera({"pos": [0, 0, 0], "look": [0, 0, -1], "size": [10, 4, 10]})
     check("shot camera in front", at == (0, 0, 0) and eye[2] < 0 and eye[1] > 0, eye)
+    # 35 deg down from max(extent) * 1.8 + 15 = 33 studs.
+    eye, at = watcher.shot_camera({"pos": [10, 5, 0], "look": [1, 0, 0], "size": [10, 4, 2]})
+    dx, dy = eye[0] - at[0], eye[1] - at[1]
+    check("shot camera distance", abs((dx * dx + dy * dy) ** 0.5 - 33) < 1e-6 and abs(eye[2]) < 1e-9, eye)
+    check("shot camera pitch 35", abs(watcher.math.degrees(watcher.math.atan2(dy, dx)) - 35) < 1e-6, (dx, dy))
+    eye, _ = watcher.shot_camera({"pos": [0, 0, 0], "look": [0, -1, 0], "size": [4, 4, 4]})
+    check("shot camera straight-down look", eye[1] > 0 and eye[2] > 0, eye)
+    check("shot todo", watcher.shot_todo({"todo": "6/13"}) == "6/13"
+          and watcher.shot_todo({"note": "TODO 11: bench"}) == "11" and watcher.shot_todo({"note": "x"}) is None)
+    check("panel names", watcher.panel_for("dex") == "DexPanel" and watcher.panel_for("Leaders") == "LeaderboardPanel")
     check("title ok", watcher.frame_title_ok("abc - Roblox Studio", []) and not watcher.frame_title_ok("Notepad", ["zz"]))
 
 
@@ -160,7 +186,8 @@ def t_files():
             print(e)
         check("py_compile %s" % os.path.basename(f), ok)
     used = {
-        "client_stats": {"SECONDS"}, "vim_probe": {"X", "Y"}, "shot_find": {"TARGET"},
+        "client_stats": {"SECONDS"}, "shot_find": {"TARGET"}, "viewport_probe": {"SHOW"},
+        "panel_visible": {"PANEL", "SHOW"},
         "shot_camera": {"EYE", "AT"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
@@ -175,7 +202,7 @@ def t_files():
 
 
 def main():
-    for t in (t_png, t_marked, t_studios, t_actions, t_watcher, t_win32_pure, t_lock, t_files):
+    for t in (t_png, t_crop, t_marked, t_studios, t_actions, t_watcher, t_win32_pure, t_lock, t_files):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going
