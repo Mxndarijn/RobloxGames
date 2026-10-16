@@ -22,3 +22,12 @@ Based on live WorldLayout (map 640², PLOT_SIZE 56, plot ring 120, drop ring 34.
 - `slime_fountain` (one MeshPart): 6814 tris, 54.45 x 43.3 x 63.85 studs (W x H x D), silo axis at kit (-6.52, 7.75) from the bbox centre (the script prints `SILO_AXIS`). The goo crown, drips, slide goo and the splash pool at the slide exit are all in this mesh.
 - Slide (in `slime_fountain`, mirrored by `WorldLayout.SLIDE_PATH`): 1.75 turns, r 4.8 (in the basin) → helix 17.2 → 35.5 at the front (Roblox +Z), plan length 232.9, drop 35.7 (z 36.4 → 0.7), avg grade 9.7°, max 14.2°, trough 7 wide (mouth flares to 8.4). Longer than the 55–120 draft above: the helix needs it, and the game ride path copies these constants, so change both together. Audit: `sheets/fountain-audit/AUDIT.md` (2026-10-16).
 - `slime_fountain_emerge` (optional second MeshPart, `models/slime_fountain_emerge.py`): the 4 gumdrop slimes (3 welling out of the crown, 1 at the slide head), 640 tris, 19.4 x 12.8 x 11.4. Not baked into the fountain any more, so it can be hidden, bobbed or swapped. Place it at fountain bbox centre + EMERGE_OFFSET: kit (-11.20, 8.25, 18.94) = Roblox (X, Y, Z) (-11.20, 18.94, -8.25) for an unrotated fountain (rotate the offset with the fountain). Per-slime base points are printed as `EMERGE_BASE` lines. The Roblox Z sign (−kit y) is verified headless against the FBX node rotation and the WorldLayout placement (`sheets/fountain-audit/AUDIT.md`); one look in Studio after the upload is still worth it.
+
+## Habitat meshes (pad slot, HABITATS.md "Mesh slots", 2026-10-16)
+
+One MeshPart each, origin = bbox bottom centre (`finish()`), 1 BU = 1 stud. Seat = flat horizontal top at **2.4 studs above the mesh bottom**, centred on the footprint; nothing above the seat inside r 1.6 (grotto: crystals only on the rim, seat column clear to the top).
+
+| Mesh | Size (W x H x D studs) | Seat | Seat width | Tris |
+|---|---|---|---|---|
+| `habitat_crystal_grotto` | 7.8 x 5.0 x 7.8 | 2.4 (stone slab) | ~4.0 | 914 |
+| `habitat_candy_patch` | 7.8 x 4.5 x 7.8 | 2.4 (biscuit) | ~4.2 | 1860 |
