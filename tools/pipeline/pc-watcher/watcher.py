@@ -1484,10 +1484,19 @@ def step_shots(run):
                     res["growth"] = gw
                     if gw.get("found") and gw.get("pos"):
                         # aim the camera at the real slime model
-                        eye, at = shot_camera_from({"pos": gw["pos"], "size": [4, 4, 4], "look": (res["target"].get("front") or [0, 0, 1])},
-                                                   shot.get("from", "look"), None, shot.get("dist"), shot.get("height"))
-                        lp = gw.get("label_pos")  # the real GrowthLabel position: aim at it so slime and label both fit
-                        at = (at[0], lp[1] - 0.5, at[2]) if lp else (at[0], at[1] + 2.0, at[2])
+                        # frame bottom (slime base) to top (real GrowthLabel) from outside the grown slime:
+                        # aim at the vertical midpoint, back off along the pad front far enough for the whole span
+                        px, py, pz = gw["pos"]
+                        lp = gw.get("label_pos")
+                        top = lp[1] + 0.8 if lp else py + 7.0
+                        mid = (py + top) / 2.0
+                        span = max(top - py, 4.0)
+                        f = res["target"].get("front") or [0, 0, 1]
+                        fl = math.hypot(f[0], f[2]) or 1.0
+                        back = max(float(shot.get("dist") or 0), span * 1.9)  # ~60 deg vertical FOV, 1.9x span fits
+                        eye = (px + f[0] / fl * back, mid + 1.0, pz + f[2] / fl * back)
+                        at = (px, mid, pz)
+                        res["framing"] = {"span": round(span, 2), "back": round(back, 2)}
                         res["aim"] = run.need_luau("shot_aim", "Client", timeout=25, eye=eye, at=at)
                         time.sleep(1.0)  # BillboardGui replication to the Client
                     else:
