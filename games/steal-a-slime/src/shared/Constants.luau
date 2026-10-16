@@ -30,6 +30,8 @@ return table.freeze({
 	HOME_ZONE = "HomeZone",
 	-- Instance attributes (CONTRACT.md §5.2)
 	CARRYING_ATTRIBUTE = "Carrying", -- Player: carried slime id, nil when empty-handed
+	WEATHER_ATTRIBUTE = "Weather", -- workspace, set by the server (WeatherService): "Clear" | "Rain" | "Snow" | "Starfall"
+	WEATHER_DEBUG_ATTRIBUTE = "WeatherDebug", -- workspace, set on ONE client only (pc-watcher shots): forces that weather's visuals
 	RAIN_ATTRIBUTE = "SlimeRain", -- workspace: true during Slime Rain
 	RAIN_ACTIVE_ATTRIBUTE = "RainActive", -- workspace: same as SlimeRain
 	RAIN_ENDS_AT_ATTRIBUTE = "RainEndsAt", -- workspace: server time, while raining
