@@ -20,13 +20,9 @@
 	           jitter, spacing and inset all come from one Rng: every build
 	           is identical and there is no visible period.
 
-	Decor never collides; the walls are the only collision. The new border
-	meshes (KINDS[*].mesh) aren't uploaded and the map is at the MeshPart
-	budget (THEME.md <= 150, tests/SlimeRanch.spec), so their slots carry
-	BorderMesh = <name> instead of MeshAsset, with primitive stand-ins tagged
-	MeshStandIn = <name>. Renaming BorderMesh to MeshAsset is the whole switch
-	once the budget allows (MeshSwap then hides the stand-ins). Accents use
-	already uploaded ranch meshes as real MeshAsset slots.
+	Decor never collides; the walls are the only collision. Border KINDS and
+	accents both use MeshAsset slots once their meshId is set (MeshSwap skins
+	them). THEME.md MeshPart budget is <= 400 (raised for this set).
 ]]
 
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
@@ -153,8 +149,8 @@ WorldBorder.KINDS = table.freeze({
 	},
 } :: { Kind })
 
--- Uploaded ranch props mixed into the front row as real MeshAsset slots
--- (they count in the 150 budget): ACCENT_COUNT of them, each mesh once.
+-- Uploaded ranch props mixed into the front row as accents:
+-- ACCENT_COUNT of them, each mesh once.
 WorldBorder.ACCENTS = table.freeze({
 	"ranch_windmill",
 	"ranch_scarecrow",

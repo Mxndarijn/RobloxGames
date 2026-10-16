@@ -203,13 +203,17 @@ entries["ranch_windmill"] =
 	{ assetId = 122612940835932, meshId = "rbxassetid://120542952502577", size = { 8.382, 17.386, 9.65 } }
 entries["slime_fountain_emerge"] =
 	{ assetId = 100517882708695, meshId = "rbxassetid://74501501975558", size = { 19.436, 12.798, 11.353 } }
--- World border set (WorldBorder): tagged BorderMesh, not MeshAsset, until the
--- 150 MeshPart budget allows; sizes are the kit stats (out/<name>_roblox.stats.json).
-entries["ranch_hedge_segment"] = { size = { 12.748, 5.209, 4.118 } }
-entries["ranch_rail_fence"] = { size = { 11.974, 4.83, 1.652 } }
-entries["ranch_pine_cluster"] = { size = { 14.184, 16.426, 10.241 } }
-entries["ranch_border_hill"] = { size = { 29, 9.009, 17.296 } }
-entries["ranch_border_rocks"] = { size = { 12.733, 6.131, 7.809 } }
+-- World border set (WorldBorder): uploaded; slots use MeshAsset (budget raised to 400).
+entries["ranch_hedge_segment"] =
+	{ assetId = 119247422503736, meshId = "rbxassetid://71512319503971", size = { 12.748, 5.209, 4.118 } }
+entries["ranch_rail_fence"] =
+	{ assetId = 87100683813184, meshId = "rbxassetid://132406051212178", size = { 11.974, 4.83, 1.652 } }
+entries["ranch_pine_cluster"] =
+	{ assetId = 96068092218228, meshId = "rbxassetid://126099578006873", size = { 14.184, 16.426, 10.241 } }
+entries["ranch_border_hill"] =
+	{ assetId = 132262123100385, meshId = "rbxassetid://80631608777270", size = { 29, 9.009, 17.296 } }
+entries["ranch_border_rocks"] =
+	{ assetId = 106283479556559, meshId = "rbxassetid://138899187398329", size = { 12.733, 6.131, 7.809 } }
 -- Habitat mesh slots (Habitats.MESH_SLOTS, HABITATS.md): Archer #57 models.
 -- Sizes from Open Cloud size-check (seat 2.4 per FOUNTAIN_SIZES.md).
 entries["habitat_crystal_grotto"] =

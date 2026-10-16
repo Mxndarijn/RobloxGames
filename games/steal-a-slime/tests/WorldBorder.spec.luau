@@ -249,35 +249,31 @@ describe("WorldBorder decor", function()
 	end)
 	it("never collides and keeps each slot at the mesh's native proportions", function()
 		local border = child(child(WorldLayout.build()[1], "Border"), "Decor")
-		local accents, slots = 0, 0
+		local meshed = 0
 		walk(border, function(n)
 			if n.class ~= "Part" then
 				return
 			end
 			expect(n.canCollide).toBe(false)
 			local a = n.attributes or {}
-			local mesh = a.MeshAsset or a.BorderMesh
+			local mesh = a.MeshAsset
 			if mesh then
 				local native = (MeshAssets.get(mesh) :: any).size
 				local s = n.size[1] / native[1]
 				expect(n.size[2] / native[2]).toBeCloseTo(s)
 				expect(n.size[3] / native[3]).toBeCloseTo(s)
-				if a.MeshAsset then
-					accents += 1
-					expect(MeshAssets.meshId(mesh) ~= nil).toBe(true)
-				else
-					slots += 1
-					expect(n.transparency).toBe(1)
-				end
+				expect(MeshAssets.meshId(mesh) ~= nil).toBe(true)
+				meshed += 1
 			end
+			expect(a.BorderMesh == nil).toBe(true)
 		end)
-		expect(accents).toBe(WorldBorder.ACCENT_COUNT)
-		expect(slots > 80).toBe(true)
+		expect(meshed).toBe(#WorldBorder.pieces())
 	end)
-	it("tags new border meshes BorderMesh (not MeshAsset) so the 150 budget holds", function()
+	it("wires border KINDS into MeshAssets with uploaded meshIds", function()
 		for _, k in WorldBorder.KINDS do
 			local entry = MeshAssets.get(k.mesh)
 			expect(entry ~= nil and entry.size ~= nil).toBe(true)
+			expect(MeshAssets.meshId(k.mesh) ~= nil).toBe(true)
 			expect(table.find(MeshAssets.NAMES, k.mesh) ~= nil).toBe(true)
 		end
 	end)

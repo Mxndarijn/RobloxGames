@@ -272,6 +272,32 @@
     "uploadedAt": "2026-10-16T07:03:05Z",
     "versions": 1
   },
+  "ranch_border_hill": {
+    "assetId": "132262123100385",
+    "assetType": "Model",
+    "meshId": "rbxassetid://80631608777270",
+    "meshSize": [
+      29.0,
+      9.009,
+      17.296
+    ],
+    "sha256": "b0f3b2d035d1dd80",
+    "uploadedAt": "2026-10-16T07:49:52Z",
+    "versions": 1
+  },
+  "ranch_border_rocks": {
+    "assetId": "106283479556559",
+    "assetType": "Model",
+    "meshId": "rbxassetid://138899187398329",
+    "meshSize": [
+      12.733,
+      6.131,
+      7.809
+    ],
+    "sha256": "b8a193e7c77bca03",
+    "uploadedAt": "2026-10-16T07:50:05Z",
+    "versions": 1
+  },
   "ranch_campfire": {
     "assetId": "88092647657367",
     "assetType": "Model",
@@ -441,6 +467,19 @@
     "uploadedAt": "2026-10-15T21:32:39Z",
     "versions": 1
   },
+  "ranch_hedge_segment": {
+    "assetId": "119247422503736",
+    "assetType": "Model",
+    "meshId": "rbxassetid://71512319503971",
+    "meshSize": [
+      12.748,
+      5.209,
+      4.118
+    ],
+    "sha256": "80dde9ed42c0e7d9",
+    "uploadedAt": "2026-10-16T07:49:00Z",
+    "versions": 1
+  },
   "ranch_hitching_post": {
     "assetId": "72600230488672",
     "assetType": "Model",
@@ -545,6 +584,19 @@
     "uploadedAt": "2026-10-16T07:08:21Z",
     "versions": 1
   },
+  "ranch_pine_cluster": {
+    "assetId": "96068092218228",
+    "assetType": "Model",
+    "meshId": "rbxassetid://126099578006873",
+    "meshSize": [
+      14.184,
+      16.426,
+      10.241
+    ],
+    "sha256": "1ffa3c97f22d4db7",
+    "uploadedAt": "2026-10-16T07:49:32Z",
+    "versions": 1
+  },
   "ranch_plaza_signpost": {
     "assetId": "131934867179344",
     "assetType": "Model",
@@ -569,6 +621,19 @@
     ],
     "sha256": "92b3493c2533b677",
     "uploadedAt": "2026-10-16T07:08:37Z",
+    "versions": 1
+  },
+  "ranch_rail_fence": {
+    "assetId": "87100683813184",
+    "assetType": "Model",
+    "meshId": "rbxassetid://132406051212178",
+    "meshSize": [
+      11.974,
+      4.83,
+      1.652
+    ],
+    "sha256": "59556a9568162bcc",
+    "uploadedAt": "2026-10-16T07:49:17Z",
     "versions": 1
   },
   "ranch_rain_barrel": {
