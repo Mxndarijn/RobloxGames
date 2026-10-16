@@ -257,8 +257,9 @@ def t_files():
     check("shot ids are unique across files", len(file_ids) == len(set(file_ids)),
           sorted({i for i in file_ids if file_ids.count(i) > 1}))
     check("shot order matches filename order", file_ids == [s["id"] for s in shots])
-    check("shot filenames are <NN>-<id>.json in sequence",
-          all(os.path.basename(f).startswith("%02d-" % (i + 1)) for i, f in enumerate(files)))
+    # NN is an ordering hint only: parallel PRs often pick the same next number, which must not break install
+    check("shot filenames start with an <NN>- order prefix",
+          all(re.match(r"\d+-", os.path.basename(f)) for f in files))
     check("shots/*.json has the idle-HUD overlay guard",
           any(s.get("kind") == "ui" and not s.get("open") and s.get("expect_no_overlay") for s in shots))
     holds = [s for s in shots if s.get("hold")]
