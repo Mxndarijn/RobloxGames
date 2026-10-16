@@ -5161,5 +5161,17 @@
       ]
     }
   },
-  "frames_dir": "f407b3bdbd5242407b156ff130c991b843c3082d/"
+  "frames_dir": "f407b3bdbd5242407b156ff130c991b843c3082d/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "HOLD: the anim shots (shot-17-anim-idlesquish/hop/lookleft/lookright) prove nothing. slime_anim returned ok:false 'no rigged slime near the pad' (Plot_1.Pad_1) for all 4, and the frames show the empty habitat pad with no slime. #99/#101 rig and animations are unverified in the shots. Fix: spawn or fill a slime on Pad_1 before slime_anim.",
+    "Animations do play somewhere: phone_perf counted 3 (portrait) and 9 (landscape) animating of 16 wanted. That's a note, not a block. No visible jitter in those frames, but drift/jitter can't be judged from stills without a slime in the anim shots.",
+    "Habitats #94: habitat_set ok:true for all 9 and drives the morph (before -> now changes, and the pad mesh changes in the frames). Seat height NOT verified: no slime sits on a habitat in any shot.",
+    "#75 IMPORT_YAW=180 OK: bench faces the campfire (shot-11-bench-campfire-close), shops face the centre (shot-06-map-top), geometry step pass.",
+    "HUD: one side-menu button still shows an empty glyph box (top-left slot) in shot-01b-idle-hud and the phone frames. Cosmetic, but visibly broken.",
+    "Run OK: every step passed, including Esc via the PcwPress hook. focus_stolen [], no MCP input, close pass, no leftovers."
+  ]
 }
