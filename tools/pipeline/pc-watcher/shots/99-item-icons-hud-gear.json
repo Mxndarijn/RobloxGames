@@ -1,0 +1,7 @@
+{
+  "id": "item-icons-hud-gear",
+  "todo": "item-icons",
+  "kind": "ui",
+  "expect_no_overlay": true,
+  "note": "Item icons follow-up: idle HUD with no menu open; the top-bar Lock button carries the Lock gear icon (no lock emoji in its text) and the text still fits"
+}

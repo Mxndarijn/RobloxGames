@@ -35,7 +35,7 @@ function Rebirth.rebirth(world: World, session: Session): (boolean, string?)
 	Carry.cancelMissing(world)
 	World.markDirty(session)
 	local mult = Economy.rebirthMultiplier(session.data.rebirths)
-	World.notify(world, session.userId, `Rebirth {session.data.rebirths}! Income x{mult}`, "good", "Rebirth")
+	World.notify(world, session.userId, `Rebirth {session.data.rebirths}! Income x{mult}`, "good", "Rebirth", "Rebirth")
 	if Perks.tierIndex(session.data.rebirths) > rank then
 		local tier = Perks.tier(session.data.rebirths)
 		World.notify(world, session.userId, `New rank: {tier.title}! {Perks.tierText(tier)}`, "good", "Rebirth")

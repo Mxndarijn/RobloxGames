@@ -5,11 +5,17 @@ local Collection = require("../src/shared/Collection")
 local Fixtures = require("./Fixtures")
 local Goals = require("../src/shared/Goals")
 local Sessions = require("../src/server/Sessions")
+local Spawner = require("../src/server/Spawner")
 local World = require("../src/server/World")
 
 local ServerFixtures = {}
 
 ServerFixtures.T0 = 1_700_000_000
+
+-- Seeded drops must not depend on the date: no weekly event schedule unless a spec sets Spawner.unixTime.
+Spawner.unixTime = function()
+	return nil
+end
 
 function ServerFixtures.world(now: number?): World.World
 	return World.new({ now = now or ServerFixtures.T0, seed = 7 })

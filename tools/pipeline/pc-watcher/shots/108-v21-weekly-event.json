@@ -1,0 +1,7 @@
+{
+  "id": "v21-weekly-event",
+  "todo": "v21-weekly",
+  "kind": "ui",
+  "weekly_event": true,
+  "note": "v21 weekly event rotation (FEATURES.WeeklyEvents): luau/weekly_event reads the replicated workspace attribute WeeklyEvent (current weekly mutation, active Saturday trait, next event) and fails the shot if it is missing or malformed; the frame is the idle HUD (the events board that draws it comes in the next PR)"
+}

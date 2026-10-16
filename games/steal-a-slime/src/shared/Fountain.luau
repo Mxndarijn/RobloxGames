@@ -55,13 +55,16 @@ end
 
 -- `minTier` (optional, pity) keeps the rarity at or above that tier.
 -- `luckMult` / `mutationMult` (optional, CycleModifier) scale the rarity luck and mutation chance.
+-- `weeklyMutation` / `weeklyBonus` (optional, WeeklyEvents) raise one mutation's chance.
 function Fountain.roll(
 	rng: Rng.Rng,
 	id: string,
 	raining: boolean,
 	minTier: number?,
 	luckMult: number?,
-	mutationMult: number?
+	mutationMult: number?,
+	weeklyMutation: string?,
+	weeklyBonus: number?
 ): Drop
 	local baseChance = if raining then Config.RAIN_MUTATION_CHANCE else Config.DROP_MUTATION_CHANCE
 	local slime = Genome.generate(rng, {
@@ -69,6 +72,8 @@ function Fountain.roll(
 		minTier = minTier,
 		mutationChance = math.min(1, baseChance * (mutationMult or 1)),
 		luck = (if raining then Config.RAIN_LUCK else 1) * (luckMult or 1),
+		weeklyMutation = weeklyMutation,
+		weeklyBonus = weeklyBonus,
 	})
 	return {
 		slime = slime,

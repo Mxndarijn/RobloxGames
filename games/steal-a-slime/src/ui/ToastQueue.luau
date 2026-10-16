@@ -29,9 +29,10 @@ export type Entry = {
 	count: number,
 	born: number,
 	shownAt: number?,
+	itemId: string?, -- the first non-nil itemId pushed into this entry
 }
 export type Queue = {
-	push: (text: string, kind: string?, now: number) -> (Entry, boolean),
+	push: (text: string, kind: string?, now: number, itemId: string?) -> (Entry, boolean),
 	step: (now: number, menuOpen: boolean?) -> { Entry },
 	size: () -> number,
 }
@@ -104,7 +105,7 @@ function ToastQueue.new(max: number?): Queue
 	end
 
 	-- Returns the entry and whether it merged into an older one.
-	function self.push(text: string, kind: string?, now: number): (Entry, boolean)
+	function self.push(text: string, kind: string?, now: number, itemId: string?): (Entry, boolean)
 		text = tostring(text)
 		local k = kind or "info"
 		local template, amount = ToastQueue.split(text)
@@ -115,6 +116,7 @@ function ToastQueue.new(max: number?): Queue
 				entry.text = render(entry)
 				entry.shownAt = if entry.shownAt then now else nil
 				entry.born = now
+				entry.itemId = entry.itemId or itemId
 				return entry, true
 			end
 		end
@@ -130,6 +132,7 @@ function ToastQueue.new(max: number?): Queue
 			count = 1,
 			born = now,
 			shownAt = nil,
+			itemId = itemId,
 		}
 		table.insert(entries, entry)
 		while #entries > ToastQueue.PENDING_MAX do

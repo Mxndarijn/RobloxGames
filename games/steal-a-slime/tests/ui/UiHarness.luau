@@ -284,6 +284,15 @@ services.RunService = {
 		return false
 	end,
 }
+-- Toasts: no sound playback, tweens are inert.
+services.SoundService = {
+	PlayLocalSound = function() end,
+}
+services.TweenService = {
+	Create = function()
+		return { Play = function() end }
+	end,
+}
 -- ReplicatedStorage:WaitForChild("Shared") -> src/shared.
 services.ReplicatedStorage = setmetatable({}, {
 	__index = function(_, key: string): any

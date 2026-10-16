@@ -813,10 +813,10 @@ stateEvent.OnClientEvent:Connect(function(state: Types.State)
 	end
 end)
 
-notifyEvent.OnClientEvent:Connect(function(text: string, kind: Types.NotifyKind, sound: string?)
+notifyEvent.OnClientEvent:Connect(function(text: string, kind: Types.NotifyKind, sound: string?, itemId: string?)
 	local message = tostring(text)
 	-- Boss Slime / Legendary+ news gets the long gold "rare" toast and the HUD banner.
-	toasts.push(message, if RareAnnounce.classify(message, sound) then "rare" else kind, sound)
+	toasts.push(message, if RareAnnounce.classify(message, sound) then "rare" else kind, sound, itemId)
 	hud.onNotify(message, sound)
 end)
 

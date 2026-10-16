@@ -57,6 +57,7 @@ local Sessions = require(script.Sessions)
 local Snapshot = require(script.Snapshot)
 local Spawner = require(script.Spawner)
 local WeatherService = require(script.WeatherService)
+local WeeklyEventService = require(script.WeeklyEventService)
 local World = require(script.World)
 local WorldProps = require(script.WorldProps)
 local WorldView = require(script.WorldView)
@@ -320,10 +321,10 @@ local function flushEvents()
 			if event.userId then
 				local player = Players:GetPlayerByUserId(event.userId)
 				if player then
-					notifyEvent:FireClient(player, event.text, event.kind or "info", event.sound)
+					notifyEvent:FireClient(player, event.text, event.kind or "info", event.sound, event.itemId)
 				end
 			else
-				notifyEvent:FireAllClients(event.text, event.kind or "info", event.sound)
+				notifyEvent:FireAllClients(event.text, event.kind or "info", event.sound, event.itemId)
 			end
 		end
 	end
@@ -787,6 +788,8 @@ end
 if Config.FEATURES.Weather then
 	WeatherService.start(workspace, now)
 end
+
+WeeklyEventService.start(workspace, os.time)
 
 RunService.Heartbeat:Connect(function()
 	local t = now()

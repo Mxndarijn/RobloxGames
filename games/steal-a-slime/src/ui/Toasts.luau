@@ -83,8 +83,9 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 		end)
 	end
 
+	-- `entry.itemId`: the server's ItemIcons id for this toast; unknown / absent ids fall back to the text heuristic.
 	local function build(entry: any): Frame
-		local text, kind = entry.text, entry.kind
+		local text, kind, itemId = entry.text, entry.kind, entry.itemId
 		local color = COLORS[kind] or Theme.Info
 		local frame = create("Frame", {
 			Name = `Toast{entry.id}`,
@@ -98,12 +99,15 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 		local isBadge = kind == "badge"
 		local iconWidth = 0
 		-- Item icon: a badge toast shows its badge's medal, other toasts the item their text is about.
-		local itemId = if isBadge then Toasts.badgeId(registry, text) else ItemIcons.forToast(text, config)
-		if itemId then
+		local icon = if isBadge
+			then Toasts.badgeId(registry, text)
+			elseif type(itemId) == "string" and registry.byId[itemId] then itemId
+			else ItemIcons.forToast(text, config)
+		if icon then
 			iconWidth = Toasts.ICON + 8
 			ItemIconView.new({
 				Name = if isBadge then "BadgeIcon" else "ItemIcon",
-				Id = itemId,
+				Id = icon,
 				Size = Toasts.ICON,
 				Parent = frame,
 			}, registry).setActive(true)
@@ -121,7 +125,7 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 			AutomaticSize = Enum.AutomaticSize.Y,
 			Parent = frame,
 		})
-		if itemId then
+		if icon then
 			label.TextXAlignment = Enum.TextXAlignment.Left
 			create("UISizeConstraint", { MinSize = Vector2.new(0, Toasts.ICON), Parent = label })
 		end
@@ -159,8 +163,8 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 		holder.Visible = not menuOpen
 	end
 
-	function self.push(text: string, kind: string?, sound: string?)
-		local _, merged = queue.push(text, kind, os.clock())
+	function self.push(text: string, kind: string?, sound: string?, itemId: string?)
+		local _, merged = queue.push(text, kind, os.clock(), itemId)
 		if not merged then
 			playSound(sound)
 		end
