@@ -1348,6 +1348,8 @@ def step_shots(run):
                         res["error"] = "overlay visible with no menu open: %s" % ", ".join(over)
                 if shot.get("rebirth_slime"):  # v29: force the required-slime state (owned / missing) in Studio
                     res["rebirth_slime"] = run.need_luau("rebirth_slime", "Client", timeout=15, state=shot["rebirth_slime"])
+                if shot.get("friend_bonus"):  # v29 #4: fake N friends in the server (badge + income line)
+                    res["friend_bonus"] = run.need_luau("friend_bonus", "Client", timeout=15, count=int(shot["friend_bonus"]))
                 opened = open_panel(run, key) if key else None
                 if opened:
                     res["open"] = opened
@@ -1381,6 +1383,8 @@ def step_shots(run):
                     res["closed_by"] = close_panel(run, opened["panel"])
                 if shot.get("rebirth_slime"):
                     run.luau("rebirth_slime", "Client", timeout=15, state="")
+                if shot.get("friend_bonus"):
+                    run.luau("friend_bonus", "Client", timeout=15, count=0)
             else:
                 if shot.get("pos"):
                     eye, at = shot["pos"], shot.get("look") or [0, 0, 0]

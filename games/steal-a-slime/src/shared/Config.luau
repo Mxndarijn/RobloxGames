@@ -439,6 +439,7 @@ local Config = {
 		SlideCollision = true, -- invisible colliders along the FULL fountain slide, top to mouth (B6: players fell through above LOW_SLIDE_Y); false = low stretch only
 		Appraise = true, -- pay APPRAISE_COST_FRACTION of a slime's value to reroll its mutation or size (Appraise)
 		MysteryEgg = true, -- a cash-only Mystery Egg in the Shop hatches a random slime (MysteryEgg); false = no egg, BuyEgg refused
+		FriendBonus = true, -- +FRIEND_BONUS_PER_FRIEND income per friend in the same server, up to FRIEND_BONUS_CAP (FriendBonus); false = no bonus
 		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
 		Weather = false, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md. Off until frame-reviewed
 		SlimeLod = false, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
@@ -551,6 +552,12 @@ local Config = {
 	}),
 	CODE_MAX_LENGTH = 24,
 	CODE_BOOST_MAX_MULT = 10,
+
+	-- Friend income bonus (FEATURES.FriendBonus, CONTRACT.md §11)
+	FRIEND_BONUS_PER_FRIEND = 0.1, -- +10% income per friend in the same server
+	FRIEND_BONUS_CAP = 0.3, -- at most +30%
+	FRIEND_CACHE_SECONDS = 600, -- a Player:IsFriendsWith answer is reused this long
+	FRIEND_RETRY_SECONDS = 30, -- after a failed check, don't ask again for this long
 
 	-- Persistence
 	SAVE_VERSION = 4, -- CONTRACT.md §8.9 (v4: slime.mutations list, SaveData.migrateV3)

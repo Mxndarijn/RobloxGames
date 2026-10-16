@@ -42,6 +42,7 @@ export type Data = {
 	-- Redeem codes (Codes, CONTRACT.md §10)
 	redeemed: { [string]: boolean }, -- normalized codes already used
 	boostMult: number, -- active income boost (1 = none)
+	friendBonus: number?, -- runtime only (never saved): friends in this server, FriendBonus.bonus; nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
 }
 

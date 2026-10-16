@@ -27,6 +27,21 @@
     "note": "v29 #3: Codes menu, small card with text box + Redeem button + gift badge, opened from Nav.Codes"
   },
   {
+    "id": "02c-friend-bonus-hud",
+    "todo": "v29-4",
+    "kind": "ui",
+    "friend_bonus": 2,
+    "note": "v29 #4: friend income bonus, 2 friends in the server: HUD badge '👥 +20% friends' under the top bar, no menu open"
+  },
+  {
+    "id": "02d-friend-bonus-dex",
+    "todo": "v29-4",
+    "kind": "ui",
+    "open": "dex",
+    "friend_bonus": 3,
+    "note": "v29 #4: income breakdown in the SlimeDex card shows 'Friends +30% income' (3 friends = the +30% cap)"
+  },
+  {
     "id": "03-shop-menu",
     "todo": "3",
     "kind": "ui",

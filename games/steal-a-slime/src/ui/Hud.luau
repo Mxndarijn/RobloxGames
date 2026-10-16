@@ -18,6 +18,7 @@ local CollectionService = game:GetService("CollectionService")
 
 local EggReveal = require(script.Parent.EggReveal)
 local Format = require(script.Parent.Format)
+local FriendBadge = require(script.Parent.FriendBadge)
 local Layout = require(script.Parent.Layout)
 local LockHud = require(script.Parent.LockHud)
 local ModifierBadge = require(script.Parent.ModifierBadge)
@@ -212,6 +213,8 @@ function Hud.new(parent: Instance, ctx: any)
 	local rain = banner(banners, "RainBanner", Color3.fromRGB(90, 70, 200), 3)
 	local modifier = banner(banners, "ModifierBadge", Color3.fromRGB(30, 120, 110), 5)
 	modifier.TextSize = 15
+	local friends = banner(banners, "FriendBadge", Color3.fromRGB(40, 130, 80), 7)
+	friends.TextSize = 15
 	local egg = banner(banners, "EggReveal", Color3.fromRGB(190, 120, 30), 6)
 	egg.TextSize = 17
 	local hint = banner(banners, "PadHint", Color3.fromRGB(150, 100, 20), 4)
@@ -465,6 +468,12 @@ function Hud.new(parent: Instance, ctx: any)
 		modifier.Visible = modifierText ~= nil and not menuOpen
 		if modifierText then
 			modifier.Text = modifierText
+		end
+
+		local friendText = FriendBadge.banner(current.friends, ctx.Config.FEATURES.FriendBonus == true)
+		friends.Visible = friendText ~= nil and not menuOpen
+		if friendText then
+			friends.Text = friendText
 		end
 	end
 
