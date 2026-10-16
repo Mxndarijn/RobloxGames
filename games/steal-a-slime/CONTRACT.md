@@ -138,7 +138,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 |---|---|---|---|
 | `Request` | RemoteFunction | client → server | `InvokeServer(action: Action, ...args)` → `RequestResult = { ok: boolean, message: string? }` |
 | `State` | RemoteEvent | server → client | `FireClient(player, state: Types.State)` (§5) |
-| `Notify` | RemoteEvent | server → client | `FireClient(player, text: string, kind: "info" \| "good" \| "bad", sound: string?)`. Global toasts (Slime Rain) use `FireAllClients`. |
+| `Notify` | RemoteEvent | server → client | `FireClient(player, text: string, kind: "info" \| "good" \| "bad", sound: string?, itemId: string?)`. `itemId` (optional) is the UI ItemIcons registry id the toast is about (`"SpeedCoil"`, `"Upgrade_Luck"`, `"PlotSkin_candy"`); absent/unknown ids fall back to the client text heuristic. Global toasts (Slime Rain) use `FireAllClients`. |
 | `Leaderboard` | RemoteEvent | server → client | `FireClient/FireAllClients(board: { stat: "TotalEarned", entries: { { rank: number, userId: number, name: string, value: number } } })` |
 
 `Request` actions (from `Remotes.ACTIONS`; rate limits in `Validate.ACTIONS`):

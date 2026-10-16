@@ -322,6 +322,109 @@ describe("item icons on the surfaces", function()
 	end)
 end)
 
+describe("item icons: server ids, Dex skins, gear", function()
+	local function ctx(): any
+		return {
+			Config = Config,
+			actions = Remotes.ACTIONS,
+			send = function() end,
+			serverNow = function()
+				return 0
+			end,
+		}
+	end
+
+	it("a toast with a server item id uses it; unknown or missing ids fall back to the text heuristic", function()
+		local root = UiHarness.root()
+		local toasts = UiHarness.ui("Toasts").new(root, registry, Config)
+		toasts.push("Anything at all", "good", nil, "Upgrade_Luck")
+		toasts.push("Speed Coil bought! You run faster now.", "good", nil, "not-an-item")
+		toasts.push("Speed Coil bought! You run faster now.", "good")
+		toasts.push("You walked", "info", nil, "Slap")
+		local seen = {}
+		for _, inst in UiHarness.descendants(root) do
+			if inst.Name == "ItemIcon" then
+				table.insert(seen, inst:GetAttribute("ItemId"))
+			end
+		end
+		expect(table.concat(seen, ",")).toBe("Upgrade_Luck,SpeedCoil,SpeedCoil,Slap")
+	end)
+
+	it("every Dex plot-skin card draws its PlotSkin_ item icon", function()
+		local dex = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
+		dex.setOpen(true)
+		dex.update({
+			dex = {},
+			dexTotal = 10,
+			plotSkins = {
+				{ id = "classic", name = "Classic", unlocked = true, equipped = true, owned = 0, needed = 0 },
+				{ id = "candy", name = "Candy", unlocked = false, equipped = false, owned = 1, needed = 5 },
+			},
+		})
+		local seen = {}
+		for _, inst in UiHarness.descendants(dex.frame) do
+			if inst.Name == "SkinIcon" then
+				seen[inst:GetAttribute("ItemId")] = true
+			end
+		end
+		expect(seen.PlotSkin_classic and seen.PlotSkin_candy).toBe(true)
+	end)
+
+	it("the HUD draws the Mystery Egg banner icon and the Lock button icon", function()
+		local hud = fs.readFile("src/ui/Hud.luau")
+		expect(string.find(hud, 'Name = "EggIcon",\n\t\tId = "MysteryEgg"', 1, true) ~= nil).toBe(true)
+		expect(string.find(hud, 'Name = "LockIcon",\n\t\tId = "Lock"', 1, true) ~= nil).toBe(true)
+	end)
+
+	it("the Carry panel's Slap button carries the Slap icon", function()
+		local root = UiHarness.root()
+		local carry = UiHarness.ui("Panels/Carry").new(root, ctx())
+		local icon = UiHarness.find(root, "SlapIcon")
+		expect(icon ~= nil and icon:GetAttribute("ItemId") or "missing").toBe("Slap")
+		expect(carry ~= nil).toBe(true)
+	end)
+
+	it("source scan: every item surface renders its icons with ItemIconView (no emoji-only item badges)", function()
+		local surfaces = {
+			["src/ui/Panels/Shop.luau"] = true,
+			["src/ui/Panels/Codes.luau"] = true,
+			["src/ui/Panels/Goals.luau"] = true,
+			["src/ui/Panels/DailyPopup.luau"] = true,
+			["src/ui/Panels/Plot.luau"] = true,
+			["src/ui/Panels/Dex.luau"] = true,
+			["src/ui/Panels/Carry.luau"] = true,
+			["src/ui/Hud.luau"] = true,
+			["src/ui/Toasts.luau"] = true,
+		}
+		for path in surfaces do
+			local src = fs.readFile(path)
+			expect(`{path}: {if string.find(src, "ItemIconView.new", 1, true) then "ItemIconView" else "none"}`).toBe(
+				`{path}: ItemIconView`
+			)
+		end
+		-- Item cards must not fall back to a bare emoji glyph for plot skins any more.
+		local dex = fs.readFile("src/ui/Panels/Dex.luau")
+		expect(string.find(dex, '"🏡"', 1, true)).toBe(nil)
+	end)
+
+	it("every server Notify that names an item passes its id, and each id resolves in the registry", function()
+		local ids = {}
+		for _, file in { "Actions", "MysteryEgg", "Rebirth", "StealService" } do
+			local src = fs.readFile(`src/server/{file}.luau`)
+			for id in string.gmatch(src, '"(%a+)"%s*%)') do
+				if registry.byId[id] then
+					ids[id] = true
+				end
+			end
+		end
+		for _, id in
+			{ "Daily", "Gift", "LockUpgrade", "SpeedCoil", "Appraise", "MysteryEgg", "Rebirth", "Lock", "Slap" }
+		do
+			expect(`{id}: {ids[id] == true}`).toBe(`{id}: true`)
+		end
+	end)
+end)
+
 describe("ITEM-ICONS-NEEDED.md", function()
 	it("lists every item without a 3D model or image, and nothing that has one", function()
 		local doc = fs.readFile("ITEM-ICONS-NEEDED.md")
