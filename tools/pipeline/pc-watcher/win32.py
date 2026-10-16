@@ -481,3 +481,34 @@ def capture_client(hwnd):
     stats = imaging.frame_stats(w, h, rgb)
     return {"w": w, "h": h, "rgb": rgb, "method": "printwindow", "stats": stats, "blank": imaging.is_blank(stats),
             "tried": ["printwindow: var=%.0f distinct=%d" % (stats["variance"], stats["distinct"])]}
+
+
+def disable_power_throttling(pid):
+    """Opt a process out of Windows background power throttling (EcoQoS / timer coalescing), which
+    otherwise drops a background, off-screen Studio to ~15 fps and blank PrintWindow frames after a
+    few minutes. SetProcessInformation(ProcessPowerThrottling): no window, focus or input involved."""
+    try:
+        import ctypes
+        from ctypes import wintypes as wt
+
+        class PPT(ctypes.Structure):
+            _fields_ = [("Version", wt.ULONG), ("ControlMask", wt.ULONG), ("StateMask", wt.ULONG)]
+
+        k = ctypes.windll.kernel32
+        h = k.OpenProcess(0x0200, False, int(pid))  # PROCESS_SET_INFORMATION
+        if not h:
+            return False
+        s = PPT(1, 0x1 | 0x4, 0)  # EXECUTION_SPEED | IGNORE_TIMER_RESOLUTION, state off
+        ok = bool(k.SetProcessInformation(h, 4, ctypes.byref(s), ctypes.sizeof(s)))  # ProcessPowerThrottling
+        k.CloseHandle(h)
+        return ok
+    except Exception:
+        return False
+
+
+def nudge_repaint(hwnd):
+    """Forces a re-render of an off-screen window: grow the client by 1 px and back (no activation)."""
+    cw, ch = client_size(hwnd)
+    if cw and ch:
+        set_client_size(hwnd, cw + 1, ch)
+        set_client_size(hwnd, cw, ch)

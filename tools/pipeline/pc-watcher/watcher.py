@@ -716,6 +716,8 @@ def park_window(run, pids):
         win = win32.studio_main_window(pids)
         if not win:
             return None
+        for p in pids:
+            win32.disable_power_throttling(p)
         if win["iconic"] or not win32.is_offscreen(win["hwnd"]):
             rect = win32.place_offscreen(win["hwnd"])
             log.info("parked Studio window %s (%r) off-screen at %s", win["hwnd"], win["title"], rect)
@@ -1084,6 +1086,12 @@ def capture_frame(run, hwnd, device, crop=False, **rec):
     time.sleep(0.6)
     title = win32.title_of(hwnd)
     cap = win32.capture_client(hwnd)  # PrintWindow(PW_RENDERFULLCONTENT): off-screen, unfocused
+    for _ in range(3):  # throttled/stale off-screen window: nudge a repaint (no activation) and retry
+        if cap["rgb"] is not None and not cap["blank"]:
+            break
+        win32.nudge_repaint(hwnd)
+        time.sleep(1.0)
+        cap = win32.capture_client(hwnd)
     info = {"method": cap["method"], "title": title, "stats": cap["stats"], "tried": cap["tried"],
             "size": [cap["w"], cap["h"]]}
     if rect and cap["rgb"] is not None:
