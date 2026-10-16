@@ -1,0 +1,18 @@
+{
+  "id": "21-border-eye-pc",
+  "todo": "border-v3",
+  "kind": "world",
+  "pos": [
+    -22,
+    5,
+    -249
+  ],
+  "look": [
+    -78,
+    7,
+    -290
+  ],
+  "wait": 0.5,
+  "note": "border v3: player eye (5 studs) looking out at the border: fence/hedge line, groves behind, hills closing the horizon in [desktop]",
+  "device": "desktop"
+}

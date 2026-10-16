@@ -251,7 +251,7 @@ def t_files():
         check("luau %s returns" % name, re.search(r"^return ", src, re.M) is not None)
     shots, shot_notes = watcher.load_shots()
     check("shots/*.json load as a list with ids", bool(shots) and not shot_notes and all("id" in s for s in shots), shot_notes)
-    files = sorted(glob.glob(os.path.join(HERE, "shots", "*.json")))
+    files = sorted(glob.glob(os.path.join(HERE, "shots", "*.json")), key=lambda p: (int(re.match(r"\d+", os.path.basename(p)).group()) if re.match(r"\d+", os.path.basename(p)) else 10**9, os.path.basename(p)))
     per_file = [json.load(open(f, encoding="utf-8")) for f in files]
     file_ids = [s["id"] for d in per_file for s in (d if isinstance(d, list) else [d])]
     check("shot ids are unique across files", len(file_ids) == len(set(file_ids)),
