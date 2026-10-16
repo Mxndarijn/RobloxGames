@@ -328,15 +328,18 @@ local function volcano(): WorldNode
 	table.insert(children, crater)
 	-- The fountain's collision, shaped like the mesh (FOUNTAIN_PROFILE): a
 	-- walkable plinth (ground to its 1.5-stud top) and the silo wall from the
-	-- plinth top to the eave. Both invisible and anchored. The mesh is
-	-- visual-only, so once it loads MeshSwap drops the stand-ins' collision
-	-- (MeshStandInsCollide) and these two are all a player bumps into.
+	-- plinth top to the eave. Both invisible and anchored, tagged
+	-- MeshCollider = M and off until the mesh loads: MeshSwap flips them on
+	-- and the stand-ins off in one step (MeshStandInsCollide). While loading
+	-- or failed the visible stand-ins are the only collision.
 	local fp = WorldLayout.FOUNTAIN_PROFILE
 	local wallHeight = fp.eaveTop - fp.plinthTop
 	local plinth = disc("BasinCollider", fp.plinthTop, fp.plinthRadius * 2, { 0, fp.plinthTop / 2, 0 }, STONE_TRIM)
 	local wall = disc("SiloCollider", wallHeight, fp.wallRadius * 2, { 0, fp.plinthTop + wallHeight / 2, 0 }, STONE)
 	for _, c in { plinth, wall } do
+		c.attributes = { MeshCollider = M }
 		c.transparency = 1
+		c.canCollide = false
 		c.canQuery = false
 		c.canTouch = false
 		table.insert(children, c)

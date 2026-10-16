@@ -9,9 +9,11 @@
 	and hides the placeholder (which keeps collision, prompts and contract
 	names). Parts tagged MeshStandIn = that mesh anywhere under the same Map
 	or Plots root hide too (the spiral stand-in lives under Map.Chute, not
-	beside the fountain slot). A slot with MeshStandInsCollide = false also
-	turns its stand-ins' CanCollide off (the fountain: its Basin/Silo
-	colliders stay the only collision). Idempotent (a placeholder with a "Mesh" child
+	beside the fountain slot). A slot with MeshStandInsCollide = false hands
+	collision over in one step (setMeshCollision): its stand-ins' CanCollide
+	goes off and parts tagged MeshCollider = that mesh go on (the fountain's
+	Basin/Silo colliders, off in the map until then). Loading or failed, the
+	colliders stay off and the stand-ins keep collision. Idempotent (a placeholder with a "Mesh" child
 	is skipped). Any failure leaves the primitive placeholder. Holds no
 	gameplay rules.
 ]]
@@ -55,12 +57,32 @@ local function hide(part: BasePart)
 	end
 end
 
-local function hideStandIns(scope: Instance, name: string, collide: boolean)
+local function hideStandIns(scope: Instance, name: string)
 	for _, d in scope:GetDescendants() do
 		if d:IsA("BasePart") and d:GetAttribute("MeshStandIn") == name then
 			hide(d)
-			if not collide then
-				d.CanCollide = false
+		end
+	end
+end
+
+-- The one collision switch for a mesh: loaded = its MeshCollider parts
+-- collide and its stand-ins don't; not loaded = colliders off and the
+-- stand-ins back to their own CanCollide (decor like Pool stays off).
+function MeshSwap.setMeshCollision(scope: Instance, name: string, loaded: boolean)
+	for _, d in scope:GetDescendants() do
+		if d:IsA("BasePart") then
+			if d:GetAttribute("MeshCollider") == name then
+				d.CanCollide = loaded
+			elseif d:GetAttribute("MeshStandIn") == name then
+				local own = d:GetAttribute("StandInCanCollide")
+				if loaded then
+					if own == nil then
+						d:SetAttribute("StandInCanCollide", d.CanCollide)
+					end
+					d.CanCollide = false
+				elseif own ~= nil then
+					d.CanCollide = own == true
+				end
 			end
 		end
 	end
@@ -100,8 +122,11 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	else
 		hide(target)
 	end
-	hideStandIns(scope, name, target:GetAttribute("MeshStandInsCollide") ~= false)
+	hideStandIns(scope, name)
 	mesh.Parent = target
+	if target:GetAttribute("MeshStandInsCollide") == false then
+		MeshSwap.setMeshCollision(scope, name, true)
+	end
 	return true
 end
 
