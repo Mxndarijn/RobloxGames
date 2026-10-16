@@ -1,6 +1,7 @@
 --!strict
--- World border (WorldBorder): seeded edge decor is deterministic and varied,
--- and the invisible collider ring closes the whole perimeter.
+-- World border (WorldBorder): seeded chunk decor is deterministic and varied,
+-- the invisible collider ring closes the whole perimeter, and the border
+-- stays inside its MeshPart slot share (<= 120 of the THEME.md 400).
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -147,13 +148,37 @@ describe("WorldBorder collider ring", function()
 	end)
 end)
 
+local function chunks(list: { WorldBorder.Piece }): { WorldBorder.Piece }
+	local out = {}
+	for _, p in list do
+		if p.kind ~= "Accent" then
+			table.insert(out, p)
+		end
+	end
+	return out
+end
+
+local function design(p: WorldBorder.Piece): string
+	return (string.gsub(p.mesh, "_m$", ""))
+end
+
+local frontChunks = chunks(frontRow)
+
+local function overhang(p: WorldBorder.Piece): number
+	local worst = -math.huge
+	for _, c in WorldBorder.corners(p) do
+		worst = math.max(worst, math.abs(c[1]), math.abs(c[3]))
+	end
+	return worst - WorldBorder.GROUND_HALF
+end
+
 describe("WorldBorder decor", function()
 	it("rings the whole edge with no see-through gaps in the front row", function()
 		local sorted = table.clone(frontRow)
 		table.sort(sorted, function(a, b)
 			return a.angle < b.angle
 		end)
-		local worst = 0
+		local worst = -math.huge
 		for i, p in sorted do
 			local q = sorted[i % #sorted + 1]
 			local d = (q.angle - p.angle) % 360
@@ -162,28 +187,63 @@ describe("WorldBorder decor", function()
 			worst = math.max(worst, gap)
 		end
 		expect(worst < 3).toBe(true)
-		expect(#frontRow > 60).toBe(true)
 	end)
-	it("mixes every kind, with no long runs of one kind", function()
+	it("builds the edge from 30-40 chunk placements of the chunk meshes", function()
+		local all = chunks(pieces)
+		expect(#all >= 30 and #all <= 40).toBe(true)
+		local meshes: { [string]: boolean } = {}
+		for _, p in all do
+			meshes[p.mesh] = true
+		end
+		local n = 0
+		for _ in meshes do
+			n += 1
+		end
+		-- reuse: far fewer meshes than placements
+		expect(n <= #WorldBorder.CHUNKS * 2).toBe(true)
+		expect(n * 2 <= #all).toBe(true)
+	end)
+	it("uses at most 120 MeshPart slots for the whole border", function()
+		local slots = 0
+		walk(WorldBorder.build(), function(n)
+			if n.attributes and n.attributes.MeshAsset then
+				slots += 1
+			end
+		end)
+		expect(slots).toBe(#pieces)
+		expect(slots <= 120).toBe(true)
+		expect(slots).toBe(#chunks(pieces) + WorldBorder.ACCENT_COUNT)
+	end)
+	it("mixes every front design, never one design twice within three neighbours", function()
 		local seen: { [string]: number } = {}
-		for _, p in frontRow do
+		for _, p in frontChunks do
 			seen[p.kind] = (seen[p.kind] or 0) + 1
 		end
-		for _, k in WorldBorder.KINDS do
-			expect((seen[k.kind] or 0) >= 4).toBe(true)
-		end
-		for i = 1, #frontRow do
-			local window: { [string]: boolean } = {}
-			local n = 0
-			for j = 0, 7 do
-				local kind = frontRow[(i + j - 1) % #frontRow + 1].kind
-				if not window[kind] then
-					window[kind] = true
-					n += 1
-				end
+		for _, c in WorldBorder.CHUNKS do
+			if c.front > 0 then
+				expect((seen[c.kind] or 0) >= 2).toBe(true)
 			end
-			expect(n >= 3).toBe(true)
 		end
+		for i = 1, #frontChunks - 2 do
+			local a, b, c = frontChunks[i], frontChunks[i + 1], frontChunks[i + 2]
+			expect(a.kind ~= b.kind and b.kind ~= c.kind and a.kind ~= c.kind).toBe(true)
+		end
+	end)
+	it("mirrors about half the chunks, never three of one hand in a row", function()
+		local mirrored = 0
+		for i, p in frontChunks do
+			if p.mirrored then
+				mirrored += 1
+				expect(string.sub(p.mesh, -2)).toBe("_m")
+			else
+				expect(string.sub(p.mesh, -2) ~= "_m").toBe(true)
+			end
+			if i >= 3 then
+				local a, b = frontChunks[i - 1].mirrored, frontChunks[i - 2].mirrored
+				expect(a == b and b == p.mirrored).toBe(false)
+			end
+		end
+		expect(mirrored >= #frontChunks * 0.3 and mirrored <= #frontChunks * 0.7).toBe(true)
 	end)
 	it("varies scale, yaw, spacing and inset (no repeating period)", function()
 		local function spread(values: { number }): number
@@ -205,8 +265,8 @@ describe("WorldBorder decor", function()
 			table.insert(insets, p.radius)
 			table.insert(turns, ((p.yaw - p.angle - 180 + 540) % 360) - 180)
 		end
-		expect(spread(steps) > 0.2).toBe(true)
-		expect(spread(scales) > 0.08).toBe(true)
+		expect(spread(steps) > 0.05).toBe(true)
+		expect(spread(scales) > 0.03).toBe(true)
 		expect(spread(insets) > 0.003).toBe(true)
 		local distinct: { [string]: boolean } = {}
 		local n = 0
@@ -218,67 +278,76 @@ describe("WorldBorder decor", function()
 			end
 		end
 		expect(n > #turns * 0.8).toBe(true)
-		-- the kind sequence never repeats with a short period
-		for period = 1, 12 do
+		-- the (design, hand) sequence never repeats with a short period
+		for period = 1, 8 do
 			local same = 0
-			for i = 1, #frontRow - period do
-				if frontRow[i].kind == frontRow[i + period].kind then
+			for i = 1, #frontChunks - period do
+				if frontChunks[i].mesh == frontChunks[i + period].mesh then
 					same += 1
 				end
 			end
-			expect(same / (#frontRow - period) < 0.6).toBe(true)
+			expect(same / (#frontChunks - period) < 0.4).toBe(true)
 		end
 	end)
-	it("fills the Ground corners with a back row", function()
-		local corners = 0
+	it("fills each Ground corner with corner groves behind the front row", function()
+		local perCorner = { 0, 0, 0, 0 }
 		for _, p in pieces do
-			if p.row == "back" and p.radius > WorldBorder.GROUND_HALF + 20 then
-				corners += 1
+			if p.row == "corner" then
+				local q = math.floor(p.angle / 90) + 1
+				perCorner[q] += 1
+				-- within 15 degrees of the diagonal, past the wall line
+				expect(math.abs(p.angle - ((q - 1) * 90 + 45)) <= 15).toBe(true)
+				expect(p.radius - p.size[3] / 2 >= WorldBorder.RADIUS + 10).toBe(true)
 			end
 		end
-		expect(corners >= 8).toBe(true)
+		for _, n in perCorner do
+			expect(n).toBe(WorldBorder.CORNER_CHUNKS)
+		end
 	end)
-	it("stands on the Ground (footprints at most 3 studs over the edge)", function()
+	it("stands on the Ground (footprint corners at most 3 studs over the edge)", function()
 		for _, p in pieces do
-			local reach = math.max(p.size[1], p.size[3]) / 2
-			expect(math.abs(p.pos[1]) - reach <= WorldBorder.GROUND_HALF).toBe(true)
-			expect(math.abs(p.pos[3]) - reach <= WorldBorder.GROUND_HALF).toBe(true)
-			expect(math.max(math.abs(p.pos[1]), math.abs(p.pos[3])) + reach <= WorldBorder.GROUND_HALF + 3).toBe(true)
+			expect(overhang(p) <= 3).toBe(true)
 			expect(p.pos[2]).toBeCloseTo(p.size[2] / 2)
+		end
+	end)
+	it("keeps every decor axis within MAX_AXIS (v17 decor)", function()
+		for _, p in pieces do
+			expect(math.max(p.size[1], p.size[2], p.size[3]) <= WorldBorder.MAX_AXIS + 1e-6).toBe(true)
 		end
 	end)
 	it("never collides and keeps each slot at the mesh's native proportions", function()
 		local border = child(child(WorldLayout.build()[1], "Border"), "Decor")
-		local accents, slots = 0, 0
+		local meshed = 0
 		walk(border, function(n)
 			if n.class ~= "Part" then
 				return
 			end
 			expect(n.canCollide).toBe(false)
-			local a = n.attributes or {}
-			local mesh = a.MeshAsset or a.BorderMesh
-			if mesh then
-				local native = (MeshAssets.get(mesh) :: any).size
-				local s = n.size[1] / native[1]
-				expect(n.size[2] / native[2]).toBeCloseTo(s)
-				expect(n.size[3] / native[3]).toBeCloseTo(s)
-				if a.MeshAsset then
-					accents += 1
-					expect(MeshAssets.meshId(mesh) ~= nil).toBe(true)
-				else
-					slots += 1
-					expect(n.transparency).toBe(1)
-				end
-			end
+			local mesh = (n.attributes or {}).MeshAsset
+			expect(mesh ~= nil).toBe(true)
+			local native = (MeshAssets.get(mesh) :: any).size
+			local s = n.size[1] / native[1]
+			expect(n.size[2] / native[2]).toBeCloseTo(s)
+			expect(n.size[3] / native[3]).toBeCloseTo(s)
+			expect(MeshAssets.meshId(mesh) ~= nil).toBe(true)
+			meshed += 1
 		end)
-		expect(accents).toBe(WorldBorder.ACCENT_COUNT)
-		expect(slots > 80).toBe(true)
+		expect(meshed).toBe(#WorldBorder.pieces())
 	end)
-	it("tags new border meshes BorderMesh (not MeshAsset) so the 150 budget holds", function()
-		for _, k in WorldBorder.KINDS do
-			local entry = MeshAssets.get(k.mesh)
-			expect(entry ~= nil and entry.size ~= nil).toBe(true)
-			expect(table.find(MeshAssets.NAMES, k.mesh) ~= nil).toBe(true)
+	it("wires every chunk mesh and its mirrored twin into MeshAssets with uploaded meshIds", function()
+		for _, c in WorldBorder.CHUNKS do
+			for _, mesh in { c.mesh, c.mesh .. "_m" } do
+				local entry = MeshAssets.get(mesh)
+				expect(entry ~= nil and entry.size ~= nil).toBe(true)
+				expect(MeshAssets.meshId(mesh) ~= nil).toBe(true)
+				expect(table.find(MeshAssets.NAMES, mesh) ~= nil).toBe(true)
+			end
+		end
+		for _, p in pieces do
+			expect(p.uploaded).toBe(true)
+			if p.kind ~= "Accent" then
+				expect(string.find(design(p), "^ranch_border_chunk_") ~= nil).toBe(true)
+			end
 		end
 	end)
 end)
