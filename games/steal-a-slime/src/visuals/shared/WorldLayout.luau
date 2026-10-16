@@ -593,15 +593,18 @@ local function paths(): WorldNode
 	-- Ring path outside the drop ring (62), linking every spoke.
 	local segments, ringR = 32, WorldLayout.RING_PATH_RADIUS
 	local length = 2 * math.pi * ringR / segments + 1
+	-- Neighbours overlap at the ends; every other segment stands 0.03 taller so
+	-- the overlaps never share a top face (coplanar tops z-fought: render review).
 	for k = 1, segments do
 		local yaw = (k - 0.5) * 360 / segments
 		local n = LayoutMath.direction(yaw, 0)
+		local thick = if k % 2 == 0 then 0.23 else 0.2
 		table.insert(
 			children,
 			block(
 				`Ring{k}`,
-				{ length, 0.2, WorldLayout.RING_PATH_WIDTH },
-				{ n[1] * ringR, 0.12, n[3] * ringR },
+				{ length, thick, WorldLayout.RING_PATH_WIDTH },
+				{ n[1] * ringR, 0.02 + thick / 2, n[3] * ringR },
 				SAND,
 				"Pavement",
 				{
@@ -626,16 +629,30 @@ local function onPolar(yaw: number, r: number, y: number): Vec
 	return { -n[1] * r, y, -n[3] * r }
 end
 
--- Decor rocks are plain ranch Rock (no basalt).
+-- Decor rocks are plain ranch Rock (no basalt). Upright boxes read as grey
+-- crates from the plaza (tools/render review), so half are boulders (a Ball
+-- sunk to a low dome) and the rest low tilted slabs sunk until no bottom
+-- corner lifts off the Ground. Same part count as before.
 local function rock(name: string, pos: Vec, s: number, salt: number): WorldNode
-	return block(
-		name,
-		{ s * (1 + hash(salt, 4) * 0.6), s * (0.6 + hash(salt, 5) * 0.5), s * (1 + hash(salt, 6) * 0.6) },
-		{ pos[1], s * 0.25, pos[3] },
-		ROCK,
-		"Rock",
-		{ hash(salt, 7) * 20 - 10, hash(salt, 8) * 360, hash(salt, 9) * 20 - 10 }
-	)
+	if hash(salt, 10) < 0.5 then
+		local d = s * (1.2 + hash(salt, 4) * 0.5)
+		return {
+			name = name,
+			class = "Part",
+			shape = "Ball",
+			size = { d, d, d },
+			pos = { pos[1], -d * 0.22, pos[3] },
+			rot = { 0, 0, 0 },
+			color = ROCK,
+			material = "Rock",
+		}
+	end
+	local size = { s * (1.1 + hash(salt, 4) * 0.6), s * (0.35 + hash(salt, 5) * 0.25), s * (0.8 + hash(salt, 6) * 0.5) }
+	local rx, rz = hash(salt, 7) * 20 - 10, hash(salt, 9) * 20 - 10
+	-- How far the tilt lifts the highest bottom corner, plus a quarter sunk.
+	local lift = size[1] / 2 * math.sin(math.rad(math.abs(rz))) + size[3] / 2 * math.sin(math.rad(math.abs(rx)))
+	local y = size[2] / 2 - lift - size[2] * 0.25
+	return block(name, size, { pos[1], y, pos[3] }, ROCK, "Rock", { rx, hash(salt, 8) * 360, rz })
 end
 
 local function mushroom(name: string, pos: Vec, salt: number): WorldNode
