@@ -64,6 +64,9 @@ ParadeLane.CLEARANCE = math.max(ParadeLane.HALF_WIDTH, ParadeLane.SPREAD / 2 + P
 	+ ParadeLane.MARGIN
 ParadeLane.LANE_Y = 0.35 -- top of the goo strip (ParadeView); slime pivots stand on it
 ParadeLane.STRIP_THICKNESS = 0.3
+-- The goo strip is drawn with as few straight Parts as stay within this many studs of the route
+-- (stripPoints); the 2.5° route steps are far finer than the eye needs. Visual only.
+ParadeLane.STRIP_TOLERANCE = 0.35
 -- Ride + hop on: every ride to ENTRY lands well before this (tests/ParadeLane.spec).
 ParadeLane.HOP_SECONDS = 10
 ParadeLane.DRAIN_SECONDS = 1.5
@@ -143,6 +146,38 @@ ParadeLane.WAYPOINTS = table.freeze(points) :: { { number } } -- { x, z }, entry
 ParadeLane.LENGTH = cumulative[#cumulative]
 ParadeLane.ENTRY = points[1]
 ParadeLane.EXIT = points[#points]
+
+-- Waypoints the goo strip is drawn through: the route simplified (Douglas-Peucker) so no waypoint
+-- is more than STRIP_TOLERANCE studs from the drawn polyline. Entry and exit are kept. { x, z }.
+local function simplify(lo: number, hi: number, keep: { boolean })
+	local ax, az = points[lo][1], points[lo][2]
+	local dx, dz = points[hi][1] - ax, points[hi][2] - az
+	local len = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
+	local worst, at = 0, 0
+	for i = lo + 1, hi - 1 do
+		local d = math.abs((points[i][1] - ax) * dz - (points[i][2] - az) * dx) / len
+		if d > worst then
+			worst, at = d, i
+		end
+	end
+	if worst > ParadeLane.STRIP_TOLERANCE then
+		keep[at] = true
+		simplify(lo, at, keep)
+		simplify(at, hi, keep)
+	end
+end
+
+function ParadeLane.stripPoints(): { { number } }
+	local keep = { [1] = true, [#points] = true }
+	simplify(1, #points, keep)
+	local out: { { number } } = {}
+	for i = 1, #points do
+		if keep[i] then
+			table.insert(out, points[i])
+		end
+	end
+	return out
+end
 
 function ParadeLane.enabled(features: { [string]: boolean }?): boolean
 	local f = features or Config.FEATURES

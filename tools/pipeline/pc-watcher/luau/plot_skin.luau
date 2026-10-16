@@ -6,6 +6,6 @@ local gui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Sli
 if not gui then
 	return { found = false }
 end
-gui:SetAttribute("PcwPlotSkin", "%%SKIN%%")
+gui:SetAttribute("PcwPlotSkin", %%SKIN%%)
 task.wait(1.2) -- PlotVisuals refresh (4 Hz) + the decor clone
 return { found = true, skin = gui:GetAttribute("PcwPlotSkin") }

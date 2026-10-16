@@ -101,16 +101,20 @@ local DOME_STEPS = 18 -- 5 degrees each: no tier rises more than 0.4 studs
 -- (eaveTop + domeRise: the basin's flat floor, a stud under the slide's head). Each tier
 -- is as wide as the profile at its foot, so the collision never sits inside
 -- the visible surface (feet never sink) and pokes out at most one tier rise.
+-- Every tier is a full column from the eave underside (wallTop) up to its own top: the
+-- union is the same solid as a stack of thin slabs, but a body landing on the dome meets
+-- a part >= 1.3 studs thick instead of a 0.1..0.4 slab it can sink through in one
+-- physics step (fountain_walk: a character ball dropped at 44 studs/s sank 0.11 at r 11.5).
 -- The goo crown above stays open: the slide starts in it.
 function WorldLayout.fountainTopTiers(): { { number } }
 	local fp = WorldLayout.FOUNTAIN_PROFILE
 	local tiers = { { fp.eaveRadius, fp.wallTop, fp.eaveTop } }
-	local lastZ = fp.eaveTop
 	for i = 0, DOME_STEPS - 1 do
 		local a, b = math.rad(i * 90 / DOME_STEPS), math.rad((i + 1) * 90 / DOME_STEPS)
-		local top = fp.eaveTop + fp.domeRise * math.sin(b)
-		table.insert(tiers, { fp.domeCentre + fp.domeSpan * math.cos(a), lastZ, top })
-		lastZ = top
+		table.insert(
+			tiers,
+			{ fp.domeCentre + fp.domeSpan * math.cos(a), fp.wallTop, fp.eaveTop + fp.domeRise * math.sin(b) }
+		)
 	end
 	return tiers
 end

@@ -454,9 +454,11 @@ describe("fountain top collider, profile", function()
 			expect(c.CFrame.Position.X).toBeCloseTo(0, EPS)
 			expect(c.CFrame.Position.Z).toBeCloseTo(0, EPS)
 			expect(c:GetAttribute("MeshCollider")).toBe(M)
-			expect(bottom(c)).toBeCloseTo(prevTop, EPS) -- no gap between tiers
+			expect(bottom(c)).toBeCloseTo(FP.wallTop, EPS) -- full columns from the eave underside: no gap, no thin slab
+			expect(top(c) - bottom(c) >= 1.3 - EPS).toBe(true) -- a falling body never meets a slab it can sink through
 			expect(top(c) > prevTop).toBe(true)
 			expect(i == 1 or top(c) - prevTop <= 0.7).toBe(true) -- no unseen step above the eave
+			expect(i == 1 or radius(c) <= radius(loadedVolcano[TOP_COLLIDERS[i - 1]]) + EPS).toBe(true) -- never wider as it rises
 			prevTop = top(c)
 			expect(i <= #TIERS).toBe(true)
 		end

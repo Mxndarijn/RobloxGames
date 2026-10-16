@@ -248,6 +248,8 @@ def t_files():
         check("luau %s placeholders" % name, found == used.get(name, set()), found)
         if name == "pad_seat":
             check("luau pad_seat returns seat_y and pad_top_y", "seat_y =" in src and "pad_top_y =" in src)
+        quoted = [l for l in src.splitlines() if not l.lstrip().startswith("--") and re.search(r"[\"']%%[A-Z]+%%[\"']", l)]
+        check("luau %s has no quoted placeholders (luau_literal already quotes strings)" % name, not quoted, quoted)
         check("luau %s returns" % name, re.search(r"^return ", src, re.M) is not None)
     shots, shot_notes = watcher.load_shots()
     check("shots/*.json load as a list with ids", bool(shots) and not shot_notes and all("id" in s for s in shots), shot_notes)
@@ -282,7 +284,7 @@ def t_files():
     rings = [s for s in shots if s.get("ring_slimes")]
     check("a ring_slimes shot samples wild slimes against the landing ring (v30 C3)",
           len(rings) == 1 and rings[0].get("todo") == "v30 C3"
-          and "OUTER" in open(os.path.join(HERE, "luau", "ring_slimes.luau"), encoding="utf-8").read(), rings)
+          and all(x in open(os.path.join(HERE, "luau", "ring_slimes.luau"), encoding="utf-8").read() for x in ("OUTER", '"Riding"')), rings)
     paces = [s for s in shots if s.get("wild_pace")]
     check("a wild_pace shot measures a lane slime's displacement against the Config pace (v30 C9)",
           len(paces) == 1 and float(paces[0]["wild_pace"]) > 0 and paces[0].get("todo") == "v30-c9", paces)
@@ -292,6 +294,16 @@ def t_files():
     check("a failing mesh_slots_max shot fails the run (hard)",
           'mesh_slots_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
           and watcher.overall_status({"shots": {"status": "pass", "detail": {"mesh_slots_failed": True}}}) == "fail")
+    rcaps = [s for s in shots if s.get("runtime_parts_max")]
+    check("a runtime_parts_max shot asserts world BaseParts <= the 2230 ratchet (hard)",
+          len(rcaps) == 1 and rcaps[0]["runtime_parts_max"] <= 2230, rcaps)
+    check("a failing runtime_parts_max shot fails the run (hard)",
+          'runtime_parts_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
+          and watcher.overall_status({"shots": {"status": "pass", "detail": {"runtime_parts_failed": True}}}) == "fail")
+    check("perf_server reports runtime_parts for every BasePart and the lane/collider presence",
+          all(x in open(os.path.join(HERE, "luau", "perf_server.luau"), encoding="utf-8").read()
+              for x in ("runtime_parts = runtimeParts", "parade_lane", "slide_colliders", "runtime_parts_transient"))
+          and watcher.DEFAULTS["runtime_part_budget"] == 2230)
     fwalks = [s for s in shots if s.get("fountain_walk")]
     check("a fountain_walk shot proves nobody sinks into the fountain top (C10)",
           len(fwalks) == 1 and fwalks[0].get("target") == "FountainMesh", fwalks)
