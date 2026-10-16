@@ -182,7 +182,7 @@ describe("FountainRide: run-out and landing", function()
 		end
 	end)
 	it("never crosses the low slide, its posts or the silo on the way round", function()
-		local exitT = FountainRide.EXIT_RUN / FountainRide.RUN_SPEED
+		local exitT = 40 / FountainRide.RUN_SPEED -- the straight exit runs on until the slime clears the landing ring
 		for _, ride in RIDES do
 			for i, p in ride.points do
 				if ride.phases[i] == "Run" then
@@ -199,7 +199,7 @@ describe("FountainRide: run-out and landing", function()
 			for i, p in ride.points do
 				if ride.phases[i] == "Run" then
 					expect(p[2] >= GROUND - 1e-6).toBe(true)
-					expect(p[2] <= MOUTH[2] + 1e-6).toBe(true)
+					expect(p[2] <= GROUND + FountainRide.RING_TOP + 1e-6).toBe(true)
 					expect(radius(p) <= WorldLayout.PLAZA_RADIUS).toBe(true)
 				end
 			end
@@ -207,7 +207,7 @@ describe("FountainRide: run-out and landing", function()
 	end)
 	it("takes the shorter way round (never more than half a turn plus the slide detour)", function()
 		for _, ride in RIDES do
-			expect(ride.runLength <= math.pi * (Fountain.MAX_RADIUS + 4) + 2 * FountainRide.EXIT_RUN).toBe(true)
+			expect(ride.runLength <= math.pi * (Fountain.MAX_RADIUS + 4) + 2 * 30).toBe(true)
 		end
 	end)
 	it("ends exactly on its landing, eased to a stop, and stays there", function()
@@ -331,6 +331,98 @@ describe("FountainRide: the live server rides every spawned slime", function()
 			expect(FountainRide.clearance(PATH, last[1], last[3]) >= FountainRide.FOOTPRINT).toBe(true)
 			for _, p in rest do
 				expect(dist(p, last) < 1e-3).toBe(true) -- float32 CFrames
+			end
+		end
+	end)
+end)
+
+-- v30 C3: slimes clipped through the plaza's middle ring (Plaza.LandingRing, 18 curb tiles, visual-only). Slimes
+-- are anchored and script moved, so the fix is routing: nothing places or walks a slime inside the ring.
+describe("FountainRide: the landing ring (v30 C3)", function()
+	local function ringOuter(): number
+		local tiles = {}
+		local function walk(nodes, path)
+			for _, node in nodes or {} do
+				local p = `{path}/{node.name}`
+				if p == "/Map/Plaza/LandingRing" then
+					tiles = node.children
+				end
+				walk(node.children, p)
+			end
+		end
+		walk(WorldLayout.build(), "")
+		assert(#tiles == 18, "LandingRing tiles missing")
+		local worst = 0
+		for _, tile in tiles do
+			local yaw = math.rad(tile.rot[2])
+			local c, s = math.cos(yaw), math.sin(yaw)
+			for _, sx in { -1, 1 } do
+				for _, sz in { -1, 1 } do
+					local lx, lz = sx * tile.size[1] / 2, sz * tile.size[3] / 2
+					local x = tile.pos[1] + c * lx + s * lz
+					local z = tile.pos[3] - s * lx + c * lz
+					worst = math.max(worst, math.sqrt(x * x + z * z))
+				end
+			end
+		end
+		return worst
+	end
+	local CLEAR = Fountain.LANDING_RING_OUTER + SLIME_HALF
+
+	it("Fountain.LANDING_RING_OUTER covers the farthest corner of every curb tile", function()
+		local outer = ringOuter()
+		expect(outer <= Fountain.LANDING_RING_OUTER).toBe(true)
+		expect(Fountain.LANDING_RING_OUTER - outer < 0.5).toBe(true)
+	end)
+	it("every rolled landing, even after clearLanding, keeps a whole slime outside the ring", function()
+		for _, l in LANDINGS do
+			expect(radius(l) >= CLEAR).toBe(true)
+		end
+		for a = 0, 359, 3 do
+			local x, z = FountainRide.clearLanding(
+				PATH,
+				math.cos(math.rad(a)) * Fountain.MIN_RADIUS,
+				math.sin(math.rad(a)) * Fountain.MIN_RADIUS
+			)
+			expect(math.sqrt(x * x + z * z) >= CLEAR - 1e-6).toBe(true)
+		end
+	end)
+	it("the run-out hops over the curb, then keeps the whole slime outside the ring", function()
+		for _, ride in RIDES do
+			for i, p in ride.points do
+				if ride.phases[i] == "Run" then
+					local r = radius(p)
+					-- any part of the slime can overlap the curb: its bottom is above the curb top (3.145)
+					if r < Fountain.LANDING_RING_OUTER + SLIME_HALF then
+						expect(p[2] - GROUND >= 3.145 - 1e-6 or dist(p, MOUTH) < 3.5).toBe(true) -- the slide's own mouth is inside the ring
+					end
+				end
+			end
+			local last = ride.points[#ride.points]
+			expect(radius(last) >= CLEAR - 1e-6).toBe(true)
+		end
+	end)
+	it("the run-out is back on the ground once it is past the ring", function()
+		for _, ride in RIDES do
+			for i, p in ride.points do
+				if ride.phases[i] == "Run" and radius(p) >= FountainRide.RING_CLEAR then
+					expect(p[2]).toBeCloseTo(GROUND)
+				end
+			end
+		end
+	end)
+	it("FountainRide's ring constants match Fountain's", function()
+		expect(FountainRide.RING_OUTER).toBe(Fountain.LANDING_RING_OUTER)
+		expect(FountainRide.RING_TOP > 3.145).toBe(true)
+	end)
+	it("the goo lane (walk) never enters the ring", function()
+		for _, p in ParadeLane.WAYPOINTS do
+			expect(math.sqrt(p[1] ^ 2 + p[2] ^ 2) - ParadeLane.SPREAD / 2 >= CLEAR).toBe(true)
+		end
+		for s = 0, ParadeLane.LENGTH, 0.5 do
+			for _, lat in { -ParadeLane.SPREAD / 2, 0, ParadeLane.SPREAD / 2 } do
+				local x, z = ParadeLane.offsetAt(s, lat)
+				expect(math.sqrt(x * x + z * z) >= CLEAR).toBe(true)
 			end
 		end
 	end)

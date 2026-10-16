@@ -1540,6 +1540,12 @@ def step_shots(run):
                     if not res["slide_walk"].get("ok"):
                         run.note("shot %s: fell through the slide: %s" % (
                             sid, str(res["slide_walk"].get("violations") or res["slide_walk"].get("error"))[:200]))
+                if shot.get("ring_slimes"):
+                    # v30 C3: no wild slime inside the plaza's landing ring over a few seconds (soft: a note)
+                    res["ring_slimes"] = run.need_luau("ring_slimes", "Server", timeout=30)
+                    if not res["ring_slimes"].get("ok"):
+                        run.note("shot %s: wild slime inside the landing ring: %s" % (
+                            sid, str(res["ring_slimes"].get("violations") or res["ring_slimes"].get("error"))[:200]))
                 if shot.get("mesh_slots_max"):
                     # perf proof (HARD): the same Server count as step_perf, asserted at the shot's own limit
                     ms = res["mesh_slots"] = run.need_luau("perf_server", "Server", timeout=30)
