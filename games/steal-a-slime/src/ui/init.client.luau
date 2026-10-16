@@ -337,6 +337,9 @@ local function panelState(key: string, realState: any): any
 			},
 		}
 		view.padsUnlocked = math.max(1, state.padsUnlocked or 1)
+		-- ... which is also the favourite, so its row shows the follow-pet perk chip.
+		view.favoriteId = "pcw-plot"
+		view.petPerk = { kind = "luck", value = 0.03, icon = "🍀", text = "+3% luck" }
 		return view
 	end
 	local force = if isStudio and key == "Rebirth" then gui:GetAttribute("PcwRebirthSlime") else nil

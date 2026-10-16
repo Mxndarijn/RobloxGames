@@ -61,6 +61,9 @@ export type RainView = {
 -- Friend income bonus (CONTRACT.md §11): friends in this server and the income bonus they give (0.2 = +20%).
 export type FriendsView = { count: number, bonus: number }
 
+-- Follow-pet passive (CONTRACT.md §14): the favourite slime's perk, text "+5% luck".
+export type PetPerkView = { kind: string, value: number, icon: string, text: string }
+
 export type CodesView = { boostMult: number, boostEndsAt: number, redeemed: number }
 
 export type DailyView = { available: boolean, streak: number, amount: number, day: number }
@@ -172,6 +175,7 @@ export type State = {
 	modifier: ModifierView, -- FEATURES.CycleModifier
 	egg: EggView, -- FEATURES.MysteryEgg
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
+	petPerk: PetPerkView?, -- FEATURES.PetPassives; nil without a favourite
 }
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }
