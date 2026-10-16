@@ -10,7 +10,8 @@
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
-local Icons = require(script.Parent.Icons)
+local ItemIconView = require(script.Parent.ItemIconView)
+local ItemIcons = require(script.Parent.ItemIcons)
 local Sounds = require(script.Parent.Sounds)
 local Widgets = require(script.Parent.Widgets)
 
@@ -31,7 +32,21 @@ local COLORS = {
 
 local Toasts = {}
 
-function Toasts.new(parent: Instance)
+Toasts.ICON = 36
+
+-- Registry id of the badge named in "Badge unlocked: <name>" (the generic medal when unknown).
+function Toasts.badgeId(registry: any, text: any): string
+	local name = string.gsub(tostring(text), "^Badge unlocked: ", "")
+	for _, id in registry.order do
+		local spec = registry.byId[id]
+		if spec.group == "badge" and spec.name == name then
+			return id
+		end
+	end
+	return "Badge_FirstSlime"
+end
+
+function Toasts.new(parent: Instance, registry: any, config: any?)
 	local holder = create("Frame", {
 		Name = "Toasts",
 		AnchorPoint = Vector2.new(1, 0),
@@ -90,24 +105,16 @@ function Toasts.new(parent: Instance)
 		}, { Widgets.corner(8), Widgets.stroke(color, if kind == "rare" then 3 else 2), Widgets.padding(8) })
 		local isBadge = kind == "badge"
 		local iconWidth = 0
-		if isBadge then
-			iconWidth = 40
-			local icon = create("Frame", {
-				Name = "BadgeIcon",
-				Size = UDim2.fromOffset(32, 32),
-				Position = UDim2.fromOffset(0, 0),
-				BackgroundColor3 = color,
+		-- Item icon: a badge toast shows its badge's medal, other toasts the item their text is about.
+		local itemId = if isBadge then Toasts.badgeId(registry, text) else ItemIcons.forToast(text, config)
+		if itemId then
+			iconWidth = Toasts.ICON + 8
+			ItemIconView.new({
+				Name = if isBadge then "BadgeIcon" else "ItemIcon",
+				Id = itemId,
+				Size = Toasts.ICON,
 				Parent = frame,
-			}, { Widgets.corner(16), Widgets.stroke(Color3.new(1, 1, 1), 2) })
-			Widgets.label({
-				Text = Icons.FAV_ON,
-				TextColor3 = Color3.new(1, 1, 1),
-				Font = Theme.Font,
-				TextSize = 20,
-				TextXAlignment = Enum.TextXAlignment.Center,
-				Size = UDim2.fromScale(1, 1),
-				Parent = icon,
-			})
+			}, registry).setActive(true)
 		end
 		local label = Widgets.label({
 			Text = tostring(text),
@@ -121,11 +128,13 @@ function Toasts.new(parent: Instance)
 			AutomaticSize = Enum.AutomaticSize.Y,
 			Parent = frame,
 		})
-		if isBadge then
+		if itemId then
 			label.TextXAlignment = Enum.TextXAlignment.Left
+			create("UISizeConstraint", { MinSize = Vector2.new(0, Toasts.ICON), Parent = label })
+		end
+		if isBadge then
 			local name = string.gsub(label.Text, "^Badge unlocked: ", "")
 			label.Text = `Badge unlocked!\n{name}`
-			create("UISizeConstraint", { MinSize = Vector2.new(0, 32), Parent = label })
 		end
 		table.insert(active, frame)
 		while #active > MAX do

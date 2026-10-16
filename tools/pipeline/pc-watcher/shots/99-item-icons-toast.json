@@ -1,0 +1,7 @@
+{
+  "id": "item-icons-toast",
+  "todo": "item-icons",
+  "kind": "ui",
+  "badge_toast": "toast:Your egg hatched: Epic Blorp!",
+  "note": "Item icons: a plain toast with the item icon (Mystery Egg tile) beside the text, top right under the HUD (PcwBadgeToast 'toast:' hook)"
+}

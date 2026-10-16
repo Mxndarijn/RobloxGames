@@ -1,0 +1,383 @@
+--!strict
+-- ItemIcons registry + ItemIconView: every item definition resolves to an icon spec (model, image or
+-- a colour + glyph placeholder), no bare-emoji icons, the global live viewport cap, the fallback
+-- chain, toast / goal mapping, the ITEM-ICONS-NEEDED.md contract and the Shop rows' icons.
+local Config = require("../../src/shared/Config")
+local GlyphCheck = require("./GlyphCheck")
+local ItemIcons = require("../../src/ui/ItemIcons")
+local Layout = require("../../src/ui/Layout")
+local LayoutAssert = require("./LayoutAssert")
+local Remotes = require("../../src/shared/Remotes")
+local ShopCatalog = require("../../src/ui/ShopCatalog")
+local TestRunner = require("../TestRunner")
+local UiHarness = require("./UiHarness")
+local fs = require("@lune/fs")
+
+local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+
+local ItemIconView = UiHarness.ui("ItemIconView")
+local registry = ItemIcons.build(Config)
+
+local function find(root: any, name: string): any
+	return UiHarness.find(root, name)
+end
+
+-- Every item id the game defines, per item table (id -> where it came from).
+local function definitions(): { [string]: string }
+	local out: { [string]: string } = {}
+	for _, item in ShopCatalog.ITEMS do
+		out[item.id] = "ShopCatalog.ITEMS"
+	end
+	for _, u in Config.UPGRADES do
+		out[`Upgrade_{u.id}`] = "Config.UPGRADES"
+	end
+	for _, list in { Config.MUTATIONS, Config.WEATHER_MUTATIONS, Config.COMBOS, Config.WEATHER_COMBOS } :: { { any } } do
+		for _, m in list do
+			out[`Mutation_{m.name}`] = "mutations"
+		end
+	end
+	for code in Config.CODES do
+		out[`Code_{code}`] = "Config.CODES"
+	end
+	for _, g in Config.GOALS do
+		out[`Goal_{g.id}`] = "Config.GOALS"
+	end
+	for _, m in Config.DEX_MILESTONES do
+		out[`Dex_{m.count}`] = "Config.DEX_MILESTONES"
+	end
+	for _, b in Config.BADGES do
+		out[ItemIcons.badge(b.key)] = "Config.BADGES"
+	end
+	for _, s in Config.PLOT_SKINS do
+		out[`PlotSkin_{s.id}`] = "Config.PLOT_SKINS"
+	end
+	for _, e in Config.ADMIN_EVENTS do
+		out[`Event_{e.id}`] = "Config.ADMIN_EVENTS"
+	end
+	for kind in Config.PET_PASSIVES.KINDS do
+		out[`Perk_{kind}`] = "Config.PET_PASSIVES"
+	end
+	for _, id in { "Lock", "Slap", "Appraise", "Daily", "Rebirth", "Cash", "Gift", "Quest" } do
+		out[id] = "gear / misc"
+	end
+	return out
+end
+
+describe("ItemIcons registry", function()
+	it("every item definition in every item table resolves to a real spec (not the unknown tile)", function()
+		local n = 0
+		for id, from in definitions() do
+			n += 1
+			local spec = registry.get(id)
+			expect(`{id} ({from}): {if spec then "ok" else "missing"}`).toBe(`{id} ({from}): ok`)
+			expect(spec.id).toBe(id)
+			expect(registry.resolve(id)).toBe(spec)
+			expect(spec.source == "model" or spec.source == "image" or spec.source == "placeholder").toBe(true)
+		end
+		expect(n > 60).toBe(true)
+	end)
+
+	it("every spec carries a colour and an allowlisted glyph: never a bare emoji box", function()
+		for _, id in registry.order do
+			local spec = registry.byId[id]
+			expect(#spec.color).toBe(3)
+			for _, ch in spec.color do
+				expect(ch >= 0 and ch <= 255).toBe(true)
+			end
+			expect(#spec.glyph > 0).toBe(true)
+			expect(`{id}: {table.concat(GlyphCheck.bad(spec.glyph), ",")}`).toBe(`{id}: `)
+			expect(#spec.brief > 10).toBe(true)
+		end
+	end)
+
+	it("the unknown tile still has colour + glyph; resolve never returns nil", function()
+		for _, bad in { "nope", 5, false } do
+			local spec = registry.resolve(bad)
+			expect(spec.source).toBe("placeholder")
+			expect(#spec.glyph > 0 and #spec.color == 3).toBe(true)
+		end
+		expect(registry.resolve(nil).glyph).toBe("?")
+	end)
+
+	it("covers every id the other surfaces use: shop upgrades, goals, badges, toasts", function()
+		for _, u in Config.UPGRADES do
+			expect(registry.get(`Upgrade_{u.id}`) ~= nil).toBe(true)
+		end
+		for _, id in
+			{ "FillPads", "AllPads", "Daily", "BestTier", "Rebirth", "Dex", "LockUpgrade", "SpeedCoil", "Catch" }
+		do
+			expect(registry.byId[ItemIcons.forGoal(registry, id)] ~= nil).toBe(true)
+		end
+		expect(ItemIcons.forGoal(registry, "Catch")).toBe("Goal_Catch")
+		expect(ItemIcons.forGoal(registry, "Daily")).toBe("Daily")
+		expect(ItemIcons.forGoal(registry, "whatever")).toBe("Quest")
+		expect(ItemIcons.forToast("Speed Coil bought! You run faster now.", Config)).toBe("SpeedCoil")
+		expect(ItemIcons.forToast("Your egg hatched: Epic Blorp!", Config)).toBe("MysteryEgg")
+		expect(ItemIcons.forToast("Slime Snacks level 3!", Config)).toBe("Upgrade_Income")
+		expect(ItemIcons.forToast("Code redeemed: $1,000!", Config)).toBe("Gift")
+		expect(ItemIcons.forToast("You walked", Config)).toBe(nil)
+		for _, rule in { "Base locked for 60s", "Appraised for $50", "Daily reward: $100", "Rebirth 2! Income x2" } do
+			local id = ItemIcons.forToast(rule, Config)
+			expect(id ~= nil and registry.byId[id :: string] ~= nil).toBe(true)
+		end
+	end)
+
+	it("mutations and kit-mesh plot skins are models; the shop gear needs art", function()
+		expect(registry.byId.Mutation_Glow.source).toBe("model")
+		expect(registry.byId.Mutation_Glow.model.kind).toBe("slime")
+		expect(registry.byId.PlotSkin_candy.model.kind).toBe("mesh")
+		expect(registry.byId.PlotSkin_classic.source).toBe("placeholder")
+		expect(registry.byId.SpeedCoil.source).toBe("placeholder")
+	end)
+end)
+
+describe("ItemIcons.of", function()
+	it("builds once per ctx", function()
+		local ctx: any = { Config = Config }
+		expect(ItemIcons.of(ctx)).toBe(ItemIcons.of(ctx))
+	end)
+end)
+
+describe("ItemIconView", function()
+	it("draws the placeholder tile: gradient in the item colour, stroke, bold glyph", function()
+		for _, id in registry.order do
+			local icon = ItemIconView.new({ Id = id, Size = 40, Parent = UiHarness.root() }, registry)
+			local tile = find(icon.instance, "Tile")
+			expect(tile ~= nil).toBe(true)
+			expect(#tile:GetChildren() >= 3).toBe(true) -- corner, gradient, stroke (+ glyph)
+			local classes = {}
+			for _, child in tile:GetChildren() do
+				classes[child.ClassName] = true
+			end
+			expect(classes.UIGradient and classes.UIStroke and classes.UICorner and classes.TextLabel).toBe(true)
+			local glyph = find(icon.instance, "Glyph")
+			expect(glyph.Text).toBe(registry.byId[id].glyph)
+			expect(glyph.Font.Name).toBe("GothamBold")
+			expect(icon.instance:GetAttribute("ItemId")).toBe(id)
+			icon.destroy()
+		end
+	end)
+
+	it("live model viewports are lazy and capped across all icons; extras keep the tile", function()
+		ItemIconView.resetLive()
+		local mounts = 0
+		local saved = ItemIconView.builders.slime
+		ItemIconView.builders.slime = function()
+			mounts += 1
+			return true
+		end
+		local icons = {}
+		for i = 1, ItemIconView.MAX_LIVE + 10 do
+			icons[i] = ItemIconView.new({ Id = "Mutation_Gold", Size = 36, Parent = UiHarness.root() }, registry)
+		end
+		expect(mounts).toBe(0) -- lazy: nothing renders until the owner says the icon is on screen
+		expect(ItemIconView.liveCount()).toBe(0)
+		for _, icon in icons do
+			icon.setActive(true)
+		end
+		expect(ItemIconView.liveCount()).toBe(ItemIconView.MAX_LIVE)
+		expect(mounts).toBe(ItemIconView.MAX_LIVE)
+		expect(icons[1].source).toBe("model")
+		expect(icons[ItemIconView.MAX_LIVE + 1].source).toBe("placeholder")
+		expect(find(icons[ItemIconView.MAX_LIVE + 1].instance, "Glyph").Visible).toBe(true)
+		-- Hiding releases (recycle): the waiting icons take the freed slots on their next activation.
+		icons[1].setActive(false)
+		expect(ItemIconView.liveCount()).toBe(ItemIconView.MAX_LIVE - 1)
+		icons[ItemIconView.MAX_LIVE + 1].setActive(false)
+		icons[ItemIconView.MAX_LIVE + 1].setActive(true)
+		expect(ItemIconView.liveCount()).toBe(ItemIconView.MAX_LIVE)
+		expect(icons[ItemIconView.MAX_LIVE + 1].source).toBe("model")
+		for _, icon in icons do
+			icon.destroy()
+		end
+		expect(ItemIconView.liveCount()).toBe(0)
+		ItemIconView.builders.slime = saved
+	end)
+
+	it("fallback chain: model fails -> uploaded image -> placeholder tile", function()
+		ItemIconView.resetLive()
+		local saved = ItemIconView.builders.slime
+		ItemIconView.builders.slime = function()
+			return false
+		end
+		local plain = ItemIconView.new({ Id = "Mutation_Gold", Parent = UiHarness.root() }, registry)
+		plain.setActive(true)
+		expect(plain.source).toBe("placeholder")
+		expect(ItemIconView.liveCount()).toBe(0)
+
+		ItemIcons.IMAGES.Mutation_Gold = 12345
+		local withImage = ItemIcons.build(Config)
+		expect(withImage.byId.Mutation_Gold.image).toBe(12345)
+		local icon = ItemIconView.new({ Id = "Mutation_Gold", Parent = UiHarness.root() }, withImage)
+		icon.setActive(true)
+		expect(icon.source).toBe("image")
+		expect(find(icon.instance, "Picture").Visible).toBe(true)
+		expect(find(icon.instance, "Picture").Image).toBe("rbxassetid://12345")
+		ItemIcons.IMAGES.Mutation_Gold = nil
+
+		-- An image-only item (no model) uses the picture without any viewport.
+		ItemIcons.IMAGES.SpeedCoil = 777
+		local coil = ItemIcons.build(Config)
+		expect(coil.byId.SpeedCoil.source).toBe("image")
+		ItemIcons.IMAGES.SpeedCoil = nil
+		ItemIconView.builders.slime = saved
+	end)
+
+	it("a mesh builder with no uploaded mesh falls back", function()
+		ItemIconView.resetLive()
+		local builder = ItemIconView.meshBuilder({
+			meshId = function()
+				return nil
+			end,
+		}, {})
+		expect(builder(UiHarness.root(), { model = { kind = "mesh", mesh = "plot_skin_candy" } })).toBe(false)
+		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, registry)
+		icon.setActive(true)
+		expect(icon.source).toBe("placeholder") -- default mesh builder: not wired under Lune
+	end)
+
+	it("a changed id releases the old viewport", function()
+		ItemIconView.resetLive()
+		local saved = ItemIconView.builders.slime
+		ItemIconView.builders.slime = function()
+			return true
+		end
+		local icon = ItemIconView.new({ Id = "Mutation_Gold", Parent = UiHarness.root() }, registry)
+		icon.setActive(true)
+		expect(ItemIconView.liveCount()).toBe(1)
+		icon.set("SpeedCoil")
+		expect(ItemIconView.liveCount()).toBe(0)
+		icon.destroy()
+		ItemIconView.builders.slime = saved
+	end)
+end)
+
+describe("item icons on the surfaces", function()
+	local function ctx(): any
+		return {
+			Config = Config,
+			actions = Remotes.ACTIONS,
+			send = function() end,
+			serverNow = function()
+				return 0
+			end,
+		}
+	end
+
+	it("every Shop row (items + upgrades) carries an icon with its registry id", function()
+		local panel = UiHarness.ui("Panels/Shop").new(UiHarness.root(), ctx())
+		panel.update({
+			cash = 1e6,
+			shop = {
+				MysteryEgg = { price = 100 },
+				LockUpgrade = { price = 5, level = 0, maxLevel = 5 },
+				SpeedCoil = { price = 9 },
+			},
+			lockCost = 50,
+			upgrades = {
+				{
+					id = "Income",
+					name = "Slime Snacks",
+					text = "+10%",
+					level = 0,
+					maxLevel = 10,
+					price = 1,
+					unlocked = true,
+				},
+				{
+					id = "Luck",
+					name = "Lucky Charm",
+					text = "+4%",
+					level = 1,
+					maxLevel = 5,
+					price = 1,
+					unlocked = true,
+				},
+			},
+		})
+		local seen = 0
+		for _, inst in UiHarness.descendants(panel.frame) do
+			if inst.Name == "Icon" and inst:GetAttribute("ItemId") then
+				seen += 1
+				expect(registry.byId[inst:GetAttribute("ItemId")] ~= nil).toBe(true)
+			end
+		end
+		expect(seen).toBe(6)
+	end)
+
+	it("Codes, Goals and the Daily popup draw item icons", function()
+		local codes = UiHarness.ui("Panels/Codes").new(UiHarness.root(), ctx())
+		expect(find(codes.frame, "Gift"):GetAttribute("ItemId")).toBe("Gift")
+		local daily = UiHarness.ui("Panels/DailyPopup").new(UiHarness.root(), ctx())
+		expect(find(daily.frame, "DailyIcon"):GetAttribute("ItemId")).toBe("Daily")
+		local goals = UiHarness.ui("Panels/Goals").new(UiHarness.root(), ctx())
+		goals.update({ slimes = {}, padsUnlocked = 4, padsMax = 8, cash = 0 })
+		local found = 0
+		for _, inst in UiHarness.descendants(goals.frame) do
+			if inst.Name == "Icon" and inst:GetAttribute("ItemId") then
+				found += 1
+			end
+		end
+		expect(found > 0).toBe(true)
+	end)
+end)
+
+describe("ITEM-ICONS-NEEDED.md", function()
+	it("lists every item without a 3D model or image, and nothing that has one", function()
+		local doc = fs.readFile("ITEM-ICONS-NEEDED.md")
+		local needed = ItemIcons.needsArt(registry)
+		expect(#needed > 20).toBe(true)
+		for _, spec in needed do
+			expect(string.find(doc, string.format("| `%s` |", spec.id), 1, true) ~= nil).toBe(true)
+		end
+		for _, id in registry.order do
+			local spec = registry.byId[id]
+			if spec.source ~= "placeholder" then
+				expect(string.find(doc, string.format("| `%s` |", id), 1, true)).toBe(nil)
+			end
+		end
+		expect(string.find(doc, "ItemIcons.IMAGES", 1, true) ~= nil).toBe(true)
+	end)
+end)
+
+describe("item icon layout (LayoutAssert at the 5 gate viewports)", function()
+	for _, vp in LayoutAssert.GATE_VIEWPORTS do
+		it(`Goals rows and toasts keep their text fitting beside the icon at {vp.name}`, function()
+			local screen = Layout.screen(vp.w, vp.h)
+			local check = LayoutAssert.new(vp.name, screen)
+			local panel = Layout.panelFor(screen, "Goals")
+			local rowW = panel.w - Layout.PANEL_CHROME.pad * 2 - 10
+			local textW = rowW - (8 + 40 + 8) - 10 -- Panels/Goals: ICON 40
+			for _, g in Config.GOALS do
+				check.text({
+					name = `Goal {g.id} detail`,
+					text = "999.9K/1.0M · reward $1.0B · stage 5/5",
+					size = 13,
+					w = textW,
+					h = 16,
+				})
+			end
+			check.text({
+				name = "Goal title",
+				text = "Lock your base 100 times",
+				size = 16,
+				bold = true,
+				w = textW,
+				h = 20,
+			})
+			-- A toast: padding 8, icon + gap, wrapped text of any length in an auto-height label.
+			local toastTextW = screen.toasts.w - 16 - (36 + 8)
+			check.text({
+				name = "Toast text",
+				text = "Your egg hatched: Mythic Blorp with a Rainbow mutation!",
+				size = 16,
+				bold = true,
+				w = toastTextW,
+				h = 60,
+				wrapped = true,
+			})
+			expect(toastTextW >= 100).toBe(true)
+			expect(check.report()).toBe("")
+		end)
+	end
+end)
