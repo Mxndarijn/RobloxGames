@@ -1451,6 +1451,26 @@ def step_shots(run):
                                         "viewport_rect": run.extra.get("viewport_rect")}
 
 
+def watcher_studio_pids(paths):
+    """RobloxStudioBeta processes whose command line references this watcher's home (builds dir)."""
+    try:
+        out = subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             "Get-CimInstance Win32_Process -Filter \"name='RobloxStudioBeta.exe'\" | "
+             "ForEach-Object { \"$($_.ProcessId)`t$($_.CommandLine)\" }"],
+            capture_output=True, text=True, timeout=30, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        ).stdout
+    except Exception:
+        return set()
+    home = str(paths.home).lower()
+    pids = set()
+    for line in out.splitlines():
+        pid, _, cmd = line.partition("\t")
+        if pid.strip().isdigit() and home in cmd.lower():
+            pids.add(int(pid))
+    return pids
+
+
 def step_close(run):
     if run.dry:
         return "skip", {"dry_run": True}
@@ -1471,19 +1491,28 @@ def step_close(run):
                 pass
     pids = tracked_pids(run.paths)
     run.our_pids |= pids
-    win = win32.studio_main_window(pids) if pids else None
-    if win:
-        win32.post_close(win["hwnd"])  # PostMessage WM_CLOSE: no activation
-    deadline = time.time() + 15
-    while time.time() < deadline and any(win32.pid_alive(p) for p in pids):
-        time.sleep(1)
-    killed = [p for p in pids if win32.pid_alive(p) and win32.kill_pid(p, tree=True)]  # our trees only
+    # Close WITHOUT saving and without any prompt: WM_CLOSE would raise Studio's
+    # "Save changes?" dialog, so terminate our process trees directly (TerminateProcess
+    # never shows UI and never activates a window). The .rbxl is a throwaway build.
+    killed = [p for p in pids if win32.pid_alive(p) and win32.kill_pid(p, tree=True)]
+    time.sleep(2)
+    # Verify: none of our pids, and no Studio process whose command line opens a watcher
+    # build (e.g. a child that escaped the tree) is left. Kill leftovers.
+    leftovers = sorted(p for p in pids if win32.pid_alive(p))
+    stray = watcher_studio_pids(run.paths)
+    for p in set(leftovers) | stray:
+        win32.kill_pid(p, tree=True)
+    time.sleep(1)
+    remaining = sorted(p for p in (set(leftovers) | stray) if win32.pid_alive(p))
+    detail.update(leftovers=leftovers, stray=sorted(stray), remaining=remaining)
+    if remaining:
+        run.note("close: Studio processes still alive after kill: %s" % remaining)
     save_pids(run.paths, set())
     run.studio_id, run.hwnd = None, None
     run.save_current()
     run.close()
     detail.update(closed=sorted(pids), killed=killed)
-    return "pass", detail
+    return ("fail" if detail.get("remaining") else "pass"), detail
 
 
 # ---------------------------------------------------------------------------

@@ -59,9 +59,10 @@ the real mouse or keyboard.
 7. **Two players: mode c only.** Mode b (extra `-task StartServer` / `-task StartClient` Studio
    processes) is removed: it opened visible windows. Only mode c (the server simulation in the watcher's
    own play session) runs; `tried` says why b is gone.
-8. **Close.** `PostMessage(WM_CLOSE)` to the main window (posting does not activate it), wait 15 s, then
-   `taskkill /T /F` on the pids the watcher started (their process trees only). A Studio the watcher did
-   not start is never closed or killed.
+8. **Close, never save.** No WM_CLOSE (it would raise the "Save changes?" dialog). After stop play the watcher
+   terminates its own Studio process trees (`taskkill /T /F` = TerminateProcess: no dialog, no activation), the
+   build .rbxl is a throwaway. It then verifies nothing is left: none of its pids, and no RobloxStudioBeta whose
+   command line points into the watcher home; leftovers are killed and, if any survive, the close step fails.
 
 ## Trigger
 
@@ -126,7 +127,7 @@ input call misbehaves.
 | 8b | phone_perf | Runs in the devices loop at the phone sizes (device names starting `phone`). `luau/slime_fill` (Server) counts tagged wild/pad slimes within 70 studs of the character and clones existing ones into a ring around it until there are `phone_min_slimes + 4` (clones carry `PcwFill` and a unique `SlimeId`, because SlimeLife keys on it; the live `World` is a local of `src/server`, so `Spawner.spawnOne` is not reachable from execute_luau). `luau/phone_perf` (Client) waits up to 8 s for 16 slimes with a `LifeRoot` (the #71 `SlimeLifeRunner` rig; `SlimeLife.MAX_ACTIVE` = 16), then measures `stats_seconds` of RenderStepped dt: avg / p95 / max ms, FPS, memory MB, animating count, slimes within 80 studs. Frame `<sha>-phone-perf-<device>`. The clones are removed after the loop. **Fail if avg FPS < `phone_min_fps` (30).** Fewer than 16 animating is a note, not a failure. Studio on the PC is not phone hardware. | avg FPS < 30 | 25-40 s |
 | 9 | shots (soft) | `shots.json` proof frames, cropped to the game viewport (see Frames). `ui`: open `<Key>Panel` by an MCP click on the text-less nav icon `Nav.<Key>` (then `Hud.<Key>`). If no click opens it, set `Visible` directly (`luau/panel_visible`; the UI has no open hook, so contents may be stale). The method goes in the frame entry. The tutorial card, popups and every other `*Panel` are hidden for the capture (`luau/ui_isolate`) and shown again after. Capture, then close with Esc, else `<Key>Panel.Close`, else `Visible=false`. `world`: the Server finds the target (exact name, else substring) and its bounding box. The Client hides every PlayerGui ScreenGui, the CoreGui and every BillboardGui and ProximityPrompt, moves the character behind the camera and anchors it, and locks a Scriptable camera with `BindToRenderStep` at `RenderPriority.Last + 1` (after the default camera scripts) on the target's front side: 35 degrees down, `max(extent)*1.8+15` studs away. `shot_camera_reset` unbinds and restores all of it. Missing targets are frame entries with status `missing`. | never | 0-90 s |
 | 10 | two_player | See below (mode c only). | mode c assertion false | 30-40 s |
-| 11 | close | Save the console output, stop play, PostMessage WM_CLOSE to the main window, wait 15 s, then `taskkill /T /F` the tracked pids. This also kills a "save changes?" prompt. | - | 5-20 s |
+| 11 | close | Save the console output, stop play, `taskkill /T /F` the tracked pids (no WM_CLOSE, so no save prompt), then verify no watcher Studio process is left and kill leftovers. | - | 5-20 s |
 | 12 | report + sync | Write `out\<sha>\<sha>.json`, then commit to `studio-reports` and push. | - | 5 s |
 
 A step that is skipped because an earlier step failed, or because the run budget ran out, also
@@ -229,5 +230,5 @@ Bring-up, step by step: `python watcher.py tools` (with a Studio open), then `st
 - Frame time is Studio play-mode on this PC (client and server in one process). The window is always unfocused and off-screen, and Studio throttles that, so treat it as a trend, not a device number. There is no triangle count from Luau; use `tools/pr-gate/budget.sh`.
 - Tutorial advance (grab with E) needs a wild slime the starting cash can buy. It is reported, and never fails the run.
 - Two players is mode c only: a simulation on the server modules, not two real clients (mode b opened visible windows).
-- Background behaviour depends on Studio honouring `SW_SHOWNOACTIVATE` and not activating itself (for example a "save changes?" dialog on WM_CLOSE). The watcher cannot prevent that; the focus guard reports it as `FOCUS STOLEN at step X` and fails the run.
+- Background behaviour depends on Studio honouring `SW_SHOWNOACTIVATE` and not activating itself . The watcher cannot prevent that; the focus guard reports it as `FOCUS STOLEN at step X` and fails the run.
 - One watcher Studio at a time. A user Studio with a place open blocks the run ("studio busy"); a user Studio on the start page is left alone.
