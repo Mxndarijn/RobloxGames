@@ -123,8 +123,10 @@ WorldLayout.FENCE_SCALE = 10 / 11
 --   border  Map.Border's share (120). Main #54's ring is BORDER_SLOT_COUNT
 --           today, over its share until it is slimmed; asserted on its own.
 --   decor   everything else: ranch props, pad stands, fountain, plaza,
---           landing ring, gates, WorldProps skins. Capped at 160, and at
---           MESH_SLOT_BUDGET - fence - border share (152) while the fence is 128.
+--           landing ring, gates, plot dex boards, WorldProps skins. Capped at
+--           160, and at MESH_SLOT_BUDGET - fence - border share (152) while
+--           the fence is 128. Full: the BuyStand (ranch_shop_stand) has no
+--           slot until 8 more fit.
 -- The fallback (two segments per panel until the upload) adds one slot per
 -- panel: 112.
 WorldLayout.MESH_SLOT_BUDGET = 400
@@ -250,6 +252,16 @@ WorldLayout.PAD_SEAT = table.freeze({
 -- phoenix_gate's cream name board at native size (models/phoenix_gate.py
 -- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line).
 WorldLayout.GATE_BOARD = table.freeze({ width = 9, height = 2.4, centreY = 10.5, front = 1.1 })
+-- The plot SlimeDex board skins the two-sided phoenix_top_earners_board at
+-- DEX_SCALE (14.8 x 14 x 2.9, about the gate's height). DEX_FACE = its front
+-- cream panel at native size, measured on out/phoenix_top_earners_board.fbx
+-- in the mesh's own frame (front +Z): centre x off the box centre, centre y
+-- up from the bottom, front face z ahead of the box centre. The DexBoard
+-- parts are laid out on that panel at DEX_CONTENT_SCALE of their old size.
+WorldLayout.DEX_MESH = "phoenix_top_earners_board"
+WorldLayout.DEX_SCALE = 0.7
+WorldLayout.DEX_CONTENT_SCALE = 0.6
+WorldLayout.DEX_FACE = table.freeze({ x = -0.35, y = 11.53, front = 0.4, width = 12.9, height = 11.5 })
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
@@ -951,25 +963,76 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	add(crown)
 	table.insert(nodes, rebirth)
 
-	-- SlimeDex board on the back wall, facing the entrance.
+	-- SlimeDex board on the back wall, facing the entrance: a DEX_MESH slot
+	-- (kit front turned 180 to face the entrance, back clear of the fence) with
+	-- the dark Board (PlotDecor's text), bar and gems on its front panel. Frame,
+	-- legs and shelf are the primitive look until the mesh lands.
+	local k, a, face = WorldLayout.DEX_SCALE, WorldLayout.DEX_CONTENT_SCALE, WorldLayout.DEX_FACE
+	local dexSize = meshSize(WorldLayout.DEX_MESH, k)
+	local dexZ = h - 1.4 - dexSize[3] / 2
+	local panelZ = dexZ - face.front * k
+	-- Content offsets are the old board's (centre 9.2 up, h - 1.2): x, y and
+	-- z (toward +Z = the back wall) from the Board centre, scaled by `a`. The
+	-- content spans y -3.6..3.4, so the Board sits 0.1 above the panel centre.
+	local cx, cy, cz = -face.x * k, 1 + face.y * k + 0.1 * a, panelZ - 0.02 - 0.2 * a
+	local function on(x: number, y: number, z: number): Vec
+		return at({ cx + x * a, cy + y * a, cz + z * a })
+	end
+	local legH = cy + 0.8 * a - 1
 	local dex: WorldNode = {
 		name = "DexBoard",
 		class = "Model",
 		primaryPart = "Board",
 		children = {
-			ghost(block("Board", { 14, 6, 0.4 }, at({ 0, 9.2, h - 1.2 }), { 46, 52, 70 }, "SmoothPlastic", r)),
-			ghost(block("Frame", { 14.8, 6.8, 0.3 }, at({ 0, 9.2, h - 1 }), WOOD, "Wood", r)),
-			ghost(block("LegL", { 0.6, 9, 0.6 }, at({ -6.8, 5.5, h - 0.9 }), WOOD, "Wood", r)),
-			ghost(block("LegR", { 0.6, 9, 0.6 }, at({ 6.8, 5.5, h - 0.9 }), WOOD, "Wood", r)),
-			ghost(block("Shelf", { 14, 0.4, 1.8 }, at({ 0, 5.4, h - 2 }), WOOD, "WoodPlanks", r)),
-			ghost(block("BarBack", { 12, 0.9, 0.2 }, at({ 0, 7.2, h - 1.5 }), { 25, 25, 35 }, "SmoothPlastic", r)),
-			ghost(block("BarFill", { 12, 0.7, 0.2 }, at({ 0, 7.2, h - 1.6 }), GOO, "Neon", r), 1),
+			meshSlot(
+				block("DexMesh", dexSize, at({ 0, 1 + dexSize[2] / 2, dexZ }), WOOD, nil, { 0, yaw + 180, 0 }),
+				WorldLayout.DEX_MESH,
+				true
+			),
+			ghost(block("Board", { 14 * a, 6 * a, 0.4 * a }, on(0, 0, 0), { 46, 52, 70 }, "SmoothPlastic", r)),
+			standIn(
+				ghost(block("Frame", { 14.8 * a, 6.8 * a, 0.3 * a }, on(0, 0, 0.2), WOOD, "Wood", r)),
+				WorldLayout.DEX_MESH
+			),
+			standIn(
+				ghost(
+					block(
+						"LegL",
+						{ 0.6 * a, legH, 0.6 * a },
+						at({ cx - 6.8 * a, 1 + legH / 2, cz + 0.3 * a }),
+						WOOD,
+						"Wood",
+						r
+					)
+				),
+				WorldLayout.DEX_MESH
+			),
+			standIn(
+				ghost(
+					block(
+						"LegR",
+						{ 0.6 * a, legH, 0.6 * a },
+						at({ cx + 6.8 * a, 1 + legH / 2, cz + 0.3 * a }),
+						WOOD,
+						"Wood",
+						r
+					)
+				),
+				WorldLayout.DEX_MESH
+			),
+			standIn(
+				ghost(block("Shelf", { 14 * a, 0.4 * a, 1.8 * a }, on(0, -3.8, -0.8), WOOD, "WoodPlanks", r)),
+				WorldLayout.DEX_MESH
+			),
+			ghost(block("BarBack", { 12 * a, 0.9 * a, 0.2 * a }, on(0, -2, -0.3), { 25, 25, 35 }, "SmoothPlastic", r)),
+			ghost(block("BarFill", { 12 * a, 0.7 * a, 0.2 * a }, on(0, -2, -0.4), GOO, "Neon", r), 1),
 		},
 	}
-	for k = 1, #Config.RARITIES do
-		local gem = { name = `Gem_{k}`, class = "Part", shape = "Ball", size = { 1.3, 1.3, 1.3 } } :: WorldNode
+	for g = 1, #Config.RARITIES do
+		local d = 1.3 * a
+		local gem = { name = `Gem_{g}`, class = "Part", shape = "Ball", size = { d, d, d } } :: WorldNode
 		-- Front faces read along local -X, so tier 1 sits at +X (the viewer's left).
-		gem.pos, gem.rot = at({ (3.5 - k) * 2.1, 6.25, h - 2 }), r
+		gem.pos, gem.rot = on((3.5 - g) * 2.1, -2.95, -0.8), r
 		gem.color, gem.material = PlotDecor.GEM_OFF, "Glass"
 		table.insert(dex.children :: { WorldNode }, ghost(gem))
 	end

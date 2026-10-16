@@ -18,7 +18,7 @@
 
 	Clusters (map colours, PropClearance zones):
 	  plaza     the plaza edge between the ring path (r 82) and the plot fronts
-	  entrance  lanterns and mailboxes flanking each plot's entrance corridor
+	  entrance  a lantern or a mailbox by each plot's entrance corridor
 	  farm      behind the plots and in the wedges between neighbours
 
 	The fence segments (WorldLayout plot walls), pad stands, plaza showpieces,
@@ -72,8 +72,8 @@ local function onPlot(
 	)
 end
 
--- Budget (tests/WorldBudget.spec): every kit mesh once, plus one lantern and
--- one mailbox per plot entrance. No second copies of a decorative piece.
+-- Budget (tests/WorldBudget.spec): every kit mesh once, plus one entrance
+-- prop per plot (a lantern or a mailbox). No second copies of a decorative piece.
 
 -- Plaza edge -------------------------------------------------------------
 -- Vignettes on the free bisectors (22.5, 112.5, 202.5, 292.5, 337.5) and a
@@ -91,10 +91,15 @@ polar("Planter", "ranch_flower_planter", "plaza", 56, 90, 180, 1.2)
 
 -- Entrances --------------------------------------------------------------
 -- A lantern on the left of the entrance corridor where it meets the ring
--- path, and a mailbox by the gate on the side away from the "Free plot" stand.
+-- path (odd plots), or a mailbox by the gate on the side away from the "Free
+-- plot" stand (even plots). One each a plot paid for the plot DexBoard meshes
+-- (DECOR_SLOT_BUDGET, C6).
 for i = 1, Config.PLOT_COUNT do
-	onPlot(`Lantern_{i}`, "ranch_lantern_post", "entrance", i, -14, -55, 180, 1.2)
-	onPlot(`Mailbox_{i}`, "ranch_mailbox", "entrance", i, 17, -45, 180, 1.2)
+	if i % 2 == 1 then
+		onPlot(`Lantern_{i}`, "ranch_lantern_post", "entrance", i, -14, -55, 180, 1.2)
+	else
+		onPlot(`Mailbox_{i}`, "ranch_mailbox", "entrance", i, 17, -45, 180, 1.2)
+	end
 end
 
 -- Farm -------------------------------------------------------------------
