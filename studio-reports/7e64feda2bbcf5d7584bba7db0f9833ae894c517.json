@@ -8774,5 +8774,10 @@
       ]
     }
   },
-  "frames_dir": "7e64feda2bbcf5d7584bba7db0f9833ae894c517/"
+  "frames_dir": "7e64feda2bbcf5d7584bba7db0f9833ae894c517/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Includes #159. BLOCK: slide probe still 1 violation (segment 3 k=0.90 side=2.4 v=40, ball leaves trough sideways), same as caf7f20/91f9878. Shot 103: desktop daytime whole plot, 8 uniform pads clear (checked at 6c24c87; same shot here). Growth shot: slime framed base-to-top from outside, but no growth label visible in frame and still night lighting (note, not block)."
 }
