@@ -27,12 +27,21 @@ function Fountain.spawnInterval(raining: boolean): number
 end
 
 -- `minTier` (optional, pity) keeps the rarity at or above that tier.
-function Fountain.roll(rng: Rng.Rng, id: string, raining: boolean, minTier: number?): Drop
+-- `luckMult` / `mutationMult` (optional, CycleModifier) scale the rarity luck and mutation chance.
+function Fountain.roll(
+	rng: Rng.Rng,
+	id: string,
+	raining: boolean,
+	minTier: number?,
+	luckMult: number?,
+	mutationMult: number?
+): Drop
+	local baseChance = if raining then Config.RAIN_MUTATION_CHANCE else Config.DROP_MUTATION_CHANCE
 	local slime = Genome.generate(rng, {
 		id = id,
 		minTier = minTier,
-		mutationChance = if raining then Config.RAIN_MUTATION_CHANCE else Config.DROP_MUTATION_CHANCE,
-		luck = if raining then Config.RAIN_LUCK else 1,
+		mutationChance = math.min(1, baseChance * (mutationMult or 1)),
+		luck = (if raining then Config.RAIN_LUCK else 1) * (luckMult or 1),
 	})
 	return {
 		slime = slime,

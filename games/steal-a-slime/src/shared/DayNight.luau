@@ -24,4 +24,17 @@ function DayNight.clockTime(elapsed: number): number
 	return (DayNight.SUNSET + (24 - dayHours) * night) % 24
 end
 
+-- The dawn / dusk phase `elapsed` seconds into the cycle: 0 = first day, 1 = first
+-- night, 2 = second day ... Also returns the seconds left in that phase.
+function DayNight.phase(elapsed: number): (number, number)
+	local e = math.max(elapsed, 0)
+	local cycle = math.floor(e / Config.DAY_LENGTH)
+	local into = e - cycle * Config.DAY_LENGTH
+	local dayLen = Config.DAY_LENGTH * Config.DAY_FRACTION
+	if into < dayLen then
+		return cycle * 2, dayLen - into
+	end
+	return cycle * 2 + 1, Config.DAY_LENGTH - into
+end
+
 return table.freeze(DayNight)

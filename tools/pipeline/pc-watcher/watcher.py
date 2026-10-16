@@ -1423,6 +1423,12 @@ def step_shots(run):
                     if not res["motion"].get("ok"):
                         run.note("shot %s: slime not moving (mode %s, moved %s)" % (
                             sid, res["motion"].get("mode"), res["motion"].get("moved")))
+                if shot.get("slide_walk"):
+                    # B6: free balls dropped onto every slide segment, top to bottom, must never sink under the slide
+                    res["slide_walk"] = run.need_luau("slide_walk", "Server", timeout=90)
+                    if not res["slide_walk"].get("ok"):
+                        run.note("shot %s: fell through the slide: %s" % (
+                            sid, str(res["slide_walk"].get("violations") or res["slide_walk"].get("error"))[:200]))
                 if shot.get("anim") and (res.get("target") or {}).get("path"):
                     # optional uploaded-animation proof: the Client plays it on the pad slime's Animator, waits `wait` s
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
@@ -1446,6 +1452,8 @@ def step_shots(run):
     pressed = [r for r in results if r.get("press")]
     if any(r["press"]["status"] != "pass" for r in pressed):
         return "warn", {"captured": done, "total": len(shots), "shots": results, "press_failed": True}
+    if any(r.get("slide_walk") and not r["slide_walk"].get("ok") for r in results):
+        return "warn", {"captured": done, "total": len(shots), "shots": results, "slide_walk_failed": True}
     return "pass" if (done or pressed) else "warn", {"captured": done, "total": len(shots), "shots": results}
 
 

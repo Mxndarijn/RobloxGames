@@ -2,10 +2,12 @@
 --[[
 	SlideColliders (pure)
 
-	Invisible collision for the low part of the fountain slide (the stretch
-	FountainRide.LOW_SLIDE_Y and below, on posts near the ground), which the
-	visual-only fountain mesh and the non-colliding Chute stand-in leave open:
-	players walked straight through the trough and its posts.
+	Invisible collision for the fountain slide, which the visual-only fountain
+	mesh and the non-colliding Chute stand-in leave open: players walked
+	straight through the trough and its posts, and (playtest B6) fell through
+	everything above FountainRide.LOW_SLIDE_Y, which had no colliders at all.
+	build(path, true) covers the FULL path, top to mouth (FEATURES.SlideCollision);
+	build(path) / false keeps the old low-only stretch.
 
 	Per slide segment a -> b (WorldLayout.SLIDE_PATH, kit trough profile
 	models/slime_fountain.py: half-width HW, lip LIP above the floor, floor
@@ -44,6 +46,7 @@ SlideColliders.FLOOR = 0.7 -- kit -BOT: trough bottom below the floor top
 SlideColliders.WALL = 0.6 -- kit HW - IW: wall thickness
 SlideColliders.MOUTH_SHARE = 0.1 -- last share of the path that flares into the mouth
 SlideColliders.WALK_UNDER = 6 -- trough bottoms lower than this get a skirt (no walking under)
+SlideColliders.MIN_THICK = 2 -- floor slab never thinner than this (a falling player moves ~2 studs a frame)
 SlideColliders.OVERLAP = 0.35 -- extra length so neighbouring segments close their joints
 SlideColliders.FOLDER = "SlideColliders" -- under Map.Volcano
 
@@ -63,12 +66,12 @@ function SlideColliders.isLow(a: Vec, b: Vec): boolean
 	return math.min(a[2], b[2]) <= FountainRide.LOW_SLIDE_Y
 end
 
-function SlideColliders.build(path: { Vec }): { Spec }
+function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 	local out: { Spec } = {}
 	local n = #path
 	for i = 1, n - 1 do
 		local a, b = path[i], path[i + 1]
-		if not SlideColliders.isLow(a, b) then
+		if not full and not SlideColliders.isLow(a, b) then
 			continue
 		end
 		local dx, dy, dz = b[1] - a[1], b[2] - a[2], b[3] - a[3]
@@ -98,7 +101,7 @@ function SlideColliders.build(path: { Vec }): { Spec }
 		end
 		-- Floor: top on the ride line, deep enough under the high end to
 		-- overlap the skirt (flat-topped at the low end's trough bottom).
-		local thick = SlideColliders.FLOOR + math.abs(dy) + 0.2
+		local thick = math.max(SlideColliders.FLOOR + math.abs(dy) + 0.2, SlideColliders.MIN_THICK)
 		table.insert(out, {
 			name = `SlideFloor{i}`,
 			kind = "Floor",

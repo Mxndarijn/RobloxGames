@@ -42,6 +42,7 @@ local STATE_KEYS = {
 	"dexBonus",
 	"stats",
 	"boss",
+	"modifier",
 }
 
 describe("Snapshot.build", function()

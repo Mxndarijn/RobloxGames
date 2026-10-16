@@ -384,6 +384,8 @@ local Config = {
 		DespawnTelegraph = true, -- wild slime models get DespawnAt before they expire; false = silent removal
 		Habitats = true, -- pads turn into their slime's habitat (HABITATS.md); false = pads as before
 		SlimeAnimations = false, -- slimes play the uploaded KeyframeSequences (MeshAssets.ANIMATIONS) once a probe track loads; false = procedural Motor6D motion (ui/SlimeMotor)
+		CycleModifier = true, -- a server modifier (Luck Surge, Mutation Surge, ...) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); needs DayNight; false = no modifier
+		SlideCollision = true, -- invisible colliders along the FULL fountain slide, top to mouth (B6: players fell through above LOW_SLIDE_Y); false = low stretch only
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -396,6 +398,16 @@ local Config = {
 	-- Day / night (FEATURES.DayNight)
 	DAY_LENGTH = 12 * 60, -- seconds per full day
 	DAY_FRACTION = 0.7, -- share of the cycle that is daytime (06:30-17:30)
+
+	-- Server modifier per day / night phase (FEATURES.CycleModifier). Weighted roll at each dawn
+	-- and dusk; `luck` multiplies the rarity weight of tier >= 3 (like RAIN_LUCK), `mutation`
+	-- multiplies the wild mutation chance. "None" must stay (it is the quiet phase).
+	MODIFIERS = table.freeze({
+		table.freeze({ name = "None", label = "None", weight = 5, luck = 1, mutation = 1 }),
+		table.freeze({ name = "LuckSurge", label = "Luck Surge", weight = 3, luck = 2, mutation = 1 }),
+		table.freeze({ name = "MutationSurge", label = "Mutation Surge", weight = 3, luck = 1, mutation = 3 }),
+		table.freeze({ name = "GoldenHour", label = "Golden Hour", weight = 1, luck = 1.5, mutation = 2 }),
+	}),
 
 	-- Daily reward
 	DAILY_BASE = 100,

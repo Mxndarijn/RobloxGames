@@ -81,6 +81,14 @@ export type BossView = {
 	endsAt: number?, -- server time it expires, when active
 }
 
+export type ModifierView = {
+	name: string, -- Config.MODIFIERS name; "None" = quiet phase
+	label: string,
+	luck: number,
+	mutation: number,
+	endsAt: number?, -- server time the dawn / dusk phase ends
+}
+
 export type StatsView = {
 	caught: number,
 	merges: number,
@@ -130,6 +138,7 @@ export type State = {
 	dexBonus: number,
 	stats: StatsView,
 	boss: BossView,
+	modifier: ModifierView, -- FEATURES.CycleModifier
 }
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }
