@@ -67,7 +67,7 @@ export type Wild = {
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
 export type Event = {
-	type: "Notify" | "Escaped" | "Rain" | "Effect" | "Rare",
+	type: "Notify" | "Escaped" | "Rain" | "Effect" | "Rare" | "Drained", -- Drained: a lane slime left down the goo drain (FEATURES.Parade)
 	userId: number?, -- Notify target; nil = everyone
 	text: string?,
 	kind: string?, -- "info" | "good" | "bad"

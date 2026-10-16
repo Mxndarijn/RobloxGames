@@ -369,7 +369,7 @@ local Config = {
 		Minimap = true, -- Visuals.MinimapData points of interest for a UI minimap
 		DespawnTelegraph = true, -- wild slime models get DespawnAt before they expire; false = silent removal
 		Habitats = false, -- pads turn into their slime's habitat (HABITATS.md); false = pads as before
-		Parade = false, -- sketch: wilds walk the goo-parade lane to the drain gate (ParadeLane); false = landing band as before
+		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
 	-- Boss Slime event (FEATURES.BossSlime)

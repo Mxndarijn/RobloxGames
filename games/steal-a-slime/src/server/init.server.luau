@@ -40,6 +40,7 @@ local FountainColliders = require(script.FountainColliders)
 local GameLoop = require(script.GameLoop)
 local Leaderboard = require(script.Leaderboard)
 local MeshSwap = require(script.MeshSwap)
+local ParadeView = require(script.ParadeView)
 local PlotClaim = require(script.PlotClaim)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
@@ -70,6 +71,13 @@ do
 	local ok, err = pcall(FountainColliders.place)
 	if not ok then
 		warn(`[Server] FountainColliders.place failed: {err}`)
+	end
+end
+-- The goo parade lane the wild slimes hop along (FEATURES.Parade).
+if Config.FEATURES.Parade then
+	local ok, err = pcall(ParadeView.place)
+	if not ok then
+		warn(`[Server] ParadeView.place failed: {err}`)
 	end
 end
 -- Slime Ranch kit meshes over the MeshAsset placeholders (yields; never blocks boot).
@@ -228,6 +236,12 @@ local function flushEvents()
 	for _, event in World.drain(world) do
 		if event.type == "Effect" then
 			playEffect(event)
+		end
+		if event.type == "Drained" then
+			local ok, err = pcall(ParadeView.splash, Effects)
+			if not ok then
+				warn(`[Server] drain splash failed: {err}`)
+			end
 		end
 		if event.type == "Rare" then
 			-- Latest Legendary+ drop for client effects (CONTRACT.md §8.4); At changes on every one.
