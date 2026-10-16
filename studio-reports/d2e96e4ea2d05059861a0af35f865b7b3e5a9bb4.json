@@ -9896,5 +9896,10 @@
       ]
     }
   },
-  "frames_dir": "d2e96e4ea2d05059861a0af35f865b7b3e5a9bb4/"
+  "frames_dir": "d2e96e4ea2d05059861a0af35f865b7b3e5a9bb4/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Includes #177 (C3), #176 (C11), #174 (terrain). BLOCK: ring_slimes fails, 25 samples on 3 slimes inside the landing ring at r 4.8-17 / 16.9-34.1 / 34.9-44.4. Those radii match the fountain ride (emerge r 4.8, helix r 17.2, mouth r 35.5, run-out to ring outer edge r 44.4), so most likely the probe counts slimes riding the slide, but that isn't proven; the probe should skip Ride-phase slimes. Night tutorial-arrow variant of shot 103 did not capture: arrow_step (Client) errors 'AssistantCommand:8: attempt to call a nil value'. Passing: fx_streaks ok (1 beam, longest 24 < 30, 0 trails, clock 4.1); slide 0 violations, none spawned inside; shot 103 day frame ok. Terrain #174: write 1.59 s / 1.64 s (two timed re-runs, yields between tiles); phone 60.0 FPS both sizes (p95 18.4 ms); desktop play 57.6 FPS; R15 walking + jumping outward at 4 angles stopped at r 291.5-292 (walls r 292). Part-count check (~1800) not merged; parts 2290 total / 2086 play. Notes: fountain_walk 0.11-stud sinks at r 11.5 (was 0 at 8590b04); plot-skin shots x4 still fail on a Studio tool error; terrain aerial frame blocked by a large glowing bar near the camera (lower left)."
 }
