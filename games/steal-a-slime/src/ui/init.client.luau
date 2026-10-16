@@ -254,29 +254,51 @@ local function styleNav(btn: NavButton, selected: boolean)
 	btn.marker.Visible = selected
 end
 
+-- Open state is derived from the cards' own Visible: the backdrop, nav
+-- highlight and hint follow it, so a card shown or hidden any other way than
+-- setOpen (Esc, a script, a debug tool) can never strand a dim overlay.
+local wasOpen: { [string]: boolean } = {}
+
+local function syncMenus()
+	local visibleKey: string? = nil
+	for _, entry in allPanels do
+		local isOpen = entry.panel.frame.Visible
+		if isOpen and visibleKey == nil then
+			visibleKey = entry.key
+		end
+		if wasOpen[entry.key] ~= isOpen then
+			wasOpen[entry.key] = isOpen
+			if entry.panel.setOpen then
+				entry.panel.setOpen(isOpen)
+			end
+			if isOpen and latest and entry.panel.update then
+				entry.panel.update(latest)
+			end
+		end
+		if navButtons[entry.key] then
+			styleNav(navButtons[entry.key], isOpen)
+		end
+	end
+	openKey = visibleKey
+	backdrop.Visible = visibleKey ~= nil
+	refreshHint()
+end
+
 local function setOpen(key: string?)
-	openKey = key
 	-- Phones: an open panel gets the width the nav labels took.
 	if key and screen and screen.compact and not screen.navCollapsed then
 		navChoice = true
 		applyLayout()
 	end
 	local view = MenuState.view(key, allKeys)
-	backdrop.Visible = view.backdrop
 	for _, entry in allPanels do
-		local isOpen = view.cards[entry.key]
-		entry.panel.frame.Visible = isOpen
-		if entry.panel.setOpen then
-			entry.panel.setOpen(isOpen)
-		end
-		if navButtons[entry.key] then
-			styleNav(navButtons[entry.key], isOpen)
-		end
-		if isOpen and latest and entry.panel.update then
-			entry.panel.update(latest)
-		end
+		entry.panel.frame.Visible = view.cards[entry.key]
 	end
-	refreshHint()
+	syncMenus()
+end
+
+for _, entry in allPanels do
+	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
 end
 
 -- Collapse / expand toggle: navButtons rect [1].
@@ -450,16 +472,6 @@ end
 gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyLayout)
 applyLayout()
 setOpen(nil)
-
--- A card hidden from outside (a script setting its Visible) must not leave the
--- backdrop and nav highlight up with no card on screen: close the menu with it.
-for _, entry in allPanels do
-	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(function()
-		if MenuState.cardHidden(openKey, entry.key, entry.panel.frame.Visible) then
-			setOpen(nil)
-		end
-	end)
-end
 
 -- Studio-only test hook for the PC watcher (tools/pipeline/pc-watcher): setting the
 -- SlimeUI attribute "PcwOpen" to a panel key opens it through the normal setOpen path

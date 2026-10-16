@@ -197,6 +197,7 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 	local accent = color or Theme.Info
 	local frame = create("Frame", {
 		Name = name,
+		Visible = false, -- shown only by setOpen / the menu manager
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Theme.Bg,
 		BackgroundTransparency = 0,
