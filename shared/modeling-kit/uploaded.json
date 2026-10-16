@@ -38,6 +38,19 @@
     "uploadedAt": "2026-10-15T21:28:47Z",
     "versions": 1
   },
+  "phoenix_pad_barrel_top": {
+    "assetId": "82809982076949",
+    "assetType": "Model",
+    "meshId": "rbxassetid://83664398449787",
+    "meshSize": [
+      7.6,
+      2.4,
+      7.084
+    ],
+    "sha256": "673a3ac1ecb19b76",
+    "uploadedAt": "2026-10-16T07:01:11Z",
+    "versions": 1
+  },
   "phoenix_pad_crate": {
     "assetId": "122007188029546",
     "assetType": "Model",
@@ -49,6 +62,19 @@
     ],
     "sha256": "f8ec6ecb3efc80e3",
     "uploadedAt": "2026-10-15T21:28:56Z",
+    "versions": 1
+  },
+  "phoenix_pad_flower_bed": {
+    "assetId": "77026508844150",
+    "assetType": "Model",
+    "meshId": "rbxassetid://118881206271839",
+    "meshSize": [
+      7.788,
+      2.4,
+      7.788
+    ],
+    "sha256": "111e19329394fde8",
+    "uploadedAt": "2026-10-16T07:01:26Z",
     "versions": 1
   },
   "phoenix_pad_goo": {
@@ -75,6 +101,19 @@
     ],
     "sha256": "9a178026af106baf",
     "uploadedAt": "2026-10-15T21:29:10Z",
+    "versions": 1
+  },
+  "phoenix_pad_mushroom": {
+    "assetId": "111001907276189",
+    "assetType": "Model",
+    "meshId": "rbxassetid://116498512852323",
+    "meshSize": [
+      7.8,
+      3.0,
+      7.682
+    ],
+    "sha256": "f1346954626f6fde",
+    "uploadedAt": "2026-10-16T07:01:43Z",
     "versions": 1
   },
   "phoenix_pad_stool": {
@@ -142,6 +181,97 @@
     "uploadedAt": "2026-10-15T21:29:51Z",
     "versions": 1
   },
+  "ranch_barn_loft": {
+    "assetId": "136936166477639",
+    "assetType": "Model",
+    "meshId": "rbxassetid://93201775446947",
+    "meshSize": [
+      13.296,
+      11.352,
+      8.637
+    ],
+    "sha256": "774773ab2230a7d5",
+    "uploadedAt": "2026-10-16T07:01:58Z",
+    "versions": 1
+  },
+  "ranch_barrel": {
+    "assetId": "90074882159030",
+    "assetType": "Model",
+    "meshId": "rbxassetid://112488446568714",
+    "meshSize": [
+      2.536,
+      2.63,
+      2.744
+    ],
+    "sha256": "06a163ef64989b2c",
+    "uploadedAt": "2026-10-16T07:02:17Z",
+    "versions": 1
+  },
+  "ranch_barrel_stack": {
+    "assetId": "90110889022780",
+    "assetType": "Model",
+    "meshId": "rbxassetid://94017107503829",
+    "meshSize": [
+      5.173,
+      5.374,
+      4.675
+    ],
+    "sha256": "4456d6fc28451d6d",
+    "uploadedAt": "2026-10-16T07:02:36Z",
+    "versions": 1
+  },
+  "ranch_bench": {
+    "assetId": "118171478088116",
+    "assetType": "Model",
+    "meshId": "rbxassetid://90081497546543",
+    "meshSize": [
+      6.0,
+      4.017,
+      2.376
+    ],
+    "sha256": "e25db220db111b4f",
+    "uploadedAt": "2026-10-16T07:02:51Z",
+    "versions": 1
+  },
+  "ranch_birdhouse": {
+    "assetId": "131084863003090",
+    "assetType": "Model",
+    "meshId": "rbxassetid://139996286806181",
+    "meshSize": [
+      3.569,
+      7.99,
+      3.361
+    ],
+    "sha256": "24c3d05d43d056bc",
+    "uploadedAt": "2026-10-16T07:03:05Z",
+    "versions": 1
+  },
+  "ranch_campfire": {
+    "assetId": "88092647657367",
+    "assetType": "Model",
+    "meshId": "rbxassetid://133251157496352",
+    "meshSize": [
+      4.266,
+      4.552,
+      4.253
+    ],
+    "sha256": "700ed0be491feb79",
+    "uploadedAt": "2026-10-16T07:03:25Z",
+    "versions": 1
+  },
+  "ranch_compost_bin": {
+    "assetId": "78774416660418",
+    "assetType": "Model",
+    "meshId": "rbxassetid://129045056696870",
+    "meshSize": [
+      5.495,
+      4.802,
+      5.312
+    ],
+    "sha256": "5b5abd69fdeb44fa",
+    "uploadedAt": "2026-10-16T07:03:44Z",
+    "versions": 1
+  },
   "ranch_crate": {
     "assetId": "113390790867779",
     "assetType": "Model",
@@ -168,6 +298,19 @@
     "uploadedAt": "2026-10-15T21:31:08Z",
     "versions": 1
   },
+  "ranch_feed_sacks": {
+    "assetId": "136919381636433",
+    "assetType": "Model",
+    "meshId": "rbxassetid://108537116109553",
+    "meshSize": [
+      5.155,
+      3.458,
+      5.312
+    ],
+    "sha256": "303d3c4b6789c0b2",
+    "uploadedAt": "2026-10-16T07:04:03Z",
+    "versions": 1
+  },
   "ranch_feed_trough": {
     "assetId": "122284008329780",
     "assetType": "Model",
@@ -179,6 +322,84 @@
     ],
     "sha256": "f68ed529000e333e",
     "uploadedAt": "2026-10-15T21:31:20Z",
+    "versions": 1
+  },
+  "ranch_fence_stile": {
+    "assetId": "109953899748949",
+    "assetType": "Model",
+    "meshId": "rbxassetid://121810118872882",
+    "meshSize": [
+      4.85,
+      4.6,
+      4.1
+    ],
+    "sha256": "be06a1e426b1ac72",
+    "uploadedAt": "2026-10-16T07:04:20Z",
+    "versions": 1
+  },
+  "ranch_flower_planter": {
+    "assetId": "119401948136413",
+    "assetType": "Model",
+    "meshId": "rbxassetid://79181201141280",
+    "meshSize": [
+      5.2,
+      3.191,
+      2.0
+    ],
+    "sha256": "c0a8ee864ed4357b",
+    "uploadedAt": "2026-10-16T07:04:45Z",
+    "versions": 1
+  },
+  "ranch_goo_bucket": {
+    "assetId": "129790019317485",
+    "assetType": "Model",
+    "meshId": "rbxassetid://102042715713279",
+    "meshSize": [
+      2.164,
+      2.816,
+      2.09
+    ],
+    "sha256": "d1b055a6fb0e5a6b",
+    "uploadedAt": "2026-10-16T07:05:00Z",
+    "versions": 1
+  },
+  "ranch_goo_drain": {
+    "assetId": "126810189276613",
+    "assetType": "Model",
+    "meshId": "rbxassetid://104526734095121",
+    "meshSize": [
+      8.8,
+      4.45,
+      9.75
+    ],
+    "sha256": "99f9cfe183166110",
+    "uploadedAt": "2026-10-16T07:05:19Z",
+    "versions": 1
+  },
+  "ranch_goo_hive": {
+    "assetId": "107632231989974",
+    "assetType": "Model",
+    "meshId": "rbxassetid://83216405009839",
+    "meshSize": [
+      3.82,
+      5.715,
+      4.783
+    ],
+    "sha256": "2498d49d9eee6973",
+    "uploadedAt": "2026-10-16T07:05:42Z",
+    "versions": 1
+  },
+  "ranch_goo_sign": {
+    "assetId": "77535983276457",
+    "assetType": "Model",
+    "meshId": "rbxassetid://128222132547695",
+    "meshSize": [
+      8.8,
+      8.205,
+      3.746
+    ],
+    "sha256": "6405f7accd0ca678",
+    "uploadedAt": "2026-10-16T07:05:52Z",
     "versions": 1
   },
   "ranch_hay_bale": {
@@ -194,6 +415,110 @@
     "uploadedAt": "2026-10-15T21:32:39Z",
     "versions": 1
   },
+  "ranch_hitching_post": {
+    "assetId": "72600230488672",
+    "assetType": "Model",
+    "meshId": "rbxassetid://115907048572572",
+    "meshSize": [
+      7.32,
+      4.815,
+      3.155
+    ],
+    "sha256": "ac4b0314cebd54dd",
+    "uploadedAt": "2026-10-16T07:06:05Z",
+    "versions": 1
+  },
+  "ranch_horseshoe_pit": {
+    "assetId": "111228780556669",
+    "assetType": "Model",
+    "meshId": "rbxassetid://118739723434350",
+    "meshSize": [
+      9.5,
+      1.8,
+      4.7
+    ],
+    "sha256": "885e0126a392e68b",
+    "uploadedAt": "2026-10-16T07:06:26Z",
+    "versions": 1
+  },
+  "ranch_landing_ring": {
+    "assetId": "126479458852729",
+    "assetType": "Model",
+    "meshId": "rbxassetid://105175088358977",
+    "meshSize": [
+      13.145,
+      3.145,
+      10.27
+    ],
+    "sha256": "4d63700b98f57650",
+    "uploadedAt": "2026-10-16T07:06:45Z",
+    "versions": 1
+  },
+  "ranch_lantern_post": {
+    "assetId": "124004679363569",
+    "assetType": "Model",
+    "meshId": "rbxassetid://99456773451008",
+    "meshSize": [
+      3.65,
+      9.3,
+      1.6
+    ],
+    "sha256": "ca5145b4f768ba68",
+    "uploadedAt": "2026-10-16T07:07:06Z",
+    "versions": 1
+  },
+  "ranch_log_pile": {
+    "assetId": "112182235851209",
+    "assetType": "Model",
+    "meshId": "rbxassetid://107529832767130",
+    "meshSize": [
+      10.935,
+      4.011,
+      6.812
+    ],
+    "sha256": "187143643268d6df",
+    "uploadedAt": "2026-10-16T07:07:21Z",
+    "versions": 1
+  },
+  "ranch_mailbox": {
+    "assetId": "123381594112643",
+    "assetType": "Model",
+    "meshId": "rbxassetid://103027857940649",
+    "meshSize": [
+      1.38,
+      5.375,
+      2.72
+    ],
+    "sha256": "48b4f92a98f002f1",
+    "uploadedAt": "2026-10-16T07:07:45Z",
+    "versions": 1
+  },
+  "ranch_milk_churn": {
+    "assetId": "108899144560348",
+    "assetType": "Model",
+    "meshId": "rbxassetid://116671673754337",
+    "meshSize": [
+      2.654,
+      6.092,
+      2.501
+    ],
+    "sha256": "619f7c0c49d744b5",
+    "uploadedAt": "2026-10-16T07:08:01Z",
+    "versions": 1
+  },
+  "ranch_picnic_table": {
+    "assetId": "71355911689705",
+    "assetType": "Model",
+    "meshId": "rbxassetid://71215318304529",
+    "meshSize": [
+      8.12,
+      3.413,
+      5.96
+    ],
+    "sha256": "59d32afebec8b9f5",
+    "uploadedAt": "2026-10-16T07:08:21Z",
+    "versions": 1
+  },
   "ranch_plaza_signpost": {
     "assetId": "131934867179344",
     "assetType": "Model",
@@ -205,6 +530,45 @@
     ],
     "sha256": "65c3dd14a6a08f1b",
     "uploadedAt": "2026-10-15T21:30:09Z",
+    "versions": 1
+  },
+  "ranch_pumpkin_patch": {
+    "assetId": "94668742255879",
+    "assetType": "Model",
+    "meshId": "rbxassetid://72341810437307",
+    "meshSize": [
+      6.483,
+      2.712,
+      6.361
+    ],
+    "sha256": "92b3493c2533b677",
+    "uploadedAt": "2026-10-16T07:08:37Z",
+    "versions": 1
+  },
+  "ranch_rain_barrel": {
+    "assetId": "91251063973173",
+    "assetType": "Model",
+    "meshId": "rbxassetid://106971241039005",
+    "meshSize": [
+      3.316,
+      5.55,
+      5.458
+    ],
+    "sha256": "38521a21c3524108",
+    "uploadedAt": "2026-10-16T07:08:54Z",
+    "versions": 1
+  },
+  "ranch_scarecrow": {
+    "assetId": "73025478213217",
+    "assetType": "Model",
+    "meshId": "rbxassetid://91953749943371",
+    "meshSize": [
+      7.183,
+      9.028,
+      3.5
+    ],
+    "sha256": "625bed9be30e935a",
+    "uploadedAt": "2026-10-16T07:09:13Z",
     "versions": 1
   },
   "ranch_shed": {
@@ -231,6 +595,136 @@
     ],
     "sha256": "f0aaf1aa3ff94bbe",
     "uploadedAt": "2026-10-15T21:30:18Z",
+    "versions": 1
+  },
+  "ranch_slime_coop": {
+    "assetId": "81746564089646",
+    "assetType": "Model",
+    "meshId": "rbxassetid://136565106617929",
+    "meshSize": [
+      7.4,
+      7.687,
+      7.796
+    ],
+    "sha256": "0899df88fbfd91f5",
+    "uploadedAt": "2026-10-16T07:09:28Z",
+    "versions": 1
+  },
+  "ranch_sunflower_patch": {
+    "assetId": "104428165124733",
+    "assetType": "Model",
+    "meshId": "rbxassetid://87297529974712",
+    "meshSize": [
+      8.715,
+      8.758,
+      6.098
+    ],
+    "sha256": "73f88f5b52515785",
+    "uploadedAt": "2026-10-16T07:09:42Z",
+    "versions": 1
+  },
+  "ranch_tool_rack": {
+    "assetId": "102189689759823",
+    "assetType": "Model",
+    "meshId": "rbxassetid://130140702226639",
+    "meshSize": [
+      7.7,
+      8.07,
+      3.0
+    ],
+    "sha256": "13f620fe5e099af5",
+    "uploadedAt": "2026-10-16T07:09:57Z",
+    "versions": 1
+  },
+  "ranch_wagon": {
+    "assetId": "91242028044762",
+    "assetType": "Model",
+    "meshId": "rbxassetid://95963906904617",
+    "meshSize": [
+      9.915,
+      3.011,
+      5.763
+    ],
+    "sha256": "588b463762d8cc4f",
+    "uploadedAt": "2026-10-16T07:10:07Z",
+    "versions": 1
+  },
+  "ranch_water_pump": {
+    "assetId": "128284874715800",
+    "assetType": "Model",
+    "meshId": "rbxassetid://76562754886833",
+    "meshSize": [
+      3.84,
+      4.35,
+      4.907
+    ],
+    "sha256": "1bb2c67d0dba2cbf",
+    "uploadedAt": "2026-10-16T07:10:28Z",
+    "versions": 1
+  },
+  "ranch_water_trough": {
+    "assetId": "124856674298679",
+    "assetType": "Model",
+    "meshId": "rbxassetid://115074644334448",
+    "meshSize": [
+      9.65,
+      3.6,
+      3.2
+    ],
+    "sha256": "1022923af77ea06e",
+    "uploadedAt": "2026-10-16T07:10:47Z",
+    "versions": 1
+  },
+  "ranch_weathervane": {
+    "assetId": "125246498199341",
+    "assetType": "Model",
+    "meshId": "rbxassetid://105542335148912",
+    "meshSize": [
+      5.05,
+      8.555,
+      3.444
+    ],
+    "sha256": "159cbf3169e635d4",
+    "uploadedAt": "2026-10-16T07:11:06Z",
+    "versions": 1
+  },
+  "ranch_well": {
+    "assetId": "128188556443255",
+    "assetType": "Model",
+    "meshId": "rbxassetid://76225156610924",
+    "meshSize": [
+      6.9,
+      7.725,
+      5.511
+    ],
+    "sha256": "2d7e665a42aa8100",
+    "uploadedAt": "2026-10-16T07:11:19Z",
+    "versions": 1
+  },
+  "ranch_wheelbarrow": {
+    "assetId": "76889567988116",
+    "assetType": "Model",
+    "meshId": "rbxassetid://109036150127137",
+    "meshSize": [
+      6.595,
+      3.45,
+      3.799
+    ],
+    "sha256": "6a31e56e507185e6",
+    "uploadedAt": "2026-10-16T07:11:35Z",
+    "versions": 1
+  },
+  "ranch_windmill": {
+    "assetId": "122612940835932",
+    "assetType": "Model",
+    "meshId": "rbxassetid://120542952502577",
+    "meshSize": [
+      8.382,
+      17.386,
+      9.65
+    ],
+    "sha256": "0416cc2e85e3a4df",
+    "uploadedAt": "2026-10-16T07:11:56Z",
     "versions": 1
   },
   "slime_fountain": {
