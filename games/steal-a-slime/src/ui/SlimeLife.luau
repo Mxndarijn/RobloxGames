@@ -66,6 +66,7 @@ export type Candidate = {
 	state: string?,
 	despawning: boolean?,
 	tier: number?,
+	onScreen: boolean?, -- false = outside the camera view (nil = unknown, counts as visible)
 }
 
 export type Clock = {
@@ -122,6 +123,9 @@ end
 
 function SlimeLife.eligible(c: Candidate, wasActive: boolean?): boolean
 	if not (c.state and SlimeLife.STATES[c.state]) or c.despawning then
+		return false
+	end
+	if c.onScreen == false then
 		return false
 	end
 	local limit = if wasActive then SlimeLife.KEEP_DISTANCE else SlimeLife.MAX_DISTANCE
