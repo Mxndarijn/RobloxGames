@@ -115,11 +115,17 @@ local loadingVolcano, loadingMap = loading.volcano, loading.map
 local failedVolcano, failedMap = failed.volcano, failed.map
 local loadedVolcano, loadedMap = loaded.volcano, loaded.map
 require("@lune/fs").removeFile(path)
--- Colliding parts nobody can see, under the fountain and its slide.
+-- Colliding parts nobody can see, under the fountain and its slide. The
+-- low slide's own colliders (Volcano.SlideColliders, on in every state where
+-- the slide is drawn) are checked in SlideColliders.spec.
 local function invisibleColliders(map): { string }
 	local out = {}
+	local slide = map.Volcano:FindFirstChild("SlideColliders")
 	for _, root in { map.Volcano, map.Chute } do
 		for _, d in root:GetDescendants() do
+			if slide and d:IsDescendantOf(slide) then
+				continue
+			end
 			if d:IsA("BasePart") and d.CanCollide and d.Transparency >= 1 then
 				table.insert(out, d.Name)
 			end

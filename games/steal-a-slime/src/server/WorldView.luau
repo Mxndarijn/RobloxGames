@@ -31,7 +31,7 @@ local Collection = require(ReplicatedStorage.Shared.Collection)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local FallbackWorld = require(script.Parent.FallbackWorld)
-local Fountain = require(ReplicatedStorage.Shared.Fountain)
+local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
@@ -51,7 +51,14 @@ local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 local WorldProps = require(script.Parent.WorldProps)
 
-type Record = { model: Model, body: BasePart, prompt: ProximityPrompt, key: string, weld: WeldConstraint? }
+type Record = {
+	model: Model,
+	body: BasePart,
+	prompt: ProximityPrompt,
+	key: string,
+	weld: WeldConstraint?,
+	rideUntil: number, -- os.clock() when the fountain ride lands (0 = not riding)
+}
 
 local WorldView = {}
 
@@ -61,7 +68,6 @@ local modelFactory: any = nil
 local plotCache: { [number]: Instance? } = {}
 local habitats = HabitatPads.new() -- FEATURES.Habitats pad state (never saved)
 
-WorldView.DROP_SECONDS = 2.4 -- long enough to read the spiral ride down the fountain
 WorldView.FALL_SECONDS = 0.3 -- a dropped slime falls to the ground
 WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart
 
@@ -199,8 +205,13 @@ WorldView.DROP_RAY_DEPTH = 200
 
 local function volcanoLanding(wild: World.Wild): CFrame
 	local origin = crater()
-	local offset = Vector3.new(math.cos(wild.angle), 0, math.sin(wild.angle)) * wild.radius
-	local spot = origin + offset
+	-- Landings on the low slide's footprint move out past it (FountainRide.clearLanding).
+	local x, z = FountainRide.clearLanding(
+		WorldLayout.SLIDE_PATH,
+		math.cos(wild.angle) * wild.radius,
+		math.sin(wild.angle) * wild.radius
+	)
+	local spot = origin + Vector3.new(x, 0, z)
 	return surfaceBelow(Vector3.new(spot.X, origin.Y + 200, spot.Z), 400) or CFrame.new(spot.X, 0, spot.Z)
 end
 
@@ -252,50 +263,21 @@ local function arc(from: CFrame, to: CFrame, height: number): (t: number) -> CFr
 	end
 end
 
--- Fountain spiral (WorldLayout.SLIDE_PATH), then a run out to the rolled
--- landing that curls round the fountain (Fountain.runOut) instead of a
--- straight line through it. The primitive chute copies the same path and
--- hides once the mesh is in, so wilds are not sent down the old straight slide.
-WorldView.SLIDE_SHARE = 0.75 -- of DROP_SECONDS on the spiral, the rest on the run-out
-WorldView.TURN_SHARE = 0.2 -- of the run-out spent turning from the slide heading
-
-local function slideCFrame(t: number): CFrame
-	local path = WorldLayout.SLIDE_PATH
-	local f = math.clamp(t, 0, 1) * (#path - 1)
-	local i = math.min(math.floor(f), #path - 2) -- t = 1 keeps the last segment's heading
-	local k = f - i
-	local a, b = path[i + 1], path[i + 2]
-	local p = Vector3.new(a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, a[3] + (b[3] - a[3]) * k)
-	local dir = Vector3.new(b[1] - a[1], b[2] - a[2], b[3] - a[3])
-	if dir.Magnitude < 1e-3 then
-		return CFrame.new(p)
-	end
-	return CFrame.lookAt(p, p + dir)
-end
-
-local function spiralRide(landing: CFrame): (t: number) -> CFrame
-	local mouth = WorldLayout.slidePosition(1)
-	local to = { landing.X, landing.Y, landing.Z }
-	local exitRotation = slideCFrame(1).Rotation
-	local function at(u: number): Vector3
-		return Vector3.new(Fountain.runOut(mouth, to, u))
-	end
-	return function(t: number): CFrame
-		local split = WorldView.SLIDE_SHARE
-		if t < split then
-			return slideCFrame(t / split)
+-- The fountain ride (FountainRide): out of the goo crown, down every
+-- waypoint of the spiral (WorldLayout.SLIDE_PATH), out of the mouth and round
+-- the plaza to the landing, clear of the low slide. The model stays anchored
+-- and is pivoted along it; the final pivot is exactly `landing`.
+local function fountainRide(landing: CFrame): (number, (t: number) -> CFrame)
+	local ride = FountainRide.new(WorldLayout.SLIDE_PATH, { landing.X, landing.Y, landing.Z })
+	return ride.duration,
+		function(t: number): CFrame
+			if t >= 1 then
+				return landing
+			end
+			local p, dir = FountainRide.sample(ride, t * ride.duration)
+			local at = Vector3.new(p[1], p[2], p[3])
+			return CFrame.lookAt(at, at + Vector3.new(dir[1], dir[2], dir[3]))
 		end
-		local u = (t - split) / (1 - split)
-		local p = at(u)
-		local dir = at(math.min(u + 0.01, 1)) - at(math.max(u - 0.01, 0))
-		dir = Vector3.new(dir.X, 0, dir.Z)
-		if dir.Magnitude < 1e-3 then
-			return exitRotation + p
-		end
-		local facing = CFrame.lookAt(Vector3.zero, dir)
-		-- Ease out of the slide's heading: no snap at the hand-off.
-		return exitRotation:Lerp(facing, math.min(u / WorldView.TURN_SHARE, 1)) + p
-	end
 end
 
 local function create(entry: Scene.Entry, onPrompt: (Player, string) -> ()): Record?
@@ -325,7 +307,7 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> ()): Rec
 	prompt.Triggered:Connect(function(player: Player)
 		onPrompt(player, id)
 	end)
-	return { model = model, body = body, prompt = prompt, key = "", weld = nil }
+	return { model = model, body = body, prompt = prompt, key = "", weld = nil, rideUntil = 0 }
 end
 
 local function unweld(record: Record)
@@ -364,6 +346,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 
 	local from = model:GetPivot()
 	unweld(record)
+	record.rideUntil = 0
 	if entry.state == "Wild" then
 		model.Parent = workspace:FindFirstChild(Constants.WILD_FOLDER)
 		local wild = entry.wild
@@ -372,7 +355,9 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 		end
 		local landing = wildLanding(wild)
 		if previous == nil and wild.position == nil then
-			animate(entry.id, entry.key, WorldView.DROP_SECONDS, spiralRide(landing))
+			local seconds, ride = fountainRide(landing)
+			record.rideUntil = os.clock() + seconds
+			animate(entry.id, entry.key, seconds, ride)
 		elseif previous ~= nil and wild.position ~= nil then
 			animate(entry.id, entry.key, WorldView.FALL_SECONDS, function(t: number): CFrame
 				return from:Lerp(landing, t * t) -- falls out of the carrier's arms
@@ -439,9 +424,14 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 			end
 		elseif ParadeLane.enabled() and entry.state == "Wild" then
 			-- Parade: the key stays the same while the slime walks the lane (Spawner moves angle);
-			-- follow it once the slide ride (HOP_SECONDS) is over.
+			-- follow it once the fountain ride has landed.
 			local wild = entry.wild
-			if wild and wild.position == nil and now >= wild.spawnedAt + ParadeLane.HOP_SECONDS then
+			if
+				wild
+				and wild.position == nil
+				and now >= wild.spawnedAt + ParadeLane.HOP_SECONDS
+				and os.clock() >= record.rideUntil
+			then
 				record.model:PivotTo(volcanoLanding(wild))
 			end
 		end

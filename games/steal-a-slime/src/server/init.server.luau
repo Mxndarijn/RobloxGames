@@ -36,6 +36,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Actions = require(script.Actions)
 local Carry = require(script.Carry)
 local DataService = require(script.DataService)
+local FountainColliders = require(script.FountainColliders)
 local GameLoop = require(script.GameLoop)
 local Leaderboard = require(script.Leaderboard)
 local MeshSwap = require(script.MeshSwap)
@@ -62,6 +63,13 @@ do
 	local ok, err = pcall(WorldProps.place)
 	if not ok then
 		warn(`[Server] WorldProps.place failed: {err}`)
+	end
+end
+-- The low fountain slide blocks players (its trough and posts were walk-through).
+do
+	local ok, err = pcall(FountainColliders.place)
+	if not ok then
+		warn(`[Server] FountainColliders.place failed: {err}`)
 	end
 end
 -- Slime Ranch kit meshes over the MeshAsset placeholders (yields; never blocks boot).
