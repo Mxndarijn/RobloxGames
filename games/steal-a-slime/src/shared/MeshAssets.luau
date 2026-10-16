@@ -209,11 +209,12 @@ entries["ranch_rail_fence"] = { size = { 11.974, 4.83, 1.652 } }
 entries["ranch_pine_cluster"] = { size = { 14.184, 16.426, 10.241 } }
 entries["ranch_border_hill"] = { size = { 29, 9.009, 17.296 } }
 entries["ranch_border_rocks"] = { size = { 12.733, 6.131, 7.809 } }
--- Habitat mesh slots (Habitats.MESH_SLOTS, HABITATS.md): Archer #57 models,
--- not uploaded yet, so no ids. Sizes from models/FOUNTAIN_SIZES.md (seat 2.4).
--- HabitatFx draws its primitive placeholder until a meshId lands here.
-entries["habitat_crystal_grotto"] = { size = { 7.8, 5.0, 7.8 } }
-entries["habitat_candy_patch"] = { size = { 7.8, 4.5, 7.8 } }
+-- Habitat mesh slots (Habitats.MESH_SLOTS, HABITATS.md): Archer #57 models.
+-- Sizes from Open Cloud size-check (seat 2.4 per FOUNTAIN_SIZES.md).
+entries["habitat_crystal_grotto"] =
+	{ assetId = 109901060316213, meshId = "rbxassetid://87315770149394", size = { 7.8, 5.0, 7.8 } }
+entries["habitat_candy_patch"] =
+	{ assetId = 133666024913667, meshId = "rbxassetid://114045594160776", size = { 7.8, 4.5, 7.8 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)

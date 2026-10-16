@@ -1,4 +1,30 @@
 {
+  "habitat_candy_patch": {
+    "assetId": "133666024913667",
+    "assetType": "Model",
+    "meshId": "rbxassetid://114045594160776",
+    "meshSize": [
+      7.8,
+      4.5,
+      7.8
+    ],
+    "sha256": "a6835d32ed9a081e",
+    "uploadedAt": "2026-10-16T08:04:33Z",
+    "versions": 1
+  },
+  "habitat_crystal_grotto": {
+    "assetId": "109901060316213",
+    "assetType": "Model",
+    "meshId": "rbxassetid://87315770149394",
+    "meshSize": [
+      7.8,
+      5.0,
+      7.8
+    ],
+    "sha256": "aad5848e61f94577",
+    "uploadedAt": "2026-10-16T08:04:12Z",
+    "versions": 1
+  },
   "phoenix_corner_post": {
     "assetId": "122993526477202",
     "assetType": "Model",

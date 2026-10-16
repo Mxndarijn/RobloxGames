@@ -76,6 +76,10 @@ local emits = 0
 roblox.implementMethod("ParticleEmitter", "Emit", function() -- engine-only; counted here
 	emits += 1
 end)
+-- Clear habitat meshIds so the placeholder path still runs even after uploads.
+local meshAssets = rt:require(rt.game:GetService("ReplicatedStorage").Shared.MeshAssets)
+meshAssets.entries.habitat_crystal_grotto.meshId = nil
+meshAssets.entries.habitat_candy_patch.meshId = nil
 local HabitatFx = rt:require(rt.game:GetService("StarterPlayer").StarterPlayerScripts.VisualsClient.HabitatFx)
 local plots = rt.workspace:FindFirstChild("Plots")
 HabitatFx.attach(plots)
@@ -160,8 +164,7 @@ local afterCount = HabitatFx.count()
 HabitatFx.clear()
 
 -- Same pad once habitat_crystal_grotto has a meshId (set on the runtime's
--- MeshAssets copy only; the repo has none yet): one FileMesh piece.
-local meshAssets = rt:require(rt.game:GetService("ReplicatedStorage").Shared.MeshAssets)
+-- MeshAssets copy only for this case): one FileMesh piece.
 meshAssets.entries.habitat_crystal_grotto.meshId = "rbxassetid://123"
 part:SetAttribute("Habitat", "crystal_grotto")
 local meshConns = HabitatFx.attach(plots)
@@ -179,7 +182,6 @@ for _, c in meshConns do
 	c:Disconnect()
 end
 HabitatFx.clear()
-meshAssets.entries.habitat_crystal_grotto.meshId = nil
 
 describe("Habitats live (FEATURES.Habitats on, fake runtime)", function()
 	it("boots without script errors", function()
