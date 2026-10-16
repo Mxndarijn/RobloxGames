@@ -34,9 +34,15 @@ end
 if count == 0 then
 	return { ok = false, error = "no SlideFloor parts" }
 end
-local function surface(p, k)
-	local overlap = 0.35
-	return p.Position + p.CFrame.UpVector * (p.Size.Y / 2) + p.CFrame.LookVector * ((k - 0.5) * (p.Size.Z - overlap))
+-- Slabs reach OVERLAP / 2 past each join (SlideColliders.OVERLAP); the head and the mouth ends only END_EXTRA.
+local OVERLAP, END_EXTRA = 1.5, 0.175
+local function surface(i, p, k)
+	local before = if i > 1 then OVERLAP / 2 else END_EXTRA
+	local after = if i < #floors then OVERLAP / 2 else END_EXTRA
+	local length = p.Size.Z - before - after
+	return p.Position
+		+ p.CFrame.UpVector * (p.Size.Y / 2)
+		+ p.CFrame.LookVector * ((k - 0.5) * length - (before - after) / 2)
 end
 -- Clearance of a ball centre above the top face of the floor slab it is over; nil when not over one.
 local function clearance(pos)
@@ -90,7 +96,7 @@ for i = 1, #floors do
 		continue
 	end
 	for _, k in { 0, 0.02, 0.05, 0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.98, 1 } do
-		local s = surface(p, k)
+		local s = surface(i, p, k)
 		topY, bottomY = math.max(topY, s.Y), math.min(bottomY, s.Y)
 		for _, side in { 0, -2.4, 2.4 } do
 			if side ~= 0 and k < 0.9 and k > 0.1 then
