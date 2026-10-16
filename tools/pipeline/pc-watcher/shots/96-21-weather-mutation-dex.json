@@ -3,5 +3,7 @@
   "todo": "21",
   "kind": "ui",
   "open": "dex",
-  "note": "TODO 21: Dex menu lists the weather mutations Wet (Rain) and Frozen (Snow) with their own swatches next to the older mutations (FEATURES.WeatherMutations, save v5)"
+  "note": "TODO 21: Dex menu lists the weather mutations Wet (Rain) and Frozen (Snow) with their own swatches next to the older mutations (FEATURES.WeatherMutations, save v5)",
+  "dex_weather": true,
+  "scroll_to": "1:Frozen:Plain:Round"
 }
