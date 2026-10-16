@@ -1,4 +1,32 @@
 {
+  "SlimeHop": {
+    "assetId": "115750614378002",
+    "assetType": "Animation",
+    "sha256": "b39baa7ed7b04bd2",
+    "uploadedAt": "2026-10-16T11:27:11Z",
+    "versions": 1
+  },
+  "SlimeIdleSquish": {
+    "assetId": "84521119840854",
+    "assetType": "Animation",
+    "sha256": "1a0e64c1e2aa45f4",
+    "uploadedAt": "2026-10-16T11:27:08Z",
+    "versions": 1
+  },
+  "SlimeLookLeft": {
+    "assetId": "92824733933660",
+    "assetType": "Animation",
+    "sha256": "a1dae8ad341c4a94",
+    "uploadedAt": "2026-10-16T11:27:14Z",
+    "versions": 1
+  },
+  "SlimeLookRight": {
+    "assetId": "128985562979073",
+    "assetType": "Animation",
+    "sha256": "b14f1819114711bc",
+    "uploadedAt": "2026-10-16T11:27:16Z",
+    "versions": 1
+  },
   "habitat_barn_crate": {
     "assetId": "89583070931756",
     "assetType": "Model",
