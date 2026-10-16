@@ -36,6 +36,8 @@ export type GenerateOptions = {
 	mutationChance: number?, -- default Config.DROP_MUTATION_CHANCE
 	luck: number?, -- multiplies weights of tier >= 3 (Slime Rain)
 	minTier: number?, -- pity: never roll below this tier
+	weeklyMutation: string?, -- WeeklyEvents boost: this mutation gets `weeklyBonus` extra roll range
+	weeklyBonus: number?,
 }
 
 local NAME_START = { "Bl", "Gl", "Sq", "Wob", "J", "Goo", "Pud", "Sl", "Fl", "Z", "Mu", "Dr" }
@@ -249,10 +251,25 @@ end
 -- Returns "None" unless `chanceRoll < chance`, then picks a mutation by weight. While a weather with a
 -- mutation is current, the next `chanceBonus` of the roll range (chance <= roll < chance + bonus) lands on
 -- that weather's mutation, so its chance is raised and no other mutation's is.
-function Genome.rollMutation(chanceRoll: number, pickRoll: number, chance: number): string
+-- `weeklyMutation` / `weeklyBonus` (optional, WeeklyEvents) add one more window of `weeklyBonus` right after the
+-- weather one, so the week's mutation is raised the same way and no other mutation's chance changes.
+function Genome.rollMutation(
+	chanceRoll: number,
+	pickRoll: number,
+	chance: number,
+	weeklyMutation: string?,
+	weeklyBonus: number?
+): string
 	if chanceRoll >= chance then
-		if weatherMutation and chanceRoll < chance + weatherBonus then
+		local edge = chance
+		if weatherMutation and chanceRoll < edge + weatherBonus then
 			return weatherMutation
+		end
+		if weatherMutation then
+			edge += weatherBonus
+		end
+		if weeklyMutation and chanceRoll < edge + (weeklyBonus or 0) then
+			return weeklyMutation
 		end
 		return "None"
 	end
@@ -287,7 +304,7 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 		then math.clamp(math.floor(options.tier), 1, Config.MAX_TIER)
 		else Genome.rollTier(rng:float(), options.luck, options.minTier)
 	local chance = options.mutationChance or Config.DROP_MUTATION_CHANCE
-	local mutation = Genome.rollMutation(rng:float(), rng:float(), chance)
+	local mutation = Genome.rollMutation(rng:float(), rng:float(), chance, options.weeklyMutation, options.weeklyBonus)
 	-- Bright, saturated colours: one channel high, one low, one random.
 	local channels = { rng:int(200, 255), rng:int(30, 90), rng:int(40, 255) }
 	local order = rng:int(1, 6)

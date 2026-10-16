@@ -36,6 +36,7 @@ return table.freeze({
 	SNOW_ENDED_ATTRIBUTE = "SnowEndedAt", -- workspace, server time Snow last ended; cleared (nil) while Snow shows. Late joiners derive ground snow from both
 	WEATHER_DEBUG_ATTRIBUTE = "WeatherDebug", -- workspace, set on ONE client only (pc-watcher shots): forces that weather's visuals
 	SNOW_COVER_DEBUG_ATTRIBUTE = "SnowCoverDebug", -- workspace, client-local number 0..1 (pc-watcher snow shots): pins the ground snow cover level
+	WEEKLY_EVENT_ATTRIBUTE = "WeeklyEvent", -- workspace string, set by the server (WeeklyEventService): WeeklyEvents.encode; absent while FEATURES.WeeklyEvents is off
 	RAIN_ATTRIBUTE = "SlimeRain", -- workspace: true during Slime Rain
 	RAIN_ACTIVE_ATTRIBUTE = "RainActive", -- workspace: same as SlimeRain
 	RAIN_ENDS_AT_ATTRIBUTE = "RainEndsAt", -- workspace: server time, while raining
