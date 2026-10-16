@@ -696,7 +696,7 @@ def step_launch(run):
               "seconds_to_ready": round(run.cfg["launch_timeout_s"] - (deadline - time.time()), 1)}
     # Edit-time frame from MCP screen_capture (soft).
     try:
-        shot = run.tool("screen_capture", timeout=60)
+        shot = run.tool("screen_capture", timeout=60, capture_id="pcw-edit")
         img = shot.image_bytes()
         if img:
             name = save_mcp_image(run, img, "edit")
@@ -1235,7 +1235,7 @@ def phone_perf_at_device(run, hwnd, device, first):
         stats = run.need_luau("phone_perf", "Client", timeout=seconds + 60, seconds=seconds)
         res.update({k: _r(stats.get(k)) for k in ("avg_ms", "p95_ms", "max_ms", "fps", "memory_mb", "animating",
                                                   "animating_at_start", "slimes_near", "frames", "viewport")})
-        info = capture_frame(run, hwnd, "phone-perf-" + device, crop=True, kind="perf", device=device)
+        info = capture_frame(run, hwnd, "phone-perf-" + device, crop=True, kind="perf", for_device=device)
         res["frame"] = info.get("file")
         ok, problems = phone_perf_verdict(stats, run.cfg["phone_min_fps"], run.cfg["phone_min_slimes"])
         res["pass"] = ok
