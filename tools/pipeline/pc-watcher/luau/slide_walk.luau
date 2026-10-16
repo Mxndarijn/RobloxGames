@@ -1,6 +1,6 @@
 -- Server datamodel: B6 HARD proof, nobody falls through or out of the fountain slide, very top to bottom.
 -- For every SlideFloor<i> collider (Map.Volcano.SlideColliders, in path order, head first) drops free 2-stud
--- balls (CanCollide, unanchored: stand in for a player) from 4 studs above the surface at 12 positions per
+-- balls (CanCollide, unanchored: stand in for a player) from 5 studs above the surface at 12 positions per
 -- segment (k = 0, .02, .05, .1, .25, .5, .75, .9, .95, .98, 1 and 1 again) at the centre, plus two lateral
 -- offsets at the joins, each once at rest and once launched down the slide at 40 studs/s (the speed that
 -- tunnelled / hopped the bends), and watches them for 1.5 s. Balls sit in their own collision group that
@@ -35,7 +35,7 @@ if count == 0 then
 	return { ok = false, error = "no SlideFloor parts" }
 end
 -- Slabs reach OVERLAP / 2 past each join (SlideColliders.OVERLAP); the head and the mouth ends only END_EXTRA.
-local OVERLAP, END_EXTRA = 1.5, 0.175
+local OVERLAP, END_EXTRA = 0.8, 0.175 -- = SlideColliders.OVERLAP / END_EXTRA
 local function surface(i, p, k)
 	local before = if i > 1 then OVERLAP / 2 else END_EXTRA
 	local after = if i < #floors then OVERLAP / 2 else END_EXTRA
@@ -91,6 +91,10 @@ ball.CanTouch = false
 ball.CollisionGroup = GROUP
 ball.Transparency = 1
 local bad, samples, worst = {}, 0, math.huge
+local inside = {} -- spawn points that overlapped geometry (skipped, reported, fail the probe)
+local spawnParams = OverlapParams.new()
+spawnParams.FilterType = Enum.RaycastFilterType.Include
+spawnParams.FilterDescendantsInstances = { folder }
 local topY, bottomY = -math.huge, math.huge
 -- All balls are dropped at once and watched together (sequential runs exceeded the tool timeout).
 local active = {}
@@ -108,8 +112,15 @@ for i = 1, #floors do
 				continue
 			end
 			for _, speed in { 0, 40 } do
+				local at = s + p.CFrame.RightVector * side + Vector3.new(0, 5, 0)
+				-- never spawn a ball inside a collider: Roblox would eject it and the probe would judge that
+				local hits = workspace:GetPartBoundsInRadius(at, 1.05, spawnParams)
+				if #hits > 0 then
+					inside[#inside + 1] = string.format("segment %d k=%.2f side=%.1f in %s", i, k, side, hits[1].Name)
+					continue
+				end
 				local b = ball:Clone()
-				b.Position = s + p.CFrame.RightVector * side + Vector3.new(0, 5, 0)
+				b.Position = at
 				b.Parent = workspace
 				if speed > 0 then
 					b.AssemblyLinearVelocity = p.CFrame.LookVector * speed
@@ -153,7 +164,8 @@ for _, a in active do
 end
 ball:Destroy()
 return {
-	ok = #bad == 0,
+	ok = #bad == 0 and #inside == 0,
+	spawned_inside = inside,
 	segments = count,
 	samples = samples,
 	top_y = topY,
