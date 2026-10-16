@@ -463,17 +463,29 @@ function Props.leaderboardBoard(): Model
 	local m = Instance.new("Model")
 	m.Name = "LeaderboardBoard"
 	local frameColor = rgb(70, 52, 50)
-	local board = part(m, "Board", Vector3.new(14, 16, 0.8), CFrame.new(0, 11, 0), rgb(30, 32, 44), {})
-	part(m, "Frame", Vector3.new(15, 17, 0.6), CFrame.new(0, 11, 0.4), frameColor, { material = "Basalt" })
+	-- The text lies on the skin's own front cream panel (WorldProps skins this
+	-- Model with phoenix_top_earners_board, 19.5 tall so scale 0.978, its front
+	-- flush with the Model's front at z -0.4). WorldLayout.DEX_FACE x 0.978,
+	-- mirrored into the Model's frame (kit front +Z is local -Z): a 12.62 x
+	-- 11.25 Board, 0.03 thin, centred (0.34, 11.28) and 1.2 behind the front,
+	-- so the board is the face itself, not a slab beside it (v30 C7). The
+	-- Frame and posts sit behind it as the pre-mesh look; "Collider" (invisible)
+	-- is the solid in front and keeps the Model's front and height.
+	local board = part(m, "Board", Vector3.new(12.62, 11.25, 0.03), CFrame.new(0.342, 11.279, 1.198), rgb(30, 32, 44), {
+		canCollide = false,
+	})
+	part(m, "Frame", Vector3.new(15, 17, 0.6), CFrame.new(0, 11, 1.52), frameColor, { material = "Basalt" })
 	for side, x in { L = -6.5, R = 6.5 } do
-		part(m, `Post{side}`, Vector3.new(1, 4, 1), CFrame.new(x, 2, 0.4), frameColor, { material = "Basalt" })
+		part(m, `Post{side}`, Vector3.new(1, 4, 1), CFrame.new(x, 2, 1.52), frameColor, { material = "Basalt" })
 	end
+	part(m, "Collider", Vector3.new(15, 17, 1.6), CFrame.new(0, 11, 0.4), frameColor, { transparency = 1 })
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "BoardGui"
 	gui.Face = Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 40
 	gui.LightInfluence = 0
+	gui.Adornee = board
 	gui.Parent = board
 	local content = Instance.new("Frame")
 	content.Name = "Content"

@@ -1,0 +1,10 @@
+{
+  "id": "v30-c7-topearners-face",
+  "todo": "v30 C7",
+  "kind": "world",
+  "target": "LeaderboardBoard",
+  "from": "centre",
+  "dist": 22,
+  "height": 11,
+  "note": "v30 C7: Top Earners text sits on the board model's own cream face (no floating black slab beside it)"
+}
