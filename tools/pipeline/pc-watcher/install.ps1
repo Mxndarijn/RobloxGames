@@ -22,6 +22,7 @@ foreach ($d in "app", "app\luau", "bin", "builds", "out", "logs", "state") {
 $App = Join-Path $WatcherHome "app"
 Copy-Item -Force (Join-Path $PSScriptRoot "*.py") $App
 Copy-Item -Force (Join-Path $PSScriptRoot "shots.json") $App
+Copy-Item -Force (Join-Path $PSScriptRoot "checks.json") $App
 Copy-Item -Force (Join-Path $PSScriptRoot "luau\*.luau") (Join-Path $App "luau")
 
 # Repo clone the watcher builds from (uses your existing git credential manager login).
