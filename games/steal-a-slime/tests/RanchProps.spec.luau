@@ -3,8 +3,9 @@
 -- is placed, placed awaiting upload (a pending tag) or listed as
 -- intentionally unplaced, no prop footprint enters a keep-clear zone
 -- (PropClearance), the world border or a habitat pad, every mesh slot is
--- scaled uniformly, each plot fence has exactly one opening (the gate), and
--- the placement is deterministic.
+-- scaled uniformly, each plot fence has exactly one opening (the gate) with
+-- 20-stud panels (or their two-segment fallback) on the grid, and the
+-- placement is deterministic. Budgets: tests/WorldBudget.spec.
 local fs = require("@lune/fs")
 
 local Config = require("../src/shared/Config")
@@ -284,13 +285,6 @@ describe("ranch props: uniform scale", function()
 			expect(p.scale >= 0.5 and p.scale <= 2).toBe(true)
 		end
 	end)
-	it("stays inside the mesh slot budget", function()
-		local n = #WorldLayout.PROP_MESHES
-		for _, list in slots do
-			n += #list
-		end
-		expect(n <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
-	end)
 end)
 
 -- World -> plot-local (x, z).
@@ -385,35 +379,117 @@ describe("plot fence", function()
 			end
 		end
 	end)
-	it("lines the walls with kit fence segments on the 10-stud grid, gate slot open", function()
-		local g = WorldLayout.FENCE_GRID
-		expect(g).toBe(10)
-		local native = (MeshAssets.get(WorldLayout.FENCE_SEGMENT) :: any).size :: Vec
-		for i, plot in plots do
+	-- Fence pieces of one build, checked for either mode: a ranch_fence_20 slot
+	-- (uploaded) or a FenceMesh Model of two phoenix_fence_segment halves
+	-- (fallback) per 20-stud panel, and 10-stud segments beside the gate.
+	local function checkFence(built: { any }, uploadedMode: boolean)
+		local g, h = WorldLayout.FENCE_GRID, WorldLayout.FENCE_SEGMENT_GRID
+		expect(g).toBe(20)
+		expect(h).toBe(10)
+		local function native(mesh: string): Vec
+			return (MeshAssets.get(mesh) :: any).size :: Vec
+		end
+		local function onGrid(v: number, step: number): boolean
+			local f = (v / step) % 1
+			return f < 1e-6 or f > 1 - 1e-6
+		end
+		for i, plot in built[2].children do
 			local fence = plotChild(plot, "Fence")
 			expect(fence ~= nil).toBe(true)
-			local perSide = { Back = 0, Left = 0, Right = 0, Front = 0 }
-			for _, seg in fence.children do
-				expect(seg.attributes.MeshAsset).toBe(WorldLayout.FENCE_SEGMENT)
-				expect(seg.canCollide).toBe(false)
-				expect(seg.size[1]).toBeCloseTo(g)
-				expect(seg.size[2] / native[2]).toBeCloseTo(WorldLayout.FENCE_SCALE)
-				local side = string.match(seg.name, "^Segment(%a+)_%d+$") :: string
-				perSide[side] += 1
-				local x, z = toLocal(i, seg.pos[1], seg.pos[3])
-				local along = if side == "Back" or side == "Front" then x else z
-				local across = if side == "Back" or side == "Front" then z else x
-				expect(math.abs(across)).toBeCloseTo(line)
-				-- centres at odd multiples of 5: ends on the 10-stud grid
-				expect(((along - g / 2) / g) % 1 < 1e-6 or ((along - g / 2) / g) % 1 > 1 - 1e-6).toBe(true)
-				if side == "Front" then
-					expect(math.abs(along) - g / 2 >= WorldLayout.GATE_SLOT / 2 - 1e-6).toBe(true)
-				end
+			local spans: { [string]: { { number } } } = { Back = {}, Left = {}, Right = {}, Front = {} }
+			local panels, segments = 0, 0
+			local function slot(n: any, mesh: string, length: number)
+				expect(n.class).toBe("Part")
+				expect(n.attributes.MeshAsset).toBe(mesh)
+				expect(n.canCollide).toBe(false)
+				expect(n.size[1]).toBeCloseTo(length)
+				expect(n.size[2] / native(mesh)[2]).toBeCloseTo(WorldLayout.FENCE_SCALE)
+				expect(n.size[2]).toBeCloseTo(native(WorldLayout.FENCE_SEGMENT)[2] * WorldLayout.FENCE_SCALE)
 			end
-			expect(perSide).toEqual({ Back = 8, Left = 8, Right = 8, Front = 6 })
-			-- 6 x 10 + the 20-stud slot = 80 on the gate side
-			expect(perSide.Front * g + WorldLayout.GATE_SLOT).toBe(s)
+			for _, seg in fence.children do
+				local side = string.match(seg.name, "^Segment(%a+)_%d+$") :: string
+				expect(spans[side] ~= nil).toBe(true)
+				local cx, cz, length
+				if seg.class == "Model" then
+					-- fallback panel: two halves on the 10 grid, 10 apart
+					expect(uploadedMode).toBe(false)
+					expect(seg.attributes.FenceMesh).toBe(WorldLayout.FENCE_MESH)
+					expect(#seg.children).toBe(2)
+					local a, b = seg.children[1], seg.children[2]
+					slot(a, WorldLayout.FENCE_SEGMENT, h)
+					slot(b, WorldLayout.FENCE_SEGMENT, h)
+					local ax, az = toLocal(i, a.pos[1], a.pos[3])
+					local bx, bz = toLocal(i, b.pos[1], b.pos[3])
+					expect(math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2)).toBeCloseTo(h)
+					cx, cz, length = (ax + bx) / 2, (az + bz) / 2, g
+					panels += 1
+				elseif seg.attributes.MeshAsset == WorldLayout.FENCE_MESH then
+					expect(uploadedMode).toBe(true)
+					slot(seg, WorldLayout.FENCE_MESH, g)
+					cx, cz = toLocal(i, seg.pos[1], seg.pos[3])
+					length = g
+					panels += 1
+				else
+					slot(seg, WorldLayout.FENCE_SEGMENT, h)
+					cx, cz = toLocal(i, seg.pos[1], seg.pos[3])
+					length = h
+					segments += 1
+				end
+				local along = if side == "Back" or side == "Front" then cx else cz
+				local across = if side == "Back" or side == "Front" then cz else cx
+				expect(math.abs(across)).toBeCloseTo(line)
+				-- ends on the grid: panels on the 20 grid from the corner, segments on the 10 grid
+				local lo, hi = along - length / 2, along + length / 2
+				expect(onGrid(lo, h) and onGrid(hi, h)).toBe(true)
+				if length == g then
+					expect(onGrid(lo + s / 2, g) or onGrid(s / 2 - hi, g)).toBe(true)
+				end
+				table.insert(spans[side], { lo, hi })
+			end
+			expect(panels).toBe(14)
+			expect(segments).toBe(2)
+			-- every side covered end to end without overlap; the front leaves the gate slot
+			for side, list in spans do
+				table.sort(list, function(a, b)
+					return a[1] < b[1]
+				end)
+				local covered = 0
+				for k, span in list do
+					covered += span[2] - span[1]
+					if k > 1 then
+						expect(span[1] >= list[k - 1][2] - 1e-6).toBe(true)
+					end
+					if side == "Front" then
+						expect(
+							span[2] <= -WorldLayout.GATE_SLOT / 2 + 1e-6 or span[1] >= WorldLayout.GATE_SLOT / 2 - 1e-6
+						).toBe(true)
+					end
+				end
+				expect(covered).toBeCloseTo(if side == "Front" then s - WorldLayout.GATE_SLOT else s)
+				expect(#list).toBe(4)
+			end
 		end
+	end
+	it("lines the walls with 20-stud fence panels, two 10-stud segments beside the open gate slot", function()
+		checkFence(nodes, WorldLayout.fenceUploaded())
+	end)
+	it("builds the uploaded layout too: one ranch_fence_20 slot per panel", function()
+		local entry = MeshAssets.entries[WorldLayout.FENCE_MESH] :: any
+		local was = entry.meshId
+		entry.meshId = "rbxassetid://0"
+		local ok, built = pcall(WorldLayout.build)
+		entry.meshId = was
+		expect(ok).toBe(true)
+		checkFence(built, true)
+	end)
+	it("builds the fallback layout too: two phoenix_fence_segment per panel", function()
+		local entry = MeshAssets.entries[WorldLayout.FENCE_MESH] :: any
+		local was = entry.meshId
+		entry.meshId = nil
+		local ok, built = pcall(WorldLayout.build)
+		entry.meshId = was
+		expect(ok).toBe(true)
+		checkFence(built, false)
 	end)
 	it("keeps the corner posts and the gate as kit models", function()
 		for _, plot in plots do

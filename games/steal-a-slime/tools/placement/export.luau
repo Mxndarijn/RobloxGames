@@ -1,12 +1,16 @@
 --!strict
 -- lune run tools/placement/export  (from games/steal-a-slime)
 -- Writes sheets/placement/placement.json: the kit prop placement, plot fences
--- and keep-clear zones, in world studs (x, z), for tools/placement/render.py.
+-- (20-stud panels + 10-stud segments), the world border (wall ring + edge
+-- pieces) and keep-clear zones, in world studs (x, z), for
+-- tools/placement/render.py.
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
 
 local Config = require("../../src/shared/Config")
+local MeshAssets = require("../../src/shared/MeshAssets")
 local PropClearance = require("../../src/visuals/shared/PropClearance")
+local WorldBorder = require("../../src/visuals/shared/WorldBorder")
 local WorldLayout = require("../../src/visuals/shared/WorldLayout")
 
 local function axes(yaw: number): (number, number, number, number)
@@ -29,10 +33,23 @@ local plots = {}
 for i, plot in WorldLayout.build()[2].children do
 	local centre, yaw = WorldLayout.plotCentre(i)
 	local fence, walls = {}, {}
+	-- One rect per fence piece, the same in both modes (a 20-stud panel is one
+	-- slot once ranch_fence_20 is uploaded, two segments until then).
+	local ux, uz, px, pz = axes(yaw)
+	local depth = (MeshAssets.get(WorldLayout.FENCE_SEGMENT) :: any).size[3] * WorldLayout.FENCE_SCALE
+	for _, seg in WorldLayout.fenceSegments() do
+		local f = rect(
+			centre[1] + ux * seg.x + px * seg.z,
+			centre[3] + uz * seg.x + pz * seg.z,
+			seg.length / 2,
+			depth / 2,
+			yaw + seg.yaw
+		)
+		f.length = seg.length
+		table.insert(fence, f)
+	end
 	walk(plot, function(n)
-		if n.attributes and n.attributes.MeshAsset == WorldLayout.FENCE_SEGMENT then
-			table.insert(fence, rect(n.pos[1], n.pos[3], n.size[1] / 2, n.size[3] / 2, n.rot[2]))
-		elseif n.attributes and n.attributes.FenceCollider then
+		if n.attributes and n.attributes.FenceCollider then
 			table.insert(walls, rect(n.pos[1], n.pos[3], n.size[1] / 2, n.size[3] / 2, n.rot[2]))
 		end
 	end)
@@ -58,6 +75,12 @@ for _, p in WorldLayout.RANCH_PROPS do
 	})
 end
 
+local border = {}
+for _, q in WorldBorder.pieces() do
+	local f = PropClearance.footprint(q)
+	table.insert(border, { kind = q.kind, row = q.row, uploaded = q.uploaded, rect = f })
+end
+
 local zones = {}
 for _, z in PropClearance.ZONES do
 	table.insert(zones, z)
@@ -76,6 +99,9 @@ local data = {
 	fountain = { plinth = WorldLayout.FOUNTAIN_PROFILE.plinthRadius },
 	slide = slide,
 	edge = PropClearance.EDGE_RADIUS,
+	wallRadius = WorldBorder.RADIUS,
+	border = border,
+	fenceUploaded = WorldLayout.fenceUploaded(),
 	margin = PropClearance.MARGIN,
 	plots = plots,
 	props = props,
@@ -86,4 +112,4 @@ if not fs.isDir("sheets/placement") then
 	fs.writeDir("sheets/placement")
 end
 fs.writeFile("sheets/placement/placement.json", serde.encode("json", data, true))
-print(`wrote sheets/placement/placement.json ({#props} props, {#plots} plots)`)
+print(`wrote sheets/placement/placement.json ({#props} props, {#plots} plots, {#border} border pieces)`)

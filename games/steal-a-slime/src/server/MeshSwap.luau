@@ -5,7 +5,8 @@
 	For every BasePart under workspace.Map / workspace.Plots tagged with the
 	attribute MeshAsset (WorldLayout placeholders) whose id is in
 	Shared.MeshAssets, creates a MeshPart via AssetService:CreateMeshPartAsync,
-	fits it to the placeholder's box and CFrame, anchors it, makes it visual-only
+	fits it into the placeholder's box at one uniform scale (MeshAssets.fit:
+	native proportions, standing on the box bottom), anchors it, makes it visual-only
 	and hides the placeholder (which keeps collision, prompts and contract
 	names). Parts tagged MeshStandIn = that mesh anywhere under the same Map
 	or Plots root hide too (the spiral stand-in lives under Map.Chute, not
@@ -99,16 +100,21 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	if not base then
 		return false
 	end
-	local cf, size
+	local cf, box
 	if target:IsA("Model") then
-		cf, size = target:GetBoundingBox()
+		cf, box = target:GetBoundingBox()
 	else
-		cf, size = target.CFrame, target.Size
+		cf, box = target.CFrame, target.Size
 	end
+	-- One uniform scale into the box, standing on its bottom: a WorldProps
+	-- Model's bounding box is the primitive prop's, not the mesh's, and
+	-- stretching to it squashed the board 3.08:1 (WorldLayout slots are
+	-- native x scale already, so they fit exactly).
+	local size, _, drop = MeshAssets.fit(name, { box.X, box.Y, box.Z })
 	local mesh = base:Clone()
 	mesh.Name = "Mesh"
-	mesh.Size = size
-	mesh.CFrame = cf
+	mesh.Size = Vector3.new(size[1], size[2], size[3])
+	mesh.CFrame = cf * CFrame.new(0, -drop, 0)
 	mesh.Anchored = true
 	mesh.CanCollide = false
 	mesh.CanQuery = false

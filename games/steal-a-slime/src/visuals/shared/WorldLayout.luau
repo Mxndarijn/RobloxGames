@@ -20,7 +20,8 @@
 	  Plots    Plot_1..PLOT_COUNT in a ring around the fountain, each facing
 	           it (entrance at local -Z): Base, Pad_1..PADS_MAX, HomeZone,
 	           MergeVat, LockButton, Sign, walls (invisible colliders) +
-	           Fence (phoenix_fence_segment slots), Slimes folder, and the
+	           Fence (ranch_fence_20 + phoenix_fence_segment slots), Slimes
+	           folder, and the
 	           PlotDecor cosmetics (LockBarrier, LockSign, BuyStand,
 	           RebirthDecor, DexBoard)
 	Every Part is anchored (WorldBuilder forces it). PROP_SPOTS suggests
@@ -97,25 +98,73 @@ WorldLayout.RING_PATH_WIDTH = 8
 WorldLayout.GATE_SLOT = 20 -- fence gap at the entrance
 WorldLayout.GATE_CLEAR = 14 -- walkable opening inside the slot
 WorldLayout.WALL_HEIGHT = 8
--- Plot fence look: kit segments on the 10-stud grid (THEME: 10-stud fence +
--- 20-stud gate slot), 8 per side and 3 + 3 beside the gate. The kit segment
--- is 11 long (its end posts overlap the neighbour's), so one uniform scale
--- of 10/11 tiles it end to end on the grid: 10 x 8.2 x 1.64.
+-- Plot fence look: kit ranch_fence_20 panels on a 20-stud grid, 4 per side.
+-- The gate side is 30 + 20 (GATE_SLOT) + 30, so it takes a panel at each
+-- corner and a 10-stud phoenix_fence_segment beside each gate post: 14
+-- panels + 2 segments per plot. Both kit pieces are 11 native studs per 10
+-- grid studs (end posts overlap the neighbour's), so one uniform scale of
+-- 10/11 tiles them on the grid at the same 8.2 height. Until ranch_fence_20
+-- is uploaded each panel slot is a Model tagged FenceMesh = FENCE_MESH holding
+-- two FENCE_SEGMENT halves (the same look: the panel is two segments sharing
+-- the mid post).
+WorldLayout.FENCE_MESH = "ranch_fence_20"
 WorldLayout.FENCE_SEGMENT = "phoenix_fence_segment"
-WorldLayout.FENCE_GRID = 10
-WorldLayout.FENCE_SCALE = WorldLayout.FENCE_GRID / 11
--- MeshAsset slots in the whole world (Map + Plots + the WorldProps skins).
--- THEME.md asks <= 150 MeshParts; the kit fence (240 segments, one mesh,
--- instanced) and the placed ranch props take it past that on purpose.
-WorldLayout.MESH_SLOT_BUDGET = 460
+WorldLayout.FENCE_GRID = 20
+WorldLayout.FENCE_SEGMENT_GRID = 10
+WorldLayout.FENCE_SCALE = 10 / 11
+-- MeshAsset slots in the whole world (Map + Plots + the WorldProps skins),
+-- counted with ranch_fence_20 uploaded (tests/WorldBudget.spec). THEME.md
+-- asks <= 150 MeshParts; the kit fence and the placed ranch props take it
+-- past that on purpose. The fallback (two segments per panel until the
+-- upload) adds one slot per panel: 112.
+WorldLayout.MESH_SLOT_BUDGET = 342
+WorldLayout.MESH_SLOT_BUDGET_FALLBACK = WorldLayout.MESH_SLOT_BUDGET + 112
+-- THEME.md: <= 1200 parts. Asserted over the world WorldLayout builds outside
+-- Map.Border; the border ring (main #54) is held to its own budget, since its
+-- pieces still carry an invisible slot plus primitive stand-ins each.
+WorldLayout.PART_BUDGET = 1200
+WorldLayout.BORDER_PART_BUDGET = 700
 
-export type FenceSegment = { name: string, side: string, x: number, z: number, yaw: number }
+export type FenceSegment = {
+	name: string,
+	side: string,
+	x: number,
+	z: number,
+	yaw: number,
+	length: number, -- FENCE_GRID (a ranch_fence_20 panel) or FENCE_SEGMENT_GRID
+}
 
--- Plot-local fence segments (centre on the wall line, yaw relative to the
--- plot, kit front facing out). The front skips the gate slot.
+-- Whether the 20-stud panel mesh is uploaded (read at build time).
+function WorldLayout.fenceUploaded(): boolean
+	return MeshAssets.meshId(WorldLayout.FENCE_MESH) ~= nil
+end
+
+-- Plot-local fence pieces (centre on the wall line, yaw relative to the
+-- plot, kit front facing out). The front leaves the gate slot open.
 function WorldLayout.fenceSegments(): { FenceSegment }
-	local s, g = WorldLayout.PLOT_SIZE, WorldLayout.FENCE_GRID
+	local s, g, h = WorldLayout.PLOT_SIZE, WorldLayout.FENCE_GRID, WorldLayout.FENCE_SEGMENT_GRID
 	local line = s / 2 - 0.5
+	local slot = WorldLayout.GATE_SLOT / 2
+	-- Gate side: panels in from each corner, then segments up to the slot.
+	local front: { { number } } = {}
+	for _, dir in { -1, 1 } do
+		local t = s / 2
+		while t - g >= slot do
+			table.insert(front, { dir * (t - g / 2), g })
+			t -= g
+		end
+		while t - h >= slot do
+			table.insert(front, { dir * (t - h / 2), h })
+			t -= h
+		end
+	end
+	table.sort(front, function(a, b)
+		return a[1] < b[1]
+	end)
+	local full: { { number } } = {}
+	for k = 0, s // g - 1 do
+		table.insert(full, { -s / 2 + g / 2 + k * g, g })
+	end
 	local out: { FenceSegment } = {}
 	for _, side in
 		{
@@ -149,18 +198,16 @@ function WorldLayout.fenceSegments(): { FenceSegment }
 			},
 		}
 	do
-		local n = 0
-		for k = 0, s // g - 1 do
-			local t = -s / 2 + g / 2 + k * g
-			if side[1] == "Front" and math.abs(t) < WorldLayout.GATE_SLOT / 2 then
-				continue
-			end
-			n += 1
-			local x, z = (side[3] :: any)(t)
-			table.insert(
-				out,
-				{ name = `Segment{side[1]}_{n}`, side = side[1] :: string, x = x, z = z, yaw = side[2] :: number }
-			)
+		for n, piece in (if side[1] == "Front" then front else full) do
+			local x, z = (side[3] :: any)(piece[1])
+			table.insert(out, {
+				name = `Segment{side[1]}_{n}`,
+				side = side[1] :: string,
+				x = x,
+				z = z,
+				yaw = side[2] :: number,
+				length = piece[2],
+			})
 		end
 	end
 	return out
@@ -992,8 +1039,9 @@ local function plot(i: number): WorldNode
 
 	-- Fence: walls WALL_HEIGHT tall on three sides plus the front either side
 	-- of the GATE_SLOT, so the gate is the only way in. The walls are the
-	-- collision and are invisible; the look is FENCE_SEGMENT kit slots on the
-	-- 10-stud grid (visual only, primitive boxes until the mesh lands).
+	-- collision and are invisible; the look is FENCE_MESH panels on the
+	-- 20-stud grid (FENCE_SEGMENT halves until it is uploaded, and beside the
+	-- gate), visual only, primitive boxes until the mesh lands.
 	-- Corner posts and the gate are kit mesh slots too.
 	local wh, r = WorldLayout.WALL_HEIGHT, { 0, yaw, 0 }
 	local wy = 1 + wh / 2
@@ -1014,11 +1062,35 @@ local function plot(i: number): WorldNode
 		table.insert(children, node)
 	end
 	local fence: WorldNode = { name = "Fence", class = "Model", children = {} }
+	local panelUp = WorldLayout.fenceUploaded()
 	for _, seg in WorldLayout.fenceSegments() do
-		local size = meshSize(WorldLayout.FENCE_SEGMENT, WorldLayout.FENCE_SCALE)
-		local node =
-			block(seg.name, size, at({ seg.x, 1 + size[2] / 2, seg.z }), FENCE, "WoodPlanks", { 0, yaw + seg.yaw, 0 })
-		table.insert(fence.children :: { WorldNode }, meshSlot(ghost(node), WorldLayout.FENCE_SEGMENT))
+		local turn = { 0, yaw + seg.yaw, 0 }
+		-- One kit slot `offset` studs along the piece (its local +X).
+		local function piece(name: string, mesh: string, offset: number): WorldNode
+			local a = math.rad(seg.yaw)
+			local size = meshSize(mesh, WorldLayout.FENCE_SCALE)
+			local pos = at({ seg.x + math.cos(a) * offset, 1 + size[2] / 2, seg.z - math.sin(a) * offset })
+			return meshSlot(ghost(block(name, size, pos, FENCE, "WoodPlanks", turn)), mesh)
+		end
+		local node: WorldNode
+		if seg.length == WorldLayout.FENCE_SEGMENT_GRID then
+			node = piece(seg.name, WorldLayout.FENCE_SEGMENT, 0)
+		elseif panelUp then
+			node = piece(seg.name, WorldLayout.FENCE_MESH, 0)
+		else
+			local q = WorldLayout.FENCE_SEGMENT_GRID / 2
+			node = {
+				name = seg.name,
+				class = "Model",
+				primaryPart = "A",
+				attributes = { FenceMesh = WorldLayout.FENCE_MESH },
+				children = {
+					piece("A", WorldLayout.FENCE_SEGMENT, -q),
+					piece("B", WorldLayout.FENCE_SEGMENT, q),
+				},
+			}
+		end
+		table.insert(fence.children :: { WorldNode }, node)
 	end
 	table.insert(children, fence)
 	local postSize = meshSize("phoenix_corner_post", (wh + 1) / (MeshAssets.get("phoenix_corner_post") :: any).size[2])

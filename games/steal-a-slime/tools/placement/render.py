@@ -29,7 +29,8 @@ OUT = ROOT / "sheets/placement/placement_map.png"
 CLUSTER = {"plaza": "#2a78d6", "entrance": "#eb6834", "farm": "#1baf7a"}
 INK, MUTED, SURFACE = "#2b2b29", "#8a897f", "#fbfaf7"
 GRASS, SAND, GOO, PLOT = "#e6eedb", "#eadfc8", "#cfeedd", "#f1efe9"
-FENCE, WALL, KEEP = "#8a5a36", "#2b2b29", "#d8d6cf"
+FENCE, FENCE_SHORT, WALL, KEEP = "#8a5a36", "#c79a6b", "#2b2b29", "#d8d6cf"
+BORDER, BORDER_ACCENT = "#a9b99a", "#6f7f60"
 
 
 def corners(r):
@@ -47,7 +48,13 @@ def annulus(ax, inner, outer, color, z=1, **kw):
 
 def draw(ax, d, zoom):
     ax.set_facecolor(SURFACE)
-    ax.add_patch(Circle((0, 0), 300, facecolor=GRASS, edgecolor=MUTED, lw=0.6, ls="--", zorder=0))
+    ax.add_patch(Polygon([(-320, -320), (320, -320), (320, 320), (-320, 320)], closed=True, facecolor=GRASS,
+                         edgecolor="none", zorder=0))
+    ax.add_patch(Circle((0, 0), d["wallRadius"], facecolor="none", edgecolor=INK, lw=1.0, zorder=6))
+    ax.add_patch(Circle((0, 0), d["edge"], facecolor="none", edgecolor=MUTED, lw=0.6, ls="--", zorder=6))
+    for b in d["border"]:
+        ax.add_patch(Polygon(corners(b["rect"]), closed=True, facecolor=BORDER_ACCENT if b["uploaded"] else BORDER,
+                             edgecolor=SURFACE, lw=0.3, zorder=5))
     annulus(ax, 0, 66, SAND, 1)
     annulus(ax, d["landing"]["inner"], d["landing"]["outer"], "#f3e2b8", 2)
     annulus(ax, d["lane"]["inner"], d["lane"]["outer"], GOO, 2)
@@ -73,7 +80,8 @@ def draw(ax, d, zoom):
         for w in p["walls"]:
             ax.add_patch(Polygon(corners(w), closed=True, facecolor=WALL, edgecolor="none", zorder=6, alpha=0.35))
         for f in p["fence"]:
-            ax.add_patch(Polygon(corners(f), closed=True, facecolor=FENCE, edgecolor=SURFACE, lw=0.3, zorder=7))
+            color = FENCE if f["length"] >= 20 else FENCE_SHORT
+            ax.add_patch(Polygon(corners(f), closed=True, facecolor=color, edgecolor=SURFACE, lw=0.4, zorder=7))
         g = p["gate"]
         ax.plot(g["x"], g["z"], marker="v", ms=4 if zoom else 2.5, color=INK, zorder=8)
         cx, cz = p["rect"]["cx"], p["rect"]["cz"]
@@ -89,7 +97,7 @@ def draw(ax, d, zoom):
                 ax.annotate(prop["name"], (r["cx"], r["cz"] + max(r["hx"], r["hz"]) + 1.5), fontsize=4.5,
                             color=INK, ha="center", va="bottom", zorder=9)
 
-    lim = 140 if zoom else 310
+    lim = 140 if zoom else 322
     ax.set_xlim(-lim, lim)
     ax.set_ylim(-lim, lim)
     ax.set_aspect("equal")
@@ -106,12 +114,17 @@ def main():
     draw(axes[0], d, False)
     draw(axes[1], d, True)
     counts = {c: sum(1 for p in d["props"] if p["cluster"] == c) for c in CLUSTER}
-    axes[0].set_title(f"Whole world: {len(d['props'])} kit props + {sum(len(p['fence']) for p in d['plots'])} fence segments",
+    fence = [f for p in d["plots"] for f in p["fence"]]
+    panels = sum(1 for f in fence if f["length"] >= 20)
+    mode = "uploaded" if d["fenceUploaded"] else "two 10-stud segments each until uploaded"
+    axes[0].set_title(f"Whole world: {len(d['props'])} kit props, {len(d['border'])} border pieces\n"
+                      f"{panels} fence panels ({mode}) + {len(fence) - panels} gate-side segments",
                       fontsize=10, color=INK, loc="left")
     axes[1].set_title("Plaza edge and plot entrances (r < 140)", fontsize=10, color=INK, loc="left")
     handles = [Patch(facecolor=CLUSTER[c], label=f"{c} props ({counts[c]})") for c in CLUSTER]
     handles += [
-        Patch(facecolor=FENCE, label="fence segment (10-stud grid)"),
+        Patch(facecolor=FENCE, label="ranch_fence_20 panel (20-stud grid)"),
+        Patch(facecolor=FENCE_SHORT, label="10-stud segment beside the gate"),
         Patch(facecolor=WALL, alpha=0.35, label="invisible wall collider"),
         Line2D([], [], marker="v", ls="none", color=INK, label="gate slot (20, 14 clear)"),
         Patch(facecolor="none", edgecolor=MUTED, hatch="////", label="entrance corridor (keep clear)"),
@@ -120,8 +133,12 @@ def main():
         Patch(facecolor="#f3e2b8", label="wild landing band r34-62"),
         Patch(facecolor=SAND, label="plaza sand, ring path r74-82"),
         Line2D([], [], color="#5fbf8f", label="fountain slide"),
+        Line2D([], [], color=INK, label="border wall ring r292"),
+        Line2D([], [], color=MUTED, ls="--", label="prop edge r280"),
+        Patch(facecolor=BORDER, label="border piece (BorderMesh)"),
+        Patch(facecolor=BORDER_ACCENT, label="border accent (uploaded)"),
     ]
-    fig.legend(handles=handles, loc="lower center", ncol=6, fontsize=7.5, frameon=False, labelcolor=INK)
+    fig.legend(handles=handles, loc="lower center", ncol=8, fontsize=7.5, frameon=False, labelcolor=INK)
     fig.suptitle("Steal a Slime: Slime Ranch prop placement (top-down, from WorldLayout.RANCH_PROPS)",
                  fontsize=12, color=INK, x=0.06, ha="left")
     fig.subplots_adjust(left=0.05, right=0.98, top=0.92, bottom=0.12, wspace=0.12)
