@@ -268,7 +268,7 @@ def t_files():
           set(weathers) == {"Rain", "Snow", "Starfall"} and all(0 < float(s.get("wait", 0)) <= 4 for s in weathers.values()), sorted(weathers))
     devs = {(s["weather"], s.get("device")) for s in shots if s.get("weather")}
     check("every weather type has a phone and a desktop shot",
-          all((w, d) in devs for w in ("Rain", "Snow", "Starfall") for d in ("desktop", "phone-portrait")), sorted(devs))
+          all((w, d) in devs for w in ("Rain", "Snow", "Starfall") for d in ("desktop", "phone-portrait")), sorted(devs, key=str))
     check("LOD tier shots at near, mid and far camera distances",
           sorted(s["dist"] for s in shots if s.get("motion") == "Tiers") == [20, 60, 120])
     known = {d[0] for d in watcher.DEFAULTS["devices"]} if hasattr(watcher, "DEFAULTS") else None
