@@ -184,8 +184,8 @@ describe("init.client applies Layout for every viewport", function()
 		expect(has(src, "Layout.panelFor(s, entry.key)")).toBe(true)
 		expect(has(src, "NAV_WIDTH")).toBe(false) -- no hard-coded nav width left
 	end)
-	it("closes the open menu from its X and gamepad B; Esc only when CLOSE_WITH_ESCAPE", function()
-		expect(Layout.CLOSE_WITH_ESCAPE).toBe(false)
+	it("closes the open menu from its X, gamepad B and Esc (CLOSE_WITH_ESCAPE on)", function()
+		expect(Layout.CLOSE_WITH_ESCAPE).toBe(true)
 		expect(has(src, "entry.panel.close.Activated:Connect(function()\n\t\tsetOpen(nil)")).toBe(true)
 		-- B in both branches; Escape only in the CLOSE_WITH_ESCAPE branch.
 		local bind = 'ContextActionService:BindAction("CloseMenu", closeMenuAction, false, Enum.KeyCode.ButtonB'

@@ -47,9 +47,10 @@ export type Screen = {
 
 local Layout = {}
 
--- Esc closes an open menu only when true. Default false so Esc cannot clash
--- with Roblox's own menu; the panel X and gamepad B always close.
-Layout.CLOSE_WITH_ESCAPE = false
+-- Esc closes an open menu when true (v27 gate A4). Only while a menu is open
+-- (init.client passes the key on otherwise); the panel X and gamepad B
+-- always close.
+Layout.CLOSE_WITH_ESCAPE = true
 
 -- Top-level ZIndex per overlay (ScreenGui uses ZIndexBehavior.Sibling, so
 -- children render with their parent). Higher draws on top: banners over

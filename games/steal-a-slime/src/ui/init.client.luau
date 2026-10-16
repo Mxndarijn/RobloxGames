@@ -369,9 +369,9 @@ gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyLayout)
 applyLayout()
 setOpen(nil)
 
--- Gamepad B always closes the open menu (same as its X). Esc only when
--- Layout.CLOSE_WITH_ESCAPE is true (default false) so it cannot clash with
--- Roblox's own menu. Passed on when no menu is open.
+-- Gamepad B always closes the open menu (same as its X), and Esc too while
+-- Layout.CLOSE_WITH_ESCAPE is true (v27 default). Passed on when no menu is
+-- open, so Esc still reaches Roblox's own menu then.
 local function closeMenuAction(_: string, inputState: Enum.UserInputState)
 	if inputState ~= Enum.UserInputState.Begin or openKey == nil then
 		return Enum.ContextActionResult.Pass
