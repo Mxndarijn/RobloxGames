@@ -235,7 +235,7 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"},
+        "phone_perf": {"SECONDS"}, "habitat_set": {"PATH", "HABITAT", "WAIT"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(),
         "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
@@ -255,6 +255,9 @@ def t_files():
     check("motion shots cover idle squish, hop, look left and look right",
           set(motions) == {"Idle", "Hop", "LookLeft", "LookRight"}, sorted(motions))
     check("motion shots seat a slime and wait", all(s.get("seat") and float(s.get("wait", 0)) > 0 for s in motions.values()))
+    walks = [s for s in shots if s.get("slide_walk")]
+    check("a slide_walk shot proves nobody falls through the slide, top to bottom",
+          len(walks) == 1 and walks[0].get("target") == "slide" and walks[0].get("todo") == "B6", walks)
     habitats = [s for s in shots if s.get("habitat")]
     types = {s["habitat"] for s in habitats}
     check("every habitat type has a shot with a slime seated on it",
