@@ -67,7 +67,16 @@ describe("banners never cover an open menu card's title or X", function()
 		local hud = fs.readFile("src/ui/Hud.luau")
 		expect(string.find(hud, "banners.Visible = not menuOpen", 1, true) ~= nil).toBe(true)
 		for _, name in
-			{ "StealAlert", "RareBanner", "RainBanner", "ModifierBadge", "FriendBadge", "EggReveal", "PadHint" }
+			{
+				"StealAlert",
+				"RareBanner",
+				"RainBanner",
+				"ModifierBadge",
+				"FriendBadge",
+				"WeekendChip",
+				"EggReveal",
+				"PadHint",
+			}
 		do
 			expect(string.find(hud, `banner(banners, "{name}"`, 1, true) ~= nil).toBe(true)
 		end

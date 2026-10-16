@@ -14,6 +14,7 @@ local Appraise = if Shared then require(Shared.Appraise) else require("../shared
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
+local Weekend = if Shared then require(Shared.Weekend) else require("../shared/Weekend")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
@@ -120,6 +121,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		tutorialStepId = TutorialProgress.currentId(data),
 		incomeMultiplier = Perks.incomeMultiplier(data),
 		petPerk = Perks.petPassive(data),
+		weekend = Weekend.view(now),
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		rebirthTitle = Perks.title(rebirths),
 		rebirthTiers = Snapshot.rebirthTiers(rebirths),
