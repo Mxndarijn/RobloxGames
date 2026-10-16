@@ -6,5 +6,6 @@
   "from": "look",
   "dist": 8,
   "height": 4,
-  "note": "v29 #11: a grown slime on Pad_1 is drawn slightly larger with a small 'Growth %' label above it (FEATURES.GrowingSlimes)"
+  "note": "v29 #11: a grown slime on Pad_1 is drawn slightly larger with a small 'Growth %' label above it (FEATURES.GrowingSlimes)",
+  "grow": 60
 }

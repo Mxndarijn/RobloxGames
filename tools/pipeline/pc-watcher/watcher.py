@@ -1381,6 +1381,9 @@ def step_shots(run):
                     res["friend_bonus"] = run.need_luau("friend_bonus", "Client", timeout=15, count=int(shot["friend_bonus"]))
                 if shot.get("admin_event"):  # v29 #10: fake a live admin event banner (Studio only)
                     res["admin_event"] = run.need_luau("admin_event", "Client", timeout=15, event=shot["admin_event"])
+                if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
+                    res["dex_weather"] = run.need_luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=True)
+                    time.sleep(0.6)  # State push
                 if shot.get("plot_slime"):  # fake owned slime so the Appraise button shows
                     res["plot_slime"] = run.need_luau("plot_slime", "Client", timeout=15, state="1")
                 opened = open_panel(run, key) if key else None
@@ -1422,6 +1425,8 @@ def step_shots(run):
                     run.luau("admin_event", "Client", timeout=15, event="")
                 if shot.get("plot_slime"):
                     run.luau("plot_slime", "Client", timeout=15, state="")
+                if shot.get("dex_weather"):
+                    run.luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=False)
             else:
                 if shot.get("pos"):
                     eye, at = shot["pos"], shot.get("look") or [0, 0, 0]
@@ -1457,6 +1462,9 @@ def step_shots(run):
                     # optional uploaded-animation check: a rigged slime must sit on the pad (PcwPad clone)
                     pad_seat = run.need_luau("pad_seat", "Server", timeout=30, path=res["target"]["path"])
                     res["pad_seat"] = pad_seat
+                if shot.get("grow"):  # v29 #11: real growth on the pad 1 slime (Studio hook); WorldView draws it
+                    res["grow"] = run.need_luau("pcw_attr", "Server", timeout=15, name="PcwGrowth", value=int(shot["grow"]))
+                    time.sleep(1.5)  # WorldView reconcile + replication
                 if shot.get("habitat") and (res.get("target") or {}).get("path"):
                     # morph proof: the Client sets the pad's Habitat and waits `wait` s (mid-morph < 1, done >= 1.2)
                     res["habitat"] = run.need_luau("habitat_set", "Client", timeout=30, path=res["target"]["path"],
