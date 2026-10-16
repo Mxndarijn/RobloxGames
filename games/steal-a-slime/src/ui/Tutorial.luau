@@ -53,7 +53,8 @@ Tutorial.STEPS = table.freeze({
 		id = "Steal",
 		title = "Steal and chase",
 		body = 'On an unlocked plot, hold E on "Steal" by a slime. '
-			.. "If someone takes yours, chase them and tap SLAP!",
+			.. "Chase thieves and tap SLAP! "
+			.. "Alone here? This step skips itself soon.",
 	}),
 	table.freeze({
 		id = "Rebirth",

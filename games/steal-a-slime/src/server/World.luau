@@ -50,6 +50,7 @@ export type Session = {
 	incomeRemainder: number,
 	dirty: boolean,
 	lastPushAt: number,
+	stealWaitSince: number?, -- tutorial Steal step: since when no other plot had a slime to steal, runtime only
 	friends: number?, -- friends in this server (Friends.refresh), runtime only
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch for the reveal banner (never saved)
 }

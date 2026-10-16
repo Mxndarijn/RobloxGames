@@ -342,7 +342,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `MYSTERY_EGG_PRICE` / `MYSTERY_EGG_MUTATION_CHANCE` / `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 2 000 / 0.05 / 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | mystery egg: cash-only hatch |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
-| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `Revenge` (`true`); `Habitats` (`false`); `SlimeAnimations` (`false`); `SlimeLod` (`false`) | §2 Extras |
+| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `Revenge` (`true`); `Habitats` (`true`); `SlimeAnimations` (`false`); `SlimeLod` (`true`) | §2 Extras |
 | `BOSS_FIRST_AT` / `BOSS_INTERVAL` / `BOSS_TIER` / `BOSS_LIFETIME` | 480 / 900 / 4 / 120 | Boss Slime |
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
@@ -575,7 +575,7 @@ Plots are **auto-assigned on join** (`Sessions.join`, lowest free plot) and free
 Replaces the "finishes that step and every step before it" rule of §2 / §8.3. `TutorialProgress.complete(data, name)`:
 
 - The **current** step's action finishes it. A **later** step's action no longer jumps ahead (buying a pad at step 1 used to skip Deposit and Lock); an earlier step's action still does nothing.
-- After any action the server **skips every step the player has already done**, judged from saved data (`TutorialProgress.isDone`): Grab / Deposit `stats.caught > 0`, Lock `stats.locks > 0`, BuyPad `padsUnlocked > PADS_START`, Merge `stats.merges > 0`, Steal `totalStolen > 0` or `rebirths > 0` (solo servers can't steal), Rebirth `rebirths > 0`.
+- After any action the server **skips every step the player has already done**, judged from saved data (`TutorialProgress.isDone`): Grab / Deposit `stats.caught > 0`, Lock `stats.locks > 0`, BuyPad `padsUnlocked > PADS_START`, Merge `stats.merges > 0`, Steal `totalStolen > 0` or `rebirths > 0` (solo servers can't steal: `StealService.tickTutorial` skips Steal after `TUTORIAL_STEAL_SKIP_SECONDS` = 20 s with no other player's pad slime), Rebirth `rebirths > 0`.
 - So a player sees every step they haven't done yet, in order. Save format, step names and `State.tutorialStep` / `tutorialStepId` are unchanged.
 
 ### 9.3 `State.lockStartedAt` (finding "lock bar scaled to 300 s")

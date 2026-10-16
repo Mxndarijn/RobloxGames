@@ -456,6 +456,7 @@ local Config = {
 	-- B1: seconds a ProximityPrompt / UI button must be held for any important
 	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
 	HOLD_CONFIRM_SECONDS = 0.8,
+	TUTORIAL_STEAL_SKIP_SECONDS = 20, -- solo tutorial: Steal step skips itself after this long with nobody to steal from
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	SLAP_REACH = 10,
 	SLAP_COOLDOWN = 1.5,
