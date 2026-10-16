@@ -7795,5 +7795,18 @@
       ]
     }
   },
-  "frames_dir": "997d870cbf5fa5ee8c0f476a1fddbb753429aad6/"
+  "frames_dir": "997d870cbf5fa5ee8c0f476a1fddbb753429aad6/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "18-slide-top-to-bottom (B6): PASS. slide_walk ok: 32 segments, 96 samples, 0 violations, worst clearance 0.86 studs; the frame is clean.",
+    "19-appraise-plot: PASS. The plot row Rare Blorp shows the Appraise $135 button.",
+    "19b-mystery-egg-shop: PASS. The Mystery Egg row is visible ($2K, cash only).",
+    "v29-11-slime-growth-pad: the slime is seated on Pad_1 and renders fine. No 'Growth %' label is visible (a fresh slime probably hasn't grown), so this is unproven, not broken.",
+    "21-weather-mutation-dex: the Dex opens fine. Wet/Frozen are not visible without scrolling, so this is unproven. Cosmetic: the rarity counts in the Dex header overlap the 'Next reward' line.",
+    "02e-admin-event-banner (#130): not captured. The admin_event luau errored inside Studio's execute_luau, which is a watcher-script problem, not game evidence. 02c-badge-toast and 18-hold-ring-rebirth were not captured because of the need_luau name= watcher bug, fixed in #132 (e67210c).",
+    "Rest OK: all steps pass, focus_stolen [], close pass, no leftovers, no save prompt."
+  ]
 }
