@@ -13,6 +13,7 @@
 	  * night sky (NightSky): Sky + Atmosphere, night look on ClockTime
 	  * follow pets (FollowPets) for the Player attribute PetSlimeId
 	  * despawn warning (DespawnTelegraphFx) on wild slimes with DespawnAt
+	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
 	  * slime fountain (still Map.Volcano.Crater): goo spray ("Smoke"),
@@ -333,6 +334,14 @@ do
 	end)
 	if not ok then
 		warn(`[VisualsClient] plot visuals disabled: {err}`)
+	end
+end
+do
+	local ok, err = pcall(function()
+		require(script:WaitForChild("HabitatFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] habitats disabled: {err}`)
 	end
 end
 
