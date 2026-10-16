@@ -52,6 +52,7 @@ DEFAULTS = {
     "busy_retry_s": 300,
     "run_budget_s": 900,
     "mesh_slot_budget": 400,
+    "runtime_part_budget": 2300,  # ratchet, only ever lower it; target 1800. World BaseParts at runtime (excl. slimes/characters/transients)
     "launch_timeout_s": 120,
     "client_timeout_s": 90,
     "stats_seconds": 5,
@@ -267,6 +268,8 @@ def overall_status(steps):
         return "fail"
     if (steps.get("shots", {}).get("detail") or {}).get("mesh_slots_failed"):
         return "fail"
+    if (steps.get("shots", {}).get("detail") or {}).get("runtime_parts_failed"):
+        return "fail"
     for name, s in steps.items():
         st = s.get("status")
         if name in SOFT_STEPS:
@@ -431,6 +434,7 @@ class Run:
         self.notes = []
         self.steps = {}
         self.perf = {"mesh_slots": None, "unique_meshes": None, "budget": cfg["mesh_slot_budget"],
+                     "runtime_parts": None, "runtime_part_budget": cfg["runtime_part_budget"],
                      "frame_time_ms": None, "memory_mb": None}
         self.frames = []
         self.extra = {}
@@ -833,13 +837,18 @@ def step_perf(run):
         time.sleep(3)
     settled = len(counts) >= 3 and counts[-1] == counts[-2] == counts[-3]
     run.perf.update({"mesh_slots": d.get("mesh_slots"), "unique_meshes": d.get("unique_meshes"),
-                     "parts": d.get("parts"), "triangles": None})
+                     "parts": d.get("parts"), "runtime_parts": d.get("runtime_parts"),
+                     "runtime_parts_transient": d.get("runtime_parts_transient"), "triangles": None})
     detail = dict(d, budget=budget, samples=counts, settled=settled, edit=run.extra.get("edit_counts"),
                   triangles="not available from Luau (pr-gate budget.sh counts FBX triangles)")
     if not settled:
         run.note("mesh count still changing after 45 s: %s" % counts[-4:])
     if (d.get("mesh_slots") or 0) > budget:
         return "fail", dict(detail, error="mesh slots %s > budget %s" % (d.get("mesh_slots"), budget))
+    part_budget = run.cfg["runtime_part_budget"]
+    if (d.get("runtime_parts") or 0) > part_budget:
+        return "fail", dict(detail, runtime_part_budget=part_budget,
+                            error="runtime parts %s > budget %s" % (d.get("runtime_parts"), part_budget))
     if not d.get("mesh_slots"):
         return "fail", dict(detail, error="no MeshParts in the play world (MeshSwap did not run?)")
     return "pass", detail
@@ -1588,6 +1597,15 @@ def step_shots(run):
                     ms["ok"] = 0 < (ms.get("mesh_slots") or 0) <= ms["max"]
                     if not ms["ok"]:
                         run.note("shot %s: mesh slots %s not in 1..%s" % (sid, ms.get("mesh_slots"), ms["max"]))
+                if shot.get("runtime_parts_max"):
+                    # perf proof (HARD): world BaseParts (transients excluded), parade lane and slide colliders spawned
+                    rp = res["runtime_parts"] = run.need_luau("perf_server", "Server", timeout=30)
+                    rp["max"] = int(shot["runtime_parts_max"])
+                    rp["ok"] = (0 < (rp.get("runtime_parts") or 0) <= rp["max"]
+                                and bool(rp.get("parade_lane")) and bool(rp.get("slide_colliders")))
+                    if not rp["ok"]:
+                        run.note("shot %s: runtime parts %s not in 1..%s (parade lane %s, slide colliders %s)" % (
+                            sid, rp.get("runtime_parts"), rp["max"], rp.get("parade_lane"), rp.get("slide_colliders")))
                 if shot.get("fountain_walk"):
                     # C10: free balls dropped over the whole fountain top (eave, dome, basin) must never sink into it
                     res["fountain_walk"] = run.need_luau("fountain_walk", "Server", timeout=60)
@@ -1647,6 +1665,8 @@ def step_shots(run):
     done = len([r for r in results if (r.get("frame") or {}).get("file")])
     if any(r.get("fountain_walk") and not r["fountain_walk"].get("ok") for r in results):
         return "fail", {"captured": done, "total": len(shots), "shots": results, "fountain_walk_failed": True}
+    if any(r.get("runtime_parts") and not r["runtime_parts"].get("ok") for r in results):
+        return "fail", {"captured": done, "total": len(shots), "shots": results, "runtime_parts_failed": True}
     pressed = [r for r in results if r.get("press")]
     if any(r["press"]["status"] != "pass" for r in pressed):
         return "warn", {"captured": done, "total": len(shots), "shots": results, "press_failed": True}

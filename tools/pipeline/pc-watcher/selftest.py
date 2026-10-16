@@ -292,6 +292,16 @@ def t_files():
     check("a failing mesh_slots_max shot fails the run (hard)",
           'mesh_slots_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
           and watcher.overall_status({"shots": {"status": "pass", "detail": {"mesh_slots_failed": True}}}) == "fail")
+    rcaps = [s for s in shots if s.get("runtime_parts_max")]
+    check("a runtime_parts_max shot asserts world BaseParts <= the 2300 ratchet (hard)",
+          len(rcaps) == 1 and rcaps[0]["runtime_parts_max"] <= 2300, rcaps)
+    check("a failing runtime_parts_max shot fails the run (hard)",
+          'runtime_parts_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
+          and watcher.overall_status({"shots": {"status": "pass", "detail": {"runtime_parts_failed": True}}}) == "fail")
+    check("perf_server reports runtime_parts for every BasePart and the lane/collider presence",
+          all(x in open(os.path.join(HERE, "luau", "perf_server.luau"), encoding="utf-8").read()
+              for x in ("runtime_parts = runtimeParts", "parade_lane", "slide_colliders", "runtime_parts_transient"))
+          and watcher.DEFAULTS["runtime_part_budget"] == 2300)
     fwalks = [s for s in shots if s.get("fountain_walk")]
     check("a fountain_walk shot proves nobody sinks into the fountain top (C10)",
           len(fwalks) == 1 and fwalks[0].get("target") == "FountainMesh", fwalks)
