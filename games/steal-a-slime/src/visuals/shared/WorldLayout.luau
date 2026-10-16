@@ -71,6 +71,18 @@ WorldLayout.PLOT_SIZE = 80
 WorldLayout.PLAZA_RADIUS = 66
 WorldLayout.FOUNTAIN_HEIGHT = 43.3 -- polished mesh height; Effects caps rise at h/2
 WorldLayout.FOUNTAIN_DIAMETER = 28
+-- The fountain mesh's silo profile (kit models/slime_fountain.py PROF, studs,
+-- silo axis at the origin, kit z = Roblox y). The fountain colliders are built
+-- from these numbers, not from the primitive stand-ins.
+WorldLayout.FOUNTAIN_PROFILE = table.freeze({
+	plinthRadius = 13.1, -- "plinth_top" (13.0 at the foot)
+	plinthTop = 1.5,
+	trimRadius = 12.3, -- "trim_lo", the bevel up to the staves
+	trimTop = 2.4,
+	wallRadius = 11.2, -- staves at foot and top (wall_r, 11.7 mid-bulge)
+	wallTop = 30.0, -- WALL_TOP, the eave underside
+	eaveTop = 31.3, -- Z0, eave edge top (the red dome starts here)
+})
 -- Legacy name: the fountain still answers to Map.Volcano(.Crater) (CONTRACT §5.3).
 WorldLayout.VOLCANO_HEIGHT = WorldLayout.FOUNTAIN_HEIGHT
 -- The live ride is WorldLayout.SLIDE_PATH (mesh spiral, end r 35.5 on +Z).
@@ -314,15 +326,21 @@ local function volcano(): WorldNode
 	-- Client emitters attach here (VisualsClient); the glow keeps the pool lit.
 	crater.children = { light("CraterGlow") }
 	table.insert(children, crater)
-	-- The fountain's one collider: an invisible cylinder flush with BasinRim
-	-- (same radius, ground to rim top). The mesh is visual-only, so once it
-	-- loads MeshSwap drops the stand-ins' collision (MeshStandInsCollide) and
-	-- this is all a player bumps into; no hidden part can leave a step.
-	local collider = disc("BasinCollider", 4, d + 1, { 0, 2, 0 }, STONE_TRIM, "Slate")
-	collider.transparency = 1
-	collider.canQuery = false
-	collider.canTouch = false
-	table.insert(children, collider)
+	-- The fountain's collision, shaped like the mesh (FOUNTAIN_PROFILE): a
+	-- walkable plinth (ground to its 1.5-stud top) and the silo wall from the
+	-- plinth top to the eave. Both invisible and anchored. The mesh is
+	-- visual-only, so once it loads MeshSwap drops the stand-ins' collision
+	-- (MeshStandInsCollide) and these two are all a player bumps into.
+	local fp = WorldLayout.FOUNTAIN_PROFILE
+	local wallHeight = fp.eaveTop - fp.plinthTop
+	local plinth = disc("BasinCollider", fp.plinthTop, fp.plinthRadius * 2, { 0, fp.plinthTop / 2, 0 }, STONE_TRIM)
+	local wall = disc("SiloCollider", wallHeight, fp.wallRadius * 2, { 0, fp.plinthTop + wallHeight / 2, 0 }, STONE)
+	for _, c in { plinth, wall } do
+		c.transparency = 1
+		c.canQuery = false
+		c.canTouch = false
+		table.insert(children, c)
+	end
 	-- Native bbox of the polished slime_fountain (stats size, no squash).
 	-- Silo axis is kit (-6.52, 7.75) from the bbox centre (FOUNTAIN_SIZES)
 	-- = Roblox X/Z (-6.52, -7.75) with Z = -kit y. The slot sits on the

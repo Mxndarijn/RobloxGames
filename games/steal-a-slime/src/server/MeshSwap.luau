@@ -10,8 +10,8 @@
 	names). Parts tagged MeshStandIn = that mesh anywhere under the same Map
 	or Plots root hide too (the spiral stand-in lives under Map.Chute, not
 	beside the fountain slot). A slot with MeshStandInsCollide = false also
-	turns its stand-ins' CanCollide off (the fountain: its BasinCollider
-	stays the only collision). Idempotent (a placeholder with a "Mesh" child
+	turns its stand-ins' CanCollide off (the fountain: its Basin/Silo
+	colliders stay the only collision). Idempotent (a placeholder with a "Mesh" child
 	is skipped). Any failure leaves the primitive placeholder. Holds no
 	gameplay rules.
 ]]
