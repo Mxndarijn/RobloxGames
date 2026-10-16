@@ -23,7 +23,12 @@ local Weather = require(Shared:WaitForChild("Weather"))
 local WeatherGrade = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherGrade"))
 local WeatherLook = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WeatherLook"))
 
+local SnowGround = require(script.Parent:WaitForChild("SnowGround"))
+
 local WeatherFx = {}
+
+-- Snow starts at a fixed height so every flake (speed 7 x lifetime 8, 15 deg spread, >= 52 studs down) lands on the ground (v30 F2).
+local SNOW_EMITTER_Y = 42
 
 local STAR_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
 local SOFT_TEXTURE = "rbxasset://textures/particles/smoke_main.dds"
@@ -59,11 +64,17 @@ local function makeEmitter(name: string): ParticleEmitter
 		e.Texture = SOFT_TEXTURE
 		e.Squash = NumberSequence.new(-14)
 	elseif name == "Flakes" then
-		e.Speed = NumberRange.new(5, 9)
+		e.Speed = NumberRange.new(7, 9)
 		e.Size = NumberSequence.new(0.35)
-		e.Transparency = NumberSequence.new(0.1)
+		-- fades out in the last stretch, i.e. as it lands and melts into the cover
+		e.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.08, 0.1),
+			NumberSequenceKeypoint.new(0.85, 0.1),
+			NumberSequenceKeypoint.new(1, 1),
+		})
 		e.RotSpeed = NumberRange.new(-60, 60)
-		e.SpreadAngle = Vector2.new(25, 25)
+		e.SpreadAngle = Vector2.new(15, 15)
 		e.Color = ColorSequence.new(Color3.new(1, 1, 1))
 		e.Texture = STAR_TEXTURE
 	elseif name == "Stars" then
@@ -112,7 +123,9 @@ local function ensureFx()
 		heartbeat = RunService.Heartbeat:Connect(function()
 			local camera = workspace.CurrentCamera
 			if part and camera then
-				part.CFrame = CFrame.new(camera.CFrame.Position + Vector3.new(0, 40, 0))
+				local at = camera.CFrame.Position
+				local y = if shown == "Snow" then SNOW_EMITTER_Y else at.Y + 40
+				part.CFrame = CFrame.new(at.X, y, at.Z)
 			end
 		end)
 	end
@@ -197,6 +210,7 @@ function WeatherFx.show(id: string)
 		return
 	end
 	shown = id
+	SnowGround.setSnowing(id == "Snow")
 	token += 1
 	local mine = token
 	local look = WeatherLook.LOOKS[id] or WeatherLook.LOOKS.Clear
@@ -233,6 +247,7 @@ function WeatherFx.start()
 		return
 	end
 	started = true
+	SnowGround.start()
 	Weather.attach(workspace)
 	Weather.Changed:Connect(refresh)
 	workspace:GetAttributeChangedSignal(Constants.WEATHER_DEBUG_ATTRIBUTE):Connect(refresh)

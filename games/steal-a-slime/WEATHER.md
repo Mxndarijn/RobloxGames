@@ -25,6 +25,15 @@ nothing changes piecemeal. `WeatherFx` writes the tint; `NightSky` listens to `W
 Atmosphere / ambient part on top of the day-night look. A change mid-tween starts from what is on screen. Targets live in
 `WeatherLook.LOOKS[id].tint / atmo`. Shots: `18-weather-<id>-<device>` (settled, 3.9 s) and `18-weather-<id>-mid-<device>` (1.2 s).
 
+## Ground snow (v30 F2)
+
+Snow flakes start at a fixed height (42 studs, speed 7-9 x lifetime 8, 15 deg spread) so every flake reaches the ground and fades
+out as it lands. `visuals/client/SnowGround` keeps ONE client-only, non-colliding Snow-material Part (640 x 0.1 x 640, top 0.08, over the
+Ground and path tops, under pads/props) whose Transparency follows `SnowCover` (pure, Lune-tested): the level builds over 50 s of Snow
+and melts over 35 s after. The part exists only while the level is above 0; Heartbeat runs only while it moves. Cost: 1 runtime
+part, 0 mesh slots (`tests/SnowCover.spec`). Props/roofs get no cover. Shots: `18c-snow-ground-early|late-<device>`
+(client-local `SnowCoverDebug` attribute pins the level 0.25 / 1).
+
 ## Hook for #8
 
 For Gojo (stacking mutations + combos). Nothing in the mutation code reads weather yet.
