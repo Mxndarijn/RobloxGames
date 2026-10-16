@@ -312,6 +312,16 @@ local function forceAdminEvent(state: any): any
 	return view
 end
 
+-- Studio-only: the SlimeUI attribute "PcwWeekend" = true fakes a live x2 Weekend window (State.weekend).
+local function forceWeekend(state: any): any
+	if not isStudio or gui:GetAttribute("PcwWeekend") ~= true or type(state.serverTime) ~= "number" then
+		return state
+	end
+	local view = table.clone(state)
+	view.weekend = { active = true, multiplier = Config.WEEKEND.multiplier, endsAt = state.serverTime + 100800 }
+	return view
+end
+
 local function panelState(key: string, realState: any): any
 	local state = forceFriends(realState)
 	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
@@ -652,7 +662,7 @@ function ctx.openDaily()
 end
 
 local function render(realState: Types.State)
-	local state: Types.State = forceAdminEvent(forceFriends(realState))
+	local state: Types.State = forceWeekend(forceAdminEvent(forceFriends(realState)))
 	hud.update(state)
 	carry.update(state)
 	dailyPopup.update(state)
@@ -671,7 +681,7 @@ local function render(realState: Types.State)
 end
 
 if isStudio then
-	for _, attribute in { "PcwFriendBonus", "PcwAdminEvent" } do
+	for _, attribute in { "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend" } do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
 			if latest then
 				pcall(render, latest)

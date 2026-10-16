@@ -25,6 +25,7 @@ export type Progress = {
 	friendBonus: number?, -- runtime friend bonus (FriendBonus, never saved), nil / 0 = none
 	slimes: { any }?, -- owned slimes (follow-pet passive lookup)
 	favoriteId: string?, -- the follow pet; nil = no passive
+	weekendMult: number?, -- runtime x2 Weekend multiplier (Weekend, never saved), nil / 1 = none
 	ritualBonus: number?, -- runtime "Blessed" bonus from the co-op ritual (Ritual, never saved), nil / 0 = none
 }
 
@@ -193,7 +194,7 @@ function Perks.petMutationBonus(data: Progress): number
 	return petValue(data, "mutation")
 end
 
--- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual x pet.
+-- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual x pet x weekend.
 function Perks.bonusMultiplier(data: Progress): number
 	return (1 + upgradeEffect(data, "Income"))
 		* (1 + Perks.rankIncomeBonus(data.rebirths))
@@ -202,6 +203,7 @@ function Perks.bonusMultiplier(data: Progress): number
 		* (1 + math.max(data.friendBonus or 0, 0))
 		* (1 + math.max(data.ritualBonus or 0, 0))
 		* (1 + petValue(data, "income"))
+		* math.max(data.weekendMult or 1, 1)
 end
 
 -- State.incomeMultiplier: rebirth x upgrade x rank x dex.

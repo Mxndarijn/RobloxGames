@@ -14,6 +14,7 @@ local Economy = if Shared then require(Shared.Economy) else require("../shared/E
 local Growth = if Shared then require(Shared.Growth) else require("../shared/Growth")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
+local Weekend = if Shared then require(Shared.Weekend) else require("../shared/Weekend")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -24,15 +25,18 @@ local Income = {}
 Income.MAX_TICK = 5 -- seconds: a stalled server doesn't pay a huge lump
 
 -- Call about once a second with the real elapsed time. `now` (unix seconds)
--- ends redeem-code boosts whose time is up.
+-- ends redeem-code boosts whose time is up and sets the x2 Weekend multiplier
+-- (nil `now` = no weekend, so clock-free tests stay deterministic).
 function Income.step(world: World, dt: number, now: number?)
 	local seconds = math.clamp(dt, 0, Income.MAX_TICK)
 	local carried = World.carriedSet(world)
+	local weekend = if now then Weekend.multiplier(now) else 1
 	for _, session in world.sessions do
 		if now and Codes.expireBoost(session.data, now) then
 			World.notify(world, session.userId, "Your income boost ended", "info", nil)
 			World.markDirty(session)
 		end
+		session.data.weekendMult = if weekend > 1 then weekend else nil
 		local perSec = PlayerData.incomePerSecond(session.data, carried)
 		Growth.advanceAll(session.data.slimes, seconds, carried)
 		if perSec > 0 then

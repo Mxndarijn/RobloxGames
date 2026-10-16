@@ -1384,6 +1384,8 @@ def step_shots(run):
                     res["friend_bonus"] = run.need_luau("friend_bonus", "Client", timeout=15, count=int(shot["friend_bonus"]))
                 if shot.get("admin_event"):  # v29 #10: fake a live admin event banner (Studio only)
                     res["admin_event"] = run.need_luau("admin_event", "Client", timeout=15, event=shot["admin_event"])
+                if shot.get("weekend"):  # competitor-gaps #17: fake a live x2 Weekend chip (Studio only)
+                    res["weekend"] = run.need_luau("weekend", "Client", timeout=15, on=True)
                 if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
                     res["dex_weather"] = run.need_luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=True)
                     time.sleep(0.6)  # State push
@@ -1429,6 +1431,8 @@ def step_shots(run):
                     run.luau("friend_bonus", "Client", timeout=15, count=0)
                 if shot.get("admin_event"):
                     run.luau("admin_event", "Client", timeout=15, event="")
+                if shot.get("weekend"):
+                    run.luau("weekend", "Client", timeout=15, on=False)
                 if shot.get("plot_slime"):
                     run.luau("plot_slime", "Client", timeout=15, state="")
                 if shot.get("dex_weather"):
