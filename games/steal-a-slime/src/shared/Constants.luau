@@ -77,8 +77,6 @@ return table.freeze({
 	LOCK_PROMPT_NAME = "LockPrompt", -- on LockButton
 	BUY_PAD_PROMPT_NAME = "BuyPadPrompt", -- on the lowest locked Pad_<j>
 	MERGE_PROMPT_NAME = "MergePrompt", -- on MergeVat
-	-- v16 (CONTRACT.md §9.1): "Claim plot" on a free plot's BuyStand.Counter, everyone sees it.
-	CLAIM_PROMPT_NAME = "ClaimPrompt",
 	-- v28 (CONTRACT.md §5.3): "Open Shop" (E) on ShopStand.Counter and "Talk" (E) on the
 	-- TutorialNpc. Client-only effect: the UI opens the Shop / Guide menu on PromptTriggered.
 	SHOP_PROMPT_NAME = "ShopPrompt",

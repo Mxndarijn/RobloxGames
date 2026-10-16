@@ -65,30 +65,14 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 		show(ownerSigns)
 		expect(ownerSigns.ok).toBe(true)
 	end)
-	it("keeps the ClaimPrompt on every BuyStand.Counter beside its ranch_shop_stand slot", function()
-		local plots = rt.workspace:FindFirstChild("Plots")
-		local missing, stands = {}, 0
-		for _, plot in (if plots then plots:GetChildren() else {}) do
-			local stand = plot:FindFirstChild("BuyStand")
-			if not stand then
-				continue
-			end
-			stands += 1
-			local slot = stand:FindFirstChild("StandMesh")
-			local counter = stand:FindFirstChild("Counter")
-			local prompt = counter and counter:FindFirstChild(Constants.CLAIM_PROMPT_NAME)
-			if not (slot and slot:GetAttribute("MeshAsset") == "ranch_shop_stand") then
-				table.insert(missing, `{plot.Name}.BuyStand.StandMesh`)
-			end
-			if not (prompt and prompt:IsA("ProximityPrompt")) then
-				table.insert(missing, `{plot.Name}.BuyStand.Counter.{Constants.CLAIM_PROMPT_NAME}`)
+	it("has no BuyStand and no ClaimPrompt anywhere in the live world (C6 v30)", function()
+		local bad = {}
+		for _, d in rt.workspace:GetDescendants() do
+			if d.Name == "BuyStand" or d.Name == "ClaimPrompt" then
+				table.insert(bad, d:GetFullName())
 			end
 		end
-		if #missing > 0 then
-			print(`    missing: {table.concat(missing, ", ")}`)
-		end
-		expect(stands).toBe(Config.PLOT_COUNT)
-		expect(#missing).toBe(0)
+		expect(#bad).toBe(0)
 	end)
 	it(
 		"v28: one 'Open Shop' prompt on the ShopStand, one 'Talk' prompt on the Guide NPC, no per-item prompts",

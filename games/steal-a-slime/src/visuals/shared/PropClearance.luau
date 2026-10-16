@@ -14,7 +14,7 @@
 	         entrance corridor (the 20-stud gate slot out to the ring path)
 	  circle PROP_SPOTS (shop, leaderboard board, tutorial NPC: 12 like
 	         WorldLayout's decor), the plaza showpieces (signpost, podiums =
-	         the leaderboard stands), each plot's "Free plot" stand
+	         the leaderboard stands)
 	  edge   the WorldBorder wall ring (inner face r 292) and its edge decor:
 	         props stay inside r EDGE_RADIUS (12 studs short of the walls)
 ]]
@@ -51,7 +51,6 @@ PropClearance.LANE_POSTS_OUTER = 73.75
 -- Entrance corridor: the gate slot, from the front fence out to the ring
 -- path centreline, in plot-local coordinates.
 PropClearance.CORRIDOR_HALF = WorldLayout.GATE_SLOT / 2
-PropClearance.BUY_STAND = { x = -13, z = -WorldLayout.PLOT_SIZE / 2 - 5, radius = 4.5 }
 
 -- Unit axes of a slot turned `yaw` degrees (Roblox: +Z -> (sin, cos)).
 local function axes(yaw: number): (number, number, number, number)
@@ -68,11 +67,6 @@ local function plotRect(i: number, x: number, z: number, hx: number, hz: number)
 	local centre, yaw = WorldLayout.plotCentre(i)
 	local ux, uz, vx, vz = axes(yaw)
 	return { cx = centre[1] + ux * x + vx * z, cz = centre[3] + uz * x + vz * z, hx = hx, hz = hz, yaw = yaw }
-end
-
-local function plotPoint(i: number, x: number, z: number): (number, number)
-	local r = plotRect(i, x, z, 0, 0)
-	return r.cx, r.cz
 end
 
 -- Separating axis test for two turned rectangles, grown by `pad`.
@@ -142,11 +136,6 @@ for i = 1, Config.PLOT_COUNT do
 		kind = "rect",
 		rect = plotRect(i, 0, (front + outer) / 2, PropClearance.CORRIDOR_HALF, hz),
 	})
-	local bx, bz = plotPoint(i, PropClearance.BUY_STAND.x, PropClearance.BUY_STAND.z)
-	table.insert(
-		zones,
-		{ name = `plot {i} buy stand`, kind = "circle", x = bx, z = bz, radius = PropClearance.BUY_STAND.radius }
-	)
 end
 local spotNames = {}
 for name in WorldLayout.PROP_SPOTS do

@@ -47,7 +47,6 @@ local GameLoop = require(script.GameLoop)
 local Leaderboard = require(script.Leaderboard)
 local MeshSwap = require(script.MeshSwap)
 local ParadeView = require(script.ParadeView)
-local PlotClaim = require(script.PlotClaim)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
 local RitualService = require(script.RitualService)
@@ -482,16 +481,6 @@ WorldView.addPlotPrompts(function(player: Player, index: number, kind: string)
 	local res = Actions.handle(world, player.UserId, action, args, now(), ctx)
 	if not res.ok and res.message then
 		World.notify(world, player.UserId, res.message, "info", nil)
-	end
-	refreshView(now())
-end)
-
--- ClaimPrompt on a free plot's BuyStand (CONTRACT.md §9.1): plots are auto-assigned,
--- so it sends the player home (or reserves the plot while their data loads).
-WorldView.addClaimPrompts(function(player: Player, index: number)
-	local outcome, plotIndex = PlotClaim.claim(world, player.UserId, index)
-	if outcome == "home" then
-		WorldView.sendHome(player, plotIndex)
 	end
 	refreshView(now())
 end)

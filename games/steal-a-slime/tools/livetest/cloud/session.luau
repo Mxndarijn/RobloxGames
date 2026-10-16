@@ -19,7 +19,7 @@
 
 	Scenarios: coil (WalkSpeed before / after buying, while carrying),
 	drop (a dropped slime lands on the first collidable surface, real raycasts),
-	lockbuy (plot prompts + attributes), claim (FREE PLOT ClaimPrompt), loop (new player -> rebirth 8),
+	lockbuy (plot prompts + attributes), loop (new player -> rebirth 8),
 	ui (real State / plot attributes / prompts through the pure src/ui
 	modules: BuyUpgrade row, goals, dex, lock / pad buttons, PromptHide,
 	Boss banner from State.boss).
@@ -312,41 +312,6 @@ scenario("lockbuy", function()
 					"PadsUnlocked"
 				)}`
 			or "no BuyPadPrompt"
-	)
-end)
-
----------------------------------------------------------------------------
--- claim: FREE PLOT stand ClaimPrompt (CONTRACT.md §9.1); calls what its handler calls
----------------------------------------------------------------------------
-scenario("claim", function()
-	local PlotClaim = require(S.module:FindFirstChild("PlotClaim"))
-	local freeIndex = nil
-	for index = 1, world.plotCount do
-		if world.plots[index] == nil then
-			freeIndex = index
-			break
-		end
-	end
-	local stand = S.WorldView.plot(freeIndex):FindFirstChild("BuyStand")
-	local prompt = stand and stand.Counter:FindFirstChild("ClaimPrompt")
-	local own = S.WorldView.plot(session.plotIndex).BuyStand.Counter:FindFirstChild("ClaimPrompt")
-	check(
-		"claim: free plot's BuyStand has an enabled ClaimPrompt, own plot's is off",
-		prompt ~= nil and prompt.Enabled and prompt.ActionText == "Claim plot" and own ~= nil and not own.Enabled,
-		prompt and `Plot_{freeIndex}: "{prompt.ActionText}" / "{prompt.ObjectText}"` or "missing"
-	)
-	botRig:PivotTo(stand.Counter.CFrame + Vector3.new(0, 3, -3))
-	local outcome, home = PlotClaim.claim(world, BOT_ID, freeIndex)
-	local moved = outcome == "home" and S.WorldView.sendHome(bot, home)
-	S.refreshView(now())
-	check(
-		"claim: sends a player who has a plot home",
-		outcome == "home"
-			and home == session.plotIndex
-			and moved
-			and S.WorldView.inHomeZone(bot, session.plotIndex)
-			and world.plots[freeIndex] == nil,
-		`{outcome} -> Plot {home}, inHomeZone={S.WorldView.inHomeZone(bot, session.plotIndex)}`
 	)
 end)
 

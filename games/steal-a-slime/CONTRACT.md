@@ -36,7 +36,7 @@ src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts
   (mesh look over ModelFactory, loader + factory injected), Rescue (kill plane),
   PlotPrompts (plot prompt texts / lock + pad attributes, §8.5), Milestones
   (goal + Slimedex payouts, §8.8), TestHooks (test sessions only, §8.12),
-  PlotClaim (ClaimPrompt on the FREE PLOT stand, §9.1), HabitatPads (pad
+  HabitatPads (pad
   habitat state, FEATURES.Habitats), PodiumAvatars (top-3 podium rigs:
   description cache, fallback, debounced refresh; adapter injected)
   Roblox adapters: WorldView (models, prompts, plot attributes, HomeZone,
@@ -565,20 +565,9 @@ A dropped wild slime is snapped to the first **collidable** surface under the dr
 
 **Status:** contract first; the server commits that follow implement it. Driven by the v15 Studio playtest (`/workspace/roblox/usability/v15-findings.md`). New fields are optional for readers. Where this section and §1-§8 disagree, this section wins.
 
-### 9.1 `ClaimPrompt` on the FREE PLOT stand (finding #3)
+### 9.1 No "claim free plot" (removed in v30 C6)
 
-Plots stay **auto-assigned on join** (`Sessions.join`, lowest free plot). The `BuyStand` that Archer's PlotDecor shows on a free plot now has a server prompt, so "Claim plot" does something:
-
-| Prompt (Constants) | Parent | KeyCode | ActionText | ObjectText | Enabled |
-|---|---|---|---|---|---|
-| `ClaimPrompt` (`CLAIM_PROMPT_NAME`) | `Plot_<i>.BuyStand.Counter` (skipped if the plot has no BuyStand) | E | `"Claim plot"` | `"Free plot: everyone gets one on join"` | only while the plot is free (`OwnerUserId == 0`) |
-
-`HoldDuration = 0`, `RequiresLineOfSight = false`, `MaxActivationDistance = 10`, no `ShowOnlyToUserId` (everyone sees it). Pure logic in `src/server/PlotClaim.luau`; triggering it:
-
-- **Player already has a plot** (every loaded player): teleports them onto their own plot's `Base` (same spot as a respawn) and sends Notify `"You already own Plot <n>: every player gets one when they join. Taking you there!"` (`"info"`).
-  - **While carrying** a slime it does **not** teleport (that would deposit a stolen slime for free): Notify `"You're carrying a slime: walk it home to Plot <n>"` (`"info"`).
-- **Player has no plot yet** (data still loading): the plot is reserved for them (`world.claims[userId] = i`) and `Sessions.join` gives them that plot if it's still free; other joiners skip reserved plots while any unreserved plot is free. Notify `"Plot <i> is yours once your data loads"` (`"good"`).
-- Plot already taken: Notify `"Plot <i> is taken"` (`"info"`).
+Plots are **auto-assigned on join** (`Sessions.join`, lowest free plot) and freed on leave. The v16 `ClaimPrompt` on a free plot's `BuyStand`, `PlotClaim.luau`, `Constants.CLAIM_PROMPT_NAME`, `world.claims` and the per-plot `BuyStand` model are gone. `ranch_shop_stand` is used only by the plaza `ShopStand`.
 
 ### 9.2 Tutorial: no skipping steps you haven't done (finding #8)
 

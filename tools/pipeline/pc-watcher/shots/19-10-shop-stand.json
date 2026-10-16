@@ -2,6 +2,6 @@
   "id": "10-shop-stand",
   "todo": "10",
   "kind": "world",
-  "target": "BuyStand",
+  "target": "ShopStand",
   "note": "TODO 10: shops face the middle"
 }
