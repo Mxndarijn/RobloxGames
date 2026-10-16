@@ -25,7 +25,7 @@ local RareSpawn = require(Visuals:WaitForChild("RareSpawn"))
 local PlotVisuals = {}
 
 PlotVisuals.UPDATE_RATE = 4 -- plot decor refreshes per second
-PlotVisuals.MAX_FX_DISTANCE = 600 -- beams are visible from far away on purpose
+PlotVisuals.MAX_FX_DISTANCE = 150 -- beyond this the fx is unparented, never left behind at a stale spot
 
 type Crown = { part: BasePart, base: CFrame }
 
@@ -137,6 +137,9 @@ local function stepFx(t: number, cameraPos: Vector3)
 		end
 		local pivot = slime:GetPivot()
 		if (pivot.Position - cameraPos).Magnitude <= PlotVisuals.MAX_FX_DISTANCE then
+			if not model.Parent then
+				model.Parent = folder()
+			end
 			RareSpawn.place(model, pivot, t)
 			if model:GetAttribute("Tier") == 6 then
 				local beam = model:FindFirstChild("Beam")
@@ -144,6 +147,8 @@ local function stepFx(t: number, cameraPos: Vector3)
 					beam.Color = Color3.fromHSV((t * 0.15) % 1, 0.55, 1)
 				end
 			end
+		elseif model.Parent then
+			model.Parent = nil
 		end
 	end
 end
