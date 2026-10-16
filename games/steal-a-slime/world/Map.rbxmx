@@ -7106,7 +7106,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>76.5367</X>
-            <Y>2</Y>
+            <Y>1.6356201</Y>
             <Z>184.77591</Z>
             <R00>0.9238739</R00>
             <R01>0</R01>
@@ -7126,8 +7126,8 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>5</X>
-            <Y>4</Y>
-            <Z>5</Z>
+            <Y>3.2712555</Y>
+            <Z>3.199997</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
@@ -7176,7 +7176,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>184.77591</X>
-            <Y>1.5</Y>
+            <Y>1.5079956</Y>
             <Z>-76.5367</Z>
             <R00>-0.38269043</R00>
             <R01>0</R01>
@@ -7195,9 +7195,9 @@
           <token name="Material">512</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>8</X>
-            <Y>3</Y>
-            <Z>3</Z>
+            <X>7.7350006</X>
+            <Y>3.0160065</Y>
+            <Z>3.2617035</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
@@ -7246,7 +7246,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-76.5367</X>
-            <Y>2</Y>
+            <Y>1.6356201</Y>
             <Z>-184.77591</Z>
             <R00>-0.9238739</R00>
             <R01>0</R01>
@@ -7266,8 +7266,8 @@
           <token name="shape">1</token>
           <Vector3 name="size">
             <X>5</X>
-            <Y>4</Y>
-            <Z>5</Z>
+            <Y>3.2712555</Y>
+            <Z>3.199997</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
@@ -7316,7 +7316,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-184.77591</X>
-            <Y>1.5</Y>
+            <Y>1.5079956</Y>
             <Z>76.5367</Z>
             <R00>0.38269043</R00>
             <R01>0</R01>
@@ -7335,9 +7335,9 @@
           <token name="Material">512</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>8</X>
-            <Y>3</Y>
-            <Z>3</Z>
+            <X>7.7350006</X>
+            <Y>3.0160065</Y>
+            <Z>3.2617035</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
@@ -7386,7 +7386,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>226.35048</X>
-            <Y>6</Y>
+            <Y>6.531006</Y>
             <Z>-93.75745</Z>
             <R00>-0.38269043</R00>
             <R01>0</R01>
@@ -7405,9 +7405,9 @@
           <token name="Material">528</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>16</X>
-            <Y>12</Y>
-            <Z>12</Z>
+            <X>14.770004</X>
+            <Y>13.061996</Y>
+            <Z>11.970001</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
@@ -7421,7 +7421,7 @@
           <token name="BottomSurface">0</token>
           <CoordinateFrame name="CFrame">
             <X>-226.35048</X>
-            <Y>6</Y>
+            <Y>6.531006</Y>
             <Z>93.75745</Z>
             <R00>0.38269043</R00>
             <R01>0</R01>
@@ -7440,9 +7440,9 @@
           <token name="Material">528</token>
           <token name="shape">1</token>
           <Vector3 name="size">
-            <X>16</X>
-            <Y>12</Y>
-            <Z>12</Z>
+            <X>14.770004</X>
+            <Y>13.061996</Y>
+            <Z>11.970001</Z>
           </Vector3>
           <token name="TopSurface">0</token>
           <float name="Transparency">0</float>
