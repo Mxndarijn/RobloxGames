@@ -38,6 +38,7 @@ local MeshAssets = if script
 	then require(script.Parent.Parent.Shared.MeshAssets)
 	else require("../../shared/MeshAssets")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
+local Meadow = if script then require(script.Parent.Meadow) else require("./Meadow")
 local PlotDecor = if script then require(script.Parent.PlotDecor) else require("./PlotDecor")
 local RanchProps = if script then require(script.Parent.RanchProps) else require("./RanchProps")
 local WorldBorder = if script then require(script.Parent.WorldBorder) else require("./WorldBorder")
@@ -796,16 +797,19 @@ local function resolveProp(p: RanchProps.Placement): RanchProp
 	}
 end
 
-local function decor(): WorldNode
+-- Scattered rocks and mushrooms between and behind the plots, and where they
+-- landed (x, z, radius).
+local function scatter(): ({ WorldNode }, { { number } })
 	local children: { WorldNode } = {}
+	local placed: { { number } } = {}
 	local function add(node: WorldNode, pos: Vec, radius: number): boolean
 		if clearSpot(pos, radius) then
 			table.insert(children, node)
+			table.insert(placed, { pos[1], pos[3], radius })
 			return true
 		end
 		return false
 	end
-	-- Scattered rocks and mushrooms between and behind the plots.
 	local rocks, mushrooms = 0, 0
 	for k = 1, 120 do
 		local yaw = hash(k, 1) * 360
@@ -822,6 +826,27 @@ local function decor(): WorldNode
 			end
 		end
 	end
+	return children, placed
+end
+
+-- Meadow clusters in the grass band behind the plots (Meadow), clear of the
+-- same ground as the scatter (plots, spoke paths, prop spots, kit props) and
+-- of the scattered rocks and mushrooms themselves.
+function WorldLayout.meadowClusters(): { Meadow.Cluster }
+	local _, placed = scatter()
+	return Meadow.clusters(function(x: number, z: number, radius: number): boolean
+		for _, p in placed do
+			if (p[1] - x) ^ 2 + (p[2] - z) ^ 2 < (p[3] + radius + 2) ^ 2 then
+				return false
+			end
+		end
+		return clearSpot({ x, 0, z }, radius)
+	end)
+end
+
+local function decor(): WorldNode
+	local children = scatter()
+	table.insert(children, Meadow.build(WorldLayout.meadowClusters()) :: any)
 	-- Kit ranch props (RanchProps table, PropClearance keeps them off the
 	-- lanes); the rocks and mushrooms above already stepped round them.
 	for _, prop in WorldLayout.RANCH_PROPS do
