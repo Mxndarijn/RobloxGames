@@ -10,6 +10,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
+local SlimeLooks = if script then require(script.Parent.SlimeLooks) else require("./SlimeLooks")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 export type Slime = {
@@ -134,11 +135,17 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 	local perms = { { 1, 2, 3 }, { 1, 3, 2 }, { 2, 1, 3 }, { 2, 3, 1 }, { 3, 1, 2 }, { 3, 2, 1 } }
 	local p = perms[order]
 	local species = Genome.rollSpecies(tier, rng:float())
+	-- A named type wears its own colour (SlimeLooks); the random roll above is
+	-- still drawn so the rest of the genome stays seed-stable.
+	local look = species and SlimeLooks.get(species.id)
+	local color = if look
+		then { look.color[1], look.color[2], look.color[3] }
+		else { channels[p[1]], channels[p[2]], channels[p[3]] }
 	return {
 		id = options.id,
 		name = if species then species.name else Genome.rollName(rng),
 		tier = tier,
-		color = { channels[p[1]], channels[p[2]], channels[p[3]] },
+		color = color,
 		size = roundSize(Config.MIN_SIZE + rng:float() * 0.6),
 		pattern = rng:pick(Config.PATTERNS),
 		eyes = rng:pick(Config.EYES),
