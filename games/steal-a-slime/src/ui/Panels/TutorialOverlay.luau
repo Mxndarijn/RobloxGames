@@ -68,6 +68,8 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 
 	local shownStep: string? = nil
 	local hiddenStep: string? = nil
+	local wanted = false -- the step wants the card shown (not finished, not Hidden)
+	local menuOpen = false
 
 	local hide = Widgets.button(
 		{
@@ -82,6 +84,7 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		Theme.BgLight,
 		function()
 			hiddenStep = shownStep
+			wanted = false
 			card.Visible = false
 		end
 	)
@@ -110,10 +113,23 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		place()
 	end
 
+	-- A menu open hides the card (MenuState.tutorialVisible) without touching the
+	-- step or the player's Hide choice; closing it restores the card as it was.
+	function self.setMenuOpen(isOpen: boolean)
+		menuOpen = isOpen
+		card.Visible = wanted and not menuOpen
+	end
+
+	-- The step wants its card (and hint) shown, whether or not a menu covers it now.
+	function self.shown(): boolean
+		return wanted
+	end
+
 	function self.update(state: any)
 		local view = Tutorial.fromState(state)
 		shownStep = if view then view.id else nil
-		if view == nil or view.id == hiddenStep then
+		wanted = view ~= nil and view.id ~= hiddenStep
+		if view == nil or not wanted then
 			card.Visible = false
 			return
 		end
@@ -122,7 +138,7 @@ function TutorialOverlay.new(parent: Instance, _ctx: any)
 		counter.Text = view.counter
 		title.Text = view.title
 		body.Text = view.body
-		card.Visible = true
+		card.Visible = not menuOpen
 	end
 
 	return self
