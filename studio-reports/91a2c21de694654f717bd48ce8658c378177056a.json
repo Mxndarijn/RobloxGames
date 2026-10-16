@@ -1,0 +1,1672 @@
+{
+  "sha": "91a2c21de694654f717bd48ce8658c378177056a",
+  "status": "fail",
+  "checked_at": "2026-10-16T09:58:03Z",
+  "studio_version": "0, 743, 0, 7431133 (version-4f087c32742644ab)",
+  "notes": "screen_capture returned no image (isError Missing required argument: capture_id); frame time is Studio play-mode on the PC (window may be throttled when unfocused); shot 02-dex-menu: no click opened DexPanel; set Visible directly; shot 03-shop-menu: no click opened ShopPanel; set Visible directly; shot 04-rebirth-menu: no click opened RebirthPanel; set Visible directly; two_player ran mode c (pure server modules in one play session), not two real clients",
+  "duration_s": 272.7,
+  "steps": {
+    "build": {
+      "status": "pass",
+      "seconds": 1.4,
+      "detail": {
+        "rbxl": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl",
+        "size_mb": 0.36,
+        "rojo_s": 0.1,
+        "datastore_mode": "Memory (Workspace $attributes, test build only)"
+      }
+    },
+    "launch": {
+      "status": "pass",
+      "seconds": 9.8,
+      "detail": {
+        "studio_id": "cfdd0ab5-85ef-48ac-b224-6e1361776730",
+        "pids": [
+          63752
+        ],
+        "window": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+        "seconds_to_ready": 9.2
+      }
+    },
+    "perf": {
+      "status": "pass",
+      "seconds": 18.5,
+      "detail": {
+        "unique_meshes": 75,
+        "slime_and_character_meshes": 23,
+        "store_status": "Memory",
+        "parts": 1421,
+        "mesh_slots": 332,
+        "budget": 400,
+        "samples": [
+          51,
+          66,
+          84,
+          124,
+          332,
+          332,
+          332
+        ],
+        "settled": true,
+        "edit": {
+          "place_id": 0,
+          "unique_meshes": 0,
+          "place_name": "91a2c21de694654f717bd48ce8658c378177056a.rbxl",
+          "datastore_mode": "Memory",
+          "descendants": 1150,
+          "datastore_mode_before": "Memory",
+          "parts": 1058,
+          "mesh_slots": 0
+        },
+        "triangles": "not available from Luau (pr-gate budget.sh counts FBX triangles)"
+      }
+    },
+    "play": {
+      "status": "pass",
+      "seconds": 7.4,
+      "detail": {
+        "client": {
+          "player": "Mxndarijn",
+          "has_gui": true,
+          "viewport": [
+            844,
+            390
+          ],
+          "store_status": "Memory",
+          "step_id": "Grab",
+          "has_character": true,
+          "ready": true
+        },
+        "seconds_to_client": 7.4,
+        "stats": {
+          "play_mesh_parts": 69,
+          "memory_mb": 3512.42,
+          "p95_ms": 18.0,
+          "max_ms": 19.15,
+          "frames": 300,
+          "fps": 60.03,
+          "primitives": 1218,
+          "instance_count": 51142,
+          "play_parts": 1218,
+          "frame_time_ms": 16.66
+        }
+      }
+    },
+    "onboarding": {
+      "status": "fail",
+      "seconds": 1.0,
+      "detail": {
+        "step_id": "Grab",
+        "counter": "Step 1 of 7",
+        "title": "Grab a slime",
+        "card_visible": true,
+        "hide_click": {
+          "down": {
+            "action": "mouseButtonDown",
+            "x": 593,
+            "y": 225
+          },
+          "up": {
+            "action": "mouseButtonUp",
+            "x": 593,
+            "y": 225
+          },
+          "results": [
+            "isError mouse_button (\"left\" or \"right\") is required for mouseButtonDown",
+            "isError mouse_button (\"left\" or \"right\") is required for mouseButtonUp"
+          ],
+          "at": [
+            593,
+            225
+          ]
+        },
+        "card_visible_after_hide": true,
+        "error": "clicking Hide did not hide the tutorial card",
+        "advance": {
+          "ran": true,
+          "slime": "Slime_7bda681b-3e1d-4844-bd92-2f2392b5d454",
+          "price": 0,
+          "step_before": "Grab",
+          "step_after": "Grab",
+          "carrying": null,
+          "advanced": false
+        }
+      }
+    },
+    "shop": {
+      "status": "fail",
+      "seconds": 1.2,
+      "detail": {
+        "open_before": false,
+        "inset": [
+          0,
+          58
+        ],
+        "viewport": [
+          844,
+          390
+        ],
+        "methods": {
+          "virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau",
+          "mcp_mouse:Hud.Shop": {
+            "error": "Hud.Shop not on screen ({'y': 6.400001525878906, 'found': True, 'cy': 86.80000114440918, 'cx': 141.19998168945312, 'shown': False, 'h': 44.79999923706055, 'w': 80, 'x': 101.19998168945312})"
+          },
+          "mcp_mouse:Nav.Shop": {
+            "down": {
+              "action": "mouseButtonDown",
+              "x": 86,
+              "y": 166
+            },
+            "up": {
+              "action": "mouseButtonUp",
+              "x": 86,
+              "y": 166
+            },
+            "results": [
+              "isError mouse_button (\"left\" or \"right\") is required for mouseButtonDown",
+              "isError mouse_button (\"left\" or \"right\") is required for mouseButtonUp"
+            ],
+            "at": [
+              86,
+              166
+            ]
+          }
+        },
+        "open_after": false,
+        "open_panels": [],
+        "error": "no click opened the shop"
+      }
+    },
+    "esc": {
+      "status": "skip",
+      "seconds": 0.1,
+      "detail": {
+        "reason": "shop not open"
+      }
+    },
+    "devices": {
+      "status": "pass",
+      "seconds": 8.1,
+      "detail": {
+        "devices": {
+          "desktop": {
+            "target": [
+              1920,
+              1080
+            ],
+            "viewport": [
+              1920,
+              1080
+            ],
+            "exact": true,
+            "samples": [
+              [
+                1312,
+                606,
+                844,
+                390
+              ],
+              [
+                2388,
+                1296,
+                1920,
+                1080
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                1920,
+                1022
+              ],
+              "checked": 18,
+              "hidden": [
+                "Hud.Daily"
+              ],
+              "viewport": [
+                1920,
+                1080
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 105.47,
+                "variance": 4955.13,
+                "distinct": 594,
+                "samples": 4272
+              },
+              "tried": [
+                "printwindow: var=4955 distinct=594"
+              ],
+              "size": [
+                2388,
+                1296
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-desktop.png"
+            }
+          },
+          "phone-portrait": {
+            "target": [
+              390,
+              844
+            ],
+            "viewport": [
+              390,
+              844
+            ],
+            "exact": true,
+            "samples": [
+              [
+                2388,
+                1296,
+                1920,
+                1080
+              ],
+              [
+                858,
+                1060,
+                390,
+                844
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                390,
+                786
+              ],
+              "checked": 17,
+              "hidden": [
+                "Hud.Shop",
+                "Hud.Daily"
+              ],
+              "viewport": [
+                390,
+                844
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 65.87,
+                "variance": 3919.63,
+                "distinct": 525,
+                "samples": 4712
+              },
+              "tried": [
+                "printwindow: var=3920 distinct=525"
+              ],
+              "size": [
+                858,
+                1060
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-phone-portrait.png"
+            }
+          },
+          "phone-landscape": {
+            "target": [
+              844,
+              390
+            ],
+            "viewport": [
+              844,
+              390
+            ],
+            "exact": true,
+            "samples": [
+              [
+                858,
+                1060,
+                390,
+                844
+              ],
+              [
+                1312,
+                606,
+                844,
+                390
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                844,
+                332
+              ],
+              "checked": 17,
+              "hidden": [
+                "Hud.Shop",
+                "Hud.Daily"
+              ],
+              "viewport": [
+                844,
+                390
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 70.64,
+                "variance": 4019.48,
+                "distinct": 414,
+                "samples": 4747
+              },
+              "tried": [
+                "printwindow: var=4019 distinct=414"
+              ],
+              "size": [
+                1312,
+                606
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-phone-landscape.png"
+            }
+          }
+        }
+      }
+    },
+    "two_player": {
+      "status": "pass",
+      "seconds": 158.0,
+      "detail": {
+        "a_probe": {
+          "TestService": {
+            "members": [
+              "NumberOfPlayers:number",
+              "Run:function"
+            ],
+            "available": true
+          },
+          "StudioTestService": {
+            "members": [
+              "ExecutePlayModeAsync:function",
+              "ExecuteRunModeAsync:function",
+              "EndTest:function",
+              "GetTestArgs:function"
+            ],
+            "available": true
+          }
+        },
+        "mode": "c-server-sim",
+        "tried": [
+          "a: no multi-client API in StudioTestService/TestService (probe only)",
+          "b: MCP saw no test server with 2 players (3 new studios; last no result (isError Place is not open))"
+        ],
+        "result": {
+          "real_players": 1,
+          "distinct_plots": true,
+          "grab_ok": true,
+          "thief_stolen": 1,
+          "real_owned_plots": 1,
+          "victim_has": false,
+          "deposit_ok": true,
+          "thief_has": true
+        },
+        "pass_": true,
+        "assertion": "two stand-in sessions get distinct plots; thief steals + deposits victim's slime"
+      }
+    },
+    "shots": {
+      "status": "pass",
+      "seconds": 48.5,
+      "detail": {
+        "captured": 16,
+        "total": 18,
+        "shots": [
+          {
+            "id": "01-hud-menus",
+            "todo": "1",
+            "note": "TODO 1: menus size/look (HUD as-is, no click)",
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 121.38,
+                "variance": 4675.46,
+                "distinct": 615,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=4088 distinct=435"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-01-hud-menus.png"
+            }
+          },
+          {
+            "id": "02-dex-menu",
+            "todo": "2",
+            "note": "TODO 2: SlimeDex images",
+            "open": {
+              "panel": "DexPanel",
+              "method": "visible_fallback",
+              "tried": [
+                {
+                  "path": "Nav.Dex",
+                  "at": [
+                    136,
+                    166
+                  ],
+                  "click_ok": false,
+                  "opened": false,
+                  "error": null
+                },
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true
+                  }
+                }
+              ]
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 102.43,
+                "variance": 5076.84,
+                "distinct": 452,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3498 distinct=344"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-02-dex-menu.png"
+            },
+            "closed_by": "visible_fallback"
+          },
+          {
+            "id": "03-shop-menu",
+            "todo": "3",
+            "note": "TODO 3: one shop menu",
+            "open": {
+              "panel": "ShopPanel",
+              "method": "visible_fallback",
+              "tried": [
+                {
+                  "path": "Nav.Shop",
+                  "at": [
+                    86,
+                    166
+                  ],
+                  "click_ok": false,
+                  "opened": false,
+                  "error": null
+                },
+                {
+                  "path": "Hud.Shop",
+                  "at": null,
+                  "click_ok": false,
+                  "opened": false,
+                  "error": "Hud.Shop not on screen ({'y': 12.800003051757812, 'found': True, 'cy': 93.20000267028809, 'cx': 877.199951171875, 'shown': False, 'h': 44.79999923706055, 'w': 80, 'x': 837.199951171875})"
+                },
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true
+                  }
+                }
+              ]
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 100.98,
+                "variance": 4968.41,
+                "distinct": 457,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=3442 distinct=339"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-03-shop-menu.png"
+            },
+            "closed_by": "visible_fallback"
+          },
+          {
+            "id": "04-rebirth-menu",
+            "todo": "4",
+            "note": "TODO 4: rebirth shows next upgrade only",
+            "open": {
+              "panel": "RebirthPanel",
+              "method": "visible_fallback",
+              "tried": [
+                {
+                  "path": "Nav.Rebirth",
+                  "at": [
+                    86,
+                    216
+                  ],
+                  "click_ok": false,
+                  "opened": false,
+                  "error": null
+                },
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true
+                  }
+                }
+              ]
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 90.71,
+                "variance": 4034.54,
+                "distinct": 453,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=2725 distinct=344"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-04-rebirth-menu.png"
+            },
+            "closed_by": "visible_fallback"
+          },
+          {
+            "id": "05-guide-npc",
+            "todo": "5",
+            "note": "TODO 5: guide NPC",
+            "missing": "target 'guide' not found"
+          },
+          {
+            "id": "06-fountain-centre",
+            "todo": "6/13",
+            "note": "TODO 6/13: fountain in exact middle",
+            "target": {
+              "path": "Workspace.Map.Volcano.FountainMesh",
+              "pos": [
+                6.5200042724609375,
+                21.658004760742188,
+                7.75
+              ],
+              "size": [
+                54.44999694824219,
+                43.316009521484375,
+                63.85099792480469
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 5,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 152.78,
+                "variance": 3366.41,
+                "distinct": 944,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=5112 distinct=597"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-06-fountain-centre.png"
+            }
+          },
+          {
+            "id": "06-map-top",
+            "todo": "6/8/9",
+            "note": "TODO 6/8/9: top-down overview (fountain at centre, stray boxes)",
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 173.69,
+                "variance": 2191.25,
+                "distinct": 456,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=5920 distinct=370"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-06-map-top.png"
+            }
+          },
+          {
+            "id": "07-plot-sign",
+            "todo": "7",
+            "note": "TODO 7: plot sign text on board",
+            "target": {
+              "path": "Workspace.Map.ShopStand.Sign",
+              "pos": [
+                85.36646270751953,
+                10.800000190734863,
+                35.35995101928711
+              ],
+              "size": [
+                7,
+                1.7999999523162842,
+                0.30000001192092896
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 162.11,
+                "variance": 2483.99,
+                "distinct": 947,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=5326 distinct=596"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-07-plot-sign.png"
+            }
+          },
+          {
+            "id": "07-lock-sign",
+            "todo": "7",
+            "note": "TODO 7",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.LockSign",
+              "pos": [
+                19,
+                7.1999969482421875,
+                122.80000305175781
+              ],
+              "size": [
+                7,
+                2.600006103515625,
+                0.3000030517578125
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 155.21,
+                "variance": 3499.67,
+                "distinct": 949,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=5320 distinct=598"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-07-lock-sign.png"
+            }
+          },
+          {
+            "id": "10-shop-stand",
+            "todo": "10",
+            "note": "TODO 10: shops face the middle",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.BuyStand",
+              "pos": [
+                -13,
+                5.660003662109375,
+                95
+              ],
+              "size": [
+                9.608001708984375,
+                11.32000732421875,
+                5.96319580078125
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 156.14,
+                "variance": 3556.42,
+                "distinct": 933,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=5406 distinct=591"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-10-shop-stand.png"
+            }
+          },
+          {
+            "id": "11-campfire-bench",
+            "todo": "11",
+            "note": "TODO 11: bench faces campfire",
+            "target": {
+              "path": "Workspace.Map.Decor.CampBench",
+              "pos": [
+                26.129409790039062,
+                2.4102020263671875,
+                88.21142578125
+              ],
+              "size": [
+                7.1999969482421875,
+                4.820404052734375,
+                2.8511962890625
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 156.36,
+                "variance": 4177.32,
+                "distinct": 875,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=5631 distinct=590"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-11-campfire-bench.png"
+            }
+          },
+          {
+            "id": "11-campfire",
+            "todo": "11",
+            "note": "TODO 11",
+            "target": {
+              "path": "Workspace.Map.Decor.Campfire",
+              "pos": [
+                35.206878662109375,
+                2.95880126953125,
+                84.99691772460938
+              ],
+              "size": [
+                5.545806884765625,
+                5.9176025390625,
+                5.528900146484375
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 163.18,
+                "variance": 3059.89,
+                "distinct": 946,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=5579 distinct=597"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-11-campfire.png"
+            }
+          },
+          {
+            "id": "11-mailbox",
+            "todo": "11",
+            "note": "TODO 11: mailbox faces path",
+            "target": {
+              "path": "Workspace.Map.Decor.Mailbox_2",
+              "pos": [
+                79.19596862792969,
+                3.225006103515625,
+                55.154327392578125
+              ],
+              "size": [
+                1.656005859375,
+                6.4499969482421875,
+                3.264007568359375
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 164.61,
+                "variance": 2826.31,
+                "distinct": 996,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=5662 distinct=620"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-11-mailbox.png"
+            }
+          },
+          {
+            "id": "11-signpost",
+            "todo": "11",
+            "note": "TODO 11",
+            "target": {
+              "path": "Workspace.Map.Plaza.Signpost",
+              "pos": [
+                62.82380676269531,
+                4.4996490478515625,
+                -26.022476196289062
+              ],
+              "size": [
+                7.841766357421875,
+                8.999298095703125,
+                4.680999755859375
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 159.27,
+                "variance": 4101.18,
+                "distinct": 939,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=5745 distinct=595"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-11-signpost.png"
+            }
+          },
+          {
+            "id": "12-fountain-slide",
+            "todo": "12",
+            "note": "TODO 12: slime slide ride",
+            "missing": "target 'slide' not found"
+          },
+          {
+            "id": "14-podium-1",
+            "todo": "14",
+            "note": "TODO 14: top podiums with avatars",
+            "target": {
+              "path": "Workspace.Map.Plaza.Podium_1",
+              "pos": [
+                26.022476196289062,
+                2.5171966552734375,
+                -62.82380676269531
+              ],
+              "size": [
+                6.24609375,
+                5.034393310546875,
+                6.0059967041015625
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 167.08,
+                "variance": 3425.53,
+                "distinct": 959,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=6028 distinct=598"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-14-podium-1.png"
+            }
+          },
+          {
+            "id": "14-podiums",
+            "todo": "14",
+            "note": "TODO 14",
+            "target": {
+              "path": "Workspace.Map.Plaza.Podium_2",
+              "pos": [
+                34,
+                1.819305419921875,
+                -58.88972473144531
+              ],
+              "size": [
+                5.7967071533203125,
+                3.6385955810546875,
+                5.5937042236328125
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 167.36,
+                "variance": 3526.81,
+                "distinct": 905,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=6053 distinct=579"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-14-podiums.png"
+            }
+          },
+          {
+            "id": "15-slime-pad",
+            "todo": "15",
+            "note": "TODO 15: new slime textures",
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ]
+            },
+            "camera": {
+              "character_hidden": true,
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "camera_type": "Scriptable",
+              "drift": 0
+            },
+            "frame": {
+              "method": "printwindow",
+              "foreground": true,
+              "title": "C:\\gate\\pc-watcher\\builds\\91a2c21de694654f717bd48ce8658c378177056a.rbxl - Roblox Studio",
+              "stats": {
+                "mean": 161.26,
+                "variance": 3873.64,
+                "distinct": 886,
+                "samples": 5194
+              },
+              "tried": [
+                "printwindow: var=5808 distinct=559"
+              ],
+              "size": [
+                844,
+                390
+              ],
+              "crop": [
+                286,
+                144,
+                844,
+                390
+              ],
+              "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-15-slime-pad.png"
+            }
+          }
+        ],
+        "viewport_rect": {
+          "client": [
+            1312,
+            606
+          ],
+          "rect": [
+            286,
+            144,
+            844,
+            390
+          ],
+          "viewport": [
+            844,
+            390
+          ],
+          "method": "printwindow",
+          "scale": 1.0
+        }
+      }
+    }
+  },
+  "perf": {
+    "mesh_slots": 332,
+    "unique_meshes": 75,
+    "budget": 400,
+    "frame_time_ms": 16.66,
+    "memory_mb": 3512.42,
+    "play": {
+      "play_mesh_parts": 69,
+      "memory_mb": 3512.42,
+      "p95_ms": 18.0,
+      "max_ms": 19.15,
+      "frames": 300,
+      "fps": 60.03,
+      "primitives": 1218,
+      "instance_count": 51142,
+      "play_parts": 1218,
+      "frame_time_ms": 16.66
+    },
+    "parts": 1421,
+    "triangles": null
+  },
+  "frames": [
+    {
+      "id": "desktop",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        2388,
+        1296
+      ],
+      "crop": null,
+      "kind": "device"
+    },
+    {
+      "id": "phone-portrait",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        858,
+        1060
+      ],
+      "crop": null,
+      "kind": "device"
+    },
+    {
+      "id": "phone-landscape",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "printwindow",
+      "size": [
+        1312,
+        606
+      ],
+      "crop": null,
+      "kind": "device"
+    },
+    {
+      "id": "shot-01-hud-menus",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-01-hud-menus.jpg",
+      "status": "captured",
+      "todo": "1",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-02-dex-menu",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-02-dex-menu.jpg",
+      "status": "captured",
+      "todo": "2",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "shot-03-shop-menu",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-03-shop-menu.jpg",
+      "status": "captured",
+      "todo": "3",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "shot-04-rebirth-menu",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-04-rebirth-menu.jpg",
+      "status": "captured",
+      "todo": "4",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "shot-05-guide-npc",
+      "file": null,
+      "status": "missing",
+      "todo": "5",
+      "kind": "shot",
+      "error": "target 'guide' not found"
+    },
+    {
+      "id": "shot-06-fountain-centre",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-06-fountain-centre.jpg",
+      "status": "captured",
+      "todo": "6/13",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.FountainMesh"
+    },
+    {
+      "id": "shot-06-map-top",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-06-map-top.jpg",
+      "status": "captured",
+      "todo": "6/8/9",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-07-plot-sign",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-07-plot-sign.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand.Sign"
+    },
+    {
+      "id": "shot-07-lock-sign",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-07-lock-sign.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.LockSign"
+    },
+    {
+      "id": "shot-10-shop-stand",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-10-shop-stand.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.BuyStand"
+    },
+    {
+      "id": "shot-11-campfire-bench",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-11-campfire-bench.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.CampBench"
+    },
+    {
+      "id": "shot-11-campfire",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-11-campfire.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Campfire"
+    },
+    {
+      "id": "shot-11-mailbox",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-11-mailbox.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_2"
+    },
+    {
+      "id": "shot-11-signpost",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-11-signpost.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Signpost"
+    },
+    {
+      "id": "shot-12-fountain-slide",
+      "file": null,
+      "status": "missing",
+      "todo": "12",
+      "kind": "shot",
+      "error": "target 'slide' not found"
+    },
+    {
+      "id": "shot-14-podium-1",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-14-podium-1.jpg",
+      "status": "captured",
+      "todo": "14",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Podium_1"
+    },
+    {
+      "id": "shot-14-podiums",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-14-podiums.jpg",
+      "status": "captured",
+      "todo": "14",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Podium_2"
+    },
+    {
+      "id": "shot-15-slime-pad",
+      "file": "91a2c21de694654f717bd48ce8658c378177056a-shot-15-slime-pad.jpg",
+      "status": "captured",
+      "todo": "15",
+      "method": "printwindow",
+      "size": [
+        844,
+        390
+      ],
+      "crop": [
+        286,
+        144,
+        844,
+        390
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    }
+  ],
+  "input_methods": {
+    "virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau",
+    "mcp_mouse:Hud.Shop": {
+      "error": "Hud.Shop not on screen ({'y': 6.400001525878906, 'found': True, 'cy': 86.80000114440918, 'cx': 141.19998168945312, 'shown': False, 'h': 44.79999923706055, 'w': 80, 'x': 101.19998168945312})"
+    },
+    "mcp_mouse:Nav.Shop": {
+      "down": {
+        "action": "mouseButtonDown",
+        "x": 86,
+        "y": 166
+      },
+      "up": {
+        "action": "mouseButtonUp",
+        "x": 86,
+        "y": 166
+      },
+      "results": [
+        "isError mouse_button (\"left\" or \"right\") is required for mouseButtonDown",
+        "isError mouse_button (\"left\" or \"right\") is required for mouseButtonUp"
+      ],
+      "at": [
+        86,
+        166
+      ]
+    }
+  },
+  "watcher_version": "1.0.0",
+  "close": {
+    "status": "pass",
+    "seconds": 15.2,
+    "detail": {
+      "console_lines": 87,
+      "console_errors": 0,
+      "closed": [
+        63752
+      ],
+      "killed": [
+        63752
+      ]
+    }
+  },
+  "frames_dir": "91a2c21de694654f717bd48ce8658c378177056a/"
+}
