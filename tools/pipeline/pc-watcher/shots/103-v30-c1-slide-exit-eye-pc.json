@@ -1,0 +1,19 @@
+{
+  "id": "30-v30-c1-slide-exit-eye-pc",
+  "todo": "v30-c1",
+  "kind": "world",
+  "pos": [
+    0,
+    5,
+    29
+  ],
+  "look": [
+    0,
+    0.5,
+    46
+  ],
+  "wait": 2.0,
+  "note": "v30 C1: player eye (5 studs) at the slide exit looking along the path: it starts at the slide's end, flush, continuous to the plaza edge [desktop]",
+  "device": "desktop",
+  "clock": 14
+}
