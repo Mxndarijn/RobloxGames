@@ -1,13 +1,14 @@
 # PR gate (Steal a Slime)
 
-Three fast checks that every PR must pass. They run the same way locally and in CI, in about 20 s on the box.
+Four fast checks that every PR must pass. They run the same way locally and in CI, in about 20 s on the box.
 
 ```sh
-tools/pr-gate/run.sh              # all three: per-check PASS/FAIL + seconds, exit 1 if any fail
+tools/pr-gate/run.sh              # all four: per-check PASS/FAIL + seconds, exit 1 if any fail
 tools/pr-gate/run.sh layout       # just one or two of them
 tools/pr-gate/logic.sh            # each check on its own
 tools/pr-gate/layout.sh [--lune-only|--rhr-only]
 tools/pr-gate/budget.sh
+tools/pr-gate/typecheck.sh        # luau-lsp type check; SKIPs if luau-lsp/rojo are missing
 tools/pr-gate/selftest.sh         # proves each check fails on broken input, then passes on the clean tree
 ```
 
@@ -21,6 +22,7 @@ You need `lune` (`rokit install` in `games/steal-a-slime`) and `python3` (stdlib
 | `layout.sh` (Lune, always gates) | `lune run tests/ui Layout ScrollLists`. That covers `LayoutAssert.spec`, `Layout.spec`, `ScrollLists.spec` and the new `LayoutGate.spec`, which checks 390x844, 844x390, 1024x768, 1366x768 and 1920x1080. Each viewport is checked raw and minus the 58 px top bar (the ScreenGui's real size), with the nav both collapsed and expanded. | A box off-screen, a nav button covered by an overlay (`navReachable`), overlaps between HUD/nav/cards, aspect-ratio distortion (`notSquashed`: one uniform UIScale, HUD items, nav buttons, the close X and Slap keep their design proportions), touch targets under 44 px, text that doesn't fit, negative sizes. |
 | `layout.sh` (rhr render) | `rhr_hud.luau` writes one ScreenGui per viewport and nav state, built from `Layout.screen()` the way `init.client` applies it. `rhr_check.py` then makes one `rhr batch` call (layout + hitmap) and asserts on rhr's own rects. | A HUD/nav button off the viewport or under the top bar. A button that is covered: the centre click lands elsewhere, or a higher-z click-capturing node overlaps it. A squashed button (more than 3 % off its design aspect), or one under 44 px. |
 | `budget.sh` | `budget_counts.luau` counts `WorldLayout.build()` with the same rules as `tests/WorldBudget.spec`. `budget_check.py` adds triangle counts read from `shared/modeling-kit/out/<mesh>.fbx` (a binary FBX reader, matching the kit's `stats.json` exactly). | Any limit in `budgets.json` exceeded. A counted mesh with no FBX. A `WorldLayout.*_BUDGET` constant raised above the gate's limit. |
+| `typecheck.sh` | `games/steal-a-slime/scripts/typecheck.sh` (luau-lsp against the Rojo sourcemap), the same as the CI types job. **When luau-lsp or rojo is not on PATH it prints `typecheck: SKIP (luau-lsp/rojo missing; CI types job covers it)` and exits 0**, so the CI `pr-gate` job passes without them. | Type errors in `src/server` and `src/shared`. |
 
 ### Budgets (`budgets.json`)
 

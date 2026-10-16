@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# PR gate: logic, layout and budget checks with per-check PASS/FAIL and
+# PR gate: logic, layout, budget and typecheck checks with per-check PASS/FAIL and
 # wall-clock seconds. Exit 1 if any check fails. Runs locally and in CI:
-#   tools/pr-gate/run.sh            # all three
+#   tools/pr-gate/run.sh            # all four
 #   tools/pr-gate/run.sh layout     # a subset, by name
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 set +e
 
 checks=("$@")
-[ ${#checks[@]} -gt 0 ] || checks=(logic layout budget)
+[ ${#checks[@]} -gt 0 ] || checks=(logic layout budget typecheck)
 
 now() { date +%s.%N; }
 start_all="$(now)"
@@ -15,7 +15,7 @@ results=()
 failed=0
 for c in "${checks[@]}"; do
 	if [ ! -f "$PR_GATE_DIR/$c.sh" ]; then
-		echo "pr-gate: unknown check '$c' (logic, layout, budget)" >&2
+		echo "pr-gate: unknown check '$c' (logic, layout, budget, typecheck)" >&2
 		exit 2
 	fi
 	echo "=== $c ==="
