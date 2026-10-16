@@ -69,8 +69,8 @@ DEFAULTS = {
 }
 
 # A step outside these that ends "fail" still fails the run; these also fail it when skipped.
-HARD_STEPS = ("build", "launch", "perf", "play", "onboarding", "shop", "esc", "devices", "menus", "phone_perf")
-STEP_ORDER = ("build", "launch", "perf", "play", "onboarding", "shop", "esc", "devices", "menus", "phone_perf", "two_player", "shots")
+HARD_STEPS = ("build", "launch", "perf", "geometry", "play", "onboarding", "shop", "esc", "devices", "menus", "phone_perf")
+STEP_ORDER = ("build", "launch", "perf", "geometry", "play", "onboarding", "shop", "esc", "devices", "menus", "phone_perf", "two_player", "shots")
 SOFT_STEPS = ("shots",)  # never fail the run; missing = fine
 GIT_ENV = {"GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
 
@@ -166,6 +166,32 @@ def menus_failed(menus):
             if not (r.get("on_screen") and r.get("close_button"))]
 
 
+def geometry_verdict(raw, checks):
+    """luau/geometry raw items -> {check: {pass, items, errors}}. Missing / unknown instances fail with a message."""
+    out = {}
+    for name in ("bench_faces_campfire", "shops_face_centre", "silo_centred", "plot_signs"):
+        cfg, got = checks.get(name) or {}, (raw or {}).get(name) or {}
+        items, errors = [dict(i) for i in got.get("items") or []], list(got.get("errors") or [])
+        if not got:
+            errors.append("check missing from the geometry result")
+        if len(items) < cfg.get("min_items", 1):
+            errors.append("only %d item(s) found, wanted >= %s" % (len(items), cfg.get("min_items", 1)))
+        for it in items:
+            if name == "silo_centred":
+                it["pass"] = it.get("dist") is not None and it["dist"] <= cfg["max_dist"]
+            elif name == "plot_signs":
+                gd = it.get("dot_gate_front")
+                it["pass"] = (it.get("dot_out", -1) >= cfg["min_dot"] and not it.get("mirrored", True)
+                              and gd is not None and gd >= cfg["min_dot"] and bool(it.get("enabled", True)))
+                if gd is None:
+                    errors.append("%s: no gate front to compare" % it.get("name"))
+            else:
+                it["pass"] = it.get("dot", -1) >= cfg["min_dot"]
+        out[name] = {"pass": bool(items) and not errors and all(i["pass"] for i in items),
+                     "items": items, "errors": errors}
+    return out
+
+
 def phone_perf_verdict(stats, min_fps, min_slimes):
     """(ok, problems): ok = average FPS >= min_fps. Too few animating slimes is a problem but not a failure."""
     problems = []
@@ -202,6 +228,31 @@ def shot_camera(target, pitch_deg=35.0):
     pitch = math.radians(pitch_deg)
     across, up = math.cos(pitch) * dist, math.sin(pitch) * dist
     return (px + hx * across, py + up, pz + hz * across), (px, py, pz)
+
+
+def shot_camera_from(target, mode, aim=None, dist=None, height=None, centre=(0.0, 0.0), pitch_deg=35.0):
+    """Eye/at for a shots.json "from" entry: the eye stands `dist` studs from the target (flat) on the side
+    given by `mode`, `height` up, looking at `aim` (second target's pos) or at the target.
+      front   along the target's #75 front vector       look    along its raw LookVector (SurfaceGui Front)
+      back    opposite its front                        centre  towards the plaza centre
+      behind  opposite `aim` (over the target towards aim)
+    """
+    px, py, pz = target["pos"]
+    if mode == "centre":
+        d = (centre[0] - px, centre[1] - pz)
+    elif mode == "behind" and aim:
+        d = (px - aim[0], pz - aim[2])
+    else:
+        vx, _, vz = target["look"] if mode == "look" else target.get("front") or target["look"]
+        d = (-vx, -vz) if mode == "back" else (vx, vz)
+    flat = math.hypot(*d)
+    hx, hz = (d[0] / flat, d[1] / flat) if flat > 1e-3 else (0.0, 1.0)
+    if dist is None:
+        dist = max(target["size"]) * 1.8 + 15
+    if height is None:
+        height = dist * math.tan(math.radians(pitch_deg))
+    at = tuple(aim) if aim else (px, py, pz)
+    return (px + hx * dist, py + height, pz + hz * dist), at
 
 
 def shot_todo(shot):
@@ -790,6 +841,27 @@ def step_perf(run):
     if not d.get("mesh_slots"):
         return "fail", dict(detail, error="no MeshParts in the play world (MeshSwap did not run?)")
     return "pass", detail
+
+
+def step_geometry(run):
+    """Facing / centring numbers (checks.json, luau/geometry) for #75; report.geometry = {check: {pass, items}}."""
+    if run.dry:
+        return "skip", {"dry_run": True}
+    checks = read_json(os.path.join(HERE, "checks.json"), None)
+    if not isinstance(checks, dict):
+        raise StepFail("checks.json missing or unreadable")
+    verdict = {}
+    for attempt in range(3):  # PlotSigns / MeshSwap may still be finishing right after play starts
+        raw = run.need_luau("geometry", "Server", timeout=30, checks=json.dumps(checks, separators=(",", ":")))
+        verdict = geometry_verdict(raw, checks)
+        if all(v["pass"] for v in verdict.values()):
+            break
+        time.sleep(4)
+    run.extra["geometry"] = verdict
+    bad = {k: (v["errors"] or [i.get("name") for i in v["items"] if not i["pass"]]) for k, v in verdict.items() if not v["pass"]}
+    if bad:
+        return "fail", {"error": "geometry failed: %s" % json.dumps(bad)[:400], "failed": sorted(bad)}
+    return "pass", {"checks": {k: len(v["items"]) for k, v in verdict.items()}}
 
 
 def wait_client(run, timeout):
@@ -1433,13 +1505,25 @@ def step_shots(run):
                 if shot.get("pos"):
                     eye, at = shot["pos"], shot.get("look") or [0, 0, 0]
                 else:
-                    ok, t = run.luau("shot_find", "Server", timeout=30, target=shot.get("target", ""))
+                    ok, t = run.luau("shot_find", "Server", timeout=30, target=shot.get("target", ""),
+                                     index=int(shot.get("index", 1)))
+                    aim = None
+                    if ok and t.get("found") and shot.get("aim"):
+                        ok2, a = run.luau("shot_find", "Server", timeout=30, target=shot["aim"], index=1)
+                        if ok2 and a.get("found"):
+                            aim = a["pos"]
+                        else:
+                            ok = False
                     if not ok or not t.get("found"):
-                        res["missing"] = "target %r not found" % shot.get("target")
+                        res["missing"] = "target %r (index %s%s) not found" % (
+                            shot.get("target"), shot.get("index", 1), ", aim %r" % shot["aim"] if shot.get("aim") else "")
                         run.add_frame(fid, status="missing", todo=todo, kind="shot", error=res["missing"])
                         continue
-                    res["target"] = {k: t.get(k) for k in ("path", "pos", "size")}
-                    eye, at = shot_camera(t)
+                    res["target"] = {k: t.get(k) for k in ("path", "pos", "size", "front")}
+                    if shot.get("from"):
+                        eye, at = shot_camera_from(t, shot["from"], aim, shot.get("dist"), shot.get("height"))
+                    else:
+                        eye, at = shot_camera(t)
                 world_mode = True
                 res["camera"] = cam = run.need_luau("shot_camera", "Client", timeout=25, eye=eye, at=at)
                 if not cam.get("locked"):
@@ -1539,6 +1623,7 @@ def build_report(run):
         "duration_s": round(time.time() - run.t0, 1),
         "steps": steps,
         "perf": run.perf,
+        "geometry": run.extra.get("geometry"),
         "frames": list(run.frames),
         "input_methods": run.extra.get("input_methods"),
         "menus": run.extra.get("menus"),
@@ -1585,6 +1670,7 @@ def full_run(paths, cfg, sha, dry=False):
         if ok:
             if run_step(run, "play", step_play):
                 run_step(run, "perf", step_perf)
+                run_step(run, "geometry", step_geometry)
                 run_step(run, "onboarding", step_onboarding)
                 run_step(run, "shop", step_shop)
                 run_step(run, "esc", step_esc)
@@ -1787,7 +1873,7 @@ def cmd_loop(paths, cfg, dry):
 
 
 STEP_FNS = {
-    "build": step_build, "launch": step_launch, "perf": step_perf, "play": step_play,
+    "build": step_build, "launch": step_launch, "perf": step_perf, "geometry": step_geometry, "play": step_play,
     "devices": step_devices, "shots": step_shots, "twoplayer": step_twoplayer, "close": step_close,
 }
 
@@ -1815,9 +1901,9 @@ def cmd_step(paths, cfg, name, sha, dry):
         if found:
             run.studio_id = found["id"]
     if name == "play":
-        steps = [("play", step_play), ("perf", step_perf), ("onboarding", step_onboarding), ("shop", step_shop),
+        steps = [("play", step_play), ("perf", step_perf), ("geometry", step_geometry), ("onboarding", step_onboarding), ("shop", step_shop),
                  ("esc", step_esc)]
-    elif name in ("perf", "devices", "shots"):
+    elif name in ("perf", "geometry", "devices", "shots"):
         steps = [(name, STEP_FNS[name])]
         if not dry:
             ok, d = run.luau("client_ready", "Client", timeout=15)

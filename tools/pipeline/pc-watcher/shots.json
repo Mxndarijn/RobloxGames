@@ -19,5 +19,18 @@
   {"id": "13-fountain-colliders", "todo": "13", "kind": "world", "target": "FountainMesh", "note": "TODO 13: fountain solid (close-up)"},
   {"id": "14-podium-1", "todo": "14", "kind": "world", "target": "Podium_1", "note": "TODO 14: top podiums with avatars"},
   {"id": "14-podiums", "todo": "14", "kind": "world", "target": "Podium_2", "note": "TODO 14"},
-  {"id": "15-slime-pad", "todo": "15", "kind": "world", "target": "Pad_1", "note": "TODO 15: new slime textures"}
+  {"id": "15-slime-pad", "todo": "15", "kind": "world", "target": "Pad_1", "note": "TODO 15: new slime textures"},
+  {"id": "06-silo-top", "todo": "6", "kind": "world", "pos": [0, 60, 0.5], "look": [0, 0, 0], "note": "TODO 6/13: straight down above the origin, silo ring should be concentric with the frame centre"},
+  {"id": "07-plot-sign-front-1", "todo": "7", "kind": "world", "target": "Sign", "index": 1, "from": "look", "dist": 24, "height": 8, "note": "TODO 7: Plot_1 sign from outside the plot, text must read (not mirrored)"},
+  {"id": "07-plot-sign-front-2", "todo": "7", "kind": "world", "target": "Sign", "index": 2, "from": "look", "dist": 24, "height": 8, "note": "TODO 7: Plot_2 sign from outside the plot, text must read (not mirrored)"},
+  {"id": "11-bench-campfire-close", "todo": "11", "kind": "world", "target": "CampBench", "from": "behind", "aim": "Campfire", "dist": 9, "height": 5, "note": "TODO 11: camera behind the bench looking over it at the campfire"},
+  {"id": "10-shop-front-1", "todo": "10", "kind": "world", "target": "ShopStand", "index": 1, "from": "centre", "dist": 28, "height": 12, "note": "TODO 10: ShopStand #1 seen from the plaza centre side (should show its front)"},
+  {"id": "10-shop-front-2", "todo": "10", "kind": "world", "target": "BuyStand", "index": 1, "from": "centre", "dist": 28, "height": 12, "note": "TODO 10: BuyStand #1 seen from the plaza centre side (should show its front)"},
+  {"id": "10-shop-front-3", "todo": "10", "kind": "world", "target": "BuyStand", "index": 2, "from": "centre", "dist": 28, "height": 12, "note": "TODO 10: BuyStand #2 seen from the plaza centre side (should show its front)"},
+  {"id": "10-shop-front-4", "todo": "10", "kind": "world", "target": "BuyStand", "index": 3, "from": "centre", "dist": 28, "height": 12, "note": "TODO 10: BuyStand #3 seen from the plaza centre side (should show its front)"},
+  {"id": "10-shop-front-5", "todo": "10", "kind": "world", "target": "BuyStand", "index": 4, "from": "centre", "dist": 28, "height": 12, "note": "TODO 10: BuyStand #4 seen from the plaza centre side (should show its front)"},
+  {"id": "10-shop-front-6", "todo": "10", "kind": "world", "target": "BuyStand", "index": 5, "from": "centre", "dist": 28, "height": 12, "note": "TODO 10: BuyStand #5 seen from the plaza centre side (should show its front)"},
+  {"id": "10-shop-front-7", "todo": "10", "kind": "world", "target": "BuyStand", "index": 6, "from": "centre", "dist": 28, "height": 12, "note": "TODO 10: BuyStand #6 seen from the plaza centre side (should show its front)"},
+  {"id": "10-shop-front-8", "todo": "10", "kind": "world", "target": "BuyStand", "index": 7, "from": "centre", "dist": 28, "height": 12, "note": "TODO 10: BuyStand #7 seen from the plaza centre side (should show its front)"},
+  {"id": "10-shop-front-9", "todo": "10", "kind": "world", "target": "BuyStand", "index": 8, "from": "centre", "dist": 28, "height": 12, "note": "TODO 10: BuyStand #8 seen from the plaza centre side (should show its front)"}
 ]
