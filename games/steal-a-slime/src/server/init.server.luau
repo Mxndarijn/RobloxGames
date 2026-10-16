@@ -290,6 +290,17 @@ local function flushEvents()
 		if event.type == "Effect" then
 			playEffect(event)
 		end
+		if
+			event.type == "Escaped"
+			and event.reason == "slap"
+			and Config.FEATURES.StealAlerts
+			and event.carrierUserId
+		then
+			local victim = Players:GetPlayerByUserId(event.carrierUserId)
+			if victim then
+				victim:SetAttribute(Constants.SLAP_HIT_ATTRIBUTE, now())
+			end
+		end
 		if event.type == "Drained" then
 			local ok, err = pcall(ParadeView.splash, Effects)
 			if not ok then
@@ -421,6 +432,14 @@ local ctx: Actions.Context = {
 local function syncCarrying()
 	for _, player in Players:GetPlayers() do
 		WorldView.setCarrying(player, Carry.carryingId(world, player.UserId))
+		if Config.FEATURES.StealAlerts then
+			local session = World.session(world, player.UserId)
+			local stealing = session ~= nil and session.carry ~= nil and session.carry.kind == "stolen"
+			local value = if stealing then true else nil
+			if player:GetAttribute(Constants.STEALING_ATTRIBUTE) ~= value then
+				player:SetAttribute(Constants.STEALING_ATTRIBUTE, value)
+			end
+		end
 	end
 end
 

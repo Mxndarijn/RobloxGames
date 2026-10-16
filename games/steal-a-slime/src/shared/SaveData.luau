@@ -32,6 +32,7 @@
 	`mutations` and rebuilds a missing or all-invalid list from `mutation`; pure, idempotent.
 	plotSkin (FEATURES.PlotSkins, CONTRACT.md §15) was added without a version bump, like `growth` and
 	`redeemed`: missing / unknown / not unlocked -> "classic" (SaveData.migratePlotSkin, run by deserialize).
+	stealLog (FEATURES.StealAlerts, CONTRACT.md §17) is also unversioned: a capped list of { thief, slime, at }; missing / junk -> empty.
 	Unknown/newer versions are read field-by-field with the v5 sanitizer (both
 	`mutations` and the legacy `mutation` are understood, nothing is dropped).
 ]]
@@ -40,6 +41,7 @@ local Config = if script then require(script.Parent.Config) else require("./Conf
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
+local StealAlert = if script then require(script.Parent.StealAlert) else require("./StealAlert")
 local TutorialProgress = if script then require(script.Parent.TutorialProgress) else require("./TutorialProgress")
 
 type Data = PlayerData.Data
@@ -311,6 +313,7 @@ function SaveData.deserialize(stored: any): Data
 	end
 	data.dexRewards = num(raw.dexRewards, 0, 0, #Config.DEX_MILESTONES)
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
+	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (no version bump: missing -> empty)
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
 	if type(raw.redeemed) == "table" then
@@ -390,6 +393,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		goals = table.clone(data.goals),
 		dexRewards = data.dexRewards,
 		plotSkin = data.plotSkin,
+		stealLog = StealAlert.clean(data.stealLog),
 		redeemed = redeemed,
 		boost = { mult = data.boostMult, untilAt = math.floor(data.boostUntil) },
 	}

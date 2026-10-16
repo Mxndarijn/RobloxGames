@@ -1,5 +1,7 @@
 -- Client datamodel: world proof shot. Hides every PlayerGui ScreenGui, the CoreGui, every BillboardGui
--- and ProximityPrompt, moves the character behind the camera and anchors it, then locks the camera at
+-- and ProximityPrompt, the tutorial arrow (a Beam from the character root + neon chevrons in the camera:
+-- the character is parked a few studs behind the eye, so the arrow starts beside the lens and smears a
+-- glowing yellow/mint bar over the frame), moves the character behind the camera and anchors it, then locks the camera at
 -- %%EYE%% looking at %%AT%% with a BindToRenderStep at RenderPriority.Last + 1 (after the default camera
 -- scripts, which otherwise take the camera back). shot_camera_reset undoes all of it: instances marked
 -- PcwHidden, the root's Anchored in PcwAnchored, the character pivot in PcwPivot, CoreGui in PcwCore.
@@ -70,6 +72,25 @@ if char then
 	end
 end
 
+-- The tutorial arrow rebuilds when its target changes, so it is hidden every frame (TutorialArrow.luau names).
+local function hideArrow(cam: Camera)
+	local beam = root and root:FindFirstChild("TutorialArrow")
+	if beam and beam:IsA("Beam") then
+		if beam.Enabled then
+			beam:SetAttribute("PcwHidden", true)
+		end
+		beam.Enabled = false
+	end
+	local chevrons = cam:FindFirstChild("TutorialChevrons")
+	if chevrons then
+		for _, d in chevrons:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.LocalTransparencyModifier = 1
+			end
+		end
+	end
+end
+
 pcall(function()
 	player:RequestStreamAroundAsync(eye, 5)
 	player:RequestStreamAroundAsync(at, 5)
@@ -82,6 +103,7 @@ end)
 RunService:BindToRenderStep(BIND, Enum.RenderPriority.Last.Value + 1, function()
 	cam.CameraType = Enum.CameraType.Scriptable
 	cam.CFrame = cf
+	hideArrow(cam)
 	for _, d in parts do
 		d.LocalTransparencyModifier = 1
 	end

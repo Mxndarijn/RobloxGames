@@ -8,7 +8,7 @@
 	- Merge: a push with the same kind and the same text (cash amounts aside)
 	  as a live entry folds into it: "+$25" x5 -> "+$125 (x5)", "Not enough
 	  cash" x3 -> "Not enough cash (x3)". A merge refreshes the entry's life.
-	- Priority: 3 rare / badge / steal alerts, 2 other bad news, 1 routine.
+	- Priority: 3 rare / badge / away / steal alerts, 2 other bad news, 1 routine.
 	  Higher priority shows first and wins the visible slots.
 	- Cap: at most `max` visible; the rest wait. Queued routine toasts that
 	  never got a slot within STALE seconds are dropped.
@@ -42,7 +42,7 @@ ToastQueue.MAX = 4
 ToastQueue.PENDING_MAX = 12
 ToastQueue.STALE = 6 -- s a routine toast may wait for a free slot
 ToastQueue.LIFETIME = 3
-ToastQueue.LIFETIMES = table.freeze({ rare = 7, badge = 6 })
+ToastQueue.LIFETIMES = table.freeze({ rare = 7, badge = 6, away = 9 })
 
 local MULTIPLIERS: { [string]: number } = { K = 1e3, M = 1e6, B = 1e9, T = 1e12 }
 
@@ -51,7 +51,7 @@ function ToastQueue.lifetime(kind: string): number
 end
 
 function ToastQueue.priority(text: string, kind: string?): number
-	if kind == "rare" or kind == "badge" then
+	if kind == "rare" or kind == "badge" or kind == "away" then
 		return 3
 	end
 	if kind == "bad" then

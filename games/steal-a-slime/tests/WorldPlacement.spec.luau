@@ -6,6 +6,7 @@
 -- kit's own exported mesh (shared/modeling-kit/out/slime_fountain.obj).
 local fs = require("@lune/fs")
 
+local BorderTerrain = require("../src/visuals/shared/BorderTerrain")
 local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
@@ -319,6 +320,14 @@ describe("ground contact (TODO #9)", function()
 			local p, size = node.pos :: Vec, node.size :: Vec
 			local bottom = p[2] - size[2] / 2
 			local floor = floorAt(p[1], p[3])
+			if string.find(path, "/Decor/Giant", 1, true) then
+				-- border v4 giant trees stand on the terrain hills (rooted at the lowest footprint sample, a stud in), not the Ground
+				local h = BorderTerrain.field().height(p[1], p[3])
+				if bottom > h + GROUND_TOL or bottom < h - 30 then
+					table.insert(bad, `{path} ({mesh}) bottom {bottom}, terrain {h}`)
+				end
+				return
+			end
 			if math.abs(bottom - floor) > GROUND_TOL then
 				table.insert(bad, `{path} ({mesh}) bottom {bottom}, floor {floor}`)
 			end

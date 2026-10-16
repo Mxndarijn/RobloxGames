@@ -368,16 +368,18 @@ describe("WorldBorder decor", function()
 				slots += 1
 			end
 		end
-		expect(slots).toBe(#pieces)
+		expect(slots).toBe(#pieces + WorldBorder.GIANT_COUNT)
 		expect(slots).toBe(WorldLayout.BORDER_SLOT_COUNT)
 		expect(slots <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
 		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(88)
 		expect(parts <= WorldLayout.BORDER_PART_BUDGET).toBe(true)
-		expect(parts).toBe(WorldBorder.WALL_SEGMENTS + #pieces)
+		expect(parts).toBe(WorldBorder.WALL_SEGMENTS + #pieces + WorldBorder.GIANT_COUNT)
 	end)
 	it("builds at most 88 slots whatever the seed", function()
 		for seed = 1, 12 do
-			expect(#WorldBorder.pieces(seed * 977) <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
+			expect(#WorldBorder.pieces(seed * 977) + WorldBorder.GIANT_COUNT <= WorldLayout.BORDER_SLOT_BUDGET).toBe(
+				true
+			)
 		end
 	end)
 	it("stands on the Ground: flat on y = 0 and at most 3 studs over the edge", function()
@@ -473,7 +475,7 @@ describe("WorldBorder decor", function()
 			expect(MeshAssets.meshId(mesh) ~= nil).toBe(true)
 			meshed += 1
 		end)
-		expect(meshed).toBe(#WorldBorder.pieces())
+		expect(meshed).toBe(#WorldBorder.pieces() + WorldBorder.GIANT_COUNT)
 	end)
 	it("wires every border mesh into MeshAssets with an uploaded meshId and size", function()
 		local meshes: { string } = {}
@@ -496,6 +498,73 @@ describe("WorldBorder decor", function()
 		for _, p in pieces do
 			expect(p.uploaded).toBe(true)
 			expect(table.find(meshes, p.mesh) ~= nil).toBe(true)
+		end
+	end)
+end)
+
+describe("WorldBorder giants (v4)", function()
+	local giants = WorldBorder.giants()
+	local BorderTerrain = require("../src/visuals/shared/BorderTerrain")
+	local field = BorderTerrain.field()
+
+	it("adds GIANT_COUNT big trees of existing kit meshes: no new design", function()
+		expect(#giants).toBe(WorldBorder.GIANT_COUNT)
+		local designs: { [string]: boolean } = {}
+		for _, d in WorldBorder.DEFS do
+			designs[d.mesh] = true
+		end
+		for _, g in giants do
+			expect(designs[g.mesh]).toBe(true)
+			expect(MeshAssets.get(g.mesh) ~= nil).toBe(true)
+			expect(g.row).toBe("giant")
+		end
+	end)
+	it("scales them well past the ordinary decor, within GIANT_MAX_AXIS", function()
+		for _, g in giants do
+			local tallest = math.max(g.size[1], g.size[2], g.size[3])
+			expect(tallest <= WorldBorder.GIANT_MAX_AXIS + 1e-6).toBe(true)
+			expect(g.size[2] >= WorldBorder.WALL_HEIGHT * 0.7).toBe(true)
+			expect(g.scale >= 3).toBe(true)
+		end
+	end)
+	it("varies design and size, never the same design twice in a row", function()
+		local sizes = {}
+		for i, g in giants do
+			table.insert(sizes, g.size[2])
+			expect(g.mesh ~= giants[i % #giants + 1].mesh or #giants < 3).toBe(true)
+		end
+		local lo, hi = math.huge, -math.huge
+		for _, v in sizes do
+			lo, hi = math.min(lo, v), math.max(hi, v)
+		end
+		expect(hi - lo >= 8).toBe(true)
+	end)
+	it("stands them past the Ground edge on the terrain, clear of the walls and the decor rings", function()
+		for _, g in giants do
+			local d = math.max(math.abs(g.pos[1]), math.abs(g.pos[3]))
+			expect(d >= BorderTerrain.INNER + 40).toBe(true)
+			expect(g.radius > WorldBorder.RADIUS + WorldBorder.WALL_THICKNESS + 40).toBe(true)
+			local base = g.pos[2] - g.size[2] / 2
+			-- rooted: base within a few studs of the terrain at its centre
+			local h = field.height(g.pos[1], g.pos[3])
+			expect(math.abs(base - (h - 1)) <= math.max(1, h) + 0.01).toBe(true)
+			expect(base <= h + 0.01).toBe(true)
+		end
+	end)
+	it("spreads them round the ring (one per sector) and builds identically each time", function()
+		local seen: { [number]: boolean } = {}
+		for _, g in giants do
+			seen[math.floor(g.angle / (360 / WorldBorder.GIANT_COUNT))] = true
+		end
+		local sectors = 0
+		for _ in seen do
+			sectors += 1
+		end
+		expect(sectors >= WorldBorder.GIANT_COUNT - 1).toBe(true)
+		local again = WorldBorder.giants()
+		for i, g in giants do
+			expect(again[i].pos[1]).toBe(g.pos[1])
+			expect(again[i].size[2]).toBe(g.size[2])
 		end
 	end)
 end)
