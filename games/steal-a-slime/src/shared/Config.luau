@@ -325,6 +325,9 @@ local Config = {
 	LOCK_MAX_REMAINING = 300, -- extending can never push the lock past 5 min
 	LOCK_BASE_COST = 25,
 	LOCK_INCOME_SECONDS = 15, -- lock costs this many seconds of plot income (or base cost)
+	-- B1: seconds a ProximityPrompt / UI button must be held for any important
+	-- action (steal, buy, lock, pad, merge, claim, sell, rebirth). Free Grab, Open Shop, Talk stay instant.
+	HOLD_CONFIRM_SECONDS = 0.8,
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	SLAP_REACH = 10,
 	SLAP_COOLDOWN = 1.5,

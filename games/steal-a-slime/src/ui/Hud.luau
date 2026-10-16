@@ -145,22 +145,24 @@ function Hud.new(parent: Instance, ctx: any)
 	local _, setLockBar = Widgets.bar(lockBox, Color3.new(1, 1, 1), UDim2.new(1, -16, 0, 6), UDim2.new(0, 8, 1, -10))
 	items.LockStatus = lockBox
 
-	local lockBtn = Widgets.button(
+	local lockBtn = Widgets.holdButton(
 		{ Name = "Lock", Text = "Lock", Size = UDim2.fromOffset(130, Layout.BUTTON), TextSize = 16 },
 		Theme.Info,
 		function()
 			ctx.send("Lock")
-		end
+		end,
+		ctx.Config.HOLD_CONFIRM_SECONDS
 	)
 	lockBtn.instance.Parent = bar
 	items.Lock = lockBtn.instance
 
-	local padBtn = Widgets.button(
+	local padBtn = Widgets.holdButton(
 		{ Name = "BuyPad", Text = "Buy next pad", Size = UDim2.fromOffset(160, Layout.BUTTON), TextSize = 15 },
 		Theme.Good,
 		function()
 			ctx.send("BuyPad")
-		end
+		end,
+		ctx.Config.HOLD_CONFIRM_SECONDS
 	)
 	padBtn.instance.Parent = bar
 	items.BuyPad = padBtn.instance

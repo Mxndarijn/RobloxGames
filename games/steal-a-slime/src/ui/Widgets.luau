@@ -149,39 +149,83 @@ function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () ->
 	return self
 end
 
--- A button that needs two clicks within `window` seconds (e.g. Sell, Rebirth).
-function Widgets.confirmButton(
-	props: { [string]: any },
-	color: Color3?,
-	confirmText: string,
-	onConfirm: () -> ()
-): Button
-	local armedAt: number? = nil
-	local idleText = props.Text or ""
-	local btn: Button
-	btn = Widgets.button(props, color, function()
-		local now = os.clock()
-		if armedAt and now - armedAt <= 2.5 then
-			armedAt = nil
-			btn.instance.Text = idleText
-			onConfirm()
-		else
-			armedAt = now
-			btn.instance.Text = confirmText
-			task.delay(2.5, function()
-				if armedAt and os.clock() - armedAt >= 2.4 then
-					armedAt = nil
-					btn.instance.Text = idleText
-				end
-			end)
+-- Hold progress 0..1 (pure; HoldButton drives it from os.clock).
+function Widgets.holdProgress(startedAt: number, now: number, duration: number): number
+	if duration <= 0 then
+		return 1
+	end
+	return math.clamp((now - startedAt) / duration, 0, 1)
+end
+
+local HOLD_INPUTS = {
+	[Enum.UserInputType.MouseButton1] = true,
+	[Enum.UserInputType.Touch] = true,
+}
+
+--[[
+	B1: a button that confirms only after being held `duration`
+	(`duration`, ctx.Config.HOLD_CONFIRM_SECONDS). A white fill sweeps left to right under the text while the
+	press is down; releasing or leaving the button early cancels. A plain tap
+	does nothing. Used for every UI action that spends cash or changes ownership
+	(Lock / Extend, Buy pad, Sell, Rebirth, shop Buy). The server still checks.
+]]
+function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm: () -> (), duration: number): Button
+	local btn = Widgets.button(props, color, function() end)
+	local inst = btn.instance
+	inst:SetAttribute("HoldConfirm", duration)
+	local fill = create("Frame", {
+		Name = "HoldFill",
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.55,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(0, 1),
+		Visible = false,
+		ZIndex = inst.ZIndex + 1,
+		Active = false,
+		Parent = inst,
+	}, { Widgets.corner(6) })
+	local enabled = true
+	local startedAt: number? = nil
+	local conn: RBXScriptConnection? = nil
+	local function stop()
+		startedAt = nil
+		if conn then
+			conn:Disconnect()
+			conn = nil
+		end
+		fill.Visible = false
+		fill.Size = UDim2.fromScale(0, 1)
+	end
+	local function start()
+		if not enabled or startedAt then
+			return
+		end
+		local began = os.clock()
+		startedAt = began
+		fill.Visible = true
+		conn = game:GetService("RunService").RenderStepped:Connect(function()
+			local p = Widgets.holdProgress(began, os.clock(), duration)
+			fill.Size = UDim2.fromScale(p, 1)
+			if p >= 1 then
+				stop()
+				onConfirm()
+			end
+		end)
+	end
+	inst.InputBegan:Connect(function(input: InputObject)
+		if HOLD_INPUTS[input.UserInputType] or input.KeyCode == Enum.KeyCode.ButtonA then
+			start()
 		end
 	end)
-	local setText = btn.setText
-	function btn.setText(text: string)
-		idleText = text
-		if armedAt == nil then
-			setText(text)
+	inst.InputEnded:Connect(stop)
+	inst.MouseLeave:Connect(stop)
+	local setEnabled = btn.setEnabled
+	function btn.setEnabled(value: boolean)
+		enabled = value
+		if not value then
+			stop()
 		end
+		setEnabled(value)
 	end
 	return btn
 end

@@ -1,7 +1,7 @@
 --!strict
 --[[
 	Plot panel: every slime on the plot with tier, income and sell price.
-	Buttons: Sell(slimeId) (two clicks), Favorite(slimeId) / Favorite(nil).
+	Buttons: Sell(slimeId) (hold to confirm), Favorite(slimeId) / Favorite(nil).
 	Rows being stolen turn red and show the thief.
 ]]
 
@@ -92,7 +92,7 @@ function Plot.new(parent: Instance, ctx: any)
 			end
 		)
 		fav.instance.Parent = frame
-		local sell = Widgets.confirmButton(
+		local sell = Widgets.holdButton(
 			{
 				Name = "Sell",
 				Text = "Sell",
@@ -102,10 +102,10 @@ function Plot.new(parent: Instance, ctx: any)
 				Size = UDim2.fromOffset(104, 36),
 			},
 			Theme.Bad,
-			"Sure?",
 			function()
 				ctx.send("Sell", id)
-			end
+			end,
+			ctx.Config.HOLD_CONFIRM_SECONDS
 		)
 		sell.instance.Parent = frame
 		return { instance = frame, swatch = swatch, name = name, sub = sub, fav = fav, sell = sell }
