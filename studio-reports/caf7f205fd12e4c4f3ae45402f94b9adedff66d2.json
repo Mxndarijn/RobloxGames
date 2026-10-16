@@ -8457,5 +8457,19 @@
       ]
     }
   },
-  "frames_dir": "caf7f205fd12e4c4f3ae45402f94b9adedff66d2/"
+  "frames_dir": "caf7f205fd12e4c4f3ae45402f94b9adedff66d2/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": [
+    "HOLD, B6 slide (#148): much better, but not 0. The hard probe has 1/1728 violations: 'segment 3 k=0.90 side=2.4 v=40 ball left the trough sideways' (OUTER side, near the segment 3 bend, fast rider). Worst clearance otherwise 0.34 studs. The requirement is 0 violations.",
+    "Mesh slots: 392 <= 400. PASS (#149).",
+    "18-hold-ring-rebirth: PASS. The real hold fill is at 0.5 on the rebirth button ('Need $4.9K more'), visible in the frame.",
+    "21-border-along-pc / eye-phone: PASS (daytime pinned). The border fence and the field are visible.",
+    "v29-11-slime-growth-pad: data PASS ('Growth 60%' on the real pad slime), but aiming at the label put the camera inside or under the slime looking at the sky. Watcher framing follow-up.",
+    "99-v29-14-pet-passive-plot: My Plot shows the slime row; no pet passive is visibly called out. Unproven, not broken.",
+    "C4 uniform pads (#152) is not in this sha; it's being run on 91f9878 next.",
+    "focus_stolen [], close pass, no leftovers."
+  ]
 }
