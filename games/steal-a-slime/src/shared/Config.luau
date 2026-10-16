@@ -440,6 +440,7 @@ local Config = {
 		Appraise = true, -- pay APPRAISE_COST_FRACTION of a slime's value to reroll its mutation or size (Appraise)
 		MysteryEgg = true, -- a cash-only Mystery Egg in the Shop hatches a random slime (MysteryEgg); false = no egg, BuyEgg refused
 		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
+		Weather = false, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md. Off until frame-reviewed
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -476,6 +477,47 @@ local Config = {
 		table.freeze({ tier = 5, weight = 5 }),
 		table.freeze({ tier = 6, weight = 1 }),
 	}),
+	-- Weather (FEATURES.Weather, WEATHER.md). Clear plus three visual types, cycled by the server.
+	-- `mutation` (a Config.MUTATIONS name) and `chanceBonus` (added to the mutation roll chance) are the
+	-- hook for #8 and stay nil / 0 here: this change adds no mutation ids and touches no mutation rolls.
+	WEATHER_ORDER = table.freeze({ "Clear", "Rain", "Snow", "Starfall" }),
+	WEATHER = table.freeze({
+		Clear = table.freeze({
+			displayName = "Clear",
+			mutation = nil,
+			chanceBonus = 0,
+			weight = 4,
+			minSeconds = 240,
+			maxSeconds = 420,
+		}),
+		Rain = table.freeze({
+			displayName = "Rain",
+			mutation = nil,
+			chanceBonus = 0,
+			weight = 3,
+			minSeconds = 120,
+			maxSeconds = 210,
+		}),
+		Snow = table.freeze({
+			displayName = "Snow",
+			mutation = nil,
+			chanceBonus = 0,
+			weight = 3,
+			minSeconds = 120,
+			maxSeconds = 210,
+		}),
+		Starfall = table.freeze({
+			displayName = "Starfall",
+			mutation = nil,
+			chanceBonus = 0,
+			weight = 1,
+			minSeconds = 90,
+			maxSeconds = 150,
+		}),
+	}),
+	WEATHER_FIRST_AT = 60, -- seconds after server start before the first change away from Clear
+	WEATHER_FADE_SECONDS = 2, -- client tween in / out
+	WEATHER_PARTICLE_CAP = 160, -- hard cap on weather particles alive at once, whatever the quality level
 
 	-- Daily reward
 	DAILY_BASE = 100,

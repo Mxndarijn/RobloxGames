@@ -771,5 +771,59 @@
     "kind": "ui",
     "open": "plot",
     "note": "TODO 20: Plot panel rows/appraise popup list ALL of a slime's mutations (\"Glow Syrup\", combos like Solar) instead of one (FEATURES.MutationStacking, cap MAX_MUTATIONS)"
+  },
+  {
+    "id": "18-weather-Rain",
+    "todo": "18",
+    "kind": "world",
+    "pos": [
+      0,
+      30,
+      70
+    ],
+    "look": [
+      0,
+      8,
+      0
+    ],
+    "weather": "Rain",
+    "wait": 2.5,
+    "note": "TODO 18: Rain weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
+  },
+  {
+    "id": "18-weather-Snow",
+    "todo": "18",
+    "kind": "world",
+    "pos": [
+      0,
+      30,
+      70
+    ],
+    "look": [
+      0,
+      8,
+      0
+    ],
+    "weather": "Snow",
+    "wait": 2.5,
+    "note": "TODO 18: Snow weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
+  },
+  {
+    "id": "18-weather-Starfall",
+    "todo": "18",
+    "kind": "world",
+    "pos": [
+      0,
+      30,
+      70
+    ],
+    "look": [
+      0,
+      8,
+      0
+    ],
+    "weather": "Starfall",
+    "wait": 2.5,
+    "note": "TODO 18: Starfall weather (FEATURES.Weather, client-only WeatherDebug preview): camera-attached particles + tint after the 2 s tween in"
   }
 ]
