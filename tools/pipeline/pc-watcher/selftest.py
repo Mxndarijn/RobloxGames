@@ -236,7 +236,7 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"},
+        "phone_perf": {"SECONDS"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
         "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"},
     }
@@ -283,6 +283,9 @@ def t_files():
     check("a ring_slimes shot samples wild slimes against the landing ring (v30 C3)",
           len(rings) == 1 and rings[0].get("todo") == "v30 C3"
           and "OUTER" in open(os.path.join(HERE, "luau", "ring_slimes.luau"), encoding="utf-8").read(), rings)
+    paces = [s for s in shots if s.get("wild_pace")]
+    check("a wild_pace shot measures a lane slime's displacement against the Config pace (v30 C9)",
+          len(paces) == 1 and float(paces[0]["wild_pace"]) > 0 and paces[0].get("todo") == "v30-c9", paces)
     caps = [s for s in shots if s.get("mesh_slots_max")]
     check("a mesh_slots_max shot asserts the play-world mesh slots <= 400 (hard)",
           len(caps) == 1 and caps[0]["mesh_slots_max"] <= 400 and caps[0].get("todo") == "border-v3", caps)

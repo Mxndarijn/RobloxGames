@@ -68,7 +68,7 @@ ParadeLane.STRIP_THICKNESS = 0.3
 ParadeLane.HOP_SECONDS = 10
 ParadeLane.DRAIN_SECONDS = 1.5
 ParadeLane.HOP_HEIGHT = 1.2 -- studs at the top of each hop while walking
-ParadeLane.HOP_PERIOD = 0.5 -- seconds per hop (rounded so the walk holds a whole number)
+ParadeLane.HOP_PERIOD = 0.5 / Config.SLIME_MOVE_SPEED_MULT -- seconds per hop (rounded so the walk holds a whole number); slower with the pace
 ParadeLane.WARN_SECONDS = Config.DESPAWN_TELEGRAPH_SECONDS -- ring warn = despawn telegraph window
 -- ranch_goo_drain (WorldLayout Plaza.GooDrain, box centre z 52): the curb
 -- ring (r 3.3-4.4, 1 stud tall) sits on the +Z end of the box, its post on
@@ -190,6 +190,12 @@ function ParadeLane.distance(spawnedAt: number, expiresAt: number, now: number):
 		return if p >= stop then ParadeLane.LENGTH else 0
 	end
 	return ParadeLane.LENGTH * math.clamp((p - start) / (stop - start), 0, 1)
+end
+
+-- Studs per second a slime walks the lane when it lives `lifetime` seconds.
+function ParadeLane.walkSpeed(lifetime: number): number
+	local start, stop = ParadeLane.walkWindow(lifetime)
+	return ParadeLane.LENGTH / ((stop - start) * lifetime)
 end
 
 -- Segment holding lane distance `s` (clamped) and how far along it (0..1).
