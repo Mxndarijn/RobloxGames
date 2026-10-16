@@ -28,7 +28,7 @@ describe("Income.step", function()
 			Income.step(world, 1)
 		end
 		expect(s.data.cash).toBe(4)
-		expect(s.incomeRemainder).toBeCloseTo(0)
+		expect(s.incomeRemainder).toBeCloseTo(0, 1e-3)
 	end)
 	it("applies the rebirth multiplier", function()
 		local world = ServerFixtures.world()

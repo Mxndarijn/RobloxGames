@@ -66,6 +66,8 @@ return table.freeze({
 	RARE_ATTRIBUTE = "RareSpawn", -- wild slime model: tier, only on Legendary+ drops
 	-- wild slime model: server time it despawns; nil outside the telegraph window / FEATURES.DespawnTelegraph off
 	DESPAWN_AT_ATTRIBUTE = "DespawnAt",
+	GROWTH_ATTRIBUTE = "Growth", -- slime model: whole percent 0..100 (FEATURES.GrowingSlimes)
+	GROWTH_LABEL_NAME = "GrowthLabel", -- BillboardGui on the slime Body
 	RARE_SPAWN_ID_ATTRIBUTE = "RareSpawnId", -- workspace: latest rare drop
 	RARE_SPAWN_TIER_ATTRIBUTE = "RareSpawnTier",
 	RARE_SPAWN_AT_ATTRIBUTE = "RareSpawnAt", -- workspace: server time of the latest rare drop

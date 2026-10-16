@@ -443,6 +443,7 @@ local Config = {
 		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
 		Weather = true, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md
 		SlimeLod = true, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
+		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -534,6 +535,14 @@ local Config = {
 	WEATHER_FIRST_AT = 60, -- seconds after server start before the first change away from Clear
 	WEATHER_FADE_SECONDS = 2, -- client tween in / out
 	WEATHER_PARTICLE_CAP = 160, -- hard cap on weather particles alive at once, whatever the quality level
+
+	-- Slime growth (FEATURES.GrowingSlimes): a slime's `growth` (0..1) rises by dt / GROWTH_SECONDS while it
+	-- sits on a pad. Offline time counts too, up to GROWTH_OFFLINE_CAP_SECONDS. At growth 1 a slime earns
+	-- (and sells for) 1 + GROWTH_MAX_INCOME_BONUS times its base income and is drawn GROWTH_MAX_SCALE_BONUS bigger.
+	GROWTH_SECONDS = 12 * 60 * 60,
+	GROWTH_OFFLINE_CAP_SECONDS = 8 * 60 * 60,
+	GROWTH_MAX_INCOME_BONUS = 0.5,
+	GROWTH_MAX_SCALE_BONUS = 0.1,
 
 	-- Daily reward
 	DAILY_BASE = 100,

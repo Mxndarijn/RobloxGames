@@ -284,6 +284,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			mutations = Genome.mutationList(slime),
 			pad = slime.pad,
 			species = slime.species, -- optional (v28), dropped on load if unknown
+			growth = slime.growth, -- optional (FEATURES.GrowingSlimes): missing = 0, no version bump
 		})
 	end
 	local dex = {}

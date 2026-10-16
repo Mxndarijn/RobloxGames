@@ -11,6 +11,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
+local Growth = if Shared then require(Shared.Growth) else require("../shared/Growth")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -33,6 +34,7 @@ function Income.step(world: World, dt: number, now: number?)
 			World.markDirty(session)
 		end
 		local perSec = PlayerData.incomePerSecond(session.data, carried)
+		Growth.advanceAll(session.data.slimes, seconds, carried)
 		if perSec > 0 then
 			local paid, remainder = Economy.tickIncome(0, session.incomeRemainder, perSec, seconds)
 			session.incomeRemainder = remainder
@@ -56,6 +58,7 @@ function Income.applyOffline(world: World, session: Session, now: number): numbe
 			"Cash"
 		)
 	end
+	Growth.applyOffline(data.slimes, data.lastOnline, now)
 	return amount
 end
 
