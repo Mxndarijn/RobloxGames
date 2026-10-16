@@ -1350,6 +1350,8 @@ def step_shots(run):
                     res["rebirth_slime"] = run.need_luau("rebirth_slime", "Client", timeout=15, state=shot["rebirth_slime"])
                 if shot.get("friend_bonus"):  # v29 #4: fake N friends in the server (badge + income line)
                     res["friend_bonus"] = run.need_luau("friend_bonus", "Client", timeout=15, count=int(shot["friend_bonus"]))
+                if shot.get("admin_event"):  # v29 #10: fake a live admin event banner (Studio only)
+                    res["admin_event"] = run.need_luau("admin_event", "Client", timeout=15, event=shot["admin_event"])
                 opened = open_panel(run, key) if key else None
                 if opened:
                     res["open"] = opened
@@ -1385,6 +1387,8 @@ def step_shots(run):
                     run.luau("rebirth_slime", "Client", timeout=15, state="")
                 if shot.get("friend_bonus"):
                     run.luau("friend_bonus", "Client", timeout=15, count=0)
+                if shot.get("admin_event"):
+                    run.luau("admin_event", "Client", timeout=15, event="")
             else:
                 if shot.get("pos"):
                     eye, at = shot["pos"], shot.get("look") or [0, 0, 0]

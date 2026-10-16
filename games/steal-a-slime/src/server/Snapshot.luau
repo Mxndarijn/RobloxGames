@@ -143,6 +143,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			luck = world.modifier.luck,
 			mutation = world.modifier.mutation,
 			endsAt = world.modifierEndsAt,
+			icon = if world.adminEvent then world.adminEvent.def.icon else nil,
 		},
 	}
 end

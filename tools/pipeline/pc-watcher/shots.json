@@ -34,6 +34,13 @@
     "note": "v29 #4: friend income bonus, 2 friends in the server: HUD badge '👥 +20% friends' under the top bar, no menu open"
   },
   {
+    "id": "02e-admin-event-banner",
+    "todo": "v29-10",
+    "kind": "ui",
+    "admin_event": "luck",
+    "note": "v29 #10: live admin event, HUD banner '<clover> Luck Event x3 luck - 9:00 left' under the top bar, no menu open (Studio fake via SlimeUI.PcwAdminEvent)"
+  },
+  {
     "id": "02d-friend-bonus-dex",
     "todo": "v29-4",
     "kind": "ui",

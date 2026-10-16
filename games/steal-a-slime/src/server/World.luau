@@ -84,6 +84,12 @@ export type Event = {
 	tier: number?, -- Rare: the drop's tier (workspace RareSpawn* attributes)
 }
 
+export type AdminEvent = {
+	def: { id: string, label: string, icon: string },
+	endsAt: number,
+	modifier: CycleModifier.Modifier,
+}
+
 export type World = {
 	sessions: { [number]: Session },
 	plots: { [number]: number }, -- plotIndex -> userId
@@ -107,6 +113,7 @@ export type World = {
 	modifierPhase: number, -- DayNight.phase it was rolled for (-1 = not yet)
 	modifierEndsAt: number?, -- server time the phase ends
 	modifierSeed: number,
+	adminEvent: AdminEvent?, -- FEATURES.AdminEvents: overrides `modifier` until endsAt (Spawner.stepModifier)
 	pity: Pity,
 	outbox: { Event },
 }
@@ -150,6 +157,7 @@ function World.new(options: Options): World
 		modifierPhase = -1,
 		modifierEndsAt = nil,
 		modifierSeed = options.seed or 1,
+		adminEvent = nil,
 		pity = { sinceEpic = 0, sinceLegendary = 0 },
 		outbox = {},
 	}
