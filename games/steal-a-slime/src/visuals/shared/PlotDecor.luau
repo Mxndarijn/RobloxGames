@@ -169,9 +169,22 @@ local function applyBuy(plot: Instance, owned: boolean)
 	if not stand then
 		return
 	end
+	-- The kit mesh slot (MeshAsset) stays invisible; once MeshSwap put its
+	-- "Mesh" in, that Mesh is the stand and the MeshStandIn primitives stay
+	-- hidden (Board's text still shows: SurfaceGuis draw on hidden parts).
+	local mesh: Instance? = nil
 	for _, part in stand:GetChildren() do
-		show(part, not owned)
+		if part:GetAttribute("MeshAsset") ~= nil then
+			mesh = mesh or part:FindFirstChild("Mesh")
+		end
 	end
+	for _, part in stand:GetChildren() do
+		if part:GetAttribute("MeshAsset") ~= nil then
+			continue
+		end
+		show(part, not owned and not (mesh and part:GetAttribute("MeshStandIn") ~= nil))
+	end
+	show(mesh, not owned)
 	local board = stand:FindFirstChild("Board")
 	if board then
 		local lines = labels(board, { 0.45, 0.3, 0.25 })

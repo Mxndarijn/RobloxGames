@@ -120,19 +120,19 @@ WorldLayout.FENCE_SCALE = 10 / 11
 --           (80 / 20) and each 30-stud half of the gate side needs a panel
 --           and a segment, so 16 a plot (128) is the minimum with the gate
 --           slot centred.
---   border  Map.Border's share (120). Main #54's ring is BORDER_SLOT_COUNT
---           today, over its share until it is slimmed; asserted on its own.
+--   border  Map.Border's share (112). The ring uses BORDER_SLOT_COUNT (44)
+--           since #56 (WorldBorder set meshes); main #54's first ring was 228.
 --   decor   everything else: ranch props, pad stands, fountain, plaza,
---           landing ring, gates, plot dex boards, WorldProps skins. Capped at
---           160, and at MESH_SLOT_BUDGET - fence - border share (152) while
---           the fence is 128. Full: the BuyStand (ranch_shop_stand) has no
---           slot until 8 more fit.
+--           landing ring, gates, plot dex boards and buy stands, WorldProps
+--           skins. Capped at 160 = MESH_SLOT_BUDGET - fence - border share:
+--           full, with the 8 BuyStand (ranch_shop_stand) slots paid for by
+--           the border share (120 -> 112).
 -- The fallback (two segments per panel until the upload) adds one slot per
 -- panel: 112.
 WorldLayout.MESH_SLOT_BUDGET = 400
 WorldLayout.FENCE_SLOT_BUDGET = 128
-WorldLayout.BORDER_SLOT_BUDGET = 120
-WorldLayout.BORDER_SLOT_COUNT = 228
+WorldLayout.BORDER_SLOT_BUDGET = 112
+WorldLayout.BORDER_SLOT_COUNT = 44
 WorldLayout.DECOR_SLOT_BUDGET = 160
 WorldLayout.MESH_SLOT_BUDGET_FALLBACK = WorldLayout.MESH_SLOT_BUDGET + 112
 -- THEME.md: <= 1200 parts. Asserted over the world WorldLayout builds outside
@@ -262,6 +262,16 @@ WorldLayout.DEX_MESH = "phoenix_top_earners_board"
 WorldLayout.DEX_SCALE = 0.7
 WorldLayout.DEX_CONTENT_SCALE = 0.6
 WorldLayout.DEX_FACE = table.freeze({ x = -0.35, y = 11.53, front = 0.4, width = 12.9, height = 11.5 })
+-- The "Free plot" BuyStand skins ranch_shop_stand at BUY_STAND_SCALE (9.6 x
+-- 11.3 x 6, about the old primitive stand). BUY_STAND_FACE = its butter SHOP
+-- sign face and BUY_STAND_COUNTER = its counter, at native size from the kit
+-- source (models/ranch_shop_stand.py) in the mesh's own frame (front +Z):
+-- centre x, centre y up from the bottom, z from the box centre (+ = front);
+-- `front` is the sign's front face.
+WorldLayout.BUY_STAND_MESH = "ranch_shop_stand"
+WorldLayout.BUY_STAND_SCALE = 0.8
+WorldLayout.BUY_STAND_FACE = table.freeze({ x = 0, y = 12.2, front = -2.42, width = 7.6, height = 2 })
+WorldLayout.BUY_STAND_COUNTER = table.freeze({ x = 0, z = 0.53, width = 11, depth = 4.2, top = 4.1 })
 
 -- Suggested placements for Props (pivot CFrame = CFrame.new(pos) *
 -- CFrame.Angles(0, math.rad(yaw), 0)), just outside the ring path between
@@ -789,7 +799,7 @@ WorldLayout.PLAZA_PROPS = table.freeze({
 	plazaProp("Podium_3", "phoenix_plaza_podium_3", 165, 68, 0.7),
 })
 WorldLayout.PROP_MESHES = table.freeze({
-	ShopStand = "ranch_shop_stand",
+	ShopStand = WorldLayout.BUY_STAND_MESH,
 	LeaderboardBoard = "phoenix_top_earners_board",
 })
 
@@ -913,29 +923,68 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	table.insert(nodes, lockSign)
 
 	-- "Free plot" stand on the grass just outside the entrance, left of the
-	-- path and clear of the Sign (shown while OwnerUserId == 0). The Coin is
-	-- an upright cylinder facing the volcano.
+	-- path and clear of the Sign (shown while OwnerUserId == 0): a
+	-- BUY_STAND_MESH slot (kit front turned 180 to face out of the entrance).
+	-- The primitives are its stand-ins, laid on the mesh: Counter (the
+	-- ClaimPrompt) on its counter, Board (PlotDecor's text, which stays once
+	-- the part hides) on its SHOP sign, back posts, and an upright Coin on the
+	-- counter facing the volcano. Decor only, as before: PlotDecor hides the
+	-- stand on owned plots, so it never collides.
 	local bx, bz = -13, -h - 5
-	local coin = block(
+	local ks, sign, top = WorldLayout.BUY_STAND_SCALE, WorldLayout.BUY_STAND_FACE, WorldLayout.BUY_STAND_COUNTER
+	local standSize = meshSize(WorldLayout.BUY_STAND_MESH, ks)
+	-- Mesh frame (x, y up from the bottom, z + = front) to plot-local.
+	local function onStand(x: number, y: number, z: number): Vec
+		return at({ bx - x * ks, y * ks, bz - z * ks })
+	end
+	local topY = top.top * ks
+	local function part(name: string, size: Vec, pos: Vec, color: Vec, material: string, rot: Vec?): WorldNode
+		return standIn(ghost(block(name, size, pos, color, material, rot or r)), WorldLayout.BUY_STAND_MESH)
+	end
+	local coin = part(
 		"Coin",
 		{ 0.4, 1.8, 1.8 },
-		at({ bx, 10.1, bz + 0.55 }),
+		at({ bx + 2, topY + 0.3 + 0.9, bz - top.z * ks }),
 		{ 255, 205, 60 },
 		"Neon",
 		{ 0, yaw + 90, 0 }
 	)
 	coin.shape = "Cylinder"
+	local postH = 13.4 * ks
 	table.insert(nodes, {
 		name = "BuyStand",
 		class = "Model",
 		primaryPart = "Counter",
 		children = {
-			ghost(block("Counter", { 6, 3, 2.5 }, at({ bx, 1.5, bz }), WOOD, "WoodPlanks", r)),
-			ghost(block("CounterTop", { 6.6, 0.3, 3 }, at({ bx, 3.15, bz }), { 240, 200, 70 }, "SmoothPlastic", r)),
-			ghost(block("PostL", { 0.4, 5.6, 0.4 }, at({ bx - 3.6, 6, bz + 0.8 }), WOOD, "Wood", r)),
-			ghost(block("PostR", { 0.4, 5.6, 0.4 }, at({ bx + 3.6, 6, bz + 0.8 }), WOOD, "Wood", r)),
-			ghost(block("Board", { 8, 3.2, 0.3 }, at({ bx, 7.4, bz + 0.55 }), { 40, 150, 70 }, "SmoothPlastic", r)),
-			ghost(coin),
+			meshSlot(
+				block("StandMesh", standSize, at({ bx, standSize[2] / 2, bz }), WOOD, nil, { 0, yaw + 180, 0 }),
+				WorldLayout.BUY_STAND_MESH,
+				true
+			),
+			part(
+				"Counter",
+				{ top.width * ks, topY, top.depth * ks },
+				onStand(top.x, top.top / 2, top.z),
+				WOOD,
+				"WoodPlanks"
+			),
+			part(
+				"CounterTop",
+				{ top.width * ks + 0.6, 0.3, top.depth * ks + 0.5 },
+				at({ bx, topY + 0.15, bz - top.z * ks }),
+				{ 240, 200, 70 },
+				"SmoothPlastic"
+			),
+			part("PostL", { 0.6, postH, 0.6 }, onStand(5.2, 6.7, -3.07), WOOD, "Wood"),
+			part("PostR", { 0.6, postH, 0.6 }, onStand(-5.2, 6.7, -3.07), WOOD, "Wood"),
+			part(
+				"Board",
+				{ sign.width * ks, sign.height * ks, 0.3 },
+				at({ bx - sign.x * ks, sign.y * ks, bz - sign.front * ks - 0.02 - 0.15 }),
+				{ 40, 150, 70 },
+				"SmoothPlastic"
+			),
+			coin,
 		},
 	})
 

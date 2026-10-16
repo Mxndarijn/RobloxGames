@@ -273,11 +273,74 @@ describe("plot walls, DexBoard and BuyStand (C6)", function()
 			end
 		end
 	end)
-	it("leaves the BuyStand primitive: decor has no room for ranch_shop_stand (WorldBudget.spec)", function()
-		for _, plot in plots do
-			walk({ child(plot, "BuyStand") }, function(node)
-				expect(meshOf(node)).toBe(nil)
+	it("skins each BuyStand with BUY_STAND_MESH at BUY_STAND_SCALE, outside the entrance, facing out", function()
+		local k = WorldLayout.BUY_STAND_SCALE
+		local gateFront = -h + 0.5 - native("phoenix_gate")[3] / 2
+		for i, plot in plots do
+			local _, yaw = WorldLayout.plotCentre(i)
+			local stand = child(plot, "BuyStand")
+			local slot = child(stand, "StandMesh")
+			expect(meshOf(slot)).toBe(WorldLayout.BUY_STAND_MESH)
+			expect(meshOf(slot)).toBe("ranch_shop_stand")
+			expect(anisotropy(slot, WorldLayout.BUY_STAND_MESH)).toBeCloseTo(1)
+			expect(ratios(slot, WorldLayout.BUY_STAND_MESH)[2]).toBeCloseTo(k)
+			-- invisible, decor-only slot: the mesh lands in it
+			expect(slot.transparency).toBe(1)
+			expect(slot.canCollide).toBe(false)
+			expect(sameAngle((slot.rot :: Vec)[2], yaw + 180)).toBe(true)
+			local p, size = toPlot(i, slot.pos :: Vec), slot.size :: Vec
+			-- on the grass (ground top 0), back face in front of the gate mesh,
+			-- clear of the spoke path (half width 6) on the left of the entrance
+			expect(p[2] - size[2] / 2).toBeCloseTo(0)
+			expect(p[3] + size[3] / 2 < gateFront).toBe(true)
+			expect(p[1] + size[1] / 2 < -6).toBe(true)
+			-- exactly one mesh slot on the stand
+			local slots = 0
+			walk({ stand }, function(node)
+				if meshOf(node) ~= nil then
+					slots += 1
+				end
 			end)
+			expect(slots).toBe(1)
+		end
+	end)
+	it("keeps the Counter (ClaimPrompt) as the stand's primary part, primitives as stand-ins", function()
+		for i, plot in plots do
+			local stand = child(plot, "BuyStand")
+			expect(stand.primaryPart).toBe("Counter")
+			local slot = child(stand, "StandMesh")
+			local sp, half = toPlot(i, slot.pos :: Vec), slot.size :: Vec
+			for _, c in stand.children or {} do
+				if c.name == "StandMesh" then
+					continue
+				end
+				expect((c.attributes :: any).MeshStandIn).toBe(WorldLayout.BUY_STAND_MESH)
+				-- decor only, as before the mesh (PlotDecor hides it on owned plots)
+				expect(c.canCollide).toBe(false)
+				-- inside the mesh's box
+				local p = toPlot(i, c.pos :: Vec)
+				for axis = 1, 3 do
+					expect(math.abs(p[axis] - sp[axis]) <= half[axis] / 2 + 1e-6).toBe(true)
+				end
+			end
+			local counter = child(stand, "Counter")
+			expect(counter.class).toBe("Part")
+		end
+	end)
+	it("puts the Board (PlotDecor's text) just in front of the mesh's SHOP sign", function()
+		local k, face = WorldLayout.BUY_STAND_SCALE, WorldLayout.BUY_STAND_FACE
+		for i, plot in plots do
+			local stand = child(plot, "BuyStand")
+			local slot = toPlot(i, child(stand, "StandMesh").pos :: Vec)
+			local board = child(stand, "Board")
+			local p, size = toPlot(i, board.pos :: Vec), board.size :: Vec
+			-- kit front (+Z) turned 180: the sign face sits at plot -Z of the mesh frame
+			local faceZ = slot[3] - face.front * k
+			expect(p[3] + size[3] / 2 <= faceZ).toBe(true)
+			expect(p[3] + size[3] / 2 > faceZ - 0.1).toBe(true)
+			expect(p[2]).toBeCloseTo(face.y * k)
+			expect(size[1]).toBeCloseTo(face.width * k)
+			expect(size[2]).toBeCloseTo(face.height * k)
 		end
 	end)
 end)
