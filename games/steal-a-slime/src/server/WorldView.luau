@@ -611,6 +611,12 @@ local function stylePad(pad: BasePart, unlocked: boolean)
 	local stand = pad:FindFirstChild("Stand")
 	if stand and stand:IsA("BasePart") then
 		styleLook(stand, unlocked)
+		-- With a mesh stand-in (MeshSwap) the Pad and Stand parts are hidden (Transparency 1) and the visible pad is
+		-- the Stand's "Mesh" MeshPart, so the locked look has to land on that too or every pad looks unlocked.
+		local mesh = stand:FindFirstChild("Mesh")
+		if mesh and mesh:IsA("MeshPart") then
+			styleLook(mesh, unlocked)
+		end
 	end
 end
 
