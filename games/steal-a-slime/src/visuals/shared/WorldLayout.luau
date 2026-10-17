@@ -38,6 +38,7 @@ local Constants = if script then require(script.Parent.Parent.Shared.Constants) 
 local MeshAssets = if script
 	then require(script.Parent.Parent.Shared.MeshAssets)
 	else require("../../shared/MeshAssets")
+local FloorLayout = if script then require(script.Parent.FloorLayout) else require("./FloorLayout")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
 local Meadow = if script then require(script.Parent.Meadow) else require("./Meadow")
 local PlotDecor = if script then require(script.Parent.PlotDecor) else require("./PlotDecor")
@@ -75,6 +76,8 @@ WorldLayout.SLIMES_FOLDER = "Slimes"
 -- corners from r ~137 (40 / tan 22.5 + 40), so the ring sits at 140.
 WorldLayout.PLOT_RING_RADIUS = 140
 WorldLayout.PLOT_SIZE = 80
+-- Absolute top of every plot's Base floor (plot(): a 1-stud slab centred at y 0.5). The floor's gate ramps climb to it.
+WorldLayout.PLOT_FLOOR_TOP = 1
 -- Flat sand past the wild landing ring (r62) and the hub spawn (r64).
 WorldLayout.PLAZA_RADIUS = 66
 WorldLayout.FOUNTAIN_HEIGHT = 43.3 -- polished mesh height; Effects caps rise at h/2
@@ -629,8 +632,8 @@ local LANDING_BBOX = 38.678
 -- Outer edge of the curb on +Z (r 43.8): the slide exit strip starts here.
 WorldLayout.LANDING_OUTER_RADIUS = LANDING_BBOX + LANDING_SIZE[3] / 2
 
--- The paths (ring, spokes) and the plaza sand are voxel terrain now (GroundTerrain, written by
--- server/GroundTerrainView): one seamless dirt shape, no Parts.
+-- The paths (ring, spokes) and the plaza are FloorLayout's baked boardwalk and deck on top of the terrain (B11); the
+-- voxel terrain (GroundTerrain, written by server/GroundTerrainView) stays the walk surface underneath.
 
 -- Deterministic hash in [0, 1) so the decor is the same in every build.
 local function hash(i: number, salt: number): number
@@ -924,11 +927,22 @@ local function map(): WorldNode
 	-- over it, so a player never falls through if the terrain write is late or fails.
 	local ground = block("Ground", { 640, 2, 640 }, { 0, -1, 0 }, GRASS, "Grass")
 	ground.transparency = 1
-	return {
-		name = WorldLayout.MAP_NAME,
-		class = "Folder",
-		children = { ground, volcano(), chute(), plaza(), decor(), WorldBorder.build() :: any },
-	}
+	local children: { WorldNode } = { ground, volcano(), chute(), plaza(), decor(), WorldBorder.build() :: any }
+	-- B11 floor (FloorLayout): the sand yard, boardwalk, plaza deck and lawns, on top of the terrain.
+	for _, node in
+		FloorLayout.build({
+			ringRadius = WorldLayout.RING_PATH_RADIUS,
+			ringWidth = WorldLayout.RING_PATH_WIDTH,
+			plazaRadius = WorldLayout.PLAZA_RADIUS,
+			plotRing = WorldLayout.PLOT_RING_RADIUS,
+			plotSize = WorldLayout.PLOT_SIZE,
+			plotFloorTop = WorldLayout.PLOT_FLOOR_TOP,
+			plots = Config.PLOT_COUNT,
+		})
+	do
+		table.insert(children, node :: any)
+	end
+	return { name = WorldLayout.MAP_NAME, class = "Folder", children = children }
 end
 
 -- Plots ------------------------------------------------------------------

@@ -35,6 +35,14 @@ the pads get only a light frost (max 22 %) so they stay readable. Materials neve
 slots (`SnowCover.PART_COUNT / MESH_SLOTS`), and it is flush by construction: no second layer, so no z-fighting and nothing
 clipping into props. Props / roofs get no snow. `WeatherFx` only calls `SnowGround.start` with the flag on.
 
+**SnowKind (B11 floor).** A surface can declare its class with the attribute `SnowKind` = `grass` | `path` | `none`
+(`SnowCover.KIND_ATTRIBUTE`; it wins over the name / folder / material guess in `SnowCover.classify`). `FloorLayout` sets it on
+every floor part: the sand yard (`FieldSand`), the grass border band and the lawns are `grass` (fully white, melt last, like the
+terrain grass they cover); the boardwalk, plaza deck, plaza disc, hem and gate ramps are `path` (light frost, melt first). The two
+baked meshes sit in hidden slots; the MeshPart MeshSwap puts inside takes its slot's `SnowKind`, and since a MeshPart's colour
+MULTIPLIES its vertex colours, the slot colour is the mesh's brightest colour (all vertex colours are ratios of it) so lerping it
+toward white brightens every plank and rail. The render exporter (`tools/render/export.luau --snow`) frosts them the same way.
+
 `SnowCover` (pure, Lune-tested, also used by the render exporter): `level` 0..1 builds over `BUILD_SECONDS` (50) of Snow and
 melts over `MELT_SECONDS` (35) after. `SnowCover.tints(level, snowing) -> { grass, terrainGrass, rock, path }` are the 0..1
 weights; `SnowCover.lerpColor` mixes one into the ORIGINAL colour (weight 0 returns it exactly). Settling is one smoothstep

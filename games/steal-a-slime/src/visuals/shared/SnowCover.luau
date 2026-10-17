@@ -29,6 +29,10 @@ SnowCover.MELT_SECONDS = 35
 SnowCover.PART_COUNT = 0
 SnowCover.MESH_SLOTS = 0
 
+-- A surface can say what it is: the attribute SnowKind = "grass" | "path" | "none" (FloorLayout sets it on the new floor, and a
+-- baked mesh's MeshPart takes its slot's). It wins over the name / folder / material guess in classify.
+SnowCover.KIND_ATTRIBUTE = "SnowKind"
+
 SnowCover.QUANT_STEPS = 128
 SnowCover.SNOW_COLOR = table.freeze({ 248 / 255, 250 / 255, 255 / 255 })
 
@@ -94,7 +98,7 @@ function SnowCover.lerpColor(r: number, g: number, b: number, weight: number): (
 end
 
 -- Which tint class a BasePart belongs to: "grass" (the Ground and other big flat grass), "path" (path tiles,
--- the plaza disc, the pads) or nil (leave it alone). Hidden parts (Transparency 1: mesh slots) and small decor
+-- the plaza disc, the pads) or nil (leave it alone). `kind` is the part's SnowKind attribute (KIND_ATTRIBUTE), if any. Hidden parts (Transparency 1: mesh slots) and small decor
 -- (grass blades, bushes) are skipped on purpose.
 function SnowCover.classify(
 	name: string,
@@ -102,9 +106,15 @@ function SnowCover.classify(
 	inPaths: boolean,
 	sizeX: number,
 	sizeZ: number,
-	transparency: number
+	transparency: number,
+	kind: any?
 ): string?
 	if transparency >= 1 then
+		return nil
+	end
+	if kind == "grass" or kind == "path" then
+		return kind
+	elseif kind == "none" then
 		return nil
 	end
 	if inPaths or string.match(name, "^Pad_%d+$") then
