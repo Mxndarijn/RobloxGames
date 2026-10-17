@@ -162,7 +162,7 @@ describe("SaveData.migrate / deserialize of old saves", function()
 	it("migrating twice (migrate of a migrate) changes nothing", function()
 		local first = SaveData.migrate(v3Save({ v3Slime("s1", "Crystal", 1) })) :: any
 		local second = SaveData.migrate(first) :: any
-		expect(second.version).toBe(5)
+		expect(second.version).toBe(6)
 		expect(second.migratedFrom).toBe(3)
 		expect(second.slimes[1].mutations[1]).toBe("Crystal")
 	end)

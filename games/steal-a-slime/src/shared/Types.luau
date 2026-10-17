@@ -218,6 +218,7 @@ export type State = {
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
 	petPerk: PetPerkView?, -- FEATURES.PetPassives; nil without a favourite
+	settings: { musicVolume: number, sfxVolume: number, muted: boolean }?, -- FEATURES.Audio: saved Sound card values (nil when off)
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
 	welcomeBack: { away: number, cash: number, grown: number }?, -- FEATURES.WelcomeBack: join report (seconds away, offline cash paid, pad slimes grown); nil = none (CONTRACT.md §19)

@@ -8,6 +8,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local AudioSettings = if script then require(script.Parent.AudioSettings) else require("./AudioSettings")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Perks = if script then require(script.Parent.Perks) else require("./Perks")
@@ -57,6 +58,7 @@ export type Data = {
 	ritualBonus: number?, -- runtime only (never saved): "Blessed" income bonus from the co-op ritual; nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
 	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
+	settings: AudioSettings.Settings, -- Sound card values (save v6; used only with FEATURES.Audio)
 	consumables: Consumables, -- restocking shop purchases (added without a version bump)
 }
 
@@ -88,6 +90,7 @@ function PlayerData.new(): Data
 		boostMult = 1,
 		boostUntil = 0,
 		stealLog = {},
+		settings = AudioSettings.defaults(),
 		consumables = { slot = 0, bought = {} },
 	}
 end
