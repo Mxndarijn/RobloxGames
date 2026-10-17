@@ -1,0 +1,2579 @@
+{
+  "sha": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9",
+  "status": "fail",
+  "run_kind": "full",
+  "publishable": true,
+  "run_plan": {
+    "run_kind": "full",
+    "reason": "candidate request",
+    "base": null,
+    "changed": null,
+    "steps": [
+      "build",
+      "launch",
+      "perf",
+      "geometry",
+      "play",
+      "onboarding",
+      "shop",
+      "esc",
+      "devices",
+      "menus",
+      "phone_perf",
+      "two_player",
+      "shots"
+    ],
+    "full_paths": [],
+    "unknown_paths": []
+  },
+  "checked_at": "2026-10-17T15:22:17Z",
+  "studio_version": "0, 743, 0, 7431133 (version-4f087c32742644ab)",
+  "notes": "user Studio without a place open (pids [59444]) left alone; frame time is Studio play-mode on the PC (window may be throttled when unfocused); phone_perf phone-portrait: only 3 animating slimes (wanted 16); phone_perf phone-landscape: only 9 animating slimes (wanted 16); menus are content-sized cards since #76 (not full-window): frac_w / frac_h are reported, only on-screen + a visible close button decide pass; phone_perf is Studio on the PC (own desktop, unfocused), not real phone hardware",
+  "duration_s": 1548.9,
+  "steps": {
+    "build": {
+      "status": "pass",
+      "seconds": 1.7,
+      "detail": {
+        "rbxl": "C:\\gate\\pc-watcher\\builds\\d73a2a3cfb1f576336bfc7473726ebe4a797f2c9.rbxl",
+        "size_mb": 0.74,
+        "rojo_s": 0.1,
+        "datastore_mode": "Memory (Workspace $attributes, test build only)"
+      }
+    },
+    "launch": {
+      "status": "pass",
+      "seconds": 10.2,
+      "detail": {
+        "studio_id": "a0fde80b-392b-4328-b433-f6afe9bea4bb",
+        "pids": [
+          59184
+        ],
+        "window": "C:\\gate\\pc-watcher\\builds\\d73a2a3cfb1f576336bfc7473726ebe4a797f2c9.rbxl - Roblox Studio",
+        "seconds_to_ready": 9.3,
+        "edit_frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-edit.jpg"
+      }
+    },
+    "perf": {
+      "status": "pass",
+      "seconds": 18.5,
+      "detail": {
+        "unique_meshes": 93,
+        "store_status": "Memory",
+        "slime_and_character_meshes": 23,
+        "parts": 2203,
+        "parade_lane": true,
+        "runtime_parts_transient": 186,
+        "runtime_parts": 2203,
+        "slide_colliders": true,
+        "mesh_slots": 391,
+        "budget": 400,
+        "samples": [
+          61,
+          76,
+          114,
+          175,
+          391,
+          391,
+          391
+        ],
+        "settled": true,
+        "edit": {
+          "place_id": 0,
+          "unique_meshes": 0,
+          "place_name": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9.rbxl",
+          "datastore_mode": "Memory",
+          "descendants": 1579,
+          "datastore_mode_before": "Memory",
+          "parts": 1461,
+          "mesh_slots": 0
+        },
+        "triangles": "not available from Luau (pr-gate budget.sh counts FBX triangles)"
+      }
+    },
+    "geometry": {
+      "status": "pass",
+      "seconds": 0.1,
+      "detail": {
+        "checks": {
+          "bench_faces_campfire": 1,
+          "shops_face_centre": 1,
+          "silo_centred": 1,
+          "plot_signs": 8
+        },
+        "checks_src": "repo"
+      }
+    },
+    "play": {
+      "status": "pass",
+      "seconds": 7.8,
+      "detail": {
+        "client": {
+          "player": "Mxndarijn",
+          "has_gui": true,
+          "viewport": [
+            844,
+            390
+          ],
+          "store_status": "Memory",
+          "step_id": "Grab",
+          "has_character": true,
+          "ready": true
+        },
+        "seconds_to_client": 7.8,
+        "stats": {
+          "play_mesh_parts": 79,
+          "memory_mb": 3729.54,
+          "p95_ms": 32.98,
+          "max_ms": 60.9,
+          "frames": 273,
+          "fps": 54.65,
+          "primitives": 1971,
+          "instance_count": 52701,
+          "play_parts": 1969,
+          "frame_time_ms": 18.3
+        }
+      }
+    },
+    "onboarding": {
+      "status": "pass",
+      "seconds": 1.0,
+      "detail": {
+        "step_id": "Grab",
+        "counter": "Step 1 of 7",
+        "title": "Grab a slime",
+        "card_visible": true,
+        "hide_method": "visible_fallback",
+        "card_visible_after_hide": false
+      }
+    },
+    "shop": {
+      "status": "pass",
+      "seconds": 1.1,
+      "detail": {
+        "open_before": false,
+        "inset": [
+          0,
+          58
+        ],
+        "viewport": [
+          844,
+          390
+        ],
+        "methods": {
+          "open": "pcw_open_hook",
+          "virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau",
+          "mcp_mouse": "never used: moves the OS cursor",
+          "esc": "pcw_press_hook (close logic, not real key routing): closed"
+        },
+        "open_method": "pcw_open_hook",
+        "open_after": true,
+        "open_panels": [
+          "ShopPanel"
+        ]
+      }
+    },
+    "esc": {
+      "status": "pass",
+      "seconds": 1.1,
+      "detail": {
+        "key": {
+          "method": "pcw_press_hook",
+          "called": true,
+          "error": null,
+          "bound": true,
+          "result": "closed"
+        },
+        "method": "pcw_press_hook",
+        "tests": "close logic, not real key routing",
+        "open_after": false,
+        "open_panels": []
+      }
+    },
+    "devices": {
+      "status": "pass",
+      "seconds": 137.6,
+      "detail": {
+        "devices": {
+          "desktop": {
+            "target": [
+              1920,
+              1080
+            ],
+            "viewport": [
+              1920,
+              1080
+            ],
+            "exact": true,
+            "samples": [
+              [
+                1312,
+                606,
+                844,
+                390
+              ],
+              [
+                2388,
+                1296,
+                1920,
+                1080
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                1920,
+                1022
+              ],
+              "checked": 18,
+              "hidden": [
+                "Hud.Daily"
+              ],
+              "viewport": [
+                1920,
+                1080
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "idle": [],
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 100.17,
+                "variance": 2879.98,
+                "distinct": 936,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-desktop.jpg"
+            }
+          },
+          "phone-portrait": {
+            "target": [
+              390,
+              844
+            ],
+            "viewport": [
+              390,
+              844
+            ],
+            "exact": true,
+            "samples": [
+              [
+                2388,
+                1296,
+                1920,
+                1080
+              ],
+              [
+                858,
+                1060,
+                390,
+                844
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                390,
+                786
+              ],
+              "checked": 17,
+              "hidden": [
+                "Hud.Shop",
+                "Hud.Daily"
+              ],
+              "viewport": [
+                390,
+                844
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "idle": [],
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 102.93,
+                "variance": 2807.75,
+                "distinct": 881,
+                "samples": 5194,
+                "w": 390,
+                "h": 844
+              },
+              "size": [
+                390,
+                844
+              ],
+              "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-phone-portrait.jpg"
+            }
+          },
+          "phone-landscape": {
+            "target": [
+              844,
+              390
+            ],
+            "viewport": [
+              844,
+              390
+            ],
+            "exact": true,
+            "samples": [
+              [
+                858,
+                1060,
+                390,
+                844
+              ],
+              [
+                1312,
+                606,
+                844,
+                390
+              ]
+            ],
+            "hud": {
+              "gui_size": [
+                844,
+                332
+              ],
+              "checked": 17,
+              "hidden": [
+                "Hud.Shop",
+                "Hud.Daily"
+              ],
+              "viewport": [
+                844,
+                390
+              ],
+              "missing": [],
+              "offscreen": [],
+              "gui": true
+            },
+            "idle": [],
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 111.34,
+                "variance": 3258.53,
+                "distinct": 897,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-phone-landscape.jpg"
+            }
+          }
+        }
+      }
+    },
+    "menus": {
+      "status": "pass",
+      "seconds": 95.3,
+      "detail": {
+        "panels": [
+          "plot",
+          "merge",
+          "shop",
+          "rebirth",
+          "goals",
+          "dex",
+          "leaders",
+          "codes",
+          "guide"
+        ],
+        "devices": [
+          "desktop",
+          "phone-portrait",
+          "phone-landscape"
+        ]
+      }
+    },
+    "phone_perf": {
+      "status": "pass",
+      "seconds": 31.3,
+      "detail": {
+        "min_fps": 30,
+        "devices": [
+          "phone-portrait",
+          "phone-landscape"
+        ]
+      }
+    },
+    "two_player": {
+      "status": "fail",
+      "seconds": 184.8,
+      "detail": {
+        "error": "start_stop_play(true): ERROR DRIVER: TimeoutError('timeout after 60s on tools/call')"
+      }
+    },
+    "shots": {
+      "status": "fail",
+      "seconds": 1155.9,
+      "detail": {
+        "error": "client_ready (Client): no result (ERROR DRIVER: TimeoutError('timeout after 60s on tools/call'))"
+      }
+    }
+  },
+  "perf": {
+    "mesh_slots": 391,
+    "unique_meshes": 93,
+    "budget": 400,
+    "runtime_parts": 2203,
+    "runtime_part_budget": 2230,
+    "frame_time_ms": 18.3,
+    "memory_mb": 3729.54,
+    "play": {
+      "play_mesh_parts": 79,
+      "memory_mb": 3729.54,
+      "p95_ms": 32.98,
+      "max_ms": 60.9,
+      "frames": 273,
+      "fps": 54.65,
+      "primitives": 1971,
+      "instance_count": 52701,
+      "play_parts": 1969,
+      "frame_time_ms": 18.3
+    },
+    "parts": 2203,
+    "runtime_parts_transient": 186,
+    "triangles": null,
+    "phone": {
+      "phone-portrait": {
+        "pass": true,
+        "fill": {
+          "near_after": 20,
+          "near_before": 0,
+          "added": 20,
+          "sources": 18
+        },
+        "avg_ms": 16.67,
+        "p95_ms": 18.13,
+        "max_ms": 19.26,
+        "fps": 60.0,
+        "memory_mb": 3451.98,
+        "animating": 3,
+        "animating_at_start": 3,
+        "slimes_near": 20,
+        "frames": 301,
+        "viewport": [
+          390,
+          844
+        ],
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-phone-perf-phone-portrait.jpg",
+        "problems": [
+          "only 3 animating slimes (wanted 16)"
+        ]
+      },
+      "phone-landscape": {
+        "pass": true,
+        "fill": {
+          "near_after": 20,
+          "near_before": 0,
+          "added": 20,
+          "sources": 16
+        },
+        "avg_ms": 16.66,
+        "p95_ms": 18.43,
+        "max_ms": 19.91,
+        "fps": 60.01,
+        "memory_mb": 2446.3,
+        "animating": 9,
+        "animating_at_start": 9,
+        "slimes_near": 20,
+        "frames": 300,
+        "viewport": [
+          844,
+          390
+        ],
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-phone-perf-phone-landscape.jpg",
+        "problems": [
+          "only 9 animating slimes (wanted 16)"
+        ]
+      }
+    }
+  },
+  "geometry": {
+    "bench_faces_campfire": {
+      "pass": true,
+      "items": [
+        {
+          "angle_deg": 0,
+          "name": "Workspace.Map.Decor.CampBench",
+          "front_src": "Mesh",
+          "campfire": "Workspace.Map.Decor.Campfire",
+          "distance": 9.63,
+          "dot": 1,
+          "front": [
+            0.943,
+            0,
+            -0.334
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    "shops_face_centre": {
+      "pass": true,
+      "items": [
+        {
+          "name": "Workspace.Map.ShopStand",
+          "front_src": "Mesh",
+          "angle_deg": 0,
+          "dot": 1,
+          "front": [
+            -0.924,
+            0,
+            -0.383
+          ],
+          "pos": [
+            83.519,
+            5.85,
+            34.595
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    "silo_centred": {
+      "pass": true,
+      "items": [
+        {
+          "mesh_turn_deg": 180,
+          "silo_offset": [
+            -6.52,
+            -7.75
+          ],
+          "name": "Workspace.Map.Volcano.FountainMesh",
+          "dist": 0,
+          "raw_bbox_dist": 10.128,
+          "mesh_bbox_centre": [
+            6.52,
+            21.658,
+            7.75
+          ],
+          "silo_axis_xz": [
+            0,
+            0
+          ],
+          "bbox_centre": [
+            6.52,
+            21.658,
+            7.75
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    },
+    "plot_signs": {
+      "pass": true,
+      "items": [
+        {
+          "normal": [
+            0,
+            0,
+            -1
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_1/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Mxndarijn's Plot",
+            "Stats": "$25  \u2022  0 Rebirths  \u2022  0 Steals"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            -0.707,
+            0,
+            -0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_2/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 2",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            -1,
+            0,
+            0
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_3/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 3",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            -0.707,
+            0,
+            0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_4/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 4",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            0,
+            0,
+            1
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_5/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 5",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            0.707,
+            0,
+            0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_6/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 6",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            1,
+            0,
+            0
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_7/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 7",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        },
+        {
+          "normal": [
+            0.707,
+            0,
+            -0.707
+          ],
+          "face": "Front",
+          "mirrored": false,
+          "angle_out_deg": 0,
+          "dot_out": 1,
+          "name": "Plot_8/Sign/SignGuiFront",
+          "dot_gate_front": 1,
+          "enabled": true,
+          "frame_det": 1,
+          "text": {
+            "Title": "Plot 8",
+            "Stats": "Empty plot"
+          },
+          "size": [
+            9,
+            2.4,
+            0.75
+          ],
+          "pass": true
+        }
+      ],
+      "errors": []
+    }
+  },
+  "frames": [
+    {
+      "id": "edit",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-edit.jpg",
+      "status": "captured",
+      "todo": null,
+      "kind": "edit"
+    },
+    {
+      "id": "desktop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "device"
+    },
+    {
+      "id": "menu-plot-desktop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-plot-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-merge-desktop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-merge-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-shop-desktop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-shop-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-rebirth-desktop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-rebirth-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-goals-desktop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-goals-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-dex-desktop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-dex-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-leaders-desktop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-leaders-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "desktop",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-codes-desktop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-codes-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "CodesPanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-guide-desktop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-guide-desktop.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "desktop",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "device"
+    },
+    {
+      "id": "menu-plot-phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-plot-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-merge-phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-merge-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-shop-phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-shop-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-rebirth-phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-rebirth-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-goals-phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-goals-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-dex-phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-dex-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-leaders-phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-leaders-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "phone-portrait",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-codes-phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-codes-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "CodesPanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-guide-phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-guide-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "phone-portrait",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "phone-perf-phone-portrait",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-phone-perf-phone-portrait.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
+      "kind": "perf",
+      "for_device": "phone-portrait"
+    },
+    {
+      "id": "phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "device"
+    },
+    {
+      "id": "menu-plot-phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-plot-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "PlotPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-merge-phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-merge-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "MergePanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-shop-phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-shop-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "ShopPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-rebirth-phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-rebirth-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "RebirthPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-goals-phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-goals-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "GoalsPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-dex-phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-dex-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "DexPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-leaders-phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-leaders-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "LeaderboardPanel",
+      "for_device": "phone-landscape",
+      "open_method": "visible_fallback"
+    },
+    {
+      "id": "menu-codes-phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-codes-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "CodesPanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "menu-guide-phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-guide-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "menu",
+      "panel": "GuidePanel",
+      "for_device": "phone-landscape",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "phone-perf-phone-landscape",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-phone-perf-phone-landscape.jpg",
+      "status": "captured",
+      "todo": null,
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
+      "kind": "perf",
+      "for_device": "phone-landscape"
+    },
+    {
+      "id": "shot-00-v30-c2-first-frame-pc",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-00-v30-c2-first-frame-pc.jpg",
+      "status": "captured",
+      "todo": "v30-c2",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-01-hud-menus",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-01-hud-menus.jpg",
+      "status": "captured",
+      "todo": "1",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-01b-idle-hud",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-01b-idle-hud.jpg",
+      "status": "captured",
+      "todo": "1",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-02-dex-menu",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-02-dex-menu.jpg",
+      "status": "captured",
+      "todo": "2",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-02b-codes-menu",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-02b-codes-menu.jpg",
+      "status": "captured",
+      "todo": "v29-3",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-02c-badge-toast",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-02c-badge-toast.jpg",
+      "status": "captured",
+      "todo": "v29-6",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-02c-friend-bonus-hud",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-02c-friend-bonus-hud.jpg",
+      "status": "captured",
+      "todo": "v29-4",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-02d-friend-bonus-dex",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-02d-friend-bonus-dex.jpg",
+      "status": "captured",
+      "todo": "v29-4",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-03-shop-menu",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-03-shop-menu.jpg",
+      "status": "captured",
+      "todo": "3",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-04-rebirth-menu",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-04-rebirth-menu.jpg",
+      "status": "captured",
+      "todo": "4",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-04-rebirth-slime-missing",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-04-rebirth-slime-missing.jpg",
+      "status": "captured",
+      "todo": "29",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-04-rebirth-slime-owned",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-04-rebirth-slime-owned.jpg",
+      "status": "captured",
+      "todo": "29",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-05-guide-npc",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-05-guide-npc.jpg",
+      "status": "captured",
+      "todo": "5",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.TutorialNpc"
+    },
+    {
+      "id": "shot-06-fountain-centre",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-06-fountain-centre.jpg",
+      "status": "captured",
+      "todo": "6",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.FountainMesh"
+    },
+    {
+      "id": "shot-06-map-top",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-06-map-top.jpg",
+      "status": "captured",
+      "todo": "6",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-07-lock-sign",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-07-lock-sign.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.LockSign"
+    },
+    {
+      "id": "shot-07-plot-sign",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-07-plot-sign.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand.Sign"
+    },
+    {
+      "id": "shot-08-stray-box",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-08-stray-box.jpg",
+      "status": "captured",
+      "todo": "8",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-09-floating",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-09-floating.jpg",
+      "status": "captured",
+      "todo": "9",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-10-shop-stand",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-10-shop-stand.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand"
+    },
+    {
+      "id": "shot-11-campfire",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-11-campfire.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Campfire"
+    },
+    {
+      "id": "shot-11-campfire-bench",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-11-campfire-bench.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.CampBench"
+    },
+    {
+      "id": "shot-11-mailbox",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-11-mailbox.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_1"
+    },
+    {
+      "id": "shot-11-signpost",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-11-signpost.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Signpost"
+    },
+    {
+      "id": "shot-v29-13-restock-shop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-13-restock-shop.jpg",
+      "status": "captured",
+      "todo": "v29 13",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-12-fountain-slide",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-12-fountain-slide.jpg",
+      "status": "captured",
+      "todo": "12",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.SlideColliders.SlideFloor1"
+    },
+    {
+      "id": "shot-13-fountain-colliders",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-13-fountain-colliders.jpg",
+      "status": "captured",
+      "todo": "13",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.FountainMesh"
+    },
+    {
+      "id": "shot-14-podium-1",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-14-podium-1.jpg",
+      "status": "captured",
+      "todo": "14",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Podium_1"
+    },
+    {
+      "id": "shot-14-podiums",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-14-podiums.jpg",
+      "status": "captured",
+      "todo": "14",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Plaza.Podium_2"
+    },
+    {
+      "id": "shot-15-slime-pad",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-15-slime-pad.jpg",
+      "status": "captured",
+      "todo": "15",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-06-silo-top",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-06-silo-top.jpg",
+      "status": "captured",
+      "todo": "6",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": null
+    },
+    {
+      "id": "shot-07-plot-sign-front-1",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-07-plot-sign-front-1.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand.Sign"
+    },
+    {
+      "id": "shot-07-plot-sign-front-2",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-07-plot-sign-front-2.jpg",
+      "status": "captured",
+      "todo": "7",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Sign"
+    },
+    {
+      "id": "shot-11-bench-campfire-close",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-11-bench-campfire-close.jpg",
+      "status": "captured",
+      "todo": "11",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.CampBench"
+    },
+    {
+      "id": "shot-10-shop-front-1",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-10-shop-front-1.jpg",
+      "status": "captured",
+      "todo": "10",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand"
+    },
+    {
+      "id": "shot-quest-chain-goals",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-quest-chain-goals.jpg",
+      "status": "captured",
+      "todo": "quest-chain",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-cash-format-3sig",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-cash-format-3sig.jpg",
+      "status": "captured",
+      "todo": "v18",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-16-shop-esc",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-shop-esc.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-16-habitat-hay_nest-mid",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-hay_nest-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-hay_nest",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-hay_nest.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-mushroom_ring-mid",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-mushroom_ring-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-mushroom_ring",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-mushroom_ring.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-flower_bed-mid",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-flower_bed-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-flower_bed",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-flower_bed.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-barn_crate-mid",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-barn_crate-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-barn_crate",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-barn_crate.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-rodeo_barrel-mid",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-rodeo_barrel-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-rodeo_barrel",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-rodeo_barrel.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-syrup_pool-mid",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-syrup_pool-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-syrup_pool",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-syrup_pool.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-show_stool-mid",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-show_stool-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-show_stool",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-show_stool.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-candy_patch-mid",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-candy_patch-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-candy_patch",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-candy_patch.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-crystal_grotto-mid",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-crystal_grotto-mid.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-16-habitat-crystal_grotto",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-16-habitat-crystal_grotto.jpg",
+      "status": "captured",
+      "todo": "16",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-17-motion-idlesquish",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-17-motion-idlesquish.jpg",
+      "status": "captured",
+      "todo": "17",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-17-motion-hop",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-17-motion-hop.jpg",
+      "status": "captured",
+      "todo": "17",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-17-motion-lookleft",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-17-motion-lookleft.jpg",
+      "status": "captured",
+      "todo": "17",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-17-motion-lookright",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-17-motion-lookright.jpg",
+      "status": "captured",
+      "todo": "17",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Plots.Plot_1.Pad_1"
+    },
+    {
+      "id": "shot-18-hold-ring-rebirth",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-18-hold-ring-rebirth.jpg",
+      "status": "captured",
+      "todo": "18",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-18-modifier-badge",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-18-modifier-badge.jpg",
+      "status": "captured",
+      "todo": "18",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": null
+    },
+    {
+      "id": "shot-18-slide-top-to-bottom",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-18-slide-top-to-bottom.jpg",
+      "status": "captured",
+      "todo": "B6",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Volcano.SlideColliders.SlideFloor1"
+    },
+    {
+      "id": "shot-19-appraise-plot",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-19-appraise-plot.jpg",
+      "status": "captured",
+      "todo": "19",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "open_method": "pcw_open_hook"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-1",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-b2-mailbox-1.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_1"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-2",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-b2-mailbox-2.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_2"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-3",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-b2-mailbox-3.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_3"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-4",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-b2-mailbox-4.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_4"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-5",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-b2-mailbox-5.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_5"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-6",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-b2-mailbox-6.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_6"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-7",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-b2-mailbox-7.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_7"
+    },
+    {
+      "id": "shot-v29-b2-mailbox-8",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-b2-mailbox-8.jpg",
+      "status": "captured",
+      "todo": "v29 B2",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.Decor.Mailbox_8"
+    },
+    {
+      "id": "shot-v29-b3-topearners-facing",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-b3-topearners-facing.jpg",
+      "status": "captured",
+      "todo": "v29 B3",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.LeaderboardBoard"
+    },
+    {
+      "id": "shot-v29-b4-shop-sign-close",
+      "file": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-shot-v29-b4-shop-sign-close.jpg",
+      "status": "captured",
+      "todo": "v29 B4",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
+      "kind": "shot",
+      "target": "Workspace.Map.ShopStand"
+    },
+    {
+      "id": "shot-v17-shop-sign-night",
+      "file": null,
+      "status": "missing",
+      "todo": "v17 visual fixes",
+      "kind": "shot",
+      "error": "target 'ShopStand' (index 1) not found"
+    },
+    {
+      "id": "shot-19b-mystery-egg-shop",
+      "file": null,
+      "status": "missing",
+      "todo": "19b",
+      "kind": "shot",
+      "error": "StepFail(\"ui_probe (Client): no result (ERROR DRIVER: TimeoutError('timeout after 60s on tools/call'))\")"
+    },
+    {
+      "id": "shot-v29-b5-path-eye-spoke",
+      "file": null,
+      "status": "missing",
+      "todo": "v29 B5",
+      "kind": "shot",
+      "error": "target 'Path1' (index 1) not found"
+    },
+    {
+      "id": "shot-v29-b5-path-eye-ring",
+      "file": null,
+      "status": "missing",
+      "todo": "v29 B5",
+      "kind": "shot",
+      "error": "target 'Ring8' (index 1) not found"
+    },
+    {
+      "id": "shot-v29-b5-path-junction",
+      "file": null,
+      "status": "missing",
+      "todo": "v29 B5",
+      "kind": "shot",
+      "error": "target 'Ring1' (index 1) not found"
+    },
+    {
+      "id": "shot-20-mutation-stack-plot",
+      "file": null,
+      "status": "missing",
+      "todo": "20",
+      "kind": "shot",
+      "error": "StepFail(\"ui_probe (Client): no result (ERROR DRIVER: TimeoutError('timeout after 60s on tools/call'))\")"
+    },
+    {
+      "id": "shot-18-weather-Rain-pc",
+      "file": null,
+      "status": "missing",
+      "todo": "18",
+      "kind": "shot",
+      "error": "StepFail(\"shot_camera (Client): no result (ERROR DRIVER: TimeoutError('timeout after 60s on tools/call'))\")"
+    },
+    {
+      "id": "shot-18-weather-Rain-mid-pc",
+      "file": null,
+      "status": "missing",
+      "todo": "18",
+      "kind": "shot",
+      "error": "StepFail(\"shot_camera (Client): no result (ERROR DRIVER: TimeoutError('timeout after 60s on tools/call'))\")"
+    },
+    {
+      "id": "shot-18-weather-Snow-pc",
+      "file": null,
+      "status": "missing",
+      "todo": "18",
+      "kind": "shot",
+      "error": "StepFail(\"shot_camera (Client): no result (ERROR DRIVER: TimeoutError('timeout after 60s on tools/call'))\")"
+    },
+    {
+      "id": "shot-18-weather-Snow-mid-pc",
+      "file": null,
+      "status": "missing",
+      "todo": "18",
+      "kind": "shot",
+      "error": "StepFail(\"shot_camera (Client): no result (ERROR DRIVER: TimeoutError('timeout after 60s on tools/call'))\")"
+    },
+    {
+      "id": "shot-18-weather-Starfall-pc",
+      "file": null,
+      "status": "missing",
+      "todo": "18",
+      "kind": "shot",
+      "error": "StepFail(\"shot_camera (Client): no result (ERROR DRIVER: TimeoutError('timeout after 60s on tools/call'))\")"
+    },
+    {
+      "id": "shot-18-weather-Starfall-mid-pc",
+      "file": null,
+      "status": "missing",
+      "todo": "18",
+      "kind": "shot",
+      "error": "StepFail(\"shot_camera (Client): no result (ERROR DRIVER: TimeoutError('timeout after 60s on tools/call'))\")"
+    }
+  ],
+  "input_methods": {
+    "open": "pcw_open_hook",
+    "virtual_input_manager": "not tried: lacking capability RobloxScript in execute_luau",
+    "mcp_mouse": "never used: moves the OS cursor",
+    "esc": "pcw_press_hook (close logic, not real key routing): closed"
+  },
+  "menus": {
+    "desktop": {
+      "plot": {
+        "frac_w": 0.292,
+        "frac_h": 0.204,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-plot-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "merge": {
+        "frac_w": 0.292,
+        "frac_h": 0.204,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-merge-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "shop": {
+        "frac_w": 0.292,
+        "frac_h": 0.839,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-shop-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "rebirth": {
+        "frac_w": 0.292,
+        "frac_h": 0.403,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-rebirth-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "goals": {
+        "frac_w": 0.292,
+        "frac_h": 0.827,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-goals-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "dex": {
+        "frac_w": 0.292,
+        "frac_h": 0.695,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-dex-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "leaders": {
+        "frac_w": 0.292,
+        "frac_h": 0.204,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-leaders-desktop.jpg",
+        "open_method": "visible_fallback"
+      },
+      "codes": {
+        "frac_w": 0.292,
+        "frac_h": 0.268,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-codes-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "guide": {
+        "frac_w": 0.292,
+        "frac_h": 0.314,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-guide-desktop.jpg",
+        "open_method": "pcw_open_hook"
+      }
+    },
+    "phone-portrait": {
+      "plot": {
+        "frac_w": 0.786,
+        "frac_h": 0.209,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-plot-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "merge": {
+        "frac_w": 0.786,
+        "frac_h": 0.209,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-merge-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "shop": {
+        "frac_w": 0.786,
+        "frac_h": 0.678,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-shop-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "rebirth": {
+        "frac_w": 0.786,
+        "frac_h": 0.412,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-rebirth-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "goals": {
+        "frac_w": 0.786,
+        "frac_h": 0.678,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-goals-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "dex": {
+        "frac_w": 0.786,
+        "frac_h": 0.678,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-dex-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "leaders": {
+        "frac_w": 0.786,
+        "frac_h": 0.209,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-leaders-phone-portrait.jpg",
+        "open_method": "visible_fallback"
+      },
+      "codes": {
+        "frac_w": 0.786,
+        "frac_h": 0.274,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-codes-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "guide": {
+        "frac_w": 0.786,
+        "frac_h": 0.321,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-guide-phone-portrait.jpg",
+        "open_method": "pcw_open_hook"
+      }
+    },
+    "phone-landscape": {
+      "plot": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-plot-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "merge": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-merge-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "shop": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-shop-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "rebirth": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-rebirth-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "goals": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-goals-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "dex": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-dex-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "leaders": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-leaders-phone-landscape.jpg",
+        "open_method": "visible_fallback"
+      },
+      "codes": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-codes-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      },
+      "guide": {
+        "frac_w": 0.531,
+        "frac_h": 0.431,
+        "on_screen": true,
+        "close_button": true,
+        "frame": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9-menu-guide-phone-landscape.jpg",
+        "open_method": "pcw_open_hook"
+      }
+    }
+  },
+  "background": {
+    "foreground_at_start": [
+      1118284,
+      52180
+    ],
+    "focus_stolen": [],
+    "mcp_input": false
+  },
+  "watcher_version": "1.0.0",
+  "close": {
+    "status": "pass",
+    "seconds": 29.0,
+    "detail": {
+      "console_lines": 0,
+      "console_errors": 0,
+      "leftovers": [],
+      "stray": [],
+      "remaining": [],
+      "closed": [
+        59184
+      ],
+      "killed": [
+        59184
+      ]
+    }
+  },
+  "frames_dir": "d73a2a3cfb1f576336bfc7473726ebe4a797f2c9/"
+}
