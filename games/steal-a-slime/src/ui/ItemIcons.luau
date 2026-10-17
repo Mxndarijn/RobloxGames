@@ -146,6 +146,14 @@ local HAND: { Hand } = {
 		brief = "A four-leaf clover with a gold coin at its centre and a glossy highlight; top-down view.",
 	},
 	{
+		id = "Upgrade_RainMagnet",
+		name = "Rain Magnet",
+		group = "upgrade",
+		color = { 90, 150, 230 },
+		glyph = "🧲",
+		brief = "A red-and-silver horseshoe magnet pulling three blue raindrops and a snowflake toward it; front view.",
+	},
+	{
 		id = "Boost_Code",
 		name = "Income boost",
 		group = "boost",

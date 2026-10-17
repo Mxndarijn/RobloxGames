@@ -27,6 +27,11 @@ export type View = {
 
 local Upgrades = {}
 
+-- Whether an upgrade exists for players right now: one tied to a feature flag only while it is on.
+function Upgrades.available(def: Config.Upgrade): boolean
+	return def.flag == nil or (Config.FEATURES :: any)[def.flag] == true
+end
+
 -- Price of the level after `level`, or nil when maxed / unknown.
 function Upgrades.cost(id: string, level: number): number?
 	local def = Perks.upgradeDef(id)
@@ -44,7 +49,7 @@ end
 -- Returns (ok, priceOrReason).
 function Upgrades.buy(data: Data, id: string): (boolean, number | string)
 	local def = Perks.upgradeDef(id)
-	if not def then
+	if not def or not Upgrades.available(def) then
 		return false, "unknown upgrade"
 	end
 	if data.rebirths < def.requires then
@@ -65,6 +70,9 @@ end
 function Upgrades.view(data: Data): { View }
 	local out = {}
 	for _, def in Config.UPGRADES do
+		if not Upgrades.available(def) then
+			continue
+		end
 		local level = Perks.upgradeLevel(data, def.id)
 		local unlocked = data.rebirths >= def.requires
 		table.insert(out, {

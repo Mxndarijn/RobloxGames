@@ -63,6 +63,7 @@ export type Upgrade = {
 	growth: number, -- price of level n+1 = base * growth^n
 	requires: number, -- rebirths needed
 	step: number, -- effect per level (meaning depends on id)
+	flag: string?, -- Config.FEATURES name that must be on for the upgrade to be listed, bought or have any effect
 }
 
 export type Goal = {
@@ -275,6 +276,18 @@ local UPGRADES: { Upgrade } = {
 		growth = 3,
 		requires = 5,
 		step = 0.04,
+	},
+	-- v19 (RainMagnet, CONTRACT.md §23): off with FEATURES.RainMagnet; the def stays so saves keep the level.
+	{
+		id = "RainMagnet",
+		name = "Rain Magnet",
+		text = "+5% chance a slime you bring home in Rain, Snow or Starfall picks up that weather's mutation",
+		maxLevel = 5,
+		base = 300000,
+		growth = 3,
+		requires = 6,
+		step = 0.05,
+		flag = "RainMagnet",
 	},
 }
 
@@ -655,6 +668,7 @@ local Config = {
 		EventsBoard = false, -- v21 server events board (ui/EventsBoard, CONTRACT.md §20): a HUD banner listing the weekly mutation, the Saturday trait event, the day/night modifier and the next weekly event; client only, no remote or save change; false = no banner
 		MergeVat3 = false, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, keeping every mutation (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Consumables = true, -- restocking Shop section: mutation spray, luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
+		RainMagnet = false, -- v19: the Rain Magnet upgrade (rank 6): a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) may pick up that weather's mutation; needs Weather + WeatherMutations to ever have a target (RainMagnet, CONTRACT.md §23); false = no upgrade in the shop, no purchase, no effect (needs frame review)
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 

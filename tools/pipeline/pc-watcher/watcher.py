@@ -1424,6 +1424,8 @@ def step_shots(run):
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
                 if shot.get("merge_vat"):  # v19: the 3-slime vat panel (and the vat mesh on my plot), Studio only
                     res["merge_vat"] = run.need_luau("merge_vat", "Client", timeout=15, on=True)
+                if shot.get("rain_magnet"):  # v19: the Rain Magnet shop row (and the plot prop), Studio only
+                    res["rain_magnet"] = run.need_luau("rain_magnet", "Client", timeout=15, on=True)
                 if shot.get("dex_rows"):  # v29 menus: fake a long Dex list (Studio only)
                     res["dex_rows"] = run.need_luau("dex_rows", "Client", timeout=15, count=int(shot["dex_rows"]))
                 if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
@@ -1544,6 +1546,8 @@ def step_shots(run):
                     res["fountain_tier"] = run.need_luau("fountain_tier", "Client", timeout=15, tier=int(shot["fountain_tier"]))
                 if shot.get("merge_vat"):  # v19: the vat mesh over Plot_1's vat disc, Studio only
                     res["merge_vat"] = run.need_luau("merge_vat", "Client", timeout=15, on=True)
+                if shot.get("rain_magnet"):  # v19: the magnet prop beside Plot_1's vat, Studio only
+                    res["rain_magnet"] = run.need_luau("rain_magnet", "Client", timeout=15, on=True)
                 if shot.get("grow"):  # v29 #11: real growth on the pad 1 slime (Studio hook); WorldView draws it
                     # no watcher seat clone may stand on the pad: the frame must show the slime WorldView renders
                     if (res.get("target") or {}).get("path"):
@@ -1677,6 +1681,8 @@ def step_shots(run):
                     run.luau("fountain_tier", "Client", timeout=15, tier=0)
                 if shot.get("merge_vat"):
                     run.luau("merge_vat", "Client", timeout=15, on=False)
+                if shot.get("rain_magnet"):
+                    run.luau("rain_magnet", "Client", timeout=15, on=False)
         except Exception as e:
             res["error"] = repr(e)[:200]
             if not res.get("frame"):
@@ -1705,6 +1711,11 @@ def step_shots(run):
     if any(shot.get("merge_vat") for shot in shots):
         try:
             run.luau("merge_vat", "Client", timeout=15, on=False)  # drop the PcwMergeVat override
+        except Exception:
+            pass
+    if any(shot.get("rain_magnet") for shot in shots):
+        try:
+            run.luau("rain_magnet", "Client", timeout=15, on=False)  # drop the PcwRainMagnet override
         except Exception:
             pass
     if any(shot.get("plot_skin") for shot in shots):

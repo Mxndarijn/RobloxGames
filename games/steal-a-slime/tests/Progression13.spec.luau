@@ -195,7 +195,11 @@ describe("Upgrades (BuyUpgrade)", function()
 		local data = Fixtures.data()
 		data.rebirths = 3
 		local view = Upgrades.view(data)
-		expect(#view).toBe(#Config.UPGRADES)
+		local listed = 0
+		for _, def in Config.UPGRADES do
+			listed += if def.flag == nil then 1 else 0
+		end
+		expect(#view).toBe(listed) -- a flag-gated upgrade (RainMagnet) is not listed while its flag is off
 		expect(view[1].id).toBe("Income")
 		expect(view[3].unlocked).toBe(true)
 		expect(view[4].unlocked).toBe(false)

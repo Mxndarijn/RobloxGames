@@ -85,12 +85,14 @@ ShopCatalog.UPGRADE_ICONS = table.freeze({
 	CarrySpeed = "💪",
 	OfflineCap = "🌙",
 	Luck = "🍀",
+	RainMagnet = "🧲",
 })
 
 -- v28 short row text per upgrade id: the leading number of `text` (e.g.
 -- "+4%") + this phrase. Unknown ids (or no number) keep the server text.
 ShopCatalog.UPGRADE_SHORT = table.freeze({
 	Luck = "rarity-up chance",
+	RainMagnet = "weather mutation chance",
 })
 
 -- The one-line description of a v13 upgrade row.

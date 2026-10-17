@@ -17,6 +17,8 @@ local Economy = if Shared then require(Shared.Economy) else require("../shared/E
 local FountainTiers = if Shared then require(Shared.FountainTiers) else require("../shared/FountainTiers")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
+local RainMagnet = if Shared then require(Shared.RainMagnet) else require("../shared/RainMagnet")
+local Weather = if Shared then require(Shared.Weather) else require("../shared/Weather")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
@@ -116,6 +118,29 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	return StealService.steal(world, session, slimeId, distance, now)
 end
 
+-- Rain Magnet (Perks.rainMagnetChance, FEATURES.RainMagnet): the current weather's mutation (RainMagnet.target) may
+-- stick to a wild slime the player brings home. Toasts the player; true when the slime changed. `enabled`
+-- (tests) overrides the flag.
+function Carry.applyMagnet(world: World, session: Session, slime: Genome.Slime, enabled: boolean?): boolean
+	local pulled = RainMagnet.attract(
+		slime,
+		RainMagnet.target(Weather.getCurrent(), world.raining),
+		Perks.rainMagnetChance(session.data, enabled),
+		world.rng
+	)
+	if not pulled then
+		return false
+	end
+	World.notify(
+		world,
+		session.userId,
+		`Rain Magnet! Your slime picked up {Genome.mutationDisplayName(pulled)}!`,
+		"good",
+		"Cash"
+	)
+	return true
+end
+
 --[[
 	The carrier reached their own HomeZone. Wild slimes go on a free pad;
 	stolen ones move to the thief with Steal.complete (and, given `now`, open the
@@ -153,6 +178,10 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 				"good",
 				"Cash"
 			)
+			name = Genome.displayName(slime)
+		end
+		-- Rain Magnet (Perks.rainMagnetChance, FEATURES.RainMagnet): the current weather's mutation.
+		if Carry.applyMagnet(world, session, slime) then
 			name = Genome.displayName(slime)
 		end
 		PlayerData.addSlime(session.data, slime)

@@ -138,6 +138,14 @@ task.spawn(function()
 	end
 end)
 
+-- FEATURES.RainMagnet: the magnet template for the clients (no world slot; no-op while the flag is off outside Studio).
+task.spawn(function()
+	local ok, err = pcall(MeshSwap.publishRainMagnetTemplates)
+	if not ok then
+		warn(`[Server] MeshSwap.publishRainMagnetTemplates failed: {err}`)
+	end
+end)
+
 -- Archer's Effects (nil without Visuals): bursts are pcall'd and never block gameplay.
 local Effects: any = nil
 do
@@ -795,6 +803,7 @@ local function stepPlayers(t: number)
 		wasRaining = world.raining
 		WorldView.setRain(Spawner.rain(world, t))
 	end
+	WorldView.setBossNextAt(if Config.FEATURES.BossSlime then world.nextBossAt else nil)
 end
 
 -- Kill plane: every player (loaded or not) who falls off the world goes back up.

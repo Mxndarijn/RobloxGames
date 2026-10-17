@@ -69,6 +69,7 @@ RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
 	fountain_tier_ring = "fountain tier decor (FountainTiers): cloned round the fountain by the client at tier 2+, no world slot",
 	fountain_tier_crest = "fountain tier decor (FountainTiers): cloned over the fountain by the client at tier 3+, no world slot",
 	merge_vat = "3-slime merge vat (MergeVat3): the client stands it over the owner's plot MergeVat disc, no world slot",
+	rain_magnet = "Rain Magnet upgrade prop (RainMagnet): the client stands it on the owner's plot while the upgrade has a level, no world slot",
 	slime_base = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
 	slime_acc_leaf = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
 	slime_ears = "per-type slime kit mesh, worn by slimes (server SlimeMesh), not a world slot",
