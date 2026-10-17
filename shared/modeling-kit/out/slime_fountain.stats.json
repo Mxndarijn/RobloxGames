@@ -1,13 +1,13 @@
 {
   "name": "slime_fountain",
-  "model": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/models/slime_fountain.py",
+  "model": "/workspace/roblox/wt-jolt-fountain-blob/shared/modeling-kit/models/slime_fountain.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
-  "tris": 6814,
+  "tris": 6354,
   "meshes": [
     {
       "name": "slime_fountain",
-      "tris": 6814,
-      "verts": 3471,
+      "tris": 6354,
+      "verts": 3239,
       "ngons": 32,
       "non_manifold_edges": 0,
       "size_studs": [
@@ -52,10 +52,10 @@
   "pass": true,
   "fails": [],
   "warnings": [
-    "6814 tris outside prop target 500-2000"
+    "6354 tris outside prop target 500-2000"
   ],
-  "fbx": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/slime_fountain.fbx",
-  "fbx_bytes": 162060,
+  "fbx": "/workspace/roblox/wt-jolt-fountain-blob/shared/modeling-kit/out/slime_fountain.fbx",
+  "fbx_bytes": 149260,
   "engine": "cycles",
   "mode": "full",
   "look": "default",
@@ -64,48 +64,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/.tiles/slime_fountain_0.png"
+      "path": "/workspace/roblox/wt-jolt-fountain-blob/shared/modeling-kit/out/.tiles/slime_fountain_0.png"
     },
     {
       "view": "side",
-      "path": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/.tiles/slime_fountain_1.png"
+      "path": "/workspace/roblox/wt-jolt-fountain-blob/shared/modeling-kit/out/.tiles/slime_fountain_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/.tiles/slime_fountain_2.png"
+      "path": "/workspace/roblox/wt-jolt-fountain-blob/shared/modeling-kit/out/.tiles/slime_fountain_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/.tiles/slime_fountain_3.png"
+      "path": "/workspace/roblox/wt-jolt-fountain-blob/shared/modeling-kit/out/.tiles/slime_fountain_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.338,
-    "stats_s": 0.011,
-    "setup_s": 0.002,
+    "model_s": 0.315,
+    "stats_s": 0.01,
+    "setup_s": 0.001,
     "render_s": [
-      0.461,
-      0.409,
-      0.436,
-      0.441
+      0.645,
+      0.558,
+      0.671,
+      0.663
     ],
-    "export_s": 0.088
+    "export_s": 0.074
   },
-  "sheet": "/workspace/roblox/wt-fountain-goo/shared/modeling-kit/out/slime_fountain_sheet.png",
+  "sheet": "/workspace/roblox/wt-jolt-fountain-blob/shared/modeling-kit/out/slime_fountain_sheet.png",
   "timings": {
-    "wall_s": 2.75,
-    "blender_process_s": 2.65,
-    "compose_s": 0.097,
-    "model_s": 0.338,
-    "stats_s": 0.011,
-    "setup_s": 0.002,
+    "wall_s": 3.45,
+    "blender_process_s": 3.36,
+    "compose_s": 0.084,
+    "model_s": 0.315,
+    "stats_s": 0.01,
+    "setup_s": 0.001,
     "render_s": [
-      0.461,
-      0.409,
-      0.436,
-      0.441
+      0.645,
+      0.558,
+      0.671,
+      0.663
     ],
-    "export_s": 0.088
+    "export_s": 0.074
   }
 }

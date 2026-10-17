@@ -3,7 +3,8 @@
 # top is a goo basin that overflows. All the goo is METABALLS converted to mesh (lib/goo.py), so it
 # merges like real goo: a bubbling crown, a wavy collar over the roof and drips down the staves
 # that fuse into the collar and end in fat round drops (the shell sits GOO_T proud of the silo and
-# runs into it); teardrop goo lumps on the slide floor; a splash pool where the slide ends.
+# runs into it); teardrop goo lumps on the slide floor. The slide ends bare (no splash pool):
+# the game's slime lane (ParadeLane) starts at the mouth.
 # A goo spiral slide leaves the basin lip and winds ~1.5 turns down to the landing ring.
 # The gumdrop slimes welling up out of the crown are NOT in this mesh: they are the optional
 # second MeshPart models/slime_fountain_emerge.py (same silo space; it prints its offset).
@@ -242,8 +243,7 @@ Z_START, Z_END = ZP + 0.2, 0.7  # floor top; the head is sunk in the goo dome
 FLARE = 0.62  # path fraction where the helix starts to open out to the landing ring
 N = 66
 LUMPS = [(9, 0.3), (17, -0.5), (26, 0.4), (34, -0.2), (44, 0.5), (53, -0.4)]  # (path index, lateral)
-SLIDE_GOO_TRIS, POOL_TRIS = 400, 460
-POOL_D, POOL_R = 4.8, (4.8, 3.3)  # puddle centre past the mouth, radii (along, across)
+SLIDE_GOO_TRIS = 400
 
 
 def path_xy(t):
@@ -371,7 +371,7 @@ def supports(pts):
     return out
 
 
-# ------------------------------------------------------------------ goo on the slide + splash pool
+# ------------------------------------------------------------------ goo on the slide
 def slide_goo(pts):
     """flowing goo lumps on the slide floor: teardrops (fat head downstream, thin tail upstream)
     sunk into the floor so only a low swell shows."""
@@ -392,37 +392,10 @@ def slide_goo(pts):
     return paint_goo(o, lambda co, n: mix(GOO, GOO_HI, 0.7 * max(0.0, n.z) ** 4))
 
 
-def splash_pool(pts):
-    """the goo the riders bring down: a low puddle past the slide mouth, ripple ring, a pour over the
-    mouth lip and a couple of fat droplets merging into the rim. Flat bottom at the ground."""
-    end = pts[-1]
-    d = (pts[-1] - pts[-2]).xy.normalized()
-    d3 = Vector((d.x, d.y, 0))
-    side = Vector((-d.y, d.x, 0))
-    c = end + d3 * POOL_D
-    c.z = 0.0
-    balls = [Ball(c, (POOL_R[0] * 0.8, POOL_R[1] * 0.8, 0.3)),
-             Ball(c - d3 * 2.8, (2.2, 2.0, 0.4))]
-    for k in range(14):  # ripple ring: a raised rim of uneven lenses round a lower middle
-        a = k * math.tau / 14 + 0.3
-        rr = 0.86 + 0.07 * math.sin(3 * a + 1)
-        q = c + d3 * math.cos(a) * POOL_R[0] * rr + side * math.sin(a) * POOL_R[1] * rr
-        tg = (side * math.cos(a) * POOL_R[1] - d3 * math.sin(a) * POOL_R[0]).normalized()
-        balls.append(Ball(q, (1.0 + 0.2 * (k % 3), 0.62, 0.78 - 0.1 * (k % 2)),
-                          rot=frame_quat(tg, Vector((0, 0, 1)).cross(tg), Vector((0, 0, 1)))))
-    for t, z in ((-1.2, 0.55), (0.2, 0.45), (1.2, 0.2), (2.2, 0.05)):  # thin sheet pouring over the mouth lip
-        balls.append(Ball(end + d3 * t + Vector((0, 0, z - end.z)), (0.8, 1.6, 0.4)))
-    for off, h, rad in ((d3 * 2.0 + side * 1.4, 0.75, 0.6), (-d3 * 0.2 - side * 1.6, 0.6, 0.48),
-                        (d3 * 3.4 - side * 0.5, 0.5, 0.42)):  # fat drops landing in the rim
-        balls.append(Ball(c + off + Vector((0, 0, h)), rad))
-    o = metaball_mesh("GooPool", balls, resolution=0.25, tris=POOL_TRIS, clamp_z=0.02)
-    return paint_goo(o, lambda co, n: mix(shade(GOO, 0.95), GOO_HI, 0.35 * max(0.0, n.z) ** 3 * min(1, co.z / 1.2)))
-
-
 def build():
     """all parts in silo space (silo axis at the origin); returns (parts, slide path)."""
     pts = slide_path()
-    parts = [silo(), goo_crown(), slide(pts), slide_goo(pts), splash_pool(pts)] + supports(pts)
+    parts = [silo(), goo_crown(), slide(pts), slide_goo(pts)] + supports(pts)
     for o in parts:
         if "keep_smooth" not in o.data.attributes:
             o.data.attributes.new("keep_smooth", "INT", "FACE")
