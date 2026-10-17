@@ -122,6 +122,7 @@ export type World = {
 	modifierEndsAt: number?, -- server time the phase ends
 	modifierSeed: number,
 	adminEvent: AdminEvent?, -- FEATURES.AdminEvents: overrides `modifier` until endsAt (Spawner.stepModifier)
+	potionUntil: number, -- FEATURES.Consumables: server-wide Luck Potion ends at this time (0 = none)
 	pity: Pity,
 	fountainTier: number, -- FEATURES.FountainTiers: best rank tier seen on this server (FountainTiers), 1 = Meadow, only ever rises
 	outbox: { Event },
@@ -167,6 +168,7 @@ function World.new(options: Options): World
 		modifierEndsAt = nil,
 		modifierSeed = options.seed or 1,
 		adminEvent = nil,
+		potionUntil = 0,
 		pity = { sinceEpic = 0, sinceLegendary = 0 },
 		fountainTier = 1,
 		outbox = {},

@@ -14,7 +14,7 @@ local Weather = if Shared then require(Shared.Weather) else require("../shared/W
 
 local WeatherService = {}
 
-export type State = { id: string, changeAt: number }
+export type State = { id: string, changeAt: number, requested: string? } -- requested: a Weather Totem's pick for the next change
 
 -- Starts Clear; the first change comes WEATHER_FIRST_AT seconds after `t0`.
 function WeatherService.new(t0: number): State
@@ -26,8 +26,20 @@ function WeatherService.step(state: State, t: number, roll: () -> number): boole
 	if t < state.changeAt then
 		return false
 	end
-	state.id = Weather.pick(state.id, roll())
+	local requested = state.requested
+	state.requested = nil
+	state.id = if requested then requested else Weather.pick(state.id, roll())
 	state.changeAt = t + Weather.duration(state.id, roll())
+	return true
+end
+
+-- Weather Totem: makes `id` the next weather. false when it is unknown, Clear, already on, or another
+-- request is waiting (so a totem is never spent for nothing).
+function WeatherService.request(state: State, id: string): boolean
+	if id == Weather.CLEAR or Weather.data(id) == nil or id == state.id or state.requested ~= nil then
+		return false
+	end
+	state.requested = id
 	return true
 end
 

@@ -94,6 +94,25 @@ export type ShopView = {
 	MysteryEgg: { price: number }?, -- FEATURES.MysteryEgg only
 }
 
+-- State.consumables (FEATURES.Consumables): this restock's items for this player.
+export type ConsumableItemView = {
+	id: string,
+	name: string,
+	icon: string,
+	text: string,
+	price: number,
+	left: number, -- this player may still buy this many until the restock
+	max: number, -- the slot's quantity per player
+}
+export type ConsumablesView = {
+	slot: number,
+	restockAt: number, -- unix seconds, same clock as State.serverTime
+	items: { ConsumableItemView },
+	luckUntil: number, -- active server luck potion ends (0 = none)
+	luckMult: number, -- the potion's rarity multiplier
+	totemWeather: string, -- the weather a Weather Totem calls this restock
+}
+
 -- State.egg: the newest hatch, for the reveal banner (never saved).
 export type EggView = {
 	enabled: boolean,
@@ -194,6 +213,7 @@ export type State = {
 	boss: BossView,
 	modifier: ModifierView, -- FEATURES.CycleModifier
 	egg: EggView, -- FEATURES.MysteryEgg
+	consumables: ConsumablesView?, -- FEATURES.Consumables (nil when off)
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
 	petPerk: PetPerkView?, -- FEATURES.PetPassives; nil without a favourite

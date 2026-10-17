@@ -709,7 +709,16 @@ Owner: Phoenix (server, shared), Jolt (panel), Archer (vat model). Off = the two
 - **Vat model.** `merge_vat` (kit mesh, copper goo cauldron, three funnel spouts, 1508 tris): the client (`VatFx`, `VatDecor.pose`) stands a clone of `ReplicatedStorage.MergeVatMeshes.merge_vat` over the **local player's own** plot `MergeVat` disc (the disc and its goo only turn invisible; the MergePrompt keeps working). 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), at most 1 extra MeshPart. The server publishes the template with the flag on (and in Studio, for the shots).
 - **Needs frame review before the flag goes on:** the panel with the switch on a 390 px phone, the vat scale against the disc, the vat in the night look.
 
-## 22. v20: welcome-back card (2026-10-17)
+## 22. v29 #13: restocking consumables shop (2026-10-16)
+
+**Status:** `Config.FEATURES.Consumables` (default on); `false` = no Shop section, `BuyConsumable` refused ("the shop is closed"). Server-authoritative.
+
+- **Schedule (`shared/Consumables`):** slot = `floor(unix time / CONSUMABLES_RESTOCK_SECONDS)` (300 s). The stock of a slot is a pure function of the slot (seeded `Rng`), so every server agrees; `State.consumables.restockAt` drives the shop countdown. Each item rolls `minStock..maxStock` = the quantity **each player** may buy this restock (0 = sold out); counts live in `data.consumables = { slot, bought }` and reset when the slot changes.
+- **Remote:** `Request("BuyConsumable", itemId, slimeId?)`, rate limit 0.5 s (`Validate.ACTIONS`). Checks stock, cash (price x rebirth multiplier) and the item's precondition first; nothing is charged when the effect cannot happen.
+- **Items (ids are save keys, never rename):** `MutationSpray` (rolls a `MUTATIONS` mutation onto an owned, idle slime; respects `MutationStacking` combos and `MAX_MUTATIONS`; rerolls a no-op roll up to 8 times), `LuckPotion` (server-wide: `world.potionUntil`, each potion adds `LUCK_POTION_SECONDS` up to `LUCK_POTION_MAX_SECONDS`; spawn luck = day/night modifier x `LUCK_POTION_MULT`, capped at `SPAWN_LUCK_CAP`, a modifier above the cap alone is never cut), `WeatherTotem` (`WeatherService.request`: the stock-seeded weather is next; only offered with `FEATURES.Weather` and a Weather service).
+- **Save:** optional `consumables` field, default "nothing bought"; no `SAVE_VERSION` bump. **State:** `State.consumables?` (items with `left` / `max`, `restockAt`, `luckUntil`).
+
+## 23. v20: welcome-back card (2026-10-17)
 
 **Status:** `Config.FEATURES.WelcomeBack` (default `true`); `false` = no State field, no card. Server-authoritative; no remote, **no save-format change**, nothing saved.
 
