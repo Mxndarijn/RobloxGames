@@ -16,8 +16,7 @@
 	  2. "image": an uploaded picture. Paste the asset id into ItemIcons.IMAGES
 	     below (ITEM-ICONS-NEEDED.md lists what to make for each id).
 	  3. "drawn": a UI-drawn scene of layered frames (ItemIconArt), for the ids
-	     in ItemIcons.DRAWN. Static: no viewport, no cap. Replace it with an
-	     uploaded image later by pasting the id into IMAGES.
+	     in ItemIcons.DRAWN_GROUPS without an image. Static: no viewport, no cap.
 	  4. "placeholder": a rounded gradient tile in the item's colour with a
 	     bold glyph and a stroke. Every spec has `color` + `glyph`, so the
 	     tile is always there (also as the backdrop of 1 / 2).
@@ -37,10 +36,68 @@ export type Spec = {
 
 local ItemIcons = {}
 
--- Uploaded 512x512 icons by item id (rbxassetid number). Empty until Archer's
--- icons are uploaded; paste `ItemId = 123456789,` lines here. An image wins
--- over the placeholder tile, never over a working 3D model.
-ItemIcons.IMAGES = {} :: { [string]: number }
+-- Uploaded 512x512 icons by item id (rbxassetid number of the IMAGE asset, not the Decal), rendered by
+-- shared/modeling-kit/tools/icons (ids in shared/modeling-kit/icons_uploaded.json). An image wins over
+-- the drawn scene and the placeholder tile, never over a working 3D model (it is that model's fallback).
+ItemIcons.IMAGES = {
+	Appraise = 140440409031526,
+	Badge_Dex100 = 126553682019734,
+	Badge_Dex25 = 103035902991477,
+	Badge_Dex50 = 132537225738577,
+	Badge_FirstLegendary = 92898240575380,
+	Badge_FirstRebirth = 81969833659273,
+	Badge_FirstSecret = 140702355269432,
+	Badge_FirstSlime = 120070367416197,
+	Badge_FirstSteal = 78925771107042,
+	Badge_Millionaire = 127519969347286,
+	Badge_Rebirth5 = 102074621023406,
+	Boost_Blessed = 102114473664766,
+	Boost_Code = 116865449672644,
+	Boost_Friend = 134160547679550,
+	Boost_Weekend = 130491704533609,
+	Cash = 87921251358162,
+	Code_LAUNCH = 71722668257014,
+	Code_SLIMEBOOST = 96448805080296,
+	Code_WELCOME = 132772869844350,
+	Daily = 136919499537484,
+	Dex_10 = 121377018671664,
+	Dex_100 = 104036768146434,
+	Dex_200 = 124460827254481,
+	Dex_25 = 103082196233051,
+	Dex_400 = 119341987106293,
+	Dex_50 = 98335037376213,
+	Dex_720 = 86513854908521,
+	Event_luck = 110897664124431,
+	Event_mutation = 130718998467042,
+	Event_rain = 85475866363499,
+	Gift = 100988775125780,
+	Goal_Catch = 103344687666439,
+	Goal_Earn = 95884409898940,
+	Goal_Lock = 127760359460961,
+	Goal_Merge = 113657744087680,
+	Goal_Pads = 99255351965390,
+	Goal_Rebirth = 72330367528382,
+	Goal_Steal = 94010775081099,
+	Lock = 80470044151843,
+	LockUpgrade = 127943211946057,
+	MysteryEgg = 140462029142577,
+	Perk_income = 94766482619711,
+	Perk_luck = 80060700315838,
+	Perk_mutation = 89742124559371,
+	PlotSkin_candy = 75125399713715,
+	PlotSkin_classic = 75405645541984,
+	PlotSkin_crystal = 91231773101915,
+	PlotSkin_mushroom = 110584867448733,
+	Quest = 134202290579149,
+	Rebirth = 120491632097640,
+	Slap = 126349026044270,
+	SpeedCoil = 122726751933466,
+	Upgrade_CarrySpeed = 99839660309060,
+	Upgrade_Income = 78599900293497,
+	Upgrade_Luck = 138463958912705,
+	Upgrade_OfflineCap = 119754785018464,
+	Upgrade_RainMagnet = 117424238725252,
+} :: { [string]: number }
 
 -- Groups whose items are UI-drawn (ItemIconArt recipe per id). Kit-mesh plot skins stay "model"
 -- (live mesh) and show their drawn diorama while the mesh is missing.

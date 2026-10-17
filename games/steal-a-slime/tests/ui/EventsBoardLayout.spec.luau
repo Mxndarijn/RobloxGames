@@ -46,13 +46,13 @@ describe("EventsBoard rows (icons)", function()
 	local rows = EventsBoard.rows(WeeklyEvents.encode(SAT), SURGE, SAT, SAT, true) :: { EventsBoard.Row }
 	local registry = ItemIcons.build(Config)
 
-	it("is off with the flag off and every row has a registered, drawn icon", function()
+	it("is off with the flag off and every row has a registered icon with an uploaded image", function()
 		expect(EventsBoard.rows(WeeklyEvents.encode(SAT), SURGE, SAT, SAT, false)).toBeNil()
 		-- title, mutation, trait, modifier (only while FEATURES.CycleModifier is on), next
 		expect(#rows).toBe(if Config.FEATURES.CycleModifier then 5 else 4)
 		for _, row in rows do
 			expect(registry.byId[row.icon] ~= nil).toBe(true)
-			expect(registry.byId[row.icon].source).toBe("drawn")
+			expect(registry.byId[row.icon].source).toBe("image")
 		end
 	end)
 	it("keeps the emoji out of the icon rows (the image replaces them) and the lines in step", function()
