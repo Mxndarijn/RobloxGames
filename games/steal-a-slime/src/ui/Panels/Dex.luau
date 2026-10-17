@@ -117,6 +117,50 @@ function Dex.new(parent: Instance, ctx: any)
 		Parent = panel.body,
 	}, 4)
 
+	local open = false
+	-- First list row: bar to the next unclaimed milestone (Progress.dexMilestones) with its
+	-- reward icon and a tick row of the milestones; hidden on a server without dex rewards.
+	-- Built on the first update that carries dex rewards.
+	local MILE_H = 84
+	local mile: any = nil
+	local function buildMilestone()
+		local card = create("Frame", {
+			Name = "Milestones",
+			LayoutOrder = -1,
+			Size = UDim2.new(1, -10, 0, MILE_H),
+			BackgroundTransparency = 0.2,
+			BackgroundColor3 = Theme.Row,
+			Parent = list,
+		}, { Widgets.corner(12) })
+		local icon = ItemIconView.new({
+			Name = "Icon",
+			Id = "Dex_10",
+			Size = 56,
+			Position = UDim2.fromOffset(8, 8),
+			Parent = card,
+		}, ItemIcons.of(ctx))
+		icon.setActive(open)
+		local label = Widgets.label({
+			Name = "MilestoneCount",
+			Font = Theme.Font,
+			TextSize = 16,
+			Position = UDim2.fromOffset(72, 6),
+			Size = UDim2.new(1, -80, 0, 20),
+			Parent = card,
+		})
+		local back, setFill = Widgets.bar(card, Theme.Gold, UDim2.new(1, -80, 0, 14), UDim2.fromOffset(72, 30))
+		back.Name = "MilestoneBar"
+		local ticks = Widgets.label({
+			Name = "MilestoneTicks",
+			TextSize = 13,
+			TextColor3 = Theme.Muted,
+			Position = UDim2.fromOffset(72, 50),
+			Size = UDim2.new(1, -80, 0, 18),
+			Parent = card,
+		})
+		return { card = card, icon = icon, label = label, setFill = setFill, ticks = ticks }
+	end
+
 	local hasRewards = false
 	-- Body height from layout(); nil = tall enough for the full header.
 	local bodyH: number? = nil
@@ -136,7 +180,6 @@ function Dex.new(parent: Instance, ctx: any)
 	-- silhouette row per tier for the rest (SlimeDex.rows). ViewportFrames
 	-- are virtualised (refreshPreviews): only rows in or near the scroll
 	-- window are mounted, at most SlimePreview.MAX_LIVE at once.
-	local open = false
 	local rows = Widgets.keyedList(list, function(row: SlimeDex.Row)
 		return row.key
 	end, function(row: SlimeDex.Row)
@@ -389,6 +432,9 @@ function Dex.new(parent: Instance, ctx: any)
 	-- Called by init.client when the menu opens / closes.
 	function self.setOpen(isOpen: boolean)
 		open = isOpen
+		if mile then
+			mile.icon.setActive(isOpen)
+		end
 		for _, r in rows.rows do
 			if r.skinIcon then
 				r.skinIcon.setActive(isOpen)
@@ -437,6 +483,20 @@ function Dex.new(parent: Instance, ctx: any)
 			rewardLine.Text = if bonus then `{rewards.next}\n{bonus}` else rewards.next
 		end
 		placeList()
+		local ms = Progress.dexMilestones(state)
+		if ms and not mile then
+			mile = buildMilestone()
+		end
+		if mile then
+			mile.card.Visible = ms ~= nil
+			if ms then
+				mile.icon.set(ms.icon)
+				mile.label.Text = if ms.next then `Next reward: {ms.label}` else ms.label
+				mile.setFill(ms.fraction)
+				mile.ticks.Text = ms.ticksText
+			end
+		end
+		Widgets.restack(list)
 		local items = SlimeDex.rows(state.dex, state.dexTotal, ctx.Config)
 		local skins = SlimeDex.skinRows(state.plotSkins, ctx.Config)
 		if #skins > 0 then

@@ -1,0 +1,7 @@
+{
+  "id": "v20-dex-milestone-bar",
+  "todo": "v20 dex bars",
+  "kind": "ui",
+  "open": "dex",
+  "note": "v20: SlimeDex first row is the milestone card: reward icon, 'Next reward: n / target' bar, ticked claimed milestones"
+}
