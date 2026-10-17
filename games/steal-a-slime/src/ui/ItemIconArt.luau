@@ -395,6 +395,158 @@ RECIPES.Quest = function(p)
 	p:shape(0.86, 0.14, 0.14, 0.14, WHITE, { rot = -40, round = 0.2 })
 end
 
+-- Goals: one scene per Config.GOALS id.
+RECIPES.Goal_Catch = function(p)
+	p:shape(0.3, 0.78, 0.07, 0.5, rgb(150, 100, 55), { rot = 35, round = 0.4 })
+	p:circle(0.6, 0.38, 0.62, WHITE, { alpha = 0.55 })
+	blob(p, 0.6, 0.42, 0.32, GREEN)
+	p:shape(0.6, 0.38, 0.62, 0.05, rgb(150, 100, 55), { round = 0.5 })
+end
+
+RECIPES.Goal_Merge = function(p)
+	blob(p, 0.26, 0.62, 0.34, rgb(110, 210, 90))
+	blob(p, 0.74, 0.62, 0.34, rgb(130, 190, 255))
+	blob(p, 0.5, 0.3, 0.46, PURPLE)
+	p:text("🌀", 0.5, 0.82, 0.26)
+end
+
+RECIPES.Goal_Steal = function(p)
+	blob(p, 0.4, 0.5, 0.5, rgb(235, 90, 90))
+	p:shape(0.4, 0.46, 0.5, 0.14, INK, { round = 0.3, stroke = false, flat = true })
+	p:circle(0.74, 0.7, 0.4, rgb(190, 140, 80))
+	p:text("$", 0.74, 0.7, 0.2, GOLD)
+	for i = 0, 2 do
+		p:shape(0.1, 0.4 + i * 0.12, 0.16 - i * 0.03, 0.04, WHITE, { alpha = 0.6, stroke = false, flat = true })
+	end
+end
+
+RECIPES.Goal_Lock = function(p)
+	padlock(p, 0.5, 0.5, 0.9, BLUE)
+	p:text("★", 0.5, 0.64, 0.24, GOLD)
+end
+
+RECIPES.Goal_Pads = function(p)
+	p:shape(0.5, 0.74, 0.84, 0.3, rgb(150, 155, 165), { round = 0.3 })
+	p:shape(0.5, 0.7, 0.66, 0.18, rgb(110, 215, 120), { round = 0.5 })
+	p:shape(0.5, 0.7, 0.8, 0.28, rgb(120, 230, 130), { round = 0.5, alpha = 0.7, stroke = false, flat = true })
+	blob(p, 0.5, 0.42, 0.46, GREEN)
+end
+
+RECIPES.Goal_Earn = function(p)
+	for i = 0, 4 do
+		p:shape(0.5, 0.86 - i * 0.15, 0.56, 0.16, i % 2 == 0 and GOLD or GOLD_D, { round = 0.5 })
+	end
+	p:text("$", 0.5, 0.16, 0.24, GOLD)
+end
+
+RECIPES.Goal_Rebirth = function(p)
+	p:circle(0.5, 0.5, 0.8, rgb(110, 215, 160))
+	p:text("♻️", 0.5, 0.5, 0.66, WHITE)
+	sparkle(p, 0.82, 0.2, 0.24)
+	sparkle(p, 0.18, 0.78, 0.2)
+end
+
+-- Dex reward trophies: a gold cup with a slime on top and the milestone on the base. The cup
+-- (and the slime) get richer towards the top milestone.
+local function trophy(p: Pen, count: number)
+	local digits = #tostring(count)
+	p:shape(0.5, 0.9, 0.56, 0.12, rgb(120, 90, 60), { round = 0.2 })
+	p:shape(0.5, 0.78, 0.2, 0.16, GOLD_D, { round = 0.2 })
+	p:shape(0.5, 0.52, 0.56, 0.44, GOLD, { round = 0.4 })
+	p:circle(0.2, 0.44, 0.22, GOLD, { stroke = true })
+	p:circle(0.8, 0.44, 0.22, GOLD, { stroke = true })
+	p:shape(0.5, 0.52, 0.56, 0.44, GOLD, { round = 0.4 })
+	p:shape(0.5, 0.29, 0.6, 0.06, GOLD_D, { round = 0.5 })
+	blob(p, 0.5, 0.15, 0.3, if count >= 200 then PURPLE else GREEN)
+	p:text(tostring(count), 0.5, 0.54, if digits >= 3 then 0.5 else 0.4, rgb(150, 95, 10))
+end
+
+-- Badges: a gold medal on a ribbon with a small emblem per badge.
+local BADGE_EMBLEMS: { [string]: { glyph: string, tint: Color? } } = {
+	FirstSlime = { glyph = "★" },
+	FirstSteal = { glyph = "💨" },
+	FirstRebirth = { glyph = "♻️" },
+	Rebirth5 = { glyph = "5", tint = rgb(110, 215, 160) },
+	Dex25 = { glyph = "25", tint = BLUE },
+	Dex50 = { glyph = "50", tint = GREEN },
+	Dex100 = { glyph = "100", tint = PURPLE },
+	FirstLegendary = { glyph = "👑" },
+	FirstSecret = { glyph = "🔒" },
+	Millionaire = { glyph = "$", tint = rgb(110, 210, 90) },
+}
+
+local function medal(p: Pen, key: string)
+	local e = BADGE_EMBLEMS[key] or BADGE_EMBLEMS.FirstSlime
+	p:shape(0.36, 0.2, 0.2, 0.44, RED, { rot = 20, round = 0.1 })
+	p:shape(0.64, 0.2, 0.2, 0.44, BLUE, { rot = -20, round = 0.1 })
+	p:circle(0.5, 0.62, 0.74, GOLD)
+	p:circle(0.5, 0.62, 0.56, GOLD_D, { stroke = false, flat = true })
+	p:circle(0.5, 0.62, 0.5, e.tint or GOLD, { stroke = true })
+	p:text(e.glyph, 0.5, 0.62, if #e.glyph >= 3 then 0.46 else 0.38, WHITE)
+end
+
+for key in BADGE_EMBLEMS do
+	RECIPES[`Badge_{key}`] = function(p)
+		medal(p, key)
+	end
+end
+
+for _, count in { 10, 25, 50, 100, 200, 400, 720 } do
+	RECIPES[`Dex_{count}`] = function(p)
+		trophy(p, count)
+	end
+end
+
+-- Plot skins: a small ranch diorama (floor slab, fence posts, decor) per skin.
+local function diorama(p: Pen, floor: Color, fence: Color, decor: (Pen) -> ())
+	p:shape(0.5, 0.74, 0.92, 0.42, floor:Lerp(INK, 0.25), { round = 0.2 })
+	p:shape(0.5, 0.68, 0.92, 0.4, floor, { round = 0.2 })
+	for i = 0, 4 do
+		p:shape(0.14 + i * 0.18, 0.5, 0.08, 0.2, fence, { round = 0.3 })
+	end
+	p:shape(0.5, 0.52, 0.84, 0.05, fence, { round = 0.5 })
+	decor(p)
+end
+
+RECIPES.PlotSkin_classic = function(p)
+	diorama(p, rgb(120, 190, 90), rgb(235, 205, 160), function(q)
+		blob(q, 0.5, 0.74, 0.3, GREEN)
+		q:circle(0.2, 0.78, 0.1, rgb(255, 120, 150), { stroke = false })
+		q:circle(0.82, 0.76, 0.1, GOLD, { stroke = false })
+	end)
+end
+
+RECIPES.PlotSkin_mushroom = function(p)
+	diorama(p, rgb(112, 150, 72), rgb(255, 214, 196), function(q)
+		q:shape(0.5, 0.64, 0.12, 0.26, CREAM, { round = 0.3 })
+		q:shape(0.5, 0.46, 0.46, 0.26, RED, { round = 0.5 })
+		q:circle(0.42, 0.44, 0.08, WHITE, { stroke = false, flat = true })
+		q:circle(0.58, 0.48, 0.07, WHITE, { stroke = false, flat = true })
+		q:shape(0.8, 0.72, 0.1, 0.12, CREAM, { round = 0.3 })
+		q:shape(0.8, 0.64, 0.22, 0.12, RED, { round = 0.5 })
+	end)
+end
+
+RECIPES.PlotSkin_candy = function(p)
+	diorama(p, rgb(224, 142, 172), rgb(255, 190, 214), function(q)
+		q:shape(0.5, 0.66, 0.06, 0.34, WHITE, { round = 0.4 })
+		q:circle(0.5, 0.44, 0.34, rgb(255, 110, 150))
+		q:circle(0.5, 0.44, 0.22, WHITE, { stroke = false })
+		q:circle(0.5, 0.44, 0.1, rgb(255, 110, 150), { stroke = false })
+		q:circle(0.22, 0.78, 0.12, rgb(120, 220, 200))
+		q:circle(0.8, 0.78, 0.12, GOLD)
+	end)
+end
+
+RECIPES.PlotSkin_crystal = function(p)
+	diorama(p, rgb(148, 124, 190), rgb(214, 196, 255), function(q)
+		q:shape(0.5, 0.56, 0.2, 0.5, rgb(160, 230, 255), { rot = 0, round = 0.2 })
+		q:shape(0.36, 0.66, 0.14, 0.32, rgb(200, 150, 255), { rot = -20, round = 0.2 })
+		q:shape(0.66, 0.68, 0.14, 0.3, rgb(120, 200, 255), { rot = 22, round = 0.2 })
+		sparkle(q, 0.8, 0.3, 0.2)
+	end)
+end
+
 RECIPES.Code_SLIMEBOOST = RECIPES.Boost_Code
 RECIPES.Code_WELCOME = RECIPES.Cash
 RECIPES.Code_LAUNCH = RECIPES.Cash

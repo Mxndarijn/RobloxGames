@@ -127,34 +127,50 @@ describe("ItemIcons registry", function()
 		end
 	end)
 
-	it("mutations and kit-mesh plot skins are models; the shop gear needs art", function()
+	it("mutations and kit-mesh plot skins are models; the shop gear and classic skin are drawn", function()
 		expect(registry.byId.Mutation_Glow.source).toBe("model")
 		expect(registry.byId.Mutation_Glow.model.kind).toBe("slime")
 		expect(registry.byId.PlotSkin_candy.model.kind).toBe("mesh")
-		expect(registry.byId.PlotSkin_classic.source).toBe("placeholder")
+		expect(registry.byId.PlotSkin_classic.source).toBe("drawn")
 		expect(registry.byId.SpeedCoil.source).toBe("drawn")
 	end)
 end)
 
-describe("drawn icons (shop / upgrade / boost / misc / code)", function()
+describe("drawn icons (every group)", function()
 	local ItemIconArt = UiHarness.ui("ItemIconArt")
 
-	it("no item in these groups resolves to the placeholder unless listed FOR ARCHER", function()
-		local n = 0
+	it("no item resolves to the placeholder unless listed FOR ARCHER", function()
 		for _, id in registry.order do
 			local spec = registry.byId[id]
-			if ItemIcons.DRAWN_GROUPS[spec.group] then
-				n += 1
-				if table.find(ItemIcons.FOR_ARCHER, id) == nil then
-					expect(`{id}: {spec.source}`).toBe(`{id}: drawn`)
+			if table.find(ItemIcons.FOR_ARCHER, id) == nil then
+				expect(`{id}: {spec.source ~= "placeholder"}`).toBe(`{id}: true`)
+				if spec.source == "drawn" then
 					expect(`{id}: {ItemIconArt.has(id)}`).toBe(`{id}: true`)
 				end
 			end
 		end
-		expect(n >= 29).toBe(true)
+		expect(#ItemIcons.needsArt(registry)).toBe(#ItemIcons.FOR_ARCHER)
 		local doc = fs.readFile("ITEM-ICONS-NEEDED.md")
 		expect(string.find(doc, "## FOR ARCHER", 1, true) ~= nil).toBe(true)
 		expect(string.find(doc, "## FOR ARCHER", 1, true) < string.find(doc, "| id |", 1, true)).toBe(true)
+	end)
+
+	it("goals, Dex trophies, badges and plot skins all have recipes (kit-mesh skins as fallback)", function()
+		local n = 0
+		for _, id in registry.order do
+			local spec = registry.byId[id]
+			if spec.group == "goal" or spec.group == "badge" or spec.group == "skin" then
+				n += 1
+				expect(`{id}: {ItemIconArt.has(id)}`).toBe(`{id}: true`)
+			end
+		end
+		expect(n >= 25).toBe(true)
+		-- A kit-mesh skin whose mesh is not loaded shows its drawn diorama, not the tile.
+		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Size = 36, Parent = UiHarness.root() }, registry)
+		icon.setActive(true)
+		expect(icon.source).toBe("drawn")
+		expect(icon.art.Visible).toBe(true)
+		icon.destroy()
 	end)
 
 	it("every recipe builds static frames only (no viewport, outside the live cap), glyphs on the allowlist", function()
@@ -298,7 +314,7 @@ describe("ItemIconView", function()
 		expect(builder(UiHarness.root(), { model = { kind = "mesh", mesh = "plot_skin_candy" } })).toBe(false)
 		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, registry)
 		icon.setActive(true)
-		expect(icon.source).toBe("placeholder") -- default mesh builder: not wired under Lune
+		expect(icon.source).toBe("drawn") -- default mesh builder: not wired under Lune, so the diorama shows
 	end)
 
 	it("a changed id releases the old viewport", function()
@@ -494,7 +510,7 @@ describe("ITEM-ICONS-NEEDED.md", function()
 	it("lists every item without a 3D model or image, and nothing that has one", function()
 		local doc = fs.readFile("ITEM-ICONS-NEEDED.md")
 		local needed = ItemIcons.needsArt(registry)
-		expect(#needed > 20).toBe(true)
+		expect(#needed).toBe(#ItemIcons.FOR_ARCHER)
 		for _, spec in needed do
 			expect(string.find(doc, string.format("| `%s` |", spec.id), 1, true) ~= nil).toBe(true)
 		end

@@ -1,0 +1,7 @@
+{
+  "id": "item-icons-drawn-dex",
+  "todo": "item-icons",
+  "kind": "ui",
+  "open": "dex",
+  "note": "Item icons part 2: Dex menu shows the drawn plot-skin dioramas and the milestone trophies / badge medals as real icons; readable at 36px, no gradient glyph tiles"
+}
