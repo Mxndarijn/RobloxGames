@@ -41,9 +41,9 @@ def goal_catch():
     parts[-1].rotation_euler = (math.radians(90) * 0, 0, 0)
     parts.pop()
     parts.append(torus("Hoop", 2.4, 0.24, C["grey"], (0, 0, 4.2), (80, 0, 0), segs=22, rsegs=6))
-    bag = lathe_obj("Glass_Net", [(0, 0.2), (0.9, 0.5), (1.9, 1.5), (2.4, 4.2), (0, 4.2)], rgb(210, 240, 255), segs=14)
+    bag = lathe_obj("GlassClear_Net", [(0, 0.2), (0.9, 0.5), (1.9, 1.5), (2.4, 4.2), (0, 4.2)], rgb(210, 240, 255), segs=14)
     parts.append(bag)
-    parts.append(slime((120, 225, 140), "surprised", (0, 0, 0.55), (0, 0, 0), 0.75))
+    parts.append(slime((60, 235, 110), "surprised", (0, -0.4, 0.5), (0, 0, 0), 1.05))
     parts.append(tube("Handle", [(2.3, 0.3, 4.0), (4.0, 0.3, 2.3), (6.4, 0.3, -0.3)], [0.3, 0.34, 0.4], C["brown"], segs=8))
     parts.append(sparkle((-3.0, -0.8, 5.6), 0.4, C["white"], "S"))
     return parts

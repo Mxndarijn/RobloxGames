@@ -34,23 +34,16 @@ def up_income():
     return [group(parts, rot=(0, 0, 0), name="cookie")]
 
 
-@icon("Upgrade_CarrySpeed", view=(6, 8))
+@icon("Upgrade_CarrySpeed", view=(14, 8))
 def up_carry():
     parts = []
-    g, gd, gl = C["green"], C["green_d"], C["green_l"]
-    parts.append(tube("UpperArm", [(3.9, 0, 0.9), (1.5, 0, 0.9), (-1.2, 0, 0.9)], [0.95, 1.15, 1.1], gd, segs=10))
-    parts.append(blobc("Elbow", 1.3, (-1.4, 0, 0.9), g))
-    parts.append(tube("Forearm", [(-1.4, 0, 0.9), (-1.5, 0, 2.6), (-1.3, 0, 4.0)], [1.2, 1.05, 0.95], g, segs=12))
-    parts.append(blobc("Bicep", 1.45, (1.0, 0, 2.0), g, squash=(1.2, 1.0, 1.0)))
-    parts.append(blobc("BicepShine", 0.4, (0.5, -1.1, 2.7), rgb(235, 255, 225), squash=(1.3, 0.4, 1.4)))
-    parts.append(blobc("Fist", 1.35, (-1.3, 0, 5.3), gl, squash=(1, 0.95, 0.95)))
-    for i in range(3):
-        parts.append(box(f"Finger{i}", (0.1, 0.1, 0.8), (-1.85 + i * 0.55, -1.42, 5.45), gd))
-    parts.append(blobc("Thumb", 0.5, (-0.25, -1.1, 4.7), gl, squash=(1, 0.8, 1.3)))
-    parts.append(cylinder("Band", 1.2, 0.95, (-1.42, 0, 3.3), C["gold"], segs=12, r_top=1.12))
-    parts.append(cylinder("BandRim", 1.24, 0.2, (-1.42, 0, 3.3), C["gold_d"], segs=12))
-    for i, (x, z, ln) in enumerate(((2.2, 4.6, 1.5), (2.8, 5.7, 1.2), (2.4, 3.6, 1.0))):
-        parts.append(prism(f"Speed{i}", [(0, 0), (ln, 0.12), (ln, -0.12)], 0.2, C["blue"], (x, 0, z)))
+    # big running slime with a small pink slime riding on its back, bold speed lines behind
+    parts.append(slime((70, 225, 110), "happy", (0.6, 0, -1.6), (0, 0, -6), 1.45, 0.9))
+    parts.append(slime((255, 120, 180), "surprised", (-0.2, -0.3, 2.3), (0, 0, 12), 0.75))
+    for s in (-1, 1):
+        parts.append(blobc(f"Foot{s}", 0.7, (0.6 + s * 1.5, -1.0, -1.8), C["green_d"], squash=(1.4, 1.0, 0.6)))
+    for i, (x, z, ln) in enumerate(((-3.2, -0.2, 3.4), (-3.9, 1.4, 2.6), (-3.0, -1.9, 2.8), (-3.6, 3.0, 2.0))):
+        parts.append(prism(f"Speed{i}", [(0, 0), (ln, 0.22), (ln, -0.22)], 0.3, C["blue"], (x - ln * 0.5, -0.6, z)))
     return parts
 
 

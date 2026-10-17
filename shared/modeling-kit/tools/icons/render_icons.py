@@ -109,19 +109,21 @@ def rig(objs, yaw, pitch, fill, samples, shift=(0.0, 0.0)):
     sc.render.threads = int(os.environ.get("ICON_THREADS", "4"))
 
 
-def glass_material():
-    """Semi-transparent tinted glass for lenses / flasks / nets (objects named Glass*)."""
-    m = bpy.data.materials.get("icon_glass")
+def glass_material(clear=False):
+    """Semi-transparent tinted glass for lenses / flasks / nets (objects named Glass*; GlassClear* is
+    a much fainter pane so a slime behind it keeps its full colour)."""
+    name = "icon_glass_clear" if clear else "icon_glass"
+    m = bpy.data.materials.get(name)
     if m:
         return m
-    m = bpy.data.materials.new("icon_glass")
+    m = bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
     b = nt.nodes["Principled BSDF"]
     attr = nt.nodes.new("ShaderNodeVertexColor")
     attr.layer_name = "Col"
     nt.links.new(attr.outputs["Color"], b.inputs["Base Color"])
-    b.inputs["Alpha"].default_value = 0.38
+    b.inputs["Alpha"].default_value = 0.14 if clear else 0.38
     b.inputs["Roughness"].default_value = 0.15
     return m
 
@@ -132,7 +134,7 @@ def prep_materials(objs):
             H.paint(o, H.C["grey"])
         o.data.color_attributes.active_color = o.data.color_attributes["Col"]
         o.data.materials.clear()
-        o.data.materials.append(glass_material() if o.name.startswith("Glass") else H.vcol_material("icon_vcol"))
+        o.data.materials.append(glass_material(o.name.startswith("GlassClear")) if o.name.startswith("Glass") else H.vcol_material("icon_vcol"))
 
 
 def main():

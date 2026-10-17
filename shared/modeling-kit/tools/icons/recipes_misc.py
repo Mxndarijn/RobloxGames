@@ -27,8 +27,8 @@ def gift_box(box_c=None, rib=None, open_lid=True, sp=True):
 @icon("Appraise", view=(22, 12))
 def appraise():
     parts = []
-    parts.append(slime((120, 225, 140), "surprised", (0.1, 0.9, -1.9), (0, 0, 0), 0.95))
-    parts.append(disc("Glass_Lens", 2.4, 0.2, rgb(210, 240, 255), (0, -0.1, 0.5), segs=24))
+    parts.append(slime((60, 235, 110), "surprised", (0.1, 0.5, -1.9), (0, 0, 0), 1.05))
+    parts.append(disc("GlassClear_Lens", 2.4, 0.2, rgb(210, 240, 255), (0, -0.1, 0.5), segs=24))
     parts.append(torus("Frame", 2.55, 0.42, C["gold"], (0, -0.1, 0.5), segs=24, rsegs=8))
     parts.append(torus("FrameIn", 2.2, 0.1, C["gold_l"], (0, -0.45, 0.5), segs=24, rsegs=4))
     parts.append(tube("Handle", [(1.85, -0.1, -1.35), (3.0, -0.1, -2.9), (4.2, -0.1, -4.3)], [0.42, 0.45, 0.55], C["brown"], segs=8))
