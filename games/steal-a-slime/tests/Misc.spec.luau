@@ -58,7 +58,8 @@ describe("Fountain", function()
 			for k = 0, 40 do
 				local pose = ParadeLane.pose(0, 100, lateral, k * 2.5)
 				local r = math.sqrt(pose.position[1] ^ 2 + pose.position[3] ^ 2)
-				expect(r >= SAFE).toBe(true)
+				-- the lead-in from the slide mouth runs through the landing ring's open gap (still Riding)
+				expect(ParadeLane.distance(0, 100, k * 2.5) < 0 or r >= SAFE).toBe(true)
 			end
 		end
 		-- dropped spots anywhere in or near the band are pushed out; others are untouched

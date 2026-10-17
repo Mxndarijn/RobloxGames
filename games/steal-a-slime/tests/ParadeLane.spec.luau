@@ -38,19 +38,6 @@ local function hdist(ax: number, az: number, bx: number, bz: number): number
 	return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2)
 end
 
--- Horizontal distance from (x, z) to the lane centreline.
-local function fromCentreline(x: number, z: number): number
-	local best = math.huge
-	for i = 1, #POINTS - 1 do
-		local a, b = POINTS[i], POINTS[i + 1]
-		local dx, dz = b[1] - a[1], b[2] - a[2]
-		local len2 = dx * dx + dz * dz
-		local k = if len2 < 1e-9 then 0 else math.clamp(((x - a[1]) * dx + (z - a[2]) * dz) / len2, 0, 1)
-		best = math.min(best, hdist(x, z, a[1] + dx * k, a[2] + dz * k))
-	end
-	return best
-end
-
 -- Distance from (x, z) to a turned rectangle (0 inside).
 local function rectDistance(r, x: number, z: number): number
 	local a = math.rad(r.yaw)
@@ -136,37 +123,66 @@ describe("ParadeLane timing: lane position is time left", function()
 		-- the ride still lands well before the walk starts and the warning still fits the walk
 		expect(HOP + ParadeLane.DRAIN_SECONDS < LIFE - Config.DESPAWN_TELEGRAPH_SECONDS).toBe(true)
 	end)
-	it("distance walked is linear in time left: equal time left, equal share of the lane", function()
-		for _, life in { LIFE, Config.BOSS_LIFETIME } do
-			local walk = life - HOP - ParadeLane.DRAIN_SECONDS
-			local E = T0 + life
-			for _, share in { 0, 0.1, 0.25, 0.5, 0.9, 1 } do
-				-- time left at this share of the walk
-				local left = ParadeLane.DRAIN_SECONDS + walk * (1 - share)
-				expect(ParadeLane.distance(T0, E, E - left)).toBeCloseTo(ParadeLane.LENGTH * share, 1e-6)
+	it(
+		"distance walked is linear in time left: equal time left, equal share of the route from the slide mouth",
+		function()
+			local total = ParadeLane.LEAD_LENGTH + ParadeLane.LENGTH
+			for _, life in { LIFE, Config.BOSS_LIFETIME } do
+				local walk = life - HOP - ParadeLane.DRAIN_SECONDS
+				local E = T0 + life
+				for _, share in { 0, 0.1, 0.25, 0.5, 0.9, 1 } do
+					-- time left at this share of the walk
+					local left = ParadeLane.DRAIN_SECONDS + walk * (1 - share)
+					expect(ParadeLane.walked(T0, E, E - left)).toBeCloseTo(total * share, 1e-6)
+				end
+				expect(ParadeLane.walked(T0, E, T0 + HOP)).toBeCloseTo(0, 1e-9)
+				expect(ParadeLane.distance(T0, E, T0 + 1)).toBe(-ParadeLane.LEAD_LENGTH)
+				expect(ParadeLane.distance(T0, E, E - 0.5)).toBe(ParadeLane.LENGTH)
 			end
-			expect(ParadeLane.distance(T0, E, T0 + 1)).toBe(0)
-			expect(ParadeLane.distance(T0, E, E - 0.5)).toBe(ParadeLane.LENGTH)
 		end
-	end)
-	it("hands off from the ride without a jump: walk starts on the ride's landing spot", function()
-		for _, lateral in { -ParadeLane.SPREAD / 2, 0, ParadeLane.SPREAD / 2 } do
-			local landing = ParadeLane.entrySpot(lateral)
-			local ride = FountainRide.new(PATH, landing)
-			expect(ride.duration < HOP - 0.5).toBe(true) -- lands before the hop-on window ends
-			local p = FountainRide.sample(ride, ride.duration)
-			local start = ParadeLane.pose(T0, T0 + LIFE, lateral, T0 + HOP).position
-			expect(hdist(p[1], p[3], start[1], start[3]) < 1e-6).toBe(true)
-			expect(start[2]).toBeCloseTo(ParadeLane.LANE_Y, 1e-9)
-			local waiting = ParadeLane.pose(T0, T0 + LIFE, lateral, T0 + ride.duration + 0.1).position
-			expect(hdist(waiting[1], waiting[3], start[1], start[3]) < 1e-6).toBe(true)
+	)
+	it(
+		"bug #5: the walk starts at the slide mouth the instant the slide ends: no idle wait, no glide to the lane",
+		function()
+			local mouth = PATH[#PATH]
+			for _, lateral in { -ParadeLane.SPREAD / 2, 0, ParadeLane.SPREAD / 2 } do
+				local ride = FountainRide.new(PATH, ParadeLane.entrySpot(lateral))
+				-- the walk begins when the slide ends (at most 0.25 s of rounding)
+				expect(HOP >= ride.slideEndsAt and HOP - ride.slideEndsAt <= 0.25).toBe(true)
+				local mouthPose = ParadeLane.pose(T0, T0 + LIFE, lateral, T0 + HOP - 0.01).position
+				expect(mouthPose[2]).toBeCloseTo(ParadeLane.LANE_Y, 1e-9)
+				-- the slide's last sample and the walk's first point are one spot (the lateral spread aside)
+				local p = FountainRide.sample(ride, ride.slideEndsAt)
+				expect(hdist(p[1], p[3], mouth[1], mouth[3]) < 1e-6).toBe(true)
+				expect(hdist(mouthPose[1], mouthPose[3], mouth[1], mouth[3]) < 1e-6).toBe(true) -- the offset grows from there
+				-- moving on the very next frames: no wait before the first step
+				local prev = mouthPose
+				for f = 1, 6 do
+					local now = T0 + HOP + f / FPS
+					local q = ParadeLane.pose(T0, T0 + LIFE, lateral, now)
+					expect(q.phase).toBe("Walk")
+					expect(hdist(q.position[1], q.position[3], prev[1], prev[3]) > 1e-3).toBe(true)
+					-- every step lies on the lead-in / lane (no off-lane glide target)
+					local x, z = ParadeLane.offsetAt(ParadeLane.distance(T0, T0 + LIFE, now), lateral)
+					expect(hdist(q.position[1], q.position[3], x, z) < 1e-6).toBe(true)
+					prev = q.position
+				end
+				-- the lead-in joins the unchanged lane at ENTRY, then the original waypoints
+				local atEntry = ParadeLane.offsetAt(0, lateral)
+				expect(atEntry).toBeCloseTo(ParadeLane.entrySpot(lateral)[1], 1e-9)
+				local x, z = ParadeLane.pointAt(0)
+				expect(hdist(x, z, ParadeLane.ENTRY[1], ParadeLane.ENTRY[2]) < 1e-9).toBe(true)
+				local mx, mz = ParadeLane.pointAt(-ParadeLane.LEAD_LENGTH)
+				expect(hdist(mx, mz, mouth[1], mouth[3]) < 1e-6).toBe(true)
+			end
+			expect(ParadeLane.LEAD_LENGTH > 5).toBe(true)
 		end
-	end)
+	)
 	it("moves smoothly at 30 Hz from the entry to the drain (no teleports) and only forwards", function()
 		for _, life in { LIFE, Config.BOSS_LIFETIME } do
 			local E = T0 + life
 			local prev = ParadeLane.pose(T0, E, 1, T0).position
-			local lastS = 0
+			local lastS = -math.huge
 			for f = 1, math.floor(life * FPS) do
 				local now = T0 + f / FPS
 				local p = ParadeLane.pose(T0, E, 1, now).position
@@ -186,7 +202,8 @@ describe("ParadeLane timing: lane position is time left", function()
 					local pose = ParadeLane.pose(T0, T0 + LIFE, lateral, T0 + t)
 					local p = pose.position
 					expect(pose.phase).toBe("Walk")
-					expect(fromCentreline(p[1], p[3]) <= ParadeLane.SPREAD / 2 + 1e-6).toBe(true)
+					local cx, cz = ParadeLane.pointAt(ParadeLane.distance(T0, T0 + LIFE, T0 + t))
+					expect(hdist(p[1], p[3], cx, cz) <= ParadeLane.SPREAD / 2 + 1e-6).toBe(true)
 					expect(
 						p[2] >= ParadeLane.LANE_Y - 1e-9 and p[2] <= ParadeLane.LANE_Y + ParadeLane.HOP_HEIGHT + 1e-9
 					).toBe(true)
@@ -631,11 +648,12 @@ describe("ParadeLane in the live server", function()
 					local age = f.t - track.born
 					if age > HOP + 0.3 and age < LIFE - ParadeLane.DRAIN_SECONDS - 0.3 then
 						checked += 1
-						expect(fromCentreline(f.p[1], f.p[3]) <= ParadeLane.SPREAD / 2 + 0.3).toBe(true)
+						local cx, cz = ParadeLane.pointAt(ParadeLane.distance(track.born, track.born + LIFE, f.t))
+						expect(hdist(f.p[1], f.p[3], cx, cz) <= ParadeLane.SPREAD / 2 + 1.5).toBe(true)
 						expect(f.p[2] >= ParadeLane.LANE_Y - 1e-3).toBe(true)
 						expect(f.p[2] <= ParadeLane.LANE_Y + ParadeLane.HOP_HEIGHT + 1e-3).toBe(true)
 					end
-					if i > 1 and age > HOP then
+					if i > 1 and age > HOP + 0.1 then -- the frame the slide ends on still moves at slide speed
 						local q = track.frames[i - 1].p
 						local step = math.sqrt((f.p[1] - q[1]) ^ 2 + (f.p[2] - q[2]) ^ 2 + (f.p[3] - q[3]) ^ 2)
 						expect(step <= FountainRide.RUN_SPEED / HZ + 1e-3).toBe(true)
@@ -672,7 +690,9 @@ describe("ParadeLane in the live server", function()
 			local f = frameAt(track)
 			local s = ParadeLane.distance(track.born, track.born + LIFE, f.t)
 			local x, z = ParadeLane.pointAt(s)
-			local tol = ParadeLane.SPREAD / 2 + 0.1 * ParadeLane.LENGTH / (LIFE - HOP - ParadeLane.DRAIN_SECONDS) + 0.2
+			local tol = ParadeLane.SPREAD / 2
+				+ 0.1 * (ParadeLane.LEAD_LENGTH + ParadeLane.LENGTH) / (LIFE - HOP - ParadeLane.DRAIN_SECONDS)
+				+ 0.2
 			expect(hdist(f.p[1], f.p[3], x, z) <= tol).toBe(true)
 		end
 	end)

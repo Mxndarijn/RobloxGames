@@ -302,14 +302,21 @@ local function laneCFrame(wild: World.Wild, now: number): CFrame
 	return CFrame.lookAt(at, at + Vector3.new(h[1], 0, h[2]))
 end
 
--- Where the fountain ride drops a parade slime: the lane entry, facing along the lane.
-local function laneEntry(wild: World.Wild): CFrame
-	local e = ParadeLane.entrySpot(laneLateral(wild))
-	local _, _, hx, hz = ParadeLane.pointAt(0)
-	local at = Vector3.new(e[1], e[2], e[3])
-	return CFrame.lookAt(at, at + Vector3.new(hx, 0, hz))
+-- A parade slime's ride is the emerge + slide only: it leaves the mouth at ParadeLane.HOP_SECONDS and is
+-- already on the lane walk there (laneCFrame), so there is no run-out glide to the lane and no wait.
+local function laneRide(wild: World.Wild): (number, (t: number) -> CFrame)
+	local ride = FountainRide.new(WorldLayout.SLIDE_PATH, ParadeLane.entrySpot(laneLateral(wild)))
+	local seconds = ParadeLane.HOP_SECONDS
+	return seconds,
+		function(t: number): CFrame
+			if t >= 1 then
+				return laneCFrame(wild, wild.spawnedAt + seconds)
+			end
+			local p, dir = FountainRide.sample(ride, t * ride.slideEndsAt)
+			local at = Vector3.new(p[1], p[2], p[3])
+			return CFrame.lookAt(at, at + Vector3.new(dir[1], dir[2], dir[3]))
+		end
 end
-
 -- Pivots a lane slime along the parade every frame (after its ride lands)
 -- until its record changes (grabbed, dropped) or the model is gone.
 local function followLane(id: string, key: string, wild: World.Wild)
@@ -320,7 +327,13 @@ local function followLane(id: string, key: string, wild: World.Wild)
 				return
 			end
 			if os.clock() >= record.rideUntil then
-				record.model:PivotTo(laneCFrame(wild, workspace:GetServerTimeNow()))
+				local now = workspace:GetServerTimeNow()
+				record.model:PivotTo(laneCFrame(wild, now))
+				-- still Riding through the lead-in from the slide mouth (it crosses the landing ring's gap)
+				local leading = ParadeLane.distance(wild.spawnedAt, wild.expiresAt, now) < 0
+				if (record.model:GetAttribute(Constants.RIDING_ATTRIBUTE) == true) ~= leading then
+					record.model:SetAttribute(Constants.RIDING_ATTRIBUTE, if leading then true else nil)
+				end
 			end
 			RunService.Heartbeat:Wait()
 		end
@@ -403,10 +416,10 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 			return true
 		end
 		if ParadeLane.enabled() and wild.position == nil then
-			-- Fresh drops ride the slide onto the lane entry; later ones (a rebuilt model) join where they are.
+			-- Fresh drops ride the slide and walk on from its mouth; later ones (a rebuilt model) join where they are.
 			local now = workspace:GetServerTimeNow()
 			if previous == nil and ParadeLane.phase(wild.spawnedAt, wild.expiresAt, now) == "Ride" then
-				local seconds, ride = fountainRide(laneEntry(wild))
+				local seconds, ride = laneRide(wild)
 				record.rideUntil = os.clock() + seconds
 				model:SetAttribute(Constants.RIDING_ATTRIBUTE, true)
 				animate(entry.id, entry.key, seconds, ride)
