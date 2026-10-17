@@ -276,13 +276,171 @@ local function load(path: string): any
 	return result
 end
 
-local players = { LocalPlayer = nil }
+-- Workspace attributes the loaded modules read (RainNextAt, ...); tests set and clear them.
+UiHarness.workspaceAttributes = {} :: { [string]: any }
+
+-- `task` for loaded modules: Lune's scheduler, unless UiHarness.virtualTime() is on. Then spawn runs the
+-- body at once, wait / delay park the thread on a virtual clock and UiHarness.advance(dt) wakes it
+-- (counting every wakeup), so loops like Toasts' 0.25 s sync are measured without real waiting.
+type Sleeper = { at: number, thread: thread, interval: number }
+local virtual: { now: number, sleepers: { Sleeper } }? = nil
+
+local function resume(thread: thread, ...: any)
+	local ok, err = coroutine.resume(thread, ...)
+	if not ok then
+		error(err, 0)
+	end
+end
+
+UiHarness.task = {
+	spawn = function(f: any, ...: any): thread
+		if not virtual then
+			return task.spawn(f, ...)
+		end
+		local thread = coroutine.create(f)
+		resume(thread, ...)
+		return thread
+	end,
+	delay = function(seconds: number, f: any, ...: any): thread
+		if not virtual then
+			return task.delay(seconds, f, ...)
+		end
+		local args = table.pack(...)
+		local thread = coroutine.create(function()
+			f(table.unpack(args, 1, args.n))
+		end)
+		table.insert(virtual.sleepers, { at = virtual.now + seconds, thread = thread, interval = seconds })
+		return thread
+	end,
+	wait = function(seconds: number?): number
+		if not virtual or not coroutine.isyieldable() then
+			return task.wait(seconds)
+		end
+		local interval = seconds or 0
+		table.insert(
+			virtual.sleepers,
+			{ at = virtual.now + interval, thread = coroutine.running(), interval = interval }
+		)
+		coroutine.yield()
+		return interval
+	end,
+	defer = function(f: any, ...: any): thread
+		return task.defer(f, ...)
+	end,
+	cancel = function(thread: thread)
+		if not virtual then
+			task.cancel(thread)
+			return
+		end
+		for i = #virtual.sleepers, 1, -1 do
+			if virtual.sleepers[i].thread == thread then
+				table.remove(virtual.sleepers, i)
+			end
+		end
+	end,
+}
+
+-- os.clock for loaded modules runs ahead by the virtual seconds advanced so far (never back).
+local clockShift = 0
+
+function UiHarness.virtualTime(on: boolean)
+	if virtual then
+		clockShift += virtual.now
+	end
+	virtual = if on then { now = 0, sleepers = {} } else nil
+end
+
+-- Moves the virtual clock forward, waking sleepers in order.
+function UiHarness.advance(seconds: number)
+	local v = assert(virtual, "UiHarness.virtualTime(true) first")
+	local target = v.now + seconds
+	while true do
+		local nextIndex: number? = nil
+		for i, sleeper in v.sleepers do
+			if sleeper.at <= target and (nextIndex == nil or sleeper.at < v.sleepers[nextIndex].at) then
+				nextIndex = i
+			end
+		end
+		if not nextIndex then
+			break
+		end
+		local sleeper = table.remove(v.sleepers, nextIndex) :: Sleeper
+		v.now = math.max(v.now, sleeper.at)
+		UiHarness.stats.wakeups += 1
+		resume(sleeper.thread)
+	end
+	v.now = target
+end
+
+-- Parked threads now, by sleep interval ("0.25" -> 1): the live polling loops.
+function UiHarness.sleepers(): { [string]: number }
+	local out: { [string]: number } = {}
+	for _, sleeper in if virtual then virtual.sleepers else {} do
+		local key = tostring(sleeper.interval)
+		out[key] = (out[key] or 0) + 1
+	end
+	return out
+end
+
+local players = {
+	LocalPlayer = nil,
+	PlayerRemoving = signal,
+	PlayerAdded = signal,
+	GetPlayers = function(): { any }
+		return {}
+	end,
+	GetPlayerByUserId = function(): any
+		return nil
+	end,
+}
 local services: { [string]: any } = { Players = players }
+
+-- Live counters for tests/ui/PerfMeasure: frame-event connections (connects minus disconnects, per
+-- event), TweenService:Create / Play calls and task wakeups. Always on; a counter costs one add.
+UiHarness.stats = {
+	connects = { RenderStepped = 0, Heartbeat = 0, Stepped = 0 } :: { [string]: number },
+	disconnects = { RenderStepped = 0, Heartbeat = 0, Stepped = 0 } :: { [string]: number },
+	tweensCreated = 0,
+	tweensPlayed = 0,
+	wakeups = 0,
+}
+
+-- RunService event with a callback list: Connect counts, the connection's Disconnect counts once.
+local function frameEvent(name: string): any
+	local callbacks: { [any]: boolean } = {}
+	return {
+		Connect = function(_self: any, callback: any)
+			UiHarness.stats.connects[name] += 1
+			local live = true
+			callbacks[callback] = true
+			return {
+				Connected = true,
+				Disconnect = function()
+					if live then
+						live = false
+						callbacks[callback] = nil
+						UiHarness.stats.disconnects[name] += 1
+					end
+				end,
+			}
+		end,
+		-- Fires every live callback (tests drive frames by hand).
+		Fire = function(_self: any, ...: any)
+			for callback in table.clone(callbacks) do
+				callback(...)
+			end
+		end,
+	}
+end
+
 -- Not Studio here, so the PcwHold test hook in Widgets.holdButton stays off.
 services.RunService = {
 	IsStudio = function(_self: any): boolean
 		return false
 	end,
+	RenderStepped = frameEvent("RenderStepped"),
+	Heartbeat = frameEvent("Heartbeat"),
+	Stepped = frameEvent("Stepped"),
 }
 -- Toasts: no sound playback, tweens are inert.
 services.SoundService = {
@@ -290,9 +448,26 @@ services.SoundService = {
 }
 services.TweenService = {
 	Create = function()
-		return { Play = function() end }
+		UiHarness.stats.tweensCreated += 1
+		return {
+			Play = function()
+				UiHarness.stats.tweensPlayed += 1
+			end,
+		}
 	end,
 }
+services.CollectionService = {
+	GetInstanceAddedSignal = function()
+		return signal
+	end,
+	GetInstanceRemovedSignal = function()
+		return signal
+	end,
+	GetTagged = function()
+		return {}
+	end,
+}
+services.Debris = { AddItem = function() end }
 -- ReplicatedStorage:WaitForChild("Shared") -> src/shared.
 services.ReplicatedStorage = setmetatable({}, {
 	__index = function(_, key: string): any
@@ -321,7 +496,24 @@ globals = {
 	NumberSequenceKeypoint = roblox.NumberSequenceKeypoint,
 	NumberRange = roblox.NumberRange,
 	Rect = roblox.Rect,
-	task = task,
+	task = UiHarness.task,
+	os = setmetatable({
+		clock = function(): number
+			return os.clock() + clockShift + if virtual then virtual.now else 0
+		end,
+	}, { __index = os }),
+	workspace = {
+		GetAttribute = function(_self: any, name: string): any
+			return UiHarness.workspaceAttributes[name]
+		end,
+		GetAttributeChangedSignal = function()
+			return signal
+		end,
+		GetServerTimeNow = function()
+			return 1000
+		end,
+	},
+	TweenInfo = roblox.TweenInfo,
 	warn = function()
 		UiHarness.warnings += 1
 	end,

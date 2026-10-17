@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PR gate 3/3: world budgets from tools/pr-gate/budgets.json - mesh slots
+# PR gate 3/3: world budgets (then the client UI perf budget, ui_perf_check.luau) from tools/pr-gate/budgets.json - mesh slots
 # (MeshParts, <= 400), parts, border parts, world triangles and the largest
 # mesh's triangles. Counts come from budget_counts.luau (WorldLayout.build()),
 # triangles from shared/modeling-kit/out/<mesh>.fbx.
@@ -29,4 +29,14 @@ if python3 "$PR_GATE_DIR/budget_check.py" "$counts" "$budgets" "$fbx_dir"; then
 else
 	echo "budget: FAIL"
 	exit 1
+fi
+
+# Client UI performance budget (ratchet): games/steal-a-slime/ui-perf-budget.json
+if [ -f "$GAME_DIR/ui-perf-budget.json" ]; then
+	if (cd "$GAME_DIR" && lune run "$PR_GATE_DIR/ui_perf_check.luau"); then
+		echo "ui-perf: ok"
+	else
+		echo "ui-perf: FAIL"
+		exit 1
+	fi
 fi

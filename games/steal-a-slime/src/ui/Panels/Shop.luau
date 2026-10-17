@@ -160,14 +160,6 @@ function Shop.new(parent: Instance, ctx: any)
 
 	local self = { frame = panel.frame, close = panel.close }
 
-	-- Model icons only render while the shop is open.
-	function self.setOpen(open: boolean)
-		isOpen = open
-		for _, icon in icons do
-			icon.setActive(open)
-		end
-	end
-
 	-- Server time at the last snapshot, so the countdown ticks between snapshots.
 	local restockAt, serverAt, receivedAt = nil :: number?, 0, 0
 	local function showRestock()
@@ -175,12 +167,26 @@ function Shop.new(parent: Instance, ctx: any)
 			restock.Text = ShopCatalog.restockText(restockAt, serverAt + (os.clock() - receivedAt))
 		end
 	end
-	task.spawn(function()
-		while panel.frame.Parent do
-			showRestock()
-			task.wait(1)
+
+	-- Model icons only render while the shop is open.
+	local ticking = false
+	function self.setOpen(open: boolean)
+		isOpen = open
+		for _, icon in icons do
+			icon.setActive(open)
 		end
-	end)
+		-- The restock countdown ticks only while the card is open (update() refreshes it otherwise).
+		if open and not ticking then
+			ticking = true
+			task.spawn(function()
+				while isOpen and panel.frame.Parent do
+					showRestock()
+					task.wait(1)
+				end
+				ticking = false
+			end)
+		end
+	end
 
 	function self.update(state: any)
 		local view = state.consumables

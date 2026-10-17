@@ -102,6 +102,14 @@ local LOCK_COLORS = {
 	open = Color3.fromRGB(200, 50, 70),
 }
 
+-- Whole seconds left on a countdown (what Format.formatDuration shows), nil without a time.
+local function wholeSeconds(at: any, now: number): number?
+	if type(at) ~= "number" then
+		return nil
+	end
+	return math.max(0, math.ceil(at - now - 1e-9))
+end
+
 function Hud.new(parent: Instance, ctx: any)
 	local bar = create("Frame", {
 		Name = "Hud",
@@ -459,6 +467,7 @@ function Hud.new(parent: Instance, ctx: any)
 		self.tick(ctx.serverNow())
 	end
 
+	local chipRainSecs: number?, chipBossSecs: number?, chipRainActive: any = -1, -1, nil -- -1: not drawn yet
 	function self.tick(now: number)
 		if current == nil then
 			return
@@ -491,16 +500,20 @@ function Hud.new(parent: Instance, ctx: any)
 				else color
 		end
 
-		local nextInfo = NextSpawn.chip(
-			workspace:GetAttribute("RainActive"),
-			workspace:GetAttribute("RainNextAt"),
-			workspace:GetAttribute(C.BOSS_NEXT_AT_ATTRIBUTE),
-			now
-		)
-		nextSpawn.Visible = nextInfo ~= nil
-		if nextInfo then
-			nextSpawn.Text = nextInfo.text
-			nextSpawn.BackgroundColor3 = NEXT_COLORS[nextInfo.kind]
+		-- Countdown chip: its text only changes when a whole second of either countdown flips (or an
+		-- input does), so it is rebuilt then (about 1 Hz) instead of on every 0.1 s tick.
+		local rainActive = workspace:GetAttribute("RainActive")
+		local rainNext = workspace:GetAttribute("RainNextAt")
+		local bossNext = workspace:GetAttribute(C.BOSS_NEXT_AT_ATTRIBUTE)
+		local rainSecs, bossSecs = wholeSeconds(rainNext, now), wholeSeconds(bossNext, now)
+		if rainSecs ~= chipRainSecs or bossSecs ~= chipBossSecs or rainActive ~= chipRainActive then
+			chipRainSecs, chipBossSecs, chipRainActive = rainSecs, bossSecs, rainActive
+			local nextInfo = NextSpawn.chip(rainActive, rainNext, bossNext, now)
+			nextSpawn.Visible = nextInfo ~= nil
+			if nextInfo then
+				nextSpawn.Text = nextInfo.text
+				nextSpawn.BackgroundColor3 = NEXT_COLORS[nextInfo.kind]
+			end
 		end
 
 		local info = RainTimer.banner(RainTimer.resolve(rainAttrs, current.rain), now, ctx.Config.RAIN_LUCK)
