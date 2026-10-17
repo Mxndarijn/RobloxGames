@@ -534,6 +534,19 @@
     "uploadedAt": "2026-10-16T07:02:36Z",
     "versions": 1
   },
+  "ranch_bat": {
+    "assetId": "111246965997524",
+    "assetType": "Model",
+    "meshId": "rbxassetid://94306599639554",
+    "meshSize": [
+      1.351,
+      5.09,
+      1.351
+    ],
+    "sha256": "4c143386478daead",
+    "uploadedAt": "2026-10-17T21:55:06Z",
+    "versions": 1
+  },
   "ranch_bench": {
     "assetId": "118171478088116",
     "assetType": "Model",
