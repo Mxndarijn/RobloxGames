@@ -795,6 +795,7 @@ local function stepPlayers(t: number)
 		wasRaining = world.raining
 		WorldView.setRain(Spawner.rain(world, t))
 	end
+	WorldView.setBossNextAt(if Config.FEATURES.BossSlime then world.nextBossAt else nil)
 end
 
 -- Kill plane: every player (loaded or not) who falls off the world goes back up.

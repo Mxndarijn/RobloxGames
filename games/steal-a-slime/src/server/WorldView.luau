@@ -789,4 +789,11 @@ function WorldView.setRain(active: boolean, endsAt: number?, nextAt: number?)
 	workspace:SetAttribute(Constants.RAIN_NEXT_AT_ATTRIBUTE, nextAt)
 end
 
+-- Workspace attribute `BossNextAt` (server time): drives the HUD's next-event chip.
+function WorldView.setBossNextAt(nextAt: number?)
+	if workspace:GetAttribute(Constants.BOSS_NEXT_AT_ATTRIBUTE) ~= nextAt then
+		workspace:SetAttribute(Constants.BOSS_NEXT_AT_ATTRIBUTE, nextAt)
+	end
+end
+
 return WorldView
