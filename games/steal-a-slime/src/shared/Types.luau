@@ -16,7 +16,7 @@ local PlotSkins = if script then require(script.Parent.PlotSkins) else require("
 export type SlimeData = Genome.Slime
 
 -- Return value of every `Request` invoke.
-export type RequestResult = { ok: boolean, message: string?, appraisal: Appraisal? }
+export type RequestResult = { ok: boolean, message: string?, appraisal: Appraisal?, code: string? } -- code: ShopEvent deny code (OpenShop / ShopBuy, CONTRACT.md §27.7)
 
 -- Result of a successful Appraise (shared/Appraise): what was rerolled, before and after.
 export type Appraisal = {

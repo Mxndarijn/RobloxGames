@@ -9,6 +9,8 @@ local ForcedFlags = {}
 
 -- All flags off: these need the named flag(s) on.
 ForcedFlags.off = {
+	["world shops config > WorldShops is on by default"] = "WorldShops",
+	["world shop stands in the booted server"] = "WorldShops",
 	["AdminEvents gate"] = "AdminEvents",
 	["AdminEvents parse + validate"] = "AdminEvents",
 	["AdminEvents effects"] = "AdminEvents",
@@ -78,6 +80,7 @@ ForcedFlags.offModules = {
 -- All flags on: these pin the shipped default or exercise the off path of a flag that ships off.
 ForcedFlags.on = {
 	["Audio flag > is off by default"] = "Audio",
+	["world shops config > WorldShopsStrict is off by default"] = "WorldShopsStrict",
 	["PvpRules config > is off by default"] = "PvP",
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",
 	["EventsBoard > is behind FEATURES.EventsBoard, default off"] = "EventsBoard",

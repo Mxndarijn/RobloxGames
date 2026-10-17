@@ -812,6 +812,8 @@ local Config = {
 		ServerProfiler = false, -- v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Audio = false, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
 		PvP = false, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, safe zones, new-player shield, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
+		WorldShops = true, -- CONTRACT.md §27: Item Shop + Upgrade Shop stands (ItemShopStand / UpgradeShopStand), Request OpenShop / CloseShop / ShopBuy, ShopEvent, range checks; false = the single ShopStand and the HUD Shop as before
+		WorldShopsStrict = false, -- CONTRACT.md §27.6: the old buy actions also need an open shop in range ("NotOpen"); flip on once the new shop UI replaces the HUD Shop button. Needs WorldShops
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -1102,6 +1104,10 @@ local Config = {
 		}),
 	}),
 	BADGE_RETRIES = 4, -- BadgeService attempts per badge (backoff 2, 4, 8 s)
+
+	-- World shops (FEATURES.WorldShops, CONTRACT.md §27): studs from the character's HumanoidRootPart to the stand's Counter,
+	-- checked on the server on OpenShop and on every purchase; out of range closes the shop.
+	SHOP_RANGE = 14,
 
 	-- Friend income bonus (FEATURES.FriendBonus, CONTRACT.md §11)
 	FRIEND_BONUS_PER_FRIEND = 0.1, -- +10% income per friend in the same server

@@ -26,10 +26,12 @@ local Remotes = if Shared then require(Shared.Remotes) else require("../shared/R
 local Quests = if Shared then require(Shared.Quests) else require("../shared/Quests")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
+local Shops = if Shared then require(Shared.Shops) else require("../shared/Shops")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local ShopGuard = if script then require(script.Parent.ShopGuard) else require("./ShopGuard")
 local ConsumableShop = if script then require(script.Parent.ConsumableShop) else require("./ConsumableShop")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
@@ -51,6 +53,13 @@ export type Context = {
 	mergeVat3: boolean?, -- FEATURES.MergeVat3 override (tests); nil = Config.FEATURES.MergeVat3
 	pvp: boolean?, -- FEATURES.PvP override (tests); nil = Config.FEATURES.PvP
 	onOwnPlot: ((session: Session, userId: number) -> boolean)?, -- UsePvpItem: the target stands on the attacker's plot (nil = never)
+	worldShops: boolean?, -- FEATURES.WorldShops override (tests); nil = Config.FEATURES.WorldShops
+	worldShopsStrict: boolean?, -- FEATURES.WorldShopsStrict override (tests); nil = Config.FEATURES.WorldShopsStrict
+	-- What the adapter measured for `shopId`: the character's distance to the stand's Counter and whether it is
+	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, strict never applies.
+	shopAccess: ((userId: number, shopId: string) -> ShopGuard.Access)?,
+	-- ShopEvent to one player (CONTRACT.md §27.4); the adapter adds serverTime. nil = fire nothing.
+	shopEvent: ((userId: number, payload: { [string]: any }) -> ())?,
 	requestWeather: ((id: string) -> boolean)?, -- Weather Totem: makes `id` the next weather (nil = no Weather service)
 }
 
@@ -315,17 +324,211 @@ local function buyConsumable(
 	return result(ok, reason)
 end
 
-local function dispatch(
+---------------------------------------------------------------------------
+-- World shops (FEATURES.WorldShops, CONTRACT.md §27): validation lives in ShopGuard, the purchases are the
+-- existing handlers (dispatch), nothing is priced or charged here.
+---------------------------------------------------------------------------
+
+local function worldShopsOn(ctx: Context): boolean
+	if ctx.worldShops ~= nil then
+		return ctx.worldShops
+	end
+	return Config.FEATURES.WorldShops == true
+end
+
+local function strictOn(ctx: Context): boolean
+	if not worldShopsOn(ctx) then
+		return false
+	end
+	if ctx.worldShopsStrict ~= nil then
+		return ctx.worldShopsStrict
+	end
+	return Config.FEATURES.WorldShopsStrict == true
+end
+
+local function accessOf(ctx: Context, userId: number, shopId: string): ShopGuard.Access?
+	return if ctx.shopAccess then ctx.shopAccess(userId, shopId) else nil
+end
+
+local function shopEvent(ctx: Context, userId: number, payload: { [string]: any })
+	if ctx.shopEvent and worldShopsOn(ctx) then
+		ctx.shopEvent(userId, payload)
+	end
+end
+
+local function denied(ctx: Context, userId: number, shopId: any, itemId: any, code: string, text: string?): Result
+	local message = text or ShopGuard.MESSAGES[code] or code
+	shopEvent(ctx, userId, {
+		kind = "Denied",
+		shopId = if type(shopId) == "string" then shopId else nil,
+		itemId = if type(itemId) == "string" then itemId else nil,
+		code = code,
+		message = message,
+	})
+	return { ok = false, message = message, code = code }
+end
+
+-- Closes the player's open shop and tells them (range / death / leave from the adapter's tick, or CloseShop).
+function Actions.closeShop(session: Session, reason: string, ctx: Context)
+	local shopId = session.openShop
+	if shopId == nil then
+		return
+	end
+	session.openShop = nil
+	shopEvent(ctx, session.userId, { kind = "Close", shopId = shopId, reason = reason })
+end
+
+-- Throttled by the caller: closes the open shop when it left range, died or the flag went off.
+function Actions.shopTick(session: Session, ctx: Context)
+	local shopId = session.openShop
+	if shopId == nil then
+		return
+	end
+	local reason = ShopGuard.closeReason(shopId, worldShopsOn(ctx), accessOf(ctx, session.userId, shopId))
+	if reason then
+		Actions.closeShop(session, reason, ctx)
+	end
+end
+
+local function openShop(session: Session, shopId: string, ctx: Context): Result
+	local code = ShopGuard.check({
+		worldShops = worldShopsOn(ctx),
+		strict = false,
+		shopId = shopId,
+		openShop = session.openShop,
+		access = accessOf(ctx, session.userId, shopId),
+	})
+	if code then
+		return denied(ctx, session.userId, shopId, nil, code)
+	end
+	session.openShop = shopId
+	shopEvent(ctx, session.userId, { kind = "Open", shopId = shopId })
+	return OK
+end
+
+-- The shop prompt (WorldProps) opens the shop on the server, so it works without any client code and does not
+-- spend the OpenShop rate limit the client's own OpenShop call uses. Returns the same Result as OpenShop.
+function Actions.openFromPrompt(world: World, userId: number, shopId: string, ctx: Context): Result
+	local session = World.session(world, userId)
+	if not session then
+		return fail("still loading")
+	end
+	return openShop(session, shopId, ctx)
+end
+
+local function closeShopAction(session: Session, ctx: Context): Result
+	if worldShopsOn(ctx) then
+		Actions.closeShop(session, "closed", ctx)
+	end
+	return OK
+end
+
+-- Level after a purchase, for ShopEvent Purchased (leveled upgrades only).
+local function levelOf(session: Session, itemId: string): number?
+	if itemId == "LockUpgrade" then
+		return session.data.lockLevel
+	end
+	local level = session.data.upgrades[itemId]
+	return if Perks.upgradeDef(itemId) then level or 0 else nil
+end
+
+local dispatch: (World, Session, string, { any }, number, Context) -> Result
+
+local function shopBuy(
 	world: World,
 	session: Session,
-	action: string,
-	args: { any },
+	shopId: string,
+	itemId: string,
+	arg: string?,
 	now: number,
 	ctx: Context
 ): Result
+	local userId = session.userId
+	local code = ShopGuard.check({
+		worldShops = worldShopsOn(ctx),
+		strict = strictOn(ctx),
+		shopId = shopId,
+		itemId = itemId,
+		openShop = session.openShop,
+		access = accessOf(ctx, userId, shopId),
+	})
+	if code then
+		return denied(ctx, userId, shopId, itemId, code)
+	end
+	local row = Shops.find(shopId, itemId) :: Shops.Item
+	local features = Config.FEATURES :: any
+	if row.flag ~= nil and features[row.flag] ~= true then
+		return denied(ctx, userId, shopId, itemId, "Unavailable", "not available right now")
+	end
+	-- The delegated action keeps its own rate limit (Validate.ACTIONS), so ShopBuy never loosens it.
+	if not Validate.allow(session.limiter, row.action, now) then
+		return denied(ctx, userId, shopId, itemId, "Busy")
+	end
+	local args: { any } = {}
+	if row.argIsItem then
+		args = { itemId, arg }
+	end
+	local cashBefore = session.data.cash
+	local res = dispatch(world, session, row.action, args, now, ctx)
+	if not res.ok then
+		return denied(ctx, userId, shopId, itemId, ShopGuard.classify(res.message), res.message)
+	end
+	shopEvent(ctx, userId, {
+		kind = "Purchased",
+		shopId = shopId,
+		itemId = itemId,
+		price = math.max(0, cashBefore - session.data.cash),
+		level = levelOf(session, itemId),
+	})
+	return res
+end
+
+-- Strict mode (FEATURES.WorldShopsStrict): the old buy actions need the matching shop open and in range.
+-- Only applies where the adapter measures ranges (ctx.shopAccess).
+local function strictGate(session: Session, action: string, ctx: Context): Result?
+	if not (ctx.shopAccess and strictOn(ctx)) then
+		return nil
+	end
+	local shopId = Shops.shopOfAction(action)
+	if not shopId then
+		return nil
+	end
+	local code = ShopGuard.check({
+		worldShops = true,
+		strict = true,
+		shopId = shopId,
+		itemId = nil,
+		openShop = session.openShop,
+		access = accessOf(ctx, session.userId, shopId),
+	})
+	if code == nil and session.openShop ~= shopId then
+		code = "NotOpen"
+	end
+	if code == "NotOpen" then
+		local name = (Shops.shop(shopId) :: Shops.Shop).name
+		return denied(ctx, session.userId, shopId, nil, code, `open the {string.gsub(name, " Shop$", "")} Shop first`)
+	end
+	if code then
+		return denied(ctx, session.userId, shopId, nil, code)
+	end
+	return nil
+end
+
+dispatch = function(world: World, session: Session, action: string, args: { any }, now: number, ctx: Context): Result
 	if action == "Sync" then
 		return OK
-	elseif action == "Merge" then
+	elseif action == "OpenShop" then
+		return openShop(session, args[1], ctx)
+	elseif action == "CloseShop" then
+		return closeShopAction(session, ctx)
+	elseif action == "ShopBuy" then
+		return shopBuy(world, session, args[1], args[2], args[3], now, ctx)
+	end
+	local blocked = strictGate(session, action, ctx)
+	if blocked then
+		return blocked
+	end
+	if action == "Merge" then
 		return result(MergeVat.merge(world, session, args[1], args[2]))
 	elseif action == "Merge3" then
 		return merge3(world, session, args, ctx)

@@ -405,6 +405,8 @@ MeshAssets.COLLISION = table.freeze({
 	-- bug #16: every plot's merge vat (MeshSwap.swapPlotVats): a blobby cauldron players bump into, never walk inside;
 	-- the hull also closes the gaps under the funnel spouts. The MergeVat disc under it keeps its own collision.
 	merge_vat = "Hull",
+	-- the Item / Upgrade Shop stands (CONTRACT.md §27.2): a solid counter, not a box to stand inside
+	ranch_shop_stand = "Hull",
 })
 
 function MeshAssets.collision(name: string): string?

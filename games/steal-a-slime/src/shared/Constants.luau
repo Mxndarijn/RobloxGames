@@ -48,7 +48,9 @@ return table.freeze({
 	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FEATURES.FollowPets), nil = none
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
-	SHOP_STAND = "ShopStand",
+	SHOP_STAND = "ShopStand", -- alias of the Item Shop while FEATURES.WorldShops is off (the single HUD-shop stand)
+	SHOP_STAND_ITEM = "ItemShopStand", -- CONTRACT.md §27.2
+	SHOP_STAND_UPGRADE = "UpgradeShopStand",
 	LEADERBOARD_BOARD = "LeaderboardBoard",
 	TUTORIAL_NPC = "TutorialNpc",
 	SPEED_COIL_TOOL = "SpeedCoil", -- Tool in the Backpack while owned
@@ -93,6 +95,9 @@ return table.freeze({
 	-- v28 (CONTRACT.md §5.3): "Open Shop" (E) on ShopStand.Counter and "Talk" (E) on the
 	-- TutorialNpc. Client-only effect: the UI opens the Shop / Guide menu on PromptTriggered.
 	SHOP_PROMPT_NAME = "ShopPrompt",
+	SHOP_EVENT = "ShopEvent", -- RemoteEvent, ServerToClient (CONTRACT.md §27.4)
+	OPEN_SHOP_ATTRIBUTE = "OpenShop", -- Player: shopId the server has open for them, nil = closed (FEATURES.WorldShops)
+	SHOP_ID_ATTRIBUTE = "ShopId", -- ItemShopStand / UpgradeShopStand: "ItemShop" | "UpgradeShop" (FEATURES.WorldShops)
 	GUIDE_PROMPT_NAME = "GuidePrompt",
 	-- Slime habitats (FEATURES.Habitats, HABITATS.md): Pad_<j> attributes, only set with the flag on.
 	HABITAT_ATTRIBUTE = "Habitat", -- Pad_<j>: Shared.Habitats id, "base" = empty pad

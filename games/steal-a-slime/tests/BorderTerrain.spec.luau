@@ -15,7 +15,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 -- tools/pr-gate/budget_counts: mesh slots with the 22 giant trees of border v5
 -- and 8 small border pieces retired (the terrain itself adds none).
-local BASELINE_MESH_SLOTS = 391
+local BASELINE_MESH_SLOTS = 392 -- 391 + the Upgrade Shop stand (CONTRACT.md §27.2)
 -- Part nodes outside Map.Border: 1340 minus the seven landing-ring tiles left out for the slide exit and the SlideExit path strip (bug #6).
 local BASELINE_PARTS = 1332
 
@@ -52,7 +52,7 @@ end
 
 describe("BorderTerrain budget", function()
 	it(
-		"adds no mesh slot of its own: the border v5 count (391: seven landing-ring tiles left out for the slide exit) stays under 400",
+		"adds no mesh slot of its own: the border v5 count (392: seven landing-ring tiles left out for the slide exit, one Upgrade Shop stand) stays under 400",
 		function()
 			local slots = 0
 			walk({ name = "root", children = WorldLayout.build() }, function(n)
