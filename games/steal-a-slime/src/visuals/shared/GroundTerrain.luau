@@ -11,10 +11,11 @@
 	    plaza edge to the plot gates and are ONE shape (smooth union, rounded fillets at
 	    the T-junctions), so there are no tiles and no seams by construction;
 	  * Sand     the plaza (r 66), its edge feathered ~7 studs into the grass with a noisy, patchy dither;
-	  * Grass    the rest (pastel, with tufts through Terrain.Decoration).
+	  * Grass    the rest (pastel, with tufts through Terrain.Decoration set in default.project.json).
 	The shapes are the concept mock's masks (concept/masks.py): the same signed distances, noise scales and
 	feather widths, sampled at the cell centres. Voxels are 4 studs, the finest Terrain allows, so the edges are
-	soft only as far as Terrain's own material blending makes them.
+	soft only as far as Terrain's own material blending makes them; the path edge is jittered per cell so it
+	scatters instead of stair-stepping.
 	The surface is flat at y = 0 (the old Ground top) everywhere: columns are filled from FLOOR up to 0.
 	Cells under a plot (the Base floor, +-PLOT_SIZE/2) are Ground, never Grass, so no grass tuft ever pokes
 	through a plot floor or a pad.
@@ -45,13 +46,14 @@ GroundTerrain.PLAZA_RADIUS = WorldLayout.PLAZA_RADIUS -- 66
 GroundTerrain.SPOKE_END = 104 -- spokes end here (rounded) just inside the plot gates
 GroundTerrain.SPOKE_START = 60 -- under the plaza sand edge
 GroundTerrain.FILLET = 3 -- smooth-union width of ring and spokes
+GroundTerrain.EDGE_JITTER = 2 -- studs peak to peak of the per-cell path edge jitter (the centreline cells stay dirt)
 GroundTerrain.FEATHER_IN = 3.5 -- sand fully on this far inside the plaza edge
 GroundTerrain.FEATHER_OUT = 4 -- and gone this far outside it (7.5 studs of blend)
 
 -- Terrain material tints (Terrain:SetMaterialColor), the lightest colour of each palette; the soft ColorMaps
 -- of GroundMaterials multiply them down to the darker one. Without the variants these are the flat colours.
 GroundTerrain.COLORS = table.freeze({
-	Grass = { 146, 206, 84 },
+	Grass = { 162, 206, 118 },
 	Ground = { 204, 152, 100 },
 	Sand = { 246, 220, 170 },
 } :: { [string]: { number } })
@@ -66,7 +68,7 @@ GroundTerrain.DARK = table.freeze({
 -- How much of DARK each ColorMap may reach (tools/ground/ground_textures.py STRENGTH; the render export mirrors it).
 GroundTerrain.MAP_DEPTH = table.freeze({ Grass = 0.65, Ground = 1, Sand = 1 } :: { [string]: number })
 
-local SEED_LO, SEED_MID, SEED_HI, SEED_DITHER, SEED_CLUMP = 1, 2, 3, 4, 5
+local SEED_LO, SEED_MID, SEED_HI, SEED_DITHER, SEED_CLUMP, SEED_EDGE = 1, 2, 3, 4, 5, 6
 
 local function smooth(e0: number, e1: number, x: number): number
 	local t = math.clamp((x - e0) / (e1 - e0), 0, 1)
@@ -143,7 +145,10 @@ function GroundTerrain.material(x: number, z: number): string
 	local r = math.sqrt(x * x + z * z)
 	local nMid = vnoise(x, z, 1 / 2.9, SEED_MID) - 0.5
 	local nHi = vnoise(x, z, 1 / 0.65, SEED_HI) - 0.5
-	local d = pathDistance(x, z) + nMid * 0.7 + nHi * 0.25
+	-- per-cell jitter of the path edge: a straight 4-stud voxel staircase breaks into a scatter of dirt / grass cells
+	local ix, iz = math.floor(x / GroundTerrain.CELL), math.floor(z / GroundTerrain.CELL)
+	local edge = (lattice(ix, iz, SEED_EDGE) - 0.5) * GroundTerrain.EDGE_JITTER
+	local d = pathDistance(x, z) + nMid * 0.7 + nHi * 0.25 + edge
 	if d < 0 then
 		return "Ground"
 	end
@@ -160,7 +165,6 @@ function GroundTerrain.material(x: number, z: number): string
 		return "Sand"
 	end
 	-- the feather band: dither Sand vs Grass by a seeded threshold (cell hash mixed with a soft clump noise)
-	local ix, iz = math.floor(x / GroundTerrain.CELL), math.floor(z / GroundTerrain.CELL)
 	local threshold = 0.6 * lattice(ix, iz, SEED_DITHER) + 0.4 * vnoise(x, z, 1 / 7, SEED_CLUMP)
 	-- widen the mixed threshold back to a uniform-ish spread so coverage maps to the sand fraction
 	threshold = math.clamp((threshold - 0.5) * 1.35 + 0.5, 0, 1)

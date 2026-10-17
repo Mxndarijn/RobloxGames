@@ -259,7 +259,7 @@ describe("BorderTerrain hills", function()
 			expect(BorderTerrain.COLORS[name] ~= nil).toBe(true)
 		end
 		expect((used.Grass or 0) > 0 and (used.LeafyGrass or 0) > 0 and (used.Rock or 0) > 0).toBe(true)
-		expect(BorderTerrain.COLORS.Grass).toEqual({ 146, 206, 84 })
+		expect(BorderTerrain.COLORS.Grass).toEqual({ 162, 206, 118 })
 	end)
 	it("is covered by the tiles the server writes", function()
 		local tiles = BorderTerrain.tiles()

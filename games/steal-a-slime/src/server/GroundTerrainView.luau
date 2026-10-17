@@ -7,7 +7,7 @@
 	  cell (Grass / Ground = the packed-dirt path / Sand = the plaza), flat on y = 0 over two solid layers.
 	  Terrain is not a Part, so the old Ground tiles, plaza disc and 41 path blocks cost nothing and the dirt path
 	  is one seamless shape. Sets the pastel terrain tints (the MaterialService variants SlimeGrass / SlimeGround
-	  / SlimeSand multiply them with a soft ColorMap) and turns on Terrain.Decoration (the gentle grass tufts).
+	  / SlimeSand multiply them with a soft ColorMap) (the grass tufts come from Terrain.Decoration, set in default.project.json).
 	  Written before anything else on the server: ~25 small WriteVoxels calls, no yields. The invisible
 	  Map.Ground part stays under it as the void-safety floor. Idempotent: the Terrain attribute GroundTerrain
 	  marks it done.
@@ -64,11 +64,7 @@ function GroundTerrainView.place(): boolean
 	for name, color in GroundTerrain.COLORS do
 		terrain:SetMaterialColor(MATERIALS[name], Color3.fromRGB(color[1], color[2], color[3]))
 	end
-	-- Grass tufts on the Grass voxels; the property is not available everywhere, never fatal.
-	local loose: any = terrain
-	pcall(function()
-		loose.Decoration = true
-	end)
+	-- Terrain.Decoration (the grass tufts) is not scriptable: it is set on the Terrain in default.project.json.
 	local grid = GroundTerrain.grid()
 	for _, tile in GroundTerrain.tiles() do
 		writeTile(terrain, grid, tile)

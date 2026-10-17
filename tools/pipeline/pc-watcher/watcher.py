@@ -1634,6 +1634,7 @@ def step_shots(run):
     if not shots:
         return "skip", {"reason": "shots/ missing or empty"}
     results, world_mode, pad_seat, cur_device = [], False, None, None
+    weather_pinned = False
     for shot in shots:
         if run.shot_filter is not None and shot.get("id") not in run.shot_filter:
             continue  # partial run: not selected, no frame entry
@@ -1877,7 +1878,14 @@ def step_shots(run):
                                                       wait=float(shot.get("wait", 1.5)))
                     if not res["despawn_fx"].get("ok"):
                         run.note("shot %s: despawn FX faded or highlighted the slime (%s)" % (sid, res["despawn_fx"]))
+                if not shot.get("weather") and weather_pinned:
+                    # a weather / snow shot pinned WeatherDebug + SnowCoverDebug on the Client; later shots must not stay frosted.
+                    # Pin the cover at 0 (not -1): an unpinned level would melt over SnowCover.MELT_SECONDS (35 s) and the next
+                    # frames would still be half white. The end-of-run cleanup drops the pin (cover -1).
+                    run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1, cover=0)
+                    weather_pinned = False
                 if shot.get("weather"):
+                    weather_pinned = True
                     # weather proof: the Client forces WeatherDebug (client-only attribute) and waits `wait` s for the tween in
                     res["weather"] = run.need_luau("weather_set", "Client", timeout=30, weather=shot["weather"],
                                                    wait=float(shot.get("wait", 2.5)),
