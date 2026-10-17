@@ -1,0 +1,19 @@
+{
+  "id": "24-border-v5-eye-pc",
+  "pos": [
+    -94.1,
+    5,
+    227.3
+  ],
+  "look": [
+    -41.8,
+    7,
+    297.1
+  ],
+  "note": "border v5: player eye (5 studs) looking out over the fence: GIANT trees (3-5x a border pine, new giant_broadleaf / giant_pine_layered / giant_round_canopy meshes) tower over the hills with the mountain ridge behind, mixed species, tilts and tints in [desktop]",
+  "kind": "world",
+  "wait": 6.0,
+  "device": "desktop",
+  "clock": 14,
+  "todo": "border-v5"
+}

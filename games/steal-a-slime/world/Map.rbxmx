@@ -26086,18 +26086,18 @@
             <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFwAAAHJhbmNoX2JvcmRlcl9oaWxsX3JpZGdl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>263.35486</X>
+              <X>304.7948</X>
               <Y>9.598251</Y>
-              <Z>193.7958</Z>
-              <R00>-0.48303223</R00>
+              <Z>70.52199</Z>
+              <R00>-0.09692383</R00>
               <R01>0</R01>
-              <R02>-0.87561035</R02>
+              <R02>-0.99528503</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.87561035</R20>
+              <R20>0.99528503</R20>
               <R21>0</R21>
-              <R22>-0.48303223</R22>
+              <R22>-0.09692383</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26121,18 +26121,18 @@
             <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9oaWxsX3R3aW4=</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>304.77795</X>
+              <X>256.83533</X>
               <Y>10.360947</Y>
-              <Z>7.4230957</Z>
-              <R00>0.27467346</R00>
+              <Z>-211.51033</Z>
+              <R00>0.8368683</R00>
               <R01>0</R01>
-              <R02>-0.9615326</R02>
+              <R02>-0.54740906</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.9615326</R20>
+              <R20>0.54740906</R20>
               <R21>0</R21>
-              <R22>0.27467346</R22>
+              <R22>0.8368683</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26156,18 +26156,18 @@
             <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9oaWxsX2RvbWU=</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>296.81897</X>
+              <X>20.152054</X>
               <Y>12.138794</Y>
-              <Z>-169.48756</Z>
-              <R00>0.3745575</R00>
+              <Z>-304.85226</Z>
+              <R00>0.9798889</R00>
               <R01>0</R01>
-              <R02>-0.9272003</R02>
+              <R02>-0.1995697</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.9272003</R20>
+              <R20>0.1995697</R20>
               <R21>0</R21>
-              <R22>0.3745575</R22>
+              <R22>0.9798889</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26191,18 +26191,18 @@
             <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFwAAAHJhbmNoX2JvcmRlcl9oaWxsX3JpZGdl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>174.1945</X>
+              <X>-221.45355</X>
               <Y>10.907806</Y>
-              <Z>-285.76953</Z>
-              <R00>0.4888153</R00>
+              <Z>-267.32803</Z>
+              <R00>0.98399353</R00>
               <R01>0</R01>
-              <R02>-0.87239075</R02>
+              <R02>0.1782074</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.87239075</R20>
+              <R20>-0.1782074</R20>
               <R21>0</R21>
-              <R22>0.4888153</R22>
+              <R22>0.98399353</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26226,18 +26226,18 @@
             <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9oaWxsX2RvbWU=</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>42.85225</X>
+              <X>-299.95004</X>
               <Y>11.812851</Y>
-              <Z>-300.636</Z>
-              <R00>0.84365845</R00>
+              <Z>-82.82292</Z>
+              <R00>0.64004517</R00>
               <R01>0</R01>
-              <R02>-0.5368805</R02>
+              <R02>0.76834106</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.5368805</R20>
+              <R20>-0.76834106</R20>
               <R21>0</R21>
-              <R22>0.84365845</R22>
+              <R22>0.64004517</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26261,18 +26261,18 @@
             <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFwAAAHJhbmNoX2JvcmRlcl9oaWxsX3JpZGdl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-159.52122</X>
+              <X>-262.0279</X>
               <Y>11.847549</Y>
-              <Z>-290.20337</Z>
-              <R00>0.96351624</R00>
+              <Z>219.88293</Z>
+              <R00>-0.44976807</R00>
               <R01>0</R01>
-              <R02>0.26763916</R02>
+              <R02>0.8931427</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.26763916</R20>
+              <R20>-0.8931427</R20>
               <R21>0</R21>
-              <R22>0.96351624</R22>
+              <R22>-0.44976807</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26296,18 +26296,18 @@
             <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9oaWxsX2RvbWU=</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-297.84982</X>
+              <X>62.577408</X>
               <Y>12.785568</Y>
-              <Z>-108.99484</Z>
-              <R00>0.17579651</R00>
+              <Z>301.12653</Z>
+              <R00>-0.92904663</R00>
               <R01>0</R01>
-              <R02>0.9844208</R02>
+              <R02>-0.3699646</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.9844208</R20>
+              <R20>0.3699646</R20>
               <R21>0</R21>
-              <R22>0.17579651</R22>
+              <R22>-0.92904663</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26331,18 +26331,18 @@
             <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFwAAAHJhbmNoX2JvcmRlcl9oaWxsX3JpZGdl</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-306.9185</X>
+              <X>231.43434</X>
               <Y>9.608536</Y>
-              <Z>8.2287445</Z>
-              <R00>-0.23326111</R00>
+              <Z>237.69005</Z>
+              <R00>-0.55644226</R00>
               <R01>0</R01>
-              <R02>0.9724121</R02>
+              <R02>-0.83088684</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.9724121</R20>
+              <R20>0.83088684</R20>
               <R21>0</R21>
-              <R22>-0.23326111</R22>
+              <R22>-0.55644226</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26361,23 +26361,23 @@
         </Item>
         <Item class="Part" referent="820">
           <Properties>
-            <string name="Name">HillTwin2</string>
+            <string name="Name">PineGrove1</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9oaWxsX3R3aW4=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHJhbmNoX2JvcmRlcl9jaHVua19k</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-293.73093</X>
-              <Y>12.175034</Y>
-              <Z>147.10962</Z>
-              <R00>-0.5741577</R00>
+              <X>210.0246</X>
+              <Y>9.080078</Y>
+              <Z>275.37347</Z>
+              <R00>-0.68240356</R00>
               <R01>0</R01>
-              <R02>0.81874084</R02>
+              <R02>-0.7309723</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.81874084</R20>
+              <R20>0.7309723</R20>
               <R21>0</R21>
-              <R22>-0.5741577</R22>
+              <R22>-0.68240356</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26386,9 +26386,9 @@
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>56.84883</X>
-              <Y>24.350052</Y>
-              <Z>25.013672</Z>
+              <X>52.791473</X>
+              <Y>18.160156</Y>
+              <Z>18.486313</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26396,128 +26396,23 @@
         </Item>
         <Item class="Part" referent="821">
           <Properties>
-            <string name="Name">HillDome4</string>
-            <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9oaWxsX2RvbWU=</BinaryString>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>-164.76624</X>
-              <Y>12.080414</Y>
-              <Z>281.6406</Z>
-              <R00>-0.60957336</R00>
-              <R01>0</R01>
-              <R02>0.7927246</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.7927246</R20>
-              <R21>0</R21>
-              <R22>-0.60957336</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
-            <token name="Material">1280</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>37.850555</X>
-              <Y>24.160843</Y>
-              <Z>27.03572</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="822">
-          <Properties>
-            <string name="Name">HillRidge5</string>
-            <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFwAAAHJhbmNoX2JvcmRlcl9oaWxsX3JpZGdl</BinaryString>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>8.354599</X>
-              <Y>9.227356</Y>
-              <Z>304.2587</Z>
-              <R00>-0.92222595</R00>
-              <R01>0</R01>
-              <R02>0.3866577</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.3866577</R20>
-              <R21>0</R21>
-              <R22>-0.92222595</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
-            <token name="Material">1280</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>49.11667</X>
-              <Y>18.454727</Y>
-              <Z>17.030151</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="823">
-          <Properties>
-            <string name="Name">HillDome5</string>
-            <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9oaWxsX2RvbWU=</BinaryString>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>183.46234</X>
-              <Y>12.620926</Y>
-              <Z>288.11972</Z>
-              <R00>-0.99909973</R00>
-              <R01>0</R01>
-              <R02>-0.042495728</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.042495728</R20>
-              <R21>0</R21>
-              <R22>-0.99909973</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
-            <token name="Material">1280</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.544067</X>
-              <Y>25.241852</Y>
-              <Z>28.245361</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="824">
-          <Properties>
             <string name="Name">HillRocks1</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9jaHVua19iX20=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHJhbmNoX2JvcmRlcl9jaHVua19i</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>227.77408</X>
+              <X>275.2922</X>
               <Y>8.173035</Y>
-              <Z>275.2922</Z>
-              <R00>-0.83940125</R00>
+              <Z>-227.77408</Z>
+              <R00>0.5435028</R00>
               <R01>0</R01>
-              <R02>-0.5435028</R02>
+              <R02>-0.8394165</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.5435028</R20>
+              <R20>0.8394165</R20>
               <R21>0</R21>
-              <R22>-0.83940125</R22>
+              <R22>0.5435028</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26534,25 +26429,25 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="825">
+        <Item class="Part" referent="822">
           <Properties>
             <string name="Name">CornerGrove1</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9jaHVua19oX20=</BinaryString>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHJhbmNoX2JvcmRlcl9jaHVua19o</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>278.82907</X>
-              <Y>13.373016</Y>
-              <Z>224.19943</Z>
-              <R00>-0.70835876</R00>
+              <X>-269.34137</X>
+              <Y>13.357193</Y>
+              <Z>-232.59178</Z>
+              <R00>0.6889496</R00>
               <R01>0</R01>
-              <R02>-0.70584106</R02>
+              <R02>0.72480774</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.70584106</R20>
+              <R20>-0.72480774</R20>
               <R21>0</R21>
-              <R22>-0.70835876</R22>
+              <R22>0.6889496</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
@@ -26561,9 +26456,114 @@
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>50.76828</X>
-              <Y>26.746017</Y>
-              <Z>39.776657</Z>
+              <X>50.708252</X>
+              <Y>26.714386</Y>
+              <Z>39.72963</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="823">
+          <Properties>
+            <string name="Name">CornerGrove2</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9jaHVua19oX20=</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>-275.4991</X>
+              <Y>12.940399</Y>
+              <Z>228.49081</Z>
+              <R00>-0.69039917</R00>
+              <R01>0</R01>
+              <R02>0.72343445</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0</R12>
+              <R20>-0.72343445</R20>
+              <R21>0</R21>
+              <R22>-0.69039917</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>49.12596</X>
+              <Y>25.880798</Y>
+              <Z>38.489914</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="824">
+          <Properties>
+            <string name="Name">GiantRound1</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3JvdW5kX2Nhbm9weQgAAABNZXNoVGludAMB</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>-125.349945</X>
+              <Y>69.61894</Y>
+              <Z>-448.60965</Z>
+              <R00>0.9967041</R00>
+              <R01>-0.0101623535</R01>
+              <R02>-0.08041382</R02>
+              <R10>0.011978149</R10>
+              <R11>0.99967957</R11>
+              <R12>0.02218628</R12>
+              <R20>0.08015442</R20>
+              <R21>-0.023071289</R21>
+              <R22>0.996521</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">13756665</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>65.02472</X>
+              <Y>98.54729</Y>
+              <Z>63.761032</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="825">
+          <Properties>
+            <string name="Name">GiantBroadleaf1</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCDwAAAGdpYW50X2Jyb2FkbGVhZggAAABNZXNoVGludAMB</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>-239.46375</X>
+              <Y>82.3526</Y>
+              <Z>-402.04453</Z>
+              <R00>0.020629883</R00>
+              <R01>0.06309509</R01>
+              <R02>-0.9977875</R02>
+              <R10>-0.0054779053</R10>
+              <R11>0.9980011</R11>
+              <R12>0.06298828</R12>
+              <R20>0.9997711</R20>
+              <R21>0.0041656494</R21>
+              <R22>0.020935059</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">15914942</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>121.221176</X>
+              <Y>117.81671</Y>
+              <Z>98.0455</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26571,34 +26571,34 @@
         </Item>
         <Item class="Part" referent="826">
           <Properties>
-            <string name="Name">CornerGrove2</string>
+            <string name="Name">GiantRound2</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9jaHVua19oX20=</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3JvdW5kX2Nhbm9weQgAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>284.22906</X>
-              <Y>12.312012</Y>
-              <Z>-236.6913</Z>
-              <R00>0.62882996</R00>
-              <R01>0</R01>
-              <R02>-0.7775421</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.7775421</R20>
-              <R21>0</R21>
-              <R22>0.62882996</R22>
+              <X>-328.20648</X>
+              <Y>59.559982</Y>
+              <Z>-360.49042</Z>
+              <R00>-0.41186523</R00>
+              <R01>-0.025146484</R01>
+              <R02>0.91090393</R02>
+              <R10>0.022277832</R10>
+              <R11>0.9990387</R11>
+              <R12>0.037643433</R12>
+              <R20>-0.91096497</R20>
+              <R21>0.03579712</R21>
+              <R22>-0.4109192</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">15848893</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>46.740387</X>
-              <Y>24.624023</Y>
-              <Z>36.620834</Z>
+              <X>72.77399</X>
+              <Y>110.29158</Y>
+              <Z>71.35971</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26606,34 +26606,34 @@
         </Item>
         <Item class="Part" referent="827">
           <Properties>
-            <string name="Name">CornerGrove3</string>
+            <string name="Name">GiantPine1</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHJhbmNoX2JvcmRlcl9jaHVua19o</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3BpbmVfbGF5ZXJlZAgAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>226.0474</X>
-              <Y>12.772247</Y>
-              <Z>-268.61224</Z>
-              <R00>0.8528137</R00>
-              <R01>0</R01>
-              <R02>-0.52223206</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.52223206</R20>
-              <R21>0</R21>
-              <R22>0.8528137</R22>
+              <X>-394.76926</X>
+              <Y>71.37215</Y>
+              <Z>-165.45166</Z>
+              <R00>0.95376587</R00>
+              <R01>-0.01626587</R01>
+              <R02>-0.30010986</R02>
+              <R10>-0.0036773682</R10>
+              <R11>0.99783325</R11>
+              <R12>-0.06578064</R12>
+              <R20>0.30052185</R20>
+              <R21>0.06384277</R21>
+              <R22>0.95162964</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">16046271</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>48.48761</X>
-              <Y>25.54451</Y>
-              <Z>37.989777</Z>
+              <X>46.653</X>
+              <Y>108.32416</Y>
+              <Z>44.94696</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26641,34 +26641,34 @@
         </Item>
         <Item class="Part" referent="828">
           <Properties>
-            <string name="Name">PineGrove1</string>
+            <string name="Name">GiantBroadleaf2</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9jaHVua19kX20=</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCDwAAAGdpYW50X2Jyb2FkbGVhZggAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-228.6135</X>
-              <Y>9.407425</Y>
-              <Z>-257.35046</Z>
-              <R00>0.59609985</R00>
-              <R01>0</R01>
-              <R02>0.8029022</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.8029022</R20>
-              <R21>0</R21>
-              <R22>0.59609985</R22>
+              <X>-456.12753</X>
+              <Y>77.89064</Y>
+              <Z>-87.23445</Z>
+              <R00>-0.7066498</R00>
+              <R01>0.069625854</R01>
+              <R02>0.7041321</R02>
+              <R10>0.03816223</R10>
+              <R11>0.9974518</R11>
+              <R12>-0.060317993</R12>
+              <R20>-0.7065277</R20>
+              <R21>-0.01574707</R21>
+              <R22>-0.7075043</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">16050613</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>54.694656</X>
-              <Y>18.81485</Y>
-              <Z>19.152771</Z>
+              <X>119.403244</X>
+              <Y>116.04982</Y>
+              <Z>96.575134</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26676,34 +26676,34 @@
         </Item>
         <Item class="Part" referent="829">
           <Properties>
-            <string name="Name">HillRocks2</string>
+            <string name="Name">GiantPine2</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHJhbmNoX2JvcmRlcl9jaHVua19i</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3BpbmVfbGF5ZXJlZAgAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-281.008</X>
-              <Y>7.859726</Y>
-              <Z>-228.20576</Z>
-              <R00>0.5433502</R00>
-              <R01>0</R01>
-              <R02>0.83950806</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.83950806</R20>
-              <R21>0</R21>
-              <R22>0.5433502</R22>
+              <X>-359.35757</X>
+              <Y>64.479385</Y>
+              <Z>28.489807</Z>
+              <R00>-0.99606323</R00>
+              <R01>0.057907104</R01>
+              <R02>0.06719971</R02>
+              <R10>0.055847168</R10>
+              <R11>0.9979248</R11>
+              <R12>-0.03225708</R12>
+              <R20>-0.06893921</R20>
+              <R21>-0.028366089</R21>
+              <R22>-0.9972229</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">16511163</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>50.199036</X>
-              <Y>15.719467</Y>
-              <Z>19.16159</Z>
+              <X>52.047546</X>
+              <Y>120.84981</Y>
+              <Z>50.14424</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26711,34 +26711,34 @@
         </Item>
         <Item class="Part" referent="830">
           <Properties>
-            <string name="Name">PineGrove2</string>
+            <string name="Name">GiantBroadleaf3</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHJhbmNoX2JvcmRlcl9jaHVua19k</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCDwAAAGdpYW50X2Jyb2FkbGVhZggAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-274.78354</X>
-              <Y>9.466812</Y>
-              <Z>234.87047</Z>
-              <R00>-0.5412445</R00>
-              <R01>0</R01>
-              <R02>0.8408661</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.8408661</R20>
-              <R21>0</R21>
-              <R22>-0.5412445</R22>
+              <X>-356.3237</X>
+              <Y>56.900803</Y>
+              <Z>151.90688</Z>
+              <R00>0.09187317</R00>
+              <R01>0.0015106201</R01>
+              <R02>0.9957733</R02>
+              <R10>0.050842285</R10>
+              <R11>0.99868774</R11>
+              <R12>-0.0061950684</R12>
+              <R20>-0.9944763</R20>
+              <R21>0.051193237</R21>
+              <R22>0.091674805</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">14480075</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>55.039917</X>
-              <Y>18.933609</Y>
-              <Z>19.273666</Z>
+              <X>108.18187</X>
+              <Y>105.1436</Y>
+              <Z>87.499115</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26746,34 +26746,34 @@
         </Item>
         <Item class="Part" referent="831">
           <Properties>
-            <string name="Name">CornerGrove4</string>
+            <string name="Name">GiantPine3</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFAAAAHJhbmNoX2JvcmRlcl9jaHVua19o</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3BpbmVfbGF5ZXJlZAgAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-229.42531</X>
-              <Y>12.215225</Y>
-              <Z>285.44864</Z>
-              <R00>-0.67404175</R00>
-              <R01>0</R01>
-              <R02>0.73869324</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.73869324</R20>
-              <R21>0</R21>
-              <R22>-0.67404175</R22>
+              <X>-390.9648</X>
+              <Y>57.71234</Y>
+              <Z>344.60068</Z>
+              <R00>0.19985962</R00>
+              <R01>-0.039001465</R01>
+              <R02>-0.9790497</R02>
+              <R10>-0.054611206</R10>
+              <R11>0.99720764</R11>
+              <R12>-0.050872803</R12>
+              <R20>0.978302</R20>
+              <R21>0.06364441</R21>
+              <R22>0.19717407</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">15919028</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>46.37294</X>
-              <Y>24.43045</Y>
-              <Z>36.332947</Z>
+              <X>39.5858</X>
+              <Y>91.91475</Y>
+              <Z>38.1382</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26781,34 +26781,34 @@
         </Item>
         <Item class="Part" referent="832">
           <Properties>
-            <string name="Name">GiantOak1</string>
+            <string name="Name">GiantRound3</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9vYWtfcm91bmQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3JvdW5kX2Nhbm9weQgAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-188.43544</X>
-              <Y>62.67601</Y>
-              <Z>-391.3196</Z>
-              <R00>-0.1366272</R00>
-              <R01>0</R01>
-              <R02>0.99061584</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.99061584</R20>
-              <R21>0</R21>
-              <R22>-0.1366272</R22>
+              <X>-258.27652</X>
+              <Y>66.05725</Y>
+              <Z>428.73392</Z>
+              <R00>-0.25952148</R00>
+              <R01>0.036087036</R01>
+              <R02>-0.9650574</R02>
+              <R10>-0.0070343018</R10>
+              <R11>0.99920654</R11>
+              <R12>0.039260864</R12>
+              <R20>0.9657135</R20>
+              <R21>0.016967773</R21>
+              <R22>-0.25906372</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">15849149</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>63.605896</X>
-              <Y>62.834</Y>
-              <Z>54.56848</Z>
+              <X>73.925385</X>
+              <Y>112.03656</Y>
+              <Z>72.48874</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26816,34 +26816,34 @@
         </Item>
         <Item class="Part" referent="833">
           <Properties>
-            <string name="Name">GiantBroad1</string>
+            <string name="Name">GiantPine4</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFwAAAHJhbmNoX2JvcmRlcl9waW5lX2Jyb2Fk</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3BpbmVfbGF5ZXJlZAgAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-382.62018</X>
-              <Y>38.616577</Y>
-              <Z>17.213959</Z>
-              <R00>0.16571045</R00>
-              <R01>0</R01>
-              <R02>0.98617554</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.98617554</R20>
-              <R21>0</R21>
-              <R22>0.16571045</R22>
+              <X>-98.26805</X>
+              <Y>55.20198</Y>
+              <Z>377.42203</Z>
+              <R00>-0.082458496</R00>
+              <R01>0.014328003</R01>
+              <R02>-0.9964905</R02>
+              <R10>0.06376648</R10>
+              <R11>0.9979248</R11>
+              <R12>0.0090789795</R12>
+              <R20>0.9945526</R20>
+              <R21>-0.06278992</R21>
+              <R22>-0.08320618</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">15790320</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>61.579666</X>
-              <Y>67.52965</Y>
-              <Z>60.517334</Z>
+              <X>40.855255</X>
+              <Y>94.862305</Y>
+              <Z>39.361237</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26851,34 +26851,34 @@
         </Item>
         <Item class="Part" referent="834">
           <Properties>
-            <string name="Name">GiantPine1</string>
+            <string name="Name">GiantRound4</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9waW5lX3RhbGw=</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3JvdW5kX2Nhbm9weQgAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-93.07582</X>
-              <Y>56.423965</Y>
-              <Z>407.7457</Z>
-              <R00>-0.34628296</R00>
-              <R01>0</R01>
-              <R02>-0.9381256</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.9381256</R20>
-              <R21>0</R21>
-              <R22>-0.34628296</R22>
+              <X>12.453079</X>
+              <Y>65.54846</Y>
+              <Z>458.17017</Z>
+              <R00>-0.45703125</R00>
+              <R01>-0.03768921</R01>
+              <R02>0.8886566</R02>
+              <R10>0.020889282</R10>
+              <R11>0.9983673</R11>
+              <R12>0.053085327</R12>
+              <R20>-0.88920593</R20>
+              <R21>0.04283142</R21>
+              <R22>-0.4554901</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">16177857</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>37.495865</X>
-              <Y>102.21661</Y>
-              <Z>36.945114</Z>
+              <X>79.01471</X>
+              <Y>119.7496</Y>
+              <Z>77.47914</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26886,34 +26886,34 @@
         </Item>
         <Item class="Part" referent="835">
           <Properties>
-            <string name="Name">GiantOak2</string>
+            <string name="Name">GiantPine5</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9vYWtfcm91bmQ=</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3BpbmVfbGF5ZXJlZAgAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>259.4161</X>
-              <Y>45.497604</Y>
-              <Z>392.1983</Z>
-              <R00>-0.5506439</R00>
-              <R01>0</R01>
-              <R02>0.83473206</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.83473206</R20>
-              <R21>0</R21>
-              <R22>-0.5506439</R22>
+              <X>100.54138</X>
+              <Y>92.601425</Y>
+              <Z>417.57758</Z>
+              <R00>0.95573425</R00>
+              <R01>0.03593445</R01>
+              <R02>-0.2920227</R02>
+              <R10>-0.045913696</R10>
+              <R11>0.9985657</R11>
+              <R12>-0.027404785</R12>
+              <R20>0.2906189</R20>
+              <R21>0.039596558</R21>
+              <R22>0.95602417</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">15138260</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>78.54375</X>
-              <Y>77.59056</Y>
-              <Z>67.383896</Z>
+              <X>53.916428</X>
+              <Y>125.18921</Y>
+              <Z>51.94478</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26921,34 +26921,34 @@
         </Item>
         <Item class="Part" referent="836">
           <Properties>
-            <string name="Name">GiantPine2</string>
+            <string name="Name">GiantBroadleaf4</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFgAAAHJhbmNoX2JvcmRlcl9waW5lX3RhbGw=</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCDwAAAGdpYW50X2Jyb2FkbGVhZggAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>449.88577</X>
-              <Y>61.51364</Y>
-              <Z>-126.38286</Z>
-              <R00>0.8903961</R00>
-              <R01>0</R01>
-              <R02>-0.45518494</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.45518494</R20>
-              <R21>0</R21>
-              <R22>0.8903961</R22>
+              <X>231.73024</X>
+              <Y>63.709625</Y>
+              <Z>358.71884</Z>
+              <R00>0.26878357</R00>
+              <R01>-0.037124634</R01>
+              <R02>0.96247864</R02>
+              <R10>-0.03453064</R10>
+              <R11>0.99824524</R11>
+              <R12>0.04815674</R12>
+              <R20>-0.96258545</R20>
+              <R21>-0.046173096</R21>
+              <R22>0.2670288</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">15204053</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>40.736526</X>
-              <Y>111.0509</Y>
-              <Z>40.138184</Z>
+              <X>124.50842</X>
+              <Y>121.01163</Y>
+              <Z>100.70427</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -26956,34 +26956,314 @@
         </Item>
         <Item class="Part" referent="837">
           <Properties>
-            <string name="Name">GiantBroad2</string>
+            <string name="Name">GiantRound5</string>
             <bool name="Anchored">true</bool>
-            <BinaryString name="AttributesSerialize">AQAAAAkAAABNZXNoQXNzZXQCFwAAAHJhbmNoX2JvcmRlcl9waW5lX2Jyb2Fk</BinaryString>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3JvdW5kX2Nhbm9weQgAAABNZXNoVGludAMB</BinaryString>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>113.643906</X>
-              <Y>40.1781</Y>
-              <Z>-442.33258</Z>
-              <R00>0.7686615</R00>
-              <R01>0</R01>
-              <R02>-0.6396637</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.6396637</R20>
-              <R21>0</R21>
-              <R22>0.7686615</R22>
+              <X>428.71436</X>
+              <Y>92.49245</Y>
+              <Z>408.37308</Z>
+              <R00>0.4276123</R00>
+              <R01>-0.0544281</R01>
+              <R02>0.9023285</R02>
+              <R10>0.053009033</R10>
+              <R11>0.9979706</R11>
+              <R12>0.035079956</R12>
+              <R20>-0.9024048</R20>
+              <R21>0.032821655</R21>
+              <R22>0.42964172</R22>
             </CoordinateFrame>
             <bool name="CanCollide">false</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">5805648</Color3uint8>
+            <Color3uint8 name="Color3uint8">14940625</Color3uint8>
             <token name="Material">1280</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>58.91214</X>
-              <Y>64.604385</Y>
-              <Z>57.895844</Z>
+              <X>77.80373</X>
+              <Y>117.91432</Y>
+              <Z>76.2917</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="838">
+          <Properties>
+            <string name="Name">GiantPine6</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3BpbmVfbGF5ZXJlZAgAAABNZXNoVGludAMB</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>410.79614</X>
+              <Y>66.80054</Y>
+              <Z>249.08806</Z>
+              <R00>-0.8210907</R00>
+              <R01>0.0043640137</R01>
+              <R02>0.5707855</R02>
+              <R10>0.03286743</R10>
+              <R11>0.9986725</R11>
+              <R12>0.039642334</R12>
+              <R20>-0.56985474</R20>
+              <R21>0.05130005</R21>
+              <R22>-0.82014465</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">14743247</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>51.46904</X>
+              <Y>119.50656</Y>
+              <Z>49.586884</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="839">
+          <Properties>
+            <string name="Name">GiantBroadleaf5</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCDwAAAGdpYW50X2Jyb2FkbGVhZggAAABNZXNoVGludAMB</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>457.8035</X>
+              <Y>65.9879</Y>
+              <Z>54.53224</Z>
+              <R00>-0.67337036</R00>
+              <R01>-0.024932861</R01>
+              <R02>-0.7388916</R02>
+              <R10>-0.06916809</R10>
+              <R11>0.9971771</R11>
+              <R12>0.029388428</R12>
+              <R20>0.7360687</R20>
+              <R21>0.070892334</R21>
+              <R22>-0.67318726</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">13296113</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>106.322876</X>
+              <Y>103.33681</Y>
+              <Z>85.99553</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="840">
+          <Properties>
+            <string name="Name">GiantRound6</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3JvdW5kX2Nhbm9weQgAAABNZXNoVGludAMB</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>424.07043</X>
+              <Y>50.962555</Y>
+              <Z>-69.32893</Z>
+              <R00>0.63186646</R00>
+              <R01>-0.055007935</R01>
+              <R02>-0.77311707</R02>
+              <R10>0.0044403076</R10>
+              <R11>0.99772644</R11>
+              <R12>-0.067352295</R12>
+              <R20>0.77505493</R20>
+              <R21>0.039123535</R21>
+              <R22>0.63067627</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">16182199</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>61.263016</X>
+              <Y>92.84628</Y>
+              <Z>60.072433</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="841">
+          <Properties>
+            <string name="Name">GiantPine7</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3BpbmVfbGF5ZXJlZAgAAABNZXNoVGludAMB</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>367.91873</X>
+              <Y>62.675354</Y>
+              <Z>-142.35864</Z>
+              <R00>-0.41531372</R00>
+              <R01>0.04244995</R01>
+              <R02>-0.9086914</R02>
+              <R10>-0.0065307617</R10>
+              <R11>0.9987488</R11>
+              <R12>0.04963684</R12>
+              <R20>0.9096527</R20>
+              <R21>0.026550293</R21>
+              <R22>-0.41452026</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">14480075</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>50.379745</X>
+              <Y>116.977325</Y>
+              <Z>48.537415</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="842">
+          <Properties>
+            <string name="Name">GiantBroadleaf6</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCDwAAAGdpYW50X2Jyb2FkbGVhZggAAABNZXNoVGludAMB</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>351.41858</X>
+              <Y>60.32106</Y>
+              <Z>-261.0732</Z>
+              <R00>0.5964966</R00>
+              <R01>0.001739502</R01>
+              <R02>-0.8026123</R02>
+              <R10>-0.055511475</R10>
+              <R11>0.9976959</R11>
+              <R12>-0.039093018</R12>
+              <R20>0.8006897</R20>
+              <R21>0.067871094</R21>
+              <R22>0.59521484</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">15783356</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>118.4194</X>
+              <Y>115.09361</Y>
+              <Z>95.77937</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="843">
+          <Properties>
+            <string name="Name">GiantPine8</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3BpbmVfbGF5ZXJlZAgAAABNZXNoVGludAMB</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>331.43726</X>
+              <Y>63.20952</Y>
+              <Z>-402.0453</Z>
+              <R00>-0.25793457</R00>
+              <R01>0.01864624</R01>
+              <R02>-0.96598816</R02>
+              <R10>0.05038452</R10>
+              <R11>0.99871826</R11>
+              <R12>0.0058288574</R12>
+              <R20>0.96484375</R20>
+              <R21>-0.047164917</R21>
+              <R22>-0.25854492</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">14348233</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>43.328247</X>
+              <Y>100.60437</Y>
+              <Z>41.74379</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="844">
+          <Properties>
+            <string name="Name">GiantRound7</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3JvdW5kX2Nhbm9weQgAAABNZXNoVGludAMB</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>114.25148</X>
+              <Y>71.90311</Y>
+              <Z>-463.3713</Z>
+              <R00>-0.5410156</R00>
+              <R01>0.022628784</R01>
+              <R02>-0.8407135</R02>
+              <R10>0.040405273</R10>
+              <R11>0.999176</R11>
+              <R12>0.00090026855</R12>
+              <R20>0.8400421</R20>
+              <R21>-0.033477783</R21>
+              <R22>-0.54148865</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">16703943</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>69.52811</X>
+              <Y>105.37233</Y>
+              <Z>68.17691</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="845">
+          <Properties>
+            <string name="Name">GiantPine9</string>
+            <bool name="Anchored">true</bool>
+            <BinaryString name="AttributesSerialize">AgAAAAkAAABNZXNoQXNzZXQCEgAAAGdpYW50X3BpbmVfbGF5ZXJlZAgAAABNZXNoVGludAMB</BinaryString>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>19.308136</X>
+              <Y>79.95296</Y>
+              <Z>-472.36353</Z>
+              <R00>0.5752716</R00>
+              <R01>-0.041656494</R01>
+              <R02>-0.81689453</R02>
+              <R10>0.05836487</R10>
+              <R11>0.99824524</R11>
+              <R12>-0.009796143</R12>
+              <R20>0.8158722</R20>
+              <R21>-0.042037964</R21>
+              <R22>0.57670593</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">false</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">15006675</Color3uint8>
+            <token name="Material">1280</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>50.287292</X>
+              <Y>116.76265</Y>
+              <Z>48.44835</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>

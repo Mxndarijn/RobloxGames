@@ -53,6 +53,45 @@
     "uploadedAt": "2026-10-16T22:48:02Z",
     "versions": 1
   },
+  "giant_broadleaf": {
+    "assetId": "114689108547101",
+    "assetType": "Model",
+    "sha256": "322ee8b0f21ca40f",
+    "uploadedAt": "2026-10-17T09:18:45Z",
+    "versions": 1,
+    "meshId": "rbxassetid://115148865966963",
+    "meshSize": [
+      80.613,
+      78.349,
+      65.201
+    ]
+  },
+  "giant_pine_layered": {
+    "assetId": "82697384730576",
+    "assetType": "Model",
+    "sha256": "aebe6b64ba624600",
+    "uploadedAt": "2026-10-17T09:19:03Z",
+    "versions": 1,
+    "meshId": "rbxassetid://131926496841871",
+    "meshSize": [
+      37.327,
+      86.67,
+      35.962
+    ]
+  },
+  "giant_round_canopy": {
+    "assetId": "123353571589135",
+    "assetType": "Model",
+    "sha256": "c24881cba781eed6",
+    "uploadedAt": "2026-10-17T09:19:21Z",
+    "versions": 1,
+    "meshId": "rbxassetid://81542465151090",
+    "meshSize": [
+      52.846,
+      80.09,
+      51.819
+    ]
+  },
   "habitat_barn_crate": {
     "assetId": "89583070931756",
     "assetType": "Model",
