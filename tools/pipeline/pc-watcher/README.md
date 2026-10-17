@@ -99,6 +99,13 @@ and the first rule `bug probes` selects all of them for `luau/bug*.luau` and `sh
 `pc-watcher/**`, which is a full run anyway). `selftest.py` `t_bugs` checks the shot files, luau files, placeholders, rule selection
 and that a failing probe is only a note.
 
+**Release probes R1-R7** (`shots/200..206-rel-*.json`, `luau/rel_*.luau`, same `bug_probe` mechanism with `"bug": "R1".."R7"`, advisory):
+R1 `rel_stackguard_eject` (character teleported into the EmergeMesh box is ejected, logs `[PCW StackGuard] eject ...`), R2 `rel_fountain_top_walk`
+(walk round the stack + to the slide entry), R3 `rel_merge_vat_plots` (VatMesh Hull on every plot, dropped character rests), R4 `rel_border_walls`
+(48 solid segments, no gap, walk-in blocked), R5 `rel_shop_counter` (walk / jump into the stand counters), R6 `rel_shop_prompt_client` (Client: ShopPrompt shown,
+`InputHoldBegin/End` opens `WorldShopPanel`, Esc closes), R7 `rel_minimap_pin` (Client: ok null while there is no minimap UI). Server probes use the real
+character (unanchored, server ownership) and restore it. `selftest.py` `t_release` checks the wiring; the `bug probes` shot-map rule also covers `rel_*.luau` / `*rel-*`.
+
 ## Full vs partial runs
 
 A full run takes about 13-15 min (800 s: 165 frames at ~3.7 s, devices ~140 s, the rest ~50 s). Most merges only touch

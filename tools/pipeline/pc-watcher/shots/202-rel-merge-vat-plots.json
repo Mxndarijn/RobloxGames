@@ -1,0 +1,18 @@
+{
+  "id": "rel-merge-vat-plots",
+  "todo": "release probe R3",
+  "kind": "world",
+  "target": "MergeVat",
+  "from": "centre",
+  "dist": 18,
+  "height": 9,
+  "bug_probe": {
+    "bug": "R3",
+    "title": "merge_vat mesh on every plot: Hull, on the plot, a dropped character rests on it",
+    "luau": "rel_merge_vat_plots",
+    "ctx": "Server",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "release probe R3 (advisory, #264): every plot's VatMesh exists, is CanCollide + Hull, sits on the plot Base, and the real character dropped 6 studs above it rests on it"
+}
