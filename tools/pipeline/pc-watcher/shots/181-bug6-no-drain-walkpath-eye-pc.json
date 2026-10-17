@@ -1,0 +1,11 @@
+{
+  "id": "bug6-no-drain-walkpath-eye-pc",
+  "todo": "bug6",
+  "kind": "world",
+  "pos": [0, 5, 70],
+  "look": [0, 1, 45],
+  "wait": 0.5,
+  "note": "bug #6: player eye behind the goo drain looking toward the fountain: plaza sand only, no footpath strip to the drain",
+  "device": "desktop",
+  "clock": 14
+}

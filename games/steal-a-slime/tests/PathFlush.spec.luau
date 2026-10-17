@@ -166,28 +166,41 @@ describe("flush path (v29 B5)", function()
 			expect((n.attributes or {}).MeshAsset).toBe(nil)
 		end
 	end)
-	it("starts at the curb's outer edge and runs unbroken to spoke 1 (v30 C1)", function()
-		local exit = WorldLayout.SLIDE_PATH[#WorldLayout.SLIDE_PATH]
-		local slideExit
+	it("has no walking path from the slide exit to the goo drain (bug #6)", function()
 		for _, n in parts do
-			if n.name == "SlideExit" then
-				slideExit = n
-			end
+			expect(n.name ~= "SlideExit").toBe(true)
 		end
-		expect(slideExit ~= nil).toBe(true)
-		-- its near end is the curb's outer edge, not under the curb (r 33.5..43.8)
-		local nearEnd = slideExit.pos[3] - slideExit.size[3] / 2
-		expect(math.abs(nearEnd - WorldLayout.LANDING_OUTER_RADIUS) < 1e-6).toBe(true)
-		expect(nearEnd >= WorldLayout.SLIDE_END_RADIUS).toBe(true)
-		expect(math.abs(slideExit.pos[1] - exit[1]) < 1e-6).toBe(true)
+		-- the strip ran over the plaza along the exit's x, between the curb and spoke 1:
+		-- nothing but the plaza disc covers that ground now
+		local exit = WorldLayout.SLIDE_PATH[#WorldLayout.SLIDE_PATH]
 		local d = WorldLayout.LANDING_OUTER_RADIUS
-		while d <= WorldLayout.PLAZA_RADIUS + 4 do
-			for _, off in { -3.9, 0, 3.9 } do
-				if not covered(parts, exit[1] + off, d) then
-					error(`slide exit path uncovered at z {d}, off {off}`)
+		while d < WorldLayout.PLAZA_RADIUS - 2 do
+			for _, n in parts do
+				if n.shape ~= "Cylinder" then
+					expect(covers(n, exit[1], d)).toBe(false)
 				end
 			end
-			d += 0.05
+			d += 0.5
+		end
+	end)
+	it("keeps the rest of the walking network connected: every spoke reaches the plaza and the ring", function()
+		local plaza
+		for _, n in parts do
+			if n.shape == "Cylinder" then
+				plaza = n
+			end
+		end
+		expect(plaza ~= nil).toBe(true)
+		for _, spoke in spokes do
+			local yaw = math.rad((spoke.rot or { 0, 0, 0 })[2])
+			-- the spoke runs along its local Z, through the plaza disc and across the ring
+			local ux, uz = math.sin(yaw), math.cos(yaw)
+			local inner = WorldLayout.PLAZA_RADIUS - 0.5
+			expect(covers(plaza, ux * inner, uz * inner)).toBe(true)
+			expect(covers(spoke, ux * inner, uz * inner)).toBe(true)
+			local rr = WorldLayout.RING_PATH_RADIUS
+			expect(covers(spoke, ux * rr, uz * rr)).toBe(true)
+			expect(covered(ring, ux * rr, uz * rr)).toBe(true)
 		end
 	end)
 end)

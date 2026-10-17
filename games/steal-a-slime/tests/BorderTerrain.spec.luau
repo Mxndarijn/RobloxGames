@@ -16,8 +16,8 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 -- tools/pr-gate/budget_counts: mesh slots with the 22 giant trees of border v5
 -- and 8 small border pieces retired (the terrain itself adds none).
 local BASELINE_MESH_SLOTS = 391
--- Part nodes outside Map.Border: 1340 minus the seven landing-ring tiles left out for the slide exit.
-local BASELINE_PARTS = 1333
+-- Part nodes outside Map.Border: 1340 minus the seven landing-ring tiles left out for the slide exit and the SlideExit path strip (bug #6).
+local BASELINE_PARTS = 1332
 
 local field = BorderTerrain.field()
 local INNER = BorderTerrain.INNER
@@ -68,7 +68,7 @@ describe("BorderTerrain budget", function()
 			expect(slots).toBe(BASELINE_MESH_SLOTS)
 		end
 	)
-	it("adds no part: the world keeps its 1333 build parts, under PART_BUDGET", function()
+	it("adds no part: the world keeps its 1332 build parts, under PART_BUDGET", function()
 		local parts = 0
 		walk({ name = "root", children = WorldLayout.build() }, function(n, inBorder)
 			if n.class == "Part" and not inBorder then
