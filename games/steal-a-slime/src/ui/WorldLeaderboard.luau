@@ -68,19 +68,33 @@ end
 
 -- Roblox side ---------------------------------------------------------------
 
+-- Text colours (RGB) on the board skin's cream face; the same values as Props.BOARD_PALETTE (a spec keeps them equal).
+WorldLeaderboard.PALETTE = table.freeze({
+	RowAlt = table.freeze({ 238, 218, 182 }),
+	Me = table.freeze({ 179, 231, 191 }),
+	Text = table.freeze({ 60, 38, 22 }),
+	Muted = table.freeze({ 110, 84, 62 }),
+	Value = table.freeze({ 22, 104, 54 }),
+	Rank = table.freeze({ table.freeze({ 128, 84, 6 }), table.freeze({ 84, 88, 98 }), table.freeze({ 150, 72, 30 }) }),
+})
+
 -- Built on first use: Color3 doesn't exist under Lune.
 local COLORS: any = nil
 local function colors(): any
-	COLORS = COLORS
-		or {
-			Row = Color3.fromRGB(54, 56, 72),
-			RowAlt = Color3.fromRGB(44, 46, 60),
-			Me = Color3.fromRGB(60, 110, 80),
-			Text = Color3.fromRGB(240, 242, 255),
-			Muted = Color3.fromRGB(165, 170, 200),
-			Value = Color3.fromRGB(140, 255, 150),
-			Rank = { Color3.fromRGB(255, 215, 60), Color3.fromRGB(210, 210, 225), Color3.fromRGB(220, 150, 90) },
+	if COLORS == nil then
+		local function c(t: { number }): Color3
+			return Color3.fromRGB(t[1], t[2], t[3])
+		end
+		local p = WorldLeaderboard.PALETTE
+		COLORS = {
+			RowAlt = c(p.RowAlt),
+			Me = c(p.Me),
+			Text = c(p.Text),
+			Muted = c(p.Muted),
+			Value = c(p.Value),
+			Rank = { c(p.Rank[1]), c(p.Rank[2]), c(p.Rank[3]) },
 		}
+	end
 	return COLORS
 end
 
@@ -150,6 +164,7 @@ local function ensureRow(container: Instance, k: number): Frame
 	frame.Name = name
 	frame.LayoutOrder = k
 	frame.BorderSizePixel = 0
+	frame.BackgroundColor3 = colors().RowAlt
 	frame.Size = UDim2.fromScale(1, 1 / WorldLeaderboard.MAX_ROWS - 0.01)
 	textLabel(frame, "Rank", 0.02, 0.13, Enum.TextXAlignment.Left)
 	textLabel(frame, "Name", 0.17, 0.5, Enum.TextXAlignment.Left)
@@ -176,13 +191,15 @@ function WorldLeaderboard.render(gui: SurfaceGui, rows: { Row })
 		local value = frame:FindFirstChild("Value") :: TextLabel
 		local row = rows[k]
 		if row == nil then
-			frame.BackgroundColor3 = colors().Row
+			frame.BackgroundTransparency = 1
 			rank.Text, value.Text = "", ""
 			name.Text = "No entries yet"
 			name.TextColor3 = colors().Muted
 			continue
 		end
-		frame.BackgroundColor3 = if row.isMe then colors().Me elseif k % 2 == 0 then colors().RowAlt else colors().Row
+		-- Plain rows sit straight on the board face; only the stripes and my own row get a fill.
+		frame.BackgroundColor3 = if row.isMe then colors().Me else colors().RowAlt
+		frame.BackgroundTransparency = if row.isMe or k % 2 == 0 then 0 else 1
 		rank.Text = `#{row.rank}`
 		rank.TextColor3 = colors().Rank[row.rank] or colors().Text
 		name.Text = row.name

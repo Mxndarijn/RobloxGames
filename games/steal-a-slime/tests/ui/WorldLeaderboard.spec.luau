@@ -1,5 +1,6 @@
 --!strict
 -- In-world leaderboard matching + row sync (src/ui/WorldLeaderboard.luau).
+local StaticWorld = require("../../scripts/StaticWorld")
 local TestRunner = require("../TestRunner")
 local WorldLeaderboard = require("../../src/ui/WorldLeaderboard")
 
@@ -50,5 +51,55 @@ describe("WorldLeaderboard.rows", function()
 		expect(#rows).toBe(1)
 		expect(rows[1].name).toBe("?")
 		expect(rows[1].value).toBe("$0")
+	end)
+end)
+
+-- B2 (2026-10-18): the list is drawn straight on the board skin's warm cream face, no backing panel.
+local function luminance(c: { number }): number
+	local function lin(v: number): number
+		v /= 255
+		return if v <= 0.03928 then v / 12.92 else ((v + 0.055) / 1.055) ^ 2.4
+	end
+	return 0.2126 * lin(c[1]) + 0.7152 * lin(c[2]) + 0.0722 * lin(c[3])
+end
+
+local function contrast(a: { number }, b: { number }): number
+	local la, lb = luminance(a), luminance(b)
+	return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05)
+end
+
+describe("Top Earners board palette (B2)", function()
+	local Props = StaticWorld.visual("Props")
+	local palette = WorldLeaderboard.PALETTE
+
+	it("is the same palette the server-built board uses", function()
+		for _, key in { "RowAlt", "Me", "Text", "Muted", "Value" } do
+			expect(table.concat((palette :: any)[key], ",")).toBe(table.concat((Props.BOARD_PALETTE :: any)[key], ","))
+		end
+		for i = 1, 3 do
+			expect(table.concat(palette.Rank[i], ",")).toBe(table.concat(Props.BOARD_PALETTE.Rank[i], ","))
+		end
+	end)
+
+	it("reads at 4.5:1 or better on the cream face, the tan stripe and my mint row", function()
+		local face = Props.BOARD_PALETTE.Face
+		local inks = { "Text", "Muted", "Value" }
+		for _, key in inks do
+			for _, bg in { face, palette.RowAlt, palette.Me } do
+				local ratio = contrast((palette :: any)[key], bg)
+				if ratio < 4.5 then
+					error(`{key} on {table.concat(bg, ",")} is only {ratio}:1`)
+				end
+			end
+		end
+		for i = 1, 3 do
+			for _, bg in { face, palette.RowAlt, palette.Me } do
+				local ratio = contrast(palette.Rank[i], bg)
+				if ratio < 4.5 then
+					error(`rank {i} on {table.concat(bg, ",")} is only {ratio}:1`)
+				end
+			end
+		end
+		expect(contrast(Props.BOARD_PALETTE.Title, face) >= 4.5).toBe(true)
 	end)
 end)

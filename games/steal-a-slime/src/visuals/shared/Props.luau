@@ -53,8 +53,26 @@ local Props = {}
 Props.LEADERBOARD_ROWS = 10
 Props.LEADERBOARD_TITLE = "Top Earners"
 
+-- Top Earners text colours (RGB), drawn straight on the board skin's warm cream face (no backing panel,
+-- B2 2026-10-18). Dark ink on cream, every colour >= 4.5:1 on the face and on the tan zebra row
+-- (tests/PropMesh.spec); ui/WorldLeaderboard.PALETTE must equal this (tests/ui/WorldLeaderboard.spec).
+Props.BOARD_PALETTE = table.freeze({
+	Face = table.freeze({ 248, 236, 212 }), -- the skin's cream panel (phoenix_top_earners_board)
+	RowAlt = table.freeze({ 238, 218, 182 }), -- every second row, a tan stripe on the face
+	Me = table.freeze({ 179, 231, 191 }), -- the viewer's own row (client only)
+	Title = table.freeze({ 94, 58, 34 }),
+	Text = table.freeze({ 60, 38, 22 }),
+	Muted = table.freeze({ 110, 84, 62 }),
+	Value = table.freeze({ 22, 104, 54 }),
+	Rank = table.freeze({ table.freeze({ 128, 84, 6 }), table.freeze({ 84, 88, 98 }), table.freeze({ 150, 72, 30 }) }),
+})
+
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
+end
+
+local function ink(c: { number }): Color3
+	return rgb(c[1], c[2], c[3])
 end
 
 type PartOpts = {
@@ -517,8 +535,10 @@ function Props.leaderboardBoard(): Model
 	-- so the board is the face itself, not a slab beside it (v30 C7). The
 	-- Frame and posts sit behind it as the pre-mesh look; "Collider" (invisible)
 	-- is the solid in front and keeps the Model's front and height.
+	-- Invisible: only the SurfaceGui text shows, on the skin's own cream face (B2: no black backing).
 	local board = part(m, "Board", Vector3.new(12.62, 11.25, 0.03), CFrame.new(0.342, 11.279, 1.198), rgb(30, 32, 44), {
 		canCollide = false,
+		transparency = 1,
 	})
 	part(m, "Frame", Vector3.new(15, 17, 0.6), CFrame.new(0, 11, 1.52), frameColor, { material = "Basalt" })
 	for side, x in { L = -6.5, R = 6.5 } do
@@ -536,14 +556,14 @@ function Props.leaderboardBoard(): Model
 	local content = Instance.new("Frame")
 	content.Name = "Content"
 	content.Size = UDim2.fromScale(1, 1)
-	content.BackgroundColor3 = rgb(30, 32, 44)
+	content.BackgroundTransparency = 1
 	content.BorderSizePixel = 0
 	content.Parent = gui
 	local padding = Instance.new("UIPadding")
 	local pad = UDim.new(0.04, 0)
 	padding.PaddingTop, padding.PaddingBottom, padding.PaddingLeft, padding.PaddingRight = pad, pad, pad, pad
 	padding.Parent = content
-	local title = label(content, "Title", Props.LEADERBOARD_TITLE, rgb(255, 210, 90))
+	local title = label(content, "Title", Props.LEADERBOARD_TITLE, ink(Props.BOARD_PALETTE.Title))
 	title.Size = UDim2.fromScale(1, 0.12)
 	local rows = Instance.new("Frame")
 	rows.Name = "Rows"
@@ -573,6 +593,7 @@ function Props.fillLeaderboard(
 		end
 	end
 	local fmt = format or tostring
+	local palette = Props.BOARD_PALETTE
 	for k, entry in entries do
 		if k > Props.LEADERBOARD_ROWS then
 			break
@@ -581,20 +602,16 @@ function Props.fillLeaderboard(
 		row.Name = `Row_{k}`
 		row.LayoutOrder = k
 		row.Size = UDim2.fromScale(1, 1 / Props.LEADERBOARD_ROWS - 0.01)
-		row.BackgroundColor3 = if k % 2 == 0 then rgb(44, 46, 60) else rgb(54, 56, 72)
+		row.BackgroundColor3 = ink(palette.RowAlt)
+		row.BackgroundTransparency = if k % 2 == 0 then 0 else 1 -- tan stripes straight on the face
 		row.BorderSizePixel = 0
-		local rankColor = if k == 1
-			then rgb(255, 215, 60)
-			elseif k == 2 then rgb(210, 210, 225)
-			elseif k == 3 then rgb(220, 150, 90)
-			else rgb(230, 230, 240)
-		local rank = label(row, "Rank", `#{entry.rank}`, rankColor)
+		local rank = label(row, "Rank", `#{entry.rank}`, ink(palette.Rank[k] or palette.Text))
 		rank.Size = UDim2.fromScale(0.15, 1)
-		local name = label(row, "Name", entry.name, rgb(240, 240, 250))
+		local name = label(row, "Name", entry.name, ink(palette.Text))
 		name.Position = UDim2.fromScale(0.17, 0)
 		name.Size = UDim2.fromScale(0.5, 1)
 		name.TextXAlignment = Enum.TextXAlignment.Left
-		local value = label(row, "Value", fmt(entry.value), rgb(140, 255, 150))
+		local value = label(row, "Value", fmt(entry.value), ink(palette.Value))
 		value.Position = UDim2.fromScale(0.68, 0)
 		value.Size = UDim2.fromScale(0.32, 1)
 		value.TextXAlignment = Enum.TextXAlignment.Right
