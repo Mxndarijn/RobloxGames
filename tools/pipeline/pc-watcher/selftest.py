@@ -587,8 +587,76 @@ def t_perf():
     check("install copies luau", "luau\\*.luau" in inst)
 
 
+def t_perf_e2e():
+    """cmd_perf end to end with every Studio/MCP call faked: catches a broken body (NameError etc.)."""
+    import types
+    home = tempfile.mkdtemp()
+    w = watcher
+    saved = {k: getattr(w, k) for k in ("step_build", "step_launch", "start_play", "step_close", "converge_viewport",
+                                        "capture_frame", "perf_pc_info", "tracked_pids")}
+    saved_luau, saved_need, saved_sleep = w.Run.luau, w.Run.need_luau, w.time.sleep
+    calls = []
+
+    def fake_luau(self, name, datamodel="Edit", timeout=60, **subs):
+        calls.append(name)
+        if name == "perf_window":
+            return True, {"frames": 100, "dts_ms": [16.0] * 99 + [40.0], "avg_fps": 60.0, "p95_ms": 17.0,
+                          "render": {"SceneDrawcallCount": 300}}
+        if name == "perf_terrain_attr":
+            return True, {"set": True}
+        if name == "perf_stress":
+            return True, {"added_parts": subs.get("target", 0), "clones": 1}
+        return True, {"runtime_parts": 2200, "mesh_slots": 390}
+
+    try:
+        w.step_build = w.step_launch = lambda run: None
+        w.start_play = lambda run: {}
+        w.step_close = lambda run: ("pass", {})
+        w.converge_viewport = lambda run, hwnd, target: ((1920, 1080), None)
+        w.capture_frame = lambda run, tag, **kw: {"file": tag + ".jpg"}
+        w.perf_pc_info = lambda: {"cpu": "test"}
+        w.tracked_pids = lambda paths: []
+        w.Run.luau = fake_luau
+        w.Run.need_luau = lambda self, name, dm="Edit", timeout=60, **subs: fake_luau(self, name, dm, timeout, **subs)[1]
+        w.time.sleep = lambda s: None
+        paths = w.Paths(home)
+        cfg = dict(w.DEFAULTS, sync=False)
+        orig_run = w.Run
+
+        class FakeRun(orig_run):
+            def __init__(self, *a, **k):
+                orig_run.__init__(self, *a, **k)
+                self.hwnd = 1
+
+            def record_foreground(self):
+                pass
+
+            def check_focus(self, where):
+                return False
+        w.Run = FakeRun
+        try:
+            rc = w.cmd_perf(paths, cfg, "a" * 40, [0, 500, 1000], 30, False, 5, False, False, qualities=(10, 1), opts={})
+        finally:
+            w.Run = orig_run
+        outdir = os.path.join(home, "out", "perf", "a" * 40)
+        rep = json.load(open(os.path.join(outdir, "a" * 40 + "-perf.json")))
+        labels = [v["label"] for v in rep["variants"]]
+        check("perf e2e: rc 0 and status measured", rc == 0 and rep["status"] == "measured", (rc, rep.get("status"), rep.get("error")))
+        check("perf e2e: variants base-early/base/+500/+1000", labels == ["base-early", "base", "+500", "+1000"], labels)
+        check("perf e2e: run_kind perf, not publishable", rep["run_kind"] == "perf" and rep["publishable"] is False)
+        check("perf e2e: md written", os.path.isfile(os.path.join(outdir, "a" * 40 + "-perf.md")))
+        check("perf e2e: settle recorded", (rep.get("settle") or {}).get("bt_set") is True, rep.get("settle"))
+        check("perf e2e: never touches loop state", not any(os.path.exists(paths.st(f)) for f in
+              ("last-sha.json", "last-full.json", "full-done.json", "tip-seen.json", "unsynced.json")))
+        check("perf e2e: run.lock released", not os.path.exists(paths.st("run.lock")))
+    finally:
+        for k, v in saved.items():
+            setattr(w, k, v)
+        w.Run.luau, w.Run.need_luau, w.time.sleep = saved_luau, saved_need, saved_sleep
+
+
 def main():
-    for t in (t_perf, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
+    for t in (t_perf, t_perf_e2e, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
               t_files, t_geometry, t_data_path, t_flags, t_partial):
         try:
             t()
