@@ -1,0 +1,10 @@
+{
+  "id": "bug7-ritual-site",
+  "todo": "bug 7",
+  "kind": "world",
+  "target": "RitualCircle",
+  "from": "look",
+  "dist": 26,
+  "height": 14,
+  "note": "bug #7: the co-op ritual circle (2 players needed) now sits on the meadow outside the ring path beside plot 1's entrance, off the slime lane, the slide, the fountain, the plots and the border"
+}

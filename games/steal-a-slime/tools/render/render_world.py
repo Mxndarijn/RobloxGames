@@ -521,8 +521,18 @@ VIEWS = {
     "20_slimepath_overview": lambda: look((0, 190, 150), (0, 0, 42), lens=32),
     "21_slimepath_exit": lambda: look((-10, 4, 54), (0, 1.5, 36), lens=28),
     "22_slimepath_along": lambda: slimepath_along(),
+    # co-op ritual circle (bug #7): the plaza from high up (old and new site in frame), and a player's eye
+    # (5 studs) 24 studs from the circle on the fountain side, looking at it
+    "24_ritual_aerial": lambda: look((-150, 150, 36), (-30, 0, 36), lens=24),
+    "25_ritual_eye": lambda: ritual_eye(),
     "23_slimepath_ring": lambda: look((46, 4, 56), (24, 2, 28), lens=28),
 }
+
+
+def ritual_eye():
+    rx, rz, _ = data["ritual"]
+    d = math.hypot(rx, rz) or 1
+    look((rx - rx / d * 24, 5, rz - rz / d * 24), (rx, 2, rz), lens=30)
 
 
 def slimepath_along():
