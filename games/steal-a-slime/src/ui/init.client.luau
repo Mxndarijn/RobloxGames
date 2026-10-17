@@ -756,7 +756,9 @@ if panelByKey.WorldShop then
 		send = send,
 		clock = os.clock,
 	})
-	ctx.worldShop = worldShop(Remotes.get(Constants.SHOP_EVENT) :: RemoteEvent).OnClientEvent:Connect(worldShop.onEvent)
+	ctx.worldShop = worldShop
+	local shopEvent = Remotes.get(Constants.SHOP_EVENT) :: RemoteEvent
+	shopEvent.OnClientEvent:Connect(worldShop.onEvent)
 	player:GetAttributeChangedSignal(Constants.OPEN_SHOP_ATTRIBUTE):Connect(function()
 		worldShop.onAttribute(player:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE))
 	end)
