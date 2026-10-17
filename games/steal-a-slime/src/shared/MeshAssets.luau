@@ -123,6 +123,9 @@ local NAMES = {
 	"giant_broadleaf",
 	"giant_pine_layered",
 	"giant_round_canopy",
+	"giant_elder_oak",
+	"giant_sequoia_spire",
+	"giant_cloud_tree",
 }
 
 local entries: { [string]: Entry } = {}
@@ -356,6 +359,13 @@ entries["giant_pine_layered"] =
 	{ assetId = 82697384730576, meshId = "rbxassetid://131926496841871", size = { 37.327, 86.67, 35.962 } }
 entries["giant_round_canopy"] =
 	{ assetId = 123353571589135, meshId = "rbxassetid://81542465151090", size = { 52.846, 80.09, 51.819 } }
+-- Border v6 giants (even bigger: 100-160 studs native). Open Cloud size-check.
+entries["giant_elder_oak"] =
+	{ assetId = 81330795778397, meshId = "rbxassetid://132728423157389", size = { 159.376, 102.581, 132.423 } }
+entries["giant_sequoia_spire"] =
+	{ assetId = 116609891922407, meshId = "rbxassetid://104415065733160", size = { 53.52, 157.248, 54.788 } }
+entries["giant_cloud_tree"] =
+	{ assetId = 75166170200061, meshId = "rbxassetid://71113886018536", size = { 122.958, 126.341, 69.744 } }
 
 -- The goo parade lane as ONE curved mesh (models/slime_lane.py, bug 4): not a WorldLayout slot (ParadeView lays
 -- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17; ParadeView swaps the ParadeLane.strips() stand-ins for it

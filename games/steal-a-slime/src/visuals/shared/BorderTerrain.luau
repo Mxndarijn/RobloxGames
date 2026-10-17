@@ -23,6 +23,10 @@
 	  peak    v4: a ring of tall mountains layered behind all of that, each
 	          with its own height, width, depth and ridged flanks; rock on
 	          the upper slopes, grass below
+	far     v6: a second, outer ring of taller mountains a few hundred studs
+	          beyond the peaks (own soft ceiling, FAR_MAX_HEIGHT), plus a low
+	          outer ridge ring between the two, so the horizon reads in four or
+	          five layers instead of two
 
 	Every hill rolls its own height, width and spacing from the seed; no
 	window of WINDOW neighbours repeats the same (height, width) profile.
@@ -82,13 +86,15 @@ local BorderTerrain = {}
 BorderTerrain.SEED = 20261019
 BorderTerrain.INNER = 320 -- Chebyshev studs; nothing at or inside it (the Ground edge)
 BorderTerrain.EDGE_RAMP = 40 -- studs past INNER over which the land rises from flush
-BorderTerrain.EXTENT = 960 -- half size of the box the server writes
+BorderTerrain.EXTENT = 1152 -- half size of the box the server writes (v6: was 960; the far mountains need the room)
 BorderTerrain.CELL = 4 -- voxel size
 BorderTerrain.TILE_CELLS = 32
 BorderTerrain.CHUNK_CELLS = 16 -- columns per chunk side (64 studs); the server writes one chunk at a time
 BorderTerrain.FLOOR = -8 -- columns are filled from here up (a multiple of CELL)
 BorderTerrain.MAX_HEIGHT = 68 -- soft ceiling; the walls are 80 (WorldBorder.WALL_HEIGHT)
 BorderTerrain.PEAK_MAX_HEIGHT = 230 -- soft ceiling of the mountains (nobody can reach them)
+BorderTerrain.FAR_MAX_HEIGHT = 310 -- soft ceiling of the far mountains (v6)
+BorderTerrain.OUTER_MAX_HEIGHT = 120 -- soft ceiling of the outer ridge ring (v6)
 BorderTerrain.PEAK_CLEAR = 90 -- Chebyshev studs past INNER where only the low land (<= MAX_HEIGHT) exists
 BorderTerrain.WINDOW = 3
 BorderTerrain.H_BUCKETS = 5
@@ -104,6 +110,8 @@ BorderTerrain.COLORS = table.freeze({
 
 local SOFT_KNEE = 46
 local PEAK_KNEE = 180
+local FAR_KNEE = 215
+local OUTER_KNEE = 80
 
 -- near / mid hill layers. d: centre offset past the Ground edge is
 -- `lead * across + jitter`.
@@ -134,6 +142,17 @@ local LAYERS = {
 		jitter = 150,
 		offset = 130,
 		sideAligned = true, -- long axis parallel to its side of the square: the foot never swings inward at the corners
+	},
+	-- v6: the outer mountain ring, a few hundred studs behind the peaks; taller, broader, fewer
+	far = {
+		along = { 170, 340 },
+		across = { 120, 230 },
+		height = { 130, 260 },
+		gap = { 0, 0.7 },
+		lead = 0.9,
+		jitter = 110,
+		offset = 310,
+		sideAligned = true,
 	},
 }
 
@@ -315,7 +334,7 @@ end
 function BorderTerrain.field(seed: number?): Field
 	local base = seed or BorderTerrain.SEED
 	local hills: { Hill } = {}
-	for i, name in { "near", "mid", "peak" } do
+	for i, name in { "near", "mid", "peak", "far" } do
 		for _, hill in rollLayer(Rng.new(base + i * 7919), name) do
 			table.insert(hills, hill)
 		end
@@ -326,6 +345,11 @@ function BorderTerrain.field(seed: number?): Field
 	local crestFine = ringNoise(ridgeRng, 41)
 	local distance = ringNoise(ridgeRng, 9)
 	local width = ringNoise(ridgeRng, 17)
+	-- v6 outer ridge ring (drawn after the v4 noises, so those are unchanged)
+	local crest2 = ringNoise(ridgeRng, 11)
+	local crest2Fine = ringNoise(ridgeRng, 37)
+	local distance2 = ringNoise(ridgeRng, 7)
+	local width2 = ringNoise(ridgeRng, 13)
 
 	local boxes = {}
 	local cosYaw, sinYaw = {}, {}
@@ -343,7 +367,7 @@ function BorderTerrain.field(seed: number?): Field
 			return 0
 		end
 		local ramp = smoothstep(INNER, INNER + RAMP, d)
-		local sum, peakSum = 0, 0
+		local sum, peakSum, farSum, outerSum = 0, 0, 0, 0
 		for i, hill in hills do
 			local box = boxes[i]
 			if x > box[1] and x < box[2] and z > box[3] and z < box[4] then
@@ -354,12 +378,16 @@ function BorderTerrain.field(seed: number?): Field
 				if u < 1 then
 					local b = (1 - u) * (1 - u)
 					local h = hill.height * b
-					if hill.layer == "peak" then
+					if hill.layer == "peak" or hill.layer == "far" then
 						-- steeper crown, ridged flanks (ridge lines run down the slope)
 						h = hill.height * b * (1 - u * 0.35)
 						local ridge = 1 - math.abs(2 * noise2(x / 64 + hill.ripple, z / 64, 21) - 1)
 						h *= 0.78 + 0.34 * ridge
-						peakSum += h * h * h
+						if hill.layer == "far" then
+							farSum += h * h * h
+						else
+							peakSum += h * h * h
+						end
 					else
 						-- surface ripple, strongest on the flanks
 						h *= 0.88 + 0.24 * noise2(x / 38 + hill.ripple, z / 38, 5)
@@ -379,11 +407,23 @@ function BorderTerrain.field(seed: number?): Field
 			local h = e * b * (0.9 + 0.2 * noise2(x / 52, z / 52, 9))
 			sum += h * h * h
 		end
+		-- v6 outer ridge ring, 780-1000 studs out: broader and taller than the near ridge, between peaks and far mountains
+		local centre2 = 880 + 80 * distance2(angle)
+		local half2 = 130 + 80 * width2(angle)
+		local u2 = (r - centre2) / half2
+		if u2 > -1 and u2 < 1 then
+			local e = 40 + 70 * crest2(angle) + 16 * (crest2Fine(angle) - 0.5)
+			local b = (1 - u2 * u2) * (1 - u2 * u2)
+			local h = e * b * (0.88 + 0.24 * noise2(x / 70, z / 70, 17))
+			outerSum += h * h * h
+		end
 		local rolling = 2.5 + 5 * noise2(x / 80, z / 80, 3) + 2 * noise2(x / 23, z / 23, 4)
 		local low = softCap(sum ^ (1 / 3) + rolling, SOFT_KNEE, BorderTerrain.MAX_HEIGHT)
 		local peak = softCap(peakSum ^ (1 / 3), PEAK_KNEE, BorderTerrain.PEAK_MAX_HEIGHT)
 		-- the mountains rise out of the low land: p-norm union
-		local h = (low ^ 3 + peak ^ 3) ^ (1 / 3)
+		local far = softCap(farSum ^ (1 / 3), FAR_KNEE, BorderTerrain.FAR_MAX_HEIGHT)
+		local outer = softCap(outerSum ^ (1 / 3), OUTER_KNEE, BorderTerrain.OUTER_MAX_HEIGHT)
+		local h = (low ^ 3 + peak ^ 3 + far ^ 3 + outer ^ 3) ^ (1 / 3)
 		return h * ramp
 	end
 

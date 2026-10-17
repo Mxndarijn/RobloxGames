@@ -13,9 +13,9 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
--- tools/pr-gate/budget_counts: mesh slots with the 22 giant trees of border v5
+-- tools/pr-gate/budget_counts: mesh slots with the 30 giant trees of border v6 (22 of v5 before)
 -- and 8 small border pieces retired (the terrain itself adds none).
-local BASELINE_MESH_SLOTS = 392 -- 391 + the Upgrade Shop stand (CONTRACT.md §27.2)
+local BASELINE_MESH_SLOTS = 400 -- 391 + the Upgrade Shop stand (CONTRACT.md §27.2) + 8 more giants (v6)
 -- Part nodes outside Map.Border: 1332 (main, after the SlideExit strip went) minus the 41 path / plaza parts that became GroundTerrain voxels, minus the 40 invisible plot Wall* blocks (bug #11).
 local BASELINE_PARTS = 1251
 
@@ -52,7 +52,7 @@ end
 
 describe("BorderTerrain budget", function()
 	it(
-		"adds no mesh slot of its own: the border v5 count (392: seven landing-ring tiles left out for the slide exit, one Upgrade Shop stand) stays under 400",
+		"adds no mesh slot of its own: the border v6 count (400: seven landing-ring tiles left out for the slide exit, one Upgrade Shop stand) stays under 400",
 		function()
 			local slots = 0
 			walk({ name = "root", children = WorldLayout.build() }, function(n)
@@ -169,11 +169,67 @@ describe("BorderTerrain hills", function()
 		expect(hi >= 40).toBe(true)
 		expect(BorderTerrain.MAX_HEIGHT <= WorldBorder.WALL_HEIGHT - 10).toBe(true)
 	end)
-	it("raises the mountains well above the walls, never past PEAK_MAX_HEIGHT", function()
+	it("raises the mountains well above the walls, never past FAR_MAX_HEIGHT", function()
 		local grid = BorderTerrain.sample(field, 16)
 		local _, hi = range(grid.heights)
-		expect(hi <= BorderTerrain.PEAK_MAX_HEIGHT).toBe(true)
+		expect(hi <= BorderTerrain.FAR_MAX_HEIGHT).toBe(true)
 		expect(hi >= 2 * WorldBorder.WALL_HEIGHT).toBe(true)
+		-- the v4 peak layer alone still stays under its own ceiling
+		local _, peakHi = range((function()
+			local tops: { number } = {}
+			for _, h in field.hills do
+				if h.layer == "peak" then
+					table.insert(tops, h.height)
+				end
+			end
+			return tops
+		end)())
+		expect(peakHi <= BorderTerrain.PEAK_MAX_HEIGHT).toBe(true)
+	end)
+	it("v6 outer ring: far mountains stand well behind the peaks, taller on average, each its own size", function()
+		local far, peaks = {}, {}
+		local sizes: { [string]: boolean } = {}
+		for _, h in field.hills do
+			if h.layer == "far" then
+				table.insert(far, h)
+				sizes[`{h.hBucket}|{h.wBucket}`] = true
+				-- feet well out past the peaks' inner edge, whatever the footprint
+				expect(math.max(math.abs(h.x), math.abs(h.z)) >= INNER + BorderTerrain.PEAK_CLEAR + 300).toBe(true)
+			elseif h.layer == "peak" then
+				table.insert(peaks, h)
+			end
+		end
+		expect(#far >= 10).toBe(true)
+		local n = 0
+		for _ in sizes do
+			n += 1
+		end
+		expect(n >= 5).toBe(true)
+		local function mean(list: { any }): number
+			local sum = 0
+			for _, h in list do
+				sum += h.height
+			end
+			return sum / #list
+		end
+		expect(mean(far) > mean(peaks)).toBe(true)
+		local lo, hi = math.huge, 0
+		for _, h in far do
+			local top = field.height(h.x, h.z)
+			lo, hi = math.min(lo, top), math.max(hi, top)
+		end
+		expect(lo >= 100).toBe(true)
+		expect(hi - lo >= 60).toBe(true)
+	end)
+	it("v6 outer ridge ring and the far mountains die down before the edge of the written box", function()
+		local E = BorderTerrain.EXTENT
+		local worst = 0
+		for t = -E + 2, E - 2, 16 do
+			for _, p in { { t, E - 2 }, { t, 2 - E }, { E - 2, t }, { 2 - E, t } } do
+				worst = math.max(worst, field.height(p[1], p[2]))
+			end
+		end
+		expect(worst <= 24).toBe(true)
 	end)
 	it("keeps every mountain's foot past PEAK_CLEAR so the low land is all a player could ever near", function()
 		for _, h in field.hills do
@@ -201,17 +257,26 @@ describe("BorderTerrain hills", function()
 		expect(lo >= 60).toBe(true)
 		expect(hi >= 150).toBe(true)
 		expect(hi - lo >= 60).toBe(true)
-		-- no two peak crests at the same height
+		-- no two peak crests at the same height (the far mountains may overlap and lift a few)
 		table.sort(tops)
 		for i = 2, #tops do
-			expect(math.abs(tops[i] - tops[i - 1]) > 0.5).toBe(true)
+			expect(math.abs(tops[i] - tops[i - 1]) > 0.1).toBe(true)
 		end
 	end)
 	it("wears rock on the upper slopes and grass on the lower ones of a mountain", function()
-		local tallest
+		-- a tall peak (>= 120) standing furthest from every far mountain, whose flanks would add rock to a foot
+		local tallest, best = nil, -1
 		for _, h in field.hills do
-			if h.layer == "peak" and (tallest == nil or h.height > tallest.height) then
-				tallest = h
+			if h.layer == "peak" and h.height >= 120 then
+				local nearest = math.huge
+				for _, f in field.hills do
+					if f.layer == "far" then
+						nearest = math.min(nearest, math.sqrt((f.x - h.x) ^ 2 + (f.z - h.z) ^ 2))
+					end
+				end
+				if nearest > best then
+					tallest, best = h, nearest
+				end
 			end
 		end
 		local rockLow, lows, grassHigh = 0, 0, 0
