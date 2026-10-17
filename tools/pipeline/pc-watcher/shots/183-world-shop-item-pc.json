@@ -1,0 +1,9 @@
+{
+  "id": "world-shop-item-pc",
+  "todo": "shops",
+  "kind": "ui",
+  "open": "worldshop",
+  "world_shop": "ItemShop",
+  "device": "desktop",
+  "note": "CONTRACT.md §27: the Item Shop card (Lock base, Mystery Egg, consumables with restock timer; PvP rows only with FEATURES.PvP) over the full-window backdrop, X top-right"
+}

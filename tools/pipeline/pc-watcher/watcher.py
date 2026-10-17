@@ -1515,7 +1515,7 @@ def step_twoplayer(run):
 
 # H1 HUD: the left column is Plot, Rebirth, Goals, SlimeDex, Codes (Shop / Merge / Top panels have no nav button; PcwOpen opens them)
 UI_SHOT_BUTTONS = {"dex": "Nav.Dex", "rebirth": "Nav.Rebirth", "goals": "Nav.Goals", "plot": "Nav.Plot", "codes": "Nav.Codes"}
-UI_SHOT_PANELS = {"leaders": "LeaderboardPanel"}  # else <Key>Panel (src/ui/Panels: Widgets.panel names)
+UI_SHOT_PANELS = {"leaders": "LeaderboardPanel", "worldshop": "WorldShopPanel"}  # else <Key>Panel (src/ui/Panels: Widgets.panel names)
 
 
 def panel_for(key):
@@ -1710,6 +1710,8 @@ def step_shots(run):
                     res["merge_vat"] = run.need_luau("merge_vat", "Client", timeout=15, on=True)
                 if shot.get("rain_magnet"):  # v19: the Rain Magnet shop row (and the plot prop), Studio only
                     res["rain_magnet"] = run.need_luau("rain_magnet", "Client", timeout=15, on=True)
+                if shot.get("world_shop"):  # CONTRACT.md §27: which world shop the WorldShop card shows (Studio only)
+                    res["world_shop"] = run.need_luau("world_shop", "Client", timeout=15, shop=shot["world_shop"])
                 if shot.get("dex_rows"):  # v29 menus: fake a long Dex list (Studio only)
                     res["dex_rows"] = run.need_luau("dex_rows", "Client", timeout=15, count=int(shot["dex_rows"]))
                 if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
@@ -2020,6 +2022,11 @@ def step_shots(run):
     if any(shot.get("rain_magnet") for shot in shots):
         try:
             run.luau("rain_magnet", "Client", timeout=15, on=False)  # drop the PcwRainMagnet override
+        except Exception:
+            pass
+    if any(shot.get("world_shop") for shot in shots):
+        try:
+            run.luau("world_shop", "Client", timeout=15, shop="")  # drop the PcwWorldShop override
         except Exception:
             pass
     if any(shot.get("plot_skin") for shot in shots):

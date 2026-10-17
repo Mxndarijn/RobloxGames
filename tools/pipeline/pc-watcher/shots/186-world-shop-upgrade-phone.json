@@ -1,0 +1,9 @@
+{
+  "id": "world-shop-upgrade-phone",
+  "todo": "shops",
+  "kind": "ui",
+  "open": "worldshop",
+  "world_shop": "UpgradeShop",
+  "device": "phone-landscape",
+  "note": "CONTRACT.md §27: Upgrade Shop card on a phone landscape (844x390)"
+}

@@ -1,0 +1,9 @@
+{
+  "id": "world-shop-item-phone",
+  "todo": "shops",
+  "kind": "ui",
+  "open": "worldshop",
+  "world_shop": "ItemShop",
+  "device": "phone-portrait",
+  "note": "CONTRACT.md §27: Item Shop card on a phone portrait: rows keep name, two-line text and the Buy button inside the card"
+}

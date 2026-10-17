@@ -53,6 +53,7 @@ local StealAlertFx = require(script.StealAlertFx)
 local Toasts = require(script.Toasts)
 local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
+local WorldShopLogic = require(script.WorldShopLogic)
 local Panels = script.Panels
 local CarryPanel = require(Panels.Carry)
 local CodesPanel = require(Panels.Codes)
@@ -69,6 +70,7 @@ local ShopPanel = require(Panels.Shop)
 local SoundPanel = require(Panels.Sound)
 local TutorialOverlay = require(Panels.TutorialOverlay)
 local WelcomePanel = require(Panels.Welcome)
+local WorldShopPanel = require(Panels.WorldShop)
 
 local Theme = Widgets.Theme
 
@@ -130,6 +132,7 @@ end
 -- One in-flight call per action; failures surface as a "bad" toast. `onResult`
 -- (optional) gets the RequestResult of a call that reached the server.
 local busy: { [string]: boolean } = {}
+local worldShop: any = nil -- WorldShopLogic.controller, FEATURES.WorldShops only (made below, once setOpen exists)
 local function invoke(action: string, onResult: ((any) -> ())?, ...: any)
 	assert(Remotes.ACTIONS[action], `unknown action {action}`)
 	if busy[action] then
@@ -145,7 +148,10 @@ local function invoke(action: string, onResult: ((any) -> ())?, ...: any)
 		if not ok then
 			toasts.push(`{action} failed - try again`, "bad")
 		elseif type(result) == "table" and result.ok == false then
-			toasts.push(if type(result.message) == "string" then result.message else `{action} failed`, "bad")
+			-- A world-shop denial (result.code) gets its friendly text, once (ShopEvent Denied says the same).
+			if not (worldShop and worldShop.failed(result)) then
+				toasts.push(if type(result.message) == "string" then result.message else `{action} failed`, "bad")
+			end
 		elseif onResult then
 			onResult(result)
 		end
@@ -238,6 +244,7 @@ local panelByKey: { [string]: any } = {
 	Plot = PlotPanel.new(gui, ctx),
 	Merge = MergePanel.new(gui, ctx),
 	Shop = ShopPanel.new(gui, ctx),
+	WorldShop = if Config.FEATURES.WorldShops == true then WorldShopPanel.new(gui, ctx) else nil,
 	Rebirth = RebirthPanel.new(gui, ctx),
 	Goals = GoalsPanel.new(gui, ctx),
 	Dex = DexPanel.new(gui, ctx),
@@ -257,6 +264,9 @@ end
 local allPanels: { PanelEntry } = table.clone(panels)
 for _, key in { "Merge", "Shop", "Leaders" } do
 	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
+end
+if panelByKey.WorldShop then
+	table.insert(allPanels, { key = "WorldShop", nav = nil, panel = panelByKey.WorldShop })
 end
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
 table.insert(allPanels, { key = "Welcome", nav = nil, panel = WelcomePanel.new(gui, ctx) })
@@ -717,13 +727,40 @@ end)
 
 -- "Open Shop" at the ShopStand and "Talk" at the Guide NPC (CONTRACT.md
 -- §5.3): the server only places the prompts; this client opens the menu.
-local PROMPT_MENUS = MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME)
+local PROMPT_MENUS =
+	MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, Config.FEATURES.WorldShops == true)
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, who: Player)
 	local key = PROMPT_MENUS[prompt.Name]
 	if key and who == player then
 		setOpen(key)
 	end
 end)
+
+-- World shops (FEATURES.WorldShops, CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
+-- this client with ShopEvent and the OpenShop attribute; the card closes on ShopEvent Close / attribute nil, and
+-- a close from this side (X, backdrop, Esc / B, another menu) sends Request("CloseShop").
+if panelByKey.WorldShop then
+	worldShop = WorldShopLogic.controller({
+		open = function(shopId: string)
+			panelByKey.WorldShop.setShop(shopId)
+			setOpen("WorldShop")
+		end,
+		close = function()
+			if openKey == "WorldShop" then
+				setOpen(nil)
+			end
+		end,
+		toast = function(text: string, kind: string, itemId: string?)
+			toasts.push(text, kind, nil, itemId)
+		end,
+		send = send,
+		clock = os.clock,
+	})
+	ctx.worldShop = worldShop(Remotes.get(Constants.SHOP_EVENT) :: RemoteEvent).OnClientEvent:Connect(worldShop.onEvent)
+	player:GetAttributeChangedSignal(Constants.OPEN_SHOP_ATTRIBUTE):Connect(function()
+		worldShop.onAttribute(player:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE))
+	end)
+end
 
 -- Nav, toggle and buttons from Layout.screen; collapsed = icons only.
 local function layoutNav(s: Layout.Screen)
@@ -819,6 +856,12 @@ setOpen(nil)
 if game:GetService("RunService"):IsStudio() then
 	gui:GetAttributeChangedSignal("PcwOpen"):Connect(function()
 		local key = gui:GetAttribute("PcwOpen")
+		if worldShop and key == "WorldShop" then
+			-- the world shop card as the stand's prompt opens it; the shop comes from the PcwWorldShop attribute
+			local shopId = gui:GetAttribute("PcwWorldShop")
+			worldShop.onEvent({ kind = "Open", shopId = if type(shopId) == "string" then shopId else "ItemShop" })
+			return
+		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
 	end)
 	gui:GetAttributeChangedSignal("PcwPlotSlime"):Connect(function()
@@ -1041,6 +1084,9 @@ task.spawn(function()
 			hud.tick(now)
 			carry.tick(now)
 			panelByKey.Codes.tick(now)
+			if panelByKey.WorldShop then
+				panelByKey.WorldShop.tick()
+			end
 			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
 		end
 	end

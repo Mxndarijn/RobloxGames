@@ -31,9 +31,12 @@ local Icons = require("../../src/ui/Icons")
 local Layout = require("../../src/ui/Layout")
 local LockHud = require("../../src/ui/LockHud")
 local Nav = require("../../src/ui/Nav")
+local Remotes = require("../../src/shared/Remotes")
 local ShopCatalog = require("../../src/ui/ShopCatalog")
+local Shops = require("../../src/shared/Shops")
 local SlimeDex = require("../../src/ui/SlimeDex")
 local Tutorial = require("../../src/ui/Tutorial")
+local WorldShopLogic = require("../../src/ui/WorldShopLogic")
 
 -- Row geometry constants only (Panels/* build Instances in .new, never at load).
 local GuidePanel = { TIP_H = 44 }
@@ -449,6 +452,49 @@ function LayoutAssert.carryTexts(screen: Layout.Screen): { TextDesc }
 	}
 end
 
+type RowText = {
+	id: string,
+	name: string,
+	levelText: string?,
+	description: string,
+	buttonText: string,
+	nameSize: number?,
+}
+
+local function rowTexts(prefix: string, rows: { RowText }, textW: number, out: { TextDesc })
+	for _, view in rows do
+		table.insert(out, {
+			name = `{prefix} {view.id} name`,
+			text = view.name,
+			size = view.nameSize or 17,
+			bold = true,
+			w = textW,
+			h = 22,
+		})
+		if view.levelText then
+			local chip = { name = `{prefix} {view.id} level`, text = view.levelText, size = 11, bold = true }
+			chip.w, chip.h = ShopPanel.BADGE + 8, 14
+			table.insert(out, chip :: any)
+		end
+		table.insert(out, {
+			name = `{prefix} {view.id} desc`,
+			text = view.description,
+			size = 13,
+			w = textW,
+			h = ShopPanel.DESC_H,
+			wrapped = true,
+		})
+		table.insert(out, {
+			name = `{prefix} {view.id} buy`,
+			text = view.buttonText,
+			size = 16,
+			bold = true,
+			w = ShopPanel.BUY_W,
+			h = Layout.BUTTON,
+		})
+	end
+end
+
 -- Shop rows (Panels/Shop, v28): body = card - 24 (PANEL_CHROME.pad), row =
 -- body - 10, text = row - badge column - Buy column; ROW-high rows, one
 -- line of name, up to two of description, the level chip under the badge.
@@ -478,32 +524,68 @@ function LayoutAssert.shopTexts(panel: Rect): { TextDesc }
 			}, actions)[1]
 		)
 	end
+	local rows: { RowText } = {}
 	for _, view in views do
+		table.insert(rows, {
+			id = view.item.id,
+			name = view.item.name,
+			levelText = view.levelText,
+			description = view.description,
+			buttonText = view.buttonText,
+		})
+	end
+	rowTexts("Shop", rows, textW, out)
+	return out
+end
+
+-- World shop rows (Panels/WorldShop): the same row geometry, worst-case numbers, every row of both shops.
+function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
+	local textW = panel.w - Layout.PANEL_CHROME.pad * 2 - 10 - (8 + ShopPanel.BADGE + 10) - (ShopPanel.BUY_W + 16)
+	local out: { TextDesc } = {}
+	local upgrades = {}
+	for _, u in Config.UPGRADES do
+		table.insert(upgrades, {
+			id = u.id,
+			name = u.name,
+			text = u.text,
+			level = 9,
+			maxLevel = 10,
+			price = 987.6e12,
+			unlocked = false,
+			requires = 50,
+		})
+	end
+	local items = {}
+	for _, c in Config.CONSUMABLES do
 		table.insert(
-			out,
-			{ name = `Shop {view.item.id} name`, text = view.item.name, size = 17, bold = true, w = textW, h = 22 }
+			items,
+			{ id = c.id, name = c.name, icon = c.icon, text = c.text, price = 987.6e12, left = 3, max = 3 }
 		)
-		if view.levelText then
-			local chip = { name = `Shop {view.item.id} level`, text = view.levelText, size = 11, bold = true }
-			chip.w, chip.h = ShopPanel.BADGE + 8, 14
-			table.insert(out, chip :: any)
+	end
+	local pvpOwned = {}
+	local state = {
+		cash = 0,
+		lockCost = 987.6e12,
+		lockDuration = 310,
+		shop = { LockUpgrade = { price = 987.6e12, level = 4, maxLevel = 5 }, SpeedCoil = { price = 987.6e12 } },
+		upgrades = upgrades,
+		consumables = { slot = 1, restockAt = 0, items = items },
+		pvp = { rank = 0, owned = pvpOwned, best = {}, cooldowns = {} },
+		slimes = {},
+	}
+	local actions = Remotes.ACTIONS
+	local features = table.clone(Config.FEATURES)
+	for _, flag in { "MysteryEgg", "Consumables", "PvP", "RainMagnet" } do
+		(features :: any)[flag] = true
+	end
+	for _, shopId in Shops.ORDER do
+		local rows: { RowText } = {}
+		for _, row in WorldShopLogic.rows(shopId, state, actions, features, Config) do
+			local text: any = table.clone(row)
+			text.nameSize = WorldShopLogic.nameSize(row.name)
+			table.insert(rows, text)
 		end
-		table.insert(out, {
-			name = `Shop {view.item.id} desc`,
-			text = view.description,
-			size = 13,
-			w = textW,
-			h = ShopPanel.DESC_H,
-			wrapped = true,
-		})
-		table.insert(out, {
-			name = `Shop {view.item.id} buy`,
-			text = view.buttonText,
-			size = 16,
-			bold = true,
-			w = ShopPanel.BUY_W,
-			h = Layout.BUTTON,
-		})
+		rowTexts(`World {shopId}`, rows, textW, out)
 	end
 	return out
 end
@@ -607,6 +689,7 @@ function LayoutAssert.menuKeys(): { string }
 	for _, entry in Nav.ENTRIES do
 		table.insert(keys, entry.key)
 	end
+	table.insert(keys, "WorldShop")
 	table.insert(keys, "Sound")
 	table.insert(keys, "Guide")
 	table.insert(keys, "Welcome")
@@ -1064,6 +1147,7 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			LayoutAssert.dailyTexts(screen),
 			LayoutAssert.carryTexts(screen),
 			LayoutAssert.shopTexts(Layout.panelFor(panelScreen, "Shop")),
+			LayoutAssert.worldShopTexts(Layout.panelFor(panelScreen, "WorldShop")),
 			LayoutAssert.rebirthTexts(Layout.panelFor(panelScreen, "Rebirth")),
 			LayoutAssert.guideTexts(Layout.panelFor(panelScreen, "Guide")),
 			LayoutAssert.soundTexts(Layout.panelFor(panelScreen, "Sound")),

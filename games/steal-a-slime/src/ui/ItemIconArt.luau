@@ -265,6 +265,101 @@ RECIPES.Upgrade_RainMagnet = function(p)
 	p:text("*", 0.5, 0.82, 0.2, WHITE)
 end
 
+-- World shop items without art yet: restocking consumables (Consumable_<id>) and PvP tools (Pvp_<id>).
+local function flask(p: Pen, liquid: Color, mark: string)
+	p:shape(0.5, 0.2, 0.2, 0.2, SILVER, { round = 0.3 })
+	p:shape(0.5, 0.36, 0.3, 0.22, rgb(200, 235, 250), { round = 0.2 })
+	p:circle(0.5, 0.66, 0.66, rgb(200, 235, 250))
+	p:circle(0.5, 0.69, 0.52, liquid, { stroke = false })
+	p:text(mark, 0.5, 0.68, 0.34)
+end
+
+RECIPES.Consumable_MutationSpray = function(p)
+	p:shape(0.42, 0.6, 0.46, 0.62, rgb(120, 200, 150), { round = 0.2 })
+	p:shape(0.42, 0.62, 0.3, 0.3, rgb(190, 120, 230), { round = 0.4, stroke = false })
+	p:shape(0.42, 0.24, 0.3, 0.14, SILVER, { round = 0.3 })
+	p:shape(0.64, 0.2, 0.26, 0.1, SILVER, { round = 0.5 })
+	for i = 0, 2 do
+		p:circle(0.86, 0.12 + i * 0.12, 0.08, rgb(190, 120, 230), { stroke = false, flat = true })
+	end
+	sparkle(p, 0.8, 0.5, 0.22)
+end
+
+RECIPES.Consumable_LuckPotion = function(p)
+	flask(p, rgb(70, 190, 90), "🍀")
+	sparkle(p, 0.82, 0.2, 0.2)
+end
+
+RECIPES.Consumable_WeatherTotem = function(p)
+	p:shape(0.5, 0.82, 0.62, 0.16, rgb(120, 125, 140), { round = 0.3 })
+	p:shape(0.5, 0.5, 0.42, 0.7, rgb(150, 155, 170), { round = 0.2 })
+	p:shape(0.5, 0.26, 0.5, 0.18, rgb(170, 175, 190), { round = 0.3 })
+	p:circle(0.4, 0.46, 0.1, INK, { stroke = false, flat = true })
+	p:circle(0.6, 0.46, 0.1, INK, { stroke = false, flat = true })
+	p:shape(0.5, 0.66, 0.24, 0.07, INK, { round = 0.5, stroke = false, flat = true })
+	cloud(p, 0.5, 0.1, 0.34, WHITE)
+end
+
+local TIER_COLORS = {
+	rgb(120, 200, 120),
+	rgb(90, 160, 240),
+	rgb(170, 100, 220),
+	rgb(255, 150, 60),
+	rgb(255, 204, 60),
+}
+-- Config.PVP_TOOLS: id, line, tier, glyph of the Fun items (tests/ui/WorldShop.spec checks the list is complete).
+local PVP_ART: { { string | number } } = {
+	{ "KnockGlove1", "Knockback", 1 },
+	{ "KnockGlove2", "Knockback", 2 },
+	{ "KnockGlove3", "Knockback", 3 },
+	{ "KnockGlove4", "Knockback", 4 },
+	{ "KnockGlove5", "Knockback", 5 },
+	{ "GooTrap1", "Trap", 1 },
+	{ "GooTrap2", "Trap", 2 },
+	{ "GooTrap3", "Trap", 3 },
+	{ "GooBlaster1", "Blaster", 1 },
+	{ "GooBlaster2", "Blaster", 2 },
+	{ "GooBlaster3", "Blaster", 3 },
+	{ "FunConfetti", "Fun", 1, "🎉" },
+	{ "FunBalloon", "Fun", 2, "🎈" },
+	{ "FunBubbles", "Fun", 3, "🫧" },
+	{ "FunBouncePad", "Fun", 4, "🦘" },
+	{ "FunSqueaky", "Fun", 5, "🔨" },
+	{ "FunHatLauncher", "Fun", 1, "🎩" },
+	{ "FunDanceBomb", "Fun", 2, "💣" },
+	{ "FunFireworks", "Fun", 3, "🎆" },
+}
+ItemIconArt.PVP_IDS = table.freeze(table.clone(PVP_ART))
+
+for _, row in PVP_ART do
+	local line, tier = row[2] :: string, row[3] :: number
+	local color = TIER_COLORS[math.min(tier, #TIER_COLORS)]
+	local glyph = row[4] :: string?
+	RECIPES[`Pvp_{row[1]}`] = function(p)
+		if line == "Knockback" then
+			p:shape(0.5, 0.82, 0.5, 0.2, color, { round = 0.2 })
+			p:circle(0.5, 0.46, 0.66, WHITE)
+			p:shape(0.74, 0.4, 0.2, 0.26, WHITE, { rot = 30, round = 0.5 })
+			p:shape(0.4, 0.36, 0.34, 0.08, color:Lerp(INK, 0.3), { round = 0.5, stroke = false, flat = true })
+		elseif line == "Trap" then
+			p:shape(0.5, 0.64, 0.84, 0.4, color, { round = 0.5 })
+			p:shape(0.5, 0.62, 0.6, 0.26, color:Lerp(WHITE, 0.3), { round = 0.5, stroke = false })
+			p:circle(0.32, 0.3, 0.14, color, { stroke = false })
+			p:circle(0.62, 0.22, 0.1, color, { stroke = false })
+		elseif line == "Blaster" then
+			p:shape(0.46, 0.46, 0.62, 0.3, color, { round = 0.3 })
+			p:shape(0.8, 0.44, 0.2, 0.14, SILVER, { round = 0.3 })
+			p:shape(0.34, 0.7, 0.16, 0.3, color:Lerp(INK, 0.35), { round = 0.2, rot = 12 })
+			p:circle(0.5, 0.46, 0.2, WHITE, { stroke = false, flat = true })
+		else
+			p:circle(0.5, 0.5, 0.82, color)
+			p:circle(0.5, 0.5, 0.64, color:Lerp(WHITE, 0.25), { stroke = false })
+			p:circle(0.34, 0.3, 0.14, WHITE, { stroke = false, flat = true, alpha = 0.5 })
+			p:text(glyph or "?", 0.5, 0.52, 0.46, WHITE)
+		end
+	end
+end
+
 RECIPES.Boost_Code = function(p)
 	bottle(p, rgb(255, 205, 40))
 end
