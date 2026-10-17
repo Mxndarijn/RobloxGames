@@ -56,8 +56,11 @@ describe("FeatureOverride", function()
 	end)
 
 	it("leaves the shipped defaults unchanged under Lune (install is a no-op)", function()
+		-- PvP ships on since 2026-10-17 (Merijn); it stays in FLAGS only so the pc-watcher shots that
+		-- set PcwFlag_PvP keep working (a no-op now). Every other override flag still ships off.
+		local SHIPS_ON = { PvP = true }
 		for _, name in FeatureOverride.FLAGS do
-			expect((Config.FEATURES :: any)[name]).toBe(false)
+			expect((Config.FEATURES :: any)[name]).toBe(SHIPS_ON[name] == true)
 		end
 		expect(table.isfrozen(Config.FEATURES)).toBe(true)
 		expect(FeatureOverride.install(base) == base).toBe(true)

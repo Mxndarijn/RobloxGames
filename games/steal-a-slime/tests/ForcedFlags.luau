@@ -13,6 +13,7 @@ ForcedFlags.off = {
 	["world shops config > WorldShopsStrict is on by default"] = "WorldShopsStrict",
 	["world shop stands in the booted server"] = "WorldShops",
 	["AdminEvents gate"] = "AdminEvents",
+	["PvpRules config > is on by default (Merijn 2026-10-17: PvP ships on)"] = "PvP",
 	["AdminEvents parse + validate"] = "AdminEvents",
 	["AdminEvents effects"] = "AdminEvents",
 	["WeeklyEvents vs live admin events (#130)"] = "AdminEvents",
@@ -81,7 +82,6 @@ ForcedFlags.offModules = {
 -- All flags on: these pin the shipped default or exercise the off path of a flag that ships off.
 ForcedFlags.on = {
 	["Audio flag > is off by default"] = "Audio",
-	["PvpRules config > is off by default"] = "PvP",
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",
 	["EventsBoard > is behind FEATURES.EventsBoard, default off"] = "EventsBoard",
 	["StealAlerts arrow and flash vs the HUD > the StealAlerts and EventsBoard flags stay default off"] = "StealAlerts / EventsBoard",
