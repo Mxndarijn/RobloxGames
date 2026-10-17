@@ -25,6 +25,7 @@ Items that already render a real 3D model (mutations, plot skins) are not listed
 | `Upgrade_CarrySpeed` | Strong Arms | upgrade | 230, 110, 90 | A flexed green slime arm with a bulging bicep and a gold wristband; side view. |
 | `Upgrade_OfflineCap` | Night Shift | upgrade | 90, 90, 190 | A yellow crescent moon with a sleeping slime curled in it and 3 small stars; night-blue accent. |
 | `Upgrade_Luck` | Lucky Charm | upgrade | 90, 200, 100 | A four-leaf clover with a gold coin at its centre and a glossy highlight; top-down view. |
+| `Upgrade_RainMagnet` | Rain Magnet | upgrade | 90, 150, 230 | A red-and-silver horseshoe magnet pulling three blue raindrops and a snowflake toward it; front view. |
 | `Boost_Code` | Income boost | boost | 255, 190, 40 | A glass potion bottle with glowing yellow liquid, lightning bolt on the label and a cork; 3/4 view. |
 | `Boost_Blessed` | Blessed | boost | 170, 130, 255 | A glowing purple-white halo ring with sparkles around a small slime silhouette; front view. |
 | `Boost_Weekend` | Weekend x2 | boost | 255, 120, 90 | A big bold gold 'x2' on a party-confetti burst with a tiny calendar corner; front view. |

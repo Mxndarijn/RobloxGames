@@ -75,3 +75,7 @@ mutation is current, roll values in `[chance, chance + chanceBonus)` land on tha
 identical to before. `Wet` (x1.75) and `Frozen` (x2.5) have weight 0, so they only come from weather (or a merge ladder step); combos
 `Sleet` (Wet + Frozen) and `Comet` (Frozen + Galaxy). Save v4 -> v5 (`SaveData.migrateV4`) only normalises each slime's `mutations` list;
 ids and keys are unchanged. Tests: `tests/WeatherMutations.spec.luau`. Shot: `21-weather-mutation-dex` (`shots/96-21-weather-mutation-dex.json`).
+
+## Rain Magnet (v19, FEATURES.RainMagnet)
+
+An upgrade (rank 6) that makes a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) pick up that weather's mutation with +5 % per level. It reads the same `Config.WEATHER[id].mutation` hook and `Weather.getCurrent()` as `Genome.rollMutation`; see CONTRACT §23 and `tests/RainMagnet.spec.luau`.

@@ -415,8 +415,43 @@ local function forcePlotSkins(state: any): any
 	return view
 end
 
+-- Studio-only: the SlimeUI attribute "PcwRainMagnet" = true adds the Rain Magnet row (level 2, unlocked) to
+-- State.upgrades so the Shop shows it with FEATURES.RainMagnet off. Live servers get the server's State untouched.
+local function forceRainMagnet(state: any): any
+	if not isStudio or gui:GetAttribute("PcwRainMagnet") ~= true or type(state.upgrades) ~= "table" then
+		return state
+	end
+	for _, row in state.upgrades do
+		if row.id == "RainMagnet" then
+			return state
+		end
+	end
+	local def
+	for _, u in Config.UPGRADES do
+		if u.id == "RainMagnet" then
+			def = u
+		end
+	end
+	if not def then
+		return state
+	end
+	local view = table.clone(state)
+	view.upgrades = table.clone(state.upgrades)
+	table.insert(view.upgrades, {
+		id = def.id,
+		name = def.name,
+		text = def.text,
+		level = 2,
+		maxLevel = def.maxLevel,
+		price = math.floor(def.base * def.growth ^ 2),
+		requires = def.requires,
+		unlocked = true,
+	})
+	return view
+end
+
 local function panelState(key: string, realState: any): any
-	local state = forcePlotSkins(forceFriends(realState))
+	local state = forcePlotSkins(forceFriends(forceRainMagnet(realState)))
 	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
 		-- Studio-only: one fake owned slime so the My Plot row shows its Appraise button.
 		local view = table.clone(state)
@@ -795,7 +830,16 @@ end
 
 if isStudio then
 	for _, attribute in
-		{ "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin", "PcwDexRows", "PcwStealAlert", "PcwMergeVat" }
+		{
+			"PcwFriendBonus",
+			"PcwAdminEvent",
+			"PcwWeekend",
+			"PcwPlotSkin",
+			"PcwDexRows",
+			"PcwStealAlert",
+			"PcwMergeVat",
+			"PcwRainMagnet",
+		}
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
 			if latest then
