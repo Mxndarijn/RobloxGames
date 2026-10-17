@@ -771,6 +771,7 @@ function applyLayout()
 	screen = s
 	hud.layout(s)
 	toasts.layout(s, hud.bannerHeight)
+	stealFx.layout(s, hud.bannerHeight)
 	carry.layout(s)
 	tutorial.layout(s)
 	dailyPopup.layout(s)

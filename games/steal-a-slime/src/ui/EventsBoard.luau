@@ -36,6 +36,13 @@ local function trait(id: string): { [string]: any }?
 	return nil
 end
 
+-- One board row: the ItemIcons id drawn at its left, its plain-text (emoji) line, the text shown beside the icon.
+export type Row = { icon: string, line: string, text: string }
+
+local function traitIcon(t: { [string]: any }): string
+	return if t.luck ~= 1 then "Event_luck" else "Event_mutation"
+end
+
 local function traitText(t: { [string]: any }): string
 	local parts = {}
 	if t.luck ~= 1 then
@@ -44,10 +51,66 @@ local function traitText(t: { [string]: any }): string
 	if t.mutation ~= 1 then
 		table.insert(parts, string.format("x%g mutations", t.mutation))
 	end
-	return `{t.icon} {t.label} {table.concat(parts, ", ")}`
+	return `{t.label} {table.concat(parts, ", ")}`
 end
 
--- Board lines, title first; nil when the board is off or nothing is running.
+-- Board rows, title first; nil when the board is off or nothing is running.
+function EventsBoard.rows(
+	attribute: any,
+	modifier: ModifierBadge.View?,
+	now: number,
+	unix: number,
+	enabled: boolean
+): { Row }?
+	if not enabled then
+		return nil
+	end
+	local rows: { Row } = {}
+	local weekly = WeeklyEvents.decode(attribute)
+	if weekly then
+		if weekly.mutationEndsAt > unix then
+			table.insert(rows, {
+				icon = "Event_mutation",
+				line = `🧪 {weekly.mutation} week - {left(weekly.mutationEndsAt - unix)} left`,
+				text = `{weekly.mutation} week - {left(weekly.mutationEndsAt - unix)} left`,
+			})
+		end
+		local active = if weekly.trait then trait(weekly.trait) else nil
+		if active and weekly.traitEndsAt and weekly.traitEndsAt > unix then
+			table.insert(rows, {
+				icon = traitIcon(active),
+				line = `{active.icon} {traitText(active)} - {left(weekly.traitEndsAt - unix)} left`,
+				text = `{traitText(active)} - {left(weekly.traitEndsAt - unix)} left`,
+			})
+		end
+	end
+	local modifierText = ModifierBadge.banner(modifier, now, Config.FEATURES.CycleModifier)
+	if modifierText and modifier then
+		local plain = if modifier.icon then string.sub(modifierText, #modifier.icon + 2) else modifierText
+		table.insert(rows, {
+			icon = if modifier.luck ~= 1 then "Event_luck" else "Event_mutation",
+			line = modifierText,
+			text = plain,
+		})
+	end
+	if #rows == 0 then
+		return nil
+	end
+	if weekly and weekly.nextStartsAt > unix then
+		local t = if weekly.nextKind == "trait" then trait(weekly.nextId) else nil
+		table.insert(rows, {
+			icon = if t then traitIcon(t) else "Event_mutation",
+			line = `Next: {if t then `{t.icon} {t.label}` else `🧪 {weekly.nextId} week`} in {left(
+				weekly.nextStartsAt - unix
+			)}`,
+			text = `Next: {if t then t.label else `{weekly.nextId} week`} in {left(weekly.nextStartsAt - unix)}`,
+		})
+	end
+	table.insert(rows, 1, { icon = "Event_rain", line = "📅 Server events", text = "Server events" })
+	return rows
+end
+
+-- The same rows as plain emoji lines (watcher check, tests).
 function EventsBoard.lines(
 	attribute: any,
 	modifier: ModifierBadge.View?,
@@ -55,33 +118,14 @@ function EventsBoard.lines(
 	unix: number,
 	enabled: boolean
 ): { string }?
-	if not enabled then
+	local rows = EventsBoard.rows(attribute, modifier, now, unix, enabled)
+	if not rows then
 		return nil
 	end
 	local lines = {}
-	local weekly = WeeklyEvents.decode(attribute)
-	if weekly then
-		if weekly.mutationEndsAt > unix then
-			table.insert(lines, `🧪 {weekly.mutation} week - {left(weekly.mutationEndsAt - unix)} left`)
-		end
-		local active = if weekly.trait then trait(weekly.trait) else nil
-		if active and weekly.traitEndsAt and weekly.traitEndsAt > unix then
-			table.insert(lines, `{traitText(active)} - {left(weekly.traitEndsAt - unix)} left`)
-		end
+	for _, row in rows do
+		table.insert(lines, row.line)
 	end
-	local modifierText = ModifierBadge.banner(modifier, now, Config.FEATURES.CycleModifier)
-	if modifierText then
-		table.insert(lines, modifierText)
-	end
-	if #lines == 0 then
-		return nil
-	end
-	if weekly and weekly.nextStartsAt > unix then
-		local t = if weekly.nextKind == "trait" then trait(weekly.nextId) else nil
-		local name = if t then `{t.icon} {t.label}` else `🧪 {weekly.nextId} week`
-		table.insert(lines, `Next: {name} in {left(weekly.nextStartsAt - unix)}`)
-	end
-	table.insert(lines, 1, "📅 Server events")
 	return lines
 end
 

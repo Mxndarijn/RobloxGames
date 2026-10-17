@@ -27,6 +27,7 @@ local TweenService = game:GetService("TweenService")
 local Layout = require(script.Parent.Layout)
 local SoundController = require(script.Parent.SoundController)
 local Sounds = require(script.Parent.Sounds)
+local StealAlertLayout = require(script.Parent.StealAlertLayout)
 local Widgets = require(script.Parent.Widgets)
 
 local Theme = Widgets.Theme
@@ -55,7 +56,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	})
 	local flashStroke = create("UIStroke", {
 		Color = RED,
-		Thickness = 40,
+		Thickness = StealAlertLayout.FLASH,
 		Transparency = 1,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
@@ -96,7 +97,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	local arrowLabel = create("TextLabel", {
 		Name = "ThiefDistance",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Size = UDim2.fromOffset(120, 18),
+		Size = UDim2.fromOffset(StealAlertLayout.LABEL_W, StealAlertLayout.LABEL_H),
 		Visible = false,
 		ZIndex = Layout.ZINDEX.Banners + 1,
 		BackgroundTransparency = 1,
@@ -116,6 +117,10 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	local pingHighlight: Highlight? = nil
 	local pingTarget: Model? = nil
 	local sweepClock = 0
+	local screen: Layout.Screen? = nil
+	local bannerHeight: () -> number = function()
+		return 0
+	end
 	local lastSlap: { [Player]: number } = {}
 
 	local function debugOn(): boolean
@@ -321,6 +326,14 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 
 	local self = {}
 
+	-- The current Layout.screen and the shown banner stack height: the arrow stays under the HUD /
+	-- banners / right of the nav, and the flash thins on phones.
+	function self.layout(s: Layout.Screen, bannerH: () -> number)
+		screen = s
+		bannerHeight = bannerH
+		flashStroke.Thickness = StealAlertLayout.flashThickness(s)
+	end
+
 	-- Every State push: start / end the theft alert and show the join notice once.
 	function self.update(state: any)
 		if not (StealAlert.enabled() or debugOn()) then
@@ -413,12 +426,18 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			setPing(character)
 			return
 		end
-		local size = root.AbsoluteSize
-		local x, y = StealAlert.edgePoint(angle, size.X, size.Y, cfg.ARROW_MARGIN)
+		local box = if screen
+			then StealAlertLayout.arrowBox(screen, bannerHeight(), StealAlert.edgePoint, angle)
+			else nil
+		if not box then
+			hideArrow()
+			return
+		end
+		local x, y = StealAlertLayout.arrowCentre(box)
 		arrow.Position = UDim2.fromOffset(x, y)
 		arrow.Rotation = StealAlert.arrowRotation(angle)
 		arrow.Visible = true
-		arrowLabel.Position = UDim2.fromOffset(x, y + 26)
+		arrowLabel.Position = UDim2.fromOffset(x, y + StealAlertLayout.LABEL_DROP)
 		arrowLabel.Visible = true
 		arrowLabel.Text = `{math.floor(distance + 0.5)} studs`
 	end
