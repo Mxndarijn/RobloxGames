@@ -1,0 +1,7 @@
+{
+  "id": "item-icons-drawn-boosts",
+  "todo": "item-icons",
+  "kind": "ui",
+  "open": "codes",
+  "note": "Item icons part 1: codes / boost rows show the UI-drawn potion and coin-stack icons instead of gradient glyph tiles"
+}
