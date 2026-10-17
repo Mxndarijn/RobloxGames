@@ -156,6 +156,7 @@ function Props.shopStand(): Model
 	gui.Face = Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 40
+	gui.LightInfluence = 0 -- unlit: the SHOP text stays readable at night
 	gui.Parent = sign
 	local text = label(gui, "Text", "SHOP", rgb(40, 140, 70))
 	text.Size = UDim2.fromScale(1, 1)
