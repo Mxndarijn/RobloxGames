@@ -1,0 +1,17 @@
+{
+  "id": "b9-prop-walk",
+  "todo": "B9",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 70,
+  "height": 30,
+  "bug_probe": {
+    "bug": "B9",
+    "title": "R15 dummies walk into every prop from 4 sides (shared/PropCollision inventory, both halves)",
+    "luau": "b9_prop_walk",
+    "ctx": "Server",
+    "timeout": 50
+  },
+  "note": "B9 (advisory): luau/b9_prop_walk reads ReplicatedStorage.Shared.PropCollision.ENTRIES, so Gojo adds entries there and the probe walks them with no edit. Per kind PASS / FAIL / n/a / off: collidable part, fidelity, no spawn or prop placement inside, and an R15 dummy at WalkSpeed 16 from +-X / +-Z must not end inside or pass through (HARD for Jolt and already-collidable Gojo kinds, soft otherwise)"
+}

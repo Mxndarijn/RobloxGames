@@ -173,6 +173,17 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	if not target:IsA("Model") and target:GetAttribute("MeshTint") == true then
 		mesh.Color = target.Color
 	end
+	-- B9: a skinned Model whose solid is its own invisible "Collider" part (the Top Earners board) widens that part to the
+	-- skin's width and height, keeping its depth and front (the hand collider was 15 wide under a 20.6 wide mesh). A mesh
+	-- that has a fidelity is the collider itself.
+	if fixed and fidelity == nil then
+		local collider = target:FindFirstChild("Collider")
+		if collider and collider:IsA("BasePart") then
+			local offset = collider.CFrame:PointToObjectSpace(cf.Position)
+			collider.Size = Vector3.new(fixed.X, fixed.Y, collider.Size.Z)
+			collider.CFrame = collider.CFrame * CFrame.new(offset.X, offset.Y, 0)
+		end
+	end
 	mesh.Anchored = true
 	mesh.CanCollide = fidelity ~= nil -- decor never collides; a mesh with a fidelity is solid
 	mesh.CanQuery = false
