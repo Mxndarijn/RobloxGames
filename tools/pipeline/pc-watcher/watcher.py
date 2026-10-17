@@ -2325,7 +2325,7 @@ def cmd_once(paths, cfg, sha, dry, sync=True, run_kind="full", full_reason="manu
     lock = Lock(paths.st("run.lock"))
     if not lock.acquire():
         log.error("another watcher run holds %s", lock.path)
-        return 3, False
+        return 3, None  # nothing ran (busy None): the loop retries next tick instead of marking the sha done
     try:
         sha = sha or remote_sha(paths, cfg)
         log.info("run %s (%s: %s)", sha, run_kind, full_reason)
@@ -2377,14 +2377,17 @@ def cmd_loop(paths, cfg, dry):
                     log.info("loop: %s %s (%s) held back: studio busy", kind, sha[:12], why)
                 else:
                     log.info("loop: %s run of %s (%s)", kind, sha[:12], why)
-                    if kind == "full":
-                        attempted[sha] = now
-                    _, busy = cmd_once(paths, cfg, sha, dry, sync=True, run_kind=kind, full_reason=why)
-                    if busy:
+                    rc, busy = cmd_once(paths, cfg, sha, dry, sync=True, run_kind=kind, full_reason=why)
+                    if busy is None:  # run.lock held by another run (e.g. a manual `once`): retry next tick
+                        log.info("loop: run.lock held by another run; %s %s retried next tick", kind, sha[:12])
+                    elif busy:
                         busy_until = time.time() + cfg["busy_retry_s"]
                         log.info("studio busy; retry %s in %ss", sha[:12], cfg["busy_retry_s"])
-                    elif not dry and sha == tip:  # a full run of an older requested sha leaves last-sha alone
-                        write_json(paths.st("last-sha.json"), {"sha": sha, "at": utc_now(), "ts": time.time()})
+                    else:
+                        if kind == "full":
+                            attempted[sha] = now
+                        if not dry and sha == tip:  # a full run of an older requested sha leaves last-sha alone
+                            write_json(paths.st("last-sha.json"), {"sha": sha, "at": utc_now(), "ts": time.time()})
             except Exception:
                 log.exception("loop iteration")
             time.sleep(cfg["poll_s"])
