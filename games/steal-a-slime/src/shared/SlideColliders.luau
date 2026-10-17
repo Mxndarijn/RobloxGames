@@ -53,6 +53,7 @@ SlideColliders.MOUTH_SHARE = 0.1 -- last share of the path that flares into the 
 SlideColliders.WALK_UNDER = 6 -- trough bottoms lower than this get a skirt (no walking under)
 SlideColliders.MIN_THICK = 4 -- floor slab never thinner than this (a falling player moves ~2 studs a frame)
 SlideColliders.FILL = 11 -- the solid reaches this far above the ride line: a jump clears ~7 studs, so nobody gets on top of it
+SlideColliders.RIDGE_ANGLE = 60 -- degrees: the fill's top is a ridge (roof) whose two faces are at least this steep (bug #9: nobody stays on top)
 SlideColliders.JOINT_MARGIN = 1.5 -- a joint's fill reaches this much further along both segments than the joint floor
 SlideColliders.JOINT_LENGTH = 4 -- joint filler floor: at least this long along the bisector of the two segments it joins
 SlideColliders.OVERLAP = 0.8 -- extra length so neighbouring segments close their joints (0.4 past each join: a pitch change leaves a ledge of at most 0.4 * tan(5 deg))
@@ -212,6 +213,52 @@ local function frameOf(spec: Spec): (Vec, Vec, Vec)
 		right[1] * f[2] - right[2] * f[1],
 	}
 	return right, up, f
+end
+
+-- The roof of a Fill spec. The Fill itself stays a plain box from the ride line up FILL studs (nobody can jump into the channel);
+-- the roof sits ON TOP of it (server/FountainColliders builds it as two WedgeParts): both faces fall from the ridge on the
+-- centreline (`height` above the ride line = FILL + rise) to the box top at the side edges (`half` out, `base` = FILL above the ride
+-- line), at `angle` degrees from flat. rise = half * tan(RIDGE_ANGLE), so every face is exactly RIDGE_ANGLE steep (wider mouth
+-- fills just get a taller ridge).
+function SlideColliders.ridge(spec: Spec): { half: number, base: number, rise: number, height: number, angle: number }
+	local half = spec.size[1] / 2
+	local rise = half * math.tan(math.rad(SlideColliders.RIDGE_ANGLE))
+	return {
+		half = half,
+		base = SlideColliders.FILL,
+		rise = rise,
+		height = SlideColliders.FILL + rise,
+		angle = math.deg(math.atan2(rise, half)),
+	}
+end
+
+-- Placement of the roof wedge of a Fill spec on `side` (-1 left / +1 right of the centreline). ASSUMPTION about Roblox WedgePart
+-- (verified in Studio by the bug9-slide-top-drop shot): in its local frame the triangle lies in the Y/Z plane, the vertical face is the
+-- +Z side and the slope falls from the top of that face (+Y, +Z) to the bottom front edge (-Y, -Z), so the slope's outward normal is
+-- (0, Z, -Y) normalised. The wedge Z axis is therefore put toward the centreline (the tall face on the ridge), Y = the spec's up
+-- and X = Y x Z (right-handed, along the slide). Returns the centre, the basis (x, y, z) and the Size ({ x, y, z }).
+function SlideColliders.wedge(spec: Spec, side: number): { pos: Vec, x: Vec, y: Vec, z: Vec, size: Vec }
+	local r = SlideColliders.ridge(spec)
+	local right, up = frameOf(spec)
+	local z = { -side * right[1], -side * right[2], -side * right[3] }
+	local x = {
+		up[2] * z[3] - up[3] * z[2],
+		up[3] * z[1] - up[1] * z[3],
+		up[1] * z[2] - up[2] * z[1],
+	}
+	local out = r.half / 2 * side
+	local lift = SlideColliders.FILL / 2 + r.rise / 2 -- from the box centre (FILL / 2 over the ride line) to the wedge centre
+	return {
+		pos = {
+			spec.centre[1] + right[1] * out + up[1] * lift,
+			spec.centre[2] + right[2] * out + up[2] * lift,
+			spec.centre[3] + right[3] * out + up[3] * lift,
+		},
+		x = x,
+		y = up,
+		z = z,
+		size = { spec.size[3], r.rise, r.half },
+	}
 end
 
 -- True when every corner of `inner` lies inside `outer` (boxes are convex: then inner is a subset of outer).

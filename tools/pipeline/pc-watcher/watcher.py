@@ -1940,6 +1940,10 @@ def step_shots(run):
                     if not rp["ok"]:
                         run.note("shot %s: runtime parts %s not in 1..%s (parade lane %s, slide colliders %s)" % (
                             sid, rp.get("runtime_parts"), rp["max"], rp.get("parade_lane"), rp.get("slide_colliders")))
+                if shot.get("slide_top_drop"):  # bug 9: a character dropped on the slide fill ends up beside it (advisory)
+                    res["slide_top_drop"] = run.need_luau("slide_top_drop", "Server", timeout=40)
+                    if not res["slide_top_drop"].get("ok"):
+                        run.note("shot %s: slide top: %s" % (sid, str(res["slide_top_drop"].get("summary") or res["slide_top_drop"].get("error"))[:200]))
                 if shot.get("mesh_stand"):
                     # bug 11 part 1: balls dropped onto / pushed into the converted (MeshAssets.COLLISION) props must not pass through
                     res["mesh_stand"] = run.need_luau("mesh_stand", "Server", timeout=40, meshes=",".join(shot["mesh_stand"]))

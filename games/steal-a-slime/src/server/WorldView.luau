@@ -51,6 +51,7 @@ local PvpService = require(script.Parent.PvpService)
 local Rescue = require(script.Parent.Rescue)
 local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local Scene = require(script.Parent.Scene)
+local SlideTopWatch = require(script.Parent.SlideTopWatch)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local Snapshot = require(script.Parent.Snapshot)
 local StackGuard = require(script.Parent.StackGuard)
@@ -744,7 +745,7 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 		ensureGroups()
 		setCharacterGroup(character, wanted)
 	end
-	if ejectFromStack(character, root) then
+	if ejectFromStack(character, root) or SlideTopWatch.step(character, root, os.clock()) then
 		return
 	end
 	for index = 1, world.plotCount do
