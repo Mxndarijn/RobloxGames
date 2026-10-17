@@ -284,7 +284,7 @@ describe("init.client applies Layout for every viewport", function()
 		for _, call in
 			{
 				"hud.layout(s)",
-				"toasts.layout(s.toasts)",
+				"toasts.layout(s, hud.bannerHeight)",
 				"carry.layout(s)",
 				"tutorial.layout(s)",
 				"dailyPopup.layout(s)",

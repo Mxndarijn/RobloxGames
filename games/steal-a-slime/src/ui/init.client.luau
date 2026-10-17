@@ -735,7 +735,7 @@ function applyLayout()
 	local s = Layout.screen(size.X, size.Y, { navCollapsed = navChoice })
 	screen = s
 	hud.layout(s)
-	toasts.layout(s.toasts)
+	toasts.layout(s, hud.bannerHeight)
 	carry.layout(s)
 	tutorial.layout(s)
 	dailyPopup.layout(s)

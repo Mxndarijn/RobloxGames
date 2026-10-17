@@ -565,6 +565,17 @@ local function bottomCards(row: Rect, W: number, H: number, inset: number, besid
 	return carry, slap, tutorial, tutorialCarrying
 end
 
+-- The toast stack's box with the banner stack `bannerH` px tall: toasts that
+-- would sit under the banners (phones: both reach the middle) start below them.
+function Layout.toastBox(screen: Screen, bannerH: number): Rect
+	local t, b = screen.toasts, screen.banners
+	if bannerH <= 0 or t.x >= b.x + b.w or b.x >= t.x + t.w then
+		return t
+	end
+	local y = math.max(t.y, b.y + bannerH + Layout.GAP)
+	return Layout.rect(t.x, y, t.w, math.max(math.min(t.h, screen.height - Layout.MARGIN - y), 0))
+end
+
 -- Every top-level box for a ScreenGui of viewportW x viewportH (see header).
 -- One pass in priority order: HUD, nav, bottom cards, then the menu column
 -- and overlays in what is left, so nothing has to be moved afterwards.
