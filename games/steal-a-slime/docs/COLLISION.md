@@ -103,9 +103,9 @@ The inner ground is voxel Terrain (`GroundTerrain`, flat at y = 0): Terrain coll
 
 | Fidelity | Meshes |
 |---|---|
-| `Box` | `slime_fountain_emerge` (bug #10, main), `ranch_fence_20`, `phoenix_fence_segment`, `phoenix_corner_post` (the plot fence), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_bench`, `ranch_compost_bin`, `ranch_flower_planter`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_wagon`, `ranch_water_trough` |
-| `Hull` | `merge_vat`, `ranch_shop_stand` (already), `ranch_barrel`, `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_slime_coop`, `ranch_water_pump`, `ranch_weathervane`, `ranch_well`, `ranch_wheelbarrow`, `ranch_windmill` |
-| `PreciseConvexDecomposition` | `ranch_fence_stile` (steps), `ranch_barn_loft` (loft over an open floor). Both marked "PCD: Phoenix Studio check" |
+| `Box` | `slime_fountain_emerge` (bug #10, main), `ranch_fence_20`, `phoenix_fence_segment`, `phoenix_corner_post` (the plot fence), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_bench`, `ranch_compost_bin`, `ranch_flower_planter`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_wagon`, `ranch_water_trough`, `ranch_barrel`, `ranch_well`, `ranch_fence_stile` (v196 follow-up) |
+| `Hull` | `merge_vat`, `ranch_shop_stand` (already), `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_slime_coop`, `ranch_water_pump`, `ranch_weathervane`, `ranch_wheelbarrow`, `ranch_windmill` |
+| `PreciseConvexDecomposition` | `ranch_barn_loft` (loft over an open floor), marked "PCD: Phoenix Studio check" |
 | none (decor) | `slime_fountain` (tower, hand colliders stay), `phoenix_gate` (a Box/Hull would close the 14-stud opening; its GatePost stand-ins keep the posts; PCD is the later mesh route), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring`, `ranch_goo_drain`, `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, `rain_magnet`, every slime kit mesh, `slime_lane` |
 
 `tests/MeshCollision.spec` makes every mesh name either solid or decor-with-a-reason.
@@ -127,7 +127,7 @@ What changed besides the list:
 - **Shapes vs visuals.** `Box` bbox against the visual for the podiums, signpost, wagon, tool rack, hitching post and bench
   (a bbox corner can stick out past a bevel); `Hull` against the visual for the scarecrow, weathervane, birdhouse, windmill, well
   (hull fills under roofs and between arms) and the shed / coop gables.
-- **PCD walkability.** Walk a character up and over `ranch_fence_stile` and under / onto `ranch_barn_loft`; check the generated
+- **PCD walkability.** Walk a character under / onto `ranch_barn_loft` (the stile is Box since the v196 follow-up); check the generated
   collision exists at all for the scaled mesh (the engine may fall back to a coarser one), and the physics step cost.
 - **Stand-on surfaces and fall-through.** Stand on the three podiums (rigs from `PodiumRigs`), crates, wagon, picnic table, shed
   roof ledge: no fall-through, no float above the visual top, no stuck feet in a Hull's filled concavity.
@@ -136,3 +136,13 @@ What changed besides the list:
 - **Pass-through and clearance.** The walk-through `ranch_*` decor (patches, pit, border, habitats) stays passable.
 - Shots `183-bug11-hull-stand`, `184-bug11-box-stand`, `185-bug11-pcd-stand` (`luau/mesh_stand`) drop and push balls at these
   meshes; they do not replace a Studio walk with a real character.
+
+### v196 follow-up (shots 183-185)
+
+On v196 (a7a68f3) `luau/mesh_stand` reported the barrel, well, crate and stile as "walked through". Every one of them had
+CanCollide on and its fidelity applied (the probe reads `CollisionFidelity` off the placed MeshPart) and the stand ball rested on
+top of each, so collision existed. The fails came from the probe: it forced 30 studs/s with free vertical motion and judged only
+which side of the centre the ball ended on, so the 4-stud ball rode over the 3-4 stud barrel, crate and stile treads, and slid
+round the round Hull of the barrel and well. Fixes: the barrel, well and stile are `Box` now (flat faces a walker stops against;
+the stile is a block players jump onto, so `ranch_barn_loft` is the only PCD), and the probe drives at walking speed (16) with
+upward velocity clamped and FAILs only when the ball's core overlaps the mesh's collision geometry (`GetPartsInPart`).

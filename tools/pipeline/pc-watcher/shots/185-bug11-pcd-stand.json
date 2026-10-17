@@ -10,5 +10,5 @@
     "ranch_fence_stile",
     "ranch_barn_loft"
   ],
-  "note": "bug 11 part 1 (advisory): balls dropped onto and pushed into the PreciseConvexDecomposition-collision props ranch_fence_stile, ranch_barn_loft must rest on the mesh and not pass through it (luau/mesh_stand) ; PCD: Phoenix Studio check - walkability of the treads / loft is only proven by an R15 walk in Studio"
+  "note": "bug 11 part 1 (advisory): balls dropped onto and pushed into the PreciseConvexDecomposition-collision props ranch_fence_stile, ranch_barn_loft must rest on the mesh and not pass through it (luau/mesh_stand) ; PCD: Phoenix Studio check - walkability of the treads / loft is only proven by an R15 walk in Studio ; since the v196 follow-up ranch_fence_stile is Box (barn loft stays PCD)"
 }
