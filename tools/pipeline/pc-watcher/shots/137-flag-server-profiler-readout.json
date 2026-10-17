@@ -1,0 +1,11 @@
+{
+  "id": "flag-server-profiler-readout-pc",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "profiler_readout": 40,
+  "flags": {
+    "ServerProfiler": true
+  },
+  "device": "desktop",
+  "note": "flag review (ServerProfiler forced on via PcwFlag_ override, Studio only): idle HUD; luau/profiler_readout waits for the workspace ProfilerSummary line (no UI exists for it) and reports it in the run JSON"
+}

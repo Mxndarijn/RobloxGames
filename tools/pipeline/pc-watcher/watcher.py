@@ -73,6 +73,14 @@ DEFAULTS = {
 HARD_STEPS = ("build", "launch", "perf", "geometry", "play", "onboarding", "shop", "esc", "devices", "menus", "phone_perf")
 STEP_ORDER = ("build", "launch", "perf", "geometry", "play", "onboarding", "shop", "esc", "devices", "menus", "phone_perf", "two_player", "shots")
 SOFT_STEPS = ("shots",)  # never fail the run; missing = fine
+# Per-shot Config.FEATURES override ("flags": {"MergeVat3": true}). The Studio session reads ReplicatedStorage
+# attribute PcwFlag_<Name> = true as the flag on (src/shared/FeatureOverride, Studio only). FLAG_NAMES mirrors
+# FeatureOverride.FLAGS (selftest keeps them in sync). BOOT_FLAGS are read once when the server/client boots
+# (Audio mount, Profiler.new, WeeklyEventService), so they are set in the Edit datamodel before the playtest
+# and stay on for the whole run; the others are set live on the shot and cleared after it.
+FLAG_NAMES = ("FountainTiers", "MergeVat3", "RainMagnet", "StealAlerts", "WeeklyEvents", "EventsBoard", "PlotSkins",
+              "ServerProfiler", "Audio")
+BOOT_FLAGS = ("Audio", "ServerProfiler", "WeeklyEvents")
 GIT_ENV = {"GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
 
 
@@ -256,6 +264,32 @@ def shot_todo(shot):
         return str(shot["todo"])
     m = re.match(r"\s*TODO\s+([\d/]+)", str(shot.get("note") or ""))
     return m.group(1) if m else None
+
+
+def shot_flags_error(shot):
+    """None when the shot's "flags" field is absent or valid ({FlagName: true}); else why it is rejected."""
+    flags = shot.get("flags")
+    if flags is None:
+        return None
+    if not isinstance(flags, dict) or not flags:
+        return "flags must be a non-empty object like {\"MergeVat3\": true}"
+    bad = sorted(str(k) for k in flags if k not in FLAG_NAMES)
+    if bad:
+        return "unknown flag(s) %s (known: %s)" % (", ".join(bad), ", ".join(FLAG_NAMES))
+    off = sorted(k for k, v in flags.items() if v is not True)
+    if off:
+        return "flag(s) %s must be true (a shot can only force a flag on)" % ", ".join(off)
+    return None
+
+
+def shot_flags(shot):
+    """Sorted flag names a valid shot forces on."""
+    return sorted(shot.get("flags") or {})
+
+
+def boot_flags(shots):
+    """Boot-time flags any shot asks for: set once in the Edit datamodel before the playtest."""
+    return sorted({f for s in shots if not shot_flags_error(s) for f in shot_flags(s) if f in BOOT_FLAGS})
 
 
 def viewport_error(vp, target):
@@ -816,6 +850,15 @@ def prepare_edit(run):
     if not ok:
         raise StepFail("Edit execute_luau failed: %s" % str(d)[:300])
     run.extra["edit_counts"] = d
+    try:
+        shots, _ = load_shots(repo=run.paths.repo)
+        boot = boot_flags(shots or [])
+        if boot:
+            run.extra["boot_flags"] = run.need_luau("flag_set", "Edit", timeout=30, names=",".join(boot), on=True)
+    except StepFail:
+        raise
+    except Exception as e:
+        run.note("boot flags not set: %r" % (e,))
     if d.get("datastore_mode") != "Memory":
         raise StepFail("could not put the session on DataStoreMode=Memory")
     if d.get("datastore_mode_before") != "Memory":
@@ -1387,7 +1430,15 @@ def step_shots(run):
                 if device == want:
                     res["viewport"] = list(converge_viewport(run, run.hwnd, (tw, th))[0])
                     cur_device = want
+        ferr = shot_flags_error(shot)
+        if ferr:
+            res["error"] = "bad flags: " + ferr
+            run.add_frame(fid, status="missing", todo=todo, kind="shot", error=res["error"])
+            continue
         try:
+            if shot.get("flags"):  # forced FEATURES flags (Studio only); cleared again after the capture
+                res["flags"] = run.need_luau("flag_set", "Server", timeout=15, names=",".join(shot_flags(shot)), on=True)
+                time.sleep(1.0)  # attribute replication to the Client + one feature refresh
             if shot.get("kind") == "ui":
                 if world_mode:
                     run.luau("shot_camera_reset", "Client", timeout=15)
@@ -1420,6 +1471,14 @@ def step_shots(run):
                     res["events_board"] = run.need_luau("events_board", "Client", timeout=15)
                     if not res["events_board"].get("ok"):
                         res["error"] = "events board banner missing or empty: %s" % res["events_board"].get("lines")
+                if shot.get("profiler_readout"):  # ServerProfiler flag: the workspace ProfilerSummary line must appear
+                    res["profiler_readout"] = run.need_luau("profiler_readout", "Server", timeout=60, wait=float(shot["profiler_readout"]))
+                    if not res["profiler_readout"].get("ok"):
+                        res["error"] = "ProfilerSummary attribute missing: %s" % res["profiler_readout"].get("raw")
+                if shot.get("audio_panel"):  # Audio flag: the mute button + volume slider panel must exist, then open it
+                    res["audio_panel"] = run.need_luau("audio_panel", "Client", timeout=15, on=True)
+                    if not res["audio_panel"].get("ok"):
+                        res["error"] = "audio panel missing: %s" % json.dumps(res["audio_panel"])[:160]
                 if shot.get("plot_skin"):  # gaps #15: fake the plot skin picker (Studio only)
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
                 if shot.get("merge_vat"):  # v19: the 3-slime vat panel (and the vat mesh on my plot), Studio only
@@ -1673,6 +1732,9 @@ def step_shots(run):
                     res["frame"] = capture_frame(run, fid, todo=todo, kind="shot",
                                                  target=(res.get("target") or {}).get("path"))
                 finally:
+                    live = [f for f in shot_flags(shot) if f not in BOOT_FLAGS]
+                    if live:
+                        run.luau("flag_set", "Server", timeout=15, names=",".join(live), on=False)
                     if shot.get("clock") is not None:
                         run.luau("pcw_clock", "Server", timeout=15, time=False)
                 if shot.get("plot_skin"):
@@ -1696,6 +1758,12 @@ def step_shots(run):
     if any(shot.get("revenge_plot") for shot in shots):
         try:
             run.luau("revenge_set", "Client", timeout=15, plot=0, wait=0.1)  # drop the RevengePlots preview
+        except Exception:
+            pass
+    used_flags = sorted({f for shot in shots if not shot_flags_error(shot) for f in shot_flags(shot)})
+    if used_flags:
+        try:
+            run.luau("flag_set", "Server", timeout=15, names=",".join(used_flags), on=False)  # drop every PcwFlag_ override
         except Exception:
             pass
     if any(shot.get("weather") for shot in shots):
