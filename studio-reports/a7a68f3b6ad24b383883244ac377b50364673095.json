@@ -11931,7 +11931,7 @@
           {
             "id": "world-shops-stands-pc",
             "todo": "shops",
-            "note": "CONTRACT.md \u00a727: Item Shop (bearing 67.5, right) and Upgrade Shop (bearing 34, left) stands on the plaza edge: mesh skins with the ITEM SHOP / UPGRADE SHOP face sign, one prompt each, clear of the campsite, lane and ring path",
+            "note": "CONTRACT.md §27: Item Shop (bearing 67.5, right) and Upgrade Shop (bearing 34, left) stands on the plaza edge: mesh skins with the ITEM SHOP / UPGRADE SHOP face sign, one prompt each, clear of the campsite, lane and ring path",
             "camera": {
               "drift": 0,
               "camera_type": "Scriptable",
@@ -12065,7 +12065,7 @@
           {
             "id": "world-shop-item-pc",
             "todo": "shops",
-            "note": "CONTRACT.md \u00a727: the Item Shop card (Lock base, Mystery Egg, consumables with restock timer; PvP rows only with FEATURES.PvP) over the full-window backdrop, X top-right",
+            "note": "CONTRACT.md §27: the Item Shop card (Lock base, Mystery Egg, consumables with restock timer; PvP rows only with FEATURES.PvP) over the full-window backdrop, X top-right",
             "world_shop": {
               "shop": "ItemShop",
               "found": true
@@ -12208,7 +12208,7 @@
           {
             "id": "world-shop-upgrade-pc",
             "todo": "shops",
-            "note": "CONTRACT.md \u00a727: the Upgrade Shop card (Longer locks Lv x/5, Speed Coil, v13 upgrades with Rebirth N locks), blue title band",
+            "note": "CONTRACT.md §27: the Upgrade Shop card (Longer locks Lv x/5, Speed Coil, v13 upgrades with Rebirth N locks), blue title band",
             "world_shop": {
               "shop": "UpgradeShop",
               "found": true
@@ -12331,7 +12331,7 @@
           {
             "id": "world-shop-item-phone",
             "todo": "shops",
-            "note": "CONTRACT.md \u00a727: Item Shop card on a phone portrait: rows keep name, two-line text and the Buy button inside the card",
+            "note": "CONTRACT.md §27: Item Shop card on a phone portrait: rows keep name, two-line text and the Buy button inside the card",
             "viewport": [
               390,
               844
@@ -12497,7 +12497,7 @@
           {
             "id": "world-shop-upgrade-phone",
             "todo": "shops",
-            "note": "CONTRACT.md \u00a727: Upgrade Shop card on a phone landscape (844x390)",
+            "note": "CONTRACT.md §27: Upgrade Shop card on a phone landscape (844x390)",
             "viewport": [
               844,
               390
@@ -15867,7 +15867,7 @@
           "frame_det": 1,
           "text": {
             "Title": "Mxndarijn's Plot",
-            "Stats": "$25  \u2022  0 Rebirths  \u2022  0 Steals"
+            "Stats": "$25  •  0 Rebirths  •  0 Steals"
           },
           "size": [
             9,
@@ -20321,5 +20321,10 @@
       ]
     }
   },
-  "frames_dir": "a7a68f3b6ad24b383883244ac377b50364673095/"
+  "frames_dir": "a7a68f3b6ad24b383883244ac377b50364673095/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix 22:10 CEST: full pass, 252/252 shots captured, all steps pass (1594 s). It's the first valid run after the stale-loop fix: the 2ea0722/5d6c941/64a697c/59eee8b 'passes' had no camera frames and were NOT reviewed. Runtime parts 2113 of 3000, unique meshes 95 of 120, MeshParts 401 (cap 500); play 60 fps settled, p95 18.2 ms. Reviewed all 285 frames (contact sheets plus key frames). Nothing functionally broken. HUD: 0 'no click opened', every menu opens (#290). #8: 207 fence jump, 208 push, 209 gate posts (strict x=+-10.8 jumps from z -45.5 stop at z -42.5, never inside), 210 corners, 211 corner jump and 214 owner gate (3 lanes in and out, carry box 7x7x8 clear) all PASS. Slide: cannot_climb PASS (168, 18), 187 slide-top drop PASS; cannot_stand_on soft FAIL (fill top standable, known). 186 stile, 212 loft and 213 fence line PASS. Advisory: 183-185 mesh_stand (a pushed 4-stud ball crosses barrel/well/crate/stile; windmill stand), bug11 mesh_pcd fell 3 / hull 21. Probe issues, not game bugs: R2 fountain-top ring walks off the rim (shot 22 fountain_walk passes, worst 1.12), and the R6 ShopPrompt probe leaves the character at the shot camera height, so distance is 30 > 12 (inconclusive). Shot 106 (bugs13-15-ground-eye): pastel green grass with tufts and feathered path edges (#294 snow reset works). Cosmetic: v29-b5-path-eye-ring camera is blocked by a slime."
 }
