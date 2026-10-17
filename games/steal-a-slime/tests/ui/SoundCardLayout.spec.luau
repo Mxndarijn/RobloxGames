@@ -15,10 +15,6 @@ local SLIDERS = {
 	{ row = "sfx", text = "🔔 SFX" },
 }
 
-local function inside(r: Layout.Rect, outer: Layout.Rect): boolean
-	return r.x >= outer.x and r.y >= outer.y and r.x + r.w <= outer.x + outer.w and r.y + r.h <= outer.y + outer.h
-end
-
 local function abs(box: Layout.Rect, body: Layout.Rect): Layout.Rect
 	return Layout.rect(body.x + box.x, body.y + box.y, box.w, box.h)
 end
