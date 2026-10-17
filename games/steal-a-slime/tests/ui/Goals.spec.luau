@@ -117,6 +117,7 @@ describe("Goals.fromServer (v13 State.goals)", function()
 				stages = 5,
 				target = 10,
 				reward = 500,
+				nextTitle = "Catch 50 slimes",
 				done = false,
 			},
 			{
@@ -132,6 +133,8 @@ describe("Goals.fromServer (v13 State.goals)", function()
 		expect(#rows).toBe(2)
 		expect(rows[1].title).toBe("Catch 10 slimes")
 		expect(rows[1].detail).toBe("4/10 · reward $500 · stage 2/5")
+		expect(rows[1].next).toBe("Next: Catch 50 slimes")
+		expect(rows[2].next).toBeNil()
 		expect(rows[1].fraction).toBeCloseTo(0.4)
 		expect(rows[2].done).toBe(true)
 		expect(rows[2].detail).toBe("All 3 stages done")

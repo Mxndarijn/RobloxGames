@@ -142,6 +142,7 @@ export type GoalView = {
 	stages: number,
 	target: number?,
 	reward: number?,
+	nextTitle: string?, -- the step after the current one (nil on the last step)
 	done: boolean,
 }
 export type DexRewardView = { count: number, reward: number, bonus: number, claimed: boolean }
