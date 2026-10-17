@@ -223,6 +223,15 @@ def phone_perf_verdict(stats, min_fps, min_slimes):
     return ok, problems
 
 
+SHOT_TOOL_ERROR_MAX = 4  # more shots than this whose Luau / MCP call itself failed (StepFail) = the shots step FAILS
+
+
+def shot_tool_errors(results):
+    """Shots whose capture could not run at all (a StepFail from a luau / MCP call, e.g. shot_camera rejected by Studio),
+    as opposed to a shot that ran and found a problem. 0 in a healthy run; many = the frames are missing, not reviewed."""
+    return [r.get("id") for r in results if "StepFail(" in str(r.get("error") or "")]
+
+
 def luau_literal(v):
     """Placeholder value -> Luau source: number, "x, y, z" for a sequence, quoted string otherwise."""
     if isinstance(v, bool):
@@ -2057,6 +2066,12 @@ def step_shots(run):
         except Exception:
             pass
     done = len([r for r in results if (r.get("frame") or {}).get("file")])
+    tool_errors = shot_tool_errors(results)
+    if len(tool_errors) > SHOT_TOOL_ERROR_MAX:
+        run.note("shots: %d of %d shots could not run (luau / MCP call failed), e.g. %s: %s" % (
+            len(tool_errors), len(shots), tool_errors[0],
+            next((str(r.get("error"))[:160] for r in results if r.get("id") == tool_errors[0]), "")))
+        return "fail", {"captured": done, "total": len(shots), "shots": results, "shot_tool_errors": len(tool_errors)}
     if any(r.get("fountain_walk") and not r["fountain_walk"].get("ok") for r in results):
         return "fail", {"captured": done, "total": len(shots), "shots": results, "fountain_walk_failed": True}
     if any(r.get("runtime_parts") and not r["runtime_parts"].get("ok") for r in results):
