@@ -65,6 +65,8 @@ DEFAULTS = {
     "launch_timeout_s": 120,
     "client_timeout_s": 90,
     "stats_seconds": 5,
+    "play_bt_max_s": 120,  # play step: max wait for the BorderTerrain attribute before the settled fps sample
+    "play_settle_s": 30,  # play step: extra seconds after BorderTerrain is true, then the settled sample
     "devices": [["desktop", 1920, 1080], ["phone-portrait", 390, 844], ["phone-landscape", 844, 390]],
     "device_iterations": 5,
     "menu_panels": ["plot", "merge", "shop", "rebirth", "goals", "dex", "leaders", "codes", "guide"],  # src/ui/init.client allPanels
@@ -1126,15 +1128,35 @@ def step_play(run):
         return "skip", {"dry_run": True}
     t0 = time.time()
     ready = start_play(run)
-    stats = run.need_luau("client_stats", "Client", timeout=run.cfg["stats_seconds"] + 40,
-                          seconds=run.cfg["stats_seconds"])
-    run.perf["frame_time_ms"] = _r(stats.get("frame_time_ms"))
-    run.perf["memory_mb"] = _r(stats.get("memory_mb"))
-    run.perf["play"] = {k: _r(v) for k, v in stats.items()}
+    play_t0 = time.time()
+    secs = run.cfg["stats_seconds"]
+    sample = lambda: {k: _r(v) for k, v in run.need_luau("client_stats", "Client", timeout=secs + 40, seconds=secs).items()}
+    boot = sample()  # right after the client is up: overlaps the BorderTerrain voxel generation
+    settled, settle = None, None
+    if run.run_kind != "full":
+        run.note("play fps: partial run, no settled sample (boot figure only)")
+    else:
+        try:
+            settle = perf_terrain_wait(run, play_t0, run.cfg["play_bt_max_s"], run.cfg["play_settle_s"])
+            if settle["bt_set"]:
+                settled = sample()
+            else:
+                run.note("play fps: BorderTerrain not set within %ss, boot figure used" % run.cfg["play_bt_max_s"])
+        except Exception as e:  # StepFail included: the settled part never fails the step
+            run.note("play fps: settled sample failed (%s), boot figure used" % (str(e)[:150] or repr(e)))
+            settled = None
+    chosen = settled or boot
+    run.perf["frame_time_ms"] = chosen.get("frame_time_ms")
+    run.perf["memory_mb"] = chosen.get("memory_mb")
+    run.perf["play"] = chosen
+    run.perf["play_boot"], run.perf["play_settled"], run.perf["play_settle"] = boot, settled, settle
     if ready.get("store_status") not in (None, "Memory", "Unavailable"):
         run.note("DataStoreStatus in play = %s (expected Memory)" % ready.get("store_status"))
-    run.note("frame time is Studio play-mode on the PC (window may be throttled when unfocused)")
-    return "pass", {"client": ready, "seconds_to_client": round(time.time() - t0, 1), "stats": run.perf["play"]}
+    run.note("frame time is Studio play-mode on the PC (window may be throttled when unfocused); "
+             "play fps %s (boot %s, taken during BorderTerrain generation)" % (
+                 "%s settled" % chosen.get("fps") if settled else "%s boot only" % boot.get("fps"), boot.get("fps")))
+    return "pass", {"client": ready, "seconds_to_client": round(time.time() - t0, 1), "stats": chosen, "stats_boot": boot,
+                    "stats_settled": settled, "settle": settle, "fps_source": "settled" if settled else "boot"}
 
 
 def _r(v):
