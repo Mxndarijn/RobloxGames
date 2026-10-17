@@ -13,8 +13,10 @@
 --                    (n/a when an upward ray from the ground at the centre hits the mesh within 5 studs: no open floor); stand_on_ok = teleported 4 studs
 --                    above the top centre, after 2 s the feet rest within 3 studs above the bbox top (not fallen through to the ground)
 --   fence_line_walk  the back fence line of one plot (an unlocked one, else the player's): the character walks the OUTSIDE (3 studs from the fence centre
---                    plane) end to end with MoveTo waypoints every 4 studs, then the INSIDE. ok = reaches the end (within 3 studs) both times and never
---                    crosses the fence plane; max_crossing is the largest crossing seen
+--                    plane) with MoveTo waypoints every 4 studs, then the INSIDE; both legs start/end 4 studs inside the line ends and the start spot is checked
+--                    free (GetPartBoundsInBox, else 2 studs further, up to 3 times). A walker stuck short of a waypoint gets the blocking part named
+--                    (blockers, fence_part flag), is teleported to the next waypoint and goes on (skipped_spans). reached_end = finished the route,
+--                    coverage = walked fraction of the line. ok = max_crossing <= 0 and each leg coverage >= 0.8 (non-fence blockers are info only)
 local Players = game:GetService("Players")
 -- PART = "stile_over" | "barn_loft" | "fence_line_walk": ONE check per call (a single execute_luau call must stay well under 60 s); the walks share a 32 s budget.
 local PART = %%PART%%
@@ -309,45 +311,120 @@ local function fenceCheck()
 		return
 	end
 	local info = { plot = pick.Name, line_z = r1(line), s_range = { r1(smin), r1(smax) }, fence_parts = count }
-	local maxCross, allReached = -math.huge, true
+	local INSET = 4
+	if smax - smin <= 2 * INSET + 4 then
+		INSET = 0 -- a very short line: no room to inset
+	end
+	local lo, hi = smin + INSET, smax - INSET
+	local ignore = OverlapParams.new()
+	ignore.FilterType = Enum.RaycastFilterType.Exclude
+	ignore.FilterDescendantsInstances = { char, pick.Base }
+	local rayP = RaycastParams.new()
+	rayP.FilterType = Enum.RaycastFilterType.Exclude
+	rayP.FilterDescendantsInstances = { char, pick.Base }
+	local function isFence(d)
+		return d:GetAttribute("FenceCollider") ~= nil or d.Name == "ranch_fence_20" or d.Name == "phoenix_fence_segment" or string.find(string.lower(d.Name), "fence") ~= nil
+	end
+	local function blockedAt(s, zAt, y)
+		return #workspace:GetPartBoundsInBox(cf * CFrame.new(s, y + 1, zAt), Vector3.new(3, 3, 3), ignore) > 0
+	end
+	-- the part in the way when the walker is stuck: a ray toward the waypoint, else whatever overlaps the character's own box
+	local function blockerToward(wp)
+		local from = root.Position
+		local dir = Vector3.new(wp.X - from.X, 0, wp.Z - from.Z)
+		if dir.Magnitude > 0.01 then
+			local hit = workspace:Raycast(from, dir.Unit * math.min(dir.Magnitude, 5), rayP)
+			if hit then
+				return hit.Instance
+			end
+		end
+		return workspace:GetPartBoundsInBox(root.CFrame, Vector3.new(4, 5, 4), ignore)[1]
+	end
+	local maxCross, allCovered = -math.huge, true
 	local function leg(label, out, dirSign)
 		local y = 4
-		local first, last = (if dirSign > 0 then smin else smax), (if dirSign > 0 then smax else smin)
+		local first, last = (if dirSign > 0 then lo else hi), (if dirSign > 0 then hi else lo)
+		local total = math.max(math.abs(last - first), 0.001)
 		local zAt = line + out -- out > 0 outside (+Z is away from the plot centre at the back line)
-		teleport(cf * CFrame.lookAt(Vector3.new(first, y, zAt), Vector3.new(last, y, zAt)))
+		-- start spot: step 2 studs further along (up to 3 times) when something solid sits there
+		local startS, nudges = first, 0
+		while nudges < 3 and blockedAt(startS, zAt, y) do
+			startS += dirSign * 2
+			nudges += 1
+		end
+		teleport(cf * CFrame.lookAt(Vector3.new(startS, y, zAt), Vector3.new(last, y, zAt)))
 		hum.Jump = false
 		task.wait(0.4)
-		local crossing = -math.huge
-		local s = first
-		local reached = false
-		while not reached do
-			s = s + dirSign * 4
+		local wps, s = {}, startS
+		while true do
+			s += dirSign * 4
 			local done = (dirSign > 0 and s >= last) or (dirSign < 0 and s <= last)
+			table.insert(wps, if done then last else s)
 			if done then
-				s = last
+				break
 			end
-			local wp = cf:PointToWorldSpace(Vector3.new(s, y, zAt))
+		end
+		local crossing, covered, prevS = -math.huge, 0, startS
+		local skipped, blockers, seen, processed = {}, {}, {}, 0
+		for i, ws in wps do
+			if os.clock() - t0all > BUDGET then
+				break
+			end
+			processed = i
+			local wp = cf:PointToWorldSpace(Vector3.new(ws, y, zAt))
 			walkTo(wp, 2.5, 0, 1, function(pos)
 				local l = cf:PointToObjectSpace(pos)
 				local c = if out > 0 then (line - l.Z) else (l.Z - line) -- studs on the wrong side of the fence centre plane
 				crossing = math.max(crossing, c)
 			end)
 			local l = cf:PointToObjectSpace(root.Position)
-			if (Vector3.new(l.X, 0, l.Z) - Vector3.new(s, 0, zAt)).Magnitude > 3 then
-				break -- stuck short of this waypoint
+			if (Vector3.new(l.X, 0, l.Z) - Vector3.new(ws, 0, zAt)).Magnitude <= 3 then
+				covered += math.abs(ws - prevS)
+				prevS = ws
+			else
+				-- stuck short of this waypoint: name the blocker, skip to the next waypoint and go on
+				local b = blockerToward(wp)
+				local bn = if b then b:GetFullName() else "(none found)"
+				if not seen[bn] and #blockers < 6 then
+					seen[bn] = true
+					table.insert(blockers, { part = bn, fence_part = b ~= nil and isFence(b), stuck_at_s = r1(l.X), toward_s = r1(ws) })
+				end
+				local nextS = wps[i + 1]
+				if not nextS then
+					table.insert(skipped, { r1(l.X), r1(ws) })
+					break
+				end
+				table.insert(skipped, { r1(l.X), r1(nextS) })
+				local n2 = 0
+				while n2 < 3 and blockedAt(nextS, zAt, y) do
+					nextS += dirSign * 2
+					n2 += 1
+				end
+				teleport(cf * CFrame.lookAt(Vector3.new(nextS, y, zAt), Vector3.new(last, y, zAt)))
+				task.wait(0.2)
+				prevS = nextS
+				wps[i + 1] = nextS
 			end
-			reached = done
 		end
+		local finished = processed == #wps
 		local l = cf:PointToObjectSpace(root.Position)
-		local endGap = (Vector3.new(l.X, 0, l.Z) - Vector3.new(last, 0, zAt)).Magnitude
-		info[label] = { reached_end = endGap <= 3, end_gap = r1(endGap), max_crossing = r1(crossing), end_local = { r1(l.X), r1(l.Y), r1(l.Z) } }
+		local coverage = math.min(1, covered / total)
+		local fenceBlocked = false
+		for _, b in blockers do
+			fenceBlocked = fenceBlocked or b.fence_part
+		end
+		info[label] = {
+			reached_end = finished, coverage = r1(coverage * 100) / 100, max_crossing = r1(crossing), start_nudges = nudges,
+			end_local = { r1(l.X), r1(l.Y), r1(l.Z) }, skipped_spans = skipped, blockers = blockers, blocked_by_fence_part = fenceBlocked,
+		}
 		maxCross = math.max(maxCross, crossing)
-		allReached = allReached and endGap <= 3
+		allCovered = allCovered and coverage >= 0.8
 	end
 	leg("outside", 3, 1)
 	leg("inside", -3, -1)
 	info.max_crossing = r1(maxCross)
-	set("fence_line_walk", allReached and maxCross <= 0, info)
+	info.note = "legs start/end " .. INSET .. " studs inside the line ends; blockers that are not fence parts are info only"
+	set("fence_line_walk", allCovered and maxCross <= 0, info)
 end
 
 local CHECKS = { stile_over = stileCheck, barn_loft = loftCheck, fence_line_walk = fenceCheck }

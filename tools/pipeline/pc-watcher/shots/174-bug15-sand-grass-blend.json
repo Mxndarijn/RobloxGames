@@ -2,15 +2,12 @@
   "id": "bug15-sand-grass-blend",
   "todo": "bug 15",
   "kind": "world",
-  "target": "Path1",
-  "index": 1,
-  "from": "centre",
-  "dist": 14,
-  "height": 3,
+  "pos": [0.0, 3, 79.0],
+  "look": [0, 0, 93],
   "bug_probe": {
     "bug": 15,
     "title": "Sand / grass blend",
     "summary": "visual only: sand path edge meeting grass"
   },
-  "note": "bug 15 (visual): a sand spoke path edge meeting the grass, low angle"
+  "note": "bug 15 (visual): a sand spoke path edge meeting the grass, low angle [#270: path is terrain now; fixed camera at the spoke 0 (+Z) midpoint (0, 0, 93), ground y 0]"
 }

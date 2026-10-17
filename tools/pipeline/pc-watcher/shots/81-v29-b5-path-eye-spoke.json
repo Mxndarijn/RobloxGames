@@ -2,10 +2,7 @@
   "id": "v29-b5-path-eye-spoke",
   "todo": "v29 B5",
   "kind": "world",
-  "target": "Path1",
-  "index": 1,
-  "from": "centre",
-  "dist": 30,
-  "height": 5,
-  "note": "v29 B5: spoke path at player eye level, flush with the ground, no raised tile edges"
+  "pos": [0.0, 5, 63.0],
+  "look": [0, 0, 93],
+  "note": "v29 B5: spoke path at player eye level, flush with the ground, no raised tile edges [#270: path is terrain now; fixed camera at the spoke 0 (+Z) midpoint (0, 0, 93), ground y 0]"
 }

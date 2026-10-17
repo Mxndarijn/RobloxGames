@@ -14,9 +14,6 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 local SHOTS = "../../tools/pipeline/pc-watcher/shots"
 local WALK = "../../tools/pipeline/pc-watcher/luau/bug11_char_walk.luau"
--- Targets of shots whose geometry no longer exists (the part paths became terrain in #270). Owners: those shots' authors. This list
--- may only shrink: the spec fails when one of these resolves again (drop it here) or a new unresolved target appears.
-local KNOWN_STALE = { path1 = true, path3 = true, ring1 = true, ring8 = true }
 
 local function files(dir: string, ext: string, out: { string }): { string }
 	for _, name in fs.readDir(dir) do
@@ -75,12 +72,7 @@ describe("pc-watcher shot targets", function()
 			local s = e.shot
 			if s.kind == "world" and type(s.target) == "string" then
 				checked += 1
-				local stale = KNOWN_STALE[string.lower(s.target)]
-				if stale then
-					if resolves(s.target) then
-						table.insert(missing, `{e.file}: "{s.target}" resolves again, drop it from KNOWN_STALE`)
-					end
-				elseif not resolves(s.target) then
+				if not resolves(s.target) then
 					table.insert(missing, `{e.file}: target "{s.target}"`)
 				end
 			end
@@ -91,13 +83,29 @@ describe("pc-watcher shot targets", function()
 		end
 		expect(#missing).toBe(0)
 	end)
+	it("the #270 path shots use fixed pos / look cameras (the paths are terrain, no instance to target)", function()
+		for _, file in
+			{
+				"81-v29-b5-path-eye-spoke",
+				"82-v29-b5-path-eye-ring",
+				"83-v29-b5-path-junction",
+				"172-bug13-walk-path-look",
+				"174-bug15-sand-grass-blend",
+			}
+		do
+			local s = serde.decode("json", fs.readFile(`{SHOTS}/{file}.json`))
+			expect(s.target).toBe(nil)
+			expect(#s.pos).toBe(3)
+			expect(#s.look).toBe(3)
+		end
+	end)
 	it("the bug-11 mesh-collision shots target the placed RanchProps instances", function()
 		local want = {
 			["183-bug11-hull-stand.json"] = "Well",
 			["184-bug11-box-stand.json"] = "Wagon_5",
 			["185-bug11-pcd-stand.json"] = "FenceStile_8",
 			["186-bug11-walk-stile.json"] = "FenceStile_8",
-			["191-bug11-walk-loft.json"] = "BarnLoft_2",
+			["212-bug11-walk-loft.json"] = "BarnLoft_2",
 		}
 		for file, target in want do
 			local s = serde.decode("json", fs.readFile(`{SHOTS}/{file}`))
