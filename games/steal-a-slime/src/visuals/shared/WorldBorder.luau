@@ -28,9 +28,14 @@
 	         (mesh, rotation bucket, scale bucket) pattern anywhere in the
 	         ring, so no stretch looks copy-pasted. Every build is identical.
 
+	GIANTS (border v5): a ring of GIANT_COUNT huge trees of three NEW kit
+	meshes (giant_broadleaf, giant_pine_layered, giant_round_canopy), 3-5x the
+	height of the border pines, stand on the Terrain hills beyond the fence
+	and in front of the mountains, in three radial depth bands.
+
 	Decor never collides; the walls are the only collision. Every decor piece
 	is one MeshAsset slot (MeshSwap skins it); the border share is
-	WorldLayout.BORDER_SLOT_BUDGET (104), the pieces stay under it.
+	WorldLayout.BORDER_SLOT_BUDGET, the pieces and giants stay under it.
 ]]
 
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
@@ -79,6 +84,9 @@ export type Piece = {
 	scale: number,
 	mirrored: boolean,
 	uploaded: boolean, -- MeshAssets has a meshId (MeshSwap can skin the slot)
+	tilt: { number }?, -- giants: lean about X and Z in degrees
+	tint: Vec?, -- giants: MeshPart.Color the slot hands the swapped mesh (0-255)
+	band: number?, -- giants: radial depth band, 1 = nearest the fence
 }
 
 type Chunk = {
@@ -120,7 +128,7 @@ WorldBorder.CHUNKS = table.freeze({
 	{ kind = "PineGrove", mesh = "ranch_border_chunk_d", corner = 2 },
 	{ kind = "CornerGrove", mesh = "ranch_border_chunk_h", corner = 4 },
 } :: { Chunk })
-WorldBorder.CORNER_CHUNKS = 2 -- per Ground corner
+WorldBorder.CORNER_CHUNKS = 1 -- per Ground corner
 WorldBorder.CORNER_SCALE = { 0.85, 1.0 }
 WorldBorder.CORNER_TUCK = 24 -- corner groves start this far past the wall, over the back of the hills
 
@@ -281,23 +289,39 @@ WorldBorder.DEFS = table.freeze({
 WorldBorder.LAYERS = table.freeze({
 	inner = { base = 4, cap = 28, gap = { -1.5, 2.5 }, o = { 0.5, 2.5 }, opening = { 8, 22 }, openingChance = 0.1 },
 	mid = { base = 14, cap = 32, gap = { -4, 1 }, o = { 5, 22 }, open = { 20, 80 }, cluster = { 3, 6 } },
-	outer = { base = 34, cap = 12, gap = { 30, 120 }, o = { 14, 40 } },
+	outer = { base = 34, cap = 8, gap = { 30, 120 }, o = { 14, 40 } },
 })
 WorldBorder.THEMES = table.freeze({
 	{ name = "pines", weight = 4 },
 	{ name = "meadow", weight = 3 },
 	{ name = "rocky", weight = 2 },
 })
--- Giants (border v4): a few existing tree meshes scaled up and set on the
--- terrain hills, spread round the ring by sector (one per sector, jittered).
--- Each is one MeshAsset slot (BORDER_SLOT_COUNT 80 + GIANT_COUNT).
-WorldBorder.GIANT_COUNT = 6
-WorldBorder.GIANT_MAX_AXIS = 120
-WorldBorder.GIANT_OFFSET = { 50, 150 } -- studs past the Ground edge, along the bearing
+-- Giants (border v5): three NEW tree meshes (shared/modeling-kit models/giant_*.py,
+-- 78-87 studs native; the border pines are 25 native, 22-36 placed) scaled to 90-126
+-- studs, i.e. 3.6-5x a border pine's native height, set on the terrain in three radial
+-- depth bands and spread round the ring by sector (one per sector, jittered).
+-- Each is one MeshAsset slot (BORDER_SLOT_COUNT 72 + GIANT_COUNT).
+WorldBorder.GIANT_COUNT = 22
+WorldBorder.GIANT_MAX_AXIS = 150
+-- Studs past the Ground edge, along the bearing: near the hills, mid, and far
+-- (still ahead of the mountains' feet, which start PEAK_CLEAR past the edge).
+WorldBorder.GIANT_BANDS = table.freeze({ { 38, 64 }, { 78, 112 }, { 124, 158 } })
+WorldBorder.GIANT_TILT = 4 -- degrees, most lean about each horizontal axis
+WorldBorder.GIANT_CLEAR = 10 -- studs of canopy clearance between a giant's reach and the wall ring
+WorldBorder.GIANT_SINK = 1.5 -- studs the trunk base is set below the terrain
+-- MeshPart.Color multiplies the vertex colours (MeshSwap copies the slot's colour when the
+-- slot has the MeshTint attribute): a few gentle canopy moods, each rolled a little off.
+WorldBorder.GIANT_TINTS = table.freeze({
+	{ 255, 255, 255 },
+	{ 232, 255, 214 },
+	{ 255, 244, 190 },
+	{ 214, 238, 255 },
+	{ 255, 226, 200 },
+})
 WorldBorder.GIANT_DEFS = table.freeze({
-	{ kind = "GiantPine", mesh = "ranch_border_pine_tall", scale = { 3.4, 4.6 } },
-	{ kind = "GiantBroad", mesh = "ranch_border_pine_broad", scale = { 4.4, 5.6 } },
-	{ kind = "GiantOak", mesh = "ranch_border_oak_round", scale = { 3.8, 4.8 } },
+	{ kind = "GiantBroadleaf", mesh = "giant_broadleaf", scale = { 1.15, 1.6 } },
+	{ kind = "GiantPine", mesh = "giant_pine_layered", scale = { 1.05, 1.45 } },
+	{ kind = "GiantRound", mesh = "giant_round_canopy", scale = { 1.12, 1.55 } },
 })
 WorldBorder.WINDOW = 4 -- no run of this many pieces repeats its (mesh, rotation, scale) pattern
 WorldBorder.ROT_BUCKET = 30 -- degrees
@@ -649,18 +673,26 @@ local function placeLayer(rng: Rng.Rng, name: string, drafts: { Draft }, circumf
 end
 
 -- Corner groves: CORNER_CHUNKS per Ground corner, deep in the square past
--- the hills, either side of the diagonal. The 8 placements are the corner
--- set (every chunk design in both hands) dealt out in a seeded shuffle.
+-- the hills, either side of the diagonal. The placements are the corner set
+-- (every chunk design, then mirrored twins) dealt out in order.
 local function cornerRow(rng: Rng.Rng): { Piece }
+	-- One plain piece of every design first (so a short corner set still shows
+	-- each design), shuffled; then the mirrored twins, the design with the most
+	-- placements first.
 	local set: { { def: Chunk, mirrored: boolean } } = {}
 	for _, c in WorldBorder.CHUNKS do
-		for k = 1, c.corner do
-			table.insert(set, { def = c, mirrored = k % 2 == 0 })
-		end
+		table.insert(set, { def = c, mirrored = false })
 	end
 	for i = #set, 2, -1 do
 		local j = rng:int(1, i)
 		set[i], set[j] = set[j], set[i]
+	end
+	local twins = table.clone(WorldBorder.CHUNKS :: { Chunk })
+	table.sort(twins, function(x, y)
+		return x.corner > y.corner
+	end)
+	for _, c in twins do
+		table.insert(set, { def = c, mirrored = true })
 	end
 	local out = {}
 	for corner = 0, 3 do
@@ -684,36 +716,70 @@ local function cornerRow(rng: Rng.Rng): { Piece }
 	return out
 end
 
--- Giants: GIANT_COUNT big trees round the ring, one per sector in a seeded
--- design order that never repeats a neighbour, standing on the border
--- terrain (lowest of five footprint samples, sunk a stud so no root floats).
+-- Giants: GIANT_COUNT huge trees round the ring, one per sector. Species deal
+-- out so no two neighbours (the last and first included) share a design; the
+-- depth bands deal in shuffled triples so the ring is never one flat line.
+-- Each stands on the border terrain (lowest of five footprint samples, sunk
+-- GIANT_SINK so no root floats), leans a few degrees and wears its own tint.
 function WorldBorder.giants(seed: number?): { Piece }
 	local rng = Rng.new((seed or WorldBorder.SEED) + 15485863)
 	local field = BorderTerrain.field()
 	local count = WorldBorder.GIANT_COUNT
+	local defs = WorldBorder.GIANT_DEFS
+	local bands = WorldBorder.GIANT_BANDS
+	local tilt = WorldBorder.GIANT_TILT
 	local start = rng:float() * 360
-	local out: { Piece } = {}
-	local last = 0
+	local sector = 360 / count
+	local order: { number } = {}
+	local last, first = 0, 0
 	for k = 1, count do
 		local i
 		repeat
-			i = rng:int(1, #WorldBorder.GIANT_DEFS)
-		until i ~= last or #WorldBorder.GIANT_DEFS == 1
+			i = rng:int(1, #defs)
+		until (i ~= last and (k < count or i ~= first)) or #defs < 3
 		last = i
-		local def = WorldBorder.GIANT_DEFS[i]
+		if k == 1 then
+			first = i
+		end
+		table.insert(order, i)
+	end
+	local bandOrder: { number } = {}
+	while #bandOrder < count do
+		local triple = {}
+		for b = 1, #bands do
+			table.insert(triple, b)
+		end
+		for a = #triple, 2, -1 do
+			local b = rng:int(1, a)
+			triple[a], triple[b] = triple[b], triple[a]
+		end
+		for _, b in triple do
+			table.insert(bandOrder, b)
+		end
+	end
+	local out: { Piece } = {}
+	for k = 1, count do
+		local def = defs[order[k]]
 		local n = native(def.mesh)
 		local scale = math.min(lerp(def.scale, rng:float()), WorldBorder.GIANT_MAX_AXIS / math.max(n[1], n[2], n[3]))
 		local size = { n[1] * scale, n[2] * scale, n[3] * scale }
-		local sector = 360 / count
 		local angle = start + (k - 1) * sector + (0.2 + rng:float() * 0.6) * sector
-		local r = WorldBorder.groundRadius(angle) + lerp(WorldBorder.GIANT_OFFSET, rng:float())
+		local band = bandOrder[k]
+		local r = WorldBorder.groundRadius(angle) + lerp(bands[band], rng:float())
+		-- the canopy never hangs over the walls
+		r = math.max(
+			r,
+			WorldBorder.RADIUS + WorldBorder.WALL_THICKNESS + WorldBorder.GIANT_CLEAR + math.max(size[1], size[3]) / 2
+		)
 		local x, _, z = table.unpack(polar(angle, r, 0))
-		local reach = math.min(size[1], size[3]) * 0.3
+		local reach = math.min(size[1], size[3]) * 0.1
 		local ground = math.huge
 		for _, o in { { 0, 0 }, { reach, 0 }, { -reach, 0 }, { 0, reach }, { 0, -reach } } do
 			ground = math.min(ground, field.height(x + o[1], z + o[2]))
 		end
 		local turn = (rng:float() * 2 - 1) * 180
+		local mood = WorldBorder.GIANT_TINTS[rng:int(1, #WorldBorder.GIANT_TINTS)]
+		local fade = 1 - rng:float() * 0.06
 		local p: Piece = {
 			kind = def.kind,
 			mesh = def.mesh,
@@ -724,12 +790,15 @@ function WorldBorder.giants(seed: number?): { Piece }
 			scaleBucket = 0,
 			angle = angle % 360,
 			radius = r,
-			pos = { x, ground - 1 + size[2] / 2, z },
+			pos = { x, ground - WorldBorder.GIANT_SINK + size[2] / 2, z },
 			size = size,
 			yaw = (angle + 180 + turn) % 360,
 			scale = scale,
 			mirrored = false,
 			uploaded = MeshAssets.meshId(def.mesh) ~= nil,
+			tilt = { (rng:float() * 2 - 1) * tilt, (rng:float() * 2 - 1) * tilt },
+			tint = { math.floor(mood[1] * fade), math.floor(mood[2] * fade), math.floor(mood[3] * fade) },
+			band = band,
 		}
 		table.insert(out, p)
 	end
@@ -759,20 +828,21 @@ end
 -- wall); accents keep a wood placeholder like the other ranch prop slots.
 local function pieceNode(p: Piece, name: string): Node
 	local accent = p.kind == "Accent"
+	local tint = p.tint
 	return {
 		name = name,
 		class = "Part",
 		shape = "Block",
 		size = p.size,
 		pos = p.pos,
-		rot = { 0, p.yaw, 0 },
-		color = if accent then WOOD else FOLIAGE,
+		rot = if p.tilt then { p.tilt[1], p.yaw, p.tilt[2] } else { 0, p.yaw, 0 },
+		color = if accent then WOOD else tint or FOLIAGE,
 		material = if accent then "WoodPlanks" else "Grass",
 		transparency = if accent then nil else 1,
 		canCollide = false,
 		canQuery = false,
 		canTouch = false,
-		attributes = { MeshAsset = p.mesh },
+		attributes = if tint then { MeshAsset = p.mesh, MeshTint = true } else { MeshAsset = p.mesh },
 	}
 end
 

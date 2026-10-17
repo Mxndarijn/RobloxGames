@@ -13,9 +13,9 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
--- tools/pr-gate/budget_counts: mesh slots before border terrain (384) plus
--- the six giant trees of border v4 (the terrain itself adds none).
-local BASELINE_MESH_SLOTS = 384 + WorldBorder.GIANT_COUNT
+-- tools/pr-gate/budget_counts: mesh slots with the 22 giant trees of border v5
+-- and 8 small border pieces retired (the terrain itself adds none).
+local BASELINE_MESH_SLOTS = 398
 -- Part nodes outside Map.Border before this change (and after it).
 local BASELINE_PARTS = 1340
 
@@ -51,7 +51,7 @@ local function range(values: { number }): (number, number)
 end
 
 describe("BorderTerrain budget", function()
-	it("adds no mesh slot of its own: 384 + the giant trees stays under 400", function()
+	it("adds no mesh slot of its own: the border v5 count (398) stays under 400", function()
 		local slots = 0
 		walk({ name = "root", children = WorldLayout.build() }, function(n)
 			local a = n.attributes or {}

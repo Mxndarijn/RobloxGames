@@ -892,8 +892,14 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 		}
 	do
 		local name, r = card[1] :: string, card[2] :: Rect
-		check.onScreen(name, r, m)
-		if r.y + r.h > floor + EPS then
+		-- Short phones: the tutorial card hugs the bottom edge (Layout.TUTORIAL_SHORT_MARGIN).
+		local edge = if string.sub(name, 1, 8) == "Tutorial"
+				and screen.short
+				and screen.viewportH < Layout.TUTORIAL_SHORT_HEIGHT
+			then Layout.TUTORIAL_SHORT_MARGIN / screen.scale
+			else nil
+		check.onScreen(name, r, edge or m)
+		if r.y + r.h > (if edge then screen.height - edge else floor) + EPS then
 			check.fail(`{name} {fmt(r)} reaches into the bottom inset (floor {floor})`)
 		end
 		check.noOverlap(name, r, "Nav", screen.nav)

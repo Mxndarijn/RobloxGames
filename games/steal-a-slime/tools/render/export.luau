@@ -21,6 +21,8 @@ local serde = require("@lune/serde")
 
 local BorderTerrain = require("../../src/visuals/shared/BorderTerrain")
 local Config = require("../../src/shared/Config")
+local FountainTierDecor = require("../../src/visuals/shared/FountainTierDecor")
+local FountainTiers = require("../../src/shared/FountainTiers")
 local Habitats = require("../../src/shared/Habitats")
 local MagnetDecor = require("../../src/visuals/shared/MagnetDecor")
 local MeshAssets = require("../../src/shared/MeshAssets")
@@ -29,8 +31,6 @@ local Props = require("../../src/visuals/shared/Props")
 local VatDecor = require("../../src/visuals/shared/VatDecor")
 local WorldBorder = require("../../src/visuals/shared/WorldBorder")
 local WorldBuilder = require("../../src/visuals/shared/WorldBuilder")
-local FountainTierDecor = require("../../src/visuals/shared/FountainTierDecor")
-local FountainTiers = require("../../src/shared/FountainTiers")
 local WorldLayout = require("../../src/visuals/shared/WorldLayout")
 
 local PENDING = table.find(process.args, "--pending") ~= nil
@@ -143,6 +143,10 @@ for _, scope in { built.map, built.plots } do
 			local tint = nil
 			if skinDef and skinDef.fence and inst:IsDescendantOf(built.plots:FindFirstChild("Plot_1")) then
 				tint = { skinDef.fence[1] / 255, skinDef.fence[2] / 255, skinDef.fence[3] / 255 }
+			end
+			if inst:IsA("BasePart") and inst:GetAttribute("MeshTint") == true then
+				-- WorldBorder giants: MeshSwap copies the slot's Color onto the mesh
+				tint = { inst.Color.R, inst.Color.G, inst.Color.B }
 			end
 			local skinMesh = skinDef and skinDef.decor and inst.Name == "Mailbox_1"
 			if skinMesh then

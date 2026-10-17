@@ -2,7 +2,7 @@
 -- World border (WorldBorder): seeded layered decor (fences and hedges, tree
 -- and rock groves, backdrop hills) is deterministic and never repeats a
 -- stretch, the invisible collider ring closes the whole perimeter, and the
--- border stays inside its MeshPart slot share (88 of the THEME.md 400) and
+-- border stays inside its MeshPart slot share (96 of the THEME.md 400) and
 -- part budget (700).
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
@@ -358,7 +358,7 @@ describe("WorldBorder no repeating sequence", function()
 end)
 
 describe("WorldBorder decor", function()
-	it("stays inside the MeshPart slot share (<= 88) and the border part budget (<= 700)", function()
+	it("stays inside the MeshPart slot share (<= 96) and the border part budget (<= 700)", function()
 		local slots, parts = 0, 0
 		for _, n in borderNodes() do
 			if n.class == "Part" then
@@ -371,11 +371,11 @@ describe("WorldBorder decor", function()
 		expect(slots).toBe(#pieces + WorldBorder.GIANT_COUNT)
 		expect(slots).toBe(WorldLayout.BORDER_SLOT_COUNT)
 		expect(slots <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
-		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(88)
+		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(96)
 		expect(parts <= WorldLayout.BORDER_PART_BUDGET).toBe(true)
 		expect(parts).toBe(WorldBorder.WALL_SEGMENTS + #pieces + WorldBorder.GIANT_COUNT)
 	end)
-	it("builds at most 88 slots whatever the seed", function()
+	it("builds at most 96 slots whatever the seed", function()
 		for seed = 1, 12 do
 			expect(#WorldBorder.pieces(seed * 977) + WorldBorder.GIANT_COUNT <= WorldLayout.BORDER_SLOT_BUDGET).toBe(
 				true
@@ -433,11 +433,15 @@ describe("WorldBorder decor", function()
 			expect(n).toBe(WorldBorder.CORNER_CHUNKS)
 		end
 	end)
-	it("leaves no stretch of the edge open: every bearing has something behind the wall", function()
+	it("leaves no stretch of the edge open: every bearing has something behind the wall (giants count)", function()
 		local covered: { boolean } = {}
 		local count = 0
+		local behind: { any } = table.clone(pieces)
+		for _, g in WorldBorder.giants() do
+			table.insert(behind, g)
+		end
 		for deg = 0, 359 do
-			for _, p in pieces do
+			for _, p in behind do
 				local half = math.deg(math.max(p.size[1], p.size[3]) / 2 / p.radius)
 				if math.abs((deg - p.angle + 180) % 360 - 180) <= half then
 					covered[deg + 1] = true
@@ -502,69 +506,133 @@ describe("WorldBorder decor", function()
 	end)
 end)
 
-describe("WorldBorder giants (v4)", function()
+describe("WorldBorder giants (v5)", function()
 	local giants = WorldBorder.giants()
 	local BorderTerrain = require("../src/visuals/shared/BorderTerrain")
 	local field = BorderTerrain.field()
+	local PINE_NATIVE = MeshAssets.get("ranch_border_pine_tall").size :: { number }
 
-	it("adds GIANT_COUNT big trees of existing kit meshes: no new design", function()
+	it("adds GIANT_COUNT trees of three NEW kit meshes, none of them a scattered decor design", function()
 		expect(#giants).toBe(WorldBorder.GIANT_COUNT)
+		expect(WorldBorder.GIANT_COUNT >= 18 and WorldBorder.GIANT_COUNT <= 28).toBe(true)
 		local designs: { [string]: boolean } = {}
 		for _, d in WorldBorder.DEFS do
 			designs[d.mesh] = true
 		end
+		local used: { [string]: boolean } = {}
 		for _, g in giants do
-			expect(designs[g.mesh]).toBe(true)
+			expect(designs[g.mesh]).toBe(nil)
+			expect(string.sub(g.mesh, 1, 6)).toBe("giant_")
 			expect(MeshAssets.get(g.mesh) ~= nil).toBe(true)
+			expect(MeshAssets.meshId(g.mesh) ~= nil).toBe(true)
 			expect(g.row).toBe("giant")
+			used[g.mesh] = true
 		end
+		local n = 0
+		for _ in used do
+			n += 1
+		end
+		expect(n).toBe(#WorldBorder.GIANT_DEFS)
 	end)
-	it("scales them well past the ordinary decor, within GIANT_MAX_AXIS", function()
+	it("stands 3-5x a border pine tall, within GIANT_MAX_AXIS", function()
 		for _, g in giants do
 			local tallest = math.max(g.size[1], g.size[2], g.size[3])
 			expect(tallest <= WorldBorder.GIANT_MAX_AXIS + 1e-6).toBe(true)
-			expect(g.size[2] >= WorldBorder.WALL_HEIGHT * 0.7).toBe(true)
-			expect(g.scale >= 3).toBe(true)
+			expect(g.size[2] >= 3 * PINE_NATIVE[2]).toBe(true)
+			expect(g.size[2] <= 5.05 * PINE_NATIVE[2]).toBe(true)
 		end
 	end)
-	it("varies design and size, never the same design twice in a row", function()
-		local sizes = {}
-		for i, g in giants do
-			table.insert(sizes, g.size[2])
-			expect(g.mesh ~= giants[i % #giants + 1].mesh or #giants < 3).toBe(true)
-		end
+	it("varies design, size, heading, lean and tint, never the same design twice in a row", function()
 		local lo, hi = math.huge, -math.huge
-		for _, v in sizes do
-			lo, hi = math.min(lo, v), math.max(hi, v)
+		local tints: { [string]: boolean } = {}
+		local yawBuckets: { [number]: boolean } = {}
+		for i, g in giants do
+			expect(g.mesh ~= giants[i % #giants + 1].mesh).toBe(true)
+			lo, hi = math.min(lo, g.size[2]), math.max(hi, g.size[2])
+			local t = g.tint :: { number }
+			tints[`{t[1]},{t[2]},{t[3]}`] = true
+			yawBuckets[math.floor(g.yaw / 45)] = true
+			local tilt = g.tilt :: { number }
+			expect(math.abs(tilt[1]) <= WorldBorder.GIANT_TILT + 1e-6).toBe(true)
+			expect(math.abs(tilt[2]) <= WorldBorder.GIANT_TILT + 1e-6).toBe(true)
 		end
-		expect(hi - lo >= 8).toBe(true)
+		expect(hi - lo >= 20).toBe(true)
+		local nt, ny = 0, 0
+		for _ in tints do
+			nt += 1
+		end
+		for _ in yawBuckets do
+			ny += 1
+		end
+		expect(nt >= 8).toBe(true)
+		expect(ny >= 6).toBe(true)
 	end)
-	it("stands them past the Ground edge on the terrain, clear of the walls and the decor rings", function()
+	it("puts them in three radial depth bands, all of them used", function()
+		local seen: { [number]: number } = {}
+		for _, g in giants do
+			local band = g.band :: number
+			seen[band] = (seen[band] or 0) + 1
+			local off = g.radius - WorldBorder.groundRadius(g.angle)
+			local range = WorldBorder.GIANT_BANDS[band]
+			-- a giant may be pushed out (never in) to keep its canopy off the walls
+			expect(off >= range[1] - 1e-6).toBe(true)
+		end
+		for b = 1, #WorldBorder.GIANT_BANDS do
+			expect((seen[b] or 0) >= 4).toBe(true)
+		end
+	end)
+	it("stands them past the Ground edge on the terrain, canopy and all clear of the walls and decor rings", function()
 		for _, g in giants do
 			local d = math.max(math.abs(g.pos[1]), math.abs(g.pos[3]))
-			expect(d >= BorderTerrain.INNER + 40).toBe(true)
-			expect(g.radius > WorldBorder.RADIUS + WorldBorder.WALL_THICKNESS + 40).toBe(true)
+			expect(d >= BorderTerrain.INNER + 30).toBe(true)
+			local reach = math.max(g.size[1], g.size[3]) / 2
+			expect(g.radius - reach >= WorldBorder.RADIUS + WorldBorder.WALL_THICKNESS + WorldBorder.GIANT_CLEAR - 1e-6).toBe(
+				true
+			)
 			local base = g.pos[2] - g.size[2] / 2
 			-- rooted: base within a few studs of the terrain at its centre
 			local h = field.height(g.pos[1], g.pos[3])
-			expect(math.abs(base - (h - 1)) <= math.max(1, h) + 0.01).toBe(true)
+			expect(math.abs(base - (h - WorldBorder.GIANT_SINK)) <= math.max(1, h) + 0.01).toBe(true)
 			expect(base <= h + 0.01).toBe(true)
 		end
 	end)
-	it("spreads them round the ring (one per sector) and builds identically each time", function()
-		local seen: { [number]: boolean } = {}
+	it("stays in front of the mountains: no giant beyond the far band", function()
 		for _, g in giants do
-			seen[math.floor(g.angle / (360 / WorldBorder.GIANT_COUNT))] = true
+			local d = math.max(math.abs(g.pos[1]), math.abs(g.pos[3]))
+			expect(d <= BorderTerrain.INNER + BorderTerrain.PEAK_CLEAR + 80).toBe(true)
 		end
-		local sectors = 0
-		for _ in seen do
-			sectors += 1
+	end)
+	it("spreads them round the ring with jittered gaps and builds identically each time", function()
+		local angles = {}
+		for _, g in giants do
+			table.insert(angles, g.angle)
 		end
-		expect(sectors >= WorldBorder.GIANT_COUNT - 1).toBe(true)
+		table.sort(angles)
+		local sector = 360 / WorldBorder.GIANT_COUNT
+		local lo, hi = math.huge, 0
+		for i, a in angles do
+			local gap = (angles[i % #angles + 1] - a) % 360
+			lo, hi = math.min(lo, gap), math.max(hi, gap)
+		end
+		expect(hi <= 2 * sector).toBe(true)
+		expect(lo >= 2).toBe(true)
+		expect(hi - lo >= sector / 2).toBe(true)
 		local again = WorldBorder.giants()
 		for i, g in giants do
 			expect(again[i].pos[1]).toBe(g.pos[1])
 			expect(again[i].size[2]).toBe(g.size[2])
+			expect(again[i].tint).toEqual(g.tint)
 		end
+	end)
+	it("tints and tilts the slots: MeshTint attribute, colour = tint, rot carries the lean", function()
+		local n = 0
+		walk(WorldBorder.build(), function(node)
+			if node.name and string.find(node.name, "^Giant") and node.attributes then
+				n += 1
+				expect(node.attributes.MeshTint).toBe(true)
+				expect(node.color ~= nil and node.rot ~= nil).toBe(true)
+			end
+		end)
+		expect(n).toBe(WorldBorder.GIANT_COUNT)
 	end)
 end)

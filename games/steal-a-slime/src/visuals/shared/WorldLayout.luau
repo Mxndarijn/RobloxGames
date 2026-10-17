@@ -172,8 +172,11 @@ WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 --           corner shows one post; the run that ends at the gate has none
 --           there, and this post closes it, mirroring the post beside the
 --           other gate stub. Paid for by the border share (112 -> 104).
---   border  Map.Border's share (88). The ring uses BORDER_SLOT_COUNT (86:
---           80 decor pieces + 6 giant trees of border v4)
+--   border  Map.Border's share (96). The ring uses BORDER_SLOT_COUNT (94:
+--           72 decor pieces + 22 giant trees of border v5; v5 retired the 6
+--           scaled-up v4 giants and 8 small pieces: 4 of the 8 corner groves
+--           and 4 of the 12 outer hills, whose backdrop the Terrain hills and
+--           mountains now give)
 --           since border v3 (single hedge, fence, tree, rock and hill
 --           pieces scattered in layers; 102 slots / 12 designs more until
 --           the pc-watcher perf gate read 414 > 400); #56's chunk ring
@@ -184,17 +187,18 @@ WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 --           09ea65e, 398 vs 414 at b84f795). RUNTIME_SLOT_ALLOWANCE.
 --   decor   everything else: ranch props, pad stands, fountain, plaza,
 --           landing ring, gates, plot dex boards, WorldProps
---           skins. Capped at 160 = MESH_SLOT_BUDGET - fence - posts - border
---           share (the plots no longer carry a BuyStand: 8 slots free;
+--           skins. Capped at 152 = MESH_SLOT_BUDGET - fence - posts - border
+--           share - runtime (152 used; v5 moved 8 of the old 160 to the border;
+--           the plots no longer carry a BuyStand: 8 slots free;
 --           the shop skin is the one ranch_shop_stand).
 -- The fallback (two segments per panel until the upload) adds one slot per
 -- panel: 112.
 WorldLayout.MESH_SLOT_BUDGET = 400
 WorldLayout.FENCE_SLOT_BUDGET = 128
 WorldLayout.GATE_POST_SLOT_BUDGET = 8
-WorldLayout.BORDER_SLOT_BUDGET = 88
-WorldLayout.BORDER_SLOT_COUNT = 86
-WorldLayout.DECOR_SLOT_BUDGET = 160
+WorldLayout.BORDER_SLOT_BUDGET = 96
+WorldLayout.BORDER_SLOT_COUNT = 94
+WorldLayout.DECOR_SLOT_BUDGET = 152
 WorldLayout.RUNTIME_SLOT_ALLOWANCE = 16
 WorldLayout.MESH_SLOT_BUDGET_FALLBACK = WorldLayout.MESH_SLOT_BUDGET + 112
 -- Parts outside Map.Border (THEME.md asked <= 1200; raised to 1400 for the
