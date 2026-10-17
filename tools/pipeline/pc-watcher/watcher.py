@@ -1522,6 +1522,8 @@ def step_shots(run):
                     keep = "DailyPopup"
                 if shot.get("welcome_back"):
                     keep = "WelcomePanel"
+                if shot.get("audio_panel"):  # ui_isolate hides every *Panel, which would close the opened SoundPanel
+                    keep = "SoundPanel"
                 ok, iso = run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=True)
                 res["isolated"] = iso if ok else str(iso)[:160]
                 try:
