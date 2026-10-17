@@ -236,7 +236,7 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "revenge_set": {"PLOT", "WAIT"},
+        "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
         "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"},
     }
@@ -318,9 +318,16 @@ def t_files():
     rev = [s for s in shots if s.get("revenge_plot")]
     check("a revenge_plot shot aims at that plot and waits briefly (v21 Revenge)",
           len(rev) == 1 and rev[0].get("target") == "Plot_%d" % rev[0]["revenge_plot"] and 0 < float(rev[0].get("wait", 0)) <= 4, rev)
-    weathers = {s["weather"]: s for s in shots if s.get("weather")}
+    # the snow_cover shots (SnowGround v2) pin the ground snow: Snow = settling, Clear = melting
+    snow_shots = [s for s in shots if "snow_cover" in s]
+    weathers = {s["weather"]: s for s in shots if s.get("weather") and "snow_cover" not in s}
     check("weather shots cover Rain, Snow and Starfall with a short wait",
           set(weathers) == {"Rain", "Snow", "Starfall"} and all(0 < float(s.get("wait", 0)) <= 4 for s in weathers.values()), sorted(weathers))
+    snow_ids = {s["id"] for s in snow_shots}
+    check("ground snow shots 18c cover settle mid, settle full and melt mid on pc and phone (SnowGround v2)",
+          snow_ids == {"18c-snow-ground-%s-%s" % (k, d) for k in ("settle-mid", "settle-full", "melt-mid") for d in ("pc", "phone")}
+          and all(0 <= float(s["snow_cover"]) <= 1 and 0 < float(s.get("wait", 0)) <= 4 for s in snow_shots)
+          and all((s["weather"] == "Clear") == s["id"].startswith("18c-snow-ground-melt") for s in snow_shots), sorted(snow_ids))
     devs = {(s["weather"], s.get("device")) for s in shots if s.get("weather")}
     check("every weather type has a phone and a desktop shot",
           all((w, d) in devs for w in ("Rain", "Snow", "Starfall") for d in ("desktop", "phone-portrait")), sorted(devs, key=str))
@@ -501,8 +508,155 @@ def t_partial():
     check("partial report not publishable", rep["run_kind"] == "partial" and rep["publishable"] is False)
 
 
+def t_perf():
+    import inspect
+    e = watcher.perf_frame_stats([])
+    check("perf stats empty", e["frames"] == 0 and e["avg_fps"] is None and e["low1_fps"] is None)
+    one = watcher.perf_frame_stats([20.0])
+    check("perf stats one frame", one["frames"] == 1 and one["avg_fps"] == 50.0 and one["low1_fps"] == 50.0
+          and one["p99_ms"] == 20.0)
+    dts = [10.0] * 99 + [50.0]  # 100 frames: worst 1% = the one 50 ms frame
+    st = watcher.perf_frame_stats(dts)
+    check("perf stats avg / low1", st["avg_fps"] == round(1000 / 10.4, 2) and st["low1_fps"] == 20.0 and st["max_ms"] == 50.0
+          and st["p50_ms"] == 10.0 and st["p99_ms"] == 10.0, st)
+    big = watcher.perf_frame_stats([16.0] * 1999 + [100.0])  # worst 0.1% = 2 frames
+    check("perf stats low01", big["low01_fps"] == round(1000 / 58.0, 2), big)
+    def win(q, p95, dc, ps=None):
+        return {"quality": watcher.perf_quality_record(q, {"rendering_quality": "Enum.QualityLevel.Level%02d" % q,
+                                                           "saved_quality": "Enum.SavedQualitySetting.QualityLevel%d" % q}),
+                "client": {"avg_fps": 58.3, "low1_fps": 40.0, "p95_ms": p95, "p99_ms": 31.5,
+                           "memory_categories": {"PlaceMemory": 321.0} if ps else None,
+                           "render": {"SceneDrawcallCount": dc, "ShadowsDrawcallCount": 90.0, "RenderCPUFrameTime": 5.0},
+                           "render_unavailable": {"SceneTriangleCount": "not a valid member"}}}
+
+    def vs(d1, dc1):
+        base = {"label": "base", "extra_target": 0, "windows": [win(10, 12.0, 900.0, 1), win(1, 8.0, 300.0)],
+                "server": {"perf": {"runtime_parts": 2730, "mesh_slots": 300}, "mem": {"memory_categories": {"PlaceMemory": 100.0}}}}
+        p = {"label": "+1000", "extra_target": 1000, "windows": [win(10, 14.0, 1200.0), win(1, 8.0 + d1, dc1)]}
+        return [{"label": "base-early", "extra_target": 0, "windows": [win(10, 20.0, 1.0)]}, base, p]
+    rep = watcher.perf_build_report("a" * 40, "v", 30, vs(0.4, 450.0), None, ["n1"], 12.0, pc={"cpu": "x"})
+    md = watcher.perf_report_md(rep)
+    check("perf md table", "| base |" in md and "| +1000 |" in md and "| base-early |" in md and "n/a" in md
+          and "SceneTriangleCount" in md and "n1" in md and "p95 ms" in md and "\u0394p95 vs base" in md
+          and "PlaceMemory MB (client)" in md and "PlaceMemory MB (server)" in md and "client MB" not in md, md)
+    check("perf verdict pass", watcher.perf_verdict(rep) == "+1000: \u0394p95 = 0.40 ms (<1 ms? yes), draw calls at Q1 = 450 (<=500? yes) -> 3000 cap PASS",
+          watcher.perf_verdict(rep))
+    check("perf verdict fail p95", watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(1.5, 450.0), None, [], 1.0)).endswith("FAIL"))
+    check("perf verdict fail draw calls", "(<=500? no) -> 3000 cap FAIL" in watcher.perf_verdict(
+        watcher.perf_build_report("a" * 40, "v", 30, vs(0.2, 501.0), None, [], 1.0)))
+    nv = watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(0.2, 100.0)[:2], None, [], 1.0))
+    check("perf verdict n/a", nv.endswith("n/a") and "n/a ms" in nv and "Q1 = n/a" in nv, nv)
+    check("perf delta ignores base-early", watcher.perf_delta_p95(rep, rep["variants"][0], rep["variants"][0]["windows"][0]["quality"],
+          rep["variants"][0]["windows"][0]["client"]) is None)
+    check("perf quality parse", watcher.perf_parse_qualities("10,1") == [10, 1] and watcher.perf_parse_qualities("1, 3,6,3") == [1, 3, 6])
+    for bad in ("", "0", "22", "x"):
+        try:
+            watcher.perf_parse_qualities(bad)
+            check("perf quality parse rejects %r" % bad, False)
+        except ValueError:
+            check("perf quality parse rejects %r" % bad, True)
+    qa = watcher.perf_quality_record(1, {"rendering_quality": "Enum.QualityLevel.Level01", "saved_quality": "Enum.SavedQualitySetting.QualityLevel1"})
+    qn = watcher.perf_quality_record(10, {"rendering_quality": "Enum.QualityLevel.Automatic", "saved_quality": "Enum.SavedQualitySetting.Automatic"})
+    qh = watcher.perf_quality_record(1, {"rendering_quality": "Enum.QualityLevel.Level01", "saved_quality": "Enum.SavedQualitySetting.QualityLevel10"})
+    check("perf quality record", qa["label"] == "1" and qa["applied"] and qn["label"] == "unset (Automatic)" and not qn["applied"]
+          and qh["label"] == "1 (rendering only)")
+    d = tempfile.mkdtemp()
+    watcher.perf_write(d, "e" * 40, dict(rep, status="partial"))
+    check("perf incremental write", os.path.isfile(os.path.join(d, "e" * 40 + "-perf.json")) and
+          "status: **partial**" in open(os.path.join(d, "e" * 40 + "-perf.md"), encoding="utf-8").read())
+    skip = watcher.perf_report_md(dict(rep, variants=[{"label": "+10 unique meshes", "skipped": True, "reason": "no API"}]))
+    check("perf skipped extra in md", "+10 unique meshes: skipped (no API)" in skip)
+    check("perf report kind", rep["run_kind"] == "perf" and rep["publishable"] is False and rep["status"] == "measured"
+          and "frames_reviewed" not in rep and "pass" not in json.dumps(rep["status"]))
+    err = watcher.perf_build_report("a" * 40, None, 30, [], None, [], 1.0, error="boom")
+    check("perf error report", err["status"] == "error" and err["run_kind"] == "perf" and err["publishable"] is False)
+    src = inspect.getsource(watcher.cmd_perf) + inspect.getsource(watcher.sync_perf) + inspect.getsource(watcher.perf_variant)
+    check("perf never names loop state", not any(n in src for n in ("last-sha", "last-full", "full-done", "tip-seen", "unsynced")), src[:0])
+    check("perf sync path", watcher.perf_sync_path("b" * 40) == "perf/" + "b" * 40 and not watcher.perf_sync_path("c").startswith("studio-reports"))
+    run = watcher.Run(watcher.Paths(tempfile.mkdtemp()), dict(watcher.DEFAULTS), "d" * 40, kind="perf")
+    check("perf outdir", run.run_kind == "perf" and run.outdir.replace("\\", "/").endswith("out/perf/" + "d" * 40))
+    cam = watcher.PERF_CAMERA
+    for name, subs in (("perf_stress", {"target": 500}), ("perf_quality", {"level": 10}), ("perf_meshclone", {"target": 100}),
+                       ("perf_unique", {"count": 10}), ("perf_window", {"seconds": 30, "centre": tuple(cam["centre"]),
+                       "radius": cam["radius"], "height": cam["height"]})):
+        body = open(os.path.join(HERE, "luau", name + ".luau"), encoding="utf-8").read()
+        for k, v in subs.items():
+            body = body.replace("%%" + k.upper() + "%%", watcher.luau_literal(v))
+        check("luau %s filled" % name, "%%" not in body)
+    inst = open(os.path.join(HERE, "install.ps1"), encoding="utf-8").read()
+    check("install copies luau", "luau\\*.luau" in inst)
+
+
+def t_perf_e2e():
+    """cmd_perf end to end with every Studio/MCP call faked: catches a broken body (NameError etc.)."""
+    import types
+    home = tempfile.mkdtemp()
+    w = watcher
+    saved = {k: getattr(w, k) for k in ("step_build", "step_launch", "start_play", "step_close", "converge_viewport",
+                                        "capture_frame", "perf_pc_info", "tracked_pids")}
+    saved_luau, saved_need, saved_sleep = w.Run.luau, w.Run.need_luau, w.time.sleep
+    calls = []
+
+    def fake_luau(self, name, datamodel="Edit", timeout=60, **subs):
+        calls.append(name)
+        if name == "perf_window":
+            return True, {"frames": 100, "dts_ms": [16.0] * 99 + [40.0], "avg_fps": 60.0, "p95_ms": 17.0,
+                          "render": {"SceneDrawcallCount": 300}}
+        if name == "perf_terrain_attr":
+            return True, {"set": True}
+        if name == "perf_stress":
+            return True, {"added_parts": subs.get("target", 0), "clones": 1}
+        return True, {"runtime_parts": 2200, "mesh_slots": 390}
+
+    try:
+        w.step_build = w.step_launch = lambda run: None
+        w.start_play = lambda run: {}
+        w.step_close = lambda run: ("pass", {})
+        w.converge_viewport = lambda run, hwnd, target: ((1920, 1080), None)
+        w.capture_frame = lambda run, tag, **kw: {"file": tag + ".jpg"}
+        w.perf_pc_info = lambda: {"cpu": "test"}
+        w.tracked_pids = lambda paths: []
+        w.Run.luau = fake_luau
+        w.Run.need_luau = lambda self, name, dm="Edit", timeout=60, **subs: fake_luau(self, name, dm, timeout, **subs)[1]
+        w.time.sleep = lambda s: None
+        paths = w.Paths(home)
+        cfg = dict(w.DEFAULTS, sync=False)
+        orig_run = w.Run
+
+        class FakeRun(orig_run):
+            def __init__(self, *a, **k):
+                orig_run.__init__(self, *a, **k)
+                self.hwnd = 1
+
+            def record_foreground(self):
+                pass
+
+            def check_focus(self, where):
+                return False
+        w.Run = FakeRun
+        try:
+            rc = w.cmd_perf(paths, cfg, "a" * 40, [0, 500, 1000], 30, False, 5, False, False, qualities=(10, 1), opts={})
+        finally:
+            w.Run = orig_run
+        outdir = os.path.join(home, "out", "perf", "a" * 40)
+        rep = json.load(open(os.path.join(outdir, "a" * 40 + "-perf.json")))
+        labels = [v["label"] for v in rep["variants"]]
+        check("perf e2e: rc 0 and status measured", rc == 0 and rep["status"] == "measured", (rc, rep.get("status"), rep.get("error")))
+        check("perf e2e: variants base-early/base/+500/+1000", labels == ["base-early", "base", "+500", "+1000"], labels)
+        check("perf e2e: run_kind perf, not publishable", rep["run_kind"] == "perf" and rep["publishable"] is False)
+        check("perf e2e: md written", os.path.isfile(os.path.join(outdir, "a" * 40 + "-perf.md")))
+        check("perf e2e: settle recorded", (rep.get("settle") or {}).get("bt_set") is True, rep.get("settle"))
+        check("perf e2e: never touches loop state", not any(os.path.exists(paths.st(f)) for f in
+              ("last-sha.json", "last-full.json", "full-done.json", "tip-seen.json", "unsynced.json")))
+        check("perf e2e: run.lock released", not os.path.exists(paths.st("run.lock")))
+    finally:
+        for k, v in saved.items():
+            setattr(w, k, v)
+        w.Run.luau, w.Run.need_luau, w.time.sleep = saved_luau, saved_need, saved_sleep
+
+
 def main():
-    for t in (t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
+    for t in (t_perf, t_perf_e2e, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
               t_files, t_geometry, t_data_path, t_flags, t_partial):
         try:
             t()

@@ -522,6 +522,9 @@ VIEWS = {
     "21_slimepath_exit": lambda: look((-10, 4, 54), (0, 1.5, 36), lens=28),
     "22_slimepath_along": lambda: slimepath_along(),
     "23_slimepath_ring": lambda: look((46, 4, 56), (24, 2, 28), lens=28),
+    # SnowGround v2 (export --snow <level> --snow-phase settle|melt): eye height at the plaza edge looking down spoke 1 over the
+    # plaza sand, the spoke and ring paths, plot 1 and the hills behind
+    "20_snow_ground": lambda: look((0, 11, 38), (0, 3, 130), lens=22),
 }
 
 
