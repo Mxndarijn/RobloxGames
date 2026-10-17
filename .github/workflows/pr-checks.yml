@@ -116,7 +116,7 @@ jobs:
     if: always()
     needs: [changes, steal-a-slime, speed-escape]
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 12
     steps:
       - name: Require game jobs that ran
         run: |
