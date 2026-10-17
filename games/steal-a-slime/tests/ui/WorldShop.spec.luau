@@ -655,7 +655,9 @@ describe("world shop icons", function()
 		local registry = ItemIcons.build(Config)
 		for _, c in Config.CONSUMABLES do
 			expect(`Consumable_{c.id}: {ItemIconArt.has(`Consumable_{c.id}`)}`).toBe(`Consumable_{c.id}: true`)
-			expect(registry.byId[`Consumable_{c.id}`].source).toBe("drawn")
+			-- drawn recipe stays as the fallback; an uploaded picture (ItemIcons.IMAGES) wins
+			local source = registry.byId[`Consumable_{c.id}`].source
+			expect(`Consumable_{c.id}: {source == "drawn" or source == "image"}`).toBe(`Consumable_{c.id}: true`)
 		end
 		for _, tool in Config.PVP_TOOLS do
 			expect(`Pvp_{tool.id}: {ItemIconArt.has(`Pvp_{tool.id}`)}`).toBe(`Pvp_{tool.id}: true`)
