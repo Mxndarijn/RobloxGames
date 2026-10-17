@@ -53,6 +53,7 @@ local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local Scene = require(script.Parent.Scene)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local Snapshot = require(script.Parent.Snapshot)
+local StackGuard = require(script.Parent.StackGuard)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
 local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
@@ -704,6 +705,31 @@ local function setCharacterGroup(character: Model, group: string)
 	end
 end
 
+-- Bug #10: a character whose root overlaps the fountain-top slime stack (Map.Volcano.EmergeMesh) is not pushed out by
+-- the solid mesh, so move it above the top (radially outside if something is overhead). True when it moved.
+local function ejectFromStack(character: Model, root: BasePart): boolean
+	local volcano = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Volcano")
+	local slot = volcano and volcano:FindFirstChild("EmergeMesh")
+	local ref = slot and (slot:FindFirstChild("Mesh") or slot)
+	if not (ref and ref:IsA("BasePart")) then
+		return false
+	end
+	local half = ref.Size / 2
+	local p = ref.CFrame:PointToObjectSpace(root.Position)
+	if not StackGuard.inside(p.X, p.Y, p.Z, half.X, half.Y, half.Z) then
+		return false
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { character }
+	local top = ref.CFrame * Vector3.new(p.X, half.Y, p.Z)
+	local blocked = workspace:Raycast(top, Vector3.new(0, StackGuard.LIFT + 4, 0), params) ~= nil
+	local x, y, z = StackGuard.ejectPoint(p.X, p.Y, p.Z, half.X, half.Y, half.Z, blocked)
+	character:PivotTo(ref.CFrame * CFrame.new(x, y, z))
+	root.AssemblyLinearVelocity = Vector3.zero
+	return true
+end
+
 -- Per player: put the owner's character in PlotOwner_<i> (walks through the barrier) and send any
 -- other character standing inside a locked plot back to its entrance. Server-authoritative.
 function WorldView.enforceLocks(world: World.World, player: Player)
@@ -717,6 +743,9 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 	if root.CollisionGroup ~= wanted then
 		ensureGroups()
 		setCharacterGroup(character, wanted)
+	end
+	if ejectFromStack(character, root) then
+		return
 	end
 	for index = 1, world.plotCount do
 		local ownerId = world.plots[index]
