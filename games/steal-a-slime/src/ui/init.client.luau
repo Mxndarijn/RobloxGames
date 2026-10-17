@@ -823,7 +823,16 @@ end
 
 if isStudio then
 	for _, attribute in
-		{ "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin", "PcwDexRows", "PcwStealAlert", "PcwMergeVat", "PcwWelcome" }
+		{
+			"PcwFriendBonus",
+			"PcwAdminEvent",
+			"PcwWeekend",
+			"PcwPlotSkin",
+			"PcwDexRows",
+			"PcwStealAlert",
+			"PcwMergeVat",
+			"PcwWelcome",
+		}
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
 			if latest then
