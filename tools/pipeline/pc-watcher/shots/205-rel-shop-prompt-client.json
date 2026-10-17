@@ -1,0 +1,18 @@
+{
+  "id": "rel-shop-prompt-client",
+  "todo": "release probe R6",
+  "kind": "world",
+  "target": "UpgradeShopStand",
+  "from": "front",
+  "dist": 20,
+  "height": 10,
+  "bug_probe": {
+    "bug": "R6",
+    "title": "Shop prompts are shown and open their panel on the real client",
+    "luau": "rel_shop_prompt_client",
+    "ctx": "Client",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "release probe R6 (advisory, #269/#276): on the client the ShopPrompt of both stands is shown (PromptShown), InputHoldBegin / End opens SlimeUI.WorldShopPanel, Esc closes it"
+}

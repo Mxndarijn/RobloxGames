@@ -1,0 +1,18 @@
+{
+  "id": "rel-fountain-top-walk",
+  "todo": "release probe R2",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 45,
+  "height": 50,
+  "bug_probe": {
+    "bug": "R2",
+    "title": "Walk a full circle round the fountain-top stack and to the slide entry",
+    "luau": "rel_fountain_top_walk",
+    "ctx": "Server",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "release probe R2 (advisory, #264/#273): the real character walks (MoveTo) 12 waypoints round the EmergeMesh Box on the fountain top, then to the slide entry; per-waypoint reached / blocked / fell-off positions"
+}

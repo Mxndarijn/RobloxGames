@@ -21,8 +21,8 @@
     "shared/modeling-kit/kit/**"
   ],
   "rules": [
-    {"name": "bug probes", "paths": ["tools/pipeline/pc-watcher/luau/bug*.luau", "tools/pipeline/pc-watcher/shots/*bug*"],
-     "keys": ["bug_probe"], "shots": ["bug*"]},
+    {"name": "bug probes", "paths": ["tools/pipeline/pc-watcher/luau/bug*.luau", "tools/pipeline/pc-watcher/luau/rel_*.luau", "tools/pipeline/pc-watcher/shots/*bug*", "tools/pipeline/pc-watcher/shots/*rel-*"],
+     "keys": ["bug_probe"], "shots": ["bug*", "rel-*"]},
     {"name": "shop UI", "paths": ["{G}/src/ui/Panels/Shop.luau", "{G}/src/ui/Panels/WorldShop.luau", "{G}/src/ui/WorldShopLogic.luau", "{G}/src/ui/ShopCatalog.luau"],
      "shots": ["*shop*"], "steps": ["devices"]},
     {"name": "dex", "paths": ["{G}/src/ui/Panels/Dex.luau", "{G}/src/ui/SlimeDex.luau", "{G}/src/ui/SlimePreview.luau"],
@@ -58,9 +58,10 @@
     {"name": "ground terrain (dirt path, pastel grass, plaza sand)", "paths": ["{G}/src/**/GroundTerrain*.luau", "shared/modeling-kit/out/ground/**"],
      "shots": ["*ground*", "*path*", "*slide-exit*", "*curb*", "*snow*"]},
     {"name": "border / terrain", "paths": ["{G}/src/**/BorderTerrain*.luau", "{G}/src/visuals/shared/WorldBorder.luau"], "shots": ["*border*", "*bug14*", "*bug15*"]},
+    {"name": "minimap", "paths": ["{G}/src/visuals/shared/MinimapData.luau", "{G}/src/**/Minimap*.luau"], "shots": ["*minimap*"]},
     {"name": "fountain / slide",
-     "paths": ["{G}/src/**/Fountain*.luau", "{G}/src/shared/SlideColliders.luau"],
-     "keys": ["fountain_walk", "slide_walk"], "shots": ["*fountain*", "*slide*", "*bug09*", "*bug10*", "*bug11*", "*bug12*"]},
+     "paths": ["{G}/src/**/Fountain*.luau", "{G}/src/shared/SlideColliders.luau", "{G}/src/server/StackGuard.luau"],
+     "keys": ["fountain_walk", "slide_walk"], "shots": ["*fountain*", "*slide*", "*rel-stackguard*", "*bug09*", "*bug10*", "*bug11*", "*bug12*"]},
     {"name": "lane / paths", "paths": ["{G}/src/shared/ParadeLane.luau", "{G}/src/server/ParadeView.luau", "{G}/src/server/Spawner.luau"],
      "keys": ["ring_slimes", "wild_pace"], "shots": ["*ring-slimes*", "*wild-pace*", "*path*", "*slide-exit*", "*curb*", "*bug01*", "*bug04*", "*bug05*", "*bug06*", "*bug07*", "*bug13*"]},
     {"name": "habitats", "paths": ["{G}/src/**/Habitat*.luau"], "keys": ["habitat"], "shots": ["*habitat*"]},

@@ -1,0 +1,27 @@
+{
+  "id": "rel-minimap-pin",
+  "todo": "release probe R7",
+  "kind": "world",
+  "pos": [
+    20,
+    24,
+    30
+  ],
+  "look": [
+    67,
+    5,
+    55
+  ],
+  "wait": 0.5,
+  "device": "desktop",
+  "clock": 14,
+  "bug_probe": {
+    "bug": "R7",
+    "title": "Minimap player pin matches MinimapData.toMap",
+    "luau": "rel_minimap_pin",
+    "ctx": "Client",
+    "args": {},
+    "timeout": 20
+  },
+  "note": "release probe R7 (advisory): ok null while the client has no minimap UI; else the player pin matches MinimapData.toMap of the character within 0.05"
+}

@@ -1,0 +1,18 @@
+{
+  "id": "rel-stackguard-eject",
+  "todo": "release probe R1",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 45,
+  "height": 50,
+  "bug_probe": {
+    "bug": "R1",
+    "title": "StackGuard ejects a character from the fountain-top slime stack",
+    "luau": "rel_stackguard_eject",
+    "ctx": "Server",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "release probe R1 (advisory, #273): the real character teleported into the EmergeMesh box (centre, just under the top) is ejected within 1 s to the top or outside and never ends up back inside; before / after / time per try, live '[PCW StackGuard] eject' log lines"
+}
