@@ -47,6 +47,7 @@ local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
 local PopupQueue = require(script.PopupQueue)
+local PvpMount = require(script.PvpMount)
 local RareAnnounce = require(script.RareAnnounce)
 local SoundController = require(script.SoundController)
 local StealAlertFx = require(script.StealAlertFx)
@@ -211,6 +212,33 @@ local stealFx = StealAlertFx.new(gui, {
 	toast = toasts.push,
 })
 local carry = CarryPanel.new(gui, ctx)
+-- FEATURES.PvP (v22, ui/PvpClient): hotbar, cooldown rings, shield + safe-zone chips. nil with the flag off: nothing
+-- is built, nothing connected, no remote read. Studio preview before the server lands: SlimeUI.PcwPvpStub = rank.
+local pvp = if Config.FEATURES.PvP == true
+	then PvpMount.mount({
+		enabled = true,
+		gui = gui,
+		banners = gui:FindFirstChild("Banners"),
+		itemIcons = itemIcons,
+		now = serverNow,
+		send = function(action: string, ...: any): (boolean, string?)
+			if Remotes.ACTIONS[action] == nil then
+				return false, "PvP is not open yet" -- the server side has not shipped this action
+			end
+			send(action, ...) -- refusals come back as a toast (invoke)
+			return true, nil
+		end,
+		player = player,
+		root = ReplicatedStorage,
+		remotesName = Constants.REMOTES_FOLDER,
+		eventName = (Constants :: any).PVP_EVENT or "PvpEvent",
+		input = game:GetService("UserInputService"),
+		stubRank = function(): number?
+			local rank = if game:GetService("RunService"):IsStudio() then gui:GetAttribute("PcwPvpStub") else nil
+			return if type(rank) == "number" then rank else nil
+		end,
+	})
+	else nil
 local leaderboard = LeaderboardPanel.new(gui, ctx)
 local dailyPopup = DailyPopup.new(gui, ctx)
 local tutorial = TutorialOverlay.new(gui, ctx)
@@ -775,6 +803,9 @@ function applyLayout()
 	toasts.layout(s, hud.bannerHeight)
 	stealFx.layout(s, hud.bannerHeight)
 	carry.layout(s)
+	if pvp then
+		pvp.layout(s)
+	end
 	tutorial.layout(s)
 	dailyPopup.layout(s)
 	layoutNav(s)
@@ -889,6 +920,9 @@ local function render(realState: Types.State)
 	hud.update(state)
 	stealFx.update(state)
 	carry.update(state)
+	if pvp then
+		pvp.applyState(state)
+	end
 	dailyPopup.update(state)
 	tutorial.update(state)
 	updateBadges(state)
@@ -914,6 +948,7 @@ if isStudio then
 			"PcwMergeVat",
 			"PcwRainMagnet",
 			"PcwWelcome",
+			"PcwPvpStub",
 		}
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
@@ -1017,6 +1052,9 @@ task.spawn(function()
 			local now = serverNow()
 			hud.tick(now)
 			carry.tick(now)
+			if pvp then
+				pvp.tick()
+			end
 			panelByKey.Codes.tick(now)
 			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
 		end

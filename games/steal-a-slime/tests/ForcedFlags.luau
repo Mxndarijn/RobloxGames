@@ -105,6 +105,7 @@ ForcedFlags.on = {
 	["TripleMerge: server action > is refused with the flag off and merges with it on"] = "MergeVat3",
 	["WeeklyEvents config > is off by default and every rotation entry is a real, plain mutation"] = "WeeklyEvents",
 	["driver choice > ships with the uploaded animations off"] = "SlimeAnimations",
+	["PvP flag > is off by default, a Studio-previewable flag, and the adapter reports it"] = "PvP",
 }
 
 return ForcedFlags

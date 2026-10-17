@@ -20,3 +20,22 @@ Items that already render a real 3D model (mutations, plot skins) are not listed
 
 | id | name | group | tile colour (RGB) | what to render |
 |---|---|---|---|---|
+| `KnockGlove1` | Bonk Glove | pvp | 235, 120, 70 | A small plain white cartoon glove, orange cuff, one tiny motion line; 3/4 view. Tier 1 of 5, the plainest glove. |
+| `KnockGlove2` | Bounce Glove | pvp | 235, 120, 70 | The glove in springy green-orange with a coil spring in the cuff and a bounce arc; tier 2 of 5. |
+| `KnockGlove3` | Boom Glove | pvp | 235, 120, 70 | A bigger red glove with a yellow star burst on the knuckles and puff clouds; tier 3 of 5. |
+| `KnockGlove4` | Thunder Glove | pvp | 235, 120, 70 | A purple-blue glove crackling with white-yellow lightning bolts; tier 4 of 5. |
+| `KnockGlove5` | Royal Glove | pvp | 235, 120, 70 | A gold glove with a tiny jewelled crown on the cuff and sparkles; the grandest of the five (tier 5). |
+| `GooTrap1` | Goo Puddle | pvp | 90, 190, 110 | A flat round green goo puddle with a few bubbles and a small warning-yellow rim; top-down 3/4 view. Tier 1 of 3. |
+| `GooTrap2` | Sticky Trap | pvp | 90, 190, 110 | A bigger puddle with sticky strings of goo pulling up and two bubbles; slightly darker green; tier 2 of 3. |
+| `GooTrap3` | Mega Trap | pvp | 90, 190, 110 | A wide glowing lime goo pool with a gold-rimmed border, thick goo tendrils and a star spark; tier 3 of 3. |
+| `GooBlaster1` | Goo Squirter | pvp | 70, 160, 230 | A small chunky blue-and-white squirt gun with a green goo tank and one goo drop; side view. Tier 1 of 3. |
+| `GooBlaster2` | Goo Blaster | pvp | 70, 160, 230 | A chunkier blue blaster, bigger green goo tank, a short goo stream from the nozzle; tier 2 of 3. |
+| `GooBlaster3` | Goo Cannon | pvp | 70, 160, 230 | A big shoulder goo cannon, blue with gold bands, glowing green barrel and a splat of goo; tier 3 of 3. |
+| `FunConfetti` | Confetti Popper | pvp | 230, 120, 200 | A party popper cone in pink and gold with a burst of confetti and streamers; 3/4 view. |
+| `FunBalloon` | Goo Balloon | pvp | 230, 120, 200 | A round green goo-filled water balloon with a knot and a small splat drip; front view. |
+| `FunBubbles` | Bubble Wand | pvp | 230, 120, 200 | A bubble wand with a big round loop and a cluster of shiny rainbow bubbles floating off it; front view. |
+| `FunBouncePad` | Bounce Pad | pvp | 230, 120, 200 | A round pink trampoline pad with a spring rim and a slime mid-bounce above it; 3/4 view. |
+| `FunSqueaky` | Squeaky Hammer | pvp | 230, 120, 200 | A chunky yellow toy squeaky hammer with a red face and two small 'squeak' lines; 3/4 view. |
+| `FunHatLauncher` | Slime Hat Launcher | pvp | 230, 120, 200 | A cartoon cannon tube firing a green slime top hat with a small arc of stars; side view. |
+| `FunDanceBomb` | Dance Bomb | pvp | 230, 120, 200 | A round black cartoon bomb with a lit fuse, disco-ball shine and music notes around it; front view. |
+| `FunFireworks` | Goo Fireworks | pvp | 230, 120, 200 | A green-and-gold firework rocket bursting into a starry goo splash in the sky; front view. |

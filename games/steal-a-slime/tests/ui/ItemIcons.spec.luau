@@ -17,7 +17,11 @@ local roblox = require("@lune/roblox") :: any
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local ItemIconView = UiHarness.ui("ItemIconView")
+local PvpClient = require("../../src/ui/PvpClient")
 local registry = ItemIcons.build(Config)
+
+-- v22 PvP placeholders: group "pvp" (not drawn) stays "placeholder" until Gojo's art lands in IMAGES.
+local PVP_ICONS = #PvpClient.STUB_CATALOG
 
 -- The same registry without the uploaded pictures: what the UI-drawn fallbacks (ItemIconArt) look like.
 local drawnRegistry
@@ -150,20 +154,67 @@ describe("ItemIcons registry", function()
 	end)
 end)
 
+describe("PvP item icons (FEATURES.PvP)", function()
+	it("registers every ladder id in group pvp as an allowlisted placeholder tile, per-line colour", function()
+		expect(PVP_ICONS).toBe(19)
+		local colours: { [string]: string } = {}
+		for _, tool in PvpClient.STUB_CATALOG do
+			local spec = registry.get(tool.id)
+			expect(`{tool.id}: {spec ~= nil}`).toBe(`{tool.id}: true`)
+			expect(spec.group).toBe("pvp")
+			expect(spec.source).toBe("placeholder")
+			expect(spec.name).toBe(tool.name)
+			expect(`{tool.id}: {table.concat(GlyphCheck.bad(spec.glyph), ",")}`).toBe(`{tool.id}: `)
+			expect(ItemIcons.DRAWN_GROUPS.pvp).toBeNil()
+			local key = table.concat(spec.color, ",")
+			expect(colours[tool.line] == nil or colours[tool.line] == key).toBe(true)
+			colours[tool.line] = key
+		end
+		expect(colours.Knockback ~= colours.Trap and colours.Trap ~= colours.Blaster).toBe(true)
+	end)
+	it("is keyed by Config.PVP_TOOLS when it exists (map or list), name from the entry, else by the stub", function()
+		local custom = table.clone(Config) :: any
+		custom.PVP_TOOLS = {
+			NewGlove = { id = "NewGlove", name = "New Glove", line = "Knockback" },
+			NewFun = { id = "NewFun", name = "New Fun", line = "Fun" },
+		}
+		local r = ItemIcons.build(custom)
+		expect(r.get("NewGlove").name).toBe("New Glove")
+		expect(r.get("NewGlove").group).toBe("pvp")
+		expect(r.get("NewFun").group).toBe("pvp")
+		expect(r.get("KnockGlove1")).toBeNil()
+		custom.PVP_TOOLS = { { id = "Listed", name = "Listed", line = "Trap" } }
+		expect(ItemIcons.build(custom).get("Listed").group).toBe("pvp")
+		local stub = table.clone(Config) :: any
+		stub.PVP_TOOLS = nil
+		expect(ItemIcons.build(stub).get("GooTrap3").name).toBe("Mega Trap")
+	end)
+	it("each pvp icon is listed in ITEM-ICONS-NEEDED.md and draws through ItemIconView", function()
+		local doc = fs.readFile("ITEM-ICONS-NEEDED.md")
+		for _, tool in PvpClient.STUB_CATALOG do
+			expect(string.find(doc, string.format("| `%s` |", tool.id), 1, true) ~= nil).toBe(true)
+			local icon = ItemIconView.new({ Id = tool.id, Size = 40, Parent = UiHarness.root() }, registry)
+			expect(icon.source).toBe("placeholder")
+			expect(icon.instance:GetAttribute("ItemId")).toBe(tool.id)
+			icon.destroy()
+		end
+	end)
+end)
+
 describe("drawn icons (every group)", function()
 	local ItemIconArt = UiHarness.ui("ItemIconArt")
 
 	it("no item resolves to the placeholder unless listed FOR ARCHER", function()
 		for _, id in drawnRegistry.order do
 			local spec = drawnRegistry.byId[id]
-			if table.find(ItemIcons.FOR_ARCHER, id) == nil then
+			if table.find(ItemIcons.FOR_ARCHER, id) == nil and spec.group ~= "pvp" then
 				expect(`{id}: {spec.source ~= "placeholder"}`).toBe(`{id}: true`)
 				if spec.source == "drawn" then
 					expect(`{id}: {ItemIconArt.has(id)}`).toBe(`{id}: true`)
 				end
 			end
 		end
-		expect(#ItemIcons.needsArt(drawnRegistry)).toBe(#ItemIcons.FOR_ARCHER)
+		expect(#ItemIcons.needsArt(drawnRegistry)).toBe(#ItemIcons.FOR_ARCHER + PVP_ICONS)
 		local doc = fs.readFile("ITEM-ICONS-NEEDED.md")
 		expect(string.find(doc, "## FOR ARCHER", 1, true) ~= nil).toBe(true)
 		expect(string.find(doc, "## FOR ARCHER", 1, true) < string.find(doc, "| id |", 1, true)).toBe(true)
@@ -594,7 +645,7 @@ describe("ITEM-ICONS-NEEDED.md", function()
 	it("lists every item without a 3D model or image, and nothing that has one", function()
 		local doc = fs.readFile("ITEM-ICONS-NEEDED.md")
 		local needed = ItemIcons.needsArt(registry)
-		expect(#needed).toBe(#ItemIcons.FOR_ARCHER)
+		expect(#needed).toBe(#ItemIcons.FOR_ARCHER + PVP_ICONS)
 		for _, spec in needed do
 			expect(string.find(doc, string.format("| `%s` |", spec.id), 1, true) ~= nil).toBe(true)
 		end

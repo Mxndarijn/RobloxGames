@@ -22,10 +22,12 @@
 	     tile is always there (also as the backdrop of 1 / 2).
 ]]
 
+local PvpClient = if script then require(script.Parent.PvpClient) else require("./PvpClient")
+
 export type Spec = {
 	id: string,
 	name: string,
-	group: string, -- "shop" | "upgrade" | "boost" | "code" | "goal" | "badge" | "mutation" | "skin" | "misc"
+	group: string, -- "shop" | "upgrade" | "boost" | "code" | "goal" | "badge" | "mutation" | "skin" | "misc" | "pvp"
 	color: { number }, -- tile colour, 0..255 RGB
 	glyph: string, -- allowlisted (tests/ui/Glyphs.spec): ASCII, a proven BMP symbol or an emoji
 	model: { kind: "slime" | "mesh", mutation: string?, mesh: string? }?,
@@ -359,6 +361,160 @@ local HAND: { Hand } = {
 	},
 }
 
+-- v22 PvP ladder (FEATURES.PvP): one placeholder tile per catalog item, keyed by Config.PVP_TOOLS id when it exists,
+-- else by ui/PvpClient.STUB_CATALOG (same ids); the name comes from the catalog entry, the glyph / brief below are
+-- looked up by id (a generic per-line glyph for an id not listed). Tile colour per line. Group "pvp" is not in
+-- DRAWN_GROUPS, so these stay "placeholder" until the render is pasted into IMAGES (Gojo, PR F); ITEM-ICONS-NEEDED.md
+-- lists them.
+local PVP_LINE_COLORS: { [string]: { number } } = {
+	Knockback = { 235, 120, 70 },
+	Trap = { 90, 190, 110 },
+	Blaster = { 70, 160, 230 },
+	Fun = { 230, 120, 200 },
+}
+type PvpHand = { id: string, name: string, line: string, glyph: string, brief: string }
+local PVP_HAND_LIST: { PvpHand } = {
+	{
+		id = "KnockGlove1",
+		name = "Bonk Glove",
+		line = "Knockback",
+		glyph = "🥊",
+		brief = "A small plain white cartoon glove, orange cuff, one tiny motion line; 3/4 view. Tier 1 of 5, the plainest glove.",
+	},
+	{
+		id = "KnockGlove2",
+		name = "Bounce Glove",
+		line = "Knockback",
+		glyph = "🥊",
+		brief = "The glove in springy green-orange with a coil spring in the cuff and a bounce arc; tier 2 of 5.",
+	},
+	{
+		id = "KnockGlove3",
+		name = "Boom Glove",
+		line = "Knockback",
+		glyph = "🥊",
+		brief = "A bigger red glove with a yellow star burst on the knuckles and puff clouds; tier 3 of 5.",
+	},
+	{
+		id = "KnockGlove4",
+		name = "Thunder Glove",
+		line = "Knockback",
+		glyph = "🥊",
+		brief = "A purple-blue glove crackling with white-yellow lightning bolts; tier 4 of 5.",
+	},
+	{
+		id = "KnockGlove5",
+		name = "Royal Glove",
+		line = "Knockback",
+		glyph = "🥊",
+		brief = "A gold glove with a tiny jewelled crown on the cuff and sparkles; the grandest of the five (tier 5).",
+	},
+	{
+		id = "GooTrap1",
+		name = "Goo Puddle",
+		line = "Trap",
+		glyph = "💧",
+		brief = "A flat round green goo puddle with a few bubbles and a small warning-yellow rim; top-down 3/4 view. Tier 1 of 3.",
+	},
+	{
+		id = "GooTrap2",
+		name = "Sticky Trap",
+		line = "Trap",
+		glyph = "💧",
+		brief = "A bigger puddle with sticky strings of goo pulling up and two bubbles; slightly darker green; tier 2 of 3.",
+	},
+	{
+		id = "GooTrap3",
+		name = "Mega Trap",
+		line = "Trap",
+		glyph = "💧",
+		brief = "A wide glowing lime goo pool with a gold-rimmed border, thick goo tendrils and a star spark; tier 3 of 3.",
+	},
+	{
+		id = "GooBlaster1",
+		name = "Goo Squirter",
+		line = "Blaster",
+		glyph = "🔫",
+		brief = "A small chunky blue-and-white squirt gun with a green goo tank and one goo drop; side view. Tier 1 of 3.",
+	},
+	{
+		id = "GooBlaster2",
+		name = "Goo Blaster",
+		line = "Blaster",
+		glyph = "🔫",
+		brief = "A chunkier blue blaster, bigger green goo tank, a short goo stream from the nozzle; tier 2 of 3.",
+	},
+	{
+		id = "GooBlaster3",
+		name = "Goo Cannon",
+		line = "Blaster",
+		glyph = "🔫",
+		brief = "A big shoulder goo cannon, blue with gold bands, glowing green barrel and a splat of goo; tier 3 of 3.",
+	},
+	{
+		id = "FunConfetti",
+		name = "Confetti Popper",
+		line = "Fun",
+		glyph = "🎉",
+		brief = "A party popper cone in pink and gold with a burst of confetti and streamers; 3/4 view.",
+	},
+	{
+		id = "FunBalloon",
+		name = "Goo Balloon",
+		line = "Fun",
+		glyph = "🎈",
+		brief = "A round green goo-filled water balloon with a knot and a small splat drip; front view.",
+	},
+	{
+		id = "FunBubbles",
+		name = "Bubble Wand",
+		line = "Fun",
+		glyph = "🔮",
+		brief = "A bubble wand with a big round loop and a cluster of shiny rainbow bubbles floating off it; front view.",
+	},
+	{
+		id = "FunBouncePad",
+		name = "Bounce Pad",
+		line = "Fun",
+		glyph = "⬆️",
+		brief = "A round pink trampoline pad with a spring rim and a slime mid-bounce above it; 3/4 view.",
+	},
+	{
+		id = "FunSqueaky",
+		name = "Squeaky Hammer",
+		line = "Fun",
+		glyph = "🔨",
+		brief = "A chunky yellow toy squeaky hammer with a red face and two small 'squeak' lines; 3/4 view.",
+	},
+	{
+		id = "FunHatLauncher",
+		name = "Slime Hat Launcher",
+		line = "Fun",
+		glyph = "🎩",
+		brief = "A cartoon cannon tube firing a green slime top hat with a small arc of stars; side view.",
+	},
+	{
+		id = "FunDanceBomb",
+		name = "Dance Bomb",
+		line = "Fun",
+		glyph = "🕺",
+		brief = "A round black cartoon bomb with a lit fuse, disco-ball shine and music notes around it; front view.",
+	},
+	{
+		id = "FunFireworks",
+		name = "Goo Fireworks",
+		line = "Fun",
+		glyph = "🎆",
+		brief = "A green-and-gold firework rocket bursting into a starry goo splash in the sky; front view.",
+	},
+}
+
+local PVP_HAND: { [string]: PvpHand } = {}
+for _, h in PVP_HAND_LIST do
+	PVP_HAND[h.id] = h
+end
+local PVP_LINE_GLYPHS: { [string]: string } = { Knockback = "🥊", Trap = "💧", Blaster = "🔫", Fun = "🎉" }
+
 local GOAL_GLYPHS: { [string]: { glyph: string, color: { number }, what: string } } = {
 	Catch = { glyph = "🥅", color = { 90, 190, 120 }, what = "a butterfly-style net holding a green slime" },
 	Merge = { glyph = "🌀", color = { 150, 110, 230 }, what = "two slimes swirling into one purple slime" },
@@ -406,6 +562,27 @@ function ItemIcons.build(config: any)
 
 	for _, u in config.UPGRADES do
 		assert(byId[`Upgrade_{u.id}`], `UPGRADES {u.id} has no item icon`)
+	end
+
+	local catalog: { any } = {}
+	for _, t in (config.PVP_TOOLS or PvpClient.STUB_CATALOG) :: { [any]: any } do
+		table.insert(catalog, t)
+	end
+	table.sort(catalog, function(a, b)
+		return a.id < b.id
+	end)
+	for _, t in catalog do
+		local hand = PVP_HAND[t.id]
+		add({
+			id = t.id,
+			name = t.name,
+			group = "pvp",
+			color = PVP_LINE_COLORS[t.line] or PVP_LINE_COLORS.Fun,
+			glyph = if hand then hand.glyph else PVP_LINE_GLYPHS[t.line] or "🎉",
+			brief = if hand
+				then hand.brief
+				else `A cartoon {t.name} ({t.line}), chunky outline, goo-green accents; 3/4 view.`,
+		})
 	end
 
 	for _, mutations in { config.MUTATIONS, config.WEATHER_MUTATIONS, config.COMBOS, config.WEATHER_COMBOS } do
