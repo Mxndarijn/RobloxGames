@@ -507,6 +507,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Plot = 520,
 	Merge = 520,
 	Shop = 520,
+	WorldShop = 520,
 	Rebirth = 470,
 	Goals = 500,
 	Dex = 600,

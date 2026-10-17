@@ -25,7 +25,7 @@
 export type Spec = {
 	id: string,
 	name: string,
-	group: string, -- "shop" | "upgrade" | "boost" | "code" | "goal" | "badge" | "mutation" | "skin" | "misc" | "hud"
+	group: string, -- "shop" | "gear" | "upgrade" | "boost" | "code" | "goal" | "badge" | "mutation" | "skin" | "misc" | "hud"
 	color: { number }, -- tile colour, 0..255 RGB
 	glyph: string, -- allowlisted (tests/ui/Glyphs.spec): ASCII, a proven BMP symbol or an emoji
 	model: { kind: "slime" | "mesh", mutation: string?, mesh: string? }?,
@@ -110,6 +110,12 @@ ItemIcons.DRAWN_GROUPS = table.freeze({
 	goal = true,
 	badge = true,
 	skin = true,
+})
+
+-- Drawn groups without uploaded pictures yet: the same UI-drawn recipes (ItemIconArt), no IMAGES entry required.
+-- The world shop's consumables and PvP tools live here until Archer renders them.
+ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
+	gear = true,
 })
 
 -- Items an artist must still render: in a DRAWN group but with no recipe worth shipping. Empty now.
@@ -388,12 +394,18 @@ local GOAL_GLYPHS: { [string]: { glyph: string, color: { number }, what: string 
 local GOAL_DEFAULT = { glyph = "🎯", color = { 230, 120, 80 }, what = "a bullseye with an arrow" }
 
 local BADGE_COLOR = { 255, 200, 60 }
+local CONSUMABLE_COLORS: { [string]: { number } } =
+	{ MutationSpray = { 190, 120, 230 }, LuckPotion = { 70, 190, 90 }, WeatherTotem = { 150, 155, 170 } }
+local PVP_COLORS: { [string]: { number } } =
+	{ Knockback = { 230, 120, 80 }, Trap = { 110, 200, 120 }, Blaster = { 90, 160, 240 }, Fun = { 255, 200, 60 } }
+local PVP_GLYPHS: { [string]: string } = { Knockback = "🥊", Trap = "🟢", Blaster = "🔫", Fun = "🎉" }
 
 local function finish(partial: { [string]: any }): Spec
 	local model = partial.model
 	local image = ItemIcons.IMAGES[partial.id]
 	partial.image = image
-	local drawn = ItemIcons.DRAWN_GROUPS[partial.group] and not table.find(ItemIcons.FOR_ARCHER, partial.id)
+	local drawn = (ItemIcons.DRAWN_GROUPS[partial.group] or ItemIcons.DRAWN_ONLY_GROUPS[partial.group])
+		and not table.find(ItemIcons.FOR_ARCHER, partial.id)
 	partial.source = if model then "model" elseif image then "image" elseif drawn then "drawn" else "placeholder"
 	return freeze(partial)
 end
@@ -423,6 +435,28 @@ function ItemIcons.build(config: any)
 
 	for _, u in config.UPGRADES do
 		assert(byId[`Upgrade_{u.id}`], `UPGRADES {u.id} has no item icon`)
+	end
+
+	-- World shop rows (Shared.Shops): consumables and PvP tools, UI-drawn like the other shop items.
+	for _, c in config.CONSUMABLES do
+		add({
+			id = `Consumable_{c.id}`,
+			name = c.name,
+			group = "gear",
+			color = CONSUMABLE_COLORS[c.id] or { 120, 180, 220 },
+			glyph = c.icon,
+			brief = `{c.name}: {c.text}`,
+		})
+	end
+	for _, t in config.PVP_TOOLS do
+		add({
+			id = `Pvp_{t.id}`,
+			name = t.name,
+			group = "gear",
+			color = PVP_COLORS[t.line] or { 150, 150, 170 },
+			glyph = PVP_GLYPHS[t.line] or "🎯",
+			brief = `{t.name} ({t.line} tier {t.tier}), a PvP item.`,
+		})
 	end
 
 	for _, mutations in { config.MUTATIONS, config.WEATHER_MUTATIONS, config.COMBOS, config.WEATHER_COMBOS } do

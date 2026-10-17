@@ -361,6 +361,8 @@ Bring-up, step by step: `python watcher.py tools` (with a Studio open), then `st
 
 ## Adding a shot
 
+A `ui` shot with `open: "worldshop"` shows the world shop card (CONTRACT.md §27, `WorldShopPanel`); its `world_shop` field (`ItemShop` | `UpgradeShop`) picks the shop through `luau/world_shop` (Studio-only `PcwWorldShop` attribute, cleared after the shots).
+
 Shots live in `shots/`, one JSON file per entry, named `<NN>-<id>.json` (`NN` = run order, e.g.
 `79-my-shot.json`). The watcher loads every `shots/*.json` sorted by filename, so to add a shot drop a new
 file there. If its area is not covered by a `shot-map.json` rule (a new feature's files), add or extend a rule so

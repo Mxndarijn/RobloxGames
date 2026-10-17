@@ -14,8 +14,12 @@
 
 local MenuClose = {}
 
--- Prompt name -> menu key: "Open Shop" at the ShopStand, "Talk" at the Guide NPC.
-function MenuClose.promptMenus(shopPrompt: string, guidePrompt: string): { [string]: string }
+-- Prompt name -> menu key: "Open Shop" at the ShopStand, "Talk" at the Guide NPC. With the world shops the server
+-- opens a shop at its stand (ShopEvent Open), so the shop prompt opens no menu from here.
+function MenuClose.promptMenus(shopPrompt: string, guidePrompt: string, worldShops: boolean?): { [string]: string }
+	if worldShops then
+		return { [guidePrompt] = "Guide" }
+	end
 	return { [shopPrompt] = "Shop", [guidePrompt] = "Guide" }
 end
 
