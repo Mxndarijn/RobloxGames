@@ -33,8 +33,12 @@ local MeshSwap = {}
 
 local cache: { [string]: MeshPart | false } = {}
 
-local function template(meshId: string): MeshPart?
-	local hit = cache[meshId]
+-- `fidelity` (an Enum.CollisionFidelity name, MeshAssets.collision) goes into the CreateMeshPartAsync options: a game
+-- script cannot write MeshPart.CollisionFidelity afterwards, and clones keep the collision made here. One template per
+-- mesh id and fidelity.
+local function template(meshId: string, fidelity: string?): MeshPart?
+	local key = if fidelity then `{meshId}|{fidelity}` else meshId
+	local hit = cache[key]
 	if hit == false then
 		return nil
 	end
@@ -47,14 +51,18 @@ local function template(meshId: string): MeshPart?
 		-- moves (the "wrong until I walk" pop); the kit meshes are low-poly, so draw them whole. Set
 		-- here: game scripts cannot write MeshPart.RenderFidelity (PluginOrOpenCloud only), which made
 		-- apply() throw and left every world slot a primitive since #155.
-		return AssetService:CreateMeshPartAsync(meshId, { RenderFidelity = Enum.RenderFidelity.Precise })
+		local options: { [string]: any } = { RenderFidelity = Enum.RenderFidelity.Precise }
+		if fidelity then
+			options.CollisionFidelity = (Enum.CollisionFidelity :: any)[fidelity]
+		end
+		return AssetService:CreateMeshPartAsync(meshId, options)
 	end)
 	if ok and typeof(result) == "Instance" and result:IsA("MeshPart") then
-		cache[meshId] = result
+		cache[key] = result
 		return result
 	end
-	warn(`[Server] MeshSwap {meshId}: {result}`)
-	cache[meshId] = false
+	warn(`[Server] MeshSwap {key}: {result}`)
+	cache[key] = false
 	return nil
 end
 
@@ -105,7 +113,8 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 		return false
 	end
 	local meshId = MeshAssets.meshId(name)
-	local base = meshId and template(meshId)
+	local fidelity = MeshAssets.collision(name)
+	local base = meshId and template(meshId, fidelity)
 	if not base then
 		return false
 	end
@@ -149,7 +158,7 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 		mesh.Color = target.Color
 	end
 	mesh.Anchored = true
-	mesh.CanCollide = false
+	mesh.CanCollide = fidelity ~= nil -- decor never collides; a mesh with a fidelity is solid
 	mesh.CanQuery = false
 	mesh.CanTouch = false
 	if target:IsA("Model") then

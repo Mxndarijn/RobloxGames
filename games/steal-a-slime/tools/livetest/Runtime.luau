@@ -402,10 +402,10 @@ local function installShims()
 	end)
 
 	-- MeshSwap: fails (primitive placeholders stay) unless opts.createMeshPart is given.
-	impl("AssetService", "CreateMeshPartAsync", function(_, meshId)
+	impl("AssetService", "CreateMeshPartAsync", function(_, meshId, options)
 		local create = current.opts.createMeshPart
 		if create then
-			return create(meshId)
+			return create(meshId, options)
 		end
 		error(`livetest: AssetService:CreateMeshPartAsync({meshId}) not available (pass opts.createMeshPart)`)
 	end)

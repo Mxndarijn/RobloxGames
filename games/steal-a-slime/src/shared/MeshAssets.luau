@@ -389,6 +389,19 @@ function MeshAssets.animationId(name: string): string?
 	return if id then `rbxassetid://{id}` else nil
 end
 
+-- Meshes players must not stand inside: name -> Enum.CollisionFidelity name. MeshSwap passes it to
+-- CreateMeshPartAsync (the only place it sticks on a script-made MeshPart) and turns CanCollide on.
+-- Every other mesh is decor: CanCollide off. Why each: docs/COLLISION.md.
+MeshAssets.COLLISION = table.freeze({
+	-- the big slimes stacked at the fountain top (Merijn #10): one convex hull round the pile, so nobody stands in the
+	-- gaps between them; Hull is cheap and the pile is static
+	slime_fountain_emerge = "Hull",
+})
+
+function MeshAssets.collision(name: string): string?
+	return MeshAssets.COLLISION[name]
+end
+
 function MeshAssets.get(name: string): Entry?
 	return entries[name]
 end
