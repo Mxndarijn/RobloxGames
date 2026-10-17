@@ -530,7 +530,7 @@ function Hud.new(parent: Instance, ctx: any)
 			workspace:GetAttribute(C.WEEKLY_EVENT_ATTRIBUTE),
 			current.modifier,
 			now,
-			os.time(),
+			now,
 			ctx.Config.FEATURES.EventsBoard == true
 		)
 		board.Visible = boardText ~= nil
