@@ -1,0 +1,6 @@
+{
+  "sha": "ca72b877d57d39ac8034cf04dbced9538f391a5c",
+  "requested_at": "2026-10-17T18:36:30Z",
+  "by": "publish.sh",
+  "reason": "needs-review: cloud pass, no full reviewed Studio report"
+}
