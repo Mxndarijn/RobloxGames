@@ -19,10 +19,7 @@ for _, id in ItemIcons.FOR_ARCHER do
 	table.insert(archer, string.format("- `%s` (%s, %s): %s", id, spec.name, spec.group, spec.brief))
 end
 if #archer == 0 then
-	table.insert(
-		archer,
-		"Nothing: every shop / upgrade / boost / misc / code item has a UI-drawn icon (`src/ui/ItemIconArt.luau`)."
-	)
+	table.insert(archer, "Nothing: every item has a model, an image or a UI-drawn icon (`src/ui/ItemIconArt.luau`).")
 end
 for _, l in archer do
 	table.insert(lines, l)
