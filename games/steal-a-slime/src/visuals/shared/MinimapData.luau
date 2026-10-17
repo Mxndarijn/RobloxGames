@@ -11,10 +11,19 @@
 ]]
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
+local Shops = if script then require(script.Parent.Parent.Shared.Shops) else require("../../shared/Shops")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
 local WorldLayout = if script then require(script.Parent.WorldLayout) else require("./WorldLayout")
 
-export type Point = { kind: string, name: string, x: number, z: number, plotIndex: number? }
+export type Point = {
+	kind: string,
+	name: string,
+	x: number,
+	z: number,
+	plotIndex: number?,
+	label: string?,
+	icon: string?,
+}
 
 local MinimapData = {}
 
@@ -22,6 +31,12 @@ MinimapData.WORLD_SIZE = 640 -- Ground size (WorldLayout), centred on the founta
 -- Hub SpawnLocation (scripts/StaticWorld SPAWN_YAW / SPAWN_RADIUS; tests check they match)
 MinimapData.SPAWN_YAW = 67.5
 MinimapData.SPAWN_RADIUS = 64
+
+-- Pins with a label and an icon (the shop item icons): the world shop stands (CONTRACT.md §27.2).
+MinimapData.SHOP_PINS = table.freeze({
+	[Shops.SHOPS.ItemShop.stand] = table.freeze({ label = Shops.SHOPS.ItemShop.name, icon = "🛒" }),
+	[Shops.SHOPS.UpgradeShop.stand] = table.freeze({ label = Shops.SHOPS.UpgradeShop.name, icon = "⬆️" }),
+}) :: { [string]: { label: string, icon: string } }
 
 function MinimapData.points(): { Point }
 	if not Config.FEATURES.Minimap then
@@ -33,7 +48,12 @@ function MinimapData.points(): { Point }
 		table.insert(points, { kind = "Plot", name = `Plot_{i}`, x = c[1], z = c[3], plotIndex = i })
 	end
 	for name, spot in WorldLayout.PROP_SPOTS do
-		table.insert(points, { kind = name, name = name, x = spot.pos[1], z = spot.pos[3] })
+		local point: Point = { kind = name, name = name, x = spot.pos[1], z = spot.pos[3] }
+		local pin = MinimapData.SHOP_PINS[name]
+		if pin then
+			point.label, point.icon = pin.label, pin.icon
+		end
+		table.insert(points, point)
 	end
 	local n = LayoutMath.direction(MinimapData.SPAWN_YAW, 0)
 	table.insert(points, {

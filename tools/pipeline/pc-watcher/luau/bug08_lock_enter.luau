@@ -30,7 +30,11 @@
 --   fence_jump_over          back + one side fence line: start 6 studs outside, MoveTo 10 studs inside for 4 s with hum.Jump every 0.25 s; plus a running start from 16 studs
 --   fence_push_through       back and both side lines at a panel middle AND a panel joint, plus both gate-side phoenix_fence_segments: MoveTo straight in, no jumping
 --   gate_post_squeeze        at the gate: the seams between the LockBarrier front panel / gate posts / phoenix_corner_post, straight (no jump, jumping) and 45 degree approaches
---   corner_squeeze           the four plot corners: start 5 studs outside diagonally, MoveTo 10 studs inside along the diagonal, without and with jumping
+--   corner_squeeze           the four plot corners, where the fence meshes meet the thin LockBarrier panels (no jumping): per corner a 45 degree
+--                            approach at the fence corner, then straight in on both sides at the seam (the end of the fence mesh nearest the corner,
+--                            else 0.8 studs in from the corner), then a diagonal at the panel corner when it sits > 0.75 studs from the fence corner;
+--                            info.junctions has the fence corner, the panel corner and the fence-end / panel-end gap per corner
+--   corner_jump              the same corner attempts, jumping every 0.25 s
 -- Everything made is destroyed; the lock attributes / panels are restored; the character ends where it started, with its Anchored states.
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -57,7 +61,7 @@ if not reqOk then
 end
 local World, Sessions, WorldView, Guard = mods.World, mods.Sessions, mods.WorldView, mods.Guard
 local LOCKED = mods.Constants.PLOT_LOCKED_ATTRIBUTE
--- PART = "base" (the five old checks, ~50 s) | "fence_jump_over" | "fence_push_through" | "gate_post_squeeze" | "corner_squeeze" (that one wall check
+-- PART = "base" (the five old checks, ~50 s) | "fence_jump_over" | "fence_push_through" | "gate_post_squeeze" | "corner_squeeze" | "corner_jump" (that one wall check
 -- only, 32 s attempt budget): a single execute_luau call must stay well under 60 s, so the checks are split over several calls.
 local PART = %%PART%%
 local BASE_ORDER = { "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck" }
@@ -345,7 +349,26 @@ local function fenceGeometry(i)
 			lines[side] = (if side == "back" or side == "right" then 1 else -1) * (half - 0.5)
 		end
 	end
-	return { sides = sides, lines = lines, posts = posts, stubs = stubs, count = count, half = half, cf = cf }
+	-- LockBarrier panels in the Base frame: side -> { line, lo, hi } (Front / Back along X at -z / +z, Left / Right along Z at -x / +x)
+	local panels = {}
+	local barrier = plot:FindFirstChild("LockBarrier")
+	if barrier then
+		for _, pnl in barrier:GetChildren() do
+			if pnl:IsA("BasePart") then
+				local rel = cf:ToObjectSpace(pnl.CFrame)
+				local sz = pnl.Size
+				local ex = math.abs(rel.RightVector.X) * sz.X / 2 + math.abs(rel.UpVector.X) * sz.Y / 2 + math.abs(rel.LookVector.X) * sz.Z / 2
+				local ez = math.abs(rel.RightVector.Z) * sz.X / 2 + math.abs(rel.UpVector.Z) * sz.Y / 2 + math.abs(rel.LookVector.Z) * sz.Z / 2
+				local c = rel.Position
+				if ex >= ez then
+					panels[if c.Z > 0 then "back" else "front"] = { line = c.Z, lo = c.X - ex, hi = c.X + ex, thick = 2 * ez }
+				else
+					panels[if c.X < 0 then "left" else "right"] = { line = c.X, lo = c.Z - ez, hi = c.Z + ez, thick = 2 * ex }
+				end
+			end
+		end
+	end
+	return { sides = sides, lines = lines, posts = posts, stubs = stubs, count = count, half = half, cf = cf, panels = panels }
 end
 -- plot-local point of a side: tangent coordinate s, `out` studs outside the fence centre plane
 local function sidePoint(g, side, s, out)
@@ -416,6 +439,7 @@ local function attempt(i, label, startL, targetL, jump, planes)
 	return rec
 end
 -- Runs the attempt list builder for one check and sets the result. Attempts (sorted by pri, then build order) that do not fit the budget are skipped.
+local cornerJunctions -- set by the corner builders: per-corner fence / panel geometry for the report
 local function runCheck(name, i, build)
 	checkStart = os.clock()
 	local deadline = checkStart + ATTEMPT_BUDGET
@@ -462,6 +486,9 @@ local function runCheck(name, i, build)
 		ran += if r.error then 0 else 1
 	end
 	local info = { attempts = recs, skipped_for_time = skipped, fence_parts = g.count, seconds = r1(os.clock() - checkStart) }
+	if cornerJunctions then
+		info.junctions = cornerJunctions
+	end
 	if skipped > 0 then
 		info.note = skipped .. " attempt(s) did not fit the " .. ATTEMPT_BUDGET .. " s budget (n/a)"
 	end
@@ -589,26 +616,66 @@ local function squeezeList(g)
 	end
 	return list
 end
-local function cornerList(g)
+-- Corner attempts (#277 + LockBarrier panels): where the fence meshes meet the thin panels, at all four corners.
+local CORNERS = { { "back", "left" }, { "back", "right" }, { "front", "left" }, { "front", "right" } }
+local function seamS(g, side, cornerS) -- tangent coordinate of the fence end on `side` nearest the corner at tangent cornerS
+	local best, bestD = nil, math.huge
+	for _, sg in g.sides[side] do
+		for _, e in { sg.s - sg.len / 2, sg.s + sg.len / 2 } do
+			local d = math.abs(e - cornerS)
+			if d < bestD then
+				best, bestD = e, d
+			end
+		end
+	end
+	if best and bestD <= 4 then
+		return best
+	end
+	return cornerS - (if cornerS > 0 then 1 else -1) * 0.8
+end
+local function cornerAttempts(g, jump)
 	local list = {}
-	for _, v in { { "back", "left" }, { "back", "right" }, { "front", "left" }, { "front", "right" } } do
-		local a, b = v[1], v[2]
+	cornerJunctions = {}
+	local tag = if jump then " jump" else ""
+	for _, v in CORNERS do
+		local a, b = v[1], v[2] -- a along X (back / front), b along Z (left / right)
 		local corner = Vector3.new(g.lines[b], 0, g.lines[a])
 		local inward = (SIDE_N[a] + SIDE_N[b]).Unit
 		local planes = { sidePlane(g, a), sidePlane(g, b) }
-		for _, jump in { false, true } do
-			table.insert(list, {
-				pri = if jump then 2 else 1, -- all four without jumping, then with
-				label = a .. "-" .. b .. " corner diag" .. (if jump then " jump" else ""), start = corner - inward * 5, target = corner + inward * 10,
-				jump = jump, planes = planes,
-			})
+		local cname = a .. "-" .. b
+		table.insert(list, { pri = 1, label = cname .. " corner diag" .. tag, start = corner - inward * 5, target = corner + inward * 10, jump = jump, planes = planes })
+		local sa, sb = seamS(g, a, corner.X), seamS(g, b, corner.Z)
+		table.insert(list, { pri = 2, label = cname .. " seam on " .. a .. " at s=" .. r1(sa) .. tag, start = sidePoint(g, a, sa, 4), target = sidePoint(g, a, sa, -8), jump = jump, planes = planes })
+		table.insert(list, { pri = 2, label = cname .. " seam on " .. b .. " at s=" .. r1(sb) .. tag, start = sidePoint(g, b, sb, 4), target = sidePoint(g, b, sb, -8), jump = jump, planes = planes })
+		local pa, pb = g.panels[a], g.panels[b]
+		local j = { fence_corner = r2(corner), fence_end_on = { [a] = r1(sa), [b] = r1(sb) } }
+		if pa and pb then
+			local pc = Vector3.new(pb.line, 0, pa.line)
+			j.panel_corner = r2(pc)
+			-- gap between the panel's end and the fence end it should meet, along each side (negative = overlap)
+			local endA = if corner.X > 0 then pa.hi else pa.lo
+			local endB = if corner.Z > 0 then pb.hi else pb.lo
+			j.panel_end_vs_fence_end = { [a] = r1(math.abs(sa) - math.abs(endA)), [b] = r1(math.abs(sb) - math.abs(endB)) }
+			j.panel_vs_fence_line = { [a] = r1(pa.line - g.lines[a]), [b] = r1(pb.line - g.lines[b]) }
+			if (pc - corner).Magnitude > 0.75 then
+				table.insert(list, { pri = 3, label = cname .. " panel-corner diag" .. tag, start = pc - inward * 5, target = pc + inward * 10, jump = jump, planes = planes })
+			end
+		else
+			j.panel_corner = "no LockBarrier panels on " .. a .. " / " .. b
 		end
+		cornerJunctions[cname] = j
 	end
 	return list
 end
+local function cornerList(g)
+	return cornerAttempts(g, false)
+end
+local function cornerJumpList(g)
+	return cornerAttempts(g, true)
+end
 
 local function charChecks(i)
-	local builders = { fence_jump_over = jumpOverList, fence_push_through = pushList, gate_post_squeeze = squeezeList, corner_squeeze = cornerList }
+	local builders = { fence_jump_over = jumpOverList, fence_push_through = pushList, gate_post_squeeze = squeezeList, corner_squeeze = cornerList, corner_jump = cornerJumpList }
 	runCheck(PART, i, builders[PART])
 end
 

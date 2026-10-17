@@ -107,6 +107,10 @@ end
 
 -- Shop stand ---------------------------------------------------------------
 
+local SIGN_BACK = rgb(58, 38, 26) -- dark wood board
+local SIGN_TEXT = rgb(255, 240, 200) -- cream
+local SIGN_STROKE = rgb(30, 18, 10)
+
 function Props.shopStand(): Model
 	local m = Instance.new("Model")
 	m.Name = "ShopStand"
@@ -140,7 +144,7 @@ function Props.shopStand(): Model
 	-- face, so the text sits on it instead of floating in front (v29 B4).
 	-- "HeightMarker" (invisible) keeps the Model 11.7 tall, so the skin's scale
 	-- does not shrink with the lower sign.
-	local sign = part(m, "Sign", Vector3.new(6.284, 1.654, 0.03), CFrame.new(0, 10.088, 2.338), rgb(255, 245, 220), {})
+	local sign = part(m, "Sign", Vector3.new(6.284, 1.654, 0.03), CFrame.new(0, 10.088, 2.338), SIGN_BACK, {})
 	local marker = part(
 		m,
 		"HeightMarker",
@@ -158,8 +162,18 @@ function Props.shopStand(): Model
 	gui.PixelsPerStud = 40
 	gui.LightInfluence = 0 -- unlit: the SHOP text stays readable at night
 	gui.Parent = sign
-	local text = label(gui, "Text", "SHOP", rgb(40, 140, 70))
+	local text = label(gui, "Text", "SHOP", SIGN_TEXT)
 	text.Size = UDim2.fromScale(1, 1)
+	-- Light text with a dark stroke on a dark backing, inset so the kit stand's posts never cover a letter
+	-- from a front-diagonal view (v186: the "I" of ITEM SHOP, the "U" of UPGRADE SHOP).
+	text.TextStrokeColor3 = SIGN_STROKE
+	text.TextStrokeTransparency = 0
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0.12, 0)
+	pad.PaddingRight = UDim.new(0.12, 0)
+	pad.PaddingTop = UDim.new(0.08, 0)
+	pad.PaddingBottom = UDim.new(0.08, 0)
+	pad.Parent = text
 	-- A few goo jars on the counter.
 	for i, color in { rgb(120, 255, 140), rgb(255, 130, 220), rgb(120, 200, 255) } do
 		local jar = part(

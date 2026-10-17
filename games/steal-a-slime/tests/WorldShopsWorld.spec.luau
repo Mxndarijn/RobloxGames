@@ -50,12 +50,15 @@ end
 
 describe("world shop placement", function()
 	local spots = WorldLayout.PROP_SPOTS
-	it("has both stands on the ring-path side at r 90 and facing the fountain", function()
-		for _, name in { Constants.SHOP_STAND_ITEM, Constants.SHOP_STAND_UPGRADE } do
+	it("has both stands on the ring-path side (r 90 / r 96) and facing the fountain", function()
+		for name, r in { [Constants.SHOP_STAND_ITEM] = 90, [Constants.SHOP_STAND_UPGRADE] = 96 } do
 			local spot = spots[name]
 			expect(spot ~= nil).toBe(true)
-			expect(math.sqrt(spot.pos[1] ^ 2 + spot.pos[3] ^ 2)).toBeCloseTo(90, 3)
+			expect(math.sqrt(spot.pos[1] ^ 2 + spot.pos[3] ^ 2)).toBeCloseTo(r, 3)
 		end
+		local up = polar(34.5, 96)
+		expect(spots.UpgradeShopStand.pos[1]).toBeCloseTo(up[1], 3)
+		expect(spots.UpgradeShopStand.pos[3]).toBeCloseTo(up[2], 3)
 		local item = polar(67.5, 90)
 		expect(spots.ItemShopStand.pos[1]).toBeCloseTo(item[1], 3)
 		expect(spots.ItemShopStand.pos[3]).toBeCloseTo(item[2], 3)
@@ -86,6 +89,11 @@ describe("world shop placement", function()
 				expect(`{name}/{prop.name} {dist >= PropClearance.SPOT_RADIUS + rad}`).toBe(`{name}/{prop.name} true`)
 			end
 		end
+	end)
+	it("keeps the Upgrade Shop at least 19.5 studs (about two stand widths) from the Campfire", function()
+		local fire = polar(22.5, 92)
+		local up = spots.UpgradeShopStand.pos
+		expect(math.sqrt((up[1] - fire[1]) ^ 2 + (up[3] - fire[2]) ^ 2) > 19.5).toBe(true)
 	end)
 	it("keeps the stands, the ritual meadow and the other props apart", function()
 		local ritual = polar(Config.RITUAL.BEARING, Config.RITUAL.DISTANCE)
@@ -118,6 +126,22 @@ rt:boot()
 rt:advance(2)
 local Props = StaticWorld.visual("Props")
 local map = rt.workspace.Map
+
+describe("shop stand sign", function()
+	it("has a high-contrast, inset, scaled label on the existing Sign part", function()
+		local stand = Props.shopStand()
+		local label = stand:FindFirstChild("Text", true)
+		expect(label.TextScaled).toBe(true)
+		expect(label.TextStrokeTransparency).toBe(0)
+		expect(label:FindFirstChildOfClass("UIPadding") ~= nil).toBe(true)
+		local sign = stand.Sign
+		local function lum(c)
+			return 0.299 * c.R + 0.587 * c.G + 0.114 * c.B
+		end
+		expect(lum(label.TextColor3) - lum(sign.Color) > 0.5).toBe(true)
+		expect(label.Parent.LightInfluence).toBe(0)
+	end)
+end)
 
 describe("world shop stands in the booted server", function()
 	it("boots clean", function()

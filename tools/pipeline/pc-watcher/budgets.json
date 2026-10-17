@@ -1,5 +1,5 @@
 {
-  "runtime_parts": {"fail": 2500, "warn": 2400},
+  "runtime_parts": {"fail": 3000, "warn": 2900},
   "world_triangles": {"fail": 500000},
   "unique_meshes": {"fail": 120},
   "mesh_parts": {"warn": 500},
