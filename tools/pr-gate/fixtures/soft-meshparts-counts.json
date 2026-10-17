@@ -1,7 +1,7 @@
 {
-  "_note": "selftest fixture: one MeshPart over the 400 budget (PR #56)",
+  "_note": "selftest fixture: one MeshPart over the 500 soft budget (warn only, never fails)",
   "border_parts": 92,
-  "mesh_slots": 401,
+  "mesh_slots": 501,
   "meshes": {
     "phoenix_corner_post": 1,
     "phoenix_fence_segment": 16,
@@ -83,7 +83,7 @@
   "parts": 956,
   "source_budgets": {
     "BORDER_PART_BUDGET": 700,
-    "MESH_SLOT_BUDGET": 400,
+    "MESH_SLOT_BUDGET": 500,
     "PART_BUDGET": 1200
   }
 }

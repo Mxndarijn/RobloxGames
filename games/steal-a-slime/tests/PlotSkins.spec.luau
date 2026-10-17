@@ -418,9 +418,6 @@ describe("plot skins: mesh budget", function()
 				+ WorldBudget.uploaded.decor
 				+ WorldBudget.uploaded.border
 		)
-		expect(WorldBudget.uploaded.total <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
-		expect(WorldBudget.uploaded.total <= 400).toBe(true)
-		expect(WorldBudget.uploaded.decor <= WorldLayout.DECOR_SLOT_BUDGET).toBe(true)
 	end)
 	it("keeps the parts under 1400 even with a skin decor part on every plot", function()
 		expect(WorldBudget.uploaded.parts + Config.PLOT_COUNT < WorldLayout.PART_BUDGET).toBe(true)

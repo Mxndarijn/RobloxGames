@@ -1,0 +1,17 @@
+{
+  "id": "bug16-vat-model",
+  "todo": "bug 16",
+  "kind": "world",
+  "target": "MergeVat",
+  "from": "centre",
+  "dist": 18,
+  "height": 9,
+  "bug_probe": {
+    "bug": 16,
+    "title": "Use the old slime vat model",
+    "luau": "bug16_vat_model",
+    "ctx": "Client",
+    "args": {}
+  },
+  "note": "bug 16 (visual, shot 6): the vat the player sees on Plot_1 by default, plus its model / MeshId detail (ok = null)"
+}

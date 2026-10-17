@@ -26,6 +26,7 @@ import watcher  # noqa: E402
 import win32  # noqa: E402
 
 FAILS = []
+BUDGETS = json.load(open(os.path.join(HERE, "budgets.json"), encoding="utf-8"))
 
 
 def check(name, cond, detail=""):
@@ -236,9 +237,9 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "revenge_set": {"PLOT", "WAIT"},
+        "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -289,21 +290,24 @@ def t_files():
     check("a wild_pace shot measures a lane slime's displacement against the Config pace (v30 C9)",
           len(paces) == 1 and float(paces[0]["wild_pace"]) > 0 and paces[0].get("todo") == "v30-c9", paces)
     caps = [s for s in shots if s.get("mesh_slots_max")]
-    check("a mesh_slots_max shot asserts the play-world mesh slots <= 400 (hard)",
-          len(caps) == 1 and caps[0]["mesh_slots_max"] <= 400 and caps[0].get("todo") == "border-v3", caps)
-    check("a failing mesh_slots_max shot fails the run (hard)",
-          'mesh_slots_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
-          and watcher.overall_status({"shots": {"status": "pass", "detail": {"mesh_slots_failed": True}}}) == "fail")
+    check("a mesh_slots_max shot compares the play-world mesh slots with the 500 soft budget (warn only)",
+          len(caps) == 1 and caps[0]["mesh_slots_max"] == 500 and caps[0].get("todo") == "border-v3", caps)
+    wsrc = open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
+    check("a failing mesh_slots_max shot only warns (MeshParts are soft); old mesh_slots_failed reports still fail",
+          'mesh_slots_warned": True' in wsrc and 'mesh_slots_failed": True' not in wsrc
+          and watcher.overall_status({"shots": {"status": "pass", "detail": {"mesh_slots_failed": True}}}) == "fail"
+          and watcher.overall_status(dict({n: {"status": "pass"} for n in watcher.HARD_STEPS},
+                                          shots={"status": "warn", "detail": {"mesh_slots_warned": True}})) == "pass")
     rcaps = [s for s in shots if s.get("runtime_parts_max")]
-    check("a runtime_parts_max shot asserts world BaseParts <= the 2230 ratchet (hard)",
-          len(rcaps) == 1 and rcaps[0]["runtime_parts_max"] <= 2230, rcaps)
+    check("a runtime_parts_max shot asserts world BaseParts <= the fixed 2500 cap (hard)",
+          len(rcaps) == 1 and rcaps[0]["runtime_parts_max"] == BUDGETS["runtime_parts"]["fail"] == 2500, rcaps)
     check("a failing runtime_parts_max shot fails the run (hard)",
           'runtime_parts_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
           and watcher.overall_status({"shots": {"status": "pass", "detail": {"runtime_parts_failed": True}}}) == "fail")
     check("perf_server reports runtime_parts for every BasePart and the lane/collider presence",
           all(x in open(os.path.join(HERE, "luau", "perf_server.luau"), encoding="utf-8").read()
               for x in ("runtime_parts = runtimeParts", "parade_lane", "slide_colliders", "runtime_parts_transient"))
-          and watcher.DEFAULTS["runtime_part_budget"] == 2230)
+          and watcher.DEFAULTS["runtime_part_budget"] == 2500)
     fwalks = [s for s in shots if s.get("fountain_walk")]
     check("a fountain_walk shot proves nobody sinks into the fountain top (C10)",
           len(fwalks) == 1 and fwalks[0].get("target") == "FountainMesh", fwalks)
@@ -318,9 +322,16 @@ def t_files():
     rev = [s for s in shots if s.get("revenge_plot")]
     check("a revenge_plot shot aims at that plot and waits briefly (v21 Revenge)",
           len(rev) == 1 and rev[0].get("target") == "Plot_%d" % rev[0]["revenge_plot"] and 0 < float(rev[0].get("wait", 0)) <= 4, rev)
-    weathers = {s["weather"]: s for s in shots if s.get("weather")}
+    # the snow_cover shots (SnowGround v2) pin the ground snow: Snow = settling, Clear = melting
+    snow_shots = [s for s in shots if "snow_cover" in s]
+    weathers = {s["weather"]: s for s in shots if s.get("weather") and "snow_cover" not in s}
     check("weather shots cover Rain, Snow and Starfall with a short wait",
           set(weathers) == {"Rain", "Snow", "Starfall"} and all(0 < float(s.get("wait", 0)) <= 4 for s in weathers.values()), sorted(weathers))
+    snow_ids = {s["id"] for s in snow_shots}
+    check("ground snow shots 18c cover settle mid, settle full and melt mid on pc and phone (SnowGround v2)",
+          snow_ids == {"18c-snow-ground-%s-%s" % (k, d) for k in ("settle-mid", "settle-full", "melt-mid") for d in ("pc", "phone")}
+          and all(0 <= float(s["snow_cover"]) <= 1 and 0 < float(s.get("wait", 0)) <= 4 for s in snow_shots)
+          and all((s["weather"] == "Clear") == s["id"].startswith("18c-snow-ground-melt") for s in snow_shots), sorted(snow_ids))
     devs = {(s["weather"], s.get("device")) for s in shots if s.get("weather")}
     check("every weather type has a phone and a desktop shot",
           all((w, d) in devs for w in ("Rain", "Snow", "Starfall") for d in ("desktop", "phone-portrait")), sorted(devs, key=str))
@@ -352,6 +363,74 @@ def t_data_path():
     check("data_path without a repo uses the app copy", watcher.data_path(None, "checks.json")[1] == "app")
     names = json.load(open(os.path.join(HERE, "checks.json"), encoding="utf-8"))["shops_face_centre"]
     check("shops_face_centre checks ShopStand only", names["names"] == ["ShopStand"] and names["min_items"] == 1 and names["min_dot"] == 0.9, names)
+
+
+def t_budgets():
+    import time
+    D, B = watcher.DEFAULTS, BUDGETS
+    check("DEFAULTS fallbacks equal budgets.json (single source)",
+          (D["runtime_part_budget"], D["runtime_part_warn"], D["unique_mesh_budget"], D["world_triangle_budget"], D["mesh_slot_budget"])
+          == (B["runtime_parts"]["fail"], B["runtime_parts"]["warn"], B["unique_meshes"]["fail"], B["world_triangles"]["fail"],
+              B["mesh_parts"]["warn"]), (D, B))
+
+    class Paths:
+        repo = None
+
+    class FakeRun:
+        dry = False
+
+        def __init__(self, probe, repo=None):
+            self.probe, self.notes, self.extra = probe, [], {}
+            self.cfg = dict(D)
+            self.paths = Paths()
+            self.paths.repo = repo
+            self.perf = {}
+
+        def need_luau(self, *a, **k):
+            return dict(self.probe)
+
+        def note(self, m):
+            self.notes.append(m)
+
+    base = {"mesh_slots": 391, "unique_meshes": 93, "runtime_parts": 2203, "parts": 2300}
+    real_sleep, time.sleep = time.sleep, lambda s: None
+    try:
+        def perf(**kw):
+            r = FakeRun(dict(base, **kw))
+            st, det = watcher.step_perf(r)
+            return st, det, r
+        st, det, r = perf()
+        check("perf: 2203 parts / 93 unique / 391 MeshParts pass without warnings", st == "pass" and "warnings" not in det, (st, det))
+        check("perf: report keys keep their meaning and add the new ones",
+              r.perf["budget"] == 500 and r.perf["runtime_part_budget"] == 2500 and r.perf["runtime_part_warn"] == 2400
+              and r.perf["unique_mesh_budget"] == 120 and r.perf["triangles"] is None and r.perf["unique_meshes"] == 93, r.perf)
+        st, det, r = perf(runtime_parts=2450)
+        check("perf: 2450 parts passes with a warning", st == "pass" and len(det["warnings"]) == 1 and r.notes, (st, det))
+        check("perf: 2400 parts is not yet a warning", "warnings" not in perf(runtime_parts=2400)[1])
+        check("perf: 2500 parts passes (fail is strictly above)", perf(runtime_parts=2500)[0] == "pass")
+        check("perf: 2501 parts fails", perf(runtime_parts=2501)[0] == "fail")
+        check("perf: 121 unique meshes fails", perf(unique_meshes=121)[0] == "fail")
+        st, det, _ = perf(mesh_slots=501)
+        check("perf: 501 MeshParts only warns", st == "pass" and det["warnings"], (st, det))
+        check("perf: unique_meshes absent (old probe) is unknown, not a failure",
+              perf(unique_meshes=None)[0] == "pass")
+        r = FakeRun({k: v for k, v in base.items() if k != "unique_meshes"})
+        check("perf: probe without the unique_meshes key passes", watcher.step_perf(r)[0] == "pass")
+        check("perf: no MeshParts still fails", perf(mesh_slots=0)[0] == "fail")
+        with tempfile.TemporaryDirectory() as repo:
+            d = os.path.join(repo, "tools", "pipeline", "pc-watcher")
+            os.makedirs(d)
+            with open(os.path.join(d, "budgets.json"), "w", encoding="utf-8") as fh:
+                json.dump({"runtime_parts": {"fail": 3000, "warn": 2900}}, fh)
+            r = FakeRun(dict(base, runtime_parts=2800), repo)
+            check("budgets.json in the repo checkout overlays DEFAULTS (a 3000 bump is a JSON change)",
+                  watcher.step_perf(r)[0] == "pass" and r.perf["runtime_part_budget"] == 3000, r.perf)
+            with open(os.path.join(d, "budgets.json"), "w", encoding="utf-8") as fh:
+                fh.write("{broken")
+            r = FakeRun(dict(base, runtime_parts=2501), repo)
+            check("a broken budgets.json falls back to DEFAULTS", watcher.step_perf(r)[0] == "fail" and r.perf["runtime_part_budget"] == 2500)
+    finally:
+        time.sleep = real_sleep
 
 
 def t_geometry():
@@ -501,9 +580,232 @@ def t_partial():
     check("partial report not publishable", rep["run_kind"] == "partial" and rep["publishable"] is False)
 
 
+def t_perf():
+    import inspect
+    e = watcher.perf_frame_stats([])
+    check("perf stats empty", e["frames"] == 0 and e["avg_fps"] is None and e["low1_fps"] is None)
+    one = watcher.perf_frame_stats([20.0])
+    check("perf stats one frame", one["frames"] == 1 and one["avg_fps"] == 50.0 and one["low1_fps"] == 50.0
+          and one["p99_ms"] == 20.0)
+    dts = [10.0] * 99 + [50.0]  # 100 frames: worst 1% = the one 50 ms frame
+    st = watcher.perf_frame_stats(dts)
+    check("perf stats avg / low1", st["avg_fps"] == round(1000 / 10.4, 2) and st["low1_fps"] == 20.0 and st["max_ms"] == 50.0
+          and st["p50_ms"] == 10.0 and st["p99_ms"] == 10.0, st)
+    big = watcher.perf_frame_stats([16.0] * 1999 + [100.0])  # worst 0.1% = 2 frames
+    check("perf stats low01", big["low01_fps"] == round(1000 / 58.0, 2), big)
+    def win(q, p95, dc, ps=None):
+        return {"quality": watcher.perf_quality_record(q, {"rendering_quality": "Enum.QualityLevel.Level%02d" % q,
+                                                           "saved_quality": "Enum.SavedQualitySetting.QualityLevel%d" % q}),
+                "client": {"avg_fps": 58.3, "low1_fps": 40.0, "p95_ms": p95, "p99_ms": 31.5,
+                           "memory_categories": {"PlaceMemory": 321.0} if ps else None,
+                           "render": {"SceneDrawcallCount": dc, "ShadowsDrawcallCount": 90.0, "RenderCPUFrameTime": 0.00512},
+                           "render_unavailable": {"SceneTriangleCount": "not a valid member"}}}
+
+    def vs(d1, dc1, added=1000):
+        base = {"label": "base", "extra_target": 0, "windows": [win(10, 12.0, 900.0, 1), win(1, 8.0, 300.0)],
+                "server": {"perf": {"runtime_parts": 2730, "mesh_slots": 300}, "mem": {"memory_categories": {"PlaceMemory": 100.0}}}}
+        p = {"label": "+1000", "extra_target": 1000, "windows": [win(10, 14.0, 1200.0), win(1, 8.0 + d1, dc1)],
+             "stress": {"target": 1000, "total_extra_parts": added} if added is not None else None,
+             "server": {"perf": {"runtime_parts": 2730 + 561}}}
+        return [{"label": "base-early", "extra_target": 0, "windows": [win(10, 20.0, 1.0)]}, base, p]
+    rep = watcher.perf_build_report("a" * 40, "v", 30, vs(0.4, 450.0), None, ["n1"], 12.0, pc={"cpu": "x"})
+    md = watcher.perf_report_md(rep)
+    check("perf md table", "| base |" in md and "| +1000 |" in md and "| base-early |" in md and "n/a" in md
+          and "SceneTriangleCount" in md and "n1" in md and "p95 ms" in md and "\u0394p95 vs base" in md
+          and "PlaceMemory MB (client)" in md and "PlaceMemory MB (server)" in md and "client MB" not in md, md)
+    check("perf verdict pass", watcher.perf_verdict(rep) == "+1000 (1000 parts added): \u0394p95 = 0.40 ms (<1 ms? yes), draw calls at Q1 = 450 (<=500? yes) -> 3000 cap PASS",
+          watcher.perf_verdict(rep))
+    check("perf md CPU ms converted from seconds", "| 5.12 |" in md and "| 0.01 |" not in md, md)
+    check("perf md parts added column", "parts added" in md, md)
+    pv90 = watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(0.4, 450.0, 900), None, [], 1.0))
+    check("perf verdict pass at exactly 90% fill", pv90.endswith("PASS"), pv90)
+    iv = watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(0.4, 450.0, 561), None, [], 1.0))
+    check("perf verdict never PASS under 90% fill", "PASS" not in iv and "INCONCLUSIVE (only 561 of 1000 parts added" in iv, iv)
+    fv = watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(0.4, 450.0, None), None, [], 1.0))
+    check("perf verdict falls back to runtime_parts delta", "INCONCLUSIVE (only 561 of 1000" in fv and "PASS" not in fv, fv)
+    check("perf verdict fail p95", watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(1.5, 450.0), None, [], 1.0)).endswith("FAIL"))
+    check("perf verdict fail draw calls", "(<=500? no) -> 3000 cap FAIL" in watcher.perf_verdict(
+        watcher.perf_build_report("a" * 40, "v", 30, vs(0.2, 501.0), None, [], 1.0)))
+    nv = watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(0.2, 100.0)[:2], None, [], 1.0))
+    check("perf verdict n/a", nv.endswith("n/a") and "n/a ms" in nv and "Q1 = n/a" in nv, nv)
+    check("perf delta ignores base-early", watcher.perf_delta_p95(rep, rep["variants"][0], rep["variants"][0]["windows"][0]["quality"],
+          rep["variants"][0]["windows"][0]["client"]) is None)
+    check("perf quality parse", watcher.perf_parse_qualities("10,1") == [10, 1] and watcher.perf_parse_qualities("1, 3,6,3") == [1, 3, 6])
+    for bad in ("", "0", "22", "x"):
+        try:
+            watcher.perf_parse_qualities(bad)
+            check("perf quality parse rejects %r" % bad, False)
+        except ValueError:
+            check("perf quality parse rejects %r" % bad, True)
+    qa = watcher.perf_quality_record(1, {"rendering_quality": "Enum.QualityLevel.Level01", "saved_quality": "Enum.SavedQualitySetting.QualityLevel1"})
+    qn = watcher.perf_quality_record(10, {"rendering_quality": "Enum.QualityLevel.Automatic", "saved_quality": "Enum.SavedQualitySetting.Automatic"})
+    qh = watcher.perf_quality_record(1, {"rendering_quality": "Enum.QualityLevel.Level01", "saved_quality": "Enum.SavedQualitySetting.QualityLevel10"})
+    check("perf quality record", qa["label"] == "1" and qa["applied"] and qn["label"] == "unset (Automatic)" and not qn["applied"]
+          and qh["label"] == "1 (rendering only)")
+    d = tempfile.mkdtemp()
+    watcher.perf_write(d, "e" * 40, dict(rep, status="partial"))
+    check("perf incremental write", os.path.isfile(os.path.join(d, "e" * 40 + "-perf.json")) and
+          "status: **partial**" in open(os.path.join(d, "e" * 40 + "-perf.md"), encoding="utf-8").read())
+    skip = watcher.perf_report_md(dict(rep, variants=[{"label": "+10 unique meshes", "skipped": True, "reason": "no API"}]))
+    check("perf skipped extra in md", "+10 unique meshes: skipped (no API)" in skip)
+    check("perf report kind", rep["run_kind"] == "perf" and rep["publishable"] is False and rep["status"] == "measured"
+          and "frames_reviewed" not in rep and "pass" not in json.dumps(rep["status"]))
+    err = watcher.perf_build_report("a" * 40, None, 30, [], None, [], 1.0, error="boom")
+    check("perf error report", err["status"] == "error" and err["run_kind"] == "perf" and err["publishable"] is False)
+    src = inspect.getsource(watcher.cmd_perf) + inspect.getsource(watcher.sync_perf) + inspect.getsource(watcher.perf_variant)
+    check("perf never names loop state", not any(n in src for n in ("last-sha", "last-full", "full-done", "tip-seen", "unsynced")), src[:0])
+    check("perf sync path", watcher.perf_sync_path("b" * 40) == "perf/" + "b" * 40 and not watcher.perf_sync_path("c").startswith("studio-reports"))
+    run = watcher.Run(watcher.Paths(tempfile.mkdtemp()), dict(watcher.DEFAULTS), "d" * 40, kind="perf")
+    check("perf outdir", run.run_kind == "perf" and run.outdir.replace("\\", "/").endswith("out/perf/" + "d" * 40))
+    cam = watcher.PERF_CAMERA
+    for name, subs in (("perf_stress", {"target": 500}), ("perf_quality", {"level": 10}), ("perf_meshclone", {"target": 100}),
+                       ("perf_unique", {"count": 10}), ("perf_window", {"seconds": 30, "centre": tuple(cam["centre"]),
+                       "radius": cam["radius"], "height": cam["height"]})):
+        body = open(os.path.join(HERE, "luau", name + ".luau"), encoding="utf-8").read()
+        for k, v in subs.items():
+            body = body.replace("%%" + k.upper() + "%%", watcher.luau_literal(v))
+        check("luau %s filled" % name, "%%" not in body)
+    inst = open(os.path.join(HERE, "install.ps1"), encoding="utf-8").read()
+    check("install copies luau", "luau\\*.luau" in inst)
+
+
+def t_perf_e2e():
+    """cmd_perf end to end with every Studio/MCP call faked: catches a broken body (NameError etc.)."""
+    import types
+    home = tempfile.mkdtemp()
+    w = watcher
+    saved = {k: getattr(w, k) for k in ("step_build", "step_launch", "start_play", "step_close", "converge_viewport",
+                                        "capture_frame", "perf_pc_info", "tracked_pids")}
+    saved_luau, saved_need, saved_sleep = w.Run.luau, w.Run.need_luau, w.time.sleep
+    calls = []
+
+    def fake_luau(self, name, datamodel="Edit", timeout=60, **subs):
+        calls.append(name)
+        if name == "perf_window":
+            return True, {"frames": 100, "dts_ms": [16.0] * 99 + [40.0], "avg_fps": 60.0, "p95_ms": 17.0,
+                          "render": {"SceneDrawcallCount": 300}}
+        if name == "perf_terrain_attr":
+            return True, {"set": True}
+        if name == "perf_stress":
+            return True, {"added_parts": subs.get("target", 0), "clones": 1}
+        return True, {"runtime_parts": 2200, "mesh_slots": 390}
+
+    try:
+        w.step_build = w.step_launch = lambda run: None
+        w.start_play = lambda run: {}
+        w.step_close = lambda run: ("pass", {})
+        w.converge_viewport = lambda run, hwnd, target: ((1920, 1080), None)
+        w.capture_frame = lambda run, tag, **kw: {"file": tag + ".jpg"}
+        w.perf_pc_info = lambda: {"cpu": "test"}
+        w.tracked_pids = lambda paths: []
+        w.Run.luau = fake_luau
+        w.Run.need_luau = lambda self, name, dm="Edit", timeout=60, **subs: fake_luau(self, name, dm, timeout, **subs)[1]
+        w.time.sleep = lambda s: None
+        paths = w.Paths(home)
+        cfg = dict(w.DEFAULTS, sync=False)
+        orig_run = w.Run
+
+        class FakeRun(orig_run):
+            def __init__(self, *a, **k):
+                orig_run.__init__(self, *a, **k)
+                self.hwnd = 1
+
+            def record_foreground(self):
+                pass
+
+            def check_focus(self, where):
+                return False
+        w.Run = FakeRun
+        try:
+            rc = w.cmd_perf(paths, cfg, "a" * 40, [0, 500, 1000], 30, False, 5, False, False, qualities=(10, 1), opts={})
+        finally:
+            w.Run = orig_run
+        outdir = os.path.join(home, "out", "perf", "a" * 40)
+        rep = json.load(open(os.path.join(outdir, "a" * 40 + "-perf.json")))
+        labels = [v["label"] for v in rep["variants"]]
+        check("perf e2e: rc 0 and status measured", rc == 0 and rep["status"] == "measured", (rc, rep.get("status"), rep.get("error")))
+        check("perf e2e: variants base-early/base/+500/+1000", labels == ["base-early", "base", "+500", "+1000"], labels)
+        check("perf e2e: run_kind perf, not publishable", rep["run_kind"] == "perf" and rep["publishable"] is False)
+        check("perf e2e: md written", os.path.isfile(os.path.join(outdir, "a" * 40 + "-perf.md")))
+        check("perf e2e: settle recorded", (rep.get("settle") or {}).get("bt_set") is True, rep.get("settle"))
+        check("perf e2e: never touches loop state", not any(os.path.exists(paths.st(f)) for f in
+              ("last-sha.json", "last-full.json", "full-done.json", "tip-seen.json", "unsynced.json")))
+        check("perf e2e: run.lock released", not os.path.exists(paths.st("run.lock")))
+    finally:
+        for k, v in saved.items():
+            setattr(w, k, v)
+        w.Run.luau, w.Run.need_luau, w.time.sleep = saved_luau, saved_need, saved_sleep
+
+
+def t_bugs():
+    """Advisory bug probes (Merijn's 2026-10-17 list): shots with `bug_probe`, luau/bug*.luau, shot-map selection, report wiring."""
+    shots, _ = watcher.load_shots(repo=None)
+    smap = watcher.read_json(watcher.data_path(None, "shot-map.json")[0])
+    probes = [s for s in shots if "bug_probe" in s]
+    bugs = [s["bug_probe"].get("bug") for s in probes]
+    check("bug probes: bugs 1-16 once each (17 = no probe, new UI)", sorted(bugs) == list(range(1, 17)), bugs)
+    check("bug probes: world shots with title, ctx Server|Client", all(
+        s.get("kind") == "world" and s["bug_probe"].get("title") and s["bug_probe"].get("ctx", "Server") in ("Server", "Client") for s in probes))
+    for s in probes:
+        bp = s["bug_probe"]
+        if not bp.get("luau"):
+            check("bug %s frame-only entry has a summary" % bp["bug"], bool(bp.get("summary")))
+            continue
+        f = os.path.join(HERE, "luau", bp["luau"] + ".luau")
+        check("bug %s luau/%s.luau exists" % (bp["bug"], bp["luau"]), os.path.isfile(f))
+        if os.path.isfile(f):
+            src = open(f, encoding="utf-8").read()
+            check("bug %s luau returns ok / summary / detail" % bp["bug"], all(re.search(r"\b%s = " % k, src) for k in ("ok", "summary", "detail")))
+            check("bug %s args fill exactly the luau placeholders" % bp["bug"],
+                  {k.upper() for k in (bp.get("args") or {})} == set(re.findall(r"%%([A-Z]+)%%", src)))
+    names = {os.path.basename(f) for f in glob.glob(os.path.join(HERE, "luau", "bug*.luau"))}
+    used = {s["bug_probe"]["luau"] + ".luau" for s in probes if s["bug_probe"].get("luau")}
+    check("every luau/bug*.luau is used by a shot", names == used, sorted(names ^ used))
+    rules = smap["rules"]
+    allbug = next((r for r in rules if r["name"] == "bug probes"), None)
+    check("shot-map: 'bug probes' rule selects every bug shot", bool(allbug) and all(watcher.shot_selected_by(s, allbug) for s in probes))
+    check("shot-map: 'bug probes' rule maps luau/bug*.luau and shots/*bug*", bool(allbug) and all(
+        watcher._any_glob(p, allbug["paths"], smap) for p in ("tools/pipeline/pc-watcher/luau/bug12_glow.luau", "tools/pipeline/pc-watcher/shots/160-bug01-leaving-text.json")))
+    other = [r for r in rules if r["name"] != "bug probes"]
+    check("shot-map: every bug shot is also selected by a source-area rule", all(any(watcher.shot_selected_by(s, r) for r in other) for s in probes),
+          [s["id"] for s in probes if not any(watcher.shot_selected_by(s, r) for r in other)])
+    G = "games/steal-a-slime/src/"
+    for path, wanted in ((G + "visuals/shared/RareSpawn.luau", 12), (G + "shared/ParadeLane.luau", 4), (G + "server/Spawner.luau", 5),
+                         (G + "shared/SlideColliders.luau", 9), (G + "server/FountainColliders.luau", 10),
+                         (G + "server/PlotSigns.luau", 8), (G + "visuals/client/VatFx.luau", 16), (G + "visuals/shared/BorderTerrain.luau", 14)):
+        picked = watcher.plan_run([path], shots, smap, 60)["shots"]
+        sid = next(s["id"] for s in probes if s["bug_probe"]["bug"] == wanted)
+        check("plan %s picks bug %d" % (path.rsplit("/", 1)[1], wanted), sid in picked, picked[:5])
+    # advisory: a failing / erroring probe is a note and a report entry, never an exception or a step failure
+    run = watcher.Run(watcher.Paths(tempfile.mkdtemp()), dict(watcher.DEFAULTS), None, True)
+    shot = {"bug_probe": {"bug": 99, "title": "t", "luau": "bug04_lane_smooth", "ctx": "Server"}}
+
+    def fake(result):
+        def need(name, ctx="Server", timeout=60, /, **subs):
+            if isinstance(result, Exception):
+                raise result
+            return result
+        return need
+    for label, result, ok in (("ok false", {"ok": False, "summary": "bad", "detail": {"n": 1}}, False),
+                              ("ok null", {"ok": None, "summary": "visual"}, None),
+                              ("ok true", {"ok": True, "summary": "fine"}, True),
+                              ("StepFail", watcher.StepFail("mcp down"), False)):
+        run.need_luau = fake(result)
+        res = {}
+        watcher.bug_probe(run, shot, res, "s")
+        watcher.bug_record(run, shot, res, "s")
+        check("bug probe %s -> bug.ok %s" % (label, ok), res["bug"]["ok"] is ok, res)
+    check("failing bug probes are notes", sum("bug 99" in n for n in run.notes) == 2, run.notes)
+    rep = watcher.build_report(run)
+    check("report.bugs lists every probe", [b["ok"] for b in rep["bugs"]] == [False, None, True, False]
+          and set(rep["bugs"][0]) == {"id", "title", "ok", "summary", "shot", "frame"}, rep["bugs"])
+    check("bug probes never decide the status", watcher.overall_status({k: {"status": "pass"} for k in watcher.HARD_STEPS}) == "pass")
+    check("step_shots verdict ignores bug probes", "bug" not in "".join(l for l in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read().split("def step_shots")[1].split("def watcher_studio_pids")[0].splitlines() if l.strip().startswith("if any(r.get")))
+
+
 def main():
-    for t in (t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry, t_data_path, t_flags, t_partial):
+    for t in (t_perf, t_perf_e2e, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
+              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going

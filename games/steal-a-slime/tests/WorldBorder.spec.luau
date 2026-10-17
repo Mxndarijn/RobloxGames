@@ -377,16 +377,12 @@ describe("WorldBorder decor", function()
 		end
 		expect(slots).toBe(#pieces + WorldBorder.GIANT_COUNT)
 		expect(slots).toBe(WorldLayout.BORDER_SLOT_COUNT)
-		expect(slots <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
-		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(96)
 		expect(parts <= WorldLayout.BORDER_PART_BUDGET).toBe(true)
 		expect(parts).toBe(WorldBorder.WALL_SEGMENTS + #pieces + WorldBorder.GIANT_COUNT)
 	end)
-	it("builds at most 96 slots whatever the seed", function()
+	it("builds exactly BORDER_SLOT_COUNT slots whatever the seed", function()
 		for seed = 1, 12 do
-			expect(#WorldBorder.pieces(seed * 977) + WorldBorder.GIANT_COUNT <= WorldLayout.BORDER_SLOT_BUDGET).toBe(
-				true
-			)
+			expect(#WorldBorder.pieces(seed * 977) + WorldBorder.GIANT_COUNT).toBe(WorldLayout.BORDER_SLOT_COUNT)
 		end
 	end)
 	it("stands on the Ground: flat on y = 0 and at most 3 studs over the edge", function()

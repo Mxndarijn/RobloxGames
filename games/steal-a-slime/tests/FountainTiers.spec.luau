@@ -20,7 +20,6 @@ local SlimeLooks = require("../src/shared/SlimeLooks")
 local SlimeRoster = require("../src/shared/SlimeRoster")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
-local WorldBudget = require("./WorldBudget.spec")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -340,7 +339,6 @@ describe("FountainTiers: decor", function()
 		for _, prop in WorldLayout.RANCH_PROPS do
 			expect(prop.mesh ~= "fountain_tier_ring" and prop.mesh ~= "fountain_tier_crest").toBe(true)
 		end
-		expect(WorldBudget.uploaded.total <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 	end)
 	it("the workspace attribute is named once", function()
 		expect(Constants.FOUNTAIN_TIER_ATTRIBUTE).toBe("FountainTier")

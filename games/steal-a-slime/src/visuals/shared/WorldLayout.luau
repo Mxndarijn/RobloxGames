@@ -160,47 +160,20 @@ WorldLayout.FENCE_SCALE = 10 / 11
 -- its centre 0.9 in from the bbox edge, at FENCE_SCALE.
 WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 -- Mesh slots in the whole world, as the pc-watcher counts MeshParts (MeshAsset + pending BorderMesh / FenceMesh
--- slots + the WorldProps skins), counted with ranch_fence_20 uploaded
--- (tests/WorldBudget.spec), split into caps that add up to MESH_SLOT_BUDGET:
---   fence   panels + gate segments. The target was 15 a plot (120), but the
---           kit pieces are 20 and 10 long: each closed side needs 4 panels
---           (80 / 20) and each 30-stud half of the gate side needs a panel
---           and a segment, so 16 a plot (128) is the minimum with the gate
---           slot centred.
---   posts   one GATE_POST_MESH a plot (8). Panels and segments carry a post
---           at their -X end only, so round the fence loop every joint and
---           corner shows one post; the run that ends at the gate has none
---           there, and this post closes it, mirroring the post beside the
---           other gate stub. Paid for by the border share (112 -> 104).
---   border  Map.Border's share (96). The ring uses BORDER_SLOT_COUNT (94:
---           72 decor pieces + 22 giant trees of border v5; v5 retired the 6
---           scaled-up v4 giants and 8 small pieces: 4 of the 8 corner groves
---           and 4 of the 12 outer hills, whose backdrop the Terrain hills and
---           mountains now give)
---           since border v3 (single hedge, fence, tree, rock and hill
---           pieces scattered in layers; 102 slots / 12 designs more until
---           the pc-watcher perf gate read 414 > 400); #56's chunk ring
---           used 44, main #54's first ring 228.
---   runtime MeshParts the pc-watcher counts in the play world that
---           WorldLayout.build() does not produce: 16, the constant gap
---           between the build count and the watcher's (340 vs 356 at
---           09ea65e, 398 vs 414 at b84f795). RUNTIME_SLOT_ALLOWANCE.
---   decor   everything else: ranch props, pad stands, fountain, plaza,
---           landing ring, gates, plot dex boards, WorldProps
---           skins. Capped at 152 = MESH_SLOT_BUDGET - fence - posts - border
---           share - runtime (152 used; v5 moved 8 of the old 160 to the border;
---           the plots no longer carry a BuyStand: 8 slots free;
---           the shop skin is the one ranch_shop_stand).
--- The fallback (two segments per panel until the upload) adds one slot per
--- panel: 112.
-WorldLayout.MESH_SLOT_BUDGET = 400
-WorldLayout.FENCE_SLOT_BUDGET = 128
-WorldLayout.GATE_POST_SLOT_BUDGET = 8
-WorldLayout.BORDER_SLOT_BUDGET = 96
+-- slots + the WorldProps skins), counted with ranch_fence_20 uploaded (tests/WorldBudget.spec).
+-- MeshParts are a SOFT budget now: MESH_SLOT_BUDGET mirrors tools/pipeline/pc-watcher/budgets.json
+-- mesh_parts.warn (500; tools/pr-gate/budget_check.py fails if they drift) and only warns. The real mesh limits
+-- are world triangles (<= 500000, pr-gate budget.sh from the kit FBX) and unique meshes (<= 120, runtime budget).
+-- #80's hard per-category split (fence 128 / gate posts 8 / border 96 / decor 152 / runtime 16 = 400) was folded
+-- into those limits; BORDER_SLOT_COUNT stays as a layout-correctness pin (a change to the ring trips it).
+--   border  Map.Border's slots: 94 = 72 decor pieces + 22 giant trees of border v5.
+--   runtime MeshParts the pc-watcher counts in the play world that WorldLayout.build() does not produce: 16, the
+--           constant gap between the build count and the watcher's (340 vs 356 at 09ea65e, 398 vs 414 at
+--           b84f795). RUNTIME_SLOT_ALLOWANCE is the Studio calibration offset (the podium R15 rig); the pr-gate
+--           runtime counter adds it to parts, MeshParts and unique meshes (tools/pr-gate/README.md).
+WorldLayout.MESH_SLOT_BUDGET = 500
 WorldLayout.BORDER_SLOT_COUNT = 94
-WorldLayout.DECOR_SLOT_BUDGET = 152
 WorldLayout.RUNTIME_SLOT_ALLOWANCE = 16
-WorldLayout.MESH_SLOT_BUDGET_FALLBACK = WorldLayout.MESH_SLOT_BUDGET + 112
 -- Parts outside Map.Border (THEME.md asked <= 1200; raised to 1400 for the
 -- primitive meadow clusters in the grass band behind the plots). Asserted
 -- over the world WorldLayout builds outside Map.Border; the border ring
@@ -1318,7 +1291,7 @@ local function plot(i: number): WorldNode
 	-- post closes every joint and corner: one post each, never two. The gate
 	-- breaks the loop: the left gate segment starts there (post 0.82 out from
 	-- the stub), the right one ends there without a post, so a GATE_POST_MESH
-	-- mirrors that post on the right (GATE_POST_SLOT_BUDGET).
+	-- mirrors that post on the right (one GatePost a plot).
 	local postSize = meshSize(WorldLayout.GATE_POST_MESH, WorldLayout.FENCE_SCALE)
 	local postX = slot / 2 + WorldLayout.FENCE_POST_INSET
 	table.insert(

@@ -197,19 +197,14 @@ jobs:
       - name: PR gate (logic, layout, budget)
         if: needs.changes.outputs.slime == 'true'
         run: tools/pr-gate/run.sh
-      # Runtime parts / mesh slots counted like the Studio perf step (perf_server.luau on the booted
-      # fake runtime); the base is counted too so a PR on an already-over-budget main only fails if it adds.
+      # Runtime parts / unique meshes / MeshParts counted like the Studio perf step (perf_server.luau on the
+      # booted fake runtime), limits from tools/pipeline/pc-watcher/budgets.json. Warnings are annotations.
       - name: Wally install (runtime budget)
         if: needs.changes.outputs.slime == 'true'
         working-directory: games/steal-a-slime
         run: wally install
-      - name: Fetch PR base
+      - name: Runtime budget (parts, unique meshes, MeshParts)
         if: needs.changes.outputs.slime == 'true'
-        run: git fetch --no-tags --depth=1 origin ${{ github.event.pull_request.base.sha }}
-      - name: Runtime budget (parts, mesh slots)
-        if: needs.changes.outputs.slime == 'true'
-        env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: tools/pr-gate/runtime_budget.sh
 
   # Squash auto-merge once pr-gate is green. Same-repo, non-draft PRs only (a

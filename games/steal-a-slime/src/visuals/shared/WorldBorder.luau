@@ -34,8 +34,8 @@
 	and in front of the mountains, in three radial depth bands.
 
 	Decor never collides; the walls are the only collision. Every decor piece
-	is one MeshAsset slot (MeshSwap skins it); the border share is
-	WorldLayout.BORDER_SLOT_BUDGET, the pieces and giants stay under it.
+	is one MeshAsset slot (MeshSwap skins it); the pieces and giants add up
+	to WorldLayout.BORDER_SLOT_COUNT.
 ]]
 
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")

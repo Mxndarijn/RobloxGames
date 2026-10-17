@@ -28,6 +28,8 @@ RuntimeCount.STEP_HZ = 30
 -- Players:CreateHumanoidModelFromDescriptionAsync (15 R15 MeshParts + HumanoidRootPart + one accessory
 -- handle replaces a 1-Part placeholder: +16 parts, +16 MeshParts), which the fake runtime cannot build.
 RuntimeCount.STUDIO_OFFSET = WorldLayout.RUNTIME_SLOT_ALLOWANCE
+-- Same 16 podium rig MeshParts carry 16 distinct MeshIds: Studio unique_meshes = offline + 16 (d30d9dc: Studio 93, offline 77).
+RuntimeCount.UNIQUE_MESH_OFFSET = WorldLayout.RUNTIME_SLOT_ALLOWANCE
 
 -- rojo build the place in the current directory (the game dir), boot it, step it.
 function RuntimeCount.boot()

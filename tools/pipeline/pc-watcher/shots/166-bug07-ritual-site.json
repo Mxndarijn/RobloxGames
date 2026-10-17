@@ -1,0 +1,17 @@
+{
+  "id": "bug07-ritual-site",
+  "todo": "bug 7",
+  "kind": "world",
+  "target": "RitualCircle",
+  "from": "look",
+  "dist": 40,
+  "height": 24,
+  "bug_probe": {
+    "bug": 7,
+    "title": "Slime Ritual: 2 players, off the lane",
+    "luau": "bug07_ritual_site",
+    "ctx": "Server",
+    "args": {}
+  },
+  "note": "bug 7 (advisory): Config.RITUAL.MIN_PLAYERS == 2 and the ritual circle centre is farther than lane half width + circle radius from every lane sample"
+}

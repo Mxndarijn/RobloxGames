@@ -5,7 +5,8 @@
 	FountainColliders.place(): Folder?
 
 	Adds the fountain slide's collision (the whole path with FEATURES.SlideCollision, else only the low stretch) (Shared.SlideColliders) under
-	workspace.Map.Volcano.SlideColliders: invisible, anchored, CanCollide
+	workspace.Map.Volcano.SlideColliders: a solid block along the slide so players can neither
+	walk up it nor stand in it. Invisible, anchored, CanCollide
 	Parts, no touch or query. Unlike the silo's Basin / Trim / Silo colliders
 	(MeshCollider, switched by MeshSwap) they stay on in every state: the
 	fountain mesh's slide and the Chute stand-in follow the same
@@ -23,7 +24,7 @@ local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
 local FountainColliders = {}
 
-FountainColliders.ATTRIBUTE = "FountainCollider" -- = the spec kind (Floor / Wall / Skirt)
+FountainColliders.ATTRIBUTE = "FountainCollider" -- = the spec kind (Floor / Fill / Skirt / Joint)
 
 function FountainColliders.place(): Folder?
 	local map = workspace:FindFirstChild(Constants.MAP_FOLDER)

@@ -14,6 +14,8 @@
 -- scene[_pending]_tier_<n>.json.
 -- --magnet stands the FEATURES.RainMagnet prop (real MagnetDecor.pose) beside Plot_1's MergeVat disc and writes
 -- scene[_pending]_magnet.json.
+-- --snow <level 0..1> [--snow-phase settle|melt] shows SnowGround v2 (the same SnowCover tints and colour lerp as the
+-- client) on the part colours and the border terrain colours, and writes scene[_pending]_snow_<phase>_<level>.json.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("../../src/visuals/tools/LuneGlobals")
@@ -30,6 +32,7 @@ local ParadeLane = require("../../src/shared/ParadeLane")
 local PlotDecor = require("../../src/visuals/shared/PlotDecor")
 local Props = require("../../src/visuals/shared/Props")
 local Ritual = require("../../src/shared/Ritual")
+local SnowCover = require("../../src/visuals/shared/SnowCover")
 local VatDecor = require("../../src/visuals/shared/VatDecor")
 local WorldBorder = require("../../src/visuals/shared/WorldBorder")
 local WorldBuilder = require("../../src/visuals/shared/WorldBuilder")
@@ -44,6 +47,15 @@ local SKIN = if SKIN_ARG then process.args[SKIN_ARG + 1] else nil
 local TIER_ARG = table.find(process.args, "--fountain-tier")
 local TIER = if TIER_ARG then tonumber(process.args[TIER_ARG + 1]) else nil
 assert(not TIER_ARG or (TIER and TIER >= 1 and TIER <= FountainTiers.MAX_TIER), "--fountain-tier needs 1..4")
+
+local SNOW_ARG = table.find(process.args, "--snow")
+local SNOW = if SNOW_ARG then tonumber(process.args[SNOW_ARG + 1]) else nil
+assert(not SNOW_ARG or (SNOW and SNOW >= 0 and SNOW <= 1), "--snow needs a level 0..1")
+local PHASE_ARG = table.find(process.args, "--snow-phase")
+local SNOW_PHASE = if PHASE_ARG then process.args[PHASE_ARG + 1] else "settle"
+assert(SNOW_PHASE == "settle" or SNOW_PHASE == "melt", "--snow-phase needs settle or melt")
+-- The client quantizes the level and tints from the original colour (SnowGround): same maths here.
+local snowTints = if SNOW then SnowCover.tints(SnowCover.quantize(SNOW), SNOW_PHASE == "settle") else nil
 
 -- Render staging: which pads show a new habitat mesh (plot, pad, habitat id).
 local HABITAT_PADS = {
@@ -277,6 +289,20 @@ for _, scope in { built.map, built.plots } do
 	for _, d in scope:GetDescendants() do
 		if d:IsA("BasePart") and not hidden[d] and d.Transparency < 1 then
 			local c = d.Color
+			if snowTints then
+				local kind = SnowCover.classify(
+					d.Name,
+					d.Material.Name,
+					d.Parent ~= nil and d.Parent.Name == "Paths",
+					d.Size.X,
+					d.Size.Z,
+					d.Transparency
+				)
+				if kind then
+					local w = if kind == "grass" then snowTints.grass else snowTints.path
+					c = Color3.new(SnowCover.lerpColor(c.R, c.G, c.B, w))
+				end
+			end
 			table.insert(parts, {
 				name = d:GetFullName(),
 				shape = d:IsA("Part") and d.Shape.Name or "Block",
@@ -370,13 +396,22 @@ if not table.find(process.args, "--no-terrain") then
 		heights[i] = math.floor(h * 10 + 0.5) / 10
 		mats[i] = letter[grid.materials[i]]
 	end
+	local colors = BorderTerrain.COLORS
+	if snowTints then
+		colors = {}
+		for name, c in BorderTerrain.COLORS do
+			local w = if name == "Rock" then snowTints.rock else snowTints.terrainGrass
+			local r, g, b = SnowCover.lerpColor(c[1] / 255, c[2] / 255, c[3] / 255, w)
+			colors[name] = { r * 255, g * 255, b * 255 }
+		end
+	end
 	terrain = {
 		step = grid.step,
 		min = grid.min,
 		n = grid.n,
 		heights = heights,
 		materials = table.concat(mats),
-		colors = BorderTerrain.COLORS,
+		colors = colors,
 		inner = BorderTerrain.INNER,
 		floor = BorderTerrain.FLOOR,
 	}
@@ -388,6 +423,7 @@ local suffix = (if PENDING then "_pending" else "")
 	.. (if TIER then `_tier_{TIER}` else "")
 	.. (if VAT then "_vat" else "")
 	.. (if MAGNET then "_magnet" else "")
+	.. (if SNOW then `_snow_{SNOW_PHASE}_{SNOW}` else "")
 fs.writeFile(
 	`{OUT}/scene{suffix}.json`,
 	serde.encode("json", {

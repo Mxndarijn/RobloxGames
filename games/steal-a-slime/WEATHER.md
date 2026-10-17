@@ -25,20 +25,38 @@ nothing changes piecemeal. `WeatherFx` writes the tint; `NightSky` listens to `W
 Atmosphere / ambient part on top of the day-night look. A change mid-tween starts from what is on screen. Targets live in
 `WeatherLook.LOOKS[id].tint / atmo`. Shots: `18-weather-<id>-<device>` (settled, 3.9 s) and `18-weather-<id>-mid-<device>` (1.2 s).
 
-## Ground snow (v30 F2)
+## Ground snow (SnowGround v2, `FEATURES.SnowGround`)
 
-OFF: `FEATURES.SnowGround = false` (frames reviewed, the flat sheet looked bad). `WeatherFx` only calls `SnowGround.start` with the flag on; `setSnowing` is a no-op until started. Weather and snowfall particles are unaffected. The rest of this section describes the flagged-off code.
+ON. "Snow on the surfaces, no sheet": v1 laid one translucent Snow Part over the whole ground and washed the plaza sand and
+paths into a flat grey/white sheet (cut in #223). v2 has NO overlay. `visuals/client/SnowGround` tints surfaces that already
+exist, client-side only: the `Ground` block (and other big flat grass parts) lerp toward snow white (248,250,255) at full
+weight; the border Terrain gets `SetMaterialColor` for Grass / LeafyGrass (full) and Rock (35 %); paths, the plaza disc and
+the pads get only a light frost (max 22 %) so they stay readable. Materials never change (no pop). Cost: 0 parts, 0 mesh
+slots (`SnowCover.PART_COUNT / MESH_SLOTS`), and it is flush by construction: no second layer, so no z-fighting and nothing
+clipping into props. Props / roofs get no snow. `WeatherFx` only calls `SnowGround.start` with the flag on.
 
-Snow flakes start at a fixed height (42 studs, speed 7-9 x lifetime 8, 15 deg spread) so every flake reaches the ground and fades
-out as it lands. `visuals/client/SnowGround` keeps ONE client-only, non-colliding Snow-material Part (640 x 0.1 x 640, top 0.08, over the
-Ground and path tops, under pads/props) whose Transparency follows `SnowCover` (pure, Lune-tested): the level builds over 50 s of Snow
-and melts over 35 s after. The part exists only while the level is above 0; Heartbeat runs only while it moves. Cost: 1 runtime
-part, 0 mesh slots (`tests/SnowCover.spec`). Props/roofs get no cover. Shots: `18c-snow-ground-early|late-<device>`
-(client-local `SnowCoverDebug` attribute pins the level 0.25 / 1).
+`SnowCover` (pure, Lune-tested, also used by the render exporter): `level` 0..1 builds over `BUILD_SECONDS` (50) of Snow and
+melts over `MELT_SECONDS` (35) after. `SnowCover.tints(level, snowing) -> { grass, terrainGrass, rock, path }` are the 0..1
+weights; `SnowCover.lerpColor` mixes one into the ORIGINAL colour (weight 0 returns it exactly). Settling is one smoothstep
+curve; melting is different: the path / plaza / pad frost is gone at half level (twice as fast) while the grass and hills keep
+their snow to the end.
+
+Flicker avoidance: the level is quantized to 1/128 (`SnowCover.quantize`) and a colour is only written when the quantized step or
+the phase changes; every colour is computed from the instance's saved ORIGINAL colour (weak table; Terrain colours saved on
+first use), never from its current one, so nothing drifts and level 0 restores the original exactly. If something else recolours
+a tinted part (e.g. the server restyling a pad) the new colour becomes the original. Heartbeat disconnects once settled and
+creates no instances. Parts that stream in under `Map` / `Plots` get the current tint; removed ones are dropped.
+
+Shots: `18c-snow-ground-<settle-mid|settle-full|melt-mid>-<device>`: the client-local `SnowCoverDebug` attribute pins the level
+(0.5 / 1 / 0.5); with the pin set, weather `Snow` = settling and `Clear` = melting (the melt shot sets `weather: "Clear"`).
+Renders: `lune run tools/render/export --snow <level> --snow-phase settle|melt` applies the same `SnowCover` tints to the exported
+part colours and terrain vertex colours.
+
 Late joiners: the server (`WeatherService.publish`) stamps workspace attributes `WeatherStartedAt` (server time the current weather
 began) and `SnowEndedAt` (server time Snow last ended, cleared while Snow shows), written before `Weather`. `SnowCover.levelAt`
 turns them plus `workspace:GetServerTimeNow()` into the level (10 s into the 50 s build-up = 0.2; mid-melt = partly melted; Snow
-lasts >= 120 s so a melt starts from 1). Missing stamps: full while snowing, bare while clear. `SnowCoverDebug` / `WeatherDebug`
+lasts >= 120 s so a melt starts from 1) and the phase is "snowing or not" (`SnowCover.phaseAt`), so a joiner mid-melt sees the
+paths cleared first. Missing stamps: full while snowing, bare while clear. `SnowCoverDebug` / `WeatherDebug`
 start from 0 and ignore the stamps. `SnowGround.start` places the level once.
 
 ## Hook for #8

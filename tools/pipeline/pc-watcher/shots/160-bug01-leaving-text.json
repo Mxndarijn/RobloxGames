@@ -1,0 +1,20 @@
+{
+  "id": "bug01-leaving-text",
+  "todo": "bug 1",
+  "kind": "world",
+  "target": "GooDrain",
+  "from": "centre",
+  "dist": 30,
+  "height": 14,
+  "bug_probe": {
+    "bug": 1,
+    "title": "\"Leaving\" text above slimes",
+    "luau": "bug_text_scan",
+    "ctx": "Client",
+    "args": {
+      "pattern": "leaving",
+      "show": true
+    }
+  },
+  "note": "bug 1 (advisory): no visible BillboardGui/SurfaceGui text containing 'leaving' (the despawn countdown above lane slimes); the frame keeps the BillboardGuis on, framed on the goo drain where the countdown shows"
+}
