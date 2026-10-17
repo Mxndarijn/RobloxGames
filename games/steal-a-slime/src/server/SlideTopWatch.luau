@@ -8,8 +8,16 @@
 	this is the backstop: a character whose root is on a fill's roof (Shared.SlideTopGuard.onTop) for SlideTopGuard.DWELL
 	seconds is put on the ground just beside the slide (SlideTopGuard.nudge, away from the fountain), velocity cleared.
 	Checked at 5 Hz per character, called from WorldView.enforceLocks; behind FEATURES.SlideCollision. Never harms.
+
+	SlideTopWatch.stepStrays(now)
+
+	The same check for every other unanchored Humanoid model directly under Workspace (an NPC or a test dummy,
+	not a player character), called from the server's player loop. Without it, a Humanoid dropped exactly on the ridge
+	stays balanced there (both faces < 89 degrees, so a Humanoid stands on either): the pc-watcher probe
+	bug09_slide_stand / slide_walk cannot_stand_on drops R15 dummies, not players.
 ]]
 
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -82,6 +90,56 @@ function SlideTopWatch.step(character: Model, root: BasePart, now: number): bool
 	character:PivotTo(CFrame.new(x, hit.Position.Y + 4, z))
 	root.AssemblyLinearVelocity = Vector3.zero
 	return true
+end
+
+-- Non-player Humanoid models directly under Workspace, tracked by ChildAdded (no per-tick scan of the map).
+local strays: { [Model]: true } = setmetatable({}, { __mode = "k" }) :: any
+local watching = false
+
+local function consider(inst: Instance)
+	if inst:IsA("Model") and inst:FindFirstChildOfClass("Humanoid") then
+		strays[inst] = true
+	end
+end
+
+local function watch()
+	if watching then
+		return
+	end
+	watching = true
+	for _, child in workspace:GetChildren() do
+		consider(child)
+	end
+	workspace.ChildAdded:Connect(function(child)
+		consider(child)
+		-- a dummy is often parented before its Humanoid is: look again once it is built
+		task.defer(consider, child)
+	end)
+end
+
+-- Number of models moved.
+function SlideTopWatch.stepStrays(now: number): number
+	if not Config.FEATURES.SlideCollision then
+		return 0
+	end
+	watch()
+	local moved = 0
+	for model in strays do
+		if model.Parent ~= workspace then
+			strays[model] = nil
+			continue
+		end
+		if Players:GetPlayerFromCharacter(model) then
+			continue -- players go through WorldView.enforceLocks
+		end
+		local root = model:FindFirstChild("HumanoidRootPart")
+		if root and root:IsA("BasePart") and not root.Anchored then
+			if SlideTopWatch.step(model, root, now) then
+				moved += 1
+			end
+		end
+	end
+	return moved
 end
 
 return SlideTopWatch
