@@ -1,0 +1,1513 @@
+{
+  "sha": "8fd3ac50a9d6dd5364fb26be11d80b0a2463427a",
+  "run_kind": "perf",
+  "publishable": false,
+  "status": "measured",
+  "checked_at": "2026-10-17T18:45:01Z",
+  "studio_version": "0, 743, 0, 7431133 (version-4f087c32742644ab)",
+  "watcher_version": "1.0.0",
+  "seconds": 30,
+  "camera_path": {
+    "centre": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "radius": 112.0,
+    "height": 40.0,
+    "start_angle_rad": 0.0,
+    "path": "one full orbit around the plaza centre over the window, angle = 2*pi*t/seconds, looking at the centre",
+    "viewport": [
+      1920,
+      1080
+    ]
+  },
+  "pc": {
+    "cpu": "AMD Ryzen 9 9950X 16-Core Processor",
+    "gpu": "AMD Radeon(TM) Graphics; NVIDIA GeForce RTX 4090",
+    "ram_gb": 61.7,
+    "os": "Windows-11-10.0.22631-SP0"
+  },
+  "variants": [
+    {
+      "label": "base-early",
+      "extra_target": 0,
+      "stress": null,
+      "server": {
+        "perf": {
+          "unique_meshes": 58,
+          "store_status": "Memory",
+          "slime_and_character_meshes": 19,
+          "parts": 1668,
+          "parade_lane": true,
+          "runtime_parts_transient": 72,
+          "runtime_parts": 1668,
+          "slide_colliders": true,
+          "mesh_slots": 82
+        },
+        "mem": {
+          "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+          "heartbeat_ms": 1.2050726413726807,
+          "instance_count": 48778,
+          "studio_process_mb": 3821.91015625,
+          "physics_step_ms": 0.0003483881300780922,
+          "primitives": 1757,
+          "tags_mb": {
+            "LuaHeap": 0,
+            "GraphicsTextureCharacter": 3.9695701599121094,
+            "BaseParts": 0,
+            "Internal": 505.23272705078125,
+            "GraphicsParts": 0,
+            "Sounds": 0,
+            "StreamingSounds": 0,
+            "GraphicsSlimModels": 0,
+            "GraphicsTerrain": 71.29977416992188,
+            "GraphicsMeshParts": 0,
+            "GraphicsSolidModels": 0,
+            "Script": 0,
+            "Animation": 0,
+            "HttpCache": 0,
+            "GeometryCSG": 0,
+            "Navigation": 0,
+            "Gui": 0,
+            "TerrainVoxels": 0,
+            "PhysicsCollision": 0,
+            "GraphicsParticles": 15.31982421875,
+            "Instances": 0,
+            "Signals": 0,
+            "GraphicsSpatialHash": 0,
+            "GraphicsTexture": 28.055931091308594
+          }
+        }
+      },
+      "windows": [
+        {
+          "quality": {
+            "requested": 1,
+            "rendering_quality": "Enum.QualityLevel.Level01",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "1 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.0007254000011,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 1.9210000038146973,
+              "NetworkReceived": 24.242610931396484,
+              "GPU": 0.536575973033905,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3826.63671875,
+              "NetworkSent": 6.681919574737549,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 17.604799270629883,
+              "MaxGPU": 33
+            },
+            "primitives": 2328,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 53362,
+            "render": {
+              "HeartbeatTime": 7.445312076015398e-05,
+              "ShadowsTriangleCount": 0,
+              "ShadowsDrawcallCount": 0,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 164,
+              "SceneTriangleCount": 259632,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.0005683199851773679,
+              "FrameTime": 0.01602640002965927,
+              "RenderCPUFrameTime": 0.001916100038215518,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3832.984375,
+            "tags_mb": {
+              "LuaHeap": 718.2041015625,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 12.091567993164062,
+              "Internal": 1290.746337890625,
+              "GraphicsParts": 3.1199111938476562,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 71.15745544433594,
+              "GraphicsMeshParts": 23.24139404296875,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 5.443778991699219,
+              "HttpCache": 0.14569091796875,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 33.08149719238281,
+              "TerrainVoxels": 12.078781127929688,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.348457336425781,
+              "Instances": 102.21529388427734,
+              "Signals": 12.721733093261719,
+              "GraphicsSpatialHash": 0.5894775390625,
+              "GraphicsTexture": 28.21392822265625
+            },
+            "frames": 1798,
+            "avg_fps": 59.94,
+            "avg_frame_ms": 16.683,
+            "p50_ms": 16.7,
+            "p95_ms": 17.9,
+            "p99_ms": 18.7,
+            "max_ms": 41.5,
+            "low1_fps": 47.72,
+            "low01_fps": 27.03
+          }
+        }
+      ]
+    },
+    {
+      "label": "base",
+      "extra_target": 0,
+      "stress": {
+        "clones": 0,
+        "outer_radius": 224,
+        "total_extra_mesh_parts": 0,
+        "gap": 5,
+        "added_mesh_parts": 0,
+        "sources": [],
+        "added_parts": 0,
+        "target": 0,
+        "candidates": 90,
+        "reached": true,
+        "total_extra_parts": 0
+      },
+      "server": {
+        "perf": {
+          "unique_meshes": 95,
+          "store_status": "Memory",
+          "slime_and_character_meshes": 39,
+          "parts": 1987,
+          "parade_lane": true,
+          "runtime_parts_transient": 494,
+          "runtime_parts": 1987,
+          "slide_colliders": true,
+          "mesh_slots": 401
+        },
+        "mem": {
+          "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+          "heartbeat_ms": 0.4944097101688385,
+          "instance_count": 49955,
+          "studio_process_mb": 3841.9921875,
+          "physics_step_ms": 0.0018687096890062094,
+          "primitives": 2482,
+          "tags_mb": {
+            "LuaHeap": 716.396484375,
+            "GraphicsTextureCharacter": 3.970844268798828,
+            "BaseParts": 13.107620239257812,
+            "Internal": 1290.823486328125,
+            "GraphicsParts": 3.3991851806640625,
+            "Sounds": 8.00335693359375,
+            "StreamingSounds": 0,
+            "GraphicsSlimModels": 0,
+            "GraphicsTerrain": 71.1552963256836,
+            "GraphicsMeshParts": 23.241317749023438,
+            "GraphicsSolidModels": 0,
+            "Script": 269.70697021484375,
+            "Animation": 6.357810974121094,
+            "HttpCache": 0.1338043212890625,
+            "GeometryCSG": 0,
+            "Navigation": 0,
+            "Gui": 33.081695556640625,
+            "TerrainVoxels": 11.585922241210938,
+            "PhysicsCollision": 0.003326416015625,
+            "GraphicsParticles": 15.379920959472656,
+            "Instances": 102.33722686767578,
+            "Signals": 12.883415222167969,
+            "GraphicsSpatialHash": 0.6307373046875,
+            "GraphicsTexture": 29.35455322265625
+          }
+        }
+      },
+      "windows": [
+        {
+          "quality": {
+            "requested": 1,
+            "rendering_quality": "Enum.QualityLevel.Level01",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "1 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.066084200007026,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 0.9800000190734863,
+              "NetworkReceived": 61.012142181396484,
+              "GPU": 0.6266880035400391,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3846.41015625,
+              "NetworkSent": 15.46316146850586,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 16.05889892578125,
+              "MaxGPU": 33
+            },
+            "primitives": 2513,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 53761,
+            "render": {
+              "HeartbeatTime": 0.00011542680294951424,
+              "ShadowsTriangleCount": 0,
+              "ShadowsDrawcallCount": 0,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 168,
+              "SceneTriangleCount": 289786,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.0006000639987178147,
+              "FrameTime": 0.01784059964120388,
+              "RenderCPUFrameTime": 0.002122999867424369,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3849.8046875,
+            "tags_mb": {
+              "LuaHeap": 716.72216796875,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 13.284721374511719,
+              "Internal": 1285.21240234375,
+              "GraphicsParts": 3.4176712036132812,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 71.14060974121094,
+              "GraphicsMeshParts": 23.241317749023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.419990539550781,
+              "HttpCache": 0.13946533203125,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 33.08099365234375,
+              "TerrainVoxels": 11.886581420898438,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.433082580566406,
+              "Instances": 102.365966796875,
+              "Signals": 12.878532409667969,
+              "GraphicsSpatialHash": 0.633056640625,
+              "GraphicsTexture": 29.35455322265625
+            },
+            "frames": 1804,
+            "avg_fps": 60.0,
+            "avg_frame_ms": 16.667,
+            "p50_ms": 16.7,
+            "p95_ms": 18.2,
+            "p99_ms": 18.9,
+            "max_ms": 23.9,
+            "low1_fps": 51.3,
+            "low01_fps": 45.15
+          }
+        },
+        {
+          "quality": {
+            "requested": 3,
+            "rendering_quality": "Enum.QualityLevel.Level03",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "3 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.064804299996467,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 0.8669999837875366,
+              "NetworkReceived": 62.547908782958984,
+              "GPU": 0.754688024520874,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3853.3515625,
+              "NetworkSent": 15.364355087280273,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 16.044599533081055,
+              "MaxGPU": 33
+            },
+            "primitives": 2513,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 53752,
+            "render": {
+              "HeartbeatTime": 0.00017531537741888314,
+              "ShadowsTriangleCount": 0,
+              "ShadowsDrawcallCount": 0,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 169,
+              "SceneTriangleCount": 308742,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.0006430720095522702,
+              "FrameTime": 0.017128000035881996,
+              "RenderCPUFrameTime": 0.0020808998961001635,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3857.0625,
+            "tags_mb": {
+              "LuaHeap": 718.1396484375,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 14.030136108398438,
+              "Internal": 1281.762451171875,
+              "GraphicsParts": 3.4417266845703125,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 71.12413024902344,
+              "GraphicsMeshParts": 23.241317749023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.375297546386719,
+              "HttpCache": 0.1419525146484375,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 33.06575012207031,
+              "TerrainVoxels": 11.795516967773438,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.377738952636719,
+              "Instances": 102.43598175048828,
+              "Signals": 12.891830444335938,
+              "GraphicsSpatialHash": 0.5989990234375,
+              "GraphicsTexture": 29.359237670898438
+            },
+            "frames": 1804,
+            "avg_fps": 60.0,
+            "avg_frame_ms": 16.666,
+            "p50_ms": 16.6,
+            "p95_ms": 18.2,
+            "p99_ms": 18.7,
+            "max_ms": 19.4,
+            "low1_fps": 52.79,
+            "low01_fps": 51.55
+          }
+        },
+        {
+          "quality": {
+            "requested": 6,
+            "rendering_quality": "Enum.QualityLevel.Level06",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "6 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.017332999996142,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 1.218999981880188,
+              "NetworkReceived": 61.17399215698242,
+              "GPU": 0.8837119936943054,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3861.2734375,
+              "NetworkSent": 15.958427429199219,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 16.62649917602539,
+              "MaxGPU": 33
+            },
+            "primitives": 2546,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 53822,
+            "render": {
+              "HeartbeatTime": 0.00011428421566961333,
+              "ShadowsTriangleCount": 8500,
+              "ShadowsDrawcallCount": 13,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 270,
+              "SceneTriangleCount": 435170,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.000943104038015008,
+              "FrameTime": 0.016420500352978706,
+              "RenderCPUFrameTime": 0.0023445000406354666,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3863.55078125,
+            "tags_mb": {
+              "LuaHeap": 717.93408203125,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 14.254714965820312,
+              "Internal": 1281.6429443359375,
+              "GraphicsParts": 3.45050048828125,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 71.12413024902344,
+              "GraphicsMeshParts": 23.241317749023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.367134094238281,
+              "HttpCache": 0.1372528076171875,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 32.97282409667969,
+              "TerrainVoxels": 11.852890014648438,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.372810363769531,
+              "Instances": 102.43040466308594,
+              "Signals": 12.872543334960938,
+              "GraphicsSpatialHash": 0.6436767578125,
+              "GraphicsTexture": 33.76548767089844
+            },
+            "frames": 1801,
+            "avg_fps": 60.0,
+            "avg_frame_ms": 16.667,
+            "p50_ms": 16.7,
+            "p95_ms": 18.1,
+            "p99_ms": 18.6,
+            "max_ms": 31.2,
+            "low1_fps": 51.3,
+            "low01_fps": 39.45
+          }
+        }
+      ],
+      "frame": "8fd3ac50a9d6dd5364fb26be11d80b0a2463427a-perf-0.jpg"
+    },
+    {
+      "label": "+100 meshparts",
+      "extra_target": 0,
+      "extra_meshparts": 100,
+      "stress": {
+        "total": 100,
+        "reached": true,
+        "target": 100,
+        "sources": 40,
+        "added": 100,
+        "distinct_mesh_ids": 22
+      },
+      "server": {
+        "perf": {
+          "unique_meshes": 95,
+          "store_status": "Memory",
+          "slime_and_character_meshes": 38,
+          "parts": 2087,
+          "parade_lane": true,
+          "runtime_parts_transient": 525,
+          "runtime_parts": 2087,
+          "slide_colliders": true,
+          "mesh_slots": 501
+        },
+        "mem": {
+          "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+          "heartbeat_ms": 0.6488291025161743,
+          "instance_count": 50116,
+          "studio_process_mb": 3883.16015625,
+          "physics_step_ms": 0.050217241048812866,
+          "primitives": 2613,
+          "tags_mb": {
+            "LuaHeap": 717.93408203125,
+            "GraphicsTextureCharacter": 3.970844268798828,
+            "BaseParts": 14.254714965820312,
+            "Internal": 1282.2598876953125,
+            "GraphicsParts": 3.45050048828125,
+            "Sounds": 8.00335693359375,
+            "StreamingSounds": 0,
+            "GraphicsSlimModels": 0,
+            "GraphicsTerrain": 71.86973571777344,
+            "GraphicsMeshParts": 23.241317749023438,
+            "GraphicsSolidModels": 0,
+            "Script": 269.70697021484375,
+            "Animation": 6.367134094238281,
+            "HttpCache": 0.1372528076171875,
+            "GeometryCSG": 0,
+            "Navigation": 0,
+            "Gui": 32.97282409667969,
+            "TerrainVoxels": 11.852890014648438,
+            "PhysicsCollision": 0.003326416015625,
+            "GraphicsParticles": 15.372810363769531,
+            "Instances": 102.43040466308594,
+            "Signals": 12.872543334960938,
+            "GraphicsSpatialHash": 0.6436767578125,
+            "GraphicsTexture": 33.83580017089844
+          }
+        }
+      },
+      "windows": [
+        {
+          "quality": {
+            "requested": 1,
+            "rendering_quality": "Enum.QualityLevel.Level01",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "1 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.031221600002027,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 0.7910000085830688,
+              "NetworkReceived": 61.4710693359375,
+              "GPU": 0.506879985332489,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3883.95703125,
+              "NetworkSent": 15.42797565460205,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 15.836799621582031,
+              "MaxGPU": 33
+            },
+            "primitives": 2686,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 54006,
+            "render": {
+              "HeartbeatTime": 3.6881792766507715e-05,
+              "ShadowsTriangleCount": 0,
+              "ShadowsDrawcallCount": 0,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 175,
+              "SceneTriangleCount": 361928,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.0005150719662196934,
+              "FrameTime": 0.015545099973678589,
+              "RenderCPUFrameTime": 0.0019038000609725714,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3885.046875,
+            "tags_mb": {
+              "LuaHeap": 728.073974609375,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 15.002944946289062,
+              "Internal": 1283.8167724609375,
+              "GraphicsParts": 3.5894775390625,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 71.14060974121094,
+              "GraphicsMeshParts": 23.241317749023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.369926452636719,
+              "HttpCache": 0.14111328125,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 32.84584045410156,
+              "TerrainVoxels": 11.505783081054688,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.413124084472656,
+              "Instances": 102.4619140625,
+              "Signals": 12.867111206054688,
+              "GraphicsSpatialHash": 0.6490478515625,
+              "GraphicsTexture": 33.83580017089844
+            },
+            "frames": 1802,
+            "avg_fps": 60.0,
+            "avg_frame_ms": 16.666,
+            "p50_ms": 16.7,
+            "p95_ms": 18.4,
+            "p99_ms": 19.1,
+            "max_ms": 19.5,
+            "low1_fps": 51.79,
+            "low01_fps": 51.28
+          }
+        },
+        {
+          "quality": {
+            "requested": 3,
+            "rendering_quality": "Enum.QualityLevel.Level03",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "3 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.04976059999899,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 1.090999960899353,
+              "NetworkReceived": 59.085601806640625,
+              "GPU": 0.5611519813537598,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3886.62890625,
+              "NetworkSent": 15.30357551574707,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 15.663801193237305,
+              "MaxGPU": 33
+            },
+            "primitives": 2652,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 53935,
+            "render": {
+              "HeartbeatTime": 7.984709372976795e-05,
+              "ShadowsTriangleCount": 0,
+              "ShadowsDrawcallCount": 0,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 176,
+              "SceneTriangleCount": 366856,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.0005806080298498273,
+              "FrameTime": 0.016631800681352615,
+              "RenderCPUFrameTime": 0.00228200014680624,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3887.84375,
+            "tags_mb": {
+              "LuaHeap": 726.5771484375,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 15.521881103515625,
+              "Internal": 1283.1087646484375,
+              "GraphicsParts": 3.5887374877929688,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 71.14060974121094,
+              "GraphicsMeshParts": 23.217880249023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.3794403076171875,
+              "HttpCache": 0.1438751220703125,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 32.83404541015625,
+              "TerrainVoxels": 11.526931762695312,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.398017883300781,
+              "Instances": 102.48899841308594,
+              "Signals": 12.887969970703125,
+              "GraphicsSpatialHash": 0.6680908203125,
+              "GraphicsTexture": 33.83580017089844
+            },
+            "frames": 1802,
+            "avg_fps": 59.96,
+            "avg_frame_ms": 16.676,
+            "p50_ms": 16.6,
+            "p95_ms": 18.4,
+            "p99_ms": 19.0,
+            "max_ms": 47.6,
+            "low1_fps": 47.8,
+            "low01_fps": 29.15
+          }
+        },
+        {
+          "quality": {
+            "requested": 6,
+            "rendering_quality": "Enum.QualityLevel.Level06",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "6 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.015880600003584,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 1.465000033378601,
+              "NetworkReceived": 90.0615005493164,
+              "GPU": 0.6860799789428711,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3882.36328125,
+              "NetworkSent": 21.766530990600586,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 16.88330078125,
+              "MaxGPU": 33
+            },
+            "primitives": 3195,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 55082,
+            "render": {
+              "HeartbeatTime": 9.558921738062054e-05,
+              "ShadowsTriangleCount": 12984,
+              "ShadowsDrawcallCount": 15,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 300,
+              "SceneTriangleCount": 511768,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.000740351970307529,
+              "FrameTime": 0.01639140024781227,
+              "RenderCPUFrameTime": 0.002045700093731284,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3887.1953125,
+            "tags_mb": {
+              "LuaHeap": 711.463134765625,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 18.0791015625,
+              "Internal": 1286.6981201171875,
+              "GraphicsParts": 4.0627593994140625,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 71.13511657714844,
+              "GraphicsMeshParts": 23.217880249023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.651603698730469,
+              "HttpCache": 0.146331787109375,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 31.696746826171875,
+              "TerrainVoxels": 11.712478637695312,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.421058654785156,
+              "Instances": 102.69313049316406,
+              "Signals": 13.033203125,
+              "GraphicsSpatialHash": 0.9036865234375,
+              "GraphicsTexture": 34.08189392089844
+            },
+            "frames": 1801,
+            "avg_fps": 60.0,
+            "avg_frame_ms": 16.666,
+            "p50_ms": 16.6,
+            "p95_ms": 18.7,
+            "p99_ms": 19.3,
+            "max_ms": 20.1,
+            "low1_fps": 51.02,
+            "low01_fps": 49.75
+          }
+        }
+      ]
+    },
+    {
+      "label": "+10 unique meshes",
+      "extra_target": 0,
+      "stress": {
+        "skipped": true,
+        "steps": {
+          "createMeshPartAsync": "Clone is not a valid member of EditableMesh"
+        },
+        "made": 1,
+        "reason": "CreateMeshPartAsync gave no MeshId different from the existing ones (made 1, Clone is not a valid member of EditableMesh)"
+      },
+      "skipped": true,
+      "reason": "CreateMeshPartAsync gave no MeshId different from the existing ones (made 1, Clone is not a valid member of EditableMesh)"
+    },
+    {
+      "label": "terrain-on",
+      "extra_target": 0,
+      "note": "A/B in the same play session, window taken just before Terrain:Clear",
+      "server": {
+        "perf": {
+          "unique_meshes": 95,
+          "store_status": "Memory",
+          "slime_and_character_meshes": 60,
+          "parts": 1987,
+          "parade_lane": true,
+          "runtime_parts_transient": 1055,
+          "runtime_parts": 1987,
+          "slide_colliders": true,
+          "mesh_slots": 401
+        },
+        "mem": {
+          "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+          "heartbeat_ms": 1.0275534391403198,
+          "instance_count": 51135,
+          "studio_process_mb": 3890.8046875,
+          "physics_step_ms": 0.06738223880529404,
+          "primitives": 3043,
+          "tags_mb": {
+            "LuaHeap": 711.463134765625,
+            "GraphicsTextureCharacter": 3.970844268798828,
+            "BaseParts": 18.0791015625,
+            "Internal": 1286.6981201171875,
+            "GraphicsParts": 4.0627593994140625,
+            "Sounds": 8.00335693359375,
+            "StreamingSounds": 0,
+            "GraphicsSlimModels": 0,
+            "GraphicsTerrain": 71.1662826538086,
+            "GraphicsMeshParts": 23.217880249023438,
+            "GraphicsSolidModels": 0,
+            "Script": 269.70697021484375,
+            "Animation": 6.651603698730469,
+            "HttpCache": 0.146331787109375,
+            "GeometryCSG": 0,
+            "Navigation": 0,
+            "Gui": 31.696746826171875,
+            "TerrainVoxels": 11.712478637695312,
+            "PhysicsCollision": 0.003326416015625,
+            "GraphicsParticles": 15.421058654785156,
+            "Instances": 102.69313049316406,
+            "Signals": 13.033203125,
+            "GraphicsSpatialHash": 0.9036865234375,
+            "GraphicsTexture": 34.36314392089844
+          }
+        }
+      },
+      "windows": [
+        {
+          "quality": {
+            "requested": 1,
+            "rendering_quality": "Enum.QualityLevel.Level01",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "1 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.114570400000957,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 1.0240000486373901,
+              "NetworkReceived": 123.02721405029297,
+              "GPU": 0.591871976852417,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3889.2421875,
+              "NetworkSent": 30.307294845581055,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 18.243101119995117,
+              "MaxGPU": 33
+            },
+            "primitives": 3163,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 55124,
+            "render": {
+              "HeartbeatTime": 3.096243744948879e-05,
+              "ShadowsTriangleCount": 0,
+              "ShadowsDrawcallCount": 0,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 206,
+              "SceneTriangleCount": 382532,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.000513023987878114,
+              "FrameTime": 0.01632780022919178,
+              "RenderCPUFrameTime": 0.002321300096809864,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3891.265625,
+            "tags_mb": {
+              "LuaHeap": 711.977783203125,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 18.56121063232422,
+              "Internal": 1287.3402099609375,
+              "GraphicsParts": 4.10430908203125,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 71.13511657714844,
+              "GraphicsMeshParts": 23.217880249023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.6985931396484375,
+              "HttpCache": 0.148773193359375,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 31.690826416015625,
+              "TerrainVoxels": 11.544265747070312,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.451271057128906,
+              "Instances": 102.7379379272461,
+              "Signals": 13.032691955566406,
+              "GraphicsSpatialHash": 0.9354248046875,
+              "GraphicsTexture": 34.36314392089844
+            },
+            "frames": 1807,
+            "avg_fps": 60.0,
+            "avg_frame_ms": 16.666,
+            "p50_ms": 16.7,
+            "p95_ms": 19.0,
+            "p99_ms": 19.5,
+            "max_ms": 20.7,
+            "low1_fps": 50.22,
+            "low01_fps": 48.54
+          }
+        },
+        {
+          "quality": {
+            "requested": 3,
+            "rendering_quality": "Enum.QualityLevel.Level03",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "3 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.09880300000077,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 1.9199999570846558,
+              "NetworkReceived": 125.44158172607422,
+              "GPU": 0.6399999856948853,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3893.05859375,
+              "NetworkSent": 30.186925888061523,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 16.57469940185547,
+              "MaxGPU": 33
+            },
+            "primitives": 3140,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 55088,
+            "render": {
+              "HeartbeatTime": 0.00013083111844025552,
+              "ShadowsTriangleCount": 0,
+              "ShadowsDrawcallCount": 0,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 206,
+              "SceneTriangleCount": 371916,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.0006062080501578748,
+              "FrameTime": 0.017744099721312523,
+              "RenderCPUFrameTime": 0.002022900152951479,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3894.9296875,
+            "tags_mb": {
+              "LuaHeap": 711.29296875,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 19.589370727539062,
+              "Internal": 1286.944091796875,
+              "GraphicsParts": 4.25469970703125,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 71.12413024902344,
+              "GraphicsMeshParts": 23.217880249023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.753105163574219,
+              "HttpCache": 0.1412811279296875,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 31.690765380859375,
+              "TerrainVoxels": 12.112136840820312,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.456199645996094,
+              "Instances": 102.85384368896484,
+              "Signals": 13.031784057617188,
+              "GraphicsSpatialHash": 0.9534912109375,
+              "GraphicsTexture": 34.36314392089844
+            },
+            "frames": 1806,
+            "avg_fps": 60.0,
+            "avg_frame_ms": 16.665,
+            "p50_ms": 16.7,
+            "p95_ms": 19.0,
+            "p99_ms": 19.5,
+            "max_ms": 20.5,
+            "low1_fps": 50.6,
+            "low01_fps": 48.9
+          }
+        },
+        {
+          "quality": {
+            "requested": 6,
+            "rendering_quality": "Enum.QualityLevel.Level06",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "6 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.11605579999741,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 0.7179999947547913,
+              "NetworkReceived": 119.717041015625,
+              "GPU": 3.635200023651123,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3896.71875,
+              "NetworkSent": 29.892574310302734,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 15.57040023803711,
+              "MaxGPU": 33
+            },
+            "primitives": 3226,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 55260,
+            "render": {
+              "HeartbeatTime": 0.0001063303352566436,
+              "ShadowsTriangleCount": 9002,
+              "ShadowsDrawcallCount": 13,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 318,
+              "SceneTriangleCount": 495314,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.0008693760028108954,
+              "FrameTime": 0.018458299338817596,
+              "RenderCPUFrameTime": 0.002595700090751052,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3901.22265625,
+            "tags_mb": {
+              "LuaHeap": 713.73779296875,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 23.6678466796875,
+              "Internal": 1289.5538330078125,
+              "GraphicsParts": 4.394645690917969,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 71.12413024902344,
+              "GraphicsMeshParts": 23.217880249023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.96826171875,
+              "HttpCache": 0.14544677734375,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 31.690185546875,
+              "TerrainVoxels": 11.887039184570312,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.451408386230469,
+              "Instances": 103.23564147949219,
+              "Signals": 13.046104431152344,
+              "GraphicsSpatialHash": 0.9056396484375,
+              "GraphicsTexture": 34.36314392089844
+            },
+            "frames": 1807,
+            "avg_fps": 60.01,
+            "avg_frame_ms": 16.665,
+            "p50_ms": 16.6,
+            "p95_ms": 19.1,
+            "p99_ms": 19.8,
+            "max_ms": 20.7,
+            "low1_fps": 49.57,
+            "low01_fps": 48.31
+          }
+        }
+      ]
+    },
+    {
+      "label": "terrain-off",
+      "extra_target": 0,
+      "note": "A/B in the same play session: workspace.Terrain:Clear() (play only, nothing saved) after terrain-on",
+      "clear": {
+        "cleared": true
+      },
+      "server": {
+        "perf": {
+          "unique_meshes": 95,
+          "store_status": "Memory",
+          "slime_and_character_meshes": 58,
+          "parts": 1987,
+          "parade_lane": true,
+          "runtime_parts_transient": 1180,
+          "runtime_parts": 1987,
+          "slide_colliders": true,
+          "mesh_slots": 401
+        },
+        "mem": {
+          "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+          "heartbeat_ms": 1.1631648540496826,
+          "instance_count": 51398,
+          "studio_process_mb": 3901.72265625,
+          "physics_step_ms": 8.94768064085838e-08,
+          "primitives": 3168,
+          "tags_mb": {
+            "LuaHeap": 713.8525390625,
+            "GraphicsTextureCharacter": 3.970844268798828,
+            "BaseParts": 23.508529663085938,
+            "Internal": 1284.097900390625,
+            "GraphicsParts": 4.369880676269531,
+            "Sounds": 8.00335693359375,
+            "StreamingSounds": 0,
+            "GraphicsSlimModels": 0,
+            "GraphicsTerrain": 37.1148681640625,
+            "GraphicsMeshParts": 23.217880249023438,
+            "GraphicsSolidModels": 0,
+            "Script": 269.70697021484375,
+            "Animation": 6.9725189208984375,
+            "HttpCache": 0.14544677734375,
+            "GeometryCSG": 0,
+            "Navigation": 0,
+            "Gui": 31.6837158203125,
+            "TerrainVoxels": 8.458282470703125,
+            "PhysicsCollision": 0.003326416015625,
+            "GraphicsParticles": 15.413383483886719,
+            "Instances": 103.18675994873047,
+            "Signals": 13.022903442382812,
+            "GraphicsSpatialHash": 0.7918701171875,
+            "GraphicsTexture": 35.36314392089844
+          }
+        }
+      },
+      "windows": [
+        {
+          "quality": {
+            "requested": 1,
+            "rendering_quality": "Enum.QualityLevel.Level01",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "1 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.048594399995636,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 2.8289999961853027,
+              "NetworkReceived": 122.49488067626953,
+              "GPU": 0.49459201097488403,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3896.84375,
+              "NetworkSent": 29.75519371032715,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 17.767499923706055,
+              "MaxGPU": 33
+            },
+            "primitives": 3204,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 55218,
+            "render": {
+              "HeartbeatTime": 7.029528933344409e-05,
+              "ShadowsTriangleCount": 0,
+              "ShadowsDrawcallCount": 0,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 145,
+              "SceneTriangleCount": 325194,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.0004864000075031072,
+              "FrameTime": 0.015276400372385979,
+              "RenderCPUFrameTime": 0.0024763999972492456,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3896.109375,
+            "tags_mb": {
+              "LuaHeap": 712.063720703125,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 21.443191528320312,
+              "Internal": 1280.0546875,
+              "GraphicsParts": 4.407615661621094,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 37.1148681640625,
+              "GraphicsMeshParts": 23.217880249023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.751533508300781,
+              "HttpCache": 0.1451416015625,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 31.6832275390625,
+              "TerrainVoxels": 7.9600372314453125,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.446342468261719,
+              "Instances": 102.91130828857422,
+              "Signals": 13.092308044433594,
+              "GraphicsSpatialHash": 0.787841796875,
+              "GraphicsTexture": 35.36314392089844
+            },
+            "frames": 1803,
+            "avg_fps": 60.0,
+            "avg_frame_ms": 16.666,
+            "p50_ms": 16.7,
+            "p95_ms": 19.0,
+            "p99_ms": 19.7,
+            "max_ms": 20.5,
+            "low1_fps": 50.04,
+            "low01_fps": 48.9
+          }
+        },
+        {
+          "quality": {
+            "requested": 3,
+            "rendering_quality": "Enum.QualityLevel.Level03",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "3 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.031145399996603,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 2.556999921798706,
+              "NetworkReceived": 117.47687530517578,
+              "GPU": 0.609279990196228,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3896.015625,
+              "NetworkSent": 29.35626220703125,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 19.03619956970215,
+              "MaxGPU": 33
+            },
+            "primitives": 3105,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 55001,
+            "render": {
+              "HeartbeatTime": 9.78401949396357e-05,
+              "ShadowsTriangleCount": 0,
+              "ShadowsDrawcallCount": 0,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 140,
+              "SceneTriangleCount": 326360,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.000533504004124552,
+              "FrameTime": 0.01619040034711361,
+              "RenderCPUFrameTime": 0.002119499957188964,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3895.578125,
+            "tags_mb": {
+              "LuaHeap": 712.15869140625,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 21.442855834960938,
+              "Internal": 1279.020263671875,
+              "GraphicsParts": 4.369529724121094,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 37.1148681640625,
+              "GraphicsMeshParts": 23.217880249023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.7013702392578125,
+              "HttpCache": 0.1358795166015625,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 31.68316650390625,
+              "TerrainVoxels": 7.760581970214844,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.461250305175781,
+              "Instances": 102.89203643798828,
+              "Signals": 13.151702880859375,
+              "GraphicsSpatialHash": 0.7882080078125,
+              "GraphicsTexture": 35.36314392089844
+            },
+            "frames": 1802,
+            "avg_fps": 60.0,
+            "avg_frame_ms": 16.668,
+            "p50_ms": 16.7,
+            "p95_ms": 19.1,
+            "p99_ms": 19.7,
+            "max_ms": 21.0,
+            "low1_fps": 49.95,
+            "low01_fps": 47.73
+          }
+        },
+        {
+          "quality": {
+            "requested": 6,
+            "rendering_quality": "Enum.QualityLevel.Level06",
+            "saved_quality": "Enum.SavedQualitySetting.Automatic",
+            "errors": {
+              "set_saved": "The current thread cannot set 'render quality level' (lacking capability RobloxScript)"
+            },
+            "label": "6 (rendering only)",
+            "applied": true
+          },
+          "client": {
+            "seconds": 30,
+            "elapsed": 30.082662299995718,
+            "viewport": [
+              1920,
+              1080
+            ],
+            "performance_stats": {
+              "Ping": 0.32899999618530273,
+              "NetworkReceived": 89.0757827758789,
+              "GPU": 0.6328319907188416,
+              "MaxNetworkSent": 50,
+              "MaxCPU": 33,
+              "Memory": 3895.4296875,
+              "NetworkSent": 22.60385513305664,
+              "MaxMemory": 1300,
+              "MaxNetworkReceived": 50,
+              "MaxPing": 50,
+              "CPU": 18.13719940185547,
+              "MaxGPU": 33
+            },
+            "primitives": 2539,
+            "memory_categories_error": "GetMemoryUsageMbAllCategories: The current thread cannot call 'GetMemoryUsageMbAllCategories' (lacking capability InternalTest)",
+            "render_unavailable": [],
+            "instance_count": 53806,
+            "render": {
+              "HeartbeatTime": 7.427787932101637e-05,
+              "ShadowsTriangleCount": 29614,
+              "ShadowsDrawcallCount": 22,
+              "UI2DTriangleCount": 54,
+              "SceneDrawcallCount": 180,
+              "SceneTriangleCount": 362784,
+              "UI2DDrawcallCount": 1,
+              "UI3DDrawcallCount": 0,
+              "RenderGPUFrameTime": 0.0006645760149694979,
+              "FrameTime": 0.014792200177907944,
+              "RenderCPUFrameTime": 0.002283400157466531,
+              "UI3DTriangleCount": 0
+            },
+            "studio_process_mb": 3895.359375,
+            "tags_mb": {
+              "LuaHeap": 712.1240234375,
+              "GraphicsTextureCharacter": 3.970844268798828,
+              "BaseParts": 21.100875854492188,
+              "Internal": 1278.6307373046875,
+              "GraphicsParts": 4.2490234375,
+              "Sounds": 8.00335693359375,
+              "StreamingSounds": 0,
+              "GraphicsSlimModels": 0,
+              "GraphicsTerrain": 37.1148681640625,
+              "GraphicsMeshParts": 23.217880249023438,
+              "GraphicsSolidModels": 0,
+              "Script": 269.70697021484375,
+              "Animation": 6.5845947265625,
+              "HttpCache": 0.1405487060546875,
+              "GeometryCSG": 0,
+              "Navigation": 0,
+              "Gui": 31.683547973632812,
+              "TerrainVoxels": 7.307228088378906,
+              "PhysicsCollision": 0.003326416015625,
+              "GraphicsParticles": 15.395973205566406,
+              "Instances": 102.81541442871094,
+              "Signals": 13.112945556640625,
+              "GraphicsSpatialHash": 0.8173828125,
+              "GraphicsTexture": 35.36314392089844
+            },
+            "frames": 1805,
+            "avg_fps": 60.0,
+            "avg_frame_ms": 16.666,
+            "p50_ms": 16.7,
+            "p95_ms": 18.7,
+            "p99_ms": 19.3,
+            "max_ms": 20.4,
+            "low1_fps": 51.14,
+            "low01_fps": 49.63
+          }
+        }
+      ]
+    }
+  ],
+  "phone": {
+    "skipped": true,
+    "reason": "not requested (--phone)"
+  },
+  "notes": [
+    "viewport 1920x1080 (wanted 1920x1080)"
+  ],
+  "duration_s": 559.6,
+  "qualities": [
+    1,
+    3,
+    6
+  ],
+  "extras_requested": {
+    "meshparts": 100,
+    "unique_meshes": 10,
+    "terrain_off": true
+  },
+  "settle": {
+    "bt_set": true,
+    "bt_set_at_s": 41.1,
+    "bt_source": "BorderTerrainReady",
+    "settle_s": 60,
+    "max_s": 120
+  },
+  "variants_frames": [
+    "8fd3ac50a9d6dd5364fb26be11d80b0a2463427a-perf-0.jpg"
+  ]
+}
