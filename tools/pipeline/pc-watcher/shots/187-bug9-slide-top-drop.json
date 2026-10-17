@@ -1,0 +1,11 @@
+{
+  "id": "bug9-slide-top-drop",
+  "todo": "bug 9",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 70,
+  "height": 30,
+  "slide_top_drop": true,
+  "note": "bug 9 follow-up (advisory): the slide fill has a steep ridge roof (two frictionless WedgeParts) and server/SlideTopWatch moves a character that stays on it; the local character dropped on the ridge of a segment and a joint fill must end up beside the slide within 5 s (luau/slide_top_drop)"
+}

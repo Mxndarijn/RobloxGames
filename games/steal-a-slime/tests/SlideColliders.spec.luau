@@ -297,10 +297,25 @@ describe("SlideColliders in the live server", function()
 			local folder = folderOf(rt)
 			expect(folder ~= nil).toBe(true)
 			local parts = folder:GetChildren()
-			expect(#parts).toBe(#SPECS)
+			local fillCount = 0
+			for _, spec in SPECS do
+				if spec.kind == "Fill" then
+					fillCount += 1
+				end
+			end
+			expect(#parts).toBe(#SPECS + fillCount) -- every Fill is two wedges (bug #9 ridge roof)
 			local names = byName()
 			for _, part in parts do
 				local spec = names[part.Name]
+				if spec == nil and part:IsA("WedgePart") then
+					spec = names[string.sub(part.Name, 1, -2)] -- SlideFill<i>L / R
+					expect(spec ~= nil and spec.kind == "Fill").toBe(true)
+					expect(part.CustomPhysicalProperties.Friction).toBe(0)
+					expect(part.Anchored and part.CanCollide and not part.CanQuery and part.Transparency == 1).toBe(
+						true
+					)
+					continue
+				end
 				expect(spec ~= nil).toBe(true)
 				expect(part.Anchored).toBe(true)
 				expect(part.CanCollide).toBe(true)

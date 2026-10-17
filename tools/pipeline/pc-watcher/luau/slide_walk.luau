@@ -24,18 +24,31 @@ local layoutMod = RS:FindFirstChild("Visuals") and RS.Visuals:FindFirstChild("Wo
 if not layoutMod then
 	return { ok = false, error = "WorldLayout missing", summary = "ReplicatedStorage.Visuals.WorldLayout missing", detail = {} }
 end
-local floors, fills, boxes = {}, {}, {} -- boxes: every collider part (a centre inside one is inside the slide's solid)
+local floors, fills, boxes = {}, {}, {}
+local wedges = {} -- boxes: every collider part (a centre inside one is inside the slide's solid)
 for _, p in folder:GetChildren() do
 	if p:IsA("BasePart") then
 		table.insert(boxes, p)
 		local f = tonumber(string.match(p.Name, "^SlideFloor(%d+)$"))
 		local l = tonumber(string.match(p.Name, "^SlideFill(%d+)$"))
+		local w, side = string.match(p.Name, "^SlideFill(%d+)([LR])$") -- bug 9 ridge roof: two WedgeParts per fill
 		if f then
 			floors[f] = p
 		end
 		if l then
 			fills[l] = p
 		end
+		if w then
+			wedges[tonumber(w)] = wedges[tonumber(w)] or {}
+			wedges[tonumber(w)][side] = p
+		end
+	end
+end
+-- a wedge pair stands in for the old fill box: same frame (X across, Y up, Z along), Size.Y = the ridge height, so "top" = the ridge
+for i, pr in wedges do
+	if pr.L and pr.R and not fills[i] then
+		local cf = CFrame.fromMatrix((pr.L.Position + pr.R.Position) / 2, pr.L.CFrame.ZVector, pr.L.CFrame.YVector)
+		fills[i] = { CFrame = cf, Size = Vector3.new(pr.L.Size.Z * 2, pr.L.Size.Y, pr.L.Size.X), wedgeRoof = true }
 	end
 end
 local count = 0
@@ -65,6 +78,9 @@ end
 local function inBox(p, pos, grow)
 	local l = p.CFrame:PointToObjectSpace(pos)
 	local h = p.Size / 2 + Vector3.new(grow, grow, grow)
+	if p:IsA("WedgePart") and l.Y / h.Y > l.Z / h.Z then
+		return false -- above the wedge's slope: empty
+	end
 	return math.abs(l.X) < h.X and math.abs(l.Y) < h.Y and math.abs(l.Z) < h.Z
 end
 local function inSolid(pos)

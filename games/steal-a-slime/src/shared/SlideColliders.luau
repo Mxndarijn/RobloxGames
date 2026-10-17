@@ -53,6 +53,7 @@ SlideColliders.MOUTH_SHARE = 0.1 -- last share of the path that flares into the 
 SlideColliders.WALK_UNDER = 6 -- trough bottoms lower than this get a skirt (no walking under)
 SlideColliders.MIN_THICK = 4 -- floor slab never thinner than this (a falling player moves ~2 studs a frame)
 SlideColliders.FILL = 11 -- the solid reaches this far above the ride line: a jump clears ~7 studs, so nobody gets on top of it
+SlideColliders.RIDGE_ANGLE = 60 -- degrees: the fill's top is a ridge (roof) whose two faces are at least this steep (bug #9: nobody stays on top)
 SlideColliders.JOINT_MARGIN = 1.5 -- a joint's fill reaches this much further along both segments than the joint floor
 SlideColliders.JOINT_LENGTH = 4 -- joint filler floor: at least this long along the bisector of the two segments it joins
 SlideColliders.OVERLAP = 0.8 -- extra length so neighbouring segments close their joints (0.4 past each join: a pitch change leaves a ledge of at most 0.4 * tan(5 deg))
@@ -200,6 +201,15 @@ function SlideColliders.buildRaw(path: { Vec }, full: boolean?): { Spec }
 		})
 	end
 	return out
+end
+
+-- The roof of a Fill spec (server/FountainColliders builds it as two WedgeParts instead of one box): both faces fall from the
+-- ridge on the centreline (`height` above the ride line) to the side edges (`half` out), at `angle` degrees from flat.
+-- Height is FILL, or more where the mouth flare makes the fill wider than FILL / tan(RIDGE_ANGLE) allows.
+function SlideColliders.ridge(spec: Spec): { half: number, height: number, angle: number }
+	local half = spec.size[1] / 2
+	local height = math.max(SlideColliders.FILL, half * math.tan(math.rad(SlideColliders.RIDGE_ANGLE)))
+	return { half = half, height = height, angle = math.deg(math.atan2(height, half)) }
 end
 
 -- lookAt frame of a spec (right is horizontal, up = right x forward).
