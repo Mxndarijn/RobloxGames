@@ -99,6 +99,34 @@ export type PlotSkin = {
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
 }
 
+-- A PvP tool or fun item (FEATURES.PvP, CONTRACT.md §26). Price is derived (PvpRules.price), never stored.
+-- No tool has a damage / health field: PvP never lowers Humanoid health (Validate.pvpTools asserts it).
+export type PvpTool = {
+	id: string, -- BuyPvpItem argument and save key; never rename
+	name: string,
+	line: string, -- "Knockback" | "Trap" | "Blaster" | "Fun"
+	tier: number, -- 1.. within its line (Fun items: 1)
+	rebirths: number, -- rank gate: a Config.REBIRTH_TIERS threshold
+	cooldown: number, -- seconds, >= Config.PVP.MIN_COOLDOWN
+	kind: string, -- "tool" | "fun"
+	cosmetic: boolean, -- never moves or slows a non-consenting player
+	allowInSafeZone: boolean?, -- usable by someone standing in a safe zone (cosmetic only)
+	push: number?, -- Knockback: horizontal studs
+	reach: number?, -- Knockback: studs
+	range: number?, -- Blaster: studs
+	traps: number?, -- Trap: placed at once
+	radius: number?, -- Trap: studs
+	control: number?, -- hard crowd control seconds (freeze, dance, bounce), <= PVP.CONTROL_MAX_SECONDS
+	slow: number?, -- Blaster: speed taken away, 0.3 = 30 %
+	slowSeconds: number?, -- Blaster: <= PVP.SLOW_MAX_SECONDS
+	nudge: number?, -- FunSqueaky: studs
+	height: number?, -- FunBouncePad: studs straight up
+	maxPlaced: number?, -- placed objects at once
+	fadeSeconds: number?,
+	maxDecals: number?,
+	hatSeconds: number?,
+}
+
 local RARITIES: { Rarity } = {
 	{
 		tier = 1,
@@ -445,6 +473,114 @@ local PLOT_SKINS: { PlotSkin } = {
 	},
 }
 
+-- v22 PvP ladder (FEATURES.PvP, CONTRACT.md §26, docs/PVP.md). Every gate is a REBIRTH_TIERS threshold; the price is
+-- derived (PvpRules.price = factor x Economy.rebirthCost(gate), at least PVP.PRICE_MIN). Nothing here has a damage field.
+local function knock(id: string, name: string, tier: number, gate: number, push: number): PvpTool
+	return {
+		id = id,
+		name = name,
+		line = "Knockback",
+		tier = tier,
+		rebirths = gate,
+		cooldown = 1.5,
+		kind = "tool",
+		cosmetic = false,
+		push = push,
+		reach = 10,
+	}
+end
+local function trap(
+	id: string,
+	name: string,
+	tier: number,
+	gate: number,
+	traps: number,
+	freeze: number,
+	rearm: number,
+	radius: number
+): PvpTool
+	return {
+		id = id,
+		name = name,
+		line = "Trap",
+		tier = tier,
+		rebirths = gate,
+		cooldown = rearm,
+		kind = "tool",
+		cosmetic = false,
+		traps = traps,
+		control = freeze,
+		radius = radius,
+	}
+end
+local function blaster(
+	id: string,
+	name: string,
+	tier: number,
+	gate: number,
+	slow: number,
+	seconds: number,
+	cooldown: number
+): PvpTool
+	return {
+		id = id,
+		name = name,
+		line = "Blaster",
+		tier = tier,
+		rebirths = gate,
+		cooldown = cooldown,
+		kind = "tool",
+		cosmetic = false,
+		slow = slow,
+		slowSeconds = seconds,
+		range = 25,
+	}
+end
+local function fun(
+	id: string,
+	name: string,
+	gate: number,
+	cooldown: number,
+	cosmetic: boolean,
+	extra: { [string]: any }
+): PvpTool
+	local tool: any = {
+		id = id,
+		name = name,
+		line = "Fun",
+		tier = 1,
+		rebirths = gate,
+		cooldown = cooldown,
+		kind = "fun",
+		cosmetic = cosmetic,
+	}
+	for key, value in extra do
+		tool[key] = value
+	end
+	return tool
+end
+local PVP_TOOLS: { PvpTool } = {
+	knock("KnockGlove1", "Bonk Glove", 1, 1, 5),
+	knock("KnockGlove2", "Bounce Glove", 2, 5, 6),
+	knock("KnockGlove3", "Boom Glove", 3, 8, 7),
+	knock("KnockGlove4", "Thunder Glove", 4, 12, 7.5),
+	knock("KnockGlove5", "Royal Glove", 5, 20, 8),
+	trap("GooTrap1", "Goo Puddle", 1, 3, 1, 1, 30, 3),
+	trap("GooTrap2", "Sticky Trap", 2, 6, 2, 1.5, 25, 3.5),
+	trap("GooTrap3", "Mega Trap", 3, 10, 2, 2, 20, 4),
+	blaster("GooBlaster1", "Goo Squirter", 1, 7, 0.3, 2, 12),
+	blaster("GooBlaster2", "Goo Blaster", 2, 12, 0.4, 2.5, 11),
+	blaster("GooBlaster3", "Goo Cannon", 3, 20, 0.5, 3, 10),
+	fun("FunConfetti", "Confetti Popper", 0, 5, true, { allowInSafeZone = true }),
+	fun("FunBalloon", "Goo Balloon", 1, 3, true, { fadeSeconds = 10, maxDecals = 8 }),
+	fun("FunBubbles", "Bubble Wand", 3, 4, true, {}),
+	fun("FunBouncePad", "Bounce Pad", 5, 10, false, { height = 25, control = 1.2, maxPlaced = 1 }),
+	fun("FunSqueaky", "Squeaky Hammer", 6, 3, false, { nudge = 2 }),
+	fun("FunHatLauncher", "Slime Hat Launcher", 7, 8, true, { hatSeconds = 30 }),
+	fun("FunDanceBomb", "Dance Bomb", 8, 45, false, { control = 2 }),
+	fun("FunFireworks", "Goo Fireworks", 10, 20, true, {}),
+}
+
 for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES } :: { { any } } do
 	for _, entry in list do
 		table.freeze(entry)
@@ -459,6 +595,9 @@ for _, skin in PLOT_SKINS do
 		table.freeze(skin.fence)
 	end
 	table.freeze(skin)
+end
+for _, tool in PVP_TOOLS do
+	table.freeze(tool)
 end
 for _, goal in GOALS do
 	table.freeze(goal.targets)
@@ -672,6 +811,7 @@ local Config = {
 		RainMagnet = false, -- v19: the Rain Magnet upgrade (rank 6): a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) may pick up that weather's mutation; needs Weather + WeatherMutations to ever have a target (RainMagnet, CONTRACT.md §23); false = no upgrade in the shop, no purchase, no effect (needs frame review)
 		ServerProfiler = false, -- v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Audio = false, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
+		PvP = false, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, safe zones, new-player shield, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -977,12 +1117,55 @@ local Config = {
 		overrideDates = table.freeze({} :: { string }), -- extra whole UTC days "YYYY-MM-DD" (a holiday event)
 	}),
 
+	-- v22 PvP fairness core (FEATURES.PvP, CONTRACT.md §26). Zones are XZ discs (the Y axis is ignored).
+	-- Positions are derived from the world layout: the hub spawn sits at bearing 67.5 / r 64 (scripts/StaticWorld
+	-- SPAWN_YAW / SPAWN_RADIUS), the ShopStand at bearing 67.5 / r 90 (WorldLayout.PROP_SPOTS), the fountain
+	-- ("fountain rim") at the origin out to the landing-ring curb r 44.4 (Fountain.LANDING_RING_OUTER); tests/PvpRules.spec
+	-- checks each against its source. Bearing 0 = +Z, so x = sin(b) * r and z = cos(b) * r.
+	PVP = table.freeze({
+		SAFE_ZONES = table.freeze({
+			table.freeze({
+				id = "spawn",
+				x = math.sin(math.rad(67.5)) * 64,
+				z = math.cos(math.rad(67.5)) * 64,
+				radius = 16,
+			}),
+			table.freeze({
+				id = "shop",
+				x = math.sin(math.rad(67.5)) * 90,
+				z = math.cos(math.rad(67.5)) * 90,
+				radius = 16,
+			}),
+			table.freeze({ id = "fountain", x = 0, z = 0, radius = 44.4 }),
+		}),
+		NEW_PLAYER_SHIELD_SECONDS = 600, -- shield until this much play time OR the first rebirth, whichever is first; ends early when the player steals
+		CONTROL_MAX_SECONDS = 2, -- longest hard crowd control (freeze, dance, bounce) on one player
+		SLOW_MAX_SECONDS = 3, -- longest slow
+		CONTROL_IMMUNITY_SECONDS = 3, -- after any control ends, the target cannot be controlled again for this long
+		MIN_COOLDOWN = 1.5, -- no tool re-arms faster than this
+		PRICE_FACTOR_TOOL = 0.03, -- price = factor x Economy.rebirthCost(gate), pacing sim tunes
+		PRICE_FACTOR_FUN = 0.01,
+		PRICE_MIN = 100,
+		-- Knockback: horizontal push is capped, the arc is small, and the landing point stays inside the map.
+		KNOCKBACK_MAX_PUSH = 8, -- studs (2x the base slap push of 4)
+		KNOCKBACK_ARC_HEIGHT = 2, -- studs of vertical arc at most
+		KNOCKBACK_BOUNDS_MARGIN = 6, -- studs kept clear of the map edge
+		MAP_BOUNDS = table.freeze({ minX = -320, maxX = 320, minZ = -320, maxZ = 320 }), -- WorldBorder.GROUND_HALF = 320, Ground centred on the origin
+	}),
+	PVP_TOOLS = table.freeze(PVP_TOOLS),
+
 	-- Persistence
 	SAVE_VERSION = 6, -- CONTRACT.md §8.9 (v4: slime.mutations list, SaveData.migrateV3; v5: weather mutations Wet/Frozen, SaveData.migrateV4; v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
 	MAX_SLIMES_SAVED = 64,
 }
+
+local Validate = if script then require(script.Parent.Validate) else require("./Validate")
+do
+	local problems = Validate.pvpTools(Config.PVP_TOOLS, Config.PVP, Config.REBIRTH_TIERS)
+	assert(#problems == 0, `Config.PVP_TOOLS: {table.concat(problems, "; ")}`)
+end
 
 -- Studio-only review override of the default-off flags (FeatureOverride); a no-op everywhere else.
 local FeatureOverride = if script then require(script.Parent.FeatureOverride) else require("./FeatureOverride");

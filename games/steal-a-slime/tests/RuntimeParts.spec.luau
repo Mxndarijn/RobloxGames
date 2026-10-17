@@ -8,8 +8,12 @@
 -- (runtime_parts_transient in perf_server) so the cap does not flap with play. The count IS perf_server.luau,
 -- run by tools/pr-gate/runtime_count.luau, so the filters cannot drift. This spec compares the RAW offline count;
 -- Studio sees RUNTIME_SLOT_ALLOWANCE (16) more, which tools/pr-gate/runtime_budget.sh adds and gates (CI).
+local Runtime = require("../tools/livetest/Runtime")
 local RuntimeCount = require("../../../tools/pr-gate/runtime_count")
 local TestRunner = require("./TestRunner")
+local fs = require("@lune/fs")
+local process = require("@lune/process")
+local roblox = require("@lune/roblox")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -51,6 +55,49 @@ for _, d in rt.workspace:GetDescendants() do
 	end
 end
 
+-- FEATURES.PvP forced on vs off (CONTRACT.md §26.1): one player at rest, same steps; PvP must add 0 parts.
+local placePath = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-rtparts-pvp-{os.time()}-{math.random(1, 1e9)}.rbxlx`
+local built = process.exec("rojo", { "build", "-o", placePath })
+assert(built.ok, `rojo build failed: {built.stderr}`)
+local function countParts(forcePvp: boolean): (number, number, any)
+	local r = Runtime.new(placePath, {
+		createMeshPart = function(_meshId)
+			return roblox.Instance.new("MeshPart")
+		end,
+		sourceHook = function(script, source)
+			if script.Name == "Config" then
+				local out, n = string.gsub(source, "(\n\t\tPvP = )%a+(,)", `%1{tostring(forcePvp)}%2`)
+				assert(n == 1, "Config.FEATURES.PvP line not found")
+				return out
+			end
+			return source
+		end,
+	})
+	r:boot()
+	r:addPlayer(5001, "PvpProbe", roblox.Vector3.new(120, 6, -120))
+	for _ = 1, 8 * 30 do
+		r:step(1 / 30)
+	end
+	local parts, transient = 0, 0
+	local w = r.workspace:FindFirstChild("WildSlimes")
+	for _, d in r.workspace:GetDescendants() do
+		if d:IsA("BasePart") then
+			if (w and d:IsDescendantOf(w)) or d.Name == "DrainSplash" or d:FindFirstAncestor("Slimes") then
+				transient += 1
+			else
+				parts += 1
+			end
+		end
+	end
+	local errors = #r.errors
+	r:close()
+	return parts, transient, errors
+end
+local offParts, _, offErrors = countParts(false)
+local onParts, _, onErrors = countParts(true)
+fs.removeFile(placePath)
+print(`[RuntimeParts] PvP at rest: off {offParts} vs on {onParts}`)
+
 local keys = {}
 for k in breakdown do
 	table.insert(keys, k)
@@ -87,5 +134,31 @@ describe("runtime part budget", function()
 			`[RuntimeParts] world {world} vs target {RUNTIME_PARTS_MAX}: over by {math.max(0, world - RUNTIME_PARTS_MAX)}`
 		)
 		expect(RUNTIME_PARTS_MAX < WORLD_RATCHET).toBe(true)
+	end)
+end)
+
+describe("runtime parts with FEATURES.PvP", function()
+	it("at rest adds zero parts versus the flag off, and boots without errors", function()
+		expect(offErrors).toBe(0)
+		expect(onErrors).toBe(0)
+		expect(onParts).toBe(offParts)
+	end)
+	it("tracks everything PvP puts in Workspace and returns to 0 after cleanup", function()
+		local PvpService = require("../src/server/PvpService")
+		local ServerFixtures = require("./ServerFixtures")
+		local pvpWorld = ServerFixtures.world()
+		local session = ServerFixtures.join(pvpWorld, 9)
+		local folder = roblox.Instance.new("Folder")
+		local before = #folder:GetDescendants()
+		for _ = 1, 2 do
+			local part = roblox.Instance.new("Part")
+			part.Parent = folder
+			PvpService.track(session, part)
+		end
+		expect(PvpService.spawnedCount(session)).toBe(2)
+		expect(#folder:GetDescendants()).toBe(before + 2)
+		PvpService.cleanup(session)
+		expect(PvpService.spawnedCount(session)).toBe(0)
+		expect(#folder:GetDescendants()).toBe(before)
 	end)
 end)

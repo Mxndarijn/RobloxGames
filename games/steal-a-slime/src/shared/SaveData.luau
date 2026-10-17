@@ -37,6 +37,8 @@
 	the two unversioned fields above are now versioned: v5 -> v6 (migrateV5) keeps a known plotSkin id and
 	cleans stealLog / settings, junk or missing -> classic / empty / defaults. Pure, idempotent and
 	independent of every feature flag: a flag that is off leaves its field stored, just unused.
+	pvp (FEATURES.PvP, CONTRACT.md §26) is optional and needs no version bump: { tiers = { [line] = tier }, fun = { id }, played = seconds };
+	missing / junk -> nothing owned, ids that are not Config.PVP_TOOLS are ignored, numbers are clamped (SaveData.cleanPvp).
 	Unknown/newer versions are read field-by-field with the v5 sanitizer (both
 	`mutations` and the legacy `mutation` are understood, nothing is dropped).
 ]]
@@ -63,6 +65,45 @@ local function num(value: any, default: number, min: number, max: number): numbe
 end
 
 local MAX_CASH = 1e15
+
+local PVP_LINES = { "Knockback", "Trap", "Blaster" }
+
+-- Sanitizes the pvp field of a raw save (read) or of PlayerData (write; `fun` is a set there, a list in the save).
+function SaveData.cleanPvp(raw: any): PlayerData.Pvp
+	local out: PlayerData.Pvp = { tiers = {}, fun = {}, played = 0 }
+	if type(raw) ~= "table" then
+		return out
+	end
+	out.played = num(raw.played, 0, 0, Config.PVP.NEW_PLAYER_SHIELD_SECONDS)
+	if type(raw.tiers) == "table" then
+		for _, line in PVP_LINES do
+			local top = 0
+			for _, tool in Config.PVP_TOOLS do
+				if tool.line == line then
+					top = math.max(top, tool.tier)
+				end
+			end
+			local tier = num(raw.tiers[line], 0, 0, top)
+			if tier > 0 then
+				out.tiers[line] = tier
+			end
+		end
+	end
+	if type(raw.fun) == "table" then
+		for key, value in raw.fun do
+			-- a list of ids (save) or an id -> true set (PlayerData)
+			local id = if type(value) == "string" then value elseif value == true then key else nil
+			if type(id) == "string" then
+				for _, tool in Config.PVP_TOOLS do
+					if tool.kind == "fun" and tool.id == id then
+						out.fun[id] = true
+					end
+				end
+			end
+		end
+	end
+	return out
+end
 
 -- v1 -> v2. Pure function of the raw v1 table.
 function SaveData.migrateV1(raw: { [string]: any }): { [string]: any }
@@ -369,6 +410,7 @@ function SaveData.deserialize(stored: any): Data
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
 	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
+	data.pvp = SaveData.cleanPvp(raw.pvp) -- FEATURES.PvP (no version bump: missing -> nothing owned)
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
 	if type(raw.redeemed) == "table" then
@@ -434,6 +476,12 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		table.insert(redeemed, code)
 	end
 	table.sort(redeemed)
+	local pvp = SaveData.cleanPvp(data.pvp)
+	local pvpFun = {}
+	for id in pvp.fun do
+		table.insert(pvpFun, id)
+	end
+	table.sort(pvpFun)
 	return {
 		version = Config.SAVE_VERSION,
 		cash = math.floor(data.cash),
@@ -465,6 +513,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		redeemed = redeemed,
 		boost = { mult = data.boostMult, untilAt = math.floor(data.boostUntil) },
 		consumables = { slot = data.consumables.slot, bought = table.clone(data.consumables.bought) },
+		pvp = { tiers = pvp.tiers, fun = pvpFun, played = pvp.played },
 	}
 end
 

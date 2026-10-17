@@ -33,6 +33,7 @@ local Carry = if script then require(script.Parent.Carry) else require("./Carry"
 local ConsumableShop = if script then require(script.Parent.ConsumableShop) else require("./ConsumableShop")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
+local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -48,6 +49,8 @@ export type Context = {
 	audio: boolean?, -- FEATURES.Audio override (tests); nil = Config.FEATURES.Audio
 	plotSkins: boolean?, -- FEATURES.PlotSkins override (tests); nil = Config.FEATURES.PlotSkins
 	mergeVat3: boolean?, -- FEATURES.MergeVat3 override (tests); nil = Config.FEATURES.MergeVat3
+	pvp: boolean?, -- FEATURES.PvP override (tests); nil = Config.FEATURES.PvP
+	onOwnPlot: ((session: Session, userId: number) -> boolean)?, -- UsePvpItem: the target stands on the attacker's plot (nil = never)
 	requestWeather: ((id: string) -> boolean)?, -- Weather Totem: makes `id` the next weather (nil = no Weather service)
 }
 
@@ -64,6 +67,20 @@ local function result(ok: boolean, message: string?): Result
 		return OK
 	end
 	return fail(message or "failed")
+end
+
+-- A Roblox Vector3 with finite, sane components (no NaN / inf / absurd magnitudes).
+local MAX_COORD = 100000
+local function finiteVector(value: any): boolean
+	if typeof(value) ~= "Vector3" then
+		return false
+	end
+	for _, c in { value.X, value.Y, value.Z } do
+		if c ~= c or math.abs(c) > MAX_COORD then -- NaN fails c ~= c; inf fails the bound
+			return false
+		end
+	end
+	return true
 end
 
 --[[
@@ -99,11 +116,22 @@ function Actions.parseArgs(action: string, raw: { any }): ({ any }?, string?)
 				return nil, "bad argument"
 			end
 			out[i] = value
-		elseif kind == "number" then
-			if type(value) ~= "number" or value ~= value or math.abs(value) == math.huge then
-				return nil, "bad argument"
+		elseif kind == "number" or kind == "number?" then
+			if value == nil and kind == "number?" then
+				out[i] = nil
+			else
+				if type(value) ~= "number" or value ~= value or math.abs(value) == math.huge then
+					return nil, "bad argument"
+				end
+				out[i] = value
 			end
-			out[i] = value
+		elseif kind == "vector3?" then
+			if value ~= nil then
+				if not finiteVector(value) then
+					return nil, "bad argument"
+				end
+				out[i] = value
+			end
 		else
 			return nil, "bad argument"
 		end
@@ -334,6 +362,12 @@ local function dispatch(
 		return appraise(world, session, args[1], args[2], now, ctx)
 	elseif action == "BuyConsumable" then
 		return buyConsumable(world, session, args[1], args[2], now, ctx)
+	elseif action == "BuyPvpItem" then
+		return result(PvpService.buy(world, session, args[1], ctx.pvp))
+	elseif action == "EquipPvpItem" then
+		return result(PvpService.equip(session, args[1], ctx.pvp))
+	elseif action == "UsePvpItem" then
+		return result(PvpService.use(world, session, args[1], args[2], args[3], now, ctx.pvp, ctx))
 	elseif action == "BuyEgg" then
 		return result(MysteryEgg.buy(world, session, now))
 	elseif action == "Slap" then

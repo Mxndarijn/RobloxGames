@@ -28,6 +28,10 @@ export type Stats = { caught: number, merges: number, locks: number, sold: numbe
 -- Purchases of Consumables in restock `slot` (a new slot resets them).
 export type Consumables = { slot: number, bought: { [string]: number } }
 
+-- FEATURES.PvP purchases: best owned tier per line (Knockback / Trap / Blaster), owned fun item ids, play seconds
+-- counted towards the new-player shield (capped at Config.PVP.NEW_PLAYER_SHIELD_SECONDS).
+export type Pvp = { tiers: { [string]: number }, fun: { [string]: boolean }, played: number }
+
 export type Data = {
 	version: number,
 	cash: number,
@@ -60,6 +64,7 @@ export type Data = {
 	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
 	settings: AudioSettings.Settings, -- Sound card values (save v6; used only with FEATURES.Audio)
 	consumables: Consumables, -- restocking shop purchases (added without a version bump)
+	pvp: Pvp, -- FEATURES.PvP owned items (PvpRules, CONTRACT.md §26; added without a version bump)
 }
 
 local PlayerData = {}
@@ -92,6 +97,7 @@ function PlayerData.new(): Data
 		stealLog = {},
 		settings = AudioSettings.defaults(),
 		consumables = { slot = 0, bought = {} },
+		pvp = { tiers = {}, fun = {}, played = 0 },
 	}
 end
 

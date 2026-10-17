@@ -31,6 +31,7 @@ local Types = if Shared then require(Shared.Types) else require("../shared/Types
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -123,6 +124,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		shop = Shop.view(data),
 		egg = MysteryEgg.view(data, session.egg),
 		consumables = Consumables.view(data, now, Config.FEATURES.Weather, world.potionUntil),
+		pvp = PvpService.view(session, now),
 		tutorialStep = TutorialProgress.current(data),
 		walkSpeed = Shop.walkSpeed(data),
 		tutorialStepId = TutorialProgress.currentId(data),

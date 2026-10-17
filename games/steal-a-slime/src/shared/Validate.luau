@@ -32,6 +32,9 @@ Validate.ACTIONS = table.freeze({
 	EquipPlotSkin = 0.5,
 	BuyConsumable = 0.5,
 	SetAudioSettings = 0.5,
+	BuyPvpItem = 0.5,
+	EquipPvpItem = 0.5,
+	UsePvpItem = 0.2,
 })
 
 function Validate.slimeId(value: any): string?
@@ -63,6 +66,55 @@ function Validate.allow(limiter: Limiter, action: string, now: number): boolean
 	end
 	limiter[action] = now
 	return true
+end
+
+local DAMAGE_KEYS = { "damage", "dmg", "health", "kill", "hurt" }
+
+--[[
+	Config.PVP_TOOLS rules (CONTRACT.md §26). Returns the list of problems (empty = fine); Config asserts it
+	is empty at load. `pvp` = Config.PVP, `ranks` = Config.REBIRTH_TIERS.
+]]
+function Validate.pvpTools(tools: { any }, pvp: any, ranks: { any }): { string }
+	local problems: { string } = {}
+	local gates: { [number]: boolean } = {}
+	for _, rank in ranks do
+		gates[rank.rebirths] = true
+	end
+	local seen: { [string]: boolean } = {}
+	for _, tool in tools do
+		local id = tostring(tool.id)
+		if seen[id] then
+			table.insert(problems, `{id}: duplicate id`)
+		end
+		seen[id] = true
+		if type(tool.cooldown) ~= "number" or tool.cooldown < pvp.MIN_COOLDOWN then
+			table.insert(problems, `{id}: cooldown below {pvp.MIN_COOLDOWN}`)
+		end
+		if not gates[tool.rebirths] then
+			table.insert(problems, `{id}: gate {tostring(tool.rebirths)} is not a rank threshold`)
+		end
+		if tool.control ~= nil and not (type(tool.control) == "number" and tool.control <= pvp.CONTROL_MAX_SECONDS) then
+			table.insert(problems, `{id}: control longer than {pvp.CONTROL_MAX_SECONDS}s`)
+		end
+		if
+			tool.slowSeconds ~= nil
+			and not (type(tool.slowSeconds) == "number" and tool.slowSeconds <= pvp.SLOW_MAX_SECONDS)
+		then
+			table.insert(problems, `{id}: slow longer than {pvp.SLOW_MAX_SECONDS}s`)
+		end
+		if tool.kind ~= "tool" and tool.kind ~= "fun" then
+			table.insert(problems, `{id}: bad kind`)
+		end
+		if type(tool.cosmetic) ~= "boolean" then
+			table.insert(problems, `{id}: cosmetic must be a boolean`)
+		end
+		for _, key in DAMAGE_KEYS do
+			if tool[key] ~= nil then
+				table.insert(problems, `{id}: has a {key} field (PvP never deals damage)`)
+			end
+		end
+	end
+	return problems
 end
 
 return Validate

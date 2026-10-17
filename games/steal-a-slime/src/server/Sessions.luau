@@ -14,6 +14,7 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local Income = if script then require(script.Parent.Income) else require("./Income")
 local Milestones = if script then require(script.Parent.Milestones) else require("./Milestones")
@@ -60,6 +61,7 @@ function Sessions.join(
 		session.awayLog = data.stealLog
 		data.stealLog = {}
 	end
+	PvpService.join(session, now)
 	Codes.expireBoost(session.data, now) -- a boost never pays for time spent offline
 	Income.applyOffline(world, session, now)
 	Milestones.check(world, session, now) -- old saves get past goal stages / dex milestones now
@@ -73,6 +75,7 @@ function Sessions.leave(world: World, userId: number, now: number): Session?
 		return nil
 	end
 	Carry.release(world, userId, now, nil, "left")
+	PvpService.leave(session, now)
 	Revenge.forget(world, userId)
 	world.sessions[userId] = nil
 	if world.plots[session.plotIndex] == userId then
