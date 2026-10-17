@@ -146,3 +146,38 @@ which side of the centre the ball ended on, so the 4-stud ball rode over the 3-4
 round the round Hull of the barrel and well. Fixes: the barrel, well and stile are `Box` now (flat faces a walker stops against;
 the stile is a block players jump onto, so `ranch_barn_loft` is the only PCD), and the probe drives at walking speed (16) with
 upward velocity clamped and FAILs only when the ball's core overlaps the mesh's collision geometry (`GetPartsInPart`).
+
+## B9: every prop has an explicit collision choice (`shared/PropCollision`)
+
+`src/shared/PropCollision.luau` is the machine-readable inventory of every collidable or solid-looking prop, both halves (Jolt: the
+shared world; Gojo: plot-level props; the per-plot mailbox slot is "ambiguous"): one entry per kind with its mesh, count, owner,
+the collision choice (a `MeshAssets.COLLISION` fidelity, `colliders` or `off`) and a reason. `tests/PropCollision.spec` keeps it
+honest against `MeshAssets.COLLISION`, `WorldLayout.build()` (every placed mesh is listed, the rest are `UNPLACED` with a reason) and
+the booted world (instance counts, a collidable part per non-"off" entry, the mesh fidelity MeshSwap actually asks for, no spawn or
+other prop's centre inside a solid). The play probe `tools/pipeline/pc-watcher/luau/b9_prop_walk` (shot 220 `b9-prop-walk`) reads the
+same list: it walks an R15 dummy into each prop from +-X / +-Z and fails Jolt's (and already-collidable Gojo) props that the
+dummy ends inside or passes through. To add a prop, append an entry; neither the spec nor the probe needs an edit.
+
+What B9 found and changed on Jolt's half (all 92 Jolt kinds were walked through in the inventory; almost everything was already solid
+after #11 / #16 / #10):
+
+- **Top Earners board.** The Model's invisible `Collider` was 15 x 17 x 1.6 under a 20.6 x 19.5 x 4.1 skin (`phoenix_top_earners_board`),
+  so 2.8 studs on each side of the board were walkable. `MeshSwap.swap` now sizes and places the `Collider` of a skinned Model that
+  has one to the skin's box. The mesh stays out of `MeshAssets.COLLISION` because the same mesh is each plot's SlimeDex skin (Gojo's,
+  stays decor).
+- **Trees, rocks, hills, hedges, fences of the border (72 pieces, 30 giant trees, the 30-tree ring):** all `CanCollide = false` and
+  that is right: every piece sits behind the 48-block wall ring (`WorldBorder.RADIUS` 292, 80 studs tall, inner face at r 292; the
+  nearest piece footprint starts at r >= 290, which is a round hill's empty bounding-box corner). Players cannot reach them, so no
+  trunk collider or hull is added (zero parts). `PropCollision.spec` re-computes every piece's footprint from `WorldBorder.pieces()`
+  and fails if one comes inside r 289. The one border piece that already collides (the windmill accent) keeps its Hull.
+- **World decor, signs, podiums, shop stands, vat, barn, loft, windmill, wagons, barrels, crates, stiles:** unchanged, already `Box` /
+  `Hull` / `PreciseConvexDecomposition` (see Conversions above). The decor boulders (45) and mushrooms (15) are primitives that
+  collide on their own.
+- **Fountain tower (22 colliders), slide colliders (257), StackGuard:** untouched, only inventoried.
+
+Left off on purpose (reason per kind in `PropCollision`): meadow grass, flowers and half-sunk pebbles (ground cover), the
+sunflower / pumpkin patches and horseshoe pit (COLLISION.md: patches stay passable), the ritual circle's flat markings, the
+slime ride stand-ins and the fountain's hidden stand-ins, the parade lane strip. Two are decisions for Merijn, not oversights:
+**`ranch_landing_ring`** (11 curb tiles, 3.1 high, ring round the wild-slime drop zone: solid curbs would wall players off
+the drop zone) and **`ranch_goo_drain`** (the slide-exit drain). Both are one line in `MeshAssets.COLLISION` (`Box` / `Hull`) plus
+flipping the entry to match; the spec fails until both agree.
