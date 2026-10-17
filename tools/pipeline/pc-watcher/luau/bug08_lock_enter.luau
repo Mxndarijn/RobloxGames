@@ -29,7 +29,9 @@
 -- important attempts first; attempts end early when the character stalls for 1.5 s). Reset between attempts: teleport outside, zero velocity, wait 0.3 s.
 --   fence_jump_over          back + one side fence line: start 6 studs outside, MoveTo 10 studs inside for 4 s with hum.Jump every 0.25 s; plus a running start from 16 studs
 --   fence_push_through       back and both side lines at a panel middle AND a panel joint, plus both gate-side phoenix_fence_segments: MoveTo straight in, no jumping
---   gate_post_squeeze        at the gate: the seams between the LockBarrier front panel / gate posts / phoenix_corner_post, straight (no jump, jumping) and 45 degree approaches
+--   gate_post_squeeze        at the gate: FIRST the strict jumps (fail on max_penetration > 0, i.e. any root past the front fence line, not only ever_inside) from
+--                            plot-local (post.x ~ 10.8, front - 6 ~ -45.5) at the gate-side phoenix_corner_post and its mirror at the left gate segment post
+--                            (x ~ -10.8), then the seams between the LockBarrier front panel / gate posts / phoenix_corner_post, straight (no jump, jumping) and 45 degree approaches
 --   corner_squeeze           the four plot corners, where the fence meshes meet the thin LockBarrier panels (no jumping): per corner a 45 degree
 --                            approach at the fence corner, then straight in on both sides at the seam (the end of the fence mesh nearest the corner,
 --                            else 0.8 studs in from the corner), then a diagonal at the panel corner when it sits > 0.75 studs from the fence corner;
@@ -471,7 +473,8 @@ local function runCheck(name, i, build)
 			local okA, rec = pcall(attempt, i, a.label, a.start, a.target, a.jump, a.planes)
 			if okA then
 				table.insert(recs, rec)
-				anyIn = anyIn or rec.ever_inside
+				rec.strict = a.strict
+				anyIn = anyIn or rec.ever_inside or (a.strict and rec.max_penetration > 0)
 				if rec.ever_inside or rec.ended_inside then
 					local cf, half = frameOf(i)
 					teleport(cf * CFrame.new(0, 4, -(half + 8)))
@@ -604,14 +607,25 @@ local function squeezeList(g)
 			end
 		end
 	end
+	-- Bug #8 follow-up (shot 189): the jump from (post.x, front - 6) at the gate-side phoenix_corner_post got +1.7 past the front fence line (the thin
+	-- LockBarrier panel was pierced by the post). FIRST in the list and STRICT: it fails on any root past the fence line (max_penetration > 0), not
+	-- only on ever_inside. The mirror (x = -post.x, the left gate segment's post) goes right after it.
 	for _, post in g.posts do
-		if math.abs(post.z - front) < 4 then
-			for _, jump in { false, true } do
+		if math.abs(post.z - front) < 4 and post.x > 0 then
+			for k, x in { post.x, -post.x } do
 				table.insert(list, {
-					label = "phoenix_corner_post straight" .. (if jump then " jump" else ""), start = Vector3.new(post.x, 0, front - 6),
-					target = Vector3.new(post.x, 0, front + 10), jump = jump, planes = pl, pri = if jump then 3 else 2,
+					label = (if k == 1 then "phoenix_corner_post jump" else "left gate segment post jump (mirror)") .. " x=" .. r1(x),
+					start = Vector3.new(x, 0, front - 6), target = Vector3.new(x, 0, front + 10), jump = true, planes = pl, pri = 0, strict = true,
 				})
 			end
+		end
+	end
+	for _, post in g.posts do
+		if math.abs(post.z - front) < 4 then
+			table.insert(list, {
+				label = "phoenix_corner_post straight", start = Vector3.new(post.x, 0, front - 6),
+				target = Vector3.new(post.x, 0, front + 10), jump = false, planes = pl, pri = 2,
+			})
 		end
 	end
 	return list
