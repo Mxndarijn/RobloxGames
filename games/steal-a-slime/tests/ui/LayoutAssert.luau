@@ -902,9 +902,19 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	check.noOverlap("TutorialCarrying", screen.tutorialCarrying, "Carry", screen.carry)
 	check.touch("Slap", screen.slap)
 
-	-- The Sound button (FEATURES.Audio) sits where a menu's X would: tappable, clear of everything idle.
+	-- The Sound button (FEATURES.Audio) sits where a menu's X would: tappable, clear of everything idle,
+	-- and out of the bottom-right thumb zone (Roblox's jump button: the bottom TOUCH_CONTROLS_HEIGHT strip
+	-- plus a 120 px square above it).
 	check.onScreen("Sound", screen.sound, m)
 	check.touch("Sound", screen.sound)
+	local thumbSide = 120
+	local thumbTop = screen.height - Layout.TOUCH_CONTROLS_HEIGHT - thumbSide
+	check.noOverlap(
+		"Sound",
+		screen.sound,
+		"JumpZone",
+		Layout.rect(screen.width - thumbSide, thumbTop, thumbSide, screen.height - thumbTop)
+	)
 	for _, other in
 		{
 			{ "Hud", hud.rect },

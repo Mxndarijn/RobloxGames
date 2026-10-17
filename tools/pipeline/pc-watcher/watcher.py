@@ -1475,9 +1475,9 @@ def step_shots(run):
                     res["profiler_readout"] = run.need_luau("profiler_readout", "Server", timeout=60, wait=float(shot["profiler_readout"]))
                     if not res["profiler_readout"].get("ok"):
                         res["error"] = "ProfilerSummary attribute missing: %s" % res["profiler_readout"].get("raw")
-                if shot.get("audio_panel"):  # Audio flag: the mute button + volume slider panel must exist, then open it
+                if shot.get("audio_panel"):  # Audio flag: the Sound icon button (idle visible) + Sound card with its sliders must exist, then open it
                     res["audio_panel"] = run.need_luau("audio_panel", "Client", timeout=15, on=True)
-                    if not res["audio_panel"].get("ok"):
+                    if not res["audio_panel"].get("ok") or not res["audio_panel"].get("button_idle_visible"):
                         res["error"] = "audio panel missing: %s" % json.dumps(res["audio_panel"])[:160]
                 if shot.get("plot_skin"):  # gaps #15: fake the plot skin picker (Studio only)
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])

@@ -1,7 +1,7 @@
 --!strict
 --[[
-	Sound panel (FEATURES.Audio): a small menu card opened from the last nav
-	button (Icons.SOUND_ON / SOUND_OFF). A big mute toggle and a Music and an
+	Sound panel (FEATURES.Audio): a small menu card opened from the speaker
+	icon in the top-right slot (Icons.SOUND_ON / SOUND_OFF; init.client). A big mute toggle and a Music and an
 	SFX slider (5% steps, mouse or touch drag). The values live in the
 	SoundController (player attributes); this card only reads and sets them.
 ]]
@@ -45,7 +45,7 @@ local function isPress(input: InputObject): boolean
 end
 
 function Sound.new(parent: Instance, controller: any)
-	local panel = Widgets.panel(parent, "SoundPanel", Sound.TITLE, Icons.SOUND_ON, Color3.fromRGB(80, 170, 230))
+	local panel = Widgets.panel(parent, "SoundPanel", "Sound", Icons.SOUND_ON, Color3.fromRGB(80, 170, 230))
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,

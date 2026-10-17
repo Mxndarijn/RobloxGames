@@ -1,8 +1,8 @@
 --!strict
--- FEATURES.Audio: the Sound card is a normal menu opened from a last nav
--- button (Layout.screen navExtra = 1). Every layout rule must stay green at
--- the five gate sizes (raw and under the 58 px top bar) with that extra
--- button, and the card must hold its rows.
+-- FEATURES.Audio: the Sound card is a normal menu opened from a speaker icon
+-- in the top-right slot (Layout.screen .sound). Every layout rule must stay
+-- green at the five gate sizes (raw and under the 58 px top bar), and the
+-- card must hold its rows.
 local Icons = require("../../src/ui/Icons")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
