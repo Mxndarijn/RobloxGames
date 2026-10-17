@@ -2,7 +2,7 @@
   "id": "bug11-walk-loft",
   "todo": "bug 11",
   "kind": "world",
-  "target": "ranch_barn_loft",
+  "target": "BarnLoft_2",
   "from": "front",
   "dist": 40,
   "height": 18,

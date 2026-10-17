@@ -159,7 +159,7 @@ local function walkTo(target, secs, jumpEvery, stopWithin, onSample)
 end
 -- a) stile_over ------------------------------------------------------------------------------------------------------------------------------
 local function stileCheck()
-	local m = findMesh("ranch_fence_stile")
+	local m = findMesh("FenceStile_8") -- RanchProps instance of ranch_fence_stile
 	if not m then
 		set("stile_over", nil, "no ranch_fence_stile under workspace.Map / workspace.Plots")
 		return
@@ -207,7 +207,7 @@ end
 
 -- b) barn_loft -------------------------------------------------------------------------------------------------------------------------------
 local function loftCheck()
-	local m = findMesh("ranch_barn_loft")
+	local m = findMesh("BarnLoft_2") -- RanchProps instance of ranch_barn_loft
 	if not m then
 		set("barn_loft", nil, "no ranch_barn_loft under workspace.Map / workspace.Plots")
 		return
