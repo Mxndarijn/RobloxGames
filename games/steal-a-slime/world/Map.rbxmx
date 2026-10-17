@@ -22123,7 +22123,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22137,18 +22137,18 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>38.374695</X>
+              <X>57.356552</X>
               <Y>40</Y>
-              <Z>291.4848</Z>
-              <R00>0.9914398</R00>
+              <Z>288.35086</Z>
+              <R00>0.9807892</R00>
               <R01>0</R01>
-              <R02>0.13052368</R02>
+              <R02>0.19508362</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.13052368</R20>
+              <R20>-0.19508362</R20>
               <R21>0</R21>
-              <R22>0.9914398</R22>
+              <R22>0.9807892</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -22157,7 +22157,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22168,40 +22168,6 @@
         <Item class="Part" referent="698">
           <Properties>
             <string name="Name">Wall3</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>76.092804</X>
-              <Y>40</Y>
-              <Z>283.98218</Z>
-              <R00>0.9659271</R00>
-              <R01>0</R01>
-              <R02>0.25881958</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.25881958</R20>
-              <R21>0</R21>
-              <R22>0.9659271</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="699">
-          <Properties>
-            <string name="Name">Wall4</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -22225,7 +22191,41 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
+              <Y>80</Y>
+              <Z>4</Z>
+            </Vector3>
+            <token name="TopSurface">0</token>
+            <float name="Transparency">1</float>
+          </Properties>
+        </Item>
+        <Item class="Part" referent="699">
+          <Properties>
+            <string name="Name">Wall4</string>
+            <bool name="Anchored">true</bool>
+            <token name="BottomSurface">0</token>
+            <CoordinateFrame name="CFrame">
+              <X>163.33765</X>
+              <Y>40</Y>
+              <Z>244.45207</Z>
+              <R00>0.8314667</R00>
+              <R01>0</R01>
+              <R02>0.5555725</R02>
+              <R10>0</R10>
+              <R11>1</R11>
+              <R12>0</R12>
+              <R20>-0.5555725</R20>
+              <R21>0</R21>
+              <R22>0.8314667</R22>
+            </CoordinateFrame>
+            <bool name="CanCollide">true</bool>
+            <bool name="CanQuery">false</bool>
+            <bool name="CanTouch">false</bool>
+            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
+            <token name="Material">272</token>
+            <token name="shape">1</token>
+            <Vector3 name="size">
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22236,74 +22236,6 @@
         <Item class="Part" referent="700">
           <Properties>
             <string name="Name">Wall5</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>147</X>
-              <Y>40</Y>
-              <Z>254.61147</Z>
-              <R00>0.86602783</R00>
-              <R01>0</R01>
-              <R02>0.5</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.5</R20>
-              <R21>0</R21>
-              <R22>0.86602783</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="701">
-          <Properties>
-            <string name="Name">Wall6</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>178.97586</X>
-              <Y>40</Y>
-              <Z>233.24588</Z>
-              <R00>0.7933502</R00>
-              <R01>0</R01>
-              <R02>0.60876465</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.60876465</R20>
-              <R21>0</R21>
-              <R22>0.7933502</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="702">
-          <Properties>
-            <string name="Name">Wall7</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -22327,7 +22259,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22335,24 +22267,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="703">
+        <Item class="Part" referent="701">
           <Properties>
-            <string name="Name">Wall8</string>
+            <string name="Name">Wall6</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>233.24588</X>
+              <X>244.45207</X>
               <Y>40</Y>
-              <Z>178.97586</Z>
-              <R00>0.60876465</R00>
+              <Z>163.33765</Z>
+              <R00>0.5555725</R00>
               <R01>0</R01>
-              <R02>0.7933502</R02>
+              <R02>0.8314667</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.7933502</R20>
+              <R20>-0.8314667</R20>
               <R21>0</R21>
-              <R22>0.60876465</R22>
+              <R22>0.5555725</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -22361,7 +22293,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22369,43 +22301,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="704">
+        <Item class="Part" referent="702">
           <Properties>
-            <string name="Name">Wall9</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>254.61147</X>
-              <Y>40</Y>
-              <Z>147</Z>
-              <R00>0.5</R00>
-              <R01>0</R01>
-              <R02>0.86602783</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.86602783</R20>
-              <R21>0</R21>
-              <R22>0.5</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="705">
-          <Properties>
-            <string name="Name">Wall10</string>
+            <string name="Name">Wall7</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -22429,7 +22327,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22437,24 +22335,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="706">
+        <Item class="Part" referent="703">
           <Properties>
-            <string name="Name">Wall11</string>
+            <string name="Name">Wall8</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>283.98218</X>
+              <X>288.35086</X>
               <Y>40</Y>
-              <Z>76.092804</Z>
-              <R00>0.25881958</R00>
+              <Z>57.356552</Z>
+              <R00>0.19508362</R00>
               <R01>0</R01>
-              <R02>0.9659271</R02>
+              <R02>0.9807892</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.9659271</R20>
+              <R20>-0.9807892</R20>
               <R21>0</R21>
-              <R22>0.25881958</R22>
+              <R22>0.19508362</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -22463,7 +22361,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22471,43 +22369,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="707">
+        <Item class="Part" referent="704">
           <Properties>
-            <string name="Name">Wall12</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>291.4848</X>
-              <Y>40</Y>
-              <Z>38.374695</Z>
-              <R00>0.13052368</R00>
-              <R01>0</R01>
-              <R02>0.9914398</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.9914398</R20>
-              <R21>0</R21>
-              <R22>0.13052368</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="708">
-          <Properties>
-            <string name="Name">Wall13</string>
+            <string name="Name">Wall9</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -22531,7 +22395,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22539,24 +22403,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="709">
+        <Item class="Part" referent="705">
           <Properties>
-            <string name="Name">Wall14</string>
+            <string name="Name">Wall10</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>291.4848</X>
+              <X>288.35086</X>
               <Y>40</Y>
-              <Z>-38.374695</Z>
-              <R00>-0.13052368</R00>
+              <Z>-57.356552</Z>
+              <R00>-0.19508362</R00>
               <R01>0</R01>
-              <R02>0.9914398</R02>
+              <R02>0.9807892</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.9914398</R20>
+              <R20>-0.9807892</R20>
               <R21>0</R21>
-              <R22>-0.13052368</R22>
+              <R22>-0.19508362</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -22565,7 +22429,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22573,43 +22437,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="710">
+        <Item class="Part" referent="706">
           <Properties>
-            <string name="Name">Wall15</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>283.98218</X>
-              <Y>40</Y>
-              <Z>-76.092804</Z>
-              <R00>-0.25881958</R00>
-              <R01>0</R01>
-              <R02>0.9659271</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.9659271</R20>
-              <R21>0</R21>
-              <R22>-0.25881958</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="711">
-          <Properties>
-            <string name="Name">Wall16</string>
+            <string name="Name">Wall11</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -22633,7 +22463,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22641,24 +22471,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="712">
+        <Item class="Part" referent="707">
           <Properties>
-            <string name="Name">Wall17</string>
+            <string name="Name">Wall12</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>254.61147</X>
+              <X>244.45207</X>
               <Y>40</Y>
-              <Z>-147</Z>
-              <R00>-0.5</R00>
+              <Z>-163.33765</Z>
+              <R00>-0.5555725</R00>
               <R01>0</R01>
-              <R02>0.86602783</R02>
+              <R02>0.8314667</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.86602783</R20>
+              <R20>-0.8314667</R20>
               <R21>0</R21>
-              <R22>-0.5</R22>
+              <R22>-0.5555725</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -22667,7 +22497,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22675,43 +22505,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="713">
+        <Item class="Part" referent="708">
           <Properties>
-            <string name="Name">Wall18</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>233.24588</X>
-              <Y>40</Y>
-              <Z>-178.97586</Z>
-              <R00>-0.60876465</R00>
-              <R01>0</R01>
-              <R02>0.7933502</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.7933502</R20>
-              <R21>0</R21>
-              <R22>-0.60876465</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="714">
-          <Properties>
-            <string name="Name">Wall19</string>
+            <string name="Name">Wall13</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -22735,7 +22531,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22743,24 +22539,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="715">
+        <Item class="Part" referent="709">
           <Properties>
-            <string name="Name">Wall20</string>
+            <string name="Name">Wall14</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>178.97586</X>
+              <X>163.33765</X>
               <Y>40</Y>
-              <Z>-233.24588</Z>
-              <R00>-0.7933502</R00>
+              <Z>-244.45207</Z>
+              <R00>-0.8314667</R00>
               <R01>0</R01>
-              <R02>0.60876465</R02>
+              <R02>0.5555725</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.60876465</R20>
+              <R20>-0.5555725</R20>
               <R21>0</R21>
-              <R22>-0.7933502</R22>
+              <R22>-0.8314667</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -22769,7 +22565,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22777,43 +22573,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="716">
+        <Item class="Part" referent="710">
           <Properties>
-            <string name="Name">Wall21</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>147</X>
-              <Y>40</Y>
-              <Z>-254.61147</Z>
-              <R00>-0.86602783</R00>
-              <R01>0</R01>
-              <R02>0.5</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.5</R20>
-              <R21>0</R21>
-              <R22>-0.86602783</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="717">
-          <Properties>
-            <string name="Name">Wall22</string>
+            <string name="Name">Wall15</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -22837,7 +22599,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22845,24 +22607,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="718">
+        <Item class="Part" referent="711">
           <Properties>
-            <string name="Name">Wall23</string>
+            <string name="Name">Wall16</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>76.092804</X>
+              <X>57.356552</X>
               <Y>40</Y>
-              <Z>-283.98218</Z>
-              <R00>-0.9659271</R00>
+              <Z>-288.35086</Z>
+              <R00>-0.9807892</R00>
               <R01>0</R01>
-              <R02>0.25881958</R02>
+              <R02>0.19508362</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>-0.25881958</R20>
+              <R20>-0.19508362</R20>
               <R21>0</R21>
-              <R22>-0.9659271</R22>
+              <R22>-0.9807892</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -22871,7 +22633,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22879,43 +22641,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="719">
+        <Item class="Part" referent="712">
           <Properties>
-            <string name="Name">Wall24</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>38.374695</X>
-              <Y>40</Y>
-              <Z>-291.4848</Z>
-              <R00>-0.9914398</R00>
-              <R01>0</R01>
-              <R02>0.13052368</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>-0.13052368</R20>
-              <R21>0</R21>
-              <R22>-0.9914398</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="720">
-          <Properties>
-            <string name="Name">Wall25</string>
+            <string name="Name">Wall17</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -22939,7 +22667,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22947,24 +22675,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="721">
+        <Item class="Part" referent="713">
           <Properties>
-            <string name="Name">Wall26</string>
+            <string name="Name">Wall18</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-38.374695</X>
+              <X>-57.356552</X>
               <Y>40</Y>
-              <Z>-291.4848</Z>
-              <R00>-0.9914398</R00>
+              <Z>-288.35086</Z>
+              <R00>-0.9807892</R00>
               <R01>0</R01>
-              <R02>-0.13052368</R02>
+              <R02>-0.19508362</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.13052368</R20>
+              <R20>0.19508362</R20>
               <R21>0</R21>
-              <R22>-0.9914398</R22>
+              <R22>-0.9807892</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -22973,7 +22701,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -22981,43 +22709,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="722">
+        <Item class="Part" referent="714">
           <Properties>
-            <string name="Name">Wall27</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>-76.092804</X>
-              <Y>40</Y>
-              <Z>-283.98218</Z>
-              <R00>-0.9659271</R00>
-              <R01>0</R01>
-              <R02>-0.25881958</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.25881958</R20>
-              <R21>0</R21>
-              <R22>-0.9659271</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="723">
-          <Properties>
-            <string name="Name">Wall28</string>
+            <string name="Name">Wall19</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -23041,7 +22735,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23049,24 +22743,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="724">
+        <Item class="Part" referent="715">
           <Properties>
-            <string name="Name">Wall29</string>
+            <string name="Name">Wall20</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-147</X>
+              <X>-163.33765</X>
               <Y>40</Y>
-              <Z>-254.61147</Z>
-              <R00>-0.86602783</R00>
+              <Z>-244.45207</Z>
+              <R00>-0.8314667</R00>
               <R01>0</R01>
-              <R02>-0.5</R02>
+              <R02>-0.5555725</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.5</R20>
+              <R20>0.5555725</R20>
               <R21>0</R21>
-              <R22>-0.86602783</R22>
+              <R22>-0.8314667</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -23075,7 +22769,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23083,43 +22777,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="725">
+        <Item class="Part" referent="716">
           <Properties>
-            <string name="Name">Wall30</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>-178.97586</X>
-              <Y>40</Y>
-              <Z>-233.24588</Z>
-              <R00>-0.7933502</R00>
-              <R01>0</R01>
-              <R02>-0.60876465</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.60876465</R20>
-              <R21>0</R21>
-              <R22>-0.7933502</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="726">
-          <Properties>
-            <string name="Name">Wall31</string>
+            <string name="Name">Wall21</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -23143,7 +22803,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23151,24 +22811,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="727">
+        <Item class="Part" referent="717">
           <Properties>
-            <string name="Name">Wall32</string>
+            <string name="Name">Wall22</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-233.24588</X>
+              <X>-244.45207</X>
               <Y>40</Y>
-              <Z>-178.97586</Z>
-              <R00>-0.60876465</R00>
+              <Z>-163.33765</Z>
+              <R00>-0.5555725</R00>
               <R01>0</R01>
-              <R02>-0.7933502</R02>
+              <R02>-0.8314667</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.7933502</R20>
+              <R20>0.8314667</R20>
               <R21>0</R21>
-              <R22>-0.60876465</R22>
+              <R22>-0.5555725</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -23177,7 +22837,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23185,43 +22845,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="728">
+        <Item class="Part" referent="718">
           <Properties>
-            <string name="Name">Wall33</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>-254.61147</X>
-              <Y>40</Y>
-              <Z>-147</Z>
-              <R00>-0.5</R00>
-              <R01>0</R01>
-              <R02>-0.86602783</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.86602783</R20>
-              <R21>0</R21>
-              <R22>-0.5</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="729">
-          <Properties>
-            <string name="Name">Wall34</string>
+            <string name="Name">Wall23</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -23245,7 +22871,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23253,24 +22879,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="730">
+        <Item class="Part" referent="719">
           <Properties>
-            <string name="Name">Wall35</string>
+            <string name="Name">Wall24</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-283.98218</X>
+              <X>-288.35086</X>
               <Y>40</Y>
-              <Z>-76.092804</Z>
-              <R00>-0.25881958</R00>
+              <Z>-57.356552</Z>
+              <R00>-0.19508362</R00>
               <R01>0</R01>
-              <R02>-0.9659271</R02>
+              <R02>-0.9807892</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.9659271</R20>
+              <R20>0.9807892</R20>
               <R21>0</R21>
-              <R22>-0.25881958</R22>
+              <R22>-0.19508362</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -23279,7 +22905,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23287,43 +22913,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="731">
+        <Item class="Part" referent="720">
           <Properties>
-            <string name="Name">Wall36</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>-291.4848</X>
-              <Y>40</Y>
-              <Z>-38.374695</Z>
-              <R00>-0.13052368</R00>
-              <R01>0</R01>
-              <R02>-0.9914398</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.9914398</R20>
-              <R21>0</R21>
-              <R22>-0.13052368</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="732">
-          <Properties>
-            <string name="Name">Wall37</string>
+            <string name="Name">Wall25</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -23347,7 +22939,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23355,24 +22947,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="733">
+        <Item class="Part" referent="721">
           <Properties>
-            <string name="Name">Wall38</string>
+            <string name="Name">Wall26</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-291.4848</X>
+              <X>-288.35086</X>
               <Y>40</Y>
-              <Z>38.374695</Z>
-              <R00>0.13052368</R00>
+              <Z>57.356552</Z>
+              <R00>0.19508362</R00>
               <R01>0</R01>
-              <R02>-0.9914398</R02>
+              <R02>-0.9807892</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.9914398</R20>
+              <R20>0.9807892</R20>
               <R21>0</R21>
-              <R22>0.13052368</R22>
+              <R22>0.19508362</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -23381,7 +22973,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23389,43 +22981,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="734">
+        <Item class="Part" referent="722">
           <Properties>
-            <string name="Name">Wall39</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>-283.98218</X>
-              <Y>40</Y>
-              <Z>76.092804</Z>
-              <R00>0.25881958</R00>
-              <R01>0</R01>
-              <R02>-0.9659271</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.9659271</R20>
-              <R21>0</R21>
-              <R22>0.25881958</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="735">
-          <Properties>
-            <string name="Name">Wall40</string>
+            <string name="Name">Wall27</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -23449,7 +23007,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23457,24 +23015,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="736">
+        <Item class="Part" referent="723">
           <Properties>
-            <string name="Name">Wall41</string>
+            <string name="Name">Wall28</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-254.61147</X>
+              <X>-244.45207</X>
               <Y>40</Y>
-              <Z>147</Z>
-              <R00>0.5</R00>
+              <Z>163.33765</Z>
+              <R00>0.5555725</R00>
               <R01>0</R01>
-              <R02>-0.86602783</R02>
+              <R02>-0.8314667</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.86602783</R20>
+              <R20>0.8314667</R20>
               <R21>0</R21>
-              <R22>0.5</R22>
+              <R22>0.5555725</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -23483,7 +23041,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23491,43 +23049,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="737">
+        <Item class="Part" referent="724">
           <Properties>
-            <string name="Name">Wall42</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>-233.24588</X>
-              <Y>40</Y>
-              <Z>178.97586</Z>
-              <R00>0.60876465</R00>
-              <R01>0</R01>
-              <R02>-0.7933502</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.7933502</R20>
-              <R21>0</R21>
-              <R22>0.60876465</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="738">
-          <Properties>
-            <string name="Name">Wall43</string>
+            <string name="Name">Wall29</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -23551,7 +23075,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23559,24 +23083,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="739">
+        <Item class="Part" referent="725">
           <Properties>
-            <string name="Name">Wall44</string>
+            <string name="Name">Wall30</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-178.97586</X>
+              <X>-163.33765</X>
               <Y>40</Y>
-              <Z>233.24588</Z>
-              <R00>0.7933502</R00>
+              <Z>244.45207</Z>
+              <R00>0.8314667</R00>
               <R01>0</R01>
-              <R02>-0.60876465</R02>
+              <R02>-0.5555725</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.60876465</R20>
+              <R20>0.5555725</R20>
               <R21>0</R21>
-              <R22>0.7933502</R22>
+              <R22>0.8314667</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -23585,7 +23109,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23593,43 +23117,9 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="740">
+        <Item class="Part" referent="726">
           <Properties>
-            <string name="Name">Wall45</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>-147</X>
-              <Y>40</Y>
-              <Z>254.61147</Z>
-              <R00>0.86602783</R00>
-              <R01>0</R01>
-              <R02>-0.5</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.5</R20>
-              <R21>0</R21>
-              <R22>0.86602783</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="741">
-          <Properties>
-            <string name="Name">Wall46</string>
+            <string name="Name">Wall31</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
@@ -23653,7 +23143,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23661,24 +23151,24 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="742">
+        <Item class="Part" referent="727">
           <Properties>
-            <string name="Name">Wall47</string>
+            <string name="Name">Wall32</string>
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-76.092804</X>
+              <X>-57.356552</X>
               <Y>40</Y>
-              <Z>283.98218</Z>
-              <R00>0.9659271</R00>
+              <Z>288.35086</Z>
+              <R00>0.9807892</R00>
               <R01>0</R01>
-              <R02>-0.25881958</R02>
+              <R02>-0.19508362</R02>
               <R10>0</R10>
               <R11>1</R11>
               <R12>0</R12>
-              <R20>0.25881958</R20>
+              <R20>0.19508362</R20>
               <R21>0</R21>
-              <R22>0.9659271</R22>
+              <R22>0.9807892</R22>
             </CoordinateFrame>
             <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
@@ -23687,41 +23177,7 @@
             <token name="Material">272</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>39.801727</X>
-              <Y>80</Y>
-              <Z>4</Z>
-            </Vector3>
-            <token name="TopSurface">0</token>
-            <float name="Transparency">1</float>
-          </Properties>
-        </Item>
-        <Item class="Part" referent="743">
-          <Properties>
-            <string name="Name">Wall48</string>
-            <bool name="Anchored">true</bool>
-            <token name="BottomSurface">0</token>
-            <CoordinateFrame name="CFrame">
-              <X>-38.374695</X>
-              <Y>40</Y>
-              <Z>291.4848</Z>
-              <R00>0.9914398</R00>
-              <R01>0</R01>
-              <R02>-0.13052368</R02>
-              <R10>0</R10>
-              <R11>1</R11>
-              <R12>0</R12>
-              <R20>0.13052368</R20>
-              <R21>0</R21>
-              <R22>0.9914398</R22>
-            </CoordinateFrame>
-            <bool name="CanCollide">true</bool>
-            <bool name="CanQuery">false</bool>
-            <bool name="CanTouch">false</bool>
-            <Color3uint8 name="Color3uint8">7122010</Color3uint8>
-            <token name="Material">272</token>
-            <token name="shape">1</token>
-            <Vector3 name="size">
-              <X>39.801727</X>
+              <X>59.306915</X>
               <Y>80</Y>
               <Z>4</Z>
             </Vector3>
@@ -23730,11 +23186,11 @@
           </Properties>
         </Item>
       </Item>
-      <Item class="Folder" referent="744">
+      <Item class="Folder" referent="728">
         <Properties>
           <string name="Name">Decor</string>
         </Properties>
-        <Item class="Part" referent="745">
+        <Item class="Part" referent="729">
           <Properties>
             <string name="Name">Fence1</string>
             <bool name="Anchored">true</bool>
@@ -23769,7 +23225,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="746">
+        <Item class="Part" referent="730">
           <Properties>
             <string name="Name">HedgeLong1</string>
             <bool name="Anchored">true</bool>
@@ -23804,7 +23260,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="747">
+        <Item class="Part" referent="731">
           <Properties>
             <string name="Name">HedgeRound1</string>
             <bool name="Anchored">true</bool>
@@ -23839,7 +23295,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="748">
+        <Item class="Part" referent="732">
           <Properties>
             <string name="Name">HedgeXL1</string>
             <bool name="Anchored">true</bool>
@@ -23874,7 +23330,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="749">
+        <Item class="Part" referent="733">
           <Properties>
             <string name="Name">FenceLong1</string>
             <bool name="Anchored">true</bool>
@@ -23909,7 +23365,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="750">
+        <Item class="Part" referent="734">
           <Properties>
             <string name="Name">HedgeLong2</string>
             <bool name="Anchored">true</bool>
@@ -23944,7 +23400,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="751">
+        <Item class="Part" referent="735">
           <Properties>
             <string name="Name">Accent1</string>
             <bool name="Anchored">true</bool>
@@ -23979,7 +23435,7 @@
             <float name="Transparency">0</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="752">
+        <Item class="Part" referent="736">
           <Properties>
             <string name="Name">HedgeXL2</string>
             <bool name="Anchored">true</bool>
@@ -24014,7 +23470,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="753">
+        <Item class="Part" referent="737">
           <Properties>
             <string name="Name">Fence2</string>
             <bool name="Anchored">true</bool>
@@ -24049,7 +23505,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="754">
+        <Item class="Part" referent="738">
           <Properties>
             <string name="Name">HedgeLong3</string>
             <bool name="Anchored">true</bool>
@@ -24084,7 +23540,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="755">
+        <Item class="Part" referent="739">
           <Properties>
             <string name="Name">HedgeXL3</string>
             <bool name="Anchored">true</bool>
@@ -24119,7 +23575,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="756">
+        <Item class="Part" referent="740">
           <Properties>
             <string name="Name">Fence3</string>
             <bool name="Anchored">true</bool>
@@ -24154,7 +23610,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="757">
+        <Item class="Part" referent="741">
           <Properties>
             <string name="Name">FenceLong2</string>
             <bool name="Anchored">true</bool>
@@ -24189,7 +23645,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="758">
+        <Item class="Part" referent="742">
           <Properties>
             <string name="Name">HedgeXL4</string>
             <bool name="Anchored">true</bool>
@@ -24224,7 +23680,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="759">
+        <Item class="Part" referent="743">
           <Properties>
             <string name="Name">Fence4</string>
             <bool name="Anchored">true</bool>
@@ -24259,7 +23715,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="760">
+        <Item class="Part" referent="744">
           <Properties>
             <string name="Name">FenceLong3</string>
             <bool name="Anchored">true</bool>
@@ -24294,7 +23750,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="761">
+        <Item class="Part" referent="745">
           <Properties>
             <string name="Name">HedgeLong4</string>
             <bool name="Anchored">true</bool>
@@ -24329,7 +23785,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="762">
+        <Item class="Part" referent="746">
           <Properties>
             <string name="Name">Fence5</string>
             <bool name="Anchored">true</bool>
@@ -24364,7 +23820,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="763">
+        <Item class="Part" referent="747">
           <Properties>
             <string name="Name">HedgeXL5</string>
             <bool name="Anchored">true</bool>
@@ -24399,7 +23855,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="764">
+        <Item class="Part" referent="748">
           <Properties>
             <string name="Name">Accent2</string>
             <bool name="Anchored">true</bool>
@@ -24434,7 +23890,7 @@
             <float name="Transparency">0</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="765">
+        <Item class="Part" referent="749">
           <Properties>
             <string name="Name">HedgeLong5</string>
             <bool name="Anchored">true</bool>
@@ -24469,7 +23925,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="766">
+        <Item class="Part" referent="750">
           <Properties>
             <string name="Name">Fence6</string>
             <bool name="Anchored">true</bool>
@@ -24504,7 +23960,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="767">
+        <Item class="Part" referent="751">
           <Properties>
             <string name="Name">HedgeXL6</string>
             <bool name="Anchored">true</bool>
@@ -24539,7 +23995,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="768">
+        <Item class="Part" referent="752">
           <Properties>
             <string name="Name">FenceLong4</string>
             <bool name="Anchored">true</bool>
@@ -24574,7 +24030,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="769">
+        <Item class="Part" referent="753">
           <Properties>
             <string name="Name">Fence7</string>
             <bool name="Anchored">true</bool>
@@ -24609,7 +24065,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="770">
+        <Item class="Part" referent="754">
           <Properties>
             <string name="Name">HedgeLong6</string>
             <bool name="Anchored">true</bool>
@@ -24644,7 +24100,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="771">
+        <Item class="Part" referent="755">
           <Properties>
             <string name="Name">FenceLong5</string>
             <bool name="Anchored">true</bool>
@@ -24679,7 +24135,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="772">
+        <Item class="Part" referent="756">
           <Properties>
             <string name="Name">Fence8</string>
             <bool name="Anchored">true</bool>
@@ -24714,7 +24170,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="773">
+        <Item class="Part" referent="757">
           <Properties>
             <string name="Name">GrovePine1</string>
             <bool name="Anchored">true</bool>
@@ -24749,7 +24205,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="774">
+        <Item class="Part" referent="758">
           <Properties>
             <string name="Name">GroveRocky1</string>
             <bool name="Anchored">true</bool>
@@ -24784,7 +24240,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="775">
+        <Item class="Part" referent="759">
           <Properties>
             <string name="Name">GroveMixed1</string>
             <bool name="Anchored">true</bool>
@@ -24819,7 +24275,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="776">
+        <Item class="Part" referent="760">
           <Properties>
             <string name="Name">PineBroad1</string>
             <bool name="Anchored">true</bool>
@@ -24854,7 +24310,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="777">
+        <Item class="Part" referent="761">
           <Properties>
             <string name="Name">GroveRocky2</string>
             <bool name="Anchored">true</bool>
@@ -24889,7 +24345,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="778">
+        <Item class="Part" referent="762">
           <Properties>
             <string name="Name">RockHeap1</string>
             <bool name="Anchored">true</bool>
@@ -24924,7 +24380,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="779">
+        <Item class="Part" referent="763">
           <Properties>
             <string name="Name">Saplings1</string>
             <bool name="Anchored">true</bool>
@@ -24959,7 +24415,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="780">
+        <Item class="Part" referent="764">
           <Properties>
             <string name="Name">Boulder1</string>
             <bool name="Anchored">true</bool>
@@ -24994,7 +24450,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="781">
+        <Item class="Part" referent="765">
           <Properties>
             <string name="Name">PineTall1</string>
             <bool name="Anchored">true</bool>
@@ -25029,7 +24485,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="782">
+        <Item class="Part" referent="766">
           <Properties>
             <string name="Name">PineBroad2</string>
             <bool name="Anchored">true</bool>
@@ -25064,7 +24520,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="783">
+        <Item class="Part" referent="767">
           <Properties>
             <string name="Name">GroveMixed2</string>
             <bool name="Anchored">true</bool>
@@ -25099,7 +24555,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="784">
+        <Item class="Part" referent="768">
           <Properties>
             <string name="Name">GrovePine2</string>
             <bool name="Anchored">true</bool>
@@ -25134,7 +24590,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="785">
+        <Item class="Part" referent="769">
           <Properties>
             <string name="Name">GroveRocky3</string>
             <bool name="Anchored">true</bool>
@@ -25169,7 +24625,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="786">
+        <Item class="Part" referent="770">
           <Properties>
             <string name="Name">GroveMixed3</string>
             <bool name="Anchored">true</bool>
@@ -25204,7 +24660,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="787">
+        <Item class="Part" referent="771">
           <Properties>
             <string name="Name">GrovePine3</string>
             <bool name="Anchored">true</bool>
@@ -25239,7 +24695,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="788">
+        <Item class="Part" referent="772">
           <Properties>
             <string name="Name">PineBroad3</string>
             <bool name="Anchored">true</bool>
@@ -25274,7 +24730,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="789">
+        <Item class="Part" referent="773">
           <Properties>
             <string name="Name">PineTall2</string>
             <bool name="Anchored">true</bool>
@@ -25309,7 +24765,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="790">
+        <Item class="Part" referent="774">
           <Properties>
             <string name="Name">GrovePine4</string>
             <bool name="Anchored">true</bool>
@@ -25344,7 +24800,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="791">
+        <Item class="Part" referent="775">
           <Properties>
             <string name="Name">GroveRocky4</string>
             <bool name="Anchored">true</bool>
@@ -25379,7 +24835,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="792">
+        <Item class="Part" referent="776">
           <Properties>
             <string name="Name">Oak1</string>
             <bool name="Anchored">true</bool>
@@ -25414,7 +24870,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="793">
+        <Item class="Part" referent="777">
           <Properties>
             <string name="Name">GroveMixed4</string>
             <bool name="Anchored">true</bool>
@@ -25449,7 +24905,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="794">
+        <Item class="Part" referent="778">
           <Properties>
             <string name="Name">GroveRocky5</string>
             <bool name="Anchored">true</bool>
@@ -25484,7 +24940,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="795">
+        <Item class="Part" referent="779">
           <Properties>
             <string name="Name">PineBroad4</string>
             <bool name="Anchored">true</bool>
@@ -25519,7 +24975,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="796">
+        <Item class="Part" referent="780">
           <Properties>
             <string name="Name">GroveMixed5</string>
             <bool name="Anchored">true</bool>
@@ -25554,7 +25010,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="797">
+        <Item class="Part" referent="781">
           <Properties>
             <string name="Name">PineTall3</string>
             <bool name="Anchored">true</bool>
@@ -25589,7 +25045,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="798">
+        <Item class="Part" referent="782">
           <Properties>
             <string name="Name">Slab1</string>
             <bool name="Anchored">true</bool>
@@ -25624,7 +25080,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="799">
+        <Item class="Part" referent="783">
           <Properties>
             <string name="Name">GroveMixed6</string>
             <bool name="Anchored">true</bool>
@@ -25659,7 +25115,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="800">
+        <Item class="Part" referent="784">
           <Properties>
             <string name="Name">GrovePine5</string>
             <bool name="Anchored">true</bool>
@@ -25694,7 +25150,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="801">
+        <Item class="Part" referent="785">
           <Properties>
             <string name="Name">PineBroad5</string>
             <bool name="Anchored">true</bool>
@@ -25729,7 +25185,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="802">
+        <Item class="Part" referent="786">
           <Properties>
             <string name="Name">GroveMixed7</string>
             <bool name="Anchored">true</bool>
@@ -25764,7 +25220,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="803">
+        <Item class="Part" referent="787">
           <Properties>
             <string name="Name">PineTall4</string>
             <bool name="Anchored">true</bool>
@@ -25799,7 +25255,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="804">
+        <Item class="Part" referent="788">
           <Properties>
             <string name="Name">GroveRocky6</string>
             <bool name="Anchored">true</bool>
@@ -25834,7 +25290,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="805">
+        <Item class="Part" referent="789">
           <Properties>
             <string name="Name">HillRidge1</string>
             <bool name="Anchored">true</bool>
@@ -25869,7 +25325,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="806">
+        <Item class="Part" referent="790">
           <Properties>
             <string name="Name">HillTwin1</string>
             <bool name="Anchored">true</bool>
@@ -25904,7 +25360,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="807">
+        <Item class="Part" referent="791">
           <Properties>
             <string name="Name">HillDome1</string>
             <bool name="Anchored">true</bool>
@@ -25939,7 +25395,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="808">
+        <Item class="Part" referent="792">
           <Properties>
             <string name="Name">HillRidge2</string>
             <bool name="Anchored">true</bool>
@@ -25974,7 +25430,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="809">
+        <Item class="Part" referent="793">
           <Properties>
             <string name="Name">HillDome2</string>
             <bool name="Anchored">true</bool>
@@ -26009,7 +25465,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="810">
+        <Item class="Part" referent="794">
           <Properties>
             <string name="Name">HillRidge3</string>
             <bool name="Anchored">true</bool>
@@ -26044,7 +25500,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="811">
+        <Item class="Part" referent="795">
           <Properties>
             <string name="Name">HillDome3</string>
             <bool name="Anchored">true</bool>
@@ -26079,7 +25535,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="812">
+        <Item class="Part" referent="796">
           <Properties>
             <string name="Name">HillRidge4</string>
             <bool name="Anchored">true</bool>
@@ -26114,7 +25570,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="813">
+        <Item class="Part" referent="797">
           <Properties>
             <string name="Name">PineGrove1</string>
             <bool name="Anchored">true</bool>
@@ -26149,7 +25605,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="814">
+        <Item class="Part" referent="798">
           <Properties>
             <string name="Name">HillRocks1</string>
             <bool name="Anchored">true</bool>
@@ -26184,7 +25640,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="815">
+        <Item class="Part" referent="799">
           <Properties>
             <string name="Name">CornerGrove1</string>
             <bool name="Anchored">true</bool>
@@ -26219,7 +25675,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="816">
+        <Item class="Part" referent="800">
           <Properties>
             <string name="Name">CornerGrove2</string>
             <bool name="Anchored">true</bool>
@@ -26254,7 +25710,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="817">
+        <Item class="Part" referent="801">
           <Properties>
             <string name="Name">GiantRound1</string>
             <bool name="Anchored">true</bool>
@@ -26289,7 +25745,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="818">
+        <Item class="Part" referent="802">
           <Properties>
             <string name="Name">GiantBroadleaf1</string>
             <bool name="Anchored">true</bool>
@@ -26324,7 +25780,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="819">
+        <Item class="Part" referent="803">
           <Properties>
             <string name="Name">GiantRound2</string>
             <bool name="Anchored">true</bool>
@@ -26359,7 +25815,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="820">
+        <Item class="Part" referent="804">
           <Properties>
             <string name="Name">GiantPine1</string>
             <bool name="Anchored">true</bool>
@@ -26394,7 +25850,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="821">
+        <Item class="Part" referent="805">
           <Properties>
             <string name="Name">GiantBroadleaf2</string>
             <bool name="Anchored">true</bool>
@@ -26429,7 +25885,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="822">
+        <Item class="Part" referent="806">
           <Properties>
             <string name="Name">GiantPine2</string>
             <bool name="Anchored">true</bool>
@@ -26464,7 +25920,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="823">
+        <Item class="Part" referent="807">
           <Properties>
             <string name="Name">GiantBroadleaf3</string>
             <bool name="Anchored">true</bool>
@@ -26499,7 +25955,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="824">
+        <Item class="Part" referent="808">
           <Properties>
             <string name="Name">GiantPine3</string>
             <bool name="Anchored">true</bool>
@@ -26534,7 +25990,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="825">
+        <Item class="Part" referent="809">
           <Properties>
             <string name="Name">GiantRound3</string>
             <bool name="Anchored">true</bool>
@@ -26569,7 +26025,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="826">
+        <Item class="Part" referent="810">
           <Properties>
             <string name="Name">GiantPine4</string>
             <bool name="Anchored">true</bool>
@@ -26604,7 +26060,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="827">
+        <Item class="Part" referent="811">
           <Properties>
             <string name="Name">GiantRound4</string>
             <bool name="Anchored">true</bool>
@@ -26639,7 +26095,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="828">
+        <Item class="Part" referent="812">
           <Properties>
             <string name="Name">GiantPine5</string>
             <bool name="Anchored">true</bool>
@@ -26674,7 +26130,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="829">
+        <Item class="Part" referent="813">
           <Properties>
             <string name="Name">GiantBroadleaf4</string>
             <bool name="Anchored">true</bool>
@@ -26709,7 +26165,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="830">
+        <Item class="Part" referent="814">
           <Properties>
             <string name="Name">GiantRound5</string>
             <bool name="Anchored">true</bool>
@@ -26744,7 +26200,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="831">
+        <Item class="Part" referent="815">
           <Properties>
             <string name="Name">GiantPine6</string>
             <bool name="Anchored">true</bool>
@@ -26779,7 +26235,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="832">
+        <Item class="Part" referent="816">
           <Properties>
             <string name="Name">GiantBroadleaf5</string>
             <bool name="Anchored">true</bool>
@@ -26814,7 +26270,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="833">
+        <Item class="Part" referent="817">
           <Properties>
             <string name="Name">GiantRound6</string>
             <bool name="Anchored">true</bool>
@@ -26849,7 +26305,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="834">
+        <Item class="Part" referent="818">
           <Properties>
             <string name="Name">GiantPine7</string>
             <bool name="Anchored">true</bool>
@@ -26884,7 +26340,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="835">
+        <Item class="Part" referent="819">
           <Properties>
             <string name="Name">GiantBroadleaf6</string>
             <bool name="Anchored">true</bool>
@@ -26919,7 +26375,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="836">
+        <Item class="Part" referent="820">
           <Properties>
             <string name="Name">GiantPine8</string>
             <bool name="Anchored">true</bool>
@@ -26954,7 +26410,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="837">
+        <Item class="Part" referent="821">
           <Properties>
             <string name="Name">GiantRound7</string>
             <bool name="Anchored">true</bool>
@@ -26989,7 +26445,7 @@
             <float name="Transparency">1</float>
           </Properties>
         </Item>
-        <Item class="Part" referent="838">
+        <Item class="Part" referent="822">
           <Properties>
             <string name="Name">GiantPine9</string>
             <bool name="Anchored">true</bool>
