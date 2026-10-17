@@ -518,7 +518,7 @@ def main():
             filepath=fbx, use_selection=True, object_types={"MESH", "ARMATURE"} if rigs else {"MESH"},
             use_mesh_modifiers=True,
             apply_scale_options="FBX_SCALE_UNITS", axis_forward="-Z", axis_up="Y",
-            mesh_smooth_type="FACE", colors_type="SRGB", add_leaf_bones=False, bake_anim=False,
+            mesh_smooth_type="OFF" if objs[0].get("smooth_normals") else "FACE", colors_type="SRGB", add_leaf_bones=False, bake_anim=False,
         )
         bpy.ops.wm.obj_export(filepath=os.path.join(a.out, a.name + ".obj"), export_selected_objects=True,
                               forward_axis="NEGATIVE_Z", up_axis="Y", export_colors=True, apply_modifiers=True)

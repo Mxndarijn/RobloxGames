@@ -529,6 +529,10 @@ VIEWS = {
     # SnowGround v2 (export --snow <level> --snow-phase settle|melt): eye height at the plaza edge looking down spoke 1 over the
     # plaza sand, the spoke and ring paths, plot 1 and the hills behind
     "20_snow_ground": lambda: look((0, 11, 38), (0, 3, 130), lens=22),
+    # bug 4 lane close-ups (eye 1.6): a straight stretch, the bend out to r 68, the slide exit
+    "27_lane_straight": lambda: look((17.6, 1.6, -55.5), (28.6, 0.3, -48.2), lens=28),
+    "28_lane_bend": lambda: look((-68.5, 1.6, 19), (-62, 0.3, 4.5), lens=28),
+    "29_lane_exit": lambda: look((-4, 1.6, 33), (-18, 0.3, 39.5), lens=28),
 }
 
 

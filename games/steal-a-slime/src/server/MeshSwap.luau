@@ -84,6 +84,21 @@ local function hideStandIns(scope: Instance, name: string)
 	end
 end
 
+-- A clone of a kit mesh's MeshPart at its native size (an entry with a meshId), or nil while it is not
+-- uploaded or fails to load. Yields. For single runtime meshes that are not WorldLayout slots (ParadeView's lane).
+function MeshSwap.load(name: string): MeshPart?
+	local meshId = MeshAssets.meshId(name)
+	local entry = MeshAssets.get(name)
+	local base = meshId and template(meshId)
+	if not base or not entry or not entry.size then
+		return nil
+	end
+	local mesh = base:Clone()
+	mesh.Name = name
+	mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+	return mesh
+end
+
 -- The one collision switch for a mesh: loaded = its MeshCollider parts
 -- collide and its stand-ins don't; not loaded = colliders off and the
 -- stand-ins back to their own CanCollide (decor like Pool stays off).
