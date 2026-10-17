@@ -248,7 +248,10 @@ function WeatherFx.start()
 	end
 	started = true
 	-- Late joiners get the cover level from the server stamps; nothing at all while the feature is off.
-	if Config.FEATURES.SnowGround and (Config.FEATURES.Weather or workspace:GetAttribute(Constants.WEATHER_DEBUG_ATTRIBUTE) ~= nil) then
+	if
+		Config.FEATURES.SnowGround
+		and (Config.FEATURES.Weather or workspace:GetAttribute(Constants.WEATHER_DEBUG_ATTRIBUTE) ~= nil)
+	then
 		SnowGround.start(true)
 	end
 	Weather.attach(workspace)
