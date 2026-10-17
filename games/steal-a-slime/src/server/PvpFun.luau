@@ -177,6 +177,7 @@ local function squeaky(call: PvpService.UseCall): (boolean, string?)
 	end
 	local target, targetPosition = call.target, call.targetPosition
 	local nudged = 0
+	local nudgeVelocity: PvpKnockbackRules.Vec? = nil
 	if target and targetPosition then
 		if not PvpKnockbackRules.inReach(call.tool, call.position, targetPosition) then
 			return false, "too far away"
@@ -185,6 +186,7 @@ local function squeaky(call: PvpService.UseCall): (boolean, string?)
 		if isThief(target) and state and PvpRules.canControl(state, call.now) and env.launcher then
 			local _, push = PvpKnockbackRules.plan({ push = call.tool.nudge } :: any, call.position, targetPosition)
 			if env.launcher(target.userId, push) then
+				nudgeVelocity = PvpKnockbackRules.velocity(push)
 				PvpRules.applyControl(state, Config.PVP.FUN_NUDGE_CONTROL_SECONDS, call.now)
 				nudged = PvpKnockbackRules.horizontal(push)
 			end
@@ -195,6 +197,7 @@ local function squeaky(call: PvpService.UseCall): (boolean, string?)
 		target = if target then target.userId else nil,
 		position = targetPosition or call.position,
 		push = if nudged > 0 then nudged else nil,
+		velocity = nudgeVelocity,
 	})
 	return true, nil
 end
@@ -330,7 +333,18 @@ function PvpFun.tick(session: Session, position: any, now: number)
 			if owner == session then
 				if now - (lastBounce[userId] or -math.huge) >= Config.PVP.BOUNCE_RETRIGGER_SECONDS then
 					lastBounce[userId] = now
-					launch(userId, { X = 0, Y = tool.height or 0, Z = 0 })
+					local lift = { X = 0, Y = tool.height or 0, Z = 0 }
+					if launch(userId, lift) then
+						PvpService.fireEffect({
+							attacker = userId,
+							target = userId,
+							itemId = tool.id,
+							effect = "Bounce",
+							position = position,
+							duration = Config.PVP.FX_SECONDS,
+							velocity = PvpKnockbackRules.velocity(lift),
+						}, now, true)
+					end
 				end
 			elseif
 				state
@@ -340,7 +354,8 @@ function PvpFun.tick(session: Session, position: any, now: number)
 				and PvpRules.canControl(state, now)
 			then
 				local applied = PvpRules.applyControl(state, tool.control or 0, now)
-				if applied > 0 and launch(userId, { X = 0, Y = tool.height or 0, Z = 0 }) then
+				local lift = { X = 0, Y = tool.height or 0, Z = 0 }
+				if applied > 0 and launch(userId, lift) then
 					PvpService.fireEffect({
 						attacker = owner.userId,
 						target = userId,
@@ -348,6 +363,7 @@ function PvpFun.tick(session: Session, position: any, now: number)
 						effect = "Bounce",
 						position = position,
 						duration = applied,
+						velocity = PvpKnockbackRules.velocity(lift),
 					}, now, true)
 				end
 			end

@@ -1,0 +1,24 @@
+{
+  "id": "pvp-nonlethal",
+  "todo": "PvP feel",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 70,
+  "height": 30,
+  "bug_probe": {
+    "bug": "PVP4",
+    "title": "Non-lethal: Health == MaxHealth after knockback / edge / Bounce Pad",
+    "luau": "pvp_feel",
+    "ctx": "Server",
+    "args": {
+      "PART": "nonlethal"
+    },
+    "timeout": 40
+  },
+  "note": "PvP feel probe (advisory, CONTRACT.md \u00a726): luau/pvp_feel PART=nonlethal on R15 dummies on a private platform; emulates the mover / WalkSpeed enforcement, uses the real Pvp*Rules; runs under PcwFlag_PvP (flags field), the probe reports flag_on",
+  "flags": {
+    "PvP": true
+  },
+  "device": "desktop"
+}

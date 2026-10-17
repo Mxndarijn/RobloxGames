@@ -1,0 +1,22 @@
+{
+  "id": "pvp-effects-cleanup",
+  "todo": "PvP feel",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 70,
+  "height": 30,
+  "bug_probe": {
+    "bug": "PVP5",
+    "title": "PvP client effects leave no parts / emitters behind",
+    "luau": "pvp_fx_client",
+    "ctx": "Client",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "PvP feel probe (advisory, CONTRACT.md \u00a726.1): plays every PvpEffects kind on the client; BasePart/ParticleEmitter/Highlight/Beam/Trail count must return to the start value; n/a until src/ui/PvpEffects exists; runs under PcwFlag_PvP (flags field), the probe reports flag_on",
+  "flags": {
+    "PvP": true
+  },
+  "device": "desktop"
+}

@@ -889,14 +889,14 @@ end
 
 -- Kill plane (Rescue): puts a living character that fell below the plane back on
 -- its plot / the hub. Returns true if it moved the character.
-function WorldView.rescue(player: Player, plotIndex: number?): boolean
+function WorldView.rescue(player: Player, plotIndex: number?, pvpGuard: boolean?): boolean
 	local character = player.Character
 	local root = WorldView.rootPart(player)
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if not character or not root or not humanoid then
 		return false
 	end
-	if not Rescue.shouldRescue(root.Position.Y, humanoid.Health > 0) then
+	if not Rescue.shouldRescuePvp(root.Position.Y, humanoid.Health > 0, pvpGuard == true) then
 		return false
 	end
 	local plotSpawn = if plotIndex then WorldView.plotSpawn(plotIndex) else nil

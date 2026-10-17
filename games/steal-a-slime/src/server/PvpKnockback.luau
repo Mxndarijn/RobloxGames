@@ -63,6 +63,7 @@ local function handler(call: PvpService.UseCall): (boolean, string?)
 		effect = "Knockback",
 		position = targetPosition,
 		push = PvpKnockbackRules.horizontal(push),
+		velocity = PvpKnockbackRules.velocity(push), -- the victim's client applies it to its own root (it owns the character)
 		duration = Config.PVP.FX_SECONDS,
 	}, call.now, true) -- PvpService.use only calls a handler with the flag on
 	return true, nil

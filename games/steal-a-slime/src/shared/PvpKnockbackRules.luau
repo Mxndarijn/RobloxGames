@@ -10,7 +10,7 @@
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local PvpRules = if script then require(script.Parent.PvpRules) else require("./PvpRules")
 
-type Vec = PvpRules.Vec
+export type Vec = PvpRules.Vec
 
 local PvpKnockbackRules = {}
 
@@ -52,10 +52,39 @@ function PvpKnockbackRules.horizontal(push: Vec): number
 	return math.sqrt(push.X * push.X + push.Z * push.Z)
 end
 
--- Launch velocity that covers `push` horizontally in Config.PVP.KNOCKBACK_SECONDS and rises its arc (gravity in studs/s^2).
-function PvpKnockbackRules.velocity(push: Vec, gravity: number): Vec
+-- Launch velocity that covers `push` horizontally in Config.PVP.KNOCKBACK_SECONDS (x KNOCKBACK_FRICTION_BOOST: ground
+-- friction eats part of a short launch) and rises its arc (gravity in studs/s^2; default 196.2).
+function PvpKnockbackRules.velocity(push: Vec, gravity: number?): Vec
 	local t = Config.PVP.KNOCKBACK_SECONDS
-	return { X = push.X / t, Y = math.sqrt(2 * math.max(0, gravity) * math.max(0, push.Y)), Z = push.Z / t }
+	local boost = Config.PVP.KNOCKBACK_FRICTION_BOOST
+	return {
+		X = push.X / t * boost,
+		Y = math.sqrt(2 * math.max(0, gravity or 196.2) * math.max(0, push.Y)),
+		Z = push.Z / t * boost,
+	}
+end
+
+-- The most horizontal speed a launch may have (client clamp uses it): MAX_PUSH over KNOCKBACK_SECONDS x boost.
+function PvpKnockbackRules.maxHorizontalSpeed(): number
+	return Config.PVP.KNOCKBACK_MAX_PUSH / Config.PVP.KNOCKBACK_SECONDS * Config.PVP.KNOCKBACK_FRICTION_BOOST
+end
+
+-- Clamps a received launch velocity (payload `velocity`) the same way on the client: junk / NaN -> zero, horizontal
+-- speed <= maxHorizontalSpeed, vertical 0..KNOCKBACK_MAX_SPEED_Y.
+function PvpKnockbackRules.clampVelocity(v: any): Vec
+	if type(v) ~= "table" then
+		return { X = 0, Y = 0, Z = 0 }
+	end
+	local x, y, z = v.X, v.Y, v.Z
+	if type(x) ~= "number" or type(y) ~= "number" or type(z) ~= "number" or x ~= x or y ~= y or z ~= z then
+		return { X = 0, Y = 0, Z = 0 }
+	end
+	local limit = PvpKnockbackRules.maxHorizontalSpeed()
+	local h = math.sqrt(x * x + z * z)
+	if h > limit then
+		x, z = x / h * limit, z / h * limit
+	end
+	return { X = x, Y = math.clamp(y, 0, Config.PVP.KNOCKBACK_MAX_SPEED_Y), Z = z }
 end
 
 return PvpKnockbackRules
