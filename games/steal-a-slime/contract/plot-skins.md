@@ -1,6 +1,6 @@
 # 15. Gaps #15: plot skins unlocked by collection (2026-10-16, Archer)
 
-**Status:** contract first. `Config.FEATURES.PlotSkins` (default **off**: needs frame review); `false` = no remote, no State fields, no plot attribute, no visuals. The save field is still read and written.
+**Status:** contract first. `Config.FEATURES.PlotSkins` (default **on** since 2026-10-18); `false` = no remote, no State fields, no plot attribute, no visuals. The save field is still read and written.
 
 - **Rule:** `Config.PLOT_SKINS` lists the skins; each is tied to a SlimeDex set (`set` = rarity tier, 288 keys: `PlotSkins.setSize`) and unlocks at `owned / setSize >= threshold` (0.75, integer test `owned >= ceil(setSize * threshold)`; weather mutation keys do not count). `classic` is the default and always unlocked. `src/shared/PlotSkins`.
 - **Save (versioned since v6, §8.9c):** `plotSkin: string`. Missing, unknown or not unlocked loads as `"classic"` (`SaveData.deserialize`; `SaveData.migratePlotSkin` is the pure step; `migrateV5` normalises unknown ids).

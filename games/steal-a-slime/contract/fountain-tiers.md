@@ -1,4 +1,4 @@
-# 19. v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`, default `false`)
+# 19. v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`, default `true`)
 
 Owner: Phoenix (server, shared), Archer (visuals). Off = one Meadow fountain, Classic drops only, no attribute, no templates, rank cards unchanged.
 

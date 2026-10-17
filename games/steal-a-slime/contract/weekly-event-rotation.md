@@ -1,6 +1,6 @@
 # 18. v21: weekly event rotation (2026-10-16)
 
-**Status:** contract first. `Config.FEATURES.WeeklyEvents` (default `false`); `false` = no boost, no multiplier, no attribute (an existing value is cleared). Server-authoritative; no remote, **no save-format change**, nothing saved.
+**Status:** contract first. `Config.FEATURES.WeeklyEvents` (default `true`); `false` = no boost, no multiplier, no attribute (an existing value is cleared). Server-authoritative; no remote, **no save-format change**, nothing saved.
 
 - **Schedule (`src/shared/WeeklyEvents`, `Config.WEEKLY`):** a pure function of unix time (UTC), so every server agrees; tests pass a fake `now`. Weeks are ISO weeks: Monday 00:00 to the next Monday 00:00 UTC (`weekIndex`, `isoWeek`). Intervals are half-open `[startsAt, endsAt)`.
   - **Weekly mutation:** exactly one per week, `MUTATION_ROTATION[week % n]` (plain `Config.MUTATIONS` names; Eclipse stays rare). It adds `MUTATION_CHANCE_BONUS` (3 %) of roll range to that mutation only, the same window mechanism as the weather bonus (`Genome.rollMutation(…, weeklyMutation, weeklyBonus)`, placed after the weather window). Consecutive weeks differ.

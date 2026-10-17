@@ -1,4 +1,4 @@
-# 23. v19: Rain Magnet upgrade (`FEATURES.RainMagnet`, default `false`)
+# 23. v19: Rain Magnet upgrade (`FEATURES.RainMagnet`, default `true`)
 
 Owner: Phoenix (server, shared), Jolt (shop row), Archer (prop). Off = the upgrade is not listed in `State.upgrades`, `BuyUpgrade "RainMagnet"` answers "unknown upgrade", `Perks.rainMagnetChance` is 0 (a saved level is inert, not lost), no plot attribute, no template, no prop.
 
