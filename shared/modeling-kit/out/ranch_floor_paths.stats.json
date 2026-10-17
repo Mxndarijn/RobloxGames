@@ -1,0 +1,111 @@
+{
+  "name": "ranch_floor_paths",
+  "model": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/models/ranch_floor_paths.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 4544,
+  "meshes": [
+    {
+      "name": "ranch_floor_paths",
+      "tris": 4544,
+      "verts": 2816,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        192.0,
+        0.21,
+        192.0
+      ],
+      "materials": [
+        "ranch_floor_paths_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "ranch_floor_paths_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    192.0,
+    0.21,
+    192.0
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "ranch_floor_paths_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [
+    "4544 tris outside prop target 500-2000"
+  ],
+  "fbx": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/ranch_floor_paths.fbx",
+  "fbx_bytes": 61612,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/.tiles/ranch_floor_paths_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/.tiles/ranch_floor_paths_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/.tiles/ranch_floor_paths_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/.tiles/ranch_floor_paths_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.505,
+    "stats_s": 0.006,
+    "setup_s": 0.002,
+    "render_s": [
+      1.536,
+      1.326,
+      1.432,
+      1.366
+    ],
+    "export_s": 0.157
+  },
+  "sheet": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/ranch_floor_paths_sheet.png",
+  "timings": {
+    "wall_s": 7.74,
+    "blender_process_s": 7.55,
+    "compose_s": 0.198,
+    "model_s": 0.505,
+    "stats_s": 0.006,
+    "setup_s": 0.002,
+    "render_s": [
+      1.536,
+      1.326,
+      1.432,
+      1.366
+    ],
+    "export_s": 0.157
+  }
+}
