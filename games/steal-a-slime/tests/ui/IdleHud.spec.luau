@@ -16,6 +16,7 @@ for _, entry in Nav.ENTRIES do
 	table.insert(keys, entry.key)
 end
 table.insert(keys, "Guide")
+table.insert(keys, "Welcome")
 
 local src = fs.readFile("src/ui/init.client.luau")
 local function has(needle: string): boolean

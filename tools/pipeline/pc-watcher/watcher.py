@@ -1426,6 +1426,10 @@ def step_shots(run):
                 if shot.get("plot_slime"):  # fake owned slime so the Appraise button shows
                     res["plot_slime"] = run.need_luau("plot_slime", "Client", timeout=15, state="1")
                 opened = open_panel(run, key) if key else None
+                if shot.get("welcome_back"):  # v20: the welcome-back card from a faked State.welcomeBack (Studio only)
+                    wb = res["welcome_back"] = run.need_luau("welcome_back", "Client", timeout=15, on=True)
+                    if not wb.get("visible"):
+                        res["error"] = "welcome-back card not visible"
                 if shot.get("daily_popup"):  # v29 menus: the Daily popup over the idle HUD (Studio only)
                     res["daily_popup"] = run.need_luau("daily_popup", "Client", timeout=15, on=True)
                 if opened:
@@ -1449,6 +1453,8 @@ def step_shots(run):
                 keep = opened["panel"] if opened and not shot.get("press") else ""
                 if shot.get("daily_popup"):
                     keep = "DailyPopup"
+                if shot.get("welcome_back"):
+                    keep = "WelcomePanel"
                 ok, iso = run.luau("ui_isolate", "Client", timeout=15, keep=keep, hide=True)
                 res["isolated"] = iso if ok else str(iso)[:160]
                 try:
@@ -1485,6 +1491,8 @@ def step_shots(run):
                     run.luau("dex_rows", "Client", timeout=15, count=0)
                 if shot.get("daily_popup"):
                     run.luau("daily_popup", "Client", timeout=15, on=False)
+                if shot.get("welcome_back"):
+                    run.luau("welcome_back", "Client", timeout=15, on=False)
                 if shot.get("dex_weather"):
                     run.luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=False)
                 if shot.get("tutorial_arrow"):

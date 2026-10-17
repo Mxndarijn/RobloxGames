@@ -23,6 +23,7 @@ local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
+local WelcomeBack = if Shared then require(Shared.WelcomeBack) else require("../shared/WelcomeBack")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
 
 type Slime = Genome.Slime
@@ -54,6 +55,7 @@ export type Session = {
 	stealWaitSince: number?, -- tutorial Steal step: since when no other plot had a slime to steal, runtime only
 	friends: number?, -- friends in this server (Friends.refresh), runtime only
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch for the reveal banner (never saved)
+	welcome: WelcomeBack.Report?, -- FEATURES.WelcomeBack: away time, offline cash and slimes grown, read at join for the welcome card (never saved)
 	awayLog: { StealAlert.Entry }?, -- FEATURES.StealAlerts: the saved thefts read at join, for the join notice (never saved)
 }
 

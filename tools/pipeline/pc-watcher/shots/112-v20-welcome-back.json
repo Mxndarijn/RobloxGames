@@ -1,0 +1,7 @@
+{
+  "id": "v20-welcome-back",
+  "todo": "v20",
+  "kind": "ui",
+  "welcome_back": true,
+  "note": "v20 welcome-back card (FEATURES.WelcomeBack): content-sized card with the away time, offline cash, slimes grown, daily streak and next goal rows and one Collect button over the dimmed idle HUD (Studio fake via SlimeUI.PcwWelcome)"
+}

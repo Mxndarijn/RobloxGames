@@ -65,6 +65,7 @@ local PlotPanel = require(Panels.Plot)
 local RebirthPanel = require(Panels.Rebirth)
 local ShopPanel = require(Panels.Shop)
 local TutorialOverlay = require(Panels.TutorialOverlay)
+local WelcomePanel = require(Panels.Welcome)
 
 local Theme = Widgets.Theme
 
@@ -243,6 +244,7 @@ end
 -- Every menu: the nav ones plus the Guide card (no nav button).
 local allPanels: { PanelEntry } = table.clone(panels)
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
+table.insert(allPanels, { key = "Welcome", nav = nil, panel = WelcomePanel.new(gui, ctx) })
 
 local allKeys: { string } = {}
 for _, entry in allPanels do
@@ -275,6 +277,7 @@ local navChoice: boolean? = nil
 local screen: Layout.Screen? = nil
 local applyLayout: () -> ()
 local refreshHint: () -> ()
+local pumpPopups: (state: Types.State) -> ()
 local layoutCards: () -> ()
 
 local function styleNav(btn: NavButton, selected: boolean)
@@ -289,6 +292,7 @@ end
 -- highlight and hint follow it, so a card shown or hidden any other way than
 -- setOpen (Esc, a script, a debug tool) can never strand a dim overlay.
 local wasOpen: { [string]: boolean } = {}
+local wasPumped = false -- the Welcome card was open at the last syncMenus: pump the queue when it closes
 
 -- Studio-only PC watcher hook: the SlimeUI attribute "PcwRebirthSlime" ("owned" / "missing")
 -- forces the Rebirth panel's required-slime state so both shots can be taken without a real
@@ -343,6 +347,16 @@ local function forceStealAlert(state: any): any
 		{ thief = "Mia", slime = "Pip", at = 0 },
 		{ thief = "Rex", slime = "Gus", at = 0 },
 	})
+	return view
+end
+
+-- Studio-only: the SlimeUI attribute "PcwWelcome" = true fakes State.welcomeBack (5 h 30 m away) for the welcome-back card.
+local function forceWelcome(state: any): any
+	if not isStudio or gui:GetAttribute("PcwWelcome") ~= true or state.welcomeBack ~= nil then
+		return state
+	end
+	local view = table.clone(state)
+	view.welcomeBack = { away = 19800, cash = 12400, grown = 3 }
 	return view
 end
 
@@ -410,7 +424,7 @@ local function forcePlotSkins(state: any): any
 end
 
 local function panelState(key: string, realState: any): any
-	local state = forcePlotSkins(forceFriends(realState))
+	local state = forceWelcome(forcePlotSkins(forceFriends(realState)))
 	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
 		-- Studio-only: one fake owned slime so the My Plot row shows its Appraise button.
 		local view = table.clone(state)
@@ -473,6 +487,12 @@ local function syncMenus()
 		end
 	end
 	openKey = visibleKey
+	if latest and wasPumped ~= (visibleKey == "Welcome") then
+		wasPumped = visibleKey == "Welcome"
+		if not wasPumped then
+			pumpPopups(latest)
+		end
+	end
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))
 	backdrop.Visible = visibleKey ~= nil
@@ -765,18 +785,26 @@ function ctx.openDaily()
 	dailyPopup.open()
 end
 
+-- Queued popups (welcome-back card, then the daily popup) wait for the tutorial and for each other.
+function pumpPopups(state: Types.State)
+	local next = popups.update(state, openKey == "Welcome")
+	if next == "Welcome" then
+		setOpen("Welcome")
+	elseif next == "Daily" and not dailyPopup.isOpen() then
+		dailyPopup.open()
+	end
+end
+
 local function render(realState: Types.State)
-	local state: Types.State = forceStealAlert(forceDex(forceWeekend(forceAdminEvent(forceFriends(realState)))))
+	local state: Types.State =
+		forceWelcome(forceStealAlert(forceDex(forceWeekend(forceAdminEvent(forceFriends(realState))))))
 	hud.update(state)
 	stealFx.update(state)
 	carry.update(state)
 	dailyPopup.update(state)
 	tutorial.update(state)
 	updateBadges(state)
-	-- The daily popup waits in the queue until the tutorial is finished.
-	if popups.update(state) == "Daily" and not dailyPopup.isOpen() then
-		dailyPopup.open()
-	end
+	pumpPopups(state)
 	refreshHint()
 	for _, entry in allPanels do
 		if entry.key == openKey and entry.panel.update then
@@ -788,7 +816,7 @@ end
 
 if isStudio then
 	for _, attribute in
-		{ "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin", "PcwDexRows", "PcwStealAlert" }
+		{ "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwPlotSkin", "PcwDexRows", "PcwStealAlert", "PcwWelcome" }
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
 			if latest then

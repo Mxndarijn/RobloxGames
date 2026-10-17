@@ -10,26 +10,27 @@
 	(v15 playtest). The daily popup is queued on its availability edge
 	(Daily.shouldAutoOpen), dropped again when the claim goes away, and opens
 	once the tutorial is finished. Opening it by hand (HUD Daily) is not
-	queued.
+	queued. The welcome-back card (State.welcomeBack, once per join) queues the same
+	way and goes first; while it is on screen (`busy`) the daily popup waits.
 ]]
 
 local Daily = if script then require(script.Parent.Daily) else require("./Daily")
 local Tutorial = if script then require(script.Parent.Tutorial) else require("./Tutorial")
 
-export type Name = "Daily"
+export type Name = "Welcome" | "Daily"
 export type Queue = {
 	enqueue: (name: Name) -> (),
 	remove: (name: Name) -> (),
 	has: (name: Name) -> boolean,
 	queued: () -> { Name },
 	blocker: (state: any) -> string?,
-	update: (state: any) -> Name?,
+	update: (state: any, busy: boolean?) -> Name?,
 }
 
 local PopupQueue = {}
 
 -- Queued popups open in this order.
-PopupQueue.ORDER = table.freeze({ "Daily" } :: { Name })
+PopupQueue.ORDER = table.freeze({ "Welcome", "Daily" } :: { Name })
 
 local function dailyAvailable(state: any): boolean
 	return type(state) == "table" and type(state.daily) == "table" and state.daily.available == true
@@ -43,6 +44,7 @@ end
 function PopupQueue.new(): Queue
 	local pending: { [string]: boolean } = {}
 	local dailyWas: boolean? = nil
+	local welcomeWas = false
 
 	local self = {} :: Queue
 
@@ -71,8 +73,14 @@ function PopupQueue.new(): Queue
 	self.blocker = PopupQueue.blocker
 
 	-- Feed every State snapshot; returns the popup to open now (taken off
-	-- the queue), or nil.
-	function self.update(state: any): Name?
+	-- the queue), or nil. `busy` = a queued popup is on screen: nothing else opens
+	-- over it, the next one follows once it closes.
+	function self.update(state: any, busy: boolean?): Name?
+		local welcome = type(state) == "table" and type(state.welcomeBack) == "table"
+		if welcome and not welcomeWas then
+			pending.Welcome = true
+		end
+		welcomeWas = welcome
 		local available = dailyAvailable(state)
 		if Daily.shouldAutoOpen(dailyWas, available) then
 			pending.Daily = true
@@ -81,7 +89,7 @@ function PopupQueue.new(): Queue
 		end
 		dailyWas = available
 
-		if PopupQueue.blocker(state) ~= nil then
+		if busy or PopupQueue.blocker(state) ~= nil then
 			return nil
 		end
 		for _, name in PopupQueue.ORDER do

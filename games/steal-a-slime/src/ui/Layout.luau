@@ -430,6 +430,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Leaders = 460,
 	Codes = 300,
 	Guide = 380,
+	Welcome = 380,
 })
 Layout.BANNER_WIDTH = 560
 Layout.TOAST_WIDTH = 320
@@ -481,7 +482,7 @@ function Layout.cardHeight(contentH: number): number
 	return math.max(Layout.CARD_MIN, math.ceil(c.header + contentH + c.pad))
 end
 
--- The menu card for a Nav key (or "Guide") on `screen`: screen.menuX /
+-- The menu card for a Nav key (or "Guide" / "Welcome") on `screen`: screen.menuX /
 -- menuW, as tall as its measured body content (`contentH`, Widgets.contentHeight;
 -- MENU_HEIGHTS when nil), at most the backdrop. Centred in the backdrop
 -- unless that would push its X under the toasts (phones: the card spans the

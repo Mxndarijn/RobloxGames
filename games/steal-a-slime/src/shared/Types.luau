@@ -186,6 +186,7 @@ export type State = {
 	petPerk: PetPerkView?, -- FEATURES.PetPassives; nil without a favourite
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
+	welcomeBack: { away: number, cash: number, grown: number }?, -- FEATURES.WelcomeBack: join report (seconds away, offline cash paid, pad slimes grown); nil = none (CONTRACT.md §19)
 	stealAway: string?, -- FEATURES.StealAlerts: "While you were away N slimes were stolen by ..." from the saved steal log; nil = none (CONTRACT.md §17)
 }
 
