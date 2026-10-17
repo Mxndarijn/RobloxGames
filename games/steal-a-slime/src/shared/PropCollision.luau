@@ -106,7 +106,13 @@ local function parts(
 	names: { string }?,
 	now: string,
 	reason: string,
-	more: { also: Find?, was: string?, walk: boolean?, models: boolean? }?
+	more: {
+		also: Find?,
+		was: string?,
+		walk: boolean?,
+		models: boolean?,
+		flag: { name: string, off: number }?,
+	}?
 )
 	local m = more or {}
 	add({
@@ -121,6 +127,7 @@ local function parts(
 		also = m.also,
 		was = m.was,
 		walk = m.walk,
+		flag = m.flag,
 	})
 end
 
@@ -156,8 +163,8 @@ parts(
 	FOUNTAIN .. ".SlideColliders",
 	nil,
 	"on (Floor, Fill, wedge roof, Joint, Skirt)",
-	"solid slide block so nobody enters or climbs the trough; slimes ride it anchored with CanCollide=false (bug #9). Unchanged, probed by bug09_slide_stand",
-	{ walk = false }
+	"solid slide block so nobody enters or climbs the trough; slimes ride it anchored with CanCollide=false (bug #9). Unchanged, probed by bug09_slide_stand (257 parts with FEATURES.SlideCollision, the low stretch only, 113, without)",
+	{ walk = false, flag = { name = "SlideCollision", off = 113 } }
 )
 mesh(
 	"fountain_emerge",
@@ -265,7 +272,8 @@ parts(
 	"Map.RitualCircle",
 	nil,
 	"off",
-	"flat glowing discs (0.2 thick) on the ground, a sign lying at 1.8 studs and a hovering orb: walk-through markings"
+	"flat glowing discs (0.2 thick) on the ground, a sign lying at 1.8 studs and a hovering orb: walk-through markings",
+	{ flag = { name = "CoopRitual", off = 0 } }
 )
 
 -- World signs
@@ -324,7 +332,7 @@ parts(
 	{ "^Lane$" },
 	"off",
 	"the goo parade lane: one 0.43-stud-thick curved strip on the ground that walkers cross",
-	{ walk = false }
+	{ walk = false, flag = { name = "Parade", off = 0 } }
 )
 
 -- World decor (RanchProps): bug #11 converted these; kept exactly. Box / Hull per docs/COLLISION.md.
