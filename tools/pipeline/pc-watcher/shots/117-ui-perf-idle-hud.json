@@ -1,0 +1,6 @@
+{
+  "id": "ui-perf-idle-hud",
+  "todo": "v23-ui-perf-budget",
+  "kind": "ui",
+  "note": "v23 UI perf budget: idle HUD after the countdown chip went to whole-second rebuilds and the Toasts / Shop polling loops became demand-driven; frame must look identical (chip text, toasts, shop restock line)"
+}

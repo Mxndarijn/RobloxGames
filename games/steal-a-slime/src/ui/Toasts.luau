@@ -194,12 +194,32 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 		holder.Visible = not menuOpen
 	end
 
+	-- Ageing loop: runs only while toasts are queued (none = no wakeups); sync() drops the expired ones.
+	local polling = false
+	local function poll()
+		if polling then
+			return
+		end
+		polling = true
+		task.spawn(function()
+			while holder.Parent and queue.size() > 0 do
+				task.wait(0.25)
+				sync()
+			end
+			polling = false
+		end)
+	end
+
 	function self.push(text: string, kind: string?, sound: string?, itemId: string?)
+		if queue.size() == 0 then
+			queue.step(os.clock(), menuOpen) -- idle gap: restart the queue clock before the first entry
+		end
 		local _, merged = queue.push(text, kind, os.clock(), itemId)
 		if not merged then
 			playSound(sound)
 		end
 		sync()
+		poll()
 	end
 
 	-- A menu open hides the stack (MenuState.bannersVisible); toasts wait, unaged.
@@ -207,13 +227,6 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 		menuOpen = open
 		sync()
 	end
-
-	task.spawn(function()
-		while holder.Parent do
-			task.wait(0.25)
-			sync()
-		end
-	end)
 
 	return self
 end
