@@ -343,7 +343,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `MYSTERY_EGG_PRICE` / `MYSTERY_EGG_MUTATION_CHANCE` / `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 2 000 / 0.05 / 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | mystery egg: cash-only hatch |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
-| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `Revenge` (`true`); `Habitats` (`true`); `SlimeAnimations` (`false`); `SlimeLod` (`true`) | §2 Extras |
+| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `ServerProfiler` (`false`, §25); `Revenge` (`true`); `Habitats` (`true`); `SlimeAnimations` (`false`); `SlimeLod` (`true`) | §2 Extras |
 | `BOSS_FIRST_AT` / `BOSS_INTERVAL` / `BOSS_TIER` / `BOSS_LIFETIME` | 480 / 900 / 4 / 120 | Boss Slime |
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
@@ -736,3 +736,11 @@ Owner: Phoenix (server, shared), Jolt (shop row), Archer (prop). Off = the upgra
 - **Report (`src/shared/WelcomeBack.report`):** at join, `Income.applyOffline` builds `session.welcome = { away, cash, grown }` when the player was away at least `Config.WELCOME_BACK_MIN_SECONDS` (4 h): `cash` is the offline income just paid, `grown` the number of pad slimes whose growth rose from offline time (`Growth.applyOffline`). Missing / future `lastOnline` gives nil.
 - **State:** `welcomeBack: { away, cash, grown }?`, present for the whole session. The client shows it once per join (an edge in `PopupQueue`), as the content-sized `Welcome` menu card with the daily streak / reward and the next goal read from `State.daily` / `State.goals`. Collect only closes the card: the cash was paid at join.
 - **Ordering (`ui/PopupQueue`):** the tutorial blocks it like the Daily popup; Welcome opens before Daily, and Daily waits until the Welcome card is closed (no overlap).
+
+## 25. v23: server performance profiler (`FEATURES.ServerProfiler`, default `false`)
+
+**Status:** `false` = every `Profiler` call returns at once (no clock read, no table write, no log, no attribute). Server only; no remote, no State field, no save change.
+
+- **Module (`src/server/Profiler`, pure, Lune-tested):** `record` / `time` keep the last `Config.PROFILER.WINDOW` (120) samples per system in a ring buffer (ms from `os.clock`); `stats` gives avg, nearest-rank p95 and max; `count` bumps named counters (the `Request` remote) that the summary prints per second.
+- **Wired in `init.server`:** the Heartbeat is timed as `Heartbeat` with `Rescue`, `GameLoop` (spawner, steal, income, milestones), `Players` and `View` inside it; `Request` calls are counted.
+- **Output:** every `Config.PROFILER.LOG_INTERVAL` (30 s) one line, e.g. `[Profiler] | GameLoop 0.12/0.30ms | Heartbeat 0.8/1.9ms | instances=1234 | players=3 | Request=3.2/s` (avg/p95 per system; instance count is taken only when a line is due), and one `warn` per system whose p95 is over `Config.PROFILER.BUDGET_MS[name]`. The line is also set as workspace attribute `ProfilerSummary` (read-only dump; no chat command).

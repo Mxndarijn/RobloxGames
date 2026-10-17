@@ -669,7 +669,21 @@ local Config = {
 		MergeVat3 = false, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, keeping every mutation (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Consumables = true, -- restocking Shop section: mutation spray, luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
 		RainMagnet = false, -- v19: the Rain Magnet upgrade (rank 6): a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) may pick up that weather's mutation; needs Weather + WeatherMutations to ever have a target (RainMagnet, CONTRACT.md §23); false = no upgrade in the shop, no purchase, no effect (needs frame review)
+		ServerProfiler = false, -- v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
+	}),
+
+	-- Server profiler (FEATURES.ServerProfiler, server/Profiler). BUDGET_MS = p95 ms per frame / call.
+	PROFILER = table.freeze({
+		WINDOW = 120, -- samples kept per system
+		LOG_INTERVAL = 30, -- seconds between summary lines
+		BUDGET_MS = table.freeze({
+			GameLoop = 4,
+			Rescue = 1,
+			Players = 3,
+			View = 4,
+			Heartbeat = 8,
+		} :: { [string]: number }),
 	}),
 
 	-- Full steal alerts (FEATURES.StealAlerts, StealAlert / ui/StealAlertFx). Client timings in seconds.

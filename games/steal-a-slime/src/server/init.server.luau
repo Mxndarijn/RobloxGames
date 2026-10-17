@@ -50,6 +50,7 @@ local MeshSwap = require(script.MeshSwap)
 local ParadeView = require(script.ParadeView)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
+local Profiler = require(script.Profiler)
 local Revenge = require(script.Revenge)
 local RitualService = require(script.RitualService)
 local RitualView = require(script.RitualView)
@@ -468,6 +469,9 @@ local function syncCarrying()
 	end
 end
 
+-- FEATURES.ServerProfiler (CONTRACT.md §25); off = every Profiler call is a no-op.
+local profiler = Profiler.new()
+
 local function refreshView(t: number)
 	WorldView.reconcile(world, t, function(player: Player, slimeId: string)
 		local root = WorldView.rootPart(player)
@@ -484,6 +488,7 @@ local function refreshView(t: number)
 end
 
 request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.RequestResult
+	Profiler.count(profiler, "Request")
 	local args = table.pack(...)
 	local ok, res = pcall(Actions.handle, world, player.UserId, action, args, now(), ctx)
 	if not ok then
@@ -825,14 +830,40 @@ end
 
 WeeklyEventService.start(workspace, os.time)
 
+-- One log line per PROFILER.LOG_INTERVAL plus budget warnings.
+local function profilerGauges(): { [string]: number }
+	return {
+		instances = #workspace:GetDescendants(),
+		players = #Players:GetPlayers(),
+	}
+end
+local function reportProfiler(frameStart: number)
+	if not profiler.enabled then
+		return
+	end
+	Profiler.record(profiler, "Heartbeat", (profiler.clock() - frameStart) * 1000)
+	local line, warnings = Profiler.flush(profiler, profilerGauges)
+	if line then
+		print(line)
+		workspace:SetAttribute("ProfilerSummary", line) -- read-only dump for admins / the Studio Properties panel
+		if warnings then
+			for _, w in warnings do
+				warn(w)
+			end
+		end
+	end
+end
+
 RunService.Heartbeat:Connect(function()
+	local frameStart = if profiler.enabled then profiler.clock() else 0
 	local t = now()
-	local rescued, rescueErr = pcall(rescueFallen :: any)
+	local rescued, rescueErr = Profiler.time(profiler, "Rescue", pcall, rescueFallen :: any)
 	if not rescued then
 		warn(`[Server] rescue failed: {rescueErr}`)
 	end
-	GameLoop.step(world, t)
+	Profiler.time(profiler, "GameLoop", GameLoop.step, world, t)
 	if t - lastView < VIEW_INTERVAL then
+		reportProfiler(frameStart)
 		return
 	end
 	lastView = t
@@ -843,15 +874,16 @@ RunService.Heartbeat:Connect(function()
 		Lighting.ClockTime = if type(pinned) == "number" then pinned else DayNight.clockTime(t - world.startedAt)
 	end
 	-- Each stage is isolated so one failing player or model never stops the State / Notify pushes.
-	local ok, err = pcall(stepPlayers :: any, t)
+	local ok, err = Profiler.time(profiler, "Players", pcall, stepPlayers :: any, t)
 	if not ok then
 		warn(`[Server] player step failed: {err}`)
 	end
-	ok, err = pcall(refreshView, t)
+	ok, err = Profiler.time(profiler, "View", pcall, refreshView, t)
 	if not ok then
 		warn(`[Server] view refresh failed: {err}`)
 	end
 	flushStates(t)
+	reportProfiler(frameStart)
 end)
 
 task.spawn(function()
