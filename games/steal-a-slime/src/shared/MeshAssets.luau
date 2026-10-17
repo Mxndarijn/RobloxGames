@@ -358,9 +358,10 @@ entries["giant_round_canopy"] =
 	{ assetId = 123353571589135, meshId = "rbxassetid://81542465151090", size = { 52.846, 80.09, 51.819 } }
 
 -- The goo parade lane as ONE curved mesh (models/slime_lane.py, bug 4): not a WorldLayout slot (ParadeView lays
--- it at ParadeLane.MESH_PIVOT). PENDING UPLOAD: fill assetId / meshId from `upload.py --go` (until then
--- ParadeView draws the lane from ParadeLane.strips()). size = out/slime_lane_pivot.json "size".
-entries["slime_lane"] = { assetId = nil, meshId = nil, size = { 141.076, 0.43, 137.764 } }
+-- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17; ParadeView swaps the ParadeLane.strips() stand-ins for it
+-- once it loads (they stay only if it fails to load). size = out/slime_lane_pivot.json "size".
+entries["slime_lane"] =
+	{ assetId = 87473643950432, meshId = "rbxassetid://76219934756988", size = { 141.076, 0.43, 137.764 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)
