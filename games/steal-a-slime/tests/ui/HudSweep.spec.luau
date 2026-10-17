@@ -102,6 +102,57 @@ describe("HUD banners and toasts at the gate viewports", function()
 		end)
 	end
 
+	for _, vp in LayoutAssert.GATE_VIEWPORTS do
+		local s = Layout.screen(vp.w, vp.h)
+		it(`{vp.name}: the visible toast stack fits its box with 0..4 banners`, function()
+			local check = LayoutAssert.new(vp.name, s)
+			for count = 0, 4 do
+				local bannerH = count * CHIP_H + math.max(count - 1, 0) * 6
+				local box = Layout.toastBox(s, bannerH)
+				local q = ToastQueue.new()
+				for i, t in LONG_TOASTS do
+					q.push(t[1], t[2], 0)
+					q.push(`{t[1]} {i}`, "info", 0)
+				end
+				local visible = q.step(0.1, false, {
+					room = box.h,
+					gap = TOAST_GAP,
+					height = function(e: any): number
+						local size = if e.kind == "rare" then 20 else 16
+						return math.max(Layout.wrappedHeight(e.text, size, box.w - TOAST_PAD - TOAST_ICON, true), 36)
+							+ TOAST_PAD
+					end,
+				})
+				local total = 0
+				for i, e in visible do
+					local size = if e.kind == "rare" then 20 else 16
+					local h = math.max(Layout.wrappedHeight(e.text, size, box.w - TOAST_PAD - TOAST_ICON, true), 36)
+						+ TOAST_PAD
+					total += h + if i > 1 then TOAST_GAP else 0
+				end
+				if #visible > 0 then
+					local stack = Layout.rect(box.x, box.y, box.w, total)
+					check.onScreen(`Toasts({count} banners)`, stack, Layout.MARGIN)
+					if bannerH > 0 then
+						check.noOverlap(
+							`Toasts({count} banners)`,
+							stack,
+							"Banners",
+							Layout.rect(s.banners.x, s.banners.y, s.banners.w, bannerH)
+						)
+					end
+					check.noOverlap(`Toasts({count} banners)`, stack, "Nav", s.nav)
+				end
+				if count == 0 then
+					expect(#visible > 0).toBe(true)
+				end
+				expect(#visible <= ToastQueue.MAX).toBe(true)
+				expect(visible[1].priority).toBe(3) -- steal alerts / rare first
+			end
+			expect(check.report()).toBe("")
+		end)
+	end
+
 	it("toastBox keeps the stock box when no banner is up or the columns are apart", function()
 		local s = Layout.screen(1920, 1080)
 		expect(Layout.toastBox(s, 0)).toBe(s.toasts)
