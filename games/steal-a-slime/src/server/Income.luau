@@ -11,10 +11,12 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
+local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Growth = if Shared then require(Shared.Growth) else require("../shared/Growth")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Weekend = if Shared then require(Shared.Weekend) else require("../shared/Weekend")
+local WelcomeBack = if Shared then require(Shared.WelcomeBack) else require("../shared/WelcomeBack")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -62,7 +64,18 @@ function Income.applyOffline(world: World, session: Session, now: number): numbe
 			"Cash"
 		)
 	end
+	local before = {}
+	for _, slime in data.slimes do
+		before[slime.id] = Genome.growthFraction(slime)
+	end
 	Growth.applyOffline(data.slimes, data.lastOnline, now)
+	local grown = 0
+	for _, slime in data.slimes do
+		if Genome.growthFraction(slime) > (before[slime.id] or 0) then
+			grown += 1
+		end
+	end
+	session.welcome = WelcomeBack.report(data.lastOnline, now, amount, grown)
 	return amount
 end
 

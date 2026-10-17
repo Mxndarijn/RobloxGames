@@ -521,6 +521,7 @@ local Config = {
 	SELL_SECONDS = 30, -- a slime sells for this many seconds of its income
 	OFFLINE_RATE = 0.5, -- fraction of income earned while offline
 	OFFLINE_CAP_SECONDS = 2 * 60 * 60, -- offline income stops accruing after 2 h
+	WELCOME_BACK_MIN_SECONDS = 4 * 60 * 60, -- FEATURES.WelcomeBack: away at least this long = a welcome-back card on join
 
 	-- Rebirth
 	REBIRTH_BASE_COST = 5000,
@@ -661,6 +662,7 @@ local Config = {
 		PlotSkins = false, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
 		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
 		StealAlerts = false, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
+		WelcomeBack = true, -- v20 welcome-back card on join after WELCOME_BACK_MIN_SECONDS away (WelcomeBack, CONTRACT.md §19): offline cash, slimes grown, streak + goal; false = no State field, no card
 		WeeklyEvents = false, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
 		FountainTiers = false, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
 		EventsBoard = false, -- v21 server events board (ui/EventsBoard, CONTRACT.md §20): a HUD banner listing the weekly mutation, the Saturday trait event, the day/night modifier and the next weekly event; client only, no remote or save change; false = no banner

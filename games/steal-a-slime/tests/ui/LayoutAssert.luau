@@ -517,6 +517,22 @@ function LayoutAssert.guideTexts(panel: Rect): { TextDesc }
 	return out
 end
 
+-- Welcome-back rows (Panels/Welcome): longest copy the card can show, row text = card - 24 - (ICON + 32).
+function LayoutAssert.welcomeTexts(panel: Rect): { TextDesc }
+	local w = panel.w - Layout.PANEL_CHROME.pad * 2 - 72
+	local out: { TextDesc } = {}
+	local texts = {
+		"+999.99Qa earned while away",
+		"12 slimes grew on your pads",
+		"Daily reward ready: 999.99Qa",
+		"Collect 1000 slimes in total (999/1000)",
+	}
+	for i, text in texts do
+		table.insert(out, { name = `Welcome row {i}`, text = text, size = 18, w = w, h = 56, wrapped = true })
+	end
+	return out
+end
+
 -- Panel titles as Widgets.panel shows them (Panels/*.luau), per menu key
 -- (the Nav keys plus the Guide card, which has no nav button).
 LayoutAssert.PANEL_TITLES = table.freeze({
@@ -529,15 +545,17 @@ LayoutAssert.PANEL_TITLES = table.freeze({
 	Leaders = "Top Earners",
 	Codes = "Codes",
 	Guide = "Guide",
+	Welcome = "Welcome back!",
 })
 
--- Every menu key the UI opens: Nav.ENTRIES order, then "Guide".
+-- Every menu key the UI opens: Nav.ENTRIES order, then "Guide", "Welcome".
 function LayoutAssert.menuKeys(): { string }
 	local keys = {}
 	for _, entry in Nav.ENTRIES do
 		table.insert(keys, entry.key)
 	end
 	table.insert(keys, "Guide")
+	table.insert(keys, "Welcome")
 	return keys
 end
 
@@ -905,6 +923,7 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			LayoutAssert.shopTexts(Layout.panelFor(panelScreen, "Shop")),
 			LayoutAssert.rebirthTexts(Layout.panelFor(panelScreen, "Rebirth")),
 			LayoutAssert.guideTexts(Layout.panelFor(panelScreen, "Guide")),
+			LayoutAssert.welcomeTexts(Layout.panelFor(panelScreen, "Welcome")),
 		}
 	do
 		for _, desc in list do

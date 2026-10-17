@@ -686,6 +686,7 @@ Owner: Phoenix (server, shared), Archer (visuals). Off = one Meadow fountain, Cl
 - **Visuals (client, `FountainTierFx` + `FountainTierDecor`).** Tier 2+: `fountain_tier_ring` (8 lantern posts, r 14.6) on the ground; tier 3+: `fountain_tier_crest` floating over the goo crown, spinning and bobbing; both tinted per tier (copper / silver / gold, `MeshPart.Color`), tier 4 crest Neon; `Map.Volcano.Crater.CraterGlow` takes the tier's glow colour. Both meshes are run-time only: 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), at most 2 extra MeshParts while shown. Studio only: SlimeUI attribute `PcwFountainTier` forces the tier (pc-watcher shots `19-fountain-tier-N`).
 - **Rank cards.** `Perks.tierText` appends "opens the Orchard slimes" for ranks with a family, only with the flag on.
 - **Needs frame review before the flag goes on:** the ring posts against the slide legs, the crest height against the emerge slimes, the glow colours at night.
+
 ## 20. v21: server events board (2026-10-17)
 
 **Status:** `Config.FEATURES.EventsBoard` (default `false`); `false` = no banner. Client only: **no remote, no server code, no save-format change**, no new mesh.
@@ -727,3 +728,11 @@ Owner: Phoenix (server, shared), Jolt (shop row), Archer (prop). Off = the upgra
 - **Shop row.** The existing upgrade list (`ShopCatalog.upgradeViews`) shows it from `State.upgrades`: badge `UPGRADE_ICONS.RainMagnet`, short text "+5% weather mutation chance", item icon `Upgrade_RainMagnet` (`ItemIcons`; `ITEM-ICONS-NEEDED.md` regenerated). Studio only: SlimeUI attribute `PcwRainMagnet` adds the row (Lv 2/5) and the prop for the shots.
 - **Prop.** `rain_magnet` (kit mesh, red horseshoe magnet on a wooden stand pulling three raindrops, 782 tris): `WorldView` sets `Plot_<i>.RainMagnet` (the owner's level, flag on only), the client (`RainMagnetFx`, `MagnetDecor.pose`) stands a clone of `ReplicatedStorage.RainMagnetMeshes.rain_magnet` on the **local player's own** plot, 9 studs to the vat's left, while the level is above 0. 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), at most 1 extra MeshPart. The server publishes the template with the flag on (and in Studio).
 - **Needs frame review before the flag goes on:** the prop's spot against the plot's pads on every plot yaw, the shop row text on a 390 px phone.
+
+## 24. v20: welcome-back card (2026-10-17)
+
+**Status:** `Config.FEATURES.WelcomeBack` (default `true`); `false` = no State field, no card. Server-authoritative; no remote, **no save-format change**, nothing saved.
+
+- **Report (`src/shared/WelcomeBack.report`):** at join, `Income.applyOffline` builds `session.welcome = { away, cash, grown }` when the player was away at least `Config.WELCOME_BACK_MIN_SECONDS` (4 h): `cash` is the offline income just paid, `grown` the number of pad slimes whose growth rose from offline time (`Growth.applyOffline`). Missing / future `lastOnline` gives nil.
+- **State:** `welcomeBack: { away, cash, grown }?`, present for the whole session. The client shows it once per join (an edge in `PopupQueue`), as the content-sized `Welcome` menu card with the daily streak / reward and the next goal read from `State.daily` / `State.goals`. Collect only closes the card: the cash was paid at join.
+- **Ordering (`ui/PopupQueue`):** the tutorial blocks it like the Daily popup; Welcome opens before Daily, and Daily waits until the Welcome card is closed (no overlap).

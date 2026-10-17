@@ -51,6 +51,7 @@ local MENUS = {
 	Leaders = "Leaderboard",
 	Codes = "Codes",
 	Guide = "Guide",
+	Welcome = "Welcome",
 }
 
 describe("overlays start hidden and follow their menu", function()
