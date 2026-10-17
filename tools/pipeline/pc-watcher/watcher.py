@@ -4,6 +4,7 @@
   watcher.py loop                       poll `git ls-remote` every 60 s, run new shas
   watcher.py once [--sha SHA] [--kind full|partial] [--reason TXT]
                                         one run for a sha (default: full run of origin/main), ignores last-sha
+  watcher.py perf [--sha SHA] [--extra 0,500,1000] [--seconds 30] [--no-sync] [--phone] [--quality 10,1] [--meshparts N] [--unique-meshes N] [--terrain-off]   perf measurement, never publishable
   watcher.py step build|launch|perf|play|devices|twoplayer|close|sync [--sha SHA]
   watcher.py tools                      dump StudioMCP tool schemas (needs a running Studio for most calls)
   watcher.py mcp TOOL [JSON_ARGS]       one raw tools/call ("$studio" in args = the watcher's studio id)
@@ -27,6 +28,7 @@ import logging
 import logging.handlers
 import math
 import os
+import platform
 import re
 import shutil
 import subprocess
@@ -456,6 +458,7 @@ class Paths:
         self.logs = os.path.join(home, "logs")
         self.state = os.path.join(home, "state")
         self.reports = os.path.join(home, "reports")
+        self.perf_reports = os.path.join(home, "perf-reports")  # separate clone for `perf` (the loop uses reports\)
         for d in (self.builds, self.out, self.logs, self.state):
             os.makedirs(d, exist_ok=True)
 
@@ -585,7 +588,7 @@ class Run:
     run_plan = None
     shot_filter = None
 
-    def __init__(self, paths, cfg, sha, dry=False):
+    def __init__(self, paths, cfg, sha, dry=False, kind="full"):
         self.paths, self.cfg, self.sha, self.dry = paths, cfg, sha, dry
         self.t0 = time.time()
         self.notes = []
@@ -601,7 +604,8 @@ class Run:
         self.studio_id = None
         self.hwnd = None
         self.rbxl = os.path.join(paths.builds, "%s.rbxl" % sha) if sha else None
-        self.outdir = os.path.join(paths.out, "dry-run" if dry else "", sha) if sha else None
+        # perf runs (run_kind "perf") write to out/perf/<sha>/, never into out/<sha>/ of the loop's runs
+        self.outdir = os.path.join(paths.out, "dry-run" if dry else "", "perf" if kind == "perf" else "", sha) if sha else None
         self.playing = False
         self.hdesk = None  # CreateDesktopW handle of the Studio desktop (closed in close())
         self.worker = None  # win32.DesktopWorker: window calls run on its desktop thread
@@ -609,7 +613,7 @@ class Run:
         self.our_pids = set()  # every Studio pid this run started (focus guard)
         self.fg_start = None  # (hwnd, pid) of the foreground window when the run began
         self.focus_stolen = []  # "FOCUS STOLEN at step X"
-        self.run_kind = "full"
+        self.run_kind = kind
         self.run_plan = None  # report run_plan (see full_run)
         self.shot_filter = None  # partial run: set of shot ids to capture (None = all)
         if self.outdir:
@@ -2318,6 +2322,552 @@ def remote_sha(paths, cfg):
 
 
 # ---------------------------------------------------------------------------
+# Perf measurement mode (`watcher.py perf`): run_kind "perf", never publishable
+# ---------------------------------------------------------------------------
+
+PERF_RING = 140.0  # WorldLayout.PLOT_RING_RADIUS
+PERF_CAMERA = {"centre": [0.0, 0.0, 0.0], "radius": round(PERF_RING * 0.8, 1), "height": 40.0, "start_angle_rad": 0.0,
+               "path": "one full orbit around the plaza centre over the window, angle = 2*pi*t/seconds, looking at the centre"}
+PERF_POSE_ANGLE = 0.7854  # the proof frame's camera: an eighth of the way round
+PERF_VIEWPORT = (1920, 1080)
+PERF_SKILLS = ("rbx-device-simulator-lua", "rbx-perf-profiling")
+
+
+def perf_frame_stats(dts):
+    """Frame time stats from a list of frame times in ms. low1 / low01 = 1000 / mean of the worst 1% / 0.1% frames."""
+    xs = sorted(float(x) for x in dts if x is not None and x > 0)
+    n = len(xs)
+    if not n:
+        return {"frames": 0, "avg_fps": None, "avg_frame_ms": None, "p50_ms": None, "p95_ms": None, "p99_ms": None,
+                "max_ms": None, "low1_fps": None, "low01_fps": None}
+
+    def pct(p):
+        return xs[min(n - 1, max(0, int(math.ceil(n * p)) - 1))]
+
+    def low(frac):
+        k = max(1, int(math.ceil(n * frac)))
+        return 1000.0 / (sum(xs[-k:]) / k)
+
+    mean = sum(xs) / n
+    return {"frames": n, "avg_fps": round(1000.0 / mean, 2), "avg_frame_ms": round(mean, 3),
+            "p50_ms": pct(0.5), "p95_ms": pct(0.95), "p99_ms": pct(0.99), "max_ms": xs[-1],
+            "low1_fps": round(low(0.01), 2), "low01_fps": round(low(0.001), 2)}
+
+
+def perf_client_record(raw):
+    """perf_window result -> report client block (frame stats instead of the raw dt list)."""
+    rec = {k: v for k, v in (raw or {}).items() if k != "dts_ms"}
+    rec.update(perf_frame_stats((raw or {}).get("dts_ms") or []))
+    return rec
+
+
+def perf_build_report(sha, studio_version, seconds, variants, phone, notes, duration_s, error=None, pc=None, partial=False,
+                      extra=None):
+    """The perf report: run_kind always "perf", publishable always False, status "measured", "partial" (written while the run
+    is still going) or "error" (never "pass")."""
+    rep = {
+        "sha": sha, "run_kind": "perf", "publishable": False,
+        "status": "error" if error or not variants else ("partial" if partial else "measured"),
+        "checked_at": utc_now(), "studio_version": studio_version, "watcher_version": VERSION,
+        "seconds": seconds, "camera_path": dict(PERF_CAMERA, viewport=list(PERF_VIEWPORT)),
+        "pc": pc or {}, "variants": variants, "phone": phone or {"skipped": True, "reason": "not requested (--phone)"},
+        "notes": list(notes), "duration_s": duration_s,
+    }
+    rep.update(extra or {})
+    if error:
+        rep["error"] = str(error)[:500]
+    return rep
+
+
+def _fmt(v, nd=1):
+    if v is None:
+        return "n/a"
+    if isinstance(v, float):
+        return ("%." + str(nd) + "f") % v
+    return str(v)
+
+
+PERF_MEM_NAMES = ("PlaceMemory", "GraphicsParts", "GraphicsMeshParts", "GraphicsTerrain", "TerrainVoxels", "PhysicsParts",
+                  "Instances", "LuaHeap", "GraphicsTexture")
+
+
+def perf_parse_qualities(text):
+    """--quality "10,1" -> [10, 1] (order kept, duplicates dropped, 1..21). ValueError on anything else."""
+    out = []
+    for x in str(text).split(","):
+        if not x.strip():
+            continue
+        q = int(x)
+        if not 1 <= q <= 21:
+            raise ValueError("quality level %d outside 1..21" % q)
+        if q not in out:
+            out.append(q)
+    if not out:
+        raise ValueError("--quality needs at least one level")
+    return out
+
+
+def _enum_level(s):
+    """'Enum.QualityLevel.Level10' / 'Enum.SavedQualitySetting.QualityLevel1' -> 10 / 1 (None when not a level)."""
+    m = re.search(r"(\d+)\s*$", str(s or ""))
+    return int(m.group(1)) if m else None
+
+
+def perf_quality_record(level, raw, err=None):
+    """perf_quality result -> {requested, rendering_quality, saved_quality, errors, label, applied}. label is the level when
+    either route read back as requested, else "unset (Automatic)"."""
+    raw = raw or {}
+    rend, saved = raw.get("rendering_quality"), raw.get("saved_quality")
+    ok_r, ok_s = _enum_level(rend) == level, _enum_level(saved) == level
+    if ok_r and ok_s:
+        label = str(level)
+    elif ok_r or ok_s:
+        label = "%d (%s only)" % (level, "rendering" if ok_r else "saved")
+    else:
+        label = "unset (Automatic)"
+    errors = dict(raw.get("errors") or {})
+    if err:
+        errors["call"] = str(err)[:200]
+    return {"requested": level, "rendering_quality": rend, "saved_quality": saved, "errors": errors,
+            "label": label, "applied": ok_r or ok_s}
+
+
+def perf_windows(v):
+    """A variant's measurement windows [(quality record or None, client block)]; the phone block has a single `client`."""
+    if v.get("windows"):
+        return [(w.get("quality"), w.get("client") or {}) for w in v["windows"]]
+    return [(None, v["client"])] if v.get("client") else []
+
+
+def _qreq(q):
+    return q.get("requested") if q else None
+
+
+def perf_base_p95(rep, qreq):
+    """p95 of the plain "base" variant's window at the requested quality qreq (None when missing)."""
+    for v in rep.get("variants") or []:
+        if v.get("label") == "base":
+            for q, c in perf_windows(v):
+                if _qreq(q) == qreq and c.get("p95_ms") is not None:
+                    return c["p95_ms"]
+    return None
+
+
+def perf_delta_p95(rep, v, q, c):
+    base = perf_base_p95(rep, _qreq(q))
+    if v.get("label") in (None, "base", "base-early") or base is None or c.get("p95_ms") is None:
+        return None
+    return round(c["p95_ms"] - base, 2)
+
+
+def perf_verdict(rep):
+    """The cap-3000 verdict line: +1000 vs base at quality 1 (p95 < 1 ms more AND draw calls <= 500), n/a on missing data."""
+    d1 = dc = None
+    for v in rep.get("variants") or []:
+        if v.get("label") == "+1000":
+            for q, c in perf_windows(v):
+                if _qreq(q) == 1:
+                    d1, dc = perf_delta_p95(rep, v, q, c), (c.get("render") or {}).get("SceneDrawcallCount")
+    yn = lambda ok: "n/a" if ok is None else ("yes" if ok else "no")
+    p_ok = None if d1 is None else d1 < 1.0
+    d_ok = None if dc is None else dc <= 500
+    if p_ok is None or d_ok is None:
+        res = "n/a"
+    else:
+        res = "PASS" if (p_ok and d_ok) else "FAIL"
+    return "+1000: Δp95 = %s ms (<1 ms? %s), draw calls at Q1 = %s (<=500? %s) -> 3000 cap %s" % (
+        _fmt(d1, 2), yn(p_ok), _fmt(dc, 0), yn(d_ok), res)
+
+
+def perf_mem_cat(block, name):
+    return ((block or {}).get("memory_categories") or {}).get(name)
+
+
+def perf_row(rep, label, v, q, c):
+    perf = (v.get("server") or {}).get("perf") or {}
+    mem = (v.get("server") or {}).get("mem") or {}
+    r = c.get("render") or {}
+    return [label, q["label"] if q else "-", _fmt(perf.get("runtime_parts")), _fmt(perf.get("mesh_slots")),
+            _fmt(c.get("avg_fps")), _fmt(c.get("low1_fps")), _fmt(c.get("p95_ms"), 2), _fmt(perf_delta_p95(rep, v, q, c), 2),
+            _fmt(c.get("p99_ms"), 2), _fmt(r.get("RenderCPUFrameTime"), 2), _fmt(r.get("RenderGPUFrameTime"), 2),
+            _fmt(r.get("SceneDrawcallCount"), 0), _fmt(r.get("ShadowsDrawcallCount"), 0),
+            _fmt(r.get("SceneTriangleCount"), 0), _fmt(perf_mem_cat(c, "PlaceMemory"), 0),
+            _fmt(perf_mem_cat(mem, "PlaceMemory"), 0)]
+
+
+def perf_report_md(rep):
+    """Markdown for <sha>-perf.md: one row per variant x quality window (+ phone), n/a where a number could not be read."""
+    head = ["variant", "quality", "runtime parts", "mesh slots", "avg fps", "1% low fps", "p95 ms", "Δp95 vs base", "p99 ms",
+            "CPU ms", "GPU ms", "draw calls", "shadow draw calls", "triangles", "PlaceMemory MB (client)",
+            "PlaceMemory MB (server)"]
+    rows, unavailable, qlines, extras = [], {}, [], []
+    for v in rep.get("variants") or []:
+        label = v.get("label") or ("base" if not v.get("extra_target") else "+%d" % v["extra_target"])
+        if v.get("skipped"):
+            extras.append("%s: skipped (%s)" % (label, v.get("reason")))
+            continue
+        for q, c in perf_windows(v):
+            rows.append(perf_row(rep, label, v, q, c))
+            unavailable.update(c.get("render_unavailable") or {})
+            if q:
+                qlines.append("%s Q%s: rendering=%s saved=%s%s" % (label, q["requested"], q.get("rendering_quality"),
+                              q.get("saved_quality"), " errors=%s" % json.dumps(q["errors"]) if q.get("errors") else ""))
+        if v.get("note"):
+            extras.append("%s: %s" % (label, v["note"]))
+    ph = rep.get("phone") or {}
+    if ph.get("client"):
+        rows.append(perf_row(rep, "phone (emulated, base)", ph, None, ph["client"]))
+        unavailable.update(ph["client"].get("render_unavailable") or {})
+    lines = ["# Perf measurement %s" % (rep.get("sha") or "")[:12], "",
+             "status: **%s** (run_kind perf, not publishable)  " % rep.get("status"),
+             "seconds per window: %s, Studio %s, watcher %s" % (rep.get("seconds"), rep.get("studio_version"),
+                                                                 rep.get("watcher_version")), "",
+             "**" + perf_verdict(rep) + "**", "",
+             "| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
+    lines += ["| " + " | ".join(r) + " |" for r in rows]
+    lines.append("")
+    named = [(v.get("label"), c, (v.get("server") or {}).get("mem")) for v in rep.get("variants") or []
+             if not v.get("skipped") for _q, c in perf_windows(v)[:1]]
+    if any(perf_mem_cat(c, n) is not None or perf_mem_cat(m, n) is not None for _l, c, m in named for n in PERF_MEM_NAMES):
+        lines += ["Memory by Stats category, MB (first quality window; n/a = category not present):", "",
+                  "| variant | side | " + " | ".join(PERF_MEM_NAMES) + " |", "|" + "---|" * (2 + len(PERF_MEM_NAMES))]
+        for label, c, m in named:
+            for side, blk in (("client", c), ("server", m)):
+                lines.append("| %s | %s | %s |" % (label, side, " | ".join(_fmt(perf_mem_cat(blk, n), 1) for n in PERF_MEM_NAMES)))
+        lines.append("")
+    if qlines:
+        lines += ["Graphics quality read-back:"] + ["- " + x for x in qlines] + [""]
+    if rep.get("settle"):
+        s = rep["settle"]
+        lines += ["Terrain settle: BorderTerrain set at %s s after play start, then %s s settle (boot-time = base-early, "
+                  "settled = base)." % (_fmt(s.get("bt_set_at_s")), _fmt(s.get("settle_s"), 0)), ""]
+    if extras:
+        lines += ["Extras:"] + ["- " + x for x in extras] + [""]
+    if unavailable:
+        lines.append("n/a: render stats the client could not read: " + "; ".join(
+            "%s (%s)" % (k, str(v)[:80]) for k, v in sorted(unavailable.items())))
+        lines.append("")
+    if ph.get("skipped"):
+        lines.append("phone: skipped (%s)" % ph.get("reason"))
+        lines.append("")
+    pc = rep.get("pc") or {}
+    if pc:
+        lines.append("PC: %s" % ", ".join("%s %s" % (k, v) for k, v in sorted(pc.items()) if v))
+        lines.append("")
+    lines.append("Notes:")
+    lines += ["- " + n for n in (rep.get("notes") or [])]
+    lines += ["- Studio play mode on the PC (hidden desktop, 1920x1080 viewport), not a real client; numbers compare "
+              "variants against each other on this PC only.",
+              "- studio_process_mb (in the json) is Studio's whole process, NOT a client figure; the memory columns are "
+              "the PlaceMemory category.",
+              "- terrain-off vs terrain-on is an A/B inside the same play session (Terrain:Clear, nothing saved)."]
+    if rep.get("error"):
+        lines += ["", "error: %s" % rep["error"]]
+    return "\n".join(lines) + "\n"
+
+
+def perf_write(outdir, sha, rep):
+    """Incremental write: <sha>-perf.json and .md (called after every window so partial results exist)."""
+    write_json(os.path.join(outdir, "%s-perf.json" % sha), rep)
+    with open(os.path.join(outdir, "%s-perf.md" % sha), "w", encoding="utf-8") as f:
+        f.write(perf_report_md(rep))
+
+
+def perf_sync_path(sha):
+    """Location in the reports branch: the branch ROOT perf/<sha>/, never under studio-reports/ (box mirror, publish.sh
+    and fetch_candidates only look there)."""
+    return "perf/%s" % sha
+
+
+def perf_pc_info():
+    """cpu / gpu / ram_gb, best effort (wmic, then PowerShell; plain platform values elsewhere)."""
+    info = {"cpu": platform.processor() or platform.machine(), "gpu": None, "ram_gb": None, "os": platform.platform()}
+    if os.name != "nt":
+        return info
+
+    def q(args):
+        try:
+            r = subprocess.run(args, capture_output=True, text=True, timeout=30, creationflags=win32.NO_WINDOW)
+            return [ln.strip() for ln in r.stdout.splitlines() if ln.strip()]
+        except Exception:
+            return []
+
+    def ps(cmd):
+        return q(["powershell", "-NoProfile", "-NonInteractive", "-Command", cmd])
+
+    cpu = q(["wmic", "cpu", "get", "name"])[1:] or ps("(Get-CimInstance Win32_Processor).Name")
+    gpu = q(["wmic", "path", "win32_videocontroller", "get", "name"])[1:] or ps("(Get-CimInstance Win32_VideoController).Name")
+    ram = q(["wmic", "computersystem", "get", "totalphysicalmemory"])[1:] or ps("(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory")
+    if cpu:
+        info["cpu"] = cpu[0]
+    if gpu:
+        info["gpu"] = "; ".join(gpu)
+    try:
+        info["ram_gb"] = round(int(ram[0]) / 2 ** 30, 1)
+    except Exception:
+        pass
+    return info
+
+
+def perf_set_quality(run, level):
+    """Client: apply graphics quality `level` (level 0 = restore the originals). Returns the quality record."""
+    ok, d = run.luau("perf_quality", "Client", 40, level=level)
+    return perf_quality_record(level, d if ok and isinstance(d, dict) else None, None if ok else str(d)[:200])
+
+
+def perf_measure(run, v, seconds, qualities, flush, frame_tag=None):
+    """Server numbers once, then the camera-orbit window once per quality level; flush() after each window."""
+    cam = PERF_CAMERA
+    time.sleep(5)  # replication + streaming settle
+    perf = run.need_luau("perf_server", "Server", 60)
+    mem = run.need_luau("perf_mem", "Server", 60)
+    v["server"] = {"perf": perf, "mem": mem}
+    v.setdefault("windows", [])
+    for level in qualities:
+        q = perf_set_quality(run, level)
+        raw = run.need_luau("perf_window", "Client", seconds + 30, seconds=seconds, centre=tuple(cam["centre"]),
+                            radius=cam["radius"], height=cam["height"])
+        v["windows"].append({"quality": q, "client": perf_client_record(raw)})
+        flush()
+    if frame_tag:
+        try:
+            run.need_luau("perf_pose", "Client", 30, on=True, angle=PERF_POSE_ANGLE, centre=tuple(cam["centre"]),
+                          radius=cam["radius"], height=cam["height"])
+            v["frame"] = capture_frame(run, frame_tag, kind="perf", extra=v.get("extra_target") or 0).get("file")
+        except Exception as e:
+            run.note("%s proof frame failed: %r" % (frame_tag, e))
+            v["frame"] = None
+        finally:
+            try:
+                run.luau("perf_pose", "Client", 30, on=False, angle=0.0, centre=tuple(cam["centre"]),
+                         radius=cam["radius"], height=cam["height"])
+            except Exception:
+                pass
+        flush()
+    return v
+
+
+def perf_variant(run, n, seconds, qualities, variants, flush, hold_frame=True):
+    """One priority variant: stress to >= n extra parts (cumulative), then perf_measure."""
+    v = {"label": "base" if not n else "+%d" % n, "extra_target": n}
+    variants.append(v)
+    v["stress"] = run.need_luau("perf_stress", "Server", 180, target=n)
+    return perf_measure(run, v, seconds, qualities, flush, "perf-%d" % n if hold_frame else None)
+
+
+def perf_terrain_wait(run, play_t0, max_s=120, settle_s=60, poll_s=5):
+    """Poll workspace.Terrain:GetAttribute("BorderTerrain") (BorderTerrainView sets it: false while writing, true when done)
+    for up to max_s, then settle_s more. Returns {bt_set, bt_set_at_s (since play start), settle_s}."""
+    t0 = time.time()
+    rec = {"bt_set": False, "bt_set_at_s": None, "settle_s": 0, "max_s": max_s}
+    while True:
+        ok, d = run.luau("perf_terrain_attr", "Server", 30)
+        if ok and isinstance(d, dict) and d.get("set"):
+            rec["bt_set"], rec["bt_set_at_s"] = True, round(time.time() - play_t0, 1)
+            break
+        if time.time() - t0 >= max_s:
+            break
+        time.sleep(poll_s)
+    if rec["bt_set"]:
+        time.sleep(settle_s)
+        rec["settle_s"] = settle_s
+    else:
+        run.note("BorderTerrain attribute not true after %ss: no settle wait" % max_s)
+    return rec
+
+
+def perf_extras(run, opts, seconds, qualities, variants, flush):
+    """Optional extras after the priority variants, each its own labelled variant; a failing extra is recorded, not fatal."""
+    def clean():
+        try:
+            run.luau("perf_clean", "Server", 60)
+        except Exception as e:
+            run.note("perf clone cleanup failed: %r" % (e,))
+
+    def guarded(v, f):
+        try:
+            f()
+        except StudioBusy:
+            raise
+        except Exception as e:
+            v["error"] = str(e)[:300]
+            run.note("%s failed: %s" % (v["label"], v["error"]))
+            flush()
+
+    if opts.get("meshparts"):
+        n = opts["meshparts"]
+        clean()
+        v = {"label": "+%d meshparts" % n, "extra_target": 0, "extra_meshparts": n}
+        variants.append(v)
+
+        def go():
+            v["stress"] = run.need_luau("perf_meshclone", "Server", 180, target=n)
+            perf_measure(run, v, seconds, qualities, flush)
+        guarded(v, go)
+    if opts.get("unique_meshes"):
+        n = opts["unique_meshes"]
+        clean()
+        v = {"label": "+%d unique meshes" % n, "extra_target": 0}
+        variants.append(v)
+
+        def go():
+            r = run.need_luau("perf_unique", "Server", 180, count=n)
+            v["stress"] = r
+            if r.get("skipped"):
+                v["skipped"], v["reason"] = True, r.get("reason")
+                flush()
+            else:
+                perf_measure(run, v, seconds, qualities, flush)
+        guarded(v, go)
+    if opts.get("terrain_off"):
+        clean()
+        on = {"label": "terrain-on", "extra_target": 0, "note": "A/B in the same play session, window taken just before Terrain:Clear"}
+        variants.append(on)
+        guarded(on, lambda: perf_measure(run, on, seconds, qualities, flush))
+        off = {"label": "terrain-off", "extra_target": 0,
+               "note": "A/B in the same play session: workspace.Terrain:Clear() (play only, nothing saved) after terrain-on"}
+        variants.append(off)
+
+        def go():
+            off["clear"] = run.need_luau("perf_terrain_clear", "Server", 60)
+            perf_measure(run, off, seconds, qualities, flush)
+        guarded(off, go)
+    clean()
+
+
+def perf_phone_skills(run):
+    """--phone, before the variants: both skill texts into out/perf/<sha>/skills/*.md. Returns (record, texts)."""
+    sdir = os.path.join(run.outdir, "skills")
+    os.makedirs(sdir, exist_ok=True)
+    texts, errors = {}, {}
+    for name in PERF_SKILLS:
+        try:
+            r = run.session().call("skill", {"skill_name": name}, timeout=60)
+            if not r.ok:
+                r = run.tool("skill", timeout=60, skill_name=name)
+            if r.ok and r.text:
+                texts[name] = r.text
+                with open(os.path.join(sdir, name + ".md"), "w", encoding="utf-8") as f:
+                    f.write(r.text)
+            else:
+                errors[name] = r.brief(200)
+        except Exception as e:
+            errors[name] = repr(e)[:200]
+    return {"skills_fetched": sorted(texts), "skill_errors": errors}, texts
+
+
+def perf_phone(run, seconds, pre):
+    """--phone, after the variants: the base window once more under device emulation, only when the device simulator
+    skill documents a Luau emulator API usable from execute_luau. Best effort, labelled in the report."""
+    out, texts = pre
+    errors = out["skill_errors"]
+    text = texts.get("rbx-device-simulator-lua", "")
+    if not re.search(r"StudioDeviceEmulatorService|DeviceEmulator", text):
+        return dict(out, skipped=True, reason="the rbx-device-simulator-lua skill documents no Luau device emulator API "
+                    "usable from execute_luau (input / plugin UI only)" if text else "skill text not available: %s" % errors)
+    m = re.search(r"SetDeviceById\(\s*[\"']([^\"']+)", text)
+    device = m.group(1) if m else ""
+    emu = None
+    for dm in ("Client", "Server", "Edit"):
+        ok, d = run.luau("perf_phone_emulate", dm, 30, device=device)
+        if ok:
+            emu = dict(d, datamodel=dm)
+            if d.get("emulated"):
+                break
+    if not emu or not emu.get("emulated"):
+        return dict(out, skipped=True, reason="emulator call did not succeed", emulate=emu)
+    cam = PERF_CAMERA
+    raw = run.need_luau("perf_window", "Client", seconds + 30, seconds=seconds, centre=tuple(cam["centre"]),
+                        radius=cam["radius"], height=cam["height"])
+    return dict(out, emulated=True, emulate=emu, extra_target=0, client=perf_client_record(raw),
+                note="Studio device emulator via execute_luau, best effort; still a PC render, not phone hardware")
+
+
+def sync_perf(paths, cfg, sha, files_dir, report, dry=False):
+    """Pushes files_dir (report json + md + frames) to branch studio-reports at perf/<sha>/ from <home>/perf-reports."""
+    run = Run(paths, cfg, None, dry)
+    sub = perf_sync_path(sha)
+    if dry:
+        log.info("dry-run: would push %s to %s:%s", sha, cfg["reports_branch"], sub)
+        return True
+    branch, rdir = cfg["reports_branch"], paths.perf_reports
+    ensure_reports_clone(run, rdir, branch)
+    ident = ["-c", "user.name=pc-watcher", "-c", "user.email=pc-watcher@users.noreply.github.com"]
+    for attempt in range(1, cfg["push_retries"] + 1):
+        if run.git("fetch", "-q", "origin", branch, cwd=rdir, check=False).returncode == 0:
+            run.git("checkout", "-q", "-f", "-B", branch, "FETCH_HEAD", cwd=rdir)
+        else:
+            run.git("symbolic-ref", "HEAD", "refs/heads/" + branch, cwd=rdir)
+        run.git("clean", "-q", "-ffdx", cwd=rdir, check=False)
+        dest = os.path.join(rdir, *sub.split("/"))
+        shutil.rmtree(dest, ignore_errors=True)
+        os.makedirs(dest, exist_ok=True)
+        for name in sorted(os.listdir(files_dir)):
+            src = os.path.join(files_dir, name)
+            if os.path.isfile(src):
+                if name.endswith(".png") and imaging.have_pillow():
+                    imaging.to_jpeg(src, os.path.join(dest, name[:-4] + ".jpg"), cfg["jpeg_quality"])
+                else:
+                    shutil.copy2(src, os.path.join(dest, name))
+            elif os.path.isdir(src):
+                shutil.copytree(src, os.path.join(dest, name))
+        run.git("add", "-A", sub, cwd=rdir)
+        if run.git("diff", "--cached", "--quiet", cwd=rdir, check=False).returncode == 0:
+            log.info("perf sync: %s already up to date on %s", sha[:12], branch)
+            return True
+        run.git(*ident, "commit", "-q", "-m", "perf-report %s run_kind=perf" % sha[:12], cwd=rdir)
+        r = run.git("push", "-q", "origin", "HEAD:refs/heads/" + branch, cwd=rdir, timeout=180, check=False)
+        if r.returncode == 0:
+            log.info("perf sync: pushed %s (try %d)", sha[:12], attempt)
+            return True
+        log.warning("perf push try %d failed: %s", attempt, (r.stderr or "").strip()[-300:])
+        time.sleep(5 * attempt)
+    return False
+
+
+def cmd_perf(paths, cfg, sha, extras, seconds, sync, wait_lock_s, phone, dry, qualities=(10, 1), opts=None):
+    """Perf measurement for one sha: build, play, then a fixed camera orbit per extra-parts variant. Own report under
+    out/perf/<sha>/, pushed to perf/<sha>/ on the reports branch. Shares only run.lock with the loop."""
+    lock = Lock(paths.st("run.lock"))
+    waited = time.time()
+    while not lock.acquire():
+        if time.time() - waited >= wait_lock_s:
+            log.error("perf: run.lock still held after %ss, giving up", wait_lock_s)
+            return 3
+        log.info("perf: another run holds %s, waiting (polling every 15 s)", lock.path)
+        time.sleep(15)
+    run = None
+    try:
+        sha = sha or remote_sha(paths, cfg)
+        seconds = max(30, int(seconds))
+        extras = sorted(set(int(x) for x in extras) | {0})
+        run = Run(paths, cfg, sha, dry, kind="perf")
+        run.cfg = dict(cfg, run_budget_s=10 ** 6)  # the 15 min full-run budget does not apply
+        log.info("perf %s: extras %s, %ss per window", sha, extras, seconds)
+        run.record_foreground()
+        opts = opts or {}
+        qualities = list(qualities)
+        variants, phone_rec, error, phone_pre, settle = [], None, None, None, None
+        pc_info = perf_pc_info()
+        rep_extra = {"qualities": qualities, "extras_requested": dict(opts)}
+
+        def flush(final=False):
+            rep = flush(final=True)
+        log.info("perf report %s: %s (%ss)", run.outdir, rep["status"], rep["duration_s"])
+        if sync and cfg["sync"] and not dry and rep["status"] == "measured":
+            try:
+                if not sync_perf(paths, cfg, sha, run.outdir, rep):
+                    log.error("perf sync failed (report stays in %s)", run.outdir)
+                    return 1
+            except Exception:
+                log.exception("perf sync")
+                return 1
+        return 0 if rep["status"] == "measured" else 1
+    finally:
+        lock.release()
+
+
+# ---------------------------------------------------------------------------
 # Commands
 # ---------------------------------------------------------------------------
 
@@ -2507,6 +3057,17 @@ def main(argv=None):
     p_once.add_argument("--no-sync", action="store_true")
     p_once.add_argument("--kind", choices=("full", "partial"), default="full")
     p_once.add_argument("--reason", default="manual")
+    p_perf = sub.add_parser("perf", help="perf measurement (run_kind perf, never publishable)")
+    p_perf.add_argument("--sha")
+    p_perf.add_argument("--extra", default="0,500,1000", help="comma list of extra runtime parts, cumulative (0 = base)")
+    p_perf.add_argument("--seconds", type=int, default=30)
+    p_perf.add_argument("--no-sync", action="store_true")
+    p_perf.add_argument("--wait-lock-s", type=int, default=3600)
+    p_perf.add_argument("--phone", action="store_true")
+    p_perf.add_argument("--quality", default="10,1", help="graphics quality levels (1-21), one orbit window per level and variant")
+    p_perf.add_argument("--meshparts", type=int, default=0, help="extra: clone N existing MeshParts (same MeshIds)")
+    p_perf.add_argument("--unique-meshes", type=int, default=0, help="extra, best effort: N MeshParts with a new MeshId at runtime")
+    p_perf.add_argument("--terrain-off", action="store_true", help="extra: terrain-on vs terrain-off A/B (Terrain:Clear, play only)")
     sub.add_parser("loop")
     p_step = sub.add_parser("step")
     p_step.add_argument("name", choices=sorted(list(STEP_FNS) + ["sync"]))
@@ -2534,6 +3095,20 @@ def main(argv=None):
         return 2
     if a.cmd == "once":
         return cmd_once(paths, cfg, a.sha, a.dry_run, sync=not a.no_sync, run_kind=a.kind, full_reason=a.reason)[0]
+    if a.cmd == "perf":
+        try:
+            extras = [int(x) for x in a.extra.split(",") if x.strip()]
+        except ValueError:
+            log.error("--extra must be a comma list of integers")
+            return 2
+        try:
+            qualities = perf_parse_qualities(a.quality)
+        except ValueError as e:
+            log.error("--quality: %s", e)
+            return 2
+        opts = {k: v for k, v in (("meshparts", a.meshparts), ("unique_meshes", a.unique_meshes),
+                                  ("terrain_off", a.terrain_off)) if v}
+        return cmd_perf(paths, cfg, a.sha, extras, a.seconds, not a.no_sync, a.wait_lock_s, a.phone, a.dry_run, qualities, opts)
     if a.cmd == "loop":
         return cmd_loop(paths, cfg, a.dry_run)
     if a.cmd == "step":
