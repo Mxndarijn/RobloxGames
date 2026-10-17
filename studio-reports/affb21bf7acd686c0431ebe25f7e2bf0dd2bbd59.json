@@ -13525,5 +13525,10 @@
       ]
     }
   },
-  "frames_dir": "affb21bf7acd686c0431ebe25f7e2bf0dd2bbd59/"
+  "frames_dir": "affb21bf7acd686c0431ebe25f7e2bf0dd2bbd59/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix 14:16 CEST: frames OK (228/228 captured). The report status is FAIL only because runtime parts are 2233, over the 2230 ratchet; #237, which brings it back under, is still open, so this is not a frame issue. #232 Sound card: phone-landscape shows one compact row (Sound on | Music 35% | SFX 80%) at the top of the menu area. Phone-portrait shows a stacked card at the top of the menu area. Both are clear of the nav and HUD. The tutorial, carry and slap cards are not on screen in these shots, so overlap with them is unproven. 116 phone-landscape: 3 banners plus the egg toast, readable, no tutorial this run. Snow v2 (#235) is not on main yet, so there are no 18c frames. Notes: translucent red strip across the top of the HUD."
 }
