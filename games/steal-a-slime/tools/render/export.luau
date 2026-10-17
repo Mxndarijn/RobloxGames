@@ -26,6 +26,7 @@ local FountainTiers = require("../../src/shared/FountainTiers")
 local Habitats = require("../../src/shared/Habitats")
 local MagnetDecor = require("../../src/visuals/shared/MagnetDecor")
 local MeshAssets = require("../../src/shared/MeshAssets")
+local PathTerrain = require("../../src/visuals/shared/PathTerrain")
 local PlotDecor = require("../../src/visuals/shared/PlotDecor")
 local Props = require("../../src/visuals/shared/Props")
 local VatDecor = require("../../src/visuals/shared/VatDecor")
@@ -321,6 +322,13 @@ if not table.find(process.args, "--no-terrain") then
 	}
 end
 
+-- The paths (server/PathTerrainView writes them as voxel terrain): every 4-stud column with its
+-- material, top and occupancy; render_world.py draws them as flat vertex-coloured slabs.
+local pathFills = {}
+for _, f in PathTerrain.fills() do
+	table.insert(pathFills, { f.x, f.z, f.material, f.top, math.floor(f.occupancy * 1000 + 0.5) / 1000 })
+end
+
 fs.writeDir(OUT)
 local suffix = (if PENDING then "_pending" else "")
 	.. (if SKIN then `_skin_{SKIN}` else "")
@@ -337,7 +345,9 @@ fs.writeFile(
 		plots = plots,
 		wallRadius = WorldBorder.RADIUS,
 		ringPath = WorldLayout.RING_PATH_RADIUS,
+		exitX = WorldLayout.SLIDE_PATH[#WorldLayout.SLIDE_PATH][1],
 		terrain = terrain,
+		pathTerrain = { cell = PathTerrain.CELL, colors = PathTerrain.COLORS, fills = pathFills },
 		vat = vatFocus,
 		magnet = magnetFocus,
 	})

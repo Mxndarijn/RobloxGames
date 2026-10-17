@@ -330,6 +330,81 @@ if data.get("terrain"):
     tf = build_terrain(data["terrain"])
     print(f"terrain mesh: {tf} faces")
 
+def build_path_terrain(t):
+    """The paths (server/PathTerrainView) as smooth terrain draws them: the 4-stud occupancy grid,
+    bilinearly interpolated onto a 0.5-stud mesh, drawn where occupancy is at least one half.
+
+    Each vertex's height ramps from 0 (occupancy >= 0.5) down to -1 (0.375), so the Ground part
+    (top -0.04) cuts the slope near the 0.5 contour: a sub-voxel curve, not a 4-stud staircase.
+    Colours blend bilinearly between the cells' material colours (smooth terrain blends materials)."""
+    cell = t["cell"]
+    fine = 0.5
+    pal = {k: tuple(c / 255 for c in v) for k, v in t["colors"].items()}
+    cols = {(round(f[0] / cell - 0.5), round(f[1] / cell - 0.5)): f for f in t["fills"]}
+    xs = [k[0] for k in cols]
+    zs = [k[1] for k in cols]
+    i0, i1, k0, k1 = min(xs) - 1, max(xs) + 1, min(zs) - 1, max(zs) + 1
+    mud = pal["Mud"]
+
+    def cellval(i, k):
+        f = cols.get((i, k))
+        return (f[4], pal[f[2]]) if f else (0.0, mud)
+
+    def sample(x, z):
+        # cell centres sit at (i + 0.5) * cell
+        fx, fz = x / cell - 0.5, z / cell - 0.5
+        i, k = math.floor(fx), math.floor(fz)
+        u, v = fx - i, fz - k
+        occ, col = 0.0, [0.0, 0.0, 0.0]
+        for di, dk, w in ((0, 0, (1 - u) * (1 - v)), (1, 0, u * (1 - v)), (0, 1, (1 - u) * v), (1, 1, u * v)):
+            o, c = cellval(i + di, k + dk)
+            occ += o * w
+            for n in range(3):
+                col[n] += c[n] * w * (o if o > 0 else 0.0001)
+        wsum = occ if occ > 0 else 1
+        return occ, tuple(col[n] / max(wsum, 1e-6) for n in range(3))
+
+    nx = int((i1 - i0 + 1) * cell / fine) + 1
+    nz = int((k1 - k0 + 1) * cell / fine) + 1
+    x_lo, z_lo = i0 * cell, k0 * cell
+    heights, colors = [], []
+    for jz in range(nz):
+        for jx in range(nx):
+            occ, col = sample(x_lo + jx * fine, z_lo + jz * fine)
+            heights.append(max(-1.0, min(0.0, (occ - 0.5) * 8)))
+            colors.append(col)
+    index, verts, vcols = {}, [], []
+    faces = []
+    for jz in range(nz - 1):
+        for jx in range(nx - 1):
+            ids = [(jx, jz), (jx, jz + 1), (jx + 1, jz + 1), (jx + 1, jz)]
+            if all(heights[b * nx + a] <= -1.0 for a, b in ids):
+                continue
+            quad = []
+            for a, b in ids:
+                if (a, b) not in index:
+                    index[(a, b)] = len(verts)
+                    verts.append(tuple(rbx(x_lo + a * fine, heights[b * nx + a], z_lo + b * fine)))
+                    vcols.append(colors[b * nx + a])
+                quad.append(index[(a, b)])
+            faces.append(tuple(quad))
+    me = bpy.data.meshes.new("path_terrain")
+    me.from_pydata(verts, [], faces)
+    me.update()
+    for p in me.polygons:
+        p.use_smooth = True
+    ca = me.color_attributes.new("terrain", "FLOAT_COLOR", "POINT")
+    for n, c in enumerate(vcols):
+        ca.data[n].color = (*(srgb_to_linear(v) for v in c), 1)
+    me.materials.append(vcol_material("terrain"))
+    o = bpy.data.objects.new("path_terrain", me)
+    coll_world.objects.link(o)
+    return len(faces)
+
+
+if data.get("pathTerrain"):
+    print(f"path terrain mesh: {build_path_terrain(data['pathTerrain'])} faces")
+
 print(f"built {len(data['parts'])} parts, {len(data['meshes'])} meshes in {time.time() - t0:.1f}s; missing {missing}")
 
 # Light and sky ------------------------------------------------------------
@@ -477,6 +552,12 @@ def polar(deg, r, y):
     return (-math.sin(a) * r, y, -math.cos(a) * r)
 
 
+def ring_pt(deg, off, y):
+    a = math.radians(deg)
+    r = data["ringPath"] + off
+    return (math.sin(a) * r, y, math.cos(a) * r)
+
+
 VIEWS = {
     # straight down, the whole bordered disc
     "01_overview_top": lambda: look((0, 900, 0.01), (0, 0, 0), ortho=2 * W * 1.08),
@@ -493,6 +574,16 @@ VIEWS = {
     "06_path_eye": lambda: look((2, 5, 58), (-6, 1, 100), lens=30),
     # world border v3: the ring from high up across the plaza, mid height along
     # the edge, and a player's eye (5 studs) looking out at it
+    # paths v2: player-height (4 studs) views along the ring and spokes, and at each junction type.
+    # Spoke i runs along (sin yaw, cos yaw), yaw = (i - 1) * 45; the ring is r = data["ringPath"].
+    "20_path_overview": lambda: look((0, 330, -150), (0, 0, 60), lens=30),
+    "21_path_ring_along": lambda: look(ring_pt(8, 0, 4), ring_pt(32, 0, 0), lens=30),
+    "22_path_spoke_along": lambda: look((0, 4, 52), (0, 0, 112), lens=30),
+    "23_path_spoke3_along": lambda: look((52, 4, 0), (112, 0, 0), lens=30),
+    "24_path_junction_spoke_ring": lambda: look((16, 4.5, 64), (0, 0, 80), lens=30),
+    "25_path_plot_gate": lambda: look((-6, 4, 84), (0, 0.5, 104), lens=30),
+    "26_path_slide_exit": lambda: look((data["exitX"] + 7, 4, 38), (data["exitX"], 0, 66), lens=30),
+    "27_path_slide_exit_junction": lambda: look((data["exitX"] - 14, 6, 58), (data["exitX"], 0, 74), lens=30),
     "13_border_terrain_aerial": lambda: look(polar(337.5, 140, 1180), polar(157.5, 20, 0), lens=19),
     "07_border_aerial": lambda: look(polar(337.5, 40, 430), polar(157.5, 170, 0), lens=22),
     "08_border_along": lambda: look(polar(140, 240, 20), polar(178, 300, 6), lens=30),

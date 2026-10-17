@@ -17,7 +17,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 -- and 8 small border pieces retired (the terrain itself adds none).
 local BASELINE_MESH_SLOTS = 398
 -- Part nodes outside Map.Border before this change (and after it).
-local BASELINE_PARTS = 1340
+local BASELINE_PARTS = 1298
 
 local field = BorderTerrain.field()
 local INNER = BorderTerrain.INNER
@@ -66,7 +66,7 @@ describe("BorderTerrain budget", function()
 		expect(slots).toBe(BASELINE_MESH_SLOTS)
 		expect(slots <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 	end)
-	it("adds no part: the world keeps its 1340 build parts, under PART_BUDGET", function()
+	it("adds no part: the world keeps its 1298 build parts, under PART_BUDGET", function()
 		local parts = 0
 		walk({ name = "root", children = WorldLayout.build() }, function(n, inBorder)
 			if n.class == "Part" and not inBorder then

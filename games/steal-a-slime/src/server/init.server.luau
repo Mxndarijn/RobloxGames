@@ -48,6 +48,7 @@ local GameLoop = require(script.GameLoop)
 local Leaderboard = require(script.Leaderboard)
 local MeshSwap = require(script.MeshSwap)
 local ParadeView = require(script.ParadeView)
+local PathTerrainView = require(script.PathTerrainView)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
 local Profiler = require(script.Profiler)
@@ -98,6 +99,13 @@ if Config.FEATURES.Parade then
 	local ok, err = pcall(ParadeView.place)
 	if not ok then
 		warn(`[Server] ParadeView.place failed: {err}`)
+	end
+end
+-- Plaza sand, ring, spokes and slide-exit path: voxel terrain (no parts, no mesh slots).
+do
+	local ok, err = pcall(PathTerrainView.place)
+	if not ok then
+		warn(`[Server] PathTerrainView.place failed: {err}`)
 	end
 end
 -- Hills behind the world border: voxel terrain (no parts, no mesh slots); yields between tiles.
