@@ -48,6 +48,8 @@ local function flipped(flag: string, spec: string): (boolean, string)
 		`{root}/tests/run.luau`,
 		`local TestRunner = require("./TestRunner")\nrequire("./{spec}.spec")\nlocal failures = TestRunner.run()\nrequire("@lune/process").exit(if failures > 0 then 1 else 0)\n`
 	)
+	-- rokit resolves `lune` from the nearest manifest; the temp copy needs one too.
+	fs.writeFile(`{root}/rokit.toml`, fs.readFile("rokit.toml"))
 	local result = process.exec("lune", { "run", "tests/run" }, { cwd = root })
 	fs.removeDir(root)
 	return result.ok, result.stdout .. result.stderr
