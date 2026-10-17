@@ -25,7 +25,8 @@ if part then
 end
 local tint = game:GetService("Lighting"):FindFirstChild("WeatherTint")
 local map = workspace:FindFirstChild("Map")
-local ground = map and map:FindFirstChild("Ground")
-local paths = map and map:FindFirstChild("Paths")
-local plaza = paths and paths:FindFirstChild("Plaza")
-return { ground_color = ground and tostring((ground :: Part).Color) or nil, plaza_color = plaza and tostring((plaza :: Part).Color) or nil, cover_part = workspace:FindFirstChild("SnowCover") ~= nil, ok = id == "" or id == "Clear" or active > 0, before = before, now = workspace:GetAttribute(ATTR), emitter_part = part ~= nil, rates = rates, active = active, tint = tint ~= nil and tostring(tint.TintColor) or nil }
+-- The ground is voxel terrain now (GroundTerrain): SnowGround tints the Terrain material colours.
+local terrain = workspace.Terrain
+local groundColor = terrain:GetMaterialColor(Enum.Material.Grass)
+local plazaColor = terrain:GetMaterialColor(Enum.Material.Sand)
+return { ground_color = tostring(groundColor), plaza_color = tostring(plazaColor), path_color = tostring(terrain:GetMaterialColor(Enum.Material.Ground)), cover_part = workspace:FindFirstChild("SnowCover") ~= nil, ok = id == "" or id == "Clear" or active > 0, before = before, now = workspace:GetAttribute(ATTR), emitter_part = part ~= nil, rates = rates, active = active, tint = tint ~= nil and tostring(tint.TintColor) or nil }

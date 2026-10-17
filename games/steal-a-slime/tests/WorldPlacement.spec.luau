@@ -389,8 +389,7 @@ describe("hub spawn pad (TODO #8: the yellow slab)", function()
 		expect(StaticWorld.SPAWN_TRANSPARENCY).toBe(1)
 		local size = StaticWorld.SPAWN_SIZE
 		local top = StaticWorld.spawnPosition()[2] + size[2] / 2
-		local plaza = find("/Map/Paths/Plaza")
-		local plazaTop = (plaza.pos :: Vec)[2] + (plaza.size :: Vec)[1] / 2
+		local plazaTop = 0 -- the GroundTerrain surface
 		expect(math.abs(top - plazaTop) <= GROUND_TOL).toBe(true)
 		expect(size[2] <= 0.25).toBe(true)
 	end)

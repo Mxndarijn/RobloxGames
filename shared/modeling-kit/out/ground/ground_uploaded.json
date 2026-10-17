@@ -1,0 +1,23 @@
+{
+  "Grass": {
+    "assetId": "137572978178597",
+    "assetType": "Decal",
+    "imageId": "107810237099859",
+    "sha256": "722a165682664705fae400a3fee7882c0d21a2b82fb50afb63eea444b4ea8eac",
+    "uploadedAt": "2026-10-17T14:45:53Z"
+  },
+  "Ground": {
+    "assetId": "140688202396485",
+    "assetType": "Decal",
+    "imageId": "111767402276038",
+    "sha256": "663f679e3588fcd746d847a5698ffe76312cae47d6f384608b8ef8a386e2f5b5",
+    "uploadedAt": "2026-10-17T14:45:57Z"
+  },
+  "Sand": {
+    "assetId": "124883384951794",
+    "assetType": "Decal",
+    "imageId": "122596579720889",
+    "sha256": "efd7ac339942acfc28ef25a7448a503b35faf9d568830e19999c1c3bddc12c7f",
+    "uploadedAt": "2026-10-17T14:46:01Z"
+  }
+}

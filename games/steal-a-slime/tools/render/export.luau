@@ -25,6 +25,7 @@ local BorderTerrain = require("../../src/visuals/shared/BorderTerrain")
 local Config = require("../../src/shared/Config")
 local FountainTierDecor = require("../../src/visuals/shared/FountainTierDecor")
 local FountainTiers = require("../../src/shared/FountainTiers")
+local GroundTerrain = require("../../src/visuals/shared/GroundTerrain")
 local Habitats = require("../../src/shared/Habitats")
 local MagnetDecor = require("../../src/visuals/shared/MagnetDecor")
 local MeshAssets = require("../../src/shared/MeshAssets")
@@ -449,6 +450,30 @@ if not table.find(process.args, "--no-terrain") then
 	}
 end
 
+-- The inner ground (server/GroundTerrainView): one material per 4-stud cell; render_world.py blends them like the
+-- voxel renderer does and shades them with the SlimeGrass / SlimeGround / SlimeSand look (tint x soft ColorMap).
+local ground = nil
+if not table.find(process.args, "--no-terrain") then
+	local grid = GroundTerrain.grid()
+	local letter = { Grass = "G", Ground = "D", Sand = "S" }
+	local mats = {}
+	for i, m in grid.materials do
+		mats[i] = letter[m]
+	end
+	local tint, low = {}, {}
+	for name, c in GroundTerrain.COLORS do
+		local w = if not snowTints then 0 elseif name == "Grass" then snowTints.terrainGrass else snowTints.path
+		local r, g, b = SnowCover.lerpColor(c[1] / 255, c[2] / 255, c[3] / 255, w)
+		tint[name] = { r * 255, g * 255, b * 255 }
+		local dark, depth = GroundTerrain.DARK[name], GroundTerrain.MAP_DEPTH[name]
+		low[name] = {}
+		for k = 1, 3 do
+			low[name][k] = 1 - (1 - dark[k] / c[k]) * depth
+		end
+	end
+	ground = { cell = grid.cell, min = grid.min, n = grid.n, materials = table.concat(mats), tint = tint, low = low }
+end
+
 fs.writeDir(OUT)
 local suffix = (if PENDING then "_pending" else "")
 	.. (if SKIN then `_skin_{SKIN}` else "")
@@ -467,6 +492,7 @@ fs.writeFile(
 		wallRadius = WorldBorder.RADIUS,
 		ringPath = WorldLayout.RING_PATH_RADIUS,
 		terrain = terrain,
+		ground = ground,
 		vat = vatFocus,
 		magnet = magnetFocus,
 		ritual = ritualAt,

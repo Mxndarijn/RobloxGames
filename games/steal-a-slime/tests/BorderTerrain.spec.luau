@@ -16,8 +16,8 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 -- tools/pr-gate/budget_counts: mesh slots with the 22 giant trees of border v5
 -- and 8 small border pieces retired (the terrain itself adds none).
 local BASELINE_MESH_SLOTS = 392 -- 391 + the Upgrade Shop stand (CONTRACT.md §27.2)
--- Part nodes outside Map.Border: 1340 minus the seven landing-ring tiles left out for the slide exit and the SlideExit path strip (bug #6).
-local BASELINE_PARTS = 1332
+-- Part nodes outside Map.Border: 1332 (main, after the SlideExit strip went) minus the 41 path / plaza parts that became GroundTerrain voxels.
+local BASELINE_PARTS = 1291
 
 local field = BorderTerrain.field()
 local INNER = BorderTerrain.INNER
@@ -259,7 +259,7 @@ describe("BorderTerrain hills", function()
 			expect(BorderTerrain.COLORS[name] ~= nil).toBe(true)
 		end
 		expect((used.Grass or 0) > 0 and (used.LeafyGrass or 0) > 0 and (used.Rock or 0) > 0).toBe(true)
-		expect(BorderTerrain.COLORS.Grass).toEqual({ 98, 160, 70 })
+		expect(BorderTerrain.COLORS.Grass).toEqual({ 146, 206, 84 })
 	end)
 	it("is covered by the tiles the server writes", function()
 		local tiles = BorderTerrain.tiles()

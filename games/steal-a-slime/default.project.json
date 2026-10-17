@@ -94,6 +94,38 @@
         }
       }
     },
+    "MaterialService": {
+      "$className": "MaterialService",
+      "$properties": {
+        "GrassName": "SlimeGrass",
+        "GroundName": "SlimeGround",
+        "SandName": "SlimeSand"
+      },
+      "SlimeGrass": {
+        "$className": "MaterialVariant",
+        "$properties": {
+          "BaseMaterial": "Grass",
+          "ColorMap": "rbxassetid://107810237099859",
+          "StudsPerTile": 20
+        }
+      },
+      "SlimeGround": {
+        "$className": "MaterialVariant",
+        "$properties": {
+          "BaseMaterial": "Ground",
+          "ColorMap": "rbxassetid://111767402276038",
+          "StudsPerTile": 20
+        }
+      },
+      "SlimeSand": {
+        "$className": "MaterialVariant",
+        "$properties": {
+          "BaseMaterial": "Sand",
+          "ColorMap": "rbxassetid://122596579720889",
+          "StudsPerTile": 20
+        }
+      }
+    },
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"

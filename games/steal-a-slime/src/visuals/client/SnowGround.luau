@@ -6,9 +6,9 @@
 	slots (SnowCover.PART_COUNT / MESH_SLOTS = 0) and is flush by construction: there is no second layer to
 	z-fight with the paths or to clip into props. (v1 laid one translucent Snow Part over the whole ground; it
 	washed the plaza sand and the paths into a flat sheet and was cut.)
-	  * the Ground block (and other big flat grass parts): Color lerps toward snow white, full weight;
-	  * the border Terrain: Terrain:SetMaterialColor for Grass / LeafyGrass (full) and Rock (lighter);
-	  * paths, the plaza disc and the pads: only a light frost, so they stay readable.
+	  * the inner ground and the border hills are Terrain (GroundTerrain, BorderTerrain): Terrain:SetMaterialColor for
+	    Grass / LeafyGrass (full), Rock (lighter) and Ground (the dirt paths) / Sand (the plaza): only a light frost;
+	  * the pads (and other big flat grass parts, if any): Color lerps toward snow white; pads only a light frost.
 	The weights come from SnowCover.tints(level, snowing): settling is one eased curve, melting clears the frost
 	first and the grass / hills last. Materials never change, so nothing pops.
 
@@ -39,6 +39,7 @@ local SnowGround = {}
 type Entry = { orig: Color3, applied: Color3, kind: string }
 
 local TERRAIN_GRASS = { Enum.Material.Grass, Enum.Material.LeafyGrass }
+local TERRAIN_FROST = { Enum.Material.Ground, Enum.Material.Sand } -- the dirt paths and the plaza sand
 local SAME = 1.5 / 255 -- Color is stored with 8 bits per channel: closer than this is "unchanged"
 
 local tracked: { [BasePart]: Entry } = setmetatable({}, { __mode = "k" }) :: any
@@ -119,8 +120,10 @@ local function startTracking()
 	tracking = true
 	local terrain = workspace.Terrain
 	local saved = {}
-	for _, material in { Enum.Material.Grass, Enum.Material.LeafyGrass, Enum.Material.Rock } do
-		saved[material] = terrain:GetMaterialColor(material)
+	for _, list in { TERRAIN_GRASS, TERRAIN_FROST, { Enum.Material.Rock } } do
+		for _, material in list do
+			saved[material] = terrain:GetMaterialColor(material)
+		end
 	end
 	terrainOrig = saved
 	for _, name in { "Map", "Plots" } do
@@ -161,6 +164,9 @@ local function draw()
 		local terrain = workspace.Terrain
 		for _, material in TERRAIN_GRASS do
 			terrain:SetMaterialColor(material, mixed(saved[material], tints.terrainGrass))
+		end
+		for _, material in TERRAIN_FROST do
+			terrain:SetMaterialColor(material, mixed(saved[material], tints.path)) -- paths melt first
 		end
 		terrain:SetMaterialColor(Enum.Material.Rock, mixed(saved[Enum.Material.Rock], tints.rock))
 	end

@@ -1,0 +1,20 @@
+{
+  "id": "bugs13-15-ground-eye",
+  "todo": "bugs13-15",
+  "kind": "world",
+  "pos": [
+    30.44,
+    6,
+    -83.633
+  ],
+  "look": [
+    32.139,
+    2.0,
+    -38.302
+  ],
+  "fov": 42.6,
+  "wait": 2.5,
+  "device": "desktop",
+  "clock": 14,
+  "note": "bugs #13-15 soft terrain ground, concept camera (eye polar(-20,89,6) -> polar(-40,50,2), lens 26 mm = vertical FOV 42.6 deg) [desktop]. Phoenix: check (1) ONE seamless warm packed-dirt path: ring + 8 spokes join in rounded fillets (no slide-exit strip, bug #6), no tile seams or lines; (2) pastel soft grass (not the realistic Roblox grass texture) with gentle Terrain.Decoration tufts, none poking through plot floors or pads; (3) plaza sand feathered ~7 studs into the grass with a noisy, patchy edge, no hard ring; (4) no z-fighting, flicker or holes anywhere; (5) nothing floats or sinks (props, pads, plot Bases, fountain stand flush on the flat y = 0 terrain); (6) the SlimeGrass / SlimeGround / SlimeSand MaterialVariants load and Terrain tints (Grass 146,206,84 / Ground 204,152,100 / Sand 246,220,170) give the pastel colours, not a white or doubled-dark ground"
+}

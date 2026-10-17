@@ -55,6 +55,8 @@
      "paths": ["{G}/src/**/Weather*.luau", "{G}/src/visuals/client/SnowGround.luau", "{G}/src/visuals/shared/SnowCover.luau",
                "{G}/src/visuals/client/NightSky.luau", "{G}/src/visuals/shared/NightLook.luau", "{G}/src/shared/DayNight.luau"],
      "keys": ["weather", "clock"], "shots": ["*weather*", "*snow*", "*night*"]},
+    {"name": "ground terrain (dirt path, pastel grass, plaza sand)", "paths": ["{G}/src/**/GroundTerrain*.luau", "shared/modeling-kit/out/ground/**"],
+     "shots": ["*ground*", "*path*", "*slide-exit*", "*curb*", "*snow*"]},
     {"name": "border / terrain", "paths": ["{G}/src/**/BorderTerrain*.luau", "{G}/src/visuals/shared/WorldBorder.luau"], "shots": ["*border*", "*bug14*", "*bug15*"]},
     {"name": "fountain / slide",
      "paths": ["{G}/src/**/Fountain*.luau", "{G}/src/shared/SlideColliders.luau"],

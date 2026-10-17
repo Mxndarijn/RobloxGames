@@ -23,7 +23,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 local PATH = WorldLayout.SLIDE_PATH
 local HEAD, MOUTH = PATH[1], PATH[#PATH]
-local GROUND = WorldLayout.PATH_TOPS.plaza -- Map.Paths.Plaza top
+local GROUND = 0 -- the GroundTerrain surface
 local FPS = 30
 local SILO = WorldLayout.FOUNTAIN_PROFILE.plinthRadius
 local SLIME_HALF = Config.SLIME_BASE_DIAMETER * Config.MAX_SIZE / 2
