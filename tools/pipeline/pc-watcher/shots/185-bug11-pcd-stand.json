@@ -1,0 +1,14 @@
+{
+  "id": "bug11-mesh-stand-pcd",
+  "todo": "bug 11",
+  "kind": "world",
+  "target": "ranch_fence_stile",
+  "from": "front",
+  "dist": 40,
+  "height": 18,
+  "mesh_stand": [
+    "ranch_fence_stile",
+    "ranch_barn_loft"
+  ],
+  "note": "bug 11 part 1 (advisory): balls dropped onto and pushed into the PreciseConvexDecomposition-collision props ranch_fence_stile, ranch_barn_loft must rest on the mesh and not pass through it (luau/mesh_stand) ; PCD: Phoenix Studio check - walkability of the treads / loft is only proven by an R15 walk in Studio"
+}

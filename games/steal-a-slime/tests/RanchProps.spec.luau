@@ -340,7 +340,11 @@ describe("plot fence", function()
 			local blockers: { PropClearance.Rect } = {}
 			walk(plot, function(n)
 				local name = n.name :: string
-				if n.class == "Part" and n.canCollide ~= false and (name:match("^Wall") or name:match("^GatePost")) then
+				if
+					n.class == "Part"
+					and n.canCollide ~= false
+					and ((n.attributes :: any) and (n.attributes :: any).FenceCollider or name:match("^GatePost"))
+				then
 					table.insert(blockers, localRect(i, n))
 				end
 			end)
@@ -389,12 +393,10 @@ describe("plot fence", function()
 			end
 		end
 	end)
-	it("keeps the walls as invisible colliders", function()
+	it("has no invisible Wall* blocks: the fence meshes (MeshAssets.COLLISION Box) are the walls (bug #11)", function()
 		for _, plot in plots do
 			for _, name in { "WallBack", "WallLeft", "WallRight", "WallFrontL", "WallFrontR" } do
-				local w = plotChild(plot, name)
-				expect(w.transparency).toBe(1)
-				expect(w.canCollide ~= false).toBe(true)
+				expect(plotChild(plot, name)).toBe(nil)
 			end
 		end
 	end)
@@ -420,7 +422,7 @@ describe("plot fence", function()
 			local function slot(n: any, mesh: string, length: number)
 				expect(n.class).toBe("Part")
 				expect(n.attributes.MeshAsset).toBe(mesh)
-				expect(n.canCollide).toBe(false)
+				expect(n.canCollide ~= false).toBe(true) -- the Box collider until the mesh lands (bug #11)
 				expect(n.size[1]).toBeCloseTo(length)
 				expect(n.size[2] / native(mesh)[2]).toBeCloseTo(WorldLayout.FENCE_SCALE)
 				expect(n.size[2]).toBeCloseTo(native(WorldLayout.FENCE_SEGMENT)[2] * WorldLayout.FENCE_SCALE)
@@ -548,7 +550,7 @@ describe("plot fence", function()
 			for _, n in plotChild(plot, "Fence").children do
 				if n.name == "GatePost" then
 					expect(n.attributes.MeshAsset).toBe(WorldLayout.GATE_POST_MESH)
-					expect(n.canCollide).toBe(false)
+					expect(n.canCollide ~= false).toBe(true)
 					local x, z = toLocal(i, n.pos[1], n.pos[3])
 					table.insert(posts, { x, z })
 					gatePosts += 1
