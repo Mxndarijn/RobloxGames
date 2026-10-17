@@ -7,6 +7,7 @@
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
 
+local GroundTerrain = require("../src/visuals/shared/GroundTerrain")
 local MeshAssets = require("../src/shared/MeshAssets")
 local TestRunner = require("./TestRunner")
 
@@ -99,6 +100,34 @@ describe("pc-watcher shot targets", function()
 			expect(#s.look).toBe(3)
 		end
 	end)
+	it(
+		"the #270 path shots look at the terrain they check (GroundTerrain materials, not a stale coordinate)",
+		function()
+			-- 81 / 82 / 83 / 172 look at the dirt path (Ground); 174 (bug 15) looks at the plaza sand feather band, so
+			-- both Sand and Grass lie within 6 studs of its look point along the radius
+			for _, file in
+				{
+					"81-v29-b5-path-eye-spoke",
+					"82-v29-b5-path-eye-ring",
+					"83-v29-b5-path-junction",
+					"172-bug13-walk-path-look",
+				}
+			do
+				local s = serde.decode("json", fs.readFile(`{SHOTS}/{file}.json`))
+				expect(GroundTerrain.material(s.look[1], s.look[3])).toBe("Ground")
+			end
+			local s = serde.decode("json", fs.readFile(`{SHOTS}/174-bug15-sand-grass-blend.json`))
+			local x, z = s.look[1], s.look[3]
+			local r = math.sqrt(x * x + z * z)
+			local seen = {}
+			for dr = -6, 6, 2 do
+				local k = (r + dr) / r
+				seen[GroundTerrain.material(x * k, z * k)] = true
+			end
+			expect(seen.Sand == true and seen.Grass == true and seen.Ground == nil).toBe(true)
+			expect(GroundTerrain.material(s.pos[1], s.pos[3])).toBe("Grass") -- the camera stands on grass, not on the ring path
+		end
+	)
 	it("the bug-11 mesh-collision shots target the placed RanchProps instances", function()
 		local want = {
 			["183-bug11-hull-stand.json"] = "Well",
