@@ -1036,9 +1036,50 @@ def t_pvp():
     check("plan PvpKnockback.luau picks the pvp shots", all(s["id"] in picked for s in probes), picked[:8])
 
 
+def t_b9():
+    """B9 prop collision probe (advisory, luau/b9_prop_walk): one data-driven shot, reads shared/PropCollision."""
+    shots, _ = watcher.load_shots(repo=None)
+    smap = watcher.read_json(watcher.data_path(None, "shot-map.json")[0])
+    shot = next((s for s in shots if s["id"] == "b9-prop-walk"), None)
+    check("b9: shot 'b9-prop-walk' is a world shot with a Server bug_probe on luau/b9_prop_walk, no args, timeout <= 50",
+          bool(shot) and shot.get("kind") == "world" and shot["bug_probe"].get("luau") == "b9_prop_walk" and shot["bug_probe"].get("ctx") == "Server"
+          and not shot["bug_probe"].get("args") and int(shot["bug_probe"].get("timeout", 30)) <= 50 and shot["bug_probe"].get("bug") == "B9")
+    src = open(os.path.join(HERE, "luau", "b9_prop_walk.luau"), encoding="utf-8").read()
+    check("b9_prop_walk reads the inventory (PropCollision.ENTRIES / matches / sides), no hard-coded prop list, no placeholders",
+          all(w in src for w in ("PropCollision.ENTRIES", "PropCollision.matches", "PropCollision.sides", "PropCollision.FIDELITIES")) and not re.search(r"%%[A-Z]+%%", src))
+    check("b9_prop_walk walks 4 sides at WalkSpeed 16 with MoveTo, an R15 dummy, GetPartsInPart, and cleans up",
+          all(w in src for w in ("WalkSpeed = 16", "MoveTo", "R15", "GetPartsInPart", "Destroy", "SetNetworkOwner(nil)", "MAX_PER_KIND", "CollisionGroup")))
+    check("b9_prop_walk checks spawns and prop placement and the fidelity of every kind",
+          all(w in src for w in ("SpawnLocation", "placement centre", "CollisionFidelity", "no collidable part", "hard(e)", "soft fail")))
+    check("b9_prop_walk returns ok / summary / detail with per-kind PASS / FAIL / n/a / off", all(re.search(r"\b%s = " % k, src) for k in ("ok", "summary", "detail"))
+          and all(w in src for w in ('"PASS"', '"FAIL"', '"n/a"', '"off"')))
+    rule = next((r for r in smap["rules"] if r["name"].startswith("B9")), None)
+    check("b9: shot-map rule selects the shot and maps PropCollision / the luau / the shot", bool(rule) and bool(shot) and watcher.shot_selected_by(shot, rule)
+          and all(watcher._any_glob(p, rule["paths"], smap) for p in ("games/steal-a-slime/src/shared/PropCollision.luau", "tools/pipeline/pc-watcher/luau/b9_prop_walk.luau", "tools/pipeline/pc-watcher/shots/220-b9-prop-walk.json")))
+    G = "games/steal-a-slime/src/"
+    picked = watcher.plan_run([G + "shared/PropCollision.luau"], shots, smap, 60)["shots"]
+    check("plan PropCollision.luau picks b9-prop-walk", "b9-prop-walk" in picked, picked[:8])
+    nums = sorted(int(re.match(r"\d+", f).group()) for f in os.listdir(os.path.join(HERE, "shots")) if re.match(r"\d+", f))
+    check("b9: shot file number 220 is unique", nums.count(220) == 1, nums[-6:])
+    saved = (watcher.Run.luau, watcher.Run.need_luau)
+    try:
+        fake = {"ok": False, "summary": "HARD fail: decor_crate", "detail": {"hard_fail": ["decor_crate"]}}
+        watcher.Run.need_luau = lambda self, name, ctx="Server", timeout=30, **kw: fake if name == "b9_prop_walk" else {}
+        run = watcher.Run.__new__(watcher.Run)
+        run.notes, run.extra = [], {}
+        run.note = lambda msg: run.notes.append(msg)
+        res = {}
+        watcher.bug_probe(run, shot, res, "b9-prop-walk")
+        check("b9: a failing probe is a note, never a run failure", res["bug"]["ok"] is False and any("B9" in n for n in run.notes), run.notes)
+    except Exception as e:  # pragma: no cover
+        check("b9: bug_probe plumbing", False, repr(e))
+    finally:
+        watcher.Run.luau, watcher.Run.need_luau = saved
+
+
 def main():
     for t in (t_perf, t_perf_e2e, t_lock_age, t_shot_tool_errors, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_release, t_pvp, t_play_settle):
+              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_release, t_pvp, t_b9, t_play_settle):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going
