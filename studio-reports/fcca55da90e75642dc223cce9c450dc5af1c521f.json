@@ -1,31 +1,31 @@
 {
   "sha": "fcca55da90e75642dc223cce9c450dc5af1c521f",
   "status": "fail",
-  "checked_at": "2026-10-17T08:35:47Z",
+  "checked_at": "2026-10-17T09:03:13Z",
   "studio_version": "0, 743, 0, 7431133 (version-4f087c32742644ab)",
-  "notes": "frame time is Studio play-mode on the PC (window may be throttled when unfocused); phone_perf phone-portrait: only 3 animating slimes (wanted 16); phone_perf phone-landscape: only 9 animating slimes (wanted 16); menus are content-sized cards since #76 (not full-window): frac_w / frac_h are reported, only on-screen + a visible close button decide pass; phone_perf is Studio on the PC (own desktop, unfocused), not real phone hardware; shot 17-motion-idlesquish: slime not moving (mode motor, moved 0.0073967187859045325); shot 17-motion-lod-near: slime LOD tiers {'mid': 0, 'far': 0, 'near': 1}; shot 17-motion-lod-mid: slime LOD tiers {'mid': 1, 'far': 0, 'near': 0}; shot 17-motion-lod-far: slime LOD tiers {'mid': 0, 'far': 0, 'near': 0}; shot 17-motion-lod-far: slime not moving (mode None, moved 0); shot 22-fountain-top-walk: sank into the fountain top: ['r=11.0 a=23 v=8 size=2 ball sank 0.04 below the top surface', 'r=11.0 a=22 v=8 size=2 ball sank 0.04 below the top surface', 'r=11.0 a=21 v=8 size=2 ball sank 0.04 below the top surface', 'r=11.0 a=; two_player ran mode c (pure server modules in one play session), not two real clients",
-  "duration_s": 832.7,
+  "notes": "frame time is Studio play-mode on the PC (window may be throttled when unfocused); phone_perf phone-portrait: only 3 animating slimes (wanted 16); phone_perf phone-landscape: only 9 animating slimes (wanted 16); menus are content-sized cards since #76 (not full-window): frac_w / frac_h are reported, only on-screen + a visible close button decide pass; phone_perf is Studio on the PC (own desktop, unfocused), not real phone hardware; shot 17-motion-lod-near: slime LOD tiers {'mid': 0, 'far': 0, 'near': 1}; shot 17-motion-lod-mid: slime LOD tiers {'mid': 1, 'far': 0, 'near': 0}; shot 17-motion-lod-far: slime LOD tiers {'mid': 0, 'far': 0, 'near': 0}; shot 17-motion-lod-far: slime not moving (mode None, moved 0); shot 22-fountain-top-walk: sank into the fountain top: ['r=12.0 a=12 v=8 size=2 ball sank 0.02 below the top surface']; shot v30-c9-wild-pace: wild pace off: {'ok': False, 'mult': 0.65, 'seconds': 6, 'slower_by': 0.38647342995169065, 'measured': 11.27480443318685, 'expected': 3.7563012057953085, 'old': 6.122475193697864}; two_player ran mode c (pure server modules in one play session), not two real clients",
+  "duration_s": 986.4,
   "steps": {
     "build": {
       "status": "pass",
-      "seconds": 0.7,
+      "seconds": 2.2,
       "detail": {
         "rbxl": "C:\\gate\\pc-watcher\\builds\\fcca55da90e75642dc223cce9c450dc5af1c521f.rbxl",
         "size_mb": 0.7,
-        "rojo_s": 0.1,
+        "rojo_s": 1.2,
         "datastore_mode": "Memory (Workspace $attributes, test build only)"
       }
     },
     "launch": {
       "status": "pass",
-      "seconds": 9.9,
+      "seconds": 13.2,
       "detail": {
-        "studio_id": "0d3731b9-61b1-48c8-ab95-56a1ac37269a",
+        "studio_id": "c48a18a2-2106-43e1-8e05-ed4e8a344ac0",
         "pids": [
-          42840
+          34228
         ],
         "window": "C:\\gate\\pc-watcher\\builds\\fcca55da90e75642dc223cce9c450dc5af1c521f.rbxl - Roblox Studio",
-        "seconds_to_ready": 9.2,
+        "seconds_to_ready": 12.2,
         "edit_frame": "fcca55da90e75642dc223cce9c450dc5af1c521f-edit.jpg"
       }
     },
@@ -35,10 +35,10 @@
       "detail": {
         "unique_meshes": 92,
         "store_status": "Memory",
-        "slime_and_character_meshes": 26,
+        "slime_and_character_meshes": 24,
         "parts": 2217,
         "parade_lane": true,
-        "runtime_parts_transient": 292,
+        "runtime_parts_transient": 222,
         "runtime_parts": 2217,
         "slide_colliders": true,
         "mesh_slots": 390,
@@ -46,8 +46,8 @@
         "samples": [
           69,
           84,
-          139,
-          199,
+          133,
+          195,
           390,
           390,
           390
@@ -97,16 +97,16 @@
         },
         "seconds_to_client": 7.6,
         "stats": {
-          "play_mesh_parts": 88,
-          "memory_mb": 3764.32,
-          "p95_ms": 35.46,
-          "max_ms": 61.63,
-          "frames": 271,
-          "fps": 54.26,
-          "primitives": 2013,
-          "instance_count": 53000,
-          "play_parts": 2011,
-          "frame_time_ms": 18.43
+          "play_mesh_parts": 87,
+          "memory_mb": 3758.91,
+          "p95_ms": 36.68,
+          "max_ms": 61.3,
+          "frames": 268,
+          "fps": 53.61,
+          "primitives": 1972,
+          "instance_count": 52917,
+          "play_parts": 1970,
+          "frame_time_ms": 18.65
         }
       }
     },
@@ -167,7 +167,7 @@
     },
     "devices": {
       "status": "pass",
-      "seconds": 137.0,
+      "seconds": 137.3,
       "detail": {
         "devices": {
           "desktop": {
@@ -215,9 +215,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 101.42,
-                "variance": 2922.78,
-                "distinct": 862,
+                "mean": 101.76,
+                "variance": 2965.08,
+                "distinct": 852,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -275,9 +275,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 66.35,
-                "variance": 1874.2,
-                "distinct": 980,
+                "mean": 103.36,
+                "variance": 2805.2,
+                "distinct": 884,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -335,9 +335,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 74.67,
-                "variance": 1775.76,
-                "distinct": 1011,
+                "mean": 111.19,
+                "variance": 3128.95,
+                "distinct": 811,
                 "samples": 5194,
                 "w": 844,
                 "h": 390
@@ -354,7 +354,7 @@
     },
     "menus": {
       "status": "pass",
-      "seconds": 94.7,
+      "seconds": 95.0,
       "detail": {
         "panels": [
           "plot",
@@ -376,7 +376,7 @@
     },
     "phone_perf": {
       "status": "pass",
-      "seconds": 31.3,
+      "seconds": 31.2,
       "detail": {
         "min_fps": 30,
         "devices": [
@@ -387,7 +387,7 @@
     },
     "two_player": {
       "status": "pass",
-      "seconds": 11.5,
+      "seconds": 10.9,
       "detail": {
         "a_probe": {
           "TestService": {
@@ -428,9 +428,9 @@
     },
     "shots": {
       "status": "fail",
-      "seconds": 640.5,
+      "seconds": 789.7,
       "detail": {
-        "captured": 143,
+        "captured": 175,
         "total": 175,
         "shots": [
           {
@@ -446,8 +446,8 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 4,
-              "hidden_billboards": 7,
-              "hidden_prompts": 23,
+              "hidden_billboards": 6,
+              "hidden_prompts": 22,
               "locked": true,
               "character_moved": true
             },
@@ -458,9 +458,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 107.35,
-                "variance": 1517.5,
-                "distinct": 748,
+                "mean": 181.02,
+                "variance": 1624.84,
+                "distinct": 732,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -485,9 +485,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 112.66,
-                "variance": 1787.28,
-                "distinct": 734,
+                "mean": 172.17,
+                "variance": 3005.61,
+                "distinct": 736,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -513,9 +513,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 111.98,
-                "variance": 1773.0,
-                "distinct": 736,
+                "mean": 170.49,
+                "variance": 2951.05,
+                "distinct": 759,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -552,9 +552,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 54.15,
-                "variance": 553.08,
-                "distinct": 286,
+                "mean": 74.78,
+                "variance": 847.6,
+                "distinct": 274,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -592,9 +592,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 54.85,
-                "variance": 635.22,
-                "distinct": 310,
+                "mean": 80.47,
+                "variance": 717.05,
+                "distinct": 286,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -624,9 +624,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 111.09,
-                "variance": 1843.2,
-                "distinct": 736,
+                "mean": 170.28,
+                "variance": 3008.68,
+                "distinct": 779,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -655,9 +655,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 110.85,
-                "variance": 1852.78,
-                "distinct": 723,
+                "mean": 171.07,
+                "variance": 3082.67,
+                "distinct": 725,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -698,9 +698,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 53.33,
-                "variance": 561.12,
-                "distinct": 277,
+                "mean": 74.49,
+                "variance": 853.4,
+                "distinct": 294,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -738,9 +738,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 55.91,
-                "variance": 660.3,
-                "distinct": 344,
+                "mean": 74.66,
+                "variance": 890.45,
+                "distinct": 435,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -778,9 +778,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 54.14,
-                "variance": 607.32,
-                "distinct": 290,
+                "mean": 75.82,
+                "variance": 888.07,
+                "distinct": 432,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -827,9 +827,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 54.04,
-                "variance": 626.34,
-                "distinct": 291,
+                "mean": 75.35,
+                "variance": 877.1,
+                "distinct": 406,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -876,9 +876,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 55.3,
-                "variance": 626.28,
-                "distinct": 307,
+                "mean": 75.89,
+                "variance": 870.16,
+                "distinct": 408,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -926,9 +926,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 100.64,
-                "variance": 2213.43,
-                "distinct": 623,
+                "mean": 172.06,
+                "variance": 3622.34,
+                "distinct": 787,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -975,9 +975,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 102.3,
-                "variance": 1052.55,
-                "distinct": 644,
+                "mean": 166.27,
+                "variance": 1979.19,
+                "distinct": 1023,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1006,9 +1006,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 92.44,
-                "variance": 426.62,
-                "distinct": 373,
+                "mean": 161.08,
+                "variance": 797.56,
+                "distinct": 662,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1055,9 +1055,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 81.81,
-                "variance": 675.06,
-                "distinct": 555,
+                "mean": 127.79,
+                "variance": 1287.68,
+                "distinct": 806,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1104,9 +1104,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 83.56,
-                "variance": 1406.21,
-                "distinct": 678,
+                "mean": 128.22,
+                "variance": 2507.57,
+                "distinct": 1035,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1135,9 +1135,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 96.53,
-                "variance": 663.24,
-                "distinct": 561,
+                "mean": 151.77,
+                "variance": 1365.07,
+                "distinct": 975,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1166,9 +1166,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 87.61,
-                "variance": 101.1,
-                "distinct": 329,
+                "mean": 149.17,
+                "variance": 579.15,
+                "distinct": 661,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1215,9 +1215,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 102.37,
-                "variance": 2210.31,
-                "distinct": 644,
+                "mean": 152.24,
+                "variance": 3904.9,
+                "distinct": 944,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1256,7 +1256,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 0,
+              "hidden_billboards": 1,
               "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
@@ -1264,9 +1264,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 97.04,
-                "variance": 1866.85,
-                "distinct": 802,
+                "mean": 146.32,
+                "variance": 3214.44,
+                "distinct": 1074,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1313,9 +1313,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 94.37,
-                "variance": 2085.06,
-                "distinct": 830,
+                "mean": 141.71,
+                "variance": 3607.0,
+                "distinct": 1098,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1355,16 +1355,16 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 1,
-              "hidden_prompts": 0,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 94.75,
-                "variance": 1682.74,
-                "distinct": 805,
+                "mean": 144.03,
+                "variance": 2889.71,
+                "distinct": 1108,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1403,7 +1403,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 1,
+              "hidden_billboards": 0,
               "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
@@ -1411,9 +1411,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 120.35,
-                "variance": 2171.66,
-                "distinct": 711,
+                "mean": 175.58,
+                "variance": 3762.2,
+                "distinct": 1024,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1455,9 +1455,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 47.32,
-                "variance": 800.87,
-                "distinct": 340,
+                "mean": 73.4,
+                "variance": 1084.42,
+                "distinct": 497,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1497,7 +1497,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 4,
-              "hidden_billboards": 7,
+              "hidden_billboards": 6,
               "hidden_prompts": 23,
               "locked": true,
               "character_moved": true
@@ -1505,9 +1505,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 108.94,
-                "variance": 1668.23,
-                "distinct": 839,
+                "mean": 161.2,
+                "variance": 3068.34,
+                "distinct": 1266,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1546,17 +1546,17 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 0,
-              "hidden_prompts": 1,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 102.98,
-                "variance": 1071.98,
-                "distinct": 584,
+                "mean": 157.67,
+                "variance": 2020.3,
+                "distinct": 1053,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1603,9 +1603,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 115.57,
-                "variance": 2317.05,
-                "distinct": 520,
+                "mean": 173.95,
+                "variance": 3731.45,
+                "distinct": 767,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1645,16 +1645,16 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 1,
-              "hidden_prompts": 0,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 126.82,
-                "variance": 2464.71,
-                "distinct": 712,
+                "mean": 182.87,
+                "variance": 4181.39,
+                "distinct": 932,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1693,7 +1693,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 1,
+              "hidden_billboards": 0,
               "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
@@ -1701,9 +1701,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 89.01,
-                "variance": 1670.34,
-                "distinct": 556,
+                "mean": 133.44,
+                "variance": 2459.51,
+                "distinct": 775,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1732,9 +1732,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 141.86,
-                "variance": 818.14,
-                "distinct": 611,
+                "mean": 202.9,
+                "variance": 1260.93,
+                "distinct": 813,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1773,17 +1773,17 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 0,
-              "hidden_prompts": 1,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 79.64,
-                "variance": 781.48,
-                "distinct": 673,
+                "mean": 129.92,
+                "variance": 1938.32,
+                "distinct": 1103,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1830,9 +1830,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 79.98,
-                "variance": 1073.95,
-                "distinct": 585,
+                "mean": 127.67,
+                "variance": 2307.86,
+                "distinct": 969,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1872,16 +1872,16 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 1,
-              "hidden_prompts": 0,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 82.67,
-                "variance": 1675.14,
-                "distinct": 631,
+                "mean": 139.03,
+                "variance": 3320.0,
+                "distinct": 1041,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1928,9 +1928,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 101.88,
-                "variance": 2062.49,
-                "distinct": 592,
+                "mean": 156.07,
+                "variance": 3565.74,
+                "distinct": 1023,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -1967,9 +1967,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 49.62,
-                "variance": 845.09,
-                "distinct": 304,
+                "mean": 66.15,
+                "variance": 1061.06,
+                "distinct": 448,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2007,9 +2007,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 50.68,
-                "variance": 858.46,
-                "distinct": 309,
+                "mean": 66.99,
+                "variance": 1039.49,
+                "distinct": 449,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2065,9 +2065,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 99.39,
-                "variance": 2300.43,
-                "distinct": 663,
+                "mean": 147.09,
+                "variance": 4168.05,
+                "distinct": 1059,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2115,8 +2115,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 1.1920928955078125e-07,
-              "slime": "Workspace.Slime_17990b4c-ca5a-4396-b78d-86d4880b947b",
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Slime_b62bde46-ce63-42d9-b6d0-3faa9203a188",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2129,9 +2129,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 88.3,
-                "variance": 1764.35,
-                "distinct": 616,
+                "mean": 132.33,
+                "variance": 2587.6,
+                "distinct": 841,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2179,8 +2179,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 1.1920928955078125e-07,
-              "slime": "Workspace.Slime_17990b4c-ca5a-4396-b78d-86d4880b947b",
+              "gap": 1.9073486328125e-06,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2193,9 +2193,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 87.86,
-                "variance": 1766.62,
-                "distinct": 620,
+                "mean": 126.18,
+                "variance": 2420.78,
+                "distinct": 905,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2235,7 +2235,7 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 0,
-              "hidden_prompts": 4,
+              "hidden_prompts": 8,
               "locked": true,
               "character_moved": true
             },
@@ -2243,8 +2243,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -1.1920928955078125e-07,
-              "slime": "Workspace.Slime_17990b4c-ca5a-4396-b78d-86d4880b947b",
+              "gap": 3.5762786865234375e-07,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2257,9 +2257,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 83.74,
-                "variance": 1633.41,
-                "distinct": 646,
+                "mean": 125.56,
+                "variance": 2437.49,
+                "distinct": 906,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2307,8 +2307,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -1.1920928955078125e-07,
-              "slime": "Workspace.Slime_17990b4c-ca5a-4396-b78d-86d4880b947b",
+              "gap": 3.5762786865234375e-07,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2321,9 +2321,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 125.27,
-                "variance": 2400.97,
-                "distinct": 895,
+                "mean": 124.74,
+                "variance": 2440.99,
+                "distinct": 911,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2363,7 +2363,7 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 0,
-              "hidden_prompts": 10,
+              "hidden_prompts": 6,
               "locked": true,
               "character_moved": true
             },
@@ -2371,8 +2371,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 0,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 3.5762786865234375e-07,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2385,9 +2385,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 124.45,
-                "variance": 2412.67,
-                "distinct": 925,
+                "mean": 124.09,
+                "variance": 2446.22,
+                "distinct": 933,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2427,7 +2427,7 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 0,
-              "hidden_prompts": 2,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
@@ -2435,8 +2435,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -2.384185791015625e-07,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 0,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2449,9 +2449,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 123.57,
-                "variance": 2412.29,
-                "distinct": 904,
+                "mean": 123.08,
+                "variance": 2453.99,
+                "distinct": 902,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2499,8 +2499,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -2.384185791015625e-07,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 3.5762786865234375e-07,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2513,8 +2513,8 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 123.19,
-                "variance": 2427.12,
+                "mean": 122.76,
+                "variance": 2482.14,
                 "distinct": 918,
                 "samples": 4400,
                 "w": 1920,
@@ -2563,8 +2563,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 7.152557373046875e-07,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 3.5762786865234375e-07,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2577,9 +2577,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 122.19,
-                "variance": 2441.32,
-                "distinct": 918,
+                "mean": 121.66,
+                "variance": 2495.1,
+                "distinct": 924,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2618,7 +2618,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 0,
+              "hidden_billboards": 1,
               "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
@@ -2627,8 +2627,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 7.152557373046875e-07,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 3.5762786865234375e-07,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2641,9 +2641,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 120.51,
-                "variance": 2429.47,
-                "distinct": 909,
+                "mean": 120.15,
+                "variance": 2463.51,
+                "distinct": 915,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2683,7 +2683,7 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 1,
-              "hidden_prompts": 1,
+              "hidden_prompts": 2,
               "locked": true,
               "character_moved": true
             },
@@ -2691,8 +2691,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 7.152557373046875e-07,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 0,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2705,9 +2705,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 119.48,
-                "variance": 2435.36,
-                "distinct": 918,
+                "mean": 119.16,
+                "variance": 2473.1,
+                "distinct": 937,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2755,8 +2755,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 7.152557373046875e-07,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 0,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2769,9 +2769,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 118.85,
-                "variance": 2438.41,
-                "distinct": 949,
+                "mean": 118.46,
+                "variance": 2496.39,
+                "distinct": 950,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2819,8 +2819,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -2.384185791015625e-07,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 0,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2833,9 +2833,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 117.42,
-                "variance": 2452.01,
-                "distinct": 939,
+                "mean": 116.95,
+                "variance": 2483.33,
+                "distinct": 931,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2883,8 +2883,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -2.384185791015625e-07,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 3.5762786865234375e-07,
+              "slime": "Workspace.Slime_2b5d87f2-f95f-4622-b38e-c95618d95d59",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2897,9 +2897,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 116.78,
-                "variance": 2501.84,
-                "distinct": 928,
+                "mean": 116.19,
+                "variance": 2539.64,
+                "distinct": 925,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -2947,8 +2947,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 7.152557373046875e-07,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 1.1920928955078125e-06,
+              "slime": "Workspace.Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -2961,9 +2961,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 115.38,
-                "variance": 2505.66,
-                "distinct": 933,
+                "mean": 116.87,
+                "variance": 2580.2,
+                "distinct": 1040,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3011,8 +3011,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 7.152557373046875e-07,
-              "slime": "Workspace.Slime_6c745450-c82a-43e1-afb4-8f4eb93ece1e",
+              "gap": 9.5367431640625e-07,
+              "slime": "Workspace.Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -3025,9 +3025,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 114.04,
-                "variance": 2497.99,
-                "distinct": 931,
+                "mean": 113.05,
+                "variance": 2517.47,
+                "distinct": 960,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3075,8 +3075,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 2.6226043701171875e-06,
-              "slime": "Workspace.Slime_274dc507-2533-4e0c-80aa-fe60dfa480f2",
+              "gap": 2.384185791015625e-07,
+              "slime": "Workspace.Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -3089,9 +3089,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 113.42,
-                "variance": 2527.46,
-                "distinct": 1000,
+                "mean": 111.51,
+                "variance": 2521.45,
+                "distinct": 965,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3139,8 +3139,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 0,
-              "slime": "Workspace.Slime_274dc507-2533-4e0c-80aa-fe60dfa480f2",
+              "gap": 2.384185791015625e-07,
+              "slime": "Workspace.Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -3153,9 +3153,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 112.22,
-                "variance": 2542.99,
-                "distinct": 995,
+                "mean": 110.28,
+                "variance": 2528.17,
+                "distinct": 954,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3194,7 +3194,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 2,
+              "hidden_billboards": 1,
               "hidden_prompts": 2,
               "locked": true,
               "character_moved": true
@@ -3203,8 +3203,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 0,
-              "slime": "Workspace.Slime_274dc507-2533-4e0c-80aa-fe60dfa480f2",
+              "gap": 2.384185791015625e-07,
+              "slime": "Workspace.Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -3217,9 +3217,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 110.62,
-                "variance": 2558.11,
-                "distinct": 991,
+                "mean": 108.93,
+                "variance": 2565.11,
+                "distinct": 965,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3258,7 +3258,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 1,
+              "hidden_billboards": 2,
               "hidden_prompts": 3,
               "locked": true,
               "character_moved": true
@@ -3267,42 +3267,42 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 0,
-              "slime": "Workspace.Slime_274dc507-2533-4e0c-80aa-fe60dfa480f2",
+              "gap": 9.5367431640625e-07,
+              "slime": "Workspace.Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "motion": {
-              "ok": false,
+              "ok": true,
               "b": {
-                "y": -0.054909467697143555,
+                "y": -0.08946609497070312,
                 "skin_same": true,
-                "sy": 3.401379346847534,
-                "yaw": -2.6910656814038703e-08
+                "sy": 3.992070436477661,
+                "yaw": -4.992183999519284e-09
               },
               "tiers": {
                 "mid": 0,
                 "far": 0,
                 "near": 1
               },
-              "near": 2,
+              "near": 1,
               "animating": 1,
-              "moved": 0.0073967187859045325,
+              "moved": 0.22314882774886824,
               "a": {
-                "y": -0.052160024642944336,
+                "y": -0.015088796615600586,
                 "skin_same": true,
-                "sy": 3.406026601791382,
-                "yaw": -6.122799156571546e-09
+                "sy": 4.140841960906982,
+                "yaw": -2.7739595342968215e-11
               },
               "mode": "motor",
-              "slime": "Slime_274dc507-2533-4e0c-80aa-fe60dfa480f2",
+              "slime": "Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "kind": "Idle"
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 109.84,
-                "variance": 2584.17,
-                "distinct": 1023,
+                "mean": 107.56,
+                "variance": 2568.29,
+                "distinct": 963,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3350,42 +3350,42 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 2.1457672119140625e-06,
-              "slime": "Workspace.Slime_22dbe9b4-17d6-4fe3-b131-0e08822470ba",
+              "gap": 9.5367431640625e-07,
+              "slime": "Workspace.Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "motion": {
               "ok": true,
               "b": {
-                "y": 0.31991517543792725,
+                "y": 0.5362673997879028,
                 "skin_same": true,
-                "sy": 2.380279541015625,
-                "yaw": -1.2400424687086797e-08
+                "sy": 4.0631422996521,
+                "yaw": 4.492981264814233e-10
               },
               "tiers": {
                 "mid": 0,
                 "far": 0,
                 "near": 1
               },
-              "near": 1,
+              "near": 2,
               "animating": 1,
-              "moved": 0.3974102930399832,
+              "moved": 0.8489031806403478,
               "a": {
-                "y": -0.0025281906127929688,
+                "y": -0.14050805568695068,
                 "skin_same": true,
-                "sy": 2.4552464485168457,
-                "yaw": 7.087617603929175e-09
+                "sy": 3.891014575958252,
+                "yaw": 1.9209447366108634e-09
               },
               "mode": "motor",
-              "slime": "Slime_22dbe9b4-17d6-4fe3-b131-0e08822470ba",
+              "slime": "Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "kind": "Hop"
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 108.66,
-                "variance": 2597.02,
-                "distinct": 939,
+                "mean": 106.37,
+                "variance": 2574.9,
+                "distinct": 956,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3424,8 +3424,8 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 3,
-              "hidden_prompts": 2,
+              "hidden_billboards": 6,
+              "hidden_prompts": 3,
               "locked": true,
               "character_moved": true
             },
@@ -3433,17 +3433,17 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": -3.5762786865234375e-07,
-              "slime": "Workspace.Slime_22dbe9b4-17d6-4fe3-b131-0e08822470ba",
+              "gap": 2.384185791015625e-07,
+              "slime": "Workspace.Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "motion": {
               "ok": true,
               "b": {
-                "y": -0.050655484199523926,
+                "y": 0.08808445930480957,
                 "skin_same": true,
-                "sy": 2.359804153442383,
-                "yaw": 0.4500000476837158
+                "sy": 4.346521377563477,
+                "yaw": 0.45000001788139343
               },
               "tiers": {
                 "mid": 0,
@@ -3452,23 +3452,23 @@
               },
               "near": 1,
               "animating": 1,
-              "moved": 0.5325318742543459,
+              "moved": 0.5012130215764046,
               "a": {
-                "y": -0.019014596939086914,
+                "y": 0.06646394729614258,
                 "skin_same": true,
-                "sy": 2.4228787422180176,
-                "yaw": 0.012183649465441704
+                "sy": 4.305750370025635,
+                "yaw": 0.01117851585149765
               },
               "mode": "motor",
-              "slime": "Slime_22dbe9b4-17d6-4fe3-b131-0e08822470ba",
+              "slime": "Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "kind": "LookLeft"
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 107.53,
-                "variance": 2596.32,
-                "distinct": 944,
+                "mean": 105.54,
+                "variance": 2600.12,
+                "distinct": 981,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3508,7 +3508,7 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 6,
-              "hidden_prompts": 3,
+              "hidden_prompts": 7,
               "locked": true,
               "character_moved": true
             },
@@ -3516,17 +3516,17 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 0,
-              "slime": "Workspace.Slime_274dc507-2533-4e0c-80aa-fe60dfa480f2",
+              "gap": 2.384185791015625e-07,
+              "slime": "Workspace.Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "motion": {
               "ok": true,
               "b": {
-                "y": -0.048041462898254395,
+                "y": -0.044942617416381836,
                 "skin_same": true,
-                "sy": 3.4157543182373047,
-                "yaw": -0.44999974966049194
+                "sy": 4.081185340881348,
+                "yaw": -0.44999995827674866
               },
               "tiers": {
                 "mid": 0,
@@ -3535,23 +3535,23 @@
               },
               "near": 2,
               "animating": 1,
-              "moved": 0.5233817538246512,
+              "moved": 0.5729507226496935,
               "a": {
-                "y": -0.07546353340148926,
+                "y": -0.08973252773284912,
                 "skin_same": true,
-                "sy": 3.3590757846832275,
-                "yaw": -0.010718599893152714
+                "sy": 3.9918997287750244,
+                "yaw": -0.011124758049845695
               },
               "mode": "motor",
-              "slime": "Slime_274dc507-2533-4e0c-80aa-fe60dfa480f2",
+              "slime": "Slime_1d925404-b2c3-4159-9efd-b090ac86327c",
               "kind": "LookRight"
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 106.48,
-                "variance": 2603.81,
-                "distinct": 1000,
+                "mean": 104.44,
+                "variance": 2622.12,
+                "distinct": 949,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3609,9 +3609,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 50.19,
-                "variance": 893.58,
-                "distinct": 405,
+                "mean": 51.02,
+                "variance": 806.45,
+                "distinct": 390,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3637,9 +3637,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 101.84,
-                "variance": 3007.12,
-                "distinct": 1112,
+                "mean": 112.41,
+                "variance": 2918.56,
+                "distinct": 998,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3678,7 +3678,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 4,
-              "hidden_billboards": 8,
+              "hidden_billboards": 5,
               "hidden_prompts": 42,
               "locked": true,
               "character_moved": true
@@ -3688,7 +3688,7 @@
               "violations": [],
               "segments": 32,
               "spawned_inside": [],
-              "worst_clearance": 0.3433384895324707,
+              "worst_clearance": -0.04420268535614014,
               "samples": 1728,
               "bottom_y": 0.7000001072883606,
               "top_y": 36.34454345703125
@@ -3696,9 +3696,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 132.63,
-                "variance": 1836.65,
-                "distinct": 1293,
+                "mean": 131.29,
+                "variance": 1738.01,
+                "distinct": 1239,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3744,9 +3744,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 59.55,
-                "variance": 672.28,
-                "distinct": 503,
+                "mean": 58.96,
+                "variance": 662.33,
+                "distinct": 491,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3794,9 +3794,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 98.71,
-                "variance": 1977.05,
-                "distinct": 1305,
+                "mean": 82.55,
+                "variance": 1602.21,
+                "distinct": 1018,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3843,9 +3843,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 112.44,
-                "variance": 2043.22,
-                "distinct": 1254,
+                "mean": 68.62,
+                "variance": 1042.78,
+                "distinct": 801,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3892,9 +3892,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 113.98,
-                "variance": 1962.16,
-                "distinct": 1197,
+                "mean": 69.03,
+                "variance": 959.51,
+                "distinct": 791,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3941,9 +3941,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 102.6,
-                "variance": 2167.75,
-                "distinct": 1202,
+                "mean": 62.12,
+                "variance": 1119.64,
+                "distinct": 742,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -3990,9 +3990,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 91.5,
-                "variance": 1994.69,
-                "distinct": 1191,
+                "mean": 57.6,
+                "variance": 1191.89,
+                "distinct": 733,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4039,9 +4039,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 85.95,
-                "variance": 1821.83,
-                "distinct": 1095,
+                "mean": 56.78,
+                "variance": 1417.95,
+                "distinct": 595,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4080,7 +4080,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 0,
+              "hidden_billboards": 1,
               "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
@@ -4088,9 +4088,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 84.55,
-                "variance": 2191.17,
-                "distinct": 970,
+                "mean": 57.11,
+                "variance": 1575.43,
+                "distinct": 577,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4130,16 +4130,16 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 1,
-              "hidden_prompts": 0,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 89.98,
-                "variance": 2236.54,
-                "distinct": 1172,
+                "mean": 57.33,
+                "variance": 1333.98,
+                "distinct": 713,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4186,9 +4186,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 127.19,
-                "variance": 2379.13,
-                "distinct": 1105,
+                "mean": 76.48,
+                "variance": 960.98,
+                "distinct": 699,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4235,9 +4235,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 105.33,
-                "variance": 1702.42,
-                "distinct": 1214,
+                "mean": 65.59,
+                "variance": 983.91,
+                "distinct": 834,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4284,9 +4284,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 125.3,
-                "variance": 2300.01,
-                "distinct": 1175,
+                "mean": 75.39,
+                "variance": 1065.9,
+                "distinct": 731,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4328,9 +4328,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 56.71,
-                "variance": 837.39,
-                "distinct": 483,
+                "mean": 42.25,
+                "variance": 840.1,
+                "distinct": 325,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4370,17 +4370,17 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 4,
-              "hidden_billboards": 7,
-              "hidden_prompts": 42,
+              "hidden_billboards": 6,
+              "hidden_prompts": 43,
               "locked": true,
               "character_moved": true
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 150.96,
-                "variance": 2507.9,
-                "distinct": 808,
+                "mean": 90.97,
+                "variance": 1215.75,
+                "distinct": 485,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4419,17 +4419,17 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 0,
-              "hidden_prompts": 2,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 158.82,
-                "variance": 2065.75,
-                "distinct": 843,
+                "mean": 109.59,
+                "variance": 1346.95,
+                "distinct": 564,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4476,9 +4476,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 123.54,
-                "variance": 3923.31,
-                "distinct": 1103,
+                "mean": 70.1,
+                "variance": 1620.83,
+                "distinct": 709,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4515,9 +4515,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 54.21,
-                "variance": 1037.54,
-                "distinct": 484,
+                "mean": 34.12,
+                "variance": 692.35,
+                "distinct": 315,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4539,8 +4539,8 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 4,
-              "hidden_billboards": 7,
-              "hidden_prompts": 41,
+              "hidden_billboards": 6,
+              "hidden_prompts": 40,
               "locked": true,
               "character_moved": true
             },
@@ -4561,9 +4561,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 86.52,
-                "variance": 719.78,
-                "distinct": 845,
+                "mean": 85.67,
+                "variance": 706.17,
+                "distinct": 806,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4607,9 +4607,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 86.3,
-                "variance": 708.98,
-                "distinct": 872,
+                "mean": 88.05,
+                "variance": 776.62,
+                "distinct": 763,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4630,7 +4630,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 2,
+              "hidden_billboards": 1,
               "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
@@ -4642,7 +4642,7 @@
               "now": "Snow",
               "tint": "0.882353, 0.933333, 1",
               "emitter_part": true,
-              "cover_transparency": 0.986487090587616,
+              "cover_transparency": 0.9865356087684631,
               "rates": {
                 "Stars": 0,
                 "Drops": 0,
@@ -4654,9 +4654,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 122.08,
-                "variance": 921.47,
-                "distinct": 801,
+                "mean": 99.03,
+                "variance": 965.67,
+                "distinct": 690,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4689,7 +4689,7 @@
               "now": "Snow",
               "tint": "0.882353, 0.933333, 1",
               "emitter_part": true,
-              "cover_transparency": 0.9422166347503662,
+              "cover_transparency": 0.9425004720687866,
               "rates": {
                 "Stars": 0,
                 "Drops": 0,
@@ -4701,9 +4701,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 95.85,
-                "variance": 1313.04,
-                "distinct": 744,
+                "mean": 87.98,
+                "variance": 1302.32,
+                "distinct": 657,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4736,7 +4736,7 @@
               "now": "Starfall",
               "tint": "0.803922, 0.745098, 1",
               "emitter_part": true,
-              "cover_transparency": 0.9691945314407349,
+              "cover_transparency": 0.9696083068847656,
               "rates": {
                 "Stars": 7,
                 "Drops": 0,
@@ -4748,9 +4748,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 23.27,
-                "variance": 843.94,
-                "distinct": 472,
+                "mean": 21.54,
+                "variance": 699.11,
+                "distinct": 391,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4794,9 +4794,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 21.7,
-                "variance": 655.42,
-                "distinct": 415,
+                "mean": 21.12,
+                "variance": 662.11,
+                "distinct": 383,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -4821,7 +4821,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 3,
+              "hidden_billboards": 6,
               "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
@@ -4844,9 +4844,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 35.49,
-                "variance": 980.18,
-                "distinct": 741,
+                "mean": 33.27,
+                "variance": 1090.21,
+                "distinct": 682,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -4890,9 +4890,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 35.62,
-                "variance": 948.32,
-                "distinct": 722,
+                "mean": 34.88,
+                "variance": 1180.24,
+                "distinct": 696,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -4925,7 +4925,7 @@
               "now": "Snow",
               "tint": "0.882353, 0.933333, 1",
               "emitter_part": true,
-              "cover_transparency": 0.986503005027771,
+              "cover_transparency": 0.9865124225616455,
               "rates": {
                 "Stars": 0,
                 "Drops": 0,
@@ -4937,9 +4937,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 94.76,
-                "variance": 1692.9,
-                "distinct": 1050,
+                "mean": 90.01,
+                "variance": 1619.35,
+                "distinct": 822,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -4960,8 +4960,8 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 2,
-              "hidden_prompts": 1,
+              "hidden_billboards": 0,
+              "hidden_prompts": 2,
               "locked": true,
               "character_moved": true
             },
@@ -4972,7 +4972,7 @@
               "now": "Snow",
               "tint": "0.882353, 0.933333, 1",
               "emitter_part": true,
-              "cover_transparency": 0.9512086510658264,
+              "cover_transparency": 0.951431155204773,
               "rates": {
                 "Stars": 0,
                 "Drops": 0,
@@ -4984,9 +4984,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 88.2,
-                "variance": 1548.41,
-                "distinct": 790,
+                "mean": 90.95,
+                "variance": 1699.3,
+                "distinct": 822,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -5019,7 +5019,7 @@
               "now": "Starfall",
               "tint": "0.803922, 0.745098, 1",
               "emitter_part": true,
-              "cover_transparency": 0.9818373918533325,
+              "cover_transparency": 0.981830894947052,
               "rates": {
                 "Stars": 7,
                 "Drops": 0,
@@ -5031,9 +5031,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 29.66,
-                "variance": 801.87,
-                "distinct": 602,
+                "mean": 31.62,
+                "variance": 916.4,
+                "distinct": 584,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -5055,7 +5055,7 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 0,
-              "hidden_prompts": 2,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
@@ -5077,9 +5077,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 30.22,
-                "variance": 866.0,
-                "distinct": 575,
+                "mean": 32.1,
+                "variance": 956.59,
+                "distinct": 592,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -5123,7 +5123,7 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 0,
-              "hidden_prompts": 1,
+              "hidden_prompts": 2,
               "locked": true,
               "character_moved": true
             },
@@ -5131,42 +5131,42 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 1.430511474609375e-06,
-              "slime": "Workspace.Slime_293752e3-b87b-40c8-b29f-f9c0a07f13dd",
+              "gap": 1.1920928955078125e-06,
+              "slime": "Workspace.Slime_02c9a68f-28c1-4137-b9da-7891c4e10ec5",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "motion": {
               "ok": true,
               "b": {
-                "y": 0.06151771545410156,
+                "y": -0.16855239868164062,
                 "skin_same": true,
-                "sy": 3.213437080383301,
-                "yaw": 1.8919814603890472e-09
+                "sy": 5.6648945808410645,
+                "yaw": 3.089803612965625e-08
               },
               "tiers": {
                 "mid": 0,
                 "far": 0,
                 "near": 1
               },
-              "near": 2,
+              "near": 1,
               "animating": 1,
-              "moved": 0.11224043896108538,
+              "moved": 0.42776158384007024,
               "a": {
-                "y": 0.02379930019378662,
+                "y": -0.026404857635498047,
                 "skin_same": true,
-                "sy": 3.1389150619506836,
-                "yaw": -3.3761717865843366e-09
+                "sy": 5.9505085945129395,
+                "yaw": 1.775983471397069e-09
               },
               "mode": "motor",
-              "slime": "Slime_293752e3-b87b-40c8-b29f-f9c0a07f13dd",
+              "slime": "Slime_02c9a68f-28c1-4137-b9da-7891c4e10ec5",
               "kind": "Tiers"
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 13.6,
-                "variance": 480.19,
-                "distinct": 267,
+                "mean": 15.3,
+                "variance": 569.22,
+                "distinct": 334,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -5197,23 +5197,23 @@
               "active": 3,
               "before": "Starfall",
               "now": "Snow",
-              "tint": "0.877991, 0.922864, 1",
+              "tint": "0.878005, 0.922897, 1",
               "emitter_part": true,
               "cover_transparency": 0.878125011920929,
               "rates": {
-                "Stars": 0.3893117904663086,
+                "Stars": 0.38809478282928467,
                 "Drops": 0,
-                "Flakes": 13.221376419067383,
-                "Glints": 0.8342396020889282
+                "Flakes": 13.223810195922852,
+                "Glints": 0.8316316604614258
               },
               "cover_part": true
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 89.79,
-                "variance": 1737.7,
-                "distinct": 777,
+                "mean": 89.96,
+                "variance": 1712.16,
+                "distinct": 676,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -5238,7 +5238,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 0,
+              "hidden_billboards": 1,
               "hidden_prompts": 2,
               "locked": true,
               "character_moved": true
@@ -5262,9 +5262,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 86.53,
-                "variance": 1751.09,
-                "distinct": 607,
+                "mean": 83.41,
+                "variance": 1760.83,
+                "distinct": 386,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -5307,7 +5307,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 2,
+              "hidden_billboards": 1,
               "hidden_prompts": 2,
               "locked": true,
               "character_moved": true
@@ -5316,16 +5316,16 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 4.76837158203125e-07,
-              "slime": "Workspace.Slime_293752e3-b87b-40c8-b29f-f9c0a07f13dd",
+              "gap": 1.1920928955078125e-06,
+              "slime": "Workspace.Slime_c9efb9ef-a7aa-45c2-8f65-d98db268119b",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "motion": {
               "ok": true,
               "b": {
-                "y": 0.03175980597734451,
+                "y": -0.001453522709198296,
                 "skin_same": true,
-                "sy": 3.153519630432129,
+                "sy": 3.8970930576324463,
                 "yaw": 0
               },
               "tiers": {
@@ -5333,24 +5333,24 @@
                 "far": 0,
                 "near": 0
               },
-              "near": 2,
+              "near": 1,
               "animating": 1,
-              "moved": 0.12058848794549704,
+              "moved": 0.12978687521535903,
               "a": {
-                "y": -0.008436321280896664,
+                "y": 0.04180886596441269,
                 "skin_same": true,
-                "sy": 3.073127269744873,
+                "sy": 3.9836175441741943,
                 "yaw": 0
               },
               "mode": "motor",
-              "slime": "Slime_293752e3-b87b-40c8-b29f-f9c0a07f13dd",
+              "slime": "Slime_c9efb9ef-a7aa-45c2-8f65-d98db268119b",
               "kind": "Tiers"
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 54.25,
-                "variance": 564.08,
+                "mean": 54.34,
+                "variance": 581.92,
                 "distinct": 424,
                 "samples": 4400,
                 "w": 1920,
@@ -5396,9 +5396,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 100.28,
-                "variance": 2748.43,
-                "distinct": 823,
+                "mean": 96.15,
+                "variance": 2563.02,
+                "distinct": 645,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -5423,7 +5423,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 2,
+              "hidden_billboards": 1,
               "hidden_prompts": 2,
               "locked": true,
               "character_moved": true
@@ -5447,9 +5447,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 97.38,
-                "variance": 2720.14,
-                "distinct": 744,
+                "mean": 90.53,
+                "variance": 2526.85,
+                "distinct": 442,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -5492,8 +5492,8 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 1,
-              "hidden_prompts": 2,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
@@ -5501,8 +5501,8 @@
               "ok": true,
               "cloned": true,
               "pad_top": 3.399993896484375,
-              "gap": 9.5367431640625e-07,
-              "slime": "Workspace.Slime_fa00531c-054f-411c-aeb6-468345ad6679",
+              "gap": -7.152557373046875e-07,
+              "slime": "Workspace.Slime_c9efb9ef-a7aa-45c2-8f65-d98db268119b",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "motion": {
@@ -5510,7 +5510,7 @@
               "b": {
                 "y": 0,
                 "skin_same": true,
-                "sy": 3.930000066757202,
+                "sy": 3.9000000953674316,
                 "yaw": 0
               },
               "tiers": {
@@ -5524,18 +5524,18 @@
               "a": {
                 "y": 0,
                 "skin_same": true,
-                "sy": 3.930000066757202,
+                "sy": 3.9000000953674316,
                 "yaw": 0
               },
-              "slime": "Slime_fa00531c-054f-411c-aeb6-468345ad6679",
+              "slime": "Slime_c9efb9ef-a7aa-45c2-8f65-d98db268119b",
               "kind": "Tiers"
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 97.33,
-                "variance": 3890.52,
-                "distinct": 237,
+                "mean": 97.17,
+                "variance": 3895.69,
+                "distinct": 244,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -5592,10 +5592,10 @@
               "label_text": "Growth 60%",
               "label_pos": [
                 -24,
-                8.334393501281738,
+                7.889193534851074,
                 142
               ],
-              "path": "Workspace.Plots.Plot_1.Slimes.Slime_733efe6b-0d6f-445d-b21e-c469e4a49738",
+              "path": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
               "percent": 60,
               "pos": [
                 -24,
@@ -5604,8 +5604,8 @@
               ]
             },
             "framing": {
-              "span": 5.73,
-              "back": 10.9
+              "span": 5.29,
+              "back": 10.05
             },
             "aim": {
               "drift": 0,
@@ -5615,8 +5615,8 @@
               "method": "mcp_screen_capture",
               "stats": {
                 "mean": 62.76,
-                "variance": 2283.49,
-                "distinct": 409,
+                "variance": 2317.02,
+                "distinct": 401,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -5645,9 +5645,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 67.05,
-                "variance": 2481.79,
-                "distinct": 584,
+                "mean": 69.98,
+                "variance": 2753.72,
+                "distinct": 550,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -5694,9 +5694,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 33.66,
-                "variance": 775.58,
-                "distinct": 266,
+                "mean": 33.96,
+                "variance": 768.99,
+                "distinct": 268,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -5728,9 +5728,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 68.28,
-                "variance": 2401.5,
-                "distinct": 579,
+                "mean": 67.92,
+                "variance": 2438.06,
+                "distinct": 569,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -5775,9 +5775,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 62.11,
-                "variance": 1533.21,
-                "distinct": 345,
+                "mean": 61.3,
+                "variance": 1555.74,
+                "distinct": 327,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -5829,9 +5829,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 118.57,
-                "variance": 2441.99,
-                "distinct": 513,
+                "mean": 118.48,
+                "variance": 2424.01,
+                "distinct": 508,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -5882,9 +5882,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 121.32,
-                "variance": 2156.23,
-                "distinct": 510,
+                "mean": 121.19,
+                "variance": 2141.03,
+                "distinct": 525,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -5935,9 +5935,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 116.96,
-                "variance": 2337.64,
-                "distinct": 532,
+                "mean": 116.67,
+                "variance": 2318.42,
+                "distinct": 507,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -5978,9 +5978,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 60.85,
-                "variance": 1763.68,
-                "distinct": 577,
+                "mean": 60.93,
+                "variance": 1742.01,
+                "distinct": 575,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -6020,7 +6020,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 4,
-              "hidden_billboards": 8,
+              "hidden_billboards": 9,
               "hidden_prompts": 23,
               "locked": true,
               "character_moved": true
@@ -6033,9 +6033,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 97.34,
-                "variance": 2815.99,
-                "distinct": 802,
+                "mean": 96.53,
+                "variance": 2741.57,
+                "distinct": 671,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -6087,9 +6087,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 96.78,
-                "variance": 2717.68,
-                "distinct": 791,
+                "mean": 96.74,
+                "variance": 2673.45,
+                "distinct": 692,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -6129,7 +6129,7 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 1,
-              "hidden_prompts": 1,
+              "hidden_prompts": 2,
               "locked": true,
               "character_moved": true
             },
@@ -6141,9 +6141,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 96.44,
-                "variance": 2609.52,
-                "distinct": 797,
+                "mean": 96.28,
+                "variance": 2589.24,
+                "distinct": 717,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -6182,7 +6182,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 2,
+              "hidden_billboards": 1,
               "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
@@ -6195,9 +6195,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 61.18,
-                "variance": 492.58,
-                "distinct": 557,
+                "mean": 59.25,
+                "variance": 488.16,
+                "distinct": 358,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -6239,9 +6239,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 38.76,
-                "variance": 1102.84,
-                "distinct": 301,
+                "mean": 38.4,
+                "variance": 1103.05,
+                "distinct": 311,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -6281,7 +6281,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 4,
-              "hidden_billboards": 8,
+              "hidden_billboards": 9,
               "hidden_prompts": 23,
               "locked": true,
               "character_moved": true
@@ -6294,9 +6294,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 58.35,
-                "variance": 410.14,
-                "distinct": 569,
+                "mean": 57.37,
+                "variance": 369.49,
+                "distinct": 531,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -6338,9 +6338,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 55.66,
-                "variance": 1602.12,
-                "distinct": 508,
+                "mean": 55.62,
+                "variance": 1608.06,
+                "distinct": 505,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -6386,9 +6386,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 49.85,
-                "variance": 1832.76,
-                "distinct": 390,
+                "mean": 49.86,
+                "variance": 1853.02,
+                "distinct": 420,
                 "samples": 5194,
                 "w": 844,
                 "h": 390
@@ -6414,8 +6414,8 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 4,
-              "hidden_billboards": 8,
-              "hidden_prompts": 22,
+              "hidden_billboards": 9,
+              "hidden_prompts": 23,
               "locked": true,
               "character_moved": true
             },
@@ -6426,9 +6426,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 177.0,
-                "variance": 647.23,
-                "distinct": 373,
+                "mean": 176.96,
+                "variance": 646.82,
+                "distinct": 369,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6450,17 +6450,17 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 1,
-              "hidden_prompts": 2,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
             "runtime_parts": {
               "unique_meshes": 93,
               "store_status": "Memory",
-              "slime_and_character_meshes": 38,
-              "parts": 2236,
+              "slime_and_character_meshes": 39,
+              "parts": 2253,
               "parade_lane": true,
-              "runtime_parts_transient": 521,
+              "runtime_parts_transient": 542,
               "runtime_parts": 2217,
               "slide_colliders": true,
               "mesh_slots": 391,
@@ -6470,9 +6470,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 88.63,
-                "variance": 879.41,
-                "distinct": 352,
+                "mean": 89.39,
+                "variance": 857.99,
+                "distinct": 342,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6502,9 +6502,9 @@
               "unique_meshes": 93,
               "store_status": "Memory",
               "slime_and_character_meshes": 39,
-              "parts": 2236,
+              "parts": 2253,
               "parade_lane": true,
-              "runtime_parts_transient": 545,
+              "runtime_parts_transient": 560,
               "runtime_parts": 2217,
               "slide_colliders": true,
               "mesh_slots": 391,
@@ -6514,9 +6514,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 89.75,
-                "variance": 866.4,
-                "distinct": 347,
+                "mean": 90.51,
+                "variance": 838.39,
+                "distinct": 346,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6545,9 +6545,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 89.42,
-                "variance": 1122.61,
-                "distinct": 442,
+                "mean": 91.82,
+                "variance": 1028.2,
+                "distinct": 416,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6576,9 +6576,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 91.69,
-                "variance": 1069.61,
-                "distinct": 429,
+                "mean": 89.55,
+                "variance": 1164.79,
+                "distinct": 447,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6615,9 +6615,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 46.74,
-                "variance": 739.04,
-                "distinct": 246,
+                "mean": 46.85,
+                "variance": 713.41,
+                "distinct": 242,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6655,9 +6655,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 46.4,
-                "variance": 589.75,
-                "distinct": 216,
+                "mean": 47.77,
+                "variance": 566.72,
+                "distinct": 205,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6695,9 +6695,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 49.44,
-                "variance": 697.33,
-                "distinct": 255,
+                "mean": 54.73,
+                "variance": 640.86,
+                "distinct": 253,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6735,9 +6735,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 56.27,
-                "variance": 590.64,
-                "distinct": 225,
+                "mean": 61.82,
+                "variance": 605.33,
+                "distinct": 243,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6780,9 +6780,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 64.91,
-                "variance": 580.59,
-                "distinct": 263,
+                "mean": 66.48,
+                "variance": 596.31,
+                "distinct": 257,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6809,9 +6809,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 142.75,
-                "variance": 1265.36,
-                "distinct": 530,
+                "mean": 140.29,
+                "variance": 1500.96,
+                "distinct": 538,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6848,8 +6848,8 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 66.57,
-                "variance": 577.99,
+                "mean": 67.09,
+                "variance": 589.93,
                 "distinct": 257,
                 "samples": 4400,
                 "w": 1920,
@@ -6880,9 +6880,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 140.9,
-                "variance": 1540.04,
-                "distinct": 531,
+                "mean": 141.98,
+                "variance": 1538.84,
+                "distinct": 542,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6929,9 +6929,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 160.05,
-                "variance": 1746.05,
-                "distinct": 673,
+                "mean": 162.48,
+                "variance": 1676.3,
+                "distinct": 708,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -6972,9 +6972,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 72.72,
-                "variance": 631.01,
-                "distinct": 315,
+                "mean": 73.29,
+                "variance": 636.95,
+                "distinct": 295,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7008,9 +7008,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 191.59,
-                "variance": 1293.35,
-                "distinct": 342,
+                "mean": 191.55,
+                "variance": 1287.75,
+                "distinct": 338,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7047,9 +7047,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 61.66,
-                "variance": 797.66,
-                "distinct": 330,
+                "mean": 70.06,
+                "variance": 649.59,
+                "distinct": 252,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7083,9 +7083,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 182.47,
-                "variance": 1434.55,
-                "distinct": 365,
+                "mean": 182.24,
+                "variance": 1421.79,
+                "distinct": 363,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7122,8 +7122,8 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 186.12,
-                "variance": 1117.77,
+                "mean": 186.1,
+                "variance": 1115.3,
                 "distinct": 239,
                 "samples": 5194,
                 "w": 390,
@@ -7170,37 +7170,19 @@
             },
             "fountain_walk": {
               "ok": false,
-              "worst_clearance": 0.32537994384765767,
+              "worst_clearance": 0.3766902268411556,
               "tiers": 19,
               "violations": [
-                "r=11.0 a=23 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=22 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=21 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=20 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=19 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=15 v=8 size=2 ball sank 0.07 below the top surface",
-                "r=11.0 a=14 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=13 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=12 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=9 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=8 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=6 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=5 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=4 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=3 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=2 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=1 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=11.0 a=0 v=8 size=2 ball sank 0.04 below the top surface",
-                "r=10.5 a=14 v=8 size=2 ball sank 0.03 below the top surface"
+                "r=12.0 a=12 v=8 size=2 ball sank 0.02 below the top surface"
               ],
               "samples": 2496
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 165.07,
-                "variance": 1179.89,
-                "distinct": 779,
+                "mean": 167.38,
+                "variance": 1168.4,
+                "distinct": 879,
                 "samples": 5194,
                 "w": 390,
                 "h": 844
@@ -7243,7 +7225,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 0,
+              "hidden_billboards": 1,
               "hidden_prompts": 0,
               "locked": true,
               "character_moved": true
@@ -7253,7 +7235,7 @@
               "cloned": false,
               "pad_top": 3.399993896484375,
               "gap": -1.1920928955078125e-07,
-              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_733efe6b-0d6f-445d-b21e-c469e4a49738",
+              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
               "pad": "Workspace.Plots.Plot_1.Pad_1"
             },
             "habitat": {
@@ -7261,7 +7243,7 @@
               "look_found": true,
               "now": "flower_bed",
               "slime_found": false,
-              "before": "hay_nest"
+              "before": "syrup_pool"
             },
             "clock": {
               "clock": 14,
@@ -7270,9 +7252,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 180.65,
-                "variance": 1688.06,
-                "distinct": 491,
+                "mean": 180.55,
+                "variance": 1691.89,
+                "distinct": 479,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7293,8 +7275,8 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 2,
-              "hidden_prompts": 1,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
               "locked": true,
               "character_moved": true
             },
@@ -7305,9 +7287,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 175.53,
-                "variance": 2026.87,
-                "distinct": 617,
+                "mean": 175.32,
+                "variance": 2022.06,
+                "distinct": 606,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7328,7 +7310,7 @@
               "camera_type": "Scriptable",
               "core_gui_hidden": true,
               "hidden_guis": 0,
-              "hidden_billboards": 1,
+              "hidden_billboards": 2,
               "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
@@ -7336,7 +7318,7 @@
             "fx_streaks": {
               "ok": true,
               "trails": 0,
-              "clock": 7.763055324554443,
+              "clock": 7.816944599151611,
               "max": 30,
               "bad": [],
               "beams": 1,
@@ -7349,9 +7331,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 82.55,
-                "variance": 3639.65,
-                "distinct": 241,
+                "mean": 82.26,
+                "variance": 3600.45,
+                "distinct": 245,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7373,7 +7355,7 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 1,
-              "hidden_prompts": 2,
+              "hidden_prompts": 1,
               "locked": true,
               "character_moved": true
             },
@@ -7384,7 +7366,7 @@
             "fx_streaks": {
               "ok": true,
               "trails": 0,
-              "clock": 7.908055782318115,
+              "clock": 7.962777614593506,
               "max": 30,
               "bad": [],
               "beams": 1,
@@ -7397,9 +7379,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 82.65,
-                "variance": 3645.89,
-                "distinct": 245,
+                "mean": 82.25,
+                "variance": 3600.81,
+                "distinct": 246,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7439,16 +7421,16 @@
               "core_gui_hidden": true,
               "hidden_guis": 0,
               "hidden_billboards": 1,
-              "hidden_prompts": 1,
+              "hidden_prompts": 2,
               "locked": true,
               "character_moved": true
             },
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 168.41,
-                "variance": 1785.15,
-                "distinct": 487,
+                "mean": 168.48,
+                "variance": 1804.65,
+                "distinct": 482,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7495,9 +7477,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 148.9,
-                "variance": 2901.03,
-                "distinct": 557,
+                "mean": 149.26,
+                "variance": 2922.0,
+                "distinct": 562,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7530,9 +7512,9 @@
             "frame": {
               "method": "mcp_screen_capture",
               "stats": {
-                "mean": 188.24,
-                "variance": 3600.88,
-                "distinct": 801,
+                "mean": 186.16,
+                "variance": 3555.85,
+                "distinct": 751,
                 "samples": 4400,
                 "w": 1920,
                 "h": 1080
@@ -7548,193 +7530,1423 @@
             "id": "v30-c3-ring-slimes",
             "todo": "v30 C3",
             "note": "v30 C3: wild slimes around the plaza's middle ring (landing-ring curbs) never stand inside it; luau/ring_slimes samples every wild slime for 4 s (a violation is a note on the step)",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Map.Plaza.LandingRing.Tile1",
+              "pos": [
+                0,
+                1.5724945068359375,
+                38.678009033203125
+              ],
+              "size": [
+                13.145004272460938,
+                3.1450042724609375,
+                10.270004272460938
+              ],
+              "front": [
+                8.742277657347586e-08,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 2,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "ring_slimes": {
+              "ok": true,
+              "violations": [],
+              "min_radius": 48.55969126708093,
+              "samples": 247,
+              "riding": 34,
+              "slimes": 16
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 168.84,
+                "variance": 1489.34,
+                "distinct": 926,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v30-c3-ring-slimes.jpg"
+            }
           },
           {
             "id": "31-v30-c5-fence-closeup-pc",
             "todo": "v30-c5",
             "note": "v30 C5: close-up of a plot's back fence from outside: planks join cleanly at posts, no overlap/flicker, rails continuous, no gaps [desktop]",
-            "skipped": "run budget"
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "clock": {
+              "clock": 14,
+              "pinned": 14
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 175.96,
+                "variance": 2638.95,
+                "distinct": 398,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-31-v30-c5-fence-closeup-pc.jpg"
+            }
           },
           {
             "id": "v30-c8-despawn-no-fade",
             "todo": "v30 C8",
             "note": "v30 C8: a slime inside its despawn window stays opaque (no blink, fade or highlight); only the countdown label and the shrink remain",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 2,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": false,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "despawn_fx": {
+              "ok": true,
+              "highlights": 0,
+              "countdown": true,
+              "samples": 25,
+              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
+              "faded": 0
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 147.29,
+                "variance": 1995.93,
+                "distinct": 826,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v30-c8-despawn-no-fade.jpg"
+            }
           },
           {
             "id": "v30-c9-wild-pace",
             "todo": "v30-c9",
             "note": "v30 C9: wild slimes walk the parade lane ~35% slower (Config.SLIME_MOVE_SPEED_MULT): luau/wild_pace measures a lane slime's horizontal displacement over 6 s against ParadeLane.walkSpeed(WILD_LIFETIME)",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Map.Volcano.SlideColliders.SlideFloor1",
+              "pos": [
+                -8.37596321105957,
+                33.28617477416992,
+                -2.0651912689208984
+              ],
+              "size": [
+                8.600000381469727,
+                4,
+                9.889062881469727
+              ],
+              "front": [
+                0.839248538017273,
+                0.24646374583244324,
+                0.48468297719955444
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "wild_pace": {
+              "ok": false,
+              "mult": 0.65,
+              "seconds": 6,
+              "slower_by": 0.38647342995169065,
+              "measured": 11.27480443318685,
+              "expected": 3.7563012057953085,
+              "old": 6.122475193697864
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 179.01,
+                "variance": 1121.04,
+                "distinct": 597,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v30-c9-wild-pace.jpg"
+            }
           },
           {
             "id": "22-border-terrain-along-before-pc",
             "todo": "border-terrain",
             "note": "border terrain: BEFORE frame, the thin side (same camera as 21-border-along-pc): capture on main (no terrain); open grass ends in a straight edge into the sky in [desktop]",
-            "skipped": "run budget"
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 3,
+              "locked": true,
+              "character_moved": true
+            },
+            "clock": {
+              "clock": 14,
+              "pinned": 14
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 191.56,
+                "variance": 1287.67,
+                "distinct": 340,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-22-border-terrain-along-before-pc.jpg"
+            }
           },
           {
             "id": "h1-anim-crystal_grotto-leave-mid",
             "todo": "v30 H1",
             "note": "v30 H1: slime left: crystal_grotto shrinking mid-leave, last props first",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": false,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "base",
+              "slime_found": false,
+              "before": "flower_bed"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 148.85,
+                "variance": 1979.9,
+                "distinct": 827,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-crystal_grotto-leave-mid.jpg"
+            }
           },
           {
             "id": "h1-anim-crystal_grotto-rise",
             "todo": "v30 H1",
             "note": "v30 H1: crystal_grotto habitat rising on the pad: props staggered with overshoot, pad tinted to the accent, sparkle puff",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": false,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "crystal_grotto",
+              "slime_found": false,
+              "before": "base"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 150.79,
+                "variance": 2026.36,
+                "distinct": 826,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-crystal_grotto-rise.jpg"
+            }
           },
           {
             "id": "h1-anim-crystal_grotto-settled",
             "todo": "v30 H1",
             "note": "v30 H1: crystal_grotto habitat settled after the rise = the static habitat",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": false,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "crystal_grotto",
+              "slime_found": false,
+              "before": "crystal_grotto"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 151.8,
+                "variance": 2029.07,
+                "distinct": 816,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-crystal_grotto-settled.jpg"
+            }
           },
           {
             "id": "h1-anim-flower_bed-back-to-base",
             "todo": "v30 H1",
             "note": "v30 H1: slime left: flower_bed folded away, exact uniform base pad back (same colour, no leftover parts)",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": false,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": false,
+              "now": "base",
+              "slime_found": false,
+              "before": "crystal_grotto"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 151.25,
+                "variance": 2011.15,
+                "distinct": 807,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-flower_bed-back-to-base.jpg"
+            }
           },
           {
             "id": "h1-anim-flower_bed-rise",
             "todo": "v30 H1",
             "note": "v30 H1: flower_bed habitat rising on the pad: props staggered with overshoot, pad tinted to the accent, sparkle puff",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": false,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "flower_bed",
+              "slime_found": false,
+              "before": "base"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 153.06,
+                "variance": 2063.5,
+                "distinct": 819,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-flower_bed-rise.jpg"
+            }
           },
           {
             "id": "h1-anim-flower_bed-settled",
             "todo": "v30 H1",
             "note": "v30 H1: flower_bed habitat settled after the rise = the static habitat",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": false,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "habitat": {
+              "ok": true,
+              "look_found": true,
+              "now": "flower_bed",
+              "slime_found": false,
+              "before": "flower_bed"
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 153.81,
+                "variance": 2072.15,
+                "distinct": 791,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-flower_bed-settled.jpg"
+            }
           },
           {
             "id": "v21-revenge-highlight",
             "todo": "v21 revenge",
             "note": "v21 Revenge (FEATURES.Revenge): the victim's client sees the thief's Plot_2 highlighted (RevengeHighlight on its Base, AlwaysOnTop; the client-only Player attribute RevengePlots=2 stands in for a robbery, the server marks the window for Config.REVENGE_SECONDS)",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Plots.Plot_2",
+              "pos": [
+                98.75389099121094,
+                8.5,
+                98.75389862060547
+              ],
+              "size": [
+                80.63645935058594,
+                17,
+                81.31826782226562
+              ],
+              "front": [
+                -0.7071075439453125,
+                0,
+                -0.7071075439453125
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 0,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "revenge": {
+              "ok": true,
+              "highlights": [
+                {
+                  "plot": 2,
+                  "always_on_top": true,
+                  "adornee": "Workspace.Plots.Plot_2.Base"
+                }
+              ],
+              "attr": "2",
+              "folder": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 165.7,
+                "variance": 1753.02,
+                "distinct": 532,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v21-revenge-highlight.jpg"
+            }
           },
           {
             "id": "22-border-terrain-along-after-pc",
             "todo": "border-terrain",
             "note": "border terrain: AFTER frame, same camera as the before: seeded Terrain hills (Grass/LeafyGrass/Rock) rise behind the border props, no straight edge into the sky in [desktop]",
-            "skipped": "run budget"
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "clock": {
+              "clock": 14,
+              "pinned": 14
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 191.55,
+                "variance": 1287.67,
+                "distinct": 346,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-22-border-terrain-along-after-pc.jpg"
+            }
           },
           {
             "id": "v17-pad-lock-style",
             "todo": "v17 pad lock style",
             "note": "v17: whole plot from high above: unlocked pads keep their colour, locked pads (5-8) are grey Slate; same square pad and red rectangle",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Plots.Plot_1.Pad_1",
+              "pos": [
+                -24,
+                2.1999969482421875,
+                142
+              ],
+              "size": [
+                8,
+                2.399993896484375,
+                8
+              ],
+              "front": [
+                0,
+                0,
+                1
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 0,
+              "locked": true,
+              "character_moved": true
+            },
+            "seat": {
+              "ok": true,
+              "cloned": false,
+              "pad_top": 3.399993896484375,
+              "gap": -1.1920928955078125e-07,
+              "slime": "Workspace.Plots.Plot_1.Slimes.Slime_839d8269-855f-4629-a40a-0e07588d27e0",
+              "pad": "Workspace.Plots.Plot_1.Pad_1"
+            },
+            "clock": {
+              "clock": 14,
+              "pinned": 14
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 180.21,
+                "variance": 1708.45,
+                "distinct": 505,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v17-pad-lock-style.jpg"
+            }
           },
           {
             "id": "22-border-terrain-aerial-pc",
             "todo": "border-v4",
             "note": "border v4: terrain aerial over the plaza toward the border: mountains layered behind the hills round the horizon; no glowing bar over the lower left (the tutorial arrow Beam + neon chevrons start beside the parked character next to the lens; shot_camera now hides them) in [desktop]",
-            "skipped": "run budget"
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 2,
+              "hidden_prompts": 2,
+              "locked": true,
+              "character_moved": true
+            },
+            "clock": {
+              "clock": 14,
+              "pinned": 14
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 172.52,
+                "variance": 432.41,
+                "distinct": 254,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-22-border-terrain-aerial-pc.jpg"
+            }
           },
           {
             "id": "23-dex-scrolled-row40",
             "todo": "v29-menus",
             "note": "v29 menus: SlimeDex with 60 faked discovered slimes, list scrolled to row 40: every visible row shows its live slime (previews virtualised, at most SlimePreview.MAX_LIVE mounted); the shot errors if row 40 has no live ViewportFrame. Header: tier counts, then reward line, no overlap",
-            "skipped": "run budget"
+            "dex_rows": {
+              "rows": 60,
+              "found": true
+            },
+            "open": {
+              "panel": "DexPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "scroll_row": {
+              "row_found": true,
+              "found": true,
+              "live": 18,
+              "canvas_y": 3052,
+              "row_live": true
+            },
+            "isolated": {
+              "changed": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 62.79,
+                "variance": 759.85,
+                "distinct": 419,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-23-dex-scrolled-row40.jpg"
+            },
+            "closed_by": "pcw_open_hook"
           },
           {
             "id": "v21-weekly-event",
             "todo": "v21-weekly",
             "note": "v21 weekly event rotation (FEATURES.WeeklyEvents): luau/weekly_event reads the replicated workspace attribute WeeklyEvent (current weekly mutation, active Saturday trait, next event) and fails the shot if it is missing or malformed; the frame is the idle HUD (the events board that draws it comes in the next PR)",
-            "skipped": "run budget"
+            "weekly_event": {
+              "ok": false,
+              "found": false,
+              "raw": "nil"
+            },
+            "error": "WeeklyEvent attribute missing or malformed: nil",
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 136.06,
+                "variance": 2275.56,
+                "distinct": 931,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v21-weekly-event.jpg"
+            }
           },
           {
             "id": "23-daily-popup",
             "todo": "v29-menus",
             "note": "v29 menus: the Daily reward popup open over the dimmed idle HUD; Esc / gamepad B closes it through MenuClose (tests/ui/MenuGaps.spec)",
-            "skipped": "run budget"
+            "daily_popup": {
+              "visible": true,
+              "found": true
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 73.73,
+                "variance": 1373.6,
+                "distinct": 497,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-23-daily-popup.jpg"
+            }
           },
           {
             "id": "23-border-v4-along-pc",
             "todo": "border-v4",
             "note": "border v4: along the edge at 20 studs: giant pines and oaks (existing tree meshes scaled up) stand on the terrain hills and tall rock-topped mountains layer behind them, no hard edge into the sky in [desktop]",
-            "skipped": "run budget"
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 4,
+              "hidden_billboards": 8,
+              "hidden_prompts": 23,
+              "locked": true,
+              "character_moved": true
+            },
+            "clock": {
+              "clock": 14,
+              "pinned": 14
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 192.82,
+                "variance": 1005.74,
+                "distinct": 397,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-23-border-v4-along-pc.jpg"
+            }
           },
           {
             "id": "v18-nav-badge-inset",
             "todo": "v18",
             "note": "v18: nav badges (SlimeDex % chip, ! and $) sit fully inside their button corner, not clipped or overlapping neighbours",
-            "skipped": "run budget"
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 178.88,
+                "variance": 3134.74,
+                "distinct": 465,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v18-nav-badge-inset.jpg"
+            }
           },
           {
             "id": "v18-solo-steal-skip",
             "todo": "v18",
             "note": "v18: guide NPC on a solo server; the Steal tutorial step now skips itself after TUTORIAL_STEAL_SKIP_SECONDS with nobody to steal from (tests/TutorialSolo.spec)",
-            "skipped": "run budget"
+            "target": {
+              "path": "Workspace.Map.TutorialNpc",
+              "pos": [
+                -83.27984619140625,
+                3.125,
+                -34.12599563598633
+              ],
+              "size": [
+                4.683011054992676,
+                6.25,
+                1.3000000715255737
+              ],
+              "front": [
+                0.9238795042037964,
+                0,
+                0.38268357515335083
+              ]
+            },
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 4,
+              "hidden_billboards": 8,
+              "hidden_prompts": 22,
+              "locked": true,
+              "character_moved": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 194.47,
+                "variance": 3061.56,
+                "distinct": 496,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v18-solo-steal-skip.jpg"
+            }
           },
           {
             "id": "23-border-v4-eye-pc",
             "todo": "border-v4",
             "note": "border v4: player eye (5 studs) looking out: hedges and fence, hills, a giant tree and the mountain ridge behind in [desktop]",
-            "skipped": "run budget"
+            "camera": {
+              "drift": 0,
+              "camera_type": "Scriptable",
+              "core_gui_hidden": true,
+              "hidden_guis": 0,
+              "hidden_billboards": 1,
+              "hidden_prompts": 1,
+              "locked": true,
+              "character_moved": true
+            },
+            "clock": {
+              "clock": 14,
+              "pinned": 14
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 194.63,
+                "variance": 1169.65,
+                "distinct": 370,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-23-border-v4-eye-pc.jpg"
+            }
           },
           {
             "id": "toast-queue",
             "todo": "toast-queue",
             "note": "Toast queue (v18): merged bursts ('(xN)'), steal/rare above routine, max 4 visible, hidden while a menu is open; shot shows the item toast top right under the HUD",
-            "skipped": "run budget"
+            "badge_toast": {
+              "name": "toast:Your egg hatched: Epic Blorp!",
+              "found": true
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 180.01,
+                "variance": 3459.13,
+                "distinct": 508,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-toast-queue.jpg"
+            }
           },
           {
             "id": "v20-welcome-back",
             "todo": "v20",
             "note": "v20 welcome-back card (FEATURES.WelcomeBack): content-sized card with the away time, offline cash, slimes grown, daily streak and next goal rows and one Collect button over the dimmed idle HUD (Studio fake via SlimeUI.PcwWelcome)",
-            "skipped": "run budget"
+            "welcome_back": {
+              "visible": true,
+              "found": true
+            },
+            "isolated": {
+              "changed": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 84.46,
+                "variance": 848.13,
+                "distinct": 204,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v20-welcome-back.jpg"
+            }
           },
           {
             "id": "v21-events-board",
             "todo": "v21-board",
             "note": "v21 server events board (FEATURES.EventsBoard): the idle HUD with the 'Server events' banner (weekly mutation, Saturday trait event, day/night modifier, next event). luau/events_board finds the EventsBoard banner on the client HUD and fails the shot if it is not visible or lists no event; the WeeklyEvent attribute check of the weekly-event shot also runs",
-            "skipped": "run budget"
+            "weekly_event": {
+              "ok": false,
+              "found": false,
+              "raw": "nil"
+            },
+            "error": "events board banner missing or empty: ['Label']",
+            "events_board": {
+              "ok": false,
+              "found": true,
+              "lines": [
+                "Label"
+              ],
+              "visible": false
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 180.68,
+                "variance": 3380.78,
+                "distinct": 496,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v21-events-board.jpg"
+            }
           },
           {
             "id": "next-spawn-chip",
             "todo": "v20-next-spawn",
             "note": "v20 HUD next-event chip: idle HUD with the 'Slime Rain in m:ss' / 'Boss Slime in m:ss' chip (workspace RainNextAt / BossNextAt server times) in the banner stack under the bar; it hides while a menu is open and while it rains",
-            "skipped": "run budget"
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 180.89,
+                "variance": 3363.69,
+                "distinct": 489,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-next-spawn-chip.jpg"
+            }
           },
           {
             "id": "v20-daily-streak-calendar",
             "todo": "v20-streak-calendar",
             "note": "v20: Daily popup with the 7-day streak calendar (reward tiles, ticks on claimed days, today highlighted, day 7 wider)",
-            "skipped": "run budget"
+            "daily_popup": {
+              "visible": true,
+              "found": true
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 94.56,
+                "variance": 1357.6,
+                "distinct": 274,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v20-daily-streak-calendar.jpg"
+            }
           },
           {
             "id": "v20-dex-milestone-bar",
             "todo": "v20 dex bars",
             "note": "v20: SlimeDex first row is the milestone card: reward icon, 'Next reward: n / target' bar, ticked claimed milestones",
-            "skipped": "run budget"
+            "open": {
+              "panel": "DexPanel",
+              "method": "pcw_open_hook",
+              "tried": [
+                {
+                  "path": "panel_visible",
+                  "result": {
+                    "visible": true,
+                    "found": true,
+                    "via": "pcw_open_hook"
+                  }
+                }
+              ]
+            },
+            "isolated": {
+              "changed": [],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 77.05,
+                "variance": 873.89,
+                "distinct": 228,
+                "samples": 4400,
+                "w": 1920,
+                "h": 1080
+              },
+              "size": [
+                1920,
+                1080
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v20-dex-milestone-bar.jpg"
+            },
+            "closed_by": "pcw_open_hook"
           },
           {
             "id": "ui-sweep-hud-toast-chip-phone-landscape",
             "todo": "ui-sweep",
             "note": "UI sweep: idle HUD + the next-spawn countdown chip (banner stack, fits the frame width) + an item toast below it on the right; banners, toasts and the HUD never overlap and all stay on screen [phone-landscape]",
-            "skipped": "run budget"
+            "viewport": [
+              844,
+              390
+            ],
+            "badge_toast": {
+              "name": "toast:Your egg hatched: Epic Blorp!",
+              "found": true
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 141.68,
+                "variance": 5476.82,
+                "distinct": 554,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-ui-sweep-hud-toast-chip-phone-landscape.jpg"
+            }
           },
           {
             "id": "ui-sweep-hud-toast-chip-phone-portrait",
             "todo": "ui-sweep",
             "note": "UI sweep: idle HUD + the next-spawn countdown chip (banner stack, fits the frame width) + an item toast below it on the right; banners, toasts and the HUD never overlap and all stay on screen [phone-portrait]",
-            "skipped": "run budget"
+            "viewport": [
+              390,
+              844
+            ],
+            "badge_toast": {
+              "name": "toast:Your egg hatched: Epic Blorp!",
+              "found": true
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 169.05,
+                "variance": 5019.16,
+                "distinct": 490,
+                "samples": 5194,
+                "w": 390,
+                "h": 844
+              },
+              "size": [
+                390,
+                844
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-ui-sweep-hud-toast-chip-phone-portrait.jpg"
+            }
           },
           {
             "id": "ui-sweep-toast-height-fit-phone-landscape",
             "todo": "ui-sweep",
             "note": "UI sweep: 844x390 with the HUD banner stack up (admin event + next-spawn chip + more) and toasts; the toast stack shows only as many toasts as fit the shrunken toast box, so it stays on screen and clear of the banners [phone-landscape]",
-            "skipped": "run budget"
+            "viewport": [
+              844,
+              390
+            ],
+            "badge_toast": {
+              "name": "toast:Your egg hatched: Epic Blorp!",
+              "found": true
+            },
+            "admin_event": {
+              "event": "luck",
+              "found": true
+            },
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 142.25,
+                "variance": 5446.65,
+                "distinct": 567,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-ui-sweep-toast-height-fit-phone-landscape.jpg"
+            }
           },
           {
             "id": "ui-perf-idle-hud",
             "todo": "v23-ui-perf-budget",
             "note": "v23 UI perf budget: idle HUD after the countdown chip went to whole-second rebuilds and the Toasts / Shop polling loops became demand-driven; frame must look identical (chip text, toasts, shop restock line)",
-            "skipped": "run budget"
+            "isolated": {
+              "changed": [
+                "TutorialOverlay"
+              ],
+              "gui": true
+            },
+            "frame": {
+              "method": "mcp_screen_capture",
+              "stats": {
+                "mean": 161.73,
+                "variance": 4676.42,
+                "distinct": 570,
+                "samples": 5194,
+                "w": 844,
+                "h": 390
+              },
+              "size": [
+                844,
+                390
+              ],
+              "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-ui-perf-idle-hud.jpg"
+            }
           }
         ],
         "fountain_walk_failed": true
@@ -7747,22 +8959,22 @@
     "budget": 400,
     "runtime_parts": 2217,
     "runtime_part_budget": 2230,
-    "frame_time_ms": 18.43,
-    "memory_mb": 3764.32,
+    "frame_time_ms": 18.65,
+    "memory_mb": 3758.91,
     "play": {
-      "play_mesh_parts": 88,
-      "memory_mb": 3764.32,
-      "p95_ms": 35.46,
-      "max_ms": 61.63,
-      "frames": 271,
-      "fps": 54.26,
-      "primitives": 2013,
-      "instance_count": 53000,
-      "play_parts": 2011,
-      "frame_time_ms": 18.43
+      "play_mesh_parts": 87,
+      "memory_mb": 3758.91,
+      "p95_ms": 36.68,
+      "max_ms": 61.3,
+      "frames": 268,
+      "fps": 53.61,
+      "primitives": 1972,
+      "instance_count": 52917,
+      "play_parts": 1970,
+      "frame_time_ms": 18.65
     },
     "parts": 2217,
-    "runtime_parts_transient": 292,
+    "runtime_parts_transient": 222,
     "triangles": null,
     "phone": {
       "phone-portrait": {
@@ -7773,11 +8985,11 @@
           "added": 20,
           "sources": 18
         },
-        "avg_ms": 16.67,
-        "p95_ms": 18.45,
-        "max_ms": 20.13,
-        "fps": 59.99,
-        "memory_mb": 3545.88,
+        "avg_ms": 16.66,
+        "p95_ms": 18.31,
+        "max_ms": 19.33,
+        "fps": 60.01,
+        "memory_mb": 3715.16,
         "animating": 3,
         "animating_at_start": 3,
         "slimes_near": 20,
@@ -7799,11 +9011,11 @@
           "added": 20,
           "sources": 17
         },
-        "avg_ms": 16.67,
-        "p95_ms": 18.43,
-        "max_ms": 19.35,
-        "fps": 59.97,
-        "memory_mb": 2376.19,
+        "avg_ms": 16.66,
+        "p95_ms": 18.18,
+        "max_ms": 19.13,
+        "fps": 60.01,
+        "memory_mb": 3738.96,
         "animating": 9,
         "animating_at_start": 9,
         "slimes_near": 20,
@@ -10437,259 +11649,419 @@
     },
     {
       "id": "shot-v30-c3-ring-slimes",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v30-c3-ring-slimes.jpg",
+      "status": "captured",
       "todo": "v30 C3",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Map.Plaza.LandingRing.Tile1"
     },
     {
       "id": "shot-31-v30-c5-fence-closeup-pc",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-31-v30-c5-fence-closeup-pc.jpg",
+      "status": "captured",
       "todo": "v30-c5",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": null
     },
     {
       "id": "shot-v30-c8-despawn-no-fade",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v30-c8-despawn-no-fade.jpg",
+      "status": "captured",
       "todo": "v30 C8",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Plots.Plot_1.Pad_1"
     },
     {
       "id": "shot-v30-c9-wild-pace",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v30-c9-wild-pace.jpg",
+      "status": "captured",
       "todo": "v30-c9",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Map.Volcano.SlideColliders.SlideFloor1"
     },
     {
       "id": "shot-22-border-terrain-along-before-pc",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-22-border-terrain-along-before-pc.jpg",
+      "status": "captured",
       "todo": "border-terrain",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": null
     },
     {
       "id": "shot-h1-anim-crystal_grotto-leave-mid",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-crystal_grotto-leave-mid.jpg",
+      "status": "captured",
       "todo": "v30 H1",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Plots.Plot_1.Pad_1"
     },
     {
       "id": "shot-h1-anim-crystal_grotto-rise",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-crystal_grotto-rise.jpg",
+      "status": "captured",
       "todo": "v30 H1",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Plots.Plot_1.Pad_1"
     },
     {
       "id": "shot-h1-anim-crystal_grotto-settled",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-crystal_grotto-settled.jpg",
+      "status": "captured",
       "todo": "v30 H1",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Plots.Plot_1.Pad_1"
     },
     {
       "id": "shot-h1-anim-flower_bed-back-to-base",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-flower_bed-back-to-base.jpg",
+      "status": "captured",
       "todo": "v30 H1",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Plots.Plot_1.Pad_1"
     },
     {
       "id": "shot-h1-anim-flower_bed-rise",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-flower_bed-rise.jpg",
+      "status": "captured",
       "todo": "v30 H1",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Plots.Plot_1.Pad_1"
     },
     {
       "id": "shot-h1-anim-flower_bed-settled",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-h1-anim-flower_bed-settled.jpg",
+      "status": "captured",
       "todo": "v30 H1",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Plots.Plot_1.Pad_1"
     },
     {
       "id": "shot-v21-revenge-highlight",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v21-revenge-highlight.jpg",
+      "status": "captured",
       "todo": "v21 revenge",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Plots.Plot_2"
     },
     {
       "id": "shot-22-border-terrain-along-after-pc",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-22-border-terrain-along-after-pc.jpg",
+      "status": "captured",
       "todo": "border-terrain",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": null
     },
     {
       "id": "shot-v17-pad-lock-style",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v17-pad-lock-style.jpg",
+      "status": "captured",
       "todo": "v17 pad lock style",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Plots.Plot_1.Pad_1"
     },
     {
       "id": "shot-22-border-terrain-aerial-pc",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-22-border-terrain-aerial-pc.jpg",
+      "status": "captured",
       "todo": "border-v4",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": null
     },
     {
       "id": "shot-23-dex-scrolled-row40",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-23-dex-scrolled-row40.jpg",
+      "status": "captured",
       "todo": "v29-menus",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": "pcw_open_hook"
     },
     {
       "id": "shot-v21-weekly-event",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v21-weekly-event.jpg",
+      "status": "captured",
       "todo": "v21-weekly",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-23-daily-popup",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-23-daily-popup.jpg",
+      "status": "captured",
       "todo": "v29-menus",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-23-border-v4-along-pc",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-23-border-v4-along-pc.jpg",
+      "status": "captured",
       "todo": "border-v4",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": null
     },
     {
       "id": "shot-v18-nav-badge-inset",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v18-nav-badge-inset.jpg",
+      "status": "captured",
       "todo": "v18",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-v18-solo-steal-skip",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v18-solo-steal-skip.jpg",
+      "status": "captured",
       "todo": "v18",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": "Workspace.Map.TutorialNpc"
     },
     {
       "id": "shot-23-border-v4-eye-pc",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-23-border-v4-eye-pc.jpg",
+      "status": "captured",
       "todo": "border-v4",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "target": null
     },
     {
       "id": "shot-toast-queue",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-toast-queue.jpg",
+      "status": "captured",
       "todo": "toast-queue",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-v20-welcome-back",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v20-welcome-back.jpg",
+      "status": "captured",
       "todo": "v20",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-v21-events-board",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v21-events-board.jpg",
+      "status": "captured",
       "todo": "v21-board",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-next-spawn-chip",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-next-spawn-chip.jpg",
+      "status": "captured",
       "todo": "v20-next-spawn",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-v20-daily-streak-calendar",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v20-daily-streak-calendar.jpg",
+      "status": "captured",
       "todo": "v20-streak-calendar",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-v20-dex-milestone-bar",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-v20-dex-milestone-bar.jpg",
+      "status": "captured",
       "todo": "v20 dex bars",
+      "method": "mcp_screen_capture",
+      "size": [
+        1920,
+        1080
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": "pcw_open_hook"
     },
     {
       "id": "shot-ui-sweep-hud-toast-chip-phone-landscape",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-ui-sweep-hud-toast-chip-phone-landscape.jpg",
+      "status": "captured",
       "todo": "ui-sweep",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-ui-sweep-hud-toast-chip-phone-portrait",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-ui-sweep-hud-toast-chip-phone-portrait.jpg",
+      "status": "captured",
       "todo": "ui-sweep",
+      "method": "mcp_screen_capture",
+      "size": [
+        390,
+        844
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-ui-sweep-toast-height-fit-phone-landscape",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-ui-sweep-toast-height-fit-phone-landscape.jpg",
+      "status": "captured",
       "todo": "ui-sweep",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     },
     {
       "id": "shot-ui-perf-idle-hud",
-      "file": null,
-      "status": "missing",
+      "file": "fcca55da90e75642dc223cce9c450dc5af1c521f-shot-ui-perf-idle-hud.jpg",
+      "status": "captured",
       "todo": "v23-ui-perf-budget",
+      "method": "mcp_screen_capture",
+      "size": [
+        844,
+        390
+      ],
       "kind": "shot",
-      "error": "run budget"
+      "open_method": null
     }
   ],
   "input_methods": {
@@ -10924,8 +12296,8 @@
   },
   "background": {
     "foreground_at_start": [
-      134394,
-      42444
+      135430,
+      496
     ],
     "focus_stolen": [],
     "mcp_input": false
@@ -10933,18 +12305,18 @@
   "watcher_version": "1.0.0",
   "close": {
     "status": "pass",
-    "seconds": 3.8,
+    "seconds": 3.7,
     "detail": {
-      "console_lines": 194,
+      "console_lines": 204,
       "console_errors": 0,
       "leftovers": [],
       "stray": [],
       "remaining": [],
       "closed": [
-        42840
+        34228
       ],
       "killed": [
-        42840
+        34228
       ]
     }
   },
