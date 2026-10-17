@@ -562,9 +562,13 @@ def write_json(path, data):
 
 
 class Lock:
-    """Exclusive lock file holding our pid; a lock whose pid is gone (or older than max_age) is stale."""
+    """Exclusive lock file holding our pid; a lock whose pid is gone (or older than max_age) is stale.
+    max_age only guards against pid reuse after a crash: it must stay well above the longest real run (a full run with
+    bug probes took ~26 min on Oct 17; the old 1800 s let a waiting perf run steal a live loop lock)."""
 
-    def __init__(self, path, max_age=1800):
+    LOCK_MAX_AGE_S = 7200
+
+    def __init__(self, path, max_age=LOCK_MAX_AGE_S):
         self.path, self.max_age, self.held = path, max_age, False
 
     def acquire(self):
