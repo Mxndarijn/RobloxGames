@@ -361,7 +361,7 @@ entries["giant_round_canopy"] =
 -- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17; ParadeView swaps the ParadeLane.strips() stand-ins for it
 -- once it loads (they stay only if it fails to load). size = out/slime_lane_pivot.json "size".
 entries["slime_lane"] =
-	{ assetId = 87473643950432, meshId = "rbxassetid://76219934756988", size = { 139.095, 0.43, 135.756 } }
+	{ assetId = 87473643950432, meshId = "rbxassetid://105422361986931", size = { 139.095, 0.43, 135.756 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)
