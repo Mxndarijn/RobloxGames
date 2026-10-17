@@ -9,6 +9,7 @@ local roblox = require("@lune/roblox")
 
 local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
+local MeshAssets = require("../src/shared/MeshAssets")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
 local VatDecor = require("../src/visuals/shared/VatDecor")
@@ -57,7 +58,7 @@ describe("plot vats wear the merge_vat model (bug #16)", function()
 			expect(e.vat:FindFirstChild("VatMesh") ~= nil).toBe(true)
 		end
 	end)
-	it("poses the mesh with VatDecor and keeps it visual-only", function()
+	it("poses the mesh with VatDecor; solid only as MeshAssets.COLLISION says (Hull, docs/COLLISION.md)", function()
 		for _, e in vats(ok) do
 			local mesh = e.vat:FindFirstChild("VatMesh")
 			local p = e.vat.CFrame.Position
@@ -67,7 +68,7 @@ describe("plot vats wear the merge_vat model (bug #16)", function()
 			expect(math.abs(mesh.CFrame.Position.Z - pose.position[3]) < 1e-3).toBe(true)
 			expect(math.abs(mesh.Size.Y - pose.size[2]) < 1e-3).toBe(true)
 			expect(mesh.Anchored).toBe(true)
-			expect(mesh.CanCollide).toBe(false)
+			expect(mesh.CanCollide).toBe(MeshAssets.collision("merge_vat") ~= nil)
 			expect(mesh.CanQuery).toBe(false)
 		end
 	end)
