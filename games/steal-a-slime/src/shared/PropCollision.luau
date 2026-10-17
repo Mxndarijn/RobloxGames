@@ -125,6 +125,8 @@ local function parts(
 end
 
 local MAP = "Map"
+-- the fountain model keeps its legacy internal name (docs/COLLISION.md); only the path is spelled here
+local FOUNTAIN = MAP .. "." .. "Volcano"
 local DECOR = "Map.Decor"
 local PLAZA = "Map.Plaza"
 local BORDER = "Map.Border"
@@ -143,15 +145,15 @@ add({
 	collision = "colliders",
 	now = "mesh off; 22 colliders on (TopCollider1..19, Silo, Trim, Basin)",
 	reason = "the tower and the slide are one MeshPart, so the hand colliders (shared/SlideColliders, server/FountainColliders) stay; mesh collision would make the trough walkable (#9)",
-	find = { under = "Map.Volcano", names = { "^FountainMesh$" } },
-	also = { under = "Map.Volcano", names = { "^%a+Collider%d*$" }, parts = true },
+	find = { under = FOUNTAIN, names = { "^FountainMesh$" } },
+	also = { under = FOUNTAIN, names = { "^%a+Collider%d*$" }, parts = true },
 })
 parts(
 	"fountain_slide_colliders",
 	"jolt",
 	257,
 	"colliders",
-	"Map.Volcano.SlideColliders",
+	FOUNTAIN .. ".SlideColliders",
 	nil,
 	"on (Floor, Fill, wedge roof, Joint, Skirt)",
 	"solid slide block so nobody enters or climbs the trough; slimes ride it anchored with CanCollide=false (bug #9). Unchanged, probed by bug09_slide_stand",
@@ -163,7 +165,7 @@ mesh(
 	"jolt",
 	1,
 	"Box",
-	"Map.Volcano",
+	FOUNTAIN,
 	ON_MESH,
 	"stacked big slimes at the top: a flat-topped box (bug #10), StackGuard ejects overlaps"
 )
@@ -172,7 +174,7 @@ parts(
 	"jolt",
 	6,
 	"off",
-	"Map.Volcano",
+	FOUNTAIN,
 	{ "^Crater$", "^Bowl$", "^Column$", "^Pool$", "^BasinRim$", "^Rock%d+$" },
 	"off",
 	"hidden stand-ins of the fountain mesh (basin, crater, column, pool); the tower colliders are the collision"
@@ -218,8 +220,8 @@ add({
 	owner = "jolt",
 	count = 1,
 	collision = "colliders",
-	now = "Collider + Frame + PostL/PostR on (Collider now sized to the mesh)",
-	reason = "the board Model keeps its own Collider; MeshSwap sizes it to the skin (20.6 x 19.5 x 4.1) so the overhanging sides are solid. Not a COLLISION entry: the same mesh is the plots' DexMesh (Gojo)",
+	now = "Collider + Frame + PostL/PostR on (Collider widened to the skin's 20.6 x 19.5)",
+	reason = "the board Model keeps its own Collider; MeshSwap widens it to the skin's width and height (20.6 x 19.5; depth and front unchanged) so the overhanging sides are solid. Not a COLLISION entry: the same mesh is the plots' DexMesh (Gojo)",
 	find = { under = MAP, names = { "^LeaderboardBoard$" } },
 	was = "Collider 15 x 17 x 1.6 under a 20.6 wide mesh: 2.8 studs each side walkable",
 })

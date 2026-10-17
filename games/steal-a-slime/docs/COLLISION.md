@@ -158,12 +158,12 @@ other prop's centre inside a solid). The play probe `tools/pipeline/pc-watcher/l
 same list: it walks an R15 dummy into each prop from +-X / +-Z and fails Jolt's (and already-collidable Gojo) props that the
 dummy ends inside or passes through. To add a prop, append an entry; neither the spec nor the probe needs an edit.
 
-What B9 found and changed on Jolt's half (all 92 Jolt kinds were walked through in the inventory; almost everything was already solid
+What B9 found and changed on Jolt's half (the 92 Jolt kinds were all reviewed; almost everything was already solid
 after #11 / #16 / #10):
 
 - **Top Earners board.** The Model's invisible `Collider` was 15 x 17 x 1.6 under a 20.6 x 19.5 x 4.1 skin (`phoenix_top_earners_board`),
-  so 2.8 studs on each side of the board were walkable. `MeshSwap.swap` now sizes and places the `Collider` of a skinned Model that
-  has one to the skin's box. The mesh stays out of `MeshAssets.COLLISION` because the same mesh is each plot's SlimeDex skin (Gojo's,
+  so 2.8 studs on each side of the board were walkable. `MeshSwap.swap` now widens the `Collider` of a skinned Model that
+  has one to the skin's width and height (depth and front stay, the skin is flush with them). The mesh stays out of `MeshAssets.COLLISION` because the same mesh is each plot's SlimeDex skin (Gojo's,
   stays decor).
 - **Trees, rocks, hills, hedges, fences of the border (72 pieces, 30 giant trees, the 30-tree ring):** all `CanCollide = false` and
   that is right: every piece sits behind the 48-block wall ring (`WorldBorder.RADIUS` 292, 80 studs tall, inner face at r 292; the

@@ -173,14 +173,15 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	if not target:IsA("Model") and target:GetAttribute("MeshTint") == true then
 		mesh.Color = target.Color
 	end
-	-- B9: a skinned Model whose solid is its own invisible "Collider" part (the Top Earners board) takes the skin's box, so
-	-- the skin's overhang is solid too (the hand collider was 15 wide under a 20.6 wide mesh). A mesh that has a fidelity
-	-- is the collider itself.
+	-- B9: a skinned Model whose solid is its own invisible "Collider" part (the Top Earners board) widens that part to the
+	-- skin's width and height, keeping its depth and front (the hand collider was 15 wide under a 20.6 wide mesh). A mesh
+	-- that has a fidelity is the collider itself.
 	if fixed and fidelity == nil then
 		local collider = target:FindFirstChild("Collider")
 		if collider and collider:IsA("BasePart") then
-			collider.Size = fixed
-			collider.CFrame = cf
+			local offset = collider.CFrame:PointToObjectSpace(cf.Position)
+			collider.Size = Vector3.new(fixed.X, fixed.Y, collider.Size.Z)
+			collider.CFrame = collider.CFrame * CFrame.new(offset.X, offset.Y, 0)
 		end
 	end
 	mesh.Anchored = true

@@ -287,12 +287,15 @@ describe("PropCollision against the booted world", function()
 			)
 		end
 	end
-	it("keeps the Top Earners board's Collider the size of its skin", function()
+	it("keeps the Top Earners board's Collider as wide and tall as its skin, depth and front unchanged", function()
 		local board = rt.workspace.Map.LeaderboardBoard
 		local mesh, collider = board:FindFirstChild("Mesh"), board:FindFirstChild("Collider")
 		expect(mesh ~= nil and collider ~= nil).toBe(true)
-		expect((collider.Size - mesh.Size).Magnitude < 0.01).toBe(true)
-		expect((collider.CFrame.Position - mesh.CFrame.Position).Magnitude < 0.01).toBe(true)
+		expect(math.abs(collider.Size.X - mesh.Size.X) < 0.01).toBe(true)
+		expect(math.abs(collider.Size.Y - mesh.Size.Y) < 0.01).toBe(true)
+		expect(math.abs(collider.Size.Z - 1.6) < 0.01).toBe(true) -- Props.leaderboardBoard's depth: the skin's front stays flush with it
+		local c = collider.CFrame:PointToObjectSpace(mesh.CFrame.Position)
+		expect(math.abs(c.X) < 0.01 and math.abs(c.Y) < 0.01).toBe(true)
 		expect(collider.CanCollide).toBe(true)
 	end)
 	it("keeps the fountain tower's 22 colliders and the slide's colliders as they were", function()
