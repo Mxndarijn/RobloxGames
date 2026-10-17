@@ -2,7 +2,7 @@
   "id": "v17-shop-sign-night",
   "todo": "v17 visual fixes",
   "kind": "world",
-  "target": "ShopStand",
+  "target": "ItemShopStand",
   "from": "centre",
   "dist": 22,
   "height": 8,
