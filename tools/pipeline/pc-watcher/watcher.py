@@ -2852,7 +2852,67 @@ def cmd_perf(paths, cfg, sha, extras, seconds, sync, wait_lock_s, phone, dry, qu
         rep_extra = {"qualities": qualities, "extras_requested": dict(opts)}
 
         def flush(final=False):
-            rep = flush(final=True)
+            """Rewrites <sha>-perf.json/.md (status "partial" until final)."""
+            extra = dict(rep_extra, settle=settle,
+                         variants_frames=[f for f in (v.get("frame") for v in variants) if f])
+            rep = perf_build_report(sha, run.studio_version, seconds, variants, phone_rec, run.notes,
+                                    round(time.time() - run.t0, 1), error, pc_info, partial=not final, extra=extra)
+            perf_write(run.outdir, sha, rep)
+            return rep
+
+        try:
+            step_build(run)
+            if dry:
+                raise StepFail("dry-run: build only")
+            step_launch(run)
+            start_play(run)
+            play_t0 = time.time()
+            hwnd = run.hwnd or (run.desktop().main_window(tracked_pids(paths)) or {}).get("hwnd")
+            if hwnd:
+                vp, _ = converge_viewport(run, hwnd, PERF_VIEWPORT)
+                run.note("viewport %dx%d (wanted %dx%d)" % (vp[0], vp[1], PERF_VIEWPORT[0], PERF_VIEWPORT[1]))
+            else:
+                run.note("no Studio window found: viewport left as is")
+            if phone:
+                try:
+                    phone_pre = perf_phone_skills(run)
+                except Exception as e:
+                    phone_pre = ({"skills_fetched": [], "skill_errors": {"all": repr(e)[:200]}}, {})
+            # boot-time window (first quality only), then wait for BorderTerrain + settle before the priority variants
+            early = {"label": "base-early", "extra_target": 0, "stress": None}
+            variants.append(early)
+            perf_measure(run, early, seconds, qualities[:1], flush)
+            settle = perf_terrain_wait(run, play_t0)
+            flush()
+            for n in extras:
+                perf_variant(run, n, seconds, qualities, variants, flush)
+            if any(opts.get(k) for k in ("meshparts", "unique_meshes", "terrain_off")):
+                perf_extras(run, opts, seconds, qualities, variants, flush)
+            try:
+                run.luau("perf_clean", "Server", 60)
+            except Exception as e:
+                run.note("perf clone cleanup failed: %r" % (e,))
+            if phone:
+                phone_rec = perf_phone(run, seconds, phone_pre)
+        except StudioBusy as e:
+            error = "studio busy: %s" % e
+        except StepFail as e:
+            error = str(e)
+        except Exception as e:
+            error = "%r" % (e,)
+            log.error("perf: %s", traceback.format_exc()[-1500:])
+        finally:
+            if not dry:
+                try:
+                    perf_set_quality(run, 0)  # restore the original quality settings (no-op if play is gone)
+                except Exception:
+                    pass
+                try:
+                    step_close(run)
+                except Exception:
+                    log.exception("close")
+            run.close()
+        rep = flush(final=True)
         log.info("perf report %s: %s (%ss)", run.outdir, rep["status"], rep["duration_s"])
         if sync and cfg["sync"] and not dry and rep["status"] == "measured":
             try:
@@ -3122,5 +3182,16 @@ def main(argv=None):
     return 2
 
 
+def _main_logged(argv=None):
+    """pythonw has no stderr: log any crash before exiting (a silent perf crash once released run.lock unnoticed)."""
+    try:
+        return main(argv)
+    except SystemExit:
+        raise
+    except Exception:
+        log.exception("watcher crashed")
+        raise
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(_main_logged())
