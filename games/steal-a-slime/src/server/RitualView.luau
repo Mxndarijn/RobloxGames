@@ -128,6 +128,26 @@ function RitualView.setup(): Model?
 	title = textLabel("Title", gui, 0, 0.5, 26)
 	line = textLabel("Line", gui, 0.5, 0.5, 22)
 
+	-- One small board at the circle edge, facing the plaza, that explains the rule (text from Config).
+	local sx, sz = Ritual.signSpot()
+	local board = Instance.new("Part")
+	board.Name = "RuleSign"
+	board.Size = Vector3.new(6, 1.8, 0.3)
+	-- lookAt points the front (-Z) face at the fountain axis
+	board.CFrame = CFrame.lookAt(Vector3.new(sx, 1, sz), Vector3.new(0, 1, 0))
+	decor(board, Color3.fromRGB(60, 40, 110), Enum.Material.SmoothPlastic)
+	board.Parent = model
+	local face = Instance.new("SurfaceGui")
+	face.Name = "RuleText"
+	face.Face = Enum.NormalId.Front
+	face.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	face.PixelsPerStud = 50
+	face.LightInfluence = 0
+	face.Parent = board
+	local rule = textLabel("Rule", face, 0, 1, 20)
+	rule.TextWrapped = true
+	rule.Text = Ritual.signText()
+
 	model:SetAttribute("Phase", "Idle")
 	model.Parent = parent
 	built = model

@@ -206,4 +206,30 @@ function Ritual.label(state: State, now: number): (string, string)
 	return "Slime Ritual", `{state.count}/{r.MIN_PLAYERS} players`
 end
 
+-- Where the explanation sign stands (x, z): on the circle's edge on the plaza side (toward the fountain axis),
+-- a few studs off to the side so it doesn't hide the near pad from the plaza.
+function Ritual.signSpot(): (number, number)
+	local cx, cz = Ritual.centre()
+	local d = math.sqrt(cx * cx + cz * cz)
+	local off, side = Config.RITUAL.CIRCLE_RADIUS + 0.5, 4
+	local ux, uz = cx / d, cz / d
+	return cx - ux * off + uz * side, cz - uz * off - ux * side
+end
+
+local function duration(seconds: number): string
+	if seconds % 60 == 0 then
+		return `{seconds // 60} min`
+	end
+	return `{seconds}s`
+end
+
+-- The explanation sign, generated from Config so it can't drift from the rules.
+function Ritual.signText(): string
+	local r = Config.RITUAL
+	local percent = math.floor((r.BONUS[r.MIN_PLAYERS] or 0) * 100 + 0.5)
+	return `Slime Ritual: {r.MIN_PLAYERS} players stand here {r.HOLD_SECONDS}s = +{percent}% income for {duration(
+		r.BLESS_SECONDS
+	)}`
+end
+
 return table.freeze(Ritual)

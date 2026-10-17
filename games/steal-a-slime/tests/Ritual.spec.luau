@@ -94,6 +94,11 @@ describe("Ritual.step", function()
 		expect(state.blessed[11].untilAt).toBe(T0 + R.HOLD_SECONDS + R.BLESS_SECONDS)
 	end)
 
+	it("pays +30% for the two-player ritual", function()
+		expect(R.BONUS[2]).toBe(0.3)
+		expect(Ritual.bonus(2)).toBe(0.3)
+	end)
+
 	it("has one pad per required player, so bonus tiers above that are capped", function()
 		expect(R.SPOTS).toBe(R.MIN_PLAYERS)
 		expect(#Ritual.spots()).toBe(R.MIN_PLAYERS)
@@ -197,7 +202,7 @@ describe("RitualService.step", function()
 		expect(done).toBeTruthy()
 		expect(sessions[2].data.ritualBonus).toBe(R.BONUS[2])
 		expect(sessions[4].data.ritualBonus).toBeNil()
-		expect(PlayerData.incomePerSecond(sessions[1].data) > before * 1.14).toBeTruthy()
+		expect(PlayerData.incomePerSecond(sessions[1].data) > before * 1.29).toBeTruthy()
 		local pays = 0
 		for _, event in ServerFixtures.world and require("../src/server/World").drain(world) do
 			if event.type == "Notify" and event.userId == 1 then
@@ -253,7 +258,7 @@ describe("RitualService.step", function()
 			Income.step(world, 5)
 		end
 		local gain, plainGain = sessions[1].data.cash - base1, plain.data.cash - basePlain
-		expect(gain > plainGain * 1.14).toBeTruthy()
+		expect(gain > plainGain * 1.29).toBeTruthy()
 	end)
 end)
 
@@ -316,6 +321,17 @@ describe("ritual circle placement", function()
 				expect(across > 6 + reach).toBeTruthy()
 			end
 		end
+	end)
+
+	it("generates the sign text from Config and keeps the sign at the plaza edge, off the lane", function()
+		local text = Ritual.signText()
+		expect(text:find(`{R.MIN_PLAYERS} players`, 1, true) ~= nil).toBe(true)
+		expect(text:find(`{R.HOLD_SECONDS}s`, 1, true) ~= nil).toBe(true)
+		expect(text:find(`+{math.floor(R.BONUS[R.MIN_PLAYERS] * 100 + 0.5)}%`, 1, true) ~= nil).toBe(true)
+		expect(text:find(`{R.BLESS_SECONDS // 60} min`, 1, true) ~= nil).toBe(true)
+		local sx, sz = Ritual.signSpot()
+		expect(dist(sx, sz, cx, cz) <= reach + margin).toBe(true) -- inside the clearance already tested
+		expect(dist(sx, sz, 0, 0) < dist(cx, cz, 0, 0)).toBe(true) -- on the plaza side
 	end)
 
 	it("has one pad per required player, evenly spaced (RitualView builds one part per Ritual.spots entry)", function()

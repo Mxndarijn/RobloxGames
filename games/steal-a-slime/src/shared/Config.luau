@@ -944,7 +944,7 @@ local Config = {
 		SERVER_COOLDOWN = 240, -- seconds the circle rests after a ritual
 		PLAYER_COOLDOWN = 600, -- seconds before the same player can count again
 		BLESS_SECONDS = 180,
-		BONUS = table.freeze({ [2] = 0.15, [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants; tiers above SPOTS stay as data but can't be reached (Ritual.bonus caps at SPOTS)
+		BONUS = table.freeze({ [2] = 0.3, [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants; tiers above SPOTS stay as data but can't be reached (Ritual.bonus caps at SPOTS)
 	}),
 
 	-- Follow-pet passives (FEATURES.PetPassives, CONTRACT.md §14). The kind comes from the favourite slime's tier;
