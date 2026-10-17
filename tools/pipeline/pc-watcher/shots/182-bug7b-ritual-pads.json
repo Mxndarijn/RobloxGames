@@ -1,0 +1,10 @@
+{
+  "id": "bug7b-ritual-pads",
+  "todo": "bug 7",
+  "kind": "world",
+  "target": "RitualCircle",
+  "from": "look",
+  "dist": 22,
+  "height": 14,
+  "note": "bug #7 follow-up: the ritual circle shows exactly 2 stand pads (Config.RITUAL.SPOTS = MIN_PLAYERS), evenly spaced on the disc"
+}
