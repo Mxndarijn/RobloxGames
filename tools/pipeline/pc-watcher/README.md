@@ -122,8 +122,8 @@ The PC cannot see the box, so each loop tick runs `git fetch origin studio-repor
 
 1. The newest requested sha among the newest `full_request_depth` (8) first-parent commits of main that has no full report: **full** ("candidate request"). `last-sha.json` is left alone for an older sha.
 2. Tip differs from `last-sha.json`: wait `candidate_wait_s` (150 s) from when the tip was first seen (`state\tip-seen.json`) in case a request arrives, then **partial** ("new tip"). With `"partial_runs": false` in `config.json` it is a full run at once.
-3. Tip unchanged, no full report for it, and the last run ended `full_idle_s` (900 s) ago: **full** ("idle tip without full report").
-4. Otherwise nothing.
+3. Scheduled full of the main tip at `full_schedule` (default 11:15 and 18:15 PC local time, Europe/Amsterdam), so a reviewed full run exists before SuperBottie's 12:00 / 19:00 release checks: **full** ("scheduled full <date time>"). Code order: it is checked after requests and before rules 2 and 4. A tip that already has a full report satisfies the slot; a slot missed by more than `full_schedule_grace_s` (3 h, e.g. PC off) is skipped. The last handled slot is kept in `state\schedule-done.json`.
+4. Otherwise nothing: there is no idle full run (small changes get partial runs only).
 
 **Which paths need what.** The partial base is the sha of the last full run (`state\last-full.json`). No base, a base that
 is not an ancestor, or a failing `git diff` upgrades the run to full. Otherwise `plan_run` maps `git diff --name-only base sha`

@@ -80,7 +80,8 @@ DEFAULTS = {
     "sync": True,
     "partial_runs": True,  # False = every new tip gets a full run (the old behaviour)
     "candidate_wait_s": 150,  # a new tip waits this long for a publish candidate request before a partial run
-    "full_idle_s": 900,  # a tip that stays main this long without a full report gets one
+    "full_schedule": ["11:15", "18:15"],  # local HH:MM (PC clock, Europe/Amsterdam): full run of the main tip
+    "full_schedule_grace_s": 10800,  # a slot missed by more than this (PC off, loop restarted late) is skipped
     "full_request_depth": 8,  # a candidate request counts when its sha is among the newest N main commits
     "partial_max_files": 60,  # more changed files than this = full run
 }
@@ -438,20 +439,41 @@ def plan_run(changed_paths, shots, shot_map, max_files):
     return plan
 
 
-def choose_work(tip, last_sha, last_at, requests, full_done, order, now, cfg, tip_seen_at):
+def due_schedule_slot(now_ts, schedule, done_slot, grace_s=10800):
+    """Key ("YYYY-MM-DD HH:MM", local time) of the most recent schedule slot <= now (today or yesterday),
+    or None when there is no schedule, that slot is already done, or it was missed by more than grace_s."""
+    best = None
+    for hhmm in schedule or []:
+        try:
+            h, m = (int(x) for x in str(hhmm).split(":"))
+        except ValueError:
+            continue
+        for back in (0, 1):
+            d = datetime.datetime.fromtimestamp(now_ts) - datetime.timedelta(days=back)
+            slot = d.replace(hour=h, minute=m, second=0, microsecond=0)
+            if slot.timestamp() <= now_ts and (best is None or slot > best):
+                best = slot
+    if best is None or now_ts - best.timestamp() > grace_s:
+        return None
+    key = best.strftime("%Y-%m-%d %H:%M")
+    return None if key == done_slot else key
+
+
+def choose_work(tip, last_sha, last_at, requests, full_done, order, now, cfg, tip_seen_at, sched_slot=None):
     """What the loop does next: (kind|None, sha|None, reason). kind is "full" or "partial".
-    requests = shas publish.sh asked a full run for; order = main first-parent shas, newest first."""
+    requests = shas publish.sh asked a full run for; order = main first-parent shas, newest first.
+    sched_slot = the due schedule slot key (see due_schedule_slot) or None."""
     for sha in list(order)[:cfg["full_request_depth"]]:
         if sha in requests and sha not in full_done:
             return "full", sha, "candidate request"
+    if sched_slot and tip not in full_done:
+        return "full", tip, "scheduled full " + sched_slot
     if tip != last_sha:
         if not cfg["partial_runs"]:
             return "full", tip, "new tip (partial runs off)"
         if now - tip_seen_at < cfg["candidate_wait_s"]:
             return None, None, "waiting for candidate signal"
         return "partial", tip, "new tip"
-    if tip not in full_done and now - last_at >= cfg["full_idle_s"]:
-        return "full", tip, "idle tip without full report"
     return None, None, "nothing to do"
 
 
@@ -3130,7 +3152,8 @@ def cmd_loop(paths, cfg, dry):
     if not loop_lock.acquire():
         log.error("a watcher loop is already running (%s)", loop_lock.path)
         return 3
-    log.info("loop: polling %s/%s every %ss (partial_runs %s)", cfg["remote"], cfg["branch"], cfg["poll_s"], cfg["partial_runs"])
+    log.info("loop: polling %s/%s every %ss (partial_runs %s, full_schedule %s)",
+             cfg["remote"], cfg["branch"], cfg["poll_s"], cfg["partial_runs"], cfg.get("full_schedule"))
     busy_until = 0
     loop_t0 = time.time()
     attempted = {}  # sha -> time of the last full attempt (a failed run that never synced must not spin)
@@ -3150,8 +3173,15 @@ def cmd_loop(paths, cfg, dry):
                 full_done = set(read_json(paths.st("full-done.json"), []) or []) | remote_full
                 full_done |= {k for k, t in attempted.items() if now - t < 1800}
                 order = recent_main(paths, cfg) if requests - full_done else []
+                sched_slot = due_schedule_slot(now, cfg.get("full_schedule"),
+                                               (read_json(paths.st("schedule-done.json"), {}) or {}).get("slot"),
+                                               cfg.get("full_schedule_grace_s", 10800))
+                if sched_slot and tip in full_done and not dry:  # the tip already has a full report: slot satisfied
+                    write_json(paths.st("schedule-done.json"), {"slot": sched_slot, "sha": tip, "at": utc_now()})
+                    log.info("loop: schedule slot %s satisfied (tip %s already has a full report)", sched_slot, tip[:12])
+                    sched_slot = None
                 kind, sha, why = choose_work(tip, last.get("sha"), last.get("ts", loop_t0), requests, full_done, order,
-                                             now, cfg, seen.get("at", now))
+                                             now, cfg, seen.get("at", now), sched_slot)
                 if kind is None:
                     log.info("loop: %s (tip %s)", why, tip[:12])
                 elif now < busy_until:
@@ -3167,6 +3197,9 @@ def cmd_loop(paths, cfg, dry):
                     else:
                         if kind == "full":
                             attempted[sha] = now
+                        if sched_slot and why.startswith("scheduled full") and not dry:
+                            write_json(paths.st("schedule-done.json"), {"slot": sched_slot, "sha": sha, "at": utc_now()})
+                            log.info("loop: schedule slot %s done (full run of %s)", sched_slot, sha[:12])
                         if not dry and sha == tip:  # a full run of an older requested sha leaves last-sha alone
                             write_json(paths.st("last-sha.json"), {"sha": sha, "at": utc_now(), "ts": time.time()})
             except Exception:

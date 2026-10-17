@@ -593,8 +593,26 @@ def t_partial():
     check("work: waits for candidate signal", cw(t, l, 0, set(), set(), [t], 1100, cfg, 1000) == (None, None, "waiting for candidate signal"))
     check("work: partial after wait", cw(t, l, 0, set(), set(), [t], 1000 + cfg["candidate_wait_s"], cfg, 1000)[:2] == ("partial", t))
     check("work: partial_runs off -> full", cw(t, l, 0, set(), set(), [t], 1001, dict(cfg, partial_runs=False), 1000)[:2] == ("full", t))
-    check("work: idle tip -> full", cw(t, t, 0, set(), set(), [t], cfg["full_idle_s"], cfg, 0)[:2] == ("full", t)
-          and cw(t, t, 0, set(), {t}, [t], 10 ** 6, cfg, 0)[0] is None and cw(t, t, 100, set(), set(), [t], 200, cfg, 0)[0] is None)
+    check("work: unchanged tip, no schedule slot -> nothing", cw(t, t, 0, set(), set(), [t], 10 ** 6, cfg, 0)[0] is None
+          and "full_idle_s" not in cfg)
+    slot = "2026-10-18 11:15"
+    w = cw(t, t, 0, set(), set(), [t], 5, cfg, 0, slot)
+    check("work: due slot, tip not in full_done -> scheduled full", w[:2] == ("full", t) and w[2].startswith("scheduled full"), w)
+    check("work: due slot, tip in full_done -> not full", cw(t, t, 0, set(), {t}, [t], 5, cfg, 0, slot)[0] is None)
+    check("work: request beats schedule", cw(t, t, 0, {r1}, set(), [t, r1], 5, cfg, 0, slot) == ("full", r1, "candidate request"))
+
+    def lts(*a):
+        return time.mktime(time.struct_time((a[0], a[1], a[2], a[3], a[4], 0, 0, 0, -1)))
+    ds = watcher.due_schedule_slot
+    sch = ["11:15", "18:15"]
+    check("schedule: 11:20 -> today 11:15", ds(lts(2026, 10, 18, 11, 20), sch, None) == "2026-10-18 11:15")
+    check("schedule: done slot -> None", ds(lts(2026, 10, 18, 11, 20), sch, "2026-10-18 11:15") is None)
+    check("schedule: 09:00 -> yesterday 18:15 skipped (missed > grace)", ds(lts(2026, 10, 18, 9, 0), sch, None) is None)
+    check("schedule: 09:00, grace 16 h -> yesterday 18:15", ds(lts(2026, 10, 18, 9, 0), sch, None, 16 * 3600) == "2026-10-17 18:15")
+    check("schedule: 21:00 (2h45 late) -> today 18:15", ds(lts(2026, 10, 18, 21, 0), sch, None) == "2026-10-18 18:15")
+    check("schedule: 22:30 (restart late) -> None", ds(lts(2026, 10, 18, 22, 30), sch, None) is None)
+    check("schedule: 18:15 exactly -> today 18:15", ds(lts(2026, 10, 18, 18, 15), sch, None) == "2026-10-18 18:15")
+    check("schedule: empty -> None", ds(lts(2026, 10, 18, 18, 15), [], None) is None)
 
     ok = {k: {"status": "pass"} for k in watcher.HARD_STEPS}
     part = {"status": "skip", "detail": {"partial": True}}
