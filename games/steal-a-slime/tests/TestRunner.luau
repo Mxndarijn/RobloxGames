@@ -4,10 +4,27 @@
 
 type Test = { name: string, fn: () -> () }
 
+local process = require("@lune/process")
+
+local ForcedFlags = require("./ForcedFlags")
+
 local TestRunner = {}
 
 local tests: { Test } = {}
 local prefix: { string } = {}
+
+-- scripts/test-flags forces every Config.FEATURES flag ("on" / "off") through this env var; nil = shipped defaults.
+local forced = process.env.SLIME_FORCE_FEATURES
+local skips: { [string]: string } = if forced == "on"
+	then ForcedFlags.on
+	elseif forced == "off" then ForcedFlags.off
+	else {}
+local skipped = 0
+
+-- Tests listed in tests/ForcedFlags for the forced mode are not run (counted and printed as SKIP).
+local function skipReason(name: string): string?
+	return skips[name] or skips[string.match(name, "^(.-) > ") or name]
+end
 
 function TestRunner.describe(name: string, body: () -> ())
 	table.insert(prefix, name)
@@ -18,7 +35,14 @@ end
 function TestRunner.it(name: string, fn: () -> ())
 	local path = table.clone(prefix)
 	table.insert(path, name)
-	table.insert(tests, { name = table.concat(path, " > "), fn = fn })
+	local full = table.concat(path, " > ")
+	local reason = skipReason(full)
+	if reason then
+		skipped += 1
+		print(`  SKIP  {full} (FEATURES forced {forced}; needs {reason})`)
+		return
+	end
+	table.insert(tests, { name = full, fn = fn })
 end
 
 local function fmt(value: any): string
@@ -106,7 +130,10 @@ function TestRunner.run(): number
 			print(`  FAIL  {test.name}\n        {err}`)
 		end
 	end
-	print(`\n{passed} passed, {failed} failed, {passed + failed} total`)
+	print(
+		`\n{passed} passed, {failed} failed, {passed + failed} total`
+			.. if skipped > 0 then `, {skipped} skipped (forced {forced})` else ""
+	)
 	table.clear(tests)
 	return failed
 end
