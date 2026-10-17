@@ -388,7 +388,8 @@ if IN_ROBLOX then
 	end
 
 	-- One Blockcast from each side of `part` (a part of volume `v`, centre at CFrame, ground at ORIGIN.Y).
-	local function castAll(part, v, passUnder: boolean?): string?
+	local function castAll(part, v, fidelity: string): string?
+		local passUnder = fidelity == "PreciseConvexDecomposition"
 		local ground = ORIGIN.Y
 		local include = RaycastParams.new()
 		include.FilterType = Enum.RaycastFilterType.Include
@@ -414,13 +415,35 @@ if IN_ROBLOX then
 				return `{side.name}: the box walked through (hit {hit and hit.Instance and hit.Instance.Name or "nothing"})`
 			end
 			if hit and hit.Instance == part then
-				local centre = start + dir * hit.Distance
-				local found = workspace:GetPartBoundsInBox(CFrame.new(centre), Vector3.new(0.1, 0.1, 0.1), overlap)
-				if #found > 0 then
-					return `{side.name}: the box centre is inside the part at the hit (distance {string.format(
-						"%.2f",
-						hit.Distance
-					)})`
+				-- the real collision shape (not the bounding box): a probe the box size, shrunk so face contact is no overlap
+				local probe = Instance.new("Part")
+				probe.Anchored = true
+				probe.CanCollide = false
+				probe.CanQuery = true
+				probe.CanTouch = false
+				probe.Transparency = 1
+				probe.Size = Vector3.new(CHAR_HALF_WIDTH * 2, 5, CHAR_HALF_DEPTH * 2) * 0.9
+				probe.CFrame = box.Rotation + (start + dir * hit.Distance)
+				probe.Parent = workspace
+				local ok, found = pcall(function()
+					return workspace:GetPartsInPart(probe, overlap)
+				end)
+				probe:Destroy()
+				local distance = string.format("%.2f", hit.Distance)
+				-- a hull is approximate and the Blockcast already proves the stop: only a Box mesh fails hard on overlap
+				if not ok then
+					table.insert(
+						report.advisory,
+						`{part.Name or "?"} {side.name}: GetPartsInPart unavailable ({tostring(found):sub(1, 60)}), inside check skipped`
+					)
+				elseif #found > 0 then
+					if fidelity == "Box" then
+						return `{side.name}: the box is inside the part's collision at the hit (distance {distance})`
+					end
+					table.insert(
+						report.advisory,
+						`{part.Name or "?"} {side.name}: box overlaps the {fidelity} collision at the hit (distance {distance})`
+					)
 				end
 			end
 		end
@@ -485,8 +508,7 @@ if IN_ROBLOX then
 					part.CFrame = CFrame.new(ORIGIN + Vector3.new(0, part.Size.Y / 2, 0))
 					part.Parent = workspace
 					local half = part.Size / 2
-					local err =
-						castAll(part, { yaw = 0, hx = half.X, hz = half.Z }, fidelity == "PreciseConvexDecomposition")
+					local err = castAll(part, { yaw = 0, hx = half.X, hz = half.Z }, fidelity)
 					part:Destroy()
 					report.meshes += 1
 					record(e, e.kind, err)
