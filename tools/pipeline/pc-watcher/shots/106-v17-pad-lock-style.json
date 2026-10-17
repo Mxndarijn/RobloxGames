@@ -1,0 +1,14 @@
+{
+  "id": "v17-pad-lock-style",
+  "todo": "v17 pad lock style",
+  "kind": "world",
+  "target": "Pad_1",
+  "from": "look",
+  "dist": 60,
+  "height": 70,
+  "seat": true,
+  "wait": 1.5,
+  "note": "v17: whole plot from high above: unlocked pads keep their colour, locked pads (5-8) are grey Slate; same square pad and red rectangle",
+  "device": "desktop",
+  "clock": 14
+}
