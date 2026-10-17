@@ -388,6 +388,7 @@ if IN_ROBLOX then
 	end
 
 	-- One Blockcast from each side of `part` (a part of volume `v`, centre at CFrame, ground at ORIGIN.Y).
+	-- collider Parts pass "Box": GetPartsInPart is exact for them
 	local function castAll(part, v, fidelity: string): string?
 		local passUnder = fidelity == "PreciseConvexDecomposition"
 		local ground = ORIGIN.Y
@@ -553,8 +554,11 @@ if IN_ROBLOX then
 						local reach = if math.abs(rot[1] or 0) > 1 or math.abs(rot[3] or 0) > 1
 							then math.sqrt(v.hx ^ 2 + v.hy ^ 2 + v.hz ^ 2)
 							else nil
-						local err =
-							castAll(part, { yaw = math.rad(rot[2] or 0), hx = reach or v.hx, hz = reach or v.hz })
+						local err = castAll(
+							part,
+							{ yaw = math.rad(rot[2] or 0), hx = reach or v.hx, hz = reach or v.hz },
+							"Box"
+						)
 						part:Destroy()
 						record(e, v.path, err)
 					end
