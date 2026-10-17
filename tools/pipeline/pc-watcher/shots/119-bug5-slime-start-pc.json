@@ -1,0 +1,19 @@
+{
+  "id": "bug5-slime-start-pc",
+  "todo": "bug5",
+  "kind": "world",
+  "pos": [
+    22,
+    9,
+    62
+  ],
+  "look": [
+    -8,
+    1,
+    42
+  ],
+  "wait": 8,
+  "note": "bug #5: a fresh wild slime leaves the slide mouth and is already walking the goo lane (no rest on the lane entry, no glide to a point): wild slimes in motion on the lead-in from the slide mouth [desktop]",
+  "device": "desktop",
+  "clock": 14
+}

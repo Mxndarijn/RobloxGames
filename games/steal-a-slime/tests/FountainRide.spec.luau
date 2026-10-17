@@ -241,11 +241,8 @@ require("@lune/fs").removeFile(placePath)
 rt:boot()
 local tracks = {}
 local SIM_SECONDS = 50
--- Longest ride onto the lane entry (either edge of the lateral spread).
-local LANE_RIDE_SECONDS = 0
-for _, lateral in { -ParadeLane.SPREAD / 2, 0, ParadeLane.SPREAD / 2 } do
-	LANE_RIDE_SECONDS = math.max(LANE_RIDE_SECONDS, FountainRide.new(PATH, ParadeLane.entrySpot(lateral)).duration)
-end
+-- Seconds the lead-in from the slide mouth to the lane entry takes at the wild walk pace.
+local LEAD_SECONDS = ParadeLane.LEAD_LENGTH / ParadeLane.walkSpeed(Config.WILD_LIFETIME)
 for _ = 1, SIM_SECONDS * FPS do
 	rt:step(1 / FPS)
 	local folder = rt.workspace:FindFirstChild("WildSlimes")
@@ -308,7 +305,8 @@ describe("FountainRide: the live server rides every spawned slime", function()
 					if r < Fountain.RING_BAND_OUTER then
 						expect(f.riding).toBe(true)
 					end
-					if f.t >= track.born + LANE_RIDE_SECONDS + 0.3 then
+					-- Riding runs through the lead-in from the slide mouth, and stops once the slime is on the lane
+					if f.t >= track.born + ParadeLane.HOP_SECONDS + LEAD_SECONDS + 0.3 then
 						expect(f.riding).toBeNil()
 					end
 				end
@@ -324,31 +322,33 @@ describe("FountainRide: the live server rides every spawned slime", function()
 	it("none teleports: every frame moves at most SLIDE_SPEED / 30", function()
 		for _, track in finished do
 			for i = 2, #track.frames do
-				expect(dist(track.frames[i].p, track.frames[i - 1].p) <= FountainRide.SLIDE_SPEED / FPS + 1e-3).toBe(
+				-- (+0.25: the slide-to-lane shift eases in over the last frames)
+				expect(dist(track.frames[i].p, track.frames[i - 1].p) <= FountainRide.SLIDE_SPEED / FPS + 0.25).toBe(
 					true
 				)
 			end
 		end
 	end)
-	it("each one ends at rest on the lane entry, clear of the slide, until it hops on", function()
+	it("bug #5: each one walks on from the slide mouth at once: no rest on the lane entry, never idle", function()
 		expect(Config.FEATURES.Parade).toBe(true)
-		local entry = ParadeLane.ENTRY
+		local mouth = PATH[#PATH]
 		for _, track in finished do
-			-- Rest window: after the longest ride to the entry, before HOP_SECONDS (minus a reconcile tick).
-			local rest = {}
+			-- from the slide's end on, every half second of frames moves it along the lead-in / lane
+			local from = track.born + ParadeLane.HOP_SECONDS
+			local frames = {}
 			for _, f in track.frames do
-				if f.t >= track.born + LANE_RIDE_SECONDS + 0.2 and f.t <= track.born + ParadeLane.HOP_SECONDS - 0.2 then
-					table.insert(rest, f.p)
+				if f.t >= from and f.t <= track.born + ParadeLane.HOP_SECONDS + LEAD_SECONDS then
+					table.insert(frames, f)
 				end
 			end
-			expect(#rest >= FPS / 2).toBe(true)
-			local last = rest[#rest]
-			expect(last[2]).toBeCloseTo(ParadeLane.LANE_Y, 1e-3)
-			local off = math.sqrt((last[1] - entry[1]) ^ 2 + (last[3] - entry[2]) ^ 2)
-			expect(off <= ParadeLane.SPREAD / 2 + 1e-3).toBe(true)
-			expect(FountainRide.clearance(PATH, last[1], last[3]) >= FountainRide.FOOTPRINT).toBe(true)
-			for _, p in rest do
-				expect(dist(p, last) < 1e-3).toBe(true) -- float32 CFrames
+			expect(#frames >= FPS).toBe(true)
+			expect(dist(frames[1].p, { mouth[1], mouth[2], mouth[3] }) <= ParadeLane.SPREAD / 2 + 2).toBe(true)
+			for i = FPS // 2, #frames, FPS // 2 do
+				local moved = math.sqrt(
+					(frames[i].p[1] - frames[i - FPS // 2 + 1].p[1]) ^ 2
+						+ (frames[i].p[3] - frames[i - FPS // 2 + 1].p[3]) ^ 2
+				)
+				expect(moved > 0.05).toBe(true)
 			end
 		end
 	end)

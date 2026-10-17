@@ -1,0 +1,11 @@
+{
+  "id": "bug6-no-drain-walkpath-aerial-pc",
+  "todo": "bug6",
+  "kind": "world",
+  "pos": [0, 190, 150],
+  "look": [0, 0, 42],
+  "wait": 0.5,
+  "note": "bug #6: aerial of the goo drain at the slide exit (+Z): no sand walkway runs from the drain to spoke 1",
+  "device": "desktop",
+  "clock": 14
+}

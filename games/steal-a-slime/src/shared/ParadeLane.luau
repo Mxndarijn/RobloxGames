@@ -11,10 +11,12 @@
 	Lane position is time left. With lifetime = expiresAt - spawnedAt and
 	  progress = 1 - (expiresAt - now) / lifetime        (0 at spawn, 1 at expiry)
 	the slime is
-	  Ride   progress < HOP_SECONDS / lifetime: on the slide, then waiting
-	         on ENTRY (WorldView plays the ride; it lands before HOP_SECONDS)
-	  Walk   then along the lane, distance LENGTH * the share of the walk
-	         window gone, linear in time left, ending on the last waypoint
+	  Ride   progress < HOP_SECONDS / lifetime: on the slide (WorldView plays
+	         the emerge + slide; it leaves the mouth at HOP_SECONDS)
+	  Walk   then walking at once from the slide mouth, through the lead-in
+	         to ENTRY and along the lane: LEAD_LENGTH + LENGTH * the share of
+	         the walk window gone, linear in time left, ending on the last
+	         waypoint
 	  Drain  the last DRAIN_SECONDS: hop onto the curb lip, slide into the
 	         funnel and sink below the plaza (DRAIN.sinkY)
 	  Gone   now >= expiresAt (Spawner removes it; DespawnTelegraph.shouldRemove)
@@ -67,8 +69,9 @@ ParadeLane.LANE_Y = 0.35 -- top of the goo strip (ParadeView); slime pivots stan
 -- (stripPoints); the 2.5° route steps are far finer than the eye needs. Visual only.
 ParadeLane.STRIP_TOLERANCE = 0.55
 ParadeLane.LEAD_TOLERANCE = 0.2 -- the lead-in from the mouth and ENTRY's bend out to r 68 curve hardest: finer, so their corners stay soft
--- Ride + hop on: every ride to ENTRY lands well before this (tests/ParadeLane.spec).
-ParadeLane.HOP_SECONDS = 10
+-- Emerge + slide: the slime leaves the slide mouth at FountainRide's slideEndsAt (5.92 s) and walks on at once, no
+-- idle wait and no separate glide to the lane (tests/ParadeLane.spec keeps this within 0.25 s above it).
+ParadeLane.HOP_SECONDS = 6
 ParadeLane.DRAIN_SECONDS = 1.5
 ParadeLane.HOP_HEIGHT = 1.2 -- studs at the top of each hop while walking
 ParadeLane.HOP_PERIOD = 0.5 / Config.SLIME_MOVE_SPEED_MULT -- seconds per hop (rounded so the walk holds a whole number); slower with the pace
@@ -142,21 +145,36 @@ for i = 2, #points do
 	local a, b = points[i - 1], points[i]
 	cumulative[i] = cumulative[i - 1] + math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2)
 end
--- Unit normal (-hz, hx) at each waypoint, averaged over its two segments,
--- so a sideways offset bends smoothly round the turns.
-local normals: { { number } } = {}
-for i = 1, #points do
-	local a, b = points[math.max(1, i - 1)], points[math.min(#points, i + 1)]
-	local dx, dz = b[1] - a[1], b[2] - a[2]
-	local len = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
-	normals[i] = { -dz / len, dx / len }
-end
 for _, p in points do
 	table.freeze(p)
 end
 
+-- Walk route: the lead-in from the slide mouth (lead ends on ENTRY), then WAYPOINTS. Walked distance is measured
+-- from the mouth; lane distance `s` (0 at ENTRY) is that minus LEAD_LENGTH, so it is negative on the lead-in.
+local route: { { number } } = {}
+for i = 1, #lead - 1 do
+	table.insert(route, lead[i])
+end
+for _, p in points do
+	table.insert(route, p)
+end
+local routeCumulative = { 0 }
+for i = 2, #route do
+	local a, b = route[i - 1], route[i]
+	routeCumulative[i] = routeCumulative[i - 1] + math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2)
+end
+local LEAD_LENGTH = routeCumulative[#lead]
+local routeNormals: { { number } } = {}
+for i = 1, #route do
+	local a, b = route[math.max(1, i - 1)], route[math.min(#route, i + 1)]
+	local dx, dz = b[1] - a[1], b[2] - a[2]
+	local len = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
+	routeNormals[i] = { -dz / len, dx / len }
+end
+
 ParadeLane.WAYPOINTS = table.freeze(points) :: { { number } } -- { x, z }, entry first, drain approach last
 ParadeLane.LENGTH = cumulative[#cumulative]
+ParadeLane.LEAD_LENGTH = LEAD_LENGTH -- studs from the slide mouth to ENTRY
 ParadeLane.ENTRY = points[1]
 ParadeLane.EXIT = points[#points]
 
@@ -319,55 +337,67 @@ function ParadeLane.phase(spawnedAt: number, expiresAt: number, now: number): Ph
 	return "Drain"
 end
 
--- Studs walked along the lane: 0 until the walk starts, LENGTH from the drain slide on.
-function ParadeLane.distance(spawnedAt: number, expiresAt: number, now: number): number
+-- Studs walked from the slide mouth: 0 until the walk starts, LEAD_LENGTH + LENGTH from the drain slide on.
+function ParadeLane.walked(spawnedAt: number, expiresAt: number, now: number): number
+	local total = LEAD_LENGTH + ParadeLane.LENGTH
 	local p = ParadeLane.progress(spawnedAt, expiresAt, now)
 	local start, stop = ParadeLane.walkWindow(expiresAt - spawnedAt)
 	if stop <= start then
-		return if p >= stop then ParadeLane.LENGTH else 0
+		return if p >= stop then total else 0
 	end
-	return ParadeLane.LENGTH * math.clamp((p - start) / (stop - start), 0, 1)
+	return total * math.clamp((p - start) / (stop - start), 0, 1)
+end
+
+-- Studs along the lane from ENTRY: negative on the lead-in from the slide mouth, LENGTH from the drain slide on.
+function ParadeLane.distance(spawnedAt: number, expiresAt: number, now: number): number
+	return ParadeLane.walked(spawnedAt, expiresAt, now) - LEAD_LENGTH
 end
 
 -- Studs per second a slime walks the lane when it lives `lifetime` seconds.
 function ParadeLane.walkSpeed(lifetime: number): number
 	local start, stop = ParadeLane.walkWindow(lifetime)
-	return ParadeLane.LENGTH / ((stop - start) * lifetime)
+	return (LEAD_LENGTH + ParadeLane.LENGTH) / ((stop - start) * lifetime)
 end
 
--- Segment holding lane distance `s` (clamped) and how far along it (0..1).
+-- Route segment holding lane distance `s` (clamped to the lead-in .. LENGTH) and how far along it (0..1).
 local function locate(s: number): (number, number, number)
-	s = math.clamp(s, 0, ParadeLane.LENGTH)
-	local lo, hi = 1, #points
+	s = math.clamp(s, -LEAD_LENGTH, ParadeLane.LENGTH) + LEAD_LENGTH
+	local lo, hi = 1, #route
 	while hi - lo > 1 do
 		local mid = (lo + hi) // 2
-		if cumulative[mid] <= s then
+		if routeCumulative[mid] <= s then
 			lo = mid
 		else
 			hi = mid
 		end
 	end
-	local span = cumulative[hi] - cumulative[lo]
-	return lo, hi, if span > 1e-9 then (s - cumulative[lo]) / span else 0
+	local span = routeCumulative[hi] - routeCumulative[lo]
+	return lo, hi, if span > 1e-9 then (s - routeCumulative[lo]) / span else 0
 end
 
--- Lane point `s` studs from ENTRY (clamped) and the unit direction of travel there.
+-- Lane point `s` studs from ENTRY (negative: on the lead-in from the slide mouth; clamped) and the unit direction
+-- of travel there.
 function ParadeLane.pointAt(s: number): (number, number, number, number)
 	local lo, hi, k = locate(s)
-	local a, b = points[lo], points[hi]
+	local a, b = route[lo], route[hi]
 	local dx, dz = b[1] - a[1], b[2] - a[2]
 	local len = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
 	return a[1] + dx * k, a[2] + dz * k, dx / len, dz / len
 end
 
 -- Point `lateral` studs to the side of the centreline at `s` (along the
--- smoothed normal; positive = the lane's left, the fountain side).
+-- smoothed normal; positive = the lane's left, the fountain side). Before ENTRY
+-- (s < 0, the lead-in) the offset grows from 0 at the slide mouth to `lateral`.
 function ParadeLane.offsetAt(s: number, lateral: number): (number, number)
 	local lo, hi, k = locate(s)
-	local a, b = points[lo], points[hi]
-	local na, nb = normals[lo], normals[hi]
+	local a, b = route[lo], route[hi]
+	local na, nb = routeNormals[lo], routeNormals[hi]
 	local nx, nz = na[1] + (nb[1] - na[1]) * k, na[2] + (nb[2] - na[2]) * k
 	local len = math.max(math.sqrt(nx * nx + nz * nz), 1e-9)
+	if s < 0 then -- on the lead-in the offset eases in from the slide mouth's centre to the full offset at ENTRY
+		local u = math.clamp(1 + s / LEAD_LENGTH, 0, 1)
+		lateral *= u * u * (3 - 2 * u)
+	end
 	return a[1] + (b[1] - a[1]) * k + nx / len * lateral, a[2] + (b[2] - a[2]) * k + nz / len * lateral
 end
 
