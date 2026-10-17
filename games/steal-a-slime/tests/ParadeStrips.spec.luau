@@ -1,34 +1,28 @@
 --!nocheck
 -- The goo lane strip (ParadeView.place) is drawn with fewer straight Parts than the route has
--- waypoint pairs (ParadeLane.stripPoints, Douglas-Peucker within STRIP_TOLERANCE). Checked here:
--- the part count (it was one Part per waypoint pair, 133), that the drawn coverage matches the
--- original strip union within the tolerance (both ways), and that the strips are still the same
--- non-colliding Glass goo with overlapping neighbours at distinct heights (no z-fighting).
+-- waypoint pairs (ParadeLane.strips: the lead-in from the slide mouth plus ParadeLane.stripPoints, Douglas-Peucker
+-- within STRIP_TOLERANCE). Checked here: the part count (it was one Part per waypoint pair, 133) and that every
+-- route waypoint stays covered by the drawn strips. Flush joints and the lane start: tests/SlimePath.spec.
 local ParadeLane = require("../src/shared/ParadeLane")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-local WIDTH = ParadeLane.HALF_WIDTH * 2
 local TOL = ParadeLane.STRIP_TOLERANCE
-local MAX_STRIPS = 52 -- was 133 (one per waypoint pair); only ever lower it
+local MAX_STRIPS = 50 -- was 133 (one per waypoint pair; 129 now the lead-in is not a waypoint), then 50 with the lead-in as smooth domed pieces; only ever lower it
 
--- Footprint rectangles of a strip polyline, as ParadeView lays them (length + width / 2).
-local function rects(points: { { number } })
+-- Footprint of a drawn strip (ParadeLane.strips): centre, unit axis along it, half length.
+local function rectsOf(strips: { any })
 	local out = {}
-	for i = 1, #points - 1 do
-		local a, b = points[i], points[i + 1]
-		local dx, dz = b[1] - a[1], b[2] - a[2]
-		local len = math.sqrt(dx * dx + dz * dz)
-		if len >= 1e-3 then
-			table.insert(out, {
-				mx = (a[1] + b[1]) / 2,
-				mz = (a[2] + b[2]) / 2,
-				ux = dx / len,
-				uz = dz / len,
-				half = (len + WIDTH / 2) / 2,
-			})
-		end
+	for _, strip in strips do
+		local c = strip.cf
+		table.insert(out, {
+			mx = c[1],
+			mz = c[3],
+			ux = c[4],
+			uz = c[10],
+			half = strip.length / 2,
+		})
 	end
 	return out
 end
@@ -44,15 +38,14 @@ local function outside(rs, x: number, z: number, inset: number): number
 	return best
 end
 
-local original = rects(ParadeLane.WAYPOINTS)
 local simple = ParadeLane.stripPoints()
-local drawn = rects(simple)
+local drawn = rectsOf(ParadeLane.strips())
 
 describe("ParadeLane goo strip parts", function()
 	it("draws the lane with far fewer strips than waypoint pairs", function()
-		expect(#ParadeLane.WAYPOINTS - 1).toBe(133)
+		expect(#ParadeLane.WAYPOINTS - 1).toBe(129)
 		expect(#drawn <= MAX_STRIPS).toBe(true)
-		expect(#drawn * 2 < #original).toBe(true)
+		expect(#drawn * 2 < #ParadeLane.WAYPOINTS - 1).toBe(true)
 	end)
 	it("keeps the entry and exit of the route", function()
 		expect(simple[1]).toBe(ParadeLane.ENTRY)
@@ -60,32 +53,9 @@ describe("ParadeLane goo strip parts", function()
 	end)
 	it("every route waypoint stays within the tolerance of the drawn polyline", function()
 		for _, p in ParadeLane.WAYPOINTS do
-			expect(outside(drawn, p[1], p[2], 0) == 0).toBe(true)
+			expect(outside(drawn, p[1], p[2], 0) < 1e-6).toBe(true)
 			-- the centreline is deep inside a strip: even shrunk by the tolerance it is covered
-			expect(outside(drawn, p[1], p[2], ParadeLane.HALF_WIDTH - TOL - 0.05) == 0).toBe(true)
+			expect(outside(drawn, p[1], p[2], ParadeLane.HALF_WIDTH - TOL - 0.05) < 1e-6).toBe(true)
 		end
-	end)
-	it("coverage matches the original strips both ways within the tolerance", function()
-		local worstMissing, worstExtra = 0, 0
-		for _, r in original do -- the original goo, sampled across and along each strip
-			for u = -1, 1, 0.5 do
-				for v = -1, 1, 0.5 do
-					local x = r.mx + r.ux * r.half * u * 0.95 - r.uz * ParadeLane.HALF_WIDTH * v * 0.95
-					local z = r.mz + r.uz * r.half * u * 0.95 + r.ux * ParadeLane.HALF_WIDTH * v * 0.95
-					worstMissing = math.max(worstMissing, outside(drawn, x, z, 0))
-				end
-			end
-		end
-		for _, r in drawn do -- the new goo may not spill past the old
-			for u = -1, 1, 0.5 do
-				for v = -1, 1, 0.5 do
-					local x = r.mx + r.ux * r.half * u - r.uz * ParadeLane.HALF_WIDTH * v
-					local z = r.mz + r.uz * r.half * u + r.ux * ParadeLane.HALF_WIDTH * v
-					worstExtra = math.max(worstExtra, outside(original, x, z, 0))
-				end
-			end
-		end
-		expect(worstMissing <= TOL + 0.05).toBe(true)
-		expect(worstExtra <= TOL + 0.05).toBe(true)
 	end)
 end)

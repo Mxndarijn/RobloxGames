@@ -78,7 +78,7 @@ describe("Slime Ranch layout", function()
 				end
 			end)
 		end
-		expect(rings).toBe(18)
+		expect(rings).toBe(11) -- 18 less the 7 left out where the slide lands slimes
 		expect(drains).toBe(1)
 	end)
 	it("sizes the fountain slot to the polished bbox with the silo on the origin", function()

@@ -354,7 +354,7 @@ describe("FountainRide: the live server rides every spawned slime", function()
 	end)
 end)
 
--- v30 C3: slimes clipped through the plaza's middle ring (Plaza.LandingRing, 18 curb tiles, visual-only). Slimes
+-- v30 C3: slimes clipped through the plaza's middle ring (Plaza.LandingRing, 18 curb tiles, 7 left out at the slide, visual-only). Slimes
 -- are anchored and script moved, so the fix is routing: nothing places or walks a slime inside the ring.
 describe("FountainRide: the landing ring (v30 C3)", function()
 	local function ringOuter(): number
@@ -369,7 +369,7 @@ describe("FountainRide: the landing ring (v30 C3)", function()
 			end
 		end
 		walk(WorldLayout.build(), "")
-		assert(#tiles == 18, "LandingRing tiles missing")
+		assert(#tiles == 11, "LandingRing tiles missing") -- 18 less the 7 left out where the slide lands
 		local worst = 0
 		for _, tile in tiles do
 			local yaw = math.rad(tile.rot[2])
@@ -411,7 +411,9 @@ describe("FountainRide: the landing ring (v30 C3)", function()
 				if ride.phases[i] == "Run" then
 					local r = radius(p)
 					-- any part of the slime can overlap the curb: its bottom is above the curb top (3.145)
-					if r < Fountain.LANDING_RING_OUTER + SLIME_HALF then
+					local bearing = math.deg(math.atan2(p[3], p[1]))
+					local inGap = bearing >= FountainRide.RING_GAP_FROM and bearing <= FountainRide.RING_GAP_TO
+					if r < Fountain.LANDING_RING_OUTER + SLIME_HALF and not inGap then
 						expect(p[2] - GROUND >= 3.145 - 1e-6 or dist(p, MOUTH) < 3.5).toBe(true) -- the slide's own mouth is inside the ring
 					end
 				end

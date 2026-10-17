@@ -640,6 +640,12 @@ end
 -- bbox centre sits on +Z (FBX stake match, ranch_landing_ring). Visual only;
 -- the box is deeper than the stones and must not leave an invisible wall.
 local LANDING_TILES = 18
+-- The slide's last stretch (r 31..35.5, 7 wide) runs under tiles 1..5 (yaw 0..80) and the goo lane leaves
+-- its mouth through tiles 18 and 17 (yaw 340, 320; 17's cushion and goo splat sat against the lane's first
+-- bend): those seven are left out, so the ring opens where the slide lands slimes
+-- and the lane starts (ParadeLane.MOUTH). Nothing stands over the slide or the lane start.
+local LANDING_GAP =
+	table.freeze({ [16] = true, [17] = true, [0] = true, [1] = true, [2] = true, [3] = true, [4] = true })
 local LANDING_SIZE: Vec = { 13.145, 3.145, 10.27 }
 local LANDING_BBOX = 38.678
 
@@ -971,6 +977,9 @@ local function plaza(): WorldNode
 	local tiles: { WorldNode } = {}
 	local y = LANDING_SIZE[2] / 2
 	for i = 0, LANDING_TILES - 1 do
+		if LANDING_GAP[i] then
+			continue
+		end
 		local yaw = i * (360 / LANDING_TILES)
 		local a = math.rad(yaw)
 		local c = WorldLayout.FOUNTAIN_CENTRE

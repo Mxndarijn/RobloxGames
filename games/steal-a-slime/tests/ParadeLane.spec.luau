@@ -276,7 +276,7 @@ describe("ParadeLane route: loops round the plaza, clear of props and podiums", 
 	add("ring path", function(x, z)
 		return WorldLayout.RING_PATH_RADIUS - WorldLayout.RING_PATH_WIDTH / 2 - math.sqrt(x * x + z * z)
 	end)
-	local tile = layoutNode("Tile1")
+	local tile = layoutNode("Tile6")
 	local landingOuter = math.sqrt(tile.pos[1] ^ 2 + tile.pos[3] ^ 2) + tile.size[3] / 2
 	add("landing ring", function(x, z)
 		return math.sqrt(x * x + z * z) - landingOuter
@@ -611,14 +611,16 @@ describe("ParadeLane in the live server", function()
 		local lane = rt.workspace.Map.Plaza:FindFirstChild("ParadeLane")
 		expect(lane ~= nil).toBe(true)
 		local parts = lane:GetChildren()
-		expect(#parts).toBe(#ParadeLane.stripPoints() - 1)
+		expect(#parts).toBe(#ParadeLane.drawPoints() - 1)
 		for _, part in parts do
 			expect(part.Anchored).toBe(true)
 			expect(part.CanCollide).toBe(false)
 			expect(part.CanQuery).toBe(false)
 			expect(part.CanTouch).toBe(false)
 			local top = part.CFrame.Position.Y + part.Size.Y / 2
-			expect(top >= ParadeLane.LANE_Y - 1e-3 and top <= ParadeLane.LANE_Y + 0.04).toBe(true)
+			expect(top >= ParadeLane.LANE_Y - 1e-3 and top <= ParadeLane.LANE_Y + ParadeLane.STRIP_STEP + 1e-3).toBe(
+				true
+			)
 		end
 	end)
 	it("walking slimes follow the lane: on the centreline band, hopping, never teleporting", function()
