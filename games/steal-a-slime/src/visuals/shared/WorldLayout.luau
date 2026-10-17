@@ -307,16 +307,16 @@ WorldLayout.BUY_STAND_COUNTER = table.freeze({ x = 0, z = 0.53, width = 11, dept
 -- front = local -Z; every shop faces the map centre, TODO v28 #10, v29 B3);
 -- the tutorial NPC stands behind the hub SpawnLocation (scripts/StaticWorld,
 -- same bearing) and faces it.
-local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: number }
+local function propSpot(angle: number, faceVolcano: boolean?, radius: number?): { pos: Vec, yaw: number }
 	-- Ring path outer edge is r 82 (78 + 8/2). 90 keeps a shop-sized prop off it.
-	local r, a = 90, math.rad(angle)
+	local r, a = radius or 90, math.rad(angle)
 	return { pos = { math.sin(a) * r, 0, math.cos(a) * r }, yaw = if faceVolcano then angle else angle + 180 }
 end
 -- ItemShopStand is the old ShopStand spot (WorldProps still places the single "ShopStand" there while
--- FEATURES.WorldShops is off); UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34 (22.5 is the Campfire / CampBench camp; CONTRACT.md §27.2).
+-- FEATURES.WorldShops is off); UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34.5 / r 96 (22.5 / r 92 is the Campfire / CampBench camp, 20 studs away; 35 at r 90-98 would clip the plot 2 entrance; CONTRACT.md §27.2).
 WorldLayout.PROP_SPOTS = table.freeze({
 	ItemShopStand = propSpot(67.5, true),
-	UpgradeShopStand = propSpot(34, true),
+	UpgradeShopStand = propSpot(34.5, true, 96),
 	LeaderboardBoard = propSpot(157.5, true),
 	TutorialNpc = propSpot(247.5, true),
 }) :: { [string]: { pos: Vec, yaw: number } }
