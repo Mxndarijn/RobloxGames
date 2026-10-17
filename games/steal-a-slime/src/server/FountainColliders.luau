@@ -7,7 +7,7 @@
 	Adds the fountain slide's collision (the whole path with FEATURES.SlideCollision, else only the low stretch) (Shared.SlideColliders) under
 	workspace.Map.Volcano.SlideColliders: a solid block along the slide so players can neither
 	walk up it nor stand in it. Invisible, anchored, CanCollide
-	Parts (a Fill is two WedgeParts forming a steep ridge roof, bug #9), no touch or query. Unlike the silo's Basin / Trim / Silo colliders
+	Parts (a Fill is a box plus two WedgeParts forming a steep ridge roof on top, bug #9), no touch or query. Unlike the silo's Basin / Trim / Silo colliders
 	(MeshCollider, switched by MeshSwap) they stay on in every state: the
 	fountain mesh's slide and the Chute stand-in follow the same
 	WorldLayout.SLIDE_PATH, so the trough is in the same place either way.
@@ -54,22 +54,23 @@ function FountainColliders.place(): Folder?
 		local centre = Vector3.new(c[1], c[2], c[3])
 		local frame = CFrame.lookAt(centre, centre + Vector3.new(f[1], f[2], f[3]))
 		if spec.kind == "Fill" then
-			-- Bug #9: a roof, not a flat top. Two wedges (left / right of the centreline), the tall face on the
-			-- centreline, base on the ride line, faces >= RIDGE_ANGLE steep and frictionless: nobody stays on top.
-			local ridge = SlideColliders.ridge(spec)
-			local lift = ridge.height / 2 - SlideColliders.FILL / 2
+			-- Bug #9: the box below (ride line up FILL, as before) keeps players out of the channel; on top of it a roof of two
+			-- wedges (left / right of the centreline), eaves at FILL, ridge on the centreline, faces >= RIDGE_ANGLE steep and
+			-- frictionless: nobody stays on top. Orientation (tall face = wedge +Z) in SlideColliders.wedge.
 			for _, side in { -1, 1 } do
-				-- wedge Y = up, Z = toward the centreline (the tall face is at +Z), X = Y x Z along the slide
-				local across = frame.RightVector * -side
-				local at = frame.Position + frame.RightVector * (side * ridge.half / 2) + frame.UpVector * lift
+				local w = SlideColliders.wedge(spec, side)
 				local part = Instance.new("WedgePart")
 				part.Name = spec.name .. (if side < 0 then "L" else "R")
-				part.Size = Vector3.new(s[3], ridge.height, ridge.half)
-				part.CFrame = CFrame.fromMatrix(at, frame.UpVector:Cross(across), frame.UpVector, across)
+				part.Size = Vector3.new(w.size[1], w.size[2], w.size[3])
+				part.CFrame = CFrame.fromMatrix(
+					Vector3.new(w.pos[1], w.pos[2], w.pos[3]),
+					Vector3.new(w.x[1], w.x[2], w.x[3]),
+					Vector3.new(w.y[1], w.y[2], w.y[3]),
+					Vector3.new(w.z[1], w.z[2], w.z[3])
+				)
 				part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0, 0, 100, 1)
 				place(part, spec.kind, folder)
 			end
-			continue
 		end
 		local part = Instance.new("Part")
 		part.Name = spec.name

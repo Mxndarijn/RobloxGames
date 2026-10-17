@@ -51,12 +51,12 @@ floor slab plus a fill up to `FILL` = 11 studs above the ride line, more than a 
 enter or climb it. Wild slimes ride it anchored with `CanCollide = false` (`FountainRide`): they
 pass through the block, so no collision group is needed.
 
-The fill's roof is a ridge, not a flat top (bug #9 follow-up): `server/FountainColliders` builds each `Fill` spec as two
-frictionless `WedgePart`s (`SlideFill<i>L` / `R`, faces >= `RIDGE_ANGLE` = 60 deg, `SlideColliders.ridge`). A Humanoid
+The fill's roof is a ridge, not a flat top (bug #9 follow-up): `server/FountainColliders` keeps each `Fill` box (ride line up `FILL` = 11 studs, full width) and puts a roof of two
+frictionless `WedgePart`s ON TOP of it (`SlideFill<i>L` / `R`, eaves at `FILL`, ridge at `FILL + half * tan(RIDGE_ANGLE)`, faces = `RIDGE_ANGLE` = 60 deg, `SlideColliders.ridge` / `wedge`). A Humanoid
 climbs up to 89 deg (`MaxSlopeAngle`), so `server/SlideTopWatch` (pure maths: `shared/SlideTopGuard`, 5 Hz from
 `WorldView.enforceLocks`, behind `FEATURES.SlideCollision`) also moves a character that stays on a roof for 0.3 s to the
 ground beside the slide, away from the fountain. No kill part, no mesh collision. **Studio check**: the wedge's tall face
-is its +Z side (the build assumes it); the `bug9-slide-top-drop` shot drops the player on the ridge to prove it.
+is its +Z side (the build assumes it; `SlideColliders.wedge` + the SlideTopGuard spec compute the face normal from that); the `bug9-slide-top-drop` shot drops the player on the ridge to prove it.
 
 If a future feature needs physical slimes on the slide while players stay out, use a collision
 group instead of a block: `PhysicsService:RegisterCollisionGroup("Slimes")` and `"Players"`, then

@@ -24,8 +24,8 @@ local layoutMod = RS:FindFirstChild("Visuals") and RS.Visuals:FindFirstChild("Wo
 if not layoutMod then
 	return { ok = false, error = "WorldLayout missing", summary = "ReplicatedStorage.Visuals.WorldLayout missing", detail = {} }
 end
-local floors, fills, boxes = {}, {}, {}
-local wedges = {} -- boxes: every collider part (a centre inside one is inside the slide's solid)
+local floors, fills, boxes = {}, {}, {} -- boxes: every collider part (a centre inside one is inside the slide's solid)
+local wedges = {} -- fill index -> { L = wedge, R = wedge } (the roof)
 for _, p in folder:GetChildren() do
 	if p:IsA("BasePart") then
 		table.insert(boxes, p)
@@ -44,11 +44,13 @@ for _, p in folder:GetChildren() do
 		end
 	end
 end
--- a wedge pair stands in for the old fill box: same frame (X across, Y up, Z along), Size.Y = the ridge height, so "top" = the ridge
+-- bug 9: the fill is the box (ride line up FILL) with a two-wedge ridge roof ON TOP of it. The probes work on the envelope: the box
+-- stretched up to the ridge (same frame, bottom on the ride line), so "top" = the ridge; inSolid / inBox still use the real parts.
 for i, pr in wedges do
-	if pr.L and pr.R and not fills[i] then
-		local cf = CFrame.fromMatrix((pr.L.Position + pr.R.Position) / 2, pr.L.CFrame.ZVector, pr.L.CFrame.YVector)
-		fills[i] = { CFrame = cf, Size = Vector3.new(pr.L.Size.Z * 2, pr.L.Size.Y, pr.L.Size.X), wedgeRoof = true }
+	local box = fills[i]
+	if box and pr.L and pr.R then
+		local rise = pr.L.Size.Y
+		fills[i] = { CFrame = box.CFrame * CFrame.new(0, rise / 2, 0), Size = box.Size + Vector3.new(0, rise, 0), wedgeRoof = true, box = box }
 	end
 end
 local count = 0

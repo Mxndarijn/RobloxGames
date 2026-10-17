@@ -303,7 +303,7 @@ describe("SlideColliders in the live server", function()
 					fillCount += 1
 				end
 			end
-			expect(#parts).toBe(#SPECS + fillCount) -- every Fill is two wedges (bug #9 ridge roof)
+			expect(#parts).toBe(#SPECS + 2 * fillCount) -- every Fill is the box plus two roof wedges (bug #9)
 			local names = byName()
 			for _, part in parts do
 				local spec = names[part.Name]

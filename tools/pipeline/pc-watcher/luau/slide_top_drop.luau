@@ -1,5 +1,5 @@
--- Server datamodel: bug 9 follow-up proof (ADVISORY), nobody stays on top of the slide fill. The fill is a ridge roof of two WedgeParts
--- (SlideFill<i>L / SlideFill<i>R, faces >= 60 deg, friction 0; server/FountainColliders) plus a backstop (server/SlideTopWatch) that moves a
+-- Server datamodel: bug 9 follow-up proof (ADVISORY), nobody stays on top of the slide fill. The fill is a box topped by a ridge roof of two WedgeParts
+-- ON TOP of the unchanged SlideFill<i> box (ride line up 11 studs; SlideFill<i>L / SlideFill<i>R, faces >= 60 deg, friction 0; server/FountainColliders) plus a backstop (server/SlideTopWatch) that moves a
 -- character who stays on the roof for 0.3 s to the ground beside the slide.
 --   roof_shape   every SlideFill wedge pair is steep (atan(height / width) >= 59.9 deg) and frictionless; counts the pairs
 --   dropped      the local player's character is put 4 studs above the ridge of a mid-slide segment (and again over a joint fill when
@@ -12,9 +12,13 @@ local folder = volcano and volcano:FindFirstChild("SlideColliders")
 if not folder then
 	return { ok = false, summary = "Map.Volcano.SlideColliders missing", detail = {} }
 end
+local boxMin, boxCount = math.huge, 0
 local pairs_ = {} -- name stem -> { L = wedge, R = wedge }
 local pairCount, steepest, flattest, grippy = 0, 0, 90, 0
 for _, p in folder:GetChildren() do
+	if string.match(p.Name, "^Slide%a*Fill%d+$") and p:IsA("Part") then
+		boxMin, boxCount = math.min(boxMin, p.Size.Y), boxCount + 1
+	end
 	local stem, side = string.match(p.Name, "^(Slide%a*Fill%d+)([LR])$")
 	if stem and p:IsA("WedgePart") then
 		pairs_[stem] = pairs_[stem] or {}
@@ -37,6 +41,8 @@ checks.roof_shape = {
 	ok = if pairCount == 0 then nil else (flattest >= 59.9 and grippy == 0),
 	info = { fills = pairCount, steepest_deg = steepest, flattest_deg = flattest, wedges_with_friction = grippy },
 }
+
+checks.box_height = { ok = if boxCount == 0 then nil else boxMin >= 11 - 1e-6, info = { boxes = boxCount, min_height = boxMin } }
 
 local player = Players:GetPlayers()[1]
 local character = player and player.Character
@@ -92,7 +98,7 @@ else
 	checks.dropped_joint = { ok = nil, info = "no player character in the game" }
 end
 local parts, bad = {}, {}
-for _, name in { "roof_shape", "dropped_segment", "dropped_joint" } do
+for _, name in { "roof_shape", "box_height", "dropped_segment", "dropped_joint" } do
 	local c = checks[name]
 	table.insert(parts, name .. " " .. (if c.ok == true then "PASS" elseif c.ok == false then "FAIL" else "n/a"))
 	if c.ok == false then

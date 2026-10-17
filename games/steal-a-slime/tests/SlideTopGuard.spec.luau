@@ -43,10 +43,72 @@ describe("SlideTopGuard: the fill roof", function()
 		for _, spec in FILLS do
 			local r = SlideColliders.ridge(spec)
 			expect(r.angle >= SlideColliders.RIDGE_ANGLE - 1e-6).toBe(true)
-			expect(r.height >= SlideColliders.FILL).toBe(true)
-			expect(math.abs(math.deg(math.atan2(r.height, r.half)) - r.angle) < 1e-9).toBe(true)
+			expect(r.base).toBe(SlideColliders.FILL)
+			expect(math.abs(r.height - (SlideColliders.FILL + r.rise)) < 1e-9).toBe(true)
+			expect(math.abs(math.deg(math.atan2(r.rise, r.half)) - r.angle) < 1e-9).toBe(true)
 		end
 	end)
+	it("keeps the box top at least FILL over the ride line across the whole width; the roof starts there", function()
+		for _, spec in FILLS do
+			expect(spec.size[2] >= SlideColliders.FILL).toBe(true)
+			-- box top (centre + size / 2 along up) is FILL over the ride line (the box centre is FILL / 2 over it)
+			local r = SlideColliders.ridge(spec)
+			local w = SlideColliders.wedge(spec, 1)
+			-- the wedge's lowest edge (its centre - rise / 2 along up) is the box top: FILL / 2 (box half) above the box centre
+			local _, up = frame(spec)
+			local dy = (w.pos[1] - spec.centre[1]) * up[1]
+				+ (w.pos[2] - spec.centre[2]) * up[2]
+				+ (w.pos[3] - spec.centre[3]) * up[3]
+			expect(math.abs(dy - r.rise / 2 - spec.size[2] / 2) < 1e-9).toBe(true)
+		end
+	end)
+	it(
+		"builds the wedges so the slope faces up and outward at >= 60 deg, friction aside (face normal from the basis)",
+		function()
+			-- Assumed Roblox WedgePart: triangle in Y/Z, vertical face at +Z, slope from (+Y, +Z) down to (-Y, -Z):
+			-- outward slope normal in local coordinates n = (0, sz, -sy) / |.|, world = basis * n.
+			for _, spec in FILLS do
+				local right, up = frame(spec)
+				local r = SlideColliders.ridge(spec)
+				for _, side in { -1, 1 } do
+					local w = SlideColliders.wedge(spec, side)
+					local sy, sz = w.size[2], w.size[3]
+					local len = math.sqrt(sy * sy + sz * sz)
+					local n = {}
+					for k = 1, 3 do
+						n[k] = (w.y[k] * sz - w.z[k] * sy) / len
+					end
+					local dot = function(a, b)
+						return a[1] * b[1] + a[2] * b[2] + a[3] * b[3]
+					end
+					-- basis orthonormal, right-handed (x = y cross z)
+					expect(
+						math.abs(dot(w.x, w.y)) < 1e-9
+							and math.abs(dot(w.y, w.z)) < 1e-9
+							and math.abs(dot(w.x, w.z)) < 1e-9
+					).toBe(true)
+					expect(math.abs(dot(w.y, up) - 1) < 1e-9).toBe(true)
+					-- the normal points up (+up) and away from the centreline (side * right)
+					expect(dot(n, up) > 0).toBe(true)
+					expect(dot(n, right) * side > 0).toBe(true)
+					-- steepness: angle of the face from flat = angle between its normal and up's complement
+					local fromFlat = math.deg(math.acos(math.clamp(dot(n, up), -1, 1)))
+					expect(fromFlat >= SlideColliders.RIDGE_ANGLE - 1e-6).toBe(true)
+					expect(math.abs(fromFlat - r.angle) < 1e-6).toBe(true)
+					-- tall edge (local +Z top) is on the centreline, low edge on the box edge (half out)
+					local topX = w.pos[1] + w.y[1] * sy / 2 + w.z[1] * sz / 2
+					local topY = w.pos[2] + w.y[2] * sy / 2 + w.z[2] * sz / 2
+					local topZ = w.pos[3] + w.y[3] * sy / 2 + w.z[3] * sz / 2
+					local across = (topX - spec.centre[1]) * right[1] + (topZ - spec.centre[3]) * right[3]
+					expect(math.abs(across) < 1e-9).toBe(true)
+					local above = (topX - spec.centre[1]) * up[1]
+						+ (topY - spec.centre[2]) * up[2]
+						+ (topZ - spec.centre[3]) * up[3]
+					expect(math.abs(above + SlideColliders.FILL / 2 - r.height) < 1e-9).toBe(true)
+				end
+			end
+		end
+	)
 	it("keeps the old box specs (the guard and the probes read them) and the ride untouched", function()
 		-- snapshot of main: WorldLayout.SLIDE_PATH (the ride line the slimes follow)
 		local sum = 0
@@ -70,7 +132,7 @@ describe("SlideTopGuard.onTop", function()
 			local r = SlideColliders.ridge(spec)
 			local x, y, z = at(spec, 0, r.height + 3, 0)
 			expect(SlideTopGuard.onTop(SPECS, x, y, z, 0) ~= nil).toBe(true)
-			local fx, fy, fz = at(spec, r.half * 0.4, r.height * 0.6 + 3, spec.size[3] * 0.25)
+			local fx, fy, fz = at(spec, r.half * 0.4, r.base + r.rise * 0.6 + 3, spec.size[3] * 0.25)
 			expect(SlideTopGuard.onTop(SPECS, fx, fy, fz, 0) ~= nil).toBe(true)
 		end
 	end)
@@ -81,7 +143,8 @@ describe("SlideTopGuard.onTop", function()
 				-- on the ride line (a slime) and just over it: inside the solid, under the roof
 				for _, above in { 0, 1.5 } do
 					local x, y, z = at(spec, 0, above, spec.size[3] * k)
-					expect(SlideTopGuard.onTop(SPECS, x, y, z, 0)).toBe(nil)
+					-- (alone: this point may lie over a lower lap's roof, which is a different, legitimate hit)
+					expect(SlideTopGuard.onTop({ spec }, x, y, z, 0)).toBe(nil)
 				end
 			end
 			-- beside the slide, any height
@@ -94,6 +157,16 @@ describe("SlideTopGuard.onTop", function()
 			-- way above the roof (a jump apex is REACH)
 			local ax, ay, az = at(spec, 0, r.height + SlideTopGuard.REACH + 5, 0)
 			expect(SlideTopGuard.onTop({ spec }, ax, ay, az, 0)).toBe(nil) -- (alone: an upper lap may own that point)
+		end
+	end)
+	it("a root just over the box top at the eaves is on top, and inside the box under the eaves is not", function()
+		for _, spec in FILLS do
+			local r = SlideColliders.ridge(spec)
+			local x, y, z = at(spec, r.half * 0.95, SlideColliders.FILL + 3, 0)
+			expect(SlideTopGuard.onTop(SPECS, x, y, z, 0) ~= nil).toBe(true)
+			local ix, iy, iz = at(spec, r.half * 0.95, SlideColliders.FILL - 4, 0)
+			local hit = SlideTopGuard.onTop({ spec }, ix, iy, iz, 0)
+			expect(hit).toBe(nil)
 		end
 	end)
 	it("ignores a root on the ground at the low mouth fringe", function()

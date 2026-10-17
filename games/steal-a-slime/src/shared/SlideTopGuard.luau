@@ -2,8 +2,8 @@
 --[[
 	SlideTopGuard (pure)
 
-	Bug #9: the slide's solid fill (SlideColliders, kind "Fill") must not be a place to stand. Its roof is already a steep
-	ridge (SlideColliders.ridge, server/FountainColliders builds two WedgeParts), but a Humanoid climbs anything below 89
+	Bug #9: the slide's solid fill (SlideColliders, kind "Fill") must not be a place to stand. Its box is topped by a steep
+	ridge roof (SlideColliders.ridge / wedge, server/FountainColliders builds two WedgeParts), but a Humanoid climbs anything below 89
 	degrees, so the server also moves a character that stays above a fill's footprint. This module is the maths:
 	  onTop(specs, x, y, z, groundY)   the Fill spec a root at (x, y, z) is on / over, or nil. "On" = inside the fill's
 	                                   oriented footprint, from just under the roof surface up to REACH above it, and the roof
@@ -67,7 +67,7 @@ function SlideTopGuard.onTop(specs: { Spec }, x: number, y: number, z: number, g
 			continue
 		end
 		local above = ly + SlideColliders.FILL / 2 -- over the ride line, along the spec's up
-		local surface = ridge.height * (1 - math.abs(lx) / ridge.half)
+		local surface = ridge.base + ridge.rise * (1 - math.abs(lx) / ridge.half) -- box top at the eaves, ridge on the centreline
 		local rideY = spec.centre[2] - up[2] * SlideColliders.FILL / 2 + f[2] * lz -- ride line height under the root
 		if
 			above >= surface - SlideTopGuard.BELOW
