@@ -250,7 +250,7 @@ vfix "not json" 'oops' inconclusive
 # full flow with stubbed rojo/curl/run.sh (no network): pre-publish block + post-publish alert
 mkdir -p "$T/fbin"
 printf '#!/bin/sh\nwhile [ $# -gt 0 ]; do [ "$1" = -o ] && echo x >"$2"; shift; done\n' >"$T/fbin/rojo"
-printf '#!/bin/sh\nn=$(cat "%s/ver" 2>/dev/null || echo 10); n=$((n+1)); echo $n >"%s/ver"\nprintf "{\\"versionNumber\\":%%s}\\n200" $n\n' "$T" "$T" >"$T/fbin/curl"
+printf '#!/bin/sh\ncat >/dev/null\nn=$(cat "%s/ver" 2>/dev/null || echo 10); n=$((n+1)); echo $n >"%s/ver"\nprintf "{\\"versionNumber\\":%%s}\\n200" $n\n' "$T" "$T" >"$T/fbin/curl"
 printf '#!/bin/sh\nscript=$(basename "$1"); echo "$script $2" >>"%s/runs.log"\ncase "$script" in smoke.luau) f="%s/smoke.res";; *) f="%s/burial.$2.res";; esac\n[ -f "$f" ] || f="%s/burial.res"\n[ "$(cat "$f")" = EXIT1 ] && exit 1\n[ -n "$OUT" ] && cat "$f" >"$OUT"\nexit 0\n' "$T" "$T" "$T" "$T" >"$T/run-stub.sh"
 chmod +x "$T/fbin/rojo" "$T/fbin/curl" "$T/run-stub.sh"
 BPASS='{"result":{"result":"PASS","pass":true,"ok":true,"terrain_ready":true,"grounded_parts":5,"over_threshold":0,"summary":"PASS: ok","worst":[]}}'
