@@ -7,15 +7,13 @@
 	DESPAWN_TELEGRAPH_SECONDS before that its model carries the attribute
 	DespawnAt (Constants.DESPAWN_AT_ATTRIBUTE) = expiresAt, in server time.
 
-	The client shows the countdown from
-	  DespawnTelegraph.countdownSeconds(workspace:GetServerTimeNow(), DespawnAt)
-	and plays the shrink / poof (no blink or fade). The server never removes early: it
+	The client plays the shrink / poof from DespawnAt (no text, blink or fade). The server never removes early: it
 	removes only once shouldRemove(now, expiresAt) is true.
 
 	Client FX data and helpers (Visuals DespawnTelegraphFx reads these):
 	  DespawnTelegraph.FX
 	    frozen knobs: poof textures, burst counts, slime-green colours,
-	    warn colour, shrink target
+	    shrink target
 	  DespawnTelegraph.shrinkFactor(progress, shrinkTo)
 	    model scale factor: 1 at progress 0, shrinkTo at progress 1
 	  DespawnTelegraph.fallbackSizeXYZ(x, y, z, factor)
@@ -37,7 +35,6 @@ DespawnTelegraph.FX = table.freeze({
 	smokeCount = 6, -- soft puff under the sparkles
 	color = table.freeze({ GOO[1], GOO[2], GOO[3] }), -- RGB 0..255, burst end
 	colorBright = table.freeze({ 140, 255, 150 }), -- brighter goo, burst start
-	warnColor = table.freeze({ 255, 90, 90 }), -- countdown text
 	shrinkTo = 0.55, -- model scale factor at DespawnAt
 })
 
@@ -63,11 +60,6 @@ end
 -- The server removes the wild slime only at expiresAt.
 function DespawnTelegraph.shouldRemove(now: number, expiresAt: number): boolean
 	return now >= expiresAt
-end
-
--- Whole seconds to show on the countdown ("5", "4", ... "1"), 0 once due.
-function DespawnTelegraph.countdownSeconds(now: number, despawnAt: number): number
-	return math.max(0, math.ceil(despawnAt - now))
 end
 
 -- 0 at the start of the window, 1 at despawnAt (drives the shrink).

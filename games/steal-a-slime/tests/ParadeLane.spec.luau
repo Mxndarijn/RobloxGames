@@ -556,9 +556,8 @@ describe("ParadeLane: the despawn telegraph stays readable", function()
 		-- at most two countdowns at once at the normal cadence
 		expect(math.ceil(ParadeLane.WARN_SECONDS / Config.SPAWN_INTERVAL) <= 2).toBe(true)
 	end)
-	it("billboard text says leaving! on the parade", function()
-		expect(ParadeLane.warnText(3, true)).toBe("leaving! 3")
-		expect(ParadeLane.warnText(3, false)).toBe("3")
+	it("no despawn text helper: nothing says leaving!", function()
+		expect(rawget(ParadeLane :: any, "warnText")).toBeNil()
 	end)
 end)
 

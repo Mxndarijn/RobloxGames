@@ -8,7 +8,7 @@
 	and only changes them locally (nothing replicates, no remotes).
 
 	Plot attributes read (CONTRACT.md §5.2 + new ones, all optional):
-	  OwnerUserId  0 = free      -> LockSign "FREE PLOT"
+	  OwnerUserId  0 = free      -> LockSign shows no text
 	  LockUntil    server time   -> LockBarrier + LockSign "LOCKED m:ss" / "UNLOCKED"
 	  Locked       boolean (§8.4) -> used only when LockUntil is missing
 	  Rebirths                   -> RebirthDecor by PlotDecor.band (bands start at
@@ -159,7 +159,7 @@ local function applyLock(plot: Instance, owned: boolean, locked: boolean, remain
 		set(lamp, "Color", rgb(color))
 	end
 	local lines = labels(sign, { 0.55, 0.45 })
-	set(lines[1], "Text", if not owned then "FREE PLOT" elseif locked then "LOCKED" else "UNLOCKED")
+	set(lines[1], "Text", if not owned then "" elseif locked then "LOCKED" else "UNLOCKED")
 	set(lines[1], "TextColor3", rgb(color))
 	set(lines[2], "Text", if not owned then "" elseif locked then PlotDecor.clock(remaining) else "stealable!")
 end
