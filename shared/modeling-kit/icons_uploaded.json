@@ -1,0 +1,401 @@
+{
+  "Appraise": {
+    "assetId": "136866516789812",
+    "assetType": "Decal",
+    "imageId": "140440409031526",
+    "sha256": "b36f5ca1e0c6be723bbf3a367062412b67f2f82092cba74a33b15ebb0efe7747",
+    "uploadedAt": "2026-10-17T10:09:19Z"
+  },
+  "Badge_Dex100": {
+    "assetId": "89560977580927",
+    "assetType": "Decal",
+    "imageId": "126553682019734",
+    "sha256": "0d39a9d84713da4200813b8ca72b9c6b1ba7fdc5635afd4bd925f4444354098b",
+    "uploadedAt": "2026-10-17T10:09:24Z"
+  },
+  "Badge_Dex25": {
+    "assetId": "114966361641099",
+    "assetType": "Decal",
+    "imageId": "103035902991477",
+    "sha256": "941ca90a47b37b0357e2a2f1038e11874869363e1c37674017049112a8ce2c2c",
+    "uploadedAt": "2026-10-17T10:09:28Z"
+  },
+  "Badge_Dex50": {
+    "assetId": "117045899174608",
+    "assetType": "Decal",
+    "imageId": "132537225738577",
+    "sha256": "d9f067e591bfd01dba47bf71575c2baf9f4690a4c42cb0168df1ba265a156285",
+    "uploadedAt": "2026-10-17T10:09:33Z"
+  },
+  "Badge_FirstLegendary": {
+    "assetId": "107144858189679",
+    "assetType": "Decal",
+    "imageId": "92898240575380",
+    "sha256": "8d2812332661ce424553dffb4b23105163b87d039e0622241c26c1a24266f316",
+    "uploadedAt": "2026-10-17T10:09:37Z"
+  },
+  "Badge_FirstRebirth": {
+    "assetId": "126885480204960",
+    "assetType": "Decal",
+    "imageId": "81969833659273",
+    "sha256": "41a517bfc51e63691fda2ea71fa36063f5524287b02cbb65bb9acb0ed30c2edc",
+    "uploadedAt": "2026-10-17T10:09:42Z"
+  },
+  "Badge_FirstSecret": {
+    "assetId": "112873389271244",
+    "assetType": "Decal",
+    "imageId": "140702355269432",
+    "sha256": "b444516bc9b4d5bd821a23094464d5800b1f5bf3bc66eb76a88d88cdd31fdb66",
+    "uploadedAt": "2026-10-17T10:09:46Z"
+  },
+  "Badge_FirstSlime": {
+    "assetId": "99349724935387",
+    "assetType": "Decal",
+    "imageId": "120070367416197",
+    "sha256": "a7de90e9cfefe3c96bfd86a4d8584022c6f55644191ececb7f717a8d2ee03e40",
+    "uploadedAt": "2026-10-17T10:09:51Z"
+  },
+  "Badge_FirstSteal": {
+    "assetId": "71133105207597",
+    "assetType": "Decal",
+    "imageId": "78925771107042",
+    "sha256": "aa4e73ad5ed88881674c90b85ee65570b904153741760aafbf6bebc5a7fe5354",
+    "uploadedAt": "2026-10-17T10:09:55Z"
+  },
+  "Badge_Millionaire": {
+    "assetId": "123778994986372",
+    "assetType": "Decal",
+    "imageId": "127519969347286",
+    "sha256": "7011bcd4b443a46780ec8cc06ff0158266ba9343a40cd6939ffc8ff495c19857",
+    "uploadedAt": "2026-10-17T10:09:59Z"
+  },
+  "Badge_Rebirth5": {
+    "assetId": "114364879821053",
+    "assetType": "Decal",
+    "imageId": "102074621023406",
+    "sha256": "7776a1fb4dbffd67058e5fbd9df6580f7f702db5262afdf29a28916b40f501db",
+    "uploadedAt": "2026-10-17T10:10:04Z"
+  },
+  "Boost_Blessed": {
+    "assetId": "139660206372348",
+    "assetType": "Decal",
+    "imageId": "102114473664766",
+    "sha256": "70f7620115c6fba7c5c5ad27135379953d051dbecbd4a200a500115796adfe7a",
+    "uploadedAt": "2026-10-17T10:10:08Z"
+  },
+  "Boost_Code": {
+    "assetId": "98678160719317",
+    "assetType": "Decal",
+    "imageId": "116865449672644",
+    "sha256": "3fdb1cdcb5bba43be09e66b7b5915d79e299b3322a218dc42a869ac8928c69bf",
+    "uploadedAt": "2026-10-17T10:10:12Z"
+  },
+  "Boost_Friend": {
+    "assetId": "139233452184421",
+    "assetType": "Decal",
+    "imageId": "134160547679550",
+    "sha256": "b7f3b14b0dcbf1ef0e81130af58d87d9988452a472d2e3a355a860a995dac686",
+    "uploadedAt": "2026-10-17T10:10:17Z"
+  },
+  "Boost_Weekend": {
+    "assetId": "132434671497613",
+    "assetType": "Decal",
+    "imageId": "130491704533609",
+    "sha256": "a5883124a641927c08bf2c4e6fcefda2a4cdec6c8247040978f54c84d9870e56",
+    "uploadedAt": "2026-10-17T10:10:22Z"
+  },
+  "Cash": {
+    "assetId": "77665161836634",
+    "assetType": "Decal",
+    "imageId": "87921251358162",
+    "sha256": "060a234b850e56a0ae744b6e5ded163711cfa7389fef5390267f1049f31e8788",
+    "uploadedAt": "2026-10-17T10:10:26Z"
+  },
+  "Code_LAUNCH": {
+    "assetId": "88623159866959",
+    "assetType": "Decal",
+    "imageId": "71722668257014",
+    "sha256": "5c2e6a2f87297df5fb0fccb87117193351aceb3e2b69f168d3cffc71f2c50a20",
+    "uploadedAt": "2026-10-17T10:10:30Z"
+  },
+  "Code_SLIMEBOOST": {
+    "assetId": "94099890148806",
+    "assetType": "Decal",
+    "imageId": "96448805080296",
+    "sha256": "ce824b53134c86fc295359f4e0195bdef89f4b8361186710944fbc667d176e3e",
+    "uploadedAt": "2026-10-17T10:10:34Z"
+  },
+  "Code_WELCOME": {
+    "assetId": "114749868940538",
+    "assetType": "Decal",
+    "imageId": "132772869844350",
+    "sha256": "060a234b850e56a0ae744b6e5ded163711cfa7389fef5390267f1049f31e8788",
+    "uploadedAt": "2026-10-17T10:10:38Z"
+  },
+  "Daily": {
+    "assetId": "95562237727488",
+    "assetType": "Decal",
+    "imageId": "136919499537484",
+    "sha256": "2926c9188734bf593401af6f7f7fb1246a74b223521ef5efbdaadc42f109c9a1",
+    "uploadedAt": "2026-10-17T10:10:43Z"
+  },
+  "Dex_10": {
+    "assetId": "116117127883814",
+    "assetType": "Decal",
+    "imageId": "121377018671664",
+    "sha256": "21eb8b3f186304f9f08ce33749e72e3bcbcafe2a90b943b883e3481c4da9ebdd",
+    "uploadedAt": "2026-10-17T10:10:47Z"
+  },
+  "Dex_100": {
+    "assetId": "126681227839052",
+    "assetType": "Decal",
+    "imageId": "104036768146434",
+    "sha256": "487a86bb53694b2041209012270d460d6baa76098610e692a48736b7991bfda0",
+    "uploadedAt": "2026-10-17T10:10:51Z"
+  },
+  "Dex_200": {
+    "assetId": "103796634413274",
+    "assetType": "Decal",
+    "imageId": "124460827254481",
+    "sha256": "226c4fe3939113c25e13d448c3e0d951e61d62abdf2dd84a35736b723d9c43f7",
+    "uploadedAt": "2026-10-17T10:10:56Z"
+  },
+  "Dex_25": {
+    "assetId": "102942775662320",
+    "assetType": "Decal",
+    "imageId": "103082196233051",
+    "sha256": "a6878d61c3ee5492dcec8b9217e8603e01727741203dad25dd3d5be7cc115c17",
+    "uploadedAt": "2026-10-17T10:11:00Z"
+  },
+  "Dex_400": {
+    "assetId": "77954571679696",
+    "assetType": "Decal",
+    "imageId": "119341987106293",
+    "sha256": "7d81ab98f1ef8e5fc3a36e77f786b37fd927eb64da2ae00e3e7406c3091bb944",
+    "uploadedAt": "2026-10-17T10:11:04Z"
+  },
+  "Dex_50": {
+    "assetId": "107206999990729",
+    "assetType": "Decal",
+    "imageId": "98335037376213",
+    "sha256": "9f9751d09a4492682ae4624826fa8bbfdb3e615097604b1c754203d1fe5a516c",
+    "uploadedAt": "2026-10-17T10:11:09Z"
+  },
+  "Dex_720": {
+    "assetId": "76039363824408",
+    "assetType": "Decal",
+    "imageId": "86513854908521",
+    "sha256": "895cf1aa59b903f6799d68063f5eaabec88c2021dc28f2fc4e9eb7d0a2e1b2dc",
+    "uploadedAt": "2026-10-17T10:11:13Z"
+  },
+  "Event_luck": {
+    "assetId": "128865478719247",
+    "assetType": "Decal",
+    "imageId": "110897664124431",
+    "sha256": "6e7ddd6b5e0ea302fc8764b2ed473e0e168f40693f56c3f5f89736537c101b65",
+    "uploadedAt": "2026-10-17T10:11:18Z"
+  },
+  "Event_mutation": {
+    "assetId": "129533082171111",
+    "assetType": "Decal",
+    "imageId": "130718998467042",
+    "sha256": "b51161a32532310cc83f73ec882429684ecd64c02f526466171ecb9694ad2509",
+    "uploadedAt": "2026-10-17T10:11:22Z"
+  },
+  "Event_rain": {
+    "assetId": "84952553791766",
+    "assetType": "Decal",
+    "imageId": "85475866363499",
+    "sha256": "cfe0b977df041ba4d6bfaf6184d43c8a147fdf7c03e5d0d0195a95d8057ee993",
+    "uploadedAt": "2026-10-17T10:11:26Z"
+  },
+  "Gift": {
+    "assetId": "118992227924125",
+    "assetType": "Decal",
+    "imageId": "100988775125780",
+    "sha256": "0199bfb6c128556e746831f0f2d27fcaeb7a56966c1b8a6fffe1756844647a48",
+    "uploadedAt": "2026-10-17T10:11:30Z"
+  },
+  "Goal_Catch": {
+    "assetId": "72835277134453",
+    "assetType": "Decal",
+    "imageId": "103344687666439",
+    "sha256": "11b6d43f944ceddefb1842b1faa62e283f68ad313c3ce6279da2aba9cd99402e",
+    "uploadedAt": "2026-10-17T10:11:35Z"
+  },
+  "Goal_Earn": {
+    "assetId": "98842760517889",
+    "assetType": "Decal",
+    "imageId": "95884409898940",
+    "sha256": "f0a083a8db7099d8f45ba1e95c19ddd01515013deacc197b2d6e7e370d4ed8e5",
+    "uploadedAt": "2026-10-17T10:11:39Z"
+  },
+  "Goal_Lock": {
+    "assetId": "103797611509608",
+    "assetType": "Decal",
+    "imageId": "127760359460961",
+    "sha256": "ad63fc26f86555c1fe794bb109e4eb21b41c937cb18be8683b6add3ac1b476db",
+    "uploadedAt": "2026-10-17T10:11:44Z"
+  },
+  "Goal_Merge": {
+    "assetId": "113517975139093",
+    "assetType": "Decal",
+    "imageId": "113657744087680",
+    "sha256": "35e23f0794a42ef6290400c96b1cd2a4d96dadf2900d60558140ecdc9f81c971",
+    "uploadedAt": "2026-10-17T10:11:48Z"
+  },
+  "Goal_Pads": {
+    "assetId": "79883033528206",
+    "assetType": "Decal",
+    "imageId": "99255351965390",
+    "sha256": "4d7e2be3413f693691b1e3868e289fd483f65861d10c1a4343aae9a6e247d8bb",
+    "uploadedAt": "2026-10-17T10:11:52Z"
+  },
+  "Goal_Rebirth": {
+    "assetId": "121379293632292",
+    "assetType": "Decal",
+    "imageId": "72330367528382",
+    "sha256": "a93069dc6e47b736736d4fc46494fc5cd37dcab221ed9c4a0dbcdbf6a079000c",
+    "uploadedAt": "2026-10-17T10:11:57Z"
+  },
+  "Goal_Steal": {
+    "assetId": "72683361521417",
+    "assetType": "Decal",
+    "imageId": "94010775081099",
+    "sha256": "5cf82afb0ee34a136e921a82ab269213e941cbeb9815277417590bfdc808b43d",
+    "uploadedAt": "2026-10-17T10:12:01Z"
+  },
+  "Lock": {
+    "assetId": "114537958303488",
+    "assetType": "Decal",
+    "imageId": "80470044151843",
+    "sha256": "d4c6f256fc6536878ca016701fbd0f95247e32b0e0edb20fa9a0175917bca4de",
+    "uploadedAt": "2026-10-17T10:08:58Z"
+  },
+  "LockUpgrade": {
+    "assetId": "87029919433747",
+    "assetType": "Decal",
+    "imageId": "127943211946057",
+    "sha256": "229813537854a4bef2f6e077ad7efd66fb5c9f6db96f38f550d1b74fb1cf6614",
+    "uploadedAt": "2026-10-17T10:12:05Z"
+  },
+  "MysteryEgg": {
+    "assetId": "71785733078600",
+    "assetType": "Decal",
+    "imageId": "140462029142577",
+    "sha256": "c4ccbe2c060cec3153781c14b5ed565a9c4867e19fb3b089e5db125326e12ab2",
+    "uploadedAt": "2026-10-17T10:12:10Z"
+  },
+  "Perk_income": {
+    "assetId": "129191812353432",
+    "assetType": "Decal",
+    "imageId": "94766482619711",
+    "sha256": "cb57e9c58a910c8c50720e1a1db0495679743256f783fbdecb90feda9e84d859",
+    "uploadedAt": "2026-10-17T10:12:14Z"
+  },
+  "Perk_luck": {
+    "assetId": "120405990302901",
+    "assetType": "Decal",
+    "imageId": "80060700315838",
+    "sha256": "6604ad4013f22346787cdba637ae50befef88dbb3781365b71fc347f86380dc4",
+    "uploadedAt": "2026-10-17T10:12:19Z"
+  },
+  "Perk_mutation": {
+    "assetId": "96928669845182",
+    "assetType": "Decal",
+    "imageId": "89742124559371",
+    "sha256": "7a457671ab80c9995c51b4ecd56c589ddb5f75cb9a2f5c4a9dc268d471993525",
+    "uploadedAt": "2026-10-17T10:12:23Z"
+  },
+  "PlotSkin_candy": {
+    "assetId": "120970040244785",
+    "assetType": "Decal",
+    "imageId": "75125399713715",
+    "sha256": "a0b0a9a98c955870b78186cea883e0feb71c0c6be6325c48ef754c8a788494ca",
+    "uploadedAt": "2026-10-17T10:12:28Z"
+  },
+  "PlotSkin_classic": {
+    "assetId": "100282350164092",
+    "assetType": "Decal",
+    "imageId": "75405645541984",
+    "sha256": "035203b4a97c6c465997a9ae4d5aa269ab93176090cd18eed6fe363189072104",
+    "uploadedAt": "2026-10-17T10:12:32Z"
+  },
+  "PlotSkin_crystal": {
+    "assetId": "74089309072170",
+    "assetType": "Decal",
+    "imageId": "91231773101915",
+    "sha256": "080c0d33a62bbce90c46b1eb97af3a06d86b3192c2d7679cfc167c12e6defd50",
+    "uploadedAt": "2026-10-17T10:12:37Z"
+  },
+  "PlotSkin_mushroom": {
+    "assetId": "119343806680731",
+    "assetType": "Decal",
+    "imageId": "110584867448733",
+    "sha256": "508ae07db6e7fa81448c068ecf6dafacd33041145ef9c5401717164fce501c9e",
+    "uploadedAt": "2026-10-17T10:12:41Z"
+  },
+  "Quest": {
+    "assetId": "124996051707861",
+    "assetType": "Decal",
+    "imageId": "134202290579149",
+    "sha256": "be6fe11485912cb03a04266ef4542c1b761da7db2d0a8671bf93124367c4f2ad",
+    "uploadedAt": "2026-10-17T10:12:45Z"
+  },
+  "Rebirth": {
+    "assetId": "102829267676365",
+    "assetType": "Decal",
+    "imageId": "120491632097640",
+    "sha256": "561b311e1e2cd0c10f294e102e24dcc508f6b2ae8a46ac757aa034db0a43d313",
+    "uploadedAt": "2026-10-17T10:12:50Z"
+  },
+  "Slap": {
+    "assetId": "131747088908242",
+    "assetType": "Decal",
+    "imageId": "126349026044270",
+    "sha256": "1dcf9525d14aa75c0023c2a9b7ec36debfbf3526c517312f66cc30cb6d5ce023",
+    "uploadedAt": "2026-10-17T10:12:54Z"
+  },
+  "SpeedCoil": {
+    "assetId": "113147158283200",
+    "assetType": "Decal",
+    "imageId": "122726751933466",
+    "sha256": "7038a965ef592aa469bfe4d0cd3c6a6ffbcd04cb51ddc89e7c187edffb197316",
+    "uploadedAt": "2026-10-17T10:12:58Z"
+  },
+  "Upgrade_CarrySpeed": {
+    "assetId": "140341334855650",
+    "assetType": "Decal",
+    "imageId": "99839660309060",
+    "sha256": "36812c4113a7f96e486554c317d27048922cf92a3d1be3733da9456794da0dca",
+    "uploadedAt": "2026-10-17T10:13:03Z"
+  },
+  "Upgrade_Income": {
+    "assetId": "88259815201566",
+    "assetType": "Decal",
+    "imageId": "78599900293497",
+    "sha256": "a8eceb3f8a46ce2ef13c1970631cfe27d1d1a6882150152e4678e3ff1894057b",
+    "uploadedAt": "2026-10-17T10:13:07Z"
+  },
+  "Upgrade_Luck": {
+    "assetId": "109338310967074",
+    "assetType": "Decal",
+    "imageId": "138463958912705",
+    "sha256": "a5ceee43e6589320b9df1df8c0d6099f14472bbc78f6f1d59e3ddbce0e4c4915",
+    "uploadedAt": "2026-10-17T10:13:12Z"
+  },
+  "Upgrade_OfflineCap": {
+    "assetId": "97669110416097",
+    "assetType": "Decal",
+    "imageId": "119754785018464",
+    "sha256": "7e5a6783a1c096db2528c16f4cd7c6e7c2356c2d5f102fbea1d77f73887c049c",
+    "uploadedAt": "2026-10-17T10:13:16Z"
+  },
+  "Upgrade_RainMagnet": {
+    "assetId": "104621180026251",
+    "assetType": "Decal",
+    "imageId": "117424238725252",
+    "sha256": "9618f9802af54c6b745f495c6878fd00b8dece5d680c4653e531c699be118a0b",
+    "uploadedAt": "2026-10-17T10:13:21Z"
+  }
+}
