@@ -16,6 +16,8 @@ local Sounds = if script then require(script.Parent.Sounds) else require("./Soun
 
 local AudioLogic = {}
 
+AudioLogic.VOLUME_STEP = 0.05
+
 export type Settings = { muted: boolean, sfx: number, music: number }
 
 function AudioLogic.clampVolume(v: any, fallback: number?): number
@@ -23,6 +25,28 @@ function AudioLogic.clampVolume(v: any, fallback: number?): number
 		return fallback or 0
 	end
 	return math.clamp(v, 0, 1)
+end
+
+-- Snaps to whole multiples of `step` (integer percent maths, so 0.35 stays 0.35 and not 0.35000000000000003).
+function AudioLogic.snapVolume(v: any, step: number?): number
+	local stepPct = math.max(1, math.round((step or AudioLogic.VOLUME_STEP) * 100))
+	local pct = math.round(AudioLogic.clampVolume(v, 0) * 100 / stepPct) * stepPct
+	return math.clamp(pct, 0, 100) / 100
+end
+
+function AudioLogic.volumeFromPixel(x: any, left: any, width: any, step: number?): number
+	if type(x) ~= "number" or type(left) ~= "number" or type(width) ~= "number" or width <= 0 then
+		return 0
+	end
+	return AudioLogic.snapVolume((x - left) / width, step)
+end
+
+function AudioLogic.volumeToAlpha(v: any): number
+	return AudioLogic.clampVolume(v, 0)
+end
+
+function AudioLogic.percentText(v: any): string
+	return `{math.round(AudioLogic.clampVolume(v, 0) * 100)}%`
 end
 
 function AudioLogic.sanitize(raw: any, cfg: any): Settings

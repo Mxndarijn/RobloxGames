@@ -704,9 +704,9 @@ local Config = {
 			error = "rbxasset://sounds/uuhhh.mp3",
 			click = "rbxasset://sounds/button.wav",
 		}),
-		-- Ambient loops; not uploaded yet (needs Merijn's asset ids), empty = silent.
-		AMBIENT_DAY_ID = "", -- birds
-		AMBIENT_NIGHT_ID = "", -- crickets
+		-- Ambient loops (20 s seamless, Merijn-owned uploads).
+		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds (original procedural loop, uploaded via Open Cloud; moderation pending at upload)
+		AMBIENT_NIGHT_ID = "rbxassetid://132943569734014", -- crickets (same)
 	}),
 
 	-- Full steal alerts (FEATURES.StealAlerts, StealAlert / ui/StealAlertFx). Client timings in seconds.
