@@ -12,13 +12,14 @@ merge to main -> cloud tests (box) -> Studio check (Phoenix PC) -> gate -> clean
 
 ## Handoff: Studio report
 
-Pushed to the **orphan branch `studio-reports`** of `Mxndarijn/RobloxGames`: `<sha>.json` at the branch root, frames in `<sha>/`
-(`studio-reports/<sha>/` once mirrored).
+Pushed to the **orphan branch `studio-reports`** of `Mxndarijn/RobloxGames`: `studio-reports/<sha>.json`, frames in
+`studio-reports/<sha>/` (the mirror dir holds them without the `studio-reports/` prefix).
 
 ```json
 {
   "sha": "<full 40-char sha>",
   "status": "pass",
+  "run_kind": "full",
   "checked_at": "2026-10-16T13:30:00+02:00",
   "studio_version": "0.6xx.x",
   "notes": "free text",
@@ -31,16 +32,22 @@ Pushed to the **orphan branch `studio-reports`** of `Mxndarijn/RobloxGames`: `<s
 `status` is `"pass"` or `"fail"`; `checked_at` is ISO 8601 with offset; `perf` is free-form metrics; `frames_reviewed`
 must be `true` and `reviewed_by` a non-empty array of names for the report to count.
 
+`run_kind` is `"full"` or `"partial"` (PC watcher, see its README "Full vs partial runs"). A partial run only captures the
+shots its changed paths need and skips the devices step, so **only `run_kind == "full"` reports can gate a publish**;
+a partial report (or one without `run_kind`) is never terminal and just keeps the sha waiting. Reviewers set
+`frames_reviewed` / `reviewed_by` only on full reports. When `publish.sh` sets the needs-review marker it also asks the PC
+for a full run by writing `studio-reports/requests/<sha>.json` on the branch (best effort, once per sha, `FULL_REQUEST=0` disables).
+
 **Mirror.** `box-pull.sh --loop 60` copies the branch to `/workspace/roblox/pipeline/studio-reports/` every 60 s and touches
 `.synced`. If `<sha>.json` is missing there, or nothing in the mirror dir changed for more than 5 min (`MIRROR_STALE_S`),
-`publish.sh` reads `ghbot-gojo api repos/Mxndarijn/RobloxGames/contents/<sha>.json?ref=studio-reports` instead.
+`publish.sh` reads `ghbot-gojo api repos/Mxndarijn/RobloxGames/contents/studio-reports/<sha>.json?ref=studio-reports` instead.
 
 ## The gate for sha X
 
 All of these must hold:
 
 1. `status/X.json` has `status == "pass"` (cloud tests).
-2. The Studio report has `sha == X` exactly, `status == "pass"`, `checked_at` later than X's commit time on main,
+2. The Studio report has `sha == X` exactly, `run_kind == "full"`, `status == "pass"`, `checked_at` later than X's commit time on main,
    `frames_reviewed == true`, `reviewed_by` a non-empty array of non-empty strings.
 
 Outcomes (exit code of `publish.sh`):
@@ -55,7 +62,7 @@ Outcomes (exit code of `publish.sh`):
 
 ### Newest fully-gated only
 
-"Fully gated" = cloud status `pass` + Studio report `status: pass`, `frames_reviewed: true`, non-empty `reviewed_by`, `checked_at` after the merge. For sha X, `publish.sh` walks `git rev-list --first-parent $MAIN_REF` (default `origin/main`):
+"Fully gated" = cloud status `pass` + FULL Studio report `status: pass`, `frames_reviewed: true`, non-empty `reviewed_by`, `checked_at` after the merge. For sha X, `publish.sh` walks `git rev-list --first-parent $MAIN_REF` (default `origin/main`):
 
 1. X is **never published if it is older than (an ancestor of) a live sha**, or if a newer sha is already published. It becomes `skipped-superseded` (`superseded_by` = that sha).
 2. X is `skipped-superseded` **only** when a newer sha is itself fully gated (or published). A newer sha that is merely cloud-passed (no report / frames not yet reviewed) does **not** supersede X: if X is gated it publishes, so review lag on newer merges cannot starve the pipeline (previously every sha was superseded before its own review finished).
@@ -70,7 +77,7 @@ An already `live` / `smoke-failed` / `no-publish` / `skipped-superseded` sha (or
 
 So Gojo can ping Phoenix, `publish.sh` keeps an empty file `$NEEDS_REVIEW_DIR/<full 40-char sha>` (default `/workspace/roblox/pipeline/needs-review`, created with `mkdir -p`) while X has cloud `pass`, frames still need review, and X is the **newest** such un-reviewed sha (a newer un-reviewed cloud-pass sha takes the marker; older ones lose it):
 
-- written when there is no Studio report yet, or the report has `status == "pass"` but `frames_reviewed` is not `true`;
+- written when there is no Studio report yet, the report is not `run_kind == "full"`, or it is a full report with `status == "pass"` but `frames_reviewed` is not `true`;
 - removed when `frames_reviewed` is `true`, the report is `fail`, X is older than a live sha or older than a gated sha, or X ends `live`, `skipped-superseded`, `no-publish` or `smoke-failed` (including the `SUPERSEDE_ONLY=1` path). A sha with a terminal publish status is never re-marked.
 
 Every `publish.sh` run that evaluates the gate refreshes the marker. `NEEDS_REVIEW_DIR` is honoured under `DRY_RUN=1` (the tests point it at a temp dir). Cloud `fail`/`error`/pending shas get no marker.

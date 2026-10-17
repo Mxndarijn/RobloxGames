@@ -28,6 +28,7 @@ New-Item -ItemType Directory -Force -Path (Join-Path $App "shots") | Out-Null
 Copy-Item -Force (Join-Path $PSScriptRoot "shots\*.json") (Join-Path $App "shots")
 Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $App "luau\*.luau")
 Copy-Item -Force (Join-Path $PSScriptRoot "checks.json") $App
+Copy-Item -Force (Join-Path $PSScriptRoot "shot-map.json") $App
 Copy-Item -Force (Join-Path $PSScriptRoot "luau\*.luau") (Join-Path $App "luau")
 
 # Repo clone the watcher builds from (uses your existing git credential manager login).
