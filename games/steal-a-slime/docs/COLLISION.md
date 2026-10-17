@@ -97,6 +97,17 @@ still needs its own collider. Max 32 groups. **Studio check** the character part
 The inner ground is voxel Terrain (`GroundTerrain`, flat at y = 0): Terrain collides by itself, so it has no mesh,
 `MeshAssets.COLLISION` entry or collider part. The invisible `Map.Ground` part under it stays as the void-safety floor.
 
+## The floor (B11, concept c3)
+
+The visible floor is parts and two baked meshes on top of that terrain (`visuals/shared/FloorLayout`): the sand yard (`Map.Field`),
+the boardwalk and plaza deck (`Map.Paths`) and the lawns (`Map.Lawns`). The terrain stays the walk surface, so **nothing in it
+collides except the eight `GateRamp` blocks**: every floor part is `CanCollide/CanQuery/CanTouch = false`, at most 0.21 studs above
+`FloorLayout.FLOOR_Y` (the ONE height constant). `ranch_floor_deck` and `ranch_floor_paths` are decor in `MeshAssets.COLLISION`
+(`tests/MeshCollision.spec`). A gate ramp is the one place a lip is real: the plot Base floor top is `WorldLayout.PLOT_FLOOR_TOP`
+(1), so a solid 11.7 degree plank climbs r 96..100 from the plank top to it, flush at both ends (`tests/FloorLayout.spec`).
+`server/FloorTerrain.server` swaps the voxel Grass under the floor for Sand (a `Terrain.Decoration` tuft would poke through every
+floor part); it needs no call site and touches no terrain-height file.
+
 ## Conversions (bug #11 part 1)
 
 `MeshAssets.COLLISION` is the single list; one reason per mesh sits next to its line there. Summary:

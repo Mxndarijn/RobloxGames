@@ -1,0 +1,111 @@
+{
+  "name": "ranch_floor_deck",
+  "model": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/models/ranch_floor_deck.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 2408,
+  "meshes": [
+    {
+      "name": "ranch_floor_deck",
+      "tris": 2408,
+      "verts": 1352,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        131.2,
+        0.21,
+        131.2
+      ],
+      "materials": [
+        "ranch_floor_deck_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "ranch_floor_deck_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    131.2,
+    0.21,
+    131.2
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "ranch_floor_deck_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [
+    "2408 tris outside prop target 500-2000"
+  ],
+  "fbx": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/ranch_floor_deck.fbx",
+  "fbx_bytes": 39964,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/.tiles/ranch_floor_deck_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/.tiles/ranch_floor_deck_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/.tiles/ranch_floor_deck_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/.tiles/ranch_floor_deck_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.132,
+    "stats_s": 0.004,
+    "setup_s": 0.001,
+    "render_s": [
+      1.19,
+      1.142,
+      0.952,
+      0.682
+    ],
+    "export_s": 0.088
+  },
+  "sheet": "/workspace/roblox/wt-b11-floor/shared/modeling-kit/out/ranch_floor_deck_sheet.png",
+  "timings": {
+    "wall_s": 4.93,
+    "blender_process_s": 4.82,
+    "compose_s": 0.107,
+    "model_s": 0.132,
+    "stats_s": 0.004,
+    "setup_s": 0.001,
+    "render_s": [
+      1.19,
+      1.142,
+      0.952,
+      0.682
+    ],
+    "export_s": 0.088
+  }
+}
