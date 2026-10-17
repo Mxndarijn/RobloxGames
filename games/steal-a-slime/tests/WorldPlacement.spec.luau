@@ -180,11 +180,13 @@ end)
 
 describe("shops face the map centre (TODO #10)", function()
 	it("turns the plaza ShopStand's Props front (-Z) at the fountain", function()
-		local spot = WorldLayout.PROP_SPOTS[Constants.SHOP_STAND]
-		-- Props front is local -Z: kit-front bearing = yaw + 180
-		local diff = angleDiff(spot.yaw + 180, bearing(spot.pos, WorldLayout.FOUNTAIN_CENTRE))
-		expect(math.abs(diff) < FACE_TOL).toBe(true)
-		expect(WorldLayout.PROP_MESHES[Constants.SHOP_STAND]).toBe(WorldLayout.BUY_STAND_MESH)
+		for _, name in { Constants.SHOP_STAND_ITEM, Constants.SHOP_STAND_UPGRADE } do
+			local spot = WorldLayout.PROP_SPOTS[name]
+			-- Props front is local -Z: kit-front bearing = yaw + 180
+			local diff = angleDiff(spot.yaw + 180, bearing(spot.pos, WorldLayout.FOUNTAIN_CENTRE))
+			expect(math.abs(diff) < FACE_TOL).toBe(true)
+			expect(WorldLayout.PROP_MESHES[name]).toBe(WorldLayout.BUY_STAND_MESH)
+		end
 	end)
 	it(
 		"turns the Top Earners board's front (-Z, the SurfaceGui) at the map centre within 3 degrees (v29 B3)",
@@ -363,7 +365,8 @@ describe("ground contact (TODO #9)", function()
 		local Props = StaticWorld.visual("Props")
 		for name, build in
 			{
-				[Constants.SHOP_STAND] = Props.shopStand,
+				[Constants.SHOP_STAND_ITEM] = Props.shopStand,
+				[Constants.SHOP_STAND_UPGRADE] = Props.shopStand,
 				[Constants.LEADERBOARD_BOARD] = Props.leaderboardBoard,
 				[Constants.TUTORIAL_NPC] = Props.tutorialNpc,
 			}

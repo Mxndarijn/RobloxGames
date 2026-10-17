@@ -59,7 +59,7 @@
      "keys": ["ring_slimes", "wild_pace"], "shots": ["*ring-slimes*", "*wild-pace*", "*path*", "*slide-exit*", "*curb*", "*bug01*", "*bug04*", "*bug05*", "*bug06*", "*bug07*", "*bug13*"]},
     {"name": "habitats", "paths": ["{G}/src/**/Habitat*.luau"], "keys": ["habitat"], "shots": ["*habitat*"]},
     {"name": "plots / pads / signs",
-     "paths": ["{G}/src/server/PlotSigns.luau", "{G}/src/shared/PadStyle.luau", "{G}/src/visuals/shared/PlotDecor.luau",
+     "paths": ["{G}/src/server/PlotSigns.luau", "{G}/src/server/PlotLockGuard.luau", "{G}/src/shared/PadStyle.luau", "{G}/src/visuals/shared/PlotDecor.luau",
                "{G}/src/visuals/client/PlotVisuals.luau", "{G}/src/shared/PlotSkins.luau"],
      "shots": ["*pad*", "*plot*", "*sign*", "*mailbox*", "*bug02*", "*bug03*", "*bug08*", "*bug12*"]},
     {"name": "podium / top earners", "paths": ["{G}/src/**/Podium*.luau", "{G}/src/server/Leaderboard.luau"],

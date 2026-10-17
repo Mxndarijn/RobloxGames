@@ -7,6 +7,7 @@
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
+local Config = require("../src/shared/Config")
 local MeshAssets = require("../src/shared/MeshAssets")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
@@ -22,6 +23,9 @@ describe("MeshAssets.COLLISION", function()
 			expect(VALID[fidelity]).toBe(true)
 			expect(MeshAssets.collision(name)).toBe(fidelity)
 		end
+	end)
+	it("makes the shop stands solid with a hull (CONTRACT.md §27.2)", function()
+		expect(MeshAssets.collision("ranch_shop_stand")).toBe("Hull")
 	end)
 	it("makes the fountain-top slimes solid with a hull (cheap, no standing in the gaps)", function()
 		expect(MeshAssets.collision("slime_fountain_emerge")).toBe("Hull")
@@ -71,6 +75,16 @@ describe("MeshSwap collision in the live server", function()
 		end
 		expect(count).toBe(want)
 	end)
+	it("the shop stands are solid Hull MeshParts (no extra collider boxes)", function()
+		local names = if Config.FEATURES.WorldShops then { "ItemShopStand", "UpgradeShopStand" } else { "ShopStand" }
+		for _, name in names do
+			local mesh = rt.workspace.Map[name]:FindFirstChild("Mesh")
+			expect(mesh ~= nil).toBe(true)
+			expect(mesh.CanCollide).toBe(true)
+			expect(mesh.CollisionFidelity).toBe(roblox.Enum.CollisionFidelity.Hull)
+			expect(mesh.CanQuery).toBe(false)
+		end
+	end)
 	it("the emerge slimes on the fountain are a solid Hull MeshPart", function()
 		local mesh = rt.workspace.Map.Volcano.EmergeMesh:FindFirstChild("Mesh")
 		expect(mesh ~= nil).toBe(true)
@@ -101,8 +115,14 @@ describe("MeshSwap collision in the live server", function()
 		for _, root in { rt.workspace.Map, rt.workspace.Plots } do
 			for _, d in root:GetDescendants() do
 				if d:IsA("MeshPart") and d.Name == "Mesh" and d.Parent.Name ~= "EmergeMesh" then
-					expect(d.CanCollide).toBe(false)
-					decor += 1
+					-- the shop stands are solid too (CONTRACT.md §27.2, Hull)
+					local stand = d.Parent.Name == "ItemShopStand"
+						or d.Parent.Name == "UpgradeShopStand"
+						or d.Parent.Name == "ShopStand"
+					expect(d.CanCollide).toBe(stand)
+					if not stand then
+						decor += 1
+					end
 				end
 			end
 		end
