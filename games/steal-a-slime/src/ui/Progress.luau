@@ -208,6 +208,54 @@ function Progress.dexRewards(state: any): { next: string?, bonus: string?, dexPe
 	}
 end
 
+-- Progress bar toward the next unclaimed SlimeDex milestone (state.dexRewards):
+-- `icon` is its ItemIcons id, `label` "12 / 25", `ticks` one entry per milestone
+-- with a claimed mark. nil on a server without dex rewards; `next` is nil once
+-- every milestone is claimed (bar full).
+export type DexTick = { text: string, claimed: boolean }
+export type DexMilestoneBar = {
+	icon: string,
+	label: string,
+	fraction: number,
+	next: number?,
+	ticks: { DexTick },
+	ticksText: string,
+}
+
+function Progress.dexMilestones(state: any): DexMilestoneBar?
+	local rewards = state.dexRewards
+	if type(rewards) ~= "table" or #rewards == 0 then
+		return nil
+	end
+	local count = if type(state.dex) == "table" then #state.dex else 0
+	local ticks: { DexTick } = {}
+	local parts: { string } = {}
+	local target: number? = nil
+	local last = 0
+	for _, r in rewards do
+		if type(r) == "table" then
+			local n = num(r.count)
+			last = n
+			local claimed = r.claimed == true
+			if not claimed and target == nil then
+				target = n
+			end
+			local text = if claimed then `✅{n}` else tostring(n)
+			table.insert(ticks, { text = text, claimed = claimed })
+			table.insert(parts, text)
+		end
+	end
+	local shown = target or last
+	return {
+		icon = `Dex_{shown}`,
+		label = if target then `{math.min(count, shown)} / {shown}` else "All claimed",
+		fraction = if target and shown > 0 then math.clamp(count / shown, 0, 1) else 1,
+		next = target,
+		ticks = ticks,
+		ticksText = table.concat(parts, "  "),
+	}
+end
+
 -- One income-breakdown line from the SlimeDex bonus ("+5%") and the friend line
 -- ("Friends +20% income"): "SlimeDex +5% · Friends +20% income"; either may be nil.
 function Progress.incomeLine(dexPercent: string?, friends: string?): string?

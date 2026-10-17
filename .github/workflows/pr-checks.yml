@@ -74,6 +74,35 @@ jobs:
       - name: Typecheck (server + shared fatal)
         run: scripts/typecheck.sh
 
+  # The whole Lune suite with every Config.FEATURES flag forced on / off (scripts/test-flags.luau;
+  # tests that cannot run in a forced mode are listed with a reason in tests/ForcedFlags.luau).
+  steal-a-slime-flags:
+    name: steal-a-slime (lune, all flags ${{ matrix.mode }})
+    needs: changes
+    if: needs.changes.outputs.slime == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [on, off]
+    defaults:
+      run:
+        working-directory: games/steal-a-slime
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Setup Rokit
+        uses: CompeyDev/setup-rokit@1d9390883f7ebce19d48f5b8d006e11d387c92ab # v0.2.1
+        with:
+          path: games/steal-a-slime
+          cache: "true"
+          token: ${{ github.token }}
+      - name: Install toolchain
+        run: rokit install --no-trust-check
+      - name: Wally install
+        run: wally install
+      - name: Lune tests, every FEATURES flag ${{ matrix.mode }}
+        run: lune run scripts/test-flags ${{ matrix.mode }}
+
   speed-escape:
     name: speed-escape (rojo, lune, lint)
     needs: changes
@@ -114,7 +143,7 @@ jobs:
   pr-gate:
     name: pr-gate
     if: always()
-    needs: [changes, steal-a-slime, speed-escape]
+    needs: [changes, steal-a-slime, steal-a-slime-flags, speed-escape]
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
@@ -122,11 +151,12 @@ jobs:
         run: |
           changes="${{ needs.changes.result }}"
           slime="${{ needs.steal-a-slime.result }}"
+          flags="${{ needs.steal-a-slime-flags.result }}"
           escape="${{ needs.speed-escape.result }}"
-          echo "changes=$changes steal-a-slime=$slime speed-escape=$escape"
+          echo "changes=$changes steal-a-slime=$slime steal-a-slime-flags=$flags speed-escape=$escape"
           # changes must succeed; skipped game jobs = paths filter said no; anything else fails
           ok_game() { [ "$1" = "success" ] || [ "$1" = "skipped" ]; }
-          if [ "$changes" = "success" ] && ok_game "$slime" && ok_game "$escape"; then
+          if [ "$changes" = "success" ] && ok_game "$slime" && ok_game "$flags" && ok_game "$escape"; then
             echo "game jobs OK"
             exit 0
           fi

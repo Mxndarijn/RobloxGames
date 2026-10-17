@@ -207,6 +207,33 @@ describe("SlimeDex header", function()
 			expect(#check.problems).toBe(0)
 		end)
 	end
+	for _, vp in LayoutAssert.GATE_VIEWPORTS do
+		it(`{vp.name}: the milestone bar card is the first list row and its parts stay inside it`, function()
+			local panel = openDex(vp.w, vp.h, { "1:None:Plain:Round" }, {
+				dexRewards = {
+					{ count = 10, reward = 1000, bonus = 0.02, claimed = true },
+					{ count = 25, reward = 2500, bonus = 0.03, claimed = false },
+				},
+			})
+			local card = UiHarness.find(panel.frame, "Milestones")
+			expect(card.Visible).toBe(true)
+			expect(UiHarness.find(card, "MilestoneCount").Text).toBe("Next reward: 1 / 25")
+			expect(UiHarness.find(card, "MilestoneTicks").Text).toBe("✅10  25")
+			expect(UiHarness.find(card, "Icon") ~= nil).toBe(true)
+			expect(UiHarness.find(card, "MilestoneBar") ~= nil).toBe(true)
+			local check = LayoutAssert.new(vp.name, Layout.screen(vp.w, vp.h))
+			for _, name in { "Icon", "MilestoneCount", "MilestoneBar", "MilestoneTicks" } do
+				local part = UiHarness.find(card, name)
+				local y = part.Position.Y.Offset + part.Size.Y.Offset
+				expect(y <= card.Size.Y.Offset).toBe(true)
+			end
+			expect(#check.problems).toBe(0)
+		end)
+	end
+	it("hides the milestone card on a server without dex rewards", function()
+		local panel = openDex(1920, 1080, {})
+		expect(UiHarness.find(panel.frame, "Milestones")).toBeNil()
+	end)
 	it("the tier grid is tall enough for every rarity at three per row", function()
 		local rows = math.ceil(Config.MAX_TIER / 3)
 		local need = rows * 18 + (rows - 1) * 4

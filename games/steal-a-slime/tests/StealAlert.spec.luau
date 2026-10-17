@@ -208,7 +208,7 @@ describe("StealAlert server wiring", function()
 		expect(#victim.data.stealLog).toBe(if enabled then 1 else 0)
 		if enabled then
 			expect(victim.data.stealLog[1].thief).toBe("P2")
-			expect(victim.data.stealLog[1].slime).toBe("gem")
+			expect(victim.data.stealLog[1].slime).toBe("Epic Blorp") -- Carry logs the slime's display name
 		end
 		expect(#world.sessions[2].data.stealLog).toBe(0)
 	end)

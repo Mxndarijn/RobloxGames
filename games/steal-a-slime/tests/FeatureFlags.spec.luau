@@ -14,7 +14,7 @@ local FEATURES = {
 	{ flag = "Consumables", spec = "ConsumablesHardening" },
 	{ flag = "StealAlerts", spec = "StealAlertHardening" },
 }
-local SUPPORT = { "TestRunner.luau", "Fixtures.luau", "ServerFixtures.luau" }
+local SUPPORT = { "TestRunner.luau", "ForcedFlags.luau", "Fixtures.luau", "ServerFixtures.luau" }
 
 local function copyDir(from: string, to: string)
 	fs.writeDir(to)
