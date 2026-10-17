@@ -424,7 +424,7 @@ local terrain = nil
 if not table.find(process.args, "--no-terrain") then
 	local grid = BorderTerrain.sample(BorderTerrain.field(), 8)
 	local heights, mats = {}, {}
-	local letter = { Grass = "G", LeafyGrass = "L", Rock = "R" }
+	local letter = { Grass = "G", LeafyGrass = "L", Rock = "R", Slate = "S", Snow = "W" }
 	for i, h in grid.heights do
 		heights[i] = math.floor(h * 10 + 0.5) / 10
 		mats[i] = letter[grid.materials[i]]
@@ -433,7 +433,7 @@ if not table.find(process.args, "--no-terrain") then
 	if snowTints then
 		colors = {}
 		for name, c in BorderTerrain.COLORS do
-			local w = if name == "Rock" then snowTints.rock else snowTints.terrainGrass
+			local w = if name == "Rock" or name == "Slate" then snowTints.rock else snowTints.terrainGrass
 			local r, g, b = SnowCover.lerpColor(c[1] / 255, c[2] / 255, c[3] / 255, w)
 			colors[name] = { r * 255, g * 255, b * 255 }
 		end

@@ -4,7 +4,7 @@
 
 	BorderTerrain.field(seed?): Field        -- the seeded hill data
 	field.height(x, z): number               -- terrain surface above the Ground top (0 = none)
-	field.material(x, z): string             -- "Grass" | "LeafyGrass" | "Rock"
+	field.material(x, z): string             -- "Grass" | "LeafyGrass" | "Rock" | "Slate" | "Snow"
 	BorderTerrain.tiles(): { Tile }          -- 32 x 32 column tiles that hold any terrain
 	BorderTerrain.chunks(chunkCells?): { Chunk } -- 16 x 16 column chunks (64 studs), nearest the play area first
 	BorderTerrain.voxels(field, chunk, materialOf, air): Voxels -- pure per-chunk voxel arrays (the view only WriteVoxels them)
@@ -95,6 +95,7 @@ BorderTerrain.MAX_HEIGHT = 68 -- soft ceiling; the walls are 80 (WorldBorder.WAL
 BorderTerrain.PEAK_MAX_HEIGHT = 230 -- soft ceiling of the mountains (nobody can reach them)
 BorderTerrain.FAR_MAX_HEIGHT = 310 -- soft ceiling of the far mountains (v6)
 BorderTerrain.OUTER_MAX_HEIGHT = 120 -- soft ceiling of the outer ridge ring (v6)
+BorderTerrain.SNOW_LINE = 188 -- v6: snow starts about here (+-14 wander); only the tallest few mountains reach it
 BorderTerrain.PEAK_CLEAR = 90 -- Chebyshev studs past INNER where only the low land (<= MAX_HEIGHT) exists
 BorderTerrain.WINDOW = 3
 BorderTerrain.H_BUCKETS = 5
@@ -104,8 +105,10 @@ BorderTerrain.W_BUCKETS = 4
 -- the SlimeGrass variant darkens it into patches).
 BorderTerrain.COLORS = table.freeze({
 	Grass = { 162, 206, 118 },
-	LeafyGrass = { 82, 146, 66 },
-	Rock = { 136, 126, 112 },
+	LeafyGrass = { 106, 166, 84 }, -- v6: lighter, so the patches read as a soft tone change, not camouflage
+	Rock = { 150, 138, 120 }, -- v6: the lit faces of the mountains
+	Slate = { 96, 90, 86 }, -- v6: the shaded faces (warm dark grey), so the mountains read faceted
+	Snow = { 244, 246, 250 }, -- v6: caps on the tallest few only
 } :: { [string]: { number } })
 
 local SOFT_KNEE = 46
@@ -134,9 +137,10 @@ local LAYERS = {
 	},
 	-- tall mountains behind the ridge ring: `offset` keeps their feet past PEAK_CLEAR
 	peak = {
-		along = { 120, 280 },
-		across = { 90, 190 },
-		height = { 85, 200 },
+		along = { 90, 330 },
+		across = { 80, 190 },
+		height = { 80, 215 },
+		skew = 1.5, -- v6: most are modest, a few tower
 		gap = { 0, 0.5 },
 		lead = 0.9,
 		jitter = 150,
@@ -145,9 +149,10 @@ local LAYERS = {
 	},
 	-- v6: the outer mountain ring, a few hundred studs behind the peaks; taller, broader, fewer
 	far = {
-		along = { 170, 340 },
-		across = { 120, 230 },
-		height = { 130, 260 },
+		along = { 150, 340 },
+		across = { 110, 230 },
+		height = { 95, 290 },
+		skew = 1.6,
 		gap = { 0, 0.7 },
 		lead = 0.9,
 		jitter = 110,
@@ -246,7 +251,7 @@ local function rollLayer(rng: Rng.Rng, name: string): { Hill }
 		for _ = 1, 60 do
 			local along = lerp(cfg.along, rng:float())
 			local across = lerp(cfg.across, rng:float() ^ 1.3)
-			local height = lerp(cfg.height, rng:float())
+			local height = lerp(cfg.height, rng:float() ^ (cfg.skew or 1))
 			hill = {
 				layer = name,
 				order = i,
@@ -292,7 +297,7 @@ local function rollLayer(rng: Rng.Rng, name: string): { Hill }
 			break
 		end
 		local last = hills[n]
-		last.height = lerp(cfg.height, rng:float())
+		last.height = lerp(cfg.height, rng:float() ^ (cfg.skew or 1))
 		last.hBucket = bucket(cfg.height, last.height, BorderTerrain.H_BUCKETS)
 		sigs[n] = signature(last)
 	end
@@ -383,6 +388,8 @@ function BorderTerrain.field(seed: number?): Field
 						h = hill.height * b * (1 - u * 0.35)
 						local ridge = 1 - math.abs(2 * noise2(x / 64 + hill.ripple, z / 64, 21) - 1)
 						h *= 0.78 + 0.34 * ridge
+						-- v6: a second, finer crease octave so the flanks break into facets
+						h *= 0.93 + 0.14 * (1 - math.abs(2 * noise2(x / 27 + hill.ripple, z / 27, 23) - 1))
 						if hill.layer == "far" then
 							farSum += h * h * h
 						else
@@ -429,18 +436,35 @@ function BorderTerrain.field(seed: number?): Field
 
 	local function material(x: number, z: number): string
 		local h = height(x, z)
-		local e = 4
-		local slope = (math.abs(height(x + e, z) - h) + math.abs(height(x, z + e) - h)) / e
 		if h < 3 then
 			return "Grass"
 		end
-		-- rock above a wandering snow-free line, or on cliffs (the mountains' flanks are steeper, so the cliff slope grows with height)
-		local rockLine = 48 + 36 * noise2(x / 90, z / 90, 13)
+		local e = 4
+		local gx = (height(x + e, z) - height(x - e, z)) / (2 * e)
+		local gz = (height(x, z + e) - height(x, z - e)) / (2 * e)
+		local slope = math.sqrt(gx * gx + gz * gz)
+		-- v6 mountains: green foot, rock in the middle (lit faces Rock, shaded faces Slate: faceted), snow cap on the tallest few
+		local snowLine = BorderTerrain.SNOW_LINE + 28 * (noise2(x / 60, z / 60, 31) - 0.5)
+		if h > snowLine and slope < 2.4 then
+			return "Snow"
+		end
+		local rockLine = 62 + 40 * noise2(x / 90, z / 90, 13)
 		local cliff = 0.95 + 1.5 * smoothstep(30, 80, h)
 		if slope > cliff or h > rockLine then
+			-- sun from the north-west: faces turned away from it (or creased by noise) are Slate
+			local lit = -(gx * -0.6 + gz * 0.8) / math.max(slope, 0.05)
+			local facet = (noise2(x / 34, z / 34, 29) - 0.5) * 0.9
+			if lit + facet < -0.28 and (slope > 0.4 or h > snowLine - 40) then
+				return "Slate"
+			end
 			return "Rock"
 		end
-		if noise2(x / 52, z / 52, 11) > 0.6 then
+		-- Darker grass patches: big, domain-warped, with a dithered edge so they fade in rather than cut in
+		local wx = x + 70 * (noise2(x / 190, z / 190, 41) - 0.5)
+		local wz = z + 70 * (noise2(x / 190, z / 190, 43) - 0.5)
+		local patch = noise2(wx / 170, wz / 170, 11) + 0.18 * (noise2(wx / 60, wz / 60, 47) - 0.5)
+		local edge = (patch - 0.52) / 0.16
+		if edge > 1 or (edge > 0 and noise2(x / 13, z / 13, 53) < edge) then
 			return "LeafyGrass"
 		end
 		return "Grass"
@@ -509,7 +533,7 @@ end
 
 -- Voxel arrays for a chunk, ready for Terrain:WriteVoxels at the chunk's
 -- region (x, FLOOR, z) .. (x + size, FLOOR + layers * CELL, z + size).
--- materialOf maps "Grass" | "LeafyGrass" | "Rock" to the caller's material;
+-- materialOf maps "Grass" | "LeafyGrass" | "Rock" | "Slate" | "Snow" to the caller's material;
 -- air is its Air. Each voxel depends only on its own column and layer, never
 -- on the chunk, so any chunking writes identical voxels; `layers` only sets
 -- how much air sits above the chunk's tallest column.

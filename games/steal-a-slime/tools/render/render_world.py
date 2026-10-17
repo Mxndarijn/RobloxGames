@@ -294,7 +294,7 @@ def build_terrain(t):
     g = data.get("ground")
     if g:  # Grass hills wear the SlimeGrass variant: tint x the mean of its ColorMap (low .. 1)
         pal["Grass"] = tuple(min(1.0, c * (1 + lo) / 2) for c, lo in zip(pal["Grass"], g["low"]["Grass"]))
-    by_letter = {"G": pal["Grass"], "L": pal["LeafyGrass"], "R": pal["Rock"]}
+    by_letter = {"G": pal["Grass"], "L": pal["LeafyGrass"], "R": pal["Rock"], "S": pal["Slate"], "W": pal["Snow"]}
     verts, cols = [], []
     for j in range(n):
         z = lo + j * step

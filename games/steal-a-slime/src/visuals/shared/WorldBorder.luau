@@ -316,15 +316,15 @@ WorldBorder.GIANT_TRUNK_ROOM = 34 -- studs: no two trunks closer than this (the 
 WorldBorder.GIANT_SPECIES_WINDOW = 3 -- no species repeats within this many neighbours, the ring's seam included
 -- MeshPart.Color multiplies the vertex colours (MeshSwap copies the slot colour when the slot has the
 -- MeshTint attribute). v6: six canopy moods, further apart than v5's (every pair >= GIANT_TINT_APART apart
--- in RGB) and none bluer than it is green, so no purple or cold cast in the aerial; each rolled only a little off.
-WorldBorder.GIANT_TINT_APART = 45
+-- in RGB, up from 45) and none bluer than it is green, so no purple or cold cast in the aerial; each rolled only a little off.
+WorldBorder.GIANT_TINT_APART = 65
 WorldBorder.GIANT_TINTS = table.freeze({
 	{ 255, 255, 255 }, -- as modelled
-	{ 206, 255, 160 }, -- fresh lime
-	{ 255, 238, 150 }, -- butter gold
-	{ 255, 198, 122 }, -- amber
-	{ 168, 224, 150 }, -- sage
-	{ 128, 196, 112 }, -- deep meadow
+	{ 184, 255, 120 }, -- fresh lime
+	{ 255, 224, 96 }, -- butter gold
+	{ 255, 156, 84 }, -- amber
+	{ 120, 176, 96 }, -- deep moss
+	{ 214, 184, 140 }, -- dry wheat
 })
 WorldBorder.GIANT_DEFS = table.freeze({
 	{ kind = "GiantBroadleaf", mesh = "giant_broadleaf", scale = { 1.15, 1.6 } },

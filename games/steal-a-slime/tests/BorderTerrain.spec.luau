@@ -284,7 +284,7 @@ describe("BorderTerrain hills", function()
 			for dz = -200, 200, 8 do
 				local x, z = tallest.x + dx, tallest.z + dz
 				local h = field.height(x, z)
-				if h > 110 and field.material(x, z) ~= "Rock" then
+				if h > 110 and (field.material(x, z) == "Grass" or field.material(x, z) == "LeafyGrass") then
 					grassHigh += 1
 				elseif h > 3 and h < 25 then
 					lows += 1
