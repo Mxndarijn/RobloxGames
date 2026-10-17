@@ -56,41 +56,41 @@
   "giant_broadleaf": {
     "assetId": "114689108547101",
     "assetType": "Model",
-    "sha256": "322ee8b0f21ca40f",
-    "uploadedAt": "2026-10-17T09:18:45Z",
-    "versions": 1,
     "meshId": "rbxassetid://115148865966963",
     "meshSize": [
       80.613,
       78.349,
       65.201
-    ]
+    ],
+    "sha256": "322ee8b0f21ca40f",
+    "uploadedAt": "2026-10-17T09:18:45Z",
+    "versions": 1
   },
   "giant_pine_layered": {
     "assetId": "82697384730576",
     "assetType": "Model",
-    "sha256": "aebe6b64ba624600",
-    "uploadedAt": "2026-10-17T09:19:03Z",
-    "versions": 1,
     "meshId": "rbxassetid://131926496841871",
     "meshSize": [
       37.327,
       86.67,
       35.962
-    ]
+    ],
+    "sha256": "aebe6b64ba624600",
+    "uploadedAt": "2026-10-17T09:19:03Z",
+    "versions": 1
   },
   "giant_round_canopy": {
     "assetId": "123353571589135",
     "assetType": "Model",
-    "sha256": "c24881cba781eed6",
-    "uploadedAt": "2026-10-17T09:19:21Z",
-    "versions": 1,
     "meshId": "rbxassetid://81542465151090",
     "meshSize": [
       52.846,
       80.09,
       51.819
-    ]
+    ],
+    "sha256": "c24881cba781eed6",
+    "uploadedAt": "2026-10-17T09:19:21Z",
+    "versions": 1
   },
   "habitat_barn_crate": {
     "assetId": "89583070931756",
@@ -407,41 +407,41 @@
   "plot_skin_candy": {
     "assetId": "121061336707847",
     "assetType": "Model",
-    "sha256": "3597bd121f9898d4",
-    "uploadedAt": "2026-10-16T16:15:14Z",
-    "versions": 1,
     "meshId": "rbxassetid://122784364834934",
     "meshSize": [
       5.312,
       6.651,
       3.956
-    ]
+    ],
+    "sha256": "3597bd121f9898d4",
+    "uploadedAt": "2026-10-16T16:15:14Z",
+    "versions": 1
   },
   "plot_skin_crystal": {
     "assetId": "114982396568572",
     "assetType": "Model",
-    "sha256": "c0c8ff418d9bc005",
-    "uploadedAt": "2026-10-16T16:15:33Z",
-    "versions": 1,
     "meshId": "rbxassetid://140403985164021",
     "meshSize": [
       4.972,
       6.636,
       5.238
-    ]
+    ],
+    "sha256": "c0c8ff418d9bc005",
+    "uploadedAt": "2026-10-16T16:15:33Z",
+    "versions": 1
   },
   "plot_skin_mushroom": {
     "assetId": "136516938638177",
     "assetType": "Model",
-    "sha256": "57769b96ae6037bf",
-    "uploadedAt": "2026-10-16T16:14:54Z",
-    "versions": 1,
     "meshId": "rbxassetid://106478306368033",
     "meshSize": [
       5.8,
       6.171,
       5.4
-    ]
+    ],
+    "sha256": "57769b96ae6037bf",
+    "uploadedAt": "2026-10-16T16:14:54Z",
+    "versions": 1
   },
   "rain_magnet": {
     "assetId": "87228491807524",
@@ -745,15 +745,15 @@
   "ranch_border_fence_long": {
     "assetId": "92527416818808",
     "assetType": "Model",
-    "sha256": "a89e18925cb1222b",
-    "uploadedAt": "2026-10-16T15:33:23Z",
-    "versions": 1,
     "meshId": "rbxassetid://73361473495488",
     "meshSize": [
       51.074,
       5.612,
       7.18
-    ]
+    ],
+    "sha256": "a89e18925cb1222b",
+    "uploadedAt": "2026-10-16T15:33:23Z",
+    "versions": 1
   },
   "ranch_border_fence_straight": {
     "assetId": "112218798566397",
@@ -771,41 +771,41 @@
   "ranch_border_grove_mixed": {
     "assetId": "102848305698195",
     "assetType": "Model",
-    "sha256": "f5f0770408f8699a",
-    "uploadedAt": "2026-10-16T15:34:13Z",
-    "versions": 1,
     "meshId": "rbxassetid://119275936779741",
     "meshSize": [
       31.183,
       16.659,
       15.66
-    ]
+    ],
+    "sha256": "f5f0770408f8699a",
+    "uploadedAt": "2026-10-16T15:34:13Z",
+    "versions": 1
   },
   "ranch_border_grove_pine": {
     "assetId": "110166328268913",
     "assetType": "Model",
-    "sha256": "4aaa4fdb714849ba",
-    "uploadedAt": "2026-10-16T15:33:59Z",
-    "versions": 1,
     "meshId": "rbxassetid://132972161278608",
     "meshSize": [
       36.498,
       21.78,
       15.243
-    ]
+    ],
+    "sha256": "4aaa4fdb714849ba",
+    "uploadedAt": "2026-10-16T15:33:59Z",
+    "versions": 1
   },
   "ranch_border_grove_rocky": {
     "assetId": "131823405838760",
     "assetType": "Model",
-    "sha256": "ed7b9e273bfbde5e",
-    "uploadedAt": "2026-10-16T15:34:20Z",
-    "versions": 1,
     "meshId": "rbxassetid://73641376964456",
     "meshSize": [
       33.409,
       15.6,
       12.811
-    ]
+    ],
+    "sha256": "ed7b9e273bfbde5e",
+    "uploadedAt": "2026-10-16T15:34:20Z",
+    "versions": 1
   },
   "ranch_border_hedge_long": {
     "assetId": "83794062389872",
@@ -849,15 +849,15 @@
   "ranch_border_hedge_xl": {
     "assetId": "128259914576860",
     "assetType": "Model",
-    "sha256": "2e5e096dc6aac135",
-    "uploadedAt": "2026-10-16T15:33:41Z",
-    "versions": 1,
     "meshId": "rbxassetid://108264493248314",
     "meshSize": [
       41.199,
       6.755,
       5.147
-    ]
+    ],
+    "sha256": "2e5e096dc6aac135",
+    "uploadedAt": "2026-10-16T15:33:41Z",
+    "versions": 1
   },
   "ranch_border_hill": {
     "assetId": "132262123100385",
@@ -1642,15 +1642,15 @@
   "slime_fountain": {
     "assetId": "137335028699292",
     "assetType": "Model",
-    "meshId": "rbxassetid://109732747899788",
+    "meshId": "rbxassetid://86763349242301",
     "meshSize": [
       54.45,
       43.3,
       63.851
     ],
-    "sha256": "d395ddc2c3b57e89",
-    "uploadedAt": "2026-10-15T21:27:53Z",
-    "versions": 1
+    "sha256": "03aecd198e814517",
+    "uploadedAt": "2026-10-17T13:31:47Z",
+    "versions": 2
   },
   "slime_fountain_emerge": {
     "assetId": "100517882708695",
