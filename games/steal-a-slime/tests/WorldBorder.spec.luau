@@ -132,9 +132,16 @@ describe("WorldBorder collider ring", function()
 		end)
 	end)
 	it("sits on the Ground", function()
+		-- every footprint corner (the wall turned by its yaw) stays on the square Ground
 		for _, w in walls do
-			expect(math.abs(w.pos[1]) + w.size[1] / 2 <= WorldBorder.GROUND_HALF).toBe(true)
-			expect(math.abs(w.pos[3]) + w.size[1] / 2 <= WorldBorder.GROUND_HALF).toBe(true)
+			for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+				local o = LayoutMath.apply(
+					LayoutMath.orientation({ 0, w.yaw, 0 }),
+					{ c[1] * w.size[1] / 2, 0, c[2] * w.size[3] / 2 }
+				)
+				expect(math.abs(w.pos[1] + o[1]) <= WorldBorder.GROUND_HALF).toBe(true)
+				expect(math.abs(w.pos[3] + o[3]) <= WorldBorder.GROUND_HALF).toBe(true)
+			end
 		end
 	end)
 end)

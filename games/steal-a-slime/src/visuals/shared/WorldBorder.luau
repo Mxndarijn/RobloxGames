@@ -114,7 +114,9 @@ WorldBorder.GROUND_HALF = 320 -- WorldLayout Ground is 640 x 640, centred
 -- Inner face of the wall ring. The plots end at r ~197, the sheds at
 -- ~253; WorldLayout keeps scattered decor inside RADIUS - 10.
 WorldBorder.RADIUS = 292
-WorldBorder.WALL_SEGMENTS = 48
+-- 32 sides (48 until border v5 #229 pushed the runtime part count over the ratchet):
+-- -16 BaseParts, invisible, and the corners sit < 1.5 studs past RADIUS.
+WorldBorder.WALL_SEGMENTS = 32
 WorldBorder.WALL_THICKNESS = 4
 WorldBorder.WALL_HEIGHT = 80 -- a default jump is ~7.2 studs
 WorldBorder.WALL_OVERLAP = 1 -- extra length past the outer polygon corner
