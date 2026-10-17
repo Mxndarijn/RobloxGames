@@ -1,0 +1,10 @@
+{
+  "id": "v17-shop-sign-night",
+  "todo": "v17 visual fixes",
+  "kind": "world",
+  "target": "ShopStand",
+  "from": "centre",
+  "dist": 22,
+  "height": 8,
+  "note": "v17 fixes: the plaza ShopStand's SHOP sign stays readable at night (SurfaceGui LightInfluence 0)"
+}
