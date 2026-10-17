@@ -99,6 +99,7 @@ A full run that reaches the shots step writes `state\last-full.json` and appends
 ```
 python watcher.py once [--sha SHA] [--no-sync] [--kind full|partial] [--reason TXT]  # one run for a sha (default: full, origin/main); ignores last-sha
 python watcher.py loop                          # what the Scheduled Task runs
+python watcher.py perf [--sha SHA] [--extra 0,500,1000] [--seconds 30] [--quality 10,1] [--phone]  # perf measurement, see below (never publishable)
 python watcher.py step build [--sha SHA]        # debug one step at a time, in this order:
 python watcher.py step launch                   #   opens Studio and leaves it open (state\current.json)
 python watcher.py step perf                     #   starts play if needed
@@ -118,6 +119,72 @@ Global flags: `--home DIR` (or `%PCW_HOME%`), `--dry-run` (log the git/rojo comm
 write the report to `out\dry-run\`, no sync), `-v`. All step commands print the step JSON.
 `state\mcp-tools.json` holds the tool schemas from the last MCP session. Read it first when an
 input call misbehaves.
+
+## Perf measurement mode
+
+```
+python watcher.py perf [--sha SHA] [--extra 0,500,1000] [--seconds 30] [--no-sync] [--phone] [--wait-lock-s 3600]
+                       [--quality 10,1] [--meshparts N] [--unique-meshes N] [--terrain-off]
+```
+
+Measures real numbers to set a runtime-part / mesh cap from. `run_kind` is `perf`: the report is **never
+publishable** (`publishable: false`, `status` is `measured` or `error`, never `pass`, no `frames_reviewed`;
+`publish.sh report_problem` rejects it because it only accepts `run_kind` `full`, covered in `test-publish-dryrun.sh`).
+
+- **Queueing.** It takes `state\run.lock` (same `Lock` as the loop), polling every 15 s up to `--wait-lock-s`
+  (then exit 3). The loop already retries next tick while the lock is held. `perf` never reads or writes
+  `last-sha.json`, `last-full.json`, `full-done.json`, `tip-seen.json` or `unsynced.json`. Default sha is the `origin/main` tip.
+- **Flow.** build, launch, play, window set to 1920x1080 (as the devices step). Then a `base-early` window right after
+  client ready (first `--quality` level only, boot-time numbers), then the terrain settle: poll
+  `workspace.Terrain:GetAttribute("BorderTerrain")` (set by `src/server/BorderTerrainView.luau` on **Terrain**: false while
+  the tiles are written, true when done) for up to 120 s, then 60 s more (`settle` in the report: `bt_set_at_s`, `settle_s`).
+  Then per variant N of `--extra` (cumulative, ascending, base 0 always included): stress, 5 s settle, server numbers, and
+  the orbit window **once per `--quality` level** (default `10,1`), one proof frame `perf-<N>`. Clones are destroyed, then
+  the extras (below), then the original graphics quality is restored, play stops, Studio is killed (`step_close`).
+  `<sha>-perf.json` / `.md` are rewritten after **every window** (`status: partial` until the end, then `measured`).
+- **Graphics quality** (`luau/perf_quality.luau`, Client). Per window: pcall `settings().Rendering.QualityLevel =
+  Enum.QualityLevel.LevelNN` and `UserGameSettings.SavedQualityLevel`, wait 3 s, read both back. Each window records
+  `requested / rendering_quality / saved_quality / errors`; the table shows `unset (Automatic)` when neither route took,
+  `N (rendering only)` / `(saved only)` when one did. Studio may ignore the setting: check this column before trusting a quality row.
+- **Verdict line** (md, top). Cap decision 2500 now, 3000 if `+1000` adds < 1 ms to p95 frame time over `base` at quality 1
+  AND `SceneDrawcallCount` <= 500 at quality 1: `+1000: Δp95 = X ms (<1 ms? yes/no), draw calls at Q1 = Y (<=500? yes/no) -> 3000 cap PASS/FAIL`
+  (`n/a` when a number is missing, e.g. `--quality` without 1 or no `+1000` variant). The table has `p95 ms` and `Δp95 vs base`
+  (same quality, `base` row; `base-early` is never the base).
+- **Extras** (off by default, run after the priority variants, each its own variant at every `--quality` level, a failing
+  extra is recorded and does not stop the run): `--meshparts N` clones N existing MeshParts (same MeshIds, spread like the
+  stress clones, tagged `PcwPerfClone`) as `+N meshparts`; `--unique-meshes N` is best effort (EditableMesh +
+  `CreateMeshPartAsync`, all pcall'd) and records `{"skipped": true, "reason": ...}` when no new MeshId can be made without an upload;
+  `--terrain-off` takes a `terrain-on` window, then `workspace.Terrain:Clear()` (play session only) and a `terrain-off` window:
+  an A/B inside one session, not two runs.
+- **Stress clones** (`luau/perf_stress.luau`, Server). Clones decorative props from `workspace.Map.Decor` (then `Map.Border`;
+  Models of 3-60 parts, no scripts / prompts / click detectors / humanoids / seats, no axis > 60 studs) into
+  `workspace.PcwPerfClones` until at least N extra BaseParts exist. Seeded random spread over the annulus 0.3-1.0 of the
+  plot ring (r 140), >= 8 studs apart, random yaw, Y from a downward raycast, anchored, no collision / query, tagged
+  `PcwPerfClone`, all CollectionService tags removed. Runtime only, nothing is saved.
+- **Camera path** (`luau/perf_window.luau`, Client). Scriptable camera at `RenderPriority.Last + 1`: one full orbit around
+  the plaza centre (0,0,0) over the window, radius 112 (0.8 x plot ring), height 40, looking at the centre, start angle 0,
+  angle = 2 pi t / seconds. The HUD stays visible; only the character is parked out of view. Camera is restored (Custom) afterwards.
+- **Measured.** Server: `perf_server` (runtime parts, mesh slots, unique meshes) + `perf_mem` (`memory_categories` from
+  `Stats:GetMemoryUsageMbAllCategories()` when `MemoryTrackingEnabled` can be read / set: PlaceMemory, GraphicsParts,
+  GraphicsMeshParts, GraphicsTerrain, TerrainVoxels, PhysicsParts, Instances, LuaHeap, GraphicsTexture; per
+  `DeveloperMemoryTag` MB, instance + primitive counts, heartbeat / physics step ms). Client: frames, avg fps, avg / p50 / p95 / p99 / max
+  ms, 1% and 0.1% low fps (1000 / mean of the worst 1% / 0.1% frames), memory by tag, and render stats
+  (draw calls, triangles, shadows, UI 2D/3D, render CPU/GPU frame time, `PerformanceStats`) sampled at 25/50/75% (median).
+  Any stat Studio does not expose goes to `render_unavailable` with its error and shows as `n/a` in the table.
+- **Phone (`--phone`, best effort).** Fetches the `rbx-device-simulator-lua` and `rbx-perf-profiling` skill texts
+  (MCP `skill` tool) into `out\perf\<sha>\skills\*.md`. Only if the simulator skill documents a Luau device emulator
+  API (`StudioDeviceEmulatorService` / `DeviceEmulator`) does it run the base window once more under it
+  (`luau/perf_phone_emulate.luau`, every call pcall'd and recorded). Otherwise, or if the call errors, the report has
+  `phone: {"skipped": true, "reason": ...}`. It is still a PC render, not phone hardware.
+- **Results.** `out\perf\<sha>\<sha>-perf.json`, `<sha>-perf.md` (table per variant x quality: runtime parts, mesh slots, avg fps, 1% low, p95, Δp95 vs base, p99,
+  render CPU / GPU ms, draw calls, shadow draw calls, triangles, PlaceMemory MB client / server; `n/a` when missing) and the proof frames. Unless `--no-sync` (or `sync: false`), they are pushed to branch
+  `studio-reports` at the branch root `perf/<sha>/` (not under `studio-reports/`, so the box mirror, `publish.sh` and the
+  loop's candidate fetch never see them) from a separate clone `<home>\perf-reports`, commit `perf-report <sha12> run_kind=perf`.
+  Only `measured` reports are pushed; an `error` report stays in `out\perf\<sha>\`.
+- **Memory.** `studio_process_mb` (`GetTotalMemoryUsageMb`) is Studio's whole process, NOT a client figure, and is in
+  the json only. The table's memory columns are the `PlaceMemory` category (client window / server), the md also lists the named categories.
+- **Caveat.** Studio play mode on the PC (hidden desktop, unfocused window), not a real client. Compare variants with
+  each other on this PC; do not read the absolute fps as a phone number.
 
 ## Layout on the PC
 
