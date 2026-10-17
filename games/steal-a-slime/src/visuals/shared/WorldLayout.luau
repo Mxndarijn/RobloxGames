@@ -969,6 +969,33 @@ local function ghost(node: WorldNode, transparency: number?): WorldNode
 	return node
 end
 
+-- Bug #8: the front LockBarrier panel is a slab, not a 0.3 sheet. The GatePost (and the 1.8-thick front fence
+-- pieces) stand on the front fence line and stick out through a thin sheet; a jumping character wedged on that
+-- protruding post got depenetrated through it. The slab encloses the whole depth of the post (the deepest front
+-- piece) and ends at the PlotLockGuard limit (PlotLockGuard.MARGIN in from the plot edge), full width plus the
+-- side panels' thickness. Plot-local: size {x, y, z} and centre {x, y, z}.
+WorldLayout.BARRIER_SIDE_THICKNESS = 0.3
+WorldLayout.BARRIER_FRONT_OUTER_PAD = 0.5 -- slab outer face beyond the post's outer face
+WorldLayout.BARRIER_FRONT_INNER_INSET = 2 -- = PlotLockGuard.MARGIN (tests/LockBarrier.spec checks)
+function WorldLayout.frontBarrier(): { size: Vec, centre: Vec, zOuter: number, zInner: number }
+	local s = WorldLayout.PLOT_SIZE
+	local wallZ = -s / 2 + 0.5
+	local depth = math.max(
+		meshSize(WorldLayout.GATE_POST_MESH, WorldLayout.FENCE_SCALE)[3],
+		meshSize(WorldLayout.FENCE_SEGMENT, WorldLayout.FENCE_SCALE)[3],
+		meshSize(WorldLayout.FENCE_MESH, WorldLayout.FENCE_SCALE)[3]
+	)
+	local zOuter = wallZ - depth / 2 - WorldLayout.BARRIER_FRONT_OUTER_PAD
+	local zInner = -(s / 2 - WorldLayout.BARRIER_FRONT_INNER_INSET)
+	local wall = PlotDecor.BARRIER_HEIGHT
+	return {
+		size = { s + WorldLayout.BARRIER_SIDE_THICKNESS, wall, zInner - zOuter },
+		centre = { 0, 1 + wall / 2, (zOuter + zInner) / 2 },
+		zOuter = zOuter,
+		zInner = zInner,
+	}
+end
+
 -- Attribute-driven plot cosmetics (PlotDecor; VisualsClient shows / hides
 -- them locally): lock barrier + lock sign, rebirth
 -- trim / pillars / banners / crown, SlimeDex board. Shipped in their neutral
@@ -981,9 +1008,10 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	-- Lock barrier: four ForceField panels around the plot (hidden = unlocked).
 	local wall = PlotDecor.BARRIER_HEIGHT
 	local barrier: WorldNode = { name = "LockBarrier", class = "Model", children = {} }
+	local front = WorldLayout.frontBarrier()
 	for _, side in
 		{
-			{ "Front", { s, wall, 0.3 }, { 0, 1 + wall / 2, -h } },
+			{ "Front", front.size, front.centre },
 			{ "Back", { s, wall, 0.3 }, { 0, 1 + wall / 2, h } },
 			{ "Left", { 0.3, wall, s }, { -h, 1 + wall / 2, 0 } },
 			{ "Right", { 0.3, wall, s }, { h, 1 + wall / 2, 0 } },

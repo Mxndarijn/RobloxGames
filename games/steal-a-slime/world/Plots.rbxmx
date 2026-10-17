@@ -1636,7 +1636,7 @@
             <CoordinateFrame name="CFrame">
               <X>0</X>
               <Y>9</Y>
-              <Z>100</Z>
+              <Z>100.36365</Z>
               <R00>1</R00>
               <R01>0</R01>
               <R02>0</R02>
@@ -1654,9 +1654,9 @@
             <token name="Material">1584</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>80</X>
+              <X>80.3</X>
               <Y>16</Y>
-              <Z>0.30000305</Z>
+              <Z>3.2727203</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -4506,9 +4506,9 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>70.71068</X>
+              <X>70.96782</X>
               <Y>9</Y>
-              <Z>70.71068</Z>
+              <Z>70.96782</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
               <R02>0.70710754</R02>
@@ -4526,9 +4526,9 @@
             <token name="Material">1584</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>80</X>
+              <X>80.3</X>
               <Y>16</Y>
-              <Z>0.30000305</Z>
+              <Z>3.2727203</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -7378,7 +7378,7 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>100</X>
+              <X>100.36365</X>
               <Y>9</Y>
               <Z>0</Z>
               <R00>-0</R00>
@@ -7398,9 +7398,9 @@
             <token name="Material">1584</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>80</X>
+              <X>80.3</X>
               <Y>16</Y>
-              <Z>0.30000305</Z>
+              <Z>3.2727203</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -10250,9 +10250,9 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>70.71068</X>
+              <X>70.96782</X>
               <Y>9</Y>
-              <Z>-70.71068</Z>
+              <Z>-70.96782</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
               <R02>0.70710754</R02>
@@ -10270,9 +10270,9 @@
             <token name="Material">1584</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>80</X>
+              <X>80.3</X>
               <Y>16</Y>
-              <Z>0.30000305</Z>
+              <Z>3.2727203</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -13124,7 +13124,7 @@
             <CoordinateFrame name="CFrame">
               <X>0</X>
               <Y>9</Y>
-              <Z>-100</Z>
+              <Z>-100.36365</Z>
               <R00>-1</R00>
               <R01>0</R01>
               <R02>-0</R02>
@@ -13142,9 +13142,9 @@
             <token name="Material">1584</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>80</X>
+              <X>80.3</X>
               <Y>16</Y>
-              <Z>0.30000305</Z>
+              <Z>3.2727203</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -15994,9 +15994,9 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-70.71068</X>
+              <X>-70.96782</X>
               <Y>9</Y>
-              <Z>-70.71068</Z>
+              <Z>-70.96782</Z>
               <R00>-0.70710754</R00>
               <R01>0</R01>
               <R02>-0.70710754</R02>
@@ -16014,9 +16014,9 @@
             <token name="Material">1584</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>80</X>
+              <X>80.3</X>
               <Y>16</Y>
-              <Z>0.30000305</Z>
+              <Z>3.2727203</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -18866,7 +18866,7 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-100</X>
+              <X>-100.36365</X>
               <Y>9</Y>
               <Z>-0</Z>
               <R00>0</R00>
@@ -18886,9 +18886,9 @@
             <token name="Material">1584</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>80</X>
+              <X>80.3</X>
               <Y>16</Y>
-              <Z>0.30000305</Z>
+              <Z>3.2727203</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
@@ -21738,9 +21738,9 @@
             <bool name="Anchored">true</bool>
             <token name="BottomSurface">0</token>
             <CoordinateFrame name="CFrame">
-              <X>-70.71068</X>
+              <X>-70.96782</X>
               <Y>9</Y>
-              <Z>70.71068</Z>
+              <Z>70.96782</Z>
               <R00>0.70710754</R00>
               <R01>0</R01>
               <R02>-0.70710754</R02>
@@ -21758,9 +21758,9 @@
             <token name="Material">1584</token>
             <token name="shape">1</token>
             <Vector3 name="size">
-              <X>80</X>
+              <X>80.3</X>
               <Y>16</Y>
-              <Z>0.30000305</Z>
+              <Z>3.2727203</Z>
             </Vector3>
             <token name="TopSurface">0</token>
             <float name="Transparency">1</float>
