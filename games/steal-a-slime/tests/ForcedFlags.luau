@@ -18,6 +18,7 @@ ForcedFlags.off = {
 	["AdminEvents effects"] = "AdminEvents",
 	["WeeklyEvents vs live admin events (#130)"] = "AdminEvents",
 	["Appraise"] = "Appraise",
+	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "the shipped defaults (all-off mode forces every flag false)",
 	["Merge and Appraise stacking"] = "MutationStacking",
 	["Boss Slime (FEATURES.BossSlime)"] = "BossSlime",
 	["Player-facing copy"] = "BossSlime",
@@ -79,10 +80,17 @@ ForcedFlags.offModules = {
 	["HabitatsLive.spec"] = "Habitats",
 }
 
--- All flags on: these pin the shipped default or exercise the off path of a flag that ships off.
+-- All flags on: these pin a flag that ships off (ServerProfiler) or the shipped defaults.
 ForcedFlags.on = {
-	["Audio flag > is off by default"] = "Audio",
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",
+	["Profiler > is off by default and the flag is declared"] = "ServerProfiler",
+}
+
+-- Tests that exercise the off path (or pin "default off") of a flag that now ships ON (2026-10-18:
+-- switch on every built feature). They only make sense with that flag off, so they run in the
+-- all-flags-off mode alone and are skipped in the default and the all-on runs (and in the cloud tests).
+ForcedFlags.needOff = {
+	["Audio flag > is off by default"] = "Audio",
 	["EventsBoard > is behind FEATURES.EventsBoard, default off"] = "EventsBoard",
 	["StealAlerts arrow and flash vs the HUD > the StealAlerts and EventsBoard flags stay default off"] = "StealAlerts / EventsBoard",
 	["FountainTiers: the ladder > is behind FEATURES.FountainTiers, default off"] = "FountainTiers",
@@ -95,7 +103,6 @@ ForcedFlags.on = {
 	["plot skins: equip > the Request refuses a locked skin, and equips an unlocked one"] = "PlotSkins",
 	["plot skins: equip > with the flag off the Request is refused, even for an unlocked skin"] = "PlotSkins",
 	["plot skins: equip > flag off: State carries no plot skin fields"] = "PlotSkins",
-	["Profiler > is off by default and the flag is declared"] = "ServerProfiler",
 	["RainMagnet: the upgrade entry > is behind FEATURES.RainMagnet, default off, and the def is flag-tagged"] = "RainMagnet",
 	["RainMagnet: the upgrade entry > is not listed, not buyable and has no effect while the flag is off"] = "RainMagnet",
 	["RainMagnet: the upgrade entry > old upgrades are listed exactly as before"] = "RainMagnet",
