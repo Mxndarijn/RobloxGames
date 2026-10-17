@@ -51,6 +51,26 @@ describe("PadStyle (v17)", function()
 		expect(material).toBe("SmoothPlastic")
 	end)
 
+	it("free plot: every pad keeps the base look; owned: only locked pads are styled; leaving restores", function()
+		local function padLook(owned: boolean, pad: number, padsUnlocked: number)
+			return PadStyle.look(base, "SmoothPlastic", PadStyle.showsUnlocked(owned, pad <= padsUnlocked))
+		end
+		for pad = 1, 6 do
+			local rgb, material = padLook(false, pad, 2)
+			expect(rgb[1]).toBe(90)
+			expect(material).toBe("SmoothPlastic")
+		end
+		local _, lockedMat = padLook(true, 5, 2)
+		expect(lockedMat).toBe("Slate")
+		local rgb, unlockedMat = padLook(true, 1, 2)
+		expect(rgb[2]).toBe(200)
+		expect(unlockedMat).toBe("SmoothPlastic")
+		-- owner leaves: same pad, owned -> free
+		local freed, freedMat = padLook(false, 5, 2)
+		expect(freed[1]).toBe(90)
+		expect(freedMat).toBe("SmoothPlastic")
+	end)
+
 	it("adds no parts: the pad stays one Pad + one Stand with the same size", function()
 		local plots = WorldLayout.build()
 		local count, pads = 0, 0
