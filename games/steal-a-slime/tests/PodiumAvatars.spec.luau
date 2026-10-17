@@ -1,4 +1,6 @@
 --!strict
+local fs = require("@lune/fs")
+
 local PodiumAvatars = require("../src/server/PodiumAvatars")
 local TestRunner = require("./TestRunner")
 
@@ -65,9 +67,12 @@ local function board(...: any): any
 end
 
 describe("PodiumAvatars", function()
-	it("labels a rig with display name and formatted stat, or the empty text", function()
+	it("labels a rig with display name and formatted stat, or no text for an empty slot", function()
 		expect(PodiumAvatars.labelText("Merijn", 1500)).toBe("Merijn\n$1.5K")
-		expect(PodiumAvatars.labelText(nil, nil)).toBe(PodiumAvatars.EMPTY_TEXT)
+		expect(PodiumAvatars.labelText(nil, nil)).toBe("")
+		expect(rawget(PodiumAvatars :: any, "EMPTY_TEXT")).toBeNil()
+		expect(string.find(fs.readFile("src/server/PodiumRigs.luau"), "Your spot", 1, true)).toBeNil()
+		expect(string.find(fs.readFile("src/server/PodiumAvatars.luau"), "Your spot", 1, true)).toBeNil()
 	end)
 	it("mounts avatar rigs for the top three and placeholders for empty slots", function()
 		local adapter, log = fake()
@@ -77,7 +82,7 @@ describe("PodiumAvatars", function()
 		expect(log.mounted[1].text).toBe("N10\n$500")
 		expect(log.mounted[2].desc).toBe("desc20")
 		expect(log.mounted[3].kind).toBe("placeholder")
-		expect(log.mounted[3].text).toBe(PodiumAvatars.EMPTY_TEXT)
+		expect(log.mounted[3].text).toBe("")
 	end)
 	it("caches descriptions per userId across rebuilds", function()
 		local adapter, log = fake()

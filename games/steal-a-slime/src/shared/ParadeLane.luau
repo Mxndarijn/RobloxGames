@@ -35,7 +35,7 @@
 	inside Visuals.PropClearance's keep-clear rings (landing band r 34-62,
 	lane / gate posts r 62.25-73.75), so kit props stay off it.
 
-	Readability of the despawn telegraph (DespawnTelegraphFx, "leaving! N"):
+	Readability of the despawn telegraph (DespawnTelegraphFx):
 	the warning window (DESPAWN_TELEGRAPH_SECONDS) starts while the slime is
 	still walking the lane next to the drain (WARN_SECONDS > DRAIN_SECONDS)
 	and consecutive drops (SPAWN_INTERVAL apart) are far enough apart on the
@@ -468,11 +468,6 @@ end
 
 function ParadeLane.inWarnWindow(now: number, expiresAt: number, warnSeconds: number?): boolean
 	return DespawnTelegraph.inWarnWindow(now, expiresAt, warnSeconds or ParadeLane.WARN_SECONDS)
-end
-
--- Countdown billboard text: "leaving! 3" on the parade, else just "3".
-function ParadeLane.warnText(seconds: number, enabled: boolean): string
-	return if enabled then `leaving! {seconds}` else tostring(seconds)
 end
 
 return table.freeze(ParadeLane)

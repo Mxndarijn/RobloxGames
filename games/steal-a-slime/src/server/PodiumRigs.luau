@@ -31,8 +31,15 @@ local function podium(rank: number): BasePart?
 	return if part and part:IsA("BasePart") then part else nil
 end
 
+-- An empty text (empty podium) means no label at all: none is created, an existing one is removed.
 local function label(rig: Model, text: string)
 	local gui = rig:FindFirstChild("NameLabel") :: BillboardGui?
+	if text == "" then
+		if gui then
+			gui:Destroy()
+		end
+		return
+	end
 	if not gui then
 		local made = Instance.new("BillboardGui")
 		made.Name = "NameLabel"
