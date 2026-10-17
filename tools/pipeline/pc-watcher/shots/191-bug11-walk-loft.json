@@ -1,0 +1,20 @@
+{
+  "id": "bug11-walk-loft",
+  "todo": "bug 11",
+  "kind": "world",
+  "target": "ranch_barn_loft",
+  "from": "front",
+  "dist": 40,
+  "height": 18,
+  "bug_probe": {
+    "bug": 11,
+    "title": "Real character under / onto ranch_barn_loft (barn_loft)",
+    "luau": "bug11_char_walk",
+    "ctx": "Server",
+    "args": {
+      "PART": "barn_loft"
+    },
+    "timeout": 45
+  },
+  "note": "bug 11 part 2 (advisory): real character walk, one check per call (luau/bug11_char_walk PART=barn_loft)"
+}
