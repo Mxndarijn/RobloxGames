@@ -55,6 +55,7 @@ result.specs = #specs
 
 -- Load every spec (each registers its tests with the shared TestRunner).
 for _, spec in specs do
+	task.wait()
 	local ok, err = pcall(require, spec)
 	if not ok then
 		addFailure(`{spec.Name} (load)`, err)
@@ -62,8 +63,17 @@ for _, spec in specs do
 end
 
 -- Run them ourselves so each failure is reported by name.
+-- Yield between tests: a server script that runs without yielding for too long
+-- is killed with "Script timeout: exhausted allowed execution time", and the
+-- whole suite runs in one go, so it hit that cap once the suite grew.
+local YIELD_EVERY_S = 0.5
+local lastYield = os.clock()
 local tests = TestRunner._tests or {}
 for _, test in tests do
+	if os.clock() - lastYield > YIELD_EVERY_S then
+		task.wait()
+		lastYield = os.clock()
+	end
 	local ok, err = pcall(test.fn)
 	if ok then
 		result.passed += 1
