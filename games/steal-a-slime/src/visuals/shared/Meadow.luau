@@ -24,6 +24,7 @@
 	the clearances and PART_BUDGET.
 ]]
 
+local FloorLayout = if script then require(script.Parent.FloorLayout) else require("./FloorLayout")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
 local Rng = if script then require(script.Parent.Parent.Shared.Rng) else require("../../shared/Rng")
 
@@ -59,7 +60,9 @@ export type Cluster = {
 local Meadow = {}
 
 Meadow.SEED = 20261017
-Meadow.INNER = 192 -- past the plots' outer corners (r 184.4) and their fences
+-- B11: the sand yard (FloorLayout.FIELD_RADIUS, past the plots' outer corners r 184.4 and their fences) is the floor; the meadow
+-- lives in the grass border band beyond its hem.
+Meadow.INNER = FloorLayout.HEM_RADIUS + 6
 Meadow.OUTER = 270 -- cluster edge; the border's edge pieces start at r 290
 Meadow.PART_BUDGET = 400 -- of WorldLayout.PART_BUDGET (1400)
 Meadow.SECTORS = 26 -- cells per ring (two rings)

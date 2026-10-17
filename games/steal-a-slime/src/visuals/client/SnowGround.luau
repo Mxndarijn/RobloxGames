@@ -85,6 +85,16 @@ local function paint(part: BasePart, entry: Entry)
 	entry.applied = color
 end
 
+-- The surface's own SnowKind (FloorLayout), or its slot's for the baked mesh MeshSwap puts inside a hidden slot.
+local function declared(inst: BasePart): any?
+	local own = inst:GetAttribute(SnowCover.KIND_ATTRIBUTE)
+	local parent = inst.Parent
+	if own == nil and inst.Name == "Mesh" and parent ~= nil and parent:IsA("BasePart") then
+		return parent:GetAttribute(SnowCover.KIND_ATTRIBUTE)
+	end
+	return own
+end
+
 local function register(inst: Instance)
 	if not inst:IsA("BasePart") or tracked[inst] then
 		return
@@ -96,7 +106,8 @@ local function register(inst: Instance)
 		parent ~= nil and parent.Name == "Paths",
 		inst.Size.X,
 		inst.Size.Z,
-		inst.Transparency
+		inst.Transparency,
+		declared(inst)
 	)
 	if kind then
 		local entry = { orig = inst.Color, applied = inst.Color, kind = kind }

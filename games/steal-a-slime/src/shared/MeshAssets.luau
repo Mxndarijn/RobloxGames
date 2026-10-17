@@ -127,6 +127,8 @@ local NAMES = {
 	"giant_sequoia_spire",
 	"giant_cloud_tree",
 	"ranch_bat",
+	"ranch_floor_deck",
+	"ranch_floor_paths",
 }
 
 local entries: { [string]: Entry } = {}
@@ -372,6 +374,13 @@ entries["giant_cloud_tree"] =
 -- (the red wrap centre, 1.2 above the pommel; mesh centre = bbox centre). 606 tris. models/ranch_bat.py.
 entries["ranch_bat"] =
 	{ assetId = 111246965997524, meshId = "rbxassetid://94306599639554", size = { 1.351, 5.09, 1.351 } }
+
+-- B11 floor (FloorLayout, concept c3): hub-centred, 8-fold symmetric baked boardwalk meshes (models/ranch_floor_deck.py,
+-- ranch_floor_paths.py). One world slot each at the hub (Map.Paths.DeckPlaza / Boardwalk); decor, no collision.
+entries["ranch_floor_deck"] =
+	{ assetId = 133184278728331, meshId = "rbxassetid://134304234441487", size = { 131.2, 0.21, 131.2 } }
+entries["ranch_floor_paths"] =
+	{ assetId = 87043105060649, meshId = "rbxassetid://120582459397748", size = { 192, 0.21, 192 } }
 
 -- The goo parade lane as ONE curved mesh (models/slime_lane.py, bug 4): not a WorldLayout slot (ParadeView lays
 -- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17; ParadeView swaps the ParadeLane.strips() stand-ins for it

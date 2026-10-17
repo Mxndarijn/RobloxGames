@@ -708,6 +708,8 @@ VIEWS = {
     # bugs #13-15 (soft terrain ground): the approved concept camera. Eye at polar(-20, 89, 6) looking at polar(-40, 50, 2);
     # lens 26 mm on the 36 mm sensor (vertical FOV 42.6 degrees at 16:9)
     "30_ground_eye": lambda: look(polar(-20, 89, 6), polar(-40, 50, 2.0), lens=26),
+    # B11 floor: the plaza, ring and the three plots behind the fountain from high up on the -Z side
+    "37_floor_aerial": lambda: look((0, 175, -150), (0, 0, 70), lens=28),
 }
 
 

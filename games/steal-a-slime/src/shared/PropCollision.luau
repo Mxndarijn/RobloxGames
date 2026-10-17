@@ -326,6 +326,29 @@ mesh(
 	"the goo drain at the slide exit: a floor feature the slimes and the splash use. DECISION for Merijn (a Box would close the slide exit)",
 	{ walk = false }
 )
+-- B11 floor (visuals/shared/FloorLayout): the two baked boardwalk meshes, one slot each at the hub
+mesh(
+	"floor_deck",
+	"ranch_floor_deck",
+	"jolt",
+	1,
+	"off",
+	"Map.Paths",
+	"mesh off, slot off",
+	"the timber plaza deck: 0.21 studs of planks flush on the terrain, which is the walk surface (a floor, not a prop)",
+	{ walk = false }
+)
+mesh(
+	"floor_boardwalk",
+	"ranch_floor_paths",
+	"jolt",
+	1,
+	"off",
+	"Map.Paths",
+	"mesh off, slot off",
+	"the boardwalk ring + eight spokes: 0.21 studs of planks flush on the terrain, which is the walk surface (a floor, not a prop). The 8 GateRamp planks beside it are solid parts",
+	{ walk = false }
+)
 parts(
 	"parade_lane",
 	"jolt",
@@ -461,7 +484,7 @@ parts(
 parts(
 	"meadow_grass",
 	"jolt",
-	146,
+	142,
 	"off",
 	"Map.Decor.Meadow",
 	{ "^M%d+Tuft%d+Blade%d+$" },
@@ -471,7 +494,7 @@ parts(
 parts(
 	"meadow_flowers",
 	"jolt",
-	233,
+	239,
 	"off",
 	"Map.Decor.Meadow",
 	{ "^M%d+Flower%d+Head$", "^M%d+Flower%d+Stem$", "^M%d+Bunch%d+Head%d+$", "^M%d+Bunch%d+Leaves$" },
@@ -481,7 +504,7 @@ parts(
 parts(
 	"meadow_pebbles",
 	"jolt",
-	17,
+	18,
 	"off",
 	"Map.Decor.Meadow",
 	{ "^M%d+Rock%d+$" },
