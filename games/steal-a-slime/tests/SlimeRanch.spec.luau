@@ -118,16 +118,15 @@ describe("Slime Ranch layout", function()
 	it("gives every plot one gate with a 14-stud opening", function()
 		local plots = nodes[2].children
 		expect(#plots).toBe(Config.PLOT_COUNT)
-		local slot, clear = WorldLayout.GATE_SLOT, WorldLayout.GATE_CLEAR
+		local clear = WorldLayout.GATE_CLEAR
 		expect(clear).toBe(14)
 		for _, plot in plots do
 			local names = {}
 			for _, c in plot.children do
 				names[c.name] = c
 			end
-			expect(names.Gate ~= nil and names.WallFrontL ~= nil and names.WallFrontR ~= nil).toBe(true)
-			expect(names.WallFrontL.size[1] + names.WallFrontR.size[1] + slot).toBe(WorldLayout.PLOT_SIZE)
-			expect(names.WallBack.size[2]).toBe(WorldLayout.WALL_HEIGHT)
+			expect(names.Gate ~= nil and names.Fence ~= nil).toBe(true)
+			expect(names.WallFrontL).toBe(nil) -- the fence meshes collide now (bug #11)
 		end
 	end)
 end)

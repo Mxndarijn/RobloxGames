@@ -19275,7 +19275,7 @@
             <R21>0</R21>
             <R22>0.96125793</R22>
           </CoordinateFrame>
-          <bool name="CanCollide">true</bool>
+          <bool name="CanCollide">false</bool>
           <bool name="CanQuery">true</bool>
           <bool name="CanTouch">true</bool>
           <Color3uint8 name="Color3uint8">15779920</Color3uint8>
@@ -19310,7 +19310,7 @@
             <R21>0</R21>
             <R22>-0.38269043</R22>
           </CoordinateFrame>
-          <bool name="CanCollide">true</bool>
+          <bool name="CanCollide">false</bool>
           <bool name="CanQuery">true</bool>
           <bool name="CanTouch">true</bool>
           <Color3uint8 name="Color3uint8">13546116</Color3uint8>
@@ -20010,7 +20010,7 @@
             <R21>0</R21>
             <R22>0.70710754</R22>
           </CoordinateFrame>
-          <bool name="CanCollide">true</bool>
+          <bool name="CanCollide">false</bool>
           <bool name="CanQuery">true</bool>
           <bool name="CanTouch">true</bool>
           <Color3uint8 name="Color3uint8">15502396</Color3uint8>

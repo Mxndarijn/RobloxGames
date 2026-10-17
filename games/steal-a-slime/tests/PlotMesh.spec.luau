@@ -212,7 +212,7 @@ end
 
 describe("plot walls and DexBoard (C6)", function()
 	local h = WorldLayout.PLOT_SIZE / 2
-	it("skins every fence piece with a kit fence mesh at FENCE_SCALE, walls stay the colliders", function()
+	it("skins every fence piece with a kit fence mesh at FENCE_SCALE, the Box meshes are the colliders", function()
 		local fenceMeshes = {
 			[WorldLayout.FENCE_SEGMENT] = true,
 			[WorldLayout.FENCE_MESH] = true,
@@ -227,16 +227,15 @@ describe("plot walls and DexBoard (C6)", function()
 					slots += 1
 					expect(anisotropy(node, mesh :: string)).toBeCloseTo(1)
 					expect(ratios(node, mesh :: string)[1]).toBeCloseTo(WorldLayout.FENCE_SCALE)
-					expect(node.canCollide).toBe(false)
+					-- the slot box collides until MeshSwap lands the mesh (which has a Box fidelity and takes over)
+					expect(node.canCollide ~= false).toBe(true)
+					expect(MeshAssets.collision(mesh :: string)).toBe("Box")
 				end
 			end)
 			-- + the GatePost closing the fence run at the gate's right stub
 			expect(slots).toBe(if WorldLayout.fenceUploaded() then 17 else 31)
 			for _, name in { "WallBack", "WallLeft", "WallRight", "WallFrontL", "WallFrontR" } do
-				local wall = child(plot, name)
-				expect(meshOf(wall)).toBe(nil)
-				expect((wall.attributes :: any).FenceCollider).toBe(true)
-				expect(wall.canCollide ~= false).toBe(true)
+				expect(pcall(child, plot, name)).toBe(false) -- the invisible walls were removed: the meshes collide
 			end
 		end
 	end)

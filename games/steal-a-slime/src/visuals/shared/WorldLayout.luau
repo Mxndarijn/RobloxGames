@@ -831,10 +831,13 @@ local function decor(): WorldNode
 	-- lanes); the rocks and mushrooms above already stepped round them.
 	for _, prop in WorldLayout.RANCH_PROPS do
 		local look = RANCH_LOOKS[prop.mesh] or { WOOD, "WoodPlanks" }
-		table.insert(
-			children,
-			meshSlot(block(prop.name, prop.size, prop.pos, look[1], look[2], { 0, prop.yaw, 0 }), prop.mesh)
-		)
+		local slot = block(prop.name, prop.size, prop.pos, look[1], look[2], { 0, prop.yaw, 0 })
+		-- Decor (no MeshAssets.COLLISION entry) never collides, mesh or not. A colliding mesh keeps its slot box as the
+		-- collider until MeshSwap places the mesh, which then turns the box off.
+		if MeshAssets.collision(prop.mesh) == nil then
+			slot.canCollide = false
+		end
+		table.insert(children, meshSlot(slot, prop.mesh))
 	end
 	-- The map edge (walls + edge decor) is WorldBorder, built as Map.Border.
 	return { name = "Decor", class = "Folder", children = children }
@@ -946,6 +949,15 @@ function WorldLayout.plotCentre(i: number): (Vec, number)
 	-- so their local -Z (the entrance) faces the volcano.
 	local r = WorldLayout.PLOT_RING_RADIUS
 	return { -n[1] * r, 0, -n[3] * r }, yaw
+end
+
+-- A fence piece: collides (the placeholder box until its mesh lands, then the mesh), never blocks prompts or
+-- raycasts. FenceCollider marks it for the placement export.
+local function solid(node: WorldNode): WorldNode
+	node.canQuery = false
+	node.canTouch = false
+	node.attributes = { FenceCollider = true }
+	return node
 end
 
 -- Decor only: anchored, never collides, never blocks prompts or raycasts.
@@ -1169,30 +1181,13 @@ local function plot(i: number): WorldNode
 	}
 	table.insert(children, sign)
 
-	-- Fence: walls WALL_HEIGHT tall on three sides plus the front either side
-	-- of the GATE_SLOT, so the gate is the only way in. The walls are the
-	-- collision and are invisible; the look is FENCE_MESH panels on the
-	-- 20-stud grid (FENCE_SEGMENT halves until it is uploaded, and beside the
-	-- gate), visual only, primitive boxes until the mesh lands.
+	-- Fence: FENCE_MESH panels on the 20-stud grid on three sides plus the front either side of the GATE_SLOT
+	-- (FENCE_SEGMENT halves until it is uploaded, and beside the gate), so the gate is the only way in. The panels
+	-- are the collision (bug #11: MeshAssets.COLLISION Box, the whole panel is a wall; the invisible Wall* blocks
+	-- are gone). `solid`: the slot box collides until MeshSwap places the mesh, which then collides itself.
 	-- The gate is a kit mesh slot too.
 	local wh, r = WorldLayout.WALL_HEIGHT, { 0, yaw, 0 }
-	local wy = 1 + wh / 2
 	local slot, clear = WorldLayout.GATE_SLOT, WorldLayout.GATE_CLEAR
-	local front = (s - slot) / 2
-	for _, w in
-		{
-			{ "WallBack", { s, wh, 1 }, { 0, wy, s / 2 - 0.5 } },
-			{ "WallLeft", { 1, wh, s }, { -s / 2 + 0.5, wy, 0 } },
-			{ "WallRight", { 1, wh, s }, { s / 2 - 0.5, wy, 0 } },
-			{ "WallFrontL", { front, wh, 1 }, { -(slot + front) / 2, wy, -s / 2 + 0.5 } },
-			{ "WallFrontR", { front, wh, 1 }, { (slot + front) / 2, wy, -s / 2 + 0.5 } },
-		}
-	do
-		local node = block(w[1] :: string, w[2] :: Vec, at(w[3] :: Vec), FENCE, "WoodPlanks", r)
-		node.transparency = 1
-		node.attributes = { FenceCollider = true }
-		table.insert(children, node)
-	end
 	local fence: WorldNode = { name = "Fence", class = "Model", children = {} }
 	local panelUp = WorldLayout.fenceUploaded()
 	for _, seg in WorldLayout.fenceSegments() do
@@ -1202,7 +1197,7 @@ local function plot(i: number): WorldNode
 			local a = math.rad(seg.yaw)
 			local size = meshSize(mesh, WorldLayout.FENCE_SCALE)
 			local pos = at({ seg.x + math.cos(a) * offset, 1 + size[2] / 2, seg.z - math.sin(a) * offset })
-			return meshSlot(ghost(block(name, size, pos, FENCE, "WoodPlanks", turn)), mesh)
+			return meshSlot(solid(block(name, size, pos, FENCE, "WoodPlanks", turn)), mesh)
 		end
 		local node: WorldNode
 		if seg.length == WorldLayout.FENCE_SEGMENT_GRID then
@@ -1235,7 +1230,7 @@ local function plot(i: number): WorldNode
 	table.insert(
 		fence.children :: { WorldNode },
 		meshSlot(
-			ghost(block("GatePost", postSize, at({ postX, 1 + postSize[2] / 2, wallZ }), FENCE, "Wood", r)),
+			solid(block("GatePost", postSize, at({ postX, 1 + postSize[2] / 2, wallZ }), FENCE, "Wood", r)),
 			WorldLayout.GATE_POST_MESH
 		)
 	)

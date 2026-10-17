@@ -89,3 +89,43 @@ still needs its own collider. Max 32 groups. **Studio check** the character part
 
 The inner ground is voxel Terrain (`GroundTerrain`, flat at y = 0): Terrain collides by itself, so it has no mesh,
 `MeshAssets.COLLISION` entry or collider part. The invisible `Map.Ground` part under it stays as the void-safety floor.
+
+## Conversions (bug #11 part 1)
+
+`MeshAssets.COLLISION` is the single list; one reason per mesh sits next to its line there. Summary:
+
+| Fidelity | Meshes |
+|---|---|
+| `Box` | `slime_fountain_emerge` (bug #10, main), `ranch_fence_20`, `phoenix_fence_segment`, `phoenix_corner_post` (the plot fence), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_bench`, `ranch_compost_bin`, `ranch_flower_planter`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_wagon`, `ranch_water_trough` |
+| `Hull` | `merge_vat`, `ranch_shop_stand` (already), `ranch_barrel`, `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_slime_coop`, `ranch_water_pump`, `ranch_weathervane`, `ranch_well`, `ranch_wheelbarrow`, `ranch_windmill` |
+| `PreciseConvexDecomposition` | `ranch_fence_stile` (steps), `ranch_barn_loft` (loft over an open floor). Both marked "PCD: Phoenix Studio check" |
+| none (decor) | `slime_fountain` (tower, hand colliders stay), `phoenix_gate` (a Box/Hull would close the 14-stud opening; its GatePost stand-ins keep the posts; PCD is the later mesh route), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring`, `ranch_goo_drain`, `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, `rain_magnet`, every slime kit mesh, `slime_lane` |
+
+`tests/MeshCollision.spec` makes every mesh name either solid or decor-with-a-reason.
+
+What changed besides the list:
+
+- **Slot boxes.** A WorldLayout slot is a primitive box that used to stay as an invisible collider under its mesh. Now a decor
+  ranch prop slot never collides, and a Part slot whose mesh has a fidelity turns its box off once the mesh is placed
+  (`MeshSwap.swap`): the mesh is the collider. While the mesh loads (or fails) the box still collides.
+- **Plot fence.** The five invisible `Wall*` blocks per plot (40 parts for 8 plots) are removed. The fence panels (`ranch_fence_20`
+  20 x 8.2 x 1.64, `phoenix_fence_segment` 10 x 8.2 x 1.64 beside the gate, `phoenix_corner_post` at the gate stub) are `Box` and
+  carry `FenceCollider`; their slot boxes collide until the mesh lands. The spec walks every old wall's centre line in 0.25 steps
+  and requires a Box slot at each point, at least as tall as the wall and starting at its base, with the gate opening still open.
+- Left alone on purpose: `slime_fountain` and its Basin / Trim / Silo / Top colliders, `SlideColliders`, `FountainColliders`,
+  the World Border wall ring, the Leaderboard board's `Collider`.
+
+### What Studio must confirm
+
+- **Shapes vs visuals.** `Box` bbox against the visual for the podiums, signpost, wagon, tool rack, hitching post and bench
+  (a bbox corner can stick out past a bevel); `Hull` against the visual for the scarecrow, weathervane, birdhouse, windmill, well
+  (hull fills under roofs and between arms) and the shed / coop gables.
+- **PCD walkability.** Walk a character up and over `ranch_fence_stile` and under / onto `ranch_barn_loft`; check the generated
+  collision exists at all for the scaled mesh (the engine may fall back to a coarser one), and the physics step cost.
+- **Stand-on surfaces and fall-through.** Stand on the three podiums (rigs from `PodiumRigs`), crates, wagon, picnic table, shed
+  roof ledge: no fall-through, no float above the visual top, no stuck feet in a Hull's filled concavity.
+- **Fence.** Walk the whole fence line of one plot, corner to gate: no gap at joints, corners or the gate stubs; the gate opening
+  stays open; if a `Box` mesh fails to generate, the placeholder box (same footprint) is the fallback.
+- **Pass-through and clearance.** The walk-through `ranch_*` decor (patches, pit, border, habitats) stays passable.
+- Shots `183-bug11-hull-stand`, `184-bug11-box-stand`, `185-bug11-pcd-stand` (`luau/mesh_stand`) drop and push balls at these
+  meshes; they do not replace a Studio walk with a real character.

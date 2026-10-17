@@ -408,6 +408,56 @@ MeshAssets.COLLISION = table.freeze({
 	merge_vat = "Hull",
 	-- the Item / Upgrade Shop stands (CONTRACT.md §27.2): a solid counter, not a box to stand inside
 	ranch_shop_stand = "Hull",
+
+	-- Bug #11 part 1 (docs/COLLISION.md "Conversions"): one line of reason per mesh. Everything not listed here
+	-- is decor (see the same doc for why each stays off).
+
+	-- fences and posts: Box = the whole panel, so the plot's invisible Wall* colliders are no longer needed
+	ranch_fence_20 = "Box", -- 22x9x1.8 panel, a flat wall of pickets: the bbox is the wall (replaces WallBack/Left/Right/FrontL/FrontR)
+	phoenix_fence_segment = "Box", -- 11x9x1.8 half panel beside the gate: same flat wall
+	phoenix_corner_post = "Box", -- 2.8x9.7x2.8 square post closing the fence run at the gate's right stub
+	-- plaza showpieces
+	ranch_plaza_signpost = "Box", -- sign boards on posts, 12.6x14.5x7.5; the old invisible slot box was this bbox
+	phoenix_plaza_podium_1 = "Box", -- stepped block podium, players and rigs stand on its flat top
+	phoenix_plaza_podium_2 = "Box", -- same as podium_1
+	phoenix_plaza_podium_3 = "Box", -- same as podium_1
+	-- boxy ranch props
+	ranch_crate = "Box", -- 3x3x3 cube
+	ranch_crate_goo = "Box", -- 3x3x3 cube
+	ranch_feed_trough = "Box", -- 6x2.3x2.5 low box, nobody walks inside
+	ranch_hay_bale = "Box", -- 4x2.6x2.6 bale
+	ranch_bench = "Box", -- 6x4x2.4 bench with a back
+	ranch_compost_bin = "Box", -- 5.5x4.8x5.3 slatted bin
+	ranch_flower_planter = "Box", -- 5.2x3.2x2 planter box
+	ranch_goo_sign = "Box", -- 8.8x8.2x3.7 signboard
+	ranch_hitching_post = "Box", -- 7.3x4.8x3.2 rail between posts
+	ranch_mailbox = "Box", -- 1.4x5.4x2.7 box on a post
+	ranch_picnic_table = "Box", -- 8.1x3.4x6 table with benches
+	ranch_tool_rack = "Box", -- 7.7x8x3 rack of tools, a flat wall
+	ranch_wagon = "Box", -- 9.9x3x5.8 cart, flat bed to stand on
+	ranch_water_trough = "Box", -- 9.7x3.6x3.2 low box
+	-- blobby and roofed ranch props: Hull
+	ranch_barrel = "Hull", -- 2.5x2.6x2.7 barrel
+	ranch_barrel_stack = "Hull", -- 5.2x5.4x4.7 pyramid of barrels
+	ranch_birdhouse = "Hull", -- 3.6x8x3.4 house on a pole
+	ranch_campfire = "Hull", -- 4.3x4.6x4.3 stone ring and logs
+	ranch_feed_sacks = "Hull", -- 5.2x3.5x5.3 pile of sacks
+	ranch_goo_bucket = "Hull", -- 2.2x2.8x2.1 bucket
+	ranch_goo_hive = "Hull", -- 3.8x5.7x4.8 dome
+	ranch_log_pile = "Hull", -- 10.9x4x6.8 stacked logs
+	ranch_milk_churn = "Hull", -- 2.7x6.1x2.5 churn
+	ranch_rain_barrel = "Hull", -- 3.3x5.6x5.5 barrel with a pipe
+	ranch_scarecrow = "Hull", -- 7.2x9x3.5 pole with arms: the hull tapers up to them, nobody walks through the pole
+	ranch_shed = "Hull", -- 10.6x9.3x8.6 gabled shed: the hull follows the roof, Box would leave invisible corners
+	ranch_slime_coop = "Hull", -- 7.4x7.7x7.8 gabled coop
+	ranch_water_pump = "Hull", -- 3.8x4.4x4.9 pump
+	ranch_weathervane = "Hull", -- 5x8.6x3.4 vane on a pole
+	ranch_well = "Hull", -- 6.9x7.7x5.5 stone well with a roof: nobody falls into or walks under it
+	ranch_wheelbarrow = "Hull", -- 6.6x3.5x3.8 wheelbarrow
+	ranch_windmill = "Hull", -- 8.4x17.4x9.7 tower: the hull is the tower, the sails are overhead
+	-- walkable concave shapes: PreciseConvexDecomposition (expensive; both are placed a few times at most)
+	ranch_fence_stile = "PreciseConvexDecomposition", -- PCD: Phoenix Studio check. Steps over the fence: the treads must be walkable
+	ranch_barn_loft = "PreciseConvexDecomposition", -- PCD: Phoenix Studio check. Loft platform with an open ground floor: walk under and onto it
 })
 
 function MeshAssets.collision(name: string): string?

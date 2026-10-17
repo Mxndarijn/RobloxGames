@@ -1940,6 +1940,11 @@ def step_shots(run):
                     if not rp["ok"]:
                         run.note("shot %s: runtime parts %s not in 1..%s (parade lane %s, slide colliders %s)" % (
                             sid, rp.get("runtime_parts"), rp["max"], rp.get("parade_lane"), rp.get("slide_colliders")))
+                if shot.get("mesh_stand"):
+                    # bug 11 part 1: balls dropped onto / pushed into the converted (MeshAssets.COLLISION) props must not pass through
+                    res["mesh_stand"] = run.need_luau("mesh_stand", "Server", timeout=40, meshes=",".join(shot["mesh_stand"]))
+                    if not res["mesh_stand"].get("ok"):
+                        run.note("shot %s: mesh collision: %s" % (sid, str(res["mesh_stand"].get("summary") or res["mesh_stand"].get("error"))[:200]))
                 if shot.get("fountain_walk"):
                     # C10: free balls dropped over the whole fountain top (eave, dome, basin) must never sink into it
                     res["fountain_walk"] = run.need_luau("fountain_walk", "Server", timeout=60)

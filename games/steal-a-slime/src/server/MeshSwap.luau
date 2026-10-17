@@ -185,6 +185,10 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 		end
 	else
 		hide(target)
+		-- the mesh is the collider now: the slot box under it (an invisible copy of its bbox) would only double it
+		if fidelity then
+			target.CanCollide = false
+		end
 	end
 	hideStandIns(scope, name)
 	mesh.Parent = target
