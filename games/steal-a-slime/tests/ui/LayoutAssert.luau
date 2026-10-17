@@ -365,7 +365,10 @@ end
 -- Daily popup card texts at their longest.
 function LayoutAssert.dailyTexts(screen: Layout.Screen): { TextDesc }
 	local w = screen.daily.w
+	local tileW = (w - 24) / 7.6 - 4 -- calendar tile (weights 1 x6 + 1.6, see DailyPopup)
 	return {
+		{ name = "Daily tile day", text = "Day 6", size = 10, w = tileW, h = 14 },
+		{ name = "Daily tile amount", text = Format.formatCash(987.6e12), size = 8, w = tileW - 4, h = 14 },
 		{
 			name = "Daily title",
 			text = "Daily Reward",

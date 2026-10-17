@@ -46,6 +46,11 @@ function Daily.track(today: number, cap: number, available: boolean): { Cell }
 	return cells
 end
 
+-- Cash a given streak day pays (mirrors Progression.dailyAmount: base * day * multiplier, floored).
+function Daily.reward(day: number, base: number, multiplier: number): number
+	return math.floor(base * day * multiplier)
+end
+
 -- Auto-open once per availability edge: the first State with a claim ready,
 -- or when one becomes ready while playing. Not again after the player closes it.
 function Daily.shouldAutoOpen(wasAvailable: boolean?, available: boolean): boolean
