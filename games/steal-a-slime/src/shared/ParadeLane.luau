@@ -67,7 +67,7 @@ ParadeLane.CLEARANCE = math.max(ParadeLane.HALF_WIDTH, ParadeLane.SPREAD / 2 + P
 ParadeLane.LANE_Y = 0.35 -- top of the goo strip (ParadeView); slime pivots stand on it
 -- The goo strip is drawn with as few straight Parts as stay within this many studs of the route
 -- (stripPoints); the 2.5° route steps are far finer than the eye needs. Visual only.
-ParadeLane.STRIP_TOLERANCE = 0.55
+ParadeLane.STRIP_TOLERANCE = 0.1
 ParadeLane.LEAD_TOLERANCE = 0.2 -- the lead-in from the mouth and ENTRY's bend out to r 68 curve hardest: finer, so their corners stay soft
 -- Emerge + slide: the slime leaves the slide mouth at FountainRide's slideEndsAt (5.92 s) and walks on at once, no
 -- idle wait and no separate glide to the lane (tests/ParadeLane.spec keeps this within 0.25 s above it).
@@ -89,8 +89,8 @@ local CONTROLS: { { number } } = {
 	{ 124, 50 }, -- ENTRY: where the ride lands, just past the landing-ring gap, on the mouth's run-out line
 	{ 146, 68 },
 	{ 170, 68 },
-	{ 186, 49.5 }, -- inside the hub SpawnLocation (12 x 12 at r 64, 202.5°)
-	{ 219, 49.5 },
+	{ 186, 49.8 }, -- inside the hub SpawnLocation (12 x 12 at r 64, 202.5°)
+	{ 219, 49.8 },
 	{ 235, 68 },
 	{ 262, 68 },
 	{ 276, 56 }, -- inside the podiums (285°-300°) and the signpost (337.5°)
@@ -102,6 +102,7 @@ local CONTROLS: { { number } } = {
 -- heading. The goo strip starts here so the lane starts exactly where the slide ends; slimes ride it in the
 -- air and land on ENTRY, so the walk (WAYPOINTS) is unchanged.
 ParadeLane.MOUTH = table.freeze({ 0, 35.5 })
+local MOUTH_HEADING = { -0.9806, 0.1961 } -- unit x, z the slide leaves the mouth in (WorldLayout.SLIDE_PATH's last segment)
 local LEAD_CONTROLS: { { number } } = { { 90, 35.5 }, { 124, 50 } }
 local STEP_DEGREES = 2.5
 local BEND_POINTS = math.ceil((CONTROLS[2][1] - CONTROLS[1][1]) / STEP_DEGREES) + 1 -- waypoints of the first control interval
@@ -123,12 +124,17 @@ local function polar(controls: { { number } }): { { number } }
 	return points
 end
 
-local function build(): { { number } }
-	local points = polar(CONTROLS)
+-- Raw route (the radius-eased arcs above): the lead-in, the lane, TAIL and the last waypoint just outside the drain's curb.
+local function rawRoute(): { { number } }
+	local points = polar(LEAD_CONTROLS)
+	for i, p in polar(CONTROLS) do
+		if i > 1 then
+			table.insert(points, p)
+		end
+	end
 	for _, p in TAIL do
 		table.insert(points, { p[1], p[2] })
 	end
-	-- Last waypoint: just outside the curb, on the line from the tail to the drain centre.
 	local d = ParadeLane.DRAIN
 	local last = points[#points]
 	local dx, dz = last[1] - d.x, last[2] - d.z
@@ -138,15 +144,103 @@ local function build(): { { number } }
 	return points
 end
 
-local lead = polar(LEAD_CONTROLS)
+-- The raw route's corners (the radius eases and the tail) are too sharp for a slime to turn, and a goo mesh through them
+-- shows a kink. Resample it every 1 stud, smooth it with a Gaussian of SMOOTH_SIGMA studs (the slide mouth keeps its heading and
+-- position, the drain end is point-reflected so it stays put) and keep every POINT_SPACING studs. The walkers and the
+-- mesh centreline (tools/render/lane_centreline) use these same points.
+local SMOOTH_SIGMA = 5
+local POINT_SPACING = 2
+local MOUTH_BLEND = 8
+local function smoothRoute(raw: { { number } }): { { number } }
+	local dense: { { number } } = { { raw[1][1], raw[1][2] } }
+	local carry = 0
+	for i = 2, #raw do
+		local a, b = raw[i - 1], raw[i]
+		local len = math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2)
+		local at = 1 - carry
+		while at <= len do
+			table.insert(dense, { a[1] + (b[1] - a[1]) * at / len, a[2] + (b[2] - a[2]) * at / len })
+			at += 1
+		end
+		carry = len - (at - 1)
+	end
+	local tailEnd = raw[#raw]
+	local n = #dense
+	local gap = math.sqrt((tailEnd[1] - dense[n][1]) ^ 2 + (tailEnd[2] - dense[n][2]) ^ 2)
+	if gap > 1e-6 then
+		n += 1
+		dense[n] = { tailEnd[1], tailEnd[2] }
+	end
+	local reach = math.ceil(SMOOTH_SIGMA * 3)
+	local weights: { number } = {}
+	local total = 0
+	for k = -reach, reach do
+		local w = math.exp(-(k * k) / (2 * SMOOTH_SIGMA * SMOOTH_SIGMA))
+		weights[k + reach + 1] = w
+		total += w
+	end
+	local function at(i: number): (number, number)
+		if i < 1 then -- the slide's heading carries on straight back from the mouth
+			return dense[1][1] + (i - 1) * MOUTH_HEADING[1], dense[1][2] + (i - 1) * MOUTH_HEADING[2]
+		elseif i > n then -- point reflection about the last point
+			local j = math.max(2 * n - i, 1)
+			return 2 * dense[n][1] - dense[j][1], 2 * dense[n][2] - dense[j][2]
+		end
+		return dense[i][1], dense[i][2]
+	end
+	local smooth: { { number } } = {}
+	for i = 1, n do
+		local sx, sz = 0, 0
+		for k = -reach, reach do
+			local x, z = at(i + k)
+			local w = weights[k + reach + 1]
+			sx += x * w
+			sz += z * w
+		end
+		smooth[i] = { sx / total, sz / total }
+	end
+	-- The raw lead-in is already gentle and starts on the slide's line: the smoothing fades in over MOUTH_BLEND studs.
+	for i = 1, math.min(n, MOUTH_BLEND) do
+		local u = (i - 1) / MOUTH_BLEND
+		local w = u * u * (3 - 2 * u)
+		smooth[i] = { dense[i][1] + (smooth[i][1] - dense[i][1]) * w, dense[i][2] + (smooth[i][2] - dense[i][2]) * w }
+	end
+	-- the chords of a smoothed 1-stud polyline are about 1 stud: keep every POINT_SPACING-th and the last
+	local out: { { number } } = {}
+	for i = 1, n, POINT_SPACING do
+		table.insert(out, smooth[i])
+	end
+	if (n - 1) % POINT_SPACING ~= 0 then
+		table.insert(out, smooth[n])
+	end
+	return out
+end
+
+local smoothed = smoothRoute(rawRoute())
+-- ENTRY: the smoothed point nearest where the ride lands (the raw ENTRY).
+local rawEntry = polar(LEAD_CONTROLS)[#polar(LEAD_CONTROLS)]
+local entryIndex, entryGap = 1, math.huge
+for i, p in smoothed do
+	local g = (p[1] - rawEntry[1]) ^ 2 + (p[2] - rawEntry[2]) ^ 2
+	if g < entryGap then
+		entryIndex, entryGap = i, g
+	end
+end
+local lead: { { number } } = {}
+for i = 1, entryIndex do
+	table.insert(lead, smoothed[i])
+end
 ParadeLane.LEAD = table.freeze(lead) :: { { number } } -- { x, z } from the slide mouth to ENTRY (inclusive)
-local points = build()
+local points: { { number } } = {}
+for i = entryIndex, #smoothed do
+	table.insert(points, smoothed[i])
+end
 local cumulative = { 0 }
 for i = 2, #points do
 	local a, b = points[i - 1], points[i]
 	cumulative[i] = cumulative[i - 1] + math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2)
 end
-for _, p in points do
+for _, p in smoothed do
 	table.freeze(p)
 end
 
@@ -253,7 +347,7 @@ ParadeLane.JOIN_OVERLAP = 0.1
 -- centre, world studs; out/slime_lane_pivot.json), laid like a MeshSwap slot (turned MeshAssets.IMPORT_YAW).
 -- Its crown is LANE_Y, its edges sit EDGE_Y (under the ground), its width is 2 * HALF_WIDTH.
 ParadeLane.MESH = "slime_lane"
-ParadeLane.MESH_PIVOT = table.freeze({ 0.321459, 0.135, -1.692511 })
+ParadeLane.MESH_PIVOT = table.freeze({ 0.472784, 0.135, -1.707947 })
 ParadeLane.EDGE_Y = -0.05
 ParadeLane.COLOR = table.freeze({ 140, 222, 200 }) -- the slide's water
 function ParadeLane.strips(): { any }

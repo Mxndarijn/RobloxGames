@@ -76,11 +76,9 @@ for s = 0, ParadeLane.LENGTH, 0.25 do
 	local x, z = ParadeLane.pointAt(s)
 	table.insert(SAMPLES, { s = s, x = x, z = z })
 end
--- Distance along the lane where it turns in towards the drain (last r 68 waypoint).
-local TURN_IN = 0
-for i = 2, #POINTS - 2 do
-	TURN_IN += hdist(POINTS[i - 1][1], POINTS[i - 1][2], POINTS[i][1], POINTS[i][2])
-end
+-- Distance along the lane where it turns in towards the drain: the smoothed route eases onto the drain's curb over its
+-- last few studs (it used to turn in at the last r 68 waypoint); before that it keeps the box clear.
+local TURN_IN = ParadeLane.LENGTH - 4.5
 
 describe("ParadeLane timing: lane position is time left", function()
 	it("progress = 1 - time left / lifetime, for wild and Boss lifetimes", function()
