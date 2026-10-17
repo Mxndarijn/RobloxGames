@@ -15,7 +15,10 @@
 	     live cap, and falls back to 2 / 3 when it cannot.
 	  2. "image": an uploaded picture. Paste the asset id into ItemIcons.IMAGES
 	     below (ITEM-ICONS-NEEDED.md lists what to make for each id).
-	  3. "placeholder": a rounded gradient tile in the item's colour with a
+	  3. "drawn": a UI-drawn scene of layered frames (ItemIconArt), for the ids
+	     in ItemIcons.DRAWN. Static: no viewport, no cap. Replace it with an
+	     uploaded image later by pasting the id into IMAGES.
+	  4. "placeholder": a rounded gradient tile in the item's colour with a
 	     bold glyph and a stroke. Every spec has `color` + `glyph`, so the
 	     tile is always there (also as the backdrop of 1 / 2).
 ]]
@@ -28,7 +31,7 @@ export type Spec = {
 	glyph: string, -- allowlisted (tests/ui/Glyphs.spec): ASCII, a proven BMP symbol or an emoji
 	model: { kind: "slime" | "mesh", mutation: string?, mesh: string? }?,
 	image: number?, -- uploaded asset id, from IMAGES
-	source: "model" | "image" | "placeholder",
+	source: "model" | "image" | "drawn" | "placeholder",
 	brief: string, -- what Archer renders for the 512x512 icon (ITEM-ICONS-NEEDED.md)
 }
 
@@ -38,6 +41,13 @@ local ItemIcons = {}
 -- icons are uploaded; paste `ItemId = 123456789,` lines here. An image wins
 -- over the placeholder tile, never over a working 3D model.
 ItemIcons.IMAGES = {} :: { [string]: number }
+
+-- Groups whose items are UI-drawn (ItemIconArt recipe per id); part of the goal / dex / badge /
+-- skin groups still show the placeholder tile.
+ItemIcons.DRAWN_GROUPS = table.freeze({ shop = true, upgrade = true, boost = true, misc = true, code = true })
+
+-- Items an artist must still render: in a DRAWN group but with no recipe worth shipping. Empty now.
+ItemIcons.FOR_ARCHER = table.freeze({} :: { string })
 
 -- Kit meshes that exist in MeshAssets (shared/MeshAssets NAMES) and may back a "mesh" model.
 ItemIcons.MESHES = table.freeze({
@@ -300,7 +310,8 @@ local function finish(partial: { [string]: any }): Spec
 	local model = partial.model
 	local image = ItemIcons.IMAGES[partial.id]
 	partial.image = image
-	partial.source = if model then "model" elseif image then "image" else "placeholder"
+	local drawn = ItemIcons.DRAWN_GROUPS[partial.group] and not table.find(ItemIcons.FOR_ARCHER, partial.id)
+	partial.source = if model then "model" elseif image then "image" elseif drawn then "drawn" else "placeholder"
 	return freeze(partial)
 end
 

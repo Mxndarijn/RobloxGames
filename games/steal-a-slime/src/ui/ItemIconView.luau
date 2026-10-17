@@ -8,6 +8,8 @@
 	  * a rounded tile: vertical gradient in the item's colour, a darker
 	    stroke and a bold glyph. Always built; it is the placeholder and the
 	    backdrop of the other two;
+	  * a UI-drawn scene (ItemIconArt) for specs with source "drawn": static
+	    frames over the tile, no viewport, outside the live cap;
 	  * an ImageLabel when the spec has an uploaded `image`;
 	  * a ViewportFrame with the real 3D model (slime + mutation finish, or a
 	    kit mesh) when the spec has a `model`. Live viewports are lazy (only
@@ -18,6 +20,7 @@
 	    to image, then tile.
 ]]
 
+local ItemIconArt = require(script.Parent.ItemIconArt)
 local SlimePreview = require(script.Parent.SlimePreview)
 local Widgets = require(script.Parent.Widgets)
 
@@ -120,6 +123,14 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		ZIndex = z + 1,
 		Parent = tile,
 	})
+	local art = create("Frame", {
+		Name = "Art",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		ZIndex = z + 1,
+		Parent = root,
+	})
 	local picture = create("ImageLabel", {
 		Name = "Picture",
 		BackgroundTransparency = 1,
@@ -141,7 +152,7 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		root.Parent = props.Parent
 	end
 
-	local self: any = { instance = root, tile = tile, glyph = glyph, picture = picture, viewport = viewport }
+	local self: any = { instance = root, tile = tile, glyph = glyph, picture = picture, art = art, viewport = viewport }
 	local spec: any = registry.resolve(nil)
 	local active = false
 	local mounted = false
@@ -164,7 +175,9 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		if image then
 			picture.Image = `rbxassetid://{image}`
 		end
-		glyph.Visible = image == nil
+		local drawn = image == nil and spec.source == "drawn" and art:GetAttribute("ArtId") == spec.id
+		art.Visible = drawn
+		glyph.Visible = image == nil and not drawn
 		if model and active then
 			if not mounted and live < ItemIconView.MAX_LIVE then
 				local builder = ItemIconView.builders[model.kind]
@@ -181,7 +194,7 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		if mounted then
 			glyph.Visible = false
 		end
-		self.source = if mounted then "model" elseif image then "image" else "placeholder"
+		self.source = if mounted then "model" elseif image then "image" elseif drawn then "drawn" else "placeholder"
 	end
 
 	function self.set(id: string?)
@@ -192,6 +205,11 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		stroke.Color = frameColor or c:Lerp(Color3.new(0, 0, 0), 0.55)
 		glyph.Text = spec.glyph
 		root:SetAttribute("ItemId", spec.id)
+		art:ClearAllChildren()
+		art:SetAttribute("ArtId", nil)
+		if spec.source == "drawn" and ItemIconArt.draw(art, spec.id, z + 1) then
+			art:SetAttribute("ArtId", spec.id)
+		end
 		self.spec = spec
 		refresh()
 	end

@@ -72,7 +72,12 @@ describe("ItemIcons registry", function()
 			expect(`{id} ({from}): {if spec then "ok" else "missing"}`).toBe(`{id} ({from}): ok`)
 			expect(spec.id).toBe(id)
 			expect(registry.resolve(id)).toBe(spec)
-			expect(spec.source == "model" or spec.source == "image" or spec.source == "placeholder").toBe(true)
+			expect(
+				spec.source == "model"
+					or spec.source == "image"
+					or spec.source == "drawn"
+					or spec.source == "placeholder"
+			).toBe(true)
 		end
 		expect(n > 60).toBe(true)
 	end)
@@ -127,7 +132,67 @@ describe("ItemIcons registry", function()
 		expect(registry.byId.Mutation_Glow.model.kind).toBe("slime")
 		expect(registry.byId.PlotSkin_candy.model.kind).toBe("mesh")
 		expect(registry.byId.PlotSkin_classic.source).toBe("placeholder")
-		expect(registry.byId.SpeedCoil.source).toBe("placeholder")
+		expect(registry.byId.SpeedCoil.source).toBe("drawn")
+	end)
+end)
+
+describe("drawn icons (shop / upgrade / boost / misc / code)", function()
+	local ItemIconArt = UiHarness.ui("ItemIconArt")
+
+	it("no item in these groups resolves to the placeholder unless listed FOR ARCHER", function()
+		local n = 0
+		for _, id in registry.order do
+			local spec = registry.byId[id]
+			if ItemIcons.DRAWN_GROUPS[spec.group] then
+				n += 1
+				if table.find(ItemIcons.FOR_ARCHER, id) == nil then
+					expect(`{id}: {spec.source}`).toBe(`{id}: drawn`)
+					expect(`{id}: {ItemIconArt.has(id)}`).toBe(`{id}: true`)
+				end
+			end
+		end
+		expect(n >= 29).toBe(true)
+		local doc = fs.readFile("ITEM-ICONS-NEEDED.md")
+		expect(string.find(doc, "## FOR ARCHER", 1, true) ~= nil).toBe(true)
+		expect(string.find(doc, "## FOR ARCHER", 1, true) < string.find(doc, "| id |", 1, true)).toBe(true)
+	end)
+
+	it("every recipe builds static frames only (no viewport, outside the live cap), glyphs on the allowlist", function()
+		ItemIconView.resetLive()
+		for _, id in registry.order do
+			local spec = registry.byId[id]
+			if spec.source ~= "drawn" then
+				continue
+			end
+			local icon = ItemIconView.new({ Id = id, Size = 36, Parent = UiHarness.root() }, registry)
+			icon.setActive(true)
+			expect(icon.source).toBe("drawn")
+			expect(icon.art.Visible).toBe(true)
+			expect(icon.glyph.Visible).toBe(false)
+			expect(icon.viewport.Visible).toBe(false)
+			expect(#icon.art:GetChildren() >= 4).toBe(true)
+			for _, d in icon.art:GetDescendants() do
+				expect(d.ClassName ~= "ViewportFrame" and d.ClassName ~= "MeshPart" and d.ClassName ~= "ImageLabel").toBe(
+					true
+				)
+				if d.ClassName == "TextLabel" then
+					expect(#GlyphCheck.bad(d.Text)).toBe(0)
+				end
+			end
+			icon.destroy()
+		end
+		expect(ItemIconView.liveCount()).toBe(0)
+	end)
+
+	it("an uploaded image still wins over the drawn icon", function()
+		ItemIcons.IMAGES.Cash = 555
+		local withImage = ItemIcons.build(Config)
+		ItemIcons.IMAGES.Cash = nil
+		local icon = ItemIconView.new({ Id = "Cash", Size = 36, Parent = UiHarness.root() }, withImage)
+		expect(withImage.byId.Cash.source).toBe("image")
+		expect(icon.source).toBe("image")
+		expect(icon.art.Visible).toBe(false)
+		icon.destroy()
 	end)
 end)
 
