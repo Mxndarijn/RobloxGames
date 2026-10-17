@@ -15,7 +15,8 @@ if gd and gd:IsA("BasePart") then
 end
 local reaching, total = {}, 0
 for _, p in paths:GetChildren() do
-	if p:IsA("BasePart") then
+	-- the Plaza disc itself (the drain sits on its rim) is not a walkway to the drain
+	if p:IsA("BasePart") and p.Name ~= "Plaza" then
 		total += 1
 		local l = p.CFrame:PointToObjectSpace(Vector3.new(drain.X, p.Position.Y, drain.Z))
 		local dx = math.max(math.abs(l.X) - p.Size.X / 2, 0)
