@@ -2,7 +2,7 @@
   "id": "v29-b4-shop-sign-close",
   "todo": "v29 B4",
   "kind": "world",
-  "target": "ShopStand",
+  "target": "ItemShopStand",
   "from": "centre",
   "dist": 14,
   "height": 9,

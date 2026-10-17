@@ -2,7 +2,7 @@
   "id": "10-shop-front-1",
   "todo": "10",
   "kind": "world",
-  "target": "ShopStand",
+  "target": "ItemShopStand",
   "index": 1,
   "from": "centre",
   "dist": 28,

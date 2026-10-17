@@ -369,7 +369,7 @@ def t_data_path():
         check("load_shots(repo=) reads the repo folder (empty -> None)", watcher.load_shots(repo=repo)[0] is None)
     check("data_path without a repo uses the app copy", watcher.data_path(None, "checks.json")[1] == "app")
     names = json.load(open(os.path.join(HERE, "checks.json"), encoding="utf-8"))["shops_face_centre"]
-    check("shops_face_centre checks ShopStand only", names["names"] == ["ShopStand"] and names["min_items"] == 1 and names["min_dot"] == 0.9, names)
+    check("shops_face_centre checks the world shop stands (ShopStand fallback)", names["names"] == ["ItemShopStand", "UpgradeShopStand", "ShopStand"] and names["min_items"] == 1 and names["min_dot"] == 0.9, names)
 
 
 def t_budgets():
