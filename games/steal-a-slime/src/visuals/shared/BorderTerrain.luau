@@ -6,6 +6,9 @@
 	field.height(x, z): number               -- terrain surface above the Ground top (0 = none)
 	field.material(x, z): string             -- "Grass" | "LeafyGrass" | "Rock"
 	BorderTerrain.tiles(): { Tile }          -- 32 x 32 column tiles that hold any terrain
+	BorderTerrain.chunks(chunkCells?): { Chunk } -- 16 x 16 column chunks (64 studs), nearest the play area first
+	BorderTerrain.voxels(field, chunk, materialOf, air): Voxels -- pure per-chunk voxel arrays (the view only WriteVoxels them)
+	BorderTerrain.runBudgeted(count, step, budget, clock, yield) -- frame time-budget scheduler (pure, injectable clock)
 	BorderTerrain.sample(field, step): Grid  -- heights + materials on a grid (render export, tests)
 
 	The land behind the Slime Ranch border. The 640-stud Ground ends in a
@@ -51,6 +54,14 @@ export type Hill = {
 
 export type Tile = { x: number, z: number } -- minimum corner, studs (multiples of CELL)
 
+export type Chunk = { x: number, z: number, size: number } -- minimum corner and side, studs (multiples of CELL)
+
+export type Voxels = {
+	layers: number,
+	materials: { { { any } } }, -- [i (x)][j (layer)][k (z)]
+	occupancy: { { { number } } },
+}
+
 export type Grid = {
 	step: number,
 	min: number, -- x and z of cell (1, 1)
@@ -74,6 +85,7 @@ BorderTerrain.EDGE_RAMP = 40 -- studs past INNER over which the land rises from 
 BorderTerrain.EXTENT = 960 -- half size of the box the server writes
 BorderTerrain.CELL = 4 -- voxel size
 BorderTerrain.TILE_CELLS = 32
+BorderTerrain.CHUNK_CELLS = 16 -- columns per chunk side (64 studs); the server writes one chunk at a time
 BorderTerrain.FLOOR = -8 -- columns are filled from here up (a multiple of CELL)
 BorderTerrain.MAX_HEIGHT = 68 -- soft ceiling; the walls are 80 (WorldBorder.WALL_HEIGHT)
 BorderTerrain.PEAK_MAX_HEIGHT = 230 -- soft ceiling of the mountains (nobody can reach them)
@@ -415,6 +427,119 @@ function BorderTerrain.tiles(): { Tile }
 		x += size
 	end
 	return out
+end
+
+-- Chunks (chunkCells x chunkCells columns, aligned to the CELL grid and so to
+-- FLOOR) covering the same terrain as tiles(): every column of a tile that
+-- reaches past INNER. Chunks wholly inside INNER (air only) are dropped.
+-- Sorted nearest-first by the Euclidean distance of the chunk's nearest point
+-- to the centre (the play area), ties by x then z.
+function BorderTerrain.chunks(chunkCells: number?): { Chunk }
+	local size = (chunkCells or BorderTerrain.CHUNK_CELLS) * BorderTerrain.CELL
+	local E = BorderTerrain.EXTENT
+	local out: { Chunk } = {}
+	local dist: { [Chunk]: number } = {}
+	local x = -E
+	while x < E do
+		local z = -E
+		while z < E do
+			local nx = math.max(x, -(x + size), 0)
+			local nz = math.max(z, -(z + size), 0)
+			if math.max(nx, nz) + size > BorderTerrain.INNER then
+				local chunk = { x = x, z = z, size = size }
+				dist[chunk] = nx * nx + nz * nz
+				table.insert(out, chunk)
+			end
+			z += size
+		end
+		x += size
+	end
+	table.sort(out, function(a, b)
+		if dist[a] ~= dist[b] then
+			return dist[a] < dist[b]
+		end
+		if a.x ~= b.x then
+			return a.x < b.x
+		end
+		return a.z < b.z
+	end)
+	return out
+end
+
+-- Voxel arrays for a chunk, ready for Terrain:WriteVoxels at the chunk's
+-- region (x, FLOOR, z) .. (x + size, FLOOR + layers * CELL, z + size).
+-- materialOf maps "Grass" | "LeafyGrass" | "Rock" to the caller's material;
+-- air is its Air. Each voxel depends only on its own column and layer, never
+-- on the chunk, so any chunking writes identical voxels; `layers` only sets
+-- how much air sits above the chunk's tallest column.
+function BorderTerrain.voxels(field: Field, chunk: Chunk, materialOf: { [string]: any }, air: any): Voxels
+	local cell, floor = BorderTerrain.CELL, BorderTerrain.FLOOR
+	local count = math.floor(chunk.size / cell)
+	local heights: { number } = {}
+	local tops: { string } = {}
+	local tallest = 0
+	for i = 1, count do
+		local x = chunk.x + (i - 0.5) * cell
+		for k = 1, count do
+			local z = chunk.z + (k - 0.5) * cell
+			local h = field.height(x, z)
+			local inside = math.max(math.abs(x), math.abs(z)) <= BorderTerrain.INNER
+			-- -1: no column here (inside the Ground square)
+			heights[(i - 1) * count + k] = if inside then -1 else h
+			tops[(i - 1) * count + k] = if h > 0 then field.material(x, z) else "Grass"
+			tallest = math.max(tallest, h)
+		end
+	end
+	local layers = math.ceil((tallest - floor) / cell) + 1
+	local materials = table.create(count)
+	local occupancy = table.create(count)
+	for i = 1, count do
+		local mx = table.create(layers)
+		local ox = table.create(layers)
+		for j = 1, layers do
+			local mj = table.create(count, air)
+			local oj = table.create(count, 0)
+			local bottom = floor + (j - 1) * cell
+			for k = 1, count do
+				local h = heights[(i - 1) * count + k]
+				if h >= 0 then
+					local filled = math.clamp((h - bottom) / cell, 0, 1)
+					if filled > 0.02 then
+						mj[k] = materialOf[tops[(i - 1) * count + k]]
+						oj[k] = filled
+					end
+				end
+			end
+			mx[j] = mj
+			ox[j] = oj
+		end
+		materials[i] = mx
+		occupancy[i] = ox
+	end
+	return { layers = layers, materials = materials, occupancy = occupancy }
+end
+
+-- Runs step(1..count) in order, yielding whenever clock() - frameStart has
+-- reached budget (at least one step per frame, so it always progresses).
+-- Returns the number of yields.
+function BorderTerrain.runBudgeted(
+	count: number,
+	step: (number) -> (),
+	budget: number,
+	clock: () -> number,
+	yield: () -> ()
+): number
+	local yields = 0
+	local frameStart = clock()
+	for n = 1, count do
+		step(n)
+		if n < count and clock() - frameStart >= budget then
+			yield()
+			yields += 1
+			frameStart = clock()
+		end
+	end
+	return yields
 end
 
 -- Heights and materials at the centres of an n x n grid covering the box.
