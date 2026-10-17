@@ -45,6 +45,7 @@ local DataService = require(script.DataService)
 local FountainColliders = require(script.FountainColliders)
 local Friends = require(script.Friends)
 local GameLoop = require(script.GameLoop)
+local GroundTerrainView = require(script.GroundTerrainView)
 local Leaderboard = require(script.Leaderboard)
 local MeshSwap = require(script.MeshSwap)
 local ParadeView = require(script.ParadeView)
@@ -76,6 +77,13 @@ end
 
 Remotes.setup()
 WorldView.setup()
+-- The inner ground (dirt path, grass, plaza sand) is voxel terrain: first, before anything stands on it.
+do
+	local ok, err = pcall(GroundTerrainView.place)
+	if not ok then
+		warn(`[Server] GroundTerrainView.place failed: {err}`)
+	end
+end
 do
 	local ok, err = pcall(WorldProps.place)
 	if not ok then

@@ -237,7 +237,7 @@ def t_files():
     used = {
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
-        "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
+        "shot_camera": {"EYE", "AT", "FOV"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
         "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"},
@@ -329,6 +329,21 @@ def t_files():
     rev = [s for s in shots if s.get("revenge_plot")]
     check("a revenge_plot shot aims at that plot and waits briefly (v21 Revenge)",
           len(rev) == 1 and rev[0].get("target") == "Plot_%d" % rev[0]["revenge_plot"] and 0 < float(rev[0].get("wait", 0)) <= 4, rev)
+    # bugs #13-15 (soft terrain ground): a raw camera (pos + look + fov) on the concept's eye, and the shot_camera template takes the fov
+    gshot = [s for s in shots if s.get("id") == "bugs13-15-ground-eye"]
+    def polar(deg, r, y):
+        a = math.radians(deg)
+        return [-math.sin(a) * r, y, -math.cos(a) * r]
+    check("the bugs13-15 ground shot uses the concept camera (eye polar(-20, 89, 6), look polar(-40, 50, 2), vertical FOV of a 26 mm lens)",
+          len(gshot) == 1 and gshot[0]["kind"] == "world"
+          and all(abs(a - b) < 0.01 for a, b in zip(gshot[0]["pos"], polar(-20, 89, 6)))
+          and all(abs(a - b) < 0.01 for a, b in zip(gshot[0]["look"], polar(-40, 50, 2)))
+          and abs(gshot[0]["fov"] - math.degrees(2 * math.atan(math.tan(math.atan(18 / 26)) * 9 / 16))) < 0.1, gshot)
+    sc = open(os.path.join(HERE, "luau", "shot_camera.luau"), encoding="utf-8").read()
+    check("shot_camera sets the field of view only when asked and the reset restores it",
+          "if fov > 0 then" in sc and "PcwFov" in sc
+          and "PcwFov" in open(os.path.join(HERE, "luau", "shot_camera_reset.luau"), encoding="utf-8").read()
+          and watcher.luau_literal(42.6) == "42.6", None)
     # the snow_cover shots (SnowGround v2) pin the ground snow: Snow = settling, Clear = melting
     snow_shots = [s for s in shots if "snow_cover" in s]
     weathers = {s["weather"]: s for s in shots if s.get("weather") and "snow_cover" not in s}

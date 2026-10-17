@@ -291,6 +291,9 @@ def build_terrain(t):
     n, step, lo, inner = t["n"], t["step"], t["min"], t["inner"]
     heights, mats = t["heights"], t["materials"]
     pal = {k: tuple(c / 255 for c in v) for k, v in t["colors"].items()}
+    g = data.get("ground")
+    if g:  # Grass hills wear the SlimeGrass variant: tint x the mean of its ColorMap (low .. 1)
+        pal["Grass"] = tuple(min(1.0, c * (1 + lo) / 2) for c, lo in zip(pal["Grass"], g["low"]["Grass"]))
     by_letter = {"G": pal["Grass"], "L": pal["LeafyGrass"], "R": pal["Rock"]}
     verts, cols = [], []
     for j in range(n):
@@ -326,6 +329,170 @@ def build_terrain(t):
     coll_world.objects.link(o)
     # Normals as Blender flips them: face winding above is +Y (Blender Z) up.
     return len(faces)
+
+
+def ground_material(g):
+    """Inner ground (server/GroundTerrain): per-cell material mask blended like Terrain's voxel material blend,
+    shaded like the SlimeGrass / SlimeGround / SlimeSand variants (tint x soft ColorMap)."""
+    import numpy as np
+    n, cell = g["n"], g["cell"]
+    half = n * cell / 2
+    sand = np.zeros((n, n), np.float32)
+    dirt = np.zeros((n, n), np.float32)
+    for j in range(n):
+        for i in range(n):
+            ch = g["materials"][j * n + i]
+            row = n - 1 - j  # image row 0 = bottom = Blender y -half = Roblox z +half
+            if ch == "S":
+                sand[row, i] = 1
+            elif ch == "D":
+                dirt[row, i] = 1
+    px = np.zeros((n, n, 4), np.float32)
+    px[..., 0], px[..., 1], px[..., 3] = sand, dirt, 1
+    img = bpy.data.images.new("ground_cells", n, n, float_buffer=True, alpha=False)
+    img.colorspace_settings.name = "Non-Color"
+    img.pixels.foreach_set(px.ravel())
+    img.pack()
+    m = bpy.data.materials.new("ground_terrain")
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+    bsdf.inputs["Roughness"].default_value = 0.92
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    pos = geo.outputs["Position"]
+    va = nt.nodes.new("ShaderNodeVectorMath"); va.operation = "ADD"
+    va.inputs[1].default_value = (half, half, 0)
+    nt.links.new(pos, va.inputs[0])
+    vs = nt.nodes.new("ShaderNodeVectorMath"); vs.operation = "SCALE"
+    vs.inputs["Scale"].default_value = 1 / (2 * half)
+    nt.links.new(va.outputs[0], vs.inputs[0])
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = img
+    tex.interpolation = "Linear"
+    tex.extension = "EXTEND"
+    nt.links.new(vs.outputs[0], tex.inputs["Vector"])
+    sep = nt.nodes.new("ShaderNodeSeparateColor")
+    nt.links.new(tex.outputs["Color"], sep.inputs["Color"])
+
+    def edge(v):  # the voxel blend is about one cell wide: a little sharper than raw bilinear
+        mr = nt.nodes.new("ShaderNodeMapRange")
+        mr.interpolation_type = "SMOOTHSTEP"
+        mr.inputs["From Min"].default_value = 0.3
+        mr.inputs["From Max"].default_value = 0.7
+        nt.links.new(v, mr.inputs["Value"])
+        return mr.outputs["Result"]
+
+    sand_m, dirt_m = edge(sep.outputs[0]), edge(sep.outputs[1])
+
+    def ramp(name, scale, detail, lo=0.3, hi=0.7):
+        tint, low = g["tint"][name], g["low"][name]
+        a = [srgb_to_linear(c / 255 * k) for c, k in zip(tint, low)]
+        b = [srgb_to_linear(c / 255) for c in tint]
+        n_ = nt.nodes.new("ShaderNodeTexNoise")
+        n_.inputs["Scale"].default_value = scale
+        n_.inputs["Detail"].default_value = detail
+        nt.links.new(pos, n_.inputs["Vector"])
+        r_ = nt.nodes.new("ShaderNodeValToRGB")
+        r_.color_ramp.elements[0].position = lo
+        r_.color_ramp.elements[0].color = (*a, 1)
+        r_.color_ramp.elements[1].position = hi
+        r_.color_ramp.elements[1].color = (*b, 1)
+        nt.links.new(n_.outputs["Fac"], r_.inputs["Fac"])
+        return r_.outputs["Color"]
+
+    def mix(fac, a, b):
+        x = nt.nodes.new("ShaderNodeMix")
+        x.data_type = "RGBA"
+        nt.links.new(fac, x.inputs["Factor"])
+        nt.links.new(a, x.inputs["A"])
+        nt.links.new(b, x.inputs["B"])
+        return x.outputs["Result"]
+
+    grass = ramp("Grass", 0.05, 3, 0.25, 0.75)
+    sand = ramp("Sand", 0.12, 3)
+    dirt = ramp("Ground", 0.22, 5)
+    vor = nt.nodes.new("ShaderNodeTexVoronoi")  # pebbles
+    vor.inputs["Scale"].default_value = 2.2
+    nt.links.new(pos, vor.inputs["Vector"])
+    pr = nt.nodes.new("ShaderNodeMapRange")
+    pr.inputs["From Min"].default_value = 0.12
+    pr.inputs["From Max"].default_value = 0.06
+    nt.links.new(vor.outputs["Distance"], pr.inputs["Value"])
+    pm = nt.nodes.new("ShaderNodeMath"); pm.operation = "MULTIPLY"; pm.inputs[1].default_value = 0.4
+    nt.links.new(pr.outputs["Result"], pm.inputs[0])
+    light = tuple(srgb_to_linear(c / 255 * 1.05) for c in g["tint"]["Ground"])
+    lightc = nt.nodes.new("ShaderNodeRGB")
+    lightc.outputs[0].default_value = (*light, 1)
+    dirt = mix(pm.outputs[0], dirt, lightc.outputs[0])
+    c1 = mix(sand_m, grass, sand)
+    c2 = mix(dirt_m, c1, dirt)
+    nt.links.new(c2, bsdf.inputs["Base Color"])
+    return m
+
+
+def build_ground(g):
+    me = bpy.data.meshes.new("ground_terrain")
+    h = g["n"] * g["cell"] / 2
+    me.from_pydata([(-h, -h, 0), (h, -h, 0), (h, h, 0), (-h, h, 0)], [], [(0, 1, 2, 3)])
+    me.update()
+    me.materials.append(ground_material(g))
+    o = bpy.data.objects.new("ground_terrain", me)
+    coll_world.objects.link(o)
+    return o
+
+
+def build_tufts(g, count=6500, seed=3):
+    """Terrain.Decoration stand-in: soft low-poly grass tufts on Grass cells, around the
+    ground eye view (the in-engine tufts follow the camera the same way)."""
+    import random
+    rnd = random.Random(seed)
+    n, cell = g["n"], g["cell"]
+    half = n * cell / 2
+    verts, faces, cols = [], [], []
+    a0, a1 = math.radians(-80), math.radians(5)
+    made = 0
+    for _ in range(count * 4):
+        if made >= count:
+            break
+        a = rnd.uniform(a0, a1)
+        rr = math.sqrt(rnd.uniform(56 ** 2, 110 ** 2))
+        x, z = -math.sin(a) * rr, -math.cos(a) * rr
+        if math.sin(x * 0.31 + 1.7) * math.sin(z * 0.27 - 0.4) + 0.5 * math.sin(x * 0.11 - z * 0.13) < 0.15:
+            continue  # tufts come in clumps
+        i, j = int((x + half) // cell), int((z + half) // cell)
+        if g["materials"][j * n + i] != "G":
+            continue
+        made += 1
+        hgt = rnd.uniform(0.28, 0.55) * float(os.environ.get("TUFT_SCALE", "1"))
+        t = rnd.uniform(0.0, 1.0)
+        tint, low = g["tint"]["Grass"], g["low"]["Grass"]
+        col = tuple(srgb_to_linear(tint[k] / 255 * (low[k] + (1 - low[k]) * t) * 1.04) for k in range(3))
+        for _b in range(3):
+            yaw = rnd.uniform(0, 2 * math.pi)
+            lean = rnd.uniform(0.1, 0.3)
+            wdt = rnd.uniform(0.2, 0.3)
+            dx, dz = math.cos(yaw), math.sin(yaw)
+            px0, pz0 = x + dx * 0.08, z + dz * 0.08
+            k0 = len(verts)
+            verts += [rbx(px0 - dz * wdt, 0.0, pz0 + dx * wdt), rbx(px0 + dz * wdt, 0.0, pz0 - dx * wdt),
+                      rbx(px0 + dx * lean * hgt, hgt, pz0 + dz * lean * hgt)]
+            faces.append((k0, k0 + 1, k0 + 2))
+            cols += [tuple(c * 0.82 for c in col), tuple(c * 0.82 for c in col), col]
+    me = bpy.data.meshes.new("ground_tufts")
+    me.from_pydata([tuple(v) for v in verts], [], faces)
+    me.update()
+    ca = me.color_attributes.new("tuft", "FLOAT_COLOR", "POINT")
+    for k, c in enumerate(cols):
+        ca.data[k].color = (*c, 1)
+    me.materials.append(vcol_material("tuft"))
+    o = bpy.data.objects.new("ground_tufts", me)
+    coll_world.objects.link(o)
+    return made
+
+
+if data.get("ground"):
+    build_ground(data["ground"])
+    print("ground terrain: %d x %d cells" % (data["ground"]["n"], data["ground"]["n"]))
 
 
 if data.get("terrain"):
@@ -533,6 +700,9 @@ VIEWS = {
     "27_lane_straight": lambda: look((17.6, 1.6, -55.5), (28.6, 0.3, -48.2), lens=28),
     "28_lane_bend": lambda: look((-68.5, 1.6, 19), (-62, 0.3, 4.5), lens=28),
     "29_lane_exit": lambda: look((-4, 1.6, 33), (-18, 0.3, 39.5), lens=28),
+    # bugs #13-15 (soft terrain ground): the approved concept camera. Eye at polar(-20, 89, 6) looking at polar(-40, 50, 2);
+    # lens 26 mm on the 36 mm sensor (vertical FOV 42.6 degrees at 16:9)
+    "30_ground_eye": lambda: look(polar(-20, 89, 6), polar(-40, 50, 2.0), lens=26),
 }
 
 
@@ -562,6 +732,8 @@ for name, setup in VIEWS.items():
     if want and not any(name.startswith(w) for w in want):
         continue
     setup()
+    if name.startswith("30") and data.get("ground") and "ground_tufts" not in bpy.data.objects:
+        print("tufts", build_tufts(data["ground"]))
     # ortho_scale spans the frame height for the top view
     top = name.startswith("01")
     cam_data.sensor_fit = "VERTICAL" if top else "AUTO"

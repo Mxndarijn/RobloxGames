@@ -58,6 +58,11 @@ if char then
 end
 
 local cam = workspace.CurrentCamera
+local savedFov = player.PlayerGui:GetAttribute("PcwFov")
+if savedFov ~= nil then
+	cam.FieldOfView = savedFov
+	player.PlayerGui:SetAttribute("PcwFov", nil)
+end
 cam.CameraType = Enum.CameraType.Custom
 local hum = char and char:FindFirstChildOfClass("Humanoid")
 if hum then

@@ -1817,7 +1817,7 @@ def step_shots(run):
                     else:
                         eye, at = shot_camera(t)
                 world_mode = True
-                res["camera"] = cam = run.need_luau("shot_camera", "Client", timeout=25, eye=eye, at=at)
+                res["camera"] = cam = run.need_luau("shot_camera", "Client", timeout=25, eye=eye, at=at, fov=float(shot.get("fov") or 0))
                 if not cam.get("locked"):
                     run.note("shot %s: camera drifted %.2f studs from the render-step lock" % (sid, cam.get("drift") or -1))
                 if shot.get("seat") and (res.get("target") or {}).get("path"):

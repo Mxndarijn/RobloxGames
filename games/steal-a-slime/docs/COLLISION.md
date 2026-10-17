@@ -84,3 +84,8 @@ still needs its own collider. Max 32 groups. **Studio check** the character part
   nobody gets onto the top (11 studs above the ride line) and nobody is stuck in a corner.
 - `tools/pipeline/pc-watcher/luau/slide_walk.luau` was written for the old walkable floor (balls
   dropped on `SlideFloor<i>`); with the fill on top they land on its top face. Adjust the shot.
+
+## The ground (bugs #13-15)
+
+The inner ground is voxel Terrain (`GroundTerrain`, flat at y = 0): Terrain collides by itself, so it has no mesh,
+`MeshAssets.COLLISION` entry or collider part. The invisible `Map.Ground` part under it stays as the void-safety floor.

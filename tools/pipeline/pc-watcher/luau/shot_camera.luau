@@ -11,6 +11,7 @@ local StarterGui = game:GetService("StarterGui")
 local player = Players.LocalPlayer
 local pg = player.PlayerGui
 local eye, at = Vector3.new(%%EYE%%), Vector3.new(%%AT%%)
+local fov = %%FOV%% -- vertical field of view in degrees; 0 leaves the camera's own
 local BIND = "PcwShotCam"
 
 local function hide(inst)
@@ -100,9 +101,15 @@ local cf = CFrame.lookAt(eye, at)
 pcall(function()
 	RunService:UnbindFromRenderStep(BIND)
 end)
+if fov > 0 and pg:GetAttribute("PcwFov") == nil then
+	pg:SetAttribute("PcwFov", cam.FieldOfView)
+end
 RunService:BindToRenderStep(BIND, Enum.RenderPriority.Last.Value + 1, function()
 	cam.CameraType = Enum.CameraType.Scriptable
 	cam.CFrame = cf
+	if fov > 0 then
+		cam.FieldOfView = fov
+	end
 	hideArrow(cam)
 	for _, d in parts do
 		d.LocalTransparencyModifier = 1

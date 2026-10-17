@@ -8,10 +8,11 @@
 	(Folder / Model / Part / PointLight) in world space. WorldBuilder turns it into
 	Instances under workspace; the render proof draws it under Lune.
 
-	  Map      Ground (640x640 baseplate), Volcano = the Slime Ranch fountain
+	  Map      Ground (640x640 invisible void-safety floor; the visible ground is
+	           GroundTerrain voxels), Volcano = the Slime Ranch fountain
 	           (kit slime_fountain; contract name kept, Crater = the goo pool
 	           on top = the drop origin), Chute (primitive slide, hidden once
-	           the fountain mesh loads), Paths (plaza, spokes + ring), Plaza
+	           the fountain mesh loads), Plaza
 	           (signpost, podiums, landing-ring tiles, goo drain), Decor
 	           (rocks, mushrooms, the RanchProps kit props), Border
 	           (WorldBorder: the invisible wall ring + seeded hedges, fences,
@@ -628,54 +629,8 @@ local LANDING_BBOX = 38.678
 -- Outer edge of the curb on +Z (r 43.8): the slide exit strip starts here.
 WorldLayout.LANDING_OUTER_RADIUS = LANDING_BBOX + LANDING_SIZE[3] / 2
 
--- Path tops (v29 B5): every path part is flush with the Ground (top 0) apart
--- from a hair, so there is no step to trip on and no tile edge to see. The
--- parts overlap (spokes cross the ring, ring segments meet at their ends), and
--- coplanar tops z-fight, so each layer sits 0.005..0.01 above the last: the
--- whole path spans 0.018 (tests/WorldLook "path"). SmoothPlastic, not
--- Pavement: Pavement's texture follows each part's own axes, which showed
--- every tile edge as a seam.
-WorldLayout.PATH_TOPS = table.freeze({ plaza = 0.032, ringLow = 0.04, ringHigh = 0.045, spoke = 0.05 })
-WorldLayout.PATH_THICK = 0.1 -- sunk into the Ground, so only the top shows
-WorldLayout.PATH_RING_SEGMENTS = 32
-
--- A path block sx x sz (X, Z in its own frame, turned by yaw) centred over (x, z), top at `top`.
-local function pathBlock(name: string, sx: number, sz: number, x: number, z: number, top: number, yaw: number)
-	local thick = WorldLayout.PATH_THICK
-	return block(name, { sx, thick, sz }, { x, top - thick / 2, z }, SAND, "SmoothPlastic", { 0, yaw, 0 })
-end
-
-local function paths(): WorldNode
-	local children: { WorldNode } = {}
-	-- Spokes start 1 stud inside the plaza disc so its round edge never leaves
-	-- a sliver between the disc and the spoke's straight end.
-	local from, to = WorldLayout.PLAZA_RADIUS - 1, WorldLayout.PLOT_RING_RADIUS - WorldLayout.PLOT_SIZE / 2
-	for i = 1, Config.PLOT_COUNT do
-		local yaw = plotYaw(i)
-		local at = frame({ 0, 0, 0 }, yaw)
-		local mid = at({ 0, 0, (from + to) / 2 })
-		table.insert(children, pathBlock(`Path{i}`, 8, to - from, mid[1], mid[3], WorldLayout.PATH_TOPS.spoke, yaw))
-	end
-	-- Landing plaza (flat sand disc) the drops land on, under the fountain.
-	local plazaTop, thick = WorldLayout.PATH_TOPS.plaza, WorldLayout.PATH_THICK
-	table.insert(
-		children,
-		disc("Plaza", thick, WorldLayout.PLAZA_RADIUS * 2, { 0, plazaTop - thick / 2, 0 }, PLAZA, "Sand")
-	)
-	-- Ring path outside the drop ring (62), linking every spoke. Each segment
-	-- is long enough that its outer corners meet its neighbour's: no gap on the
-	-- outer edge, the overlap falls on the inner edge.
-	local segments, ringR = WorldLayout.PATH_RING_SEGMENTS, WorldLayout.RING_PATH_RADIUS
-	local width = WorldLayout.RING_PATH_WIDTH
-	local length = 2 * (ringR + width / 2) * math.tan(math.pi / segments) + 0.1
-	for k = 1, segments do
-		local yaw = (k - 0.5) * 360 / segments
-		local n = LayoutMath.direction(yaw, 0)
-		local top = if k % 2 == 0 then WorldLayout.PATH_TOPS.ringHigh else WorldLayout.PATH_TOPS.ringLow
-		table.insert(children, pathBlock(`Ring{k}`, length, width, n[1] * ringR, n[3] * ringR, top, yaw))
-	end
-	return { name = "Paths", class = "Folder", children = children }
-end
+-- The paths (ring, spokes) and the plaza sand are voxel terrain now (GroundTerrain, written by
+-- server/GroundTerrainView): one seamless dirt shape, no Parts.
 
 -- Deterministic hash in [0, 1) so the decor is the same in every build.
 local function hash(i: number, salt: number): number
@@ -962,11 +917,14 @@ local function plaza(): WorldNode
 end
 
 local function map(): WorldNode
+	-- Void-safety floor only: invisible, flush with the terrain surface (y = 0) that GroundTerrainView writes
+	-- over it, so a player never falls through if the terrain write is late or fails.
 	local ground = block("Ground", { 640, 2, 640 }, { 0, -1, 0 }, GRASS, "Grass")
+	ground.transparency = 1
 	return {
 		name = WorldLayout.MAP_NAME,
 		class = "Folder",
-		children = { ground, volcano(), chute(), paths(), plaza(), decor(), WorldBorder.build() :: any },
+		children = { ground, volcano(), chute(), plaza(), decor(), WorldBorder.build() :: any },
 	}
 end
 
