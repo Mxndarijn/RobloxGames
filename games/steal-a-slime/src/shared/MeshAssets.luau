@@ -126,6 +126,7 @@ local NAMES = {
 	"giant_elder_oak",
 	"giant_sequoia_spire",
 	"giant_cloud_tree",
+	"ranch_bat",
 }
 
 local entries: { [string]: Entry } = {}
@@ -366,6 +367,11 @@ entries["giant_sequoia_spire"] =
 	{ assetId = 116609891922407, meshId = "rbxassetid://104415065733160", size = { 53.52, 157.248, 54.788 } }
 entries["giant_cloud_tree"] =
 	{ assetId = 75166170200061, meshId = "rbxassetid://71113886018536", size = { 122.958, 126.341, 69.744 } }
+-- Default melee Bat (Tool 'Bat', held, no collision: not in MeshAssets.COLLISION; NOT a world slot).
+-- Mesh stands upright, pommel at the bottom (long axis Y). Tool.Grip for the Handle = CFrame.new(0, -1.345, 0)
+-- (the red wrap centre, 1.2 above the pommel; mesh centre = bbox centre). 606 tris. models/ranch_bat.py.
+entries["ranch_bat"] =
+	{ assetId = 111246965997524, meshId = "rbxassetid://94306599639554", size = { 1.351, 5.09, 1.351 } }
 
 -- The goo parade lane as ONE curved mesh (models/slime_lane.py, bug 4): not a WorldLayout slot (ParadeView lays
 -- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17; ParadeView swaps the ParadeLane.strips() stand-ins for it

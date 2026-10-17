@@ -91,6 +91,7 @@ ItemIcons.IMAGES = {
 	PlotSkin_classic = 75405645541984,
 	PlotSkin_crystal = 91231773101915,
 	PlotSkin_mushroom = 110584867448733,
+	Pvp_Bat = 107609481658581, -- default melee Bat (Tool 'Bat'); not a Config.PVP_TOOLS item, wired as its own tool
 	Pvp_FunBalloon = 139662990313432,
 	Pvp_FunBouncePad = 127452735645388,
 	Pvp_FunBubbles = 88858283106113,

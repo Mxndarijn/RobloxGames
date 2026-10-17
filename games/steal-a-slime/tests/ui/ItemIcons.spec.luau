@@ -253,8 +253,12 @@ describe("uploaded item icon images", function()
 				shopIds[ItemIcons.shopIconId(item)] = true
 			end
 		end
+		-- held tools wired as their own Tool, not a shop or registry row (icon uploaded ahead of the wiring)
+		local heldToolIds: { [string]: boolean } = { Pvp_Bat = true }
 		for id, image in ItemIcons.IMAGES do
-			expect(`{id}: {registry.byId[id] ~= nil or shopIds[id] == true}`).toBe(`{id}: true`)
+			expect(`{id}: {registry.byId[id] ~= nil or shopIds[id] == true or heldToolIds[id] == true}`).toBe(
+				`{id}: true`
+			)
 			expect(`{id}: {seen[image] == nil}`).toBe(`{id}: true`)
 			seen[image] = id
 		end

@@ -332,6 +332,18 @@ def squeaky():
     return parts
 
 
+@icon("Pvp_Bat", view=(24, 16))
+def bat():
+    """The default melee Bat: the kit mesh itself (models/ranch_bat.py, wood + red grip + goo-dipped end), rolled
+    diagonally like the Squeaky Hammer, with a goo splat and sparkles at the business end."""
+    parts = [run_model("ranch_bat", (-1.6, 0, 0), (0, 30, 0), 1.0)]
+    parts.append(blobc("Splat", 0.55, (1.75, -0.4, 4.2), GOO, squash=(1, 0.5, 0.8)))
+    parts.append(blobc("Splat2", 0.3, (2.25, -0.5, 3.35), GOO_D))
+    parts.append(sparkle((2.3, -1.0, 5.3), 0.5, C["gold_l"], "S0"))
+    parts.append(sparkle((-0.9, -1.0, 5.0), 0.38, C["white"], "S1"))
+    return parts
+
+
 @icon("Pvp_FunHatLauncher", view=(20, 18))
 def hat_launcher():
     parts = []

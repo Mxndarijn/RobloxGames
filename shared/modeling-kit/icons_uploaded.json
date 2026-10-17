@@ -356,6 +356,13 @@
     "sha256": "508ae07db6e7fa81448c068ecf6dafacd33041145ef9c5401717164fce501c9e",
     "uploadedAt": "2026-10-17T10:12:41Z"
   },
+  "Pvp_Bat": {
+    "assetId": "135025381744172",
+    "assetType": "Decal",
+    "imageId": "107609481658581",
+    "sha256": "805175e3fd2a4f334674ceddfb4eea9b203dc5a8cbe339efd508d804bdee9d0b",
+    "uploadedAt": "2026-10-17T21:56:36Z"
+  },
   "Pvp_FunBalloon": {
     "assetId": "75941815966096",
     "assetType": "Decal",
