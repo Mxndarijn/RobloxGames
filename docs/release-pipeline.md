@@ -69,9 +69,9 @@ Outcomes (exit code of `publish.sh`):
 3. Result: the newest fully-gated sha publishes, even if newer un-gated shas exist.
 4. An un-gated X whose newer shas are all un-gated stays **waiting** (exit 3, not terminal). There is no terminal timeout for waiting: `REPORT_TIMEOUT_S` (1800s) only adds "still waiting" to the log, because a timeout would terminate the sha with nothing progressing. Once a newer sha is gated, X is superseded anyway. Report `fail` / cloud `fail` stay terminal `no-publish`.
 
-Shas that already ended `live`, `no-publish` or `smoke-failed` are left alone, as is a sha not on main's first-parent line. The check runs at the start, before writing `ready`, before the Saved upload, and again right before the Published upload. `SUPERSEDE_ONLY=1` stops after the first check; `watch.sh` uses it to retire `ready` shas. Dry-run tests: `tools/pipeline/test-publish-dryrun.sh`.
+Shas that already ended `live`, `no-publish`, `smoke-failed` or `burial-failed` are left alone, as is a sha not on main's first-parent line. The check runs at the start, before writing `ready`, before the Saved upload, and again right before the Published upload. `SUPERSEDE_ONLY=1` stops after the first check; `watch.sh` uses it to retire `ready` shas. Dry-run tests: `tools/pipeline/test-publish-dryrun.sh`.
 
-An already `live` / `smoke-failed` / `no-publish` / `skipped-superseded` sha (or one whose `live/<sha>.json` has `status: "live"`, even if `publish.json` is empty or corrupt) is a no-op: `publish.sh` logs `noop: already <status>`, exits 0 and uploads nothing. The live JSON embeds the studio report via `jq --slurpfile` from a temp file, never argv (ARG_MAX).
+An already `live` / `smoke-failed` / `burial-failed` / `no-publish` / `skipped-superseded` sha (or one whose `live/<sha>.json` has `status: "live"`, even if `publish.json` is empty or corrupt) is a no-op: `publish.sh` logs `noop: already <status>`, exits 0 and uploads nothing. The live JSON embeds the studio report via `jq --slurpfile` from a temp file, never argv (ARG_MAX).
 
 ### Needs-review markers
 
@@ -91,7 +91,9 @@ With `AUTO_PUBLISH=1`, after the gate:
 1. `rojo build default.project.json` of the checkout at X (normal project, no specs). Asserts `ServerStorage.CloudTests` is absent (checked in the built `.rbxlx` and the project).
 2. Upload as `versionType=Saved` to universe 10770917350 / place 135787188192378 (409/429/5xx backoff 1, 2, 4, 8 min).
 3. `tools/livetest/cloud/run.sh smoke.luau <saved_version>` (Luau Execution on that exact version). If it fails: `publish.json` `status:"smoke-failed"`, exit 5, **not published**.
+3b. Terrain-burial probe (`tools/livetest/cloud/terrain_burial.luau`) on the same saved version. A conclusive FAIL (`terrain_ready` and `grounded_parts>0`) writes `publish.json` `status:"burial-failed"` (summary + worst 10), exit 6, **not published**, terminal like `smoke-failed`. Errors, terrain not ready or no grounded parts only log a `WARN`. `BURIAL_GATE=off` skips this and 4b.
 4. Upload the same clean file as `versionType=Published`, log the version.
+4b. Run the probe on the published version and record `burial` in `live/X.json`. On FAIL: `$PIPE/alerts/X.burial.json` and an `ALERT burial FAIL` log line; exit stays 0, no rollback.
 5. Write `status/X.publish.json` and `live/X.json`:
    `{"sha","status":"live","saved_version","published_version","smoke":"pass","place","merged_at","published_at","studio_report":{...}}`.
 
@@ -102,4 +104,4 @@ The Saved version from stage 1 is never promoted. The key is sent to curl on std
 ## Wiring
 
 - `cloud-test.sh`'s `publish_hook` calls `publish.sh` after a pass (the report is usually not there yet, so it stays pending).
-- `watch.sh` runs `publish.sh` each tick for every cloud-passed sha (last 2 days) without a `status/<sha>.publish.json`, so pending shas are re-checked until they end `live`, `no-publish`, `skipped-superseded` or `smoke-failed`. A `ready` sha is re-checked every tick with `SUPERSEDE_ONLY=1` so a newer pass still retires it. `AUTO_PUBLISH` comes from `~/.config/roblox-ci.env`.
+- `watch.sh` runs `publish.sh` each tick for every cloud-passed sha (last 2 days) without a `status/<sha>.publish.json`, so pending shas are re-checked until they end `live`, `no-publish`, `skipped-superseded`, `smoke-failed` or `burial-failed`. A `ready` sha is re-checked every tick with `SUPERSEDE_ONLY=1` so a newer pass still retires it. `AUTO_PUBLISH` comes from `~/.config/roblox-ci.env`.
