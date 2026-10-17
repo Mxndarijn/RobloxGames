@@ -8,6 +8,7 @@
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
+local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
 local MeshAssets = require("../src/shared/MeshAssets")
 local Runtime = require("../tools/livetest/Runtime")
@@ -48,9 +49,17 @@ local function modelBottom(model): number
 	return lo
 end
 
+-- The stands WorldProps places: the single ShopStand, or the Item + Upgrade stands with FEATURES.WorldShops on.
+local STANDS = if Config.FEATURES.WorldShops
+	then { Constants.SHOP_STAND_ITEM, Constants.SHOP_STAND_UPGRADE }
+	else { Constants.SHOP_STAND }
+
 describe("WorldProps skins keep their mesh proportions (gate B3)", function()
-	for _, name in { Constants.LEADERBOARD_BOARD, Constants.SHOP_STAND } do
-		local meshName = WorldLayout.PROP_MESHES[name]
+	local names = { Constants.LEADERBOARD_BOARD }
+	table.move(STANDS, 1, #STANDS, 2, names)
+	for _, name in names do
+		local meshName =
+			WorldLayout.PROP_MESHES[if name == Constants.SHOP_STAND then Constants.SHOP_STAND_ITEM else name]
 		local native = (MeshAssets.get(meshName) :: any).size
 
 		it(`Map.{name} ({meshName}) has anisotropy 1`, function()
@@ -85,7 +94,7 @@ describe("WorldProps skins keep their mesh proportions (gate B3)", function()
 	end
 
 	it("puts the plaza ShopStand's SHOP text on the skin's own sign face (v29 B4)", function()
-		local model = map:FindFirstChild(Constants.SHOP_STAND)
+		local model = map:FindFirstChild(STANDS[1])
 		local sign = model:FindFirstChild("Sign")
 		local native = (MeshAssets.get(WorldLayout.BUY_STAND_MESH) :: any).size
 		local face = WorldLayout.BUY_STAND_FACE

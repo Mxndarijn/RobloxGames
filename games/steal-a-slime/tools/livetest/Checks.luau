@@ -133,7 +133,11 @@ end
 
 function Checks.props(rt)
 	local missing = {}
-	for _, name in { "ShopStand", "LeaderboardBoard", "TutorialNpc" } do
+	local names = { "ShopStand", "LeaderboardBoard", "TutorialNpc" }
+	if rt.workspace:FindFirstChild("ItemShopStand", true) then
+		names = { "ItemShopStand", "UpgradeShopStand", "LeaderboardBoard", "TutorialNpc" } -- FEATURES.WorldShops
+	end
+	for _, name in names do
 		if not rt.workspace:FindFirstChild(name, true) then
 			table.insert(missing, name)
 		end
@@ -142,7 +146,7 @@ function Checks.props(rt)
 		name = "world props placed",
 		ok = #missing == 0,
 		detail = if #missing == 0
-			then "ShopStand, LeaderboardBoard, TutorialNpc present"
+			then table.concat(names, ", ") .. " present"
 			else "missing: " .. table.concat(missing, ", "),
 	}
 end

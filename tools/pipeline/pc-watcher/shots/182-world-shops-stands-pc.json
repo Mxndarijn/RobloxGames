@@ -1,0 +1,11 @@
+{
+  "id": "world-shops-stands-pc",
+  "todo": "shops",
+  "kind": "world",
+  "pos": [20, 24, 30],
+  "look": [67, 5, 55],
+  "wait": 0.5,
+  "note": "CONTRACT.md §27: Item Shop (bearing 67.5, right) and Upgrade Shop (bearing 34, left) stands on the plaza edge: mesh skins with the ITEM SHOP / UPGRADE SHOP face sign, one prompt each, clear of the campsite, lane and ring path",
+  "device": "desktop",
+  "clock": 14
+}

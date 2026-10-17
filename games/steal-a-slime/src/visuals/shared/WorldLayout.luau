@@ -311,8 +311,11 @@ local function propSpot(angle: number, faceVolcano: boolean?): { pos: Vec, yaw: 
 	local r, a = 90, math.rad(angle)
 	return { pos = { math.sin(a) * r, 0, math.cos(a) * r }, yaw = if faceVolcano then angle else angle + 180 }
 end
+-- ItemShopStand is the old ShopStand spot (WorldProps still places the single "ShopStand" there while
+-- FEATURES.WorldShops is off); UpgradeShopStand sits between the plot 1 and 2 spokes, bearing 34 (22.5 is the Campfire / CampBench camp; CONTRACT.md §27.2).
 WorldLayout.PROP_SPOTS = table.freeze({
-	ShopStand = propSpot(67.5, true),
+	ItemShopStand = propSpot(67.5, true),
+	UpgradeShopStand = propSpot(34, true),
 	LeaderboardBoard = propSpot(157.5, true),
 	TutorialNpc = propSpot(247.5, true),
 }) :: { [string]: { pos: Vec, yaw: number } }
@@ -895,7 +898,8 @@ WorldLayout.PLAZA_PROPS = table.freeze({
 	plazaProp("Podium_3", "phoenix_plaza_podium_3", 165, 68, 0.7),
 })
 WorldLayout.PROP_MESHES = table.freeze({
-	ShopStand = WorldLayout.BUY_STAND_MESH,
+	ItemShopStand = WorldLayout.BUY_STAND_MESH,
+	UpgradeShopStand = WorldLayout.BUY_STAND_MESH,
 	LeaderboardBoard = "phoenix_top_earners_board",
 })
 

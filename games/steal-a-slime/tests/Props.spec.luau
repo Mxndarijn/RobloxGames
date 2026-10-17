@@ -30,8 +30,18 @@ local function worldParts(model: any, name: string): { any }
 	return out
 end
 
+-- WorldProps builds both shop stands from Props.shopStand under their own names (CONTRACT.md §27.2).
+local function renamedStand(name: string): () -> any
+	return function()
+		local model = Props.shopStand()
+		model.Name = name
+		return model
+	end
+end
+
 local PROPS = {
-	[Constants.SHOP_STAND] = Props.shopStand,
+	[Constants.SHOP_STAND_ITEM] = renamedStand(Constants.SHOP_STAND_ITEM),
+	[Constants.SHOP_STAND_UPGRADE] = renamedStand(Constants.SHOP_STAND_UPGRADE),
 	[Constants.LEADERBOARD_BOARD] = Props.leaderboardBoard,
 	[Constants.TUTORIAL_NPC] = Props.tutorialNpc,
 }

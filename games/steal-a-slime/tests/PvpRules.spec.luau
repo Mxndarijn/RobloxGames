@@ -96,7 +96,7 @@ describe("PvpRules config", function()
 		for _, zone in PVP.SAFE_ZONES do
 			zones[zone.id] = zone
 		end
-		local shop = WorldLayout.PROP_SPOTS.ShopStand.pos
+		local shop = WorldLayout.PROP_SPOTS.ItemShopStand.pos
 		expect(math.abs(zones.shop.x - shop[1]) < 0.01 and math.abs(zones.shop.z - shop[3]) < 0.01).toBe(true)
 		expect(zones.fountain.radius).toBe(Fountain.LANDING_RING_OUTER)
 		-- the hub spawn is on the same bearing as the shop, scripts/StaticWorld SPAWN_YAW 67.5 / SPAWN_RADIUS 64

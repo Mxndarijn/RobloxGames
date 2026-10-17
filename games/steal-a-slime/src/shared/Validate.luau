@@ -35,6 +35,9 @@ Validate.ACTIONS = table.freeze({
 	BuyPvpItem = 0.5,
 	EquipPvpItem = 0.5,
 	UsePvpItem = 0.2,
+	OpenShop = 0.5,
+	CloseShop = 0.5,
+	ShopBuy = 0.5,
 })
 
 function Validate.slimeId(value: any): string?

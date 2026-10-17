@@ -56,6 +56,7 @@ export type Session = {
 	friends: number?, -- friends in this server (Friends.refresh), runtime only
 	egg: { slime: Slime, at: number }?, -- newest Mystery Egg hatch for the reveal banner (never saved)
 	welcome: WelcomeBack.Report?, -- FEATURES.WelcomeBack: away time, offline cash and slimes grown, read at join for the welcome card (never saved)
+	openShop: string?, -- FEATURES.WorldShops: the shop id the player has open (Request OpenShop), runtime only
 	awayLog: { StealAlert.Entry }?, -- FEATURES.StealAlerts: the saved thefts read at join, for the join notice (never saved)
 }
 
