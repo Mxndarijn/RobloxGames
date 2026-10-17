@@ -2,13 +2,14 @@
 -- Map.Border) into workspace.PcwPerfClones until at least %%TARGET%% extra BaseParts exist in total
 -- (cumulative over calls; TARGET = 0 only reports). Candidates are Models of 3-60 BaseParts (single
 -- BaseParts as a fallback) with no scripts, ProximityPrompts, ClickDetectors, Humanoids or Seats and no
--- axis > 60 studs. Clones sit on a seeded random XZ spread over the annulus 0.3..1.0 of the plot ring
--- (WorldLayout.PLOT_RING_RADIUS = 140) around the plaza centre (the origin), >= 8 studs between pivots,
+-- axis > 60 studs. Clones sit on a seeded random XZ spread over the annulus 0.3..OUTER of the plot ring
+-- (WorldLayout.PLOT_RING_RADIUS = 140; OUTER = 1.6, ~224 studs) around the plaza centre (the origin),
+-- >= GAP (5) studs between pivots, giving up only after MAXFAILS placement misses in a row,
 -- random yaw, Y by a downward raycast, Anchored, CanCollide / CanQuery off, tagged PcwPerfClone, with
 -- every CollectionService tag removed so no game system picks them up. Runtime only, nothing is saved.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
-local RING, GAP, MAXSIZE = 140, 8, 60
+local RING, OUTER, GAP, MAXSIZE, MAXFAILS = 140, 1.6, 5, 60, 3000
 local want = %%TARGET%%
 
 local folder = workspace:FindFirstChild("PcwPerfClones")
@@ -18,9 +19,13 @@ if not folder then
 	folder.Parent = workspace
 end
 
-local function countParts(root)
+local function countParts(root, includeRoot)
 	local parts, mesh = 0, 0
-	for _, d in root:GetDescendants() do
+	local list = root:GetDescendants()
+	if includeRoot then
+		table.insert(list, root) -- a cloned single BasePart is itself the part
+	end
+	for _, d in list do
 		if d:IsA("BasePart") then
 			parts += 1
 			if d:IsA("MeshPart") then
@@ -70,7 +75,7 @@ if #sources == 0 then
 	return { error = "no usable decor prop to clone", added_parts = 0, added_mesh_parts = 0, clones = 0 }
 end
 
-local startParts, startMesh = countParts(folder)
+local startParts, startMesh = countParts(folder, false)
 local total, mesh = startParts, startMesh
 local rng = Random.new(20240601)
 local placed, grid = {}, {}
@@ -111,15 +116,16 @@ params.FilterDescendantsInstances = ignore
 
 local sourcesUsed, clones, fails = {}, 0, 0
 local n = #placed
-while total < want and fails < 400 do
+while total < want and fails < MAXFAILS do
 	local src = sources[rng:NextInteger(1, #sources)]
 	local ang = rng:NextNumber(0, math.pi * 2)
-	local r = RING * math.sqrt(rng:NextNumber(0.3 * 0.3, 1))
+	local r = RING * math.sqrt(rng:NextNumber(0.3 * 0.3, OUTER * OUTER))
 	local x, z = math.cos(ang) * r, math.sin(ang) * r
 	local hit = if free(x, z) then workspace:Raycast(Vector3.new(x, 300, z), Vector3.new(0, -600, 0), params) else nil
 	if not hit then
 		fails += 1
 	else
+		fails = 0
 		local clone = src:Clone()
 		clone:SetAttribute("PcwPerfClone", true)
 		local list = clone:GetDescendants()
@@ -148,7 +154,7 @@ while total < want and fails < 400 do
 		local key = math.floor(x / GAP) .. "," .. math.floor(z / GAP)
 		grid[key] = grid[key] or {}
 		table.insert(grid[key], p)
-		local cp, cm = countParts(clone)
+		local cp, cm = countParts(clone, true)
 		total += cp
 		mesh += cm
 		clones += 1
@@ -165,4 +171,6 @@ return {
 	reached = total >= want,
 	candidates = #sources,
 	sources = sourcesUsed,
+	outer_radius = RING * OUTER,
+	gap = GAP,
 }

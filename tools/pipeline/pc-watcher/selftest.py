@@ -598,21 +598,31 @@ def t_perf():
                                                            "saved_quality": "Enum.SavedQualitySetting.QualityLevel%d" % q}),
                 "client": {"avg_fps": 58.3, "low1_fps": 40.0, "p95_ms": p95, "p99_ms": 31.5,
                            "memory_categories": {"PlaceMemory": 321.0} if ps else None,
-                           "render": {"SceneDrawcallCount": dc, "ShadowsDrawcallCount": 90.0, "RenderCPUFrameTime": 5.0},
+                           "render": {"SceneDrawcallCount": dc, "ShadowsDrawcallCount": 90.0, "RenderCPUFrameTime": 0.00512},
                            "render_unavailable": {"SceneTriangleCount": "not a valid member"}}}
 
-    def vs(d1, dc1):
+    def vs(d1, dc1, added=1000):
         base = {"label": "base", "extra_target": 0, "windows": [win(10, 12.0, 900.0, 1), win(1, 8.0, 300.0)],
                 "server": {"perf": {"runtime_parts": 2730, "mesh_slots": 300}, "mem": {"memory_categories": {"PlaceMemory": 100.0}}}}
-        p = {"label": "+1000", "extra_target": 1000, "windows": [win(10, 14.0, 1200.0), win(1, 8.0 + d1, dc1)]}
+        p = {"label": "+1000", "extra_target": 1000, "windows": [win(10, 14.0, 1200.0), win(1, 8.0 + d1, dc1)],
+             "stress": {"target": 1000, "total_extra_parts": added} if added is not None else None,
+             "server": {"perf": {"runtime_parts": 2730 + 561}}}
         return [{"label": "base-early", "extra_target": 0, "windows": [win(10, 20.0, 1.0)]}, base, p]
     rep = watcher.perf_build_report("a" * 40, "v", 30, vs(0.4, 450.0), None, ["n1"], 12.0, pc={"cpu": "x"})
     md = watcher.perf_report_md(rep)
     check("perf md table", "| base |" in md and "| +1000 |" in md and "| base-early |" in md and "n/a" in md
           and "SceneTriangleCount" in md and "n1" in md and "p95 ms" in md and "\u0394p95 vs base" in md
           and "PlaceMemory MB (client)" in md and "PlaceMemory MB (server)" in md and "client MB" not in md, md)
-    check("perf verdict pass", watcher.perf_verdict(rep) == "+1000: \u0394p95 = 0.40 ms (<1 ms? yes), draw calls at Q1 = 450 (<=500? yes) -> 3000 cap PASS",
+    check("perf verdict pass", watcher.perf_verdict(rep) == "+1000 (1000 parts added): \u0394p95 = 0.40 ms (<1 ms? yes), draw calls at Q1 = 450 (<=500? yes) -> 3000 cap PASS",
           watcher.perf_verdict(rep))
+    check("perf md CPU ms converted from seconds", "| 5.12 |" in md and "| 0.01 |" not in md, md)
+    check("perf md parts added column", "parts added" in md, md)
+    pv90 = watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(0.4, 450.0, 900), None, [], 1.0))
+    check("perf verdict pass at exactly 90% fill", pv90.endswith("PASS"), pv90)
+    iv = watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(0.4, 450.0, 561), None, [], 1.0))
+    check("perf verdict never PASS under 90% fill", "PASS" not in iv and "INCONCLUSIVE (only 561 of 1000 parts added" in iv, iv)
+    fv = watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(0.4, 450.0, None), None, [], 1.0))
+    check("perf verdict falls back to runtime_parts delta", "INCONCLUSIVE (only 561 of 1000" in fv and "PASS" not in fv, fv)
     check("perf verdict fail p95", watcher.perf_verdict(watcher.perf_build_report("a" * 40, "v", 30, vs(1.5, 450.0), None, [], 1.0)).endswith("FAIL"))
     check("perf verdict fail draw calls", "(<=500? no) -> 3000 cap FAIL" in watcher.perf_verdict(
         watcher.perf_build_report("a" * 40, "v", 30, vs(0.2, 501.0), None, [], 1.0)))

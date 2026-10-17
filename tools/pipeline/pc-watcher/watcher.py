@@ -2529,23 +2529,52 @@ def perf_delta_p95(rep, v, q, c):
     return round(c["p95_ms"] - base, 2)
 
 
+PERF_VERDICT_MIN_FILL = 0.9
+
+
+def perf_added_parts(rep, v):
+    """Extra BaseParts the stress clones really added for variant v: the clone count from perf_stress
+    (total_extra_parts), else the server runtime_parts delta vs the settled base; None if unknown."""
+    st = v.get("stress") or {}
+    if isinstance(st.get("total_extra_parts"), (int, float)):
+        return int(st["total_extra_parts"])
+    base = next((b for b in rep.get("variants") or [] if b.get("label") == "base"), None)
+    rp = lambda x: (((x or {}).get("server") or {}).get("perf") or {}).get("runtime_parts")
+    if base is not None and isinstance(rp(v), (int, float)) and isinstance(rp(base), (int, float)):
+        return int(rp(v) - rp(base))
+    return None
+
+
 def perf_verdict(rep):
-    """The cap-3000 verdict line: +1000 vs base at quality 1 (p95 < 1 ms more AND draw calls <= 500), n/a on missing data."""
-    d1 = dc = None
+    """The cap-3000 verdict line: +1000 vs base at quality 1 (p95 < 1 ms more AND draw calls <= 500), n/a on missing
+    data, and INCONCLUSIVE (never PASS) unless the clones really added >= 90% of the 1000-part target."""
+    d1 = dc = added = None
+    target = 1000
     for v in rep.get("variants") or []:
         if v.get("label") == "+1000":
+            target = v.get("extra_target") or 1000
+            added = perf_added_parts(rep, v)
             for q, c in perf_windows(v):
                 if _qreq(q) == 1:
                     d1, dc = perf_delta_p95(rep, v, q, c), (c.get("render") or {}).get("SceneDrawcallCount")
     yn = lambda ok: "n/a" if ok is None else ("yes" if ok else "no")
     p_ok = None if d1 is None else d1 < 1.0
     d_ok = None if dc is None else dc <= 500
+    filled = added is not None and added >= PERF_VERDICT_MIN_FILL * target
     if p_ok is None or d_ok is None:
         res = "n/a"
+    elif not filled:
+        res = "INCONCLUSIVE (only %s of %d parts added, need >= %d%%)" % (
+            _fmt(added, 0), target, int(PERF_VERDICT_MIN_FILL * 100))
     else:
         res = "PASS" if (p_ok and d_ok) else "FAIL"
-    return "+1000: Δp95 = %s ms (<1 ms? %s), draw calls at Q1 = %s (<=500? %s) -> 3000 cap %s" % (
-        _fmt(d1, 2), yn(p_ok), _fmt(dc, 0), yn(d_ok), res)
+    return "+1000 (%s parts added): Δp95 = %s ms (<1 ms? %s), draw calls at Q1 = %s (<=500? %s) -> 3000 cap %s" % (
+        _fmt(added, 0), _fmt(d1, 2), yn(p_ok), _fmt(dc, 0), yn(d_ok), res)
+
+
+def _sec_ms(x):
+    """Stats.*FrameTime / HeartbeatTime are seconds; the report shows ms."""
+    return None if not isinstance(x, (int, float)) else x * 1000.0
 
 
 def perf_mem_cat(block, name):
@@ -2556,9 +2585,9 @@ def perf_row(rep, label, v, q, c):
     perf = (v.get("server") or {}).get("perf") or {}
     mem = (v.get("server") or {}).get("mem") or {}
     r = c.get("render") or {}
-    return [label, q["label"] if q else "-", _fmt(perf.get("runtime_parts")), _fmt(perf.get("mesh_slots")),
+    return [label, q["label"] if q else "-", _fmt(perf.get("runtime_parts")), _fmt(perf_added_parts(rep, v) if v.get("label") not in (None, "base", "base-early") else None, 0), _fmt(perf.get("mesh_slots")),
             _fmt(c.get("avg_fps")), _fmt(c.get("low1_fps")), _fmt(c.get("p95_ms"), 2), _fmt(perf_delta_p95(rep, v, q, c), 2),
-            _fmt(c.get("p99_ms"), 2), _fmt(r.get("RenderCPUFrameTime"), 2), _fmt(r.get("RenderGPUFrameTime"), 2),
+            _fmt(c.get("p99_ms"), 2), _fmt(_sec_ms(r.get("RenderCPUFrameTime")), 2), _fmt(_sec_ms(r.get("RenderGPUFrameTime")), 2),
             _fmt(r.get("SceneDrawcallCount"), 0), _fmt(r.get("ShadowsDrawcallCount"), 0),
             _fmt(r.get("SceneTriangleCount"), 0), _fmt(perf_mem_cat(c, "PlaceMemory"), 0),
             _fmt(perf_mem_cat(mem, "PlaceMemory"), 0)]
@@ -2566,7 +2595,7 @@ def perf_row(rep, label, v, q, c):
 
 def perf_report_md(rep):
     """Markdown for <sha>-perf.md: one row per variant x quality window (+ phone), n/a where a number could not be read."""
-    head = ["variant", "quality", "runtime parts", "mesh slots", "avg fps", "1% low fps", "p95 ms", "Δp95 vs base", "p99 ms",
+    head = ["variant", "quality", "runtime parts", "parts added", "mesh slots", "avg fps", "1% low fps", "p95 ms", "Δp95 vs base", "p99 ms",
             "CPU ms", "GPU ms", "draw calls", "shadow draw calls", "triangles", "PlaceMemory MB (client)",
             "PlaceMemory MB (server)"]
     rows, unavailable, qlines, extras = [], {}, [], []
