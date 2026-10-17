@@ -13,6 +13,7 @@ export type Limiter = { [string]: number } -- action -> last allowed time
 
 Validate.ACTIONS = table.freeze({
 	Merge = 0.5,
+	Merge3 = 0.5,
 	Lock = 0.5,
 	Rebirth = 2,
 	Sell = 0.25,

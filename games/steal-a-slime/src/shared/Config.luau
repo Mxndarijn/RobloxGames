@@ -546,6 +546,10 @@ local Config = {
 	-- Merge
 	MERGE_MUTATION_CHANCE = 0.15,
 	MERGE_SIZE_BONUS = 0.1,
+	-- 3-slime merge (FEATURES.MergeVat3, TripleMerge)
+	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (never into Secret)
+	TRIPLE_MERGE_MUTATION_CHANCE = 0.3, -- chance of a fresh mutation on top of the inherited ones
+	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
 
 	-- Stacking mutations (FEATURES.MutationStacking)
 	MAX_MUTATIONS = 3, -- a slime carries at most this many mutations (a fused combo counts as one)
@@ -636,6 +640,7 @@ local Config = {
 		WeeklyEvents = false, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
 		FountainTiers = false, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
 		EventsBoard = false, -- v21 server events board (ui/EventsBoard, CONTRACT.md §20): a HUD banner listing the weekly mutation, the Saturday trait event, the day/night modifier and the next weekly event; client only, no remote or save change; false = no banner
+		MergeVat3 = false, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, keeping every mutation (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 

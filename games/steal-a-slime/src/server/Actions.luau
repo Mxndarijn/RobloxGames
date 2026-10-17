@@ -44,6 +44,7 @@ export type Context = {
 	positionOf: (userId: number) -> any?,
 	rng: Rng.Rng?, -- Appraise rolls; nil = seeded from the clock and the player
 	plotSkins: boolean?, -- FEATURES.PlotSkins override (tests); nil = Config.FEATURES.PlotSkins
+	mergeVat3: boolean?, -- FEATURES.MergeVat3 override (tests); nil = Config.FEATURES.MergeVat3
 }
 
 local Actions = {}
@@ -199,6 +200,17 @@ local function buyUpgrade(world: World, session: Session, id: string): Result
 	return OK
 end
 
+local function merge3(world: World, session: Session, args: { any }, ctx: Context): Result
+	local on = ctx.mergeVat3
+	if on == nil then
+		on = Config.FEATURES.MergeVat3
+	end
+	if not on then
+		return fail("the 3-slime vat is off")
+	end
+	return result(MergeVat.merge3(world, session, { args[1], args[2], args[3] }))
+end
+
 local function equipPlotSkin(world: World, session: Session, id: string, ctx: Context): Result
 	local on = ctx.plotSkins
 	if on == nil then
@@ -252,6 +264,8 @@ local function dispatch(
 		return OK
 	elseif action == "Merge" then
 		return result(MergeVat.merge(world, session, args[1], args[2]))
+	elseif action == "Merge3" then
+		return merge3(world, session, args, ctx)
 	elseif action == "Lock" then
 		return result(StealService.buyLock(world, session, now))
 	elseif action == "Rebirth" then

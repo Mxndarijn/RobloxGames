@@ -1,0 +1,21 @@
+[
+  {
+    "id": "19-merge-vat-model",
+    "todo": "v19",
+    "kind": "world",
+    "target": "MergeVat",
+    "from": "centre",
+    "dist": 18,
+    "height": 9,
+    "merge_vat": true,
+    "note": "v19 merge vat: Plot_1's vat wears the copper goo cauldron mesh with three funnel spouts (VatFx, forced with SlimeUI.PcwMergeVat, FEATURES.MergeVat3 off); the primitive disc is hidden"
+  },
+  {
+    "id": "19-merge-vat-panel",
+    "todo": "v19",
+    "kind": "ui",
+    "open": "merge",
+    "merge_vat": true,
+    "note": "v19 merge vat: the Merge Vat menu with the 2 slimes / 3 slimes switch in 3-slime mode, hint and picked counter 0/3 (forced with SlimeUI.PcwMergeVat, FEATURES.MergeVat3 off)"
+  }
+]
