@@ -132,6 +132,27 @@
     "sha256": "060a234b850e56a0ae744b6e5ded163711cfa7389fef5390267f1049f31e8788",
     "uploadedAt": "2026-10-17T10:10:38Z"
   },
+  "Consumable_LuckPotion": {
+    "assetId": "108951519018160",
+    "assetType": "Decal",
+    "imageId": "130655218939229",
+    "sha256": "d2b08a4cb8baab7ade1f6ecaea8a18ba5fa03bf21436ff33f23ceac700a89279",
+    "uploadedAt": "2026-10-17T16:53:41Z"
+  },
+  "Consumable_MutationSpray": {
+    "assetId": "131636793687842",
+    "assetType": "Decal",
+    "imageId": "132258473401570",
+    "sha256": "d60aa51a88abdca902c4253f456d813ab0224e6a3ddbb7f31109582d42b71216",
+    "uploadedAt": "2026-10-17T16:53:36Z"
+  },
+  "Consumable_WeatherTotem": {
+    "assetId": "77791483584668",
+    "assetType": "Decal",
+    "imageId": "128919354425403",
+    "sha256": "624e774b20cad282d895a8d6c8f21f47ce1c8cda9de8d59eac711f475252b9cb",
+    "uploadedAt": "2026-10-17T16:53:45Z"
+  },
   "Daily": {
     "assetId": "95562237727488",
     "assetType": "Decal",
@@ -334,6 +355,139 @@
     "imageId": "110584867448733",
     "sha256": "508ae07db6e7fa81448c068ecf6dafacd33041145ef9c5401717164fce501c9e",
     "uploadedAt": "2026-10-17T10:12:41Z"
+  },
+  "Pvp_FunBalloon": {
+    "assetId": "75941815966096",
+    "assetType": "Decal",
+    "imageId": "139662990313432",
+    "sha256": "3f70e9b557492d4e46986966dca0c382458c68c03e6b6fc01f4299773ff62aff",
+    "uploadedAt": "2026-10-17T16:54:47Z"
+  },
+  "Pvp_FunBouncePad": {
+    "assetId": "72199285548766",
+    "assetType": "Decal",
+    "imageId": "127452735645388",
+    "sha256": "e55af60811f8fe03743976467490f1a3738d741c63e445bc744e459996d354db",
+    "uploadedAt": "2026-10-17T16:54:56Z"
+  },
+  "Pvp_FunBubbles": {
+    "assetId": "100093715273030",
+    "assetType": "Decal",
+    "imageId": "88858283106113",
+    "sha256": "9fe3979615e16516ed98f253eda8812620a0f76f3370333135d53ea5bc774dcb",
+    "uploadedAt": "2026-10-17T16:54:52Z"
+  },
+  "Pvp_FunConfetti": {
+    "assetId": "83343082557193",
+    "assetType": "Decal",
+    "imageId": "122616884845171",
+    "sha256": "82fce82c3031ab24ae243f644ad694f83281175de50e685d6b9484ed7b7f62ba",
+    "uploadedAt": "2026-10-17T16:54:43Z"
+  },
+  "Pvp_FunDanceBomb": {
+    "assetId": "86794475359107",
+    "assetType": "Decal",
+    "imageId": "137723785708403",
+    "sha256": "510c345bb28fe453721108eb478d514ba7a4199178bbc04650d99f1857a7506d",
+    "uploadedAt": "2026-10-17T16:55:10Z"
+  },
+  "Pvp_FunFireworks": {
+    "assetId": "71481345253623",
+    "assetType": "Decal",
+    "imageId": "116322150278697",
+    "sha256": "0141e60a5773b5efd925c12c78e1df7bae4fa33394fcb5b994ed50f588bb8f31",
+    "uploadedAt": "2026-10-17T16:55:14Z"
+  },
+  "Pvp_FunHatLauncher": {
+    "assetId": "73235609358774",
+    "assetType": "Decal",
+    "imageId": "114143203132186",
+    "sha256": "12ba834ef3f97346cfd1769578065546240bab30e3ea53f9fbb942ba726120fa",
+    "uploadedAt": "2026-10-17T16:55:05Z"
+  },
+  "Pvp_FunSqueaky": {
+    "assetId": "82607593084046",
+    "assetType": "Decal",
+    "imageId": "72993429128584",
+    "sha256": "97df2462c919dc2e6110d37108c13cbc5004f560b78c9a356e8081d6a2220db6",
+    "uploadedAt": "2026-10-17T16:55:01Z"
+  },
+  "Pvp_GooBlaster1": {
+    "assetId": "75144729728575",
+    "assetType": "Decal",
+    "imageId": "102597813981315",
+    "sha256": "d5494e460f960b9615021d6f2249e157ff6a3e18c3041c10329a085a139fb09e",
+    "uploadedAt": "2026-10-17T16:54:29Z"
+  },
+  "Pvp_GooBlaster2": {
+    "assetId": "95234280033833",
+    "assetType": "Decal",
+    "imageId": "77287889149557",
+    "sha256": "d652d3bb120ff89ed1aaf2a5a17c651c7545af37baf9eccc7fdbbcf69e315ece",
+    "uploadedAt": "2026-10-17T16:54:33Z"
+  },
+  "Pvp_GooBlaster3": {
+    "assetId": "120322415159893",
+    "assetType": "Decal",
+    "imageId": "118148004083191",
+    "sha256": "7edb60e12b994301d3641bce4ebf0f05b0888c365474e383049fd7ae3395812f",
+    "uploadedAt": "2026-10-17T16:54:38Z"
+  },
+  "Pvp_GooTrap1": {
+    "assetId": "73843155217711",
+    "assetType": "Decal",
+    "imageId": "120019511635968",
+    "sha256": "34dacf26d69b3435bb23244bf8ba15d30b2ade1353561d8bf3d3772c7755bcaa",
+    "uploadedAt": "2026-10-17T16:54:15Z"
+  },
+  "Pvp_GooTrap2": {
+    "assetId": "130080816058523",
+    "assetType": "Decal",
+    "imageId": "77139319310400",
+    "sha256": "132e145887c154a38eabaf24c0683158fe2e95cbc95823b3a9b0b0a94fe12b7c",
+    "uploadedAt": "2026-10-17T16:54:20Z"
+  },
+  "Pvp_GooTrap3": {
+    "assetId": "83822558590304",
+    "assetType": "Decal",
+    "imageId": "109811195391239",
+    "sha256": "e7834716a617a0b97c2d3ae9f37246d043071750c6c6999f20b5d561625d8dfc",
+    "uploadedAt": "2026-10-17T17:18:49Z"
+  },
+  "Pvp_KnockGlove1": {
+    "assetId": "89657266131110",
+    "assetType": "Decal",
+    "imageId": "97320008087030",
+    "sha256": "bbc212d2120562b015537a66cad9259ee60d85c488f8232c3a2944fb12a7a94c",
+    "uploadedAt": "2026-10-17T16:53:50Z"
+  },
+  "Pvp_KnockGlove2": {
+    "assetId": "85650811264095",
+    "assetType": "Decal",
+    "imageId": "135576606024136",
+    "sha256": "2410fbcb8df998ed65155bb09e98cd5973abc4a8be77fd128366658b58551545",
+    "uploadedAt": "2026-10-17T16:53:54Z"
+  },
+  "Pvp_KnockGlove3": {
+    "assetId": "125385952148146",
+    "assetType": "Decal",
+    "imageId": "117188261441907",
+    "sha256": "c89f39c8e6239797f7f559ee1b369c46b324ce11138b6fe4b776ff2745ef0b15",
+    "uploadedAt": "2026-10-17T16:53:59Z"
+  },
+  "Pvp_KnockGlove4": {
+    "assetId": "92861134049840",
+    "assetType": "Decal",
+    "imageId": "124623182677388",
+    "sha256": "80170988c7d99fb7d3964cc248eccae9a10a89537ce7a32331af85aa28174d3e",
+    "uploadedAt": "2026-10-17T16:54:03Z"
+  },
+  "Pvp_KnockGlove5": {
+    "assetId": "70734730982462",
+    "assetType": "Decal",
+    "imageId": "70956878049152",
+    "sha256": "6ba3c7ce59cc9f2655fc64ad9b586881c87594cc81d473f25a2a50e2328c2bd3",
+    "uploadedAt": "2026-10-17T16:54:08Z"
   },
   "Quest": {
     "assetId": "124996051707861",

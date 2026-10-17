@@ -59,6 +59,9 @@ ItemIcons.IMAGES = {
 	Code_LAUNCH = 71722668257014,
 	Code_SLIMEBOOST = 96448805080296,
 	Code_WELCOME = 132772869844350,
+	Consumable_LuckPotion = 130655218939229,
+	Consumable_MutationSpray = 132258473401570,
+	Consumable_WeatherTotem = 128919354425403,
 	Daily = 136919499537484,
 	Dex_10 = 121377018671664,
 	Dex_100 = 104036768146434,
@@ -88,6 +91,25 @@ ItemIcons.IMAGES = {
 	PlotSkin_classic = 75405645541984,
 	PlotSkin_crystal = 91231773101915,
 	PlotSkin_mushroom = 110584867448733,
+	Pvp_FunBalloon = 139662990313432,
+	Pvp_FunBouncePad = 127452735645388,
+	Pvp_FunBubbles = 88858283106113,
+	Pvp_FunConfetti = 122616884845171,
+	Pvp_FunDanceBomb = 137723785708403,
+	Pvp_FunFireworks = 116322150278697,
+	Pvp_FunHatLauncher = 114143203132186,
+	Pvp_FunSqueaky = 72993429128584,
+	Pvp_GooBlaster1 = 102597813981315,
+	Pvp_GooBlaster2 = 77287889149557,
+	Pvp_GooBlaster3 = 118148004083191,
+	Pvp_GooTrap1 = 120019511635968,
+	Pvp_GooTrap2 = 77139319310400,
+	Pvp_GooTrap3 = 109811195391239,
+	Pvp_KnockGlove1 = 97320008087030,
+	Pvp_KnockGlove2 = 135576606024136,
+	Pvp_KnockGlove3 = 117188261441907,
+	Pvp_KnockGlove4 = 124623182677388,
+	Pvp_KnockGlove5 = 70956878049152,
 	Quest = 134202290579149,
 	Rebirth = 111386939880268,
 	Slap = 126349026044270,
@@ -644,6 +666,21 @@ end
 -- The registry id of a Config.BADGES key.
 function ItemIcons.badge(key: string): string
 	return `Badge_{key}`
+end
+
+-- The shop UI's icon id for a Shops item (CONTRACT.md §27): upgrades, consumables and PvP tools live under a
+-- prefix in the registry (their bare ids clash with item ids / are not unique), everything else is its own id.
+-- Look the picture up with `ItemIcons.IMAGES[ItemIcons.shopIconId(item)]` or
+-- `registry.resolve(ItemIcons.shopIconId(item))`. Same mapping as WorldShopLogic.iconId.
+ItemIcons.SHOP_ICON_PREFIX = table.freeze({
+	BuyUpgrade = "Upgrade_",
+	BuyConsumable = "Consumable_",
+	BuyPvpItem = "Pvp_",
+} :: { [string]: string })
+
+function ItemIcons.shopIconId(item: { id: string, action: string? }): string
+	local prefix = if item.action then ItemIcons.SHOP_ICON_PREFIX[item.action] else nil
+	return (prefix or "") .. item.id
 end
 
 return table.freeze(ItemIcons)

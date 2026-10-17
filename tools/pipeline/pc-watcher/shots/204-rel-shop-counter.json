@@ -1,0 +1,18 @@
+{
+  "id": "rel-shop-counter",
+  "todo": "release probe R5",
+  "kind": "world",
+  "target": "ItemShopStand",
+  "from": "front",
+  "dist": 20,
+  "height": 10,
+  "bug_probe": {
+    "bug": "R5",
+    "title": "Shop stand counters are solid (walk and jump into them)",
+    "luau": "rel_shop_counter",
+    "ctx": "Server",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "release probe R5 (advisory, #269/#276): the real character walking and jumping into the Item / Upgrade Shop counter is blocked, never inside or behind it"
+}

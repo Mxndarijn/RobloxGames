@@ -10,7 +10,7 @@
 --   * a plot own to the player that the live server has locked right now (join lock, first 45 s) is reported as live_own_panels (the real
 --     setBarrierSolid result, read before the driver touches anything).
 -- The real character is unanchored for the probe (network ownership to the server) and restored: CFrame, Anchored, owner, WalkSpeed.
--- Checks (ok = every non-nil check true):
+-- Checks (ok = every non-nil check of the PART true; PART "base" = the first five, each other PART = the one wall check of that name):
 --   owner_passes             own plot locked: the character walks (Humanoid:MoveTo) from 8 studs outside the entrance to inside (PlotLockGuard.inside)
 --   owner_passes_after_respawn  player:LoadCharacter(), the same walk with the new character
 --   non_owner_blocked        a locked plot the player does not own: MoveTo from outside for 4 s never gets inside; its panels are CanCollide and in a
@@ -19,6 +19,18 @@
 --                            back inside
 --   thrown_slime_not_stuck   a free clone of a real slime body (its size / CollisionGroup, CanCollide forced on) is launched at a solid panel: after
 --                            3 s it must not rest suspended in the air next to a panel (within 1.5 studs of a face) nor inside the panel
+-- Real-character wall checks (#277 removed the invisible Wall* blocks: the fence meshes are the only barrier besides the LockBarrier panels). Against the
+-- locked FOREIGN plot, the real character (unanchored, server-owned, the game's own WalkSpeed 16 and Humanoid jump settings, never raised) tries to get in.
+-- Every attempt samples the root every 0.05 s: ever_inside (PlotLockGuard.inside), first_inside_s, max_penetration (studs past the fence plane, plot-local),
+-- ejected (a position jump > 10 studs). An attempt FAILS when ever_inside is true (getting in and being ejected still counts). The fence is found by the
+-- attribute FenceCollider or the names ranch_fence_20 / phoenix_fence_segment / phoenix_corner_post (and GatePost / GatePostL / GatePostR) among the plot's
+-- descendants; the fence lines, panel middles / joints, gate seams and corners are computed from their real CFrames and sizes in the Base's frame. ok = every
+-- attempt stayed outside, false = any got inside, n/a = geometry not found or no time left (each check is its own PART with a 32 s attempt budget, most
+-- important attempts first; attempts end early when the character stalls for 1.5 s). Reset between attempts: teleport outside, zero velocity, wait 0.3 s.
+--   fence_jump_over          back + one side fence line: start 6 studs outside, MoveTo 10 studs inside for 4 s with hum.Jump every 0.25 s; plus a running start from 16 studs
+--   fence_push_through       back and both side lines at a panel middle AND a panel joint, plus both gate-side phoenix_fence_segments: MoveTo straight in, no jumping
+--   gate_post_squeeze        at the gate: the seams between the LockBarrier front panel / gate posts / phoenix_corner_post, straight (no jump, jumping) and 45 degree approaches
+--   corner_squeeze           the four plot corners: start 5 studs outside diagonally, MoveTo 10 studs inside along the diagonal, without and with jumping
 -- Everything made is destroyed; the lock attributes / panels are restored; the character ends where it started, with its Anchored states.
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -45,7 +57,12 @@ if not reqOk then
 end
 local World, Sessions, WorldView, Guard = mods.World, mods.Sessions, mods.WorldView, mods.Guard
 local LOCKED = mods.Constants.PLOT_LOCKED_ATTRIBUTE
-local ORDER = { "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck" }
+-- PART = "base" (the five old checks, ~50 s) | "fence_jump_over" | "fence_push_through" | "gate_post_squeeze" | "corner_squeeze" (that one wall check
+-- only, 32 s attempt budget): a single execute_luau call must stay well under 60 s, so the checks are split over several calls.
+local PART = %%PART%%
+local BASE_ORDER = { "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck" }
+local ORDER = if PART == "base" then BASE_ORDER else { PART }
+local ATTEMPT_BUDGET = 32
 local checks = {}
 local function set(name, ok, info)
 	checks[name] = { ok = ok, info = info }
@@ -208,7 +225,7 @@ local function free()
 			d.Anchored = false
 		end
 	end
-	hum.WalkSpeed = 16
+	hum.WalkSpeed = 16 -- the game's own value
 	pcall(function()
 		root:SetNetworkOwner(nil)
 	end)
@@ -260,7 +277,358 @@ local function walkIn(i, secs, stopWhenInside)
 	return { inside = insideNow(i), ever_inside = ever, secs = os.clock() - t0, group = root.CollisionGroup }
 end
 
+-- real-character wall checks -------------------------------------------------------------------------------------------------------------
+local FENCE_NAMES = { ranch_fence_20 = true, phoenix_fence_segment = true, phoenix_corner_post = true }
+local SEARCHED = "attribute FenceCollider, names ranch_fence_20 / phoenix_fence_segment / phoenix_corner_post / GatePost"
+local SIDE_N = { back = Vector3.new(0, 0, -1), front = Vector3.new(0, 0, 1), left = Vector3.new(1, 0, 0), right = Vector3.new(-1, 0, 0) } -- inward normals
+local function r1(x)
+	return math.floor(x * 10 + 0.5) / 10
+end
+local function r2(v)
+	return { r1(v.X), r1(v.Z) }
+end
+-- Fence geometry of plot i in the Base frame: segments per side {s, len, line, name}, posts, gate stand-ins.
+local function fenceGeometry(i)
+	local plot = plotByIndex[i]
+	local cf, half = frameOf(i)
+	local sides = { back = {}, front = {}, left = {}, right = {} }
+	local posts, stubs, count = {}, {}, 0
+	for _, d in plot:GetDescendants() do
+		if d:IsA("BasePart") and d:FindFirstAncestor("LockBarrier") == nil then
+			local isPost = d.Name == "phoenix_corner_post" or d.Name == "GatePost"
+			if d.Name == "GatePostL" or d.Name == "GatePostR" then
+				local rel = cf:ToObjectSpace(d.CFrame)
+				local ex = math.abs(rel.RightVector.X) * d.Size.X / 2 + math.abs(rel.LookVector.X) * d.Size.Z / 2
+				table.insert(stubs, { x = rel.Position.X, z = rel.Position.Z, ex = ex })
+			elseif isPost or d:GetAttribute("FenceCollider") or FENCE_NAMES[d.Name] then
+				local rel = cf:ToObjectSpace(d.CFrame)
+				local sz = d.Size
+				local ex = math.abs(rel.RightVector.X) * sz.X / 2 + math.abs(rel.UpVector.X) * sz.Y / 2 + math.abs(rel.LookVector.X) * sz.Z / 2
+				local ez = math.abs(rel.RightVector.Z) * sz.X / 2 + math.abs(rel.UpVector.Z) * sz.Y / 2 + math.abs(rel.LookVector.Z) * sz.Z / 2
+				local c = rel.Position
+				if isPost or math.max(ex, ez) < 3 then
+					local dup = false
+					for _, p in posts do
+						dup = dup or (math.abs(p.x - c.X) < 1.5 and math.abs(p.z - c.Z) < 1.5)
+					end
+					if not dup then
+						table.insert(posts, { x = c.X, z = c.Z, ex = ex, ez = ez })
+					end
+				elseif d.Size.Y > 2 or d:GetAttribute("FenceCollider") then
+					local alongX = ex >= ez
+					local side = if alongX then (if c.Z > 0 then "back" else "front") else (if c.X < 0 then "left" else "right")
+					local s, line, len = if alongX then c.X else c.Z, if alongX then c.Z else c.X, 2 * (if alongX then ex else ez)
+					local dup = false
+					for _, o in sides[side] do
+						dup = dup or (math.abs(o.s - s) < 1.5 and math.abs(o.line - line) < 1.5)
+					end
+					if not dup then
+						count += 1
+						table.insert(sides[side], { s = s, len = len, line = line, name = d.Name })
+					end
+				end
+			end
+		end
+	end
+	local lines = {}
+	for side, list in sides do
+		table.sort(list, function(a, b)
+			return a.s < b.s
+		end)
+		if #list > 0 then
+			local sum = 0
+			for _, sg in list do
+				sum += sg.line
+			end
+			lines[side] = sum / #list
+		else
+			lines[side] = (if side == "back" or side == "right" then 1 else -1) * (half - 0.5)
+		end
+	end
+	return { sides = sides, lines = lines, posts = posts, stubs = stubs, count = count, half = half, cf = cf }
+end
+-- plot-local point of a side: tangent coordinate s, `out` studs outside the fence centre plane
+local function sidePoint(g, side, s, out)
+	local n = SIDE_N[side]
+	local alongX = side == "back" or side == "front"
+	local p = if alongX then Vector3.new(s, 0, g.lines[side]) else Vector3.new(g.lines[side], 0, s)
+	return p - n * out
+end
+local function sidePlane(g, side)
+	local n = SIDE_N[side]
+	return { n = n, d = n:Dot(sidePoint(g, side, 0, 0)) }
+end
+
+local checkStart
+-- One attempt: from startL to targetL (plot-local x, z), MoveTo for up to 4 s. planes = {{n, d}} measure penetration (min over the planes).
+local function attempt(i, label, startL, targetL, jump, planes)
+	local cf = frameOf(i)
+	local y = 4
+	teleport(cf * CFrame.lookAt(Vector3.new(startL.X, y, startL.Z), Vector3.new(targetL.X, y, targetL.Z)))
+	hum.Jump = false
+	task.wait(0.3)
+	local target = cf:PointToWorldSpace(Vector3.new(targetL.X, y, targetL.Z))
+	local rec = { label = label, start = r2(startL), target = r2(targetL), jump = jump, ever_inside = false, ejected = false, max_penetration = -99 }
+	local t0, lastJump = os.clock(), -1
+	local last, movePos, moveT = nil, nil, 0
+	local insideAt
+	while true do
+		local t = os.clock() - t0
+		if not root.Parent then
+			break
+		end
+		hum:MoveTo(target)
+		if jump and t - lastJump >= 0.25 then
+			hum.Jump = true
+			lastJump = t
+		end
+		task.wait(0.05)
+		t = os.clock() - t0
+		local pos = root.Position
+		if last and (pos - last).Magnitude > 10 then
+			rec.ejected = true
+		end
+		last = pos
+		local lp = cf:PointToObjectSpace(pos)
+		local pen = math.huge
+		for _, pl in planes do
+			pen = math.min(pen, pl.n:Dot(lp) - pl.d)
+		end
+		rec.max_penetration = math.max(rec.max_penetration, pen)
+		if insideNow(i) and not rec.ever_inside then
+			rec.ever_inside, rec.first_inside_s, insideAt = true, r1(t), t
+		end
+		local flatPos = Vector3.new(pos.X, 0, pos.Z)
+		if not movePos or (flatPos - movePos).Magnitude > 0.5 then
+			movePos, moveT = flatPos, t
+		end
+		if t >= 4 or (insideAt and t - insideAt >= 0.5) or (t >= 2 and t - moveT >= 1.5) then
+			rec.secs = r1(t)
+			break
+		end
+	end
+	hum.Jump = false
+	rec.max_penetration = r1(rec.max_penetration)
+	rec.end_local = r2(cf:PointToObjectSpace(root.Position))
+	if insideNow(i) then
+		rec.ended_inside = true
+	end
+	return rec
+end
+-- Runs the attempt list builder for one check and sets the result. Attempts (sorted by pri, then build order) that do not fit the budget are skipped.
+local function runCheck(name, i, build)
+	checkStart = os.clock()
+	local deadline = checkStart + ATTEMPT_BUDGET
+	local okG, g = pcall(fenceGeometry, i)
+	if not okG or g.count == 0 then
+		set(name, nil, "no fence parts found under the plot (searched: " .. SEARCHED .. ")" .. (if okG then "" else " " .. tostring(g)))
+		return
+	end
+	local list = build(g)
+	for k, a in list do
+		a.idx = k
+		a.pri = a.pri or 5
+	end
+	table.sort(list, function(x, y)
+		if x.pri ~= y.pri then
+			return x.pri < y.pri
+		end
+		return x.idx < y.idx
+	end)
+	if #list == 0 then
+		set(name, nil, "fence geometry incomplete (needed sides / gate posts not found); fence parts: " .. tostring(g.count))
+		return
+	end
+	local recs, skipped, anyIn = {}, 0, false
+	for _, a in list do
+		if os.clock() + 4.7 > deadline then -- an attempt takes up to 0.3 + 4 s plus the reset
+			skipped += 1
+		else
+			local okA, rec = pcall(attempt, i, a.label, a.start, a.target, a.jump, a.planes)
+			if okA then
+				table.insert(recs, rec)
+				anyIn = anyIn or rec.ever_inside
+				if rec.ever_inside or rec.ended_inside then
+					local cf, half = frameOf(i)
+					teleport(cf * CFrame.new(0, 4, -(half + 8)))
+				end
+			else
+				table.insert(recs, { label = a.label, error = tostring(rec) })
+			end
+		end
+	end
+	local ran = 0
+	for _, r in recs do
+		ran += if r.error then 0 else 1
+	end
+	local info = { attempts = recs, skipped_for_time = skipped, fence_parts = g.count, seconds = r1(os.clock() - checkStart) }
+	if skipped > 0 then
+		info.note = skipped .. " attempt(s) did not fit the " .. ATTEMPT_BUDGET .. " s budget (n/a)"
+	end
+	set(name, if anyIn then false elseif ran > 0 then true else nil, info)
+	local cf, half = frameOf(i)
+	teleport(cf * CFrame.new(0, 4, -(half + 8)))
+end
+
+local function jumpOverList(g)
+	local list = {}
+	local sides = { "back" }
+	for _, side in { "left", "right" } do
+		if #g.sides[side] > 0 and #sides < 2 then
+			table.insert(sides, side)
+		end
+	end
+	for k, side in sides do
+		if #g.sides[side] > 0 then
+			local pl = { sidePlane(g, side) }
+			local target = sidePoint(g, side, 0, -10)
+			table.insert(list, { label = side .. " jump 6 out", start = sidePoint(g, side, 0, 6), target = target, jump = true, planes = pl })
+			if k == 1 then
+				table.insert(list, { label = side .. " running jump 16 out", start = sidePoint(g, side, 0, 16), target = target, jump = true, planes = pl })
+			end
+		end
+	end
+	return list
+end
+local function pushList(g)
+	local list = {}
+	for _, side in { "back", "left", "right" } do
+		local segs = g.sides[side]
+		if #segs > 0 then
+			local pl = { sidePlane(g, side) }
+			local mid = segs[1]
+			for _, sg in segs do
+				if sg.len > mid.len + 0.5 then
+					mid = sg
+				end
+			end
+			local jointS, jointD = nil, math.huge
+			for k = 1, #segs - 1 do
+				local b = (segs[k].s + segs[k].len / 2 + segs[k + 1].s - segs[k + 1].len / 2) / 2
+				if math.abs(b) < jointD then
+					jointS, jointD = b, math.abs(b)
+				end
+			end
+			local function add(label, s, pri)
+				table.insert(list, { label = label, start = sidePoint(g, side, s, 4), target = sidePoint(g, side, s, -8), jump = false, planes = pl, pri = pri })
+			end
+			add(side .. " panel middle (" .. mid.name .. ")", mid.s, 3)
+			if jointS then
+				add(side .. " joint", jointS, 1) -- panel joints first
+			end
+		end
+	end
+	local front = g.sides.front
+	local pl = { sidePlane(g, "front") }
+	for _, sign in { -1, 1 } do
+		local best
+		for _, sg in front do
+			if sg.s * sign > 0 and (not best or math.abs(sg.s) < math.abs(best.s)) then
+				best = sg
+			end
+		end
+		if best then
+			table.insert(list, {
+				label = "gate-side segment " .. (if sign < 0 then "left" else "right") .. " (" .. best.name .. ")",
+				start = sidePoint(g, "front", best.s, 4), target = sidePoint(g, "front", best.s, -8), jump = false, planes = pl, pri = 2, -- gate-side segments second
+			})
+		end
+	end
+	return list
+end
+local function squeezeList(g)
+	local list = {}
+	local front = g.lines.front
+	local pl = { sidePlane(g, "front") }
+	local inner, outerX = {}, {}
+	for _, st in g.stubs do
+		local sign = if st.x < 0 then -1 else 1
+		inner[sign] = math.abs(st.x) - st.ex
+		outerX[sign] = math.abs(st.x) + st.ex
+	end
+	for _, sign in { -1, 1 } do
+		if not inner[sign] then -- no GatePost stand-ins: the fence segments' inner ends are the opening
+			local best
+			for _, sg in g.sides.front do
+				if sg.s * sign > 0 and (not best or math.abs(sg.s) < math.abs(best.s)) then
+					best = sg
+				end
+			end
+			if best then
+				inner[sign] = math.abs(best.s) - best.len / 2
+			end
+		end
+	end
+	for _, sign in { -1, 1 } do
+		local nm = if sign < 0 then "left" else "right"
+		if inner[sign] then
+			local x = sign * inner[sign]
+			local function add(label, from, to, jump, pri)
+				table.insert(list, { label = label, start = from, target = to, jump = jump, planes = pl, pri = pri })
+			end
+			for _, jump in { false, true } do
+				local tag = if jump then " jump" else ""
+				add("gate " .. nm .. " post inner edge straight" .. tag, Vector3.new(x, 0, front - 6), Vector3.new(x, 0, front + 10), jump, if jump then 2 else 1) -- both seams straight, then jumping
+				for _, from in { -1, 1 } do -- 45 degrees, coming from the opening side (from = sign * -1) or from the post side
+					local d = Vector3.new(from, 0, 1).Unit
+					local aim = Vector3.new(x, 0, front)
+					add("gate " .. nm .. " post inner edge diag from " .. (if from == -sign then "opening" else "post") .. tag, aim - d * (6 / d.Z), aim + d * 10, jump, if jump then 5 else 4)
+				end
+			end
+		end
+	end
+	for _, post in g.posts do
+		if math.abs(post.z - front) < 4 then
+			for _, jump in { false, true } do
+				table.insert(list, {
+					label = "phoenix_corner_post straight" .. (if jump then " jump" else ""), start = Vector3.new(post.x, 0, front - 6),
+					target = Vector3.new(post.x, 0, front + 10), jump = jump, planes = pl, pri = if jump then 3 else 2,
+				})
+			end
+		end
+	end
+	return list
+end
+local function cornerList(g)
+	local list = {}
+	for _, v in { { "back", "left" }, { "back", "right" }, { "front", "left" }, { "front", "right" } } do
+		local a, b = v[1], v[2]
+		local corner = Vector3.new(g.lines[b], 0, g.lines[a])
+		local inward = (SIDE_N[a] + SIDE_N[b]).Unit
+		local planes = { sidePlane(g, a), sidePlane(g, b) }
+		for _, jump in { false, true } do
+			table.insert(list, {
+				pri = if jump then 2 else 1, -- all four without jumping, then with
+				label = a .. "-" .. b .. " corner diag" .. (if jump then " jump" else ""), start = corner - inward * 5, target = corner + inward * 10,
+				jump = jump, planes = planes,
+			})
+		end
+	end
+	return list
+end
+
+local function charChecks(i)
+	local builders = { fence_jump_over = jumpOverList, fence_push_through = pushList, gate_post_squeeze = squeezeList, corner_squeeze = cornerList }
+	runCheck(PART, i, builders[PART])
+end
+
+local function runWall()
+	free()
+	if not foreignIndex then
+		set(PART, nil, "no unowned, unlocked plot with a LockBarrier to use as the foreign plot")
+		return
+	end
+	lockPlot(foreignIndex, true)
+	placeOutside(foreignIndex)
+	charChecks(foreignIndex)
+	lockPlot(foreignIndex, false)
+end
+
 local function run()
+	if PART ~= "base" then
+		runWall()
+		return
+	end
 	free()
 	-- ---- a) owner passes ----
 	if ownIndex then
@@ -497,6 +865,7 @@ if not ok then
 	return finish("probe error: " .. tostring(err))
 end
 return finish({
+	part = PART,
 	mode = "mirror World driven through the real WorldView.enforceLocks; lock = plot attribute + mirrored setBarrierSolid",
 	own_plot = ownIndex,
 	foreign_plot = foreignIndex,

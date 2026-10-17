@@ -1,0 +1,27 @@
+{
+  "id": "rel-border-walls",
+  "todo": "release probe R4",
+  "kind": "world",
+  "pos": [
+    48,
+    150,
+    132
+  ],
+  "look": [
+    -100,
+    6,
+    -274
+  ],
+  "wait": 0.5,
+  "device": "desktop",
+  "clock": 14,
+  "bug_probe": {
+    "bug": "R4",
+    "title": "World border: 48 solid wall segments without a gap",
+    "luau": "rel_border_walls",
+    "ctx": "Server",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "release probe R4 (advisory, WorldBorder): 48 CanCollide wall segments, adjacent ends < 2 studs apart, and the real character walking into a wall never passes"
+}

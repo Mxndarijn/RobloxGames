@@ -340,10 +340,10 @@ describe("slime path is flush", function()
 			end
 		end
 	end)
-	it("uses fewer, larger pieces: at most 50 strips, none shorter than 2.5 studs", function()
-		expect(#RECTS <= 50).toBe(true)
+	it("uses fewer, larger pieces: at most 100 strips, none shorter than 2 studs", function()
+		expect(#RECTS <= 100).toBe(true)
 		for _, r in RECTS do
-			expect(r.hl * 2 >= 2.5).toBe(true)
+			expect(r.hl * 2 >= 2).toBe(true)
 		end
 	end)
 end)

@@ -26,3 +26,4 @@ from recipes_misc import *  # noqa: E402,F401,F403
 from recipes_goal import *  # noqa: E402,F401,F403
 from recipes_badge import *  # noqa: E402,F401,F403
 from recipes_skin import *  # noqa: E402,F401,F403
+from recipes_gear import *  # noqa: E402,F401,F403

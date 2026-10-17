@@ -83,7 +83,7 @@ local built = WorldBuilder.build(root)
 for name, build in
 	{ ShopStand = Props.shopStand, LeaderboardBoard = Props.leaderboardBoard, TutorialNpc = Props.tutorialNpc }
 do
-	local spot = WorldLayout.PROP_SPOTS[name]
+	local spot = WorldLayout.PROP_SPOTS[name] or WorldLayout.PROP_SPOTS.ItemShopStand -- ShopStand became ItemShopStand
 	local model = build()
 	-- Model:PivotTo (not in @lune/roblox): the pivot is the primary part.
 	local target = CFrame.new(spot.pos[1], spot.pos[2], spot.pos[3]) * CFrame.Angles(0, math.rad(spot.yaw), 0)

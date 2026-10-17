@@ -9,6 +9,7 @@ local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local Remotes = require("../../src/shared/Remotes")
 local ShopCatalog = require("../../src/ui/ShopCatalog")
+local Shops = require("../../src/shared/Shops")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 local fs = require("@lune/fs")
@@ -245,8 +246,15 @@ describe("uploaded item icon images", function()
 
 	it("IMAGES holds no stale ids and no duplicate asset ids", function()
 		local seen: { [number]: string } = {}
+		-- ids the shop UI looks up through shopIconId (Consumable_/Pvp_) may predate their registry entries
+		local shopIds: { [string]: boolean } = {}
+		for _, shop in Shops.SHOPS do
+			for _, item in shop.items do
+				shopIds[ItemIcons.shopIconId(item)] = true
+			end
+		end
 		for id, image in ItemIcons.IMAGES do
-			expect(`{id}: {registry.byId[id] ~= nil}`).toBe(`{id}: true`)
+			expect(`{id}: {registry.byId[id] ~= nil or shopIds[id] == true}`).toBe(`{id}: true`)
 			expect(`{id}: {seen[image] == nil}`).toBe(`{id}: true`)
 			seen[image] = id
 		end

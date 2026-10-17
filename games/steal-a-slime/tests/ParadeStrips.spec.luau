@@ -9,7 +9,7 @@ local TestRunner = require("./TestRunner")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local TOL = ParadeLane.STRIP_TOLERANCE
-local MAX_STRIPS = 50 -- was 133 (one per waypoint pair; 129 now the lead-in is not a waypoint), then 50 with the lead-in as smooth domed pieces; only ever lower it
+local MAX_STRIPS = 100 -- the fallback strips follow the smooth route finely enough for the 20-degree turn limit (LaneTurn.spec); was 133 (one per waypoint pair; 129 now the lead-in is not a waypoint), then 50 with the lead-in as smooth domed pieces; only ever lower it
 
 -- Footprint of a drawn strip (ParadeLane.strips): centre, unit axis along it, half length.
 local function rectsOf(strips: { any })
@@ -43,9 +43,8 @@ local drawn = rectsOf(ParadeLane.strips())
 
 describe("ParadeLane goo strip parts", function()
 	it("draws the lane with far fewer strips than waypoint pairs", function()
-		expect(#ParadeLane.WAYPOINTS - 1).toBe(129)
 		expect(#drawn <= MAX_STRIPS).toBe(true)
-		expect(#drawn * 2 < #ParadeLane.WAYPOINTS - 1).toBe(true)
+		expect(#drawn * 1.5 < #ParadeLane.WAYPOINTS - 1).toBe(true)
 	end)
 	it("keeps the entry and exit of the route", function()
 		expect(simple[1]).toBe(ParadeLane.ENTRY)

@@ -240,7 +240,7 @@ def t_files():
         "shot_camera": {"EYE", "AT", "FOV"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "slide_top_drop": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "mesh_stand": {"MESHES"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "world_shop": {"SHOP"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "world_shop": {"SHOP"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"}, "bug08_lock_enter": {"PART"}, "bug11_char_walk": {"PART"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -690,8 +690,18 @@ def t_perf():
         for k, v in subs.items():
             body = body.replace("%%" + k.upper() + "%%", watcher.luau_literal(v))
         check("luau %s filled" % name, "%%" not in body)
-    inst = open(os.path.join(HERE, "install.ps1"), encoding="utf-8").read()
-    check("install copies luau", "luau\\*.luau" in inst)
+    inst_path = os.path.join(HERE, "install.ps1")
+    if os.path.exists(inst_path):  # absent in the installed app copy (install.ps1 runs selftest from <Home>\app)
+        inst = open(inst_path, encoding="utf-8").read()
+        check("install copies luau", "luau\\*.luau" in inst)
+        # every file this selftest opens from HERE must be one install.ps1 copies, or be guarded like this one
+        copied = {"budgets.json", "checks.json", "shot-map.json"}
+        guarded = {"install.ps1"}
+        me = open(os.path.abspath(__file__), encoding="utf-8").read()
+        named = set(re.findall(r'os\.path\.join\(HERE, "([^"/\\]+)"\)', me))
+        missing = sorted(n for n in named if not n.endswith(".py") and n not in copied | guarded
+                         and n not in ("luau", "shots") and ("Copy-Item -Force (Join-Path $PSScriptRoot \"%s\")" % n) not in inst)
+        check("selftest only opens files the installed app has (install.ps1 copies them)", not missing, missing)
 
 
 def t_lock_age():
@@ -843,9 +853,9 @@ def t_bugs():
     """Advisory bug probes (Merijn's 2026-10-17 list): shots with `bug_probe`, luau/bug*.luau, shot-map selection, report wiring."""
     shots, _ = watcher.load_shots(repo=None)
     smap = watcher.read_json(watcher.data_path(None, "shot-map.json")[0])
-    probes = [s for s in shots if "bug_probe" in s]
+    probes = [s for s in shots if "bug_probe" in s and isinstance(s["bug_probe"].get("bug"), int)]  # "R1".. = t_release
     bugs = [s["bug_probe"].get("bug") for s in probes]
-    check("bug probes: bugs 1-16 once each (17 = no probe, new UI)", sorted(bugs) == list(range(1, 17)), bugs)
+    check("bug probes: bugs 1-16 covered (8 and 11 are split over several shots; 17 = no probe, new UI)", sorted(set(bugs)) == list(range(1, 17)), bugs)
     check("bug probes: world shots with title, ctx Server|Client", all(
         s.get("kind") == "world" and s["bug_probe"].get("title") and s["bug_probe"].get("ctx", "Server") in ("Server", "Client") for s in probes))
     for s in probes:
@@ -871,15 +881,32 @@ def t_bugs():
     other = [r for r in rules if r["name"] != "bug probes"]
     check("shot-map: every bug shot is also selected by a source-area rule", all(any(watcher.shot_selected_by(s, r) for r in other) for s in probes),
           [s["id"] for s in probes if not any(watcher.shot_selected_by(s, r) for r in other)])
-    expect = {"bug08_lock_enter": ("owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck", "enforceLocks", "LoadCharacter"),
+    expect = {"bug08_lock_enter": ("owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck", "enforceLocks", "LoadCharacter",
+                            "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze"),
               "bug09_slide_stand": ("cannot_enter", "cannot_climb", "cannot_stand_on", "slimes_still_ride", "bottom_reachable"),
               "bug10_fountain_statues": ("pushed_out_or_on_top", "jump_no_snag"),
+              "bug11_char_walk": ("stile_over", "barn_loft", "fence_line_walk", "ranch_fence_stile", "ranch_barn_loft"),
               "bug11_collision_fidelity": ("CreateMeshPartAsync", "PreciseConvexDecomposition", "Hull", "parts_saved", "colliders", "mesh_pcd", "mesh_hull")}
     for name, words in expect.items():
         src = open(os.path.join(HERE, "luau", name + ".luau"), encoding="utf-8").read()
         check("%s has its checks (%s...)" % (name, words[0]), all(w in src for w in words), [w for w in words if w not in src])
         check("%s %s and restores" % (name, "lists every check as PASS / FAIL / n/a" if name != "bug11_collision_fidelity" else "reports the comparison in its summary"),
               (all(w in src for w in ('"PASS"', '"FAIL"', '"n/a"')) or name == "bug11_collision_fidelity") and "pcall" in src and "Destroy" in src)
+    b08 = open(os.path.join(HERE, "luau", "bug08_lock_enter.luau"), encoding="utf-8").read()
+    m = re.search(r"local ORDER = \{([^}]*)\}", b08)
+    order = re.findall(r'"(\w+)"', m.group(1)) if m else []
+    check("bug08 BASE_ORDER lists the five old checks only; other PARTs list just themselves", re.search(r'local BASE_ORDER = \{ "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck" \}', b08) is not None
+          and "local ORDER = if PART == \"base\" then BASE_ORDER else { PART }" in b08)
+    parts = {"bug08_lock_enter": {"base", "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze"}, "bug11_char_walk": {"stile_over", "barn_loft", "fence_line_walk"}}
+    for lname, want in parts.items():
+        got = {s["bug_probe"]["args"]["PART"] for s in probes if s["bug_probe"].get("luau") == lname}
+        lsrc = open(os.path.join(HERE, "luau", lname + ".luau"), encoding="utf-8").read()
+        check("%s: one shot per PART %s" % (lname, sorted(want)), got == want, got)
+        check("%s: every PART value appears in the luau" % lname, all(('"%s"' % w) in lsrc for w in want))
+    check("every bug probe shot timeout <= 50 s (one execute_luau call must stay well under 60 s)", all(int(s["bug_probe"].get("timeout", 30)) <= 50 for s in probes),
+          [s["id"] for s in probes if int(s["bug_probe"].get("timeout", 30)) > 50])
+    check("PART shots (not base) have timeout <= 45", all(int(s["bug_probe"].get("timeout", 30)) <= 45 for s in probes if s["bug_probe"].get("args", {}).get("PART", "base") != "base"))
+    check("bug11_char_walk is registered by a bug_probe shot (bug 11)", any(s["bug_probe"].get("luau") == "bug11_char_walk" and s["bug_probe"]["bug"] == 11 for s in probes))
     check("bug 11 is informational (ok nil)", "ok = nil," in open(os.path.join(HERE, "luau", "bug11_collision_fidelity.luau"), encoding="utf-8").read())
     G = "games/steal-a-slime/src/"
     for path, wanted in ((G + "server/PlotLockGuard.luau", 8), (G + "server/WorldView.luau", 8), (G + "server/MeshSwap.luau", 10),
@@ -920,9 +947,46 @@ def t_bugs():
     check("step_shots verdict ignores bug probes", "bug" not in "".join(l for l in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read().split("def step_shots")[1].split("def watcher_studio_pids")[0].splitlines() if l.strip().startswith("if any(r.get")))
 
 
+def t_release():
+    """Release probes R1-R7 (advisory, luau/rel_*.luau): one shot each, wired through the bug_probe mechanism and the shot-map."""
+    shots, _ = watcher.load_shots(repo=None)
+    smap = watcher.read_json(watcher.data_path(None, "shot-map.json")[0])
+    probes = [s for s in shots if isinstance(s.get("bug_probe", {}).get("bug"), str)]
+    check("release probes: R1..R7 once each", sorted(s["bug_probe"]["bug"] for s in probes) == ["R%d" % n for n in range(1, 8)], [s["bug_probe"]["bug"] for s in probes])
+    expect = {"rel_stackguard_eject": ("Server", ("eject_from_centre", "eject_under_top", "[PCW StackGuard] eject", "EmergeMesh")),
+              "rel_fountain_top_walk": ("Server", ("circle_complete", "reaches_slide", "MoveTo", "SLIDE_PATH")),
+              "rel_merge_vat_plots": ("Server", ("vat_exists", "hull_collides", "sits_on_plot", "character_rests", "Hull")),
+              "rel_border_walls": ("Server", ("wall_count", "all_collide", "no_gap", "walk_blocked", "48")),
+              "rel_shop_counter": ("Server", ("item_blocked", "item_jump", "upgrade_blocked", "upgrade_jump", "ItemShopStand", "UpgradeShopStand")),
+              "rel_shop_prompt_client": ("Client", ("item_shown", "item_opens", "upgrade_shown", "upgrade_opens", "InputHoldBegin", "InputHoldEnd", "PcwPress", "WorldShopPanel")),
+              "rel_minimap_pin": ("Client", ("minimap_ui", "player_pin", "MinimapData", "no minimap UI"))}
+    used = {s["bug_probe"].get("luau"): s for s in probes}
+    check("release probes: every luau/rel_*.luau is used by a shot", set(used) == set(expect) == {os.path.basename(f)[:-5] for f in glob.glob(os.path.join(HERE, "luau", "rel_*.luau"))})
+    rules = smap["rules"]
+    bugrule = next(r for r in rules if r["name"] == "bug probes")
+    for name, (ctx, words) in expect.items():
+        shot = used.get(name)
+        src = open(os.path.join(HERE, "luau", name + ".luau"), encoding="utf-8").read()
+        check("%s: shot is a world shot, ctx %s, <= 40 s, no placeholders" % (name, ctx), bool(shot) and shot.get("kind") == "world" and shot["bug_probe"].get("ctx") == ctx
+              and int(shot["bug_probe"].get("timeout", 30)) <= 40 and not re.search(r"%%[A-Z]+%%", src) and not shot["bug_probe"].get("args"))
+        check("%s has its checks (%s...)" % (name, words[0]), all(w in src for w in words), [w for w in words if w not in src])
+        check("%s lists every check as PASS / FAIL / n/a and restores" % name, all(w in src for w in ('"PASS"', '"FAIL"', '"n/a"', "ORDER", "finish(", "pcall", "ok = ", "summary = ", "detail = ")))
+        check("%s is selected by the 'bug probes' rule and its paths" % name, bool(shot) and watcher.shot_selected_by(shot, bugrule) and watcher._any_glob(
+            "tools/pipeline/pc-watcher/luau/%s.luau" % name, bugrule["paths"], smap) and watcher._any_glob("tools/pipeline/pc-watcher/shots/%s.json" % shot["id"].replace("rel-", "rel-"), bugrule["paths"], smap)
+            if shot else False)
+        if ctx == "Server" and name != "rel_minimap_pin":
+            check("%s unanchors the real character with server ownership and restores it" % name, all(w in src for w in ("SetNetworkOwner(nil)", "SetNetworkOwnershipAuto", "startAnchored", "startCF", "Destroy")))
+    G = "games/steal-a-slime/src/"
+    for path, ids in ((G + "server/StackGuard.luau", ("rel-stackguard-eject",)), (G + "visuals/shared/WorldBorder.luau", ("rel-border-walls",)),
+                      (G + "visuals/shared/MinimapData.luau", ("rel-minimap-pin",)), (G + "ui/Panels/WorldShop.luau", ("rel-shop-prompt-client", "rel-shop-counter")),
+                      (G + "server/WorldProps.luau", ("rel-shop-counter", "rel-shop-prompt-client", "rel-merge-vat-plots"))):
+        picked = watcher.plan_run([path], shots, smap, 60)["shots"]
+        check("plan %s picks %s" % (path.rsplit("/", 1)[1], ", ".join(ids)), all(i in picked for i in ids), picked[:8])
+
+
 def main():
     for t in (t_perf, t_perf_e2e, t_lock_age, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_play_settle):
+              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_release, t_play_settle):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going

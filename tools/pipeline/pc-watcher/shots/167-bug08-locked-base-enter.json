@@ -11,7 +11,9 @@
     "title": "Locked base enterable by others",
     "luau": "bug08_lock_enter",
     "ctx": "Server",
-    "args": {},
+    "args": {
+      "PART": "base"
+    },
     "timeout": 50
   },
   "note": "bug 8 (advisory, #251): the real character walks into its own locked plot (also after LoadCharacter); a locked plot it does not own blocks MoveTo, ejects a teleported-in character exactly once (real WorldView.enforceLocks on a mirror World) and does not hold a thrown slime body suspended"
