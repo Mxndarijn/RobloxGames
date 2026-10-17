@@ -153,7 +153,9 @@ describe("Layout.screen tutorial card on short screens", function()
 		expect(s.short).toBe(true)
 		for _, r in { s.tutorial, s.tutorialCarrying } do
 			local top, bottom = px(r, s.scale)
-			expect(top >= 276).toBe(true)
+			-- 250 (was 276): the banner stack above lost six banners with the H1 HUD (boss, rain, modifier,
+			-- friends, weekend, next-spawn), and the beside-the-carry-card tutorial is narrower, so taller.
+			expect(top >= 250).toBe(true)
 			expect(bottom <= 390).toBe(true)
 			expect(bottom >= 390 - Layout.TUTORIAL_SHORT_MARGIN - 1).toBe(true)
 		end
@@ -167,14 +169,19 @@ describe("Layout.screen tutorial card on short screens", function()
 		for _, v in { { 390, 844 }, { 1920, 1080 } } do
 			local s = Layout.screen(v[1], v[2])
 			expect(s.short).toBe(false)
-			expect(s.tutorial.y + s.tutorial.h).toBe(s.height - s.bottomInset)
+			-- Portrait phones (H1 HUD): the cards sit above the two bottom clusters, which sit above the
+			-- touch-controls rise; desktop keeps them on the inset line.
+			local lift = if s.width < 868
+				then math.ceil(Layout.TOUCH_RISE / s.scale) + s.money.rect.h + Layout.GAP
+				else 0
+			expect(s.tutorial.y + s.tutorial.h).toBe(s.height - s.bottomInset - lift)
 			expect(s.tutorialCarrying.y + s.tutorialCarrying.h + Layout.GAP).toBe(s.carry.y)
 		end
 		local d = Layout.screen(1920, 1080)
 		expect(d.tutorial.y).toBe(927)
 		expect(d.tutorialCarrying.y).toBe(819)
 		local p = Layout.screen(390, 844)
-		expect(p.tutorial.y).toBe(813)
-		expect(p.tutorialCarrying.y).toBe(705)
+		expect(p.tutorial.y).toBe(685)
+		expect(p.tutorialCarrying.y).toBe(577)
 	end)
 end)

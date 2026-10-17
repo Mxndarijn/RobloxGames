@@ -69,12 +69,6 @@ describe("banners never cover an open menu card's title or X", function()
 		for _, name in
 			{
 				"StealAlert",
-				"RareBanner",
-				"RainBanner",
-				"ModifierBadge",
-				"FriendBadge",
-				"WeekendChip",
-				"NextSpawnChip",
 				"EventsBoard",
 				"EggReveal",
 				"PadHint",

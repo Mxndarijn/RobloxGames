@@ -83,7 +83,7 @@ describe("overlays start hidden and follow their menu", function()
 		local hud = read("src/ui/Hud.luau")
 		local helper = string.match(hud, "local function banner%(.-Parent = parent") or ""
 		expect(has(helper, "Visible = false")).toBe(true)
-		for _, name in { "StealAlert", "RareBanner", "RainBanner", "PadHint" } do
+		for _, name in { "StealAlert", "EggReveal", "PadHint" } do
 			expect(has(hud, `banner(banners, "{name}"`)).toBe(true)
 		end
 	end)

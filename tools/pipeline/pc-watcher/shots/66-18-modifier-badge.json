@@ -2,5 +2,5 @@
   "id": "18-modifier-badge",
   "todo": "18",
   "kind": "ui",
-  "note": "TODO 18: server modifier HUD badge (ModifierBadge: name, multipliers, time left) under the rain banner; HUD as-is, no click. Needs a non-None modifier phase (FEATURES.CycleModifier)"
+  "note": "TODO 18, H1 HUD: the server modifier (ModifierBadge) is now an icon + m:ss slot in the bottom-right status cluster, no banner under the top bar. Needs a non-None modifier phase (FEATURES.CycleModifier)"
 }

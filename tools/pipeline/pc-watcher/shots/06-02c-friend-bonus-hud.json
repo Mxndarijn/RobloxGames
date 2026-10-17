@@ -3,5 +3,5 @@
   "todo": "v29-4",
   "kind": "ui",
   "friend_bonus": 2,
-  "note": "v29 #4: friend income bonus, 2 friends in the server: HUD badge '\ud83d\udc65 +20% friends' under the top bar, no menu open"
+  "note": "v29 #4, H1 HUD: friend income bonus, 2 friends in the server: friend icon + '+20%' slot in the bottom-right status cluster (no banner under the top bar), no menu open"
 }

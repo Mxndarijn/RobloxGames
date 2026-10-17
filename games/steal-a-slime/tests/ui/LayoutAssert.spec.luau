@@ -217,17 +217,21 @@ describe("landscape phone (v27 gate N1)", function()
 			end)
 		end
 	end
-	it("844x332 (gate N1 numbers): short, 3 nav columns, Dex button on screen, panel most of the window", function()
-		local s = Layout.screen(844, 332)
-		expect(s.short).toBe(true)
-		expect(s.navColumns).toBe(3)
-		expect(#s.hud.rows).toBe(1)
-		local dex = s.navButtons[1 + navIndex("Dex")]
-		expect(dex.y + dex.h <= s.height).toBe(true)
-		expect(s.nav.y + s.nav.h <= s.height - s.bottomInset).toBe(true)
-		expect(s.panel.w >= 0.75 * s.width).toBe(true)
-		expect(s.panel.h >= 0.5 * s.height).toBe(true)
-	end)
+	it(
+		"844x332 (gate N1 numbers): short, one nav row above the money cluster, Dex button on screen, panel most of the window",
+		function()
+			local s = Layout.screen(844, 332)
+			expect(s.short).toBe(true)
+			expect(s.navColumns).toBe(Nav.ENTRIES and #Nav.ENTRIES + 1) -- the 5 buttons + the toggle in one row
+			expect(s.nav.y + s.nav.h < s.money.rect.y).toBe(true)
+			expect(#s.hud.rows).toBe(1)
+			local dex = s.navButtons[1 + navIndex("Dex")]
+			expect(dex.y + dex.h <= s.height).toBe(true)
+			expect(s.nav.y + s.nav.h <= s.height - s.bottomInset).toBe(true)
+			expect(s.panel.w >= Layout.MENU_WIDTH).toBe(true)
+			expect(s.panel.h >= 0.5 * s.height).toBe(true)
+		end
+	)
 	it("portrait, tablet and desktop keep one nav column and their HUD rows", function()
 		for _, vp in { { 390, 844, 2 }, { 1024, 768, 2 }, { 1366, 768, 1 }, { 1920, 1080, 1 } } do
 			local s = Layout.screen(vp[1], vp[2])
@@ -345,8 +349,6 @@ describe("Config-backed numbers", function()
 			{ "src/ui/ShopCatalog.luau", "config.BASE_WALK_SPEED" },
 			{ "src/ui/ShopCatalog.luau", "config.SPEED_COIL_WALK_SPEED" },
 			{ "src/ui/Hud.luau", "ctx.Config.LOCK_MAX_REMAINING" },
-			{ "src/ui/Hud.luau", "ctx.Config.BOSS_LIFETIME" },
-			{ "src/ui/Hud.luau", "ctx.Config.RAIN_LUCK" },
 			{ "src/ui/Panels/DailyPopup.luau", "ctx.Config.DAILY_STREAK_CAP" },
 			{ "src/ui/Panels/DailyPopup.luau", "ctx.Config.DAILY_BASE" },
 			{ "src/ui/Panels/Carry.luau", "ctx.Config.SLAP_REACH" },

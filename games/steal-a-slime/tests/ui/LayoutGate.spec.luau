@@ -126,8 +126,8 @@ describe("PR gate: the checks catch PR #60's bugs", function()
 	end
 	for _, case in
 		{
-			{ w = 844, h = 390, keys = { "Goals", "Dex", "Leaders" } },
-			{ w = 844, h = 332, keys = { "Rebirth", "Goals", "Dex", "Leaders" } },
+			{ w = 844, h = 390, keys = { "Codes" } },
+			{ w = 844, h = 332, keys = { "Dex", "Codes" } },
 		}
 	do
 		it(`{case.w}x{case.h} pre-#60 (one nav column): {table.concat(case.keys, " / ")} off screen`, function()

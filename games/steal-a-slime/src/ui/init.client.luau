@@ -232,7 +232,7 @@ local backdrop = Widgets.create("TextButton", {
 }) :: TextButton
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
--- order) or a world prompt, closed with their X, the backdrop, Esc or
+-- order: Plot, Rebirth, Goals, SlimeDex, Codes) or a world prompt, closed with their X, the backdrop, Esc or
 -- gamepad B.
 local panelByKey: { [string]: any } = {
 	Plot = PlotPanel.new(gui, ctx),
@@ -252,8 +252,12 @@ for _, navEntry in Nav.ENTRIES do
 		table.insert(panels, { key = navEntry.key, nav = navEntry, panel = panel })
 	end
 end
--- Every menu: the nav ones plus the Guide card (no nav button).
+-- Every menu: the nav ones plus the cards without a nav button: Merge, Shop (opened by the ShopStand prompt;
+-- the in-world shops reuse it) and Top (H1 HUD: Merijn removed their buttons), the Guide and Welcome cards.
 local allPanels: { PanelEntry } = table.clone(panels)
+for _, key in { "Merge", "Shop", "Leaders" } do
+	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
+end
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
 table.insert(allPanels, { key = "Welcome", nav = nil, panel = WelcomePanel.new(gui, ctx) })
 -- FEATURES.Audio: the Sound card (no nav button) opens from a speaker icon in the top-right slot.
@@ -354,6 +358,21 @@ local function forceAdminEvent(state: any): any
 	}
 	return view
 end
+
+-- Studio-only: the SlimeUI attribute "PcwRain" = true fakes a running Slime Rain (97 s left from the first read)
+-- for the bottom-right status slot, whatever the workspace RainActive attributes say.
+local forcedRainEndsAt: number? = nil
+local function forcedRain(now: number): { active: boolean, endsAt: number?, nextAt: number? }?
+	if not isStudio or gui:GetAttribute("PcwRain") ~= true then
+		forcedRainEndsAt = nil
+		return nil
+	end
+	if forcedRainEndsAt == nil or forcedRainEndsAt < now then
+		forcedRainEndsAt = now + 97
+	end
+	return { active = true, endsAt = forcedRainEndsAt, nextAt = nil }
+end
+ctx.forcedRain = forcedRain
 
 -- Studio-only: the SlimeUI attribute "PcwStealAlert" = true fakes the join notice (State.stealAway);
 -- StealAlertFx fakes the flash and arrow itself.
@@ -914,6 +933,7 @@ if isStudio then
 			"PcwMergeVat",
 			"PcwRainMagnet",
 			"PcwWelcome",
+			"PcwRain",
 		}
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()
@@ -986,9 +1006,12 @@ end)
 
 notifyEvent.OnClientEvent:Connect(function(text: string, kind: Types.NotifyKind, sound: string?, itemId: string?)
 	local message = tostring(text)
-	-- Boss Slime / Legendary+ news gets the long gold "rare" toast and the HUD banner.
-	toasts.push(message, if RareAnnounce.classify(message, sound) then "rare" else kind, sound, itemId)
-	hud.onNotify(message, sound)
+	-- H1 HUD (Merijn): no boss / specific-slime notifications. Boss Slime and Legendary+ drop news
+	-- (RareAnnounce.classify) is dropped here; every other Notify is toasted as before.
+	if RareAnnounce.classify(message, sound) then
+		return
+	end
+	toasts.push(message, kind, sound, itemId)
 end)
 
 -- Studio-only PC watcher hook: the SlimeUI attribute "PcwBadgeToast" (a badge name) shows the unlock toast;

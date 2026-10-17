@@ -8,16 +8,17 @@ local Tutorial = require("../../src/ui/Tutorial")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 describe("Hint.fromState", function()
-	it("points at the top-bar Lock / Buy pad and the menu's Merge / Rebirth", function()
+	it("points at the top-bar Lock / Buy pad and the menu's Rebirth (no Merge button any more)", function()
 		local lock = Hint.fromState({ tutorialStepId = "Lock" }) :: Hint.View
 		expect(lock.text).toBe("Tap 🔒 Lock in the top bar")
 		expect(lock.target.kind).toBe("hud")
 		expect(lock.target.name).toBe("Lock")
 		expect((Hint.fromState({ tutorialStepId = "BuyPad" }) :: Hint.View).target.name).toBe("BuyPad")
-		local merge = Hint.fromState({ tutorialStepId = "Merge" }) :: Hint.View
-		expect(merge.text).toBe("Tap 🧪 Merge in the left menu")
-		expect(merge.target.kind).toBe("nav")
-		expect((Hint.fromState({ tutorialStepId = "Rebirth" }) :: Hint.View).target.name).toBe("Rebirth")
+		expect(Hint.fromState({ tutorialStepId = "Merge" })).toBeNil() -- the vat in the world, H1 HUD
+		local rebirth = Hint.fromState({ tutorialStepId = "Rebirth" }) :: Hint.View
+		expect(rebirth.text).toBe("Tap ♻️ Rebirth in the left menu")
+		expect(rebirth.target.kind).toBe("nav")
+		expect(rebirth.target.name).toBe("Rebirth")
 	end)
 	it("has no hint for world steps (Archer's arrow) or a finished tutorial", function()
 		for _, id in { "Grab", "Deposit", "Steal" } do
@@ -27,8 +28,8 @@ describe("Hint.fromState", function()
 		expect(Hint.fromState(nil)).toBeNil()
 	end)
 	it("goes away once the menu panel it points at is open", function()
-		expect(Hint.fromState({ tutorialStepId = "Merge" }, "Merge")).toBeNil()
-		expect(Hint.fromState({ tutorialStepId = "Merge" }, "Shop")).toBeTruthy()
+		expect(Hint.fromState({ tutorialStepId = "Rebirth" }, "Rebirth")).toBeNil()
+		expect(Hint.fromState({ tutorialStepId = "Rebirth" }, "Shop")).toBeTruthy()
 		expect(Hint.fromState({ tutorialStepId = "Lock" }, "Shop")).toBeTruthy()
 	end)
 	it("reads v12 numeric steps through Tutorial", function()
@@ -55,9 +56,9 @@ describe("Hint.place", function()
 	end)
 	it("rings the nav button (after the toggle) and puts the bubble beside the nav", function()
 		local s = Layout.screen(1920, 1080)
-		local view = Hint.fromState({ tutorialStepId = "Merge" }) :: Hint.View
+		local view = Hint.fromState({ tutorialStepId = "Rebirth" }) :: Hint.View
 		local p = Hint.place(s, s.hud, view) :: Hint.Placement
-		expect(p.target).toBe(s.navButtons[3]) -- toggle, Plot, Merge
+		expect(p.target).toBe(s.navButtons[3]) -- toggle, Plot, Rebirth
 		expect(p.bubble.x).toBe(s.nav.x + s.nav.w + Hint.GAP)
 	end)
 	it("is nil when the HUD target is hidden (all pads bought)", function()

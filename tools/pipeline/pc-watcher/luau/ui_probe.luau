@@ -51,7 +51,7 @@ end
 -- Fixed paths, plus every nav / HUD button (the nav is text-less icon buttons named by Nav.ENTRIES key)
 -- and every <Key>Panel with its Close.
 local paths =
-	{ "Hud.Shop", "Nav.Shop", "ShopPanel", "ShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" }
+	{ "ShopPanel", "ShopPanel.Close", "TutorialOverlay", "TutorialOverlay.Hide", "DailyPopup" }
 for _, holder in { "Nav", "Hud" } do
 	local h = gui:FindFirstChild(holder)
 	for _, c in (if h then h:GetChildren() else {}) do

@@ -254,23 +254,6 @@ function LayoutAssert.hudTexts(screen: Layout.Screen): { TextDesc }
 		table.insert(out, { name = name, text = text, size = size, bold = bold, w = w, h = h })
 	end
 	local items = hud.items
-	-- Chips: value label inset 6 px each side, 24 tall, TextSize 18 bold (16 compact).
-	local chip = if compact then 16 else 18
-	add("Cash", Format.formatCash(s.cash), chip, true, items.Cash.w - 12, 24)
-	add("Income", Format.formatRate(s.incomePerSec), chip, true, items.Income.w - 12, 24)
-	add(
-		"Rebirths",
-		`{s.rebirths} {Format.formatMultiplier(s.rebirthMultiplier)}`,
-		chip,
-		true,
-		items.Rebirths.w - 12,
-		24
-	)
-	add("Pads", `{s.padsMax}/{s.padsMax}`, chip, true, items.Pads.w - 12, 24)
-	for _, caption in { "CASH", "INCOME", "REBIRTHS", "PADS" } do
-		local key = string.upper(string.sub(caption, 1, 1)) .. string.lower(string.sub(caption, 2))
-		add(`{key} caption`, caption, 11, true, items[key].w - 12, 14)
-	end
 	-- Lock block: title 20 / 18 (compact), sub 12 / 11, inset 4 px.
 	local lockW = items.LockStatus.w - 8
 	for _, status in
@@ -283,7 +266,7 @@ function LayoutAssert.hudTexts(screen: Layout.Screen): { TextDesc }
 		add("LockStatus title", status.title, if compact then 18 else 20, true, lockW, 24)
 		add("LockStatus sub", status.sub, if compact then 11 else 12, true, lockW, 14)
 	end
-	-- Buttons (no padding in Widgets.button): Lock 16 / 13, BuyPad 15, Daily 15, Shop 16.
+	-- Buttons (no padding in Widgets.button): Lock 16 / 13, BuyPad 15, Daily 15.
 	local maxed = table.clone(s) :: any
 	maxed.lockUntil = 100 + Config.LOCK_MAX_REMAINING
 	for _, state in { s, maxed } do
@@ -292,8 +275,56 @@ function LayoutAssert.hudTexts(screen: Layout.Screen): { TextDesc }
 	end
 	add("BuyPad", LockHud.padButton(s, compact).text, 15, true, items.BuyPad.w, items.BuyPad.h)
 	add("Daily", LockHud.dailyButton(s.daily, false, compact).text, 15, true, items.Daily.w, items.Daily.h)
-	if items.Shop then
-		add("Shop", "🛒 Shop\nUpgrade!", 16, true, items.Shop.w, items.Shop.h)
+	return out
+end
+
+-- Bottom-left cluster texts at their worst (Hud builds the same label boxes): the coin plate's amount
+-- (icon + 12 px left of it, 6 px right), the income / rebirths chips (icon 28 px left, 4 px right).
+function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
+	local m = screen.money
+	local s = LayoutAssert.BIG_STATE
+	local compact = screen.compact
+	local out: { TextDesc } = {}
+	table.insert(out, {
+		name = "Money amount",
+		text = Format.formatCash(s.cash),
+		size = if compact then 22 else 26,
+		bold = true,
+		w = m.cash.w - (Layout.MONEY.icon + 18),
+		h = m.cash.h,
+	})
+	local chip = if compact then 12 else 13
+	table.insert(out, {
+		name = "Income chip",
+		text = Format.formatRate(s.incomePerSec),
+		size = chip,
+		bold = true,
+		w = m.income.w - 32,
+		h = m.income.h,
+	})
+	table.insert(out, {
+		name = "Rebirths chip",
+		text = `{s.rebirths} {Format.formatMultiplier(s.rebirthMultiplier)}`,
+		size = chip,
+		bold = true,
+		w = m.rebirths.w - 32,
+		h = m.rebirths.h,
+	})
+	return out
+end
+
+-- Bottom-right slot labels at their worst: the longest timer ("1:02:05"), a 3-digit friend bonus.
+function LayoutAssert.statusTexts(_screen: Layout.Screen): { TextDesc }
+	local out: { TextDesc } = {}
+	for _, text in { "1:02:05", "+100%", "Now" } do
+		table.insert(out, {
+			name = `Status slot {text}`,
+			text = text,
+			size = 13,
+			bold = true,
+			w = Layout.STATUS.slot,
+			h = Layout.STATUS.h - Layout.STATUS.icon - 4,
+		})
 	end
 	return out
 end
@@ -828,6 +859,55 @@ function LayoutAssert.notSquashed(check: Checker)
 end
 
 -- Every v18 rule for one screen; returns the checker (use `report()`).
+function LayoutAssert.clusterChecks(check: Checker)
+	local screen = check.screen
+	local m = Layout.MARGIN
+	local boxes: { { string | Rect } } = {
+		{ "Money", screen.money.rect },
+		{ "Money.cash", screen.money.cash },
+		{ "Money.income", screen.money.income },
+		{ "Money.rebirths", screen.money.rebirths },
+		{ "Status", screen.status.rect },
+	}
+	for i, slot in screen.status.slots do
+		table.insert(boxes, { `Status.slot{i}`, slot })
+		check.inside(`Status.slot{i}`, slot, "Status", screen.status.rect)
+	end
+	local rise = if screen.compact then math.ceil(Layout.TOUCH_RISE / screen.scale) else 0
+	local floor = screen.height - screen.bottomInset - rise
+	for _, box in boxes do
+		local name, r = box[1] :: string, box[2] :: Rect
+		check.onScreen(name, r, m)
+		if r.y + r.h > floor + EPS then
+			check.fail(`{name} {fmt(r)} reaches into the touch-controls strip (floor {floor})`)
+		end
+	end
+	check.inside("Money.cash", screen.money.cash, "Money", screen.money.rect)
+	check.inside("Money.income", screen.money.income, "Money", screen.money.rect)
+	check.inside("Money.rebirths", screen.money.rebirths, "Money", screen.money.rect)
+	check.noOverlap("Money.cash", screen.money.cash, "Money.income", screen.money.income)
+	check.noOverlap("Money.cash", screen.money.cash, "Money.rebirths", screen.money.rebirths)
+	check.noOverlap("Money.income", screen.money.income, "Money.rebirths", screen.money.rebirths)
+	check.noOverlap("Money", screen.money.rect, "Status", screen.status.rect)
+	for _, cluster in { { "Money", screen.money.rect }, { "Status", screen.status.rect } } do
+		local name, r = cluster[1] :: string, cluster[2] :: Rect
+		for _, other in
+			{
+				{ "Hud", screen.hud.rect },
+				{ "Nav", screen.nav },
+				{ "Carry", screen.carry },
+				{ "Slap", screen.slap },
+				{ "Tutorial", screen.tutorial },
+				{ "TutorialCarrying", screen.tutorialCarrying },
+				{ "Sound", screen.sound },
+				{ "Banners", screen.banners },
+			}
+		do
+			check.noOverlap(name, r, other[1] :: string, other[2] :: Rect)
+		end
+	end
+end
+
 function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	local check = LayoutAssert.new(label, screen)
 	local m = Layout.MARGIN
@@ -876,6 +956,10 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			check.noOverlap(`NavButton{i}`, screen.navButtons[i], `NavButton{j}`, screen.navButtons[j])
 		end
 	end
+
+	-- H1 bottom clusters: on screen, on the bottom inset line (compact: also above the touch-controls rise),
+	-- clear of the HUD, nav, bottom cards and each other; every status slot inside its cluster.
+	LayoutAssert.clusterChecks(check)
 
 	-- Menus: full-window backdrop, content-sized cards, close X tappable.
 	check.onScreen("column", screen.column, m)
@@ -973,6 +1057,8 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	for _, list in
 		{
 			LayoutAssert.hudTexts(screen),
+			LayoutAssert.moneyTexts(screen),
+			LayoutAssert.statusTexts(screen),
 			LayoutAssert.navTexts(screen),
 			LayoutAssert.tutorialTexts(screen),
 			LayoutAssert.dailyTexts(screen),

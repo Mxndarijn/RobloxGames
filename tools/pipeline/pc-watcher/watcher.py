@@ -1513,8 +1513,8 @@ def step_twoplayer(run):
     return ("pass" if passed else "fail"), detail
 
 
-UI_SHOT_BUTTONS = {"shop": "Nav.Shop", "dex": "Nav.Dex", "rebirth": "Nav.Rebirth", "goals": "Nav.Goals",
-                   "plot": "Nav.Plot", "merge": "Nav.Merge", "leaders": "Nav.Leaders", "codes": "Nav.Codes"}
+# H1 HUD: the left column is Plot, Rebirth, Goals, SlimeDex, Codes (Shop / Merge / Top panels have no nav button; PcwOpen opens them)
+UI_SHOT_BUTTONS = {"dex": "Nav.Dex", "rebirth": "Nav.Rebirth", "goals": "Nav.Goals", "plot": "Nav.Plot", "codes": "Nav.Codes"}
 UI_SHOT_PANELS = {"leaders": "LeaderboardPanel"}  # else <Key>Panel (src/ui/Panels: Widgets.panel names)
 
 
@@ -1680,8 +1680,10 @@ def step_shots(run):
                     res["friend_bonus"] = run.need_luau("friend_bonus", "Client", timeout=15, count=int(shot["friend_bonus"]))
                 if shot.get("admin_event"):  # v29 #10: fake a live admin event banner (Studio only)
                     res["admin_event"] = run.need_luau("admin_event", "Client", timeout=15, event=shot["admin_event"])
-                if shot.get("weekend"):  # competitor-gaps #17: fake a live x2 Weekend chip (Studio only)
+                if shot.get("weekend"):  # competitor-gaps #17: fake a live x2 Weekend window (Studio only; H1 HUD: not shown)
                     res["weekend"] = run.need_luau("weekend", "Client", timeout=15, on=True)
+                if shot.get("rain"):  # H1 HUD: fake a running Slime Rain for the bottom-right status slot (Studio only)
+                    res["rain"] = run.need_luau("rain", "Client", timeout=15, on=True)
                 if shot.get("steal_alert"):  # v21: fake a theft of my slime: edge flash, arrow, join notice (Studio only)
                     sa = res["steal_alert"] = run.need_luau("steal_alert", "Client", timeout=15, on=True)
                     if not sa.get("fx") or not sa.get("arrow_visible"):
@@ -1773,6 +1775,8 @@ def step_shots(run):
                     run.luau("admin_event", "Client", timeout=15, event="")
                 if shot.get("weekend"):
                     run.luau("weekend", "Client", timeout=15, on=False)
+                if shot.get("rain"):
+                    run.luau("rain", "Client", timeout=15, on=False)
                 if shot.get("steal_alert"):
                     run.luau("steal_alert", "Client", timeout=15, on=False)
                 if shot.get("plot_skin"):

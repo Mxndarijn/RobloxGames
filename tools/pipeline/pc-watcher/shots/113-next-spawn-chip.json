@@ -2,5 +2,5 @@
   "id": "next-spawn-chip",
   "todo": "v20-next-spawn",
   "kind": "ui",
-  "note": "v20 HUD next-event chip: idle HUD with the 'Slime Rain in m:ss' / 'Boss Slime in m:ss' chip (workspace RainNextAt / BossNextAt server times) in the banner stack under the bar; it hides while a menu is open and while it rains"
+  "note": "v20 next-event chip, reworked for the H1 HUD: the banner stack chip and its Boss Slime countdown are gone; 'Slime Rain in m:ss' (workspace RainNextAt within 10 min) now shows as the dimmed cloud slot with the countdown in the bottom-right status cluster; nothing under the top bar"
 }

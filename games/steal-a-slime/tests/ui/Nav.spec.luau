@@ -18,7 +18,13 @@ describe("Nav.ENTRIES", function()
 			expect(#entry.icon > 0).toBe(true)
 			expect(#entry.label > 0 and #entry.label <= 8).toBe(true)
 		end
-		expect(seen.Plot and seen.Shop and seen.Rebirth and seen.Dex).toBe(true)
+	end)
+	it("is exactly Plot, Rebirth, Goals, SlimeDex, Codes (H1 HUD: Merge, Shop and Top have no button)", function()
+		local keys = {}
+		for _, entry in Nav.ENTRIES do
+			table.insert(keys, entry.key)
+		end
+		expect(table.concat(keys, ",")).toBe("Plot,Rebirth,Goals,Dex,Codes")
 	end)
 	it("shows the Dex entry as SlimeDex (internal key stays Dex)", function()
 		local labels = {}
@@ -48,7 +54,7 @@ describe("Nav.shopAffordable", function()
 end)
 
 describe("Nav.badges", function()
-	it("flags stolen slimes, merges, affordable upgrades, rebirth and dex %", function()
+	it("flags stolen slimes, rebirth and dex % (no Merge / Shop badges: those buttons are gone)", function()
 		local badges = Nav.badges({
 			cash = 600,
 			slimes = { view("a", 1, 7), view("b", 2), view("c", 2) },
@@ -61,8 +67,8 @@ describe("Nav.badges", function()
 			dexTotal = 720,
 		})
 		expect(badges.Plot).toBe("!")
-		expect(badges.Merge).toBe("!")
-		expect(badges.Shop).toBe("$")
+		expect(badges.Merge).toBeNil()
+		expect(badges.Shop).toBeNil()
 		expect(badges.Rebirth).toBe("!")
 		expect(badges.Dex).toBe("0%")
 	end)

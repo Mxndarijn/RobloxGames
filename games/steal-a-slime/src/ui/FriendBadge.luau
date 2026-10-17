@@ -31,6 +31,14 @@ function FriendBadge.banner(view: View?, enabled: boolean): string?
 	return `👥 {percent((view :: View).bonus)} friends`
 end
 
+-- "+20%" alone (the bottom-right status slot); nil like `banner`.
+function FriendBadge.label(view: View?, enabled: boolean): string?
+	if not active(view, enabled) then
+		return nil
+	end
+	return percent((view :: View).bonus)
+end
+
 function FriendBadge.line(view: View?, enabled: boolean): string?
 	if not active(view, enabled) then
 		return nil

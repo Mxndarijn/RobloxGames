@@ -4,6 +4,10 @@
 
 Related: `CONTRACT.md` (§2 UI, State shape), `UI-CONTRACT-GAPS.md` (closed contract gaps), `../../../roadmap-v17-v22.md` (release roadmap, workspace root).
 
+## 2026-10-17: Merijn's HUD v2 (PR H1; spec `/workspace/roblox/bugs-oct17/HUD-DESIGN.md`)
+
+H1 = HUD layout only (the two in-world shops are H2). Left column: Plot, Rebirth, Goals, SlimeDex, Codes (Merge, Shop, Top buttons and their badges are gone; the Merge / Shop / Top panels stay as nav-less cards, the Shop still opens from the ShopStand prompt). Bottom-left (`Layout.moneyCluster`, `HudClusters.money`): Money, Income/s, Rebirths. Bottom-right (`Layout.statusCluster`, `HudClusters.status`): icon + timer slots for Slime Rain, the live server modifier / admin event and the friend boost; never the weekend boost. Boss / Legendary-drop notices (RareAnnounce) and the next-spawn chip are gone. On phones both clusters sit `Layout.TOUCH_RISE` screen px above the touch-controls strip and the carry / tutorial cards sit above them. Still in the top bar / banner stack because they have no slot yet (Merijn to decide, see `/workspace/roblox/glitch-hud-inventory.md`): lock block, Lock, Buy pad, Daily, steal alert, egg hatch, pad hint, events board, toasts, sound button. The `Income` / `FriendBoost` icons are placeholder tiles until Archer renders them (ITEM-ICONS-NEEDED.md). Studio hook: SlimeUI attribute `PcwRain` fakes a running Slime Rain.
+
 ## 2026-10-15: Merijn's menu notes
 
 1. **Full-window menus: done.** Every nav menu (Plot, Merge, Shop, Rebirth, Goals, SlimeDex, Top) opens as one full-window panel (`Layout.panelFor` = `screen.panel`): right of the nav, from under the HUD down to the bottom touch inset. The carry and tutorial cards draw above it (ZINDEX), so Drop / Slap / Hide stay tappable. Close: an **X** top-right on every panel (`Widgets.panel`, `Layout.panelClose`, 55 design px ≥ 44 screen px), plus **gamepad B** (`ContextActionService` "CloseMenu"; and Esc while a menu is open: `Layout.CLOSE_WITH_ESCAPE`, on since v27; with no menu open Esc passes on to the Roblox menu). All call `setOpen(nil)`. Checked at 5 viewports in `tests/ui/LayoutAssert.spec`.
