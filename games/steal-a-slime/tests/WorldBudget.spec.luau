@@ -158,12 +158,12 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 		expect(uploaded.buy).toBe(0)
 		expect(uploaded.decor <= WorldLayout.DECOR_SLOT_BUDGET).toBe(true)
 	end)
-	it("splits MESH_SLOT_BUDGET 400 into fence 128 + gate posts 8 + border 88 + decor 160 + runtime 16", function()
+	it("splits MESH_SLOT_BUDGET 400 into fence 128 + gate posts 8 + border 96 + decor 152 + runtime 16", function()
 		expect(WorldLayout.MESH_SLOT_BUDGET).toBe(400)
 		expect(WorldLayout.FENCE_SLOT_BUDGET).toBe(128)
 		expect(WorldLayout.GATE_POST_SLOT_BUDGET).toBe(8)
-		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(88)
-		expect(WorldLayout.DECOR_SLOT_BUDGET).toBe(160)
+		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(96)
+		expect(WorldLayout.DECOR_SLOT_BUDGET).toBe(152)
 		expect(
 			WorldLayout.FENCE_SLOT_BUDGET
 				+ WorldLayout.GATE_POST_SLOT_BUDGET

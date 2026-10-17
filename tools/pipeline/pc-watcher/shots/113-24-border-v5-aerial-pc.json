@@ -1,0 +1,19 @@
+{
+  "id": "24-border-v5-aerial-pc",
+  "pos": [
+    15.3,
+    430,
+    -37.0
+  ],
+  "look": [
+    -65.1,
+    0,
+    157.1
+  ],
+  "note": "border v5: aerial over the plaza toward the edge: the ring of ~22 giant trees (three new meshes, three depth bands, varied scale, heading and canopy tint) beyond the fence and hills, in front of the mountains in [desktop]",
+  "kind": "world",
+  "wait": 6.0,
+  "device": "desktop",
+  "clock": 14,
+  "todo": "border-v5"
+}
