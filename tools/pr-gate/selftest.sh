@@ -146,18 +146,17 @@ expect_fail "budget: FBX folder missing (triangles unknown)" "no FBX in" \
 
 echo "=== selftest: runtime-budget ==="
 fx="$T_GATE/fixtures"
-rtb() { # HEAD_FIXTURE BASE_FIXTURE
-	env PR_GATE_WATCHER="$PR_GATE_ROOT/tools/pipeline/pc-watcher/watcher.py" \
-		PR_GATE_RT_COUNTS_HEAD="$fx/$1" PR_GATE_RT_COUNTS_BASE="$fx/$2" bash "$T_GATE/runtime_budget.sh"
-}
+watcher_py="$PR_GATE_ROOT/tools/pipeline/pc-watcher/watcher.py"
+# rtb HEAD_FIXTURE BASE_FIXTURE: the command line (expect_* run it through env, so no shell function)
+rtb() { echo env PR_GATE_WATCHER="$watcher_py" PR_GATE_RT_COUNTS_HEAD="$fx/$1" PR_GATE_RT_COUNTS_BASE="$fx/$2" bash "$T_GATE/runtime_budget.sh"; }
 expect_fail "runtime-budget: parts 2233 > 2230, base 2217 under budget" "parts 2233/2230 \(base 2217, \+16\).* FAIL" \
-	rtb rt-counts-main.json rt-counts-base-ok.json
+	$(rtb rt-counts-main.json rt-counts-base-ok.json)
 expect_ok "runtime-budget: parts 2233 == over-budget base 2233" "parts 2233/2230 \(base 2233, \+0\).* PASS" \
-	rtb rt-counts-main.json rt-counts-main.json
+	$(rtb rt-counts-main.json rt-counts-main.json)
 expect_fail "runtime-budget: parts 2234 > over-budget base 2233" "parts 2234/2230 \(base 2233, \+1\).* FAIL" \
-	rtb rt-counts-parts-up.json rt-counts-main.json
+	$(rtb rt-counts-parts-up.json rt-counts-main.json)
 expect_fail "runtime-budget: 401 mesh slots" "meshes 401/400 .* FAIL" \
-	rtb rt-counts-meshes-401.json rt-counts-base-ok.json
+	$(rtb rt-counts-meshes-401.json rt-counts-base-ok.json)
 expect_fail "runtime-budget: 401 mesh slots, no base" "meshes 401/400 \(base n/a\).* FAIL" \
 	env -u PR_GATE_RT_COUNTS_BASE PR_GATE_WATCHER="$PR_GATE_ROOT/tools/pipeline/pc-watcher/watcher.py" \
 	PR_GATE_RT_COUNTS_HEAD="$fx/rt-counts-meshes-401.json" bash "$T_GATE/runtime_budget.sh"
