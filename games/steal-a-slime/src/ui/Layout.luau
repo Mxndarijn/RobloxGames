@@ -39,6 +39,7 @@ export type Screen = {
 	hud: HudLayout,
 	banners: Rect,
 	toasts: Rect,
+	sound: Rect, -- FEATURES.Audio button: the top-right slot a menu's X would use (hidden while a menu is open)
 	nav: Rect,
 	navButtons: { Rect }, -- [1] = collapse toggle, then Nav.ENTRIES order
 	column: Rect, -- right of the nav, under the HUD, above the bottom cards
@@ -429,6 +430,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Dex = 600,
 	Leaders = 460,
 	Codes = 300,
+	Sound = 275,
 	Guide = 380,
 	Welcome = 380,
 })
@@ -678,6 +680,7 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		hud = hud,
 		banners = banners,
 		toasts = toasts,
+		sound = wideClose,
 		nav = nav,
 		navButtons = Layout.navButtons(nav, nil, columns),
 		column = column,

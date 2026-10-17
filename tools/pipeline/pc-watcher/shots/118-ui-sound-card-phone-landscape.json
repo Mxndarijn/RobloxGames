@@ -1,0 +1,11 @@
+{
+  "id": "ui-sound-card-phone-landscape",
+  "todo": "audio-panel-polish",
+  "kind": "ui",
+  "open": "sound",
+  "flags": {
+    "Audio": true
+  },
+  "device": "phone-landscape",
+  "note": "Audio on: the Sound card (mute toggle, Music and SFX sliders) opened from the speaker icon, phone-landscape; Esc closes it"
+}

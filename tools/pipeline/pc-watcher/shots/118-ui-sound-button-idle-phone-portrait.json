@@ -1,0 +1,10 @@
+{
+  "id": "ui-sound-button-idle-phone-portrait",
+  "todo": "audio-panel-polish",
+  "kind": "ui",
+  "flags": {
+    "Audio": true
+  },
+  "device": "phone-portrait",
+  "note": "Audio on, no menu open: the speaker icon sits in the top-right slot clear of nav, HUD, toasts and the bottom cards"
+}

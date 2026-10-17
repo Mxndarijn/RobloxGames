@@ -446,6 +446,7 @@ services.RunService = {
 services.SoundService = {
 	PlayLocalSound = function() end,
 }
+services.UserInputService = { InputChanged = signal, InputEnded = signal }
 services.TweenService = {
 	Create = function()
 		UiHarness.stats.tweensCreated += 1
