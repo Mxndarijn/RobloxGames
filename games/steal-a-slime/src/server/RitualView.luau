@@ -2,8 +2,8 @@
 --[[
 	RitualView (Roblox adapter, FEATURES.CoopRitual, CONTRACT.md §13)
 
-	Builds the plaza ritual circle from plain parts (a flat disc, Config.RITUAL.SPOTS glowing spot
-	discs, a hovering orb with a BillboardGui) under workspace.Map.RitualCircle, and keeps it in sync
+	Builds the plaza ritual circle from plain parts (a flat disc, one glowing spot disc per required
+	player (Config.RITUAL.SPOTS = MIN_PLAYERS), a hovering orb with a BillboardGui) under workspace.Map.RitualCircle, and keeps it in sync
 	with the Ritual state: spots glow green while someone stands on them, the sign reads
 	"n/2 players", then "Hold still! 5s", then "Ritual resting 3:20". Also reads the players'
 	HumanoidRootPart positions for RitualService.step. Everything is decor: anchored, no collision,
@@ -127,6 +127,26 @@ function RitualView.setup(): Model?
 	gui.Parent = core
 	title = textLabel("Title", gui, 0, 0.5, 26)
 	line = textLabel("Line", gui, 0.5, 0.5, 22)
+
+	-- One small board at the circle edge, facing the plaza, that explains the rule (text from Config).
+	local sx, sz = Ritual.signSpot()
+	local board = Instance.new("Part")
+	board.Name = "RuleSign"
+	board.Size = Vector3.new(6, 1.8, 0.3)
+	-- lookAt points the front (-Z) face at the fountain axis
+	board.CFrame = CFrame.lookAt(Vector3.new(sx, 1, sz), Vector3.new(0, 1, 0))
+	decor(board, Color3.fromRGB(60, 40, 110), Enum.Material.SmoothPlastic)
+	board.Parent = model
+	local face = Instance.new("SurfaceGui")
+	face.Name = "RuleText"
+	face.Face = Enum.NormalId.Front
+	face.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	face.PixelsPerStud = 50
+	face.LightInfluence = 0
+	face.Parent = board
+	local rule = textLabel("Rule", face, 0, 1, 20)
+	rule.TextWrapped = true
+	rule.Text = Ritual.signText()
 
 	model:SetAttribute("Phase", "Idle")
 	model.Parent = parent

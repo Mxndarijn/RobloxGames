@@ -626,6 +626,7 @@ end
 -- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
 -- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
 local SLIME_MOVE_SPEED_MULT = 0.65
+local RITUAL_MIN_PLAYERS = 2 -- Config.RITUAL.MIN_PLAYERS; also the number of stand spots
 local WILD_BASE_LIFETIME = 75 -- seconds at the old pace
 
 local Config = {
@@ -936,16 +937,16 @@ local Config = {
 		BEARING = 348, -- degrees round the fountain
 		DISTANCE = 93, -- studs from the fountain axis
 		CIRCLE_RADIUS = 6, -- the painted disc
-		SPOTS = 4, -- glowing stand spots
+		SPOTS = RITUAL_MIN_PLAYERS, -- glowing stand spots: one per required player (so 2 pads)
 		SPOT_DISTANCE = 3.5, -- spot centre from the circle centre
 		STAND_RADIUS = 2.4, -- a player counts on the nearest spot within this (horizontal)
 		STAND_HEIGHT = 8, -- and a root part at most this high above the plaza ground (not on the fountain)
-		MIN_PLAYERS = 2,
+		MIN_PLAYERS = RITUAL_MIN_PLAYERS,
 		HOLD_SECONDS = 6, -- everyone must keep standing this long
 		SERVER_COOLDOWN = 240, -- seconds the circle rests after a ritual
 		PLAYER_COOLDOWN = 600, -- seconds before the same player can count again
 		BLESS_SECONDS = 180,
-		BONUS = table.freeze({ [2] = 0.15, [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants
+		BONUS = table.freeze({ [2] = 0.3, [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants; tiers above SPOTS stay as data but can't be reached (Ritual.bonus caps at SPOTS)
 	}),
 
 	-- Follow-pet passives (FEATURES.PetPassives, CONTRACT.md §14). The kind comes from the favourite slime's tier;

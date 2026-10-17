@@ -402,6 +402,19 @@ if Config.FEATURES.CoopRitual then
 		)
 	end
 	ritualPart("Ball", { 2.6, 2.6, 2.6 }, { cx, 4.2, cz }, { 190, 160, 255 }, "Neon")
+	-- the rule sign (RuleSign): a thin board on the plaza side, turned to face the fountain axis
+	local sx, sz = Ritual.signSpot()
+	local d = math.sqrt(sx * sx + sz * sz)
+	local ux, uz = sx / d, sz / d -- unit vector from the axis to the sign; the board's width runs across it
+	table.insert(parts, {
+		name = "Workspace.Map.RitualCircle",
+		shape = "Block",
+		size = { 6, 1.8, 0.3 },
+		cf = { sx, 1, sz, uz, 0, ux, 0, 1, 0, -ux, 0, uz },
+		color = { 60 / 255, 40 / 255, 110 / 255 },
+		material = "SmoothPlastic",
+		transparency = 0,
+	})
 end
 
 -- The border hills (server/BorderTerrainView writes them as voxel terrain): the same seeded

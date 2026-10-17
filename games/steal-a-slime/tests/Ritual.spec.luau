@@ -35,10 +35,10 @@ end
 describe("Ritual.occupants", function()
 	it("counts a player on each spot", function()
 		local state = Ritual.new()
-		local occ = Ritual.occupants(state, { onSpot(1, 1), onSpot(2, 2), onSpot(3, 3) }, T0)
-		expect(count(occ)).toBe(3)
+		local occ = Ritual.occupants(state, { onSpot(1, 1), onSpot(2, 2) }, T0)
+		expect(count(occ)).toBe(R.SPOTS)
 		expect(occ[1]).toBe(1)
-		expect(occ[3]).toBe(3)
+		expect(occ[2]).toBe(2)
 	end)
 
 	it("ignores players off the spots, too high, or with a bad position", function()
@@ -46,7 +46,7 @@ describe("Ritual.occupants", function()
 		local far = onSpot(1, 1, R.STAND_RADIUS + 1, 0)
 		local high = onSpot(2, 2)
 		high.y = R.STAND_HEIGHT + 20
-		local nan = onSpot(3, 3)
+		local nan = onSpot(3, 1)
 		nan.x = 0 / 0
 		expect(count(Ritual.occupants(state, { far, high, nan }, T0))).toBe(0)
 	end)
@@ -82,26 +82,37 @@ describe("Ritual.step", function()
 
 	it("completes after the hold and blesses each participant", function()
 		local state = Ritual.new()
-		local users = { [1] = 10, [2] = 11, [3] = 12 }
+		local users = { [1] = 10, [2] = 11 }
 		Ritual.step(state, users, T0)
 		expect(Ritual.step(state, users, T0 + R.HOLD_SECONDS - 0.1)).toBeNil()
 		local done = Ritual.step(state, users, T0 + R.HOLD_SECONDS)
 		expect(done).toBeTruthy()
 		expect(done and done.userIds[1]).toBe(10)
-		expect(#(done and done.userIds or {})).toBe(3)
-		expect(done and done.bonus).toBe(R.BONUS[3])
+		expect(#(done and done.userIds or {})).toBe(2)
+		expect(done and done.bonus).toBe(R.BONUS[2])
 		expect(state.phase).toBe("Cooldown")
 		expect(state.blessed[11].untilAt).toBe(T0 + R.HOLD_SECONDS + R.BLESS_SECONDS)
 	end)
 
-	it("pays more for 4 players", function()
+	it("pays +30% for the two-player ritual", function()
+		expect(R.BONUS[2]).toBe(0.3)
+		expect(Ritual.bonus(2)).toBe(0.3)
+	end)
+
+	it("has one pad per required player, so bonus tiers above that are capped", function()
+		expect(R.SPOTS).toBe(R.MIN_PLAYERS)
+		expect(#Ritual.spots()).toBe(R.MIN_PLAYERS)
+		expect(Ritual.bonus(R.SPOTS + 2)).toBe(R.BONUS[R.SPOTS])
+	end)
+
+	it("pays the capped bonus when more than the pads stand (map input)", function()
 		local state = Ritual.new()
 		local users = { [1] = 1, [2] = 2, [3] = 3, [4] = 4 }
 		Ritual.step(state, users, T0)
 		local done = Ritual.step(state, users, T0 + R.HOLD_SECONDS)
-		expect(done and done.bonus).toBe(R.BONUS[4])
+		expect(done and done.bonus).toBe(R.BONUS[R.SPOTS])
 		expect(Ritual.bonus(1)).toBe(0)
-		expect(Ritual.bonus(9)).toBe(R.BONUS[4])
+		expect(Ritual.bonus(9)).toBe(R.BONUS[R.SPOTS])
 	end)
 
 	it("needs only two players", function()
@@ -119,14 +130,14 @@ describe("Ritual.step", function()
 
 	it("restarts the timer when someone steps off", function()
 		local state = Ritual.new()
-		local three = { [1] = 1, [2] = 2, [3] = 3 }
-		Ritual.step(state, three, T0)
+		local pair = { [1] = 1, [2] = 2 }
+		Ritual.step(state, pair, T0)
 		Ritual.step(state, { [1] = 1 }, T0 + 3)
 		expect(state.phase).toBe("Idle")
 		expect(state.chargeEndsAt).toBeNil()
-		Ritual.step(state, three, T0 + 4)
-		expect(Ritual.step(state, three, T0 + 4 + R.HOLD_SECONDS - 0.5)).toBeNil()
-		expect(Ritual.step(state, three, T0 + 4 + R.HOLD_SECONDS)).toBeTruthy()
+		Ritual.step(state, pair, T0 + 4)
+		expect(Ritual.step(state, pair, T0 + 4 + R.HOLD_SECONDS - 0.5)).toBeNil()
+		expect(Ritual.step(state, pair, T0 + 4 + R.HOLD_SECONDS)).toBeTruthy()
 	end)
 
 	it("rests for the server cooldown, ignoring everyone, then opens again", function()
@@ -168,7 +179,7 @@ describe("Ritual.step", function()
 
 	it("is gated by FEATURES.CoopRitual", function()
 		expect(type(Config.FEATURES.CoopRitual)).toBe("boolean")
-		expect(Ritual.bonus(3) > 0).toBe(Config.FEATURES.CoopRitual)
+		expect(Ritual.bonus(2) > 0).toBe(Config.FEATURES.CoopRitual)
 	end)
 end)
 
@@ -182,16 +193,16 @@ describe("RitualService.step", function()
 		return world, sessions, Ritual.new()
 	end
 
-	it("blesses three players, which raises their income, and not the bystander", function()
+	it("blesses two players, which raises their income, and not the bystander", function()
 		local world, sessions, state = setup()
 		local before = PlayerData.incomePerSecond(sessions[1].data)
-		local group = { onSpot(1, 1), onSpot(2, 2), onSpot(3, 3), onSpot(4, 4, 6, 0) }
+		local group = { onSpot(1, 1), onSpot(2, 2), onSpot(4, 1, 6, 0) }
 		RitualService.step(state, world, group, T0)
 		local done = RitualService.step(state, world, group, T0 + R.HOLD_SECONDS)
 		expect(done).toBeTruthy()
-		expect(sessions[2].data.ritualBonus).toBe(R.BONUS[3])
+		expect(sessions[2].data.ritualBonus).toBe(R.BONUS[2])
 		expect(sessions[4].data.ritualBonus).toBeNil()
-		expect(PlayerData.incomePerSecond(sessions[1].data) > before * 1.19).toBeTruthy()
+		expect(PlayerData.incomePerSecond(sessions[1].data) > before * 1.29).toBeTruthy()
 		local pays = 0
 		for _, event in ServerFixtures.world and require("../src/server/World").drain(world) do
 			if event.type == "Notify" and event.userId == 1 then
@@ -203,11 +214,11 @@ describe("RitualService.step", function()
 
 	it("ends the blessing at the deadline", function()
 		local world, sessions, state = setup()
-		local group = { onSpot(1, 1), onSpot(2, 2), onSpot(3, 3) }
+		local group = { onSpot(1, 1), onSpot(2, 2) }
 		RitualService.step(state, world, group, T0)
 		RitualService.step(state, world, group, T0 + R.HOLD_SECONDS)
 		RitualService.step(state, world, {}, T0 + R.HOLD_SECONDS + R.BLESS_SECONDS - 1)
-		expect(sessions[1].data.ritualBonus).toBe(R.BONUS[3])
+		expect(sessions[1].data.ritualBonus).toBe(R.BONUS[2])
 		RitualService.step(state, world, {}, T0 + R.HOLD_SECONDS + R.BLESS_SECONDS)
 		expect(sessions[1].data.ritualBonus).toBeNil()
 	end)
@@ -215,13 +226,15 @@ describe("RitualService.step", function()
 	it("needs a loaded session and a slime", function()
 		local world, sessions, state = setup()
 		sessions[2].data.slimes = {}
-		sessions[3].data.slimes = {}
-		local group = { onSpot(1, 1), onSpot(2, 2), onSpot(3, 3), onSpot(99, 4) } -- 99 has no session
+		local group = { onSpot(1, 1), onSpot(2, 2) }
+		local ghost = { onSpot(1, 1), onSpot(99, 2) } -- 99 has no session
+		RitualService.step(state, world, ghost, T0)
+		expect(state.count).toBe(1)
 		RitualService.step(state, world, group, T0)
 		expect(state.count).toBe(1)
 		expect(RitualService.step(state, world, group, T0 + R.HOLD_SECONDS)).toBeNil()
 		-- carrying a slime counts
-		sessions[3].carry = { slimeId = "x" } :: any
+		sessions[2].carry = { slimeId = "x" } :: any
 		RitualService.step(state, world, group, T0 + 10)
 		expect(state.count).toBe(2)
 	end)
@@ -237,7 +250,7 @@ describe("RitualService.step", function()
 	it("pays Blessed income through Income.step", function()
 		local world, sessions, state = setup()
 		local plain = ServerFixtures.join(world, 50, { Fixtures.slime("p") }, 0)
-		local group = { onSpot(1, 1), onSpot(2, 2), onSpot(3, 3) }
+		local group = { onSpot(1, 1), onSpot(2, 2) }
 		RitualService.step(state, world, group, T0)
 		RitualService.step(state, world, group, T0 + R.HOLD_SECONDS)
 		local base1, basePlain = sessions[1].data.cash, plain.data.cash
@@ -245,7 +258,7 @@ describe("RitualService.step", function()
 			Income.step(world, 5)
 		end
 		local gain, plainGain = sessions[1].data.cash - base1, plain.data.cash - basePlain
-		expect(gain > plainGain * 1.19).toBeTruthy()
+		expect(gain > plainGain * 1.29).toBeTruthy()
 	end)
 end)
 
@@ -307,6 +320,28 @@ describe("ritual circle placement", function()
 			if along > 0 then
 				expect(across > 6 + reach).toBeTruthy()
 			end
+		end
+	end)
+
+	it("generates the sign text from Config and keeps the sign at the plaza edge, off the lane", function()
+		local text = Ritual.signText()
+		expect(text:find(`{R.MIN_PLAYERS} players`, 1, true) ~= nil).toBe(true)
+		expect(text:find(`{R.HOLD_SECONDS}s`, 1, true) ~= nil).toBe(true)
+		expect(text:find(`+{math.floor(R.BONUS[R.MIN_PLAYERS] * 100 + 0.5)}%`, 1, true) ~= nil).toBe(true)
+		expect(text:find(`{R.BLESS_SECONDS // 60} min`, 1, true) ~= nil).toBe(true)
+		local sx, sz = Ritual.signSpot()
+		expect(dist(sx, sz, cx, cz) <= reach + margin).toBe(true) -- inside the clearance already tested
+		expect(dist(sx, sz, 0, 0) < dist(cx, cz, 0, 0)).toBe(true) -- on the plaza side
+	end)
+
+	it("has one pad per required player, evenly spaced (RitualView builds one part per Ritual.spots entry)", function()
+		local spots = Ritual.spots()
+		expect(#spots).toBe(R.MIN_PLAYERS)
+		local gap = dist(spots[1][1], spots[1][2], spots[2][1], spots[2][2])
+		for i, a in spots do
+			expect(math.abs(dist(a[1], a[2], cx, cz) - R.SPOT_DISTANCE) < 1e-6).toBeTruthy()
+			local b = spots[i % #spots + 1]
+			expect(math.abs(dist(a[1], a[2], b[1], b[2]) - gap) < 1e-6).toBeTruthy()
 		end
 	end)
 
