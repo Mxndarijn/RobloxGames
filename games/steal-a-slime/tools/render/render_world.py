@@ -700,6 +700,9 @@ VIEWS = {
     "27_lane_straight": lambda: look((17.6, 1.6, -55.5), (28.6, 0.3, -48.2), lens=28),
     "28_lane_bend": lambda: look((-68.5, 1.6, 19), (-62, 0.3, 4.5), lens=28),
     "29_lane_exit": lambda: look((-4, 1.6, 33), (-18, 0.3, 39.5), lens=28),
+    # bug 4b: the lane's sharpest turn by the drain (probe bug04_lane_smooth), eye 2 studs up looking through it, and top-down 40 studs wide
+    "31_lane_turn": lambda: look((36, 2, 57), (10, 0.3, 61.5), lens=28),
+    "32_lane_turn_top": lambda: look((16, 200, 62.01), (16, 0, 62), ortho=40),
     # bugs #13-15 (soft terrain ground): the approved concept camera. Eye at polar(-20, 89, 6) looking at polar(-40, 50, 2);
     # lens 26 mm on the 36 mm sensor (vertical FOV 42.6 degrees at 16:9)
     "30_ground_eye": lambda: look(polar(-20, 89, 6), polar(-40, 50, 2.0), lens=26),
@@ -735,7 +738,7 @@ for name, setup in VIEWS.items():
     if name.startswith("30") and data.get("ground") and "ground_tufts" not in bpy.data.objects:
         print("tufts", build_tufts(data["ground"]))
     # ortho_scale spans the frame height for the top view
-    top = name.startswith("01")
+    top = name.startswith(("01", "32"))
     cam_data.sensor_fit = "VERTICAL" if top else "AUTO"
     amount.inputs[1].default_value = 0.0 if (top or name.startswith("13")) else 0.6
     renames = dict(kv.split("=") for kv in args.rename.split(",") if kv)

@@ -1681,15 +1681,15 @@
   "slime_lane": {
     "assetId": "87473643950432",
     "assetType": "Model",
-    "sha256": "cac9d04b50947e14",
-    "uploadedAt": "2026-10-17T15:00:32Z",
-    "versions": 1,
-    "meshId": "rbxassetid://76219934756988",
+    "meshId": "rbxassetid://105422361986931",
     "meshSize": [
-      141.076,
+      139.095,
       0.43,
-      137.764
-    ]
+      135.756
+    ],
+    "sha256": "053231197030ebe1",
+    "uploadedAt": "2026-10-17T17:29:47Z",
+    "versions": 2
   },
   "slime_wobble": {
     "assetId": "73195420238991",
