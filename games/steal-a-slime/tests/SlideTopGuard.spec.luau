@@ -184,7 +184,7 @@ describe("SlideTopGuard.nudge", function()
 	end
 	it("lands outside every fill footprint, close by, from the ridge of every fill", function()
 		for _, spec in FILLS do
-			local x, y, z = at(spec, 0, SlideColliders.ridge(spec).height + 3, 0)
+			local x, _, z = at(spec, 0, SlideColliders.ridge(spec).height + 3, 0)
 			local nx, nz = SlideTopGuard.nudge(SPECS, spec, x, z, cx, cz)
 			local moved = math.sqrt((nx - x) ^ 2 + (nz - z) ^ 2)
 			expect(moved > 1 and moved <= SlideTopGuard.MAX_STEPS).toBe(true)
@@ -202,7 +202,7 @@ describe("SlideTopGuard.nudge", function()
 	end)
 	it("never ends in the trough: the target is across the slide, past the footprint edge", function()
 		for _, spec in FILLS do
-			local x, y, z = at(spec, 0, SlideColliders.ridge(spec).height + 3, 0)
+			local x, _, z = at(spec, 0, SlideColliders.ridge(spec).height + 3, 0)
 			local nx, nz = SlideTopGuard.nudge(SPECS, spec, x, z, cx, cz)
 			local right = frame(spec)
 			local across = math.abs((nx - spec.centre[1]) * right[1] + (nz - spec.centre[3]) * right[3])
