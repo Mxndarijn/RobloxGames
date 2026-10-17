@@ -1,0 +1,15 @@
+{
+  "id": "flag-fountain-tiers-world-pc",
+  "todo": "flag-shots",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 95,
+  "height": 24,
+  "fountain_tier": 3,
+  "flags": {
+    "FountainTiers": true
+  },
+  "device": "desktop",
+  "note": "flag review (FountainTiers forced on via PcwFlag_ override, Studio only): the central fountain with the tier-3 ring + crest"
+}

@@ -1,0 +1,15 @@
+{
+  "id": "flag-rain-magnet-prop-pc",
+  "todo": "flag-shots",
+  "kind": "world",
+  "target": "MergeVat",
+  "from": "centre",
+  "dist": 22,
+  "height": 10,
+  "rain_magnet": true,
+  "flags": {
+    "RainMagnet": true
+  },
+  "device": "desktop",
+  "note": "flag review (RainMagnet forced on via PcwFlag_ override, Studio only): the magnet prop beside the vat (level faked with PcwRainMagnet)"
+}

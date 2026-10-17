@@ -1,0 +1,15 @@
+{
+  "id": "flag-plot-skins-world-pc",
+  "todo": "flag-shots",
+  "kind": "world",
+  "target": "Mailbox_1",
+  "from": "centre",
+  "dist": 24,
+  "height": 14,
+  "plot_skin": "candy",
+  "flags": {
+    "PlotSkins": true
+  },
+  "device": "desktop",
+  "note": "flag review (PlotSkins forced on via PcwFlag_ override, Studio only): Plot_1 wearing the candy skin (skin faked with PcwPlotSkin)"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "flag-fountain-tiers-rebirth-menu-phone",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "open": "rebirth",
+  "flags": {
+    "FountainTiers": true
+  },
+  "device": "phone-portrait",
+  "note": "flag review (FountainTiers forced on via PcwFlag_ override, Studio only): rebirth menu rank cards with the family each rank opens"
+}
