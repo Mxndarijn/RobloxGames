@@ -38,19 +38,6 @@ local function hdist(ax: number, az: number, bx: number, bz: number): number
 	return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2)
 end
 
--- Horizontal distance from (x, z) to the lane centreline.
-local function fromCentreline(x: number, z: number): number
-	local best = math.huge
-	for i = 1, #POINTS - 1 do
-		local a, b = POINTS[i], POINTS[i + 1]
-		local dx, dz = b[1] - a[1], b[2] - a[2]
-		local len2 = dx * dx + dz * dz
-		local k = if len2 < 1e-9 then 0 else math.clamp(((x - a[1]) * dx + (z - a[2]) * dz) / len2, 0, 1)
-		best = math.min(best, hdist(x, z, a[1] + dx * k, a[2] + dz * k))
-	end
-	return best
-end
-
 -- Distance from (x, z) to a turned rectangle (0 inside).
 local function rectDistance(r, x: number, z: number): number
 	local a = math.rad(r.yaw)
