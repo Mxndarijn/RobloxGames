@@ -4,6 +4,8 @@
 local ATTR = "WeatherDebug"
 local before = workspace:GetAttribute(ATTR)
 -- %%COVER%% >= 0 pins the client-local ground snow cover (SnowCoverDebug, 0..1) for the snow shots; -1 clears the pin.
+-- With the pin set SnowGround v2 reads the phase from the weather: "Snow" = settling, anything else (the melt shots
+-- use "Clear") = melting, so a Clear shot pinned at 0.5 shows the melt look (paths cleared first, grass still white).
 local cover = %%COVER%%
 workspace:SetAttribute("SnowCoverDebug", if cover >= 0 then cover else nil)
 local id = %%WEATHER%%
@@ -22,5 +24,8 @@ if part then
 	end
 end
 local tint = game:GetService("Lighting"):FindFirstChild("WeatherTint")
-local ground = workspace:FindFirstChild("SnowCover")
-return { cover_part = ground ~= nil, cover_transparency = ground and (ground :: Part).Transparency or nil, ok = id == "" or active > 0, before = before, now = workspace:GetAttribute(ATTR), emitter_part = part ~= nil, rates = rates, active = active, tint = tint ~= nil and tostring(tint.TintColor) or nil }
+local map = workspace:FindFirstChild("Map")
+local ground = map and map:FindFirstChild("Ground")
+local paths = map and map:FindFirstChild("Paths")
+local plaza = paths and paths:FindFirstChild("Plaza")
+return { ground_color = ground and tostring((ground :: Part).Color) or nil, plaza_color = plaza and tostring((plaza :: Part).Color) or nil, cover_part = workspace:FindFirstChild("SnowCover") ~= nil, ok = id == "" or id == "Clear" or active > 0, before = before, now = workspace:GetAttribute(ATTR), emitter_part = part ~= nil, rates = rates, active = active, tint = tint ~= nil and tostring(tint.TintColor) or nil }
