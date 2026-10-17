@@ -83,8 +83,13 @@ local function experiment()
 	pcall(function()
 		PhysicsService:CollisionGroupSetCollidable(GROUP, GROUP, false)
 	end)
+	local RIM_R = 13.4 -- profile() returns nil beyond this radius: the kit's outer rim
+	local FELL_BALLS_CAP = 64
+	local function round2(x)
+		return math.floor(x * 100 + 0.5) / 100
+	end
 	local function profile(r)
-		if r > 13.4 then
+		if r > RIM_R then
 			return nil
 		end
 		if r <= 8.9 then
@@ -141,24 +146,35 @@ local function experiment()
 					b.Transparency = 1
 					b.Position = Vector3.new(math.cos(a) * r, surface + 6 + size / 2, math.sin(a) * r)
 					b.Parent = workspace
-					table.insert(active, { part = b, r = r, size = size })
+					table.insert(active, { part = b, r = r, size = size, az = math.deg(a) % 360, prevR = r })
 				end
 			end
 		end
 		local total, sank, fell = #active, 0, 0
+		local fellBalls, fellTruncated = {}, false
 		local t0 = os.clock()
 		while os.clock() - t0 < 1.5 and #active > 0 do
 			task.wait()
 			for n = #active, 1, -1 do
 				local s = active[n]
 				local pos = s.part.Position
-				local surface = profile(math.sqrt(pos.X ^ 2 + pos.Z ^ 2))
+				local curR = math.sqrt(pos.X ^ 2 + pos.Z ^ 2)
+				if s.prevR <= RIM_R and curR > RIM_R then
+					s.rimR, s.rimY = curR, pos.Y
+				end
+				s.prevR = curR
+				local surface = profile(curR)
 				local failed = false
 				if surface and pos.Y > 29 and s.part.AssemblyLinearVelocity.Y >= -5 and pos.Y - surface < 0.4 then
 					sank += 1
 					failed = true
 				elseif pos.Y < 2 then
 					fell += 1
+					if #fellBalls < FELL_BALLS_CAP then
+						table.insert(fellBalls, { size = s.size, r = round2(s.r), az = round2(s.az), rim_r = if s.rimR then round2(s.rimR) else nil, rim_y = if s.rimY then round2(s.rimY) else nil, crossed = s.rimR ~= nil })
+					else
+						fellTruncated = true
+					end
 					failed = true
 				end
 				if failed then
@@ -170,7 +186,7 @@ local function experiment()
 		for _, s in active do
 			s.part:Destroy()
 		end
-		results[label] = { balls = total, sank = sank, fell = fell }
+		results[label] = { balls = total, sank = sank, fell = fell, fell_balls = fellBalls, fell_balls_truncated = if fellTruncated then true else nil }
 	end
 	local saved = {}
 	for _, c in colliders do
