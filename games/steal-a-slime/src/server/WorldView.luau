@@ -36,6 +36,7 @@ local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local GrowthLabel = require(script.Parent.GrowthLabel)
 local HabitatPads = require(script.Parent.HabitatPads)
+local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
@@ -583,6 +584,36 @@ local function setIfChanged(instance: Instance, name: string, value: any)
 	end
 end
 
+-- Locked pads (and their Stand mesh) go grey Slate, unlocked ones get the stored base look back (PadStyle).
+-- The base look is read once into attributes, so an unlock restores the exact colour and material.
+local function styleLook(part: BasePart, unlocked: boolean)
+	local stored = part:GetAttribute("BaseColor")
+	local baseColor: Color3 = if typeof(stored) == "Color3" then stored else part.Color
+	if typeof(stored) ~= "Color3" then
+		part:SetAttribute("BaseColor", baseColor)
+		part:SetAttribute("BaseMaterial", part.Material.Name)
+	end
+	local baseMaterial = part:GetAttribute("BaseMaterial") :: string
+	local base = { baseColor.R * 255, baseColor.G * 255, baseColor.B * 255 }
+	local rgb, material = PadStyle.look(base, baseMaterial, unlocked)
+	local color = if unlocked then baseColor else Color3.fromRGB(rgb[1], rgb[2], rgb[3])
+	if part.Color ~= color then
+		part.Color = color
+	end
+	local enum = (Enum.Material :: any)[material]
+	if part.Material ~= enum then
+		part.Material = enum
+	end
+end
+
+local function stylePad(pad: BasePart, unlocked: boolean)
+	styleLook(pad, unlocked)
+	local stand = pad:FindFirstChild("Stand")
+	if stand and stand:IsA("BasePart") then
+		styleLook(stand, unlocked)
+	end
+end
+
 -- DexTierMask per plot, recomputed only when the owner or dex count changes.
 local dexMasks: { [number]: { userId: number, count: number, mask: number } } = {}
 
@@ -637,7 +668,9 @@ function WorldView.updatePlots(world: World.World, now: number)
 			for pad = 1, Config.PADS_MAX do
 				local part = WorldView.pad(index, pad)
 				if part then
-					setIfChanged(part, Constants.PAD_UNLOCKED_ATTRIBUTE, pad <= view.padsUnlocked)
+					local unlocked = pad <= view.padsUnlocked
+					setIfChanged(part, Constants.PAD_UNLOCKED_ATTRIBUTE, unlocked)
+					stylePad(part, unlocked)
 					local habitat = if habitatsOn then HabitatPads.get(habitats, index, pad) else nil
 					if habitat then
 						-- At first so a client that sees Habitat change also reads the matching stamp.
