@@ -1,0 +1,20 @@
+{
+  "id": "bug08-owner-gate",
+  "todo": "bug 8",
+  "kind": "world",
+  "target": "Plot_1",
+  "from": "centre",
+  "dist": 100,
+  "height": 55,
+  "bug_probe": {
+    "bug": 8,
+    "title": "Locked base: the OWNER walks through the gate in and out (3 lanes) and the gate opening stays clear for the slime carry (owner_gate, #291 deeper slab)",
+    "luau": "bug08_lock_enter",
+    "ctx": "Server",
+    "args": {
+      "PART": "owner_gate"
+    },
+    "timeout": 45
+  },
+  "note": "bug 8 (advisory): the deeper front LockBarrier slab (#291) must not block the owner or the carry route (luau/bug08_lock_enter PART=owner_gate; one call < 40 s)"
+}

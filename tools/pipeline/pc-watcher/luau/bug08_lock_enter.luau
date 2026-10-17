@@ -37,6 +37,10 @@
 --                            else 0.8 studs in from the corner), then a diagonal at the panel corner when it sits > 0.75 studs from the fence corner;
 --                            info.junctions has the fence corner, the panel corner and the fence-end / panel-end gap per corner
 --   corner_jump              the same corner attempts, jumping every 0.25 s
+--   owner_gate               (#291 deeper front slab) own plot locked: the OWNER walks through the gate IN and back OUT on three lanes (centre and
+--                            x = +-4.5, the carry width), each walk MoveTo up to 5 s; plus carry_clearance: no part that collides with the owner's
+--                            character group (CanCollide, RespectCanCollide) inside a 7 x 7 stud box through the gate opening (plot-local y 1..8,
+--                            z front-4..front+4), i.e. the slab / posts leave the owner's walk and slime-carry route through the gate open
 -- Everything made is destroyed; the lock attributes / panels are restored; the character ends where it started, with its Anchored states.
 local Players = game:GetService("Players")
 local RS = game:GetService("ReplicatedStorage")
@@ -63,7 +67,7 @@ if not reqOk then
 end
 local World, Sessions, WorldView, Guard = mods.World, mods.Sessions, mods.WorldView, mods.Guard
 local LOCKED = mods.Constants.PLOT_LOCKED_ATTRIBUTE
--- PART = "base" (the five old checks, ~50 s) | "fence_jump_over" | "fence_push_through" | "gate_post_squeeze" | "corner_squeeze" | "corner_jump" (that one wall check
+-- PART = "base" (the five old checks, ~50 s) | "fence_jump_over" | "fence_push_through" | "gate_post_squeeze" | "corner_squeeze" | "corner_jump" | "owner_gate" (that one wall check
 -- only, 32 s attempt budget): a single execute_luau call must stay well under 60 s, so the checks are split over several calls.
 local PART = %%PART%%
 local BASE_ORDER = { "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck" }
@@ -705,7 +709,72 @@ local function runWall()
 	lockPlot(foreignIndex, false)
 end
 
+-- owner_gate: the owner through the locked gate both ways + carry clearance in the opening (#291 deeper front slab) -------------------
+local function walkTo(i, xL, zL, secs)
+	local cf = frameOf(i)
+	local target = cf:PointToWorldSpace(Vector3.new(xL, 4, zL))
+	local t0 = os.clock()
+	while os.clock() - t0 < secs do
+		hum:MoveTo(target)
+		task.wait(0.05)
+		if not root.Parent then
+			break
+		end
+		local l = cf:PointToObjectSpace(root.Position)
+		if Vector3.new(l.X - xL, 0, l.Z - zL).Magnitude <= 2 then
+			break
+		end
+	end
+	local l = cf:PointToObjectSpace(root.Position)
+	return { end_local = { math.floor(l.X * 10 + 0.5) / 10, math.floor(l.Z * 10 + 0.5) / 10 }, secs = math.floor((os.clock() - t0) * 10 + 0.5) / 10 }
+end
+local function runOwnerGate()
+	free()
+	if not ownIndex then
+		set("owner_gate", nil, "the test player owns no plot (no OwnerUserId match)")
+		return
+	end
+	local i = ownIndex
+	local cf, half = frameOf(i)
+	lockPlot(i, true)
+	task.wait(0.2)
+	local lanes, allOk, info = {}, true, { plot = i, owner_group = nil }
+	for _, x in { 0, -4.5, 4.5 } do
+		teleport(cf * CFrame.new(x, 4, -(half + 8)) * CFrame.Angles(0, math.pi, 0))
+		task.wait(0.4)
+		info.owner_group = root.CollisionGroup
+		local rin = walkTo(i, x, -(half - 8), 5)
+		rin.inside = insideNow(i)
+		local rout = walkTo(i, x, -(half + 8), 5)
+		local lz = cf:PointToObjectSpace(root.Position).Z
+		rout.outside = (not insideNow(i)) and lz < -(half + 2)
+		lanes["x=" .. x] = { walk_in = rin, walk_out = rout }
+		allOk = allOk and rin.inside and rout.outside
+	end
+	info.lanes = lanes
+	-- carry clearance: parts colliding with the owner's character group in the gate opening
+	local op = OverlapParams.new()
+	op.FilterType = Enum.RaycastFilterType.Exclude
+	op.FilterDescendantsInstances = { char }
+	op.RespectCanCollide = true
+	op.CollisionGroup = root.CollisionGroup
+	local box = cf * CFrame.new(0, 4.5, -half)
+	local hits = {}
+	for _, part in workspace:GetPartBoundsInBox(box, Vector3.new(7, 7, 8), op) do
+		if part.CanCollide and PhysicsService:CollisionGroupsAreCollidable(part.CollisionGroup, root.CollisionGroup) then
+			table.insert(hits, part:GetFullName() .. " [" .. part.CollisionGroup .. "]")
+		end
+	end
+	info.carry_clearance = { blocking = hits, box = "7 x 7 x 8 studs at the gate (plot-local x -3.5..3.5, y 1..8, z front-4..front+4)" }
+	lockPlot(i, false)
+	set("owner_gate", allOk and #hits == 0, info)
+end
+
 local function run()
+	if PART == "owner_gate" then
+		runOwnerGate()
+		return
+	end
 	if PART ~= "base" then
 		runWall()
 		return
