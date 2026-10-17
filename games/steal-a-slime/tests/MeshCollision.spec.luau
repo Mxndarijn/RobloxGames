@@ -371,3 +371,74 @@ describe("bug #11 part 1: real mesh collision", function()
 		expect(MeshAssets.COLLISION.slime_fountain).toBe(nil)
 	end)
 end)
+
+-- B9 plot-level half: every plot mesh has a decided collision --------------------------------------------------
+-- mesh -> expected MeshAssets.COLLISION fidelity (nil = decor mesh; its collision is then a stand-in / the slot box).
+local PLOT_MESHES = {
+	ranch_fence_20 = "Box",
+	phoenix_fence_segment = "Box",
+	phoenix_corner_post = "Box",
+	phoenix_gate = false, -- a Box/Hull would close the 14-stud opening; GatePostL / GatePostR stand-ins keep the posts
+	phoenix_pad_crate = false, -- Pad_<j> (8 x 2.4 x 8, solid) is the surface
+	phoenix_top_earners_board = false, -- shared with the world board (own Collider); the plot DexMesh slot box collides
+}
+
+describe("B9: plot-level collision", function()
+	local WorldLayout = require("../src/visuals/shared/WorldLayout")
+	local plots = WorldLayout.build()[2].children
+	local function walk(node: any, visit: (any) -> ())
+		visit(node)
+		for _, c in node.children or {} do
+			walk(c, visit)
+		end
+	end
+	it("every mesh slot on a plot is classified, with the expected fidelity and no PCD", function()
+		local seen = 0
+		for _, plot in plots do
+			walk(plot, function(n)
+				local mesh = n.attributes and n.attributes.MeshAsset
+				if mesh then
+					seen += 1
+					local want = PLOT_MESHES[mesh]
+					expect(want ~= nil).toBe(true)
+					expect(MeshAssets.collision(mesh)).toBe(if want then want else nil)
+					expect(MeshAssets.collision(mesh) ~= "PreciseConvexDecomposition").toBe(true)
+				end
+			end)
+		end
+		expect(seen > 0).toBe(true)
+	end)
+	it("the gate stays open for the owner; its posts, the pads and the dex board are solid", function()
+		for _, plot in plots do
+			local byName = {}
+			walk(plot, function(n)
+				byName[n.name] = n
+			end)
+			expect(byName.GateMesh.canCollide).toBe(false) -- the mesh slot would close the opening
+			for _, name in { "GatePostL", "GatePostR", "GatePost", "DexMesh", "Pad_1", "Pad_8", "Pedestal" } do
+				expect(byName[name].canCollide ~= false).toBe(true)
+			end
+			expect(byName.DexMesh.canQuery).toBe(false)
+			expect(byName.DexMesh.canTouch).toBe(false)
+			-- pads stay steppable: flat and low
+			expect(byName.Pad_1.size[2] <= 3).toBe(true)
+		end
+	end)
+	it("only the gate-side stand-ins sit beside the opening: nothing solid spans the walk-in", function()
+		local clear = WorldLayout.GATE_CLEAR / 2
+		for _, plot in plots do
+			walk(plot, function(n)
+				if n.class == "Part" and n.canCollide ~= false and n.pos and n.name ~= "Base" then
+					local centre, yaw = WorldLayout.plotCentre(tonumber(string.match(plot.name, "%d+")) :: number)
+					local a = math.rad(yaw)
+					local dx, dz = n.pos[1] - centre[1], n.pos[3] - centre[3]
+					local lx, lz = dx * math.cos(a) - dz * math.sin(a), dx * math.sin(a) + dz * math.cos(a)
+					-- a low solid part (< 8 studs up) centred on the entrance line inside the clear width = blocked gate
+					if math.abs(lz + 39.5) < 0.9 and math.abs(lx) < clear - 0.5 and n.pos[2] - n.size[2] / 2 < 8 then
+						error(`{plot.name}.{n.name} blocks the gate opening`)
+					end
+				end
+			end)
+		end
+	end)
+end)

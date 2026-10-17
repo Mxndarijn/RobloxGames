@@ -5,7 +5,7 @@ Usage: rhr_check.py OUT_DIR [RHR_BIN]
 
 One `rhr batch` call lays out and hit-tests every case in OUT_DIR/manifest.json
 at its viewport (58 px top bar). Per button (the nav tiles with their labels, the status
-icons, Slap) it asserts, on rhr's rects in screen px:
+icons) it asserts, on rhr's rects in screen px:
   on-screen    inside the viewport and below the top bar
   unoccluded   rhr's click at the button's centre lands on the button, and no
                other click-capturing node rhr draws above it (zOrder)

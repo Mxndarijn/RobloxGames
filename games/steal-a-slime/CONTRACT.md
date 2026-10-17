@@ -2,6 +2,8 @@
 
 **Design:** `/workspace/roblox/steal-a-designs.md` §6. **Date:** 2026-10-14, v13 additions 2026-10-15 (§8).
 
+**Rule: new features add their own `contract/<feature>.md` file plus ONE line in the index table at the bottom of this file. Do not append sections to this file.** This file is the core (§1-§7) and the index; feature sections (§8 and up) live in `contract/`.
+
 **Owners:**
 - **Phoenix:** server gameplay.
 - **Archer:** visuals.
@@ -113,7 +115,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   2. `Deposit`: bring any carried slime home onto a pad.
   3. `Lock`: buy a lock (`Request("Lock")` or the LockButton).
   4. `Merge`: merge two slimes.
-  5. `Steal`: start a steal or slap a thief.
+  5. `Steal`: start a steal or hit a thief with the Bat.
   6. `Rebirth`: rebirth.
   Doing a step's action finishes that step and every step before it (so a rebirth finishes the tutorial). Doing an *earlier* step's action again does nothing. After step 6 the tutorial is done (`tutorialStep = nil`). New profiles start at 1. Saves made before the field existed start at 1 if they have no slimes and no rebirths, otherwise done. Saved as `tutorialStep` (0 = done) and kept on rebirth.
 - **Daily reward:** `Request("Daily")` (`Progression.claimDaily`). `State.daily` says whether it's available, the streak and what the pending claim pays (`day`, `amount`).
@@ -124,9 +126,9 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - `FollowPets`: the server sets Player attribute `PetSlimeId` (`Constants.PET_ATTRIBUTE`) to `Progression.keeper(data).id` (favourite, else best slime; nil without slimes). VisualsClient (`FollowPets`) clones that slime's replicated model into a local `workspace.ClientPets` folder at 0.45 scale and has it follow its owner. Client-only, cosmetic.
   - `DayNight`: the server sets `Lighting.ClockTime = DayNight.clockTime(elapsed)` twice a second: one day per `DAY_LENGTH` (12 min), daytime 06:30–17:30 for `DAY_FRACTION` (70 %) of it.
   - `Minimap`: `ReplicatedStorage.Visuals.MinimapData.points()` lists `{ kind, name, x, z, plotIndex? }` for the fountain (`kind = "Fountain"`, map centre), `Plot_i`, the three props and HubSpawn from WorldLayout; `toMap(x, z)` gives 0..1 map coordinates over the 640-stud Ground. Data only (no UI yet).
-  - `Audio` (**`false`**, v23): client `ui/SoundController` (pure rules in `ui/AudioLogic`, ids in `Config.AUDIO`). SoundGroups `SFX` and `Music` under SoundService; a registry (`buy`, `collect`, `steal`, `merge`, `rebirth`, `alarm`, `error`, `click`) maps to `Sounds.IDS` names or `rbxasset://` ids, an empty / malformed id plays nothing. Toast and steal-alert sounds route through it. Ambience: a looped day (birds) / night (crickets) pair crossfaded over `AMBIENT_FADE_SECONDS` from `Lighting.ClockTime` (night = outside `DayNight.SUNRISE..SUNSET`), at `AMBIENT_VOLUME`; the ambient asset ids are empty until uploaded (silent). A small "Sound: on/off" button opens a compact panel (bottom-left) with a Mute toggle and two sliders, SFX and Music / Ambience: 5% steps, percent shown, mouse or touch drag, applied live to the attributes / SoundGroups (pure maths in `AudioLogic.snapVolume` / `volumeFromPixel`). Mute / volumes are Player attributes `AudioMuted`, `AudioSfxVolume`, `AudioMusicVolume`, saved per player since save v6 (§8.9c): `State.settings` is applied once on join (`SoundController.load`) and changes are sent back 0.6 s after the last one with `Request("SetAudioSettings", musicVolume, sfxVolume, muted)`. Flag off = Notify sounds play as before, no groups, ambience or button; the request is refused.
+  - `Audio` (**`true`**, v23; on since 2026-10-18): client `ui/SoundController` (pure rules in `ui/AudioLogic`, ids in `Config.AUDIO`). SoundGroups `SFX` and `Music` under SoundService; a registry (`buy`, `collect`, `steal`, `merge`, `rebirth`, `alarm`, `error`, `click`) maps to `Sounds.IDS` names or `rbxasset://` ids, an empty / malformed id plays nothing. Toast and steal-alert sounds route through it. Ambience: a looped day (birds) / night (crickets) pair crossfaded over `AMBIENT_FADE_SECONDS` from `Lighting.ClockTime` (night = outside `DayNight.SUNRISE..SUNSET`), at `AMBIENT_VOLUME`; the ambient asset ids are empty until uploaded (silent). A small "Sound: on/off" button opens a compact panel (bottom-left) with a Mute toggle and two sliders, SFX and Music / Ambience: 5% steps, percent shown, mouse or touch drag, applied live to the attributes / SoundGroups (pure maths in `AudioLogic.snapVolume` / `volumeFromPixel`). Mute / volumes are Player attributes `AudioMuted`, `AudioSfxVolume`, `AudioMusicVolume`, saved per player since save v6 (§8.9c): `State.settings` is applied once on join (`SoundController.load`) and changes are sent back 0.6 s after the last one with `Request("SetAudioSettings", musicVolume, sfxVolume, muted)`. Flag off = Notify sounds play as before, no groups, ambience or button; the request is refused.
   - `SlimeLod` (**`false`**): the procedural motion gets tiers by camera distance and the saved graphics quality (`Config.SLIME_LOD`, `ui/SlimeLod`): near = full motion every frame, mid = squish only, smaller, every `MID_EVERY` frames, far = Transform reset to identity once, then skipped; low quality shrinks the near / mid radii. Selection stays 4x a second, cap 16 and the on-screen check unchanged. Client-only.
-  - `SlimeAnimations` (**`false`**, TODO 17): `true` lets the client play the uploaded KeyframeSequences (`MeshAssets.ANIMATIONS`) on a slime's Animator, but only after a probe load of `SlimeIdleSquish` reports `Length > 0`; a failed or slow probe, or a track that never plays, keeps every slime on the procedural motion. `false` (default): rigged slimes are driven in code by `ui/SlimeMotor` (squish, hop, look on the FaceRoot / SkinRoot Motor6D `Transform`), same LOD (nearest 16 within 80 studs, on screen). Client-only; nothing replicates.
+  - `SlimeAnimations` (**`true`** since 2026-10-18, TODO 17): `true` lets the client play the uploaded KeyframeSequences (`MeshAssets.ANIMATIONS`) on a slime's Animator, but only after a probe load of `SlimeIdleSquish` reports `Length > 0`; a failed or slow probe, or a track that never plays, keeps every slime on the procedural motion. `false` (default): rigged slimes are driven in code by `ui/SlimeMotor` (squish, hop, look on the FaceRoot / SkinRoot Motor6D `Transform`), same LOD (nearest 16 within 80 studs, on screen). Client-only; nothing replicates.
   - `Parade` (**`true`**, TODO 16): the goo parade replaces the plain wild despawn. A fresh wild rides the fountain slide onto the head of a goo lane (`Shared.ParadeLane.WAYPOINTS`, laid on the plaza as `Map.Plaza.ParadeLane` by `server/ParadeView`). The drawn lane starts exactly at the slide mouth (`ParadeLane.MOUTH` = the end of `WorldLayout.SLIDE_PATH`) and leads out to `ENTRY` through a gap in `Plaza.LandingRing` (seven of its 18 tiles are left out, yaw 320..80, where the slide's last stretch runs and the lane leaves); the strips are mitred, flush and opaque (`ParadeLane.strips`, tests/SlimePath.spec). Slime ride physics and the walk are unchanged that loops counter-clockwise round the plaza from just past the goo drain (+Z), dipping inside the hub SpawnLocation and the leaderboard podiums / signpost, and ends at the drain. Its spot is time left: `progress = 1 - (expiresAt - now) / lifetime`; it waits at the entry for `HOP_SECONDS` (the ride), hops along the lane linearly in time left, and in the last `DRAIN_SECONDS` slides over the drain curb and sinks. The server removes it at `expiresAt` as before and emits World event `Drained` (`slimeId`), which plays a goo splash at the drain. Lane slimes stay grabbable / buyable (same `Grab` / `Buy $` prompt; `Carry.grab`); a grabbed slime leaves the lane at once, and a dropped one (`wild.position` set) stays where it lands with a fresh lifetime and poofs there. `wild.angle` / `wild.radius` keep the `Fountain.roll` values (`radius` sets the slime's sideways offset on the lane). Spawn cadence, cap and lifetimes don't change. The ring warning is the `DespawnTelegraph` window (`"leaving! N"`), which opens while the slime is still walking beside the drain. With the flag off, wilds land in the `Fountain.MIN_RADIUS..MAX_RADIUS` band (`Volcano` is a thin alias) as before.
   - `Habitats` (**default `false`**, `HABITATS.md`): a pad whose slime rests on it shows that slime's habitat (`Shared.Habitats.forSlime`: type, then tier family, else `base`); empty / stolen / escaping = `base`. Server state in `HabitatPads` (never saved), written as the `Pad_<j>` attributes below; `VisualsClient.HabitatFx` tweens a local look in `workspace.ClientHabitats` over 1 s. Flag off = no attributes, no parts.
 - **Out of MVP scope:** fountain / silo tiers (was "volcano tiers"), 3-slime vat, sticky floor / bouncer upgrades, Robux products.
@@ -157,7 +159,6 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"BuyLockUpgrade"` | none | Buys the next lock-time upgrade level for `Shop.lockUpgradeCost(level)`. Each level makes every bought lock last `LOCK_UPGRADE_SECONDS` longer, up to `LOCK_UPGRADE_MAX` levels. Permanent: saved and kept on rebirth. |
 | `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While you're not carrying, WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Permanent: saved and kept on rebirth. |
 | `"BuyEgg"` | none | `FEATURES.MysteryEgg`. Buys a Mystery Egg with cash only (`Shared.MysteryEgg.price` = `MYSTERY_EGG_PRICE` x rebirth multiplier). It hatches a slime rolled from `MYSTERY_EGG_DROPS` onto the lowest free pad via `PlayerData.addSlime`; `State.egg.hatched` carries it for the reveal banner. Failures: `"not enough cash"`, `"plot full"` (nothing charged), `"eggs are off"`. Save format unchanged. Events: server-only `Server/MysteryEgg.spawnForEvent(world, userId, count, now)` hatches free eggs, no remote. |
-| `"Slap"` | `targetUserId: number` | Slaps a carrier within `SLAP_REACH`. The slime escapes home. |
 | `"Drop"` | none | Drops what you're carrying. Wild → falls to the ground; stolen → escapes home. |
 | `"Appraise"` | `slimeId: string, kind: "mutation" \| "size"` | `FEATURES.Appraise`: pays `Appraise.cost` (`APPRAISE_COST_FRACTION` = 30% of `Economy.sellPrice`) to reroll that owned, not-busy slime's mutation or size. Only `mutation` / `size` change. Success returns `{ ok = true, appraisal = Types.Appraisal }` (before / after, cost). Fails with `"not your slime"`, `"not enough cash"`, `"slime is busy"`, `"appraise is off"`. `SlimeView.appraiseCost` is nil when the flag is off. |
 | `"Sync"` | none | The server re-sends `State` right away. The UI calls it once on start. |
@@ -345,7 +346,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `MYSTERY_EGG_PRICE` / `MYSTERY_EGG_MUTATION_CHANCE` / `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 2 000 / 0.05 / 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | mystery egg: cash-only hatch |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
-| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `ServerProfiler` (`false`, §25); `Revenge` (`true`); `Habitats` (`true`); `SlimeAnimations` (`false`); `SlimeLod` (`true`); `Audio` (**`false`**) | §2 Extras |
+| `FEATURES` | `BossSlime`, `FollowPets`, `DayNight`, `Minimap`, `DespawnTelegraph` (`true`); `Parade` (`true`); `ServerProfiler` (`false`, §25); `Revenge` (`true`); `Habitats` (`true`); `SlimeAnimations` (`true`); `SlimeLod` (`true`); `Audio` (`true`) | §2 Extras |
 | `BOSS_FIRST_AT` / `BOSS_INTERVAL` / `BOSS_TIER` / `BOSS_LIFETIME` | 480 / 900 / 4 / 120 | Boss Slime |
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
@@ -373,499 +374,28 @@ scripts/typecheck.sh        # luau-lsp types: fails on src/server + src/shared, 
 
 CI is in `.github/workflows/ci.yml` and runs the same five commands.
 
-## 8. v13 additions (2026-10-15, Phoenix)
-
-**Status:** contract first. Names in this section are frozen. The server implements them in the v13 commits that follow; until then a field may be missing, so clients should treat new fields as optional (`state.upgrades or {}`). Where this section and §1-§7 disagree, this section wins.
-
-### 8.1 Request actions (new)
-
-| Action | Args | Effect / `message` on failure |
-|---|---|---|
-| `"BuyUpgrade"` | `upgradeId: string` (one of `Config.UPGRADES[i].id`: `"Income"`, `"CarrySpeed"`, `"OfflineCap"`, `"Luck"`) | Buys the next level for `Upgrades.cost(id, level)`. Fails with `"unknown upgrade"`, `"locked: reach <n> rebirths"`, `"already maxed"` or `"not enough cash"`. Permanent: saved, kept on rebirth. Rate limit 0.5 s. Notify `"<Name> level <n>!"` (`"good"`, `"Cash"`). |
-
-Goals and Slimedex rewards are **paid automatically** (no claim action). Nothing else is added; every v12 action keeps its name and args.
-
-### 8.2 `State` fields (new; §5.1 fields are unchanged)
-
-```luau
-{
-	walkSpeed: number,             -- server WalkSpeed while NOT carrying (16, or 22 with the Speed Coil)
-	incomeMultiplier: number,      -- total income multiplier: rebirth x upgrade x rank x dex (>= rebirthMultiplier)
-	rebirthTitle: string,          -- current rank title, e.g. "Slime Rookie"
-	rebirthTiers: { { rebirths: number, title: string, text: string, unlocked: boolean } },  -- every rank, ascending
-	nextRebirthTier: { rebirths: number, title: string, text: string }?,                     -- nil at the top rank
-	upgrades: { {                  -- Config.UPGRADES order
-		id: string, name: string, text: string,  -- text = what the next level does, e.g. "+10% income"
-		level: number, maxLevel: number,
-		price: number?,            -- nil = maxed or locked
-		requires: number,          -- rebirths needed
-		unlocked: boolean,
-	} },
-	goals: { {                     -- Config.GOALS order; chains of stages
-		id: string, title: string, -- title of the CURRENT stage, e.g. "Catch 10 slimes"
-		stat: string, progress: number,
-		stage: number, stages: number,  -- stage = stages already paid (0..stages)
-		target: number?, reward: number?, -- current stage; nil when done
-		done: boolean,
-	} },
-	dexRewards: { { count: number, reward: number, bonus: number, claimed: boolean } }, -- Config.DEX_MILESTONES
-	dexBonus: number,              -- income bonus from paid dex milestones (0.05 = +5 %)
-	stats: { caught: number, merges: number, locks: number, sold: number,
-	         stolen: number, earned: number, rebirths: number },
-	tutorialStepId: string?,       -- TutorialProgress.STEPS[tutorialStep]; nil = finished
-	boss: { active: boolean, endsAt: number? },  -- Boss Slime in the world (wild or carried); endsAt = expiry (server time)
-}
-```
-
-Every field above is in every snapshot (the server never leaves one out); only the `?` fields can be nil. `boss` changes (spawn, expiry, catch, a dropped boss's new expiry) push State to everyone, like `rain`.
-
-`carrying.walkSpeed` now starts from `walkSpeed` (the Speed Coil also helps while carrying) and the CarrySpeed upgrade shrinks the slowdown.
-
-### 8.3 Tutorial (replaces the §2 list)
-
-`TutorialProgress.STEPS = { "Grab", "Deposit", "Lock", "BuyPad", "Merge", "Steal", "Rebirth" }` (7 steps). `"BuyPad"` (new, step 4) finishes on a successful `Request("BuyPad")` or `BuyPadPrompt`. Indices after 3 shift by one: **Jolt** adds a step 4 to `src/ui/Tutorial.STEPS` (suggested: title "Buy a pad", body "More pads = more slimes. Walk to the glowing pad on your plot and buy it.") and **Archer** shifts the arrow targets: 1 Crater, 2 own `HomeZone`, 3 own `LockButton`, **4 own plot's pad carrying `BuyPadPrompt`**, 5 own `MergeVat`, 6 another owned plot's `Base`, 7 none. Prefer keying on `State.tutorialStepId` / Player attribute `TutorialStepId` (names, stable) over the number. Save migration: a stored `tutorialStep` of 4..6 (old Merge/Steal/Rebirth) maps to 5..7; 0 stays done.
-
-### 8.4 Instance attributes (new)
-
-| Where | Attribute (Constants name) | Type / meaning |
-|---|---|---|
-| Player | `TutorialStepId` (`TUTORIAL_STEP_ID_ATTRIBUTE`) | `string?`, same as `State.tutorialStepId` |
-| Player | `TargetWalkSpeed` (`WALK_SPEED_ATTRIBUTE`) | `number`, the WalkSpeed the server enforces right now (coil and carry included) |
-| Player | `RebirthTitle` (`REBIRTH_TITLE_ATTRIBUTE`) | `string`, rank title (for name tags) |
-| `Plot_<i>` | `Locked` (`PLOT_LOCKED_ATTRIBUTE`) | `boolean`, true while `LockUntil > now` (flips on expiry, not only on purchase) |
-| `Plot_<i>` | `LockCost` (`PLOT_LOCK_COST_ATTRIBUTE`) | `number`, owner's current lock price (0 = free plot) |
-| `Plot_<i>` | `PadsUnlocked` (`PLOT_PADS_UNLOCKED_ATTRIBUTE`) | `number`, owner's unlocked pads (0 = free plot) |
-| `Plot_<i>` | `NextPadCost` (`PLOT_NEXT_PAD_COST_ATTRIBUTE`) | `number?`, nil when maxed or free |
-| `Pad_<j>` | `Unlocked` (`PAD_UNLOCKED_ATTRIBUTE`) | `boolean`, `j <= PadsUnlocked` (false on a free plot) |
-| `Plot_<i>` | `OwnerUserId`, `LockUntil`, `Rebirths` (§5.2) | set by the server on every reconcile (`WorldView.updatePlots`); Archer's PlotDecor reads them with `Locked`. Wild slime models carry `Tier` (factory), `State = "Wild"` and `RareSpawn` (below), which PlotVisuals/RareSpawn read. |
-| `Plot_<i>` | `DexCount` (`PLOT_DEX_COUNT_ATTRIBUTE`) | `number`, owner's discovered Slimedex entries (0 = free plot) |
-| `Plot_<i>` | `DexTotal` (`PLOT_DEX_TOTAL_ATTRIBUTE`) | `number`, always 1152 (= `State.dexTotal`) |
-| `Plot_<i>` | `DexTierMask` (`PLOT_DEX_TIER_MASK_ATTRIBUTE`) | `number`, optional for readers: bit k-1 set when the owner has discovered any tier-k slime (0 = free plot) |
-| `Plot_<i>` | `PlotPrice` (`PLOT_PRICE_ATTRIBUTE`) | `number?`, reserved for paid plots; **never set in v13** (plots are free), so readers show no price |
-| slime model (server SlimeMesh) | `Species` (`SPECIES_ATTRIBUTE`) | `string?`, the SlimeRoster id of a typed slime (v28); nil for untyped / older slimes. Its colour and material come from `Shared.SlimeLooks` (unmutated slimes only: a mutation material wins). |
-| wild slime model | `RareSpawn` (`RARE_ATTRIBUTE`) | `number?`, the tier, only on wild Legendary+ (tier >= `RARE_ANNOUNCE_TIER`) drops |
-| wild slime model | `Riding` (`RIDING_ATTRIBUTE`) | `true` while the slime rides the fountain slide (emerge to landing / lane entry), else `nil`; the pc-watcher ring_slimes probe skips these |
-| wild slime model | `DespawnAt` (`DESPAWN_AT_ATTRIBUTE`) | `number?`, server time the slime is removed (= its expiry). Set only for the last `Config.DESPAWN_TELEGRAPH_SECONDS` (5) while uncarried, and only with `FEATURES.DespawnTelegraph`; nil otherwise. Clients count down `DespawnAt - workspace:GetServerTimeNow()` (`Shared.DespawnTelegraph`). The server still removes only at expiry, never earlier. Flag off = silent removal as before. The client countdown + shrink never fade, blink or highlight the slime (v30 C8). |
-| `Pad_<j>` | `Habitat` / `HabitatFrom` / `HabitatAt` (`HABITAT_ATTRIBUTE` / `HABITAT_FROM_ATTRIBUTE` / `HABITAT_AT_ATTRIBUTE`) | `string` / `string` / `number` (server time): current habitat id, the one before it, when it changed. Only with `FEATURES.Habitats`; never set when off. |
-| `workspace` | `RareSpawnId` / `RareSpawnTier` / `RareSpawnAt` (`RARE_SPAWN_ID_ATTRIBUTE` / `RARE_SPAWN_TIER_ATTRIBUTE` / `RARE_SPAWN_AT_ATTRIBUTE`) | `string` / `number` / `number` (server time) of the latest rare drop; set together on each one (effects key on `RareSpawnAt` changing) |
-| owner-only `ProximityPrompt` | `ShowOnlyToUserId` (`PROMPT_OWNER_ATTRIBUTE`) | `number?`, the plot owner. **Clients other than that user keep the prompt disabled locally** (same rule as `HideFromUserId`, inverted; Jolt's PromptHide). nil (free plot) = prompt is also server-disabled. The server refuses non-owners anyway (Notify `"This is <name>'s base"`). |
-
-### 8.5 Plot prompts (replace §2 "Owner-only prompts")
-
-All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot, `RequiresLineOfSight = false`, `HoldDuration = 0`. Names are in `Constants`.
-
-| Prompt (Constants) | Parent | KeyCode | ActionText | ObjectText |
-|---|---|---|---|---|
-| `LockPrompt` (`LOCK_PROMPT_NAME`) | `LockButton` | E | `"Lock base $<cost>"` while open, `"Extend lock $<cost>"` while locked, `"Lock is maxed"` at `LOCK_MAX_REMAINING` | `"<name>'s base: OPEN"` or `"<name>'s base: LOCKED m:ss"` (updated every reconcile) |
-| `BuyPadPrompt` (`BUY_PAD_PROMPT_NAME`) | the lowest locked `Pad_<j>`; moved as pads unlock; parked (disabled) on the last pad when all are unlocked | E | `"Buy pad $<cost>"` | `"Pad <j> of <PADS_MAX>"` |
-| `MergePrompt` (`MERGE_PROMPT_NAME`) | `MergeVat` | E | `"Auto-merge"` | `"Merge vat"` |
-
-`LockPrompt` = `Request("Lock")`, `BuyPadPrompt` = `Request("BuyPad")`, `MergePrompt` = `Merge.findPair` + `Request("Merge")`. Results are Notifies.
-
-### 8.6 Notify sound names (added to §3)
-
-`"Rare"`: a Legendary+ wild drop (everyone, `"good"`: `"A LEGENDARY <name> spilled from the fountain!"`, Mythic: `"A MYTHIC <name> spilled from the fountain!!"`; mutations use their display name). `"Goal"`: a goal stage or dex milestone paid (`"good"`: `"Goal complete: <title>! +$<n>"`, `"Slimedex <count>: +$<n> and +<pct>% income!"`). **Sound IDs are stand-ins:** Jolt's `src/ui/Sounds` maps `"Rare"` and `"Goal"` to placeholder catalog sounds (Rare reuses Rain `12222200`, Goal reuses Cash `12222140`) until real ones are picked. A new rebirth rank sends `"New rank: <title>! <text>"` (`"good"`, `"Rebirth"`), and a Luck upgrade proc sends `"Lucky! Your <old> slime became <rarity>!"` (`"good"`, `"Cash"`).
-
-### 8.7 Rarity curve
-
-- `Config.RARITIES[i].weight` = 52, 28, 13, 5.2, 1.45, 0.35 (was 60, 25, 10, 4, 0.9, 0.1).
-- **Pity** (per server, `world.pity`): after `PITY_EPIC` (30) drops in a row without an Epic+, the next drop is at least Epic; after `PITY_LEGENDARY` (300) without a Legendary+, at least Legendary. Rain luck stacks.
-- Legendary+ (`RARE_ANNOUNCE_TIER` = 5) wild drops (fountain or rain, not the Boss Slime, which has its own toast) get the `RareSpawn` attribute, update the workspace `RareSpawn*` attributes and send the `"Rare"` Notify to everyone.
-
-### 8.8 Progression
-
-- **Rebirth cost:** `REBIRTH_BASE_COST x REBIRTH_COST_GROWTH^min(r, REBIRTH_LATE_FROM) x REBIRTH_COST_GROWTH_LATE^max(0, r - REBIRTH_LATE_FROM)` with 5000 / 3 / 5 / 2 (unchanged up to rebirth 5, then x2 per rebirth).
-- **Ranks** (`Config.REBIRTH_TIERS`, reached at rebirth count; perks don't stack, the best unlocked value wins):
-
-| Rebirths | Title | Perk |
-|---|---|---|
-| 0 | Slime Rookie | |
-| 1 | Goo Getter | unlocks the CarrySpeed upgrade |
-| 3 | Slime Wrangler | unlocks the OfflineCap upgrade |
-| 5 | Blob Baron | unlocks the Luck upgrade |
-| 6 | Goo Tycoon | keep 2 slimes on rebirth |
-| 7 | Jelly Magnate | +10 % income |
-| 8 | Ooze Overlord | +30 s locks |
-| 10 | Slime Sovereign | keep 3 slimes, +25 % income |
-| 12 | Gel Emperor | +60 s locks |
-| 15 | Gelatinous Legend | keep 4 slimes, +50 % income |
-| 20 | Mythic Monarch | +100 % income |
-| 30 | Slime Deity | keep 5 slimes, +200 % income |
-
-  Rebirth keeps the favourite first, then the best slimes by income, up to the rank's keep count (not busy ones).
-- **Upgrades** (`Config.UPGRADES`, `src/shared/Upgrades.luau`; price of level n+1 = `base x growth^n`):
-
-| id | Name | Per level | Max | base / growth | Needs rebirths |
-|---|---|---|---|---|---|
-| `Income` | Slime Snacks | +10 % income | 10 | 2 000 / 2.5 | 0 |
-| `CarrySpeed` | Strong Arms | -15 % carry slowdown | 4 | 5 000 / 3 | 1 |
-| `OfflineCap` | Night Shift | +1 h offline income cap | 4 | 20 000 / 3 | 3 |
-| `Luck` | Lucky Charm | +4 % chance a wild slime you bring home is one rarity higher | 5 | 100 000 / 3 | 5 |
-
-- **Income multiplier** = `rebirthMultiplier x (1 + 0.1 x Income level) x (1 + rank income bonus) x (1 + dexBonus)`. `SlimeView.income` and `incomePerSec` include it; sell prices don't.
-- **Goals** (`Config.GOALS`, `src/shared/Goals.luau`; titles are singular for a target of 1: "Catch 1 slime"): stage targets / base rewards; the paid reward is `base x rebirthMultiplier` at the time it's paid. Checked every second and on join, so old saves get past stages retroactively.
-
-| id | Title | Stat | Targets | Base rewards |
-|---|---|---|---|---|
-| `Catch` | Catch <n> slimes | caught | 1, 10, 50, 200, 1000 | 50, 500, 5K, 50K, 500K |
-| `Merge` | Merge <n> times | merges | 1, 10, 50, 250 | 200, 2K, 25K, 250K |
-| `Steal` | Steal <n> slimes | stolen | 1, 10, 50, 200 | 300, 3K, 30K, 300K |
-| `Lock` | Lock your base <n> times | locks | 1, 25, 100 | 100, 2.5K, 25K |
-| `Pads` | Unlock <n> pads | pads | 5, 6, 7, 8 | 200, 1K, 5K, 20K |
-| `Earn` | Earn $<n> in total | earned | 10K, 1M, 100M, 10B | 1K, 50K, 2M, 100M |
-| `Rebirth` | Rebirth <n> times | rebirths | 1, 3, 6, 10, 20 | 2K, 20K, 500K, 5M, 100M |
-
-  Stats: `caught` (wild slimes deposited), `merges`, `locks` (locks bought), `sold`, `stolen` (= `totalStolen`), `earned` (= `totalEarned`), `rebirths`, `pads` (= `padsUnlocked`).
-- **Slimedex rewards** (`Config.DEX_MILESTONES`, `src/shared/Collection.luau`): at 10 / 25 / 50 / 100 / 200 / 400 / 720 discovered: cash 500 / 2.5K / 10K / 50K / 250K / 1.5M / 10M (x rebirthMultiplier) and a permanent income bonus +2 / +3 / +5 / +5 / +10 / +15 / +25 %.
-
-### 8.8a Rebirth needs a slime (v29)
-
-Rebirth number N also needs one owned slime (`data.slimes`, i.e. on a pad) of the
-`Config.REBIRTH_SLIMES[N]` species (a SlimeRoster id; a level without an entry uses the
-last entry below it). The cash cost stays. `Progression.canRebirth` rejects with
-`need a <Species Name>` when it is missing. The slime is **not consumed**: the normal
-rebirth wipe and keeper rule apply, so it only survives as a keeper. State gains
-`rebirthSlime: { id, name, tier, color, owned }?` (nil at `MAX_REBIRTHS`); `canRebirth`
-already includes the slime check.
-
-### 8.9 DataStore schema v3 (superseded by v4, §8.9a)
-
-Same store and key. v3 = v2 plus:
-
-```luau
-upgrades = { Income = n, CarrySpeed = n, OfflineCap = n, Luck = n },  -- levels, missing = 0
-stats = { caught = n, merges = n, locks = n, sold = n },
-goals = { [goalId] = stagesPaid },
-dexRewards = n,                                                       -- dex milestones paid (0..#DEX_MILESTONES)
-```
-
-Migration (`SaveData.migrate`, pure, tested with a v12-shaped save): v1 -> v2 as before; v2 (or a version-less v2 shape) -> v3 adds zero upgrades / stats / goals / dexRewards, seeds `stats.caught = max(#slimes, dex count)`, and remaps `tutorialStep` 4..6 -> 5..7 (§8.3). Unknown or newer versions are read field by field with the v3 sanitizer. Everything is clamped (levels to `maxLevel`, stages to `#targets`).
-
-
-### 8.9a DataStore schema v4: stacking mutations (`Config.SAVE_VERSION = 4`)
-
-Same store and key; no key or field is renamed. v4 = v3 plus `slimes[i].mutations = { name, ... }` (at most `Config.MAX_MUTATIONS`; a fused combo from `Config.COMBOS` is stored by its combo name). The single `mutation` field is still written (the strongest entry, "None" when empty): v3 readers, visuals and dex keys use it.
-
-`SaveData.migrateV3` (v1/v2/v3 -> v4) is pure, returns a copy and is idempotent: `mutations = {}` for "None" / missing, else `{ mutation }`; a slime that already has a list is untouched. Value is the product of the list (a single entry = the v3 value). A version above 4 is never rewritten by the migration; `Genome.sanitize` reads both fields. `FEATURES.MutationStacking` (default on) only controls new rolls (stack chance `STACK_MUTATION_CHANCE`, combo fusing, merge carry-over); migration and loading always run. The Dex counts a stacked slime under its primary mutation (`DEX_TOTAL` adds `#COMBOS` with the flag on).
-
-
-### 8.9b DataStore schema v5: weather mutations (`Config.SAVE_VERSION = 5`)
-
-No field changes. `SaveData.migrateV4` (v4 -> v5, pure, idempotent) drops duplicate / "None" / non-string entries from each slime's `mutations` and rebuilds a missing list from `mutation`; clean slimes pass through untouched. New mutation ids `Wet`, `Frozen` and combos `Sleet`, `Comet` are added; no id or key is renamed. `FEATURES.WeatherMutations` (default on) gates only the roll bonus from `Config.WEATHER[id].mutation / chanceBonus` (WEATHER.md); loading never depends on it.
-
-### 8.9c DataStore schema v6: settings, plotSkin, stealLog (`Config.SAVE_VERSION = 6`)
-
-- **New field:** `settings = { musicVolume: number 0..1, sfxVolume: number 0..1, muted: boolean }` (`Shared.AudioSettings`; volumes rounded to 0.01; defaults `Config.AUDIO.DEFAULT_MUSIC_VOLUME` / `DEFAULT_SFX_VOLUME`, not muted). Missing or junk fields load as their default.
-- **Migration:** `SaveData.migrateV5` (v5 -> v6, pure, idempotent) normalises three fields that were unversioned before: `plotSkin` (a known skin id is kept, else `"classic"`; unlock is still checked on load), `stealLog` (`StealAlert.clean`, capped at `LOG_CAP` 12, junk -> empty) and `settings` (`AudioSettings.clean`). It never looks at a feature flag: with `PlotSkins`, `StealAlerts` or `Audio` off the field is kept, saved again and simply unused.
-- **Remote:** `Request("SetAudioSettings", musicVolume: number, sfxVolume: number, muted: boolean)`, rate limit 0.5 s. Wrong types and non-finite numbers are `"bad argument"`; numbers are clamped to 0..1. With `FEATURES.Audio` off it is refused (`"audio settings are off"`) and the save is not touched.
-- **State:** `settings?` (same shape), only with `FEATURES.Audio` on.
-
-### 8.10 Speed Coil (replaces the §2 bullet)
-
-Owning the coil makes the server enforce WalkSpeed `SPEED_COIL_WALK_SPEED` (22) when not carrying and `22 x (1 - slowdown)` while carrying (was: ignored while carrying). The server always enforces its target (Player attribute `TargetWalkSpeed`), every 0.1 s and on every `CharacterAdded`, instead of only overwriting speeds it recognised. The `SpeedCoil` tool still sits in the Backpack (cosmetic; `ToolTip` "Speed Coil: always on").
-
-### 8.11 Dropped slimes
-
-A dropped wild slime is snapped to the first **collidable** surface under the drop point: raycast from 4 studs above the carrier's root straight down (`RespectCanCollide = true`, excluding characters and slime models), so it lands on the ground, a plot base or a ramp, never on a head, canopy or invisible trigger. No hit within 200 studs: it goes back to its fountain landing spot. It falls there over 0.3 s and stays anchored (§4). The Lune harness checks it (`tools/livetest`).
-
-### 8.12 Test hooks (server-only, never live)
-
-`src/server/TestHooks.luau` lets scripted sessions grant cash and skip time on a live `world`. **Guard:** (1) it is not wired to any remote, prompt or chat command, so no client can reach it; only server code that already runs with full authority (a Luau Execution task, Lune tests) can call it; (2) `TestHooks.enable(world)` refuses (returns false, every hook then errors) unless `workspace.DataStoreMode == "Memory"`, and the publish checks (`scripts/check-place`, `tests/PlaceSafety.spec`) already fail any place that sets that attribute; (3) `tests/TestHooks.spec` fails if any `src/` file other than TestHooks and its spec references it.
-
-## 9. v16 additions (2026-10-15, Phoenix)
-
-**Status:** contract first; the server commits that follow implement it. Driven by the v15 Studio playtest (`/workspace/roblox/usability/v15-findings.md`). New fields are optional for readers. Where this section and §1-§8 disagree, this section wins.
-
-### 9.1 No "claim free plot" (removed in v30 C6)
-
-Plots are **auto-assigned on join** (`Sessions.join`, lowest free plot) and freed on leave. The v16 `ClaimPrompt` on a free plot's `BuyStand`, `PlotClaim.luau`, `Constants.CLAIM_PROMPT_NAME`, `world.claims` and the per-plot `BuyStand` model are gone. `ranch_shop_stand` is used only by the plaza `ShopStand`.
-
-### 9.2 Tutorial: no skipping steps you haven't done (finding #8)
-
-Replaces the "finishes that step and every step before it" rule of §2 / §8.3. `TutorialProgress.complete(data, name)`:
-
-- The **current** step's action finishes it. A **later** step's action no longer jumps ahead (buying a pad at step 1 used to skip Deposit and Lock); an earlier step's action still does nothing.
-- After any action the server **skips every step the player has already done**, judged from saved data (`TutorialProgress.isDone`): Grab / Deposit `stats.caught > 0`, Lock `stats.locks > 0`, BuyPad `padsUnlocked > PADS_START`, Merge `stats.merges > 0`, Steal `totalStolen > 0` or `rebirths > 0` (solo servers can't steal: `StealService.tickTutorial` skips Steal after `TUTORIAL_STEAL_SKIP_SECONDS` = 20 s with no other player's pad slime), Rebirth `rebirths > 0`.
-- So a player sees every step they haven't done yet, in order. Save format, step names and `State.tutorialStep` / `tutorialStepId` are unchanged.
-
-### 9.3 `State.lockStartedAt` (finding "lock bar scaled to 300 s")
-
-```luau
-lockStartedAt: number,  -- server time the current lock began (join lock or a purchase while open); extending keeps it
-```
-
-The HUD lock bar can show `(lockUntil - now) / (lockUntil - lockStartedAt)`, so a fresh 60 s lock reads full instead of 18 % of `LOCK_MAX_REMAINING`. In every snapshot.
-
-### 9.4 Findings that are not server work (owners)
-
-- **Jolt (src/ui):** scroll lists `VerticalAlignment` (#1), carry panel under tutorial card (#2), Speed Coil description in `ShopCatalog` (#4, see §8.10: it works while carrying), boss banner width (#5), rebirth disclaimer clip (#6), `UIScale` (#7), tutorial copy "hold" -> "press E" and free-vs-paid (#8; `GrabPrompt.HoldDuration` is 0), Daily modal vs tutorial on spawn (#9), lock bar via §9.3, cash format, rebirth double-click, dex badge.
-- **Archer (src/visuals):** tutorial arrow texture (#10), Sky / night, pad colours, LockButton colour should follow the plot `Locked` attribute, plot signs at night, the plot Sign + BuyStand duplication.
-
-## 11. v29 #4: friend income bonus (2026-10-16, Jolt)
-
-**Status:** contract first. `Config.FEATURES.FriendBonus` (default on); `false` = no bonus, no badge.
-
-- **Rule:** +`FRIEND_BONUS_PER_FRIEND` (10%) income per friend of the player who is in the **same server**, at most `FRIEND_BONUS_CAP` (+30%). `FriendBonus.bonus(count)` (`src/shared/FriendBonus`).
-- **Server (`src/server/Friends`):** `Player:IsFriendsWith` through a pcall, cached per pair for `FRIEND_CACHE_SECONDS` (600). A failed check keeps the last known answer (false when none) and isn't retried for `FRIEND_RETRY_SECONDS` (30). `Friends.refresh` runs on every join and leave (async; it yields) and writes `session.friends` and `data.friendBonus`.
-- **Income path:** `data.friendBonus` (runtime, **never saved**, no save-format change; optional on `PlayerData.Data`) is a factor of `Perks.bonusMultiplier`, so `incomePerSecond`, `slimeIncome`, `State.incomeMultiplier` and offline income all use it (offline pays at join, before any friend is known: 0).
-- **State:** `friends: { count: number, bonus: number }` in every snapshot (0 / 0 with none or the feature off).
-- **UI:** HUD banner `"👥 +20% friends"` (hidden while a menu is open, like the modifier banner); the SlimeDex card's income line adds `Friends +20% income`.
-
-## 12. v29 #10: live admin events (2026-10-16, Jolt)
-
-**Status:** contract first. `Config.FEATURES.AdminEvents` (default on); `false` = nothing can be triggered. Server-only logic.
-
-- **Who:** `AdminEvents.isAdmin(userId, creatorId)` (`src/shared/AdminEvents`): the place owner (when `game.CreatorType` is User) or a UserId in `Config.ADMIN_USER_IDS` (empty by default). There is no remote and no client code path; non-admins get no reply at all.
-- **Trigger:** chat `"/event <luck|mutation|rain> [minutes]"` (`Player.Chatted`, minutes clamped to `ADMIN_EVENT_MIN/MAX_SECONDS`, default 10). `src/server/AdminEventsService`.
-- **Cross-server:** `MessagingService` topic `Config.ADMIN_EVENT_TOPIC`, payload `{ v = 1, id, seconds, by, nonce }`. Every call is in a pcall; a failed send still starts the event on this server. Receivers rebuild the payload (`AdminEvents.validate`: known id, clamped seconds, `by` must itself be an admin), drop a repeated nonce, and share one cooldown (`ADMIN_EVENT_COOLDOWN`, 20 s) with local triggers.
-- **Effects (existing systems):** `luck` / `mutation` set `world.adminEvent`, which overrides the dawn / dusk `world.modifier` until it ends (`Spawner.stepModifier`; then the normal roll resumes); `rain` calls `Spawner.forceRain`. Needs `FEATURES.CycleModifier` for the multipliers.
-- **State / UI:** `State.modifier.icon?` (emoji) is set while an admin event runs; the HUD modifier banner shows `"<icon> Luck Event x3 luck - 9:00 left"`. A server-wide toast announces it. No save-format change.
-
-## 13. v29 #12: co-op ritual circle (2026-10-16, Jolt)
-
-**Status:** contract first. `Config.FEATURES.CoopRitual` (default on); `false` = no circle is built, nobody is blessed. Server-authoritative; no remote, no client code path, no save-format change.
-
-- **Circle:** `workspace.Map.RitualCircle` (`server/RitualView`), plain anchored decor parts at `Config.RITUAL` `BEARING` 348 / `DISTANCE` 93 (the meadow outside the ring path beside plot 1's entrance: off the slime lane, the slide, the fountain, the plots and their entrance corridors, the prop spots and the border; `tests/Ritual.spec` checks it). `SPOTS` (= `MIN_PLAYERS` = 2) glowing spot discs, evenly spaced on the circle, plus an orb with a `BillboardGui` ("Slime Ritual / 1/2 players", then "Hold still! 5s", then "Ritual resting 3:20"). Spots turn green while someone stands on them.
-- **Rule (`shared/Ritual`, `server/RitualService`):** `MIN_PLAYERS` (2) distinct players stand on distinct spots (one pad each; `SPOTS` is derived from `MIN_PLAYERS` in Config) for `HOLD_SECONDS` (6). Dropping below 2 resets the timer. Then each participant gets **Blessed**: `data.ritualBonus` = +30% income (2 players) for `BLESS_SECONDS` (180), a factor of `Perks.bonusMultiplier` like `friendBonus` (runtime only, never saved). `Config.RITUAL.BONUS` still lists the +20% (3) and +30% (4) tiers as data, but with 2 pads they are unreachable: `Ritual.bonus` caps the player count at `SPOTS`. `RitualView` also builds one small `RuleSign` board (Part + SurfaceGui, LightInfluence 0) on the circle's plaza-side edge (`Ritual.signSpot`) with `Ritual.signText()`, generated from Config ("Slime Ritual: 2 players stand here 6s = +30% income for 3 min"); the orb billboard keeps the "n/2 players" line. The circle then rests `SERVER_COOLDOWN` (240 s); a blessed player can't count again for `PLAYER_COOLDOWN` (600 s, kept when they leave).
-- **Anti-abuse:** positions are read on the server from `HumanoidRootPart`; a player counts on the nearest spot within `STAND_RADIUS` and at most `STAND_HEIGHT` above the ground, at most once; a spot holds one player (nearest wins), so two accounts can't share a spot; only players with a loaded session and a slime (on their plot or carried) count.
-
-## 14. v29 #14: follow-pet passives (2026-10-16, Jolt)
-
-**Status:** contract first. `Config.FEATURES.PetPassives` (default on); `false` = the follow pet is cosmetic only. Server-authoritative; no new remote, **no save-format change** (derived at runtime from the saved `favoriteId` and the owned slime, so old saves just work).
-
-- **Rule (`Config.PET_PASSIVES`, `Perks.petPassive`):** the favourite slime's tier picks the kind (`KIND_BY_TIER`: income, income, luck, luck, mutation, mutation, luck); value = `tier * perTier` + `MUTATION_STEP` (1%) per mutation, capped per kind (income 8%, luck 6%, mutation 12%). No favourite (or not owned) = no perk; changing or clearing the favourite changes it on the next snapshot.
-- **Effects:** income is a factor of `Perks.bonusMultiplier` (so `incomePerSecond`, `slimeIncome`, offline income); luck is added to `Perks.luckChance` (rarity-up on deposit, `Carry`); mutation is added to `Config.MERGE_MUTATION_CHANCE` in `Merge.apply` (`Perks.petMutationBonus`).
-- **State / UI:** `State.petPerk? = { kind, value, icon, text }`; the My Plot panel shows a chip (`🍀 +3% luck`) under the favourite's row (row grows from 56 to 80 px). Glyphs are existing emoji (supplementary plane, already allowed).
-
-## 15. Gaps #15: plot skins unlocked by collection (2026-10-16, Archer)
-
-**Status:** contract first. `Config.FEATURES.PlotSkins` (default **off**: needs frame review); `false` = no remote, no State fields, no plot attribute, no visuals. The save field is still read and written.
-
-- **Rule:** `Config.PLOT_SKINS` lists the skins; each is tied to a SlimeDex set (`set` = rarity tier, 288 keys: `PlotSkins.setSize`) and unlocks at `owned / setSize >= threshold` (0.75, integer test `owned >= ceil(setSize * threshold)`; weather mutation keys do not count). `classic` is the default and always unlocked. `src/shared/PlotSkins`.
-- **Save (versioned since v6, §8.9c):** `plotSkin: string`. Missing, unknown or not unlocked loads as `"classic"` (`SaveData.deserialize`; `SaveData.migratePlotSkin` is the pure step; `migrateV5` normalises unknown ids).
-- **Remote:** `Request("EquipPlotSkin", skinId)` (`string`; rate limit 0.5 s). Refused unless the skin exists and is unlocked, or when the flag is off. Equipping `classic` always works.
-- **State (flag on only):** `plotSkin: string`, `plotSkins: { { id, name, setName, tier, owned, total, needed, fraction, unlocked, equipped } }` (classic first).
-- **Plot attribute (flag on only):** `Plot_<i>.PlotSkin = <id>` ("classic" for a free plot). Clients paint from it.
-- **Visuals (client, `PlotDecor.applySkin`):** floor `Base` colour + material, fence / gate mesh tint, and the skin's decor mesh stands in for the plot's `Mailbox_<i>` slot. **No new mesh slots:** the decor meshes are templates in `ReplicatedStorage.PlotSkinMeshes` (server-published), not world slots. `WorldLayout.build` is unchanged.
-- **Studio-only debug:** SlimeUI attribute `PcwPlotSkin` (skin id) forces Plot_1's skin and the picker view for shots.
-
-## 16. Revenge steal (FEATURES.Revenge, default `true`)
-
-- When a steal completes (`Carry.deposit(world, thiefId, now)` of a stolen slime), the victim gets a window of `Config.REVENGE_SECONDS` (60) on that thief. Robbing the same victim again refreshes it. Server state: `world.revenge[victimId][thiefId] = window end` (`server/Revenge`).
-- **Lock cost:** while the thief is inside any victim's window their lock costs `Config.REVENGE_LOCK_COST_MULT` (2) x `Economy.lockCost`; several windows do not stack. It applies to the purchase (`Steal.buyLock` 5th arg), `State.lockCost` and the `Plot_<i>.LockCost` attribute. Lock length is unchanged.
-- **Highlight:** Player attribute `RevengePlots` (`Constants.REVENGE_PLOTS_ATTRIBUTE`, string "3,5" via `Shared.RevengePlots`) is set on the **victim only**: plot indexes of thieves in their window who are still in the server; nil = none. `VisualsClient/RevengeFx` draws one local `Highlight` (`RevengeHighlight`) per plot on `Plot_<i>.Base`.
-- A window ends at expiry (`StealService.step` prunes it), or when the thief or the victim leaves (`Sessions.leave` -> `Revenge.forget`). State is pushed to the thief so `lockCost` drops back. Nothing is saved.
-- Flag off: no marks, no attribute, normal lock price.
-
-## 17. v21: full steal alerts (2026-10-16)
-
-**Status:** contract first. `Config.FEATURES.StealAlerts` (default **off**: needs frame review); `false` = today's behaviour exactly (HUD banner `STOLEN! ...` + the Alarm toast), no attributes, no State field, nothing logged. Server-authoritative; the client only draws. No new remote and no new MeshParts or Parts (Frames, a BillboardGui, Highlights, a Trail with two Attachments, a ParticleEmitter).
-
-- **Owner (client, `ui/StealAlertFx`):** when one of my slimes gets `stolenBy` set: a red screen-edge flash (`StealAlert.flashAlpha`, `Config.STEAL_ALERT.FLASH_SECONDS` 1.2 s), repeat alarms (the server's toast plays the first `Alarm`; it sounds again every `ALARM_REPEAT` s, at most `ALARM_REPEATS` more times; the sound is the existing `Sounds.IDS.Alarm`), a direction arrow on the screen edge (`StealAlert.bearing` / `edgePoint`) with the distance, and a world ping on the thief (billboard `THIEF` + red outline, seen through walls; the arrow hides inside `PING_HIDE_STUDS`). It ends when `stolenBy` clears (escape, slap, deposit).
-- **Thief trail:** Player attribute `Stealing` (`Constants.STEALING_ATTRIBUTE`, `true` while `session.carry.kind == "stolen"`, nil otherwise; flag on only). Every client draws a `Trail` (lifetime `TRAIL_LIFETIME` 0.6 s) on that player's `HumanoidRootPart`, so the thief sees it too.
-- **SLAP hit effect:** `World.Event.reason` (Escaped: `"wriggle" | "timeout" | "slap" | "drop" | "left"`); on `"slap"` the adapter sets the carrier's Player attribute `SlapHitAt` (`SLAP_HIT_ATTRIBUTE`, server time). Clients draw a white flash, a `SLAP!` pop and a particle burst on that character when it changes (a value older than 3 s, e.g. seen on late join, is ignored).
-- **Save (versioned since v6, §8.9c):** `stealLog: { { thief: string, slime: string, at: number } }` (`PlayerData.stealLog`, `SaveData` clean/capped, `StealAlert.clean`). `Carry.deposit` appends the finished theft to the **victim's** log (`StealAlert.record`, cap `LOG_CAP` 12, oldest dropped, names control-stripped and cut to `NAME_MAX`). At join (`Sessions.join`) the saved log moves to `session.awayLog` (never saved) and the saved log starts empty again, so a notice shows once.
-- **State:** `stealAway: string?`, e.g. `"While you were away 3 slimes were stolen by Rex, Mia and Kit."` (`StealAlert.summary`: thieves most recent first, each once, at most `SUMMARY_NAMES` 3, then `and N more`). nil when none or the flag is off. The client no longer shows it (no toasts, Oct 18 B6); the field is still sent.
-- **Offline note:** a theft only completes while the victim is in the server (a plot is unreachable once its owner leaves; `Carry.deposit` refuses), so the log is "thefts since you were last here" and always includes ones the player saw live. Reading a theft off a persistent store of an offline player is not done (it would write another player's key).
-- **Studio-only debug:** SlimeUI attribute `PcwStealAlert` = true fakes one theft (flash held at its peak, arrow pointing right) and the join notice, for the pc-watcher proof shot.
-
-## 18. v21: weekly event rotation (2026-10-16)
-
-**Status:** contract first. `Config.FEATURES.WeeklyEvents` (default `false`); `false` = no boost, no multiplier, no attribute (an existing value is cleared). Server-authoritative; no remote, **no save-format change**, nothing saved.
-
-- **Schedule (`src/shared/WeeklyEvents`, `Config.WEEKLY`):** a pure function of unix time (UTC), so every server agrees; tests pass a fake `now`. Weeks are ISO weeks: Monday 00:00 to the next Monday 00:00 UTC (`weekIndex`, `isoWeek`). Intervals are half-open `[startsAt, endsAt)`.
-  - **Weekly mutation:** exactly one per week, `MUTATION_ROTATION[week % n]` (plain `Config.MUTATIONS` names; Eclipse stays rare). It adds `MUTATION_CHANCE_BONUS` (3 %) of roll range to that mutation only, the same window mechanism as the weather bonus (`Genome.rollMutation(…, weeklyMutation, weeklyBonus)`, placed after the weather window). Consecutive weeks differ.
-  - **Saturday trait event:** `TRAITS[week % m]` (Lucky: x1.5 rarity luck, Mutant: x1.5 mutation chance) on `TRAIT_WEEKDAY` 6 from `TRAIT_START_HOUR` 18 UTC for `TRAIT_SECONDS` (2 h). Clamped to end inside its own week.
-  - **Caps:** `WeeklyEvents` clamps the bonus to `MAX_CHANCE_BONUS` (5 %) and each multiplier to `MAX_MULTIPLIER` (x2) whatever the config says. One mutation event is always active, at most one trait event, and none of the same kind overlaps (`tests/WeeklyEvents.spec` simulates 21 days).
-- **Shared API (for the events board):** `WeeklyEvents.current(now)` (mutation event first, then the trait event when live), `next(now)` (the first event starting after `now`), `state(now)`, plus `Event = { kind, id, label, icon, week, startsAt, endsAt, mutation?, chanceBonus, luck, mutationMult }`.
-- **Replicated attribute:** `workspace:GetAttribute(Constants.WEEKLY_EVENT_ATTRIBUTE)` (`"WeeklyEvent"`), written by `server/WeeklyEventService` (only when the value changes; re-checked at every boundary, at most every `SYNC_SECONDS`). Format `week|mutation|mutationEndsAt|activeTraitId or -|traitEndsAt or 0|nextKind|nextId|nextStartsAt` (unix seconds); `WeeklyEvents.decode` parses it.
-- **Effects:** applied at drop time in `Spawner.spawnOne` (wild fountain drops only; merges, Appraise and the Boss Slime are untouched). The trait multipliers stack with the dawn / dusk modifier and Slime Rain by multiplication; the weekly values are small and capped. The clock is `Spawner.unixTime` (default `os.time`; `tests/ServerFixtures` pins it to `nil` = no schedule so seeded specs never depend on the date).
-- **Live admin events (§12):** a running admin `luck` / `mutation` event **replaces** the weekly effects (no stacking, so an admin's x3 / x4 stays exactly what they asked for): `spawnOne` skips the weekly multipliers and the mutation boost while `world.adminEvent` is set, and they resume when it ends. The admin `rain` event does not set `adminEvent` (it calls `forceRain`), so weekly effects continue under it. The attribute keeps showing the schedule either way. Admin events and `Config.WEEKEND` (income) are independent.
-
-## 19. v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`, default `false`)
-
-Owner: Phoenix (server, shared), Archer (visuals). Off = one Meadow fountain, Classic drops only, no attribute, no templates, rank cards unchanged.
-
-- **Tier.** `World.fountainTier` (1..4) is the best rank seen on the server: `FountainTiers.tierFor(max rebirths over sessions)`, raised by `Spawner.stepFountainTier` each frame, never lowered while the server lives. Steps at the `Config.REBIRTH_TIERS` entries that carry `family`: 3 rebirths (Slime Wrangler) = Orchard Fountain, 6 (Goo Tycoon) = Frost, 10 (Slime Sovereign) = Starlight. Raising it toasts everyone once.
-- **Families.** `SlimeRoster` entries with `family` set (`orchard`, `frost`, `starlight`), one type per tier 1..6 (18 new ids, permanent, lower-case; none at Secret). `SlimeRoster.forTier(tier)` still returns Classic only; `forTier(tier, family)` returns a family's. Species stay the only saved trace (`Genome.sanitize` already keeps a known species id and drops an unknown one), so there is **no new saved field and no `SAVE_VERSION` bump**.
-- **Drops.** `Fountain.roll(..., familyPool)`: with a pool (`FountainTiers.pool(world.fountainTier)`) `Config.FAMILY_DROP_CHANCE` (0.3) of drops are a family type (weights 5 / 3 / 2) rolled with the family's rarity luck (1.2 / 1.4 / 1.7 on the tier >= 3 weights). With no pool (flag off or tier 1) no extra `rng` draw is made, so drop sequences are exactly the old ones. Boss slimes stay Classic.
-- **Catching.** `Carry.grabWild` refuses a family slime when the player's own rebirths are below its family's rank (`Carry.familyBlock`, "Reach Slime Wrangler (3 rebirths) to catch Orchard slimes"), before any price is charged. Stealing, merging and owning are never gated.
-- **Economy untouched.** No income multiplier, no price change: a family slime's income, wild price and sell value are those of a Classic slime of the same tier, size and mutations.
-- **Replication.** workspace attribute `FountainTier` (`Constants.FOUNTAIN_TIER_ATTRIBUTE`), set only with the flag on. `ReplicatedStorage.FountainTierMeshes` holds the two templates (`MeshSwap.publishFountainTierTemplates`).
-- **Visuals (client, `FountainTierFx` + `FountainTierDecor`).** Tier 2+: `fountain_tier_ring` (8 lantern posts, r 14.6) on the ground; tier 3+: `fountain_tier_crest` floating over the goo crown, spinning and bobbing; both tinted per tier (copper / silver / gold, `MeshPart.Color`), tier 4 crest Neon; `Map.Volcano.Crater.CraterGlow` takes the tier's glow colour. Both meshes are run-time only: 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), at most 2 extra MeshParts while shown. Studio only: SlimeUI attribute `PcwFountainTier` forces the tier (pc-watcher shots `19-fountain-tier-N`).
-- **Rank cards.** `Perks.tierText` appends "opens the Orchard slimes" for ranks with a family, only with the flag on.
-- **Needs frame review before the flag goes on:** the ring posts against the slide legs, the crest height against the emerge slimes, the glow colours at night.
-
-## 20. v21: server events board (2026-10-17)
-
-**Status:** `Config.FEATURES.EventsBoard` (default `false`); `false` = no banner. Client only: **no remote, no server code, no save-format change**, no new mesh.
-
-- **What it shows (`src/ui/EventsBoard`, pure):** one HUD banner `EventsBoard` in the `Banners` stack (hidden while a menu is open like the others), lines: `📅 Server events`; `🧪 <Mutation> week - <time> left` and the Saturday trait event (`🍀 Lucky Saturday x1.5 luck - <time> left`) from the replicated `WeeklyEvent` attribute (§18, `WeeklyEvents.decode`; needs `FEATURES.WeeklyEvents`, otherwise those lines are absent); the day/night or live admin modifier through `ModifierBadge.banner` (needs `FEATURES.CycleModifier`); and `Next: <event> in <time>` from the same attribute. Nothing running = banner hidden.
-- **Clocks:** weekly times are unix (`os.time()`, like the schedule), the modifier uses the server clock (`ctx.serverNow()`), as their own badges do. Past events are dropped, so a stale attribute never shows an ended event.
-- **Pc-watcher:** shot `v21-events-board` (`luau/events_board`) fails when the banner is missing, hidden or lists no event.
-
-
-
-## 21. v19: 3-slime merge vat (`FEATURES.MergeVat3`, default `false`)
-
-Owner: Phoenix (server, shared), Jolt (panel), Archer (vat model). Off = the two-slime vat exactly as before: no `Merge3` action (refused "the 3-slime vat is off"), no switch in the Merge panel, no template, the primitive vat disc.
-
-- **Rules (`Shared.TripleMerge`, pure).** Exactly three **different**, owned, not-busy slimes of **one** rarity T go in; one slime comes out and all three are consumed. Tier: T + 1, or with `Config.TRIPLE_MERGE_JUMP_CHANCE` (0.2) T + 2, never a jump into Secret (a jump needs T + 2 <= MAX_TIER - 1: Common..Epic can jump); T = 6 gives Secret (T + 1), as in the pair vat; tier-7 inputs stay 7 and always roll a mutation. Mutation: the strongest of the three (matching ones upgrade, `Merge.inheritedMutation` folded over the three), every other mutation they carry too (strongest first, combos fuse, `Config.MAX_MUTATIONS`), plus a fresh roll at `Config.TRIPLE_MERGE_MUTATION_CHANCE` (0.3, + the pet bonus) and the `MutationStacking` roll. Size: mean + `Config.TRIPLE_MERGE_SIZE_BONUS` (0.15), clamped. Pattern / eyes / mouth each from one of the three. The child is a real `SlimeRoster` species of its tier (its name and colour), not a blended name.
-- **Deterministic.** All randomness is the server `world.rng`, drawn in a fixed order (jump, species, mutation x2, three trait picks, stacking): one seed and inputs always give one child (`tests/TripleMerge.spec`).
-- **Anti-dupe / authority.** `Request("Merge3", a, b, c)` (3 strings, `Validate.ACTIONS.Merge3` 0.5 s). `TripleMerge.apply` validates everything first (3 ids, no repeats, each owned, none in `World.busySet`, one tier, a fresh child id) and only then removes the three and adds the child on the first slime's pad, so a refused merge changes nothing and the same slimes can never be merged twice. The favourite moves to the child. Stats (`merges`), Dex and the toast go through `MergeVat.merge3` like the pair vat. The client only gates its button (`Selection.canMergeTriple`).
-- **Economy untouched.** No cash cost, no sell / buy value changes. Three slimes for one tier up (the pair vat does it with two) is the price of the extra odds: a 20 % second tier, every mutation kept, a species result.
-- **Panel (existing menu system).** `Panels/Merge`: a "2 slimes / 3 slimes" switch above the hint (only while the flag is on), up to three picks, `Merge 3` hold button, status "You get: <rarity> · 20% <rarity+1>". Studio only: SlimeUI attribute `PcwMergeVat` = true forces it on and opens in 3-slime mode (pc-watcher shots `19-merge-vat-*`).
-- **Vat model.** `merge_vat` (kit mesh, copper goo cauldron, three funnel spouts, 1508 tris) is the look of **every** plot's vat, independent of `FEATURES.MergeVat3` (bug #16; only the 3-slime gameplay is behind the flag): the server (`MeshSwap.swapPlotVats`, `VatDecor.pose`) parents one MeshPart `VatMesh` under each plot's `MergeVat` disc. The disc and its `Goo` only turn invisible (Transparency 1) once the mesh is placed; name, position, collision, `MergePrompt` and attributes stay. If the template cannot load, the cylinder stays visible. 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), +1 runtime MeshPart per plot. The former client `VatFx` / `MergeVatMeshes` template are gone.
-- **Needs frame review before the flag goes on:** the panel with the switch on a 390 px phone, the vat scale against the disc, the vat in the night look.
-
-## 22. v29 #13: restocking consumables shop (2026-10-16)
-
-**Status:** `Config.FEATURES.Consumables` (default on); `false` = no Shop section, `BuyConsumable` refused ("the shop is closed"). Server-authoritative.
-
-- **Schedule (`shared/Consumables`):** slot = `floor(unix time / CONSUMABLES_RESTOCK_SECONDS)` (300 s). The stock of a slot is a pure function of the slot (seeded `Rng`), so every server agrees; `State.consumables.restockAt` drives the shop countdown. Each item rolls `minStock..maxStock` = the quantity **each player** may buy this restock (0 = sold out); counts live in `data.consumables = { slot, bought }` and reset when the slot changes.
-- **Remote:** `Request("BuyConsumable", itemId, slimeId?)`, rate limit 0.5 s (`Validate.ACTIONS`). Checks stock, cash (price x rebirth multiplier) and the item's precondition first; nothing is charged when the effect cannot happen.
-- **Items (ids are save keys, never rename):** `MutationSpray` (rolls a `MUTATIONS` mutation onto an owned, idle slime; respects `MutationStacking` combos and `MAX_MUTATIONS`; rerolls a no-op roll up to 8 times), `LuckPotion` (server-wide: `world.potionUntil`, each potion adds `LUCK_POTION_SECONDS` up to `LUCK_POTION_MAX_SECONDS`; spawn luck = day/night modifier x `LUCK_POTION_MULT`, capped at `SPAWN_LUCK_CAP`, a modifier above the cap alone is never cut), `WeatherTotem` (`WeatherService.request`: the stock-seeded weather is next; only offered with `FEATURES.Weather` and a Weather service).
-- **Save:** optional `consumables` field, default "nothing bought"; no `SAVE_VERSION` bump. **State:** `State.consumables?` (items with `left` / `max`, `restockAt`, `luckUntil`).
-
-## 23. v19: Rain Magnet upgrade (`FEATURES.RainMagnet`, default `false`)
-
-Owner: Phoenix (server, shared), Jolt (shop row), Archer (prop). Off = the upgrade is not listed in `State.upgrades`, `BuyUpgrade "RainMagnet"` answers "unknown upgrade", `Perks.rainMagnetChance` is 0 (a saved level is inert, not lost), no plot attribute, no template, no prop.
-
-- **The upgrade.** `Config.UPGRADES` entry `RainMagnet` ("Rain Magnet"): rank 6 (Goo Tycoon), 5 levels, +5 % per level (max 25 %), price `300000 * 3^level` like Lucky Charm's curve one rank later, `flag = "RainMagnet"` (new optional `Upgrade.flag`: `Upgrades.available` hides / refuses a flag-gated upgrade while its flag is off). Saves are untouched: `SaveData` keeps `upgrades.RainMagnet` clamped to `maxLevel` whether or not the flag is on, no `SAVE_VERSION` bump. Other upgrades are listed exactly as before.
-- **Effect (`Shared.RainMagnet`, `Carry.applyMagnet`).** When a **wild** slime the player caught reaches their plot (`Carry.deposit`, next to Lucky Charm), it has `Perks.rainMagnetChance` to pick up the current weather's mutation: Rain -> Wet, Snow -> Frozen, Starfall -> Galaxy (`Config.WEATHER[id].mutation`, the same hook `Genome.rollMutation` reads, `Weather.getCurrent()`); with no weather mutation the Slime Rain event (`world.raining`) counts as Rain (Wet). It goes through `Genome.addMutation`, so the stack limit and combos (Sleet, Comet...) apply; a slime that already has it or has no room is left alone. Stolen slimes are never touched. Server-authoritative: one `world.rng` draw per deposit that has a level and a target, none otherwise, so seeds are unchanged for everyone else. The player gets a toast "Rain Magnet! Your slime picked up Wet!".
-- **Economy untouched.** No sell / buy / income change (a mutation is worth what it already is).
-- **Shop row.** The existing upgrade list (`ShopCatalog.upgradeViews`) shows it from `State.upgrades`: badge `UPGRADE_ICONS.RainMagnet`, short text "+5% weather mutation chance", item icon `Upgrade_RainMagnet` (`ItemIcons`; `ITEM-ICONS-NEEDED.md` regenerated). Studio only: SlimeUI attribute `PcwRainMagnet` adds the row (Lv 2/5) and the prop for the shots.
-- **Prop.** `rain_magnet` (kit mesh, red horseshoe magnet on a wooden stand pulling three raindrops, 782 tris): `WorldView` sets `Plot_<i>.RainMagnet` (the owner's level, flag on only), the client (`RainMagnetFx`, `MagnetDecor.pose`) stands a clone of `ReplicatedStorage.RainMagnetMeshes.rain_magnet` on the **local player's own** plot, 9 studs to the vat's left, while the level is above 0. 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), at most 1 extra MeshPart. The server publishes the template with the flag on (and in Studio).
-- **Needs frame review before the flag goes on:** the prop's spot against the plot's pads on every plot yaw, the shop row text on a 390 px phone.
-
-## 24. v20: welcome-back card (2026-10-17)
-
-**Status:** `Config.FEATURES.WelcomeBack` (default `true`); `false` = no State field, no card. Server-authoritative; no remote, **no save-format change**, nothing saved.
-
-- **Report (`src/shared/WelcomeBack.report`):** at join, `Income.applyOffline` builds `session.welcome = { away, cash, grown }` when the player was away at least `Config.WELCOME_BACK_MIN_SECONDS` (4 h): `cash` is the offline income just paid, `grown` the number of pad slimes whose growth rose from offline time (`Growth.applyOffline`). Missing / future `lastOnline` gives nil.
-- **State:** `welcomeBack: { away, cash, grown }?`, present for the whole session. The client shows it once per join (an edge in `PopupQueue`), as the content-sized `Welcome` menu card with the daily streak / reward and the next goal read from `State.daily` / `State.goals`. Collect only closes the card: the cash was paid at join.
-- **Ordering (`ui/PopupQueue`):** the tutorial blocks it like the Daily popup; Welcome opens before Daily, and Daily waits until the Welcome card is closed (no overlap).
-
-## 25. v23: server performance profiler (`FEATURES.ServerProfiler`, default `false`)
-
-**Status:** `false` = every `Profiler` call returns at once (no clock read, no table write, no log, no attribute). Server only; no remote, no State field, no save change.
-
-- **Module (`src/server/Profiler`, pure, Lune-tested):** `record` / `time` keep the last `Config.PROFILER.WINDOW` (120) samples per system in a ring buffer (ms from `os.clock`); `stats` gives avg, nearest-rank p95 and max; `count` bumps named counters (the `Request` remote) that the summary prints per second.
-- **Wired in `init.server`:** the Heartbeat is timed as `Heartbeat` with `Rescue`, `GameLoop` (spawner, steal, income, milestones), `Players` and `View` inside it; `Request` calls are counted.
-- **Output:** every `Config.PROFILER.LOG_INTERVAL` (30 s) one line, e.g. `[Profiler] | GameLoop 0.12/0.30ms | Heartbeat 0.8/1.9ms | instances=1234 | players=3 | Request=3.2/s` (avg/p95 per system; instance count is taken only when a line is due), and one `warn` per system whose p95 is over `Config.PROFILER.BUDGET_MS[name]`. The line is also set as workspace attribute `ProfilerSummary` (read-only dump; no chat command).
-
-## 26. v22: PvP fairness core (`FEATURES.PvP`, default `false`)
-
-**Status:** PR A of the v22 rebirth ladder (design: `docs/PVP.md`). Server and pure shared logic only; hotbar and shop UI come later (Jolt). `false` = `BuyPvpItem` refused ("PvP is not open yet"), no per-player runtime state, no Player attribute, nothing in `State`. **No `SAVE_VERSION` bump.**
-
-- **Config:** `Config.PVP` (`SAFE_ZONES` spawn / shop / fountain discs derived from the world layout, `NEW_PLAYER_SHIELD_SECONDS` 600, `CONTROL_MAX_SECONDS` 2, `SLOW_MAX_SECONDS` 3, `CONTROL_IMMUNITY_SECONDS` 3, `MIN_COOLDOWN` 1.5, `PRICE_FACTOR_TOOL` 0.03, `PRICE_FACTOR_FUN` 0.01, `PRICE_MIN` 100, `KNOCKBACK_*`, `MAP_BOUNDS`) and `Config.PVP_TOOLS` (every ladder item: `id` (save key, never rename), `name`, `line` `Knockback | Trap | Blaster | Fun`, `tier`, `rebirths` (a `REBIRTH_TIERS` threshold), `cooldown`, `kind` `tool | fun`, `cosmetic`, plus effect params). `Validate.pvpTools` runs at Config load and asserts: cooldown >= `MIN_COOLDOWN`, control <= `CONTROL_MAX_SECONDS`, slow <= `SLOW_MAX_SECONDS`, gates are rank thresholds, no `damage` / `health` field.
-- **`Shared.PvpRules` (pure):** `price` (factor x `Economy.rebirthCost(gate)`, at least `PRICE_MIN`), `isUnlocked`, `canBuy` / `buy` (flag, rank, cash, already owned), `owns` / `bestTier` / `bestTool` (a higher tier supersedes the lower ones of its line), `shieldEnd` / `isShielded`, `inSafeZone`, `canControl` / `applyControl` / `applySlow` (clamp, then immunity), `ready` / `markUsed` (cooldown registry), `canTarget` (flag, safe zones, shield, own plot or a thief carrying a slime; cosmetic items exempt from the plot rule; `FunConfetti` alone may be used inside a safe zone), `clampKnockback` (horizontal cap, small arc, landing inside the map minus a margin). **No PvP item ever reduces Humanoid health.**
-- **Save:** optional `pvp = { tiers = { [line] = tier }, fun = { id }, played = seconds }` (`SaveData.cleanPvp`): missing / junk -> nothing owned, unknown ids ignored, numbers clamped. `PlayerData.pvp` holds `fun` as a set.
-- **Remote:** `Request("BuyPvpItem", id)`, rate limit 0.5 s (`Validate.ACTIONS`). Server checks flag, rank, cash and ownership; the toast is "<name> bought!".
-- **Knockback line (PR B, live behind the flag):** `server/PvpKnockback` registers the `Knockback` line handler (`KnockGlove1-5`); pure geometry in `Shared.PvpKnockbackRules` (`reach` = tool `reach` else `SLAP_REACH`, `plan` pushes the target `tool.push` studs away from the attacker through `PvpRules.clampKnockback`, so it lands inside `MAP_BOUNDS` and never reduces health). Order after `PvpService.use`'s checks: reach, control (`PvpRules.applyControl` for `Config.PVP.KNOCKBACK_CONTROL_SECONDS`; a target under control or immunity is **not** pushed and the use starts no cooldown), push, then a thief carrying a slime drops it through `StealService.escape(..., "slap")` like the base slap. The push goes through an injectable mover (`PvpKnockback.setMover`; `init.server` sets a `KNOCKBACK_SECONDS` `AssemblyLinearVelocity` launch; Rescue still catches the void; Roblox has no fall damage). **The server creates no Instance** (no glove model, Tool, handle or projectile): the look is client FX from `PvpEvent` `Effect` (`effect = "Knockback"`, `position` = the target's position, `push` = applied horizontal studs, `duration` = `Config.PVP.FX_SECONDS`, 1 s), built on the existing character parts and destroyed within `FX_SECONDS`. The base `Request("Slap")` is unchanged.
-- **`server/PvpService`:** one `PvpRules.State` per session (weak table, never saved), only with the flag on. New-player shield: from join until `NEW_PLAYER_SHIELD_SECONDS` of play (`data.pvp.played`, summed across sessions at leave) or the first rebirth; it never ends before the join lock (`JOIN_LOCK_SECONDS`, unchanged). `StealService.steal` ends it for good (`played` = the cap). Player attribute `PvpShieldUntil` (`Constants.PVP_SHIELD_ATTRIBUTE`, server time) is set by `WorldView.updatePlayer` while shielded, flag on only.
-- **Goo Trap line (PR C, live behind the flag):** `server/PvpTrap` registers the `Trap` line handler (`GooTrap1-3`); pure rules in `Shared.PvpTrapRules`. `UsePvpItem(itemId, nil, aim)` places a trap at `aim`: the point must be on the user's own plot (`WorldView.pointInHomeZone`, the HomeZone test `inHomeZone` uses), outside every safe zone, and the owner may have at most the tier's `traps` armed; **placing beyond the count is refused ("too many traps"), it does not replace the oldest** (no cooldown started). A trap is **server-side data, not a Part** (zero parts at rest or after a trigger; nothing goes through `PvpService.track`): the per-player `WorldView.updatePlayer` tick calls `PvpTrap.tick`. Only a thief carrying the **owner's** slime (`carry.kind == "stolen"`, `ownerUserId` = trap owner) inside `radius` (XZ, +-8 studs high), while the trap is armed and the thief is not new-player shielded, springs it; the owner, wild-slime carriers and other players never do. The thief is frozen for the tier's `control` seconds through `PvpRules.applyControl` (<= `CONTROL_MAX_SECONDS` 2 s, then 3 s immunity; an immune thief passes through and the trap stays armed), never damaged. The freeze is WalkSpeed 0 via the existing `TargetWalkSpeed` enforcement (`WorldView.updatePlayer` asks `PvpTrap.frozen`). After a trigger the trap re-arms after `rearm` seconds and stays a zone. Events: `TrapPlaced` on placing, `TrapCleared` on owner leave / flag-off cleanup (`PvpService.onCleanup`), `Effect {effect = "Freeze", attacker = owner, target = thief, itemId, position = trap, duration}` on trigger; the look (puddle decal, goo burst) is client FX from those events. Traps last until the owner leaves (no wipe on rebirth: they hold no slime).
-- **Goo Blaster line (`GooBlaster1-3`, `server/PvpBlaster` + pure `Shared.PvpBlasterRules`):** `UsePvpItem(itemId, targetUserId?, aim?)` is a server-side hitscan from the attacker's root toward `aim` (or the target's position), `tool.range` studs (40 / 45 / 50). The first player whose root is within `HIT_RADIUS` (3) of the segment is hit; players that fail `PvpRules.canTarget` (flag, safe zones, shield, own plot or a thief carrying a slime, control immunity) are shot through. Effect: walk speed x `1 - tool.slow` for `tool.slowSeconds` (`PvpRules.applySlow`: clamped to `SLOW_MAX_SECONDS`, then immunity), applied through `Carry.targetWalkSpeed` (the existing `TargetWalkSpeed` enforcement; restored by itself). Never damage, never a stun. A miss still spends the cooldown; a refused use (no aim, safe zone, not equipped, cooldown, flag off) does not. `PvpEvent` `Effect { attacker, target?, itemId, effect = "Slow", position, duration }` goes to every client: on a hit `target` + the target's position + the slow seconds, on a miss `target = nil` + the end of the ray + 0.4 s so clients draw the miss. The beam from the hand and the goo splat are client FX; the server creates no Instance (zero runtime parts, zero meshes).
-- **Fun items (`FunConfetti`..`FunFireworks`, `server/PvpFun`):** `registerLine("Fun", ...)`; every use fires `PvpEvent` `Effect` (`effect` `"Cosmetic" | "Dance" | "Bounce"`, `itemId`, `attacker`, `target?`, `position`, `duration`; Balloon adds `count` = max decals, Squeaky `push`) and creates no Instance. Rank 0 owns only `FunConfetti` (the only item usable in a safe zone). Balloon / Bubbles / Hat Launcher / Fireworks are refused inside safe zones. Balloon and Bounce Pad `aim` must be within `FUN_AIM_RANGE` of the user, outside safe zones; Bounce Pad and Fireworks only on the user's own plot. The **Bounce Pad is data, not a Part**: one per owner (`maxPlaced`; a second is refused "already placed"), lives `BOUNCE_PAD_SECONDS`, announced by `TrapPlaced` / `TrapCleared` (`itemId` `FunBouncePad`), stepped on in the `WorldView.updatePlayer` tick (`PvpFun.tick`): the owner is launched straight up `height` studs (no horizontal push, re-trigger `BOUNCE_RETRIGGER_SECONDS`); a non-shielded thief carrying a slime outside a safe zone is launched the same way, gets `control` seconds of control (then immunity) and an `Effect` `"Bounce"`; visitors without a slime are ignored. Squeaky Hammer: squeak with no target; on a thief carrying a slime within reach, a `nudge` (2 studs) plus `FUN_NUDGE_CONTROL_SECONDS` control; it shares `Session.lastSlapAt` with the base slap (refused "slap on cooldown" without starting its own cooldown). Hat Launcher: self (no target) or a Roblox friend in reach (`Friends.areFriends`), `hatSeconds`. Dance Bomb: thieves on the user's own plot only, `control` seconds. No fun item lowers health.
-
-- **Knockback feel + client FX (2026-10-17):** `PvpLaunch.launch` (server, flag on only) sets the root velocity AND holds the humanoid in `PlatformStand` for `KNOCKBACK_SECONDS` (restored by itself) so ground friction does not eat the push; `PvpKnockbackRules.velocity` multiplies the horizontal speed by `Config.PVP.KNOCKBACK_FRICTION_BOOST` (1.5; `maxHorizontalSpeed` = `KNOCKBACK_MAX_PUSH` / `KNOCKBACK_SECONDS` x boost, the worst overshoot 4 studs stays inside the 6-stud map margin). `Rescue.shouldRescuePvp` is the **void guard**: while under PvP control or within `LAUNCH_GUARD_SECONDS` (5) of a PvP launch (`Rescue.pvpActive`, `PvpLaunch.guardActive`) a living character below `Rescue.PVP_SAFE_Y` (-20) is put back by the existing `WorldView.rescue` path (the kill plane stays -60; flag off = the old behaviour). `src/ui/PvpEffects` (+ pure `PvpEffectsLogic`, started from `init.client` only with the flag on) plays the look and sound of `Effect` / `TrapPlaced` / `TrapCleared` from Roblox built-ins only (ParticleEmitter, Highlight, Beam, Trail, Attachment, Sound; `rbxasset://` textures), all transient (gone within the plan's `seconds`, <= `FX_SECONDS` except a Freeze / Slow / Dance highlight and Fireworks), counted by `PvpEffects.activeCount()` (0 when idle; `markerCount()` for placed markers). Zero BaseParts at rest: emitters sit on the characters' parts or an Attachment under Terrain; the only Part is the flat client-only marker of a placed Goo Trap (owner only) / Bounce Pad, destroyed on `TrapCleared`. Sounds: `Sounds.IDS` `PvpHit` .. `PvpBubble` (docs/PVP.md).
-
-### 26.1 PvP remote contract (final names; the client builds against this)
-
-Everything is behind `Config.FEATURES.PvP` (default `false`). With the flag off the server refuses every PvP action with "PvP is not open yet", sends no `State.pvp`, fires no `PvpEvent` and sets no PvP attributes. Times are **server time** (`workspace:GetServerTimeNow()`); the client compares against the same clock.
-
-**Where things live**
-- Remote names: `src/shared/Constants.luau` (`REQUEST` = `"Request"`, `STATE` = `"State"`, new `PVP_EVENT` = `"PvpEvent"`); remote definitions and argument types: `src/shared/Remotes.luau` (`Remotes.DEFINITIONS`, `Remotes.ACTIONS`), all under `ReplicatedStorage.Remotes`.
-- Item data the client reads: `Config.PVP_TOOLS` (`src/shared/Config.luau`), keyed by item id. Each entry: `id` (save key, never renamed), `name`, `line` (`"Knockback" | "Trap" | "Blaster" | "Fun"`), `tier` (1..n within the line; Fun items are tier 1), `rebirths` (the rank gate, always a `Config.REBIRTH_TIERS` threshold; the rank title is the `REBIRTH_TIERS` entry with that `rebirths`), `cooldown` (s), `kind` (`"tool" | "fun"`), `cosmetic` (bool), effect params, exact Config field names: gloves `push`, `reach`; traps `traps` (max armed), `control` (freeze s), `radius`, re-arm = `cooldown`; blasters `slow` (fraction 0..1, e.g. 0.3 = 30 %), `slowSeconds`, `range`; fun items per entry). Per-rank unlocks = filter `PVP_TOOLS` by `rebirths <= player rebirths`. Prices: `Shared.PvpRules.price(id)` (pure; the client may require it). Rules the client may mirror for UI hints only (server decides): `Shared.PvpRules.inSafeZone`, `bestTool`, `isUnlocked`.
-
-**Client -> server** (all through the existing `Request` RemoteFunction: `Request:InvokeServer(action, ...)`, returns `(ok: boolean, message: string?)` like every other action)
-
-| Action | Args | Notes |
-|---|---|---|
-| `BuyPvpItem` | `itemId: string` | Cash only. Checks flag, rank, cash, already owned. A higher tier supersedes the lower ones of its line. |
-| `EquipPvpItem` | `itemId: string?` | Owned item into the hand slot; `nil` unequips. Only one equipped item. Equipping spawns nothing in Workspace. |
-| `UsePvpItem` | `itemId: string, targetUserId: number?, aim: Vector3?` | Must be the equipped item. `targetUserId` for targeted items (gloves, Squeaky, Dance Bomb, Hat Launcher); `aim` = world point for aimed / placed items (Blaster, Goo Trap, Bounce Pad, Balloon, Fireworks). The server validates reach, cooldown, safe zones, shield, own-plot / thief rule; a refused use returns `false, reason` and starts no cooldown. |
-
-Rate limits: `BuyPvpItem` / `EquipPvpItem` 0.5 s, `UsePvpItem` 0.2 s (`Validate.ACTIONS`); the per-item cooldown is separate and server-authoritative.
-
-**Server -> client**
-
-1. **Snapshot** in the existing `State` event, field `pvp` (present only with the flag on):
-   `pvp = { rank = number (rebirths), owned = { [itemId]: true }, best = { Knockback = itemId?, Trap = itemId?, Blaster = itemId? }, equipped = itemId?, cooldowns = { [itemId]: endsAt }, shieldUntil = number?, safeZone = string? }`.
-   Sent on join, on `Sync`, and after every Buy / Equip.
-2. **`PvpEvent`** RemoteEvent (new, ServerToClient). One table argument with a `kind`; all carry `serverTime`.
-
-| kind | Fields | Sent to |
-|---|---|---|
-| `"Cooldown"` | `itemId, duration, startedAt` | the user |
-| `"Shield"` | `endsAt: number?` (`nil` = shield over) | the player |
-| `"SafeZone"` | `zone: string` (`"Spawn" | "Shop" | "Fountain"`), `inside: boolean` | the player |
-| `"Effect"` | `attacker: number (userId), target: number? (userId), itemId, effect` (`"Knockback" | "Freeze" | "Slow" | "Dance" | "Bounce" | "Cosmetic"`), `position: Vector3?, duration: number?, push: number?, velocity: {X, Y, Z}?` | every client (FX only; clients may skip it beyond their stream radius). `velocity` (additive; Knockback, Bounce incl. the owner's own Bounce Pad launch, Squeaky nudge) = the launch the server planned (`PvpKnockbackRules.velocity`); the **victim's own client** applies it to its HumanoidRootPart after `PvpKnockbackRules.clampVelocity` (a real player's character is network-owned, the server's own velocity set alone is weak) |
-| `"TrapPlaced"` / `"TrapCleared"` | `owner: number, trapId: string, itemId, position: Vector3` | every client |
-
-**Status:** Knockback line live (PR B: `KnockGlove1-5` via `UsePvpItem(itemId, targetUserId)`) and Goo Trap line live (PR C: `GooTrap1-3` via `UsePvpItem(itemId, nil, aim)`; `TrapPlaced`, `TrapCleared`, `Effect` Freeze, no Instance); Blaster (PR D) and Fun (PR E) lines live; all four lines are live behind the flag.
-
-Player attributes (replicated, read-only hints for other players' UI): `PvpShieldUntil` (number, server time; nil = not shielded), `PvpEquipped` (string item id; nil = none).
-
-**Runtime parts (hard constraint: zero net parts).** Nothing PvP-related exists in Workspace while the flag is off or while no item is being used. Gloves and the Blaster are not welded models: their look is particles / beams / trails attached to the character's existing hand parts, created on use and destroyed within `Config.PVP.FX_SECONDS`. Traps and Bounce Pads are spawned only when placed (at most `count` per owner), removed when triggered, on lifetime end, on owner leave and on flag off. `RuntimeParts.spec` checks that a PvP-on server at rest adds 0 parts and that a use leaves 0 parts after cleanup.
-
-**Status in this PR:** live with the flag on: `BuyPvpItem`, `EquipPvpItem` (sets `PvpEquipped`, spawns nothing), `UsePvpItem` (equipped, cooldown, safe zone / shield / own-plot rules, then `PvpService.registerLine(line, handler)`; a line without a handler answers `false, "Coming soon"` and starts no cooldown; the Knockback line (#245) and the Trap line (PR C) are live; the Blaster line (PR D) is live; the Fun line (PR E) is live), `State.pvp` (join, Sync, after every Buy / Equip) and `PvpEvent` kinds `Cooldown`, `Shield`, `SafeZone` (the per-player `WorldView.updatePlayer` tick; no new loop). `PvpService.fireEffect` / `fireTrap` exist for the later PRs (`Effect` / `TrapPlaced` / `TrapCleared` are fired by the Trap line, PR C). `vector3?` is a new `Remotes.ACTIONS` arg kind (finite `Vector3`, each component at most 100000). `PvpService.track` / `cleanup` / `spawnedCount` are the Workspace registry (cleaned on leave and when joining with the flag off). Flag off: all of it refuses or does nothing.
-- **Blaster status:** `GooBlaster1-3` live behind the flag via `PvpService.registerLine("Blaster", ...)` (`UsePvpItem` aim / target, `Effect` with `effect = "Slow"`); the Blaster line no longer answers "Coming soon".
-
-## 27. World shops: Item Shop and Upgrade Shop (`FEATURES.WorldShops`, default `true`; server + world implemented 2026-10-17, client UI pending)
-
-**Status:** server + world side implemented (`Shared.Shops`, `server/ShopGuard`, `Actions`, `WorldProps`); the client UI is Glitch's. Merijn's HUD design (2026-10-17) drops the HUD Shop button for two in-world shops. Phoenix builds the server and world side against this section; Glitch builds the client UI. Names below are final; change them here first. Server-authoritative: the client calls `Request`, renders `State` and `ShopEvent`, never decides an outcome.
-
-### 27.1 Split (ids are save keys / action args, never renamed; names are the exact current strings)
-
-| Shop | Id | Name | Bought with (existing logic, reused) |
-|---|---|---|---|
-| ItemShop | `Lock` | "Lock base" | `Request("Lock")` (`StealService.buyLock`) |
-| ItemShop | `MysteryEgg` | "Mystery Egg" (`FEATURES.MysteryEgg`) | `BuyEgg` |
-| ItemShop | `MutationSpray` / `LuckPotion` / `WeatherTotem` | "Mutation Spray" / "Luck Potion" / "Weather Totem" (`FEATURES.Consumables`, restocking) | `BuyConsumable(itemId, slimeId?)` |
-| ItemShop | `Config.PVP_TOOLS` ids | per `PVP_TOOLS[id].name` (`FEATURES.PvP`, default off; listed only when on) | `BuyPvpItem(itemId)` |
-| UpgradeShop | `LockUpgrade` | "Longer locks" (5 levels) | `BuyLockUpgrade` |
-| UpgradeShop | `SpeedCoil` | "Speed Coil" (once) | `BuySpeedCoil` |
-| UpgradeShop | `Income` / `CarrySpeed` / `OfflineCap` / `Luck` / `RainMagnet` | "Slime Snacks" / "Strong Arms" / "Night Shift" / "Lucky Charm" / "Rain Magnet" (`Config.UPGRADES`, rank-gated by `requires`; `RainMagnet` needs `FEATURES.RainMagnet`) | `BuyUpgrade(id)` |
-
-Rule: consumed / hatched / restocking things = Item Shop; permanent, saved-and-kept-on-rebirth things = Upgrade Shop. Pads (`BuyPad`) stay on the plot, not in a shop.
-
-### 27.2 World placement (`WorldLayout.PROP_SPOTS`, bearing 0 = +Z, x = sin(b) r, z = cos(b) r, r 90, yaw = bearing so the front faces the fountain)
-
-| Anchor (Model name, under `workspace.Map`) | Bearing / r | Notes |
-|---|---|---|
-| `ItemShopStand` | 67.5 / 90 | the existing `ShopStand` spot, renamed; same safe zone `"shop"` (`Config.PVP.SAFE_ZONES`) |
-| `UpgradeShopStand` | **34.5** / **96** (`propSpot(34.5, true, 96)`; was 34 / 90, 18.3 studs from the Campfire / CampBench camp (`RanchProps`, 22.5 / r92); 22.5 itself fails `PropClearance`) | between plot 1 and 2 spokes, inside the clear gap (bearing 35 at r 90-98 clips the plot 2 entrance corridor); 20 studs from the Campfire; about 72 studs from the ritual meadow (348 / 93) |
-
-Both sit beyond the ring path (outer edge r 82; lane r 64.75-71.25, gate posts to 73.75), outside every plot rect / entrance corridor, and 12 studs of `PropClearance.SPOT_RADIUS` is kept clear (add the new spot to `PropClearance` and the minimap). Mesh: both skin `MeshAssets` `ranch_shop_stand` (`WorldLayout.BUY_STAND_MESH`, scale 0.8); the face sign text differs ("ITEM SHOP" / "UPGRADE SHOP"); both use the one `Sign` part: cream text with a dark stroke on a dark wood board, TextScaled with 12% side padding so the stand posts never hide a letter. `MinimapData.points()` pins both stands (`label` "Item Shop" / "Upgrade Shop", `icon` 🛒 / ⬆️, `MinimapData.SHOP_PINS`). Collision: solid counter via `MeshAssets.COLLISION["ranch_shop_stand"] = "Hull"` (docs/COLLISION.md: players must not stand inside it, blobby), MeshSwap applies it; add the entry with the code. Old model name `ShopStand` / `Constants.SHOP_STAND`: with `WorldShops` **off** `WorldProps` still places the single `ShopStand` (same Item Shop spot, `PROP_SPOTS` has no `ShopStand` entry, it uses `ItemShopStand`'s); with it on there is no `ShopStand` model. `PROP_MESHES` lists `ItemShopStand` and `UpgradeShopStand` (the mesh slot count is 392). New constants: `SHOP_STAND_ITEM = "ItemShopStand"`, `SHOP_STAND_UPGRADE = "UpgradeShopStand"`.
-
-### 27.3 Opening
-- `PrimaryPart` `Counter` of each stand holds ONE ProximityPrompt `ShopPrompt` (`Constants.SHOP_PROMPT_NAME`, kept): Item Shop `ObjectText "Item Shop"`, `ActionText "Browse items"`; Upgrade Shop `ObjectText "Upgrade Shop"`, `ActionText "Browse upgrades"`; `KeyboardKeyCode E`, `HoldDuration 0`, `MaxActivationDistance 12`. Stand attribute `ShopId` = `"ItemShop" | "UpgradeShop"` tells the client which catalog to open.
-- The server connects `ProximityPrompt.Triggered` on each `ShopPrompt` to `Actions.openFromPrompt` (same checks as `OpenShop`, but not the `OpenShop` rate limit, so the client's own `OpenShop` call right after still goes through), so the shop opens on the server without any client code. The UI opens client-side (like §5.3). The server tracks the open shop through `Request("OpenShop", shopId)` (below) and sets the Player attribute `OpenShop` (string `shopId`, nil = closed).
-- **Range:** `Config.SHOP_RANGE = 14` studs. Checked on the server on `OpenShop` and on **every** purchase: distance from the character `HumanoidRootPart` to the stand's `Counter` (XZ+Y) must be <= `SHOP_RANGE`, character alive. Leaving range closes the shop (`ShopEvent` `Close`, reason `"range"`), checked in the existing per-player step (`stepPlayers`, every 0.25 s while a shop is open; no new loop). The distance is 3D, HumanoidRootPart to the Counter; exactly `SHOP_RANGE` still counts as in range.
-
-### 27.4 Remotes (names final; reuse, do not duplicate purchase logic)
-- **Reused unchanged:** `Lock`, `BuyEgg`, `BuyConsumable`, `BuyPvpItem`, `BuyLockUpgrade`, `BuySpeedCoil`, `BuyUpgrade`. With `WorldShops` on they additionally require an open shop of the right type and range (see 27.6); the old HUD path is described in 27.6.
-- **New `Request` actions** (rate limit 0.5 s, `Validate.ACTIONS`, both in `Remotes.ACTIONS`): `OpenShop(shopId: string)` validates flag, shopId, range and sets `OpenShop`; `CloseShop()` clears it; `ShopBuy(shopId: string, itemId: string, arg: string?)` validates flag, range, that `itemId` belongs to `shopId` (`Shared.Shops`), then **delegates to the matching existing action** from the table in 27.1 (`arg` = `slimeId` for `MutationSpray`). Returns `(ok, message?)` as every action; on a shop failure the result is `{ ok = false, message = <readable text>, code = <27.7 code> }` (`Types.RequestResult.code`; the same `Denied` event fires). `ShopBuy` validates in this order (`server/ShopGuard.check`): flag, shopId, item membership, open shop (`WorldShopsStrict` only), alive, range; an item whose feature flag is off (`Shops.Item.flag`) answers `Unavailable`; the delegated action keeps its own rate limit (`Busy`). `Purchased.price` is the cash the existing handler took, `level` the new level of `LockUpgrade` / `Config.UPGRADES` items. Delegated refusals map to codes by their text (`ShopGuard.classify`).
-- **New RemoteEvent `ShopEvent`** (`Constants.SHOP_EVENT = "ShopEvent"`, ServerToClient, in `Remotes.DEFINITIONS`), one table arg with `kind` and `serverTime`:
-
-| kind | Fields |
-|---|---|
-| `"Open"` | `shopId` (server accepted `OpenShop`) |
-| `"Close"` | `shopId, reason` (`"closed" | "range" | "dead" | "flag"`) |
-| `"Purchased"` | `shopId, itemId, price: number, level: number?` (new level for leveled upgrades) |
-| `"Denied"` | `shopId, itemId?, code` (27.7), `message` (display text) |
-
-Fired to the buyer only. `State` is re-sent after every purchase as today.
-
-### 27.5 State the client reads
-- **Catalog:** new pure shared module `Shared.Shops`: `SHOPS = { ItemShop = { id, name, stand, items = { { id, action, ... } } }, UpgradeShop = { ... } }` with the rows of 27.1 in display order (`items[i] = { id, name, icon, text, action, flag? }`); names / icons / text come from `Config` (`UPGRADES`, `CONSUMABLES`, `PVP_TOOLS`) and `ShopCatalog` strings so there is one source. `Shops.items(shopId, features)` filters by flags. Also `Shops.shopOf(itemId)`.
-- **Live data (existing `State`):** `State.shop` (prices, levels, `owned`, §5.1), `State.upgrades`, `State.consumables` (`left` / `max` / `restockAt`), `State.pvp`, `cash`. No new State field. Player attribute `OpenShop` (see 27.3) is a read-only hint for other clients.
-
-### 27.6 Feature flag `FEATURES.WorldShops` (default `true` for server / world)
-- On: both stands exist, `OpenShop` / `CloseShop` / `ShopBuy` / `ShopEvent` work, range is validated. The existing buy actions called **without** an open matching shop answer `"open the <Item|Upgrade> Shop first"` (`code "NotOpen"`) **only once** `FEATURES.WorldShopsStrict` (on since HUD v2, the HUD Shop button is gone).
-- Off: no stands, `OpenShop` / `ShopBuy` answer `"the shops are closed"` (`FlagOff`), no `ShopEvent`, no attribute; the single `ShopStand` and HUD Shop panel behave exactly as before.
-- Old HUD **Shop** button: removed in HUD v2; `WorldShopsStrict` is on. The `ShopStand` / `ShopPrompt` prompt still opens the combined panel.
-
-### 27.7 Deny codes (`ShopEvent` `Denied.code`, also the `Request` failure `message` prefix is the readable text)
-`FlagOff` (shops closed / feature off), `BadShop` (unknown shopId), `NotInShop` (itemId not sold there), `NotOpen` (strict mode: shop not open), `OutOfRange` (> `SHOP_RANGE` or no character), `Dead` (character dead; added in the implementation, the contract had no code for "alive"), `NoCash`, `Maxed` (upgrade at max level / Speed Coil owned), `Locked` (rank `requires` / PvP gate), `SoldOut` (consumable stock 0), `Owned` (already owned: PvP item or a better tier), `BadTarget` (spray needs an owned idle slime), `Busy` (rate limit), `Unavailable` (anything else the delegated action refuses; the original text is in `message`).
+## Feature contracts (index)
+
+Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `contract/pvp.md` §26.1. There is no §10 (it was never written; budgets cite THEME.md).
+
+| Section | File | Topic |
+| --- | --- | --- |
+| §8 | [v13-additions.md](contract/v13-additions.md) | v13 additions (2026-10-15, Phoenix) |
+| §9 | [v16-additions.md](contract/v16-additions.md) | v16 additions (2026-10-15, Phoenix) |
+| §11 | [friend-income-bonus.md](contract/friend-income-bonus.md) | v29 #4: friend income bonus (2026-10-16, Jolt) |
+| §12 | [admin-events.md](contract/admin-events.md) | v29 #10: live admin events (2026-10-16, Jolt) |
+| §13 | [coop-ritual.md](contract/coop-ritual.md) | v29 #12: co-op ritual circle (2026-10-16, Jolt) |
+| §14 | [follow-pet-passives.md](contract/follow-pet-passives.md) | v29 #14: follow-pet passives (2026-10-16, Jolt) |
+| §15 | [plot-skins.md](contract/plot-skins.md) | Gaps #15: plot skins unlocked by collection (2026-10-16, Archer) |
+| §16 | [revenge-steal.md](contract/revenge-steal.md) | Revenge steal (FEATURES.Revenge, default `true`) |
+| §17 | [steal-alerts.md](contract/steal-alerts.md) | v21: full steal alerts (2026-10-16) |
+| §18 | [weekly-event-rotation.md](contract/weekly-event-rotation.md) | v21: weekly event rotation (2026-10-16) |
+| §19 | [fountain-tiers.md](contract/fountain-tiers.md) | v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`, default `false`) |
+| §20 | [server-events-board.md](contract/server-events-board.md) | v21: server events board (2026-10-17) |
+| §21 | [merge-vat3.md](contract/merge-vat3.md) | v19: 3-slime merge vat (`FEATURES.MergeVat3`, default `false`) |
+| §22 | [restocking-shop.md](contract/restocking-shop.md) | v29 #13: restocking consumables shop (2026-10-16) |
+| §23 | [rain-magnet.md](contract/rain-magnet.md) | v19: Rain Magnet upgrade (`FEATURES.RainMagnet`, default `false`) |
+| §24 | [welcome-back.md](contract/welcome-back.md) | v20: welcome-back card (2026-10-17) |
+| §25 | [server-profiler.md](contract/server-profiler.md) | v23: server performance profiler (`FEATURES.ServerProfiler`, default `false`) |
+| §26 | [pvp.md](contract/pvp.md) | v22: PvP fairness core (`FEATURES.PvP`, default `false`) |
+| §27 | [world-shops.md](contract/world-shops.md) | World shops: Item Shop and Upgrade Shop (`FEATURES.WorldShops`, default `true`; server + world implemented 2026-10-17, client UI pending) |

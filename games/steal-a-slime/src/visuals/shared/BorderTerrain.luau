@@ -568,7 +568,10 @@ function BorderTerrain.voxels(field: Field, chunk: Chunk, materialOf: { [string]
 			for k = 1, count do
 				local h = heights[(i - 1) * count + k]
 				if h >= 0 then
-					local filled = math.clamp((h - bottom) / cell, 0, 1)
+					-- Terrain renders a top voxel's surface at bottom + CELL/2 + CELL * occupancy (measured, B1: 1 -> +2
+					-- over the fill top, 0.5 -> flush), so the occupancy is offset by half a cell to land on h; h = 0
+					-- (the Ground edge) is then a half-full top layer, flush with GroundTerrain.TOP_OCCUPANCY
+					local filled = math.clamp((h - bottom - cell / 2) / cell, 0, 1)
 					if filled > 0.02 then
 						mj[k] = materialOf[tops[(i - 1) * count + k]]
 						oj[k] = filled

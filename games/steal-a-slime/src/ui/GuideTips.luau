@@ -49,7 +49,7 @@ GuideTips.STEP_GOALS = table.freeze({
 
 GuideTips.GENERAL = table.freeze({
 	table.freeze({ id = "Fountain", icon = "⛲", text = "Rare slimes spill from the fountain" }),
-	table.freeze({ id = "Slap", icon = "👋", text = "Chase thieves and SLAP to get slimes back" }),
+	table.freeze({ id = "Slap", icon = "🏏", text = "Bat thieves to get your slimes back" }),
 	table.freeze({ id = "Dex", icon = "📖", text = "New slimes fill your SlimeDex" }),
 } :: { Tip })
 
@@ -87,7 +87,7 @@ function GuideTips.view(state: any, rarityNames: { string }, now: number): View
 	local slimes = if type(state.slimes) == "table" then state.slimes else {}
 	for _, view in slimes do
 		if type(view) == "table" and view.stolenBy ~= nil then
-			add({ id = "Stolen", icon = "🚨", text = "A thief has your slime: chase and SLAP!" })
+			add({ id = "Stolen", icon = "🚨", text = "Thief has your slime: use your bat!" })
 			break
 		end
 	end

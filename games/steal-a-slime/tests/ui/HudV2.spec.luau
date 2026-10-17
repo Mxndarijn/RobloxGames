@@ -371,7 +371,7 @@ describe("H1 HUD: layout rules for the new clusters", function()
 		do
 			local label = vp.name
 			it(
-				`{label}: on screen, above the touch controls, clear of nav, left column, cards, carry / SLAP!, tutorial; text fits`,
+				`{label}: on screen, above the touch controls, clear of nav, left column, cards, carry, tutorial; text fits`,
 				function()
 					local s = Layout.screen(vp.w, vp.h)
 					local check = LayoutAssert.new(label, s)
@@ -389,7 +389,6 @@ describe("H1 HUD: layout rules for the new clusters", function()
 							check.noOverlap(name, r, `NavButton{i}`, b)
 						end
 						check.noOverlap(name, r, "Carry", s.carry)
-						check.noOverlap(name, r, "Slap", s.slap)
 						check.noOverlap(name, r, "Tutorial", s.tutorial)
 						check.noOverlap(name, r, "TutorialCarrying", s.tutorialCarrying)
 					end

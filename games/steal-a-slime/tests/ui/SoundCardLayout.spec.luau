@@ -29,7 +29,7 @@ end
 describe("Sound card placement", function()
 	local Sound = UiHarness.ui("Panels/Sound")
 	for _, vp in viewports() do
-		it(`{vp.name}: the card clears nav, tutorial, carry and slap and stays in the panel`, function()
+		it(`{vp.name}: the card clears nav, tutorial and carry and stays in the panel`, function()
 			do
 				local screen = Layout.screen(vp.w, vp.h)
 				local check = LayoutAssert.new(`[{vp.name}]`, screen)
@@ -47,7 +47,6 @@ describe("Sound card placement", function()
 					tutorial = screen.tutorial,
 					tutorialCarrying = screen.tutorialCarrying,
 					carry = screen.carry,
-					slap = screen.slap,
 				}
 				local strip = math.huge
 				for _, name in { "tutorial", "tutorialCarrying", "carry" } do

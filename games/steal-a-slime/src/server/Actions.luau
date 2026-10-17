@@ -573,9 +573,6 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return result(PvpService.use(world, session, args[1], args[2], args[3], now, ctx.pvp, ctx))
 	elseif action == "BuyEgg" then
 		return result(MysteryEgg.buy(world, session, now))
-	elseif action == "Slap" then
-		local target = args[1]
-		return result(StealService.slap(world, session, target, ctx.distanceBetween(session.userId, target), now))
 	elseif action == "Drop" then
 		if not session.carry then
 			return fail("not carrying")

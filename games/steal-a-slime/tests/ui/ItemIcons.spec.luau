@@ -2,6 +2,7 @@
 -- ItemIcons registry + ItemIconView: every item definition resolves to an icon spec (model, image or
 -- a colour + glyph placeholder), no bare-emoji icons, the global live viewport cap, the fallback
 -- chain, goal mapping, the ITEM-ICONS-NEEDED.md contract and the Shop rows' icons.
+local BatModel = require("../../src/shared/BatModel")
 local Config = require("../../src/shared/Config")
 local GlyphCheck = require("./GlyphCheck")
 local ItemIcons = require("../../src/ui/ItemIcons")
@@ -244,8 +245,14 @@ describe("uploaded item icon images", function()
 				shopIds[ItemIcons.shopIconId(item)] = true
 			end
 		end
-		-- held tools wired as their own Tool, not a shop or registry row (icon uploaded ahead of the wiring)
-		local heldToolIds: { [string]: boolean } = { Pvp_Bat = true }
+		-- held tools wired as their own Tool (ItemIcons.HELD_TOOLS), not a shop or registry row
+		local heldToolIds: { [string]: boolean } = {}
+		for _, id in ItemIcons.HELD_TOOLS do
+			heldToolIds[id] = true
+		end
+		expect(`Bat icon: {BatModel.ICON_ID}`).toBe(
+			`Bat icon: rbxassetid://{ItemIcons.IMAGES[ItemIcons.HELD_TOOLS.Bat]}`
+		)
 		for id, image in ItemIcons.IMAGES do
 			expect(`{id}: {registry.byId[id] ~= nil or shopIds[id] == true or heldToolIds[id] == true}`).toBe(
 				`{id}: true`
@@ -528,14 +535,6 @@ describe("item icons: server ids, Dex skins, gear", function()
 		expect(string.find(hud, "LockIcon", 1, true)).toBeNil()
 	end)
 
-	it("the Carry panel's Slap button carries the Slap icon", function()
-		local root = UiHarness.root()
-		local carry = UiHarness.ui("Panels/Carry").new(root, ctx())
-		local icon = UiHarness.find(root, "SlapIcon")
-		expect(icon ~= nil and icon:GetAttribute("ItemId") or "missing").toBe("Slap")
-		expect(carry ~= nil).toBe(true)
-	end)
-
 	it("source scan: every item surface renders its icons with ItemIconView (no emoji-only item badges)", function()
 		local surfaces = {
 			["src/ui/Panels/Shop.luau"] = true,
@@ -544,7 +543,6 @@ describe("item icons: server ids, Dex skins, gear", function()
 			["src/ui/Panels/DailyPopup.luau"] = true,
 			["src/ui/Panels/Plot.luau"] = true,
 			["src/ui/Panels/Dex.luau"] = true,
-			["src/ui/Panels/Carry.luau"] = true,
 			["src/ui/Hud.luau"] = true,
 		}
 		for path in surfaces do

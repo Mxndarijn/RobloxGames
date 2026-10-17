@@ -287,6 +287,7 @@ local function installShims()
 			Players = { "PlayerAdded", "PlayerRemoving" },
 			Player = { "CharacterAdded", "CharacterRemoving" },
 			Humanoid = { "Died" },
+			Tool = { "Activated", "Equipped", "Unequipped" },
 			RunService = { "Heartbeat", "Stepped", "RenderStepped" },
 			RemoteEvent = { "OnServerEvent", "OnClientEvent" },
 			BasePart = { "Touched", "TouchEnded" },

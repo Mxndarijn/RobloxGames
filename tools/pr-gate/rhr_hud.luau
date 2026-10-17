@@ -330,10 +330,7 @@ local function buildCase(vp: { name: string, w: number, h: number }, tooltipSlot
 	}, root)
 	frame("Tutorial", s.tutorial, root, Z.Tutorial, true)
 	frame("TutorialCarrying", s.tutorialCarrying, root, Z.Tutorial, true)
-	local carry = frame("Carry", s.carry, root, Z.Carry, true)
-	local slap = make("TextButton", { Name = "Slap", Text = "", BackgroundTransparency = 1 }, carry)
-	place(slap, s.slap, s.carry)
-	want("Carry/Slap", s.slap, Layout.SLAP.w, Layout.SLAP.h)
+	frame("Carry", s.carry, root, Z.Carry, true)
 
 	local file = `{outDir}/{case}.rbxmx`
 	fs.writeFile(file, roblox.serializeModel({ gui }, true))

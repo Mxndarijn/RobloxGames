@@ -428,14 +428,6 @@ function LayoutAssert.carryTexts(screen: Layout.Screen): { TextDesc }
 			wrapped = true,
 		},
 		{ name = "Carry Drop", text = "Drop", size = 15, bold = true, w = 100, h = Layout.BUTTON },
-		{
-			name = "Slap",
-			text = "SLAP SomeVeryLongDisplayName!\nSave your slime",
-			size = 22,
-			w = 0,
-			h = 0,
-			scaled = true,
-		},
 	}
 end
 
@@ -610,7 +602,7 @@ end
 function LayoutAssert.guideTexts(panel: Rect): { TextDesc }
 	local w = panel.w - Layout.PANEL_CHROME.pad * 2 - 8 - 12
 	local out: { TextDesc } = {}
-	local tips = { "A thief has your slime: chase and SLAP!", "Free pad: bring home another slime" }
+	local tips = { "Thief has your slime: use your bat!", "Free pad: bring home another slime" }
 	for _, tip in GuideTips.GENERAL do
 		table.insert(tips, tip.text)
 	end
@@ -749,7 +741,6 @@ function LayoutAssert.panelChecks(check: Checker)
 		for _, other in
 			{
 				{ "Carry", screen.carry },
-				{ "Slap", screen.slap },
 				{ "Tutorial", screen.tutorial },
 				{ "TutorialCarrying", screen.tutorialCarrying },
 			}
@@ -798,7 +789,6 @@ function LayoutAssert.overlays(screen: Layout.Screen): { { name: string, rect: R
 		{ name = "Money", rect = screen.money.rect },
 		{ name = "Status", rect = screen.status.rect },
 		{ name = "Carry", rect = screen.carry },
-		{ name = "Slap", rect = screen.slap },
 		{ name = "Tutorial", rect = screen.tutorial },
 		{ name = "TutorialCarrying", rect = screen.tutorialCarrying },
 	}
@@ -888,9 +878,8 @@ end
 LayoutAssert.ASPECT_TOLERANCE = 0.02
 
 -- PR gate: no aspect-ratio distortion. One UIScale maps design px to the
--- viewport on both axes; nav tiles (square), nav buttons, the status slots, the
--- menu close X and Slap keep their design proportions. Slap may narrow with a
--- narrow carry card, but never below 3/4 of its design aspect.
+-- viewport on both axes; nav tiles (square), nav buttons, the status slots and the
+-- menu close X keep their design proportions.
 function LayoutAssert.notSquashed(check: Checker)
 	local screen = check.screen
 	local sx, sy = screen.width * screen.scale, screen.height * screen.scale
@@ -923,11 +912,6 @@ function LayoutAssert.notSquashed(check: Checker)
 	end
 	local close = Layout.panelClose(Layout.panelFor(screen, "Shop"))
 	check.aspect("Panel.Close", close, Layout.PANEL_CHROME.close, Layout.PANEL_CHROME.close)
-	local slap = screen.slap
-	local design = Layout.SLAP.w / Layout.SLAP.h
-	if slap.h <= EPS or slap.w / slap.h > design + EPS or slap.w / slap.h < design * 0.75 - EPS then
-		check.fail(string.format("Slap %s is squashed: aspect outside [%.2f, %.2f]", fmt(slap), design * 0.75, design))
-	end
 end
 
 -- Every v18 rule for one screen; returns the checker (use `report()`).
@@ -967,7 +951,6 @@ function LayoutAssert.clusterChecks(check: Checker)
 			{
 				{ "Nav", screen.nav },
 				{ "Carry", screen.carry },
-				{ "Slap", screen.slap },
 				{ "Tutorial", screen.tutorial },
 				{ "TutorialCarrying", screen.tutorialCarrying },
 				{ "Sound", screen.sound },
@@ -1029,7 +1012,6 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	for _, card in
 		{
 			{ "Carry", screen.carry },
-			{ "Slap", screen.slap },
 			{ "Tutorial", screen.tutorial },
 			{ "TutorialCarrying", screen.tutorialCarrying },
 		}
@@ -1048,7 +1030,6 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 		check.noOverlap(name, r, "Nav", screen.nav)
 	end
 	check.noOverlap("TutorialCarrying", screen.tutorialCarrying, "Carry", screen.carry)
-	check.touch("Slap", screen.slap)
 
 	-- The Sound button (FEATURES.Audio) sits where a menu's X would: tappable, clear of everything idle,
 	-- and out of the bottom-right thumb zone (Roblox's jump button: the bottom TOUCH_CONTROLS_HEIGHT strip
@@ -1067,7 +1048,6 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 		{
 			{ "Nav", screen.nav },
 			{ "Carry", screen.carry },
-			{ "Slap", screen.slap },
 			{ "Tutorial", screen.tutorial },
 			{ "TutorialCarrying", screen.tutorialCarrying },
 			{ "Banners", screen.banners },

@@ -39,6 +39,9 @@ local ItemIcons = {}
 -- Uploaded 512x512 icons by item id (rbxassetid number of the IMAGE asset, not the Decal), rendered by
 -- shared/modeling-kit/tools/icons (ids in shared/modeling-kit/icons_uploaded.json). An image wins over
 -- the drawn scene and the placeholder tile, never over a working 3D model (it is that model's fallback).
+-- Held Tools wired as their own Tool (not a registry / shop row): Tool name -> IMAGES key.
+ItemIcons.HELD_TOOLS = table.freeze({ Bat = "Pvp_Bat" })
+
 ItemIcons.IMAGES = {
 	Appraise = 83435847821482,
 	Badge_Dex100 = 126553682019734,
@@ -91,7 +94,7 @@ ItemIcons.IMAGES = {
 	PlotSkin_classic = 75405645541984,
 	PlotSkin_crystal = 91231773101915,
 	PlotSkin_mushroom = 110584867448733,
-	Pvp_Bat = 107609481658581, -- default melee Bat (Tool 'Bat'); not a Config.PVP_TOOLS item, wired as its own tool
+	Pvp_Bat = 107609481658581, -- default melee Bat (Tool 'Bat', shared/BatModel.ICON_ID); not a Config.PVP_TOOLS item
 	Pvp_FunBalloon = 139662990313432,
 	Pvp_FunBouncePad = 127452735645388,
 	Pvp_FunBubbles = 88858283106113,

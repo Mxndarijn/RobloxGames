@@ -39,6 +39,7 @@ local Types = require(Shared:WaitForChild("Types"))
 local Actions = require(script.Actions)
 local AdminEventsService = require(script.AdminEventsService)
 local Badges = require(script.Badges)
+local BatTool = require(script.BatTool)
 local BorderTerrainView = require(script.BorderTerrainView)
 local Carry = require(script.Carry)
 local DataService = require(script.DataService)
@@ -665,6 +666,14 @@ local function onCharacter(player: Player, character: Model)
 			end
 		end)
 	end
+	-- Every spawn gets exactly one Bat (CanBeDropped = false); the server picks the target, the client sends none.
+	BatTool.give(player, function()
+		local current = World.session(world, player.UserId)
+		if current then
+			BatTool.swing(world, current, now())
+			refreshView(now())
+		end
+	end)
 	local humanoid = character:WaitForChild("Humanoid", 10)
 	if humanoid and humanoid:IsA("Humanoid") then
 		-- Speed Coil etc. right away, not on the next 0.1 s tick (CONTRACT.md §8.10).
@@ -705,6 +714,25 @@ PvpFun.setEnv({
 	end,
 })
 PvpFun.register()
+
+-- The default Bat Tool (live for everyone, NOT behind FEATURES.PvP): the server picks the target from the swinger's pose.
+BatTool.setEnv({
+	pose = function(userId: number)
+		local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
+		if not root then
+			return nil, nil
+		end
+		local look = root.CFrame.LookVector
+		local p = root.Position
+		return { X = p.X, Y = p.Y, Z = p.Z }, { X = look.X, Y = 0, Z = look.Z }
+	end,
+	mover = function(userId: number, push, _landing): boolean
+		return PvpLaunch.launch(userId, push, now())
+	end,
+	onOwnPlot = function(session: World.Session, position): boolean
+		return WorldView.pointInHomeZone(Vector3.new(position.X, position.Y, position.Z), session.plotIndex)
+	end,
+})
 
 local function refreshFriends()
 	if Config.FEATURES.FriendBonus ~= true then
@@ -792,6 +820,7 @@ local function onPlayerAdded(player: Player)
 end
 
 local function onPlayerRemoving(player: Player)
+	BatTool.forget(player.UserId)
 	local session = Sessions.leave(world, player.UserId, now())
 	WorldView.setCarrying(player, nil)
 	homeZoneFull[player.UserId] = nil

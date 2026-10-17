@@ -5,7 +5,7 @@
 	Code-built ScreenGui: HUD, plot / merge / shop / rebirth / goals /
 	SlimeDex / leaderboard menus (v28: content-sized cards over a dimmed
 	full-window backdrop) and the Guide card (opened by "Talk" at the
-	TutorialNpc; "Open Shop" at the ShopStand opens the Shop), carry overlay (+ Slap), daily reward popup, tutorial
+	TutorialNpc; "Open Shop" at the ShopStand opens the Shop), carry overlay, daily reward popup, tutorial
 	overlay; plus in-world leaderboard SurfaceGuis (WorldLeaderboard). Renders the latest `State`
 	snapshot (CONTRACT §5.1); every button calls
 	`Request:InvokeServer(action, ...)` (§3). The client never decides outcomes.
@@ -79,10 +79,9 @@ local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
 local stateEvent = Remotes.get(Constants.STATE) :: RemoteEvent
 local notifyEvent = Remotes.get(Constants.NOTIFY) :: RemoteEvent
 local leaderboardEvent = Remotes.get("Leaderboard") :: RemoteEvent
--- FEATURES.PvP: hit / trap / blaster / fun FX + SFX from PvpEvent (CONTRACT.md §26.1); flag off = module never loaded.
-if Config.FEATURES.PvP == true then
-	require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent)
-end
+-- Hit / trap / blaster / fun FX + SFX and the victim-side launch from PvpEvent (CONTRACT.md §26.1). Always on: the live
+-- default Bat's knockback (itemId "Bat") rides the same event; with FEATURES.PvP off nothing else ever fires it.
+require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent)
 
 local gui = Widgets.create("ScreenGui", {
 	Name = "SlimeUI",
