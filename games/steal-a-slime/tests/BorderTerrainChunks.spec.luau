@@ -169,3 +169,34 @@ describe("BorderTerrain.runBudgeted", function()
 		expect(yields).toBe(3)
 	end)
 end)
+
+describe("BorderTerrain voxel surface (B1)", function()
+	it(
+		"renders each column at its height: top voxel occupancy is (h - bottom - CELL/2) / CELL, flush with the Ground at h = 0",
+		function()
+			local field = BorderTerrain.field(1)
+			local air = "Air"
+			local mats = { Grass = "Grass", LeafyGrass = "Grass", Rock = "Rock", Slate = "Rock", Snow = "Snow" }
+			local chunk = BorderTerrain.chunks()[1]
+			local v = BorderTerrain.voxels(field, chunk, mats, air)
+			local count = math.floor(chunk.size / CELL)
+			for i = 1, count do
+				for k = 1, count do
+					local x = chunk.x + (i - 0.5) * CELL
+					local z = chunk.z + (k - 0.5) * CELL
+					local h = field.height(x, z)
+					if math.max(math.abs(x), math.abs(z)) > INNER and h > 0.2 then
+						-- surface of the highest non-air voxel as Terrain renders it: bottom + CELL/2 + CELL * occ
+						local top
+						for j = 1, v.layers do
+							if v.materials[i][j][k] ~= air then
+								top = BorderTerrain.FLOOR + (j - 1) * CELL + CELL / 2 + CELL * v.occupancy[i][j][k]
+							end
+						end
+						expect(top ~= nil and math.abs(top - h) < 0.1).toBe(true)
+					end
+				end
+			end
+		end
+	)
+end)

@@ -43,7 +43,7 @@ local function writeTile(terrain: Terrain, grid: GroundTerrain.Grid, tile: Groun
 				mj[k] = MATERIALS[grid.materials[(firstRow + k - 1) * grid.n + first + i]]
 			end
 			mx[j] = mj
-			ox[j] = table.create(count, 1)
+			ox[j] = table.create(count, if j == layers then GroundTerrain.TOP_OCCUPANCY else 1)
 		end
 		materials[i] = mx
 		occupancy[i] = ox

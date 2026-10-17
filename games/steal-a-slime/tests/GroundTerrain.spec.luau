@@ -197,6 +197,32 @@ describe("GroundTerrain voxels", function()
 			expect(GroundTerrain.HALF).toBe(320) -- BorderTerrain.INNER
 		end
 	)
+	it("keeps the fill top at or below y = 0 on the voxel grid, with the rendered surface at the prop bases", function()
+		local cell = GroundTerrain.CELL
+		expect(GroundTerrain.SURFACE <= 0).toBe(true)
+		expect(GroundTerrain.FLOOR % cell).toBe(0)
+		expect(GroundTerrain.SURFACE % cell).toBe(0)
+		for _, t in GroundTerrain.tiles() do
+			-- GroundTerrainView's Region3 corners: (x, FLOOR, z) .. (x + 32 cells, SURFACE, z + 32 cells)
+			for _, v in { t.x, t.z, t.x + GroundTerrain.TILE_CELLS * cell } do
+				expect(v % cell).toBe(0)
+			end
+		end
+		expect(GroundTerrain.TOP_OCCUPANCY > 0 and GroundTerrain.TOP_OCCUPANCY < 1).toBe(true)
+		expect(GroundTerrain.RENDER_SURFACE <= GroundTerrain.SURFACE).toBe(true)
+		expect(GroundTerrain.RENDER_SURFACE).toBe(0) -- the ground reads as y = 0 where characters and props stand
+		-- no prop that stands on the ground (not the deliberately sunk rocks, fountain, vat or leaf bunches) has a base more than 0.25 under the surface (Phoenix's post-publish tolerance); the plot Base floor top (1) is above it
+		local lowest = math.huge
+		walk({ children = WorldLayout.build() }, function(n)
+			if n.pos and n.size and n.name and n.name ~= "Ground" then
+				local base = n.pos[2] - n.size[2] / 2
+				if base > -0.5 and base < lowest then
+					lowest = base
+				end
+			end
+		end)
+		expect(GroundTerrain.RENDER_SURFACE <= lowest + 0.25).toBe(true)
+	end)
 	it(
 		"is a pure module: the world has no Paths folder, no plaza disc and the Ground part is invisible void-safety",
 		function()
