@@ -536,6 +536,24 @@ function LayoutAssert.welcomeTexts(panel: Rect): { TextDesc }
 	return out
 end
 
+-- Sound card texts (Panels/Sound): the mute button in both states, the two slider names and their percent.
+function LayoutAssert.soundTexts(panel: Rect): { TextDesc }
+	local w = Layout.panelBody(panel).w
+	local out: { TextDesc } = {}
+	for _, muted in { true, false } do
+		local text = if muted then `{Icons.SOUND_OFF} Muted` else `{Icons.SOUND_ON} Sound on`
+		table.insert(
+			out,
+			{ name = `Sound mute ({text})`, text = text, size = 22, bold = true, w = w, h = Layout.BUTTON }
+		)
+	end
+	for _, name in { "🎵 Music", "🔔 SFX" } do
+		table.insert(out, { name = `Sound {name}`, text = name, size = 18, bold = true, w = w * 0.7, h = 24 })
+	end
+	table.insert(out, { name = "Sound percent", text = "100%", size = 18, bold = true, w = w * 0.3, h = 24 })
+	return out
+end
+
 -- Panel titles as Widgets.panel shows them (Panels/*.luau), per menu key
 -- (the Nav keys plus the Guide card, which has no nav button).
 LayoutAssert.PANEL_TITLES = table.freeze({
@@ -547,6 +565,7 @@ LayoutAssert.PANEL_TITLES = table.freeze({
 	Dex = "SlimeDex",
 	Leaders = "Top Earners",
 	Codes = "Codes",
+	Sound = "Sound",
 	Guide = "Guide",
 	Welcome = "Welcome back!",
 })
@@ -557,6 +576,7 @@ function LayoutAssert.menuKeys(): { string }
 	for _, entry in Nav.ENTRIES do
 		table.insert(keys, entry.key)
 	end
+	table.insert(keys, "Sound")
 	table.insert(keys, "Guide")
 	table.insert(keys, "Welcome")
 	return keys
@@ -882,6 +902,34 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	check.noOverlap("TutorialCarrying", screen.tutorialCarrying, "Carry", screen.carry)
 	check.touch("Slap", screen.slap)
 
+	-- The Sound button (FEATURES.Audio) sits where a menu's X would: tappable, clear of everything idle,
+	-- and out of the bottom-right thumb zone (Roblox's jump button: the bottom TOUCH_CONTROLS_HEIGHT strip
+	-- plus a 120 px square above it).
+	check.onScreen("Sound", screen.sound, m)
+	check.touch("Sound", screen.sound)
+	local thumbSide = 120
+	local thumbTop = screen.height - Layout.TOUCH_CONTROLS_HEIGHT - thumbSide
+	check.noOverlap(
+		"Sound",
+		screen.sound,
+		"JumpZone",
+		Layout.rect(screen.width - thumbSide, thumbTop, thumbSide, screen.height - thumbTop)
+	)
+	for _, other in
+		{
+			{ "Hud", hud.rect },
+			{ "Nav", screen.nav },
+			{ "Carry", screen.carry },
+			{ "Slap", screen.slap },
+			{ "Tutorial", screen.tutorial },
+			{ "TutorialCarrying", screen.tutorialCarrying },
+			{ "Toasts", screen.toasts },
+			{ "Banners", screen.banners },
+		}
+	do
+		check.noOverlap("Sound", screen.sound, other[1] :: string, other[2] :: Rect)
+	end
+
 	-- Overlays.
 	check.onScreen("Daily", screen.daily, m)
 	check.onScreen("Toasts", screen.toasts, m)
@@ -926,6 +974,7 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			LayoutAssert.shopTexts(Layout.panelFor(panelScreen, "Shop")),
 			LayoutAssert.rebirthTexts(Layout.panelFor(panelScreen, "Rebirth")),
 			LayoutAssert.guideTexts(Layout.panelFor(panelScreen, "Guide")),
+			LayoutAssert.soundTexts(Layout.panelFor(panelScreen, "Sound")),
 			LayoutAssert.welcomeTexts(Layout.panelFor(panelScreen, "Welcome")),
 		}
 	do
