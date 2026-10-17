@@ -16,7 +16,8 @@
 	feather widths, sampled at the cell centres. Voxels are 4 studs, the finest Terrain allows, so the edges are
 	soft only as far as Terrain's own material blending makes them; the path edge is jittered per cell so it
 	scatters instead of stair-stepping.
-	The surface is flat at y = 0 (the old Ground top) everywhere: columns are filled from FLOOR up to 0.
+	The surface is flat everywhere: columns are filled from FLOOR up to 0 (the old Ground top) with the top layer at
+	TOP_OCCUPANCY, which renders the visible surface at exactly y = 0 (B1, see TOP_OCCUPANCY).
 	Cells under a plot (the Base floor, +-PLOT_SIZE/2) are Ground, never Grass, so no grass tuft ever pokes
 	through a plot floor or a pad.
 ]]
@@ -38,7 +39,16 @@ GroundTerrain.CELL = 4
 GroundTerrain.HALF = 320 -- the Ground square, studs from the centre
 GroundTerrain.TILE_CELLS = 32
 GroundTerrain.FLOOR = -8 -- columns are filled from here up to the surface at y = 0
-GroundTerrain.SURFACE = 0
+GroundTerrain.SURFACE = 0 -- top of the filled voxels (the voxel grid line), the invisible Map.Ground part's top
+-- Occupancy of the top voxel layer. Measured on a live server (Luau Execution raycasts against Terrain): smooth
+-- terrain renders its surface at layerBottom + CELL / 2 + CELL * occupancy, so a full (1.0) top layer sat 2 studs
+-- ABOVE the fill top, burying every prop base at y = 0 and the plot Base floor (top 1) (B1 "sunk objects").
+-- Measured: occupancy 1 -> y = +2.0, 0.75 -> +1.0, 0.5 -> 0.0. Keep 0.5: it renders the surface flat at y = 0,
+-- where the props and the invisible Map.Ground collider are. Do NOT "fix" it back to 1.
+GroundTerrain.TOP_OCCUPANCY = 0.5
+GroundTerrain.RENDER_SURFACE = GroundTerrain.SURFACE
+	+ GroundTerrain.CELL * GroundTerrain.TOP_OCCUPANCY
+	- GroundTerrain.CELL / 2 -- 0
 
 GroundTerrain.RING_RADIUS = WorldLayout.RING_PATH_RADIUS -- 78
 GroundTerrain.PATH_HALF_WIDTH = WorldLayout.RING_PATH_WIDTH / 2 -- 4
