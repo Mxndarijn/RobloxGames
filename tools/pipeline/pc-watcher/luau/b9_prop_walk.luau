@@ -339,8 +339,10 @@ for pass = 1, MAX_PER_KIND do
 			for _, p in rec.extra do
 				table.insert(list, p)
 			end
-			if #list > 0 then
-				local fr = frameOf(inst, list)
+			local fr = if #list > 0 then frameOf(inst, list) else nil
+			if fr and fr.bottom > 3 then
+				rec.elevated = true -- hovers above a walker's reach (the stacked slimes on the fountain top): static checks only
+			elseif fr then
 				for _, side in PropCollision.sides(fr.cx, fr.cz, fr.yaw, fr.hx, fr.hz, GAP) do
 					table.insert(jobs, { rec = rec, inst = inst, solids = list, frame = fr, side = side })
 				end
@@ -441,8 +443,9 @@ local function walk(job)
 		then fr.hz
 		else fr.hx
 	local feet = p.Y - 3
-	local onTop = feet >= fr.top - 0.5
-	local simple = e.collision ~= "PreciseConvexDecomposition" and e.kind ~= "fountain_tower"
+	local tall = fr.top - gy >= 1.5 -- lower than a step (half-sunk boulders): walked over, only "inside" counts
+	local onTop = tall and feet >= fr.top - 0.5
+	local simple = tall and e.collision ~= "PreciseConvexDecomposition" and e.kind ~= "fountain_tower"
 	local outcome
 	if through then
 		outcome = "inside"
@@ -525,7 +528,9 @@ for _, rec in kinds do
 		status = "FAIL"
 		failN += 1
 		table.insert(if hard(e) then hardFail else softFail, e.kind)
-	elseif (#rec.instances > 0 or e.find == nil) and (rec.passes > 0 or e.walk == false or e.find == nil) then
+	elseif
+		(#rec.instances > 0 or e.find == nil) and (rec.passes > 0 or e.walk == false or e.find == nil or rec.elevated)
+	then
 		status = "PASS"
 		passN += 1
 	else
