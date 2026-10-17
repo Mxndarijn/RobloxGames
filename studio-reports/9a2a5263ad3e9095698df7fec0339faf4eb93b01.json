@@ -13527,5 +13527,10 @@
       ]
     }
   },
-  "frames_dir": "9a2a5263ad3e9095698df7fec0339faf4eb93b01/"
+  "frames_dir": "9a2a5263ad3e9095698df7fec0339faf4eb93b01/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix 13:57 CEST: frames OK (228/228 captured). The report status is FAIL only because runtime parts are 2233, over the 2230 ratchet (#229; Archer's #237 trims 16). #234 item icons: the shop rows show real pictures for Longer locks, Speed Coil, Mystery Egg, Slime Snacks, Strong Arms, Night Shift, Lucky Charm and Rain Magnet. Mutation Spray, Luck Potion and Weather Totem still show the grey '?' placeholder (note for #234). 116 phone-landscape: LEGENDARY announcement plus the 3 banners, all readable, and the tutorial card sits at the bottom. A 2-line toast ('A LEGENDARY Harvest King ... from the fountain!', y~265-312) is partly hidden behind the tutorial card's top-right corner (x~577-631). Cosmetic: the toast column should stop above the bottom-anchored card on short screens. Sound card phone shots unchanged from 5b9b97c. Notes: translucent red strip across the top of the HUD."
 }
