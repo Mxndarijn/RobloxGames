@@ -2373,7 +2373,7 @@
               <R21>0</R21>
               <R22>-1</R22>
             </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
+            <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
             <Color3uint8 name="Color3uint8">7227952</Color3uint8>
@@ -5245,7 +5245,7 @@
               <R21>0</R21>
               <R22>-0.70710754</R22>
             </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
+            <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
             <Color3uint8 name="Color3uint8">7227952</Color3uint8>
@@ -8117,7 +8117,7 @@
               <R21>0</R21>
               <R22>0</R22>
             </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
+            <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
             <Color3uint8 name="Color3uint8">7227952</Color3uint8>
@@ -10989,7 +10989,7 @@
               <R21>0</R21>
               <R22>0.70710754</R22>
             </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
+            <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
             <Color3uint8 name="Color3uint8">7227952</Color3uint8>
@@ -13861,7 +13861,7 @@
               <R21>0</R21>
               <R22>1</R22>
             </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
+            <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
             <Color3uint8 name="Color3uint8">7227952</Color3uint8>
@@ -16733,7 +16733,7 @@
               <R21>0</R21>
               <R22>0.70710754</R22>
             </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
+            <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
             <Color3uint8 name="Color3uint8">7227952</Color3uint8>
@@ -19605,7 +19605,7 @@
               <R21>0</R21>
               <R22>0</R22>
             </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
+            <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
             <Color3uint8 name="Color3uint8">7227952</Color3uint8>
@@ -22477,7 +22477,7 @@
               <R21>0</R21>
               <R22>-0.70710754</R22>
             </CoordinateFrame>
-            <bool name="CanCollide">false</bool>
+            <bool name="CanCollide">true</bool>
             <bool name="CanQuery">false</bool>
             <bool name="CanTouch">false</bool>
             <Color3uint8 name="Color3uint8">7227952</Color3uint8>
