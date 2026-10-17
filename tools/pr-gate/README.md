@@ -30,7 +30,7 @@ You need `lune` (`rokit install` in `games/steal-a-slime`) and `python3` (stdlib
 
 | Budget | Limit | Verdict | Where counted | Current |
 |---|---|---|---|---|
-| Runtime parts (world BaseParts, as `perf_server.luau` counts them) | 2500 | FAIL above; WARN (non-blocking) above 2400. Fixed cap, no ratchet | `runtime_budget.sh` (CI) and Studio perf step | 2203 |
+| Runtime parts (world BaseParts, as `perf_server.luau` counts them) | 3000 | FAIL above; WARN (non-blocking) above 2900. Fixed cap, no ratchet | `runtime_budget.sh` (CI) and Studio perf step | 2203 |
 | World triangles | 500,000 | FAIL | **CI only**, `budget.sh`: build mesh slots x `shared/modeling-kit/out/<mesh>.fbx` triangles. Luau in Studio cannot compute triangles, so the Studio report keeps `triangles: null` (unknown, never a failure) | 311,672 |
 | Unique meshes (distinct MeshId) | 120 | FAIL | `runtime_budget.sh` and Studio | 93 |
 | MeshParts | 500 | SOFT: WARN only, never fails | `runtime_budget.sh`, `budget.sh`, Studio | 391 |
@@ -64,7 +64,7 @@ These are listed in `KNOWN` in `tests/ui/LayoutGate.spec.luau` and `rhr_check.py
 ## Runtime budget (`runtime_budget.sh`)
 
 The Studio perf step (`pc-watcher` `step_perf`, probe `tools/pipeline/pc-watcher/luau/perf_server.luau`) fails a build when
-`runtime_parts > 2500` or `unique_meshes > 120`, and warns above 2400 parts / 500 MeshParts (limits: `budgets.json` above). The CI step runs
+`runtime_parts > 3000` or `unique_meshes > 120`, and warns above 2900 parts / 500 MeshParts (limits: `budgets.json` above). The CI step runs
 the same probe offline, so a PR that Studio would fail fails before merge.
 
 - `runtime_count.luau` rojo-builds the place, boots it in the fake server (`tools/livetest/Runtime.luau`, `createMeshPart` shim that
@@ -76,8 +76,8 @@ the same probe offline, so a PR that Studio would fail fails before merge.
   `mesh_slots_build` (`budget_counts.luau`, i.e. `WorldLayout.build()` + `RUNTIME_SLOT_ALLOWANCE`), `mesh_slots_runtime` (raw MeshParts in the fake runtime).
 - `runtime_budget.sh` counts the working tree only (no base worktree and no base-delta rule: the caps are fixed) and hands the JSON
   plus `budgets.json` to `runtime_budget_check.py`.
-- Verdict: parts FAIL > 2500, WARN > 2400; unique meshes FAIL > 120; MeshParts WARN > 500. Exit 0 on warn-only. World triangles are `budget.sh`'s.
-  Example: `runtime-budget: parts 2203/2500 (warn 2400) unique meshes 93/120 mesh parts 391 (soft 500) -> PASS`, then one `WARN:` line per warning.
+- Verdict: parts FAIL > 3000, WARN > 2900; unique meshes FAIL > 120; MeshParts WARN > 500. Exit 0 on warn-only. World triangles are `budget.sh`'s.
+  Example: `runtime-budget: parts 2203/3000 (warn 2900) unique meshes 93/120 mesh parts 391 (soft 500) -> PASS`, then one `WARN:` line per warning.
   Warnings go to `$GITHUB_STEP_SUMMARY` and `::warning::` annotations under GitHub Actions (`::error::` for fails).
 - Runs in ~5 s. Opt-in locally as `run.sh runtime_budget`; CI runs it as its own step after `run.sh`.
 

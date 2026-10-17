@@ -309,15 +309,15 @@ def t_files():
           and watcher.overall_status(dict({n: {"status": "pass"} for n in watcher.HARD_STEPS},
                                           shots={"status": "warn", "detail": {"mesh_slots_warned": True}})) == "pass")
     rcaps = [s for s in shots if s.get("runtime_parts_max")]
-    check("a runtime_parts_max shot asserts world BaseParts <= the fixed 2500 cap (hard)",
-          len(rcaps) == 1 and rcaps[0]["runtime_parts_max"] == BUDGETS["runtime_parts"]["fail"] == 2500, rcaps)
+    check("a runtime_parts_max shot asserts world BaseParts <= the fixed 3000 cap (hard)",
+          len(rcaps) == 1 and rcaps[0]["runtime_parts_max"] == BUDGETS["runtime_parts"]["fail"] == 3000, rcaps)
     check("a failing runtime_parts_max shot fails the run (hard)",
           'runtime_parts_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
           and watcher.overall_status({"shots": {"status": "pass", "detail": {"runtime_parts_failed": True}}}) == "fail")
     check("perf_server reports runtime_parts for every BasePart and the lane/collider presence",
           all(x in open(os.path.join(HERE, "luau", "perf_server.luau"), encoding="utf-8").read()
               for x in ("runtime_parts = runtimeParts", "parade_lane", "slide_colliders", "runtime_parts_transient"))
-          and watcher.DEFAULTS["runtime_part_budget"] == 2500)
+          and watcher.DEFAULTS["runtime_part_budget"] == 3000)
     fwalks = [s for s in shots if s.get("fountain_walk")]
     check("a fountain_walk shot proves nobody sinks into the fountain top (C10)",
           len(fwalks) == 1 and fwalks[0].get("target") == "FountainMesh", fwalks)
@@ -427,13 +427,13 @@ def t_budgets():
         st, det, r = perf()
         check("perf: 2203 parts / 93 unique / 391 MeshParts pass without warnings", st == "pass" and "warnings" not in det, (st, det))
         check("perf: report keys keep their meaning and add the new ones",
-              r.perf["budget"] == 500 and r.perf["runtime_part_budget"] == 2500 and r.perf["runtime_part_warn"] == 2400
+              r.perf["budget"] == 500 and r.perf["runtime_part_budget"] == 3000 and r.perf["runtime_part_warn"] == 2900
               and r.perf["unique_mesh_budget"] == 120 and r.perf["triangles"] is None and r.perf["unique_meshes"] == 93, r.perf)
-        st, det, r = perf(runtime_parts=2450)
-        check("perf: 2450 parts passes with a warning", st == "pass" and len(det["warnings"]) == 1 and r.notes, (st, det))
-        check("perf: 2400 parts is not yet a warning", "warnings" not in perf(runtime_parts=2400)[1])
-        check("perf: 2500 parts passes (fail is strictly above)", perf(runtime_parts=2500)[0] == "pass")
-        check("perf: 2501 parts fails", perf(runtime_parts=2501)[0] == "fail")
+        st, det, r = perf(runtime_parts=2950)
+        check("perf: 2950 parts passes with a warning", st == "pass" and len(det["warnings"]) == 1 and r.notes, (st, det))
+        check("perf: 2900 parts is not yet a warning", "warnings" not in perf(runtime_parts=2900)[1])
+        check("perf: 3000 parts passes (fail is strictly above)", perf(runtime_parts=3000)[0] == "pass")
+        check("perf: 3001 parts fails", perf(runtime_parts=3001)[0] == "fail")
         check("perf: 121 unique meshes fails", perf(unique_meshes=121)[0] == "fail")
         st, det, _ = perf(mesh_slots=501)
         check("perf: 501 MeshParts only warns", st == "pass" and det["warnings"], (st, det))
@@ -446,14 +446,14 @@ def t_budgets():
             d = os.path.join(repo, "tools", "pipeline", "pc-watcher")
             os.makedirs(d)
             with open(os.path.join(d, "budgets.json"), "w", encoding="utf-8") as fh:
-                json.dump({"runtime_parts": {"fail": 3000, "warn": 2900}}, fh)
-            r = FakeRun(dict(base, runtime_parts=2800), repo)
-            check("budgets.json in the repo checkout overlays DEFAULTS (a 3000 bump is a JSON change)",
-                  watcher.step_perf(r)[0] == "pass" and r.perf["runtime_part_budget"] == 3000, r.perf)
+                json.dump({"runtime_parts": {"fail": 3500, "warn": 3400}}, fh)
+            r = FakeRun(dict(base, runtime_parts=3200), repo)
+            check("budgets.json in the repo checkout overlays DEFAULTS (a cap bump is a JSON change)",
+                  watcher.step_perf(r)[0] == "pass" and r.perf["runtime_part_budget"] == 3500, r.perf)
             with open(os.path.join(d, "budgets.json"), "w", encoding="utf-8") as fh:
                 fh.write("{broken")
-            r = FakeRun(dict(base, runtime_parts=2501), repo)
-            check("a broken budgets.json falls back to DEFAULTS", watcher.step_perf(r)[0] == "fail" and r.perf["runtime_part_budget"] == 2500)
+            r = FakeRun(dict(base, runtime_parts=3001), repo)
+            check("a broken budgets.json falls back to DEFAULTS", watcher.step_perf(r)[0] == "fail" and r.perf["runtime_part_budget"] == 3000)
     finally:
         time.sleep = real_sleep
 
