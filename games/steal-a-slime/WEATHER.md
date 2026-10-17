@@ -27,6 +27,8 @@ Atmosphere / ambient part on top of the day-night look. A change mid-tween start
 
 ## Ground snow (v30 F2)
 
+OFF: `FEATURES.SnowGround = false` (frames reviewed, the flat sheet looked bad). `WeatherFx` only calls `SnowGround.start` with the flag on; `setSnowing` is a no-op until started. Weather and snowfall particles are unaffected. The rest of this section describes the flagged-off code.
+
 Snow flakes start at a fixed height (42 studs, speed 7-9 x lifetime 8, 15 deg spread) so every flake reaches the ground and fades
 out as it lands. `visuals/client/SnowGround` keeps ONE client-only, non-colliding Snow-material Part (640 x 0.1 x 640, top 0.08, over the
 Ground and path tops, under pads/props) whose Transparency follows `SnowCover` (pure, Lune-tested): the level builds over 50 s of Snow

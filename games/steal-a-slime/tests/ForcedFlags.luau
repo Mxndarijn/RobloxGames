@@ -76,6 +76,7 @@ ForcedFlags.offModules = {
 
 -- All flags on: these pin the shipped default or exercise the off path of a flag that ships off.
 ForcedFlags.on = {
+	["SnowGround flag > is off and WeatherFx checks it before SnowGround.start"] = "SnowGround",
 	["Audio flag > is off by default"] = "Audio",
 	["EventsBoard > is behind FEATURES.EventsBoard, default off"] = "EventsBoard",
 	["FountainTiers: the ladder > is behind FEATURES.FountainTiers, default off"] = "FountainTiers",
