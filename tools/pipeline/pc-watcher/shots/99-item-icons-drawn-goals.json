@@ -1,0 +1,7 @@
+{
+  "id": "item-icons-drawn-goals",
+  "todo": "item-icons",
+  "kind": "ui",
+  "open": "goals",
+  "note": "Item icons part 2: Goals rows show drawn goal icons (net, merge, mask thief, padlock star, pad, coin stack, rebirth) and Dex reward trophies; readable at 36px, no gradient glyph tiles"
+}

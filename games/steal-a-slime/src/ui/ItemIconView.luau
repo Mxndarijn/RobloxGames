@@ -8,7 +8,8 @@
 	  * a rounded tile: vertical gradient in the item's colour, a darker
 	    stroke and a bold glyph. Always built; it is the placeholder and the
 	    backdrop of the other two;
-	  * a UI-drawn scene (ItemIconArt) for specs with source "drawn": static
+	  * a UI-drawn scene (ItemIconArt) for specs with source "drawn" (and as the
+	    fallback of a model spec that has a recipe): static
 	    frames over the tile, no viewport, outside the live cap;
 	  * an ImageLabel when the spec has an uploaded `image`;
 	  * a ViewportFrame with the real 3D model (slime + mutation finish, or a
@@ -175,7 +176,8 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		if image then
 			picture.Image = `rbxassetid://{image}`
 		end
-		local drawn = image == nil and spec.source == "drawn" and art:GetAttribute("ArtId") == spec.id
+		-- A drawn scene is the icon for "drawn" specs and the fallback of a model that is not mounted.
+		local drawn = image == nil and art:GetAttribute("ArtId") == spec.id
 		art.Visible = drawn
 		glyph.Visible = image == nil and not drawn
 		if model and active then
@@ -193,6 +195,7 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		viewport.Visible = mounted
 		if mounted then
 			glyph.Visible = false
+			art.Visible = false
 		end
 		self.source = if mounted then "model" elseif image then "image" elseif drawn then "drawn" else "placeholder"
 	end
@@ -207,7 +210,7 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		root:SetAttribute("ItemId", spec.id)
 		art:ClearAllChildren()
 		art:SetAttribute("ArtId", nil)
-		if spec.source == "drawn" and ItemIconArt.draw(art, spec.id, z + 1) then
+		if (spec.source == "drawn" or spec.model ~= nil) and ItemIconArt.draw(art, spec.id, z + 1) then
 			art:SetAttribute("ArtId", spec.id)
 		end
 		self.spec = spec

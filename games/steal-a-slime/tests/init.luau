@@ -7,6 +7,7 @@
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 
+local ForcedFlags = require("@self/ForcedFlags")
 local TestRunner = require("@self/TestRunner")
 
 local ROOT = "tests"
@@ -30,10 +31,24 @@ local specs = {}
 collect(ROOT, "", specs)
 table.sort(specs)
 
+-- SPEC_FILTER=<substring> runs only the matching specs (handy with scripts/test-flags).
+local filter = process.env.SPEC_FILTER
+local forced = process.env.SLIME_FORCE_FEATURES
+
+-- A spec that throws while loading (a top-level assert) fails the run but does not hide the others.
+local loadFailures = 0
 for _, module in specs do
-	print(`{module}`)
-	require(`@self/{module}`)
+	if forced == "off" and ForcedFlags.offModules[module] then
+		print(`{module} (skipped: FEATURES forced off; needs {ForcedFlags.offModules[module]})`)
+	elseif filter == nil or filter == "" or string.find(module, filter, 1, true) then
+		print(`{module}`)
+		local ok, err = pcall(require, `@self/{module}`)
+		if not ok then
+			loadFailures += 1
+			print(`  FAIL  {module} failed to load: {err}`)
+		end
+	end
 end
 
-local failures = TestRunner.run()
+local failures = TestRunner.run() + loadFailures
 process.exit(if failures > 0 then 1 else 0)

@@ -42,9 +42,18 @@ local ItemIcons = {}
 -- over the placeholder tile, never over a working 3D model.
 ItemIcons.IMAGES = {} :: { [string]: number }
 
--- Groups whose items are UI-drawn (ItemIconArt recipe per id); part of the goal / dex / badge /
--- skin groups still show the placeholder tile.
-ItemIcons.DRAWN_GROUPS = table.freeze({ shop = true, upgrade = true, boost = true, misc = true, code = true })
+-- Groups whose items are UI-drawn (ItemIconArt recipe per id). Kit-mesh plot skins stay "model"
+-- (live mesh) and show their drawn diorama while the mesh is missing.
+ItemIcons.DRAWN_GROUPS = table.freeze({
+	shop = true,
+	upgrade = true,
+	boost = true,
+	misc = true,
+	code = true,
+	goal = true,
+	badge = true,
+	skin = true,
+})
 
 -- Items an artist must still render: in a DRAWN group but with no recipe worth shipping. Empty now.
 ItemIcons.FOR_ARCHER = table.freeze({} :: { string })

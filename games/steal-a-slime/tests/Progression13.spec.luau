@@ -197,9 +197,9 @@ describe("Upgrades (BuyUpgrade)", function()
 		local view = Upgrades.view(data)
 		local listed = 0
 		for _, def in Config.UPGRADES do
-			listed += if def.flag == nil then 1 else 0
+			listed += if def.flag == nil or (Config.FEATURES :: any)[def.flag] == true then 1 else 0
 		end
-		expect(#view).toBe(listed) -- a flag-gated upgrade (RainMagnet) is not listed while its flag is off
+		expect(#view).toBe(listed) -- a flag-gated upgrade (RainMagnet) is listed only while its flag is on
 		expect(view[1].id).toBe("Income")
 		expect(view[3].unlocked).toBe(true)
 		expect(view[4].unlocked).toBe(false)
