@@ -52,6 +52,41 @@ These are listed in `KNOWN` in `tests/ui/LayoutGate.spec.luau` and `rhr_check.py
 - What rhr draws is a *replica* of the HUD and nav geometry, not the live SlimeUI. That UI is code-built and has no `*.story.luau`, so rhr can't draw it from the place. The replica still independently checks how UIScale, the top-bar inset, int-pixel offsets and ZIndex/click capture resolve.
 - rhr 1.0.0rc1 ignores a UIScale parented directly to a ScreenGui. Roblox honours it. To work around this, the replica puts the UIScale on a design-size `Root` frame, which gives the same on-screen rects.
 
+## Runtime budget (`runtime_budget.sh`)
+
+The Studio perf step (`pc-watcher` `step_perf`, probe `tools/pipeline/pc-watcher/luau/perf_server.luau`) fails a build when
+`runtime_parts > runtime_part_budget` (2230) or `mesh_slots > mesh_slot_budget` (400). The CI step runs the same probe offline, so
+a PR that Studio would fail fails before merge.
+
+- `runtime_count.luau` rojo-builds the place, boots it in the fake server (`tools/livetest/Runtime.luau`, `createMeshPart` shim),
+  steps 15 s at 30 Hz and **executes `perf_server.luau` itself** (`luau.load` with `game`/`workspace` of the fake world), so the
+  exclusions (WildSlimes, DrainSplash, `Slimes` folders, player characters) are Studio's by construction.
+  `tests/RuntimeParts.spec` uses the same counter and asserts its own breakdown equals it.
+- `runtime_budget.luau` prints JSON: `runtime_parts` (Studio-equivalent = offline + 16), `runtime_parts_offline`, `offset`,
+  `runtime_parts_transient`, `mesh_slots` (max of build and runtime+offset), `mesh_slots_build` (`budget_counts.luau`, i.e.
+  `WorldLayout.build()` + `RUNTIME_SLOT_ALLOWANCE`), `mesh_slots_runtime` (raw MeshParts in the fake runtime).
+- `runtime_budget.sh` counts the working tree and the PR base (`BASE_SHA`, `PR_GATE_BASE`, else `git merge-base HEAD origin/main`;
+  `none` disables) in a temporary `git worktree` (head's `Packages` symlinked when `wally.toml` is unchanged, else `wally install`;
+  the head's probe counts both). Budgets are parsed from `watcher.py` `DEFAULTS`, the only place they live.
+- **Base-delta rule**, per metric (parts vs 2230, meshes vs 400): if the base is already over the budget, fail only when the
+  head is higher than the base; otherwise fail when head > budget. No base available: head > budget alone.
+  Example: `runtime-budget: parts 2233/2230 (base 2233, +0) meshes 398/400 (base 398, +0) -> PASS (parts: base already over budget; PR does not increase it)`.
+- Runs in ~5 s for head plus base. Opt-in locally as `run.sh runtime_budget`; CI runs it as its own step after `run.sh`.
+
+**The 16.** The fake runtime builds 16 fewer parts, all MeshParts, than Studio: the same 16 as `WorldLayout.RUNTIME_SLOT_ALLOWANCE`
+(`RuntimeCount.STUDIO_OFFSET` reads that constant). Most likely `PodiumRigs`: Studio builds a podium R15 rig with
+`Players:CreateHumanoidModelFromDescriptionAsync` (15 R15 MeshParts + HumanoidRootPart + one accessory handle) in place of the
+1-Part placeholder, +16 parts and +16 MeshParts net, which the fake runtime cannot build. This fit is arithmetic, not
+observed (Studio reports carry no per-group breakdown), so it is applied as an explicit offset, not simulated.
+
+| sha | Studio parts / meshes | offline raw parts | CI parts / meshes (build, runtime raw) |
+|---|---|---|---|
+| 847128a8 | 2233 / 398 | 2217 | 2233 / 398 (398, 382) |
+| 851bc9e0 | 2217 / 390 | 2201 | 2217 / 390 (390, 374) |
+| de974c48 | 2217 / 390 | 2201 | 2217 / 390 (390, 374) |
+
+If Studio's number moves relative to CI (a new Studio-only spawner), recalibrate `RUNTIME_SLOT_ALLOWANCE`.
+
 ## Timings (box, load ~9, 2026-10-16)
 
 | Step | Seconds |
@@ -73,6 +108,7 @@ In CI, add Rokit setup (~10 s cached) and the optional rhr install (~30–60 s, 
   - one nav column at 844x390, PR #60's off-screen Rebirth/Goals/Dex/Leaders;
   - nav buttons at 70 % height (squashed);
   - the carry card moved over the nav (covered).
+- **runtime-budget** (counts fixtures, no boot): parts 2233 with base 2217 fails; head == over-budget base 2233 passes; 2234 vs base 2233 fails; 401 meshes fails (with and without a base).
 - **budget**:
   - 401 mesh slots (`fixtures/over-budget-counts.json`);
   - a 300k triangle limit (`fixtures/tight-budgets.json`);

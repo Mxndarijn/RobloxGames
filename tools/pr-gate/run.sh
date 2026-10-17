@@ -3,6 +3,7 @@
 # wall-clock seconds. Exit 1 if any check fails. Runs locally and in CI:
 #   tools/pr-gate/run.sh            # all four
 #   tools/pr-gate/run.sh layout     # a subset, by name
+#   tools/pr-gate/run.sh runtime_budget   # opt-in: not in the default list, CI runs it as its own step
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 set +e
 
@@ -15,7 +16,7 @@ results=()
 failed=0
 for c in "${checks[@]}"; do
 	if [ ! -f "$PR_GATE_DIR/$c.sh" ]; then
-		echo "pr-gate: unknown check '$c' (logic, layout, budget, typecheck)" >&2
+		echo "pr-gate: unknown check '$c' (logic, layout, budget, typecheck, runtime_budget)" >&2
 		exit 2
 	fi
 	echo "=== $c ==="

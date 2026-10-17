@@ -12,6 +12,9 @@
 #   budget  401 mesh slots (counts fixture), a triangle limit under today's
 #           count (budgets fixture), WorldLayout.MESH_SLOT_BUDGET raised to
 #           450 in code, and a missing FBX folder
+#   runtime-budget  the head/base decision logic on counts fixtures (no boot): head over
+#           with base under, head over and above an over-budget base, 401 meshes must
+#           fail; head == an over-budget base must pass
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 set +e
 
@@ -47,6 +50,24 @@ expect_fail() {
 		ok=$((ok + 1))
 	else
 		rows+=("BAD   exit $rc, pattern '$pattern' $(grep -qE -- "$pattern" <<<"$out" && echo found || echo missing)  $name")
+		bad=$((bad + 1))
+		echo "--- output of: $name"
+		echo "$out" | tail -25
+	fi
+}
+
+# expect_ok NAME PATTERN CMD...: CMD must exit 0 and print PATTERN.
+expect_ok() {
+	local name="$1" pattern="$2"
+	shift 2
+	local out rc
+	out="$(env PR_GATE_ROOT="$tmp" GAME_DIR="$T_GAME" PR_GATE_VERBOSE=1 "$@" 2>&1)"
+	rc=$?
+	if [ "$rc" -eq 0 ] && grep -qE -- "$pattern" <<<"$out"; then
+		rows+=("ok    PASS as expected  $name")
+		ok=$((ok + 1))
+	else
+		rows+=("BAD   exit $rc, pattern '$pattern'  $name")
 		bad=$((bad + 1))
 		echo "--- output of: $name"
 		echo "$out" | tail -25
@@ -122,6 +143,24 @@ restore
 mkdir -p "$tmp/no-fbx"
 expect_fail "budget: FBX folder missing (triangles unknown)" "no FBX in" \
 	env PR_GATE_FBX_DIR="$tmp/no-fbx" bash "$T_GATE/budget.sh"
+
+echo "=== selftest: runtime-budget ==="
+fx="$T_GATE/fixtures"
+rtb() { # HEAD_FIXTURE BASE_FIXTURE
+	env PR_GATE_WATCHER="$PR_GATE_ROOT/tools/pipeline/pc-watcher/watcher.py" \
+		PR_GATE_RT_COUNTS_HEAD="$fx/$1" PR_GATE_RT_COUNTS_BASE="$fx/$2" bash "$T_GATE/runtime_budget.sh"
+}
+expect_fail "runtime-budget: parts 2233 > 2230, base 2217 under budget" "parts 2233/2230 \(base 2217, \+16\).* FAIL" \
+	rtb rt-counts-main.json rt-counts-base-ok.json
+expect_ok "runtime-budget: parts 2233 == over-budget base 2233" "parts 2233/2230 \(base 2233, \+0\).* PASS" \
+	rtb rt-counts-main.json rt-counts-main.json
+expect_fail "runtime-budget: parts 2234 > over-budget base 2233" "parts 2234/2230 \(base 2233, \+1\).* FAIL" \
+	rtb rt-counts-parts-up.json rt-counts-main.json
+expect_fail "runtime-budget: 401 mesh slots" "meshes 401/400 .* FAIL" \
+	rtb rt-counts-meshes-401.json rt-counts-base-ok.json
+expect_fail "runtime-budget: 401 mesh slots, no base" "meshes 401/400 \(base n/a\).* FAIL" \
+	env -u PR_GATE_RT_COUNTS_BASE PR_GATE_WATCHER="$PR_GATE_ROOT/tools/pipeline/pc-watcher/watcher.py" \
+	PR_GATE_RT_COUNTS_HEAD="$fx/rt-counts-meshes-401.json" bash "$T_GATE/runtime_budget.sh"
 
 echo "=== selftest: clean tree (the real working tree, unmodified) ==="
 t0="$(date +%s.%N)"
