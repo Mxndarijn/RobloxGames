@@ -11980,7 +11980,7 @@
           {
             "id": "world-shops-stands-pc",
             "todo": "shops",
-            "note": "CONTRACT.md \u00a727: Item Shop (bearing 67.5, right) and Upgrade Shop (bearing 34, left) stands on the plaza edge: mesh skins with the ITEM SHOP / UPGRADE SHOP face sign, one prompt each, clear of the campsite, lane and ring path",
+            "note": "CONTRACT.md §27: Item Shop (bearing 67.5, right) and Upgrade Shop (bearing 34, left) stands on the plaza edge: mesh skins with the ITEM SHOP / UPGRADE SHOP face sign, one prompt each, clear of the campsite, lane and ring path",
             "camera": {
               "drift": 0,
               "camera_type": "Scriptable",
@@ -12379,7 +12379,7 @@
           "frame_det": 1,
           "text": {
             "Title": "Mxndarijn's Plot",
-            "Stats": "$25  \u2022  0 Rebirths  \u2022  0 Steals"
+            "Stats": "$25  •  0 Rebirths  •  0 Steals"
           },
           "size": [
             9,
@@ -16380,5 +16380,10 @@
       ]
     }
   },
-  "frames_dir": "1e07f135ef5559935a052128971b01df90c764fb/"
+  "frames_dir": "1e07f135ef5559935a052128971b01df90c764fb/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix 19:00 CEST: full pass, 222/222 shots, all steps pass (1281 s). Runtime parts 2068 of 2500, unique meshes 95 of 120, MeshParts 401 (warn-only cap 500); play 60 fps settled, p95 18.2 ms. Reviewed all 260 frames (contact sheets plus key frames). Nothing functionally broken. Bug probes: 1,2,3,5,6,7,8,9,10,12 PASS; #9 sub-check cannot_stand_on FAIL (soft: the slide fill top is standable); #4 lane-angular FAIL (advisory; #265 lane mesh); 11 and 13-16 informational/visual. #12: no stray pink beams or decals over the fountain or slide. Shops (#269): both stands framed in world-shops-stands; ITEM SHOP sign readable close up, UPGRADE SHOP small and low contrast at distance. Cosmetic: the bug06-drain-walk-path and bug14-grass-style cameras are occluded (inside goo or a wall); the ITEM SHOP 'I' is clipped by the post at oblique angles; there's a translucent red strip at the top of the HUD."
 }
