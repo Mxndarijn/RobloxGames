@@ -41,9 +41,9 @@ def goal_catch():
     parts[-1].rotation_euler = (math.radians(90) * 0, 0, 0)
     parts.pop()
     parts.append(torus("Hoop", 2.4, 0.24, C["grey"], (0, 0, 4.2), (80, 0, 0), segs=22, rsegs=6))
-    bag = lathe_obj("Glass_Net", [(0, 0.2), (0.9, 0.5), (1.9, 1.5), (2.4, 4.2), (0, 4.2)], rgb(210, 240, 255), segs=14)
+    bag = lathe_obj("GlassClear_Net", [(0, 0.2), (0.9, 0.5), (1.9, 1.5), (2.4, 4.2), (0, 4.2)], rgb(210, 240, 255), segs=14)
     parts.append(bag)
-    parts.append(slime((120, 225, 140), "surprised", (0, 0, 0.55), (0, 0, 0), 0.75))
+    parts.append(slime((60, 235, 110), "surprised", (0, -0.4, 0.5), (0, 0, 0), 1.05))
     parts.append(tube("Handle", [(2.3, 0.3, 4.0), (4.0, 0.3, 2.3), (6.4, 0.3, -0.3)], [0.3, 0.34, 0.4], C["brown"], segs=8))
     parts.append(sparkle((-3.0, -0.8, 5.6), 0.4, C["white"], "S"))
     return parts
@@ -128,8 +128,8 @@ def goal_earn():
 
 @icon("Goal_Rebirth", view=(0, 10))
 def goal_rebirth():
-    parts = [circ_arrow(C["green"], 3.0, 0.7, 35, 325, name="arr")]
-    parts.append(prism("Star", star_pts(5, 1.25, 0.6), 0.5, C["gold"], (0, -0.2, 0), bevel_w=0.08))
-    for i, (x, z, s) in enumerate(((-3.4, 3.4, 0.5), (3.5, -2.4, 0.4), (0.3, 4.8, 0.35), (-3.2, -3.0, 0.3))):
+    parts = [clean_circ_arrow(C["green"], 3.0, 1.0, 40, 318, name="arr")]
+    parts.append(slime((60, 235, 110), "happy", (0, 0, -1.2), (0, 0, 0), 0.9))
+    for i, (x, z, s) in enumerate(((0.0, 5.1, 0.55), (-1.5, 4.7, 0.3), (1.6, 4.7, 0.3), (-3.6, 3.4, 0.38), (3.6, 3.6, 0.32), (3.7, -3.0, 0.3))):
         parts.append(sparkle((x, -1.0, z), s, C["gold_l"], f"S{i}"))
     return parts

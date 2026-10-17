@@ -128,10 +128,10 @@ def event_luck():
 def event_mutation():
     parts = []
     prof = [(0, 0), (1.9, 0), (2.7, 0.5), (2.1, 1.9), (1.2, 3.2), (0.75, 3.6), (0.75, 4.4), (0.95, 4.55), (0, 4.55)]
-    parts.append(lathe_obj("Glass_Flask", prof, lambda i, k, z: rgb(190, 225, 250), segs=16))
+    parts.append(lathe_obj("GlassClear_Flask", prof, lambda i, k, z: rgb(190, 225, 250), segs=16))
     prof2 = [(0, 0.1), (1.8, 0.1), (2.55, 0.55), (2.3, 1.2), (0, 1.2)]
     parts.append(lathe_obj("Liquid", prof2, lambda i, k, z: mix(C["green_d"], C["green"], z), segs=16))
-    parts.append(slime((120, 255, 170), "surprised", (0, 0, 0.5), (0, 0, 0), 0.62))
+    parts.append(slime((60, 240, 120), "surprised", (0, -0.3, 0.4), (0, 0, 0), 0.82))
     for i, (x, y, z, s) in enumerate(((-0.9, -0.8, 3.3, 0.3), (0.6, -0.6, 4.1, 0.24), (-0.3, -0.5, 5.2, 0.34), (0.8, -0.4, 6.0, 0.22))):
         parts.append(blobc(f"Bub{i}", s, (x, y, z), C["green_l"]))
     parts.append(sparkle((2.9, -0.8, 4.6), 0.5, C["pink"], "S1"))
