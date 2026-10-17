@@ -3,7 +3,7 @@
 --   * enforceLocks(world, player) is the real WorldView function. The live `world` is a local of init.server and is not reachable, so a
 --     MIRROR pure World (World.new + Sessions.join, as server_steal_sim does) holds the same owner of the player's plot (real PlotIndex) and a
 --     fake owner (userId -9001) of a plot the player does not own. The driver calls the real enforceLocks(mirror, player) every physics step
---     (RunService.Stepped), so the group assignment and the eject loop are the shipped code, not a reimplementation.
+--     (RunService.Stepped), so the group assignment (owner / PlotLeaver / Default) is the shipped code, not a reimplementation.
 --   * the lock itself is the plot attribute Locked (what enforceLocks reads; the live 10 Hz updatePlots rewrites it, so the driver re-asserts
 --     it every step) and the LockBarrier panels (CanCollide + CollisionGroup PlotLock_<i> exactly as WorldView.setBarrierSolid leaves them; that
 --     function is file-local, so it is mirrored). The collision groups PlotLock_<i> / PlotOwner_<i> and the character's group come from the game.
@@ -15,14 +15,15 @@
 --   owner_passes_after_respawn  player:LoadCharacter(), the same walk with the new character
 --   non_owner_blocked        a locked plot the player does not own: MoveTo from outside for 4 s never gets inside; its panels are CanCollide and in a
 --                            group that collides with the character's. n/a when the unlocked control walk cannot reach the inside either
---   eject_once               teleported into that locked plot, sampled every 0.05 s for 4 s: ends outside, exactly ONE position jump (> 10 studs), never
---                            back inside
+--   leaves_freely            the barrier is one-way, nobody is ever moved: teleported (probe setup) into that locked plot the character gets the PlotLeaver
+--                            group, walks out through the gate (MoveTo, up to 14 s) and ends outside the front slab; every 0.05 s sample moves
+--                            <= 3 studs (no teleport / throw); then it MoveTos back in for 4 s and never gets inside (the barrier collides again)
 --   thrown_slime_not_stuck   a free clone of a real slime body (its size / CollisionGroup, CanCollide forced on) is launched at a solid panel: after
 --                            3 s it must not rest suspended in the air next to a panel (within 1.5 studs of a face) nor inside the panel
 -- Real-character wall checks (#277 removed the invisible Wall* blocks: the fence meshes are the only barrier besides the LockBarrier panels). Against the
 -- locked FOREIGN plot, the real character (unanchored, server-owned, the game's own WalkSpeed 16 and Humanoid jump settings, never raised) tries to get in.
 -- Every attempt samples the root every 0.05 s: ever_inside (PlotLockGuard.inside), first_inside_s, max_penetration (studs past the fence plane, plot-local),
--- ejected (a position jump > 10 studs). An attempt FAILS when ever_inside is true (getting in and being ejected still counts). The fence is found by the
+-- jumped (a position jump > 10 studs: nothing may move the character, so any is reported). An attempt FAILS when ever_inside is true. The fence is found by the
 -- attribute FenceCollider or the names ranch_fence_20 / phoenix_fence_segment / phoenix_corner_post (and GatePost / GatePostL / GatePostR) among the plot's
 -- descendants; the fence lines, panel middles / joints, gate seams and corners are computed from their real CFrames and sizes in the Base's frame. ok = every
 -- attempt stayed outside, false = any got inside, n/a = geometry not found or no time left (each check is its own PART with a 32 s attempt budget, most
@@ -57,6 +58,7 @@ local reqOk, mods = pcall(function()
 		Sessions = require(Server.Sessions),
 		WorldView = require(Server.WorldView),
 		Guard = require(Server.PlotLockGuard),
+		WorldLayout = require(RS.Visuals.WorldLayout),
 		PlayerData = require(Shared.PlayerData),
 		Config = require(Shared.Config),
 		Constants = require(Shared.Constants),
@@ -70,7 +72,7 @@ local LOCKED = mods.Constants.PLOT_LOCKED_ATTRIBUTE
 -- PART = "base" (the five old checks, ~50 s) | "fence_jump_over" | "fence_push_through" | "gate_post_squeeze" | "corner_squeeze" | "corner_jump" | "owner_gate" (that one wall check
 -- only, 32 s attempt budget): a single execute_luau call must stay well under 60 s, so the checks are split over several calls.
 local PART = %%PART%%
-local BASE_ORDER = { "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck" }
+local BASE_ORDER = { "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "leaves_freely", "thrown_slime_not_stuck" }
 local ORDER = if PART == "base" then BASE_ORDER else { PART }
 local ATTEMPT_BUDGET = 32
 local checks = {}
@@ -397,7 +399,7 @@ local function attempt(i, label, startL, targetL, jump, planes)
 	hum.Jump = false
 	task.wait(0.3)
 	local target = cf:PointToWorldSpace(Vector3.new(targetL.X, y, targetL.Z))
-	local rec = { label = label, start = r2(startL), target = r2(targetL), jump = jump, ever_inside = false, ejected = false, max_penetration = -99 }
+	local rec = { label = label, start = r2(startL), target = r2(targetL), jump = jump, ever_inside = false, jumped = false, max_penetration = -99 }
 	local t0, lastJump = os.clock(), -1
 	local last, movePos, moveT = nil, nil, 0
 	local insideAt
@@ -415,7 +417,7 @@ local function attempt(i, label, startL, targetL, jump, planes)
 		t = os.clock() - t0
 		local pos = root.Position
 		if last and (pos - last).Magnitude > 10 then
-			rec.ejected = true
+			rec.jumped = true
 		end
 		last = pos
 		local lp = cf:PointToObjectSpace(pos)
@@ -770,7 +772,67 @@ local function runOwnerGate()
 	set("owner_gate", allOk and #hits == 0, info)
 end
 
+-- leave_on_lock / leaves_freely: the barrier is one-way and nobody is ever moved. The character stands inside plot i (probe setup teleport, or it was
+-- there when the owner locked: `lockAfter`), has the PlotLeaver group, walks out through the gate and ends outside the front slab with no sample step
+-- > 3 studs (a teleport / throw would be 10+), then walks back in and is blocked (never trappedNow again).
+local function leaveWalk(i, lockAfter)
+	local cf, half = frameOf(i)
+	local frontZ = mods.WorldLayout.frontBarrier().zOuter
+	local function trappedNow()
+		local p = localPos(i)
+		return Guard.trapped(p.X, p.Y, p.Z, half, frontZ)
+	end
+	lockPlot(i, not lockAfter)
+	teleport(cf * CFrame.new(0, 4, 0)) -- probe setup: the character is in the plot
+	task.wait(0.4)
+	local startedInside = trappedNow()
+	if lockAfter then
+		lockPlot(i, true) -- the owner locks while the character stands inside
+		task.wait(0.4)
+	end
+	local groupInside = root.CollisionGroup
+	local out = cf:PointToWorldSpace(Vector3.new(0, 4, frontZ - 10))
+	local t0, last, maxStep, samples = os.clock(), root.Position, 0, 0
+	while os.clock() - t0 < 14 and trappedNow() do
+		hum:MoveTo(out)
+		task.wait(0.05)
+		maxStep = math.max(maxStep, (root.Position - last).Magnitude)
+		last = root.Position
+		samples += 1
+	end
+	local walkSecs = os.clock() - t0
+	local outside = not trappedNow()
+	t0 = os.clock()
+	while os.clock() - t0 < 1 do -- settle past the exit margin so the group flips back
+		hum:MoveTo(out)
+		task.wait(0.05)
+		maxStep = math.max(maxStep, (root.Position - last).Magnitude)
+		last = root.Position
+	end
+	local groupOutside = root.CollisionGroup
+	local back = walkIn(i, 4, false)
+	local okAll = startedInside and groupInside == Guard.LEAVER_GROUP and outside and maxStep <= 3 and not back.ever_inside and not trappedNow()
+	return okAll, {
+		started_inside = startedInside, group_inside = groupInside, group_outside = groupOutside, outside = outside, max_step = r1(maxStep),
+		samples = samples, walk_secs = r1(walkSecs), reentered = back.ever_inside, locked_after_entering = lockAfter, half = half,
+	}
+end
+local function runLeaveOnLock()
+	free()
+	if not foreignIndex then
+		set("leave_on_lock", nil, "no unowned, unlocked plot with a LockBarrier to use as the foreign plot")
+		return
+	end
+	local okAll, info = leaveWalk(foreignIndex, true)
+	lockPlot(foreignIndex, false)
+	set("leave_on_lock", okAll, info)
+end
+
 local function run()
+	if PART == "leave_on_lock" then
+		runLeaveOnLock()
+		return
+	end
 	if PART == "owner_gate" then
 		runOwnerGate()
 		return
@@ -845,34 +907,9 @@ local function run()
 		else
 			set("non_owner_blocked", false, r)
 		end
-		-- ---- d) eject once ----
-		local cf, half = frameOf(foreignIndex)
-		local samples, jumps, last, inAfter = 0, 0, nil, false
-		local jumped = false
-		teleport(cf * CFrame.new(0, 4, 0))
-		local t0 = os.clock()
-		while true do
-			local pos = root.Position
-			if last and (pos - last).Magnitude > 10 then
-				jumps += 1
-				jumped = true
-			end
-			if jumped and insideNow(foreignIndex) then
-				inAfter = true
-			end
-			last = pos
-			samples += 1
-			if os.clock() - t0 >= 4 then
-				break
-			end
-			task.wait(0.05)
-		end
-		local outside = not insideNow(foreignIndex)
-		local lp = localPos(foreignIndex)
-		set("eject_once", outside and jumps == 1 and not inAfter, {
-			outside = outside, jumps = jumps, back_inside_after_jump = inAfter, samples = samples,
-			end_local = { lp.X, lp.Y, lp.Z }, half = half,
-		})
+		-- ---- d) leaves freely (one-way barrier, never moved) ----
+		local lfOk, lfInfo = leaveWalk(foreignIndex, false)
+		set("leaves_freely", lfOk, lfInfo)
 		-- ---- e) thrown slime ----
 		local body
 		for _, folder in { workspace:FindFirstChild(mods.Constants.WILD_FOLDER), plotsFolder } do
@@ -939,7 +976,7 @@ local function run()
 		})
 		lockPlot(foreignIndex, false)
 	else
-		for _, n in { "non_owner_blocked", "eject_once", "thrown_slime_not_stuck" } do
+		for _, n in { "non_owner_blocked", "leaves_freely", "thrown_slime_not_stuck" } do
 			set(n, nil, "no unowned, unlocked plot with a LockBarrier to use as the foreign plot")
 		end
 	end

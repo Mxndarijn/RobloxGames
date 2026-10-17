@@ -54,7 +54,7 @@ describe("Tutorial copy matches the real prompts (v15 playtest)", function()
 		expect(has(body("Lock"), '"Lock base"')).toBe(true)
 		expect(has(body("BuyPad"), '"Buy pad $X"')).toBe(true)
 		expect(has(body("Steal"), 'hold E on "Steal"')).toBe(true)
-		expect(has(body("Steal"), "SLAP")).toBe(true)
+		expect(has(body("Steal"), "bat")).toBe(true)
 	end)
 	it("fits the overlay card (about three lines)", function()
 		for _, step in Tutorial.STEPS do

@@ -38,8 +38,8 @@ local function fighter(position: any?, extra: { [string]: any }?): any
 end
 
 describe("PvpRules config", function()
-	it("is off by default", function()
-		expect(Config.FEATURES.PvP).toBe(false)
+	it("is on by default (Merijn 2026-10-17: PvP ships on)", function()
+		expect(Config.FEATURES.PvP).toBe(true)
 	end)
 	it("lists the whole ladder", function()
 		local count = { Knockback = 0, Trap = 0, Blaster = 0, Fun = 0 }

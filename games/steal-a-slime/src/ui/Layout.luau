@@ -57,7 +57,6 @@ export type Screen = {
 	menuX: number, -- left edge of every menu card (Layout.panelFor)
 	menuW: number, -- width of every menu card
 	carry: Rect,
-	slap: Rect,
 	tutorial: Rect,
 	tutorialCarrying: Rect, -- the tutorial card while the carry panel shows
 	daily: Rect,
@@ -73,7 +72,7 @@ Layout.CLOSE_WITH_ESCAPE = true
 -- Top-level ZIndex per overlay (ScreenGui uses ZIndexBehavior.Sibling, so
 -- children render with their parent). Higher draws on top: banners over
 -- menu panels, the tutorial over the daily popup, and the carry panel
--- (Drop, Slap) over both.
+-- (Drop) over both.
 Layout.ZINDEX = table.freeze({
 	Base = 1, -- HUD, nav, the menu backdrop
 	Menu = 2, -- menu cards (over the backdrop, whatever their sibling order)
@@ -477,7 +476,6 @@ Layout.CARRY = table.freeze({ w = 420, h = 96 })
 Layout.CARRY_TEXT_RESERVE = 190
 Layout.CARRY_MIN_W = 340 -- narrowest carry card (short screens, beside the tutorial card)
 Layout.TUTORIAL_BESIDE_MIN = 260 -- narrowest tutorial card beside the carry card
-Layout.SLAP = table.freeze({ w = 200, h = Layout.BUTTON })
 Layout.DAILY = table.freeze({ w = 420, h = 300 })
 Layout.TUTORIAL = table.freeze({ w = 520, bodyTop = 68, bodyTextSize = 14, padX = 14, padBottom = 12 })
 -- Short (landscape phone) screens: the tutorial card sits this many screen px
@@ -538,7 +536,7 @@ end
 -- The full-window menu box: right of the nav (so the player can switch
 -- menus), from under the HUD down to the bottom inset (touch controls on
 -- phones). The bottom cards (carry, tutorial) draw above it (ZINDEX), so
--- Drop / Slap / Hide stay tappable while a menu is open.
+-- Drop / Hide stay tappable while a menu is open.
 function Layout.fullWindowRect(columnX: number, top: number, width: number, height: number, inset: number): Rect
 	local w = width - Layout.MARGIN - columnX
 	return Layout.rect(columnX, top, math.max(w, 0), math.max(height - inset - top, 0))
@@ -650,9 +648,7 @@ local function bottomCards(row: Rect, W: number, H: number, inset: number, besid
 		local besideH = Layout.tutorialHeight(besideW)
 		tutorialCarrying = Layout.rect(carry.x + carryW + gap, cardBottom - besideH, besideW, besideH)
 	end
-	local slapW = math.min(Layout.SLAP.w, carry.w)
-	local slap = Layout.rect(carry.x + (carry.w - slapW) / 2, carry.y + carry.h - Layout.SLAP.h, slapW, Layout.SLAP.h)
-	return carry, slap, tutorial, tutorialCarrying
+	return carry, tutorial, tutorialCarrying
 end
 
 -- The toast stack's box with the banner stack `bannerH` px tall: toasts that
@@ -715,7 +711,7 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	-- many columns as it takes to fit from the HUD down to the money cluster; the bottom cards
 	-- then sit right of the money cluster (step 3).
 	local fullRow = Layout.rect(m, 0, W - m * 2, 0)
-	local _, _, tutorial0, tutorialCarrying0 = bottomCards(fullRow, W, H, cardInset)
+	local _, tutorial0, tutorialCarrying0 = bottomCards(fullRow, W, H, cardInset)
 	local navBottom = if short then money.rect.y - gap else math.min(tutorial0.y, tutorialCarrying0.y) - gap
 	navBottom = math.min(navBottom, money.rect.y - gap)
 	local columns = if short then Layout.navColumns(navBottom - top) else 1
@@ -734,7 +730,7 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local cardMargin = if short and viewportH < Layout.TUTORIAL_SHORT_HEIGHT
 		then Layout.TUTORIAL_SHORT_MARGIN / scale
 		else nil
-	local carry, slap, tutorial, tutorialCarrying = bottomCards(row, W, H, cardInset, beside, cardMargin)
+	local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, cardInset, beside, cardMargin)
 
 	-- 4. The column (right of the nav) above the bottom cards; menus use the
 	-- full-window box, which runs on down to the bottom inset.
@@ -794,7 +790,6 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		menuX = menuX,
 		menuW = menuW,
 		carry = carry,
-		slap = slap,
 		tutorial = tutorial,
 		tutorialCarrying = tutorialCarrying,
 		daily = daily,

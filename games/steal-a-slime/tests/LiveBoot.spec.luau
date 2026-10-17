@@ -43,6 +43,38 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 		show(check)
 		expect(#rt.errors).toBe(0)
 	end)
+	it("gives every spawn exactly one non-droppable, collision-free Bat; a swing at nothing is harmless", function()
+		local player = rt.players[1]
+		local function bats(): { any }
+			local found = {}
+			for _, container in { player:FindFirstChildOfClass("Backpack"), player.Character } do
+				for _, child in container:GetChildren() do
+					if child.Name == "Bat" then
+						table.insert(found, child)
+					end
+				end
+			end
+			return found
+		end
+		local before = #rt.errors
+		expect(#bats()).toBe(1)
+		local bat = bats()[1]
+		expect(bat.ClassName).toBe("Tool")
+		expect(bat.CanBeDropped).toBe(false)
+		local handle = bat:FindFirstChild("Handle")
+		expect(handle ~= nil).toBe(true)
+		expect(handle.CanCollide).toBe(false)
+		expect(handle.CanTouch).toBe(false)
+		expect(handle.CanQuery).toBe(false)
+		Runtime.signalOf(bat, "Activated"):Fire() -- nobody to hit
+		rt:advance(0.5)
+		-- Respawn: the CharacterAdded give replaces, never duplicates.
+		local character = player.Character
+		Runtime.signalOf(player, "CharacterAdded"):Fire(character)
+		rt:advance(0.5)
+		expect(#bats()).toBe(1)
+		expect(#rt.errors).toBe(before)
+	end)
 	it("places the ShopStand, LeaderboardBoard and TutorialNpc", function()
 		local check = Checks.props(rt)
 		show(check)

@@ -131,7 +131,14 @@ Needs-review marker: while a sha has cloud `pass` but no Studio report, or a
 `pass` report with `frames_reviewed` not true, `publish.sh` touches an empty
 `$NEEDS_REVIEW_DIR/<40-char sha>` (default `/workspace/roblox/pipeline/needs-review`).
 It removes it once frames are reviewed, on report `fail`, or when the sha ends
-`live` / `skipped-superseded` / `no-publish` / `smoke-failed`.
+`live` / `skipped-superseded` / `no-publish` / `smoke-failed` / `burial-failed`.
+
+Terrain-burial gate: after the smoke test, `publish.sh` runs `tools/livetest/cloud/terrain_burial.luau` on the saved
+version (`OUT=... TIMEOUT=300s run.sh`; the run.sh exit code is ignored, the verdict is read from `.result`). A FAIL with
+`terrain_ready` and `grounded_parts>0` writes `status:"burial-failed"` (summary + worst 10) and exits 6 without publishing.
+An error, terrain not ready or zero grounded parts is inconclusive: a `WARN` line, publish continues. After publishing, the
+probe runs on the live version and is recorded as `burial` in `live/<sha>.json`; a FAIL writes `$PIPE/alerts/<sha>.burial.json`
+and logs `ALERT burial FAIL` (exit stays 0, no rollback). `BURIAL_GATE=off` skips both probes.
 
 ## Running it on every main commit
 

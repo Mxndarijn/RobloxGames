@@ -697,6 +697,15 @@ local Config = {
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	SLAP_REACH = 10,
 	SLAP_COOLDOWN = 1.5,
+	-- The default melee Bat Tool (server/BatTool, every player, live, NOT behind FEATURES.PvP). A hit on a carrying
+	-- thief is the base slap (StealService.slap: reach SLAP_REACH, cooldown SLAP_COOLDOWN) plus a knockback push.
+	BAT = table.freeze({
+		TOOL_NAME = "Bat",
+		PUSH = 5, -- studs of knockback (PvpKnockbackRules.plan, capped by PVP.KNOCKBACK_MAX_PUSH)
+		FACING_DOT = 0.3, -- the thief must be in front: dot(look, direction to them) >= this (about 72 degrees each side)
+		CLOSE_STUDS = 3, -- closer than this the facing check is skipped (hugging a thief)
+		SWING_GAP = 0.4, -- seconds between swing events (a whiff never spends the SLAP_COOLDOWN)
+	}),
 	WRIGGLE_MAX_CHANCE = 0.12, -- per-second escape chance as the escape timer runs out
 	STOLEN_EXTRA_SLOW = 0.25, -- extra slowdown, ramps up the longer a stolen slime is held
 	MAX_CARRY_SLOW = 0.6,
@@ -786,7 +795,7 @@ local Config = {
 		Minimap = true, -- Visuals.MinimapData points of interest for a UI minimap
 		DespawnTelegraph = true, -- wild slime models get DespawnAt before they expire; false = silent removal
 		Habitats = true, -- pads turn into their slime's habitat (HABITATS.md); false = pads as before
-		SlimeAnimations = false, -- slimes play the uploaded KeyframeSequences (MeshAssets.ANIMATIONS) once a probe track loads; false = procedural Motor6D motion (ui/SlimeMotor)
+		SlimeAnimations = true, -- slimes play the uploaded KeyframeSequences (MeshAssets.ANIMATIONS) once a probe track loads; false = procedural Motor6D motion (ui/SlimeMotor)
 		CycleModifier = true, -- a server modifier (Luck Surge, Mutation Surge, ...) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); needs DayNight; false = no modifier
 		SlideCollision = true, -- invisible colliders along the FULL fountain slide, top to mouth (B6: players fell through above LOW_SLIDE_Y); false = low stretch only
 		Appraise = true, -- pay APPRAISE_COST_FRACTION of a slime's value to reroll its mutation or size (Appraise)
@@ -801,19 +810,19 @@ local Config = {
 		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		PetPassives = true, -- the favourite (follow) slime grants a small capped perk by tier / mutations: income, luck or merge mutation chance (Perks.petPassive, CONTRACT.md §14); false = cosmetic only
 		CoopRitual = true, -- 2-4 players stand on the ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
-		PlotSkins = false, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
+		PlotSkins = true, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
 		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
-		StealAlerts = false, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
+		StealAlerts = true, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
 		WelcomeBack = true, -- v20 welcome-back card on join after WELCOME_BACK_MIN_SECONDS away (WelcomeBack, CONTRACT.md §19): offline cash, slimes grown, streak + goal; false = no State field, no card
-		WeeklyEvents = false, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
-		FountainTiers = false, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
-		EventsBoard = false, -- v21 server events board (ui/EventsBoard, CONTRACT.md §20): a HUD banner listing the weekly mutation, the Saturday trait event, the day/night modifier and the next weekly event; client only, no remote or save change; false = no banner
-		MergeVat3 = false, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, keeping every mutation (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
+		WeeklyEvents = true, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
+		FountainTiers = true, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
+		EventsBoard = true, -- v21 server events board (ui/EventsBoard, CONTRACT.md §20): a HUD banner listing the weekly mutation, the Saturday trait event, the day/night modifier and the next weekly event; client only, no remote or save change; false = no banner
+		MergeVat3 = true, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, keeping every mutation (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Consumables = true, -- restocking Shop section: mutation spray, luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
-		RainMagnet = false, -- v19: the Rain Magnet upgrade (rank 6): a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) may pick up that weather's mutation; needs Weather + WeatherMutations to ever have a target (RainMagnet, CONTRACT.md §23); false = no upgrade in the shop, no purchase, no effect (needs frame review)
-		ServerProfiler = false, -- v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
-		Audio = false, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
-		PvP = false, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, safe zones, new-player shield, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
+		RainMagnet = true, -- v19: the Rain Magnet upgrade (rank 6): a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) may pick up that weather's mutation; needs Weather + WeatherMutations to ever have a target (RainMagnet, CONTRACT.md §23); false = no upgrade in the shop, no purchase, no effect (needs frame review)
+		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
+		Audio = true, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
+		PvP = true, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, safe zones, new-player shield, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
 		WorldShops = true, -- CONTRACT.md §27: Item Shop + Upgrade Shop stands (ItemShopStand / UpgradeShopStand), Request OpenShop / CloseShop / ShopBuy, ShopEvent, range checks; false = the single ShopStand and the HUD Shop as before
 		WorldShopsStrict = true, -- CONTRACT.md §27.6: the old buy actions also need an open shop in range ("NotOpen"); on since the HUD Shop button is gone in HUD v2. Needs WorldShops
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before

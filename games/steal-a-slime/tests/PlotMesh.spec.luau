@@ -247,9 +247,11 @@ describe("plot walls and DexBoard (C6)", function()
 			expect(meshOf(slot)).toBe(WorldLayout.DEX_MESH)
 			expect(anisotropy(slot, WorldLayout.DEX_MESH)).toBeCloseTo(1)
 			expect(ratios(slot, WorldLayout.DEX_MESH)[2]).toBeCloseTo(WorldLayout.DEX_SCALE)
-			-- invisible, decor-only slot: the mesh lands in it
+			-- invisible slot the mesh lands in; B9: its box is the (decor-mesh) board's collider, never queried or touched
 			expect(slot.transparency).toBe(1)
-			expect(slot.canCollide).toBe(false)
+			expect(slot.canCollide).toBe(true)
+			expect(slot.canQuery).toBe(false)
+			expect(slot.canTouch).toBe(false)
 			expect(sameAngle((slot.rot :: Vec)[2], yaw + 180)).toBe(true)
 			local p, size = toPlot(i, slot.pos :: Vec), slot.size :: Vec
 			expect(p[1]).toBeCloseTo(0)

@@ -319,18 +319,15 @@ describe("init.client applies Layout for every viewport", function()
 end)
 
 describe("touch-size buttons in the overlays", function()
-	it("Drop / Slap / Claim / Close / Hide use Layout sizes", function()
+	it("Drop / Claim / Close / Hide use Layout sizes", function()
 		expect(has(read("src/ui/Panels/Carry.luau"), "Size = UDim2.fromOffset(100, Layout.BUTTON)")).toBe(true)
-		expect(has(read("src/ui/Panels/Carry.luau"), "Size = UDim2.fromOffset(Layout.SLAP.w, Layout.SLAP.h)")).toBe(
-			true
-		)
+		expect(has(read("src/ui/Panels/Carry.luau"), "Slap")).toBe(false) -- the Bat Tool replaced the button
 		local daily = read("src/ui/Panels/DailyPopup.luau")
 		expect(has(daily, "Size = UDim2.fromOffset(200, Layout.BUTTON)")).toBe(true)
 		expect(has(daily, "Size = UDim2.fromOffset(Layout.MIN_TOUCH_DESIGN, Layout.MIN_TOUCH_DESIGN)")).toBe(true)
 		expect(has(read("src/ui/Panels/TutorialOverlay.luau"), "Size = UDim2.fromOffset(72, Layout.MIN_TOUCH_DESIGN)")).toBe(
 			true
 		)
-		expect(Layout.SLAP.h >= Layout.MIN_TOUCH_DESIGN).toBe(true)
 	end)
 end)
 
@@ -351,7 +348,6 @@ describe("Config-backed numbers", function()
 			{ "src/ui/Hud.luau", "ctx.Config.LOCK_MAX_REMAINING" },
 			{ "src/ui/Panels/DailyPopup.luau", "ctx.Config.DAILY_STREAK_CAP" },
 			{ "src/ui/Panels/DailyPopup.luau", "ctx.Config.DAILY_BASE" },
-			{ "src/ui/Panels/Carry.luau", "ctx.Config.SLAP_REACH" },
 		}
 		for _, item in checklist do
 			local src = read(item[1])

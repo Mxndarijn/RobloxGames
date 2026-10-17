@@ -126,8 +126,8 @@ layout_case "squashed nav buttons (70% height)" \
 	"Nav\.Dex .* is squashed" \
 	"Nav/Dex .* is squashed"
 layout_case "carry card moved over the nav (covered buttons)" \
-	"local carry, slap, tutorial, tutorialCarrying = bottomCards(row, W, H, inset, beside)" \
-	"local carry, slap, tutorial, tutorialCarrying = bottomCards(row, W, H, inset, beside)
+	"local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, inset, beside)" \
+	"local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, inset, beside)
 	carry = Layout.rect(nav.x, nav.y, carry.w, carry.h)" \
 	"Nav\.(Toggle|Plot) .* overlaps Carry" \
 	"Nav/(NavToggle|Plot) .* is covered (by SlimeUI/Root/Carry|: a click at its centre goes to SlimeUI/Root/Carry)"

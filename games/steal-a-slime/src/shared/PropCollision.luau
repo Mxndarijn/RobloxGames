@@ -663,8 +663,8 @@ parts(
 	"off",
 	"Plots",
 	{ "^Right$", "^Left$", "^Back$", "^Front$" },
-	"off (PlotLockGuard / WorldView.enforceLocks ejects instead)",
-	"locked-base teleport (Gojo, B1): the barriers are not solid; the lock is enforced by ejecting",
+	"off (client-toggled while the base is locked)",
+	"locked-base barrier (Gojo, B1): a one-way panel toggled with the lock; it only blocks entering and nobody is ejected, so it is no prop to walk into",
 	{ walk = false }
 )
 mesh(
@@ -672,10 +672,10 @@ mesh(
 	"phoenix_top_earners_board",
 	"gojo",
 	8,
-	"off",
+	"colliders",
 	"Plots",
-	"mesh off, slot off",
-	"the plot's SlimeDex board skin; its frame and legs are primitives (plot_dex_board)"
+	"mesh off; slot box on (canQuery / canTouch off)",
+	"the plot's SlimeDex board skin is decor (phoenix_top_earners_board is shared with the world board and has no fidelity): the slot box is its collider, flat against the back wall (WorldLayout B9 plot audit); its frame and legs are primitives (plot_dex_board)"
 )
 parts(
 	"plot_dex_board",
@@ -715,6 +715,7 @@ parts(
 
 -- name -> { owner, reason }
 local UNPLACED: { [string]: { string } } = {
+	ranch_bat = { "jolt", "the held Bat tool's Handle (BatTool), never a world slot; a tool has no collision" },
 	ranch_border_fence_broken = { "jolt", "border piece not used by WorldBorder.CHUNKS / DEFS" },
 	ranch_border_hedge_stepped = { "jolt", "border piece not used by WorldBorder.DEFS" },
 	ranch_border_pine_twin = { "jolt", "border piece not used by WorldBorder.DEFS" },

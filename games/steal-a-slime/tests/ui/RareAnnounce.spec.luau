@@ -55,7 +55,7 @@ describe("RareAnnounce.banner", function()
 	end)
 	it("says chase when it's being carried", function()
 		local b = RareAnnounce.banner({ name = "Zed", carried = true }, nil, 0) :: RareAnnounce.Banner
-		expect(b.text).toBe("👑 BOSS SLIME: Zed is being carried - chase & slap!")
+		expect(b.text).toBe("👑 BOSS SLIME: Zed is being carried - chase & hit them with your bat!")
 	end)
 	it("shows the catch for a few seconds, over any boss", function()
 		local caught = { text = CAUGHT, untilTime = 1000 + RareAnnounce.CAUGHT_SECONDS }

@@ -154,9 +154,15 @@ shared world; Gojo: plot-level props; the per-plot mailbox slot is "ambiguous"):
 the collision choice (a `MeshAssets.COLLISION` fidelity, `colliders` or `off`) and a reason. `tests/PropCollision.spec` keeps it
 honest against `MeshAssets.COLLISION`, `WorldLayout.build()` (every placed mesh is listed, the rest are `UNPLACED` with a reason) and
 the booted world (instance counts, a collidable part per non-"off" entry, the mesh fidelity MeshSwap actually asks for, no spawn or
-other prop's centre inside a solid). The play probe `tools/pipeline/pc-watcher/luau/b9_prop_walk` (shot 220 `b9-prop-walk`) reads the
+other prop's centre inside a solid). The play probe `tools/pipeline/pc-watcher/luau/b9_prop_walk` (shot 223 `b9-prop-walk`) reads the
 same list: it walks an R15 dummy into each prop from +-X / +-Z and fails Jolt's (and already-collidable Gojo) props that the
-dummy ends inside or passes through. To add a prop, append an entry; neither the spec nor the probe needs an edit.
+dummy ends inside or passes through. `tests/PropWalk.spec` is the same walk-in check as a spec that also runs in the cloud tests
+(`tools/pipeline/cloud-test.sh`, no Studio): in both runtimes it builds a collision volume per blocking entry from `WorldLayout.build()`
+(slot bbox for Box / Hull / PCD, the part boxes for colliders), walks a 2 x 5 x 1 character box at 16 studs/s in 1/60 s steps from
++-X / +-Z and asserts the first blocked step is at the face, and that no spawn, walk-path waypoint, slide exit, shop front or other
+prop's ground position lies in a volume; in the cloud it also makes each fidelity mesh with `CreateMeshPartAsync` and `Blockcast`s the
+same box at it (and at the collider parts). Nothing in the probe or the spec relies on the plot lock ejecting anyone (the lock is a
+one-way barrier). To add a prop, append an entry; neither the spec nor the probe needs an edit.
 
 What B9 found and changed on Jolt's half (the 92 Jolt kinds were all reviewed; almost everything was already solid
 after #11 / #16 / #10):
@@ -181,3 +187,13 @@ slime ride stand-ins and the fountain's hidden stand-ins, the parade lane strip.
 **`ranch_landing_ring`** (11 curb tiles, 3.1 high, ring round the wild-slime drop zone: solid curbs would wall players off
 the drop zone) and **`ranch_goo_drain`** (the slide-exit drain). Both are one line in `MeshAssets.COLLISION` (`Box` / `Hull`) plus
 flipping the entry to match; the spec fails until both agree.
+
+## Plot-level audit (B9)
+
+Every plot mesh slot has a decided collision (`tests/MeshCollision.spec` "B9: plot-level collision"): fence panels, fence
+segments and the gate-side corner post are `Box`; `merge_vat` is `Hull`; no PCD on a plot. `phoenix_gate` stays decor (a Box would
+close the 14-stud opening): its `GatePostL` / `GatePostR` stand-ins keep collision after the mesh lands. `phoenix_pad_crate`
+is decor: `Pad_<j>` (8 x 2.4 x 8) is the solid, steppable surface. `phoenix_top_earners_board` is shared with the world board
+(own Collider), so the plot's `DexMesh` slot box (canCollide on, canQuery / canTouch off) is the dex board's collider.
+Client-toggled cosmetics (LockBarrier panels, LockSign, RebirthDecor, habitats, skins, rain magnet) stay non-colliding: hidden
+colliders would be invisible walls, and the Pad / PlotLockGuard already cover those areas.
