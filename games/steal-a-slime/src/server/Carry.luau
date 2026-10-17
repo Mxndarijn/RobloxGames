@@ -23,6 +23,7 @@ local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
+local PvpBlaster = if script then require(script.Parent.PvpBlaster) else require("./PvpBlaster")
 local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
@@ -284,11 +285,10 @@ function Carry.walkSpeed(session: Session, now: number): number
 end
 
 -- The WalkSpeed the server enforces right now (Player attribute TargetWalkSpeed).
+-- A Goo Blaster slow (FEATURES.PvP, CONTRACT.md §26) multiplies in; 1 with the flag off.
 function Carry.targetWalkSpeed(session: Session, now: number): number
-	if session.carry then
-		return Carry.walkSpeed(session, now)
-	end
-	return Shop.walkSpeed(session.data)
+	local speed = if session.carry then Carry.walkSpeed(session, now) else Shop.walkSpeed(session.data)
+	return speed * PvpBlaster.walkFactor(session, now)
 end
 
 return Carry
