@@ -160,3 +160,59 @@ describe("ShopCatalog.upgradeViews (v13 State.upgrades)", function()
 		expect(#ShopCatalog.views({ cash = 1, upgrades = upgrades }, actions)).toBe(#ShopCatalog.ITEMS + 2)
 	end)
 end)
+
+describe("ShopCatalog consumables (FEATURES.Consumables)", function()
+	local function state(left: number)
+		return {
+			cash = 5000,
+			serverTime = 1000,
+			favoriteId = "b",
+			slimes = { { slime = { id = "a", tier = 5 } }, { slime = { id = "b", tier = 1 } } },
+			consumables = {
+				restockAt = 1200,
+				items = {
+					{
+						id = "MutationSpray",
+						name = "Mutation Spray",
+						icon = "🧪",
+						text = "t",
+						price = 3000,
+						left = left,
+						max = 3,
+					},
+					{
+						id = "LuckPotion",
+						name = "Luck Potion",
+						icon = "🍀",
+						text = "t",
+						price = 6000,
+						left = 1,
+						max = 1,
+					},
+				},
+			},
+		}
+	end
+	it("lists a row per stocked item with quantities, after the other rows", function()
+		local views = ShopCatalog.views(state(2), Remotes.ACTIONS, Config)
+		local spray = views[#views - 1]
+		expect(spray.item.id).toBe("Consumable_MutationSpray")
+		expect(spray.levelText).toBe("2/3 left")
+		expect(spray.enabled).toBe(true)
+		expect(spray.item.action).toBe("BuyConsumable")
+		expect(Remotes.ACTIONS.BuyConsumable ~= nil).toBe(true)
+	end)
+	it("sprays the favourite, disables sold out and unaffordable rows", function()
+		local views = ShopCatalog.consumableViews(state(0), Remotes.ACTIONS)
+		expect(views[1].item.args[2]).toBe("b")
+		expect(views[1].enabled).toBe(false)
+		expect(views[1].buttonText).toBe("Sold out")
+		expect(views[2].enabled).toBe(false) -- 6000 > 5000 cash
+		expect(#ShopCatalog.consumableViews({ cash = 1 }, Remotes.ACTIONS)).toBe(0)
+	end)
+	it("formats the restock countdown", function()
+		expect(ShopCatalog.restockText(1200, 1000)).toBe("Restocks in 3:20")
+		expect(ShopCatalog.restockText(1200, 1195.5)).toBe("Restocks in 0:05")
+		expect(ShopCatalog.restockText(1200, 1300)).toBe("Restocks in 0:00")
+	end)
+end)

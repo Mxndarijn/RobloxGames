@@ -29,6 +29,7 @@ local Types = if Shared then require(Shared.Types) else require("../shared/Types
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local ConsumableShop = if script then require(script.Parent.ConsumableShop) else require("./ConsumableShop")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
@@ -45,6 +46,7 @@ export type Context = {
 	rng: Rng.Rng?, -- Appraise rolls; nil = seeded from the clock and the player
 	plotSkins: boolean?, -- FEATURES.PlotSkins override (tests); nil = Config.FEATURES.PlotSkins
 	mergeVat3: boolean?, -- FEATURES.MergeVat3 override (tests); nil = Config.FEATURES.MergeVat3
+	requestWeather: ((id: string) -> boolean)?, -- Weather Totem: makes `id` the next weather (nil = no Weather service)
 }
 
 local Actions = {}
@@ -252,6 +254,20 @@ local function appraise(world: World, session: Session, id: string, kind: string
 	return { ok = true, appraisal = appraisal }
 end
 
+local function buyConsumable(
+	world: World,
+	session: Session,
+	id: string,
+	slimeId: string?,
+	now: number,
+	ctx: Context
+): Result
+	local rng = ctx.rng or Rng.new(math.floor(now * 1000) + session.userId)
+	local ok, reason =
+		ConsumableShop.buy(world, session, id, slimeId, now, { rng = rng, requestWeather = ctx.requestWeather })
+	return result(ok, reason)
+end
+
 local function dispatch(
 	world: World,
 	session: Session,
@@ -295,6 +311,8 @@ local function dispatch(
 		return equipPlotSkin(world, session, args[1], ctx)
 	elseif action == "Appraise" then
 		return appraise(world, session, args[1], args[2], now, ctx)
+	elseif action == "BuyConsumable" then
+		return buyConsumable(world, session, args[1], args[2], now, ctx)
 	elseif action == "BuyEgg" then
 		return result(MysteryEgg.buy(world, session, now))
 	elseif action == "Slap" then

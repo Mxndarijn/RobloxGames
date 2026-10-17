@@ -808,7 +808,10 @@ local function rescueFallen()
 end
 
 if Config.FEATURES.Weather then
-	WeatherService.start(workspace, now)
+	local weatherState = WeatherService.start(workspace, now)
+	ctx.requestWeather = function(id: string): boolean
+		return WeatherService.request(weatherState, id)
+	end
 end
 
 WeeklyEventService.start(workspace, os.time)

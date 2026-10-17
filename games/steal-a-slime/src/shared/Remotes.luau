@@ -47,6 +47,7 @@ Remotes.ACTIONS = table.freeze({
 	Appraise = table.freeze({ args = { "string", "string" } }), -- slimeId, "mutation" | "size" (FEATURES.Appraise)
 	Redeem = table.freeze({ args = { "code" } }), -- typed code text (Codes.normalize on the server)
 	EquipPlotSkin = table.freeze({ args = { "string" } }), -- Config.PLOT_SKINS id (FEATURES.PlotSkins, CONTRACT.md §15)
+	BuyConsumable = table.freeze({ args = { "string", "string?" } }), -- Config.CONSUMABLES id, slimeId (MutationSpray only) (FEATURES.Consumables)
 	Sync = table.freeze({ args = {} }), -- server re-sends State
 } :: { [string]: ActionDef })
 

@@ -234,7 +234,74 @@ function ShopCatalog.upgradeViews(state: any, actions: { [string]: any }): { Ite
 	return out
 end
 
--- Static items, then the v13 upgrades.
+-- The slime a Mutation Spray goes on: the favourite, else the highest tier (the server re-checks it).
+function ShopCatalog.sprayTarget(state: any): string?
+	local best: any = nil
+	for _, view in state.slimes or {} do
+		local slime = view.slime
+		if slime.id == state.favoriteId then
+			return slime.id
+		end
+		if best == nil or slime.tier > best.tier then
+			best = slime
+		end
+	end
+	return if best then best.id else nil
+end
+
+-- Restocking consumables (FEATURES.Consumables, `State.consumables`): one row per stocked item, bought
+-- with Request("BuyConsumable", id, slimeId?). Empty while the feature is off.
+function ShopCatalog.consumableViews(state: any, actions: { [string]: any }): { ItemView }
+	local out = {}
+	local view = if type(state) == "table" then state.consumables else nil
+	if type(view) ~= "table" then
+		return out
+	end
+	local available = actions.BuyConsumable ~= nil
+	local cash = if type(state.cash) == "number" then state.cash else 0
+	for _, c in view.items do
+		local soldOut = c.left <= 0
+		local needsSlime = c.id == "MutationSpray"
+		local target = if needsSlime then ShopCatalog.sprayTarget(state) else nil
+		local buttonText
+		if not available then
+			buttonText = "Coming soon"
+		elseif soldOut then
+			buttonText = "Sold out"
+		elseif needsSlime and target == nil then
+			buttonText = "No slime"
+		else
+			buttonText = Format.formatCash(c.price)
+		end
+		table.insert(out, {
+			item = {
+				id = `Consumable_{c.id}`,
+				name = c.name,
+				icon = c.icon,
+				description = c.text,
+				action = "BuyConsumable",
+				args = if target then { c.id, target } else { c.id },
+			},
+			icon = c.icon,
+			description = c.text,
+			price = c.price,
+			available = available,
+			maxed = soldOut,
+			enabled = available and not soldOut and (not needsSlime or target ~= nil) and cash >= c.price,
+			buttonText = buttonText,
+			levelText = `{c.left}/{c.max} left`,
+		})
+	end
+	return out
+end
+
+-- "Restocks in 3:07" for the consumables header, from the unix restock time and the current server time.
+function ShopCatalog.restockText(restockAt: number, now: number): string
+	local left = math.max(0, math.ceil(restockAt - now))
+	return `Restocks in {left // 60}:{string.format("%02d", left % 60)}`
+end
+
+-- Static items, then the v13 upgrades, then the restocking consumables.
 function ShopCatalog.views(state: any, actions: { [string]: any }, config: any?): { ItemView }
 	local out = {}
 	for _, item in ShopCatalog.ITEMS do
@@ -243,6 +310,9 @@ function ShopCatalog.views(state: any, actions: { [string]: any }, config: any?)
 		end
 	end
 	for _, view in ShopCatalog.upgradeViews(state, actions) do
+		table.insert(out, view)
+	end
+	for _, view in ShopCatalog.consumableViews(state, actions) do
 		table.insert(out, view)
 	end
 	return out

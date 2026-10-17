@@ -24,6 +24,9 @@ export type DailyQuests = { day: number, slots: { QuestSlot } }
 -- Counters for goals (CONTRACT.md §8.8); stolen / earned / rebirths / pads live elsewhere.
 export type Stats = { caught: number, merges: number, locks: number, sold: number }
 
+-- Purchases of Consumables in restock `slot` (a new slot resets them).
+export type Consumables = { slot: number, bought: { [string]: number } }
+
 export type Data = {
 	version: number,
 	cash: number,
@@ -54,6 +57,7 @@ export type Data = {
 	ritualBonus: number?, -- runtime only (never saved): "Blessed" income bonus from the co-op ritual; nil = none
 	boostUntil: number, -- unix seconds the boost ends (0 = none)
 	stealLog: { StealAlert.Entry }, -- FEATURES.StealAlerts: thefts of my slimes since the last join, capped (StealAlert.record)
+	consumables: Consumables, -- restocking shop purchases (added without a version bump)
 }
 
 local PlayerData = {}
@@ -84,6 +88,7 @@ function PlayerData.new(): Data
 		boostMult = 1,
 		boostUntil = 0,
 		stealLog = {},
+		consumables = { slot = 0, bought = {} },
 	}
 end
 

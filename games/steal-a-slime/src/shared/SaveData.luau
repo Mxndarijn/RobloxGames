@@ -360,6 +360,17 @@ function SaveData.deserialize(stored: any): Data
 			data.boostMult, data.boostUntil = mult, until_
 		end
 	end
+	-- Restocking shop counts (added without a version bump: missing -> nothing bought this slot).
+	if type(raw.consumables) == "table" and type(raw.consumables.bought) == "table" then
+		local bought: { [string]: number } = {}
+		for _, def in Config.CONSUMABLES do
+			local n = num(raw.consumables.bought[def.id], 0, 0, def.maxStock)
+			if n > 0 then
+				bought[def.id] = n
+			end
+		end
+		data.consumables = { slot = num(raw.consumables.slot, 0, 0, 1e9), bought = bought }
+	end
 	return data
 end
 
@@ -425,6 +436,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		stealLog = StealAlert.clean(data.stealLog),
 		redeemed = redeemed,
 		boost = { mult = data.boostMult, untilAt = math.floor(data.boostUntil) },
+		consumables = { slot = data.consumables.slot, bought = table.clone(data.consumables.bought) },
 	}
 end
 
