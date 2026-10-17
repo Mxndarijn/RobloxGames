@@ -121,6 +121,19 @@ describe("MinimapData (FEATURES.Minimap)", function()
 			expect(kinds[name]).toBe(1)
 		end
 	end)
+	it("pins both world shops with a label and an icon", function()
+		local pins = {}
+		for _, p in MinimapData.points() do
+			if p.label then
+				pins[p.name] = p
+			end
+		end
+		expect(pins.ItemShopStand.label).toBe("Item Shop")
+		expect(pins.UpgradeShopStand.label).toBe("Upgrade Shop")
+		expect(pins.ItemShopStand.icon).toBe("🛒")
+		expect(pins.UpgradeShopStand.icon).toBe("⬆️")
+		expect(pins.LeaderboardBoard).toBeNil()
+	end)
 	it("puts the spawn where StaticWorld builds it and maps the ground to 0..1", function()
 		local spawn = StaticWorld.spawnPosition()
 		expect(MinimapData.SPAWN_YAW).toBe(StaticWorld.SPAWN_YAW)
