@@ -1,0 +1,20 @@
+{
+  "id": "18c-snow-ground-melt-mid-pc",
+  "todo": "18",
+  "kind": "world",
+  "pos": [
+    0,
+    11,
+    38
+  ],
+  "look": [
+    0,
+    3,
+    130
+  ],
+  "weather": "Clear",
+  "wait": 3.0,
+  "note": "F2 v2: tinted surfaces melt mid (cover pinned at 0.5, weather Clear = melting); paths stay readable, no flat sheet [desktop]",
+  "device": "desktop",
+  "snow_cover": 0.5
+}

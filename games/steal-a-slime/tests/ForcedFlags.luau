@@ -43,6 +43,7 @@ ForcedFlags.off = {
 	["Snapshot.build > has every Types.State field with the right values"] = "MutationStacking (the Dex total)",
 	["Genome.rollMutation with weather"] = "Weather",
 	["Weather flag"] = "Weather",
+	["SnowGround flag > is on and WeatherFx checks it before SnowGround.start"] = "SnowGround",
 	["Weather mutation config"] = "Weather",
 	["RainMagnet: target and roll"] = "MutationStacking",
 	["RainMagnet: deposit hook > a full mutation stack is left alone, a fusing combo still fits"] = "MutationStacking",
@@ -76,7 +77,6 @@ ForcedFlags.offModules = {
 
 -- All flags on: these pin the shipped default or exercise the off path of a flag that ships off.
 ForcedFlags.on = {
-	["SnowGround flag > is off and WeatherFx checks it before SnowGround.start"] = "SnowGround",
 	["Audio flag > is off by default"] = "Audio",
 	["PvpRules config > is off by default"] = "PvP",
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",

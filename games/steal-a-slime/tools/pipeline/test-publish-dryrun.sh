@@ -172,6 +172,10 @@ reset; cloud "$NEW" pass; report "$NEW" pass true none
 run "$NEW"; check "report without run_kind is blocked" 3 "run_kind"
 no_publish_steps && echo "ok   report without run_kind: no publish steps" || { echo "FAIL run_kind-less report published"; fails=$((fails + 1)); }
 
+reset; cloud "$NEW" pass; report "$NEW" pass true perf
+run "$NEW"; check "perf report (even reviewed) never gates" 3 "run_kind"
+no_publish_steps && echo "ok   perf report: no publish steps" || { echo "FAIL perf report published"; fails=$((fails + 1)); }
+
 reset; cloud "$NEW" pass; report "$NEW" pass true full
 run "$NEW"; check "full pass reviewed report publishes" 0 "DRY_RUN steps"
 expect "full pass reviewed -> no marker" "$NEW" absent
