@@ -65,6 +65,8 @@ jobs:
         run: rojo build -o build.rbxlx
       - name: Lune tests
         run: lune run tests
+      - name: Cloud-test staging (stage-specs must accept TestRunner)
+        run: lune run tools/pipeline/stage-specs "$RUNNER_TEMP/CloudTests"
       - name: Selene
         run: selene src tests
       - name: StyLua
