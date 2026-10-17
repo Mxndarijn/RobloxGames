@@ -1071,16 +1071,21 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 		return at({ cx + x * a, cy + y * a, cz + z * a })
 	end
 	local legH = cy + 0.8 * a - 1
+	-- B9: the board is boxy and flat against the back wall; phoenix_top_earners_board is decor in MeshAssets.COLLISION
+	-- (the world board has its own Collider), so the slot box is the collider: it stays on under the mesh and the
+	-- Frame / Legs / Shelf stand-ins stay ghosts. Never queried or touched.
+	local dexSlot = meshSlot(
+		block("DexMesh", dexSize, at({ 0, 1 + dexSize[2] / 2, dexZ }), WOOD, nil, { 0, yaw + 180, 0 }),
+		WorldLayout.DEX_MESH,
+		true
+	)
+	dexSlot.canCollide = true
 	local dex: WorldNode = {
 		name = "DexBoard",
 		class = "Model",
 		primaryPart = "Board",
 		children = {
-			meshSlot(
-				block("DexMesh", dexSize, at({ 0, 1 + dexSize[2] / 2, dexZ }), WOOD, nil, { 0, yaw + 180, 0 }),
-				WorldLayout.DEX_MESH,
-				true
-			),
+			dexSlot,
 			ghost(block("Board", { 14 * a, 6 * a, 0.4 * a }, on(0, 0, 0), { 46, 52, 70 }, "SmoothPlastic", r)),
 			standIn(
 				ghost(block("Frame", { 14.8 * a, 6.8 * a, 0.3 * a }, on(0, 0, 0.2), WOOD, "Wood", r)),

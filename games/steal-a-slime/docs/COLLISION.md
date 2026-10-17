@@ -146,3 +146,13 @@ which side of the centre the ball ended on, so the 4-stud ball rode over the 3-4
 round the round Hull of the barrel and well. Fixes: the barrel, well and stile are `Box` now (flat faces a walker stops against;
 the stile is a block players jump onto, so `ranch_barn_loft` is the only PCD), and the probe drives at walking speed (16) with
 upward velocity clamped and FAILs only when the ball's core overlaps the mesh's collision geometry (`GetPartsInPart`).
+
+## Plot-level audit (B9)
+
+Every plot mesh slot has a decided collision (`tests/MeshCollision.spec` "B9: plot-level collision"): fence panels, fence
+segments and the gate-side corner post are `Box`; `merge_vat` is `Hull`; no PCD on a plot. `phoenix_gate` stays decor (a Box would
+close the 14-stud opening): its `GatePostL` / `GatePostR` stand-ins keep collision after the mesh lands. `phoenix_pad_crate`
+is decor: `Pad_<j>` (8 x 2.4 x 8) is the solid, steppable surface. `phoenix_top_earners_board` is shared with the world board
+(own Collider), so the plot's `DexMesh` slot box (canCollide on, canQuery / canTouch off) is the dex board's collider.
+Client-toggled cosmetics (LockBarrier panels, LockSign, RebirthDecor, habitats, skins, rain magnet) stay non-colliding: hidden
+colliders would be invisible walls, and the Pad / PlotLockGuard already cover those areas.
