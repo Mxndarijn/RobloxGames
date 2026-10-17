@@ -5,7 +5,7 @@
 -- Counts WorldLayout.build() the same way tests/WorldBudget.spec does:
 --   mesh_slots   MeshAsset + BorderMesh slots + WorldProps skins (PROP_MESHES)
 --                + RUNTIME_SLOT_ALLOWANCE (what pc-watcher's perf_server counts),
---                the number THEME.md / WorldLayout.MESH_SLOT_BUDGET hold to 400
+--                soft-budgeted at WorldLayout.MESH_SLOT_BUDGET (500, warn only)
 --   parts        Part nodes outside Map.Border (THEME.md 1200)
 --   border_parts Part nodes inside Map.Border (WorldLayout.BORDER_PART_BUDGET)
 --   meshes       slot count per kit mesh name (budget_check.py turns this into

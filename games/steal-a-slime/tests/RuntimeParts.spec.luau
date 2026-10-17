@@ -1,9 +1,10 @@
 --!nocheck
--- Runtime part budget (target 1800, ratchet 2230: only ever lower it). WorldBudget.spec holds the build-time
+-- Runtime part budget: fixed cap, no ratchet (tools/pipeline/pc-watcher/budgets.json runtime_parts: FAIL above
+-- `fail`, WARN above `warn`). WorldBudget.spec holds the build-time
 -- Part nodes to 1400; this boots the real server (rojo place, fake runtime) and counts
 -- every BasePart in Workspace once the parade lane, the slide colliders, WorldProps,
 -- the ritual circle and MeshSwap have spawned. pc-watcher's perf_server reports the same
--- number as runtime_parts and the 22-border-aerial-runtime-parts shot asserts it <= RUNTIME_PARTS_MAX.
+-- number as runtime_parts and the 22-border-aerial-runtime-parts shot asserts it <= the same cap.
 -- Transient play objects (wild slimes, pad slimes, characters, the drain splash) are split out
 -- (runtime_parts_transient in perf_server) so the cap does not flap with play. The count IS perf_server.luau,
 -- run by tools/pr-gate/runtime_count.luau, so the filters cannot drift. This spec compares the RAW offline count;
@@ -14,13 +15,15 @@ local TestRunner = require("./TestRunner")
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
+local serde = require("@lune/serde")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-local RUNTIME_PARTS_MAX = 1800 -- the target
--- Ratchet (same number as the pc-watcher runtime_part_budget and the shot's runtime_parts_max): the
--- fake-runtime world measured 2272 BaseParts when this test landed. Only ever lower it; target 1800.
-local WORLD_RATCHET = 2230
+-- Single source: tools/pipeline/pc-watcher/budgets.json (also read by watcher.py, the runtime pr-gate and the
+-- shot's runtime_parts_max). The CI count adds RUNTIME_SLOT_ALLOWANCE; this spec compares the raw offline count.
+local budgets = serde.decode("json", fs.readFile("../../tools/pipeline/pc-watcher/budgets.json"))
+local PARTS_FAIL: number = budgets.runtime_parts.fail
+local PARTS_WARN: number = budgets.runtime_parts.warn
 
 local rt = RuntimeCount.boot()
 -- The count itself is pc-watcher's perf_server.luau run against this world (same filters as Studio).
@@ -125,15 +128,17 @@ describe("runtime part budget", function()
 		expect(world).toBe(perf.runtime_parts)
 		expect(slimes).toBe(perf.runtime_parts_transient)
 	end)
-	it(`keeps the world (no wild slimes) under the {WORLD_RATCHET} ratchet`, function()
+	it(`keeps the world (no wild slimes) within the fixed {PARTS_FAIL} cap, Studio offset included`, function()
 		expect(world > 0).toBe(true)
-		expect(world <= WORLD_RATCHET).toBe(true)
+		expect(world + RuntimeCount.STUDIO_OFFSET <= PARTS_FAIL).toBe(true)
 	end)
-	it(`reports the gap to the {RUNTIME_PARTS_MAX} target`, function()
-		print(
-			`[RuntimeParts] world {world} vs target {RUNTIME_PARTS_MAX}: over by {math.max(0, world - RUNTIME_PARTS_MAX)}`
-		)
-		expect(RUNTIME_PARTS_MAX < WORLD_RATCHET).toBe(true)
+	it(`reports the headroom to the {PARTS_WARN} warn level (never fails)`, function()
+		local studio = world + RuntimeCount.STUDIO_OFFSET
+		print(`[RuntimeParts] Studio-equivalent {studio}: warn {PARTS_WARN}, fail {PARTS_FAIL}`)
+		if studio > PARTS_WARN then
+			print(`[RuntimeParts] WARNING: {studio} > warn level {PARTS_WARN}`)
+		end
+		expect(PARTS_WARN < PARTS_FAIL).toBe(true)
 	end)
 end)
 

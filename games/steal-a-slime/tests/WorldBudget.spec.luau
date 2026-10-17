@@ -1,12 +1,14 @@
 --!strict
 -- World budgets, counted on WorldLayout.build() in both fence modes:
 --   uploaded  ranch_fence_20 has an asset id (forced here): one MeshAsset slot
---             per 20-stud panel. The caps below are asserted on this count.
+--             per 20-stud panel. The layout pins below are asserted on this count.
 --   fallback  no id yet (today): two phoenix_fence_segment per panel, so one
---             extra slot per panel (MESH_SLOT_BUDGET_FALLBACK).
+--             extra slot per panel.
 -- Mesh slots = MeshAsset slots + pending BorderMesh slots + the WorldProps
 -- skins (PROP_MESHES), split into fence / gate posts / border / decor (ranch
--- props, pad stands and everything else). See WorldLayout.MESH_SLOT_BUDGET.
+-- props, pad stands and everything else). MeshParts are a soft budget now (no hard
+-- per-category caps here; #80's split was folded into the triangle / unique-mesh limits,
+-- see WorldLayout.MESH_SLOT_BUDGET): the asserts below pin the layout only.
 -- Parts = Part nodes outside Map.Border must stay under PART_BUDGET (1400)
 -- in both modes; Map.Border (main #54: walls, invisible slots and
 -- primitive stand-ins) is held to BORDER_PART_BUDGET on its own.
@@ -126,23 +128,20 @@ local fallback = if WorldLayout.fenceUploaded() then nil else current
 local P = Config.PLOT_COUNT
 
 describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
-	it("keeps the fence at 16 slots a plot (14 panels + 2 gate segments), FENCE_SLOT_BUDGET", function()
+	it("keeps the fence at 16 slots a plot (14 panels + 2 gate segments), fence", function()
 		expect(uploaded.panels).toBe(14 * P)
 		expect(uploaded.segments).toBe(2 * P)
 		expect(uploaded.fence).toBe(16 * P)
-		expect(uploaded.fence <= WorldLayout.FENCE_SLOT_BUDGET).toBe(true)
 	end)
-	it("closes each gate's open fence end with one GatePost, GATE_POST_SLOT_BUDGET", function()
+	it("closes each gate's open fence end with one GatePost", function()
 		expect(uploaded.posts).toBe(P)
-		expect(uploaded.posts).toBe(WorldLayout.GATE_POST_SLOT_BUDGET)
 		expect(current.posts).toBe(uploaded.posts)
 	end)
-	it("keeps ranch props + pad stands + the rest under DECOR_SLOT_BUDGET", function()
+	it("keeps one slot per ranch prop and per pad stand", function()
 		expect(uploaded.props).toBe(#WorldLayout.RANCH_PROPS)
 		expect(uploaded.pads).toBe(Config.PADS_MAX * P)
-		expect(uploaded.decor <= WorldLayout.DECOR_SLOT_BUDGET).toBe(true)
 	end)
-	it("skins one DexBoard a plot inside the decor cap (C6), paid for by one entrance prop a plot", function()
+	it("skins one DexBoard a plot (C6), paid for by one entrance prop a plot", function()
 		expect(uploaded.dex).toBe(P)
 		local entrance = 0
 		for _, p in WorldLayout.RANCH_PROPS do
@@ -151,36 +150,17 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 			end
 		end
 		expect(entrance).toBe(P)
-		local budgeted = uploaded.fence + uploaded.posts + uploaded.decor + WorldLayout.BORDER_SLOT_BUDGET
-		expect(budgeted <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 	end)
-	it("skins no BuyStand on the plots, decor stays within its cap", function()
+	it("skins no BuyStand on the plots", function()
 		expect(uploaded.buy).toBe(0)
-		expect(uploaded.decor <= WorldLayout.DECOR_SLOT_BUDGET).toBe(true)
 	end)
-	it("splits MESH_SLOT_BUDGET 400 into fence 128 + gate posts 8 + border 96 + decor 152 + runtime 16", function()
-		expect(WorldLayout.MESH_SLOT_BUDGET).toBe(400)
-		expect(WorldLayout.FENCE_SLOT_BUDGET).toBe(128)
-		expect(WorldLayout.GATE_POST_SLOT_BUDGET).toBe(8)
-		expect(WorldLayout.BORDER_SLOT_BUDGET).toBe(96)
-		expect(WorldLayout.DECOR_SLOT_BUDGET).toBe(152)
-		expect(
-			WorldLayout.FENCE_SLOT_BUDGET
-				+ WorldLayout.GATE_POST_SLOT_BUDGET
-				+ WorldLayout.BORDER_SLOT_BUDGET
-				+ WorldLayout.DECOR_SLOT_BUDGET
-				+ WorldLayout.RUNTIME_SLOT_ALLOWANCE
-		).toBe(WorldLayout.MESH_SLOT_BUDGET)
-	end)
-	it("fits MESH_SLOT_BUDGET with the border at its share", function()
-		local budgeted = uploaded.fence
-			+ uploaded.posts
-			+ uploaded.decor
-			+ WorldLayout.BORDER_SLOT_BUDGET
-			+ WorldLayout.RUNTIME_SLOT_ALLOWANCE
-		expect(budgeted <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
-		-- the budget is the real count, not a ceiling far above it
-		expect(WorldLayout.MESH_SLOT_BUDGET - budgeted < 10).toBe(true)
+	it("keeps the soft MeshPart budget a warning level, with the Studio calibration offset", function()
+		expect(WorldLayout.MESH_SLOT_BUDGET).toBe(500)
+		expect(WorldLayout.RUNTIME_SLOT_ALLOWANCE).toBe(16)
+		-- soft: reported, never asserted (the pr-gate / pc-watcher warn above it)
+		print(
+			`[WorldBudget] mesh slots {uploaded.total + WorldLayout.RUNTIME_SLOT_ALLOWANCE} (soft {WorldLayout.MESH_SLOT_BUDGET})`
+		)
 	end)
 	it("does not spend world slots on the per-type slime kit meshes", function()
 		local kits = {}
@@ -198,26 +178,21 @@ describe("world budget: mesh slots (ranch_fence_20 uploaded)", function()
 				end
 			end
 		end
-		expect(uploaded.total <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 	end)
-	it("holds the border to its share, pinned at BORDER_SLOT_COUNT", function()
+	it("pins the border at BORDER_SLOT_COUNT", function()
 		-- Any change to the ring trips this so the budget is re-read.
 		expect(uploaded.border).toBe(WorldLayout.BORDER_SLOT_COUNT)
-		expect(uploaded.border <= WorldLayout.BORDER_SLOT_BUDGET).toBe(true)
-		expect(uploaded.total + WorldLayout.RUNTIME_SLOT_ALLOWANCE <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 		expect(current.border).toBe(uploaded.border)
 	end)
 end)
 
 describe("world budget: mesh slots (fallback until ranch_fence_20 is uploaded)", function()
-	it("fits MESH_SLOT_BUDGET_FALLBACK with two segments a panel", function()
+	it("builds two segments a panel in the fallback", function()
 		if fallback then
 			expect(fallback.panels).toBe(0)
 			expect(fallback.segments).toBe(30 * P)
 			expect(fallback.fence).toBe(uploaded.fence + 14 * P)
 			expect(fallback.decor).toBe(uploaded.decor)
-			local budgeted = fallback.fence + fallback.posts + fallback.decor + WorldLayout.BORDER_SLOT_BUDGET
-			expect(budgeted <= WorldLayout.MESH_SLOT_BUDGET_FALLBACK).toBe(true)
 		end
 	end)
 end)

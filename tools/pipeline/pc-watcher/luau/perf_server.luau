@@ -4,7 +4,8 @@
 -- runtime_parts counts the WORLD BaseParts in Workspace (same set as tests/RuntimeParts.spec) once the parade
 -- lane and the slide colliders have spawned: wild slimes, pad slimes (plot "Slimes" folders), player characters
 -- and the drain splash holder are transient play objects and go to runtime_parts_transient, so the cap does not
--- flap with play. The shot's runtime_parts_max holds it (ratchet: only ever lower it; target 1800).
+-- flap with play. Budgets (fixed caps, no ratchet) live in tools/pipeline/pc-watcher/budgets.json; the shot's
+-- runtime_parts_max mirrors runtime_parts.fail. Triangles cannot be computed from Luau: CI counts them (pr-gate budget.sh).
 local Players = game:GetService("Players")
 local wild = workspace:FindFirstChild("WildSlimes")
 local function excluded(d)
