@@ -31,6 +31,7 @@ local MeshAssets = require("../../src/shared/MeshAssets")
 local ParadeLane = require("../../src/shared/ParadeLane")
 local PlotDecor = require("../../src/visuals/shared/PlotDecor")
 local Props = require("../../src/visuals/shared/Props")
+local Ritual = require("../../src/shared/Ritual")
 local SnowCover = require("../../src/visuals/shared/SnowCover")
 local VatDecor = require("../../src/visuals/shared/VatDecor")
 local WorldBorder = require("../../src/visuals/shared/WorldBorder")
@@ -338,6 +339,52 @@ for _, strip in ParadeLane.strips() do
 	})
 end
 
+-- The co-op ritual circle (server/RitualView, a runtime model): disc, ring, spots and orb.
+local ritualAt = nil
+if Config.FEATURES.CoopRitual then
+	local R = Config.RITUAL
+	local cx, cz = Ritual.centre()
+	ritualAt = { cx, cz, R.CIRCLE_RADIUS }
+	local function ritualPart(shape: string, size: { number }, at: { number }, color: { number }, material: string)
+		local cf = if shape == "Cylinder"
+			then { at[1], at[2], at[3], 0, -1, 0, 1, 0, 0, 0, 0, 1 }
+			else { at[1], at[2], at[3], 1, 0, 0, 0, 1, 0, 0, 0, 1 }
+		table.insert(parts, {
+			name = "Workspace.Map.RitualCircle",
+			shape = shape,
+			size = size,
+			cf = cf,
+			color = { color[1] / 255, color[2] / 255, color[3] / 255 },
+			material = material,
+			transparency = 0,
+		})
+	end
+	ritualPart(
+		"Cylinder",
+		{ 0.24, R.CIRCLE_RADIUS * 2, R.CIRCLE_RADIUS * 2 },
+		{ cx, 0.12, cz },
+		{ 86, 62, 150 },
+		"SmoothPlastic"
+	)
+	ritualPart(
+		"Cylinder",
+		{ 0.2, (R.CIRCLE_RADIUS - 0.7) * 2, (R.CIRCLE_RADIUS - 0.7) * 2 },
+		{ cx, 0.2, cz },
+		{ 120, 96, 200 },
+		"SmoothPlastic"
+	)
+	for _, spot in Ritual.spots() do
+		ritualPart(
+			"Cylinder",
+			{ 0.2, R.STAND_RADIUS * 1.6, R.STAND_RADIUS * 1.6 },
+			{ spot[1], 0.42, spot[2] },
+			{ 190, 160, 255 },
+			"Neon"
+		)
+	end
+	ritualPart("Ball", { 2.6, 2.6, 2.6 }, { cx, 4.2, cz }, { 190, 160, 255 }, "Neon")
+end
+
 -- The border hills (server/BorderTerrainView writes them as voxel terrain): the same seeded
 -- heightfield sampled on an 8-stud grid; render_world.py turns it into a coloured mesh.
 local terrain = nil
@@ -390,6 +437,7 @@ fs.writeFile(
 		terrain = terrain,
 		vat = vatFocus,
 		magnet = magnetFocus,
+		ritual = ritualAt,
 		lane = ParadeLane.WAYPOINTS,
 		laneStart = ParadeLane.MOUTH,
 		slideEnd = WorldLayout.SLIDE_PATH[#WorldLayout.SLIDE_PATH],

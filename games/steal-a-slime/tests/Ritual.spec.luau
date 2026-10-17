@@ -4,7 +4,9 @@
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local Income = require("../src/server/Income")
+local ParadeLane = require("../src/shared/ParadeLane")
 local PlayerData = require("../src/shared/PlayerData")
+local PropClearance = require("../src/visuals/shared/PropClearance")
 local Ritual = require("../src/shared/Ritual")
 local RitualService = require("../src/server/RitualService")
 local SaveData = require("../src/shared/SaveData")
@@ -67,13 +69,13 @@ describe("Ritual.occupants", function()
 end)
 
 describe("Ritual.step", function()
-	it("shows n/3 while gathering and charges at 3", function()
+	it("shows n/2 while gathering and charges at 2", function()
 		local state = Ritual.new()
-		Ritual.step(state, { [1] = 1, [2] = 2 }, T0)
+		Ritual.step(state, { [1] = 1 }, T0)
 		expect(state.phase).toBe("Idle")
-		expect(state.count).toBe(2)
-		expect(select(2, Ritual.label(state, T0))).toBe("2/3 players")
-		Ritual.step(state, { [1] = 1, [2] = 2, [3] = 3 }, T0 + 1)
+		expect(state.count).toBe(1)
+		expect(select(2, Ritual.label(state, T0))).toBe("1/2 players")
+		Ritual.step(state, { [1] = 1, [2] = 2 }, T0 + 1)
 		expect(state.phase).toBe("Charging")
 		expect(state.chargeEndsAt).toBe(T0 + 1 + R.HOLD_SECONDS)
 	end)
@@ -98,15 +100,28 @@ describe("Ritual.step", function()
 		Ritual.step(state, users, T0)
 		local done = Ritual.step(state, users, T0 + R.HOLD_SECONDS)
 		expect(done and done.bonus).toBe(R.BONUS[4])
-		expect(Ritual.bonus(2)).toBe(0)
+		expect(Ritual.bonus(1)).toBe(0)
 		expect(Ritual.bonus(9)).toBe(R.BONUS[4])
+	end)
+
+	it("needs only two players", function()
+		expect(R.MIN_PLAYERS).toBe(2)
+		expect(Ritual.bonus(2)).toBe(R.BONUS[2])
+		expect(R.BONUS[2] > 0).toBeTruthy()
+		local state = Ritual.new()
+		local pair = { [1] = 1, [2] = 2 }
+		Ritual.step(state, pair, T0)
+		expect(state.phase).toBe("Charging")
+		local done = Ritual.step(state, pair, T0 + R.HOLD_SECONDS)
+		expect(#(done and done.userIds or {})).toBe(2)
+		expect(done and done.bonus).toBe(R.BONUS[2])
 	end)
 
 	it("restarts the timer when someone steps off", function()
 		local state = Ritual.new()
 		local three = { [1] = 1, [2] = 2, [3] = 3 }
 		Ritual.step(state, three, T0)
-		Ritual.step(state, { [1] = 1, [2] = 2 }, T0 + 3)
+		Ritual.step(state, { [1] = 1 }, T0 + 3)
 		expect(state.phase).toBe("Idle")
 		expect(state.chargeEndsAt).toBeNil()
 		Ritual.step(state, three, T0 + 4)
@@ -199,15 +214,16 @@ describe("RitualService.step", function()
 
 	it("needs a loaded session and a slime", function()
 		local world, sessions, state = setup()
+		sessions[2].data.slimes = {}
 		sessions[3].data.slimes = {}
 		local group = { onSpot(1, 1), onSpot(2, 2), onSpot(3, 3), onSpot(99, 4) } -- 99 has no session
 		RitualService.step(state, world, group, T0)
-		expect(state.count).toBe(2)
+		expect(state.count).toBe(1)
 		expect(RitualService.step(state, world, group, T0 + R.HOLD_SECONDS)).toBeNil()
 		-- carrying a slime counts
 		sessions[3].carry = { slimeId = "x" } :: any
 		RitualService.step(state, world, group, T0 + 10)
-		expect(state.count).toBe(3)
+		expect(state.count).toBe(2)
 	end)
 
 	it("is runtime only: the bonus is never saved", function()
@@ -236,26 +252,54 @@ end)
 describe("ritual circle placement", function()
 	local cx, cz = Ritual.centre()
 	local reach = R.CIRCLE_RADIUS
+	local margin = 2
 
-	it("sits in the plaza, clear of the slide, the parade lane, the ring path and the prop spots", function()
-		local r = math.sqrt(cx ^ 2 + cz ^ 2)
-		expect(r - reach > WorldLayout.SLIDE_END_RADIUS + 2).toBeTruthy()
-		expect(r + reach < 64).toBeTruthy() -- the goo-parade lane keeps r 64.75..71.25 clear
-		expect(r + reach < WorldLayout.PLAZA_RADIUS).toBeTruthy()
-		for _, spot in WorldLayout.PROP_SPOTS do
-			expect(math.sqrt((cx - spot.pos[1]) ^ 2 + (cz - spot.pos[3]) ^ 2) > reach + 12).toBeTruthy()
+	local function dist(ax: number, az: number, bx: number, bz: number): number
+		return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2)
+	end
+
+	-- Distance from the circle centre to the lane's drawn polyline.
+	local function laneDistance(): number
+		local pts = ParadeLane.drawPoints()
+		local best = math.huge
+		for i = 1, #pts - 1 do
+			local a, b = pts[i], pts[i + 1]
+			local dx, dz = b[1] - a[1], b[2] - a[2]
+			local t = math.clamp(((cx - a[1]) * dx + (cz - a[2]) * dz) / math.max(dx * dx + dz * dz, 1e-9), 0, 1)
+			best = math.min(best, dist(cx, cz, a[1] + dx * t, a[2] + dz * t))
 		end
+		return best
+	end
+
+	it("keeps the whole circle off the slime lane, with a margin", function()
+		expect(laneDistance() > reach + ParadeLane.CLEARANCE + margin).toBeTruthy()
+		local r = dist(cx, cz, 0, 0)
+		expect(r - reach > ParadeLane.LANE_RADIUS + 3.25 + margin).toBeTruthy() -- outside the r 68 lane band too
+	end)
+
+	it("clears the slide, the fountain, the ring path, the plots, the border and the props", function()
+		local conflicts = PropClearance.conflicts({
+			pos = { cx, 0, cz },
+			size = { reach * 2 + margin * 2, 1, reach * 2 + margin * 2 },
+			yaw = 0,
+		})
+		expect(table.concat(conflicts, ", ")).toBe("")
 		for _, prop in WorldLayout.RANCH_PROPS do
-			expect(math.sqrt((cx - prop.pos[1]) ^ 2 + (cz - prop.pos[3]) ^ 2) > reach + prop.radius + 2).toBeTruthy()
+			expect(dist(cx, cz, prop.pos[1], prop.pos[3]) > reach + prop.radius + 2).toBeTruthy()
 		end
+	end)
+
+	it("is not on the old plaza site beside the lane", function()
+		local a = math.rad(247.5)
+		expect(dist(cx, cz, math.sin(a) * 46, math.cos(a) * 46) > 40).toBeTruthy()
 	end)
 
 	it("keeps clear of every plot and its spoke path", function()
 		for i = 1, Config.PLOT_COUNT do
 			local c = WorldLayout.plotCentre(i)
-			local half = WorldLayout.PLOT_SIZE / 2 + 4
-			local near = math.abs(cx - c[1]) < half + reach and math.abs(cz - c[3]) < half + reach
-			expect(near).toBe(false)
+			local half = WorldLayout.PLOT_SIZE / 2 + 1 -- the fence
+			local inside = math.abs(cx - c[1]) < half + reach and math.abs(cz - c[3]) < half + reach
+			expect(inside and dist(cx, cz, c[1], c[3]) < half + reach).toBe(false)
 			local yaw = math.rad((i - 1) * 360 / Config.PLOT_COUNT)
 			local nx, nz = math.sin(yaw), math.cos(yaw) -- spoke direction (bearing, 0 = +Z)
 			local along = cx * nx + cz * nz
@@ -270,10 +314,10 @@ describe("ritual circle placement", function()
 		local spots = Ritual.spots()
 		expect(#spots).toBe(R.SPOTS)
 		for i, a in spots do
-			expect(math.sqrt((a[1] - cx) ^ 2 + (a[2] - cz) ^ 2) + R.STAND_RADIUS <= R.CIRCLE_RADIUS).toBeTruthy()
+			expect(dist(a[1], a[2], cx, cz) + R.STAND_RADIUS <= R.CIRCLE_RADIUS).toBeTruthy()
 			for j = i + 1, #spots do
 				local b = spots[j]
-				expect(math.sqrt((a[1] - b[1]) ^ 2 + (a[2] - b[2]) ^ 2) > R.STAND_RADIUS * 2).toBeTruthy()
+				expect(dist(a[1], a[2], b[1], b[2]) > R.STAND_RADIUS * 2).toBeTruthy()
 			end
 		end
 	end)

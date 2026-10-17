@@ -5,7 +5,7 @@
 	Builds the plaza ritual circle from plain parts (a flat disc, Config.RITUAL.SPOTS glowing spot
 	discs, a hovering orb with a BillboardGui) under workspace.Map.RitualCircle, and keeps it in sync
 	with the Ritual state: spots glow green while someone stands on them, the sign reads
-	"n/3 players", then "Hold still! 5s", then "Ritual resting 3:20". Also reads the players'
+	"n/2 players", then "Hold still! 5s", then "Ritual resting 3:20". Also reads the players'
 	HumanoidRootPart positions for RitualService.step. Everything is decor: anchored, no collision,
 	no queries. Holds no gameplay rules.
 ]]

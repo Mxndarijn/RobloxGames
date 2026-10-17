@@ -798,7 +798,7 @@ local Config = {
 		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
 		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		PetPassives = true, -- the favourite (follow) slime grants a small capped perk by tier / mutations: income, luck or merge mutation chance (Perks.petPassive, CONTRACT.md §14); false = cosmetic only
-		CoopRitual = true, -- 3-4 players stand on the plaza ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
+		CoopRitual = true, -- 2-4 players stand on the ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
 		PlotSkins = false, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
 		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
 		StealAlerts = false, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
@@ -928,22 +928,22 @@ local Config = {
 	ADMIN_EVENT_COOLDOWN = 20, -- seconds between two accepted triggers (local and received)
 	ADMIN_EVENT_TOPIC = "SlimeAdminEvent",
 
-	-- Co-op ritual (FEATURES.CoopRitual, CONTRACT.md §13). The circle sits outside the ring path between two
-	-- spokes (bearing: 0 = +Z, like WorldLayout.PROP_SPOTS). Every number is server-side.
+	-- Co-op ritual (FEATURES.CoopRitual, CONTRACT.md §13). The circle sits on the meadow outside the ring path beside plot 1's
+	-- entrance, clear of the slime lane, the plots, the slide and the fountain (bearing: 0 = +Z, like WorldLayout.PROP_SPOTS). Every number is server-side.
 	RITUAL = table.freeze({
-		BEARING = 247.5, -- degrees round the fountain
-		DISTANCE = 46, -- studs from the fountain axis
-		CIRCLE_RADIUS = 8, -- the painted disc
+		BEARING = 348, -- degrees round the fountain
+		DISTANCE = 93, -- studs from the fountain axis
+		CIRCLE_RADIUS = 6, -- the painted disc
 		SPOTS = 4, -- glowing stand spots
-		SPOT_DISTANCE = 5, -- spot centre from the circle centre
+		SPOT_DISTANCE = 3.5, -- spot centre from the circle centre
 		STAND_RADIUS = 2.4, -- a player counts on the nearest spot within this (horizontal)
 		STAND_HEIGHT = 8, -- and a root part at most this high above the plaza ground (not on the fountain)
-		MIN_PLAYERS = 3,
+		MIN_PLAYERS = 2,
 		HOLD_SECONDS = 6, -- everyone must keep standing this long
 		SERVER_COOLDOWN = 240, -- seconds the circle rests after a ritual
 		PLAYER_COOLDOWN = 600, -- seconds before the same player can count again
 		BLESS_SECONDS = 180,
-		BONUS = table.freeze({ [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants
+		BONUS = table.freeze({ [2] = 0.15, [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants
 	}),
 
 	-- Follow-pet passives (FEATURES.PetPassives, CONTRACT.md §14). The kind comes from the favourite slime's tier;
