@@ -1,0 +1,11 @@
+{
+  "id": "flag-audio-panel-phone",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "audio_panel": true,
+  "flags": {
+    "Audio": true
+  },
+  "device": "phone-portrait",
+  "note": "flag review (Audio forced on via PcwFlag_ override, Studio only): MuteToggle + sound panel on a phone: must not cover the bottom-left nav or jump buttons"
+}

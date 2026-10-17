@@ -983,4 +983,8 @@ local Config = {
 	MAX_SLIMES_SAVED = 64,
 }
 
+-- Studio-only review override of the default-off flags (FeatureOverride); a no-op everywhere else.
+local FeatureOverride = if script then require(script.Parent.FeatureOverride) else require("./FeatureOverride");
+(Config :: any).FEATURES = FeatureOverride.install(Config.FEATURES)
+
 return table.freeze(Config)

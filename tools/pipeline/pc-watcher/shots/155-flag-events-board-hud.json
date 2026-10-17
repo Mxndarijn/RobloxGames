@@ -1,0 +1,13 @@
+{
+  "id": "flag-events-board-hud-phone",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "events_board": true,
+  "weekly_event": true,
+  "flags": {
+    "WeeklyEvents": true,
+    "EventsBoard": true
+  },
+  "device": "phone-portrait",
+  "note": "flag review (WeeklyEvents, EventsBoard forced on via PcwFlag_ override, Studio only): idle HUD: Server events banner must fit the phone width and not overlap the banner stack"
+}

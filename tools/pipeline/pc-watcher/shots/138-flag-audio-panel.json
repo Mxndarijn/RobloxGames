@@ -1,0 +1,11 @@
+{
+  "id": "flag-audio-panel-pc",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "audio_panel": true,
+  "flags": {
+    "Audio": true
+  },
+  "device": "desktop",
+  "note": "flag review (Audio forced on via PcwFlag_ override, Studio only): the MuteToggle button and the opened sound panel (Mute row, SFX and Music sliders) bottom-left"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "flag-steal-alerts-hud-pc",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "steal_alert": true,
+  "flags": {
+    "StealAlerts": true
+  },
+  "device": "desktop",
+  "note": "flag review (StealAlerts forced on via PcwFlag_ override, Studio only): red edge flash, direction arrow and join notice (theft faked with PcwStealAlert)"
+}

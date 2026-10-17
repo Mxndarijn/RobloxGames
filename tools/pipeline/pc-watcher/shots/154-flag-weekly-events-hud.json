@@ -1,0 +1,11 @@
+{
+  "id": "flag-weekly-events-hud-phone",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "weekly_event": true,
+  "flags": {
+    "WeeklyEvents": true
+  },
+  "device": "phone-portrait",
+  "note": "flag review (WeeklyEvents forced on via PcwFlag_ override, Studio only): idle HUD on a phone; WeeklyEvent attribute must exist and parse"
+}

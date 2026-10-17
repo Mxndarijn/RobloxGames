@@ -1,0 +1,14 @@
+{
+  "id": "flag-merge-vat3-world-pc",
+  "todo": "flag-shots",
+  "kind": "world",
+  "target": "MergeVat",
+  "from": "centre",
+  "dist": 18,
+  "height": 9,
+  "flags": {
+    "MergeVat3": true
+  },
+  "device": "desktop",
+  "note": "flag review (MergeVat3 forced on via PcwFlag_ override, Studio only): Plot_1's vat wears the cauldron mesh with three spouts"
+}
