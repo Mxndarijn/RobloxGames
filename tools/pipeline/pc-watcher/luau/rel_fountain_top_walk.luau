@@ -2,15 +2,17 @@
 -- character (unanchored, server network ownership) is put on the fountain top and walks (Humanoid:MoveTo) a full circle around the
 -- EmergeMesh Box, then to the slide entry (WorldLayout.SLIDE_PATH[1]).
 -- The walkway ring is centred on the fountain TOP (xz centroid of the top surface from a coarse raycast grid, fallback the FountainMesh slot xz)
--- with 24 azimuths; per azimuth the radius is scanned from the outside inward (0.5 studs) for the outermost point with fountain surface and
--- >= 2 studs margin to the rim edge (surface at +-2 studs in x and z) that is >= 2 studs outside the Box (character radius). No such point =
--- "no_walkway" with a reason (off_top / box_reaches_rim). Consecutive walkway waypoints are walked in azimuth order; at a gap the route never
+-- with 24 azimuths; per azimuth the radius is scanned from the outside inward (0.5 studs): the outermost point with fountain surface and
+-- >= 2 studs margin to the rim edge (surface at +-2 studs in x and z) that is >= 2 studs outside the Box (character radius) starts the walkway
+-- span (rOuter), the contiguous run of such valid samples inward ends at rInner; the waypoint is the middle of the span (not the rim edge).
+-- No valid point = "no_walkway" with a reason (off_top / box_reaches_rim); a span narrower than 3 studs = "no_walkway" / "narrow".
+-- Between waypoints, if the chord midpoint has no surface margin the route steps via that midpoint snapped to its own azimuth's span. Consecutive walkway waypoints are walked in azimuth order; at a gap the route never
 -- cuts a chord: the gap (sector angles) is reported and the character is teleported to the first waypoint of the next contiguous run.
 -- The Volcano colliders are CanQuery false, so the probe sets CanQuery true on the collidable ones for its raycasts and restores it.
 -- Checks (ok = every non-nil check true):
 --   circle_complete   n/a with < 6 walkway waypoints; else true when every walkway waypoint is reached (within 3 studs horizontally, MoveTo
 --                     3 s each), never fell off (root 6+ below the walkway) and no gap is box_reaches_rim (surface exists but the Box/an obstruction
---                     leaves no clearance = the walkway is blocked: a real finding); off_top gaps are only reported (info.gaps)
+--                     leaves no clearance = the walkway is blocked: a real finding); off_top and narrow gaps are only reported (info.gaps)
 --   reaches_slide     from the walkway waypoint nearest the slide entry: MoveTo the entry, within 3 studs horizontally within 8 s; the surface y at
 --                     the entry vs the character y is recorded (stopped on top of something)
 -- Per-waypoint results are in detail.extra.waypoints. The character ends where it started. Waypoints past ~20 s are "not_run". ~30 s max.
@@ -165,23 +167,52 @@ local function clearOfBox(p)
 	local l = ref.CFrame:PointToObjectSpace(p)
 	return not (math.abs(l.X) < half.X + CLEAR and math.abs(l.Z) < half.Z + CLEAR and math.abs(l.Y) < half.Y + 1)
 end
+-- walkway span at azimuth a: the outermost valid sample (surface with MARGIN around it AND clear of the Box) and the contiguous run of valid
+-- samples inward from it; the waypoint is the middle of that run (not the rim edge)
+local function spanAt(a)
+	local run, sawBlocked = {}, false
+	for r = 40, 1, -0.5 do
+		local x, z = centre.X + math.cos(a) * r, centre.Z + math.sin(a) * r
+		local y = withMargin(x, z)
+		if y and clearOfBox(Vector3.new(x, y + 3, z)) then
+			table.insert(run, { r = r, x = x, y = y, z = z })
+		elseif #run > 0 then
+			break
+		elseif y then
+			sawBlocked = true
+		end
+	end
+	if #run == 0 then
+		return nil, sawBlocked
+	end
+	local rOuter, rInner = run[1].r, run[#run].r
+	local rMid = (rInner + rOuter) / 2
+	local x, z = centre.X + math.cos(a) * rMid, centre.Z + math.sin(a) * rMid
+	local y = withMargin(x, z)
+	local pick = { r = rMid, x = x, y = y, z = z }
+	if not (y and clearOfBox(Vector3.new(x, y + 3, z))) then
+		pick = run[1]
+		for _, smp in run do
+			if math.abs(smp.r - rMid) < math.abs(pick.r - rMid) then
+				pick = smp
+			end
+		end
+	end
+	return { x = pick.x, y = pick.y, z = pick.z, r = pick.r, rInner = rInner, rOuter = rOuter, width = rOuter - rInner }, sawBlocked
+end
 local waypoints = {}
 for i = 0, N - 1 do
 	local a = i * 2 * math.pi / N
 	local wp = { i = i + 1, az = i * 360 / N }
-	local sawBlocked = false
-	for r = 40, 1, -0.5 do
-		local x, z = centre.X + math.cos(a) * r, centre.Z + math.sin(a) * r
-		local y = withMargin(x, z)
-		if y then
-			if clearOfBox(Vector3.new(x, y + 3, z)) then
-				wp.x, wp.y, wp.z, wp.r = x, y, z, r
-				break
-			end
-			sawBlocked = true
+	local sp, sawBlocked = spanAt(a)
+	if sp then
+		wp.rInner, wp.rOuter, wp.width = sp.rInner, sp.rOuter, sp.width
+		if sp.width < 3 then
+			wp.status, wp.reason = "no_walkway", "narrow"
+		else
+			wp.x, wp.y, wp.z, wp.r = sp.x, sp.y, sp.z, sp.r
 		end
-	end
-	if not wp.x then
+	else
 		wp.status = "no_walkway"
 		wp.reason = if sawBlocked then "box_reaches_rim" else "off_top"
 	end
@@ -240,6 +271,9 @@ local function out()
 			status = wp.status or "?",
 			reason = wp.reason,
 			r = wp.r and (math.round(wp.r * 10) / 10),
+			r_inner = wp.rInner and (math.round(wp.rInner * 10) / 10),
+			r_outer = wp.rOuter and (math.round(wp.rOuter * 10) / 10),
+			width = wp.width and (math.round(wp.width * 10) / 10),
 			at = wp.x and v3(Vector3.new(wp.x, wp.y, wp.z)),
 			stopped_at = wp.stopped_at,
 		})
@@ -255,7 +289,7 @@ local function run()
 	end
 	free()
 	local t0, reached, fell, blockedWps = os.clock(), 0, false, 0
-	local lastGood
+	local lastGood, prev
 	for _, wp in order do
 		if os.clock() - t0 > 20 then
 			wp.status = "not_run"
@@ -266,7 +300,25 @@ local function run()
 			-- first waypoint of a contiguous run: teleport (no chord across a gap)
 			teleport(CFrame.new(wp.x, wp.y + 3.5, wp.z))
 			task.wait(if lastGood then 0.3 else 0.5)
+		elseif prev then
+			-- follow the curve: when the straight chord's midpoint has no surface margin, step via that midpoint snapped to its azimuth's walkway
+			local mid = (Vector3.new(prev.x, 0, prev.z) + Vector3.new(wp.x, 0, wp.z)) / 2
+			if not withMargin(mid.X, mid.Z) then
+				local sp = spanAt(math.atan2(mid.Z - centre.Z, mid.X - centre.X))
+				if sp then
+					local via = Vector3.new(sp.x, sp.y, sp.z)
+					local tv = os.clock()
+					while os.clock() - tv < 2 do
+						hum:MoveTo(via)
+						task.wait(0.1)
+						if flat(root.Position, via) <= 3 or root.Position.Y < sp.y - 6 then
+							break
+						end
+					end
+				end
+			end
 		end
+		prev = wp
 		local t1 = os.clock()
 		while os.clock() - t1 < 3 do
 			hum:MoveTo(target)
