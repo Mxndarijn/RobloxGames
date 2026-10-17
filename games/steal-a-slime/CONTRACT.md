@@ -297,6 +297,7 @@ On start the server still calls `ReplicatedStorage.Visuals.WorldBuilder.build(wo
 
 The server finds plots by the `PlotIndex` attribute and pads by `PadIndex` (`Constants.PLOT_INDEX_ATTRIBUTE` / `PAD_INDEX_ATTRIBUTE`, via `PlotLookup`). The `Plot_<i>` / `Pad_<j>` names are only a fallback. Folder names are in `Constants`: `MAP_FOLDER = "Map"`, `PLOTS_FOLDER = "Plots"`, `PLOT_SLIMES_FOLDER = "Slimes"`, `HOME_ZONE = "HomeZone"`. `WorldLayout` hardcodes `"Map"` and `"Slimes"`, and `tests/Integration.spec.luau` checks they match.
 
+- **Border terrain** (`server/BorderTerrainView.place`, spawned from the server script, never blocks boot): the hills behind the world border are voxel Terrain written in 64-stud chunks (`BorderTerrain.chunks`, nearest the play area first) with at most `FRAME_BUDGET_S` = 3 ms of work per frame. Readiness: Terrain attribute `BorderTerrain` (false while writing, true when done) and Workspace attribute `BorderTerrainReady` (false when writing starts, true when done; nil before `place()` runs). Tests and the pc-watcher wait on these.
 - **`workspace.Map`:** `Volcano` (with a `Crater` Part, the spawn origin) and `Chute`. The server adds `Volcano.SlideColliders` at boot (`server/FountainColliders`, `Shared.SlideColliders`): invisible, anchored, always-solid floor / wall / skirt Parts along the low slide (attribute `FountainCollider` = kind), so players cannot walk through the slide; wild slimes ride it anchored and non-colliding. The model keeps its legacy name `Volcano` (it is the slime fountain). Drops land at `Fountain.roll` angle/radius around the crater (moved straight out past the low slide when they would land on it, `FountainRide.clearLanding`) after the slide ride (`FountainRide`: emerge, every `SLIDE_PATH` waypoint, run-out round the plaza).
 - **`workspace.Plots.Plot_1..PLOT_COUNT`** (attribute `PlotIndex = i`):
   - `Base`.
@@ -714,7 +715,7 @@ Owner: Phoenix (server, shared), Jolt (panel), Archer (vat model). Off = the two
 - **Anti-dupe / authority.** `Request("Merge3", a, b, c)` (3 strings, `Validate.ACTIONS.Merge3` 0.5 s). `TripleMerge.apply` validates everything first (3 ids, no repeats, each owned, none in `World.busySet`, one tier, a fresh child id) and only then removes the three and adds the child on the first slime's pad, so a refused merge changes nothing and the same slimes can never be merged twice. The favourite moves to the child. Stats (`merges`), Dex and the toast go through `MergeVat.merge3` like the pair vat. The client only gates its button (`Selection.canMergeTriple`).
 - **Economy untouched.** No cash cost, no sell / buy value changes. Three slimes for one tier up (the pair vat does it with two) is the price of the extra odds: a 20 % second tier, every mutation kept, a species result.
 - **Panel (existing menu system).** `Panels/Merge`: a "2 slimes / 3 slimes" switch above the hint (only while the flag is on), up to three picks, `Merge 3` hold button, status "You get: <rarity> · 20% <rarity+1>". Studio only: SlimeUI attribute `PcwMergeVat` = true forces it on and opens in 3-slime mode (pc-watcher shots `19-merge-vat-*`).
-- **Vat model.** `merge_vat` (kit mesh, copper goo cauldron, three funnel spouts, 1508 tris): the client (`VatFx`, `VatDecor.pose`) stands a clone of `ReplicatedStorage.MergeVatMeshes.merge_vat` over the **local player's own** plot `MergeVat` disc (the disc and its goo only turn invisible; the MergePrompt keeps working). 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), at most 1 extra MeshPart. The server publishes the template with the flag on (and in Studio, for the shots).
+- **Vat model.** `merge_vat` (kit mesh, copper goo cauldron, three funnel spouts, 1508 tris) is the look of **every** plot's vat, independent of `FEATURES.MergeVat3` (bug #16; only the 3-slime gameplay is behind the flag): the server (`MeshSwap.swapPlotVats`, `VatDecor.pose`) parents one MeshPart `VatMesh` under each plot's `MergeVat` disc. The disc and its `Goo` only turn invisible (Transparency 1) once the mesh is placed; name, position, collision, `MergePrompt` and attributes stay. If the template cannot load, the cylinder stays visible. 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), +1 runtime MeshPart per plot. The former client `VatFx` / `MergeVatMeshes` template are gone.
 - **Needs frame review before the flag goes on:** the panel with the switch on a 390 px phone, the vat scale against the disc, the vat in the night look.
 
 ## 22. v29 #13: restocking consumables shop (2026-10-16)
@@ -804,3 +805,61 @@ Player attributes (replicated, read-only hints for other players' UI): `PvpShiel
 **Runtime parts (hard constraint: zero net parts).** Nothing PvP-related exists in Workspace while the flag is off or while no item is being used. Gloves and the Blaster are not welded models: their look is particles / beams / trails attached to the character's existing hand parts, created on use and destroyed within `Config.PVP.FX_SECONDS`. Traps and Bounce Pads are spawned only when placed (at most `count` per owner), removed when triggered, on lifetime end, on owner leave and on flag off. `RuntimeParts.spec` checks that a PvP-on server at rest adds 0 parts and that a use leaves 0 parts after cleanup.
 
 **Status in this PR:** live with the flag on: `BuyPvpItem`, `EquipPvpItem` (sets `PvpEquipped`, spawns nothing), `UsePvpItem` (equipped, cooldown, safe zone / shield / own-plot rules, then `PvpService.registerLine(line, handler)`; a line without a handler answers `false, "Coming soon"` and starts no cooldown; the Knockback / Trap / Blaster / Fun handlers arrive in later PRs), `State.pvp` (join, Sync, after every Buy / Equip) and `PvpEvent` kinds `Cooldown`, `Shield`, `SafeZone` (the per-player `WorldView.updatePlayer` tick; no new loop). `PvpService.fireEffect` / `fireTrap` exist for the later PRs (`Effect`, `TrapPlaced`, `TrapCleared` are not fired by anything yet). `vector3?` is a new `Remotes.ACTIONS` arg kind (finite `Vector3`, each component at most 100000). `PvpService.track` / `cleanup` / `spawnedCount` are the Workspace registry (cleaned on leave and when joining with the flag off). Flag off: all of it refuses or does nothing.
+
+## 27. World shops: Item Shop and Upgrade Shop (`FEATURES.WorldShops`, default `true`; server + world implemented 2026-10-17, client UI pending)
+
+**Status:** server + world side implemented (`Shared.Shops`, `server/ShopGuard`, `Actions`, `WorldProps`); the client UI is Glitch's. Merijn's HUD design (2026-10-17) drops the HUD Shop button for two in-world shops. Phoenix builds the server and world side against this section; Glitch builds the client UI. Names below are final; change them here first. Server-authoritative: the client calls `Request`, renders `State` and `ShopEvent`, never decides an outcome.
+
+### 27.1 Split (ids are save keys / action args, never renamed; names are the exact current strings)
+
+| Shop | Id | Name | Bought with (existing logic, reused) |
+|---|---|---|---|
+| ItemShop | `Lock` | "Lock base" | `Request("Lock")` (`StealService.buyLock`) |
+| ItemShop | `MysteryEgg` | "Mystery Egg" (`FEATURES.MysteryEgg`) | `BuyEgg` |
+| ItemShop | `MutationSpray` / `LuckPotion` / `WeatherTotem` | "Mutation Spray" / "Luck Potion" / "Weather Totem" (`FEATURES.Consumables`, restocking) | `BuyConsumable(itemId, slimeId?)` |
+| ItemShop | `Config.PVP_TOOLS` ids | per `PVP_TOOLS[id].name` (`FEATURES.PvP`, default off; listed only when on) | `BuyPvpItem(itemId)` |
+| UpgradeShop | `LockUpgrade` | "Longer locks" (5 levels) | `BuyLockUpgrade` |
+| UpgradeShop | `SpeedCoil` | "Speed Coil" (once) | `BuySpeedCoil` |
+| UpgradeShop | `Income` / `CarrySpeed` / `OfflineCap` / `Luck` / `RainMagnet` | "Slime Snacks" / "Strong Arms" / "Night Shift" / "Lucky Charm" / "Rain Magnet" (`Config.UPGRADES`, rank-gated by `requires`; `RainMagnet` needs `FEATURES.RainMagnet`) | `BuyUpgrade(id)` |
+
+Rule: consumed / hatched / restocking things = Item Shop; permanent, saved-and-kept-on-rebirth things = Upgrade Shop. Pads (`BuyPad`) stay on the plot, not in a shop.
+
+### 27.2 World placement (`WorldLayout.PROP_SPOTS`, bearing 0 = +Z, x = sin(b) r, z = cos(b) r, r 90, yaw = bearing so the front faces the fountain)
+
+| Anchor (Model name, under `workspace.Map`) | Bearing / r | Notes |
+|---|---|---|
+| `ItemShopStand` | 67.5 / 90 | the existing `ShopStand` spot, renamed; same safe zone `"shop"` (`Config.PVP.SAFE_ZONES`) |
+| `UpgradeShopStand` | **34** / 90 (new `PROP_SPOTS` entry; was 22.5, which is the Campfire / CampBench camp (`RanchProps`, 22.5 / r 92) and fails `PropClearance`) | between plot 1 and 2 spokes, inside the clear gap (bearings 34-35 at r 90-94); about 72 studs from the ritual meadow (348 / 93) |
+
+Both sit beyond the ring path (outer edge r 82; lane r 64.75-71.25, gate posts to 73.75), outside every plot rect / entrance corridor, and 12 studs of `PropClearance.SPOT_RADIUS` is kept clear (add the new spot to `PropClearance` and the minimap). Mesh: both skin `MeshAssets` `ranch_shop_stand` (`WorldLayout.BUY_STAND_MESH`, scale 0.8); the face sign text differs ("ITEM SHOP" / "UPGRADE SHOP"). Collision: solid counter via `MeshAssets.COLLISION["ranch_shop_stand"] = "Hull"` (docs/COLLISION.md: players must not stand inside it, blobby), MeshSwap applies it; add the entry with the code. Old model name `ShopStand` / `Constants.SHOP_STAND`: with `WorldShops` **off** `WorldProps` still places the single `ShopStand` (same Item Shop spot, `PROP_SPOTS` has no `ShopStand` entry, it uses `ItemShopStand`'s); with it on there is no `ShopStand` model. `PROP_MESHES` lists `ItemShopStand` and `UpgradeShopStand` (the mesh slot count is 392). New constants: `SHOP_STAND_ITEM = "ItemShopStand"`, `SHOP_STAND_UPGRADE = "UpgradeShopStand"`.
+
+### 27.3 Opening
+- `PrimaryPart` `Counter` of each stand holds ONE ProximityPrompt `ShopPrompt` (`Constants.SHOP_PROMPT_NAME`, kept): Item Shop `ObjectText "Item Shop"`, `ActionText "Browse items"`; Upgrade Shop `ObjectText "Upgrade Shop"`, `ActionText "Browse upgrades"`; `KeyboardKeyCode E`, `HoldDuration 0`, `MaxActivationDistance 12`. Stand attribute `ShopId` = `"ItemShop" | "UpgradeShop"` tells the client which catalog to open.
+- The server connects `ProximityPrompt.Triggered` on each `ShopPrompt` to `Actions.openFromPrompt` (same checks as `OpenShop`, but not the `OpenShop` rate limit, so the client's own `OpenShop` call right after still goes through), so the shop opens on the server without any client code. The UI opens client-side (like §5.3). The server tracks the open shop through `Request("OpenShop", shopId)` (below) and sets the Player attribute `OpenShop` (string `shopId`, nil = closed).
+- **Range:** `Config.SHOP_RANGE = 14` studs. Checked on the server on `OpenShop` and on **every** purchase: distance from the character `HumanoidRootPart` to the stand's `Counter` (XZ+Y) must be <= `SHOP_RANGE`, character alive. Leaving range closes the shop (`ShopEvent` `Close`, reason `"range"`), checked in the existing per-player step (`stepPlayers`, every 0.25 s while a shop is open; no new loop). The distance is 3D, HumanoidRootPart to the Counter; exactly `SHOP_RANGE` still counts as in range.
+
+### 27.4 Remotes (names final; reuse, do not duplicate purchase logic)
+- **Reused unchanged:** `Lock`, `BuyEgg`, `BuyConsumable`, `BuyPvpItem`, `BuyLockUpgrade`, `BuySpeedCoil`, `BuyUpgrade`. With `WorldShops` on they additionally require an open shop of the right type and range (see 27.6); the old HUD path is described in 27.6.
+- **New `Request` actions** (rate limit 0.5 s, `Validate.ACTIONS`, both in `Remotes.ACTIONS`): `OpenShop(shopId: string)` validates flag, shopId, range and sets `OpenShop`; `CloseShop()` clears it; `ShopBuy(shopId: string, itemId: string, arg: string?)` validates flag, range, that `itemId` belongs to `shopId` (`Shared.Shops`), then **delegates to the matching existing action** from the table in 27.1 (`arg` = `slimeId` for `MutationSpray`). Returns `(ok, message?)` as every action; on a shop failure the result is `{ ok = false, message = <readable text>, code = <27.7 code> }` (`Types.RequestResult.code`; the same `Denied` event fires). `ShopBuy` validates in this order (`server/ShopGuard.check`): flag, shopId, item membership, open shop (`WorldShopsStrict` only), alive, range; an item whose feature flag is off (`Shops.Item.flag`) answers `Unavailable`; the delegated action keeps its own rate limit (`Busy`). `Purchased.price` is the cash the existing handler took, `level` the new level of `LockUpgrade` / `Config.UPGRADES` items. Delegated refusals map to codes by their text (`ShopGuard.classify`).
+- **New RemoteEvent `ShopEvent`** (`Constants.SHOP_EVENT = "ShopEvent"`, ServerToClient, in `Remotes.DEFINITIONS`), one table arg with `kind` and `serverTime`:
+
+| kind | Fields |
+|---|---|
+| `"Open"` | `shopId` (server accepted `OpenShop`) |
+| `"Close"` | `shopId, reason` (`"closed" | "range" | "dead" | "flag"`) |
+| `"Purchased"` | `shopId, itemId, price: number, level: number?` (new level for leveled upgrades) |
+| `"Denied"` | `shopId, itemId?, code` (27.7), `message` (display text) |
+
+Fired to the buyer only. `State` is re-sent after every purchase as today.
+
+### 27.5 State the client reads
+- **Catalog:** new pure shared module `Shared.Shops`: `SHOPS = { ItemShop = { id, name, stand, items = { { id, action, ... } } }, UpgradeShop = { ... } }` with the rows of 27.1 in display order (`items[i] = { id, name, icon, text, action, flag? }`); names / icons / text come from `Config` (`UPGRADES`, `CONSUMABLES`, `PVP_TOOLS`) and `ShopCatalog` strings so there is one source. `Shops.items(shopId, features)` filters by flags. Also `Shops.shopOf(itemId)`.
+- **Live data (existing `State`):** `State.shop` (prices, levels, `owned`, §5.1), `State.upgrades`, `State.consumables` (`left` / `max` / `restockAt`), `State.pvp`, `cash`. No new State field. Player attribute `OpenShop` (see 27.3) is a read-only hint for other clients.
+
+### 27.6 Feature flag `FEATURES.WorldShops` (default `true` for server / world)
+- On: both stands exist, `OpenShop` / `CloseShop` / `ShopBuy` / `ShopEvent` work, range is validated. The existing buy actions called **without** an open matching shop answer `"open the <Item|Upgrade> Shop first"` (`code "NotOpen"`) **only once** `FEATURES.WorldShopsStrict` (default `false`) is on; until Glitch's UI lands they keep working as today so the old HUD Shop panel still buys.
+- Off: no stands, `OpenShop` / `ShopBuy` answer `"the shops are closed"` (`FlagOff`), no `ShopEvent`, no attribute; the single `ShopStand` and HUD Shop panel behave exactly as before.
+- Old HUD **Shop** button meanwhile: unchanged (opens the combined panel, buys via the existing actions). Glitch removes it when the new UI ships; Phoenix then flips `WorldShopsStrict` on. The old `ShopStand` prompt keeps opening the combined panel when `WorldShops` is off.
+
+### 27.7 Deny codes (`ShopEvent` `Denied.code`, also the `Request` failure `message` prefix is the readable text)
+`FlagOff` (shops closed / feature off), `BadShop` (unknown shopId), `NotInShop` (itemId not sold there), `NotOpen` (strict mode: shop not open), `OutOfRange` (> `SHOP_RANGE` or no character), `Dead` (character dead; added in the implementation, the contract had no code for "alive"), `NoCash`, `Maxed` (upgrade at max level / Speed Coil owned), `Locked` (rank `requires` / PvP gate), `SoldOut` (consumable stock 0), `Owned` (already owned: PvP item or a better tier), `BadTarget` (spray needs an owned idle slime), `Busy` (rate limit), `Unavailable` (anything else the delegated action refuses; the original text is in `message`).

@@ -188,7 +188,16 @@ describe("ranch props: keep-clear zones", function()
 			names[z.name] = true
 		end
 		for _, name in
-			{ "fountain", "slide", "landing band", "parade lane", "ring path", "ShopStand", "LeaderboardBoard" }
+			{
+				"fountain",
+				"slide",
+				"landing band",
+				"parade lane",
+				"ring path",
+				"ItemShopStand",
+				"UpgradeShopStand",
+				"LeaderboardBoard",
+			}
 		do
 			expect(names[name]).toBe(true)
 		end

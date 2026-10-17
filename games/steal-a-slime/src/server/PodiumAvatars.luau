@@ -23,7 +23,6 @@ local PodiumAvatars = {}
 PodiumAvatars.SLOTS = 3
 PodiumAvatars.DEBOUNCE = 2
 PodiumAvatars.FETCH_TRIES = 2
-PodiumAvatars.EMPTY_TEXT = "Your spot?"
 
 export type Adapter = {
 	fetchDescription: (userId: number) -> any, -- may error / yield
@@ -50,10 +49,10 @@ export type Podiums = {
 	apply: (self: Podiums, board: Types.Leaderboard?) -> (),
 }
 
--- Billboard text: "<display name>\n$<total earned>", or the empty-slot text.
+-- Billboard text: "<display name>\n$<total earned>", or "" for an empty slot (the adapter shows no label).
 function PodiumAvatars.labelText(displayName: string?, value: number?): string
 	if not displayName then
-		return PodiumAvatars.EMPTY_TEXT
+		return ""
 	end
 	return `{displayName}\n${Economy.formatNumber(value or 0)}`
 end

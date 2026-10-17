@@ -562,9 +562,13 @@ def write_json(path, data):
 
 
 class Lock:
-    """Exclusive lock file holding our pid; a lock whose pid is gone (or older than max_age) is stale."""
+    """Exclusive lock file holding our pid; a lock whose pid is gone (or older than max_age) is stale.
+    max_age only guards against pid reuse after a crash: it must stay well above the longest real run (a full run with
+    bug probes took ~26 min on Oct 17; the old 1800 s let a waiting perf run steal a live loop lock)."""
 
-    def __init__(self, path, max_age=1800):
+    LOCK_MAX_AGE_S = 7200
+
+    def __init__(self, path, max_age=LOCK_MAX_AGE_S):
         self.path, self.max_age, self.held = path, max_age, False
 
     def acquire(self):
@@ -1896,11 +1900,13 @@ def step_shots(run):
                         run.note("shot %s: slime not moving (mode %s, moved %s)" % (
                             sid, res["motion"].get("mode"), res["motion"].get("moved")))
                 if shot.get("slide_walk"):
-                    # B6: free balls dropped onto every slide segment, top to bottom, must never sink under the slide
+                    # B6 / bug 9 (solid slide block, #252): HARD = cannot_enter and cannot_climb; the other checks are notes
                     res["slide_walk"] = run.need_luau("slide_walk", "Server", timeout=60)
                     if not res["slide_walk"].get("ok"):
-                        run.note("shot %s: fell through the slide: %s" % (
+                        run.note("shot %s: the slide can be entered or climbed: %s" % (
                             sid, str(res["slide_walk"].get("violations") or res["slide_walk"].get("error"))[:200]))
+                    for soft in res["slide_walk"].get("soft_failed") or []:
+                        run.note("shot %s: slide (soft) %s" % (sid, str(soft)[:200]))
                 if shot.get("ring_slimes"):
                     # v30 C3: no wild slime inside the plaza's landing ring over a few seconds (soft: a note)
                     res["ring_slimes"] = run.need_luau("ring_slimes", "Server", timeout=30)

@@ -12,7 +12,8 @@ describe("mesh preload (v30 C2)", function()
 	it("MeshAssets.allMeshIds lists every uploaded mesh once", function()
 		local ids = MeshAssets.allMeshIds()
 		local uploaded = 0
-		for _, name in MeshAssets.NAMES do
+		-- every entry (world slots in NAMES plus non-slot meshes such as the slime_lane)
+		for name in MeshAssets.entries do
 			if MeshAssets.meshId(name) then
 				uploaded += 1
 			end

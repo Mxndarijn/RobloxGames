@@ -58,6 +58,7 @@ local Revenge = require(script.Revenge)
 local RitualService = require(script.RitualService)
 local RitualView = require(script.RitualView)
 local Sessions = require(script.Sessions)
+local ShopGuard = require(script.ShopGuard)
 local Snapshot = require(script.Snapshot)
 local Spawner = require(script.Spawner)
 local WeatherService = require(script.WeatherService)
@@ -134,11 +135,11 @@ task.spawn(function()
 	end
 end)
 
--- FEATURES.MergeVat3: the vat template for the clients (no world slot; no-op while the flag is off outside Studio).
+-- Every plot's MergeVat disc wears the merge_vat model (bug #16; no world slot, independent of FEATURES.MergeVat3).
 task.spawn(function()
-	local ok, err = pcall(MeshSwap.publishVatTemplates)
+	local ok, err = pcall(MeshSwap.swapPlotVats)
 	if not ok then
-		warn(`[Server] MeshSwap.publishVatTemplates failed: {err}`)
+		warn(`[Server] MeshSwap.swapPlotVats failed: {err}`)
 	end
 end)
 
@@ -165,6 +166,7 @@ local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
 local stateEvent = Remotes.get(Constants.STATE) :: RemoteEvent
 local notifyEvent = Remotes.get(Constants.NOTIFY) :: RemoteEvent
 local pvpEvent = Remotes.get(Constants.PVP_EVENT) :: RemoteEvent
+local shopEventRemote = Remotes.get(Constants.SHOP_EVENT) :: RemoteEvent
 
 -- Roblox badges (Badges): BadgeService behind pcall + retries, off the game loop (grant yields).
 local BadgeService = game:GetService("BadgeService")
@@ -248,6 +250,8 @@ local data = DataService.new({
 	end,
 })
 
+local SHOP_CHECK_INTERVAL = 0.25 -- seconds between range / alive checks of an open world shop
+local shopCheckedAt: { [number]: number } = {}
 local homeZoneFull: { [number]: string } = {} -- userId -> slime id told "plot full" during this zone visit
 local unsaved: { [number]: boolean } = {} -- Studio fallback profiles: never written
 local pendingSaves = 0
@@ -452,15 +456,50 @@ local function positionOf(userId: number): Vector3?
 	return root and root.Position
 end
 
+-- World shops (CONTRACT.md §27): the character's distance to the stand's Counter (HumanoidRootPart, 3D) and whether
+-- it is alive, measured fresh for every OpenShop / purchase. distance nil = no character or no stand.
+local function shopAccess(userId: number, shopId: string): ShopGuard.Access
+	local player = Players:GetPlayerByUserId(userId)
+	local root = WorldView.rootPart(player)
+	local counter = WorldProps.shopCounter(shopId)
+	local character = player and player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local alive = humanoid ~= nil and humanoid.Health > 0
+	if not root or not counter then
+		return { distance = nil, alive = alive }
+	end
+	return { distance = (root.Position - counter.Position).Magnitude, alive = alive }
+end
+
 local ctx: Actions.Context = {
 	distanceBetween = distanceBetween,
 	positionOf = positionOf,
+	shopAccess = shopAccess,
+	shopEvent = function(userId: number, payload: { [string]: any })
+		local player = Players:GetPlayerByUserId(userId)
+		if player then
+			payload.serverTime = now()
+			shopEventRemote:FireClient(player, payload)
+		end
+	end,
 	rng = Rng.new(Random.new():NextInteger(1, 2147483646)),
 	onOwnPlot = function(session: World.Session, userId: number): boolean
 		local player = Players:GetPlayerByUserId(userId)
 		return player ~= nil and WorldView.inHomeZone(player, session.plotIndex)
 	end,
 }
+-- Player attribute `OpenShop` follows the session's open shop (FEATURES.WorldShops only; nil = closed).
+local function syncOpenShop(player: Player)
+	if not Config.FEATURES.WorldShops then
+		return
+	end
+	local session = World.session(world, player.UserId)
+	local value = session and session.openShop
+	if player:GetAttribute(Constants.OPEN_SHOP_ATTRIBUTE) ~= value then
+		player:SetAttribute(Constants.OPEN_SHOP_ATTRIBUTE, value)
+	end
+end
+
 -- PvpEvent (FEATURES.PvP only ever fires it): one user, or every client when target is nil.
 PvpService.setSink(function(target: number?, payload: { [string]: any })
 	if target == nil then
@@ -525,6 +564,7 @@ request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.
 	if not ok then
 		return { ok = false, message = "server error" }
 	end
+	syncOpenShop(player)
 	-- Never error to the client: a view hiccup must not turn a done action into a failure.
 	local t = now()
 	local pushed, err = pcall(function()
@@ -584,7 +624,10 @@ end)
 
 -- "Open Shop" (ShopStand) and "Talk" (TutorialNpc) prompts: the client opens
 -- the Shop / Guide menu; purchases go through Request from the Shop menu.
-WorldProps.addShopPrompts()
+WorldProps.addShopPrompts(function(player: Player, shopId: string)
+	Actions.openFromPrompt(world, player.UserId, shopId, ctx)
+	syncOpenShop(player)
+end)
 pcall(WorldProps.fillBoard, nil) -- "No entries yet" until the first refresh
 
 ---------------------------------------------------------------------------
@@ -717,6 +760,7 @@ local function onPlayerRemoving(player: Player)
 	local session = Sessions.leave(world, player.UserId, now())
 	WorldView.setCarrying(player, nil)
 	homeZoneFull[player.UserId] = nil
+	shopCheckedAt[player.UserId] = nil
 	badges.release(player.UserId)
 	Friends.forget(friendCache, player.UserId)
 	RitualService.leave(ritual, player.UserId)
@@ -819,6 +863,11 @@ local function stepPlayers(t: number)
 				homeZoneFull[userId] = nil
 			end
 			WorldView.updatePlayer(player, session, t)
+			if session.openShop and t - (shopCheckedAt[userId] or 0) >= SHOP_CHECK_INTERVAL then
+				shopCheckedAt[userId] = t
+				Actions.shopTick(session, ctx) -- out of range / died / flag off closes the shop
+			end
+			syncOpenShop(player)
 			WorldView.setRevengePlots(player, Revenge.plotsFor(world, userId, t))
 			updateLeaderstats(player, session)
 		end

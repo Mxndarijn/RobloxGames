@@ -238,7 +238,7 @@ scenario("drop", function()
 	local layout = rt:require(Visuals.WorldLayout)
 	local crater = rt.workspace.Map.Volcano.Crater.CFrame.Position
 	table.insert(spots, { "open ground by the volcano", Vector3.new(crater.X + 45, 0, crater.Z) })
-	for _, name in { "ShopStand", "LeaderboardBoard" } do
+	for _, name in { "ItemShopStand", "UpgradeShopStand", "LeaderboardBoard" } do
 		local spot = layout.PROP_SPOTS and layout.PROP_SPOTS[name]
 		if spot then
 			table.insert(spots, { `next to {name}`, Vector3.new(spot.pos[1] + 2, 0, spot.pos[3] + 4) })

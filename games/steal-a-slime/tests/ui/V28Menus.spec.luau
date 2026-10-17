@@ -200,8 +200,14 @@ describe("v28 item 3: one shop menu from the ShopStand prompt", function()
 		local src = read("src/server/WorldProps.luau")
 		expect(has(src, "ShopPrompt_SpeedCoil")).toBe(false)
 		expect(has(src, "ShopPrompt_LockUpgrade")).toBe(false)
-		expect(has(src, "Triggered:Connect")).toBe(false)
-		expect(has(read("src/server/init.server.luau"), "WorldProps.addShopPrompts()")).toBe(true)
+		-- FEATURES.WorldShops (CONTRACT.md §27.3): the only server-side Triggered hook opens a world shop, nothing is bought
+		expect(has(src, "Triggered:Connect(function(player: Player)\n\t\t\t\t\t\tonShop(player, shopId)")).toBe(true)
+		expect(
+			has(
+				read("src/server/init.server.luau"),
+				"WorldProps.addShopPrompts(function(player: Player, shopId: string)"
+			)
+		).toBe(true)
 		expect(Constants.SHOP_PROMPT_NAME).toBe("ShopPrompt")
 	end)
 	it("the client opens the Shop (and the Guide) for its own prompt triggers only", function()

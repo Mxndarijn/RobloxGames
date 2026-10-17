@@ -169,6 +169,10 @@ local function stepFx(t: number, cameraPos: Vector3)
 			onSlimeRemoved(slime)
 			continue
 		end
+		if slime:GetAttribute("State") ~= "Wild" then
+			dropFx(slime)
+			continue
+		end
 		local pivot = slime:GetPivot()
 		if (pivot.Position - cameraPos).Magnitude <= PlotVisuals.MAX_FX_DISTANCE then
 			if not model.Parent then
@@ -187,6 +191,17 @@ local function stepFx(t: number, cameraPos: Vector3)
 	end
 end
 
+-- Defensive sweep: destroy any ClientRareFx child that no tracked slime owns.
+local function sweepOrphans()
+	local f = fxFolder
+	if not f or not f.Parent then
+		return
+	end
+	for _, orphan in RareSpawn.orphans(f:GetChildren(), fx) do
+		orphan:Destroy()
+	end
+end
+
 function PlotVisuals.start()
 	CollectionService:GetInstanceAddedSignal(Constants.SLIME_TAG):Connect(onSlime)
 	CollectionService:GetInstanceRemovedSignal(Constants.SLIME_TAG):Connect(onSlimeRemoved)
@@ -194,11 +209,16 @@ function PlotVisuals.start()
 		onSlime(model)
 	end
 	local nextRefresh = 0
+	local nextSweep = 0
 	RunService.RenderStepped:Connect(function()
 		local t = os.clock()
 		if t >= nextRefresh then
 			nextRefresh = t + 1 / PlotVisuals.UPDATE_RATE
 			refreshPlots(workspace:GetServerTimeNow())
+		end
+		if t >= nextSweep then
+			nextSweep = t + 1
+			sweepOrphans()
 		end
 		stepCrowns(t)
 		local camera = workspace.CurrentCamera

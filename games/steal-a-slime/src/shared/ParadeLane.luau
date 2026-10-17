@@ -35,7 +35,7 @@
 	inside Visuals.PropClearance's keep-clear rings (landing band r 34-62,
 	lane / gate posts r 62.25-73.75), so kit props stay off it.
 
-	Readability of the despawn telegraph (DespawnTelegraphFx, "leaving! N"):
+	Readability of the despawn telegraph (DespawnTelegraphFx):
 	the warning window (DESPAWN_TELEGRAPH_SECONDS) starts while the slime is
 	still walking the lane next to the drain (WARN_SECONDS > DRAIN_SECONDS)
 	and consecutive drops (SPAWN_INTERVAL apart) are far enough apart on the
@@ -139,6 +139,7 @@ local function build(): { { number } }
 end
 
 local lead = polar(LEAD_CONTROLS)
+ParadeLane.LEAD = table.freeze(lead) :: { { number } } -- { x, z } from the slide mouth to ENTRY (inclusive)
 local points = build()
 local cumulative = { 0 }
 for i = 2, #points do
@@ -248,6 +249,12 @@ ParadeLane.CROWN_RADIUS = (ParadeLane.HALF_WIDTH ^ 2 + ParadeLane.LANE_Y ^ 2) / 
 ParadeLane.STRIP_STEP = 0.02
 -- Extra reach past the mitre at every inner joint, so the cut ends overlap instead of just touching (no hairline).
 ParadeLane.JOIN_OVERLAP = 0.1
+-- The lane as one mesh (MeshAssets "slime_lane", models/slime_lane.py): the MeshPart's centre (the mesh's bbox
+-- centre, world studs; out/slime_lane_pivot.json), laid like a MeshSwap slot (turned MeshAssets.IMPORT_YAW).
+-- Its crown is LANE_Y, its edges sit EDGE_Y (under the ground), its width is 2 * HALF_WIDTH.
+ParadeLane.MESH = "slime_lane"
+ParadeLane.MESH_PIVOT = table.freeze({ 0.321459, 0.135, -1.692511 })
+ParadeLane.EDGE_Y = -0.05
 ParadeLane.COLOR = table.freeze({ 140, 222, 200 }) -- the slide's water
 function ParadeLane.strips(): { any }
 	local pts = ParadeLane.drawPoints()
@@ -468,11 +475,6 @@ end
 
 function ParadeLane.inWarnWindow(now: number, expiresAt: number, warnSeconds: number?): boolean
 	return DespawnTelegraph.inWarnWindow(now, expiresAt, warnSeconds or ParadeLane.WARN_SECONDS)
-end
-
--- Countdown billboard text: "leaving! 3" on the parade, else just "3".
-function ParadeLane.warnText(seconds: number, enabled: boolean): string
-	return if enabled then `leaving! {seconds}` else tostring(seconds)
 end
 
 return table.freeze(ParadeLane)

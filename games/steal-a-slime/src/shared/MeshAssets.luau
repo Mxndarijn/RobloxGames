@@ -341,8 +341,8 @@ entries["fountain_tier_ring"] =
 	{ assetId = 119324558874420, meshId = "rbxassetid://102733858140081", size = { 32.2, 6.2, 32.2 } }
 entries["fountain_tier_crest"] =
 	{ assetId = 110270802039989, meshId = "rbxassetid://77008333593159", size = { 13.699, 6.203, 13.9 } }
--- FEATURES.MergeVat3 (client VatFx): stands over the owner's plot MergeVat disc from
--- ReplicatedStorage.MergeVatMeshes. NOT a world slot.
+-- Plot vats (server MeshSwap.swapPlotVats, bug #16): stands over every plot's MergeVat disc, 1 MeshPart per plot.
+-- NOT a world slot.
 entries["merge_vat"] =
 	{ assetId = 122090902536570, meshId = "rbxassetid://94063238729318", size = { 10.808, 7.625, 10.764 } }
 -- FEATURES.RainMagnet (client RainMagnetFx): stands on the owner's plot from ReplicatedStorage.RainMagnetMeshes
@@ -356,6 +356,12 @@ entries["giant_pine_layered"] =
 	{ assetId = 82697384730576, meshId = "rbxassetid://131926496841871", size = { 37.327, 86.67, 35.962 } }
 entries["giant_round_canopy"] =
 	{ assetId = 123353571589135, meshId = "rbxassetid://81542465151090", size = { 52.846, 80.09, 51.819 } }
+
+-- The goo parade lane as ONE curved mesh (models/slime_lane.py, bug 4): not a WorldLayout slot (ParadeView lays
+-- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17; ParadeView swaps the ParadeLane.strips() stand-ins for it
+-- once it loads (they stay only if it fails to load). size = out/slime_lane_pivot.json "size".
+entries["slime_lane"] =
+	{ assetId = 87473643950432, meshId = "rbxassetid://76219934756988", size = { 141.076, 0.43, 137.764 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)
@@ -396,6 +402,11 @@ MeshAssets.COLLISION = table.freeze({
 	-- the big slimes stacked at the fountain top (Merijn #10): one convex hull round the pile, so nobody stands in the
 	-- gaps between them; Hull is cheap and the pile is static
 	slime_fountain_emerge = "Hull",
+	-- bug #16: every plot's merge vat (MeshSwap.swapPlotVats): a blobby cauldron players bump into, never walk inside;
+	-- the hull also closes the gaps under the funnel spouts. The MergeVat disc under it keeps its own collision.
+	merge_vat = "Hull",
+	-- the Item / Upgrade Shop stands (CONTRACT.md §27.2): a solid counter, not a box to stand inside
+	ranch_shop_stand = "Hull",
 })
 
 function MeshAssets.collision(name: string): string?

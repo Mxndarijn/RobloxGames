@@ -7,6 +7,7 @@
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
+local Config = require("../src/shared/Config")
 local MeshAssets = require("../src/shared/MeshAssets")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
@@ -22,6 +23,9 @@ describe("MeshAssets.COLLISION", function()
 			expect(VALID[fidelity]).toBe(true)
 			expect(MeshAssets.collision(name)).toBe(fidelity)
 		end
+	end)
+	it("makes the shop stands solid with a hull (CONTRACT.md §27.2)", function()
+		expect(MeshAssets.collision("ranch_shop_stand")).toBe("Hull")
 	end)
 	it("makes the fountain-top slimes solid with a hull (cheap, no standing in the gaps)", function()
 		expect(MeshAssets.collision("slime_fountain_emerge")).toBe("Hull")
@@ -56,14 +60,30 @@ describe("MeshSwap collision in the live server", function()
 	it("asks CreateMeshPartAsync for the fidelity, and only for meshes that have one", function()
 		local emerge = MeshAssets.meshId("slime_fountain_emerge")
 		expect(asked[emerge]).toBe(roblox.Enum.CollisionFidelity.Hull)
+		local solid = {}
+		local want = 0
+		for name, fidelity in MeshAssets.COLLISION do
+			solid[MeshAssets.meshId(name)] = (roblox.Enum.CollisionFidelity :: any)[fidelity]
+			want += 1
+		end
 		local count = 0
 		for meshId, fidelity in asked do
 			if fidelity ~= nil then
 				count += 1
-				expect(meshId).toBe(emerge)
+				expect(fidelity).toBe(solid[meshId])
 			end
 		end
-		expect(count).toBe(1)
+		expect(count).toBe(want)
+	end)
+	it("the shop stands are solid Hull MeshParts (no extra collider boxes)", function()
+		local names = if Config.FEATURES.WorldShops then { "ItemShopStand", "UpgradeShopStand" } else { "ShopStand" }
+		for _, name in names do
+			local mesh = rt.workspace.Map[name]:FindFirstChild("Mesh")
+			expect(mesh ~= nil).toBe(true)
+			expect(mesh.CanCollide).toBe(true)
+			expect(mesh.CollisionFidelity).toBe(roblox.Enum.CollisionFidelity.Hull)
+			expect(mesh.CanQuery).toBe(false)
+		end
 	end)
 	it("the emerge slimes on the fountain are a solid Hull MeshPart", function()
 		local mesh = rt.workspace.Map.Volcano.EmergeMesh:FindFirstChild("Mesh")
@@ -74,13 +94,35 @@ describe("MeshSwap collision in the live server", function()
 		expect(mesh.CanQuery).toBe(false)
 		expect(mesh.CanTouch).toBe(false)
 	end)
+	it("every plot's merge vat is a solid Hull MeshPart over its disc (bug #16)", function()
+		expect(MeshAssets.collision("merge_vat")).toBe("Hull")
+		local vats = 0
+		for _, plot in rt.workspace.Plots:GetChildren() do
+			local vat = plot:FindFirstChild("MergeVat")
+			local mesh = vat and vat:FindFirstChild("VatMesh")
+			if mesh then
+				vats += 1
+				expect(mesh.CanCollide).toBe(true)
+				expect(mesh.CollisionFidelity).toBe(roblox.Enum.CollisionFidelity.Hull)
+				expect(mesh.CanQuery).toBe(false)
+				expect(mesh.CanTouch).toBe(false)
+			end
+		end
+		expect(vats > 0).toBe(true)
+	end)
 	it("every other swapped mesh stays decor: CanCollide off", function()
 		local decor = 0
 		for _, root in { rt.workspace.Map, rt.workspace.Plots } do
 			for _, d in root:GetDescendants() do
 				if d:IsA("MeshPart") and d.Name == "Mesh" and d.Parent.Name ~= "EmergeMesh" then
-					expect(d.CanCollide).toBe(false)
-					decor += 1
+					-- the shop stands are solid too (CONTRACT.md §27.2, Hull)
+					local stand = d.Parent.Name == "ItemShopStand"
+						or d.Parent.Name == "UpgradeShopStand"
+						or d.Parent.Name == "ShopStand"
+					expect(d.CanCollide).toBe(stand)
+					if not stand then
+						decor += 1
+					end
 				end
 			end
 		end

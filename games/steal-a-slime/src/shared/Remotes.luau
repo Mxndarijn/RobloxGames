@@ -27,6 +27,7 @@ Remotes.DEFINITIONS = table.freeze({
 	table.freeze({ name = Constants.NOTIFY, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef),
 	table.freeze({ name = Constants.LEADERBOARD, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef),
 	table.freeze({ name = Constants.PVP_EVENT, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- FEATURES.PvP only fires (CONTRACT.md §26.1)
+	table.freeze({ name = Constants.SHOP_EVENT, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- FEATURES.WorldShops only fires (CONTRACT.md §27.4)
 } :: { RemoteDef })
 
 Remotes.ACTIONS = table.freeze({
@@ -53,6 +54,9 @@ Remotes.ACTIONS = table.freeze({
 	BuyPvpItem = table.freeze({ args = { "string" } }), -- Config.PVP_TOOLS id (FEATURES.PvP, CONTRACT.md §26)
 	EquipPvpItem = table.freeze({ args = { "string?" } }), -- owned Config.PVP_TOOLS id, nil unequips (FEATURES.PvP)
 	UsePvpItem = table.freeze({ args = { "string", "number?", "vector3?" } }), -- itemId, targetUserId, aim point (FEATURES.PvP)
+	OpenShop = table.freeze({ args = { "string" } }), -- shopId "ItemShop" | "UpgradeShop" (FEATURES.WorldShops, CONTRACT.md §27)
+	CloseShop = table.freeze({ args = {} }), -- clears the open shop
+	ShopBuy = table.freeze({ args = { "string", "string", "string?" } }), -- shopId, itemId, slimeId (MutationSpray only); delegates to the item's existing buy action
 	Sync = table.freeze({ args = {} }), -- server re-sends State
 } :: { [string]: ActionDef })
 

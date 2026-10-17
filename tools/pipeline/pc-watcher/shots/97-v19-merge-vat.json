@@ -8,7 +8,7 @@
     "dist": 18,
     "height": 9,
     "merge_vat": true,
-    "note": "v19 merge vat: Plot_1's vat wears the copper goo cauldron mesh with three funnel spouts (VatFx, forced with SlimeUI.PcwMergeVat, FEATURES.MergeVat3 off); the primitive disc is hidden"
+    "note": "v19 merge vat: Plot_1's vat wears the copper goo cauldron mesh with three funnel spouts (server MeshSwap.swapPlotVats, every plot, no force needed); the primitive disc is hidden"
   },
   {
     "id": "19-merge-vat-panel",

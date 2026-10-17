@@ -2,9 +2,14 @@
 --[[
 	ParadeView (Roblox adapter, owner: Phoenix, FEATURES.Parade)
 
-	ParadeView.place(): Folder?
-	  Lays the goo lane on the plaza under workspace.Map.Plaza.ParadeLane: one
-	  Cylinder Part per segment of ParadeLane.strips() (the lane from the slide
+	ParadeView.place(load): Folder?
+	  Lays the goo lane on the plaza under workspace.Map.Plaza.ParadeLane: ONE
+	  MeshPart, the kit's smooth curved goo channel (MeshAssets "slime_lane",
+	  models/slime_lane.py: slide mouth, lead-in, ENTRY, round to the drain; crown
+	  LANE_Y, soft rounded edges just under the ground), set at ParadeLane.MESH_PIVOT.
+	  `load` (default MeshSwap.load, yields) fetches the mesh in the background. While the
+	  mesh is not uploaded (no meshId) or fails to load, the lane is drawn from
+	  ParadeLane.strips() instead: one Cylinder Part per segment (the lane from the slide
 	  mouth through the lead-in to ENTRY and round to the drain). Each lies along
 	  the lane, wide and sunk so only its crown shows: top LANE_Y on the
 	  centreline, falling to the ground at the lane's edges (a soft rounded
@@ -23,6 +28,8 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
+local MeshSwap = require(script.Parent.MeshSwap)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 
 local ParadeView = {}
@@ -34,18 +41,7 @@ ParadeView.SPLASH_SECONDS = 0.2 -- burst length (server emitters run on Rate; Em
 
 local GOO = ParadeLane.COLOR
 
-function ParadeView.place(): Folder?
-	local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
-	local plaza = map and map:FindFirstChild("Plaza")
-	if not plaza then
-		return nil
-	end
-	local existing = plaza:FindFirstChild(ParadeView.FOLDER)
-	if existing and existing:IsA("Folder") then
-		return existing
-	end
-	local folder = Instance.new("Folder")
-	folder.Name = ParadeView.FOLDER
+local function layStrips(folder: Folder)
 	for _, strip in ParadeLane.strips() do
 		local c = strip.cf
 		local part = Instance.new("Part")
@@ -65,7 +61,54 @@ function ParadeView.place(): Folder?
 		part.BottomSurface = Enum.SurfaceType.Smooth
 		part.Parent = folder
 	end
+end
+
+-- The one lane MeshPart: laid like a MeshSwap slot (the box centre = the mesh's bbox centre, turned IMPORT_YAW).
+local function layMesh(folder: Folder, mesh: MeshPart)
+	local at = ParadeLane.MESH_PIVOT
+	mesh.Name = "Lane"
+	mesh.CFrame = CFrame.new(at[1], at[2], at[3]) * CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
+	mesh.Anchored = true
+	mesh.CanCollide = false
+	mesh.CanQuery = false
+	mesh.CanTouch = false
+	mesh.CastShadow = false
+	mesh.Material = Enum.Material.SmoothPlastic
+	mesh.Reflectance = 0.08
+	mesh.Color = Color3.fromRGB(255, 255, 255) -- the vertex colours carry the goo (ParadeLane.COLOR) and its darker rim
+	mesh.Parent = folder
+end
+
+function ParadeView.place(load: ((string) -> MeshPart?)?): Folder?
+	local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
+	local plaza = map and map:FindFirstChild("Plaza")
+	if not plaza then
+		return nil
+	end
+	local existing = plaza:FindFirstChild(ParadeView.FOLDER)
+	if existing and existing:IsA("Folder") then
+		return existing
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = ParadeView.FOLDER
 	folder.Parent = plaza
+	if MeshAssets.meshId(ParadeLane.MESH) then
+		-- The mesh loads in the background; the strips stand in until it is there (and stay if it never loads).
+		layStrips(folder)
+		task.spawn(function()
+			local ok, mesh = pcall(load or MeshSwap.load, ParadeLane.MESH)
+			if ok and mesh and folder.Parent then
+				for _, d in folder:GetChildren() do
+					d:Destroy()
+				end
+				layMesh(folder, mesh)
+			elseif not ok then
+				warn(`[Server] ParadeView lane mesh: {mesh}`)
+			end
+		end)
+	else
+		layStrips(folder)
+	end
 	return folder
 end
 

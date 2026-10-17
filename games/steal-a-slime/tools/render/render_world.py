@@ -511,7 +511,7 @@ VIEWS = {
     # foot and the crest over the goo crown; and a low close-up of the ring posts
     "14_fountain_tier": lambda: look((-70, 22, -92), (0, 22, 0), lens=26),
     "15_fountain_tier_ring": lambda: look((-30, 6, -46), (-4, 4, -6), lens=28),
-    # v19 merge vat (export --vat): Plot_1's vat from inside the plot, and from above the gate looking down into the plot
+    # v19 merge vat (export default; --cylinder = old primitive): Plot_1's vat from inside the plot, and from above the gate looking down into the plot
     "16_merge_vat": lambda: look((data["vat"][0] + 15, 9, data["vat"][2] - 15), (data["vat"][0], 4, data["vat"][2]), lens=32) if data.get("vat") else None,
     "17_merge_vat_plot": lambda: look((data["vat"][0] + 14, 40, data["vat"][2] - 44), (data["vat"][0] - 6, 2, data["vat"][2] + 6), lens=30) if data.get("vat") else None,
     # v19 Rain Magnet (export --magnet): the magnet beside Plot_1's vat from inside the plot, and from above the gate
@@ -529,6 +529,10 @@ VIEWS = {
     # SnowGround v2 (export --snow <level> --snow-phase settle|melt): eye height at the plaza edge looking down spoke 1 over the
     # plaza sand, the spoke and ring paths, plot 1 and the hills behind
     "20_snow_ground": lambda: look((0, 11, 38), (0, 3, 130), lens=22),
+    # bug 4 lane close-ups (eye 1.6): a straight stretch, the bend out to r 68, the slide exit
+    "27_lane_straight": lambda: look((17.6, 1.6, -55.5), (28.6, 0.3, -48.2), lens=28),
+    "28_lane_bend": lambda: look((-68.5, 1.6, 19), (-62, 0.3, 4.5), lens=28),
+    "29_lane_exit": lambda: look((-4, 1.6, 33), (-18, 0.3, 39.5), lens=28),
 }
 
 

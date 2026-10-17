@@ -11,7 +11,8 @@
     "title": "Real mesh collision fidelity",
     "luau": "bug11_collision_fidelity",
     "ctx": "Server",
-    "args": {}
+    "args": {},
+    "timeout": 45
   },
-  "note": "bug 11 (advisory): key collidable meshes (fountain, slide, vat, statues) use PreciseConvexDecomposition and CanCollide; counts per fidelity and the offenders"
+  "note": "bug 11 (informational, ok null): mesh-collision audit plus an experiment comparing the fountain's invisible colliders with a CreateMeshPartAsync PCD / Hull collider (balls sunk / fallen, parts saved)"
 }

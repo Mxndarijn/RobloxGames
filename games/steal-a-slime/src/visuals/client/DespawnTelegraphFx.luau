@@ -8,7 +8,6 @@
 	attribute DespawnAt (Constants.DESPAWN_AT_ATTRIBUTE, server time) for the
 	last Config.DESPAWN_TELEGRAPH_SECONDS before the server removes them.
 	While it is set this shows, client-only:
-	  * a countdown "5", "4", ... "1" above the slime (BillboardGui)
 	  * a shrink to SHRINK_TO (factor from Shared.DespawnTelegraph.shrinkFactor)
 	No fade, blink or highlight: the slime stays fully opaque until the drop.
 	Once the model is removed after DespawnAt, a slime-green sparkle
@@ -34,7 +33,6 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
-local ParadeLane = require(Shared:WaitForChild("ParadeLane"))
 local Timing = require(Shared:WaitForChild("DespawnTelegraph"))
 
 local FX = Timing.FX
@@ -51,8 +49,6 @@ local function rgb(c: { number }): Color3
 	return Color3.fromRGB(c[1], c[2], c[3])
 end
 
-local WARN = rgb(FX.warnColor)
-
 type Fallback = { part: BasePart, size: Vector3, offset: CFrame }
 
 type Track = {
@@ -61,8 +57,6 @@ type Track = {
 	baseScale: number?, -- nil: GetScale unavailable, use the Size fallback
 	fallback: { Fallback }?, -- set once the Size fallback is in use
 	factor: number, -- last applied shrink factor
-	label: TextLabel,
-	gui: BillboardGui,
 }
 
 local tracks: { [Model]: Track } = {}
@@ -212,7 +206,6 @@ local function untrack(model: Model)
 		return
 	end
 	tracks[model] = nil
-	t.gui:Destroy()
 	if t.model.Parent then
 		setFactor(t, 1)
 	end
@@ -223,21 +216,6 @@ local function track(model: Model)
 	if tracks[model] or not (body and body:IsA("BasePart")) then
 		return
 	end
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "DespawnCountdown"
-	gui.Size = if ParadeLane.enabled() then UDim2.fromOffset(140, 60) else UDim2.fromOffset(60, 60) -- room for "leaving! 5"
-	gui.StudsOffsetWorldSpace = Vector3.new(0, body.Size.Y / 2 + 3, 0)
-	gui.AlwaysOnTop = true
-	gui.Adornee = body
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.FredokaOne
-	label.TextScaled = true
-	label.TextColor3 = WARN
-	label.TextStrokeTransparency = 0
-	label.Parent = gui
-	gui.Parent = body
 	local okScale, scale = pcall(model.GetScale, model)
 	local t: Track = {
 		model = model,
@@ -245,8 +223,6 @@ local function track(model: Model)
 		baseScale = if okScale and type(scale) == "number" and scale > 0 then scale else nil,
 		fallback = nil,
 		factor = 1,
-		label = label,
-		gui = gui,
 	}
 	if not t.baseScale then
 		startFallback(t)
@@ -294,7 +270,6 @@ local function step(t: Track, now: number)
 		return
 	end
 	local p = Timing.progress(now, at, Config.DESPAWN_TELEGRAPH_SECONDS)
-	t.label.Text = ParadeLane.warnText(math.max(1, Timing.countdownSeconds(now, at)), ParadeLane.enabled())
 	-- ScaleTo pivots at the bottom centre, so the slime shrinks into the ground.
 	setFactor(t, Timing.shrinkFactor(p, DespawnTelegraphFx.SHRINK_TO))
 end
