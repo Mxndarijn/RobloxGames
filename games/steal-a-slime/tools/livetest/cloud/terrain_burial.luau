@@ -12,6 +12,7 @@
 	and for every visible grounded BasePart (bottom between EMBED_OK (-0.5) and GROUND_BAND above y = 0: plot floors, pads, fence posts, vat,
 	signs, fountain base, slide supports, props) raycasts terrain only at the part centre and 4 inset corners.
 	buried = highest terrain surface under the part - part bottom (positive = sunk). FAIL if any buried > THRESHOLD.
+	Skipped (counted in excluded_meadow_stems): Map.Decor.Meadow.Cluster<i>_* flower stems M<id>Flower<n>Stem, sunk ~0.3 on purpose (Meadow.flower).
 	Also: named targets (fountain, MergeVat, Sign, spawns, plot bboxes) and a ReadVoxels column at the plaza / plot 1
 	(occupancy per 4-stud layer) so a raised surface is visible directly. Returns (and prints) one JSON string.
 ]]
@@ -21,6 +22,7 @@ local SETTLE_S = 3
 local GROUND_BAND = 3
 local EMBED_OK = -0.5 -- parts whose bottom is below this were placed sunk on purpose (Map.Decor rocks): skipped
 local TOP_N = 25
+local MEADOW_STEM = "^M%d+Flower%d+Stem$" -- Meadow.flower: `M{id}Flower{n}Stem`, sunk 0.15 + leaning on purpose
 
 local HttpService = game:GetService("HttpService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -109,6 +111,22 @@ local function measure(label, cf, size)
 		at = { r2(cf.Position.X), r2(cf.Position.Z) },
 	}
 end
+local function isMeadowStem(d)
+	if not d.Name:match(MEADOW_STEM) then
+		return false
+	end
+	local cluster = d.Parent
+	local meadow = cluster and cluster.Parent
+	local decor = meadow and meadow.Parent
+	local map = decor and decor.Parent
+	return cluster:IsA("Model")
+		and cluster.Name:match("^Cluster%d+_") ~= nil
+		and meadow:IsA("Folder")
+		and meadow.Name == "Meadow"
+		and decor.Name == "Decor"
+		and map.Name == "Map"
+		and map.Parent == workspace
+end
 local function measureInst(inst, label)
 	if inst:IsA("Model") then
 		local cf, size = inst:GetBoundingBox()
@@ -125,6 +143,7 @@ for _, n in { "WildSlimes" } do
 end
 local mapGround = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Ground")
 local parts, named = {}, {}
+local excludedStems = 0
 for _, d in workspace:GetDescendants() do
 	if d:IsA("BasePart") and d ~= mapGround and d.Transparency < 1 and not d:FindFirstAncestorWhichIsA("Humanoid") then
 		local anc, skipIt = d.Parent, false
@@ -135,7 +154,9 @@ for _, d in workspace:GetDescendants() do
 			end
 			anc = anc.Parent
 		end
-		if not skipIt then
+		if not skipIt and isMeadowStem(d) then
+			excludedStems += 1
+		elseif not skipIt then
 			local r = measure(d:GetFullName(), d.CFrame, d.Size)
 			if r.bottom and r.bottom >= EMBED_OK and r.bottom <= GROUND_BAND and r.buried then
 				table.insert(parts, r)
@@ -161,6 +182,7 @@ for _, r in parts do
 	if r.buried > THRESHOLD then over += 1 end
 end
 out.grounded_parts = #parts
+out.excluded_meadow_stems = excludedStems
 out.over_threshold = over
 out.worst = {}
 for i = 1, math.min(TOP_N, #parts) do
