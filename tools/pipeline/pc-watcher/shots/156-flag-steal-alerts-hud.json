@@ -1,0 +1,11 @@
+{
+  "id": "flag-steal-alerts-hud-phone",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "steal_alert": true,
+  "flags": {
+    "StealAlerts": true
+  },
+  "device": "phone-portrait",
+  "note": "flag review (StealAlerts forced on via PcwFlag_ override, Studio only): edge flash, arrow and join notice on a phone (theft faked with PcwStealAlert)"
+}

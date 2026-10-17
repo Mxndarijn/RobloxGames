@@ -283,7 +283,7 @@ UiHarness.workspaceAttributes = {} :: { [string]: any }
 -- body at once, wait / delay park the thread on a virtual clock and UiHarness.advance(dt) wakes it
 -- (counting every wakeup), so loops like Toasts' 0.25 s sync are measured without real waiting.
 type Sleeper = { at: number, thread: thread, interval: number }
-local virtual: { now: number, sleepers: { Sleeper } }? = nil
+local virtual: { now: number, sleepers: { Sleeper }, owned: { [thread]: boolean } }? = nil
 
 local function resume(thread: thread, ...: any)
 	local ok, err = coroutine.resume(thread, ...)
@@ -298,6 +298,7 @@ UiHarness.task = {
 			return task.spawn(f, ...)
 		end
 		local thread = coroutine.create(f)
+		virtual.owned[thread] = true
 		resume(thread, ...)
 		return thread
 	end,
@@ -309,11 +310,14 @@ UiHarness.task = {
 		local thread = coroutine.create(function()
 			f(table.unpack(args, 1, args.n))
 		end)
+		virtual.owned[thread] = true
 		table.insert(virtual.sleepers, { at = virtual.now + seconds, thread = thread, interval = seconds })
 		return thread
 	end,
 	wait = function(seconds: number?): number
-		if not virtual or not coroutine.isyieldable() then
+		-- Only threads born under this virtual clock sleep on it; a thread left over from an earlier
+		-- spec (real scheduler) keeps waiting for real, so it never shows up as a wakeup here.
+		if not virtual or not virtual.owned[coroutine.running()] then
 			return task.wait(seconds)
 		end
 		local interval = seconds or 0
@@ -347,7 +351,7 @@ function UiHarness.virtualTime(on: boolean)
 	if virtual then
 		clockShift += virtual.now
 	end
-	virtual = if on then { now = 0, sleepers = {} } else nil
+	virtual = if on then { now = 0, sleepers = {}, owned = {} } else nil
 end
 
 -- Moves the virtual clock forward, waking sleepers in order.

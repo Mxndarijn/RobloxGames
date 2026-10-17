@@ -1,0 +1,11 @@
+{
+  "id": "flag-merge-vat3-panel-phone",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "open": "merge",
+  "flags": {
+    "MergeVat3": true
+  },
+  "device": "phone-portrait",
+  "note": "flag review (MergeVat3 forced on via PcwFlag_ override, Studio only): Merge Vat menu with the 2 slimes / 3 slimes switch"
+}

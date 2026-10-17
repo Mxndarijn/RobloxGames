@@ -1,0 +1,12 @@
+{
+  "id": "flag-plot-skins-picker-phone",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "open": "dex",
+  "plot_skin": "candy",
+  "flags": {
+    "PlotSkins": true
+  },
+  "device": "phone-portrait",
+  "note": "flag review (PlotSkins forced on via PcwFlag_ override, Studio only): SlimeDex skin picker cards (skin faked with PcwPlotSkin)"
+}

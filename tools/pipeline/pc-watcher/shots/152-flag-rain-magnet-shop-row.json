@@ -1,0 +1,12 @@
+{
+  "id": "flag-rain-magnet-shop-row-phone",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "open": "shop",
+  "rain_magnet": true,
+  "flags": {
+    "RainMagnet": true
+  },
+  "device": "phone-portrait",
+  "note": "flag review (RainMagnet forced on via PcwFlag_ override, Studio only): shop upgrade list with the Rain Magnet row (level faked with PcwRainMagnet)"
+}

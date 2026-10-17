@@ -77,6 +77,7 @@ ForcedFlags.offModules = {
 -- All flags on: these pin the shipped default or exercise the off path of a flag that ships off.
 ForcedFlags.on = {
 	["Audio flag > is off by default"] = "Audio",
+	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",
 	["EventsBoard > is behind FEATURES.EventsBoard, default off"] = "EventsBoard",
 	["FountainTiers: the ladder > is behind FEATURES.FountainTiers, default off"] = "FountainTiers",
 	["FountainTiers: the ladder > rank cards only mention a family with the feature on (off: tierText is unchanged)"] = "FountainTiers",

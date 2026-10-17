@@ -93,6 +93,8 @@ function PerfMeasure.measure(): { [string]: any }
 	local Genome = require("../../src/shared/Genome")
 	local Remotes = require("../../src/shared/Remotes")
 
+	-- Fresh virtual clock: no sleepers or timers carried over from earlier specs.
+	UiHarness.virtualTime(false)
 	UiHarness.virtualTime(true)
 	local stats = UiHarness.stats
 	local base = {

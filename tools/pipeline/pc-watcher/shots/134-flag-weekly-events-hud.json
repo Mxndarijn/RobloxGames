@@ -1,0 +1,11 @@
+{
+  "id": "flag-weekly-events-hud-pc",
+  "todo": "flag-shots",
+  "kind": "ui",
+  "weekly_event": true,
+  "flags": {
+    "WeeklyEvents": true
+  },
+  "device": "desktop",
+  "note": "flag review (WeeklyEvents forced on via PcwFlag_ override, Studio only): idle HUD; the server's WeeklyEvent attribute must exist and parse"
+}

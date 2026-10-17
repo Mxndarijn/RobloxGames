@@ -238,7 +238,7 @@ def t_files():
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -384,9 +384,39 @@ def t_geometry():
     check("shot from look", eye[2] == -5.0, eye)
 
 
+def t_flags():
+    ok = lambda f: watcher.shot_flags_error({"flags": f})
+    check("flags: absent is fine", watcher.shot_flags_error({}) is None)
+    check("flags: a known flag forced on is fine", ok({"MergeVat3": True}) is None)
+    check("flags: every FLAG_NAMES entry is accepted", all(ok({n: True}) is None for n in watcher.FLAG_NAMES))
+    check("flags: unknown name rejected", "Nope" in (ok({"Nope": True}) or "") and "unknown" in (ok({"Nope": True}) or ""))
+    check("flags: default-on flag name rejected", ok({"Weather": True}) is not None)
+    check("flags: false / non-bool rejected (a shot only forces on)", ok({"Audio": False}) is not None and ok({"Audio": 1}) is not None)
+    check("flags: empty / list rejected", ok({}) is not None and ok(["Audio"]) is not None)
+    check("flags: boot flags are a subset", set(watcher.BOOT_FLAGS) <= set(watcher.FLAG_NAMES))
+    check("flags: boot_flags collects only valid boot flags",
+          watcher.boot_flags([{"flags": {"Audio": True, "MergeVat3": True}}, {"flags": {"Bogus": True}}, {}]) == ["Audio"])
+    with open(os.path.join(HERE, "..", "..", "..", "games", "steal-a-slime", "src", "shared", "FeatureOverride.luau"), encoding="utf-8") as f:
+        lua = f.read()
+    block = re.search(r"FeatureOverride\.FLAGS = table\.freeze\(\{(.*?)\}\)", lua, re.S)
+    lua_names = tuple(re.findall(r'"(\w+)"', block.group(1))) if block else ()
+    check("flags: FLAG_NAMES matches src/shared/FeatureOverride.FLAGS", lua_names == watcher.FLAG_NAMES, lua_names)
+    shots, _ = watcher.load_shots()
+    forced = [s for s in shots if s.get("flags")]
+    check("flags: every shot's flags field is valid", all(watcher.shot_flags_error(s) is None for s in forced))
+    covered = {f for s in forced for f in s["flags"]}
+    check("flags: every FEATURES flag has a shot", covered == set(watcher.FLAG_NAMES), sorted(set(watcher.FLAG_NAMES) - covered))
+    for name in watcher.FLAG_NAMES:
+        devs = {s.get("device") for s in forced if name in s["flags"]}
+        check("flags: %s has a desktop shot" % name, "desktop" in devs, devs)
+        ui = [s for s in forced if name in s["flags"] and s.get("kind") == "ui"]
+        check("flags: %s ui shots include a phone-portrait one" % name,
+              name in ("ServerProfiler",) or any(s.get("device") == "phone-portrait" for s in ui) or not ui, devs)
+
+
 def main():
     for t in (t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry, t_data_path):
+              t_files, t_geometry, t_data_path, t_flags):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going
