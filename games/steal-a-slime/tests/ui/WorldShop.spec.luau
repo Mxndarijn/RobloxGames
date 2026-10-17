@@ -1,5 +1,5 @@
 --!strict
--- World shop client (FEATURES.WorldShops, CONTRACT.md §27): WorldShopLogic rows / deny texts / open-close
+-- World shop client (FEATURES.WorldShops, contract/world-shops.md §27): WorldShopLogic rows / deny texts / open-close
 -- controller, the Panels/WorldShop card, the init.client wiring and the full-window layout at every gate size.
 local fs = require("@lune/fs")
 
@@ -308,9 +308,9 @@ local function serverCodes(): { [string]: string }
 			out[code] = "Actions denied"
 		end
 	end
-	local contract = fs.readFile("CONTRACT.md")
-	local section = string.match(contract, "### 27%.7 Deny codes[^\n]*\n(.-)\n\n")
-		or string.match(contract, "### 27%.7 Deny codes[^\n]*\n(.*)")
+	local contract = fs.readFile("contract/world-shops.md")
+	local section = string.match(contract, "## 27%.7 Deny codes[^\n]*\n(.-)\n\n")
+		or string.match(contract, "## 27%.7 Deny codes[^\n]*\n(.*)")
 	for code in string.gmatch(section or "", "`(%u%l%w+)`") do
 		out[code] = "CONTRACT 27.7"
 	end
