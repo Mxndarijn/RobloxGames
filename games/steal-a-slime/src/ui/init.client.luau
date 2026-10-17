@@ -48,6 +48,7 @@ local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
 local PopupQueue = require(script.PopupQueue)
 local RareAnnounce = require(script.RareAnnounce)
+local SoundController = require(script.SoundController)
 local StealAlertFx = require(script.StealAlertFx)
 local Toasts = require(script.Toasts)
 local Widgets = require(script.Widgets)
@@ -102,6 +103,9 @@ end
 local itemIcons = ItemIcons.build(Config)
 ItemIconView.builders.mesh = ItemIconView.meshBuilder(MeshAssets, AssetService)
 local toasts = Toasts.new(gui, itemIcons, Config)
+if Config.FEATURES.Audio == true then
+	SoundController.new(Config, player, require(Shared:WaitForChild("DayNight"))).mountToggle(gui)
+end
 
 -- Display names for UserIds (thieves, carriers). Async lookup for players who left.
 local names: { [number]: string } = {}

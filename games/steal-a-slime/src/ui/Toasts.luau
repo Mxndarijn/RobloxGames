@@ -11,6 +11,7 @@ local SoundService = game:GetService("SoundService")
 
 local ItemIconView = require(script.Parent.ItemIconView)
 local ItemIcons = require(script.Parent.ItemIcons)
+local SoundController = require(script.Parent.SoundController)
 local Sounds = require(script.Parent.Sounds)
 local ToastQueue = require(script.Parent.ToastQueue)
 local Widgets = require(script.Parent.Widgets)
@@ -71,6 +72,9 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 	end
 
 	local function playSound(sound: string?)
+		if sound and SoundController.play(sound) then
+			return
+		end
 		local id = Sounds.resolve(sound)
 		if not id then
 			return

@@ -25,6 +25,7 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local Layout = require(script.Parent.Layout)
+local SoundController = require(script.Parent.SoundController)
 local Sounds = require(script.Parent.Sounds)
 local Widgets = require(script.Parent.Widgets)
 
@@ -122,6 +123,9 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	end
 
 	local function playAlarm()
+		if SoundController.play("Alarm") then
+			return
+		end
 		local id = Sounds.resolve("Alarm")
 		if not id then
 			return
