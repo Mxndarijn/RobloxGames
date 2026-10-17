@@ -42,6 +42,20 @@ function Shop.new(parent: Instance, ctx: any)
 		Parent = panel.body,
 	})
 
+	-- Consumables restock countdown (FEATURES.Consumables); only visible while State.consumables exists.
+	local restock = Widgets.label({
+		Name = "RestockTimer",
+		Font = Theme.Font,
+		TextSize = 14,
+		TextColor3 = Theme.Muted,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -10, 0, 0),
+		Size = UDim2.new(0.5, 0, 0, Shop.CASH_H - 4),
+		Visible = false,
+		Parent = panel.body,
+	})
+
 	local list = Widgets.scrollList({
 		Name = "List",
 		Position = UDim2.fromOffset(0, Shop.CASH_H),
@@ -154,7 +168,29 @@ function Shop.new(parent: Instance, ctx: any)
 		end
 	end
 
+	-- Server time at the last snapshot, so the countdown ticks between snapshots.
+	local restockAt, serverAt, receivedAt = nil :: number?, 0, 0
+	local function showRestock()
+		if restockAt then
+			restock.Text = ShopCatalog.restockText(restockAt, serverAt + (os.clock() - receivedAt))
+		end
+	end
+	task.spawn(function()
+		while panel.frame.Parent do
+			showRestock()
+			task.wait(1)
+		end
+	end)
+
 	function self.update(state: any)
+		local view = state.consumables
+		if type(view) == "table" and type(state.serverTime) == "number" then
+			restockAt, serverAt, receivedAt = view.restockAt, state.serverTime, os.clock()
+		else
+			restockAt = nil
+		end
+		restock.Visible = restockAt ~= nil
+		showRestock()
 		cash.Text = `💰 {Format.formatCash(if type(state.cash) == "number" then state.cash else 0)}`
 		rows.sync(ShopCatalog.views(state, ctx.actions, ctx.Config))
 	end

@@ -23,6 +23,17 @@ export type Mutation = {
 	weight: number, -- relative weight when a mutation is rolled
 }
 
+-- A restocking consumable (FEATURES.Consumables, Config.CONSUMABLES).
+export type Consumable = {
+	id: string, -- BuyConsumable argument and save key; never rename
+	name: string,
+	icon: string,
+	text: string,
+	price: number, -- x the rebirth multiplier
+	minStock: number, -- per-restock quantity per player is rolled in minStock..maxStock
+	maxStock: number,
+}
+
 -- A pair of mutations that fuse into one combo mutation (FEATURES.MutationStacking).
 export type Combo = {
 	a: string, -- Config.MUTATIONS names (order does not matter)
@@ -641,6 +652,7 @@ local Config = {
 		FountainTiers = false, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
 		EventsBoard = false, -- v21 server events board (ui/EventsBoard, CONTRACT.md §20): a HUD banner listing the weekly mutation, the Saturday trait event, the day/night modifier and the next weekly event; client only, no remote or save change; false = no banner
 		MergeVat3 = false, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, keeping every mutation (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
+		Consumables = true, -- restocking Shop section: mutation spray, luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -765,6 +777,45 @@ local Config = {
 		table.freeze({ tier = 5, weight = 5 }),
 		table.freeze({ tier = 6, weight = 1 }),
 	}),
+	-- Restocking consumables (FEATURES.Consumables, competitor-gaps.md #13). The stock of slot
+	-- floor(unix time / CONSUMABLES_RESTOCK_SECONDS) is a pure function of the slot, so every server
+	-- agrees. `max` is the most a player may buy per restock (the roll is minStock..maxStock; 0 = sold out
+	-- this slot). `price` is x the rebirth multiplier. Ids are the BuyConsumable argument: never rename.
+	CONSUMABLES_RESTOCK_SECONDS = 5 * 60,
+	CONSUMABLES = table.freeze({
+		table.freeze({
+			id = "MutationSpray",
+			name = "Mutation Spray",
+			icon = "🧪",
+			text = "Adds a mutation to your favourite slime (or rerolls it).",
+			price = 3000,
+			minStock = 1,
+			maxStock = 3,
+		}),
+		table.freeze({
+			id = "LuckPotion",
+			name = "Luck Potion",
+			icon = "🍀",
+			text = "Better rarity odds for everyone's fountain drops.",
+			price = 2000,
+			minStock = 1,
+			maxStock = 4,
+		}),
+		table.freeze({
+			id = "WeatherTotem",
+			name = "Weather Totem",
+			icon = "🗿",
+			text = "Calls the weather shown here next.",
+			price = 5000,
+			minStock = 0,
+			maxStock = 2,
+		}),
+	}),
+	LUCK_POTION_MULT = 2.5, -- x the fountain's tier >= 3 rarity weights while a potion is active
+	LUCK_POTION_SECONDS = 5 * 60, -- each potion adds this much time (they extend, never stack the multiplier)
+	LUCK_POTION_MAX_SECONDS = 15 * 60, -- most time that can be queued
+	SPAWN_LUCK_CAP = 4, -- potion x cycle modifier luck never goes above this (a modifier alone may)
+
 	-- Weather (FEATURES.Weather, WEATHER.md). Clear plus three visual types, cycled by the server.
 	-- `mutation` (a Config.MUTATIONS name) and `chanceBonus` (extra absolute chance, on top of the roll's own
 	-- chance, that the roll lands on that mutation) are read by Genome.rollMutation while that weather is current.
