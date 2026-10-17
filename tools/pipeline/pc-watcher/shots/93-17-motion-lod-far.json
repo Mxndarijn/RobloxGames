@@ -5,10 +5,10 @@
   "target": "Pad_1",
   "seat": true,
   "from": "front",
-  "dist": 120,
+  "dist": 70,
   "height": 8,
   "motion": "Tiers",
   "wait": 0.6,
   "device": "desktop",
-  "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod on), camera 120 studs from the pad: records near / mid / far tier counts (res.motion.tiers)"
+  "note": "TODO 17: slime motion LOD (FEATURES.SlimeLod on), camera 70 studs from the pad (far tier = beyond Config.SLIME_LOD MID 60 up to SlimeLife.MAX_DISTANCE 80, static by design): passes on a LifeTier attribute, records near / mid / far tier counts (res.motion.tiers)"
 }
