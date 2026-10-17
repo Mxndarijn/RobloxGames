@@ -1,0 +1,20 @@
+{
+  "id": "bug08-corners",
+  "todo": "bug 8",
+  "kind": "world",
+  "target": "Plot_2",
+  "from": "centre",
+  "dist": 100,
+  "height": 55,
+  "bug_probe": {
+    "bug": 8,
+    "title": "Locked base: real character squeezing through the plot corners (corner_squeeze)",
+    "luau": "bug08_lock_enter",
+    "ctx": "Server",
+    "args": {
+      "PART": "corner_squeeze"
+    },
+    "timeout": 45
+  },
+  "note": "bug 8 (advisory): real character vs the locked foreign plot, one wall check per call (luau/bug08_lock_enter PART=corner_squeeze; every call < 40 s)"
+}

@@ -1,0 +1,20 @@
+{
+  "id": "bug11-walk-stile",
+  "todo": "bug 11",
+  "kind": "world",
+  "target": "ranch_fence_stile",
+  "from": "front",
+  "dist": 40,
+  "height": 18,
+  "bug_probe": {
+    "bug": 11,
+    "title": "Real character crosses ranch_fence_stile (stile_over)",
+    "luau": "bug11_char_walk",
+    "ctx": "Server",
+    "args": {
+      "PART": "stile_over"
+    },
+    "timeout": 45
+  },
+  "note": "bug 11 part 2 (advisory): real character walk, one check per call (luau/bug11_char_walk PART=stile_over)"
+}
