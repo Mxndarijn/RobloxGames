@@ -1,6 +1,6 @@
 --!strict
 --[[
-	SnowGround (VisualsClient module, v30 F2, FEATURES.Weather)
+	SnowGround (VisualsClient module, v30 F2, FEATURES.SnowGround, off by default)
 
 	Client-only ground snow: ONE anchored, non-colliding Snow-material Part flush over the Ground whose
 	Transparency follows the cover level (SnowCover; builds up during Snow, melts after; a late joiner starts at the level the server stamps imply). Created on first snow, destroyed
@@ -21,6 +21,7 @@ local part: Part? = nil
 local connection: RBXScriptConnection? = nil
 local level = 0
 local snowing = false
+local started = false
 
 local function forced(): number?
 	local value = workspace:GetAttribute(Constants.SNOW_COVER_DEBUG_ATTRIBUTE)
@@ -76,6 +77,9 @@ end
 
 -- Called by WeatherFx whenever the shown weather changes.
 function SnowGround.setSnowing(value: boolean)
+	if not started then
+		return
+	end
 	snowing = value
 	if forced() or not SnowCover.settled(level, snowing) then
 		run()
@@ -101,6 +105,7 @@ local function place()
 end
 
 function SnowGround.start(enabled: boolean)
+	started = true
 	if enabled then
 		place()
 	end

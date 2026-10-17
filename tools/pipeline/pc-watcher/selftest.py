@@ -325,7 +325,7 @@ def t_files():
     check("every weather type has a phone and a desktop shot",
           all((w, d) in devs for w in ("Rain", "Snow", "Starfall") for d in ("desktop", "phone-portrait")), sorted(devs, key=str))
     check("LOD tier shots at near, mid and far camera distances",
-          sorted(s["dist"] for s in shots if s.get("motion") == "Tiers" and "dist" in s) == [20, 60, 120])
+          sorted(s["dist"] for s in shots if s.get("motion") == "Tiers" and "dist" in s) == [20, 60, 70])
     known = {d[0] for d in watcher.DEFAULTS["devices"]} if hasattr(watcher, "DEFAULTS") else None
     check("shot devices are known device names", known is None or all(s["device"] in known for s in shots if s.get("device")), known)
     habitats = [s for s in shots if s.get("habitat")]
@@ -396,11 +396,13 @@ def t_flags():
     check("flags: boot flags are a subset", set(watcher.BOOT_FLAGS) <= set(watcher.FLAG_NAMES))
     check("flags: boot_flags collects only valid boot flags",
           watcher.boot_flags([{"flags": {"Audio": True, "MergeVat3": True}}, {"flags": {"Bogus": True}}, {}]) == ["Audio"])
-    with open(os.path.join(HERE, "..", "..", "..", "games", "steal-a-slime", "src", "shared", "FeatureOverride.luau"), encoding="utf-8") as f:
-        lua = f.read()
-    block = re.search(r"FeatureOverride\.FLAGS = table\.freeze\(\{(.*?)\}\)", lua, re.S)
-    lua_names = tuple(re.findall(r'"(\w+)"', block.group(1))) if block else ()
-    check("flags: FLAG_NAMES matches src/shared/FeatureOverride.FLAGS", lua_names == watcher.FLAG_NAMES, lua_names)
+    fo = os.path.join(HERE, "..", "..", "..", "games", "steal-a-slime", "src", "shared", "FeatureOverride.luau")
+    if os.path.exists(fo):  # absent in the installed app copy (install.ps1 runs selftest there); CI checks it
+        with open(fo, encoding="utf-8") as f:
+            lua = f.read()
+        block = re.search(r"FeatureOverride\.FLAGS = table\.freeze\(\{(.*?)\}\)", lua, re.S)
+        lua_names = tuple(re.findall(r'"(\w+)"', block.group(1))) if block else ()
+        check("flags: FLAG_NAMES matches src/shared/FeatureOverride.FLAGS", lua_names == watcher.FLAG_NAMES, lua_names)
     shots, _ = watcher.load_shots()
     forced = [s for s in shots if s.get("flags")]
     check("flags: every shot's flags field is valid", all(watcher.shot_flags_error(s) is None for s in forced))

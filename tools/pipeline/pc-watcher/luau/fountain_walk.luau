@@ -7,6 +7,8 @@
 -- Balls sit in their own collision group that does not collide with itself, so only the fountain stops a ball.
 -- Fails when a ball's centre is ever less than 0.4 above the visual surface under it (r <= 13.4), when it reaches y < 2
 -- (fell through to the ground), or when the TopCollider<i> parts are missing / off. `ok` is false on ANY violation.
+-- The clearance check is skipped while a ball is still falling fast (AssemblyLinearVelocity.Y < -5): the impact frame
+-- of a ~49 studs/s drop depenetrates a little (sank 0.02-0.11), which is physics settling, not a gap in the surface.
 local folder = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Volcano")
 if not folder then
 	return { ok = false, error = "Map.Volcano missing" }
@@ -80,7 +82,7 @@ while os.clock() - t0 < 1.5 and #active > 0 do
 		local pos = s.part.Position
 		local surface = profile(math.sqrt(pos.X ^ 2 + pos.Z ^ 2))
 		local failed = false
-		if surface and pos.Y > 29 then
+		if surface and pos.Y > 29 and s.part.AssemblyLinearVelocity.Y >= -5 then
 			local clearance = pos.Y - surface
 			worst = math.min(worst, clearance)
 			if clearance < 0.4 then

@@ -654,6 +654,7 @@ local Config = {
 		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
 		WeatherMutations = true, -- the current weather boosts the roll chance of its mutation (Config.WEATHER[id].mutation / chanceBonus; Genome.rollMutation); needs Weather to be on to ever leave Clear
 		Weather = true, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md
+		SnowGround = false, -- v30 F2 client ground snow cover (one flat Snow Part over the Ground, builds during Snow, melts after); off: frames reviewed, the flat sheet looked bad (Merijn). Weather and snowfall particles stay.
 		SlimeLod = true, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
 		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
 		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
