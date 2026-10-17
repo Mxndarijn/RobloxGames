@@ -690,8 +690,18 @@ def t_perf():
         for k, v in subs.items():
             body = body.replace("%%" + k.upper() + "%%", watcher.luau_literal(v))
         check("luau %s filled" % name, "%%" not in body)
-    inst = open(os.path.join(HERE, "install.ps1"), encoding="utf-8").read()
-    check("install copies luau", "luau\\*.luau" in inst)
+    inst_path = os.path.join(HERE, "install.ps1")
+    if os.path.exists(inst_path):  # absent in the installed app copy (install.ps1 runs selftest from <Home>\app)
+        inst = open(inst_path, encoding="utf-8").read()
+        check("install copies luau", "luau\\*.luau" in inst)
+        # every file this selftest opens from HERE must be one install.ps1 copies, or be guarded like this one
+        copied = {"budgets.json", "checks.json", "shot-map.json"}
+        guarded = {"install.ps1"}
+        me = open(os.path.abspath(__file__), encoding="utf-8").read()
+        named = set(re.findall(r'os\.path\.join\(HERE, "([^"/\\]+)"\)', me))
+        missing = sorted(n for n in named if not n.endswith(".py") and n not in copied | guarded
+                         and n not in ("luau", "shots") and ("Copy-Item -Force (Join-Path $PSScriptRoot \"%s\")" % n) not in inst)
+        check("selftest only opens files the installed app has (install.ps1 copies them)", not missing, missing)
 
 
 def t_lock_age():
