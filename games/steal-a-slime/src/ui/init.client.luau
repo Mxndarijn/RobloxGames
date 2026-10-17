@@ -749,7 +749,9 @@ function layoutCards()
 	end
 	for _, entry in allPanels do
 		local body = entry.panel.frame:FindFirstChild("Body")
-		local r = Layout.panelFor(s, entry.key, Widgets.contentHeight(body or entry.panel.frame))
+		local r = if entry.key == "Sound"
+			then (SoundPanel.place(s))
+			else Layout.panelFor(s, entry.key, Widgets.contentHeight(body or entry.panel.frame))
 		local frame = entry.panel.frame
 		frame.AnchorPoint = Vector2.zero
 		frame.Position = UDim2.fromOffset(r.x, r.y)
