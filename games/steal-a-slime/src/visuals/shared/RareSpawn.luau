@@ -83,12 +83,13 @@ local function part(name: string, shape: Enum.PartType, size: Vector3, color: Co
 	return p
 end
 
--- Offsets from the slime pivot (bottom centre), so place() can re-pose every
--- part from the pivot alone.
-local offsets: { [BasePart]: CFrame } = setmetatable({}, { __mode = "k" }) :: any
+-- Offset from the slime pivot (bottom centre), kept on the part itself so place() can re-pose every part from
+-- the pivot alone. (A weak-keyed side table lost these when the GC collected the child userdata, leaving the
+-- parts frozen where the slime spawned.)
+RareSpawn.OFFSET_ATTRIBUTE = "FxOffset"
 
 local function at(p: Part, offset: CFrame)
-	offsets[p] = offset
+	p:SetAttribute(RareSpawn.OFFSET_ATTRIBUTE, offset)
 end
 
 function RareSpawn.build(tier: number, size: number?): Model?
@@ -156,17 +157,36 @@ function RareSpawn.place(fx: Model, pivot: CFrame, t: number)
 	local base = CFrame.new(pivot.Position)
 	for _, child in fx:GetChildren() do
 		if child:IsA("BasePart") then
-			local offset = offsets[child]
-			if offset then
+			local offset = child:GetAttribute(RareSpawn.OFFSET_ATTRIBUTE)
+			if typeof(offset) == "CFrame" then
 				local spin = if string.find(child.Name, "^Ring_") then CFrame.Angles(t * 0.8, 0, 0) else CFrame.identity
 				child.CFrame = base * offset * spin
+			else
+				-- never leave a part behind at a stale spot: park it on the slime, invisible
+				child.CFrame = base
+				child.Transparency = 1
 			end
 		end
 	end
 	local beam = fx:FindFirstChild("Beam")
-	if beam and beam:IsA("BasePart") then
+	if beam and beam:IsA("BasePart") and beam:GetAttribute(RareSpawn.OFFSET_ATTRIBUTE) ~= nil then
 		beam.Transparency = RareSpawn.BEAM_TRANSPARENCY + 0.1 * math.sin(t * 3)
 	end
+end
+
+-- Children of the fx folder that no live slime owns (orphans to destroy). live: slime -> its fx model.
+function RareSpawn.orphans(children: { Instance }, live: { [Model]: Model }): { Instance }
+	local owned: { [Instance]: boolean } = {}
+	for _, model in live do
+		owned[model] = true
+	end
+	local out = {}
+	for _, child in children do
+		if not owned[child] then
+			table.insert(out, child)
+		end
+	end
+	return out
 end
 
 return table.freeze(RareSpawn)
