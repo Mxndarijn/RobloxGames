@@ -2,14 +2,12 @@
   "id": "bug13-walk-path-look",
   "todo": "bug 13",
   "kind": "world",
-  "target": "Path3",
-  "from": "centre",
-  "dist": 26,
-  "height": 6,
+  "pos": [67.0, 6, 0.0],
+  "look": [93, 0, 0],
   "bug_probe": {
     "bug": 13,
     "title": "Human walking path ugly",
     "summary": "visual only: the path blocks at player height, aimed like shot 5"
   },
-  "note": "bug 13 (visual, shot 5): the human walk path at eye level, spoke seen from the plaza"
+  "note": "bug 13 (visual, shot 5): the human walk path at eye level, spoke seen from the plaza [#270: path is terrain now; fixed camera at the spoke 3 (+X, k=2) midpoint (93, 0, 0), ground y 0]"
 }
