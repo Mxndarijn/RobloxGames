@@ -801,6 +801,9 @@ local lastView = 0
 local lastClock = -math.huge
 local wasRaining: boolean? = nil
 local function stepPlayers(t: number)
+	for _, player in Players:GetPlayers() do
+		WorldView.enforceLocks(world, player)
+	end
 	for userId, session in world.sessions do
 		local player = Players:GetPlayerByUserId(userId)
 		if player then

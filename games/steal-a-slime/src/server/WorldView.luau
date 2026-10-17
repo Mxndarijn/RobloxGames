@@ -22,6 +22,7 @@
 ]]
 
 local InsertService = game:GetService("InsertService")
+local PhysicsService = game:GetService("PhysicsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -40,6 +41,7 @@ local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
+local PlotLockGuard = require(script.Parent.PlotLockGuard)
 local PlotLookup = require(script.Parent.PlotLookup)
 local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
@@ -592,6 +594,8 @@ local function applyPrompt(prompt: ProximityPrompt?, view: PlotPrompts.Prompt, o
 	end
 end
 
+local setBarrierSolid: (Instance, number, boolean) -> ()
+
 local function setIfChanged(instance: Instance, name: string, value: any)
 	if instance:GetAttribute(name) ~= value then
 		instance:SetAttribute(name, value)
@@ -647,6 +651,97 @@ local function dexMask(index: number, session: World.Session, count: number): nu
 	return fresh.mask
 end
 
+-- Lock enforcement. The LockBarrier panels ship non-colliding (client cosmetics); the server makes
+-- them solid while the plot is locked. Panels sit in PlotLock_<i>, the owner's character in
+-- PlotOwner_<i>, and that pair does not collide, so only the owner walks through.
+local groupsReady = false
+local function ensureGroups()
+	if groupsReady then
+		return
+	end
+	groupsReady = true
+	for index = 1, Config.PLOT_COUNT do
+		local lock, owner = PlotLockGuard.lockGroup(index), PlotLockGuard.ownerGroup(index)
+		local ok, err = pcall(function()
+			PhysicsService:RegisterCollisionGroup(lock)
+			PhysicsService:RegisterCollisionGroup(owner)
+			PhysicsService:CollisionGroupSetCollidable(lock, owner, false)
+		end)
+		if not ok then
+			warn(`[WorldView] collision groups for plot {index}: {err}`)
+		end
+	end
+end
+
+function setBarrierSolid(plot: Instance, index: number, solid: boolean)
+	local barrier = plot:FindFirstChild("LockBarrier")
+	if not barrier then
+		return
+	end
+	ensureGroups()
+	for _, panel in barrier:GetChildren() do
+		if panel:IsA("BasePart") then
+			if panel.CanCollide ~= solid then
+				panel.CanCollide = solid
+			end
+			local group = PlotLockGuard.lockGroup(index)
+			if panel.CollisionGroup ~= group then
+				pcall(function()
+					panel.CollisionGroup = group
+				end)
+			end
+		end
+	end
+end
+
+local function setCharacterGroup(character: Model, group: string)
+	for _, part in character:GetDescendants() do
+		if part:IsA("BasePart") and part.CollisionGroup ~= group then
+			pcall(function()
+				part.CollisionGroup = group
+			end)
+		end
+	end
+end
+
+-- Per player: put the owner's character in PlotOwner_<i> (walks through the barrier) and send any
+-- other character standing inside a locked plot back to its entrance. Server-authoritative.
+function WorldView.enforceLocks(world: World.World, player: Player)
+	local root = WorldView.rootPart(player)
+	local character = player.Character
+	if not root or not character then
+		return
+	end
+	local own = World.session(world, player.UserId)
+	local wanted = if own then PlotLockGuard.ownerGroup(own.plotIndex) else "Default"
+	if root.CollisionGroup ~= wanted then
+		ensureGroups()
+		setCharacterGroup(character, wanted)
+	end
+	for index = 1, world.plotCount do
+		local ownerId = world.plots[index]
+		local session = ownerId and world.sessions[ownerId]
+		local plot = if session and session.userId ~= player.UserId then WorldView.plot(index) else nil
+		local base = plot and plot:FindFirstChild("Base")
+		if
+			session
+			and plot
+			and base
+			and base:IsA("BasePart")
+			and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) == true
+		then
+			local p = base.CFrame:PointToObjectSpace(root.Position)
+			local half = base.Size.X / 2
+			if PlotLockGuard.shouldEject(player.UserId, session.userId, true, p.X, p.Y, p.Z, half) then
+				local x, y, z = PlotLockGuard.ejectPoint(half)
+				character:PivotTo(base.CFrame * CFrame.new(x, y, z))
+				root.AssemblyLinearVelocity = Vector3.zero
+				return
+			end
+		end
+	end
+end
+
 function WorldView.updatePlots(world: World.World, now: number)
 	local habitatsOn = Config.FEATURES.Habitats
 	HabitatPads.step(habitats, world, now, habitatsOn)
@@ -660,6 +755,7 @@ function WorldView.updatePlots(world: World.World, now: number)
 			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
 			setIfChanged(plot, "Rebirths", if session then session.data.rebirths else 0)
 			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
+			setBarrierSolid(plot, index, view.locked)
 			setIfChanged(plot, Constants.PLOT_LOCK_COST_ATTRIBUTE, view.lockCost)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
 			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)
