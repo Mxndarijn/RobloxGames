@@ -8,6 +8,12 @@
         "FallenPartsDestroyHeight": -1000,
         "StreamingEnabled": false
       },
+      "Terrain": {
+        "$className": "Terrain",
+        "$properties": {
+          "Decoration": true
+        }
+      },
       "Map": {
         "$path": "world/Map.rbxmx"
       },

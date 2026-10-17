@@ -97,7 +97,7 @@ BorderTerrain.W_BUCKETS = 4
 -- Slime Ranch palette (Terrain:SetMaterialColor); Grass is the soft pastel of the ground terrain (GroundTerrain.COLORS;
 -- the SlimeGrass variant darkens it into patches).
 BorderTerrain.COLORS = table.freeze({
-	Grass = { 146, 206, 84 },
+	Grass = { 162, 206, 118 },
 	LeafyGrass = { 82, 146, 66 },
 	Rock = { 136, 126, 112 },
 } :: { [string]: { number } })

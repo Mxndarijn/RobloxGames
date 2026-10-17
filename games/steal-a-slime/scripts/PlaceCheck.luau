@@ -120,7 +120,7 @@ function PlaceCheck.run(game: any): { string }
 	local workspace = game:GetService("Workspace")
 	local parts = {}
 	for _, instance in workspace:GetDescendants() do
-		if instance:IsA("BasePart") then
+		if instance:IsA("BasePart") and not instance:IsA("Terrain") then -- Terrain is a BasePart class but not a block part
 			table.insert(parts, instance)
 			if not instance.Anchored and not isSlime(instance) then
 				table.insert(failures, `unanchored {instance:GetFullName()}`)

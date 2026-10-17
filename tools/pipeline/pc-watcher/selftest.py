@@ -347,6 +347,10 @@ def t_files():
           "if fov > 0 then" in sc and "PcwFov" in sc
           and "PcwFov" in open(os.path.join(HERE, "luau", "shot_camera_reset.luau"), encoding="utf-8").read()
           and watcher.luau_literal(42.6) == "42.6", None)
+    wsrc = open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
+    check("a shot without weather clears an earlier weather / snow pin (no frosted ground leaking into later shots)",
+          'if not shot.get("weather") and weather_pinned:' in wsrc and "weather_pinned = True" in wsrc
+          and wsrc.index('if not shot.get("weather") and weather_pinned:') < wsrc.index('if shot.get("weather"):\n                    weather_pinned'), None)
     # the snow_cover shots (SnowGround v2) pin the ground snow: Snow = settling, Clear = melting
     snow_shots = [s for s in shots if "snow_cover" in s]
     weathers = {s["weather"]: s for s in shots if s.get("weather") and "snow_cover" not in s}
