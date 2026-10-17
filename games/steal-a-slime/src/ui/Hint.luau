@@ -4,8 +4,8 @@
 
 	First-minutes "where do I tap" hint (v18). Pure (tests/ui/Hint.spec.luau);
 	Panels/HintOverlay draws it. While a tutorial step asks for a button in
-	the UI chrome (Lock / Buy pad in the top bar, Merge / Rebirth in the left
-	menu), a ring goes round that button with a short bubble next to it
+	the UI chrome (Lock / Buy pad in the top bar, Rebirth in the left
+	menu; the Merge step has no button any more, it is the vat in the world), a ring goes round that button with a short bubble next to it
 	("Tap 🔒 Lock in the top bar"). Steps that happen in the world (Grab,
 	Deposit, Steal) get no hint: Archer's TutorialArrow points there.
 
@@ -48,7 +48,6 @@ Hint.STEPS = table.freeze({
 		text = "Tap Buy pad in the top bar",
 		target = table.freeze({ kind = "hud", name = "BuyPad" }),
 	}),
-	Merge = table.freeze({ text = navText("Merge"), target = table.freeze({ kind = "nav", name = "Merge" }) }),
 	Rebirth = table.freeze({ text = navText("Rebirth"), target = table.freeze({ kind = "nav", name = "Rebirth" }) }),
 } :: { [string]: { text: string, target: Target } })
 

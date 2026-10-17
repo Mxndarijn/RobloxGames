@@ -3,5 +3,5 @@
   "todo": "v29-10",
   "kind": "ui",
   "admin_event": "luck",
-  "note": "v29 #10: live admin event, HUD banner '<clover> Luck Event x3 luck - 9:00 left' under the top bar, no menu open (Studio fake via SlimeUI.PcwAdminEvent)"
+  "note": "v29 #10, H1 HUD: live admin event shown as the clover icon + 9:00 slot in the bottom-right status cluster (no banner under the top bar), no menu open (Studio fake via SlimeUI.PcwAdminEvent)"
 }

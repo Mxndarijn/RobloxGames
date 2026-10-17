@@ -1,0 +1,11 @@
+{
+  "id": "hud-v2-idle-pc",
+  "todo": "hud-v2",
+  "kind": "ui",
+  "expect_no_overlay": true,
+  "rain": true,
+  "friend_bonus": 1,
+  "admin_event": "luck",
+  "device": "desktop",
+  "note": "H1 HUD (Merijn 2026-10-17, hud_design_ref.png) [1920x1080]: idle HUD, no menu open. Left column Plot / Rebirth / Goals / SlimeDex / Codes only; bottom-left Money + Income/s + Rebirths; bottom-right status icons with timers: Slime Rain (cloud, 1:37), Luck Event (clover, 9:00) and Friend boost (+10%, no timer), nothing about the weekend boost; no boss / rain / modifier / friends banners under the top bar; clusters clear of the touch controls (phone) and of the carry / tutorial cards"
+}

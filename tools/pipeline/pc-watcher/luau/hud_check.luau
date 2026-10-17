@@ -19,8 +19,12 @@ local function shown(o)
 	return true
 end
 local expected = {
-	"Hud", "Hud.Cash", "Hud.Income", "Hud.Rebirths", "Hud.Pads", "Hud.LockStatus", "Hud.Lock", "Hud.BuyPad", "Hud.Shop", "Hud.Daily",
-	"Nav", "Nav.NavToggle", "Nav.Plot", "Nav.Merge", "Nav.Shop", "Nav.Rebirth", "Nav.Goals", "Nav.Dex", "Nav.Leaders",
+	-- H1 HUD: top bar = lock block, Lock, Buy pad, Daily; left column = Plot, Rebirth, Goals, SlimeDex, Codes
+	-- (no Merge / Shop / Top buttons); bottom-left Money cluster; bottom-right Status cluster (its slots only exist
+	-- while an event / friend boost runs, so only the container is expected).
+	"Hud", "Hud.LockStatus", "Hud.Lock", "Hud.BuyPad", "Hud.Daily",
+	"Nav", "Nav.NavToggle", "Nav.Plot", "Nav.Rebirth", "Nav.Goals", "Nav.Dex", "Nav.Codes",
+	"Money", "Money.Cash", "Money.Income", "Money.Rebirths", "Status",
 }
 local checked, offscreen, missing, hidden = 0, {}, {}, {}
 for _, path in expected do

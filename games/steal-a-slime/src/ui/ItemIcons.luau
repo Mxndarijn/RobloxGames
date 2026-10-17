@@ -25,7 +25,7 @@
 export type Spec = {
 	id: string,
 	name: string,
-	group: string, -- "shop" | "upgrade" | "boost" | "code" | "goal" | "badge" | "mutation" | "skin" | "misc"
+	group: string, -- "shop" | "upgrade" | "boost" | "code" | "goal" | "badge" | "mutation" | "skin" | "misc" | "hud"
 	color: { number }, -- tile colour, 0..255 RGB
 	glyph: string, -- allowlisted (tests/ui/Glyphs.spec): ASCII, a proven BMP symbol or an emoji
 	model: { kind: "slime" | "mesh", mutation: string?, mesh: string? }?,
@@ -113,7 +113,8 @@ ItemIcons.DRAWN_GROUPS = table.freeze({
 })
 
 -- Items an artist must still render: in a DRAWN group but with no recipe worth shipping. Empty now.
-ItemIcons.FOR_ARCHER = table.freeze({} :: { string })
+-- The H1 HUD icons (group "hud", not drawn) keep their tile + glyph until Archer renders them.
+ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
 
 -- Kit meshes that exist in MeshAssets (shared/MeshAssets NAMES) and may back a "mesh" model.
 ItemIcons.MESHES = table.freeze({
@@ -340,6 +341,22 @@ local HAND: { Hand } = {
 		color = { 255, 200, 60 },
 		glyph = "💰",
 		brief = "A pile of chunky gold coins with a $ stamp on the top coin; 3/4 view.",
+	},
+	{
+		id = "Income",
+		name = "Income per second",
+		group = "hud",
+		color = { 110, 210, 100 },
+		glyph = "📈",
+		brief = "A green up-arrow rising out of a small stack of gold coins; front view.",
+	},
+	{
+		id = "FriendBoost",
+		name = "Friend boost",
+		group = "hud",
+		color = { 90, 200, 120 },
+		glyph = "👥",
+		brief = "Two smiling slimes (green and pink) side by side with a small gold plus sign; front view.",
 	},
 	{
 		id = "Gift",

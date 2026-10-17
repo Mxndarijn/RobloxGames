@@ -7,7 +7,7 @@ local serde = require("@lune/serde")
 local Config = require("../../src/shared/Config")
 local Constants = require("../../src/shared/Constants")
 local Genome = require("../../src/shared/Genome")
-local NextSpawn = require("../../src/ui/NextSpawn")
+local HudClusters = require("../../src/ui/HudClusters")
 local PerfMeasure = require("./PerfMeasure")
 local Remotes = require("../../src/shared/Remotes")
 local TestRunner = require("../TestRunner")
@@ -91,7 +91,7 @@ describe("event-driven loops", function()
 		UiHarness.virtualTime(false)
 	end)
 
-	it("Hud: the countdown chip text is the same at every 0.1 s tick, rebuilt about once a second", function()
+	it("Hud: the Slime Rain slot text is the same at every 0.1 s tick, rebuilt about once a second", function()
 		local gui = UiHarness.root()
 		local hud = UiHarness.ui("Hud").new(gui, ctx())
 		hud.update({
@@ -107,24 +107,28 @@ describe("event-driven loops", function()
 			daily = {},
 			rain = {},
 		})
-		local chip = UiHarness.find(gui, "NextSpawnChip")
+		local slot = UiHarness.find(gui, "Rain")
+		local timer = UiHarness.find(slot, "Timer")
+		UiHarness.workspaceAttributes.RainActive = false
 		UiHarness.workspaceAttributes.RainNextAt = 1065.5
-		UiHarness.workspaceAttributes[Constants.BOSS_NEXT_AT_ATTRIBUTE] = 1090
+		-- the countdown shows for the last RainTimer.SOON_SECONDS only
 		for i = 0, 800 do
 			local now = 1000 + i * 0.1
 			hud.tick(now)
-			local want = NextSpawn.chip(nil, 1065.5, 1090, now)
-			expect(chip.Visible).toBe(want ~= nil)
+			local want = HudClusters.rain({ active = false, nextAt = 1065.5 }, now)
+			expect(slot.Visible).toBe(want ~= nil)
 			if want then
-				expect(chip.Text).toBe(want.text)
+				expect(timer.Text).toBe(want.text)
 			end
 		end
 		-- an attribute change shows at once, without the second flipping
 		UiHarness.workspaceAttributes.RainActive = true
+		UiHarness.workspaceAttributes.RainEndsAt = 1200
 		hud.tick(1080.05)
-		expect(chip.Visible).toBe(false)
+		expect(slot.Visible).toBe(true)
+		expect(timer.Text).toBe("2:00")
 		UiHarness.workspaceAttributes.RainActive = nil
+		UiHarness.workspaceAttributes.RainEndsAt = nil
 		UiHarness.workspaceAttributes.RainNextAt = nil
-		UiHarness.workspaceAttributes[Constants.BOSS_NEXT_AT_ATTRIBUTE] = nil
 	end)
 end)

@@ -2,7 +2,8 @@
 --[[
 	Nav
 
-	Left-bar entries and their badges. Pure (tests/ui/Nav.spec.luau); the
+	Left-bar entries and their badges (H1 HUD: Plot, Rebirth, Goals, SlimeDex, Codes; the Merge, Shop and
+	Top menus have no button, see init.client panelByKey). Pure (tests/ui/Nav.spec.luau); the
 	buttons themselves are built in init.client.luau. Badges are short hints
 	derived from the latest State ("!" = something to do there).
 ]]
@@ -13,12 +14,9 @@ local Nav = {}
 
 Nav.ENTRIES = table.freeze({
 	table.freeze({ key = "Plot", icon = "🏠", label = "Plot" }),
-	table.freeze({ key = "Merge", icon = "🧪", label = "Merge" }),
-	table.freeze({ key = "Shop", icon = "🛒", label = "Shop" }),
 	table.freeze({ key = "Rebirth", icon = "♻️", label = "Rebirth" }),
 	table.freeze({ key = "Goals", icon = "🎯", label = "Goals" }),
 	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex" }),
-	table.freeze({ key = "Leaders", icon = "🏆", label = "Top" }),
 	table.freeze({ key = "Codes", icon = "🎁", label = "Codes" }),
 } :: { Entry })
 
@@ -82,12 +80,6 @@ function Nav.badges(state: any): { [string]: string }
 				break
 			end
 		end
-	end
-	if Nav.canMerge(state.slimes) then
-		out.Merge = "!"
-	end
-	if Nav.shopAffordable(state) then
-		out.Shop = "$"
 	end
 	if state.canRebirth == true then
 		out.Rebirth = "!"

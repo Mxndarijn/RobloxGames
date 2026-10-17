@@ -814,7 +814,7 @@ local Config = {
 		Audio = false, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
 		PvP = false, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, safe zones, new-player shield, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
 		WorldShops = true, -- CONTRACT.md §27: Item Shop + Upgrade Shop stands (ItemShopStand / UpgradeShopStand), Request OpenShop / CloseShop / ShopBuy, ShopEvent, range checks; false = the single ShopStand and the HUD Shop as before
-		WorldShopsStrict = false, -- CONTRACT.md §27.6: the old buy actions also need an open shop in range ("NotOpen"); flip on once the new shop UI replaces the HUD Shop button. Needs WorldShops
+		WorldShopsStrict = true, -- CONTRACT.md §27.6: the old buy actions also need an open shop in range ("NotOpen"); on since the HUD Shop button is gone in HUD v2. Needs WorldShops
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
