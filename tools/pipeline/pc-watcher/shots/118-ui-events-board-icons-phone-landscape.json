@@ -5,6 +5,6 @@
   "weekly_event": true,
   "events_board": true,
   "steal_alert": true,
-  "note": "UI polish [phone-landscape 844x390]: FEATURES.EventsBoard banner is image-first (Event_luck / Event_mutation / Event_rain icon per row) inside the banner column and clear of the toasts; with the Studio steal-alert fake the thief arrow and edge flash stay clear of the HUD row, banner stack and nav. luau/events_board fails the shot if a visible row has no icon",
+  "note": "UI polish [phone-landscape 844x390]: FEATURES.EventsBoard banner is image-first (Event_luck / Event_mutation / Event_rain icon per row) inside the banner column; with the Studio steal-alert fake the thief arrow and edge flash stay clear of the banner stack and the nav tiles. luau/events_board fails the shot if a visible row has no icon",
   "device": "phone-landscape"
 }

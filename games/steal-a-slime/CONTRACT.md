@@ -58,7 +58,7 @@ src/visuals/tools/  Archer's Lune map tools (not in the Rojo tree). build-map wr
                     src/visuals/static/*.rbxm, which is NOT mapped: world/ is the only
                     map source in default.project.json                          Archer
 src/ui/          -> StarterPlayerScripts.UI         (LocalScript + modules)      Jolt
-  HUD, plot/merge/rebirth panels, Slimedex, steal alerts, toasts, leaderboard
+  HUD, plot/merge/rebirth panels, Slimedex, steal alerts, leaderboard
 tests/           Lune unit tests (not in the Rojo tree)                          Jolt
 world/           -> Workspace: Map, Plots, HubSpawn (.rbxmx, generated)          Phoenix
 scripts/         Lune build tools (not in the Rojo tree): gen-world, check-place Phoenix
@@ -139,7 +139,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 |---|---|---|---|
 | `Request` | RemoteFunction | client → server | `InvokeServer(action: Action, ...args)` → `RequestResult = { ok: boolean, message: string? }` |
 | `State` | RemoteEvent | server → client | `FireClient(player, state: Types.State)` (§5) |
-| `Notify` | RemoteEvent | server → client | `FireClient(player, text: string, kind: "info" \| "good" \| "bad", sound: string?, itemId: string?)`. `itemId` (optional) is the UI ItemIcons registry id the toast is about (`"SpeedCoil"`, `"Upgrade_Luck"`, `"PlotSkin_candy"`); absent/unknown ids fall back to the client text heuristic. Global toasts (Slime Rain) use `FireAllClients`. |
+| `Notify` | RemoteEvent | server → client | `FireClient(player, text: string, kind: "info" \| "good" \| "bad", sound: string?, itemId: string?)`. `itemId` (optional) is the UI ItemIcons registry id the toast is about (`"SpeedCoil"`, `"Upgrade_Luck"`, `"PlotSkin_candy"`); absent/unknown ids fall back to the client text heuristic. Global toasts (Slime Rain) use `FireAllClients`. **Oct 18 (B6, Merijn): the client draws no toast any more; a Notify only plays its `sound`.** The server side is unchanged. |
 | `Leaderboard` | RemoteEvent | server → client | `FireClient/FireAllClients(board: { stat: "TotalEarned", entries: { { rank: number, userId: number, name: string, value: number } } })` |
 
 `Request` actions (from `Remotes.ACTIONS`; rate limits in `Validate.ACTIONS`):
@@ -665,7 +665,7 @@ The HUD lock bar can show `(lockUntil - now) / (lockUntil - lockStartedAt)`, so 
 - **Thief trail:** Player attribute `Stealing` (`Constants.STEALING_ATTRIBUTE`, `true` while `session.carry.kind == "stolen"`, nil otherwise; flag on only). Every client draws a `Trail` (lifetime `TRAIL_LIFETIME` 0.6 s) on that player's `HumanoidRootPart`, so the thief sees it too.
 - **SLAP hit effect:** `World.Event.reason` (Escaped: `"wriggle" | "timeout" | "slap" | "drop" | "left"`); on `"slap"` the adapter sets the carrier's Player attribute `SlapHitAt` (`SLAP_HIT_ATTRIBUTE`, server time). Clients draw a white flash, a `SLAP!` pop and a particle burst on that character when it changes (a value older than 3 s, e.g. seen on late join, is ignored).
 - **Save (versioned since v6, §8.9c):** `stealLog: { { thief: string, slime: string, at: number } }` (`PlayerData.stealLog`, `SaveData` clean/capped, `StealAlert.clean`). `Carry.deposit` appends the finished theft to the **victim's** log (`StealAlert.record`, cap `LOG_CAP` 12, oldest dropped, names control-stripped and cut to `NAME_MAX`). At join (`Sessions.join`) the saved log moves to `session.awayLog` (never saved) and the saved log starts empty again, so a notice shows once.
-- **State:** `stealAway: string?`, e.g. `"While you were away 3 slimes were stolen by Rex, Mia and Kit."` (`StealAlert.summary`: thieves most recent first, each once, at most `SUMMARY_NAMES` 3, then `and N more`). nil when none or the flag is off. The client shows it once per join as a long `away` toast.
+- **State:** `stealAway: string?`, e.g. `"While you were away 3 slimes were stolen by Rex, Mia and Kit."` (`StealAlert.summary`: thieves most recent first, each once, at most `SUMMARY_NAMES` 3, then `and N more`). nil when none or the flag is off. The client no longer shows it (no toasts, Oct 18 B6); the field is still sent.
 - **Offline note:** a theft only completes while the victim is in the server (a plot is unreachable once its owner leaves; `Carry.deposit` refuses), so the log is "thefts since you were last here" and always includes ones the player saw live. Reading a theft off a persistent store of an offline player is not done (it would write another player's key).
 - **Studio-only debug:** SlimeUI attribute `PcwStealAlert` = true fakes one theft (flash held at its peak, arrow pointing right) and the join notice, for the pc-watcher proof shot.
 

@@ -4,14 +4,15 @@
 Usage: rhr_check.py OUT_DIR [RHR_BIN]
 
 One `rhr batch` call lays out and hit-tests every case in OUT_DIR/manifest.json
-at its viewport (58 px top bar). Per button (HUD buttons, nav toggle and nav
-entries) it asserts, on rhr's rects in screen px:
+at its viewport (58 px top bar). Per button (the nav tiles with their labels, the status
+icons, Slap) it asserts, on rhr's rects in screen px:
   on-screen    inside the viewport and below the top bar
   unoccluded   rhr's click at the button's centre lands on the button, and no
                other click-capturing node rhr draws above it (zOrder)
                overlaps any part of it
   not squashed rendered w/h within ASPECT_TOLERANCE of the design w/h
   touch size   min(w, h) >= 44 px (Layout.MIN_TOUCH)
+Per box (the money cluster, an open status tooltip) it asserts it is on screen below the top bar.
 Exit 1 on any failure, 2 when rhr itself fails. KNOWN lists findings the
 gate tolerates; each must still occur, so fixing one forces its removal.
 """
@@ -26,13 +27,8 @@ EPS = 0.51  # rhr rects are within ~0.5 px of the rounded UDim offsets
 ASPECT_TOLERANCE = 0.03
 MIN_TOUCH = 44
 
-# Portrait phone under the top bar (gui 390x786): the tutorial card shown while
-# carrying overlaps the bottom of the nav (Leaders). Same finding as
-# LayoutAssert.navReachable on Layout.screen(390, 786). Fix in Layout.screen,
-# then delete it here.
-KNOWN = [
-    r"^\[390x844-(collapsed|expanded)\] Nav/\w+ \{.*\} is covered by SlimeUI/Root/TutorialCarrying$",
-]
+# Findings the gate tolerates (none now: the portrait nav no longer runs into the tutorial card).
+KNOWN: list[str] = []
 
 
 def main() -> int:
@@ -111,6 +107,18 @@ def main() -> int:
                 iy = min(r["y"] + r["h"], o["y"] + o["h"]) - max(r["y"], o["y"])
                 if ix > EPS and iy > EPS:
                     problems.append(f"{tag} {box} is covered by {other['path']}")
+
+    for case in manifest["cases"]:
+        layout = results[2 * manifest["cases"].index(case)]["stdout"]["rects"]
+        vw, vh = case["viewport"]
+        for box in case.get("boxes", []):
+            checked += 1
+            r = layout.get(f"SlimeUI/Root/{box['path']}")
+            tag = f"[{case['name']}] {box['path']}"
+            if r is None:
+                problems.append(f"{tag}: rhr drew no such element")
+            elif r["x"] < -EPS or r["y"] < top - EPS or r["x"] + r["w"] > vw + EPS or r["y"] + r["h"] > vh + EPS:
+                problems.append(f"{tag} is off the {vw}x{vh} screen (top bar {top})")
 
     known = [p for p in problems if any(re.match(k, p) for k in KNOWN)]
     new = [p for p in problems if p not in known]

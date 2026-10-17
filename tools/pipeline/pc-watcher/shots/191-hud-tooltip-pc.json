@@ -1,0 +1,12 @@
+{
+  "id": "hud-tooltip-pc",
+  "todo": "hud-v2",
+  "kind": "ui",
+  "expect_no_overlay": true,
+  "rain": true,
+  "friend_bonus": 1,
+  "admin_event": "luck",
+  "tooltip": "Event",
+  "device": "desktop",
+  "note": "B8 [1920x1080]: hovering (PC) / tapping (touch) the Luck Event icon bottom-right opens a tooltip with its name, effect and the time left; the card sits above the icon, fully on screen, clear of the thumbstick / jump button strip. luau/tooltip fails the shot if the card is hidden or off screen"
+}

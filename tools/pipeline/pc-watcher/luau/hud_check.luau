@@ -19,11 +19,10 @@ local function shown(o)
 	return true
 end
 local expected = {
-	-- H1 HUD: top bar = lock block, Lock, Buy pad, Daily; left column = Plot, Rebirth, Goals, SlimeDex, Codes
-	-- (no Merge / Shop / Top buttons); bottom-left Money cluster; bottom-right Status cluster (its slots only exist
-	-- while an event / friend boost runs, so only the container is expected).
-	"Hud", "Hud.LockStatus", "Hud.Lock", "Hud.BuyPad", "Hud.Daily",
-	"Nav", "Nav.NavToggle", "Nav.Plot", "Nav.Rebirth", "Nav.Goals", "Nav.Dex", "Nav.Codes",
+	-- H1 HUD / Oct 18: no top bar; the left column is a grid of rounded tiles (Plot, Rebirth, Goals, SlimeDex,
+	-- Codes: no Merge / Shop / Top buttons, no collapse toggle); bottom-left Money cluster; bottom-right Status
+	-- cluster (its slots only exist while an event / friend boost runs, so only the container is expected).
+	"Nav", "Nav.Plot", "Nav.Rebirth", "Nav.Goals", "Nav.Dex", "Nav.Codes",
 	"Money", "Money.Cash", "Money.Income", "Money.Rebirths", "Status",
 }
 local checked, offscreen, missing, hidden = 0, {}, {}, {}

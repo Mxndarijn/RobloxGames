@@ -1,9 +1,0 @@
-{
-  "id": "ui-sweep-toast-height-fit-phone-landscape",
-  "todo": "ui-sweep",
-  "kind": "ui",
-  "admin_event": "luck",
-  "badge_toast": "toast:Your egg hatched: Epic Blorp!",
-  "note": "UI sweep: 844x390 with the HUD banner stack up (admin event + next-spawn chip + more) and toasts; the toast stack shows only as many toasts as fit the shrunken toast box, so it stays on screen and clear of the banners [phone-landscape]",
-  "device": "phone-landscape"
-}

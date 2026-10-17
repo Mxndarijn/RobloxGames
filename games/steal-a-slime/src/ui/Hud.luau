@@ -345,18 +345,16 @@ function Hud.new(parent: Instance, ctx: any)
 		tip.Size = UDim2.fromOffset(math.round(r.w), math.round(r.h))
 		local inner = r.w - t.pad * 2
 		local y = t.pad
-		for _, entry in
-			{
-				{ tipTitle, text.title, lines.titleH },
-				{ tipBody, text.body, lines.bodyH },
-				{ tipTime, text.time, lines.timeH },
-			}
-		do
-			local label, content, height = entry[1] :: TextLabel, entry[2] :: string, entry[3] :: number
-			label.Text = content
-			label.Position = UDim2.fromOffset(t.pad, y)
-			label.Size = UDim2.fromOffset(inner, height)
-			y += height + t.line
+		local rows: { { label: TextLabel, content: string, height: number } } = {
+			{ label = tipTitle, content = text.title, height = lines.titleH },
+			{ label = tipBody, content = text.body, height = lines.bodyH },
+			{ label = tipTime, content = text.time, height = lines.timeH },
+		}
+		for _, row in rows do
+			row.label.Text = row.content
+			row.label.Position = UDim2.fromOffset(t.pad, y)
+			row.label.Size = UDim2.fromOffset(inner, row.height)
+			y += row.height + t.line
 		end
 		tipBody.TextSize = if compact then t.cbodySize else t.bodySize
 		tip.Visible = true

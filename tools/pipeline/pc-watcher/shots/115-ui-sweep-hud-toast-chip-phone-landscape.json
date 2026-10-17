@@ -1,8 +1,0 @@
-{
-  "id": "ui-sweep-hud-toast-chip-phone-landscape",
-  "todo": "ui-sweep",
-  "kind": "ui",
-  "badge_toast": "toast:Your egg hatched: Epic Blorp!",
-  "note": "UI sweep: idle HUD + the next-spawn countdown chip (banner stack, fits the frame width) + an item toast below it on the right; banners, toasts and the HUD never overlap and all stay on screen [phone-landscape]",
-  "device": "phone-landscape"
-}

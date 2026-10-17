@@ -7,5 +7,5 @@
   "friend_bonus": 1,
   "admin_event": "luck",
   "device": "phone-portrait",
-  "note": "H1 HUD (Merijn 2026-10-17, hud_design_ref.png) [390x844]: idle HUD, no menu open. Left column Plot / Rebirth / Goals / SlimeDex / Codes only; bottom-left Money + Income/s + Rebirths; bottom-right status icons with timers: Slime Rain (cloud, 1:37), Luck Event (clover, 9:00) and Friend boost (+10%, no timer), nothing about the weekend boost; no boss / rain / modifier / friends banners under the top bar; clusters clear of the touch controls (phone) and of the carry / tutorial cards"
+  "note": "H1 HUD, Oct 18 B4 / B5 / B6 / B7 (ui_reference.png) [390x844]: idle HUD, no menu open. NO top bar (no LOCKED block, Lock / Extend, Buy pad, Daily) and no toasts. Left: Plot / Rebirth / Goals / SlimeDex (with its percent badge on the tile) / Codes as a 2-column grid of rounded square tiles, icon on the tile, label under it. Bottom-left: big coin + big amount, Income/s and Rebirths pills under it. Bottom-right: large icons with timers: Slime Rain (cloud, 1:37), Luck Event (clover, 9:00), Friend boost (+10%). Clusters clear of the thumbstick and jump button (phone) and of the carry / tutorial cards"
 }
