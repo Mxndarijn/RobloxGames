@@ -13601,5 +13601,10 @@
       ]
     }
   },
-  "frames_dir": "1bd28869dcfc0a08a90e52d35f66f0df7b2a8b00/"
+  "frames_dir": "1bd28869dcfc0a08a90e52d35f66f0df7b2a8b00/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix 15:56 CEST: full run, status pass, 229/229 captured. Runtime parts 2203 of 2230 (#237 -16 and #243 -7); mesh slots 391 of 400. No functional breakage found across all 229 frames (contact sheets plus key frames). 116 phone-landscape: 3 banners plus the egg toast, and the tutorial card at the bottom clear of both (toast ends at y~272, card starts at y~278). Border v5 eye/aerial ok. Lane start (#243, 31-slimepath-lane-start-eye): the lane strip starts at the slide exit but reads as a flat light-blue strip rather than a domed goo channel (cosmetic). ring_slimes, fountain top walk and the pad lock look are ok. Notes: play fps 48.3, down from ~53; frame time 20.7 ms. edit.jpg teal blob; translucent red strip across the top of the HUD; aerial lighting has a purple cast; locked pads are near-black. Ground snow v2 (#235) is not on main, so there are no 18c frames."
 }
