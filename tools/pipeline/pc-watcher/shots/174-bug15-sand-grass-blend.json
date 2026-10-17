@@ -2,12 +2,12 @@
   "id": "bug15-sand-grass-blend",
   "todo": "bug 15",
   "kind": "world",
-  "pos": [0.0, 3, 79.0],
-  "look": [0, 0, 93],
+  "pos": [27.17, 3, 65.60],
+  "look": [24.49, 0, 59.13],
   "bug_probe": {
     "bug": 15,
     "title": "Sand / grass blend",
-    "summary": "visual only: sand path edge meeting grass"
+    "summary": "visual only: plaza sand feathered ~7 studs into the grass, patchy edge, no hard ring"
   },
-  "note": "bug 15 (visual): a sand spoke path edge meeting the grass, low angle [#270: path is terrain now; fixed camera at the spoke 0 (+Z) midpoint (0, 0, 93), ground y 0]"
+  "note": "bug 15 (visual): the plaza sand / grass feather band at a low angle, seen from the grass between spokes 0 and 1 (azimuth 22.5 deg, camera r 71 on the grass just inside the ring path, look at r 64 on the PLAZA_RADIUS 66 edge) [#270: ground is terrain; retargeted from the spoke midpoint (0, 0, 93), which only showed dirt path and duplicated shot 81]"
 }
