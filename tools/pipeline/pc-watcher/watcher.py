@@ -1669,7 +1669,9 @@ def step_shots(run):
                                                   kind=shot["motion"], wait=float(shot.get("wait", 0.35)))
                     if shot["motion"] == "Tiers":
                         run.note("shot %s: slime LOD tiers %s" % (sid, res["motion"].get("tiers")))
-                    if not res["motion"].get("ok"):
+                    if not res["motion"].get("ok") and shot["motion"] == "Tiers":
+                        run.note("shot %s: slime has no LifeTier (mode %s)" % (sid, res["motion"].get("mode")))
+                    elif not res["motion"].get("ok"):
                         run.note("shot %s: slime not moving (mode %s, moved %s)" % (
                             sid, res["motion"].get("mode"), res["motion"].get("moved")))
                 if shot.get("slide_walk"):

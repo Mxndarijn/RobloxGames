@@ -4,7 +4,8 @@
 -- = frozen), then plays %%KIND%% ("Idle" = just watch, "Hop" / "LookLeft" / "LookRight" via the LifeForce
 -- attribute) and compares the FaceRoot / SkinRoot Transform and the Mesh size A -> B, %%WAIT%% s apart
 -- (the capture lands on B: hop apex ~0.35, look peak ~0.35, idle any). moved = how far B is from A.
--- %%KIND%% "Tiers" behaves like "Idle" (nothing forced). Every kind also reports tiers = { near, mid, far }:
+-- %%KIND%% "Tiers" behaves like "Idle" (nothing forced) and passes when the slime has a LifeTier attribute (reported as
+-- `tier`); motion is not required because the far tier is static by design. Every kind also reports tiers = { near, mid, far }:
 -- the LifeTier attribute (SlimeLifeRunner, FEATURES.SlimeLod) of the animated slimes within 80 studs of
 -- the pad (all "near" while the flag is off).
 local node = game
@@ -70,4 +71,9 @@ for _, m in CollectionService:GetTagged("Slime") do
 		end
 	end
 end
-return { ok = mode ~= nil and moved > 0.01, slime = slime.Name, mode = mode, kind = kind, a = a, b = b, moved = moved, animating = animating, near = near, tiers = tiers }
+local tier = slime:GetAttribute("LifeTier")
+local ok = mode ~= nil and moved > 0.01
+if kind == "Tiers" then
+	ok = tier ~= nil
+end
+return { ok = ok, tier = tier, slime = slime.Name, mode = mode, kind = kind, a = a, b = b, moved = moved, animating = animating, near = near, tiers = tiers }
