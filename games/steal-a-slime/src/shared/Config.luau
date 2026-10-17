@@ -1150,6 +1150,9 @@ local Config = {
 		KNOCKBACK_MAX_PUSH = 8, -- studs (2x the base slap push of 4)
 		KNOCKBACK_ARC_HEIGHT = 2, -- studs of vertical arc at most
 		KNOCKBACK_BOUNDS_MARGIN = 6, -- studs kept clear of the map edge
+		KNOCKBACK_SECONDS = 0.35, -- the launch covers the push in this long
+		KNOCKBACK_CONTROL_SECONDS = 0.6, -- a knockback counts as control (PvpRules.applyControl), then immunity
+		FX_SECONDS = 1, -- client FX from PvpEvent "Effect" live at most this long (nothing persistent, no server parts)
 		MAP_BOUNDS = table.freeze({ minX = -320, maxX = 320, minZ = -320, maxZ = 320 }), -- WorldBorder.GROUND_HALF = 320, Ground centred on the origin
 	}),
 	PVP_TOOLS = table.freeze(PVP_TOOLS),

@@ -51,6 +51,8 @@ local ParadeView = require(script.ParadeView)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
 local Profiler = require(script.Profiler)
+local PvpKnockback = require(script.PvpKnockback)
+local PvpKnockbackRules = require(Shared:WaitForChild("PvpKnockbackRules"))
 local PvpService = require(script.PvpService)
 local Revenge = require(script.Revenge)
 local RitualService = require(script.RitualService)
@@ -470,6 +472,18 @@ PvpService.setSink(function(target: number?, payload: { [string]: any })
 		pvpEvent:FireClient(player, payload)
 	end
 end, now)
+
+-- Knockback gloves (FEATURES.PvP): the server only launches the target; the look is client FX from PvpEvent.
+PvpKnockback.setMover(function(userId: number, push, _landing): boolean
+	local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
+	if not root then
+		return false
+	end
+	local v = PvpKnockbackRules.velocity(push, workspace.Gravity)
+	root.AssemblyLinearVelocity = Vector3.new(v.X, v.Y, v.Z)
+	return true
+end)
+PvpKnockback.register()
 
 -- Player attribute `Carrying` follows the World right away (pickup, drop, deposit, escape, death).
 local function syncCarrying()
