@@ -199,6 +199,7 @@ parts(
 	"blobby cauldron (bug #16, MeshSwap.swapPlotVats): the Hull closes the gaps under the funnel spouts; mesh = merge_vat, found by its disc",
 	{ walk = false }
 )
+entries[#entries].mesh = "merge_vat"
 
 add({
 	kind = "shop_stand",
@@ -327,8 +328,8 @@ parts(
 -- World decor (RanchProps): bug #11 converted these; kept exactly. Box / Hull per docs/COLLISION.md.
 local DECOR_PROPS: { { string | number } } = {
 	-- kind, mesh, count, fidelity, reason
-	{ "decor_crate", "ranch_crate", 1, "Box", "3x3x3 cube" },
-	{ "decor_crate_goo", "ranch_crate_goo", 1, "Box", "3x3x3 cube" },
+	{ "decor_crate", "ranch_crate", 1, "Box", "3x3x3 cube: the box is the shape" },
+	{ "decor_crate_goo", "ranch_crate_goo", 1, "Box", "3x3x3 cube: the box is the shape" },
 	{ "decor_feed_trough", "ranch_feed_trough", 1, "Box", "6x2.3x2.5 low box" },
 	{ "decor_hay_bale", "ranch_hay_bale", 1, "Box", "4x2.6x2.6 bale" },
 	{
@@ -457,7 +458,7 @@ parts(
 parts(
 	"meadow_flowers",
 	"jolt",
-	163,
+	233,
 	"off",
 	"Map.Decor.Meadow",
 	{ "^M%d+Flower%d+Head$", "^M%d+Flower%d+Stem$", "^M%d+Bunch%d+Head%d+$", "^M%d+Bunch%d+Leaves$" },
@@ -601,7 +602,17 @@ mesh(
 	"the Pad part is the walkable surface"
 )
 parts("plot_pads", "gojo", 64, "colliders", "Plots", { "^Pad_%d+$" }, "on", "the pad is the stand-on surface")
-parts("plot_base", "gojo", 8, "colliders", "Plots", { "^Base$" }, "on", "plot floor", { walk = false })
+parts(
+	"plot_base",
+	"gojo",
+	8,
+	"colliders",
+	"Plots",
+	{ "^Base$" },
+	"on",
+	"plot floor, the stand-on surface",
+	{ walk = false }
+)
 parts(
 	"plot_sign",
 	"gojo",
