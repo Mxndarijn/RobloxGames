@@ -79,6 +79,7 @@ ForcedFlags.on = {
 	["Audio flag > is off by default"] = "Audio",
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",
 	["EventsBoard > is behind FEATURES.EventsBoard, default off"] = "EventsBoard",
+	["StealAlerts arrow and flash vs the HUD > the StealAlerts and EventsBoard flags stay default off"] = "StealAlerts / EventsBoard",
 	["FountainTiers: the ladder > is behind FEATURES.FountainTiers, default off"] = "FountainTiers",
 	["FountainTiers: the ladder > rank cards only mention a family with the feature on (off: tierText is unchanged)"] = "FountainTiers",
 	["FountainTiers: server > the world starts at tier 1 and the tier step is a no-op with the feature off"] = "FountainTiers",

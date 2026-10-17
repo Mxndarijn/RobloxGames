@@ -48,7 +48,8 @@ describe("EventsBoard rows (icons)", function()
 
 	it("is off with the flag off and every row has a registered, drawn icon", function()
 		expect(EventsBoard.rows(WeeklyEvents.encode(SAT), SURGE, SAT, SAT, false)).toBeNil()
-		expect(#rows).toBe(5) -- title, mutation, trait, modifier, next
+		-- title, mutation, trait, modifier (only while FEATURES.CycleModifier is on), next
+		expect(#rows).toBe(if Config.FEATURES.CycleModifier then 5 else 4)
 		for _, row in rows do
 			expect(registry.byId[row.icon] ~= nil).toBe(true)
 			expect(registry.byId[row.icon].source).toBe("drawn")
@@ -67,7 +68,11 @@ describe("EventsBoard rows (icons)", function()
 	it("picks the luck icon for luck rows and the mutation icon for mutation rows", function()
 		expect(rows[2].icon).toBe("Event_mutation") -- weekly mutation
 		expect(rows[3].icon).toBe("Event_mutation") -- Mutant Saturday x1.5 mutations
-		expect(rows[4].icon).toBe("Event_luck") -- the modifier
+		if Config.FEATURES.CycleModifier then
+			expect(rows[4].icon).toBe("Event_luck") -- the modifier
+		else
+			expect(rows[4].icon).toBe("Event_mutation") -- no modifier row: the next event follows the trait
+		end
 	end)
 end)
 
@@ -152,10 +157,12 @@ describe("StealAlerts arrow and flash vs the HUD", function()
 			end
 		)
 	end
-	it("StealAlertFx lays out through StealAlertLayout and the flag stays default off", function()
+	it("StealAlertFx lays out through StealAlertLayout", function()
 		local fx = fs.readFile("src/ui/StealAlertFx.luau")
 		expect(string.find(fx, "StealAlertLayout.arrowBox(", 1, true) ~= nil).toBe(true)
 		expect(string.find(fx, "StealAlertLayout.flashThickness(", 1, true) ~= nil).toBe(true)
+	end)
+	it("the StealAlerts and EventsBoard flags stay default off", function()
 		expect(Config.FEATURES.StealAlerts).toBe(false)
 		expect(Config.FEATURES.EventsBoard).toBe(false)
 	end)
