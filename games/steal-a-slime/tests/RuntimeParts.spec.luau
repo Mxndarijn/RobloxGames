@@ -5,12 +5,10 @@
 -- the ritual circle and MeshSwap have spawned. pc-watcher's perf_server reports the same
 -- number as runtime_parts and the 22-border-aerial-runtime-parts shot asserts it <= RUNTIME_PARTS_MAX.
 -- Transient play objects (wild slimes, pad slimes, characters, the drain splash) are split out
--- (runtime_parts_transient in perf_server) so the cap does not flap with play; keep both filters in sync.
-local fs = require("@lune/fs")
-local process = require("@lune/process")
-local roblox = require("@lune/roblox")
-
-local Runtime = require("../tools/livetest/Runtime")
+-- (runtime_parts_transient in perf_server) so the cap does not flap with play. The count IS perf_server.luau,
+-- run by tools/pr-gate/runtime_count.luau, so the filters cannot drift. This spec compares the RAW offline count;
+-- Studio sees RUNTIME_SLOT_ALLOWANCE (16) more, which tools/pr-gate/runtime_budget.sh adds and gates (CI).
+local RuntimeCount = require("../../../tools/pr-gate/runtime_count")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -20,19 +18,9 @@ local RUNTIME_PARTS_MAX = 1800 -- the target
 -- fake-runtime world measured 2272 BaseParts when this test landed. Only ever lower it; target 1800.
 local WORLD_RATCHET = 2230
 
-local placePath = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-rtparts-{os.time()}-{math.random(1, 1e9)}.rbxlx`
-local built = process.exec("rojo", { "build", "-o", placePath })
-assert(built.ok, `rojo build failed: {built.stderr}`)
-local rt = Runtime.new(placePath, {
-	createMeshPart = function(_meshId)
-		return roblox.Instance.new("MeshPart")
-	end,
-})
-fs.removeFile(placePath)
-rt:boot()
-for _ = 1, 15 * 30 do
-	rt:step(1 / 30)
-end
+local rt = RuntimeCount.boot()
+-- The count itself is pc-watcher's perf_server.luau run against this world (same filters as Studio).
+local perf = RuntimeCount.count(rt)
 
 local wild = rt.workspace:FindFirstChild("WildSlimes")
 local total, world, slimes = 0, 0, 0
@@ -74,6 +62,9 @@ local lines = {}
 for _, k in keys do
 	table.insert(lines, `{k}={breakdown[k]}`)
 end
+print(
+	`[RuntimeParts] perf_server: runtime_parts {perf.runtime_parts} (+{RuntimeCount.STUDIO_OFFSET} Studio-only = {perf.runtime_parts + RuntimeCount.STUDIO_OFFSET}), mesh_slots {perf.mesh_slots}`
+)
 print(`[RuntimeParts] total {total} = world {world} + transient parts {slimes}`)
 print(`[RuntimeParts] world by group: {table.concat(lines, ", ")}`)
 
@@ -82,6 +73,10 @@ describe("runtime part budget", function()
 		expect(#rt.errors).toBe(0)
 		expect(rt.workspace.Map.Plaza:FindFirstChild("ParadeLane") ~= nil).toBe(true)
 		expect(rt.workspace.Map.Volcano:FindFirstChild("SlideColliders") ~= nil).toBe(true)
+	end)
+	it("counts the same world as pc-watcher's perf_server (the breakdown below cannot drift from it)", function()
+		expect(world).toBe(perf.runtime_parts)
+		expect(slimes).toBe(perf.runtime_parts_transient)
 	end)
 	it(`keeps the world (no wild slimes) under the {WORLD_RATCHET} ratchet`, function()
 		expect(world > 0).toBe(true)

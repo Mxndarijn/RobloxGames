@@ -1,7 +1,7 @@
 #
 # Required check name for the ruleset: exactly "pr-gate" (job name).
 # Apply the ruleset only after this workflow has been green once on a PR.
-# pr-gate also runs tools/pr-gate/run.sh (logic, layout, budget; ~1-2 min);
+# pr-gate also runs tools/pr-gate/run.sh (logic, layout, budget; ~1-2 min) and runtime_budget.sh (~10 s);
 # the logic/layout/budget steps run only when steal-a-slime or its shared deps changed
 # (skipped steps still leave pr-gate green, so the required check always reports);
 # when it is green, automerge turns on squash auto-merge for the PR.
@@ -197,6 +197,20 @@ jobs:
       - name: PR gate (logic, layout, budget)
         if: needs.changes.outputs.slime == 'true'
         run: tools/pr-gate/run.sh
+      # Runtime parts / mesh slots counted like the Studio perf step (perf_server.luau on the booted
+      # fake runtime); the base is counted too so a PR on an already-over-budget main only fails if it adds.
+      - name: Wally install (runtime budget)
+        if: needs.changes.outputs.slime == 'true'
+        working-directory: games/steal-a-slime
+        run: wally install
+      - name: Fetch PR base
+        if: needs.changes.outputs.slime == 'true'
+        run: git fetch --no-tags --depth=1 origin ${{ github.event.pull_request.base.sha }}
+      - name: Runtime budget (parts, mesh slots)
+        if: needs.changes.outputs.slime == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: tools/pr-gate/runtime_budget.sh
 
   # Squash auto-merge once pr-gate is green. Same-repo, non-draft PRs only (a
   # fork's token can't merge). Needs "Allow auto-merge" in the repo settings;

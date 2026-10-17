@@ -346,6 +346,14 @@ local function installShims()
 	impl("Players", "GetPlayers", function()
 		return table.clone(current.players)
 	end)
+	impl("Players", "GetPlayerFromCharacter", function(_, character)
+		for _, p in current.players do
+			if p.Character == character then
+				return p
+			end
+		end
+		return nil
+	end)
 	impl("Players", "GetPlayerByUserId", function(_, userId)
 		for _, p in current.players do
 			if p.UserId == userId then
