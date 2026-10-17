@@ -107,6 +107,13 @@ R1 `rel_stackguard_eject` (character teleported into the EmergeMesh box is eject
 `InputHoldBegin/End` opens `WorldShopPanel`, Esc closes), R7 `rel_minimap_pin` (Client: ok null while there is no minimap UI). Server probes use the real
 character (unanchored, server ownership) and restore it. `selftest.py` `t_release` checks the wiring; the `bug probes` shot-map rule also covers `rel_*.luau` / `*rel-*`.
 
+**Default Bat probes BAT1-BAT2** (`shots/220-bat-hit.json`, `221-bat-tool.json`, `luau/bat_hit.luau`, `"bug": "BAT1".."BAT2"`, advisory, Server, the Bat is LIVE and needs
+no flag): BAT1 `PART=hit` (an owner bats a carrying thief and the slime returns home: R15 dummies on a private platform, the real `Server` modules on a private
+`World` (`Sessions.join`, `Carry.grab`, `BatTool.swing`, `StealService.step`); checks `whiff_is_harmless`, `bat_hit`, `slime_dropped`, `bounces_home`, `slime_back_home`,
+`shares_slap_cooldown`, `knockback_planned` / `thief_pushed_away` (within `Config.BAT.PUSH`), `nonlethal`, `cooldown_enforced`, `part_delta` 0), BAT2 `PART=tool`
+(the real player has exactly one `Bat` Tool, `CanBeDropped` false, an inert Handle, <= 3 parts). The probe swaps the live `BatTool` env for its own and restores it.
+`selftest.py` `t_bat` checks the wiring; the shot-map rule `bat` selects them for `luau/bat_*.luau`, `shots/*bat-*`, `src/server/BatTool.luau` and `src/shared/Bat*.luau`.
+
 ## Full vs partial runs
 
 A full run takes about 13-15 min (800 s: 165 frames at ~3.7 s, devices ~140 s, the rest ~50 s). Most merges only touch

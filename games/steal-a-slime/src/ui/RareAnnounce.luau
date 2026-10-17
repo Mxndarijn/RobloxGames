@@ -122,7 +122,7 @@ function RareAnnounce.banner(boss: Boss?, caught: { text: string, untilTime: num
 	end
 	local name = if boss.name then `: {boss.name}` else ""
 	if boss.carried then
-		return { text = `👑 BOSS SLIME{name} is being carried - chase & slap!`, kind = "boss" }
+		return { text = `👑 BOSS SLIME{name} is being carried - chase & hit them with your bat!`, kind = "boss" }
 	end
 	local timer = if left then ` - {Format.formatDuration(left)}` else ""
 	return { text = `👑 BOSS SLIME{name}! Grab it at the fountain{timer}`, kind = "boss" }

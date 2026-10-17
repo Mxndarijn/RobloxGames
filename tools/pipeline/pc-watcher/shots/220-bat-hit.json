@@ -1,0 +1,21 @@
+{
+  "id": "bat-hit",
+  "todo": "Default Bat",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 70,
+  "height": 30,
+  "bug_probe": {
+    "bug": "BAT1",
+    "title": "An owner bats a carrying thief: slime dropped and bounces home, knockback away, slap cooldown shared",
+    "luau": "bat_hit",
+    "ctx": "Server",
+    "args": {
+      "PART": "hit"
+    },
+    "timeout": 30
+  },
+  "note": "Default Bat probe (LIVE, not behind FEATURES.PvP; CONTRACT.md \u00a726): luau/bat_hit PART=hit; real Server modules on a private World, R15 dummies on a private platform",
+  "device": "desktop"
+}

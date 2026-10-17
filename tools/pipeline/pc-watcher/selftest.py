@@ -240,7 +240,7 @@ def t_files():
         "shot_camera": {"EYE", "AT", "FOV"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "slide_top_drop": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "mesh_stand": {"MESHES"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "world_shop": {"SHOP"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "pvp_feel": {"PART"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"}, "bug08_lock_enter": {"PART"}, "bug11_char_walk": {"PART"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "world_shop": {"SHOP"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "pvp_feel": {"PART"}, "bat_hit": {"PART"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"}, "bug08_lock_enter": {"PART"}, "bug11_char_walk": {"PART"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -1036,9 +1036,27 @@ def t_pvp():
     check("plan PvpKnockback.luau picks the pvp shots", all(s["id"] in picked for s in probes), picked[:8])
 
 
+def t_bat():
+    """Default Bat probes (luau/bat_hit): BAT1 (an owner bats a carrying thief, the slime returns home) and BAT2 (one non-droppable Bat)."""
+    shots, _ = watcher.load_shots(repo=None)
+    smap = watcher.read_json(watcher.data_path(None, "shot-map.json")[0])
+    probes = [s for s in shots if str(s.get("bug_probe", {}).get("bug", "")).startswith("BAT")]
+    check("bat probes: BAT1..BAT2 once each", sorted(s["bug_probe"]["bug"] for s in probes) == ["BAT1", "BAT2"], [s["bug_probe"]["bug"] for s in probes])
+    check("bat probes: world shots, ids bat-*, luau bat_hit, Server, timeout <= 45", all(
+        s.get("kind") == "world" and s["id"].startswith("bat-") and s["bug_probe"].get("luau") == "bat_hit" and s["bug_probe"].get("ctx") == "Server"
+        and int(s["bug_probe"].get("timeout", 30)) <= 45 for s in probes))
+    src = open(os.path.join(HERE, "luau", "bat_hit.luau"), encoding="utf-8").read()
+    check("bat_hit: hit / tool parts with their checks", all(w in src for w in ('"hit"', '"tool"', "slime_dropped", "bounces_home", "slime_back_home", "knockback_planned",
+          "cooldown_enforced", "one_bat", "not_droppable", "part_delta", "BatTool.swing", '"PASS"')))
+    check("bat probes: selected by the bat shot-map rule", any(r["name"].startswith("bat") and all(watcher.shot_selected_by(s, r) for s in probes) for r in smap["rules"]))
+    G = "games/steal-a-slime/src/"
+    picked = watcher.plan_run([G + "server/BatTool.luau"], shots, smap, 60)["shots"]
+    check("plan BatTool.luau picks the bat shots", all(s["id"] in picked for s in probes), picked[:8])
+
+
 def main():
     for t in (t_perf, t_perf_e2e, t_lock_age, t_shot_tool_errors, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_release, t_pvp, t_play_settle):
+              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_release, t_pvp, t_bat, t_play_settle):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going

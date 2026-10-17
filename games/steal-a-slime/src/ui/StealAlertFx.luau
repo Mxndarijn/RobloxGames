@@ -10,7 +10,7 @@
 	  `State.stealAway` once per join (as a toast).
 	* Thief (and everyone watching): a short Trail on any player whose Player attribute
 	  `Stealing` is set.
-	* SLAP: a hit effect (flash, "SLAP!" pop, burst) on the player whose `SlapHitAt` changes.
+	* Bat hit: a hit effect (flash, "SLAP!" pop, burst) on the player whose `SlapHitAt` changes.
 
 	Only Instances that are not parts: Frames, a BillboardGui, a Highlight, a Trail with two
 	Attachments, a ParticleEmitter. The maths is Shared.StealAlert (tests/StealAlert.spec).
@@ -246,7 +246,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		})
 	end
 
-	-- Hit effect: white flash on the character, a "SLAP!" pop and a small burst.
+	-- Hit effect: white flash on the character, a "BONK!" pop and a small burst.
 	local function slapFx(player: Player)
 		local character = player.Character
 		local rootPart = character and character:FindFirstChild("HumanoidRootPart")
@@ -269,7 +269,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		local label = create("TextLabel", {
 			Size = UDim2.fromScale(1, 1),
 			BackgroundTransparency = 1,
-			Text = "SLAP!",
+			Text = "BONK!",
 			TextSize = 30,
 			Font = Theme.Font,
 			TextColor3 = Color3.fromRGB(255, 230, 80),

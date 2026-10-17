@@ -483,7 +483,7 @@ function Hud.new(parent: Instance, ctx: any)
 		end
 		steal.Visible = #thieves > 0
 		if #thieves > 0 then
-			steal.Text = `STOLEN! {table.concat(thieves, ", ")} - chase & slap!`
+			steal.Text = `STOLEN! {table.concat(thieves, ", ")} - chase & hit them with your bat!`
 		end
 
 		self.tick(ctx.serverNow())

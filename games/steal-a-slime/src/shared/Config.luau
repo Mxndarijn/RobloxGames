@@ -697,6 +697,15 @@ local Config = {
 	STEAL_REACH = 14, -- studs: max server-checked distance to grab a slime
 	SLAP_REACH = 10,
 	SLAP_COOLDOWN = 1.5,
+	-- The default melee Bat Tool (server/BatTool, every player, live, NOT behind FEATURES.PvP). A hit on a carrying
+	-- thief is the base slap (StealService.slap: reach SLAP_REACH, cooldown SLAP_COOLDOWN) plus a knockback push.
+	BAT = table.freeze({
+		TOOL_NAME = "Bat",
+		PUSH = 5, -- studs of knockback (PvpKnockbackRules.plan, capped by PVP.KNOCKBACK_MAX_PUSH)
+		FACING_DOT = 0.3, -- the thief must be in front: dot(look, direction to them) >= this (about 72 degrees each side)
+		CLOSE_STUDS = 3, -- closer than this the facing check is skipped (hugging a thief)
+		SWING_GAP = 0.4, -- seconds between swing events (a whiff never spends the SLAP_COOLDOWN)
+	}),
 	WRIGGLE_MAX_CHANCE = 0.12, -- per-second escape chance as the escape timer runs out
 	STOLEN_EXTRA_SLOW = 0.25, -- extra slowdown, ramps up the longer a stolen slime is held
 	MAX_CARRY_SLOW = 0.6,

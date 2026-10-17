@@ -2,14 +2,13 @@
 --[[
 	Selection
 
-	Pure helpers for picking slimes in the UI (merge pair, sorting, slap
-	target). Works on the `State.slimes` shape. Client-side checks only gate
+	Pure helpers for picking slimes in the UI (merge pair, sorting).
+	Works on the `State.slimes` shape. Client-side checks only gate
 	buttons; the server still validates every Request.
 ]]
 
 export type SlimeLike = { id: string, tier: number }
 export type SlimeViewLike = { slime: SlimeLike, income: number, stolenBy: number? }
-export type SlapCandidate = { userId: number, distance: number }
 
 local Selection = {}
 
@@ -127,17 +126,6 @@ function Selection.sorted<T>(slimes: { T }, favoriteId: string?): { T }
 		return x.slime.id < y.slime.id
 	end)
 	return list
-end
-
--- Nearest carrier within `reach` (excluding `selfUserId`), or nil.
-function Selection.pickSlapTarget(candidates: { SlapCandidate }, reach: number, selfUserId: number?): number?
-	local best: SlapCandidate? = nil
-	for _, c in candidates do
-		if c.userId ~= selfUserId and c.distance <= reach and (best == nil or c.distance < best.distance) then
-			best = c
-		end
-	end
-	return if best then best.userId else nil
 end
 
 return table.freeze(Selection)
