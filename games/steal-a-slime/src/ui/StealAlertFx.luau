@@ -325,7 +325,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 
 	local self = {}
 
-	-- The current Layout.screen and the shown banner stack height: the arrow stays under the HUD /
+	-- The current Layout.screen and the shown banner stack height: the arrow stays under the
 	-- banners / right of the nav, and the flash thins on phones.
 	function self.layout(s: Layout.Screen, bannerH: () -> number)
 		screen = s

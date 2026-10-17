@@ -3,7 +3,8 @@
 	Codes panel (v29): a small card to redeem a code. A gift badge and a text
 	box, one Redeem button (Enter works too), a line for the active income
 	boost (State.codes) and a hint of what codes give. The server decides
-	(Codes.redeem); its result comes back as a toast. The typed text stays
+	(Codes.redeem); there are no toasts any more (B6), so a good code shows in the boost line and a failed try
+	just keeps the text. The typed text stays
 	after a failed try (typo?) and clears once State.codes.redeemed grows.
 ]]
 

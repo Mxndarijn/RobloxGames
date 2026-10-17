@@ -5,7 +5,7 @@
 	Pure layout rules shared by the UI and its tests (tests/ui/Layout.spec,
 	tests/ui/LayoutAssert): the ZIndex layers of the top-level overlays,
 	scroll list settings, the root UIScale, touch-target sizes and the
-	rectangles of the HUD, left nav, full-window menu panels and bottom cards. No
+	rectangles of the bottom clusters, left nav, full-window menu panels and bottom cards. No
 	Instances here; Widgets / Hud / init.client apply them.
 
 	Coordinates are design px: the ScreenGui's AbsoluteSize divided by
@@ -73,7 +73,7 @@ Layout.CLOSE_WITH_ESCAPE = true
 -- menu panels, the tutorial over the daily popup, and the carry panel
 -- (Drop, Slap) over both.
 Layout.ZINDEX = table.freeze({
-	Base = 1, -- HUD, nav, the menu backdrop
+	Base = 1, -- bottom clusters, nav, the menu backdrop
 	Menu = 2, -- menu cards (over the backdrop, whatever their sibling order)
 	Banners = 3, -- HUD banners and the tutorial hint
 	Daily = 5,
@@ -507,7 +507,7 @@ Layout.SLAP = table.freeze({ w = 200, h = Layout.BUTTON })
 Layout.DAILY = table.freeze({ w = 420, h = 300 })
 Layout.TUTORIAL = table.freeze({ w = 520, bodyTop = 68, bodyTextSize = 14, padX = 14, padBottom = 12 })
 -- Short (landscape phone) screens: the tutorial card sits this many screen px
--- above the bottom edge, below the banner stack and the toast column.
+-- above the bottom edge, below the banner stack.
 Layout.TUTORIAL_SHORT_MARGIN = 8
 Layout.TUTORIAL_SHORT_HEIGHT = 500 -- viewport px: shorter than this is a landscape phone
 
@@ -561,7 +561,7 @@ function Layout.tutorialHeight(width: number): number
 end
 
 -- The full-window menu box: right of the nav (so the player can switch
--- menus), from under the HUD down to the bottom inset (touch controls on
+-- menus), from the top margin down to the bottom inset (touch controls on
 -- phones). The bottom cards (carry, tutorial) draw above it (ZINDEX), so
 -- Drop / Slap / Hide stay tappable while a menu is open.
 function Layout.fullWindowRect(columnX: number, top: number, width: number, height: number, inset: number): Rect
