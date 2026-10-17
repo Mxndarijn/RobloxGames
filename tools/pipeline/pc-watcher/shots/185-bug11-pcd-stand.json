@@ -2,7 +2,7 @@
   "id": "bug11-mesh-stand-pcd",
   "todo": "bug 11",
   "kind": "world",
-  "target": "ranch_fence_stile",
+  "target": "FenceStile_8",
   "from": "front",
   "dist": 40,
   "height": 18,
