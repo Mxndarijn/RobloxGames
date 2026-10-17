@@ -138,8 +138,7 @@ for _, vp in LayoutAssert.GATE_VIEWPORTS do
 		place(toasts, s.toasts)
 		frame("Tutorial", s.tutorial, root, Z.Tutorial, true)
 		frame("TutorialCarrying", s.tutorialCarrying, root, Z.Tutorial, true)
-		local carry = frame("Carry", s.carry, root, Z.Carry, true)
-		button("Slap", s.slap, carry, s.carry)
+		frame("Carry", s.carry, root, Z.Carry, true)
 
 		local file = `{outDir}/{case}.rbxmx`
 		fs.writeFile(file, roblox.serializeModel({ gui }, true))

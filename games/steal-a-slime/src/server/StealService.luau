@@ -127,7 +127,7 @@ function StealService.escape(world: World, carrier: Session, now: number, reason
 	})
 	local name = Genome.displayName(carry.slime)
 	if reason == "slap" then
-		World.notify(world, carrier.userId, `You got slapped! The {name} bounced home.`, "bad", "Slap", "Slap")
+		World.notify(world, carrier.userId, `You got bonked! The {name} bounced home.`, "bad", "Slap", "Slap")
 	elseif reason ~= "left" then
 		World.notify(world, carrier.userId, `The {name} wriggled free!`, "bad", "Escape")
 	end
@@ -157,7 +157,7 @@ function StealService.slap(
 	end
 	slapper.lastSlapAt = now
 	StealService.escape(world, target, now, "slap")
-	World.notify(world, slapper.userId, `You slapped {target.name}!`, "good", "Slap", "Slap")
+	World.notify(world, slapper.userId, `You bonked {target.name} with your bat!`, "good", "Slap", "Slap")
 	World.tutorial(world, slapper, "Steal")
 	return true, nil
 end

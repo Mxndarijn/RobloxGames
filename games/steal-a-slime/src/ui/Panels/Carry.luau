@@ -3,34 +3,18 @@
 	Carry overlay (bottom centre) while state.carrying is set: slime, kind,
 	escape countdown for stolen slimes, Drop -> Request("Drop").
 
-	Also a Slap button when another player who is carrying (Player attribute
-	`Carrying`, CONTRACT §5.2) is within SLAP_REACH of our character. The
-	server re-checks reach and decides the outcome.
+	Thieves are hit with the default Bat Tool (server/BatTool), not a button here.
 ]]
-
-local Players = game:GetService("Players")
 
 local UI = script.Parent.Parent
 local Format = require(UI.Format)
-local ItemIconView = require(UI.ItemIconView)
-local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
-local Selection = require(UI.Selection)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
 local create = Widgets.create
 
 local Carry = {}
-
-local function rootPosition(player: Player): Vector3?
-	local character = player.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if root and root:IsA("BasePart") then
-		return root.Position
-	end
-	return nil
-end
 
 function Carry.new(parent: Instance, ctx: any)
 	local border = Widgets.stroke(Theme.Warn, 2)
@@ -85,69 +69,19 @@ function Carry.new(parent: Instance, ctx: any)
 	)
 	drop.instance.Parent = frame
 
-	local slapTarget: number? = nil
-	local slap = Widgets.button(
-		{
-			Name = "Slap",
-			Text = "SLAP!",
-			Visible = false,
-			TextScaled = true, -- long display names shrink instead of overflowing
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -130),
-			Size = UDim2.fromOffset(Layout.SLAP.w, Layout.SLAP.h),
-			ZIndex = Layout.ZINDEX.Carry,
-		},
-		Theme.Warn,
-		function()
-			if slapTarget then
-				ctx.send("Slap", slapTarget)
-			end
-		end
-	)
-	slap.instance.TextColor3 = Color3.fromRGB(40, 25, 5)
-	create("UITextSizeConstraint", { MaxTextSize = 22, Parent = slap.instance })
-	local SLAP_ICON = 30
-	create("UIPadding", {
-		PaddingLeft = UDim.new(0, 8 + SLAP_ICON + 4),
-		PaddingRight = UDim.new(0, 8),
-		PaddingTop = UDim.new(0, 4),
-		PaddingBottom = UDim.new(0, 4),
-		Parent = slap.instance,
-	})
-	-- The Slap gear's item icon, in the padding left of the label.
-	ItemIconView.new({
-		Name = "SlapIcon",
-		Id = "Slap",
-		Size = SLAP_ICON,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, -(SLAP_ICON + 4), 0.5, 0),
-		Parent = slap.instance,
-	}, ItemIcons.of(ctx)).setActive(true)
-	slap.instance.Parent = parent
-
 	local carrying: any = nil
-	local myStolen: { [number]: boolean } = {}
 
 	local self = {}
 
-	-- Bottom card + Slap boxes from Layout.screen (above phone touch controls).
+	-- Bottom card box from Layout.screen (above phone touch controls).
 	function self.layout(screen: Layout.Screen)
 		frame.AnchorPoint = Vector2.zero
 		frame.Position = UDim2.fromOffset(screen.carry.x, screen.carry.y)
 		frame.Size = UDim2.fromOffset(screen.carry.w, screen.carry.h)
-		slap.instance.AnchorPoint = Vector2.zero
-		slap.instance.Position = UDim2.fromOffset(screen.slap.x, screen.slap.y)
-		slap.instance.Size = UDim2.fromOffset(screen.slap.w, screen.slap.h)
 	end
 
 	function self.update(state: any)
 		carrying = state.carrying
-		table.clear(myStolen)
-		for _, view in state.slimes do
-			if view.stolenBy ~= nil then
-				myStolen[view.stolenBy] = true
-			end
-		end
 		frame.Visible = carrying ~= nil
 		if carrying then
 			local slime = carrying.slime
@@ -158,33 +92,7 @@ function Carry.new(parent: Instance, ctx: any)
 		self.tick(ctx.serverNow())
 	end
 
-	local function updateSlap()
-		local me = Players.LocalPlayer
-		local myPos = rootPosition(me)
-		local candidates = {}
-		if myPos and carrying == nil then
-			for _, other in Players:GetPlayers() do
-				if other ~= me and other:GetAttribute("Carrying") ~= nil then
-					local pos = rootPosition(other)
-					if pos then
-						table.insert(candidates, { userId = other.UserId, distance = (pos - myPos).Magnitude })
-					end
-				end
-			end
-		end
-		slapTarget = Selection.pickSlapTarget(candidates, ctx.Config.SLAP_REACH, me.UserId)
-		slap.instance.Visible = slapTarget ~= nil
-		if slapTarget then
-			slap.setText(
-				if myStolen[slapTarget]
-					then `SLAP {ctx.playerName(slapTarget)}!\nSave your slime`
-					else `SLAP {ctx.playerName(slapTarget)}!`
-			)
-		end
-	end
-
 	function self.tick(now: number)
-		updateSlap()
 		if carrying == nil then
 			return
 		end

@@ -63,17 +63,3 @@ describe("Selection.sorted", function()
 		expect(order).toEqual({ "a", "c", "b", "d" })
 	end)
 end)
-
-describe("Selection.pickSlapTarget", function()
-	it("picks the nearest carrier within reach, never yourself", function()
-		local candidates = {
-			{ userId = 1, distance = 2 },
-			{ userId = 2, distance = 8 },
-			{ userId = 3, distance = 5 },
-			{ userId = 4, distance = 30 },
-		}
-		expect(Selection.pickSlapTarget(candidates, 10, 1)).toBe(3)
-		expect(Selection.pickSlapTarget(candidates, 1, nil)).toBeNil()
-		expect(Selection.pickSlapTarget({}, 10, nil)).toBeNil()
-	end)
-end)
