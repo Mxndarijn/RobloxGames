@@ -55,6 +55,7 @@ local Profiler = require(script.Profiler)
 local PvpKnockback = require(script.PvpKnockback)
 local PvpKnockbackRules = require(Shared:WaitForChild("PvpKnockbackRules"))
 local PvpService = require(script.PvpService)
+local PvpTrap = require(script.PvpTrap)
 local Revenge = require(script.Revenge)
 local RitualService = require(script.RitualService)
 local RitualView = require(script.RitualView)
@@ -519,6 +520,11 @@ PvpService.setSink(function(target: number?, payload: { [string]: any })
 		pvpEvent:FireClient(player, payload)
 	end
 end, now)
+-- Goo Traps (FEATURES.PvP): server-side zones on the owner's own plot, no Instance; the look is client FX from PvpEvent.
+PvpTrap.setPlotCheck(function(session: World.Session, aim: any): boolean
+	return WorldView.pointInHomeZone(Vector3.new(aim.X, aim.Y, aim.Z), session.plotIndex)
+end)
+PvpTrap.register()
 
 -- Knockback gloves (FEATURES.PvP): the server only launches the target; the look is client FX from PvpEvent.
 PvpKnockback.setMover(function(userId: number, push, _landing): boolean

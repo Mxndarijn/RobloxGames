@@ -57,6 +57,13 @@ local clock: () -> number = os.time
 -- Everything PvP puts in Workspace is tracked here and destroyed by `cleanup` (CONTRACT.md §26.1, zero net parts).
 local spawned: { [Session]: { any } } = setmetatable({}, { __mode = "k" }) :: any
 
+-- Server-side zones (Goo Traps) own no Instance, so they hook the same cleanup (leave, flag off).
+local cleanupHooks: { (session: Session) -> () } = {}
+
+function PvpService.onCleanup(hook: (session: Session) -> ())
+	table.insert(cleanupHooks, hook)
+end
+
 -- Wires the PvpEvent firing (and the server clock for `serverTime`). nil = fire nothing (Lune tests capture).
 function PvpService.setSink(newSink: Sink?, newClock: (() -> number)?)
 	sink = newSink
@@ -101,6 +108,9 @@ end
 
 -- Destroys everything PvP spawned for the session (leave, flag off).
 function PvpService.cleanup(session: Session)
+	for _, hook in cleanupHooks do
+		hook(session)
+	end
 	local list = spawned[session]
 	spawned[session] = nil
 	for _, instance: any in (list or {}) :: { any } do
