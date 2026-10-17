@@ -512,6 +512,9 @@ VIEWS = {
     # v19 merge vat (export --vat): Plot_1's vat from inside the plot, and from above the gate looking down into the plot
     "16_merge_vat": lambda: look((data["vat"][0] + 15, 9, data["vat"][2] - 15), (data["vat"][0], 4, data["vat"][2]), lens=32) if data.get("vat") else None,
     "17_merge_vat_plot": lambda: look((data["vat"][0] + 14, 40, data["vat"][2] - 44), (data["vat"][0] - 6, 2, data["vat"][2] + 6), lens=30) if data.get("vat") else None,
+    # v19 Rain Magnet (export --magnet): the magnet beside Plot_1's vat from inside the plot, and from above the gate
+    "18_rain_magnet": lambda: look((data["magnet"][0] - 6, 8, data["magnet"][2] - 24), (data["magnet"][0] + 3, 4.5, data["magnet"][2]), lens=30) if data.get("magnet") else None,
+    "19_rain_magnet_plot": lambda: look((data["magnet"][0] + 24, 40, data["magnet"][2] - 44), (data["magnet"][0] + 4, 2, data["magnet"][2] + 6), lens=30) if data.get("magnet") else None,
 }
 
 os.makedirs(args.out, exist_ok=True)

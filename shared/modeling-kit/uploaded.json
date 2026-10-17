@@ -404,6 +404,19 @@
       5.4
     ]
   },
+  "rain_magnet": {
+    "assetId": "87228491807524",
+    "assetType": "Model",
+    "meshId": "rbxassetid://102515085429965",
+    "meshSize": [
+      5.68,
+      9.679,
+      3.607
+    ],
+    "sha256": "9860dc6b05487f1e",
+    "uploadedAt": "2026-10-17T00:10:05Z",
+    "versions": 1
+  },
   "ranch_barn_loft": {
     "assetId": "136936166477639",
     "assetType": "Model",

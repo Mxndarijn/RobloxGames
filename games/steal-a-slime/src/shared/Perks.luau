@@ -225,6 +225,15 @@ function Perks.offlineCap(data: Progress): number
 	return Config.OFFLINE_CAP_SECONDS + upgradeEffect(data, "OfflineCap")
 end
 
+-- Chance that a wild slime this player deposits picks up the current weather's mutation (RainMagnet);
+-- 0 with FEATURES.RainMagnet off. `enabled` (tests) overrides the flag.
+function Perks.rainMagnetChance(data: Progress, enabled: boolean?): number
+	if not (if enabled == nil then Config.FEATURES.RainMagnet else enabled) then
+		return 0
+	end
+	return math.min(1, upgradeEffect(data, "RainMagnet"))
+end
+
 -- Chance that a wild slime this player deposits is one rarity higher.
 function Perks.luckChance(data: Progress): number
 	return upgradeEffect(data, "Luck") + petValue(data, "luck")
