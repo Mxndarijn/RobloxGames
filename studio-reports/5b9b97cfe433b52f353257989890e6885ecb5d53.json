@@ -13527,5 +13527,10 @@
       ]
     }
   },
-  "frames_dir": "5b9b97cfe433b52f353257989890e6885ecb5d53/"
+  "frames_dir": "5b9b97cfe433b52f353257989890e6885ecb5d53/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix 13:37 CEST: frames OK (228/228 captured, cloud 941 pass). The report status is FAIL only because runtime parts are 2233, over the 2230 ratchet (from #229, same as 847128a); the frames have no functional issue. #232 Sound card: phone-landscape shows a compact single row (Sound on | Music 35% | SFX 80%) at the top of the menu area, clear of the nav and HUD. Phone-portrait stacks it (button, Music, SFX), still clear of the nav. These shots don't show the tutorial, carry or slap cards, so overlap with them is unproven. 116 phone-landscape: SECRET announcement plus the 3 banners plus the egg toast, all readable, tutorial not shown this run. Notes: translucent red strip across the top of the HUD on phone."
 }
