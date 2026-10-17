@@ -1,0 +1,22 @@
+{
+  "id": "bug14-grass-style",
+  "todo": "bug 14",
+  "kind": "world",
+  "pos": [
+    100,
+    2.5,
+    38
+  ],
+  "look": [
+    130,
+    1,
+    60
+  ],
+  "wait": 0.5,
+  "bug_probe": {
+    "bug": 14,
+    "title": "Grass style",
+    "summary": "visual only: close ground-level grass"
+  },
+  "note": "bug 14 (visual): close ground-level grass between the ring path and the plots"
+}

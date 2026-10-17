@@ -1,0 +1,21 @@
+{
+  "id": "bug03-free-plot-text",
+  "todo": "bug 3",
+  "kind": "world",
+  "target": "LockSign",
+  "index": 2,
+  "from": "look",
+  "dist": 20,
+  "height": 6,
+  "bug_probe": {
+    "bug": 3,
+    "title": "\"FREE PLOT\" on empty plots",
+    "luau": "bug_text_scan",
+    "ctx": "Client",
+    "args": {
+      "pattern": "free plot",
+      "show": true
+    }
+  },
+  "note": "bug 3 (advisory): no visible SurfaceGui/BillboardGui text containing 'free plot' (PlotDecor lock sign of an unowned plot; index 2 = another player's plot, not Plot_1)"
+}

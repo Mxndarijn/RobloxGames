@@ -239,7 +239,7 @@ def t_files():
         "shot_camera": {"EYE", "AT"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -727,9 +727,75 @@ def t_perf_e2e():
         w.Run.luau, w.Run.need_luau, w.time.sleep = saved_luau, saved_need, saved_sleep
 
 
+def t_bugs():
+    """Advisory bug probes (Merijn's 2026-10-17 list): shots with `bug_probe`, luau/bug*.luau, shot-map selection, report wiring."""
+    shots, _ = watcher.load_shots(repo=None)
+    smap = watcher.read_json(watcher.data_path(None, "shot-map.json")[0])
+    probes = [s for s in shots if "bug_probe" in s]
+    bugs = [s["bug_probe"].get("bug") for s in probes]
+    check("bug probes: bugs 1-16 once each (17 = no probe, new UI)", sorted(bugs) == list(range(1, 17)), bugs)
+    check("bug probes: world shots with title, ctx Server|Client", all(
+        s.get("kind") == "world" and s["bug_probe"].get("title") and s["bug_probe"].get("ctx", "Server") in ("Server", "Client") for s in probes))
+    for s in probes:
+        bp = s["bug_probe"]
+        if not bp.get("luau"):
+            check("bug %s frame-only entry has a summary" % bp["bug"], bool(bp.get("summary")))
+            continue
+        f = os.path.join(HERE, "luau", bp["luau"] + ".luau")
+        check("bug %s luau/%s.luau exists" % (bp["bug"], bp["luau"]), os.path.isfile(f))
+        if os.path.isfile(f):
+            src = open(f, encoding="utf-8").read()
+            check("bug %s luau returns ok / summary / detail" % bp["bug"], all(re.search(r"\b%s = " % k, src) for k in ("ok", "summary", "detail")))
+            check("bug %s args fill exactly the luau placeholders" % bp["bug"],
+                  {k.upper() for k in (bp.get("args") or {})} == set(re.findall(r"%%([A-Z]+)%%", src)))
+    names = {os.path.basename(f) for f in glob.glob(os.path.join(HERE, "luau", "bug*.luau"))}
+    used = {s["bug_probe"]["luau"] + ".luau" for s in probes if s["bug_probe"].get("luau")}
+    check("every luau/bug*.luau is used by a shot", names == used, sorted(names ^ used))
+    rules = smap["rules"]
+    allbug = next((r for r in rules if r["name"] == "bug probes"), None)
+    check("shot-map: 'bug probes' rule selects every bug shot", bool(allbug) and all(watcher.shot_selected_by(s, allbug) for s in probes))
+    check("shot-map: 'bug probes' rule maps luau/bug*.luau and shots/*bug*", bool(allbug) and all(
+        watcher._any_glob(p, allbug["paths"], smap) for p in ("tools/pipeline/pc-watcher/luau/bug12_glow.luau", "tools/pipeline/pc-watcher/shots/160-bug01-leaving-text.json")))
+    other = [r for r in rules if r["name"] != "bug probes"]
+    check("shot-map: every bug shot is also selected by a source-area rule", all(any(watcher.shot_selected_by(s, r) for r in other) for s in probes),
+          [s["id"] for s in probes if not any(watcher.shot_selected_by(s, r) for r in other)])
+    G = "games/steal-a-slime/src/"
+    for path, wanted in ((G + "visuals/shared/RareSpawn.luau", 12), (G + "shared/ParadeLane.luau", 4), (G + "server/Spawner.luau", 5),
+                         (G + "shared/SlideColliders.luau", 9), (G + "server/FountainColliders.luau", 10),
+                         (G + "server/PlotSigns.luau", 8), (G + "visuals/client/VatFx.luau", 16), (G + "visuals/shared/BorderTerrain.luau", 14)):
+        picked = watcher.plan_run([path], shots, smap, 60)["shots"]
+        sid = next(s["id"] for s in probes if s["bug_probe"]["bug"] == wanted)
+        check("plan %s picks bug %d" % (path.rsplit("/", 1)[1], wanted), sid in picked, picked[:5])
+    # advisory: a failing / erroring probe is a note and a report entry, never an exception or a step failure
+    run = watcher.Run(watcher.Paths(tempfile.mkdtemp()), dict(watcher.DEFAULTS), None, True)
+    shot = {"bug_probe": {"bug": 99, "title": "t", "luau": "bug04_lane_smooth", "ctx": "Server"}}
+
+    def fake(result):
+        def need(name, ctx="Server", timeout=60, /, **subs):
+            if isinstance(result, Exception):
+                raise result
+            return result
+        return need
+    for label, result, ok in (("ok false", {"ok": False, "summary": "bad", "detail": {"n": 1}}, False),
+                              ("ok null", {"ok": None, "summary": "visual"}, None),
+                              ("ok true", {"ok": True, "summary": "fine"}, True),
+                              ("StepFail", watcher.StepFail("mcp down"), False)):
+        run.need_luau = fake(result)
+        res = {}
+        watcher.bug_probe(run, shot, res, "s")
+        watcher.bug_record(run, shot, res, "s")
+        check("bug probe %s -> bug.ok %s" % (label, ok), res["bug"]["ok"] is ok, res)
+    check("failing bug probes are notes", sum("bug 99" in n for n in run.notes) == 2, run.notes)
+    rep = watcher.build_report(run)
+    check("report.bugs lists every probe", [b["ok"] for b in rep["bugs"]] == [False, None, True, False]
+          and set(rep["bugs"][0]) == {"id", "title", "ok", "summary", "shot", "frame"}, rep["bugs"])
+    check("bug probes never decide the status", watcher.overall_status({k: {"status": "pass"} for k in watcher.HARD_STEPS}) == "pass")
+    check("step_shots verdict ignores bug probes", "bug" not in "".join(l for l in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read().split("def step_shots")[1].split("def watcher_studio_pids")[0].splitlines() if l.strip().startswith("if any(r.get")))
+
+
 def main():
     for t in (t_perf, t_perf_e2e, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial):
+              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going

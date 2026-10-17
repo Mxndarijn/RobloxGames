@@ -1,0 +1,18 @@
+{
+  "id": "bug09-slide-stand",
+  "todo": "bug 9",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 70,
+  "height": 30,
+  "bug_probe": {
+    "bug": 9,
+    "title": "Walk on / inside the fountain slide",
+    "luau": "bug09_slide_stand",
+    "ctx": "Server",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "bug 9 (advisory, shot 4): character-sized balls dropped on the slide roof / tube and rolled into the mouth must not rest on or inside the slide"
+}
