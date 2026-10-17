@@ -1,0 +1,24 @@
+{
+  "id": "bug04-lane-angular",
+  "todo": "bug 4",
+  "kind": "world",
+  "pos": [
+    0,
+    175,
+    60
+  ],
+  "look": [
+    0,
+    0,
+    0
+  ],
+  "wait": 0.5,
+  "bug_probe": {
+    "bug": 4,
+    "title": "Slime path angular",
+    "luau": "bug04_lane_smooth",
+    "ctx": "Server",
+    "args": {}
+  },
+  "note": "bug 4 (advisory): the lane (ParadeLane.drawPoints resampled every 2 studs) turns <= 20 degrees per 2 studs; reports max turn and corner counts. Aerial frame of the lane"
+}

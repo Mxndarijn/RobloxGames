@@ -1,0 +1,18 @@
+{
+  "id": "bug05-lane-start",
+  "todo": "bug 5",
+  "kind": "world",
+  "target": "slide",
+  "from": "centre",
+  "dist": 90,
+  "height": 60,
+  "bug_probe": {
+    "bug": 5,
+    "title": "Slimes start straight from the fountain",
+    "luau": "bug05_lane_start",
+    "ctx": "Server",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "bug 5 (advisory): a newly spawned wild slime appears at the fountain emerge point and its first 8 studs follow the ride path, no glide to a separate start (waits up to 9 s for a spawn, samples 6 s)"
+}

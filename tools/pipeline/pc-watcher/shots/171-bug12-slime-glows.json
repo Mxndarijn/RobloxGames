@@ -1,0 +1,18 @@
+{
+  "id": "bug12-slime-glows",
+  "todo": "bug 12",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 80,
+  "height": 40,
+  "bug_probe": {
+    "bug": 12,
+    "title": "Slime glows (stray beams / decals)",
+    "luau": "bug12_glow",
+    "ctx": "Client",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "bug 12 (advisory, shots 3 4 6): every ClientRareFx model sits within 3 studs of a slime and follows it; no stray Beam / Neon Beam / Ring_ / glow Decal within 40 studs of the fountain without a slime (fails on the weak-keyed offsets bug, passes once RareSpawn keeps its offsets)"
+}

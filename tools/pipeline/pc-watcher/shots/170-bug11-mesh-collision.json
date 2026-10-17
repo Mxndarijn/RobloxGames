@@ -1,0 +1,17 @@
+{
+  "id": "bug11-mesh-collision",
+  "todo": "bug 11",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 90,
+  "height": 30,
+  "bug_probe": {
+    "bug": 11,
+    "title": "Real mesh collision fidelity",
+    "luau": "bug11_collision_fidelity",
+    "ctx": "Server",
+    "args": {}
+  },
+  "note": "bug 11 (advisory): key collidable meshes (fountain, slide, vat, statues) use PreciseConvexDecomposition and CanCollide; counts per fidelity and the offenders"
+}

@@ -1,0 +1,17 @@
+{
+  "id": "bug06-drain-walk-path",
+  "todo": "bug 6",
+  "kind": "world",
+  "target": "GooDrain",
+  "from": "centre",
+  "dist": 34,
+  "height": 16,
+  "bug_probe": {
+    "bug": 6,
+    "title": "Human walk path to the drain",
+    "luau": "bug06_drain_walk_path",
+    "ctx": "Server",
+    "args": {}
+  },
+  "note": "bug 6 (advisory): no human walk path part (Map.Paths, e.g. SlideExit) reaches the goo drain; ok = removed"
+}

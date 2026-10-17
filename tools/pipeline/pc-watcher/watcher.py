@@ -1565,6 +1565,33 @@ def close_panel(run, panel):
     return "visible_fallback"
 
 
+def bug_probe(run, shot, res, sid):
+    """Advisory bug probe of a world shot (Merijn's bug list). shot["bug_probe"] = {bug, title, luau?, ctx?, args?, timeout?,
+    summary?}: runs luau/<luau> on ctx (Server | Client) and expects {ok: bool|null, summary, detail}; without `luau` it is a
+    frame-only entry (ok null, summary from the shot). ADVISORY: a false ok or an error is a note, never a step or run failure
+    and never a publish-gate input (the bug probes of open bugs fail on purpose). Result lands in res["bug"]."""
+    bp = shot["bug_probe"]
+    rec = {"id": bp.get("bug"), "ok": None, "summary": str(bp.get("summary") or ""), "detail": {}}
+    if bp.get("luau"):
+        try:
+            out = run.need_luau(bp["luau"], bp.get("ctx", "Server"), int(bp.get("timeout", 30)), **(bp.get("args") or {}))
+            rec.update(ok=out.get("ok"), summary=str(out.get("summary") or "")[:300], detail=out.get("detail") or {})
+        except Exception as e:
+            rec.update(ok=False, summary="probe error: %s" % repr(e)[:200])
+    if rec["ok"] is False:
+        run.note("bug %s (shot %s): %s" % (rec["id"], sid, rec["summary"][:160]))
+    res["bug"] = rec
+
+
+def bug_record(run, shot, res, sid):
+    """Adds the shot's bug probe result to the report's top-level `bugs` list (build_report)."""
+    rec = res.get("bug")
+    if rec:
+        run.extra.setdefault("bugs", []).append({
+            "id": rec["id"], "title": shot["bug_probe"].get("title"), "ok": rec["ok"], "summary": rec["summary"],
+            "shot": sid, "frame": (res.get("frame") or {}).get("file")})
+
+
 def step_shots(run):
     """Soft: proof frames from shots/*.json (bots add theirs in PRs). Missing targets are notes, never failures.
 
@@ -1899,6 +1926,8 @@ def step_shots(run):
                     res["fx_streaks"] = run.need_luau("fx_streaks", "Client", timeout=30, max=float(shot["fx_streaks"]))
                     if not res["fx_streaks"].get("ok"):
                         run.note("shot %s: streak longer than %s studs: %s" % (sid, shot["fx_streaks"], json.dumps(res["fx_streaks"].get("bad"))[:200]))
+                if shot.get("bug_probe"):  # advisory bug probe (never fails the step), see bug_probe()
+                    bug_probe(run, shot, res, sid)
                 if shot.get("clock") is not None:
                     # daytime shot: the Server's DayNight cycle rewrites ClockTime, so pin it (Studio hook), restore after
                     res["clock"] = run.need_luau("pcw_clock", "Server", timeout=15, time=float(shot["clock"]))
@@ -1911,6 +1940,7 @@ def step_shots(run):
                         run.luau("flag_set", "Server", timeout=15, names=",".join(live), on=False)
                     if shot.get("clock") is not None:
                         run.luau("pcw_clock", "Server", timeout=15, time=False)
+                bug_record(run, shot, res, sid)
                 if shot.get("plot_skin"):
                     run.luau("plot_skin", "Client", timeout=15, skin="classic")
                 if shot.get("fountain_tier"):
@@ -2069,6 +2099,7 @@ def build_report(run):
         "steps": steps,
         "perf": run.perf,
         "geometry": run.extra.get("geometry"),
+        "bugs": run.extra.get("bugs", []),  # advisory bug probes (shots with bug_probe): {id, title, ok, summary, shot, frame}
         "frames": list(run.frames),
         "input_methods": run.extra.get("input_methods"),
         "menus": run.extra.get("menus"),

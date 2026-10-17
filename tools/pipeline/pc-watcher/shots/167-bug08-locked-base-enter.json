@@ -1,0 +1,18 @@
+{
+  "id": "bug08-locked-base-enter",
+  "todo": "bug 8",
+  "kind": "world",
+  "target": "Plot_2",
+  "from": "centre",
+  "dist": 100,
+  "height": 55,
+  "bug_probe": {
+    "bug": 8,
+    "title": "Locked base enterable by others",
+    "luau": "bug08_lock_enter",
+    "ctx": "Server",
+    "args": {},
+    "timeout": 40
+  },
+  "note": "bug 8 (advisory): a plot is faked locked (attributes only, restored after); a non-owner ball and Humanoid dummy pushed in through the entrance for 4 s must stay out of the footprint"
+}

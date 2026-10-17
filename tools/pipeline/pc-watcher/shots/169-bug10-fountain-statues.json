@@ -1,0 +1,18 @@
+{
+  "id": "bug10-fountain-statues",
+  "todo": "bug 10",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 45,
+  "height": 50,
+  "bug_probe": {
+    "bug": 10,
+    "title": "Standing inside the fountain-top slimes",
+    "luau": "bug10_fountain_statues",
+    "ctx": "Server",
+    "args": {},
+    "timeout": 30
+  },
+  "note": "bug 10 (advisory, shot 3): balls dropped on the fountain-top slime statues (EmergeMesh) must not end inside their bounding boxes"
+}

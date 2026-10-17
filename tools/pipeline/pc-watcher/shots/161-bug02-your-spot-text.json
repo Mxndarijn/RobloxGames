@@ -1,0 +1,20 @@
+{
+  "id": "bug02-your-spot-text",
+  "todo": "bug 2",
+  "kind": "world",
+  "target": "Podium_1",
+  "from": "centre",
+  "dist": 28,
+  "height": 12,
+  "bug_probe": {
+    "bug": 2,
+    "title": "\"Your Spot\" text at the podium",
+    "luau": "bug_text_scan",
+    "ctx": "Client",
+    "args": {
+      "pattern": "your spot",
+      "show": true
+    }
+  },
+  "note": "bug 2 (advisory, shot 3): no visible billboard text containing 'your spot' (PodiumAvatars.EMPTY_TEXT 'Your spot?'); billboards kept on"
+}
