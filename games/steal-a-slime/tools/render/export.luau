@@ -334,17 +334,28 @@ for _, scope in { built.map, built.plots } do
 	end
 end
 
--- The goo lane (server/ParadeView.place, a runtime folder): the same strips, drawn from ParadeLane.
-for _, strip in ParadeLane.strips() do
-	table.insert(parts, {
-		name = `Workspace.Map.Plaza.ParadeLane.{strip.name}`,
-		shape = "Cylinder",
-		size = strip.size,
-		cf = strip.cf,
-		color = { ParadeLane.COLOR[1] / 255, ParadeLane.COLOR[2] / 255, ParadeLane.COLOR[3] / 255 },
-		material = "SmoothPlastic",
-		transparency = 0,
+-- The goo lane (server/ParadeView.place, a runtime folder): the one smooth kit mesh at its pivot (like a MeshSwap
+-- slot: no turn here, Blender imports on the documented axes) once it is uploaded or --pending; else the strips.
+if swappable(ParadeLane.MESH) then
+	local at = ParadeLane.MESH_PIVOT
+	table.insert(meshes, {
+		mesh = ParadeLane.MESH,
+		cf = cfOf(CFrame.new(at[1], at[2], at[3])),
+		size = (MeshAssets.get(ParadeLane.MESH) :: any).size,
+		path = "Workspace.Map.Plaza.ParadeLane.Lane",
 	})
+else
+	for _, strip in ParadeLane.strips() do
+		table.insert(parts, {
+			name = `Workspace.Map.Plaza.ParadeLane.{strip.name}`,
+			shape = "Cylinder",
+			size = strip.size,
+			cf = strip.cf,
+			color = { ParadeLane.COLOR[1] / 255, ParadeLane.COLOR[2] / 255, ParadeLane.COLOR[3] / 255 },
+			material = "SmoothPlastic",
+			transparency = 0,
+		})
+	end
 end
 
 -- The co-op ritual circle (server/RitualView, a runtime model): disc, ring, spots and orb.

@@ -627,16 +627,21 @@ describe("ParadeLane in the live server", function()
 		local lane = rt.workspace.Map.Plaza:FindFirstChild("ParadeLane")
 		expect(lane ~= nil).toBe(true)
 		local parts = lane:GetChildren()
-		expect(#parts).toBe(#ParadeLane.drawPoints() - 1)
+		-- bug 4: once the uploaded slime_lane mesh loads it replaces the strip stand-ins (one MeshPart)
+		local isMesh = #parts == 1 and parts[1]:IsA("MeshPart")
+		if not isMesh then
+			expect(#parts).toBe(#ParadeLane.drawPoints() - 1)
+		end
 		for _, part in parts do
 			expect(part.Anchored).toBe(true)
 			expect(part.CanCollide).toBe(false)
 			expect(part.CanQuery).toBe(false)
 			expect(part.CanTouch).toBe(false)
 			local top = part.CFrame.Position.Y + part.Size.Y / 2
-			expect(top >= ParadeLane.LANE_Y - 1e-3 and top <= ParadeLane.LANE_Y + ParadeLane.STRIP_STEP + 1e-3).toBe(
-				true
-			)
+			local slack = if isMesh then 0.05 else ParadeLane.STRIP_STEP
+			expect(
+				top >= ParadeLane.LANE_Y - (if isMesh then 0.05 else 1e-3) and top <= ParadeLane.LANE_Y + slack + 1e-3
+			).toBe(true)
 		end
 	end)
 	it("walking slimes follow the lane: on the centreline band, hopping, never teleporting", function()
