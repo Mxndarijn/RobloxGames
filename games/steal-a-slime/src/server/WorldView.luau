@@ -47,6 +47,7 @@ local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local PvpFun = require(script.Parent.PvpFun)
 local PvpService = require(script.Parent.PvpService)
 local PvpTrap = require(script.Parent.PvpTrap)
 local Rescue = require(script.Parent.Rescue)
@@ -948,6 +949,7 @@ function WorldView.updatePlayer(player: Player, session: World.Session, now: num
 		local root = WorldView.rootPart(player)
 		PvpService.tick(session, root and root.Position, now)
 		PvpTrap.tick(session, root and root.Position, now)
+		PvpFun.tick(session, root and root.Position, now)
 	end
 	local pet = if Config.FEATURES.FollowPets then Progression.keeper(data) else nil
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)

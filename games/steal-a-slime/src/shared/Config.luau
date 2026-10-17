@@ -1160,6 +1160,12 @@ local Config = {
 		KNOCKBACK_BOUNDS_MARGIN = 6, -- studs kept clear of the map edge
 		KNOCKBACK_SECONDS = 0.35, -- the launch covers the push in this long
 		KNOCKBACK_CONTROL_SECONDS = 0.6, -- a knockback counts as control (PvpRules.applyControl), then immunity
+		FUN_AIM_RANGE = 40, -- studs: how far a Balloon / Bounce Pad / Fireworks aim point may be
+		FUN_NUDGE_CONTROL_SECONDS = 0.3, -- Squeaky Hammer nudge counts as a tiny control
+		FIREWORKS_SECONDS = 4, -- FunFireworks Effect duration
+		BOUNCE_PAD_SECONDS = 60, -- a placed Bounce Pad lives this long
+		BOUNCE_PAD_RADIUS = 4, -- studs: stepping within this horizontal distance triggers it
+		BOUNCE_RETRIGGER_SECONDS = 2, -- the owner's pad cannot relaunch them sooner
 		FX_SECONDS = 1, -- client FX from PvpEvent "Effect" live at most this long (nothing persistent, no server parts)
 		MAP_BOUNDS = table.freeze({ minX = -320, maxX = 320, minZ = -320, maxZ = 320 }), -- WorldBorder.GROUND_HALF = 320, Ground centred on the origin
 	}),

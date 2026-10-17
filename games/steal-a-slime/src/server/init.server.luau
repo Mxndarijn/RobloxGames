@@ -53,6 +53,7 @@ local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
 local Profiler = require(script.Profiler)
 local PvpBlaster = require(script.PvpBlaster)
+local PvpFun = require(script.PvpFun)
 local PvpKnockback = require(script.PvpKnockback)
 local PvpKnockbackRules = require(Shared:WaitForChild("PvpKnockbackRules"))
 local PvpService = require(script.PvpService)
@@ -695,6 +696,26 @@ local friendCache = Friends.new(function(a: number, b: number): boolean
 	end
 	return player:IsFriendsWith(other)
 end)
+
+-- Fun items (FEATURES.PvP): the server only launches / checks; the look is client FX from PvpEvent.
+PvpFun.setEnv({
+	launcher = function(userId: number, push): boolean
+		local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
+		if not root then
+			return false
+		end
+		local v = PvpKnockbackRules.velocity(push, workspace.Gravity)
+		root.AssemblyLinearVelocity = Vector3.new(v.X, v.Y, v.Z)
+		return true
+	end,
+	onOwnPlot = function(session: World.Session, position): boolean
+		return WorldView.pointInHomeZone(Vector3.new(position.X, position.Y, position.Z), session.plotIndex)
+	end,
+	areFriends = function(a: number, b: number, at: number): boolean
+		return Friends.areFriends(friendCache, a, b, at)
+	end,
+})
+PvpFun.register()
 
 local function refreshFriends()
 	if Config.FEATURES.FriendBonus ~= true then
