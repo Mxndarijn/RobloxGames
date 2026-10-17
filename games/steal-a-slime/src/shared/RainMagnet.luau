@@ -47,6 +47,10 @@ function RainMagnet.attract(slime: Genome.Slime, target: string?, chance: number
 	if table.find(list, target) then
 		return nil
 	end
+	-- Without MutationStacking a slime holds one mutation (the draw above still happened, so the rng count is fixed).
+	if not Config.FEATURES.MutationStacking and #list > 0 then
+		return nil
+	end
 	local after = Genome.addMutation(list, target)
 	-- addMutation hands back the same list when the id is unknown or there is no room under MAX_MUTATIONS.
 	local changed = #after ~= #list

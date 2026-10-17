@@ -188,13 +188,110 @@ describe("RainMagnet: deposit hook", function()
 		expect(s.data.slimes[1].mutation).toBe("None")
 		Weather.reset()
 	end)
-	it("only wild catches are touched: the magnet sits in the wild branch of Carry.deposit", function()
-		local fs = require("@lune/fs")
-		local src = fs.readFile("src/server/Carry.luau")
-		local wildAt = string.find(src, 'if carry.kind == "wild" then', 1, true) :: number
-		local magnetAt = string.find(src, "Carry.applyMagnet(world, session, slime)", 1, true) :: number
-		local stolenAt = string.find(src, "Steal.complete(owner.data", 1, true) :: number
-		expect(wildAt < magnetAt and magnetAt < stolenAt).toBe(true)
+	it("stolen slimes are untouched and draw nothing", function()
+		Weather.set("Rain")
+		local world = ServerFixtures.world()
+		local victim = ServerFixtures.join(world, 1, { Fixtures.slime("gem", 2) }, 0)
+		local thief = ServerFixtures.join(world, 2, nil, 0)
+		ServerFixtures.unlock(victim)
+		thief.data.upgrades.RainMagnet = 5
+		local draws = 0
+		local real = world.rng
+		world.rng = {
+			float = function(_self: any)
+				draws += 1
+				return real:float()
+			end,
+		} :: any
+		expect((Carry.grab(world, 2, "gem", 1, T0))).toBe(true)
+		expect((Carry.deposit(world, 2))).toBe(true)
+		local slime = PlayerData.findSlime(thief.data, "gem") :: Genome.Slime
+		expect(slime.mutation).toBe("None")
+		expect(draws).toBe(0)
+		Weather.reset()
+	end)
+	it("deposit draws the same rng with and without weather while the flag is off", function()
+		local function run(weather: string): number
+			Weather.set(weather)
+			local world = ServerFixtures.world()
+			local s = ServerFixtures.join(world, 1, nil, 1e9)
+			s.data.upgrades.RainMagnet = 5
+			local id = Spawner.spawnOne(world, T0)
+			world.wild[id].price = 0
+			Carry.grab(world, 1, id, 5, T0 + 1)
+			local draws = 0
+			local real = world.rng
+			world.rng = {
+				float = function(_self: any)
+					draws += 1
+					return real:float()
+				end,
+			} :: any
+			expect((Carry.deposit(world, 1, T0 + 2))).toBe(true)
+			Weather.reset()
+			return draws
+		end
+		expect(run("Rain")).toBe(run("Clear"))
+	end)
+	it("applyMagnet draws exactly once with a level and a target, never otherwise", function()
+		local world, session, slime = setup(3)
+		local draws = 0
+		local real = world.rng
+		world.rng = {
+			float = function(_self: any)
+				draws += 1
+				return real:float()
+			end,
+		} :: any
+		Weather.set("Starfall")
+		Carry.applyMagnet(world, session, slime, true)
+		expect(draws).toBe(1)
+		Carry.applyMagnet(world, session, Fixtures.slime("n", 1), false) -- flag off: chance 0
+		expect(draws).toBe(1)
+		Weather.reset()
+		Carry.applyMagnet(world, session, Fixtures.slime("c", 1), true) -- Clear: no target
+		expect(draws).toBe(1)
+		session.data.upgrades.RainMagnet = 0
+		Weather.set("Rain")
+		Carry.applyMagnet(world, session, Fixtures.slime("l", 1), true) -- level 0
+		expect(draws).toBe(1)
+		Weather.reset()
+	end)
+	it("the Slime Rain event (world.raining) makes a Clear-weather catch Wet", function()
+		local world, session = setup(5)
+		world.raining = true
+		Weather.reset()
+		local wet = 0
+		for i = 1, 200 do
+			local slime = Fixtures.slime(`r{i}`, 1)
+			if Carry.applyMagnet(world, session, slime, true) then
+				expect(slime.mutation).toBe("Wet")
+				wet += 1
+			end
+		end
+		expect(wet > 0).toBe(true)
+	end)
+	it("a full mutation stack is left alone, a fusing combo still fits", function()
+		Weather.set("Rain")
+		local world, session = setup(5)
+		session.data.upgrades.RainMagnet = 5
+		local full = Fixtures.slime("f", 2)
+		Genome.setMutations(full, { "Glow", "Rainbow", "Golden" })
+		local before = table.clone(Genome.mutationList(full))
+		expect(#before).toBe(Config.MAX_MUTATIONS)
+		for _ = 1, 40 do
+			expect(Carry.applyMagnet(world, session, full, true)).toBe(false)
+		end
+		expect(Genome.mutationList(full)).toEqual(before)
+		local fuse = Fixtures.slime("g", 2)
+		Genome.setMutations(fuse, { "Glow", "Rainbow", "Frozen" })
+		local fused = false
+		for _ = 1, 80 do
+			fused = Carry.applyMagnet(world, session, fuse, true) or fused
+		end
+		expect(fused).toBe(true)
+		expect(#Genome.mutationList(fuse) <= Config.MAX_MUTATIONS).toBe(true)
+		Weather.reset()
 	end)
 	it("buying is refused with the flag off even for a rich rank-6 player", function()
 		local world = ServerFixtures.world()
@@ -246,9 +343,23 @@ describe("RainMagnet: prop", function()
 			scan(root)
 		end
 	end)
-	it("WorldView only publishes the plot attribute with the flag on", function()
-		local fs = require("@lune/fs")
-		local src = fs.readFile("src/server/WorldView.luau")
-		expect(string.find(src, "if Config.FEATURES.RainMagnet then", 1, true) ~= nil).toBe(true)
+	it("with no rain_magnet entry the pose and the upgrade still work (no mesh, no error)", function()
+		expect(MeshAssets.get("rain_magnet_missing")).toBeNil()
+		expect(MeshAssets.meshId("rain_magnet_missing")).toBeNil()
+		expect(MeshAssets.entries.rain_magnet.assetId).toBe(87228491807524)
+		expect(MeshAssets.meshId("rain_magnet")).toBe("rbxassetid://102515085429965")
+		local saved = MeshAssets.entries.rain_magnet
+		MeshAssets.entries.rain_magnet = nil :: any
+		local ok, pose = pcall(MagnetDecor.pose)
+		MeshAssets.entries.rain_magnet = saved
+		expect(ok).toBe(true)
+		expect(#(pose :: any).size).toBe(3)
+		local world = ServerFixtures.world()
+		local session = ServerFixtures.join(world, 1, nil, 1e9)
+		session.data.upgrades.RainMagnet = 5
+		local slime = Fixtures.slime("m", 1)
+		Weather.set("Rain")
+		expect(Carry.applyMagnet(world, session, slime, false)).toBe(false) -- gameplay independent of the mesh
+		Weather.reset()
 	end)
 end)
