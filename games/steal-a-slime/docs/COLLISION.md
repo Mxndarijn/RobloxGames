@@ -68,6 +68,8 @@ still needs its own collider. Max 32 groups. **Studio check** the character part
 
 - `slime_fountain_emerge` as `Hull`: walk and jump over the pile at the fountain top; nobody
   stands in a gap or gets launched out (the hull is convex, depenetration pushes out).
+- `merge_vat` as `Hull` (bug #16, every plot's vat, `MeshSwap.swapPlotVats`): bump into the cauldron and the
+  funnel spouts from all sides; nobody walks inside, the MergePrompt still triggers from the hull's edge.
 - Whether `PreciseConvexDecomposition` on `slime_fountain` could retire the silo colliders and how
   many parts it costs. Not done here.
 - The slide block: walk the whole outline at the mouth, under the posts and beside the upper laps;

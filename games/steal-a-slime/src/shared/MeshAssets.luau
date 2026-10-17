@@ -402,6 +402,9 @@ MeshAssets.COLLISION = table.freeze({
 	-- the big slimes stacked at the fountain top (Merijn #10): one convex hull round the pile, so nobody stands in the
 	-- gaps between them; Hull is cheap and the pile is static
 	slime_fountain_emerge = "Hull",
+	-- bug #16: every plot's merge vat (MeshSwap.swapPlotVats): a blobby cauldron players bump into, never walk inside;
+	-- the hull also closes the gaps under the funnel spouts. The MergeVat disc under it keeps its own collision.
+	merge_vat = "Hull",
 })
 
 function MeshAssets.collision(name: string): string?

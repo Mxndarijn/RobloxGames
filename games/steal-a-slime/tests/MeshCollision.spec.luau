@@ -56,14 +56,20 @@ describe("MeshSwap collision in the live server", function()
 	it("asks CreateMeshPartAsync for the fidelity, and only for meshes that have one", function()
 		local emerge = MeshAssets.meshId("slime_fountain_emerge")
 		expect(asked[emerge]).toBe(roblox.Enum.CollisionFidelity.Hull)
+		local solid = {}
+		local want = 0
+		for name, fidelity in MeshAssets.COLLISION do
+			solid[MeshAssets.meshId(name)] = (roblox.Enum.CollisionFidelity :: any)[fidelity]
+			want += 1
+		end
 		local count = 0
 		for meshId, fidelity in asked do
 			if fidelity ~= nil then
 				count += 1
-				expect(meshId).toBe(emerge)
+				expect(fidelity).toBe(solid[meshId])
 			end
 		end
-		expect(count).toBe(1)
+		expect(count).toBe(want)
 	end)
 	it("the emerge slimes on the fountain are a solid Hull MeshPart", function()
 		local mesh = rt.workspace.Map.Volcano.EmergeMesh:FindFirstChild("Mesh")
@@ -73,6 +79,22 @@ describe("MeshSwap collision in the live server", function()
 		expect(mesh.Anchored).toBe(true)
 		expect(mesh.CanQuery).toBe(false)
 		expect(mesh.CanTouch).toBe(false)
+	end)
+	it("every plot's merge vat is a solid Hull MeshPart over its disc (bug #16)", function()
+		expect(MeshAssets.collision("merge_vat")).toBe("Hull")
+		local vats = 0
+		for _, plot in rt.workspace.Plots:GetChildren() do
+			local vat = plot:FindFirstChild("MergeVat")
+			local mesh = vat and vat:FindFirstChild("VatMesh")
+			if mesh then
+				vats += 1
+				expect(mesh.CanCollide).toBe(true)
+				expect(mesh.CollisionFidelity).toBe(roblox.Enum.CollisionFidelity.Hull)
+				expect(mesh.CanQuery).toBe(false)
+				expect(mesh.CanTouch).toBe(false)
+			end
+		end
+		expect(vats > 0).toBe(true)
 	end)
 	it("every other swapped mesh stays decor: CanCollide off", function()
 		local decor = 0

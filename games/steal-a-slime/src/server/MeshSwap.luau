@@ -274,7 +274,8 @@ function MeshSwap.swapPlotVats(): number
 	end
 	local name = VatDecor.MESH
 	local meshId = MeshAssets.meshId(name)
-	local base = meshId and template(meshId)
+	local fidelity = MeshAssets.collision(name) -- docs/COLLISION.md: set at CreateMeshPartAsync, the only place it sticks
+	local base = meshId and template(meshId, fidelity)
 	if not base then
 		return 0
 	end
@@ -290,7 +291,7 @@ function MeshSwap.swapPlotVats(): number
 			mesh.Size = Vector3.new(pose.size[1], pose.size[2], pose.size[3])
 			mesh.CFrame = CFrame.new(pose.position[1], pose.position[2], pose.position[3]) * turn
 			mesh.Anchored = true
-			mesh.CanCollide = false
+			mesh.CanCollide = fidelity ~= nil
 			mesh.CanQuery = false
 			mesh.CanTouch = false
 			mesh.Parent = vat
