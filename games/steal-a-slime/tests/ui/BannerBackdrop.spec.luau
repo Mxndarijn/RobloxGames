@@ -71,7 +71,6 @@ describe("banners never cover an open menu card's title or X", function()
 				"StealAlert",
 				"EventsBoard",
 				"EggReveal",
-				"PadHint",
 			}
 		do
 			-- EventsBoard is a content-sized Frame (icon rows) parented to banners, not a plain text banner
@@ -97,7 +96,7 @@ describe("tutorial UI never covers an open menu card", function()
 				end
 				for _, step in { "Lock", "BuyPad", "Merge", "Rebirth" } do
 					local view = Hint.fromState({ tutorialStepId = step }, nil)
-					local p = if view then Hint.place(s, s.hud, view) else nil
+					local p = if view then Hint.place(s, view) else nil
 					if p then
 						expect(MenuState.tutorialRect(key, p.ring)).toBeNil()
 						expect(MenuState.tutorialRect(key, p.bubble)).toBeNil()

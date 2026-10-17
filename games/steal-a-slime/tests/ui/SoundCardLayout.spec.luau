@@ -29,17 +29,19 @@ end
 describe("Sound card placement", function()
 	local Sound = UiHarness.ui("Panels/Sound")
 	for _, vp in viewports() do
-		it(`{vp.name}: the card clears nav, HUD, tutorial, carry and slap and stays in the panel`, function()
-			for _, collapsed in { true, false } do
-				local screen = Layout.screen(vp.w, vp.h, { navCollapsed = collapsed })
-				local check = LayoutAssert.new(`[{vp.name} collapsed={collapsed}]`, screen)
+		it(`{vp.name}: the card clears nav, tutorial, carry and slap and stays in the panel`, function()
+			do
+				local screen = Layout.screen(vp.w, vp.h)
+				local check = LayoutAssert.new(`[{vp.name}]`, screen)
 				local card, compact = Sound.place(screen)
 				check.inside("Sound card", card, "panel", screen.panel)
-				check.noOverlap("Sound card", card, "nav", screen.nav)
-				for i, b in screen.navButtons do
-					check.noOverlap("Sound card", card, `navButtons[{i}]`, b)
+				if not screen.compact then -- phones hide the nav tiles while a menu is open
+					check.noOverlap("Sound card", card, "nav", screen.nav)
+					for i, b in screen.navButtons do
+						check.noOverlap("Sound card", card, `navButtons[{i}]`, b)
+					end
 				end
-				-- Under the HUD a phone-landscape strip can be shorter than the one-row card (compactCardH):
+				-- A phone-landscape strip can be shorter than the one-row card (compactCardH):
 				-- then the card stays compact at the top of the panel and may touch the cards below.
 				local cards = {
 					tutorial = screen.tutorial,
@@ -60,7 +62,6 @@ describe("Sound card placement", function()
 					expect(card.y).toBe(screen.panel.y)
 					expect(card.h).toBe(Sound.compactCardH())
 				end
-				check.noOverlap("Sound card", card, "hud", screen.hud.rect)
 
 				-- The rows fit the body, touch-sized and apart (the 332-tall card may be too short to show them).
 				local body = Layout.panelBody(card)

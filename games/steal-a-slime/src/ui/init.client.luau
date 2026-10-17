@@ -6,15 +6,14 @@
 	SlimeDex / leaderboard menus (v28: content-sized cards over a dimmed
 	full-window backdrop) and the Guide card (opened by "Talk" at the
 	TutorialNpc; "Open Shop" at the ShopStand opens the Shop), carry overlay (+ Slap), daily reward popup, tutorial
-	overlay, toasts; plus in-world leaderboard SurfaceGuis (WorldLeaderboard). Renders the latest `State`
+	overlay; plus in-world leaderboard SurfaceGuis (WorldLeaderboard). Renders the latest `State`
 	snapshot (CONTRACT §5.1); every button calls
 	`Request:InvokeServer(action, ...)` (§3). The client never decides outcomes.
 
-	Every top-level box comes from Layout.screen (v18 mobile-first): two HUD
-	rows and an icon-only nav on phones, one row and a labelled nav on
-	desktop; the nav's toggle switches between them. One modal at a time
-	(PopupQueue: the tutorial holds the daily popup back) and a "tap here"
-	hint for tutorial steps that need a HUD / menu button (Hint).
+	Every top-level box comes from Layout.screen (v18 mobile-first): the bottom money / status
+	clusters and a 2-column grid of nav tiles (Oct 18: no top bar, no toasts). One modal at a
+	time (PopupQueue: the tutorial holds the daily popup back) and a "tap here" hint for tutorial
+	steps that need a menu button (Hint).
 ]]
 
 local AssetService = game:GetService("AssetService")
@@ -23,6 +22,7 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -49,8 +49,8 @@ local Nav = require(script.Nav)
 local PopupQueue = require(script.PopupQueue)
 local RareAnnounce = require(script.RareAnnounce)
 local SoundController = require(script.SoundController)
+local Sounds = require(script.Sounds)
 local StealAlertFx = require(script.StealAlertFx)
-local Toasts = require(script.Toasts)
 local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
 local WorldShopLogic = require(script.WorldShopLogic)
@@ -109,7 +109,24 @@ end
 -- One item icon registry for every item UI (ItemIcons); kit meshes render in viewports.
 local itemIcons = ItemIcons.build(Config)
 ItemIconView.builders.mesh = ItemIconView.meshBuilder(MeshAssets, AssetService)
-local toasts = Toasts.new(gui, itemIcons, Config)
+
+-- B6 (Merijn, 2026-10-18): no top-right notifications. A Notify only plays its sound (the steal alarm, the
+-- cash ring ...); nothing is drawn.
+local function playNotifySound(sound: string?)
+	if sound and SoundController.play(sound) then
+		return
+	end
+	local id = Sounds.resolve(sound)
+	if not id then
+		return
+	end
+	local s = Instance.new("Sound")
+	s.SoundId = id
+	SoundService:PlayLocalSound(s)
+	task.delay(5, function()
+		s:Destroy()
+	end)
+end
 local soundController = if Config.FEATURES.Audio == true
 	then SoundController.new(Config, player, require(Shared:WaitForChild("DayNight")))
 	else nil
@@ -133,7 +150,7 @@ local function playerName(userId: number): string
 	return names[userId]
 end
 
--- One in-flight call per action; failures surface as a "bad" toast. `onResult`
+-- One in-flight call per action; failures only warn (no toasts any more). `onResult`
 -- (optional) gets the RequestResult of a call that reached the server.
 local busy: { [string]: boolean } = {}
 local worldShop: any = nil -- WorldShopLogic.controller, FEATURES.WorldShops only (made below, once setOpen exists)
@@ -150,11 +167,11 @@ local function invoke(action: string, onResult: ((any) -> ())?, ...: any)
 		end)
 		busy[action] = nil
 		if not ok then
-			toasts.push(`{action} failed - try again`, "bad")
+			warn(`[UI] {action} failed - try again`)
 		elseif type(result) == "table" and result.ok == false then
-			-- A world-shop denial (result.code) gets its friendly text, once (ShopEvent Denied says the same).
+			-- A world-shop denial (result.code) is told to the shop controller, which has no toast to show.
 			if not (worldShop and worldShop.failed(result)) then
-				toasts.push(if type(result.message) == "string" then result.message else `{action} failed`, "bad")
+				warn(`[UI] {action}: {if type(result.message) == "string" then result.message else "failed"}`)
 			end
 		elseif onResult then
 			onResult(result)
@@ -192,7 +209,7 @@ local function buildSlime(genome: any): Model?
 	return model
 end
 
--- togglePanel / openDaily are filled in below, once the panels exist.
+-- togglePanel is filled in below, once the panels exist.
 local ctx: { [string]: any } = {
 	Config = Config,
 	Constants = Constants,
@@ -207,7 +224,6 @@ local ctx: { [string]: any } = {
 	request = invoke,
 	serverNow = serverNow,
 	playerName = playerName,
-	toast = toasts.push,
 	itemIcons = itemIcons,
 	buildSlime = if modelFactory then buildSlime else nil,
 }
@@ -218,7 +234,6 @@ local stealFx = StealAlertFx.new(gui, {
 	Constants = Constants,
 	StealAlert = StealAlert,
 	serverNow = serverNow,
-	toast = toasts.push,
 })
 local carry = CarryPanel.new(gui, ctx)
 local leaderboard = LeaderboardPanel.new(gui, ctx)
@@ -288,30 +303,27 @@ for _, entry in allPanels do
 	table.insert(allKeys, entry.key)
 end
 
+-- B5: the nav is a bare grid of rounded tiles (no panel behind it), the icon on the tile, the label under it.
 local nav = Widgets.create("Frame", {
 	Name = "Nav",
-	BackgroundColor3 = Theme.Bg,
-	BackgroundTransparency = 0.05,
+	BackgroundTransparency = 1,
 	Parent = gui,
-}, {
-	Widgets.corner(14),
-	Widgets.stroke(Color3.fromRGB(10, 10, 20), 2),
 })
 
 type NavButton = {
 	button: TextButton,
+	tile: Frame,
 	label: TextLabel,
-	icon: TextLabel,
+	icon: any, -- ItemIconView handle
 	stroke: UIStroke,
-	marker: Frame,
 	badge: TextLabel,
 }
+
+local NAV_TILE_COLOR = Color3.fromRGB(58, 36, 110) -- the money plate's purple, like the reference tiles
 
 local openKey: string? = nil
 local soundButton: any = nil -- FEATURES.Audio only
 local navButtons: { [string]: NavButton } = {}
--- nil until the player taps the toggle: follow Layout.navDefaultCollapsed.
-local navChoice: boolean? = nil
 local screen: Layout.Screen? = nil
 local applyLayout: () -> ()
 local refreshHint: () -> ()
@@ -319,11 +331,10 @@ local pumpPopups: (state: Types.State) -> ()
 local layoutCards: () -> ()
 
 local function styleNav(btn: NavButton, selected: boolean)
-	btn.button.BackgroundColor3 = if selected then Theme.Accent else Theme.BgLight
-	btn.label.TextColor3 = if selected then Color3.fromRGB(16, 40, 24) else Theme.Text
-	btn.stroke.Color = if selected then Color3.new(1, 1, 1) else Color3.fromRGB(70, 75, 100)
-	btn.stroke.Thickness = if selected then 3 else 1
-	btn.marker.Visible = selected
+	btn.tile.BackgroundColor3 = if selected then Theme.Accent else NAV_TILE_COLOR
+	btn.label.TextColor3 = if selected then Theme.Accent else Theme.Text
+	btn.stroke.Color = if selected then Color3.new(1, 1, 1) else Color3.fromRGB(10, 10, 20)
+	btn.stroke.Thickness = if selected then 4 else 3
 end
 
 -- Open state is derived from the cards' own Visible: the backdrop, nav
@@ -583,8 +594,9 @@ local function syncMenus()
 	end
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))
-	toasts.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	backdrop.Visible = visibleKey ~= nil
+	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
+	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
 	if soundButton then
 		soundButton.instance.Visible = visibleKey == nil
 	end
@@ -592,11 +604,6 @@ local function syncMenus()
 end
 
 local function setOpen(key: string?)
-	-- Phones: an open panel gets the width the nav labels took.
-	if key and screen and screen.compact and not screen.navCollapsed then
-		navChoice = true
-		applyLayout()
-	end
 	local view = MenuState.view(key, allKeys)
 	for _, entry in allPanels do
 		entry.panel.frame.Visible = view.cards[entry.key]
@@ -607,19 +614,6 @@ end
 for _, entry in allPanels do
 	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
 end
-
--- Collapse / expand toggle: navButtons rect [1].
-local navToggle = Widgets.button(
-	{ Name = "NavToggle", Text = Icons.NAV_COLLAPSED, TextSize = 13 },
-	Theme.BgLight,
-	function()
-		local collapsed = if screen then screen.navCollapsed else true
-		navChoice = not collapsed
-		applyLayout()
-	end
-)
-navToggle.instance.TextColor3 = Theme.Muted
-navToggle.instance.Parent = nav
 
 -- Sound button (FEATURES.Audio): icon only, shown with no menu open; the open card has its own X.
 if soundPanel then
@@ -644,45 +638,42 @@ if soundPanel then
 end
 
 for _, entry in panels do
+	local navEntry = entry.nav :: Nav.Entry
 	local button = Widgets.create("TextButton", {
 		Name = entry.key,
 		Text = "",
-		AutoButtonColor = true,
-		Size = UDim2.fromOffset(Layout.NAV.button, Layout.NAV.button),
-		BackgroundColor3 = Theme.BgLight,
+		AutoButtonColor = false,
+		BackgroundTransparency = 1,
+		Size = UDim2.fromOffset(Layout.NAV.cell, Layout.NAV.tile + Layout.NAV.labelGap + Layout.NAV.label),
 		Parent = nav,
-	}, { Widgets.corner(10) }) :: TextButton
-	local stroke = Widgets.stroke(Color3.fromRGB(70, 75, 100), 1)
-	stroke.Parent = button
-	local marker = Widgets.create("Frame", {
-		Name = "Selected",
-		Visible = false,
-		BorderSizePixel = 0,
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, -6, 0.5, 0),
-		Size = UDim2.fromOffset(4, 36),
+	}) :: TextButton
+	local tile = Widgets.create("Frame", {
+		Name = "Tile",
+		BackgroundColor3 = NAV_TILE_COLOR,
+		Size = UDim2.fromOffset(Layout.NAV.tile, Layout.NAV.tile),
+		Position = UDim2.fromOffset((Layout.NAV.cell - Layout.NAV.tile) // 2, 0),
 		Parent = button,
-	}, { Widgets.corner(2) })
-	local navEntry = entry.nav :: Nav.Entry
-	local icon = Widgets.label({
+	}, { Widgets.corner(16) })
+	local stroke = Widgets.stroke(Color3.fromRGB(10, 10, 20), 3)
+	stroke.Parent = tile
+	local icon = ItemIconView.new({
 		Name = "Icon",
-		Text = navEntry.icon,
-		TextSize = 26,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.new(0, 36, 1, 0),
-		Position = UDim2.fromOffset(4, 0),
-		Parent = button,
-	})
+		Id = navEntry.item,
+		Size = Layout.NAV.tile - Layout.NAV.iconInset * 2,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Parent = tile,
+	}, itemIcons)
+	icon.setActive(true)
 	local label = Widgets.label({
 		Name = "Label",
 		Text = navEntry.label,
 		Font = Theme.Font,
-		TextSize = 18,
-		TextStrokeTransparency = 0.6,
-		Size = UDim2.new(1, -46, 1, 0),
-		Position = UDim2.fromOffset(42, 0),
+		TextSize = Layout.NAV.labelSize,
+		TextStrokeTransparency = 0.2,
+		TextTruncate = Enum.TextTruncate.None,
+		Size = UDim2.fromOffset(Layout.NAV.cell, Layout.NAV.label),
+		Position = UDim2.fromOffset(0, Layout.NAV.tile + Layout.NAV.labelGap),
 		Parent = button,
 	})
 	local badge = Widgets.label({
@@ -712,10 +703,10 @@ for _, entry in panels do
 	end)
 	navButtons[entry.key] = {
 		button = button,
+		tile = tile,
 		label = label,
 		icon = icon,
 		stroke = stroke,
-		marker = marker,
 		badge = badge,
 	}
 end
@@ -754,9 +745,7 @@ if panelByKey.WorldShop then
 				setOpen(nil)
 			end
 		end,
-		toast = function(text: string, kind: string, itemId: string?)
-			toasts.push(text, kind, nil, itemId)
-		end,
+		toast = function() end, -- B6: no toasts; the shop card shows its own state
 		send = send,
 		clock = os.clock,
 	})
@@ -768,24 +757,27 @@ if panelByKey.WorldShop then
 	end)
 end
 
--- Nav, toggle and buttons from Layout.screen; collapsed = icons only.
+-- Nav tiles from Layout.screen: every button box holds its rounded tile and the label under it.
 local function layoutNav(s: Layout.Screen)
 	local r = s.nav
 	nav.Position = UDim2.fromOffset(r.x, r.y)
 	nav.Size = UDim2.fromOffset(r.w, r.h)
-	local function place(inst: GuiObject, b: Layout.Rect)
-		inst.Position = UDim2.fromOffset(b.x - r.x, b.y - r.y)
-		inst.Size = UDim2.fromOffset(b.w, b.h)
-	end
-	place(navToggle.instance, s.navButtons[1])
-	navToggle.setText(if s.navCollapsed then Icons.NAV_COLLAPSED else Icons.NAV_EXPANDED)
-	navToggle.instance.TextSize = if s.navCollapsed then 13 else 16
+	local N = Layout.NAV
+	local tileSize = if s.compact then N.ctile else N.tile
+	local labelH = if s.compact then N.clabel else N.label
 	for i, entry in panels do
 		local btn = navButtons[entry.key]
-		place(btn.button, s.navButtons[i + 1])
-		btn.label.Visible = not s.navCollapsed
-		btn.icon.Size = if s.navCollapsed then UDim2.fromScale(1, 1) else UDim2.new(0, 36, 1, 0)
-		btn.icon.Position = if s.navCollapsed then UDim2.new() else UDim2.fromOffset(4, 0)
+		local b = s.navButtons[i]
+		btn.button.Position = UDim2.fromOffset(math.round(b.x - r.x), math.round(b.y - r.y))
+		btn.button.Size = UDim2.fromOffset(math.round(b.w), math.round(b.h))
+		local tile = Layout.navTile(s.compact, b)
+		btn.tile.Position = UDim2.fromOffset(math.round(tile.x - b.x), 0)
+		btn.tile.Size = UDim2.fromOffset(tileSize, tileSize)
+		local iconSize = tileSize - N.iconInset * 2
+		btn.icon.instance.Size = UDim2.fromOffset(iconSize, iconSize)
+		btn.label.Position = UDim2.fromOffset(0, tileSize + N.labelGap)
+		btn.label.Size = UDim2.fromOffset(math.round(b.w), labelH)
+		btn.label.TextSize = if s.compact then N.clabelSize else N.labelSize
 	end
 end
 
@@ -793,12 +785,11 @@ local lastHint: Hint.View? = nil
 
 function refreshHint()
 	lastHint = if latest then Hint.fromState(latest, openKey) else nil
-	local hudBoxes = hud.hudLayout()
-	if lastHint == nil or screen == nil or hudBoxes == nil then
+	if lastHint == nil or screen == nil or not nav.Visible then
 		hintOverlay.set(nil)
 		return
 	end
-	hintOverlay.set(Hint.place(screen, hudBoxes, lastHint), lastHint.text)
+	hintOverlay.set(Hint.place(screen, lastHint), lastHint.text)
 end
 
 -- Sizes every menu card to its measured body content (Widgets.contentHeight),
@@ -831,15 +822,15 @@ function applyLayout()
 		return
 	end
 	uiScale.Scale = Layout.uiScale(size.X, size.Y)
-	local s = Layout.screen(size.X, size.Y, { navCollapsed = navChoice })
+	local s = Layout.screen(size.X, size.Y)
 	screen = s
 	hud.layout(s)
-	toasts.layout(s, hud.bannerHeight)
 	stealFx.layout(s, hud.bannerHeight)
 	carry.layout(s)
 	tutorial.layout(s)
 	dailyPopup.layout(s)
 	layoutNav(s)
+	syncMenus() -- the nav's phone / desktop visibility follows the new size
 	if soundButton then
 		soundButton.instance.Position = UDim2.fromOffset(s.sound.x, s.sound.y)
 		soundButton.instance.Size = UDim2.fromOffset(s.sound.w, s.sound.h)
@@ -932,13 +923,6 @@ end
 
 function ctx.togglePanel(key: string)
 	setOpen(if openKey == key then nil else key)
-end
-
-function ctx.openDaily()
-	if latest then
-		dailyPopup.update(latest)
-	end
-	dailyPopup.open()
 end
 
 -- Queued popups (welcome-back card, then the daily popup) wait for the tutorial and for each other.
@@ -1053,26 +1037,22 @@ stateEvent.OnClientEvent:Connect(function(state: Types.State)
 	end
 end)
 
-notifyEvent.OnClientEvent:Connect(function(text: string, kind: Types.NotifyKind, sound: string?, itemId: string?)
+notifyEvent.OnClientEvent:Connect(function(text: string, _kind: Types.NotifyKind, sound: string?, _itemId: string?)
 	local message = tostring(text)
 	-- H1 HUD (Merijn): no boss / specific-slime notifications. Boss Slime and Legendary+ drop news
-	-- (RareAnnounce.classify) is dropped here; every other Notify is toasted as before.
+	-- (RareAnnounce.classify) is dropped here; every other Notify only plays its sound (B6: no toasts).
 	if RareAnnounce.classify(message, sound) then
 		return
 	end
-	toasts.push(message, kind, sound, itemId)
+	playNotifySound(sound)
 end)
 
--- Studio-only PC watcher hook: the SlimeUI attribute "PcwBadgeToast" (a badge name) shows the unlock toast;
--- "toast:<text>" shows a plain toast with that text instead.
+-- Studio-only PC watcher hook: the SlimeUI attribute "PcwTooltip" ("Rain" | "Event" | "Friend") opens that
+-- status icon's tooltip (B8); "" closes it.
 if isStudio then
-	gui:GetAttributeChangedSignal("PcwBadgeToast"):Connect(function()
-		local name = gui:GetAttribute("PcwBadgeToast")
-		if type(name) == "string" and string.sub(name, 1, 6) == "toast:" then
-			toasts.push(string.sub(name, 7), "good", nil) -- an item toast (icon from the text), for the watcher
-		elseif type(name) == "string" and name ~= "" then
-			toasts.push(`Badge unlocked: {name}`, "badge", nil)
-		end
+	gui:GetAttributeChangedSignal("PcwTooltip"):Connect(function()
+		local id = gui:GetAttribute("PcwTooltip")
+		hud.showTooltip(if type(id) == "string" and id ~= "" then id else nil)
 	end)
 end
 

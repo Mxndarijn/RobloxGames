@@ -34,14 +34,13 @@ Tutorial.STEPS = table.freeze({
 	table.freeze({
 		id = "Lock",
 		title = "Lock your base",
-		body = 'Tap the blue 🔒 Lock button (top bar), or press E on "Lock base" at your plot. '
+		body = 'Press E on "Lock base" at your plot. '
 			.. "While it says LOCKED, nobody can steal. UNLOCKED = vulnerable!",
 	}),
 	table.freeze({
 		id = "BuyPad",
 		title = "Buy a pad",
-		body = 'More pads = more slimes. Press E on "Buy pad $X" at the glowing pad on your plot, '
-			.. 'or tap "Buy next pad" in the top bar.',
+		body = 'More pads = more slimes. Press E on "Buy pad $X" at the glowing pad on your plot.',
 	}),
 	table.freeze({
 		id = "Merge",

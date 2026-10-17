@@ -80,19 +80,13 @@ describe("EventsBoard banner layout", function()
 	local rows = EventsBoard.rows(WeeklyEvents.encode(SAT), SURGE, SAT, SAT, true) :: { EventsBoard.Row }
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
 		local s = Layout.screen(vp.w, vp.h)
-		it(`{vp.name}: the board (+ one chip) fits the banner column and the toasts keep clear of it`, function()
+		it(`{vp.name}: the board (+ one chip) fits the banner column, clear of the nav`, function()
 			local boardH = boardHeight(rows, s.banners.w)
 			local stackH = boardH + 6 + CHIP_H
 			local stack = Layout.rect(s.banners.x, s.banners.y, s.banners.w, stackH)
 			local check = LayoutAssert.new(vp.name, s)
 			check.onScreen("Banners(board)", stack, 0)
-			check.noOverlap("Banners(board)", stack, "Hud", s.hud.rect)
 			check.noOverlap("Banners(board)", stack, "Nav", s.nav)
-			local box = Layout.toastBox(s, stackH)
-			check.onScreen("Toasts", box, 0)
-			if box.h > 0 then
-				check.noOverlap("Toasts", box, "Banners(board)", stack)
-			end
 			expect(check.report()).toBe("")
 		end)
 		it(`{vp.name}: every row's text fits its label (wrapped, never clipped)`, function()
@@ -111,33 +105,29 @@ describe("EventsBoard banner layout", function()
 	end)
 end)
 
-describe("StealAlerts arrow and flash vs the HUD", function()
+describe("StealAlerts arrow and flash vs the banners and nav", function()
 	local ANGLES = {}
 	for i = 0, 23 do
 		table.insert(ANGLES, (i / 24) * 2 * math.pi - math.pi)
 	end
 	for _, entry in LayoutAssert.screens(LayoutAssert.GATE_VIEWPORTS) do
 		local s = entry.screen
-		it(
-			`{entry.label}: the arrow + distance label stay clear of the HUD, banner stack and nav (all angles)`,
-			function()
-				local check = LayoutAssert.new(entry.label, s)
-				for _, bannerH in { 0, 34, 150, 260 } do
-					local stack = Layout.rect(s.banners.x, s.banners.y, s.banners.w, math.max(bannerH, 1))
-					for _, angle in ANGLES do
-						local box = StealAlertLayout.arrowBox(s, bannerH, StealAlert.edgePoint, angle)
-						local name = string.format("Arrow(banners %d, angle %.2f)", bannerH, angle)
-						check.onScreen(name, box, Layout.MARGIN - 0.001)
-						check.noOverlap(name, box, "Hud", s.hud.rect)
-						check.noOverlap(name, box, "Nav", s.nav)
-						if bannerH > 0 then
-							check.noOverlap(name, box, "Banners", stack)
-						end
+		it(`{entry.label}: the arrow + distance label stay clear of the banner stack and nav (all angles)`, function()
+			local check = LayoutAssert.new(entry.label, s)
+			for _, bannerH in { 0, 34, 150, 260 } do
+				local stack = Layout.rect(s.banners.x, s.banners.y, s.banners.w, math.max(bannerH, 1))
+				for _, angle in ANGLES do
+					local box = StealAlertLayout.arrowBox(s, bannerH, StealAlert.edgePoint, angle)
+					local name = string.format("Arrow(banners %d, angle %.2f)", bannerH, angle)
+					check.onScreen(name, box, Layout.MARGIN - 0.001)
+					check.noOverlap(name, box, "Nav", s.nav)
+					if bannerH > 0 then
+						check.noOverlap(name, box, "Banners", stack)
 					end
 				end
-				expect(check.report()).toBe("")
 			end
-		)
+			expect(check.report()).toBe("")
+		end)
 	end
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
 		local s = Layout.screen(vp.w, vp.h)
@@ -147,8 +137,6 @@ describe("StealAlerts arrow and flash vs the HUD", function()
 				local t = StealAlertLayout.flashThickness(s)
 				if s.compact then
 					expect(t > 0).toBe(true)
-					expect(s.hud.rect.x >= t).toBe(true)
-					expect(s.hud.rect.y >= t).toBe(true)
 					expect(s.nav.x >= t).toBe(true)
 					expect(s.nav.y >= t).toBe(true)
 				else

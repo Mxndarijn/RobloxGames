@@ -1,6 +1,6 @@
 --!strict
--- v18 mobile-first layout at 390x844 and 1920x1080 (nav collapsed and
--- expanded), on Layout.screen() rects via tests/ui/LayoutAssert.luau.
+-- v18 mobile-first layout at 390x844 and 1920x1080, on Layout.screen() rects via
+-- tests/ui/LayoutAssert.luau. Oct 18: no top bar / toasts, a 2-column nav tile grid, bigger bottom clusters.
 local fs = require("@lune/fs")
 
 local Config = require("../../src/shared/Config")
@@ -28,7 +28,7 @@ describe("LayoutAssert helper", function()
 		check.onScreen("wide", Layout.rect(0, 0, screen.width + 1, 10))
 		check.touch("tiny", Layout.rect(20, 20, 40, 40)) -- 32 screen px at 0.8
 		check.noOverlap("a", Layout.rect(0, 0, 10, 10), "b", Layout.rect(5, 5, 10, 10))
-		check.text({ name = "long", text = "Buy next pad 8/8", size = 15, bold = true, w = 60, h = 56 })
+		check.text({ name = "long", text = "Slime Rain: 12:34 left", size = 15, bold = true, w = 60, h = 56 })
 		check.inside("out", Layout.rect(0, 0, 20, 20), "box", Layout.rect(5, 5, 10, 10))
 		expect(#check.problems).toBe(5)
 		expect(has(check.report(), "[probe] tiny is 32.0 screen px")).toBe(true)
@@ -39,14 +39,12 @@ describe("LayoutAssert helper", function()
 		expect(LayoutAssert.textFits({ name = "w", text = long, size = 14, w = 300, h = 20, wrapped = true })).toBeTruthy()
 		expect(LayoutAssert.textFits({ name = "s", text = long, size = 40, w = 10, h = 10, scaled = true })).toBeNil()
 	end)
-	it("covers both viewports with the nav collapsed and expanded", function()
+	it("covers both viewports", function()
 		local labels = {}
 		for _, entry in LayoutAssert.screens() do
 			table.insert(labels, entry.label)
 		end
-		expect(table.concat(labels, ", ")).toBe(
-			"390x844 nav collapsed, 390x844 nav expanded, 1920x1080 nav collapsed, 1920x1080 nav expanded"
-		)
+		expect(table.concat(labels, ", ")).toBe("390x844, 1920x1080")
 	end)
 end)
 
@@ -61,7 +59,7 @@ end)
 describe("menus at the five gate viewports (v28: full-window backdrop, content-sized cards)", function()
 	for _, entry in LayoutAssert.screens(LayoutAssert.GATE_VIEWPORTS) do
 		it(
-			`{entry.label}: full-window backdrop, centred cards, close X tappable and inside, clear of HUD / nav`,
+			`{entry.label}: full-window backdrop, centred cards, close X tappable and inside, clear of the nav`,
 			function()
 				expect(LayoutAssert.fullWindow(entry.label, entry.screen).report()).toBe("")
 			end
@@ -125,69 +123,84 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 end)
 
 describe("v18 viewports", function()
-	it("phone: compact, two HUD rows, nav collapsed by default, MIN_SCALE", function()
+	it("phone: compact, a 2-column tile nav, MIN_SCALE, no top bar", function()
 		local s = Layout.screen(390, 844)
 		expect(s.compact).toBe(true)
-		expect(s.navCollapsed).toBe(true)
+		expect(s.short).toBe(false)
+		expect(s.navColumns).toBe(2)
 		expect(s.scale).toBe(Layout.MIN_SCALE)
-		expect(#s.hud.rows).toBe(2)
-		expect(s.hud.items.Shop).toBeNil() -- the nav's Shop entry covers it
+		expect((s :: any).hud).toBeNil()
+		expect((s :: any).toasts).toBeNil()
 		expect(s.bottomInset * s.scale >= Layout.TOUCH_CONTROLS_HEIGHT).toBe(true)
 	end)
-	it("desktop: one HUD row with every item, labelled nav, scale 1", function()
+	it("desktop: a 2-column tile nav, scale 1", function()
 		local s = Layout.screen(1920, 1080)
 		expect(s.compact).toBe(false)
-		expect(s.navCollapsed).toBe(false)
+		expect(s.navColumns).toBe(2)
 		expect(s.scale).toBe(1)
-		expect(#s.hud.rows).toBe(1)
-		for name in Layout.HUD_ITEMS do
-			expect(s.hud.items[name]).toBeTruthy()
-		end
+		expect(#s.navButtons).toBe(#Nav.ENTRIES)
 	end)
 	it("desktop: the backdrop fills the window beside the nav, cards are centred in it", function()
-		for _, collapsed in { true, false } do
-			local s = Layout.screen(1920, 1080, { navCollapsed = collapsed })
-			local back = s.panel
-			expect(back.x).toBe(s.nav.x + s.nav.w + Layout.GAP) -- right next to the nav
-			expect(back.y).toBe(s.hud.rect.y + s.hud.rect.h + Layout.GAP)
-			expect(back.x + back.w).toBe(s.width - Layout.MARGIN)
-			expect(back.y + back.h).toBe(s.height - s.bottomInset)
-			for _, entry in Nav.ENTRIES do
-				local r = Layout.panelFor(s, entry.key)
-				expect(r.w).toBe(Layout.MENU_WIDTH)
-				expect(r.h).toBe(Layout.menuHeight(entry.key))
-				expect(r.w * r.h < 0.3 * s.width * s.height).toBe(true) -- a card, not the whole screen
-			end
+		local s = Layout.screen(1920, 1080)
+		local back = s.panel
+		expect(back.x).toBe(s.nav.x + s.nav.w + Layout.GAP) -- right next to the nav
+		expect(back.y).toBe(Layout.TOP)
+		expect(back.x + back.w).toBe(s.width - Layout.MARGIN)
+		expect(back.y + back.h).toBe(s.height - s.bottomInset)
+		for _, entry in Nav.ENTRIES do
+			local r = Layout.panelFor(s, entry.key)
+			expect(r.w).toBe(Layout.MENU_WIDTH)
+			expect(r.h).toBe(Layout.menuHeight(entry.key))
+			expect(r.w * r.h < 0.3 * s.width * s.height).toBe(true) -- a card, not the whole screen
 		end
 	end)
-	it("phone menus use the full width and move with the nav width", function()
-		local collapsed = Layout.screen(390, 844, { navCollapsed = true })
-		local expanded = Layout.screen(390, 844, { navCollapsed = false })
-		local a, b = Layout.panelFor(collapsed, "Shop"), Layout.panelFor(expanded, "Shop")
-		expect(a.w).toBe(collapsed.column.w)
-		expect(b.x - a.x).toBe(Layout.navWidth(false) - Layout.navWidth(true))
-		expect(collapsed.panel.h > collapsed.column.h).toBe(true) -- the backdrop runs on under the bottom cards
+	it("phone menus use the full width (the nav steps aside while a menu is open)", function()
+		local s = Layout.screen(390, 844)
+		local a = Layout.panelFor(s, "Shop")
+		expect(a.w).toBe(s.column.w)
+		expect(a.x).toBe(Layout.MARGIN)
+		expect(s.panel.h > s.column.h).toBe(true) -- the backdrop runs on under the bottom cards
 		expect(Layout.drawsAbove("Carry", "Base") and Layout.drawsAbove("Tutorial", "Base")).toBe(true)
 	end)
-	it("hint bubbles sit below the HUD (top-bar targets) or right of the nav (menu targets)", function()
+	it("hint bubbles sit right of the nav (menu targets)", function()
 		for _, entry in LayoutAssert.screens() do
 			local s = entry.screen
 			for id, hint in Hint.STEPS do
-				local place =
-					Hint.place(s, s.hud, { id = id, text = hint.text, target = hint.target }) :: Hint.Placement
-				if hint.target.kind == "hud" then
-					expect(place.side).toBe("below")
-					expect(place.bubble.y >= s.hud.rect.y + s.hud.rect.h).toBe(true)
-				else
-					expect(place.side).toBe("right")
-					expect(place.bubble.x >= s.nav.x + s.nav.w).toBe(true)
-				end
+				local place = Hint.place(s, { id = id, text = hint.text, target = hint.target }) :: Hint.Placement
+				expect(place.side).toBe("right")
+				expect(place.bubble.x >= s.nav.x + s.nav.w).toBe(true)
 			end
 		end
 	end)
+	it("the nav is a grid of rounded square tiles, label under them, left to right then down (B5)", function()
+		for _, vp in { { 390, 844 }, { 1920, 1080 } } do
+			local s = Layout.screen(vp[1], vp[2])
+			for i, b in s.navButtons do
+				local tile = Layout.navTile(s.compact, b)
+				expect(tile.w).toBe(tile.h) -- square
+				expect(tile.y).toBe(b.y) -- the tile on top ...
+				expect(b.h > tile.h).toBe(true) -- ... the label row under it
+				local col = (i - 1) % 2
+				expect(b.x).toBe(s.nav.x + col * (b.w + Layout.navGap(s.compact)))
+			end
+			expect(s.navButtons[2].y).toBe(s.navButtons[1].y) -- row 1: Plot, Rebirth
+			expect(s.navButtons[3].y > s.navButtons[2].y).toBe(true) -- row 2: Goals, SlimeDex
+			expect(s.navButtons[5].x).toBe(s.navButtons[1].x) -- row 3: Codes alone
+		end
+	end)
+	it("the bottom clusters are bigger than the H1 sizes (B4) and clear the touch controls", function()
+		local desktop, phone = Layout.screen(1920, 1080), Layout.screen(390, 844)
+		expect(desktop.money.rect.w >= 240 and desktop.money.cash.h >= 56).toBe(true) -- H1: 200 x 44
+		expect(desktop.status.slots[1].w >= 88).toBe(true) -- H1: 54
+		expect(phone.money.cash.h > 40 and phone.status.slots[1].w > 54).toBe(true) -- H1 phone: 40, 54
+		-- the phone clusters sit TOUCH_RISE above the touch strip, so Roblox's thumbstick and jump button stay clear
+		local rise = math.ceil(Layout.TOUCH_RISE / phone.scale)
+		expect(phone.money.rect.y + phone.money.rect.h <= phone.height - phone.bottomInset - rise).toBe(true)
+		expect(phone.status.rect.y + phone.status.rect.h <= phone.height - phone.bottomInset - rise).toBe(true)
+	end)
 end)
 
--- Position of a Nav key in Nav.ENTRIES (navButtons[1] is the toggle).
+-- Position of a Nav key in Nav.ENTRIES (screen.navButtons follows it).
 local function navIndex(key: string): number
 	for i, entry in Nav.ENTRIES do
 		if entry.key == key then
@@ -199,60 +212,57 @@ end
 
 describe("landscape phone (v27 gate N1)", function()
 	for _, vp in LayoutAssert.LANDSCAPE_VIEWPORTS do
-		for _, collapsed in { true, false } do
-			local label = `{vp.name} nav {if collapsed then "collapsed" else "expanded"}`
-			local s = Layout.screen(vp.w, vp.h, { navCollapsed = collapsed })
-			it(`{label}: every v18 rule`, function()
-				expect(LayoutAssert.standard(label, s).report()).toBe("")
-			end)
-			it(`{label}: every nav button on screen and clear of HUD, toasts, banners, cards, panel`, function()
-				local check = LayoutAssert.new(label, s)
-				LayoutAssert.navReachable(check)
-				expect(check.report()).toBe("")
-			end)
-			it(`{label}: no negative sizes, Dex list keeps a row`, function()
-				local check = LayoutAssert.new(label, s)
-				LayoutAssert.noNegativeSizes(check)
-				expect(check.report()).toBe("")
-			end)
-		end
+		local label = vp.name
+		local s = Layout.screen(vp.w, vp.h)
+		it(`{label}: every v18 rule`, function()
+			expect(LayoutAssert.standard(label, s).report()).toBe("")
+		end)
+		it(`{label}: every nav button on screen and clear of banners, clusters, cards`, function()
+			local check = LayoutAssert.new(label, s)
+			LayoutAssert.navReachable(check)
+			expect(check.report()).toBe("")
+		end)
+		it(`{label}: no negative sizes, Dex list keeps a row`, function()
+			local check = LayoutAssert.new(label, s)
+			LayoutAssert.noNegativeSizes(check)
+			expect(check.report()).toBe("")
+		end)
 	end
 	it(
-		"844x332 (gate N1 numbers): short, one nav row above the money cluster, Dex button on screen, panel most of the window",
+		"844x332 (gate N1 numbers): short, the nav tiles above the money cluster, Dex button on screen, panel most of the window",
 		function()
 			local s = Layout.screen(844, 332)
 			expect(s.short).toBe(true)
-			expect(s.navColumns).toBe(Nav.ENTRIES and #Nav.ENTRIES + 1) -- the 5 buttons + the toggle in one row
+			expect(s.navColumns > 2).toBe(true) -- more columns so every tile fits
 			expect(s.nav.y + s.nav.h < s.money.rect.y).toBe(true)
-			expect(#s.hud.rows).toBe(1)
-			local dex = s.navButtons[1 + navIndex("Dex")]
+			local dex = s.navButtons[navIndex("Dex")]
 			expect(dex.y + dex.h <= s.height).toBe(true)
 			expect(s.nav.y + s.nav.h <= s.height - s.bottomInset).toBe(true)
 			expect(s.panel.w >= Layout.MENU_WIDTH).toBe(true)
 			expect(s.panel.h >= 0.5 * s.height).toBe(true)
 		end
 	)
-	it("portrait, tablet and desktop keep one nav column and their HUD rows", function()
-		for _, vp in { { 390, 844, 2 }, { 1024, 768, 2 }, { 1366, 768, 1 }, { 1920, 1080, 1 } } do
+	it("portrait, tablet and desktop keep the 2-column nav", function()
+		for _, vp in { { 390, 844 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } } do
 			local s = Layout.screen(vp[1], vp[2])
 			expect(s.short).toBe(false)
-			expect(s.navColumns).toBe(1)
-			expect(#s.hud.rows).toBe(vp[3])
+			expect(s.navColumns).toBe(2)
 		end
 	end)
 	it("the checks catch a nav button pushed off screen or covered", function()
 		local s = table.clone(Layout.screen(844, 332)) :: any
 		s.navButtons = table.clone(s.navButtons)
-		s.navButtons[1 + navIndex("Dex")] = Layout.rect(18, s.height - 20, 56, 56)
+		s.navButtons[navIndex("Dex")] = Layout.rect(18, s.height - 20, 56, 56)
 		local check = LayoutAssert.new("probe", s)
 		LayoutAssert.navReachable(check)
 		expect(has(check.report(), "Nav.Dex")).toBe(true)
 		expect(has(check.report(), "is off the")).toBe(true)
 		local covered = table.clone(Layout.screen(844, 332)) :: any
-		covered.toasts = covered.navButtons[1 + navIndex("Dex")]
+		covered.money = table.clone(covered.money)
+		covered.money.rect = covered.navButtons[navIndex("Dex")]
 		local check2 = LayoutAssert.new("probe", covered)
 		LayoutAssert.navReachable(check2)
-		expect(has(check2.report(), "overlaps Toasts")).toBe(true)
+		expect(has(check2.report(), "overlaps Money")).toBe(true)
 	end)
 	it("noNegativeSizes flags a negative box and a Dex list with no room", function()
 		local s = table.clone(Layout.screen(844, 332)) :: any
@@ -263,9 +273,8 @@ describe("landscape phone (v27 gate N1)", function()
 		expect(has(check.report(), "screen.column")).toBe(true)
 		expect(has(check.report(), "Dex list is")).toBe(true)
 	end)
-	it("init.client places panels via panel.layout and the HUD uses the short row", function()
+	it("init.client places panels via panel.layout", function()
 		expect(has(read("src/ui/init.client.luau"), "entry.panel.layout(r)")).toBe(true)
-		expect(has(read("src/ui/Hud.luau"), "Layout.hud(screen.width, compact, shown, screen.short)")).toBe(true)
 	end)
 end)
 
@@ -283,12 +292,11 @@ end)
 describe("init.client applies Layout for every viewport", function()
 	local src = read("src/ui/init.client.luau")
 	it("lays everything out from Layout.screen and re-runs it on resize", function()
-		expect(has(src, "Layout.screen(size.X, size.Y, { navCollapsed = navChoice })")).toBe(true)
+		expect(has(src, "Layout.screen(size.X, size.Y)")).toBe(true)
 		expect(has(src, 'GetPropertyChangedSignal("AbsoluteSize"):Connect(applyLayout)')).toBe(true)
 		for _, call in
 			{
 				"hud.layout(s)",
-				"toasts.layout(s, hud.bannerHeight)",
 				"carry.layout(s)",
 				"tutorial.layout(s)",
 				"dailyPopup.layout(s)",
@@ -307,9 +315,11 @@ describe("init.client applies Layout for every viewport", function()
 		local _, escapes = string.gsub(src, "Enum%.KeyCode%.Escape", "")
 		expect(escapes).toBe(0)
 	end)
-	it("has a collapse toggle and icon-only collapsed buttons", function()
-		expect(has(src, 'Name = "NavToggle"')).toBe(true)
-		expect(has(src, "btn.label.Visible = not s.navCollapsed")).toBe(true)
+	it("builds the nav as rounded tiles with the label under them, no collapse toggle", function()
+		expect(has(src, 'Name = "Tile"')).toBe(true)
+		expect(has(src, "Layout.navTile(s.compact, b)")).toBe(true)
+		expect(has(src, "NavToggle")).toBe(false)
+		expect(has(src, "navCollapsed")).toBe(false)
 	end)
 	it("queues the daily popup behind the tutorial (no direct auto-open)", function()
 		expect(has(src, 'popups.update(state, openKey == "Welcome")')).toBe(true)
@@ -348,7 +358,6 @@ describe("Config-backed numbers", function()
 		local checklist = {
 			{ "src/ui/ShopCatalog.luau", "config.BASE_WALK_SPEED" },
 			{ "src/ui/ShopCatalog.luau", "config.SPEED_COIL_WALK_SPEED" },
-			{ "src/ui/Hud.luau", "ctx.Config.LOCK_MAX_REMAINING" },
 			{ "src/ui/Panels/DailyPopup.luau", "ctx.Config.DAILY_STREAK_CAP" },
 			{ "src/ui/Panels/DailyPopup.luau", "ctx.Config.DAILY_BASE" },
 			{ "src/ui/Panels/Carry.luau", "ctx.Config.SLAP_REACH" },
@@ -361,7 +370,7 @@ describe("Config-backed numbers", function()
 		end
 	end)
 	it("no hard-coded walk speeds or lock cap in UI copy", function()
-		for _, path in { "src/ui/ShopCatalog.luau", "src/ui/Tutorial.luau", "src/ui/LockHud.luau", "src/ui/Hint.luau" } do
+		for _, path in { "src/ui/ShopCatalog.luau", "src/ui/Tutorial.luau", "src/ui/Hint.luau" } do
 			local src = read(path)
 			expect(has(src, "16 → 22")).toBe(false)
 			expect(has(src, "→ 22")).toBe(false)
@@ -371,11 +380,13 @@ describe("Config-backed numbers", function()
 end)
 
 describe("phone nav + panels", function()
-	it("an open panel collapses an expanded nav on phones (init.client setOpen)", function()
+	it("an open menu hides the nav tiles on phones: the card gets their width (init.client syncMenus)", function()
 		local src = read("src/ui/init.client.luau")
-		local body = string.match(src, "local function setOpen(.-)\nend") :: string
-		expect(has(body, "screen.compact and not screen.navCollapsed")).toBe(true)
-		expect(has(body, "navChoice = true")).toBe(true)
+		expect(has(src, "nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)")).toBe(true)
+		local s = Layout.screen(390, 844)
+		expect(s.panel.x).toBe(Layout.MARGIN)
+		local desktop = Layout.screen(1920, 1080)
+		expect(desktop.panel.x).toBe(desktop.nav.x + desktop.nav.w + Layout.GAP)
 	end)
 	it("Shop rows (v28): compact 68 px rows, two description lines, a touch-size Buy", function()
 		local src = read("src/ui/Panels/Shop.luau")

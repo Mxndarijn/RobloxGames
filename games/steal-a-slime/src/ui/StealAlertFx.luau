@@ -2,12 +2,12 @@
 --[[
 	StealAlertFx (client, FEATURES.StealAlerts, CONTRACT.md §17)
 
-	The v21 full steal alerts, drawn on top of the HUD banner and the toast:
+	The v21 full steal alerts, drawn on top of the HUD banner:
 
 	* Owner: a red screen-edge flash and repeat alarms when a theft starts, a direction
 	  arrow on the screen edge plus a world ping (billboard + outline, seen through walls)
-	  on the thief while they carry my slime, and the "while you were away" notice from
-	  `State.stealAway` once per join (as a toast).
+	  on the thief while they carry my slime. (The "while you were away" toast from `State.stealAway` is gone
+	  with all toasts, B6.)
 	* Thief (and everyone watching): a short Trail on any player whose Player attribute
 	  `Stealing` is set.
 	* SLAP: a hit effect (flash, "SLAP!" pop, burst) on the player whose `SlapHitAt` changes.
@@ -38,7 +38,7 @@ local TRAIL_POLL = 0.2 -- seconds between trail / slap-attribute sweeps
 
 local StealAlertFx = {}
 
--- ctx: Config, Constants, StealAlert (Shared module), serverNow, playerName, toast.
+-- ctx: Config, Constants, StealAlert (Shared module), serverNow, playerName.
 function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	local Config = ctx.Config
 	local Constants = ctx.Constants
@@ -112,7 +112,6 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 
 	-- Current theft(s) of my slimes: thief UserId (nil in the Studio fake) and when it began.
 	local theft: { thiefId: number?, startedAt: number, played: number }? = nil
-	local shownAway: string? = nil
 	local ping: BillboardGui? = nil
 	local pingHighlight: Highlight? = nil
 	local pingTarget: Model? = nil
@@ -352,13 +351,6 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			end
 		elseif not debugOn() then
 			theft = nil
-		end
-		local away = state.stealAway
-		if type(away) == "string" and away ~= "" and away ~= shownAway then
-			shownAway = away
-			ctx.toast(away, "away", nil)
-		elseif away == nil then
-			shownAway = nil -- the fake (or a later real notice) can show again
 		end
 	end
 

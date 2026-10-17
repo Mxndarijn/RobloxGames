@@ -30,7 +30,9 @@ describe("Tutorial.STEPS", function()
 		expect(string.find(lock.body, "UNLOCKED", 1, true) ~= nil).toBe(true)
 		local pad = Tutorial.find("BuyPad") :: Tutorial.Step
 		expect(pad.title).toBe("Buy a pad")
-		expect(string.find(pad.body, "Buy next pad", 1, true) ~= nil).toBe(true)
+		expect(string.find(pad.body, "Buy pad", 1, true) ~= nil).toBe(true)
+		expect(string.find(pad.body, "top bar", 1, true)).toBeNil() -- the top bar is gone (B7)
+		expect(string.find(lock.body, "top bar", 1, true)).toBeNil()
 	end)
 end)
 

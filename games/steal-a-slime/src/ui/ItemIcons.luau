@@ -603,47 +603,6 @@ function ItemIcons.needsArt(registry: any): { Spec }
 	return out
 end
 
--- Toast text -> item id (Notify carries no item id): first matching rule wins.
-local TOAST_RULES: { { pattern: string, id: string } } = {
-	{ pattern = "^Speed Coil bought", id = "SpeedCoil" },
-	{ pattern = "^Longer locks", id = "LockUpgrade" },
-	{ pattern = "^Your egg hatched", id = "MysteryEgg" },
-	{ pattern = "^Code redeemed", id = "Gift" },
-	{ pattern = "^Daily reward", id = "Daily" },
-	{ pattern = "^Appraised for", id = "Appraise" },
-	{ pattern = "^Base locked", id = "Lock" },
-	{ pattern = "^Your base is unlocked", id = "Lock" },
-	{ pattern = "slapped", id = "Slap" },
-	{ pattern = "^Rebirth %d", id = "Rebirth" },
-	{ pattern = "income boost ended", id = "Boost_Code" },
-	{ pattern = "Blessed", id = "Boost_Blessed" },
-	{ pattern = "^Sold for", id = "Cash" },
-	{ pattern = "^Plot skin:", id = "PlotSkin_classic" },
-	{ pattern = "^Slime Rain", id = "Event_rain" },
-	{ pattern = "^SLIME RAIN", id = "Event_rain" },
-	{ pattern = "^Badge unlocked", id = "Badge_FirstSlime" },
-}
-
--- Upgrade level-ups read "<Upgrade name> level N!": match by the upgrade's name.
-function ItemIcons.forToast(text: any, config: any?): string?
-	if type(text) ~= "string" then
-		return nil
-	end
-	for _, rule in TOAST_RULES do
-		if string.find(text, rule.pattern) then
-			return rule.id
-		end
-	end
-	if config then
-		for _, u in config.UPGRADES do
-			if string.find(text, u.name, 1, true) == 1 then
-				return `Upgrade_{u.id}`
-			end
-		end
-	end
-	return nil
-end
-
 -- Local (client-derived) goal ids that reuse another item's art.
 local GOAL_ALIASES: { [string]: string } = {
 	FillPads = "Goal_Pads",

@@ -630,17 +630,14 @@ describe("world shop layout (full-window card at every gate and landscape size)"
 	end
 	for _, vp in viewports do
 		it(`{vp.name}: the card sits in the full-window backdrop, its X is tappable and its row text fits`, function()
-			for _, collapsed in { true, false } do
-				local screen = Layout.screen(vp.w, vp.h, { navCollapsed = collapsed })
-				local check = LayoutAssert.fullWindow(`{vp.name} {collapsed}`, screen)
+			do
+				local screen = Layout.screen(vp.w, vp.h)
+				local check = LayoutAssert.fullWindow(vp.name, screen)
 				local card = Layout.panelFor(screen, "WorldShop")
 				check.inside("WorldShop", card, "backdrop", screen.panel)
 				check.onScreen("WorldShop", card)
 				check.touch("WorldShop.Close", Layout.panelClose(card))
-				local panelScreen = if screen.compact and not screen.navCollapsed
-					then Layout.screen(vp.w, vp.h, { navCollapsed = true })
-					else screen
-				for _, desc in LayoutAssert.worldShopTexts(Layout.panelFor(panelScreen, "WorldShop")) do
+				for _, desc in LayoutAssert.worldShopTexts(Layout.panelFor(screen, "WorldShop")) do
 					check.text(desc)
 				end
 				expect(check.report()).toBe("")

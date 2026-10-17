@@ -6,14 +6,14 @@
 	numbers.
 
 		local check = LayoutAssert.new("390x844 collapsed", screen)
-		check.onScreen("Hud", screen.hud.rect)
-		check.touch("Lock", screen.hud.items.Lock)
-		check.text({ name = "Lock", text = "🔒 Lock $25\n+60s", size = 16, bold = true, w = 130, h = 56 })
+		check.onScreen("Nav", screen.nav)
+		check.touch("Nav.Plot", screen.navButtons[1])
+		check.text({ name = "Label", text = "SlimeDex", size = 14, bold = true, w = 78, h = 18 })
 		expect(check.report()).toBe("")
 
 	`LayoutAssert.standard(label, screen)` runs every rule the v18 UI has to
 	meet (see the spec): on-screen boxes, touch sizes, no overlaps between the
-	HUD / nav / bottom cards, a full-window menu backdrop with content-sized
+	nav / bottom clusters / bottom cards, a status tooltip that stays on screen (B8), a full-window menu backdrop with content-sized
 	menu cards (v28) each with a tappable close X, and
 	text that fits (Layout text estimate, unless the descriptor is
 	TextWrapped into a tall-enough box or TextScaled).
@@ -27,9 +27,9 @@ local Config = require("../../src/shared/Config")
 local Format = require("../../src/ui/Format")
 local GuideTips = require("../../src/ui/GuideTips")
 local Hint = require("../../src/ui/Hint")
+local HudClusters = require("../../src/ui/HudClusters")
 local Icons = require("../../src/ui/Icons")
 local Layout = require("../../src/ui/Layout")
-local LockHud = require("../../src/ui/LockHud")
 local Nav = require("../../src/ui/Nav")
 local Remotes = require("../../src/shared/Remotes")
 local ShopCatalog = require("../../src/ui/ShopCatalog")
@@ -112,18 +112,13 @@ local function fmt(r: Rect): string
 end
 LayoutAssert.fmt = fmt
 
--- Every target viewport (default VIEWPORTS) with the nav collapsed and expanded.
+-- Every target viewport (default VIEWPORTS).
 function LayoutAssert.screens(
 	viewports: { { name: string, w: number, h: number } }?
 ): { { label: string, screen: Layout.Screen } }
 	local out = {}
 	for _, vp in viewports or LayoutAssert.VIEWPORTS do
-		for _, collapsed in { true, false } do
-			table.insert(out, {
-				label = `{vp.name} nav {if collapsed then "collapsed" else "expanded"}`,
-				screen = Layout.screen(vp.w, vp.h, { navCollapsed = collapsed }),
-			})
-		end
+		table.insert(out, { label = vp.name, screen = Layout.screen(vp.w, vp.h) })
 	end
 	return out
 end
@@ -247,119 +242,111 @@ LayoutAssert.BIG_STATE = table.freeze({
 	daily = { available = true, streak = Config.DAILY_STREAK_CAP or 7, amount = 987.6e12 },
 })
 
--- HUD texts at their worst, against the boxes `hud` gives each item.
-function LayoutAssert.hudTexts(screen: Layout.Screen): { TextDesc }
-	local hud = screen.hud
-	local compact = screen.compact
-	local s = LayoutAssert.BIG_STATE
-	local out: { TextDesc } = {}
-	local function add(name: string, text: string, size: number, bold: boolean?, w: number, h: number)
-		table.insert(out, { name = name, text = text, size = size, bold = bold, w = w, h = h })
-	end
-	local items = hud.items
-	-- Lock block: title 20 / 18 (compact), sub 12 / 11, inset 4 px.
-	local lockW = items.LockStatus.w - 8
-	for _, status in
-		{
-			LockHud.status(nil, 100, Config.LOCK_MAX_REMAINING),
-			LockHud.status(100 + Config.LOCK_MAX_REMAINING - 1, 100, Config.LOCK_MAX_REMAINING),
-			LockHud.status(105, 100, Config.LOCK_MAX_REMAINING),
-		}
-	do
-		add("LockStatus title", status.title, if compact then 18 else 20, true, lockW, 24)
-		add("LockStatus sub", status.sub, if compact then 11 else 12, true, lockW, 14)
-	end
-	-- Buttons (no padding in Widgets.button): Lock 16 / 13, BuyPad 15, Daily 15.
-	local maxed = table.clone(s) :: any
-	maxed.lockUntil = 100 + Config.LOCK_MAX_REMAINING
-	for _, state in { s, maxed } do
-		local view = LockHud.lockButton(state, 100, Config.LOCK_MAX_REMAINING)
-		add("Lock", view.text, if compact then 13 else 16, true, items.Lock.w, items.Lock.h)
-	end
-	add("BuyPad", LockHud.padButton(s, compact).text, 15, true, items.BuyPad.w, items.BuyPad.h)
-	add("Daily", LockHud.dailyButton(s.daily, false, compact).text, 15, true, items.Daily.w, items.Daily.h)
-	return out
-end
-
--- Bottom-left cluster texts at their worst (Hud builds the same label boxes): the coin plate's amount
--- (icon + 12 px left of it, 6 px right), the income / rebirths chips (icon 28 px left, 4 px right).
+-- Bottom-left cluster texts at their worst (Hud builds the same label boxes via Layout.moneyTextBox): the
+-- coin plate's amount and the income / rebirths chips.
 function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
 	local m = screen.money
 	local s = LayoutAssert.BIG_STATE
 	local compact = screen.compact
 	local out: { TextDesc } = {}
+	local _, cashW = Layout.moneyTextBox(m.cash, true, compact)
 	table.insert(out, {
 		name = "Money amount",
 		text = Format.formatCash(s.cash),
-		size = if compact then 22 else 26,
+		size = if compact then Layout.MONEY.camountSize else Layout.MONEY.amountSize,
 		bold = true,
-		w = m.cash.w - (Layout.MONEY.icon + 18),
+		w = cashW,
 		h = m.cash.h,
 	})
-	local chip = if compact then 12 else 13
+	local chip = if compact then Layout.MONEY.cchipSize else Layout.MONEY.chipSize
+	local _, incomeW = Layout.moneyTextBox(m.income, false, compact)
 	table.insert(out, {
 		name = "Income chip",
 		text = Format.formatRate(s.incomePerSec),
 		size = chip,
 		bold = true,
-		w = m.income.w - 32,
+		w = incomeW,
 		h = m.income.h,
 	})
+	local _, rebirthW = Layout.moneyTextBox(m.rebirths, false, compact)
 	table.insert(out, {
 		name = "Rebirths chip",
 		text = `{s.rebirths} {Format.formatMultiplier(s.rebirthMultiplier)}`,
 		size = chip,
 		bold = true,
-		w = m.rebirths.w - 32,
+		w = rebirthW,
 		h = m.rebirths.h,
 	})
 	return out
 end
 
 -- Bottom-right slot labels at their worst: the longest timer ("1:02:05"), a 3-digit friend bonus.
-function LayoutAssert.statusTexts(_screen: Layout.Screen): { TextDesc }
+function LayoutAssert.statusTexts(screen: Layout.Screen): { TextDesc }
 	local out: { TextDesc } = {}
+	local S = Layout.STATUS
 	for _, text in { "1:02:05", "+100%", "Now" } do
 		table.insert(out, {
 			name = `Status slot {text}`,
 			text = text,
-			size = 13,
+			size = if screen.compact then S.clabelSize else S.labelSize,
 			bold = true,
-			w = Layout.STATUS.slot,
-			h = Layout.STATUS.h - Layout.STATUS.icon - 4,
+			w = Layout.statusSlotWidth(screen.compact),
+			h = if screen.compact then S.clabel else S.label,
 		})
 	end
 	return out
 end
 
--- Nav button texts: labels (expanded) or icons (collapsed), and the toggle.
+-- The status tooltip cards (B8) for every kind of slot at its longest: name, effect, time left. Each is
+-- [title, body, time] as HudClusters.tooltip words them, with the live timer at its widest.
+function LayoutAssert.tooltipCards(): { { title: string, body: string, time: string } }
+	local now = 1000
+	local cards = {}
+	local slots: { HudClusters.Slot? } = {
+		HudClusters.rain({ active = true, endsAt = now + 3725, nextAt = nil }, now),
+		HudClusters.rain({ active = false, endsAt = nil, nextAt = now + 59 }, now),
+		HudClusters.event(
+			{ name = "Admin_luck", label = "Luck Event", luck = 3, mutation = 1, endsAt = now + 1800, icon = "🍀" },
+			now,
+			true
+		),
+		HudClusters.event({
+			name = "Admin_mutation",
+			label = "Mutation Event",
+			luck = 1,
+			mutation = 4,
+			endsAt = now + 3725,
+			icon = "🧬",
+		}, now, true),
+		HudClusters.event({ name = "Dusk", label = "Golden Dusk", luck = 2, mutation = 2, endsAt = nil }, now, true),
+		HudClusters.friend({ count = 20, bonus = 1 }, true),
+	}
+	for _, slot in slots do
+		if slot then
+			table.insert(cards, HudClusters.tooltip(slot))
+		end
+	end
+	return cards
+end
+
+-- Nav tile labels (the icon is a picture): the label under the tile in the button's width.
 function LayoutAssert.navTexts(screen: Layout.Screen): { TextDesc }
 	local out: { TextDesc } = {}
-	local toggle = screen.navButtons[1]
-	table.insert(out, {
-		name = "NavToggle",
-		text = if screen.navCollapsed then Icons.NAV_COLLAPSED else Icons.NAV_EXPANDED,
-		size = if screen.navCollapsed then 13 else 16,
-		bold = true,
-		w = toggle.w,
-		h = toggle.h,
-	})
+	local N = Layout.NAV
 	for i, entry in Nav.ENTRIES do
-		local b = screen.navButtons[i + 1]
-		if screen.navCollapsed then
-			table.insert(out, { name = `Nav {entry.key} icon`, text = entry.icon, size = 26, w = b.w, h = b.h })
-		else
-			table.insert(out, { name = `Nav {entry.key} icon`, text = entry.icon, size = 26, w = 36, h = b.h })
-			table.insert(
-				out,
-				{ name = `Nav {entry.key}`, text = entry.label, size = 18, bold = true, w = b.w - 46, h = b.h }
-			)
-		end
+		local b = screen.navButtons[i]
+		table.insert(out, {
+			name = `Nav {entry.key}`,
+			text = entry.label,
+			size = if screen.compact then N.clabelSize else N.labelSize,
+			bold = true,
+			w = b.w,
+			h = if screen.compact then N.clabel else N.label,
+		})
 	end
 	return out
 end
 
--- Tutorial card: counter / title beside the Hide button, wrapped body.
 function LayoutAssert.tutorialTexts(screen: Layout.Screen): { TextDesc }
 	local out: { TextDesc } = {}
 	local t = Layout.TUTORIAL
@@ -696,12 +683,12 @@ function LayoutAssert.menuKeys(): { string }
 	return keys
 end
 
--- The full-window menu backdrop (screen.panel): right of the nav (+ GAP),
--- under the HUD (+ GAP), to MARGIN from the right edge and down to the
--- bottom inset.
+-- The full-window menu backdrop (screen.panel): right of the nav (+ GAP; phones: from the
+-- left margin, the nav is hidden while a menu is open), from the top margin, to MARGIN from
+-- the right edge and down to the bottom inset.
 function LayoutAssert.expectedPanel(screen: Layout.Screen): Rect
-	local x = screen.nav.x + screen.nav.w + Layout.GAP
-	local y = screen.hud.rect.y + screen.hud.rect.h + Layout.GAP
+	local x = if screen.compact then Layout.MARGIN else screen.nav.x + screen.nav.w + Layout.GAP
+	local y = Layout.TOP
 	return Layout.rect(x, y, screen.width - Layout.MARGIN - x, screen.height - screen.bottomInset - y)
 end
 
@@ -711,9 +698,9 @@ LayoutAssert.MIN_BODY = table.freeze({ w = 240, h = 120 })
 -- v28 menu rules: the dimmed backdrop is the full-window rect; every menu
 -- card (Nav keys + Guide) is MENU_WIDTH (or the backdrop width), centred
 -- in it horizontally, MENU_HEIGHTS tall (or the backdrop height), inside
--- it, clear of the HUD and nav, with a usable body and a close X that is
--- MIN_TOUCH, inside the card, top-right, and never under the HUD, a
--- bottom card, the toasts or the banners (those draw above menus).
+-- it, clear of the nav, with a usable body and a close X that is
+-- MIN_TOUCH, inside the card, top-right, and never under a
+-- bottom card or the banners (those draw above menus).
 function LayoutAssert.panelChecks(check: Checker)
 	local screen = check.screen
 	local expected = LayoutAssert.expectedPanel(screen)
@@ -740,8 +727,9 @@ function LayoutAssert.panelChecks(check: Checker)
 		end
 		check.inside(name, r, "Panel backdrop", back)
 		check.onScreen(name, r, Layout.MARGIN)
-		check.noOverlap(name, r, "Hud", screen.hud.rect)
-		check.noOverlap(name, r, "Nav", screen.nav)
+		if not screen.compact then
+			check.noOverlap(name, r, "Nav", screen.nav)
+		end
 		local body = Layout.panelBody(r)
 		check.inside(`{name}.Body`, body, name, r)
 		if body.w < LayoutAssert.MIN_BODY.w or body.h < LayoutAssert.MIN_BODY.h then
@@ -760,7 +748,6 @@ function LayoutAssert.panelChecks(check: Checker)
 		end
 		for _, other in
 			{
-				{ "Hud", screen.hud.rect },
 				{ "Carry", screen.carry },
 				{ "Slap", screen.slap },
 				{ "Tutorial", screen.tutorial },
@@ -769,9 +756,8 @@ function LayoutAssert.panelChecks(check: Checker)
 		do
 			check.noOverlap(closeName, close, other[1] :: string, other[2] :: Rect)
 		end
-		-- Toasts and banners draw above menus too. Banners grow down from
-		-- their top as alerts stack, so their whole column must miss the X.
-		check.noOverlap(closeName, close, "Toasts", screen.toasts)
+		-- Banners draw above menus too. They grow down from their top as alerts
+		-- stack, so their whole column must miss the X.
 		local b = screen.banners
 		check.noOverlap(closeName, close, "Banners", Layout.rect(b.x, b.y, b.w, screen.height - b.y))
 		local title = Layout.panelTitle(r)
@@ -785,9 +771,9 @@ function LayoutAssert.panelChecks(check: Checker)
 			h = title.h,
 		})
 		check.text({ name = closeName, text = "X", size = 24, bold = true, w = close.w, h = close.h })
-		-- Top-bar hints stay up while a menu is open and draw above it.
+		-- Nav hints stay up while a menu is open and draw above it.
 		for id, hint in Hint.STEPS do
-			local place = Hint.place(screen, screen.hud, { id = id, text = hint.text, target = hint.target })
+			local place = Hint.place(screen, { id = id, text = hint.text, target = hint.target })
 			if place then
 				check.noOverlap(`Hint.{id} bubble`, place.bubble, closeName, close)
 			end
@@ -808,20 +794,19 @@ end
 function LayoutAssert.overlays(screen: Layout.Screen): { { name: string, rect: Rect } }
 	local b = screen.banners
 	local out = {
-		{ name = "Hud", rect = screen.hud.rect },
-		{ name = "Toasts", rect = screen.toasts },
 		{ name = "Banners", rect = Layout.rect(b.x, b.y, b.w, screen.height - b.y) },
-		{ name = "Panel", rect = screen.panel },
+		{ name = "Money", rect = screen.money.rect },
+		{ name = "Status", rect = screen.status.rect },
 		{ name = "Carry", rect = screen.carry },
 		{ name = "Slap", rect = screen.slap },
 		{ name = "Tutorial", rect = screen.tutorial },
 		{ name = "TutorialCarrying", rect = screen.tutorialCarrying },
 	}
-	for name, r in screen.hud.items do
-		table.insert(out, { name = `Hud.{name}`, rect = r })
+	if not screen.compact then -- phones hide the nav while a menu is open
+		table.insert(out, { name = "Panel", rect = screen.panel })
 	end
 	for id, hint in Hint.STEPS do
-		local place = Hint.place(screen, screen.hud, { id = id, text = hint.text, target = hint.target })
+		local place = Hint.place(screen, { id = id, text = hint.text, target = hint.target })
 		if place then
 			table.insert(out, { name = `Hint.{id} bubble`, rect = place.bubble })
 		end
@@ -829,16 +814,16 @@ function LayoutAssert.overlays(screen: Layout.Screen): { { name: string, rect: R
 	return out
 end
 
--- v27 gate N1: every nav button (toggle + Nav.ENTRIES) is fully on screen
+-- v27 gate N1: every nav button (Nav.ENTRIES: a tile and its label) is fully on screen
 -- and nothing above overlaps it, so a tap on it reaches it.
 function LayoutAssert.navReachable(check: Checker)
 	local screen = check.screen
-	if #screen.navButtons ~= #Nav.ENTRIES + 1 then
-		check.fail(`nav has {#screen.navButtons} buttons (want {#Nav.ENTRIES + 1})`)
+	if #screen.navButtons ~= #Nav.ENTRIES then
+		check.fail(`nav has {#screen.navButtons} buttons (want {#Nav.ENTRIES})`)
 	end
 	local overlays = LayoutAssert.overlays(screen)
 	for i, b in screen.navButtons do
-		local name = if i == 1 then "Nav.Toggle" else `Nav.{Nav.ENTRIES[i - 1].key}`
+		local name = `Nav.{Nav.ENTRIES[i].key}`
 		check.onScreen(name, b)
 		check.inside(name, b, "Nav", screen.nav)
 		check.touch(name, b)
@@ -848,18 +833,17 @@ function LayoutAssert.navReachable(check: Checker)
 	end
 end
 
--- Worst-case badge texts sit fully inside their nav button, clear of the icon.
+-- Worst-case badge texts sit fully inside their nav button, on its tile corner (not on the label).
 function LayoutAssert.navBadges(check: Checker)
 	for i, entry in Nav.ENTRIES do
-		local b = check.screen.navButtons[i + 1]
-		local icon = Layout.rect(b.x + 4, b.y + 20, 36, b.h - 20)
+		local b = check.screen.navButtons[i]
+		local tile = Layout.navTile(check.screen.compact, b)
+		local label = Layout.rect(b.x, tile.y + tile.h, b.w, b.h - tile.h)
 		for _, text in { "!", "$", "100%" } do
 			local name = `Nav.{entry.key} badge "{text}"`
 			local r = Layout.navBadge(b, text)
 			check.inside(name, r, `Nav.{entry.key}`, b)
-			if not check.screen.navCollapsed then
-				check.noOverlap(name, r, `Nav.{entry.key} icon`, icon)
-			end
+			check.noOverlap(name, r, `Nav.{entry.key} label`, label)
 		end
 	end
 end
@@ -904,7 +888,7 @@ end
 LayoutAssert.ASPECT_TOLERANCE = 0.02
 
 -- PR gate: no aspect-ratio distortion. One UIScale maps design px to the
--- viewport on both axes; HUD items, nav buttons (square when collapsed), the
+-- viewport on both axes; nav tiles (square), nav buttons, the status slots, the
 -- menu close X and Slap keep their design proportions. Slap may narrow with a
 -- narrow carry card, but never below 3/4 of its design aspect.
 function LayoutAssert.notSquashed(check: Checker)
@@ -922,15 +906,20 @@ function LayoutAssert.notSquashed(check: Checker)
 			)
 		)
 	end
-	for name, r in screen.hud.items do
-		local item = (Layout.HUD_ITEMS :: any)[name]
-		check.aspect(`Hud.{name}`, r, if screen.compact then item.cw else item.w, item.h)
-	end
-	local nav = Layout.NAV
-	local cell = (if screen.navCollapsed then nav.collapsedWidth else nav.expandedWidth) - nav.padding * 2
+	local cellW, cellH = Layout.navCellSize(screen.compact)
 	for i, b in screen.navButtons do
-		local name = if i == 1 then "Nav.Toggle" else `Nav.{Nav.ENTRIES[i - 1].key}`
-		check.aspect(name, b, cell, nav.button)
+		local name = `Nav.{Nav.ENTRIES[i].key}`
+		check.aspect(name, b, cellW, cellH)
+		local tile = Layout.navTile(screen.compact, b)
+		check.aspect(`{name}.Tile`, tile, 1, 1)
+	end
+	for i, slot in screen.status.slots do
+		check.aspect(
+			`Status.slot{i}`,
+			slot,
+			Layout.statusSlotWidth(screen.compact),
+			Layout.statusHeight(screen.compact)
+		)
 	end
 	local close = Layout.panelClose(Layout.panelFor(screen, "Shop"))
 	check.aspect("Panel.Close", close, Layout.PANEL_CHROME.close, Layout.PANEL_CHROME.close)
@@ -976,7 +965,6 @@ function LayoutAssert.clusterChecks(check: Checker)
 		local name, r = cluster[1] :: string, cluster[2] :: Rect
 		for _, other in
 			{
-				{ "Hud", screen.hud.rect },
 				{ "Nav", screen.nav },
 				{ "Carry", screen.carry },
 				{ "Slap", screen.slap },
@@ -989,50 +977,37 @@ function LayoutAssert.clusterChecks(check: Checker)
 			check.noOverlap(name, r, other[1] :: string, other[2] :: Rect)
 		end
 	end
+	-- B8: a tooltip over any status slot stays on screen (MARGIN in), clear of the slot it explains.
+	for i, slot in screen.status.slots do
+		for k, card in LayoutAssert.tooltipCards() do
+			local w, h = Layout.tooltipBox(screen.compact, card.title, card.body, card.time)
+			local r = Layout.tooltipRect(screen, slot, w, h)
+			local name = `Tooltip{k}@slot{i}`
+			check.onScreen(name, r, m)
+			check.noOverlap(name, r, `Status.slot{i}`, slot)
+		end
+	end
 end
 
 function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	local check = LayoutAssert.new(label, screen)
 	local m = Layout.MARGIN
-	local hud = screen.hud
 
-	-- HUD: on screen, items inside the bar, no two items overlapping, buttons tappable.
-	check.onScreen("Hud", hud.rect, Layout.TOP)
-	local names = {}
-	for name in hud.items do
-		table.insert(names, name)
-	end
-	table.sort(names)
-	for i, name in names do
-		local r = hud.items[name]
-		check.inside(`Hud.{name}`, r, "Hud", hud.rect)
-		if (Layout.HUD_ITEMS :: any)[name].button then
-			check.touch(`Hud.{name}`, r)
-		end
-		for j = i + 1, #names do
-			check.noOverlap(`Hud.{name}`, r, `Hud.{names[j]}`, hud.items[names[j]])
-		end
-	end
-	if screen.short and #hud.rows ~= 1 then
-		check.fail(`short HUD has {#hud.rows} rows (want 1)`)
-	elseif screen.compact and not screen.short and #hud.rows ~= 2 then
-		check.fail(`compact HUD has {#hud.rows} rows (want 2)`)
-	elseif not screen.compact and #hud.rows ~= 1 then
-		check.fail(`desktop HUD has {#hud.rows} rows (want 1)`)
-	end
-
-	-- Nav: on screen, under the HUD, every button tappable and inside it.
+	-- Nav: on screen, every button (tile + label) tappable and inside it, 2 columns unless the screen is short.
 	check.onScreen("Nav", screen.nav, m)
-	check.noOverlap("Nav", screen.nav, "Hud", hud.rect)
-	if #screen.navButtons ~= #Nav.ENTRIES + 1 then
-		check.fail(`nav has {#screen.navButtons} buttons (want {#Nav.ENTRIES + 1})`)
+	if #screen.navButtons ~= #Nav.ENTRIES then
+		check.fail(`nav has {#screen.navButtons} buttons (want {#Nav.ENTRIES})`)
+	end
+	if not screen.short and screen.navColumns ~= Layout.NAV.columns then
+		check.fail(`nav has {screen.navColumns} columns (want {Layout.NAV.columns})`)
 	end
 	for i, b in screen.navButtons do
 		check.touch(`NavButton{i}`, b)
+		check.touch(`NavButton{i}.Tile`, Layout.navTile(screen.compact, b))
 		check.inside(`NavButton{i}`, b, "Nav", screen.nav)
 	end
-	if screen.nav.w ~= Layout.navWidth(screen.navCollapsed, screen.navColumns) then
-		check.fail(`nav width {screen.nav.w} ~= Layout.navWidth({screen.navCollapsed}, {screen.navColumns})`)
+	if screen.nav.w ~= Layout.navWidth(screen.compact, screen.navColumns) then
+		check.fail(`nav width {screen.nav.w} ~= Layout.navWidth({screen.compact}, {screen.navColumns})`)
 	end
 	for i = 1, #screen.navButtons do
 		for j = i + 1, #screen.navButtons do
@@ -1041,7 +1016,8 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	end
 
 	-- H1 bottom clusters: on screen, on the bottom inset line (compact: also above the touch-controls rise),
-	-- clear of the HUD, nav, bottom cards and each other; every status slot inside its cluster.
+	-- clear of the nav, bottom cards and each other; every status slot inside its cluster; a status
+	-- tooltip stays on screen.
 	LayoutAssert.clusterChecks(check)
 
 	-- Menus: full-window backdrop, content-sized cards, close X tappable.
@@ -1070,7 +1046,6 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 			check.fail(`{name} {fmt(r)} reaches into the bottom inset (floor {floor})`)
 		end
 		check.noOverlap(name, r, "Nav", screen.nav)
-		check.noOverlap(name, r, "Hud", hud.rect)
 	end
 	check.noOverlap("TutorialCarrying", screen.tutorialCarrying, "Carry", screen.carry)
 	check.touch("Slap", screen.slap)
@@ -1090,13 +1065,11 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	)
 	for _, other in
 		{
-			{ "Hud", hud.rect },
 			{ "Nav", screen.nav },
 			{ "Carry", screen.carry },
 			{ "Slap", screen.slap },
 			{ "Tutorial", screen.tutorial },
 			{ "TutorialCarrying", screen.tutorialCarrying },
-			{ "Toasts", screen.toasts },
 			{ "Banners", screen.banners },
 		}
 	do
@@ -1105,20 +1078,17 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 
 	-- Overlays.
 	check.onScreen("Daily", screen.daily, m)
-	check.onScreen("Toasts", screen.toasts, m)
-	check.noOverlap("Toasts", screen.toasts, "Hud", hud.rect)
 	check.onScreen("Banners", screen.banners, m)
 
 	-- Hints for every step that points at a button.
 	for id, hint in Hint.STEPS do
 		local view = { id = id, text = hint.text, target = hint.target }
-		local place = Hint.place(screen, hud, view)
+		local place = Hint.place(screen, view)
 		if place == nil then
 			check.fail(`hint {id} has no target`)
 		else
 			check.onScreen(`Hint.{id} bubble`, place.bubble, m)
 			check.onScreen(`Hint.{id} ring`, place.ring)
-			check.noOverlap(`Hint.{id} bubble`, place.bubble, "Hud", hud.rect)
 			check.noOverlap(`Hint.{id} bubble`, place.bubble, "Nav", screen.nav)
 			check.text({
 				name = `Hint.{id}`,
@@ -1132,14 +1102,10 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 		end
 	end
 
-	-- Text. Phones collapse an expanded nav when a panel opens
-	-- (init.client setOpen), so panel text is measured on that screen.
-	local panelScreen = if screen.compact and not screen.navCollapsed
-		then Layout.screen(screen.viewportW, screen.viewportH, { navCollapsed = true })
-		else screen
+	-- Text.
+	local panelScreen = screen
 	for _, list in
 		{
-			LayoutAssert.hudTexts(screen),
 			LayoutAssert.moneyTexts(screen),
 			LayoutAssert.statusTexts(screen),
 			LayoutAssert.navTexts(screen),

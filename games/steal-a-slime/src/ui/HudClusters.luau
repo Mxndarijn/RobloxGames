@@ -12,6 +12,9 @@
 	           time left;
 	    Friend the friend income bonus ("+10%", no timer).
 	  The weekend boost is never a slot (Merijn, HUD-DESIGN.md: "Weekend boost: NOT shown").
+	Tooltip (B8, 2026-10-18): each slot also carries its name and what it does; `tooltip` turns that plus the
+	live timer into the 3 lines of the card (name, effect, time left), and `nextTooltip` is the open / close
+	rule: mouse hover on PC, tap on touch (a second tap or a tap elsewhere closes it).
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
@@ -25,7 +28,10 @@ export type Slot = {
 	icon: string, -- ItemIcons id
 	text: string, -- the timer, or "+10%"
 	kind: string, -- "active" | "soon" | "boost"
+	name: string, -- tooltip title: "Slime Rain"
+	effect: string, -- tooltip body: what the event does
 }
+export type Tooltip = { title: string, body: string, time: string }
 export type Inputs = {
 	rain: RainTimer.Rain?,
 	modifier: ModifierBadge.View?,
@@ -46,6 +52,8 @@ HudClusters.ICONS = table.freeze({
 	Rain = "Event_rain",
 	Friend = "FriendBoost",
 })
+
+HudClusters.RAIN_EFFECT = "Slimes pour from the sky and rarer ones show up more often. Grab them!"
 
 local function num(value: any): number
 	return if type(value) == "number" and value == value then value else 0
@@ -68,12 +76,26 @@ function HudClusters.rain(rain: RainTimer.Rain?, now: number): Slot?
 	end
 	if rain.active then
 		local text = if rain.endsAt then Format.formatDuration(Format.remainingSeconds(rain.endsAt, now)) else "Now"
-		return { id = "Rain", icon = HudClusters.ICONS.Rain, text = text, kind = "active" }
+		return {
+			id = "Rain",
+			icon = HudClusters.ICONS.Rain,
+			text = text,
+			kind = "active",
+			name = "Slime Rain",
+			effect = HudClusters.RAIN_EFFECT,
+		}
 	end
 	if rain.nextAt then
 		local wait = Format.remainingSeconds(rain.nextAt, now)
 		if wait > 0 and wait <= RainTimer.SOON_SECONDS then
-			return { id = "Rain", icon = HudClusters.ICONS.Rain, text = Format.formatDuration(wait), kind = "soon" }
+			return {
+				id = "Rain",
+				icon = HudClusters.ICONS.Rain,
+				text = Format.formatDuration(wait),
+				kind = "soon",
+				name = "Slime Rain",
+				effect = HudClusters.RAIN_EFFECT,
+			}
 		end
 	end
 	return nil
@@ -95,6 +117,10 @@ function HudClusters.event(view: ModifierBadge.View?, now: number, enabled: bool
 		icon = if view.luck ~= 1 then "Event_luck" else "Event_mutation",
 		text = text,
 		kind = "active",
+		name = view.label,
+		effect = if view.luck ~= 1
+			then `x{string.format("%g", view.luck)} luck: rarer slimes show up more often.`
+			else `x{string.format("%g", view.mutation)} mutations: slimes mutate more often.`,
 	}
 end
 
@@ -104,7 +130,14 @@ function HudClusters.friend(view: FriendBadge.View?, enabled: boolean): Slot?
 	if label == nil then
 		return nil
 	end
-	return { id = "Friend", icon = HudClusters.ICONS.Friend, text = label, kind = "boost" }
+	return {
+		id = "Friend",
+		icon = HudClusters.ICONS.Friend,
+		text = label,
+		kind = "boost",
+		name = "Friend boost",
+		effect = `{label} income while your friends play on this server.`,
+	}
 end
 
 -- The shown slots, left to right (never more than Layout.STATUS.count).
@@ -123,6 +156,38 @@ function HudClusters.status(input: Inputs, now: number): { Slot }
 		table.insert(out, friend)
 	end
 	return out
+end
+
+-- The tooltip card text for a shown slot: name, what it does, and the time left (the slot's live timer).
+function HudClusters.tooltip(slot: Slot): Tooltip
+	local time
+	if slot.kind == "boost" then
+		time = "Active while friends are here"
+	elseif string.find(slot.text, ":", 1, true) == nil then
+		time = "Active now" -- an untimed modifier ("x3") or a rain without an end time ("Now")
+	elseif slot.kind == "soon" then
+		time = `Starts in {slot.text}`
+	else
+		time = `Time left: {slot.text}`
+	end
+	return { title = slot.name, body = slot.effect, time = time }
+end
+
+-- Which slot id's tooltip is open after `event` (nil = none). `touch`: the last input was a touch.
+--   "hover" / "leave"  mouse enter / leave an icon: open / close on PC, ignored on touch (a tap fires both).
+--   "tap"              icon activated: touch toggles it (2nd tap closes); a mouse click keeps it open.
+--   "press"            any press: closes the card unless it landed on the open icon (its own tap handles that).
+function HudClusters.nextTooltip(current: string?, event: string, id: string?, touch: boolean): string?
+	if event == "hover" then
+		return if touch then current else id
+	elseif event == "leave" then
+		return if not touch and current == id then nil else current
+	elseif event == "tap" then
+		return if touch and current == id then nil else id
+	elseif event == "press" then
+		return if id ~= nil and id == current then current else nil
+	end
+	return current
 end
 
 return table.freeze(HudClusters)

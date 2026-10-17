@@ -2,14 +2,14 @@
 --[[
 	Hud
 
-	Always-visible top bar (H1 HUD, see HudClusters / Layout.moneyCluster): a large lock block (LockHud) +
-	Lock button, Buy-next-pad and Daily (opens the daily popup). Items are placed from Layout.hud (one
-	row on desktop, two on a phone, one on a landscape phone; `layout(screen)` from init.client). A stack
-	of banners below it (hidden ones collapse): "your slime is being stolen", the Mystery Egg hatch, the
-	events board and a "plot full" hint. Bottom-left: the money plate with the income/s and rebirths chips;
-	bottom-right: status icons with timers (Slime Rain from the workspace RainActive / RainEndsAt /
-	RainNextAt attributes, else State.rain; the live server modifier; the friend boost). No boss, rare-drop
-	or weekend notices any more.
+	Always-visible HUD (H1 / B4, see HudClusters / Layout.moneyCluster): bottom-left the money plate with a
+	big coin and amount, the income/s and rebirths chips under it; bottom-right status icons with timers
+	(Slime Rain from the workspace RainActive / RainEndsAt / RainNextAt attributes, else State.rain; the live
+	server modifier; the friend boost). Hovering an icon with the mouse, or tapping it on touch, opens a tooltip
+	(B8: name, what it does, time left); a second tap or a tap elsewhere closes it. A stack of banners at the
+	top centre (hidden ones collapse): "your slime is being stolen", the Mystery Egg hatch and the events
+	board. The top bar (lock block, Lock, Buy pad, Daily) is gone (B7), and so are the toasts (B6, init.client).
+	`layout(screen)` from init.client places everything. No boss, rare-drop or weekend notices any more.
 ]]
 
 local EggReveal = require(script.Parent.EggReveal)
@@ -18,30 +18,31 @@ local HudClusters = require(script.Parent.HudClusters)
 local ItemIconView = require(script.Parent.ItemIconView)
 local ItemIcons = require(script.Parent.ItemIcons)
 local Layout = require(script.Parent.Layout)
-local LockHud = require(script.Parent.LockHud)
 local RainTimer = require(script.Parent.RainTimer)
-local Tutorial = require(script.Parent.Tutorial)
 local Widgets = require(script.Parent.Widgets)
+
+local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
 
 local Theme = Widgets.Theme
 local create = Widgets.create
 
 local Hud = {}
 
--- A small rounded plate with an item icon at its left and a bold value label.
+-- A small rounded plate with an item icon at its left and a bold value label (sized by Hud.layout).
 local function plate(parent: Instance, name: string, iconId: string, color: Color3, registry: any)
 	local frame = create("Frame", {
 		Name = name,
 		BackgroundColor3 = color,
 		BackgroundTransparency = 0.05,
 		Parent = parent,
-	}, { Widgets.corner(10), Widgets.stroke(Color3.fromRGB(10, 10, 20), 2) })
+	}, { Widgets.corner(12), Widgets.stroke(Color3.fromRGB(10, 10, 20), 2) })
 	local icon = ItemIconView.new({
 		Name = "Icon",
 		Id = iconId,
 		Size = 20,
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 4, 0.5, 0),
+		Position = UDim2.new(0, 3, 0.5, 0),
 		Parent = frame,
 	}, registry)
 	icon.setActive(true)
@@ -49,11 +50,9 @@ local function plate(parent: Instance, name: string, iconId: string, color: Colo
 		Name = "Value",
 		Text = "-",
 		Font = Theme.Font,
-		TextSize = 13,
+		TextSize = Layout.MONEY.chipSize,
 		TextStrokeTransparency = 0.6,
 		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.new(1, -30, 1, 0),
-		Position = UDim2.fromOffset(28, 0),
 		Parent = frame,
 	})
 	return frame, icon, value
@@ -89,25 +88,7 @@ local function banner(parent: Instance, name: string, color: Color3, order: numb
 	return label
 end
 
-local LOCK_COLORS = {
-	locked = Color3.fromRGB(40, 140, 80),
-	low = Color3.fromRGB(220, 150, 30),
-	open = Color3.fromRGB(200, 50, 70),
-}
-
 function Hud.new(parent: Instance, ctx: any)
-	local bar = create("Frame", {
-		Name = "Hud",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, Layout.TOP),
-		Size = UDim2.fromOffset(0, 72),
-		BackgroundColor3 = Theme.Bg,
-		BackgroundTransparency = 0.1,
-		Parent = parent,
-	}, { Widgets.corner(12) })
-
-	-- Layout.HUD_ITEMS name -> its frame / button in the bar.
-	local items: { [string]: GuiObject } = {}
 	local registry = ItemIcons.of(ctx)
 
 	-- Bottom-left cluster (Layout.moneyCluster): coin + big amount, income/s and rebirths chips under it.
@@ -121,49 +102,51 @@ function Hud.new(parent: Instance, ctx: any)
 		Name = "Cash",
 		BackgroundColor3 = Color3.fromRGB(58, 36, 110),
 		Parent = moneyRoot,
-	}, { Widgets.corner(14), Widgets.stroke(Color3.fromRGB(10, 10, 20), 2) })
-	local COIN = Layout.MONEY.icon
+	}, { Widgets.corner(16), Widgets.stroke(Color3.fromRGB(10, 10, 20), 3) })
 	local cashLabel = Widgets.label({
 		Name = "Value",
 		Text = "-",
 		Font = Theme.Font,
-		TextSize = 26,
-		TextStrokeTransparency = 0.5,
+		TextSize = Layout.MONEY.amountSize,
+		TextStrokeTransparency = 0.4,
 		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.new(1, -(COIN + 18), 1, 0),
-		Position = UDim2.fromOffset(COIN + 12, 0),
 		Parent = cashPlate,
 	})
 	local coin = ItemIconView.new({
 		Name = "Icon",
 		Id = HudClusters.ICONS.Cash,
-		Size = COIN,
+		Size = Layout.MONEY.icon,
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 6, 0.5, 0),
 		Parent = cashPlate,
 	}, registry)
 	coin.setActive(true)
-	local incomeChip, _, incomeLabel =
+	local incomeChip, incomeIcon, incomeLabel =
 		plate(moneyRoot, "Income", HudClusters.ICONS.Income, Color3.fromRGB(40, 120, 70), registry)
-	local rebirthChip, _, rebirthLabel =
+	local rebirthChip, rebirthIcon, rebirthLabel =
 		plate(moneyRoot, "Rebirths", HudClusters.ICONS.Rebirths, Color3.fromRGB(70, 50, 140), registry)
 
 	-- Bottom-right cluster (Layout.statusCluster): one pooled slot per HudClusters id, icon + timer under it.
+	-- A slot is a button: hover / tap opens its tooltip.
 	local statusRoot = create("Frame", {
 		Name = "Status",
 		BackgroundTransparency = 1,
-		Size = UDim2.fromOffset(Layout.statusWidth(), Layout.STATUS.h),
+		Size = UDim2.fromOffset(Layout.statusWidth(false), Layout.statusHeight(false)),
 		Parent = parent,
 	})
-	local statusSlots: { [string]: { frame: Frame, icon: any, label: TextLabel } } = {}
+	type Slot = { frame: TextButton, icon: any, label: TextLabel }
+	local statusSlots: { [string]: Slot } = {}
+	local shownSlots: { HudClusters.Slot } = {}
 	for _, id in HudClusters.STATUS_IDS do
-		local frame = create("Frame", {
+		local frame = create("TextButton", {
 			Name = id,
 			Visible = false,
+			Text = "",
+			AutoButtonColor = false,
 			BackgroundTransparency = 1,
-			Size = UDim2.fromOffset(Layout.STATUS.slot, Layout.STATUS.h),
+			Size = UDim2.fromOffset(Layout.STATUS.slot, Layout.statusHeight(false)),
 			Parent = statusRoot,
-		})
+		}) :: TextButton
 		local icon = ItemIconView.new({
 			Name = "Icon",
 			Size = Layout.STATUS.icon,
@@ -174,97 +157,49 @@ function Hud.new(parent: Instance, ctx: any)
 		local label = Widgets.label({
 			Name = "Timer",
 			Font = Theme.Font,
-			TextSize = 13,
-			TextStrokeTransparency = 0.4,
+			TextSize = Layout.STATUS.labelSize,
+			TextStrokeTransparency = 0.2,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextTruncate = Enum.TextTruncate.None,
-			Size = UDim2.new(1, 0, 0, 18),
-			Position = UDim2.fromOffset(0, Layout.STATUS.icon + 4),
+			Size = UDim2.new(1, 0, 0, Layout.STATUS.label),
+			Position = UDim2.fromOffset(0, Layout.STATUS.icon + Layout.STATUS.labelGap),
 			Parent = frame,
 		})
 		statusSlots[id] = { frame = frame, icon = icon, label = label }
 	end
 
-	-- Lock block: the most important safety signal, so big and coloured.
-	local lockBox = create("Frame", {
-		Name = "LockStatus",
-		Size = UDim2.fromOffset(200, 56),
-		BackgroundColor3 = LOCK_COLORS.open,
-		Parent = bar,
-	}, { Widgets.corner(10), Widgets.stroke(Color3.new(1, 1, 1), 2) })
-	local lockTitle = Widgets.label({
-		Name = "Title",
-		Text = "-",
-		Font = Theme.Font,
-		TextSize = 20,
-		TextStrokeTransparency = 0.4,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.new(1, -8, 0, 24),
-		Position = UDim2.fromOffset(4, 4),
-		Parent = lockBox,
-	})
-	local lockSub = Widgets.label({
-		Name = "Sub",
-		Text = "",
-		Font = Theme.Font,
-		TextSize = 12,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Size = UDim2.new(1, -8, 0, 14),
-		Position = UDim2.fromOffset(4, 28),
-		Parent = lockBox,
-	})
-	local _, setLockBar = Widgets.bar(lockBox, Color3.new(1, 1, 1), UDim2.new(1, -16, 0, 6), UDim2.new(0, 8, 1, -10))
-	items.LockStatus = lockBox
+	-- Status tooltip (B8): name, effect and the live time left, over the open slot.
+	local tip = create("Frame", {
+		Name = "Tooltip",
+		Visible = false,
+		BackgroundColor3 = Theme.Bg,
+		BackgroundTransparency = 0.04,
+		ZIndex = Layout.ZINDEX.Banners,
+		Parent = parent,
+	}, { Widgets.corner(10), Widgets.stroke(Theme.Gold, 2) })
+	local function tipLabel(name: string, size: number, color: Color3, font: Enum.Font): TextLabel
+		return Widgets.label({
+			Name = name,
+			Font = font,
+			TextSize = size,
+			TextColor3 = color,
+			TextWrapped = true,
+			TextTruncate = Enum.TextTruncate.None,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			ZIndex = Layout.ZINDEX.Banners,
+			Parent = tip,
+		})
+	end
+	local tipTitle = tipLabel("Title", Layout.TOOLTIP.titleSize, Theme.Gold, Theme.Font)
+	local tipBody = tipLabel("Body", Layout.TOOLTIP.bodySize, Theme.Text, Theme.FontBody)
+	local tipTime = tipLabel("Time", Layout.TOOLTIP.timeSize, Theme.Accent, Theme.Font)
 
-	local lockBtn = Widgets.holdButton(
-		{ Name = "Lock", Text = "Lock", Size = UDim2.fromOffset(130, Layout.BUTTON), TextSize = 16 },
-		Theme.Info,
-		function()
-			ctx.send("Lock")
-		end,
-		ctx.Config.HOLD_CONFIRM_SECONDS
-	)
-	lockBtn.instance.Parent = bar
-	-- The Lock gear's item icon in the button's left padding (LockHud text drops its lock emoji).
-	local LOCK_ICON = 24
-	create("UIPadding", { PaddingLeft = UDim.new(0, LOCK_ICON + 6), Parent = lockBtn.instance })
-	ItemIconView.new({
-		Name = "LockIcon",
-		Id = "Lock",
-		Size = LOCK_ICON,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, -(LOCK_ICON + 4), 0.5, 0),
-		Parent = lockBtn.instance,
-	}, ItemIcons.of(ctx)).setActive(true)
-	items.Lock = lockBtn.instance
-
-	local padBtn = Widgets.holdButton(
-		{ Name = "BuyPad", Text = "Buy next pad", Size = UDim2.fromOffset(160, Layout.BUTTON), TextSize = 15 },
-		Theme.Good,
-		function()
-			ctx.send("BuyPad")
-		end,
-		ctx.Config.HOLD_CONFIRM_SECONDS
-	)
-	padBtn.instance.Parent = bar
-	items.BuyPad = padBtn.instance
-
-	local dailyBtn = Widgets.button(
-		{ Name = "Daily", Text = "Daily", Size = UDim2.fromOffset(120, Layout.BUTTON) },
-		Theme.Gold,
-		function()
-			ctx.openDaily()
-		end
-	)
-	dailyBtn.instance.TextColor3 = Color3.fromRGB(40, 30, 10)
-	dailyBtn.instance.Parent = bar
-	items.Daily = dailyBtn.instance
-
-	-- Banner stack under the bar; hidden banners take no space.
+	-- Banner stack at the top centre; hidden banners take no space.
 	local banners = create("Frame", {
 		Name = "Banners",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 88),
+		Position = UDim2.new(0.5, 0, 0, Layout.TOP),
 		Size = UDim2.fromOffset(Layout.BANNER_WIDTH, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
@@ -314,7 +249,7 @@ function Hud.new(parent: Instance, ctx: any)
 					Size = BOARD_ICON,
 					ZIndex = Layout.ZINDEX.Banners,
 					Parent = frame,
-				}, ItemIcons.of(ctx))
+				}, registry)
 				icon.setActive(true)
 				local label = Widgets.label({
 					Name = "Text",
@@ -359,9 +294,7 @@ function Hud.new(parent: Instance, ctx: any)
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, -(EGG_ICON + 6), 0.5, 0),
 		Parent = egg,
-	}, ItemIcons.of(ctx))
-	local hint = banner(banners, "PadHint", Color3.fromRGB(150, 100, 20), 4)
-	hint.TextSize = 16
+	}, registry)
 
 	-- Workspace rain attributes, kept fresh by change signals (read in tick).
 	local rainAttrs: RainTimer.Rain? = nil
@@ -379,48 +312,107 @@ function Hud.new(parent: Instance, ctx: any)
 	local current: any = nil
 	local screen: Layout.Screen? = nil
 	local compact = false
-	-- HUD item visibility last laid out (Layout.hud skips hidden items).
-	local shown: { [string]: boolean } = {}
-	local laidOut: Layout.HudLayout? = nil
 	local statusSig = "" -- signature of the status slots last drawn
-
-	local function relayout()
-		if screen == nil then
-			return
-		end
-		local hud = Layout.hud(screen.width, compact, shown, screen.short)
-		laidOut = hud
-		bar.Size = UDim2.fromOffset(hud.rect.w, hud.rect.h)
-		for name, item in items do
-			local r = hud.items[name]
-			item.Visible = r ~= nil
-			if r then
-				item.Position = UDim2.fromOffset(r.x - hud.rect.x, r.y - hud.rect.y)
-				item.Size = UDim2.fromOffset(r.w, r.h)
-			end
-		end
-	end
-
-	local function setShown(name: string, visible: boolean)
-		if shown[name] ~= visible then
-			shown[name] = visible
-			relayout()
-		end
-	end
+	local tipId: string? = nil -- the status slot whose tooltip is open
+	local slotRects: { [string]: Layout.Rect } = {} -- shown slots' boxes in design px, for the tap-elsewhere test
 
 	local self = {}
 
-	-- Apply a Layout.screen: HUD rows, banner width, compact text sizes.
+	local function touchInput(): boolean
+		return UserInputService:GetLastInputType() == Enum.UserInputType.Touch
+	end
+
+	-- Draws (or hides) the tooltip for `tipId` with the live timer; called on every open / close and tick.
+	local function refreshTooltip()
+		local slot: HudClusters.Slot? = nil
+		for _, candidate in shownSlots do
+			if candidate.id == tipId then
+				slot = candidate
+			end
+		end
+		if slot == nil or screen == nil or menuOpen then
+			tip.Visible = false
+			if slot == nil then
+				tipId = nil
+			end
+			return
+		end
+		local text = HudClusters.tooltip(slot)
+		local w, h, lines = Layout.tooltipBox(compact, text.title, text.body, text.time)
+		local r = Layout.tooltipRect(screen, slotRects[slot.id], w, h)
+		local t = Layout.TOOLTIP
+		tip.Position = UDim2.fromOffset(math.round(r.x), math.round(r.y))
+		tip.Size = UDim2.fromOffset(math.round(r.w), math.round(r.h))
+		local inner = r.w - t.pad * 2
+		local y = t.pad
+		for _, entry in
+			{
+				{ tipTitle, text.title, lines.titleH },
+				{ tipBody, text.body, lines.bodyH },
+				{ tipTime, text.time, lines.timeH },
+			}
+		do
+			local label, content, height = entry[1] :: TextLabel, entry[2] :: string, entry[3] :: number
+			label.Text = content
+			label.Position = UDim2.fromOffset(t.pad, y)
+			label.Size = UDim2.fromOffset(inner, height)
+			y += height + t.line
+		end
+		tipBody.TextSize = if compact then t.cbodySize else t.bodySize
+		tip.Visible = true
+	end
+
+	local function setTooltip(id: string?)
+		if id ~= tipId then
+			tipId = id
+			refreshTooltip()
+		end
+	end
+
+	for id, entry in statusSlots do
+		entry.frame.MouseEnter:Connect(function()
+			setTooltip(HudClusters.nextTooltip(tipId, "hover", id, touchInput()))
+		end)
+		entry.frame.MouseLeave:Connect(function()
+			setTooltip(HudClusters.nextTooltip(tipId, "leave", id, touchInput()))
+		end)
+		entry.frame.Activated:Connect(function()
+			setTooltip(HudClusters.nextTooltip(tipId, "tap", id, touchInput()))
+		end)
+	end
+
+	-- A press anywhere but on the open icon closes the tooltip (a tap on the icon itself is its Activated).
+	UserInputService.InputBegan:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if tipId == nil or (kind ~= Enum.UserInputType.MouseButton1 and kind ~= Enum.UserInputType.Touch) then
+			return
+		end
+		local s = screen
+		local hit: string? = nil
+		if s then
+			local inset = GuiService:GetGuiInset()
+			local x = (input.Position.X - inset.X) / s.scale
+			local y = (input.Position.Y - inset.Y) / s.scale
+			for id, r in slotRects do
+				if x >= r.x and x <= r.x + r.w and y >= r.y and y <= r.y + r.h then
+					hit = id
+				end
+			end
+		end
+		setTooltip(HudClusters.nextTooltip(tipId, "press", hit, touchInput()))
+	end)
+
+	-- Apply a Layout.screen: the clusters' boxes, banner width, compact text sizes.
 	function self.layout(s: Layout.Screen)
 		screen = s
 		compact = s.compact
-		lockTitle.TextSize = if compact then 18 else 20
-		lockSub.TextSize = if compact then 11 else 12
-		lockBtn.instance.TextSize = if compact then 13 else 16
-		cashLabel.TextSize = if compact then 22 else 26
+		local M = Layout.MONEY
+		cashLabel.TextSize = if compact then M.camountSize else M.amountSize
 		for _, value in { incomeLabel, rebirthLabel } do
-			value.TextSize = if compact then 12 else 13 -- "$98.7T/s" fits a phone chip
+			value.TextSize = if compact then M.cchipSize else M.chipSize -- "$98.7T/s" fits a phone chip
 		end
+		local coinSize = if compact then M.cicon else M.icon
+		coin.instance.Size = UDim2.fromOffset(coinSize, coinSize)
 		-- Whole pixels (a phone's design width is fractional; UDim offsets are integers).
 		local function whole(r: Layout.Rect): (number, number, number, number)
 			return math.round(r.x), math.round(r.y), math.round(r.w), math.round(r.h)
@@ -429,31 +421,48 @@ function Hud.new(parent: Instance, ctx: any)
 		local mx, my, mw, mh = whole(m.rect)
 		moneyRoot.Position = UDim2.fromOffset(mx, my)
 		moneyRoot.Size = UDim2.fromOffset(mw, mh)
-		for _, entry in { { cashPlate, m.cash }, { incomeChip, m.income }, { rebirthChip, m.rebirths } } do
+		for _, entry in
+			{
+				{ cashPlate, m.cash, cashLabel, true },
+				{ incomeChip, m.income, incomeLabel, false },
+				{ rebirthChip, m.rebirths, rebirthLabel, false },
+			}
+		do
 			local frame, r = entry[1] :: Frame, entry[2] :: Layout.Rect
 			frame.Position = UDim2.fromOffset(math.round(r.x - m.rect.x), math.round(r.y - m.rect.y))
 			frame.Size = UDim2.fromOffset(math.round(r.w), math.round(r.h))
+			local left, width = Layout.moneyTextBox(r, entry[4] :: boolean, compact)
+			local label = entry[3] :: TextLabel
+			label.Position = UDim2.fromOffset(left, 0)
+			label.Size = UDim2.fromOffset(width, math.round(r.h))
+		end
+		for _, icon in { incomeIcon, rebirthIcon } do
+			local size = m.income.h - 6
+			icon.instance.Size = UDim2.fromOffset(size, size)
 		end
 		local sx, sy, sw, sh = whole(s.status.rect)
 		statusRoot.Position = UDim2.fromOffset(sx, sy)
 		statusRoot.Size = UDim2.fromOffset(sw, sh)
+		local S = Layout.STATUS
+		local iconSize = if compact then S.cicon else S.icon
+		for _, entry in statusSlots do
+			entry.frame.Size = UDim2.fromOffset(Layout.statusSlotWidth(compact), s.status.rect.h)
+			entry.icon.instance.Size = UDim2.fromOffset(iconSize, iconSize)
+			entry.label.TextSize = if compact then S.clabelSize else S.labelSize
+			entry.label.Size = UDim2.new(1, 0, 0, if compact then S.clabel else S.label)
+			entry.label.Position = UDim2.fromOffset(0, iconSize + S.labelGap)
+		end
 		statusSig = "" -- re-pack the slots in the new boxes
-		banners.Size = UDim2.fromOffset(s.banners.w, 0)
+		banners.Size = UDim2.fromOffset(math.round(s.banners.w), 0)
 		banners.Position = UDim2.new(0.5, 0, 0, s.banners.y)
-		relayout()
 		if current then
 			self.update(current)
 		end
 	end
 
-	-- The HUD boxes as shown now (hidden items missing), for the hint ring.
-	-- Height of the shown banner stack in layout px (toasts start below it when they share its columns).
+	-- Height of the shown banner stack in layout px (the steal-alert arrow keeps under it).
 	function self.bannerHeight(): number
 		return if banners.Visible and screen then banners.AbsoluteSize.Y / screen.scale else 0
-	end
-
-	function self.hudLayout(): Layout.HudLayout?
-		return laidOut
 	end
 
 	function self.update(state: any)
@@ -462,17 +471,6 @@ function Hud.new(parent: Instance, ctx: any)
 		cashLabel.Text = money.cash
 		incomeLabel.Text = money.income
 		rebirthLabel.Text = money.rebirths
-
-		local pad = LockHud.padButton(state, compact)
-		setShown("BuyPad", pad.visible)
-		padBtn.setText(pad.text)
-		padBtn.setColor(if not pad.enabled then Theme.Disabled elseif pad.urgent then Theme.Warn else Theme.Good)
-		hint.Visible = pad.hint ~= nil
-		hint.Text = pad.hint or ""
-
-		local daily = LockHud.dailyButton(state.daily, Tutorial.fromState(state) ~= nil, compact)
-		setShown("Daily", daily.visible)
-		dailyBtn.setText(daily.text)
 
 		-- Steal alert: any of my slimes with stolenBy set.
 		local thieves = {}
@@ -493,20 +491,6 @@ function Hud.new(parent: Instance, ctx: any)
 		if current == nil then
 			return
 		end
-		local maxLock = ctx.Config.LOCK_MAX_REMAINING
-		local status = LockHud.status(current.lockUntil, now, maxLock, current.lockStartedAt)
-		lockTitle.Text = status.title
-		lockSub.Text = status.sub
-		setLockBar(status.fraction)
-		-- Open / ending: blink the block so it can't be missed.
-		local blink = status.level ~= "locked" and (now * 2) % 2 < 1
-		lockBox.BackgroundColor3 = LOCK_COLORS[status.level]:Lerp(Color3.new(1, 1, 1), if blink then 0.25 else 0)
-
-		local lockView = LockHud.lockButton(current, now, maxLock)
-		local lockText = string.gsub(lockView.text, "^🔒 ", "")
-		lockBtn.setText((string.gsub(lockText, "^🔓 ", "")))
-		lockBtn.setColor(if lockView.enabled then Theme.Info else Theme.Disabled)
-
 		readRainAttrs()
 		-- Bottom-right status slots: rebuilt only when a slot's icon / text changes (about 1 Hz for a countdown).
 		local slots = HudClusters.status({
@@ -523,6 +507,8 @@ function Hud.new(parent: Instance, ctx: any)
 		local sig = table.concat(parts, ";")
 		if sig ~= statusSig then
 			statusSig = sig
+			shownSlots = slots
+			slotRects = {}
 			for _, entry in statusSlots do
 				entry.frame.Visible = false
 			end
@@ -530,6 +516,7 @@ function Hud.new(parent: Instance, ctx: any)
 				local entry = statusSlots[slot.id]
 				if screen then
 					local r = Layout.statusSlot(screen.status, i, #slots)
+					slotRects[slot.id] = r
 					entry.frame.Position =
 						UDim2.fromOffset(math.round(r.x - screen.status.rect.x), math.round(r.y - screen.status.rect.y))
 				end
@@ -543,6 +530,7 @@ function Hud.new(parent: Instance, ctx: any)
 				entry.frame:SetAttribute("Kind", slot.kind)
 				entry.frame.Visible = true
 			end
+			refreshTooltip() -- the open slot's timer, or closed when its slot is gone
 		end
 
 		local eggText =
@@ -564,12 +552,21 @@ function Hud.new(parent: Instance, ctx: any)
 		setBoardRows(eventRows)
 	end
 
-	-- A menu card open hides the whole banner stack (MenuState.bannersVisible):
-	-- no banner can cover a card's title or X.
+	-- Studio only (PC watcher shot): opens the tooltip of a status slot id ("Rain" | "Event" | "Friend"); nil closes.
+	function self.showTooltip(id: string?)
+		setTooltip(id)
+	end
+
+	-- A menu card open hides the whole banner stack (MenuState.bannersVisible) and the tooltip:
+	-- nothing can cover a card's title or X.
 	function self.setMenuOpen(isOpen: boolean)
 		if menuOpen ~= isOpen then
 			menuOpen = isOpen
 			banners.Visible = not menuOpen
+			if menuOpen then
+				tipId = nil
+			end
+			refreshTooltip()
 		end
 	end
 
