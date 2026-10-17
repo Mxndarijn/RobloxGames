@@ -51,6 +51,7 @@ local ParadeView = require(script.ParadeView)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
 local Profiler = require(script.Profiler)
+local PvpService = require(script.PvpService)
 local Revenge = require(script.Revenge)
 local RitualService = require(script.RitualService)
 local RitualView = require(script.RitualView)
@@ -161,6 +162,7 @@ end
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
 local stateEvent = Remotes.get(Constants.STATE) :: RemoteEvent
 local notifyEvent = Remotes.get(Constants.NOTIFY) :: RemoteEvent
+local pvpEvent = Remotes.get(Constants.PVP_EVENT) :: RemoteEvent
 
 -- Roblox badges (Badges): BadgeService behind pcall + retries, off the game loop (grant yields).
 local BadgeService = game:GetService("BadgeService")
@@ -452,7 +454,22 @@ local ctx: Actions.Context = {
 	distanceBetween = distanceBetween,
 	positionOf = positionOf,
 	rng = Rng.new(Random.new():NextInteger(1, 2147483646)),
+	onOwnPlot = function(session: World.Session, userId: number): boolean
+		local player = Players:GetPlayerByUserId(userId)
+		return player ~= nil and WorldView.inHomeZone(player, session.plotIndex)
+	end,
 }
+-- PvpEvent (FEATURES.PvP only ever fires it): one user, or every client when target is nil.
+PvpService.setSink(function(target: number?, payload: { [string]: any })
+	if target == nil then
+		pvpEvent:FireAllClients(payload)
+		return
+	end
+	local player = Players:GetPlayerByUserId(target)
+	if player then
+		pvpEvent:FireClient(player, payload)
+	end
+end, now)
 
 -- Player attribute `Carrying` follows the World right away (pickup, drop, deposit, escape, death).
 local function syncCarrying()

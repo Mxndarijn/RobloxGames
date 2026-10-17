@@ -45,6 +45,7 @@ local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local PvpService = require(script.Parent.PvpService)
 local Rescue = require(script.Parent.Rescue)
 local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local Scene = require(script.Parent.Scene)
@@ -796,6 +797,12 @@ function WorldView.updatePlayer(player: Player, session: World.Session, now: num
 	setAttribute(player, Constants.TUTORIAL_STEP_ID_ATTRIBUTE, TutorialProgress.currentId(data))
 	setAttribute(player, Constants.SPEED_COIL_ATTRIBUTE, if data.speedCoil then true else nil)
 	setAttribute(player, Constants.REBIRTH_TITLE_ATTRIBUTE, Perks.title(data.rebirths))
+	if Config.FEATURES.PvP then
+		setAttribute(player, Constants.PVP_SHIELD_ATTRIBUTE, PvpService.shieldUntil(session, now))
+		setAttribute(player, Constants.PVP_EQUIPPED_ATTRIBUTE, PvpService.equipped(session))
+		local root = WorldView.rootPart(player)
+		PvpService.tick(session, root and root.Position, now)
+	end
 	local pet = if Config.FEATURES.FollowPets then Progression.keeper(data) else nil
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
 	if data.speedCoil then

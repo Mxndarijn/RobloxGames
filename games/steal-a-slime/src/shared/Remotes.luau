@@ -14,7 +14,7 @@ export type Direction = "ClientToServer" | "ServerToClient"
 export type RemoteDef = { name: string, class: RemoteClass, direction: Direction }
 
 -- Argument type names for each `Request` action, in call order.
--- "string?" means the argument may be nil.
+-- "string?" means the argument may be nil; "number?" / "vector3?" likewise. "vector3" = a finite Roblox Vector3.
 export type ActionDef = { args: { string } }
 
 local Remotes = {}
@@ -26,6 +26,7 @@ Remotes.DEFINITIONS = table.freeze({
 	table.freeze({ name = Constants.STATE, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef),
 	table.freeze({ name = Constants.NOTIFY, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef),
 	table.freeze({ name = Constants.LEADERBOARD, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef),
+	table.freeze({ name = Constants.PVP_EVENT, class = "RemoteEvent", direction = "ServerToClient" } :: RemoteDef), -- FEATURES.PvP only fires (CONTRACT.md §26.1)
 } :: { RemoteDef })
 
 Remotes.ACTIONS = table.freeze({
@@ -49,6 +50,9 @@ Remotes.ACTIONS = table.freeze({
 	EquipPlotSkin = table.freeze({ args = { "string" } }), -- Config.PLOT_SKINS id (FEATURES.PlotSkins, CONTRACT.md §15)
 	BuyConsumable = table.freeze({ args = { "string", "string?" } }), -- Config.CONSUMABLES id, slimeId (MutationSpray only) (FEATURES.Consumables)
 	SetAudioSettings = table.freeze({ args = { "number", "number", "boolean" } }), -- musicVolume, sfxVolume (clamped 0..1), muted (FEATURES.Audio, CONTRACT.md §8.9c)
+	BuyPvpItem = table.freeze({ args = { "string" } }), -- Config.PVP_TOOLS id (FEATURES.PvP, CONTRACT.md §26)
+	EquipPvpItem = table.freeze({ args = { "string?" } }), -- owned Config.PVP_TOOLS id, nil unequips (FEATURES.PvP)
+	UsePvpItem = table.freeze({ args = { "string", "number?", "vector3?" } }), -- itemId, targetUserId, aim point (FEATURES.PvP)
 	Sync = table.freeze({ args = {} }), -- server re-sends State
 } :: { [string]: ActionDef })
 

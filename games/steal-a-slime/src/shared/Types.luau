@@ -94,6 +94,17 @@ export type ShopView = {
 	MysteryEgg: { price: number }?, -- FEATURES.MysteryEgg only
 }
 
+-- State.pvp (FEATURES.PvP, CONTRACT.md §26.1): nil with the flag off.
+export type PvpView = {
+	rank: number, -- rebirths
+	owned: { [string]: boolean },
+	best: { [string]: string }, -- Knockback / Trap / Blaster -> best owned item id
+	equipped: string?,
+	cooldowns: { [string]: number }, -- item id -> server time it is ready again
+	shieldUntil: number?,
+	safeZone: string?, -- "Spawn" | "Shop" | "Fountain"
+}
+
 -- State.consumables (FEATURES.Consumables): this restock's items for this player.
 export type ConsumableItemView = {
 	id: string,
@@ -215,6 +226,7 @@ export type State = {
 	modifier: ModifierView, -- FEATURES.CycleModifier
 	egg: EggView, -- FEATURES.MysteryEgg
 	consumables: ConsumablesView?, -- FEATURES.Consumables (nil when off)
+	pvp: PvpView?, -- FEATURES.PvP (nil when off)
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
 	petPerk: PetPerkView?, -- FEATURES.PetPassives; nil without a favourite

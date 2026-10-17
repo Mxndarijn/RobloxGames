@@ -78,6 +78,7 @@ ForcedFlags.offModules = {
 ForcedFlags.on = {
 	["SnowGround flag > is off and WeatherFx checks it before SnowGround.start"] = "SnowGround",
 	["Audio flag > is off by default"] = "Audio",
+	["PvpRules config > is off by default"] = "PvP",
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "every FeatureOverride flag",
 	["EventsBoard > is behind FEATURES.EventsBoard, default off"] = "EventsBoard",
 	["StealAlerts arrow and flash vs the HUD > the StealAlerts and EventsBoard flags stay default off"] = "StealAlerts / EventsBoard",

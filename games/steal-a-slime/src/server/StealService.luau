@@ -17,6 +17,7 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
+local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -87,6 +88,7 @@ function StealService.steal(
 		slime = slime,
 	}
 	world.carriedBy[slimeId] = thief.userId
+	PvpService.onSteal(thief, now) -- stealing ends the new-player shield
 	World.markDirty(thief)
 	World.markDirty(owner)
 	World.notify(world, owner.userId, `{thief.name} is stealing your {Genome.displayName(slime)}!`, "bad", "Alarm")

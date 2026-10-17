@@ -878,6 +878,9 @@ end
 
 function Runtime:load(script)
 	local source = Runtime.rewrite(script.Source)
+	if self.opts.sourceHook then -- opts.sourceHook(script, source) -> source (e.g. force a Config flag)
+		source = self.opts.sourceHook(script, source)
+	end
 	local chunk = luau.load(source, {
 		debugName = script:GetFullName(),
 		environment = self:env(script),

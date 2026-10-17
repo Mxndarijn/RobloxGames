@@ -752,3 +752,52 @@ Owner: Phoenix (server, shared), Jolt (shop row), Archer (prop). Off = the upgra
 - **Module (`src/server/Profiler`, pure, Lune-tested):** `record` / `time` keep the last `Config.PROFILER.WINDOW` (120) samples per system in a ring buffer (ms from `os.clock`); `stats` gives avg, nearest-rank p95 and max; `count` bumps named counters (the `Request` remote) that the summary prints per second.
 - **Wired in `init.server`:** the Heartbeat is timed as `Heartbeat` with `Rescue`, `GameLoop` (spawner, steal, income, milestones), `Players` and `View` inside it; `Request` calls are counted.
 - **Output:** every `Config.PROFILER.LOG_INTERVAL` (30 s) one line, e.g. `[Profiler] | GameLoop 0.12/0.30ms | Heartbeat 0.8/1.9ms | instances=1234 | players=3 | Request=3.2/s` (avg/p95 per system; instance count is taken only when a line is due), and one `warn` per system whose p95 is over `Config.PROFILER.BUDGET_MS[name]`. The line is also set as workspace attribute `ProfilerSummary` (read-only dump; no chat command).
+
+## 26. v22: PvP fairness core (`FEATURES.PvP`, default `false`)
+
+**Status:** PR A of the v22 rebirth ladder (design: `docs/PVP.md`). Server and pure shared logic only; hotbar and shop UI come later (Jolt). `false` = `BuyPvpItem` refused ("PvP is not open yet"), no per-player runtime state, no Player attribute, nothing in `State`. **No `SAVE_VERSION` bump.**
+
+- **Config:** `Config.PVP` (`SAFE_ZONES` spawn / shop / fountain discs derived from the world layout, `NEW_PLAYER_SHIELD_SECONDS` 600, `CONTROL_MAX_SECONDS` 2, `SLOW_MAX_SECONDS` 3, `CONTROL_IMMUNITY_SECONDS` 3, `MIN_COOLDOWN` 1.5, `PRICE_FACTOR_TOOL` 0.03, `PRICE_FACTOR_FUN` 0.01, `PRICE_MIN` 100, `KNOCKBACK_*`, `MAP_BOUNDS`) and `Config.PVP_TOOLS` (every ladder item: `id` (save key, never rename), `name`, `line` `Knockback | Trap | Blaster | Fun`, `tier`, `rebirths` (a `REBIRTH_TIERS` threshold), `cooldown`, `kind` `tool | fun`, `cosmetic`, plus effect params). `Validate.pvpTools` runs at Config load and asserts: cooldown >= `MIN_COOLDOWN`, control <= `CONTROL_MAX_SECONDS`, slow <= `SLOW_MAX_SECONDS`, gates are rank thresholds, no `damage` / `health` field.
+- **`Shared.PvpRules` (pure):** `price` (factor x `Economy.rebirthCost(gate)`, at least `PRICE_MIN`), `isUnlocked`, `canBuy` / `buy` (flag, rank, cash, already owned), `owns` / `bestTier` / `bestTool` (a higher tier supersedes the lower ones of its line), `shieldEnd` / `isShielded`, `inSafeZone`, `canControl` / `applyControl` / `applySlow` (clamp, then immunity), `ready` / `markUsed` (cooldown registry), `canTarget` (flag, safe zones, shield, own plot or a thief carrying a slime; cosmetic items exempt from the plot rule; `FunConfetti` alone may be used inside a safe zone), `clampKnockback` (horizontal cap, small arc, landing inside the map minus a margin). **No PvP item ever reduces Humanoid health.**
+- **Save:** optional `pvp = { tiers = { [line] = tier }, fun = { id }, played = seconds }` (`SaveData.cleanPvp`): missing / junk -> nothing owned, unknown ids ignored, numbers clamped. `PlayerData.pvp` holds `fun` as a set.
+- **Remote:** `Request("BuyPvpItem", id)`, rate limit 0.5 s (`Validate.ACTIONS`). Server checks flag, rank, cash and ownership; the toast is "<name> bought!".
+- **`server/PvpService`:** one `PvpRules.State` per session (weak table, never saved), only with the flag on. New-player shield: from join until `NEW_PLAYER_SHIELD_SECONDS` of play (`data.pvp.played`, summed across sessions at leave) or the first rebirth; it never ends before the join lock (`JOIN_LOCK_SECONDS`, unchanged). `StealService.steal` ends it for good (`played` = the cap). Player attribute `PvpShieldUntil` (`Constants.PVP_SHIELD_ATTRIBUTE`, server time) is set by `WorldView.updatePlayer` while shielded, flag on only.
+
+### 26.1 PvP remote contract (final names; the client builds against this)
+
+Everything is behind `Config.FEATURES.PvP` (default `false`). With the flag off the server refuses every PvP action with "PvP is not open yet", sends no `State.pvp`, fires no `PvpEvent` and sets no PvP attributes. Times are **server time** (`workspace:GetServerTimeNow()`); the client compares against the same clock.
+
+**Where things live**
+- Remote names: `src/shared/Constants.luau` (`REQUEST` = `"Request"`, `STATE` = `"State"`, new `PVP_EVENT` = `"PvpEvent"`); remote definitions and argument types: `src/shared/Remotes.luau` (`Remotes.DEFINITIONS`, `Remotes.ACTIONS`), all under `ReplicatedStorage.Remotes`.
+- Item data the client reads: `Config.PVP_TOOLS` (`src/shared/Config.luau`), keyed by item id. Each entry: `id` (save key, never renamed), `name`, `line` (`"Knockback" | "Trap" | "Blaster" | "Fun"`), `tier` (1..n within the line; Fun items are tier 1), `rebirths` (the rank gate, always a `Config.REBIRTH_TIERS` threshold; the rank title is the `REBIRTH_TIERS` entry with that `rebirths`), `cooldown` (s), `kind` (`"tool" | "fun"`), `cosmetic` (bool), effect params (`push`, `control`, `slowPercent`, `slowSeconds`, `radius`, `count`, `rearm`, ...). Per-rank unlocks = filter `PVP_TOOLS` by `rebirths <= player rebirths`. Prices: `Shared.PvpRules.price(id)` (pure; the client may require it). Rules the client may mirror for UI hints only (server decides): `Shared.PvpRules.inSafeZone`, `bestTool`, `isUnlocked`.
+
+**Client -> server** (all through the existing `Request` RemoteFunction: `Request:InvokeServer(action, ...)`, returns `(ok: boolean, message: string?)` like every other action)
+
+| Action | Args | Notes |
+|---|---|---|
+| `BuyPvpItem` | `itemId: string` | Cash only. Checks flag, rank, cash, already owned. A higher tier supersedes the lower ones of its line. |
+| `EquipPvpItem` | `itemId: string?` | Owned item into the hand slot; `nil` unequips. Only one equipped item. Equipping spawns nothing in Workspace. |
+| `UsePvpItem` | `itemId: string, targetUserId: number?, aim: Vector3?` | Must be the equipped item. `targetUserId` for targeted items (gloves, Squeaky, Dance Bomb, Hat Launcher); `aim` = world point for aimed / placed items (Blaster, Goo Trap, Bounce Pad, Balloon, Fireworks). The server validates reach, cooldown, safe zones, shield, own-plot / thief rule; a refused use returns `false, reason` and starts no cooldown. |
+
+Rate limits: `BuyPvpItem` / `EquipPvpItem` 0.5 s, `UsePvpItem` 0.2 s (`Validate.ACTIONS`); the per-item cooldown is separate and server-authoritative.
+
+**Server -> client**
+
+1. **Snapshot** in the existing `State` event, field `pvp` (present only with the flag on):
+   `pvp = { rank = number (rebirths), owned = { [itemId]: true }, best = { Knockback = itemId?, Trap = itemId?, Blaster = itemId? }, equipped = itemId?, cooldowns = { [itemId]: endsAt }, shieldUntil = number?, safeZone = string? }`.
+   Sent on join, on `Sync`, and after every Buy / Equip.
+2. **`PvpEvent`** RemoteEvent (new, ServerToClient). One table argument with a `kind`; all carry `serverTime`.
+
+| kind | Fields | Sent to |
+|---|---|---|
+| `"Cooldown"` | `itemId, duration, startedAt` | the user |
+| `"Shield"` | `endsAt: number?` (`nil` = shield over) | the player |
+| `"SafeZone"` | `zone: string` (`"Spawn" | "Shop" | "Fountain"`), `inside: boolean` | the player |
+| `"Effect"` | `attacker: number (userId), target: number? (userId), itemId, effect` (`"Knockback" | "Freeze" | "Slow" | "Dance" | "Bounce" | "Cosmetic"`), `position: Vector3?, duration: number?, push: number?` | every client (FX only; clients may skip it beyond their stream radius) |
+| `"TrapPlaced"` / `"TrapCleared"` | `owner: number, trapId: string, itemId, position: Vector3` | every client |
+
+Player attributes (replicated, read-only hints for other players' UI): `PvpShieldUntil` (number, server time; nil = not shielded), `PvpEquipped` (string item id; nil = none).
+
+**Runtime parts (hard constraint: zero net parts).** Nothing PvP-related exists in Workspace while the flag is off or while no item is being used. Gloves and the Blaster are not welded models: their look is particles / beams / trails attached to the character's existing hand parts, created on use and destroyed within `Config.PVP.FX_SECONDS`. Traps and Bounce Pads are spawned only when placed (at most `count` per owner), removed when triggered, on lifetime end, on owner leave and on flag off. `RuntimeParts.spec` checks that a PvP-on server at rest adds 0 parts and that a use leaves 0 parts after cleanup.
+
+**Status in this PR:** live with the flag on: `BuyPvpItem`, `EquipPvpItem` (sets `PvpEquipped`, spawns nothing), `UsePvpItem` (equipped, cooldown, safe zone / shield / own-plot rules, then `PvpService.registerLine(line, handler)`; a line without a handler answers `false, "Coming soon"` and starts no cooldown; the Knockback / Trap / Blaster / Fun handlers arrive in later PRs), `State.pvp` (join, Sync, after every Buy / Equip) and `PvpEvent` kinds `Cooldown`, `Shield`, `SafeZone` (the per-player `WorldView.updatePlayer` tick; no new loop). `PvpService.fireEffect` / `fireTrap` exist for the later PRs (`Effect`, `TrapPlaced`, `TrapCleared` are not fired by anything yet). `vector3?` is a new `Remotes.ACTIONS` arg kind (finite `Vector3`, each component at most 100000). `PvpService.track` / `cleanup` / `spawnedCount` are the Workspace registry (cleaned on leave and when joining with the flag off). Flag off: all of it refuses or does nothing.
