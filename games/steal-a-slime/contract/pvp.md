@@ -1,4 +1,4 @@
-# 26. v22: PvP fairness core (`FEATURES.PvP`, default `false`)
+# 26. v22: PvP fairness core (`FEATURES.PvP`, default `true`)
 
 **Status:** PR A of the v22 rebirth ladder (design: `docs/PVP.md`). Server and pure shared logic only; hotbar and shop UI come later (Jolt). `false` = `BuyPvpItem` refused ("PvP is not open yet"), no per-player runtime state, no Player attribute, nothing in `State`. **No `SAVE_VERSION` bump.**
 
@@ -23,7 +23,7 @@
 
 ## 26.1 PvP remote contract (final names; the client builds against this)
 
-Everything is behind `Config.FEATURES.PvP` (default `false`). With the flag off the server refuses every PvP action with "PvP is not open yet", sends no `State.pvp`, fires no `PvpEvent` and sets no PvP attributes. Times are **server time** (`workspace:GetServerTimeNow()`); the client compares against the same clock.
+Everything is behind `Config.FEATURES.PvP` (default `true`). With the flag off the server refuses every PvP action with "PvP is not open yet", sends no `State.pvp`, fires no `PvpEvent` and sets no PvP attributes. Times are **server time** (`workspace:GetServerTimeNow()`); the client compares against the same clock.
 
 **Where things live**
 - Remote names: `src/shared/Constants.luau` (`REQUEST` = `"Request"`, `STATE` = `"State"`, new `PVP_EVENT` = `"PvpEvent"`); remote definitions and argument types: `src/shared/Remotes.luau` (`Remotes.DEFINITIONS`, `Remotes.ACTIONS`), all under `ReplicatedStorage.Remotes`.

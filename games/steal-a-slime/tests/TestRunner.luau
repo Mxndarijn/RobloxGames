@@ -14,12 +14,21 @@ local prefix: { string } = {}
 -- scripts/test-flags forces every Config.FEATURES flag ("on" / "off") via SLIME_FORCE_FEATURES; tests/init (Lune only)
 -- reads the env var and calls setForced before any spec loads. No @lune require here: stage-specs ships this module to cloud tests.
 local forced: string? = nil
-local skips: { [string]: string } = {}
+local skips: { [string]: string } = ForcedFlags.needOff -- default mode; setForced replaces it
 local skipped = 0
 
 function TestRunner.setForced(mode: string?)
 	forced = mode
-	skips = if mode == "on" then ForcedFlags.on elseif mode == "off" then ForcedFlags.off else {}
+	if mode == "off" then
+		skips = ForcedFlags.off
+	else
+		skips = table.clone(ForcedFlags.needOff)
+		if mode == "on" then
+			for name, why in ForcedFlags.on do
+				skips[name] = why
+			end
+		end
+	end
 end
 
 -- Tests listed in tests/ForcedFlags for the forced mode are not run (counted and printed as SKIP).
@@ -40,7 +49,7 @@ function TestRunner.it(name: string, fn: () -> ())
 	local reason = skipReason(full)
 	if reason then
 		skipped += 1
-		print(`  SKIP  {full} (FEATURES forced {forced}; needs {reason})`)
+		print(`  SKIP  {full} ({if forced then `FEATURES forced {forced}` else "default FEATURES"}; needs {reason})`)
 		return
 	end
 	table.insert(tests, { name = full, fn = fn })

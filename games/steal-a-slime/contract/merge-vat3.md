@@ -1,4 +1,4 @@
-# 21. v19: 3-slime merge vat (`FEATURES.MergeVat3`, default `false`)
+# 21. v19: 3-slime merge vat (`FEATURES.MergeVat3`, default `true`)
 
 Owner: Phoenix (server, shared), Jolt (panel), Archer (vat model). Off = the two-slime vat exactly as before: no `Merge3` action (refused "the 3-slime vat is off"), no switch in the Merge panel, no template, the primitive vat disc.
 
