@@ -38,6 +38,7 @@ export type GenerateOptions = {
 	minTier: number?, -- pity: never roll below this tier
 	weeklyMutation: string?, -- WeeklyEvents boost: this mutation gets `weeklyBonus` extra roll range
 	weeklyBonus: number?,
+	family: string?, -- FountainTiers family id: the species comes from that family (Classic when it has none at the tier)
 }
 
 local NAME_START = { "Bl", "Gl", "Sq", "Wob", "J", "Goo", "Pud", "Sl", "Fl", "Z", "Mu", "Dr" }
@@ -284,11 +285,15 @@ end
 Genome.mutationDisplay = Genome.mutationDisplayName
 
 -- Picks a roster species of `tier` (uniform within the tier).
-function Genome.rollSpecies(tier: number, roll: number): SlimeRoster.Entry?
+-- `family` (FountainTiers id) picks from that family's types instead; a tier it has none at (Secret) stays Classic.
+function Genome.rollSpecies(tier: number, roll: number, family: string?): SlimeRoster.Entry?
 	if tier < 1 or tier > Config.MAX_TIER then
 		return nil
 	end
-	local list = SlimeRoster.forTier(tier)
+	local list = SlimeRoster.forTier(tier, family)
+	if #list == 0 and family then
+		list = SlimeRoster.forTier(tier)
+	end
 	if #list == 0 then
 		return nil
 	end
@@ -310,7 +315,7 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 	local order = rng:int(1, 6)
 	local perms = { { 1, 2, 3 }, { 1, 3, 2 }, { 2, 1, 3 }, { 2, 3, 1 }, { 3, 1, 2 }, { 3, 2, 1 } }
 	local p = perms[order]
-	local species = Genome.rollSpecies(tier, rng:float())
+	local species = Genome.rollSpecies(tier, rng:float(), options.family)
 	-- A named type wears its own colour (SlimeLooks); the random roll above is
 	-- still drawn so the rest of the genome stays seed-stable.
 	local look = species and SlimeLooks.get(species.id)

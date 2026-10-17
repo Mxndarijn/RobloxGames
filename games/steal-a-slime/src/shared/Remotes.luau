@@ -30,12 +30,14 @@ Remotes.DEFINITIONS = table.freeze({
 
 Remotes.ACTIONS = table.freeze({
 	Merge = table.freeze({ args = { "string", "string" } }), -- slimeIdA, slimeIdB
+	Merge3 = table.freeze({ args = { "string", "string", "string" } }), -- three slime ids (FEATURES.MergeVat3, CONTRACT.md §21)
 	Lock = table.freeze({ args = {} }),
 	Rebirth = table.freeze({ args = {} }),
 	Sell = table.freeze({ args = { "string" } }), -- slimeId
 	Favorite = table.freeze({ args = { "string?" } }), -- slimeId, nil clears
 	BuyPad = table.freeze({ args = {} }),
 	Daily = table.freeze({ args = {} }),
+	ClaimQuest = table.freeze({ args = { "number" } }), -- daily quest slot 1..Config.DAILY_QUESTS.count (Quests.claim)
 	BuyLockUpgrade = table.freeze({ args = {} }),
 	BuySpeedCoil = table.freeze({ args = {} }),
 	BuyUpgrade = table.freeze({ args = { "string" } }), -- Config.UPGRADES id (CONTRACT.md §8.1)

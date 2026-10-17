@@ -28,6 +28,7 @@ local Genome = if Shared then require(Shared.Genome) else require("../shared/Gen
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
+local FountainTiers = if Shared then require(Shared.FountainTiers) else require("../shared/FountainTiers")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
@@ -87,6 +88,38 @@ function Spawner.rareText(slime: Genome.Slime): string
 	return `A {rarity} {mutation}{slime.name} spilled from the fountain{bang}`
 end
 
+-- FEATURES.FountainTiers: raises world.fountainTier to the best rank on the server (it never drops again while
+-- the server lives, so the look and the pool don't flap when a high-rank player leaves) and tells everyone.
+-- Returns true when the tier rose. `enabled` (tests) overrides FEATURES.FountainTiers.
+function Spawner.stepFountainTier(world: World, enabled: boolean?): boolean
+	if not (if enabled == nil then Config.FEATURES.FountainTiers else enabled) then
+		return false
+	end
+	local best = 0
+	for _, session in world.sessions do
+		best = math.max(best, session.data.rebirths)
+	end
+	local tier = FountainTiers.tierFor(best)
+	if tier <= world.fountainTier then
+		return false
+	end
+	world.fountainTier = tier
+	local text = FountainTiers.upgradeText(tier)
+	if text then
+		World.notify(world, nil, text, "good", "Rare")
+	end
+	World.markAllDirty(world)
+	return true
+end
+
+-- Family ids the fountain can drop (nil with the feature off: Classic only, no extra rng draws).
+function Spawner.familyPool(world: World, enabled: boolean?): { string }?
+	if not (if enabled == nil then Config.FEATURES.FountainTiers else enabled) then
+		return nil
+	end
+	return FountainTiers.pool(world.fountainTier)
+end
+
 function Spawner.spawnOne(world: World, now: number): string
 	local id = world.newId()
 	local luckMult, mutationMult = CycleModifier.multipliers(world.modifier)
@@ -107,7 +140,8 @@ function Spawner.spawnOne(world: World, now: number): string
 		luckMult,
 		mutationMult,
 		weeklyMutation,
-		weeklyBonus
+		weeklyBonus,
+		Spawner.familyPool(world)
 	)
 	local tier = drop.slime.tier
 	local pity = world.pity
@@ -234,6 +268,7 @@ end
 -- Call every frame (or at least every few tenths of a second).
 function Spawner.step(world: World, now: number)
 	Spawner.stepModifier(world, now)
+	Spawner.stepFountainTier(world)
 	local raining, _, nextAt = Spawner.rain(world, now)
 	if not raining and nextAt and nextAt - now <= Config.RAIN_WARNING_SECONDS and not world.rainWarned then
 		world.rainWarned = true

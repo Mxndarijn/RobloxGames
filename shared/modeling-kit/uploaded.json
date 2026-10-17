@@ -27,6 +27,32 @@
     "uploadedAt": "2026-10-16T11:27:16Z",
     "versions": 1
   },
+  "fountain_tier_crest": {
+    "assetId": "110270802039989",
+    "assetType": "Model",
+    "meshId": "rbxassetid://77008333593159",
+    "meshSize": [
+      13.699,
+      6.203,
+      13.9
+    ],
+    "sha256": "2f7b74b5797fd0fe",
+    "uploadedAt": "2026-10-16T22:48:14Z",
+    "versions": 1
+  },
+  "fountain_tier_ring": {
+    "assetId": "119324558874420",
+    "assetType": "Model",
+    "meshId": "rbxassetid://102733858140081",
+    "meshSize": [
+      32.2,
+      6.2,
+      32.2
+    ],
+    "sha256": "98ea9fd79b1e15ad",
+    "uploadedAt": "2026-10-16T22:48:02Z",
+    "versions": 1
+  },
   "habitat_barn_crate": {
     "assetId": "89583070931756",
     "assetType": "Model",
@@ -142,6 +168,19 @@
     ],
     "sha256": "c6533063989058fa",
     "uploadedAt": "2026-10-16T11:07:30Z",
+    "versions": 1
+  },
+  "merge_vat": {
+    "assetId": "122090902536570",
+    "assetType": "Model",
+    "meshId": "rbxassetid://94063238729318",
+    "meshSize": [
+      10.808,
+      7.625,
+      10.764
+    ],
+    "sha256": "083b2cd6c58f6a5c",
+    "uploadedAt": "2026-10-16T23:21:26Z",
     "versions": 1
   },
   "phoenix_corner_post": {

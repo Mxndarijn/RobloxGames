@@ -40,6 +40,7 @@ export type RebirthTier = {
 	keep: number?, -- slimes kept on rebirth
 	income: number?, -- income bonus (0.25 = +25 %)
 	lock: number?, -- extra seconds per bought lock
+	family: string?, -- FountainTiers family id this rank opens (FEATURES.FountainTiers; FountainTiers.FAMILIES)
 }
 
 export type Upgrade = {
@@ -60,6 +61,16 @@ export type Goal = {
 	targets: { number },
 	rewards: { number }, -- base cash, x rebirthMultiplier when paid
 	cash: boolean?, -- format targets as $
+}
+
+export type DailyQuest = {
+	id: string,
+	stat: string, -- Goals.stat name
+	title: string, -- "<n>" = the formatted target, "<s>" = "s" unless the target is 1
+	icon: string, -- Config.GOALS id whose item icon the card shows
+	cash: boolean?, -- format targets as $
+	choices: { number }, -- possible targets
+	reward: { kind: string, amount: number?, mult: number?, minutes: number? },
 }
 
 export type DexMilestone = { count: number, reward: number, bonus: number }
@@ -201,12 +212,12 @@ local REBIRTH_SLIMES: { [number]: string } = {
 local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 0, title = "Slime Rookie" },
 	{ rebirths = 1, title = "Goo Getter", unlock = "CarrySpeed" },
-	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap" },
+	{ rebirths = 3, title = "Slime Wrangler", unlock = "OfflineCap", family = "orchard" },
 	{ rebirths = 5, title = "Blob Baron", unlock = "Luck" },
-	{ rebirths = 6, title = "Goo Tycoon", keep = 2 },
+	{ rebirths = 6, title = "Goo Tycoon", keep = 2, family = "frost" },
 	{ rebirths = 7, title = "Jelly Magnate", income = 0.1 },
 	{ rebirths = 8, title = "Ooze Overlord", lock = 30 },
-	{ rebirths = 10, title = "Slime Sovereign", keep = 3, income = 0.25 },
+	{ rebirths = 10, title = "Slime Sovereign", keep = 3, income = 0.25, family = "starlight" },
 	{ rebirths = 12, title = "Gel Emperor", lock = 60 },
 	{ rebirths = 15, title = "Gelatinous Legend", keep = 4, income = 0.5 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1 },
@@ -308,6 +319,66 @@ local GOALS: { Goal } = {
 		rewards = { 2000, 20000, 500000, 5e6, 1e8 },
 	},
 }
+
+-- Daily quests (Quests, Goals menu): `count` distinct pool entries rolled per player per UTC day. A target is
+-- one of `choices`; progress = stat gained since the roll (Goals.stat names). Cash is x rebirthMultiplier on
+-- claim; a boost follows the Codes boost rules. Pool ids are permanent save ids.
+local DAILY_QUEST_POOL: { DailyQuest } = {
+	{
+		id = "Catch",
+		stat = "caught",
+		title = "Catch <n> slime<s>",
+		icon = "Catch",
+		choices = { 3, 5, 8 },
+		reward = { kind = "cash", amount = 400 },
+	},
+	{
+		id = "Steal",
+		stat = "stolen",
+		title = "Steal <n> slime<s>",
+		icon = "Steal",
+		choices = { 1, 2, 3 },
+		reward = { kind = "cash", amount = 1000 },
+	},
+	{
+		id = "Earn",
+		stat = "earned",
+		title = "Earn <n> today",
+		icon = "Earn",
+		cash = true,
+		choices = { 5000, 20000, 100000 },
+		reward = { kind = "cash", amount = 600 },
+	},
+	{
+		id = "Merge",
+		stat = "merges",
+		title = "Merge <n> time<s>",
+		icon = "Merge",
+		choices = { 1, 2, 3 },
+		reward = { kind = "boost", mult = 2, minutes = 5 },
+	},
+	{
+		id = "Lock",
+		stat = "locks",
+		title = "Lock your base <n> time<s>",
+		icon = "Lock",
+		choices = { 1, 2, 3 },
+		reward = { kind = "cash", amount = 300 },
+	},
+	{
+		id = "Rebirth",
+		stat = "rebirths",
+		title = "Rebirth <n> time<s>",
+		icon = "Rebirth",
+		choices = { 1 },
+		reward = { kind = "boost", mult = 2, minutes = 15 },
+	},
+}
+for _, quest in DAILY_QUEST_POOL do
+	table.freeze(quest.choices)
+	table.freeze(quest.reward)
+	table.freeze(quest)
+end
 
 local DEX_MILESTONES: { DexMilestone } = {
 	{ count = 10, reward = 500, bonus = 0.02 },
@@ -476,6 +547,10 @@ local Config = {
 	-- Merge
 	MERGE_MUTATION_CHANCE = 0.15,
 	MERGE_SIZE_BONUS = 0.1,
+	-- 3-slime merge (FEATURES.MergeVat3, TripleMerge)
+	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (never into Secret)
+	TRIPLE_MERGE_MUTATION_CHANCE = 0.3, -- chance of a fresh mutation on top of the inherited ones
+	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
 
 	-- Stacking mutations (FEATURES.MutationStacking)
 	MAX_MUTATIONS = 3, -- a slime carries at most this many mutations (a fused combo counts as one)
@@ -504,6 +579,7 @@ local Config = {
 	SECRET_TIER = 7, -- Config.RARITIES tier of the Secret slimes (SlimeRoster.SECRET_TIER)
 	RARE_ANNOUNCE_TIER = 5, -- wild drops of this tier or higher: Notify everyone + RareSpawn attributes
 	FREE_DROP_CHANCE = 0.25, -- share of wild slimes that cost nothing to grab
+	FAMILY_DROP_CHANCE = 0.3, -- FEATURES.FountainTiers: share of fountain drops that are a family slime (from the families the server's fountain tier has opened)
 	WILD_PRICE_SECONDS = 20, -- other wild slimes cost this many seconds of their income
 
 	-- Slime Rain event
@@ -564,6 +640,9 @@ local Config = {
 		StealAlerts = false, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
 		WelcomeBack = true, -- v20 welcome-back card on join after WELCOME_BACK_MIN_SECONDS away (WelcomeBack, CONTRACT.md §19): offline cash, slimes grown, streak + goal; false = no State field, no card
 		WeeklyEvents = false, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
+		FountainTiers = false, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
+		EventsBoard = false, -- v21 server events board (ui/EventsBoard, CONTRACT.md §20): a HUD banner listing the weekly mutation, the Saturday trait event, the day/night modifier and the next weekly event; client only, no remote or save change; false = no banner
+		MergeVat3 = false, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, keeping every mutation (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -742,6 +821,7 @@ local Config = {
 	-- Daily reward
 	DAILY_BASE = 100,
 	DAILY_STREAK_CAP = 7,
+	DAILY_QUESTS = table.freeze({ count = 3, pool = table.freeze(DAILY_QUEST_POOL) }),
 
 	-- Redeem codes (CONTRACT.md §10). Keys are UPPERCASE; players type any case.
 	-- reward: { kind = "cash", amount } or { kind = "boost", mult, minutes };

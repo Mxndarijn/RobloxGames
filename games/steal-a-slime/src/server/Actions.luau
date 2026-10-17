@@ -22,6 +22,7 @@ local PlayerData = if Shared then require(Shared.PlayerData) else require("../sh
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Remotes = if Shared then require(Shared.Remotes) else require("../shared/Remotes")
+local Quests = if Shared then require(Shared.Quests) else require("../shared/Quests")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
@@ -43,6 +44,7 @@ export type Context = {
 	positionOf: (userId: number) -> any?,
 	rng: Rng.Rng?, -- Appraise rolls; nil = seeded from the clock and the player
 	plotSkins: boolean?, -- FEATURES.PlotSkins override (tests); nil = Config.FEATURES.PlotSkins
+	mergeVat3: boolean?, -- FEATURES.MergeVat3 override (tests); nil = Config.FEATURES.MergeVat3
 }
 
 local Actions = {}
@@ -137,6 +139,18 @@ local function daily(world: World, session: Session, now: number): Result
 	return OK
 end
 
+local function claimQuest(world: World, session: Session, index: any, now: number): Result
+	if type(index) ~= "number" or index % 1 ~= 0 then
+		return fail("no such quest")
+	end
+	local ok, value = Quests.claim(session.data, index, now, session.userId)
+	if not ok then
+		return fail(value)
+	end
+	World.notify(world, session.userId, `Quest complete! {value}`, "good", "Goal")
+	return OK
+end
+
 local function redeem(world: World, session: Session, text: string, now: number): Result
 	local ok, status, reward = Codes.redeem(session.data, text, now)
 	if not ok or not reward then
@@ -184,6 +198,17 @@ local function buyUpgrade(world: World, session: Session, id: string): Result
 	local level = session.data.upgrades[id]
 	World.notify(world, session.userId, `{def and def.name or id} level {level}!`, "good", "Cash", `Upgrade_{id}`)
 	return OK
+end
+
+local function merge3(world: World, session: Session, args: { any }, ctx: Context): Result
+	local on = ctx.mergeVat3
+	if on == nil then
+		on = Config.FEATURES.MergeVat3
+	end
+	if not on then
+		return fail("the 3-slime vat is off")
+	end
+	return result(MergeVat.merge3(world, session, { args[1], args[2], args[3] }))
 end
 
 local function equipPlotSkin(world: World, session: Session, id: string, ctx: Context): Result
@@ -239,6 +264,8 @@ local function dispatch(
 		return OK
 	elseif action == "Merge" then
 		return result(MergeVat.merge(world, session, args[1], args[2]))
+	elseif action == "Merge3" then
+		return merge3(world, session, args, ctx)
 	elseif action == "Lock" then
 		return result(StealService.buyLock(world, session, now))
 	elseif action == "Rebirth" then
@@ -254,6 +281,8 @@ local function dispatch(
 		return buyPad(world, session)
 	elseif action == "Daily" then
 		return daily(world, session, now)
+	elseif action == "ClaimQuest" then
+		return claimQuest(world, session, args[1], now)
 	elseif action == "Redeem" then
 		return redeem(world, session, args[1], now)
 	elseif action == "BuyLockUpgrade" then

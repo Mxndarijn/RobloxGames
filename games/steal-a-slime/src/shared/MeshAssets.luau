@@ -116,6 +116,9 @@ local NAMES = {
 	"plot_skin_mushroom",
 	"plot_skin_candy",
 	"plot_skin_crystal",
+	"fountain_tier_ring",
+	"fountain_tier_crest",
+	"merge_vat",
 }
 
 local entries: { [string]: Entry } = {}
@@ -328,6 +331,16 @@ entries["slime_acc_crystal"] =
 	{ assetId = 81793700384926, meshId = "rbxassetid://95064860572309", size = { 1.595, 1.599, 1.146 } }
 entries["slime_wobble"] =
 	{ assetId = 73195420238991, meshId = "rbxassetid://122483175823891", size = { 3.23, 3, 3.307 } }
+-- FEATURES.FountainTiers decor (FountainTiers, client FountainTierFx): cloned round / over the fountain
+-- at tier 2+ / 3+ from ReplicatedStorage.FountainTierMeshes and tinted per tier. NOT world slots.
+entries["fountain_tier_ring"] =
+	{ assetId = 119324558874420, meshId = "rbxassetid://102733858140081", size = { 32.2, 6.2, 32.2 } }
+entries["fountain_tier_crest"] =
+	{ assetId = 110270802039989, meshId = "rbxassetid://77008333593159", size = { 13.699, 6.203, 13.9 } }
+-- FEATURES.MergeVat3 (client VatFx): stands over the owner's plot MergeVat disc from
+-- ReplicatedStorage.MergeVatMeshes. NOT a world slot.
+entries["merge_vat"] =
+	{ assetId = 122090902536570, meshId = "rbxassetid://94063238729318", size = { 10.808, 7.625, 10.764 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)

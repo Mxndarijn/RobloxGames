@@ -24,6 +24,7 @@
 
 local AssetService = game:GetService("AssetService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
@@ -197,6 +198,70 @@ function MeshSwap.publishSkinTemplates(): number
 		end
 	end
 	return count
+end
+
+-- FEATURES.FountainTiers: the ring and crest meshes as templates in ReplicatedStorage.FountainTierMeshes
+-- (named by mesh, native size); the client clones them round / over the fountain (FountainTierFx), so they
+-- take no WorldLayout slot. Yields; returns how many were published.
+function MeshSwap.publishFountainTierTemplates(): number
+	if not Config.FEATURES.FountainTiers then
+		return 0
+	end
+	local folder = ReplicatedStorage:FindFirstChild("FountainTierMeshes")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "FountainTierMeshes"
+		folder.Parent = ReplicatedStorage
+	end
+	local count = 0
+	for _, name in { "fountain_tier_ring", "fountain_tier_crest" } do
+		local meshId = MeshAssets.meshId(name)
+		local entry = MeshAssets.get(name)
+		local base = meshId and template(meshId)
+		if entry and entry.size and base and not (folder :: Folder):FindFirstChild(name) then
+			local mesh = base:Clone()
+			mesh.Name = name
+			mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+			mesh.Anchored = true
+			mesh.CanCollide = false
+			mesh.CanQuery = false
+			mesh.CanTouch = false
+			mesh.Parent = folder
+			count += 1
+		end
+	end
+	return count
+end
+
+-- FEATURES.MergeVat3: the merge vat mesh as a template in ReplicatedStorage.MergeVatMeshes (named by mesh,
+-- native size); the client stands a clone over the owner's plot vat (VatFx), so it takes no WorldLayout slot.
+-- Also published in Studio so the pc-watcher shots can force the look with the flag off. Yields.
+function MeshSwap.publishVatTemplates(): number
+	if not (Config.FEATURES.MergeVat3 or RunService:IsStudio()) then
+		return 0
+	end
+	local folder = ReplicatedStorage:FindFirstChild("MergeVatMeshes")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "MergeVatMeshes"
+		folder.Parent = ReplicatedStorage
+	end
+	local name = "merge_vat"
+	local meshId = MeshAssets.meshId(name)
+	local entry = MeshAssets.get(name)
+	local base = meshId and template(meshId)
+	if entry and entry.size and base and not (folder :: Folder):FindFirstChild(name) then
+		local mesh = base:Clone()
+		mesh.Name = name
+		mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+		mesh.Anchored = true
+		mesh.CanCollide = false
+		mesh.CanQuery = false
+		mesh.CanTouch = false
+		mesh.Parent = folder
+		return 1
+	end
+	return 0
 end
 
 -- Returns how many placeholders got a mesh.

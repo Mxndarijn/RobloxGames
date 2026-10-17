@@ -17,6 +17,10 @@ type Slime = Genome.Slime
 
 export type Daily = { lastDay: number, streak: number }
 
+-- Daily quests (Quests): the UTC day they were rolled for and the rolled slots.
+export type QuestSlot = { id: string, target: number, base: number, claimed: boolean }
+export type DailyQuests = { day: number, slots: { QuestSlot } }
+
 -- Counters for goals (CONTRACT.md §8.8); stolen / earned / rebirths / pads live elsewhere.
 export type Stats = { caught: number, merges: number, locks: number, sold: number }
 
@@ -29,6 +33,7 @@ export type Data = {
 	favoriteId: string?,
 	lastOnline: number, -- unix seconds of the last save while playing
 	daily: Daily,
+	quests: DailyQuests, -- Quests (day 0 = nothing rolled yet)
 	dex: { [string]: boolean },
 	totalEarned: number,
 	totalStolen: number,
@@ -63,6 +68,7 @@ function PlayerData.new(): Data
 		favoriteId = nil,
 		lastOnline = 0,
 		daily = { lastDay = 0, streak = 0 },
+		quests = { day = 0, slots = {} },
 		dex = {},
 		totalEarned = 0,
 		totalStolen = 0,

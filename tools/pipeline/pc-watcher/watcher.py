@@ -1416,8 +1416,14 @@ def step_shots(run):
                     res["weekly_event"] = run.need_luau("weekly_event", "Client", timeout=15)
                     if not res["weekly_event"].get("ok"):
                         res["error"] = "WeeklyEvent attribute missing or malformed: %s" % res["weekly_event"].get("raw")
+                if shot.get("events_board"):  # v21: the HUD events board banner must be visible with at least one event
+                    res["events_board"] = run.need_luau("events_board", "Client", timeout=15)
+                    if not res["events_board"].get("ok"):
+                        res["error"] = "events board banner missing or empty: %s" % res["events_board"].get("lines")
                 if shot.get("plot_skin"):  # gaps #15: fake the plot skin picker (Studio only)
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
+                if shot.get("merge_vat"):  # v19: the 3-slime vat panel (and the vat mesh on my plot), Studio only
+                    res["merge_vat"] = run.need_luau("merge_vat", "Client", timeout=15, on=True)
                 if shot.get("dex_rows"):  # v29 menus: fake a long Dex list (Studio only)
                     res["dex_rows"] = run.need_luau("dex_rows", "Client", timeout=15, count=int(shot["dex_rows"]))
                 if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
@@ -1534,6 +1540,10 @@ def step_shots(run):
                     res["pad_seat"] = pad_seat
                 if shot.get("plot_skin"):  # gaps #15: Plot_1 wears the skin (floor, fence tint, decor mesh), Studio only
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
+                if shot.get("fountain_tier"):  # v19: the fountain wears this tier's ring / crest / glow, Studio only
+                    res["fountain_tier"] = run.need_luau("fountain_tier", "Client", timeout=15, tier=int(shot["fountain_tier"]))
+                if shot.get("merge_vat"):  # v19: the vat mesh over Plot_1's vat disc, Studio only
+                    res["merge_vat"] = run.need_luau("merge_vat", "Client", timeout=15, on=True)
                 if shot.get("grow"):  # v29 #11: real growth on the pad 1 slime (Studio hook); WorldView draws it
                     # no watcher seat clone may stand on the pad: the frame must show the slime WorldView renders
                     if (res.get("target") or {}).get("path"):
@@ -1663,6 +1673,10 @@ def step_shots(run):
                         run.luau("pcw_clock", "Server", timeout=15, time=False)
                 if shot.get("plot_skin"):
                     run.luau("plot_skin", "Client", timeout=15, skin="classic")
+                if shot.get("fountain_tier"):
+                    run.luau("fountain_tier", "Client", timeout=15, tier=0)
+                if shot.get("merge_vat"):
+                    run.luau("merge_vat", "Client", timeout=15, on=False)
         except Exception as e:
             res["error"] = repr(e)[:200]
             if not res.get("frame"):
@@ -1681,6 +1695,16 @@ def step_shots(run):
     if any(shot.get("weather") for shot in shots):
         try:
             run.luau("weather_set", "Client", timeout=15, weather="", wait=0.1, cover=-1)  # drop the WeatherDebug preview
+        except Exception:
+            pass
+    if any(shot.get("fountain_tier") for shot in shots):
+        try:
+            run.luau("fountain_tier", "Client", timeout=15, tier=0)  # drop the PcwFountainTier override
+        except Exception:
+            pass
+    if any(shot.get("merge_vat") for shot in shots):
+        try:
+            run.luau("merge_vat", "Client", timeout=15, on=False)  # drop the PcwMergeVat override
         except Exception:
             pass
     if any(shot.get("plot_skin") for shot in shots):

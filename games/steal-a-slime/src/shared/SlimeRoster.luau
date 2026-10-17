@@ -17,6 +17,7 @@ export type Entry = {
 	name: string, -- display name
 	tier: number, -- Config.RARITIES tier, or SECRET_TIER
 	look: string, -- colour / kit mesh / accessory note for modelling
+	family: string?, -- FountainTiers family id (v19); nil = Classic, the original roster
 }
 
 export type MutationDraft = {
@@ -28,8 +29,8 @@ export type MutationDraft = {
 
 local SECRET_TIER = 7
 
-local function e(id: string, name: string, tier: number, look: string): Entry
-	return table.freeze({ id = id, name = name, tier = tier, look = look })
+local function e(id: string, name: string, tier: number, look: string, family: string?): Entry
+	return table.freeze({ id = id, name = name, tier = tier, look = look, family = family })
 end
 
 local ROSTER: { Entry } = {
@@ -71,6 +72,29 @@ local ROSTER: { Entry } = {
 	-- Secret (2): roster-only tier 7
 	e("golden_goose_goo", "Golden Goose Goo", SECRET_TIER, "gold body, crown + crystal, slime_wobble drips"),
 	e("moonmilk", "Moonmilk", SECRET_TIER, "midnight blue + pale white, slime_ears + crystal"),
+	-- v19 families (FountainTiers): one per rank, one type per tier 1..6, dropped by the upgraded fountain.
+	-- Same kits per tier as Classic (leaf / ears / horns / crown / crystal), new colours and names.
+	-- Orchard (Slime Wrangler)
+	e("apple_pop", "Apple Pop", 1, "orchard red, slime_base", "orchard"),
+	e("pear_drop", "Pear Drop", 2, "pear green, leaf", "orchard"),
+	e("peach_fuzz", "Peach Fuzz", 3, "peach, slime_ears", "orchard"),
+	e("plum_stag", "Plum Stag", 4, "plum purple, slime_horns", "orchard"),
+	e("cherry_baron", "Cherry Baron", 5, "dark cherry, crown", "orchard"),
+	e("citrine_quince", "Citrine Quince", 6, "citrine yellow, crystal cluster", "orchard"),
+	-- Frost (Goo Tycoon)
+	e("vanilla_scoop", "Vanilla Scoop", 1, "vanilla cream, slime_base", "frost"),
+	e("mint_chip", "Mint Chip", 2, "mint, leaf", "frost"),
+	e("sherbet_bunny", "Sherbet Bunny", 3, "sherbet orange-pink, slime_ears", "frost"),
+	e("icicle_ibex", "Icicle Ibex", 4, "ice blue, slime_horns", "frost"),
+	e("snowcone_duke", "Snowcone Duke", 5, "snowcone white-blue, crown", "frost"),
+	e("glacier_gem", "Glacier Gem", 6, "glacier cyan, crystal cluster", "frost"),
+	-- Starlight (Slime Sovereign)
+	e("stardust_blob", "Stardust Blob", 1, "stardust violet, slime_base", "starlight"),
+	e("nebula_sprout", "Nebula Sprout", 2, "nebula magenta, leaf", "starlight"),
+	e("comet_kitty", "Comet Kitty", 3, "comet indigo, slime_ears", "starlight"),
+	e("meteor_ram", "Meteor Ram", 4, "meteor orange, slime_horns", "starlight"),
+	e("aurora_queen", "Aurora Queen", 5, "aurora teal, crown", "starlight"),
+	e("supernova_titan", "Supernova Titan", 6, "supernova white-gold, crystal cluster", "starlight"),
 }
 
 -- Proposed new mutations, ordered by multiplier with the existing ones:
@@ -110,10 +134,12 @@ function SlimeRoster.get(id: string): Entry?
 	return byId[id]
 end
 
-function SlimeRoster.forTier(tier: number): { Entry }
+-- Types of `tier` in one family: `family` nil = the Classic roster (the 31 original types), so
+-- every v28 roll and count is unchanged by the families.
+function SlimeRoster.forTier(tier: number, family: string?): { Entry }
 	local out = {}
 	for _, entry in ROSTER do
-		if entry.tier == tier then
+		if entry.tier == tier and entry.family == family then
 			table.insert(out, entry)
 		end
 	end

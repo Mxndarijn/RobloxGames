@@ -1,0 +1,7 @@
+{
+  "id": "v20-daily-quests",
+  "todo": "v20",
+  "kind": "ui",
+  "open": "goals",
+  "note": "v20 daily quests: Goals menu top shows the 'Daily quests' header with the reset timer and 3 icon cards (title, progress bar, reward; green Claim button when finished) above the goal chains"
+}

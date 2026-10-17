@@ -183,6 +183,33 @@ end
 
 -- Returns a v5-shaped raw table (still untrusted) from any stored value. Saves
 -- from a newer version than we know are returned as they are.
+-- Daily quests: keeps only slots whose pool id still exists (a rolled day with none left re-rolls).
+function SaveData.cleanQuests(raw: any): PlayerData.DailyQuests
+	local out: PlayerData.DailyQuests = { day = 0, slots = {} }
+	if type(raw) ~= "table" then
+		return out
+	end
+	out.day = num(raw.day, 0, 0, 1e7)
+	if type(raw.slots) == "table" then
+		for _, slot in raw.slots do
+			if type(slot) == "table" and type(slot.id) == "string" and #out.slots < Config.DAILY_QUESTS.count then
+				for _, def in Config.DAILY_QUESTS.pool do
+					if def.id == slot.id then
+						table.insert(out.slots, {
+							id = def.id,
+							target = num(slot.target, def.choices[1], 1, 1e12),
+							base = num(slot.base, 0, 0, 1e18),
+							claimed = slot.claimed == true,
+						})
+						break
+					end
+				end
+			end
+		end
+	end
+	return out
+end
+
 function SaveData.migrate(raw: any): { [string]: any }?
 	if type(raw) ~= "table" then
 		return nil
@@ -311,6 +338,7 @@ function SaveData.deserialize(stored: any): Data
 			end
 		end
 	end
+	data.quests = SaveData.cleanQuests(raw.quests) -- daily quests (no version bump: missing -> nothing rolled)
 	data.dexRewards = num(raw.dexRewards, 0, 0, #Config.DEX_MILESTONES)
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (no version bump: missing -> empty)
@@ -392,6 +420,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		},
 		goals = table.clone(data.goals),
 		dexRewards = data.dexRewards,
+		quests = SaveData.cleanQuests(data.quests),
 		plotSkin = data.plotSkin,
 		stealLog = StealAlert.clean(data.stealLog),
 		redeemed = redeemed,

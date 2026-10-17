@@ -1,0 +1,8 @@
+{
+  "id": "v21-events-board",
+  "todo": "v21-board",
+  "kind": "ui",
+  "weekly_event": true,
+  "events_board": true,
+  "note": "v21 server events board (FEATURES.EventsBoard): the idle HUD with the 'Server events' banner (weekly mutation, Saturday trait event, day/night modifier, next event). luau/events_board finds the EventsBoard banner on the client HUD and fails the shot if it is not visible or lists no event; the WeeklyEvent attribute check of the weekly-event shot also runs"
+}

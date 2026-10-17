@@ -159,6 +159,44 @@ function Goals.fromServer(goals: any): { Goal }?
 	return out
 end
 
+export type Quest = {
+	id: string,
+	index: number, -- slot for Request("ClaimQuest", index)
+	title: string,
+	icon: string,
+	detail: string,
+	fraction: number,
+	done: boolean,
+	claimed: boolean,
+	reward: string,
+}
+
+-- `State.dailyQuests` -> quest cards (empty when the server has none) and the reset line.
+function Goals.quests(daily: any): ({ Quest }, string)
+	local out: { Quest } = {}
+	if type(daily) ~= "table" or type(daily.quests) ~= "table" then
+		return out, ""
+	end
+	for i, q in daily.quests do
+		if type(q) == "table" and type(q.id) == "string" then
+			local target = math.max(1, num(q.target))
+			local progress = math.min(num(q.progress), target)
+			table.insert(out, {
+				id = q.id,
+				index = i,
+				title = if type(q.title) == "string" then q.title else q.id,
+				icon = if type(q.icon) == "string" then q.icon else q.id,
+				detail = `{Format.shortNumber(progress)}/{Format.shortNumber(target)}`,
+				fraction = math.clamp(progress / target, 0, 1),
+				done = q.done == true,
+				claimed = q.claimed == true,
+				reward = if type(q.reward) == "string" then q.reward else "",
+			})
+		end
+	end
+	return out, `Resets in {Format.formatDuration(math.max(0, num(daily.resetsIn)))}`
+end
+
 -- Open goals first (closest to done on top), finished ones last; stable.
 function Goals.sorted(goals: { Goal }): { Goal }
 	local copy = table.clone(goals)

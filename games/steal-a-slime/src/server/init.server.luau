@@ -122,6 +122,22 @@ task.spawn(function()
 	end
 end)
 
+-- FEATURES.FountainTiers: ring / crest templates for the clients (no world slots; no-op while the flag is off).
+task.spawn(function()
+	local ok, err = pcall(MeshSwap.publishFountainTierTemplates)
+	if not ok then
+		warn(`[Server] MeshSwap.publishFountainTierTemplates failed: {err}`)
+	end
+end)
+
+-- FEATURES.MergeVat3: the vat template for the clients (no world slot; no-op while the flag is off outside Studio).
+task.spawn(function()
+	local ok, err = pcall(MeshSwap.publishVatTemplates)
+	if not ok then
+		warn(`[Server] MeshSwap.publishVatTemplates failed: {err}`)
+	end
+end)
+
 -- Archer's Effects (nil without Visuals): bursts are pcall'd and never block gameplay.
 local Effects: any = nil
 do
@@ -768,6 +784,12 @@ local function stepPlayers(t: number)
 		if not ok then
 			warn(`[Server] ritual step failed: {err}`)
 		end
+	end
+	if
+		Config.FEATURES.FountainTiers
+		and workspace:GetAttribute(Constants.FOUNTAIN_TIER_ATTRIBUTE) ~= world.fountainTier
+	then
+		workspace:SetAttribute(Constants.FOUNTAIN_TIER_ATTRIBUTE, world.fountainTier)
 	end
 	if world.raining ~= wasRaining then
 		wasRaining = world.raining

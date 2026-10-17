@@ -152,6 +152,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"Favorite"` | `slimeId: string?` | Sets the rebirth keeper. `nil` clears it. |
 | `"BuyPad"` | none | Unlocks the next pad (`Economy.padCost`). |
 | `"Daily"` | none | Claims the daily reward (`Progression.claimDaily`). |
+| `"ClaimQuest"` | `slot: number` | Claims daily quest `slot` (1..`DAILY_QUESTS.count`) once finished (`Quests.claim`): cash x rebirth multiplier or an income boost. `State.dailyQuests` has the 3 quests rolled per UTC day (progress = gained since the roll, saved as `quests`; missing = nothing rolled). |
 | `"BuyLockUpgrade"` | none | Buys the next lock-time upgrade level for `Shop.lockUpgradeCost(level)`. Each level makes every bought lock last `LOCK_UPGRADE_SECONDS` longer, up to `LOCK_UPGRADE_MAX` levels. Permanent: saved and kept on rebirth. |
 | `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While you're not carrying, WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Permanent: saved and kept on rebirth. |
 | `"BuyEgg"` | none | `FEATURES.MysteryEgg`. Buys a Mystery Egg with cash only (`Shared.MysteryEgg.price` = `MYSTERY_EGG_PRICE` x rebirth multiplier). It hatches a slime rolled from `MYSTERY_EGG_DROPS` onto the lowest free pad via `PlayerData.addSlime`; `State.egg.hatched` carries it for the reveal banner. Failures: `"not enough cash"`, `"plot full"` (nothing charged), `"eggs are off"`. Save format unchanged. Events: server-only `Server/MysteryEgg.spawnForEvent(world, userId, count, now)` hatches free eggs, no remote. |
@@ -672,7 +673,43 @@ The HUD lock bar can show `(lockUntil - now) / (lockUntil - lockStartedAt)`, so 
 - **Effects:** applied at drop time in `Spawner.spawnOne` (wild fountain drops only; merges, Appraise and the Boss Slime are untouched). The trait multipliers stack with the dawn / dusk modifier and Slime Rain by multiplication; the weekly values are small and capped. The clock is `Spawner.unixTime` (default `os.time`; `tests/ServerFixtures` pins it to `nil` = no schedule so seeded specs never depend on the date).
 - **Live admin events (§12):** a running admin `luck` / `mutation` event **replaces** the weekly effects (no stacking, so an admin's x3 / x4 stays exactly what they asked for): `spawnOne` skips the weekly multipliers and the mutation boost while `world.adminEvent` is set, and they resume when it ends. The admin `rain` event does not set `adminEvent` (it calls `forceRain`), so weekly effects continue under it. The attribute keeps showing the schedule either way. Admin events and `Config.WEEKEND` (income) are independent.
 
-## 19. v20: welcome-back card (2026-10-17)
+## 19. v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`, default `false`)
+
+Owner: Phoenix (server, shared), Archer (visuals). Off = one Meadow fountain, Classic drops only, no attribute, no templates, rank cards unchanged.
+
+- **Tier.** `World.fountainTier` (1..4) is the best rank seen on the server: `FountainTiers.tierFor(max rebirths over sessions)`, raised by `Spawner.stepFountainTier` each frame, never lowered while the server lives. Steps at the `Config.REBIRTH_TIERS` entries that carry `family`: 3 rebirths (Slime Wrangler) = Orchard Fountain, 6 (Goo Tycoon) = Frost, 10 (Slime Sovereign) = Starlight. Raising it toasts everyone once.
+- **Families.** `SlimeRoster` entries with `family` set (`orchard`, `frost`, `starlight`), one type per tier 1..6 (18 new ids, permanent, lower-case; none at Secret). `SlimeRoster.forTier(tier)` still returns Classic only; `forTier(tier, family)` returns a family's. Species stay the only saved trace (`Genome.sanitize` already keeps a known species id and drops an unknown one), so there is **no new saved field and no `SAVE_VERSION` bump**.
+- **Drops.** `Fountain.roll(..., familyPool)`: with a pool (`FountainTiers.pool(world.fountainTier)`) `Config.FAMILY_DROP_CHANCE` (0.3) of drops are a family type (weights 5 / 3 / 2) rolled with the family's rarity luck (1.2 / 1.4 / 1.7 on the tier >= 3 weights). With no pool (flag off or tier 1) no extra `rng` draw is made, so drop sequences are exactly the old ones. Boss slimes stay Classic.
+- **Catching.** `Carry.grabWild` refuses a family slime when the player's own rebirths are below its family's rank (`Carry.familyBlock`, "Reach Slime Wrangler (3 rebirths) to catch Orchard slimes"), before any price is charged. Stealing, merging and owning are never gated.
+- **Economy untouched.** No income multiplier, no price change: a family slime's income, wild price and sell value are those of a Classic slime of the same tier, size and mutations.
+- **Replication.** workspace attribute `FountainTier` (`Constants.FOUNTAIN_TIER_ATTRIBUTE`), set only with the flag on. `ReplicatedStorage.FountainTierMeshes` holds the two templates (`MeshSwap.publishFountainTierTemplates`).
+- **Visuals (client, `FountainTierFx` + `FountainTierDecor`).** Tier 2+: `fountain_tier_ring` (8 lantern posts, r 14.6) on the ground; tier 3+: `fountain_tier_crest` floating over the goo crown, spinning and bobbing; both tinted per tier (copper / silver / gold, `MeshPart.Color`), tier 4 crest Neon; `Map.Volcano.Crater.CraterGlow` takes the tier's glow colour. Both meshes are run-time only: 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), at most 2 extra MeshParts while shown. Studio only: SlimeUI attribute `PcwFountainTier` forces the tier (pc-watcher shots `19-fountain-tier-N`).
+- **Rank cards.** `Perks.tierText` appends "opens the Orchard slimes" for ranks with a family, only with the flag on.
+- **Needs frame review before the flag goes on:** the ring posts against the slide legs, the crest height against the emerge slimes, the glow colours at night.
+
+## 20. v21: server events board (2026-10-17)
+
+**Status:** `Config.FEATURES.EventsBoard` (default `false`); `false` = no banner. Client only: **no remote, no server code, no save-format change**, no new mesh.
+
+- **What it shows (`src/ui/EventsBoard`, pure):** one HUD banner `EventsBoard` in the `Banners` stack (hidden while a menu is open like the others), lines: `📅 Server events`; `🧪 <Mutation> week - <time> left` and the Saturday trait event (`🍀 Lucky Saturday x1.5 luck - <time> left`) from the replicated `WeeklyEvent` attribute (§18, `WeeklyEvents.decode`; needs `FEATURES.WeeklyEvents`, otherwise those lines are absent); the day/night or live admin modifier through `ModifierBadge.banner` (needs `FEATURES.CycleModifier`); and `Next: <event> in <time>` from the same attribute. Nothing running = banner hidden.
+- **Clocks:** weekly times are unix (`os.time()`, like the schedule), the modifier uses the server clock (`ctx.serverNow()`), as their own badges do. Past events are dropped, so a stale attribute never shows an ended event.
+- **Pc-watcher:** shot `v21-events-board` (`luau/events_board`) fails when the banner is missing, hidden or lists no event.
+
+
+
+## 21. v19: 3-slime merge vat (`FEATURES.MergeVat3`, default `false`)
+
+Owner: Phoenix (server, shared), Jolt (panel), Archer (vat model). Off = the two-slime vat exactly as before: no `Merge3` action (refused "the 3-slime vat is off"), no switch in the Merge panel, no template, the primitive vat disc.
+
+- **Rules (`Shared.TripleMerge`, pure).** Exactly three **different**, owned, not-busy slimes of **one** rarity T go in; one slime comes out and all three are consumed. Tier: T + 1, or with `Config.TRIPLE_MERGE_JUMP_CHANCE` (0.2) T + 2, never a jump into Secret (a jump needs T + 2 <= MAX_TIER - 1: Common..Epic can jump); T = 6 gives Secret (T + 1), as in the pair vat; tier-7 inputs stay 7 and always roll a mutation. Mutation: the strongest of the three (matching ones upgrade, `Merge.inheritedMutation` folded over the three), every other mutation they carry too (strongest first, combos fuse, `Config.MAX_MUTATIONS`), plus a fresh roll at `Config.TRIPLE_MERGE_MUTATION_CHANCE` (0.3, + the pet bonus) and the `MutationStacking` roll. Size: mean + `Config.TRIPLE_MERGE_SIZE_BONUS` (0.15), clamped. Pattern / eyes / mouth each from one of the three. The child is a real `SlimeRoster` species of its tier (its name and colour), not a blended name.
+- **Deterministic.** All randomness is the server `world.rng`, drawn in a fixed order (jump, species, mutation x2, three trait picks, stacking): one seed and inputs always give one child (`tests/TripleMerge.spec`).
+- **Anti-dupe / authority.** `Request("Merge3", a, b, c)` (3 strings, `Validate.ACTIONS.Merge3` 0.5 s). `TripleMerge.apply` validates everything first (3 ids, no repeats, each owned, none in `World.busySet`, one tier, a fresh child id) and only then removes the three and adds the child on the first slime's pad, so a refused merge changes nothing and the same slimes can never be merged twice. The favourite moves to the child. Stats (`merges`), Dex and the toast go through `MergeVat.merge3` like the pair vat. The client only gates its button (`Selection.canMergeTriple`).
+- **Economy untouched.** No cash cost, no sell / buy value changes. Three slimes for one tier up (the pair vat does it with two) is the price of the extra odds: a 20 % second tier, every mutation kept, a species result.
+- **Panel (existing menu system).** `Panels/Merge`: a "2 slimes / 3 slimes" switch above the hint (only while the flag is on), up to three picks, `Merge 3` hold button, status "You get: <rarity> · 20% <rarity+1>". Studio only: SlimeUI attribute `PcwMergeVat` = true forces it on and opens in 3-slime mode (pc-watcher shots `19-merge-vat-*`).
+- **Vat model.** `merge_vat` (kit mesh, copper goo cauldron, three funnel spouts, 1508 tris): the client (`VatFx`, `VatDecor.pose`) stands a clone of `ReplicatedStorage.MergeVatMeshes.merge_vat` over the **local player's own** plot `MergeVat` disc (the disc and its goo only turn invisible; the MergePrompt keeps working). 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), at most 1 extra MeshPart. The server publishes the template with the flag on (and in Studio, for the shots).
+- **Needs frame review before the flag goes on:** the panel with the switch on a 390 px phone, the vat scale against the disc, the vat in the night look.
+
+## 22. v20: welcome-back card (2026-10-17)
 
 **Status:** `Config.FEATURES.WelcomeBack` (default `true`); `false` = no State field, no card. Server-authoritative; no remote, **no save-format change**, nothing saved.
 
