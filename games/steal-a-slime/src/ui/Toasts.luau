@@ -11,6 +11,7 @@ local SoundService = game:GetService("SoundService")
 
 local ItemIconView = require(script.Parent.ItemIconView)
 local ItemIcons = require(script.Parent.ItemIcons)
+local Layout = require(script.Parent.Layout)
 local SoundController = require(script.Parent.SoundController)
 local Sounds = require(script.Parent.Sounds)
 local ToastQueue = require(script.Parent.ToastQueue)
@@ -65,10 +66,20 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 
 	local self = {}
 
-	-- Box from Layout.screen().toasts (right edge, under the HUD).
-	function self.layout(rect: { x: number, y: number, w: number, h: number })
-		holder.Position = UDim2.fromOffset(rect.x + rect.w, rect.y)
-		holder.Size = UDim2.fromOffset(rect.w, rect.h)
+	-- Box from Layout.screen().toasts (right edge, under the HUD), moved below
+	-- the HUD banner stack (`bannerHeight`) where the two share columns.
+	local screen: Layout.Screen? = nil
+	local bannerHeight: (() -> number)? = nil
+	local function place()
+		if screen then
+			local rect = Layout.toastBox(screen, if bannerHeight then bannerHeight() else 0)
+			holder.Position = UDim2.fromOffset(rect.x + rect.w, rect.y)
+			holder.Size = UDim2.fromOffset(rect.w, rect.h)
+		end
+	end
+	function self.layout(s: Layout.Screen, banners: (() -> number)?)
+		screen, bannerHeight = s, banners
+		place()
 	end
 
 	local function playSound(sound: string?)
@@ -165,6 +176,7 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 			end
 		end
 		holder.Visible = not menuOpen
+		place()
 	end
 
 	function self.push(text: string, kind: string?, sound: string?, itemId: string?)

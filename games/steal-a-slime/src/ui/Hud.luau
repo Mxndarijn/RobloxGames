@@ -81,7 +81,7 @@ local function banner(parent: Instance, name: string, color: Color3, order: numb
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextWrapped = true,
 		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.fromOffset(560, 34),
+		Size = UDim2.new(1, 0, 0, 34), -- the Banners frame width (Layout: narrower on phones)
 		AutomaticSize = Enum.AutomaticSize.Y,
 		Parent = parent,
 	})
@@ -390,6 +390,11 @@ function Hud.new(parent: Instance, ctx: any)
 	end
 
 	-- The HUD boxes as shown now (hidden items missing), for the hint ring.
+	-- Height of the shown banner stack in layout px (toasts start below it when they share its columns).
+	function self.bannerHeight(): number
+		return if banners.Visible and screen then banners.AbsoluteSize.Y / screen.scale else 0
+	end
+
 	function self.hudLayout(): Layout.HudLayout?
 		return laidOut
 	end
