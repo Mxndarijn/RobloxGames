@@ -34,6 +34,7 @@ table.sort(specs)
 -- SPEC_FILTER=<substring> runs only the matching specs (handy with scripts/test-flags).
 local filter = process.env.SPEC_FILTER
 local forced = process.env.SLIME_FORCE_FEATURES
+TestRunner.setForced(forced)
 
 -- A spec that throws while loading (a top-level assert) fails the run but does not hide the others.
 local loadFailures = 0
