@@ -10,7 +10,7 @@
     6,
     299.8
   ],
-  "note": "border v4: along the edge at 20 studs: giant pines and oaks (existing tree meshes scaled up) stand on the terrain hills and tall rock-topped mountains layer behind them, no hard edge into the sky in [desktop]",
+  "note": "border v4: along the edge at 20 studs: giant trees (border v5: three new giant meshes) stand on the terrain hills and tall rock-topped mountains layer behind them, no hard edge into the sky in [desktop]",
   "kind": "world",
   "wait": 6.0,
   "device": "desktop",

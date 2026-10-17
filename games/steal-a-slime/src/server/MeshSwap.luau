@@ -144,6 +144,10 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	local turn = if target:IsA("Model") then 0 else math.rad(MeshAssets.IMPORT_YAW)
 	mesh.CFrame = cf * CFrame.new(0, -drop, 0) * CFrame.Angles(0, turn, 0)
 	-- RenderFidelity is Precise from the template (CreateMeshPartAsync options, v30 C2).
+	-- MeshTint (WorldBorder giants): the slot's own Color multiplies the vertex colours, so one mesh wears several moods.
+	if not target:IsA("Model") and target:GetAttribute("MeshTint") == true then
+		mesh.Color = target.Color
+	end
 	mesh.Anchored = true
 	mesh.CanCollide = false
 	mesh.CanQuery = false

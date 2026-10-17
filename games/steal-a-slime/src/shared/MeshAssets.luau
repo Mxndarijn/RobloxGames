@@ -120,6 +120,9 @@ local NAMES = {
 	"fountain_tier_crest",
 	"merge_vat",
 	"rain_magnet",
+	"giant_broadleaf",
+	"giant_pine_layered",
+	"giant_round_canopy",
 }
 
 local entries: { [string]: Entry } = {}
@@ -346,6 +349,13 @@ entries["merge_vat"] =
 -- while the upgrade has a level. NOT a world slot.
 entries["rain_magnet"] =
 	{ assetId = 87228491807524, meshId = "rbxassetid://102515085429965", size = { 5.68, 9.679, 3.607 } }
+-- Border v5 giant trees (WorldBorder.giants; 3-5x the border pines, MeshPart.Color tints the canopy). Open Cloud size-check.
+entries["giant_broadleaf"] =
+	{ assetId = 114689108547101, meshId = "rbxassetid://115148865966963", size = { 80.613, 78.349, 65.201 } }
+entries["giant_pine_layered"] =
+	{ assetId = 82697384730576, meshId = "rbxassetid://131926496841871", size = { 37.327, 86.67, 35.962 } }
+entries["giant_round_canopy"] =
+	{ assetId = 123353571589135, meshId = "rbxassetid://81542465151090", size = { 52.846, 80.09, 51.819 } }
 
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)
