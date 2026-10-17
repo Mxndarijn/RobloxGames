@@ -82,6 +82,20 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 		place()
 	end
 
+	-- Height a toast takes (frame padding 8 + 8, text wrapped beside the icon, icon-high at least).
+	local TOAST_GAP = 6
+	local function toastHeight(entry: any): number
+		local iconWidth = Toasts.ICON + 8
+		local size = if entry.kind == "rare" then 20 else 16
+		local textH = Layout.wrappedHeight(entry.text, size, holder.Size.X.Offset - 16 - iconWidth, true)
+		return math.max(textH, Toasts.ICON) + 16
+	end
+	local fit: ToastQueue.Fit = {
+		room = 0,
+		gap = TOAST_GAP,
+		height = toastHeight,
+	}
+
 	local function playSound(sound: string?)
 		if sound and SoundController.play(sound) then
 			return
@@ -157,7 +171,9 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 
 	-- Draw exactly the entries the queue says are visible.
 	local function sync()
-		local visible = queue.step(os.clock(), menuOpen)
+		place()
+		fit.room = holder.Size.Y.Offset
+		local visible = queue.step(os.clock(), menuOpen, fit)
 		local live: { [number]: boolean } = {}
 		for _, entry in visible do
 			live[entry.id] = true
@@ -176,7 +192,6 @@ function Toasts.new(parent: Instance, registry: any, config: any?)
 			end
 		end
 		holder.Visible = not menuOpen
-		place()
 	end
 
 	function self.push(text: string, kind: string?, sound: string?, itemId: string?)

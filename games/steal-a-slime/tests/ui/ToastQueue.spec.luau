@@ -139,3 +139,29 @@ describe("ToastQueue menus", function()
 		expect(#q.step(30.1, false)).toBe(1)
 	end)
 end)
+
+describe("ToastQueue height fit", function()
+	local fit = {
+		room = 100,
+		gap = 6,
+		height = function(_e: any): number
+			return 40
+		end,
+	}
+	it("shows only as many toasts as fit, steal alerts first, the rest wait", function()
+		local q = ToastQueue.new()
+		q.push("a", "info", 0)
+		q.push("b", "info", 0)
+		q.push("c", "info", 0)
+		q.push("Someone is stealing from you!", "bad", 0)
+		expect(texts(q.step(0.1, false, fit))).toEqual({ "Someone is stealing from you!", "a" })
+		fit.room = 200 -- more room (banner gone): the waiting ones appear
+		expect(#q.step(0.2, false, fit)).toBe(4)
+		fit.room = 100
+	end)
+	it("shows nothing when not even one fits", function()
+		local q = ToastQueue.new()
+		q.push("a", "info", 0)
+		expect(#q.step(0.1, false, { room = 30, gap = 6, height = fit.height })).toBe(0)
+	end)
+end)

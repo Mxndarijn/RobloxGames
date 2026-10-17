@@ -10,7 +10,8 @@
 	  cash" x3 -> "Not enough cash (x3)". A merge refreshes the entry's life.
 	- Priority: 3 rare / badge / away / steal alerts, 2 other bad news, 1 routine.
 	  Higher priority shows first and wins the visible slots.
-	- Cap: at most `max` visible; the rest wait. Queued routine toasts that
+	- Cap: at most `max` visible, and (given a `fit`) only as many as fit the
+  toast box's height, in priority order; the rest wait. Queued routine toasts that
 	  never got a slot within STALE seconds are dropped.
 	- Menus: nothing shows while a menu is open (like the HUD banners,
 	  MenuState.bannersVisible); entries neither age nor go stale meanwhile.
@@ -31,9 +32,11 @@ export type Entry = {
 	shownAt: number?,
 	itemId: string?, -- the first non-nil itemId pushed into this entry
 }
+-- Room for the stack: `height` of one entry's toast, `gap` between toasts, `room` px in total.
+export type Fit = { room: number, gap: number, height: (Entry) -> number }
 export type Queue = {
 	push: (text: string, kind: string?, now: number, itemId: string?) -> (Entry, boolean),
-	step: (now: number, menuOpen: boolean?) -> { Entry },
+	step: (now: number, menuOpen: boolean?, fit: Fit?) -> { Entry },
 	size: () -> number,
 }
 
@@ -149,7 +152,7 @@ function ToastQueue.new(max: number?): Queue
 	end
 
 	-- Advance to `now`; the entries to draw, highest priority first (then oldest).
-	function self.step(now: number, menuOpen: boolean?): { Entry }
+	function self.step(now: number, menuOpen: boolean?, fit: Fit?): { Entry }
 		local dt = if lastNow then math.max(0, now - lastNow) else 0
 		lastNow = now
 		if menuOpen then
@@ -180,8 +183,15 @@ function ToastQueue.new(max: number?): Queue
 			return a.id < b.id
 		end)
 		local visible = {}
+		local used = 0
 		for i = 1, math.min(cap, #order) do
 			local e = order[i]
+			if fit then
+				used += fit.height(e) + if i > 1 then fit.gap else 0
+				if used > fit.room then
+					break -- this one and the lower ones wait for room
+				end
+			end
 			e.shownAt = e.shownAt or now
 			table.insert(visible, e)
 		end
