@@ -14,7 +14,7 @@
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
 
-export type Goal = { id: string, title: string, detail: string, fraction: number, done: boolean }
+export type Goal = { id: string, title: string, detail: string, fraction: number, done: boolean, next: string? }
 
 local Goals = {}
 
@@ -153,6 +153,7 @@ function Goals.fromServer(goals: any): { Goal }?
 				detail = detail,
 				fraction = if done then 1 elseif target and target > 0 then math.clamp(progress / target, 0, 1) else 0,
 				done = done,
+				next = if not done and type(g.nextTitle) == "string" then `Next: {g.nextTitle}` else nil,
 			})
 		end
 	end

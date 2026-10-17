@@ -26,6 +26,7 @@ export type View = {
 	stages: number,
 	target: number?,
 	reward: number?,
+	nextTitle: string?, -- the step after the current one (nil on the last step)
 	done: boolean,
 }
 
@@ -95,6 +96,7 @@ function Goals.view(data: Data): { View }
 			reward = if done
 				then nil
 				else math.floor(goal.rewards[stage + 1] * Economy.rebirthMultiplier(data.rebirths)),
+			nextTitle = if stage + 2 <= #goal.targets then Goals.title(goal, goal.targets[stage + 2]) else nil,
 			done = done,
 		})
 	end

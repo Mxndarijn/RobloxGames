@@ -17,7 +17,7 @@ local create = Widgets.create
 
 local GoalsPanel = {}
 
-GoalsPanel.ICON = 40 -- item icon at the row's left (row is 58 tall)
+GoalsPanel.ICON = 40 -- item icon at the row's left (row is 72 tall)
 
 function GoalsPanel.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "GoalsPanel", "Goals", "🎯", Color3.fromRGB(220, 110, 70))
@@ -60,7 +60,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	end, function(g: Goals.Goal)
 		local frame = create("Frame", {
 			Name = g.id,
-			Size = UDim2.new(1, -10, 0, 58),
+			Size = UDim2.new(1, -10, 0, 72),
 			BackgroundColor3 = Theme.Row,
 		}, { Widgets.corner(8) })
 		local icon = ItemIconView.new({
@@ -68,7 +68,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 			Id = ItemIcons.forGoal(ItemIcons.of(ctx), g.id),
 			Size = GoalsPanel.ICON,
 			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 8, 0.5, -3),
+			Position = UDim2.new(0, 8, 0.5, 0),
 			Parent = frame,
 		}, ItemIcons.of(ctx))
 		icon.setActive(isOpen)
@@ -89,13 +89,22 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 			Position = UDim2.fromOffset(textX, 26),
 			Parent = frame,
 		})
+		local nextStep = Widgets.label({
+			Name = "NextStep",
+			TextSize = 12,
+			TextColor3 = Theme.Muted,
+			Size = UDim2.new(1, -(textX + 10), 0, 14),
+			Position = UDim2.fromOffset(textX, 42),
+			Parent = frame,
+		})
 		local _, setBar =
 			Widgets.bar(frame, Theme.Accent, UDim2.new(1, -(textX + 10), 0, 6), UDim2.new(0, textX, 1, -12))
-		return { instance = frame, title = title, detail = detail, setBar = setBar }
+		return { instance = frame, title = title, detail = detail, nextStep = nextStep, setBar = setBar }
 	end, function(row: any, g: Goals.Goal)
 		row.title.Text = (if g.done then "✅ " else "") .. g.title
 		row.title.TextColor3 = if g.done then Theme.Muted else Theme.Text
 		row.detail.Text = g.detail
+		row.nextStep.Text = g.next or ""
 		row.setBar(g.fraction)
 		row.instance.BackgroundColor3 = if g.done then Theme.BgLight else Theme.Row
 	end)

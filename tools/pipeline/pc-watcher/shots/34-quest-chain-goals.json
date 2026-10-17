@@ -1,0 +1,7 @@
+{
+  "id": "quest-chain-goals",
+  "todo": "quest-chain",
+  "kind": "ui",
+  "open": "goals",
+  "note": "Goals are a visible chain: each row shows the current step, stage N/M and a Next: preview of the following step"
+}
