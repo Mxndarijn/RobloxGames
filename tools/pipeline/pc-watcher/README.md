@@ -4,7 +4,7 @@ Runs on Merijn's Windows PC (`C:\gate\pc-watcher`). For every new `origin/main` 
 game, opens it in Roblox Studio, plays it, checks perf, input, menus and HUD layout at three
 viewport sizes, tries a 2-player test, and pushes a JSON report plus frames to the orphan branch
 `studio-reports`. The box copies those reports to `/workspace/roblox/pipeline/studio-reports/`,
-where `games/steal-a-slime/tools/pipeline/cloud-test.sh` reads them (`gate_ready` needs `pass`).
+where `games/steal-a-slime/tools/pipeline/cloud-test.sh` reads them (`gate_ready` needs `pass` and `run_kind` `full`).
 
 Studio is driven **only** through Roblox's `StudioMCP.exe` (stdio JSON-RPC, `mcp_client.py`). Win32
 (ctypes, `win32.py`) is used only to start Studio on its own desktop and to size its window. Nothing is
@@ -57,14 +57,47 @@ the real mouse or keyboard (no MCP input tool is used, see 5).
 
 A Scheduled Task, `StealASlime-PCWatcher`, starts at logon. It runs as the current user on the
 interactive desktop, because Studio needs one. It runs `pythonw watcher.py --home C:\gate\pc-watcher loop`.
-The loop calls `git ls-remote origin refs/heads/main` every 60 s. When the sha differs from
-`state\last-sha.json`, it does one full run. `state\last-sha.json` is then updated whatever the result,
-except for "studio busy" (see step 2), which is retried after 5 min.
+The loop calls `git ls-remote origin refs/heads/main` every 60 s and decides between a **full** and a **partial**
+run (next section). `state\last-sha.json` is updated after a run of the current tip whatever the result, except for
+"studio busy" (see step 2), which is retried after 5 min. `once` still means one full run (`--kind partial` for a partial one).
+
+## Full vs partial runs
+
+A full run takes about 13-15 min (800 s: 165 frames at ~3.7 s, devices ~140 s, the rest ~50 s). Most merges only touch
+a few files, so the loop runs a **partial** run for those and a **full** run only where a publish needs one. Only
+`run_kind: "full"` reports can gate a publish (`publish.sh`, `cloud-test.sh`); a partial report is a quick regression signal.
+
+**Candidate signal.** When `publish.sh` on the box sets the needs-review marker (cloud pass, no full reviewed Studio
+report) it writes `studio-reports/requests/<sha>.json` on branch `studio-reports` (`{sha, requested_at, by, reason}`).
+The PC cannot see the box, so each loop tick runs `git fetch origin studio-reports` and reads that directory
+(`fetch_candidates`). A request whose `studio-reports/<sha>.json` is already `run_kind: "full"` counts as done.
+
+**Decision order** (`choose_work`, one line per decision in `logs\watcher.log`):
+
+1. The newest requested sha among the newest `full_request_depth` (8) first-parent commits of main that has no full report: **full** ("candidate request"). `last-sha.json` is left alone for an older sha.
+2. Tip differs from `last-sha.json`: wait `candidate_wait_s` (150 s) from when the tip was first seen (`state\tip-seen.json`) in case a request arrives, then **partial** ("new tip"). With `"partial_runs": false` in `config.json` it is a full run at once.
+3. Tip unchanged, no full report for it, and the last run ended `full_idle_s` (900 s) ago: **full** ("idle tip without full report").
+4. Otherwise nothing.
+
+**Which paths need what.** The partial base is the sha of the last full run (`state\last-full.json`). No base, a base that
+is not an ancestor, or a failing `git diff` upgrades the run to full. Otherwise `plan_run` maps `git diff --name-only base sha`
+through `shot-map.json` (read from the tested checkout like `shots/`): a path in `full` makes the whole run full; one in `ignore`
+adds nothing; else the first matching rule (ordered specific to broad) adds its shot-id globs, shot `kinds` / `keys` and
+`steps`; a path matching nothing is "unknown" and makes the run full (shared libs and server logic are broad on purpose),
+as do more than `partial_max_files` (60) changed files. A partial always captures the `smoke` shots and every shot with a budget
+field (`always_keys`: `runtime_parts_max`, `mesh_slots_max`), and runs build, launch, play (fps), perf (runtime parts, mesh slots),
+geometry, onboarding, shop, esc and two_player. The expensive `devices` step (menus + phone_perf) runs only when a selected rule lists `"devices"`; otherwise
+`devices`, `menus` and `phone_perf` are `skip` with `detail.partial: true`, which does not fail the run.
+
+**Estimates** (50 s base + ~3.7 s per shot, +138 s with devices): docs or server-specific change ~1.5-2 min (7-18 shots), a UI panel change ~4-5 min (with devices), full ~13-15 min.
+
+A partial report has `run_kind: "partial"`, `publishable: false` and a `run_plan`; its commit message ends in `partial`.
+A full run that reaches the shots step writes `state\last-full.json` and appends to `state\full-done.json` (last 50).
 
 ## Commands
 
 ```
-python watcher.py once [--sha SHA] [--no-sync]  # full run for one sha (default origin/main); ignores last-sha
+python watcher.py once [--sha SHA] [--no-sync] [--kind full|partial] [--reason TXT]  # one run for a sha (default: full, origin/main); ignores last-sha
 python watcher.py loop                          # what the Scheduled Task runs
 python watcher.py step build [--sha SHA]        # debug one step at a time, in this order:
 python watcher.py step launch                   #   opens Studio and leaves it open (state\current.json)
@@ -96,7 +129,7 @@ input call misbehaves.
 | `builds\<sha>.rbxl` | the last 5 test builds |
 | `out\<sha>\` | `<sha>.json`, `<sha>-<device>.jpg`, `<sha>-console.txt`, `*-rejected.png` |
 | `reports\` | git clone on branch `studio-reports` (sync only) |
-| `state\` | `last-sha.json`, `pids.json` (Studio pids the watcher started), `current.json`, `run.lock`, `loop.lock`, `unsynced.json`, `mcp-tools.json` |
+| `state\` | `last-sha.json`, `last-full.json`, `full-done.json`, `tip-seen.json`, `pids.json` (Studio pids the watcher started), `current.json`, `run.lock`, `loop.lock`, `unsynced.json`, `mcp-tools.json` |
 | `logs\watcher.log` | rotating log, 5 x 5 MB |
 | `config.json` | optional overrides of `watcher.DEFAULTS` (budget, devices, input templates, 2-player args, ...) |
 
@@ -149,6 +182,9 @@ the earlier modes did not (`tried`).
 ```json
 {
   "sha": "<40 hex>", "status": "pass | fail", "checked_at": "2026-10-16T09:44:58Z",
+  "run_kind": "full | partial", "publishable": true,
+  "run_plan": {"run_kind": "partial", "reason": "rules: shop UI", "base": "<last full sha>|null", "changed": 3,
+               "shots": ["<ids, partial only>"], "steps": ["build", "..."], "full_paths": [], "unknown_paths": []},
   "studio_version": "0.695.0.6950727 (version-4f087c32742644ab)",
   "notes": "limitations and rejections, '; '-joined",
   "duration_s": 312.4,
@@ -183,7 +219,7 @@ the earlier modes did not (`tried`).
 `todo` is the shot's TODO item (shot file `todo`, else the `TODO n:` prefix of its `note`). The
 sync rewrites `file` to the `.jpg` name when it converts.
 
-`cloud-test.sh` reads only `sha`, `status`, `checked_at`, `studio_version` and `notes`.
+`run_kind` is always present; `publishable` is `run_kind == "full"`. `cloud-test.sh` and `publish.sh` read only `sha`, `status`, `run_kind`, `checked_at`, `studio_version` and `notes`.
 
 ## Sync route
 
@@ -222,7 +258,8 @@ Bring-up, step by step: `python watcher.py tools` (with a Studio open), then `st
 
 Shots live in `shots/`, one JSON file per entry, named `<NN>-<id>.json` (`NN` = run order, e.g.
 `79-my-shot.json`). The watcher loads every `shots/*.json` sorted by filename, so to add a shot drop a new
-file there; no other file needs editing. A file holds one entry object (a list of entries is also
+file there. If its area is not covered by a `shot-map.json` rule (a new feature's files), add or extend a rule so
+partial runs capture it (`selftest.py` checks that every rule's selectors match a shot); the budget shots and `smoke` list always run. A file holds one entry object (a list of entries is also
 accepted). Ids must be unique across files; unreadable files are skipped with a note, and an empty or
 missing folder skips the step. `selftest.py` checks id uniqueness and filename order. `install.ps1` copies
 the folder to `app\shots` after removing stale files (and `app\luau\*.luau` and any old `app\shots.json`).

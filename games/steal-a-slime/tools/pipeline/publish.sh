@@ -5,7 +5,9 @@
 #   AUTO_PUBLISH=1 ROBLOX_OPEN_CLOUD_API_KEY=... tools/pipeline/publish.sh <checkout-dir> <sha>
 #   DRY_RUN=1 AUTO_PUBLISH=1 tools/pipeline/publish.sh <checkout-dir> <sha>
 #
-# 1. gate: status/<sha>.json pass AND a valid Phoenix Studio report,
+# 1. gate: status/<sha>.json pass AND a valid Phoenix Studio report that is a FULL run
+#    (report run_kind == "full"; partial PC-watcher runs, or reports without run_kind,
+#    never gate a publish, whatever their status),
 # 2. only with AUTO_PUBLISH=1: clean build (no CloudTests) -> upload Saved ->
 #    smoke test that version -> upload the same clean file as Published.
 #    The cloud-test Saved version is never promoted.
@@ -13,7 +15,7 @@
 # and writes nothing outside $WORK. The key reaches curl on stdin only.
 #
 # Newest fully-gated only (first-parent order of $MAIN_REF). Fully gated = cloud pass +
-# Studio report pass + frames_reviewed + reviewed_by + checked_at after merge. A sha is
+# FULL Studio report pass + frames_reviewed + reviewed_by + checked_at after merge. A sha is
 # skipped-superseded ONLY when a newer sha is itself fully gated or published, or when a
 # live sha already descends from it (never publish older than live). A newer sha that is
 # merely cloud-passed does not supersede, so review lag cannot starve the pipeline: the
@@ -22,10 +24,15 @@
 # again right before each upload. SUPERSEDE_ONLY=1 stops after that check.
 #
 # Needs-review marker: while $SHA has cloud pass but Phoenix has not yet reviewed
-# frames (no Studio report, or report status=pass with frames_reviewed != true) and no
+# frames (no Studio report, a report that is not run_kind full, or a full report with
+# status=pass and frames_reviewed != true) and no
 # newer sha is also waiting for review (only the newest keeps it), an empty file $NEEDS_REVIEW_DIR/<40-char sha> exists so Gojo can ping Phoenix. It is
 # removed once frames_reviewed is true, the report is fail, or the sha ends
 # live / skipped-superseded / no-publish / smoke-failed. Honoured under DRY_RUN too.
+# Setting the marker also asks the PC watcher for a full run: best-effort write of
+# studio-reports/requests/<sha>.json on branch studio-reports (once per sha: stamp
+# $STATUS_DIR/<sha>.full-request written after a successful write, so failures retry; FULL_REQUEST=0 disables; FULL_REQUEST_CMD overrides
+# the writer, called as: FULL_REQUEST_CMD <full-sha>).
 #
 # A sha already live / smoke-failed / no-publish / skipped-superseded (or with live/<sha>.json
 # status live) is a no-op: exit 0, nothing uploaded.
@@ -55,6 +62,8 @@ SUPERSEDE_ONLY="${SUPERSEDE_ONLY:-0}"
 MIRROR_STALE_S="${MIRROR_STALE_S:-300}"
 UPLOAD_BACKOFF="${UPLOAD_BACKOFF-60 120 240 480}"
 NEEDS_REVIEW_DIR="${NEEDS_REVIEW_DIR:-$PIPE/needs-review}"
+FULL_REQUEST="${FULL_REQUEST:-1}"
+FULL_REQUEST_CMD="${FULL_REQUEST_CMD:-}"
 API="https://apis.roblox.com"
 
 mkdir -p "$STATUS_DIR"
@@ -86,11 +95,42 @@ cloud_retry() {
 # Marker file name is always the full 40-char sha.
 FULL_SHA="$SHA"
 [[ "$FULL_SHA" =~ ^[0-9a-f]{40}$ ]] || FULL_SHA="$(git -C "$CHECKOUT" rev-parse --verify -q "$SHA^{commit}" 2>/dev/null || true)"
+# request_full_run: best-effort candidate signal to the PC watcher (it cannot see the box).
+# Writes studio-reports/requests/<sha>.json on branch studio-reports; attempted once per sha.
+# The stamp has no .json extension: watch.sh globs *.json in $STATUS_DIR.
+request_full_run() {
+  local path="studio-reports/requests/$FULL_SHA.json" stamp="$STATUS_DIR/$SHA.full-request" body
+  [[ "$FULL_REQUEST" == 1 && -n "$FULL_SHA" && ! -e "$stamp" ]] || return 0
+  if [[ "$DRY_RUN" == 1 ]]; then
+    log "DRY_RUN: would request full Studio run ($path)"
+    return 0
+  fi
+  # The stamp is written only once the request exists, so a failed write is retried next tick.
+  if [[ -n "$FULL_REQUEST_CMD" ]]; then
+    if "$FULL_REQUEST_CMD" "$FULL_SHA"; then date -Iseconds >"$stamp"; else log "full-run request: FULL_REQUEST_CMD failed (retried next tick)"; fi
+    return 0
+  fi
+  if ghbot-gojo api "repos/$REPO_SLUG/contents/$path?ref=studio-reports" --jq .sha >/dev/null 2>&1; then
+    log "full-run request: $path already exists"
+    date -Iseconds >"$stamp"
+    return 0
+  fi
+  body="$(jq -n --arg sha "$FULL_SHA" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '{sha: $sha, requested_at: $at, by: "publish.sh", reason: "needs-review: cloud pass, no full reviewed Studio report"}' | base64 -w0)" || body=""
+  if [[ -n "$body" ]] && ghbot-gojo api -X PUT "repos/$REPO_SLUG/contents/$path" \
+    -f message="studio-reports: request full run for ${FULL_SHA:0:12}" -f branch=studio-reports -f content="$body" >/dev/null 2>&1; then
+    log "full-run request: wrote $path"
+    date -Iseconds >"$stamp"
+  else
+    log "full-run request: could not write $path (retried next tick)"
+  fi
+}
 needs_review_set() {
   [[ -n "$FULL_SHA" ]] || return 0
   case "$(jq -r .status "$STATUS_DIR/$SHA.publish.json" 2>/dev/null)" in "" | ready) ;; *) return 0 ;; esac # terminal: never re-mark
   mkdir -p "$NEEDS_REVIEW_DIR" && touch "$NEEDS_REVIEW_DIR/$FULL_SHA"
   log "needs-review: marker set ($NEEDS_REVIEW_DIR/$FULL_SHA)"
+  request_full_run
 }
 needs_review_clear() {
   [[ -n "$FULL_SHA" ]] || return 0
@@ -165,19 +205,21 @@ fetch_report() { # fetch_report <sha>: prints report JSON on stdout, empty if no
     cat "$f"
     return
   fi
-  log "report: mirror file missing or mirror stale; GET repos/$REPO_SLUG/contents/$1.json?ref=studio-reports"
-  api="$(ghbot-gojo api "repos/$REPO_SLUG/contents/$1.json?ref=studio-reports" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null)"
+  log "report: mirror file missing or mirror stale; GET repos/$REPO_SLUG/contents/studio-reports/$1.json?ref=studio-reports"
+  api="$(ghbot-gojo api "repos/$REPO_SLUG/contents/studio-reports/$1.json?ref=studio-reports" --jq '.content' 2>/dev/null | base64 -d 2>/dev/null)"
   if [[ -n "$api" ]]; then echo "$api"; elif [[ -f "$f" ]]; then cat "$f"; fi # API down: stale mirror beats nothing
 }
 
 # report_problem <sha> <report> <merge-time>: reason on stdout when the report is
-# missing/incomplete/stale, nothing when valid (a valid status=fail report is "valid").
+# missing/incomplete/stale/not-full, nothing when valid (a valid FULL status=fail report is "valid";
+# a partial or run_kind-less report is never valid, whatever its status).
 report_problem() {
   local sha="$1" report="$2" merge="$3" checked
   [[ -n "$report" ]] || { echo "no studio report"; return; }
   echo "$report" | jq -e . >/dev/null 2>&1 || { echo "report is not valid JSON"; return; }
   echo "$report" | jq -r --arg sha "$sha" '
     if .sha != $sha then "report sha mismatch"
+    elif .run_kind != "full" then "report run_kind is not full (partial Studio runs never gate a publish)"
     elif .status != "pass" and .status != "fail" then "report status not pass|fail"
     elif (.checked_at | type) != "string" then "report has no checked_at"
     elif .frames_reviewed != true then "frames_reviewed is not true"
@@ -206,7 +248,7 @@ eval_gate() {
   G_MERGE="$(git -C "$CHECKOUT" show -s --format=%cI "$s" 2>/dev/null)" || { G_MERGE=""; G_PROBLEM="sha $s not in checkout"; return; }
   G_REPORT="$(fetch_report "$s")"
   if [[ -z "$G_REPORT" ]] ||
-    echo "$G_REPORT" | jq -e --arg sha "$s" '.sha == $sha and .status == "pass" and .frames_reviewed != true' >/dev/null 2>&1; then
+    echo "$G_REPORT" | jq -e --arg sha "$s" '.sha == $sha and (.run_kind != "full" or (.status == "pass" and .frames_reviewed != true))' >/dev/null 2>&1; then
     G_UNREVIEWED=1
   fi
   G_PROBLEM="$(report_problem "$s" "$G_REPORT" "$G_MERGE")"

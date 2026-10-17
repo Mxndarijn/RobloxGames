@@ -2,7 +2,8 @@
 """Steal a Slime PC watcher: Studio checks for every new origin/main sha, on Merijn's PC.
 
   watcher.py loop                       poll `git ls-remote` every 60 s, run new shas
-  watcher.py once [--sha SHA]           full run for one sha (default: origin/main), ignores last-sha
+  watcher.py once [--sha SHA] [--kind full|partial] [--reason TXT]
+                                        one run for a sha (default: full run of origin/main), ignores last-sha
   watcher.py step build|launch|perf|play|devices|twoplayer|close|sync [--sha SHA]
   watcher.py tools                      dump StudioMCP tool schemas (needs a running Studio for most calls)
   watcher.py mcp TOOL [JSON_ARGS]       one raw tools/call ("$studio" in args = the watcher's studio id)
@@ -19,6 +20,7 @@ the background"). See README.md for the flow, report format and limits.
 import argparse
 import copy
 import datetime
+import fnmatch
 import glob
 import json
 import logging
@@ -67,6 +69,11 @@ DEFAULTS = {
     "push_retries": 3,
     "jpeg_quality": 80,
     "sync": True,
+    "partial_runs": True,  # False = every new tip gets a full run (the old behaviour)
+    "candidate_wait_s": 150,  # a new tip waits this long for a publish candidate request before a partial run
+    "full_idle_s": 900,  # a tip that stays main this long without a full report gets one
+    "full_request_depth": 8,  # a candidate request counts when its sha is among the newest N main commits
+    "partial_max_files": 60,  # more changed files than this = full run
 }
 
 # A step outside these that ends "fail" still fails the run; these also fail it when skipped.
@@ -308,6 +315,8 @@ def overall_status(steps):
         st = s.get("status")
         if name in SOFT_STEPS:
             continue
+        if st == "skip" and (s.get("detail") or {}).get("partial"):
+            continue  # deliberately not selected by a partial run
         if st == "fail":
             return "fail"
         if name in HARD_STEPS and st not in ("pass", "warn"):
@@ -316,6 +325,116 @@ def overall_status(steps):
         if name not in steps:
             return "fail"
     return "pass"
+
+
+# ---------------------------------------------------------------------------
+# Full vs partial runs (pure helpers; README "Full vs partial runs")
+# ---------------------------------------------------------------------------
+
+# Steps every partial run keeps (cheap); "devices" (menus + phone_perf, ~140 s) only when a rule asks for it.
+PARTIAL_BASE_STEPS = ("build", "launch", "play", "perf", "geometry", "onboarding", "shop", "esc", "two_player", "shots")
+DEVICE_STEPS = ("devices", "menus", "phone_perf")
+_GLOB_CACHE = {}
+
+
+def path_glob_match(path, pattern):
+    """Repo-relative, forward-slash glob: `**` = any depth (also zero dirs when written `**/`), `*` = no slash, `?` = one non-slash char."""
+    rx = _GLOB_CACHE.get(pattern)
+    if rx is None:
+        out, i = [], 0
+        while i < len(pattern):
+            c = pattern[i]
+            if pattern.startswith("**/", i):
+                out.append("(?:.*/)?")
+                i += 3
+                continue
+            if pattern.startswith("**", i):
+                out.append(".*")
+                i += 2
+                continue
+            out.append("[^/]*" if c == "*" else "[^/]" if c == "?" else re.escape(c))
+            i += 1
+        rx = _GLOB_CACHE[pattern] = re.compile("".join(out) + r"\Z", re.S)
+    return rx.match(path) is not None
+
+
+def _expand(patterns, shot_map):
+    vars_ = shot_map.get("vars") or {}
+    out = []
+    for p in patterns or []:
+        for k, v in vars_.items():
+            p = p.replace("{%s}" % k, v)
+        out.append(p)
+    return out
+
+
+def _any_glob(path, patterns, shot_map):
+    return any(path_glob_match(path, p) for p in _expand(patterns, shot_map))
+
+
+def shot_selected_by(shot, rule):
+    """True when a shot-map rule's id globs / kinds / keys select this shot (ids match case-insensitively)."""
+    sid = str(shot.get("id", "")).lower()
+    return (any(fnmatch.fnmatchcase(sid, g.lower()) for g in rule.get("shots") or [])
+            or shot.get("kind") in (rule.get("kinds") or [])
+            or any(k in shot for k in rule.get("keys") or []))
+
+
+def plan_run(changed_paths, shots, shot_map, max_files):
+    """Decides FULL vs PARTIAL for a set of changed paths. Pure. Returns
+    {run_kind, reason, shots (ids in shot order), steps, changed, full_paths, unknown_paths}."""
+    paths = sorted({re.sub(r"^\./", "", str(p).replace("\\", "/")) for p in changed_paths if str(p).strip()})
+    plan = {"run_kind": "partial", "reason": "", "shots": [], "steps": [], "changed": len(paths),
+            "full_paths": [], "unknown_paths": []}
+    picked, device_wanted, hit_rules = set(), False, []
+    rules = shot_map.get("rules") or []
+    for path in paths:
+        if _any_glob(path, shot_map.get("full"), shot_map):
+            plan["full_paths"].append(path)
+        elif _any_glob(path, shot_map.get("ignore"), shot_map):
+            continue
+        else:
+            rule = next((r for r in rules if _any_glob(path, r.get("paths"), shot_map)), None)
+            if rule is None:
+                plan["unknown_paths"].append(path)
+                continue
+            if rule["name"] not in hit_rules:
+                hit_rules.append(rule["name"])
+            device_wanted = device_wanted or "devices" in (rule.get("steps") or [])
+            picked.update(s["id"] for s in shots if shot_selected_by(s, rule))
+    if len(paths) > max_files:
+        plan["run_kind"], plan["reason"] = "full", "%d changed files > %d" % (len(paths), max_files)
+    elif plan["full_paths"]:
+        plan["run_kind"], plan["reason"] = "full", "full-run path: " + ", ".join(plan["full_paths"][:3])
+    elif plan["unknown_paths"]:
+        plan["run_kind"], plan["reason"] = "full", "unknown path: " + ", ".join(plan["unknown_paths"][:3])
+    if plan["run_kind"] == "full":
+        return plan
+    always = set(shot_map.get("smoke") or [])
+    keys = shot_map.get("always_keys") or []
+    always.update(s["id"] for s in shots if any(k in s for k in keys))
+    chosen = always | picked
+    plan["shots"] = [s["id"] for s in shots if s["id"] in chosen]
+    plan["steps"] = list(PARTIAL_BASE_STEPS) + (["devices"] if device_wanted else [])
+    plan["reason"] = ("rules: " + ", ".join(hit_rules)) if hit_rules else "no run-relevant files changed"
+    return plan
+
+
+def choose_work(tip, last_sha, last_at, requests, full_done, order, now, cfg, tip_seen_at):
+    """What the loop does next: (kind|None, sha|None, reason). kind is "full" or "partial".
+    requests = shas publish.sh asked a full run for; order = main first-parent shas, newest first."""
+    for sha in list(order)[:cfg["full_request_depth"]]:
+        if sha in requests and sha not in full_done:
+            return "full", sha, "candidate request"
+    if tip != last_sha:
+        if not cfg["partial_runs"]:
+            return "full", tip, "new tip (partial runs off)"
+        if now - tip_seen_at < cfg["candidate_wait_s"]:
+            return None, None, "waiting for candidate signal"
+        return "partial", tip, "new tip"
+    if tip not in full_done and now - last_at >= cfg["full_idle_s"]:
+        return "full", tip, "idle tip without full report"
+    return None, None, "nothing to do"
 
 
 def frame_title_ok(title, needles):
@@ -462,6 +581,10 @@ def _posix_alive(pid):
 # ---------------------------------------------------------------------------
 
 class Run:
+    run_kind = "full"
+    run_plan = None
+    shot_filter = None
+
     def __init__(self, paths, cfg, sha, dry=False):
         self.paths, self.cfg, self.sha, self.dry = paths, cfg, sha, dry
         self.t0 = time.time()
@@ -486,6 +609,9 @@ class Run:
         self.our_pids = set()  # every Studio pid this run started (focus guard)
         self.fg_start = None  # (hwnd, pid) of the foreground window when the run began
         self.focus_stolen = []  # "FOCUS STOLEN at step X"
+        self.run_kind = "full"
+        self.run_plan = None  # report run_plan (see full_run)
+        self.shot_filter = None  # partial run: set of shot ids to capture (None = all)
         if self.outdir:
             os.makedirs(self.outdir, exist_ok=True)
 
@@ -1414,6 +1540,8 @@ def step_shots(run):
         return "skip", {"reason": "shots/ missing or empty"}
     results, world_mode, pad_seat, cur_device = [], False, None, None
     for shot in shots:
+        if run.shot_filter is not None and shot.get("id") not in run.shot_filter:
+            continue  # partial run: not selected, no frame entry
         sid = re.sub(r"[^A-Za-z0-9_.-]", "_", str(shot.get("id", "shot")))
         fid = "shot-" + sid
         todo = shot_todo(shot)
@@ -1889,6 +2017,9 @@ def build_report(run):
     return {
         "sha": run.sha,
         "status": status,
+        "run_kind": run.run_kind,
+        "publishable": run.run_kind == "full",
+        "run_plan": run.run_plan,
         "checked_at": utc_now(),
         "studio_version": run.studio_version,
         "notes": "; ".join(run.notes) if run.notes else "",
@@ -1930,13 +2061,57 @@ def run_step(run, name, fn):
     return status in ("pass", "warn")
 
 
-def full_run(paths, cfg, sha, dry=False):
-    """Steps 1-8 for one sha. Returns (report, busy)."""
+def partial_plan(run):
+    """After the build (repo at run.sha): the plan for a partial run, or a plan with run_kind "full" (upgrade)
+    when there is no usable base or the changed paths need a full run. Returns (plan, base)."""
+    base = (read_json(run.paths.st("last-full.json"), {}) or {}).get("sha")
+    fail = lambda why: ({"run_kind": "full", "reason": why, "shots": [], "steps": [], "changed": 0,
+                         "full_paths": [], "unknown_paths": []}, base)
+    if not base:
+        return fail("no previous full run (state/last-full.json)")
+    if run.git("merge-base", "--is-ancestor", base, run.sha, check=False).returncode != 0:
+        return fail("last full sha %s is not an ancestor" % base[:12])
+    d = run.git("diff", "--name-only", base, run.sha, check=False)
+    if d.returncode != 0:
+        return fail("git diff %s..%s failed" % (base[:12], run.sha[:12]))
+    changed = [x for x in d.stdout.splitlines() if x.strip()]
+    shots, _ = load_shots(repo=run.paths.repo)
+    smap_file = data_path(run.paths.repo, "shot-map.json")[0]
+    smap = read_json(smap_file)
+    if not smap or not shots:
+        return fail("shot-map.json or shots/ unreadable")
+    return plan_run(changed, shots, smap, run.cfg["partial_max_files"]), base
+
+
+def record_full_done(paths, sha):
+    write_json(paths.st("last-full.json"), {"sha": sha, "at": utc_now()})
+    done = [x for x in (read_json(paths.st("full-done.json"), []) or []) if x != sha] + [sha]
+    write_json(paths.st("full-done.json"), done[-50:])
+
+
+def full_run(paths, cfg, sha, dry=False, run_kind="full", full_reason="manual"):
+    """Steps 1-8 for one sha. Returns (report, busy). run_kind "partial" is upgraded to full when the plan says so."""
     run = Run(paths, cfg, sha, dry)
+    run.run_kind = run_kind
     run.record_foreground()
     busy = False
+    base = None
+    run.run_plan = {"run_kind": run_kind, "reason": full_reason, "base": None, "changed": None,
+                    "steps": list(STEP_ORDER), "full_paths": [], "unknown_paths": []}
     try:
         ok = run_step(run, "build", step_build)
+        if ok and run_kind == "partial":
+            plan, base = partial_plan(run)
+            if plan["run_kind"] == "full":
+                log.info("partial run upgraded to full: %s", plan["reason"])
+                run.run_kind = "full"
+                run.run_plan.update(reason="upgraded from partial: " + plan["reason"], base=base, changed=plan.get("changed"),
+                                    full_paths=plan["full_paths"], unknown_paths=plan["unknown_paths"])
+            else:
+                run.run_kind = "partial"
+                run.shot_filter = set(plan["shots"])
+                run.run_plan = dict(plan, base=base)
+                log.info("partial run: %d shots, steps %s (%s)", len(plan["shots"]), ",".join(plan["steps"]), plan["reason"])
         ok = ok and run_step(run, "launch", step_launch)
         if ok:
             if run_step(run, "play", step_play):
@@ -1945,7 +2120,12 @@ def full_run(paths, cfg, sha, dry=False):
                 run_step(run, "onboarding", step_onboarding)
                 run_step(run, "shop", step_shop)
                 run_step(run, "esc", step_esc)
-                run_step(run, "devices", step_devices)
+                if run.run_kind == "partial" and "devices" not in run.run_plan["steps"]:
+                    skip = {"status": "skip", "seconds": 0, "detail": {"partial": True, "reason": "partial run: not selected"}}
+                    for name in DEVICE_STEPS:
+                        run.steps[name] = dict(skip, detail=dict(skip["detail"]))
+                else:
+                    run_step(run, "devices", step_devices)
                 if run.remaining() > 200:
                     run_step(run, "shots", step_shots)
             run_step(run, "two_player", step_twoplayer)
@@ -1970,7 +2150,9 @@ def full_run(paths, cfg, sha, dry=False):
     if close:
         report["close"] = close
     write_json(report_path(run), report)
-    log.info("report %s: %s (%ss) %s", report_path(run), report["status"], report["duration_s"], report["notes"][:300])
+    log.info("report %s: %s %s (%ss) %s", report_path(run), report["run_kind"], report["status"], report["duration_s"], report["notes"][:300])
+    if (not dry and run.run_kind == "full" and run.steps.get("shots", {}).get("status") not in (None, "skip")):
+        record_full_done(paths, sha)
     return report, busy
 
 
@@ -2009,6 +2191,62 @@ def _stage_report(run, src_dir, sha, report, rdir):
     return synced_report
 
 
+def ensure_reports_clone(run, rdir, branch):
+    """The git repo in reports\\ (origin = the repo clone's origin); created on first use."""
+    url = run.git("remote", "get-url", run.cfg["remote"]).stdout.strip()
+    if not os.path.isdir(os.path.join(rdir, ".git")):
+        os.makedirs(rdir, exist_ok=True)
+        run.git("init", "-q", "-b", branch, cwd=rdir)
+        run.git("remote", "add", "origin", url, cwd=rdir)
+    else:
+        run.git("remote", "set-url", "origin", url, cwd=rdir)
+
+
+def fetch_candidates(paths, cfg):
+    """(requests, full_reports): shas publish.sh asked a full run for (studio-reports/requests/<sha>.json on the
+    reports branch), and those of them that already have a report with run_kind "full". Any git failure gives
+    empty sets: the loop must never crash on this."""
+    requests, full = set(), set()
+    try:
+        run = Run(paths, cfg, None)
+        branch, rdir = cfg["reports_branch"], paths.reports
+        ensure_reports_clone(run, rdir, branch)
+        if run.git("fetch", "-q", "origin", branch, cwd=rdir, check=False, timeout=120).returncode != 0:
+            return set(), set()
+        ls = run.git("ls-tree", "--name-only", "FETCH_HEAD", "studio-reports/requests/", cwd=rdir, check=False)
+        if ls.returncode != 0:
+            return set(), set()
+        for line in ls.stdout.splitlines():
+            m = re.fullmatch(r"(?:.*/)?([0-9a-f]{40})\.json", line.strip())
+            if m:
+                requests.add(m.group(1))
+        for sha in requests:
+            r = run.git("show", "FETCH_HEAD:studio-reports/%s.json" % sha, cwd=rdir, check=False)
+            if r.returncode == 0:
+                try:
+                    if json.loads(r.stdout).get("run_kind") == "full":
+                        full.add(sha)
+                except Exception:
+                    pass
+    except Exception:
+        log.exception("fetch_candidates")
+        return set(), set()
+    return requests, full
+
+
+def recent_main(paths, cfg):
+    """main's first-parent shas, newest first (cfg full_request_depth); [] on any git failure."""
+    try:
+        run = Run(paths, cfg, None)
+        if run.git("fetch", "-q", cfg["remote"], cfg["branch"], check=False, timeout=180).returncode != 0:
+            return []
+        r = run.git("rev-list", "--first-parent", "-n", str(cfg["full_request_depth"]), "FETCH_HEAD", check=False)
+        return r.stdout.split() if r.returncode == 0 else []
+    except Exception:
+        log.exception("recent_main")
+        return []
+
+
 def sync_report(paths, cfg, sha, dry=False):
     """Commits out/<sha> to the orphan `studio-reports` branch and pushes (retries: fetch, rebase / restage)."""
     src_dir = os.path.join(paths.out, sha)
@@ -2020,13 +2258,7 @@ def sync_report(paths, cfg, sha, dry=False):
         log.info("dry-run: would push %s to %s", sha, cfg["reports_branch"])
         return True
     branch, rdir = cfg["reports_branch"], paths.reports
-    url = run.git("remote", "get-url", cfg["remote"]).stdout.strip()
-    if not os.path.isdir(os.path.join(rdir, ".git")):
-        os.makedirs(rdir, exist_ok=True)
-        run.git("init", "-q", "-b", branch, cwd=rdir)
-        run.git("remote", "add", "origin", url, cwd=rdir)
-    else:
-        run.git("remote", "set-url", "origin", url, cwd=rdir)
+    ensure_reports_clone(run, rdir, branch)
     ident = ["-c", "user.name=pc-watcher", "-c", "user.email=pc-watcher@users.noreply.github.com"]
 
     def reset_to_remote():
@@ -2044,7 +2276,8 @@ def sync_report(paths, cfg, sha, dry=False):
         if run.git("diff", "--cached", "--quiet", cwd=rdir, check=False).returncode == 0:
             log.info("sync: %s already up to date on %s", sha[:12], branch)
             return True
-        run.git(*ident, "commit", "-q", "-m", "studio-report %s %s" % (sha[:12], synced["status"]), cwd=rdir)
+        run.git(*ident, "commit", "-q", "-m", "studio-report %s %s %s" % (
+            sha[:12], synced["status"], "full" if synced.get("run_kind") == "full" else "partial"), cwd=rdir)
         r = run.git("push", "-q", "origin", "HEAD:refs/heads/" + branch, cwd=rdir, timeout=180, check=False)
         if r.returncode == 0:
             log.info("sync: pushed %s (try %d)", sha[:12], attempt)
@@ -2088,15 +2321,15 @@ def remote_sha(paths, cfg):
 # Commands
 # ---------------------------------------------------------------------------
 
-def cmd_once(paths, cfg, sha, dry, sync=True):
+def cmd_once(paths, cfg, sha, dry, sync=True, run_kind="full", full_reason="manual"):
     lock = Lock(paths.st("run.lock"))
     if not lock.acquire():
         log.error("another watcher run holds %s", lock.path)
         return 3, False
     try:
         sha = sha or remote_sha(paths, cfg)
-        log.info("run %s", sha)
-        report, busy = full_run(paths, cfg, sha, dry)
+        log.info("run %s (%s: %s)", sha, run_kind, full_reason)
+        report, busy = full_run(paths, cfg, sha, dry, run_kind=run_kind, full_reason=full_reason)
         if sync and cfg["sync"] and not dry:
             try:
                 synced = sync_report(paths, cfg, sha)
@@ -2116,22 +2349,42 @@ def cmd_loop(paths, cfg, dry):
     if not loop_lock.acquire():
         log.error("a watcher loop is already running (%s)", loop_lock.path)
         return 3
-    log.info("loop: polling %s/%s every %ss", cfg["remote"], cfg["branch"], cfg["poll_s"])
+    log.info("loop: polling %s/%s every %ss (partial_runs %s)", cfg["remote"], cfg["branch"], cfg["poll_s"], cfg["partial_runs"])
     busy_until = 0
+    loop_t0 = time.time()
+    attempted = {}  # sha -> time of the last full attempt (a failed run that never synced must not spin)
     try:
         while True:
             try:
                 if cfg["sync"] and not dry:
                     sync_pending(paths, cfg)
-                sha = remote_sha(paths, cfg)
-                last = (read_json(paths.st("last-sha.json"), {}) or {}).get("sha")
-                if sha != last and time.time() >= busy_until:
-                    _, busy = cmd_once(paths, cfg, sha, dry, sync=True)
+                tip = remote_sha(paths, cfg)
+                now = time.time()
+                seen = read_json(paths.st("tip-seen.json"), {}) or {}
+                if seen.get("sha") != tip:
+                    seen = {"sha": tip, "at": now}
+                    write_json(paths.st("tip-seen.json"), seen)
+                last = read_json(paths.st("last-sha.json"), {}) or {}
+                requests, remote_full = fetch_candidates(paths, cfg)
+                full_done = set(read_json(paths.st("full-done.json"), []) or []) | remote_full
+                full_done |= {k for k, t in attempted.items() if now - t < 1800}
+                order = recent_main(paths, cfg) if requests - full_done else []
+                kind, sha, why = choose_work(tip, last.get("sha"), last.get("ts", loop_t0), requests, full_done, order,
+                                             now, cfg, seen.get("at", now))
+                if kind is None:
+                    log.info("loop: %s (tip %s)", why, tip[:12])
+                elif now < busy_until:
+                    log.info("loop: %s %s (%s) held back: studio busy", kind, sha[:12], why)
+                else:
+                    log.info("loop: %s run of %s (%s)", kind, sha[:12], why)
+                    if kind == "full":
+                        attempted[sha] = now
+                    _, busy = cmd_once(paths, cfg, sha, dry, sync=True, run_kind=kind, full_reason=why)
                     if busy:
                         busy_until = time.time() + cfg["busy_retry_s"]
                         log.info("studio busy; retry %s in %ss", sha[:12], cfg["busy_retry_s"])
-                    elif not dry:
-                        write_json(paths.st("last-sha.json"), {"sha": sha, "at": utc_now()})
+                    elif not dry and sha == tip:  # a full run of an older requested sha leaves last-sha alone
+                        write_json(paths.st("last-sha.json"), {"sha": sha, "at": utc_now(), "ts": time.time()})
             except Exception:
                 log.exception("loop iteration")
             time.sleep(cfg["poll_s"])
@@ -2249,6 +2502,8 @@ def main(argv=None):
     p_once = sub.add_parser("once")
     p_once.add_argument("--sha")
     p_once.add_argument("--no-sync", action="store_true")
+    p_once.add_argument("--kind", choices=("full", "partial"), default="full")
+    p_once.add_argument("--reason", default="manual")
     sub.add_parser("loop")
     p_step = sub.add_parser("step")
     p_step.add_argument("name", choices=sorted(list(STEP_FNS) + ["sync"]))
@@ -2275,7 +2530,7 @@ def main(argv=None):
         log.error("--sha must be a full 40-char sha")
         return 2
     if a.cmd == "once":
-        return cmd_once(paths, cfg, a.sha, a.dry_run, sync=not a.no_sync)[0]
+        return cmd_once(paths, cfg, a.sha, a.dry_run, sync=not a.no_sync, run_kind=a.kind, full_reason=a.reason)[0]
     if a.cmd == "loop":
         return cmd_loop(paths, cfg, a.dry_run)
     if a.cmd == "step":

@@ -99,7 +99,7 @@ finish() {
   local status="$1" message="$2" report gate_ready=false finished
   finished="$(date -Iseconds)"
   report="$(studio_report)"
-  if [[ "$status" == pass ]] && echo "$report" | jq -e '.status == "pass"' >/dev/null 2>&1; then
+  if [[ "$status" == pass ]] && echo "$report" | jq -e '.status == "pass" and .run_kind == "full"' >/dev/null 2>&1; then
     gate_ready=true
   fi
   log "$status: $message"

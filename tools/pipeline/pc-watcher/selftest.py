@@ -416,9 +416,94 @@ def t_flags():
               name in ("ServerProfiler",) or any(s.get("device") == "phone-portrait" for s in ui) or not ui, devs)
 
 
+def t_partial():
+    G = "games/steal-a-slime/"
+    gm = watcher.path_glob_match
+    check("glob ** zero dirs", gm("a/b.luau", "a/**/b.luau") and gm("a/x/y/b.luau", "a/**/b.luau"))
+    check("glob * no slash", gm("a/b.md", "a/*.md") and not gm("a/x/b.md", "a/*.md") and gm("x/y/z.md", "**/*.md") and gm("z.md", "**/*.md"))
+    check("glob ? and literal dot", gm("a1.lua", "a?.lua") and not gm("a1xlua", "a?.lua") and not gm("a/b.lua", "a?b.lua"))
+    check("glob ** tail", gm("docs/a/b/c.txt", "docs/**") and not gm("docsx/a", "docs/**"))
+    shots, notes = watcher.load_shots(repo=None)
+    smap = watcher.read_json(watcher.data_path(None, "shot-map.json")[0])
+    check("shot-map loads", bool(shots) and isinstance(smap, dict) and smap.get("rules"))
+    ids = [s["id"] for s in shots]
+    check("shot-map smoke ids exist", all(i in ids for i in smap["smoke"]), [i for i in smap["smoke"] if i not in ids])
+    for rule in smap["rules"]:
+        bad = []
+        for g in rule.get("shots", []):
+            if not any(watcher.shot_selected_by(s, {"shots": [g]}) for s in shots):
+                bad.append(g)
+        for k in rule.get("keys", []):
+            if not any(k in s for s in shots):
+                bad.append("key " + k)
+        for k in rule.get("kinds", []):
+            if not any(s.get("kind") == k for s in shots):
+                bad.append("kind " + k)
+        check("shot-map rule '%s' selectors match shots" % rule["name"], not bad and bool(rule.get("paths")), bad)
+    names = [r["name"] for r in smap["rules"]]
+    check("shot-map rule names unique", len(names) == len(set(names)))
+
+    def plan(paths, n=60):
+        return watcher.plan_run(paths, shots, smap, n)
+
+    budget = [s["id"] for s in shots if "runtime_parts_max" in s or "mesh_slots_max" in s]
+    check("budget shots exist", len(budget) == 2, budget)
+    docs = plan(["docs/release-pipeline.md", G + "tools/pipeline/publish.sh", "tools/pr-gate/x.sh", G + "CLAUDE.md"])
+    check("plan docs-only: partial, smoke + budget, no devices", docs["run_kind"] == "partial" and "devices" not in docs["steps"]
+          and set(docs["shots"]) == set(smap["smoke"]) | set(budget), docs)
+    check("plan docs-only: shots in shot order", docs["shots"] == [i for i in ids if i in docs["shots"]])
+    shop = plan([G + "src/ui/Panels/Shop.luau"])
+    check("plan shop panel", shop["run_kind"] == "partial" and "devices" in shop["steps"]
+          and any("shop" in i for i in shop["shots"]) and set(budget) <= set(shop["shots"]), shop)
+    pc = plan(["tools/pipeline/pc-watcher/watcher.py"])
+    check("plan watcher.py -> full", pc["run_kind"] == "full" and pc["full_paths"], pc)
+    check("plan Economy.luau -> full (unknown)", plan([G + "src/shared/Economy.luau"])["run_kind"] == "full"
+          and plan([G + "src/shared/Economy.luau"])["unknown_paths"] == [G + "src/shared/Economy.luau"])
+    check("plan Config.luau -> full", plan([G + "src/shared/Config.luau"])["run_kind"] == "full")
+    check("plan 61 files -> full", plan(["docs/f%d.md" % i for i in range(61)])["run_kind"] == "full"
+          and plan(["docs/f%d.md" % i for i in range(60)])["run_kind"] == "partial")
+    border = plan([G + "src/server/BorderTerrainView.luau"])
+    check("plan BorderTerrainView -> border shots, no ui", border["run_kind"] == "partial" and "devices" not in border["steps"]
+          and any("border" in i for i in border["shots"])
+          and not any(s["kind"] == "ui" and s["id"] in border["shots"] and s["id"] not in smap["smoke"] for s in shots), border)
+    mixed = plan([G + "src/ui/Panels/Shop.luau", G + "src/shared/Economy.luau"])
+    check("plan: one unknown path makes the run full", mixed["run_kind"] == "full")
+    check("plan: modeling-kit out -> world, kit sources ignored",
+          plan(["shared/modeling-kit/out/x.fbx"])["run_kind"] == "partial" and len(plan(["shared/modeling-kit/out/x.fbx"])["shots"]) > 100
+          and len(plan(["shared/modeling-kit/models/a.json", "shared/modeling-kit/README.md"])["shots"]) == len(docs["shots"]))
+    check("plan: weather in server", any("weather" in i.lower() for i in plan([G + "src/server/WeatherService.luau"])["shots"]))
+    check("plan: empty diff = partial smoke", plan([])["run_kind"] == "partial")
+
+    cfg = dict(watcher.DEFAULTS)
+    t, l = "t" * 40, "l" * 40
+    r1, r2 = "1" * 40, "2" * 40
+    cw = watcher.choose_work
+    check("work: request beats new tip", cw(t, l, 0, {r1}, set(), [t, r1], 1000, cfg, 1000) == ("full", r1, "candidate request"))
+    check("work: newest request first, done ones skipped", cw(t, t, 0, {r1, r2}, {r2}, [t, r2, r1], 5, cfg, 0)[:2] == ("full", r1)
+          and cw(t, t, 0, {r1, r2}, set(), [t, r2, r1], 5, cfg, 0)[:2] == ("full", r2))
+    check("work: request outside depth ignored", cw(t, t, 0, {r1}, set(), ["x%d" % i for i in range(8)] + [r1], 5, cfg, 0)[0] is None)
+    check("work: waits for candidate signal", cw(t, l, 0, set(), set(), [t], 1100, cfg, 1000) == (None, None, "waiting for candidate signal"))
+    check("work: partial after wait", cw(t, l, 0, set(), set(), [t], 1000 + cfg["candidate_wait_s"], cfg, 1000)[:2] == ("partial", t))
+    check("work: partial_runs off -> full", cw(t, l, 0, set(), set(), [t], 1001, dict(cfg, partial_runs=False), 1000)[:2] == ("full", t))
+    check("work: idle tip -> full", cw(t, t, 0, set(), set(), [t], cfg["full_idle_s"], cfg, 0)[:2] == ("full", t)
+          and cw(t, t, 0, set(), {t}, [t], 10 ** 6, cfg, 0)[0] is None and cw(t, t, 100, set(), set(), [t], 200, cfg, 0)[0] is None)
+
+    ok = {k: {"status": "pass"} for k in watcher.HARD_STEPS}
+    part = {"status": "skip", "detail": {"partial": True}}
+    check("status partial-skipped devices pass", watcher.overall_status(dict(ok, devices=part, menus=part, phone_perf=part)) == "pass")
+    check("status plain skip of hard step fails", watcher.overall_status(dict(ok, devices={"status": "skip", "detail": {}})) == "fail")
+    check("status partial skip of a failed step still fails", watcher.overall_status(dict(ok, devices=part, esc={"status": "fail"})) == "fail")
+    run = watcher.Run(watcher.Paths(tempfile.mkdtemp()), dict(watcher.DEFAULTS), None, True)
+    rep = watcher.build_report(run)
+    check("report always has run_kind/publishable/run_plan", rep["run_kind"] == "full" and rep["publishable"] is True and "run_plan" in rep)
+    run.run_kind = "partial"
+    rep = watcher.build_report(run)
+    check("partial report not publishable", rep["run_kind"] == "partial" and rep["publishable"] is False)
+
+
 def main():
     for t in (t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry, t_data_path, t_flags):
+              t_files, t_geometry, t_data_path, t_flags, t_partial):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going
