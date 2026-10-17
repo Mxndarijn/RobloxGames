@@ -670,6 +670,7 @@ local Config = {
 		Consumables = true, -- restocking Shop section: mutation spray, luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
 		RainMagnet = false, -- v19: the Rain Magnet upgrade (rank 6): a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) may pick up that weather's mutation; needs Weather + WeatherMutations to ever have a target (RainMagnet, CONTRACT.md §23); false = no upgrade in the shop, no purchase, no effect (needs frame review)
 		ServerProfiler = false, -- v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
+		Audio = false, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
@@ -684,6 +685,28 @@ local Config = {
 			View = 4,
 			Heartbeat = 8,
 		} :: { [string]: number }),
+	}),
+
+	-- Audio (FEATURES.Audio, ui/AudioLogic / ui/SoundController). An empty or malformed id = that sound stays silent.
+	AUDIO = table.freeze({
+		DEFAULT_SFX_VOLUME = 0.8, -- 0..1, SFX SoundGroup
+		DEFAULT_MUSIC_VOLUME = 0.35, -- 0..1, Music / Ambient SoundGroup
+		AMBIENT_VOLUME = 0.25, -- loop volume inside the Music group (low on purpose)
+		AMBIENT_FADE_SECONDS = 4, -- crossfade day <-> night
+		-- SFX registry name -> Notify sound name (Sounds.IDS) or a direct asset id.
+		SFX = table.freeze({
+			buy = "Cash",
+			collect = "Deposit",
+			steal = "Stolen",
+			merge = "Merge",
+			rebirth = "Rebirth",
+			alarm = "Alarm",
+			error = "rbxasset://sounds/uuhhh.mp3",
+			click = "rbxasset://sounds/button.wav",
+		}),
+		-- Ambient loops; not uploaded yet (needs Merijn's asset ids), empty = silent.
+		AMBIENT_DAY_ID = "", -- birds
+		AMBIENT_NIGHT_ID = "", -- crickets
 	}),
 
 	-- Full steal alerts (FEATURES.StealAlerts, StealAlert / ui/StealAlertFx). Client timings in seconds.
