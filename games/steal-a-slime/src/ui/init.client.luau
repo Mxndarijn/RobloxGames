@@ -66,6 +66,7 @@ local MergePanel = require(Panels.Merge)
 local PlotPanel = require(Panels.Plot)
 local RebirthPanel = require(Panels.Rebirth)
 local ShopPanel = require(Panels.Shop)
+local SoundCardLayout = require(script.SoundCardLayout)
 local SoundPanel = require(Panels.Sound)
 local TutorialOverlay = require(Panels.TutorialOverlay)
 local WelcomePanel = require(Panels.Welcome)
@@ -749,7 +750,9 @@ function layoutCards()
 	end
 	for _, entry in allPanels do
 		local body = entry.panel.frame:FindFirstChild("Body")
-		local r = Layout.panelFor(s, entry.key, Widgets.contentHeight(body or entry.panel.frame))
+		local r = if entry.key == "Sound"
+			then SoundCardLayout.place(s)
+			else Layout.panelFor(s, entry.key, Widgets.contentHeight(body or entry.panel.frame))
 		local frame = entry.panel.frame
 		frame.AnchorPoint = Vector2.zero
 		frame.Position = UDim2.fromOffset(r.x, r.y)

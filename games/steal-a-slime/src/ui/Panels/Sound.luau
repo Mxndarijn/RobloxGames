@@ -10,6 +10,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local UI = script.Parent.Parent
 local AudioLogic = require(UI.AudioLogic)
+local Card = require(UI.SoundCardLayout)
 local Icons = require(UI.Icons)
 local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
@@ -19,17 +20,11 @@ local create = Widgets.create
 
 local Sound = {}
 
--- Body rows top to bottom (design px; the body is Layout.panelBody of the
--- Sound card, MENU_HEIGHTS.Sound tall). Slider row = name line + touch track.
-Sound.ROWS = table.freeze({
-	mute = { y = 0, h = Layout.BUTTON },
-	music = { y = 68, h = 60 },
-	sfx = { y = 136, h = 60 },
-})
-Sound.NAME_H = 24
+Sound.ROWS = Card.ROWS
+Sound.NAME_H = Card.NAME_H
 Sound.TRACK_Y = 28
 Sound.TRACK_H = 32
-Sound.CONTENT_H = 196 -- sfx.y + sfx.h
+Sound.CONTENT_H = Card.CONTENT_H
 Sound.TITLE = "Sound"
 Sound.SLIDERS = table.freeze({
 	table.freeze({ kind = "music", text = "🎵 Music", row = "music" }),
@@ -145,7 +140,24 @@ function Sound.new(parent: Instance, controller: any)
 		end)
 	end
 
+	local rows: { [string]: GuiObject } = { mute = mute.instance }
+	for _, def in Sound.SLIDERS do
+		rows[def.row] = content:FindFirstChild(def.row) :: GuiObject
+	end
 	local self = { frame = panel.frame, close = panel.close }
+
+	-- Called by init.client with the card's box (SoundCardLayout.place): rows side by side when it is one row tall.
+	function self.layout(r: Layout.Rect)
+		local body = Layout.panelBody(r)
+		local compact = body.h < Sound.CONTENT_H and r.w >= Card.COMPACT_MIN_W
+		local rects, canvasH = Card.rowRects(body.w, compact)
+		for name, box in rects do
+			local row = rows[name]
+			row.Position = UDim2.fromOffset(box.x, box.y)
+			row.Size = UDim2.fromOffset(box.w, box.h)
+		end
+		content.CanvasSize = UDim2.fromOffset(0, canvasH)
+	end
 
 	-- Called by init.client on every settings change (and once at build).
 	function self.refresh()
