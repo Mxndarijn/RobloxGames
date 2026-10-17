@@ -670,7 +670,7 @@ function WorldView.updatePlots(world: World.World, now: number)
 				if part then
 					local unlocked = pad <= view.padsUnlocked
 					setIfChanged(part, Constants.PAD_UNLOCKED_ATTRIBUTE, unlocked)
-					stylePad(part, unlocked)
+					stylePad(part, PadStyle.showsUnlocked(session ~= nil, unlocked))
 					local habitat = if habitatsOn then HabitatPads.get(habitats, index, pad) else nil
 					if habitat then
 						-- At first so a client that sees Habitat change also reads the matching stamp.

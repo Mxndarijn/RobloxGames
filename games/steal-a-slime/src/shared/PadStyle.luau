@@ -23,6 +23,11 @@ function PadStyle.lockedColor(base: Rgb): Rgb
 	return { channel(base[1], PadStyle.GREY[1]), channel(base[2], PadStyle.GREY[2]), channel(base[3], PadStyle.GREY[3]) }
 end
 
+-- Only pads of an OWNED plot can read as locked; free plots keep the normal base look on every pad.
+function PadStyle.showsUnlocked(owned: boolean, unlocked: boolean): boolean
+	return unlocked or not owned
+end
+
 -- Colour (0..255) and material name for a pad given its stored base look and unlock state.
 function PadStyle.look(base: Rgb, baseMaterial: string, unlocked: boolean): (Rgb, string)
 	if unlocked then
