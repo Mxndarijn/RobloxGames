@@ -13138,5 +13138,10 @@
       ]
     }
   },
-  "frames_dir": "2faf6ea38c6d41c83ebb98e9fa9b9b489e4d40e2/"
+  "frames_dir": "2faf6ea38c6d41c83ebb98e9fa9b9b489e4d40e2/",
+  "frames_reviewed": false,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix 12:15 CEST: NOT reviewed-pass. Report status pass, 221/221 captured, cloud 938/938 green. BROKEN (blocks): (1) shot 116 ui-sweep-toast-height-fit-phone-landscape shows all three banners (Luck Event x3, x2 Weekend, Boss Slime), but the tutorial card 'Step 1 of 7' covers the Boss Slime banner and the 'Your egg hatched' toast (also in my phone-landscape audio frame). (2) shot 106 v17-pad-lock-style: locked pads 5-8 look the same as unlocked ones. Live check: the Pad and Stand parts are Slate grey but hidden (Transparency 1), and the visible Stand.Mesh MeshPart is untouched. Fixed in #227 (7b42950), verified live there (Pad_5 mesh Slate 0.31,0.32,0.33). OK: snow ground cut (#223), grass in every frame; border v4 along/eye show mountain ridges, pines and hills; 3 probe fixes proven (lod-far far=1, no wild-pace or fountain notes); ring_slimes, night tutorial arrow and fountain top walk ok. NOTES: flag-audio-panel 138/157 show only the 'Sound: on' button because ui_isolate hid the SoundPanel (watcher fix #230). The Audio boot flag puts the 'Sound: on' button in every shot of the session. A translucent pink strip crosses the top of the HUD frames. Next: tutorial-card short-screen fix (ccs, in progress), then a new tip with its own cloud pass and Studio run."
 }
