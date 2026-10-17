@@ -147,6 +147,26 @@ def circ_arrow(color=None, R=1.8, r=0.42, a0=35, a1=320, pos=(0, 0, 0), rot=(0, 
     return group(parts, pos, rot, 1.0, name)
 
 
+def clean_circ_arrow(color=None, R=3.0, w=0.95, a0=40, a1=318, thick=0.7, head_w=2.1, head_l=1.9, segs=40,
+                     pos=(0, 0, 0), rot=(0, 0, 0), name="carrow"):
+    """Flat-ribbon circular arrow (counter-clockwise, XZ plane): ONE polygon prism = annulus sector + arrowhead.
+    The head shares the arc's end edge, so there is no twist, no seam and nothing floating."""
+    color = color or C["green"]
+    ro, ri = R + w / 2, R - w / 2
+    outer = [(ro * math.cos(math.radians(a0 + (a1 - a0) * i / segs)), ro * math.sin(math.radians(a0 + (a1 - a0) * i / segs))) for i in range(segs + 1)]
+    inner = [(ri * math.cos(math.radians(a0 + (a1 - a0) * i / segs)), ri * math.sin(math.radians(a0 + (a1 - a0) * i / segs))) for i in range(segs + 1)]
+    ang = math.radians(a1)
+    nx, nz = math.cos(ang), math.sin(ang)  # radial
+    tx, tz = -math.sin(ang), math.cos(ang)  # tangent
+    c = (R * nx, R * nz)
+    wing_o = (c[0] + nx * head_w / 2, c[1] + nz * head_w / 2)
+    wing_i = (c[0] - nx * head_w / 2, c[1] - nz * head_w / 2)
+    tip = (c[0] + tx * head_l, c[1] + tz * head_l)
+    pts = outer[:-1] + [outer[-1], wing_o, tip, wing_i, inner[-1]] + inner[-2::-1]
+    arrow = prism("Ribbon", pts, thick, color, bevel_w=0.12)
+    return group([arrow], pos, rot, 1.0, name)
+
+
 def drop(pos, s=0.5, color=None, name="Drop"):
     color = color or C["blue"]
     b = blobc(name + "B", s, (0, 0, 0), color, squash=(1, 1, 1.05))

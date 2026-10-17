@@ -128,8 +128,8 @@ def goal_earn():
 
 @icon("Goal_Rebirth", view=(0, 10))
 def goal_rebirth():
-    parts = [circ_arrow(C["green"], 3.0, 0.7, 35, 325, name="arr")]
-    parts.append(prism("Star", star_pts(5, 1.25, 0.6), 0.5, C["gold"], (0, -0.2, 0), bevel_w=0.08))
-    for i, (x, z, s) in enumerate(((-3.4, 3.4, 0.5), (3.5, -2.4, 0.4), (0.3, 4.8, 0.35), (-3.2, -3.0, 0.3))):
+    parts = [clean_circ_arrow(C["green"], 3.0, 1.0, 40, 318, name="arr")]
+    parts.append(slime((60, 235, 110), "happy", (0, 0, -1.2), (0, 0, 0), 0.9))
+    for i, (x, z, s) in enumerate(((0.0, 5.1, 0.55), (-1.5, 4.7, 0.3), (1.6, 4.7, 0.3), (-3.6, 3.4, 0.38), (3.6, 3.6, 0.32), (3.7, -3.0, 0.3))):
         parts.append(sparkle((x, -1.0, z), s, C["gold_l"], f"S{i}"))
     return parts
