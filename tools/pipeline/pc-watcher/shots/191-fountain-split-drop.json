@@ -1,0 +1,21 @@
+{
+  "id": "191-fountain-split-drop",
+  "todo": "fountain split",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 60,
+  "height": 45,
+  "fountain_walk": true,
+  "fountain_split": true,
+  "bug_probe": {
+    "bug": 11,
+    "extra": true,
+    "title": "Fountain split (option a): ball drop on 4 PCD tower pieces",
+    "luau": "bug11_collision_fidelity",
+    "ctx": "Server",
+    "args": {},
+    "timeout": 50
+  },
+  "note": "FEATURES.FountainSplit draft (Merijn's collision choice a), runs with the flag OFF: (1) the full HARD fountain_walk grid against the 4 tower pieces of MeshAssets.FOUNTAIN_SPLIT (PreciseConvexDecomposition, assembled like MeshSwap) instead of the hand-placed colliders, result in shots[191].fountain_walk {ok, split, samples, worst_clearance, violations}; ADVISORY (a violation is a note, never fails the run); (2) the reduced ball grid in 4 variants colliders / mesh_pcd / mesh_hull / split_pcd, report.bugs (extra bug 11) detail.experiment.variants.split_pcd {balls, sank, fell, parts_saved}. Compare with shots 22-fountain-top-walk (baseline colliders) and bug11-mesh-collision"
+}

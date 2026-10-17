@@ -1,0 +1,177 @@
+{
+  "source": "out/slime_fountain.fbx",
+  "tris": 6354,
+  "size_roblox": [
+    54.45,
+    43.316,
+    63.851
+  ],
+  "cuts_z": {
+    "eave": 30.0,
+    "dome": 31.3,
+    "basin": 35.9
+  },
+  "offset_convention": "piece bbox centre - original bbox centre; Roblox slot axes (kit x, kit z, -kit y); rotate with the fountain (MeshSwap applies MeshAssets.IMPORT_YAW to the mesh, not the offset)",
+  "pieces": {
+    "basin": {
+      "tris": 766,
+      "faces": 590,
+      "verts": 436,
+      "bbox_kit": [
+        [
+          -16.7276,
+          -3.9065,
+          35.1932
+        ],
+        [
+          4.2553,
+          18.1442,
+          43.3158
+        ]
+      ],
+      "size_roblox": [
+        20.983,
+        8.123,
+        22.051
+      ],
+      "offset_kit": [
+        -6.236,
+        7.119,
+        17.597
+      ],
+      "offset_roblox": [
+        -6.236,
+        17.597,
+        -7.119
+      ]
+    },
+    "dome": {
+      "tris": 1157,
+      "faces": 893,
+      "verts": 672,
+      "bbox_kit": [
+        [
+          -19.9217,
+          -6.1583,
+          30.2606
+        ],
+        [
+          7.2797,
+          21.1541,
+          36.5502
+        ]
+      ],
+      "size_roblox": [
+        27.201,
+        6.29,
+        27.312
+      ],
+      "offset_kit": [
+        -6.321,
+        7.498,
+        11.747
+      ],
+      "offset_roblox": [
+        -6.321,
+        11.747,
+        -7.498
+      ]
+    },
+    "eave": {
+      "tris": 291,
+      "faces": 203,
+      "verts": 239,
+      "bbox_kit": [
+        [
+          -19.9217,
+          -6.1583,
+          29.3759
+        ],
+        [
+          7.2797,
+          21.1541,
+          32.6888
+        ]
+      ],
+      "size_roblox": [
+        27.201,
+        3.313,
+        27.312
+      ],
+      "offset_kit": [
+        -6.321,
+        7.498,
+        9.374
+      ],
+      "offset_roblox": [
+        -6.321,
+        9.374,
+        -7.498
+      ]
+    },
+    "silo": {
+      "tris": 1960,
+      "faces": 1168,
+      "verts": 1031,
+      "bbox_kit": [
+        [
+          -19.6217,
+          -5.7093,
+          0.0
+        ],
+        [
+          6.6011,
+          20.8541,
+          30.6731
+        ]
+      ],
+      "size_roblox": [
+        26.223,
+        30.673,
+        26.563
+      ],
+      "offset_kit": [
+        -6.51,
+        7.572,
+        -6.321
+      ],
+      "offset_roblox": [
+        -6.51,
+        -6.321,
+        -7.572
+      ]
+    },
+    "slide": {
+      "tris": 2180,
+      "faces": 1266,
+      "verts": 1148,
+      "bbox_kit": [
+        [
+          -27.2249,
+          -31.9253,
+          0.0
+        ],
+        [
+          27.2249,
+          31.9253,
+          38.242
+        ]
+      ],
+      "size_roblox": [
+        54.45,
+        38.242,
+        63.851
+      ],
+      "offset_kit": [
+        0.0,
+        0.0,
+        -2.537
+      ],
+      "offset_roblox": [
+        0.0,
+        -2.537,
+        -0.0
+      ]
+    }
+  }
+}

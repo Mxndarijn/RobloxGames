@@ -16,6 +16,9 @@
 -- scene[_pending]_magnet.json.
 -- --snow <level 0..1> [--snow-phase settle|melt] shows SnowGround v2 (the same SnowCover tints and colour lerp as the
 -- client) on the part colours and the border terrain colours, and writes scene[_pending]_snow_<phase>_<level>.json.
+-- --fountain-split draws the FEATURES.FountainSplit look instead of the single slime_fountain mesh: the 5 pieces of
+-- MeshAssets.FOUNTAIN_SPLIT, each at the slot centre + its offset (same maths as server/MeshSwap.swapFountainSplit);
+-- writes scene[_pending]_fountain_split.json. The assembled pieces must draw exactly what the whole mesh draws.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("../../src/visuals/tools/LuneGlobals")
@@ -46,6 +49,7 @@ local SKIN_ARG = table.find(process.args, "--skin")
 -- Bug #16: the merge_vat model is the default look of every plot's vat; --cylinder exports the old primitive (before shot).
 local CYLINDER = table.find(process.args, "--cylinder") ~= nil
 local MAGNET = table.find(process.args, "--magnet") ~= nil
+local FOUNTAIN_SPLIT = table.find(process.args, "--fountain-split") ~= nil
 local SKIN = if SKIN_ARG then process.args[SKIN_ARG + 1] else nil
 local TIER_ARG = table.find(process.args, "--fountain-tier")
 local TIER = if TIER_ARG then tonumber(process.args[TIER_ARG + 1]) else nil
@@ -81,8 +85,14 @@ end
 local root = roblox.Instance.new("Folder")
 root.Name = "Workspace"
 local built = WorldBuilder.build(root)
+-- The prop spots (WorldLayout.PROP_SPOTS): since WorldShops the two stands replace the single ShopStand.
 for name, build in
-	{ ShopStand = Props.shopStand, LeaderboardBoard = Props.leaderboardBoard, TutorialNpc = Props.tutorialNpc }
+	{
+		ItemShopStand = Props.shopStand,
+		UpgradeShopStand = Props.shopStand,
+		LeaderboardBoard = Props.leaderboardBoard,
+		TutorialNpc = Props.tutorialNpc,
+	}
 do
 	local spot = WorldLayout.PROP_SPOTS[name] or WorldLayout.PROP_SPOTS.ItemShopStand -- ShopStand became ItemShopStand
 	local model = build()
@@ -151,7 +161,7 @@ for _, scope in { built.map, built.plots } do
 			or (PENDING and (inst:GetAttribute("BorderMesh") or inst:GetAttribute("FenceMesh")))
 		if typeof(name) == "string" and (inst:IsA("BasePart") or inst:IsA("Model")) and swappable(name) then
 			local cf, box
-			local size, drop
+			local size, scale, drop
 			-- Blender imports the kit FBX on its documented axes, which is where
 			-- MeshSwap turns a Part slot's upload back to (MeshAssets.IMPORT_YAW):
 			-- no turn here. A WorldProps Model skin keeps the upload's own front
@@ -194,16 +204,40 @@ for _, scope in { built.map, built.plots } do
 				turn = math.rad(MeshAssets.IMPORT_YAW)
 			else
 				cf, box = inst.CFrame, inst.Size
-				size, _, drop = MeshAssets.fit(name, { box.X, box.Y, box.Z })
+				size, scale, drop = MeshAssets.fit(name, { box.X, box.Y, box.Z })
 			end
 			hidden[inst] = true
-			table.insert(meshes, {
-				tint = tint,
-				mesh = name,
-				cf = cfOf(cf * CFrame.new(0, -drop, 0) * CFrame.Angles(0, turn, 0)),
-				size = size,
-				path = inst:GetFullName(),
-			})
+			local splitReady = FOUNTAIN_SPLIT and name == "slime_fountain" and inst:IsA("BasePart")
+			if splitReady then
+				for _, piece in MeshAssets.FOUNTAIN_SPLIT do
+					splitReady = splitReady and swappable(piece)
+				end
+			end
+			if splitReady then
+				-- MeshSwap.swapFountainSplit: slot cf, standing on the bottom, each piece moved by its offset (slot axes, scaled)
+				local k = scale or 1
+				for _, piece in MeshAssets.FOUNTAIN_SPLIT do
+					local entry = MeshAssets.get(piece) :: any
+					local at = cf
+						* CFrame.new(0, -drop, 0)
+						* CFrame.new(entry.offset[1] * k, entry.offset[2] * k, entry.offset[3] * k)
+					table.insert(meshes, {
+						tint = tint,
+						mesh = piece,
+						cf = cfOf(at * CFrame.Angles(0, turn, 0)),
+						size = { entry.size[1] * k, entry.size[2] * k, entry.size[3] * k },
+						path = `{inst:GetFullName()}.{piece}`,
+					})
+				end
+			else
+				table.insert(meshes, {
+					tint = tint,
+					mesh = name,
+					cf = cfOf(cf * CFrame.new(0, -drop, 0) * CFrame.Angles(0, turn, 0)),
+					size = size,
+					path = inst:GetFullName(),
+				})
+			end
 			swapped[scope][name] = true
 		end
 	end
@@ -492,6 +526,7 @@ local suffix = (if PENDING then "_pending" else "")
 	.. (if TIER then `_tier_{TIER}` else "")
 	.. (if CYLINDER then "_cylinder" else "")
 	.. (if MAGNET then "_magnet" else "")
+	.. (if FOUNTAIN_SPLIT then "_fountain_split" else "")
 	.. (if SNOW then `_snow_{SNOW_PHASE}_{SNOW}` else "")
 fs.writeFile(
 	`{OUT}/scene{suffix}.json`,
