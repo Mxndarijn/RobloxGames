@@ -1,12 +1,13 @@
 --!strict
--- FEATURES.PvP hotbar + chips layout at the five gate viewports plus the landscape phone (844x332, 844x390):
+-- FEATURES.PvP hotbar + chips layout at every LayoutAssert.GATE_VIEWPORTS and LANDSCAPE_VIEWPORTS entry:
 -- on screen, touch-sized, clear of the HUD, nav, banner stack, toast column, carry card, SLAP!, the tutorial cards and
--- Roblox's touch controls. 11 slots (3 tools + 8 fun) with the stub at a rank that owns everything.
+-- Roblox's touch controls. 11 slots (3 tools + 8 fun) with the fixture state at a rank that owns everything.
 local Config = require("../../src/shared/Config")
 local ItemIcons = require("../../src/ui/ItemIcons")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local PvpClient = require("../../src/ui/PvpClient")
+local PvpFixtures = require("./PvpFixtures")
 local PvpHudLogic = require("../../src/ui/PvpHudLogic")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
@@ -23,9 +24,7 @@ local function viewports(): { { name: string, w: number, h: number } }
 		table.insert(out, vp)
 	end
 	for _, vp in LayoutAssert.LANDSCAPE_VIEWPORTS do
-		if vp.h == 332 then
-			table.insert(out, vp)
-		end
+		table.insert(out, vp)
 	end
 	return out
 end
@@ -104,7 +103,7 @@ describe("PvP hotbar placement", function()
 	end)
 end)
 
-describe("PvpHud mounted with the stub", function()
+describe("PvpHud mounted with fixture state", function()
 	local function mounted(vp: { w: number, h: number }, rank: number): (any, any, Layout.Screen, any)
 		local root = UiHarness.root()
 		local banners = UiHarness.Instance.new("Frame")
@@ -117,7 +116,7 @@ describe("PvpHud mounted with the stub", function()
 			send = function() end,
 			flag = true,
 		})
-		client.applyState({ pvp = PvpClient.stubState(rank) })
+		client.applyState({ pvp = PvpFixtures.pvp(rank) })
 		local hud = PvpHud.new(root, registry, client, { banners = banners })
 		local s = Layout.screen(vp.w, vp.h)
 		hud.layout(s)
@@ -177,7 +176,7 @@ describe("PvpHud mounted with the stub", function()
 		expect(#client.hotbarSlots()).toBe(1)
 		client.applyState({})
 		expect(hud.frame.Visible).toBe(false)
-		client.applyState({ pvp = PvpClient.stubState(5) })
+		client.applyState({ pvp = PvpFixtures.pvp(5) })
 		expect(hud.frame.Visible).toBe(true)
 		hud.destroy()
 	end)
@@ -186,7 +185,7 @@ describe("PvpHud mounted with the stub", function()
 		local hud, _, _, client = mounted({ w = 1920, h = 1080 }, 12)
 		expect(hud.views.KnockGlove4.button:GetAttribute("Equipped")).toBe(true)
 		expect(hud.views.GooTrap3.button:GetAttribute("Equipped")).toBe(false)
-		local state = { pvp = PvpClient.stubState(12) }
+		local state = { pvp = PvpFixtures.pvp(12) }
 		state.pvp.equipped = "GooTrap3"
 		state.pvp.owned.FunBalloon = nil
 		client.applyState(state)

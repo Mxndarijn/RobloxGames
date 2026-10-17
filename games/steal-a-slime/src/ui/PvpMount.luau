@@ -5,8 +5,8 @@
 	The one hook init.client calls. With the flag off it returns nil and does nothing: no PvpClient, no Instances,
 	no connections, no remote looked up. With it on it builds the PvpClient (real wiring injected by init.client),
 	mounts PvpHud and connects the PvP inputs:
-	  * the PvpEvent RemoteEvent under the Remotes folder, found with FindFirstChild / ChildAdded (never
-	    WaitForChild: with the server side not shipped yet the event simply never appears);
+	  * the PvpEvent RemoteEvent (Constants.PVP_EVENT) under the Remotes folder, found with FindFirstChild /
+	    ChildAdded (never WaitForChild: a client with the flag on never yields on a server that has it off);
 	  * the player attribute "PvpShieldUntil";
 	  * the number keys (env.input).
 	Everything Roblox-side comes in through `env`, so tests/ui/PvpMount.spec.luau runs it under Lune.
@@ -17,15 +17,13 @@
 	  banners: Instance?,               Hud's Banners stack (the chips go there)
 	  itemIcons: any,                   ItemIcons registry
 	  now: () -> number,                server time
-	  send: (action, ...) -> (any, any),  the Request path; may return (false, reason)
+	  send: (action, ...) -> (any, any),  the Request path (ctx.send); may return (false, reason)
 	  player: any,                      GetAttribute / GetAttributeChangedSignal
 	  remotes: any?,                    the Remotes folder-like (FindFirstChild, ChildAdded); nil = look up via root
 	  root: any?,                       ReplicatedStorage-like, used when `remotes` is nil
 	  remotesName: string?,             the folder's name under root (Constants.REMOTES_FOLDER)
 	  input: any?,                      UserInputService-like (InputBegan, GetFocusedTextBox)
-	  eventName: string?,               Constants.PVP_EVENT or "PvpEvent"
-	  stubRank: (() -> number?)?,       Studio preview (PcwPvpStub): fake state.pvp when the server sent none
-	  catalog: any?,
+	  eventName: string?,               default Constants.PVP_EVENT
 	}
 ]]
 
@@ -61,7 +59,7 @@ function PvpMount.mount(env: any)
 	if env.enabled ~= true then
 		return nil
 	end
-	local client = PvpClient.new({ now = env.now, send = env.send, catalog = env.catalog, flag = true })
+	local client = PvpClient.new({ now = env.now, send = env.send, flag = true })
 	local hud = PvpHud.new(env.gui, env.itemIcons, client, { banners = env.banners, input = env.input })
 	local disconnects: { () -> () } = {}
 	local self: any = { client = client, hud = hud }
@@ -98,15 +96,9 @@ function PvpMount.mount(env: any)
 		table.insert(disconnects, watchChild(env.root, env.remotesName or "Remotes", watchEvent))
 	end
 
-	-- The latest State snapshot (init.client render): state.pvp, or the preview stub when there is none.
+	-- The latest State snapshot (init.client render): state.pvp as the server sent it.
 	function self.applyState(state: any)
-		local view = state
-		local rank = if env.stubRank then env.stubRank() else nil
-		if type(state) == "table" and state.pvp == nil and type(rank) == "number" then
-			view = table.clone(state)
-			view.pvp = PvpClient.stubState(rank, env.catalog)
-		end
-		client.applyState(view)
+		client.applyState(state)
 	end
 
 	function self.layout(screen: any)

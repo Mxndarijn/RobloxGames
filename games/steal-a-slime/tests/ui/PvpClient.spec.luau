@@ -1,36 +1,19 @@
 --!strict
 -- FEATURES.PvP client adapter (src/ui/PvpClient): hotbar slots, cooldown / shield / safe-zone rules, commands,
--- lock state per rank. Pure: a stub catalog and an injected clock and send.
+-- lock state per rank, against the real Config.PVP_TOOLS and Shared.PvpRules. Pure: fixtures (PvpFixtures) supply
+-- the state.pvp builder, the clock and send.
 local Config = require("../../src/shared/Config")
+local Constants = require("../../src/shared/Constants")
 local FeatureOverride = require("../../src/shared/FeatureOverride")
 local PvpClient = require("../../src/ui/PvpClient")
+local PvpFixtures = require("./PvpFixtures")
+local PvpRules = require("../../src/shared/PvpRules")
+local Remotes = require("../../src/shared/Remotes")
 local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-type Call = { n: number, [number]: any }
-
--- A client on a manual clock; `sent` records every send(action, ...) call (args packed, nils kept).
-local function make(sendResult: { any }?, rank: number?): (any, { calls: { Call } }, { t: number })
-	local clock = { t = 100 }
-	local log = { calls = {} :: { Call } }
-	local client = PvpClient.new({
-		now = function()
-			return clock.t
-		end,
-		send = function(...: any): (any, any)
-			table.insert(log.calls, table.pack(...) :: Call)
-			if sendResult then
-				return sendResult[1], sendResult[2]
-			end
-			return nil, nil
-		end,
-	})
-	if rank then
-		client.applyState({ pvp = PvpClient.stubState(rank) })
-	end
-	return client, log, clock
-end
+local make = PvpFixtures.client
 
 local function ids(slots: { PvpClient.Slot }): string
 	local out = {}
@@ -49,15 +32,18 @@ describe("PvP flag", function()
 	end)
 end)
 
-describe("PvpClient stub catalog", function()
-	it("has the 19 ladder ids with the plan's lines, tiers and gates", function()
+describe("PvpClient catalog (Config.PVP_TOOLS)", function()
+	it("is exactly Config.PVP_TOOLS in ladder order, with the 19 ids, lines and rank gates", function()
 		local lines: { [string]: number } = {}
-		for _, t in PvpClient.STUB_CATALOG do
+		local catalog = PvpClient.catalog()
+		expect(#catalog).toBe(#Config.PVP_TOOLS)
+		expect(#catalog).toBe(19)
+		for _, t in catalog do
 			lines[t.line] = (lines[t.line] or 0) + 1
 			expect(t.cooldown > 0).toBe(true)
 			expect(t.kind).toBe(if t.line == "Fun" then "fun" else "tool")
+			expect(PvpRules.tool(t.id) == (t :: any)).toBe(true)
 		end
-		expect(#PvpClient.STUB_CATALOG).toBe(19)
 		expect(lines.Knockback).toBe(5)
 		expect(lines.Trap).toBe(3)
 		expect(lines.Blaster).toBe(3)
@@ -66,43 +52,28 @@ describe("PvpClient stub catalog", function()
 		for _, tier in Config.REBIRTH_TIERS do
 			gates[tier.rebirths] = true
 		end
-		for _, t in PvpClient.STUB_CATALOG do
+		for _, t in catalog do
 			expect(`{t.id}: {gates[t.rebirths] == true}`).toBe(`{t.id}: true`)
 		end
+		local c = PvpClient.new({})
+		expect(#c.catalog()).toBe(19)
+		expect(c.tool("KnockGlove1") ~= nil and c.tool("Nope") == nil).toBe(true)
 	end)
-	it(
-		"uses the final §26.1 field names (count / control / radius / rearm, slowPercent / slowSeconds, push)",
-		function()
-			local byId: { [string]: any } = {}
-			for _, t in PvpClient.STUB_CATALOG do
-				byId[t.id] = t
-				expect(t.slow).toBeNil()
-				expect(t.traps).toBeNil()
-				expect(t.damage).toBeNil()
-			end
-			local trap = byId.GooTrap2
-			expect(trap.count).toBe(2)
-			expect(trap.control).toBe(1.5)
-			expect(trap.radius).toBe(3.5)
-			expect(trap.rearm).toBe(25)
-			expect(trap.cooldown).toBe(trap.rearm)
-			expect(byId.GooBlaster1.slowPercent).toBe(30)
-			expect(byId.GooBlaster2.slowPercent).toBe(40)
-			expect(byId.GooBlaster3.slowPercent).toBe(50)
-			expect(byId.GooBlaster3.slowSeconds).toBe(3)
-			expect(byId.KnockGlove1.push).toBe(5)
-			expect(byId.KnockGlove5.cooldown).toBe(1.5)
-			expect(byId.FunDanceBomb.control).toBe(2)
-			expect(byId.FunBouncePad.control).toBe(1.2)
+	it("effect text reads main's Config names: Blaster slow (a fraction) and Trap traps", function()
+		local byId: { [string]: any } = {}
+		for _, t in PvpClient.catalog() do
+			byId[t.id] = t
+			expect((t :: any).slowPercent).toBeNil()
+			expect((t :: any).count).toBeNil()
+			expect((t :: any).rearm).toBeNil()
+			expect((t :: any).damage).toBeNil()
 		end
-	)
-	it("effectSlowPercent / effectCount read both §26.1 and #241's current names", function()
-		expect(PvpClient.effectSlowPercent({ slowPercent = 40 })).toBe(40)
-		expect(PvpClient.effectSlowPercent({ slow = 0.3 })).toBe(30)
-		expect(PvpClient.effectSlowPercent({ push = 5 })).toBeNil()
-		expect(PvpClient.effectCount({ count = 2 })).toBe(2)
-		expect(PvpClient.effectCount({ traps = 1 })).toBe(1)
-		expect(PvpClient.effectCount({})).toBeNil()
+		expect(PvpClient.effectSlowPercent(byId.GooBlaster1)).toBe(30)
+		expect(PvpClient.effectSlowPercent(byId.GooBlaster3)).toBe(50)
+		expect(PvpClient.effectSlowPercent(byId.KnockGlove1)).toBeNil()
+		expect(PvpClient.effectCount(byId.GooTrap2)).toBe(2)
+		expect(PvpClient.effectCount(byId.KnockGlove1)).toBeNil()
+		expect(byId.GooTrap2.cooldown).toBe(25) -- a trap's cooldown is its rearm
 	end)
 	it("BASE_SLAP is display-only: free rank 0 of Knockback, not in the catalog, never a hotbar slot", function()
 		local b = PvpClient.BASE_SLAP
@@ -110,7 +81,7 @@ describe("PvpClient stub catalog", function()
 		expect(b.line).toBe("Knockback")
 		expect(b.rebirths).toBe(0)
 		expect(b.free).toBe(true)
-		for _, t in PvpClient.STUB_CATALOG do
+		for _, t in PvpClient.catalog() do
 			expect(t.id ~= b.id).toBe(true)
 		end
 		local c = make(nil, 20)
@@ -122,18 +93,13 @@ describe("PvpClient stub catalog", function()
 		d.applyState({ pvp = { owned = { [b.id] = true }, best = { Knockback = b.id }, equipped = b.id } })
 		expect(#d.hotbarSlots()).toBe(0)
 	end)
-	it(
-		"is the default catalog only while Config.PVP_TOOLS is missing; an injected catalog (list or map) wins",
-		function()
-			if (Config :: any).PVP_TOOLS == nil then
-				expect(PvpClient.defaultCatalog()).toBe(PvpClient.STUB_CATALOG)
-			end
-			local custom = { A = { id = "A", name = "A", line = "Fun", tier = 1, rebirths = 0, cooldown = 1 } }
-			local c = PvpClient.new({ catalog = custom })
-			expect(#c.catalog()).toBe(1)
-			expect(c.tool("A") ~= nil and c.tool("KnockGlove1") == nil).toBe(true)
-		end
-	)
+	it("listens on Constants.PVP_EVENT and sends the §26.1 action names", function()
+		expect(PvpClient.EVENT_NAME).toBe(Constants.PVP_EVENT)
+		expect(PvpClient.EQUIP_ACTION).toBe("EquipPvpItem")
+		expect(PvpClient.USE_ACTION).toBe("UsePvpItem")
+		expect(Remotes.ACTIONS[PvpClient.EQUIP_ACTION] ~= nil).toBe(true)
+		expect(Remotes.ACTIONS[PvpClient.USE_ACTION] ~= nil).toBe(true)
+	end)
 end)
 
 describe("PvpClient state and hotbar", function()
@@ -180,19 +146,23 @@ describe("PvpClient state and hotbar", function()
 		expect(ids(make(nil, 4).hotbarSlots())).toBe("KnockGlove1,GooTrap1,FunConfetti,FunBalloon,FunBubbles")
 	end)
 
-	it("takes the snapshot's `best` as is, and falls back to the highest owned tier without it", function()
-		local c = make()
-		c.applyState({
-			pvp = { owned = { KnockGlove1 = true, KnockGlove2 = true }, best = { Knockback = "KnockGlove1" } },
-		})
-		expect(c.best("Knockback")).toBe("KnockGlove1")
-		c.applyState({ pvp = { owned = { KnockGlove1 = true, KnockGlove2 = true } } })
-		expect(c.best("Knockback")).toBe("KnockGlove2")
-		c.applyState({ pvp = { owned = { Nope = true, GooTrap2 = true }, best = { Trap = "Nope" } } })
-		expect(c.owns("Nope")).toBe(false) -- not in the catalog
-		expect(c.best("Trap")).toBe("GooTrap2")
-		expect(ids(c.hotbarSlots())).toBe("GooTrap2")
-	end)
+	it(
+		"takes the snapshot's `best` as is: no best entry, or one that is not in the catalog / the line, is nil",
+		function()
+			local c = make()
+			c.applyState({
+				pvp = { owned = { KnockGlove1 = true, KnockGlove2 = true }, best = { Knockback = "KnockGlove1" } },
+			})
+			expect(c.best("Knockback")).toBe("KnockGlove1")
+			c.applyState({ pvp = { owned = { KnockGlove1 = true, KnockGlove2 = true } } })
+			expect(c.best("Knockback")).toBeNil()
+			c.applyState({ pvp = { owned = { GooTrap2 = true }, best = { Trap = "Nope", Blaster = "GooTrap2" } } })
+			expect(c.best("Trap")).toBeNil()
+			expect(c.best("Blaster")).toBeNil() -- wrong line
+			expect(ids(c.hotbarSlots())).toBe("")
+			expect(c.owns("Nope")).toBe(false)
+		end
+	)
 
 	it("equipped follows the snapshot only; the client never equips locally", function()
 		local c, log = make(nil, 6)
@@ -200,7 +170,7 @@ describe("PvpClient state and hotbar", function()
 		c.equip("FunBalloon")
 		expect(c.equipped()).toBe("KnockGlove2")
 		expect(#log.calls).toBe(1)
-		local state = { pvp = PvpClient.stubState(6) }
+		local state = { pvp = PvpFixtures.pvp(6) }
 		state.pvp.equipped = "FunBalloon"
 		c.applyState(state)
 		expect(c.equipped()).toBe("FunBalloon")
@@ -212,7 +182,7 @@ describe("PvpClient state and hotbar", function()
 		local off = c.onChanged(function()
 			n += 1
 		end)
-		c.applyState({ pvp = PvpClient.stubState(3) })
+		c.applyState({ pvp = PvpFixtures.pvp(3) })
 		c.applyEvent({ kind = "Shield", endsAt = 200 })
 		c.applyEvent({ kind = "SafeZone", zone = "Spawn", inside = true })
 		c.applyEvent({ kind = "Cooldown", itemId = "KnockGlove1", startedAt = 100, duration = 1 })
@@ -327,7 +297,7 @@ end)
 describe("PvpClient cooldowns", function()
 	it("falls back to state.pvp.cooldowns over the catalog cooldown", function()
 		local c, _, clock = make(nil, 12)
-		local state = { pvp = PvpClient.stubState(12) }
+		local state = { pvp = PvpFixtures.pvp(12) }
 		state.pvp.cooldowns = { GooBlaster2 = 105.5, KnockGlove4 = 100.75 }
 		c.applyState(state)
 		local fraction, left = c.cooldown("GooBlaster2") -- 11 s cooldown
@@ -344,7 +314,7 @@ describe("PvpClient cooldowns", function()
 
 	it("a Cooldown event starts the ring, over its own duration, replacing an earlier snapshot value", function()
 		local c, _, clock = make(nil, 12)
-		local state = { pvp = PvpClient.stubState(12) }
+		local state = { pvp = PvpFixtures.pvp(12) }
 		state.pvp.cooldowns = { GooBlaster2 = 200 }
 		c.applyState(state)
 		c.applyEvent({ kind = "Cooldown", itemId = "GooBlaster2", startedAt = 100, duration = 8 })
@@ -366,7 +336,7 @@ describe("PvpClient cooldowns", function()
 		local c, _, clock = make(nil, 12)
 		c.applyEvent({ kind = "Cooldown", itemId = "GooBlaster2", startedAt = 100, duration = 8 })
 		-- The state says it ends at 104: a stale event cannot keep the ring alive past that.
-		local state = { pvp = PvpClient.stubState(12) }
+		local state = { pvp = PvpFixtures.pvp(12) }
 		state.pvp.cooldowns = { GooBlaster2 = 104 }
 		c.applyState(state)
 		local fraction, left = c.cooldown("GooBlaster2")
@@ -389,17 +359,17 @@ describe("PvpClient cooldowns", function()
 		c.applyEvent({ kind = "Cooldown", itemId = "GooBlaster2", startedAt = 100, duration = 11 })
 		c.applyEvent({ kind = "Cooldown", itemId = "GooTrap1", startedAt = 100, duration = 30 })
 		clock.t = 100.5 -- the snapshot may predate both events
-		c.applyState({ pvp = PvpClient.stubState(12) })
+		c.applyState({ pvp = PvpFixtures.pvp(12) })
 		expect(select(2, c.cooldown("GooBlaster2"))).toBe(10.5)
 		expect(select(2, c.cooldown("GooTrap1"))).toBe(29.5)
 		clock.t = 103 -- a later snapshot without them: the state says they ended
-		c.applyState({ pvp = PvpClient.stubState(12) })
+		c.applyState({ pvp = PvpFixtures.pvp(12) })
 		local f, l = c.cooldown("GooBlaster2")
 		expect(f + l).toBe(0)
 		f, l = c.cooldown("GooTrap1")
 		expect(f + l).toBe(0)
 		-- An id never seen in an event just follows the state.
-		local state = { pvp = PvpClient.stubState(12) }
+		local state = { pvp = PvpFixtures.pvp(12) }
 		state.pvp.cooldowns = { KnockGlove4 = 104 }
 		c.applyState(state)
 		expect(select(2, c.cooldown("KnockGlove4"))).toBe(1)
@@ -407,7 +377,7 @@ describe("PvpClient cooldowns", function()
 
 	it("clamps: never above 1, below 0 or NaN, whatever the server sends", function()
 		local c, _, clock = make(nil, 12)
-		local state = { pvp = PvpClient.stubState(12) }
+		local state = { pvp = PvpFixtures.pvp(12) }
 		state.pvp.cooldowns =
 			{ KnockGlove4 = 500, GooTrap2 = 0 / 0, GooBlaster2 = -10, FunBalloon = math.huge, FunBubbles = "x" }
 		c.applyState(state)
@@ -520,17 +490,19 @@ describe("PvpClient lock state per rank", function()
 	end
 
 	it(
-		"unlockedAt(rank) is exactly the catalog items with rebirths <= rank, at every REBIRTH_TIERS threshold",
+		"unlockedAt(rank) is exactly the PVP_TOOLS with rebirths <= rank and agrees with PvpRules.isUnlocked, at every REBIRTH_TIERS threshold",
 		function()
 			local previous = 0
 			for _, tier in Config.REBIRTH_TIERS do
+				local data: PvpRules.Data = { cash = 0, rebirths = tier.rebirths }
 				local unlocked = PvpClient.unlockedAt(tier.rebirths)
 				local expected = 0
-				for _, t in PvpClient.STUB_CATALOG do
+				for _, t in Config.PVP_TOOLS do
 					local should = t.rebirths <= tier.rebirths
 					expect(`rank {tier.rebirths} {t.id}: {PvpClient.isUnlocked(t.id, tier.rebirths)}`).toBe(
 						`rank {tier.rebirths} {t.id}: {should}`
 					)
+					expect(PvpRules.isUnlocked(data, t.id)).toBe(PvpClient.isUnlocked(t.id, tier.rebirths))
 					if should then
 						expected += 1
 					end
@@ -557,15 +529,11 @@ describe("PvpClient lock state per rank", function()
 		expect(PvpClient.isUnlocked("Nope", 30)).toBe(false)
 		expect(PvpClient.isUnlocked("KnockGlove1", 0 / 0)).toBe(false)
 		expect(#PvpClient.unlockedAt(-1)).toBe(0)
+		expect(#PvpClient.unlockedAt(0 / 0)).toBe(0)
 	end)
 
-	it("takes a catalog argument, and stubState owns the unlocked items with the best tools equipped", function()
-		local one = {
-			{ id = "X", name = "X", line = "Fun", tier = 1, rebirths = 2, cooldown = 1, kind = "fun", cosmetic = true },
-		}
-		expect(#PvpClient.unlockedAt(1, one)).toBe(0)
-		expect(#PvpClient.unlockedAt(2, one)).toBe(1)
-		local pvp = PvpClient.stubState(12)
+	it("the fixture's state.pvp owns the unlocked items with the best tools, as PvpService.view builds it", function()
+		local pvp = PvpFixtures.pvp(12)
 		expect(pvp.rank).toBe(12)
 		expect(pvp.best.Knockback).toBe("KnockGlove4")
 		expect(pvp.best.Trap).toBe("GooTrap3")

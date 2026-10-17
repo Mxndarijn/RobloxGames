@@ -1,6 +1,6 @@
 --!strict
 -- FEATURES.PvP mount (src/ui/PvpMount): flag off = nothing built, nothing connected, no remote looked up; flag on =
--- hotbar + chips, PvpEvent / attribute / number-key wiring, the Studio stub.
+-- hotbar + chips, PvpEvent / attribute / number-key wiring, equip / use through the injected send.
 local Config = require("../../src/shared/Config")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
@@ -9,50 +9,12 @@ local roblox = require("@lune/roblox") :: any
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local PvpMount = UiHarness.ui("PvpMount")
-local PvpClient = UiHarness.ui("PvpClient")
+local PvpFixtures = require("./PvpFixtures")
 local ItemIcons = UiHarness.ui("ItemIcons")
 local Layout = UiHarness.ui("Layout")
 local registry = ItemIcons.build(Config)
 
--- A signal that counts live connections.
-local function signal(): any
-	local self: any = { live = 0, total = 0, callbacks = {} }
-	function self.Connect(_self: any, fn: any)
-		self.live += 1
-		self.total += 1
-		local connection = { fn = fn, on = true }
-		self.callbacks[connection] = true
-		function connection.Disconnect()
-			if connection.on then
-				connection.on = false
-				self.live -= 1
-				self.callbacks[connection] = nil
-			end
-		end
-		return connection
-	end
-	function self.Fire(_self: any, ...: any)
-		for connection in table.clone(self.callbacks) do
-			connection.fn(...)
-		end
-	end
-	return self
-end
-
--- A folder-like parent with FindFirstChild / ChildAdded that records lookups.
-local function folder(): any
-	local self: any = { children = {}, lookups = 0, ChildAdded = signal() }
-	function self.FindFirstChild(_self: any, name: string)
-		self.lookups += 1
-		return self.children[name]
-	end
-	function self.add(_self: any, name: string, child: any)
-		child.Name = name
-		self.children[name] = child
-		self.ChildAdded:Fire(child)
-	end
-	return self
-end
+local signal, folder = PvpFixtures.signal, PvpFixtures.folder
 
 local function player(): any
 	local self: any = { attrs = {}, changed = signal(), reads = 0 }
@@ -106,9 +68,6 @@ describe("PvpMount with the flag off", function()
 	it("returns nil and builds nothing, connects nothing, reads no remote and no attribute", function()
 		local e = env(false, {
 			root = folder(),
-			stubRank = function(): number?
-				error("the stub must not be read")
-			end,
 		})
 		local before = #UiHarness.descendants(e.gui)
 		expect(PvpMount.mount(e)).toBeNil()
@@ -134,42 +93,35 @@ describe("PvpMount with the flag off", function()
 end)
 
 describe("PvpMount with the flag on", function()
-	it(
-		"mounts the hotbar for the stub rank when the server sent no state.pvp, and real data wins when present",
-		function()
-			local rank: number? = 30
-			local e = env(true, {
-				stubRank = function(): number?
-					return rank
-				end,
-			})
-			local m = PvpMount.mount(e)
-			expect(m ~= nil).toBe(true)
-			expect(e.gui:FindFirstChild("PvpHotbar") ~= nil).toBe(true)
-			expect(e.banners:FindFirstChild("PvpShield") ~= nil and e.banners:FindFirstChild("PvpSafeZone") ~= nil).toBe(
-				true
-			)
-			expect(#m.client.hotbarSlots()).toBe(0)
-			m.applyState({ cash = 5 })
-			expect(#m.client.hotbarSlots()).toBe(11)
-			local n = 0
-			for _ in m.hud.views do
-				n += 1
-			end
-			expect(n).toBe(11)
-			m.applyState({ pvp = { rank = 1, owned = { KnockGlove1 = true }, best = { Knockback = "KnockGlove1" } } })
-			expect(#m.client.hotbarSlots()).toBe(1)
-			rank = nil
-			m.applyState({ cash = 5 })
-			expect(#m.client.hotbarSlots()).toBe(0)
-			m.destroy()
+	it("mounts the hotbar and chips, and shows exactly the state.pvp the server sent", function()
+		local e = env(true)
+		local m = PvpMount.mount(e)
+		expect(m ~= nil).toBe(true)
+		expect(e.gui:FindFirstChild("PvpHotbar") ~= nil).toBe(true)
+		expect(e.banners:FindFirstChild("PvpShield") ~= nil and e.banners:FindFirstChild("PvpSafeZone") ~= nil).toBe(
+			true
+		)
+		expect(#m.client.hotbarSlots()).toBe(0)
+		m.applyState({ cash = 5 }) -- no state.pvp: nothing, never invented data
+		expect(#m.client.hotbarSlots()).toBe(0)
+		m.applyState({ pvp = PvpFixtures.pvp(30) })
+		expect(#m.client.hotbarSlots()).toBe(11)
+		local n = 0
+		for _ in m.hud.views do
+			n += 1
 		end
-	)
+		expect(n).toBe(11)
+		m.applyState({ pvp = { rank = 1, owned = { KnockGlove1 = true }, best = { Knockback = "KnockGlove1" } } })
+		expect(#m.client.hotbarSlots()).toBe(1)
+		m.applyState({ cash = 5 })
+		expect(#m.client.hotbarSlots()).toBe(0)
+		m.destroy()
+	end)
 
 	it("a PvpEvent Cooldown draws the ring and the seconds; the Shield and SafeZone chips follow the server", function()
 		local e = env(true)
 		local m = PvpMount.mount(e)
-		m.applyState({ pvp = PvpClient.stubState(6) })
+		m.applyState({ pvp = PvpFixtures.pvp(6) })
 		local slot = UiHarness.find(e.gui, "Slot_KnockGlove2")
 		expect(slot ~= nil).toBe(true)
 		expect(UiHarness.find(slot, "RightHalf").Visible).toBe(false)
@@ -248,7 +200,7 @@ describe("PvpMount with the flag on", function()
 	it("number keys equip the slot through EquipPvpItem; typing and processed input are ignored", function()
 		local e = env(true)
 		local m = PvpMount.mount(e)
-		m.applyState({ pvp = PvpClient.stubState(6) }) -- KnockGlove2, GooTrap2, ...
+		m.applyState({ pvp = PvpFixtures.pvp(6) }) -- KnockGlove2, GooTrap2, ...
 		local input = e.input.InputBegan
 		input:Fire(key("Two"), false)
 		expect(#e.sent).toBe(1)
@@ -269,7 +221,7 @@ describe("PvpMount with the flag on", function()
 	it("a slot tap equips it and a second tap uses it; the instances go away on destroy", function()
 		local e = env(true)
 		local m = PvpMount.mount(e)
-		m.applyState({ pvp = PvpClient.stubState(6) })
+		m.applyState({ pvp = PvpFixtures.pvp(6) })
 		expect(m.hud.views.GooTrap2 ~= nil).toBe(true)
 		m.client.activate("GooTrap2")
 		expect(e.sent[1][1]).toBe("EquipPvpItem")

@@ -213,7 +213,7 @@ local stealFx = StealAlertFx.new(gui, {
 })
 local carry = CarryPanel.new(gui, ctx)
 -- FEATURES.PvP (v22, ui/PvpClient): hotbar, cooldown rings, shield + safe-zone chips. nil with the flag off: nothing
--- is built, nothing connected, no remote read. Studio preview before the server lands: SlimeUI.PcwPvpStub = rank.
+-- is built, nothing connected, no remote read. Studio preview: PcwFlag_PvP (FeatureOverride) turns the flag on.
 local pvp = if Config.FEATURES.PvP == true
 	then PvpMount.mount({
 		enabled = true,
@@ -221,22 +221,12 @@ local pvp = if Config.FEATURES.PvP == true
 		banners = gui:FindFirstChild("Banners"),
 		itemIcons = itemIcons,
 		now = serverNow,
-		send = function(action: string, ...: any): (boolean, string?)
-			if Remotes.ACTIONS[action] == nil then
-				return false, "PvP is not open yet" -- the server side has not shipped this action
-			end
-			send(action, ...) -- refusals come back as a toast (invoke)
-			return true, nil
-		end,
+		send = ctx.send, -- refusals come back as a toast (invoke)
 		player = player,
 		root = ReplicatedStorage,
 		remotesName = Constants.REMOTES_FOLDER,
-		eventName = (Constants :: any).PVP_EVENT or "PvpEvent",
+		eventName = Constants.PVP_EVENT,
 		input = game:GetService("UserInputService"),
-		stubRank = function(): number?
-			local rank = if game:GetService("RunService"):IsStudio() then gui:GetAttribute("PcwPvpStub") else nil
-			return if type(rank) == "number" then rank else nil
-		end,
 	})
 	else nil
 local leaderboard = LeaderboardPanel.new(gui, ctx)
@@ -948,7 +938,6 @@ if isStudio then
 			"PcwMergeVat",
 			"PcwRainMagnet",
 			"PcwWelcome",
-			"PcwPvpStub",
 		}
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()

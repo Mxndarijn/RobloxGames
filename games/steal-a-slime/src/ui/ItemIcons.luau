@@ -22,8 +22,6 @@
 	     tile is always there (also as the backdrop of 1 / 2).
 ]]
 
-local PvpClient = if script then require(script.Parent.PvpClient) else require("./PvpClient")
-
 export type Spec = {
 	id: string,
 	name: string,
@@ -361,11 +359,10 @@ local HAND: { Hand } = {
 	},
 }
 
--- v22 PvP ladder (FEATURES.PvP): one placeholder tile per catalog item, keyed by Config.PVP_TOOLS id when it exists,
--- else by ui/PvpClient.STUB_CATALOG (same ids); the name comes from the catalog entry, the glyph / brief below are
--- looked up by id (a generic per-line glyph for an id not listed). Tile colour per line. Group "pvp" is not in
--- DRAWN_GROUPS, so these stay "placeholder" until the render is pasted into IMAGES (Gojo, PR F); ITEM-ICONS-NEEDED.md
--- lists them.
+-- v22 PvP ladder (FEATURES.PvP): one placeholder tile per catalog item, keyed by Config.PVP_TOOLS id;
+-- the name comes from the catalog entry, the glyph / brief below are looked up by id (a generic per-line glyph for an
+-- id not listed). Tile colour per line. Group "pvp" is not in DRAWN_GROUPS, so these stay "placeholder" until the
+-- render is pasted into IMAGES (Gojo, PR F); ITEM-ICONS-NEEDED.md lists them.
 local PVP_LINE_COLORS: { [string]: { number } } = {
 	Knockback = { 235, 120, 70 },
 	Trap = { 90, 190, 110 },
@@ -565,7 +562,7 @@ function ItemIcons.build(config: any)
 	end
 
 	local catalog: { any } = {}
-	for _, t in (config.PVP_TOOLS or PvpClient.STUB_CATALOG) :: { [any]: any } do
+	for _, t in config.PVP_TOOLS :: { [any]: any } do
 		table.insert(catalog, t)
 	end
 	table.sort(catalog, function(a, b)

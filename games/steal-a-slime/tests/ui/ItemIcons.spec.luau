@@ -17,11 +17,10 @@ local roblox = require("@lune/roblox") :: any
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local ItemIconView = UiHarness.ui("ItemIconView")
-local PvpClient = require("../../src/ui/PvpClient")
 local registry = ItemIcons.build(Config)
 
 -- v22 PvP placeholders: group "pvp" (not drawn) stays "placeholder" until Gojo's art lands in IMAGES.
-local PVP_ICONS = #PvpClient.STUB_CATALOG
+local PVP_ICONS = #Config.PVP_TOOLS
 
 -- The same registry without the uploaded pictures: what the UI-drawn fallbacks (ItemIconArt) look like.
 local drawnRegistry
@@ -158,7 +157,7 @@ describe("PvP item icons (FEATURES.PvP)", function()
 	it("registers every ladder id in group pvp as an allowlisted placeholder tile, per-line colour", function()
 		expect(PVP_ICONS).toBe(19)
 		local colours: { [string]: string } = {}
-		for _, tool in PvpClient.STUB_CATALOG do
+		for _, tool in Config.PVP_TOOLS do
 			local spec = registry.get(tool.id)
 			expect(`{tool.id}: {spec ~= nil}`).toBe(`{tool.id}: true`)
 			expect(spec.group).toBe("pvp")
@@ -172,7 +171,7 @@ describe("PvP item icons (FEATURES.PvP)", function()
 		end
 		expect(colours.Knockback ~= colours.Trap and colours.Trap ~= colours.Blaster).toBe(true)
 	end)
-	it("is keyed by Config.PVP_TOOLS when it exists (map or list), name from the entry, else by the stub", function()
+	it("is keyed by Config.PVP_TOOLS (map or list), name from the entry, nothing from a stub", function()
 		local custom = table.clone(Config) :: any
 		custom.PVP_TOOLS = {
 			NewGlove = { id = "NewGlove", name = "New Glove", line = "Knockback" },
@@ -185,13 +184,15 @@ describe("PvP item icons (FEATURES.PvP)", function()
 		expect(r.get("KnockGlove1")).toBeNil()
 		custom.PVP_TOOLS = { { id = "Listed", name = "Listed", line = "Trap" } }
 		expect(ItemIcons.build(custom).get("Listed").group).toBe("pvp")
-		local stub = table.clone(Config) :: any
-		stub.PVP_TOOLS = nil
-		expect(ItemIcons.build(stub).get("GooTrap3").name).toBe("Mega Trap")
+		expect(registry.get("GooTrap3").name).toBe("Mega Trap")
+	end)
+	it("ItemIcons has no dependency on the PvP adapter", function()
+		local src = fs.readFile("src/ui/ItemIcons.luau")
+		expect(string.find(src, "PvpClient", 1, true) ~= nil).toBe(false) -- header comment aside, no require
 	end)
 	it("each pvp icon is listed in ITEM-ICONS-NEEDED.md and draws through ItemIconView", function()
 		local doc = fs.readFile("ITEM-ICONS-NEEDED.md")
-		for _, tool in PvpClient.STUB_CATALOG do
+		for _, tool in Config.PVP_TOOLS do
 			expect(string.find(doc, string.format("| `%s` |", tool.id), 1, true) ~= nil).toBe(true)
 			local icon = ItemIconView.new({ Id = tool.id, Size = 40, Parent = UiHarness.root() }, registry)
 			expect(icon.source).toBe("placeholder")

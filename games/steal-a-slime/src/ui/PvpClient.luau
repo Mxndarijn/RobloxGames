@@ -2,14 +2,15 @@
 --[[
 	PvpClient (FEATURES.PvP, docs/PVP-CLIENT.md)
 
-	The ONE client adapter for the v22 PvP contract (pvp-update.md "PvP remote contract"). Pure: no Roblox
-	APIs, no Instances; everything Roblox-side is injected (`now`, `send`, `catalog`), so Lune tests drive it
+	The ONE client adapter for the v22 PvP contract (CONTRACT.md §26.1). Pure: no Roblox APIs, no Instances;
+	everything Roblox-side is injected (`now`, `send`), so Lune tests drive it
 	(tests/ui/PvpClient.spec.luau). The views (PvpHud) only read its queries. The client never decides an
 	outcome: it shows what the server last said and forwards taps as Request actions.
 
-	Reads (all optional, all `any`: the server owns the shapes):
+	Reads (all optional, all `any`: the server owns the shapes; Types.PvpView is the real one):
 	  :applyState(state)   state.pvp = { rank, owned = {[id]=true}, best = {Knockback=id?, Trap=id?, Blaster=id?},
-	                       equipped = id?, cooldowns = {[id]=endsAt}, shieldUntil = number?, safeZone = string? };
+	                       equipped = id?, cooldowns = {[id]=endsAt}, shieldUntil = number?, safeZone = string? }
+	                       (safeZone is "Spawn" | "Shop" | "Fountain");
 	                       state.pvp == nil (flag off server-side) = empty PvP data, every query answers "nothing".
 	  :applyEvent(ev)      PvpEvent kinds "Cooldown" {itemId, duration, startedAt}, "Shield" {endsAt?},
 	                       "SafeZone" {zone, inside}; "Effect" / "TrapPlaced" / "TrapCleared" are only forwarded to
@@ -35,12 +36,11 @@
 	contract action names. send may return (false, reason) synchronously (a refusal); that comes back as
 	false, reason and starts nothing locally: a cooldown only ever comes from the server.
 
-	Catalog: Config.PVP_TOOLS (Gojo's PR A) when it exists, else STUB_CATALOG (same ids). Item data is read from
-	the catalog only; nothing per-item is hardcoded outside the stub. The server's data always wins; the stub exists
-	for tests and the Studio preview (PcwPvpStub).
-	Field names follow CONTRACT.md §26.1: id, name, line, tier, rebirths, cooldown, kind, cosmetic, push, control,
-	slowPercent, slowSeconds, radius, count, rearm. NOTE: #241's Config currently still names slow (0.3) / traps
-	(and no rearm); the stub follows §26.1. effectSlowPercent / effectCount below read both spellings.
+	Catalog: Config.PVP_TOOLS, nothing else; item data is read from it only. Rank gates go through
+	Shared.PvpRules.isUnlocked (one rule, no copy); the UI still never decides an outcome. Field names are main's
+	Config: id, name, line, tier, rebirths, cooldown, kind, cosmetic, push, control, radius, slowSeconds, and
+	`slow` (a fraction, 0.3) / `traps` (CONTRACT.md §26.1's slowPercent / count / rearm text is not what main
+	ships; a trap's cooldown IS its rearm). effectSlowPercent / effectCount read those two.
 
 	BASE_SLAP: display-only rank 0 of the Knockback line ("Base slap", free). It is not a PVP_TOOLS entry and
 	NOT a hotbar slot: the SLAP! button stays the way to slap. The shop (PR 2) lists it as the line's first rank.
@@ -48,6 +48,8 @@
 
 local Shared = if script then game:GetService("ReplicatedStorage"):WaitForChild("Shared") :: any else nil
 local Config = if Shared then require(Shared:WaitForChild("Config")) else require("../shared/Config")
+local Constants = if Shared then require(Shared:WaitForChild("Constants")) else require("../shared/Constants")
+local PvpRules = if Shared then require(Shared:WaitForChild("PvpRules")) else require("../shared/PvpRules")
 
 export type Tool = {
 	id: string,
@@ -64,7 +66,6 @@ export type Slot = { id: string, name: string, line: string, tier: number, keybi
 export type Options = {
 	now: (() -> number)?,
 	send: ((action: string, ...any) -> (any, any))?,
-	catalog: any?, -- list or map of Tool; default Config.PVP_TOOLS, else STUB_CATALOG
 	flag: boolean?, -- override Config.FEATURES.PvP (enabled() only; nothing is built here either way)
 }
 
@@ -72,60 +73,10 @@ local PvpClient = {}
 
 PvpClient.EQUIP_ACTION = "EquipPvpItem"
 PvpClient.USE_ACTION = "UsePvpItem"
-PvpClient.EVENT_NAME = "PvpEvent" -- the fallback of Constants.PVP_EVENT
+PvpClient.EVENT_NAME = Constants.PVP_EVENT
 PvpClient.MAX_KEYBINDS = 9
 PvpClient.EVENT_GRACE = 1 -- s: a Cooldown event younger than this survives a snapshot that omits its id
 PvpClient.LINES = table.freeze({ "Knockback", "Trap", "Blaster" })
-
-local function tool(
-	id: string,
-	name: string,
-	line: string,
-	tier: number,
-	rebirths: number,
-	cooldown: number,
-	extra: { [string]: any }
-): Tool
-	local t: any = {
-		id = id,
-		name = name,
-		line = line,
-		tier = tier,
-		rebirths = rebirths,
-		cooldown = cooldown,
-		kind = if line == "Fun" then "fun" else "tool",
-		cosmetic = false,
-	}
-	for key, value in extra do
-		t[key] = value
-	end
-	return table.freeze(t)
-end
-
--- Stub of the ladder for tests / the Studio preview, with the CONTRACT.md §26.1 field names (ids are save keys,
--- never renamed): Trap count / control / radius / rearm (cooldown = rearm); Blaster slowPercent (a percent number)
--- / slowSeconds / cooldown; Knockback push / cooldown 1.5. #241's Config still says slow (0.3) / traps; see header.
-PvpClient.STUB_CATALOG = table.freeze({
-	tool("KnockGlove1", "Bonk Glove", "Knockback", 1, 1, 1.5, { push = 5 }),
-	tool("KnockGlove2", "Bounce Glove", "Knockback", 2, 5, 1.5, { push = 6 }),
-	tool("KnockGlove3", "Boom Glove", "Knockback", 3, 8, 1.5, { push = 7 }),
-	tool("KnockGlove4", "Thunder Glove", "Knockback", 4, 12, 1.5, { push = 7.5 }),
-	tool("KnockGlove5", "Royal Glove", "Knockback", 5, 20, 1.5, { push = 8 }),
-	tool("GooTrap1", "Goo Puddle", "Trap", 1, 3, 30, { count = 1, control = 1, radius = 3, rearm = 30 }),
-	tool("GooTrap2", "Sticky Trap", "Trap", 2, 6, 25, { count = 2, control = 1.5, radius = 3.5, rearm = 25 }),
-	tool("GooTrap3", "Mega Trap", "Trap", 3, 10, 20, { count = 2, control = 2, radius = 4, rearm = 20 }),
-	tool("GooBlaster1", "Goo Squirter", "Blaster", 1, 7, 12, { slowPercent = 30, slowSeconds = 2 }),
-	tool("GooBlaster2", "Goo Blaster", "Blaster", 2, 12, 11, { slowPercent = 40, slowSeconds = 2.5 }),
-	tool("GooBlaster3", "Goo Cannon", "Blaster", 3, 20, 10, { slowPercent = 50, slowSeconds = 3 }),
-	tool("FunConfetti", "Confetti Popper", "Fun", 1, 0, 5, { cosmetic = true }),
-	tool("FunBalloon", "Goo Balloon", "Fun", 1, 1, 3, { cosmetic = true }),
-	tool("FunBubbles", "Bubble Wand", "Fun", 1, 3, 4, { cosmetic = true }),
-	tool("FunBouncePad", "Bounce Pad", "Fun", 1, 5, 10, { control = 1.2 }),
-	tool("FunSqueaky", "Squeaky Hammer", "Fun", 1, 6, 3, {}),
-	tool("FunHatLauncher", "Slime Hat Launcher", "Fun", 1, 7, 8, { cosmetic = true }),
-	tool("FunDanceBomb", "Dance Bomb", "Fun", 1, 8, 45, { control = 2 }),
-	tool("FunFireworks", "Goo Fireworks", "Fun", 1, 10, 20, { cosmetic = true }),
-}) :: { Tool }
 
 -- Rank 0 of the Knockback line, for the shop only (PR 2). Not in the catalog, not a hotbar slot, not buyable.
 PvpClient.BASE_SLAP = table.freeze({
@@ -137,16 +88,13 @@ PvpClient.BASE_SLAP = table.freeze({
 	free = true,
 })
 
--- Effect params for UI text, tolerating #241's current names and §26.1's: slowPercent (30) or slow (0.3);
--- count or traps. nil when the tool has neither.
+-- Effect params for UI text (main's Config names). slowPercent: Blaster `slow` (0.3) as 30; effectCount: Trap `traps`.
+-- nil when the tool has neither.
 function PvpClient.effectSlowPercent(t: any): number?
-	if type(t.slowPercent) == "number" then
-		return t.slowPercent
-	end
 	return if type(t.slow) == "number" then t.slow * 100 else nil
 end
 function PvpClient.effectCount(t: any): number?
-	return t.count or t.traps
+	return t.traps
 end
 
 local LINE_ORDER: { [string]: number } = { Knockback = 1, Trap = 2, Blaster = 3, Fun = 4 }
@@ -183,54 +131,27 @@ local function normalize(raw: any): ({ Tool }, { [string]: Tool })
 	return list, byId
 end
 
--- The server's catalog when it ships one (Config.PVP_TOOLS), else the stub.
-function PvpClient.defaultCatalog(): { Tool }
-	local real = (Config :: any).PVP_TOOLS
-	if type(real) == "table" and next(real) ~= nil then
-		return (normalize(real))
-	end
-	return PvpClient.STUB_CATALOG
+-- Config.PVP_TOOLS in ladder order.
+function PvpClient.catalog(): { Tool }
+	return (normalize(Config.PVP_TOOLS))
 end
 
--- Locks: items the player can buy / use at `rank` rebirths (rebirths <= rank), ladder order.
-function PvpClient.unlockedAt(rank: number, catalog: any?): { Tool }
-	local list = normalize(catalog or PvpClient.defaultCatalog())
+-- Locks: items the player can buy / use at `rank` rebirths (PvpRules.isUnlocked), ladder order.
+function PvpClient.unlockedAt(rank: number): { Tool }
 	local out = {}
-	for _, t in list do
-		if isNumber(rank) and t.rebirths <= rank then
+	if not isNumber(rank) then
+		return out
+	end
+	for _, t in PvpClient.catalog() do
+		if PvpClient.isUnlocked(t.id, rank) then
 			table.insert(out, t)
 		end
 	end
 	return out
 end
 
-function PvpClient.isUnlocked(id: string, rank: number, catalog: any?): boolean
-	local _, byId = normalize(catalog or PvpClient.defaultCatalog())
-	local t = byId[id]
-	return t ~= nil and isNumber(rank) and t.rebirths <= rank
-end
-
--- A plausible state.pvp for `rank` (tests, Studio preview): the best unlocked tool per line owned, every
--- unlocked fun item, the best knockback glove equipped, nothing on cooldown, no shield, no zone.
-function PvpClient.stubState(rank: number, catalog: any?): { [string]: any }
-	local unlocked = PvpClient.unlockedAt(rank, catalog)
-	local owned: { [string]: boolean } = {}
-	local best: { [string]: string } = {}
-	for _, t in unlocked do
-		owned[t.id] = true
-		if t.line ~= "Fun" then
-			best[t.line] = t.id -- ladder order: the last (highest tier) wins
-		end
-	end
-	return {
-		rank = rank,
-		owned = owned,
-		best = best,
-		equipped = best.Knockback,
-		cooldowns = {},
-		shieldUntil = nil,
-		safeZone = nil,
-	}
+function PvpClient.isUnlocked(id: string, rank: number): boolean
+	return isNumber(rank) and PvpRules.isUnlocked({ cash = 0, rebirths = rank }, id)
 end
 
 function PvpClient.new(opts: Options?)
@@ -239,7 +160,7 @@ function PvpClient.new(opts: Options?)
 		return 0
 	end
 	local send = o.send
-	local list, byId = normalize(o.catalog or PvpClient.defaultCatalog())
+	local list, byId = normalize(Config.PVP_TOOLS)
 
 	local pvp: { [string]: any } = {} -- state.pvp ({} = flag off / no data)
 	local attrShield: number? = nil
@@ -354,20 +275,14 @@ function PvpClient.new(opts: Options?)
 		return type(owned) == "table" and owned[id] == true and byId[id] ~= nil
 	end
 
-	-- The best owned tool of a line: the snapshot's `best` first, else the highest owned tier of the catalog.
+	-- The best owned tool of a line, as the snapshot says (the server applies the supersede rule).
 	function self.best(line: string): string?
 		local b = pvp.best
 		local id = if type(b) == "table" then b[line] else nil
 		if type(id) == "string" and byId[id] ~= nil and byId[id].line == line then
 			return id
 		end
-		local found: Tool? = nil
-		for _, t in list do
-			if t.line == line and self.owns(t.id) and (found == nil or t.tier > found.tier) then
-				found = t
-			end
-		end
-		return if found then found.id else nil
+		return nil
 	end
 
 	function self.equipped(): string?
