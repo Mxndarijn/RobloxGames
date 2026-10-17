@@ -1,0 +1,11 @@
+{
+  "id": "ui-sound-card-desktop",
+  "todo": "audio-panel-polish",
+  "kind": "ui",
+  "open": "sound",
+  "flags": {
+    "Audio": true
+  },
+  "device": "desktop",
+  "note": "Audio on: the Sound card (mute toggle, Music and SFX sliders) opened from the speaker icon, desktop; Esc closes it"
+}

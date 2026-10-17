@@ -7,5 +7,5 @@
     "Audio": true
   },
   "device": "desktop",
-  "note": "flag review (Audio forced on via PcwFlag_ override, Studio only): the MuteToggle button and the opened sound panel (Mute row, SFX and Music sliders) bottom-left"
+  "note": "flag review (Audio forced on via PcwFlag_ override, Studio only): the Sound icon button in the top-right slot, then the Sound card opened through the menu system (Mute toggle, Music and SFX sliders)"
 }

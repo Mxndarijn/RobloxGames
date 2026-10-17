@@ -7,5 +7,5 @@
     "Audio": true
   },
   "device": "phone-portrait",
-  "note": "flag review (Audio forced on via PcwFlag_ override, Studio only): MuteToggle + sound panel on a phone: must not cover the bottom-left nav or jump buttons"
+  "note": "flag review (Audio forced on via PcwFlag_ override, Studio only): Sound icon + card on a phone: must not cover the nav, HUD or the bottom-right jump button"
 }

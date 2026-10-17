@@ -66,6 +66,7 @@ local MergePanel = require(Panels.Merge)
 local PlotPanel = require(Panels.Plot)
 local RebirthPanel = require(Panels.Rebirth)
 local ShopPanel = require(Panels.Shop)
+local SoundPanel = require(Panels.Sound)
 local TutorialOverlay = require(Panels.TutorialOverlay)
 local WelcomePanel = require(Panels.Welcome)
 
@@ -103,9 +104,9 @@ end
 local itemIcons = ItemIcons.build(Config)
 ItemIconView.builders.mesh = ItemIconView.meshBuilder(MeshAssets, AssetService)
 local toasts = Toasts.new(gui, itemIcons, Config)
-if Config.FEATURES.Audio == true then
-	SoundController.new(Config, player, require(Shared:WaitForChild("DayNight"))).mountToggle(gui)
-end
+local soundController = if Config.FEATURES.Audio == true
+	then SoundController.new(Config, player, require(Shared:WaitForChild("DayNight")))
+	else nil
 
 -- Display names for UserIds (thieves, carriers). Async lookup for players who left.
 local names: { [number]: string } = {}
@@ -255,6 +256,14 @@ end
 local allPanels: { PanelEntry } = table.clone(panels)
 table.insert(allPanels, { key = "Guide", nav = nil, panel = GuidePanel.new(gui, ctx) })
 table.insert(allPanels, { key = "Welcome", nav = nil, panel = WelcomePanel.new(gui, ctx) })
+-- FEATURES.Audio: the Sound card (no nav button) opens from a speaker icon in the top-right slot.
+local soundPanel = if soundController then SoundPanel.new(gui, soundController) else nil
+if soundPanel then
+	table.insert(allPanels, { key = "Sound", nav = nil, panel = soundPanel })
+	for _, attr in { "AudioMuted", "AudioSfxVolume", "AudioMusicVolume" } do
+		player:GetAttributeChangedSignal(attr):Connect(soundPanel.refresh)
+	end
+end
 
 local allKeys: { string } = {}
 for _, entry in allPanels do
@@ -281,6 +290,7 @@ type NavButton = {
 }
 
 local openKey: string? = nil
+local soundButton: any = nil -- FEATURES.Audio only
 local navButtons: { [string]: NavButton } = {}
 -- nil until the player taps the toggle: follow Layout.navDefaultCollapsed.
 local navChoice: boolean? = nil
@@ -542,6 +552,9 @@ local function syncMenus()
 	tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))
 	toasts.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	backdrop.Visible = visibleKey ~= nil
+	if soundButton then
+		soundButton.instance.Visible = visibleKey == nil
+	end
 	refreshHint()
 end
 
@@ -574,6 +587,28 @@ local navToggle = Widgets.button(
 )
 navToggle.instance.TextColor3 = Theme.Muted
 navToggle.instance.Parent = nav
+
+-- Sound button (FEATURES.Audio): icon only, shown with no menu open; the open card has its own X.
+if soundPanel then
+	soundButton = Widgets.button(
+		{
+			Name = "SoundButton",
+			Text = Icons.SOUND_ON,
+			TextSize = 28,
+			Visible = false,
+		},
+		Theme.BgLight,
+		function()
+			setOpen("Sound")
+		end
+	)
+	soundButton.instance.Parent = gui
+	local function refreshIcon()
+		soundButton.setText(if soundController.settings().muted then Icons.SOUND_OFF else Icons.SOUND_ON)
+	end
+	refreshIcon()
+	player:GetAttributeChangedSignal("AudioMuted"):Connect(refreshIcon)
+end
 
 for _, entry in panels do
 	local button = Widgets.create("TextButton", {
@@ -741,6 +776,10 @@ function applyLayout()
 	tutorial.layout(s)
 	dailyPopup.layout(s)
 	layoutNav(s)
+	if soundButton then
+		soundButton.instance.Position = UDim2.fromOffset(s.sound.x, s.sound.y)
+		soundButton.instance.Size = UDim2.fromOffset(s.sound.w, s.sound.h)
+	end
 	local guiInset = GuiService:GetGuiInset()
 	local back = Layout.backdrop(s, guiInset.X, guiInset.Y)
 	backdrop.Position = UDim2.fromOffset(back.x, back.y)
