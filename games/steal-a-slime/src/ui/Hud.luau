@@ -237,8 +237,80 @@ function Hud.new(parent: Instance, ctx: any)
 	local rain = banner(banners, "RainBanner", Color3.fromRGB(90, 70, 200), 3)
 	local modifier = banner(banners, "ModifierBadge", Color3.fromRGB(30, 120, 110), 5)
 	modifier.TextSize = 15
-	local board = banner(banners, "EventsBoard", Color3.fromRGB(40, 70, 120), 9)
-	board.TextSize = 14
+	-- The events board: one icon + text row per event (EventsBoard.rows); rows are pooled, content-sized.
+	local board = create("Frame", {
+		Name = "EventsBoard",
+		Visible = false,
+		LayoutOrder = 9,
+		BackgroundTransparency = 0.1,
+		BackgroundColor3 = Color3.fromRGB(40, 70, 120),
+		Size = UDim2.fromScale(1, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		ZIndex = Layout.ZINDEX.Banners,
+		Parent = banners,
+	}, {
+		Widgets.corner(8),
+		Widgets.list(Enum.FillDirection.Vertical, 3, Enum.HorizontalAlignment.Left),
+		create("UIPadding", {
+			PaddingLeft = UDim.new(0, 8),
+			PaddingRight = UDim.new(0, 8),
+			PaddingTop = UDim.new(0, 4),
+			PaddingBottom = UDim.new(0, 4),
+		}),
+	})
+	local BOARD_ICON = 22
+	local boardRows: { { frame: Frame, icon: any, label: TextLabel } } = {}
+	local function setBoardRows(rows: { EventsBoard.Row }?)
+		for i, row in rows or {} do
+			local pooled = boardRows[i]
+			if not pooled then
+				local frame = create("Frame", {
+					Name = `Row{i}`,
+					LayoutOrder = i,
+					BackgroundTransparency = 1,
+					Size = UDim2.new(1, 0, 0, BOARD_ICON),
+					AutomaticSize = Enum.AutomaticSize.Y,
+					ZIndex = Layout.ZINDEX.Banners,
+					Parent = board,
+				})
+				local icon = ItemIconView.new({
+					Name = "Icon",
+					Id = row.icon,
+					Size = BOARD_ICON,
+					ZIndex = Layout.ZINDEX.Banners,
+					Parent = frame,
+				}, ItemIcons.of(ctx))
+				icon.setActive(true)
+				local label = Widgets.label({
+					Name = "Text",
+					Font = Theme.Font,
+					TextSize = 14,
+					TextWrapped = true,
+					TextTruncate = Enum.TextTruncate.None,
+					TextXAlignment = Enum.TextXAlignment.Left,
+					TextStrokeTransparency = 0.5,
+					Size = UDim2.new(1, -(BOARD_ICON + 6), 0, BOARD_ICON),
+					Position = UDim2.fromOffset(BOARD_ICON + 6, 0),
+					AutomaticSize = Enum.AutomaticSize.Y,
+					ZIndex = Layout.ZINDEX.Banners,
+					Parent = frame,
+				})
+				pooled = { frame = frame, icon = icon, label = label }
+				boardRows[i] = pooled
+			end
+			local entry = pooled :: any
+			if entry.frame:GetAttribute("IconId") ~= row.icon then
+				entry.frame:SetAttribute("IconId", row.icon)
+				entry.icon.set(row.icon)
+				entry.icon.setActive(true)
+			end
+			entry.label.Text = row.text
+			entry.frame.Visible = true
+		end
+		for i = #(rows or {}) + 1, #boardRows do
+			boardRows[i].frame.Visible = false
+		end
+	end
 	local friends = banner(banners, "FriendBadge", Color3.fromRGB(40, 130, 80), 7)
 	friends.TextSize = 15
 	local weekend = banner(banners, "WeekendChip", Color3.fromRGB(190, 130, 20), 8)
@@ -544,17 +616,15 @@ function Hud.new(parent: Instance, ctx: any)
 			weekend.Text = weekendText
 		end
 
-		local boardText = EventsBoard.text(
+		local eventRows = EventsBoard.rows(
 			workspace:GetAttribute(C.WEEKLY_EVENT_ATTRIBUTE),
 			current.modifier,
 			now,
 			now,
 			ctx.Config.FEATURES.EventsBoard == true
 		)
-		board.Visible = boardText ~= nil
-		if boardText then
-			board.Text = boardText
-		end
+		board.Visible = eventRows ~= nil
+		setBoardRows(eventRows)
 
 		local friendText = FriendBadge.banner(current.friends, ctx.Config.FEATURES.FriendBonus == true)
 		friends.Visible = friendText ~= nil
