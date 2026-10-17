@@ -708,6 +708,15 @@ def t_perf():
         check("selftest only opens files the installed app has (install.ps1 copies them)", not missing, missing)
 
 
+def t_shot_tool_errors():
+    ok_r = [{"id": "a", "error": "off-screen x"}, {"id": "b", "frame": {"file": "b.jpg"}}]
+    bad = [{"id": "s%d" % k, "error": "StepFail('shot_camera (Client): no result (isError ... Failed to parse command code)')"} for k in range(5)]
+    check("shot_tool_errors: findings are not tool errors", watcher.shot_tool_errors(ok_r) == [])
+    check("shot_tool_errors: StepFail shots counted", len(watcher.shot_tool_errors(ok_r + bad)) == 5)
+    check("shots step fails above SHOT_TOOL_ERROR_MAX tool errors (2ea0722 'passed' with 168 of 252 shots never captured)",
+          watcher.SHOT_TOOL_ERROR_MAX == 4 and '"shot_tool_errors": len(tool_errors)' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read())
+
+
 def t_lock_age():
     d = tempfile.mkdtemp()
     path = os.path.join(d, "run.lock")
@@ -989,7 +998,7 @@ def t_release():
 
 
 def main():
-    for t in (t_perf, t_perf_e2e, t_lock_age, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
+    for t in (t_perf, t_perf_e2e, t_lock_age, t_shot_tool_errors, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
               t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_release, t_play_settle):
         try:
             t()
