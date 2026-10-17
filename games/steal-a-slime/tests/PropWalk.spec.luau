@@ -341,7 +341,13 @@ describe("PropWalk geometry against walk paths", function()
 			end
 			-- placed props: kit mesh slots and the blocking parts; the fountain's own pieces share one structure
 			local placed = item.mesh ~= nil or owner ~= nil
-			if placed and item.path:sub(1, 11) ~= "Map.Volcano" and item.path:sub(1, 5) ~= "Plots" then
+			-- Map.Paths is the B11 floor (two hub-centred decor slabs, not props: they lie under the fountain by design)
+			if
+				placed
+				and item.path:sub(1, 11) ~= "Map.Volcano"
+				and item.path:sub(1, 5) ~= "Plots"
+				and item.path:sub(1, 9) ~= "Map.Paths"
+			then
 				checked += 1
 				local x, z = item.node.pos[1], item.node.pos[3]
 				for _, v in blockers do
