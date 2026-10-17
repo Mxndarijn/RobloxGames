@@ -147,29 +147,58 @@ def goo_trap2():
     return parts
 
 
-@icon("Pvp_GooTrap3", view=(15, 26))
+JAW_SX, JAW_SZ = 0.85, 1.5  # jaws are tall ellipses (taller than wide) so the trap fills the frame height
+
+
+def _trap_jaw(sgn, R, tilt, name, drips=None):
+    """Half-ring jaw (arch in XZ, hinged on the X axis) lined with big inward-pointing teeth, tilted open.
+    Appends world-space positions of the tooth tips to `drips` (for goo drips hanging off them)."""
+    METAL, METAL_D = rgb(70, 76, 96), rgb(40, 44, 62)
+    parts = [torus(name + "Rim", R, 0.7, METAL, a0=0, a1=180, segs=36, rsegs=8),
+             torus(name + "Rim2", R - 0.7, 0.4, METAL_D, a0=0, a1=180, segs=36, rsegs=6)]
+    n = 5
+    for i in range(n):
+        a = math.radians(18 + (144 * i) / (n - 1))
+        rr = R - 0.7
+        tx, tz = rr * math.cos(a), rr * math.sin(a)
+        phi = math.degrees(math.atan2(-math.cos(a), -math.sin(a)))
+        parts.append(cone(f"{name}T{i}", 1.0, 2.2, (tx, 0, tz), C["white"], segs=4, rot=(0, phi, 0)))
+        if drips is not None:
+            L = 1.5
+            lx, lz = (tx - math.cos(a) * L) * JAW_SX, (tz - math.sin(a) * L) * JAW_SZ
+            t = math.radians(tilt * sgn)
+            drips.append((lx, -lz * math.sin(t), lz * math.cos(t)))
+    parts.append(cylinder(name + "PinL", 0.6, 1.0, (-R, 0, 0), METAL_D, segs=8, rot=(0, 90, 0)))
+    parts.append(cylinder(name + "PinR", 0.6, 1.0, (R, 0, 0), METAL_D, segs=8, rot=(0, 90, 0)))
+    inner = group(parts, (0, 0, 0), scale=(JAW_SX, 1.0, JAW_SZ), name=name + "S")
+    return group([inner], (0, 0, 0), rot=(tilt * sgn, 0, 0), name=name)
+
+
+@icon("Pvp_GooTrap3", view=(12, 38))
 def goo_trap3():
-    parts = [puddle("Puddle", 4.2, (0, 0, 0.1), GOO, 1.1)]
-    parts.append(rbox("Base", (6.2, 4.2, 0.6), (0, 0, 0.5), C["grey_d"], 0.2))
-    parts.append(rbox("Hinge", (5.6, 0.7, 0.7), (0, 1.9, 1.0), C["grey"], 0.15))
-    for sgn, name, col in ((-1, "Front", C["red"]), (1, "Back", C["red_d"])):
-        pass
-    # open jaws: back jaw leans up, front jaw lies flat with spikes
-    parts.append(rbox("JawBack", (5.6, 0.7, 2.6), (0, 1.9, 2.1), C["red_d"], 0.18, rot=(-12, 0, 0)))
-    parts += jaws(6, 5.0, C["white"], 0.95, -1.0, 1.0)
-    for t in parts[-6:]:
-        t.location.z = 1.0
-        t.location.y = -1.6
-    teeth_back = jaws(6, 5.0, C["white"], 0.9, 1.2, 0.9)
-    for t in teeth_back:
-        t.rotation_euler.x = math.radians(180)
-        t.location.z = 2.2
-        t.location.y = 1.4
-    parts += teeth_back
-    parts.append(cylinder("Warn", 0.2, 1.6, (2.5, 1.9, 3.4), C["yellow"], segs=6))
-    parts.append(sparkle((-2.8, -2.4, 3.6), 0.5, C["gold_l"], "S0"))
-    parts.append(goo_drip((2.9, -2.8, 0.6), 0.4, GOO_D, "Dr"))
+    R = 4.2
+    parts = [puddle("Puddle", 5.0, (0, -0.2, 0.1), GOO, 0.9), puddle("Puddle2", 3.4, (-1.2, -0.8, 0.3), rgb(160, 250, 150), 0.8)]
+    parts.append(puddle("Puddle3", 1.5, (4.4, -2.6, 0.1), GOO, 0.6))
+    parts.append(cylinder("Base", 3.6, 0.5, (0, 0, 0.3), rgb(40, 44, 62), segs=20))
+    parts.append(cylinder("Plate", 2.2, 0.3, (0, 0, 0.7), C["red_d"], segs=16))
+    parts.append(blobc("Eye", 1.3, (0, -0.1, 0.9), rgb(255, 120, 30), squash=(1, 1, 0.8)))
+    parts.append(blobc("EyeCore", 0.7, (0, -0.5, 1.3), rgb(255, 235, 120), squash=(1, 0.8, 1)))
+    tips = []
+    parts.append(_trap_jaw(1, R, FRONT_TILT, "JawF"))
+    parts.append(_trap_jaw(-1, R, BACK_TILT, "JawB", tips))
+    # goo drips hanging off the front jaw's tooth tips, plus puddle bubbles and glints
+    for i, (x, y, z) in enumerate(tips):
+        d = goo_drip((x, y, z), 0.6 + 0.12 * (i % 2), GOO if i % 2 else GOO_D, f"Dr{i}")
+        d.rotation_euler.x = math.radians(180)
+        parts.append(d)
+    for i, (x, y, s) in enumerate(((-3.2, -3.4, 0.45), (3.0, -3.4, 0.32), (0.8, -3.6, 0.28))):
+        parts.append(blobc(f"Bub{i}", s, (x, y, 0.5 + s), rgb(210, 255, 210)))
+    for i, (x, z, s) in enumerate(((-4.3, 8.0, 0.6), (4.4, 6.5, 0.45))):
+        parts.append(sparkle((x, -1.0, z), s, rgb(255, 130, 40) if i == 0 else C["white"], f"S{i}"))
     return parts
+
+
+FRONT_TILT, BACK_TILT = 70, 14
 
 
 # ------------------------------------------------------------------ blasters
