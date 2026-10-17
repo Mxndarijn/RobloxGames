@@ -22,6 +22,7 @@ local PlayerData = if Shared then require(Shared.PlayerData) else require("../sh
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Remotes = if Shared then require(Shared.Remotes) else require("../shared/Remotes")
+local Quests = if Shared then require(Shared.Quests) else require("../shared/Quests")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
@@ -134,6 +135,18 @@ local function daily(world: World, session: Session, now: number): Result
 		"Cash",
 		"Daily"
 	)
+	return OK
+end
+
+local function claimQuest(world: World, session: Session, index: any, now: number): Result
+	if type(index) ~= "number" or index % 1 ~= 0 then
+		return fail("no such quest")
+	end
+	local ok, value = Quests.claim(session.data, index, now, session.userId)
+	if not ok then
+		return fail(value)
+	end
+	World.notify(world, session.userId, `Quest complete! {value}`, "good", "Goal")
 	return OK
 end
 
@@ -254,6 +267,8 @@ local function dispatch(
 		return buyPad(world, session)
 	elseif action == "Daily" then
 		return daily(world, session, now)
+	elseif action == "ClaimQuest" then
+		return claimQuest(world, session, args[1], now)
 	elseif action == "Redeem" then
 		return redeem(world, session, args[1], now)
 	elseif action == "BuyLockUpgrade" then

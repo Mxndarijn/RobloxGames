@@ -63,6 +63,16 @@ export type Goal = {
 	cash: boolean?, -- format targets as $
 }
 
+export type DailyQuest = {
+	id: string,
+	stat: string, -- Goals.stat name
+	title: string, -- "<n>" = the formatted target, "<s>" = "s" unless the target is 1
+	icon: string, -- Config.GOALS id whose item icon the card shows
+	cash: boolean?, -- format targets as $
+	choices: { number }, -- possible targets
+	reward: { kind: string, amount: number?, mult: number?, minutes: number? },
+}
+
 export type DexMilestone = { count: number, reward: number, bonus: number }
 
 -- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15). `set` = rarity tier whose SlimeDex set must be
@@ -309,6 +319,66 @@ local GOALS: { Goal } = {
 		rewards = { 2000, 20000, 500000, 5e6, 1e8 },
 	},
 }
+
+-- Daily quests (Quests, Goals menu): `count` distinct pool entries rolled per player per UTC day. A target is
+-- one of `choices`; progress = stat gained since the roll (Goals.stat names). Cash is x rebirthMultiplier on
+-- claim; a boost follows the Codes boost rules. Pool ids are permanent save ids.
+local DAILY_QUEST_POOL: { DailyQuest } = {
+	{
+		id = "Catch",
+		stat = "caught",
+		title = "Catch <n> slime<s>",
+		icon = "Catch",
+		choices = { 3, 5, 8 },
+		reward = { kind = "cash", amount = 400 },
+	},
+	{
+		id = "Steal",
+		stat = "stolen",
+		title = "Steal <n> slime<s>",
+		icon = "Steal",
+		choices = { 1, 2, 3 },
+		reward = { kind = "cash", amount = 1000 },
+	},
+	{
+		id = "Earn",
+		stat = "earned",
+		title = "Earn <n> today",
+		icon = "Earn",
+		cash = true,
+		choices = { 5000, 20000, 100000 },
+		reward = { kind = "cash", amount = 600 },
+	},
+	{
+		id = "Merge",
+		stat = "merges",
+		title = "Merge <n> time<s>",
+		icon = "Merge",
+		choices = { 1, 2, 3 },
+		reward = { kind = "boost", mult = 2, minutes = 5 },
+	},
+	{
+		id = "Lock",
+		stat = "locks",
+		title = "Lock your base <n> time<s>",
+		icon = "Lock",
+		choices = { 1, 2, 3 },
+		reward = { kind = "cash", amount = 300 },
+	},
+	{
+		id = "Rebirth",
+		stat = "rebirths",
+		title = "Rebirth <n> time<s>",
+		icon = "Rebirth",
+		choices = { 1 },
+		reward = { kind = "boost", mult = 2, minutes = 15 },
+	},
+}
+for _, quest in DAILY_QUEST_POOL do
+	table.freeze(quest.choices)
+	table.freeze(quest.reward)
+	table.freeze(quest)
+end
 
 local DEX_MILESTONES: { DexMilestone } = {
 	{ count = 10, reward = 500, bonus = 0.02 },
@@ -744,6 +814,7 @@ local Config = {
 	-- Daily reward
 	DAILY_BASE = 100,
 	DAILY_STREAK_CAP = 7,
+	DAILY_QUESTS = table.freeze({ count = 3, pool = table.freeze(DAILY_QUEST_POOL) }),
 
 	-- Redeem codes (CONTRACT.md §10). Keys are UPPERCASE; players type any case.
 	-- reward: { kind = "cash", amount } or { kind = "boost", mult, minutes };

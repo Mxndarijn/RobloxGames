@@ -25,7 +25,7 @@ function GameLoop.step(world: World.World, now: number)
 		Income.step(world, elapsed, now)
 		StealService.tickEscapes(world, now)
 		StealService.tickTutorial(world, now)
-		Milestones.step(world)
+		Milestones.step(world, now)
 	end
 end
 

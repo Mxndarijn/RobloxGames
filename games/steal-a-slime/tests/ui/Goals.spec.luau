@@ -141,3 +141,57 @@ describe("Goals.fromServer (v13 State.goals)", function()
 		expect(#(Goals.fromServer({ 1, { title = "no id" } }) :: { Goals.Goal })).toBe(0)
 	end)
 end)
+
+describe("Goals.quests", function()
+	local daily = {
+		resetsIn = 3700,
+		quests = {
+			{
+				id = "Catch",
+				title = "Catch 5 slimes",
+				icon = "Catch",
+				progress = 9,
+				target = 5,
+				done = true,
+				claimed = false,
+				reward = "+$400",
+			},
+			{
+				id = "Merge",
+				title = "Merge 2 times",
+				icon = "Merge",
+				progress = 1,
+				target = 2,
+				done = false,
+				claimed = false,
+				reward = "2x income for 5m",
+			},
+			{
+				id = "Lock",
+				title = "x",
+				icon = "Lock",
+				progress = 3,
+				target = 3,
+				done = true,
+				claimed = true,
+				reward = "+$300",
+			},
+		},
+	}
+	it("maps State.dailyQuests to cards with slot index, capped progress and a reset line", function()
+		local quests, resets = Goals.quests(daily)
+		expect(#quests).toBe(3)
+		expect(quests[1].index).toBe(1)
+		expect(quests[1].detail).toBe("5/5")
+		expect(quests[1].fraction).toBeCloseTo(1)
+		expect(quests[2].fraction).toBeCloseTo(0.5)
+		expect(quests[2].reward).toBe("2x income for 5m")
+		expect(quests[3].claimed).toBe(true)
+		expect(resets).toBe("Resets in 1:01:40")
+	end)
+	it("is empty on a server without daily quests", function()
+		local quests, resets = Goals.quests(nil)
+		expect(#quests).toBe(0)
+		expect(resets).toBe("")
+	end)
+end)

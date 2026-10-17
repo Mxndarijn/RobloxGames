@@ -16,6 +16,7 @@ local Collection = if Shared then require(Shared.Collection) else require("../sh
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Weekend = if Shared then require(Shared.Weekend) else require("../shared/Weekend")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
+local Quests = if Shared then require(Shared.Quests) else require("../shared/Quests")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
@@ -134,6 +135,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		nextRebirthTier = Snapshot.nextRebirthTier(rebirths),
 		upgrades = Upgrades.view(data),
 		goals = Goals.view(data),
+		dailyQuests = Quests.view(data, now),
 		dexRewards = Collection.view(data),
 		dexBonus = Perks.dexBonus(data),
 		stats = {
