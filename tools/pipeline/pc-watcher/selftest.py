@@ -15,6 +15,7 @@ import py_compile
 import re
 import sys
 import tempfile
+import time
 import tokenize
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -669,6 +670,17 @@ def t_perf():
     check("install copies luau", "luau\\*.luau" in inst)
 
 
+def t_lock_age():
+    d = tempfile.mkdtemp()
+    path = os.path.join(d, "run.lock")
+    with open(path, "w") as f:
+        json.dump({"pid": os.getpid(), "at": time.time() - 1900}, f)  # a live run 31.7 min in
+    check("lock: a live 32-min-old run.lock is not stolen", watcher.Lock(path).acquire() is False)
+    with open(path, "w") as f:
+        json.dump({"pid": os.getpid(), "at": time.time() - 7300}, f)
+    check("lock: older than 2 h counts as stale (pid reuse guard)", watcher.Lock(path).acquire() is True)
+
+
 def t_perf_e2e():
     """cmd_perf end to end with every Studio/MCP call faked: catches a broken body (NameError etc.)."""
     import types
@@ -864,7 +876,7 @@ def t_bugs():
 
 
 def main():
-    for t in (t_perf, t_perf_e2e, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
+    for t in (t_perf, t_perf_e2e, t_lock_age, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
               t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_play_settle):
         try:
             t()
