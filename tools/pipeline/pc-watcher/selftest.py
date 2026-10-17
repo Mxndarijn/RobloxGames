@@ -737,6 +737,66 @@ def t_perf_e2e():
         w.Run.luau, w.Run.need_luau, w.time.sleep = saved_luau, saved_need, saved_sleep
 
 
+def t_play_settle():
+    """step_play: boot sample + (full runs only) a settled sample after BorderTerrain; falls back to boot, never fails."""
+    w = watcher
+    saved = (w.start_play, w.Run.luau, w.Run.need_luau, w.time.sleep, w.time.time)
+    clock = [1000.0]
+    try:
+        w.start_play = lambda run: {"store_status": "Memory"}
+        w.time.sleep = lambda s: clock.__setitem__(0, clock[0] + s)
+        w.time.time = lambda: clock[0]
+
+        def run_play(kind, set_after, settled_raises=False):
+            """set_after: poll index (1-based) at which the attribute turns true; None = never."""
+            calls = {"attr": 0, "stats": 0}
+
+            def fake_luau(self, name, datamodel="Edit", timeout=60, **subs):
+                assert name == "perf_terrain_attr", name
+                calls["attr"] += 1
+                return True, {"set": set_after is not None and calls["attr"] >= set_after}
+
+            def fake_need(self, name, dm="Edit", timeout=60, **subs):
+                assert name == "client_stats", name
+                calls["stats"] += 1
+                if calls["stats"] == 2 and settled_raises:
+                    raise w.StepFail("client gone")
+                return {"fps": 53.2 if calls["stats"] == 1 else 60.0, "frame_time_ms": 18.8 if calls["stats"] == 1 else 16.7,
+                        "memory_mb": 900.0 + calls["stats"]}
+            w.Run.luau, w.Run.need_luau = fake_luau, fake_need
+            run = w.Run(w.Paths(tempfile.mkdtemp()), dict(w.DEFAULTS), "f" * 40, kind=kind)
+            status, detail = w.step_play(run)
+            return run, status, detail, calls
+
+        run, st, d, calls = run_play("full", 3)
+        check("play settle: full run -> settled", st == "pass" and d["fps_source"] == "settled" and d["stats"]["fps"] == 60.0
+              and d["stats_boot"]["fps"] == 53.2 and d["stats_settled"]["fps"] == 60.0 and calls["stats"] == 2, d)
+        check("play settle: perf.play is settled, play_boot is boot", run.perf["play"]["fps"] == 60.0 and run.perf["play_boot"]["fps"] == 53.2
+              and run.perf["play_settled"]["fps"] == 60.0 and run.perf["frame_time_ms"] == 16.7 and run.perf["memory_mb"] == 902.0, run.perf)
+        check("play settle: wait record", run.perf["play_settle"]["bt_set"] is True and d["settle"]["settle_s"] == w.DEFAULTS["play_settle_s"]
+              and d["settle"]["bt_set_at_s"] is not None and d["settle"]["max_s"] == w.DEFAULTS["play_bt_max_s"], d["settle"])
+        check("play settle: note mentions boot vs settled", any("settled" in n and "boot" in n for n in run.notes), run.notes)
+
+        run, st, d, calls = run_play("full", None)
+        check("play settle: never true -> boot, no settled sample", st == "pass" and d["fps_source"] == "boot" and d["stats_settled"] is None
+              and run.perf["play_settled"] is None and run.perf["play"]["fps"] == 53.2 and calls["stats"] == 1
+              and any("BorderTerrain" in n for n in run.notes), (d, run.notes))
+        check("play settle: polling bounded", 2 <= calls["attr"] <= w.DEFAULTS["play_bt_max_s"] // 5 + 2, calls)
+
+        run, st, d, calls = run_play("partial", 1)
+        check("play settle: partial run -> no attr polls, boot", st == "pass" and calls["attr"] == 0 and calls["stats"] == 1
+              and d["fps_source"] == "boot" and d["settle"] is None and run.perf["play_settled"] is None and run.notes, (d, calls))
+
+        run, st, d, calls = run_play("full", 1, settled_raises=True)
+        check("play settle: settled sample raising -> still pass with boot", st == "pass" and d["fps_source"] == "boot"
+              and d["stats"]["fps"] == 53.2 and d["stats_settled"] is None and any("settled sample failed" in n for n in run.notes), (st, d, run.notes))
+
+        run = w.Run(w.Paths(tempfile.mkdtemp()), dict(w.DEFAULTS), "f" * 40, dry=True)
+        check("play settle: dry run skips", w.step_play(run)[0] == "skip")
+    finally:
+        w.start_play, w.Run.luau, w.Run.need_luau, w.time.sleep, w.time.time = saved
+
+
 def t_bugs():
     """Advisory bug probes (Merijn's 2026-10-17 list): shots with `bug_probe`, luau/bug*.luau, shot-map selection, report wiring."""
     shots, _ = watcher.load_shots(repo=None)
@@ -805,7 +865,7 @@ def t_bugs():
 
 def main():
     for t in (t_perf, t_perf_e2e, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs):
+              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_play_settle):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going
