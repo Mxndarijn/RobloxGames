@@ -33,6 +33,14 @@ pure decor. Every mesh MeshSwap places starts that way.
   MeshPart does nothing without a re-import (Studio plugin), so decide before upload.
 - `Part`, `WedgePart` etc. have no fidelity; only MeshPart and UnionOperation do.
 
+## Hull / Box do not eject overlaps; uneven hulls are not standable
+
+A solid mesh only resolves contacts: a character whose root already overlaps it stays inside, so
+bug #10's pile needs a server eject (`server/StackGuard`, same idea as `PlotLockGuard`). A Hull of a
+lumpy pile has a concave-looking, uneven top that a character slides off or sinks into; for a solid
+pile use `Box` (flat top, no extra part) or, if the box is too fat, one thin invisible anchored cap
+Part. The emerge stack uses `Box`: it sits above the slide block and the ride is non-colliding.
+
 ## Players solid, slimes not: the slide
 
 The fountain slide is part of the one `slime_fountain` MeshPart, which cannot be split into slide
@@ -66,8 +74,8 @@ still needs its own collider. Max 32 groups. **Studio check** the character part
 
 ## Open Studio checks
 
-- `slime_fountain_emerge` as `Hull`: walk and jump over the pile at the fountain top; nobody
-  stands in a gap or gets launched out (the hull is convex, depenetration pushes out).
+- `slime_fountain_emerge` as `Box` (bug #10): jump onto the pile and stand on its flat top; a character
+  spawned inside is moved above the top by `server/StackGuard` (via `WorldView.enforceLocks`).
 - `merge_vat` as `Hull` (bug #16, every plot's vat, `MeshSwap.swapPlotVats`): bump into the cauldron and the
   funnel spouts from all sides; nobody walks inside, the MergePrompt still triggers from the hull's edge.
 - Whether `PreciseConvexDecomposition` on `slime_fountain` could retire the silo colliders and how

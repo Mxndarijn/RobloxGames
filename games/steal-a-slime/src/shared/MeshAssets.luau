@@ -399,9 +399,10 @@ end
 -- CreateMeshPartAsync (the only place it sticks on a script-made MeshPart) and turns CanCollide on.
 -- Every other mesh is decor: CanCollide off. Why each: docs/COLLISION.md.
 MeshAssets.COLLISION = table.freeze({
-	-- the big slimes stacked at the fountain top (Merijn #10): one convex hull round the pile, so nobody stands in the
-	-- gaps between them; Hull is cheap and the pile is static
-	slime_fountain_emerge = "Hull",
+	-- the big slimes stacked at the fountain top (Merijn #10): a solid pile, so its bounding Box: nobody stands in the
+	-- gaps and the top is flat enough to stand on (a Hull of the lumpy pile was not). Overlaps are ejected by
+	-- server/StackGuard; the slide block and the anchored, non-colliding ride are unaffected
+	slime_fountain_emerge = "Box",
 	-- bug #16: every plot's merge vat (MeshSwap.swapPlotVats): a blobby cauldron players bump into, never walk inside;
 	-- the hull also closes the gaps under the funnel spouts. The MergeVat disc under it keeps its own collision.
 	merge_vat = "Hull",
