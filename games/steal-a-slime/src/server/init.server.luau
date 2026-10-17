@@ -51,6 +51,7 @@ local ParadeView = require(script.ParadeView)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
 local Profiler = require(script.Profiler)
+local PvpBlaster = require(script.PvpBlaster)
 local PvpService = require(script.PvpService)
 local Revenge = require(script.Revenge)
 local RitualService = require(script.RitualService)
@@ -470,6 +471,15 @@ PvpService.setSink(function(target: number?, payload: { [string]: any })
 		pvpEvent:FireClient(player, payload)
 	end
 end, now)
+-- Goo Blaster line (CONTRACT.md §26): server hitscan, slow through Carry.targetWalkSpeed, no Instances.
+PvpBlaster.setEnv({
+	positionOf = positionOf,
+	onOwnPlot = ctx.onOwnPlot :: any,
+	toVector3 = function(position)
+		return Vector3.new(position.X, position.Y, position.Z)
+	end,
+})
+PvpBlaster.register()
 
 -- Player attribute `Carrying` follows the World right away (pickup, drop, deposit, escape, death).
 local function syncCarrying()

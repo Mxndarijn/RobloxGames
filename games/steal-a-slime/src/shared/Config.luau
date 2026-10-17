@@ -520,7 +520,8 @@ local function blaster(
 	gate: number,
 	slow: number,
 	seconds: number,
-	cooldown: number
+	cooldown: number,
+	range: number
 ): PvpTool
 	return {
 		id = id,
@@ -533,7 +534,7 @@ local function blaster(
 		cosmetic = false,
 		slow = slow,
 		slowSeconds = seconds,
-		range = 25,
+		range = range,
 	}
 end
 local function fun(
@@ -568,9 +569,9 @@ local PVP_TOOLS: { PvpTool } = {
 	trap("GooTrap1", "Goo Puddle", 1, 3, 1, 1, 30, 3),
 	trap("GooTrap2", "Sticky Trap", 2, 6, 2, 1.5, 25, 3.5),
 	trap("GooTrap3", "Mega Trap", 3, 10, 2, 2, 20, 4),
-	blaster("GooBlaster1", "Goo Squirter", 1, 7, 0.3, 2, 12),
-	blaster("GooBlaster2", "Goo Blaster", 2, 12, 0.4, 2.5, 11),
-	blaster("GooBlaster3", "Goo Cannon", 3, 20, 0.5, 3, 10),
+	blaster("GooBlaster1", "Goo Squirter", 1, 7, 0.3, 2, 12, 40),
+	blaster("GooBlaster2", "Goo Blaster", 2, 12, 0.4, 2.5, 11, 45),
+	blaster("GooBlaster3", "Goo Cannon", 3, 20, 0.5, 3, 10, 50),
 	fun("FunConfetti", "Confetti Popper", 0, 5, true, { allowInSafeZone = true }),
 	fun("FunBalloon", "Goo Balloon", 1, 3, true, { fadeSeconds = 10, maxDecals = 8 }),
 	fun("FunBubbles", "Bubble Wand", 3, 4, true, {}),

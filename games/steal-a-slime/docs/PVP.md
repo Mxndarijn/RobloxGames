@@ -34,7 +34,7 @@ Ranks 15 and 30 add cosmetic gold skins / aura FX later (no item in this PR).
 
 **Goo Trap** (own plot): Puddle 1 trap, freeze 1 s, re-arm 30 s, radius 3; Sticky 2 traps, 1.5 s, 25 s, 3.5; Mega 2 traps, 2 s, 20 s, 4.
 
-**Goo Blaster** (range 25, only vs a thief carrying a slime): Squirter slow 30 % for 2 s, cooldown 12 s; Blaster 40 % / 2.5 s / 11 s; Cannon 50 % / 3 s / 10 s.
+**Goo Blaster** (server hitscan, range 40 / 45 / 50, only vs a thief carrying a slime): Squirter slow 30 % for 2 s, cooldown 12 s; Blaster 40 % / 2.5 s / 11 s; Cannon 50 % / 3 s / 10 s.
 
 **Fun items** (cooldown): Confetti 5 s, Balloon 3 s (decals fade after 10 s, max 8), Bubbles 4 s, Bounce Pad 10 s (own plot, max 1, 25 studs straight up, thieves 1.2 s then immunity), Squeaky Hammer 3 s (2-stud nudge on a thief only), Hat Launcher 8 s (self or friends, 30 s), Dance Bomb 45 s (own plot, thieves only, 2 s), Fireworks 20 s (own plot, cosmetic).
 
