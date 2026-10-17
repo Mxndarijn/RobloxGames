@@ -37,6 +37,9 @@ export type Find = {
 	parts: boolean?,
 }
 
+export type Flag = { name: string, off: number }
+export type More = { also: Find?, was: string?, walk: boolean?, models: boolean?, flag: Flag? }
+
 export type Entry = {
 	kind: string,
 	mesh: string,
@@ -49,7 +52,7 @@ export type Entry = {
 	also: Find?,
 	was: string?,
 	walk: boolean?,
-	flag: { name: string, off: number }?,
+	flag: Flag?,
 }
 
 local PropCollision = {}
@@ -78,9 +81,9 @@ local function mesh(
 	under: string,
 	now: string,
 	reason: string,
-	more: { was: string?, walk: boolean?, flag: { name: string, off: number }? }?
+	more: More?
 )
-	local m = more or {}
+	local m: More = more or ({} :: More)
 	add({
 		kind = kind,
 		mesh = meshName,
@@ -114,7 +117,7 @@ local function parts(
 		flag: { name: string, off: number }?,
 	}?
 )
-	local m = more or {}
+	local m: More = more or ({} :: More)
 	add({
 		kind = kind,
 		mesh = "part",
@@ -795,9 +798,11 @@ function PropCollision.byKind(): { [string]: Entry }
 end
 
 -- Counts per owner (entries and instances) for the inventory.
-function PropCollision.totals(): { [string]: { kinds: number, instances: number, off: number, colliding: number } }
-	local out = {}
-	for owner in PropCollision.OWNERS do
+export type Totals = { kinds: number, instances: number, off: number, colliding: number }
+
+function PropCollision.totals(): { [string]: Totals }
+	local out: { [string]: Totals } = {}
+	for _, owner in { "jolt", "gojo", "ambiguous" } do
 		out[owner] = { kinds = 0, instances = 0, off = 0, colliding = 0 }
 	end
 	for _, e in entries do
@@ -825,11 +830,17 @@ function PropCollision.sides(cx: number, cz: number, yaw: number, hx: number, hz
 		return { cx + lx * c + lz * s, cz - lx * s + lz * c }
 	end
 	local out: { Side } = {}
-	for _, d in { { "+X", 1, 0 }, { "-X", -1, 0 }, { "+Z", 0, 1 }, { "-Z", 0, -1 } } do
-		local ux, uz = d[2] :: number, d[3] :: number
+	local dirs: { { name: string, x: number, z: number } } = {
+		{ name = "+X", x = 1, z = 0 },
+		{ name = "-X", x = -1, z = 0 },
+		{ name = "+Z", x = 0, z = 1 },
+		{ name = "-Z", x = 0, z = -1 },
+	}
+	for _, d in dirs do
+		local ux, uz = d.x, d.z
 		local reach = (if ux ~= 0 then hx else hz) + gap
 		table.insert(out, {
-			name = d[1] :: string,
+			name = d.name,
 			start = world(-ux * reach, -uz * reach),
 			target = world(ux * reach, uz * reach),
 			dir = { ux * c + uz * s, -ux * s + uz * c },
