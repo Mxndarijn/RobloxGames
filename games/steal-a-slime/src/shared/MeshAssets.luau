@@ -341,8 +341,8 @@ entries["fountain_tier_ring"] =
 	{ assetId = 119324558874420, meshId = "rbxassetid://102733858140081", size = { 32.2, 6.2, 32.2 } }
 entries["fountain_tier_crest"] =
 	{ assetId = 110270802039989, meshId = "rbxassetid://77008333593159", size = { 13.699, 6.203, 13.9 } }
--- FEATURES.MergeVat3 (client VatFx): stands over the owner's plot MergeVat disc from
--- ReplicatedStorage.MergeVatMeshes. NOT a world slot.
+-- Plot vats (server MeshSwap.swapPlotVats, bug #16): stands over every plot's MergeVat disc, 1 MeshPart per plot.
+-- NOT a world slot.
 entries["merge_vat"] =
 	{ assetId = 122090902536570, meshId = "rbxassetid://94063238729318", size = { 10.808, 7.625, 10.764 } }
 -- FEATURES.RainMagnet (client RainMagnetFx): stands on the owner's plot from ReplicatedStorage.RainMagnetMeshes

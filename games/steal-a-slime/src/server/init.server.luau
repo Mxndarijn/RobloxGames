@@ -134,11 +134,11 @@ task.spawn(function()
 	end
 end)
 
--- FEATURES.MergeVat3: the vat template for the clients (no world slot; no-op while the flag is off outside Studio).
+-- Every plot's MergeVat disc wears the merge_vat model (bug #16; no world slot, independent of FEATURES.MergeVat3).
 task.spawn(function()
-	local ok, err = pcall(MeshSwap.publishVatTemplates)
+	local ok, err = pcall(MeshSwap.swapPlotVats)
 	if not ok then
-		warn(`[Server] MeshSwap.publishVatTemplates failed: {err}`)
+		warn(`[Server] MeshSwap.swapPlotVats failed: {err}`)
 	end
 end)
 

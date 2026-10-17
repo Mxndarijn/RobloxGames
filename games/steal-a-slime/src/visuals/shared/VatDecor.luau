@@ -1,6 +1,6 @@
 --!strict
 --[[
-	VatDecor (owner: Archer, FEATURES.MergeVat3)
+	VatDecor (owner: Archer; used by server MeshSwap.swapPlotVats)
 
 	Where the merge_vat mesh stands over a plot's primitive MergeVat disc. Pure: no Roblox APIs (Lune-safe).
 	The disc (WorldLayout plot: dia 9, 4 tall, centre 3 above the plot floor, i.e. bottom at the floor + 1) keeps
