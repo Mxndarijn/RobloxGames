@@ -402,6 +402,10 @@ Layout.CARRY_TEXT_RESERVE = 190
 Layout.SLAP = table.freeze({ w = 200, h = Layout.BUTTON })
 Layout.DAILY = table.freeze({ w = 420, h = 300 })
 Layout.TUTORIAL = table.freeze({ w = 520, bodyTop = 68, bodyTextSize = 14, padX = 14, padBottom = 12 })
+-- Short (landscape phone) screens: the tutorial card sits this many screen px
+-- above the bottom edge, below the banner stack and the toast column.
+Layout.TUTORIAL_SHORT_MARGIN = 8
+Layout.TUTORIAL_SHORT_HEIGHT = 500 -- viewport px: shorter than this is a landscape phone
 
 -- Menu panel chrome (Widgets.panel): the coloured title band holds the
 -- menu icon, the title and the close "X" (top-right, MIN_TOUCH_DESIGN
@@ -547,20 +551,22 @@ export type ScreenOptions = {
 -- Bottom cards centred on the screen inside `row` (x / w only): carry on the
 -- bottom line, tutorial above the inset, and above the carry card while
 -- carrying, or (`beside`) the carry card at the row's left and the
--- tutorial next to it.
-local function bottomCards(row: Rect, W: number, H: number, inset: number, beside: boolean?)
+-- tutorial next to it. `cardMargin` (short screens): the tutorial card hugs the
+-- bottom edge that far up and, while carrying, sits next to the carry card.
+local function bottomCards(row: Rect, W: number, H: number, inset: number, beside: boolean?, cardMargin: number?)
 	local gap = Layout.GAP
 	local carryX, carryW = centredIn(row, W, Layout.CARRY.w)
 	local carry = Layout.rect(carryX, H - inset - Layout.CARRY.h, carryW, Layout.CARRY.h)
 	local tutX, tutW = centredIn(row, W, Layout.TUTORIAL.w)
 	local tutH = Layout.tutorialHeight(tutW)
-	local tutorial = Layout.rect(tutX, H - inset - tutH, tutW, tutH)
+	local cardBottom = H - (cardMargin or inset)
+	local tutorial = Layout.rect(tutX, cardBottom - tutH, tutW, tutH)
 	local tutorialCarrying = Layout.rect(tutX, carry.y - gap - tutH, tutW, tutH)
-	if beside then
+	if beside or cardMargin then
 		carry = Layout.rect(row.x, carry.y, carryW, carry.h)
 		local besideW = math.max(math.min(Layout.TUTORIAL.w, row.w - carryW - gap), 0)
 		local besideH = Layout.tutorialHeight(besideW)
-		tutorialCarrying = Layout.rect(carry.x + carryW + gap, H - inset - besideH, besideW, besideH)
+		tutorialCarrying = Layout.rect(carry.x + carryW + gap, cardBottom - besideH, besideW, besideH)
 	end
 	local slapW = math.min(Layout.SLAP.w, carry.w)
 	local slap = Layout.rect(carry.x + (carry.w - slapW) / 2, carry.y + carry.h - Layout.SLAP.h, slapW, Layout.SLAP.h)
@@ -630,7 +636,10 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	-- phone card doesn't shrink when the nav is expanded; short: right of the
 	-- nav, which runs down beside them.
 	local row = if short then Layout.rect(columnX, 0, math.max(columnW, 0), 0) else fullRow
-	local carry, slap, tutorial, tutorialCarrying = bottomCards(row, W, H, inset, beside)
+	local cardMargin = if short and viewportH < Layout.TUTORIAL_SHORT_HEIGHT
+		then Layout.TUTORIAL_SHORT_MARGIN / scale
+		else nil
+	local carry, slap, tutorial, tutorialCarrying = bottomCards(row, W, H, inset, beside, cardMargin)
 
 	-- 4. The column (right of the nav) above the bottom cards; menus use the
 	-- full-window box, which runs on down to the bottom inset.
