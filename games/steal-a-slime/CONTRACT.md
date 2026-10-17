@@ -685,3 +685,11 @@ Owner: Phoenix (server, shared), Archer (visuals). Off = one Meadow fountain, Cl
 - **Visuals (client, `FountainTierFx` + `FountainTierDecor`).** Tier 2+: `fountain_tier_ring` (8 lantern posts, r 14.6) on the ground; tier 3+: `fountain_tier_crest` floating over the goo crown, spinning and bobbing; both tinted per tier (copper / silver / gold, `MeshPart.Color`), tier 4 crest Neon; `Map.Volcano.Crater.CraterGlow` takes the tier's glow colour. Both meshes are run-time only: 0 `WorldLayout` slots (`RanchProps.INTENTIONALLY_UNPLACED`), at most 2 extra MeshParts while shown. Studio only: SlimeUI attribute `PcwFountainTier` forces the tier (pc-watcher shots `19-fountain-tier-N`).
 - **Rank cards.** `Perks.tierText` appends "opens the Orchard slimes" for ranks with a family, only with the flag on.
 - **Needs frame review before the flag goes on:** the ring posts against the slide legs, the crest height against the emerge slimes, the glow colours at night.
+## 20. v21: server events board (2026-10-17)
+
+**Status:** `Config.FEATURES.EventsBoard` (default `false`); `false` = no banner. Client only: **no remote, no server code, no save-format change**, no new mesh.
+
+- **What it shows (`src/ui/EventsBoard`, pure):** one HUD banner `EventsBoard` in the `Banners` stack (hidden while a menu is open like the others), lines: `📅 Server events`; `🧪 <Mutation> week - <time> left` and the Saturday trait event (`🍀 Lucky Saturday x1.5 luck - <time> left`) from the replicated `WeeklyEvent` attribute (§18, `WeeklyEvents.decode`; needs `FEATURES.WeeklyEvents`, otherwise those lines are absent); the day/night or live admin modifier through `ModifierBadge.banner` (needs `FEATURES.CycleModifier`); and `Next: <event> in <time>` from the same attribute. Nothing running = banner hidden.
+- **Clocks:** weekly times are unix (`os.time()`, like the schedule), the modifier uses the server clock (`ctx.serverNow()`), as their own badges do. Past events are dropped, so a stale attribute never shows an ended event.
+- **Pc-watcher:** shot `v21-events-board` (`luau/events_board`) fails when the banner is missing, hidden or lists no event.
+

@@ -17,6 +17,7 @@
 local CollectionService = game:GetService("CollectionService")
 
 local EggReveal = require(script.Parent.EggReveal)
+local EventsBoard = require(script.Parent.EventsBoard)
 local Format = require(script.Parent.Format)
 local FriendBadge = require(script.Parent.FriendBadge)
 local ItemIconView = require(script.Parent.ItemIconView)
@@ -227,6 +228,8 @@ function Hud.new(parent: Instance, ctx: any)
 	local rain = banner(banners, "RainBanner", Color3.fromRGB(90, 70, 200), 3)
 	local modifier = banner(banners, "ModifierBadge", Color3.fromRGB(30, 120, 110), 5)
 	modifier.TextSize = 15
+	local board = banner(banners, "EventsBoard", Color3.fromRGB(40, 70, 120), 9)
+	board.TextSize = 14
 	local friends = banner(banners, "FriendBadge", Color3.fromRGB(40, 130, 80), 7)
 	friends.TextSize = 15
 	local weekend = banner(banners, "WeekendChip", Color3.fromRGB(190, 130, 20), 8)
@@ -504,6 +507,18 @@ function Hud.new(parent: Instance, ctx: any)
 		weekend.Visible = weekendText ~= nil
 		if weekendText then
 			weekend.Text = weekendText
+		end
+
+		local boardText = EventsBoard.text(
+			workspace:GetAttribute(C.WEEKLY_EVENT_ATTRIBUTE),
+			current.modifier,
+			now,
+			os.time(),
+			ctx.Config.FEATURES.EventsBoard == true
+		)
+		board.Visible = boardText ~= nil
+		if boardText then
+			board.Text = boardText
 		end
 
 		local friendText = FriendBadge.banner(current.friends, ctx.Config.FEATURES.FriendBonus == true)

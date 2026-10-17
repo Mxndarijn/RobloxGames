@@ -1416,6 +1416,10 @@ def step_shots(run):
                     res["weekly_event"] = run.need_luau("weekly_event", "Client", timeout=15)
                     if not res["weekly_event"].get("ok"):
                         res["error"] = "WeeklyEvent attribute missing or malformed: %s" % res["weekly_event"].get("raw")
+                if shot.get("events_board"):  # v21: the HUD events board banner must be visible with at least one event
+                    res["events_board"] = run.need_luau("events_board", "Client", timeout=15)
+                    if not res["events_board"].get("ok"):
+                        res["error"] = "events board banner missing or empty: %s" % res["events_board"].get("lines")
                 if shot.get("plot_skin"):  # gaps #15: fake the plot skin picker (Studio only)
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
                 if shot.get("dex_rows"):  # v29 menus: fake a long Dex list (Studio only)

@@ -74,6 +74,7 @@ describe("banners never cover an open menu card's title or X", function()
 				"ModifierBadge",
 				"FriendBadge",
 				"WeekendChip",
+				"EventsBoard",
 				"EggReveal",
 				"PadHint",
 			}

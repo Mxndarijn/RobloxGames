@@ -565,6 +565,7 @@ local Config = {
 		StealAlerts = false, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
 		WeeklyEvents = false, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
 		FountainTiers = false, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
+		EventsBoard = false, -- v21 server events board (ui/EventsBoard, CONTRACT.md §20): a HUD banner listing the weekly mutation, the Saturday trait event, the day/night modifier and the next weekly event; client only, no remote or save change; false = no banner
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 	}),
 
