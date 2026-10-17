@@ -1,0 +1,6 @@
+{
+  "id": "next-spawn-chip",
+  "todo": "v20-next-spawn",
+  "kind": "ui",
+  "note": "v20 HUD next-event chip: idle HUD with the 'Slime Rain in m:ss' / 'Boss Slime in m:ss' chip (workspace RainNextAt / BossNextAt server times) in the banner stack under the bar; it hides while a menu is open and while it rains"
+}

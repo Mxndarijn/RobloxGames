@@ -26,6 +26,7 @@ local Layout = require(script.Parent.Layout)
 local LockHud = require(script.Parent.LockHud)
 local ModifierBadge = require(script.Parent.ModifierBadge)
 local Nav = require(script.Parent.Nav)
+local NextSpawn = require(script.Parent.NextSpawn)
 local RainTimer = require(script.Parent.RainTimer)
 local RareAnnounce = require(script.Parent.RareAnnounce)
 local Tutorial = require(script.Parent.Tutorial)
@@ -248,10 +249,14 @@ function Hud.new(parent: Instance, ctx: any)
 		Position = UDim2.new(0, -(EGG_ICON + 6), 0.5, 0),
 		Parent = egg,
 	}, ItemIcons.of(ctx))
+	local nextSpawn = banner(banners, "NextSpawnChip", Color3.fromRGB(50, 60, 100), 10)
+	nextSpawn.TextSize = 15
 	local hint = banner(banners, "PadHint", Color3.fromRGB(150, 100, 20), 4)
 	hint.TextSize = 16
 
 	local RAIN_COLORS = { active = Color3.fromRGB(90, 70, 200), soon = Color3.fromRGB(60, 55, 110) }
+
+	local NEXT_COLORS = { rain = Color3.fromRGB(60, 55, 110), boss = Color3.fromRGB(120, 70, 40) }
 
 	-- Workspace rain attributes, kept fresh by change signals (read in tick).
 	local rainAttrs: RainTimer.Rain? = nil
@@ -481,6 +486,18 @@ function Hud.new(parent: Instance, ctx: any)
 				else color
 		end
 
+		local nextInfo = NextSpawn.chip(
+			workspace:GetAttribute("RainActive"),
+			workspace:GetAttribute("RainNextAt"),
+			workspace:GetAttribute(C.BOSS_NEXT_AT_ATTRIBUTE),
+			now
+		)
+		nextSpawn.Visible = nextInfo ~= nil
+		if nextInfo then
+			nextSpawn.Text = nextInfo.text
+			nextSpawn.BackgroundColor3 = NEXT_COLORS[nextInfo.kind]
+		end
+
 		local info = RainTimer.banner(RainTimer.resolve(rainAttrs, current.rain), now, ctx.Config.RAIN_LUCK)
 		rain.Visible = info ~= nil
 		if info then
@@ -540,6 +557,12 @@ function Hud.new(parent: Instance, ctx: any)
 	for _, name in { C.RARE_SPAWN_AT_ATTRIBUTE, C.RARE_SPAWN_TIER_ATTRIBUTE } do
 		workspace:GetAttributeChangedSignal(name):Connect(function()
 			readDrop()
+			self.tick(ctx.serverNow())
+		end)
+	end
+
+	for _, name in { C.BOSS_NEXT_AT_ATTRIBUTE } do
+		workspace:GetAttributeChangedSignal(name):Connect(function()
 			self.tick(ctx.serverNow())
 		end)
 	end

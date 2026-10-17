@@ -41,6 +41,7 @@ return table.freeze({
 	RAIN_ACTIVE_ATTRIBUTE = "RainActive", -- workspace: same as SlimeRain
 	RAIN_ENDS_AT_ATTRIBUTE = "RainEndsAt", -- workspace: server time, while raining
 	RAIN_NEXT_AT_ATTRIBUTE = "RainNextAt", -- workspace: server time, while not raining
+	BOSS_NEXT_AT_ATTRIBUTE = "BossNextAt", -- workspace: server time of the next Boss Slime (FEATURES.BossSlime)
 	TUTORIAL_STEP_ATTRIBUTE = "TutorialStep", -- Player: 1..6, nil = done / not loaded
 	SPEED_COIL_ATTRIBUTE = "SpeedCoil", -- Player: true once the Speed Coil is owned
 	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FEATURES.FollowPets), nil = none
