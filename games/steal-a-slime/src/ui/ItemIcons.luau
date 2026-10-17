@@ -135,7 +135,8 @@ ItemIcons.DRAWN_GROUPS = table.freeze({
 })
 
 -- Drawn groups without uploaded pictures yet: the same UI-drawn recipes (ItemIconArt), no IMAGES entry required.
--- The world shop's consumables and PvP tools live here until Archer renders them.
+-- The world shop's consumables live here until Archer renders them; all 19 PvP tools (Pvp_*) already have uploaded
+-- pictures in IMAGES (PNGs in shared/modeling-kit/out/icons).
 ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 	gear = true,
 })
