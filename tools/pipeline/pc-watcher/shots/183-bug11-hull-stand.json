@@ -12,5 +12,5 @@
     "ranch_windmill",
     "ranch_shed"
   ],
-  "note": "bug 11 part 1 (advisory): balls dropped onto and pushed into the Hull-collision props ranch_barrel, ranch_well, ranch_windmill, ranch_shed must rest on the mesh and not pass through it (luau/mesh_stand)"
+  "note": "bug 11 part 1 (advisory): balls dropped onto and pushed into the Hull-collision props ranch_barrel, ranch_well, ranch_windmill, ranch_shed must rest on the mesh and not pass through it (luau/mesh_stand) ; since the v196 follow-up ranch_barrel and ranch_well are Box (windmill, shed stay Hull); FAIL = the ball core overlapped the mesh"
 }

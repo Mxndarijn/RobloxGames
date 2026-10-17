@@ -224,7 +224,7 @@ describe("bug #11 part 1: real mesh collision", function()
 		expect(MeshAssets.COLLISION.slime_fountain).toBe(nil)
 		expect(MeshAssets.COLLISION.phoenix_gate).toBe(nil)
 	end)
-	it("has Hull for blobs, Box for boxes, and PCD only on the two marked walkable shapes", function()
+	it("has Hull for blobs, Box for boxes, and PCD only on the marked walkable shape (barn loft)", function()
 		local pcd = {}
 		for name, fidelity in MeshAssets.COLLISION do
 			if fidelity == "PreciseConvexDecomposition" then
@@ -232,7 +232,7 @@ describe("bug #11 part 1: real mesh collision", function()
 			end
 		end
 		table.sort(pcd)
-		expect(pcd).toEqual({ "ranch_barn_loft", "ranch_fence_stile" })
+		expect(pcd).toEqual({ "ranch_barn_loft" })
 		local source = fs.readFile("src/shared/MeshAssets.luau")
 		for _, name in pcd do
 			expect(
@@ -246,14 +246,23 @@ describe("bug #11 part 1: real mesh collision", function()
 				count[fidelity] += 1
 			end
 		end
-		expect(count.Hull >= 15).toBe(true)
+		expect(count.Hull >= 13).toBe(true)
 		expect(count.Box >= 15).toBe(true)
 		for _, name in
-			{ "ranch_fence_20", "phoenix_fence_segment", "phoenix_corner_post", "ranch_crate", "ranch_wagon" }
+			{
+				"ranch_fence_20",
+				"phoenix_fence_segment",
+				"phoenix_corner_post",
+				"ranch_crate",
+				"ranch_wagon",
+				"ranch_barrel",
+				"ranch_well",
+				"ranch_fence_stile",
+			}
 		do
 			expect(MeshAssets.COLLISION[name]).toBe("Box")
 		end
-		for _, name in { "ranch_barrel", "ranch_well", "ranch_windmill", "ranch_shed" } do
+		for _, name in { "ranch_windmill", "ranch_shed" } do
 			expect(MeshAssets.COLLISION[name]).toBe("Hull")
 		end
 	end)

@@ -437,7 +437,7 @@ MeshAssets.COLLISION = table.freeze({
 	ranch_wagon = "Box", -- 9.9x3x5.8 cart, flat bed to stand on
 	ranch_water_trough = "Box", -- 9.7x3.6x3.2 low box
 	-- blobby and roofed ranch props: Hull
-	ranch_barrel = "Hull", -- 2.5x2.6x2.7 barrel
+	ranch_barrel = "Box", -- 2.5x2.6x2.7 barrel: a box fits the near-cylinder and has flat faces a walker stops against (v196: a round hull let pushes slide round it)
 	ranch_barrel_stack = "Hull", -- 5.2x5.4x4.7 pyramid of barrels
 	ranch_birdhouse = "Hull", -- 3.6x8x3.4 house on a pole
 	ranch_campfire = "Hull", -- 4.3x4.6x4.3 stone ring and logs
@@ -452,11 +452,11 @@ MeshAssets.COLLISION = table.freeze({
 	ranch_slime_coop = "Hull", -- 7.4x7.7x7.8 gabled coop
 	ranch_water_pump = "Hull", -- 3.8x4.4x4.9 pump
 	ranch_weathervane = "Hull", -- 5x8.6x3.4 vane on a pole
-	ranch_well = "Hull", -- 6.9x7.7x5.5 stone well with a roof: nobody falls into or walks under it
+	ranch_well = "Box", -- 6.9x7.7x5.5 stone well with a roof: nobody falls into or walks under it; the box is the ring + roof footprint (v196: Hull let pushes slide round)
 	ranch_wheelbarrow = "Hull", -- 6.6x3.5x3.8 wheelbarrow
 	ranch_windmill = "Hull", -- 8.4x17.4x9.7 tower: the hull is the tower, the sails are overhead
-	-- walkable concave shapes: PreciseConvexDecomposition (expensive; both are placed a few times at most)
-	ranch_fence_stile = "PreciseConvexDecomposition", -- PCD: Phoenix Studio check. Steps over the fence: the treads must be walkable
+	-- walkable concave shapes: PreciseConvexDecomposition (expensive; placed a few times at most). The stile is Box since v196.
+	ranch_fence_stile = "Box", -- 5.8x5.5x4.9 stile: a solid block players jump onto / over (v196: PCD treads let a 4-stud ball ride over and read as walk-through)
 	ranch_barn_loft = "PreciseConvexDecomposition", -- PCD: Phoenix Studio check. Loft platform with an open ground floor: walk under and onto it
 })
 
