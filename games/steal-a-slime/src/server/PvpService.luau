@@ -51,7 +51,7 @@ local states: { [Session]: PvpRules.State } = setmetatable({}, { __mode = "k" })
 -- Per-session bookkeeping that is not part of PvpRules.State (also never saved).
 type Extra = { equipped: string?, shieldSent: number | boolean, zone: string? }
 local extras: { [Session]: Extra } = setmetatable({}, { __mode = "k" }) :: any
-local handlers: { [string]: LineHandler } = {}
+local handlers: { [string]: LineHandler? } = {}
 local sink: Sink? = nil
 local clock: () -> number = os.time
 -- Everything PvP puts in Workspace is tracked here and destroyed by `cleanup` (CONTRACT.md §26.1, zero net parts).
@@ -103,7 +103,7 @@ end
 function PvpService.cleanup(session: Session)
 	local list = spawned[session]
 	spawned[session] = nil
-	for _, instance in list or {} do
+	for _, instance: any in (list or {}) :: { any } do
 		pcall(function()
 			instance:Destroy()
 		end)
@@ -332,7 +332,7 @@ end
 
 -- Per-player server tick (called from WorldView.updatePlayer, no loop of its own): sends Shield / SafeZone
 -- changes. `position` = the character's root position, nil without a character. No-op with the flag off.
-function PvpService.tick(session: Session, position: PvpRules.Vec?, now: number)
+function PvpService.tick(session: Session, position: any, now: number)
 	local extra = extras[session]
 	if not extra then
 		return
