@@ -13,6 +13,8 @@ NEW="${SHAS[0]}" MID="${SHAS[1]}" OLD="${SHAS[2]}"
 
 T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 export STATUS_DIR="$T/status" STUDIO_REPORTS_DIR="$T/reports" LIVE_DIR="$T/live" NEEDS_REVIEW_DIR="$T/needs-review" DRY_RUN=1 AUTO_PUBLISH=1
+# No network: the report API fallback (fetch_report) and the full-run request call ghbot-gojo; stub it to fail.
+mkdir -p "$T/bin"; printf '#!/bin/sh\nexit 1\n' >"$T/bin/ghbot-gojo"; chmod +x "$T/bin/ghbot-gojo"; export PATH="$T/bin:$PATH"
 fails=0
 reset() { rm -rf "$STATUS_DIR" "$STUDIO_REPORTS_DIR" "$LIVE_DIR" "$NEEDS_REVIEW_DIR"; mkdir -p "$STATUS_DIR" "$STUDIO_REPORTS_DIR"; }
 cloud() { echo "{\"status\":\"$2\",\"finished\":\"$(date -Iseconds)\"}" >"$STATUS_DIR/$1.json"; }
@@ -24,9 +26,9 @@ check() { # check <name> <expected rc> <grep pattern|->
 }
 
 # NB: AUTO_PUBLISH=1 below; the dry run prints "DRY_RUN steps" when the sha would publish.
-report() { # report <sha> <status> <frames_reviewed>
-  jq -n --arg sha "$1" --arg st "$2" --argjson fr "$3" --arg at "$(date -d '+1 hour' -Iseconds)" \
-    '{sha: $sha, status: $st, checked_at: $at, frames_reviewed: $fr, reviewed_by: ["phoenix"]}' >"$STUDIO_REPORTS_DIR/$1.json"
+report() { # report <sha> <status> <frames_reviewed> [run_kind, default full; "none" omits the field]
+  jq -n --arg sha "$1" --arg st "$2" --argjson fr "$3" --arg at "$(date -d '+1 hour' -Iseconds)" --arg rk "${4:-full}" \
+    '{sha: $sha, status: $st, checked_at: $at, frames_reviewed: $fr, reviewed_by: ["phoenix"]} + (if $rk == "none" then {} else {run_kind: $rk} end)' >"$STUDIO_REPORTS_DIR/$1.json"
 }
 gate() { cloud "$1" pass; report "$1" pass true; } # fully gated
 no_publish_steps() { ! grep -q "DRY_RUN steps" <<<"$OUT"; }
@@ -154,6 +156,42 @@ reset; gate "$NEW"; cloud "$OLD" pass; mkdir -p "$NEEDS_REVIEW_DIR"; touch "$(mk
 run "$OLD"; expect "marker of sha older than gated sha removed" "$OLD" absent
 reset; cloud "$OLD" pass; mkdir -p "$LIVE_DIR" "$NEEDS_REVIEW_DIR"; touch "$(mk "$OLD")"; echo '{"status":"live"}' >"$LIVE_DIR/$MID.json"
 run "$OLD"; expect "marker of sha older than live removed" "$OLD" absent
+
+# ---- run_kind: only FULL Studio reports gate a publish -----------------------
+export AUTO_PUBLISH=1
+reset; cloud "$NEW" pass; report "$NEW" pass true partial
+run "$NEW"; check "partial pass report (reviewed) never gates" 3 "run_kind"
+no_publish_steps && echo "ok   partial pass report: no publish steps" || { echo "FAIL partial pass report published"; fails=$((fails + 1)); }
+expect "partial pass report -> needs-review marker stays" "$NEW" present
+
+reset; cloud "$NEW" pass; report "$NEW" fail true partial
+run "$NEW"; check "partial fail report is not terminal (rc 3, not no-publish)" 3 "run_kind" "no-publish"
+expect "partial fail report -> needs-review marker exists" "$NEW" present
+
+reset; cloud "$NEW" pass; report "$NEW" pass true none
+run "$NEW"; check "report without run_kind is blocked" 3 "run_kind"
+no_publish_steps && echo "ok   report without run_kind: no publish steps" || { echo "FAIL run_kind-less report published"; fails=$((fails + 1)); }
+
+reset; cloud "$NEW" pass; report "$NEW" pass true full
+run "$NEW"; check "full pass reviewed report publishes" 0 "DRY_RUN steps"
+expect "full pass reviewed -> no marker" "$NEW" absent
+
+reset; cloud "$NEW" pass; report "$NEW" fail true full
+run "$NEW"; check "full fail report is still no-publish" 4 "no-publish"
+
+reset; cloud "$NEW" pass
+run "$NEW"; check "marker set requests a full Studio run" 3 "would request full Studio run (studio-reports/requests/$NEW.json)"
+reset; cloud "$NEW" pass; FULL_REQUEST=0 run "$NEW"; check "FULL_REQUEST=0 disables the request" 3 "needs-review: marker set" "would request"
+# live path (DRY_RUN=0 only for the request): stamp once per sha, command overridable
+reset; cloud "$NEW" pass
+printf '#!/usr/bin/env bash\necho "$1" >>"%s/req.log"\n' "$T" >"$T/req.sh"; chmod +x "$T/req.sh"
+DRY_RUN=0 FULL_REQUEST_CMD="$T/req.sh" run "$NEW"; DRY_RUN=0 FULL_REQUEST_CMD="$T/req.sh" run "$NEW"
+[[ "$(cat "$T/req.log" 2>/dev/null)" == "$NEW" && -e "$STATUS_DIR/$NEW.full-request" ]] && echo "ok   request attempted once per sha (stamp has no .json)" || { echo "FAIL request once: $(cat "$T/req.log" 2>/dev/null)"; fails=$((fails + 1)); }
+reset; cloud "$NEW" pass; rm -f "$T/req.log"
+printf '#!/usr/bin/env bash\necho "$1" >>"%s/req.log"; exit 1\n' "$T" >"$T/req-fail.sh"; chmod +x "$T/req-fail.sh"
+DRY_RUN=0 FULL_REQUEST_CMD="$T/req-fail.sh" run "$NEW"; DRY_RUN=0 FULL_REQUEST_CMD="$T/req-fail.sh" run "$NEW"
+[[ "$(wc -l <"$T/req.log" 2>/dev/null)" == 2 && ! -e "$STATUS_DIR/$NEW.full-request" ]] && echo "ok   failed request leaves no stamp and is retried" || { echo "FAIL request retry: $(cat "$T/req.log" 2>/dev/null)"; fails=$((fails + 1)); }
+export AUTO_PUBLISH=0
 
 # ---- already-live / terminal no-op -------------------------------------------
 export AUTO_PUBLISH=1

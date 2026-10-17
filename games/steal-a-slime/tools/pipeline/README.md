@@ -101,12 +101,13 @@ missing result). It says nothing about the code.
 Phoenix's PC Studio check pushes `<sha>.json` to the `studio-reports` branch (mirrored to `/workspace/roblox/pipeline/studio-reports/`); the full format, with `frames_reviewed`/`reviewed_by`, is in `docs/release-pipeline.md`:
 
 ```json
-{ "sha": "<full sha>", "status": "pass | fail", "checked_at": "<ISO 8601>", "studio_version": "0.6xx...", "notes": "..." }
+{ "sha": "<full sha>", "status": "pass | fail", "run_kind": "full | partial", "checked_at": "<ISO 8601>", "studio_version": "0.6xx...", "notes": "..." }
 ```
 
 The report is copied into `studio_report` when its `sha` matches.
 `gate_ready` is `true` only when the cloud tests passed **and** the report says
-`pass`. The script reads the report each run, so a report that arrives later
+`pass` with `run_kind == "full"` (partial PC runs never gate; `publish.sh` asks the PC for a full run via
+`studio-reports/requests/<sha>.json` when it sets the needs-review marker). The script reads the report each run, so a report that arrives later
 shows up on the next run for that sha.
 
 ## Publishing: publish.sh
