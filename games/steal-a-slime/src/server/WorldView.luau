@@ -733,6 +733,66 @@ local function ejectFromStack(character: Model, root: BasePart): boolean
 	return true
 end
 
+-- Plot-local z of the front LockBarrier slab's outer face (the real layout constant).
+local FRONT_Z = WorldLayout.frontBarrier().zOuter
+
+-- Move characters to just outside the gate of `plot` (shared by the lock-flip sweep and the per-player guard):
+-- spread sideways in front of the front slab, on the real ground (raycast, PlotLockGuard.GROUND_Y fallback),
+-- facing away from the plot.
+local function ejectToGate(plot: Instance, base: BasePart, half: number, players: { Player })
+	local exclude: { Instance } = { plot:FindFirstChild("LockBarrier") or plot }
+	for _, other in Players:GetPlayers() do
+		if other.Character then
+			table.insert(exclude, other.Character)
+		end
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = exclude
+	for slot, player in players do
+		local character, root = player.Character, WorldView.rootPart(player)
+		if character and root then
+			local x, y, z, dx, dy, dz = PlotLockGuard.ejectPose(half, FRONT_Z, slot, #players)
+			local hit = workspace:Raycast(
+				base.CFrame * Vector3.new(x, 30, z),
+				base.CFrame:VectorToWorldSpace(Vector3.new(0, -60, 0)),
+				params
+			)
+			if hit then
+				y = base.CFrame:PointToObjectSpace(hit.Position).Y + PlotLockGuard.STAND_HEIGHT
+			end
+			local at = base.CFrame * Vector3.new(x, y, z)
+			character:PivotTo(CFrame.lookAt(at, at + base.CFrame:VectorToWorldSpace(Vector3.new(dx, dy, dz))))
+			root.AssemblyLinearVelocity = Vector3.zero
+		end
+	end
+end
+
+-- The plot just became locked: every character in it that is not the owner is taken out at once (nobody is
+-- left inside the barrier; the per-player guard in enforceLocks keeps catching late arrivals).
+function WorldView.ejectIntruders(world: World.World, index: number)
+	local ownerId = world.plots[index]
+	local plot = WorldView.plot(index)
+	local base = plot and plot:FindFirstChild("Base")
+	if not (ownerId and plot and base and base:IsA("BasePart")) then
+		return
+	end
+	local half = base.Size.X / 2
+	local out = {}
+	for _, player in Players:GetPlayers() do
+		local root = WorldView.rootPart(player)
+		if root and player.UserId ~= ownerId then
+			local p = base.CFrame:PointToObjectSpace(root.Position)
+			if PlotLockGuard.shouldEject(player.UserId, ownerId, true, p.X, p.Y, p.Z, half, FRONT_Z) then
+				table.insert(out, player)
+			end
+		end
+	end
+	if #out > 0 then
+		ejectToGate(plot, base, half, out)
+	end
+end
+
 -- Per player: put the owner's character in PlotOwner_<i> (walks through the barrier) and send any
 -- other character standing inside a locked plot back to its entrance. Server-authoritative.
 function WorldView.enforceLocks(world: World.World, player: Player)
@@ -764,15 +824,15 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 		then
 			local p = base.CFrame:PointToObjectSpace(root.Position)
 			local half = base.Size.X / 2
-			if PlotLockGuard.shouldEject(player.UserId, session.userId, true, p.X, p.Y, p.Z, half) then
-				local x, y, z = PlotLockGuard.ejectPoint(half)
-				character:PivotTo(base.CFrame * CFrame.new(x, y, z))
-				root.AssemblyLinearVelocity = Vector3.zero
+			if PlotLockGuard.shouldEject(player.UserId, session.userId, true, p.X, p.Y, p.Z, half, FRONT_Z) then
+				ejectToGate(plot, base, half, { player })
 				return
 			end
 		end
 	end
 end
+
+local wasLocked: { [number]: boolean } = {}
 
 function WorldView.updatePlots(world: World.World, now: number)
 	local habitatsOn = Config.FEATURES.Habitats
@@ -788,6 +848,11 @@ function WorldView.updatePlots(world: World.World, now: number)
 			setIfChanged(plot, "Rebirths", if session then session.data.rebirths else 0)
 			setIfChanged(plot, Constants.PLOT_LOCKED_ATTRIBUTE, view.locked)
 			setBarrierSolid(plot, index, view.locked)
+			-- The single place the lock flips (manual pad, auto-lock, rebirth relock all end here).
+			if view.locked and not wasLocked[index] then
+				WorldView.ejectIntruders(world, index)
+			end
+			wasLocked[index] = view.locked
 			setIfChanged(plot, Constants.PLOT_LOCK_COST_ATTRIBUTE, view.lockCost)
 			setIfChanged(plot, Constants.PLOT_PADS_UNLOCKED_ATTRIBUTE, view.padsUnlocked)
 			setIfChanged(plot, Constants.PLOT_NEXT_PAD_COST_ATTRIBUTE, view.nextPadCost)
