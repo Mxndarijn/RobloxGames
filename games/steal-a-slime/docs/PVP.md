@@ -40,4 +40,4 @@ Ranks 15 and 30 add cosmetic gold skins / aura FX later (no item in this PR).
 
 ## PR sequence
 
-A fairness core (this) - B knockback - C traps - D blaster - E fun items - F icons. Then Jolt builds the hotbar and shop UI.
+A fairness core (this) - B knockback - C traps - D blaster - E fun items - F icons (done: all 19 Pvp_* icons rendered and uploaded, wired in `ItemIcons.IMAGES`, covered by `tests/ui/ShopIcons.spec.luau`). Then Jolt builds the hotbar and shop UI.
