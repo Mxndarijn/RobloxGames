@@ -1,0 +1,21 @@
+[
+  {
+    "id": "19-rain-magnet-prop",
+    "todo": "v19",
+    "kind": "world",
+    "target": "MergeVat",
+    "from": "centre",
+    "dist": 22,
+    "height": 10,
+    "rain_magnet": true,
+    "note": "v19 Rain Magnet: the red horseshoe magnet prop stands beside Plot_1's merge vat while the upgrade has a level (RainMagnetFx, forced with SlimeUI.PcwRainMagnet, FEATURES.RainMagnet off)"
+  },
+  {
+    "id": "19-rain-magnet-shop",
+    "todo": "v19",
+    "kind": "ui",
+    "open": "shop",
+    "rain_magnet": true,
+    "note": "v19 Rain Magnet: the shop's upgrade list gains a Rain Magnet row (magnet badge, Lv 2/5, '+5% weather mutation chance', price) (forced with SlimeUI.PcwRainMagnet, FEATURES.RainMagnet off)"
+  }
+]

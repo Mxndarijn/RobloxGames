@@ -619,6 +619,13 @@ function WorldView.updatePlots(world: World.World, now: number)
 					if session then PlotSkins.current(session.data) else Config.PLOT_SKIN_DEFAULT
 				)
 			end
+			if Config.FEATURES.RainMagnet then
+				setIfChanged(
+					plot,
+					Constants.PLOT_RAIN_MAGNET_ATTRIBUTE,
+					if session then Perks.upgradeLevel(session.data, "RainMagnet") else 0
+				)
+			end
 			local dexCount = if session then PlayerData.dexCount(session.data) else 0
 			setIfChanged(plot, Constants.PLOT_DEX_COUNT_ATTRIBUTE, dexCount)
 			setIfChanged(plot, Constants.PLOT_DEX_TOTAL_ATTRIBUTE, Snapshot.DEX_TOTAL)
