@@ -13525,5 +13525,10 @@
       ]
     }
   },
-  "frames_dir": "847128a8e74496fb03ecc231382b21e2e2c1f4d9/"
+  "frames_dir": "847128a8e74496fb03ecc231382b21e2e2c1f4d9/",
+  "frames_reviewed": true,
+  "reviewed_by": [
+    "Phoenix"
+  ],
+  "review_notes": "Phoenix 13:20 CEST: frames OK (228/228 captured, cloud 941 pass). The report status is FAIL only because of the runtime-part ratchet: 2233 > 2230 (perf step and shot 22-border-aerial-runtime-parts, +16 parts since 2faf6ea, from #229 border v5). That blocks the publish until the part count is back under 2230. PASS: 116 phone-landscape shows 3 banners and the egg toast, with the tutorial card at the bottom and clear of both (#231). 106 locked pads 5-8 now read dark Slate (#227). Sound panel 138/157: the Sound card is open with Sound on, Music 35% and SFX 80% at PC and phone (#228/#230). Border v4/v5 ok; lod-far far=1; no wild-pace or fountain notes. NOTES for Archer (cosmetic): v5 giants read well at eye level (broadleaf, layered pine, round canopy). The MeshTint canopy moods are hard to tell apart: the eye shot looks almost uniform green, and the aerial shows only two greens (dark, mint). The variants could be pushed further apart. The aerial is bluish/purple, a lighting tint at that clock. Locked pads are nearly black and could be lighter grey. Other notes: a translucent red strip across the HUD top on phone; ground snow is off in this sha, so there are no SnowGround frames (Archer is re-enabling it)."
 }
