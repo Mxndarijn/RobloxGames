@@ -294,7 +294,7 @@ def build_terrain(t):
     g = data.get("ground")
     if g:  # Grass hills wear the SlimeGrass variant: tint x the mean of its ColorMap (low .. 1)
         pal["Grass"] = tuple(min(1.0, c * (1 + lo) / 2) for c, lo in zip(pal["Grass"], g["low"]["Grass"]))
-    by_letter = {"G": pal["Grass"], "L": pal["LeafyGrass"], "R": pal["Rock"]}
+    by_letter = {"G": pal["Grass"], "L": pal["LeafyGrass"], "R": pal["Rock"], "S": pal["Slate"], "W": pal["Snow"]}
     verts, cols = [], []
     for j in range(n):
         z = lo + j * step
@@ -666,6 +666,8 @@ VIEWS = {
     "07_border_aerial": lambda: look(polar(337.5, 40, 430), polar(157.5, 170, 0), lens=22),
     "08_border_along": lambda: look(polar(140, 240, 20), polar(178, 300, 6), lens=30),
     "09_border_eye": lambda: look(polar(157.5, 246, 5), polar(172, 300, 7), lens=30),
+    # border v6: a low view from just inside the fence looking out at the edge: giants, hills and the far mountains in layers
+    "36_border_edge_low": lambda: look(polar(60, 284, 2.4), polar(74, 560, 90), lens=18),
     # v30 C5: close-up of plot 1's back fence outside the left corner: two panel
     # joints (posts, planks, rail) and the corner where two sides meet
     "10_fence_closeup": lambda: look((P1[0] - 22, 6.5, P1[2] + 62), (P1[0] - 30, 3.5, P1[2] + 39.5), lens=34),

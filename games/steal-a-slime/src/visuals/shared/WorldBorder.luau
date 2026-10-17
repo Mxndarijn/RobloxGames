@@ -28,10 +28,12 @@
 	         (mesh, rotation bucket, scale bucket) pattern anywhere in the
 	         ring, so no stretch looks copy-pasted. Every build is identical.
 
-	GIANTS (border v5): a ring of GIANT_COUNT huge trees of three NEW kit
-	meshes (giant_broadleaf, giant_pine_layered, giant_round_canopy), 3-5x the
-	height of the border pines, stand on the Terrain hills beyond the fence
-	and in front of the mountains, in three radial depth bands.
+	GIANTS (border v5, v6): a ring of GIANT_COUNT huge trees of six NEW kit
+	meshes (v5 giant_broadleaf, giant_pine_layered, giant_round_canopy; v6
+	giant_elder_oak, giant_sequoia_spire, giant_cloud_tree), 3-8x the height of
+	the border pines, stand on the Terrain hills beyond the fence and in front
+	of the mountains, in three overlapping radial depth bands, with irregular
+	gaps, deck-dealt species and tints.
 
 	Decor never collides; the walls are the only collision. Every decor piece
 	is one MeshAsset slot (MeshSwap skins it); the pieces and giants add up
@@ -296,32 +298,41 @@ WorldBorder.THEMES = table.freeze({
 	{ name = "meadow", weight = 3 },
 	{ name = "rocky", weight = 2 },
 })
--- Giants (border v5): three NEW tree meshes (shared/modeling-kit models/giant_*.py,
--- 78-87 studs native; the border pines are 25 native, 22-36 placed) scaled to 90-126
--- studs, i.e. 3.6-5x a border pine's native height, set on the terrain in three radial
--- depth bands and spread round the ring by sector (one per sector, jittered).
--- Each is one MeshAsset slot (BORDER_SLOT_COUNT 72 + GIANT_COUNT).
-WorldBorder.GIANT_COUNT = 22
-WorldBorder.GIANT_MAX_AXIS = 150
+-- Giants (border v5 + v6): six NEW tree meshes (shared/modeling-kit models/giant_*.py: the v5 three at
+-- 78-87 studs native, the v6 elder oak, sequoia spire and cloud tree at 100-160; the border pines are
+-- 25 native, 22-36 placed) scaled to 90-215 studs, set on the terrain in three overlapping radial depth
+-- bands with irregular gaps round the ring. Each is one MeshAsset slot (BORDER_SLOT_COUNT 72 + GIANT_COUNT).
+WorldBorder.GIANT_COUNT = 30
+WorldBorder.GIANT_MAX_AXIS = 215
 -- Studs past the Ground edge, along the bearing: near the hills, mid, and far
--- (still ahead of the mountains' feet, which start PEAK_CLEAR past the edge).
-WorldBorder.GIANT_BANDS = table.freeze({ { 38, 64 }, { 78, 112 }, { 124, 158 } })
+-- (still ahead of the mountains' feet, which start PEAK_CLEAR past the edge). The bands overlap, so the
+-- depths of neighbours never fall into three obvious rows.
+WorldBorder.GIANT_BANDS = table.freeze({ { 34, 74 }, { 66, 124 }, { 112, 176 } })
 WorldBorder.GIANT_TILT = 4 -- degrees, most lean about each horizontal axis
 WorldBorder.GIANT_CLEAR = 10 -- studs of canopy clearance between a giant's reach and the wall ring
 WorldBorder.GIANT_SINK = 1.5 -- studs the trunk base is set below the terrain
--- MeshPart.Color multiplies the vertex colours (MeshSwap copies the slot's colour when the
--- slot has the MeshTint attribute): a few gentle canopy moods, each rolled a little off.
+WorldBorder.GIANT_GAP = { 0.45, 1.55 } -- neighbour gap, in sectors (360 / GIANT_COUNT); the ring is rescaled to close
+WorldBorder.GIANT_TRUNK_ROOM = 34 -- studs: no two trunks closer than this (the later one is pushed out)
+WorldBorder.GIANT_SPECIES_WINDOW = 3 -- no species repeats within this many neighbours, the ring's seam included
+-- MeshPart.Color multiplies the vertex colours (MeshSwap copies the slot colour when the slot has the
+-- MeshTint attribute). v6: six canopy moods, further apart than v5's (every pair >= GIANT_TINT_APART apart
+-- in RGB, up from 45) and none bluer than it is green, so no purple or cold cast in the aerial; each rolled only a little off.
+WorldBorder.GIANT_TINT_APART = 65
 WorldBorder.GIANT_TINTS = table.freeze({
-	{ 255, 255, 255 },
-	{ 232, 255, 214 },
-	{ 255, 244, 190 },
-	{ 214, 238, 255 },
-	{ 255, 226, 200 },
+	{ 255, 255, 255 }, -- as modelled
+	{ 184, 255, 120 }, -- fresh lime
+	{ 255, 224, 96 }, -- butter gold
+	{ 255, 156, 84 }, -- amber
+	{ 120, 176, 96 }, -- deep moss
+	{ 214, 184, 140 }, -- dry wheat
 })
 WorldBorder.GIANT_DEFS = table.freeze({
 	{ kind = "GiantBroadleaf", mesh = "giant_broadleaf", scale = { 1.15, 1.6 } },
 	{ kind = "GiantPine", mesh = "giant_pine_layered", scale = { 1.05, 1.45 } },
 	{ kind = "GiantRound", mesh = "giant_round_canopy", scale = { 1.12, 1.55 } },
+	{ kind = "GiantElderOak", mesh = "giant_elder_oak", scale = { 0.85, 1.2 } },
+	{ kind = "GiantSequoia", mesh = "giant_sequoia_spire", scale = { 0.95, 1.3 } },
+	{ kind = "GiantCloud", mesh = "giant_cloud_tree", scale = { 0.9, 1.25 } },
 })
 WorldBorder.WINDOW = 4 -- no run of this many pieces repeats its (mesh, rotation, scale) pattern
 WorldBorder.ROT_BUCKET = 30 -- degrees
@@ -716,11 +727,50 @@ local function cornerRow(rng: Rng.Rng): { Piece }
 	return out
 end
 
--- Giants: GIANT_COUNT huge trees round the ring, one per sector. Species deal
--- out so no two neighbours (the last and first included) share a design; the
--- depth bands deal in shuffled triples so the ring is never one flat line.
--- Each stands on the border terrain (lowest of five footprint samples, sunk
--- GIANT_SINK so no root floats), leans a few degrees and wears its own tint.
+-- Giants: GIANT_COUNT huge trees round the ring. Species and tints are dealt from shuffled decks (every species
+-- about equally often) and re-dealt until no species repeats within GIANT_SPECIES_WINDOW neighbours and no tint
+-- within two, seam included; the gaps between neighbours roll anywhere in GIANT_GAP sectors (rescaled so the ring
+-- closes) and the depth bands are rolled independently, never the same band three in a row, so no period shows
+-- from the eye camera or the aerial. Each stands on the border terrain (lowest of five footprint samples, sunk
+-- GIANT_SINK so no root floats), leans a few degrees and wears its own tint; a trunk closer than GIANT_TRUNK_ROOM
+-- to an earlier one is pushed outward.
+local function dealDeck(rng: Rng.Rng, count: number, kinds: number, window: number): { number }
+	for _ = 1, 400 do
+		local left: { number } = {}
+		for k = 1, kinds do
+			left[k] = math.floor(count / kinds) + (if k <= count % kinds then 1 else 0)
+		end
+		local deck: { number } = {}
+		local stuck = false
+		for k = 1, count do
+			local options: { number } = {}
+			for kind = 1, kinds do
+				local clash = left[kind] == 0
+				for j = 1, window - 1 do
+					-- the last window - 1 dealt, and for the final positions the first ones too (the seam)
+					if deck[k - j] == kind or (k > count - window + 1 and deck[k + j - count] == kind) then
+						clash = true
+					end
+				end
+				if not clash then
+					table.insert(options, kind)
+				end
+			end
+			if #options == 0 then
+				stuck = true
+				break
+			end
+			local pick = options[rng:int(1, #options)]
+			left[pick] -= 1
+			deck[k] = pick
+		end
+		if not stuck then
+			return deck
+		end
+	end
+	error("WorldBorder.giants: no deal found")
+end
+
 function WorldBorder.giants(seed: number?): { Piece }
 	local rng = Rng.new((seed or WorldBorder.SEED) + 15485863)
 	local field = BorderTerrain.field()
@@ -728,58 +778,64 @@ function WorldBorder.giants(seed: number?): { Piece }
 	local defs = WorldBorder.GIANT_DEFS
 	local bands = WorldBorder.GIANT_BANDS
 	local tilt = WorldBorder.GIANT_TILT
-	local start = rng:float() * 360
-	local sector = 360 / count
-	local order: { number } = {}
-	local last, first = 0, 0
+	local order = dealDeck(rng, count, #defs, WorldBorder.GIANT_SPECIES_WINDOW)
+	local moods = dealDeck(rng, count, #WorldBorder.GIANT_TINTS, 3)
+	-- irregular gaps that still close the ring
+	local gaps: { number } = {}
+	local total = 0
 	for k = 1, count do
-		local i
-		repeat
-			i = rng:int(1, #defs)
-		until (i ~= last and (k < count or i ~= first)) or #defs < 3
-		last = i
-		if k == 1 then
-			first = i
-		end
-		table.insert(order, i)
+		gaps[k] = lerp(WorldBorder.GIANT_GAP, rng:float())
+		total += gaps[k]
 	end
-	local bandOrder: { number } = {}
-	while #bandOrder < count do
-		local triple = {}
-		for b = 1, #bands do
-			table.insert(triple, b)
-		end
-		for a = #triple, 2, -1 do
-			local b = rng:int(1, a)
-			triple[a], triple[b] = triple[b], triple[a]
-		end
-		for _, b in triple do
-			table.insert(bandOrder, b)
-		end
+	local start = rng:float() * 360
+	local walked = 0
+	local bandOf: { number } = {}
+	for k = 1, count do
+		local b
+		repeat
+			b = rng:int(1, #bands)
+		until not (k > 2 and bandOf[k - 1] == b and bandOf[k - 2] == b)
+		bandOf[k] = b
 	end
 	local out: { Piece } = {}
+	local placed: { { number } } = {}
 	for k = 1, count do
 		local def = defs[order[k]]
 		local n = native(def.mesh)
 		local scale = math.min(lerp(def.scale, rng:float()), WorldBorder.GIANT_MAX_AXIS / math.max(n[1], n[2], n[3]))
 		local size = { n[1] * scale, n[2] * scale, n[3] * scale }
-		local angle = start + (k - 1) * sector + (0.2 + rng:float() * 0.6) * sector
-		local band = bandOrder[k]
+		walked += gaps[k]
+		local angle = start + (walked - gaps[k] * (0.2 + 0.6 * rng:float())) / total * 360
+		local band = bandOf[k]
 		local r = WorldBorder.groundRadius(angle) + lerp(bands[band], rng:float())
 		-- the canopy never hangs over the walls
 		r = math.max(
 			r,
 			WorldBorder.RADIUS + WorldBorder.WALL_THICKNESS + WorldBorder.GIANT_CLEAR + math.max(size[1], size[3]) / 2
 		)
-		local x, _, z = table.unpack(polar(angle, r, 0))
+		local x, z = 0, 0
+		for _ = 1, 8 do
+			x, z = polar(angle, r, 0)[1], polar(angle, r, 0)[3]
+			local crowded = false
+			for _, q in placed do
+				if math.sqrt((q[1] - x) ^ 2 + (q[2] - z) ^ 2) < WorldBorder.GIANT_TRUNK_ROOM then
+					crowded = true
+				end
+			end
+			if not crowded then
+				break
+			end
+			r += WorldBorder.GIANT_TRUNK_ROOM * 0.6
+		end
+		table.insert(placed, { x, z })
 		local reach = math.min(size[1], size[3]) * 0.1
 		local ground = math.huge
 		for _, o in { { 0, 0 }, { reach, 0 }, { -reach, 0 }, { 0, reach }, { 0, -reach } } do
 			ground = math.min(ground, field.height(x + o[1], z + o[2]))
 		end
 		local turn = (rng:float() * 2 - 1) * 180
-		local mood = WorldBorder.GIANT_TINTS[rng:int(1, #WorldBorder.GIANT_TINTS)]
-		local fade = 1 - rng:float() * 0.06
+		local mood = WorldBorder.GIANT_TINTS[moods[k]]
+		local fade = 1 - rng:float() * 0.05
 		local p: Piece = {
 			kind = def.kind,
 			mesh = def.mesh,

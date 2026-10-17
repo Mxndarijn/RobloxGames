@@ -29,6 +29,8 @@ local MATERIALS: { [string]: Enum.Material } = {
 	Grass = Enum.Material.Grass,
 	LeafyGrass = Enum.Material.LeafyGrass,
 	Rock = Enum.Material.Rock,
+	Slate = Enum.Material.Slate,
+	Snow = Enum.Material.Snow,
 }
 
 local function writeChunk(terrain: Terrain, field: BorderTerrain.Field, chunk: BorderTerrain.Chunk)

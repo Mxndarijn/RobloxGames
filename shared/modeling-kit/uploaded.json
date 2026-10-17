@@ -66,6 +66,32 @@
     "uploadedAt": "2026-10-17T09:18:45Z",
     "versions": 1
   },
+  "giant_cloud_tree": {
+    "assetId": "75166170200061",
+    "assetType": "Model",
+    "meshId": "rbxassetid://71113886018536",
+    "meshSize": [
+      122.958,
+      126.341,
+      69.744
+    ],
+    "sha256": "2e2b73ca5d743751",
+    "uploadedAt": "2026-10-17T20:39:19Z",
+    "versions": 1
+  },
+  "giant_elder_oak": {
+    "assetId": "81330795778397",
+    "assetType": "Model",
+    "meshId": "rbxassetid://132728423157389",
+    "meshSize": [
+      159.376,
+      102.581,
+      132.423
+    ],
+    "sha256": "df988eb8a544ea7e",
+    "uploadedAt": "2026-10-17T20:38:41Z",
+    "versions": 1
+  },
   "giant_pine_layered": {
     "assetId": "82697384730576",
     "assetType": "Model",
@@ -90,6 +116,19 @@
     ],
     "sha256": "c24881cba781eed6",
     "uploadedAt": "2026-10-17T09:19:21Z",
+    "versions": 1
+  },
+  "giant_sequoia_spire": {
+    "assetId": "116609891922407",
+    "assetType": "Model",
+    "meshId": "rbxassetid://104415065733160",
+    "meshSize": [
+      53.52,
+      157.248,
+      54.788
+    ],
+    "sha256": "c38eb970139007c4",
+    "uploadedAt": "2026-10-17T20:38:58Z",
     "versions": 1
   },
   "habitat_barn_crate": {

@@ -168,6 +168,9 @@ local DECOR = {
 	giant_broadleaf = "border tree beyond the world wall ring, out of reach, canopy overhead",
 	giant_pine_layered = "border tree beyond the world wall ring, out of reach",
 	giant_round_canopy = "border tree beyond the world wall ring, out of reach, canopy overhead",
+	giant_elder_oak = "border tree beyond the world wall ring, out of reach, canopy overhead",
+	giant_sequoia_spire = "border tree beyond the world wall ring, out of reach",
+	giant_cloud_tree = "border tree beyond the world wall ring, out of reach, canopy overhead",
 	slime_lane = "the goo parade lane: a 0.43 stud flat strip players walk over",
 }
 for _, group in

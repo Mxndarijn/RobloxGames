@@ -10,7 +10,7 @@
     7,
     297.1
   ],
-  "note": "border v5: player eye (5 studs) looking out over the fence: GIANT trees (3-5x a border pine, new giant_broadleaf / giant_pine_layered / giant_round_canopy meshes) tower over the hills with the mountain ridge behind, mixed species, tilts and tints in [desktop]",
+  "note": "border v5: player eye (5 studs) looking out over the fence: GIANT trees (3-8x a border pine; v5 giant_broadleaf / giant_pine_layered / giant_round_canopy plus v6 giant_elder_oak / giant_sequoia_spire / giant_cloud_tree) tower over the hills with the mountain ridge behind, mixed species, tilts and tints in [desktop]",
   "kind": "world",
   "wait": 6.0,
   "device": "desktop",
