@@ -1,0 +1,20 @@
+{
+  "id": "lock-leave",
+  "todo": "locked-base trap",
+  "kind": "world",
+  "target": "Plot_2",
+  "from": "front",
+  "dist": 60,
+  "height": 22,
+  "bug_probe": {
+    "bug": 8,
+    "title": "Plot locks with a non-owner inside: the barrier is one-way, they walk out through the gate (never moved), then cannot walk back in",
+    "luau": "bug08_lock_enter",
+    "ctx": "Server",
+    "args": {
+      "PART": "leave_on_lock"
+    },
+    "timeout": 45
+  },
+  "note": "locked-base trap rework (advisory): luau/bug08_lock_enter PART=leave_on_lock stands the real player in a free plot, locks it, and asserts PlotLeaver group, a walk out through the gate with no sample step > 3 studs (no teleport / throw), ends outside the front slab, then MoveTo back in never gets inside"
+}

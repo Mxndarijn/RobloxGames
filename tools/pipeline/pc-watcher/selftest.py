@@ -240,7 +240,7 @@ def t_files():
         "shot_camera": {"EYE", "AT", "FOV"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "slide_top_drop": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "mesh_stand": {"MESHES"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "world_shop": {"SHOP"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "pvp_feel": {"PART"}, "bat_hit": {"PART"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"}, "bug08_lock_enter": {"PART"}, "lock_eject": set(), "bug11_char_walk": {"PART"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "world_shop": {"SHOP"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "pvp_feel": {"PART"}, "bat_hit": {"PART"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"}, "bug08_lock_enter": {"PART"}, "bug11_char_walk": {"PART"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -912,7 +912,7 @@ def t_bugs():
     other = [r for r in rules if r["name"] != "bug probes"]
     check("shot-map: every bug shot is also selected by a source-area rule", all(any(watcher.shot_selected_by(s, r) for r in other) for s in probes),
           [s["id"] for s in probes if not any(watcher.shot_selected_by(s, r) for r in other)])
-    expect = {"bug08_lock_enter": ("owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck", "enforceLocks", "LoadCharacter",
+    expect = {"bug08_lock_enter": ("owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "leaves_freely", "thrown_slime_not_stuck", "enforceLocks", "LoadCharacter",
                             "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze", "corner_jump", "LockBarrier", "junctions"),
               "bug09_slide_stand": ("cannot_enter", "cannot_climb", "cannot_stand_on", "slimes_still_ride", "bottom_reachable"),
               "bug10_fountain_statues": ("pushed_out_or_on_top", "jump_no_snag"),
@@ -926,9 +926,9 @@ def t_bugs():
     b08 = open(os.path.join(HERE, "luau", "bug08_lock_enter.luau"), encoding="utf-8").read()
     m = re.search(r"local ORDER = \{([^}]*)\}", b08)
     order = re.findall(r'"(\w+)"', m.group(1)) if m else []
-    check("bug08 BASE_ORDER lists the five old checks only; other PARTs list just themselves", re.search(r'local BASE_ORDER = \{ "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck" \}', b08) is not None
+    check("bug08 BASE_ORDER lists the five old checks only; other PARTs list just themselves", re.search(r'local BASE_ORDER = \{ "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "leaves_freely", "thrown_slime_not_stuck" \}', b08) is not None
           and "local ORDER = if PART == \"base\" then BASE_ORDER else { PART }" in b08)
-    parts = {"bug08_lock_enter": {"base", "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze", "corner_jump", "owner_gate"}, "bug11_char_walk": {"stile_over", "barn_loft", "fence_line_walk"}}
+    parts = {"bug08_lock_enter": {"base", "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze", "corner_jump", "owner_gate", "leave_on_lock"}, "bug11_char_walk": {"stile_over", "barn_loft", "fence_line_walk"}}
     for lname, want in parts.items():
         got = {s["bug_probe"]["args"]["PART"] for s in probes if s["bug_probe"].get("luau") == lname}
         lsrc = open(os.path.join(HERE, "luau", lname + ".luau"), encoding="utf-8").read()
