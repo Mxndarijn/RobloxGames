@@ -2781,15 +2781,17 @@ def perf_variant(run, n, seconds, qualities, variants, flush, hold_frame=True):
     return perf_measure(run, v, seconds, qualities, flush, "perf-%d" % n if hold_frame else None)
 
 
-def perf_terrain_wait(run, play_t0, max_s=120, settle_s=60, poll_s=5):
-    """Poll workspace.Terrain:GetAttribute("BorderTerrain") (BorderTerrainView sets it: false while writing, true when done)
-    for up to max_s, then settle_s more. Returns {bt_set, bt_set_at_s (since play start), settle_s}."""
+def perf_terrain_wait(run, play_t0, max_s=120, settle_s=60, poll_s=2):
+    """Poll luau/perf_terrain_attr until the border terrain is done: Workspace BorderTerrainReady == true (#267), else the
+    older workspace.Terrain BorderTerrain == true; for up to max_s, then settle_s more. Returns {bt_set, bt_set_at_s
+    (since play_t0, ~poll_s resolution), bt_source ("BorderTerrainReady" | "BorderTerrain"), settle_s, max_s}."""
     t0 = time.time()
-    rec = {"bt_set": False, "bt_set_at_s": None, "settle_s": 0, "max_s": max_s}
+    rec = {"bt_set": False, "bt_set_at_s": None, "bt_source": None, "settle_s": 0, "max_s": max_s}
     while True:
         ok, d = run.luau("perf_terrain_attr", "Server", 30)
         if ok and isinstance(d, dict) and d.get("set"):
             rec["bt_set"], rec["bt_set_at_s"] = True, round(time.time() - play_t0, 1)
+            rec["bt_source"] = d.get("source") or "BorderTerrain"
             break
         if time.time() - t0 >= max_s:
             break
@@ -2798,7 +2800,7 @@ def perf_terrain_wait(run, play_t0, max_s=120, settle_s=60, poll_s=5):
         time.sleep(settle_s)
         rec["settle_s"] = settle_s
     else:
-        run.note("BorderTerrain attribute not true after %ss: no settle wait" % max_s)
+        run.note("BorderTerrainReady / BorderTerrain attribute not true after %ss: no settle wait" % max_s)
     return rec
 
 

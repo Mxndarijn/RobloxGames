@@ -772,7 +772,8 @@ def t_play_settle():
             def fake_luau(self, name, datamodel="Edit", timeout=60, **subs):
                 assert name == "perf_terrain_attr", name
                 calls["attr"] += 1
-                return True, {"set": set_after is not None and calls["attr"] >= set_after}
+                on = set_after is not None and calls["attr"] >= set_after
+                return True, {"set": on, "source": "BorderTerrainReady" if on else None}
 
             def fake_need(self, name, dm="Edit", timeout=60, **subs):
                 assert name == "client_stats", name
@@ -793,13 +794,18 @@ def t_play_settle():
               and run.perf["play_settled"]["fps"] == 60.0 and run.perf["frame_time_ms"] == 16.7 and run.perf["memory_mb"] == 902.0, run.perf)
         check("play settle: wait record", run.perf["play_settle"]["bt_set"] is True and d["settle"]["settle_s"] == w.DEFAULTS["play_settle_s"]
               and d["settle"]["bt_set_at_s"] is not None and d["settle"]["max_s"] == w.DEFAULTS["play_bt_max_s"], d["settle"])
+        check("play settle: records BorderTerrainReady as the signal", d["settle"]["bt_source"] == "BorderTerrainReady", d["settle"])
+        src = open(os.path.join(os.path.dirname(os.path.abspath(w.__file__)), "luau", "perf_terrain_attr.luau")).read()
+        check("perf_terrain_attr prefers Workspace BorderTerrainReady, falls back to Terrain BorderTerrain",
+              'workspace:GetAttribute("BorderTerrainReady")' in src and 'terrain:GetAttribute("BorderTerrain")' in src
+              and "source" in src)
         check("play settle: note mentions boot vs settled", any("settled" in n and "boot" in n for n in run.notes), run.notes)
 
         run, st, d, calls = run_play("full", None)
         check("play settle: never true -> boot, no settled sample", st == "pass" and d["fps_source"] == "boot" and d["stats_settled"] is None
               and run.perf["play_settled"] is None and run.perf["play"]["fps"] == 53.2 and calls["stats"] == 1
               and any("BorderTerrain" in n for n in run.notes), (d, run.notes))
-        check("play settle: polling bounded", 2 <= calls["attr"] <= w.DEFAULTS["play_bt_max_s"] // 5 + 2, calls)
+        check("play settle: polling bounded", 2 <= calls["attr"] <= w.DEFAULTS["play_bt_max_s"] // 2 + 2, calls)
 
         run, st, d, calls = run_play("partial", 1)
         check("play settle: partial run -> no attr polls, boot", st == "pass" and calls["attr"] == 0 and calls["stats"] == 1
