@@ -8,7 +8,7 @@
   "height": 55,
   "bug_probe": {
     "bug": 8,
-    "title": "Locked base: real character squeezing through the plot corners (corner_squeeze)",
+    "title": "Locked base: real character at the four plot corners where the fence meshes meet the LockBarrier panels: corner diagonal, both seams, panel-corner diagonal, no jumping (corner_squeeze)",
     "luau": "bug08_lock_enter",
     "ctx": "Server",
     "args": {
