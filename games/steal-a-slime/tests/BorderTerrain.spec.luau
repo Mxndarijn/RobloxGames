@@ -15,9 +15,9 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 -- tools/pr-gate/budget_counts: mesh slots with the 22 giant trees of border v5
 -- and 8 small border pieces retired (the terrain itself adds none).
-local BASELINE_MESH_SLOTS = 398
--- Part nodes outside Map.Border before this change (and after it).
-local BASELINE_PARTS = 1340
+local BASELINE_MESH_SLOTS = 391
+-- Part nodes outside Map.Border: 1340 minus the seven landing-ring tiles left out for the slide exit.
+local BASELINE_PARTS = 1333
 
 local field = BorderTerrain.field()
 local INNER = BorderTerrain.INNER
@@ -51,22 +51,25 @@ local function range(values: { number }): (number, number)
 end
 
 describe("BorderTerrain budget", function()
-	it("adds no mesh slot of its own: the border v5 count (398) stays under 400", function()
-		local slots = 0
-		walk({ name = "root", children = WorldLayout.build() }, function(n)
-			local a = n.attributes or {}
-			if type(a.MeshAsset or a.BorderMesh) == "string" then
+	it(
+		"adds no mesh slot of its own: the border v5 count (391: seven landing-ring tiles left out for the slide exit) stays under 400",
+		function()
+			local slots = 0
+			walk({ name = "root", children = WorldLayout.build() }, function(n)
+				local a = n.attributes or {}
+				if type(a.MeshAsset or a.BorderMesh) == "string" then
+					slots += 1
+				end
+			end)
+			for _ in WorldLayout.PROP_MESHES do
 				slots += 1
 			end
-		end)
-		for _ in WorldLayout.PROP_MESHES do
-			slots += 1
+			slots += WorldLayout.RUNTIME_SLOT_ALLOWANCE
+			expect(slots).toBe(BASELINE_MESH_SLOTS)
+			expect(slots <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 		end
-		slots += WorldLayout.RUNTIME_SLOT_ALLOWANCE
-		expect(slots).toBe(BASELINE_MESH_SLOTS)
-		expect(slots <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
-	end)
-	it("adds no part: the world keeps its 1340 build parts, under PART_BUDGET", function()
+	)
+	it("adds no part: the world keeps its 1333 build parts, under PART_BUDGET", function()
 		local parts = 0
 		walk({ name = "root", children = WorldLayout.build() }, function(n, inBorder)
 			if n.class == "Part" and not inBorder then

@@ -1,0 +1,19 @@
+{
+  "id": "31-slimepath-lane-start-eye-pc",
+  "todo": "slimepath",
+  "kind": "world",
+  "pos": [
+    -9,
+    5,
+    50
+  ],
+  "look": [
+    -1,
+    0.5,
+    36
+  ],
+  "wait": 2.0,
+  "note": "slime path: player eye (5 studs) looking at the fountain exit: the goo lane starts exactly at the slide mouth, runs out through the open landing ring (no curb tile over the slide or the lane start), flush mitred strips, no seams [desktop]",
+  "device": "desktop",
+  "clock": 14
+}

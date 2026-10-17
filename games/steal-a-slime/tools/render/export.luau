@@ -26,6 +26,7 @@ local FountainTiers = require("../../src/shared/FountainTiers")
 local Habitats = require("../../src/shared/Habitats")
 local MagnetDecor = require("../../src/visuals/shared/MagnetDecor")
 local MeshAssets = require("../../src/shared/MeshAssets")
+local ParadeLane = require("../../src/shared/ParadeLane")
 local PlotDecor = require("../../src/visuals/shared/PlotDecor")
 local Props = require("../../src/visuals/shared/Props")
 local VatDecor = require("../../src/visuals/shared/VatDecor")
@@ -298,6 +299,19 @@ for _, scope in { built.map, built.plots } do
 	end
 end
 
+-- The goo lane (server/ParadeView.place, a runtime folder): the same strips, drawn from ParadeLane.
+for _, strip in ParadeLane.strips() do
+	table.insert(parts, {
+		name = `Workspace.Map.Plaza.ParadeLane.{strip.name}`,
+		shape = "Cylinder",
+		size = strip.size,
+		cf = strip.cf,
+		color = { ParadeLane.COLOR[1] / 255, ParadeLane.COLOR[2] / 255, ParadeLane.COLOR[3] / 255 },
+		material = "SmoothPlastic",
+		transparency = 0,
+	})
+end
+
 -- The border hills (server/BorderTerrainView writes them as voxel terrain): the same seeded
 -- heightfield sampled on an 8-stud grid; render_world.py turns it into a coloured mesh.
 local terrain = nil
@@ -340,6 +354,9 @@ fs.writeFile(
 		terrain = terrain,
 		vat = vatFocus,
 		magnet = magnetFocus,
+		lane = ParadeLane.WAYPOINTS,
+		laneStart = ParadeLane.MOUTH,
+		slideEnd = WorldLayout.SLIDE_PATH[#WorldLayout.SLIDE_PATH],
 	})
 )
 local counts = {}

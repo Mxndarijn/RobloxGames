@@ -165,20 +165,16 @@ describe("fountain at the map centre (TODO #6)", function()
 		-- the mouth is on +Z of the axis (the mesh's slide exit)
 		expect(path[#path][3] - c[3] > 30).toBe(true)
 		local tiles = find("/Map/Plaza/LandingRing").children or {}
-		expect(#tiles).toBe(18)
-		local sx, sz, r0 = 0, 0, nil
+		expect(#tiles).toBe(11) -- 18 less the 7 left out where the slide lands slimes
+		local r0 = nil
 		for _, tile in tiles do
 			local p = tile.pos :: Vec
-			sx += p[1]
-			sz += p[3]
 			local r = flat(p, c)
 			r0 = r0 or r
 			expect(r).toBeCloseTo(r0 :: number)
 			-- each 20 degree tile's bbox centre sits on +Z of its turn (arc centre = axis)
 			expect(math.abs(angleDiff(slotYaw(tile), bearing(c, p))) < 0.01).toBe(true)
 		end
-		expect(math.abs(sx / #tiles - c[1]) < CENTRE_TOL).toBe(true)
-		expect(math.abs(sz / #tiles - c[3]) < CENTRE_TOL).toBe(true)
 	end)
 end)
 

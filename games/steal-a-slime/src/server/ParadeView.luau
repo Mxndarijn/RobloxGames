@@ -3,14 +3,15 @@
 	ParadeView (Roblox adapter, owner: Phoenix, FEATURES.Parade)
 
 	ParadeView.place(): Folder?
-	  Lays the goo lane (Shared.ParadeLane.WAYPOINTS) on the plaza under
-	  workspace.Map.Plaza.ParadeLane: one flat goo strip Part per
-	  segment of the route simplified to ParadeLane.STRIP_TOLERANCE (about a
-	  quarter of the waypoint pairs, same look), HALF_WIDTH * 2 wide, top at LANE_Y. Visual only: anchored, no
-	  collision, query or touch, so players walk over it and ground
-	  raycasts (drops, landings) pass through. Neighbours overlap at the
-	  joints; every other strip stands 0.03 taller so overlaps never share a
-	  top face (z-fighting, like the ring path). Idempotent.
+	  Lays the goo lane on the plaza under workspace.Map.Plaza.ParadeLane: one
+	  Cylinder Part per segment of ParadeLane.strips() (the lane from the slide
+	  mouth through the lead-in to ENTRY and round to the drain). Each lies along
+	  the lane, wide and sunk so only its crown shows: top LANE_Y on the
+	  centreline, falling to the ground at the lane's edges (a soft rounded
+	  edge), bends mitred so joints do not show. Visual only: anchored, no
+	  collision, query or touch, so players walk over it and ground raycasts
+	  (drops, landings) pass through. Glossy goo in the slide's water colour
+	  (ParadeLane.COLOR). Idempotent.
 
 	ParadeView.splash(effects): Instance?
 	  The goo splash at the drain when a lane slime leaves (World event
@@ -22,7 +23,6 @@ local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage.Shared.Constants)
-local DespawnTelegraph = require(ReplicatedStorage.Shared.DespawnTelegraph)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 
 local ParadeView = {}
@@ -32,7 +32,7 @@ ParadeView.SPLASH_EMITTER = "Eruption" -- Visuals.Effects preset: goo splash puf
 ParadeView.SPLASH_COUNT = 24
 ParadeView.SPLASH_SECONDS = 0.2 -- burst length (server emitters run on Rate; Emit doesn't replicate)
 
-local GOO = DespawnTelegraph.FX.color
+local GOO = ParadeLane.COLOR
 
 function ParadeView.place(): Folder?
 	local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
@@ -46,32 +46,21 @@ function ParadeView.place(): Folder?
 	end
 	local folder = Instance.new("Folder")
 	folder.Name = ParadeView.FOLDER
-	local points = ParadeLane.stripPoints()
-	local width = ParadeLane.HALF_WIDTH * 2
-	for i = 1, #points - 1 do
-		local a, b = points[i], points[i + 1]
-		local dx, dz = b[1] - a[1], b[2] - a[2]
-		local length = math.sqrt(dx * dx + dz * dz)
-		if length < 1e-3 then
-			continue
-		end
-		local thick = ParadeLane.STRIP_THICKNESS + (if i % 2 == 0 then 0.03 else 0)
-		local mid =
-			Vector3.new((a[1] + b[1]) / 2, ParadeLane.LANE_Y - ParadeLane.STRIP_THICKNESS / 2, (a[2] + b[2]) / 2)
+	for _, strip in ParadeLane.strips() do
+		local c = strip.cf
 		local part = Instance.new("Part")
-		part.Name = `Lane{i}`
-		-- Overlap by half a width so the turns stay closed.
-		part.Size = Vector3.new(width, thick, length + width / 2)
-		part.CFrame = CFrame.lookAt(mid, mid + Vector3.new(dx, 0, dz))
-			+ Vector3.new(0, (thick - ParadeLane.STRIP_THICKNESS) / 2, 0)
+		part.Name = strip.name
+		part.Size = Vector3.new(strip.size[1], strip.size[2], strip.size[3])
+		part.CFrame = CFrame.new(c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8], c[9], c[10], c[11], c[12])
 		part.Anchored = true
 		part.CanCollide = false
 		part.CanQuery = false
 		part.CanTouch = false
 		part.CastShadow = false
-		part.Material = Enum.Material.Glass
+		part.Shape = Enum.PartType.Cylinder
+		part.Material = Enum.Material.SmoothPlastic
+		part.Reflectance = 0.08
 		part.Color = Color3.fromRGB(GOO[1], GOO[2], GOO[3])
-		part.Transparency = 0.15
 		part.TopSurface = Enum.SurfaceType.Smooth
 		part.BottomSurface = Enum.SurfaceType.Smooth
 		part.Parent = folder

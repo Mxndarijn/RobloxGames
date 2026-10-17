@@ -56,6 +56,10 @@ FountainRide.EXIT_RUN = 9 -- least studs straight out of the mouth before it cur
 -- equal to Fountain.LANDING_RING_OUTER and the tile geometry.
 FountainRide.RING_OUTER = 44.4
 FountainRide.RING_TOP = 3.3
+-- The ring is open from the slide's last stretch round to the lane start (WorldLayout LANDING_GAP: tiles yaw 320..80,
+-- run-out bearings 80..142 degrees): inside it there is no curb to hop, so the run stays on the ground.
+FountainRide.RING_GAP_FROM = 80 -- degrees, atan2(z, x)
+FountainRide.RING_GAP_TO = 142
 FountainRide.HOP_DOWN = 2.5 -- studs past the slime clearing the curb over which it drops back to the ground
 FountainRide.RING_CLEAR = FountainRide.RING_OUTER + 3 + FountainRide.HOP_DOWN -- the run is back on the ground here
 FountainRide.LOW_SLIDE_Y = 10 -- slide segments at or below this are on posts near the ground
@@ -182,6 +186,10 @@ local function runOut(path: { Vec }, landing: Vec): { Vec }
 		local r = dist2(0, 0, p[1], p[3])
 		local down = math.clamp((r - (FountainRide.RING_OUTER + 3)) / FountainRide.HOP_DOWN, 0, 1)
 		local up = math.clamp(dist2(mouth[1], mouth[3], p[1], p[3]) / 3, 0, 1) -- lift off over the first 3 studs
+		local bearing = math.deg(math.atan2(p[3], p[1]))
+		if bearing >= FountainRide.RING_GAP_FROM and bearing <= FountainRide.RING_GAP_TO then
+			up = 0
+		end
 		p[2] = landing[2] + FountainRide.RING_TOP * up * (1 - down * down * (3 - 2 * down))
 	end
 	local a0 = math.atan2(exit[3], exit[1])

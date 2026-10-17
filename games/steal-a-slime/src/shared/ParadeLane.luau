@@ -63,10 +63,10 @@ ParadeLane.MARGIN = 1
 ParadeLane.CLEARANCE = math.max(ParadeLane.HALF_WIDTH, ParadeLane.SPREAD / 2 + ParadeLane.SLIME_RADIUS)
 	+ ParadeLane.MARGIN
 ParadeLane.LANE_Y = 0.35 -- top of the goo strip (ParadeView); slime pivots stand on it
-ParadeLane.STRIP_THICKNESS = 0.3
 -- The goo strip is drawn with as few straight Parts as stay within this many studs of the route
 -- (stripPoints); the 2.5° route steps are far finer than the eye needs. Visual only.
-ParadeLane.STRIP_TOLERANCE = 0.35
+ParadeLane.STRIP_TOLERANCE = 0.55
+ParadeLane.LEAD_TOLERANCE = 0.2 -- the lead-in from the mouth and ENTRY's bend out to r 68 curve hardest: finer, so their corners stay soft
 -- Ride + hop on: every ride to ENTRY lands well before this (tests/ParadeLane.spec).
 ParadeLane.HOP_SECONDS = 10
 ParadeLane.DRAIN_SECONDS = 1.5
@@ -83,7 +83,8 @@ ParadeLane.DRAIN_LIP_SHARE = 0.4 -- share of DRAIN_SECONDS spent hopping onto th
 -- (smoothstep) between neighbours. Angles grow counter-clockwise from the
 -- entry at 112.5° to 430° (= 70°) beside the drain.
 local CONTROLS: { { number } } = {
-	{ 112.5, 68 },
+	{ 124, 50 }, -- ENTRY: where the ride lands, just past the landing-ring gap, on the mouth's run-out line
+	{ 146, 68 },
 	{ 170, 68 },
 	{ 186, 49.5 }, -- inside the hub SpawnLocation (12 x 12 at r 64, 202.5°)
 	{ 219, 49.5 },
@@ -94,14 +95,20 @@ local CONTROLS: { { number } } = {
 	{ 366, 68 },
 	{ 430, 68 },
 }
+-- Lead-in: from the slide mouth (WorldLayout.SLIDE_PATH end, r 35.5 on +Z) to ENTRY, tangent to the mouth's
+-- heading. The goo strip starts here so the lane starts exactly where the slide ends; slimes ride it in the
+-- air and land on ENTRY, so the walk (WAYPOINTS) is unchanged.
+ParadeLane.MOUTH = table.freeze({ 0, 35.5 })
+local LEAD_CONTROLS: { { number } } = { { 90, 35.5 }, { 124, 50 } }
 local STEP_DEGREES = 2.5
+local BEND_POINTS = math.ceil((CONTROLS[2][1] - CONTROLS[1][1]) / STEP_DEGREES) + 1 -- waypoints of the first control interval
 local TAIL: { { number } } = { { 9.5, 61.5 } } -- off r 68 towards the drain's outer (+Z) side
 
-local function build(): { { number } }
+local function polar(controls: { { number } }): { { number } }
 	local points: { { number } } = {}
-	for k = 1, #CONTROLS - 1 do
-		local a0, r0 = CONTROLS[k][1], CONTROLS[k][2]
-		local a1, r1 = CONTROLS[k + 1][1], CONTROLS[k + 1][2]
+	for k = 1, #controls - 1 do
+		local a0, r0 = controls[k][1], controls[k][2]
+		local a1, r1 = controls[k + 1][1], controls[k + 1][2]
 		local n = math.max(1, math.ceil((a1 - a0) / STEP_DEGREES))
 		for i = if k == 1 then 0 else 1, n do
 			local u = i / n
@@ -110,6 +117,11 @@ local function build(): { { number } }
 			table.insert(points, { math.cos(a) * r, math.sin(a) * r })
 		end
 	end
+	return points
+end
+
+local function build(): { { number } }
+	local points = polar(CONTROLS)
 	for _, p in TAIL do
 		table.insert(points, { p[1], p[2] })
 	end
@@ -123,6 +135,7 @@ local function build(): { { number } }
 	return points
 end
 
+local lead = polar(LEAD_CONTROLS)
 local points = build()
 local cumulative = { 0 }
 for i = 2, #points do
@@ -149,32 +162,119 @@ ParadeLane.EXIT = points[#points]
 
 -- Waypoints the goo strip is drawn through: the route simplified (Douglas-Peucker) so no waypoint
 -- is more than STRIP_TOLERANCE studs from the drawn polyline. Entry and exit are kept. { x, z }.
-local function simplify(lo: number, hi: number, keep: { boolean })
-	local ax, az = points[lo][1], points[lo][2]
-	local dx, dz = points[hi][1] - ax, points[hi][2] - az
+local function simplify(pts: { { number } }, lo: number, hi: number, keep: { boolean }, tolerance: number)
+	local ax, az = pts[lo][1], pts[lo][2]
+	local dx, dz = pts[hi][1] - ax, pts[hi][2] - az
 	local len = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
 	local worst, at = 0, 0
 	for i = lo + 1, hi - 1 do
-		local d = math.abs((points[i][1] - ax) * dz - (points[i][2] - az) * dx) / len
+		local d = math.abs((pts[i][1] - ax) * dz - (pts[i][2] - az) * dx) / len
 		if d > worst then
 			worst, at = d, i
 		end
 	end
-	if worst > ParadeLane.STRIP_TOLERANCE then
+	if worst > tolerance then
 		keep[at] = true
-		simplify(lo, at, keep)
-		simplify(at, hi, keep)
+		simplify(pts, lo, at, keep, tolerance)
+		simplify(pts, at, hi, keep, tolerance)
 	end
 end
 
 function ParadeLane.stripPoints(): { { number } }
-	local keep = { [1] = true, [#points] = true }
-	simplify(1, #points, keep)
+	-- ENTRY's bend out to r 68 (the first control interval) is drawn finer than the long r 68 run.
+	local bend = math.min(BEND_POINTS, #points - 1)
+	local keep = { [1] = true, [bend] = true, [#points] = true }
+	simplify(points, 1, bend, keep, ParadeLane.LEAD_TOLERANCE)
+	simplify(points, bend, #points, keep, ParadeLane.STRIP_TOLERANCE)
 	local out: { { number } } = {}
 	for i = 1, #points do
 		if keep[i] then
 			table.insert(out, points[i])
 		end
+	end
+	return out
+end
+
+-- Waypoints the whole goo strip is drawn through: the slide mouth, the lead-in to ENTRY, then stripPoints()
+-- (which starts at ENTRY). { x, z }.
+function ParadeLane.drawPoints(): { { number } }
+	local full: { { number } } = { ParadeLane.MOUTH }
+	for i = 2, #lead - 1 do
+		table.insert(full, lead[i])
+	end
+	local rest = ParadeLane.stripPoints()
+	local n = #full
+	for _, p in rest do
+		table.insert(full, p)
+	end
+	local keep = { [1] = true, [n + 1] = true, [#full] = true }
+	simplify(full, 1, n + 1, keep, ParadeLane.LEAD_TOLERANCE)
+	local out: { { number } } = {}
+	for i = 1, #full do
+		if keep[i] or i > n then
+			table.insert(out, full[i])
+		end
+	end
+	return out
+end
+
+-- The goo channel ParadeView lays: { name, size = {x, y, z}, cf = CFrame components, length, width }, one
+-- Cylinder per segment of drawPoints(), lying along the lane (its X axis). The cylinder is wide (CROWN_RADIUS)
+-- and sunk so only its crown shows: the top is LANE_Y on the centreline and falls away to the ground at +-HALF_WIDTH,
+-- a soft rounded edge with no step. Each piece is lengthened at a bend by HALF_WIDTH * tan(turn / 2) so the outer
+-- edge runs to the mitre point and neighbours meet with no gap; at the small angle steps of the route the two
+-- crowns coincide at the joint, so it does not show. `length` x `width` is the footprint on the ground.
+ParadeLane.CROWN_RADIUS = (ParadeLane.HALF_WIDTH ^ 2 + ParadeLane.LANE_Y ^ 2) / (2 * ParadeLane.LANE_Y)
+-- Every other piece stands STRIP_STEP higher: where two crowns overlap at a joint they would otherwise be the same
+-- surface twice and z-fight (bands across the lane); the higher one simply wins, a 0.02 step nobody can see.
+ParadeLane.STRIP_STEP = 0.02
+ParadeLane.COLOR = table.freeze({ 140, 222, 200 }) -- the slide's water
+function ParadeLane.strips(): { any }
+	local pts = ParadeLane.drawPoints()
+	local hw = ParadeLane.HALF_WIDTH
+	local count = #pts - 1
+	local ux, uz, len = {}, {}, {}
+	for i = 1, count do
+		local dx, dz = pts[i + 1][1] - pts[i][1], pts[i + 1][2] - pts[i][2]
+		len[i] = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
+		ux[i], uz[i] = dx / len[i], dz / len[i]
+	end
+	-- Extension of strip i at the vertex shared with strip j.
+	local function reach(i: number, j: number): number
+		if j < 1 or j > count then
+			return 0
+		end
+		local cos = math.clamp(ux[i] * ux[j] + uz[i] * uz[j], -1, 1)
+		return hw * math.tan(math.acos(cos) / 2)
+	end
+	local radius = ParadeLane.CROWN_RADIUS
+	local out = {}
+	for i = 1, count do
+		local ea, eb = reach(i, i - 1), reach(i, i + 1)
+		local shift = (eb - ea) / 2
+		local a, b = pts[i], pts[i + 1]
+		local dx, dz = ux[i], uz[i]
+		local length = len[i] + ea + eb
+		table.insert(out, {
+			name = `Lane{i}`,
+			size = { length, radius * 2, radius * 2 },
+			length = length,
+			width = hw * 2,
+			cf = {
+				(a[1] + b[1]) / 2 + dx * shift,
+				ParadeLane.LANE_Y - radius + (if i % 2 == 0 then ParadeLane.STRIP_STEP else 0),
+				(a[2] + b[2]) / 2 + dz * shift,
+				dx,
+				0,
+				-dz,
+				0,
+				1,
+				0,
+				dz,
+				0,
+				dx,
+			},
+		})
 	end
 	return out
 end

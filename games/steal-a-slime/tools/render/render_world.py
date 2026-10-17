@@ -189,9 +189,11 @@ def unit_mesh(kind):
         bpy.ops.mesh.primitive_cube_add(size=1)
     elif kind == "Cylinder":
         # Roblox cylinders run along local X (Blender X too).
-        bpy.ops.mesh.primitive_cylinder_add(vertices=48, radius=0.5, depth=1, rotation=(0, math.pi / 2, 0))
+        bpy.ops.mesh.primitive_cylinder_add(vertices=256, radius=0.5, depth=1, rotation=(0, math.pi / 2, 0))
         bpy.ops.object.transform_apply(rotation=True)
-        bpy.ops.object.shade_smooth()
+        # 256 flat sides read as smooth (Roblox cylinders are); smooth shading would blend the end caps
+        # into the side and band every wide, low piece such as the goo lane.
+        bpy.ops.object.shade_flat()
     else:
         bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=0.5)
         bpy.ops.object.shade_smooth()
@@ -515,7 +517,21 @@ VIEWS = {
     # v19 Rain Magnet (export --magnet): the magnet beside Plot_1's vat from inside the plot, and from above the gate
     "18_rain_magnet": lambda: look((data["magnet"][0] - 6, 8, data["magnet"][2] - 24), (data["magnet"][0] + 3, 4.5, data["magnet"][2]), lens=30) if data.get("magnet") else None,
     "19_rain_magnet_plot": lambda: look((data["magnet"][0] + 24, 40, data["magnet"][2] - 44), (data["magnet"][0] + 4, 2, data["magnet"][2] + 6), lens=30) if data.get("magnet") else None,
+    # slime path (lane + slide exit): overview, low (eye 4) at the slide exit, along the lane, at the landing ring
+    "20_slimepath_overview": lambda: look((0, 190, 150), (0, 0, 42), lens=32),
+    "21_slimepath_exit": lambda: look((-10, 4, 54), (0, 1.5, 36), lens=28),
+    "22_slimepath_along": lambda: slimepath_along(),
+    "23_slimepath_ring": lambda: look((46, 4, 56), (24, 2, 28), lens=28),
 }
+
+
+def slimepath_along():
+    lane = data["lane"]
+    a, b = data.get("laneStart") or lane[0], lane[min(6, len(lane) - 1)]
+    d = math.hypot(b[0] - a[0], b[1] - a[1]) or 1
+    ux, uz = (b[0] - a[0]) / d, (b[1] - a[1]) / d
+    look((a[0] - ux * 3, 4, a[1] - uz * 3), (a[0] + ux * 30, 1.5, a[1] + uz * 30), lens=30)
+
 
 os.makedirs(args.out, exist_ok=True)
 want = [v for v in args.views.split(",") if v]
