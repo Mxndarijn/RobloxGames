@@ -30,14 +30,19 @@
 	field changes: `mutations` / `mutation` keep their shape and old saves load unchanged.
 	v4 -> v5 (migrateV4): drops duplicate / empty / non-string entries from each slime's
 	`mutations` and rebuilds a missing or all-invalid list from `mutation`; pure, idempotent.
-	plotSkin (FEATURES.PlotSkins, CONTRACT.md §15) was added without a version bump, like `growth` and
-	`redeemed`: missing / unknown / not unlocked -> "classic" (SaveData.migratePlotSkin, run by deserialize).
-	stealLog (FEATURES.StealAlerts, CONTRACT.md §17) is also unversioned: a capped list of { thief, slime, at }; missing / junk -> empty.
+	plotSkin (FEATURES.PlotSkins, CONTRACT.md §15): missing / unknown / not unlocked -> "classic"
+	(SaveData.migratePlotSkin, run by deserialize). stealLog (FEATURES.StealAlerts, CONTRACT.md §17):
+	a capped list of { thief, slime, at }; missing / junk -> empty. Both were unversioned before v6.
+	v6 (current): v5 plus `settings = { musicVolume, sfxVolume, muted }` (AudioSettings, FEATURES.Audio) and
+	the two unversioned fields above are now versioned: v5 -> v6 (migrateV5) keeps a known plotSkin id and
+	cleans stealLog / settings, junk or missing -> classic / empty / defaults. Pure, idempotent and
+	independent of every feature flag: a flag that is off leaves its field stored, just unused.
 	Unknown/newer versions are read field-by-field with the v5 sanitizer (both
 	`mutations` and the legacy `mutation` are understood, nothing is dropped).
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local AudioSettings = if script then require(script.Parent.AudioSettings) else require("./AudioSettings")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
@@ -171,6 +176,24 @@ function SaveData.migrateV4(raw: { [string]: any }): { [string]: any }
 	return out
 end
 
+-- v5 -> v6. Pure copy, idempotent, flag-independent. Normalises the three fields that were added
+-- without a version: plotSkin (a known skin id is kept, anything else -> "classic"; whether it is
+-- unlocked is decided on load), stealLog (StealAlert.clean) and settings (AudioSettings.clean,
+-- missing -> defaults).
+function SaveData.migrateV5(raw: { [string]: any }): { [string]: any }
+	local out = table.clone(raw)
+	local from = tonumber(raw.version)
+	if from == nil or from ~= from then
+		from = 0
+	end
+	out.migratedFrom = raw.migratedFrom or from
+	out.plotSkin = if PlotSkins.get(raw.plotSkin) then raw.plotSkin else Config.PLOT_SKIN_DEFAULT
+	out.stealLog = StealAlert.clean(raw.stealLog)
+	out.settings = AudioSettings.clean(raw.settings)
+	out.version = 6
+	return out
+end
+
 -- Equipped plot skin of a stored profile: the saved id when it is a known skin the player has
 -- unlocked in `data` (so the dex must already be loaded), else "classic". Pure.
 function SaveData.migratePlotSkin(raw: any, data: Data): string
@@ -181,7 +204,7 @@ function SaveData.migratePlotSkin(raw: any, data: Data): string
 	return Config.PLOT_SKIN_DEFAULT
 end
 
--- Returns a v5-shaped raw table (still untrusted) from any stored value. Saves
+-- Returns a v6-shaped raw table (still untrusted) from any stored value. Saves
 -- from a newer version than we know are returned as they are.
 -- Daily quests: keeps only slots whose pool id still exists (a rolled day with none left re-rolls).
 function SaveData.cleanQuests(raw: any): PlayerData.DailyQuests
@@ -217,15 +240,18 @@ function SaveData.migrate(raw: any): { [string]: any }?
 	local version = tonumber(raw.version)
 	if version == nil then
 		if raw.Cash ~= nil or raw.Slimes ~= nil or raw.Rebirths ~= nil then
-			return SaveData.migrateV4(SaveData.migrateV3(SaveData.migrateV1(raw)))
+			return SaveData.migrateV5(SaveData.migrateV4(SaveData.migrateV3(SaveData.migrateV1(raw))))
 		end
 		return nil
 	end
 	if version < 4 then
-		return SaveData.migrateV4(SaveData.migrateV3(raw))
+		return SaveData.migrateV5(SaveData.migrateV4(SaveData.migrateV3(raw)))
 	end
 	if version < 5 then
-		return SaveData.migrateV4(raw)
+		return SaveData.migrateV5(SaveData.migrateV4(raw))
+	end
+	if version < 6 then
+		return SaveData.migrateV5(raw)
 	end
 	return raw
 end
@@ -341,7 +367,8 @@ function SaveData.deserialize(stored: any): Data
 	data.quests = SaveData.cleanQuests(raw.quests) -- daily quests (no version bump: missing -> nothing rolled)
 	data.dexRewards = num(raw.dexRewards, 0, 0, #Config.DEX_MILESTONES)
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
-	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (no version bump: missing -> empty)
+	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
+	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
 	if type(raw.redeemed) == "table" then
@@ -434,6 +461,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		quests = SaveData.cleanQuests(data.quests),
 		plotSkin = data.plotSkin,
 		stealLog = StealAlert.clean(data.stealLog),
+		settings = AudioSettings.clean(data.settings),
 		redeemed = redeemed,
 		boost = { mult = data.boostMult, untilAt = math.floor(data.boostUntil) },
 		consumables = { slot = data.consumables.slot, bought = table.clone(data.consumables.bought) },

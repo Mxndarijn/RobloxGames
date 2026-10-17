@@ -978,7 +978,7 @@ local Config = {
 	}),
 
 	-- Persistence
-	SAVE_VERSION = 5, -- CONTRACT.md §8.9 (v4: slime.mutations list, SaveData.migrateV3; v5: weather mutations Wet/Frozen, SaveData.migrateV4)
+	SAVE_VERSION = 6, -- CONTRACT.md §8.9 (v4: slime.mutations list, SaveData.migrateV3; v5: weather mutations Wet/Frozen, SaveData.migrateV4; v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
 	MAX_SLIMES_SAVED = 64,

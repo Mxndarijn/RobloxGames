@@ -6,8 +6,8 @@
 	"SFX" and "Music" under SoundService, plays registry sounds through them and
 	crossfades a day (birds) / night (crickets) loop from Lighting.ClockTime.
 	Settings (mute, SFX / music volume) live in LocalPlayer attributes AudioMuted /
-	AudioSfxVolume / AudioMusicVolume: the save schema has no settings field and
-	adding one needs a SAVE_VERSION bump, so they last for the session only.
+	AudioSfxVolume / AudioMusicVolume. They are saved server-side (save v6 `settings`):
+	`load` applies State.settings once on join, the UI sends changes (SetAudioSettings).
 
 	SoundController.play(name) is static: it returns false when no controller is
 	active (flag off or not built yet) so callers keep their legacy sound path.
@@ -71,6 +71,17 @@ function SoundController.new(config: any, player: Player, dayNight: any)
 			if kind == "sfx" then "AudioSfxVolume" else "AudioMusicVolume",
 			AudioLogic.clampVolume(v, 0)
 		)
+	end
+	-- Applies the saved values (State.settings, already clean on the server) to the attributes.
+	function self.load(saved: any)
+		local s = AudioLogic.sanitize({
+			muted = saved.muted,
+			sfx = saved.sfxVolume,
+			music = saved.musicVolume,
+		}, cfg)
+		player:SetAttribute("AudioMuted", s.muted)
+		player:SetAttribute("AudioSfxVolume", s.sfx)
+		player:SetAttribute("AudioMusicVolume", s.music)
 	end
 	function self.settings()
 		return settings()

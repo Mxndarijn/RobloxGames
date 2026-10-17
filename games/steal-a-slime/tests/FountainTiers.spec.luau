@@ -283,7 +283,7 @@ describe("FountainTiers: saves", function()
 		expect(clean.tier).toBe(3)
 	end)
 	it("the save version is unchanged: no new saved field", function()
-		expect(Config.SAVE_VERSION).toBe(5)
+		expect(Config.SAVE_VERSION).toBe(6)
 	end)
 end)
 

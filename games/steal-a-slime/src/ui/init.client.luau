@@ -922,9 +922,55 @@ if isStudio then
 	end
 end
 
+-- FEATURES.Audio: the saved Sound card values are applied once on join; later slider / mute changes
+-- go back to the server after SETTINGS_SEND_DELAY (> the 0.5 s rate limit) without a new change.
+local SETTINGS_SEND_DELAY = 0.6
+local settingsLoaded = false
+local settingsSent = nil
+local settingsToken = 0
+local function currentSettings(): any
+	local s = soundController.settings()
+	return { musicVolume = s.music, sfxVolume = s.sfx, muted = s.muted }
+end
+local function sameSettings(a: any, b: any): boolean
+	return a ~= nil
+		and b ~= nil
+		and a.musicVolume == b.musicVolume
+		and a.sfxVolume == b.sfxVolume
+		and a.muted == b.muted
+end
+local function queueSettingsSend()
+	settingsToken += 1
+	local token = settingsToken
+	task.delay(SETTINGS_SEND_DELAY, function()
+		local now = currentSettings()
+		if token ~= settingsToken or sameSettings(now, settingsSent) then
+			return
+		end
+		settingsSent = now
+		send("SetAudioSettings", now.musicVolume, now.sfxVolume, now.muted)
+	end)
+end
+if soundController then
+	for _, attr in { "AudioMuted", "AudioSfxVolume", "AudioMusicVolume" } do
+		player:GetAttributeChangedSignal(attr):Connect(function()
+			if settingsLoaded then
+				queueSettingsSend()
+			end
+		end)
+	end
+end
+
 stateEvent.OnClientEvent:Connect(function(state: Types.State)
 	if type(state) ~= "table" then
 		return
+	end
+	if soundController and not settingsLoaded and type(state.settings) == "table" then
+		soundController.load(state.settings)
+		settingsSent = currentSettings()
+		task.defer(function()
+			settingsLoaded = true
+		end)
 	end
 	latest = state
 	if type(state.serverTime) == "number" then

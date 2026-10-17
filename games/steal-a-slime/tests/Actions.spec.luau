@@ -44,7 +44,7 @@ describe("Actions.handle guards", function()
 		for action, def in Remotes.ACTIONS do
 			local args = {}
 			for i, kind in def.args do
-				args[i] = if kind == "number" then 1 else "id-1"
+				args[i] = if kind == "number" then 1 elseif kind == "boolean" then true else "id-1"
 			end
 			expect((Actions.parseArgs(action, args)) ~= nil).toBeTruthy()
 		end

@@ -13,6 +13,7 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
 local Appraise = if Shared then require(Shared.Appraise) else require("../shared/Appraise")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
@@ -44,6 +45,7 @@ export type Context = {
 	distanceBetween: (a: number, b: number) -> number,
 	positionOf: (userId: number) -> any?,
 	rng: Rng.Rng?, -- Appraise rolls; nil = seeded from the clock and the player
+	audio: boolean?, -- FEATURES.Audio override (tests); nil = Config.FEATURES.Audio
 	plotSkins: boolean?, -- FEATURES.PlotSkins override (tests); nil = Config.FEATURES.PlotSkins
 	mergeVat3: boolean?, -- FEATURES.MergeVat3 override (tests); nil = Config.FEATURES.MergeVat3
 	requestWeather: ((id: string) -> boolean)?, -- Weather Totem: makes `id` the next weather (nil = no Weather service)
@@ -89,6 +91,11 @@ function Actions.parseArgs(action: string, raw: { any }): ({ any }?, string?)
 		elseif kind == "code" then
 			-- Free text: only bounded here; Codes.normalize words the result.
 			if type(value) ~= "string" or #value > 64 then
+				return nil, "bad argument"
+			end
+			out[i] = value
+		elseif kind == "boolean" then
+			if type(value) ~= "boolean" then
 				return nil, "bad argument"
 			end
 			out[i] = value
@@ -230,6 +237,18 @@ local function equipPlotSkin(world: World, session: Session, id: string, ctx: Co
 	return OK
 end
 
+local function setAudioSettings(session: Session, music: number, sfx: number, muted: boolean, ctx: Context): Result
+	local on = ctx.audio
+	if on == nil then
+		on = Config.FEATURES.Audio
+	end
+	if not on then
+		return fail("audio settings are off")
+	end
+	session.data.settings = AudioSettings.clean({ musicVolume = music, sfxVolume = sfx, muted = muted })
+	return OK
+end
+
 local function appraise(world: World, session: Session, id: string, kind: string, now: number, ctx: Context): Result
 	if not Config.FEATURES.Appraise then
 		return fail("appraise is off")
@@ -309,6 +328,8 @@ local function dispatch(
 		return buyUpgrade(world, session, args[1])
 	elseif action == "EquipPlotSkin" then
 		return equipPlotSkin(world, session, args[1], ctx)
+	elseif action == "SetAudioSettings" then
+		return setAudioSettings(session, args[1], args[2], args[3], ctx)
 	elseif action == "Appraise" then
 		return appraise(world, session, args[1], args[2], now, ctx)
 	elseif action == "BuyConsumable" then
