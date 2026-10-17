@@ -13,6 +13,7 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local Appraise = if Shared then require(Shared.Appraise) else require("../shared/Appraise")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
+local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Weekend = if Shared then require(Shared.Weekend) else require("../shared/Weekend")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
@@ -120,6 +121,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		codes = Codes.view(data),
 		shop = Shop.view(data),
 		egg = MysteryEgg.view(data, session.egg),
+		consumables = Consumables.view(data, now, Config.FEATURES.Weather, world.potionUntil),
 		tutorialStep = TutorialProgress.current(data),
 		walkSpeed = Shop.walkSpeed(data),
 		tutorialStepId = TutorialProgress.currentId(data),
