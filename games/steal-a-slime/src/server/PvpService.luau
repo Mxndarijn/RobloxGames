@@ -57,6 +57,12 @@ local clock: () -> number = os.time
 -- Everything PvP puts in Workspace is tracked here and destroyed by `cleanup` (CONTRACT.md §26.1, zero net parts).
 local spawned: { [Session]: { any } } = setmetatable({}, { __mode = "k" }) :: any
 
+-- PvP lines that watch the per-player tick (the Fun line's Bounce Pad). nil = none.
+local tickListener: ((session: Session, position: any, now: number) -> ())? = nil
+function PvpService.setTickListener(listener: ((session: Session, position: any, now: number) -> ())?)
+	tickListener = listener
+end
+
 -- Wires the PvpEvent firing (and the server clock for `serverTime`). nil = fire nothing (Lune tests capture).
 function PvpService.setSink(newSink: Sink?, newClock: (() -> number)?)
 	sink = newSink
@@ -336,6 +342,9 @@ function PvpService.tick(session: Session, position: any, now: number)
 	local extra = extras[session]
 	if not extra then
 		return
+	end
+	if tickListener then
+		tickListener(session, position, now)
 	end
 	local shield = PvpService.shieldUntil(session, now)
 	if extra.shieldSent ~= (shield or false) then

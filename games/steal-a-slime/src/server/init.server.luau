@@ -51,6 +51,7 @@ local ParadeView = require(script.ParadeView)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
 local Profiler = require(script.Profiler)
+local PvpFun = require(script.PvpFun)
 local PvpKnockback = require(script.PvpKnockback)
 local PvpKnockbackRules = require(Shared:WaitForChild("PvpKnockbackRules"))
 local PvpService = require(script.PvpService)
@@ -627,6 +628,33 @@ local friendCache = Friends.new(function(a: number, b: number): boolean
 	end
 	return player:IsFriendsWith(other)
 end)
+
+-- Fun items (FEATURES.PvP): the server only launches / checks; the look is client FX from PvpEvent.
+PvpFun.setEnv({
+	launcher = function(userId: number, push): boolean
+		local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
+		if not root then
+			return false
+		end
+		local v = PvpKnockbackRules.velocity(push, workspace.Gravity)
+		root.AssemblyLinearVelocity = Vector3.new(v.X, v.Y, v.Z)
+		return true
+	end,
+	onOwnPlot = function(session: World.Session, position): boolean
+		local plot = WorldView.plot(session.plotIndex)
+		local zone = plot and plot:FindFirstChild(Constants.HOME_ZONE)
+		if not zone or not zone:IsA("BasePart") then
+			return false
+		end
+		local p = zone.CFrame:PointToObjectSpace(Vector3.new(position.X, position.Y, position.Z))
+		local half = zone.Size / 2
+		return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= half.Y + 8
+	end,
+	areFriends = function(a: number, b: number, at: number): boolean
+		return Friends.areFriends(friendCache, a, b, at)
+	end,
+})
+PvpFun.register()
 
 local function refreshFriends()
 	if Config.FEATURES.FriendBonus ~= true then
