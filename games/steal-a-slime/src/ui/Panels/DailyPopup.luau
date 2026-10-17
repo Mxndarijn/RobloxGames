@@ -81,33 +81,68 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		Position = UDim2.fromOffset(0, 46),
 	})
 
+	-- 7-day calendar: one reward tile per streak day, the last (cap) day wider.
+	local TILE_H, TILE_GAP, LAST_WEIGHT = 66, 4, 1.6
+	local weightSum = (cap - 1) + LAST_WEIGHT
 	local track = create("Frame", {
 		Name = "Track",
 		BackgroundTransparency = 1,
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 76),
-		Size = UDim2.new(1, -32, 0, 48),
+		Position = UDim2.new(0.5, 0, 0, 72),
+		Size = UDim2.new(1, -24, 0, TILE_H),
 		ZIndex = 22,
 		Parent = card,
-	}, { Widgets.list(Enum.FillDirection.Horizontal, 6, Enum.HorizontalAlignment.Center) })
-	local cells: { TextLabel } = {}
+	}, { Widgets.list(Enum.FillDirection.Horizontal, TILE_GAP, Enum.HorizontalAlignment.Center) })
+	local cells: { Frame } = {}
+	local dayLabels: { TextLabel } = {}
+	local dayAmounts: { TextLabel } = {}
 	for day = 1, cap do
-		local cell = Widgets.label({
+		local weight = if day == cap then LAST_WEIGHT else 1
+		local cell = create("Frame", {
 			Name = `Day{day}`,
 			LayoutOrder = day,
-			Text = `Day\n{day}`,
-			Font = Theme.Font,
-			TextSize = 13,
-			TextWrapped = true,
-			TextTruncate = Enum.TextTruncate.None,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			BackgroundTransparency = 0,
 			BackgroundColor3 = Theme.BgLight,
-			Size = UDim2.fromOffset(46, 46),
+			Size = UDim2.new(weight / weightSum, -TILE_GAP, 1, 0),
 			ZIndex = 23,
 			Parent = track,
+		}, { Widgets.corner(8) })
+		dayLabels[day] = Widgets.label({
+			Name = "DayLabel",
+			Text = `Day {day}`,
+			Font = Theme.Font,
+			TextSize = if day == cap then 12 else 10,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.new(1, 0, 0, 14),
+			Position = UDim2.fromOffset(0, 3),
+			ZIndex = 24,
+			Parent = cell,
 		})
-		Widgets.corner(8).Parent = cell
+		local iconSize = if day == cap then 30 else 22
+		ItemIconView.new({
+			Name = `Day{day}Icon`,
+			Id = "Cash",
+			Size = iconSize,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 18),
+			ZIndex = 24,
+			Parent = cell,
+		}, ItemIcons.of(ctx)).setActive(true)
+		local amountLabel = Widgets.label({
+			Name = "DayAmount",
+			Font = Theme.Font,
+			TextSize = 11,
+			TextScaled = true,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			Size = UDim2.new(1, -4, 0, 14),
+			Position = UDim2.new(0, 2, 1, -17),
+			ZIndex = 24,
+			Parent = cell,
+		})
+		create(
+			"UITextSizeConstraint",
+			{ MinTextSize = 8, MaxTextSize = if day == cap then 14 else 11, Parent = amountLabel }
+		)
+		dayAmounts[day] = amountLabel
 		cells[day] = cell
 	end
 
@@ -117,13 +152,13 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		TextSize = 36,
 		TextColor3 = Theme.Gold,
 		Size = UDim2.new(1, 0, 0, 44),
-		Position = UDim2.fromOffset(0, 136),
+		Position = UDim2.fromOffset(0, 146),
 	})
 	ItemIconView.new({
 		Name = "CashIcon",
 		Id = "Cash",
 		Size = 36,
-		Position = UDim2.fromOffset(16, 140),
+		Position = UDim2.fromOffset(16, 150),
 		ZIndex = 22,
 		Parent = card,
 	}, ItemIcons.of(ctx)).setActive(true)
@@ -132,7 +167,7 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		TextSize = 13,
 		TextColor3 = Theme.Muted,
 		Size = UDim2.new(1, 0, 0, 18),
-		Position = UDim2.fromOffset(0, 182),
+		Position = UDim2.fromOffset(0, 192),
 		Text = "Come back every day to grow your streak.",
 	})
 
@@ -201,12 +236,20 @@ function DailyPopup.new(parent: Instance, ctx: any)
 			return
 		end
 		local available = daily.available == true
-		local day = Daily.dayOf(daily, ctx.Config.DAILY_BASE or 0, state.rebirthMultiplier or 1, cap)
+		local base: number = ctx.Config.DAILY_BASE or 0
+		local mult: number = state.rebirthMultiplier or 1
+		local day = Daily.dayOf(daily, base, mult, cap)
 		for _, c in Daily.track(day, cap, available) do
 			local cell = cells[c.day]
 			if cell then
+				local dim = c.state == "upcoming"
+				local ink = if dim then Theme.Muted else Color3.fromRGB(30, 30, 40)
 				cell.BackgroundColor3 = CELL_COLORS[c.state]
-				cell.TextColor3 = if c.state == "upcoming" then Theme.Muted else Color3.fromRGB(30, 30, 40)
+				cell.BackgroundTransparency = if dim then 0.35 else 0
+				dayLabels[c.day].Text = if c.state == "claimed" then "\u{2705}" else `Day {c.day}`
+				dayLabels[c.day].TextColor3 = ink
+				dayAmounts[c.day].Text = Format.formatCash(Daily.reward(c.day, base, mult))
+				dayAmounts[c.day].TextColor3 = ink
 			end
 		end
 		streakLine.Text = if available

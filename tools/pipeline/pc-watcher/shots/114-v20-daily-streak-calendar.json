@@ -1,0 +1,7 @@
+{
+  "id": "v20-daily-streak-calendar",
+  "todo": "v20-streak-calendar",
+  "kind": "ui",
+  "daily_popup": true,
+  "note": "v20: Daily popup with the 7-day streak calendar (reward tiles, ticks on claimed days, today highlighted, day 7 wider)"
+}
