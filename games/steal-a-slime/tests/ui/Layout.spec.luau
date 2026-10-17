@@ -143,3 +143,38 @@ describe("root UIScale", function()
 		expect(string.find(src, 'GetPropertyChangedSignal("AbsoluteSize")', 1, true) ~= nil).toBe(true)
 	end)
 end)
+
+describe("Layout.screen tutorial card on short screens", function()
+	local function px(r: Layout.Rect, scale: number)
+		return r.y * scale, (r.y + r.h) * scale
+	end
+	it("844x390 sits at the bottom, clear of the banner stack and toast column", function()
+		local s = Layout.screen(844, 390)
+		expect(s.short).toBe(true)
+		for _, r in { s.tutorial, s.tutorialCarrying } do
+			local top, bottom = px(r, s.scale)
+			expect(top >= 276).toBe(true)
+			expect(bottom <= 390).toBe(true)
+			expect(bottom >= 390 - Layout.TUTORIAL_SHORT_MARGIN - 1).toBe(true)
+		end
+	end)
+	it("carrying: the card sits beside the carry card, not over it", function()
+		local s = Layout.screen(844, 390)
+		expect(Layout.overlaps(s.tutorialCarrying, s.carry)).toBe(false)
+		expect(Layout.fitsInViewport(s.tutorialCarrying, s.width, s.height)).toBe(true)
+	end)
+	it("portrait phone and desktop keep the card above the bottom inset", function()
+		for _, v in { { 390, 844 }, { 1920, 1080 } } do
+			local s = Layout.screen(v[1], v[2])
+			expect(s.short).toBe(false)
+			expect(s.tutorial.y + s.tutorial.h).toBe(s.height - s.bottomInset)
+			expect(s.tutorialCarrying.y + s.tutorialCarrying.h + Layout.GAP).toBe(s.carry.y)
+		end
+		local d = Layout.screen(1920, 1080)
+		expect(d.tutorial.y).toBe(927)
+		expect(d.tutorialCarrying.y).toBe(819)
+		local p = Layout.screen(390, 844)
+		expect(p.tutorial.y).toBe(813)
+		expect(p.tutorialCarrying.y).toBe(705)
+	end)
+end)
