@@ -28,6 +28,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
+local VatDecor = require(ReplicatedStorage.Visuals.VatDecor)
 
 local MeshSwap = {}
 
@@ -246,35 +247,47 @@ function MeshSwap.publishFountainTierTemplates(): number
 	return count
 end
 
--- FEATURES.MergeVat3: the merge vat mesh as a template in ReplicatedStorage.MergeVatMeshes (named by mesh,
--- native size); the client stands a clone over the owner's plot vat (VatFx), so it takes no WorldLayout slot.
--- Also published in Studio so the pc-watcher shots can force the look with the flag off. Yields.
-function MeshSwap.publishVatTemplates(): number
-	if not (Config.FEATURES.MergeVat3 or RunService:IsStudio()) then
+-- Bug #16: every plot's MergeVat disc wears the merge_vat model (1 MeshPart per plot, child "VatMesh" of the disc),
+-- independent of FEATURES.MergeVat3 (the 3-slime gameplay stays behind its flag; only the look changes). The disc
+-- keeps its name, position, collision and MergePrompt; it and its Goo are only made invisible, and only once the
+-- mesh is placed (template not loaded = the cylinder stays). Idempotent. Yields; returns how many vats got the model.
+local VAT_MESH_NAME = "VatMesh"
+function MeshSwap.swapPlotVats(): number
+	local plots = workspace:FindFirstChild("Plots")
+	if not plots then
 		return 0
 	end
-	local folder = ReplicatedStorage:FindFirstChild("MergeVatMeshes")
-	if not folder then
-		folder = Instance.new("Folder")
-		folder.Name = "MergeVatMeshes"
-		folder.Parent = ReplicatedStorage
-	end
-	local name = "merge_vat"
+	local name = VatDecor.MESH
 	local meshId = MeshAssets.meshId(name)
-	local entry = MeshAssets.get(name)
 	local base = meshId and template(meshId)
-	if entry and entry.size and base and not (folder :: Folder):FindFirstChild(name) then
-		local mesh = base:Clone()
-		mesh.Name = name
-		mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
-		mesh.Anchored = true
-		mesh.CanCollide = false
-		mesh.CanQuery = false
-		mesh.CanTouch = false
-		mesh.Parent = folder
-		return 1
+	if not base then
+		return 0
 	end
-	return 0
+	local count = 0
+	for _, plot in plots:GetChildren() do
+		local vat = plot:FindFirstChild("MergeVat")
+		if vat and vat:IsA("BasePart") and not vat:FindFirstChild(VAT_MESH_NAME) then
+			local pose = VatDecor.pose(vat.Position.X, vat.Position.Y, vat.Position.Z)
+			local plotBase = plot:FindFirstChild("Base")
+			local turn = if plotBase and plotBase:IsA("BasePart") then plotBase.CFrame.Rotation else CFrame.new()
+			local mesh = base:Clone()
+			mesh.Name = VAT_MESH_NAME
+			mesh.Size = Vector3.new(pose.size[1], pose.size[2], pose.size[3])
+			mesh.CFrame = CFrame.new(pose.position[1], pose.position[2], pose.position[3]) * turn
+			mesh.Anchored = true
+			mesh.CanCollide = false
+			mesh.CanQuery = false
+			mesh.CanTouch = false
+			mesh.Parent = vat
+			hide(vat)
+			local goo = vat:FindFirstChild("Goo")
+			if goo and goo:IsA("BasePart") then
+				hide(goo)
+			end
+			count += 1
+		end
+	end
+	return count
 end
 
 -- FEATURES.RainMagnet: the rain_magnet mesh as a template in ReplicatedStorage.RainMagnetMeshes (named by mesh,
