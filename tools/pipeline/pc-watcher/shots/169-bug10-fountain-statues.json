@@ -12,7 +12,7 @@
     "luau": "bug10_fountain_statues",
     "ctx": "Server",
     "args": {},
-    "timeout": 30
+    "timeout": 40
   },
-  "note": "bug 10 (advisory, shot 3): balls dropped on the fountain-top slime statues (EmergeMesh) must not end inside their bounding boxes"
+  "note": "bug 10 (advisory, #252): R15 dummies and balls dropped on the fountain-top slime stack end outside its box or standing on its top, and a dummy jumping at it from 10 studs does not snag"
 }

@@ -278,8 +278,14 @@ def t_files():
     check("a slide_walk shot proves nobody falls through the slide, top to bottom",
           len(walks) == 1 and walks[0].get("target") == "slide" and walks[0].get("todo") == "B6", walks)
     sw = open(os.path.join(HERE, "luau", "slide_walk.luau"), encoding="utf-8").read()
-    check("slide_walk is dense (joins, k=1.0, launched balls, no self-collision) and counts joint fillers",
-          all(x in sw for x in ("0.98, 1 }", "AssemblyLinearVelocity", "SlideJoint", "escaped(")), None)
+    check("slide_walk checks the solid slide block: enter / climb (HARD) and stand / ride / reach (soft)",
+          all(x in sw for x in ("cannot_enter", "cannot_climb", "cannot_stand_on", "slimes_still_ride", "bottom_reachable", "SlideFill", "soft_failed", "violations")), None)
+    check("slide_walk's HARD ok is only cannot_enter and cannot_climb",
+          'name == "cannot_enter" or name == "cannot_climb"' in sw and "ok = #violations == 0" in sw)
+    def shared_body(path):
+        t = open(os.path.join(HERE, "luau", path), encoding="utf-8").read()
+        return t.split("-- ==== shared slide probe body", 1)[1].split("-- ==== end of shared body ====")[0]
+    check("bug09_slide_stand shares slide_walk's probe body", shared_body("slide_walk.luau") == shared_body("bug09_slide_stand.luau"))
     check("a failing slide_walk fails the run (hard), not just warns",
           'return "fail", {"captured": done, "total": len(shots), "shots": results, "slide_walk_failed": True}'
           in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read())
@@ -841,13 +847,28 @@ def t_bugs():
     other = [r for r in rules if r["name"] != "bug probes"]
     check("shot-map: every bug shot is also selected by a source-area rule", all(any(watcher.shot_selected_by(s, r) for r in other) for s in probes),
           [s["id"] for s in probes if not any(watcher.shot_selected_by(s, r) for r in other)])
+    expect = {"bug08_lock_enter": ("owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck", "enforceLocks", "LoadCharacter"),
+              "bug09_slide_stand": ("cannot_enter", "cannot_climb", "cannot_stand_on", "slimes_still_ride", "bottom_reachable"),
+              "bug10_fountain_statues": ("pushed_out_or_on_top", "jump_no_snag"),
+              "bug11_collision_fidelity": ("CreateMeshPartAsync", "PreciseConvexDecomposition", "Hull", "parts_saved", "colliders", "mesh_pcd", "mesh_hull")}
+    for name, words in expect.items():
+        src = open(os.path.join(HERE, "luau", name + ".luau"), encoding="utf-8").read()
+        check("%s has its checks (%s...)" % (name, words[0]), all(w in src for w in words), [w for w in words if w not in src])
+        check("%s %s and restores" % (name, "lists every check as PASS / FAIL / n/a" if name != "bug11_collision_fidelity" else "reports the comparison in its summary"),
+              (all(w in src for w in ('"PASS"', '"FAIL"', '"n/a"')) or name == "bug11_collision_fidelity") and "pcall" in src and "Destroy" in src)
+    check("bug 11 is informational (ok nil)", "ok = nil," in open(os.path.join(HERE, "luau", "bug11_collision_fidelity.luau"), encoding="utf-8").read())
     G = "games/steal-a-slime/src/"
-    for path, wanted in ((G + "visuals/shared/RareSpawn.luau", 12), (G + "shared/ParadeLane.luau", 4), (G + "server/Spawner.luau", 5),
+    for path, wanted in ((G + "server/PlotLockGuard.luau", 8), (G + "server/WorldView.luau", 8), (G + "server/MeshSwap.luau", 10),
+                         (G + "shared/MeshAssets.luau", 11), (G + "shared/MeshAssets.luau", 9), (G + "server/MeshSwap.luau", 9),
+                         (G + "visuals/shared/RareSpawn.luau", 12), (G + "shared/ParadeLane.luau", 4), (G + "server/Spawner.luau", 5),
                          (G + "shared/SlideColliders.luau", 9), (G + "server/FountainColliders.luau", 10),
                          (G + "server/PlotSigns.luau", 8), (G + "visuals/client/VatFx.luau", 16), (G + "visuals/shared/BorderTerrain.luau", 14)):
         picked = watcher.plan_run([path], shots, smap, 60)["shots"]
         sid = next(s["id"] for s in probes if s["bug_probe"]["bug"] == wanted)
         check("plan %s picks bug %d" % (path.rsplit("/", 1)[1], wanted), sid in picked, picked[:5])
+    slide_sid = next(x["id"] for x in shots if x.get("slide_walk"))
+    for path in (G + "shared/SlideColliders.luau", G + "server/FountainColliders.luau", G + "server/MeshSwap.luau", G + "shared/MeshAssets.luau"):
+        check("plan %s picks the slide_walk shot" % path.rsplit("/", 1)[1], slide_sid in watcher.plan_run([path], shots, smap, 60)["shots"])
     # advisory: a failing / erroring probe is a note and a report entry, never an exception or a step failure
     run = watcher.Run(watcher.Paths(tempfile.mkdtemp()), dict(watcher.DEFAULTS), None, True)
     shot = {"bug_probe": {"bug": 99, "title": "t", "luau": "bug04_lane_smooth", "ctx": "Server"}}
