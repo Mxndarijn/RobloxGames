@@ -381,9 +381,15 @@ describe("Bounce Pad", function()
 			expect(#launches).toBe(2)
 			expect(launches[2].userId).toBe(2)
 			expect(launches[2].push.X).toBe(0)
-			local e = effects()[1]
+			local all = effects()
+			expect(#all).toBe(2) -- the owner's own bounce, then the thief's
+			expect(all[1].target).toBe(1)
+			expect(all[1].velocity.Y > 0 and all[1].velocity.X == 0).toBe(true)
+			local e = all[2]
 			expect(e.effect).toBe("Bounce")
+			expect(e.target).toBe(2)
 			expect(e.duration).toBe(1.2)
+			expect(e.velocity.Y > 0).toBe(true)
 			expect((PvpService.state(b) :: any).controlUntil).toBe(T0 + 4 + 1.2)
 			PvpFun.tick(b, HERE, T0 + 5)
 			expect(#launches).toBe(2)

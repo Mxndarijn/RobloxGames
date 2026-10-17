@@ -30,6 +30,16 @@ Sounds.IDS = table.freeze({
 	Goal = "rbxassetid://12222140",
 	-- Secret spawn announcement; stand-in reusing the Rebirth fanfare.
 	Secret = "rbxassetid://12222225",
+	-- v22 PvP feel (FEATURES.PvP, docs/PVP.md): Roblox-created public-domain library sounds.
+	PvpHit = "rbxassetid://12222046", -- hit.wav
+	PvpCollide = "rbxassetid://12221984", -- collide.wav
+	PvpGoo = "rbxassetid://12222152", -- splat.wav
+	PvpSquirt = "rbxassetid://12222103", -- Rubber band sling shot.wav
+	PvpBoing = "rbxassetid://12222124", -- Short spring sound.wav
+	PvpPop = "rbxassetid://12221996", -- flashbulb.wav
+	PvpSqueak = "rbxassetid://12221990", -- electronicpingshort.wav
+	PvpFirework = "rbxassetid://12222065", -- Launching rocket.wav
+	PvpBubble = "rbxassetid://12222054", -- Kerplunk.wav
 })
 
 -- "Alarm" -> its asset id; raw "rbxassetid://123" passes through; anything

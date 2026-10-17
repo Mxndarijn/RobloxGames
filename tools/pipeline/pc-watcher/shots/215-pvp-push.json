@@ -1,0 +1,24 @@
+{
+  "id": "pvp-push",
+  "todo": "PvP feel",
+  "kind": "world",
+  "target": "FountainMesh",
+  "from": "front",
+  "dist": 70,
+  "height": 30,
+  "bug_probe": {
+    "bug": "PVP1",
+    "title": "Knockback gloves push 1.0 s displacement (KnockGlove1, KnockGlove5)",
+    "luau": "pvp_feel",
+    "ctx": "Server",
+    "args": {
+      "PART": "push"
+    },
+    "timeout": 30
+  },
+  "note": "PvP feel probe (advisory, CONTRACT.md \u00a726): luau/pvp_feel PART=push on R15 dummies on a private platform; emulates the mover / WalkSpeed enforcement, uses the real Pvp*Rules; runs under PcwFlag_PvP (flags field), the probe reports flag_on",
+  "flags": {
+    "PvP": true
+  },
+  "device": "desktop"
+}

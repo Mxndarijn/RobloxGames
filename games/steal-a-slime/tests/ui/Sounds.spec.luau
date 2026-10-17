@@ -22,6 +22,15 @@ local CONTRACT_NAMES = {
 	"Rare", -- v13, §8.6
 	"Goal",
 	"Secret", -- v28 Secret spawn announcement
+	"PvpHit", -- v22 PvP feel (docs/PVP.md)
+	"PvpCollide",
+	"PvpGoo",
+	"PvpSquirt",
+	"PvpBoing",
+	"PvpPop",
+	"PvpSqueak",
+	"PvpFirework",
+	"PvpBubble",
 }
 
 describe("Sounds.resolve", function()

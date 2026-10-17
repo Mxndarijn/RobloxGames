@@ -79,6 +79,10 @@ local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
 local stateEvent = Remotes.get(Constants.STATE) :: RemoteEvent
 local notifyEvent = Remotes.get(Constants.NOTIFY) :: RemoteEvent
 local leaderboardEvent = Remotes.get("Leaderboard") :: RemoteEvent
+-- FEATURES.PvP: hit / trap / blaster / fun FX + SFX from PvpEvent (CONTRACT.md §26.1); flag off = module never loaded.
+if Config.FEATURES.PvP == true then
+	require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent)
+end
 
 local gui = Widgets.create("ScreenGui", {
 	Name = "SlimeUI",

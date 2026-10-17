@@ -96,7 +96,7 @@ SOFT_STEPS = ("shots",)  # never fail the run; missing = fine
 # (Audio mount, Profiler.new, WeeklyEventService), so they are set in the Edit datamodel before the playtest
 # and stay on for the whole run; the others are set live on the shot and cleared after it.
 FLAG_NAMES = ("FountainTiers", "MergeVat3", "RainMagnet", "StealAlerts", "WeeklyEvents", "EventsBoard", "PlotSkins",
-              "ServerProfiler", "Audio")
+              "ServerProfiler", "Audio", "PvP")
 BOOT_FLAGS = ("Audio", "ServerProfiler", "WeeklyEvents")
 GIT_ENV = {"GIT_TERMINAL_PROMPT": "0", "GCM_INTERACTIVE": "never"}
 

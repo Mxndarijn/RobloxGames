@@ -110,7 +110,9 @@ describe("Knockback geometry", function()
 		local _, push = PvpKnockbackRules.plan(tool, ATTACKER, ATTACKER)
 		expect(math.abs(push.Z - 7) < 1e-9 and math.abs(push.X) < 1e-9).toBe(true)
 		local v = PvpKnockbackRules.velocity(push, 196.2)
-		expect(math.abs(v.Z * Config.PVP.KNOCKBACK_SECONDS - push.Z) < 1e-9).toBe(true)
+		expect(math.abs(v.Z * Config.PVP.KNOCKBACK_SECONDS / Config.PVP.KNOCKBACK_FRICTION_BOOST - push.Z) < 1e-9).toBe(
+			true
+		)
 		expect(v.Y > 0).toBe(true)
 	end)
 end)
@@ -131,6 +133,7 @@ describe("Knockback use", function()
 		expect(e.itemId).toBe("KnockGlove1")
 		expect(math.abs(e.push - 5) < 1e-9).toBe(true)
 		expect(e.duration).toBe(Config.PVP.FX_SECONDS)
+		expect(e.velocity).toEqual(PvpKnockbackRules.velocity(moves[1].push)) -- the victim's client applies the same push
 		expect(e.position).toEqual(positions[2])
 		expect(events[2].payload.kind).toBe("Cooldown")
 		expect(events[2].target).toBe(1)

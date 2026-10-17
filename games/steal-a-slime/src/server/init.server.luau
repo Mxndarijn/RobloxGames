@@ -55,7 +55,7 @@ local Profiler = require(script.Profiler)
 local PvpBlaster = require(script.PvpBlaster)
 local PvpFun = require(script.PvpFun)
 local PvpKnockback = require(script.PvpKnockback)
-local PvpKnockbackRules = require(Shared:WaitForChild("PvpKnockbackRules"))
+local PvpLaunch = require(script.PvpLaunch)
 local PvpService = require(script.PvpService)
 local PvpTrap = require(script.PvpTrap)
 local Revenge = require(script.Revenge)
@@ -531,13 +531,7 @@ PvpTrap.register()
 
 -- Knockback gloves (FEATURES.PvP): the server only launches the target; the look is client FX from PvpEvent.
 PvpKnockback.setMover(function(userId: number, push, _landing): boolean
-	local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
-	if not root then
-		return false
-	end
-	local v = PvpKnockbackRules.velocity(push, workspace.Gravity)
-	root.AssemblyLinearVelocity = Vector3.new(v.X, v.Y, v.Z)
-	return true
+	return PvpLaunch.launch(userId, push, now())
 end)
 PvpKnockback.register()
 
@@ -701,13 +695,7 @@ end)
 -- Fun items (FEATURES.PvP): the server only launches / checks; the look is client FX from PvpEvent.
 PvpFun.setEnv({
 	launcher = function(userId: number, push): boolean
-		local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
-		if not root then
-			return false
-		end
-		local v = PvpKnockbackRules.velocity(push, workspace.Gravity)
-		root.AssemblyLinearVelocity = Vector3.new(v.X, v.Y, v.Z)
-		return true
+		return PvpLaunch.launch(userId, push, now())
 	end,
 	onOwnPlot = function(session: World.Session, position): boolean
 		return WorldView.pointInHomeZone(Vector3.new(position.X, position.Y, position.Z), session.plotIndex)
@@ -946,7 +934,12 @@ end
 local function rescueFallen()
 	for _, player in Players:GetPlayers() do
 		local session = World.session(world, player.UserId)
-		if WorldView.rescue(player, session and session.plotIndex) then
+		local guard = false -- PvP void guard (FEATURES.PvP): armed while under control / just launched
+		if Config.FEATURES.PvP == true and session then
+			local state = PvpService.state(session)
+			guard = PvpLaunch.guardActive(player.UserId, state and state.controlUntil, now())
+		end
+		if WorldView.rescue(player, session and session.plotIndex, guard) then
 			World.notify(world, player.UserId, "Whoa! Back to safety.", "info", nil)
 		end
 	end

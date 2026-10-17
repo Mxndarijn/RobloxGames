@@ -240,7 +240,7 @@ def t_files():
         "shot_camera": {"EYE", "AT", "FOV"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
         "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "slide_top_drop": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "mesh_stand": {"MESHES"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
-        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "world_shop": {"SHOP"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"}, "bug08_lock_enter": {"PART"}, "bug11_char_walk": {"PART"},
+        "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "badge_toast": {"NAME"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "world_shop": {"SHOP"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "pvp_feel": {"PART"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"}, "bug08_lock_enter": {"PART"}, "bug11_char_walk": {"PART"},
     }
     for f in sorted(glob.glob(os.path.join(HERE, "luau", "*.luau"))):
         name = os.path.splitext(os.path.basename(f))[0]
@@ -982,7 +982,7 @@ def t_release():
     """Release probes R1-R7 (advisory, luau/rel_*.luau): one shot each, wired through the bug_probe mechanism and the shot-map."""
     shots, _ = watcher.load_shots(repo=None)
     smap = watcher.read_json(watcher.data_path(None, "shot-map.json")[0])
-    probes = [s for s in shots if isinstance(s.get("bug_probe", {}).get("bug"), str)]
+    probes = [s for s in shots if isinstance(s.get("bug_probe", {}).get("bug"), str) and s["bug_probe"]["bug"].startswith("R")]
     check("release probes: R1..R7 once each", sorted(s["bug_probe"]["bug"] for s in probes) == ["R%d" % n for n in range(1, 8)], [s["bug_probe"]["bug"] for s in probes])
     expect = {"rel_stackguard_eject": ("Server", ("eject_from_centre", "eject_under_top", "[PCW StackGuard] eject", "EmergeMesh")),
               "rel_fountain_top_walk": ("Server", ("circle_complete", "reaches_slide", "MoveTo", "SLIDE_PATH")),
@@ -1015,9 +1015,30 @@ def t_release():
         check("plan %s picks %s" % (path.rsplit("/", 1)[1], ", ".join(ids)), all(i in picked for i in ids), picked[:8])
 
 
+def t_pvp():
+    """PvP feel probes (advisory, luau/pvp_feel + luau/pvp_fx_client): one shot per PART plus the client effects shot."""
+    shots, _ = watcher.load_shots(repo=None)
+    smap = watcher.read_json(watcher.data_path(None, "shot-map.json")[0])
+    probes = [s for s in shots if str(s.get("bug_probe", {}).get("bug", "")).startswith("PVP")]
+    check("pvp probes: PVP1..PVP5 once each", sorted(s["bug_probe"]["bug"] for s in probes) == ["PVP%d" % n for n in range(1, 6)], [s["bug_probe"]["bug"] for s in probes])
+    parts = {s["bug_probe"]["args"]["PART"] for s in probes if s["bug_probe"].get("luau") == "pvp_feel"}
+    src = open(os.path.join(HERE, "luau", "pvp_feel.luau"), encoding="utf-8").read()
+    check("pvp_feel: one shot per PART push / trap / blaster / nonlethal, each in the luau", parts == {"push", "trap", "blaster", "nonlethal"} and all(('"%s"' % p) in src for p in parts))
+    check("pvp probes: world shots, ids pvp-*, timeout <= 45, Server|Client", all(
+        s.get("kind") == "world" and s["id"].startswith("pvp-") and int(s["bug_probe"].get("timeout", 30)) <= 45 and s["bug_probe"].get("ctx") in ("Server", "Client") for s in probes))
+    cl = open(os.path.join(HERE, "luau", "pvp_fx_client.luau"), encoding="utf-8").read()
+    check("pvp_feel / pvp_fx_client have their checks", all(w in src for w in ("push_", "trap_", "blaster_", "nonlethal", "part_delta", "Destroy", '"PASS"'))
+          and all(w in cl for w in ("fx_counts", "fx_active_count", "activeCount", "ParticleEmitter", "Highlight", "Beam", "Trail", '"PASS"')))
+    rule = next((r for r in smap["rules"] if r["name"].startswith("pvp")), None)
+    check("pvp probes: selected by the pvp shot-map rule", bool(rule) and all(watcher.shot_selected_by(s, rule) for s in probes))
+    G = "games/steal-a-slime/src/"
+    picked = watcher.plan_run([G + "server/PvpKnockback.luau"], shots, smap, 60)["shots"]
+    check("plan PvpKnockback.luau picks the pvp shots", all(s["id"] in picked for s in probes), picked[:8])
+
+
 def main():
     for t in (t_perf, t_perf_e2e, t_lock_age, t_shot_tool_errors, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_release, t_play_settle):
+              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial, t_bugs, t_release, t_pvp, t_play_settle):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going
