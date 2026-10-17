@@ -46,6 +46,7 @@ local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local PvpService = require(script.Parent.PvpService)
+local PvpTrap = require(script.Parent.PvpTrap)
 local Rescue = require(script.Parent.Rescue)
 local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local Scene = require(script.Parent.Scene)
@@ -709,12 +710,17 @@ end
 -- True if the player's root part is inside their own plot's HomeZone.
 function WorldView.inHomeZone(player: Player, plotIndex: number): boolean
 	local root = WorldView.rootPart(player)
+	return root ~= nil and WorldView.pointInHomeZone(root.Position, plotIndex)
+end
+
+-- Same test for a world point (Goo Trap placement).
+function WorldView.pointInHomeZone(position: Vector3, plotIndex: number): boolean
 	local plot = WorldView.plot(plotIndex)
 	local zone = plot and plot:FindFirstChild(Constants.HOME_ZONE)
-	if not root or not zone or not zone:IsA("BasePart") then
+	if not zone or not zone:IsA("BasePart") then
 		return false
 	end
-	local p = zone.CFrame:PointToObjectSpace(root.Position)
+	local p = zone.CFrame:PointToObjectSpace(position)
 	local half = zone.Size / 2
 	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= half.Y + 8
 end
@@ -802,6 +808,7 @@ function WorldView.updatePlayer(player: Player, session: World.Session, now: num
 		setAttribute(player, Constants.PVP_EQUIPPED_ATTRIBUTE, PvpService.equipped(session))
 		local root = WorldView.rootPart(player)
 		PvpService.tick(session, root and root.Position, now)
+		PvpTrap.tick(session, root and root.Position, now)
 	end
 	local pet = if Config.FEATURES.FollowPets then Progression.keeper(data) else nil
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
@@ -809,6 +816,9 @@ function WorldView.updatePlayer(player: Player, session: World.Session, now: num
 		ensureSpeedCoil(player)
 	end
 	local target = Carry.targetWalkSpeed(session, now)
+	if Config.FEATURES.PvP and PvpTrap.frozen(session, now) then
+		target = 0 -- Goo Trap freeze (PvpTrap, <= CONTROL_MAX_SECONDS)
+	end
 	setAttribute(player, Constants.WALK_SPEED_ATTRIBUTE, target)
 	if not humanoid then
 		return
