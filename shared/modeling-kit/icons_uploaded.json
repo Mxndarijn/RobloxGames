@@ -35,11 +35,11 @@
     "uploadedAt": "2026-10-17T10:09:37Z"
   },
   "Badge_FirstRebirth": {
-    "assetId": "126885480204960",
+    "assetId": "127717757985550",
     "assetType": "Decal",
-    "imageId": "81969833659273",
-    "sha256": "41a517bfc51e63691fda2ea71fa36063f5524287b02cbb65bb9acb0ed30c2edc",
-    "uploadedAt": "2026-10-17T10:09:42Z"
+    "imageId": "71546390489545",
+    "sha256": "617d8210a3bab2654a8190333d8647d1cf867d47cd405beedfb265be43d4dba2",
+    "uploadedAt": "2026-10-17T12:46:07Z"
   },
   "Badge_FirstSecret": {
     "assetId": "112873389271244",
@@ -70,11 +70,11 @@
     "uploadedAt": "2026-10-17T10:09:59Z"
   },
   "Badge_Rebirth5": {
-    "assetId": "114364879821053",
+    "assetId": "93022300351086",
     "assetType": "Decal",
-    "imageId": "102074621023406",
-    "sha256": "7776a1fb4dbffd67058e5fbd9df6580f7f702db5262afdf29a28916b40f501db",
-    "uploadedAt": "2026-10-17T10:10:04Z"
+    "imageId": "118825716133448",
+    "sha256": "b3423cc3c8c951d3cbb5a0d89663d47acadfa53aa682695c3113479e0733bbc3",
+    "uploadedAt": "2026-10-17T12:46:12Z"
   },
   "Boost_Blessed": {
     "assetId": "139660206372348",
@@ -343,11 +343,11 @@
     "uploadedAt": "2026-10-17T10:12:45Z"
   },
   "Rebirth": {
-    "assetId": "102829267676365",
+    "assetId": "105585355209140",
     "assetType": "Decal",
-    "imageId": "120491632097640",
-    "sha256": "561b311e1e2cd0c10f294e102e24dcc508f6b2ae8a46ac757aa034db0a43d313",
-    "uploadedAt": "2026-10-17T10:12:50Z"
+    "imageId": "111386939880268",
+    "sha256": "92ec48812e27193bcbedb32b79e00d0ed603834e41a3e836e5a635918e508f6a",
+    "uploadedAt": "2026-10-17T12:46:03Z"
   },
   "Slap": {
     "assetId": "131747088908242",

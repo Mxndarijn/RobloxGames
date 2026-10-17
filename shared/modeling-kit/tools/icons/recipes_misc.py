@@ -56,7 +56,7 @@ def daily():
 
 @icon("Rebirth", view=(0, 10))
 def rebirth():
-    parts = [circ_arrow(C["green"], 2.9, 0.62, 40, 320, name="arr")]
+    parts = [clean_circ_arrow(C["green"], 2.9, 0.95, 40, 318, name="arr")]
     parts.append(slime((130, 235, 170), "happy", (0, 0, -1.35), (0, 0, 0), 0.9))
     for i, (x, z, s) in enumerate(((-3.2, 3.2, 0.45), (3.3, -2.3, 0.4), (0.4, 4.7, 0.35))):
         parts.append(sparkle((x, -1.0, z), s, C["gold_l"], f"S{i}"))

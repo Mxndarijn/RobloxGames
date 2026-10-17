@@ -66,8 +66,8 @@ def _place(o, pos, scale=1.0, rot=(0, 0, 0)):
 
 _badge("Badge_FirstSlime", C["green"], rgb(60, 130, 200), lambda: [slime((130, 240, 150), "happy", (0, -0.5, -1.35), (0, 0, 0), 0.82)])
 _badge("Badge_FirstSteal", C["red"], rgb(120, 60, 150), lambda: [_place(hand_obj(), (0, -0.5, -0.5), 1.0)])
-_badge("Badge_FirstRebirth", C["teal"], rgb(30, 120, 110), lambda: [circ_arrow(C["green_l"], 1.15, 0.3, 40, 320, (0, -0.5, 0), name="a")])
-_badge("Badge_Rebirth5", C["blue"], rgb(40, 70, 150), lambda: [circ_arrow(C["blue_l"], 1.3, 0.24, 40, 320, (0, -0.5, 0), name="a"), text("5", 1.9, C["white"], 0.3, (0, -0.55, 0))])
+_badge("Badge_FirstRebirth", C["teal"], rgb(30, 120, 110), lambda: [clean_circ_arrow(C["green_l"], 1.15, 0.42, 40, 318, 0.3, 0.9, 0.8, pos=(0, -0.5, 0), name="a")])
+_badge("Badge_Rebirth5", C["blue"], rgb(40, 70, 150), lambda: [clean_circ_arrow(C["blue_l"], 1.35, 0.32, 40, 318, 0.3, 0.8, 0.7, pos=(0, -0.5, 0), name="a"), text("5", 1.9, C["white"], 0.3, (0, -0.55, 0))])
 _badge("Badge_Dex25", C["orange"], rgb(150, 76, 40), lambda: [_place(small_book(25, rgb(236, 150, 80)), (0, -0.5, 0), 1.0)])
 _badge("Badge_Dex50", rgb(120, 130, 160), rgb(70, 78, 110), lambda: [_place(small_book(50, rgb(200, 210, 230)), (0, -0.5, 0), 1.0)])
 _badge("Badge_Dex100", C["gold_d"], rgb(150, 100, 20), lambda: [_place(small_book(100, rgb(255, 214, 70)), (0, -0.5, 0), 1.0)])
