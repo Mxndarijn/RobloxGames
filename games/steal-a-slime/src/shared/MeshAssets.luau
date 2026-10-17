@@ -126,11 +126,11 @@ local NAMES = {
 }
 
 local entries: { [string]: Entry } = {}
--- Size is the polished FBX bbox (goo polish, ~43.316 tall). The asset id is
--- still the previous upload: Open Cloud was not available to re-upload
--- out/slime_fountain.fbx. The WorldLayout slot uses this same box.
+-- Size is the polished FBX bbox (goo polish, ~43.316 tall). Version 3 of the
+-- asset (2026-10-17) drops the splash-pool blob at the slide exit so the
+-- slime lane flows from the slide mouth. The WorldLayout slot uses this box.
 entries["slime_fountain"] =
-	{ assetId = 137335028699292, meshId = "rbxassetid://109732747899788", size = { 54.45, 43.316, 63.851 } }
+	{ assetId = 137335028699292, meshId = "rbxassetid://86763349242301", size = { 54.45, 43.316, 63.851 } }
 entries["phoenix_fence_segment"] =
 	{ assetId = 92327721520041, meshId = "rbxassetid://88430332942524", size = { 11, 9.02, 1.8 } }
 entries["phoenix_corner_post"] =

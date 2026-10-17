@@ -228,6 +228,8 @@ ParadeLane.CROWN_RADIUS = (ParadeLane.HALF_WIDTH ^ 2 + ParadeLane.LANE_Y ^ 2) / 
 -- Every other piece stands STRIP_STEP higher: where two crowns overlap at a joint they would otherwise be the same
 -- surface twice and z-fight (bands across the lane); the higher one simply wins, a 0.02 step nobody can see.
 ParadeLane.STRIP_STEP = 0.02
+-- Extra reach past the mitre at every inner joint, so the cut ends overlap instead of just touching (no hairline).
+ParadeLane.JOIN_OVERLAP = 0.1
 ParadeLane.COLOR = table.freeze({ 140, 222, 200 }) -- the slide's water
 function ParadeLane.strips(): { any }
 	local pts = ParadeLane.drawPoints()
@@ -245,7 +247,7 @@ function ParadeLane.strips(): { any }
 			return 0
 		end
 		local cos = math.clamp(ux[i] * ux[j] + uz[i] * uz[j], -1, 1)
-		return hw * math.tan(math.acos(cos) / 2)
+		return hw * math.tan(math.acos(cos) / 2) + ParadeLane.JOIN_OVERLAP
 	end
 	local radius = ParadeLane.CROWN_RADIUS
 	local out = {}
