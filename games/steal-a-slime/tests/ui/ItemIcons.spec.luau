@@ -12,11 +12,23 @@ local ShopCatalog = require("../../src/ui/ShopCatalog")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 local fs = require("@lune/fs")
+local roblox = require("@lune/roblox") :: any
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local ItemIconView = UiHarness.ui("ItemIconView")
 local registry = ItemIcons.build(Config)
+
+-- The same registry without the uploaded pictures: what the UI-drawn fallbacks (ItemIconArt) look like.
+local drawnRegistry
+do
+	local saved = table.clone(ItemIcons.IMAGES)
+	table.clear(ItemIcons.IMAGES)
+	drawnRegistry = ItemIcons.build(Config)
+	for id, image in saved do
+		ItemIcons.IMAGES[id] = image
+	end
+end
 
 local function find(root: any, name: string): any
 	return UiHarness.find(root, name)
@@ -131,8 +143,10 @@ describe("ItemIcons registry", function()
 		expect(registry.byId.Mutation_Glow.source).toBe("model")
 		expect(registry.byId.Mutation_Glow.model.kind).toBe("slime")
 		expect(registry.byId.PlotSkin_candy.model.kind).toBe("mesh")
-		expect(registry.byId.PlotSkin_classic.source).toBe("drawn")
-		expect(registry.byId.SpeedCoil.source).toBe("drawn")
+		expect(registry.byId.PlotSkin_classic.source).toBe("image")
+		expect(registry.byId.SpeedCoil.source).toBe("image")
+		expect(drawnRegistry.byId.PlotSkin_classic.source).toBe("drawn")
+		expect(drawnRegistry.byId.SpeedCoil.source).toBe("drawn")
 	end)
 end)
 
@@ -140,8 +154,8 @@ describe("drawn icons (every group)", function()
 	local ItemIconArt = UiHarness.ui("ItemIconArt")
 
 	it("no item resolves to the placeholder unless listed FOR ARCHER", function()
-		for _, id in registry.order do
-			local spec = registry.byId[id]
+		for _, id in drawnRegistry.order do
+			local spec = drawnRegistry.byId[id]
 			if table.find(ItemIcons.FOR_ARCHER, id) == nil then
 				expect(`{id}: {spec.source ~= "placeholder"}`).toBe(`{id}: true`)
 				if spec.source == "drawn" then
@@ -149,7 +163,7 @@ describe("drawn icons (every group)", function()
 				end
 			end
 		end
-		expect(#ItemIcons.needsArt(registry)).toBe(#ItemIcons.FOR_ARCHER)
+		expect(#ItemIcons.needsArt(drawnRegistry)).toBe(#ItemIcons.FOR_ARCHER)
 		local doc = fs.readFile("ITEM-ICONS-NEEDED.md")
 		expect(string.find(doc, "## FOR ARCHER", 1, true) ~= nil).toBe(true)
 		expect(string.find(doc, "## FOR ARCHER", 1, true) < string.find(doc, "| id |", 1, true)).toBe(true)
@@ -157,8 +171,8 @@ describe("drawn icons (every group)", function()
 
 	it("goals, Dex trophies, badges and plot skins all have recipes (kit-mesh skins as fallback)", function()
 		local n = 0
-		for _, id in registry.order do
-			local spec = registry.byId[id]
+		for _, id in drawnRegistry.order do
+			local spec = drawnRegistry.byId[id]
 			if spec.group == "goal" or spec.group == "badge" or spec.group == "skin" then
 				n += 1
 				expect(`{id}: {ItemIconArt.has(id)}`).toBe(`{id}: true`)
@@ -166,7 +180,7 @@ describe("drawn icons (every group)", function()
 		end
 		expect(n >= 25).toBe(true)
 		-- A kit-mesh skin whose mesh is not loaded shows its drawn diorama, not the tile.
-		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Size = 36, Parent = UiHarness.root() }, registry)
+		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Size = 36, Parent = UiHarness.root() }, drawnRegistry)
 		icon.setActive(true)
 		expect(icon.source).toBe("drawn")
 		expect(icon.art.Visible).toBe(true)
@@ -175,12 +189,12 @@ describe("drawn icons (every group)", function()
 
 	it("every recipe builds static frames only (no viewport, outside the live cap), glyphs on the allowlist", function()
 		ItemIconView.resetLive()
-		for _, id in registry.order do
-			local spec = registry.byId[id]
+		for _, id in drawnRegistry.order do
+			local spec = drawnRegistry.byId[id]
 			if spec.source ~= "drawn" then
 				continue
 			end
-			local icon = ItemIconView.new({ Id = id, Size = 36, Parent = UiHarness.root() }, registry)
+			local icon = ItemIconView.new({ Id = id, Size = 36, Parent = UiHarness.root() }, drawnRegistry)
 			icon.setActive(true)
 			expect(icon.source).toBe("drawn")
 			expect(icon.art.Visible).toBe(true)
@@ -201,13 +215,81 @@ describe("drawn icons (every group)", function()
 	end)
 
 	it("an uploaded image still wins over the drawn icon", function()
+		local was_Cash = ItemIcons.IMAGES.Cash
 		ItemIcons.IMAGES.Cash = 555
 		local withImage = ItemIcons.build(Config)
-		ItemIcons.IMAGES.Cash = nil
+		ItemIcons.IMAGES.Cash = was_Cash
 		local icon = ItemIconView.new({ Id = "Cash", Size = 36, Parent = UiHarness.root() }, withImage)
 		expect(withImage.byId.Cash.source).toBe("image")
 		expect(icon.source).toBe("image")
 		expect(icon.art.Visible).toBe(false)
+		icon.destroy()
+	end)
+end)
+
+describe("uploaded item icon images", function()
+	it("every id of a drawn group has a positive integer image", function()
+		local n = 0
+		for _, id in registry.order do
+			local spec = registry.byId[id]
+			if ItemIcons.DRAWN_GROUPS[spec.group] then
+				n += 1
+				local image = ItemIcons.IMAGES[id]
+				expect(`{id}: {type(image) == "number" and image > 0 and image == math.floor(image)}`).toBe(
+					`{id}: true`
+				)
+			end
+		end
+		expect(n).toBe(57)
+	end)
+
+	it("IMAGES holds no stale ids and no duplicate asset ids", function()
+		local seen: { [number]: string } = {}
+		for id, image in ItemIcons.IMAGES do
+			expect(`{id}: {registry.byId[id] ~= nil}`).toBe(`{id}: true`)
+			expect(`{id}: {seen[image] == nil}`).toBe(`{id}: true`)
+			seen[image] = id
+		end
+	end)
+
+	it("image specs resolve to source image; the 3 mesh skins stay models with the image as fallback", function()
+		for _, id in registry.order do
+			local spec = registry.byId[id]
+			if ItemIcons.DRAWN_GROUPS[spec.group] then
+				expect(spec.image).toBe(ItemIcons.IMAGES[id])
+				expect(`{id}: {spec.source}`).toBe(`{id}: {if spec.model then "model" else "image"}`)
+			end
+		end
+		for _, id in { "PlotSkin_mushroom", "PlotSkin_candy", "PlotSkin_crystal" } do
+			expect(registry.byId[id].source).toBe("model")
+			expect(registry.byId[id].image ~= nil).toBe(true)
+		end
+	end)
+
+	it("ItemIconView shows the picture (Fit, transparent) with a quiet tile, and no drawn scene", function()
+		ItemIconView.resetLive()
+		for _, id in { "Lock", "Dex_100", "Badge_Millionaire", "PlotSkin_classic", "Code_WELCOME" } do
+			local icon = ItemIconView.new({ Id = id, Size = 36, Parent = UiHarness.root() }, registry)
+			icon.setActive(true)
+			expect(icon.source).toBe("image")
+			local picture = find(icon.instance, "Picture")
+			expect(picture.Visible).toBe(true)
+			expect(picture.Image).toBe(`rbxassetid://{ItemIcons.IMAGES[id]}`)
+			expect(picture.ScaleType).toBe(roblox.Enum.ScaleType.Fit)
+			expect(picture.BackgroundTransparency).toBe(1)
+			expect(icon.art.Visible).toBe(false)
+			expect(icon.glyph.Visible).toBe(false)
+			expect(icon.tile.BackgroundTransparency > 0.5).toBe(true)
+			icon.destroy()
+		end
+	end)
+
+	it("a kit-mesh skin shows its image (not the drawn diorama) while the mesh is missing", function()
+		local icon = ItemIconView.new({ Id = "PlotSkin_mushroom", Size = 36, Parent = UiHarness.root() }, registry)
+		icon.setActive(true)
+		expect(icon.source).toBe("image")
+		expect(icon.art.Visible).toBe(false)
+		expect(find(icon.instance, "Picture").Visible).toBe(true)
 		icon.destroy()
 	end)
 end)
@@ -286,6 +368,7 @@ describe("ItemIconView", function()
 		expect(plain.source).toBe("placeholder")
 		expect(ItemIconView.liveCount()).toBe(0)
 
+		local was_Mutation_Gold = ItemIcons.IMAGES.Mutation_Gold
 		ItemIcons.IMAGES.Mutation_Gold = 12345
 		local withImage = ItemIcons.build(Config)
 		expect(withImage.byId.Mutation_Gold.image).toBe(12345)
@@ -294,13 +377,14 @@ describe("ItemIconView", function()
 		expect(icon.source).toBe("image")
 		expect(find(icon.instance, "Picture").Visible).toBe(true)
 		expect(find(icon.instance, "Picture").Image).toBe("rbxassetid://12345")
-		ItemIcons.IMAGES.Mutation_Gold = nil
+		ItemIcons.IMAGES.Mutation_Gold = was_Mutation_Gold
 
 		-- An image-only item (no model) uses the picture without any viewport.
+		local was_SpeedCoil = ItemIcons.IMAGES.SpeedCoil
 		ItemIcons.IMAGES.SpeedCoil = 777
 		local coil = ItemIcons.build(Config)
 		expect(coil.byId.SpeedCoil.source).toBe("image")
-		ItemIcons.IMAGES.SpeedCoil = nil
+		ItemIcons.IMAGES.SpeedCoil = was_SpeedCoil
 		ItemIconView.builders.slime = saved
 	end)
 
@@ -312,7 +396,7 @@ describe("ItemIconView", function()
 			end,
 		}, {})
 		expect(builder(UiHarness.root(), { model = { kind = "mesh", mesh = "plot_skin_candy" } })).toBe(false)
-		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, registry)
+		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, drawnRegistry)
 		icon.setActive(true)
 		expect(icon.source).toBe("drawn") -- default mesh builder: not wired under Lune, so the diorama shows
 	end)

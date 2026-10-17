@@ -1,5 +1,6 @@
 __pycache__/
 out/*
+!out/icons/
 !out/tree_oak.fbx
 !out/tree_oak.obj
 !out/tree_oak.mtl

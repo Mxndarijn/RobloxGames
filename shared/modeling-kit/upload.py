@@ -41,11 +41,15 @@ def load_env_file():
 
 
 def ctype_of(path):
+    if path.endswith(".png"):
+        return "image/png"
     return "model/x-rbxm" if path.endswith((".rbxm", ".rbxmx")) else "model/fbx"
 
 
 def asset_type_of(path):
-    """Animation = KeyframeSequence .rbxm/.rbxmx (Assets API, assetType Animation); everything else is a Model FBX."""
+    """Animation = KeyframeSequence .rbxm/.rbxmx (Assets API, assetType Animation); .png = Decal (item icons); everything else is a Model FBX."""
+    if path.endswith(".png"):
+        return "Decal"
     return "Animation" if path.endswith((".rbxm", ".rbxmx")) else "Model"
 
 
@@ -88,7 +92,7 @@ def plan(a, name, fbx):
     return "POST", f"{a.api}/assets", {
         "assetType": asset_type_of(fbx),
         "displayName": a.display_name or name,
-        "description": a.description or (f"{name}: slime animation (KeyframeSequence, own work)" if asset_type_of(fbx) == "Animation" else f"{name}: low-poly mesh made with modeling-kit (own work)"),
+        "description": a.description or (f"{name}: item icon (own work, modeling-kit)" if fbx.endswith(".png") else f"{name}: slime animation (KeyframeSequence, own work)" if asset_type_of(fbx) == "Animation" else f"{name}: low-poly mesh made with modeling-kit (own work)"),
         "creationContext": {"creator": who},
     }
 
@@ -116,8 +120,8 @@ def main():
 
     fbx = os.path.abspath(a.fbx)
     name = a.name or os.path.splitext(os.path.basename(fbx))[0]
-    if not fbx.endswith((".fbx", ".rbxm", ".rbxmx")) or not os.path.isfile(fbx):
-        sys.exit(f"upload: {a.fbx} is not an existing .fbx / .rbxm / .rbxmx")
+    if not fbx.endswith((".fbx", ".rbxm", ".rbxmx", ".png")) or not os.path.isfile(fbx):
+        sys.exit(f"upload: {a.fbx} is not an existing .fbx / .rbxm / .rbxmx / .png")
     size = os.path.getsize(fbx)
     if size >= MAX_BYTES:
         sys.exit(f"upload: {size} B >= 20 MB Open Cloud limit")

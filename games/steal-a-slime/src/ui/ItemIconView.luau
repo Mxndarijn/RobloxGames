@@ -171,11 +171,13 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 	local function refresh()
 		local model = spec.model
 		local image = spec.image
-		-- Image first as the base; a working model sits above it.
-		picture.Visible = image ~= nil
+		-- The picture is the icon (and the fallback of a model that is not mounted); a working model sits above it.
 		if image then
 			picture.Image = `rbxassetid://{image}`
 		end
+		-- A real picture carries its own shading: the colour tile behind it only whispers.
+		tile.BackgroundTransparency = if image then 0.82 else 0
+		stroke.Transparency = if image then 0.7 else 0
 		-- A drawn scene is the icon for "drawn" specs and the fallback of a model that is not mounted.
 		local drawn = image == nil and art:GetAttribute("ArtId") == spec.id
 		art.Visible = drawn
@@ -193,6 +195,7 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 			unmount()
 		end
 		viewport.Visible = mounted
+		picture.Visible = image ~= nil and not mounted
 		if mounted then
 			glyph.Visible = false
 			art.Visible = false
@@ -210,7 +213,11 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		root:SetAttribute("ItemId", spec.id)
 		art:ClearAllChildren()
 		art:SetAttribute("ArtId", nil)
-		if (spec.source == "drawn" or spec.model ~= nil) and ItemIconArt.draw(art, spec.id, z + 1) then
+		if
+			spec.image == nil
+			and (spec.source == "drawn" or spec.model ~= nil)
+			and ItemIconArt.draw(art, spec.id, z + 1)
+		then
 			art:SetAttribute("ArtId", spec.id)
 		end
 		self.spec = spec
