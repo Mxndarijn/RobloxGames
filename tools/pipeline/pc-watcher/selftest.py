@@ -318,9 +318,16 @@ def t_files():
     rev = [s for s in shots if s.get("revenge_plot")]
     check("a revenge_plot shot aims at that plot and waits briefly (v21 Revenge)",
           len(rev) == 1 and rev[0].get("target") == "Plot_%d" % rev[0]["revenge_plot"] and 0 < float(rev[0].get("wait", 0)) <= 4, rev)
-    weathers = {s["weather"]: s for s in shots if s.get("weather")}
+    # the snow_cover shots (SnowGround v2) pin the ground snow: Snow = settling, Clear = melting
+    snow_shots = [s for s in shots if "snow_cover" in s]
+    weathers = {s["weather"]: s for s in shots if s.get("weather") and "snow_cover" not in s}
     check("weather shots cover Rain, Snow and Starfall with a short wait",
           set(weathers) == {"Rain", "Snow", "Starfall"} and all(0 < float(s.get("wait", 0)) <= 4 for s in weathers.values()), sorted(weathers))
+    snow_ids = {s["id"] for s in snow_shots}
+    check("ground snow shots 18c cover settle mid, settle full and melt mid on pc and phone (SnowGround v2)",
+          snow_ids == {"18c-snow-ground-%s-%s" % (k, d) for k in ("settle-mid", "settle-full", "melt-mid") for d in ("pc", "phone")}
+          and all(0 <= float(s["snow_cover"]) <= 1 and 0 < float(s.get("wait", 0)) <= 4 for s in snow_shots)
+          and all((s["weather"] == "Clear") == s["id"].startswith("18c-snow-ground-melt") for s in snow_shots), sorted(snow_ids))
     devs = {(s["weather"], s.get("device")) for s in shots if s.get("weather")}
     check("every weather type has a phone and a desktop shot",
           all((w, d) in devs for w in ("Rain", "Snow", "Starfall") for d in ("desktop", "phone-portrait")), sorted(devs, key=str))
