@@ -912,7 +912,7 @@ def t_bugs():
     other = [r for r in rules if r["name"] != "bug probes"]
     check("shot-map: every bug shot is also selected by a source-area rule", all(any(watcher.shot_selected_by(s, r) for r in other) for s in probes),
           [s["id"] for s in probes if not any(watcher.shot_selected_by(s, r) for r in other)])
-    expect = {"bug08_lock_enter": ("owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck", "enforceLocks", "LoadCharacter",
+    expect = {"bug08_lock_enter": ("owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "leaves_freely", "thrown_slime_not_stuck", "enforceLocks", "LoadCharacter",
                             "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze", "corner_jump", "LockBarrier", "junctions"),
               "bug09_slide_stand": ("cannot_enter", "cannot_climb", "cannot_stand_on", "slimes_still_ride", "bottom_reachable"),
               "bug10_fountain_statues": ("pushed_out_or_on_top", "jump_no_snag"),
@@ -926,9 +926,9 @@ def t_bugs():
     b08 = open(os.path.join(HERE, "luau", "bug08_lock_enter.luau"), encoding="utf-8").read()
     m = re.search(r"local ORDER = \{([^}]*)\}", b08)
     order = re.findall(r'"(\w+)"', m.group(1)) if m else []
-    check("bug08 BASE_ORDER lists the five old checks only; other PARTs list just themselves", re.search(r'local BASE_ORDER = \{ "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "eject_once", "thrown_slime_not_stuck" \}', b08) is not None
+    check("bug08 BASE_ORDER lists the five old checks only; other PARTs list just themselves", re.search(r'local BASE_ORDER = \{ "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "leaves_freely", "thrown_slime_not_stuck" \}', b08) is not None
           and "local ORDER = if PART == \"base\" then BASE_ORDER else { PART }" in b08)
-    parts = {"bug08_lock_enter": {"base", "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze", "corner_jump", "owner_gate"}, "bug11_char_walk": {"stile_over", "barn_loft", "fence_line_walk"}}
+    parts = {"bug08_lock_enter": {"base", "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze", "corner_jump", "owner_gate", "leave_on_lock"}, "bug11_char_walk": {"stile_over", "barn_loft", "fence_line_walk"}}
     for lname, want in parts.items():
         got = {s["bug_probe"]["args"]["PART"] for s in probes if s["bug_probe"].get("luau") == lname}
         lsrc = open(os.path.join(HERE, "luau", lname + ".luau"), encoding="utf-8").read()
