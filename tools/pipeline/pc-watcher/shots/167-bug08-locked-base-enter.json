@@ -12,7 +12,7 @@
     "luau": "bug08_lock_enter",
     "ctx": "Server",
     "args": {},
-    "timeout": 40
+    "timeout": 50
   },
-  "note": "bug 8 (advisory): a plot is faked locked (attributes only, restored after); a non-owner ball and Humanoid dummy pushed in through the entrance for 4 s must stay out of the footprint"
+  "note": "bug 8 (advisory, #251): the real character walks into its own locked plot (also after LoadCharacter); a locked plot it does not own blocks MoveTo, ejects a teleported-in character exactly once (real WorldView.enforceLocks on a mirror World) and does not hold a thrown slime body suspended"
 }
