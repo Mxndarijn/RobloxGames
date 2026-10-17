@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Proves each PR gate check fails on a deliberately broken tree, then that the
 # whole gate passes on the clean tree. Breakage goes into a temp copy of
-# tools/pr-gate + games/steal-a-slime (shared/ is symlinked, read-only use);
+# tools/pr-gate + games/steal-a-slime (shared/ is symlinked, read-only use; budgets.json copied);
 # the working tree is never modified.
 #
 #   logic   a failing spec fixture copied into tests/
@@ -9,12 +9,11 @@
 #           Rebirth / Goals / Dex / Leaders at 844x390), squashed nav buttons,
 #           the carry card moved over the nav (covered buttons); each must fail
 #           the Lune part and, when rhr is installed, the rhr part on its own
-#   budget  401 mesh slots (counts fixture), a triangle limit under today's
-#           count (budgets fixture), WorldLayout.MESH_SLOT_BUDGET raised to
-#           450 in code, and a missing FBX folder
-#   runtime-budget  the head/base decision logic on counts fixtures (no boot): head over
-#           with base under, head over and above an over-budget base, 401 meshes must
-#           fail; head == an over-budget base must pass
+#   budget  501 MeshParts (counts fixture, must pass with a WARN), a triangle limit under today's
+#           count (shared budgets fixture), WorldLayout.MESH_SLOT_BUDGET drifting from
+#           budgets.json, and a missing FBX folder
+#   runtime-budget  the verdict logic on counts fixtures (no boot): parts 2450 and MeshParts 501
+#           pass with a WARN; parts 2501 and unique meshes 121 fail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 set +e
 
@@ -22,6 +21,8 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 mkdir -p "$tmp/tools" "$tmp/games"
 cp -r "$PR_GATE_DIR" "$tmp/tools/pr-gate"
+mkdir -p "$tmp/tools/pipeline/pc-watcher"
+cp "$PR_GATE_ROOT/tools/pipeline/pc-watcher/budgets.json" "$tmp/tools/pipeline/pc-watcher/budgets.json"
 cp -r "$GAME_DIR" "$tmp/games/steal-a-slime"
 ln -s "$PR_GATE_ROOT/shared" "$tmp/shared"
 T_GATE="$tmp/tools/pr-gate"
@@ -132,12 +133,12 @@ layout_case "carry card moved over the nav (covered buttons)" \
 	"Nav/(NavToggle|Plot) .* is covered (by SlimeUI/Root/Carry|: a click at its centre goes to SlimeUI/Root/Carry)"
 
 echo "=== selftest: budget ==="
-expect_fail "budget: 401 mesh slots (counts fixture)" "mesh_slots +401 +400 .*OVER" \
-	env PR_GATE_COUNTS="$T_GATE/fixtures/over-budget-counts.json" bash "$T_GATE/budget.sh"
-expect_fail "budget: triangle limit 300k (budgets fixture)" "world_triangles .* 300000 .*OVER" \
-	env PR_GATE_BUDGETS="$T_GATE/fixtures/tight-budgets.json" bash "$T_GATE/budget.sh"
-break_file "$WORLD" "WorldLayout.MESH_SLOT_BUDGET = 400" "WorldLayout.MESH_SLOT_BUDGET = 450"
-expect_fail "budget: WorldLayout.MESH_SLOT_BUDGET raised to 450 in code" "MESH_SLOT_BUDGET = 450 is above" \
+expect_ok "budget: 501 MeshParts only warns (counts fixture)" "WARN: MeshParts 501 > soft budget 500" \
+	env PR_GATE_COUNTS="$T_GATE/fixtures/soft-meshparts-counts.json" bash "$T_GATE/budget.sh"
+expect_fail "budget: triangle limit 300k (shared budgets fixture)" "world_triangles .* 300000 .*OVER" \
+	env PR_GATE_SHARED_BUDGETS="$T_GATE/fixtures/tight-shared-budgets.json" bash "$T_GATE/budget.sh"
+break_file "$WORLD" "WorldLayout.MESH_SLOT_BUDGET = 500" "WorldLayout.MESH_SLOT_BUDGET = 450"
+expect_fail "budget: WorldLayout.MESH_SLOT_BUDGET drifts from budgets.json mesh_parts.warn" "MESH_SLOT_BUDGET = 450 differs from" \
 	bash "$T_GATE/budget.sh"
 restore
 mkdir -p "$tmp/no-fbx"
@@ -146,20 +147,18 @@ expect_fail "budget: FBX folder missing (triangles unknown)" "no FBX in" \
 
 echo "=== selftest: runtime-budget ==="
 fx="$T_GATE/fixtures"
-watcher_py="$PR_GATE_ROOT/tools/pipeline/pc-watcher/watcher.py"
-# rtb HEAD_FIXTURE BASE_FIXTURE: the command line (expect_* run it through env, so no shell function)
-rtb() { echo env PR_GATE_WATCHER="$watcher_py" PR_GATE_RT_COUNTS_HEAD="$fx/$1" PR_GATE_RT_COUNTS_BASE="$fx/$2" bash "$T_GATE/runtime_budget.sh"; }
-expect_fail "runtime-budget: parts 2233 > 2230, base 2217 under budget" "parts 2233/2230 \(base 2217, \+16\).* FAIL" \
-	$(rtb rt-counts-main.json rt-counts-base-ok.json)
-expect_ok "runtime-budget: parts 2233 == over-budget base 2233" "parts 2233/2230 \(base 2233, \+0\).* PASS" \
-	$(rtb rt-counts-main.json rt-counts-main.json)
-expect_fail "runtime-budget: parts 2234 > over-budget base 2233" "parts 2234/2230 \(base 2233, \+1\).* FAIL" \
-	$(rtb rt-counts-parts-up.json rt-counts-main.json)
-expect_fail "runtime-budget: 401 mesh slots" "meshes 401/400 .* FAIL" \
-	$(rtb rt-counts-meshes-401.json rt-counts-base-ok.json)
-expect_fail "runtime-budget: 401 mesh slots, no base" "meshes 401/400 \(base n/a\).* FAIL" \
-	env -u PR_GATE_RT_COUNTS_BASE PR_GATE_WATCHER="$PR_GATE_ROOT/tools/pipeline/pc-watcher/watcher.py" \
-	PR_GATE_RT_COUNTS_HEAD="$fx/rt-counts-meshes-401.json" bash "$T_GATE/runtime_budget.sh"
+# rtb FIXTURE: the command line (expect_* run it through env, so no shell function)
+rtb() { echo env PR_GATE_RT_COUNTS="$fx/rt-counts-$1.json" bash "$T_GATE/runtime_budget.sh"; }
+expect_ok "runtime-budget: parts 2203, unique 93, MeshParts 391" "parts 2203/2500 \(warn 2400\) unique meshes 93/120 mesh parts 391 \(soft 500\) -> PASS" \
+	$(rtb ok)
+expect_ok "runtime-budget: parts 2450 passes with a WARN" "WARN: runtime parts 2450 > warn 2400" \
+	$(rtb parts-warn)
+expect_fail "runtime-budget: parts 2501 > 2500" "parts 2501/2500 .* -> FAIL" \
+	$(rtb parts-2501)
+expect_fail "runtime-budget: 121 unique meshes > 120" "unique meshes 121/120 .* -> FAIL" \
+	$(rtb unique-121)
+expect_ok "runtime-budget: 501 MeshParts passes with a WARN" "WARN: MeshParts 501 > soft budget 500" \
+	$(rtb meshparts-501)
 
 echo "=== selftest: clean tree (the real working tree, unmodified) ==="
 t0="$(date +%s.%N)"

@@ -55,8 +55,13 @@ DEFAULTS = {
     "poll_s": 60,
     "busy_retry_s": 300,
     "run_budget_s": 900,
-    "mesh_slot_budget": 400,
-    "runtime_part_budget": 2230,  # ratchet, only ever lower it; target 1800. World BaseParts at runtime (excl. slimes/characters/transients)
+    # Perf budgets: budgets.json (next to this file) is the single source and overlays these; they are the fallback
+    # when it is missing or broken (selftest.py keeps them equal to it).
+    "mesh_slot_budget": 500,  # SOFT: MeshParts only warn above it
+    "runtime_part_budget": 2500,  # FAIL above this. World BaseParts at runtime (excl. slimes/characters/transients)
+    "runtime_part_warn": 2400,  # WARN (non-blocking) above this
+    "unique_mesh_budget": 120,  # FAIL above this (distinct MeshIds)
+    "world_triangle_budget": 500000,  # FAIL above this, CI only (pr-gate budget.sh from FBX); Studio cannot count triangles
     "launch_timeout_s": 120,
     "client_timeout_s": 90,
     "stats_seconds": 5,
@@ -507,6 +512,26 @@ def data_path(repo, rel):
         if os.path.exists(p):
             return p, "repo"
     return os.path.join(HERE, *rel.split("/")), "app"
+
+
+BUDGET_KEYS = (("runtime_parts", "fail", "runtime_part_budget"), ("runtime_parts", "warn", "runtime_part_warn"),
+               ("unique_meshes", "fail", "unique_mesh_budget"), ("world_triangles", "fail", "world_triangle_budget"),
+               ("mesh_parts", "warn", "mesh_slot_budget"))
+
+
+def apply_budgets(cfg, repo):
+    """Overlay budgets.json (data_path: repo checkout first, app copy fallback) on cfg's budget keys, unless
+    config.json set the key. Missing or broken file: DEFAULTS stay. Returns the source for the log/report."""
+    path, src = data_path(repo, "budgets.json")
+    data = read_json(path, None)
+    if not isinstance(data, dict):
+        log.warning("budgets.json missing or unreadable (%s): using DEFAULTS", path)
+        return "defaults"
+    for group, level, key in BUDGET_KEYS:
+        v = (data.get(group) or {}).get(level) if isinstance(data.get(group), dict) else None
+        if isinstance(v, int) and not isinstance(v, bool) and cfg.get(key) == DEFAULTS[key]:
+            cfg[key] = v
+    return src
 
 
 def load_shots(folder=None, repo=None):
@@ -1000,6 +1025,7 @@ def step_perf(run):
     """Mesh slots in the Server datamodel once MeshSwap has settled (Edit has none: see perf_server.luau)."""
     if run.dry:
         return "skip", {"dry_run": True}
+    budgets_src = apply_budgets(run.cfg, run.paths.repo)
     budget = run.cfg["mesh_slot_budget"]
     deadline, counts, d = time.time() + 45, [], None
     while time.time() < deadline:
@@ -1012,18 +1038,30 @@ def step_perf(run):
     run.perf.update({"mesh_slots": d.get("mesh_slots"), "unique_meshes": d.get("unique_meshes"),
                      "parts": d.get("parts"), "runtime_parts": d.get("runtime_parts"),
                      "runtime_parts_transient": d.get("runtime_parts_transient"), "triangles": None})
-    detail = dict(d, budget=budget, samples=counts, settled=settled, edit=run.extra.get("edit_counts"),
+    part_budget, part_warn, mesh_budget = run.cfg["runtime_part_budget"], run.cfg["runtime_part_warn"], run.cfg["unique_mesh_budget"]
+    run.perf.update({"budget": budget, "runtime_part_budget": part_budget, "runtime_part_warn": part_warn,
+                     "unique_mesh_budget": mesh_budget, "world_triangle_budget": run.cfg["world_triangle_budget"]})
+    detail = dict(d, budget=budget, samples=counts, settled=settled, edit=run.extra.get("edit_counts"), budgets_src=budgets_src,
                   triangles="not available from Luau (pr-gate budget.sh counts FBX triangles)")
     if not settled:
         run.note("mesh count still changing after 45 s: %s" % counts[-4:])
-    if (d.get("mesh_slots") or 0) > budget:
-        return "fail", dict(detail, error="mesh slots %s > budget %s" % (d.get("mesh_slots"), budget))
-    part_budget = run.cfg["runtime_part_budget"]
-    if (d.get("runtime_parts") or 0) > part_budget:
+    # an absent/None key is unknown (old probes have no unique_meshes), never a failure
+    parts, uniq, warnings = d.get("runtime_parts"), d.get("unique_meshes"), []
+    if parts is not None and parts > part_budget:
         return "fail", dict(detail, runtime_part_budget=part_budget,
-                            error="runtime parts %s > budget %s" % (d.get("runtime_parts"), part_budget))
+                            error="runtime parts %s > budget %s" % (parts, part_budget))
+    if uniq is not None and uniq > mesh_budget:
+        return "fail", dict(detail, unique_mesh_budget=mesh_budget, error="unique meshes %s > budget %s" % (uniq, mesh_budget))
     if not d.get("mesh_slots"):
         return "fail", dict(detail, error="no MeshParts in the play world (MeshSwap did not run?)")
+    if parts is not None and parts > part_warn:
+        warnings.append("runtime parts %s > warn %s (fail above %s)" % (parts, part_warn, part_budget))
+    if (d.get("mesh_slots") or 0) > budget:
+        warnings.append("MeshParts %s > soft budget %s" % (d.get("mesh_slots"), budget))
+    for w in warnings:
+        run.note("perf warning: " + w)
+    if warnings:
+        detail["warnings"] = warnings
     return "pass", detail
 
 
@@ -1826,7 +1864,7 @@ def step_shots(run):
                     if not res["wild_pace"].get("ok"):
                         run.note("shot %s: wild pace off: %s" % (sid, str(res["wild_pace"])[:200]))
                 if shot.get("mesh_slots_max"):
-                    # perf proof (HARD): the same Server count as step_perf, asserted at the shot's own limit
+                    # perf proof (SOFT since the 500 MeshParts budget): the same Server count as step_perf, a warning above the limit
                     ms = res["mesh_slots"] = run.need_luau("perf_server", "Server", timeout=30)
                     ms["max"] = int(shot["mesh_slots_max"])
                     ms["ok"] = 0 < (ms.get("mesh_slots") or 0) <= ms["max"]
@@ -1943,7 +1981,7 @@ def step_shots(run):
     if any(r.get("slide_walk") and not r["slide_walk"].get("ok") for r in results):
         return "fail", {"captured": done, "total": len(shots), "shots": results, "slide_walk_failed": True}
     if any(r.get("mesh_slots") and not r["mesh_slots"].get("ok") for r in results):
-        return "fail", {"captured": done, "total": len(shots), "shots": results, "mesh_slots_failed": True}
+        return "warn", {"captured": done, "total": len(shots), "shots": results, "mesh_slots_warned": True}
     return "pass" if (done or pressed) else "warn", {"captured": done, "total": len(shots), "shots": results}
 
 

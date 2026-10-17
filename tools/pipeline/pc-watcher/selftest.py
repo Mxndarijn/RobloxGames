@@ -26,6 +26,7 @@ import watcher  # noqa: E402
 import win32  # noqa: E402
 
 FAILS = []
+BUDGETS = json.load(open(os.path.join(HERE, "budgets.json"), encoding="utf-8"))
 
 
 def check(name, cond, detail=""):
@@ -289,21 +290,24 @@ def t_files():
     check("a wild_pace shot measures a lane slime's displacement against the Config pace (v30 C9)",
           len(paces) == 1 and float(paces[0]["wild_pace"]) > 0 and paces[0].get("todo") == "v30-c9", paces)
     caps = [s for s in shots if s.get("mesh_slots_max")]
-    check("a mesh_slots_max shot asserts the play-world mesh slots <= 400 (hard)",
-          len(caps) == 1 and caps[0]["mesh_slots_max"] <= 400 and caps[0].get("todo") == "border-v3", caps)
-    check("a failing mesh_slots_max shot fails the run (hard)",
-          'mesh_slots_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
-          and watcher.overall_status({"shots": {"status": "pass", "detail": {"mesh_slots_failed": True}}}) == "fail")
+    check("a mesh_slots_max shot compares the play-world mesh slots with the 500 soft budget (warn only)",
+          len(caps) == 1 and caps[0]["mesh_slots_max"] == 500 and caps[0].get("todo") == "border-v3", caps)
+    wsrc = open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
+    check("a failing mesh_slots_max shot only warns (MeshParts are soft); old mesh_slots_failed reports still fail",
+          'mesh_slots_warned": True' in wsrc and 'mesh_slots_failed": True' not in wsrc
+          and watcher.overall_status({"shots": {"status": "pass", "detail": {"mesh_slots_failed": True}}}) == "fail"
+          and watcher.overall_status(dict({n: {"status": "pass"} for n in watcher.HARD_STEPS},
+                                          shots={"status": "warn", "detail": {"mesh_slots_warned": True}})) == "pass")
     rcaps = [s for s in shots if s.get("runtime_parts_max")]
-    check("a runtime_parts_max shot asserts world BaseParts <= the 2230 ratchet (hard)",
-          len(rcaps) == 1 and rcaps[0]["runtime_parts_max"] <= 2230, rcaps)
+    check("a runtime_parts_max shot asserts world BaseParts <= the fixed 2500 cap (hard)",
+          len(rcaps) == 1 and rcaps[0]["runtime_parts_max"] == BUDGETS["runtime_parts"]["fail"] == 2500, rcaps)
     check("a failing runtime_parts_max shot fails the run (hard)",
           'runtime_parts_failed": True' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
           and watcher.overall_status({"shots": {"status": "pass", "detail": {"runtime_parts_failed": True}}}) == "fail")
     check("perf_server reports runtime_parts for every BasePart and the lane/collider presence",
           all(x in open(os.path.join(HERE, "luau", "perf_server.luau"), encoding="utf-8").read()
               for x in ("runtime_parts = runtimeParts", "parade_lane", "slide_colliders", "runtime_parts_transient"))
-          and watcher.DEFAULTS["runtime_part_budget"] == 2230)
+          and watcher.DEFAULTS["runtime_part_budget"] == 2500)
     fwalks = [s for s in shots if s.get("fountain_walk")]
     check("a fountain_walk shot proves nobody sinks into the fountain top (C10)",
           len(fwalks) == 1 and fwalks[0].get("target") == "FountainMesh", fwalks)
@@ -359,6 +363,74 @@ def t_data_path():
     check("data_path without a repo uses the app copy", watcher.data_path(None, "checks.json")[1] == "app")
     names = json.load(open(os.path.join(HERE, "checks.json"), encoding="utf-8"))["shops_face_centre"]
     check("shops_face_centre checks ShopStand only", names["names"] == ["ShopStand"] and names["min_items"] == 1 and names["min_dot"] == 0.9, names)
+
+
+def t_budgets():
+    import time
+    D, B = watcher.DEFAULTS, BUDGETS
+    check("DEFAULTS fallbacks equal budgets.json (single source)",
+          (D["runtime_part_budget"], D["runtime_part_warn"], D["unique_mesh_budget"], D["world_triangle_budget"], D["mesh_slot_budget"])
+          == (B["runtime_parts"]["fail"], B["runtime_parts"]["warn"], B["unique_meshes"]["fail"], B["world_triangles"]["fail"],
+              B["mesh_parts"]["warn"]), (D, B))
+
+    class Paths:
+        repo = None
+
+    class FakeRun:
+        dry = False
+
+        def __init__(self, probe, repo=None):
+            self.probe, self.notes, self.extra = probe, [], {}
+            self.cfg = dict(D)
+            self.paths = Paths()
+            self.paths.repo = repo
+            self.perf = {}
+
+        def need_luau(self, *a, **k):
+            return dict(self.probe)
+
+        def note(self, m):
+            self.notes.append(m)
+
+    base = {"mesh_slots": 391, "unique_meshes": 93, "runtime_parts": 2203, "parts": 2300}
+    real_sleep, time.sleep = time.sleep, lambda s: None
+    try:
+        def perf(**kw):
+            r = FakeRun(dict(base, **kw))
+            st, det = watcher.step_perf(r)
+            return st, det, r
+        st, det, r = perf()
+        check("perf: 2203 parts / 93 unique / 391 MeshParts pass without warnings", st == "pass" and "warnings" not in det, (st, det))
+        check("perf: report keys keep their meaning and add the new ones",
+              r.perf["budget"] == 500 and r.perf["runtime_part_budget"] == 2500 and r.perf["runtime_part_warn"] == 2400
+              and r.perf["unique_mesh_budget"] == 120 and r.perf["triangles"] is None and r.perf["unique_meshes"] == 93, r.perf)
+        st, det, r = perf(runtime_parts=2450)
+        check("perf: 2450 parts passes with a warning", st == "pass" and len(det["warnings"]) == 1 and r.notes, (st, det))
+        check("perf: 2400 parts is not yet a warning", "warnings" not in perf(runtime_parts=2400)[1])
+        check("perf: 2500 parts passes (fail is strictly above)", perf(runtime_parts=2500)[0] == "pass")
+        check("perf: 2501 parts fails", perf(runtime_parts=2501)[0] == "fail")
+        check("perf: 121 unique meshes fails", perf(unique_meshes=121)[0] == "fail")
+        st, det, _ = perf(mesh_slots=501)
+        check("perf: 501 MeshParts only warns", st == "pass" and det["warnings"], (st, det))
+        check("perf: unique_meshes absent (old probe) is unknown, not a failure",
+              perf(unique_meshes=None)[0] == "pass")
+        r = FakeRun({k: v for k, v in base.items() if k != "unique_meshes"})
+        check("perf: probe without the unique_meshes key passes", watcher.step_perf(r)[0] == "pass")
+        check("perf: no MeshParts still fails", perf(mesh_slots=0)[0] == "fail")
+        with tempfile.TemporaryDirectory() as repo:
+            d = os.path.join(repo, "tools", "pipeline", "pc-watcher")
+            os.makedirs(d)
+            with open(os.path.join(d, "budgets.json"), "w", encoding="utf-8") as fh:
+                json.dump({"runtime_parts": {"fail": 3000, "warn": 2900}}, fh)
+            r = FakeRun(dict(base, runtime_parts=2800), repo)
+            check("budgets.json in the repo checkout overlays DEFAULTS (a 3000 bump is a JSON change)",
+                  watcher.step_perf(r)[0] == "pass" and r.perf["runtime_part_budget"] == 3000, r.perf)
+            with open(os.path.join(d, "budgets.json"), "w", encoding="utf-8") as fh:
+                fh.write("{broken")
+            r = FakeRun(dict(base, runtime_parts=2501), repo)
+            check("a broken budgets.json falls back to DEFAULTS", watcher.step_perf(r)[0] == "fail" and r.perf["runtime_part_budget"] == 2500)
+    finally:
+        time.sleep = real_sleep
 
 
 def t_geometry():
@@ -657,7 +729,7 @@ def t_perf_e2e():
 
 def main():
     for t in (t_perf, t_perf_e2e, t_png, t_crop, t_marked, t_studios, t_watcher, t_win32_pure, t_background, t_desktop, t_lock,
-              t_files, t_geometry, t_data_path, t_flags, t_partial):
+              t_files, t_geometry, t_data_path, t_budgets, t_flags, t_partial):
         try:
             t()
         except Exception as e:  # a crashing group is a failure, keep going

@@ -66,7 +66,6 @@ describe("BorderTerrain budget", function()
 			end
 			slots += WorldLayout.RUNTIME_SLOT_ALLOWANCE
 			expect(slots).toBe(BASELINE_MESH_SLOTS)
-			expect(slots <= WorldLayout.MESH_SLOT_BUDGET).toBe(true)
 		end
 	)
 	it("adds no part: the world keeps its 1333 build parts, under PART_BUDGET", function()

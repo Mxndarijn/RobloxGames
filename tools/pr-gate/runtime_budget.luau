@@ -9,6 +9,8 @@
 --   mesh_slots               max(mesh_slots_build, mesh_slots_runtime + offset): matches Studio
 --   mesh_slots_build         budget_counts.luau (WorldLayout.build() + RUNTIME_SLOT_ALLOWANCE)
 --   mesh_slots_runtime       raw MeshParts in the fake runtime (no offset)
+--   unique_meshes            distinct MeshIds among the world MeshParts: offline + UNIQUE_MESH_OFFSET (16, see runtime_count.luau)
+--   unique_meshes_offline    raw fake-runtime count
 local process = require("@lune/process")
 local serde = require("@lune/serde")
 
@@ -28,6 +30,8 @@ print(serde.encode("json", {
 	runtime_parts_offline = res.runtime_parts,
 	offset = offset,
 	runtime_parts_transient = res.runtime_parts_transient,
+	unique_meshes = res.unique_meshes + RuntimeCount.UNIQUE_MESH_OFFSET,
+	unique_meshes_offline = res.unique_meshes,
 	mesh_slots = math.max(meshesBuild, res.mesh_slots + offset),
 	mesh_slots_runtime = res.mesh_slots,
 	mesh_slots_build = meshesBuild,
