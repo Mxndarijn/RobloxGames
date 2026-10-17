@@ -9,7 +9,8 @@
 #    (report run_kind == "full"; partial PC-watcher runs, or reports without run_kind,
 #    never gate a publish, whatever their status),
 # 2. only with AUTO_PUBLISH=1: clean build (no CloudTests) -> upload Saved ->
-#    smoke test that version -> upload the same clean file as Published.
+#    smoke test that version -> terrain-burial probe on that version (blocking) ->
+#    upload the same clean file as Published -> burial probe on the published version (alert only).
 #    The cloud-test Saved version is never promoted.
 # DRY_RUN=1 evaluates the gate, builds + asserts, prints the calls it would make
 # and writes nothing outside $WORK. The key reaches curl on stdin only.
@@ -28,18 +29,23 @@
 # status=pass and frames_reviewed != true) and no
 # newer sha is also waiting for review (only the newest keeps it), an empty file $NEEDS_REVIEW_DIR/<40-char sha> exists so Gojo can ping Phoenix. It is
 # removed once frames_reviewed is true, the report is fail, or the sha ends
-# live / skipped-superseded / no-publish / smoke-failed. Honoured under DRY_RUN too.
+# live / skipped-superseded / no-publish / smoke-failed / burial-failed. Honoured under DRY_RUN too.
 # Setting the marker also asks the PC watcher for a full run: best-effort write of
 # studio-reports/requests/<sha>.json on branch studio-reports (once per sha: stamp
 # $STATUS_DIR/<sha>.full-request written after a successful write, so failures retry; FULL_REQUEST=0 disables; FULL_REQUEST_CMD overrides
 # the writer, called as: FULL_REQUEST_CMD <full-sha>).
 #
-# A sha already live / smoke-failed / no-publish / skipped-superseded (or with live/<sha>.json
+# A sha already live / smoke-failed / burial-failed / no-publish / skipped-superseded (or with live/<sha>.json
 # status live) is a no-op: exit 0, nothing uploaded.
 #
 # Exit: 0 live / ready / noop / dry-run ok, 3 pending (retry next tick),
 #       4 no-publish or skipped-superseded (terminal), 2 error (retry),
-#       5 smoke failed (terminal-ish: not published).
+#       5 smoke failed (terminal-ish: not published),
+#       6 burial-failed (terrain_burial probe FAILed on the saved version with terrain ready: not published).
+# Burial probe (tools/livetest/cloud/terrain_burial.luau): pre-publish FAIL blocks; an inconclusive
+# probe (error, terrain not ready, no grounded parts) only warns. Post-publish it never changes the
+# exit code: a FAIL writes $PIPE/alerts/<sha>.burial.json and logs "ALERT burial FAIL"; no rollback.
+# BURIAL_GATE=off skips both probes.
 set -uo pipefail
 
 CHECKOUT="${1:?usage: publish.sh <checkout-dir> <sha>}"
@@ -64,6 +70,10 @@ UPLOAD_BACKOFF="${UPLOAD_BACKOFF-60 120 240 480}"
 NEEDS_REVIEW_DIR="${NEEDS_REVIEW_DIR:-$PIPE/needs-review}"
 FULL_REQUEST="${FULL_REQUEST:-1}"
 FULL_REQUEST_CMD="${FULL_REQUEST_CMD:-}"
+BURIAL_GATE="${BURIAL_GATE:-on}"
+CLOUD_RUN="${CLOUD_RUN:-$HERE/../livetest/cloud/run.sh}"
+BURIAL_SCRIPT="${BURIAL_SCRIPT:-$HERE/../livetest/cloud/terrain_burial.luau}"
+ALERTS_DIR="${ALERTS_DIR:-$PIPE/alerts}"
 API="https://apis.roblox.com"
 
 mkdir -p "$STATUS_DIR"
@@ -172,6 +182,25 @@ write_live_status() {
   write_json "$STATUS_DIR/$SHA.publish.json" <"$WORK/live.json" &&
     write_json "$LIVE_DIR/$SHA.json" <"$WORK/live.json"
 }
+# run_burial_probe <version> <outfile>: runs the burial probe on a place version. The probe sets
+# ok=pass, so run.sh's exit code is ignored; the verdict comes from burial_verdict.
+run_burial_probe() {
+  OUT="$2" TIMEOUT=300s "$CLOUD_RUN" "$BURIAL_SCRIPT" "$1" >>"$LOG" 2>&1 || true
+}
+# burial_verdict <outfile>: prints pass | fail | inconclusive (missing/errored/terrain not ready/no grounded parts).
+burial_verdict() {
+  jq -r '.result as $r | if ($r | type) != "object" then "inconclusive"
+    elif $r.pass == true then "pass"
+    elif ($r.result == "FAIL" or $r.pass == false) and $r.terrain_ready == true and (($r.grounded_parts // 0) > 0) then "fail"
+    else "inconclusive" end' "$1" 2>/dev/null || echo inconclusive
+}
+# burial_json <outfile> <version> <verdict>: {result, summary, over_threshold, worst (top 10), version, at}
+burial_json() {
+  jq -c --argjson version "$2" --arg verdict "$3" --arg at "$(date -Iseconds)" \
+    '(.result // {}) as $r | {result: ($verdict | ascii_upcase), summary: ($r.summary // null), over_threshold: ($r.over_threshold // null),
+      worst: (($r.worst // [])[:10]), version: $version, at: $at}' "$1" 2>/dev/null ||
+    jq -nc --argjson version "$2" --arg at "$(date -Iseconds)" '{result: "INCONCLUSIVE", summary: null, over_threshold: null, worst: [], version: $version, at: $at}'
+}
 [[ "${PUBLISH_LIB_ONLY:-0}" == 1 ]] && return 0 # tests source the helpers above
 
 # noop_if_done: exit 0 when $SHA already ended in a terminal state, or live/<sha>.json says
@@ -179,7 +208,7 @@ write_live_status() {
 noop_if_done() {
   local cur live_st
   cur="$(jq -r '.status // empty' "$STATUS_DIR/$SHA.publish.json" 2>/dev/null)"
-  case "$cur" in live | smoke-failed | no-publish | skipped-superseded) ;; *)
+  case "$cur" in live | smoke-failed | burial-failed | no-publish | skipped-superseded) ;; *)
     live_st="$(jq -r '.status // empty' "$LIVE_DIR/$SHA.json" 2>/dev/null)"
     [[ "$live_st" == live ]] || return 0
     cur="live (live/$SHA.json)" ;;
@@ -261,7 +290,7 @@ eval_gate() {
 # sha_terminal <sha>: true when status/<sha>.publish.json is a terminal state.
 sha_terminal() {
   case "$(jq -r '.status // empty' "$STATUS_DIR/$1.publish.json" 2>/dev/null)" in
-    live | smoke-failed | no-publish | skipped-superseded) return 0 ;;
+    live | smoke-failed | burial-failed | no-publish | skipped-superseded) return 0 ;;
   esac
   [[ "$(jq -r '.status // empty' "$LIVE_DIR/$1.json" 2>/dev/null)" == live ]]
 }
@@ -305,7 +334,7 @@ superseder() {
   done < <(newer_shas)
 }
 # check_superseded: writes skipped-superseded and exits 4 when superseder() finds one.
-# Shas that already ended live / no-publish / smoke-failed are left alone.
+# Shas that already ended live / no-publish / smoke-failed / burial-failed are left alone.
 check_superseded() {
   local cur by why
   cur="$(jq -r .status "$STATUS_DIR/$SHA.publish.json" 2>/dev/null)"
@@ -389,8 +418,14 @@ if [[ "$DRY_RUN" == 1 ]]; then
   log "DRY_RUN steps (no network writes):"
   log "  1. POST $UP?versionType=Saved  (octet-stream, clean place) -> saved_version"
   log "  2. POST $TASKS  (script tools/livetest/cloud/smoke.luau), poll GET $API/cloud/v2/<task path> until COMPLETE, require result.ok==true"
+  if [[ "$BURIAL_GATE" == off ]]; then
+    log "  2b/5. BURIAL_GATE=off: burial probes skipped"
+  else
+    log "  2b. run.sh tools/livetest/cloud/terrain_burial.luau <saved_version> (TIMEOUT=300s); FAIL with terrain ready => status burial-failed, exit 6, not published; inconclusive => WARN, continue"
+  fi
   log "  3. POST $UP?versionType=Published  (same clean place file) -> published_version"
   log "  4. write $STATUS_DIR/$SHA.publish.json {status: live} and $LIVE_DIR/$SHA.json"
+  [[ "$BURIAL_GATE" == off ]] || log "  5. run.sh terrain_burial.luau <published_version>; record burial in live/<sha>.json; FAIL => $ALERTS_DIR/$SHA.burial.json + 'ALERT burial FAIL' (exit stays 0, no rollback)"
   exit 0
 fi
 [[ -n "${ROBLOX_OPEN_CLOUD_API_KEY:-}" ]] || { log "error: ROBLOX_OPEN_CLOUD_API_KEY is not set"; exit 2; }
@@ -407,7 +442,7 @@ SAVED="$(upload Saved)" && [[ "$SAVED" =~ ^[0-9]+$ ]] || { log "error: upload Sa
 
 # ---- smoke test the saved version ------------------------------------------
 SMOKE_OUT="$WORK/smoke.json"
-if OUT="$SMOKE_OUT" "$HERE/../livetest/cloud/run.sh" "$HERE/../livetest/cloud/smoke.luau" "$SAVED" >>"$LOG" 2>&1; then
+if OUT="$SMOKE_OUT" "$CLOUD_RUN" "$HERE/../livetest/cloud/smoke.luau" "$SAVED" >>"$LOG" 2>&1; then
   SMOKE=pass
 else
   SMOKE=fail
@@ -420,10 +455,51 @@ if [[ "$SMOKE" != pass ]]; then
   exit 5
 fi
 
+# ---- terrain burial probe on the saved version (blocking only on a conclusive FAIL) ------
+if [[ "$BURIAL_GATE" == off ]]; then
+  log "burial: BURIAL_GATE=off, skipping pre-publish probe"
+else
+  BURIAL_PRE="$WORK/burial-pre.json"
+  run_burial_probe "$SAVED" "$BURIAL_PRE"
+  BV="$(burial_verdict "$BURIAL_PRE")"
+  log "burial on saved version $SAVED: $BV $(jq -r '.result.summary // empty' "$BURIAL_PRE" 2>/dev/null)"
+  case "$BV" in
+    fail)
+      needs_review_clear
+      burial_json "$BURIAL_PRE" "$SAVED" fail >"$WORK/burial.json"
+      jq -n --arg sha "$SHA" --argjson saved "$SAVED" --arg at "$(date -Iseconds)" --slurpfile b "$WORK/burial.json" \
+        '{sha: $sha, status: "burial-failed", saved_version: $saved, smoke: "pass", burial: $b[0], summary: $b[0].summary, worst: $b[0].worst, at: $at}' |
+        write_json "$STATUS_DIR/$SHA.publish.json"
+      exit 6 ;;
+    pass) ;;
+    *) log "WARN burial probe inconclusive on saved version $SAVED (error, terrain not ready or no grounded parts); continuing" ;;
+  esac
+fi
+
 # ---- publish the clean file -------------------------------------------------
 check_superseded # a newer sha may have passed while this one was building / smoking
 PUBLISHED="$(upload Published)" && [[ "$PUBLISHED" =~ ^[0-9]+$ ]] || { log "error: upload Published failed"; exit 2; }
 log "LIVE: $SHA published as place version $PUBLISHED (clean saved $SAVED)"
 write_live_status "$SAVED" "$PUBLISHED" "$MERGE_TIME"
 needs_review_clear
+
+# ---- terrain burial probe on the published version (alert only: no rollback, exit stays 0) ---
+if [[ "$BURIAL_GATE" == off ]]; then
+  log "burial: BURIAL_GATE=off, skipping post-publish probe"
+else
+  BURIAL_POST="$WORK/burial-post.json"
+  run_burial_probe "$PUBLISHED" "$BURIAL_POST"
+  BV="$(burial_verdict "$BURIAL_POST")"
+  burial_json "$BURIAL_POST" "$PUBLISHED" "$BV" >"$WORK/burial.json"
+  log "burial on published version $PUBLISHED: $BV"
+  for f in "$LIVE_DIR/$SHA.json" "$STATUS_DIR/$SHA.publish.json"; do
+    jq --slurpfile b "$WORK/burial.json" '. + {burial: $b[0]}' "$f" >"$WORK/burial-merge.json" 2>/dev/null && write_json "$f" <"$WORK/burial-merge.json"
+  done
+  if [[ "$BV" == fail ]]; then
+    mkdir -p "$ALERTS_DIR" && write_json "$ALERTS_DIR/$SHA.burial.json" <"$WORK/burial.json"
+    log "ALERT burial FAIL: $SHA live as version $PUBLISHED: $(jq -r .summary "$WORK/burial.json")"
+  elif [[ "$BV" != pass ]]; then
+    log "WARN burial probe inconclusive on published version $PUBLISHED"
+  fi
+fi
 exit 0

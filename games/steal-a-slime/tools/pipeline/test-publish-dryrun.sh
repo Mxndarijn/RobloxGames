@@ -137,7 +137,7 @@ expect "skipped-superseded -> marker removed" "$OLD" absent
 reset; gate "$NEW"; cloud "$OLD" pass; mkdir -p "$NEEDS_REVIEW_DIR"; touch "$(mk "$OLD")"
 SO=1 run "$OLD"; expect "SUPERSEDE_ONLY superseded -> marker removed" "$OLD" absent
 
-for st in live no-publish smoke-failed skipped-superseded; do
+for st in live no-publish smoke-failed burial-failed skipped-superseded; do
   reset; cloud "$OLD" pass; echo "{\"status\":\"$st\"}" >"$STATUS_DIR/$OLD.publish.json"; mkdir -p "$NEEDS_REVIEW_DIR"; touch "$(mk "$OLD")"
   run "$OLD"; expect "terminal $st -> marker removed" "$OLD" absent
 done
@@ -199,7 +199,7 @@ export AUTO_PUBLISH=0
 
 # ---- already-live / terminal no-op -------------------------------------------
 export AUTO_PUBLISH=1
-for st in live smoke-failed no-publish skipped-superseded; do
+for st in live smoke-failed burial-failed no-publish skipped-superseded; do
   reset; cloud "$NEW" pass; cloud "$OLD" pass; echo "{\"status\":\"$st\"}" >"$STATUS_DIR/$OLD.publish.json"
   run "$OLD"; check "terminal $st is a noop" 0 "noop: already $st" "upload\|skipped-superseded: "
   grep -q "\"$st\"" "$STATUS_DIR/$OLD.publish.json" && echo "ok   $st publish.json untouched" || { echo "FAIL $st rewritten"; fails=$((fails + 1)); }
@@ -226,6 +226,49 @@ if [[ "$LIVE_OUT" == *WROTE ]] && for f in "$STATUS_DIR/$OLD.publish.json" "$LIV
   jq -e --arg sha "$OLD" '.sha == $sha and .status == "live" and .saved_version == 12 and .published_version == 34 and .smoke == "pass" and (.studio_report.blob | length) > 100000 and (.merged_at | type) == "string"' "$f" >/dev/null || exit 1
 done; then echo "ok   write_live_status builds live json from a 200KB report (no argv)"
 else echo "FAIL write_live_status: $LIVE_OUT"; fails=$((fails + 1)); fi
+
+# ---- terrain burial gate -------------------------------------------------------
+# burial-failed is terminal like smoke-failed: newer gated sha does not rewrite it, and it
+# counts as terminal for the newest-unreviewed scan (covered by the noop/marker loops above).
+reset; gate "$NEW"; cloud "$OLD" pass; echo '{"status":"burial-failed"}' >"$STATUS_DIR/$OLD.publish.json"
+run "$OLD"; check "burial-failed is not superseded (terminal)" 0 "noop: already burial-failed" "skipped-superseded"
+reset; export AUTO_PUBLISH=1; gate "$NEW"
+run "$NEW"; check "dry-run step list has the burial probe steps" 0 "terrain_burial.luau <saved_version>" 
+BURIAL_GATE=off run "$NEW"; check "BURIAL_GATE=off is logged in dry-run" 0 "BURIAL_GATE=off: burial probes skipped" "terrain_burial.luau <saved"
+
+# verdicts (PUBLISH_LIB_ONLY sources the helpers)
+vfix() { printf '%s' "$2" >"$T/v.json"; V="$(PUBLISH_LIB_ONLY=1 DRY_RUN=0 bash -c 'source "$1" "$2" "$3" 2>/dev/null; burial_verdict "$4"' _ "$HERE/publish.sh" "$CHECKOUT" "$OLD" "$T/v.json")"
+  [[ "$V" == "$3" ]] && echo "ok   burial verdict: $1 -> $3" || { echo "FAIL burial verdict: $1 got '$V' want $3"; fails=$((fails + 1)); }; }
+vfix "PASS" '{"result":{"result":"PASS","pass":true,"terrain_ready":true,"grounded_parts":9}}' pass
+vfix "FAIL, terrain ready, parts" '{"result":{"result":"FAIL","pass":false,"terrain_ready":true,"grounded_parts":9,"over_threshold":3}}' fail
+vfix "FAIL, terrain not ready" '{"result":{"result":"FAIL","pass":false,"terrain_ready":false,"grounded_parts":0}}' inconclusive
+vfix "FAIL, no grounded parts" '{"result":{"result":"FAIL","pass":false,"terrain_ready":true,"grounded_parts":0}}' inconclusive
+vfix "empty result" '{"result":null}' inconclusive
+vfix "http error body" '{"error":"HTTP 500"}' inconclusive
+vfix "not json" 'oops' inconclusive
+
+# full flow with stubbed rojo/curl/run.sh (no network): pre-publish block + post-publish alert
+mkdir -p "$T/fbin"
+printf '#!/bin/sh\nwhile [ $# -gt 0 ]; do [ "$1" = -o ] && echo x >"$2"; shift; done\n' >"$T/fbin/rojo"
+printf '#!/bin/sh\nn=$(cat "%s/ver" 2>/dev/null || echo 10); n=$((n+1)); echo $n >"%s/ver"\nprintf "{\\"versionNumber\\":%%s}\\n200" $n\n' "$T" "$T" >"$T/fbin/curl"
+printf '#!/bin/sh\nscript=$(basename "$1"); echo "$script $2" >>"%s/runs.log"\ncase "$script" in smoke.luau) f="%s/smoke.res";; *) f="%s/burial.$2.res";; esac\n[ -f "$f" ] || f="%s/burial.res"\n[ "$(cat "$f")" = EXIT1 ] && exit 1\n[ -n "$OUT" ] && cat "$f" >"$OUT"\nexit 0\n' "$T" "$T" "$T" "$T" >"$T/run-stub.sh"
+chmod +x "$T/fbin/rojo" "$T/fbin/curl" "$T/run-stub.sh"
+BPASS='{"result":{"result":"PASS","pass":true,"ok":true,"terrain_ready":true,"grounded_parts":5,"over_threshold":0,"summary":"PASS: ok","worst":[]}}'
+BFAIL='{"result":{"result":"FAIL","pass":false,"ok":false,"terrain_ready":true,"grounded_parts":15,"over_threshold":2,"summary":"FAIL: 2/15 buried","worst":[{"name":"Rock"},{"name":"Tree"}]}}'
+fflow() { # fflow <pre burial json> <post burial json> [extra env]; sets RC/OUT; fresh gate for NEW
+  reset; gate "$NEW"; rm -f "$T/ver" "$T/runs.log"; echo '{"result":{"ok":true}}' >"$T/smoke.res"; printf '%s' "$1" >"$T/burial.11.res"; printf '%s' "$2" >"$T/burial.12.res"
+  OUT="$(env PATH="$T/fbin:$PATH" DRY_RUN=0 AUTO_PUBLISH=1 ROBLOX_OPEN_CLOUD_API_KEY=k UPLOAD_BACKOFF= PIPE_DIR="$T/pipe" ALERTS_DIR="$T/alerts" CLOUD_RUN="$T/run-stub.sh" "${@:3}" "$HERE/publish.sh" "$CHECKOUT" "$NEW" 2>&1)"; RC=$?; }
+fflow "$BPASS" "$BPASS"; check "burial pass pre+post publishes" 0 "LIVE:" "ALERT"
+jq -e '.burial.result == "PASS" and .burial.version == 12' "$LIVE_DIR/$NEW.json" >/dev/null && echo "ok   live json records burial PASS" || { echo "FAIL live burial"; fails=$((fails + 1)); }
+fflow "$BFAIL" "$BPASS"; check "pre-publish burial FAIL exits 6, no publish" 6 "burial on saved version 11: fail" "LIVE:"
+jq -e '.status == "burial-failed" and .saved_version == 11 and (.worst | length) == 2 and (.summary | test("FAIL"))' "$STATUS_DIR/$NEW.publish.json" >/dev/null && echo "ok   burial-failed publish.json written" || { echo "FAIL burial-failed json"; fails=$((fails + 1)); }
+run "$NEW"; check "burial-failed then noop" 0 "noop: already burial-failed"
+fflow '{"result":null}' "$BPASS"; check "inconclusive pre-publish warns and publishes" 0 "WARN burial probe inconclusive" "burial-failed"
+fflow EXIT1 "$BPASS"; check "probe error pre-publish never blocks" 0 "LIVE:"
+fflow "$BPASS" "$BFAIL"; check "post-publish burial FAIL alerts, exit stays 0" 0 "ALERT burial FAIL"
+jq -e '.result == "FAIL" and (.worst | length) == 2' "$T/alerts/$NEW.burial.json" >/dev/null && jq -e '.status == "live" and .burial.result == "FAIL"' "$LIVE_DIR/$NEW.json" >/dev/null && echo "ok   alert file + live json burial FAIL" || { echo "FAIL alert file"; fails=$((fails + 1)); }
+fflow "$BFAIL" "$BFAIL" BURIAL_GATE=off; check "BURIAL_GATE=off skips both probes" 0 "LIVE:" "ALERT"
+[[ "$(grep -c terrain_burial "$T/runs.log" 2>/dev/null)" == 0 ]] && echo "ok   BURIAL_GATE=off ran no probe" || { echo "FAIL probe ran with gate off"; fails=$((fails + 1)); }
 
 if (( fails )); then echo "$fails FAILED"; exit 1; fi
 echo "all passed"
