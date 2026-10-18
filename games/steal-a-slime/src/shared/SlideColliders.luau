@@ -78,6 +78,22 @@ local function flare(f: number): number
 	return m * m * (3 - 2 * m)
 end
 
+-- FEATURES.SlidePCD: the slide mesh (fountain_split_slide, PreciseConvexDecomposition) is the real trough floor, rims, posts and
+-- braces (probe pipeline/probes/slidepcd/pcd-final.json: every wall and support cast blocked), so these boxes go. What stays: the
+-- Fill (+ ridge roof, +JointFill), because the PCD trough is a walkable ramp (14.5 deg max against MaxSlopeAngle 89, rims only
+-- 0.9..2.2 studs, the mouth ~1 stud above ground), and the Skirt, because the thin trough shell leaves a 5.7+ stud gap to walk under.
+SlideColliders.PCD_RETIRED = table.freeze({ Floor = true, Joint = true, Post = true, Brace = true })
+
+function SlideColliders.withoutPcd(specs: { Spec }): { Spec }
+	local out: { Spec } = {}
+	for _, spec in specs do
+		if not SlideColliders.PCD_RETIRED[spec.kind] then
+			table.insert(out, spec)
+		end
+	end
+	return out
+end
+
 -- True for the segment a -> b that gets colliders.
 function SlideColliders.isLow(a: Vec, b: Vec): boolean
 	return math.min(a[2], b[2]) <= FountainRide.LOW_SLIDE_Y
@@ -399,10 +415,13 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 end
 
 -- Everything the live server places: the solid block (build) plus the supports.
-function SlideColliders.all(path: { Vec }, kit: { Vec }, full: boolean?): { Spec }
+function SlideColliders.all(path: { Vec }, kit: { Vec }, full: boolean?, pcd: boolean?): { Spec }
 	local out = SlideColliders.build(path, full)
 	for _, spec in SlideColliders.supports(kit, out, full) do
 		table.insert(out, spec)
+	end
+	if pcd then
+		return SlideColliders.withoutPcd(out)
 	end
 	return out
 end
