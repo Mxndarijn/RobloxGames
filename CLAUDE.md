@@ -21,13 +21,16 @@ You may use whatever helps finish the task well, without asking first:
 Merijn works on this PC while you run. Whenever you need Studio and none is already open, start it on a hidden desktop, never a normal window:
 
 ```sh
-python tools/pipeline/pc-watcher/studio_hidden.py open <place.rbxl>   # build the place with Rojo first
-python tools/pipeline/pc-watcher/studio_hidden.py close               # when you are done
+python tools/pipeline/pc-watcher/studio_hidden.py open <place.rbxl>   # build the place with Rojo first; prints your pid
+python tools/pipeline/pc-watcher/studio_hidden.py close <pid>         # when you are done: closes only that Studio
+python tools/pipeline/pc-watcher/studio_hidden.py list                # every hidden Studio still running, and whose
 ```
 
+- `open` waits until Studio shows the place (about 15 s) and prints the pid as the last line. Keep that pid. MCP can reach that Studio as soon as `open` returns.
+- Several bots share this PC. `close <pid>` kills only that pid and refuses any pid the script did not start. A bare `close` kills only the Studios opened from your own checkout. Never close another bot's Studio, and never kill Studio processes by image name.
 - Don't launch `RobloxStudioBeta.exe` directly, and don't bring any window to the front.
 - Don't use `user_mouse_input` or `user_keyboard_input`: they move the real cursor and press real keys. Drive the game with `execute_luau` instead.
-- Close only the Studio you started, with `close` (no save dialog). Never close or touch a Studio Merijn opened.
+- Close only the Studio you started (no save dialog). Never close or touch a Studio Merijn opened.
 - Ask Merijn only when you truly can't continue without that input; otherwise pick a sensible default and report it at the end.
 
 Verify in the real game where you can (Studio playtest, screenshots, the tests in each game's `CLAUDE.md`), and report honestly what you could not check.
