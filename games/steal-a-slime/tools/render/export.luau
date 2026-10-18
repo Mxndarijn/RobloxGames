@@ -403,6 +403,19 @@ else
 	end
 end
 
+-- The goo carried on over the drain's curb into the funnel (server/ParadeView, Plaza.DrainMouth): always strips.
+for _, strip in ParadeLane.drainStrips() do
+	table.insert(parts, {
+		name = `Workspace.Map.Plaza.DrainMouth.{strip.name}`,
+		shape = "Block",
+		size = strip.size,
+		cf = strip.cf,
+		color = { ParadeLane.COLOR[1] / 255, ParadeLane.COLOR[2] / 255, ParadeLane.COLOR[3] / 255 },
+		material = "SmoothPlastic",
+		transparency = 0,
+	})
+end
+
 -- The co-op ritual circle (server/RitualView, a runtime model): disc, ring, spots and orb.
 local ritualAt = nil
 if Config.FEATURES.CoopRitual then

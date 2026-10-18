@@ -17,6 +17,8 @@
 	  collision, query or touch, so players walk over it and ground raycasts
 	  (drops, landings) pass through. Glossy goo in the slide's water colour
 	  (ParadeLane.COLOR). Idempotent.
+	  Plaza.DrainMouth (always strips): ParadeLane.drainStrips(), the lane's goo carrying on from its end over the
+	  drain's curb to just inside the rim, so the path visibly pours into the funnel.
 
 	ParadeView.splash(effects): Instance?
 	  The goo splash at the drain when a lane slime leaves (World event
@@ -35,14 +37,15 @@ local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local ParadeView = {}
 
 ParadeView.FOLDER = "ParadeLane"
+ParadeView.MOUTH_FOLDER = "DrainMouth"
 ParadeView.SPLASH_EMITTER = "Eruption" -- Visuals.Effects preset: goo splash puffs
 ParadeView.SPLASH_COUNT = 24
 ParadeView.SPLASH_SECONDS = 0.2 -- burst length (server emitters run on Rate; Emit doesn't replicate)
 
 local GOO = ParadeLane.COLOR
 
-local function layStrips(folder: Folder)
-	for _, strip in ParadeLane.strips() do
+local function layStrips(folder: Folder, strips: { any })
+	for _, strip in strips do
 		local c = strip.cf
 		local part = Instance.new("Part")
 		part.Name = strip.name
@@ -53,7 +56,7 @@ local function layStrips(folder: Folder)
 		part.CanQuery = false
 		part.CanTouch = false
 		part.CastShadow = false
-		part.Shape = Enum.PartType.Cylinder
+		part.Shape = if strip.shape == "Block" then Enum.PartType.Block else Enum.PartType.Cylinder
 		part.Material = Enum.Material.SmoothPlastic
 		part.Reflectance = 0.08
 		part.Color = Color3.fromRGB(GOO[1], GOO[2], GOO[3])
@@ -92,9 +95,15 @@ function ParadeView.place(load: ((string) -> MeshPart?)?): Folder?
 	local folder = Instance.new("Folder")
 	folder.Name = ParadeView.FOLDER
 	folder.Parent = plaza
+	-- The goo carries on from the lane's end over the drain's curb into the funnel (own folder: the lane mesh
+	-- swap clears ParadeLane's children).
+	local mouth = Instance.new("Folder")
+	mouth.Name = ParadeView.MOUTH_FOLDER
+	mouth.Parent = plaza
+	layStrips(mouth, ParadeLane.drainStrips())
 	if MeshAssets.meshId(ParadeLane.MESH) then
 		-- The mesh loads in the background; the strips stand in until it is there (and stay if it never loads).
-		layStrips(folder)
+		layStrips(folder, ParadeLane.strips())
 		task.spawn(function()
 			local ok, mesh = pcall(load or MeshSwap.load, ParadeLane.MESH)
 			if ok and mesh and folder.Parent then
@@ -107,7 +116,7 @@ function ParadeView.place(load: ((string) -> MeshPart?)?): Folder?
 			end
 		end)
 	else
-		layStrips(folder)
+		layStrips(folder, ParadeLane.strips())
 	end
 	return folder
 end
