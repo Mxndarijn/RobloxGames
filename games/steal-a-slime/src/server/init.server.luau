@@ -50,6 +50,7 @@ local GroundTerrainView = require(script.GroundTerrainView)
 local Leaderboard = require(script.Leaderboard)
 local MeshSwap = require(script.MeshSwap)
 local ParadeView = require(script.ParadeView)
+local PlazaColliders = require(script.PlazaColliders)
 local PlotPadGuard = require(script.PlotPadGuard)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
@@ -109,6 +110,13 @@ do
 	local ok, err = pcall(FountainColliders.place)
 	if not ok then
 		warn(`[Server] FountainColliders.place failed: {err}`)
+	end
+end
+-- The landing ring and the goo drain are solid, low step-overs (docs/COLLISION.md).
+do
+	local ok, err = pcall(PlazaColliders.place)
+	if not ok then
+		warn(`[Server] PlazaColliders.place failed: {err}`)
 	end
 end
 -- The goo parade lane the wild slimes hop along (FEATURES.Parade).

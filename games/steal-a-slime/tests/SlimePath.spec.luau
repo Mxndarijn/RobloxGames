@@ -256,8 +256,8 @@ describe("slime path stays off the fountain", function()
 				}
 				for _, strip in ParadeLane.strips() do
 					checked += 1
-					-- the mouth's floor ends END_EXTRA (0.175) past the path where the lane starts: that touch only
-					expect(boxPenetration(box, laneBox(strip)) <= 0.25).toBe(true)
+					-- the mouth's floor ends MOUTH_EXTRA (0.5) past the path where the lane starts: that touch only
+					expect(boxPenetration(box, laneBox(strip)) <= 0.55).toBe(true)
 				end
 			end
 			expect(checked > 1000).toBe(true)
