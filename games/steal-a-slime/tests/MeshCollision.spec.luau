@@ -72,6 +72,9 @@ describe("MeshSwap collision in the live server", function()
 			if splitPieces[name] and not Config.FEATURES.FountainSplit then
 				continue
 			end
+			if name == "fountain_split_slide" and not Config.FEATURES.SlidePCD then
+				continue -- the slide piece is PCD only with FEATURES.SlidePCD (MeshSwap.splitFidelity)
+			end
 			solid[MeshAssets.meshId(name)] = (roblox.Enum.CollisionFidelity :: any)[fidelity]
 			want += 1
 		end

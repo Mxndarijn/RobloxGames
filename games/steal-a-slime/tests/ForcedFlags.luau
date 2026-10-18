@@ -70,6 +70,7 @@ ForcedFlags.off = {
 	["SlideColliders specs"] = "SlideCollision",
 	["SlideColliders in the live server"] = "SlideCollision",
 	["FountainSplit data > is behind FEATURES.FountainSplit, default on"] = "FountainSplit",
+	["FountainSplit data > the slide is PCD behind FEATURES.SlidePCD, default on"] = "SlidePCD",
 }
 
 -- Spec modules that assert a flag at load time.
