@@ -707,10 +707,10 @@ VIEWS = {
     # bug 4b: the lane's sharpest turn by the drain (probe bug04_lane_smooth), eye 2 studs up looking through it, and top-down 40 studs wide
     "31_lane_turn": lambda: look((36, 2, 57), (10, 0.3, 61.5), lens=28),
     "32_lane_turn_top": lambda: look((16, 200, 62.01), (16, 0, 62), ortho=40),
-    # slime path into the goo drain (centre x 0, z 52.5): close-up like the feedback shot, then the swirl leading in
-    "40_drain_close": lambda: look((9, 7, 66), (0.5, 0.8, 53), lens=28),
-    "41_drain_wide": lambda: look((38, 22, 86), (3, 0, 54), lens=28),
-    "42_drain_top": lambda: look((4, 100, 55.01), (4, 0, 55), ortho=18),
+    # the lane's end at the goo drain curb: top-down over the drain and the last ~25 studs, eye level at the touch, and wide
+    "33_drain_touch_top": lambda: look((10, 200, 56.01), (10, 0, 56), ortho=32),
+    "34_drain_touch_close": lambda: look((12, 1.8, 60.5), (3.3, 0.7, 55.3), lens=30),
+    "35_drain_touch_wide": lambda: look((30, 14, 72), (3, 0, 55), lens=28),
     # bugs #13-15 (soft terrain ground): the approved concept camera. Eye at polar(-20, 89, 6) looking at polar(-40, 50, 2);
     # lens 26 mm on the 36 mm sensor (vertical FOV 42.6 degrees at 16:9)
     "30_ground_eye": lambda: look(polar(-20, 89, 6), polar(-40, 50, 2.0), lens=26),

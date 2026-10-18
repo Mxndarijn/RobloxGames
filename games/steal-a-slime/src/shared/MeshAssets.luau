@@ -385,10 +385,10 @@ entries["ranch_floor_paths"] =
 	{ assetId = 87043105060649, meshId = "rbxassetid://120582459397748", size = { 192, 0.21, 192 } }
 
 -- The goo parade lane as ONE curved mesh (models/slime_lane.py, bug 4): not a WorldLayout slot (ParadeView lays
--- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17, v3 2026-10-18 (ends where the drain taper starts); ParadeView swaps the ParadeLane.strips() stand-ins for it
+-- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17; ParadeView swaps the ParadeLane.strips() stand-ins for it
 -- once it loads (they stay only if it fails to load). size = out/slime_lane_pivot.json "size".
 entries["slime_lane"] =
-	{ assetId = 87473643950432, meshId = "rbxassetid://107989172597936", size = { 139.095, 0.43, 135.756 } }
+	{ assetId = 87473643950432, meshId = "rbxassetid://135233109223925", size = { 139.095, 0.43, 135.756 } }
 
 -- FEATURES.FountainSplit (default off; MeshSwap.swapFountainSplit): the slime_fountain mesh cut into 5 pieces by
 -- shared/modeling-kit/models/slime_fountain_split.py (out/fountain_split.json has the numbers, tris sum to the whole:

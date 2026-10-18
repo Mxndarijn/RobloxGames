@@ -82,40 +82,16 @@ describe("slime lane mesh: what the game expects of the kit model", function()
 	it(
 		"follows the route: every waypoint and the drawn lead-in lie within 0.1 stud of the sampled centreline",
 		function()
-			-- up to the taper start: the mesh ends there (the drain strips draw the rest)
-			local stop = ParadeLane.stripEndPoints()
-			local from = stop[#stop]
 			for _, p in ParadeLane.WAYPOINTS do
 				expect(distanceToCentre(p[1], p[2]) < 0.1).toBe(true)
-				if p == from then
-					break
-				end
 			end
 			for _, p in ParadeLane.LEAD do
 				expect(distanceToCentre(p[1], p[2]) < 0.1).toBe(true)
 			end
+			-- the walk's end (EXIT) is on the mesh; the mesh runs on a few studs past it to touch the drain curb (DrainTouch.spec)
+			expect(distanceToCentre(ParadeLane.EXIT[1], ParadeLane.EXIT[2]) < 0.05).toBe(true)
 		end
 	)
-	it("ends where the drain taper starts, square to the lane, and the first taper strip laps the cut", function()
-		local stop = ParadeLane.stripEndPoints()
-		local from = stop[#stop]
-		local last, before = C[#C], C[#C - 1]
-		expect(math.abs(last[1] - from[1]) < 0.05 and math.abs(last[2] - from[2]) < 0.05).toBe(true)
-		-- the mesh no longer reaches EXIT: it stops TAPER_START studs short (the taper strips draw the rest)
-		local e = ParadeLane.EXIT
-		local short = math.sqrt((last[1] - e[1]) ^ 2 + (last[2] - e[2]) ^ 2)
-		expect(math.abs(short - ParadeLane.TAPER_START) < 1.2).toBe(true)
-		-- the first taper strip starts TAPER_MESH_OVERLAP before the cut along its own heading
-		local first = ParadeLane.drainStrips()[1]
-		local c = first.cf
-		local back = (last[1] - (c[1] - c[4] * first.length / 2)) * c[4]
-			+ (last[2] - (c[3] - c[10] * first.length / 2)) * c[10]
-		expect(back >= 0.2 and back <= 0.35).toBe(true)
-		-- the last ring is the cut: the final segment keeps the lane's heading (square cut: rings are perpendicular to it)
-		local dx, dz = last[1] - before[1], last[2] - before[2]
-		local hx, hz = c[4], c[10]
-		expect((dx * hx + dz * hz) / math.sqrt(dx * dx + dz * dz) > math.cos(math.rad(10))).toBe(true)
-	end)
 	it(
 		"has no kink: the heading changes by under 20 degrees (the tightest route bends are r ~4, at 0.8-stud rings) between neighbouring rings",
 		function()
