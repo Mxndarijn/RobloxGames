@@ -413,3 +413,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §28 | [fountain-split.md](contract/fountain-split.md) | Fountain split: PCD tower pieces (`FEATURES.FountainSplit`) |
 | §29 | [inventory.md](contract/inventory.md) | S3: inventory hotbar + panel (client only, 2026-10-18) |
 | §30 | [slime-pool.md](contract/slime-pool.md) | Slime pool: 32 species, one fully coloured mesh each |
+| §34 | [event-secrets.md](contract/event-secrets.md) | Event Secrets: one featured Secret per week joins the Secret pool |
