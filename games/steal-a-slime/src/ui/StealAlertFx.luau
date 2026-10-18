@@ -10,7 +10,7 @@
 	  `State.stealAway` once per join (as a toast).
 	* Thief (and everyone watching): a short Trail on any player whose Player attribute
 	  `Stealing` is set.
-	* Bat hit: a hit effect (flash, "SLAP!" pop, burst) on the player whose `SlapHitAt` changes.
+	* Bat hit: a hit effect (flash, "BONK!" pop, burst) on the player whose `SlapHitAt` changes.
 
 	Only Instances that are not parts: Frames, a BillboardGui, a Highlight, a Trail with two
 	Attachments, a ParticleEmitter. The maths is Shared.StealAlert (tests/StealAlert.spec).
