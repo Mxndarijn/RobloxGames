@@ -61,7 +61,7 @@ function Sessions.join(
 		session.awayLog = data.stealLog
 		data.stealLog = {}
 	end
-	PvpService.join(session, now)
+	PvpService.join(world, session, now)
 	Codes.expireBoost(session.data, now) -- a boost never pays for time spent offline
 	Income.applyOffline(world, session, now)
 	Milestones.check(world, session, now) -- old saves get past goal stages / dex milestones now
@@ -75,7 +75,7 @@ function Sessions.leave(world: World, userId: number, now: number): Session?
 		return nil
 	end
 	Carry.release(world, userId, now, nil, "left")
-	PvpService.leave(session, now)
+	PvpService.leave(world, session, now)
 	Revenge.forget(world, userId)
 	world.sessions[userId] = nil
 	if world.plots[session.plotIndex] == userId then

@@ -17,7 +17,10 @@ local ORIGIN = { X = 200, Y = 3, Z = -200 } -- clear of every safe zone
 local FOUNTAIN = { X = 1, Y = 3, Z = 1 }
 local TIERS = { "GooBlaster1", "GooBlaster2", "GooBlaster3" }
 
-local events: { { target: number?, payload: { [string]: any } } } = {}
+local current: any = nil -- the world of the running test
+local function events(): { ServerFixtures.PvpEvent }
+	return ServerFixtures.pvpEvents(current)
+end
 local positions: { [number]: any } = {}
 local plot = true
 local env = {
@@ -30,29 +33,21 @@ local env = {
 }
 
 local function setup(tier: string?): (any, any, any, any)
-	events, plot = {}, true
+	plot = true
 	positions = {
 		[1] = ORIGIN,
 		[2] = { X = 220, Y = 3, Z = -200 },
 		[3] = { X = 230, Y = 3, Z = -200 },
 	}
-	PvpService.setSink(function(target, payload)
-		table.insert(events, { target = target, payload = payload })
-	end, function()
-		return T0
-	end)
-	PvpBlaster.setEnv({
-		positionOf = env.positionOf,
-		onOwnPlot = env.onOwnPlot,
-	})
 	PvpBlaster.register()
 	local world = ServerFixtures.world()
+	current = world
 	local a = ServerFixtures.join(world, 1, nil, 1e12)
 	local b = ServerFixtures.join(world, 2, nil, 1e12)
 	local c = ServerFixtures.join(world, 3, nil, 1e12)
 	a.data.rebirths, b.data.rebirths, c.data.rebirths = 20, 20, 20
 	for _, s in { a, b, c } do
-		PvpService.join(s, T0, true)
+		PvpService.join(world, s, T0, true)
 	end
 	for _, id in TIERS do
 		expect((PvpService.buy(world, a, id, true))).toBe(true)
@@ -65,9 +60,7 @@ local function setup(tier: string?): (any, any, any, any)
 end
 
 local function done()
-	PvpService.setSink(nil)
 	PvpService.registerLine("Blaster", nil)
-	PvpBlaster.setEnv(nil)
 end
 
 local function fire(world: any, a: any, aim: any, at: number, id: string?): (boolean, string?)
@@ -120,8 +113,8 @@ describe("Blaster use", function()
 	it("slows the first player hit, fires Effect to everyone and Cooldown to the attacker", function()
 		local world, a, b, c = setup()
 		expect(fire(world, a, EAST, T0 + 1)).toBe(true)
-		local e = events[1].payload
-		expect(events[1].target).toBeNil()
+		local e = events()[1].payload
+		expect(events()[1].target).toBeNil()
 		expect(e.kind).toBe("Effect")
 		expect(e.effect).toBe("Slow")
 		expect(e.attacker).toBe(1)
@@ -129,8 +122,8 @@ describe("Blaster use", function()
 		expect(e.itemId).toBe("GooBlaster1")
 		expect(e.duration).toBe(2)
 		expect(e.position).toEqual(positions[2])
-		expect(events[2].payload.kind).toBe("Cooldown")
-		expect(events[2].target).toBe(1)
+		expect(events()[2].payload.kind).toBe("Cooldown")
+		expect(events()[2].target).toBe(1)
 		expect(Carry.targetWalkSpeed(b, T0 + 1.5) < Config.BASE_WALK_SPEED).toBe(true)
 		expect(Carry.targetWalkSpeed(c, T0 + 1.5)).toBe(Config.BASE_WALK_SPEED)
 		expect(PvpService.spawnedCount(a)).toBe(0)
@@ -146,7 +139,7 @@ describe("Blaster use", function()
 			local slowed = Carry.targetWalkSpeed(b, T0 + 1.01)
 			expect(math.abs(slowed - Config.BASE_WALK_SPEED * (1 - tool.slow)) < 1e-9).toBe(true)
 			local seconds = math.min(tool.slowSeconds, Config.PVP.SLOW_MAX_SECONDS)
-			expect(events[1].payload.duration).toBe(seconds)
+			expect(events()[1].payload.duration).toBe(seconds)
 			expect(Carry.targetWalkSpeed(b, T0 + 1 + seconds - 0.01) < base).toBe(true)
 			expect(Carry.targetWalkSpeed(b, T0 + 1 + seconds)).toBe(base)
 			expect(Carry.targetWalkSpeed(b, T0 + 1.5)).toBe(base) -- expired for good
@@ -171,7 +164,7 @@ describe("Blaster use", function()
 		expect(immuneUntil).toBe(T0 + 1 + 2 + Config.PVP.CONTROL_IMMUNITY_SECONDS)
 		-- cooldown over (12 s) and immunity over: slowable again
 		expect(fire(world, a, EAST, T0 + 1 + 12)).toBe(true)
-		expect(events[#events - 1].payload.target).toBe(2)
+		expect(events()[#events() - 1].payload.target).toBe(2)
 		done()
 	end)
 	it("a miss spends the cooldown and fires Effect with no target at the end of the ray", function()
@@ -179,7 +172,7 @@ describe("Blaster use", function()
 		positions[2] = { X = 220, Y = 3, Z = -150 }
 		positions[3] = { X = 250, Y = 3, Z = -200 } -- beyond the 40 stud range
 		expect(fire(world, a, EAST, T0 + 1)).toBe(true)
-		local e = events[1].payload
+		local e = events()[1].payload
 		expect(e.effect).toBe("Slow")
 		expect(e.target).toBeNil()
 		expect(e.position).toEqual({ X = 240, Y = 3, Z = -200 })
@@ -193,7 +186,7 @@ describe("Blaster use", function()
 	it("a target may be given instead of an aim", function()
 		local world, a = setup()
 		expect(PvpService.use(world, a, "GooBlaster1", 3, nil, T0 + 1, true, env)).toBe(true)
-		expect(events[1].payload.target).toBe(2) -- still the first hit on the way to player 3
+		expect(events()[1].payload.target).toBe(2) -- still the first hit on the way to player 3
 		done()
 	end)
 	it("refusals start no cooldown: no aim, bad aim, not equipped, safe zone, flag off", function()
@@ -207,7 +200,7 @@ describe("Blaster use", function()
 		expect(select(2, PvpService.use(world, a, "GooBlaster1", nil, EAST, T0 + 1, false, env))).toBe(
 			"PvP is not open yet"
 		)
-		expect(#events).toBe(0)
+		expect(#events()).toBe(0)
 		expect(next((PvpService.state(a) :: any).cooldowns)).toBeNil()
 		expect(fire(world, a, EAST, T0 + 1)).toBe(true)
 		done()
@@ -215,22 +208,22 @@ describe("Blaster use", function()
 	it("players that fail canTarget are shot through: shielded, safe zone, other plot without a thief", function()
 		local world, a, b, c = setup()
 		b.data.rebirths = 0
-		PvpService.join(b, T0, true) -- fresh and shielded
+		PvpService.join(world, b, T0, true) -- fresh and shielded
 		expect(fire(world, a, EAST, T0 + 1)).toBe(true)
-		expect(events[1].payload.target).toBe(3)
+		expect(events()[1].payload.target).toBe(3)
 		b.data.rebirths = 20
-		PvpService.join(b, T0, true)
+		PvpService.join(world, b, T0, true)
 		plot = false
-		events = {}
+		ServerFixtures.clearEvents(current)
 		expect(fire(world, a, EAST, T0 + 13)).toBe(true)
-		expect(events[1].payload.target).toBeNil() -- not on your plot, nobody carrying
+		expect(events()[1].payload.target).toBeNil() -- not on your plot, nobody carrying
 		c.carry = { kind = "stolen", slimeId = "x" } :: any
 		expect(fire(world, a, EAST, T0 + 30)).toBe(true)
-		expect(events[#events - 1].payload.target).toBe(3) -- the thief, past player 2
+		expect(events()[#events() - 1].payload.target).toBe(3) -- the thief, past player 2
 		positions[3] = FOUNTAIN
-		events = {}
+		ServerFixtures.clearEvents(current)
 		expect(fire(world, a, { X = 1, Y = 3, Z = 1 }, T0 + 50)).toBe(true)
-		expect(events[1].payload.target).toBeNil()
+		expect(events()[1].payload.target).toBeNil()
 		done()
 	end)
 	it("flag off: no handler path, no events, no slow", function()
@@ -238,7 +231,7 @@ describe("Blaster use", function()
 		expect(select(2, PvpService.use(world, a, "GooBlaster1", nil, EAST, T0 + 1, false, env))).toBe(
 			"PvP is not open yet"
 		)
-		expect(#events).toBe(0)
+		expect(#events()).toBe(0)
 		expect(Carry.targetWalkSpeed(b, T0 + 1.5)).toBe(Config.BASE_WALK_SPEED)
 		done()
 	end)

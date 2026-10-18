@@ -32,8 +32,7 @@ local function setup(slimes: { any }?)
 		positionOf = function()
 			return nil
 		end,
-		worldShops = true,
-		worldShopsStrict = true,
+		features = { WorldShops = true, WorldShopsStrict = true },
 		shopAccess = function()
 			return env.shop
 		end,

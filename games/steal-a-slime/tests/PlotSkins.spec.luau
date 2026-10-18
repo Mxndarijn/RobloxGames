@@ -60,7 +60,7 @@ local ctx: Actions.Context = {
 	positionOf = function()
 		return nil
 	end,
-	plotSkins = true,
+	features = { PlotSkins = true },
 }
 local offCtx: Actions.Context = { distanceBetween = ctx.distanceBetween, positionOf = ctx.positionOf }
 

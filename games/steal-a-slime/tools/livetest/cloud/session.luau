@@ -200,11 +200,11 @@ end
 ---------------------------------------------------------------------------
 scenario("coil", function()
 	local humanoid = botRig:FindFirstChildOfClass("Humanoid")
-	S.WorldView.updatePlayer(bot, session, now())
+	S.WorldView.updatePlayer(world, bot, session, now(), S.ctx)
 	local before = humanoid.WalkSpeed
 	TestHooks.grantCash(world, BOT_ID, 1500)
 	local res = act(BOT_ID, "BuySpeedCoil")
-	S.WorldView.updatePlayer(bot, session, now())
+	S.WorldView.updatePlayer(world, bot, session, now(), S.ctx)
 	local after = humanoid.WalkSpeed
 	check(
 		"coil: buying raises the rig's WalkSpeed",
@@ -212,7 +212,7 @@ scenario("coil", function()
 		`ok={res.ok} {res.message or ""}; WalkSpeed {before} -> {after}; tool={botPack:FindFirstChild("SpeedCoil") ~= nil}`
 	)
 	local id = grab(BOT_ID)
-	S.WorldView.updatePlayer(bot, session, now())
+	S.WorldView.updatePlayer(world, bot, session, now(), S.ctx)
 	local noCoil = Steal.walkSpeed(session.carry.timer, now())
 	check(
 		"coil: still faster while carrying",
@@ -378,7 +378,7 @@ scenario("loop", function()
 		if not res.ok then
 			table.insert(failures, res.message or "?")
 		end
-		S.WorldView.updatePlayer(newbie, me, now())
+		S.WorldView.updatePlayer(world, newbie, me, now(), S.ctx)
 		table.insert(titles, newbie:GetAttribute("RebirthTitle"))
 		for _, id in { "Income", "CarrySpeed", "OfflineCap", "Luck" } do
 			TestHooks.grantCash(world, NEW_ID, 1e7)

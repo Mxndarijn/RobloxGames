@@ -14,7 +14,10 @@ local T0 = ServerFixtures.T0
 local FAR = { X = 200, Y = 3, Z = -200 } -- clear of every safe zone
 local SPAWN = { X = 0, Y = 3, Z = 0 }
 
-local events: { { target: number?, payload: { [string]: any } } } = {}
+local current: any = nil -- the world of the running test
+local function events(): { ServerFixtures.PvpEvent }
+	return ServerFixtures.pvpEvents(current)
+end
 local positions: { [number]: any } = {}
 local onPlot = true
 local joined: { any } = {}
@@ -25,39 +28,32 @@ local env = {
 	onOwnPlot = function(): boolean
 		return true
 	end,
+	pointOnOwnPlot = function(): boolean
+		return onPlot
+	end,
 }
 
 local function setup(): (any, any, any)
-	events = {}
 	onPlot = true
 	joined = {}
 	positions = { [1] = FAR, [2] = FAR }
-	PvpService.setSink(function(target, payload)
-		table.insert(events, { target = target, payload = payload })
-	end, function()
-		return T0
-	end)
-	PvpTrap.setPlotCheck(function()
-		return onPlot
-	end)
 	PvpTrap.register()
 	local world = ServerFixtures.world()
+	current = world
 	local owner = ServerFixtures.join(world, 1, nil, 1e12)
 	local thief = ServerFixtures.join(world, 2, nil, 1e12)
 	owner.data.rebirths, thief.data.rebirths = 10, 10
-	PvpService.join(owner, T0, true)
-	PvpService.join(thief, T0, true)
+	PvpService.join(world, owner, T0, true)
+	PvpService.join(world, thief, T0, true)
 	joined = { owner, thief }
 	return world, owner, thief
 end
 
 local function done()
 	for _, session in joined do
-		PvpTrap.clear(session) -- module state outlives the weak session keys
+		PvpTrap.clear(current, session) -- module state outlives the weak session keys
 	end
-	PvpService.setSink(nil)
 	PvpService.registerLine("Trap", nil)
-	PvpTrap.setPlotCheck(nil)
 end
 
 local function own(session: any, id: string)
@@ -76,7 +72,7 @@ end
 
 local function kinds(): { string }
 	local out = {}
-	for _, e in events do
+	for _, e in events() do
 		table.insert(out, e.payload.kind)
 	end
 	return out
@@ -91,7 +87,7 @@ describe("Goo Trap placement", function()
 		expect(PvpTrap.count(owner)).toBe(1)
 		expect(PvpService.spawnedCount()).toBe(0)
 		local placed
-		for _, e in events do
+		for _, e in events() do
 			if e.payload.kind == "TrapPlaced" then
 				placed = e
 			end
@@ -162,20 +158,20 @@ describe("Goo Trap trigger", function()
 	end
 	it("freezes only a thief carrying the owner's slime, with Effect Freeze and no damage field", function()
 		local _, owner, thief = armed("GooTrap3")
-		expect(PvpTrap.tick(thief, FAR, T0)).toBe(0) -- empty-handed
+		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(0) -- empty-handed
 		thief.carry = { slimeId = "w", kind = "wild" }
-		expect(PvpTrap.tick(thief, FAR, T0)).toBe(0) -- wild slime
+		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(0) -- wild slime
 		makeThief(thief, 99)
-		expect(PvpTrap.tick(thief, FAR, T0)).toBe(0) -- someone else's slime
+		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(0) -- someone else's slime
 		makeThief(thief, 1)
-		expect(PvpTrap.tick(thief, { X = 200 + 5, Y = 3, Z = -200 }, T0)).toBe(0) -- outside radius 4
-		expect(PvpTrap.tick(owner, FAR, T0)).toBe(0) -- the owner never triggers it
+		expect(PvpTrap.tick(current, thief, { X = 200 + 5, Y = 3, Z = -200 }, T0)).toBe(0) -- outside radius 4
+		expect(PvpTrap.tick(current, owner, FAR, T0)).toBe(0) -- the owner never triggers it
 		expect(PvpTrap.frozen(thief, T0)).toBe(false)
-		expect(PvpTrap.tick(thief, { X = 202, Y = 3, Z = -200 }, T0)).toBe(2)
+		expect(PvpTrap.tick(current, thief, { X = 202, Y = 3, Z = -200 }, T0)).toBe(2)
 		expect(PvpTrap.frozen(thief, T0 + 1.9)).toBe(true)
 		expect(PvpTrap.frozen(thief, T0 + 2)).toBe(false)
 		local effect
-		for _, e in events do
+		for _, e in events() do
 			if e.payload.kind == "Effect" then
 				effect = e.payload
 			end
@@ -195,13 +191,13 @@ describe("Goo Trap trigger", function()
 			local trap = PvpTrap.list(owner)[1]
 			trap.control = 9 -- a bad value can never freeze longer than the cap
 			trap.rearm = 1 -- re-arms before the immunity ends
-			expect(PvpTrap.tick(thief, FAR, T0)).toBe(Config.PVP.CONTROL_MAX_SECONDS)
-			expect(PvpTrap.tick(thief, FAR, T0 + 1.5)).toBe(0) -- still frozen / disarmed
+			expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(Config.PVP.CONTROL_MAX_SECONDS)
+			expect(PvpTrap.tick(current, thief, FAR, T0 + 1.5)).toBe(0) -- still frozen / disarmed
 			-- control over at +2, immune until +5; the trap is armed again at +1 but the thief passes through
-			expect(PvpTrap.tick(thief, FAR, T0 + 3)).toBe(0)
+			expect(PvpTrap.tick(current, thief, FAR, T0 + 3)).toBe(0)
 			expect(PvpTrapRules.isArmed(trap, T0 + 3)).toBe(true)
 			expect(PvpTrap.frozen(thief, T0 + 3)).toBe(false)
-			expect(PvpTrap.tick(thief, FAR, T0 + 5)).toBe(2) -- immunity over: frozen again
+			expect(PvpTrap.tick(current, thief, FAR, T0 + 5)).toBe(2) -- immunity over: frozen again
 			done()
 		end
 	)
@@ -209,27 +205,27 @@ describe("Goo Trap trigger", function()
 		local _, owner, thief = armed("GooTrap3") -- rearm 20 s
 		makeThief(thief, 1)
 		local trap = PvpTrap.list(owner)[1]
-		expect(PvpTrap.tick(thief, FAR, T0)).toBe(2)
+		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(2)
 		expect(PvpTrapRules.isArmed(trap, T0 + 19.9)).toBe(false)
 		expect(PvpTrapRules.isArmed(trap, T0 + 20)).toBe(true)
 		expect(PvpTrap.count(owner)).toBe(1)
-		expect(PvpTrap.tick(thief, FAR, T0 + 20)).toBe(2)
+		expect(PvpTrap.tick(current, thief, FAR, T0 + 20)).toBe(2)
 		done()
 	end)
 	it("never triggers for a shielded new player", function()
 		local _, _, thief = armed("GooTrap3")
 		thief.data.rebirths = 0
-		PvpService.join(thief, T0, true) -- fresh shield
+		PvpService.join(current, thief, T0, true) -- fresh shield
 		makeThief(thief, 1)
 		expect(PvpService.isShielded(thief, T0)).toBe(true)
-		expect(PvpTrap.tick(thief, FAR, T0)).toBe(0)
+		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(0)
 		done()
 	end)
 	it("does nothing without PvP state (flag off join)", function()
 		local _, _, thief = armed("GooTrap3")
 		makeThief(thief, 1)
-		PvpService.join(thief, T0, false)
-		expect(PvpTrap.tick(thief, FAR, T0)).toBe(0)
+		PvpService.join(current, thief, T0, false)
+		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(0)
 		done()
 	end)
 end)
@@ -240,11 +236,11 @@ describe("Goo Trap cleanup and parts", function()
 		own(owner, "GooTrap2")
 		place(world, owner, "GooTrap2", FAR)
 		place(world, owner, "GooTrap2", FAR, T0 + 100)
-		events = {}
-		PvpService.leave(owner, T0 + 10)
+		ServerFixtures.clearEvents(current)
+		PvpService.leave(world, owner, T0 + 10)
 		expect(PvpTrap.count(owner)).toBe(0)
 		expect(kinds()).toEqual({ "TrapCleared", "TrapCleared" })
-		expect(events[1].payload.owner).toBe(1)
+		expect(events()[1].payload.owner).toBe(1)
 		done()
 	end)
 	it("clears a thief's freeze when they leave and keeps spawnedCount at 0 throughout", function()
@@ -253,12 +249,12 @@ describe("Goo Trap cleanup and parts", function()
 		expect(PvpService.spawnedCount()).toBe(0)
 		place(world, owner, "GooTrap1", FAR)
 		makeThief(thief, 1)
-		PvpTrap.tick(thief, FAR, T0)
+		PvpTrap.tick(current, thief, FAR, T0)
 		expect(PvpTrap.frozen(thief, T0)).toBe(true)
-		PvpService.leave(thief, T0 + 1)
+		PvpService.leave(world, thief, T0 + 1)
 		expect(PvpTrap.frozen(thief, T0 + 1)).toBe(false)
 		expect(PvpService.spawnedCount()).toBe(0)
-		PvpService.leave(owner, T0 + 2)
+		PvpService.leave(world, owner, T0 + 2)
 		expect(PvpService.spawnedCount()).toBe(0)
 		done()
 	end)

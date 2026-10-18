@@ -18,38 +18,39 @@ local ATTACKER = { X = 200, Y = 3, Z = -200 } -- clear of every safe zone
 local FOUNTAIN = { X = 1, Y = 3, Z = 1 }
 local TIERS = { "KnockGlove1", "KnockGlove2", "KnockGlove3", "KnockGlove4", "KnockGlove5" }
 
-local events: { { target: number?, payload: { [string]: any } } } = {}
+local current: any = nil -- the world of the running test
+local function events(): { ServerFixtures.PvpEvent }
+	return ServerFixtures.pvpEvents(current)
+end
 local positions: { [number]: any } = {}
 local moves: { { userId: number, push: any, landing: any } } = {}
 local plot = true
-local env = {
+local function record(userId: number, push: any, landing: any?): boolean
+	table.insert(moves, { userId = userId, push = push, landing = landing })
+	return true
+end
+local env: PvpService.Context = {
 	positionOf = function(userId: number): any?
 		return positions[userId]
 	end,
 	onOwnPlot = function(): boolean
 		return plot
 	end,
+	launch = record,
 }
 
 local function setup(tier: string?): (any, any, any)
-	events, moves, plot = {}, {}, true
+	moves, plot = {}, true
+	env.launch = record
 	positions = { [1] = ATTACKER, [2] = { X = 205, Y = 3, Z = -200 } }
-	PvpService.setSink(function(target, payload)
-		table.insert(events, { target = target, payload = payload })
-	end, function()
-		return T0
-	end)
-	PvpKnockback.setMover(function(userId, push, landing)
-		table.insert(moves, { userId = userId, push = push, landing = landing })
-		return true
-	end)
 	PvpKnockback.register()
 	local world = ServerFixtures.world()
+	current = world
 	local a = ServerFixtures.join(world, 1, nil, 1e12)
 	local b = ServerFixtures.join(world, 2, nil, 1e12)
 	a.data.rebirths, b.data.rebirths = 20, 20
-	PvpService.join(a, T0, true)
-	PvpService.join(b, T0, true)
+	PvpService.join(world, a, T0, true)
+	PvpService.join(world, b, T0, true)
 	for _, id in TIERS do
 		expect((PvpService.buy(world, a, id, true))).toBe(true)
 		if id == (tier or "KnockGlove1") then
@@ -61,9 +62,7 @@ local function setup(tier: string?): (any, any, any)
 end
 
 local function done()
-	PvpService.setSink(nil)
 	PvpService.registerLine("Knockback", nil)
-	PvpKnockback.setMover(nil)
 end
 
 local function use(world: any, a: any, id: string?, at: number): (boolean, string?)
@@ -124,8 +123,8 @@ describe("Knockback use", function()
 		expect(#moves).toBe(1)
 		expect(moves[1].userId).toBe(2)
 		expect(math.abs(moves[1].push.X - 5) < 1e-9).toBe(true)
-		expect(events[1].target).toBeNil()
-		local e = events[1].payload
+		expect(events()[1].target).toBeNil()
+		local e = events()[1].payload
 		expect(e.kind).toBe("Effect")
 		expect(e.effect).toBe("Knockback")
 		expect(e.attacker).toBe(1)
@@ -135,8 +134,8 @@ describe("Knockback use", function()
 		expect(e.duration).toBe(Config.PVP.FX_SECONDS)
 		expect(e.velocity).toEqual(PvpKnockbackRules.velocity(moves[1].push)) -- the victim's client applies the same push
 		expect(e.position).toEqual(positions[2])
-		expect(events[2].payload.kind).toBe("Cooldown")
-		expect(events[2].target).toBe(1)
+		expect(events()[2].payload.kind).toBe("Cooldown")
+		expect(events()[2].target).toBe(1)
 		-- control bookkeeping, no health, nothing spawned
 		expect((PvpService.state(b) :: any).controlUntil).toBe(T0 + 1 + Config.PVP.KNOCKBACK_CONTROL_SECONDS)
 		expect(PvpService.spawnedCount(a)).toBe(0)
@@ -159,7 +158,7 @@ describe("Knockback use", function()
 		expect(ok).toBe(false)
 		expect(reason).toBe("too far away")
 		expect(#moves).toBe(0)
-		expect(#events).toBe(0)
+		expect(#events()).toBe(0)
 		expect(next((PvpService.state(a) :: any).cooldowns)).toBeNil()
 		done()
 	end)
@@ -172,7 +171,7 @@ describe("Knockback use", function()
 		expect(select(2, use(world, a, nil, T0 + 1))).toBe("target is in a safe zone")
 		positions[2] = { X = 205, Y = 3, Z = -200 }
 		b.data.rebirths = 0
-		PvpService.join(b, T0, true) -- a fresh player: shielded
+		PvpService.join(world, b, T0, true) -- a fresh player: shielded
 		expect(select(2, use(world, a, nil, T0 + 1))).toBe("target is shielded")
 		b.data.rebirths = 20
 		plot = false
@@ -211,37 +210,30 @@ describe("Knockback use", function()
 	end)
 	it("a missing mover or a mover failure refuses without a cooldown", function()
 		local world, a = setup()
-		PvpKnockback.setMover(nil)
+		env.launch = nil
 		expect(select(2, use(world, a, nil, T0 + 1))).toBe("can't push right now")
-		PvpKnockback.setMover(function()
+		env.launch = function()
 			return false
-		end)
+		end
 		expect(use(world, a, nil, T0 + 1)).toBe(false)
 		expect(next((PvpService.state(a) :: any).cooldowns)).toBeNil()
-		expect(#events).toBe(0)
+		expect(#events()).toBe(0)
 		done()
 	end)
 	it("makes a thief drop the stolen slime like the base slap", function()
 		local world = ServerFixtures.world()
-		events, moves, plot = {}, {}, false
+		current = world
+		moves, plot = {}, false
+		env.launch = record
 		positions = { [1] = ATTACKER, [2] = { X = 205, Y = 3, Z = -200 } }
-		PvpService.setSink(function(target, payload)
-			table.insert(events, { target = target, payload = payload })
-		end, function()
-			return T0
-		end)
-		PvpKnockback.setMover(function(userId, push, landing)
-			table.insert(moves, { userId = userId, push = push, landing = landing })
-			return true
-		end)
 		PvpKnockback.register()
 		local a = ServerFixtures.join(world, 1, { Fixtures.slime("gem", 3) }, 1e12)
 		local thief = ServerFixtures.join(world, 2, nil, 1e12)
 		a.data.rebirths, thief.data.rebirths = 20, 20
 		ServerFixtures.unlock(a)
 		ServerFixtures.unlock(thief)
-		PvpService.join(a, T0, true)
-		PvpService.join(thief, T0, true)
+		PvpService.join(world, a, T0, true)
+		PvpService.join(world, thief, T0, true)
 		expect((PvpService.buy(world, a, "KnockGlove1", true))).toBe(true)
 		expect((PvpService.equip(a, "KnockGlove1", true))).toBe(true)
 		expect((StealService.steal(world, thief, "gem", 1, T0 + 101))).toBe(true)
@@ -255,12 +247,12 @@ describe("Knockback use", function()
 	end)
 	it("is refused with the flag off: no push, no event, no state", function()
 		local world, a = setup()
-		events = {}
+		ServerFixtures.clearEvents(current)
 		local ok, reason = PvpService.use(world, a, "KnockGlove1", 2, nil, T0 + 1, false, env)
 		expect(ok).toBe(false)
 		expect(reason).toBe("PvP is not open yet")
 		expect(#moves).toBe(0)
-		expect(#events).toBe(0)
+		expect(#events()).toBe(0)
 		done()
 	end)
 end)

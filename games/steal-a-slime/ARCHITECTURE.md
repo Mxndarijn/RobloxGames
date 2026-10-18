@@ -81,7 +81,7 @@ A service with its own clock follows `WeatherService`: `new(t0) -> State`, `step
 
 ### 2.3 Dependencies: one pattern (`ctx`)
 
-Pass what a module needs from the engine as a `ctx` / `Context` table argument (see `Actions.Context`). Tests pass a fake table. Some older modules use module-level setters (`BatTool.setEnv`, `PvpService.setSink`, `PvpTrap.setPlotCheck`, `PvpKnockback.setMover`): don't add new ones, and convert one to `ctx` when you are already changing it.
+Pass what a module needs from the engine as a `ctx` / `Context` table argument (see `Actions.Context`). Tests pass a fake table. `init.server` builds one `ctx` and hands it to `Actions`, the PvP lines (`PvpService.Context`: positions, plot checks, `launch`, `pose`), `BatTool.swing` and `WorldView.updatePlayer`. Feature-flag overrides for tests go in one table, `ctx.features` (`{ PvP = false }`); `Actions.feature(ctx, name)` reads it and falls back to `Config.FEATURES`. Events for clients go into `world.outbox` (`World.emit`; PvP uses type `"PvpEvent"`), never through a module-level sink. No module-level setters (`setEnv`, `setSink`, ...).
 
 ### 2.4 Client runtime module
 
@@ -160,7 +160,7 @@ return Thing
 ### 3.5 Add a feature flag
 
 1. `Config.FEATURES.<Name> = false` with one comment: what it does and what `false` means.
-2. The rule reads the flag through `ctx` (an override for tests, `nil` = `Config.FEATURES.<Name>`), like `Actions.Context.pvp`.
+2. The rule reads the flag through `ctx`: `Actions.feature(ctx, "<Name>")` (`ctx.features.<Name>` for tests, else `Config.FEATURES.<Name>`).
 3. Tests cover both values by passing the override. A flag Config can't pass in runs through `tests/FeatureFlags.spec.luau` (a flipped copy of Config). Note tests that can't run in the all-on / all-off modes of `scripts/test-flags` in `tests/ForcedFlags.luau`.
 4. Expiry: one release after the flag goes ON, delete the flag, the `false` branch, its override and its `ForcedFlags` entries. A flag that stays OFF for good gets its code deleted.
 

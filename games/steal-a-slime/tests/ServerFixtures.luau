@@ -56,4 +56,22 @@ function ServerFixtures.notifications(world: World.World, userId: number?): { st
 	return texts
 end
 
+export type PvpEvent = { target: number?, payload: { [string]: any } }
+
+-- The PvpEvents queued in world.outbox, oldest first, as { target (nil = every client), payload }. Not drained.
+function ServerFixtures.pvpEvents(world: World.World): { PvpEvent }
+	local events = {}
+	for _, event in world.outbox do
+		if event.type == "PvpEvent" and event.payload then
+			table.insert(events, { target = event.userId, payload = event.payload })
+		end
+	end
+	return events
+end
+
+-- Forgets every queued event (what the adapter's flush does), so a spec can count from zero.
+function ServerFixtures.clearEvents(world: World.World)
+	World.drain(world)
+end
+
 return ServerFixtures

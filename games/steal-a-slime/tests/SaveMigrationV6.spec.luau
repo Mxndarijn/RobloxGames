@@ -139,7 +139,7 @@ describe("save v6: SetAudioSettings", function()
 			positionOf = function()
 				return nil
 			end,
-			audio = audio,
+			features = { Audio = audio },
 		}
 	end
 	local function send(world: any, userId: number, args: { any }, c: Actions.Context, now: number?)
