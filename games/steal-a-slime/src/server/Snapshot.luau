@@ -31,6 +31,7 @@ local TutorialProgress = if Shared then require(Shared.TutorialProgress) else re
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
+local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
@@ -85,7 +86,6 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 	table.sort(dex)
 
 	local rainActive, endsAt, nextAt = Spawner.rain(world, now)
-	local bossActive, bossEndsAt = Spawner.boss(world)
 	local canRebirth = Progression.canRebirth(data)
 	local income = World.incomeOf(world, session)
 	local dailyAvailable = Progression.dailyAvailable(data.daily, now)
@@ -156,7 +156,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			earned = data.totalEarned,
 			rebirths = rebirths,
 		},
-		boss = { active = bossActive, endsAt = bossEndsAt },
+		boss = BossEvent.view(world, session, now),
 		modifier = {
 			name = world.modifier.name,
 			label = world.modifier.label,

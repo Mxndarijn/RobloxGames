@@ -50,10 +50,13 @@ function Spawner.price(slime: Genome.Slime, roll: number): number
 	return math.max(1, math.floor(Genome.baseIncome(slime) * Config.WILD_PRICE_SECONDS))
 end
 
+-- Wild slimes that count toward the cap (the boss never does).
 function Spawner.wildCount(world: World): number
 	local n = 0
-	for _ in world.wild do
-		n += 1
+	for _, wild in world.wild do
+		if not wild.boss then
+			n += 1
+		end
 	end
 	return n
 end
@@ -172,55 +175,26 @@ function Spawner.spawnOne(world: World, now: number): string
 	return id
 end
 
--- The Boss Slime: a free, max-size Epic (or better) with at least Glow, alive
--- BOSS_LIFETIME. It ignores the wild cap. Returns its id.
-function Spawner.spawnBoss(world: World, now: number): string
-	local id = world.newId()
-	local drop = Fountain.roll(world.rng, id, true)
-	local slime = drop.slime
-	slime.tier = math.max(slime.tier, Config.BOSS_TIER)
-	slime.size = Config.MAX_SIZE
-	if slime.mutation == "None" then
-		Genome.setMutations(slime, { "Glow" })
+-- Bonus wild slimes outside the wild cap (the boss sheds and bursts, contract/boss-event.md): `luckMult` on the
+-- rarity roll and the Slime Rain mutation chance, free, no pity, no rare announcement. Returns their ids.
+function Spawner.spawnBonus(world: World, now: number, count: number, luckMult: number): { string }
+	local ids = {}
+	local mutationMult = Config.RAIN_MUTATION_CHANCE / Config.DROP_MUTATION_CHANCE
+	for _ = 1, count do
+		local id = world.newId()
+		local drop = Fountain.roll(world.rng, id, false, nil, luckMult, mutationMult)
+		world.wild[id] = {
+			slime = drop.slime,
+			price = 0,
+			spawnedAt = now,
+			expiresAt = now + Fountain.wildLifetime(drop.slime),
+			angle = drop.angle,
+			radius = drop.radius,
+			position = nil,
+		}
+		table.insert(ids, id)
 	end
-	world.wild[id] = {
-		slime = slime,
-		price = 0,
-		spawnedAt = now,
-		expiresAt = now + Config.BOSS_LIFETIME,
-		angle = drop.angle,
-		radius = drop.radius,
-		position = nil,
-		boss = true,
-	}
-	World.notify(
-		world,
-		nil,
-		`A BOSS SLIME slid into the plaza: {Genome.displayName(slime)}! Grab it first!`,
-		"good",
-		"Rain"
-	)
-	return id
-end
-
--- Id of the live Boss Slime, if any.
-function Spawner.bossId(world: World): string?
-	for id, wild in world.wild do
-		if wild.boss then
-			return id
-		end
-	end
-	return nil
-end
-
--- State.boss (CONTRACT.md §8.2): active while the Boss Slime is in the world
--- (wild or carried, until deposited or expired); endsAt = its expiry.
-function Spawner.boss(world: World): (boolean, number?)
-	local id = Spawner.bossId(world)
-	if not id then
-		return false, nil
-	end
-	return true, world.wild[id].expiresAt
+	return ids
 end
 
 -- FEATURES.CycleModifier: re-rolls the server modifier when the DayNight phase
@@ -292,28 +266,15 @@ function Spawner.step(world: World, now: number)
 		World.markAllDirty(world)
 	end
 
-	-- Removal stays at expiresAt; the telegraph (DespawnAt, Scene) only warns before it.
+	-- Removal stays at expiresAt; the telegraph (DespawnAt, Scene) only warns before it. The boss leaves through
+	-- server/BossEvent, never here.
 	for id, wild in world.wild do
-		if DespawnTelegraph.shouldRemove(now, wild.expiresAt) and world.carriedBy[id] == nil then
+		if not wild.boss and DespawnTelegraph.shouldRemove(now, wild.expiresAt) and world.carriedBy[id] == nil then
 			world.wild[id] = nil
 			if ParadeLane.enabled() and ParadeLane.onLane(wild, false) then
 				World.emit(world, { type = "Drained", slimeId = id })
 			end
 		end
-	end
-
-	if now >= world.nextBossAt then
-		world.nextBossAt = now + Config.BOSS_INTERVAL
-		if not Spawner.bossId(world) then
-			Spawner.spawnBoss(world, now)
-		end
-	end
-
-	local bossActive, bossEndsAt = Spawner.boss(world)
-	if bossActive ~= world.bossActive or bossEndsAt ~= world.bossEndsAt then
-		world.bossActive = bossActive
-		world.bossEndsAt = bossEndsAt
-		World.markAllDirty(world)
 	end
 
 	if now >= world.nextSpawnAt then

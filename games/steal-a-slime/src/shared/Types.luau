@@ -160,9 +160,23 @@ export type GoalView = {
 	done: boolean,
 }
 export type DexRewardView = { count: number, reward: number, bonus: number, claimed: boolean }
+-- State.boss (contract/boss-event.md)
 export type BossView = {
-	active: boolean, -- the Boss Slime is in the world (wild or carried)
-	endsAt: number?, -- server time it expires, when active
+	active: boolean, -- a boss event is on (warning, fight or haul)
+	phase: string?, -- "warning" | "fight" | "haul" | "won" | "failed"; nil = no event
+	kind: string?, -- boss species id (SlimeRoster)
+	name: string?, -- species display name
+	tier: number?,
+	meter: number, -- 0..1 goo meter (1 from the haul on)
+	endsAt: number?, -- server time the current phase ends (warning: the arrival)
+	nextAt: number?, -- server time of the next arrival
+	yourPoints: number, -- this player's hits on this boss
+	yourShare: number, -- yourPoints / the top contributor's points, 0..1
+	carrierName: string?, -- haul: who carries it
+	priorityName: string?, -- haul: the top contributor while their head start runs
+	priorityUntil: number?,
+	winnerName: string?, -- "won": who brought it home
+	trophies: number, -- this player's boss trophies
 }
 
 export type ModifierView = {
