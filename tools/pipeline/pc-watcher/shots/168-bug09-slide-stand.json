@@ -14,5 +14,5 @@
     "args": {},
     "timeout": 50
   },
-  "note": "bug 9 (advisory, #252, same checks as slide_walk): balls and R15 dummies can neither enter nor climb the solid slide block, cannot stand on its fill top, slimes still ride it, the exit is reachable"
+  "note": "bug 9 (advisory, same checks as slide_walk): an R15 dummy walks up the slide from the mouth to the head, balls and walkers pushed in from the side are stopped by the rails, a dummy on the ramp stays on it, slimes still ride it, the exit is reachable"
 }

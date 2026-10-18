@@ -20,6 +20,12 @@
 	colliders stay off and the stand-ins keep collision. Idempotent (a placeholder with a "Mesh" child
 	is skipped). Any failure leaves the primitive placeholder. Holds no
 	gameplay rules.
+
+	applyAll() is the boot path: prefetch() fetches every template the slots
+	need on PREFETCH_WORKERS threads at once (one CreateMeshPartAsync after
+	another left a fresh server in primitives for many seconds), then apply()
+	and swapPlotVats() place them from the cache, then the workspace attribute
+	WorldMeshesReady goes true for the client's loading screen.
 ]]
 
 local AssetService = game:GetService("AssetService")
@@ -27,13 +33,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Constants = require(ReplicatedStorage.Shared.Constants)
 local FountainColliders = require(script.Parent.FountainColliders)
 local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
 local VatDecor = require(ReplicatedStorage.Visuals.VatDecor)
 
 local MeshSwap = {}
 
+-- Templates fetched at the same time by prefetch().
+MeshSwap.PREFETCH_WORKERS = 8
+
 local cache: { [string]: MeshPart | false } = {}
+-- Keys whose CreateMeshPartAsync is running, with the threads waiting for it: a second ask for the same template
+-- waits for the first fetch instead of starting its own.
+local inflight: { [string]: { thread } } = {}
 
 -- `fidelity` (an Enum.CollisionFidelity name, MeshAssets.collision) goes into the CreateMeshPartAsync options: a game
 -- script cannot write MeshPart.CollisionFidelity afterwards, and clones keep the collision made here. One template per
@@ -48,6 +61,13 @@ local function template(meshId: string, fidelity: string?): MeshPart?
 	if typeof(hit) == "Instance" then
 		return hit
 	end
+	local waiting = inflight[key]
+	if waiting then
+		table.insert(waiting, coroutine.running())
+		coroutine.yield()
+		return template(meshId, fidelity)
+	end
+	inflight[key] = {}
 	local ok, result = pcall(function()
 		-- v30 C2: Automatic fidelity drops to a coarse LOD with distance and re-meshes as the camera
 		-- moves (the "wrong until I walk" pop); the kit meshes are low-poly, so draw them whole. Set
@@ -59,13 +79,19 @@ local function template(meshId: string, fidelity: string?): MeshPart?
 		end
 		return AssetService:CreateMeshPartAsync(meshId, options)
 	end)
-	if ok and typeof(result) == "Instance" and result:IsA("MeshPart") then
-		cache[key] = result
-		return result
+	local made = if ok and typeof(result) == "Instance" and result:IsA("MeshPart") then result else nil
+	if made then
+		cache[key] = made
+	else
+		warn(`[Server] MeshSwap {key}: {result}`)
+		cache[key] = false
 	end
-	warn(`[Server] MeshSwap {key}: {result}`)
-	cache[key] = false
-	return nil
+	local waiters = inflight[key]
+	inflight[key] = nil
+	for _, thread in waiters do
+		task.spawn(thread)
+	end
+	return made
 end
 
 local function hide(part: BasePart)
@@ -429,6 +455,88 @@ function MeshSwap.publishRainMagnetTemplates(): number
 		return 1
 	end
 	return 0
+end
+
+type Job = { meshId: string, fidelity: string? }
+
+-- Every template apply() and swapPlotVats() will ask for, once each.
+local function slotJobs(): { Job }
+	local jobs: { Job } = {}
+	local seen: { [string]: boolean } = {}
+	local function add(name: string, fidelity: string?)
+		local meshId = MeshAssets.meshId(name)
+		local key = if fidelity then `{meshId}|{fidelity}` else meshId
+		if meshId and key and not seen[key] then
+			seen[key] = true
+			table.insert(jobs, { meshId = meshId, fidelity = fidelity })
+		end
+	end
+	for _, root in { workspace:FindFirstChild("Map"), workspace:FindFirstChild("Plots") } do
+		if root then
+			for _, inst in root:GetDescendants() do
+				local name = inst:GetAttribute("MeshAsset")
+				if not ((inst:IsA("BasePart") or inst:IsA("Model")) and typeof(name) == "string") then
+					continue
+				end
+				if Config.FEATURES.FountainSplit and name == "slime_fountain" then
+					for _, piece in MeshAssets.FOUNTAIN_SPLIT do
+						add(piece, splitFidelity(piece))
+					end
+				else
+					add(name, MeshAssets.collision(name))
+				end
+			end
+		end
+	end
+	add(VatDecor.MESH, MeshAssets.collision(VatDecor.MESH))
+	return jobs
+end
+
+-- Fetches every slot template on PREFETCH_WORKERS threads and returns once all have answered (a failed one is
+-- cached as failed). Places nothing. Yields; returns how many templates it asked for.
+function MeshSwap.prefetch(): number
+	local jobs = slotJobs()
+	local workers = math.min(MeshSwap.PREFETCH_WORKERS, #jobs)
+	if workers == 0 then
+		return 0
+	end
+	local main = coroutine.running()
+	local nextJob, finished, parked = 1, 0, false
+	for _ = 1, workers do
+		task.spawn(function()
+			while nextJob <= #jobs do
+				local job = jobs[nextJob]
+				nextJob += 1
+				pcall(template, job.meshId, job.fidelity)
+			end
+			finished += 1
+			if finished == workers and parked then
+				task.spawn(main)
+			end
+		end)
+	end
+	if finished < workers then
+		parked = true
+		coroutine.yield()
+	end
+	return #jobs
+end
+
+-- The boot path: prefetch, place the slot meshes and the merge vats, then mark the world ready for the clients'
+-- loading screen. Each step is pcall'd; the attribute is set whatever happened, so no client waits on a failure.
+-- Yields; returns how many meshes were placed.
+function MeshSwap.applyAll(): number
+	local placed = 0
+	for _, step in { MeshSwap.prefetch, MeshSwap.apply, MeshSwap.swapPlotVats } do
+		local ok, result = pcall(step)
+		if not ok then
+			warn(`[Server] MeshSwap: {result}`)
+		elseif step ~= MeshSwap.prefetch then
+			placed += result
+		end
+	end
+	workspace:SetAttribute(Constants.WORLD_MESHES_READY_ATTRIBUTE, true)
+	return placed
 end
 
 -- Returns how many placeholders got a mesh.

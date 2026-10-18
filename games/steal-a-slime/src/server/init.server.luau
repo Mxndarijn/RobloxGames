@@ -84,10 +84,9 @@ if Config.FEATURES.Parade then
 end
 -- These yield (terrain tiles, mesh loads), so they run in the background and never block boot.
 task.spawn(safeCall, "BorderTerrainView.place", BorderTerrainView.place) -- hills behind the world border
-task.spawn(safeCall, "MeshSwap.apply", MeshSwap.apply) -- Slime Ranch kit meshes over the placeholders
+task.spawn(safeCall, "MeshSwap.applyAll", MeshSwap.applyAll) -- kit meshes, merge vats, then WorldMeshesReady
 task.spawn(safeCall, "MeshSwap.publishSkinTemplates", MeshSwap.publishSkinTemplates) -- FEATURES.PlotSkins
 task.spawn(safeCall, "MeshSwap.publishFountainTierTemplates", MeshSwap.publishFountainTierTemplates) -- FEATURES.FountainTiers
-task.spawn(safeCall, "MeshSwap.swapPlotVats", MeshSwap.swapPlotVats) -- every plot's MergeVat wears the merge_vat model
 task.spawn(safeCall, "MeshSwap.publishRainMagnetTemplates", MeshSwap.publishRainMagnetTemplates) -- FEATURES.RainMagnet
 
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction

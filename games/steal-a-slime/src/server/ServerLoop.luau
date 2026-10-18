@@ -31,7 +31,6 @@ local Ritual = require(ReplicatedStorage.Shared.Ritual)
 local RitualService = require(script.Parent.RitualService)
 local RitualView = require(script.Parent.RitualView)
 local SafeCall = require(script.Parent.SafeCall)
-local SlideTopWatch = require(script.Parent.SlideTopWatch)
 local Spawner = require(script.Parent.Spawner)
 local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
@@ -82,7 +81,6 @@ local function stepPlayers(loop: Loop, t: number)
 	for _, player in Players:GetPlayers() do
 		WorldView.enforceLocks(world, player)
 	end
-	SlideTopWatch.stepStrays(os.clock()) -- NPC / dummy Humanoids do not stay on the slide roof either
 	for userId, session in world.sessions do
 		local player = Players:GetPlayerByUserId(userId)
 		if player then

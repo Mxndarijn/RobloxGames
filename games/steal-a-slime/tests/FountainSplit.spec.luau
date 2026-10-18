@@ -291,31 +291,24 @@ describe("FountainSplit on", function()
 		-- stand-ins and colliders alike: the PCD pieces are the tower's collision now
 		expectAll(collision(volcano), false)
 	end)
-	it(
-		"retires the Floor / Joint / Post / Brace boxes the PCD slide replaces, keeps Fill, JointFill and Skirt",
-		function()
-			local kinds = {}
-			for _, part in on.volcano.SlideColliders:GetChildren() do
-				local kind = part:GetAttribute("FountainCollider")
-				kinds[kind] = (kinds[kind] or 0) + 1
-			end
-			for kind in SlideColliders.PCD_RETIRED do
-				expect(kinds[kind]).toBe(nil)
-			end
-			expect(kinds.Fill > 0 and kinds.Skirt > 0).toBe(true)
-			local want = SlideColliders.all(
-				WorldLayout.SLIDE_PATH,
-				WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES),
-				Config.FEATURES.SlideCollision,
-				true
-			)
-			local fills = 0
-			for _, spec in want do
-				fills += if spec.kind == "Fill" then 2 else 0 -- the roof wedges
-			end
-			expect(#on.volcano.SlideColliders:GetChildren()).toBe(#want + fills)
+	it("retires the Post / Brace boxes the PCD slide replaces, keeps the floors, rails and skirts", function()
+		local kinds = {}
+		for _, part in on.volcano.SlideColliders:GetChildren() do
+			local kind = part:GetAttribute("FountainCollider")
+			kinds[kind] = (kinds[kind] or 0) + 1
 		end
-	)
+		for kind in SlideColliders.PCD_RETIRED do
+			expect(kinds[kind]).toBe(nil)
+		end
+		expect(kinds.Floor > 0 and kinds.Rail > 0 and kinds.Skirt > 0).toBe(true)
+		local want = SlideColliders.all(
+			WorldLayout.SLIDE_PATH,
+			WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES),
+			Config.FEATURES.SlideCollision,
+			true
+		)
+		expect(#on.volcano.SlideColliders:GetChildren()).toBe(#want)
+	end)
 	it("keeps every box when the SlidePCD flag is off in the built place", function()
 		local want = SlideColliders.all(
 			WorldLayout.SLIDE_PATH,
@@ -323,11 +316,7 @@ describe("FountainSplit on", function()
 			Config.FEATURES.SlideCollision,
 			false
 		)
-		local fills = 0
-		for _, spec in want do
-			fills += if spec.kind == "Fill" then 2 else 0 -- the roof wedges
-		end
-		expect(#slideOff.volcano.SlideColliders:GetChildren()).toBe(#want + fills)
+		expect(#slideOff.volcano.SlideColliders:GetChildren()).toBe(#want)
 		expect(slideOff.slot[SLIDE].CanCollide).toBe(false)
 	end)
 	it("leaves the slide's own colliders on", function()

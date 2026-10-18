@@ -1949,10 +1949,10 @@ def step_shots(run):
                         run.note("shot %s: slime not moving (mode %s, moved %s)" % (
                             sid, res["motion"].get("mode"), res["motion"].get("moved")))
                 if shot.get("slide_walk"):
-                    # B6 / bug 9 (solid slide block, #252): HARD = cannot_enter and cannot_climb; the other checks are notes
+                    # B6 / bug 9 (walkable slide): HARD = can_climb and cannot_enter_from_side; the other checks are notes
                     res["slide_walk"] = run.need_luau("slide_walk", "Server", timeout=60)
                     if not res["slide_walk"].get("ok"):
-                        run.note("shot %s: the slide can be entered or climbed: %s" % (
+                        run.note("shot %s: the slide cannot be climbed or can be entered from the side: %s" % (
                             sid, str(res["slide_walk"].get("violations") or res["slide_walk"].get("error"))[:200]))
                     for soft in res["slide_walk"].get("soft_failed") or []:
                         run.note("shot %s: slide (soft) %s" % (sid, str(soft)[:200]))
@@ -1983,10 +1983,6 @@ def step_shots(run):
                     if not rp["ok"]:
                         run.note("shot %s: runtime parts %s not in 1..%s (parade lane %s, slide colliders %s)" % (
                             sid, rp.get("runtime_parts"), rp["max"], rp.get("parade_lane"), rp.get("slide_colliders")))
-                if shot.get("slide_top_drop"):  # bug 9: a character dropped on the slide fill ends up beside it (advisory)
-                    res["slide_top_drop"] = run.need_luau("slide_top_drop", "Server", timeout=40)
-                    if not res["slide_top_drop"].get("ok"):
-                        run.note("shot %s: slide top: %s" % (sid, str(res["slide_top_drop"].get("summary") or res["slide_top_drop"].get("error"))[:200]))
                 if shot.get("mesh_stand"):
                     # bug 11 part 1: balls dropped onto / pushed into the converted (MeshAssets.COLLISION) props must not pass through
                     res["mesh_stand"] = run.need_luau("mesh_stand", "Server", timeout=40, meshes=",".join(shot["mesh_stand"]))

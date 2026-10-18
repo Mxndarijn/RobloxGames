@@ -1,12 +1,10 @@
 --!nocheck
--- Fountain slide collision (TODO 13; Merijn #9: players walked up the slide and stood inside the
--- trough). The silo keeps its Basin / Trim / Silo colliders (FountainCollider.spec); the slide, which
--- the visual-only mesh leaves open, gets SlideColliders: per segment a floor slab with a solid fill on
--- top, from the head to the mouth, on in every mesh state. Checked here: no point of the trough is
--- open to a player (nothing hollow, nothing standable, the top out of a jump), no gap at any join or
--- bend, the low stretch blocks a walker from the ground, and in the real server (fake runtime, mesh
--- loaded and failed) the Parts exist, are solid, invisible and anchored, survive the MeshSwap switch,
--- and the riding slimes (anchored, never colliding) pass through the block.
+-- Fountain slide collision. The silo keeps its Basin / Trim / Silo colliders (FountainCollider.spec); the slide, which the
+-- visual-only mesh leaves open, gets SlideColliders: per segment a floor slab whose top is the ride line plus a rail on each
+-- side, from the head to the mouth, on in every mesh state. Checked here: players can walk the slide (solid just under the ride
+-- line, clear head room over it, no gap at any join or bend, rails they cannot step over but can jump off), the low stretch
+-- blocks a walker from the ground, and in the real server (fake runtime, mesh loaded and failed) the Parts exist, are solid,
+-- invisible and anchored, survive the MeshSwap switch, and the riding slimes (anchored, never colliding) pass through walkers.
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
@@ -27,7 +25,8 @@ local LIVE = SlideColliders.all(PATH, WorldLayout.slidePath(WorldLayout.KIT_SLID
 local LIVE_PCD = SlideColliders.all(PATH, WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES), true, true)
 local EPS = 1e-3
 local PLAYER_HEIGHT = 5 -- R15 character, feet to head
-local JUMP_REACH = 7.5 -- a default Roblox jump clears ~7.2 studs; stay above it
+local JUMP_REACH = 7.2 -- a default Roblox jump clears ~7.2 studs
+local STEP_UP = 2.5 -- a Humanoid walks up a ledge lower than this
 
 local function sub(a, b)
 	return { a[1] - b[1], a[2] - b[2], a[3] - b[3] }
@@ -87,28 +86,31 @@ for i = 1, #PATH - 1 do
 end
 
 describe("SlideColliders specs", function()
-	it("cover every slide segment (floor + fill), top to mouth, and nothing else but skirts and joints", function()
-		local names = byName()
-		expect(#LOW >= 10).toBe(true)
-		expect(PATH[1][2] > SlideColliders.WALK_UNDER * 4).toBe(true) -- the top really is high
-		for i = 1, #PATH - 1 do
-			expect(names[`SlideFloor{i}`] ~= nil).toBe(true)
-			expect(names[`SlideFill{i}`] ~= nil).toBe(true)
+	it(
+		"cover every slide segment (floor + both rails), top to mouth, and nothing else but skirts and joints",
+		function()
+			local names = byName()
+			expect(#LOW >= 10).toBe(true)
+			expect(PATH[1][2] > SlideColliders.WALK_UNDER * 4).toBe(true) -- the top really is high
+			for i = 1, #PATH - 1 do
+				expect(names[`SlideFloor{i}`] ~= nil).toBe(true)
+				expect(names[`SlideRail{i}L`] ~= nil and names[`SlideRail{i}R`] ~= nil).toBe(true)
+			end
+			for _, spec in SPECS do
+				expect(spec.segment >= 1 and spec.segment <= #PATH - 1).toBe(true)
+				expect(spec.kind == "Floor" or spec.kind == "Rail" or spec.kind == "Skirt" or spec.kind == "Joint").toBe(
+					true
+				)
+			end
 		end
-		for _, spec in SPECS do
-			expect(spec.segment >= 1 and spec.segment <= #PATH - 1).toBe(true)
-			expect(spec.kind == "Floor" or spec.kind == "Fill" or spec.kind == "Skirt" or spec.kind == "Joint").toBe(
-				true
-			)
-		end
-	end)
-	it("SlidePCD drops exactly the Floor / Joint / Post / Brace boxes and keeps Fill, JointFill and Skirt", function()
+	)
+	it("SlidePCD drops exactly the Post / Brace boxes and keeps the walk surface, the rails and the skirts", function()
 		local kinds = {}
 		for _, spec in LIVE_PCD do
 			kinds[spec.kind] = (kinds[spec.kind] or 0) + 1
 			expect(SlideColliders.PCD_RETIRED[spec.kind]).toBe(nil)
 		end
-		expect(kinds.Fill > 0 and kinds.Skirt > 0).toBe(true)
+		expect(kinds.Floor > 0 and kinds.Joint > 0 and kinds.Rail > 0 and kinds.Skirt > 0).toBe(true)
 		local retired = 0
 		for _, spec in LIVE do
 			if SlideColliders.PCD_RETIRED[spec.kind] then
@@ -126,14 +128,13 @@ describe("SlideColliders specs", function()
 		expect(#SlideColliders.build(PATH) < #SPECS).toBe(true)
 		expect(Config.FEATURES.SlideCollision).toBe(true)
 	end)
-	it("put the floor top exactly on the ride line, the fill straight on top of it", function()
+	it("put the floor top exactly on the ride line", function()
 		local names = byName()
 		for i = 1, #PATH - 1 do
 			for _, k in { 0.1, 0.5, 0.9 } do
 				local p = along(i, k)
 				expect(depth(names[`SlideFloor{i}`], p)).toBeCloseTo(0, EPS)
 				expect(depth(names[`SlideFloor{i}`], { p[1], p[2] - 0.2, p[3] }) > 0).toBe(true)
-				expect(depth(names[`SlideFill{i}`], { p[1], p[2] + 0.2, p[3] }) > 0).toBe(true)
 			end
 		end
 	end)
@@ -182,86 +183,128 @@ describe("SlideColliders specs", function()
 	end)
 end)
 
--- Merijn #9: nobody walks on or in the slide.
-describe("the slide is solid: players cannot enter, climb or stand on it", function()
-	local WIDTHS = { -1, -0.5, 0, 0.5, 1 }
-	it("is solid across the whole trough, from just under the ride line up to the fill top, at every k", function()
-		local names = byName()
+-- Players walk the slide from the mouth to the head.
+describe("the slide is walkable: a smooth ramp with rails", function()
+	local CHAR_HALF_WIDTH = 1 -- an R15 character is ~2 studs wide
+	local SEAM = 1 -- a Humanoid walks over a ledge this low (straight slabs leave <= 0.85 on the two sharp head bends, <= 0.25 elsewhere)
+	-- Every collider the server places (the floors and rails are there with SlidePCD on and off).
+	local function solidLive(q): (boolean, string?)
+		for _, spec in LIVE do
+			if depth(spec, q) > 0.05 then
+				return true, spec.name
+			end
+		end
+		return false, nil
+	end
+	local function offset(i: number, k: number, w: number, h: number)
+		local right, up = frame(byName()[`SlideFloor{i}`])
+		local p = along(i, k)
+		return {
+			p[1] + right[1] * w + up[1] * h,
+			p[2] + right[2] * w + up[2] * h,
+			p[3] + right[3] * w + up[3] * h,
+		}
+	end
+	it("is solid just under the ride line and clear above it, across the walk width, at every k", function()
+		local half = SlideColliders.HALF_WIDTH - CHAR_HALF_WIDTH
 		for i = 1, #PATH - 1 do
-			local right, up = frame(names[`SlideFloor{i}`])
-			local half = SlideColliders.HALF_WIDTH
-			for _, k in { 0.1, 0.25, 0.5, 0.75, 0.9 } do
-				local p = along(i, k)
-				for _, w in WIDTHS do
-					-- a column along the segment's own up axis, from just under the ride line to near the fill top
-					local h = -0.2
-					while h < SlideColliders.FILL * 0.9 do
-						local q = {
-							p[1] + right[1] * w * half + up[1] * h,
-							p[2] + right[2] * w * half + up[2] * h,
-							p[3] + right[3] * w * half + up[3] * h,
-						}
-						if not insideAny(q) then
-							error(`open space in the slide: segment {i} k={k} width {w} height {h}`)
+			for _, k in { 0, 0.1, 0.25, 0.5, 0.75, 0.9, 1 } do
+				for _, w in { -1, -0.5, 0, 0.5, 1 } do
+					if not insideAny(offset(i, k, w * half, -0.2)) then
+						error(`hole in the walk surface: segment {i} k={k} width {w}`)
+					end
+					local h = SEAM
+					while h <= PLAYER_HEIGHT + 0.5 do
+						local hit, name = solidLive(offset(i, k, w * half, h))
+						if hit then
+							error(`head room blocked by {name}: segment {i} k={k} width {w} height {h}`)
 						end
-						h += 0.5
+						h += 0.25
 					end
 				end
 			end
 		end
 	end)
-	it("is unbroken at every join, bends included, from the trough floor to the fill top", function()
+	it("is unbroken at every join, bends included", function()
 		for i = 1, #PATH - 2 do
 			local j = PATH[i + 1]
-			local y = j[2] - 0.2
-			while y < j[2] + SlideColliders.FILL * 0.9 do
-				if not insideAny({ j[1], y, j[3] }) then
-					error(`open space at join {i} height {y - j[2]}`)
-				end
-				y += 0.5
-			end
+			expect((insideAny({ j[1], j[2] - 0.2, j[3] }))).toBe(true)
+			expect((solidLive({ j[1], j[2] + 0.1, j[3] }))).toBe(false)
 		end
 	end)
-	it("tops out beyond a jump: the highest solid point over the centreline is above JUMP_REACH", function()
-		local names = byName()
+	it("a player dropped from above lands on the ride line, nothing over it", function()
 		for i = 1, #PATH - 1 do
 			local p = along(i, 0.5)
-			local fill = names[`SlideFill{i}`]
-			-- fill centre lift above the ride line plus half its height, along the segment's up axis
-			local _, up = frame(fill)
-			local top = dot(sub(fill.centre, p), up) + fill.size[2] / 2
-			expect(top >= JUMP_REACH + 2).toBe(true)
+			local y = p[2] + 15
+			local landedAt = nil
+			while y > p[2] - 10 do
+				if solidLive({ p[1], y, p[3] }) then
+					landedAt = y
+					break
+				end
+				y -= 0.05
+			end
+			expect(landedAt ~= nil).toBe(true)
+			expect(math.abs(landedAt - p[2]) < 0.15).toBe(true)
 		end
 	end)
-	it("has no hollow: no spec is a hollow tube, a wall or a ceiling (the old tube let players walk in it)", function()
-		for _, spec in SPECS do
-			expect(spec.kind ~= "Wall" and spec.kind ~= "Ceiling").toBe(true)
+	it("has rails on both sides, too tall to step over and low enough to jump off, along the whole length", function()
+		expect(SlideColliders.RAIL >= STEP_UP).toBe(true)
+		expect(SlideColliders.RAIL < JUMP_REACH).toBe(true)
+		local names = byName()
+		for i = 1, #PATH - 1 do
+			-- (the free ends are left out: the head opens onto the basin top, the mouth onto the ground)
+			for _, k in { if i > 1 then 0 else 0.05, 0.05, 0.25, 0.5, 0.75, 0.95, if i < #PATH - 1 then 1 else 0.95 } do
+				for _, side in { -1, 1 } do
+					-- a walker stepping sideways off the centreline keeps its feet on the floor below it and meets a rail before
+					-- the floor runs out (the mouth flares wider than HALF_WIDTH; on a bend the next segment's rail is the one met)
+					local start = offset(i, k, 0, 0)
+					local right = frame(names[`SlideFloor{i}`])
+					local feet, w, met = start[2], 0, false
+					while not met do
+						w += 0.1
+						local x, z = start[1] + right[1] * side * w, start[3] + right[3] * side * w
+						local floor = nil
+						local y = feet + SEAM
+						while y > feet - SEAM do
+							for _, spec in LIVE do
+								if spec.kind ~= "Rail" and depth(spec, { x, y, z }) > 0 then
+									floor = y
+								end
+							end
+							if floor then
+								break
+							end
+							y -= 0.05
+						end
+						if not floor then
+							error(`walked off the slide: segment {i} k={k} side {side} after {w} studs`)
+						end
+						feet = floor
+						for _, h in { 1.2, 2 } do -- shins and knees: what meets the rail (its top is checked below)
+							for _, spec in LIVE do
+								if spec.kind == "Rail" and depth(spec, { x, feet + h, z }) > 0 then
+									met = true
+								end
+							end
+						end
+					end
+				end
+			end
+			-- the rail's top is RAIL over the ride line: a jump clears it
+			for _, side in { "L", "R" } do
+				local rail = names[`SlideRail{i}{side}`]
+				local _, up = frame(rail)
+				local top = dot(sub(rail.centre, along(i, 0.5)), up) + rail.size[2] / 2
+				expect(top).toBeCloseTo(SlideColliders.RAIL, EPS)
+			end
 		end
 	end)
 	it("slabs are thick enough for a falling player, nothing is a thin sheet", function()
 		for _, spec in SPECS do
 			if spec.kind == "Floor" then
 				expect(spec.size[2] >= SlideColliders.MIN_THICK).toBe(true)
-			elseif spec.kind == "Fill" then
-				expect(spec.size[2] >= JUMP_REACH + 2).toBe(true)
 			end
-		end
-	end)
-	it("a player dropped from above lands on top of the solid, never inside it", function()
-		for i = 1, #PATH - 1 do
-			local p = along(i, 0.5)
-			local y = p[2] + 40
-			local landedIn = nil
-			while y > p[2] - 10 do
-				if insideAny({ p[1], y, p[3] }) then
-					landedIn = y
-					break
-				end
-				y -= 0.25
-			end
-			expect(landedIn ~= nil).toBe(true)
-			-- first contact is the top face of the fill, FILL above the ride line, not the floor
-			expect(landedIn >= p[2] + SlideColliders.FILL - 1).toBe(true)
 		end
 	end)
 	it("stays out of FountainRide's way: the ride points are meant to pass through (anchored, no collision)", function()
@@ -318,26 +361,11 @@ describe("SlideColliders in the live server", function()
 			local folder = folderOf(rt)
 			expect(folder ~= nil).toBe(true)
 			local parts = folder:GetChildren()
-			local fillCount = 0
 			local live = if state == "mesh loaded" and Config.FEATURES.SlidePCD then LIVE_PCD else LIVE
-			for _, spec in live do
-				if spec.kind == "Fill" then
-					fillCount += 1
-				end
-			end
-			expect(#parts).toBe(#live + 2 * fillCount) -- every Fill is the box plus two roof wedges (bug #9)
+			expect(#parts).toBe(#live)
 			local names = byName()
 			for _, part in parts do
 				local spec = names[part.Name]
-				if spec == nil and part:IsA("WedgePart") then
-					spec = names[string.sub(part.Name, 1, -2)] -- SlideFill<i>L / R
-					expect(spec ~= nil and spec.kind == "Fill").toBe(true)
-					expect(part.CustomPhysicalProperties.Friction).toBe(0)
-					expect(part.Anchored and part.CanCollide and not part.CanQuery and part.Transparency == 1).toBe(
-						true
-					)
-					continue
-				end
 				expect(spec ~= nil).toBe(true)
 				expect(part.Anchored).toBe(true)
 				expect(part.CanCollide).toBe(true)
@@ -358,7 +386,7 @@ describe("SlideColliders in the live server", function()
 				expect(math.abs(part.Size.Z - spec.size[3]) < EPS).toBe(true)
 			end
 		end)
-		it(`{state}: riding slimes are anchored and never collide (they pass through the solid slide)`, function()
+		it(`{state}: riding slimes are anchored and never collide (they pass through walkers on the slide)`, function()
 			local rides = if state == "mesh loaded" then loadedRides else failedRides
 			expect(#rides > 100).toBe(true)
 			for _, r in rides do
@@ -494,7 +522,7 @@ describe("merged slide colliders keep the collision envelope exactly", function(
 		for i = 1, #PATH - 1 do
 			for _, k in { 0.1, 0.3, 0.5, 0.7, 0.9 } do
 				local p = along(i, k)
-				-- solid under the ride line, before and after the merge (the fill above it is checked above)
+				-- solid under the ride line, before and after the merge
 				for _, set in { RAW, SPECS } do
 					expect(inside(set, { p[1], p[2] - 0.05, p[3] })).toBe(true)
 				end

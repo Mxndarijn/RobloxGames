@@ -43,6 +43,22 @@ function InventoryTools.bindKeys(slotFor: (Enum.KeyCode) -> number?, onSlot: (nu
 	end)
 end
 
+-- The bag key on a keyboard or gamepad (not while typing in a TextBox / when another script used the key).
+function InventoryTools.bindBag(isBagKey: (Enum.KeyCode) -> boolean, onBag: () -> ())
+	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+		if processed then
+			return
+		end
+		local kind = input.UserInputType
+		if kind ~= Enum.UserInputType.Keyboard and kind ~= Enum.UserInputType.Gamepad1 then
+			return
+		end
+		if isBagKey(input.KeyCode) then
+			onBag()
+		end
+	end)
+end
+
 -- A click or tap that no GUI took (the world) uses the item in hand: `onUse` gets the screen point and decides
 -- if anything is held. Touch uses TouchTap, so dragging the camera or the thumbstick never fires an item.
 function InventoryTools.bindUse(onUse: (screen: Vector2 | Vector3) -> ())

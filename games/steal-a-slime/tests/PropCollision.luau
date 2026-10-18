@@ -182,7 +182,7 @@ add({
 	count = 1,
 	collision = "PreciseConvexDecomposition",
 	now = "flag off: not created",
-	reason = "FEATURES.SlidePCD: the real slide collision (walls, floor, posts, braces); the Fill block + ridge roof and the Skirt stay because the PCD trough is a walkable ramp (docs/COLLISION.md)",
+	reason = "FEATURES.SlidePCD: the real slide collision (walls, posts, braces); the SlideColliders floor slabs stay the smooth walk surface, with the rails and the Skirt (docs/COLLISION.md)",
 	find = { under = FOUNTAIN, names = { "^fountain_split_slide$" }, parts = true },
 	walk = false,
 	flag = { name = "SlidePCD", off = 0 },
@@ -190,13 +190,13 @@ add({
 parts(
 	"fountain_slide_colliders",
 	"jolt",
-	194,
+	132,
 	"colliders",
 	FOUNTAIN .. ".SlideColliders",
 	nil,
-	"on (Fill, wedge roof, JointFill, Skirt; Floor, Joint, Post, Brace retired by FEATURES.SlidePCD)",
-	"solid slide block so nobody enters or climbs the trough; slimes ride it anchored with CanCollide=false (bug #9). Probed by bug09_slide_stand (194 parts with SlideCollision + SlidePCD; 270 with SlidePCD off; the low stretch only, 120, without SlideCollision)",
-	{ walk = false, flag = { name = "SlideCollision", off = 120 } }
+	"on (Floor, Joint, Rail, Skirt; Post, Brace retired by FEATURES.SlidePCD)",
+	"the slide is a walkable ramp: floor slabs on the ride line and a rail each side; slimes ride it anchored with CanCollide=false, so walkers and riders pass through each other (132 parts with SlideCollision + SlidePCD; 145 with SlidePCD off; the low stretch only, 67, without SlideCollision)",
+	{ walk = false, flag = { name = "SlideCollision", off = 67 } }
 )
 mesh(
 	"fountain_emerge",
@@ -562,12 +562,12 @@ parts(
 )
 local BORDER_MESHES: { { string | number } } = {
 	-- kind, mesh, count, what
-	{ "border_giant_elder_oak", "giant_elder_oak", 5, "giant tree (v6)" },
-	{ "border_giant_cloud_tree", "giant_cloud_tree", 5, "giant tree (v6)" },
-	{ "border_giant_pine_layered", "giant_pine_layered", 5, "giant tree (v5)" },
-	{ "border_giant_broadleaf", "giant_broadleaf", 5, "giant tree (v5)" },
-	{ "border_giant_sequoia_spire", "giant_sequoia_spire", 5, "giant tree (v6)" },
-	{ "border_giant_round_canopy", "giant_round_canopy", 5, "giant tree (v5)" },
+	{ "border_giant_elder_oak", "giant_elder_oak", 3, "giant tree (v6)" },
+	{ "border_giant_cloud_tree", "giant_cloud_tree", 3, "giant tree (v6)" },
+	{ "border_giant_pine_layered", "giant_pine_layered", 4, "giant tree (v5)" },
+	{ "border_giant_broadleaf", "giant_broadleaf", 4, "giant tree (v5)" },
+	{ "border_giant_sequoia_spire", "giant_sequoia_spire", 3, "giant tree (v6)" },
+	{ "border_giant_round_canopy", "giant_round_canopy", 3, "giant tree (v5)" },
 	{ "border_chunk_h", "ranch_border_chunk_h", 1, "corner grove" },
 	{ "border_chunk_h_m", "ranch_border_chunk_h_m", 1, "corner grove (mirrored)" },
 	{ "border_chunk_b", "ranch_border_chunk_b", 1, "corner hill rocks" },
@@ -575,11 +575,11 @@ local BORDER_MESHES: { { string | number } } = {
 	{ "border_hill_ridge", "ranch_border_hill_ridge", 4, "backdrop hill" },
 	{ "border_hill_dome", "ranch_border_hill_dome", 3, "backdrop hill" },
 	{ "border_hill_twin", "ranch_border_hill_twin", 1, "backdrop hill" },
-	{ "border_grove_rocky", "ranch_border_grove_rocky", 6, "rocky grove" },
-	{ "border_grove_mixed", "ranch_border_grove_mixed", 7, "mixed grove" },
-	{ "border_grove_pine", "ranch_border_grove_pine", 5, "pine grove" },
-	{ "border_pine_tall", "ranch_border_pine_tall", 4, "pine" },
-	{ "border_pine_broad", "ranch_border_pine_broad", 5, "pine" },
+	{ "border_grove_rocky", "ranch_border_grove_rocky", 5, "rocky grove" },
+	{ "border_grove_mixed", "ranch_border_grove_mixed", 5, "mixed grove" },
+	{ "border_grove_pine", "ranch_border_grove_pine", 4, "pine grove" },
+	{ "border_pine_tall", "ranch_border_pine_tall", 3, "pine" },
+	{ "border_pine_broad", "ranch_border_pine_broad", 4, "pine" },
 	{ "border_oak_round", "ranch_border_oak_round", 1, "oak" },
 	{ "border_sapling_trio", "ranch_border_sapling_trio", 1, "saplings" },
 	{ "border_rock_slab", "ranch_border_rock_slab", 1, "rock" },
