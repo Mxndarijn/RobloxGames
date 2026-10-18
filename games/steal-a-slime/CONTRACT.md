@@ -26,8 +26,13 @@ src/shared/      -> ReplicatedStorage.Shared       (ModuleScripts; pure, Lune-sa
   Perks, Upgrades, Goals, Collection (v13, §8.8), Habitats (FEATURES.Habitats)
                    pure gameplay rules                                          Phoenix
 src/server/      -> ServerScriptService.Server     (Script + child ModuleScripts) Phoenix
-  init.server.luau thin adapter: Remotes.setup(), Request -> Actions.handle,
-                   player lifecycle, Heartbeat loop, autosave, BindToClose
+  init.server.luau wiring only: Remotes.setup(), Request -> Actions.handle, builds
+                   the modules below and connects them
+  entry adapters:  Persistence (save backend, DataStoreStatus), ServerContext (the one
+                   ctx), Outbox (World events -> remotes / Effects / badges), EffectsView,
+                   LeaderboardView, PlayerAttributes, PlayerLifecycle (join / leave,
+                   autosave, BindToClose), ServerLoop (Heartbeat), StudioHooks (Pcw*),
+                   SafeCall (pcall + one log line)
   pure (Lune-safe, unit-tested): World (all live state + outbox), Spawner
   (fountain + Slime Rain), Carry (grab / deposit / drop), StealService (lock,
   steal, escape home, slap), Income (per-second + capped offline), MergeVat,
@@ -316,7 +321,7 @@ The server finds plots by the `PlotIndex` attribute and pads by `PadIndex` (`Con
 
 ### 5.4 Effects (Archer's `ReplicatedStorage.Visuals.Effects`)
 
-`Effects.play(kind, target: Vector3 | CFrame | BasePart): Instance?` with `kind` in `Effects.KINDS` = `"Collect" | "Steal" | "Merge" | "Rebirth"`. The server queues `{ type = "Effect", kind, userId?, slimeId?, plotIndex? }` in `world.outbox` and init.server plays it (pcall'd; never breaks gameplay):
+`Effects.play(kind, target: Vector3 | CFrame | BasePart): Instance?` with `kind` in `Effects.KINDS` = `"Collect" | "Steal" | "Merge" | "Rebirth"`. The server queues `{ type = "Effect", kind, userId?, slimeId?, plotIndex? }` in `world.outbox` and `server/Outbox` plays it through `EffectsView` (safeCall'd; never breaks gameplay):
 
 | Kind | When (server) | Target |
 |---|---|---|
