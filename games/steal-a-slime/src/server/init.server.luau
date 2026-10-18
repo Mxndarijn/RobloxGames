@@ -660,6 +660,9 @@ WorldView.addPlotPrompts(function(player: Player, index: number, kind: string)
 		return
 	end
 	local action, args = kind, {}
+	if kind == "Merge" and Config.FEATURES.MergeVat3 then
+		return -- the owner's client opens the merge menu (CONTRACT.md §21.1)
+	end
 	if kind == "Merge" then
 		local a, b = Merge.findPair(session.data.slimes, World.busySet(world), session.data.favoriteId)
 		if not a or not b then

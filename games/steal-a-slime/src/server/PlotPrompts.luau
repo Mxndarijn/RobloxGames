@@ -8,7 +8,8 @@
 	  * LockPrompt on LockButton: "Lock base $<cost>" / "Extend lock $<cost>" /
 	    "Lock is maxed", ObjectText "<name>'s base: OPEN" / "... LOCKED m:ss";
 	  * BuyPadPrompt on the lowest locked pad: "Buy pad $<cost>", "Pad <j> of <max>";
-	  * MergePrompt on MergeVat: "Auto-merge", "Merge vat";
+	  * MergePrompt on MergeVat: "Open vat" (the client opens the merge menu; FEATURES.MergeVat3) or "Auto-merge"
+	    (the pair vat merges the cheapest pair), "Merge vat";
 	  * plot attributes Locked / LockCost / PadsUnlocked / NextPadCost.
 	A free plot gets everything disabled and ShowOnlyToUserId = nil.
 ]]
@@ -41,6 +42,11 @@ function PlotPrompts.clock(seconds: number): string
 	return string.format("%d:%02d", s // 60, s % 60)
 end
 
+-- The vat prompt's text: with the 3-slime vat it opens the merge menu (CONTRACT.md §21.1).
+function PlotPrompts.mergeText(): string
+	return if Config.FEATURES.MergeVat3 then "Open vat" else "Auto-merge"
+end
+
 function PlotPrompts.describe(world: World.World, plotIndex: number, now: number): Plot
 	local userId = world.plots[plotIndex]
 	local session = userId and world.sessions[userId]
@@ -53,7 +59,7 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 			nextPadCost = nil,
 			lock = { actionText = "Lock base", objectText = "Free plot", enabled = false },
 			buyPad = { actionText = "Buy pad", objectText = "Free plot", enabled = false, pad = Config.PADS_START + 1 },
-			merge = { actionText = "Auto-merge", objectText = "Merge vat", enabled = false },
+			merge = { actionText = PlotPrompts.mergeText(), objectText = "Merge vat", enabled = false },
 		}
 	end
 
@@ -83,7 +89,7 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 			enabled = padCost ~= nil,
 			pad = nextPad,
 		},
-		merge = { actionText = "Auto-merge", objectText = "Merge vat", enabled = true },
+		merge = { actionText = PlotPrompts.mergeText(), objectText = "Merge vat", enabled = true },
 	}
 end
 
