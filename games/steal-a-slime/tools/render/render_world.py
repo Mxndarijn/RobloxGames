@@ -710,7 +710,14 @@ VIEWS = {
     "30_ground_eye": lambda: look(polar(-20, 89, 6), polar(-40, 50, 2.0), lens=26),
     # B11 floor: the plaza, ring and the three plots behind the fountain from high up on the -Z side
     "37_floor_aerial": lambda: look((0, 175, -150), (0, 0, 70), lens=28),
+    # sand yard dressing (YardProps): low across the outer yard band behind and between the plots (yard bearings: x = sin, z = cos)
+    "38_yard_band": lambda: look(yard_polar(102, 212, 8), yard_polar(152, 198, 3), lens=22),
 }
+
+
+def yard_polar(deg, r, y):
+    a = math.radians(deg)
+    return (math.sin(a) * r, y, math.cos(a) * r)
 
 
 def ritual_aerial():

@@ -5,14 +5,14 @@
 local YardGen = require("./YardGen")
 local fs = require("@lune/fs")
 
-local rows = YardGen.generate()
+local rows, patches = YardGen.generate()
 local out = {
 	"--!strict",
 	"--[[",
 	"\tYardProps (owner: Archer; GENERATED, do not edit by hand)",
 	"",
-	"\tThe sand yard's dressing: small clusters in the gaps between plots and on the sand behind them, plus a few single",
-	"\tprops. `lune run tools/yard/generate` writes this file from tools/yard/YardGen.luau (seed "
+	"\tThe sand yard's dressing: anchor scenes (paddocks, patches, groves, a windmill) with their small props, a few small",
+	"\tclusters and single props, and the flat ground patches (PATCHES). `lune run tools/yard/generate` writes this file from tools/yard/YardGen.luau (seed "
 		.. YardGen.SEED
 		.. "); tests/YardDress.spec",
 	"\tregenerates it in memory and fails when the two differ.",
@@ -43,6 +43,15 @@ for _, r in rows do
 	)
 end
 table.insert(out, "\t} :: { { any } },")
+table.insert(
+	out,
+	"\t-- Patch: { name, kind (YardGen.PATCH_KINDS), angle, r, radius } (a flat ground disc; FloorLayout builds it)."
+)
+table.insert(out, "\tPATCHES = {")
+for _, q in patches do
+	table.insert(out, string.format('\t\t{ "%s", "%s", %s, %s, %s },', q.name, q.kind, q.angle, q.r, q.radius))
+end
+table.insert(out, "\t} :: { { any } },")
 table.insert(out, "})")
 table.insert(out, "")
 fs.writeFile("src/visuals/shared/YardProps.luau", table.concat(out, "\n"))
@@ -50,7 +59,7 @@ local byMesh = {}
 for _, r in rows do
 	byMesh[r.mesh] = (byMesh[r.mesh] or 0) + 1
 end
-print(`wrote {#rows} props`)
+print(`wrote {#rows} props, {#patches} ground patches`)
 local names = {}
 for m in byMesh do
 	table.insert(names, m)

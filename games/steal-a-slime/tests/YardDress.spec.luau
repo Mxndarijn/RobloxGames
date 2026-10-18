@@ -38,7 +38,16 @@ describe("yard dressing: the generated data", function()
 	it(
 		"is exactly what tools/yard/generate writes for the seed (rerun lune run tools/yard/generate, then gen-world)",
 		function()
-			local rows = YardGen.generate()
+			local rows, patches = YardGen.generate()
+			expect(#YardProps.PATCHES).toBe(#patches)
+			for i, q in patches do
+				local have = YardProps.PATCHES[i]
+				expect(have[1]).toBe(q.name)
+				expect(have[2]).toBe(q.kind)
+				expect(have[3]).toBeCloseTo(q.angle)
+				expect(have[4]).toBeCloseTo(q.r)
+				expect(have[5]).toBeCloseTo(q.radius)
+			end
 			expect(#YardProps.ROWS).toBe(#rows)
 			expect(YardProps.SEED).toBe(YardGen.SEED)
 			for i, row in rows do
@@ -70,14 +79,14 @@ describe("yard dressing: the generated data", function()
 		end
 		expect(kinds >= 20).toBe(true)
 	end)
-	it("leaves open sand: the footprints cover under 2% of the yard", function()
+	it("leaves open sand: the footprints cover under 3.5% of the yard (anchor scenes included)", function()
 		local area = 0
 		for _, p in yard do
 			area += p.size[1] * p.size[3]
 		end
 		local ring = WorldLayout.RING_PATH_RADIUS + 5
 		local sand = math.pi * (YardGen.YARD_EDGE ^ 2 - ring ^ 2)
-		expect(area / sand < 0.02).toBe(true)
+		expect(area / sand < 0.035).toBe(true)
 	end)
 end)
 
@@ -116,7 +125,7 @@ describe("yard dressing: keep-clear (4 studs of air)", function()
 					local along = p.pos[1] * ux + p.pos[3] * uz
 					local across = math.abs(p.pos[1] * uz - p.pos[3] * ux)
 					-- spoke 8 wide (+ rails), the ramp 8.4: half 4.2; the plot's gate corridor is 20 wide
-					if along < 104 + reach and across - reach < 4.2 + 4 then
+					if along > -reach and along < 104 + reach and across - reach < 4.2 + 4 then
 						table.insert(bad, `{p.name}: spoke {i}`)
 					end
 				end
@@ -211,8 +220,9 @@ describe("yard dressing: floor, collision, snow, variety", function()
 			byMesh[p.mesh] = byMesh[p.mesh] or {}
 			table.insert(byMesh[p.mesh], p)
 		end
-		for _, list in byMesh do
-			for i = 1, #list do
+		for mesh, list in byMesh do
+			-- a fence run is one design: its panels share a yaw (up to the jitter) and a scale
+			for i = 1, if string.find(mesh, "fence") then 0 else #list do
 				for j = i + 1, #list do
 					expect(math.abs(list[i].yaw - list[j].yaw) > 1 or math.abs(list[i].scale - list[j].scale) > 0.02).toBe(
 						true

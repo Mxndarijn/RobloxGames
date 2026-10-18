@@ -20,8 +20,10 @@
 	Rows are polar like RanchProps (angle, r about the fountain; yaw relative to the angle). Kit fronts face local +Z.
 ]]
 
+local Config = require("../../src/shared/Config")
 local MeshAssets = require("../../src/shared/MeshAssets")
 local PropClearance = require("../../src/visuals/shared/PropClearance")
+local Ritual = require("../../src/shared/Ritual")
 local Rng = require("../../src/shared/Rng")
 local WorldLayout = require("../../src/visuals/shared/WorldLayout")
 
@@ -35,18 +37,31 @@ export type Row = {
 	tint: { number },
 }
 
+export type Patch = {
+	name: string,
+	kind: string, -- a PATCH_KINDS key
+	angle: number,
+	r: number,
+	radius: number, -- the disc's radius
+}
+
 local YardGen = {}
 
 YardGen.SEED = 20261018
 YardGen.CLEAR = 4 -- studs of air to every path / spoke / ramp / entrance / fence / spot (>= 4 per the brief)
 YardGen.YARD_EDGE = 222 -- footprints stay inside this radius (the sand ends at r 228, the hem at 230.4)
 YardGen.GAP = 13 -- min studs between two cluster centres
-YardGen.MAX_PROPS = 72 -- keeps WorldLayout.PART_BUDGET (1400) and the soft mesh-slot budget (500) with headroom for others
-YardGen.SINGLES_RESERVE = 12 -- clusters stop this many props short of MAX_PROPS so the singles always fit
+YardGen.MAX_PROPS = 84 -- with MAX_PATCHES: keeps WorldLayout.PART_BUDGET (1400, build parts 1294 + props + patches) and the soft mesh-slot budget (500)
+YardGen.MAX_PATCHES = 12 -- flat ground parts (dark sand, dirt, grass islands): parts, not mesh slots
+YardGen.SINGLES_RESERVE = 6 -- clusters stop this many props short of MAX_PROPS so the singles always fit
+YardGen.ANCHOR_GAP = 38 -- min studs between two anchor scenes' centres
 YardGen.SCALE_JITTER = { 0.9, 1.15 }
 YardGen.MESH_CAP = 4 -- most copies of one mesh in the yard (no visible repetition); CAP_OVERRIDE raises it for the common pieces
 YardGen.CAP_OVERRIDE = {
-	ranch_hay_bale = 6,
+	ranch_hay_bale = 9,
+	ranch_border_fence_straight = 6,
+	ranch_flower_planter = 5,
+	ranch_bench = 6,
 	ranch_barrel = 5,
 	ranch_crate = 4,
 	ranch_crate_goo = 3,
@@ -59,14 +74,32 @@ YardGen.SPACING = 1.35 -- cluster template offsets are at kit scale 1; the props
 
 -- One piece of a cluster: mesh, offset in the cluster frame (x right, z forward, studs at kit scale 1), yaw about
 -- the cluster's turn (nil = free), base scale. `face` = turn the front at the plaza (benches, signs).
-type Piece = { mesh: string, x: number, z: number, turn: number?, scale: number, face: boolean? }
+-- `exact` = an anchor's frame piece (a fence run): no position jitter and only a hair of scale / yaw, so the run still joins up.
+type Piece = { mesh: string, x: number, z: number, turn: number?, scale: number, face: boolean?, exact: boolean? }
 
 local function p(mesh: string, x: number, z: number, turn: number?, scale: number, face: boolean?): Piece
 	return { mesh = mesh, x = x, z = z, turn = turn, scale = scale, face = face }
 end
 
+local function fence(mesh: string, x: number, z: number, turn: number, scale: number): Piece
+	return { mesh = mesh, x = x, z = z, turn = turn, scale = scale, exact = true }
+end
+
+-- A ground patch under an anchor: a flat disc of `kind` (PATCH_KINDS) at (x, z) in the cluster frame, radius r.
+type Patch = { kind: string, x: number, z: number, r: number }
+
 -- Cluster templates. `where`: "wedge" (the gap between two plots), "arc" (the sand behind the plots) or "any".
-type Template = { name: string, where: string, weight: number, pieces: { Piece }, spread: number }
+type Template = {
+	name: string,
+	where: string, -- "wedge" | "arc" | "any"
+	weight: number,
+	pieces: { Piece },
+	spread: number,
+	anchor: boolean?, -- a big scene (placed first, offsets in studs, the front toward the plaza)
+	wedge: number?, -- anchors: the gap between two plots (0..7) it stands in, on the sand behind the plots
+	angle: number?, -- ... or the bearing it stands at (the sand behind a plot, between the farmyards)
+	patches: { Patch }?,
+}
 local TEMPLATES: { Template } = {
 	{
 		name = "stash",
@@ -196,6 +229,171 @@ local TEMPLATES: { Template } = {
 	},
 }
 
+-- Anchor scenes: the big features of the outer yard band. Offsets are studs (SPACING does not apply), the cluster frame's +Z
+-- faces the plaza, so a paddock opens toward the fountain. The small kit props stand round the big piece, so each reads as
+-- a place (a paddock with hay and troughs, a pumpkin patch with its scarecrow), not a scatter.
+local ANCHORS: { Template } = {
+	{
+		name = "windmill",
+		where = "wedge",
+		wedge = 3,
+		weight = 1,
+		spread = 16,
+		anchor = true,
+		pieces = {
+			p("ranch_windmill", 0, -5, 0, 1.5),
+			p("ranch_wagon", -17, 4, 90, 1.2),
+			p("ranch_hay_bale", -9, 8.5, 20, 1.2),
+			p("ranch_hay_bale", -4, 11.5, 100, 1.1),
+			p("ranch_feed_sacks", 6, 11, 30, 1.15),
+			p("ranch_wheelbarrow", 13, 6, 50, 1.1),
+		},
+		patches = { { kind = "dark", x = -1, z = 3, r = 15 } },
+	},
+	{
+		name = "paddock",
+		where = "wedge",
+		wedge = 1,
+		weight = 1,
+		spread = 14,
+		anchor = true,
+		pieces = {
+			fence("ranch_border_fence_straight", 0, -7.5, 0, 0.75),
+			fence("ranch_border_fence_straight", -9.5, 1, 90, 0.75),
+			fence("ranch_border_fence_straight", 9.5, 1, 90, 0.75),
+			p("ranch_hay_bale", -4.5, -3, 10, 1.15),
+			p("ranch_feed_trough", 3.5, -3, 10, 1.0),
+			p("ranch_water_trough", -1.5, 4.5, 4, 1.0),
+			p("ranch_goo_bucket", 6.5, 5, nil, 1.2),
+		},
+		patches = { { kind = "dirt", x = 0, z = 0, r = 10 } },
+	},
+	{
+		name = "coop paddock",
+		where = "wedge",
+		wedge = 5,
+		weight = 1,
+		spread = 14,
+		anchor = true,
+		pieces = {
+			fence("ranch_border_fence_straight", 0, -9, 0, 0.8),
+			fence("ranch_border_fence_straight", -10.5, 0, 90, 0.8),
+			fence("ranch_border_fence_straight", 10.5, 0, 90, 0.8),
+			p("ranch_slime_coop", -3, -3, 4, 1.0),
+			p("ranch_feed_sacks", 5, 3, 20, 1.0),
+			p("ranch_hitching_post", -2, 6.5, 5, 1.1),
+			p("ranch_goo_bucket", 7, 7.5, nil, 1.2),
+		},
+		patches = { { kind = "dirt", x = 0, z = 0, r = 11 } },
+	},
+	{
+		name = "pumpkin patch",
+		where = "wedge",
+		wedge = 7,
+		weight = 1,
+		spread = 14,
+		anchor = true,
+		pieces = {
+			p("ranch_pumpkin_patch", -8, 1, 0, 1.3),
+			p("ranch_pumpkin_patch", 5, 2, 0, 1.2),
+			p("ranch_pumpkin_patch", -1, 11.5, 0, 1.0),
+			p("ranch_scarecrow", -1, -10, 10, 1.3),
+			p("ranch_hay_bale", 13, -5, 25, 1.2),
+			p("ranch_wheelbarrow", -16, 12, 30, 1.15),
+			p("ranch_goo_sign", 12, 9, nil, 0.9, true),
+		},
+		patches = { { kind = "dirt", x = -1, z = 3, r = 12 } },
+	},
+	{
+		name = "sunflower garden",
+		where = "wedge",
+		wedge = 2,
+		weight = 1,
+		spread = 14,
+		anchor = true,
+		pieces = {
+			p("ranch_border_hedge_long", 0, -9, 0, 0.85),
+			p("ranch_sunflower_patch", -7, 0, 0, 1.3),
+			p("ranch_sunflower_patch", 7, 0.5, 0, 1.25),
+			p("ranch_sunflower_patch", 0, 9.5, 0, 1.0),
+			p("ranch_bench", -14, 6, 5, 1.2, true),
+			p("ranch_flower_planter", 14, 7, 10, 1.15),
+			p("ranch_flower_planter", 6, 16, 6, 1.1),
+			p("ranch_birdhouse", -16, -3, nil, 1.2),
+		},
+		patches = { { kind = "grass", x = 0, z = 1, r = 14 } },
+	},
+	{
+		name = "oak grove",
+		where = "wedge",
+		wedge = 0,
+		weight = 1,
+		spread = 16,
+		anchor = true,
+		pieces = {
+			p("ranch_border_oak_round", 0, -4, 0, 1.1),
+			p("ranch_border_sapling_trio", 15, -2, 40, 0.9),
+			p("ranch_picnic_table", -3, 9, 15, 1.2),
+			p("ranch_bench", 8, 8, 5, 1.2, true),
+			p("ranch_border_rock_boulder", -13, 3, nil, 0.5),
+			p("ranch_flower_planter", 9, 13.5, 8, 1.1),
+		},
+		patches = { { kind = "grass", x = 1, z = 1, r = 15 } },
+	},
+	{
+		name = "pine camp",
+		where = "wedge",
+		wedge = 4,
+		weight = 1,
+		spread = 16,
+		anchor = true,
+		pieces = {
+			p("ranch_border_pine_broad", -5, -5, nil, 1.1),
+			p("ranch_border_pine_tall", 9, -6, nil, 0.7),
+			p("ranch_campfire", 0, 7, nil, 1.3),
+			p("ranch_bench", -8, 10.5, nil, 1.2, true),
+			p("ranch_bench", 7.5, 11.5, nil, 1.2, true),
+			p("ranch_log_pile", -13, 3, 15, 1.1),
+			p("ranch_border_rock_cluster", 15, 4, nil, 0.5),
+		},
+		patches = { { kind = "grass", x = 0, z = 2, r = 15 } },
+	},
+	{
+		name = "well yard",
+		where = "wedge",
+		angle = 142,
+		weight = 1,
+		spread = 14,
+		anchor = true,
+		pieces = {
+			p("ranch_well", 0, 0, 0, 1.4),
+			p("ranch_water_trough", 13, 2, 10, 1.2),
+			p("ranch_milk_churn", -8, 2.5, nil, 1.2),
+			p("ranch_milk_churn", -11, -1.5, nil, 1.1),
+			p("ranch_goo_hive", -6.5, -7, nil, 1.2),
+			p("ranch_goo_bucket", 6.5, 7.5, nil, 1.25),
+			p("ranch_bench", 0, 10.5, 5, 1.2, true),
+		},
+		patches = { { kind = "dark", x = 1, z = 2, r = 13 } },
+	},
+	{
+		name = "rock outcrop",
+		where = "wedge",
+		angle = 292,
+		weight = 1,
+		spread = 14,
+		anchor = true,
+		pieces = {
+			p("ranch_border_rock_boulder", 0, -3, nil, 0.8),
+			p("ranch_border_rock_boulder", 8, 1, nil, 0.7),
+			p("ranch_border_rock_slab", -8, 1.5, nil, 0.6),
+			p("ranch_border_sapling_trio", -2, -9, 20, 0.8),
+			p("ranch_border_rock_cluster", 4, 8, nil, 0.55),
+		},
+		patches = { { kind = "dark", x = 0, z = 1, r = 12 } },
+	},
+}
+
 -- Single props (a signpost here, a rain barrel there).
 local SINGLES: { { mesh: string, scale: number, face: boolean? } } = {
 	{ mesh = "ranch_goo_sign", scale = 1.1, face = true },
@@ -258,7 +456,18 @@ local function fixedProps(): { { pos: { number }, size: { number }, yaw: number 
 			table.insert(out, prop)
 		end
 	end
+	-- the plaza ritual circle (Ritual.centre), with a margin: it sits on the lawn band, where the singles like to stand
+	local rx, rz = Ritual.centre()
+	local reach = 2 * (Config.RITUAL.CIRCLE_RADIUS + 5)
+	table.insert(out, { pos = { rx, 1, rz }, size = { reach, 2, reach }, yaw = 0 })
 	return out
+end
+
+-- Meshes whose footprint is a canopy (trees, hedges): the small props of their scene may stand under it.
+function YardGen.isCanopy(mesh: string): boolean
+	return string.find(mesh, "^ranch_border_oak") ~= nil
+		or string.find(mesh, "^ranch_border_pine") ~= nil
+		or string.find(mesh, "^ranch_border_sapling") ~= nil
 end
 
 -- True if `prop` keeps CLEAR studs from every keep-clear zone, the yard edge and the world's other kit props.
@@ -285,9 +494,10 @@ local function polarOf(x: number, z: number): (number, number)
 	return math.deg(math.atan2(x, z)) % 360, math.sqrt(x * x + z * z)
 end
 
-function YardGen.generate(): { Row }
+function YardGen.generate(): ({ Row }, { Patch })
 	local rng = Rng.new(YardGen.SEED)
 	local rows: { Row } = {}
+	local patches: { Patch } = {}
 	local fixed = fixedProps()
 	local placedProps: { any } = {}
 	local centres: { { number } } = {}
@@ -318,14 +528,48 @@ function YardGen.generate(): { Row }
 		return pool[#pool]
 	end
 
-	-- A cluster at world (cx, cz): returns its rows when every piece fits, else nil.
-	local function tryCluster(t: Template, cx: number, cz: number): { Row }?
+	-- True if a ground disc (x, z, radius) keeps CLEAR studs from every keep-clear zone and does not overlap another patch.
+	local function patchFits(x: number, z: number, radius: number): boolean
+		local box = {
+			pos = { x, 0, z },
+			size = {
+				2 * radius + 2 * (YardGen.CLEAR - PropClearance.MARGIN),
+				1,
+				2 * radius + 2 * (YardGen.CLEAR - PropClearance.MARGIN),
+			},
+			yaw = 0,
+		}
+		if #PropClearance.conflicts(box) > 0 or math.sqrt(x * x + z * z) + radius > YardGen.YARD_EDGE then
+			return false
+		end
+		for _, q in patches do
+			local qa = math.rad(q.angle)
+			local d2 = (math.sin(qa) * q.r - x) ^ 2 + (math.cos(qa) * q.r - z) ^ 2
+			if d2 < (q.radius + radius + 1) ^ 2 then
+				return false
+			end
+		end
+		return true
+	end
+
+	-- A cluster at world (cx, cz): returns its rows (and the ground discs of an anchor) when every piece fits, else nil.
+	-- `faceTurn` turns the cluster so its +Z faces the plaza (anchors); `gap` is the min distance to another cluster's centre.
+	local function tryCluster(
+		t: Template,
+		cx: number,
+		cz: number,
+		gap: number?,
+		faceTurn: boolean?
+	): ({ Row }?, { any }?)
 		for _, c in centres do
-			if (c[1] - cx) ^ 2 + (c[2] - cz) ^ 2 < YardGen.GAP ^ 2 then
+			if (c[1] - cx) ^ 2 + (c[2] - cz) ^ 2 < (gap or YardGen.GAP) ^ 2 then
 				return nil
 			end
 		end
 		local turn = rng:float() * 360 -- the cluster's own orientation
+		if faceTurn then
+			turn = wrap(math.deg(math.atan2(cx, cz)) + 180 + (rng:float() - 0.5) * 50)
+		end
 		local ct, st = math.cos(math.rad(turn)), math.sin(math.rad(turn))
 		local mirror = if rng:float() < 0.5 then -1 else 1 -- no two clusters read as copies
 		local out: { Row } = {}
@@ -337,10 +581,19 @@ function YardGen.generate(): { Row }
 				return nil
 			end
 			extra[piece.mesh] = (extra[piece.mesh] or 0) + 1
-			local ox = (piece.x * YardGen.SPACING + (rng:float() - 0.5) * 1.2) * mirror
-			local oz = piece.z * YardGen.SPACING + (rng:float() - 0.5) * 1.2
+			local spacing = if t.anchor then 1 else YardGen.SPACING
+			local wobble = if t.anchor then 0.5 else 1.2
+			if piece.exact then
+				wobble = 0
+			end
+			local ox = (piece.x * spacing + (rng:float() - 0.5) * wobble) * mirror
+			local oz = piece.z * spacing + (rng:float() - 0.5) * wobble
 			local x, z = cx + ox * ct + oz * st, cz - ox * st + oz * ct
-			local jitter = YardGen.SCALE_JITTER[1] + rng:float() * (YardGen.SCALE_JITTER[2] - YardGen.SCALE_JITTER[1])
+			local lo, hi = YardGen.SCALE_JITTER[1], YardGen.SCALE_JITTER[2]
+			if piece.exact then
+				lo, hi = 0.96, 1.04
+			end
+			local jitter = lo + rng:float() * (hi - lo)
 			local scale = math.max(YardGen.MIN_SCALE, piece.scale * jitter)
 			local angle, r = polarOf(x, z)
 			local yaw: number
@@ -348,7 +601,8 @@ function YardGen.generate(): { Row }
 				-- front at the fountain (yaw = angle + 180), a little off
 				yaw = 180 + (rng:float() - 0.5) * 40
 			elseif piece.turn then
-				yaw = wrap(turn + piece.turn * mirror + (rng:float() - 0.5) * 24 - angle)
+				local spin = if piece.exact then 4 else 24
+				yaw = wrap(turn + piece.turn * mirror + (rng:float() - 0.5) * spin - angle)
 			else
 				yaw = rng:float() * 360
 			end
@@ -363,20 +617,97 @@ function YardGen.generate(): { Row }
 			}
 			local prop = propOf(row)
 			if not YardGen.fits(prop, fixed, 1) or not YardGen.fits(prop, placedProps, 0.8) then
+				if t.anchor and _G.DBG then
+					local grow = 2 * (YardGen.CLEAR - PropClearance.MARGIN)
+					local fat = {
+						pos = prop.pos,
+						size = { prop.size[1] + grow, prop.size[2], prop.size[3] + grow },
+						yaw = prop.yaw,
+					}
+					local zone = table.concat(PropClearance.conflicts(fat), "/")
+					local reach = math.sqrt(prop.pos[1] ^ 2 + prop.pos[3] ^ 2)
+						+ math.sqrt(prop.size[1] ^ 2 + prop.size[3] ^ 2) / 2
+					local f1, f2 = false, false
+					for _, o in fixed do
+						if PropClearance.rectsOverlap(PropClearance.footprint(o), PropClearance.footprint(prop), 1) then
+							f1 = o.name
+						end
+					end
+					for _, o in placedProps do
+						if
+							PropClearance.rectsOverlap(PropClearance.footprint(o), PropClearance.footprint(prop), 0.8)
+						then
+							f2 = true
+						end
+					end
+					print(
+						"FIT",
+						t.name,
+						piece.mesh,
+						"zone=" .. zone,
+						"edge=" .. tostring(reach > 222),
+						"fixed=" .. tostring(f1),
+						"placed=" .. tostring(f2),
+						math.floor(r),
+						math.floor(angle)
+					)
+				end
 				return nil
 			end
-			for _, m in mine do
-				if PropClearance.rectsOverlap(PropClearance.footprint(m), PropClearance.footprint(prop), 0.8) then
+			for i, m in mine do
+				-- a tree's footprint is its canopy: a bench or a table may stand under it (only the trunk is solid, and trees are decor)
+				local shaded = YardGen.isCanopy(out[i].mesh) or YardGen.isCanopy(piece.mesh)
+				if string.find(out[i].mesh, "fence") and string.find(piece.mesh, "fence") then
+					shaded = true -- the run's corners join
+				end
+				if
+					not shaded
+					and PropClearance.rectsOverlap(PropClearance.footprint(m), PropClearance.footprint(prop), 0.8)
+				then
+					if _G.DBG then
+						print("OVL", t.name, piece.mesh, out[i].mesh)
+					end
 					return nil
+				end
+			end
+			-- no two copies of a mesh alike (tests/YardDress.spec; a fence run is one design, so fences are exempt): another yaw or scale, else try again
+			for _, list in { rows, out } do
+				for _, other in list do
+					if other.mesh == row.mesh and not string.find(row.mesh, "fence") then
+						local _, _, otherYaw = worldOf(other)
+						local dyaw = math.abs(otherYaw - prop.yaw)
+						dyaw = math.min(dyaw, 360 - dyaw)
+						if dyaw <= 1.5 and math.abs(other.scale - row.scale) <= 0.03 then
+							return nil
+						end
+					end
 				end
 			end
 			table.insert(out, row)
 			table.insert(mine, prop)
 		end
-		return out
+		local discs = {}
+		for _, patch in t.patches or {} do
+			local x = cx + patch.x * mirror * ct + patch.z * st
+			local z = cz - patch.x * mirror * st + patch.z * ct
+			if #patches + #discs < YardGen.MAX_PATCHES and patchFits(x, z, patch.r) then
+				local angle, r = polarOf(x, z)
+				table.insert(discs, { kind = patch.kind, angle = round2(angle), r = round2(r), radius = patch.r })
+			end
+		end
+		return out, discs
 	end
 
-	local function commit(cluster: { Row }, cx: number, cz: number)
+	local function commit(cluster: { Row }, cx: number, cz: number, discs: { any }?)
+		for _, d in discs or {} do
+			table.insert(patches, {
+				name = `Yard_patch_{d.kind}_{#patches + 1}`,
+				kind = d.kind,
+				angle = d.angle,
+				r = d.r,
+				radius = d.radius,
+			})
+		end
 		for _, row in cluster do
 			used[row.mesh] = (used[row.mesh] or 0) + 1
 			row.name = nameFor(row.mesh)
@@ -384,6 +715,29 @@ function YardGen.generate(): { Row }
 			table.insert(placedProps, propOf(row))
 		end
 		table.insert(centres, { cx, cz })
+	end
+
+	-- 0. the anchor scenes: the big features of the outer band, each in its own gap between two plots (the farmyards already
+	-- stand behind the plots), placed before any small cluster.
+	for k, template in ANCHORS do
+		local placed = false
+		local bisector = template.angle or 360 / 8 * ((template.wedge :: number) + 0.5)
+		for attempt = 1, 900 do
+			-- the gap between two plots is narrow (36..65 studs at r 160..196): first the bisector, then the whole gap, then anywhere
+			local half = if attempt <= 250 then 6 elseif attempt <= 550 then 13 elseif attempt <= 750 then 22 else 180
+			local a = bisector + (rng:float() * 2 - 1) * half
+			local r = 176 + rng:float() * 26
+			local cx, cz = math.sin(math.rad(a)) * r, math.cos(math.rad(a)) * r
+			local cluster, discs = tryCluster(template, cx, cz, YardGen.ANCHOR_GAP, true)
+			if cluster then
+				commit(cluster, cx, cz, discs)
+				placed = true
+				break
+			end
+		end
+		if not placed then
+			print(`anchor {template.name} found no place`)
+		end
 	end
 
 	-- 1. the gap between each pair of plots: one or two clusters on the bisector, where it is wide enough.
@@ -399,9 +753,9 @@ function YardGen.generate(): { Row }
 			local r = 118 + rng:float() * 66
 			local a = bisector + (rng:float() - 0.5) * 6
 			local cx, cz = math.sin(math.rad(a)) * r, math.cos(math.rad(a)) * r
-			local cluster = tryCluster(pickTemplate("wedge"), cx, cz)
+			local cluster, discs = tryCluster(pickTemplate("wedge"), cx, cz)
 			if cluster then
-				commit(cluster, cx, cz)
+				commit(cluster, cx, cz, discs)
 				got += 1
 			end
 		end
@@ -415,9 +769,9 @@ function YardGen.generate(): { Row }
 				local a = (s + rng:float()) * 360 / strata
 				local r = 204 + rng:float() * 10
 				local cx, cz = math.sin(math.rad(a)) * r, math.cos(math.rad(a)) * r
-				local cluster = tryCluster(pickTemplate("arc"), cx, cz)
+				local cluster, discs = tryCluster(pickTemplate("arc"), cx, cz)
 				if cluster then
-					commit(cluster, cx, cz)
+					commit(cluster, cx, cz, discs)
 					break
 				end
 			end
@@ -429,7 +783,7 @@ function YardGen.generate(): { Row }
 		for _ = 1, 200 do
 			local a, r
 			if i % 3 == 0 then
-				a, r = rng:float() * 360, 89 + rng:float() * 7 -- the lawn band between the ring path and the fences
+				a, r = rng:float() * 360, 93 + rng:float() * 6 -- the lawn band between the ring path and the fences
 			else
 				a, r = rng:float() * 360, 125 + rng:float() * 90
 			end
@@ -460,7 +814,37 @@ function YardGen.generate(): { Row }
 		end
 	end
 
-	return rows
+	-- 4. a few loose ground patches (darker sand, a grass island) away from the anchors, so the open sand is not one flat colour.
+	local loose = { "dark", "grass", "dark", "dirt" }
+	for _, kind in loose do
+		for _ = 1, 200 do
+			if #patches >= YardGen.MAX_PATCHES then
+				break
+			end
+			local radius = 6 + rng:float() * 4
+			local a, r = rng:float() * 360, 112 + rng:float() * 100
+			local x, z = math.sin(math.rad(a)) * r, math.cos(math.rad(a)) * r
+			local near = false
+			for _, c in centres do
+				if (c[1] - x) ^ 2 + (c[2] - z) ^ 2 < (radius + 4) ^ 2 then
+					near = true
+					break
+				end
+			end
+			if not near and patchFits(x, z, radius) then
+				table.insert(patches, {
+					name = `Yard_patch_{kind}_{#patches + 1}`,
+					kind = kind,
+					angle = round2(a),
+					r = round2(r),
+					radius = round2(radius),
+				})
+				break
+			end
+		end
+	end
+
+	return rows, patches
 end
 
 return YardGen
