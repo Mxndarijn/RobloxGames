@@ -18,7 +18,7 @@ export type Rarity = {
 
 export type Mutation = {
 	name: string, -- permanent save id (slimes, dex keys); never rename
-	displayName: string, -- what players see (RANCH_RENAME.md: Lava shows as Syrup)
+	displayName: string, -- what players see (docs/archive/RANCH_RENAME.md: Lava shows as Syrup)
 	multiplier: number,
 	weight: number, -- relative weight when a mutation is rolled
 }

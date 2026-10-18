@@ -7,7 +7,7 @@
 
 	Save safety: ids are new, lower-case and permanent. Nothing here renames a
 	Config.RARITIES tier or a Config.MUTATIONS name (Glow/Lava/Galaxy/Gold);
-	Lava keeps its save id and only displays as "Syrup" (RANCH_RENAME.md).
+	Lava keeps its save id and only displays as "Syrup" (docs/archive/RANCH_RENAME.md).
 	Tiers 1..7 match Config.RARITIES (SECRET_TIER = 7, the Secret
 	rarity).
 ]]
@@ -105,7 +105,7 @@ local NEW_MUTATIONS: { MutationDraft } = {
 	table.freeze({ name = "Eclipse", display = "Eclipse", multiplier = 10, weight = 0.5 }),
 }
 
--- Display names for existing mutation save ids (RANCH_RENAME.md).
+-- Display names for existing mutation save ids (docs/archive/RANCH_RENAME.md).
 local MUTATION_DISPLAY = table.freeze({
 	Glow = "Glow",
 	Lava = "Syrup",

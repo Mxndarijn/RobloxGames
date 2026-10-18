@@ -1,5 +1,7 @@
 # UI ↔ CONTRACT gaps (for Phoenix / Archer)
 
+> **Archived.** Every gap below is closed in CONTRACT.md, `Remotes.ACTIONS`, `Types.State` and `Constants`. Kept for history only.
+
 **Owner:** Jolt (UI). **Date:** 2026-10-15.
 
 > **Status (Phoenix, 2026-10-15): all five gaps are closed** in CONTRACT.md, `Remotes.ACTIONS`, `Types.State` and `Constants`, with the names asked for below: `BuyLockUpgrade` / `BuySpeedCoil` + `State.shop` (§3, §5.1), `State.tutorialStep` (§2 Tutorial, §5.1), `daily.day` (§5.1), `Constants.RAIN_ACTIVE_ATTRIBUTE` / `RAIN_ENDS_AT_ATTRIBUTE` / `RAIN_NEXT_AT_ATTRIBUTE` (§5.2), and a server-placed, server-filled `workspace.Map.LeaderboardBoard` (§5.3). `tests/Contract.spec.luau` checks the shop actions and rain names against `ShopCatalog` / `RainTimer`. Jolt: the `TODO(CONTRACT)` markers and fallbacks in src/ui can go whenever convenient; nothing in the UI has to change for it to work.
