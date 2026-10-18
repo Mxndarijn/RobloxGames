@@ -7,6 +7,7 @@
 
 	  PvpEffectsLogic.plan(payload, pvp, low)      -> Plan? (nil = nothing to show / unknown effect)
 	  PvpEffectsLogic.marker(itemId, tool, pvp)    -> Marker? (Goo Trap puddle / Bounce Pad disc, TrapPlaced)
+	  PvpEffectsLogic.markerFor(itemId, tools, pvp) the same, looking the tool up in Config.PVP_TOOLS
 	  PvpEffectsLogic.markerVisible(...)           traps only to their owner, the pad to everybody
 	  PvpEffectsLogic.shakeOffset(t, seconds, amp) -> x, y camera offset (decaying)
 	  PvpEffectsLogic.scaleCount(n, low)           particle counts at low graphics quality
@@ -267,6 +268,18 @@ function PvpEffectsLogic.marker(itemId: any, tool: any, pvp: any): Marker?
 		return { shape = "puddle", diameter = tool.radius * 2, color = GOO_DARK, ownerOnly = true, seconds = nil }
 	end
 	return nil
+end
+
+-- The marker of a TrapPlaced `itemId`, its tool looked up by id in `tools` (Config.PVP_TOOLS, a list).
+function PvpEffectsLogic.markerFor(itemId: any, tools: { any }, pvp: any): Marker?
+	local tool: any = nil
+	for _, def in tools do
+		if def.id == itemId then
+			tool = def
+			break
+		end
+	end
+	return PvpEffectsLogic.marker(itemId, tool, pvp)
 end
 
 function PvpEffectsLogic.markerVisible(marker: Marker, ownerUserId: number, localUserId: number): boolean

@@ -556,7 +556,12 @@ globals = {
 			return 1000
 		end,
 	},
-	TweenInfo = roblox.TweenInfo,
+	-- @lune/roblox has no TweenInfo; tweens are inert here, so a plain record does.
+	TweenInfo = roblox.TweenInfo or table.freeze({
+		new = function(...: any): any
+			return table.freeze({ ... })
+		end,
+	}),
 	warn = function()
 		UiHarness.warnings += 1
 	end,
@@ -611,6 +616,11 @@ function UiHarness.descendants(root: any): { any }
 	end
 	walk(root)
 	return out
+end
+
+-- Fires one RenderStepped frame (Widgets.holdButton fills on frames; tests drive them by hand).
+function UiHarness.renderStep()
+	services.RunService.RenderStepped:Fire()
 end
 
 -- The first descendant named `name`.

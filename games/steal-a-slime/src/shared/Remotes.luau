@@ -33,6 +33,8 @@ Remotes.DEFINITIONS = table.freeze({
 Remotes.ACTIONS = table.freeze({
 	Merge = table.freeze({ args = { "string", "string" } }), -- slimeIdA, slimeIdB
 	Merge3 = table.freeze({ args = { "string", "string", "string" } }), -- three slime ids (FEATURES.MergeVat3, CONTRACT.md §21)
+	AutoMerge = table.freeze({ args = { "number" } }), -- rarity bit mask, bit t - 1 = rarity t (CONTRACT.md §21.1)
+	KeepSlime = table.freeze({ args = { "string", "boolean" } }), -- slime id, keep (CONTRACT.md §21.1)
 	Lock = table.freeze({ args = {} }),
 	Rebirth = table.freeze({ args = {} }),
 	Sell = table.freeze({ args = { "string" } }), -- slimeId

@@ -23,6 +23,13 @@ Widgets.Theme = table.freeze({
 	Warn = Color3.fromRGB(255, 190, 60),
 	Disabled = Color3.fromRGB(80, 82, 100),
 	Gold = Color3.fromRGB(255, 205, 70),
+	-- The two in-world shops each wear their own colours (Panels/WorldShop): green market vs blue workshop.
+	ItemShop = Color3.fromRGB(70, 170, 95),
+	ItemShopBg = Color3.fromRGB(30, 42, 34),
+	ItemShopRow = Color3.fromRGB(50, 70, 56),
+	UpgradeShop = Color3.fromRGB(95, 125, 240),
+	UpgradeShopBg = Color3.fromRGB(26, 30, 60),
+	UpgradeShopRow = Color3.fromRGB(46, 54, 100),
 	Font = Enum.Font.GothamBold,
 	FontBody = Enum.Font.Gotham,
 })

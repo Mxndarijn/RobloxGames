@@ -191,6 +191,13 @@ describe("Balloon", function()
 		expect(select(2, use(world, a, "FunBalloon", T0 + 2, nil, { X = 210, Y = 3, Z = -200 }))).toBe("not ready")
 		done()
 	end)
+	it("takes a real Vector3 aim (a native vector, as the Request remote delivers it)", function()
+		local world, a = setup("FunBalloon")
+		local aim = vector.create(210, 3, -200)
+		expect(use(world, a, "FunBalloon", T0 + 1, nil, aim)).toBe(true)
+		expect(effects()[1].position).toBe(aim) -- sent on as the vector, so clients can draw it
+		done()
+	end)
 	it("is disabled in safe zones (user or aim) and hits no player", function()
 		local world, a = setup("FunBalloon")
 		positions[1] = FOUNTAIN

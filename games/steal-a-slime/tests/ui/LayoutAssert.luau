@@ -791,10 +791,10 @@ function LayoutAssert.panelChecks(check: Checker)
 			h = title.h,
 		})
 		check.text({ name = closeName, text = "X", size = 24, bold = true, w = close.w, h = close.h })
-		-- Nav hints stay up while a menu is open and draw above it.
+		-- Nav hints stay up while a menu is open and draw above it (phones hide the nav, and its hint, then).
 		for id, hint in Hint.STEPS do
 			local place = Hint.place(screen, { id = id, text = hint.text, target = hint.target })
-			if place then
+			if place and not screen.compact then
 				check.noOverlap(`Hint.{id} bubble`, place.bubble, closeName, close)
 			end
 		end
@@ -1066,17 +1066,22 @@ function LayoutAssert.hotbarChecks(check: Checker)
 	end
 end
 
--- Phones (Layout.phone: landscape and portrait): the nav grid sits at the very top (the top margin), and the money
+-- Phones (Layout.phone: landscape and portrait): the nav grid sits at the very top (the top margin) on landscape
+-- phones and low on the left, above the money block, on portrait ones (clear of Roblox's chat window); the money
 -- block, the hotbar and the events row share one bottom row: bottom edges within BOTTOM_ALIGN px, money left of
 -- the hotbar left of the events, none overlapping.
 LayoutAssert.BOTTOM_ALIGN = 2
 
 function LayoutAssert.phoneRowChecks(check: Checker, bar: Rect)
 	local screen = check.screen
-	if math.abs(screen.nav.y - Layout.TOP) > EPS then
-		check.fail(`Nav {fmt(screen.nav)} is not at the top (y should be {Layout.TOP})`)
-	end
 	local money, status = screen.money.rect, screen.status.rect
+	if screen.viewportW > screen.viewportH then
+		if math.abs(screen.nav.y - Layout.TOP) > EPS then
+			check.fail(`Nav {fmt(screen.nav)} is not at the top (y should be {Layout.TOP})`)
+		end
+	elseif screen.nav.y < Layout.TOP - EPS or screen.nav.y + screen.nav.h > money.y then
+		check.fail(`Nav {fmt(screen.nav)} is not between the top margin and the money block`)
+	end
 	local bottoms = { Money = money.y + money.h, Hotbar = bar.y + bar.h, Status = status.y + status.h }
 	for name, bottom in bottoms do
 		if math.abs(bottom - bottoms.Hotbar) > LayoutAssert.BOTTOM_ALIGN then

@@ -13,7 +13,8 @@
 
 	The Tool: one per player (give() replaces any old copy), given on every spawn, CanBeDropped = false, single
 	collision-free handle Part (a few parts per player, only while equipped, never in the world part budget).
-	The model / icon hookup is shared/BatModel (MESH_ID / ICON_ID): change it there only.
+	The model / icon / swing sound hookup is shared/BatModel (MESH_ID / ICON_ID / SWING_SOUND): change it there only.
+	Every click plays the swing (the default Animate tool slash + a whoosh, replicated to everyone), hit or miss.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -117,6 +118,7 @@ function BatTool.swing(
 	local pvp = PvpService.enabled(flag)
 	local thieves: { BatRules.Candidate } = {}
 	local others: { BatRules.Candidate } = {}
+	local offPlot: { BatRules.Candidate } = {}
 	local positions: { [number]: Vec } = {}
 	for userId, other in world.sessions do
 		if userId ~= session.userId then
@@ -128,6 +130,8 @@ function BatTool.swing(
 					table.insert(thieves, entry)
 				elseif pvp and onOwnPlot and onOwnPlot(session, position) then
 					table.insert(others, entry)
+				elseif pvp then
+					table.insert(offPlot, entry)
 				end
 			end
 		end
@@ -145,19 +149,20 @@ function BatTool.swing(
 	targetId = BatRules.pickTarget(origin, look, others, session.userId)
 	local target = if targetId then world.sessions[targetId] else nil
 	if not targetId or not target then
+		if BatRules.pickTarget(origin, look, offPlot, session.userId) then
+			return false, "not on your plot"
+		end
 		return false, "nothing in reach"
 	end
 	local targetPosition = positions[targetId]
 	if now - session.lastSlapAt < Config.SLAP_COOLDOWN then
 		return false, "slap on cooldown"
 	end
-	local state = PvpService.state(target)
-	if
-		PvpRules.inSafeZone(origin)
-		or PvpRules.inSafeZone(targetPosition)
-		or PvpRules.isShielded(state, now, target.data.rebirths)
-	then
-		return false, "safe zone or shield"
+	if PvpRules.inSafeZone(origin) or PvpRules.inSafeZone(targetPosition) then
+		return false, "safe zone"
+	end
+	if PvpRules.isShielded(PvpService.state(target), now, target.data.rebirths) then
+		return false, "shielded"
 	end
 	if not knock(world, ctx, session, target, origin, targetPosition, now, pvp) then
 		return false, "can't push right now"
@@ -207,6 +212,21 @@ local function buildHandle(): any
 	return handle
 end
 
+-- The swing everyone sees: the character's default Animate script plays its built-in tool slash when a StringValue
+-- "toolanim" = "Slash" appears under the equipped Tool (it takes the value away itself; Debris is the fallback), plus
+-- a whoosh from the handle. Played for every click, hit or miss, at most once per Config.BAT.SWING_GAP.
+local function playSwing(tool: any, whoosh: any)
+	local anim = Instance.new("StringValue")
+	anim.Name = "toolanim"
+	anim.Value = "Slash"
+	anim.Parent = tool
+	local debris: any = game:GetService("Debris")
+	debris:AddItem(anim, 1)
+	pcall(function() -- the Lune live-boot Sound stand-in has no Play
+		whoosh:Play()
+	end)
+end
+
 -- A fresh Bat Tool for `player`; swings go to BatTool.swing through `onSwing`.
 function BatTool.build(onSwing: () -> ()): any
 	local tool = Instance.new("Tool")
@@ -221,8 +241,23 @@ function BatTool.build(onSwing: () -> ()): any
 	local grip = BatModel.GRIP
 	tool.Grip = CFrame.new(grip.pos[1], grip.pos[2], grip.pos[3])
 		* CFrame.Angles(math.rad(grip.rotDeg[1]), math.rad(grip.rotDeg[2]), math.rad(grip.rotDeg[3]))
-	buildHandle().Parent = tool
-	tool.Activated:Connect(onSwing)
+	local handle = buildHandle()
+	handle.Parent = tool
+	local whoosh = Instance.new("Sound")
+	whoosh.Name = "Swing"
+	whoosh.SoundId = BatModel.SWING_SOUND
+	whoosh.Volume = 0.6
+	whoosh.RollOffMaxDistance = 60
+	whoosh.Parent = handle
+	local lastLook = -math.huge
+	tool.Activated:Connect(function()
+		local at = os.clock()
+		if at - lastLook >= Config.BAT.SWING_GAP then
+			lastLook = at
+			playSwing(tool, whoosh)
+		end
+		onSwing()
+	end)
 	return tool
 end
 
