@@ -2,7 +2,15 @@
   "id": "v29-b5-path-eye-ring",
   "todo": "v29 B5",
   "kind": "world",
-  "pos": [-51.75, 5, -5.1],
-  "look": [-77.62, 0, -7.65],
-  "note": "v29 B5: ring path at player eye level, one smooth surface across its segment joints [#270: path is terrain now; fixed camera at the ring segment 8 midpoint (-77.63, 0, -7.65), ground y 0]"
+  "pos": [
+    -51.75,
+    5,
+    -5.1
+  ],
+  "look": [
+    -77.62,
+    0,
+    -7.65
+  ],
+  "note": "v29 B5: ring boardwalk at player eye level, one smooth surface along the ring [#318 boardwalk: fixed camera at the ring (r 78) segment 8 midpoint (-77.63, 0, -7.65), just off the -X spoke, ground y 0]"
 }
