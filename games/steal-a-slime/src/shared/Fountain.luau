@@ -11,6 +11,7 @@ local Config = if script then require(script.Parent.Config) else require("./Conf
 local FountainTiers = if script then require(script.Parent.FountainTiers) else require("./FountainTiers")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
+local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 export type Drop = {
 	slime: Genome.Slime,
@@ -59,6 +60,7 @@ end
 -- `weeklyMutation` / `weeklyBonus` (optional, WeeklyEvents) raise one mutation's chance.
 -- `familyPool` (optional, FEATURES.FountainTiers: FountainTiers.pool of the server's fountain tier) lets some
 -- drops be a family type with that family's luck; nil (or empty) draws nothing extra from `rng`.
+-- `extraSpecies` (optional, EventSecrets.extraSpecies) joins the species pool of its tier (CONTRACT.md §34).
 function Fountain.roll(
 	rng: Rng.Rng,
 	id: string,
@@ -68,7 +70,8 @@ function Fountain.roll(
 	mutationMult: number?,
 	weeklyMutation: string?,
 	weeklyBonus: number?,
-	familyPool: { string }?
+	familyPool: { string }?,
+	extraSpecies: { SlimeRoster.Entry }?
 ): Drop
 	local baseChance = if raining then Config.RAIN_MUTATION_CHANCE else Config.DROP_MUTATION_CHANCE
 	local family = if familyPool then FountainTiers.roll(rng, familyPool) else nil
@@ -80,6 +83,7 @@ function Fountain.roll(
 		weeklyMutation = weeklyMutation,
 		weeklyBonus = weeklyBonus,
 		family = family,
+		extraSpecies = extraSpecies,
 	})
 	return {
 		slime = slime,
