@@ -37,7 +37,7 @@
 	the two unversioned fields above are now versioned: v5 -> v6 (migrateV5) keeps a known plotSkin id and
 	cleans stealLog / settings, junk or missing -> classic / empty / defaults. Pure, idempotent and
 	independent of every feature flag: a flag that is off leaves its field stored, just unused.
-	SlimeDex (CONTRACT.md §35.2, no version bump): found = { speciesId }, stamps = { "<species>:<Mutation>" },
+	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, stamps = { "<species>:<Mutation>" },
 	speciesRewards / stampRewards = milestones paid; missing -> empty / 0, unknown ids dropped, owned slimes
 	always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
 	pvp (FEATURES.PvP, CONTRACT.md §26) is optional and needs no version bump: { tiers = { [line] = tier }, fun = { id }, played = seconds };

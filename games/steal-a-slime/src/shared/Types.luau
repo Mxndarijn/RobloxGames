@@ -161,7 +161,7 @@ export type GoalView = {
 	nextTitle: string?, -- the step after the current one (nil on the last step)
 	done: boolean,
 }
--- SlimeDex (CONTRACT.md §35.4): one milestone of the species or stamps ladder, and the Dex itself.
+-- SlimeDex (CONTRACT.md §36.4): one milestone of the species or stamps ladder, and the Dex itself.
 export type DexRewardView = Collection.View
 export type DexView = SpeciesDex.View
 export type DexEntryView = SpeciesDex.EntryView
@@ -225,7 +225,7 @@ export type State = {
 	lockDuration: number,
 	carrying: CarryView?,
 	rain: RainView,
-	dex: DexView, -- the species Dex: counts, entries, stamps (CONTRACT.md §35.4)
+	dex: DexView, -- the species Dex: counts, entries, stamps (CONTRACT.md §36.4)
 	daily: DailyView,
 	dailyQuests: DailyQuestsView?, -- Quests.view: nil on a server without daily quests
 	codes: CodesView,

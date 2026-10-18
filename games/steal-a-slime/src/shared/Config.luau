@@ -432,7 +432,7 @@ for _, quest in DAILY_QUEST_POOL do
 	table.freeze(quest)
 end
 
--- SlimeDex ladders (CONTRACT.md §35.3): species found (of 50) and core mutation stamps (of 376).
+-- SlimeDex ladders (CONTRACT.md §36.3): species found (of 50) and core mutation stamps (of 376).
 -- `reward` is cash x rebirthMultiplier, `bonus` a permanent income bonus (both ladders add up to 0.65).
 local DEX_MILESTONES: { species: { DexMilestone }, stamps: { DexMilestone } } = {
 	species = {

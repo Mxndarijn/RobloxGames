@@ -4,7 +4,7 @@
 
 	Rebirth ladder and SlimeDex completion for the Rebirth / SlimeDex panels.
 	Pure (tests/ui/Progress.spec.luau). Reads CONTRACT §5.1 fields, State.dex
-	(§35.4), plus the optional v13 fields (§8.2: rebirthTitle, nextRebirthTier,
+	(§36.4), plus the optional v13 fields (§8.2: rebirthTitle, nextRebirthTier,
 	dexRewards, dexBonus) when a server sends them;
 	future rebirth costs come from the caller's `costOf(rebirths)` (the panel
 	passes Shared.Economy.rebirthCost) so the formula lives in one place.
@@ -139,7 +139,7 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 	}
 end
 
--- State.dex (CONTRACT.md §35.4): species found over the 50 entries, and per rarity (event Secrets are bonus
+-- State.dex (CONTRACT.md §36.4): species found over the 50 entries, and per rarity (event Secrets are bonus
 -- entries and count nowhere here).
 function Progress.dex(dex: any, tierNames: { string }): DexProgress
 	local d = if type(dex) == "table" then dex else {}

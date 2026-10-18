@@ -1,6 +1,6 @@
 --!strict
 --[[
-	SpeciesDex (pure, CONTRACT.md §35)
+	SpeciesDex (pure, CONTRACT.md §36)
 
 	The SlimeDex: one entry per spawn, hybrid and boss species (50), the event Secrets as bonus entries, and
 	mutation stamps "<species>:<Mutation>". `record` is what PlayerData.discover runs for every slime a player

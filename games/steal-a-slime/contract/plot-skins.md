@@ -2,7 +2,7 @@
 
 **Status:** contract first. `Config.FEATURES.PlotSkins` (default **on** since 2026-10-18); `false` = no remote, no State fields, no plot attribute, no visuals. The save field is still read and written.
 
-- **Rule:** `Config.PLOT_SKINS` lists the skins; each is tied to a SlimeDex set (`set` = rarity tier: that tier's species Dex entries, `PlotSkins.setSize(tier)`, §35.3) and unlocks at `owned / setSize >= threshold` (0.75, integer test `owned >= ceil(setSize * threshold)`). `classic` is the default and always unlocked. `src/shared/PlotSkins`.
+- **Rule:** `Config.PLOT_SKINS` lists the skins; each is tied to a SlimeDex set (`set` = rarity tier: that tier's species Dex entries, `PlotSkins.setSize(tier)`, §36.3) and unlocks at `owned / setSize >= threshold` (0.75, integer test `owned >= ceil(setSize * threshold)`). `classic` is the default and always unlocked. `src/shared/PlotSkins`.
 - **Save (versioned since v6, §8.9c):** `plotSkin: string`. Missing, unknown or not unlocked loads as `"classic"` (`SaveData.deserialize`; `SaveData.migratePlotSkin` is the pure step; `migrateV5` normalises unknown ids).
 - **Remote:** `Request("EquipPlotSkin", skinId)` (`string`; rate limit 0.5 s). Refused unless the skin exists and is unlocked, or when the flag is off. Equipping `classic` always works.
 - **State (flag on only):** `plotSkin: string`, `plotSkins: { { id, name, setName, tier, owned, total, needed, fraction, unlocked, equipped } }` (classic first).

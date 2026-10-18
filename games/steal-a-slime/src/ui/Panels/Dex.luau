@@ -1,6 +1,6 @@
 --!strict
 --[[
-	SlimeDex panel (Nav key "Dex", CONTRACT.md §35.5): completion up top (big percent, "Species n / 50", the
+	SlimeDex panel (Nav key "Dex", CONTRACT.md §36.5): completion up top (big percent, "Species n / 50", the
 	stamp line, a bar), the next milestone of each ladder with the income bonus, then a scroll list: the
 	milestone bar card, plot skin cards, and one card per species grouped by rarity (SlimeDex.lines), the event
 	Secrets last. A card shows the species mesh (`ctx.buildSpecies`, a ViewportFrame) in full colour when found

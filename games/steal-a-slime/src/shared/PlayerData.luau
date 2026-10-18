@@ -44,7 +44,7 @@ export type Data = {
 	lastOnline: number, -- unix seconds of the last save while playing
 	daily: Daily,
 	quests: DailyQuests, -- Quests (day 0 = nothing rolled yet)
-	found: { [string]: boolean }, -- SlimeDex species found (SpeciesDex, CONTRACT.md §35)
+	found: { [string]: boolean }, -- SlimeDex species found (SpeciesDex, CONTRACT.md §36)
 	stamps: { [string]: boolean }, -- SlimeDex stamps "<species>:<Mutation>"
 	totalEarned: number,
 	totalStolen: number,

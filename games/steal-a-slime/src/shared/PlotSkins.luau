@@ -3,7 +3,7 @@
 	PlotSkins
 
 	Plot skins unlocked by SlimeDex sets (Config.PLOT_SKINS, FEATURES.PlotSkins,
-	CONTRACT.md §15, §35.3). A skin's set is one rarity tier of the SlimeDex; it
+	CONTRACT.md §15, §36.3). A skin's set is one rarity tier of the SlimeDex; it
 	unlocks once the owner has found `threshold` (75 %) of that tier's species
 	entries (SpeciesDex.tierSize). The equipped skin is data.plotSkin; `equip` refuses anything that is
 	not unlocked, `current` never returns a skin the player has not earned.

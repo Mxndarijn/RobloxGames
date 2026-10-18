@@ -2,7 +2,7 @@
 --[[
 	SlimeDex
 
-	The SlimeDex panel's content (Panels/Dex), pure (tests/ui/SlimeDex.spec). State.dex (CONTRACT.md §35.4)
+	The SlimeDex panel's content (Panels/Dex), pure (tests/ui/SlimeDex.spec). State.dex (CONTRACT.md §36.4)
 	becomes one card per species, grouped by rarity under a header line, the event Secrets last as a bonus
 	section. A card is found (full colour mesh, name, stamp row) or a silhouette ("???", the hint, and for
 	hybrids three ingredient slots that fill in as the player finds each ingredient). The server decides what is

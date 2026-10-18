@@ -1,5 +1,5 @@
 --!strict
--- The species Dex (src/shared/SpeciesDex.luau, CONTRACT.md §35): entries, stamps, counts and State.dex, and
+-- The species Dex (src/shared/SpeciesDex.luau, CONTRACT.md §36): entries, stamps, counts and State.dex, and
 -- data.found / data.stamps set from every way a player gets a slime.
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")

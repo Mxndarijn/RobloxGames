@@ -1,11 +1,11 @@
-# §35 Species Dex: one entry per species, mutation stamps, a new milestone ladder
+# §36 Species Dex: one entry per species, mutation stamps, a new milestone ladder
 
 The SlimeDex counts species and mutation stamps (design `docs/SLIME-ECONOMY.md` §2.3, §5.1, §5.2). The old
 combination Dex (`Genome.dexKey`, tier : mutation : pattern : eyes, 1152 keys) is retired with its save fields, its
 State fields and its milestone ladder. There are no live saves, so there is no migration: an old save simply starts
 the new Dex empty and is re-seeded from the slimes it owns on load.
 
-## 35.1 Entries and stamps (`Shared.SpeciesDex`, pure)
+## 36.1 Entries and stamps (`Shared.SpeciesDex`, pure)
 
 - **Entries: 50.** Every `SlimeRoster` species of kind `"spawn"` (32), `"hybrid"` (15) and `"boss"` (3), in roster
   order (`SpeciesDex.ENTRIES`, `SpeciesDex.TOTAL = 50`). The 7 `"event"` Secrets are **bonus entries**
@@ -25,7 +25,7 @@ the new Dex empty and is re-seeded from the slimes it owns on load.
 - `SpeciesDex.count(data)`, `stampCount(data)`, `goldCount(data)`, `bonusCount(data)`, `tierCount(data, tier)` /
   `tierSize(tier)` (entries of one tier among the 50), `tierMask(data)` (bit k-1 = a found entry of tier k).
 
-## 35.2 Save (`data.found`, `data.stamps`, `data.speciesRewards`, `data.stampRewards`)
+## 36.2 Save (`data.found`, `data.stamps`, `data.speciesRewards`, `data.stampRewards`)
 
 | Field | Saved as | Meaning |
 |---|---|---|
@@ -37,7 +37,7 @@ the new Dex empty and is re-seeded from the slimes it owns on load.
 `data.dex` and `data.dexRewards` are removed (not read, not written). The fields are added without a
 `SAVE_VERSION` bump (like `consumables`): a save without them loads them empty / 0.
 
-## 35.3 Milestones (`Config.DEX_MILESTONES`, `Shared.Collection`)
+## 36.3 Milestones (`Config.DEX_MILESTONES`, `Shared.Collection`)
 
 `Config.DEX_MILESTONES = { species = { ... }, stamps = { ... } }`, each a list of `{ count, reward, bonus }` in
 ascending `count`. Cash is `reward x Economy.rebirthMultiplier(rebirths)` at the moment it is paid; the income bonus
@@ -66,7 +66,7 @@ is permanent (`Perks.dexBonus` = the sum of paid milestones of both ladders). Bo
 - Badges: `dexPercent` = `found x 100 >= value x 50`; `tier` = a found entry of that tier.
 - Plot attributes: `DexCount` = found (0..50), `DexTotal` = 50, `DexTierMask` = `SpeciesDex.tierMask`.
 
-## 35.4 State
+## 36.4 State
 
 `State.dex: DexView` replaces `dex: { string }` and `dexTotal`. `dexRewards` and `dexBonus` stay, with the new ladder.
 
@@ -95,11 +95,11 @@ What the server reveals (it never sends a name or ingredient the player has not 
 | Kind | `name` | `hint` | `ingredients` |
 |---|---|---|---|
 | spawn | when found | nil | nil |
-| hybrid | when found, or when every ingredient is found ("known") | always: the recipe's hint line (`MergeRecipes.hint`, §31), as a riddle | each slot's species once that species is found |
+| hybrid | when found, or when every ingredient is found ("known") | always: the recipe's hint line (`MergeRecipes.hint`, §35), as a riddle | each slot's species once that species is found |
 | boss | when found | `"Defeat the boss event"` | nil |
 | event | when found, or while it is the featured Secret | `"Featured Secret: week of <d Mon>"` (this week's start while featured, else the next week it is featured, `EventSecrets` §34) when found or featured; `"???"` otherwise | nil |
 
-## 35.5 Client
+## 36.5 Client
 
 The SlimeDex panel (Nav key `Dex`) shows: the species count and percent (`found / total`), a bar, the stamp count,
 the next milestone of each ladder with its reward, then one card per entry grouped by rarity (tier header rows), the

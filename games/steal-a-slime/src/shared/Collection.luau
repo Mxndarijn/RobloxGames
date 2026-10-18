@@ -2,7 +2,7 @@
 --[[
 	Collection
 
-	SlimeDex milestone rewards (Config.DEX_MILESTONES, CONTRACT.md §35.3): two ladders, species found (of
+	SlimeDex milestone rewards (Config.DEX_MILESTONES, CONTRACT.md §36.3): two ladders, species found (of
 	SpeciesDex.TOTAL) and core mutation stamps (of SpeciesDex.STAMP_TOTAL). Each milestone pays cash
 	(x rebirthMultiplier) and a permanent income bonus (Perks.dexBonus). Paid automatically by `check`;
 	data.speciesRewards / data.stampRewards count the milestones paid. `view` is State.dexRewards.
