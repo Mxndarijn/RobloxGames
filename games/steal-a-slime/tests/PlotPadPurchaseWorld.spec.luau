@@ -44,7 +44,8 @@ end
 
 -- The scenarios run here, at load time: Runtime keeps only the most recently built runtime "current" (players, etc.),
 -- and the describe blocks run after every spec file has loaded.
-local ItemCounter = rt.workspace.Map.ItemShopStand.Counter
+local stand = rt.workspace.Map:FindFirstChild("ItemShopStand") -- absent with WorldShops off (all-flags-off mode)
+local ItemCounter = stand and stand.Counter
 local results = {}
 local players = {}
 for i = 1, Config.PLOT_COUNT do
@@ -59,7 +60,7 @@ for i = 1, Config.PLOT_COUNT do
 	local button = prompt.Parent
 	local r = { plotIndex = session.plotIndex }
 	results[i] = r
-	r.shopDistance = (button.CFrame.Position - ItemCounter.CFrame.Position).Magnitude
+	r.shopDistance = if ItemCounter then (button.CFrame.Position - ItemCounter.CFrame.Position).Magnitude else math.huge
 	session.lockUntil = rt.workspace:GetServerTimeNow() - 1 -- the join lock is over
 	rt:advance(0.3)
 	TestHooks.grantCash(world, userId, 10_000_000)

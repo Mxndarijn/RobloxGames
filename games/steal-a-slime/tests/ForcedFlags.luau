@@ -12,6 +12,7 @@ ForcedFlags.off = {
 	["world shops config > WorldShops is on by default"] = "WorldShops",
 	["world shops config > WorldShopsStrict is on by default"] = "WorldShopsStrict",
 	["world shop stands in the booted server"] = "WorldShops",
+	["plot pad prompts on the real world (WorldShopsStrict on)"] = "WorldShopsStrict",
 	["AdminEvents gate"] = "AdminEvents",
 	["PvpRules config > is on by default (Merijn 2026-10-17: PvP ships on)"] = "PvP",
 	["AdminEvents parse + validate"] = "AdminEvents",
