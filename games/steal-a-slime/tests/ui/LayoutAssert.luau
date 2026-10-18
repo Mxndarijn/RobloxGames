@@ -28,6 +28,7 @@ local Format = require("../../src/ui/Format")
 local GuideTips = require("../../src/ui/GuideTips")
 local Hint = require("../../src/ui/Hint")
 local Icons = require("../../src/ui/Icons")
+local InventoryLayout = require("../../src/ui/InventoryLayout")
 local Layout = require("../../src/ui/Layout")
 local LockHud = require("../../src/ui/LockHud")
 local Nav = require("../../src/ui/Nav")
@@ -682,6 +683,7 @@ function LayoutAssert.menuKeys(): { string }
 		table.insert(keys, entry.key)
 	end
 	table.insert(keys, "WorldShop")
+	table.insert(keys, "Inventory")
 	table.insert(keys, "Sound")
 	table.insert(keys, "Guide")
 	table.insert(keys, "Welcome")
@@ -974,6 +976,52 @@ function LayoutAssert.clusterChecks(check: Checker)
 	end
 end
 
+-- S3 hotbar: its zone and the fullest bar (every slot + bag) are on screen, touch-sized on phones, inside
+-- the zone, clear of every other box and of the thumbstick / jump zones. The carry cards are the exception:
+-- the server unequips tools while carrying, so the bar is hidden then (Inventory) and they may use its place.
+function LayoutAssert.hotbarChecks(check: Checker)
+	local screen = check.screen
+	local zone = screen.hotbar
+	check.onScreen("Hotbar.zone", zone, Layout.MARGIN)
+	local bar = InventoryLayout.bar(zone, InventoryLayout.MAX_SLOTS, screen.compact, Layout.MIN_TOUCH_DESIGN)
+	if bar.shown < 3 then
+		check.fail(`Hotbar holds only {bar.shown} item slots in {fmt(zone)} (want at least 3)`)
+	end
+	check.inside("Hotbar.bar", bar.rect, "Hotbar.zone", zone)
+	local cells = { { "Hotbar.bag", bar.bag } }
+	for i, slot in bar.slots do
+		table.insert(cells, { `Hotbar.slot{i}`, slot })
+	end
+	local thumbSide = 120
+	local thumbTop = screen.height - Layout.TOUCH_CONTROLS_HEIGHT - thumbSide
+	local zones = {
+		{ "JumpZone", Layout.rect(screen.width - thumbSide, thumbTop, thumbSide, screen.height - thumbTop) },
+		{ "ThumbstickZone", Layout.rect(0, thumbTop, thumbSide, screen.height - thumbTop) },
+	}
+	for _, cell in cells do
+		local name, r = cell[1] :: string, cell[2] :: Rect
+		check.inside(name, r, "Hotbar.bar", bar.rect)
+		if screen.compact then
+			check.touch(name, r)
+		end
+	end
+	for _, other in
+		{
+			{ "Hud", screen.hud.rect },
+			{ "Nav", screen.nav },
+			{ "Money", screen.money.rect },
+			{ "Status", screen.status.rect },
+			{ "Tutorial", screen.tutorial },
+			{ "Sound", screen.sound },
+			{ "Banners", screen.banners },
+			zones[1],
+			zones[2],
+		}
+	do
+		check.noOverlap("Hotbar.bar", bar.rect, other[1] :: string, other[2] :: Rect)
+	end
+end
+
 function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	local check = LayoutAssert.new(label, screen)
 	local m = Layout.MARGIN
@@ -1026,6 +1074,7 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	-- H1 bottom clusters: on screen, on the bottom inset line (compact: also above the touch-controls rise),
 	-- clear of the HUD, nav, bottom cards and each other; every status slot inside its cluster.
 	LayoutAssert.clusterChecks(check)
+	LayoutAssert.hotbarChecks(check)
 
 	-- Menus: full-window backdrop, content-sized cards, close X tappable.
 	check.onScreen("column", screen.column, m)

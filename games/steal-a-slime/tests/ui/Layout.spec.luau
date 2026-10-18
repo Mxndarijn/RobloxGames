@@ -2,6 +2,7 @@
 -- Overlay layers, scroll list rules and the phone UIScale (src/ui/Layout.luau).
 local fs = require("@lune/fs")
 
+local InventoryLayout = require("../../src/ui/InventoryLayout")
 local Layout = require("../../src/ui/Layout")
 local TestRunner = require("../TestRunner")
 
@@ -155,10 +156,19 @@ describe("Layout.screen tutorial card on short screens", function()
 			local top, bottom = px(r, s.scale)
 			-- 250 (was 276): the banner stack above lost six banners with the H1 HUD (boss, rain, modifier,
 			-- friends, weekend, next-spawn), and the beside-the-carry-card tutorial is narrower, so taller.
-			expect(top >= 250).toBe(true)
+			-- S3: the plain tutorial card rises one hotbar (67 px) with the bar under it, so 200 there.
+			expect(top >= (if r == s.tutorial then 200 else 250)).toBe(true)
 			expect(bottom <= 390).toBe(true)
-			expect(bottom >= 390 - Layout.TUTORIAL_SHORT_MARGIN - 1).toBe(true)
+			if r == s.tutorialCarrying then
+				expect(bottom >= 390 - Layout.TUTORIAL_SHORT_MARGIN - 1).toBe(true)
+			end
 		end
+		-- S3: the plain tutorial card sits right above the hotbar, which hugs the bottom edge.
+		local _, tutorialBottom = px(s.tutorial, s.scale)
+		expect(s.tutorial.y + s.tutorial.h + Layout.GAP).toBe(
+			s.hotbar.y + s.hotbar.h - InventoryLayout.height(true, Layout.MIN_TOUCH_DESIGN)
+		)
+		expect(tutorialBottom <= 390 - InventoryLayout.height(true, Layout.MIN_TOUCH_DESIGN) * s.scale).toBe(true)
 	end)
 	it("carrying: the card sits beside the carry card, not over it", function()
 		local s = Layout.screen(844, 390)
@@ -174,14 +184,18 @@ describe("Layout.screen tutorial card on short screens", function()
 			local lift = if s.width < 868
 				then math.ceil(Layout.TOUCH_RISE / s.scale) + s.money.rect.h + Layout.GAP
 				else 0
-			expect(s.tutorial.y + s.tutorial.h).toBe(s.height - s.bottomInset - lift)
+			-- S3: it sits right above the hotbar (the bar is on the same line the card used to be).
+			local barH = InventoryLayout.height(s.compact, Layout.MIN_TOUCH_DESIGN)
+			expect(s.tutorial.y + s.tutorial.h).toBe(s.height - s.bottomInset - lift - barH - Layout.GAP)
+			expect(s.hotbar.y + s.hotbar.h).toBe(s.height - s.bottomInset - lift)
+			expect(s.carry.y + s.carry.h).toBe(s.height - s.bottomInset - lift)
 			expect(s.tutorialCarrying.y + s.tutorialCarrying.h + Layout.GAP).toBe(s.carry.y)
 		end
 		local d = Layout.screen(1920, 1080)
-		expect(d.tutorial.y).toBe(927)
+		expect(d.tutorial.y).toBe(855)
 		expect(d.tutorialCarrying.y).toBe(819)
 		local p = Layout.screen(390, 844)
-		expect(p.tutorial.y).toBe(685)
+		expect(p.tutorial.y).toBe(606)
 		expect(p.tutorialCarrying.y).toBe(577)
 	end)
 end)

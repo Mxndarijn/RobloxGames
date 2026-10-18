@@ -24,6 +24,7 @@
 	TOUCH_RISE px off the touch controls and portrait cards sit above them.
 ]]
 
+local InventoryLayout = if script then require(script.Parent.InventoryLayout) else require("./InventoryLayout")
 local Nav = if script then require(script.Parent.Nav) else require("./Nav")
 local Tutorial = if script then require(script.Parent.Tutorial) else require("./Tutorial")
 
@@ -47,6 +48,7 @@ export type Screen = {
 	hud: HudLayout,
 	money: MoneyHud, -- bottom-left: Money, Income/s, Rebirths (above the touch inset)
 	status: StatusHud, -- bottom-right: event timers + friend boost (above the touch inset)
+	hotbar: Rect, -- S3 inventory hotbar zone: bottom-centre between the clusters (above them on a narrow phone)
 	banners: Rect,
 	toasts: Rect,
 	sound: Rect, -- FEATURES.Audio button: the top-right slot a menu's X would use (hidden while a menu is open)
@@ -506,6 +508,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Merge = 520,
 	Shop = 520,
 	WorldShop = 520,
+	Inventory = 460,
 	Rebirth = 470,
 	Goals = 500,
 	Dex = 600,
@@ -630,14 +633,22 @@ export type ScreenOptions = {
 -- carrying, or (`beside`) the carry card at the row's left and the
 -- tutorial next to it. `cardMargin` (short screens): the tutorial card hugs the
 -- bottom edge that far up and, while carrying, sits next to the carry card.
-local function bottomCards(row: Rect, W: number, H: number, inset: number, beside: boolean?, cardMargin: number?)
+local function bottomCards(
+	row: Rect,
+	W: number,
+	H: number,
+	inset: number,
+	beside: boolean?,
+	cardMargin: number?,
+	tutorialLift: number?
+)
 	local gap = Layout.GAP
 	local carryX, carryW = centredIn(row, W, Layout.CARRY.w)
 	local carry = Layout.rect(carryX, H - inset - Layout.CARRY.h, carryW, Layout.CARRY.h)
 	local tutX, tutW = centredIn(row, W, Layout.TUTORIAL.w)
 	local tutH = Layout.tutorialHeight(tutW)
 	local cardBottom = H - (cardMargin or inset)
-	local tutorial = Layout.rect(tutX, cardBottom - tutH, tutW, tutH)
+	local tutorial = Layout.rect(tutX, cardBottom - (tutorialLift or 0) - tutH, tutW, tutH)
 	local tutorialCarrying = Layout.rect(tutX, carry.y - gap - tutH, tutW, tutH)
 	if beside or cardMargin then
 		-- The carry card gives up width (down to CARRY_MIN_W) so the tutorial card beside it keeps
@@ -700,6 +711,13 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local clusterH = math.max(money.rect.h, status.rect.h)
 	local lift = if not short and W < Layout.CARRY.w + 2 * (Layout.MONEY.w + m + gap) then rise + clusterH + gap else 0
 	local cardInset = inset + lift
+	-- S3 hotbar (InventoryLayout): bottom-centre between the clusters, above them on a narrow phone; short
+	-- phones hug the bottom edge. The server unequips tools while carrying, so the bar is hidden then and the
+	-- carry cards may use its place; only the plain tutorial card rises above it (`tutorialLift`).
+	local hotbarH = InventoryLayout.height(compact, Layout.MIN_TOUCH_DESIGN)
+	local cardMargin = if short and viewportH < Layout.TUTORIAL_SHORT_HEIGHT
+		then Layout.TUTORIAL_SHORT_MARGIN / scale
+		else nil
 	-- Short and too low to stack the tutorial over the carry card: they go
 	-- side by side, which leaves no width for a labelled nav grid.
 	local beside = short and H - inset - top < Layout.CARRY.h + gap + Layout.tutorialHeight(Layout.TUTORIAL.w)
@@ -711,7 +729,9 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	-- many columns as it takes to fit from the HUD down to the money cluster; the bottom cards
 	-- then sit right of the money cluster (step 3).
 	local fullRow = Layout.rect(m, 0, W - m * 2, 0)
-	local _, tutorial0, tutorialCarrying0 = bottomCards(fullRow, W, H, cardInset)
+	local hotbarBottom = if short then H - math.max(cardMargin or inset, m) else H - cardInset
+	local tutorialLift = (H - (cardMargin or cardInset)) - (hotbarBottom - hotbarH) + gap
+	local _, tutorial0, tutorialCarrying0 = bottomCards(fullRow, W, H, cardInset, nil, nil, tutorialLift)
 	local navBottom = if short then money.rect.y - gap else math.min(tutorial0.y, tutorialCarrying0.y) - gap
 	navBottom = math.min(navBottom, money.rect.y - gap)
 	local columns = if short then Layout.navColumns(navBottom - top) else 1
@@ -727,10 +747,11 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	-- and the status cluster (the nav sits above the money cluster, clear of the cards).
 	local cardsX = money.rect.x + money.rect.w + gap
 	local row = if short then Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0) else fullRow
-	local cardMargin = if short and viewportH < Layout.TUTORIAL_SHORT_HEIGHT
-		then Layout.TUTORIAL_SHORT_MARGIN / scale
-		else nil
-	local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, cardInset, beside, cardMargin)
+	local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, cardInset, beside, cardMargin, tutorialLift)
+	local between = Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0)
+	local hotbarX = if lift > 0 then m else between.x
+	local hotbarW = if lift > 0 then W - m * 2 else between.w
+	local hotbar = Layout.rect(hotbarX, hotbarBottom - hotbarH, hotbarW, hotbarH)
 
 	-- 4. The column (right of the nav) above the bottom cards; menus use the
 	-- full-window box, which runs on down to the bottom inset.
@@ -780,6 +801,7 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		hud = hud,
 		money = money,
 		status = status,
+		hotbar = hotbar,
 		banners = banners,
 		toasts = toasts,
 		sound = wideClose,
