@@ -309,7 +309,7 @@ describe("H1 HUD: bottom-right cluster (mounted Hud)", function()
 end)
 
 describe("H1 HUD: nothing new top-right / top-middle", function()
-	local KEPT_BANNERS = "EggReveal,EventsBoard,StealAlert" -- top centre; PadHint went with the Buy pad button (B7)
+	local KEPT_BANNERS = "EggReveal,StealAlert" -- top centre; PadHint went with the Buy pad button (B7)
 	it("the top banner stack holds only the kept (no-slot) notices", function()
 		local _, gui = mount(1920, 1080)
 		expect(table.concat(names(UiHarness.find(gui, "Banners")), ",")).toBe(`{KEPT_BANNERS}`)

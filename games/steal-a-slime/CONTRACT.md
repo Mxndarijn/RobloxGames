@@ -391,7 +391,6 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §17 | [steal-alerts.md](contract/steal-alerts.md) | v21: full steal alerts (2026-10-16) |
 | §18 | [weekly-event-rotation.md](contract/weekly-event-rotation.md) | v21: weekly event rotation (2026-10-16) |
 | §19 | [fountain-tiers.md](contract/fountain-tiers.md) | v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`, default `false`) |
-| §20 | [server-events-board.md](contract/server-events-board.md) | v21: server events board (2026-10-17) |
 | §21 | [merge-vat3.md](contract/merge-vat3.md) | v19: 3-slime merge vat (`FEATURES.MergeVat3`, default `false`) |
 | §22 | [restocking-shop.md](contract/restocking-shop.md) | v29 #13: restocking consumables shop (2026-10-16) |
 | §23 | [rain-magnet.md](contract/rain-magnet.md) | v19: Rain Magnet upgrade (`FEATURES.RainMagnet`, default `false`) |

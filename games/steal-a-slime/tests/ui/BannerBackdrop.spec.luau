@@ -69,16 +69,11 @@ describe("banners never cover an open menu card's title or X", function()
 		for _, name in
 			{
 				"StealAlert",
-				"EventsBoard",
 				"EggReveal",
 			}
 		do
-			-- EventsBoard is a content-sized Frame (icon rows) parented to banners, not a plain text banner
 			local isBanner = string.find(hud, `banner(banners, "{name}"`, 1, true) ~= nil
-			local isBannersFrame = name == "EventsBoard"
-				and string.find(hud, `Name = "EventsBoard"`, 1, true) ~= nil
-				and string.find(hud, "Parent = banners,", 1, true) ~= nil
-			expect(isBanner or isBannersFrame).toBe(true)
+			expect(isBanner).toBe(true)
 		end
 	end)
 end)

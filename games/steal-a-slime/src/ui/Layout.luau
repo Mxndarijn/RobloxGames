@@ -251,21 +251,23 @@ end
 -- and rebirths chips under it. Status (bottom-right): up to STATUS.count icon slots with a timer or
 -- a label under each. Both sit on the bottom inset line (above Roblox's thumbstick / jump button).
 
--- B4 (Merijn, ui_reference.png): both clusters are about twice the H1 size. `c`-prefixed values are the phone
+-- B4 (Merijn, ui_reference.png): both clusters are about twice the H1 size; the PC money block is a further
+-- ~1.4x (2026-10-18) to match the concept's proportions. `c`-prefixed values are the phone
 -- (compact) sizes; they are still bigger than the H1 desktop ones.
 Layout.MONEY = table.freeze({
-	w = 260,
+	w = 360,
 	cw = 196,
-	plate = 60,
+	plate = 84,
 	cplate = 50,
-	chip = 30,
+	chip = 42,
 	cchip = 26,
-	gap = 4,
-	icon = 52, -- coin icon on the plate (square)
+	gap = 5,
+	cgap = 4,
+	icon = 74, -- coin icon on the plate (square)
 	cicon = 44,
-	amountSize = 34,
+	amountSize = 48,
 	camountSize = 28,
-	chipSize = 15,
+	chipSize = 21,
 	cchipSize = 13,
 })
 
@@ -288,7 +290,9 @@ Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend" })
 
 function Layout.moneyHeight(compact: boolean): number
 	local m = Layout.MONEY
-	return (if compact then m.cplate else m.plate) + m.gap + (if compact then m.cchip else m.chip)
+	return (if compact then m.cplate else m.plate)
+		+ (if compact then m.cgap else m.gap)
+		+ (if compact then m.cchip else m.chip)
 end
 
 function Layout.moneyWidth(compact: boolean): number
@@ -301,14 +305,15 @@ function Layout.moneyCluster(compact: boolean, x: number, bottom: number): Money
 	local w = Layout.moneyWidth(compact)
 	local plate = if compact then m.cplate else m.plate
 	local chip = if compact then m.cchip else m.chip
+	local gap = if compact then m.cgap else m.gap
 	local h = Layout.moneyHeight(compact)
 	local y = bottom - h
-	local incomeW = math.floor((w - m.gap) * 0.52)
+	local incomeW = math.floor((w - gap) * 0.52)
 	return {
 		rect = Layout.rect(x, y, w, h),
 		cash = Layout.rect(x, y, w, plate),
-		income = Layout.rect(x, y + plate + m.gap, incomeW, chip),
-		rebirths = Layout.rect(x + incomeW + m.gap, y + plate + m.gap, w - incomeW - m.gap, chip),
+		income = Layout.rect(x, y + plate + gap, incomeW, chip),
+		rebirths = Layout.rect(x + incomeW + gap, y + plate + gap, w - incomeW - gap, chip),
 	}
 end
 

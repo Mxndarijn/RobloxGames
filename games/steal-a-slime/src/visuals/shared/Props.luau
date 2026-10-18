@@ -61,10 +61,10 @@ Props.BOARD_PALETTE = table.freeze({
 	RowAlt = table.freeze({ 238, 218, 182 }), -- every second row, a tan stripe on the face
 	Me = table.freeze({ 179, 231, 191 }), -- the viewer's own row (client only)
 	Title = table.freeze({ 94, 58, 34 }),
-	Text = table.freeze({ 60, 38, 22 }),
-	Muted = table.freeze({ 110, 84, 62 }),
-	Value = table.freeze({ 22, 104, 54 }),
-	Rank = table.freeze({ table.freeze({ 128, 84, 6 }), table.freeze({ 84, 88, 98 }), table.freeze({ 150, 72, 30 }) }),
+	Text = table.freeze({ 62, 40, 26 }),
+	Muted = table.freeze({ 138, 106, 74 }),
+	Value = table.freeze({ 24, 104, 56 }),
+	Rank = table.freeze({ table.freeze({ 138, 88, 0 }), table.freeze({ 96, 102, 112 }), table.freeze({ 150, 73, 30 }) }),
 })
 
 local function rgb(r: number, g: number, b: number): Color3

@@ -13,7 +13,6 @@
 ]]
 
 local EggReveal = require(script.Parent.EggReveal)
-local EventsBoard = require(script.Parent.EventsBoard)
 local HudClusters = require(script.Parent.HudClusters)
 local ItemIconView = require(script.Parent.ItemIconView)
 local ItemIcons = require(script.Parent.ItemIcons)
@@ -207,80 +206,6 @@ function Hud.new(parent: Instance, ctx: any)
 		Parent = parent,
 	}, { Widgets.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center) })
 	local steal = banner(banners, "StealAlert", Theme.Bad, 1)
-	-- The events board: one icon + text row per event (EventsBoard.rows); rows are pooled, content-sized.
-	local board = create("Frame", {
-		Name = "EventsBoard",
-		Visible = false,
-		LayoutOrder = 9,
-		BackgroundTransparency = 0.1,
-		BackgroundColor3 = Color3.fromRGB(40, 70, 120),
-		Size = UDim2.fromScale(1, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		ZIndex = Layout.ZINDEX.Banners,
-		Parent = banners,
-	}, {
-		Widgets.corner(8),
-		Widgets.list(Enum.FillDirection.Vertical, 3, Enum.HorizontalAlignment.Left),
-		create("UIPadding", {
-			PaddingLeft = UDim.new(0, 8),
-			PaddingRight = UDim.new(0, 8),
-			PaddingTop = UDim.new(0, 4),
-			PaddingBottom = UDim.new(0, 4),
-		}),
-	})
-	local BOARD_ICON = 22
-	local boardRows: { { frame: Frame, icon: any, label: TextLabel } } = {}
-	local function setBoardRows(rows: { EventsBoard.Row }?)
-		for i, row in rows or {} do
-			local pooled = boardRows[i]
-			if not pooled then
-				local frame = create("Frame", {
-					Name = `Row{i}`,
-					LayoutOrder = i,
-					BackgroundTransparency = 1,
-					Size = UDim2.new(1, 0, 0, BOARD_ICON),
-					AutomaticSize = Enum.AutomaticSize.Y,
-					ZIndex = Layout.ZINDEX.Banners,
-					Parent = board,
-				})
-				local icon = ItemIconView.new({
-					Name = "Icon",
-					Id = row.icon,
-					Size = BOARD_ICON,
-					ZIndex = Layout.ZINDEX.Banners,
-					Parent = frame,
-				}, registry)
-				icon.setActive(true)
-				local label = Widgets.label({
-					Name = "Text",
-					Font = Theme.Font,
-					TextSize = 14,
-					TextWrapped = true,
-					TextTruncate = Enum.TextTruncate.None,
-					TextXAlignment = Enum.TextXAlignment.Left,
-					TextStrokeTransparency = 0.5,
-					Size = UDim2.new(1, -(BOARD_ICON + 6), 0, BOARD_ICON),
-					Position = UDim2.fromOffset(BOARD_ICON + 6, 0),
-					AutomaticSize = Enum.AutomaticSize.Y,
-					ZIndex = Layout.ZINDEX.Banners,
-					Parent = frame,
-				})
-				pooled = { frame = frame, icon = icon, label = label }
-				boardRows[i] = pooled
-			end
-			local entry = pooled :: any
-			if entry.frame:GetAttribute("IconId") ~= row.icon then
-				entry.frame:SetAttribute("IconId", row.icon)
-				entry.icon.set(row.icon)
-				entry.icon.setActive(true)
-			end
-			entry.label.Text = row.text
-			entry.frame.Visible = true
-		end
-		for i = #(rows or {}) + 1, #boardRows do
-			boardRows[i].frame.Visible = false
-		end
-	end
 	local egg = banner(banners, "EggReveal", Color3.fromRGB(190, 120, 30), 6)
 	egg.TextSize = 17
 	-- The Mystery Egg's item icon sits at the banner's left edge (the text drops its egg emoji).
@@ -307,8 +232,6 @@ function Hud.new(parent: Instance, ctx: any)
 		)
 	end
 	readRainAttrs()
-	local C = ctx.Constants
-
 	local current: any = nil
 	local screen: Layout.Screen? = nil
 	local compact = false
@@ -538,16 +461,6 @@ function Hud.new(parent: Instance, ctx: any)
 		if eggText then
 			egg.Text = string.gsub(eggText, "^🥚 ", "")
 		end
-
-		local eventRows = EventsBoard.rows(
-			workspace:GetAttribute(C.WEEKLY_EVENT_ATTRIBUTE),
-			current.modifier,
-			now,
-			now,
-			ctx.Config.FEATURES.EventsBoard == true
-		)
-		board.Visible = eventRows ~= nil
-		setBoardRows(eventRows)
 	end
 
 	-- Studio only (PC watcher shot): opens the tooltip of a status slot id ("Rain" | "Event" | "Friend"); nil closes.
