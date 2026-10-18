@@ -14,7 +14,7 @@
 	    RunService.Heartbeat, workspace:GetServerTimeNow(). advance(60) runs a
 	    minute of server time in well under a second;
 	  * shims for engine APIs Lune lacks: events (Triggered, PlayerAdded,
-	    Died, ...), WaitForChild, PivotTo / GetPivot, BasePart.Position,
+	    Died, ...), WaitForChild, PivotTo / GetPivot, ScaleTo / GetScale, BasePart.Position,
 	    Raycast (axis-aligned boxes, enough for "find the ground"), Players,
 	    in-memory DataStores, HttpService GUIDs, InsertService (fails by
 	    default, like a place that can't load the mesh asset), Debris.
@@ -252,6 +252,22 @@ local function installShims()
 	impl("Model", "PivotTo", pivotTo)
 	impl("BasePart", "PivotTo", pivotTo)
 	impl("Model", "GetPivot", getPivot)
+	-- Model scale (the fighting boss): parts grow about the pivot like Roblox's Model:ScaleTo.
+	impl("Model", "GetScale", function(self)
+		return extraOf(self).Scale or 1
+	end)
+	impl("Model", "ScaleTo", function(self, scale)
+		local factor = scale / (extraOf(self).Scale or 1)
+		local pivot = getPivot(self)
+		for _, d in self:GetDescendants() do
+			if d:IsA("BasePart") then
+				local offset = pivot:ToObjectSpace(d.CFrame)
+				d.Size *= factor
+				d.CFrame = pivot * (offset.Rotation + offset.Position * factor)
+			end
+		end
+		extraOf(self).Scale = scale
+	end)
 	-- Axis-aligned (Roblox orients the box to the pivot; fine for the fake runtime).
 	impl("Model", "GetBoundingBox", function(self)
 		local lo, hi = Vector3.new(math.huge, math.huge, math.huge), Vector3.new(-math.huge, -math.huge, -math.huge)
@@ -952,6 +968,7 @@ function Runtime:addPlayer(userId, name, position)
 	local humanoid = Instance.new("Humanoid")
 	humanoid.Health = 100
 	humanoid.WalkSpeed = 16
+	humanoid.PlatformStand = false -- a reflected property with no default: PvpLaunch (the Bat knockback) reads it
 	humanoid.Parent = character
 	character.PrimaryPart = root
 	character.Parent = self.workspace

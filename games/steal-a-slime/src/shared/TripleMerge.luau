@@ -5,7 +5,7 @@
 	Three slimes of ONE rarity go into the vat and one slime of a higher rarity comes out (all three are
 	consumed). The rules are fixed; only the odds are rolled, from the server's Rng, so one seed always gives
 	one result:
-	  * recipe    three species that form a merge recipe give its hybrid (MergeRecipes, CONTRACT.md §33): one
+	  * recipe    three species that form a merge recipe give its hybrid (MergeRecipes, CONTRACT.md §34): one
 	              tier up, no jump. Anything else is a random merge:
 	  * tier      T + 1, at most Config.MERGE_MAX_TIER (Mythic x3 gives a Mythic, never a Secret); with
 	              Config.TRIPLE_MERGE_JUMP_CHANCE it is T + 2 when that is at most Config.MERGE_JUMP_MAX_TIER.

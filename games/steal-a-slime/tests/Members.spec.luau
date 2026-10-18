@@ -26,13 +26,13 @@ for _, root in ROOTS do
 	files(root, all)
 end
 
--- module name -> defined members
+-- module name -> defined members (modules of one name, like shared and server MysteryEgg, pool theirs)
 local defined: { [string]: { [string]: boolean } } = {}
 for _, path in all do
 	local name = string.match(path, "([%w_]+)%.luau$") :: string
 	if not string.find(name, "^init") then
 		local source = fs.readFile(path)
-		local members = {}
+		local members = defined[name] or {}
 		for member in string.gmatch(source, "\nfunction " .. name .. "[%.:]([%w_]+)") do
 			members[member] = true
 		end

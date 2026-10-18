@@ -19,6 +19,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local BatModel = if Shared then require(Shared.BatModel) else require("../shared/BatModel")
+local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local BatRules = if Shared then require(Shared.BatRules) else require("../shared/BatRules")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local PvpKnockbackRules = if Shared then require(Shared.PvpKnockbackRules) else require("../shared/PvpKnockbackRules")
@@ -79,14 +80,37 @@ local function knock(
 	return true
 end
 
+-- A slap target: a thief carrying a stolen slime, or the boss carrier (the slap drops the boss on the spot).
 local function isThief(s: World.Session): boolean
-	return s.carry ~= nil and s.carry.kind == "stolen"
+	return s.carry ~= nil and (s.carry.kind == "stolen" or s.carry.boss == true)
+end
+
+-- The fighting boss in reach and in front: its Body position from `ctx.slimePosition`, reach Config.BOSS.HIT_REACH.
+local function bossInReach(
+	world: World.World,
+	ctx: PvpService.Context,
+	session: World.Session,
+	origin: Vec,
+	look: Vec
+): boolean
+	local id = BossEvent.bossId(world)
+	if not id or BossEvent.phase(world) ~= "fight" or not ctx.slimePosition then
+		return false
+	end
+	local position = ctx.slimePosition(id)
+	if not position then
+		return false
+	end
+	local candidate = { userId = -1, position = position, carrying = true }
+	return BatRules.pickTarget(origin, look, { candidate }, session.userId, Config.BOSS.HIT_REACH) ~= nil
 end
 
 --[[
 	One swing by `session`. Returns (hit, reason): hit = something was hit. `ctx.pose` gives every character's root
 	and look (nil = no bat), `ctx.pointOnOwnPlot` the own-plot test (nil = no non-thief hits). `flag` overrides
 	FEATURES.PvP (tests).
+	  * The boss carrier in reach (any flag): BossEvent.slapCarrier drops the boss on the spot, then the knockback.
+	  * The fighting boss in reach (Config.BOSS.HIT_REACH, in front): BossEvent.hit fills the goo meter.
 	  * A carrying thief in reach (any flag): StealService.slap (reach, shared cooldown, drop, bounce home, notifications,
 	    StealAlerts FX), then the knockback. Exactly one drop and one push per hit.
 	  * Flag OFF, anything else: nothing happens (no damage, no push), (false, "nothing in reach").
@@ -137,6 +161,23 @@ function BatTool.swing(
 		end
 	end
 	local targetId, distance = BatRules.pickTarget(origin, look, thieves, session.userId)
+	if targetId and BossEvent.isCarrier(world.sessions[targetId]) then
+		local target = world.sessions[targetId]
+		local spot = positions[targetId]
+		local ok, reason = BossEvent.slapCarrier(
+			world,
+			session,
+			target,
+			distance,
+			now,
+			if ctx.toVector3 then ctx.toVector3(spot) else spot
+		)
+		if not ok then
+			return false, reason
+		end
+		knock(world, ctx, session, target, origin, spot, now, pvp)
+		return true, nil
+	end
 	if targetId then
 		local target = world.sessions[targetId]
 		local ok, reason = StealService.slap(world, session, targetId, distance, now)
@@ -145,6 +186,9 @@ function BatTool.swing(
 		end
 		knock(world, ctx, session, target, origin, positions[targetId], now, pvp)
 		return true, nil
+	end
+	if bossInReach(world, ctx, session, origin, look) then
+		return BossEvent.hit(world, session, now)
 	end
 	targetId = BatRules.pickTarget(origin, look, others, session.userId)
 	local target = if targetId then world.sessions[targetId] else nil

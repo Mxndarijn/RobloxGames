@@ -5,7 +5,7 @@
 	Request("Merge", a, b): two owned, not-busy slimes of the same tier become
 	one slime of tier + 1 on the first slime's pad (Shared.Merge.apply).
 	Request("Merge3", a, b, c) and Request("AutoMerge", mask): the 3-slime vat (TripleMerge, MergePlan); a merge
-	recipe hit gets its own toast (CONTRACT.md §33).
+	recipe hit gets its own toast (CONTRACT.md §34).
 	Request("KeepSlime", id, keep): kept slimes are never merged (CONTRACT.md §21.1).
 ]]
 
@@ -27,7 +27,7 @@ local function foundBefore(session: Session): { [string]: boolean }
 	return MergeRecipes.foundOf(session.data.slimes, (session.data :: any).found)
 end
 
--- One toast per recipe hit in `made` (CONTRACT.md §33): "discovered" the first time the hybrid is found.
+-- One toast per recipe hit in `made` (CONTRACT.md §34): "discovered" the first time the hybrid is found.
 local function recipeToasts(world: World, session: Session, made: { Genome.Slime }, found: { [string]: boolean })
 	for _, child in made do
 		local recipe = if child.species then MergeRecipes.recipeFor(child.species) else nil

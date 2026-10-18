@@ -81,8 +81,8 @@ end
 local TURN_IN = ParadeLane.LENGTH - 4.5
 
 describe("ParadeLane timing: lane position is time left", function()
-	it("progress = 1 - time left / lifetime, for wild and Boss lifetimes", function()
-		for _, life in { LIFE, Config.BOSS_LIFETIME } do
+	it("progress = 1 - time left / lifetime, for any lifetime", function()
+		for _, life in { LIFE, LIFE * 2 } do
 			for _, left in { life, life * 0.75, life / 2, 10, 1, 0 } do
 				expect(ParadeLane.progress(T0, T0 + life, T0 + life - left)).toBeCloseTo(1 - left / life, 1e-9)
 			end
@@ -125,7 +125,7 @@ describe("ParadeLane timing: lane position is time left", function()
 		"distance walked is linear in time left: equal time left, equal share of the route from the slide mouth",
 		function()
 			local total = ParadeLane.LEAD_LENGTH + ParadeLane.LENGTH
-			for _, life in { LIFE, Config.BOSS_LIFETIME } do
+			for _, life in { LIFE, LIFE * 2 } do
 				local walk = life - HOP - ParadeLane.DRAIN_SECONDS
 				local E = T0 + life
 				for _, share in { 0, 0.1, 0.25, 0.5, 0.9, 1 } do
@@ -177,7 +177,7 @@ describe("ParadeLane timing: lane position is time left", function()
 		end
 	)
 	it("moves smoothly at 30 Hz from the entry to the drain (no teleports) and only forwards", function()
-		for _, life in { LIFE, Config.BOSS_LIFETIME } do
+		for _, life in { LIFE, LIFE * 2 } do
 			local E = T0 + life
 			local prev = ParadeLane.pose(T0, E, 1, T0).position
 			local lastS = -math.huge

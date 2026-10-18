@@ -16,6 +16,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
@@ -36,6 +37,7 @@ export type CarryState = {
 	ownerUserId: number?, -- victim, only for stolen slimes
 	timer: Steal.Carry,
 	slime: Slime, -- wild: the wild genome; stolen: the entry in the owner's data
+	boss: boolean?, -- the hauled boss (contract/boss-event.md): boss carry slow, a slap drops it on the spot
 }
 
 export type Session = {
@@ -68,7 +70,7 @@ export type Wild = {
 	angle: number, -- landing spot around the crater (Fountain.roll)
 	radius: number,
 	position: any?, -- set when a carrier drops it somewhere else (adapter-defined)
-	boss: boolean?, -- the Boss Slime (Spawner.spawnBoss)
+	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts toward the wild cap
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
 }
 
@@ -94,6 +96,9 @@ export type Event = {
 	payload: { [string]: any }?, -- PvpEvent: the remote payload (CONTRACT.md §26.1)
 }
 
+-- The running boss event: the pure fight and the wild boss slime once it has arrived.
+export type BossEvent = { fight: BossFight.State, slimeId: string?, lastStepAt: number }
+
 export type AdminEvent = {
 	def: { id: string, label: string, icon: string },
 	endsAt: number,
@@ -116,9 +121,9 @@ export type World = {
 	raining: boolean,
 	rainForcedUntil: number?, -- seconds since start (Progression.rainStatus)
 	rainWarned: boolean, -- the heads-up for the next rain went out
-	nextBossAt: number, -- server time of the next Boss Slime
-	bossActive: boolean, -- last Spawner.boss values, so a change pushes State to everyone
-	bossEndsAt: number?,
+	nextBossAt: number, -- server time of the next boss arrival (server/BossEvent)
+	boss: BossEvent?, -- the running boss event, nil between bosses
+	bossIndex: number, -- position in Config.BOSS.ROTATION of the next boss (1-based)
 	modifier: CycleModifier.Modifier, -- FEATURES.CycleModifier: active dawn / dusk modifier
 	modifierPhase: number, -- DayNight.phase it was rolled for (-1 = not yet)
 	modifierEndsAt: number?, -- server time the phase ends
@@ -162,9 +167,9 @@ function World.new(options: Options): World
 		raining = false,
 		rainForcedUntil = nil,
 		rainWarned = false,
-		nextBossAt = options.now + Config.BOSS_FIRST_AT,
-		bossActive = false,
-		bossEndsAt = nil,
+		nextBossAt = options.now + Config.BOSS.FIRST_AT,
+		boss = nil,
+		bossIndex = 1,
 		modifier = CycleModifier.NONE,
 		modifierPhase = -1,
 		modifierEndsAt = nil,
