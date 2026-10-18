@@ -225,6 +225,16 @@ local function volcanoLanding(wild: World.Wild): CFrame
 	return surfaceBelow(Vector3.new(spot.X, origin.Y + 200, spot.Z), 400) or CFrame.new(spot.X, 0, spot.Z)
 end
 
+-- The boss spot (Config.BOSS.SPOT_ANGLE / SPOT_RADIUS around the fountain centre), on the ground, facing the fountain.
+local function bossLanding(): CFrame
+	local origin = crater()
+	local angle, radius = Config.BOSS.SPOT_ANGLE, Config.BOSS.SPOT_RADIUS
+	local spot = origin + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+	local ground = surfaceBelow(Vector3.new(spot.X, origin.Y + 200, spot.Z), 400) or CFrame.new(spot.X, 0, spot.Z)
+	local at = ground.Position
+	return CFrame.lookAt(at, Vector3.new(origin.X, at.Y, origin.Z))
+end
+
 local function wildLanding(wild: World.Wild): CFrame
 	if typeof(wild.position) == "Vector3" then
 		-- A wild put down inside the landing ring's band rests just outside it (Fountain.clearOfRing).
@@ -414,10 +424,20 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	unweld(record)
 	record.rideUntil = 0
 	model:SetAttribute(Constants.RIDING_ATTRIBUTE, nil)
+	-- The fighting boss is BOSS.SCALE x its size; it pops back to 1 for the haul.
+	local scale = entry.bossScale or 1
+	if math.abs(model:GetScale() - scale) > 1e-3 then
+		model:ScaleTo(scale)
+	end
 	if entry.state == "Wild" then
 		model.Parent = workspace:FindFirstChild(Constants.WILD_FOLDER)
 		local wild = entry.wild
 		if not wild then
+			return true
+		end
+		if entry.boss and wild.position == nil then
+			-- The boss walks in at its plaza spot: no parade lane, no fountain ride.
+			model:PivotTo(bossLanding())
 			return true
 		end
 		if ParadeLane.enabled() and wild.position == nil then
@@ -463,6 +483,84 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 		model:PivotTo(target)
 	end
 	return true
+end
+
+---------------------------------------------------------------------------
+-- Trophy stands (contract/boss-event.md): one pedestal per boss trophy beside the owner's plot
+---------------------------------------------------------------------------
+
+local TROPHY_PEDESTAL = Vector3.new(9, 2, 9)
+local TROPHY_COLOR = Color3.fromRGB(255, 205, 70)
+local trophyModels: { [string]: Instance } = {}
+
+-- Pedestal `slot` (1-based) of `plotIndex`: outside the Base's +X edge, spaced Config.BOSS.TROPHY_GAP.
+local function trophySpot(plotIndex: number, slot: number): CFrame?
+	local plot = WorldView.plot(plotIndex)
+	local base = plot and plot:FindFirstChild("Base")
+	if not (base and base:IsA("BasePart")) then
+		return nil
+	end
+	local z = (slot - 2) * Config.BOSS.TROPHY_GAP
+	return base.CFrame * CFrame.new(base.Size.X / 2 + TROPHY_PEDESTAL.X, base.Size.Y / 2, z)
+end
+
+local function buildTrophy(slime: Genome.Slime, spot: CFrame, parent: Instance): Instance?
+	if not modelFactory then
+		return nil
+	end
+	local ok, model = pcall(modelFactory.build, Genome.copy(slime))
+	if not ok or typeof(model) ~= "Instance" or not model:IsA("Model") then
+		return nil
+	end
+	local stand = Instance.new("Model")
+	stand.Name = `Trophy_{slime.species or slime.id}`
+	local pedestal = Instance.new("Part")
+	pedestal.Name = "Pedestal"
+	pedestal.Shape = Enum.PartType.Cylinder
+	pedestal.Size = Vector3.new(TROPHY_PEDESTAL.Y, TROPHY_PEDESTAL.X, TROPHY_PEDESTAL.Z)
+	pedestal.CFrame = spot * CFrame.new(0, TROPHY_PEDESTAL.Y / 2, 0) * CFrame.Angles(0, 0, math.pi / 2)
+	pedestal.Color = TROPHY_COLOR
+	pedestal.Material = Enum.Material.SmoothPlastic
+	pedestal.Anchored = true
+	pedestal.Parent = stand
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") then
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanTouch = false
+		end
+	end
+	model:PivotTo(spot * CFrame.new(0, TROPHY_PEDESTAL.Y, 0))
+	model.Parent = stand
+	stand.Parent = parent
+	return stand
+end
+
+-- Builds and removes trophy stands to match every session's data.trophies.
+local function reconcileTrophies(world: World.World)
+	local wanted: { [string]: { slime: Genome.Slime, plotIndex: number, slot: number } } = {}
+	for _, session in world.sessions do
+		for slot, slime in session.data.trophies do
+			local key = `{session.plotIndex}|{slot}|{slime.species}|{table.concat(Genome.mutationList(slime), ",")}`
+			wanted[key] = { slime = slime, plotIndex = session.plotIndex, slot = slot }
+		end
+	end
+	for key, model in trophyModels do
+		if not wanted[key] or not model.Parent then
+			model:Destroy()
+			trophyModels[key] = nil
+		end
+	end
+	for key, want in wanted do
+		if not trophyModels[key] then
+			local plot = WorldView.plot(want.plotIndex)
+			local spot = trophySpot(want.plotIndex, want.slot)
+			local model = if plot and spot then buildTrophy(want.slime, spot, plot) else nil
+			if model then
+				trophyModels[key] = model
+			end
+		end
+	end
 end
 
 --[[
@@ -512,6 +610,7 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 			failed[id] = nil
 		end
 	end
+	reconcileTrophies(world)
 end
 
 -- A slime model's Body (Effects target), or nil if it has no model.

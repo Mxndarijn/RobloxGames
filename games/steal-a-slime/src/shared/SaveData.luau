@@ -51,6 +51,7 @@ local AudioSettings = if script then require(script.Parent.AudioSettings) else r
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
+local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 local StealAlert = if script then require(script.Parent.StealAlert) else require("./StealAlert")
 local TutorialProgress = if script then require(script.Parent.TutorialProgress) else require("./TutorialProgress")
 
@@ -70,6 +71,28 @@ end
 local MAX_CASH = 1e15
 
 local PVP_LINES = { "Knockback", "Trap", "Blaster" }
+
+-- Boss trophies of a raw save (read) or of PlayerData (write): sanitized slimes of a boss species (SlimeRoster kind
+-- "boss"), the first one per species, never on a pad. Missing / junk -> none.
+function SaveData.cleanTrophies(raw: any): { Slime }
+	local out: { Slime } = {}
+	if type(raw) ~= "table" then
+		return out
+	end
+	local seen: { [string]: boolean } = {}
+	for _, rawSlime in raw do
+		local slime = Genome.sanitize(rawSlime)
+		local species = slime and slime.species
+		local entry = if species then SlimeRoster.get(species) else nil
+		if slime and species and entry and entry.kind == "boss" and not seen[species] then
+			seen[species] = true
+			slime.pad = nil
+			slime.keep = nil
+			table.insert(out, slime)
+		end
+	end
+	return out
+end
 
 -- Sanitizes the pvp field of a raw save (read) or of PlayerData (write; `fun` is a set there, a list in the save).
 function SaveData.cleanPvp(raw: any): PlayerData.Pvp
@@ -443,6 +466,7 @@ function SaveData.deserialize(stored: any): Data
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
 	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
 	data.pvp = SaveData.cleanPvp(raw.pvp) -- FEATURES.PvP (no version bump: missing -> nothing owned)
+	data.trophies = SaveData.cleanTrophies(raw.trophies) -- boss trophies (no version bump: missing -> none)
 
 	-- Redeem codes (added without a version bump: missing -> nothing redeemed, no boost).
 	if type(raw.redeemed) == "table" then
@@ -560,6 +584,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			held = table.clone(data.consumables.held),
 		},
 		pvp = { tiers = pvp.tiers, fun = pvpFun, played = pvp.played },
+		trophies = SaveData.cleanTrophies(data.trophies),
 	}
 end
 

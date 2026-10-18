@@ -60,6 +60,7 @@ export type Context = {
 	areFriends: ((a: number, b: number, now: number) -> boolean)?,
 	pose: ((userId: number) -> (any?, any?))?,
 	toVector3: ((position: any) -> any)?,
+	slimePosition: ((slimeId: string) -> any?)?,
 	-- What the adapter measured for `shopId`: the character's distance to the stand's Counter and whether it is
 	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, strict never applies.
 	shopAccess: ((userId: number, shopId: string) -> ShopGuard.Access)?,

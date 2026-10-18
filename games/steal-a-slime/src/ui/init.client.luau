@@ -58,6 +58,7 @@ local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
 local WorldShopLogic = require(script.WorldShopLogic)
 local Panels = script.Panels
+local BossMeterPanel = require(Panels.BossMeter)
 local CarryPanel = require(Panels.Carry)
 local CodesPanel = require(Panels.Codes)
 local DailyPopup = require(Panels.DailyPopup)
@@ -263,6 +264,7 @@ local stealFx = StealAlertFx.new(gui, {
 	serverNow = serverNow,
 })
 local carry = CarryPanel.new(gui, ctx)
+local bossMeter = BossMeterPanel.new(gui, ctx)
 local leaderboard = LeaderboardPanel.new(gui, ctx)
 local dailyPopup = DailyPopup.new(gui, ctx)
 local tutorial = TutorialOverlay.new(gui, ctx)
@@ -859,6 +861,7 @@ function applyLayout()
 	hud.layout(s)
 	inventory.layout(s)
 	stealFx.layout(s, hud.bannerHeight)
+	bossMeter.layout(s, hud.bannerHeight)
 	carry.layout(s)
 	tutorial.layout(s)
 	dailyPopup.layout(s)
@@ -978,6 +981,7 @@ local function render(realState: Types.State)
 	inventory.update(state)
 	stealFx.update(state)
 	carry.update(state)
+	bossMeter.update(state)
 	dailyPopup.update(state)
 	tutorial.update(state)
 	updateBadges(state)
@@ -1076,8 +1080,8 @@ end)
 
 notifyEvent.OnClientEvent:Connect(function(text: string, _kind: Types.NotifyKind, sound: string?, _itemId: string?)
 	local message = tostring(text)
-	-- H1 HUD (Merijn): no boss / specific-slime notifications. Boss Slime and Legendary+ drop news
-	-- (RareAnnounce.classify) is dropped here; every other Notify only plays its sound (B6: no toasts).
+	-- H1 HUD (Merijn): no specific-slime notifications. Legendary+ drop news (RareAnnounce.classify) is
+	-- dropped here; every other Notify only plays its sound (B6: no toasts). The boss event shows in BossMeter.
 	if RareAnnounce.classify(message, sound) then
 		return
 	end
@@ -1107,6 +1111,7 @@ task.spawn(function()
 			hud.tick(now)
 			inventory.tick()
 			carry.tick(now)
+			bossMeter.tick(now)
 			panelByKey.Codes.tick(now)
 			if panelByKey.WorldShop then
 				panelByKey.WorldShop.tick()

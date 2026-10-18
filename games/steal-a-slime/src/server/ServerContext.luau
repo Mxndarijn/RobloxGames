@@ -97,6 +97,10 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 		toVector3 = function(position)
 			return Vector3.new(position.X, position.Y, position.Z)
 		end,
+		slimePosition = function(slimeId: string)
+			local p = WorldView.slimePosition(slimeId)
+			return p and { X = p.X, Y = p.Y, Z = p.Z }
+		end,
 	}
 end
 
