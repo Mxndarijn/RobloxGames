@@ -7,16 +7,30 @@ local TestRunner = require("./TestRunner")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 describe("SlimeRoster", function()
-	it("has 6/6/5/5/4/3 named slimes per tier (Secret = 7)", function()
-		local expected = { 6, 6, 5, 5, 4, 3, 2 }
+	it("has 4/3/3/2/1/1 Classic slimes per tier and Midas at Secret (7)", function()
+		local expected = { 4, 3, 3, 2, 1, 1, 1 }
 		expect(#expected).toBe(Config.MAX_TIER)
 		expect(Config.SECRET_TIER).toBe(Config.MAX_TIER)
 		for tier, count in expected do
 			expect(#SlimeRoster.forTier(tier)).toBe(count)
 		end
-		local secret = #SlimeRoster.forTier(SlimeRoster.SECRET_TIER)
-		expect(secret >= 1 and secret <= 2).toBe(true)
 		expect(SlimeRoster.SECRET_TIER).toBe(Config.MAX_TIER)
+	end)
+
+	it("has 32 species: 15 Classic, Orchard 4, Frost 5, Starlight 8, and Secret = Midas, Eclipse, Boo", function()
+		local byFamily: { [string]: number } = {}
+		local secret = {}
+		for _, entry in SlimeRoster.ROSTER do
+			local family = entry.family or "classic"
+			byFamily[family] = (byFamily[family] or 0) + 1
+			if entry.tier == SlimeRoster.SECRET_TIER then
+				table.insert(secret, entry.id)
+			end
+		end
+		expect(#SlimeRoster.ROSTER).toBe(32)
+		expect(byFamily).toEqual({ classic = 15, orchard = 4, frost = 5, starlight = 8 })
+		table.sort(secret)
+		expect(secret).toEqual({ "boo", "eclipse", "midas" })
 	end)
 
 	it("uses unique lower-case ids with a name and look note", function()

@@ -8,11 +8,11 @@
 	  SlimeLooks.get(id) -> Look?            colour, Enum.Material name, kit mesh
 	  SlimeLooks.anim(id, state) -> Anim?    state = "idle" | "wobble" | "move"
 
-	Colour: Genome.generate gives wild spawns their type's colour. Material:
-	server SlimeMesh sets it on Body / Mesh of an unmutated slime (a mutation
-	material always wins). Kit: the modeling-kit mesh the type is meant to use
-	(MeshAssets name, uploaded); server SlimeMesh wears it, falling back to the
-	shared slime package (Config.SLIME_MESH_ASSET_ID), then the procedural ball.
+	Colour: Genome.generate gives wild spawns their type's colour (UI, the
+	procedural fallback). Material: server SlimeMesh sets it on Body / Mesh of
+	an unmutated slime (a mutation material always wins). Kit: the species'
+	own fully coloured mesh (MeshAssets "slime_<id>", worn with Color white);
+	SlimeMesh falls back to the shared slime package, then the procedural ball.
 
 	Animations: slimes are not rigs and no AnimationIds exist. Every state is
 	the procedural fallback played by the visuals client (VisualsClient step):
@@ -40,13 +40,38 @@ export type Anim = {
 }
 
 local KITS = table.freeze({
-	"slime_base",
-	"slime_acc_leaf",
-	"slime_ears",
-	"slime_horns",
-	"slime_acc_crown",
-	"slime_acc_crystal",
-	"slime_wobble",
+	"slime_gummy",
+	"slime_mochi",
+	"slime_bubbles",
+	"slime_pebble",
+	"slime_bumble",
+	"slime_mushie",
+	"slime_froggo",
+	"slime_whiskers",
+	"slime_lop",
+	"slime_moo",
+	"slime_blaze",
+	"slime_octo",
+	"slime_king",
+	"slime_cosmo",
+	"slime_midas",
+	"slime_sprout",
+	"slime_cheddar",
+	"slime_prickles",
+	"slime_flan",
+	"slime_chomp",
+	"slime_pengoo",
+	"slime_frostbite",
+	"slime_zap",
+	"slime_ninja",
+	"slime_imp",
+	"slime_drako",
+	"slime_robo",
+	"slime_seraph",
+	"slime_amethyst",
+	"slime_prism",
+	"slime_eclipse",
+	"slime_boo",
 })
 
 -- Materials a slime body may use; all are Enum.Material names.
@@ -61,63 +86,39 @@ end
 local LOOKS: { [string]: Look } = {}
 for _, look in
 	{
-		-- 1 Common: slime_base
-		l("pudding", { 240, 196, 92 }, "SmoothPlastic", "slime_base"),
-		l("clover", { 108, 196, 92 }, "SmoothPlastic", "slime_base"),
-		l("oatmeal", { 222, 200, 160 }, "SmoothPlastic", "slime_base"),
-		l("radish", { 236, 110, 150 }, "SmoothPlastic", "slime_base"),
-		l("puddle", { 96, 168, 236 }, "SmoothPlastic", "slime_base"),
-		l("haystack", { 230, 196, 80 }, "SmoothPlastic", "slime_base"),
-		-- 2 Uncommon: slime_base + leaf
-		l("sprout", { 120, 220, 96 }, "SmoothPlastic", "slime_acc_leaf"),
-		l("carrot", { 244, 140, 48 }, "SmoothPlastic", "slime_acc_leaf"),
-		l("berry", { 214, 48, 84 }, "SmoothPlastic", "slime_acc_leaf"),
-		l("minty", { 150, 236, 200 }, "SmoothPlastic", "slime_acc_leaf"),
-		l("pumpkin", { 236, 128, 36 }, "SmoothPlastic", "slime_acc_leaf"),
-		l("tulip", { 246, 140, 180 }, "SmoothPlastic", "slime_acc_leaf"),
-		-- 3 Rare: slime_ears
-		l("bunny_puff", { 250, 214, 220 }, "SmoothPlastic", "slime_ears"),
-		l("caramel_kitty", { 206, 140, 70 }, "SmoothPlastic", "slime_ears"),
-		l("moo_goo", { 245, 245, 240 }, "SmoothPlastic", "slime_ears"),
-		l("piglet", { 248, 170, 186 }, "SmoothPlastic", "slime_ears"),
-		l("cocoa_pup", { 132, 86, 58 }, "SmoothPlastic", "slime_ears"),
-		-- 4 Epic: slime_horns
-		l("billy_gum", { 250, 130, 196 }, "SmoothPlastic", "slime_horns"),
-		l("rodeo_ram", { 240, 228, 204 }, "SmoothPlastic", "slime_horns"),
-		l("licorice_bull", { 40, 34, 40 }, "SmoothPlastic", "slime_horns"),
-		l("toffee_buck", { 170, 108, 52 }, "SmoothPlastic", "slime_horns"),
-		l("sour_apple", { 160, 230, 60 }, "SmoothPlastic", "slime_horns"),
-		-- 5 Legendary: crown
-		l("honey_queen", { 246, 176, 40 }, "SmoothPlastic", "slime_acc_crown"),
-		l("harvest_king", { 228, 196, 104 }, "SmoothPlastic", "slime_acc_crown"),
-		l("blue_ribbon", { 52, 100, 220 }, "SmoothPlastic", "slime_acc_crown"),
-		l("marshmallow_duke", { 252, 248, 244 }, "SmoothPlastic", "slime_acc_crown"),
-		-- 6 Mythic: crystal cluster
-		l("rock_candy", { 200, 168, 240 }, "Glass", "slime_acc_crystal"),
-		l("dewdrop_spirit", { 120, 230, 236 }, "Glass", "slime_acc_crystal"),
-		l("gumdrop_titan", { 220, 30, 60 }, "SmoothPlastic", "slime_acc_crystal"),
-		-- Secret
-		l("golden_goose_goo", { 255, 200, 60 }, "Foil", "slime_wobble"),
-		l("moonmilk", { 36, 44, 110 }, "SmoothPlastic", "slime_ears"),
-		-- v19 families (FountainTiers): the same kit per tier as Classic
-		l("apple_pop", { 226, 52, 56 }, "SmoothPlastic", "slime_base"),
-		l("pear_drop", { 176, 214, 64 }, "SmoothPlastic", "slime_acc_leaf"),
-		l("peach_fuzz", { 255, 176, 128 }, "SmoothPlastic", "slime_ears"),
-		l("plum_stag", { 132, 62, 168 }, "SmoothPlastic", "slime_horns"),
-		l("cherry_baron", { 150, 22, 52 }, "SmoothPlastic", "slime_acc_crown"),
-		l("citrine_quince", { 250, 214, 52 }, "Glass", "slime_acc_crystal"),
-		l("vanilla_scoop", { 255, 244, 212 }, "SmoothPlastic", "slime_base"),
-		l("mint_chip", { 128, 232, 188 }, "SmoothPlastic", "slime_acc_leaf"),
-		l("sherbet_bunny", { 255, 150, 112 }, "SmoothPlastic", "slime_ears"),
-		l("icicle_ibex", { 150, 214, 255 }, "SmoothPlastic", "slime_horns"),
-		l("snowcone_duke", { 206, 232, 255 }, "SmoothPlastic", "slime_acc_crown"),
-		l("glacier_gem", { 70, 214, 232 }, "Glass", "slime_acc_crystal"),
-		l("stardust_blob", { 150, 110, 240 }, "SmoothPlastic", "slime_base"),
-		l("nebula_sprout", { 224, 80, 200 }, "SmoothPlastic", "slime_acc_leaf"),
-		l("comet_kitty", { 80, 84, 200 }, "SmoothPlastic", "slime_ears"),
-		l("meteor_ram", { 255, 120, 56 }, "SmoothPlastic", "slime_horns"),
-		l("aurora_queen", { 60, 226, 190 }, "SmoothPlastic", "slime_acc_crown"),
-		l("supernova_titan", { 255, 236, 170 }, "Foil", "slime_acc_crystal"),
+		-- every pool species wears its own fully coloured mesh (MeshAssets "slime_<id>")
+		l("gummy", { 126, 232, 79 }, "SmoothPlastic", "slime_gummy"),
+		l("mochi", { 255, 226, 234 }, "SmoothPlastic", "slime_mochi"),
+		l("bubbles", { 90, 180, 250 }, "SmoothPlastic", "slime_bubbles"),
+		l("pebble", { 150, 140, 125 }, "SmoothPlastic", "slime_pebble"),
+		l("bumble", { 255, 210, 58 }, "SmoothPlastic", "slime_bumble"),
+		l("mushie", { 230, 60, 60 }, "SmoothPlastic", "slime_mushie"),
+		l("froggo", { 90, 200, 80 }, "SmoothPlastic", "slime_froggo"),
+		l("whiskers", { 245, 150, 60 }, "SmoothPlastic", "slime_whiskers"),
+		l("lop", { 250, 200, 215 }, "SmoothPlastic", "slime_lop"),
+		l("moo", { 245, 245, 240 }, "SmoothPlastic", "slime_moo"),
+		l("blaze", { 255, 110, 40 }, "SmoothPlastic", "slime_blaze"),
+		l("octo", { 190, 90, 220 }, "SmoothPlastic", "slime_octo"),
+		l("king", { 130, 60, 190 }, "SmoothPlastic", "slime_king"),
+		l("cosmo", { 60, 40, 130 }, "SmoothPlastic", "slime_cosmo"),
+		l("midas", { 255, 200, 60 }, "SmoothPlastic", "slime_midas"),
+		l("sprout", { 200, 230, 80 }, "SmoothPlastic", "slime_sprout"),
+		l("cheddar", { 255, 200, 60 }, "SmoothPlastic", "slime_cheddar"),
+		l("prickles", { 70, 170, 80 }, "SmoothPlastic", "slime_prickles"),
+		l("flan", { 240, 180, 70 }, "SmoothPlastic", "slime_flan"),
+		l("chomp", { 61, 143, 240 }, "SmoothPlastic", "slime_chomp"),
+		l("pengoo", { 40, 50, 100 }, "SmoothPlastic", "slime_pengoo"),
+		l("frostbite", { 150, 210, 255 }, "SmoothPlastic", "slime_frostbite"),
+		l("zap", { 70, 60, 150 }, "SmoothPlastic", "slime_zap"),
+		l("ninja", { 30, 30, 45 }, "SmoothPlastic", "slime_ninja"),
+		l("imp", { 220, 40, 50 }, "SmoothPlastic", "slime_imp"),
+		l("drako", { 60, 190, 170 }, "SmoothPlastic", "slime_drako"),
+		l("robo", { 200, 205, 215 }, "SmoothPlastic", "slime_robo"),
+		l("seraph", { 250, 248, 255 }, "SmoothPlastic", "slime_seraph"),
+		l("amethyst", { 120, 70, 200 }, "SmoothPlastic", "slime_amethyst"),
+		l("prism", { 255, 150, 220 }, "SmoothPlastic", "slime_prism"),
+		l("eclipse", { 40, 20, 60 }, "SmoothPlastic", "slime_eclipse"),
+		l("boo", { 170, 240, 220 }, "SmoothPlastic", "slime_boo"),
 	}
 do
 	LOOKS[look.id] = look

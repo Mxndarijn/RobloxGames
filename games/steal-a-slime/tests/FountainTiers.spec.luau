@@ -88,42 +88,57 @@ describe("FountainTiers: the ladder", function()
 end)
 
 describe("FountainTiers: species", function()
-	it("every family has one type per tier 1..6, with a look and a kit, and none at Secret", function()
+	it("every family holds its types per tier, each with a look and its own species kit", function()
+		local expected = {
+			orchard = { 2, 2, 0, 0, 0, 0, 0 },
+			frost = { 0, 0, 2, 2, 1, 0, 0 },
+			starlight = { 0, 0, 0, 2, 1, 3, 2 },
+		}
 		for _, family in FountainTiers.FAMILIES do
-			for tier = 1, Config.MAX_TIER - 1 do
+			local counts = expected[family.id]
+			assert(counts, family.id)
+			for tier = 1, Config.MAX_TIER do
 				local list = SlimeRoster.forTier(tier, family.id)
-				expect(#list).toBe(1)
-				local look = SlimeLooks.get(list[1].id)
-				expect(look ~= nil).toBe(true)
-				-- same kit as the Classic types of that tier
-				expect((look :: any).kit).toBe((SlimeLooks.get(SlimeRoster.forTier(tier)[1].id) :: any).kit)
-			end
-			expect(#SlimeRoster.forTier(SlimeRoster.SECRET_TIER, family.id)).toBe(0)
-		end
-	end)
-	it("Classic rolls never see a family type, and the Classic roster is the original 31 + 2 Secret", function()
-		local n = 0
-		for _, entry in SlimeRoster.ROSTER do
-			if entry.family == nil then
-				n += 1
-			else
-				expect(FountainTiers.family(entry.family) ~= nil).toBe(true)
-			end
-		end
-		expect(n).toBe(31)
-		for tier = 1, Config.MAX_TIER do
-			for roll = 0, 9 do
-				local entry = Genome.rollSpecies(tier, roll / 10)
-				expect((entry :: any).family).toBeNil()
+				expect(#list).toBe(counts[tier])
+				for _, entry in list do
+					local look = SlimeLooks.get(entry.id)
+					expect(look ~= nil).toBe(true)
+					expect((look :: any).kit).toBe(`slime_{entry.id}`)
+				end
 			end
 		end
 	end)
+	it(
+		"Classic rolls never see a family type, and the Classic roster is 15 types with Midas the only Secret",
+		function()
+			local n = 0
+			for _, entry in SlimeRoster.ROSTER do
+				if entry.family == nil then
+					n += 1
+				else
+					expect(FountainTiers.family(entry.family) ~= nil).toBe(true)
+				end
+			end
+			expect(n).toBe(15)
+			local secret = SlimeRoster.forTier(SlimeRoster.SECRET_TIER)
+			expect(#secret).toBe(1)
+			expect(secret[1].id).toBe("midas")
+			for tier = 1, Config.MAX_TIER do
+				for roll = 0, 9 do
+					local entry = Genome.rollSpecies(tier, roll / 10)
+					expect((entry :: any).family).toBeNil()
+				end
+			end
+		end
+	)
 	it("a family roll picks that family's type, falling back to Classic where it has none", function()
 		for _, family in FountainTiers.FAMILIES do
-			for tier = 1, Config.MAX_TIER - 1 do
-				expect((Genome.rollSpecies(tier, 0.5, family.id) :: any).family).toBe(family.id)
+			for tier = 1, Config.MAX_TIER do
+				local has = #SlimeRoster.forTier(tier, family.id) > 0
+				local entry = Genome.rollSpecies(tier, 0.5, family.id) :: any
+				expect(entry.family).toBe(if has then family.id else nil)
+				expect(entry.tier).toBe(tier)
 			end
-			expect((Genome.rollSpecies(SlimeRoster.SECRET_TIER, 0.5, family.id) :: any).family).toBeNil()
 		end
 	end)
 	it("family ids don't collide with Classic ids and stay lower-case", function()
@@ -156,7 +171,7 @@ describe("FountainTiers: drops", function()
 			expect(SlimeRoster.get(a[i].species :: string).family).toBeNil()
 		end
 	end)
-	it("a full pool turns about FAMILY_DROP_CHANCE of drops into family types, every family shows up", function()
+	it("a full pool turns at most FAMILY_DROP_CHANCE of drops into family types, every family shows up", function()
 		local pool = FountainTiers.pool(FountainTiers.MAX_TIER)
 		local seen: { [string]: number } = {}
 		local family, total = 0, 4000
@@ -167,7 +182,8 @@ describe("FountainTiers: drops", function()
 				seen[f] = (seen[f] or 0) + 1
 			end
 		end
-		expect(math.abs(family / total - Config.FAMILY_DROP_CHANCE) < 0.04).toBe(true)
+		-- A family drop at a tier the family has no type at stays Classic, so the share sits below the chance.
+		expect(family / total > 0.1 and family / total <= Config.FAMILY_DROP_CHANCE).toBe(true)
 		for _, id in pool do
 			expect((seen[id] or 0) > 0).toBe(true)
 		end
@@ -196,8 +212,8 @@ describe("FountainTiers: drops", function()
 		expect(FountainTiers.luck("nope")).toBe(1)
 	end)
 	it("family drops sell and earn like Classic ones: no multiplier, same tier / size / mutation income", function()
-		local classic = Fixtures.slime("a", 4, { species = "billy_gum", size = 1.2 })
-		local family = Fixtures.slime("b", 4, { species = "plum_stag", size = 1.2 })
+		local classic = Fixtures.slime("a", 2, { species = "bumble", size = 1.2 })
+		local family = Fixtures.slime("b", 2, { species = "prickles", size = 1.2 })
 		expect(Genome.baseIncome(family)).toBe(Genome.baseIncome(classic))
 		expect(Spawner.price(family, 0.9)).toBe(Spawner.price(classic, 0.9))
 	end)
@@ -242,15 +258,15 @@ describe("FountainTiers: server", function()
 		end
 	end)
 	it("the catch gate: a family slime needs the family's rank, Classic and stolen slimes never do", function()
-		local plum = Fixtures.slime("p", 4, { species = "plum_stag" })
-		local classic = Fixtures.slime("c", 4, { species = "billy_gum" })
+		local plum = Fixtures.slime("p", 2, { species = "prickles" })
+		local classic = Fixtures.slime("c", 2, { species = "bumble" })
 		local merged = Fixtures.slime("m", 4)
 		expect(Carry.familyBlock(0, plum, true)).toBe("Reach Slime Wrangler (3 rebirths) to catch Orchard slimes")
 		expect(Carry.familyBlock(2, plum, true) ~= nil).toBe(true)
 		expect(Carry.familyBlock(3, plum, true)).toBeNil()
 		expect(Carry.familyBlock(0, classic, true)).toBeNil()
 		expect(Carry.familyBlock(0, merged, true)).toBeNil()
-		expect(Carry.familyBlock(5, Fixtures.slime("g", 6, { species = "glacier_gem" }), true)).toBe(
+		expect(Carry.familyBlock(5, Fixtures.slime("g", 5, { species = "ninja" }), true)).toBe(
 			"Reach Goo Tycoon (6 rebirths) to catch Frost slimes"
 		)
 		expect(Carry.familyBlock(0, plum)).toBeNil() -- flag off
@@ -259,7 +275,7 @@ describe("FountainTiers: server", function()
 		local world = ServerFixtures.world()
 		local rookie = ServerFixtures.join(world, 1, nil, 1e9)
 		local id = Spawner.spawnOne(world, T0)
-		world.wild[id].slime.species = "plum_stag"
+		world.wild[id].slime.species = "prickles"
 		world.wild[id].price = 100
 		-- feature off: the gate is not applied
 		expect((Carry.grab(world, 1, id, 5, T0 + 1))).toBe(true)
@@ -269,12 +285,12 @@ end)
 
 describe("FountainTiers: saves", function()
 	it("a family species round-trips through the save and sanitize", function()
-		local slime = Fixtures.slime("s1", 5, { species = "cherry_baron" })
+		local slime = Fixtures.slime("s1", 6, { species = "seraph" })
 		local clean = Genome.sanitize(slime) :: Genome.Slime
-		expect(clean.species).toBe("cherry_baron")
+		expect(clean.species).toBe("seraph")
 		local data = Fixtures.data({ slime }, 100)
 		local back = SaveData.deserialize(SaveData.serialize(data))
-		expect(back.slimes[1].species).toBe("cherry_baron")
+		expect(back.slimes[1].species).toBe("seraph")
 	end)
 	it("an unknown species (a family this build never heard of) loads as an untyped slime", function()
 		local clean = Genome.sanitize(Fixtures.slime("s2", 3, { species = "future_family_slime" })) :: Genome.Slime

@@ -40,7 +40,7 @@ describe("Secret spawn rate", function()
 	it("hands Secret rolls a Secret roster species", function()
 		local s = Genome.generate(Rng.new(1), { id = "s", tier = Config.SECRET_TIER })
 		expect(s.tier).toBe(7)
-		expect(s.species == "golden_goose_goo" or s.species == "moonmilk").toBe(true)
+		expect(s.species).toBe("midas")
 	end)
 end)
 

@@ -16,7 +16,7 @@ describe("Rebirth", function()
 	end)
 	it("wipes cash and slimes but keeps the favourite on pad 1", function()
 		local data = Fixtures.data(
-			{ slime("a", 1), slime("b", 5), slime("c", 2, { species = "sprout" }) },
+			{ slime("a", 1), slime("b", 5), slime("c", 2, { species = "bumble" }) },
 			Config.REBIRTH_BASE_COST + 50
 		)
 		data.padsUnlocked = 7
@@ -33,13 +33,13 @@ describe("Rebirth", function()
 	end)
 	it("keeps the best slime when no favourite is set, skipping excluded ones", function()
 		local data =
-			Fixtures.data({ slime("a", 1), slime("b", 5), slime("c", 3), slime("d", 2, { species = "sprout" }) }, 1e9)
+			Fixtures.data({ slime("a", 1), slime("b", 5), slime("c", 3), slime("d", 2, { species = "bumble" }) }, 1e9)
 		local _, kept = Progression.rebirth(data, { b = true })
 		assert(type(kept) == "table", "precondition")
 		expect(kept.id).toBe("c")
 	end)
 	it("works with just the required slime and raises the income multiplier", function()
-		local data = Fixtures.data({ slime("x", 2, { species = "sprout" }) }, 1e9)
+		local data = Fixtures.data({ slime("x", 2, { species = "bumble" }) }, 1e9)
 		expect((Progression.rebirth(data))).toBe(true)
 		expect(#data.slimes).toBe(1)
 		local s = slime("x", 1)

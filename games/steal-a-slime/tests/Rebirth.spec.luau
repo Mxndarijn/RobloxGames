@@ -19,7 +19,7 @@ describe("Rebirth.rebirth", function()
 		local s = ServerFixtures.join(
 			world,
 			1,
-			{ Fixtures.slime("a", 5), Fixtures.slime("fav", 1, { species = "sprout" }) },
+			{ Fixtures.slime("a", 5), Fixtures.slime("fav", 1, { species = "bumble" }) },
 			cost
 		)
 		s.data.favoriteId = "fav"
@@ -41,7 +41,7 @@ describe("Rebirth.rebirth", function()
 		local s = ServerFixtures.join(
 			world,
 			1,
-			{ Fixtures.slime("best", 6), Fixtures.slime("meh", 1, { species = "sprout" }) },
+			{ Fixtures.slime("best", 6), Fixtures.slime("meh", 1, { species = "bumble" }) },
 			1e9
 		)
 		local thief = ServerFixtures.join(world, 2)
@@ -71,42 +71,42 @@ describe("Rebirth slime requirement (v29)", function()
 		end
 	end)
 	it("looks up the species for a level, carrying the last entry forward", function()
-		expect(Progression.requiredSpecies(0)).toBe("sprout")
-		expect(Progression.requiredSpecies(2)).toBe("bunny_puff")
-		expect(Progression.requiredSpecies(10)).toBe("gumdrop_titan")
-		expect(Progression.requiredSpecies(14)).toBe("moonmilk")
-		expect(Progression.requiredSpecies(40)).toBe("golden_goose_goo")
+		expect(Progression.requiredSpecies(0)).toBe("bumble")
+		expect(Progression.requiredSpecies(2)).toBe("lop")
+		expect(Progression.requiredSpecies(10)).toBe("cosmo")
+		expect(Progression.requiredSpecies(14)).toBe("midas")
+		expect(Progression.requiredSpecies(40)).toBe("eclipse")
 	end)
 	it("is rejected without the slime, with a reason, and wipes nothing", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 1e9)
-		expect(select(2, Rebirth.rebirth(world, s))).toBe("need a Sprout Slime")
+		expect(select(2, Rebirth.rebirth(world, s))).toBe("need a Bumble")
 		expect(s.data.rebirths).toBe(0)
 		expect(#s.data.slimes).toBe(1)
 		expect(s.data.cash).toBe(1e9)
 	end)
 	it("needs the cash too, even when the slime is owned", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2, { species = "sprout" }) }, 10)
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2, { species = "bumble" }) }, 10)
 		expect(select(2, Rebirth.rebirth(world, s))).toBe("not enough cash")
 	end)
 	it(
 		"asks for the next level's species after a rebirth, and the owned slime is kept by the normal keeper rule",
 		function()
 			local world = ServerFixtures.world()
-			local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2, { species = "sprout" }) }, 1e9)
+			local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2, { species = "bumble" }) }, 1e9)
 			expect((Rebirth.rebirth(world, s))).toBe(true)
 			expect(s.data.slimes[1].id).toBe("a") -- not consumed
 			s.data.cash = 1e12
-			expect(select(2, Rebirth.rebirth(world, s))).toBe("need a Carrot Slime")
+			expect(select(2, Rebirth.rebirth(world, s))).toBe("need a Froggo")
 		end
 	)
 	it("reports the requirement for the snapshot, and nothing at max level", function()
-		local data = Fixtures.data({ Fixtures.slime("a", 2, { species = "sprout" }) })
+		local data = Fixtures.data({ Fixtures.slime("a", 2, { species = "bumble" }) })
 		local need = Progression.requiredSlime(data)
 		assert(need, "precondition")
-		expect(need.id).toBe("sprout")
-		expect(need.name).toBe("Sprout Slime")
+		expect(need.id).toBe("bumble")
+		expect(need.name).toBe("Bumble")
 		expect(need.owned).toBe(true)
 		expect((Progression.requiredSlime(Fixtures.data()) :: any).owned).toBe(false)
 		data.rebirths = Config.MAX_REBIRTHS
