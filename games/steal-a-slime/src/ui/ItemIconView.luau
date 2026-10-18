@@ -6,8 +6,8 @@
 	(shop rows, codes, goals, appraise ...):
 
 	  * a rounded tile: vertical gradient in the item's colour, a darker
-	    stroke and a bold glyph. Always built; it is the placeholder and the
-	    backdrop of the other two;
+	    stroke and a bold glyph. Always built, but only shown as the
+	    placeholder: the other three draw with no background;
 	  * a UI-drawn scene (ItemIconArt) for specs with source "drawn" (and as the
 	    fallback of a model spec that has a recipe): static
 	    frames over the tile, no viewport, outside the live cap;
@@ -171,9 +171,6 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		if image then
 			picture.Image = `rbxassetid://{image}`
 		end
-		-- A real picture carries its own shading: the colour tile behind it only whispers.
-		tile.BackgroundTransparency = if image then 0.82 else 0
-		stroke.Transparency = if image then 0.7 else 0
 		-- A drawn scene is the icon for "drawn" specs and the fallback of a model that is not mounted.
 		local drawn = image == nil and art:GetAttribute("ArtId") == spec.id
 		art.Visible = drawn
@@ -197,6 +194,10 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 			art.Visible = false
 		end
 		self.source = if mounted then "model" elseif image then "image" elseif drawn then "drawn" else "placeholder"
+		-- The colour tile only backs the placeholder glyph; a picture, scene or model sits on whatever is behind it.
+		local bare = self.source ~= "placeholder"
+		tile.BackgroundTransparency = if bare then 1 else 0
+		stroke.Transparency = if bare then 1 else 0
 	end
 
 	function self.set(id: string?)
