@@ -54,6 +54,7 @@ ForcedFlags.off = {
 	["Growth income"] = "GrowingSlimes",
 	["Growth offline"] = "GrowingSlimes",
 	["Growth label"] = "GrowingSlimes",
+	["welcome-back on join > carries the offline cash and the slimes that grew"] = "GrowingSlimes",
 	["Habitats table"] = "Habitats",
 	["LiveBoot (server Script in the fake runtime) > with FEATURES.Habitats on, every pad carries a known habitat id and the server builds no looks"] = "Habitats",
 	["MinimapData (FEATURES.Minimap)"] = "Minimap",
