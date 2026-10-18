@@ -1,5 +1,5 @@
 --!nocheck
--- Bug B9 (every object uses its own collision): shared/PropCollision is the inventory of every collidable or
+-- Bug B9 (every object uses its own collision): tests/PropCollision is the inventory of every collidable or
 -- solid-looking prop. This spec keeps it honest against MeshAssets.COLLISION, the built map and a booted server world,
 -- and checks the geometry helpers the pc-watcher probe (luau/b9_prop_walk) uses.
 local fs = require("@lune/fs")
@@ -8,7 +8,7 @@ local roblox = require("@lune/roblox")
 
 local Config = require("../src/shared/Config")
 local MeshAssets = require("../src/shared/MeshAssets")
-local PropCollision = require("../src/shared/PropCollision")
+local PropCollision = require("./PropCollision")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
 local VatDecor = require("../src/visuals/shared/VatDecor")

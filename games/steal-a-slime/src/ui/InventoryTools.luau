@@ -43,15 +43,33 @@ function InventoryTools.bindKeys(slotFor: (Enum.KeyCode) -> number?, onSlot: (nu
 	end)
 end
 
--- A click or tap that no GUI took (the world) uses the consumable in hand: `onUse` decides if anything is held.
-function InventoryTools.bindUse(onUse: () -> ())
+-- The bag key on a keyboard or gamepad (not while typing in a TextBox / when another script used the key).
+function InventoryTools.bindBag(isBagKey: (Enum.KeyCode) -> boolean, onBag: () -> ())
 	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
 		if processed then
 			return
 		end
 		local kind = input.UserInputType
-		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
-			onUse()
+		if kind ~= Enum.UserInputType.Keyboard and kind ~= Enum.UserInputType.Gamepad1 then
+			return
+		end
+		if isBagKey(input.KeyCode) then
+			onBag()
+		end
+	end)
+end
+
+-- A click or tap that no GUI took (the world) uses the item in hand: `onUse` gets the screen point and decides
+-- if anything is held. Touch uses TouchTap, so dragging the camera or the thumbstick never fires an item.
+function InventoryTools.bindUse(onUse: (screen: Vector2 | Vector3) -> ())
+	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+		if not processed and input.UserInputType == Enum.UserInputType.MouseButton1 then
+			onUse(input.Position)
+		end
+	end)
+	UserInputService.TouchTap:Connect(function(positions: { Vector2 }, processed: boolean)
+		if not processed and positions[1] then
+			onUse(positions[1])
 		end
 	end)
 end

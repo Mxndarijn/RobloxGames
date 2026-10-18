@@ -221,14 +221,14 @@ describe("BatTool.swing with PvP on", function()
 	it("a non-thief off your plot, in a safe zone, or under the new-player shield is not hit", function()
 		local world, owner, _, bystander = pvpSetup()
 		plot = false
-		expect(select(2, BatTool.swing(world, owner, T0 + 101, true))).toBe("nothing in reach")
+		expect(select(2, BatTool.swing(world, owner, T0 + 101, true))).toBe("not on your plot")
 		plot = true
 		PvpService.state(bystander).shieldUntil = T0 + 1000
-		expect((BatTool.swing(world, owner, T0 + 110, true))).toBe(false)
+		expect(select(2, BatTool.swing(world, owner, T0 + 110, true))).toBe("shielded")
 		PvpService.state(bystander).shieldUntil = 0
 		poses[3] = { X = 1, Y = 3, Z = 1 } -- the fountain safe zone
 		poses[1] = { X = -1, Y = 3, Z = 1 }
-		expect((BatTool.swing(world, owner, T0 + 120, true))).toBe(false)
+		expect(select(2, BatTool.swing(world, owner, T0 + 120, true))).toBe("safe zone")
 		expect(#moves).toBe(0)
 		expect(owner.lastSlapAt < T0).toBe(true)
 		done()

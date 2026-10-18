@@ -14,7 +14,7 @@
 	  * species   the child is a real SlimeRoster species of its tier (its name and colour), not a blended name.
 	  * size      mean of the three + Config.TRIPLE_MERGE_SIZE_BONUS.
 	  * traits    pattern / eyes / mouth each from one of the three.
-	Anti-dupe: `apply` checks everything first (three DIFFERENT ids, owned, not busy, same tier) and only then
+	Anti-dupe: `apply` checks everything first (three DIFFERENT ids, owned, not busy, not kept, same tier) and only then
 	removes the inputs and adds the child, so a refused merge changes nothing and an accepted one never leaves
 	an input behind. Pure: no Roblox APIs.
 ]]
@@ -66,6 +66,51 @@ function TripleMerge.odds(tier: number, mutationBonus: number?): Odds
 	}
 end
 
+local function primaryOf(s: Slime): string
+	return Genome.primaryMutation(Genome.mutationList(s))
+end
+
+-- Every mutation the parents carry except `primary`, strongest first.
+local function othersOf(slimes: { Slime }, primary: string): { string }
+	local carried: { string } = {}
+	for _, parent in slimes do
+		for _, m in Genome.mutationList(parent) do
+			if m ~= primary and not table.find(carried, m) then
+				table.insert(carried, m)
+			end
+		end
+	end
+	table.sort(carried, function(x, y)
+		local mx, my = Genome.mutationMultiplier(x), Genome.mutationMultiplier(y)
+		if mx ~= my then
+			return mx > my
+		end
+		return x < y
+	end)
+	return carried
+end
+
+-- The child's inherited primary mutation before the fresh roll: the parents' primaries folded with
+-- Merge.inheritedMutation (equal ones upgrade).
+function TripleMerge.inheritedPrimary(slimes: { Slime }): string
+	local mutation = primaryOf(slimes[1])
+	for i = 2, #slimes do
+		mutation = Merge.inheritedMutation(mutation, primaryOf(slimes[i]))
+	end
+	return mutation
+end
+
+-- Every mutation the child keeps for sure (the inherited primary, then the others strongest first, combos
+-- fused, at most MAX_MUTATIONS). A fresh roll can still add or upgrade one.
+function TripleMerge.keptMutations(slimes: { Slime }): { string }
+	local primary = TripleMerge.inheritedPrimary(slimes)
+	local mutations: { string } = if primary == "None" then {} else { primary }
+	for _, m in othersOf(slimes, primary) do
+		mutations = Genome.addMutation(mutations, m)
+	end
+	return mutations
+end
+
 -- Builds the child (no side effects). `slimes` must have passed canMerge. Draw order is fixed: jump, species,
 -- fresh mutation (2 draws), three trait picks (pattern, eyes, mouth), stacking.
 function TripleMerge.merge(slimes: { Slime }, rng: Rng.Rng, id: string, mutationBonus: number?): Slime
@@ -80,10 +125,7 @@ function TripleMerge.merge(slimes: { Slime }, rng: Rng.Rng, id: string, mutation
 	local species = Genome.rollSpecies(tier, rng:float())
 	local look = if species then SlimeLooks.get(species.id) else nil
 
-	local primary = function(s: Slime): string
-		return Genome.primaryMutation(Genome.mutationList(s))
-	end
-	local mutation = Merge.inheritedMutation(Merge.inheritedMutation(primary(a), primary(b)), primary(c))
+	local mutation = TripleMerge.inheritedPrimary(slimes)
 	local chance = if maxed then 1 else odds.freshMutationChance
 	local rolled = Genome.rollMutation(rng:float(), rng:float(), chance)
 	if Genome.mutationMultiplier(rolled) > Genome.mutationMultiplier(mutation) then
@@ -110,22 +152,7 @@ function TripleMerge.merge(slimes: { Slime }, rng: Rng.Rng, id: string, mutation
 
 	local mutations: { string } = if mutation == "None" then {} else { mutation }
 	-- Every other mutation the parents carry (strongest first); the primaries are already in `mutation`.
-	local carried: { string } = {}
-	for _, parent in slimes do
-		for _, m in Genome.mutationList(parent) do
-			if m ~= mutation and not table.find(carried, m) then
-				table.insert(carried, m)
-			end
-		end
-	end
-	table.sort(carried, function(x, y)
-		local mx, my = Genome.mutationMultiplier(x), Genome.mutationMultiplier(y)
-		if mx ~= my then
-			return mx > my
-		end
-		return x < y
-	end)
-	for _, m in carried do
+	for _, m in othersOf(slimes, mutation) do
 		mutations = Genome.addMutation(mutations, m)
 	end
 
@@ -170,6 +197,9 @@ function TripleMerge.apply(
 		local found = PlayerData.findSlime(data, id)
 		if not found then
 			return false, "missing slime"
+		end
+		if found.keep then
+			return false, "slime is kept"
 		end
 		slimes[i] = found
 	end

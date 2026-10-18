@@ -29,12 +29,37 @@ WorldShop.BUY_W = 110
 WorldShop.CASH_H = 26
 WorldShop.NAME_H = 22
 WorldShop.DESC_H = 32
+WorldShop.BAR_H = 4 -- the Upgrade Shop's level bar under the description
 
-local ACCENT = { ItemShop = Color3.fromRGB(70, 160, 90), UpgradeShop = Color3.fromRGB(70, 130, 210) }
-local ICON = { ItemShop = "🛒", UpgradeShop = "⬆️" }
+-- Each shop has its own look so they read apart at a glance: a green market (Item Shop) and a blue workshop with
+-- level bars (Upgrade Shop).
+WorldShop.STYLE = table.freeze({
+	ItemShop = table.freeze({
+		icon = "🛒",
+		accent = Theme.ItemShop,
+		bg = Theme.ItemShopBg,
+		row = Theme.ItemShopRow,
+		buy = Theme.Good,
+		tagline = Theme.Accent,
+		levelBar = false,
+	}),
+	UpgradeShop = table.freeze({
+		icon = "⬆️",
+		accent = Theme.UpgradeShop,
+		bg = Theme.UpgradeShopBg,
+		row = Theme.UpgradeShopRow,
+		buy = Theme.Info,
+		tagline = Theme.Gold,
+		levelBar = true,
+	}),
+})
+
+local function styleOf(shopId: string?): any
+	return (WorldShop.STYLE :: any)[shopId or ""] or WorldShop.STYLE.ItemShop
+end
 
 function WorldShop.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "WorldShopPanel", "Shop", "🛒", ACCENT.ItemShop)
+	local panel = Widgets.panel(parent, "WorldShopPanel", "Shop", "🛒", Theme.ItemShop)
 
 	local cash = Widgets.label({
 		Name = "Cash",
@@ -59,6 +84,19 @@ function WorldShop.new(parent: Instance, ctx: any)
 		Parent = panel.body,
 	})
 
+	-- What kind of shop this is; shares the restock timer's spot (the timer wins while it shows).
+	local tagline = Widgets.label({
+		Name = "Tagline",
+		Font = Theme.Font,
+		TextSize = 14,
+		TextColor3 = Theme.Muted,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -10, 0, 0),
+		Size = UDim2.new(0.5, 0, 0, WorldShop.CASH_H - 4),
+		Parent = panel.body,
+	})
+
 	local list = Widgets.scrollList({
 		Name = "List",
 		Position = UDim2.fromOffset(0, WorldShop.CASH_H),
@@ -72,11 +110,12 @@ function WorldShop.new(parent: Instance, ctx: any)
 	local rows = Widgets.keyedList(list, function(view: WorldShopLogic.Row)
 		return `{view.shopId}_{view.id}`
 	end, function(view: WorldShopLogic.Row)
+		local style = styleOf(view.shopId)
 		local frame = create("Frame", {
 			Name = view.id,
 			Size = UDim2.new(1, -10, 0, WorldShop.ROW),
-			BackgroundColor3 = Theme.Row,
-		}, { Widgets.corner(12) })
+			BackgroundColor3 = style.row,
+		}, { Widgets.corner(12), Widgets.stroke(style.accent, 1) })
 		local icon = ItemIconView.new({
 			Name = "Icon",
 			Id = view.icon,
@@ -122,6 +161,26 @@ function WorldShop.new(parent: Instance, ctx: any)
 			Position = UDim2.fromOffset(textX, 6 + WorldShop.NAME_H + 2),
 			Parent = frame,
 		})
+		-- Level bar (Upgrade Shop): how far this upgrade is towards its max level.
+		local bar, barFill = nil :: Frame?, nil :: Frame?
+		if style.levelBar then
+			bar = create("Frame", {
+				Name = "LevelBar",
+				BorderSizePixel = 0,
+				BackgroundColor3 = Theme.Bg,
+				Position = UDim2.new(0, textX, 1, -(WorldShop.BAR_H + 3)),
+				Size = UDim2.new(1, textW, 0, WorldShop.BAR_H),
+				Visible = false,
+				Parent = frame,
+			}, { Widgets.corner(2) })
+			barFill = create("Frame", {
+				Name = "Fill",
+				BorderSizePixel = 0,
+				BackgroundColor3 = style.accent,
+				Size = UDim2.fromScale(0, 1),
+				Parent = bar,
+			}, { Widgets.corner(2) })
+		end
 		local current = view
 		local buy = Widgets.holdButton(
 			{
@@ -131,7 +190,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 				Size = UDim2.fromOffset(WorldShop.BUY_W, Layout.BUTTON),
 				TextSize = 16,
 			},
-			Theme.Good,
+			style.buy,
 			function()
 				if current.enabled then
 					ctx.send("ShopBuy", table.unpack(WorldShopLogic.buyArgs(current), 1, 3))
@@ -146,6 +205,8 @@ function WorldShop.new(parent: Instance, ctx: any)
 			level = level,
 			name = name,
 			desc = desc,
+			bar = bar,
+			barFill = barFill,
 			buy = buy,
 			setView = function(v: WorldShopLogic.Row)
 				current = v
@@ -157,6 +218,11 @@ function WorldShop.new(parent: Instance, ctx: any)
 		row.name.TextSize = WorldShopLogic.nameSize(view.name)
 		row.level.Text = view.levelText or ""
 		row.desc.Text = view.description
+		if row.bar and row.barFill then
+			row.bar.Visible = view.progress ~= nil
+			row.barFill.Size = UDim2.fromScale(view.progress or 0, 1)
+			row.barFill.BackgroundColor3 = if (view.progress or 0) >= 1 then Theme.Gold else styleOf(view.shopId).accent
+		end
 		-- Frame colour: gold when maxed / owned, green when you can buy it.
 		local done = view.status == "maxed" or view.status == "owned"
 		row.icon.setFrame(if done then Theme.Gold elseif view.enabled then Theme.Good else nil)
@@ -183,20 +249,29 @@ function WorldShop.new(parent: Instance, ctx: any)
 		local state = lastState
 		restockAt = WorldShopLogic.restockAt(id, state, ctx.Config.FEATURES)
 		restock.Visible = restockAt ~= nil
+		tagline.Visible = restockAt == nil
 		showRestock()
 		cash.Text = `💰 {Format.formatCash(if type(state.cash) == "number" then state.cash else 0)}`
 		rows.sync(WorldShopLogic.rows(id, state, ctx.actions, ctx.Config.FEATURES, ctx.Config))
 	end
 
-	-- Which shop the card shows (title, accent, rows). Called before the card opens.
+	-- Which shop the card shows (title, colours, tagline, rows). Called before the card opens.
 	function self.setShop(id: string)
 		shopId = id
+		local style = styleOf(id)
 		panel.title.Text = WorldShopLogic.title(id)
-		panel.icon.Text = (ICON :: any)[id] or "🛒"
+		panel.icon.Text = style.icon
+		panel.frame.BackgroundColor3 = style.bg
 		local band = panel.frame:FindFirstChild("Band")
 		if band and band:IsA("Frame") then
-			band.BackgroundColor3 = (ACCENT :: any)[id] or Theme.Info
+			band.BackgroundColor3 = style.accent
 		end
+		local outline = panel.frame:FindFirstChildOfClass("UIStroke")
+		if outline then
+			outline.Color = style.accent
+		end
+		tagline.Text = WorldShopLogic.tagline(id)
+		tagline.TextColor3 = style.tagline
 		refresh()
 	end
 

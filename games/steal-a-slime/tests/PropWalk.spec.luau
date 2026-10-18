@@ -1,5 +1,5 @@
 --!nocheck
--- Bug B9: walking into a prop stops at its face. Data-driven from shared/PropCollision, runs in BOTH runtimes
+-- Bug B9: walking into a prop stops at its face. Data-driven from tests/PropCollision, runs in BOTH runtimes
 -- (tools/pipeline/stage-specs stages it into the cloud test place; string requires to ../src only, no @lune).
 --
 -- Lune and cloud: pure geometry. Every blocking inventory entry becomes collision volumes from the built layout
@@ -17,7 +17,7 @@ local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
 local MinimapData = require("../src/visuals/shared/MinimapData")
 local ParadeLane = require("../src/shared/ParadeLane")
-local PropCollision = require("../src/shared/PropCollision")
+local PropCollision = require("./PropCollision")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 

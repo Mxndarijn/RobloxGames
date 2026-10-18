@@ -201,6 +201,62 @@ describe("Inventory panel", function()
 	end)
 end)
 
+describe("Inventory bag key", function()
+	local Enum = require("@lune/roblox").Enum
+
+	it("` and B on a keyboard and Y on a gamepad are bag keys; the number keys and E are not", function()
+		local inv = mount(nil)
+		expect(inv.isBagKey(Enum.KeyCode.Backquote)).toBe(true)
+		expect(inv.isBagKey(Enum.KeyCode.B)).toBe(true)
+		expect(inv.isBagKey(Enum.KeyCode.ButtonY)).toBe(true)
+		for _, key in { Enum.KeyCode.One, Enum.KeyCode.E, Enum.KeyCode.Escape, Enum.KeyCode.ButtonB } do
+			expect(inv.isBagKey(key)).toBe(false)
+		end
+		expect(inv.keyCodeToSlot(Enum.KeyCode.B)).toBe(nil)
+	end)
+
+	it("toggles the panel open and closed", function()
+		local inv = mount(nil)
+		expect(inv.toggleBag()).toBe(true)
+		expect(inv.panelOpen()).toBe(true)
+		expect(inv.panel.frame.Visible).toBe(true)
+		expect(inv.toggleBag()).toBe(true)
+		expect(inv.panelOpen()).toBe(false)
+		expect(inv.panel.frame.Visible).toBe(false)
+	end)
+
+	it("does not open while a menu is open or while carrying", function()
+		local inv = mount(nil)
+		inv.setMenuOpen(true)
+		expect(inv.toggleBag()).toBe(false)
+		expect(inv.panelOpen()).toBe(false)
+		inv.setMenuOpen(false)
+		inv.update({ carrying = { slimeId = "x" } })
+		expect(inv.toggleBag()).toBe(false)
+		expect(inv.panelOpen()).toBe(false)
+		inv.update({})
+		expect(inv.toggleBag()).toBe(true)
+	end)
+
+	it("shows the key on the bag cell on keyboards only", function()
+		local inv = mount(nil)
+		local label = UiHarness.find(inv.bag, "Number")
+		expect(label.Text).toBe(Inventory.BAG_KEYS.label)
+		expect(label.Visible).toBe(true)
+		local touch = Inventory.new(UiHarness.root(), {
+			Config = Config,
+			itemIcons = ItemIcons.build(Config),
+			send = function() end,
+			tools = fakeTools({}),
+			serverNow = function()
+				return 100
+			end,
+			keyboard = false,
+		})
+		expect(UiHarness.find(touch.bag, "Number").Visible).toBe(false)
+	end)
+end)
+
 describe("Inventory mount", function()
 	local src = fs.readFile("src/ui/init.client.luau")
 	local function has(needle: string): boolean
@@ -218,13 +274,14 @@ describe("Inventory mount", function()
 		local tools = fs.readFile("src/ui/InventoryTools.luau")
 		expect(string.find(tools, "SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)", 1, true) ~= nil).toBe(true)
 	end)
-	it("the only server names it touches are EquipPvpItem and UseConsumable", function()
+	it("the only server names it touches are EquipPvpItem, UsePvpItem and UseConsumable", function()
 		local core = fs.readFile("src/ui/InventoryCore.luau")
 		expect(string.find(core, 'PVP_ACTION = "EquipPvpItem"', 1, true) ~= nil).toBe(true)
 		expect(string.find(core, 'USE_ACTION = "UseConsumable"', 1, true) ~= nil).toBe(true)
+		expect(string.find(core, 'PVP_USE_ACTION = "UsePvpItem"', 1, true) ~= nil).toBe(true)
 		local code = GlyphCheck.stripComments(core)
 		-- "BuyConsumable" is only the ItemIcons key of a consumable's picture, never sent
-		for _, other in { "UsePvpItem", "BuyUpgrade", "RemoteEvent", "InvokeServer" } do
+		for _, other in { "BuyUpgrade", "RemoteEvent", "InvokeServer" } do
 			expect(string.find(code, other, 1, true)).toBe(nil)
 		end
 		expect(select(2, string.gsub(code, "BuyConsumable", ""))).toBe(1)
@@ -314,5 +371,76 @@ describe("Inventory consumable stacks (S3)", function()
 			end
 		end
 		expect(seen).toBe(2)
+	end)
+end)
+
+describe("Inventory PvP item use", function()
+	local GLOVE = "KnockGlove1"
+	local function mountPvp(equipped: string?, reply: any?, cooldowns: any?)
+		local gui = UiHarness.root()
+		local sent: { { any } } = {}
+		local aims = 0
+		local inv = Inventory.new(gui, {
+			Config = Config,
+			itemIcons = ItemIcons.build(Config),
+			send = function(action: string, ...: any)
+				table.insert(sent, { action, ... })
+			end,
+			request = function(action: string, done: (any) -> (), ...: any)
+				table.insert(sent, { action, ... })
+				done(reply or { ok = true })
+			end,
+			aim = function(_screen: any): any
+				aims += 1
+				return {
+					self = { X = 0, Y = 3, Z = 0 },
+					players = { { userId = 7, position = { X = 4, Y = 3, Z = 0 }, carrying = true } },
+				}
+			end,
+			tools = fakeTools({ { name = "Bat", equipped = false } }),
+			serverNow = function()
+				return 100
+			end,
+			keyboard = true,
+		})
+		inv.layout(Layout.screen(1920, 1080))
+		inv.update({ pvp = { owned = { [GLOVE] = true }, equipped = equipped, cooldowns = cooldowns or {} } })
+		return inv, sent, gui, function()
+			return aims
+		end
+	end
+	local SCREEN = { X = 500, Y = 400 }
+
+	it("a click with a glove equipped sends UsePvpItem at the player in reach", function()
+		local inv, sent = mountPvp(GLOVE)
+		expect(inv.useHeld(SCREEN)).toBe(true)
+		expect(sent[1][1]).toBe("UsePvpItem")
+		expect(sent[1][2]).toBe(GLOVE)
+		expect(sent[1][3]).toBe(7)
+		expect(inv.useHeld(SCREEN)).toBe(false) -- inside the gap
+		expect(#sent).toBe(1)
+	end)
+
+	it("nothing equipped: a click sends nothing and samples nothing", function()
+		local inv, sent, _, aims = mountPvp(nil)
+		expect(inv.useHeld(SCREEN)).toBe(false)
+		expect(#sent).toBe(0)
+		expect(aims()).toBe(0)
+	end)
+
+	it("a server refusal shows as a tip above the slot", function()
+		local inv, sent, gui = mountPvp(GLOVE, { ok = false, message = "only on your plot or against a thief" })
+		expect(inv.useHeld(SCREEN)).toBe(true)
+		expect(#sent).toBe(1)
+		local tip = UiHarness.find(gui, "Tip")
+		expect(tip.Visible).toBe(true)
+		expect(tip.Text).toBe("Only on your plot or against a thief")
+	end)
+
+	it("a cooling-down item says when it is ready and sends nothing", function()
+		local inv, sent, gui = mountPvp(GLOVE, nil, { [GLOVE] = 103 })
+		expect(inv.useHeld(SCREEN)).toBe(false)
+		expect(#sent).toBe(0)
+		expect(UiHarness.find(gui, "Tip").Text).toBe("Ready in 3s")
 	end)
 end)

@@ -9,7 +9,9 @@
 	away) the item through the EXISTING actions only: a Tool through the Humanoid, a PvP item through
 	Request("EquipPvpItem"), a consumable (the stack count on its slot) goes into the hand client-side and is
 	used by clicking / tapping the world while held: Request("UseConsumable") (the server checks ownership and
-	stock and takes one off the stack). The last cell is the bag: it opens the inventory panel, a grid of everything
+	stock and takes one off the stack). An equipped PvP item is used the same way: the click becomes
+	Request("UsePvpItem", id, targetUserId?, aim?) (InventoryCore.pvpUseRequest from deps.aim's sample); a refusal
+	(cooldown, safe zone, out of reach) shows as a short tip above the slot. The last cell is the bag: it opens the inventory panel, a grid of everything
 	held (also the items that did not fit the bar on a narrow phone). Hidden while carrying (the server
 	unequips tools then) and while a menu is open. Client-only: the stack counts come from State.consumables.
 ]]
@@ -55,10 +57,25 @@ local KEYS: { [Enum.KeyCode]: number } = {
 	[Enum.KeyCode.Nine] = 9,
 }
 
+-- Keys that open / close the bag: ` (Roblox's own backpack key, free while the default backpack is off), B, and
+-- gamepad Y. `label` is the key shown on the bag cell and in its tooltip on keyboards.
+Inventory.BAG_KEYS = table.freeze({
+	keys = table.freeze({
+		[Enum.KeyCode.Backquote] = true,
+		[Enum.KeyCode.B] = true,
+		[Enum.KeyCode.ButtonY] = true,
+	}),
+	label = "`",
+})
+
 type Deps = {
 	Config: any,
 	itemIcons: any, -- ItemIcons registry
 	send: (action: string, ...any) -> (),
+	-- Like send, but `done` gets the RequestResult ({ ok, message? }) of a call that reached the server.
+	request: ((action: string, done: (result: any) -> (), ...any) -> ())?,
+	-- What a click at a screen point aims at (ui/PvpAim.sample); nil = PvP items can't be used.
+	aim: ((screen: Vector2 | Vector3) -> InventoryCore.Aim)?,
 	tools: any, -- InventoryTools.Provider
 	serverNow: () -> number,
 	keyboard: boolean?, -- show number keys (default true)
@@ -338,9 +355,23 @@ function Inventory.new(parent: Instance, deps: Deps)
 		ZIndex = 2,
 		Parent = bag,
 	})
+	Widgets.label({
+		Name = "Number",
+		Text = Inventory.BAG_KEYS.label,
+		Visible = keyboard,
+		Font = Theme.Font,
+		TextSize = 13,
+		TextStrokeTransparency = 0.4,
+		TextTruncate = Enum.TextTruncate.None,
+		Size = fromOffset(18, 16),
+		Position = fromOffset(4, 1),
+		ZIndex = 6,
+		Parent = bag,
+	})
 	bagIcon.TextYAlignment = Enum.TextYAlignment.Center
+	local bagTip = if keyboard then `Inventory ({Inventory.BAG_KEYS.label})` else "Inventory"
 	bag.MouseEnter:Connect(function()
-		showTip(bag, "Inventory")
+		showTip(bag, bagTip)
 	end)
 	bag.MouseLeave:Connect(hideTip)
 
@@ -566,24 +597,95 @@ function Inventory.new(parent: Instance, deps: Deps)
 		return false
 	end
 
-	-- Click / tap in the world with a consumable in hand: asks the server to use one. False when nothing is
-	-- in hand, the bar is hidden, the use is too soon after the last, or the item has no target yet.
-	function self.useHeld(): boolean
-		if heldConsumable == nil or menuOpen or carrying or panelOpen then
+	-- A short tip above the bar slot of `entry` (the bag cell when it did not fit the bar).
+	local function feedback(entry: Entry, text: string)
+		for _, slot in barSlots do
+			if slot.button.Visible and slot.entry and slot.entry.key == entry.key then
+				showTip(slot.button, text, Inventory.TIP_SECONDS)
+				return
+			end
+		end
+		showTip(bag, text, Inventory.TIP_SECONDS)
+	end
+
+	-- Sends `request`; a refusal from the server becomes a tip on the entry's slot.
+	local function sendUse(entry: Entry, request: { any }, count: number)
+		local call = deps.request
+		if call then
+			call(request[1], function(result: any)
+				if type(result) == "table" and result.ok == false then
+					feedback(entry, InventoryCore.reasonText(result.message))
+				end
+			end, table.unpack(request, 2, count))
+		else
+			deps.send(table.unpack(request, 1, count))
+		end
+	end
+
+	local function equippedPvp(): Entry?
+		for _, entry in entries do
+			if entry.kind == "pvp" and entry.equipped then
+				return entry
+			end
+		end
+		return nil
+	end
+
+	local function toolDef(id: string): any
+		for _, def in deps.Config.PVP_TOOLS do
+			if def.id == id then
+				return def
+			end
+		end
+		return nil
+	end
+
+	-- Click / tap in the world (`at` = its screen point) with a consumable in hand or a PvP item equipped:
+	-- asks the server to use it. False when nothing is held, the bar is hidden, the use is too soon after the
+	-- last, or there is nothing to send yet (then a tip says why).
+	function self.useHeld(at: (Vector2 | Vector3)?): boolean
+		if menuOpen or carrying or panelOpen then
+			return false
+		end
+		local pvpEntry = if heldConsumable == nil then equippedPvp() else nil
+		if heldConsumable == nil and pvpEntry == nil then
 			return false
 		end
 		local now = os.clock()
 		if now - lastUse < Inventory.USE_GAP then
 			return false
 		end
+		if pvpEntry then
+			if not deps.aim or not at then
+				return false
+			end
+			local use, reason = InventoryCore.pvpUseRequest(
+				pvpEntry,
+				toolDef(pvpEntry.itemId),
+				deps.aim(at),
+				deps.Config,
+				deps.serverNow()
+			)
+			if not use then
+				if reason then
+					feedback(pvpEntry, reason)
+				end
+				return false
+			end
+			lastUse = now
+			sendUse(pvpEntry, { use.action, use.itemId, use.target, use.aim }, 4)
+			return true
+		end
 		for _, entry in entries do
 			if entry.kind == "consumable" and entry.itemId == heldConsumable then
 				local request = InventoryCore.useRequest(entry, state)
-				if request then
-					lastUse = now
-					deps.send(table.unpack(request))
-					return true
+				if not request then
+					feedback(entry, "No slime to use it on")
+					return false
 				end
+				lastUse = now
+				sendUse(entry, request, #request)
+				return true
 			end
 		end
 		return false
@@ -595,6 +697,24 @@ function Inventory.new(parent: Instance, deps: Deps)
 
 	function self.keyCodeToSlot(key: Enum.KeyCode): number?
 		return KEYS[key]
+	end
+
+	function self.isBagKey(key: Enum.KeyCode): boolean
+		return Inventory.BAG_KEYS.keys[key] == true
+	end
+
+	-- The bag key: closes an open bag, opens it unless the bar is hidden (a menu is open or carrying).
+	-- True when the panel changed.
+	function self.toggleBag(): boolean
+		if panelOpen then
+			setPanelOpen(false)
+			return true
+		end
+		if menuOpen or carrying then
+			return false
+		end
+		setPanelOpen(true)
+		return true
 	end
 
 	-- Cooldown numbers tick once a second between State pushes.

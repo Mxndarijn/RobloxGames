@@ -240,7 +240,7 @@ function Spawner.stepModifier(world: World, now: number)
 		world.modifierEndsAt = nil
 		World.markAllDirty(world)
 	end
-	if not (Config.FEATURES.CycleModifier and Config.FEATURES.DayNight) then
+	if not Config.FEATURES.CycleModifier then
 		return
 	end
 	local phase, left = DayNight.phase(now - world.startedAt)
@@ -301,7 +301,7 @@ function Spawner.step(world: World, now: number)
 
 	if now >= world.nextBossAt then
 		world.nextBossAt = now + Config.BOSS_INTERVAL
-		if Config.FEATURES.BossSlime and not Spawner.bossId(world) then
+		if not Spawner.bossId(world) then
 			Spawner.spawnBoss(world, now)
 		end
 	end

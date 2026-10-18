@@ -1,6 +1,6 @@
 --!strict
 --[[
-	DayNight (FEATURES.DayNight)
+	DayNight
 
 	Lighting.ClockTime from seconds since server start: one full day every
 	DAY_LENGTH seconds, daytime (06:30 -> 17:30) for DAY_FRACTION of it and a

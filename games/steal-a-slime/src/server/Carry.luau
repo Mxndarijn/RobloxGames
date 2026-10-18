@@ -168,6 +168,7 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		end
 		local slime = carry.slime
 		slime.pad = nil
+		slime.keep = nil -- a kept mark belongs to the previous owner
 		-- Lucky Charm (Perks.luckChance): one rarity higher on the way home.
 		if slime.tier < Config.MAX_TIER and world.rng:float() < Perks.luckChance(session.data) then
 			local old = Genome.rarity(slime.tier).name

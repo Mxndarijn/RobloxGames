@@ -659,6 +659,9 @@ WorldView.addPlotPrompts(function(player: Player, index: number, kind: string)
 		return
 	end
 	local action, args = kind, {}
+	if kind == "Merge" and Config.FEATURES.MergeVat3 then
+		return -- the owner's client opens the merge menu (CONTRACT.md §21.1)
+	end
 	if kind == "Merge" then
 		local a, b = Merge.findPair(session.data.slimes, World.busySet(world), session.data.favoriteId)
 		if not a or not b then
@@ -995,7 +998,7 @@ local function stepPlayers(t: number)
 		wasRaining = world.raining
 		WorldView.setRain(Spawner.rain(world, t))
 	end
-	WorldView.setBossNextAt(if Config.FEATURES.BossSlime then world.nextBossAt else nil)
+	WorldView.setBossNextAt(world.nextBossAt)
 end
 
 -- Kill plane: every player (loaded or not) who falls off the world goes back up.
@@ -1059,7 +1062,7 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 	lastView = t
-	if Config.FEATURES.DayNight and t - lastClock >= 0.5 then
+	if t - lastClock >= 0.5 then
 		lastClock = t
 		-- Studio-only PC watcher hook: Lighting attribute "PcwClock" pins the time of day (daytime border shots)
 		local pinned = if RunService:IsStudio() and memoryMode then Lighting:GetAttribute("PcwClock") else nil

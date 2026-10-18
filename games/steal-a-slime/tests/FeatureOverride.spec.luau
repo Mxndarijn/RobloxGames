@@ -5,7 +5,7 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-local base = { FountainTiers = false, Audio = false, Weather = false, BossSlime = true }
+local base = { FountainTiers = false, Audio = false, Weather = false, Parade = true }
 local function attrs(t: { [string]: any }): (string) -> any
 	return function(name: string)
 		return t[name]
@@ -28,17 +28,17 @@ describe("FeatureOverride", function()
 		local view = FeatureOverride.wrap(base, true, attrs({ PcwFlag_FountainTiers = true }))
 		expect(view.FountainTiers).toBe(true)
 		expect(view.Audio).toBe(false)
-		expect(view.BossSlime).toBe(true)
+		expect(view.Parade).toBe(true)
 	end)
 
 	it("never overrides flags outside the list, never turns one off, ignores non-boolean values", function()
 		local view = FeatureOverride.wrap(
 			base,
 			true,
-			attrs({ PcwFlag_Weather = true, PcwFlag_BossSlime = false, PcwFlag_Audio = "yes" })
+			attrs({ PcwFlag_Weather = true, PcwFlag_Parade = false, PcwFlag_Audio = "yes" })
 		)
 		expect(view.Weather).toBe(false)
-		expect(view.BossSlime).toBe(true)
+		expect(view.Parade).toBe(true)
 		expect(view.Audio).toBe(false)
 	end)
 

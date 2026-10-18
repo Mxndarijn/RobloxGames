@@ -180,9 +180,9 @@ round the round Hull of the barrel and well. Fixes: the barrel, well and stile a
 the stile is a block players jump onto, so `ranch_barn_loft` is the only PCD), and the probe drives at walking speed (16) with
 upward velocity clamped and FAILs only when the ball's core overlaps the mesh's collision geometry (`GetPartsInPart`).
 
-## B9: every prop has an explicit collision choice (`shared/PropCollision`)
+## B9: every prop has an explicit collision choice (`tests/PropCollision`)
 
-`src/shared/PropCollision.luau` is the machine-readable inventory of every collidable or solid-looking prop, both halves (Jolt: the
+`tests/PropCollision.luau` (test data only, it does not ship) is the machine-readable inventory of every collidable or solid-looking prop, both halves (Jolt: the
 shared world; Gojo: plot-level props; the per-plot mailbox slot is "ambiguous"): one entry per kind with its mesh, count, owner,
 the collision choice (a `MeshAssets.COLLISION` fidelity, `colliders` or `off`) and a reason. `tests/PropCollision.spec` keeps it
 honest against `MeshAssets.COLLISION`, `WorldLayout.build()` (every placed mesh is listed, the rest are `UNPLACED` with a reason) and

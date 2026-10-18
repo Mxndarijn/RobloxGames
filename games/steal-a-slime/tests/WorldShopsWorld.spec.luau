@@ -183,9 +183,9 @@ describe("world shop stands in the booted server", function()
 		end
 	end)
 	it("collides through the Hull mesh and adds no collider parts of its own", function()
-		local base = partCount(Props.shopStand())
 		for _, def in STANDS do
 			local stand = map[def.model]
+			local base = partCount(Props.shopStand(def.shopId))
 			expect(partCount(stand)).toBe(base + 1) -- the primitives + the one skin MeshPart
 			local mesh = stand:FindFirstChild("Mesh")
 			expect(mesh.CanCollide).toBe(true)

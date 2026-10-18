@@ -230,7 +230,7 @@ export type State = {
 	pvp: PvpView?, -- FEATURES.PvP (nil when off)
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
-	petPerk: PetPerkView?, -- FEATURES.PetPassives; nil without a favourite
+	petPerk: PetPerkView?, -- Perks.petPassive; nil without a favourite
 	settings: { musicVolume: number, sfxVolume: number, muted: boolean }?, -- FEATURES.Audio: saved Sound card values (nil when off)
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
