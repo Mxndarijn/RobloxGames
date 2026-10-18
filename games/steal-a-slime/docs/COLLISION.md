@@ -183,7 +183,7 @@ after #11 / #16 / #10):
   so 2.8 studs on each side of the board were walkable. `MeshSwap.swap` now widens the `Collider` of a skinned Model that
   has one to the skin's width and height (depth and front stay, the skin is flush with them). The mesh stays out of `MeshAssets.COLLISION` because the same mesh is each plot's SlimeDex skin (Gojo's,
   stays decor).
-- **Trees, rocks, hills, hedges, fences of the border (72 pieces, 30 giant trees, the 30-tree ring):** all `CanCollide = false` and
+- **Trees, rocks, hills, hedges, fences of the border (66 pieces, the 20-tree giant ring):** all `CanCollide = false` and
   that is right: every piece sits behind the 48-block wall ring (`WorldBorder.RADIUS` 292, 80 studs tall, inner face at r 292; the
   nearest piece footprint starts at r >= 290, which is a round hill's empty bounding-box corner). Players cannot reach them, so no
   trunk collider or hull is added (zero parts). `PropCollision.spec` re-computes every piece's footprint from `WorldBorder.pieces()`

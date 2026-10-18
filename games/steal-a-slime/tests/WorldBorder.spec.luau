@@ -512,7 +512,7 @@ describe("WorldBorder giants (v5, v6)", function()
 		"adds GIANT_COUNT trees of six NEW kit meshes (v6: elder oak, sequoia spire, cloud tree), none of them a scattered decor design",
 		function()
 			expect(#giants).toBe(WorldBorder.GIANT_COUNT)
-			expect(WorldBorder.GIANT_COUNT >= 24 and WorldBorder.GIANT_COUNT <= 36).toBe(true)
+			expect(WorldBorder.GIANT_COUNT >= 16 and WorldBorder.GIANT_COUNT <= 36).toBe(true)
 			local designs: { [string]: boolean } = {}
 			for _, d in WorldBorder.DEFS do
 				designs[d.mesh] = true

@@ -284,6 +284,7 @@ The client always replaces its copy and never diffs.
 - **`workspace`:**
   - `SlimeRain: boolean` (`Constants.RAIN_ATTRIBUTE`): `true` during Slime Rain, `false` otherwise (set at server start). VisualsClient keys its rain particles off it.
   - `DataStoreStatus: string` (`Constants.DATASTORE_STATUS_ATTRIBUTE`): `"Ok" | "Memory" | "Unavailable" | "Error"`, see §2 Persistence.
+  - `WorldMeshesReady: boolean` (`Constants.WORLD_MESHES_READY_ATTRIBUTE`): `true` once MeshSwap has dressed `Map` / `Plots` and the merge vats (or given up on the meshes that failed). The client's loading screen (ReplicatedFirst) holds until it is set, up to a timeout.
   - `SlimeLook: string` (`Constants.SLIME_LOOK_ATTRIBUTE`): `"Mesh"` if the slime mesh asset loaded at server start, `"Procedural"` if the server fell back to ModelFactory's look (see §4).
   - `RainActive: boolean` (same value as `SlimeRain`), `RainEndsAt: number?` and `RainNextAt: number?` (server time) for the HUD countdowns. Names: `Constants.RAIN_ACTIVE_ATTRIBUTE`, `RAIN_ENDS_AT_ATTRIBUTE`, `RAIN_NEXT_AT_ATTRIBUTE`.
 - **Player (more):**
@@ -356,7 +357,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `REBIRTH_LATE_FROM` / `REBIRTH_COST_GROWTH_LATE` / `REBIRTH_TIERS` / `UPGRADES` / `GOALS` / `DEX_MILESTONES` | 5 / 2 / tables | v13 progression (§8.8) |
 | `SAVE_VERSION` | 6 | v13 schema (§8.9), v4 = `slimes[i].mutations` (§8.9a), v5 = weather mutations Wet / Frozen (§8.9b), v6 = `settings` + versioned `plotSkin` / `stealLog` (§8.9c) |
 
-All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ShopStand` / `LeaderboardBoard` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
+All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `WorldMeshesReady` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ShopStand` / `LeaderboardBoard` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
 
 ## 7. Build and tests
 
