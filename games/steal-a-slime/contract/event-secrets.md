@@ -15,9 +15,9 @@ no save-format change, nothing saved. Design note: `shared/modeling-kit/models/p
     featured now, else its next week); nil for an id outside the rotation. The Dex reads it.
 - **Spawn pool.** A wild fountain drop (`Spawner.spawnOne`) passes `EventSecrets.extraSpecies(unix)` as the optional
   `extraSpecies` argument of `Fountain.roll` (last argument), which hands it to `Genome.generate` (`GenerateOptions.extraSpecies`)
-  and `Genome.rollSpecies(tier, roll, family, extra)`. `rollSpecies` appends only the extra entries whose tier equals the
-  rolled tier to that tier's spawn list, then picks uniformly: on a tier-7 roll the featured Secret is one equal slot next to
-  `midas` (Classic) or `eclipse` / `boo` (Starlight). Lower tiers are unchanged, and no extra rng draw is made, so seeded
+  and `Genome.speciesPool(tier, families, extra)` / `rollSpecies` (§32). The pool appends only the extra entries whose tier
+  equals the rolled tier, then the pick is uniform: on a tier-7 roll the featured Secret is one equal slot next to `midas`,
+  plus `eclipse` / `boo` while Starlight is open. Lower tiers are unchanged, and no extra rng draw is made, so seeded
   drops of other tiers stay the same. The tier odds are unchanged (the featured Secret shares the Secret weight).
   The clock is `Spawner.unixTime` (nil in `tests/ServerFixtures` = no featured Secret). Admin events (§12) do not change it.
 - **Never otherwise.** An event Secret that is not featured never spawns: `SlimeRoster.forTier` excludes `"event"`, random

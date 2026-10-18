@@ -3,7 +3,8 @@
 	Spawner (pure)
 
 	The fountain: drops a wild slime every SPAWN_INTERVAL while fewer than
-	MAX_WILD_SLIMES are alive, expires unclaimed ones after WILD_LIFETIME and
+	MAX_WILD_SLIMES are alive, expires unclaimed ones after their lifetime
+	(Fountain.wildLifetime: WILD_LIFETIME, longer for Mythic / Secret) and
 	runs the Slime Rain schedule (every RAIN_INTERVAL for RAIN_DURATION:
 	faster spawns, RAIN_LUCK, more mutations, double cap), with a heads-up
 	toast RAIN_WARNING_SECONDS before each rain.
@@ -114,7 +115,7 @@ function Spawner.stepFountainTier(world: World, enabled: boolean?): boolean
 	return true
 end
 
--- Family ids the fountain can drop (nil with the feature off: Classic only, no extra rng draws).
+-- Family ids whose species the fountain can drop besides Classic (nil with the feature off: Classic only).
 function Spawner.familyPool(world: World, enabled: boolean?): { string }?
 	if not (if enabled == nil then Config.FEATURES.FountainTiers else enabled) then
 		return nil
@@ -162,7 +163,7 @@ function Spawner.spawnOne(world: World, now: number): string
 		slime = drop.slime,
 		price = Spawner.price(drop.slime, world.rng:float()),
 		spawnedAt = now,
-		expiresAt = now + Config.WILD_LIFETIME,
+		expiresAt = now + Fountain.wildLifetime(drop.slime),
 		angle = drop.angle,
 		radius = drop.radius,
 		position = nil,

@@ -81,9 +81,11 @@ describe("EventSecrets in the spawn pool", function()
 		expect(last.id).toBe(extra[1].id)
 		local first = Genome.rollSpecies(SECRET, 0, nil, extra) :: SlimeRoster.Entry
 		expect(first.id).toBe(classic[1].id)
-		-- Starlight's two Secrets plus the featured one: thirds.
-		expect((Genome.rollSpecies(SECRET, 0.7, "starlight", extra) :: SlimeRoster.Entry).id).toBe(extra[1].id)
-		expect((Genome.rollSpecies(SECRET, 0.6, "starlight", extra) :: SlimeRoster.Entry).id ~= extra[1].id).toBe(true)
+		-- Starlight open: midas, eclipse, boo plus the featured one, a quarter each.
+		local starlight = { "starlight" }
+		expect(#Genome.speciesPool(SECRET, starlight, extra)).toBe(4)
+		expect((Genome.rollSpecies(SECRET, 0.9999, starlight, extra) :: SlimeRoster.Entry).id).toBe(extra[1].id)
+		expect((Genome.rollSpecies(SECRET, 0.7, starlight, extra) :: SlimeRoster.Entry).id ~= extra[1].id).toBe(true)
 		for tier = 1, SECRET - 1 do
 			for _, roll in { 0, 0.5, 0.9999 } do
 				local entry = Genome.rollSpecies(tier, roll, nil, extra)

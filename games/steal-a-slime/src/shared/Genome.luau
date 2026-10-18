@@ -39,8 +39,8 @@ export type GenerateOptions = {
 	minTier: number?, -- pity: never roll below this tier
 	weeklyMutation: string?, -- WeeklyEvents boost: this mutation gets `weeklyBonus` extra roll range
 	weeklyBonus: number?,
-	family: string?, -- FountainTiers family id: the species comes from that family (Classic when it has none at the tier)
-	extraSpecies: { SlimeRoster.Entry }?, -- extra pool entries (the featured event Secret, CONTRACT.md §34)
+	families: { string }?, -- open FountainTiers family ids: their species join the Classic pool (Genome.speciesPool)
+	extraSpecies: { SlimeRoster.Entry }?, -- more entries for the pool (only those of the rolled tier count)
 }
 
 local NAME_START = { "Bl", "Gl", "Sq", "Wob", "J", "Goo", "Pud", "Sl", "Fl", "Z", "Mu", "Dr" }
@@ -55,6 +55,11 @@ end
 
 local function roundSize(n: number): number
 	return math.clamp(math.floor(n * 100 + 0.5) / 100, Config.MIN_SIZE, Config.MAX_SIZE)
+end
+
+-- Smallest size a generated slime of `tier` may have (Config.TIER_SIZE_FLOOR; 0 = no floor).
+function Genome.sizeFloor(tier: number): number
+	return Config.TIER_SIZE_FLOOR[tier] or 0
 end
 
 local function contains(list: { string }, value: any): boolean
@@ -286,29 +291,38 @@ end
 -- Alias of mutationDisplayName (v28 name).
 Genome.mutationDisplay = Genome.mutationDisplayName
 
--- Picks a roster species of `tier` (uniform within the tier).
--- `family` (FountainTiers id) picks from that family's types instead; a tier it has none at (Secret) stays Classic.
--- `extra` entries of `tier` (the featured event Secret) join that list as one equal slot each.
+-- Spawning species a drop of `tier` picks from: Classic, then each of `families` (open FountainTiers ids) in order,
+-- then the `extra` entries of that tier. nil / empty `families` = Classic only.
+function Genome.speciesPool(tier: number, families: { string }?, extra: { SlimeRoster.Entry }?): { SlimeRoster.Entry }
+	local pool = SlimeRoster.forTier(tier)
+	if families then
+		for _, family in families do
+			local members = SlimeRoster.forTier(tier, family)
+			table.move(members, 1, #members, #pool + 1, pool)
+		end
+	end
+	if extra then
+		for _, entry in extra do
+			if entry.tier == tier then
+				table.insert(pool, entry)
+			end
+		end
+	end
+	return pool
+end
+
+-- Picks a species of `tier` uniformly from Genome.speciesPool(tier, families, extra); nil for a tier outside the
+-- rarities or an empty pool.
 function Genome.rollSpecies(
 	tier: number,
 	roll: number,
-	family: string?,
+	families: { string }?,
 	extra: { SlimeRoster.Entry }?
 ): SlimeRoster.Entry?
 	if tier < 1 or tier > Config.MAX_TIER then
 		return nil
 	end
-	local list = SlimeRoster.forTier(tier, family)
-	if #list == 0 and family then
-		list = SlimeRoster.forTier(tier)
-	end
-	if extra then
-		for _, entry in extra do
-			if entry.tier == tier then
-				table.insert(list, entry)
-			end
-		end
-	end
+	local list = Genome.speciesPool(tier, families, extra)
 	if #list == 0 then
 		return nil
 	end
@@ -330,7 +344,7 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 	local order = rng:int(1, 6)
 	local perms = { { 1, 2, 3 }, { 1, 3, 2 }, { 2, 1, 3 }, { 2, 3, 1 }, { 3, 1, 2 }, { 3, 2, 1 } }
 	local p = perms[order]
-	local species = Genome.rollSpecies(tier, rng:float(), options.family, options.extraSpecies)
+	local species = Genome.rollSpecies(tier, rng:float(), options.families, options.extraSpecies)
 	-- A named type wears its own colour (SlimeLooks); the random roll above is
 	-- still drawn so the rest of the genome stays seed-stable.
 	local look = species and SlimeLooks.get(species.id)
@@ -342,7 +356,7 @@ function Genome.generate(rng: Rng.Rng, options: GenerateOptions): Slime
 		name = if species then species.name else Genome.rollName(rng),
 		tier = tier,
 		color = color,
-		size = roundSize(Config.MIN_SIZE + rng:float() * 0.6),
+		size = roundSize(math.max(Config.MIN_SIZE + rng:float() * 0.6, Genome.sizeFloor(tier))),
 		pattern = rng:pick(Config.PATTERNS),
 		eyes = rng:pick(Config.EYES),
 		mouth = rng:pick(Config.MOUTHS),

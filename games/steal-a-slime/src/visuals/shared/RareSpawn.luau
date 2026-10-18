@@ -3,7 +3,7 @@
 	RareSpawn (owner: Archer)
 
 	Client-only "rare drop" effects on wild slimes (model attribute
-	State == "Wild"), scaled by the factory's Tier attribute (1..6):
+	State == "Wild"), scaled by the factory's Tier attribute (1..7):
 
 	  tier 1  nothing
 	  tier 2  soft PointLight glow, faint ground ring
@@ -12,6 +12,8 @@
 	  tier 5  + beam with a white core, more sparkles
 	  tier 6  + tallest beam (still MAX_BEAM_HEIGHT), second ring, strongest glow
 	            (VisualsClient cycles its colour)
+	  tier 7  the tier 6 look plus `orbit` Neon motes circling the slime
+	            (Secret; PlotVisuals also stands a beam on the fountain)
 
 	RareSpawn.build(tier, size?) -> Model?   (nil for tier 1 / unknown)
 	RareSpawn.place(fx, pivot, t)            moves it to a slime's pivot
@@ -31,6 +33,7 @@ export type TierFx = {
 	sparkles: number?, -- RareSparkle particles/s
 	beam: { height: number, width: number, core: boolean? }?,
 	rings: number?, -- ground rings
+	orbit: number?, -- Neon motes circling the slime (place() moves them)
 }
 
 local RareSpawn = {}
@@ -58,7 +61,18 @@ RareSpawn.TIERS = table.freeze({
 		beam = { height = 22, width = 0.8, core = true },
 		rings = 2,
 	},
+	{
+		glow = { brightness = 4.5, range = 26 },
+		sparkles = 16,
+		beam = { height = 24, width = 0.9, core = true },
+		rings = 2,
+		orbit = 3,
+	},
 }) :: { TierFx }
+
+-- Orbit radius and height of the motes, in slime diameters.
+RareSpawn.ORBIT_RADIUS = 0.85
+RareSpawn.ORBIT_HEIGHT = 0.6
 
 function RareSpawn.color(tier: number): Color3
 	local rarity = Config.RARITIES[tier] or Config.RARITIES[1]
@@ -143,6 +157,14 @@ function RareSpawn.build(tier: number, size: number?): Model?
 			inner.Parent = model
 		end
 	end
+	for k = 1, fx.orbit or 0 do
+		local m = 0.18 * d
+		local mote = part(`Orbit_{k}`, Enum.PartType.Ball, Vector3.new(m, m, m), Color3.new(1, 1, 1), 0.1)
+		mote:SetAttribute("Orbit", k)
+		at(mote, CFrame.new(0, d * RareSpawn.ORBIT_HEIGHT, 0))
+		mote.Parent = model
+	end
+	model:SetAttribute("Diameter", d)
 	for k = 1, fx.rings or 0 do
 		local r = d * (1.3 + 0.6 * k)
 		local ring = part(`Ring_{k}`, Enum.PartType.Cylinder, Vector3.new(0.12, r, r), color, 0.35 + 0.2 * k)
@@ -152,13 +174,28 @@ function RareSpawn.build(tier: number, size: number?): Model?
 	return model
 end
 
--- Poses fx on a slime pivot (bottom centre); t (seconds) drives the pulse.
+-- Offset of orbit mote `k` of `n` around a slime `d` studs wide at time `t` (bottom-centre space).
+function RareSpawn.orbitOffset(t: number, k: number, n: number, d: number): (number, number, number)
+	local a = t * 1.6 + (k - 1) * 2 * math.pi / math.max(n, 1)
+	local r = d * RareSpawn.ORBIT_RADIUS
+	return math.cos(a) * r, d * RareSpawn.ORBIT_HEIGHT + 0.2 * r * math.sin(t * 2.3 + k), math.sin(a) * r
+end
+
+-- Poses fx on a slime pivot (bottom centre); t (seconds) drives the pulse and the orbit.
 function RareSpawn.place(fx: Model, pivot: CFrame, t: number)
 	local base = CFrame.new(pivot.Position)
+	local d = fx:GetAttribute("Diameter")
+	local fxTier = fx:GetAttribute("Tier")
+	local tierFx = if type(fxTier) == "number" then RareSpawn.TIERS[fxTier] else nil
+	local motes = if tierFx then tierFx.orbit or 0 else 0
 	for _, child in fx:GetChildren() do
 		if child:IsA("BasePart") then
 			local offset = child:GetAttribute(RareSpawn.OFFSET_ATTRIBUTE)
-			if typeof(offset) == "CFrame" then
+			local k = child:GetAttribute("Orbit")
+			if type(k) == "number" and type(d) == "number" and typeof(offset) == "CFrame" then
+				local x, y, z = RareSpawn.orbitOffset(t, k, motes, d)
+				child.CFrame = base + Vector3.new(x, y, z)
+			elseif typeof(offset) == "CFrame" then
 				local spin = if string.find(child.Name, "^Ring_") then CFrame.Angles(t * 0.8, 0, 0) else CFrame.identity
 				child.CFrame = base * offset * spin
 			else
