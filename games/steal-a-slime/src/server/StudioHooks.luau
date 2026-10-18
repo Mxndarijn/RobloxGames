@@ -2,9 +2,8 @@
 --[[
 	StudioHooks (Roblox adapter, Studio + in-memory store only)
 
-	Review hooks for the PC watcher shots. The Player attributes "PcwGrowth" (percent) and "PcwDexWeather"
-	(true) change that player's real session data (growth of the pad 1 slime; Wet / Frozen discovered in the
-	Dex), so WorldView and the Dex panel draw the result with their own code. ServerLoop's `pinClock` covers the
+	Review hooks for the PC watcher shots. The Player attribute "PcwGrowth" (percent)
+	changes that player's real session data (growth of the pad 1 slime), so WorldView draws the result with its own code. ServerLoop's `pinClock` covers the
 	Lighting "PcwClock" hook. `start` does nothing outside Studio or with a real DataStore: never active in live
 	servers, never writes a real save.
 ]]
@@ -41,14 +40,6 @@ local function apply(world: World.World, player: Player, refresh: () -> ())
 		end
 		slime.growth = math.clamp(percent, 0, 100) / 100
 	end
-	if player:GetAttribute("PcwDexWeather") == true then
-		for _, mutation in { "Wet", "Frozen" } do
-			local slime = Genome.generate(world.rng, { id = "pcw-dex", tier = 1 })
-			slime.pattern, slime.eyes = "Plain", "Round"
-			Genome.setMutations(slime, { mutation })
-			PlayerData.discover(profile, slime)
-		end
-	end
 	World.markDirty(session)
 	refresh()
 end
@@ -59,11 +50,9 @@ function StudioHooks.start(world: World.World, memoryMode: boolean, refresh: () 
 		return
 	end
 	local function watch(player: Player)
-		for _, attribute in { "PcwGrowth", "PcwDexWeather" } do
-			player:GetAttributeChangedSignal(attribute):Connect(function()
-				pcall(apply, world, player, refresh)
-			end)
-		end
+		player:GetAttributeChangedSignal("PcwGrowth"):Connect(function()
+			pcall(apply, world, player, refresh)
+		end)
 	end
 	Players.PlayerAdded:Connect(watch)
 	for _, player in Players:GetPlayers() do

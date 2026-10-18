@@ -1,13 +1,11 @@
 --!strict
 -- Follow-pet passives (CONTRACT.md §14): perk lookup per slime, caps, only while a favourite is set,
--- server-side application (income / luck / merge mutation chance) and the snapshot view.
+-- server-side application (income / luck) and the snapshot view.
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local Genome = require("../src/shared/Genome")
-local Merge = require("../src/shared/Merge")
 local Perks = require("../src/shared/Perks")
 local PlayerData = require("../src/shared/PlayerData")
-local Rng = require("../src/shared/Rng")
 local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
 local Snapshot = require("../src/server/Snapshot")
@@ -35,30 +33,17 @@ describe("Perks.petPassive", function()
 		local luck = Perks.petPassive(withFav(Fixtures.slime("a", 3)))
 		expect(luck and luck.kind).toBe("luck")
 		expect(luck and luck.text).toBe("+3% luck")
-		local mut = Perks.petPassive(withFav(Fixtures.slime("a", 5)))
-		expect(mut and mut.kind).toBe("mutation")
-		expect(mut and mut.value).toBe(0.1)
-	end)
-	it("each mutation adds a step", function()
-		local plain = Perks.petPassive(withFav(Fixtures.slime("a", 3)))
-		local mutated =
-			Perks.petPassive(withFav(Fixtures.slime("a", 3, { mutation = "Glow", mutations = { "Glow", "Syrup" } })))
-		expect(mutated and plain and mutated.value - plain.value).toBeCloseTo(2 * Config.PET_PASSIVES.MUTATION_STEP)
+		local top = Perks.petPassive(withFav(Fixtures.slime("a", 5)))
+		expect(top and top.kind).toBe("income")
+		expect(top and top.value).toBe(0.05)
 	end)
 	it("is capped per kind", function()
 		for tier, kind in Config.PET_PASSIVES.KIND_BY_TIER do
-			local slime = Fixtures.slime(
-				"a",
-				tier,
-				{ mutation = "Glow", mutations = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" } }
-			)
-			local perk = Perks.petPassive(withFav(slime))
+			local perk = Perks.petPassive(withFav(Fixtures.slime("a", tier)))
 			expect(perk and perk.value <= Config.PET_PASSIVES.KINDS[kind].cap).toBe(true)
 		end
-		local top = Perks.petPassive(
-			withFav(Fixtures.slime("a", 6, { mutations = { "A", "B", "C", "D", "E", "F", "G", "H", "I", "J" } }))
-		)
-		expect(top and top.value).toBe(Config.PET_PASSIVES.KINDS.mutation.cap)
+		local top = Perks.petPassive(withFav(Fixtures.slime("a", 7)))
+		expect(top and top.value).toBe(Config.PET_PASSIVES.KINDS.luck.cap)
 	end)
 	it("is nil when the favourite is not owned or the feature is off", function()
 		local data = Fixtures.data({ Fixtures.slime("a", 3) })
@@ -76,28 +61,11 @@ describe("applied server-side", function()
 		PlayerData.setFavorite(data, nil)
 		expect(Perks.bonusMultiplier(data)).toBe(base)
 	end)
-	it("luck perk adds to luckChance, mutation perk only to the merge bonus", function()
+	it("luck perk adds to luckChance, income perk does not", function()
 		local luck = withFav(Fixtures.slime("a", 3))
 		expect(Perks.luckChance(luck)).toBeCloseTo(0.03)
-		expect(Perks.petMutationBonus(luck)).toBe(0)
-		local mut = withFav(Fixtures.slime("a", 5))
-		expect(Perks.luckChance(mut)).toBe(0)
-		expect(Perks.petMutationBonus(mut)).toBeCloseTo(0.1)
-	end)
-	it("a mutation-pet raises the merge mutation chance", function()
-		local function mutated(bonus: number): number
-			local rng = Rng.new(5)
-			local n = 0
-			for i = 1, 400 do
-				if
-					Merge.merge(Fixtures.slime("a", 1), Fixtures.slime("b", 1), rng, `c{i}`, bonus).mutation ~= "None"
-				then
-					n += 1
-				end
-			end
-			return n
-		end
-		expect(mutated(0.5) > mutated(0) + 60).toBe(true)
+		local income = withFav(Fixtures.slime("a", 5))
+		expect(Perks.luckChance(income)).toBe(0)
 	end)
 	it("snapshot carries the perk; no favourite = nil; no remote can set it", function()
 		local world = ServerFixtures.world()

@@ -678,9 +678,9 @@ function Inventory.new(parent: Instance, deps: Deps)
 		end
 		for _, entry in entries do
 			if entry.kind == "consumable" and entry.itemId == heldConsumable then
-				local request = InventoryCore.useRequest(entry, state)
+				local request = InventoryCore.useRequest(entry)
 				if not request then
-					feedback(entry, "No slime to use it on")
+					feedback(entry, "Not in hand")
 					return false
 				end
 				lastUse = now

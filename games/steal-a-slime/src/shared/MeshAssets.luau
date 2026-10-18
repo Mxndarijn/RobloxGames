@@ -114,7 +114,6 @@ local NAMES = {
 	"fountain_tier_ring",
 	"fountain_tier_crest",
 	"merge_vat",
-	"rain_magnet",
 	"giant_broadleaf",
 	"giant_pine_layered",
 	"giant_round_canopy",
@@ -335,10 +334,6 @@ entries["fountain_tier_crest"] =
 -- NOT a world slot.
 entries["merge_vat"] =
 	{ assetId = 122090902536570, meshId = "rbxassetid://94063238729318", size = { 10.808, 7.625, 10.764 } }
--- FEATURES.RainMagnet (client RainMagnetFx): stands on the owner's plot from ReplicatedStorage.RainMagnetMeshes
--- while the upgrade has a level. NOT a world slot.
-entries["rain_magnet"] =
-	{ assetId = 87228491807524, meshId = "rbxassetid://102515085429965", size = { 5.68, 9.679, 3.607 } }
 -- Border v5 giant trees (WorldBorder.giants; 3-5x the border pines, MeshPart.Color tints the canopy). Open Cloud size-check.
 entries["giant_broadleaf"] =
 	{ assetId = 114689108547101, meshId = "rbxassetid://115148865966963", size = { 80.613, 78.349, 65.201 } }

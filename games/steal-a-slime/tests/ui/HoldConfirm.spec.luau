@@ -106,10 +106,7 @@ describe("B1: hold-to-confirm buttons", function()
 	end)
 	it("Appraise rerolls (the cash spend) are hold buttons with the constant; the row opener spends nothing", function()
 		local plot = read("src/ui/Panels/Plot.luau")
-		for _, name in { "RerollMutation", "RerollSize" } do
-			expect(string.find(plot, `popupButton("{name}"`, 1, true) ~= nil).toBe(true)
-		end
-		expect(string.find(plot, 'reroll("mutation")', 1, true) ~= nil).toBe(true)
+		expect(string.find(plot, 'popupButton("RerollSize"', 1, true) ~= nil).toBe(true)
 		local popupFn = string.match(plot, "local function popupButton.-\n\tend\n")
 		expect(popupFn ~= nil and string.find(popupFn, "HOLD_CONFIRM_SECONDS", 1, true) ~= nil).toBe(true)
 		-- The only caller of ctx.request("Appraise") is reroll, reached only from the hold buttons.

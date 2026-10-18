@@ -8,7 +8,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 
-export type Def = { id: string, label: string, icon: string, luck: number, mutation: number }
+export type Def = { id: string, label: string, icon: string, luck: number }
 export type Payload = { v: number, id: string, seconds: number, by: number, nonce: string }
 export type Limiter = { lastAt: number }
 

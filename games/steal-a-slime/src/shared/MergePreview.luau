@@ -10,7 +10,6 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
-local Merge = if script then require(script.Parent.Merge) else require("./Merge")
 local MergeRecipes = if script then require(script.Parent.MergeRecipes) else require("./MergeRecipes")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 local TripleMerge = if script then require(script.Parent.TripleMerge) else require("./TripleMerge")
@@ -32,8 +31,6 @@ export type Preview = {
 	jumpTier: number?,
 	jumpRarity: string?,
 	jumpChance: number, -- 0..1
-	mutations: { string }, -- kept for sure (strongest first)
-	freshMutationChance: number, -- 0..1, chance of one more on top
 	size: number, -- expected size
 	species: string?, -- recipe only
 }
@@ -83,31 +80,19 @@ local function expectedSize(slimes: { Slime }, bonus: number): number
 end
 
 -- The preview for slimes of one rarity going into the vat that takes `vatSize` (2 = pair vat, 3 = TripleMerge;
--- default #slimes). Fewer picks than `vatSize` preview what the full load gives (mutations and size from
--- the picks so far).
-function MergePreview.forSlimes(slimes: { Slime }, known: any?, mutationBonus: number?, vatSize: number?): Preview
+-- default #slimes). Fewer picks than `vatSize` preview what the full load gives (size from the picks so far).
+function MergePreview.forSlimes(slimes: { Slime }, known: any?, vatSize: number?): Preview
 	local triple = (vatSize or #slimes) >= TripleMerge.COUNT
 	local fromTier = slimes[1].tier
-	local tier, jumpTier, jumpChance, fresh, mutations, size
+	local tier, jumpTier, jumpChance, size
 	if triple then
-		local odds = TripleMerge.odds(fromTier, mutationBonus)
-		tier, jumpTier, jumpChance, fresh = odds.tier, odds.jumpTier, odds.jumpChance, odds.freshMutationChance
-		mutations = TripleMerge.keptMutations(slimes)
+		local odds = TripleMerge.odds(fromTier)
+		tier, jumpTier, jumpChance = odds.tier, odds.jumpTier, odds.jumpChance
 		size = expectedSize(slimes, Config.TRIPLE_MERGE_SIZE_BONUS)
 	else
 		tier, jumpTier, jumpChance = math.min(fromTier + 1, Config.MAX_TIER), nil, 0
-		fresh = math.min(1, Config.MERGE_MUTATION_CHANCE + (mutationBonus or 0))
-		local primary = Genome.primaryMutation(Genome.mutationList(slimes[1]))
-		if slimes[2] then
-			primary = Merge.inheritedMutation(primary, Genome.primaryMutation(Genome.mutationList(slimes[2])))
-		end
-		mutations = if primary == "None" then {} else { primary }
 		size = expectedSize(slimes, Config.MERGE_SIZE_BONUS)
 	end
-	if fromTier >= Config.MAX_TIER then
-		fresh = 1 -- maxed slimes always roll a fresh mutation
-	end
-
 	local recipe = if triple then MergePreview.recipeFor(slimes, known) else nil
 	if recipe then
 		tier, jumpTier, jumpChance = recipe.tier, nil, 0
@@ -123,8 +108,6 @@ function MergePreview.forSlimes(slimes: { Slime }, known: any?, mutationBonus: n
 		jumpTier = jumpTier,
 		jumpRarity = if jumpTier then Genome.rarity(jumpTier).name else nil,
 		jumpChance = jumpChance,
-		mutations = mutations,
-		freshMutationChance = fresh,
 		size = size,
 		species = if recipe then recipe.species else nil,
 	}

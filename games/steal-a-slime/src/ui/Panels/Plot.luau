@@ -2,8 +2,8 @@
 --[[
 	Plot panel: every slime on the plot with tier, income and sell price.
 	Buttons: Sell(slimeId) (hold to confirm), Favorite(slimeId) / Favorite(nil),
-	Appraise: opens a popup with the cost; Appraise(slimeId,
-	"mutation" | "size") rerolls it and the popup shows before -> after.
+	Appraise: opens a popup with the cost; Appraise(slimeId, "size") rerolls the size and the popup shows
+	before -> after.
 	Rows being stolen turn red and show the thief.
 ]]
 
@@ -19,12 +19,6 @@ local Theme = Widgets.Theme
 local create = Widgets.create
 
 local Plot = {}
-
--- Every mutation of a slime for the labels ("Glow Syrup"), or "None".
-local function mutationsText(ctx: any, list: { string }): string
-	local shown = ctx.Genome.mutationsDisplay(list)
-	return if shown == "" then "None" else shown
-end
 
 function Plot.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "PlotPanel", "My Plot", "🏠", Color3.fromRGB(70, 130, 220))
@@ -94,7 +88,7 @@ function Plot.new(parent: Instance, ctx: any)
 		local view = popupId and latestViews[popupId]
 		return view
 	end
-	local function reroll(kind: string)
+	local function reroll()
 		local id = popupId
 		if id == nil or ctx.request == nil then
 			return
@@ -104,33 +98,23 @@ function Plot.new(parent: Instance, ctx: any)
 			if not a or a.slimeId ~= id then
 				return
 			end
-			if a.kind == "mutation" then
-				popupBefore.Text = `Before: {mutationsText(ctx, a.beforeMutations or { a.beforeMutation })}`
-				popupAfter.Text = `After: {mutationsText(ctx, a.afterMutations or { a.afterMutation })}`
-			else
-				popupBefore.Text = `Before: size {string.format("%.2f", a.beforeSize)}`
-				popupAfter.Text = `After: size {string.format("%.2f", a.afterSize)}`
-			end
-		end, id, kind)
+			popupBefore.Text = `Before: size {string.format("%.2f", a.beforeSize)}`
+			popupAfter.Text = `After: size {string.format("%.2f", a.afterSize)}`
+		end, id, "size")
 	end
-	local function popupButton(name: string, text: string, x: number, color: Color3, onClick: () -> ())
+	local function popupButton(name: string, text: string, color: Color3, onClick: () -> ())
 		local btn = Widgets.holdButton({
 			Name = name,
 			Text = text,
 			TextSize = 14,
-			Position = UDim2.new(x, 8, 0, 152),
-			Size = UDim2.new(0.5, -12, 0, 36),
+			Position = UDim2.fromOffset(8, 152),
+			Size = UDim2.new(1, -16, 0, 36),
 			ZIndex = 21,
 		}, color, onClick, ctx.Config.HOLD_CONFIRM_SECONDS)
 		btn.instance.Parent = popup
 		return btn
 	end
-	popupButton("RerollMutation", "Reroll mutation", 0, Theme.Info, function()
-		reroll("mutation")
-	end)
-	popupButton("RerollSize", "Reroll size", 0.5, Theme.Info, function()
-		reroll("size")
-	end)
+	popupButton("RerollSize", "Reroll size", Theme.Info, reroll)
 	local popupClose = Widgets.button(
 		{
 			Name = "Done",
@@ -156,8 +140,7 @@ function Plot.new(parent: Instance, ctx: any)
 		end
 		local slime = view.slime
 		popupTitle.Text = `Appraise {ctx.Genome.displayName(slime)}`
-		popupNow.Text =
-			`Mutation: {mutationsText(ctx, ctx.Genome.mutationList(slime))} · size {string.format("%.2f", slime.size)}`
+		popupNow.Text = `Size {string.format("%.2f", slime.size)}`
 		popupCost.Text = `Cost: 💰 {Format.formatCash(view.appraiseCost or 0)} per reroll`
 	end
 

@@ -5,14 +5,14 @@ Date: 2026-10-16. Scope: every `SlimeRoster` type (29 spawnable in tiers 1-6, pl
 ## What was there before this audit
 
 - **Mesh:** every slime uses one shared package mesh (`Config.SLIME_MESH_ASSET_ID` = 103340234939607, loaded by server `SlimeMesh`; procedural ball fallback). That id is real, not a placeholder. None of the per-type kit meshes (`slime_base`, `slime_acc_leaf`, `slime_ears`, `slime_horns`, `slime_acc_crown`, `slime_acc_crystal`, `slime_wobble`) is in `MeshAssets` or `shared/modeling-kit/uploaded.json`. The FBX files exist in `shared/modeling-kit/out/`. No texture ids: slimes are coloured parts, there is no TextureID to check.
-- **Colour / material:** a typed slime got its name from the roster but a **random** colour, and its material came only from its mutation (SmoothPlastic when unmutated). No type had a colour or material entry. This was the gap.
+- **Colour / material:** a typed slime got its name from the roster but a **random** colour, and its material was always SmoothPlastic. No type had a colour or material entry. This was the gap.
 - **Animations:** slimes are not rigs and there are no AnimationIds. The visuals client plays procedural states on every `Slime`-tagged model, whatever the type: **idle** = bob (`sin(t*3)`, 0.08 x Size) on Pad / Wild, **wobble** = tilt (`sin(t*2.2)`, 0.04 rad) on Pad / Wild plus a fast wriggle while Carried, **move** = hop (`|sin(t*7)|`, 1.6 x Size) while Escaping. So all three states are wired and played for every type, by the procedural fallback.
 
 ## Fixed in this PR
 
 - `src/shared/SlimeLooks.luau` (new): colour, Enum.Material name and kit mesh name for every roster id, plus `SlimeLooks.anim(id, "idle" | "wobble" | "move")`. It resolves to the procedural profile, using the same numbers as the controller.
 - `Genome.generate`: a typed wild spawn now wears its type's colour. The random colour roll is still drawn, so the rest of the genome stays seed-stable. Saves are unchanged: `color` is already saved per slime, and no save id changed.
-- `SlimeMesh.build` (server): sets the `Species` attribute (`Constants.SPECIES_ATTRIBUTE`, CONTRACT §8.4) and, on unmutated typed slimes, the type material on `Body` and `Mesh`. A mutation material still wins.
+- `SlimeMesh.build` (server): sets the `Species` attribute (`Constants.SPECIES_ATTRIBUTE`, CONTRACT §8.4) and the type material on `Body` and `Mesh`.
 - `tests/SlimeLooks.spec.luau`: iterates the roster and asserts a colour, a valid material, a kit name and resolvable idle / wobble / move for each type. It also checks that the controller source really plays those states with those numbers, and covers the colour and Species wiring.
 
 ## Table

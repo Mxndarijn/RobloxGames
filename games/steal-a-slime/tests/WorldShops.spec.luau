@@ -25,14 +25,14 @@ describe("Shops catalogue", function()
 			return out
 		end
 		local item = ids("ItemShop")
-		for _, id in { "Lock", "MysteryEgg", "SpeedCoil", "MutationSpray", "LuckPotion", "WeatherTotem" } do
+		for _, id in { "Lock", "MysteryEgg", "SpeedCoil", "LuckPotion", "WeatherTotem" } do
 			expect(table.find(item, id) ~= nil).toBe(true)
 		end
 		for _, tool in Config.PVP_TOOLS do
 			expect(table.find(item, tool.id) ~= nil).toBe(true)
 		end
 		local upgrade = ids("UpgradeShop")
-		for _, id in { "LockUpgrade", "Income", "CarrySpeed", "OfflineCap", "Luck", "RainMagnet" } do
+		for _, id in { "LockUpgrade", "Income", "CarrySpeed", "OfflineCap", "Luck" } do
 			expect(table.find(upgrade, id) ~= nil).toBe(true)
 		end
 		expect(table.find(upgrade, "SpeedCoil")).toBeNil() -- an item (held in the hand), not an upgrade
@@ -60,13 +60,12 @@ describe("Shops catalogue", function()
 		end
 		local on = Shops.items("ItemShop", { Consumables = false, PvP = true })
 		expect(has(on, "MysteryEgg")).toBe(true)
-		expect(has(on, "MutationSpray")).toBe(false)
+		expect(has(on, "LuckPotion")).toBe(false)
 		expect(has(on, Config.PVP_TOOLS[1].id)).toBe(true)
 		local off = Shops.items("ItemShop", {})
 		expect(has(off, "Lock")).toBe(true)
 		expect(has(off, "MysteryEgg")).toBe(true)
-		expect(has(Shops.items("UpgradeShop", {}), "RainMagnet")).toBe(false)
-		expect(has(Shops.items("UpgradeShop", { RainMagnet = true }), "RainMagnet")).toBe(true)
+		expect(has(Shops.items("ItemShop", { Consumables = true }), "LuckPotion")).toBe(true)
 		expect(#Shops.items("Nope", {})).toBe(0)
 	end)
 	it("every item names a real Request action", function()
@@ -158,7 +157,6 @@ describe("ShopGuard validation order", function()
 			["pick a slime"] = "BadTarget",
 			["not your slime"] = "BadTarget",
 			["slime is busy"] = "BadTarget",
-			["this slime can't take another mutation"] = "BadTarget",
 			["too fast"] = "Busy",
 			["plot full"] = "Unavailable",
 			["the shop is closed"] = "Unavailable",
@@ -386,17 +384,6 @@ describe("Request ShopBuy", function()
 		env.ctx.shopAccess = nil
 		expect(call(env, "ShopBuy", "UpgradeShop", "LockUpgrade").code).toBe("OutOfRange")
 	end)
-	it("a flagged item is unavailable while its feature is off", function()
-		local env = setup()
-		local saved = Config.FEATURES.RainMagnet
-		if saved then
-			return -- RainMagnet forced on: nothing to assert here (the listing test covers the on case)
-		end
-		env.session.data.rebirths = 50
-		local res = call(env, "ShopBuy", "UpgradeShop", "RainMagnet")
-		expect(res.ok).toBe(false)
-		expect(res.code).toBe("Unavailable")
-	end)
 	it("keeps the delegated action's own rate limit (Busy)", function()
 		local env = setup()
 		env.session.limiter = { BuyLockUpgrade = T0 + 100 }
@@ -414,9 +401,9 @@ describe("Request ShopBuy", function()
 		expect(again.ok).toBe(false)
 		expect(again.message).toBe("too fast")
 	end)
-	it("a consumable is bought without a slime (the spray picks its target when used)", function()
+	it("a consumable is bought without a slime", function()
 		local env = setup()
-		local res = call(env, "ShopBuy", "ItemShop", "MutationSpray")
+		local res = call(env, "ShopBuy", "ItemShop", "LuckPotion")
 		if Config.FEATURES.Consumables then
 			expect(res.ok or res.code == "SoldOut").toBe(true)
 			expect(res.code ~= "BadTarget").toBe(true)

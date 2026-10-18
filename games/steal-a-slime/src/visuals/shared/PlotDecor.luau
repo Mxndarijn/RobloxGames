@@ -36,7 +36,7 @@ PlotDecor.BARRIER_HEIGHT = 16
 PlotDecor.BARRIER_COLOR = { 90, 200, 255 }
 PlotDecor.BARRIER_TRANSPARENCY = 0.35 -- ForceField: lower = denser shimmer
 PlotDecor.GEM_OFF = { 70, 72, 84 }
-PlotDecor.DEX_TOTAL = 1152 -- 6 tiers x 8 mutations (incl. None) x 4 patterns x 6 eyes (State.dexTotal)
+PlotDecor.DEX_TOTAL = 50 -- one entry per species (State.dexTotal)
 PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
 PlotDecor.UNLOCKED_COLOR = { 90, 220, 110 }
 PlotDecor.FREE_COLOR = { 255, 205, 60 }

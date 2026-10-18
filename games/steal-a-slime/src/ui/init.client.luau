@@ -397,7 +397,7 @@ local function forceFriends(state: any): any
 	return view
 end
 
--- Studio-only: the SlimeUI attribute "PcwAdminEvent" ("luck" | "mutation") fakes a live admin event
+-- Studio-only: the SlimeUI attribute "PcwAdminEvent" ("luck") fakes a live admin event
 -- in State.modifier so the banner can be shot without a second admin account.
 local function forceAdminEvent(state: any): any
 	local id = if isStudio then gui:GetAttribute("PcwAdminEvent") else nil
@@ -415,7 +415,6 @@ local function forceAdminEvent(state: any): any
 		name = "Admin_" .. def.id,
 		label = def.label,
 		luck = def.luck,
-		mutation = def.mutation,
 		endsAt = state.serverTime + 540,
 		icon = def.icon,
 	}
@@ -472,8 +471,8 @@ local function forceWeekend(state: any): any
 	return view
 end
 
--- Studio-only: the SlimeUI attribute "PcwDexRows" = N marks the first N State.dex entries found (named,
--- with a None stamp) so the Dex grid can be shot with found cards and silhouettes side by side.
+-- Studio-only: the SlimeUI attribute "PcwDexRows" = N marks the first N State.dex entries found (named)
+-- so the Dex grid can be shot with found cards and silhouettes side by side.
 local function forceDex(state: any): any
 	local count = if isStudio then gui:GetAttribute("PcwDexRows") else nil
 	if type(count) ~= "number" or count <= 0 or type(state.dex) ~= "table" then
@@ -487,9 +486,6 @@ local function forceDex(state: any): any
 			local roster = SlimeRoster.get(e.id)
 			e.found = true
 			e.name = if roster then roster.name else e.id
-			if e.kind == "spawn" or e.kind == "hybrid" then
-				e.stamps = { "None" }
-			end
 		end
 		entries[i] = e
 	end
@@ -531,43 +527,8 @@ local function forcePlotSkins(state: any): any
 	return view
 end
 
--- Studio-only: the SlimeUI attribute "PcwRainMagnet" = true adds the Rain Magnet row (level 2, unlocked) to
--- State.upgrades so the Shop shows it with FEATURES.RainMagnet off. Live servers get the server's State untouched.
-local function forceRainMagnet(state: any): any
-	if not isStudio or gui:GetAttribute("PcwRainMagnet") ~= true or type(state.upgrades) ~= "table" then
-		return state
-	end
-	for _, row in state.upgrades do
-		if row.id == "RainMagnet" then
-			return state
-		end
-	end
-	local def
-	for _, u in Config.UPGRADES do
-		if u.id == "RainMagnet" then
-			def = u
-		end
-	end
-	if not def then
-		return state
-	end
-	local view = table.clone(state)
-	view.upgrades = table.clone(state.upgrades)
-	table.insert(view.upgrades, {
-		id = def.id,
-		name = def.name,
-		text = def.text,
-		level = 2,
-		maxLevel = def.maxLevel,
-		price = math.floor(def.base * def.growth ^ 2),
-		requires = def.requires,
-		unlocked = true,
-	})
-	return view
-end
-
 local function panelState(key: string, realState: any): any
-	local state = forceWelcome(forcePlotSkins(forceFriends(forceRainMagnet(realState))))
+	local state = forceWelcome(forcePlotSkins(forceFriends(realState)))
 	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
 		-- Studio-only: one fake owned slime so the My Plot row shows its Appraise button.
 		local view = table.clone(state)
@@ -582,7 +543,6 @@ local function panelState(key: string, realState: any): any
 					pattern = "None",
 					eyes = "Round",
 					mouth = "Smile",
-					mutation = "None",
 					pad = 1,
 				},
 				income = 12,
@@ -1020,7 +980,6 @@ if isStudio then
 			"PcwDexRows",
 			"PcwStealAlert",
 			"PcwMergeVat",
-			"PcwRainMagnet",
 			"PcwWelcome",
 			"PcwRain",
 		}

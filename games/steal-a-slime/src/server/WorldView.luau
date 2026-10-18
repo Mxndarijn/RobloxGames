@@ -551,7 +551,7 @@ local function reconcileTrophies(world: World.World)
 	local wanted: { [string]: { slime: Genome.Slime, plotIndex: number, slot: number } } = {}
 	for _, session in world.sessions do
 		for slot, slime in session.data.trophies do
-			local key = `{session.plotIndex}|{slot}|{slime.species}|{table.concat(Genome.mutationList(slime), ",")}`
+			local key = `{session.plotIndex}|{slot}|{slime.species}`
 			wanted[key] = { slime = slime, plotIndex = session.plotIndex, slot = slot }
 		end
 	end
@@ -966,13 +966,6 @@ function WorldView.updatePlots(world: World.World, now: number)
 					plot,
 					Constants.PLOT_SKIN_ATTRIBUTE,
 					if session then PlotSkins.current(session.data) else Config.PLOT_SKIN_DEFAULT
-				)
-			end
-			if Config.FEATURES.RainMagnet then
-				setIfChanged(
-					plot,
-					Constants.PLOT_RAIN_MAGNET_ATTRIBUTE,
-					if session then Perks.upgradeLevel(session.data, "RainMagnet") else 0
 				)
 			end
 			local dexCount = if session then PlayerData.dexCount(session.data) else 0

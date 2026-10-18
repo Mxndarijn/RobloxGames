@@ -71,22 +71,6 @@ describe("Genome.rollTier", function()
 	end)
 end)
 
-describe("Genome.rollMutation", function()
-	it("is None when the chance roll misses", function()
-		expect(Genome.rollMutation(0.5, 0, 0.1)).toBe("None")
-	end)
-	it("picks by weight when the chance roll hits", function()
-		expect(Genome.rollMutation(0.01, 0, 0.1)).toBe("Glow")
-		expect(Genome.rollMutation(0.01, 0.999, 0.1)).toBe("Eclipse")
-	end)
-	it("weights fall as multipliers rise", function()
-		for i = 2, #Config.MUTATIONS do
-			expect(Config.MUTATIONS[i].multiplier > Config.MUTATIONS[i - 1].multiplier).toBe(true)
-			expect(Config.MUTATIONS[i].weight < Config.MUTATIONS[i - 1].weight).toBe(true)
-		end
-	end)
-end)
-
 describe("Genome.generate", function()
 	it("is deterministic and valid", function()
 		local a = Genome.generate(Rng.new(99), { id = "a" })
@@ -101,23 +85,22 @@ describe("Genome.generate", function()
 	it("always produces sizes, colours and parts within range", function()
 		local rng = Rng.new(2024)
 		for i = 1, 300 do
-			local s = Genome.generate(rng, { id = tostring(i), mutationChance = 0.5 })
+			local s = Genome.generate(rng, { id = tostring(i) })
 			expect(s.size >= Config.MIN_SIZE and s.size <= Config.MAX_SIZE).toBeTruthy()
 			for c = 1, 3 do
 				expect(s.color[c] >= 0 and s.color[c] <= 255).toBeTruthy()
 			end
 			expect(table.find(Config.EYES, s.eyes) ~= nil).toBeTruthy()
-			expect(s.mutation == "None" or Genome.mutationInfo(s.mutation) ~= nil).toBeTruthy()
 			expect(#s.name >= 3).toBeTruthy()
 		end
 	end)
 end)
 
 describe("Genome.baseIncome", function()
-	it("is rarity income x size x mutation", function()
+	it("is rarity income x size", function()
 		expect(Genome.baseIncome(Fixtures.slime("a", 1))).toBe(1)
 		expect(Genome.baseIncome(Fixtures.slime("a", 3, { size = 2 }))).toBe(18)
-		expect(Genome.baseIncome(Fixtures.slime("a", 2, { mutation = "Gold" }))).toBe(15)
+		expect(Genome.baseIncome(Fixtures.slime("a", 2))).toBe(3)
 	end)
 end)
 
@@ -138,6 +121,7 @@ describe("Genome.sanitize", function()
 			color = { -5, 300, "x" },
 			eyes = "Laser",
 			mutation = "Cursed",
+			mutations = { "Glow" },
 			pad = 99,
 		})
 		assert(s, "sanitize returned nil")
@@ -145,11 +129,12 @@ describe("Genome.sanitize", function()
 		expect(s.size).toBe(Config.MAX_SIZE)
 		expect(s.color).toEqual({ 0, 255, 200 })
 		expect(s.eyes).toBe("Round")
-		expect(s.mutation).toBe("None")
+		expect((s :: any).mutation).toBeNil()
+		expect((s :: any).mutations).toBeNil()
 		expect(s.pad).toBeNil()
 	end)
-	it("display name includes mutation and rarity", function()
-		expect(Genome.displayName(Fixtures.slime("a", 4, { mutation = "Lava" }))).toBe("Syrup Epic Blorp") -- save id Lava, display Syrup
+	it("display name is rarity and name", function()
+		expect(Genome.displayName(Fixtures.slime("a", 4))).toBe("Epic Blorp")
 		expect(Genome.displayName(Fixtures.slime("a", 1))).toBe("Common Blorp")
 	end)
 end)
@@ -192,23 +177,12 @@ describe("Genome roster wiring (v28)", function()
 		assert(s, "expected a value")
 		expect(s.name).toBe("Globble")
 		expect(s.species).toBe(nil)
-		expect(s.mutation).toBe("Lava")
+		expect((s :: any).mutation).toBeNil()
 		local bad = Genome.sanitize({ id = "x", tier = 1, species = "nope" })
 		assert(bad, "expected a value")
 		expect(bad.species).toBe(nil)
 		local good = Genome.sanitize({ id = "y", tier = 1, species = "gummy" })
 		assert(good, "expected a value")
 		expect(good.species).toBe("gummy")
-	end)
-	it("new mutations load and Lava displays as Syrup", function()
-		for _, m in { "Rainbow", "Crystal", "Eclipse" } do
-			expect(Genome.mutationInfo(m) ~= nil).toBe(true)
-		end
-		expect(Genome.mutationMultiplier("Eclipse")).toBe(10)
-		expect(Genome.mutationDisplay("Lava")).toBe("Syrup")
-		expect(Genome.mutationDisplay("Gold")).toBe("Gold")
-		local s = Genome.generate(Rng.new(1), { id = "x", tier = 1 })
-		s.mutation = "Lava"
-		expect(string.find(Genome.displayName(s), "Syrup", 1, true) ~= nil).toBe(true)
 	end)
 end)

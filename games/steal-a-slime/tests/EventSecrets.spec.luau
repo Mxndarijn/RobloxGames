@@ -100,8 +100,7 @@ describe("EventSecrets in the spawn pool", function()
 			local rng = Rng.new(11 + w)
 			local hits = 0
 			for i = 1, 400 do
-				local drop =
-					Fountain.roll(rng, `s{i}`, false, SECRET, nil, nil, nil, nil, nil, EventSecrets.extraSpecies(now))
+				local drop = Fountain.roll(rng, `s{i}`, false, SECRET, nil, nil, EventSecrets.extraSpecies(now))
 				local species = drop.slime.species :: string
 				expect(drop.slime.tier).toBe(SECRET)
 				if isEvent(species) then
@@ -138,7 +137,7 @@ describe("EventSecrets in the spawn pool", function()
 		local original = Spawner.unixTime
 		fountain.roll = function(...)
 			calls += 1
-			seen[calls] = select(10, ...)
+			seen[calls] = select(7, ...)
 			return roll(...)
 		end
 		local world = ServerFixtures.world()

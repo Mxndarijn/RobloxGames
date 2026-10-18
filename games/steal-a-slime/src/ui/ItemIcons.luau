@@ -4,13 +4,13 @@
 
 	The one item icon registry: item id -> icon spec, for every item the UI
 	shows (shop rows, upgrades, gear, boosts, the Mystery Egg, code rewards,
-	goal rewards, badges, plot skins, mutations, ...). Pure (no Roblox APIs),
+	goal rewards, badges, plot skins, ...). Pure (no Roblox APIs),
 	built from Config by ItemIcons.build(Config); rendering lives in
 	ItemIconView.
 
 	A spec resolves in this order (`source`):
-	  1. "model": the item has a real 3D model in the repo: a slime with a
-	     mutation finish (SlimePreview) or a kit mesh (MeshAssets name).
+	  1. "model": the item has a real 3D model in the repo: a
+	     kit mesh (MeshAssets name).
 	     ItemIconView renders it in a ViewportFrame, lazily, under a global
 	     live cap, and falls back to 2 / 3 when it cannot.
 	  2. "image": an uploaded picture. Paste the asset id into ItemIcons.IMAGES
@@ -25,10 +25,10 @@
 export type Spec = {
 	id: string,
 	name: string,
-	group: string, -- "shop" | "gear" | "upgrade" | "boost" | "code" | "goal" | "badge" | "mutation" | "skin" | "misc" | "hud"
+	group: string, -- "shop" | "gear" | "upgrade" | "boost" | "code" | "goal" | "badge" | "skin" | "misc" | "hud"
 	color: { number }, -- tile colour, 0..255 RGB
 	glyph: string, -- allowlisted (tests/ui/Glyphs.spec): ASCII, a proven BMP symbol or an emoji
-	model: { kind: "slime" | "mesh", mutation: string?, mesh: string? }?,
+	model: { kind: "mesh", mesh: string? }?,
 	image: number?, -- uploaded asset id, from IMAGES
 	source: "model" | "image" | "drawn" | "placeholder",
 	brief: string, -- what Archer renders for the 512x512 icon (ITEM-ICONS-NEEDED.md)
@@ -63,14 +63,10 @@ ItemIcons.IMAGES = {
 	Code_SLIMEBOOST = 96448805080296,
 	Code_WELCOME = 132772869844350,
 	Consumable_LuckPotion = 130655218939229,
-	Consumable_MutationSpray = 132258473401570,
 	Consumable_WeatherTotem = 128919354425403,
 	Daily = 136919499537484,
-	DexStamps_100 = 104036768146434,
-	DexStamps_200 = 124460827254481,
 	Dex_50 = 98335037376213,
 	Event_luck = 110897664124431,
-	Event_mutation = 77556138887188,
 	Event_rain = 85475866363499,
 	Gift = 100988775125780,
 	Goal_Catch = 72111768355754,
@@ -85,7 +81,6 @@ ItemIcons.IMAGES = {
 	MysteryEgg = 140462029142577,
 	Perk_income = 94766482619711,
 	Perk_luck = 80060700315838,
-	Perk_mutation = 89742124559371,
 	PlotSkin_candy = 75125399713715,
 	PlotSkin_classic = 75405645541984,
 	PlotSkin_crystal = 91231773101915,
@@ -118,7 +113,6 @@ ItemIcons.IMAGES = {
 	Upgrade_Income = 78599900293497,
 	Upgrade_Luck = 138463958912705,
 	Upgrade_OfflineCap = 119754785018464,
-	Upgrade_RainMagnet = 117424238725252,
 } :: { [string]: number }
 
 -- Groups whose items are UI-drawn (ItemIconArt recipe per id). Kit-mesh plot skins stay "model"
@@ -147,33 +141,13 @@ ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
 
 -- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
 -- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet.
-ItemIcons.AWAITING_UPLOAD =
-	table.freeze({ "Dex_8", "Dex_15", "Dex_20", "Dex_32", "Dex_40", "DexStamps_50", "DexStamps_376" } :: { string })
+ItemIcons.AWAITING_UPLOAD = table.freeze({ "Dex_8", "Dex_15", "Dex_20", "Dex_32", "Dex_40" } :: { string })
 
 -- Kit meshes that exist in MeshAssets (shared/MeshAssets NAMES) and may back a "mesh" model.
 ItemIcons.MESHES = table.freeze({
 	PlotSkin_mushroom = "plot_skin_mushroom",
 	PlotSkin_candy = "plot_skin_candy",
 	PlotSkin_crystal = "plot_skin_crystal",
-})
-
--- Tint of the slime shown for a mutation (the mutation's own look).
-ItemIcons.MUTATION_TINTS = table.freeze({
-	Glow = { 255, 240, 120 },
-	Lava = { 255, 120, 50 },
-	Galaxy = { 110, 80, 200 },
-	Rainbow = { 255, 130, 200 },
-	Gold = { 255, 200, 40 },
-	Crystal = { 160, 230, 255 },
-	Eclipse = { 40, 36, 70 },
-	Wet = { 80, 170, 255 },
-	Frozen = { 190, 235, 255 },
-	Solar = { 255, 170, 60 },
-	Nebula = { 170, 90, 210 },
-	Aurora = { 90, 230, 190 },
-	Royal = { 255, 215, 90 },
-	Sleet = { 140, 200, 235 },
-	Comet = { 120, 190, 255 },
 })
 
 local function freeze(spec: any): Spec
@@ -257,14 +231,6 @@ local HAND: { Hand } = {
 		brief = "A four-leaf clover with a gold coin at its centre and a glossy highlight; top-down view.",
 	},
 	{
-		id = "Upgrade_RainMagnet",
-		name = "Rain Magnet",
-		group = "upgrade",
-		color = { 90, 150, 230 },
-		glyph = "🧲",
-		brief = "A red-and-silver horseshoe magnet pulling three blue raindrops and a snowflake toward it; front view.",
-	},
-	{
 		id = "Boost_Code",
 		name = "Income boost",
 		group = "boost",
@@ -313,28 +279,12 @@ local HAND: { Hand } = {
 		brief = "A green clover leaf with a ladybug on it, front view.",
 	},
 	{
-		id = "Perk_mutation",
-		name = "Pet mutation perk",
-		group = "boost",
-		color = { 190, 100, 220 },
-		glyph = "🧬",
-		brief = "A purple-green DNA double helix twisting upward with a few bubbles; front view.",
-	},
-	{
 		id = "Event_luck",
 		name = "Luck Event",
 		group = "boost",
 		color = { 90, 200, 100 },
 		glyph = "🍀",
 		brief = "A shiny clover on a rainbow arc with a pot of gold coins at the foot; front view.",
-	},
-	{
-		id = "Event_mutation",
-		name = "Mutation Event",
-		group = "boost",
-		color = { 190, 100, 220 },
-		glyph = "🧬",
-		brief = "A bubbling flask with a glowing rainbow-green slime inside and DNA sparks; 3/4 view.",
 	},
 	{
 		id = "Event_rain",
@@ -422,8 +372,7 @@ local GOAL_GLYPHS: { [string]: { glyph: string, color: { number }, what: string 
 local GOAL_DEFAULT = { glyph = "🎯", color = { 230, 120, 80 }, what = "a bullseye with an arrow" }
 
 local BADGE_COLOR = { 255, 200, 60 }
-local CONSUMABLE_COLORS: { [string]: { number } } =
-	{ MutationSpray = { 190, 120, 230 }, LuckPotion = { 70, 190, 90 }, WeatherTotem = { 150, 155, 170 } }
+local CONSUMABLE_COLORS: { [string]: { number } } = { LuckPotion = { 70, 190, 90 }, WeatherTotem = { 150, 155, 170 } }
 local PVP_COLORS: { [string]: { number } } =
 	{ Knockback = { 230, 120, 80 }, Trap = { 110, 200, 120 }, Blaster = { 90, 160, 240 }, Fun = { 255, 200, 60 } }
 local PVP_GLYPHS: { [string]: string } = { Knockback = "🥊", Trap = "🟢", Blaster = "🔫", Fun = "🎉" }
@@ -487,21 +436,6 @@ function ItemIcons.build(config: any)
 		})
 	end
 
-	for _, mutations in { config.MUTATIONS, config.WEATHER_MUTATIONS, config.COMBOS, config.WEATHER_COMBOS } do
-		for _, m in mutations do
-			local tint = ItemIcons.MUTATION_TINTS[m.name]
-			add({
-				id = `Mutation_{m.name}`,
-				name = m.displayName,
-				group = "mutation",
-				color = tint or { 160, 160, 160 },
-				glyph = "🧬",
-				model = { kind = "slime", mutation = m.name },
-				brief = `{m.displayName} slime (has a 3D slime preview)`,
-			})
-		end
-	end
-
 	for id, def in config.CODES do
 		local boost = def.reward.kind == "boost"
 		add({
@@ -528,18 +462,15 @@ function ItemIcons.build(config: any)
 		})
 	end
 
-	for _, pair in { { "species", "Dex" }, { "stamps", "DexStamps" } } do
-		local ladder, prefix = pair[1], pair[2]
-		for i, m in config.DEX_MILESTONES[ladder] do
-			add({
-				id = `{prefix}_{m.count}`,
-				name = if ladder == "species" then `Dex {m.count} species` else `Dex {m.count} stamps`,
-				group = "goal",
-				color = { 255, 200 - math.min(i, 7) * 12, 80 },
-				glyph = "🏆",
-				brief = `Gold trophy with a slime on top and the number {m.count} on the base; front view.`,
-			})
-		end
+	for i, m in config.DEX_MILESTONES.species do
+		add({
+			id = `Dex_{m.count}`,
+			name = `Dex {m.count} species`,
+			group = "goal",
+			color = { 255, 200 - math.min(i, 7) * 12, 80 },
+			glyph = "🏆",
+			brief = `Gold trophy with a slime on top and the number {m.count} on the base; front view.`,
+		})
 	end
 
 	for _, b in config.BADGES do

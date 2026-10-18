@@ -14,12 +14,11 @@
 	build() always starts from factory.build, so the CONTRACT.md §4 shape is
 	untouched (unparented Slime_<id>, Body PrimaryPart, bottom pivot, attributes,
 	tag). With a template it adds a welded MeshPart "Mesh" fitted to Body's box,
-	coloured and textured like Body (genome colour + mutation material), and hides
-	the Body ball. Tier rim / crown / halo, mutation parts, eyes, mouth and pattern
+	coloured and textured like Body (genome colour), and hides
+	the Body ball. Tier rim / crown / halo, eyes, mouth and pattern
 	stay. If dressing errors the slime is rebuilt procedurally.
 
-	Typed slimes (v28 `species`) also get the Species attribute and, when
-	unmutated, their SlimeLooks material on Body and Mesh (both looks).
+	Typed slimes (v28 `species`) also get the Species attribute and their SlimeLooks material on Body and Mesh (both looks).
 
 	Species meshes (SlimeLooks.get(species).kit = "slime_<id>", uploaded in
 	MeshAssets with size + offset): load() also fetches each one by its assetId.
@@ -136,7 +135,7 @@ local function anchorFor(model: Model, body: BasePart): BasePart
 end
 
 -- Procedural parts a species mesh replaces (it carries its own face, pattern and accessories).
--- Tier rim, aura, glow shell and the mutation effects stay.
+-- Tier rim, aura, and glow shell stay.
 local REPLACED_PREFIXES = {
 	"Eye",
 	"Iris",
@@ -245,16 +244,13 @@ local function dress(model: Model, template: MeshPart, kit: string?)
 	end
 end
 
--- The type's material on Body and Mesh; a mutation keeps its own material.
+-- The type's material on Body and Mesh.
 local function applySpecies(model: Model, slimeData: Types.SlimeData)
 	local look = SlimeLooks.get(slimeData.species)
 	if not look then
 		return
 	end
 	model:SetAttribute(Constants.SPECIES_ATTRIBUTE, look.id)
-	if slimeData.mutation ~= "None" then
-		return
-	end
 	local material = (Enum.Material :: any)[look.material]
 	for _, name in { "Body", SlimeMesh.MESH_NAME } do
 		local part = model:FindFirstChild(name)

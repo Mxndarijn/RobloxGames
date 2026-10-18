@@ -74,7 +74,6 @@ RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
 	fountain_tier_ring = "fountain tier decor (FountainTiers): cloned round the fountain by the client at tier 2+, no world slot",
 	fountain_tier_crest = "fountain tier decor (FountainTiers): cloned over the fountain by the client at tier 3+, no world slot",
 	merge_vat = "plot merge vat: MeshSwap.swapPlotVats stands it over every plot's MergeVat disc, no world slot",
-	rain_magnet = "Rain Magnet upgrade prop (RainMagnet): the client stands it on the owner's plot while the upgrade has a level, no world slot",
 	ranch_bat = "default melee Bat: the Handle mesh of Tool 'Bat' (held, no collision), no world slot",
 }) :: { [string]: string }
 

@@ -109,7 +109,7 @@ describe("Consumable stack saves", function()
 		Consumables.record(d, 12, "LuckPotion")
 		local back = SaveData.deserialize(SaveData.serialize(d, T0))
 		expect(back.consumables.held.LuckPotion).toBe(4)
-		expect(back.consumables.held.MutationSpray).toBe(1)
+		expect(back.consumables.held.MutationSpray).toBeNil() -- a removed item id is dropped
 		expect(back.consumables.bought.LuckPotion).toBe(1)
 		expect(back.consumables.slot).toBe(12)
 	end)
@@ -120,7 +120,7 @@ describe("Consumable stack saves", function()
 		local data = SaveData.deserialize(stored)
 		expect(data.consumables.slot).toBe(77)
 		expect(data.consumables.bought.LuckPotion).toBe(2)
-		expect(data.consumables.bought.MutationSpray).toBe(1)
+		expect(data.consumables.bought.MutationSpray).toBeNil()
 		expect(next(data.consumables.held)).toBeNil() -- those were applied when bought: nothing to hold
 		-- and it saves again in the new shape
 		local again = SaveData.deserialize(SaveData.serialize(data, T0))
@@ -202,10 +202,6 @@ describe("UseConsumable", function()
 		local world = ServerFixtures.world(now)
 		local session = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2) }, 1e9, now)
 		session.data.consumables.held.LuckPotion = 2
-		session.data.consumables.held.MutationSpray = 1
-		local no = call(world, 1, "UseConsumable", now, "MutationSpray") -- no slime picked
-		expect(no.ok).toBe(false)
-		expect(session.data.consumables.held.MutationSpray).toBe(1)
 		local c = ctx(nil)
 		local later = now + 1000
 		local first = Actions.handle(world, 1, "UseConsumable", { "LuckPotion" }, later, c)
@@ -250,32 +246,6 @@ describe("UseConsumable", function()
 		expect(done.ok).toBe(true)
 		expect(asked).toBe((select(2, Consumables.stock(slot))))
 		expect(session.data.consumables.held.WeatherTotem).toBeNil()
-	end)
-
-	it("the spray goes on an owned slime and uses one", function()
-		local now = slotWith("MutationSpray", 1) * STEP + 1
-		local world = ServerFixtures.world(now)
-		local session = ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 1e9, now)
-		session.data.consumables.held.MutationSpray = 1
-		local res
-		for seed = 1, 20 do
-			session.data.consumables.held.MutationSpray = 1
-			tick += 1
-			res = Actions.handle(world, 1, "UseConsumable", { "MutationSpray", "a" }, now + tick * 2, {
-				distanceBetween = function()
-					return 2
-				end,
-				positionOf = function()
-					return "pos"
-				end,
-				rng = Rng.new(seed),
-			})
-			if res.ok then
-				break
-			end
-		end
-		expect(res.ok).toBe(true)
-		expect(session.data.consumables.held.MutationSpray).toBeNil()
 	end)
 end)
 

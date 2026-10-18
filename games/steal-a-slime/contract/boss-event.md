@@ -24,7 +24,7 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
   Target = `BOSS.POINTS_PER_PLAYER` x players on the server (at least 1), read live. With no hit for `BOSS.DRAIN_GRACE`
   seconds it drains `BOSS.DRAIN_PER_SECOND` of the target per second. Every player's points are kept (they never drain).
   Each `BOSS.SHED_EVERY` of the meter crossed for the first time sheds `BOSS.SHED_COUNT` wild slimes (luck
-  `BOSS.DROP_LUCK`, the Slime Rain mutation chance, outside the wild cap). The full meter starts the haul.
+  `BOSS.DROP_LUCK`, outside the wild cap). The full meter starts the haul.
 - **Hits.** The Bat (`BatTool.swing`, no remote): a carrying thief or boss carrier in reach is tried first (the slap);
   otherwise the boss in the fight phase is hit when its Body is within `BOSS.HIT_REACH` and in front (`BatRules`).
 - **Helpers.** When the meter fills, every player whose points are at least `BOSS.HELPER_SHARE` of the top
@@ -44,9 +44,7 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
 `data.trophies: { Slime }`, at most one per boss species, saved in the profile. No `SAVE_VERSION` bump: a save without
 the field has none; `SaveData.cleanTrophies` keeps sanitized slimes of a boss species only (first per species, `pad` nil).
 
-- A trophy slime: the boss species (its name, colour and mesh), the boss tier, size `MAX_SIZE`, at least one mutation
-  (`BOSS.MIN_MUTATION` when the roll gives none).
-- Winning a species you already hold rerolls that trophy's mutations (never to none) instead of adding one.
+- A trophy slime: the boss species (its name, colour and mesh), the boss tier, size `MAX_SIZE`.
 - Trophies earn income (added to `PlayerData.incomePerSecond` like a pad slime) and are not in `data.slimes`, so they
   can't be stolen, merged, sold or placed on a pad.
 - Shown on a trophy stand beside the owner's plot (server `TrophyView`, boss mesh through `SlimeMesh`), one pedestal per
@@ -85,7 +83,7 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 
 `FIRST_AT INTERVAL WARNING_SECONDS RAIN_GAP SKIP_DELAY FIGHT_SECONDS HAUL_SECONDS LINGER_SECONDS PRIORITY_SECONDS
 POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT BURST_COUNT DROP_LUCK CARRY_SLOW
-SCALE SPOT_ANGLE SPOT_RADIUS HELPER_SHARE HELPER_EGGS ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK MIN_MUTATION
+SCALE SPOT_ANGLE SPOT_RADIUS HELPER_SHARE HELPER_EGGS ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK
 TROPHY_GAP`. Values live in `Config.luau` only.
 
 ## World / Scene

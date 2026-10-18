@@ -55,7 +55,6 @@ table.insert(session.data.slimes, {
 	pattern = "Plain",
 	eyes = "Round",
 	mouth = "Smile",
-	mutation = "None",
 	pad = 3,
 	species = "cosmo",
 })

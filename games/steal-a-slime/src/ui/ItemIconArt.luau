@@ -252,19 +252,6 @@ RECIPES.Upgrade_Luck = function(p)
 	p:circle(0.47, 0.44, 0.1, rgb(255, 240, 170), { stroke = false, flat = true })
 end
 
-RECIPES.Upgrade_RainMagnet = function(p)
-	p:shape(0.5, 0.36, 0.62, 0.62, RED, { round = 0.5 })
-	p:shape(0.5, 0.42, 0.3, 0.46, rgb(80, 130, 210), { round = 0.5, stroke = false, flat = true })
-	p:shape(0.3, 0.6, 0.18, 0.28, RED, { round = 0.1 })
-	p:shape(0.7, 0.6, 0.18, 0.28, RED, { round = 0.1 })
-	p:shape(0.3, 0.76, 0.18, 0.12, SILVER, { round = 0.1 })
-	p:shape(0.7, 0.76, 0.18, 0.12, SILVER, { round = 0.1 })
-	for _, x in { 0.22, 0.5, 0.78 } do
-		p:circle(x, 0.92, 0.1, rgb(120, 200, 255), { stroke = false })
-	end
-	p:text("*", 0.5, 0.82, 0.2, WHITE)
-end
-
 -- World shop items without art yet: restocking consumables (Consumable_<id>) and PvP tools (Pvp_<id>).
 local function flask(p: Pen, liquid: Color, mark: string)
 	p:shape(0.5, 0.2, 0.2, 0.2, SILVER, { round = 0.3 })
@@ -272,17 +259,6 @@ local function flask(p: Pen, liquid: Color, mark: string)
 	p:circle(0.5, 0.66, 0.66, rgb(200, 235, 250))
 	p:circle(0.5, 0.69, 0.52, liquid, { stroke = false })
 	p:text(mark, 0.5, 0.68, 0.34)
-end
-
-RECIPES.Consumable_MutationSpray = function(p)
-	p:shape(0.42, 0.6, 0.46, 0.62, rgb(120, 200, 150), { round = 0.2 })
-	p:shape(0.42, 0.62, 0.3, 0.3, rgb(190, 120, 230), { round = 0.4, stroke = false })
-	p:shape(0.42, 0.24, 0.3, 0.14, SILVER, { round = 0.3 })
-	p:shape(0.64, 0.2, 0.26, 0.1, SILVER, { round = 0.5 })
-	for i = 0, 2 do
-		p:circle(0.86, 0.12 + i * 0.12, 0.08, rgb(190, 120, 230), { stroke = false, flat = true })
-	end
-	sparkle(p, 0.8, 0.5, 0.22)
 end
 
 RECIPES.Consumable_LuckPotion = function(p)
@@ -410,16 +386,6 @@ RECIPES.Perk_luck = function(p)
 	p:circle(0.63, 0.45, 0.05, INK, { stroke = false, flat = true })
 end
 
-RECIPES.Perk_mutation = function(p)
-	for i = 0, 6 do
-		local y = 0.1 + i * 0.13
-		local x = math.sin(i * 0.95) * 0.22
-		p:shape(0.5, y, math.abs(x) * 2, 0.03, WHITE, { alpha = 0.6, stroke = false, flat = true })
-		p:circle(0.5 + x, y, 0.15, PURPLE)
-		p:circle(0.5 - x, y, 0.15, rgb(110, 220, 110))
-	end
-end
-
 RECIPES.Event_luck = function(p)
 	local arch = p:clip(0.5, 0.36, 0.9, 0.5)
 	for i, c in ipairs({ RED, rgb(255, 160, 50), GOLD, GREEN, BLUE }) do
@@ -429,16 +395,6 @@ RECIPES.Event_luck = function(p)
 	p:circle(0.3, 0.8, 0.2, GOLD)
 	p:circle(0.5, 0.84, 0.2, GOLD_D)
 	p:circle(0.7, 0.8, 0.2, GOLD)
-end
-
-RECIPES.Event_mutation = function(p)
-	p:shape(0.5, 0.2, 0.22, 0.3, rgb(200, 235, 250), { round = 0.2 })
-	p:circle(0.5, 0.62, 0.66, rgb(200, 235, 250))
-	p:circle(0.5, 0.65, 0.52, rgb(110, 220, 120), { stroke = false })
-	blob(p, 0.5, 0.68, 0.3, rgb(190, 255, 170))
-	p:circle(0.3, 0.4, 0.07, WHITE, { alpha = 0.5, stroke = false, flat = true })
-	sparkle(p, 0.84, 0.2, 0.22)
-	p:text("🧬", 0.2, 0.16, 0.2)
 end
 
 RECIPES.Event_rain = function(p)
@@ -586,9 +542,9 @@ for key in BADGE_EMBLEMS do
 	end
 end
 
--- SlimeDex milestone trophies (Config.DEX_MILESTONES): "Dex_<species count>" and "DexStamps_<stamp count>".
+-- SlimeDex milestone trophies (Config.DEX_MILESTONES): "Dex_<species count>".
 local function trophyRecipe(id: string): ((Pen) -> ())?
-	local count = tonumber(string.match(id, "^Dex_(%d+)$") or string.match(id, "^DexStamps_(%d+)$"))
+	local count = tonumber(string.match(id, "^Dex_(%d+)$"))
 	if count == nil then
 		return nil
 	end

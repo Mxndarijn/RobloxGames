@@ -27,7 +27,7 @@ species at the tier adds none; Classic has at least one at every tier, so the po
 ```luau
 Genome.speciesPool(tier: number, families: { string }?, extra: { SlimeRoster.Entry }?): { SlimeRoster.Entry }
 Genome.rollSpecies(tier: number, roll: number, families: { string }?, extra: { SlimeRoster.Entry }?): SlimeRoster.Entry?
-Fountain.roll(rng, id, raining, minTier?, luckMult?, mutationMult?, weeklyMutation?, weeklyBonus?,
+Fountain.roll(rng, id, raining, minTier?, luckMult?,
 	families: { string }?, extraSpecies: { SlimeRoster.Entry }?): Fountain.Drop
 ```
 

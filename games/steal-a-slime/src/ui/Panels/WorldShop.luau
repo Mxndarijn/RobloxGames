@@ -4,7 +4,7 @@
 	"Upgrade Shop". The server opens it at the stand's ShopPrompt (ShopEvent Open / attribute OpenShop);
 	init.client calls setShop(shopId) and shows the card like every other menu (setOpen("WorldShop"), X,
 	backdrop, Esc / B). Rows come from WorldShopLogic.rows (Shared.Shops + the live State); a Buy hold calls
-	Request("ShopBuy", shopId, itemId, arg?). Same row geometry as the old combined Panels/Shop, which stays
+	Request("ShopBuy", shopId, itemId). Same row geometry as the old combined Panels/Shop, which stays
 	for FEATURES.WorldShops off.
 ]]
 
@@ -193,7 +193,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 			style.buy,
 			function()
 				if current.enabled then
-					ctx.send("ShopBuy", table.unpack(WorldShopLogic.buyArgs(current), 1, 3))
+					ctx.send("ShopBuy", table.unpack(WorldShopLogic.buyArgs(current), 1, 2))
 				end
 			end,
 			ctx.Config.HOLD_CONFIRM_SECONDS

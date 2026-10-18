@@ -17,7 +17,7 @@ readable at 36 px.
 one line per item: `Upgrade_Luck = 123456789,` (the number of the uploaded Image asset). An image
 replaces the placeholder tile; nothing else changes. Then regenerate this file.
 
-Items that already render a real 3D model (mutations, plot skins) are not listed.
+Items that already render a real 3D model (plot skins) are not listed.
 
 | id | name | group | tile colour (RGB) | what to render |
 |---|---|---|---|---|

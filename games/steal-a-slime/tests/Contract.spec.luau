@@ -56,13 +56,6 @@ describe("Config matches the design", function()
 			last = rarity.escapeTime
 		end
 	end)
-	it("keeps the original mutation ids and adds Rainbow, Crystal, Eclipse in multiplier order", function()
-		local names = {}
-		for _, m in Config.MUTATIONS do
-			table.insert(names, m.name)
-		end
-		expect(names).toEqual({ "Glow", "Lava", "Galaxy", "Rainbow", "Gold", "Crystal", "Eclipse" })
-	end)
 	it("runs Slime Rain hourly for 3 minutes on 8 pads", function()
 		expect(Config.RAIN_INTERVAL).toBe(3600)
 		expect(Config.RAIN_DURATION).toBe(180)

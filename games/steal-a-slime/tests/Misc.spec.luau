@@ -83,18 +83,15 @@ describe("Fountain", function()
 			expect(z).toBeCloseTo(0)
 		end
 	end)
-	it("Slime Rain drops more mutations and rarer slimes", function()
+	it("Slime Rain drops rarer slimes", function()
 		local r1, r2 = Rng.new(9), Rng.new(9)
-		local normalMut, rainMut, normalRare, rainRare = 0, 0, 0, 0
+		local normalRare, rainRare = 0, 0
 		for i = 1, 3000 do
 			local a = Fountain.roll(r1, tostring(i), false).slime
 			local b = Fountain.roll(r2, tostring(i), true).slime
-			normalMut += if a.mutation ~= "None" then 1 else 0
-			rainMut += if b.mutation ~= "None" then 1 else 0
 			normalRare += if a.tier >= 3 then 1 else 0
 			rainRare += if b.tier >= 3 then 1 else 0
 		end
-		expect(rainMut > normalMut * 4).toBeTruthy()
 		expect(rainRare > normalRare * 1.5).toBeTruthy()
 	end)
 	it("spawn cap and interval change during rain", function()

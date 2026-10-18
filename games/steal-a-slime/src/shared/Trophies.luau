@@ -4,7 +4,7 @@
 
 	Boss slimes and the trophy stand in `data.trophies`: one trophy per boss species. A trophy earns income
 	(PlayerData.incomePerSecond) but is not in `data.slimes`, so it can't be stolen, merged, sold or put on a pad.
-	Winning a species you already hold rerolls that trophy's mutations instead. No Roblox APIs.
+	Winning a species you already hold keeps the trophy you have. No Roblox APIs.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -18,19 +18,13 @@ type Slime = Genome.Slime
 
 local Trophies = {}
 
--- A random mutation (Config.MUTATIONS weights), never "None".
-local function rollMutation(rng: Rng.Rng): string
-	return Genome.rollMutation(0, rng:float(), 1)
-end
-
--- The boss slime of `species` (a SlimeRoster kind "boss" id): its name, colour and tier, MAX_SIZE, with at least one
--- mutation (the Slime Rain mutation roll, else Config.BOSS.MIN_MUTATION). Nil for a species that isn't a boss.
+-- The boss slime of `species` (a SlimeRoster kind "boss" id): its name, colour and tier, MAX_SIZE. Nil for a species that isn't a boss.
 function Trophies.bossSlime(rng: Rng.Rng, id: string, species: string): Slime?
 	local entry = SlimeRoster.get(species)
 	if not entry or entry.kind ~= "boss" then
 		return nil
 	end
-	local slime = Genome.generate(rng, { id = id, tier = entry.tier, mutationChance = Config.RAIN_MUTATION_CHANCE })
+	local slime = Genome.generate(rng, { id = id, tier = entry.tier })
 	slime.species = entry.id
 	slime.name = entry.name
 	local look = SlimeLooks.get(entry.id)
@@ -38,9 +32,6 @@ function Trophies.bossSlime(rng: Rng.Rng, id: string, species: string): Slime?
 		slime.color = { look.color[1], look.color[2], look.color[3] }
 	end
 	slime.size = Config.MAX_SIZE
-	if #Genome.mutationList(slime) == 0 then
-		Genome.setMutations(slime, { Config.BOSS.MIN_MUTATION })
-	end
 	return slime
 end
 
@@ -56,16 +47,13 @@ end
 
 --[[
 	Puts the won boss `slime` on the stand. Returns ("new", trophy) for a first trophy of its species, or
-	("reroll", trophy) when the player already has one: that trophy's mutations are rerolled (never to none) and
-	`slime` is discarded.
+	("owned", trophy) when the player already has one: that trophy stays and `slime` is discarded.
 ]]
-function Trophies.award(data: PlayerData.Data, slime: Slime, rng: Rng.Rng): (string, Slime)
+function Trophies.award(data: PlayerData.Data, slime: Slime): (string, Slime)
 	local species = slime.species or ""
 	local held = Trophies.find(data, species)
 	if held then
-		Genome.setMutations(held, { rollMutation(rng) })
-		PlayerData.discover(data, held)
-		return "reroll", held
+		return "owned", held
 	end
 	slime.pad = nil
 	slime.keep = nil

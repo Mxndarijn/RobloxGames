@@ -13,14 +13,13 @@ local Trophies = require("../src/shared/Trophies")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 describe("Trophies.bossSlime", function()
-	it("makes every boss species at MAX_SIZE with its name, tier, colour and at least one mutation", function()
+	it("makes every boss species at MAX_SIZE with its name, tier and colour", function()
 		for seed = 1, 30 do
 			for _, species in { "goozilla", "queen_jelly", "mecha_goo" } do
 				local slime = Trophies.bossSlime(Rng.new(seed), `b{seed}`, species) :: Genome.Slime
 				expect(slime.species).toBe(species)
 				expect(slime.size).toBe(Config.MAX_SIZE)
 				expect(slime.tier).toBe(if species == "mecha_goo" then Config.SECRET_TIER else 6)
-				expect(#Genome.mutationList(slime) >= 1).toBe(true)
 				local look = SlimeLooks.get(species)
 				if look then
 					expect(slime.color[1]).toBe(look.color[1])
@@ -35,30 +34,22 @@ describe("Trophies.bossSlime", function()
 end)
 
 describe("Trophies.award", function()
-	it("adds one trophy per species outside data.slimes, and a duplicate rerolls its mutations", function()
+	it("adds one trophy per species outside data.slimes, and a duplicate keeps the held one", function()
 		local data = Fixtures.data()
 		local rng = Rng.new(3)
 		local first = Trophies.bossSlime(rng, "a", "goozilla") :: Genome.Slime
-		local result = Trophies.award(data, first, rng)
+		local result = Trophies.award(data, first)
 		expect(result).toBe("new")
 		expect(#data.trophies).toBe(1)
 		expect(#data.slimes).toBe(0)
 		expect(PlayerData.freePad(data) ~= nil).toBe(true)
-		local seen: { [string]: boolean } = {}
-		for _ = 1, 40 do
-			local again, held = Trophies.award(data, Trophies.bossSlime(rng, "b", "goozilla") :: Genome.Slime, rng)
-			expect(again).toBe("reroll")
+		for _ = 1, 5 do
+			local again, held = Trophies.award(data, Trophies.bossSlime(rng, "b", "goozilla") :: Genome.Slime)
+			expect(again).toBe("owned")
 			expect(held).toBe(first)
-			expect(#Genome.mutationList(held)).toBe(1)
-			seen[held.mutation] = true
 		end
 		expect(#data.trophies).toBe(1)
-		local kinds = 0
-		for _ in seen do
-			kinds += 1
-		end
-		expect(kinds > 1).toBe(true) -- the reroll really rolls
-		Trophies.award(data, Trophies.bossSlime(rng, "c", "queen_jelly") :: Genome.Slime, rng)
+		Trophies.award(data, Trophies.bossSlime(rng, "c", "queen_jelly") :: Genome.Slime)
 		expect(#data.trophies).toBe(2)
 	end)
 	it("trophies earn like pad slimes", function()
@@ -66,7 +57,7 @@ describe("Trophies.award", function()
 		local rng = Rng.new(5)
 		local before = PlayerData.incomePerSecond(data)
 		local trophy = Trophies.bossSlime(rng, "t", "queen_jelly") :: Genome.Slime
-		Trophies.award(data, trophy, rng)
+		Trophies.award(data, trophy)
 		expect(PlayerData.incomePerSecond(data) - before).toBeCloseTo(PlayerData.slimeIncome(data, trophy), 1e-6)
 	end)
 end)
@@ -75,13 +66,13 @@ describe("SaveData trophies", function()
 	it("round-trip through serialize / deserialize", function()
 		local data = Fixtures.data()
 		local rng = Rng.new(9)
-		Trophies.award(data, Trophies.bossSlime(rng, "t1", "goozilla") :: Genome.Slime, rng)
-		Trophies.award(data, Trophies.bossSlime(rng, "t2", "mecha_goo") :: Genome.Slime, rng)
+		Trophies.award(data, Trophies.bossSlime(rng, "t1", "goozilla") :: Genome.Slime)
+		Trophies.award(data, Trophies.bossSlime(rng, "t2", "mecha_goo") :: Genome.Slime)
 		local loaded = SaveData.deserialize(SaveData.serialize(data, 0))
 		expect(#loaded.trophies).toBe(2)
 		expect(loaded.trophies[1].species).toBe("goozilla")
 		expect(loaded.trophies[2].species).toBe("mecha_goo")
-		expect(loaded.trophies[1].mutation).toBe(data.trophies[1].mutation)
+		expect(loaded.trophies[1]).toEqual(data.trophies[1])
 	end)
 	it("a save without trophies has none; junk, non-boss species and duplicates are dropped", function()
 		local raw = SaveData.serialize(Fixtures.data(), 0)

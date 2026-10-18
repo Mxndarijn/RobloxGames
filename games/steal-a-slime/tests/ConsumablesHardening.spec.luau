@@ -3,7 +3,6 @@
 -- cash, bad arguments, repeats, leaving players. Asserts both modes of the frozen flag
 -- (tests/FeatureFlags.spec re-runs this file flipped). Cloud-eligible: no Lune modules.
 local Actions = require("../src/server/Actions")
-local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local ConsumableShop = require("../src/server/ConsumableShop")
 local Consumables = require("../src/shared/Consumables")
@@ -277,29 +276,6 @@ describe("Consumables bad requests", function()
 end)
 
 describe("Consumables effects at the edges", function()
-	it("a spray needs a slime, an owned slime, and not one in a thief's arms", function()
-		if not on then
-			return
-		end
-		local slot = slotWith("MutationSpray", 1)
-		local now = slot * STEP + 1
-		local world = ServerFixtures.world(now)
-		local owner = ServerFixtures.join(world, 1, { Fixtures.slime("mine", 3) }, 1e9, now)
-		local thief = ServerFixtures.join(world, 2, nil, 1e9, now)
-		ServerFixtures.unlock(owner)
-		ServerFixtures.unlock(thief)
-		expect(buy(world, 1, now, "MutationSpray", nil).ok).toBe(true)
-		local none = use(world, 1, now, "MutationSpray", nil)
-		expect(none.ok).toBe(false)
-		expect(none.message).toBe("pick a slime")
-		expect(use(world, 1, now, "MutationSpray", "ghost").message).toBe("not your slime")
-		expect((Carry.grab(world, 2, "mine", 1, now))).toBe(true)
-		local busy = use(world, 1, now, "MutationSpray", "mine")
-		expect(busy.ok).toBe(false)
-		expect(busy.message).toBe("slime is busy")
-		expect(owner.data.consumables.held.MutationSpray).toBe(1) -- every refusal kept the spray
-		expect(thief.data.cash).toBe(1e9)
-	end)
 	it("a second potion in the cap window is refused and stays in the stack", function()
 		if not on then
 			return
