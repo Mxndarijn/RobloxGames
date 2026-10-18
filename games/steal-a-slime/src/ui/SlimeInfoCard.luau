@@ -39,11 +39,12 @@ SlimeInfoCard.SIZE = table.freeze({
 	stroke = 1.5,
 	bgTransparency = 0.2,
 	maxTextSize = 22,
+	lift = 0.25, -- rarity text colour mixed this far towards white, so dark rarities read on the dark card
 })
 
 -- Row weights (heights relative to one row). The name row is a bit larger.
 SlimeInfoCard.ROWS = table.freeze({
-	{ name = "Name", weight = 1.3 },
+	{ name = "Title", weight = 1.3 },
 	{ name = "Rarity", weight = 1 },
 	{ name = "Income", weight = 1 },
 	{ name = "Extra", weight = 1 },
@@ -62,6 +63,11 @@ end
 
 local function rgb(color: { number }): Color3
 	return Color3.fromRGB(color[1], color[2], color[3])
+end
+
+-- Rarity colour for text on the card (the stroke keeps the plain rarity colour).
+function SlimeInfoCard.textColor(color: { number }): Color3
+	return rgb(color):Lerp(Color3.new(1, 1, 1), SlimeInfoCard.SIZE.lift)
 end
 
 -- The rows shown for `count` rows (3 = no extra line, 4 = with it), stacked top to bottom.
@@ -92,7 +98,7 @@ end
 
 -- Rich text of the rarity row: rarity in its colour, then the mutations in gold.
 function SlimeInfoCard.rarityText(view: SlimeLabel.View): string
-	local text = `<font color="{hex(rgb(view.rarityColor))}">{view.rarity}</font>`
+	local text = `<font color="{hex(SlimeInfoCard.textColor(view.rarityColor))}">{view.rarity}</font>`
 	if view.mutation then
 		text ..= ` <font color="{hex(Theme.Muted)}">·</font> <font color="{hex(Theme.Gold)}">{view.mutation}</font>`
 	end
@@ -138,7 +144,7 @@ function SlimeInfoCard.build(): BillboardGui
 		create("UIStroke", { Name = "Stroke", Thickness = s.stroke, Color = Theme.Muted, Transparency = 0.15 }),
 		Widgets.padding(s.padPx),
 	})
-	row("Name", Theme.Font, Theme.Text, card)
+	row("Title", Theme.Font, Theme.Text, card)
 	local rarity = row("Rarity", Theme.Font, Theme.Text, card)
 	rarity.RichText = true
 	row("Income", Theme.Font, Theme.Accent, card)
@@ -160,7 +166,7 @@ function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height:
 	local stroke = card:FindFirstChild("Stroke") :: UIStroke
 	stroke.Color = color
 	local texts: { [string]: string? } = {
-		Name = view.name,
+		Title = view.name,
 		Rarity = SlimeInfoCard.rarityText(view),
 		Income = view.income,
 		Extra = view.extra,
@@ -179,8 +185,8 @@ function SlimeInfoCard.render(gui: BillboardGui, view: SlimeLabel.View?, height:
 			label.Text = texts[spec.name] or ""
 		end
 	end
-	local name = card:FindFirstChild("Name") :: TextLabel
-	name.TextColor3 = color
+	local title = card:FindFirstChild("Title") :: TextLabel
+	title.TextColor3 = SlimeInfoCard.textColor(view.rarityColor)
 	local extra = card:FindFirstChild("Extra") :: TextLabel
 	extra.TextColor3 = if view.extra and string.sub(view.extra, 1, 4) == "Buy " then Theme.Gold else Theme.Muted
 end
@@ -213,6 +219,8 @@ export type Options = {
 -- Draws a card on every tagged slime model. Returns a cleanup that removes them all.
 function SlimeInfoCard.start(opts: Options): () -> ()
 	local cards: { [Instance]: { gui: BillboardGui, conn: RBXScriptConnection } } = {}
+	-- Tagged models whose Body has not replicated yet: the tag can arrive before the model's children.
+	local waiting: { [Instance]: RBXScriptConnection } = {}
 
 	local function refresh(model: Instance)
 		local entry = cards[model]
@@ -226,6 +234,11 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 	end
 
 	local function remove(model: Instance)
+		local pending = waiting[model]
+		if pending then
+			waiting[model] = nil
+			pending:Disconnect()
+		end
 		local entry = cards[model]
 		if entry then
 			cards[model] = nil
@@ -235,11 +248,18 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 	end
 
 	local function add(model: Instance)
-		if cards[model] or not model:IsA("Model") then
+		if cards[model] or waiting[model] or not model:IsA("Model") then
 			return
 		end
 		local body = model.PrimaryPart or model:FindFirstChild("Body")
 		if not (body and body:IsA("BasePart")) then
+			waiting[model] = model.ChildAdded:Connect(function(child: Instance)
+				if child.Name == "Body" and child:IsA("BasePart") then
+					waiting[model]:Disconnect()
+					waiting[model] = nil
+					add(model)
+				end
+			end)
 			return
 		end
 		local gui = SlimeInfoCard.build()
@@ -263,6 +283,9 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 	return function()
 		added:Disconnect()
 		removed:Disconnect()
+		for model in waiting do
+			remove(model)
+		end
 		for model in cards do
 			remove(model)
 		end

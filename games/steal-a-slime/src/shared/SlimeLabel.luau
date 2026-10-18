@@ -17,7 +17,7 @@ export type View = {
 	rarity: string, -- "Rare"
 	rarityColor: { number }, -- { r, g, b } of Config.RARITIES
 	mutation: string?, -- "Glow Syrup"; nil = none
-	income: string, -- "+$1.25K/s"
+	income: string, -- "+$1.25K/s", "+$0.8/s"
 	extra: string?, -- "Buy $500" (priced wild) or "Growth 46%" (pad); nil = nothing
 }
 
@@ -52,9 +52,9 @@ local function finite(n: any): number?
 	return n
 end
 
--- "+$1.25K/s"; garbage and negatives show "+$0/s".
+-- "+$1.25K/s", "+$0.8/s" (NumberFormat.rate, as the HUD); garbage and negatives show "+$0/s".
 function SlimeLabel.incomeText(perSec: any): string
-	return `+{NumberFormat.cash(math.max(finite(perSec) or 0, 0))}/s`
+	return "+" .. NumberFormat.rate(math.max(finite(perSec) or 0, 0))
 end
 
 -- True when the shown income text would change (the server rewrites LabelIncome only then).

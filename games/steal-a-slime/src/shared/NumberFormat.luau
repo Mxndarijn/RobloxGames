@@ -50,4 +50,12 @@ function NumberFormat.cash(value: number): string
 	return "$" .. text
 end
 
+-- Cash per second. Small fractional rates keep one decimal (truncated): 1.58 -> "$1.5/s", 1250 -> "$1.25K/s".
+function NumberFormat.rate(value: number): string
+	if type(value) == "number" and value > 0 and value < 100 and value ~= math.floor(value) then
+		return "$" .. (string.gsub(string.format("%.1f", math.floor(value * 10) / 10), "%.0$", "")) .. "/s"
+	end
+	return NumberFormat.cash(value) .. "/s"
+end
+
 return table.freeze(NumberFormat)
