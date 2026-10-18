@@ -565,10 +565,12 @@ function Props.leaderboardBoard(): Model
 	padding.Parent = content
 	local title = label(content, "Title", Props.LEADERBOARD_TITLE, ink(Props.BOARD_PALETTE.Title))
 	title.Size = UDim2.fromScale(1, 0.12)
+	-- The skin's red divider runs 2.45 studs below the face top (about 0.21-0.23 of the Board), so the
+	-- rows start just under it and the title keeps the band above.
 	local rows = Instance.new("Frame")
 	rows.Name = "Rows"
-	rows.Position = UDim2.fromScale(0, 0.15)
-	rows.Size = UDim2.fromScale(1, 0.85)
+	rows.Position = UDim2.fromScale(0, 0.24)
+	rows.Size = UDim2.fromScale(1, 0.76)
 	rows.BackgroundTransparency = 1
 	rows.Parent = content
 	local list = Instance.new("UIListLayout")
