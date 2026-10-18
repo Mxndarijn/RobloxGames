@@ -42,6 +42,7 @@ VIEWS = [  # (label, direction from target to camera, Blender Z up; model front 
     ("side", (1.0, 0.0, 0.12)),
     ("back-3/4", (0.75, 0.85, 0.45)),
     ("top-3/4", (-0.7, -0.7, 1.15)),
+    ("hero", (-0.45, -1.0, 0.32)),  # front-left 3/4, low: lineups and concept renders
 ]
 
 
@@ -293,6 +294,17 @@ def setup_render(a):
         r.engine = "CYCLES"
         c = sc.cycles
         c.device = "CPU"
+        if os.environ.get("KIT_GPU"):  # KIT_GPU=OPTIX|CUDA|HIP|METAL: render on the GPU when one is there
+            cp = bpy.context.preferences.addons["cycles"].preferences
+            try:
+                cp.compute_device_type = os.environ["KIT_GPU"]
+                cp.get_devices()
+                for dev in cp.devices:
+                    dev.use = dev.type != "CPU"
+                if any(dev.use for dev in cp.devices):
+                    c.device = "GPU"
+            except TypeError:
+                pass  # unknown backend on this machine: stay on the CPU
         c.samples = a.samples
         c.use_adaptive_sampling = False
         c.use_denoising = True
