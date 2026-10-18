@@ -2,6 +2,7 @@
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Economy = require("../src/shared/Economy")
+local EventSecrets = require("../src/shared/EventSecrets")
 local Fixtures = require("./Fixtures")
 local ServerFixtures = require("./ServerFixtures")
 local SlimeRoster = require("../src/shared/SlimeRoster")
@@ -137,6 +138,21 @@ describe("Snapshot State.dex", function()
 		expect(moo.name).toBeNil()
 		expect(entry(state, "goozilla").hint).toBe(SpeciesDex.BOSS_HINT)
 		expect(entry(state, "glitch").kind).toBe("event")
+	end)
+	it("names this week's featured event Secret with its week; the others stay ???", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		local state = Snapshot.build(world, s, T0) :: any
+		local featured = EventSecrets.featured(T0)
+		local e = entry(state, featured.id)
+		expect(e.found).toBe(false)
+		expect(e.name).toBe(featured.name)
+		expect(e.hint).toBe(`Featured Secret: week of {SpeciesDex.weekLabel(featured.startsAt)}`)
+		for _, other in SpeciesDex.BONUS do
+			if other.id ~= featured.id then
+				expect(entry(state, other.id).hint).toBe("???")
+			end
+		end
 	end)
 	it("State.dex totals match the roster: 32 spawn + 15 hybrids + 3 bosses, 47 x 8 stamps", function()
 		expect(#SlimeRoster.ofKind("spawn") + #SlimeRoster.ofKind("hybrid") + #SlimeRoster.ofKind("boss")).toBe(
