@@ -21,6 +21,13 @@ local Weather = require("../src/shared/Weather")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
 
+-- Back to Clear with Genome re-bound: Weather.reset drops every listener without a Changed, so Genome's
+-- cached weather bonus would otherwise outlive the test.
+local function clearWeather()
+	Weather.reset()
+	Genome.bindWeather()
+end
+
 local function def(): Config.Upgrade
 	return Perks.upgradeDef("RainMagnet") :: Config.Upgrade
 end
@@ -139,7 +146,7 @@ describe("RainMagnet: deposit hook", function()
 			end
 		end
 		expect(math.abs(hits / n - 0.25) < 0.04).toBe(true)
-		Weather.reset()
+		clearWeather()
 	end)
 	it("tells the player what it pulled in", function()
 		Weather.set("Snow")
@@ -154,11 +161,11 @@ describe("RainMagnet: deposit hook", function()
 			true
 		)
 		expect(slime.mutation).toBe("None")
-		Weather.reset()
+		clearWeather()
 	end)
 	it("does nothing in Clear, at level 0, with the flag off, or for a full-stack slime", function()
 		local world, session, slime = setup(5)
-		Weather.reset()
+		clearWeather()
 		expect(Carry.applyMagnet(world, session, slime, true)).toBe(false) -- Clear, no Slime Rain
 		Weather.set("Rain")
 		expect(Carry.applyMagnet(world, session, slime)).toBe(false) -- flag off
@@ -166,13 +173,13 @@ describe("RainMagnet: deposit hook", function()
 		expect(Carry.applyMagnet(world, session, slime, true)).toBe(false)
 		session.data.upgrades.RainMagnet = 5
 		world.raining = true
-		Weather.reset()
+		clearWeather()
 		local pulledInSlimeRain = false
 		for _ = 1, 60 do
 			pulledInSlimeRain = Carry.applyMagnet(world, session, Fixtures.slime("y", 1), true) or pulledInSlimeRain
 		end
 		expect(pulledInSlimeRain).toBe(true) -- Slime Rain event counts as Rain
-		Weather.reset()
+		clearWeather()
 	end)
 	it("a full deposit with the flag off leaves the slime and the rng alone", function()
 		Weather.set("Rain")
@@ -186,7 +193,7 @@ describe("RainMagnet: deposit hook", function()
 		expect((Carry.grab(world, 1, id, 5, T0 + 1))).toBe(true)
 		expect((Carry.deposit(world, 1, T0 + 2))).toBe(true)
 		expect(s.data.slimes[1].mutation).toBe("None")
-		Weather.reset()
+		clearWeather()
 	end)
 	it("stolen slimes are untouched and draw nothing", function()
 		Weather.set("Rain")
@@ -208,7 +215,7 @@ describe("RainMagnet: deposit hook", function()
 		local slime = PlayerData.findSlime(thief.data, "gem") :: Genome.Slime
 		expect(slime.mutation).toBe("None")
 		expect(draws).toBe(0)
-		Weather.reset()
+		clearWeather()
 	end)
 	it("deposit draws the same rng with and without weather while the flag is off", function()
 		local function run(weather: string): number
@@ -228,7 +235,7 @@ describe("RainMagnet: deposit hook", function()
 				end,
 			} :: any
 			expect((Carry.deposit(world, 1, T0 + 2))).toBe(true)
-			Weather.reset()
+			clearWeather()
 			return draws
 		end
 		expect(run("Rain")).toBe(run("Clear"))
@@ -248,19 +255,19 @@ describe("RainMagnet: deposit hook", function()
 		expect(draws).toBe(1)
 		Carry.applyMagnet(world, session, Fixtures.slime("n", 1), false) -- flag off: chance 0
 		expect(draws).toBe(1)
-		Weather.reset()
+		clearWeather()
 		Carry.applyMagnet(world, session, Fixtures.slime("c", 1), true) -- Clear: no target
 		expect(draws).toBe(1)
 		session.data.upgrades.RainMagnet = 0
 		Weather.set("Rain")
 		Carry.applyMagnet(world, session, Fixtures.slime("l", 1), true) -- level 0
 		expect(draws).toBe(1)
-		Weather.reset()
+		clearWeather()
 	end)
 	it("the Slime Rain event (world.raining) makes a Clear-weather catch Wet", function()
 		local world, session = setup(5)
 		world.raining = true
-		Weather.reset()
+		clearWeather()
 		local wet = 0
 		for i = 1, 200 do
 			local slime = Fixtures.slime(`r{i}`, 1)
@@ -291,7 +298,7 @@ describe("RainMagnet: deposit hook", function()
 		end
 		expect(fused).toBe(true)
 		expect(#Genome.mutationList(fuse) <= Config.MAX_MUTATIONS).toBe(true)
-		Weather.reset()
+		clearWeather()
 	end)
 	it("buying is refused with the flag off even for a rich rank-6 player", function()
 		local world = ServerFixtures.world()
@@ -360,6 +367,6 @@ describe("RainMagnet: prop", function()
 		local slime = Fixtures.slime("m", 1)
 		Weather.set("Rain")
 		expect(Carry.applyMagnet(world, session, slime, false)).toBe(false) -- gameplay independent of the mesh
-		Weather.reset()
+		clearWeather()
 	end)
 end)
