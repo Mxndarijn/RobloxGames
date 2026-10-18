@@ -497,7 +497,10 @@ if IN_ROBLOX then
 			for _, part in f:GetChildren() do
 				expect(part.Anchored and part.CanCollide).toBe(true)
 				expect(part.CollisionGroup).toBe("Default")
-				expect(part.CollisionFidelity ~= Enum.CollisionFidelity.PreciseConvexDecomposition).toBe(true)
+				-- only MeshPart / UnionOperation have CollisionFidelity; the slide colliders are plain Parts and WedgeParts
+				if part:IsA("MeshPart") or part:IsA("UnionOperation") then
+					expect(part.CollisionFidelity ~= Enum.CollisionFidelity.PreciseConvexDecomposition).toBe(true)
+				end
 			end
 		end)
 
