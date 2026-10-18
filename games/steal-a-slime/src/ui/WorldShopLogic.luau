@@ -17,7 +17,7 @@ local Shops = if Shared then require(Shared:WaitForChild("Shops")) else require(
 local Format = if script then require(script.Parent.Format) else require("./Format")
 local ShopCatalog = if script then require(script.Parent.ShopCatalog) else require("./ShopCatalog")
 
-export type Status = "buy" | "locked" | "maxed" | "owned" | "soldOut" | "noSlime" | "unavailable"
+export type Status = "buy" | "locked" | "maxed" | "owned" | "soldOut" | "unavailable"
 
 export type Row = {
 	id: string, -- Shared.Shops item id (the ShopBuy itemId)
@@ -207,7 +207,6 @@ local function consumableRow(shopId: string, item: Shops.Item, state: any, actio
 			entry = c
 		end
 	end
-	local arg = if item.id == "MutationSpray" then ShopCatalog.sprayTarget(state or {}) else nil
 	if entry == nil then
 		return row(shopId, item, {
 			description = (WorldShopLogic.CONSUMABLE_SHORT :: any)[item.id] or item.text,
@@ -227,8 +226,6 @@ local function consumableRow(shopId: string, item: Shops.Item, state: any, actio
 		kind = "unavailable"
 	elseif catalog.maxed then
 		kind = "soldOut"
-	elseif item.id == "MutationSpray" and arg == nil then
-		kind = "noSlime"
 	end
 	return row(shopId, item, {
 		name = entry.name or item.name,
@@ -238,7 +235,6 @@ local function consumableRow(shopId: string, item: Shops.Item, state: any, actio
 		buttonText = catalog.buttonText,
 		levelText = catalog.levelText,
 		price = catalog.price,
-		arg = arg,
 	})
 end
 

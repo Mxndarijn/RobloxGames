@@ -25,16 +25,17 @@ describe("Shops catalogue", function()
 			return out
 		end
 		local item = ids("ItemShop")
-		for _, id in { "Lock", "MysteryEgg", "MutationSpray", "LuckPotion", "WeatherTotem" } do
+		for _, id in { "Lock", "MysteryEgg", "SpeedCoil", "MutationSpray", "LuckPotion", "WeatherTotem" } do
 			expect(table.find(item, id) ~= nil).toBe(true)
 		end
 		for _, tool in Config.PVP_TOOLS do
 			expect(table.find(item, tool.id) ~= nil).toBe(true)
 		end
 		local upgrade = ids("UpgradeShop")
-		for _, id in { "LockUpgrade", "SpeedCoil", "Income", "CarrySpeed", "OfflineCap", "Luck", "RainMagnet" } do
+		for _, id in { "LockUpgrade", "Income", "CarrySpeed", "OfflineCap", "Luck", "RainMagnet" } do
 			expect(table.find(upgrade, id) ~= nil).toBe(true)
 		end
+		expect(table.find(upgrade, "SpeedCoil")).toBeNil() -- an item (held in the hand), not an upgrade
 		for _, id in item do
 			expect(table.find(upgrade, id)).toBeNil()
 		end
@@ -44,7 +45,8 @@ describe("Shops catalogue", function()
 		expect(Shops.shopOf("Luck")).toBe("UpgradeShop")
 		expect(Shops.shopOf("Nope")).toBeNil()
 		expect(Shops.shopOfAction("BuyEgg")).toBe("ItemShop")
-		expect(Shops.shopOfAction("BuySpeedCoil")).toBe("UpgradeShop")
+		expect(Shops.shopOfAction("BuySpeedCoil")).toBe("ItemShop")
+		expect(Shops.shopOf("SpeedCoil")).toBe("ItemShop")
 		expect(Shops.shopOfAction("Sell")).toBeNil()
 	end)
 	it("filters items by feature flags", function()
@@ -258,7 +260,7 @@ describe("Request OpenShop / CloseShop", function()
 		expect(res.ok).toBe(false)
 		expect(res.message).toBe("the shops are closed")
 		expect(res.code).toBe("FlagOff")
-		expect(call(env, "ShopBuy", "UpgradeShop", "SpeedCoil").code).toBe("FlagOff")
+		expect(call(env, "ShopBuy", "ItemShop", "SpeedCoil").code).toBe("FlagOff")
 		expect(call(env, "CloseShop").ok).toBe(true)
 		expect(#env.events).toBe(0)
 		expect(env.session.openShop).toBeNil()
@@ -322,10 +324,10 @@ describe("Request ShopBuy", function()
 	end)
 	it("buys the Speed Coil once, then answers Maxed", function()
 		local env = setup()
-		expect(call(env, "ShopBuy", "UpgradeShop", "SpeedCoil").ok).toBe(true)
+		expect(call(env, "ShopBuy", "ItemShop", "SpeedCoil").ok).toBe(true)
 		expect(env.session.data.speedCoil).toBe(true)
 		expect(lastEvent(env).level).toBeNil()
-		local res = call(env, "ShopBuy", "UpgradeShop", "SpeedCoil")
+		local res = call(env, "ShopBuy", "ItemShop", "SpeedCoil")
 		expect(res.ok).toBe(false)
 		expect(res.code).toBe("Maxed")
 		expect(res.message).toBe("you already own the Speed Coil")
@@ -341,7 +343,7 @@ describe("Request ShopBuy", function()
 	end)
 	it("maps delegated failures: NoCash, Locked", function()
 		local env = setup(0)
-		expect(call(env, "ShopBuy", "UpgradeShop", "SpeedCoil").code).toBe("NoCash")
+		expect(call(env, "ShopBuy", "ItemShop", "SpeedCoil").code).toBe("NoCash")
 		local poor = lastEvent(env)
 		expect(poor.code).toBe("NoCash")
 		expect(poor.itemId).toBe("SpeedCoil")
@@ -359,8 +361,8 @@ describe("Request ShopBuy", function()
 	end)
 	it("rejects an item the shop does not sell and an unknown shop", function()
 		local env = setup()
-		local res = call(env, "ShopBuy", "ItemShop", "SpeedCoil")
-		expect(res.code).toBe("NotInShop")
+		local res = call(env, "ShopBuy", "UpgradeShop", "SpeedCoil")
+		expect(res.code).toBe("NotInShop") -- the Speed Coil is an Item Shop row now
 		expect(env.session.data.speedCoil).toBe(false)
 		expect(call(env, "ShopBuy", "UpgradeShop", "Lock").code).toBe("NotInShop")
 		expect(call(env, "ShopBuy", "Nope", "Lock").code).toBe("BadShop")
@@ -413,13 +415,14 @@ describe("Request ShopBuy", function()
 		expect(again.ok).toBe(false)
 		expect(again.message).toBe("too fast")
 	end)
-	it("a consumable needs the slime id only for the spray and passes it on", function()
+	it("a consumable is bought without a slime (the spray picks its target when used)", function()
 		local env = setup()
 		local res = call(env, "ShopBuy", "ItemShop", "MutationSpray")
-		expect(res.ok).toBe(false)
 		if Config.FEATURES.Consumables then
-			expect(res.code == "BadTarget" or res.code == "SoldOut").toBe(true)
+			expect(res.ok or res.code == "SoldOut").toBe(true)
+			expect(res.code ~= "BadTarget").toBe(true)
 		else
+			expect(res.ok).toBe(false)
 			expect(res.code).toBe("Unavailable")
 		end
 	end)
@@ -461,6 +464,8 @@ describe("WorldShopsStrict", function()
 			call(env, "OpenShop", "UpgradeShop")
 			expect(call(env, "BuyLockUpgrade").ok).toBe(true)
 			expect(call(env, "BuyEgg").code).toBe("NotOpen") -- the Upgrade Shop is open, the egg is an Item Shop thing
+			expect(call(env, "BuySpeedCoil").code).toBe("NotOpen") -- the Speed Coil is an Item Shop thing
+			call(env, "OpenShop", "ItemShop")
 			env.access = { distance = RANGE + 1, alive = true }
 			expect(call(env, "BuySpeedCoil").code).toBe("OutOfRange")
 			expect(call(env, "Sell", "nope").code).toBeNil() -- other actions are never gated

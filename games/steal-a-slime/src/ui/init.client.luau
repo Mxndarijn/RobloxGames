@@ -241,6 +241,7 @@ local inventory = Inventory.new(gui, {
 	keyboard = game:GetService("UserInputService").KeyboardEnabled,
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
+InventoryTools.bindUse(inventory.useHeld)
 local stealFx = StealAlertFx.new(gui, {
 	Config = Config,
 	Constants = Constants,

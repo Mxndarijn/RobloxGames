@@ -202,9 +202,9 @@ describe("ShopCatalog consumables (FEATURES.Consumables)", function()
 		expect(spray.item.action).toBe("BuyConsumable")
 		expect(Remotes.ACTIONS.BuyConsumable ~= nil).toBe(true)
 	end)
-	it("sprays the favourite, disables sold out and unaffordable rows", function()
+	it("buys with the item id only, disables sold out and unaffordable rows", function()
 		local views = ShopCatalog.consumableViews(state(0), Remotes.ACTIONS)
-		expect(views[1].item.args[2]).toBe("b")
+		expect(#views[1].item.args).toBe(1) -- no slime: the target is picked on use
 		expect(views[1].enabled).toBe(false)
 		expect(views[1].buttonText).toBe("Sold out")
 		expect(views[2].enabled).toBe(false) -- 6000 > 5000 cash

@@ -114,6 +114,7 @@ export type ConsumableItemView = {
 	price: number,
 	left: number, -- this player may still buy this many until the restock
 	max: number, -- the slot's quantity per player
+	held: number, -- the stack this player holds (bought, not used yet)
 }
 export type ConsumablesView = {
 	slot: number,
@@ -122,6 +123,7 @@ export type ConsumablesView = {
 	luckUntil: number, -- active server luck potion ends (0 = none)
 	luckMult: number, -- the potion's rarity multiplier
 	totemWeather: string, -- the weather a Weather Totem calls this restock
+	held: { [string]: number }, -- item id -> stack held (every consumable with a stack, shown or not)
 }
 
 -- State.egg: the newest hatch, for the reveal banner (never saved).

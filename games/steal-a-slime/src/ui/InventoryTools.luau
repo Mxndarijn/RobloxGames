@@ -43,6 +43,19 @@ function InventoryTools.bindKeys(slotFor: (Enum.KeyCode) -> number?, onSlot: (nu
 	end)
 end
 
+-- A click or tap that no GUI took (the world) uses the consumable in hand: `onUse` decides if anything is held.
+function InventoryTools.bindUse(onUse: () -> ())
+	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+		if processed then
+			return
+		end
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+			onUse()
+		end
+	end)
+end
+
 function InventoryTools.new(player: Player): Provider
 	local connections: { RBXScriptConnection } = {}
 	local callbacks: { () -> () } = {}

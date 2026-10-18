@@ -25,8 +25,9 @@ export type DailyQuests = { day: number, slots: { QuestSlot } }
 -- Counters for goals (CONTRACT.md §8.8); stolen / earned / rebirths / pads live elsewhere.
 export type Stats = { caught: number, merges: number, locks: number, sold: number }
 
--- Purchases of Consumables in restock `slot` (a new slot resets them).
-export type Consumables = { slot: number, bought: { [string]: number } }
+-- Purchases of Consumables in restock `slot` (a new slot resets `bought`), and the stack held per item id
+-- (`held`: bought, not used yet; it survives the restock).
+export type Consumables = { slot: number, bought: { [string]: number }, held: { [string]: number } }
 
 -- FEATURES.PvP purchases: best owned tier per line (Knockback / Trap / Blaster), owned fun item ids, play seconds
 -- counted towards the new-player shield (capped at Config.PVP.NEW_PLAYER_SHIELD_SECONDS).
@@ -96,7 +97,7 @@ function PlayerData.new(): Data
 		boostUntil = 0,
 		stealLog = {},
 		settings = AudioSettings.defaults(),
-		consumables = { slot = 0, bought = {} },
+		consumables = { slot = 0, bought = {}, held = {} },
 		pvp = { tiers = {}, fun = {}, played = 0 },
 	}
 end

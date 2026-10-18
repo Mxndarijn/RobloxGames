@@ -6,6 +6,8 @@
 	(`floor(unix time / CONSUMABLES_RESTOCK_SECONDS)`) is a pure function of the slot, so every
 	server shows the same stock without talking to the others. Each player may buy up to the slot's
 	stock of an item; the counts live in `data.consumables` and reset when the slot changes.
+	A purchase adds to the held stack (`data.consumables.held`, saved, never reset by a restock); the item's
+	effect happens when one is used (`ConsumableShop.use`), which takes one off the stack.
 	The weather totem is only stocked where the Weather service can take a request.
 ]]
 
@@ -103,9 +105,33 @@ end
 -- Records one purchase in `slot` (a new slot forgets the old counts).
 function Consumables.record(data: Data, slot: number, id: string)
 	if data.consumables.slot ~= slot then
-		data.consumables = { slot = slot, bought = {} }
+		data.consumables = { slot = slot, bought = {}, held = data.consumables.held }
 	end
 	data.consumables.bought[id] = (data.consumables.bought[id] or 0) + 1
+end
+
+-- The stack of `id` this player holds.
+function Consumables.held(data: Data, id: string): number
+	return data.consumables.held[id] or 0
+end
+
+-- Adds one to the held stack of `id`.
+function Consumables.addHeld(data: Data, id: string)
+	data.consumables.held[id] = Consumables.held(data, id) + 1
+end
+
+-- Takes one off the held stack of `id`; false (nothing changes) when the stack is empty.
+function Consumables.takeHeld(data: Data, id: string): boolean
+	local n = Consumables.held(data, id)
+	if n < 1 then
+		return false
+	end
+	if n > 1 then
+		data.consumables.held[id] = n - 1
+	else
+		data.consumables.held[id] = nil
+	end
+	return true
 end
 
 --[[
@@ -125,6 +151,9 @@ function Consumables.check(data: Data, id: any, now: number, weatherOk: boolean)
 	end
 	if Consumables.remaining(data, Consumables.slotAt(now), def.id, weatherOk) <= 0 then
 		return false, "sold out until the restock"
+	end
+	if Consumables.held(data, def.id) >= Config.CONSUMABLE_HELD_MAX then
+		return false, "you can't hold more of these"
 	end
 	local price = Consumables.price(data, def.id) :: number
 	if data.cash < price then
@@ -201,7 +230,15 @@ function Consumables.view(data: Data, now: number, weatherOk: boolean, potionUnt
 				price = Consumables.price(data, def.id) :: number,
 				left = Consumables.remaining(data, slot, def.id, weatherOk),
 				max = stock[def.id] or 0,
+				held = Consumables.held(data, def.id),
 			})
+		end
+	end
+	local held: { [string]: number } = {}
+	for _, def in Config.CONSUMABLES do
+		local n = Consumables.held(data, def.id)
+		if n > 0 then
+			held[def.id] = n
 		end
 	end
 	return {
@@ -211,6 +248,7 @@ function Consumables.view(data: Data, now: number, weatherOk: boolean, potionUnt
 		luckUntil = if potionUntil > now then potionUntil else 0,
 		luckMult = Config.LUCK_POTION_MULT,
 		totemWeather = weather,
+		held = held,
 	}
 end
 

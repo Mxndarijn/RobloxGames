@@ -988,6 +988,7 @@ local Config = {
 	-- agrees. `max` is the most a player may buy per restock (the roll is minStock..maxStock; 0 = sold out
 	-- this slot). `price` is x the rebirth multiplier. Ids are the BuyConsumable argument: never rename.
 	CONSUMABLES_RESTOCK_SECONDS = 5 * 60,
+	CONSUMABLE_HELD_MAX = 99, -- most of one consumable a player can hold (a purchase over it is refused)
 	CONSUMABLES = table.freeze({
 		table.freeze({
 			id = "MutationSpray",

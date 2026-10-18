@@ -252,7 +252,8 @@ function ShopCatalog.sprayTarget(state: any): string?
 end
 
 -- Restocking consumables (FEATURES.Consumables, `State.consumables`): one row per stocked item, bought
--- with Request("BuyConsumable", id, slimeId?). Empty while the feature is off.
+-- with Request("BuyConsumable", id): it adds to the held stack, the target (the spray's slime) is picked on use.
+-- Empty while the feature is off.
 function ShopCatalog.consumableViews(state: any, actions: { [string]: any }): { ItemView }
 	local out = {}
 	local view = if type(state) == "table" then state.consumables else nil
@@ -263,15 +264,11 @@ function ShopCatalog.consumableViews(state: any, actions: { [string]: any }): { 
 	local cash = if type(state.cash) == "number" then state.cash else 0
 	for _, c in view.items do
 		local soldOut = c.left <= 0
-		local needsSlime = c.id == "MutationSpray"
-		local target = if needsSlime then ShopCatalog.sprayTarget(state) else nil
 		local buttonText
 		if not available then
 			buttonText = "Coming soon"
 		elseif soldOut then
 			buttonText = "Sold out"
-		elseif needsSlime and target == nil then
-			buttonText = "No slime"
 		else
 			buttonText = Format.formatCash(c.price)
 		end
@@ -282,14 +279,14 @@ function ShopCatalog.consumableViews(state: any, actions: { [string]: any }): { 
 				icon = c.icon,
 				description = c.text,
 				action = "BuyConsumable",
-				args = if target then { c.id, target } else { c.id },
+				args = { c.id },
 			},
 			icon = c.icon,
 			description = c.text,
 			price = c.price,
 			available = available,
 			maxed = soldOut,
-			enabled = available and not soldOut and (not needsSlime or target ~= nil) and cash >= c.price,
+			enabled = available and not soldOut and cash >= c.price,
 			buttonText = buttonText,
 			levelText = `{c.left}/{c.max} left`,
 		})

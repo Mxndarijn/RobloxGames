@@ -7,9 +7,11 @@
 	picture, a selected highlight, the stack count when there is one and the number key (1-9) on keyboards.
 	The name shows on hover (mouse) or on a long press (touch). A tap / click / number key equips (or puts
 	away) the item through the EXISTING actions only: a Tool through the Humanoid, a PvP item through
-	Request("EquipPvpItem"). The last cell is the bag: it opens the inventory panel, a grid of everything
+	Request("EquipPvpItem"), a consumable (the stack count on its slot) goes into the hand client-side and is
+	used by clicking / tapping the world while held: Request("UseConsumable") (the server checks ownership and
+	stock and takes one off the stack). The last cell is the bag: it opens the inventory panel, a grid of everything
 	held (also the items that did not fit the bar on a narrow phone). Hidden while carrying (the server
-	unequips tools then) and while a menu is open. Client-only: no new server state, no new remote.
+	unequips tools then) and while a menu is open. Client-only: the stack counts come from State.consumables.
 ]]
 
 local InventoryCore = require(script.Parent.InventoryCore)
@@ -30,6 +32,7 @@ local Inventory = {}
 
 Inventory.LONG_PRESS = 0.4 -- seconds a finger holds a slot to see its name
 Inventory.TIP_SECONDS = 1.6
+Inventory.USE_GAP = 0.5 -- seconds between two uses (the server's own limit for UseConsumable)
 
 -- The HUD tile palette (Hud money plates): rounded purple with the dark stroke.
 Inventory.COLORS = table.freeze({
@@ -83,6 +86,9 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local carrying = false
 	local screen: Layout.Screen? = nil
 	local panelOpen = false
+	local heldConsumable: string? = nil -- the consumable in hand (client-side; the server only validates the use)
+	local lastUse = -math.huge
+	local lastPvpEquipped: string? = nil
 	local setPanelOpen: (open: boolean) -> ()
 
 	-- Hotbar ------------------------------------------------------------------------------------------
@@ -215,8 +221,23 @@ function Inventory.new(parent: Instance, deps: Deps)
 		slot.cooldown.Text = left or ""
 	end
 
+	local sync: (force: boolean?) -> ()
+
 	local function perform(entry: Entry)
 		local action = InventoryCore.select(entry)
+		if action.kind == "Consumable" then
+			-- one hand: a Tool or a PvP item goes away first
+			if action.equip then
+				deps.tools.unequipAll()
+				if state and state.pvp and state.pvp.equipped then
+					deps.send(InventoryCore.PVP_ACTION)
+				end
+			end
+			heldConsumable = if action.equip then action.itemId else nil
+			sync(true)
+			return
+		end
+		heldConsumable = nil
 		if action.kind == "Tool" then
 			-- one hand: put a PvP item away first, as equipping a Tool replaces it in the default backpack
 			if action.equip and state and state.pvp and state.pvp.equipped then
@@ -391,14 +412,30 @@ function Inventory.new(parent: Instance, deps: Deps)
 
 	-- Refresh --------------------------------------------------------------------------------------
 	local function currentEntries(): { Entry }
-		return InventoryCore.entries({
+		local stackList = InventoryCore.entries({
 			tools = deps.tools.list(),
 			pvp = if state then state.pvp else nil,
 			config = deps.Config,
 			registry = registry,
 			counts = nil,
+			held = if state and state.consumables then state.consumables.held else nil,
+			heldConsumable = heldConsumable,
 			now = deps.serverNow(),
 		})
+		if heldConsumable then
+			-- the last one was used (or the stack is gone): the hand is empty again
+			local still = false
+			for _, entry in stackList do
+				still = still or (entry.kind == "consumable" and entry.itemId == heldConsumable)
+			end
+			if not still then
+				heldConsumable = nil
+				for _, entry in stackList do
+					entry.equipped = entry.equipped and entry.kind ~= "consumable"
+				end
+			end
+		end
+		return stackList
 	end
 
 	local function applyBar()
@@ -436,7 +473,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	self.backdrop = backdrop
 	self.bag = bag
 
-	local function sync(force: boolean?)
+	function sync(force: boolean?)
 		entries = currentEntries()
 		local sig = InventoryCore.signature(entries)
 		if sig ~= signature or force then
@@ -492,6 +529,14 @@ function Inventory.new(parent: Instance, deps: Deps)
 	function self.update(newState: any)
 		state = newState
 		carrying = newState ~= nil and newState.carrying ~= nil
+		if carrying then
+			heldConsumable = nil -- the server unequips while carrying
+		end
+		local pvpNow = if newState and newState.pvp then newState.pvp.equipped else nil
+		if pvpNow ~= nil and pvpNow ~= lastPvpEquipped then
+			heldConsumable = nil -- an equipped PvP item took the hand
+		end
+		lastPvpEquipped = pvpNow
 		if carrying and panelOpen then
 			setPanelOpen(false)
 		end
@@ -521,6 +566,33 @@ function Inventory.new(parent: Instance, deps: Deps)
 		return false
 	end
 
+	-- Click / tap in the world with a consumable in hand: asks the server to use one. False when nothing is
+	-- in hand, the bar is hidden, the use is too soon after the last, or the item has no target yet.
+	function self.useHeld(): boolean
+		if heldConsumable == nil or menuOpen or carrying or panelOpen then
+			return false
+		end
+		local now = os.clock()
+		if now - lastUse < Inventory.USE_GAP then
+			return false
+		end
+		for _, entry in entries do
+			if entry.kind == "consumable" and entry.itemId == heldConsumable then
+				local request = InventoryCore.useRequest(entry, state)
+				if request then
+					lastUse = now
+					deps.send(table.unpack(request))
+					return true
+				end
+			end
+		end
+		return false
+	end
+
+	function self.heldConsumable(): string?
+		return heldConsumable
+	end
+
 	function self.keyCodeToSlot(key: Enum.KeyCode): number?
 		return KEYS[key]
 	end
@@ -536,6 +608,11 @@ function Inventory.new(parent: Instance, deps: Deps)
 	end
 
 	deps.tools.onChanged(function()
+		for _, tool in deps.tools.list() do
+			if tool.equipped then
+				heldConsumable = nil -- a Tool took the hand
+			end
+		end
 		sync()
 	end)
 	sync(true)

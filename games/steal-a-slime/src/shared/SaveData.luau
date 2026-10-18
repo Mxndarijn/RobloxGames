@@ -430,15 +430,24 @@ function SaveData.deserialize(stored: any): Data
 		end
 	end
 	-- Restocking shop counts (added without a version bump: missing -> nothing bought this slot).
-	if type(raw.consumables) == "table" and type(raw.consumables.bought) == "table" then
+	-- `held` (the stack of bought, unused consumables) is newer still: a save without it holds nothing (those
+	-- purchases were applied when bought), and it is read even if `bought` is damaged.
+	if type(raw.consumables) == "table" then
 		local bought: { [string]: number } = {}
+		local held: { [string]: number } = {}
+		local rawBought = if type(raw.consumables.bought) == "table" then raw.consumables.bought else {}
+		local rawHeld = if type(raw.consumables.held) == "table" then raw.consumables.held else {}
 		for _, def in Config.CONSUMABLES do
-			local n = num(raw.consumables.bought[def.id], 0, 0, def.maxStock)
+			local n = num(rawBought[def.id], 0, 0, def.maxStock)
 			if n > 0 then
 				bought[def.id] = n
 			end
+			local h = math.floor(num(rawHeld[def.id], 0, 0, Config.CONSUMABLE_HELD_MAX))
+			if h > 0 then
+				held[def.id] = h
+			end
 		end
-		data.consumables = { slot = num(raw.consumables.slot, 0, 0, 1e9), bought = bought }
+		data.consumables = { slot = num(raw.consumables.slot, 0, 0, 1e9), bought = bought, held = held }
 	end
 	return data
 end
@@ -512,7 +521,11 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		settings = AudioSettings.clean(data.settings),
 		redeemed = redeemed,
 		boost = { mult = data.boostMult, untilAt = math.floor(data.boostUntil) },
-		consumables = { slot = data.consumables.slot, bought = table.clone(data.consumables.bought) },
+		consumables = {
+			slot = data.consumables.slot,
+			bought = table.clone(data.consumables.bought),
+			held = table.clone(data.consumables.held),
+		},
 		pvp = { tiers = pvp.tiers, fun = pvpFun, played = pvp.played },
 	}
 end

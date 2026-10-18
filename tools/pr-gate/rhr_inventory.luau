@@ -106,6 +106,8 @@ local cases = {
 	{ name = "pc-1920x1080", w = 1920, h = 1080, panel = false, raw = true },
 	{ name = "pc-1920x1080-tooltip", w = 1920, h = 1080, panel = false, tooltip = true },
 	{ name = "pc-1920x1080-panel", w = 1920, h = 1080, panel = true },
+	-- Speed Coil + stacked consumables, the Luck Potion in hand (slot 5 pressed), no Tool or PvP item selected.
+	{ name = "hotbar-stacks-pc", w = 1920, h = 1080, panel = false, raw = true, stacks = true },
 	{ name = "phone-portrait-panel", w = 390, h = 844, panel = true },
 }
 
@@ -172,7 +174,7 @@ for _, case in cases do
 	end
 
 	local tools = {
-		items = { { name = "Bat", equipped = true }, { name = "SpeedCoil", equipped = false } },
+		items = { { name = "Bat", equipped = not case.stacks }, { name = "SpeedCoil", equipped = false } },
 	}
 	function tools.list()
 		return tools.items
@@ -181,7 +183,7 @@ for _, case in cases do
 	function tools.unequipAll() end
 	function tools.onChanged() end
 	local owned = {}
-	for _, id in PVP do
+	for _, id in if case.stacks then { "KnockGlove1" } else PVP do
 		owned[id] = true
 	end
 	local inv = Inventory.new(root, {
@@ -195,7 +197,13 @@ for _, case in cases do
 		keyboard = case.w >= 1000,
 	})
 	inv.layout(s)
-	inv.update({ pvp = { owned = owned, equipped = nil, cooldowns = {} } })
+	inv.update({
+		pvp = { owned = owned, equipped = nil, cooldowns = {} },
+		consumables = { held = { MutationSpray = 12, LuckPotion = 3 } },
+	})
+	if case.stacks then
+		inv.pressKey(5) -- Bat, Speed Coil, Bonk Glove, Mutation Spray, Luck Potion
+	end
 	if case.panel then
 		inv.setPanelOpen(true)
 	end

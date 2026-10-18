@@ -7,6 +7,7 @@ local InventoryLayout = require("../../src/ui/InventoryLayout")
 local ItemIcons = require("../../src/ui/ItemIcons")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
+local Remotes = require("../../src/shared/Remotes")
 local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -160,7 +161,6 @@ describe("InventoryCore.select / byKey / signature", function()
 	end)
 
 	it("EquipPvpItem is a real Remotes action taking an optional string", function()
-		local Remotes = require("../../src/shared/Remotes")
 		expect(Remotes.ACTIONS[InventoryCore.PVP_ACTION] ~= nil).toBe(true)
 	end)
 
@@ -255,5 +255,56 @@ describe("hotbar at the gate sizes (raw and under the 58 px top bar)", function(
 			found = found or key == "Inventory"
 		end
 		expect(found).toBe(true)
+	end)
+end)
+
+describe("InventoryCore consumables (S3 stacks)", function()
+	local HELD = { MutationSpray = 2, WeatherTotem = 5 }
+
+	it("lists each consumable with a stack after the Tools and PvP items, count = the stack", function()
+		local def = Config.PVP_TOOLS[1]
+		local entries = InventoryCore.entries(input({
+			pvp = { owned = { [def.id] = true }, cooldowns = {} },
+			held = HELD,
+		}))
+		expect(table.concat(ids(entries), ",")).toBe(
+			`tool:Bat,pvp:{def.id},consumable:MutationSpray,consumable:WeatherTotem`
+		)
+		local spray = entries[3]
+		expect(spray.kind).toBe("consumable")
+		expect(spray.count).toBe(2)
+		expect(spray.iconId).toBe("Consumable_MutationSpray")
+		expect(registry.get(spray.iconId) ~= nil).toBe(true)
+		expect(InventoryCore.countText(spray.count)).toBe("2")
+		-- an empty or missing stack is not listed
+		expect(#InventoryCore.entries(input({ held = { LuckPotion = 0 } }))).toBe(1)
+		expect(#InventoryCore.entries(input())).toBe(1)
+	end)
+
+	it("the consumable in hand is the selected one; selecting toggles it", function()
+		local held = InventoryCore.entries(input({ held = HELD, heldConsumable = "WeatherTotem" }))
+		expect(held[2].equipped).toBe(false)
+		expect(held[3].equipped).toBe(true)
+		local equip: any = InventoryCore.select(held[2])
+		expect(equip.kind).toBe("Consumable")
+		expect(equip.equip).toBe(true)
+		expect((InventoryCore.select(held[3]) :: any).equip).toBe(false)
+	end)
+
+	it("using needs the item in hand; the spray also needs a slime and sends it", function()
+		local entries = InventoryCore.entries(input({ held = HELD, heldConsumable = "MutationSpray" }))
+		local state = { slimes = { { slime = { id = "a", tier = 1 } }, { slime = { id = "b", tier = 3 } } } }
+		local req = InventoryCore.useRequest(entries[2], state) :: { string }
+		expect(req[1]).toBe("UseConsumable")
+		expect(req[2]).toBe("MutationSpray")
+		expect(req[3]).toBe("b") -- the highest tier slime
+		expect(InventoryCore.useRequest(entries[2], { slimes = {} })).toBeNil()
+		expect(InventoryCore.useRequest(entries[3], state)).toBeNil() -- not in hand
+		expect(InventoryCore.useRequest(entries[1], state)).toBeNil() -- not a consumable
+		local totem = InventoryCore.entries(input({ held = HELD, heldConsumable = "WeatherTotem" }))[3]
+		local plain = InventoryCore.useRequest(totem, {}) :: { string }
+		expect(#plain).toBe(2)
+		expect(plain[2]).toBe("WeatherTotem")
+		expect(Remotes.ACTIONS[InventoryCore.USE_ACTION] ~= nil).toBe(true)
 	end)
 end)

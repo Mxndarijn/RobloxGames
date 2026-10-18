@@ -50,6 +50,13 @@ local function buy(world: any, userId: number, now: number, id: string, slimeId:
 	end))
 end
 
+local function use(world: any, userId: number, now: number, id: string, slimeId: string?, c: Actions.Context?)
+	tick += 1 -- UseConsumable is rate-limited per player (Validate.ACTIONS)
+	return Actions.handle(world, userId, "UseConsumable", table.pack(id, slimeId), now + tick * 2, c or ctx(function()
+		return true
+	end))
+end
+
 describe("Consumables schedule", function()
 	it("is a default-on, declared, rate-limited feature", function()
 		expect(Config.FEATURES.Consumables).toBe(true)
@@ -152,8 +159,8 @@ describe("Consumables effects", function()
 		local session = ServerFixtures.join(world, 1, { s }, 1e9, now)
 		local res
 		for seed = 1, 20 do
-			session.data.consumables = { slot = 0, bought = {} }
-			res = Actions.handle(world, 1, "BuyConsumable", { "MutationSpray", "a" }, now + seed * 2, {
+			session.data.consumables = { slot = 0, bought = {}, held = { MutationSpray = 1 } }
+			res = Actions.handle(world, 1, "UseConsumable", { "MutationSpray", "a" }, now + seed * 2, {
 				distanceBetween = function()
 					return 2
 				end,
@@ -169,20 +176,20 @@ describe("Consumables effects", function()
 		expect(res.message).toBeNil()
 		local list = Genome.mutationList(session.data.slimes[1])
 		expect(#list >= 1).toBe(true)
-		expect(session.data.consumables.bought.MutationSpray).toBe(1)
+		expect(session.data.consumables.held.MutationSpray).toBeNil() -- the use took the one from the stack
 	end)
-	it("rejects a spray on someone else's slime and charges nothing", function()
+	it("rejects a spray on someone else's slime and keeps the stack", function()
 		local slot = slotWith("MutationSpray", 1)
 		local now = slot * STEP + 1
 		local world = ServerFixtures.world(now)
 		ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 1e9, now)
 		local other = ServerFixtures.join(world, 2, { Fixtures.slime("b", 3) }, 1e9, now)
-		local res = buy(world, 2, now, "MutationSpray", "a")
+		expect(buy(world, 2, now, "MutationSpray").ok).toBe(true) -- buying needs no slime
+		local res = use(world, 2, now, "MutationSpray", "a")
 		expect(res.ok).toBe(false)
 		expect(res.message).toBe("not your slime")
-		expect(buy(world, 2, now, "MutationSpray").message).toBe("pick a slime")
-		expect(other.data.cash).toBe(1e9)
-		expect(other.data.consumables.slot).toBe(0)
+		expect(use(world, 2, now, "MutationSpray").message).toBe("pick a slime")
+		expect(other.data.consumables.held.MutationSpray).toBe(1)
 	end)
 	it("a luck potion boosts spawn luck, caps it and stacks with the modifier", function()
 		expect(Consumables.spawnLuck(1, false)).toBe(1)
@@ -205,12 +212,14 @@ describe("Consumables effects", function()
 		expect(Consumables.potionFull(u, 100 + 60)).toBe(false)
 		expect(Consumables.potionFull(0, 100)).toBe(false)
 	end)
-	it("the purchase starts the server-wide potion and the spawner reads it only while active", function()
+	it("using a potion starts the server-wide potion and the spawner reads it only while active", function()
 		local slot = slotWith("LuckPotion", 1)
 		local now = slot * STEP + 1
 		local world = ServerFixtures.world(now)
 		ServerFixtures.join(world, 1, { Fixtures.slime("a", 2) }, 1e9, now)
 		expect(buy(world, 1, now, "LuckPotion").ok).toBe(true)
+		expect(world.potionUntil).toBe(0) -- bought, not used yet
+		expect(use(world, 1, now, "LuckPotion").ok).toBe(true)
 		expect(world.potionUntil >= now + Config.LUCK_POTION_SECONDS).toBe(true)
 		expect(Consumables.view(Fixtures.data(), now, true, world.potionUntil).luckUntil).toBe(world.potionUntil)
 		expect(Consumables.view(Fixtures.data(), world.potionUntil + 1, true, world.potionUntil).luckUntil).toBe(0)
@@ -222,26 +231,21 @@ describe("Consumables effects", function()
 		local world = ServerFixtures.world(now)
 		local session = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2) }, 1e9, now)
 		local asked: string? = nil
-		local res = buy(
-			world,
-			1,
-			now,
-			"WeatherTotem",
-			nil,
-			ctx(function(id)
-				asked = id
-				return true
-			end)
-		)
+		local calling = ctx(function(id)
+			asked = id
+			return true
+		end)
+		expect(buy(world, 1, now, "WeatherTotem", nil, calling).ok).toBe(true)
+		local res = use(world, 1, now, "WeatherTotem", nil, calling)
 		expect(res.ok).toBe(true)
 		local _, weather = Consumables.stock(slot)
 		expect(asked).toBe(weather)
 		local paid = 1e9 - session.data.cash
 		expect(paid > 0).toBe(true)
-		-- refused request: nothing charged
-		session.data.consumables = { slot = 0, bought = {} }
+		-- refused request: the stack keeps its totem
+		session.data.consumables = { slot = 0, bought = {}, held = { WeatherTotem = 1 } }
 		session.data.cash = 1e9
-		local no = buy(
+		local no = use(
 			world,
 			1,
 			now,
@@ -252,7 +256,7 @@ describe("Consumables effects", function()
 			end)
 		)
 		expect(no.ok).toBe(false)
-		expect(session.data.cash).toBe(1e9)
+		expect(session.data.consumables.held.WeatherTotem).toBe(1)
 		-- no Weather service: item is not offered and cannot be bought
 		local view = Consumables.view(session.data, now, false, 0)
 		for _, item in view.items do

@@ -218,12 +218,101 @@ describe("Inventory mount", function()
 		local tools = fs.readFile("src/ui/InventoryTools.luau")
 		expect(string.find(tools, "SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)", 1, true) ~= nil).toBe(true)
 	end)
-	it("the only server names it touches are existing: EquipPvpItem", function()
+	it("the only server names it touches are EquipPvpItem and UseConsumable", function()
 		local core = fs.readFile("src/ui/InventoryCore.luau")
 		expect(string.find(core, 'PVP_ACTION = "EquipPvpItem"', 1, true) ~= nil).toBe(true)
+		expect(string.find(core, 'USE_ACTION = "UseConsumable"', 1, true) ~= nil).toBe(true)
 		local code = GlyphCheck.stripComments(core)
-		for _, other in { "UsePvpItem", "BuyConsumable", "RemoteEvent", "InvokeServer" } do
+		-- "BuyConsumable" is only the ItemIcons key of a consumable's picture, never sent
+		for _, other in { "UsePvpItem", "BuyUpgrade", "RemoteEvent", "InvokeServer" } do
 			expect(string.find(code, other, 1, true)).toBe(nil)
 		end
+		expect(select(2, string.gsub(code, "BuyConsumable", ""))).toBe(1)
+	end)
+end)
+
+describe("Inventory consumable stacks (S3)", function()
+	local function stackState(extra: any?): any
+		local state: any = {
+			consumables = { held = { LuckPotion = 3, MutationSpray = 1 } },
+			slimes = { { slime = { id = "s1", tier = 2 } } },
+			pvp = { owned = {}, cooldowns = {} },
+		}
+		for k, v in extra or {} do
+			state[k] = v
+		end
+		return state
+	end
+	local COIL = { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } }
+
+	it("shows the Speed Coil and each consumable with its stack count on the hotbar", function()
+		local inv = mount(stackState(), COIL)
+		local slots = visibleSlots(inv)
+		expect(#slots).toBe(4) -- Bat, Speed Coil, Mutation Spray, Luck Potion
+		expect(UiHarness.find(slots[3], "Count").Text).toBe("1")
+		expect(UiHarness.find(slots[3], "Count").Visible).toBe(true)
+		expect(UiHarness.find(slots[4], "Count").Text).toBe("3")
+		expect(UiHarness.find(slots[2], "Count").Visible).toBe(false) -- a Tool has no stack
+	end)
+
+	it("a number key puts the consumable in hand, the same number again puts it away; nothing is sent", function()
+		local inv, tools, sent = mount(stackState(), COIL)
+		expect(inv.pressKey(4)).toBe(true)
+		expect(inv.heldConsumable()).toBe("LuckPotion")
+		expect(tools.calls[1]).toBe("unequipAll") -- one hand
+		expect(visibleSlots(inv)[4].BackgroundColor3).toBe(Inventory.COLORS.selected)
+		expect(#sent).toBe(0)
+		expect(inv.pressKey(4)).toBe(true)
+		expect(inv.heldConsumable()).toBeNil()
+		expect(visibleSlots(inv)[4].BackgroundColor3).toBe(Inventory.COLORS.slot)
+		expect(#sent).toBe(0)
+	end)
+
+	it("a click with it in hand sends UseConsumable once per gap; nothing in hand sends nothing", function()
+		local inv, _, sent = mount(stackState(), COIL)
+		expect(inv.useHeld()).toBe(false)
+		inv.pressKey(4)
+		expect(inv.useHeld()).toBe(true)
+		expect(sent[1][1]).toBe("UseConsumable")
+		expect(sent[1][2]).toBe("LuckPotion")
+		expect(sent[1][3]).toBeNil()
+		expect(inv.useHeld()).toBe(false) -- inside the gap: the server's rate limit is never hit by a double click
+		expect(#sent).toBe(1)
+	end)
+
+	it("the spray goes on the usual target slime", function()
+		local inv, _, sent = mount(stackState())
+		inv.pressKey(2) -- Bat, Mutation Spray
+		expect(inv.useHeld()).toBe(true)
+		expect(sent[1][2]).toBe("MutationSpray")
+		expect(sent[1][3]).toBe("s1")
+	end)
+
+	it("the hand empties when the last one is used, a Tool or PvP item is picked, or the player carries", function()
+		local inv = mount(stackState(), COIL)
+		inv.pressKey(3)
+		expect(inv.heldConsumable()).toBe("MutationSpray")
+		inv.update(stackState({ consumables = { held = { LuckPotion = 3 } } })) -- the spray was used up
+		expect(inv.heldConsumable()).toBeNil()
+		inv.pressKey(3)
+		expect(inv.heldConsumable()).toBe("LuckPotion")
+		inv.pressKey(1) -- the Bat
+		expect(inv.heldConsumable()).toBeNil()
+		inv.pressKey(3)
+		inv.update(stackState({ carrying = { slimeId = "x" } }))
+		expect(inv.heldConsumable()).toBeNil()
+		expect(inv.useHeld()).toBe(false)
+	end)
+
+	it("the bag panel lists the stacks too", function()
+		local inv = mount(stackState(), COIL)
+		inv.setPanelOpen(true)
+		local seen = 0
+		for _, child in UiHarness.find(inv.panel.frame, "Grid"):GetChildren() do
+			if child.Visible and UiHarness.find(child, "Count") and UiHarness.find(child, "Count").Visible then
+				seen += 1
+			end
+		end
+		expect(seen).toBe(2)
 	end)
 end)
