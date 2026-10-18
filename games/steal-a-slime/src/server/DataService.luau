@@ -68,7 +68,9 @@ function DataService.new(options: Options): DataService
 		wait = options.wait,
 		loadAttempts = options.loadAttempts or 5,
 		saveAttempts = options.saveAttempts or 3,
-		log = options.log or warn,
+		log = options.log or function(message: string)
+			warn(message)
+		end,
 		lost = {},
 		readOnly = {},
 	}
