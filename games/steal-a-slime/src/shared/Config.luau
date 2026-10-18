@@ -1121,6 +1121,11 @@ local Config = {
 	-- checked on the server on OpenShop and on every purchase; out of range closes the shop.
 	SHOP_RANGE = 14,
 
+	-- Owner-only plot pad prompts (LockPrompt / BuyPadPrompt / MergePrompt): the prompts' MaxActivationDistance, and the extra
+	-- studs the server allows on top of it (lag, the prompt part's own size) when it checks the owner against THAT prompt part.
+	PLOT_PAD_PROMPT_DISTANCE = 10,
+	PLOT_PAD_RANGE_SLACK = 4,
+
 	-- Friend income bonus (FEATURES.FriendBonus, CONTRACT.md §11)
 	FRIEND_BONUS_PER_FRIEND = 0.1, -- +10% income per friend in the same server
 	FRIEND_BONUS_CAP = 0.3, -- at most +30%
