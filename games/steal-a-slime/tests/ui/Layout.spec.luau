@@ -2,6 +2,7 @@
 -- Overlay layers, scroll list rules and the phone UIScale (src/ui/Layout.luau).
 local fs = require("@lune/fs")
 
+local InventoryLayout = require("../../src/ui/InventoryLayout")
 local Layout = require("../../src/ui/Layout")
 local TestRunner = require("../TestRunner")
 
@@ -148,15 +149,21 @@ describe("Layout.screen tutorial card on short screens", function()
 	end
 	it("844x390 sits at the bottom, clear of the banner stack and toast column", function()
 		local s = Layout.screen(844, 390)
-		expect(s.short).toBe(true)
+		expect(s.phone).toBe(true) -- (no longer `short`: the lowered, smaller money block leaves the nav room)
 		for _, r in { s.tutorial, s.tutorialCarrying } do
 			local top, bottom = px(r, s.scale)
 			-- 250 (was 276): the banner stack above lost six banners with the H1 HUD (boss, rain, modifier,
 			-- friends, weekend, next-spawn), and the beside-the-carry-card tutorial is narrower, so taller.
-			expect(top >= 250).toBe(true)
+			-- 180: the plain card now stands above the hotbar, which hugs the bottom edge with the money block.
+			expect(top >= 180).toBe(true)
 			expect(bottom <= 390).toBe(true)
-			expect(bottom >= 390 - Layout.TUTORIAL_SHORT_MARGIN - 1).toBe(true)
 		end
+		-- the carry card (the carrying tutorial stands on it) hugs the bottom edge
+		expect((s.carry.y + s.carry.h) * s.scale >= 390 - 12).toBe(true)
+		-- The hotbar shares the money / events row on the bottom edge (landscape phone), so the plain tutorial card
+		-- stands right above it.
+		expect(s.tutorial.y + s.tutorial.h + Layout.GAP <= s.hotbar.y + 0.001).toBe(true)
+		expect(Layout.overlaps(s.tutorial, s.hotbar)).toBe(false)
 	end)
 	it("carrying: the card sits beside the carry card, not over it", function()
 		local s = Layout.screen(844, 390)
@@ -169,18 +176,28 @@ describe("Layout.screen tutorial card on short screens", function()
 			expect(s.short).toBe(false)
 			-- Portrait phones (H1 HUD): the cards sit above the two bottom clusters, which sit above the
 			-- touch-controls rise; desktop keeps them on the inset line.
+			local barH = InventoryLayout.height(s.compact, Layout.MIN_TOUCH_DESIGN, s.tight)
 			local lift = if s.width
 					< Layout.CARRY.w + s.money.rect.w + s.status.rect.w + 2 * (Layout.MARGIN + Layout.GAP)
-				then math.ceil(Layout.TOUCH_RISE / s.scale) + math.max(s.money.rect.h, s.status.rect.h) + Layout.GAP
+				then math.ceil(Layout.TOUCH_RISE / s.scale) + math.max(s.money.rect.h, s.status.rect.h, barH) + Layout.GAP
 				else 0
-			expect(s.tutorial.y + s.tutorial.h).toBe(s.height - s.bottomInset - lift)
+			-- S3: on a phone the hotbar shares the money / events row below the cards; on desktop the card sits
+			-- right above the hotbar (the bar is on the same line the card used to be).
+			local tutorialGap = if s.phone then 0 else barH + Layout.GAP
+			expect(s.tutorial.y + s.tutorial.h).toBe(s.height - s.bottomInset - lift - tutorialGap)
+			if s.phone then
+				expect(s.hotbar.y + s.hotbar.h).toBe(s.height - s.bottomInset - Layout.TOUCH_RISE / s.scale)
+			else
+				expect(s.hotbar.y + s.hotbar.h).toBe(s.height - s.bottomInset - lift)
+			end
+			expect(s.carry.y + s.carry.h).toBe(s.height - s.bottomInset - lift)
 			expect(s.tutorialCarrying.y + s.tutorialCarrying.h + Layout.GAP).toBe(s.carry.y)
 		end
 		local d = Layout.screen(1920, 1080)
-		expect(d.tutorial.y).toBe(927)
+		expect(d.tutorial.y).toBe(855)
 		expect(d.tutorialCarrying.y).toBe(819)
 		local p = Layout.screen(390, 844)
-		expect(p.tutorial.y).toBe(671)
-		expect(p.tutorialCarrying.y).toBe(563)
+		expect(p.tutorial.y).toBe(694)
+		expect(p.tutorialCarrying.y).toBe(586)
 	end)
 end)

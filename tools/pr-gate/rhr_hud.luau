@@ -174,8 +174,9 @@ local function buildCase(vp: { name: string, w: number, h: number }, tooltipSlot
 
 	local buttons = {}
 	local boxes = {}
-	local function want(path: string, r: Layout.Rect, designW: number, designH: number)
-		table.insert(buttons, { path = `SlimeUI/Root/{path}`, design = { designW, designH }, rect = r })
+	-- `tight`: the 390 px portrait row's event slots are below MIN_TOUCH by design (Layout.STATUS_TIGHT).
+	local function want(path: string, r: Layout.Rect, designW: number, designH: number, tight: boolean?)
+		table.insert(buttons, { path = `SlimeUI/Root/{path}`, design = { designW, designH }, rect = r, tight = tight })
 	end
 
 	-- Menu panel first (Base, drawn under the siblings that follow): invisible, but it takes clicks.
@@ -231,16 +232,17 @@ local function buildCase(vp: { name: string, w: number, h: number }, tooltipSlot
 		make("Frame", { Name = "Cash", BackgroundColor3 = Color3.fromRGB(58, 36, 110), BorderSizePixel = 0 }, moneyRoot)
 	place(cash, m.cash, m.rect)
 	rounded(cash, 16, Color3.fromRGB(10, 10, 20), 3)
-	local coin = if s.compact then Layout.MONEY.cicon else Layout.MONEY.icon
+	local M, MT = Layout.MONEY, Layout.MONEY_TIGHT
+	local coin = if s.tight then MT.icon elseif s.compact then M.cicon else M.icon
 	icon(cash, "Cash", coin, UDim2.new(0, 6, 0.5, 0), Vector2.new(0, 0.5))
-	local cashLeft, cashWidth = Layout.moneyTextBox(m.cash, true, s.compact)
+	local cashLeft, cashWidth = Layout.moneyTextBox(m.cash, true, s.compact, s.tight)
 	text("Value", cash, {
 		Text = "$2.37B",
-		TextSize = if s.compact then Layout.MONEY.camountSize else Layout.MONEY.amountSize,
+		TextSize = if s.tight then MT.amountSize elseif s.compact then M.camountSize else M.amountSize,
 		Size = UDim2.fromOffset(cashWidth, m.cash.h),
 		Position = UDim2.fromOffset(cashLeft, 0),
 	})
-	local chipSize = if s.compact then Layout.MONEY.cchipSize else Layout.MONEY.chipSize
+	local chipSize = if s.tight then MT.chipSize elseif s.compact then M.cchipSize else M.chipSize
 	chip(moneyRoot, "Income", m.income, m.rect, "Income", "+$5.93M/s", Color3.fromRGB(40, 120, 70), chipSize)
 	chip(moneyRoot, "Rebirths", m.rebirths, m.rect, "Rebirth", "8 x5", Color3.fromRGB(70, 50, 140), chipSize)
 	table.insert(boxes, { path = "Money", rect = m.rect })
@@ -248,8 +250,9 @@ local function buildCase(vp: { name: string, w: number, h: number }, tooltipSlot
 	-- Status cluster (bottom right): an icon with its timer under it per running thing.
 	local statusRoot = frame("Status", s.status.rect, root, Z.Base, true)
 	local S = Layout.STATUS
-	local iconSize = if s.compact then S.cicon else S.icon
-	local slotW, slotH = Layout.statusSlotWidth(s.compact), Layout.statusHeight(s.compact)
+	local ST = Layout.STATUS_TIGHT
+	local iconSize = if s.tight then ST.icon elseif s.compact then S.cicon else S.icon
+	local slotW, slotH = Layout.statusSlotWidth(s.compact, s.tight), Layout.statusHeight(s.compact, s.tight)
 	local slotRects = {}
 	for i, slot in SLOTS do
 		local r = Layout.statusSlot(s.status, i, #SLOTS)
@@ -263,12 +266,12 @@ local function buildCase(vp: { name: string, w: number, h: number }, tooltipSlot
 		icon(b, slot.icon, iconSize, UDim2.new(0.5, 0, 0, 0), Vector2.new(0.5, 0))
 		text("Timer", b, {
 			Text = slot.text,
-			TextSize = if s.compact then S.clabelSize else S.labelSize,
-			Size = UDim2.new(1, 0, 0, if s.compact then S.clabel else S.label),
+			TextSize = if s.tight then ST.labelSize elseif s.compact then S.clabelSize else S.labelSize,
+			Size = UDim2.new(1, 0, 0, if s.tight then ST.label elseif s.compact then S.clabel else S.label),
 			Position = UDim2.fromOffset(0, iconSize + S.labelGap),
 			TextStrokeTransparency = 0.2,
 		})
-		want(`Status/{slot.id}`, r, slotW, slotH)
+		want(`Status/{slot.id}`, r, slotW, slotH, s.tight)
 	end
 
 	-- B8: the open tooltip over `tooltipSlot` (the luck event), where Layout puts it.

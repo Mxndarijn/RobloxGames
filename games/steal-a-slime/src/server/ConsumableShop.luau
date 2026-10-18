@@ -2,9 +2,11 @@
 --[[
 	ConsumableShop (server, FEATURES.Consumables)
 
-	`buy` is the `BuyConsumable` action: validates stock, cash and the item's own precondition
-	through Shared.Consumables, then charges, records the purchase and applies the effect.
-	Nothing is charged when the effect cannot happen. Pure: no Roblox APIs.
+	`buy` is the `BuyConsumable` action: validates stock, cash and the held-stack cap through
+	Shared.Consumables, then charges, records the purchase and adds one to the held stack. Nothing is applied.
+	`use` is the `UseConsumable` action: validates the item and that the player holds one, applies the effect
+	(the spray / potion / totem code below, unchanged) and only then takes one off the stack, so a refused
+	effect costs nothing. Pure: no Roblox APIs.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -51,7 +53,7 @@ function ConsumableShop.buy(
 	world: World,
 	session: Session,
 	itemId: string,
-	slimeId: string?,
+	_slimeId: string?, -- kept for the BuyConsumable arguments: the target is chosen when the item is used
 	now: number,
 	hooks: Hooks
 ): (boolean, string?)
@@ -61,11 +63,36 @@ function ConsumableShop.buy(
 	if not ok then
 		return false, value :: string
 	end
-	local price = value :: number
+	assert(PlayerData.spend(data, value :: number), "cash vanished")
+	Consumables.record(data, Consumables.slotAt(now), itemId)
+	Consumables.addHeld(data, itemId)
 	local def = Consumables.def(itemId) :: Config.Consumable
-	local slot = Consumables.slotAt(now)
+	World.notify(world, session.userId, `{def.name} added to your bag.`, "good", "Cash")
+	return true, nil
+end
+
+-- Returns (ok, reason?).
+function ConsumableShop.use(
+	world: World,
+	session: Session,
+	itemId: string,
+	slimeId: string?,
+	now: number,
+	hooks: Hooks
+): (boolean, string?)
+	local data = session.data
+	if not Consumables.enabled() then
+		return false, "the shop is closed"
+	end
+	local def = Consumables.def(itemId)
+	if not def then
+		return false, "unknown item"
+	end
+	if Consumables.held(data, itemId) < 1 then
+		return false, "you don't have any"
+	end
 	if itemId == "MutationSpray" then
-		-- Applied first because it can fail (bad slime, nothing to add); cash was verified above.
+		-- Can fail (bad slime, nothing to add), so the stack is only taken after it worked.
 		local good, reason = spray(world, session, slimeId, hooks.rng or world.rng)
 		if not good then
 			return false, reason
@@ -78,14 +105,16 @@ function ConsumableShop.buy(
 		World.notify(world, nil, `{def.name}! Better rarity odds in the fountain.`, "good", nil)
 		World.markAllDirty(world)
 	elseif itemId == Consumables.TOTEM then
-		local _, weather = Consumables.stock(slot)
-		if not (hooks.requestWeather :: (string) -> boolean)(weather) then
+		local _, weather = Consumables.stock(Consumables.slotAt(now))
+		if not (hooks.requestWeather and Config.FEATURES.Weather == true) then
+			return false, "no weather here"
+		end
+		if not hooks.requestWeather(weather) then
 			return false, "the weather can't change that way right now"
 		end
 		World.notify(world, nil, `Weather Totem: {weather} is next!`, "good", nil)
 	end
-	assert(PlayerData.spend(data, price), "cash vanished")
-	Consumables.record(data, slot, itemId)
+	assert(Consumables.takeHeld(data, itemId), "stack vanished")
 	return true, nil
 end
 

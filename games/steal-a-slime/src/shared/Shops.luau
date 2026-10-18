@@ -55,6 +55,8 @@ end
 local itemRows: { Item } = {
 	item("Lock", "Lock base", "🔒", "Blocks thieves.", "Lock", false, nil),
 	item("MysteryEgg", "Mystery Egg", "🥚", "Hatches a random slime. Cash only.", "BuyEgg", false, "MysteryEgg"),
+	-- An item, not an upgrade: it works while it is held in the hand (a Tool in the Backpack, a hotbar slot).
+	item("SpeedCoil", "Speed Coil", "⚡", "Run faster, also while carrying", "BuySpeedCoil", false, nil),
 }
 for _, def in Config.CONSUMABLES do
 	table.insert(itemRows, item(def.id, def.name, def.icon, def.text, "BuyConsumable", true, "Consumables"))
@@ -65,7 +67,6 @@ end
 
 local upgradeRows: { Item } = {
 	item("LockUpgrade", "Longer locks", "⏱️", "Every lock lasts longer.", "BuyLockUpgrade", false, nil),
-	item("SpeedCoil", "Speed Coil", "⚡", "Run faster, also while carrying", "BuySpeedCoil", false, nil),
 }
 local UPGRADE_ICONS: { [string]: string } =
 	{ Income = "🍪", CarrySpeed = "💪", OfflineCap = "🌙", Luck = "🍀", RainMagnet = "🧲" }

@@ -40,6 +40,8 @@ local Format = require(script.Format)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
 local Icons = require(script.Icons)
+local Inventory = require(script.Inventory)
+local InventoryTools = require(script.InventoryTools)
 local ItemIconView = require(script.ItemIconView)
 local ItemIcons = require(script.ItemIcons)
 local Layout = require(script.Layout)
@@ -228,6 +230,18 @@ local ctx: { [string]: any } = {
 }
 
 local hud = Hud.new(gui, ctx)
+-- S3 hotbar + inventory panel (replaces the default Roblox backpack bar).
+InventoryTools.hideDefaultBackpack()
+local inventory = Inventory.new(gui, {
+	Config = Config,
+	itemIcons = itemIcons,
+	send = send,
+	tools = InventoryTools.new(player),
+	serverNow = serverNow,
+	keyboard = game:GetService("UserInputService").KeyboardEnabled,
+})
+InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
+InventoryTools.bindUse(inventory.useHeld)
 local stealFx = StealAlertFx.new(gui, {
 	Config = Config,
 	Constants = Constants,
@@ -592,6 +606,7 @@ local function syncMenus()
 		end
 	end
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
+	inventory.setMenuOpen(visibleKey ~= nil)
 	tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
@@ -824,6 +839,7 @@ function applyLayout()
 	local s = Layout.screen(size.X, size.Y)
 	screen = s
 	hud.layout(s)
+	inventory.layout(s)
 	stealFx.layout(s, hud.bannerHeight)
 	carry.layout(s)
 	tutorial.layout(s)
@@ -938,6 +954,7 @@ local function render(realState: Types.State)
 	local state: Types.State =
 		forceWelcome(forceStealAlert(forceDex(forceWeekend(forceAdminEvent(forceFriends(realState))))))
 	hud.update(state)
+	inventory.update(state)
 	stealFx.update(state)
 	carry.update(state)
 	dailyPopup.update(state)
@@ -1067,6 +1084,7 @@ task.spawn(function()
 		if latest then
 			local now = serverNow()
 			hud.tick(now)
+			inventory.tick()
 			carry.tick(now)
 			panelByKey.Codes.tick(now)
 			if panelByKey.WorldShop then

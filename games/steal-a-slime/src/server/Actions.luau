@@ -323,9 +323,21 @@ local function buyConsumable(
 	now: number,
 	ctx: Context
 ): Result
+	local ok, reason = ConsumableShop.buy(world, session, id, slimeId, now, { requestWeather = ctx.requestWeather })
+	return result(ok, reason)
+end
+
+local function useConsumable(
+	world: World,
+	session: Session,
+	id: string,
+	slimeId: string?,
+	now: number,
+	ctx: Context
+): Result
 	local rng = ctx.rng or Rng.new(math.floor(now * 1000) + session.userId)
 	local ok, reason =
-		ConsumableShop.buy(world, session, id, slimeId, now, { rng = rng, requestWeather = ctx.requestWeather })
+		ConsumableShop.use(world, session, id, slimeId, now, { rng = rng, requestWeather = ctx.requestWeather })
 	return result(ok, reason)
 end
 
@@ -574,6 +586,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return appraise(world, session, args[1], args[2], now, ctx)
 	elseif action == "BuyConsumable" then
 		return buyConsumable(world, session, args[1], args[2], now, ctx)
+	elseif action == "UseConsumable" then
+		return useConsumable(world, session, args[1], args[2], now, ctx)
 	elseif action == "BuyPvpItem" then
 		return result(PvpService.buy(world, session, args[1], ctx.pvp))
 	elseif action == "EquipPvpItem" then

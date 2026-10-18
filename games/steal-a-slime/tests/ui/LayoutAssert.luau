@@ -29,6 +29,7 @@ local GuideTips = require("../../src/ui/GuideTips")
 local Hint = require("../../src/ui/Hint")
 local HudClusters = require("../../src/ui/HudClusters")
 local Icons = require("../../src/ui/Icons")
+local InventoryLayout = require("../../src/ui/InventoryLayout")
 local Layout = require("../../src/ui/Layout")
 local Nav = require("../../src/ui/Nav")
 local Remotes = require("../../src/shared/Remotes")
@@ -103,6 +104,15 @@ LayoutAssert.GATE_VIEWPORTS = table.freeze({
 LayoutAssert.LANDSCAPE_VIEWPORTS = table.freeze({
 	table.freeze({ name = "844x390", w = 844, h = 390 }),
 	table.freeze({ name = "844x332", w = 844, h = 332 }),
+})
+
+-- Every phone-classified gate size: landscape 844x390 / 844x332 and portrait 390x844 (and under the top bar,
+-- 390x786). Layout.screen sets `phone` for these; 1024x768 and wider are not phones.
+LayoutAssert.PHONE_VIEWPORTS = table.freeze({
+	table.freeze({ name = "844x390", w = 844, h = 390 }),
+	table.freeze({ name = "844x332", w = 844, h = 332 }),
+	table.freeze({ name = "390x844", w = 390, h = 844 }),
+	table.freeze({ name = "390x786", w = 390, h = 786 }),
 })
 
 local EPS = 1e-6
@@ -247,19 +257,25 @@ LayoutAssert.BIG_STATE = table.freeze({
 function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
 	local m = screen.money
 	local s = LayoutAssert.BIG_STATE
-	local compact = screen.compact
+	local compact, tight = screen.compact, screen.tight
 	local out: { TextDesc } = {}
-	local _, cashW = Layout.moneyTextBox(m.cash, true, compact)
+	local _, cashW = Layout.moneyTextBox(m.cash, "cash", compact, tight)
 	table.insert(out, {
 		name = "Money amount",
 		text = Format.formatCash(s.cash),
-		size = if compact then Layout.MONEY.camountSize else Layout.MONEY.amountSize,
+		size = if tight
+			then Layout.MONEY_TIGHT.amountSize
+			elseif compact then Layout.MONEY.camountSize
+			else Layout.MONEY.amountSize,
 		bold = true,
 		w = cashW,
 		h = m.cash.h,
 	})
-	local chip = if compact then Layout.MONEY.cchipSize else Layout.MONEY.chipSize
-	local _, incomeW = Layout.moneyTextBox(m.income, false, compact)
+	local chip = if tight
+		then Layout.MONEY_TIGHT.chipSize
+		elseif compact then Layout.MONEY.cchipSize
+		else Layout.MONEY.chipSize
+	local _, incomeW = Layout.moneyTextBox(m.income, "income", compact, tight)
 	table.insert(out, {
 		name = "Income chip",
 		text = Format.formatRate(s.incomePerSec),
@@ -268,14 +284,23 @@ function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
 		w = incomeW,
 		h = m.income.h,
 	})
-	local _, rebirthW = Layout.moneyTextBox(m.rebirths, false, compact)
+	local _, rebirthW = Layout.moneyTextBox(m.rebirths, "rebirths", compact, tight)
 	table.insert(out, {
 		name = "Rebirths chip",
-		text = `{s.rebirths} {Format.formatMultiplier(s.rebirthMultiplier)}`,
+		text = tostring(s.rebirths),
 		size = chip,
 		bold = true,
 		w = rebirthW,
 		h = m.rebirths.h,
+	})
+	-- the "xN" badge on the chip (Hud: 75 % of the chip text size)
+	table.insert(out, {
+		name = "Rebirths badge",
+		text = Format.formatMultiplier(s.rebirthMultiplier),
+		size = math.max(8, math.round(chip * 0.75)),
+		bold = true,
+		w = Layout.moneyBadgeWidth(m.rebirths.h) - 4,
+		h = math.round(m.rebirths.h * 0.6),
 	})
 	return out
 end
@@ -288,10 +313,13 @@ function LayoutAssert.statusTexts(screen: Layout.Screen): { TextDesc }
 		table.insert(out, {
 			name = `Status slot {text}`,
 			text = text,
-			size = if screen.compact then S.clabelSize else S.labelSize,
+			size = if screen.tight
+				then Layout.STATUS_TIGHT.labelSize
+				elseif screen.compact then S.clabelSize
+				else S.labelSize,
 			bold = true,
-			w = Layout.statusSlotWidth(screen.compact),
-			h = if screen.compact then S.clabel else S.label,
+			w = Layout.statusSlotWidth(screen.compact, screen.tight),
+			h = if screen.tight then Layout.STATUS_TIGHT.label elseif screen.compact then S.clabel else S.label,
 		})
 	end
 	return out
@@ -669,6 +697,7 @@ function LayoutAssert.menuKeys(): { string }
 		table.insert(keys, entry.key)
 	end
 	table.insert(keys, "WorldShop")
+	table.insert(keys, "Inventory")
 	table.insert(keys, "Sound")
 	table.insert(keys, "Guide")
 	table.insert(keys, "Welcome")
@@ -906,8 +935,8 @@ function LayoutAssert.notSquashed(check: Checker)
 		check.aspect(
 			`Status.slot{i}`,
 			slot,
-			Layout.statusSlotWidth(screen.compact),
-			Layout.statusHeight(screen.compact)
+			Layout.statusSlotWidth(screen.compact, screen.tight),
+			Layout.statusHeight(screen.compact, screen.tight)
 		)
 	end
 	local close = Layout.panelClose(Layout.panelFor(screen, "Shop"))
@@ -929,7 +958,7 @@ function LayoutAssert.clusterChecks(check: Checker)
 		table.insert(boxes, { `Status.slot{i}`, slot })
 		check.inside(`Status.slot{i}`, slot, "Status", screen.status.rect)
 	end
-	local rise = if screen.compact then math.ceil(Layout.TOUCH_RISE / screen.scale) else 0
+	local rise = Layout.rowRise(screen)
 	local floor = screen.height - screen.bottomInset - rise
 	for _, box in boxes do
 		local name, r = box[1] :: string, box[2] :: Rect
@@ -941,8 +970,19 @@ function LayoutAssert.clusterChecks(check: Checker)
 	check.inside("Money.cash", screen.money.cash, "Money", screen.money.rect)
 	check.inside("Money.income", screen.money.income, "Money", screen.money.rect)
 	check.inside("Money.rebirths", screen.money.rebirths, "Money", screen.money.rect)
-	check.noOverlap("Money.cash", screen.money.cash, "Money.income", screen.money.income)
-	check.noOverlap("Money.cash", screen.money.cash, "Money.rebirths", screen.money.rebirths)
+	-- The chips are tucked up under the pill's bottom edge: they may enter the coin + pill zone, but by no more
+	-- than the overlap plus the coin's protrusion, and never past its middle.
+	for _, chipBox in { { "Money.income", screen.money.income }, { "Money.rebirths", screen.money.rebirths } } do
+		local name, r = chipBox[1] :: string, chipBox[2] :: Rect
+		local cash = screen.money.cash
+		local intrusion = cash.y + cash.h - r.y
+		local k = Layout.moneyMetrics(screen.compact, screen.tight)
+		if intrusion > k.overlap + k.pad + EPS or intrusion < 0 or r.y < cash.y + cash.h / 2 then
+			check.fail(
+				`{name} {fmt(r)} tucks {intrusion} px into the pill zone {fmt(cash)} (want 0 to {k.overlap + k.pad})`
+			)
+		end
+	end
 	check.noOverlap("Money.income", screen.money.income, "Money.rebirths", screen.money.rebirths)
 	check.noOverlap("Money", screen.money.rect, "Status", screen.status.rect)
 	for _, cluster in { { "Money", screen.money.rect }, { "Status", screen.status.rect } } do
@@ -970,6 +1010,101 @@ function LayoutAssert.clusterChecks(check: Checker)
 			check.noOverlap(name, r, `Status.slot{i}`, slot)
 		end
 	end
+end
+
+-- S3 hotbar: its zone and the fullest bar (every slot + bag) are on screen, touch-sized on phones, inside
+-- the zone, clear of every other box and of the thumbstick / jump zones. The carry cards are the exception:
+-- the server unequips tools while carrying, so the bar is hidden then (Inventory) and they may use its place.
+function LayoutAssert.hotbarChecks(check: Checker)
+	local screen = check.screen
+	local zone = screen.hotbar
+	check.onScreen("Hotbar.zone", zone, Layout.MARGIN)
+	local bar =
+		InventoryLayout.bar(zone, InventoryLayout.MAX_SLOTS, screen.compact, Layout.MIN_TOUCH_DESIGN, screen.tight)
+	if bar.shown < 3 then
+		check.fail(`Hotbar holds only {bar.shown} item slots in {fmt(zone)} (want at least 3)`)
+	end
+	check.inside("Hotbar.bar", bar.rect, "Hotbar.zone", zone)
+	-- Bottom-centre: off a narrow phone the zone is centred on the screen, between the money and status clusters.
+	if zone.w < screen.width - Layout.MARGIN * 2 and math.abs(zone.x + zone.w / 2 - screen.width / 2) > 1 then
+		check.fail(`Hotbar.zone {fmt(zone)} is not centred on the {screen.width} px screen`)
+	end
+	local cells = { { "Hotbar.bag", bar.bag } }
+	for i, slot in bar.slots do
+		table.insert(cells, { `Hotbar.slot{i}`, slot })
+	end
+	local thumbSide = 120
+	local thumbTop = screen.height - Layout.TOUCH_CONTROLS_HEIGHT - thumbSide
+	local zones = {
+		{ "JumpZone", Layout.rect(screen.width - thumbSide, thumbTop, thumbSide, screen.height - thumbTop) },
+		{ "ThumbstickZone", Layout.rect(0, thumbTop, thumbSide, screen.height - thumbTop) },
+	}
+	for _, cell in cells do
+		local name, r = cell[1] :: string, cell[2] :: Rect
+		check.inside(name, r, "Hotbar.bar", bar.rect)
+		-- Tight (390 px portrait): the shared bottom row leaves only TIGHT.slot design px per slot, below MIN_TOUCH.
+		if screen.compact and not screen.tight then
+			check.touch(name, r)
+		end
+	end
+	for _, other in
+		{
+			{ "Nav", screen.nav },
+			{ "Money", screen.money.rect },
+			{ "Status", screen.status.rect },
+			{ "Tutorial", screen.tutorial },
+			{ "Sound", screen.sound },
+			{ "Banners", screen.banners },
+			zones[1],
+			zones[2],
+		}
+	do
+		check.noOverlap("Hotbar.bar", bar.rect, other[1] :: string, other[2] :: Rect)
+	end
+	if screen.phone then
+		LayoutAssert.phoneRowChecks(check, bar.rect)
+	end
+end
+
+-- Phones (Layout.phone: landscape and portrait): the nav grid sits at the very top (the top margin), and the money
+-- block, the hotbar and the events row share one bottom row: bottom edges within BOTTOM_ALIGN px, money left of
+-- the hotbar left of the events, none overlapping.
+LayoutAssert.BOTTOM_ALIGN = 2
+
+function LayoutAssert.phoneRowChecks(check: Checker, bar: Rect)
+	local screen = check.screen
+	if math.abs(screen.nav.y - Layout.TOP) > EPS then
+		check.fail(`Nav {fmt(screen.nav)} is not at the top (y should be {Layout.TOP})`)
+	end
+	local money, status = screen.money.rect, screen.status.rect
+	local bottoms = { Money = money.y + money.h, Hotbar = bar.y + bar.h, Status = status.y + status.h }
+	for name, bottom in bottoms do
+		if math.abs(bottom - bottoms.Hotbar) > LayoutAssert.BOTTOM_ALIGN then
+			check.fail(
+				`{name} bottom {bottom} is not aligned with the hotbar bottom {bottoms.Hotbar} (within {LayoutAssert.BOTTOM_ALIGN} px)`
+			)
+		end
+	end
+	-- Landscape phone: the row hugs the bottom edge. The gap between its bottom and the screen bottom, in
+	-- screen px, is at most Layout.LANDSCAPE_INSET_MAX (16) and the row is not lifted off it (no rise).
+	if screen.width > screen.height then
+		local gapPx = (screen.height - bottoms.Hotbar) * screen.scale
+		if gapPx > Layout.LANDSCAPE_INSET_MAX + EPS or gapPx < 0 then
+			check.fail(`landscape bottom inset {gapPx} px is not within 0 to {Layout.LANDSCAPE_INSET_MAX} px`)
+		end
+		if screen.bottomInset * screen.scale > Layout.LANDSCAPE_INSET_MAX + EPS then
+			check.fail(
+				`landscape bottomInset {screen.bottomInset * screen.scale} px is over {Layout.LANDSCAPE_INSET_MAX} px`
+			)
+		end
+	end
+	if not (money.x + money.w <= bar.x + EPS and bar.x + bar.w <= status.x + EPS) then
+		check.fail(`bottom row is not money {fmt(money)} | hotbar {fmt(bar)} | events {fmt(status)} left to right`)
+	end
+	check.noOverlap("Money", money, "Hotbar.bar", bar)
+	check.noOverlap("Hotbar.bar", bar, "Status", status)
+	check.noOverlap("Money", money, "Status", status)
+	check.noOverlap("Nav", screen.nav, "Money", money)
 end
 
 function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
@@ -1002,6 +1137,7 @@ function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker
 	-- clear of the nav, bottom cards and each other; every status slot inside its cluster; a status
 	-- tooltip stays on screen.
 	LayoutAssert.clusterChecks(check)
+	LayoutAssert.hotbarChecks(check)
 
 	-- Menus: full-window backdrop, content-sized cards, close X tappable.
 	check.onScreen("column", screen.column, m)

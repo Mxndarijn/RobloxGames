@@ -28,33 +28,49 @@ local create = Widgets.create
 
 local Hud = {}
 
--- A small rounded plate with an item icon at its left and a bold value label (sized by Hud.layout).
-local function plate(parent: Instance, name: string, iconId: string, color: Color3, registry: any)
+-- Money block palette (Merijn's reference money_block_reference.png): chunky cartoon, bold dark outlines.
+local INK = Color3.fromRGB(30, 18, 51) -- outlines, chip text, the "$"
+local PILL = Color3.fromRGB(59, 36, 102)
+local AMOUNT = Color3.fromRGB(255, 217, 59)
+local COIN = Color3.fromRGB(247, 196, 40)
+local COIN_SHADE = Color3.fromRGB(196, 135, 14)
+local GREEN = Color3.fromRGB(126, 217, 87)
+local LILAC = Color3.fromRGB(169, 139, 240)
+local BADGE = Color3.fromRGB(43, 27, 77)
+local CHUNKY = Enum.Font.FredokaOne
+
+-- A top-light to bottom-dark UIGradient for depth. A UIGradient multiplies the frame's own colour, so the
+-- two stops are grey brightness factors (1 = the colour as is), not colours.
+local function shade(parent: Instance, top: number, bottom: number)
+	create("UIGradient", {
+		Rotation = 90,
+		Color = ColorSequence.new(Color3.new(top, top, top), Color3.new(bottom, bottom, bottom)),
+		Parent = parent,
+	})
+end
+
+-- A rounded chip (outlined, shaded) that Hud.layout sizes; `label` is its dark chunky text.
+local function chip(parent: Instance, name: string, color: Color3)
 	local frame = create("Frame", {
 		Name = name,
 		BackgroundColor3 = color,
-		BackgroundTransparency = 0.05,
+		ZIndex = 2,
 		Parent = parent,
-	}, { Widgets.corner(12), Widgets.stroke(Color3.fromRGB(10, 10, 20), 2) })
-	local icon = ItemIconView.new({
-		Name = "Icon",
-		Id = iconId,
-		Size = 20,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 3, 0.5, 0),
-		Parent = frame,
-	}, registry)
-	icon.setActive(true)
+	}, { Widgets.corner(8) })
+	shade(frame, 1, 0.82)
+	local stroke = Widgets.stroke(INK, 3)
+	stroke.Parent = frame
 	local value = Widgets.label({
 		Name = "Value",
 		Text = "-",
-		Font = Theme.Font,
+		Font = CHUNKY,
+		TextColor3 = INK,
 		TextSize = Layout.MONEY.chipSize,
-		TextStrokeTransparency = 0.6,
 		TextTruncate = Enum.TextTruncate.None,
+		ZIndex = 3,
 		Parent = frame,
 	})
-	return frame, icon, value
+	return frame, value, stroke
 end
 
 -- Banners wrap and grow taller instead of truncating (v15: the boss
@@ -90,7 +106,9 @@ end
 function Hud.new(parent: Instance, ctx: any)
 	local registry = ItemIcons.of(ctx)
 
-	-- Bottom-left cluster (Layout.moneyCluster): coin + big amount, income/s and rebirths chips under it.
+	-- Bottom-left cluster (Layout.moneyCluster, the reference money block): a round gold coin over the left end
+	-- of a long dark purple pill with the amount; under it the green income/s chip (with a tab pointing down)
+	-- and the lilac rebirths chip (icon, count, "xN" badge) tucked up under the pill's bottom edge.
 	local moneyRoot = create("Frame", {
 		Name = "Money",
 		BackgroundTransparency = 1,
@@ -99,31 +117,117 @@ function Hud.new(parent: Instance, ctx: any)
 	})
 	local cashPlate = create("Frame", {
 		Name = "Cash",
-		BackgroundColor3 = Color3.fromRGB(58, 36, 110),
+		BackgroundTransparency = 1,
+		ZIndex = 1,
 		Parent = moneyRoot,
-	}, { Widgets.corner(16), Widgets.stroke(Color3.fromRGB(10, 10, 20), 3) })
+	})
+	local pill = create("Frame", {
+		Name = "Pill",
+		BackgroundColor3 = PILL,
+		Parent = cashPlate,
+	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	shade(pill, 1, 0.8)
+	local pillStroke = Widgets.stroke(INK, 4)
+	pillStroke.Parent = pill
 	local cashLabel = Widgets.label({
 		Name = "Value",
 		Text = "-",
-		Font = Theme.Font,
+		Font = CHUNKY,
+		TextColor3 = AMOUNT,
 		TextSize = Layout.MONEY.amountSize,
-		TextStrokeTransparency = 0.4,
+		TextStrokeColor3 = INK,
+		TextStrokeTransparency = 0,
 		TextTruncate = Enum.TextTruncate.None,
+		ZIndex = 2,
 		Parent = cashPlate,
 	})
-	local coin = ItemIconView.new({
+	-- No coin picture exists (the "Cash" icon is a pile), so the coin is drawn: a darker disc under the face
+	-- gives the 3D edge, the face has a lighter top, a ring and the dark "$".
+	local coin = create("Frame", {
 		Name = "Icon",
-		Id = HudClusters.ICONS.Cash,
-		Size = Layout.MONEY.icon,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 6, 0.5, 0),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
 		Parent = cashPlate,
+	})
+	local coinEdge = create("Frame", {
+		Name = "Edge",
+		BackgroundColor3 = COIN_SHADE,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 3,
+		Parent = coin,
+	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	local coinEdgeStroke = Widgets.stroke(INK, 4)
+	coinEdgeStroke.Parent = coinEdge
+	local coinFace = create("Frame", {
+		Name = "Face",
+		BackgroundColor3 = COIN,
+		ZIndex = 4,
+		Parent = coin,
+	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	shade(coinFace, 1, 0.88)
+	local coinRing = create("Frame", {
+		Name = "Ring",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.72, 0.72),
+		ZIndex = 5,
+		Parent = coinFace,
+	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	Widgets.stroke(COIN_SHADE, 2).Parent = coinRing
+	local coinSign = Widgets.label({
+		Name = "Sign",
+		Text = "$",
+		Font = CHUNKY,
+		TextColor3 = INK,
+		TextSize = 40,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextTruncate = Enum.TextTruncate.None,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 6,
+		Parent = coinFace,
+	})
+	local incomeTab = create("Frame", {
+		Name = "IncomeTab",
+		BackgroundColor3 = GREEN,
+		ZIndex = 1,
+		Parent = moneyRoot,
+	}, { create("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	local incomeTabStroke = Widgets.stroke(INK, 3)
+	incomeTabStroke.Parent = incomeTab
+	local incomeChip, incomeLabel, incomeStroke = chip(moneyRoot, "Income", GREEN)
+	local rebirthChip, rebirthLabel, rebirthStroke = chip(moneyRoot, "Rebirths", LILAC)
+	incomeLabel.TextXAlignment = Enum.TextXAlignment.Center
+	local rebirthIcon = ItemIconView.new({
+		Name = "Icon",
+		Id = HudClusters.ICONS.Rebirths,
+		Size = 20,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 3, 0.5, 0),
+		ZIndex = 3,
+		Parent = rebirthChip,
 	}, registry)
-	coin.setActive(true)
-	local incomeChip, incomeIcon, incomeLabel =
-		plate(moneyRoot, "Income", HudClusters.ICONS.Income, Color3.fromRGB(40, 120, 70), registry)
-	local rebirthChip, rebirthIcon, rebirthLabel =
-		plate(moneyRoot, "Rebirths", HudClusters.ICONS.Rebirths, Color3.fromRGB(70, 50, 140), registry)
+	rebirthIcon.setActive(true)
+	local badge = create("Frame", {
+		Name = "Multiplier",
+		BackgroundColor3 = BADGE,
+		AnchorPoint = Vector2.new(1, 0.5),
+		ZIndex = 3,
+		Parent = rebirthChip,
+	}, { Widgets.corner(6) })
+	local badgeStroke = Widgets.stroke(INK, 2)
+	badgeStroke.Parent = badge
+	local badgeLabel = Widgets.label({
+		Name = "Value",
+		Text = "x1",
+		Font = CHUNKY,
+		TextColor3 = Color3.fromRGB(255, 255, 255),
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextTruncate = Enum.TextTruncate.None,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 4,
+		Parent = badge,
+	})
 
 	-- Bottom-right cluster (Layout.statusCluster): one pooled slot per HudClusters id, icon + timer under it.
 	-- A slot is a button: hover / tap opens its tooltip.
@@ -328,12 +432,13 @@ function Hud.new(parent: Instance, ctx: any)
 		screen = s
 		compact = s.compact
 		local M = Layout.MONEY
-		cashLabel.TextSize = if compact then M.camountSize else M.amountSize
-		for _, value in { incomeLabel, rebirthLabel } do
-			value.TextSize = if compact then M.cchipSize else M.chipSize -- "$98.7T/s" fits a phone chip
-		end
-		local coinSize = if compact then M.cicon else M.icon
-		coin.instance.Size = UDim2.fromOffset(coinSize, coinSize)
+		local tight = s.tight
+		local T = Layout.MONEY_TIGHT
+		cashLabel.TextSize = if tight then T.amountSize elseif compact then M.camountSize else M.amountSize
+		local chipText = if tight then T.chipSize elseif compact then M.cchipSize else M.chipSize
+		incomeLabel.TextSize = chipText -- "$98.7T/s" fits a phone chip
+		rebirthLabel.TextSize = chipText
+		badgeLabel.TextSize = math.max(8, math.round(chipText * 0.75))
 		-- Whole pixels (a phone's design width is fractional; UDim offsets are integers).
 		local function whole(r: Layout.Rect): (number, number, number, number)
 			return math.round(r.x), math.round(r.y), math.round(r.w), math.round(r.h)
@@ -342,35 +447,72 @@ function Hud.new(parent: Instance, ctx: any)
 		local mx, my, mw, mh = whole(m.rect)
 		moneyRoot.Position = UDim2.fromOffset(mx, my)
 		moneyRoot.Size = UDim2.fromOffset(mw, mh)
+		-- Outline weights scale down with the block: 4 PC, 3 phone, 2 tight.
+		local line = if tight then 2 elseif compact then 3 else 4
+		local chipLine = if tight then 2 else 3
+		for _, stroke in { pillStroke, coinEdgeStroke } do
+			stroke.Thickness = line
+		end
+		for _, stroke in { incomeStroke, rebirthStroke, incomeTabStroke } do
+			stroke.Thickness = chipLine
+		end
+		badgeStroke.Thickness = if tight then 1 else 2
+		-- Coin + pill zone: the coin (full height) at the left, the pill a little shorter, starting mid-coin.
+		local _, _, cw, d = whole(m.cash)
+		cashPlate.Position = UDim2.fromOffset(0, math.round(m.cash.y - m.rect.y))
+		cashPlate.Size = UDim2.fromOffset(cw, d)
+		local pad = math.round(d * 0.08)
+		pill.Position = UDim2.fromOffset(math.round(d / 2), pad)
+		pill.Size = UDim2.fromOffset(cw - math.round(d / 2), d - 2 * pad)
+		coin.Position = UDim2.fromOffset(0, 0)
+		coin.Size = UDim2.fromOffset(d, d)
+		coinFace.Size = UDim2.new(1, 0, 1, -math.max(2, math.round(d * 0.06)))
+		coinSign.TextSize = math.round(d * 0.46)
+		local left, width = Layout.moneyTextBox(m.cash, "cash", compact, tight)
+		cashLabel.Position = UDim2.fromOffset(left, pad)
+		cashLabel.Size = UDim2.fromOffset(width, d - 2 * pad)
 		for _, entry in
 			{
-				{ cashPlate, m.cash, cashLabel, true },
-				{ incomeChip, m.income, incomeLabel, false },
-				{ rebirthChip, m.rebirths, rebirthLabel, false },
+				{ incomeChip, m.income, incomeLabel, "income" },
+				{ rebirthChip, m.rebirths, rebirthLabel, "rebirths" },
 			}
 		do
 			local frame, r = entry[1] :: Frame, entry[2] :: Layout.Rect
 			frame.Position = UDim2.fromOffset(math.round(r.x - m.rect.x), math.round(r.y - m.rect.y))
 			frame.Size = UDim2.fromOffset(math.round(r.w), math.round(r.h))
-			local left, width = Layout.moneyTextBox(r, entry[4] :: boolean, compact)
+			local cl = frame:FindFirstChildOfClass("UICorner")
+			if cl then
+				cl.CornerRadius = UDim.new(0, math.max(4, math.round(r.h * 0.3)))
+			end
+			local tleft, twidth = Layout.moneyTextBox(r, entry[4] :: "income" | "rebirths", compact, tight)
 			local label = entry[3] :: TextLabel
-			label.Position = UDim2.fromOffset(left, 0)
-			label.Size = UDim2.fromOffset(width, math.round(r.h))
+			label.Position = UDim2.fromOffset(tleft, 0)
+			label.Size = UDim2.fromOffset(twidth, math.round(r.h))
 		end
-		for _, icon in { incomeIcon, rebirthIcon } do
-			local size = m.income.h - 6
-			icon.instance.Size = UDim2.fromOffset(size, size)
-		end
+		-- The tab pointing down under the income chip: a small pill, half hidden behind the chip.
+		local tabH = if tight then T.tab else if compact then M.ctab else M.tab
+		local tabW = math.round(m.income.h * 0.5)
+		incomeTab.Size = UDim2.fromOffset(tabW, tabH * 2)
+		incomeTab.Position = UDim2.fromOffset(
+			math.round(m.income.x - m.rect.x + m.income.w * 0.22),
+			math.round(m.income.y - m.rect.y + m.income.h - tabH)
+		)
+		local rebirthIconSize = m.rebirths.h - 6
+		rebirthIcon.instance.Size = UDim2.fromOffset(rebirthIconSize, rebirthIconSize)
+		local badgeW = Layout.moneyBadgeWidth(m.rebirths.h)
+		badge.Size = UDim2.fromOffset(badgeW, math.round(m.rebirths.h * 0.6))
+		badge.Position = UDim2.new(1, -5, 0.5, 0)
 		local sx, sy, sw, sh = whole(s.status.rect)
 		statusRoot.Position = UDim2.fromOffset(sx, sy)
 		statusRoot.Size = UDim2.fromOffset(sw, sh)
 		local S = Layout.STATUS
-		local iconSize = if compact then S.cicon else S.icon
+		local ST = Layout.STATUS_TIGHT
+		local iconSize = if tight then ST.icon elseif compact then S.cicon else S.icon
 		for _, entry in statusSlots do
-			entry.frame.Size = UDim2.fromOffset(Layout.statusSlotWidth(compact), s.status.rect.h)
+			entry.frame.Size = UDim2.fromOffset(Layout.statusSlotWidth(compact, tight), s.status.rect.h)
 			entry.icon.instance.Size = UDim2.fromOffset(iconSize, iconSize)
-			entry.label.TextSize = if compact then S.clabelSize else S.labelSize
-			entry.label.Size = UDim2.new(1, 0, 0, if compact then S.clabel else S.label)
+			entry.label.TextSize = if tight then ST.labelSize elseif compact then S.clabelSize else S.labelSize
+			entry.label.Size = UDim2.new(1, 0, 0, if tight then ST.label elseif compact then S.clabel else S.label)
 			entry.label.Position = UDim2.fromOffset(0, iconSize + S.labelGap)
 		end
 		statusSig = "" -- re-pack the slots in the new boxes
@@ -389,9 +531,11 @@ function Hud.new(parent: Instance, ctx: any)
 	function self.update(state: any)
 		current = state
 		local money = HudClusters.money(state)
-		cashLabel.Text = money.cash
-		incomeLabel.Text = money.income
-		rebirthLabel.Text = money.rebirths
+		-- The coin carries the "$", so the amount shows without it; the income chip reads "+5.93M/s".
+		cashLabel.Text = (string.gsub(money.cash, "^%$", ""))
+		incomeLabel.Text = (string.gsub(money.income, "^%$", "+"))
+		rebirthLabel.Text = money.rebirthCount
+		badgeLabel.Text = money.multiplier
 
 		-- Steal alert: any of my slimes with stolenBy set.
 		local thieves = {}

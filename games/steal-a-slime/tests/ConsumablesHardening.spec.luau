@@ -42,6 +42,13 @@ local function buy(world: any, userId: number, now: number, id: any, slimeId: an
 	end))
 end
 
+local function use(world: any, userId: number, now: number, id: any, slimeId: any, c: Actions.Context?)
+	tick += 1
+	return Actions.handle(world, userId, "UseConsumable", table.pack(id, slimeId), now + tick * 2, c or ctx(function()
+		return true
+	end))
+end
+
 -- Unthrottled purchase at exactly `now` (the Actions helper above shifts the clock to dodge the rate limit).
 local function buyAt(world: any, userId: number, now: number, id: string): (boolean, string?)
 	return ConsumableShop.buy(world, world.sessions[userId], id, nil, now, { rng = Rng.new(5), requestWeather = nil })
@@ -281,19 +288,19 @@ describe("Consumables effects at the edges", function()
 		local thief = ServerFixtures.join(world, 2, nil, 1e9, now)
 		ServerFixtures.unlock(owner)
 		ServerFixtures.unlock(thief)
-		local none = buy(world, 1, now, "MutationSpray", nil)
+		expect(buy(world, 1, now, "MutationSpray", nil).ok).toBe(true)
+		local none = use(world, 1, now, "MutationSpray", nil)
 		expect(none.ok).toBe(false)
 		expect(none.message).toBe("pick a slime")
-		expect(buy(world, 1, now, "MutationSpray", "ghost").message).toBe("not your slime")
+		expect(use(world, 1, now, "MutationSpray", "ghost").message).toBe("not your slime")
 		expect((Carry.grab(world, 2, "mine", 1, now))).toBe(true)
-		local busy = buy(world, 1, now, "MutationSpray", "mine")
+		local busy = use(world, 1, now, "MutationSpray", "mine")
 		expect(busy.ok).toBe(false)
 		expect(busy.message).toBe("slime is busy")
-		expect(owner.data.cash).toBe(1e9)
-		expect(next(owner.data.consumables.bought)).toBeNil()
+		expect(owner.data.consumables.held.MutationSpray).toBe(1) -- every refusal kept the spray
 		expect(thief.data.cash).toBe(1e9)
 	end)
-	it("a second potion in the cap window is refused for free", function()
+	it("a second potion in the cap window is refused and stays in the stack", function()
 		if not on then
 			return
 		end
@@ -301,11 +308,13 @@ describe("Consumables effects at the edges", function()
 		local now = slot * STEP + 1
 		local world = ServerFixtures.world(now)
 		local session = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2) }, 1e9, now)
-		world.potionUntil = now + Config.LUCK_POTION_MAX_SECONDS
-		local ok = buyAt(world, 1, now, "LuckPotion")
-		expect(ok).toBe(false)
-		expect(session.data.cash).toBe(1e9)
-		expect(world.potionUntil).toBe(now + Config.LUCK_POTION_MAX_SECONDS)
+		expect(buyAt(world, 1, now, "LuckPotion")).toBe(true)
+		local capped = now + Config.LUCK_POTION_MAX_SECONDS + 3600 -- the use helper moves the clock a few seconds
+		world.potionUntil = capped
+		local ok = use(world, 1, now, "LuckPotion", nil)
+		expect(ok.ok).toBe(false)
+		expect(session.data.consumables.held.LuckPotion).toBe(1)
+		expect(world.potionUntil).toBe(capped)
 	end)
 	it("an expired potion neither shows nor boosts", function()
 		if not on then

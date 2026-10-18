@@ -11,7 +11,7 @@ icons) it asserts, on rhr's rects in screen px:
                other click-capturing node rhr draws above it (zOrder)
                overlaps any part of it
   not squashed rendered w/h within ASPECT_TOLERANCE of the design w/h
-  touch size   min(w, h) >= 44 px (Layout.MIN_TOUCH)
+  touch size   min(w, h) >= 44 px (Layout.MIN_TOUCH); not the tight portrait row's event slots
 Per box (the money cluster, an open status tooltip) it asserts it is on screen below the top bar.
 Exit 1 on any failure, 2 when rhr itself fails. KNOWN lists findings the
 gate tolerates; each must still occur, so fixing one forces its removal.
@@ -79,7 +79,7 @@ def main() -> int:
                 problems.append(f"{tag} {box} is off the {vw}x{vh} screen (top bar {top})")
             if r["h"] <= 0 or abs((r["w"] / r["h"]) / (dw / dh) - 1) > ASPECT_TOLERANCE:
                 problems.append(f"{tag} {box} is squashed vs design {dw}x{dh}")
-            if min(r["w"], r["h"]) + EPS < MIN_TOUCH:
+            if not b.get("tight") and min(r["w"], r["h"]) + EPS < MIN_TOUCH:
                 problems.append(f"{tag} {box} is under {MIN_TOUCH} px")
             cx, cy = r["x"] + r["w"] / 2, r["y"] + r["h"] / 2
             hit = min(
