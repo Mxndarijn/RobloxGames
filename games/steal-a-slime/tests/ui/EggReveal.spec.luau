@@ -11,15 +11,14 @@ local function nameOf(slime: any): string
 end
 
 describe("EggReveal.banner", function()
-	local view = { enabled = true, hatched = { slime = { name = "Blorp" }, at = 100 } }
+	local view = { hatched = { slime = { name = "Blorp" }, at = 100 } }
 	it("names the hatched slime while fresh", function()
 		expect(EggReveal.banner(view, 103, 6, nameOf)).toBe("🥚 Hatched! Epic Blorp")
 	end)
-	it("hides when old, empty, nil or the feature is off", function()
+	it("hides when old, empty or nil", function()
 		expect(EggReveal.banner(view, 107, 6, nameOf)).toBeNil()
-		expect(EggReveal.banner({ enabled = true }, 100, 6, nameOf)).toBeNil()
+		expect(EggReveal.banner({}, 100, 6, nameOf)).toBeNil()
 		expect(EggReveal.banner(nil, 100, 6, nameOf)).toBeNil()
-		expect(EggReveal.banner({ enabled = false, hatched = view.hatched }, 100, 6, nameOf)).toBeNil()
 	end)
 end)
 
@@ -46,7 +45,7 @@ describe("ShopCatalog egg row", function()
 			).enabled
 		).toBe(false)
 	end)
-	it("is hidden when the feature is off", function()
+	it("is hidden while State.shop has no egg entry", function()
 		expect(has(ShopCatalog.views({ cash = 5000, shop = {} }, Remotes.ACTIONS))).toBe(false)
 	end)
 end)

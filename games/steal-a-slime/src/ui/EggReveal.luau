@@ -2,19 +2,19 @@
 --[[
 	EggReveal
 
-	HUD banner text for a fresh Mystery Egg hatch (State.egg.hatched,
-	FEATURES.MysteryEgg): "🥚 Hatched! Epic Blorp". nil when there is no
-	hatch, it is older than `seconds`, or eggs are off. Pure
+	HUD banner text for a fresh Mystery Egg hatch (State.egg.hatched):
+	"🥚 Hatched! Epic Blorp". nil when there is no hatch or it is older
+	than `seconds`. Pure
 	(tests/ui/EggReveal.spec.luau).
 ]]
 
-export type View = { enabled: boolean, hatched: { slime: any, at: number }? }
+export type View = { hatched: { slime: any, at: number }? }
 
 local EggReveal = {}
 
 -- `nameOf` is Genome.displayName.
 function EggReveal.banner(view: View?, now: number, seconds: number, nameOf: (any) -> string): string?
-	if view == nil or not view.enabled or view.hatched == nil then
+	if view == nil or view.hatched == nil then
 		return nil
 	end
 	local hatched = view.hatched

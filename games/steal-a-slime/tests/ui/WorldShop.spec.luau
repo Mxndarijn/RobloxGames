@@ -23,7 +23,7 @@ local ACTIONS = Remotes.ACTIONS
 
 local function features(overrides: { [string]: boolean }?): any
 	local out: any = table.clone(Config.FEATURES)
-	for _, flag in { "MysteryEgg", "Consumables", "PvP", "RainMagnet" } do
+	for _, flag in { "Consumables", "PvP", "RainMagnet" } do
 		out[flag] = true
 	end
 	for flag, value in overrides or {} do
@@ -141,16 +141,14 @@ describe("WorldShopLogic.rows", function()
 	end)
 
 	it("filters rows by feature flags", function()
-		local off = features({ MysteryEgg = false, Consumables = false, PvP = false, RainMagnet = false })
+		local off = features({ Consumables = false, PvP = false, RainMagnet = false })
 		local itemRows = ids(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, off, Config))
-		expect(table.concat(itemRows, ",")).toBe("Lock,SpeedCoil")
+		expect(table.concat(itemRows, ",")).toBe("Lock,MysteryEgg,SpeedCoil")
 		local upgradeRows = ids(WorldShopLogic.rows("UpgradeShop", baseState(), ACTIONS, off, Config))
 		expect(table.find(upgradeRows, "RainMagnet")).toBeNil()
 		expect(table.find(upgradeRows, "Income")).toBeTruthy()
-		local noEgg =
-			ids(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features({ MysteryEgg = false }), Config))
-		expect(table.find(noEgg, "MysteryEgg")).toBeNil()
-		expect(table.find(noEgg, "MutationSpray")).toBeTruthy()
+		local all = ids(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config))
+		expect(table.find(all, "MutationSpray")).toBeTruthy()
 		expect(#WorldShopLogic.rows("Nope", baseState(), ACTIONS, features(), Config)).toBe(0)
 	end)
 

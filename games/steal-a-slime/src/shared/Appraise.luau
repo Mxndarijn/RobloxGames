@@ -1,6 +1,6 @@
 --!strict
 --[[
-	Appraise (FEATURES.Appraise)
+	Appraise
 
 	Pay Config.APPRAISE_COST_FRACTION of an owned slime's current value
 	(Economy.sellPrice) to reroll its mutation or its size. Only those two

@@ -1,6 +1,6 @@
 --!strict
 --[[
-	Welcome-back card (v20, FEATURES.WelcomeBack): what happened while the player was away
+	Welcome-back card: what happened while the player was away
 	(WelcomeBack.view) and one Collect button. Opened by the PopupQueue after a long absence
 	(init.client), closed like every menu (Collect, X, Esc, B, tap outside). Not in the nav.
 	The cash was already paid at join, so Collect only closes it. Content-sized: the card is as

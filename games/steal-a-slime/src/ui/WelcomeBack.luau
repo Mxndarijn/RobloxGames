@@ -1,6 +1,6 @@
 --!strict
 --[[
-	WelcomeBack (client, pure, FEATURES.WelcomeBack, CONTRACT.md §19)
+	WelcomeBack (client, pure, CONTRACT.md §19)
 
 	What the welcome-back card says, from `State.welcomeBack` (the join report) plus the live
 	`State.daily` / `State.goals`. `view` returns up to four rows (cash, growth, daily, goal), each
