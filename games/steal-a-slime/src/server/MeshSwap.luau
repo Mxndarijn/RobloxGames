@@ -102,11 +102,13 @@ end
 -- The one collision switch for a mesh: loaded = its MeshCollider parts
 -- collide and its stand-ins don't; not loaded = colliders off and the
 -- stand-ins back to their own CanCollide (decor like Pool stays off).
-function MeshSwap.setMeshCollision(scope: Instance, name: string, loaded: boolean)
+-- `colliders` (default = loaded) is what the MeshCollider parts get: FEATURES.FountainSplit turns the stand-ins off but
+-- keeps the hand-placed colliders off too, the split pieces collide instead.
+function MeshSwap.setMeshCollision(scope: Instance, name: string, loaded: boolean, colliders: boolean?)
 	for _, d in scope:GetDescendants() do
 		if d:IsA("BasePart") then
 			if d:GetAttribute("MeshCollider") == name then
-				d.CanCollide = loaded
+				d.CanCollide = if colliders == nil then loaded else colliders
 			elseif d:GetAttribute("MeshStandIn") == name then
 				local own = d:GetAttribute("StandInCanCollide")
 				if loaded then
@@ -122,11 +124,67 @@ function MeshSwap.setMeshCollision(scope: Instance, name: string, loaded: boolea
 	end
 end
 
+-- FEATURES.FountainSplit: the fountain slot gets MeshAssets.FOUNTAIN_SPLIT instead of the one slime_fountain mesh. Same
+-- fit as swap() (one uniform scale into the slot box, standing on its bottom, turned IMPORT_YAW), each piece moved by its
+-- entry offset (slot axes, scaled) so the assembled pieces sit exactly where the whole mesh drew. All pieces are created
+-- first; if any fails (no id, no size, CreateMeshPartAsync error) nothing is placed and false is returned, so swap() goes on
+-- with the single mesh and the hand-placed colliders. Only after all of them exist the stand-ins AND the MeshCollider parts
+-- (Basin / Trim / Silo / Top) go non-colliding: the PCD pieces are the tower's collision. The slide piece is decor; the
+-- slide's own collision is FountainColliders' SlideColliders block (docs/COLLISION.md).
+local function swapFountainSplit(target: BasePart, name: string, scope: Instance): boolean
+	local bases: { MeshPart } = {}
+	for _, piece in MeshAssets.FOUNTAIN_SPLIT do
+		local entry = MeshAssets.get(piece)
+		local meshId = MeshAssets.meshId(piece)
+		local base = meshId and template(meshId, MeshAssets.collision(piece))
+		if not (base and entry and entry.size and entry.offset) then
+			return false
+		end
+		table.insert(bases, base)
+	end
+	local _, scale, below = MeshAssets.fit(name, { target.Size.X, target.Size.Y, target.Size.Z })
+	local k = scale or 1
+	local turn = math.rad(MeshAssets.IMPORT_YAW)
+	local meshes: { MeshPart } = {}
+	for i, piece in MeshAssets.FOUNTAIN_SPLIT do
+		local entry = MeshAssets.get(piece) :: MeshAssets.Entry
+		local size, offset = entry.size :: { number }, entry.offset :: { number }
+		local fidelity = MeshAssets.collision(piece)
+		local mesh = bases[i]:Clone()
+		mesh.Name = piece
+		mesh.Size = Vector3.new(size[1] * k, size[2] * k, size[3] * k)
+		mesh.CFrame = target.CFrame
+			* CFrame.new(0, -below, 0)
+			* CFrame.new(offset[1] * k, offset[2] * k, offset[3] * k)
+			* CFrame.Angles(0, turn, 0)
+		mesh.Anchored = true
+		mesh.CanCollide = fidelity ~= nil
+		mesh.CanQuery = false
+		mesh.CanTouch = false
+		table.insert(meshes, mesh)
+	end
+	hide(target)
+	hideStandIns(scope, name)
+	for _, mesh in meshes do
+		mesh.Parent = target
+	end
+	MeshSwap.setMeshCollision(scope, name, true, false)
+	return true
+end
+
 -- A part slot or a whole Model (WorldProps skins: its parts keep collision,
 -- prompts and SurfaceGuis, only their look is hidden).
 local function swap(target: BasePart | Model, name: string, scope: Instance): boolean
 	if target:FindFirstChild("Mesh") then
 		return false
+	end
+	if Config.FEATURES.FountainSplit and name == "slime_fountain" and target:IsA("BasePart") then
+		if target:FindFirstChild(MeshAssets.FOUNTAIN_SPLIT[1]) then
+			return false
+		end
+		if swapFountainSplit(target, name, scope) then
+			return true
+		end
 	end
 	local meshId = MeshAssets.meshId(name)
 	local fidelity = MeshAssets.collision(name)

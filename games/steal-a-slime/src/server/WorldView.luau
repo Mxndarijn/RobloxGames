@@ -568,7 +568,7 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 			prompt.KeyboardKeyCode = Enum.KeyCode.E
 			prompt.HoldDuration = Config.HOLD_CONFIRM_SECONDS
 			prompt.RequiresLineOfSight = false
-			prompt.MaxActivationDistance = 10
+			prompt.MaxActivationDistance = Config.PLOT_PAD_PROMPT_DISTANCE
 			prompt.Enabled = false
 			prompt.Parent = parent
 			prompt.Triggered:Connect(function(player: Player)
@@ -577,6 +577,18 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 			plotPrompts[index][name] = prompt
 		end
 	end
+end
+
+-- The part plot `index`'s prompt `kind` ("Lock" | "Merge" | "BuyPad") currently sits on (BuyPad moves), or nil.
+function WorldView.plotPromptPart(index: number, kind: string): BasePart?
+	local name = if kind == "Lock"
+		then Constants.LOCK_PROMPT_NAME
+		elseif kind == "Merge" then Constants.MERGE_PROMPT_NAME
+		elseif kind == "BuyPad" then Constants.BUY_PAD_PROMPT_NAME
+		else nil
+	local prompt = name and plotPrompts[index] and plotPrompts[index][name]
+	local parent = prompt and prompt.Parent
+	return if parent and parent:IsA("BasePart") then parent else nil
 end
 
 local function applyPrompt(prompt: ProximityPrompt?, view: PlotPrompts.Prompt, owner: number?)

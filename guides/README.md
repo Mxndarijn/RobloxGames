@@ -18,6 +18,7 @@ How we build, test and release the games in this repo. Copied from the team's bo
 
 ## Testing and review
 - [roblox-automated-tests.md](roblox-automated-tests.md), [roblox-cloud-server-test.md](roblox-cloud-server-test.md), [roblox-live-testing.md](roblox-live-testing.md)
+- [live-server-probes.md](live-server-probes.md): run and write a probe on a real server, and report it honestly
 - [roblox-ai-testing-rules.md](roblox-ai-testing-rules.md), [roblox-usability-playtest.md](roblox-usability-playtest.md), [roblox-screenshots.md](roblox-screenshots.md)
 - [roblox-critical-review.md](roblox-critical-review.md), [claude-code-review-artifacts.md](claude-code-review-artifacts.md), [pr-watch.md](pr-watch.md)
 - Steal a Slime: [COLLISION](../games/steal-a-slime/docs/COLLISION.md), [PVP](../games/steal-a-slime/docs/PVP.md), [PLAYTEST](../games/steal-a-slime/PLAYTEST.md)

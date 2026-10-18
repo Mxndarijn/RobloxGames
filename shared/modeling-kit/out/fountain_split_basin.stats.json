@@ -1,0 +1,20 @@
+{
+  "name": "fountain_split_basin",
+  "source": "out/slime_fountain.fbx (models/slime_fountain_split.py)",
+  "tris": 766,
+  "size_studs": [
+    20.983,
+    8.123,
+    22.051
+  ],
+  "offset_roblox": [
+    -6.236,
+    17.597,
+    -7.119
+  ],
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx_bytes": 34108
+}

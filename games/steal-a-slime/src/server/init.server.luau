@@ -50,6 +50,7 @@ local GroundTerrainView = require(script.GroundTerrainView)
 local Leaderboard = require(script.Leaderboard)
 local MeshSwap = require(script.MeshSwap)
 local ParadeView = require(script.ParadeView)
+local PlotPadGuard = require(script.PlotPadGuard)
 local PodiumAvatars = require(script.PodiumAvatars)
 local PodiumRigs = require(script.PodiumRigs)
 local Profiler = require(script.Profiler)
@@ -484,10 +485,27 @@ local function shopAccess(userId: number, shopId: string): ShopGuard.Access
 	return { distance = (root.Position - counter.Position).Magnitude, alive = alive }
 end
 
+-- Owner-only plot prompts: the character's distance to the part the owner's prompt `kind` sits on (their own plot, not a
+-- shop stand) and whether it is alive. distance nil = no character or no such prompt part.
+local function plotPadAccess(userId: number, kind: string): PlotPadGuard.Access
+	local player = Players:GetPlayerByUserId(userId)
+	local root = WorldView.rootPart(player)
+	local session = World.session(world, userId)
+	local part = session and session.plotIndex and WorldView.plotPromptPart(session.plotIndex, kind)
+	local character = player and player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local alive = humanoid ~= nil and humanoid.Health > 0
+	if not root or not part then
+		return { distance = nil, alive = alive }
+	end
+	return { distance = (root.Position - part.Position).Magnitude, alive = alive }
+end
+
 local ctx: Actions.Context = {
 	distanceBetween = distanceBetween,
 	positionOf = positionOf,
 	shopAccess = shopAccess,
+	plotPadAccess = plotPadAccess,
 	shopEvent = function(userId: number, payload: { [string]: any })
 		local player = Players:GetPlayerByUserId(userId)
 		if player then
@@ -637,7 +655,7 @@ WorldView.addPlotPrompts(function(player: Player, index: number, kind: string)
 		end
 		args = { a, b }
 	end
-	local res = Actions.handle(world, player.UserId, action, args, now(), ctx)
+	local res = Actions.handlePlotPad(world, player.UserId, action, args, now(), ctx)
 	if not res.ok and res.message then
 		World.notify(world, player.UserId, res.message, "info", nil)
 	end

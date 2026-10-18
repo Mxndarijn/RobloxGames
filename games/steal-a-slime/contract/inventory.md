@@ -1,4 +1,4 @@
-# 28. Inventory hotbar and panel (S3, 2026-10-18)
+# 29. Inventory hotbar and panel (S3, 2026-10-18)
 
 **Status:** the hotbar itself is client-only. Consumable stacks (Merijn, 2026-10-18) add `State.consumables.held`, the saved stack and the `UseConsumable` action (restocking-shop.md); the server stays the only owner of what is held and validates every use.
 

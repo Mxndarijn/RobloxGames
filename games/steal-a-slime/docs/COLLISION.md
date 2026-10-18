@@ -86,7 +86,8 @@ still needs its own collider. Max 32 groups. **Studio check** the character part
 - `merge_vat` as `Hull` (bug #16, every plot's vat, `MeshSwap.swapPlotVats`): bump into the cauldron and the
   funnel spouts from all sides; nobody walks inside, the MergePrompt still triggers from the hull's edge.
 - Whether `PreciseConvexDecomposition` on `slime_fountain` could retire the silo colliders and how
-  many parts it costs. Not done here.
+  many parts it costs. Draft behind `FEATURES.FountainSplit` (default off): the mesh cut into basin / dome / eave / silo (PCD) and
+  slide (decor) pieces, `docs/FOUNTAIN_SPLIT.md`; needs the ball-drop result (pc-watcher shot 191) and a Studio walk.
 - The slide block: walk the whole outline at the mouth, under the posts and beside the upper laps;
   nobody gets onto the top (11 studs above the ride line) and nobody is stuck in a corner.
 - `tools/pipeline/pc-watcher/luau/slide_walk.luau` was written for the old walkable floor (balls

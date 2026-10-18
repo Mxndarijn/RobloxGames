@@ -27,6 +27,71 @@
     "uploadedAt": "2026-10-16T11:27:16Z",
     "versions": 1
   },
+  "fountain_split_basin": {
+    "assetId": "113404417037788",
+    "assetType": "Model",
+    "meshId": "rbxassetid://108371724846314",
+    "meshSize": [
+      20.983,
+      8.123,
+      22.051
+    ],
+    "sha256": "2afad4882234ff80",
+    "uploadedAt": "2026-10-17T16:54:23Z",
+    "versions": 1
+  },
+  "fountain_split_dome": {
+    "assetId": "90481723961412",
+    "assetType": "Model",
+    "meshId": "rbxassetid://96453427876668",
+    "meshSize": [
+      27.201,
+      6.29,
+      27.312
+    ],
+    "sha256": "150dc44858e24a77",
+    "uploadedAt": "2026-10-17T16:54:35Z",
+    "versions": 1
+  },
+  "fountain_split_eave": {
+    "assetId": "89581694162701",
+    "assetType": "Model",
+    "meshId": "rbxassetid://79010101239145",
+    "meshSize": [
+      27.201,
+      3.313,
+      27.312
+    ],
+    "sha256": "0c70711a2d9a7c4f",
+    "uploadedAt": "2026-10-17T16:54:52Z",
+    "versions": 1
+  },
+  "fountain_split_silo": {
+    "assetId": "70694440108004",
+    "assetType": "Model",
+    "meshId": "rbxassetid://126104512688719",
+    "meshSize": [
+      26.223,
+      30.673,
+      26.563
+    ],
+    "sha256": "14effe4026d3bf32",
+    "uploadedAt": "2026-10-17T16:54:09Z",
+    "versions": 1
+  },
+  "fountain_split_slide": {
+    "assetId": "80263316335801",
+    "assetType": "Model",
+    "meshId": "rbxassetid://133681442583514",
+    "meshSize": [
+      54.45,
+      38.242,
+      63.851
+    ],
+    "sha256": "6ee410eb36c9cd81",
+    "uploadedAt": "2026-10-17T16:55:13Z",
+    "versions": 1
+  },
   "fountain_tier_crest": {
     "assetId": "110270802039989",
     "assetType": "Model",

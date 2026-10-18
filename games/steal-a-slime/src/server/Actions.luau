@@ -31,6 +31,7 @@ local Types = if Shared then require(Shared.Types) else require("../shared/Types
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local Validate = if Shared then require(Shared.Validate) else require("../shared/Validate")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local PlotPadGuard = if script then require(script.Parent.PlotPadGuard) else require("./PlotPadGuard")
 local ShopGuard = if script then require(script.Parent.ShopGuard) else require("./ShopGuard")
 local ConsumableShop = if script then require(script.Parent.ConsumableShop) else require("./ConsumableShop")
 local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
@@ -58,6 +59,10 @@ export type Context = {
 	-- What the adapter measured for `shopId`: the character's distance to the stand's Counter and whether it is
 	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, strict never applies.
 	shopAccess: ((userId: number, shopId: string) -> ShopGuard.Access)?,
+	-- What the adapter measured for the owner's plot prompt `kind` ("Lock" | "BuyPad" | "Merge"): the character's distance to the
+	-- part that prompt sits on and whether it is alive. nil = no world: Actions.handlePlotPad skips the range check.
+	plotPadAccess: ((userId: number, kind: string) -> PlotPadGuard.Access)?,
+	strictBypass: boolean?, -- set by handlePlotPad on its private copy of the context: the pad range check replaced the shop gate
 	-- ShopEvent to one player (CONTRACT.md §27.4); the adapter adds serverTime. nil = fire nothing.
 	shopEvent: ((userId: number, payload: { [string]: any }) -> ())?,
 	requestWeather: ((id: string) -> boolean)?, -- Weather Totem: makes `id` the next weather (nil = no Weather service)
@@ -498,7 +503,11 @@ end
 -- Strict mode (FEATURES.WorldShopsStrict): the old buy actions need the matching shop open and in range.
 -- Only applies where the adapter measures ranges (ctx.shopAccess).
 local function strictGate(session: Session, action: string, ctx: Context): Result?
-	if not (ctx.shopAccess and strictOn(ctx)) then
+	if ctx.strictBypass or not (ctx.shopAccess and strictOn(ctx)) then
+		return nil
+	end
+	-- The HUD Lock button also works while standing at the owner's own lock pad (same check as the pad prompt).
+	if action == "Lock" and ctx.plotPadAccess and not PlotPadGuard.check(ctx.plotPadAccess(session.userId, "Lock")) then
 		return nil
 	end
 	local shopId = Shops.shopOfAction(action)
@@ -621,6 +630,31 @@ function Actions.handle(world: World, userId: number, action: any, raw: { any },
 		World.markDirty(session)
 	end
 	return res
+end
+
+-- The owner-only plot prompts (LockPrompt, BuyPadPrompt, MergePrompt). The caller has already checked that the player owns the
+-- plot; here the character must stand within PlotPadGuard.range() of THAT prompt's part. They never go through the world-shop
+-- strict gate (the Item Shop stand is nowhere near the pad), but every other rule of the action still applies.
+function Actions.handlePlotPad(
+	world: World,
+	userId: number,
+	kind: string,
+	args: { any },
+	now: number,
+	ctx: Context
+): Result
+	if PlotPadGuard.KINDS[kind] ~= true then
+		return fail("unknown action")
+	end
+	if ctx.plotPadAccess then
+		local code = PlotPadGuard.check(ctx.plotPadAccess(userId, kind))
+		if code then
+			return fail(PlotPadGuard.MESSAGES[code])
+		end
+	end
+	local padCtx = table.clone(ctx)
+	padCtx.strictBypass = true
+	return Actions.handle(world, userId, kind, args, now, padCtx)
 end
 
 return Actions
