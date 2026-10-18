@@ -35,7 +35,14 @@ export type MutationDraft = {
 local SECRET_TIER = 7
 
 local function e(id: string, name: string, tier: number, look: string, family: string?, kind: Kind?): Entry
-	return table.freeze({ id = id, name = name, tier = tier, look = look, family = family, kind = kind or "spawn" })
+	return table.freeze({
+		id = id,
+		name = name,
+		tier = tier,
+		look = look,
+		family = family,
+		kind = (kind or "spawn") :: Kind,
+	})
 end
 
 local function k(kind: Kind, id: string, name: string, tier: number, look: string): Entry

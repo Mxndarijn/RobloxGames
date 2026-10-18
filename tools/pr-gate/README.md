@@ -79,7 +79,7 @@ the same probe offline, so a PR that Studio would fail fails before merge.
 - Verdict: parts FAIL > 3000, WARN > 2900; unique meshes FAIL > 120; MeshParts WARN > 500. Exit 0 on warn-only. World triangles are `budget.sh`'s.
   Example: `runtime-budget: parts 2203/3000 (warn 2900) unique meshes 93/120 mesh parts 391 (soft 500) -> PASS`, then one `WARN:` line per warning.
   Warnings go to `$GITHUB_STEP_SUMMARY` and `::warning::` annotations under GitHub Actions (`::error::` for fails).
-- Runs in ~5 s. Opt-in locally as `run.sh runtime_budget`; CI runs it as its own step after `run.sh`.
+- Runs in ~5 s. Opt-in locally as `run.sh runtime_budget`; CI runs it as its own step after `run.sh layout budget` in the `steal-a-slime-gate` job.
 
 **The 16.** The fake runtime builds 16 fewer parts, all MeshParts with 16 distinct MeshIds, than Studio: the same 16 as `WorldLayout.RUNTIME_SLOT_ALLOWANCE`
 (`RuntimeCount.STUDIO_OFFSET` and `RuntimeCount.UNIQUE_MESH_OFFSET` read that constant). Most likely `PodiumRigs`: Studio builds a podium R15 rig with
@@ -130,7 +130,8 @@ Each case must fail *for the expected reason*: the selftest greps for the expect
 
 Bot tokens can't push `.github/workflows`, so the change is shipped as `tools/pr-gate/workflow.patch` (validated with actionlint 1.7.7). It changes `.github/workflows/pr-checks.yml`:
 
-- The existing **`pr-gate`** job keeps its name, which is the ruleset's required check. After the game-jobs check it now checks out, installs the Rokit toolchain, optionally installs rhr (`continue-on-error`), and runs `tools/pr-gate/run.sh`.
+- The existing **`pr-gate`** job keeps its name, which is the ruleset's required check. It only collects the game jobs' results, so it finishes in seconds.
+- The **`steal-a-slime-gate`** job runs next to the other game jobs: it checks out, installs the Rokit toolchain, optionally installs rhr (`continue-on-error`), and runs `tools/pr-gate/run.sh layout budget` plus `runtime_budget.sh`. CI leaves out `logic` and `typecheck` because the `steal-a-slime` job already runs `lune run tests` and `scripts/typecheck.sh`; running the Lune suite twice cost ~3 min per PR.
 - A new **`automerge`** job runs after `pr-gate` is green, for same-repo non-draft PRs. It runs `gh pr merge --squash --auto "$PR_URL"` with `contents: write` and `pull-requests: write`.
 
 To apply:
