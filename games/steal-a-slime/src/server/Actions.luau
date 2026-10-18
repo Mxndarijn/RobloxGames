@@ -681,8 +681,9 @@ end
 
 --[[
 	A player triggered plot `plotIndex`'s owner-only prompt `kind` ("Lock" | "BuyPad" | "Merge"). Someone else's
-	(or a free) plot answers with a toast naming the owner; Merge picks the pair itself (Merge.findPair, the
-	favourite kept out) and toasts when there is none; a refused action toasts its reason. Returns the result.
+	(or a free) plot answers with a toast naming the owner. Merge does nothing with FEATURES.MergeVat3 (the
+	owner's client opens the merge menu); without it Merge picks the pair itself (Merge.findPair, the favourite
+	kept out) and toasts when there is none. A refused action toasts its reason. Returns the result.
 ]]
 function Actions.triggerPlotPrompt(
 	world: World,
