@@ -306,7 +306,7 @@ describe("PropCollision against the booted world", function()
 		for _, d in volcano:GetChildren() do
 			if d.Name:match("^%a+Collider%d*$") then
 				n += 1
-				expect(d.CanCollide).toBe(true)
+				expect(d.CanCollide).toBe(not flags.FountainSplit) -- FountainSplit: the PCD pieces collide instead
 			end
 		end
 		expect(n).toBe(22)
@@ -321,7 +321,10 @@ describe("PropCollision against the booted world", function()
 			if e.find and e.collision ~= "off" and not floors[e.kind] then
 				for _, inst in instances(e.find) do
 					for _, part in solids(inst) do
-						table.insert(blockers, { kind = e.kind, inst = inst, part = part })
+						-- FountainSplit PCD pieces are concave (the bowl holds the emerge pile): a box test would flag it
+						if part.Name:sub(1, 15) ~= "fountain_split_" then
+							table.insert(blockers, { kind = e.kind, inst = inst, part = part })
+						end
 					end
 					if inst:IsA("BasePart") and e.owner ~= "gojo" and e.walk ~= false then
 						table.insert(
