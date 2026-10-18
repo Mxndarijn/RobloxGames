@@ -295,13 +295,17 @@ Genome.mutationDisplay = Genome.mutationDisplayName
 -- then the `extra` entries of that tier. nil / empty `families` = Classic only.
 function Genome.speciesPool(tier: number, families: { string }?, extra: { SlimeRoster.Entry }?): { SlimeRoster.Entry }
 	local pool = SlimeRoster.forTier(tier)
-	for _, family in families or {} do
-		local members = SlimeRoster.forTier(tier, family)
-		table.move(members, 1, #members, #pool + 1, pool)
+	if families then
+		for _, family in families do
+			local members = SlimeRoster.forTier(tier, family)
+			table.move(members, 1, #members, #pool + 1, pool)
+		end
 	end
-	for _, entry in extra or {} do
-		if entry.tier == tier then
-			table.insert(pool, entry)
+	if extra then
+		for _, entry in extra do
+			if entry.tier == tier then
+				table.insert(pool, entry)
+			end
 		end
 	end
 	return pool
