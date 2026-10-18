@@ -51,7 +51,13 @@ describe("ParadeLane goo strip parts", function()
 		expect(simple[#simple]).toBe(ParadeLane.EXIT)
 	end)
 	it("every route waypoint stays within the tolerance of the drawn polyline", function()
+		-- the last TAPER_START studs are the narrowing drain strips' (ParadeLane.drainStrips), not these
+		local cut = ParadeLane.stripEndPoints()
+		cut = cut[#cut]
 		for _, p in ParadeLane.WAYPOINTS do
+			if p == ParadeLane.WAYPOINTS[#ParadeLane.WAYPOINTS] or (p[1] == cut[1] and p[2] == cut[2]) then
+				break
+			end
 			expect(outside(drawn, p[1], p[2], 0) < 1e-6).toBe(true)
 			-- the centreline is deep inside a strip: even shrunk by the tolerance it is covered
 			expect(outside(drawn, p[1], p[2], ParadeLane.HALF_WIDTH - TOL - 0.05) < 1e-6).toBe(true)
