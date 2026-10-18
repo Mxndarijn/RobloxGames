@@ -711,15 +711,12 @@ function Merge.new(parent: Instance, ctx: any)
 		end
 		local preview = MergePreview.forSlimes(picks, state, nil, count)
 		local color = Widgets.color3(preview.color)
-		orb.BackgroundColor3 = if preview.discovered then color else Theme.Bg
-		orbMark.Text = "?"
+		orb.BackgroundColor3 = color
+		orbMark.Text = if preview.kind == "recipe" then "★" else "?"
 		resultStroke.Color = color
 		resultTitle.Text = preview.title
 		resultTitle.TextColor3 = color
-		resultOdds.Text = if preview.hint
-			then preview.hint
-			elseif
-				preview.jumpRarity
+		resultOdds.Text = if preview.jumpRarity
 			then `⚡ {math.floor(preview.jumpChance * 100 + 0.5)}% chance: {preview.jumpRarity}!`
 			else `🎲 {math.floor(preview.freshMutationChance * 100 + 0.5)}% bonus mutation`
 		local keeps = {}

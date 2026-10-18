@@ -417,3 +417,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §32 | [slime-odds.md](contract/slime-odds.md) | Slime odds: rarity weights, family drop rule, Mythic / Secret presentation |
 | §33 | [boss-event.md](contract/boss-event.md) | Boss event: team meter fight, haul race, unstealable trophy |
 | §34 | [event-secrets.md](contract/event-secrets.md) | Event Secrets: one featured Secret per week joins the Secret pool |
+| §35 | [merge-recipes.md](contract/merge-recipes.md) | Merge recipes, merge caps and the merge assist |
