@@ -252,22 +252,35 @@ describe("landscape phone (v27 gate N1)", function()
 		end
 	)
 	for _, vp in LayoutAssert.PHONE_VIEWPORTS do
-		it(`{vp.name}: nav at the top, money | hotbar | events share one bottom row`, function()
-			local s = Layout.screen(vp.w, vp.h)
-			expect(s.phone).toBe(true)
-			local bar =
-				InventoryLayout.bar(s.hotbar, InventoryLayout.MAX_SLOTS, s.compact, Layout.MIN_TOUCH_DESIGN, s.tight)
-			expect(s.nav.y).toBe(Layout.TOP)
-			local bottom = bar.rect.y + bar.rect.h
-			expect(math.abs(s.money.rect.y + s.money.rect.h - bottom) <= LayoutAssert.BOTTOM_ALIGN).toBe(true)
-			expect(math.abs(s.status.rect.y + s.status.rect.h - bottom) <= LayoutAssert.BOTTOM_ALIGN).toBe(true)
-			expect(s.money.rect.x + s.money.rect.w <= bar.rect.x).toBe(true)
-			expect(bar.rect.x + bar.rect.w <= s.status.rect.x).toBe(true)
-			expect(bar.shown >= (if s.tight then 3 else 8)).toBe(true)
-			local check = LayoutAssert.new(vp.name, s)
-			LayoutAssert.hotbarChecks(check)
-			expect(check.report()).toBe("")
-		end)
+		it(
+			`{vp.name}: nav at the top (landscape) or low on the left (portrait), money | hotbar | events share one bottom row`,
+			function()
+				local s = Layout.screen(vp.w, vp.h)
+				expect(s.phone).toBe(true)
+				local bar = InventoryLayout.bar(
+					s.hotbar,
+					InventoryLayout.MAX_SLOTS,
+					s.compact,
+					Layout.MIN_TOUCH_DESIGN,
+					s.tight
+				)
+				if vp.w > vp.h then
+					expect(s.nav.y).toBe(Layout.TOP)
+				else
+					expect(s.nav.y > Layout.NAV.top).toBe(true)
+					expect(s.nav.y + s.nav.h < s.money.rect.y).toBe(true)
+				end
+				local bottom = bar.rect.y + bar.rect.h
+				expect(math.abs(s.money.rect.y + s.money.rect.h - bottom) <= LayoutAssert.BOTTOM_ALIGN).toBe(true)
+				expect(math.abs(s.status.rect.y + s.status.rect.h - bottom) <= LayoutAssert.BOTTOM_ALIGN).toBe(true)
+				expect(s.money.rect.x + s.money.rect.w <= bar.rect.x).toBe(true)
+				expect(bar.rect.x + bar.rect.w <= s.status.rect.x).toBe(true)
+				expect(bar.shown >= (if s.tight then 3 else 8)).toBe(true)
+				local check = LayoutAssert.new(vp.name, s)
+				LayoutAssert.hotbarChecks(check)
+				expect(check.report()).toBe("")
+			end
+		)
 	end
 	it(
 		"landscape phone: the bottom row sits at most 16 screen px above the bottom edge, portrait and PC keep their insets",
@@ -319,7 +332,7 @@ describe("landscape phone (v27 gate N1)", function()
 		LayoutAssert.hotbarChecks(check)
 		expect(has(check.report(), "landscape bottom inset")).toBe(true)
 	end)
-	it("only portrait 390 wide is tight; PC and 1024x768 are not phones and keep the nav at NAV.top", function()
+	it("only portrait 390 wide is tight; PC and 1024x768 are not phones and put the nav low, under NAV.top", function()
 		for _, vp in LayoutAssert.PHONE_VIEWPORTS do
 			expect(Layout.screen(vp.w, vp.h).tight).toBe(vp.w == 390)
 		end
@@ -327,7 +340,8 @@ describe("landscape phone (v27 gate N1)", function()
 			local s = Layout.screen(vp[1], vp[2])
 			expect(s.phone).toBe(false)
 			expect(s.tight).toBe(false)
-			expect(s.nav.y).toBe(Layout.NAV.top)
+			expect(s.nav.y > Layout.NAV.top).toBe(true)
+			expect(s.nav.y + s.nav.h < s.money.rect.y).toBe(true)
 		end
 	end)
 	it("the landscape row check catches a hotbar off the bottom row, a nav off the top and an overlap", function()
