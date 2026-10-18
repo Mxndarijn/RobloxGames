@@ -15,6 +15,7 @@ local T0 = ServerFixtures.T0
 
 local STATE_KEYS = {
 	"serverTime",
+	"featuredSecret",
 	"plotIndex",
 	"cash",
 	"incomePerSec",

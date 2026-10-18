@@ -66,6 +66,8 @@ export type FriendsView = { count: number, bonus: number }
 
 -- x2 Weekend (Weekend): the multiplier and when the window ends (unix seconds); absent / inactive = no chip.
 export type WeekendView = { active: boolean, multiplier: number, endsAt: number? }
+-- The featured event Secret of the week (EventSecrets, CONTRACT.md §34); `endsAt` in server time.
+export type FeaturedSecretView = { id: string, name: string, endsAt: number }
 
 -- Follow-pet passive (CONTRACT.md §14): the favourite slime's perk, text "+5% luck".
 export type PetPerkView = { kind: string, value: number, icon: string, text: string }
@@ -248,6 +250,7 @@ export type State = {
 	pvp: PvpView?, -- FEATURES.PvP (nil when off)
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
+	featuredSecret: FeaturedSecretView?, -- this week's event Secret in the Secret pool
 	petPerk: PetPerkView?, -- Perks.petPassive; nil without a favourite
 	settings: { musicVolume: number, sfxVolume: number, muted: boolean }?, -- FEATURES.Audio: saved Sound card values (nil when off)
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)

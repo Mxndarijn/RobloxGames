@@ -48,6 +48,8 @@ local HOUR = 3600
 local function weekStart(week: number): number
 	return (week * 7 - 3) * DAY
 end
+-- Unix second the week `week` starts (Monday 00:00 UTC).
+WeeklyEvents.weekStart = weekStart
 
 -- The Monday-based week number of `now`; weeks switch at Monday 00:00 UTC.
 function WeeklyEvents.weekIndex(now: number): number
