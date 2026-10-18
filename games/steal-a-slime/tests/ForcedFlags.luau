@@ -73,6 +73,7 @@ ForcedFlags.off = {
 	["SlideColliders in the live server"] = "SlideCollision",
 	["WelcomeBack.report"] = "WelcomeBack",
 	["welcome-back on join"] = "WelcomeBack",
+	["FountainSplit data > is behind FEATURES.FountainSplit, default on"] = "FountainSplit",
 }
 
 -- Spec modules that assert a flag at load time.
@@ -129,7 +130,6 @@ ForcedFlags.needOff = {
 	["fountain top collider, no holes > loaded: the collision covers the dome, never under the profile, never far over it"] = "FountainSplit",
 	["fountain top collider, no holes > loaded: every radius from the axis to the eave edge has a collider top above the wall"] = "FountainSplit",
 	["fountain top collider, no holes > states: loaded and loading are never both off or both on"] = "FountainSplit",
-	["FountainSplit data > is behind FEATURES.FountainSplit, default off"] = "FountainSplit",
 	["MeshSwap uniform scale (live boot, every upload answered) > swaps every uploaded MeshAsset slot"] = "FountainSplit",
 }
 

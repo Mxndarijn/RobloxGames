@@ -1,5 +1,5 @@
 --!nocheck
--- FEATURES.FountainSplit (default off; draft for Merijn's fountain collision choice (a), CONTRACT.md §28): the
+-- FEATURES.FountainSplit (default on; draft for Merijn's fountain collision choice (a), CONTRACT.md §28): the
 -- slime_fountain mesh cut into 5 pieces (shared/modeling-kit/models/slime_fountain_split.py), the four tower pieces
 -- PreciseConvexDecomposition, the slide piece decor. Pure data first (tris, bbox, offsets, COLLISION), then the live
 -- server in the fake runtime with the flag off (= main's single mesh), on, and on with a piece failing to load.
@@ -27,8 +27,8 @@ local split = serde.decode("json", fs.readFile(`{KIT_OUT}/fountain_split.json`))
 local whole = serde.decode("json", fs.readFile(`{KIT_OUT}/slime_fountain.stats.json`))
 
 describe("FountainSplit data", function()
-	it("is behind FEATURES.FountainSplit, default off", function()
-		expect(Config.FEATURES.FountainSplit).toBe(false)
+	it("is behind FEATURES.FountainSplit, default on", function()
+		expect(Config.FEATURES.FountainSplit).toBe(true)
 	end)
 	it("lists the 5 pieces, all uploaded, none in the world slot list", function()
 		expect(#MeshAssets.FOUNTAIN_SPLIT).toBe(5)
