@@ -753,6 +753,7 @@ export type RanchProp = {
 	yaw: number, -- world orientation, degrees
 	size: Vec, -- native size * scale
 	radius: number, -- half the XZ diagonal: a circle that holds the footprint
+	tint: Vec?, -- slot colour for MeshTint (near white), yard props only
 }
 
 local function resolveProp(p: RanchProps.Placement): RanchProp
@@ -777,6 +778,7 @@ local function resolveProp(p: RanchProps.Placement): RanchProp
 		yaw = yaw % 360,
 		size = size,
 		radius = math.sqrt(size[1] ^ 2 + size[3] ^ 2) / 2,
+		tint = p.tint,
 	}
 end
 
@@ -839,6 +841,12 @@ local function decor(): WorldNode
 		-- collider until MeshSwap places the mesh, which then turns the box off.
 		if MeshAssets.collision(prop.mesh) == nil then
 			slot.canCollide = false
+		end
+		if prop.cluster == "yard" then
+			-- Yard dressing: the slot colour is a slight tint of the mesh (MeshTint multiplies the vertex colours, so near white
+			-- keeps the kit's look). SnowKind "none": under snow the props keep their own colours, only the sand yard whitens.
+			slot.attributes = { MeshTint = true, [FloorLayout.SNOW_KIND_ATTRIBUTE] = "none" }
+			slot.color = prop.tint or slot.color
 		end
 		table.insert(children, meshSlot(slot, prop.mesh))
 	end
