@@ -19,7 +19,8 @@
 - The on-screen Slap button and the `"Slap"` Request action are gone. Every spawn gives exactly one `Tool` named `Bat` (`server/BatTool.give`, Backpack, `CanBeDropped = false`, one inert Handle part). `Tool.Activated` (tap / click) fires on the server: **no remote, the client names no target.**
 - `BatTool.swing` uses the swinger's own root position and look vector (`Shared.BatRules.pickTarget`): the nearest carrying thief within `SLAP_REACH` and in front (`Config.BAT.FACING_DOT`; closer than `CLOSE_STUDS` any direction). It then calls `StealService.slap` (the same rules as the old button: reach, `SLAP_COOLDOWN` shared with the Squeaky Hammer via `Session.lastSlapAt`, drop + bounce home + notifications + `SlapHitAt` FX) and adds a knockback of `Config.BAT.PUSH` studs through `PvpKnockbackRules.plan` + `PvpLaunch`, announced with `PvpEvent` `Effect` `Knockback` (`itemId "Bat"`; `PvpEffects` now starts with the flag off too). With the flag on the target's control immunity (`PvpRules.canControl`) is respected.
 - A swing at nothing or at a non-thief does nothing (no damage, no cooldown; swings are rate limited to `BAT.SWING_GAP`). Humanoid health is never touched.
-- **Model / icon hookup is `Shared.BatModel` only** (`MESH_ID`, `ICON_ID`, `SIZE`, `GRIP`).
+- **The swing look:** every click (hit or miss, at most once per `BAT.SWING_GAP`) adds a `StringValue` `toolanim` = `"Slash"` under the Tool, so the character's default `Animate` script plays its built-in tool slash (replicated to everyone, no uploaded animation), and plays the handle's `Swing` sound (`BatModel.SWING_SOUND`). Hit feedback stays the `Knockback` FX and the `SlapHitAt` bonk.
+- **Model / icon / sound hookup is `Shared.BatModel` only** (`MESH_ID`, `ICON_ID`, `SIZE`, `GRIP`, `SWING_SOUND`).
 
 ## 26.1 PvP remote contract (final names; the client builds against this)
 
