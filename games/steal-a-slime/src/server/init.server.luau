@@ -286,6 +286,7 @@ local function save(userId: number, playerData: PlayerData.Data, release: boolea
 		return
 	end
 	pendingSaves += 1
+	local readOnly = DataService.readOnly(data, userId) ~= nil
 	local ok, reason = DataService.save(data, userId, playerData, release)
 	if not ok then
 		warn(`[Server] save failed for {userId}: {reason}`)
@@ -295,7 +296,7 @@ local function save(userId: number, playerData: PlayerData.Data, release: boolea
 	elseif not memoryMode then
 		setStoreStatus("Ok")
 	end
-	if orderedStore then
+	if orderedStore and not readOnly then -- a read-only session's progress is not saved, so it doesn't rank either
 		local store = orderedStore
 		pcall(function()
 			store:SetAsync(DataService.key(userId), Leaderboard.storeValue(playerData))
@@ -608,9 +609,14 @@ end
 request.OnServerInvoke = function(player: Player, action: any, ...: any): Types.RequestResult
 	Profiler.count(profiler, "Request")
 	local args = table.pack(...)
-	local ok, res = pcall(Actions.handle, world, player.UserId, action, args, now(), ctx)
+	local ok, res, ran = pcall(Actions.handle, world, player.UserId, action, args, now(), ctx)
 	if not ok then
 		return { ok = false, message = "server error" }
+	end
+	-- Refused before dispatch (unknown action, too fast, ...): nothing changed, so skip the world-wide refresh;
+	-- a client spamming Request must not buy a WorldView.reconcile per call.
+	if not ran then
+		return res
 	end
 	syncOpenShop(player)
 	-- Never error to the client: a view hiccup must not turn a done action into a failure.
@@ -827,6 +833,15 @@ local function onPlayerAdded(player: Player)
 	end
 	createLeaderstats(player)
 	updateLeaderstats(player, session)
+	if DataService.readOnly(data, userId) then
+		World.notify(
+			world,
+			userId,
+			"Your save couldn't be read on this server: progress here won't be saved",
+			"bad",
+			nil
+		)
+	end
 
 	player.CharacterAdded:Connect(function(character)
 		onCharacter(player, character)
