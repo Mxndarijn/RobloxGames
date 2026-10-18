@@ -128,7 +128,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Effects:** the server plays `Effects.play` bursts on gameplay events (§5.4).
 - **Rain heads-up:** `RAIN_WARNING_SECONDS` (60) before each rain everyone gets Notify "Slime Rain in 1 minute! …" (`"info"`).
 - **Extras** (each behind `Config.FEATURES.<name>`, `false` turns it fully off, except the ones marked *always on*, whose flag is retired):
-  - `BossSlime` (*always on*): from `BOSS_FIRST_AT` after start, every `BOSS_INTERVAL` the fountain drops one **Boss Slime** if none is alive (`Spawner.spawnBoss`): a free wild slime of tier ≥ `BOSS_TIER`, size `MAX_SIZE`, at least `Glow`, living `BOSS_LIFETIME`, ignoring the wild cap. Everyone gets Notify (`"Rain"` sound, `"A BOSS SLIME slid into the plaza: <name>! Grab it first!"`); whoever deposits it triggers a server-wide "<name> caught the Boss Slime!". Its model has attribute `Boss = true` (`Constants.BOSS_ATTRIBUTE`) and its prompt's ObjectText starts with `"BOSS "`. Otherwise it's a normal wild slime (grab, drop, deposit).
+  - Boss event (*always on*): a server-wide boss fight, haul race and trophy, see §32 ([boss-event.md](contract/boss-event.md)). The boss model has attribute `Boss = true` (`Constants.BOSS_ATTRIBUTE`).
   - `FollowPets` (*always on*): the server sets Player attribute `PetSlimeId` (`Constants.PET_ATTRIBUTE`) to `Progression.keeper(data).id` (favourite, else best slime; nil without slimes). VisualsClient (`FollowPets`) clones that slime's replicated model into a local `workspace.ClientPets` folder at 0.45 scale and has it follow its owner. Client-only, cosmetic.
   - `DayNight` (*always on*): the server sets `Lighting.ClockTime = DayNight.clockTime(elapsed)` twice a second: one day per `DAY_LENGTH` (12 min), daytime 06:30–17:30 for `DAY_FRACTION` (70 %) of it.
   - `Minimap` (*always on*): `ReplicatedStorage.Visuals.MinimapData.points()` lists `{ kind, name, x, z, plotIndex? }` for the fountain (`kind = "Fountain"`, map centre), `Plot_i`, the three props and HubSpawn from WorldLayout; `toMap(x, z)` gives 0..1 map coordinates over the 640-stud Ground. Data only (no UI yet).
@@ -359,7 +359,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
 | `FEATURES` | every flag and its value live in `Config.FEATURES` only; not restated here | §2 Extras |
-| `BOSS_FIRST_AT` / `BOSS_INTERVAL` / `BOSS_TIER` / `BOSS_LIFETIME` | 480 / 900 / 4 / 120 | Boss Slime |
+| `BOSS` | table | boss event (§32) |
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
 | `REBIRTH_LATE_FROM` / `REBIRTH_COST_GROWTH_LATE` / `REBIRTH_TIERS` / `UPGRADES` / `GOALS` / `DEX_MILESTONES` | 5 / 2 / tables | v13 progression (§8.8) |
@@ -413,3 +413,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §28 | [fountain-split.md](contract/fountain-split.md) | Fountain split: PCD tower pieces (`FEATURES.FountainSplit`) |
 | §29 | [inventory.md](contract/inventory.md) | S3: inventory hotbar + panel (client only, 2026-10-18) |
 | §30 | [slime-pool.md](contract/slime-pool.md) | Slime pool: 32 species, one fully coloured mesh each |
+| §32 | [boss-event.md](contract/boss-event.md) | Boss event: team meter fight, haul race, unstealable trophy |
