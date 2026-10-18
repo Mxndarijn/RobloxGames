@@ -1990,10 +1990,15 @@ def step_shots(run):
                         run.note("shot %s: mesh collision: %s" % (sid, str(res["mesh_stand"].get("summary") or res["mesh_stand"].get("error"))[:200]))
                 if shot.get("fountain_walk"):
                     # C10: free balls dropped over the whole fountain top (eave, dome, basin) must never sink into it
-                    res["fountain_walk"] = run.need_luau("fountain_walk", "Server", timeout=60)
+                    # "fountain_split": true = the same grid against the FEATURES.FountainSplit tower pieces (a draft experiment:
+                    # ADVISORY, a violation is a note only; the plain colliders shot stays the HARD one)
+                    split = bool(shot.get("fountain_split"))
+                    res["fountain_walk"] = run.need_luau("fountain_walk", "Server", timeout=60, split=split)
+                    res["fountain_split"] = split
                     if not res["fountain_walk"].get("ok"):
-                        run.note("shot %s: sank into the fountain top: %s" % (
-                            sid, str(res["fountain_walk"].get("violations") or res["fountain_walk"].get("error"))[:200]))
+                        run.note("shot %s: sank into the fountain top%s: %s" % (
+                            sid, " (split pieces, advisory)" if split else "",
+                            str(res["fountain_walk"].get("violations") or res["fountain_walk"].get("error"))[:200]))
                 if shot.get("anim") and (res.get("target") or {}).get("path"):
                     # optional uploaded-animation proof: the Client plays it on the pad slime's Animator, waits `wait` s
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
@@ -2094,7 +2099,7 @@ def step_shots(run):
             len(tool_errors), len(shots), tool_errors[0],
             next((str(r.get("error"))[:160] for r in results if r.get("id") == tool_errors[0]), "")))
         return "fail", {"captured": done, "total": len(shots), "shots": results, "shot_tool_errors": len(tool_errors)}
-    if any(r.get("fountain_walk") and not r["fountain_walk"].get("ok") for r in results):
+    if any(r.get("fountain_walk") and not r.get("fountain_split") and not r["fountain_walk"].get("ok") for r in results):
         return "fail", {"captured": done, "total": len(shots), "shots": results, "fountain_walk_failed": True}
     if any(r.get("runtime_parts") and not r["runtime_parts"].get("ok") for r in results):
         return "fail", {"captured": done, "total": len(shots), "shots": results, "runtime_parts_failed": True}

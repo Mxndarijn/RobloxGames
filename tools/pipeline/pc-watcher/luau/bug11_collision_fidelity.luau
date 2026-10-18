@@ -10,9 +10,14 @@
 --      mesh_pcd   colliders temporarily CanCollide false, a MeshPart from the fountain's MeshId made with AssetService:CreateMeshPartAsync(meshId,
 --                 {CollisionFidelity = PreciseConvexDecomposition}), same CFrame / Size as the visual mesh, invisible, CanCollide
 --      mesh_hull  the same with Hull
+--      split_pcd  (FEATURES.FountainSplit draft, option (a)) the tower colliders (Basin / Trim / Silo / Top, NOT the SlideColliders folder) temporarily
+--                 CanCollide false and the 4 tower pieces of MeshAssets.FOUNTAIN_SPLIT (basin, dome, eave, silo; the decor slide piece is not needed) made
+--                 with CreateMeshPartAsync(meshId, {CollisionFidelity = PreciseConvexDecomposition}) at the assembled transforms (slot CFrame + each piece
+--                 offset, IMPORT_YAW), invisible, CanCollide. Reads the ids from Shared.MeshAssets, so it runs with the flag OFF (no flag flip); with the flag
+--                 ON the pieces already exist and are measured as they are (split_pcd.source = "flag"). parts_saved = tower colliders - 4 pieces.
 --    per variant: sank (centre < 0.4 above the visual top while not falling fast), fell (reached y < 2), balls, parts_saved (colliders - 1) and
 --    tower_parts_saved (without the slide folder, which must stay hand-placed: a precise mesh would make the trough walkable, COLLISION.md). Everything is
---    restored (CanCollide of every collider, the experiment meshes destroyed). Budget < 20 s: a variant is skipped (n/a) when the clock runs out.
+--    restored (CanCollide of every collider, the experiment meshes destroyed). Budget < 28 s (was 20 before split_pcd): a variant is skipped (n/a) when the clock runs out.
 local t_start = os.clock()
 local RS = game:GetService("ReplicatedStorage")
 local roots = { workspace:FindFirstChild("Map"), workspace:FindFirstChild("Plots"), RS }
@@ -59,10 +64,20 @@ local function experiment()
 	local volcano = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Volcano")
 	local slot = volcano and volcano:FindFirstChild("FountainMesh")
 	local visual = slot and slot:FindFirstChild("Mesh")
-	if not (visual and visual:IsA("MeshPart")) then
+	if visual and not visual:IsA("MeshPart") then
+		visual = nil
+	end
+	local okMA, MeshAssets = pcall(function()
+		return require(RS.Shared.MeshAssets)
+	end)
+	if not okMA then
+		MeshAssets = nil
+	end
+	local flagPieces = MeshAssets and slot and slot:FindFirstChild(MeshAssets.FOUNTAIN_SPLIT[1]) -- FEATURES.FountainSplit is on
+	if not slot or not (visual or flagPieces) then
 		return { skipped = "Map.Volcano.FountainMesh.Mesh (the fountain MeshPart) is not loaded" }
 	end
-	local colliders, slideCount, towerCount = {}, 0, 0
+	local colliders, towerList, slideCount, towerCount = {}, {}, 0, 0
 	local slideFolder = volcano:FindFirstChild("SlideColliders")
 	for _, d in volcano:GetDescendants() do
 		if d:IsA("BasePart") and not d:IsA("MeshPart") and d.CanCollide and d.Transparency >= 0.99 then
@@ -71,6 +86,7 @@ local function experiment()
 				slideCount += 1
 			else
 				towerCount += 1
+				table.insert(towerList, d)
 			end
 		end
 	end
@@ -100,6 +116,9 @@ local function experiment()
 	end
 	local made = {}
 	local function makeMesh(fidelity)
+		if not visual then
+			return nil, "single mesh not loaded (FEATURES.FountainSplit is on)"
+		end
 		local ok, mp = pcall(function()
 			return AssetService:CreateMeshPartAsync(visual.MeshId, { CollisionFidelity = fidelity })
 		end)
@@ -125,8 +144,59 @@ local function experiment()
 			pending -= 1
 		end)
 	end
+	-- split_pcd: the tower pieces of MeshAssets.FOUNTAIN_SPLIT, each from its own mesh id with its MeshAssets.COLLISION fidelity
+	-- (PreciseConvexDecomposition), placed exactly like server/MeshSwap.swapFountainSplit: slot CFrame (stand on the bottom, one
+	-- uniform scale) * piece offset * IMPORT_YAW. The decor slide piece is skipped: the slide stays the SlideColliders block.
+	local splitPieces, splitErr = {}, nil
+	if flagPieces then
+		for _, name in MeshAssets.FOUNTAIN_SPLIT do
+			local piece = slot:FindFirstChild(name)
+			if piece and piece:IsA("MeshPart") and piece.CanCollide then
+				table.insert(splitPieces, piece)
+			end
+		end
+	elseif not MeshAssets then
+		splitErr = "Shared.MeshAssets not found"
+	else
+		local _, scale, below = MeshAssets.fit("slime_fountain", { slot.Size.X, slot.Size.Y, slot.Size.Z })
+		local k = scale or 1
+		for _, name in MeshAssets.FOUNTAIN_SPLIT do
+			local fid = MeshAssets.collision(name)
+			local id, entry = MeshAssets.meshId(name), MeshAssets.get(name)
+			if not fid then
+				continue -- decor piece (slide)
+			elseif not (id and entry and entry.size and entry.offset) then
+				splitErr = name .. " has no mesh id / size / offset in MeshAssets"
+				break
+			end
+			pending += 1
+			task.spawn(function()
+				local ok, mp = pcall(function()
+					return AssetService:CreateMeshPartAsync(id, { CollisionFidelity = Enum.CollisionFidelity[fid] })
+				end)
+				if ok and typeof(mp) == "Instance" then
+					mp.Size = Vector3.new(entry.size[1] * k, entry.size[2] * k, entry.size[3] * k)
+					mp.CFrame = slot.CFrame
+						* CFrame.new(0, -below, 0)
+						* CFrame.new(entry.offset[1] * k, entry.offset[2] * k, entry.offset[3] * k)
+						* CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
+					mp.Anchored = true
+					mp.CanCollide = true
+					mp.CanQuery = false
+					mp.CanTouch = false
+					mp.Transparency = 1
+					mp.Name = "PcwExperimentMesh"
+					table.insert(made, mp)
+					table.insert(splitPieces, mp)
+				else
+					splitErr = name .. ": " .. tostring(mp)
+				end
+				pending -= 1
+			end)
+		end
+	end
 	local tw = os.clock()
-	while pending > 0 and os.clock() - tw < 6 do
+	while pending > 0 and os.clock() - tw < 10 do
 		task.wait(0.1)
 	end
 	local results = {}
@@ -199,7 +269,7 @@ local function experiment()
 	end
 	local okRun, err = pcall(function()
 		collidersOn(true)
-		grid("colliders")
+		grid("colliders") -- with FEATURES.FountainSplit on this baseline is already the split (the tower colliders are off)
 		for _, name in { "mesh_pcd", "mesh_hull" } do
 			local mp = meshes[name]
 			if not mp then
@@ -212,6 +282,29 @@ local function experiment()
 				task.wait(0.2)
 				grid(name)
 				mp.Parent = nil
+			end
+		end
+		if #splitPieces < 4 then
+			results.split_pcd = { error = splitErr or ("only %d of the 4 tower pieces were made"):format(#splitPieces) }
+		elseif os.clock() - t_start > 22 then
+			results.split_pcd = { skipped = "time budget" }
+		else
+			collidersOn(true)
+			for _, c in towerList do -- the slide block stays: the slide piece is decor
+				c.CanCollide = false
+			end
+			for _, mp in splitPieces do
+				if not flagPieces then
+					mp.Parent = workspace
+				end
+			end
+			task.wait(0.2)
+			grid("split_pcd")
+			results.split_pcd.source = if flagPieces then "flag" else "experiment"
+			if not flagPieces then
+				for _, mp in splitPieces do
+					mp.Parent = nil
+				end
 			end
 		end
 	end)
@@ -231,6 +324,13 @@ local function experiment()
 		if results[name] and results[name].balls then
 			results[name].parts_saved = #colliders - 1
 			results[name].tower_parts_saved = towerCount - 1
+		end
+	end
+	if results.split_pcd and results.split_pcd.balls then
+		results.split_pcd.pieces = #splitPieces
+		if not flagPieces then -- the slide block stays, the 4 PCD pieces replace the tower colliders
+			results.split_pcd.parts_saved = towerCount - #splitPieces
+			results.split_pcd.tower_parts_saved = results.split_pcd.parts_saved
 		end
 	end
 	if results.colliders then
@@ -255,7 +355,7 @@ local summary
 if exp.skipped or exp.error then
 	summary = "experiment n/a: " .. tostring(exp.skipped or exp.error)
 else
-	summary = string.format("%d invisible colliders (%d slide, %d tower); %s; %s; %s", exp.colliders_total, exp.slide_colliders, exp.tower_colliders, line("colliders"), line("mesh_pcd"), line("mesh_hull"))
+	summary = string.format("%d invisible colliders (%d slide, %d tower); %s; %s; %s; %s", exp.colliders_total, exp.slide_colliders, exp.tower_colliders, line("colliders"), line("mesh_pcd"), line("mesh_hull"), line("split_pcd"))
 end
 return {
 	ok = nil,

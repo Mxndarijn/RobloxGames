@@ -13,7 +13,9 @@
 	placeholder box at one uniform scale (MeshAssets.fit), never stretched.
 ]]
 
-export type Entry = { assetId: number?, meshId: string?, size: { number }? }
+-- `offset` (FEATURES.FountainSplit pieces only): the piece's bbox centre minus the whole fountain mesh's bbox centre, in the
+-- slot's own axes (Roblox X, Y, Z = kit x, kit z, -kit y; rotate with the slot, the mesh's IMPORT_YAW is not applied to it).
+export type Entry = { assetId: number?, meshId: string?, size: { number }?, offset: { number }? }
 
 local NAMES = {
 	"slime_fountain",
@@ -388,9 +390,57 @@ entries["ranch_floor_paths"] =
 entries["slime_lane"] =
 	{ assetId = 87473643950432, meshId = "rbxassetid://105422361986931", size = { 139.095, 0.43, 135.756 } }
 
+-- FEATURES.FountainSplit (default off; MeshSwap.swapFountainSplit): the slime_fountain mesh cut into 5 pieces by
+-- shared/modeling-kit/models/slime_fountain_split.py (out/fountain_split.json has the numbers, tris sum to the whole:
+-- 6354). NOT world slots and not preloaded (allMeshIds skips them): with the flag off nothing loads them. The four
+-- tower pieces are PreciseConvexDecomposition (COLLISION below); the slide piece is decor, the slide keeps SlideColliders.
+entries["fountain_split_basin"] = {
+	assetId = 113404417037788,
+	meshId = "rbxassetid://108371724846314",
+	size = { 20.983, 8.123, 22.051 },
+	offset = { -6.236, 17.597, -7.119 },
+}
+entries["fountain_split_dome"] = {
+	assetId = 90481723961412,
+	meshId = "rbxassetid://96453427876668",
+	size = { 27.201, 6.29, 27.312 },
+	offset = { -6.321, 11.747, -7.498 },
+}
+entries["fountain_split_eave"] = {
+	assetId = 89581694162701,
+	meshId = "rbxassetid://79010101239145",
+	size = { 27.201, 3.313, 27.312 },
+	offset = { -6.321, 9.374, -7.498 },
+}
+entries["fountain_split_silo"] = {
+	assetId = 70694440108004,
+	meshId = "rbxassetid://126104512688719",
+	size = { 26.223, 30.673, 26.563 },
+	offset = { -6.51, -6.321, -7.572 },
+}
+entries["fountain_split_slide"] = {
+	assetId = 80263316335801,
+	meshId = "rbxassetid://133681442583514",
+	size = { 54.45, 38.242, 63.851 },
+	offset = { 0, -2.537, 0 },
+}
+
 local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)
 MeshAssets.entries = entries
+
+-- The FEATURES.FountainSplit pieces, in the order MeshSwap places them; the first four collide (PCD), the slide is decor.
+MeshAssets.FOUNTAIN_SPLIT = table.freeze({
+	"fountain_split_basin",
+	"fountain_split_dome",
+	"fountain_split_eave",
+	"fountain_split_silo",
+	"fountain_split_slide",
+})
+local splitPiece: { [string]: boolean } = {}
+for _, name in MeshAssets.FOUNTAIN_SPLIT do
+	splitPiece[name] = true
+end
 
 -- Yaw (degrees) MeshSwap adds to a mesh in a WorldLayout slot. WorldLayout
 -- lays slots out with the kit's documented axes (FBX Lcl Rotation: Roblox
@@ -483,6 +533,13 @@ MeshAssets.COLLISION = table.freeze({
 	-- walkable concave shapes: PreciseConvexDecomposition (expensive; placed a few times at most). The stile is Box since v196.
 	ranch_fence_stile = "Box", -- 5.8x5.5x4.9 stile: a solid block players jump onto / over (v196: PCD treads let a 4-stud ball ride over and read as walk-through)
 	ranch_barn_loft = "PreciseConvexDecomposition", -- PCD: Phoenix Studio check. Loft platform with an open ground floor: walk under and onto it
+	-- FEATURES.FountainSplit (default off): the fountain tower as 4 meshes, each its own convex decomposition, in place of
+	-- the hand-placed Basin / Trim / Silo / Top colliders. Only created with the flag on; fountain_split_slide is decor
+	-- (the slide stays the SlideColliders block, a precise slide would make the trough walkable: bug #9).
+	fountain_split_basin = "PreciseConvexDecomposition",
+	fountain_split_dome = "PreciseConvexDecomposition",
+	fountain_split_eave = "PreciseConvexDecomposition",
+	fountain_split_silo = "PreciseConvexDecomposition",
 })
 
 function MeshAssets.collision(name: string): string?
@@ -503,7 +560,10 @@ end
 -- the client preloads them all (visuals/client/Preload) so no mesh pops in.
 function MeshAssets.allMeshIds(): { string }
 	local seen, out = {}, {}
-	for _, e in entries do
+	for name, e in entries do
+		if splitPiece[name] then
+			continue -- FEATURES.FountainSplit pieces load only with the flag on (the replicated MeshParts are preloaded then)
+		end
 		local id = e.meshId
 		if id and not seen[id] then
 			seen[id] = true
