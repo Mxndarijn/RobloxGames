@@ -116,6 +116,8 @@ Per tier: Uncommon 2, Rare 3, Epic 4, Legendary 3, Mythic 2, Secret 1. No two re
 
 Hybrid ids are new and permanent. None clashes with an old roster id.
 
+**Differences from `hybrids.json`** (for the models): one tier changes. **Sushi moves from Rare (3) to Epic (4)**, because Rare has no fish-like Uncommon inputs. All other tiers stay. Because of the one-tier rule, these recipes don't use every suggested parent, so a model may want to lean on the parents that remain: Bloom (no sprout), Truffle (no pebble), Moo-shroom (no mushie, sprout), Snow Bunny (no frostbite, mochi), Sushi (no mochi, sprout), Kraken (no chomp), Thunderbee (no bumble), Dragon King (no drako, blaze), Cyber Ninja (no zap), Nightwing (no imp, eclipse). Soda, Rocky Road, Honey Toad, Catfish and Steampuff use their suggested parents exactly.
+
 ### 2.3 Discovery, Dex hints and silhouettes
 
 | Dex state | What the hybrid's Dex card shows |
