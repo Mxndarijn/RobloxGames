@@ -83,6 +83,29 @@ minr = min(turn_radius(path[i - 1], path[i], path[i + 1]) for i in range(1, n - 
 assert minr > HW + 0.1, f"tightest bend radius {minr:.2f} <= half width {HW}: the sweep would fold"
 
 
+# Cut the lane where the game's drain taper starts (src["cut"], ParadeLane.stripEndPoints): project it onto the
+# centreline, keep every ring before it unchanged and end with one ring ON the cut, square to the lane. The taper
+# strips (ParadeLane.drainStrips) carry on from there and overlap this end.
+if "cut" in src:
+    cx, cz = src["cut"]
+    best = None
+    for i in range(n - 1):
+        ax, az = path[i]
+        dx, dz = path[i + 1][0] - ax, path[i + 1][1] - az
+        k = min(1.0, max(0.0, ((cx - ax) * dx + (cz - az) * dz) / max(dx * dx + dz * dz, 1e-12)))
+        d = math.hypot(cx - ax - dx * k, cz - az - dz * k)
+        if best is None or d < best[0]:
+            best = (d, i, k)
+    d, i, k = best
+    assert d < 0.1, f"cut point is {d:.3f} studs from the centreline"
+    a, b = path[i], path[i + 1]
+    end = (a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k)
+    seg = math.hypot(b[0] - a[0], b[1] - a[1]) or 1
+    path = path[:i + 1] + [end]
+    tang = tang[:i + 1] + [((b[0] - a[0]) / seg, (b[1] - a[1]) / seg)]   # the last ring is square to its segment
+    n = len(path)
+
+
 def height(s):
     """Cross-section height at lateral fraction s (-1..1): flat-ish crown, rounded fall to EDGE_Y."""
     a = abs(s)

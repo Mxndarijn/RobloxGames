@@ -351,7 +351,7 @@ ParadeLane.MESH_PIVOT = table.freeze({ 0.472784, 0.135, -1.707947 })
 ParadeLane.EDGE_Y = -0.05
 ParadeLane.COLOR = table.freeze({ 140, 222, 200 }) -- the slide's water
 function ParadeLane.strips(): { any }
-	local pts = ParadeLane.drawPoints()
+	local pts = ParadeLane.stripEndPoints()
 	local hw = ParadeLane.HALF_WIDTH
 	local count = #pts - 1
 	local ux, uz, len = {}, {}, {}
@@ -396,6 +396,255 @@ function ParadeLane.strips(): { any }
 				dx,
 			},
 		})
+	end
+	return out
+end
+
+-- The drain mouth: the lane does not stop at the curb. It narrows over its last TAPER_START studs before EXIT and the
+-- few studs on to the curb: the same Cylinder-crown strips as the lane, many short overlapping ones (TAPER_STEP studs),
+-- each a little narrower than the last along a smoothstep, so both edges are one smooth curve from the full lane width
+-- down to the ribbon's width. The lane's own strips() stop where the taper starts. The taper bends from EXIT's heading
+-- onto the radial line through the nearest GAP between two warning tiles; the POUR is a ribbon of that same width, a few
+-- slightly tilted slabs riding that gap line over the curb (it only laps the tiles' edges) and into the basin, ending
+-- just above the goo. Visual only, drawn in every mode. The lane mesh (models/slime_lane.py) ends with a square cut exactly where
+-- the taper starts (the `cut` in out/slime_lane_pivot.json's input), and the first taper strip laps it by TAPER_MESH_OVERLAP.
+ParadeLane.GRATE_RADIUS = 1.3 -- brass grate hoop (ranch_goo_drain Hoop r 1.15 + a hair)
+ParadeLane.RIM_TILE_GAP_DEGREES = 30 -- the 12 warning tiles (ranch_goo_drain Warn0-11) meet every 30 degrees, a 4 degree gap
+ParadeLane.POUR_START_RADIUS = 5.6 -- the tapered lane ends just outside the curb (r 4.4) and the pour begins here
+ParadeLane.POUR_END_RADIUS = 2.0 -- the pour ends this far from the drain's centre: inside the rim, outside the grate
+ParadeLane.POUR_CROWN_Y = 1.34 -- over the curb (1.0) and its warning tiles (1.22)
+ParadeLane.POUR_DIP_Y = 0.74 -- the pour's end: a hair above the funnel's goo there (r 2: 0.67)
+ParadeLane.POUR_HALF_WIDTH = 0.75 -- the ribbon is 1.5 studs wide, the taper's end width: it laps only the inner ~0.6 stud of the two tiles beside the gap
+ParadeLane.TAPER_START = 8.5 -- studs before EXIT where the lane starts to narrow
+ParadeLane.TAPER_STEP = 0.25 -- studs per tapered strip: each is a fixed width, so the width steps down by under 0.1 per side
+ParadeLane.TAPER_STRIP_STEP = 0.01 -- the taper's every-other-strip raise (strips() uses STRIP_STEP): small, so the overlaps do not read as slats
+ParadeLane.TAPER_OVERLAP = 0.06 -- reach of a taper strip past its mitre
+ParadeLane.TAPER_MESH_OVERLAP = 0.25 -- the first taper strip reaches this far back over the lane mesh's end
+ParadeLane.POUR_STEPS = 12
+ParadeLane.POUR_THICKNESS = 0.25
+ParadeLane.POUR_OVERLAP = 0.04
+
+local function smoothstep(u: number): number
+	u = math.clamp(u, 0, 1)
+	return u * u * (3 - 2 * u)
+end
+
+-- Index of the route waypoint TAPER_START studs before EXIT (the nearest one).
+local function taperIndex(): number
+	local at, gap = #points, math.huge
+	for i = 1, #points do
+		local g = math.abs(cumulative[#points] - cumulative[i] - ParadeLane.TAPER_START)
+		if g < gap then
+			at, gap = i, g
+		end
+	end
+	return at
+end
+
+-- drawPoints() cut where the taper starts: the vertices before it, then the route waypoint it starts at.
+function ParadeLane.stripEndPoints(): { { number } }
+	local from = points[taperIndex()]
+	local out: { { number } } = {}
+	local pts = ParadeLane.drawPoints()
+	local tail = 0 -- chord length from vertex i to EXIT
+	local arc = { [#pts] = 0 }
+	for i = #pts - 1, 1, -1 do
+		tail += math.sqrt((pts[i + 1][1] - pts[i][1]) ^ 2 + (pts[i + 1][2] - pts[i][2]) ^ 2)
+		arc[i] = tail
+	end
+	for i = 1, #pts do
+		if arc[i] > ParadeLane.TAPER_START + 1 then
+			table.insert(out, pts[i])
+		end
+	end
+	table.insert(out, from)
+	return out
+end
+
+-- Angle (radians, Roblox x / z about the drain's centre) of the tile gap the pour rides: the one nearest EXIT.
+function ParadeLane.pourAngle(): number
+	local d, e = ParadeLane.DRAIN, ParadeLane.EXIT
+	local step = math.rad(ParadeLane.RIM_TILE_GAP_DEGREES)
+	return math.floor(math.atan2(e[2] - d.z, e[1] - d.x) / step + 0.5) * step
+end
+
+local function onGap(r: number): (number, number)
+	local d, a = ParadeLane.DRAIN, ParadeLane.pourAngle()
+	return d.x + math.cos(a) * r, d.z + math.sin(a) * r
+end
+
+-- { x, z, halfWidth } from where the taper starts (full lane width, on the route, heading along it) to where the pour
+-- begins: ONE cubic Hermite onto the gap line (heading straight at the drain) sampled every ~TAPER_STEP studs, so the
+-- bend is as long and gentle as the taper itself (a short bend after EXIT folds the ribbon onto itself), the half
+-- width easing down on one smoothstep over the whole arc.
+function ParadeLane.drainLanePoints(): { { number } }
+	local d, pts = ParadeLane.DRAIN, ParadeLane.WAYPOINTS
+	local first = taperIndex()
+	local s, after = pts[first], pts[first + 1]
+	local hx, hz = after[1] - s[1], after[2] - s[2]
+	local hl = math.sqrt(hx * hx + hz * hz)
+	hx, hz = hx / hl, hz / hl
+	local tx, tz = onGap(ParadeLane.POUR_START_RADIUS)
+	local ex, ez = d.x - tx, d.z - tz -- end heading: straight at the drain's centre
+	local el = math.sqrt(ex * ex + ez * ez)
+	ex, ez = ex / el, ez / el
+	local span = math.sqrt((tx - s[1]) ^ 2 + (tz - s[2]) ^ 2)
+	local line: { { number } } = {}
+	local n = math.ceil(span / ParadeLane.TAPER_STEP)
+	for i = 0, n do
+		local u = i / n
+		local h00, h10 = 2 * u ^ 3 - 3 * u ^ 2 + 1, u ^ 3 - 2 * u ^ 2 + u
+		local h01, h11 = -2 * u ^ 3 + 3 * u ^ 2, u ^ 3 - u ^ 2
+		table.insert(line, {
+			h00 * s[1] + h10 * span * hx + h01 * tx + h11 * span * ex,
+			h00 * s[2] + h10 * span * hz + h01 * tz + h11 * span * ez,
+		})
+	end
+	local arc = { 0 }
+	for i = 2, #line do
+		arc[i] = arc[i - 1] + math.sqrt((line[i][1] - line[i - 1][1]) ^ 2 + (line[i][2] - line[i - 1][2]) ^ 2)
+	end
+	local out = {}
+	for i, p in line do
+		local hw = ParadeLane.HALF_WIDTH
+			+ (ParadeLane.POUR_HALF_WIDTH - ParadeLane.HALF_WIDTH) * smoothstep(arc[i] / arc[#line])
+		table.insert(out, { p[1], p[2], hw })
+	end
+	return out
+end
+
+-- The lane's goo carried on to the pour: the same Cylinder crown strips as strips() (own crown radius per width).
+local function laneExtension(): { any }
+	local pts = ParadeLane.drainLanePoints()
+	local main = ParadeLane.stripEndPoints()
+	local count = #pts - 1
+	local ux, uz, len = {}, {}, {}
+	for i = 1, count do
+		local dx, dz = pts[i + 1][1] - pts[i][1], pts[i + 1][2] - pts[i][2]
+		len[i] = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
+		ux[i], uz[i] = dx / len[i], dz / len[i]
+	end
+	local px, pz = main[#main][1] - main[#main - 1][1], main[#main][2] - main[#main - 1][2]
+	local pl = math.max(math.sqrt(px * px + pz * pz), 1e-9)
+	ux[0], uz[0] = px / pl, pz / pl
+	local out = {}
+	for i = 1, count do
+		local hw = (pts[i][3] + pts[i + 1][3]) / 2
+		local function reach(j: number): number
+			if j < 0 or j > count or j == i then
+				return 0
+			end
+			local cos = math.clamp(ux[i] * ux[j] + uz[i] * uz[j], -1, 1)
+			return hw * math.tan(math.acos(cos) / 2) + ParadeLane.TAPER_OVERLAP
+		end
+		-- the raised strips (odd i) get their own crown radius so every strip meets the ground at exactly hw: a shared
+		-- radius would make them a few hundredths wider at the edge and the silhouette saw-toothed
+		local top = ParadeLane.LANE_Y + (if i % 2 == 1 then ParadeLane.TAPER_STRIP_STEP else 0)
+		local radius = (hw ^ 2 + top ^ 2) / (2 * top)
+		local ea, eb = reach(i - 1), reach(i + 1)
+		if i == 1 then
+			ea = math.max(ea, ParadeLane.TAPER_MESH_OVERLAP) -- laps the lane mesh's square cut: no seam gap
+		end
+		if i == count then
+			eb = ParadeLane.TAPER_OVERLAP -- the pour's first slab lies over this end
+		end
+		local shift = (eb - ea) / 2
+		local a, b = pts[i], pts[i + 1]
+		local dx, dz = ux[i], uz[i]
+		local length = len[i] + ea + eb
+		table.insert(out, {
+			name = `LaneDrain{i}`,
+			size = { length, radius * 2, radius * 2 },
+			length = length,
+			width = hw * 2,
+			cf = {
+				(a[1] + b[1]) / 2 + dx * shift,
+				top - radius,
+				(a[2] + b[2]) / 2 + dz * shift,
+				dx,
+				0,
+				-dz,
+				0,
+				1,
+				0,
+				dz,
+				0,
+				dx,
+			},
+		})
+	end
+	return out
+end
+
+-- { x, y, z, halfWidth } along the gap line from POUR_START_RADIUS (on the lane) over the curb into the basin.
+function ParadeLane.pourPoints(): { { number } }
+	local r0, r1 = ParadeLane.POUR_START_RADIUS, ParadeLane.POUR_END_RADIUS
+	local lane, crown, dip = ParadeLane.LANE_Y, ParadeLane.POUR_CROWN_Y, ParadeLane.POUR_DIP_Y
+	local out = {}
+	for i = 0, ParadeLane.POUR_STEPS do
+		local t = i / ParadeLane.POUR_STEPS
+		local r = r0 + (r1 - r0) * t
+		-- up onto the curb from the lane's end, over its top, then down into the basin from r 3.5 on
+		local y = lane + (crown - lane) * smoothstep((r0 - r) / (r0 - 4.1))
+		y -= (crown - dip) * smoothstep((3.5 - r) / 1.2)
+		local x, z = onGap(r)
+		table.insert(out, { x, y, z, ParadeLane.POUR_HALF_WIDTH })
+	end
+	return out
+end
+
+-- Up axis of a cylinder lying along t = (tx, ty, tz) with horizontal side s = (sx, 0, sz): s x t.
+local function upAxis(sx: number, sz: number, tx: number, ty: number, tz: number): (number, number, number)
+	return -sz * ty, sz * tx - sx * tz, sx * ty
+end
+
+-- The pour's thin tilted slabs along pourPoints(): Block Parts (no cylinder end caps to poke out over the curb), each
+-- overlapping its neighbours, each a hair above the last so overlaps do not z-fight. Same cf layout as strips().
+function ParadeLane.pourStrips(): { any }
+	local pts = ParadeLane.pourPoints()
+	local out = {}
+	for i = 1, #pts - 1 do
+		local a, b = pts[i], pts[i + 1]
+		local tx, ty, tz = b[1] - a[1], b[2] - a[2], b[3] - a[3]
+		local len = math.sqrt(tx * tx + ty * ty + tz * tz)
+		tx, ty, tz = tx / len, ty / len, tz / len
+		local hl = math.sqrt(tx * tx + tz * tz)
+		local sx, sz = -tz / hl, tx / hl -- horizontal side, Z axis of the block
+		local ux, uy, uz = upAxis(sx, sz, tx, ty, tz)
+		local hw = (a[4] + b[4]) / 2
+		local thick = ParadeLane.POUR_THICKNESS
+		local length = len + ParadeLane.POUR_OVERLAP * 2
+		local mx, my, mz = (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, (a[3] + b[3]) / 2
+		table.insert(out, {
+			name = `Pour{i}`,
+			shape = "Block",
+			size = { length, thick, hw * 2 },
+			length = length,
+			width = hw * 2,
+			cf = {
+				mx - ux * thick / 2,
+				my - uy * thick / 2 + i * 0.001,
+				mz - uz * thick / 2,
+				tx,
+				ux,
+				sx,
+				ty,
+				uy,
+				0,
+				tz,
+				uz,
+				sz,
+			},
+		})
+	end
+	return out
+end
+
+-- Everything ParadeView lays in Plaza.DrainMouth: the lane's last segments, then the pour.
+function ParadeLane.drainStrips(): { any }
+	local out = laneExtension()
+	for _, s in ParadeLane.pourStrips() do
+		table.insert(out, s)
 	end
 	return out
 end
