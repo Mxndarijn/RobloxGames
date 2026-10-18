@@ -255,7 +255,7 @@ The client always replaces its copy and never diffs.
 	carrying: { slime: SlimeData, kind: "wild" | "stolen", ownerUserId: number?,
 	            startedAt: number, escapeAt: number?, walkSpeed: number }?,
 	rain: { active: boolean, endsAt: number?, nextAt: number? },
-	dex: { string }, dexTotal: number,          -- Genome.dexKey values; total = 6*8*4*6 = 1152 (v28; was 720)
+	dex: DexView,                               -- species Dex (§35.4)
 	daily: { available: boolean, streak: number, amount: number, day: number },
 	shop: {
 		LockUpgrade: { price: number?, level: number, maxLevel: number },  -- price nil = maxed
@@ -413,3 +413,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §28 | [fountain-split.md](contract/fountain-split.md) | Fountain split: PCD tower pieces (`FEATURES.FountainSplit`) |
 | §29 | [inventory.md](contract/inventory.md) | S3: inventory hotbar + panel (client only, 2026-10-18) |
 | §30 | [slime-pool.md](contract/slime-pool.md) | Slime pool: 32 species, one fully coloured mesh each |
+| §35 | [species-dex.md](contract/species-dex.md) | Species Dex: 50 species, mutation stamps, the new milestone ladder |
