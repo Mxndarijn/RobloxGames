@@ -48,22 +48,23 @@ Fountain.roll(rng, id, raining, minTier?, luckMult?, mutationMult?, weeklyMutati
 
 - **Size floor** (`Genome.sizeFloor(tier)`, 0 for other tiers): `Genome.generate` raises a rolled size to the floor
   (`MAX_SIZE` stays the cap). Applies to every generated slime of that tier (fountain, rain, eggs).
-- **Lifetime** (`Spawner.wildLifetime(wild)`): fountain spawns and a dropped carry (`Carry.release`) live
+- **Lifetime** (`Fountain.wildLifetime(slime)`): fountain spawns and a dropped carry (`Carry.release`) live
   `WILD_LIFETIME x TIER_LIFETIME_MULT[tier]` (1 for other tiers); the boss keeps `BOSS_LIFETIME`. The parade walk is
   a function of the lifetime (`ParadeLane`), so a longer life walks the lane slower.
 - **Spawn announce** (unchanged rule, `RARE_ANNOUNCE_TIER` 5): every player gets the Notify
   `Spawner.rareText` ("A MYTHIC Cosmo spilled from the fountain!!", the species name in it), sound `"Rare"`, or
   `"Secret"` for tier 7, plus the workspace `RareSpawnId` / `RareSpawnTier` / `RareSpawnAt` attributes. There is no
   minimap in the game: the wild slime's `RareSpawn` marker (beam, glow, sparkles) is the world ping.
-- **Catch toast**: depositing a wild slime of tier >= 6 notifies every player `Carry.catchText`:
-  `"<player> caught <Species>!"` (the slime's name), info, sound `"Rare"`.
+- **Catch toast**: depositing a wild slime of tier >= 6 (`Carry.CATCH_ANNOUNCE_TIER`) notifies every player
+  `Carry.catchText`: `"<player> caught <Species>!"` (the slime's name), kind `"info"`, no sound (a `"Rare"` sound
+  would read as a new drop in `RareAnnounce`).
 - **Looks (client, `src/visuals`, attributes only):**
   - Aura: `SlimeLayout` tier >= 6 Neon aura in the tier colour (already on the model).
   - `RareSpawn.TIERS[7]`: the Mythic marker plus `orbit` = 3 Neon motes circling the slime.
   - Fountain beam: while any wild Secret is replicated, one Neon beam (`TopTierFx.FOUNTAIN_BEAM`, under
     `RareSpawn.MAX_BEAM_HEIGHT`) stands on the fountain crown.
   - Eruption: when `RareSpawnTier` becomes 7 with a fresh `RareSpawnAt`, every client plays
-    `TopTierFx.ERUPTION_SECONDS` (2 s) of camera shake and a sky tint (`Lighting.SecretEruptionTint`, a
+    `TopTierFx.ERUPTION_SECONDS` (2 s) of camera shake and a sky tint (`Lighting.SecretBurstTint`, a
     `ColorCorrectionEffect`) plus one fountain splash burst; the shake binds to render step only while it runs.
   - Pedestal glow: a slime with `State == "Pad"` and `Tier >= 6` gets a Neon disc and soft light under it
     (`TopTierFx.pedestal(tier)`); Secret adds a small sparkle column.
