@@ -38,12 +38,19 @@ local function anisotropy(size, native): (number, { number })
 	return math.max(s[1], s[2], s[3]) / math.min(s[1], s[2], s[3]), s
 end
 
+-- Half the vertical extent of a part, turned by its CFrame (an upright cylinder is tall along its X).
+local function halfHeight(part): number
+	local cf, size = part.CFrame, part.Size
+	return (math.abs(cf.RightVector.Y) * size.X + math.abs(cf.UpVector.Y) * size.Y + math.abs(cf.LookVector.Y) * size.Z)
+		/ 2
+end
+
 -- Lowest Y of the Model's own parts (the Mesh child excluded).
 local function modelBottom(model): number
 	local lo = math.huge
 	for _, d in model:GetDescendants() do
 		if d:IsA("BasePart") and d.Name ~= "Mesh" then
-			lo = math.min(lo, d.CFrame.Position.Y - d.Size.Y / 2)
+			lo = math.min(lo, d.CFrame.Position.Y - halfHeight(d))
 		end
 	end
 	return lo
@@ -85,7 +92,7 @@ describe("WorldProps skins keep their mesh proportions (gate B3)", function()
 			local top = -math.huge
 			for _, d in model:GetDescendants() do
 				if d:IsA("BasePart") and d.Name ~= "Mesh" then
-					top = math.max(top, d.CFrame.Position.Y + d.Size.Y / 2)
+					top = math.max(top, d.CFrame.Position.Y + halfHeight(d))
 				end
 			end
 			expect(mesh.Size.Y).toBeCloseTo(top - bottom, EPS)

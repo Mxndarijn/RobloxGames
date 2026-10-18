@@ -7,8 +7,10 @@
 	their bottom centre and face local -Z (put them down with
 	model:PivotTo(CFrame)). Suggested spots: WorldLayout.PROP_SPOTS.
 
-	  Props.shopStand(): Model           "ShopStand"; PrimaryPart "Counter"
+	  Props.shopStand(style?): Model     "ShopStand"; PrimaryPart "Counter"
 	      (ProximityPrompt parent), striped awning, "SHOP" sign. Anchored.
+	      `style` "ItemShop" | "UpgradeShop" (Props.STAND_STYLES) gives the
+	      stand its own sign colours, skin tint and side decor (MeshKeep).
 	  Props.speedCoil(): Tool            "SpeedCoil"; "Handle" Part with
 	      welded coil rings, all Massless, CanCollide false, unanchored.
 	  Props.tutorialNpc(): Model         "TutorialNpc"; R6-ish primitives
@@ -129,7 +131,228 @@ local SIGN_BACK = rgb(58, 38, 26) -- dark wood board
 local SIGN_TEXT = rgb(255, 240, 200) -- cream
 local SIGN_STROKE = rgb(30, 18, 10)
 
-function Props.shopStand(): Model
+-- Side decor stays visible over the kit skin (MeshSwap hides every other part of the Model): no collision, no
+-- queries, so it never blocks a player or a prompt.
+local function standDecor(m: Model, name: string, size: Vector3, cf: CFrame, color: Color3, opts: PartOpts?): Part
+	local o: PartOpts = table.clone(opts or {})
+	o.canCollide = false
+	local p = part(m, name, size, cf, color, o)
+	p.CanQuery = false
+	p.CanTouch = false
+	p:SetAttribute("MeshKeep", true)
+	return p
+end
+
+-- Decor sits beside the skin (9.6 wide at x 0) at x = +-DECOR_X. The two WidthMarkers keep the Model's box centred
+-- on the counter, so the skin stays centred however wide each side's decor is.
+local DECOR_X = 6.6
+local WIDTH_MARKER_X = 9.2
+
+local function glow(p: BasePart, color: Color3)
+	local light = Instance.new("PointLight")
+	light.Color = color
+	light.Brightness = 1.2
+	light.Range = 9
+	light.Shadows = false
+	light.Parent = p
+end
+
+-- A row of diamond pennants under the front of the skin's awning, in the shop's own colours (the awning itself is
+-- the kit mesh's red and white for both stands). Kept behind the awning's front edge so the Model's box, and with
+-- it the skin's place, does not change.
+local BUNTING = table.freeze({ y = 5.6, z = -2.45, halfWidth = 4.2, count = 9, size = 0.95 })
+
+local function bunting(m: Model, colors: { Color3 })
+	standDecor(
+		m,
+		"DecorBuntingRope",
+		Vector3.new(BUNTING.halfWidth * 2 + 0.6, 0.08, 0.08),
+		CFrame.new(0, BUNTING.y + BUNTING.size * 0.7, BUNTING.z),
+		rgb(240, 230, 210)
+	)
+	for i = 1, BUNTING.count do
+		local x = -BUNTING.halfWidth + (i - 1) * (BUNTING.halfWidth * 2 / (BUNTING.count - 1))
+		standDecor(
+			m,
+			`DecorPennant{i}`,
+			Vector3.new(BUNTING.size, BUNTING.size, 0.06),
+			CFrame.new(x, BUNTING.y, BUNTING.z) * CFrame.Angles(0, 0, math.rad(45)),
+			colors[(i - 1) % #colors + 1]
+		)
+	end
+end
+
+-- Item Shop: a general store. Crates with potion bottles on the left, a spotted mystery egg on a barrel on the right.
+local function itemDecor(m: Model)
+	bunting(m, { rgb(100, 255, 140), rgb(255, 220, 80) })
+	local crate, crateDark = rgb(176, 122, 72), rgb(120, 80, 46)
+	local x = -DECOR_X
+	standDecor(
+		m,
+		"DecorCrate1",
+		Vector3.new(2.2, 2.2, 2.2),
+		CFrame.new(x, 1.1, -0.2),
+		crate,
+		{ material = "WoodPlanks" }
+	)
+	standDecor(
+		m,
+		"DecorCrate2",
+		Vector3.new(1.7, 1.7, 1.7),
+		CFrame.new(x + 0.1, 3.05, -0.1) * CFrame.Angles(0, math.rad(22), 0),
+		crateDark,
+		{ material = "WoodPlanks" }
+	)
+	for i, color in { rgb(255, 110, 200), rgb(110, 240, 140), rgb(110, 190, 255) } do
+		local bx = x - 0.55 + (i - 1) * 0.55
+		local bottle = standDecor(
+			m,
+			`DecorPotion{i}`,
+			Vector3.new(1.0, 0.5, 0.5),
+			CFrame.new(bx, 4.4, -0.2) * UPRIGHT,
+			color,
+			{ shape = "Cylinder", material = "Glass", transparency = 0.15 }
+		)
+		bottle.CastShadow = false
+		standDecor(m, `DecorCork{i}`, Vector3.new(0.25, 0.28, 0.28), CFrame.new(bx, 5.0, -0.2) * UPRIGHT, crateDark, {
+			shape = "Cylinder",
+			material = "Wood",
+		})
+	end
+	x = DECOR_X
+	standDecor(m, "DecorBarrel", Vector3.new(2.4, 2.2, 2.2), CFrame.new(x, 1.2, -0.2) * UPRIGHT, crate, {
+		shape = "Cylinder",
+		material = "Wood",
+	})
+	for i, y in { 0.45, 1.95 } do
+		standDecor(m, `DecorHoop{i}`, Vector3.new(0.18, 2.3, 2.3), CFrame.new(x, y, -0.2) * UPRIGHT, rgb(70, 70, 78), {
+			shape = "Cylinder",
+			material = "Metal",
+		})
+	end
+	local egg = standDecor(m, "DecorEgg", Vector3.new(2.2, 2.2, 2.2), CFrame.new(x, 3.4, -0.2), rgb(190, 150, 255), {
+		shape = "Ball",
+	})
+	glow(egg, rgb(200, 160, 255))
+	for i, spot in { { 0.5, 0.4, -0.85 }, { -0.6, 0.0, -0.75 }, { 0.1, -0.5, -0.95 }, { -0.2, 0.75, -0.6 } } do
+		standDecor(
+			m,
+			`DecorEggSpot{i}`,
+			Vector3.new(0.6, 0.6, 0.6),
+			CFrame.new(x + spot[1], 3.4 + spot[2], -0.2 + spot[3]),
+			rgb(255, 230, 120),
+			{ shape = "Ball" }
+		)
+	end
+end
+
+-- One Neon up-chevron (two arms meeting at the top) centred at `at`.
+local function standChevron(m: Model, name: string, at: Vector3, color: Color3): BasePart
+	local arm = Vector3.new(1.5, 0.45, 0.4)
+	local left = standDecor(
+		m,
+		`{name}L`,
+		arm,
+		CFrame.new(at + Vector3.new(-0.5, 0, 0)) * CFrame.Angles(0, 0, math.rad(40)),
+		color,
+		{ material = "Neon" }
+	)
+	standDecor(
+		m,
+		`{name}R`,
+		arm,
+		CFrame.new(at + Vector3.new(0.5, 0, 0)) * CFrame.Angles(0, 0, math.rad(-40)),
+		color,
+		{ material = "Neon" }
+	)
+	return left
+end
+
+-- Upgrade Shop: a forge. An anvil on a stump on the left, a pole of glowing up-chevrons on the right.
+local function upgradeDecor(m: Model)
+	bunting(m, { rgb(80, 135, 255), rgb(255, 215, 80) })
+	local iron, ironDark = rgb(92, 98, 112), rgb(58, 62, 74)
+	local x = -DECOR_X
+	standDecor(m, "DecorStump", Vector3.new(1.6, 2.6, 2.6), CFrame.new(x, 0.8, -0.2) * UPRIGHT, rgb(130, 88, 56), {
+		shape = "Cylinder",
+		material = "Wood",
+	})
+	standDecor(
+		m,
+		"DecorAnvilFoot",
+		Vector3.new(1.7, 0.6, 1.3),
+		CFrame.new(x, 1.9, -0.2),
+		ironDark,
+		{ material = "Metal" }
+	)
+	standDecor(
+		m,
+		"DecorAnvilWaist",
+		Vector3.new(1.0, 0.6, 0.8),
+		CFrame.new(x, 2.5, -0.2),
+		ironDark,
+		{ material = "Metal" }
+	)
+	standDecor(m, "DecorAnvilTop", Vector3.new(2.8, 0.8, 1.4), CFrame.new(x, 3.2, -0.2), iron, { material = "Metal" })
+	standDecor(
+		m,
+		"DecorAnvilHorn",
+		Vector3.new(1.2, 0.6, 0.6),
+		CFrame.new(x - 1.85, 3.25, -0.2) * CFrame.Angles(0, 0, math.rad(12)),
+		iron,
+		{ material = "Metal" }
+	)
+	local ingot = standDecor(
+		m,
+		"DecorIngot",
+		Vector3.new(1.2, 0.4, 0.6),
+		CFrame.new(x + 0.3, 3.8, -0.2),
+		rgb(255, 150, 50),
+		{ material = "Neon" }
+	)
+	glow(ingot, rgb(255, 150, 60))
+	x = DECOR_X
+	standDecor(
+		m,
+		"DecorPoleFoot",
+		Vector3.new(1.8, 0.4, 1.8),
+		CFrame.new(x, 0.2, -0.2),
+		ironDark,
+		{ material = "Metal" }
+	)
+	standDecor(m, "DecorPole", Vector3.new(0.35, 8.2, 0.35), CFrame.new(x, 4.3, 0.1), ironDark, { material = "Metal" })
+	local colors = { rgb(90, 220, 255), rgb(120, 170, 255), rgb(255, 210, 80) }
+	for i, color in colors do
+		local top = standChevron(m, `DecorChevron{i}`, Vector3.new(x, 4.6 + (i - 1) * 1.9, -0.2), color)
+		if i == #colors then
+			glow(top, color)
+		end
+	end
+end
+
+-- Per-shop look (CONTRACT.md §27.2): sign board / text / stroke, the skin tint (MeshTint on the Model multiplies the
+-- kit mesh's vertex colours; nil keeps the kit colours) and the side decor.
+Props.STAND_STYLES = table.freeze({
+	ItemShop = table.freeze({
+		signBack = SIGN_BACK,
+		signText = SIGN_TEXT,
+		signStroke = SIGN_STROKE,
+		signPlate = false,
+		tint = nil :: Color3?,
+		decor = itemDecor,
+	}),
+	UpgradeShop = table.freeze({
+		signBack = rgb(26, 36, 78), -- navy board
+		signText = rgb(255, 214, 90), -- gold
+		signStroke = rgb(10, 14, 36),
+		signPlate = true, -- the board colour is painted over the kit's butter sign face, so the gold text reads
+		tint = rgb(165, 195, 255) :: Color3?, -- cool blue wood and awning
+		decor = upgradeDecor,
+	}),
+})
+
+function Props.shopStand(style: string?): Model
+	local look = if style then (Props.STAND_STYLES :: any)[style] else nil
 	local m = Instance.new("Model")
 	m.Name = "ShopStand"
 	local wood, woodDark = rgb(196, 140, 90), rgb(130, 88, 56)
@@ -162,7 +385,14 @@ function Props.shopStand(): Model
 	-- face, so the text sits on it instead of floating in front (v29 B4).
 	-- "HeightMarker" (invisible) keeps the Model 11.7 tall, so the skin's scale
 	-- does not shrink with the lower sign.
-	local sign = part(m, "Sign", Vector3.new(6.284, 1.654, 0.03), CFrame.new(0, 10.088, 2.338), SIGN_BACK, {})
+	local sign = part(
+		m,
+		"Sign",
+		Vector3.new(6.284, 1.654, 0.03),
+		CFrame.new(0, 10.088, 2.338),
+		if look then look.signBack else SIGN_BACK,
+		{}
+	)
 	local marker = part(
 		m,
 		"HeightMarker",
@@ -180,11 +410,18 @@ function Props.shopStand(): Model
 	gui.PixelsPerStud = 40
 	gui.LightInfluence = 0 -- unlit: the SHOP text stays readable at night
 	gui.Parent = sign
-	local text = label(gui, "Text", "SHOP", SIGN_TEXT)
+	local text = label(gui, "Text", "SHOP", if look then look.signText else SIGN_TEXT)
 	text.Size = UDim2.fromScale(1, 1)
 	-- Light text with a dark stroke on a dark backing, inset so the kit stand's posts never cover a letter
 	-- from a front-diagonal view (v186: the "I" of ITEM SHOP, the "U" of UPGRADE SHOP).
-	text.TextStrokeColor3 = SIGN_STROKE
+	text.TextStrokeColor3 = if look then look.signStroke else SIGN_STROKE
+	if look and look.signPlate then
+		text.BackgroundColor3 = look.signBack
+		text.BackgroundTransparency = 0
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.18, 0)
+		corner.Parent = text
+	end
 	text.TextStrokeTransparency = 0
 	local pad = Instance.new("UIPadding")
 	pad.PaddingLeft = UDim.new(0.12, 0)
@@ -203,6 +440,24 @@ function Props.shopStand(): Model
 			{ shape = "Cylinder", material = "Glass", transparency = 0.25, canCollide = false }
 		)
 		jar.CastShadow = false
+	end
+	if look then
+		look.decor(m)
+		for i, x in { -WIDTH_MARKER_X, WIDTH_MARKER_X } do
+			local widthMarker = part(
+				m,
+				`WidthMarker{i}`,
+				Vector3.new(0.1, 0.1, 0.1),
+				CFrame.new(x, 0.05, 0),
+				rgb(255, 255, 255),
+				{ transparency = 1, canCollide = false }
+			)
+			widthMarker.CanQuery = false
+			widthMarker.CanTouch = false
+		end
+		if look.tint then
+			m:SetAttribute("MeshTint", look.tint)
+		end
 	end
 	return finish(m, counter)
 end
