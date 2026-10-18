@@ -118,7 +118,7 @@ floor part); it needs no call site and touches no terrain-height file.
 | `Box` | `slime_fountain_emerge` (bug #10, main), `ranch_fence_20`, `phoenix_fence_segment`, `phoenix_corner_post` (the plot fence), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_bench`, `ranch_compost_bin`, `ranch_flower_planter`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_wagon`, `ranch_water_trough`, `ranch_barrel`, `ranch_well`, `ranch_fence_stile` (v196 follow-up) |
 | `Hull` | `merge_vat`, `ranch_shop_stand` (already), `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_slime_coop`, `ranch_water_pump`, `ranch_weathervane`, `ranch_wheelbarrow`, `ranch_windmill` |
 | `PreciseConvexDecomposition` | `ranch_barn_loft` (loft over an open floor), marked "PCD: Phoenix Studio check" |
-| none (decor) | `slime_fountain` (tower, hand colliders stay), `phoenix_gate` (a Box/Hull would close the 14-stud opening; its GatePost stand-ins keep the posts; PCD is the later mesh route), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring`, `ranch_goo_drain`, `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, `rain_magnet`, every slime kit mesh, `slime_lane` |
+| none (decor) | `slime_fountain` (tower, hand colliders stay), `phoenix_gate` (a Box/Hull would close the 14-stud opening; its GatePost stand-ins keep the posts; PCD is the later mesh route), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring` and `ranch_goo_drain` (decor meshes, solid through the thin `PlazaColliders` parts, see the last section), `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, `rain_magnet`, every slime kit mesh, `slime_lane` |
 
 `tests/MeshCollision.spec` makes every mesh name either solid or decor-with-a-reason.
 
@@ -191,14 +191,12 @@ after #11 / #16 / #10):
 - **World decor, signs, podiums, shop stands, vat, barn, loft, windmill, wagons, barrels, crates, stiles:** unchanged, already `Box` /
   `Hull` / `PreciseConvexDecomposition` (see Conversions above). The decor boulders (45) and mushrooms (15) are primitives that
   collide on their own.
-- **Fountain tower (22 colliders), slide colliders (257), StackGuard:** untouched, only inventoried.
+- **Fountain tower (22 colliders), slide colliders (257, 270 since the supports), StackGuard:** untouched, only inventoried.
 
 Left off on purpose (reason per kind in `PropCollision`): meadow grass, flowers and half-sunk pebbles (ground cover), the
 sunflower / pumpkin patches and horseshoe pit (COLLISION.md: patches stay passable), the ritual circle's flat markings, the
-slime ride stand-ins and the fountain's hidden stand-ins, the parade lane strip. Two are decisions for Merijn, not oversights:
-**`ranch_landing_ring`** (11 curb tiles, 3.1 high, ring round the wild-slime drop zone: solid curbs would wall players off
-the drop zone) and **`ranch_goo_drain`** (the slide-exit drain). Both are one line in `MeshAssets.COLLISION` (`Box` / `Hull`) plus
-flipping the entry to match; the spec fails until both agree.
+slime ride stand-ins and the fountain's hidden stand-ins, the parade lane strip. `ranch_landing_ring` and `ranch_goo_drain` were
+left off as decisions for Merijn; he decided they are solid, see the last section (hand colliders, not a mesh fidelity).
 
 ## Plot-level audit (B9)
 
@@ -209,3 +207,28 @@ is decor: `Pad_<j>` (8 x 2.4 x 8) is the solid, steppable surface. `phoenix_top_
 (own Collider), so the plot's `DexMesh` slot box (canCollide on, canQuery / canTouch off) is the dex board's collider.
 Client-toggled cosmetics (LockBarrier panels, LockSign, RebirthDecor, habitats, skins, rain magnet) stay non-colliding: hidden
 colliders would be invisible walls, and the Pad / PlotLockGuard already cover those areas.
+
+## B9 follow-up: the landing ring and the goo drain are solid (Merijn: nobody walks through any object)
+
+Both meshes stay decor in `MeshAssets.COLLISION` (the slot boxes are 10 studs deep and 3.1 tall, a `Box` or `Hull` would be
+an invisible wall round the fountain and a corner-heavy block on the slide exit). The solids are thin invisible Parts,
+`server/PlazaColliders` under `Map.Plaza.PlazaColliders`, from `WorldLayout.plazaColliders()` (runtime, so the 1400 layout
+parts budget is not spent; +25 runtime parts, 2349 to 2374). `PropCollision`: `landing_ring` and `goo_drain` are
+`colliders`, found through the mesh slot plus `also`.
+
+- **Ring (22 parts).** One 12 x 1.3 x 1.7 box per tile on the real stones (kit `ranch_landing_ring`: r 34..35.7, 1.25 +- 0.08 tall,
+  three stones per tile) and one 0.8 x 2.6 x 0.8 post for the wood stake at the tile's -X end (kit angle -9.4 deg; kit x is world x,
+  FBX axes -Z forward / Y up). The curb is a **step-over, top 1.3 studs (limit 1.5)**: a Humanoid steps up to its hip height
+  (~2) without jumping, and a landed player at the curb is never stuck. The ring is not closed anyway: the seven gap tiles
+  (yaw 310..90, tiles 16, 17, 18, 1..5) have no collider, so the slide mouth and the lane start are open ground. Only the stakes
+  are taller than a step, and they are thin posts a walker goes round.
+- **Drain (3 parts).** `DrainCurb` is one 1.22-tall, 8.8-wide disc over the curb ring and the funnel (kit curb 1.0 + 0.22 warning
+  tiles), a step-over; `DrainPost` (0.7 x 4.2) and `DrainPlaque` (2.6 x 1.9 x 0.35) stand on the fountain side. The lane ends one
+  slime radius outside the curb (`ParadeLane.DRAIN`, lipRadius 4.4) and the lead-in from the slide mouth turns west (-X) long before the drain, so the exit and the lane never meet the post.
+- **Slimes.** Wild slimes never collide (`SlimeMesh` CanCollide false, CFrame-stepped by `ParadeView` / `FountainRide`), so the lane,
+  the hop onto the lip and the sink do not touch these parts.
+- **Tests.** `tests/PropWalk.spec` "landing exit" (both runtimes: solid, gap, step heights, BFS and straight walks out of the slide
+  mouth and the landing area to r > 46.8, the slime paths clear of the volumes) and, in the cloud, Blockcast against the real
+  collider Parts.
+- **Studio check.** The curb steps: walk radially over a tile at 16 studs/s without a jump or a stall; the stake side (mirrored
+  stake = an invisible post 12 studs off); the drain disc against the funnel visual; no player stands in the plaque.

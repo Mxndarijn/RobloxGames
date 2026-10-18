@@ -16,6 +16,7 @@ local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
 local MinimapData = require("../src/visuals/shared/MinimapData")
+local ParadeLane = require("../src/shared/ParadeLane")
 local PropCollision = require("../src/shared/PropCollision")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
@@ -75,12 +76,36 @@ for name, spot in WorldLayout.PROP_SPOTS do
 	end
 end
 
+-- The landing ring's and the goo drain's colliders are built at runtime (server/PlazaColliders) from layout data.
+for _, node in WorldLayout.plazaColliders() do
+	table.insert(nodes, { path = `Map.Plaza.PlazaColliders.{node.name}`, name = node.name, node = node, mesh = nil })
+end
+
 --------------------------------------------------------------------------------------------------------------------
 -- Volumes
 --------------------------------------------------------------------------------------------------------------------
 
 local function volumeOf(kind: string, owner: string, entry, item)
 	local pos, size, rot = item.node.pos, item.node.size, item.node.rot or { 0, 0, 0 }
+	-- an upright disc (Cylinder rolled 90 about Z): size is { height, diameter, diameter }
+	local round = item.node.shape == "Cylinder" and math.abs(rot[3] or 0) == 90
+	if round then
+		return {
+			kind = kind,
+			owner = owner,
+			entry = entry,
+			path = item.path,
+			cx = pos[1],
+			cy = pos[2],
+			cz = pos[3],
+			hx = size[2] / 2,
+			hy = size[1] / 2,
+			hz = size[3] / 2,
+			yaw = 0,
+			round = true,
+			item = item,
+		}
+	end
 	return {
 		kind = kind,
 		owner = owner,
@@ -354,6 +379,7 @@ describe("PropWalk geometry against walk paths", function()
 					if
 						v.item ~= item
 						and v.kind ~= owner
+						and not (item.mesh ~= nil and v.entry.mesh == item.mesh) -- a mesh slot sits on its own colliders
 						and reachable(v)
 						and v.path ~= item.path
 						and item.path:sub(1, #v.path + 1) ~= v.path .. "."
@@ -370,6 +396,282 @@ describe("PropWalk geometry against walk paths", function()
 		if #bad > 0 then
 			error(table.concat(bad, "; "))
 		end
+	end)
+end)
+
+--------------------------------------------------------------------------------------------------------------------
+-- Landing exit: the landing ring and the goo drain are solid, and nobody (player or slime) is walled in
+--------------------------------------------------------------------------------------------------------------------
+
+local STEP_HEIGHT = 1.5 -- a Humanoid steps up to its hip height (~2) without jumping; the low curbs stay under 1.5
+local EXIT_RADIUS = WorldLayout.LANDING_OUTER_RADIUS + 3 -- "open ground": beyond the ring's outer edge + 3
+local CHAR_RADIUS = 1 -- the 2 x 1 stand-in character as a disc, conservative
+
+local function top(v): number
+	return v.cy + v.hy
+end
+
+-- Does the volume stop a disc of radius `margin` at (x, z)? Round volumes are exact, the rest oriented rectangles.
+local function blocks(v, x, z, margin): boolean
+	if v.round then
+		return (x - v.cx) ^ 2 + (z - v.cz) ^ 2 < (v.hx + margin) ^ 2
+	end
+	return insideVolume(v, x, z, margin)
+end
+
+local function polar(yawDegrees: number, r: number): (number, number)
+	local a = math.rad(yawDegrees)
+	return math.sin(a) * r, math.cos(a) * r
+end
+
+local ringVolumes = volumesByKind["landing_ring"] or {}
+local drainVolumes = volumesByKind["goo_drain"] or {}
+local exitSolids = {} -- ring + drain
+for _, list in { ringVolumes, drainVolumes } do
+	for _, v in list do
+		table.insert(exitSolids, v)
+	end
+end
+
+-- Everything solid near the plaza a character can meet (the fountain's tower colliders, signs, podiums, the ring, the drain...).
+local nearby = {}
+for _, v in blockers do
+	if reachable(v) and math.sqrt(v.cx ^ 2 + v.cz ^ 2) < 110 then
+		table.insert(nearby, v)
+	end
+end
+
+-- BFS over a 1-stud floor grid from (sx, sz); `onlyTall` = volumes at most STEP_HEIGHT high are stepped over.
+-- Returns true when a cell at EXIT_RADIUS or further is reachable.
+local GRID, EXTENT = 1, 80
+local function reachesOpenGround(sx: number, sz: number, onlyTall: boolean): boolean
+	local obstacles = {}
+	for _, v in nearby do
+		if not (onlyTall and top(v) <= STEP_HEIGHT) then
+			table.insert(obstacles, v)
+		end
+	end
+	local function free(x, z): boolean
+		for _, v in obstacles do
+			if blocks(v, x, z, CHAR_RADIUS) then
+				return false
+			end
+		end
+		return true
+	end
+	local n = math.floor(EXTENT / GRID)
+	local seen = {}
+	local function key(i, j): number
+		return (i + n) * (2 * n + 1) + (j + n)
+	end
+	local i0, j0 = math.floor(sx / GRID + 0.5), math.floor(sz / GRID + 0.5)
+	if not free(i0 * GRID, j0 * GRID) then
+		return false
+	end
+	local queue, head = { { i0, j0 } }, 1
+	seen[key(i0, j0)] = true
+	while head <= #queue do
+		local i, j = queue[head][1], queue[head][2]
+		head += 1
+		local x, z = i * GRID, j * GRID
+		if math.sqrt(x * x + z * z) >= EXIT_RADIUS then
+			return true
+		end
+		for _, d in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+			local ni, nj = i + d[1], j + d[2]
+			if math.abs(ni) <= n and math.abs(nj) <= n and not seen[key(ni, nj)] then
+				seen[key(ni, nj)] = true
+				if free(ni * GRID, nj * GRID) then
+					table.insert(queue, { ni, nj })
+				end
+			end
+		end
+	end
+	return false
+end
+
+-- Start points: the slide mouth (WorldLayout.SLIDE_PATH end = ParadeLane.MOUTH) and the landing area in front of it.
+local function landingStarts()
+	local starts = { { name = "slide mouth", x = ParadeLane.MOUTH[1], z = ParadeLane.MOUTH[2] } }
+	local last = WorldLayout.SLIDE_PATH[#WorldLayout.SLIDE_PATH]
+	table.insert(starts, { name = "slide path end", x = last[1], z = last[3] })
+	table.insert(starts, { name = "lane entry", x = ParadeLane.WAYPOINTS[1][1], z = ParadeLane.WAYPOINTS[1][2] })
+	for _, yaw in { 320, 340, 0, 20, 40, 60, 80 } do
+		for _, r in { 38, 41 } do
+			local x, z = polar(yaw, r)
+			table.insert(starts, { name = `landing yaw {yaw} r{r}`, x = x, z = z })
+		end
+	end
+	return starts
+end
+
+-- The slime paths: the lane waypoints (entry first, drain approach last), the lead-in from the mouth and the segments between.
+local function slimePathPoints()
+	local points = { { name = "mouth", x = ParadeLane.MOUTH[1], z = ParadeLane.MOUTH[2] } }
+	local waypoints = ParadeLane.WAYPOINTS
+	for i, w in waypoints do
+		table.insert(points, { name = `waypoint {i}`, x = w[1], z = w[2] })
+		local nextW = waypoints[i + 1]
+		if nextW then
+			local length = math.sqrt((nextW[1] - w[1]) ^ 2 + (nextW[2] - w[2]) ^ 2)
+			for k = 1, math.floor(length / 0.5) - 1 do
+				local u = k * 0.5 / length
+				table.insert(points, {
+					name = `segment {i}+{k}`,
+					x = w[1] + (nextW[1] - w[1]) * u,
+					z = w[2] + (nextW[2] - w[2]) * u,
+				})
+			end
+		end
+	end
+	return points
+end
+
+describe("landing exit (landing ring + goo drain are solid and nobody is walled in)", function()
+	it("both kinds are solid colliders, not 'off'", function()
+		for kind, want in { landing_ring = 22, goo_drain = 3 } do
+			local e = entryOf[kind]
+			expect(e ~= nil).toBe(true)
+			expect(e.collision ~= "off").toBe(true)
+			expect(e.collision).toBe("colliders")
+			expect(#(volumesByKind[kind] or {})).toBe(want)
+		end
+	end)
+
+	it(
+		"the ring is open over the slide mouth and lane start: gap tiles have no collider, the rest are step-overs",
+		function()
+			local curbs, tall = 0, {}
+			for _, v in ringVolumes do
+				if v.item.name:match("^LandingCurb") then
+					curbs += 1
+					expect(top(v) <= STEP_HEIGHT).toBe(true)
+					expect(math.min(v.hx, v.hz) * 2 > STEP).toBe(true)
+				else
+					table.insert(tall, v)
+				end
+			end
+			expect(curbs).toBe(11) -- 18 tiles less the 7 left out at the slide mouth
+			-- the only parts above a step are the wood stakes: thin posts a walker goes round, never a wall
+			for _, v in tall do
+				expect(v.item.name:match("^LandingStake") ~= nil).toBe(true)
+				expect(math.max(v.hx, v.hz) * 2 <= 1.2).toBe(true)
+			end
+			-- the stretch the slide lands on and the lane leaves through (yaw 310..90, tiles 16-18 and 1-5) has no collider
+			for yaw = -46, 86, 2 do
+				local x, z = polar(yaw, 34.85)
+				for _, v in ringVolumes do
+					expect(blocks(v, x, z, 0)).toBe(false)
+				end
+			end
+		end
+	)
+
+	it("the drain curb is a step-over disc and only its post and plaque are taller than a step", function()
+		local curb
+		for _, v in drainVolumes do
+			if v.item.name == "DrainCurb" then
+				curb = v
+				expect(v.round).toBe(true)
+				expect(top(v) <= STEP_HEIGHT).toBe(true)
+				expect(math.abs(v.hx - 4.4) < 1e-6).toBe(true)
+			else
+				expect(v.item.name == "DrainPost" or v.item.name == "DrainPlaque").toBe(true)
+				expect(math.max(v.hx, v.hz) * 2 <= 2.7).toBe(true)
+			end
+		end
+		expect(curb ~= nil).toBe(true)
+		-- the lane ends outside the curb (ParadeLane.DRAIN) and the drain sits at the layout's drain position
+		expect(math.abs(curb.cx - ParadeLane.DRAIN.x) < 0.1 and math.abs(curb.cz - ParadeLane.DRAIN.z) < 0.1).toBe(true)
+	end)
+
+	it("a character at the slide mouth and in the landing area reaches open ground outside the ring", function()
+		local starts = landingStarts()
+		expect(#starts > 10).toBe(true)
+		for _, p in starts do
+			-- strict: every ring and drain volume is a wall, so the way out is the open gap, not a hop
+			if not reachesOpenGround(p.x, p.z, false) then
+				error(
+					`{p.name} ({string.format("%.1f", p.x)}, {string.format("%.1f", p.z)}) cannot walk out to r {EXIT_RADIUS}`
+				)
+			end
+			if not reachesOpenGround(p.x, p.z, true) then
+				error(`{p.name}: cannot walk out even stepping over the low curbs`)
+			end
+		end
+	end)
+
+	it(
+		"straight walks out of the landing area in the open directions reach r > ring + 3 without touching the ring or drain",
+		function()
+			local clearWalks = 0
+			for _, p in landingStarts() do
+				for _, yaw in { 330, 350, 10, 30, 50, 70 } do
+					local dx, dz = polar(yaw, 1)
+					local ok = true
+					local x, z = p.x, p.z
+					while math.sqrt(x * x + z * z) < EXIT_RADIUS + 5 and ok do
+						for _, v in exitSolids do
+							if blocks(v, x, z, CHAR_RADIUS) then
+								ok = false
+							end
+						end
+						x, z = x + dx * STEP, z + dz * STEP
+					end
+					if ok then
+						clearWalks += 1
+						break
+					end
+				end
+			end
+			expect(clearWalks > 0).toBe(true)
+			-- every start finds at least one straight way out
+			expect(clearWalks).toBe(#landingStarts())
+		end
+	)
+
+	it("no slime path waypoint or segment lies inside or against the ring or the drain", function()
+		local points = slimePathPoints()
+		expect(#points > 100).toBe(true)
+		for _, p in points do
+			for _, v in exitSolids do
+				if blocks(v, p.x, p.z, 0) then
+					error(`{p.name} ({string.format("%.1f", p.x)}, {string.format("%.1f", p.z)}) is inside {v.path}`)
+				end
+			end
+		end
+		-- the ring keeps a slime's width clear of the lane's walk (lead-in, entry and walk), the drain keeps the curb's own radius
+		for _, p in points do
+			for _, v in ringVolumes do
+				if blocks(v, p.x, p.z, ParadeLane.SLIME_RADIUS) then
+					error(`{p.name} is within a slime's radius of {v.path}`)
+				end
+			end
+		end
+	end)
+
+	it("any ring or drain volume a slime path or a straight walk crosses is at most a step high", function()
+		local crossed = 0
+		local points = slimePathPoints()
+		-- slimes: the walked points, widened by the lane spread; players: radial walks round the ring
+		for _, v in exitSolids do
+			for _, p in points do
+				if blocks(v, p.x, p.z, ParadeLane.SPREAD / 2) then
+					crossed += 1
+					expect(top(v) <= STEP_HEIGHT).toBe(true)
+				end
+			end
+			for yaw = 0, 359, 5 do
+				for r = 30, EXIT_RADIUS, 0.5 do
+					local x, z = polar(yaw, r)
+					if blocks(v, x, z, 0) and v.item.name:match("Curb") then
+						crossed += 1
+						expect(top(v) <= STEP_HEIGHT).toBe(true)
+					end
+				end
+			end
+		end
+		expect(crossed > 0).toBe(true) -- the radial walks do cross the ring's curbs
 	end)
 end)
 
@@ -478,6 +780,90 @@ if IN_ROBLOX then
 		end
 		return 1
 	end
+
+	-- The landing exit with the real collider parts: every ring + drain collider made as a Part (like server/PlazaColliders),
+	-- the character box Blockcast out of the gap (nothing hit) and across a curb / at the drain (the real part stops it).
+	describe("landing exit Blockcast against the real colliders (cloud)", function()
+		local parts, folder = {}, nil
+		local function build()
+			if folder then
+				return
+			end
+			folder = Instance.new("Folder")
+			folder.Parent = workspace
+			for _, v in exitSolids do
+				local node = v.item.node
+				local part = Instance.new("Part")
+				part.Anchored = true
+				part.CanCollide = true
+				part.Shape = if node.shape == "Cylinder" then Enum.PartType.Cylinder else Enum.PartType.Block
+				part.Size = Vector3.new(node.size[1], node.size[2], node.size[3])
+				local rot = node.rot or { 0, 0, 0 }
+				part.CFrame = CFrame.new(ORIGIN + Vector3.new(node.pos[1], node.pos[2], node.pos[3]))
+					* CFrame.Angles(0, math.rad(rot[2] or 0), 0)
+					* CFrame.Angles(0, 0, math.rad(rot[3] or 0))
+				part.Name = node.name
+				part.Parent = folder
+				table.insert(parts, part)
+			end
+		end
+		local function cast(fromX: number, fromZ: number, toX: number, toZ: number)
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Include
+			params.FilterDescendantsInstances = { folder }
+			local start = Vector3.new(ORIGIN.X + fromX, ORIGIN.Y + CHAR_ROOT_Y, ORIGIN.Z + fromZ)
+			local delta = Vector3.new(toX - fromX, 0, toZ - fromZ)
+			local box = CFrame.lookAt(start, start + delta)
+			return workspace:Blockcast(box, Vector3.new(CHAR_HALF_WIDTH * 2, 5, CHAR_HALF_DEPTH * 2), delta, params)
+		end
+
+		it("the character box walks out of the gap from the mouth and the landing area to r > ring + 3", function()
+			build()
+			expect(#parts).toBe(#exitSolids)
+			for _, p in landingStarts() do
+				local clear = math.sqrt(p.x ^ 2 + p.z ^ 2) >= EXIT_RADIUS -- the lane entry is already outside
+				for _, yaw in { 330, 350, 10, 30, 50, 70 } do
+					local tx, tz = polar(yaw, EXIT_RADIUS + 5)
+					if not clear and cast(p.x, p.z, tx, tz) == nil then
+						clear = true
+					end
+				end
+				if not clear then
+					error(`{p.name}: every Blockcast out of the gap hit the ring or drain`)
+				end
+			end
+		end)
+
+		it("the box is stopped by a curb part when it walks into the ring outside the gap", function()
+			build()
+			for yaw = 100, 300, 20 do
+				-- the curb centre line of a tile is r 34.85 at the tile yaw: walk radially through it at the tile's mid yaw
+				local x0, z0 = polar(yaw, 26)
+				local x1, z1 = polar(yaw, EXIT_RADIUS + 5)
+				local hit = cast(x0, z0, x1, z1)
+				if hit == nil or not (hit.Instance.Name:match("^Landing") ~= nil) then
+					error(`yaw {yaw}: the box walked through the ring (hit {hit and hit.Instance.Name or "nothing"})`)
+				end
+			end
+		end)
+
+		it("the box is stopped by the drain's curb from the lane side, its post from the fountain side", function()
+			build()
+			local c = ParadeLane.DRAIN
+			local from = cast(c.x + 14, c.z, c.x - 14, c.z)
+			expect(from ~= nil and from.Instance.Name == "DrainCurb").toBe(true)
+			local post = cast(0, 40, 0, c.z)
+			expect(post ~= nil and post.Instance.Name:match("^Drain") ~= nil).toBe(true)
+		end)
+
+		it("cleans up its parts", function()
+			if folder then
+				folder:Destroy()
+			end
+			folder = nil
+			expect(true).toBe(true)
+		end)
+	end)
 
 	describe("PropWalk Blockcast against the real collision (cloud)", function()
 		local seen = {}
