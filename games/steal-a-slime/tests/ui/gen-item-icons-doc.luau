@@ -56,5 +56,19 @@ for _, spec in ItemIcons.needsArt(registry) do
 	)
 end
 table.insert(lines, "")
+table.insert(lines, "## Drawn until uploaded")
+table.insert(lines, "")
+table.insert(
+	lines,
+	"These show their UI-drawn scene (`src/ui/ItemIconArt.luau`) until a picture is uploaded (`ItemIcons.AWAITING_UPLOAD`)."
+)
+table.insert(lines, "")
+table.insert(lines, "| id | name | what to render |")
+table.insert(lines, "|---|---|---|")
+for _, id in ItemIcons.AWAITING_UPLOAD do
+	local spec = registry.byId[id]
+	table.insert(lines, string.format("| %s | %s | %s |", id, spec.name, (string.gsub(spec.brief, "|", "/"))))
+end
+table.insert(lines, "")
 fs.writeFile("ITEM-ICONS-NEEDED.md", table.concat(lines, "\n"))
 print(`wrote ITEM-ICONS-NEEDED.md ({#ItemIcons.needsArt(registry)} items)`)

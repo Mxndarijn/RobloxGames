@@ -83,28 +83,4 @@ function Format.progress(startedAt: number, endsAt: number, now: number): number
 	return math.clamp((now - startedAt) / span, 0, 1)
 end
 
--- SlimeDex key "tier:mutation:pattern:eyes" -> "Rare · Glow · Spots · Happy".
--- `tierNames[tier]` supplies rarity names; unknown tiers show "Tier N".
--- `mutationNames` maps mutation save ids to display names ("Lava" -> "Syrup").
-function Format.dexLabel(key: string, tierNames: { string }, mutationNames: { [string]: string }?): string
-	local parts = string.split(key, ":")
-	if #parts ~= 4 then
-		return key
-	end
-	local tier = tonumber(parts[1])
-	local tierName = if tier and tierNames[tier] then tierNames[tier] else `Tier {parts[1]}`
-	local mutation = parts[2]
-	if mutation == "None" then
-		return `{tierName} · {parts[3]} · {parts[4]}`
-	end
-	local shown = if mutationNames and mutationNames[mutation] then mutationNames[mutation] else mutation
-	return `{tierName} · {shown} · {parts[3]} · {parts[4]}`
-end
-
--- "12 / 720 (2%)"
-function Format.dexCount(count: number, total: number): string
-	local pct = if total > 0 then math.floor(count / total * 100) else 0
-	return `{count} / {total} ({pct}%)`
-end
-
 return table.freeze(Format)

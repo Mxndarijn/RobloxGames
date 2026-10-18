@@ -9,8 +9,10 @@
 	sides, so the client can compute countdowns without extra remotes.
 ]]
 
+local Collection = if script then require(script.Parent.Collection) else require("./Collection")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
+local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require("./SpeciesDex")
 
 -- The full slimeData shape (= Genome.Slime). Passed to ModelFactory.build.
 export type SlimeData = Genome.Slime
@@ -159,7 +161,10 @@ export type GoalView = {
 	nextTitle: string?, -- the step after the current one (nil on the last step)
 	done: boolean,
 }
-export type DexRewardView = { count: number, reward: number, bonus: number, claimed: boolean }
+-- SlimeDex (CONTRACT.md §36.4): one milestone of the species or stamps ladder, and the Dex itself.
+export type DexRewardView = Collection.View
+export type DexView = SpeciesDex.View
+export type DexEntryView = SpeciesDex.EntryView
 -- State.boss (contract/boss-event.md)
 export type BossView = {
 	active: boolean, -- a boss event is on (warning, fight or haul)
@@ -220,8 +225,7 @@ export type State = {
 	lockDuration: number,
 	carrying: CarryView?,
 	rain: RainView,
-	dex: { string }, -- discovered Genome.dexKey values, sorted
-	dexTotal: number,
+	dex: DexView, -- the species Dex: counts, entries, stamps (CONTRACT.md §36.4)
 	daily: DailyView,
 	dailyQuests: DailyQuestsView?, -- Quests.view: nil on a server without daily quests
 	codes: CodesView,
@@ -236,7 +240,7 @@ export type State = {
 	nextRebirthTier: NextRebirthTier?,
 	upgrades: { UpgradeView },
 	goals: { GoalView },
-	dexRewards: { DexRewardView },
+	dexRewards: { DexRewardView }, -- both ladders, species first
 	dexBonus: number,
 	stats: StatsView,
 	boss: BossView,

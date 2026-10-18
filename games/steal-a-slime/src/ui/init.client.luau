@@ -32,6 +32,8 @@ local Genome = require(Shared:WaitForChild("Genome"))
 local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
 local PlotSkins = require(Shared:WaitForChild("PlotSkins"))
 local Remotes = require(Shared:WaitForChild("Remotes"))
+local SlimeLooks = require(Shared:WaitForChild("SlimeLooks"))
+local SlimeRoster = require(Shared:WaitForChild("SlimeRoster"))
 local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local TripleMerge = require(Shared:WaitForChild("TripleMerge"))
 local Types = require(Shared:WaitForChild("Types"))
@@ -53,6 +55,7 @@ local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
 local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
+local SpeciesModel = require(script.SpeciesModel)
 local StealAlertFx = require(script.StealAlertFx)
 local Widgets = require(script.Widgets)
 local WorldLeaderboard = require(script.WorldLeaderboard)
@@ -235,6 +238,12 @@ local ctx: { [string]: any } = {
 	playerName = playerName,
 	itemIcons = itemIcons,
 	buildSlime = if modelFactory then buildSlime else nil,
+	-- SlimeDex cards: species names / colours and the species mesh preview.
+	SlimeRoster = SlimeRoster,
+	SlimeLooks = SlimeLooks,
+	buildSpecies = SpeciesModel.builder(function()
+		return ReplicatedStorage:FindFirstChild(Constants.SLIME_KITS_FOLDER)
+	end, MeshAssets.IMPORT_YAW),
 }
 
 local hud = Hud.new(gui, ctx)
@@ -463,25 +472,31 @@ local function forceWeekend(state: any): any
 	return view
 end
 
--- Studio-only: the SlimeUI attribute "PcwDexRows" = N fakes N discovered Dex keys (State.dex, every
--- tier / pattern / eyes combination in order) so the virtualised Dex list can be shot scrolled far down.
+-- Studio-only: the SlimeUI attribute "PcwDexRows" = N marks the first N State.dex entries found (named,
+-- with a None stamp) so the Dex grid can be shot with found cards and silhouettes side by side.
 local function forceDex(state: any): any
 	local count = if isStudio then gui:GetAttribute("PcwDexRows") else nil
-	if type(count) ~= "number" or count <= 0 then
+	if type(count) ~= "number" or count <= 0 or type(state.dex) ~= "table" then
 		return state
 	end
-	local keys: { string } = {}
-	for tier = 1, Config.MAX_TIER do
-		for _, pattern in Config.PATTERNS do
-			for _, eyes in Config.EYES do
-				if #keys < count then
-					table.insert(keys, `{tier}:None:{pattern}:{eyes}`)
-				end
+	local dex = table.clone(state.dex)
+	local entries = {}
+	for i, entry in dex.entries or {} do
+		local e = table.clone(entry)
+		if i <= count then
+			local roster = SlimeRoster.get(e.id)
+			e.found = true
+			e.name = if roster then roster.name else e.id
+			if e.kind == "spawn" or e.kind == "hybrid" then
+				e.stamps = { "None" }
 			end
 		end
+		entries[i] = e
 	end
+	dex.entries = entries
+	dex.found = math.min(count, dex.total or count)
 	local view = table.clone(state)
-	view.dex = keys
+	view.dex = dex
 	return view
 end
 

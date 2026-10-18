@@ -2,7 +2,9 @@
 -- Rebirth ladder and SlimeDex completion (src/ui/Progress.luau).
 local Config = require("../../src/shared/Config")
 local Economy = require("../../src/shared/Economy")
+local Fixtures = require("../Fixtures")
 local Progress = require("../../src/ui/Progress")
+local SpeciesDex = require("../../src/shared/SpeciesDex")
 local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -58,24 +60,23 @@ describe("Progress.rebirthStatus", function()
 end)
 
 describe("Progress.dex", function()
-	it("gives percent, fraction and per-rarity counts", function()
-		local p = Progress.dex({ "1:None:Plain:Round", "1:Glow:Spots:Wide", "3:None:Belly:Happy" }, 720, TIERS)
+	it("gives percent, fraction and per-rarity counts of the species Dex (event Secrets count nowhere)", function()
+		local p = Progress.dex(Fixtures.dex({ "gummy", "mochi", "whiskers", "glitch" }), TIERS)
 		expect(p.count).toBe(3)
-		expect(p.percent).toBe("0%")
-		expect(p.fraction).toBeCloseTo(3 / 720)
+		expect(p.total).toBe(SpeciesDex.TOTAL)
+		expect(p.percent).toBe(`{math.floor(3 / SpeciesDex.TOTAL * 100)}%`)
+		expect(p.fraction).toBeCloseTo(3 / SpeciesDex.TOTAL)
 		expect(p.byTier[1].count).toBe(2)
-		expect(p.byTier[1].total).toBe(120)
+		expect(p.byTier[1].total).toBe(SpeciesDex.tierSize(1))
 		expect(p.byTier[3].count).toBe(1)
 		expect(p.byTier[6].count).toBe(0)
 	end)
 	it("handles empty / missing data", function()
-		local p = Progress.dex(nil, 0, TIERS)
+		local p = Progress.dex(nil, TIERS)
 		expect(p.count).toBe(0)
 		expect(p.fraction).toBe(0)
-		expect(p.byTier[1].total).toBe(0)
-		local full = Progress.dex({ "1:a:b:c", "2:a:b:c" }, 2, { "A", "B" })
-		expect(full.percent).toBe("100%")
-		expect(Progress.dex({}, 7, TIERS).byTier[1].total).toBeNil()
+		expect(p.byTier[1].total).toBeNil()
+		expect(Progress.dex({ found = 50, total = 50 }, TIERS).percent).toBe("100%")
 	end)
 end)
 
@@ -93,12 +94,14 @@ describe("Progress v13 rank / dex rewards", function()
 	it("shows the next unclaimed dex reward and the bonus", function()
 		local d = Progress.dexRewards({
 			dexRewards = {
-				{ count = 10, reward = 500, bonus = 0.02, claimed = true },
-				{ count = 25, reward = 2500, bonus = 0.03, claimed = false },
+				{ ladder = "species", count = 8, reward = 500, bonus = 0.02, claimed = true },
+				{ ladder = "species", count = 15, reward = 2500, bonus = 0.03, claimed = false },
+				{ ladder = "species", count = 20, reward = 9000, bonus = 0.05, claimed = false },
+				{ ladder = "stamps", count = 50, reward = 10000, bonus = 0.03, claimed = false },
 			},
 			dexBonus = 0.02,
 		})
-		expect(d.next).toBe("Next reward at 25: +$2.5K and +3% income")
+		expect(d.next).toBe("Next: 15 species +$2.5K, +3% income · 50 stamps +$10K, +3% income")
 		expect(d.bonus).toBe("SlimeDex bonus: +2% income")
 		local all = Progress.dexRewards({ dexRewards = { { count = 10, reward = 1, bonus = 0.02, claimed = true } } })
 		expect(all.next).toBe("All SlimeDex rewards collected!")
@@ -108,10 +111,11 @@ describe("Progress v13 rank / dex rewards", function()
 
 	it("builds the bar to the next unclaimed dex milestone with ticks", function()
 		local m = Progress.dexMilestones({
-			dex = { "1:a", "1:b", "1:c" },
+			dex = { found = 3, total = 50 },
 			dexRewards = {
-				{ count = 10, reward = 1, bonus = 0.02, claimed = true },
-				{ count = 25, reward = 1, bonus = 0.03, claimed = false },
+				{ ladder = "species", count = 10, reward = 1, bonus = 0.02, claimed = true },
+				{ ladder = "species", count = 25, reward = 1, bonus = 0.03, claimed = false },
+				{ ladder = "stamps", count = 50, reward = 1, bonus = 0.03, claimed = false },
 			},
 		})
 		expect(m.icon).toBe("Dex_25")
@@ -123,12 +127,13 @@ describe("Progress v13 rank / dex rewards", function()
 	end)
 	it("fills the milestone bar once everything is claimed and is nil without rewards", function()
 		local m = Progress.dexMilestones({
-			dex = {},
-			dexRewards = { { count = 10, reward = 1, bonus = 0.02, claimed = true } },
+			dex = { found = 0, total = 50 },
+			dexRewards = { { ladder = "species", count = 10, reward = 1, bonus = 0.02, claimed = true } },
 		})
 		expect(m.fraction).toBe(1)
 		expect(m.next).toBeNil()
 		expect(m.icon).toBe("Dex_10")
 		expect(Progress.dexMilestones({})).toBeNil()
+		expect(Progress.dexMilestones({ dexRewards = { { ladder = "stamps", count = 50, claimed = false } } })).toBeNil()
 	end)
 end)

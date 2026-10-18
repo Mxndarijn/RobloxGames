@@ -3,15 +3,16 @@
 	PlotSkins
 
 	Plot skins unlocked by SlimeDex sets (Config.PLOT_SKINS, FEATURES.PlotSkins,
-	CONTRACT.md §15). A skin's set is one rarity tier of the SlimeDex; it
-	unlocks once the owner has discovered `threshold` (75 %) of that tier's
-	keys. The equipped skin is data.plotSkin; `equip` refuses anything that is
+	CONTRACT.md §15, §36.3). A skin's set is one rarity tier of the SlimeDex; it
+	unlocks once the owner has found `threshold` (75 %) of that tier's species
+	entries (SpeciesDex.tierSize). The equipped skin is data.plotSkin; `equip` refuses anything that is
 	not unlocked, `current` never returns a skin the player has not earned.
 	Pure: no Roblox APIs.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
+local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require("./SpeciesDex")
 
 type Data = PlayerData.Data
 
@@ -20,9 +21,9 @@ export type View = {
 	name: string,
 	setName: string?, -- rarity name of the Dex set, nil for classic
 	tier: number?,
-	owned: number, -- keys of the set discovered
-	total: number, -- keys in the set (PlotSkins.setSize)
-	needed: number, -- keys that unlock the skin
+	owned: number, -- species of the set found
+	total: number, -- species in the set (PlotSkins.setSize)
+	needed: number, -- species that unlock the skin
 	fraction: number, -- owned / total, 0..1
 	unlocked: boolean,
 	equipped: boolean,
@@ -32,28 +33,9 @@ local PlotSkins = {}
 
 PlotSkins.DEFAULT = Config.PLOT_SKIN_DEFAULT
 
--- Dex mutation ids that count towards a set: None + the plain mutations + the combos (the
--- Snapshot.DEX_TOTAL list). Weather mutations (Wet / Frozen and their combos) are extras.
-local function countedMutations(): { [string]: boolean }
-	local out: { [string]: boolean } = { None = true }
-	for _, m in Config.MUTATIONS do
-		out[m.name] = true
-	end
-	if Config.FEATURES.MutationStacking then
-		for _, c in Config.COMBOS do
-			out[c.name] = true
-		end
-	end
-	return out
-end
-
--- Keys in one tier of the SlimeDex (Snapshot.DEX_TOTAL / MAX_TIER).
-function PlotSkins.setSize(): number
-	local mutations = 0
-	for _ in countedMutations() do
-		mutations += 1
-	end
-	return mutations * #Config.PATTERNS * #Config.EYES
+-- Species entries in one tier of the SlimeDex.
+function PlotSkins.setSize(tier: number): number
+	return SpeciesDex.tierSize(tier)
 end
 
 function PlotSkins.get(id: any): Config.PlotSkin?
@@ -68,21 +50,13 @@ function PlotSkins.get(id: any): Config.PlotSkin?
 	return nil
 end
 
--- Discovered keys of one tier that count towards its set.
+-- Found species of one tier.
 function PlotSkins.owned(data: Data, tier: number): number
-	local counted = countedMutations()
-	local n = 0
-	for key in data.dex do
-		local t, mutation = string.match(key, "^(%d+):([^:]+):")
-		if tonumber(t) == tier and mutation and counted[mutation] then
-			n += 1
-		end
-	end
-	return n
+	return SpeciesDex.tierCount(data, tier)
 end
 
 function PlotSkins.needed(skin: Config.PlotSkin): number
-	return math.ceil(PlotSkins.setSize() * (skin.threshold or 1) - 1e-9)
+	return math.ceil(PlotSkins.setSize(skin.set or 0) * (skin.threshold or 1) - 1e-9)
 end
 
 function PlotSkins.unlocked(data: Data, skin: Config.PlotSkin): boolean
@@ -116,9 +90,9 @@ end
 -- State.plotSkins: classic first, then Config order.
 function PlotSkins.view(data: Data): { View }
 	local equipped = PlotSkins.current(data)
-	local total = PlotSkins.setSize()
 	local out: { View } = {}
 	for _, skin in Config.PLOT_SKINS do
+		local total = if skin.set then PlotSkins.setSize(skin.set) else 0
 		local owned = if skin.set then math.min(PlotSkins.owned(data, skin.set), total) else total
 		local rarity = if skin.set then Config.RARITIES[skin.set] else nil
 		table.insert(out, {

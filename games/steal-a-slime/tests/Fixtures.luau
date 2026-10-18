@@ -4,6 +4,7 @@
 local Config = require("../src/shared/Config")
 local Genome = require("../src/shared/Genome")
 local PlayerData = require("../src/shared/PlayerData")
+local SpeciesDex = require("../src/shared/SpeciesDex")
 
 local Fixtures = {}
 
@@ -48,6 +49,40 @@ function Fixtures.rolls(values: { number }): () -> number
 		i = math.min(i + 1, #values)
 		return values[i]
 	end
+end
+
+-- Recipe and featured-week sources for SpeciesDex.view: `recipes` maps hybrid id -> { inputs, hint }, `weeks`
+-- event id -> unix week start. Missing = no recipe / not scheduled.
+function Fixtures.dexSources(
+	recipes: { [string]: SpeciesDex.Recipe }?,
+	weeks: { [string]: number }?
+): SpeciesDex.Sources
+	return {
+		recipeFor = function(id: string): SpeciesDex.Recipe?
+			return if recipes then recipes[id] else nil
+		end,
+		featuredWeek = function(id: string, _now: number): number?
+			return if weeks then weeks[id] else nil
+		end,
+	}
+end
+
+-- A State.dex (SpeciesDex.view) for a player who found `found` (species ids) and stamped `stamps`
+-- ("<species>:<Mutation>").
+function Fixtures.dex(
+	found: { string }?,
+	stamps: { string }?,
+	sources: SpeciesDex.Sources?,
+	now: number?
+): SpeciesDex.View
+	local data = { found = {}, stamps = {} }
+	for _, id in found or {} do
+		data.found[id] = true
+	end
+	for _, key in stamps or {} do
+		data.stamps[key] = true
+	end
+	return SpeciesDex.view(data, now or 0, sources or Fixtures.dexSources())
 end
 
 return Fixtures

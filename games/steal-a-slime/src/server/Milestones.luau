@@ -39,7 +39,9 @@ function Milestones.check(world: World.World, session: World.Session, now: numbe
 		World.notify(
 			world,
 			session.userId,
-			`SlimeDex {paid.count}: +${Economy.formatNumber(paid.reward)} and +{math.floor(paid.bonus * 100 + 0.5)}% income!`,
+			`SlimeDex {paid.count} {paid.ladder}: +${Economy.formatNumber(paid.reward)} and +{math.floor(
+				paid.bonus * 100 + 0.5
+			)}% income!`,
 			"good",
 			"Goal"
 		)

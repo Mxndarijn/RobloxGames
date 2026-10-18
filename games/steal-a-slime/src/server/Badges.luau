@@ -16,10 +16,9 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
-local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
-local Snapshot = if script then require(script.Parent.Snapshot) else require("./Snapshot")
+local SpeciesDex = if Shared then require(Shared.SpeciesDex) else require("../shared/SpeciesDex")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type Data = PlayerData.Data
@@ -48,9 +47,9 @@ local function reachedBy(data: Data, trigger: string, value: number): boolean
 	elseif trigger == "rebirths" then
 		return data.rebirths >= value
 	elseif trigger == "dexPercent" then
-		return PlayerData.dexCount(data) * 100 >= value * Snapshot.DEX_TOTAL
+		return SpeciesDex.count(data) * 100 >= value * SpeciesDex.TOTAL
 	elseif trigger == "tier" then
-		return bit32.btest(Collection.tierMask(data), bit32.lshift(1, value - 1))
+		return bit32.btest(SpeciesDex.tierMask(data), bit32.lshift(1, value - 1))
 	elseif trigger == "earned" then
 		return data.totalEarned >= value
 	end

@@ -10,6 +10,7 @@ local roblox = require("@lune/roblox") :: any
 local Config = require("../../src/shared/Config")
 local Constants = require("../../src/shared/Constants")
 local Economy = require("../../src/shared/Economy")
+local Fixtures = require("../Fixtures")
 local Format = require("../../src/ui/Format")
 local Genome = require("../../src/shared/Genome")
 local GuideTips = require("../../src/ui/GuideTips")
@@ -25,7 +26,6 @@ local UiHarness = require("./UiHarness")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local UDim2, Vector3 = roblox.UDim2, roblox.Vector3
 
-local TOTAL = Config.MAX_TIER * (#Config.MUTATIONS + 1) * #Config.PATTERNS * #Config.EYES
 local RARITY_NAMES = {}
 for i, rarity in Config.RARITIES do
 	RARITY_NAMES[i] = rarity.name
@@ -127,58 +127,65 @@ local function fakeBuild(genome: any): any
 	return model
 end
 
-local function openDex(dex: { string }, extra: { [string]: any }): any
+local function openDex(dex: any, extra: { [string]: any }): any
 	local Dex = UiHarness.ui("Panels/Dex")
 	local panel = Dex.new(UiHarness.root(), ctx(extra))
 	panel.frame.Size = UDim2.fromOffset(560, 600)
 	panel.setOpen(true)
-	panel.update({ dex = dex, dexTotal = TOTAL })
+	panel.update({ dex = dex })
 	return panel
 end
 
+local DEX = Fixtures.dex({ "bumble" })
+
 describe("v28 item 2: SlimeDex pictures are real slime renders", function()
-	it("SlimeDex.genome turns every dex row into a buildable slime (SlimeLayout, same as the world)", function()
-		local rows =
-			SlimeDex.rows({ "1:None:Plain:Round", "6:Eclipse:Spots:Happy", "4:Lava:Spots:Happy" }, TOTAL, Config)
-		expect(#rows > 3).toBe(true) -- discovered rows + a silhouette per tier
-		for _, row in rows do
-			local genome = SlimeDex.genome(row) :: any
-			expect(genome ~= nil).toBe(true)
-			expect(genome.tier >= 1 and genome.tier <= Config.MAX_TIER).toBe(true)
-			local specs = SlimeLayout.build(genome)
-			expect(#specs >= 1).toBe(true)
+	it(
+		"SlimeDex.genome turns every card into a buildable slime of its species (SlimeLayout, same as the world)",
+		function()
+			local cards = SlimeDex.cards(DEX, Config)
+			expect(#cards > 0).toBe(true)
+			for _, card in cards do
+				local genome = SlimeDex.genome(card) :: any
+				expect(genome.species).toBe(card.key)
+				expect(genome.tier >= 1 and genome.tier <= Config.MAX_TIER).toBe(true)
+				local specs = SlimeLayout.build(genome)
+				expect(#specs >= 1).toBe(true)
+			end
 		end
-		expect(SlimeDex.genome({ key = "junk", locked = false, color = { 1, 2, 3 } } :: any)).toBeNil()
-	end)
-	it("the Dex panel mounts the built model (not the blob) when ctx.buildSlime is there", function()
-		table.clear(built)
-		local panel = openDex({ "2:Glow:Spots:Happy" }, { buildSlime = fakeBuild })
-		local list = UiHarness.find(panel.frame, "List")
-		local row = list:FindFirstChild("2:Glow:Spots:Happy")
-		local preview = row:FindFirstChild("Image"):FindFirstChild("Preview")
-		expect(preview.Visible).toBe(true)
-		local model = UiHarness.find(preview, "Slime_Dex_2:Glow:Spots:Happy")
-		expect(model ~= nil).toBe(true)
-		expect(model:GetAttribute("Mutation")).toBe("Glow")
-		expect(model:FindFirstChild("Body").Anchored).toBe(true)
-		expect(preview.CurrentCamera ~= nil).toBe(true)
-		expect(#built >= 1).toBe(true)
-	end)
-	it("locked rows render the tier's model as a dark silhouette", function()
+	)
+	it(
+		"without a species mesh the Dex panel mounts the built model (not the blob) when ctx.buildSlime is there",
+		function()
+			table.clear(built)
+			local panel = openDex(DEX, { buildSlime = fakeBuild })
+			local card = UiHarness.find(UiHarness.find(panel.frame, "List"), "bumble")
+			local preview = card:FindFirstChild("Image"):FindFirstChild("Preview")
+			expect(preview.Visible).toBe(true)
+			local model = UiHarness.find(preview, "Slime_Dex_bumble")
+			expect(model ~= nil).toBe(true)
+			expect(model:FindFirstChild("Body").Anchored).toBe(true)
+			expect(preview.CurrentCamera ~= nil).toBe(true)
+			expect(#built >= 1).toBe(true)
+		end
+	)
+	it("an unfound species renders its model as a dark silhouette", function()
 		local SlimePreview = UiHarness.ui("SlimePreview")
-		local panel = openDex({ "1:None:Plain:Round" }, { buildSlime = fakeBuild })
-		local locked = UiHarness.find(panel.frame, "List"):FindFirstChild("locked:1")
+		local panel = openDex(DEX, { buildSlime = fakeBuild })
+		local locked = UiHarness.find(UiHarness.find(panel.frame, "List"), "gummy")
 		local body = UiHarness.find(locked:FindFirstChild("Image"):FindFirstChild("Preview"), "Body")
 		expect(body.Color).toBe(SlimePreview.SILHOUETTE)
 	end)
-	it("falls back to the SlimePreview blob when the builder errors", function()
-		local panel = openDex({ "3:None:Plain:Round" }, {
+	it("falls back to the SlimePreview blob when the builders error", function()
+		local panel = openDex(DEX, {
+			buildSpecies = function()
+				error("no mesh")
+			end,
 			buildSlime = function()
 				error("no Visuals")
 			end,
 		})
-		local row = UiHarness.find(panel.frame, "List"):FindFirstChild("3:None:Plain:Round")
-		local preview = row:FindFirstChild("Image"):FindFirstChild("Preview")
+		local card = UiHarness.find(UiHarness.find(panel.frame, "List"), "bumble")
+		local preview = card:FindFirstChild("Image"):FindFirstChild("Preview")
 		expect(preview.Visible).toBe(true)
 		expect(UiHarness.find(preview, "Body") ~= nil).toBe(true)
 	end)
@@ -187,11 +194,6 @@ describe("v28 item 2: SlimeDex pictures are real slime renders", function()
 		expect(has(src, 'visuals:FindFirstChild("ModelFactory")')).toBe(true)
 		expect(has(src, "model:RemoveTag(tag)")).toBe(true)
 		expect(has(src, "buildSlime = if modelFactory then buildSlime else nil")).toBe(true)
-	end)
-	it("nothing is uploaded: the wanted thumbnails are listed in v28-NEEDS-UPLOAD.md", function()
-		expect(next(SlimeDex.IMAGES)).toBeNil()
-		local doc = read("v28-NEEDS-UPLOAD.md")
-		expect(has(doc, "SlimeDex.IMAGES")).toBe(true)
 	end)
 end)
 

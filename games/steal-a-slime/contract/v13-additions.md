@@ -141,7 +141,7 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 | `Rebirth` | Rebirth <n> times | rebirths | 1, 3, 6, 10, 20 | 2K, 20K, 500K, 5M, 100M |
 
   Stats: `caught` (wild slimes deposited), `merges`, `locks` (locks bought), `sold`, `stolen` (= `totalStolen`), `earned` (= `totalEarned`), `rebirths`, `pads` (= `padsUnlocked`).
-- **Slimedex rewards** (`Config.DEX_MILESTONES`, `src/shared/Collection.luau`): at 10 / 25 / 50 / 100 / 200 / 400 / 720 discovered: cash 500 / 2.5K / 10K / 50K / 250K / 1.5M / 10M (x rebirthMultiplier) and a permanent income bonus +2 / +3 / +5 / +5 / +10 / +15 / +25 %.
+- **Slimedex rewards**: replaced by the species Dex ladder (`Config.DEX_MILESTONES`, `src/shared/Collection.luau`), see `contract/species-dex.md` §36.3.
 
 ## 8.8a Rebirth needs a slime (v29)
 

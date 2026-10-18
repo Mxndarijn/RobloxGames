@@ -86,9 +86,10 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 		done = state.canRebirth == true,
 	})
 
-	local total = num(state.dexTotal)
+	local dex = if type(state.dex) == "table" then state.dex else {}
+	local total = num(dex.total)
 	if total > 0 then
-		local found = if type(state.dex) == "table" then #state.dex else 0
+		local found = num(dex.found)
 		local pct = found / total * 100
 		local target = Goals.DEX_MILESTONES[#Goals.DEX_MILESTONES]
 		for _, milestone in Goals.DEX_MILESTONES do
@@ -100,7 +101,13 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 		local need = math.ceil(total * target / 100)
 		table.insert(
 			out,
-			goal("Dex", `Discover {target}% of the SlimeDex`, `{found}/{need} slimes ({math.floor(pct)}%)`, found, need)
+			goal(
+				"Dex",
+				`Discover {target}% of the SlimeDex`,
+				`{found}/{need} species ({math.floor(pct)}%)`,
+				found,
+				need
+			)
 		)
 	end
 

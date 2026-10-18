@@ -63,14 +63,13 @@ describe("Nav.badges", function()
 				SpeedCoil = { price = 1500, owned = false },
 			},
 			canRebirth = true,
-			dex = { "1:None:Plain:Round", "1:None:Plain:Wide" },
-			dexTotal = 720,
+			dex = { found = 2, total = 50 },
 		})
 		expect(badges.Plot).toBe("!")
 		expect(badges.Merge).toBeNil()
 		expect(badges.Shop).toBeNil()
 		expect(badges.Rebirth).toBe("!")
-		expect(badges.Dex).toBe("0%")
+		expect(badges.Dex).toBe("4%")
 	end)
 	it("stays quiet when there is nothing to do", function()
 		local badges = Nav.badges({
@@ -78,8 +77,7 @@ describe("Nav.badges", function()
 			slimes = { view("a", 1) },
 			shop = { LockUpgrade = { price = nil, level = 5, maxLevel = 5 }, SpeedCoil = { price = 1500 } },
 			canRebirth = false,
-			dex = {},
-			dexTotal = 0,
+			dex = { found = 0, total = 0 },
 		})
 		expect(next(badges)).toBeNil()
 		expect(next(Nav.badges(nil))).toBeNil()

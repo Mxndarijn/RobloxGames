@@ -27,6 +27,7 @@ return table.freeze({
 	PLOTS_FOLDER = "Plots",
 	PLOT_SLIMES_FOLDER = "Slimes", -- per-plot folder for pad slimes
 	WILD_FOLDER = "WildSlimes",
+	SLIME_KITS_FOLDER = "SlimeKits", -- ReplicatedStorage: one loaded species MeshPart per kit, named "slime_<id>" (SlimeDex previews)
 	PLOT_INDEX_ATTRIBUTE = "PlotIndex", -- Plot_<i> model: i
 	PAD_INDEX_ATTRIBUTE = "PadIndex", -- Pad_<j> part: j
 	HOME_ZONE = "HomeZone",
@@ -72,7 +73,7 @@ return table.freeze({
 	PLOT_NEXT_PAD_COST_ATTRIBUTE = "NextPadCost", -- Plot_<i>: nil when maxed / free
 	PAD_UNLOCKED_ATTRIBUTE = "Unlocked", -- Pad_<j>: j <= PadsUnlocked
 	PLOT_DEX_COUNT_ATTRIBUTE = "DexCount", -- Plot_<i>: owner's discovered dex entries, 0 = free plot
-	PLOT_DEX_TOTAL_ATTRIBUTE = "DexTotal", -- Plot_<i>: 1152 (State.dexTotal)
+	PLOT_DEX_TOTAL_ATTRIBUTE = "DexTotal", -- Plot_<i>: SlimeDex entries (SpeciesDex.TOTAL, State.dex.total)
 	PLOT_DEX_TIER_MASK_ATTRIBUTE = "DexTierMask", -- Plot_<i>: bit k-1 set = owner discovered a tier-k slime
 	PLOT_SKIN_ATTRIBUTE = "PlotSkin", -- Plot_<i>: owner's equipped Config.PLOT_SKINS id (FEATURES.PlotSkins only)
 	PLOT_PRICE_ATTRIBUTE = "PlotPrice", -- Plot_<i>: reserved; nil while plots are free (v13)

@@ -4,7 +4,7 @@ local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local GameLoop = require("../src/server/GameLoop")
 local ServerFixtures = require("./ServerFixtures")
-local Snapshot = require("../src/server/Snapshot")
+local SpeciesDex = require("../src/shared/SpeciesDex")
 local TestRunner = require("./TestRunner")
 local World = require("../src/server/World")
 
@@ -73,24 +73,30 @@ describe("Badges triggers", function()
 	end)
 	it("fire for the dex percentages and the Legendary / Secret tiers", function()
 		local data = Fixtures.data()
-		local want = math.ceil(Snapshot.DEX_TOTAL * 0.25)
+		-- Lowest tiers first, so the tier badges stay unearned until the end.
+		local ordered = table.clone(SpeciesDex.ENTRIES)
+		table.sort(ordered, function(a, b)
+			return a.tier < b.tier
+		end)
+		local want = math.ceil(SpeciesDex.TOTAL * 0.25)
 		for i = 1, want - 1 do
-			data.dex[`1:None:Plain:e{i}`] = true
+			data.found[ordered[i].id] = true
 		end
 		expect(table.find(Badges.reached(data), "Dex25")).toBeNil()
-		data.dex["1:None:Plain:last"] = true
+		data.found[ordered[want].id] = true
 		expect(table.find(Badges.reached(data), "Dex25") ~= nil).toBe(true)
 		expect(table.find(Badges.reached(data), "Dex50")).toBeNil()
-		for i = 1, Snapshot.DEX_TOTAL do
-			data.dex[`1:None:Plain:x{i}`] = true
-		end
-		expect(table.find(Badges.reached(data), "Dex100") ~= nil).toBe(true)
 		expect(table.find(Badges.reached(data), "FirstLegendary")).toBeNil()
-		data.dex["5:None:Plain:Round"] = true
+		data.found.king = true
 		expect(table.find(Badges.reached(data), "FirstLegendary") ~= nil).toBe(true)
 		expect(table.find(Badges.reached(data), "FirstSecret")).toBeNil()
-		data.dex["7:None:Plain:Round"] = true
+		data.found.midas = true
 		expect(table.find(Badges.reached(data), "FirstSecret") ~= nil).toBe(true)
+		expect(table.find(Badges.reached(data), "Dex100")).toBeNil()
+		for _, entry in SpeciesDex.ENTRIES do
+			data.found[entry.id] = true
+		end
+		expect(table.find(Badges.reached(data), "Dex100") ~= nil).toBe(true)
 	end)
 	it("emit one Badge event per milestone through the game loop, once per session", function()
 		local world = ServerFixtures.world()

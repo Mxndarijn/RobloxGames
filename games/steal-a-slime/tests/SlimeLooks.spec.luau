@@ -129,4 +129,40 @@ describe("SlimeLooks wiring", function()
 		expect(SlimeMesh.build(mesh, slime)).toBe(model :: any)
 		expect(attrs[Constants.SPECIES_ATTRIBUTE]).toBe("moo")
 	end)
+
+	it("hands every loaded species kit to onKit (the SlimeDex copies them for the client)", function()
+		local handed: { [string]: any } = {}
+		local function fakeMesh(): any
+			local m = {}
+			function m.Clone()
+				return fakeMesh()
+			end
+			return m
+		end
+		local mesh = SlimeMesh.new({
+			factory = { build = function(): any end } :: any,
+			loadAsset = function(assetId: number): any
+				if assetId == (MeshAssets.get("slime_moo") :: any).assetId then
+					error("this one fails")
+				end
+				return {
+					FindFirstChildWhichIsA = function()
+						return fakeMesh()
+					end,
+					Destroy = function() end,
+				}
+			end,
+			spawn = function(fn: () -> ())
+				fn()
+			end,
+			warn = function() end,
+			onKit = function(kit: string, template: any)
+				handed[kit] = template
+			end,
+		})
+		SlimeMesh.load(mesh)
+		expect(handed.slime_gummy ~= nil).toBe(true)
+		expect(handed.slime_gummy).toBe(mesh.kits.slime_gummy)
+		expect(handed.slime_moo).toBeNil() -- a kit that failed to load is not handed on
+	end)
 end)

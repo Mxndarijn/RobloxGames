@@ -28,7 +28,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Carry = require(script.Parent.Carry)
-local Collection = require(ReplicatedStorage.Shared.Collection)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local FallbackWorld = require(script.Parent.FallbackWorld)
@@ -54,7 +53,7 @@ local Rescue = require(script.Parent.Rescue)
 local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local Scene = require(script.Parent.Scene)
 local SlimeMesh = require(script.Parent.SlimeMesh)
-local Snapshot = require(script.Parent.Snapshot)
+local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local StackGuard = require(script.Parent.StackGuard)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
 local World = require(script.Parent.World)
@@ -109,10 +108,21 @@ function WorldView.setup()
 	local factory = visuals and visuals:FindFirstChild("ModelFactory")
 	if factory then
 		-- Mesh look over Archer's factory; LoadAsset yields once here, falls back to procedural.
+		-- Clients can't LoadAsset, so each loaded species kit is copied to ReplicatedStorage for the SlimeDex.
+		local kits = Instance.new("Folder")
+		kits.Name = Constants.SLIME_KITS_FOLDER
+		kits.Parent = ReplicatedStorage
 		local mesh = SlimeMesh.new({
 			factory = require(factory :: ModuleScript) :: any,
 			loadAsset = function(assetId: number): Instance
 				return InsertService:LoadAsset(assetId)
+			end,
+			onKit = function(kit: string, template: MeshPart)
+				local copy = template:Clone()
+				copy.Name = kit
+				copy.Anchored = true
+				copy.CanCollide = false
+				copy.Parent = kits
 			end,
 		})
 		workspace:SetAttribute(Constants.SLIME_LOOK_ATTRIBUTE, SlimeMesh.load(mesh))
@@ -762,7 +772,7 @@ local function dexMask(index: number, session: World.Session, count: number): nu
 	if cached and cached.userId == session.userId and cached.count == count then
 		return cached.mask
 	end
-	local fresh = { userId = session.userId, count = count, mask = Collection.tierMask(session.data) }
+	local fresh = { userId = session.userId, count = count, mask = SpeciesDex.tierMask(session.data) }
 	dexMasks[index] = fresh
 	return fresh.mask
 end
@@ -967,7 +977,7 @@ function WorldView.updatePlots(world: World.World, now: number)
 			end
 			local dexCount = if session then PlayerData.dexCount(session.data) else 0
 			setIfChanged(plot, Constants.PLOT_DEX_COUNT_ATTRIBUTE, dexCount)
-			setIfChanged(plot, Constants.PLOT_DEX_TOTAL_ATTRIBUTE, Snapshot.DEX_TOTAL)
+			setIfChanged(plot, Constants.PLOT_DEX_TOTAL_ATTRIBUTE, SpeciesDex.TOTAL)
 			setIfChanged(
 				plot,
 				Constants.PLOT_DEX_TIER_MASK_ATTRIBUTE,

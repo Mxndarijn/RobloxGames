@@ -15,6 +15,7 @@ local ServerFixtures = require("./ServerFixtures")
 local SlimeDex = require("../src/ui/SlimeDex")
 local SlimeRoster = require("../src/shared/SlimeRoster")
 local Spawner = require("../src/server/Spawner")
+local SpeciesDex = require("../src/shared/SpeciesDex")
 local TestRunner = require("./TestRunner")
 local Volcano = require("../src/shared/Volcano")
 
@@ -53,9 +54,9 @@ local OLD_SAVE = [[{
 	"tutorialStep": 0,
 	"slimes": [
 		{ "id": "old-lava", "name": "Blorp", "tier": 4, "color": [255, 110, 40], "size": 1,
-		  "pattern": "Spots", "eyes": "Happy", "mouth": "Smile", "mutation": "Lava", "pad": 1 },
+		  "pattern": "Spots", "eyes": "Happy", "mouth": "Smile", "mutation": "Lava", "pad": 1, "species": "blaze" },
 		{ "id": "old-glow", "name": "Zed", "tier": 2, "color": [200, 255, 200], "size": 1.2,
-		  "pattern": "Plain", "eyes": "Round", "mouth": "Smile", "mutation": "Glow", "pad": 2 }
+		  "pattern": "Plain", "eyes": "Round", "mouth": "Smile", "mutation": "Glow", "pad": 2, "species": "bumble" }
 	],
 	"dex": ["4:Lava:Spots:Happy", "2:Glow:Plain:Round", "1:None:Plain:Round"]
 }]]
@@ -101,7 +102,7 @@ describe("Mutation display names", function()
 end)
 
 describe("Old saves after the rename", function()
-	it("load the Lava mutation, dex keys and favourite unchanged", function()
+	it("load the Lava mutation, the SlimeDex and favourite unchanged", function()
 		local data = SaveData.deserialize(serde.decode("json", OLD_SAVE))
 		local lava = PlayerData.findSlime(data, "old-lava")
 		assert(lava, "old Lava slime loaded")
@@ -109,37 +110,49 @@ describe("Old saves after the rename", function()
 		expect(lava.pad).toBe(1)
 		expect(Genome.baseIncome(lava)).toBe(Config.RARITIES[4].income * 2)
 		expect(data.favoriteId).toBe("old-lava")
-		expect(data.dex["4:Lava:Spots:Happy"]).toBe(true)
-		expect(data.dex["2:Glow:Plain:Round"]).toBe(true)
-		expect(data.dex["1:None:Plain:Round"]).toBe(true)
-		expect(PlayerData.dexCount(data)).toBe(3)
+		expect(data.stamps["blaze:Lava"]).toBe(true)
+		expect(data.stamps["bumble:Glow"]).toBe(true)
+		expect(PlayerData.dexCount(data)).toBe(2) -- the old combination keys are not read
 	end)
 	it("display the new names", function()
 		local data = SaveData.deserialize(serde.decode("json", OLD_SAVE))
 		local lava = PlayerData.findSlime(data, "old-lava")
 		assert(lava, "old Lava slime loaded")
 		expect(Genome.displayName(lava)).toBe("Syrup Epic Blorp")
-		local dex = {}
-		for key in data.dex do
-			table.insert(dex, key)
+		local view = SpeciesDex.view(data, 0, {
+			recipeFor = function()
+				return nil
+			end,
+			featuredWeek = function()
+				return nil
+			end,
+		})
+		local blaze = nil
+		for _, card in SlimeDex.cards(view, Config) do
+			expect(banned(card.title)).toBeNil()
+			for _, stamp in card.stamps do
+				expect(banned(stamp.label)).toBeNil()
+			end
+			if card.key == "blaze" then
+				blaze = card
+			end
 		end
-		local titles = {}
-		for _, row in SlimeDex.rows(dex, nil, Config) do
-			titles[row.key] = row
-			expect(banned(row.title)).toBeNil()
-		end
-		expect(titles["4:Lava:Spots:Happy"].title).toBe("Epic · Syrup · Spots · Happy")
-		expect(titles["4:Lava:Spots:Happy"].color).toBe(SlimeDex.MUTATION_COLORS.Lava)
+		assert(blaze, "blaze card")
+		local stamp = blaze.stamps[table.find(SpeciesDex.CORE_STAMPS, "Lava") :: number]
+		expect(stamp.on).toBe(true)
+		expect(stamp.label).toBe("Syrup")
+		expect(stamp.color).toBe(SlimeDex.MUTATION_COLORS.Lava)
 	end)
 	it("save back with the old ids (no Syrup in the stored data)", function()
 		local data = SaveData.deserialize(serde.decode("json", OLD_SAVE))
 		local json = serde.encode("json", SaveData.serialize(data, 1700000000))
 		expect(string.find(json, '"Lava"', 1, true) ~= nil).toBe(true)
-		expect(string.find(json, "4:Lava:Spots:Happy", 1, true) ~= nil).toBe(true)
+		expect(string.find(json, "blaze:Lava", 1, true) ~= nil).toBe(true)
 		expect(string.find(json, "Syrup", 1, true)).toBeNil()
 		local again = SaveData.deserialize(serde.decode("json", json))
 		expect(again.slimes).toEqual(data.slimes)
-		expect(again.dex).toEqual(data.dex)
+		expect(again.found).toEqual(data.found)
+		expect(again.stamps).toEqual(data.stamps)
 		expect(again.favoriteId).toBe(data.favoriteId)
 	end)
 	it("still migrate v1 saves", function()
