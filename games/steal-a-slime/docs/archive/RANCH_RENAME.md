@@ -1,5 +1,7 @@
 # Steal a Slime — ranch rename draft
 
+> **Archived.** The rename shipped (fountain naming, `Volcano` kept as an alias, Lava displays as Syrup with its save id unchanged). Kept for the save-id rules; the code is the source of truth.
+
 **Status:** draft (not implemented). Models-first; code/copy may follow after place wiring.
 **Rule:** keep mutation **save ids** so player data is not wiped; change display names / module names only where noted.
 

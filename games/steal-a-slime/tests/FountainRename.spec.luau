@@ -1,5 +1,5 @@
 --!strict
--- Volcano -> slime fountain rename (RANCH_RENAME.md): save ids stay, players
+-- Volcano -> slime fountain rename (docs/archive/RANCH_RENAME.md): save ids stay, players
 -- see the new names. Old saves with the "Lava" mutation load identically and
 -- display as "Syrup"; no player-facing string says volcano / lava / erupt.
 local fs = require("@lune/fs")

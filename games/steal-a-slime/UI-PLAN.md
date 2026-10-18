@@ -2,7 +2,7 @@
 
 **Owner:** Jolt (UI). **Status:** items 1–2 done, item 3 partly done (`jolt/full-window-menus`); the rest is still planned.
 
-Related: `CONTRACT.md` (§2 UI, State shape), `UI-CONTRACT-GAPS.md` (closed contract gaps), `../../../roadmap-v17-v22.md` (release roadmap, workspace root).
+Related: `CONTRACT.md` (§2 UI, State shape), `docs/archive/UI-CONTRACT-GAPS.md` (closed contract gaps), `../../../roadmap-v17-v22.md` (release roadmap, workspace root).
 
 ## 2026-10-18: Merijn's UI fixes (B2, B4, B5, B6, B7, B8; `/workspace/roblox/bugs-oct18/BUGS.md`, `ui_reference.png`)
 
