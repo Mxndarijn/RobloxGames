@@ -21,7 +21,7 @@ under 50 characters, description under 1000.
 | `Dex50` | Dex Collector | You discovered half of the SlimeDex. | dex entries >= 50% | Open book, half-filled gauge |
 | `Dex100` | Dex Master | You completed the whole SlimeDex! | dex entries = 100% | Open book, full gold gauge, sparkles |
 | `FirstLegendary` | Legend Spotted | You found your first Legendary slime. | SlimeDex holds a tier 5 (Legendary) entry | Golden slime with a crown |
-| `FirstSecret` | Secret Keeper | You found a Secret slime. About 1 in 1000. | SlimeDex holds a tier 7 (Secret) entry | Cyan slime with a keyhole, dark background |
+| `FirstSecret` | Secret Keeper | You found a Secret slime. About 1 in 2000. | SlimeDex holds a tier 7 (Secret) entry | Cyan slime with a keyhole, dark background |
 | `Millionaire` | Slime Millionaire | You earned $1,000,000. | `totalEarned >= 1,000,000` | Pile of gold coins with a slime on top |
 
 Notes:

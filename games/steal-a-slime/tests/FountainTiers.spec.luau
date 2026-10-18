@@ -1,6 +1,6 @@
 --!strict
 -- Fountain tiers + slime families per rank (FEATURES.FountainTiers, CONTRACT.md §19): the tier ladder, the
--- family pool and roll, species / save safety, the catch gate, the server tier step and the tier decor.
+-- family pool and the drop rule (contract/slime-odds.md), species / save safety, the catch gate, the server tier step and the tier decor.
 -- The flag is off by default, so the flag-on paths are driven through the `enabled` arguments.
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
@@ -82,8 +82,18 @@ describe("FountainTiers: the ladder", function()
 	it("rank cards only mention a family with the feature on (off: tierText is unchanged)", function()
 		local wrangler = Perks.tier(3)
 		expect(wrangler.family).toBe("orchard")
-		expect(string.find(Perks.tierText(wrangler), "Orchard", 1, true)).toBeNil()
-		expect(FountainTiers.rankText("orchard")).toBe("opens the Orchard slimes")
+		expect(string.find(Perks.tierText(wrangler), "Garden", 1, true)).toBeNil()
+		expect(FountainTiers.rankText("orchard")).toBe("opens the Garden slimes")
+	end)
+	it("shows the families as Meadow, Garden, Frost & Sea and Starlight", function()
+		expect(FountainTiers.CLASSIC_NAME).toBe("Meadow")
+		local names = {}
+		for _, family in FountainTiers.FAMILIES do
+			table.insert(names, family.name)
+		end
+		expect(names).toEqual({ "Garden", "Frost & Sea", "Starlight" })
+		expect(FountainTiers.look(1).name).toBe("Meadow Fountain")
+		expect(FountainTiers.look(3).name).toBe("Frost & Sea Fountain")
 	end)
 end)
 
@@ -131,13 +141,22 @@ describe("FountainTiers: species", function()
 			end
 		end
 	)
-	it("a family roll picks that family's type, falling back to Classic where it has none", function()
+	it("an open family's roll can pick every species of the tier: Classic and the family's", function()
 		for _, family in FountainTiers.FAMILIES do
 			for tier = 1, Config.MAX_TIER do
-				local has = #SlimeRoster.forTier(tier, family.id) > 0
-				local entry = Genome.rollSpecies(tier, 0.5, family.id) :: any
-				expect(entry.family).toBe(if has then family.id else nil)
-				expect(entry.tier).toBe(tier)
+				local pool = Genome.speciesPool(tier, { family.id })
+				local want = #SlimeRoster.forTier(tier) + #SlimeRoster.forTier(tier, family.id)
+				expect(#pool).toBe(want)
+				local seen = {}
+				for k = 0, #pool - 1 do
+					local entry = Genome.rollSpecies(tier, (k + 0.5) / #pool, { family.id }) :: any
+					expect(entry.tier).toBe(tier)
+					expect(entry.family == nil or entry.family == family.id).toBe(true)
+					seen[entry.id] = true
+				end
+				for _, entry in pool do
+					expect(seen[entry.id]).toBe(true)
+				end
 			end
 		end
 	end)
@@ -161,33 +180,50 @@ describe("FountainTiers: drops", function()
 		return out
 	end
 
-	it("without a pool the sequence is exactly the v28 one (no extra rng draws)", function()
-		local a, b, c = drops(nil, 60), drops({}, 60), drops(nil, 60)
-		for i = 1, 60 do
-			expect(a[i].species).toBe(c[i].species)
-			expect(a[i].species).toBe(b[i].species)
-			expect(a[i].tier).toBe(b[i].tier)
-			expect(a[i].mutation).toBe(b[i].mutation)
-			expect(SlimeRoster.get(a[i].species :: string).family).toBeNil()
+	it("without families every drop is Classic", function()
+		for _, slime in drops(nil, 600) do
+			expect(SlimeRoster.get(slime.species :: string).family).toBeNil()
+		end
+		for _, slime in drops({}, 200) do
+			expect(SlimeRoster.get(slime.species :: string).family).toBeNil()
 		end
 	end)
-	it("a full pool turns at most FAMILY_DROP_CHANCE of drops into family types, every family shows up", function()
+	it("families never change the rolled tier: the same seed gives the same tiers and mutations", function()
+		local a, b = drops(nil, 400), drops(FountainTiers.pool(FountainTiers.MAX_TIER), 400)
+		for i = 1, 400 do
+			expect(a[i].tier).toBe(b[i].tier)
+			expect(a[i].mutation).toBe(b[i].mutation)
+		end
+	end)
+	it("a full pool drops every spawning species of the tiers rolled, family slimes at their uniform share", function()
 		local pool = FountainTiers.pool(FountainTiers.MAX_TIER)
 		local seen: { [string]: number } = {}
-		local family, total = 0, 4000
+		local family, total = 0, 6000
 		for _, slime in drops(pool, total) do
-			local f = SlimeRoster.get(slime.species :: string).family
-			if f then
+			local id = slime.species :: string
+			seen[id] = (seen[id] or 0) + 1
+			if SlimeRoster.get(id).family then
 				family += 1
-				seen[f] = (seen[f] or 0) + 1
 			end
 		end
-		-- A family drop at a tier the family has no type at stays Classic, so the share sits below the chance.
-		expect(family / total > 0.1 and family / total <= Config.FAMILY_DROP_CHANCE).toBe(true)
-		for _, id in pool do
-			expect((seen[id] or 0) > 0).toBe(true)
+		-- Every species of Common to Epic shows up in 6000 drops (Legendary+ are too rare to demand).
+		for tier = 1, 4 do
+			for _, entry in Genome.speciesPool(tier, pool) do
+				expect((seen[entry.id] or 0) > 0).toBe(true)
+			end
 		end
-		expect(seen.orchard > seen.frost and seen.frost > seen.starlight).toBe(true) -- weights 5 / 3 / 2
+		-- Expected family share: sum over tiers of P(tier) x family species / all species at that tier.
+		local weights, sum = {}, 0
+		for i, r in Config.RARITIES do
+			weights[i] = r.weight
+			sum += r.weight
+		end
+		local expected = 0
+		for tier = 1, Config.MAX_TIER do
+			local all = #Genome.speciesPool(tier, pool)
+			expected += weights[tier] / sum * (all - #SlimeRoster.forTier(tier)) / all
+		end
+		expect(math.abs(family / total - expected) < 0.03).toBe(true)
 	end)
 	it("only the families of the pool drop", function()
 		for _, slime in drops({ "orchard" }, 600) do
@@ -195,21 +231,19 @@ describe("FountainTiers: drops", function()
 			expect(f == nil or f == "orchard").toBe(true)
 		end
 	end)
-	it("a family's luck makes better rarities likelier", function()
-		local function rare(id: string?): number
-			local rng = Rng.new(5)
-			local n = 0
-			for i = 1, 6000 do
-				local slime = Genome.generate(rng, { id = `s{i}`, luck = FountainTiers.luck(id), family = id })
-				if slime.tier >= 4 then
-					n += 1
-				end
-			end
-			return n
+	it("a locked family never drops", function()
+		for _, slime in drops(FountainTiers.pool(3), 3000) do
+			expect(SlimeRoster.get(slime.species :: string).family ~= "starlight").toBe(true)
 		end
-		expect(rare("starlight") > rare(nil)).toBe(true)
-		expect(FountainTiers.luck(nil)).toBe(1)
-		expect(FountainTiers.luck("nope")).toBe(1)
+	end)
+	it("extra species join only the pool of their own tier", function()
+		local event = SlimeRoster.ofKind("event")[1]
+		expect(event.tier).toBe(SlimeRoster.SECRET_TIER)
+		local secrets = Genome.speciesPool(SlimeRoster.SECRET_TIER, nil, { event })
+		expect(secrets[#secrets].id).toBe(event.id)
+		expect(#secrets).toBe(#SlimeRoster.forTier(SlimeRoster.SECRET_TIER) + 1)
+		expect(#Genome.speciesPool(1, nil, { event })).toBe(#SlimeRoster.forTier(1))
+		expect(Genome.rollSpecies(SlimeRoster.SECRET_TIER, 0.999, nil, { event })).toBe(event)
 	end)
 	it("family drops sell and earn like Classic ones: no multiplier, same tier / size / mutation income", function()
 		local classic = Fixtures.slime("a", 2, { species = "bumble", size = 1.2 })
@@ -241,7 +275,7 @@ describe("FountainTiers: server", function()
 		expect(Spawner.stepFountainTier(world, true)).toBe(false)
 		local told = ServerFixtures.notifications(world, nil)
 		expect(#told).toBe(1)
-		expect(string.find(told[1], "Frost Fountain", 1, true) ~= nil).toBe(true)
+		expect(string.find(told[1], "Frost & Sea Fountain", 1, true) ~= nil).toBe(true)
 		-- the high rank leaves: the fountain keeps its tier
 		world.sessions[2] = nil
 		low.data.rebirths = 0
@@ -261,13 +295,13 @@ describe("FountainTiers: server", function()
 		local plum = Fixtures.slime("p", 2, { species = "prickles" })
 		local classic = Fixtures.slime("c", 2, { species = "bumble" })
 		local merged = Fixtures.slime("m", 4)
-		expect(Carry.familyBlock(0, plum, true)).toBe("Reach Slime Wrangler (3 rebirths) to catch Orchard slimes")
+		expect(Carry.familyBlock(0, plum, true)).toBe("Reach Slime Wrangler (3 rebirths) to catch Garden slimes")
 		expect(Carry.familyBlock(2, plum, true) ~= nil).toBe(true)
 		expect(Carry.familyBlock(3, plum, true)).toBeNil()
 		expect(Carry.familyBlock(0, classic, true)).toBeNil()
 		expect(Carry.familyBlock(0, merged, true)).toBeNil()
 		expect(Carry.familyBlock(5, Fixtures.slime("g", 5, { species = "ninja" }), true)).toBe(
-			"Reach Goo Tycoon (6 rebirths) to catch Frost slimes"
+			"Reach Goo Tycoon (6 rebirths) to catch Frost & Sea slimes"
 		)
 		expect(Carry.familyBlock(0, plum)).toBeNil() -- flag off
 	end)

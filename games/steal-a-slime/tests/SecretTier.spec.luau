@@ -1,5 +1,5 @@
 --!strict
--- Secret slimes: ~1 in 1000 wild spawns, announced to every player with the Secret sound.
+-- Secret slimes: ~1 in 2000 wild spawns, announced to every player with the Secret sound.
 local Config = require("../src/shared/Config")
 local Genome = require("../src/shared/Genome")
 local RareAnnounce = require("../src/ui/RareAnnounce")
@@ -13,20 +13,19 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local T0 = ServerFixtures.T0
 
 describe("Secret spawn rate", function()
-	it("has a weight share of ~0.1 % and leaves the other tiers' relative odds alone", function()
+	it("has a weight share of ~0.05 % on the 52 / 28 / 13 / 5.2 / 1.2 / 0.2 / 0.05 design weights", function()
 		local total = 0
 		for _, r in Config.RARITIES do
 			total += r.weight
 		end
 		local share = Config.RARITIES[Config.SECRET_TIER].weight / total
-		expect(math.abs(share - 0.001) < 0.0001).toBe(true)
-		-- Common : Uncommon : Rare : Epic : Legendary : Mythic is still 52:28:13:5.2:1.45:0.35.
-		local expected = { 52, 28, 13, 5.2, 1.45, 0.35 }
+		expect(math.abs(share - 0.0005) < 0.00005).toBe(true)
+		local expected = { 52, 28, 13, 5.2, 1.2, 0.2, 0.05 }
 		for i, w in expected do
 			expect(Config.RARITIES[i].weight).toBe(w)
 		end
 	end)
-	it("rolls Secret about once per 1000 seeded tier rolls", function()
+	it("rolls Secret about once per 2000 seeded tier rolls", function()
 		local rng = Rng.new(28)
 		local N, secrets = 400000, 0
 		for _ = 1, N do
@@ -35,7 +34,7 @@ describe("Secret spawn rate", function()
 			end
 		end
 		local rate = secrets / N
-		expect(rate > 0.0008 and rate < 0.0012).toBe(true)
+		expect(rate > 0.0003 and rate < 0.0007).toBe(true)
 	end)
 	it("hands Secret rolls a Secret roster species", function()
 		local s = Genome.generate(Rng.new(1), { id = "s", tier = Config.SECRET_TIER })

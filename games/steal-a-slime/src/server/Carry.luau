@@ -17,6 +17,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
+local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
 local FountainTiers = if Shared then require(Shared.FountainTiers) else require("../shared/FountainTiers")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
@@ -37,6 +38,9 @@ type World = World.World
 type Session = World.Session
 
 local Carry = {}
+
+-- Bringing home a wild slime of this tier or higher tells every player (Mythic and Secret).
+Carry.CATCH_ANNOUNCE_TIER = Config.SECRET_TIER - 1
 
 -- Prompt ActionText for a slime as seen by a non-owner.
 function Carry.actionText(price: number?): string
@@ -203,6 +207,14 @@ end
 	victim's Revenge window). A full plot keeps the
 	slime in your arms (and the escape timer keeps running).
 ]]
+-- Server toast when a Mythic or Secret wild slime is brought home ("Merijn caught Cosmo!"), else nil.
+function Carry.catchText(playerName: string, slime: Genome.Slime): string?
+	if slime.tier < Carry.CATCH_ANNOUNCE_TIER then
+		return nil
+	end
+	return `{playerName} caught {slime.name}!`
+end
+
 function Carry.deposit(world: World, userId: number, now: number?): (boolean, string?)
 	local session = World.session(world, userId)
 	local carry = session and session.carry
@@ -244,6 +256,10 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		session.data.stats.caught += 1
 		World.markDirty(session)
 		World.notify(world, userId, `{name} joined your plot!`, "good", "Deposit")
+		local caught = Carry.catchText(session.name, slime)
+		if caught then
+			World.notify(world, nil, caught, "info", nil)
+		end
 		World.effect(world, "Collect", { userId = userId })
 		World.tutorial(world, session, "Deposit")
 		return true, nil
@@ -304,7 +320,7 @@ function Carry.release(world: World, userId: number, now: number, position: any?
 			end
 			World.markAllDirty(world)
 		else
-			wild.expiresAt = now + Config.WILD_LIFETIME
+			wild.expiresAt = now + Fountain.wildLifetime(wild.slime)
 		end
 	end
 	World.markDirty(session)

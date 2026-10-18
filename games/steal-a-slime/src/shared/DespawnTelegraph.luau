@@ -3,7 +3,7 @@
 	DespawnTelegraph (pure, FEATURES.DespawnTelegraph)
 
 	Timing for the wild slime despawn warning. A wild slime still lives until
-	`expiresAt` (WILD_LIFETIME / BOSS_LIFETIME after it spawned); for the last
+	`expiresAt` (Fountain.wildLifetime after it spawned); for the last
 	DESPAWN_TELEGRAPH_SECONDS before that its model carries the attribute
 	DespawnAt (Constants.DESPAWN_AT_ATTRIBUTE) = expiresAt, in server time.
 

@@ -1,6 +1,7 @@
 --!strict
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
+local Fountain = require("../src/shared/Fountain")
 local GameLoop = require("../src/server/GameLoop")
 local ServerFixtures = require("./ServerFixtures")
 local Spawner = require("../src/server/Spawner")
@@ -177,7 +178,7 @@ describe("Spawner and the boss event", function()
 		expect(Spawner.wildCount(world)).toBe(Config.MAX_WILD_SLIMES + Config.BOSS.SHED_COUNT)
 		for _, id in ids do
 			expect(world.wild[id].price).toBe(0)
-			expect(world.wild[id].expiresAt).toBe(T0 + Config.WILD_LIFETIME)
+			expect(world.wild[id].expiresAt).toBe(T0 + Fountain.wildLifetime(world.wild[id].slime))
 		end
 	end)
 end)

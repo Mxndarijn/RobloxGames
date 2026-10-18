@@ -1,4 +1,4 @@
-# §32 Boss event: a server-wide fight, a haul race, a trophy
+# §33 Boss event: a server-wide fight, a haul race, a trophy
 
 Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"` species in `Shared.SlimeRoster`
 (`goozilla`, `queen_jelly` at tier 6, `mecha_goo` at tier 7). It replaces the old "first grab wins" Boss Slime
