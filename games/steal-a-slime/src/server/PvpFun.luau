@@ -103,7 +103,7 @@ local function aimPoint(call: PvpService.UseCall): (Vec?, string?)
 	if PvpRules.inSafeZone(point) then
 		return nil, "safe zone"
 	end
-	return aim, nil -- the Vector3 itself: clients only draw effects at a Vector3 position
+	return aim :: any, nil -- the Vector3 itself: clients only draw effects at a Vector3 position
 end
 
 local function balloon(call: PvpService.UseCall): (boolean, string?)
