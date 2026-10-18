@@ -18,7 +18,9 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local DespawnTelegraph = if Shared then require(Shared.DespawnTelegraph) else require("../shared/DespawnTelegraph")
+local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -33,6 +35,7 @@ export type Entry = {
 	state: SlimeState,
 	ownerUserId: number, -- 0 = wild
 	price: number?, -- wild only
+	income: number, -- cash/sec for the label: the owner's PlayerData.slimeIncome, wild = no rebirths (contract/slime-labels.md)
 	plotIndex: number?, -- Pad / Escaping / (Carried when stolen)
 	pad: number?,
 	carrierUserId: number?,
@@ -66,6 +69,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 			state = state,
 			ownerUserId = 0,
 			price = wild.price,
+			income = Economy.slimeIncome(wild.slime, 0),
 			plotIndex = nil,
 			pad = nil,
 			carrierUserId = carrier,
@@ -103,6 +107,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				state = state,
 				ownerUserId = session.userId,
 				price = nil,
+				income = PlayerData.slimeIncome(session.data, slime),
 				plotIndex = session.plotIndex,
 				pad = slime.pad,
 				carrierUserId = carrier,

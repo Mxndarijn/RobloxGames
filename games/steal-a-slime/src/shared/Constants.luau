@@ -82,7 +82,11 @@ return table.freeze({
 	-- wild slime model: server time it despawns; nil outside the telegraph window / FEATURES.DespawnTelegraph off
 	DESPAWN_AT_ATTRIBUTE = "DespawnAt",
 	GROWTH_ATTRIBUTE = "Growth", -- slime model: whole percent 0..100 (FEATURES.GrowingSlimes)
-	GROWTH_LABEL_NAME = "GrowthLabel", -- BillboardGui on the slime Body
+	LABEL_NAME_ATTRIBUTE = "LabelName", -- slime model: species name for the info card (contract/slime-labels.md)
+	LABEL_TIER_ATTRIBUTE = "LabelTier", -- slime model: Config.RARITIES tier
+	LABEL_MUTATIONS_ATTRIBUTE = "LabelMutations", -- slime model: Genome.mutationsDisplay, nil = none
+	LABEL_INCOME_ATTRIBUTE = "LabelIncome", -- slime model: cash per second of this slime
+	LABEL_HEIGHT_ATTRIBUTE = "LabelHeight", -- slime model: studs from the Body centre to the card's bottom edge
 	GROWTH_OVERRIDE_ATTRIBUTE = "PcwGrowth", -- slime model: Studio-only whole percent shown instead of the real growth (pc-watcher shot)
 	FOUNTAIN_TIER_ATTRIBUTE = "FountainTier", -- workspace: fountain tier 1..4 (FEATURES.FountainTiers, FountainTiers); clients draw the ring / crest / glow from it
 	RARE_SPAWN_ID_ATTRIBUTE = "RareSpawnId", -- workspace: latest rare drop

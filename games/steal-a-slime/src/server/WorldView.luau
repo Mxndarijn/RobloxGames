@@ -35,7 +35,6 @@ local FallbackWorld = require(script.Parent.FallbackWorld)
 local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
-local GrowthLabel = require(script.Parent.GrowthLabel)
 local HabitatPads = require(script.Parent.HabitatPads)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
@@ -53,6 +52,7 @@ local PvpTrap = require(script.Parent.PvpTrap)
 local Rescue = require(script.Parent.Rescue)
 local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local Scene = require(script.Parent.Scene)
+local SlimeLabelView = require(script.Parent.SlimeLabelView)
 local SlimeMesh = require(script.Parent.SlimeMesh)
 local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local StackGuard = require(script.Parent.StackGuard)
@@ -684,7 +684,7 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 		record.prompt.HoldDuration = entry.promptHold
 		-- Every reconcile, not only in place(): the telegraph window opens without a key change.
 		record.model:SetAttribute(Constants.DESPAWN_AT_ATTRIBUTE, entry.despawnAt)
-		GrowthLabel.apply(record.model, record.body, entry.slime)
+		SlimeLabelView.applyGrowth(record.model, entry.slime)
 		if record.key ~= entry.key then
 			local previous = if isNew then nil else record.key
 			record.key = entry.key
@@ -695,6 +695,8 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 				record.model.Parent = workspace:FindFirstChild(Constants.WILD_FOLDER)
 			end
 		end
+		-- After place(): the boss scale is applied there, and the label height is measured on the final scale.
+		SlimeLabelView.apply(record.model, record.body, entry.slime, entry.income)
 	end
 	for id in failed do
 		if not entries[id] then

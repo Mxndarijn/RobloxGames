@@ -1,0 +1,120 @@
+--!strict
+-- Slime info card text (contract/slime-labels.md): name, rarity, income, mutation, price / growth lines,
+-- and the income Scene hands to the label.
+local Config = require("../src/shared/Config")
+local Constants = require("../src/shared/Constants")
+local Economy = require("../src/shared/Economy")
+local Fixtures = require("./Fixtures")
+local PlayerData = require("../src/shared/PlayerData")
+local Scene = require("../src/server/Scene")
+local ServerFixtures = require("./ServerFixtures")
+local SlimeLabel = require("../src/shared/SlimeLabel")
+local Spawner = require("../src/server/Spawner")
+local TestRunner = require("./TestRunner")
+
+local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+local T0 = ServerFixtures.T0
+
+local function attrs(overrides: { [string]: any }?): SlimeLabel.Attributes
+	local a: { [string]: any } = { name = "Lop", tier = 3, income = 1250 }
+	for k, v in overrides or {} do
+		a[k] = v
+	end
+	return a :: any
+end
+
+describe("SlimeLabel.incomeText", function()
+	it("prefixes + and suffixes /s on the shared cash format", function()
+		expect(SlimeLabel.incomeText(1250)).toBe("+$1.25K/s")
+		expect(SlimeLabel.incomeText(12)).toBe("+$12/s")
+		expect(SlimeLabel.incomeText(3.7)).toBe("+$3/s")
+		expect(SlimeLabel.incomeText(2.5e6)).toBe("+$2.5M/s")
+	end)
+	it("shows +$0/s for garbage and negatives", function()
+		expect(SlimeLabel.incomeText(nil)).toBe("+$0/s")
+		expect(SlimeLabel.incomeText(0 / 0)).toBe("+$0/s")
+		expect(SlimeLabel.incomeText(-5)).toBe("+$0/s")
+		expect(SlimeLabel.incomeText("12")).toBe("+$0/s")
+	end)
+	it("reports a change only when the shown text changes", function()
+		expect(SlimeLabel.incomeChanged(nil, 5)).toBe(true)
+		expect(SlimeLabel.incomeChanged(1250, 1251)).toBe(false)
+		expect(SlimeLabel.incomeChanged(1250, 1260)).toBe(true)
+		expect(SlimeLabel.incomeChanged(12.1, 12.9)).toBe(false)
+	end)
+end)
+
+describe("SlimeLabel.extraText", function()
+	it("shows the buy price of a priced wild slime", function()
+		expect(SlimeLabel.extraText(500, nil)).toBe("Buy $500")
+		expect(SlimeLabel.extraText(25000, 40)).toBe("Buy $25K")
+	end)
+	it("shows growth on a grown slime, nothing on a free or fresh one", function()
+		expect(SlimeLabel.extraText(nil, 46)).toBe("Growth 46%")
+		expect(SlimeLabel.extraText(0, 0)).toBeNil()
+		expect(SlimeLabel.extraText(nil, nil)).toBeNil()
+	end)
+end)
+
+describe("SlimeLabel.view", function()
+	it("names the species in its rarity colour with the rarity line", function()
+		local v = assert(SlimeLabel.view(attrs()))
+		expect(v.name).toBe("Lop")
+		expect(v.rarity).toBe(Config.RARITIES[3].name)
+		expect(v.rarityColor).toBe(Config.RARITIES[3].color)
+		expect(v.mutation).toBeNil()
+		expect(v.income).toBe("+$1.25K/s")
+		expect(v.extra).toBeNil()
+		expect(SlimeLabel.rows(v)).toBe(3)
+	end)
+	it("adds the mutation tag, the boss prefix and the extra row", function()
+		local v = assert(SlimeLabel.view(attrs({ mutations = "Glow Gold", boss = true, price = 900 })))
+		expect(v.mutation).toBe("Glow Gold")
+		expect(v.name).toBe("BOSS Lop")
+		expect(v.extra).toBe("Buy $900")
+		expect(SlimeLabel.rows(v)).toBe(4)
+	end)
+	it("clamps a garbage tier and returns nil without a name", function()
+		expect(assert(SlimeLabel.view(attrs({ tier = 99 }))).rarity).toBe(Config.RARITIES[Config.MAX_TIER].name)
+		expect(assert(SlimeLabel.view(attrs({ tier = "x" }))).rarity).toBe(Config.RARITIES[1].name)
+		expect(SlimeLabel.view(attrs({ name = "" }))).toBeNil()
+		expect(SlimeLabel.view(attrs({ name = 5 }))).toBeNil()
+	end)
+	it("reads the attribute names from Constants", function()
+		expect(SlimeLabel.ATTRIBUTES.name).toBe(Constants.LABEL_NAME_ATTRIBUTE)
+		expect(SlimeLabel.ATTRIBUTES.income).toBe(Constants.LABEL_INCOME_ATTRIBUTE)
+		expect(SlimeLabel.ATTRIBUTES.growth).toBe(Constants.GROWTH_ATTRIBUTE)
+	end)
+end)
+
+describe("SlimeLabel.attributes", function()
+	it("writes the species name, tier and player-facing mutations", function()
+		local name, tier, mutations =
+			SlimeLabel.attributes(Fixtures.slime("a", 4, { mutation = "Lava", mutations = { "Lava", "Glow" } }))
+		expect(name).toBe("Blorp")
+		expect(tier).toBe(4)
+		expect(mutations).toBe("Syrup Glow")
+	end)
+	it("writes nil mutations for a plain slime", function()
+		local _, _, mutations = SlimeLabel.attributes(Fixtures.slime("a"))
+		expect(mutations).toBeNil()
+	end)
+end)
+
+describe("Scene income for the label", function()
+	it("pad slimes earn with the owner's rebirths, like State SlimeView.income", function()
+		local world = ServerFixtures.world()
+		local slime = Fixtures.slime("a", 3, { size = 1.5, mutation = "Gold" })
+		local session = ServerFixtures.join(world, 1, { slime })
+		session.data.rebirths = 2
+		local e = Scene.describe(world, T0)["a"]
+		expect(e.income).toBe(PlayerData.slimeIncome(session.data, session.data.slimes[1]))
+		expect(e.income > Economy.slimeIncome(session.data.slimes[1], 0)).toBe(true)
+	end)
+	it("wild slimes show their income without rebirths", function()
+		local world = ServerFixtures.world()
+		local id = Spawner.spawnOne(world, T0)
+		local e = Scene.describe(world, T0)[id]
+		expect(e.income).toBe(Economy.slimeIncome(world.wild[id].slime, 0))
+	end)
+end)
