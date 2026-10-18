@@ -2,12 +2,20 @@
   "id": "bug15-sand-grass-blend",
   "todo": "bug 15",
   "kind": "world",
-  "pos": [27.17, 3, 65.60],
-  "look": [24.49, 0, 59.13],
+  "pos": [
+    28.32,
+    3,
+    68.37
+  ],
+  "look": [
+    34.44,
+    0,
+    83.15
+  ],
   "bug_probe": {
     "bug": 15,
     "title": "Sand / grass blend",
-    "summary": "visual only: plaza sand feathered ~7 studs into the grass, patchy edge, no hard ring"
+    "summary": "visual only: sand yard meets the grass lawn (was: plaza sand feathered into the grass), patchy edge, no hard ring"
   },
-  "note": "bug 15 (visual): the plaza sand / grass feather band at a low angle, seen from the grass between spokes 0 and 1 (azimuth 22.5 deg, camera r 71 on the grass just inside the ring path, look at r 64 on the PLAZA_RADIUS 66 edge) [#270: ground is terrain; retargeted from the spoke midpoint (0, 0, 93), which only showed dirt path and duplicated shot 81]"
+  "note": "bug 15 (visual): the sand / grass edge at a low angle [#318 boardwalk floor: the plaza sand/grass feather band is gone (the whole yard to r 228 is FieldSand, grass is only the 8 wedge lawns r 85.5..99 and the outer band), so the shot is retargeted to the lawn edge: fixed camera on the ring boardwalk (azimuth 22.5 deg between spokes 0 and 1, r 74, eye 3) looking out over the sand strip at the lawn edge (r 90)]"
 }

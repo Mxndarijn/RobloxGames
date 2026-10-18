@@ -2,7 +2,15 @@
   "id": "v29-b5-path-eye-spoke",
   "todo": "v29 B5",
   "kind": "world",
-  "pos": [0.0, 5, 63.0],
-  "look": [0, 0, 93],
-  "note": "v29 B5: spoke path at player eye level, flush with the ground, no raised tile edges [#270: path is terrain now; fixed camera at the spoke 0 (+Z) midpoint (0, 0, 93), ground y 0]"
+  "pos": [
+    0.0,
+    5,
+    63.0
+  ],
+  "look": [
+    0,
+    0,
+    89
+  ],
+  "note": "v29 B5: boardwalk spoke at player eye level, planks flush with the ground, no raised edges [#318 boardwalk: fixed camera down the spoke 0 (+Z) from the plaza deck edge, look at the spoke midpoint beyond the ring (0, 0, 89), ground y 0; the boardwalk is one baked mesh slot (\"Boardwalk\", centred on the hub) so no instance target aims at a spoke]"
 }

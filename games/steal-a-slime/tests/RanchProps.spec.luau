@@ -16,6 +16,7 @@ local RanchProps = require("../src/visuals/shared/RanchProps")
 local TestRunner = require("./TestRunner")
 local WorldBorder = require("../src/visuals/shared/WorldBorder")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
+local YardGen = require("../tools/yard/YardGen")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -228,7 +229,18 @@ describe("ranch props: keep-clear zones", function()
 		for i, a in props do
 			for j = i + 1, #props do
 				local b = props[j]
-				if PropClearance.rectsOverlap(PropClearance.footprint(a), PropClearance.footprint(b), 0.5) then
+				-- yard scenes: a bench or table may stand under a tree's canopy (its footprint), and a fence run's corners join
+				local scene = a.cluster == "yard"
+					and b.cluster == "yard"
+					and (
+						YardGen.isCanopy(a.mesh)
+						or YardGen.isCanopy(b.mesh)
+						or (string.find(a.mesh, "fence") ~= nil and string.find(b.mesh, "fence") ~= nil)
+					)
+				if
+					not scene
+					and PropClearance.rectsOverlap(PropClearance.footprint(a), PropClearance.footprint(b), 0.5)
+				then
 					table.insert(bad, `{a.name} / {b.name}`)
 				end
 			end

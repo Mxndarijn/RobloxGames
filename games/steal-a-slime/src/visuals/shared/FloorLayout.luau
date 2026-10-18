@@ -11,6 +11,7 @@
 	                FieldSand (flat warm sand, r 228): the yard the plots stand in. Grass is only the outer border band.
 	  * Map.Paths   PlazaDisc (cream), DeckPlaza (ONE baked mesh: 72 radial planks, inlay, rim), Boardwalk (ONE baked mesh:
 	                the ring, eight spokes, planks and rails) and eight GateRamp blocks up to the plot floor.
+	  * Map.YardPatches   a dozen flat discs on the sand (darker sand, trodden dirt, small grass islands; YardProps.PATCHES).
 	  * Map.Lawns   32 grass blocks: an annular-sector lawn in each of the eight wedges between the spokes (grass accents).
 	Nothing here collides except the gate ramps: the terrain (y = FLOOR_Y) and the invisible Map.Ground floor are the
 	walk surface and the floor parts sit at most TRIM_TOP above it, so there is no trip lip. Decor never queries or touches.
@@ -24,6 +25,8 @@
 	disc, hem, ramps) take SnowCover's light frost and melt first. The baked meshes are tinted by their slot colour (MeshTint),
 	which is their brightest colour, so the frost (a lerp of that colour toward white) brightens every plank.
 ]]
+
+local YardProps = if script then require(script.Parent.YardProps) else require("./YardProps")
 
 export type Node = {
 	name: string,
@@ -107,6 +110,15 @@ FloorLayout.LAWN_R1 = 99
 FloorLayout.LAWN_MARGIN_DEG = 5.7 -- 8.5 studs from a spoke's centre line at r 85.5; the chord blocks' corners keep >= 6.5 (spoke half width 4 + rail 0.8)
 FloorLayout.LAWN_BLOCKS = 4 -- chord blocks per wedge
 FloorLayout.LAWN_STEP = 0.004
+
+-- Yard ground patches (YardProps.PATCHES, from tools/yard): flat discs on the sand, each kind its own height above FieldSand
+-- (0.08) so no two share a depth. They are parts, not meshes; no collision, no query.
+FloorLayout.PATCH_KINDS =
+	table.freeze({
+		dark = table.freeze({ color = { 198, 172, 124 }, material = "Sand", layer = 0.09, snow = "grass" }), -- soft darker sand
+		dirt = table.freeze({ color = { 152, 114, 76 }, material = "Ground", layer = 0.095, snow = "path" }), -- trodden earth
+		grass = table.freeze({ color = { 114, 170, 78 }, material = "Grass", layer = 0.1, snow = "grass" }), -- a small grass island
+	} :: { [string]: { color: { number }, material: string, layer: number, snow: string } })
 
 FloorLayout.SNOW_KIND_ATTRIBUTE = "SnowKind"
 
@@ -244,10 +256,19 @@ function FloorLayout.build(g: Geometry): { Node }
 			table.insert(lawns, FloorLayout.lawnBlock(`Lawn{k + 1}_{i + 1}`, lo, hi, i % 2 == 1))
 		end
 	end
+	local patches: { Node } = {}
+	for _, row in YardProps.PATCHES do
+		local kind = FloorLayout.PATCH_KINDS[row[2]]
+		local a = math.rad(row[3])
+		local node = discNode(row[1], row[5], kind.layer, kind.color, kind.material, kind.snow)
+		node.pos = { math.sin(a) * row[4], top(kind.layer) - 0.1, math.cos(a) * row[4] }
+		table.insert(patches, node)
+	end
 	return {
 		{ name = "Field", class = "Folder", children = field },
 		{ name = "Paths", class = "Folder", children = paths },
 		{ name = "Lawns", class = "Folder", children = lawns },
+		{ name = "YardPatches", class = "Folder", children = patches },
 	}
 end
 
