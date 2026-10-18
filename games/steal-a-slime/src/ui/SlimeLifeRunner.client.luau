@@ -25,7 +25,9 @@
 	must not freeze):
 	  "motor"  the default on a rigged slime (src/visuals/shared/SlimeRig):
 	           SlimeMotor writes the pose to the FaceRoot / SkinRoot Motor6D
-	           Transforms (+ the skin squash). No asset, no Animator.
+	           Transforms (+ the skin squash). No asset, no Animator. A species
+	           mesh with Bones squashes, blinks and moves its accessories
+	           through SlimeBones instead of the skin Size (same LOD tiers).
 	  "anim"   only with Config.FEATURES.SlimeAnimations on AND after a probe
 	           (one LoadAnimation of SlimeIdleSquish, off the select loop) saw
 	           Length > 0: the slime's Animator plays the uploaded
