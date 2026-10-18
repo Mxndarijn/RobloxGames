@@ -151,7 +151,6 @@ describe("MergePreview", function()
 		expect(p.jumpChance).toBe(Config.TRIPLE_MERGE_JUMP_CHANCE)
 		expect(p.mutations).toEqual({ "Glow" })
 		expect(p.size).toBe(math.floor(((1 + 1.3 + 1.1) / 3 + Config.TRIPLE_MERGE_SIZE_BONUS) * 100 + 0.5) / 100)
-		expect(p.discovered).toBe(true)
 	end)
 	it("previews the full load from fewer picks, and the pair vat without a jump", function()
 		local partial = MergePreview.forSlimes({ slime("a", 1) }, nil, nil, 3)
@@ -161,12 +160,40 @@ describe("MergePreview", function()
 		expect(pair.jumpTier).toBeNil()
 		expect(pair.jumpChance).toBe(0)
 	end)
-	it("the top rarity stays put and always rolls a mutation; no recipe matches yet", function()
+	it("the top rarity stays put and always rolls a mutation; no recipe matches", function()
 		local s = { slime("a", Config.MAX_TIER), slime("b", Config.MAX_TIER), slime("c", Config.MAX_TIER) }
 		local p = MergePreview.forSlimes(s)
 		expect(p.tier).toBe(Config.MAX_TIER)
 		expect(p.freshMutationChance).toBe(1)
 		expect(MergePreview.recipeFor(s)).toBeNil()
+	end)
+	it("names a recipe only once its hybrid is found; an undiscovered hit looks like any random merge", function()
+		local picks = {
+			slime("a", 1, { species = "mochi" }),
+			slime("b", 1, { species = "bubbles" }),
+			slime("c", 1, { species = "gummy" }),
+		}
+		local random = MergePreview.forSlimes({ slime("x", 1), slime("y", 1), slime("z", 1) }, { slimes = {} })
+		local hidden = MergePreview.forSlimes(picks, { slimes = {} })
+		expect(hidden).toEqual(MergePreview.forSlimes(picks, nil))
+		expect(hidden.kind).toBe("random")
+		expect(hidden.title).toBe(random.title)
+		expect(hidden.jumpChance).toBe(random.jumpChance)
+		expect(hidden.species).toBeNil()
+
+		local owned = MergePreview.forSlimes(picks, { slimes = { { slime = slime("s", 2, { species = "soda" }) } } })
+		local saved = MergePreview.forSlimes(picks, { slimes = {}, found = { soda = true } })
+		for _, p in { owned, saved } do
+			expect(p.kind).toBe("recipe")
+			expect(p.title).toBe("Soda Pop")
+			expect(p.species).toBe("soda")
+			expect(p.tier).toBe(2)
+			expect(p.jumpTier).toBeNil()
+			expect(p.jumpChance).toBe(0)
+		end
+		-- The pair vat never takes a recipe.
+		local pair = MergePreview.forSlimes({ picks[1], picks[2] }, { found = { soda = true } }, nil, 2)
+		expect(pair.kind).toBe("random")
 	end)
 	it("lists the inherited mutations strongest first, like the merge itself", function()
 		local parents = {

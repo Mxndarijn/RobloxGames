@@ -4,7 +4,8 @@
 
 	Request("Merge", a, b): two owned, not-busy slimes of the same tier become
 	one slime of tier + 1 on the first slime's pad (Shared.Merge.apply).
-	Request("Merge3", a, b, c) and Request("AutoMerge", mask): the 3-slime vat (TripleMerge, MergePlan).
+	Request("Merge3", a, b, c) and Request("AutoMerge", mask): the 3-slime vat (TripleMerge, MergePlan); a merge
+	recipe hit gets its own toast (CONTRACT.md §31).
 	Request("KeepSlime", id, keep): kept slimes are never merged (CONTRACT.md §21.1).
 ]]
 
@@ -12,6 +13,7 @@ local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shar
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Merge = if Shared then require(Shared.Merge) else require("../shared/Merge")
 local MergePlan = if Shared then require(Shared.MergePlan) else require("../shared/MergePlan")
+local MergeRecipes = if Shared then require(Shared.MergeRecipes) else require("../shared/MergeRecipes")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local TripleMerge = if Shared then require(Shared.TripleMerge) else require("../shared/TripleMerge")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -20,6 +22,22 @@ type World = World.World
 type Session = World.Session
 
 local MergeVat = {}
+
+local function foundBefore(session: Session): { [string]: boolean }
+	return MergeRecipes.foundOf(session.data.slimes, (session.data :: any).found)
+end
+
+-- One toast per recipe hit in `made` (CONTRACT.md §31): "discovered" the first time the hybrid is found.
+local function recipeToasts(world: World, session: Session, made: { Genome.Slime }, found: { [string]: boolean })
+	for _, child in made do
+		local recipe = if child.species then MergeRecipes.recipeFor(child.species) else nil
+		if recipe then
+			local text = if found[recipe.id] then `You brewed a {child.name}!` else `You discovered {child.name}!`
+			found[recipe.id] = true
+			World.notify(world, session.userId, text, "good", "Rare")
+		end
+	end
+end
 
 function MergeVat.merge(world: World, session: Session, idA: string, idB: string): (boolean, string?)
 	local known = table.clone(session.data.dex)
@@ -47,6 +65,7 @@ end
 -- (TripleMerge.apply: validated first, so a refused merge changes nothing). The child takes the first pad.
 function MergeVat.merge3(world: World, session: Session, ids: { string }): (boolean, string?)
 	local known = table.clone(session.data.dex)
+	local found = foundBefore(session)
 	local ok, result = TripleMerge.apply(session.data, ids, World.busySet(world), world.rng, world.newId())
 	if not ok then
 		return false, result :: string
@@ -62,6 +81,7 @@ function MergeVat.merge3(world: World, session: Session, ids: { string }): (bool
 		"good",
 		"Merge"
 	)
+	recipeToasts(world, session, { child }, found)
 	World.effect(world, "Merge", { plotIndex = session.plotIndex, userId = session.userId })
 	World.tutorial(world, session, "Merge")
 	return true, nil
@@ -81,6 +101,7 @@ function MergeVat.autoMerge(world: World, session: Session, mask: number): (bool
 		return false, "nothing to merge"
 	end
 	local known = table.clone(session.data.dex)
+	local found = foundBefore(session)
 	local made: { Genome.Slime } = {}
 	for _, group in groups do
 		local ok, result = TripleMerge.apply(session.data, group.ids, busy, world.rng, world.newId())
@@ -114,6 +135,7 @@ function MergeVat.autoMerge(world: World, session: Session, mask: number): (bool
 		"good",
 		"Merge"
 	)
+	recipeToasts(world, session, made, found)
 	World.effect(world, "Merge", { plotIndex = session.plotIndex, userId = session.userId })
 	World.tutorial(world, session, "Merge")
 	return true, nil

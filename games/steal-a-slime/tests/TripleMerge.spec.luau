@@ -134,7 +134,8 @@ describe("TripleMerge: recipes, caps and the assist", function()
 	it("a recipe hit gives its hybrid one tier up, never a jump, whatever the seed", function()
 		for _, recipe in MergeRecipes.RECIPES do
 			for seed = 1, 20 do
-				local child = TripleMerge.merge(trio(recipe.tier - 1, recipe.inputs), Rng.new(seed), "x", nil, everything)
+				local child =
+					TripleMerge.merge(trio(recipe.tier - 1, recipe.inputs), Rng.new(seed), "x", nil, everything)
 				expect(child.species).toBe(recipe.id)
 				expect(child.tier).toBe(recipe.tier)
 				expect(child.name).toBe((SlimeRoster.get(recipe.id) :: any).name)
@@ -143,8 +144,7 @@ describe("TripleMerge: recipes, caps and the assist", function()
 	end)
 	it("a random merge never makes a Secret: Mythic x3 gives a Mythic spawn species", function()
 		for seed = 1, 300 do
-			local child =
-				TripleMerge.merge(trio(6, { "cosmo", "cosmo", "cosmo" }), Rng.new(seed), "x", nil, everything)
+			local child = TripleMerge.merge(trio(6, { "cosmo", "cosmo", "cosmo" }), Rng.new(seed), "x", nil, everything)
 			expect(child.tier).toBe(6)
 			expect((SlimeRoster.get(child.species :: string) :: any).kind).toBe("spawn")
 		end
@@ -209,6 +209,37 @@ describe("TripleMerge: recipes, caps and the assist", function()
 		local ok, child = TripleMerge.apply(d, { "a", "b", "c" }, nil, Rng.new(1), "n")
 		expect(ok).toBe(true)
 		expect((child :: Genome.Slime).species).toBe("soda")
+	end)
+end)
+
+describe("TripleMerge: recipe toast", function()
+	local function soda(id: string, species: string)
+		return slime(id, 1, { species = species })
+	end
+	it("a recipe hit says 'discovered' the first time and 'brewed' after", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, {
+			soda("a", "bubbles"),
+			soda("b", "gummy"),
+			soda("c", "mochi"),
+			soda("d", "bubbles"),
+			soda("e", "gummy"),
+			soda("f", "mochi"),
+		})
+		expect((MergeVat.merge3(world, s, { "a", "b", "c" }))).toBe(true)
+		local texts = ServerFixtures.notifications(world, 1)
+		expect(table.find(texts, "You discovered Soda Pop!") ~= nil).toBe(true)
+		expect((MergeVat.merge3(world, s, { "d", "e", "f" }))).toBe(true)
+		texts = ServerFixtures.notifications(world, 1)
+		expect(table.find(texts, "You brewed a Soda Pop!") ~= nil).toBe(true)
+	end)
+	it("a random merge gets no recipe toast", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { soda("a", "gummy"), soda("b", "gummy"), soda("c", "pebble") })
+		expect((MergeVat.merge3(world, s, { "a", "b", "c" }))).toBe(true)
+		for _, text in ServerFixtures.notifications(world, 1) do
+			expect(string.find(text, "discovered", 1, true)).toBeNil()
+		end
 	end)
 end)
 

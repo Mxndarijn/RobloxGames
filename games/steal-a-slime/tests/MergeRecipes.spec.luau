@@ -100,10 +100,12 @@ describe("MergeRecipes: the random fallback", function()
 				expect(entry.kind).toBe("spawn")
 				expect(entry.tier).toBe(tier)
 			end
-			expect(#pool).toBe(#SlimeRoster.forTier(tier) + #SlimeRoster.forTier(tier, "orchard") + #SlimeRoster.forTier(
-				tier,
-				"frost"
-			) + #SlimeRoster.forTier(tier, "starlight"))
+			expect(#pool).toBe(
+				#SlimeRoster.forTier(tier)
+					+ #SlimeRoster.forTier(tier, "orchard")
+					+ #SlimeRoster.forTier(tier, "frost")
+					+ #SlimeRoster.forTier(tier, "starlight")
+			)
 		end
 	end)
 	it("locked families stay out of the pool until the rank opens them", function()

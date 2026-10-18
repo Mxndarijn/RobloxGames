@@ -156,6 +156,32 @@ describe("Merge menu: picking", function()
 	end)
 end)
 
+describe("Merge menu: recipe preview", function()
+	local RECIPE = {
+		view("m1", 1, 1, { species = "mochi" }),
+		view("b1", 1, 1, { species = "bubbles" }),
+		view("g1", 1, 1, { species = "gummy" }),
+	}
+	local function pickRecipe(found: { [string]: boolean }?): any
+		local panel = build()
+		panel.update({ slimes = RECIPE, found = found })
+		tap(panel, "m1")
+		tap(panel, "b1")
+		tap(panel, "g1")
+		return find(panel, "Result")
+	end
+	it("an undiscovered recipe hit previews as a random merge", function()
+		local result = pickRecipe(nil)
+		expect(UiHarness.find(result, "Title").Text).toBe(`Random {Config.RARITIES[2].name} slime`)
+		expect(string.find(UiHarness.find(result, "Odds").Text, "20%", 1, true) ~= nil).toBe(true)
+	end)
+	it("a discovered recipe names the hybrid and drops the jump line", function()
+		local result = pickRecipe({ soda = true })
+		expect(UiHarness.find(result, "Title").Text).toBe("Soda Pop")
+		expect(string.find(UiHarness.find(result, "Odds").Text, "chance:", 1, true)).toBeNil()
+	end)
+end)
+
 describe("Merge menu: merging", function()
 	it("a held Merge sends Merge3 with the slots, then reveals the new slime from State", function()
 		local panel, sent = build()
