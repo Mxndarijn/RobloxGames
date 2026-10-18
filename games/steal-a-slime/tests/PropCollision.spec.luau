@@ -309,7 +309,7 @@ describe("PropCollision against the booted world", function()
 		end
 		expect(n).toBe(22)
 		expect(#volcano.SlideColliders:GetChildren()).toBe(
-			if flags.SlideCollision then (if flags.SlidePCD and flags.FountainSplit then 194 else 270) else 120
+			if flags.SlideCollision then (if flags.SlidePCD and flags.FountainSplit then 132 else 145) else 67
 		)
 	end)
 	it("puts no spawn, plot spawn or other prop's centre inside a collidable prop", function()

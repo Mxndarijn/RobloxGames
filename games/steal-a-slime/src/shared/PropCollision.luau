@@ -182,7 +182,7 @@ add({
 	count = 1,
 	collision = "PreciseConvexDecomposition",
 	now = "flag off: not created",
-	reason = "FEATURES.SlidePCD: the real slide collision (walls, floor, posts, braces); the Fill block + ridge roof and the Skirt stay because the PCD trough is a walkable ramp (docs/COLLISION.md)",
+	reason = "FEATURES.SlidePCD: the real slide collision (walls, posts, braces); the SlideColliders floor slabs stay the smooth walk surface, with the rails and the Skirt (docs/COLLISION.md)",
 	find = { under = FOUNTAIN, names = { "^fountain_split_slide$" }, parts = true },
 	walk = false,
 	flag = { name = "SlidePCD", off = 0 },
@@ -190,13 +190,13 @@ add({
 parts(
 	"fountain_slide_colliders",
 	"jolt",
-	194,
+	132,
 	"colliders",
 	FOUNTAIN .. ".SlideColliders",
 	nil,
-	"on (Fill, wedge roof, JointFill, Skirt; Floor, Joint, Post, Brace retired by FEATURES.SlidePCD)",
-	"solid slide block so nobody enters or climbs the trough; slimes ride it anchored with CanCollide=false (bug #9). Probed by bug09_slide_stand (194 parts with SlideCollision + SlidePCD; 270 with SlidePCD off; the low stretch only, 120, without SlideCollision)",
-	{ walk = false, flag = { name = "SlideCollision", off = 120 } }
+	"on (Floor, Joint, Rail, Skirt; Post, Brace retired by FEATURES.SlidePCD)",
+	"the slide is a walkable ramp: floor slabs on the ride line and a rail each side; slimes ride it anchored with CanCollide=false, so walkers and riders pass through each other (132 parts with SlideCollision + SlidePCD; 145 with SlidePCD off; the low stretch only, 67, without SlideCollision)",
+	{ walk = false, flag = { name = "SlideCollision", off = 67 } }
 )
 mesh(
 	"fountain_emerge",
