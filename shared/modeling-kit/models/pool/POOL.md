@@ -89,3 +89,13 @@ suggestion; the progression design decides the real recipes and tiers). They reu
 features so players can guess the recipe from the Dex silhouette. 3 boss slimes (`kind: "boss"`) are
 huge event slimes; they are modelled in the same 3-stud frame and scaled up in game.
 Lineup: `python tools/slime_pool_sheet.py --roster hybrids.json --title "Hybrids and bosses" --out sheets/pool/slime_hybrids.png`.
+
+## Event Secrets (`secrets.json`)
+7 limited Secrets that each break the pool's look: Gl1tch (corrupted video frame), Doodle (hand-drawn,
+inverted-hull ink outline), Origami (faceted folded paper), Disco (mirror-ball tiles), Skyisle (a floating
+island world), Chrono (hourglass), Kitsune (nine tails). The progression design keeps 3 spawning Secrets,
+so these are meant to rotate: one featured Secret per week or event.
+Doodle's outline relies on single-sided rendering: its hull faces are flipped after `ship()` and tagged
+`ink_hull`. Roblox MeshParts are single-sided (DoubleSided off), so it should show as a rim there too,
+but that is not verified in Studio. `kit/bl_slime_anim.py` culls back faces and shows hulls to camera
+rays only; `--look roblox` in bl_iterate still renders both sides.

@@ -87,7 +87,8 @@ def secondary(name, piv, cen, t, T, hop_u):
     if name.startswith("Ant"):
         return tang + Vector((0, 0.6, 0)), math.radians(14) * math.sin(t * math.tau * 2.0 + ph)
     if name.startswith("Tail"):
-        return Vector((0, 0, 1)), math.radians(22) * math.sin(t * math.tau * 2.0)
+        tp = math.atan2(cen.y - piv.y, cen.x - piv.x)  # several tails: each wags with its own phase
+        return Vector((0, 0, 1)), math.radians(22) * math.sin(t * math.tau * 2.0 + tp * 1.5)
     if name.startswith(("Fin", "Pec")):
         return tang, math.radians(12) * math.sin(t * math.tau * 1.6 + ph)
     if name.startswith(("Tent", "Ribbon", "Band", "Flame")):
@@ -171,6 +172,38 @@ def main():
     nt.links.new(attr.outputs["Color"], bsdf.inputs["Base Color"])
     bsdf.inputs["Roughness"].default_value = 0.35
     bsdf.inputs["Coat Weight"].default_value = 0.25
+    # Roblox MeshParts are single-sided: cull back faces. Inverted-hull ink outlines (face attribute
+    # ink_hull, see slime_doodle.py) show only to camera rays, so they never block light the way a
+    # rasteriser wouldn't either.
+    out = nt.nodes["Material Output"]
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    lp = nt.nodes.new("ShaderNodeLightPath")
+    clear = nt.nodes.new("ShaderNodeBsdfTransparent")
+    body = nt.nodes.new("ShaderNodeMixShader")
+    nt.links.new(geo.outputs["Backfacing"], body.inputs[0])
+    nt.links.new(bsdf.outputs[0], body.inputs[1])
+    nt.links.new(clear.outputs[0], body.inputs[2])
+    if "ink_hull" in o.data.attributes:
+        tag = nt.nodes.new("ShaderNodeAttribute")
+        tag.attribute_name = "ink_hull"
+        front = nt.nodes.new("ShaderNodeMath"); front.operation = "SUBTRACT"
+        front.inputs[0].default_value = 1.0
+        nt.links.new(geo.outputs["Backfacing"], front.inputs[1])
+        show = nt.nodes.new("ShaderNodeMath"); show.operation = "MULTIPLY"
+        nt.links.new(front.outputs[0], show.inputs[0])
+        nt.links.new(lp.outputs["Is Camera Ray"], show.inputs[1])
+        ink = nt.nodes.new("ShaderNodeEmission"); ink.inputs["Color"].default_value = (0.01, 0.01, 0.015, 1)
+        hull = nt.nodes.new("ShaderNodeMixShader")
+        nt.links.new(show.outputs[0], hull.inputs[0])
+        nt.links.new(clear.outputs[0], hull.inputs[1])
+        nt.links.new(ink.outputs[0], hull.inputs[2])
+        final = nt.nodes.new("ShaderNodeMixShader")
+        nt.links.new(tag.outputs["Fac"], final.inputs[0])
+        nt.links.new(body.outputs[0], final.inputs[1])
+        nt.links.new(hull.outputs[0], final.inputs[2])
+        nt.links.new(final.outputs[0], out.inputs["Surface"])
+    else:
+        nt.links.new(body.outputs[0], out.inputs["Surface"])
     o.data.materials.clear()
     o.data.materials.append(m)
     zs = [v.co.z for v in o.data.vertices]
