@@ -306,7 +306,7 @@ describe("FountainRide: the live server rides every spawned slime", function()
 						expect(f.riding).toBe(true)
 					end
 					-- Riding runs through the lead-in from the slide mouth, and stops once the slime is on the lane
-					if f.t >= track.born + ParadeLane.HOP_SECONDS + LEAD_SECONDS + 0.3 then
+					if f.t >= track.born + ParadeLane.RIDE_SECONDS + LEAD_SECONDS + 0.3 then
 						expect(f.riding).toBeNil()
 					end
 				end
@@ -334,10 +334,10 @@ describe("FountainRide: the live server rides every spawned slime", function()
 		local mouth = PATH[#PATH]
 		for _, track in finished do
 			-- from the slide's end on, every half second of frames moves it along the lead-in / lane
-			local from = track.born + ParadeLane.HOP_SECONDS
+			local from = track.born + ParadeLane.RIDE_SECONDS
 			local frames = {}
 			for _, f in track.frames do
-				if f.t >= from and f.t <= track.born + ParadeLane.HOP_SECONDS + LEAD_SECONDS then
+				if f.t >= from and f.t <= track.born + ParadeLane.RIDE_SECONDS + LEAD_SECONDS then
 					table.insert(frames, f)
 				end
 			end

@@ -23,6 +23,8 @@
 	and allocates no tables. Directions (side push, eyes in, lids out, accessory
 	axes) come from where each bone's part is drawn (drawnAt), so the mesh's
 	import turn needs no special case; turns are about that point too.
+	Slimes never hop on their own (contract/slime-walk.md): the hop terms
+	(hopDt) only show on a hop forced through SlimeMotor's LifeForce hook.
 ]]
 
 local SlimeLife = if script then require(script.Parent.SlimeLife) else require("./SlimeLife")

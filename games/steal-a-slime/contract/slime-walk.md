@@ -37,7 +37,8 @@ When a carry of a wild slime ends (`Carry.release`: the carrier drops it, is sla
    plan's end point).
 5. It stays grabbable the whole way (`Grab` / `Buy $` prompt, `Carry.grab` ends the walk).
 
-A drop spot without numeric `X` / `Z` (tests, a missing character) keeps the old rule: it rests where it was put with
+A drop spot without numeric `X` / `Z` (tests, a missing character), or more than `RETURN_MAX_GAP` studs from the lane
+(off the ground, over the void), keeps the old rule: it rests where it was put with
 a fresh lifetime and expires there. The boss is never on the lane (`boss-event.md`).
 
 ## Escape home

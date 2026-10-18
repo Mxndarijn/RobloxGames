@@ -16,7 +16,8 @@
 
 	Animations: slimes are not rigs and no AnimationIds exist. Every state is
 	the procedural fallback played by the visuals client (VisualsClient step):
-	idle = bob, wobble = tilt (wriggle while Carried), move = Escaping hops.
+	idle = bob, wobble = tilt (wriggle while Carried), move = the walking sway
+	(ui/SlimeLife SWAY; slimes glide, they don't hop: contract/slime-walk.md).
 	The numbers mirror that controller. `animationId` stays nil until an
 	uploaded animation replaces the fallback.
 ]]
@@ -174,7 +175,7 @@ do
 	LOOKS[look.id] = look
 end
 
--- Procedural profiles, same numbers as VisualsClient (bob, tilt, escape hop).
+-- Procedural profiles, same numbers as VisualsClient (bob, tilt) and SlimeLife (walking sway).
 local PROCEDURAL: { [AnimState]: Anim } = {
 	idle = table.freeze({
 		state = "idle" :: AnimState,
@@ -196,9 +197,9 @@ local PROCEDURAL: { [AnimState]: Anim } = {
 		state = "move" :: AnimState,
 		source = "Procedural" :: "Procedural",
 		animationId = nil,
-		slimeState = "Escaping",
-		frequency = 7,
-		amplitude = 1.6,
+		slimeState = "Wild",
+		frequency = 4.4,
+		amplitude = 0.05,
 	}),
 }
 

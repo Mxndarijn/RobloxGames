@@ -6,7 +6,7 @@
 	uploaded animations don't load. No asset, no Animator.
 
 	  SlimeMotor.attach(model, now, rand) -> Motor?   nil unless Body + both Motor6Ds
-	  SlimeMotor.step(motor, now, rand) -> boolean    true on the frame a hop lands
+	  SlimeMotor.step(motor, now, rand) -> boolean    true on the frame a forced hop lands
 	  SlimeMotor.force(motor, kind, now)              "Hop" | "LookLeft" | "LookRight"
 	  SlimeMotor.release(motor)                       Transforms identity, Size back
 

@@ -10,8 +10,9 @@
 	toast RAIN_WARNING_SECONDS before each rain.
 
 	FEATURES.Parade: a wild's spot is a pure function of time left
-	(ParadeLane: ride, hop along the goo lane round the plaza, slide into the
-	goo drain). The world keeps its Fountain.roll angle / radius (the lateral
+	(ParadeLane: ride, glide along the goo lane round the plaza, slide into
+	the goo drain). A dropped slime walks back to the lane and is on it again
+	when it arrives (wild.returning, contract/slime-walk.md). The world keeps its Fountain.roll angle / radius (the lateral
 	offset on the lane); removal stays at expiresAt, and a slime that leaves
 	from the lane emits a "Drained" event (the splash at the drain).
 
@@ -254,6 +255,16 @@ function Spawner.step(world: World, now: number)
 			World.notify(world, nil, "The Slime Rain is over.", "info", nil)
 		end
 		World.markAllDirty(world)
+	end
+
+	-- A dropped slime that walked back to the lane is on it again (ParadeLane.returnPose ends where the lane pose
+	-- at arriveAt starts, contract/slime-walk.md).
+	for id, wild in world.wild do
+		local plan = wild.returning
+		if plan and now >= plan.arriveAt and world.carriedBy[id] == nil then
+			wild.returning = nil
+			wild.position = nil
+		end
 	end
 
 	-- Removal stays at expiresAt; the telegraph (DespawnAt, Scene) only warns before it. The boss leaves through
