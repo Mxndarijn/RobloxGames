@@ -142,17 +142,19 @@ local function upgradeEffect(data: Progress, id: string): number
 	return if def then Perks.upgradeLevel(data, id) * def.step else 0
 end
 
+-- Sum of the bonuses of the first `paid` milestones of `list`.
+local function paidBonus(list: { Config.DexMilestone }, paid: number?): number
+	local total = 0
+	for i = 1, math.clamp(math.floor(paid or 0), 0, #list) do
+		total += list[i].bonus
+	end
+	return total
+end
+
 -- Income bonus from paid SlimeDex milestones of both ladders (0.05 = +5 %).
 function Perks.dexBonus(data: Progress): number
-	local total = 0
-	for _, ladder in
-		{ { Config.DEX_MILESTONES.species, data.speciesRewards }, { Config.DEX_MILESTONES.stamps, data.stampRewards } }
-	do
-		local list, paid = ladder[1] :: { Config.DexMilestone }, ladder[2] :: number?
-		for i = 1, math.clamp(math.floor(tonumber(paid) or 0), 0, #list) do
-			total += list[i].bonus
-		end
-	end
+	local total = paidBonus(Config.DEX_MILESTONES.species, data.speciesRewards)
+		+ paidBonus(Config.DEX_MILESTONES.stamps, data.stampRewards)
 	return total
 end
 

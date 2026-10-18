@@ -16,13 +16,14 @@ local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require
 
 type Data = PlayerData.Data
 
-export type Ladder = "species" | "stamps"
+export type Ladder = string -- "species" | "stamps"
 export type Paid = { ladder: Ladder, count: number, reward: number, bonus: number }
 export type View = { ladder: Ladder, count: number, reward: number, bonus: number, claimed: boolean }
 
 local Collection = {}
 
-Collection.LADDERS = table.freeze({ "species", "stamps" } :: { Ladder })
+local LADDERS: { Ladder } = { "species", "stamps" }
+Collection.LADDERS = table.freeze(LADDERS)
 
 local function list(ladder: Ladder): { Config.DexMilestone }
 	return if ladder == "species" then Config.DEX_MILESTONES.species else Config.DEX_MILESTONES.stamps
@@ -41,8 +42,8 @@ end
 
 -- Pays every reached, unpaid milestone (species ladder first). Returns what was paid.
 function Collection.check(data: Data): { Paid }
-	local out = {}
-	for _, ladder in Collection.LADDERS do
+	local out: { Paid } = {}
+	for _, ladder in LADDERS do
 		local milestones = list(ladder)
 		local have = Collection.progress(data, ladder)
 		local done = Collection.paid(data, ladder)
@@ -56,24 +57,26 @@ function Collection.check(data: Data): { Paid }
 				data.stampRewards = done
 			end
 			PlayerData.earn(data, reward)
-			table.insert(out, { ladder = ladder, count = milestone.count, reward = reward, bonus = milestone.bonus })
+			local paid: Paid = { ladder = ladder, count = milestone.count, reward = reward, bonus = milestone.bonus }
+			table.insert(out, paid)
 		end
 	end
 	return out
 end
 
 function Collection.view(data: Data): { View }
-	local out = {}
-	for _, ladder in Collection.LADDERS do
+	local out: { View } = {}
+	for _, ladder in LADDERS do
 		local done = Collection.paid(data, ladder)
 		for i, milestone in list(ladder) do
-			table.insert(out, {
+			local row: View = {
 				ladder = ladder,
 				count = milestone.count,
 				reward = math.floor(milestone.reward * Economy.rebirthMultiplier(data.rebirths)),
 				bonus = milestone.bonus,
 				claimed = i <= done,
-			})
+			}
+			table.insert(out, row)
 		end
 	end
 	return out
