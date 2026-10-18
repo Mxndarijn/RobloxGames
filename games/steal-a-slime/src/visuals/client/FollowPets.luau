@@ -1,6 +1,6 @@
 --!strict
 --[[
-	FollowPets (VisualsClient module, FEATURES.FollowPets)
+	FollowPets (VisualsClient module)
 
 	Every player whose attribute PetSlimeId (Constants.PET_ATTRIBUTE) is set
 	gets a small client-only copy of that slime trotting behind them. The copy
@@ -15,7 +15,6 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 
 local PetRig = require(script.Parent:WaitForChild("PetRig"))
@@ -85,9 +84,6 @@ local function rootOf(player: Player): BasePart?
 end
 
 function FollowPets.start()
-	if not Config.FEATURES.FollowPets then
-		return
-	end
 	local folder = Instance.new("Folder")
 	folder.Name = "ClientPets"
 	folder.Parent = workspace

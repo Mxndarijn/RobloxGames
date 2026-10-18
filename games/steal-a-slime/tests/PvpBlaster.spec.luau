@@ -183,6 +183,27 @@ describe("Blaster use", function()
 		expect(fire(world, a, EAST, T0 + 1 + 12)).toBe(true)
 		done()
 	end)
+	it("range is measured from the attacker's server position: a far target given by id is a miss", function()
+		local world, a = setup()
+		positions[2] = { X = 220, Y = 3, Z = -150 } -- off the line
+		-- on the line, 1 stud past the 40 stud range plus the hit radius (the shot is a capsule)
+		positions[3] = { X = 200 + 40 + PvpBlasterRules.HIT_RADIUS + 1, Y = 3, Z = -200 }
+		expect(PvpService.use(world, a, "GooBlaster1", 3, nil, T0 + 1, true, env)).toBe(true)
+		local e = events()[1].payload
+		expect(e.target).toBeNil()
+		expect(e.position).toEqual({ X = 240, Y = 3, Z = -200 })
+		expect(PvpBlaster.walkFactor(world.sessions[3], T0 + 1)).toBe(1)
+		done()
+	end)
+	it("a far aim point never extends the shot past the tier's range", function()
+		local world, a = setup()
+		positions[2] = { X = 220, Y = 3, Z = -150 }
+		positions[3] = { X = 260, Y = 3, Z = -200 }
+		expect(fire(world, a, { X = 99999, Y = 3, Z = -200 }, T0 + 1)).toBe(true)
+		expect(events()[1].payload.target).toBeNil()
+		expect(events()[1].payload.position).toEqual({ X = 240, Y = 3, Z = -200 })
+		done()
+	end)
 	it("a target may be given instead of an aim", function()
 		local world, a = setup()
 		expect(PvpService.use(world, a, "GooBlaster1", 3, nil, T0 + 1, true, env)).toBe(true)

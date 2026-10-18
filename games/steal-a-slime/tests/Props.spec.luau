@@ -122,7 +122,7 @@ describe("Props placed by WorldProps", function()
 	end)
 end)
 
-describe("MinimapData (FEATURES.Minimap)", function()
+describe("MinimapData", function()
 	local MinimapData = require("../src/visuals/shared/MinimapData")
 	it("lists the fountain, every plot, the props and the spawn", function()
 		local points = MinimapData.points()

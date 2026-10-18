@@ -150,7 +150,7 @@ function Perks.dexBonus(data: Progress): number
 end
 
 ---------------------------------------------------------------------------
--- Follow-pet passive (FEATURES.PetPassives): derived from the saved favourite, never stored
+-- Follow-pet passive: derived from the saved favourite, never stored
 ---------------------------------------------------------------------------
 
 export type PetPassive = { kind: string, value: number, icon: string, text: string }
@@ -162,10 +162,10 @@ local function mutationCount(slime: any): number
 	return if slime.mutation ~= nil and slime.mutation ~= "None" then 1 else 0
 end
 
--- The favourite slime's perk, or nil with the feature off, no favourite or an unknown tier.
+-- The favourite slime's perk, or nil with no favourite or an unknown tier.
 function Perks.petPassive(data: Progress): PetPassive?
 	local cfg = Config.PET_PASSIVES
-	if not Config.FEATURES.PetPassives or not data.favoriteId or not data.slimes then
+	if not data.favoriteId or not data.slimes then
 		return nil
 	end
 	for _, slime in data.slimes do

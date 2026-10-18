@@ -123,7 +123,7 @@ local function stepPlayers(loop: Loop, t: number)
 		loop.wasRaining = world.raining
 		WorldView.setRain(Spawner.rain(world, t))
 	end
-	WorldView.setBossNextAt(if Config.FEATURES.BossSlime then world.nextBossAt else nil)
+	WorldView.setBossNextAt(world.nextBossAt)
 end
 
 -- Kill plane: every player (loaded or not) who falls off the world goes back up.
@@ -176,7 +176,7 @@ local function frame(loop: Loop)
 		return
 	end
 	loop.lastView = t
-	if Config.FEATURES.DayNight and t - loop.lastClock >= 0.5 then
+	if t - loop.lastClock >= 0.5 then
 		loop.lastClock = t
 		local pinned = if loop.pinClock then Lighting:GetAttribute("PcwClock") else nil
 		Lighting.ClockTime = if type(pinned) == "number" then pinned else DayNight.clockTime(t - loop.world.startedAt)

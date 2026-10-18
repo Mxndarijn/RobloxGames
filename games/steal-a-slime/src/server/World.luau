@@ -116,7 +116,7 @@ export type World = {
 	raining: boolean,
 	rainForcedUntil: number?, -- seconds since start (Progression.rainStatus)
 	rainWarned: boolean, -- the heads-up for the next rain went out
-	nextBossAt: number, -- server time of the next Boss Slime (FEATURES.BossSlime)
+	nextBossAt: number, -- server time of the next Boss Slime
 	bossActive: boolean, -- last Spawner.boss values, so a change pushes State to everyone
 	bossEndsAt: number?,
 	modifier: CycleModifier.Modifier, -- FEATURES.CycleModifier: active dawn / dusk modifier
