@@ -51,7 +51,7 @@ local function handler(call: PvpService.UseCall): (boolean, string?)
 	local session = call.session
 	local list = traps[session] or {}
 	local check = call.ctx.pointOnOwnPlot -- nil = nothing can be placed
-	local onPlot = check ~= nil and PvpTrapRules.validAim(call.aim) and check(session, call.aim)
+	local onPlot = check ~= nil and PvpTrapRules.validAim(call.aim) and check(session, call.aim :: any)
 	local ok, reason = PvpTrapRules.canPlace(call.tool, #list, call.aim, onPlot, true) -- PvpService.use only calls a handler with the flag on
 	if not ok then
 		return false, reason
