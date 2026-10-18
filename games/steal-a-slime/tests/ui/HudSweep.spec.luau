@@ -6,6 +6,8 @@ local fs = require("@lune/fs")
 local Config = require("../../src/shared/Config")
 local Goals = require("../../src/shared/Goals")
 
+local EventSecretBanner = require("../../src/ui/EventSecretBanner")
+local EventSecrets = require("../../src/shared/EventSecrets")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local NextSpawn = require("../../src/ui/NextSpawn")
@@ -48,6 +50,37 @@ describe("HUD banners at the gate viewports", function()
 					h = CHIP_H,
 				})
 			end
+			expect(check.report()).toBe("")
+		end)
+	end
+end)
+
+-- The featured event Secret banner (TextSize 16, wraps): the longest name and countdown fits in two lines.
+local LONGEST_FEATURED = (function()
+	local longest = ""
+	for _, entry in EventSecrets.ROTATION do
+		local text =
+			EventSecretBanner.banner({ id = entry.id, name = entry.name, endsAt = 1000 + 6 * 86400 + 23 * 3600 }, 1000)
+		if text and #text > #longest then
+			longest = text
+		end
+	end
+	return longest
+end)()
+
+describe("featured Secret banner at the gate viewports", function()
+	for _, vp in LayoutAssert.GATE_VIEWPORTS do
+		local s = Layout.screen(vp.w, vp.h)
+		it(`{vp.name}: the longest featured Secret line fits two banner lines`, function()
+			local check = LayoutAssert.new(vp.name, s)
+			check.text({
+				name = "FeaturedSecret",
+				text = LONGEST_FEATURED,
+				size = 16,
+				w = s.banners.w - BANNER_PAD,
+				h = 2 * CHIP_H - 8,
+				wrapped = true,
+			})
 			expect(check.report()).toBe("")
 		end)
 	end

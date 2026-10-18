@@ -7,12 +7,13 @@
 	(Slime Rain from the workspace RainActive / RainEndsAt / RainNextAt attributes, else State.rain; the live
 	server modifier; the friend boost). Hovering an icon with the mouse, or tapping it on touch, opens a tooltip
 	(B8: name, what it does, time left); a second tap or a tap elsewhere closes it. A stack of banners at the
-	top centre (hidden ones collapse): "your slime is being stolen", the Mystery Egg hatch and the events
-	board. The top bar (lock block, Lock, Buy pad, Daily) is gone (B7), and so are the toasts (B6, init.client).
+	top centre (hidden ones collapse): "your slime is being stolen", the Mystery Egg hatch, the events
+	board and this week's featured event Secret (State.featuredSecret). The top bar (lock block, Lock, Buy pad, Daily) is gone (B7), and so are the toasts (B6, init.client).
 	`layout(screen)` from init.client places everything. No boss, rare-drop or weekend notices any more.
 ]]
 
 local EggReveal = require(script.Parent.EggReveal)
+local EventSecretBanner = require(script.Parent.EventSecretBanner)
 local HudClusters = require(script.Parent.HudClusters)
 local ItemIconView = require(script.Parent.ItemIconView)
 local ItemIcons = require(script.Parent.ItemIcons)
@@ -38,6 +39,8 @@ local GREEN = Color3.fromRGB(126, 217, 87)
 local LILAC = Color3.fromRGB(169, 139, 240)
 local BADGE = Color3.fromRGB(43, 27, 77)
 local CHUNKY = Enum.Font.FredokaOne
+-- The featured event Secret banner: a calm week-long line, smaller than the alerts above it.
+local FEATURED_BANNER = table.freeze({ textSize = 16 })
 
 -- A top-light to bottom-dark UIGradient for depth. A UIGradient multiplies the frame's own colour, so the
 -- two stops are grey brightness factors (1 = the colour as is), not colours.
@@ -312,6 +315,9 @@ function Hud.new(parent: Instance, ctx: any)
 	local steal = banner(banners, "StealAlert", Theme.Bad, 1)
 	local egg = banner(banners, "EggReveal", Color3.fromRGB(190, 120, 30), 6)
 	egg.TextSize = 17
+	local featured = banner(banners, "FeaturedSecret", Theme.BgLight, 8)
+	featured.TextSize = FEATURED_BANNER.textSize
+	featured.TextColor3 = Theme.Gold
 	-- The Mystery Egg's item icon sits at the banner's left edge (the text drops its egg emoji).
 	local EGG_ICON = 28
 	local eggPad = egg:FindFirstChildOfClass("UIPadding") :: UIPadding
@@ -604,6 +610,12 @@ function Hud.new(parent: Instance, ctx: any)
 		eggIcon.setActive(eggText ~= nil)
 		if eggText then
 			egg.Text = string.gsub(eggText, "^🥚 ", "")
+		end
+
+		local featuredText = EventSecretBanner.banner(current.featuredSecret, now)
+		featured.Visible = featuredText ~= nil
+		if featuredText then
+			featured.Text = featuredText
 		end
 	end
 

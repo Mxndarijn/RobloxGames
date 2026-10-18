@@ -17,6 +17,7 @@ local Collection = if Shared then require(Shared.Collection) else require("../sh
 local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Weekend = if Shared then require(Shared.Weekend) else require("../shared/Weekend")
+local EventSecrets = if Shared then require(Shared.EventSecrets) else require("../shared/EventSecrets")
 local Goals = if Shared then require(Shared.Goals) else require("../shared/Goals")
 local Quests = if Shared then require(Shared.Quests) else require("../shared/Quests")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
@@ -131,6 +132,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		incomeMultiplier = Perks.incomeMultiplier(data),
 		petPerk = Perks.petPassive(data),
 		weekend = Weekend.view(now),
+		featuredSecret = EventSecrets.view(now),
 		settings = if Config.FEATURES.Audio then AudioSettings.clean(data.settings) else nil,
 		plotSkin = if Config.FEATURES.PlotSkins then PlotSkins.current(data) else nil,
 		plotSkins = if Config.FEATURES.PlotSkins then PlotSkins.view(data) else nil,
