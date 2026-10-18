@@ -57,7 +57,7 @@ local INK = Color3.fromRGB(20, 22, 30)
 local DIM_EYE = Color3.fromRGB(70, 72, 84)
 local DIM_PUPIL = Color3.fromRGB(40, 42, 50)
 
--- Per mutation save id. Lava displays as Syrup (RANCH_RENAME.md).
+-- Per mutation save id. Lava displays as Syrup (docs/archive/RANCH_RENAME.md).
 SlimePreview.FINISHES = table.freeze({
 	Glow = table.freeze({ material = Enum.Material.Neon }),
 	Lava = table.freeze({ reflectance = 0.15 }),

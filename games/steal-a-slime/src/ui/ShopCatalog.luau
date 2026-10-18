@@ -6,7 +6,7 @@
 	(tests/ui/ShopCatalog.spec.luau). Every purchase is `Request(action, ...)`;
 	the client never decides outcomes.
 
-	CONTRACT gaps (UI-CONTRACT-GAPS.md): only "Lock" exists today. The lock
+	CONTRACT gaps (docs/archive/UI-CONTRACT-GAPS.md): only "Lock" exists today. The lock
 	upgrade and Speed Coil use the *expected* actions "BuyLockUpgrade" and
 	"BuySpeedCoil", and read prices from an expected optional `State.shop`:
 

@@ -7,7 +7,7 @@
 	(tests/ui/Daily.spec.luau). The server decides everything: the popup only
 	shows `daily.amount` and calls `Request("Daily")`.
 
-	CONTRACT gap (UI-CONTRACT-GAPS.md): `State.daily.streak` is the streak
+	CONTRACT gap (docs/archive/UI-CONTRACT-GAPS.md): `State.daily.streak` is the streak
 	of the *last* claim, and a missed day resets it, so the client can't tell
 	which day today's claim counts as. `dayOf` derives it from `amount`
 	(= DAILY_BASE × day × rebirthMultiplier, Progression.dailyAmount); a

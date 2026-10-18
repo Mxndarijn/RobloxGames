@@ -21,17 +21,15 @@
 |---|---|---|
 | `src/server`, `src/shared`, `world/`, `scripts/`, `tools/livetest` | Phoenix | Changes to shared names go through `CONTRACT.md` first: commit the contract before the code. |
 | `src/ui`, `tests/ui` | Jolt | Don't edit them from another role. Report findings to Jolt instead. |
-| `src/visuals` | Archer | Don't edit it. `src/visuals/static/*.rbxm` is build-map output: **never `git add` it**. It is not in the Rojo tree, and `world/` is the only map source. |
+| `src/visuals` | Archer | Don't edit it. `src/visuals/static/Map.rbxm` / `Plots.rbxm` are Archer's build-map output: they are tracked, but they are not in the Rojo tree and nothing loads them. `world/` is the only map source. Don't regenerate or `git add` them from another role. |
 
 - Several bots commit to this checkout at the same time. Run `git status` / `git log` before you commit. Stage only your own files by path; never `git add -A`. Run `stylua` only on your own files.
 - Shared modules use `if script then require(script.Parent.X) else require("./X")`, so they run both in Roblox and under Lune. Keep that pattern. Keep pure modules free of Roblox APIs at load time.
 - The client never decides outcomes: it calls `Request` and renders `State`.
 
-## Checks (run from the repo root; toolchain in `rokit.toml`, `rokit install`)
+## Checks (run from `games/steal-a-slime`; toolchain in `rokit.toml`, `rokit install`)
 
 ```sh
-lune run src/visuals/tools/build-map.luau     # Archer's map build (writes untracked src/visuals/static)
-lune run src/visuals/tools/check-map.luau
 rojo build -o build.rbxlx                     # or -o steal-a-slime.rbxl for an upload
 lune run tests                                # unit + LiveBoot + RequirePaths + Members specs
 selene src tests
@@ -41,6 +39,23 @@ scripts/typecheck.sh                          # luau-lsp: fails on src/server + 
 lune run tools/livetest/session build.rbxlx   # stand-in player session on the memory store
 ```
 
+CI: `.github/workflows/pr-checks.yml` runs the list above up to `scripts/typecheck.sh` on every PR that touches this game, plus `lune run scripts/test-flags` with every flag on and every flag off; `cheap-gates.yml` runs the Lune tests and the static UI layout check on every push to `main`. Archer's `lune run src/visuals/tools/build-map.luau` / `check-map.luau` only rebuild and check the unused `src/visuals/static` files; they are not part of the gate.
+
 Cloud stand-in session on a Saved version: `python3 /workspace/roblox/live-testing/ci/run.py tools/livetest/cloud/session.luau --version N`. Results go to `tools/livetest/results/`.
 
 `scripts/typecheck.sh` rewrites the dual require pattern to its Roblox branch in a temp copy (luau-lsp can't type if-expression requires), checks it against the Rojo sourcemap and maps the paths back. `--all` makes src/ui and src/visuals errors fatal too.
+
+## Agent coding rules
+
+How to structure code (layers, module and panel templates, recipes, testing policy) is in [ARCHITECTURE.md](ARCHITECTURE.md). Read it before adding a module, an action, a State field, a save version or a flag. The rules that are easiest to get wrong:
+
+- **No history in code.** No version tags (`v28:`), dates, bug or ticket numbers, or "was X, now Y" notes in code, comments or test names. Git and the PR hold history.
+- **One source of truth per value.** World dimensions live in `src/visuals/shared/WorldLayout.luau` (or `Config` for gameplay sizes), tunables in `Config`, shared names in `Constants`. Read them from there; never copy a number into a second file. Docs don't restate defaults either: `Config.FEATURES` is the only place a flag's value is written.
+- **Flags expire.** One release after a `Config.FEATURES` flag goes ON, delete the flag, its OFF branch, its test overrides and its `tests/ForcedFlags.luau` entries. A flag that is staying OFF gets its code deleted.
+- **One DI pattern: `ctx`.** Pass engine access and test overrides in a `ctx` / `Context` argument (see `Actions.Context`). No new module-level `setEnv` / `setSink`-style singletons.
+- **Entry scripts only wire.** `init.server.luau` and `init.client.luau` create remotes, build modules and connect signals. Logic, and Studio-only review fakes, go in their own modules with tests.
+- **One client frame loop.** Per-frame client work hooks into the existing loop in `init.client.luau`, culls by distance and skips off-screen work. A client module's `start()` returns a cleanup function that disconnects everything it made.
+- **UI values from tables.** Colours from `Widgets.Theme`, draw order from `Layout.ZINDEX`, sizes and `TextSize` from `Layout` or a frozen table at the top of the panel. No raw `ZIndex` numbers.
+- **Delete dead code.** When a module's last caller goes, delete the module and its spec in the same PR.
+- **Generated files** are either gitignored or covered by a spec that fails when they are stale (like `tests/StaticWorld.spec.luau` for `world/*.rbxmx`).
+- **Test behaviour, not source text.** Use `Fixtures` / `ServerFixtures` / `UiHarness`. Source-text asserts are only for safety guards (TestHooks, DataStoreMode) and go through one shared helper.
