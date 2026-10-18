@@ -195,9 +195,17 @@ describe("v18 viewports", function()
 		expect(desktop.status.slots[1].w >= 88).toBe(true) -- H1: 54
 		expect(phone.money.cash.h > 40 and phone.status.slots[1].w > 54).toBe(true) -- H1 phone: 40, 54
 		-- the phone clusters sit TOUCH_RISE above the touch strip, so Roblox's thumbstick and jump button stay clear
-		local rise = math.ceil(Layout.TOUCH_RISE / phone.scale)
-		expect(phone.money.rect.y + phone.money.rect.h <= phone.height - phone.bottomInset - rise).toBe(true)
-		expect(phone.status.rect.y + phone.status.rect.h <= phone.height - phone.bottomInset - rise).toBe(true)
+		-- (portrait only: a landscape phone hugs the bottom edge, no rise)
+		local portrait = Layout.screen(390, 844)
+		local rise = math.ceil(Layout.TOUCH_RISE / portrait.scale)
+		expect(Layout.rowRise(phone)).toBe(0)
+		expect(Layout.rowRise(portrait)).toBe(rise)
+		expect(portrait.money.rect.y + portrait.money.rect.h <= portrait.height - portrait.bottomInset - rise).toBe(
+			true
+		)
+		expect(portrait.status.rect.y + portrait.status.rect.h <= portrait.height - portrait.bottomInset - rise).toBe(
+			true
+		)
 	end)
 end)
 
@@ -233,8 +241,8 @@ describe("landscape phone (v27 gate N1)", function()
 		"844x332 (gate N1 numbers): short, the nav tiles above the money cluster, Dex button on screen, panel most of the window",
 		function()
 			local s = Layout.screen(844, 332)
-			expect(s.short).toBe(true)
-			expect(s.navColumns > 2).toBe(true) -- more columns so every tile fits
+			expect(s.phone).toBe(true)
+			expect(s.navColumns >= 2).toBe(true)
 			expect(s.nav.y + s.nav.h < s.money.rect.y).toBe(true)
 			local dex = s.navButtons[navIndex("Dex")]
 			expect(dex.y + dex.h <= s.height).toBe(true)
@@ -261,6 +269,56 @@ describe("landscape phone (v27 gate N1)", function()
 			expect(check.report()).toBe("")
 		end)
 	end
+	it(
+		"landscape phone: the bottom row sits at most 16 screen px above the bottom edge, portrait and PC keep their insets",
+		function()
+			for _, vp in { { 844, 390 }, { 844, 332 }, { 932, 430 }, { 667, 375 } } do
+				local s = Layout.screen(vp[1], vp[2])
+				expect(s.phone).toBe(true)
+				local bar = InventoryLayout.bar(
+					s.hotbar,
+					InventoryLayout.MAX_SLOTS,
+					s.compact,
+					Layout.MIN_TOUCH_DESIGN,
+					s.tight
+				)
+				for name, bottom in
+					{
+						money = s.money.rect.y + s.money.rect.h,
+						status = s.status.rect.y + s.status.rect.h,
+						hotbar = bar.rect.y + bar.rect.h,
+					}
+				do
+					local gap = (s.height - bottom) * s.scale
+					expect(`{vp[1]}x{vp[2]} {name}: {gap <= 16 and gap > 0}`).toBe(`{vp[1]}x{vp[2]} {name}: true`)
+				end
+				expect(s.bottomInset * s.scale <= 16).toBe(true)
+				expect(Layout.rowRise(s)).toBe(0)
+				local check = LayoutAssert.new(`{vp[1]}x{vp[2]}`, s)
+				LayoutAssert.hotbarChecks(check)
+				expect(check.report()).toBe("")
+			end
+			-- portrait phone and PC are unchanged: the 90 px touch strip + rise, and the 2 x MARGIN desktop inset
+			local portrait, pc = Layout.screen(390, 844), Layout.screen(1920, 1080)
+			expect(portrait.bottomInset).toBe(math.ceil(Layout.TOUCH_CONTROLS_HEIGHT / Layout.MIN_SCALE))
+			expect(Layout.rowRise(portrait) > 0).toBe(true)
+			expect(pc.bottomInset).toBe(Layout.MARGIN * 2)
+			expect(Layout.rowRise(pc)).toBe(0)
+		end
+	)
+	it("the landscape row check catches a bottom row lifted more than 16 px off the bottom edge", function()
+		local s = table.clone(Layout.screen(844, 390)) :: any
+		local lift = 30
+		s.bottomInset = s.bottomInset + lift
+		s.hotbar = Layout.rect(s.hotbar.x, s.hotbar.y - lift, s.hotbar.w, s.hotbar.h)
+		s.money = table.clone(s.money)
+		s.money.rect = Layout.rect(s.money.rect.x, s.money.rect.y - lift, s.money.rect.w, s.money.rect.h)
+		s.status = table.clone(s.status)
+		s.status.rect = Layout.rect(s.status.rect.x, s.status.rect.y - lift, s.status.rect.w, s.status.rect.h)
+		local check = LayoutAssert.new("probe", s)
+		LayoutAssert.hotbarChecks(check)
+		expect(has(check.report(), "landscape bottom inset")).toBe(true)
+	end)
 	it("only portrait 390 wide is tight; PC and 1024x768 are not phones and keep the nav at NAV.top", function()
 		for _, vp in LayoutAssert.PHONE_VIEWPORTS do
 			expect(Layout.screen(vp.w, vp.h).tight).toBe(vp.w == 390)

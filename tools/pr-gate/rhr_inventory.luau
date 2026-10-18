@@ -109,13 +109,23 @@ local cases = {
 	-- Speed Coil + stacked consumables, the Luck Potion in hand (slot 5 pressed), no Tool or PvP item selected.
 	{ name = "hotbar-stacks-pc", w = 1920, h = 1080, panel = false, raw = true, stacks = true },
 	{ name = "phone-portrait-panel", w = 390, h = 844, panel = true },
+	-- The money block alone (the real Hud's Money frame moved to the corner of a small viewport), for 2x renders.
+	{
+		name = "money-block-pc",
+		w = 400,
+		h = 190,
+		panel = false,
+		raw = true,
+		moneyOnly = true,
+		layoutAs = { 1920, 1080 },
+	},
 }
 
 local manifest = { topbar = TOPBAR, cases = {} }
 for _, case in cases do
 	-- `raw`: the ScreenGui is exactly w x h (a gate size); otherwise it is the viewport minus the top bar.
 	local gw, gh = case.w, if case.raw then case.h else case.h - TOPBAR
-	local s = Layout.screen(gw, gh)
+	local s = if case.layoutAs then Layout.screen(case.layoutAs[1], case.layoutAs[2]) else Layout.screen(gw, gh)
 	local gui = UiHarness.root()
 	gui.Name = "SlimeUI"
 	local root = Widgets.create("Frame", {
@@ -167,6 +177,23 @@ for _, case in cases do
 	})
 	if case.tooltip then
 		hud.showTooltip("Event")
+	end
+	if case.moneyOnly then
+		for _, child in root:GetChildren() do
+			if child.Name ~= "Money" and child.Name ~= "ViewportScale" then
+				child:Destroy()
+			end
+		end
+		local money = root:FindFirstChild("Money")
+		money.Position = UDim2.fromOffset(16, 16)
+		root.Size = UDim2.fromOffset(gw / 2, gh / 2)
+		root.ViewportScale.Scale = 2
+		table.insert(
+			manifest.cases,
+			{ name = case.name, file = `{outDir}/{case.name}.rbxmx`, viewport = { case.w, case.h } }
+		)
+		fs.writeFile(`{outDir}/{case.name}.rbxmx`, roblox.serializeModel({ toReal(gui) }, true))
+		continue
 	end
 	-- Phones: an open menu card spans the nav's width and init.client hides the tiles meanwhile.
 	if not (case.panel and s.compact) then

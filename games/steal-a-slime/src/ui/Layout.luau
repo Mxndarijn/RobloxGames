@@ -131,6 +131,12 @@ Layout.TOUCH_CONTROLS_HEIGHT = 90
 -- thumbstick (bottom-left).
 Layout.TOUCH_RISE = 40
 
+-- Landscape phones (wider than tall, phone-sized): the bottom row sits this many screen px above the bottom
+-- edge instead of clearing the thumbstick / jump button (no rise). The ScreenGui already starts inside the
+-- system safe area (IgnoreGuiInset = false), so a small inset is enough. Gated at <= LANDSCAPE_INSET_MAX.
+Layout.LANDSCAPE_BOTTOM_INSET = 10
+Layout.LANDSCAPE_INSET_MAX = 16
+
 Layout.MARGIN = 12
 Layout.TOP = 12 -- top margin: nav on short screens, the banner stack and the menu card area
 Layout.GAP = 12
@@ -260,15 +266,17 @@ end
 -- (compact) sizes; they are still bigger than the H1 desktop ones.
 Layout.MONEY = table.freeze({
 	w = 360,
-	cw = 196,
-	plate = 84,
-	cplate = 50,
+	cw = 212,
+	plate = 96, -- coin diameter = height of the coin + pill zone (the pill is a little shorter, `padV` each side)
+	cplate = 52,
 	chip = 42,
 	cchip = 26,
-	gap = 5,
-	cgap = 4,
-	icon = 74, -- coin icon on the plate (square)
-	cicon = 44,
+	overlap = 8, -- the chips tuck this far up under the pill's bottom edge
+	coverlap = 5,
+	tab = 12, -- the small rounded tab under the income chip (counts in the block's height)
+	ctab = 7,
+	icon = 96, -- the coin (square)
+	cicon = 52,
 	amountSize = 48,
 	camountSize = 28,
 	chipSize = 21,
@@ -291,22 +299,58 @@ Layout.STATUS = table.freeze({
 
 -- Tight phone row (portrait, 390 px wide: money | hotbar | events share one bottom row): smaller money block
 -- (the two chips stack under the plate) and event slots. Used when Layout.screen sets `tight`.
-Layout.MONEY_TIGHT =
-	table.freeze({ w = 124, plate = 38, chip = 20, gap = 3, icon = 28, amountSize = 18, chipSize = 11 })
+Layout.MONEY_TIGHT = table.freeze({
+	w = 124,
+	plate = 40,
+	chip = 20,
+	overlap = 4,
+	tab = 4,
+	icon = 40,
+	amountSize = 18,
+	chipSize = 11,
+})
 Layout.STATUS_TIGHT = table.freeze({ slot = 40, icon = 28, label = 14, labelSize = 10 })
 
 -- Slot ids, left to right (HudClusters.STATUS_IDS lists the same).
 Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend" })
 
-function Layout.moneyHeight(compact: boolean, tight: boolean?): number
+-- One size class of the money block: coin diameter, chip height, chip overlap under the pill, the tab under
+-- the income chip, and how far the coin protrudes above / below the pill (`pad`).
+export type MoneyMetrics = { coin: number, chip: number, overlap: number, tab: number, pad: number }
+function Layout.moneyMetrics(compact: boolean, tight: boolean?): MoneyMetrics
+	local m = Layout.MONEY
 	if tight then
 		local t = Layout.MONEY_TIGHT
-		return t.plate + t.gap * 2 + t.chip * 2
+		return { coin = t.plate, chip = t.chip, overlap = t.overlap, tab = t.tab, pad = math.round(t.plate * 0.08) }
 	end
-	local m = Layout.MONEY
-	return (if compact then m.cplate else m.plate)
-		+ (if compact then m.cgap else m.gap)
-		+ (if compact then m.cchip else m.chip)
+	local d = if compact then m.cplate else m.plate
+	return {
+		coin = d,
+		chip = if compact then m.cchip else m.chip,
+		overlap = if compact then m.coverlap else m.overlap,
+		tab = if compact then m.ctab else m.tab,
+		pad = math.round(d * 0.08),
+	}
+end
+
+-- Where the chips start under the pill: right of the coin; a tight phone has no room, so they start at the
+-- left edge and the coin (drawn above them) overlaps their top-left corner.
+function Layout.moneyChipX(compact: boolean, tight: boolean?): number
+	if tight then
+		return 0
+	end
+	return Layout.moneyMetrics(compact, false).coin + 3
+end
+
+-- Top of the chips, from the top of the block: the pill's bottom edge minus the overlap.
+function Layout.moneyChipTop(compact: boolean, tight: boolean?): number
+	local k = Layout.moneyMetrics(compact, tight)
+	return k.coin - k.pad - k.overlap
+end
+
+function Layout.moneyHeight(compact: boolean, tight: boolean?): number
+	local k = Layout.moneyMetrics(compact, tight)
+	return Layout.moneyChipTop(compact, tight) + k.chip + k.tab
 end
 
 function Layout.moneyWidth(compact: boolean, tight: boolean?): number
@@ -316,42 +360,51 @@ function Layout.moneyWidth(compact: boolean, tight: boolean?): number
 	return if compact then Layout.MONEY.cw else Layout.MONEY.w
 end
 
--- The money cluster with its bottom-left corner at (x, bottom).
+-- The money cluster with its bottom-left corner at (x, bottom). `cash` is the coin + pill zone; `income`
+-- and `rebirths` are the two chips, which overlap the pill's bottom edge (never each other).
 function Layout.moneyCluster(compact: boolean, x: number, bottom: number, tight: boolean?): MoneyHud
-	if tight then
-		local t = Layout.MONEY_TIGHT
-		local h = Layout.moneyHeight(compact, true)
-		local y = bottom - h
-		return {
-			rect = Layout.rect(x, y, t.w, h),
-			cash = Layout.rect(x, y, t.w, t.plate),
-			income = Layout.rect(x, y + t.plate + t.gap, t.w, t.chip),
-			rebirths = Layout.rect(x, y + t.plate + t.gap * 2 + t.chip, t.w, t.chip),
-		}
-	end
-	local m = Layout.MONEY
-	local w = Layout.moneyWidth(compact)
-	local plate = if compact then m.cplate else m.plate
-	local chip = if compact then m.cchip else m.chip
-	local gap = if compact then m.cgap else m.gap
-	local h = Layout.moneyHeight(compact)
+	local k = Layout.moneyMetrics(compact, tight)
+	local d, chip = k.coin, k.chip
+	local w = Layout.moneyWidth(compact, tight)
+	local h = Layout.moneyHeight(compact, tight)
 	local y = bottom - h
-	local incomeW = math.floor((w - gap) * 0.52)
+	local chipX = Layout.moneyChipX(compact, tight)
+	local chipY = y + Layout.moneyChipTop(compact, tight)
+	local gap = if tight then 3 else 5
+	local rowW = w - chipX
+	local incomeW = math.floor((rowW - gap) * 0.5)
+	local rebirthW = rowW - gap - incomeW
 	return {
 		rect = Layout.rect(x, y, w, h),
-		cash = Layout.rect(x, y, w, plate),
-		income = Layout.rect(x, y + plate + gap, incomeW, chip),
-		rebirths = Layout.rect(x + incomeW + gap, y + plate + gap, w - incomeW - gap, chip),
+		cash = Layout.rect(x, y, w, d),
+		income = Layout.rect(x + chipX, chipY, incomeW, chip),
+		rebirths = Layout.rect(x + chipX + incomeW + gap, chipY, rebirthW, chip),
 	}
 end
 
--- Text column of a money box: the plate's amount sits right of the coin, a chip's text right of its
--- icon (Hud builds the same numbers). Returns x offset and width inside the box.
-function Layout.moneyTextBox(box: Rect, isPlate: boolean, compact: boolean, tight: boolean?): (number, number)
-	local m = Layout.MONEY
-	local plateIcon = if tight then Layout.MONEY_TIGHT.icon elseif compact then m.cicon else m.icon
-	local left = if isPlate then plateIcon + (if tight then 8 else 12) else box.h
-	local right = if isPlate then 8 else 6
+-- Width of the small "x5" badge on the rebirths chip.
+function Layout.moneyBadgeWidth(chipH: number): number
+	return math.round(chipH * 0.95)
+end
+
+-- Text column of a money box, as (x offset, width) inside the box (Hud builds the same numbers). "cash": the
+-- amount right of the coin; "income": the chip text between its padding; "rebirths": the count between the
+-- chip's icon and the multiplier badge.
+function Layout.moneyTextBox(
+	box: Rect,
+	kind: "cash" | "income" | "rebirths",
+	compact: boolean,
+	tight: boolean?
+): (number, number)
+	local d = Layout.moneyMetrics(compact, tight).coin
+	if kind == "cash" then
+		local left = d + (if tight then 4 else 8)
+		return left, box.w - left - (if tight then 6 else 10)
+	elseif kind == "income" then
+		return 4, box.w - 8
+	end
+	local left = box.h - 4
+	local right = Layout.moneyBadgeWidth(box.h) + 6
 	return left, box.w - left - right
 end
 
@@ -585,6 +638,15 @@ Layout.MENU_HEIGHTS = table.freeze({
 })
 Layout.BANNER_WIDTH = 560
 
+-- How far the bottom row is lifted off the thumbstick / jump button: phones in portrait and tablets, but not a
+-- landscape phone (it hugs the bottom edge). `s` is a Layout.screen.
+function Layout.rowRise(s: Screen): number
+	if not s.compact or (s.phone and s.width > s.height) then
+		return 0
+	end
+	return math.ceil(Layout.TOUCH_RISE / s.scale)
+end
+
 -- Space kept free at the bottom of the screen (touch controls on phones).
 function Layout.bottomInset(compact: boolean): number
 	return if compact then math.ceil(Layout.TOUCH_CONTROLS_HEIGHT / Layout.MIN_SCALE) else Layout.MARGIN * 2
@@ -725,16 +787,21 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	local W, H = viewportW / scale, viewportH / scale
 	local compact = Layout.isCompact(viewportW, viewportH)
 	local m, gap = Layout.MARGIN, Layout.GAP
-	local inset = Layout.bottomInset(compact)
+	-- Phones (portrait, or landscape under TUTORIAL_SHORT_HEIGHT): the nav grid sits at the very top and the
+	-- money block, the hotbar and the events row share one bottom row (`rowBottom`). Portrait too narrow for
+	-- the full-size row (money + events + a 3-item hotbar) goes `tight`. A tablet-sized compact screen
+	-- (1024x768) is not a phone and keeps the desktop arrangement.
+	local phone = compact and (viewportW < Layout.COMPACT_WIDTH or viewportH < Layout.TUTORIAL_SHORT_HEIGHT)
+	-- Landscape phone: the row hugs the bottom edge (small inset, no rise); portrait phones lift it off the
+	-- thumbstick / jump button.
+	local landscapePhone = phone and viewportW > viewportH
+	local inset = if landscapePhone
+		then math.ceil(Layout.LANDSCAPE_BOTTOM_INSET / scale)
+		else Layout.bottomInset(compact)
 
 	-- Bottom clusters (H1): on the inset line (compact: lifted off the touch controls), bottom-left /
 	-- bottom-right.
-	local rise = if compact then math.ceil(Layout.TOUCH_RISE / scale) else 0
-	-- Phones (portrait, or landscape under TUTORIAL_SHORT_HEIGHT): the nav grid sits at the very top and the
-	-- money block, the hotbar and the events row share one bottom row (`rowBottom`, lifted off the touch
-	-- controls). Portrait too narrow for the full-size row (money + events + a 3-item hotbar) goes `tight`.
-	-- A tablet-sized compact screen (1024x768) is not a phone and keeps the desktop arrangement.
-	local phone = compact and (viewportW < Layout.COMPACT_WIDTH or viewportH < Layout.TUTORIAL_SHORT_HEIGHT)
+	local rise = if compact and not landscapePhone then math.ceil(Layout.TOUCH_RISE / scale) else 0
 	local rowBottom = H - inset - rise
 	local fullRowW = Layout.moneyWidth(compact)
 		+ Layout.statusWidth(compact)
@@ -771,7 +838,9 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	local hotbarBottom = if phone then rowBottom else H - cardInset
 	-- Phones: the tutorial card already clears the row (portrait: the cards sit above it; landscape: the card hugs
 	-- the bottom edge, below the row), so only the desktop arrangement lifts it above the hotbar.
-	local tutorialLift = if phone then 0 else (H - (cardMargin or cardInset)) - (hotbarBottom - hotbarH) + gap
+	local tutorialLift = if phone and not landscapePhone
+		then 0
+		else (H - (cardMargin or cardInset)) - (hotbarBottom - hotbarH) + gap
 	local _, tutorial0, tutorialCarrying0 = bottomCards(fullRow, W, H, cardInset, nil, nil, tutorialLift)
 	local navBottom = if short then money.rect.y - gap else math.min(tutorial0.y, tutorialCarrying0.y) - gap
 	navBottom = math.min(navBottom, money.rect.y - gap)

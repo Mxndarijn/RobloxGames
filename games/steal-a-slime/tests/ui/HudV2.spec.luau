@@ -205,16 +205,23 @@ describe("H1 HUD: bottom-left cluster (mounted Hud)", function()
 		setAttributes()
 		local hud, gui = mount(1920, 1080)
 		hud.update(state())
-		expect(UiHarness.find(UiHarness.find(gui, "Money"), "Value").Text).toBe("$2.37B")
+		-- The coin carries the "$", so the amount shows without it; the income chip reads "+5.93M/s".
+		expect(UiHarness.find(UiHarness.find(gui, "Money"), "Value").Text).toBe("2.37B")
 		local money = UiHarness.find(gui, "Money")
-		expect(UiHarness.find(UiHarness.find(money, "Income"), "Value").Text).toBe("$5.93M/s")
-		expect(UiHarness.find(UiHarness.find(money, "Rebirths"), "Value").Text).toBe("8 x5")
-		expect(UiHarness.find(money, "Icon"):GetAttribute("ItemId")).toBe("Cash")
-		expect(UiHarness.find(UiHarness.find(money, "Income"), "Icon"):GetAttribute("ItemId")).toBe("Income")
-		expect(UiHarness.find(UiHarness.find(money, "Rebirths"), "Icon"):GetAttribute("ItemId")).toBe("Rebirth")
+		expect(UiHarness.find(UiHarness.find(money, "Income"), "Value").Text).toBe("+5.93M/s")
+		local rebirths = UiHarness.find(money, "Rebirths")
+		expect(UiHarness.find(rebirths, "Value").Text).toBe("8")
+		expect(UiHarness.find(UiHarness.find(rebirths, "Multiplier"), "Value").Text).toBe("x5")
+		-- the coin is drawn (the Cash icon is a pile): a face with a "$" sign
+		local coin = UiHarness.find(UiHarness.find(money, "Cash"), "Icon")
+		expect(UiHarness.find(coin, "Sign").Text).toBe("$")
+		expect(UiHarness.find(rebirths, "Icon"):GetAttribute("ItemId")).toBe("Rebirth")
 		hud.update(state({ cash = 12, incomePerSec = 0, rebirths = 1, rebirthMultiplier = 1.5 }))
-		expect(UiHarness.find(UiHarness.find(gui, "Money"), "Value").Text).toBe("$12")
-		expect(UiHarness.find(UiHarness.find(money, "Rebirths"), "Value").Text).toBe("1 x1.5")
+		expect(UiHarness.find(UiHarness.find(gui, "Money"), "Value").Text).toBe("12")
+		expect(UiHarness.find(UiHarness.find(money, "Rebirths"), "Value").Text).toBe("1")
+		expect(UiHarness.find(UiHarness.find(UiHarness.find(money, "Rebirths"), "Multiplier"), "Value").Text).toBe(
+			"x1.5"
+		)
 	end)
 	it("has no top bar any more (B7): no Hud bar, lock block, Lock, Buy pad, Daily, Pads or Shop", function()
 		local _, gui = mount(1920, 1080)
@@ -347,7 +354,7 @@ describe("H1 HUD: nothing new top-right / top-middle", function()
 		end
 		for _, vp in viewports do
 			local s = Layout.screen(vp.w, vp.h)
-			local rise = if s.compact then math.ceil(Layout.TOUCH_RISE / s.scale) else 0
+			local rise = Layout.rowRise(s)
 			local floor = s.height - s.bottomInset - rise
 			expect(`{vp.name} money: {s.money.rect.y + s.money.rect.h == floor}`).toBe(`{vp.name} money: true`)
 			expect(`{vp.name} status: {s.status.rect.y + s.status.rect.h == floor}`).toBe(`{vp.name} status: true`)

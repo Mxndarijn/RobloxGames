@@ -22,7 +22,7 @@ local FriendBadge = if script then require(script.Parent.FriendBadge) else requi
 local ModifierBadge = if script then require(script.Parent.ModifierBadge) else require("./ModifierBadge")
 local RainTimer = if script then require(script.Parent.RainTimer) else require("./RainTimer")
 
-export type Money = { cash: string, income: string, rebirths: string }
+export type Money = { cash: string, income: string, rebirths: string, rebirthCount: string, multiplier: string }
 export type Slot = {
 	id: string, -- "Rain" | "Event" | "Friend"
 	icon: string, -- ItemIcons id
@@ -60,12 +60,15 @@ local function num(value: any): number
 end
 
 function HudClusters.money(state: any): Money
+	local count = tostring(num(state.rebirths))
+	local multiplier =
+		Format.formatMultiplier(if type(state.rebirthMultiplier) == "number" then state.rebirthMultiplier else 1)
 	return {
 		cash = Format.formatCash(num(state.cash)),
 		income = Format.formatRate(num(state.incomePerSec)),
-		rebirths = `{num(state.rebirths)} {Format.formatMultiplier(
-			if type(state.rebirthMultiplier) == "number" then state.rebirthMultiplier else 1
-		)}`,
+		rebirths = `{count} {multiplier}`,
+		rebirthCount = count,
+		multiplier = multiplier,
 	}
 end
 

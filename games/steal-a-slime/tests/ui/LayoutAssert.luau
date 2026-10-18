@@ -259,7 +259,7 @@ function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
 	local s = LayoutAssert.BIG_STATE
 	local compact, tight = screen.compact, screen.tight
 	local out: { TextDesc } = {}
-	local _, cashW = Layout.moneyTextBox(m.cash, true, compact, tight)
+	local _, cashW = Layout.moneyTextBox(m.cash, "cash", compact, tight)
 	table.insert(out, {
 		name = "Money amount",
 		text = Format.formatCash(s.cash),
@@ -275,7 +275,7 @@ function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
 		then Layout.MONEY_TIGHT.chipSize
 		elseif compact then Layout.MONEY.cchipSize
 		else Layout.MONEY.chipSize
-	local _, incomeW = Layout.moneyTextBox(m.income, false, compact, tight)
+	local _, incomeW = Layout.moneyTextBox(m.income, "income", compact, tight)
 	table.insert(out, {
 		name = "Income chip",
 		text = Format.formatRate(s.incomePerSec),
@@ -284,14 +284,23 @@ function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
 		w = incomeW,
 		h = m.income.h,
 	})
-	local _, rebirthW = Layout.moneyTextBox(m.rebirths, false, compact, tight)
+	local _, rebirthW = Layout.moneyTextBox(m.rebirths, "rebirths", compact, tight)
 	table.insert(out, {
 		name = "Rebirths chip",
-		text = `{s.rebirths} {Format.formatMultiplier(s.rebirthMultiplier)}`,
+		text = tostring(s.rebirths),
 		size = chip,
 		bold = true,
 		w = rebirthW,
 		h = m.rebirths.h,
+	})
+	-- the "xN" badge on the chip (Hud: 75 % of the chip text size)
+	table.insert(out, {
+		name = "Rebirths badge",
+		text = Format.formatMultiplier(s.rebirthMultiplier),
+		size = math.max(8, math.round(chip * 0.75)),
+		bold = true,
+		w = Layout.moneyBadgeWidth(m.rebirths.h) - 4,
+		h = math.round(m.rebirths.h * 0.6),
 	})
 	return out
 end
@@ -949,7 +958,7 @@ function LayoutAssert.clusterChecks(check: Checker)
 		table.insert(boxes, { `Status.slot{i}`, slot })
 		check.inside(`Status.slot{i}`, slot, "Status", screen.status.rect)
 	end
-	local rise = if screen.compact then math.ceil(Layout.TOUCH_RISE / screen.scale) else 0
+	local rise = Layout.rowRise(screen)
 	local floor = screen.height - screen.bottomInset - rise
 	for _, box in boxes do
 		local name, r = box[1] :: string, box[2] :: Rect
@@ -961,8 +970,19 @@ function LayoutAssert.clusterChecks(check: Checker)
 	check.inside("Money.cash", screen.money.cash, "Money", screen.money.rect)
 	check.inside("Money.income", screen.money.income, "Money", screen.money.rect)
 	check.inside("Money.rebirths", screen.money.rebirths, "Money", screen.money.rect)
-	check.noOverlap("Money.cash", screen.money.cash, "Money.income", screen.money.income)
-	check.noOverlap("Money.cash", screen.money.cash, "Money.rebirths", screen.money.rebirths)
+	-- The chips are tucked up under the pill's bottom edge: they may enter the coin + pill zone, but by no more
+	-- than the overlap plus the coin's protrusion, and never past its middle.
+	for _, chipBox in { { "Money.income", screen.money.income }, { "Money.rebirths", screen.money.rebirths } } do
+		local name, r = chipBox[1] :: string, chipBox[2] :: Rect
+		local cash = screen.money.cash
+		local intrusion = cash.y + cash.h - r.y
+		local k = Layout.moneyMetrics(screen.compact, screen.tight)
+		if intrusion > k.overlap + k.pad + EPS or intrusion < 0 or r.y < cash.y + cash.h / 2 then
+			check.fail(
+				`{name} {fmt(r)} tucks {intrusion} px into the pill zone {fmt(cash)} (want 0 to {k.overlap + k.pad})`
+			)
+		end
+	end
 	check.noOverlap("Money.income", screen.money.income, "Money.rebirths", screen.money.rebirths)
 	check.noOverlap("Money", screen.money.rect, "Status", screen.status.rect)
 	for _, cluster in { { "Money", screen.money.rect }, { "Status", screen.status.rect } } do
@@ -1062,6 +1082,19 @@ function LayoutAssert.phoneRowChecks(check: Checker, bar: Rect)
 		if math.abs(bottom - bottoms.Hotbar) > LayoutAssert.BOTTOM_ALIGN then
 			check.fail(
 				`{name} bottom {bottom} is not aligned with the hotbar bottom {bottoms.Hotbar} (within {LayoutAssert.BOTTOM_ALIGN} px)`
+			)
+		end
+	end
+	-- Landscape phone: the row hugs the bottom edge. The gap between its bottom and the screen bottom, in
+	-- screen px, is at most Layout.LANDSCAPE_INSET_MAX (16) and the row is not lifted off it (no rise).
+	if screen.width > screen.height then
+		local gapPx = (screen.height - bottoms.Hotbar) * screen.scale
+		if gapPx > Layout.LANDSCAPE_INSET_MAX + EPS or gapPx < 0 then
+			check.fail(`landscape bottom inset {gapPx} px is not within 0 to {Layout.LANDSCAPE_INSET_MAX} px`)
+		end
+		if screen.bottomInset * screen.scale > Layout.LANDSCAPE_INSET_MAX + EPS then
+			check.fail(
+				`landscape bottomInset {screen.bottomInset * screen.scale} px is over {Layout.LANDSCAPE_INSET_MAX} px`
 			)
 		end
 	end
