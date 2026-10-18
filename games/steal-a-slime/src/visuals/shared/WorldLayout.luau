@@ -347,8 +347,8 @@ local function slideKit(t: number): (number, number)
 	return math.cos(th) * r, math.sin(th) * r
 end
 
-local function buildSlide(): { Vec }
-	local samples = 33
+-- The ride line sampled `samples` times (the live ride and the colliders use 33; the kit mesh itself is built from 66).
+local function buildSlide(samples: number): { Vec }
 	local ts, xy = {}, {}
 	for k = 0, samples - 1 do
 		local t = k / (samples - 1)
@@ -376,7 +376,11 @@ local function buildSlide(): { Vec }
 end
 
 WorldLayout.SLIDE_END_RADIUS = SLIDE_REND
-WorldLayout.SLIDE_PATH = table.freeze(buildSlide())
+WorldLayout.SLIDE_PATH = table.freeze(buildSlide(33))
+WorldLayout.KIT_SLIDE_SAMPLES = 66 -- models/slime_fountain.py N: the posts and brackets hang off these samples
+function WorldLayout.slidePath(samples: number): { Vec }
+	return buildSlide(samples)
+end
 
 function WorldLayout.slidePosition(t: number): Vec
 	local path = WorldLayout.SLIDE_PATH

@@ -21,6 +21,8 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local PATH = WorldLayout.SLIDE_PATH
 local Config = require("../src/shared/Config")
 local SPECS = SlideColliders.build(PATH, true)
+-- What the server places: SPECS plus the ground posts and staves brackets (SlideColliders.supports).
+local LIVE = SlideColliders.all(PATH, WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES), true)
 local EPS = 1e-3
 local PLAYER_HEIGHT = 5 -- R15 character, feet to head
 local JUMP_REACH = 7.5 -- a default Roblox jump clears ~7.2 studs; stay above it
@@ -64,7 +66,7 @@ end
 
 local function byName(): { [string]: any }
 	local out = {}
-	for _, spec in SPECS do
+	for _, spec in LIVE do
 		out[spec.name] = spec
 	end
 	return out
@@ -298,12 +300,12 @@ describe("SlideColliders in the live server", function()
 			expect(folder ~= nil).toBe(true)
 			local parts = folder:GetChildren()
 			local fillCount = 0
-			for _, spec in SPECS do
+			for _, spec in LIVE do
 				if spec.kind == "Fill" then
 					fillCount += 1
 				end
 			end
-			expect(#parts).toBe(#SPECS + 2 * fillCount) -- every Fill is the box plus two roof wedges (bug #9)
+			expect(#parts).toBe(#LIVE + 2 * fillCount) -- every Fill is the box plus two roof wedges (bug #9)
 			local names = byName()
 			for _, part in parts do
 				local spec = names[part.Name]

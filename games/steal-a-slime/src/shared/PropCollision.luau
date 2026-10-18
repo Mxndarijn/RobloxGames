@@ -161,13 +161,13 @@ add({
 parts(
 	"fountain_slide_colliders",
 	"jolt",
-	257,
+	270,
 	"colliders",
 	FOUNTAIN .. ".SlideColliders",
 	nil,
-	"on (Floor, Fill, wedge roof, Joint, Skirt)",
-	"solid slide block so nobody enters or climbs the trough; slimes ride it anchored with CanCollide=false (bug #9). Unchanged, probed by bug09_slide_stand (257 parts with FEATURES.SlideCollision, the low stretch only, 113, without)",
-	{ walk = false, flag = { name = "SlideCollision", off = 113 } }
+	"on (Floor, Fill, wedge roof, Joint, Skirt, Post, Brace)",
+	"solid slide block so nobody enters or climbs the trough; slimes ride it anchored with CanCollide=false (bug #9). Unchanged, probed by bug09_slide_stand (270 parts with FEATURES.SlideCollision, the low stretch only, 120, without)",
+	{ walk = false, flag = { name = "SlideCollision", off = 120 } }
 )
 mesh(
 	"fountain_emerge",

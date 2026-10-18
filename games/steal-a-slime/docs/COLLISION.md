@@ -190,7 +190,7 @@ after #11 / #16 / #10):
 - **World decor, signs, podiums, shop stands, vat, barn, loft, windmill, wagons, barrels, crates, stiles:** unchanged, already `Box` /
   `Hull` / `PreciseConvexDecomposition` (see Conversions above). The decor boulders (45) and mushrooms (15) are primitives that
   collide on their own.
-- **Fountain tower (22 colliders), slide colliders (257), StackGuard:** untouched, only inventoried.
+- **Fountain tower (22 colliders), slide colliders (257, 270 since the supports), StackGuard:** untouched, only inventoried.
 
 Left off on purpose (reason per kind in `PropCollision`): meadow grass, flowers and half-sunk pebbles (ground cover), the
 sunflower / pumpkin patches and horseshoe pit (COLLISION.md: patches stay passable), the ritual circle's flat markings, the

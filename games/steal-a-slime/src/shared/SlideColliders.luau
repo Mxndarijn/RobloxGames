@@ -34,7 +34,7 @@ local FountainRide = if script then require(script.Parent.FountainRide) else req
 export type Vec = { number }
 export type Spec = {
 	name: string,
-	kind: "Floor" | "Fill" | "Skirt" | "Joint",
+	kind: "Floor" | "Fill" | "Skirt" | "Joint" | "Post" | "Brace",
 	segment: number, -- path index i of the segment i -> i + 1 (a Joint: of the join at path[i + 1])
 	centre: Vec,
 	forward: Vec, -- unit; CFrame.lookAt(centre, centre + forward)
@@ -57,8 +57,15 @@ SlideColliders.RIDGE_ANGLE = 60 -- degrees: the fill's top is a ridge (roof) who
 SlideColliders.JOINT_MARGIN = 1.5 -- a joint's fill reaches this much further along both segments than the joint floor
 SlideColliders.JOINT_LENGTH = 4 -- joint filler floor: at least this long along the bisector of the two segments it joins
 SlideColliders.OVERLAP = 0.8 -- extra length so neighbouring segments close their joints (0.4 past each join: a pitch change leaves a ledge of at most 0.4 * tan(5 deg))
-SlideColliders.END_EXTRA = 0.175 -- the slide head / mouth end reaches this far past the path
+SlideColliders.END_EXTRA = 0.175 -- the slide head end reaches this far past the path
+SlideColliders.MOUTH_EXTRA = 0.5 -- the mouth end: the kit's end cap is square to the TRUE tangent, the last chord is a few degrees off it, so its far corner is up to 0.4 past a square-ended slab
 SlideColliders.FOLDER = "SlideColliders" -- under Map.Volcano
+SlideColliders.POST_SIDE = 2.3 -- kit supports(): a low post stands this far to each side of the centreline
+SlideColliders.POST_WIDTH = 1.3 -- the kit's 6-sided post is 1.2 across its corners
+SlideColliders.POST_MAX_Y = 9 -- kit supports(): a trough bottom up to here rests on ground posts, above it hangs off the staves
+SlideColliders.BRACE_WIDTH = 1.1 -- the kit's beam is 0.9 wide, its strut 0.8
+SlideColliders.BRACE_DROP = 4.5 -- the strut's foot is this far under the beam
+SlideColliders.BRACE_REACH = 3.4 -- a bracket collider stops this far from the centreline: the fill (4.3 half-width plus the walls) takes over
 
 local function normalize(x: number, y: number, z: number): Vec
 	local len = math.sqrt(x * x + y * y + z * z)
@@ -101,9 +108,9 @@ function SlideColliders.buildRaw(path: { Vec }, full: boolean?): { Spec }
 		local half = SlideColliders.HALF_WIDTH * (1 + 0.2 * m)
 		local mid = { (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, (a[3] + b[3]) / 2 }
 		-- Each slab reaches OVERLAP / 2 past a join; the free ends (the slide head, where the
-		-- slime emerges from below, and the mouth) only END_EXTRA.
+		-- slime emerges from below, and the mouth) only END_EXTRA / MOUTH_EXTRA.
 		local before = if i > 1 then SlideColliders.OVERLAP / 2 else SlideColliders.END_EXTRA
-		local after = if i < n - 1 then SlideColliders.OVERLAP / 2 else SlideColliders.END_EXTRA
+		local after = if i < n - 1 then SlideColliders.OVERLAP / 2 else SlideColliders.MOUTH_EXTRA
 		local long = length + before + after
 		local shift = (after - before) / 2
 		local function at(side: number, lift: number): Vec
@@ -287,6 +294,86 @@ function SlideColliders.contains(outer: Spec, inner: Spec): boolean
 	return true
 end
 
+-- The kit wall_r(z): the stave radius (barrel bulge) the brackets start from.
+local function wallRadius(y: number): number
+	return 11.2 + 0.5 * math.sin(math.pi * math.clamp((y - 2.4) / (30 - 2.4), 0, 1))
+end
+
+-- Colliders for what holds the slide up, which the floor / fill / skirt blocks leave out (the kit's supports()): the ground posts
+-- under a trough bottom between WALK_UNDER and POST_MAX_Y (a lower one is inside its skirt) and, with `full`, every bracket
+-- (beam + strut, from the staves to the slab's edge). `kit` is the ride line sampled like the kit mesh (WorldLayout.slidePath
+-- (KIT_SLIDE_SAMPLES)); the supports sit at the same samples, spaced like the kit does. `base` is build() (a post already held by a
+-- floor or skirt is dropped).
+function SlideColliders.supports(kit: { Vec }, base: { Spec }, full: boolean?): { Spec }
+	local out: { Spec } = {}
+	local n = #kit
+	local last = -99
+	for k = 1, n do
+		local i = k - 1 -- the kit's 0-based sample index
+		if i - last < 6 or i < 5 then
+			continue
+		end
+		last = i
+		local p, a, b = kit[k], kit[math.max(k - 1, 1)], kit[math.min(k + 1, n)]
+		local t = normalize(b[1] - a[1], b[2] - a[2], b[3] - a[3])
+		local lat = normalize(-t[3], 0, t[1])
+		local up = {
+			lat[2] * t[3] - lat[3] * t[2],
+			lat[3] * t[1] - lat[1] * t[3],
+			lat[1] * t[2] - lat[2] * t[1],
+		}
+		local under = {
+			p[1] - up[1] * SlideColliders.FLOOR,
+			p[2] - up[2] * SlideColliders.FLOOR,
+			p[3] - up[3] * SlideColliders.FLOOR,
+		}
+		if under[2] <= SlideColliders.POST_MAX_Y then
+			for _, side in { -1, 1 } do
+				local x = under[1] + lat[1] * side * SlideColliders.POST_SIDE
+				local y = under[2] + lat[2] * side * SlideColliders.POST_SIDE
+				local z = under[3] + lat[3] * side * SlideColliders.POST_SIDE
+				local height = y + 0.2
+				local post: Spec = {
+					name = `SlidePost{i}{if side < 0 then "L" else "R"}`,
+					kind = "Post",
+					segment = k,
+					centre = { x, height / 2, z },
+					forward = { 0, 0, 1 },
+					size = { SlideColliders.POST_WIDTH, height, SlideColliders.POST_WIDTH },
+				}
+				local held = false
+				for _, other in base do
+					if (other.kind == "Floor" or other.kind == "Skirt") and SlideColliders.contains(other, post) then
+						held = true
+						break
+					end
+				end
+				if not held then
+					table.insert(out, post)
+				end
+			end
+		elseif full then
+			local beamY = under[2] - 0.45
+			local radius = math.sqrt(under[1] ^ 2 + under[3] ^ 2)
+			local from, to = wallRadius(beamY) - 0.3, radius - SlideColliders.BRACE_REACH
+			if to > from then
+				local dx, dz = under[1] / radius, under[3] / radius
+				local mid = (from + to) / 2
+				local height = SlideColliders.BRACE_DROP + 0.45
+				table.insert(out, {
+					name = `SlideBrace{i}`,
+					kind = "Brace",
+					segment = k,
+					centre = { dx * mid, beamY + 0.45 - height / 2, dz * mid },
+					forward = { dx, 0, dz },
+					size = { SlideColliders.BRACE_WIDTH, height, to - from },
+				})
+			end
+		end
+	end
+	return out
+end
+
 -- The colliders of build(), minus every skirt that a floor slab already holds whole (the lowest segments,
 -- where the thick floor reaches the ground): the same solid volume in fewer Parts. The segments' boxes
 -- point along a spiral, so no two of them are coplanar and none can be merged; dropping a box that
@@ -307,6 +394,15 @@ function SlideColliders.build(path: { Vec }, full: boolean?): { Spec }
 		if not held then
 			table.insert(out, spec)
 		end
+	end
+	return out
+end
+
+-- Everything the live server places: the solid block (build) plus the supports.
+function SlideColliders.all(path: { Vec }, kit: { Vec }, full: boolean?): { Spec }
+	local out = SlideColliders.build(path, full)
+	for _, spec in SlideColliders.supports(kit, out, full) do
+		table.insert(out, spec)
 	end
 	return out
 end
