@@ -25,23 +25,36 @@ local FUN = {
 	"FunFireworks",
 }
 
-local events: { { target: number?, payload: { [string]: any } } } = {}
+local current: any = nil -- the world of the running test
+local function events(): { ServerFixtures.PvpEvent }
+	return ServerFixtures.pvpEvents(current)
+end
 local positions: { [number]: any } = {}
 local launches: { { userId: number, push: any } } = {}
 local plot = true
 local friends = false
-local env = {
+local env: PvpService.Context = {
 	positionOf = function(userId: number): any?
 		return positions[userId]
 	end,
 	onOwnPlot = function(): boolean
 		return plot
 	end,
+	pointOnOwnPlot = function(): boolean
+		return plot
+	end,
+	launch = function(userId: number, push: any): boolean
+		table.insert(launches, { userId = userId, push = push })
+		return true
+	end,
+	areFriends = function(): boolean
+		return friends
+	end,
 }
 
 local function effects(): { { [string]: any } }
 	local out = {}
-	for _, e in events do
+	for _, e in events() do
 		if e.payload.kind == "Effect" then
 			table.insert(out, e.payload)
 		end
@@ -51,42 +64,24 @@ end
 
 -- a: attacker (rank 20, owns + equips `id`), b: second player.
 local function setup(id: string, rebirths: number?): (any, any, any)
-	events, launches, plot, friends = {}, {}, true, false
+	launches, plot, friends = {}, true, false
 	positions = { [1] = HERE, [2] = NEAR }
-	PvpService.setSink(function(target, payload)
-		table.insert(events, { target = target, payload = payload })
-	end, function()
-		return T0
-	end)
 	PvpFun.reset()
-	PvpFun.setEnv({
-		launcher = function(userId, push)
-			table.insert(launches, { userId = userId, push = push })
-			return true
-		end,
-		onOwnPlot = function()
-			return plot
-		end,
-		areFriends = function()
-			return friends
-		end,
-	})
 	PvpFun.register()
 	local world = ServerFixtures.world()
+	current = world
 	local a = ServerFixtures.join(world, 1, nil, 1e12)
 	local b = ServerFixtures.join(world, 2, nil, 1e12)
 	a.data.rebirths, b.data.rebirths = rebirths or 20, 20
-	PvpService.join(a, T0, true)
-	PvpService.join(b, T0, true)
+	PvpService.join(world, a, T0, true)
+	PvpService.join(world, b, T0, true)
 	expect((PvpService.buy(world, a, id, true))).toBe(true)
 	expect((PvpService.equip(a, id, true))).toBe(true)
 	return world, a, b
 end
 
 local function done()
-	PvpService.setSink(nil)
 	PvpService.registerLine("Fun", nil)
-	PvpFun.setEnv(nil)
 	PvpFun.reset()
 end
 
@@ -152,9 +147,9 @@ describe("Confetti, Bubbles", function()
 		expect(e.itemId).toBe("FunConfetti")
 		expect(e.attacker).toBe(1)
 		expect(e.duration).toBe(Config.PVP.FX_SECONDS)
-		expect(events[1].target).toBeNil()
-		expect(events[#events].payload.kind).toBe("Cooldown")
-		expect(events[#events].target).toBe(1)
+		expect(events()[1].target).toBeNil()
+		expect(events()[#events()].payload.kind).toBe("Cooldown")
+		expect(events()[#events()].target).toBe(1)
 		expect(PvpService.spawnedCount(a)).toBe(0)
 		done()
 	end)
@@ -260,7 +255,7 @@ describe("Hat Launcher", function()
 		expect(select(2, use(world, a, "FunHatLauncher", T0 + 1, 2))).toBe("target is in a safe zone")
 		positions[2] = NEAR
 		b.data.rebirths = 0
-		PvpService.join(b, T0, true)
+		PvpService.join(world, b, T0, true)
 		expect(select(2, use(world, a, "FunHatLauncher", T0 + 1, 2))).toBe("target is shielded")
 		done()
 	end)
@@ -342,7 +337,7 @@ describe("Bounce Pad", function()
 		expect(select(2, use(world, a, "FunBouncePad", T0 + 1))).toBe("only on your plot")
 		plot = true
 		expect(use(world, a, "FunBouncePad", T0 + 1)).toBe(true)
-		local placed = events[1].payload
+		local placed = events()[1].payload
 		expect(placed.kind).toBe("TrapPlaced")
 		expect(placed.itemId).toBe("FunBouncePad")
 		expect(placed.owner).toBe(1)
@@ -357,7 +352,7 @@ describe("Bounce Pad", function()
 		local later = T0 + 1 + Config.PVP.BOUNCE_PAD_SECONDS
 		expect(use(world, a, "FunBouncePad", later)).toBe(true)
 		local cleared = 0
-		for _, e in events do
+		for _, e in events() do
 			if e.payload.kind == "TrapCleared" then
 				cleared += 1
 			end
@@ -371,20 +366,20 @@ describe("Bounce Pad", function()
 			local world, a, b = setup("FunBouncePad")
 			expect(use(world, a, "FunBouncePad", T0 + 1)).toBe(true)
 			-- the owner steps on it
-			PvpFun.tick(a, HERE, T0 + 2)
+			PvpFun.tick(current, a, HERE, T0 + 2, env)
 			expect(#launches).toBe(1)
 			expect(launches[1].userId).toBe(1)
 			expect(launches[1].push.X).toBe(0)
 			expect(launches[1].push.Z).toBe(0)
 			expect(launches[1].push.Y).toBe(25)
-			PvpFun.tick(a, HERE, T0 + 2.5) -- still within the retrigger window
+			PvpFun.tick(current, a, HERE, T0 + 2.5, env) -- still within the retrigger window
 			expect(#launches).toBe(1)
 			-- a visitor without a slime: nothing
-			PvpFun.tick(b, HERE, T0 + 3)
+			PvpFun.tick(current, b, HERE, T0 + 3, env)
 			expect(#launches).toBe(1)
 			-- a thief bounces once, then is immune
 			thief(b)
-			PvpFun.tick(b, HERE, T0 + 4)
+			PvpFun.tick(current, b, HERE, T0 + 4, env)
 			expect(#launches).toBe(2)
 			expect(launches[2].userId).toBe(2)
 			expect(launches[2].push.X).toBe(0)
@@ -398,10 +393,10 @@ describe("Bounce Pad", function()
 			expect(e.duration).toBe(1.2)
 			expect(e.velocity.Y > 0).toBe(true)
 			expect((PvpService.state(b) :: any).controlUntil).toBe(T0 + 4 + 1.2)
-			PvpFun.tick(b, HERE, T0 + 5)
+			PvpFun.tick(current, b, HERE, T0 + 5, env)
 			expect(#launches).toBe(2)
 			-- away from the pad: nothing
-			PvpFun.tick(a, { X = 100, Y = 3, Z = -200 }, T0 + 30)
+			PvpFun.tick(current, a, { X = 100, Y = 3, Z = -200 }, T0 + 30, env)
 			expect(#launches).toBe(2)
 			done()
 		end
@@ -409,9 +404,9 @@ describe("Bounce Pad", function()
 	it("is gone when its owner leaves", function()
 		local world, a, b = setup("FunBouncePad")
 		expect(use(world, a, "FunBouncePad", T0 + 1)).toBe(true)
-		PvpService.leave(a, T0 + 5)
+		PvpService.leave(world, a, T0 + 5)
 		thief(b)
-		PvpFun.tick(b, HERE, T0 + 6)
+		PvpFun.tick(current, b, HERE, T0 + 6, env)
 		expect(#launches).toBe(0)
 		expect(PvpFun.padOf(a)).toBeNil()
 		done()
@@ -421,16 +416,16 @@ end)
 describe("Fun items with the flag off", function()
 	it("refuses with no event, no state, no pad", function()
 		local world, a = setup("FunConfetti", 0)
-		events = {}
+		ServerFixtures.clearEvents(current)
 		for _, id in FUN do
 			local ok, reason = PvpService.use(world, a, id, nil, nil, T0 + 1, false, env)
 			expect(ok).toBe(false)
 			expect(reason).toBe("PvP is not open yet")
 		end
-		expect(#events).toBe(0)
+		expect(#events()).toBe(0)
 		expect(PvpFun.padOf(a)).toBeNil()
 		expect(PvpService.spawnedCount(a)).toBe(0)
-		PvpFun.tick(a, HERE, T0 + 1) -- no pads: a no-op
+		PvpFun.tick(current, a, HERE, T0 + 1, env) -- no pads: a no-op
 		expect(#launches).toBe(0)
 		done()
 	end)

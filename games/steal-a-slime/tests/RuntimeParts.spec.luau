@@ -162,7 +162,7 @@ describe("runtime parts with FEATURES.PvP", function()
 		end
 		expect(PvpService.spawnedCount(session)).toBe(2)
 		expect(#folder:GetDescendants()).toBe(before + 2)
-		PvpService.cleanup(session)
+		PvpService.cleanup(pvpWorld, session)
 		expect(PvpService.spawnedCount(session)).toBe(0)
 		expect(#folder:GetDescendants()).toBe(before)
 	end)

@@ -9,9 +9,8 @@
 	plus `ran` (true once the call got past every guard and was dispatched; the
 	adapter only refreshes the world view then). Never errors.
 
-	`ctx` gives the adapter's world queries:
-	  distanceBetween(userIdA, userIdB) -> number (math.huge if unknown)
-	  positionOf(userId) -> any? (opaque, stored on dropped wild slimes)
+	`ctx` (Context) gives the adapter's world queries, the PvP engine access (PvpService.Context fields) and
+	`features`, the per-call Config.FEATURES overrides tests pass.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -48,16 +47,18 @@ type Session = World.Session
 type Result = Types.RequestResult
 
 export type Context = {
-	distanceBetween: (a: number, b: number) -> number,
-	positionOf: (userId: number) -> any?,
+	distanceBetween: (a: number, b: number) -> number, -- math.huge if unknown
+	positionOf: (userId: number) -> any?, -- opaque, stored on dropped wild slimes; also PvP's positionOf
 	rng: Rng.Rng?, -- Appraise rolls; nil = seeded from the clock and the player
-	audio: boolean?, -- FEATURES.Audio override (tests); nil = Config.FEATURES.Audio
-	plotSkins: boolean?, -- FEATURES.PlotSkins override (tests); nil = Config.FEATURES.PlotSkins
-	mergeVat3: boolean?, -- FEATURES.MergeVat3 override (tests); nil = Config.FEATURES.MergeVat3
-	pvp: boolean?, -- FEATURES.PvP override (tests); nil = Config.FEATURES.PvP
-	onOwnPlot: ((session: Session, userId: number) -> boolean)?, -- UsePvpItem: the target stands on the attacker's plot (nil = never)
-	worldShops: boolean?, -- FEATURES.WorldShops override (tests); nil = Config.FEATURES.WorldShops
-	worldShopsStrict: boolean?, -- FEATURES.WorldShopsStrict override (tests); nil = Config.FEATURES.WorldShopsStrict
+	-- Config.FEATURES overrides by flag name (tests); a flag not listed reads Config.FEATURES.
+	features: { [string]: boolean }?,
+	-- PvP engine access, the fields of PvpService.Context (nil = can't)
+	onOwnPlot: ((session: Session, userId: number) -> boolean)?,
+	pointOnOwnPlot: ((session: Session, point: any) -> boolean)?,
+	launch: ((userId: number, push: any, landing: any?) -> boolean)?,
+	areFriends: ((a: number, b: number, now: number) -> boolean)?,
+	pose: ((userId: number) -> (any?, any?))?,
+	toVector3: ((position: any) -> any)?,
 	-- What the adapter measured for `shopId`: the character's distance to the stand's Counter and whether it is
 	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, strict never applies.
 	shopAccess: ((userId: number, shopId: string) -> ShopGuard.Access)?,
@@ -77,6 +78,16 @@ local function fail(message: string): Result
 end
 
 local OK: Result = table.freeze({ ok = true })
+
+-- Config.FEATURES.<name> for this call: ctx.features overrides it (tests).
+local function feature(ctx: Context, name: string): boolean
+	local override = if ctx.features then ctx.features[name] else nil
+	if override ~= nil then
+		return override
+	end
+	return (Config.FEATURES :: any)[name] == true
+end
+Actions.feature = feature
 
 local function result(ok: boolean, message: string?): Result
 	if ok then
@@ -254,33 +265,21 @@ local function buyUpgrade(world: World, session: Session, id: string): Result
 end
 
 local function merge3(world: World, session: Session, args: { any }, ctx: Context): Result
-	local on = ctx.mergeVat3
-	if on == nil then
-		on = Config.FEATURES.MergeVat3
-	end
-	if not on then
+	if not feature(ctx, "MergeVat3") then
 		return fail("the 3-slime vat is off")
 	end
 	return result(MergeVat.merge3(world, session, { args[1], args[2], args[3] }))
 end
 
 local function autoMerge(world: World, session: Session, mask: number, ctx: Context): Result
-	local on = ctx.mergeVat3
-	if on == nil then
-		on = Config.FEATURES.MergeVat3
-	end
-	if not on then
+	if not feature(ctx, "MergeVat3") then
 		return fail("the 3-slime vat is off")
 	end
 	return result(MergeVat.autoMerge(world, session, mask))
 end
 
 local function equipPlotSkin(world: World, session: Session, id: string, ctx: Context): Result
-	local on = ctx.plotSkins
-	if on == nil then
-		on = Config.FEATURES.PlotSkins
-	end
-	if not on then
+	if not feature(ctx, "PlotSkins") then
 		return fail("plot skins are off")
 	end
 	local ok, reason = PlotSkins.equip(session.data, id)
@@ -293,11 +292,7 @@ local function equipPlotSkin(world: World, session: Session, id: string, ctx: Co
 end
 
 local function setAudioSettings(session: Session, music: number, sfx: number, muted: boolean, ctx: Context): Result
-	local on = ctx.audio
-	if on == nil then
-		on = Config.FEATURES.Audio
-	end
-	if not on then
+	if not feature(ctx, "Audio") then
 		return fail("audio settings are off")
 	end
 	session.data.settings = AudioSettings.clean({ musicVolume = music, sfxVolume = sfx, muted = muted })
@@ -357,20 +352,11 @@ end
 ---------------------------------------------------------------------------
 
 local function worldShopsOn(ctx: Context): boolean
-	if ctx.worldShops ~= nil then
-		return ctx.worldShops
-	end
-	return Config.FEATURES.WorldShops == true
+	return feature(ctx, "WorldShops")
 end
 
 local function strictOn(ctx: Context): boolean
-	if not worldShopsOn(ctx) then
-		return false
-	end
-	if ctx.worldShopsStrict ~= nil then
-		return ctx.worldShopsStrict
-	end
-	return Config.FEATURES.WorldShopsStrict == true
+	return worldShopsOn(ctx) and feature(ctx, "WorldShopsStrict")
 end
 
 local function accessOf(ctx: Context, userId: number, shopId: string): ShopGuard.Access?
@@ -603,11 +589,11 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	elseif action == "UseConsumable" then
 		return useConsumable(world, session, args[1], args[2], now, ctx)
 	elseif action == "BuyPvpItem" then
-		return result(PvpService.buy(world, session, args[1], ctx.pvp))
+		return result(PvpService.buy(world, session, args[1], feature(ctx, "PvP")))
 	elseif action == "EquipPvpItem" then
-		return result(PvpService.equip(session, args[1], ctx.pvp))
+		return result(PvpService.equip(session, args[1], feature(ctx, "PvP")))
 	elseif action == "UsePvpItem" then
-		return result(PvpService.use(world, session, args[1], args[2], args[3], now, ctx.pvp, ctx))
+		return result(PvpService.use(world, session, args[1], args[2], args[3], now, feature(ctx, "PvP"), ctx))
 	elseif action == "BuyEgg" then
 		return result(MysteryEgg.buy(world, session, now))
 	elseif action == "Drop" then

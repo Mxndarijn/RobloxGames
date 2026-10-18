@@ -7,7 +7,7 @@
 	swinger's own position and look vector, picks the nearest carrying thief in reach and in front (BatRules.pickTarget),
 	and routes the hit into the same StealService.slap the button used (reach SLAP_REACH, shared cooldown
 	Session.lastSlapAt with the Squeaky Hammer, drop + bounce home + notifications + StealAlerts FX), then adds a knockback
-	push (PvpKnockbackRules.plan / PvpLaunch through the injectable mover; the victim's client applies the launch from the
+	push (PvpKnockbackRules.plan / PvpLaunch through `ctx.launch`; the victim's client applies the launch from the
 	PvpEvent "Knockback" effect). Swinging at nothing or at a non-thief does nothing with FEATURES.PvP off; with it ON a
 	non-thief on the swinger's own plot is pushed under the glove rules (no damage, ever; Humanoid health is never touched). A whiff never spends the slap cooldown; swings are only rate limited to Config.BAT.SWING_GAP.
 
@@ -29,32 +29,12 @@ local World = if script then require(script.Parent.World) else require("./World"
 
 type Vec = PvpRules.Vec
 
--- Pose of a character: root position and horizontal look vector. nil = no character.
-export type Env = {
-	pose: (userId: number) -> (Vec?, Vec?),
-	-- (userId, push, landing) -> moved; same shape as PvpKnockback.Mover. nil = no knockback, the slap still lands.
-	mover: ((userId: number, push: Vec, landing: Vec) -> boolean)?,
-	-- Is this world position inside the session's own plot (its HomeZone)? nil = no plot, so no non-thief hits (PvP on).
-	onOwnPlot: ((session: World.Session, position: Vec) -> boolean)?,
-}
-
 local BatTool = {}
 
-local env: Env? = nil
 local lastSwing: { [number]: number } = {}
 
 -- The Bat as a Knockback "tool" for PvpKnockbackRules.plan / the PvpEvent itemId.
 local KNOCK_TOOL = { id = "Bat", push = Config.BAT.PUSH, reach = Config.SLAP_REACH } :: any
-
-function BatTool.setEnv(newEnv: Env?)
-	env = newEnv
-	lastSwing = {}
-end
-
--- The current env (a probe swaps its own and restores this one).
-function BatTool.getEnv(): Env?
-	return env
-end
 
 function BatTool.forget(userId: number)
 	lastSwing[userId] = nil
@@ -62,7 +42,8 @@ end
 
 -- Knockback push + FX (PvP limits: capped push, map bounds, control immunity). False = nobody was pushed.
 local function knock(
-	e: Env,
+	world: World.World,
+	ctx: PvpService.Context,
 	session: World.Session,
 	target: World.Session,
 	origin: Vec,
@@ -71,20 +52,21 @@ local function knock(
 	pvp: boolean
 ): boolean
 	local state = PvpService.state(target) -- nil with FEATURES.PvP off
-	if not e.mover or (state and not PvpRules.canControl(state, now)) then
+	local launch = ctx.launch -- nil = no knockback, the slap still lands
+	if not launch or (state and not PvpRules.canControl(state, now)) then
 		return false
 	end
 	if pvp and (PvpRules.inSafeZone(origin) or PvpRules.inSafeZone(targetPosition)) then
 		return false -- with PvP on nobody is launched in or out of a safe zone (the glove rule)
 	end
 	local landing, push = PvpKnockbackRules.plan(KNOCK_TOOL, origin, targetPosition)
-	if not e.mover(target.userId, push, landing) then
+	if not launch(target.userId, push, landing) then
 		return false
 	end
 	if state then
 		PvpRules.applyControl(state, Config.PVP.KNOCKBACK_CONTROL_SECONDS, now)
 	end
-	PvpService.fireEffect({
+	PvpService.fireEffect(world, {
 		attacker = session.userId,
 		target = target.userId,
 		itemId = KNOCK_TOOL.id,
@@ -102,7 +84,9 @@ local function isThief(s: World.Session): boolean
 end
 
 --[[
-	One swing by `session`. Returns (hit, reason): hit = something was hit. `flag` overrides FEATURES.PvP (tests).
+	One swing by `session`. Returns (hit, reason): hit = something was hit. `ctx.pose` gives every character's root
+	and look (nil = no bat), `ctx.pointOnOwnPlot` the own-plot test (nil = no non-thief hits). `flag` overrides
+	FEATURES.PvP (tests).
 	  * A carrying thief in reach (any flag): StealService.slap (reach, shared cooldown, drop, bounce home, notifications,
 	    StealAlerts FX), then the knockback. Exactly one drop and one push per hit.
 	  * Flag OFF, anything else: nothing happens (no damage, no push), (false, "nothing in reach").
@@ -111,9 +95,15 @@ end
 	    knockback only. No damage ever. A thief is always tried first.
 	A whiff never spends the slap cooldown. Never errors for a swing at nothing.
 ]]
-function BatTool.swing(world: World.World, session: World.Session, now: number, flag: boolean?): (boolean, string?)
-	local e = env
-	if not e then
+function BatTool.swing(
+	world: World.World,
+	session: World.Session,
+	now: number,
+	ctx: PvpService.Context,
+	flag: boolean?
+): (boolean, string?)
+	local pose, onOwnPlot = ctx.pose, ctx.pointOnOwnPlot
+	if not pose then
 		return false, "no bat"
 	end
 	local last = lastSwing[session.userId]
@@ -121,7 +111,7 @@ function BatTool.swing(world: World.World, session: World.Session, now: number, 
 		return false, "too fast"
 	end
 	lastSwing[session.userId] = now
-	local origin, look = e.pose(session.userId)
+	local origin, look = pose(session.userId)
 	if not origin or not look then
 		return false, "can't find you"
 	end
@@ -132,13 +122,13 @@ function BatTool.swing(world: World.World, session: World.Session, now: number, 
 	local positions: { [number]: Vec } = {}
 	for userId, other in world.sessions do
 		if userId ~= session.userId then
-			local position = e.pose(userId)
+			local position = pose(userId)
 			if position then
 				positions[userId] = position
 				local entry = { userId = userId, position = position, carrying = true }
 				if isThief(other) then
 					table.insert(thieves, entry)
-				elseif pvp and e.onOwnPlot and e.onOwnPlot(session, position) then
+				elseif pvp and onOwnPlot and onOwnPlot(session, position) then
 					table.insert(others, entry)
 				elseif pvp then
 					table.insert(offPlot, entry)
@@ -153,7 +143,7 @@ function BatTool.swing(world: World.World, session: World.Session, now: number, 
 		if not ok then
 			return false, reason
 		end
-		knock(e, session, target, origin, positions[targetId], now, pvp)
+		knock(world, ctx, session, target, origin, positions[targetId], now, pvp)
 		return true, nil
 	end
 	targetId = BatRules.pickTarget(origin, look, others, session.userId)
@@ -174,7 +164,7 @@ function BatTool.swing(world: World.World, session: World.Session, now: number, 
 	if PvpRules.isShielded(PvpService.state(target), now, target.data.rebirths) then
 		return false, "shielded"
 	end
-	if not knock(e, session, target, origin, targetPosition, now, pvp) then
+	if not knock(world, ctx, session, target, origin, targetPosition, now, pvp) then
 		return false, "can't push right now"
 	end
 	session.lastSlapAt = now

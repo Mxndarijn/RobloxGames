@@ -11,6 +11,9 @@
 	    sessions in data.pvp.played) or the first rebirth, whichever first; stealing ends it for good. The join
 	    lock (JOIN_LOCK_SECONDS) is separate and stays: a shielded player is protected at least as long as it.
 	No code here ever lowers Humanoid health.
+
+	PvpEvents go into world.outbox (World.Event type "PvpEvent"); init.server fires the remote when it drains it.
+	Engine access (positions, plot checks, launches) comes in a `Context` per call, never from module state.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -29,6 +32,7 @@ type Session = World.Session
 ]]
 export type UseCall = {
 	world: World.World,
+	ctx: Context,
 	session: Session,
 	tool: Config.PvpTool,
 	target: Session?, -- the targeted player's session
@@ -38,12 +42,24 @@ export type UseCall = {
 	targetPosition: PvpRules.Vec?,
 }
 export type LineHandler = (call: UseCall) -> (boolean, string?)
-export type Env = {
+-- What PvP needs from the engine. Actions.Context carries these fields (init.server builds one ctx for both);
+-- tests pass fakes. A missing function means "can't": nobody is found, moved or on a plot.
+export type Context = {
+	-- a character's root position; nil = no character
 	positionOf: ((userId: number) -> any?)?,
+	-- the player `userId` stands on `session`'s plot (its HomeZone)
 	onOwnPlot: ((session: Session, userId: number) -> boolean)?,
+	-- the world point lies on `session`'s plot (its HomeZone)
+	pointOnOwnPlot: ((session: Session, point: PvpRules.Vec) -> boolean)?,
+	-- launches a character by `push` (Y = arc); false = not moved
+	launch: ((userId: number, push: PvpRules.Vec, landing: PvpRules.Vec?) -> boolean)?,
+	-- Roblox friends (cached by the adapter)
+	areFriends: ((a: number, b: number, now: number) -> boolean)?,
+	-- root position and horizontal look vector (the Bat picks its target from them)
+	pose: ((userId: number) -> (PvpRules.Vec?, PvpRules.Vec?))?,
+	-- Roblox: Vector3.new for event positions; nil keeps plain tables (Lune)
+	toVector3: ((position: PvpRules.Vec) -> any)?,
 }
--- target = nil sends to every client, else to that userId. Wired to the PvpEvent RemoteEvent by the server.
-export type Sink = (target: number?, payload: { [string]: any }) -> ()
 
 local PvpService = {}
 
@@ -52,33 +68,24 @@ local states: { [Session]: PvpRules.State } = setmetatable({}, { __mode = "k" })
 type Extra = { equipped: string?, shieldSent: number | boolean, zone: string? }
 local extras: { [Session]: Extra } = setmetatable({}, { __mode = "k" }) :: any
 local handlers: { [string]: LineHandler? } = {}
-local sink: Sink? = nil
-local clock: () -> number = os.time
 -- Everything PvP puts in Workspace is tracked here and destroyed by `cleanup` (CONTRACT.md §26.1, zero net parts).
 local spawned: { [Session]: { any } } = setmetatable({}, { __mode = "k" }) :: any
 
 -- Server-side zones (Goo Traps) own no Instance, so they hook the same cleanup (leave, flag off).
-local cleanupHooks: { (session: Session) -> () } = {}
+local cleanupHooks: { (world: World.World, session: Session) -> () } = {}
 
-function PvpService.onCleanup(hook: (session: Session) -> ())
+function PvpService.onCleanup(hook: (world: World.World, session: Session) -> ())
 	table.insert(cleanupHooks, hook)
-end
-
--- Wires the PvpEvent firing (and the server clock for `serverTime`). nil = fire nothing (Lune tests capture).
-function PvpService.setSink(newSink: Sink?, newClock: (() -> number)?)
-	sink = newSink
-	clock = newClock or os.time
 end
 
 local function capitalize(id: string): string
 	return string.upper(string.sub(id, 1, 1)) .. string.sub(id, 2)
 end
 
-local function send(target: number?, payload: { [string]: any }, now: number?)
-	if sink then
-		payload.serverTime = payload.serverTime or now or clock()
-		sink(target, payload)
-	end
+-- Queues a PvpEvent for `target` (nil = every client). The adapter stamps serverTime when `now` is nil.
+local function send(world: World.World, target: number?, payload: { [string]: any }, now: number?)
+	payload.serverTime = payload.serverTime or now
+	World.emit(world, { type = "PvpEvent", userId = target, payload = payload })
 end
 
 -- Later PRs fill the lines (Knockback, Trap, Blaster, Fun). One handler per line; nil unregisters.
@@ -107,9 +114,9 @@ function PvpService.spawnedCount(session: Session?): number
 end
 
 -- Destroys everything PvP spawned for the session (leave, flag off).
-function PvpService.cleanup(session: Session)
+function PvpService.cleanup(world: World.World, session: Session)
 	for _, hook in cleanupHooks do
-		hook(session)
+		hook(world, session)
 	end
 	local list = spawned[session]
 	spawned[session] = nil
@@ -121,23 +128,23 @@ function PvpService.cleanup(session: Session)
 end
 
 -- Effect for every client (FX only). No-op with the flag off.
-function PvpService.fireEffect(payload: { [string]: any }, now: number?, flag: boolean?)
+function PvpService.fireEffect(world: World.World, payload: { [string]: any }, now: number?, flag: boolean?)
 	if not PvpRules.enabled(flag) then
 		return
 	end
 	local event = table.clone(payload)
 	event.kind = "Effect"
-	send(nil, event, now)
+	send(world, nil, event, now)
 end
 
 -- kind = "TrapPlaced" | "TrapCleared"; payload { owner, trapId, itemId, position }. No-op with the flag off.
-function PvpService.fireTrap(kind: string, payload: { [string]: any }, now: number?, flag: boolean?)
+function PvpService.fireTrap(world: World.World, kind: string, payload: { [string]: any }, now: number?, flag: boolean?)
 	if not PvpRules.enabled(flag) then
 		return
 	end
 	local event = table.clone(payload)
 	event.kind = kind
-	send(nil, event, now)
+	send(world, nil, event, now)
 end
 
 function PvpService.enabled(override: boolean?): boolean
@@ -149,14 +156,7 @@ function PvpService.state(session: Session): PvpRules.State?
 	return states[session]
 end
 
--- Called by Sessions.join. `flag` overrides FEATURES.PvP (tests).
-function PvpService.join(session: Session, now: number, flag: boolean?)
-	if not PvpService.enabled(flag) then
-		states[session] = nil
-		extras[session] = nil
-		PvpService.cleanup(session)
-		return
-	end
+local function start(session: Session, now: number)
 	local state = PvpRules.newState()
 	state.joinedAt = now
 	extras[session] = { equipped = nil, shieldSent = false, zone = nil }
@@ -165,6 +165,17 @@ function PvpService.join(session: Session, now: number, flag: boolean?)
 		state.shieldUntil = math.max(ends, session.lockUntil) -- covers the join lock
 	end
 	states[session] = state
+end
+
+-- Called by Sessions.join. `flag` overrides FEATURES.PvP (tests).
+function PvpService.join(world: World.World, session: Session, now: number, flag: boolean?)
+	if not PvpService.enabled(flag) then
+		states[session] = nil
+		extras[session] = nil
+		PvpService.cleanup(world, session)
+		return
+	end
+	start(session, now)
 end
 
 -- Whether the session's player is under the new-player shield now.
@@ -193,17 +204,17 @@ function PvpService.onSteal(session: Session, now: number)
 end
 
 -- Called by Sessions.leave before the save: play time counts towards the shield.
-function PvpService.leave(session: Session, now: number)
+function PvpService.leave(world: World.World, session: Session, now: number)
 	local state = states[session]
 	if not state then
-		PvpService.cleanup(session)
+		PvpService.cleanup(world, session)
 		return
 	end
 	local pvp = session.data.pvp
 	pvp.played = math.clamp(pvp.played + math.max(0, now - state.joinedAt), 0, Config.PVP.NEW_PLAYER_SHIELD_SECONDS)
 	states[session] = nil
 	extras[session] = nil
-	PvpService.cleanup(session)
+	PvpService.cleanup(world, session)
 end
 
 -- The equipped item id (Player attribute PvpEquipped), nil when none or the flag is off.
@@ -217,7 +228,7 @@ local function runtime(session: Session, flag: boolean?): (PvpRules.State?, Extr
 		return nil, nil
 	end
 	if not states[session] then -- flag forced on by a test after join
-		PvpService.join(session, 0, true)
+		start(session, 0)
 	end
 	return states[session], extras[session]
 end
@@ -263,7 +274,7 @@ function PvpService.use(
 	aim: any?,
 	now: number,
 	flag: boolean?,
-	env: Env?
+	ctx: Context
 ): (boolean, string?)
 	local state, extra = runtime(session, flag)
 	if not state or not extra then
@@ -283,7 +294,7 @@ function PvpService.use(
 	if not PvpRules.ready(state, id, now) then
 		return false, "not ready"
 	end
-	local positionOf = env and env.positionOf
+	local positionOf = ctx.positionOf
 	local position = if positionOf then positionOf(session.userId) else nil
 	if not position then
 		return false, "can't find you"
@@ -300,10 +311,7 @@ function PvpService.use(
 			return false, "can't target yourself"
 		end
 	end
-	local onPlot = target ~= nil
-		and env ~= nil
-		and env.onOwnPlot ~= nil
-		and env.onOwnPlot(session, targetUserId :: number)
+	local onPlot = target ~= nil and ctx.onOwnPlot ~= nil and ctx.onOwnPlot(session, targetUserId :: number)
 	if target or tool.cosmetic then
 		local ok, reason = PvpRules.canTarget(
 			fighterAt(position, session),
@@ -318,6 +326,7 @@ function PvpService.use(
 	end
 	local used, why = handler({
 		world = world,
+		ctx = ctx,
 		session = session,
 		tool = tool,
 		target = target,
@@ -331,7 +340,7 @@ function PvpService.use(
 	end
 	PvpRules.markUsed(state, id, now)
 	local endsAt = state.cooldowns[id]
-	send(session.userId, {
+	send(world, session.userId, {
 		kind = "Cooldown",
 		itemId = id,
 		duration = endsAt - now,
@@ -342,7 +351,7 @@ end
 
 -- Per-player server tick (called from WorldView.updatePlayer, no loop of its own): sends Shield / SafeZone
 -- changes. `position` = the character's root position, nil without a character. No-op with the flag off.
-function PvpService.tick(session: Session, position: any, now: number)
+function PvpService.tick(world: World.World, session: Session, position: any, now: number)
 	local extra = extras[session]
 	if not extra then
 		return
@@ -350,7 +359,7 @@ function PvpService.tick(session: Session, position: any, now: number)
 	local shield = PvpService.shieldUntil(session, now)
 	if extra.shieldSent ~= (shield or false) then
 		extra.shieldSent = shield or false
-		send(session.userId, { kind = "Shield", endsAt = shield }, now)
+		send(world, session.userId, { kind = "Shield", endsAt = shield }, now)
 	end
 	if position then
 		local zone = PvpRules.safeZoneAt(position)
@@ -358,10 +367,10 @@ function PvpService.tick(session: Session, position: any, now: number)
 			local old = extra.zone
 			extra.zone = zone
 			if old then
-				send(session.userId, { kind = "SafeZone", zone = capitalize(old), inside = false }, now)
+				send(world, session.userId, { kind = "SafeZone", zone = capitalize(old), inside = false }, now)
 			end
 			if zone then
-				send(session.userId, { kind = "SafeZone", zone = capitalize(zone), inside = true }, now)
+				send(world, session.userId, { kind = "SafeZone", zone = capitalize(zone), inside = true }, now)
 			end
 		end
 	end

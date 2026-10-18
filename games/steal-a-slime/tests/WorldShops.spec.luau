@@ -188,8 +188,7 @@ local function setup(cash: number?)
 		positionOf = function()
 			return nil
 		end,
-		worldShops = true,
-		worldShopsStrict = false,
+		features = { WorldShops = true, WorldShopsStrict = false },
 		shopAccess = function()
 			return env.access
 		end,
@@ -255,7 +254,7 @@ describe("Request OpenShop / CloseShop", function()
 	end)
 	it("flag off: 'the shops are closed', no events, nothing opens", function()
 		local env = setup()
-		env.ctx.worldShops = false
+		env.ctx.features.WorldShops = false
 		local res = call(env, "OpenShop", "ItemShop")
 		expect(res.ok).toBe(false)
 		expect(res.message).toBe("the shops are closed")
@@ -287,7 +286,7 @@ describe("Request OpenShop / CloseShop", function()
 		env.access = { distance = 1, alive = true }
 		call(env, "OpenShop", "UpgradeShop")
 		local fired = #env.events
-		env.ctx.worldShops = false
+		env.ctx.features.WorldShops = false
 		Actions.shopTick(env.session, env.ctx)
 		expect(env.session.openShop).toBeNil()
 		expect(#env.events).toBe(fired) -- flag off: no ShopEvent
@@ -438,7 +437,7 @@ describe("WorldShopsStrict", function()
 	end)
 	it("strict: ShopBuy needs the matching shop open (NotOpen), then works in range", function()
 		local env = setup()
-		env.ctx.worldShopsStrict = true
+		env.ctx.features.WorldShopsStrict = true
 		local res = call(env, "ShopBuy", "UpgradeShop", "LockUpgrade")
 		expect(res.code).toBe("NotOpen")
 		call(env, "OpenShop", "ItemShop")
@@ -452,7 +451,7 @@ describe("WorldShopsStrict", function()
 		"strict: the old buy actions answer 'open the <Item|Upgrade> Shop first' until the right shop is open",
 		function()
 			local env = setup()
-			env.ctx.worldShopsStrict = true
+			env.ctx.features.WorldShopsStrict = true
 			local res = call(env, "BuyLockUpgrade")
 			expect(res.ok).toBe(false)
 			expect(res.message).toBe("open the Upgrade Shop first")
@@ -473,13 +472,13 @@ describe("WorldShopsStrict", function()
 	)
 	it("strict needs WorldShops: with the flag off the old actions are untouched", function()
 		local env = setup()
-		env.ctx.worldShops = false
-		env.ctx.worldShopsStrict = true
+		env.ctx.features.WorldShops = false
+		env.ctx.features.WorldShopsStrict = true
 		expect(call(env, "BuyLockUpgrade").ok).toBe(true)
 	end)
 	it("strict does not apply where the adapter measures nothing (no shopAccess)", function()
 		local env = setup()
-		env.ctx.worldShopsStrict = true
+		env.ctx.features.WorldShopsStrict = true
 		env.ctx.shopAccess = nil
 		expect(call(env, "BuyLockUpgrade").ok).toBe(true)
 	end)

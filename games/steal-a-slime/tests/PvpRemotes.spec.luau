@@ -18,7 +18,10 @@ local T0 = ServerFixtures.T0
 local FAR = { X = 200, Y = 3, Z = -200 } -- clear of every safe zone
 local FOUNTAIN = { X = 1, Y = 3, Z = 1 }
 
-local events: { { target: number?, payload: { [string]: any } } } = {}
+local current: any = nil -- the world of the running test
+local function events(): { ServerFixtures.PvpEvent }
+	return ServerFixtures.pvpEvents(current)
+end
 local positions: { [number]: any } = {}
 local env = {
 	positionOf = function(userId: number): any?
@@ -34,35 +37,29 @@ local ctx = {
 	end,
 	positionOf = env.positionOf,
 	onOwnPlot = env.onOwnPlot,
-	pvp = true,
+	features = { PvP = true },
 }
 
 local function setup(): (any, any, any)
-	events = {}
 	positions = { [1] = FAR, [2] = FAR }
-	PvpService.setSink(function(target, payload)
-		table.insert(events, { target = target, payload = payload })
-	end, function()
-		return T0
-	end)
 	local world = ServerFixtures.world()
+	current = world
 	local a = ServerFixtures.join(world, 1, nil, 1e12)
 	local b = ServerFixtures.join(world, 2, nil, 1e12)
 	a.data.rebirths, b.data.rebirths = 5, 5
-	PvpService.join(a, T0, true)
-	PvpService.join(b, T0, true)
+	PvpService.join(world, a, T0, true)
+	PvpService.join(world, b, T0, true)
 	return world, a, b
 end
 
 local function done()
-	PvpService.setSink(nil)
 	PvpService.registerLine("Knockback", nil)
 	PvpService.registerLine("Fun", nil)
 end
 
 local function kinds(): { string }
 	local out = {}
-	for _, e in events do
+	for _, e in events() do
 		table.insert(out, e.payload.kind)
 	end
 	return out
@@ -122,41 +119,37 @@ end)
 
 describe("PvP equip / use with the flag off", function()
 	it("refuses, creates no state, fires nothing and sends no State.pvp", function()
-		events = {}
-		PvpService.setSink(function(target, payload)
-			table.insert(events, { target = target, payload = payload })
-		end)
 		local world = ServerFixtures.world()
+		current = world
 		local s = ServerFixtures.join(world, 1, nil, 1e12)
-		PvpService.join(s, T0, false)
+		PvpService.join(world, s, T0, false)
 		local ok, reason = PvpService.equip(s, "KnockGlove1", false)
 		expect(ok).toBe(false)
 		expect(reason).toBe("PvP is not open yet")
 		ok, reason = PvpService.use(world, s, "KnockGlove1", nil, nil, T0, false, env)
 		expect(ok).toBe(false)
 		expect(reason).toBe("PvP is not open yet")
-		PvpService.tick(s, FOUNTAIN, T0)
-		PvpService.fireEffect({ attacker = 1, itemId = "KnockGlove1", effect = "Knockback" }, T0, false)
-		PvpService.fireTrap("TrapPlaced", { owner = 1 }, T0, false)
+		PvpService.tick(world, s, FOUNTAIN, T0)
+		PvpService.fireEffect(current, { attacker = 1, itemId = "KnockGlove1", effect = "Knockback" }, T0, false)
+		PvpService.fireTrap(current, "TrapPlaced", { owner = 1 }, T0, false)
 		expect(PvpService.state(s)).toBeNil()
 		expect(PvpService.equipped(s)).toBeNil()
 		expect(PvpService.view(s, T0)).toBeNil()
 		expect(PvpService.spawnedCount(s)).toBe(0)
-		expect(#events).toBe(0)
+		expect(#events()).toBe(0)
 		local r = Actions.handle(world, 1, "UsePvpItem", { "KnockGlove1" }, T0 + 5, {
 			distanceBetween = ctx.distanceBetween,
 			positionOf = ctx.positionOf,
-			pvp = false,
+			features = { PvP = false },
 		})
 		expect(r.ok).toBe(false)
 		expect(r.message).toBe("PvP is not open yet")
 		r = Actions.handle(world, 1, "EquipPvpItem", { "KnockGlove1" }, T0 + 6, {
 			distanceBetween = ctx.distanceBetween,
 			positionOf = ctx.positionOf,
-			pvp = false,
+			features = { PvP = false },
 		})
 		expect(r.message).toBe("PvP is not open yet")
-		PvpService.setSink(nil)
 	end)
 end)
 
@@ -199,12 +192,12 @@ describe("PvpService.use", function()
 	end)
 	it("answers Coming soon for a line without a handler and starts no cooldown", function()
 		local world, a = armed()
-		events = {}
+		ServerFixtures.clearEvents(current)
 		local ok, reason = use(world, a, 2, T0 + 1)
 		expect(ok).toBe(false)
 		expect(reason).toBe("Coming soon")
 		expect(next((PvpService.state(a) :: any).cooldowns)).toBeNil()
-		expect(#events).toBe(0)
+		expect(#events()).toBe(0)
 		done()
 	end)
 	it("dispatches to the line handler, then marks the cooldown and fires the Cooldown event", function()
@@ -216,14 +209,14 @@ describe("PvpService.use", function()
 			expect(call.target and call.target.userId).toBe(2)
 			return true, nil
 		end)
-		events = {}
+		ServerFixtures.clearEvents(current)
 		local ok = use(world, a, 2, T0 + 1)
 		expect(ok).toBe(true)
 		expect(calls).toBe(1)
 		local cooldown = (PvpRules.tool("KnockGlove1") :: any).cooldown
-		expect(#events).toBe(1)
-		expect(events[1].target).toBe(1)
-		expect(events[1].payload).toEqual({
+		expect(#events()).toBe(1)
+		expect(events()[1].target).toBe(1)
+		expect(events()[1].payload).toEqual({
 			kind = "Cooldown",
 			itemId = "KnockGlove1",
 			duration = math.max(cooldown, Config.PVP.MIN_COOLDOWN),
@@ -243,12 +236,12 @@ describe("PvpService.use", function()
 		PvpService.registerLine("Knockback", function()
 			return false, "out of reach"
 		end)
-		events = {}
+		ServerFixtures.clearEvents(current)
 		local ok, reason = use(world, a, 2, T0 + 1)
 		expect(ok).toBe(false)
 		expect(reason).toBe("out of reach")
 		expect(next((PvpService.state(a) :: any).cooldowns)).toBeNil()
-		expect(#events).toBe(0)
+		expect(#events()).toBe(0)
 		done()
 	end)
 	it("applies the safe zone, own-plot and unknown-target rules before the handler", function()
@@ -297,53 +290,56 @@ describe("PvpService events", function()
 	it("sends Shield and SafeZone changes from the per-player tick", function()
 		local _, a = setup()
 		a.data.rebirths = 0
-		PvpService.join(a, T0, true) -- a fresh player: shielded
-		PvpService.tick(a, FAR, T0 + 1)
+		PvpService.join(current, a, T0, true) -- a fresh player: shielded
+		PvpService.tick(current, a, FAR, T0 + 1)
 		expect(kinds()).toEqual({ "Shield" })
-		expect(events[1].payload.endsAt).toBe(T0 + Config.PVP.NEW_PLAYER_SHIELD_SECONDS)
-		expect(events[1].target).toBe(1)
-		PvpService.tick(a, FAR, T0 + 2)
-		expect(#events).toBe(1) -- unchanged: nothing re-sent
-		PvpService.tick(a, FOUNTAIN, T0 + 3)
-		expect(events[2].payload.kind).toBe("SafeZone")
-		expect(events[2].payload.zone).toBe("Fountain")
-		expect(events[2].payload.inside).toBe(true)
-		PvpService.tick(a, FAR, T0 + 4)
-		expect(events[3].payload.zone).toBe("Fountain")
-		expect(events[3].payload.inside).toBe(false)
+		expect(events()[1].payload.endsAt).toBe(T0 + Config.PVP.NEW_PLAYER_SHIELD_SECONDS)
+		expect(events()[1].target).toBe(1)
+		PvpService.tick(current, a, FAR, T0 + 2)
+		expect(#events()).toBe(1) -- unchanged: nothing re-sent
+		PvpService.tick(current, a, FOUNTAIN, T0 + 3)
+		expect(events()[2].payload.kind).toBe("SafeZone")
+		expect(events()[2].payload.zone).toBe("Fountain")
+		expect(events()[2].payload.inside).toBe(true)
+		PvpService.tick(current, a, FAR, T0 + 4)
+		expect(events()[3].payload.zone).toBe("Fountain")
+		expect(events()[3].payload.inside).toBe(false)
 		a.data.rebirths = 1 -- first rebirth ends the shield
-		PvpService.tick(a, FAR, T0 + 5)
-		expect(events[4].payload.kind).toBe("Shield")
-		expect(events[4].payload.endsAt).toBeNil()
-		expect(events[4].payload.serverTime).toBe(T0 + 5)
+		PvpService.tick(current, a, FAR, T0 + 5)
+		expect(events()[4].payload.kind).toBe("Shield")
+		expect(events()[4].payload.endsAt).toBeNil()
+		expect(events()[4].payload.serverTime).toBe(T0 + 5)
 		done()
 	end)
 	it("fireEffect and fireTrap go to every client with serverTime", function()
 		setup()
 		PvpService.fireEffect(
+			current,
 			{ attacker = 1, target = 2, itemId = "KnockGlove1", effect = "Knockback", push = 8 },
 			T0 + 3,
 			true
 		)
 		PvpService.fireTrap(
+			current,
 			"TrapPlaced",
 			{ owner = 1, trapId = "t1", itemId = "GooTrap1", position = FAR },
 			T0 + 4,
 			true
 		)
 		PvpService.fireTrap(
+			current,
 			"TrapCleared",
 			{ owner = 1, trapId = "t1", itemId = "GooTrap1", position = FAR },
 			T0 + 5,
 			true
 		)
 		expect(kinds()).toEqual({ "Effect", "TrapPlaced", "TrapCleared" })
-		for _, e in events do
+		for _, e in events() do
 			expect(e.target).toBeNil()
 		end
-		expect(events[1].payload.effect).toBe("Knockback")
-		expect(events[1].payload.serverTime).toBe(T0 + 3)
-		expect(events[2].payload.trapId).toBe("t1")
+		expect(events()[1].payload.effect).toBe("Knockback")
+		expect(events()[1].payload.serverTime).toBe(T0 + 3)
+		expect(events()[2].payload.trapId).toBe("t1")
 		done()
 	end)
 end)
@@ -352,7 +348,7 @@ describe("State.pvp", function()
 	it("is absent with the flag off", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
-		PvpService.join(s, T0, false)
+		PvpService.join(world, s, T0, false)
 		expect((Snapshot.build(world, s, T0) :: any).pvp).toBeNil()
 	end)
 	it("has the contract shape when on", function()
@@ -363,7 +359,7 @@ describe("State.pvp", function()
 			return true, nil
 		end)
 		expect(PvpService.use(world, a, "KnockGlove2", 2, nil, T0 + 1, true, env)).toBe(true)
-		PvpService.tick(a, FOUNTAIN, T0 + 2)
+		PvpService.tick(current, a, FOUNTAIN, T0 + 2)
 		local pvp = (Snapshot.build(world, a, T0 + 2) :: any).pvp
 		expect(pvp.rank).toBe(5)
 		expect(pvp.owned.KnockGlove2).toBe(true)
@@ -385,7 +381,7 @@ describe("State.pvp", function()
 			end,
 		})
 		expect(PvpService.spawnedCount(a)).toBe(1)
-		PvpService.leave(a, T0 + 5)
+		PvpService.leave(current, a, T0 + 5)
 		expect(destroyed).toBe(1)
 		expect(PvpService.spawnedCount(a)).toBe(0)
 		done()

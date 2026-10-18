@@ -76,8 +76,8 @@ export type Wild = {
 export type Pity = { sinceEpic: number, sinceLegendary: number }
 
 export type Event = {
-	type: "Notify" | "Escaped" | "Rain" | "Effect" | "Rare" | "Drained" | "Badge", -- Drained: a lane slime left down the goo drain (FEATURES.Parade)
-	userId: number?, -- Notify target; nil = everyone
+	type: "Notify" | "Escaped" | "Rain" | "Effect" | "Rare" | "Drained" | "Badge" | "PvpEvent", -- Drained: a lane slime left down the goo drain (FEATURES.Parade)
+	userId: number?, -- Notify / PvpEvent target; nil = everyone
 	text: string?,
 	kind: string?, -- "info" | "good" | "bad"
 	sound: string?,
@@ -91,6 +91,7 @@ export type Event = {
 	plotIndex: number?, -- Effect: plot whose MergeVat is the target
 	badge: string?, -- Badge: Config.BADGES key just reached (userId = the player)
 	tier: number?, -- Rare: the drop's tier (workspace RareSpawn* attributes)
+	payload: { [string]: any }?, -- PvpEvent: the remote payload (CONTRACT.md §26.1)
 }
 
 export type AdminEvent = {

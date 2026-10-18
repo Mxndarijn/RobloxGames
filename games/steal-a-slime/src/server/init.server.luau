@@ -358,6 +358,18 @@ local function flushEvents()
 			workspace:SetAttribute(Constants.RARE_SPAWN_TIER_ATTRIBUTE, event.tier)
 			workspace:SetAttribute(Constants.RARE_SPAWN_AT_ATTRIBUTE, now())
 		end
+		if event.type == "PvpEvent" and event.payload then
+			local payload = event.payload
+			payload.serverTime = payload.serverTime or now()
+			if event.userId == nil then
+				pvpEvent:FireAllClients(payload)
+			else
+				local player = Players:GetPlayerByUserId(event.userId)
+				if player then
+					pvpEvent:FireClient(player, payload)
+				end
+			end
+		end
 		if event.type == "Badge" and event.userId and event.badge then
 			task.spawn(badges.grant, event.userId, event.badge)
 		end
@@ -515,6 +527,25 @@ local ctx: Actions.Context = {
 		local player = Players:GetPlayerByUserId(userId)
 		return player ~= nil and WorldView.inHomeZone(player, session.plotIndex)
 	end,
+	pointOnOwnPlot = function(session: World.Session, point): boolean
+		return WorldView.pointInHomeZone(Vector3.new(point.X, point.Y, point.Z), session.plotIndex)
+	end,
+	-- Knockback gloves, Fun items and the Bat: the server only launches; the look is client FX from PvpEvent.
+	launch = function(userId: number, push, _landing): boolean
+		return PvpLaunch.launch(userId, push, now())
+	end,
+	pose = function(userId: number)
+		local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
+		if not root then
+			return nil, nil
+		end
+		local look = root.CFrame.LookVector
+		local p = root.Position
+		return { X = p.X, Y = p.Y, Z = p.Z }, { X = look.X, Y = 0, Z = look.Z }
+	end,
+	toVector3 = function(position)
+		return Vector3.new(position.X, position.Y, position.Z)
+	end,
 }
 -- Player attribute `OpenShop` follows the session's open shop (FEATURES.WorldShops only; nil = closed).
 local function syncOpenShop(player: Player)
@@ -528,38 +559,11 @@ local function syncOpenShop(player: Player)
 	end
 end
 
--- PvpEvent (FEATURES.PvP only ever fires it): one user, or every client when target is nil.
-PvpService.setSink(function(target: number?, payload: { [string]: any })
-	if target == nil then
-		pvpEvent:FireAllClients(payload)
-		return
-	end
-	local player = Players:GetPlayerByUserId(target)
-	if player then
-		pvpEvent:FireClient(player, payload)
-	end
-end, now)
--- Goo Traps (FEATURES.PvP): server-side zones on the owner's own plot, no Instance; the look is client FX from PvpEvent.
-PvpTrap.setPlotCheck(function(session: World.Session, aim: any): boolean
-	return WorldView.pointInHomeZone(Vector3.new(aim.X, aim.Y, aim.Z), session.plotIndex)
-end)
+-- PvP lines (FEATURES.PvP; CONTRACT.md §26): each reads the engine through ctx, the look is client FX from PvpEvent.
 PvpTrap.register()
-
--- Knockback gloves (FEATURES.PvP): the server only launches the target; the look is client FX from PvpEvent.
-PvpKnockback.setMover(function(userId: number, push, _landing): boolean
-	return PvpLaunch.launch(userId, push, now())
-end)
 PvpKnockback.register()
-
--- Goo Blaster line (CONTRACT.md §26): server hitscan, slow through Carry.targetWalkSpeed, no Instances.
-PvpBlaster.setEnv({
-	positionOf = positionOf,
-	onOwnPlot = ctx.onOwnPlot :: any,
-	toVector3 = function(position)
-		return Vector3.new(position.X, position.Y, position.Z)
-	end,
-})
 PvpBlaster.register()
+PvpFun.register()
 
 -- Player attribute `Carrying` follows the World right away (pickup, drop, deposit, escape, death).
 local function syncCarrying()
@@ -693,7 +697,7 @@ local function onCharacter(player: Player, character: Model)
 	BatTool.give(player, function()
 		local current = World.session(world, player.UserId)
 		if current then
-			BatTool.swing(world, current, now())
+			BatTool.swing(world, current, now(), ctx)
 			refreshView(now())
 		end
 	end)
@@ -702,7 +706,7 @@ local function onCharacter(player: Player, character: Model)
 		-- Speed Coil etc. right away, not on the next 0.1 s tick (CONTRACT.md §8.10).
 		local current = World.session(world, player.UserId)
 		if current then
-			WorldView.updatePlayer(player, current, now())
+			WorldView.updatePlayer(world, player, current, now(), ctx)
 		end
 		humanoid.Died:Connect(function()
 			Carry.release(world, player.UserId, now(), positionOf(player.UserId), "drop")
@@ -724,38 +728,10 @@ local friendCache = Friends.new(function(a: number, b: number): boolean
 	return player:IsFriendsWith(other)
 end)
 
--- Fun items (FEATURES.PvP): the server only launches / checks; the look is client FX from PvpEvent.
-PvpFun.setEnv({
-	launcher = function(userId: number, push): boolean
-		return PvpLaunch.launch(userId, push, now())
-	end,
-	onOwnPlot = function(session: World.Session, position): boolean
-		return WorldView.pointInHomeZone(Vector3.new(position.X, position.Y, position.Z), session.plotIndex)
-	end,
-	areFriends = function(a: number, b: number, at: number): boolean
-		return Friends.areFriends(friendCache, a, b, at)
-	end,
-})
-PvpFun.register()
-
--- The default Bat Tool (live for everyone, NOT behind FEATURES.PvP): the server picks the target from the swinger's pose.
-BatTool.setEnv({
-	pose = function(userId: number)
-		local root = WorldView.rootPart(Players:GetPlayerByUserId(userId))
-		if not root then
-			return nil, nil
-		end
-		local look = root.CFrame.LookVector
-		local p = root.Position
-		return { X = p.X, Y = p.Y, Z = p.Z }, { X = look.X, Y = 0, Z = look.Z }
-	end,
-	mover = function(userId: number, push, _landing): boolean
-		return PvpLaunch.launch(userId, push, now())
-	end,
-	onOwnPlot = function(session: World.Session, position): boolean
-		return WorldView.pointInHomeZone(Vector3.new(position.X, position.Y, position.Z), session.plotIndex)
-	end,
-})
+-- Hat Launcher (FEATURES.PvP): friends only.
+ctx.areFriends = function(a: number, b: number, at: number): boolean
+	return Friends.areFriends(friendCache, a, b, at)
+end
 
 local function refreshFriends()
 	if Config.FEATURES.FriendBonus ~= true then
@@ -959,7 +935,7 @@ local function stepPlayers(t: number)
 			else
 				homeZoneFull[userId] = nil
 			end
-			WorldView.updatePlayer(player, session, t)
+			WorldView.updatePlayer(world, player, session, t, ctx)
 			if session.openShop and t - (shopCheckedAt[userId] or 0) >= SHOP_CHECK_INTERVAL then
 				shopCheckedAt[userId] = t
 				Actions.shopTick(session, ctx) -- out of range / died / flag off closes the shop

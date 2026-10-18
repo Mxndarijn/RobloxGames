@@ -998,7 +998,13 @@ local function ensureSpeedCoil(player: Player)
 	end
 end
 
-function WorldView.updatePlayer(player: Player, session: World.Session, now: number)
+function WorldView.updatePlayer(
+	world: World.World,
+	player: Player,
+	session: World.Session,
+	now: number,
+	ctx: PvpService.Context
+)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local carry = session.carry
@@ -1012,9 +1018,9 @@ function WorldView.updatePlayer(player: Player, session: World.Session, now: num
 		setAttribute(player, Constants.PVP_SHIELD_ATTRIBUTE, PvpService.shieldUntil(session, now))
 		setAttribute(player, Constants.PVP_EQUIPPED_ATTRIBUTE, PvpService.equipped(session))
 		local root = WorldView.rootPart(player)
-		PvpService.tick(session, root and root.Position, now)
-		PvpTrap.tick(session, root and root.Position, now)
-		PvpFun.tick(session, root and root.Position, now)
+		PvpService.tick(world, session, root and root.Position, now)
+		PvpTrap.tick(world, session, root and root.Position, now)
+		PvpFun.tick(world, session, root and root.Position, now, ctx)
 	end
 	local pet = Progression.keeper(data)
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)

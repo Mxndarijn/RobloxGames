@@ -8,8 +8,7 @@
 	The server creates NOTHING in Workspace: the look is client FX from the event. The Bounce Pad is a data record
 	(position + expiry, max `maxPlaced` per owner) announced with PvpEvent "TrapPlaced" / "TrapCleared" (itemId
 	FunBouncePad) so the client draws it; the server only watches steps in the per-player WorldView tick (PvpFun.tick).
-	Movement goes through an injectable launcher (init.server sets an AssemblyLinearVelocity launch; Lune tests
-	record). No Humanoid health is ever changed.
+	Movement goes through `ctx.launch` (init.server passes an AssemblyLinearVelocity launch; Lune tests record). No Humanoid health is ever changed.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -22,28 +21,13 @@ local World = if script then require(script.Parent.World) else require("./World"
 type Vec = PvpRules.Vec
 type Session = World.Session
 
--- (userId, push, landing?) -> moved. `push` is a displacement whose Y is the arc / bounce height
--- (PvpKnockbackRules.velocity turns it into a launch).
-export type Launcher = (userId: number, push: Vec) -> boolean
-export type Env = {
-	launcher: Launcher?,
-	-- Is this world position inside the session's own plot (its HomeZone)?
-	onOwnPlot: ((session: Session, position: Vec) -> boolean)?,
-	-- Roblox friends (cached by init.server); nil = nobody is a friend.
-	areFriends: ((a: number, b: number, now: number) -> boolean)?,
-}
 type Pad = { id: string, owner: Session, position: Vec, expiresAt: number }
 
 local PvpFun = {}
 
-local env: Env = {}
 local pads: { [Session]: Pad } = setmetatable({}, { __mode = "k" }) :: any
 local lastBounce: { [number]: number } = {}
 local padCounter = 0
-
-function PvpFun.setEnv(newEnv: Env?)
-	env = newEnv or {}
-end
 
 local function isThief(session: Session): boolean
 	return session.carry ~= nil and session.carry.kind == "stolen"
@@ -62,7 +46,7 @@ local function effect(call: PvpService.UseCall, effectName: string, extra: { [st
 			payload[key] = value
 		end
 	end
-	PvpService.fireEffect(payload, call.now, true) -- PvpService.use only calls a handler with the flag on
+	PvpService.fireEffect(call.world, payload, call.now, true) -- PvpService.use only calls a handler with the flag on
 end
 
 local function distance(a: Vec, b: Vec): number
@@ -124,7 +108,7 @@ local function balloon(call: PvpService.UseCall): (boolean, string?)
 end
 
 local function onOwnPlot(call: PvpService.UseCall, position: Vec): boolean
-	local check = env.onOwnPlot
+	local check = call.ctx.pointOnOwnPlot
 	return check ~= nil and check(call.session, position)
 end
 
@@ -159,7 +143,7 @@ local function hatLauncher(call: PvpService.UseCall): (boolean, string?)
 		effect(call, "Cosmetic", { target = call.session.userId, duration = seconds })
 		return true, nil
 	end
-	local friends = env.areFriends
+	local friends = call.ctx.areFriends -- nil = nobody is a friend
 	if not friends or not friends(call.session.userId, target.userId, call.now) then
 		return false, "friends only"
 	end
@@ -184,9 +168,10 @@ local function squeaky(call: PvpService.UseCall): (boolean, string?)
 			return false, "too far away"
 		end
 		local state = PvpService.state(target)
-		if isThief(target) and state and PvpRules.canControl(state, call.now) and env.launcher then
+		local launch = call.ctx.launch
+		if isThief(target) and state and PvpRules.canControl(state, call.now) and launch then
 			local _, push = PvpKnockbackRules.plan({ push = call.tool.nudge } :: any, call.position, targetPosition)
-			if env.launcher(target.userId, push) then
+			if launch(target.userId, push) then
 				nudgeVelocity = PvpKnockbackRules.velocity(push)
 				PvpRules.applyControl(state, Config.PVP.FUN_NUDGE_CONTROL_SECONDS, call.now)
 				nudged = PvpKnockbackRules.horizontal(push)
@@ -230,9 +215,9 @@ local function danceBomb(call: PvpService.UseCall): (boolean, string?)
 	return true, nil
 end
 
-local function clearPad(pad: Pad, now: number?)
+local function clearPad(world: World.World, pad: Pad, now: number?)
 	pads[pad.owner] = nil
-	PvpService.fireTrap("TrapCleared", {
+	PvpService.fireTrap(world, "TrapCleared", {
 		owner = pad.owner.userId,
 		trapId = pad.id,
 		itemId = "FunBouncePad",
@@ -241,10 +226,10 @@ local function clearPad(pad: Pad, now: number?)
 end
 
 -- Drops pads that expired or whose owner left / lost PvP state.
-local function prune(now: number)
+local function prune(world: World.World, now: number)
 	for owner, pad in pads do
 		if now >= pad.expiresAt or not PvpService.state(owner) then
-			clearPad(pad, now)
+			clearPad(world, pad, now)
 		end
 	end
 end
@@ -255,7 +240,7 @@ local function bouncePad(call: PvpService.UseCall): (boolean, string?)
 	if not ok then
 		return false, why
 	end
-	prune(call.now)
+	prune(call.world, call.now)
 	if pads[call.session] then
 		return false, "already placed"
 	end
@@ -278,7 +263,7 @@ local function bouncePad(call: PvpService.UseCall): (boolean, string?)
 		expiresAt = call.now + Config.PVP.BOUNCE_PAD_SECONDS,
 	}
 	pads[call.session] = pad
-	PvpService.fireTrap("TrapPlaced", {
+	PvpService.fireTrap(call.world, "TrapPlaced", {
 		owner = call.session.userId,
 		trapId = pad.id,
 		itemId = call.tool.id,
@@ -316,13 +301,13 @@ end
 	studs: the owner always; anyone else only while carrying a stolen slime, who also gets `control` seconds of
 	control (and its immunity). Visitors without a slime are ignored (no consent).
 ]]
-function PvpFun.tick(session: Session, position: any, now: number)
+function PvpFun.tick(world: World.World, session: Session, position: any, now: number, ctx: PvpService.Context)
 	if next(pads) == nil or not position then
 		return
 	end
-	prune(now)
+	prune(world, now)
 	local tool = PvpRules.tool("FunBouncePad")
-	local launch = env.launcher
+	local launch = ctx.launch
 	if not tool or not launch then
 		return
 	end
@@ -336,7 +321,7 @@ function PvpFun.tick(session: Session, position: any, now: number)
 					lastBounce[userId] = now
 					local lift = { X = 0, Y = tool.height or 0, Z = 0 }
 					if launch(userId, lift) then
-						PvpService.fireEffect({
+						PvpService.fireEffect(world, {
 							attacker = userId,
 							target = userId,
 							itemId = tool.id,
@@ -357,7 +342,7 @@ function PvpFun.tick(session: Session, position: any, now: number)
 				local applied = PvpRules.applyControl(state, tool.control or 0, now)
 				local lift = { X = 0, Y = tool.height or 0, Z = 0 }
 				if applied > 0 and launch(userId, lift) then
-					PvpService.fireEffect({
+					PvpService.fireEffect(world, {
 						attacker = owner.userId,
 						target = userId,
 						itemId = tool.id,
@@ -374,10 +359,10 @@ function PvpFun.tick(session: Session, position: any, now: number)
 end
 
 -- Removes the session's pad (leave, flag off) and tells the clients.
-function PvpFun.clear(session: Session)
+function PvpFun.clear(world: World.World, session: Session)
 	local pad = pads[session]
 	if pad then
-		clearPad(pad, nil)
+		clearPad(world, pad, nil)
 	end
 	lastBounce[session.userId] = nil
 end

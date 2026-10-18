@@ -23,21 +23,9 @@ local World = if script then require(script.Parent.World) else require("./World"
 type Session = World.Session
 type Vec = PvpRules.Vec
 
-export type Env = {
-	positionOf: (userId: number) -> any?,
-	onOwnPlot: (session: Session, userId: number) -> boolean,
-	toVector3: ((position: Vec) -> any)?, -- Roblox: Vector3.new; Lune tests keep plain tables
-}
-
 local PvpBlaster = {}
 
-local env: Env? = nil
 local slows: { [Session]: { factor: number, untilTime: number } } = setmetatable({}, { __mode = "k" }) :: any
-
--- init.server wires the Roblox positions; nil = every use is refused (no cooldown).
-function PvpBlaster.setEnv(newEnv: Env?)
-	env = newEnv
-end
 
 -- Walk speed multiplier from a Goo Blaster slow (1 = none). Carry.targetWalkSpeed multiplies it in.
 function PvpBlaster.walkFactor(session: Session, now: number): number
@@ -52,14 +40,14 @@ function PvpBlaster.walkFactor(session: Session, now: number): number
 	return PvpBlasterRules.factorAt(slow.factor, slow.untilTime, now)
 end
 
-local function out(position: Vec): any
-	local convert = env and env.toVector3
+local function out(ctx: PvpService.Context, position: Vec): any
+	local convert = ctx.toVector3
 	return if convert then convert(position) else position
 end
 
 local function handler(call: PvpService.UseCall): (boolean, string?)
-	local e = env
-	if not e then
+	local positionOf, onOwnPlot = call.ctx.positionOf, call.ctx.onOwnPlot
+	if not positionOf then
 		return false, "can't fire right now"
 	end
 	local origin = call.position
@@ -80,7 +68,7 @@ local function handler(call: PvpService.UseCall): (boolean, string?)
 	}
 	local candidates: { PvpBlasterRules.Candidate } = {}
 	for userId, other in call.world.sessions do
-		local position = if other ~= call.session then e.positionOf(userId) else nil
+		local position = if other ~= call.session then positionOf(userId) else nil
 		if position then
 			local fighter: PvpRules.Fighter = {
 				position = position,
@@ -91,7 +79,7 @@ local function handler(call: PvpService.UseCall): (boolean, string?)
 			local ok = PvpRules.canTarget(attacker, fighter, {
 				now = call.now,
 				toolId = call.tool.id,
-				onAttackerPlot = e.onOwnPlot(call.session, userId),
+				onAttackerPlot = onOwnPlot ~= nil and onOwnPlot(call.session, userId),
 				enabled = true, -- PvpService.use only calls a handler with the flag on
 				data = call.session.data,
 			})
@@ -114,12 +102,12 @@ local function handler(call: PvpService.UseCall): (boolean, string?)
 		end
 	end
 	local landed = target ~= nil and applied > 0
-	PvpService.fireEffect({
+	PvpService.fireEffect(call.world, {
 		attacker = call.session.userId,
 		target = if landed then (target :: Session).userId else nil,
 		itemId = call.tool.id,
 		effect = "Slow",
-		position = out(if landed and hit then hit.position else PvpBlasterRules.endPoint(origin, dir, range)),
+		position = out(call.ctx, if landed and hit then hit.position else PvpBlasterRules.endPoint(origin, dir, range)),
 		duration = if landed then applied else PvpBlasterRules.MISS_FX_SECONDS,
 	}, call.now, true)
 	return true, nil -- a miss still spends the cooldown

@@ -28,13 +28,6 @@ local traps: { [Session]: { PvpTrapRules.Trap } } = setmetatable({}, { __mode = 
 local frozenUntil: { [Session]: number } = setmetatable({}, { __mode = "k" }) :: any
 local nextId = 0
 
--- (session, aim) -> the aim lies on the session's own plot. Set by init.server; nil = nothing can be placed.
-local plotContains: ((session: Session, aim: any) -> boolean)? = nil
-
-function PvpTrap.setPlotCheck(check: ((session: Session, aim: any) -> boolean)?)
-	plotContains = check
-end
-
 function PvpTrap.count(session: Session?): number
 	local n = 0
 	for owner, list in traps do
@@ -58,7 +51,8 @@ end
 local function handler(call: PvpService.UseCall): (boolean, string?)
 	local session = call.session
 	local list = traps[session] or {}
-	local onPlot = plotContains ~= nil and PvpTrapRules.validAim(call.aim) and plotContains(session, call.aim)
+	local check = call.ctx.pointOnOwnPlot -- nil = nothing can be placed
+	local onPlot = check ~= nil and PvpTrapRules.validAim(call.aim) and check(session, call.aim :: any)
 	local ok, reason = PvpTrapRules.canPlace(call.tool, #list, call.position, call.aim, onPlot, true) -- PvpService.use only calls a handler with the flag on
 	if not ok then
 		return false, reason
@@ -67,7 +61,7 @@ local function handler(call: PvpService.UseCall): (boolean, string?)
 	local trap = PvpTrapRules.new(`trap{nextId}`, session.userId, call.tool, call.aim :: any, call.now)
 	table.insert(list, trap)
 	traps[session] = list
-	PvpService.fireTrap("TrapPlaced", {
+	PvpService.fireTrap(call.world, "TrapPlaced", {
 		owner = trap.owner,
 		trapId = trap.id,
 		itemId = trap.itemId,
@@ -80,7 +74,7 @@ end
 	Per-player tick (WorldView.updatePlayer, flag on only): does `victim` at `position` spring a trap?
 	Returns the freeze seconds applied (0 = nothing).
 ]]
-function PvpTrap.tick(victim: Session, position: any?, now: number): number
+function PvpTrap.tick(world: World.World, victim: Session, position: any?, now: number): number
 	if not position or next(traps) == nil then
 		return 0
 	end
@@ -102,7 +96,7 @@ function PvpTrap.tick(victim: Session, position: any?, now: number): number
 				if applied > 0 then
 					PvpTrapRules.spring(trap, now)
 					frozenUntil[victim] = now + applied
-					PvpService.fireEffect({
+					PvpService.fireEffect(world, {
 						attacker = owner.userId,
 						target = victim.userId,
 						itemId = trap.itemId,
@@ -119,12 +113,12 @@ function PvpTrap.tick(victim: Session, position: any?, now: number): number
 end
 
 -- Removes the owner's traps (leave, flag off) and tells the clients.
-local function clear(session: Session)
+local function clear(world: World.World, session: Session)
 	local list: { PvpTrapRules.Trap } = traps[session] or {}
 	traps[session] = nil
 	frozenUntil[session] = nil
 	for _, trap in list do
-		PvpService.fireTrap("TrapCleared", {
+		PvpService.fireTrap(world, "TrapCleared", {
 			owner = trap.owner,
 			trapId = trap.id,
 			itemId = trap.itemId,

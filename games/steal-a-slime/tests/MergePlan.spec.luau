@@ -1,6 +1,6 @@
 --!strict
 -- Merge menu rules (CONTRACT.md §21.1): auto-merge planning (MergePlan), the result preview (MergePreview),
--- kept slimes, and the AutoMerge / KeepSlime actions. Flag-on paths pass ctx.mergeVat3.
+-- kept slimes, and the AutoMerge / KeepSlime actions. Flag-on paths pass ctx.features.MergeVat3.
 local Actions = require("../src/server/Actions")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
@@ -209,10 +209,10 @@ describe("AutoMerge / KeepSlime actions", function()
 		positionOf = function()
 			return nil
 		end,
-		mergeVat3 = true,
+		features = { MergeVat3 = true },
 	}
 	local ctxOff: Actions.Context =
-		{ distanceBetween = ctxOn.distanceBetween, positionOf = ctxOn.positionOf, mergeVat3 = false }
+		{ distanceBetween = ctxOn.distanceBetween, positionOf = ctxOn.positionOf, features = { MergeVat3 = false } }
 
 	local function call(world: any, userId: number, action: string, args: { any }, ctx: Actions.Context)
 		world.sessions[userId].limiter = {}

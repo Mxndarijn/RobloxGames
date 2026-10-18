@@ -1,6 +1,6 @@
 --!strict
 -- 3-slime merge vat (FEATURES.MergeVat3, CONTRACT.md §21): rules, odds, determinism, anti-dupe, the Merge3
--- action and the vat decor. The flag is off by default; flag-on paths use ctx.mergeVat3.
+-- action, the panel's switch and the vat decor. The flag is off by default; flag-on paths pass ctx.features.MergeVat3.
 local Actions = require("../src/server/Actions")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
@@ -173,7 +173,7 @@ describe("TripleMerge: server action", function()
 		positionOf = function()
 			return nil
 		end,
-		mergeVat3 = true,
+		features = { MergeVat3 = true },
 	}
 	local ctxOff: Actions.Context = { distanceBetween = ctxOn.distanceBetween, positionOf = ctxOn.positionOf }
 
