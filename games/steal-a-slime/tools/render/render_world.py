@@ -710,6 +710,7 @@ VIEWS = {
     # slime path into the goo drain (centre x 0, z 52.5): close-up like the feedback shot, then the swirl leading in
     "40_drain_close": lambda: look((9, 7, 66), (0.5, 0.8, 53), lens=28),
     "41_drain_wide": lambda: look((38, 22, 86), (3, 0, 54), lens=28),
+    "42_drain_top": lambda: look((4, 100, 55.01), (4, 0, 55), ortho=18),
     # bugs #13-15 (soft terrain ground): the approved concept camera. Eye at polar(-20, 89, 6) looking at polar(-40, 50, 2);
     # lens 26 mm on the 36 mm sensor (vertical FOV 42.6 degrees at 16:9)
     "30_ground_eye": lambda: look(polar(-20, 89, 6), polar(-40, 50, 2.0), lens=26),

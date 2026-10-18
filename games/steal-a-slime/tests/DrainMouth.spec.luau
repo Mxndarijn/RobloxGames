@@ -1,87 +1,108 @@
 --!nocheck
--- The slime path flows into the goo drain: the goo carries on from the lane's end (EXIT) over the drain's curb and ends
--- just inside the curb ring, continuous (no gap between slabs, nor to the lane), clear of the grate, visual only.
+-- The slime path flows into the goo drain: the lane's own last segments (same Cylinder crown strips, same width at EXIT)
+-- bend on to the drain, then a thin pour rides the gap between two rim tiles over the curb into the basin. All decor.
 local ParadeLane = require("../src/shared/ParadeLane")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local D = ParadeLane.DRAIN
-local CURB_INNER = 3.3 -- ranch_goo_drain Curb r 3.3-4.4
+local CURB_OUTER, CURB_INNER = 4.4, 3.3 -- ranch_goo_drain Curb r 3.3-4.4
 local WARN_TOP = 1.22 -- warning tiles on the curb
+local TILE_GAP = 4 -- degrees between neighbouring tiles (Warn tiles span 26 of every 30)
 
 local function radius(x: number, z: number): number
 	return math.sqrt((x - D.x) ^ 2 + (z - D.z) ^ 2)
 end
 
 describe("ParadeLane drain mouth", function()
-	local mouth = ParadeLane.drainMouth()
-	local last = mouth[#mouth]
+	local lane = ParadeLane.drainLanePoints()
+	local pour = ParadeLane.pourPoints()
+	local strips = ParadeLane.drainStrips()
+	local last = pour[#pour]
 
-	it("starts exactly on the lane's end, at lane height, no wider than the lane", function()
+	it("the lane extension starts exactly on EXIT at the full lane width", function()
 		local e = ParadeLane.EXIT
-		expect(math.abs(mouth[1][1] - e[1]) < 1e-9).toBe(true)
-		expect(math.abs(mouth[1][3] - e[2]) < 1e-9).toBe(true)
-		expect(mouth[1][2]).toBe(ParadeLane.LANE_Y)
-		expect(mouth[1][4] <= ParadeLane.HALF_WIDTH).toBe(true)
+		expect(math.abs(lane[1][1] - e[1]) < 1e-9).toBe(true)
+		expect(math.abs(lane[1][2] - e[2]) < 1e-9).toBe(true)
+		expect(lane[1][3]).toBe(ParadeLane.HALF_WIDTH)
 	end)
-	it("ends inside the drain's curb ring, outside the grate", function()
-		local r = radius(last[1], last[3])
-		expect(r <= D.lipRadius).toBe(true)
-		expect(r < CURB_INNER).toBe(true)
-		expect(r > ParadeLane.GRATE_RADIUS).toBe(true)
+	it("is continuous with the lane: first segment is a Cylinder strip overlapping EXIT, same crown height", function()
+		local first = strips[1]
+		expect(first.shape).toBe(nil) -- Cylinder, like ParadeLane.strips()
+		expect(first.size[1] > 0).toBe(true)
+		local top = first.cf[2] + first.size[2] / 2
+		expect(math.abs(top - (ParadeLane.LANE_Y + ParadeLane.STRIP_STEP)) < 1e-6).toBe(true)
+	end)
+	it("narrows smoothly, never wider than the lane, in steps no bigger than the lane's own segments", function()
+		for i = 1, #lane do
+			expect(lane[i][3] <= ParadeLane.HALF_WIDTH + 1e-9).toBe(true)
+			if i > 1 then
+				expect(lane[i][3] <= lane[i - 1][3] + 1e-9).toBe(true)
+				expect(lane[i - 1][3] - lane[i][3] <= 1.0).toBe(true)
+			end
+		end
+	end)
+	it("ends in the drain's rim, outside the grate, and the pour finishes inside the curb ring", function()
+		expect(radius(last[1], last[3]) < CURB_INNER).toBe(true)
+		expect(radius(last[1], last[3]) > ParadeLane.GRATE_RADIUS).toBe(true)
+		local join = lane[#lane]
+		expect(radius(join[1], join[2]) > CURB_OUTER).toBe(true)
+	end)
+	it("pours between two rim tiles: it rides a tile gap line and is narrow", function()
+		local gap = ParadeLane.RIM_TILE_GAP_DEGREES
+		local deg = math.deg(ParadeLane.pourAngle())
+		expect(math.abs(deg / gap - math.floor(deg / gap + 0.5)) < 1e-6).toBe(true)
+		for _, p in pour do
+			expect(math.abs(math.deg(math.atan2(p[3] - D.z, p[1] - D.x)) - deg) < 1e-6).toBe(true)
+			-- at the tile ring (r 3.45-4.25) the ribbon laps at most a tile's edge: well under a tile (arc ~1.7 studs)
+			expect(p[4] <= 0.7).toBe(true)
+		end
+		expect(TILE_GAP > 0).toBe(true)
+	end)
+	it("rises over the curb and its warning tiles, then drops into the basin", function()
+		local top = 0
+		for _, p in pour do
+			top = math.max(top, p[2])
+		end
+		expect(top > WARN_TOP).toBe(true)
+		expect(last[2] < ParadeLane.POUR_CROWN_Y - 0.5).toBe(true)
+		expect(pour[1][2]).toBe(ParadeLane.LANE_Y)
 	end)
 	it("never covers the grate", function()
-		for _, strip in ParadeLane.drainStrips() do
+		for _, strip in strips do
 			local c = strip.cf
-			-- nearest point of the slab's centre line to the drain centre (slab axis = c[4], c[10])
 			local along = (D.x - c[1]) * c[4] + (D.z - c[3]) * c[10]
 			along = math.clamp(along, -strip.length / 2, strip.length / 2)
 			local px, pz = c[1] + c[4] * along, c[3] + c[10] * along
 			expect(radius(px, pz) > ParadeLane.GRATE_RADIUS).toBe(true)
 		end
 	end)
-	it("has continuous spacing: small steps, all of them closing in on the drain", function()
-		for i = 2, #mouth do
-			local a, b = mouth[i - 1], mouth[i]
-			local step = math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2 + (b[3] - a[3]) ^ 2)
-			expect(step <= 1.2).toBe(true)
-			expect(radius(b[1], b[3]) < radius(a[1], a[3])).toBe(true)
+	it(
+		"turns in to the gap with soft bends (each ~0.6 stud step turns under 35 degrees; slimes do not walk it)",
+		function()
+			local pts = { ParadeLane.WAYPOINTS[#ParadeLane.WAYPOINTS - 1] }
+			for _, p in lane do
+				table.insert(pts, { p[1], p[2] })
+			end
+			for _, p in pour do
+				table.insert(pts, { p[1], p[3] })
+			end
+			local worst = 0
+			for i = 2, #pts - 1 do
+				local ax, az = pts[i][1] - pts[i - 1][1], pts[i][2] - pts[i - 1][2]
+				local bx, bz = pts[i + 1][1] - pts[i][1], pts[i + 1][2] - pts[i][2]
+				local cos = (ax * bx + az * bz) / (math.sqrt(ax * ax + az * az) * math.sqrt(bx * bx + bz * bz))
+				worst = math.max(worst, math.deg(math.acos(math.clamp(cos, -1, 1))))
+			end
+			expect(worst <= 35).toBe(true)
 		end
-	end)
-	it("rises over the curb and its warning tiles, and the goo is never wider than the lane", function()
-		local top = 0
-		for _, p in mouth do
-			top = math.max(top, p[2])
-			expect(p[4] <= ParadeLane.HALF_WIDTH + 1e-9).toBe(true)
-		end
-		expect(top > WARN_TOP).toBe(true)
-	end)
-	it("bends no sharper than the lane itself (LaneTurn limit)", function()
-		local pts = {}
-		for _, p in mouth do
-			table.insert(pts, { p[1], p[3] })
-		end
-		local before = ParadeLane.WAYPOINTS[#ParadeLane.WAYPOINTS - 1]
-		table.insert(pts, 1, before)
-		local worst = 0
-		for i = 2, #pts - 1 do
-			local ax, az = pts[i][1] - pts[i - 1][1], pts[i][2] - pts[i - 1][2]
-			local bx, bz = pts[i + 1][1] - pts[i][1], pts[i + 1][2] - pts[i][2]
-			local cos = (ax * bx + az * bz) / (math.sqrt(ax * ax + az * az) * math.sqrt(bx * bx + bz * bz))
-			worst = math.max(worst, math.deg(math.acos(math.clamp(cos, -1, 1))))
-		end
-		expect(worst <= 20).toBe(true)
-	end)
-	it("slabs overlap their neighbours (no gap) and are decor-sized: thin Block slabs, one per mouth step", function()
-		local strips = ParadeLane.drainStrips()
-		expect(#strips).toBe(#mouth - 1)
-		for i, strip in strips do
-			expect(strip.shape).toBe("Block")
-			expect(strip.size[2] <= 0.5).toBe(true)
-			local a, b = mouth[i], mouth[i + 1]
-			local step = math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2 + (b[3] - a[3]) ^ 2)
-			expect(strip.length >= step + ParadeLane.MOUTH_OVERLAP).toBe(true)
+	)
+	it("has one strip per lane segment plus one thin Block slab per pour step", function()
+		expect(#strips).toBe(#lane - 1 + #pour - 1)
+		for i = #lane, #strips do
+			expect(strips[i].shape).toBe("Block")
+			expect(strips[i].size[2] <= 0.5).toBe(true)
 		end
 	end)
 end)

@@ -400,67 +400,152 @@ function ParadeLane.strips(): { any }
 	return out
 end
 
--- Up axis of a cylinder lying along t = (tx, ty, tz) with horizontal side s = (sx, 0, sz): s x t.
-local function upAxis(sx: number, sz: number, tx: number, ty: number, tz: number): (number, number, number)
-	return -sz * ty, sz * tx - sx * tz, sx * ty
-end
-
--- The drain mouth: the lane does not stop at the curb, its goo carries on from EXIT, straight at the drain's
--- centre (a gentle bend off the lane's last heading), rises over the curb (smooth ramp up to MOUTH_CROWN_Y, above the warning
--- tiles) and ends just inside the curb ring, well clear of the grate (r <= GRATE_RADIUS), so the swirl visibly pours into the
--- funnel. Drawn as a few thin pitched slabs (drainStrips); visual only, drawn in every
+-- The drain mouth: the lane does not stop at the curb. Its LAST segment (the same Cylinder-crown strips as the lane,
+-- same width where it leaves EXIT, same ~2 stud segment density, mitred and overlapped the same way) bends on from
+-- EXIT's heading onto the radial line through the nearest GAP between two warning tiles, narrowing smoothly to FUNNEL_HALF_WIDTH,
+-- and ends against the curb wall. The POUR is a thin tapered lip of a few slightly tilted slabs that rides that gap line over the curb
+-- (between two tiles; it only overlaps the tiles' edges) and drops into the basin water. Visual only, drawn in every
 -- mode (the uploaded lane mesh ends at EXIT).
 ParadeLane.GRATE_RADIUS = 1.3 -- brass grate hoop (ranch_goo_drain Hoop r 1.15 + a hair)
-ParadeLane.MOUTH_END_RADIUS = 2.6 -- the goo ends this far from the drain's centre: inside the curb ring (r 3.3), outside the grate
-ParadeLane.MOUTH_CROWN_Y = 1.34 -- over the curb (1.0) and its warning tiles (1.22)
-ParadeLane.MOUTH_DIP_Y = 0.75 -- where the pour ends inside the rim, down in the basin
-ParadeLane.MOUTH_HALF_WIDTH_START = 1.5 -- a narrow tongue off the lane's end (the ribbon shows ~5.5 studs)
-ParadeLane.MOUTH_HALF_WIDTH_CURB = 1.0 -- at the curb: a narrow pour, the rim tiles either side stay visible
-ParadeLane.MOUTH_HALF_WIDTH_END = 0.7
-ParadeLane.MOUTH_STEPS = 8
+ParadeLane.RIM_TILE_GAP_DEGREES = 30 -- the 12 warning tiles (ranch_goo_drain Warn0-11) meet every 30 degrees, a 4 degree gap
+ParadeLane.POUR_START_RADIUS = 5.6 -- the funnelled lane ends just outside the curb (r 4.4) and the pour begins here
+ParadeLane.POUR_END_RADIUS = 2.6 -- the pour ends this far from the drain's centre: inside the rim, outside the grate
+ParadeLane.POUR_CROWN_Y = 1.34 -- over the curb (1.0) and its warning tiles (1.22)
+ParadeLane.POUR_DIP_Y = 0.72 -- the pour's end, down in the basin water
+ParadeLane.POUR_HALF_WIDTH = 0.6 -- a ribbon about 1.2 studs wide: the rim tile gap is 0.3, so it only laps the tiles' edges
+ParadeLane.FUNNEL_HALF_WIDTH = 2.2 -- the lane eases in to this width where it meets the curb
+ParadeLane.POUR_STEPS = 20
+ParadeLane.POUR_THICKNESS = 0.25
+ParadeLane.POUR_OVERLAP = 0.04
+ParadeLane.DRAIN_BLEND_STEPS = 4 -- lane-extension segments between EXIT and POUR_START_RADIUS
 
 local function smoothstep(u: number): number
 	u = math.clamp(u, 0, 1)
 	return u * u * (3 - 2 * u)
 end
 
--- { x, y, z, halfWidth } from EXIT (on the lane, at lane height) to the inside of the curb ring: a tongue that tapers
--- off the lane's end, meets the curb at one narrow point, rises over its lip and dips into the basin.
-function ParadeLane.drainMouth(): { { number } }
+-- Angle (radians, Roblox x / z about the drain's centre) of the tile gap the pour rides: the one nearest EXIT.
+function ParadeLane.pourAngle(): number
+	local d, e = ParadeLane.DRAIN, ParadeLane.EXIT
+	local step = math.rad(ParadeLane.RIM_TILE_GAP_DEGREES)
+	return math.floor(math.atan2(e[2] - d.z, e[1] - d.x) / step + 0.5) * step
+end
+
+local function onGap(r: number): (number, number)
+	local d, a = ParadeLane.DRAIN, ParadeLane.pourAngle()
+	return d.x + math.cos(a) * r, d.z + math.sin(a) * r
+end
+
+-- { x, z, halfWidth } from EXIT (full lane width) to where the pour begins: a cubic Hermite off EXIT's heading onto
+-- the gap line (heading straight at the drain), the width easing down.
+function ParadeLane.drainLanePoints(): { { number } }
 	local d, pts = ParadeLane.DRAIN, ParadeLane.WAYPOINTS
-	local e = pts[#pts]
-	local rx, rz = e[1] - d.x, e[2] - d.z
-	local r0 = math.sqrt(rx * rx + rz * rz)
-	local r1 = ParadeLane.MOUTH_END_RADIUS
-	local tx, tz = d.x + rx / r0 * r1, d.z + rz / r0 * r1 -- the end, on the radial line
-	local lane, crown, dip = ParadeLane.LANE_Y, ParadeLane.MOUTH_CROWN_Y, ParadeLane.MOUTH_DIP_Y
+	local e, before = pts[#pts], pts[#pts - 1]
+	local hx, hz = e[1] - before[1], e[2] - before[2]
+	local hl = math.sqrt(hx * hx + hz * hz)
+	hx, hz = hx / hl, hz / hl
+	local tx, tz = onGap(ParadeLane.POUR_START_RADIUS)
+	local ex, ez = d.x - tx, d.z - tz -- end heading: straight at the drain's centre
+	local el = math.sqrt(ex * ex + ez * ez)
+	ex, ez = ex / el, ez / el
+	local span = math.sqrt((tx - e[1]) ^ 2 + (tz - e[2]) ^ 2)
 	local out = {}
-	for i = 0, ParadeLane.MOUTH_STEPS do
-		local t = i / ParadeLane.MOUTH_STEPS
-		local x, z = e[1] + (tx - e[1]) * t, e[2] + (tz - e[2]) * t -- straight at the drain's centre
-		local r = r0 + (r1 - r0) * t
-		-- up onto the curb from 1.2 studs outside it, over its top, then down into the basin from r 3.5 on
-		local y = lane + (crown - lane) * smoothstep((5.6 - r) / 1.2)
-		y -= (crown - dip) * smoothstep((3.5 - r) / 0.9)
-		local hw = if r > 4.4
-			then ParadeLane.MOUTH_HALF_WIDTH_START
-				+ (ParadeLane.MOUTH_HALF_WIDTH_CURB - ParadeLane.MOUTH_HALF_WIDTH_START)
-					* smoothstep((r0 - r) / (r0 - 4.4))
-			else ParadeLane.MOUTH_HALF_WIDTH_CURB
-				+ (ParadeLane.MOUTH_HALF_WIDTH_END - ParadeLane.MOUTH_HALF_WIDTH_CURB)
-					* smoothstep((4.4 - r) / (4.4 - r1))
-		table.insert(out, { x, y, z, hw })
+	local n = ParadeLane.DRAIN_BLEND_STEPS
+	for i = 0, n do
+		local u = i / n
+		local h00, h10 = 2 * u ^ 3 - 3 * u ^ 2 + 1, u ^ 3 - 2 * u ^ 2 + u
+		local h01, h11 = -2 * u ^ 3 + 3 * u ^ 2, u ^ 3 - u ^ 2
+		local x = h00 * e[1] + h10 * span * hx + h01 * tx + h11 * span * ex
+		local z = h00 * e[2] + h10 * span * hz + h01 * tz + h11 * span * ez
+		local hw = ParadeLane.HALF_WIDTH + (ParadeLane.FUNNEL_HALF_WIDTH - ParadeLane.HALF_WIDTH) * smoothstep(u)
+		table.insert(out, { x, z, hw })
 	end
 	return out
 end
 
--- Goo slabs along drainMouth(): a few thin Block Parts (a ramp bent over the curb has no cylinder end caps to poke out),
--- straight-edged and narrow, each overlapping its neighbours by MOUTH_OVERLAP so no gap shows, each a hair above the last
--- so the overlaps do not z-fight. Same cf layout as strips().
-ParadeLane.MOUTH_OVERLAP = 0.2
-ParadeLane.MOUTH_THICKNESS = 0.3
-function ParadeLane.drainStrips(): { any }
-	local pts = ParadeLane.drainMouth()
+-- The lane's goo carried on to the pour: the same Cylinder crown strips as strips() (own crown radius per width).
+local function laneExtension(): { any }
+	local pts = ParadeLane.drainLanePoints()
+	local main = ParadeLane.drawPoints()
+	local count = #pts - 1
+	local ux, uz, len = {}, {}, {}
+	for i = 1, count do
+		local dx, dz = pts[i + 1][1] - pts[i][1], pts[i + 1][2] - pts[i][2]
+		len[i] = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
+		ux[i], uz[i] = dx / len[i], dz / len[i]
+	end
+	local px, pz = main[#main][1] - main[#main - 1][1], main[#main][2] - main[#main - 1][2]
+	local pl = math.max(math.sqrt(px * px + pz * pz), 1e-9)
+	ux[0], uz[0] = px / pl, pz / pl
+	local function reach(i: number, j: number, hw: number): number
+		if j > count then
+			return 0
+		end
+		local cos = math.clamp(ux[i] * ux[j] + uz[i] * uz[j], -1, 1)
+		return hw * math.tan(math.acos(cos) / 2) + ParadeLane.JOIN_OVERLAP
+	end
+	local out = {}
+	for i = 1, count do
+		local hw = math.max(pts[i][3], pts[i + 1][3])
+		local radius = (hw ^ 2 + ParadeLane.LANE_Y ^ 2) / (2 * ParadeLane.LANE_Y)
+		local ea, eb = reach(i, i - 1, hw), reach(i, i + 1, hw)
+		if i == count then
+			eb = ParadeLane.JOIN_OVERLAP -- the pour's first slab lies over this end
+		end
+		local shift = (eb - ea) / 2
+		local a, b = pts[i], pts[i + 1]
+		local dx, dz = ux[i], uz[i]
+		local length = len[i] + ea + eb
+		table.insert(out, {
+			name = `LaneDrain{i}`,
+			size = { length, radius * 2, radius * 2 },
+			length = length,
+			width = hw * 2,
+			cf = {
+				(a[1] + b[1]) / 2 + dx * shift,
+				ParadeLane.LANE_Y - radius + (if i % 2 == 1 then ParadeLane.STRIP_STEP else 0),
+				(a[2] + b[2]) / 2 + dz * shift,
+				dx,
+				0,
+				-dz,
+				0,
+				1,
+				0,
+				dz,
+				0,
+				dx,
+			},
+		})
+	end
+	return out
+end
+
+-- { x, y, z, halfWidth } along the gap line from POUR_START_RADIUS (on the lane) over the curb into the basin.
+function ParadeLane.pourPoints(): { { number } }
+	local r0, r1 = ParadeLane.POUR_START_RADIUS, ParadeLane.POUR_END_RADIUS
+	local lane, crown, dip = ParadeLane.LANE_Y, ParadeLane.POUR_CROWN_Y, ParadeLane.POUR_DIP_Y
+	local out = {}
+	for i = 0, ParadeLane.POUR_STEPS do
+		local t = i / ParadeLane.POUR_STEPS
+		local r = r0 + (r1 - r0) * t
+		-- up onto the curb from the lane's end, over its top, then down into the basin from r 3.5 on
+		local y = lane + (crown - lane) * smoothstep((r0 - r) / (r0 - 4.1))
+		y -= (crown - dip) * smoothstep((3.5 - r) / 0.9)
+		local x, z = onGap(r)
+		table.insert(out, { x, y, z, ParadeLane.POUR_HALF_WIDTH })
+	end
+	return out
+end
+
+-- Up axis of a cylinder lying along t = (tx, ty, tz) with horizontal side s = (sx, 0, sz): s x t.
+local function upAxis(sx: number, sz: number, tx: number, ty: number, tz: number): (number, number, number)
+	return -sz * ty, sz * tx - sx * tz, sx * ty
+end
+
+-- The pour's thin tilted slabs along pourPoints(): Block Parts (no cylinder end caps to poke out over the curb), each
+-- overlapping its neighbours, each a hair above the last so overlaps do not z-fight. Same cf layout as strips().
+function ParadeLane.pourStrips(): { any }
+	local pts = ParadeLane.pourPoints()
 	local out = {}
 	for i = 1, #pts - 1 do
 		local a, b = pts[i], pts[i + 1]
@@ -471,18 +556,18 @@ function ParadeLane.drainStrips(): { any }
 		local sx, sz = -tz / hl, tx / hl -- horizontal side, Z axis of the block
 		local ux, uy, uz = upAxis(sx, sz, tx, ty, tz)
 		local hw = (a[4] + b[4]) / 2
-		local thick = ParadeLane.MOUTH_THICKNESS
-		local length = len + ParadeLane.MOUTH_OVERLAP * 2
+		local thick = ParadeLane.POUR_THICKNESS
+		local length = len + ParadeLane.POUR_OVERLAP * 2
 		local mx, my, mz = (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, (a[3] + b[3]) / 2
 		table.insert(out, {
-			name = `Mouth{i}`,
+			name = `Pour{i}`,
 			shape = "Block",
 			size = { length, thick, hw * 2 },
 			length = length,
 			width = hw * 2,
 			cf = {
 				mx - ux * thick / 2,
-				my - uy * thick / 2 + i * 0.01,
+				my - uy * thick / 2 + i * 0.001,
 				mz - uz * thick / 2,
 				tx,
 				ux,
@@ -495,6 +580,15 @@ function ParadeLane.drainStrips(): { any }
 				sz,
 			},
 		})
+	end
+	return out
+end
+
+-- Everything ParadeView lays in Plaza.DrainMouth: the lane's last segments, then the pour.
+function ParadeLane.drainStrips(): { any }
+	local out = laneExtension()
+	for _, s in ParadeLane.pourStrips() do
+		table.insert(out, s)
 	end
 	return out
 end

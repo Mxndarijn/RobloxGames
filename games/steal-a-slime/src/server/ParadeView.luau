@@ -17,8 +17,8 @@
 	  collision, query or touch, so players walk over it and ground raycasts
 	  (drops, landings) pass through. Glossy goo in the slide's water colour
 	  (ParadeLane.COLOR). Idempotent.
-	  Plaza.DrainMouth (always strips): ParadeLane.drainStrips(), the lane's goo carrying on from its end over the
-	  drain's curb to just inside the rim, so the path visibly pours into the funnel.
+	  Plaza.DrainMouth (always strips): ParadeLane.drainStrips(), the lane's own last Cylinder segments bending on from
+	  EXIT to the drain's curb, then a thin pour of tilted slabs through the gap between two rim tiles into the basin.
 
 	ParadeView.splash(effects): Instance?
 	  The goo splash at the drain when a lane slime leaves (World event

@@ -407,7 +407,7 @@ end
 for _, strip in ParadeLane.drainStrips() do
 	table.insert(parts, {
 		name = `Workspace.Map.Plaza.DrainMouth.{strip.name}`,
-		shape = "Block",
+		shape = strip.shape or "Cylinder",
 		size = strip.size,
 		cf = strip.cf,
 		color = { ParadeLane.COLOR[1] / 255, ParadeLane.COLOR[2] / 255, ParadeLane.COLOR[3] / 255 },
