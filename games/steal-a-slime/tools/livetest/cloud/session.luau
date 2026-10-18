@@ -77,9 +77,9 @@ if server then
 	local module = Instance.new("ModuleScript")
 	module.Name = "ServerSession"
 	module.Source = server.Source
-		.. "\n\nreturn { world = world, refreshView = refreshView, Sessions = Sessions, Carry = Carry,"
-		.. " WorldView = WorldView, World = World, PlayerData = PlayerData, Actions = Actions, ctx = ctx,"
-		.. " Snapshot = Snapshot, Spawner = Spawner }\n"
+		.. "\n\nreturn { world = world, refreshView = refreshView, ctx = ctx, Carry = Carry, WorldView = WorldView,"
+		.. " World = World, Actions = Actions, Snapshot = Snapshot, Sessions = require(script.Sessions),"
+		.. " Spawner = require(script.Spawner), PlayerData = require(ReplicatedStorage.Shared.PlayerData) }\n"
 	for _, child in server:GetChildren() do
 		child:Clone().Parent = module
 	end

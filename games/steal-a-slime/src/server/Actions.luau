@@ -19,6 +19,7 @@ local Appraise = if Shared then require(Shared.Appraise) else require("../shared
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
+local Merge = if Shared then require(Shared.Merge) else require("../shared/Merge")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
@@ -664,6 +665,43 @@ function Actions.handlePlotPad(
 	local padCtx = table.clone(ctx)
 	padCtx.strictBypass = true
 	local res = Actions.handle(world, userId, kind, args, now, padCtx)
+	return res
+end
+
+--[[
+	A player triggered plot `plotIndex`'s owner-only prompt `kind` ("Lock" | "BuyPad" | "Merge"). Someone else's
+	(or a free) plot answers with a toast naming the owner; Merge picks the pair itself (Merge.findPair, the
+	favourite kept out) and toasts when there is none; a refused action toasts its reason. Returns the result.
+]]
+function Actions.triggerPlotPrompt(
+	world: World,
+	userId: number,
+	plotIndex: number,
+	kind: string,
+	now: number,
+	ctx: Context
+): Result
+	local session = World.session(world, userId)
+	if not session or session.plotIndex ~= plotIndex then
+		local ownerId = world.plots[plotIndex]
+		local owner = ownerId and world.sessions[ownerId]
+		local text = if owner then `This is {owner.name}'s base` else "Nobody owns this plot"
+		World.notify(world, userId, text, "info", nil)
+		return fail(text)
+	end
+	local args = {}
+	if kind == "Merge" then
+		local a, b = Merge.findPair(session.data.slimes, World.busySet(world), session.data.favoriteId)
+		if not a or not b then
+			World.notify(world, userId, "Need two slimes of the same rarity", "info", nil)
+			return fail("no pair")
+		end
+		args = { a, b }
+	end
+	local res = Actions.handlePlotPad(world, userId, kind, args, now, ctx)
+	if not res.ok and res.message then
+		World.notify(world, userId, res.message, "info", nil)
+	end
 	return res
 end
 

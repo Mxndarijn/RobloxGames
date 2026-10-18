@@ -21,7 +21,7 @@ client (src/ui, src/visuals/client)          server (src/server)
 | Systems | `src/server/*` (pure ones) | Plain functions over `World`: `Spawner`, `Carry`, `StealService`, `Income`, `MergeVat`, `Rebirth`, `Sessions`, `GameLoop`. Side effects the engine must perform go into `world.outbox` (`World.emit`, `World.notify`, `World.effect`), never straight to Instances. |
 | Requests | `src/server/Actions.luau` | The only entry for client intent (see §1.1). |
 | Snapshot | `src/server/Snapshot.luau` | Builds `Types.State` for one session; pushes only when `session.dirty`, at most once per `Config.STATE_MIN_INTERVAL`. |
-| Roblox adapters | `init.server.luau`, `WorldView`, `WorldProps`, `FallbackWorld`, `DataService`, `*View.luau` | Make workspace match `World` (`Scene.describe` → models, attributes). Hold no gameplay rules. |
+| Roblox adapters | `init.server.luau` (wiring only), `WorldView`, `WorldProps`, `FallbackWorld`, `DataService`, `*View.luau`, the entry's modules (`Persistence`, `ServerContext`, `Outbox`, `PlayerLifecycle`, `ServerLoop`, `StudioHooks`) | Make workspace match `World` (`Scene.describe` → models, attributes). Hold no gameplay rules. |
 | Client | `src/ui` (Jolt), `src/visuals/client` (Archer) | Calls `Request`, renders `State`, reads replicated attributes. Never decides an outcome. |
 
 ### 1.1 One remote in, one snapshot out
@@ -127,7 +127,7 @@ return Thing
 
 ### 2.6 Entry scripts
 
-`init.server.luau` and `init.client.luau` wire modules together: create remotes, build panels, connect signals, run the frame loop. New behaviour goes in a module with a test, and the entry gets one line that calls it. Studio-only review fakes (`force*` helpers, `Pcw*` attributes) belong in a dedicated module, not in the entry script.
+`init.server.luau` and `init.client.luau` wire modules together: create remotes, build panels, connect signals, run the frame loop. New behaviour goes in a module with a test, and the entry gets one line that calls it. Studio-only review fakes (`force*` helpers, `Pcw*` attributes) belong in a dedicated module (`StudioHooks` on the server), not in the entry script. A step that may fail without stopping the server goes through `safeCall(name, fn, ...)` (`server/SafeCall`), never a hand-written `pcall` + `warn`.
 
 ## 3. Recipes (each lists the tests it needs)
 
