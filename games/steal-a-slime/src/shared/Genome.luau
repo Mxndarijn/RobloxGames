@@ -302,9 +302,11 @@ function Genome.rollSpecies(
 	if #list == 0 and family then
 		list = SlimeRoster.forTier(tier)
 	end
-	for _, entry in extra or {} do
-		if entry.tier == tier then
-			table.insert(list, entry)
+	if extra then
+		for _, entry in extra do
+			if entry.tier == tier then
+				table.insert(list, entry)
+			end
 		end
 	end
 	if #list == 0 then
