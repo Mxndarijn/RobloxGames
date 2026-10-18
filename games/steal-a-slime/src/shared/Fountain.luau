@@ -8,9 +8,9 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
-local FountainTiers = if script then require(script.Parent.FountainTiers) else require("./FountainTiers")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
+local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 export type Drop = {
 	slime: Genome.Slime,
@@ -57,8 +57,9 @@ end
 -- `minTier` (optional, pity) keeps the rarity at or above that tier.
 -- `luckMult` / `mutationMult` (optional, CycleModifier) scale the rarity luck and mutation chance.
 -- `weeklyMutation` / `weeklyBonus` (optional, WeeklyEvents) raise one mutation's chance.
--- `familyPool` (optional, FEATURES.FountainTiers: FountainTiers.pool of the server's fountain tier) lets some
--- drops be a family type with that family's luck; nil (or empty) draws nothing extra from `rng`.
+-- `families` (optional, FEATURES.FountainTiers: FountainTiers.pool of the server's fountain tier) adds the open
+-- families' species to the pool the species is picked from after the tier is rolled; `extraSpecies` (optional) adds
+-- more entries (an event Secret), counted only at their own tier (Genome.speciesPool, contract/slime-odds.md).
 function Fountain.roll(
 	rng: Rng.Rng,
 	id: string,
@@ -68,24 +69,30 @@ function Fountain.roll(
 	mutationMult: number?,
 	weeklyMutation: string?,
 	weeklyBonus: number?,
-	familyPool: { string }?
+	families: { string }?,
+	extraSpecies: { SlimeRoster.Entry }?
 ): Drop
 	local baseChance = if raining then Config.RAIN_MUTATION_CHANCE else Config.DROP_MUTATION_CHANCE
-	local family = if familyPool then FountainTiers.roll(rng, familyPool) else nil
 	local slime = Genome.generate(rng, {
 		id = id,
 		minTier = minTier,
 		mutationChance = math.min(1, baseChance * (mutationMult or 1)),
-		luck = (if raining then Config.RAIN_LUCK else 1) * (luckMult or 1) * FountainTiers.luck(family),
+		luck = (if raining then Config.RAIN_LUCK else 1) * (luckMult or 1),
 		weeklyMutation = weeklyMutation,
 		weeklyBonus = weeklyBonus,
-		family = family,
+		families = families,
+		extraSpecies = extraSpecies,
 	})
 	return {
 		slime = slime,
 		angle = rng:float() * math.pi * 2,
 		radius = Fountain.MIN_RADIUS + rng:float() * (Fountain.MAX_RADIUS - Fountain.MIN_RADIUS),
 	}
+end
+
+-- Seconds an unclaimed wild slime lives: WILD_LIFETIME, stretched for Mythic / Secret (Config.TIER_LIFETIME_MULT).
+function Fountain.wildLifetime(slime: Genome.Slime): number
+	return Config.WILD_LIFETIME * (Config.TIER_LIFETIME_MULT[slime.tier] or 1)
 end
 
 -- Whether another wild slime may spawn.
