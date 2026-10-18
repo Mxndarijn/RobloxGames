@@ -49,6 +49,7 @@ local MenuClose = require(script.MenuClose)
 local MenuState = require(script.MenuState)
 local Nav = require(script.Nav)
 local PopupQueue = require(script.PopupQueue)
+local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
 local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
@@ -155,7 +156,8 @@ end
 -- (optional) gets the RequestResult of a call that reached the server.
 local busy: { [string]: boolean } = {}
 local worldShop: any = nil -- WorldShopLogic.controller, FEATURES.WorldShops only (made below, once setOpen exists)
-local function invoke(action: string, onResult: ((any) -> ())?, ...: any)
+-- `onFail` (optional) gets the { ok = false, message } of a call the server refused.
+local function call(action: string, onResult: ((any) -> ())?, onFail: ((any) -> ())?, ...: any)
 	assert(Remotes.ACTIONS[action], `unknown action {action}`)
 	if busy[action] then
 		return
@@ -171,13 +173,18 @@ local function invoke(action: string, onResult: ((any) -> ())?, ...: any)
 			warn(`[UI] {action} failed - try again`)
 		elseif type(result) == "table" and result.ok == false then
 			-- A world-shop denial (result.code) is told to the shop controller, which has no toast to show.
-			if not (worldShop and worldShop.failed(result)) then
+			if onFail then
+				onFail(result)
+			elseif not (worldShop and worldShop.failed(result)) then
 				warn(`[UI] {action}: {if type(result.message) == "string" then result.message else "failed"}`)
 			end
 		elseif onResult then
 			onResult(result)
 		end
 	end)
+end
+local function invoke(action: string, onResult: ((any) -> ())?, ...: any)
+	call(action, onResult, nil, ...)
 end
 local function send(action: string, ...: any)
 	invoke(action, nil, ...)
@@ -236,6 +243,12 @@ local inventory = Inventory.new(gui, {
 	Config = Config,
 	itemIcons = itemIcons,
 	send = send,
+	request = function(action: string, done: (any) -> (), ...: any)
+		call(action, done, done, ...)
+	end,
+	aim = function(screen: Vector2 | Vector3): any
+		return PvpAim.sample(screen, Constants.CARRYING_ATTRIBUTE)
+	end,
 	tools = InventoryTools.new(player),
 	serverNow = serverNow,
 	keyboard = game:GetService("UserInputService").KeyboardEnabled,

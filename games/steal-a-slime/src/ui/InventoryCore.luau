@@ -15,7 +15,8 @@
 	Permanent upgrades and shop-only effects (Lock, Longer locks, ...) are never listed.
 	Equip / use go through the existing actions only: a Tool through the Humanoid, a PvP item through
 	Request("EquipPvpItem", id?) (the server enforces rank, one equipped item and everything else), a consumable
-	in hand through Request("UseConsumable", id, slimeId?) (the server checks ownership and stock).
+	in hand through Request("UseConsumable", id, slimeId?) (the server checks ownership and stock), the equipped
+	PvP item through Request("UsePvpItem", id, targetUserId?, aim?) built by `pvpUseRequest` from the click.
 ]]
 
 local ItemIcons = if script then require(script.Parent.ItemIcons) else require("./ItemIcons")
@@ -207,6 +208,135 @@ function InventoryCore.useRequest(entry: Entry, state: any): { string }?
 		return { InventoryCore.USE_ACTION, entry.itemId, target }
 	end
 	return { InventoryCore.USE_ACTION, entry.itemId }
+end
+
+export type Vec = { X: number, Y: number, Z: number }
+export type Other = { userId: number, position: Vec, carrying: boolean? } -- another player's root
+-- What the click / tap on the world pointed at (ui/PvpAim samples it): all optional, the server re-checks it all.
+export type Aim = {
+	self: Vec?, -- the local player's root
+	point: Vec?, -- the world point under the click (nil = sky / nothing hit)
+	far: Vec?, -- a point far along the click ray (aimed shots into the sky)
+	hovered: number?, -- userId of the player under the click
+	players: { Other }, -- every other player with a character
+}
+export type PvpUse = { action: string, itemId: string, target: number?, aim: Vec? }
+
+InventoryCore.PVP_USE_ACTION = "UsePvpItem"
+
+--[[
+	How a PvP item picks the UsePvpItem arguments (server/PvpKnockback, PvpTrap, PvpBlaster, PvpFun):
+	  target         a player in reach (the one clicked, else the nearest, thieves first); none = not sent
+	  targetOptional the clicked or nearest thief in reach, else no target (Squeaky Hammer: a squeak on its own)
+	  hovered        only the clicked player in reach, else yourself (Hat Launcher: friends, checked by the server)
+	  shot           the clicked player, else the clicked point, else far along the ray (Goo Blaster hitscan)
+	  point          the clicked world point (Goo Trap, Goo Balloon); none = not sent
+	  pointOptional  the clicked point when within FUN_AIM_RANGE, else your own spot (Bounce Pad, Fireworks)
+	  self           no arguments (Confetti Popper, Bubble Wand)
+]]
+InventoryCore.PVP_AIM = table.freeze({
+	Knockback = "target",
+	Trap = "point",
+	Blaster = "shot",
+	FunConfetti = "self",
+	FunBubbles = "self",
+	FunBalloon = "point",
+	FunBouncePad = "pointOptional",
+	FunFireworks = "pointOptional",
+	FunSqueaky = "targetOptional",
+	FunHatLauncher = "hovered",
+	FunDanceBomb = "target",
+})
+
+function InventoryCore.pvpAimMode(tool: any): string
+	return InventoryCore.PVP_AIM[tool.id] or InventoryCore.PVP_AIM[tool.line] or "self"
+end
+
+local function distance(a: Vec, b: Vec): number
+	local dx, dy, dz = a.X - b.X, a.Y - b.Y, a.Z - b.Z
+	return math.sqrt(dx * dx + dy * dy + dz * dz)
+end
+
+-- The player to target: the hovered one when in reach, else (unless onlyHovered) the nearest in reach, thieves
+-- (carrying) before anyone else; `thievesOnly` skips non-carrying players in the nearest pick.
+local function pickTarget(aim: Aim, reach: number, onlyHovered: boolean, thievesOnly: boolean): Other?
+	local me = aim.self
+	if not me then
+		return nil
+	end
+	local best: Other? = nil
+	local bestScore = math.huge
+	for _, other in aim.players do
+		local d = distance(me, other.position)
+		if d == d and d <= reach then
+			if other.userId == aim.hovered then
+				return other
+			end
+			if not onlyHovered and (other.carrying or not thievesOnly) then
+				local score = d - (if other.carrying then reach * 2 else 0) -- any thief beats any non-thief
+				if score < bestScore then
+					best, bestScore = other, score
+				end
+			end
+		end
+	end
+	return best
+end
+
+local function positionOf(aim: Aim, userId: number?): Vec?
+	for _, other in aim.players do
+		if other.userId == userId then
+			return other.position
+		end
+	end
+	return nil
+end
+
+--[[
+	The UsePvpItem request for the equipped PvP `entry` (tool = its Config.PVP_TOOLS row) from what the click
+	pointed at, or (nil, player-facing reason) when there is nothing to send: not equipped, still cooling down,
+	nobody in reach, no point to aim at. Intent only: the server re-checks reach, zones, shields and cooldowns.
+]]
+function InventoryCore.pvpUseRequest(entry: Entry, tool: any, aim: Aim, config: any, now: number): (PvpUse?, string?)
+	if entry.kind ~= "pvp" or not entry.equipped or tool == nil or tool.id ~= entry.itemId then
+		return nil, nil
+	end
+	if entry.readyAt and entry.readyAt > now then
+		return nil, `Ready in {math.ceil(entry.readyAt - now)}s`
+	end
+	local use: PvpUse = { action = InventoryCore.PVP_USE_ACTION, itemId = entry.itemId, target = nil, aim = nil }
+	local mode = InventoryCore.pvpAimMode(tool)
+	local reach = tool.reach or config.SLAP_REACH
+	if mode == "target" or mode == "targetOptional" or mode == "hovered" then
+		local other = pickTarget(aim, reach, mode == "hovered", mode == "targetOptional")
+		if other then
+			use.target = other.userId
+		elseif mode == "target" then
+			return nil, if aim.self then "No one in reach" else "Can't find you"
+		end
+	elseif mode == "shot" then
+		use.aim = positionOf(aim, aim.hovered) or aim.point or aim.far
+		if use.aim == nil then
+			return nil, "Aim somewhere"
+		end
+	elseif mode == "point" then
+		use.aim = aim.point
+		if use.aim == nil then
+			return nil, "Aim at the ground"
+		end
+	elseif mode == "pointOptional" then
+		local point = aim.point
+		if point and aim.self and distance(aim.self, point) <= config.PVP.FUN_AIM_RANGE then
+			use.aim = point
+		end
+	end
+	return use, nil
+end
+
+-- A server refusal ("too far away") as hotbar tip text ("Too far away").
+function InventoryCore.reasonText(message: any): string
+	local text = if type(message) == "string" and message ~= "" then message else "Can't use that here"
+	return string.upper(string.sub(text, 1, 1)) .. string.sub(text, 2)
 end
 
 -- The entry on number key `n` (1-9) given the entries the hotbar shows, or nil.
