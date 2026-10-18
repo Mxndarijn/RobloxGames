@@ -1,6 +1,6 @@
 --!strict
 --[[
-	Client UI performance numbers under Lune: mounts the HUD, toasts and every menu card the way
+	Client UI performance numbers under Lune: mounts the HUD and every menu card the way
 	src/ui/init.client does (tests/ui/UiHarness mock Roblox), then counts what a phone pays for:
 	  gui_instances   ScreenGui descendants (idle, and the most with one menu open)
 	  tweens          TweenService:Create calls while mounting, opening and closing everything
@@ -102,10 +102,8 @@ function PerfMeasure.measure(): { [string]: any }
 		conns = liveConns(),
 	}
 	local gui = UiHarness.root()
-	local toasts
 	local ItemIcons = UiHarness.ui("ItemIcons")
 	local itemIcons = ItemIcons.build(Config)
-	toasts = UiHarness.ui("Toasts").new(gui, itemIcons, Config)
 	local ctx: { [string]: any } = {
 		Config = Config,
 		Constants = Constants,
@@ -123,7 +121,6 @@ function PerfMeasure.measure(): { [string]: any }
 		playerName = function()
 			return "Tester"
 		end,
-		toast = toasts.push,
 		itemIcons = itemIcons,
 	}
 	UiHarness.ui("Hud").new(gui, ctx)
@@ -137,7 +134,6 @@ function PerfMeasure.measure(): { [string]: any }
 		Constants = Constants,
 		StealAlert = require("../../src/shared/StealAlert"),
 		serverNow = ctx.serverNow,
-		toast = toasts.push,
 	})
 	UiHarness.ui("Panels/Carry").new(gui, ctx)
 	UiHarness.ui("Panels/DailyPopup").new(gui, ctx)

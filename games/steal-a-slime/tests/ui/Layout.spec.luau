@@ -91,8 +91,6 @@ describe("Layout touch targets", function()
 		expect(Layout.isCompact(1024, 768)).toBe(true)
 		expect(Layout.isCompact(1920, 1080)).toBe(false)
 		expect(Layout.isCompact(1280, 720)).toBe(false)
-		expect(Layout.navDefaultCollapsed(390, 844)).toBe(true)
-		expect(Layout.navDefaultCollapsed(1920, 1080)).toBe(false)
 	end)
 end)
 
@@ -171,8 +169,9 @@ describe("Layout.screen tutorial card on short screens", function()
 			expect(s.short).toBe(false)
 			-- Portrait phones (H1 HUD): the cards sit above the two bottom clusters, which sit above the
 			-- touch-controls rise; desktop keeps them on the inset line.
-			local lift = if s.width < 868
-				then math.ceil(Layout.TOUCH_RISE / s.scale) + s.money.rect.h + Layout.GAP
+			local lift = if s.width
+					< Layout.CARRY.w + s.money.rect.w + s.status.rect.w + 2 * (Layout.MARGIN + Layout.GAP)
+				then math.ceil(Layout.TOUCH_RISE / s.scale) + math.max(s.money.rect.h, s.status.rect.h) + Layout.GAP
 				else 0
 			expect(s.tutorial.y + s.tutorial.h).toBe(s.height - s.bottomInset - lift)
 			expect(s.tutorialCarrying.y + s.tutorialCarrying.h + Layout.GAP).toBe(s.carry.y)
@@ -181,7 +180,7 @@ describe("Layout.screen tutorial card on short screens", function()
 		expect(d.tutorial.y).toBe(927)
 		expect(d.tutorialCarrying.y).toBe(819)
 		local p = Layout.screen(390, 844)
-		expect(p.tutorial.y).toBe(685)
-		expect(p.tutorialCarrying.y).toBe(577)
+		expect(p.tutorial.y).toBe(671)
+		expect(p.tutorialCarrying.y).toBe(563)
 	end)
 end)

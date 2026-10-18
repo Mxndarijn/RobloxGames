@@ -1,8 +1,10 @@
 --!strict
--- H1 HUD layout (Merijn, 2026-10-17, hud_design_ref.png): left column = Plot, Rebirth, Goals, SlimeDex, Codes;
--- bottom-left = Money / Income / Rebirths; bottom-right = status icons with timers (events, friend boost),
--- never the weekend boost; no boss / specific-slime notifications; nothing of ours new top-right / top-middle.
+-- H1 HUD layout (Merijn, 2026-10-17, hud_design_ref.png): left column = Plot, Rebirth, Goals, SlimeDex, Codes
+-- (Oct 18: a 2-column grid of rounded tiles, B5); bottom-left = Money / Income / Rebirths; bottom-right = status
+-- icons with timers (events, friend boost), never the weekend boost, with a tooltip on hover / tap (B8); both
+-- clusters bigger (B4); no top bar (B7), no toasts (B6), no boss / specific-slime notifications.
 local fs = require("@lune/fs")
+local Enum = require("@lune/roblox").Enum
 
 local Config = require("../../src/shared/Config")
 local Constants = require("../../src/shared/Constants")
@@ -46,7 +48,6 @@ local function ctx(): any
 		playerName = function()
 			return "Tester"
 		end,
-		toast = function() end,
 		itemIcons = UiHarness.ui("ItemIcons").build(Config),
 	}
 end
@@ -105,7 +106,7 @@ describe("H1 HUD: left button column", function()
 		end
 		expect(table.concat(labels, ",")).toBe("Plot,Rebirth,Goals,SlimeDex,Codes")
 	end)
-	it("lays out the toggle plus those five buttons at every gate and landscape viewport", function()
+	it("lays out those five buttons at every gate and landscape viewport", function()
 		local viewports = {}
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
 			table.insert(viewports, vp)
@@ -114,7 +115,7 @@ describe("H1 HUD: left button column", function()
 			table.insert(viewports, vp)
 		end
 		for _, vp in viewports do
-			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: 6`)
+			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: 5`)
 		end
 	end)
 	it("has no Merge / Shop / Top badges and no HUD Shop button", function()
@@ -124,7 +125,6 @@ describe("H1 HUD: left button column", function()
 			upgrades = { { id = "Income", price = 1, unlocked = true } },
 		})
 		expect(next(badges)).toBeNil()
-		expect(Layout.HUD_ITEMS.Shop).toBeNil()
 		expect(has(read("src/ui/Hud.luau"), '"Shop"')).toBe(false)
 	end)
 	it(
@@ -216,13 +216,15 @@ describe("H1 HUD: bottom-left cluster (mounted Hud)", function()
 		expect(UiHarness.find(UiHarness.find(gui, "Money"), "Value").Text).toBe("$12")
 		expect(UiHarness.find(UiHarness.find(money, "Rebirths"), "Value").Text).toBe("1 x1.5")
 	end)
-	it("is not drawn in the top bar any more: no Cash / Income / Rebirths / Pads / Shop there", function()
+	it("has no top bar any more (B7): no Hud bar, lock block, Lock, Buy pad, Daily, Pads or Shop", function()
 		local _, gui = mount(1920, 1080)
-		local bar = UiHarness.find(gui, "Hud")
-		for _, name in { "Cash", "Income", "Rebirths", "Pads", "Shop" } do
-			expect(UiHarness.find(bar, name)).toBeNil()
+		for _, name in { "Hud", "LockStatus", "Lock", "BuyPad", "Daily", "Cash.Pads", "Pads", "Shop", "PadHint" } do
+			expect(`{name}: {UiHarness.find(gui, name) ~= nil}`).toBe(`{name}: false`)
 		end
-		expect(UiHarness.find(bar, "Lock") ~= nil).toBe(true)
+		local src = read("src/ui/Hud.luau")
+		for _, needle in { "LockHud", "holdButton", "openDaily", "LockStatus" } do
+			expect(`{needle}: {has(src, needle)}`).toBe(`{needle}: false`)
+		end
 	end)
 	it("sits in the bottom-left corner box of Layout.screen", function()
 		local hud, gui, screen = mount(1920, 1080)
@@ -269,7 +271,7 @@ describe("H1 HUD: bottom-right cluster (mounted Hud)", function()
 			table.insert(xs, slot(gui, id).Position.X.Offset)
 		end
 		expect(xs[1] < xs[2] and xs[2] < xs[3]).toBe(true)
-		expect(xs[3] + Layout.STATUS.slot).toBe(screen.status.rect.w)
+		expect(xs[3] + Layout.statusSlotWidth(false)).toBe(screen.status.rect.w)
 		setAttributes()
 	end)
 	it("shows only what is running and packs it to the right", function()
@@ -279,7 +281,7 @@ describe("H1 HUD: bottom-right cluster (mounted Hud)", function()
 		expect(slot(gui, "Rain").Visible).toBe(false)
 		expect(slot(gui, "Event").Visible).toBe(false)
 		expect(slot(gui, "Friend").Visible).toBe(true)
-		expect(slot(gui, "Friend").Position.X.Offset + Layout.STATUS.slot).toBe(screen.status.rect.w)
+		expect(slot(gui, "Friend").Position.X.Offset + Layout.statusSlotWidth(false)).toBe(screen.status.rect.w)
 		expect(UiHarness.find(slot(gui, "Friend"), "Timer").Text).toBe("+20%")
 	end)
 	it("never shows the weekend boost, whatever State.weekend says", function()
@@ -307,35 +309,35 @@ describe("H1 HUD: bottom-right cluster (mounted Hud)", function()
 end)
 
 describe("H1 HUD: nothing new top-right / top-middle", function()
-	local KEPT_BANNERS = "EggReveal,EventsBoard,PadHint,StealAlert" -- NO PLACE, see glitch-hud-inventory.md
-	local KEPT_BAR = "BuyPad,Daily,Lock,LockStatus"
+	local KEPT_BANNERS = "EggReveal,StealAlert" -- top centre; PadHint went with the Buy pad button (B7)
 	it("the top banner stack holds only the kept (no-slot) notices", function()
 		local _, gui = mount(1920, 1080)
 		expect(table.concat(names(UiHarness.find(gui, "Banners")), ",")).toBe(`{KEPT_BANNERS}`)
 	end)
-	it("the top bar holds only the lock block, Lock, Buy pad and Daily", function()
+	it("there are no toasts: no Toasts frame, no toast code in the client (B6)", function()
 		local _, gui = mount(1920, 1080)
-		local bar = names(UiHarness.find(gui, "Hud"))
-		local filtered = {}
-		for _, name in bar do
-			if name ~= "UICorner" then
-				table.insert(filtered, name)
-			end
+		expect(UiHarness.find(gui, "Toasts")).toBeNil()
+		local init = read("src/ui/init.client.luau")
+		for _, needle in { "toasts.", "Toasts", "ToastQueue", "ctx.toast", "PcwBadgeToast" } do
+			expect(`{needle}: {has(init, needle)}`).toBe(`{needle}: false`)
 		end
-		expect(table.concat(filtered, ",")).toBe(KEPT_BAR)
+		for _, path in { "src/ui/Toasts.luau", "src/ui/ToastQueue.luau", "src/ui/LockHud.luau" } do
+			expect(`{path}: {pcall(fs.readFile, path)}`).toBe(`{path}: false`)
+		end
 	end)
 	it("boss / specific-slime notices are gone: no Hud.onNotify, the Notify handler drops RareAnnounce news", function()
 		local hud = mount(1920, 1080)
 		expect(hud.onNotify).toBeNil()
 		local init = read("src/ui/init.client.luau")
 		expect(has(init, "if RareAnnounce.classify(message, sound) then\n\t\treturn\n\tend")).toBe(true)
+		expect(has(init, "playNotifySound(sound)")).toBe(true) -- a Notify still plays its sound, nothing is drawn
 		expect(has(init, "hud.onNotify")).toBe(false)
 		local hudSrc = read("src/ui/Hud.luau")
 		for _, needle in { "RareAnnounce", "BOSS_ATTRIBUTE", "NextSpawn", "RARE_SPAWN" } do
 			expect(`{needle}: {has(hudSrc, needle)}`).toBe(`{needle}: false`)
 		end
 	end)
-	it("both clusters sit on the bottom line (the touch-controls floor), below the HUD, at every viewport", function()
+	it("both clusters sit on the bottom line (the touch-controls floor) at every viewport", function()
 		local viewports = {}
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
 			table.insert(viewports, vp)
@@ -351,9 +353,7 @@ describe("H1 HUD: nothing new top-right / top-middle", function()
 			expect(`{vp.name} status: {s.status.rect.y + s.status.rect.h == floor}`).toBe(`{vp.name} status: true`)
 			expect(s.money.rect.x).toBe(Layout.MARGIN)
 			expect(s.status.rect.x + s.status.rect.w).toBe(s.width - Layout.MARGIN)
-			expect(s.money.rect.y >= s.hud.rect.y + s.hud.rect.h).toBe(true)
-			expect(s.status.rect.y >= s.hud.rect.y + s.hud.rect.h).toBe(true)
-			-- the corner the toasts / the sound slot use (top-right) stays theirs
+			-- the corner the sound slot uses (top-right) stays its
 			expect(Layout.overlaps(s.status.rect, s.sound)).toBe(false)
 		end
 	end)
@@ -368,12 +368,12 @@ describe("H1 HUD: layout rules for the new clusters", function()
 		table.insert(viewports, vp)
 	end
 	for _, vp in viewports do
-		for _, collapsed in { true, false } do
-			local label = `{vp.name} nav {if collapsed then "collapsed" else "expanded"}`
+		do
+			local label = vp.name
 			it(
 				`{label}: on screen, above the touch controls, clear of nav, left column, cards, carry, tutorial; text fits`,
 				function()
-					local s = Layout.screen(vp.w, vp.h, { navCollapsed = collapsed })
+					local s = Layout.screen(vp.w, vp.h)
 					local check = LayoutAssert.new(label, s)
 					LayoutAssert.clusterChecks(check)
 					for _, list in { LayoutAssert.moneyTexts(s), LayoutAssert.statusTexts(s) } do
@@ -391,7 +391,6 @@ describe("H1 HUD: layout rules for the new clusters", function()
 						check.noOverlap(name, r, "Carry", s.carry)
 						check.noOverlap(name, r, "Tutorial", s.tutorial)
 						check.noOverlap(name, r, "TutorialCarrying", s.tutorialCarrying)
-						check.noOverlap(name, r, "Hud", s.hud.rect)
 					end
 					expect(check.report()).toBe("")
 				end
@@ -411,7 +410,16 @@ describe("H1 HUD: Studio hooks keep working", function()
 	it("the Pcw attributes that drive the HUD are still handled (and PcwRain fakes the rain slot)", function()
 		local init = read("src/ui/init.client.luau")
 		for _, attr in
-			{ "PcwFriendBonus", "PcwAdminEvent", "PcwWeekend", "PcwStealAlert", "PcwWelcome", "PcwRain", "PcwOpen" }
+			{
+				"PcwFriendBonus",
+				"PcwAdminEvent",
+				"PcwWeekend",
+				"PcwStealAlert",
+				"PcwWelcome",
+				"PcwRain",
+				"PcwOpen",
+				"PcwTooltip",
+			}
 		do
 			expect(`{attr}: {has(init, `"{attr}"`)}`).toBe(`{attr}: true`)
 		end
@@ -428,5 +436,216 @@ describe("H1 HUD: Studio hooks keep working", function()
 		hud.update(state())
 		expect(UiHarness.find(UiHarness.find(UiHarness.find(gui, "Status"), "Rain"), "Timer").Text).toBe("1:37")
 		setAttributes()
+	end)
+end)
+
+-- B8: a status icon explains itself: mouse hover on PC, a tap on touch (a second tap or a tap elsewhere closes it).
+describe("H1 HUD: status icon tooltip (B8)", function()
+	local EVENT = { name = "Admin_luck", label = "Luck Event", luck = 3, mutation = 1, endsAt = 1540, icon = "🍀" }
+
+	local function running(w: number, h: number): (any, any, Layout.Screen)
+		setAttributes({ RainActive = true, RainEndsAt = 1097 })
+		local hud, gui, screen = mount(w, h)
+		hud.update(state({ modifier = EVENT, friends = { count = 1, bonus = 0.1 } }))
+		return hud, gui, screen
+	end
+	local function slot(gui: any, id: string): any
+		return UiHarness.find(UiHarness.find(gui, "Status"), id)
+	end
+	local function tip(gui: any): any
+		return UiHarness.find(gui, "Tooltip")
+	end
+
+	it("words name, effect and time left for each kind of slot", function()
+		local rain = HudClusters.tooltip(HudClusters.rain({ active = true, endsAt = 1097 }, 1000) :: HudClusters.Slot)
+		expect(rain.title).toBe("Slime Rain")
+		expect(rain.body).toBe(HudClusters.RAIN_EFFECT)
+		expect(rain.time).toBe("Time left: 1:37")
+		local soon = HudClusters.tooltip(HudClusters.rain({ active = false, nextAt = 1100 }, 1000) :: HudClusters.Slot)
+		expect(soon.time).toBe("Starts in 1:40")
+		local luck = HudClusters.tooltip(HudClusters.event(EVENT, 1000, true) :: HudClusters.Slot)
+		expect(luck.title).toBe("Luck Event")
+		expect(luck.body).toBe("x3 luck: rarer slimes show up more often.")
+		expect(luck.time).toBe("Time left: 9:00")
+		local mutation = { name = "Admin_mutation", label = "Mutation Event", luck = 1, mutation = 4, endsAt = 1540 }
+		expect(HudClusters.tooltip(HudClusters.event(mutation, 1000, true) :: HudClusters.Slot).body).toBe(
+			"x4 mutations: slimes mutate more often."
+		)
+		local untimed = { name = "Dusk", label = "Dusk", luck = 2, mutation = 1 }
+		expect(HudClusters.tooltip(HudClusters.event(untimed, 1000, true) :: HudClusters.Slot).time).toBe("Active now")
+		local friend = HudClusters.tooltip(HudClusters.friend({ count = 1, bonus = 0.1 }, true) :: HudClusters.Slot)
+		expect(friend.title).toBe("Friend boost")
+		expect(friend.body).toBe("+10% income while your friends play on this server.")
+	end)
+
+	it("the open / close rule: hover on PC, tap toggles on touch, a press elsewhere closes", function()
+		local next = HudClusters.nextTooltip
+		expect(next(nil, "hover", "Rain", false)).toBe("Rain")
+		expect(next("Rain", "leave", "Rain", false)).toBeNil()
+		expect(next("Rain", "hover", "Event", false)).toBe("Event")
+		expect(next(nil, "hover", "Rain", true)).toBeNil() -- a touch fires MouseEnter too: ignored
+		expect(next("Rain", "leave", "Rain", true)).toBe("Rain")
+		expect(next(nil, "tap", "Rain", true)).toBe("Rain")
+		expect(next("Rain", "tap", "Rain", true)).toBeNil() -- the second tap closes
+		expect(next("Rain", "tap", "Event", true)).toBe("Event")
+		expect(next("Rain", "tap", "Rain", false)).toBe("Rain") -- a mouse click keeps the hover card
+		expect(next("Rain", "press", nil, true)).toBeNil() -- a tap elsewhere
+		expect(next("Rain", "press", "Rain", true)).toBe("Rain") -- on the icon itself: its own tap decides
+		expect(next("Rain", "press", "Event", false)).toBeNil()
+	end)
+
+	it("hover opens the tooltip over the icon and leaving closes it (mouse)", function()
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+		local _, gui = running(1920, 1080)
+		expect(tip(gui).Visible).toBe(false)
+		UiHarness.fire(slot(gui, "Event"), "MouseEnter")
+		expect(tip(gui).Visible).toBe(true)
+		expect(UiHarness.find(tip(gui), "Title").Text).toBe("Luck Event")
+		expect(UiHarness.find(tip(gui), "Body").Text).toBe("x3 luck: rarer slimes show up more often.")
+		expect(UiHarness.find(tip(gui), "Time").Text).toBe("Time left: 9:00")
+		UiHarness.fire(slot(gui, "Event"), "MouseLeave")
+		expect(tip(gui).Visible).toBe(false)
+		setAttributes()
+	end)
+
+	it("a tap opens it, a second tap closes it, a tap elsewhere closes it (touch)", function()
+		UiHarness.lastInputType = Enum.UserInputType.Touch
+		local _, gui, screen = running(390, 844)
+		UiHarness.fire(slot(gui, "Rain"), "MouseEnter") -- touch also fires hover: ignored
+		expect(tip(gui).Visible).toBe(false)
+		UiHarness.fire(slot(gui, "Rain"), "Activated")
+		expect(tip(gui).Visible).toBe(true)
+		expect(UiHarness.find(tip(gui), "Title").Text).toBe("Slime Rain")
+		-- a press on the open icon leaves it to its own tap; the second tap closes
+		local r = Layout.statusSlot(screen.status, 1, 3)
+		UiHarness.press("Touch", (r.x + r.w / 2) * screen.scale, (r.y + r.h / 2) * screen.scale)
+		expect(tip(gui).Visible).toBe(true)
+		UiHarness.fire(slot(gui, "Rain"), "Activated")
+		expect(tip(gui).Visible).toBe(false)
+		-- open again, then tap on the empty world
+		UiHarness.fire(slot(gui, "Rain"), "Activated")
+		expect(tip(gui).Visible).toBe(true)
+		UiHarness.press("Touch", 20, 20)
+		expect(tip(gui).Visible).toBe(false)
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+		setAttributes()
+	end)
+
+	it("opening one icon's tooltip replaces another's, and the time left follows the clock", function()
+		UiHarness.lastInputType = Enum.UserInputType.Touch
+		local hud, gui = running(1920, 1080)
+		UiHarness.fire(slot(gui, "Rain"), "Activated")
+		UiHarness.fire(slot(gui, "Friend"), "Activated")
+		expect(UiHarness.find(tip(gui), "Title").Text).toBe("Friend boost")
+		UiHarness.fire(slot(gui, "Rain"), "Activated")
+		expect(UiHarness.find(tip(gui), "Time").Text).toBe("Time left: 1:37")
+		setAttributes({ RainActive = true, RainEndsAt = 1060 })
+		hud.tick(1000)
+		expect(UiHarness.find(tip(gui), "Time").Text).toBe("Time left: 1:00")
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+		setAttributes()
+	end)
+
+	it("closes when its slot goes away or a menu opens", function()
+		UiHarness.lastInputType = Enum.UserInputType.Touch
+		local hud, gui = running(1920, 1080)
+		UiHarness.fire(slot(gui, "Rain"), "Activated")
+		setAttributes() -- the rain is over
+		hud.tick(1000)
+		expect(tip(gui).Visible).toBe(false)
+		setAttributes({ RainActive = true, RainEndsAt = 1097 })
+		hud.tick(1000)
+		expect(tip(gui).Visible).toBe(false) -- stays closed
+		UiHarness.fire(slot(gui, "Rain"), "Activated")
+		expect(tip(gui).Visible).toBe(true)
+		hud.setMenuOpen(true)
+		expect(tip(gui).Visible).toBe(false)
+		hud.setMenuOpen(false)
+		expect(tip(gui).Visible).toBe(false)
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+		setAttributes()
+	end)
+
+	it("stays on screen for every card over every slot at all LayoutAssert sizes, and is placed by Layout", function()
+		local viewports = {}
+		for _, vp in LayoutAssert.GATE_VIEWPORTS do
+			table.insert(viewports, vp)
+		end
+		for _, vp in LayoutAssert.LANDSCAPE_VIEWPORTS do
+			table.insert(viewports, vp)
+		end
+		for _, vp in viewports do
+			local s = Layout.screen(vp.w, vp.h)
+			for i, slotRect in s.status.slots do
+				for k, card in LayoutAssert.tooltipCards() do
+					local w, h = Layout.tooltipBox(s.compact, card.title, card.body, card.time)
+					local r = Layout.tooltipRect(s, slotRect, w, h)
+					expect(`{vp.name} slot{i} card{k}: {Layout.fitsInViewport(r, s.width, s.height, Layout.MARGIN)}`).toBe(
+						`{vp.name} slot{i} card{k}: true`
+					)
+					expect(Layout.overlaps(r, slotRect)).toBe(false)
+				end
+			end
+		end
+		-- the mounted card sits where Layout puts it
+		UiHarness.lastInputType = Enum.UserInputType.Touch
+		local _, gui, screen = running(390, 844)
+		UiHarness.fire(slot(gui, "Event"), "Activated")
+		local card = HudClusters.tooltip(HudClusters.event(EVENT, 1000, true) :: HudClusters.Slot)
+		local w, h = Layout.tooltipBox(screen.compact, card.title, card.body, card.time)
+		local want = Layout.tooltipRect(screen, Layout.statusSlot(screen.status, 2, 3), w, h)
+		expect(tip(gui).Position.X.Offset).toBe(math.round(want.x))
+		expect(tip(gui).Position.Y.Offset).toBe(math.round(want.y))
+		expect(tip(gui).Size.X.Offset).toBe(math.round(w))
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+		setAttributes()
+	end)
+end)
+
+-- B4 / B5: the bigger clusters and the tile nav as built.
+describe("H1 HUD: bigger clusters and the nav tile grid (B4, B5)", function()
+	it("the mounted money plate and status slots use the bigger Layout sizes", function()
+		setAttributes({ RainActive = true, RainEndsAt = 1097 })
+		local hud, gui, screen = mount(1920, 1080)
+		hud.update(state({ friends = { count = 1, bonus = 0.1 } }))
+		local cash = UiHarness.find(UiHarness.find(gui, "Money"), "Cash")
+		expect(cash.Size.X.Offset).toBe(Layout.MONEY.w)
+		expect(cash.Size.Y.Offset).toBe(Layout.MONEY.plate)
+		expect(UiHarness.find(cash, "Value").TextSize).toBe(Layout.MONEY.amountSize)
+		local icon = UiHarness.find(cash, "Icon")
+		expect(icon.Size.X.Offset).toBe(Layout.MONEY.icon)
+		local rain = UiHarness.find(UiHarness.find(gui, "Status"), "Rain")
+		expect(rain.Size.X.Offset).toBe(Layout.STATUS.slot)
+		expect(rain.Size.Y.Offset).toBe(screen.status.rect.h)
+		expect(UiHarness.find(UiHarness.find(rain, "Icon"), "Tile").Parent.Size.X.Offset).toBe(Layout.STATUS.icon)
+		expect(UiHarness.find(rain, "Timer").TextSize).toBe(Layout.STATUS.labelSize)
+		setAttributes()
+	end)
+	it("on a phone the plate and slots use the compact sizes, still bigger than the H1 ones", function()
+		setAttributes({ RainActive = true, RainEndsAt = 1097 })
+		local hud, gui = mount(390, 844)
+		hud.update(state())
+		local cash = UiHarness.find(UiHarness.find(gui, "Money"), "Cash")
+		expect(cash.Size.Y.Offset).toBe(Layout.MONEY.cplate)
+		expect(UiHarness.find(cash, "Value").TextSize).toBe(Layout.MONEY.camountSize)
+		expect(Layout.MONEY.cplate > 40 and Layout.MONEY.camountSize > 22).toBe(true) -- H1 phone: 40 px, size 22
+		setAttributes()
+	end)
+	it("the nav is built from rounded Tile frames with an item icon and the label under them", function()
+		local init = read("src/ui/init.client.luau")
+		for _, needle in
+			{
+				'Name = "Tile"',
+				"Id = navEntry.item",
+				"Widgets.corner(16)",
+				'Name = "Label"',
+				"Layout.navTile(s.compact, b)",
+			}
+		do
+			expect(`{needle}: {has(init, needle)}`).toBe(`{needle}: true`)
+		end
+		for _, entry in Nav.ENTRIES do
+			expect(UiHarness.ui("ItemIcons").build(Config).byId[entry.item] ~= nil).toBe(true)
+		end
 	end)
 end)

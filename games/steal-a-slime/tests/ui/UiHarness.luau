@@ -55,6 +55,18 @@ end
 
 local methods: { [string]: (any, ...any) -> any } = {}
 
+-- An event that keeps its handlers (instance events, UserInputService.InputBegan); fired by UiHarness.fire.
+local eventHandlers: { [any]: { [string]: any } } = setmetatable({}, { __mode = "k" }) :: any
+local function recordingSignal(): any
+	local event = { handlers = {} :: { (...any) -> () } }
+	function event.Connect(self: any, handler: (...any) -> ())
+		table.insert(self.handlers, handler)
+		return { Disconnect = function() end }
+	end
+	event.Once = event.Connect
+	return event
+end
+
 function methods.GetChildren(self: any): { any }
 	return table.clone(rawget(self, "_children"))
 end
@@ -199,8 +211,19 @@ Mock.__index = function(self: any, key: string): any
 	if ok then
 		return value
 	end
-	-- Not a property: an event (Activated, MouseEnter, Changed, ...).
-	return signal
+	-- Not a property: an event (Activated, MouseEnter, Changed, ...). It records its handlers so a spec can
+	-- UiHarness.fire it.
+	local perInstance = eventHandlers[self]
+	if perInstance == nil then
+		perInstance = {}
+		eventHandlers[self] = perInstance
+	end
+	local event = perInstance[key]
+	if event == nil then
+		event = recordingSignal()
+		perInstance[key] = event
+	end
+	return event
 end
 
 Mock.__newindex = function(self: any, key: string, value: any)
@@ -450,7 +473,22 @@ services.RunService = {
 services.SoundService = {
 	PlayLocalSound = function() end,
 }
-services.UserInputService = { InputChanged = signal, InputEnded = signal }
+-- InputBegan / GetLastInputType: the status tooltip (Hud) opens on hover, a tap, and closes on a press elsewhere.
+UiHarness.inputBegan = recordingSignal()
+UiHarness.lastInputType = roblox.Enum.UserInputType.MouseMovement
+services.UserInputService = {
+	InputChanged = signal,
+	InputEnded = signal,
+	InputBegan = UiHarness.inputBegan,
+	GetLastInputType = function(): any
+		return UiHarness.lastInputType
+	end,
+}
+services.GuiService = {
+	GetGuiInset = function(): any
+		return { X = 0, Y = 0 }
+	end,
+}
 services.TweenService = {
 	Create = function()
 		UiHarness.stats.tweensCreated += 1
@@ -541,6 +579,23 @@ function UiHarness.ui(path: string): any
 end
 
 -- A ScreenGui-like root to parent panels to.
+-- Runs the handlers connected to `instance.<event>` (Activated, MouseEnter, ...).
+function UiHarness.fire(instance: any, event: string, ...: any)
+	local perInstance = eventHandlers[instance]
+	local recorded = if perInstance then perInstance[event] else nil
+	for _, handler in if recorded then table.clone(recorded.handlers) else {} do
+		handler(...)
+	end
+end
+
+-- Runs the UserInputService.InputBegan handlers with a fake press (`kind`: "MouseButton1" | "Touch").
+function UiHarness.press(kind: string, x: number, y: number)
+	local input = { UserInputType = roblox.Enum.UserInputType[kind], Position = { X = x, Y = y } }
+	for _, handler in table.clone(UiHarness.inputBegan.handlers) do
+		handler(input)
+	end
+end
+
 function UiHarness.root(): any
 	return newInstance("ScreenGui")
 end

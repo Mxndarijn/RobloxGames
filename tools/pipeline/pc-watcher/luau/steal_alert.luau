@@ -1,6 +1,6 @@
 -- Client datamodel: sets the Studio-only SlimeUI attribute "PcwStealAlert" (src/ui/init.client,
 -- src/ui/StealAlertFx) to %%ON%%: true fakes one theft of my slime (red screen-edge flash held at its
--- peak, direction arrow pointing right with a distance, and the "While you were away ..." toast); false
+-- peak, direction arrow pointing right with a distance); false
 -- clears it. The fake draws even while FEATURES.StealAlerts is off. Never active in live servers.
 local gui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("SlimeUI")
 if not gui then

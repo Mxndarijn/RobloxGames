@@ -52,13 +52,13 @@ end)
 
 describe("NextSpawn layout", function()
 	for _, entry in LayoutAssert.screens(LayoutAssert.GATE_VIEWPORTS) do
-		it(`{entry.label}: the longest chip text fits the banner column, below the HUD`, function()
+		it(`{entry.label}: the longest chip text fits the banner column, clear of the nav`, function()
 			local s = entry.screen
 			local Layout = require("../../src/ui/Layout")
 			local text = (NextSpawn.chip(false, 100 + 3599, nil, 100) :: NextSpawn.Info).text
 			local w, h = Layout.textSize(text, 15, true)
 			expect(w + 20 <= s.banners.w).toBe(true)
-			expect(Layout.overlaps(Layout.rect(s.banners.x, s.banners.y, s.banners.w, h + 8), s.hud.rect)).toBe(false)
+			expect(Layout.overlaps(Layout.rect(s.banners.x, s.banners.y, s.banners.w, h + 8), s.nav)).toBe(false)
 		end)
 	end
 end)

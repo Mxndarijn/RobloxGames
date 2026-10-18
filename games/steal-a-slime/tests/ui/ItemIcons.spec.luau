@@ -1,7 +1,7 @@
 --!strict
 -- ItemIcons registry + ItemIconView: every item definition resolves to an icon spec (model, image or
 -- a colour + glyph placeholder), no bare-emoji icons, the global live viewport cap, the fallback
--- chain, toast / goal mapping, the ITEM-ICONS-NEEDED.md contract and the Shop rows' icons.
+-- chain, goal mapping, the ITEM-ICONS-NEEDED.md contract and the Shop rows' icons.
 local BatModel = require("../../src/shared/BatModel")
 local Config = require("../../src/shared/Config")
 local GlyphCheck = require("./GlyphCheck")
@@ -118,7 +118,7 @@ describe("ItemIcons registry", function()
 		expect(registry.resolve(nil).glyph).toBe("?")
 	end)
 
-	it("covers every id the other surfaces use: shop upgrades, goals, badges, toasts", function()
+	it("covers every id the other surfaces use: shop upgrades, goals, badges", function()
 		for _, u in Config.UPGRADES do
 			expect(registry.get(`Upgrade_{u.id}`) ~= nil).toBe(true)
 		end
@@ -130,15 +130,6 @@ describe("ItemIcons registry", function()
 		expect(ItemIcons.forGoal(registry, "Catch")).toBe("Goal_Catch")
 		expect(ItemIcons.forGoal(registry, "Daily")).toBe("Daily")
 		expect(ItemIcons.forGoal(registry, "whatever")).toBe("Quest")
-		expect(ItemIcons.forToast("Speed Coil bought! You run faster now.", Config)).toBe("SpeedCoil")
-		expect(ItemIcons.forToast("Your egg hatched: Epic Blorp!", Config)).toBe("MysteryEgg")
-		expect(ItemIcons.forToast("Slime Snacks level 3!", Config)).toBe("Upgrade_Income")
-		expect(ItemIcons.forToast("Code redeemed: $1,000!", Config)).toBe("Gift")
-		expect(ItemIcons.forToast("You walked", Config)).toBe(nil)
-		for _, rule in { "Base locked for 60s", "Appraised for $50", "Daily reward: $100", "Rebirth 2! Income x2" } do
-			local id = ItemIcons.forToast(rule, Config)
-			expect(id ~= nil and registry.byId[id :: string] ~= nil).toBe(true)
-		end
 	end)
 
 	it("mutations and kit-mesh plot skins are models; the shop gear and classic skin are drawn", function()
@@ -518,22 +509,6 @@ describe("item icons: server ids, Dex skins, gear", function()
 		}
 	end
 
-	it("a toast with a server item id uses it; unknown or missing ids fall back to the text heuristic", function()
-		local root = UiHarness.root()
-		local toasts = UiHarness.ui("Toasts").new(root, registry, Config)
-		toasts.push("Anything at all", "good", nil, "Upgrade_Luck")
-		toasts.push("Speed Coil bought! You run faster now.", "good", nil, "not-an-item")
-		toasts.push("Speed Coil bought! You run faster now.", "info") -- other kind: not merged with the line above
-		toasts.push("You walked", "info", nil, "Slap")
-		local seen = {}
-		for _, inst in UiHarness.descendants(root) do
-			if inst.Name == "ItemIcon" then
-				table.insert(seen, inst:GetAttribute("ItemId"))
-			end
-		end
-		expect(table.concat(seen, ",")).toBe("Upgrade_Luck,SpeedCoil,SpeedCoil,Slap")
-	end)
-
 	it("every Dex plot-skin card draws its PlotSkin_ item icon", function()
 		local dex = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
 		dex.setOpen(true)
@@ -554,10 +529,10 @@ describe("item icons: server ids, Dex skins, gear", function()
 		expect(seen.PlotSkin_classic and seen.PlotSkin_candy).toBe(true)
 	end)
 
-	it("the HUD draws the Mystery Egg banner icon and the Lock button icon", function()
+	it("the HUD draws the Mystery Egg banner icon (the Lock button and its icon went with the top bar)", function()
 		local hud = fs.readFile("src/ui/Hud.luau")
 		expect(string.find(hud, 'Name = "EggIcon",\n\t\tId = "MysteryEgg"', 1, true) ~= nil).toBe(true)
-		expect(string.find(hud, 'Name = "LockIcon",\n\t\tId = "Lock"', 1, true) ~= nil).toBe(true)
+		expect(string.find(hud, "LockIcon", 1, true)).toBeNil()
 	end)
 
 	it("source scan: every item surface renders its icons with ItemIconView (no emoji-only item badges)", function()
@@ -569,7 +544,6 @@ describe("item icons: server ids, Dex skins, gear", function()
 			["src/ui/Panels/Plot.luau"] = true,
 			["src/ui/Panels/Dex.luau"] = true,
 			["src/ui/Hud.luau"] = true,
-			["src/ui/Toasts.luau"] = true,
 		}
 		for path in surfaces do
 			local src = fs.readFile(path)
@@ -620,7 +594,7 @@ end)
 
 describe("item icon layout (LayoutAssert at the 5 gate viewports)", function()
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
-		it(`Goals rows and toasts keep their text fitting beside the icon at {vp.name}`, function()
+		it(`Goals rows keep their text fitting beside the icon at {vp.name}`, function()
 			local screen = Layout.screen(vp.w, vp.h)
 			local check = LayoutAssert.new(vp.name, screen)
 			local panel = Layout.panelFor(screen, "Goals")
@@ -643,18 +617,6 @@ describe("item icon layout (LayoutAssert at the 5 gate viewports)", function()
 				w = textW,
 				h = 20,
 			})
-			-- A toast: padding 8, icon + gap, wrapped text of any length in an auto-height label.
-			local toastTextW = screen.toasts.w - 16 - (36 + 8)
-			check.text({
-				name = "Toast text",
-				text = "Your egg hatched: Mythic Blorp with a Rainbow mutation!",
-				size = 16,
-				bold = true,
-				w = toastTextW,
-				h = 60,
-				wrapped = true,
-			})
-			expect(toastTextW >= 100).toBe(true)
 			expect(check.report()).toBe("")
 		end)
 	end

@@ -6,5 +6,5 @@
     "Audio": true
   },
   "device": "phone-portrait",
-  "note": "Audio on, no menu open: the speaker icon sits in the top-right slot clear of nav, HUD, toasts and the bottom cards"
+  "note": "Audio on, no menu open: the speaker icon sits in the top-right slot clear of the nav tiles, the bottom clusters and the bottom cards"
 }
