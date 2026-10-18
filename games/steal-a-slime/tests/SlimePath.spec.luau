@@ -304,7 +304,7 @@ describe("slime path is flush", function()
 		end
 	end)
 	it("has no gap: the centreline and both edges are covered at every vertex and every 0.5 studs", function()
-		local pts = ParadeLane.drawPoints()
+		local pts = ParadeLane.stripEndPoints()
 		for i = 1, #pts - 1 do
 			local a, b = pts[i], pts[i + 1]
 			local dx, dz = b[1] - a[1], b[2] - a[2]
@@ -325,7 +325,7 @@ describe("slime path is flush", function()
 		end
 	end)
 	it("sticks nothing out: every strip corner is within 6% of the lane's half width of the lane line", function()
-		local pts = ParadeLane.drawPoints()
+		local pts = ParadeLane.stripEndPoints()
 		for _, r in RECTS do
 			for _, su in { -1, 1 } do
 				for _, sv in { -1, 1 } do

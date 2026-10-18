@@ -381,7 +381,9 @@ end
 
 -- The goo lane (server/ParadeView.place, a runtime folder): the one smooth kit mesh at its pivot (like a MeshSwap
 -- slot: no turn here, Blender imports on the documented axes) once it is uploaded or --pending; else the strips.
-if swappable(ParadeLane.MESH) then
+-- --lane-strips draws the strip stand-ins even where the mesh is uploaded (the look of the mesh-less fallback, and of a
+-- mesh that ends where the drain taper starts).
+if swappable(ParadeLane.MESH) and not table.find(process.args, "--lane-strips") then
 	local at = ParadeLane.MESH_PIVOT
 	table.insert(meshes, {
 		mesh = ParadeLane.MESH,
