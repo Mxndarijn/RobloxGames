@@ -126,7 +126,7 @@ end
 
 local CLASSIC_ONLY: MergeRecipes.Ctx = { unlocked = MergeRecipes.unlockedFor(0) }
 
-local function pick(list: { string }, roll: number): string?
+local function pickSpecies(list: { string }, roll: number): string?
 	if #list == 0 then
 		return nil
 	end
@@ -165,7 +165,7 @@ function TripleMerge.merge(
 			pool, assistPool = MergeRecipes.pool(tier, recipeCtx)
 			assistChance = if #assistPool > 0 then Config.MERGE_ASSIST_CHANCE else 0
 		end
-		speciesId = pick(if assistRoll < assistChance then assistPool else pool, speciesRoll)
+		speciesId = pickSpecies(if assistRoll < assistChance then assistPool else pool, speciesRoll)
 	end
 	local species = if speciesId then SlimeRoster.get(speciesId) else nil
 	local look = if species then SlimeLooks.get(species.id) else nil
