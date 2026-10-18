@@ -37,7 +37,7 @@ A species mesh (§30) is a rigged Model: `SlimeMesh` clones its MeshPart as the 
 
 ## Wiring (`ui/SlimeBones`, `ui/SlimeMotor`, `ui/SlimeLifeRunner`)
 
-- `SlimeBones` is pure apart from CFrame / Vector3 at call time: `kind(name)`, `preset(name)`, `body(sy, H)`, `tilt(params, t, hopDt)`, `blink(now, blinkAt, hopDt)`, `accessory(preset, t, phase, air)` return numbers; `attach(mesh, now, rand)`, `step`, `squish`, `park`, `release` drive a rig.
+- `SlimeBones` is pure apart from CFrame / Vector3 at call time: `kind(name)`, `preset(name)`, `body(sy, H)`, `tilt(params, t, hopDt)`, `blink(now, blinkAt, hopDt)`, `accessory(preset, t, phase, air)` return numbers; `attach(mesh, now, rand)`, `step`, `squish`, `release` drive a rig.
 - `SlimeMotor.attach` attaches `SlimeBones` when the `"Mesh"` MeshPart has Bones. A boned slime then **does not change the Mesh's Size** (no `LifeSkinSize` attribute either): the squash and stretch of the breathing and of SlimeLife's hops (anticipation, stretch, landing squash) go through `Top` / `Side*` instead, so they don't double up. The SkinRoot / FaceRoot Transform keeps the hop lift, look yaw and wobble tilt, without the squashed-centre drop.
 - LOD (`SlimeLod`, `SlimeLife.MAX_ACTIVE` and on-screen cull unchanged): near = full bone pose every frame; mid = body squash only on the mid frames (eyes and accessories put back to rest once); far = every Transform reset once, then skipped.
 - Release (the slime leaves the active set, changes State, despawns, is removed): every Transform back to identity. `SlimeBones` makes no connections and no Instances, so `release` is its whole cleanup; it rides the runner's one RenderStepped loop.
