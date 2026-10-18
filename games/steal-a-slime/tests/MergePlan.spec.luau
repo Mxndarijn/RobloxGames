@@ -182,7 +182,10 @@ describe("MergePreview", function()
 		expect(hidden.species).toBeNil()
 
 		local owned = MergePreview.forSlimes(picks, { slimes = { { slime = slime("s", 2, { species = "soda" }) } } })
-		local saved = MergePreview.forSlimes(picks, { slimes = {}, found = { soda = true } })
+		local saved = MergePreview.forSlimes(
+			picks,
+			{ slimes = {}, dex = { entries = { { id = "soda", found = true }, { id = "bloom", found = false } } } }
+		)
 		for _, p in { owned, saved } do
 			expect(p.kind).toBe("recipe")
 			expect(p.title).toBe("Soda Pop")
@@ -192,7 +195,7 @@ describe("MergePreview", function()
 			expect(p.jumpChance).toBe(0)
 		end
 		-- The pair vat never takes a recipe.
-		local pair = MergePreview.forSlimes({ picks[1], picks[2] }, { found = { soda = true } }, nil, 2)
+		local pair = MergePreview.forSlimes({ picks[1], picks[2] }, { slimes = { { species = "soda" } } }, nil, 2)
 		expect(pair.kind).toBe("random")
 	end)
 	it("lists the inherited mutations strongest first, like the merge itself", function()

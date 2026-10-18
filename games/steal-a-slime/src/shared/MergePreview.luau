@@ -40,9 +40,23 @@ export type Preview = {
 
 local MergePreview = {}
 
+-- Species the State's species Dex marks found (`dex.entries[i] = { id, found }`); nil for any other shape.
+local function foundInDex(dex: any): { [string]: boolean }?
+	if type(dex) ~= "table" or type(dex.entries) ~= "table" then
+		return nil
+	end
+	local found: { [string]: boolean } = {}
+	for _, entry: any in dex.entries :: { any } do
+		if type(entry) == "table" and entry.found == true and type(entry.id) == "string" then
+			found[entry.id] = true
+		end
+	end
+	return found
+end
+
 -- The merge recipe these three slimes match when the player has found its hybrid, else nil (then the
 -- preview is a random species of the next rarity). `known` is the client's State: its owned slimes and
--- `found` set say what the player has found.
+-- the species Dex (`dex.entries`) say what the player has found.
 function MergePreview.recipeFor(slimes: { Slime }, known: any?): Recipe?
 	if #slimes ~= TripleMerge.COUNT or slimes[1].tier ~= slimes[2].tier or slimes[2].tier ~= slimes[3].tier then
 		return nil
@@ -52,7 +66,7 @@ function MergePreview.recipeFor(slimes: { Slime }, known: any?): Recipe?
 		return nil
 	end
 	local state = if type(known) == "table" then known else {}
-	if not MergeRecipes.isDiscovered(recipe.id, MergeRecipes.foundOf(state.slimes, state.found)) then
+	if not MergeRecipes.isDiscovered(recipe.id, MergeRecipes.foundOf(state.slimes, foundInDex(state.dex))) then
 		return nil
 	end
 	local entry = SlimeRoster.get(recipe.id) :: SlimeRoster.Entry

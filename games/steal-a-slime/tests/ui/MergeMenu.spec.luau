@@ -164,7 +164,11 @@ describe("Merge menu: recipe preview", function()
 	}
 	local function pickRecipe(found: { [string]: boolean }?): any
 		local panel = build()
-		panel.update({ slimes = RECIPE, found = found })
+		local entries = {}
+		for id in found or {} do
+			table.insert(entries, { id = id, found = true })
+		end
+		panel.update({ slimes = RECIPE, dex = { entries = entries } })
 		tap(panel, "m1")
 		tap(panel, "b1")
 		tap(panel, "g1")

@@ -33,8 +33,9 @@ kind in the roster (§30). No save change: "found" is read from what the save al
   - `MergeRecipes.isKnown(recipe, found) -> boolean`: every input species found (for Dex cards).
   - `MergeRecipes.isDiscovered(hybridId, found) -> boolean`: the hybrid itself was found.
   - `MergeRecipes.foundOf(slimes, found?) -> { [id]: true }`: species of the owned slimes plus a saved `found` set.
-    Server: `data.slimes`, `data.found`; client: the slimes in `State.slimes`, `State.found`. The species Dex adds
-    `data.found` / `State.found` (`{ [speciesId]: true }`); until then owned slimes are what counts.
+    Server: `data.slimes` and `data.found` (`{ [speciesId]: true }`, the species Dex). Client: the slimes in
+    `State.slimes` and the `State.dex.entries` with `found == true` (by `id`). Without the species Dex, owned
+    slimes are what counts.
   - `MergeRecipes.unlockedFor(rebirths) -> (Entry) -> boolean`: Classic always, a family once the player's rank opened
     it (`FountainTiers.catchBlock`).
   - `MergeRecipes.pool(tier, ctx) -> (pool, assistPool)`: the unlocked spawning species of `tier` (ids, roster order),
