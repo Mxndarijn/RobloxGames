@@ -458,6 +458,21 @@ if IN_ROBLOX then
 			workspace:Blockcast(CFrame.lookAt(start, start + d), Vector3.new(2, 5, 1), d * START, rayOf(folder))
 	end
 
+	-- Set of the folder's parts that a probe box at `cf` overlaps.
+	local function partsAt(cf, size, overlap)
+		local probe = Instance.new("Part")
+		probe.Anchored, probe.CanCollide, probe.CanQuery, probe.Transparency = true, false, false, 1
+		probe.Size = size
+		probe.CFrame = cf
+		probe.Parent = workspace
+		local set = {}
+		for _, part in workspace:GetPartsInPart(probe, overlap) do
+			set[part] = true
+		end
+		probe:Destroy()
+		return set
+	end
+
 	describe("the slide blocks the stand-in against the real colliders (cloud)", function()
 		local folder
 		local function get()
@@ -496,29 +511,26 @@ if IN_ROBLOX then
 					local dir = { -s.right[1] * side, 0, -s.right[3] * side }
 					local from = { s.p[1] + s.right[1] * side * START, 0, s.p[3] + s.right[3] * side * START }
 					local start, d, hit = cast(f, from, y, dir)
+					-- Blockcast ignores a part the box already overlaps at the start (a neighbouring coil's fill, as the Lune half
+					-- skips): such a walker begins inside solid, so the stop may overlap exactly those parts and no others
+					local startParts = partsAt(CFrame.lookAt(start, start + d), Vector3.new(2, 5, 1), overlap)
 					if not hit then
-						-- only allowed when it starts inside a neighbouring coil: probe the start
-						local probe = Instance.new("Part")
-						probe.Anchored, probe.CanCollide, probe.Transparency = true, false, 1
-						probe.Size = Vector3.new(2, 5, 1) * 0.9
-						probe.CFrame = CFrame.lookAt(start, start + d)
-						probe.Parent = workspace
-						local found = workspace:GetPartsInPart(probe, overlap)
-						probe:Destroy()
-						if #found == 0 then
+						-- only allowed when it starts inside a neighbouring coil
+						if next(startParts) == nil then
 							error(`segment {s.segment} side {side}: the box walked through the slide`)
 						end
 						continue
 					end
 					expect(START - hit.Distance >= SlideColliders.HALF_WIDTH).toBe(true)
-					local probe = Instance.new("Part")
-					probe.Anchored, probe.CanCollide, probe.CanQuery, probe.Transparency = true, false, false, 1
-					probe.Size = Vector3.new(2, 5, 1) * 0.9 -- shrunk: face contact is no overlap
-					probe.CFrame = CFrame.lookAt(start + d * hit.Distance, start + d * (hit.Distance + 1))
-					probe.Parent = workspace
-					local found = workspace:GetPartsInPart(probe, overlap)
-					probe:Destroy()
-					expect(#found).toBe(0)
+					-- shrunk probe: face contact is no overlap
+					local stop = start + d * hit.Distance
+					local extra = 0
+					for part in partsAt(CFrame.lookAt(stop, stop + d), Vector3.new(2, 5, 1) * 0.9, overlap) do
+						if not startParts[part] then
+							extra += 1
+						end
+					end
+					expect(extra).toBe(0)
 					checked += 1
 				end
 			end
@@ -540,8 +552,16 @@ if IN_ROBLOX then
 						local axis = e.box.axes[axisIndex]
 						local dir = unit({ -axis[1] * sign, 0, -axis[3] * sign })
 						local from = { c[1] + axis[1] * sign * START, 0, c[3] + axis[3] * sign * START }
-						local _, _, hit = cast(f, from, y, dir)
-						-- a hit on any collider counts: the slab can sit between the stand-in and the post
+						local start, d, hit = cast(f, from, y, dir)
+						-- a hit on any collider counts: the slab can sit between the stand-in and the post. Blockcast ignores
+						-- parts the box starts inside, so a start inside the slide block (the mouth's fills) is solid already
+						-- (the Lune half skips it too)
+						if
+							hit == nil
+							and next(partsAt(CFrame.lookAt(start, start + d), Vector3.new(2, 5, 1), overlapOf(f)))
+						then
+							continue
+						end
 						expect(hit ~= nil).toBe(true)
 						seen += 1
 					end
