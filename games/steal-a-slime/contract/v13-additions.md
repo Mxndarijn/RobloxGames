@@ -176,7 +176,7 @@ Same store and key; no key or field is renamed. v4 = v3 plus `slimes[i].mutation
 
 ## 8.9b DataStore schema v5: weather mutations (`Config.SAVE_VERSION = 5`)
 
-No field changes. `SaveData.migrateV4` (v4 -> v5, pure, idempotent) drops duplicate / "None" / non-string entries from each slime's `mutations` and rebuilds a missing list from `mutation`; clean slimes pass through untouched. New mutation ids `Wet`, `Frozen` and combos `Sleet`, `Comet` are added; no id or key is renamed. `FEATURES.WeatherMutations` (default on) gates only the roll bonus from `Config.WEATHER[id].mutation / chanceBonus` (WEATHER.md); loading never depends on it.
+No field changes. `SaveData.migrateV4` (v4 -> v5, pure, idempotent) drops duplicate / "None" / non-string entries from each slime's `mutations` and rebuilds a missing list from `mutation`; clean slimes pass through untouched. New mutation ids `Wet`, `Frozen` and combos `Sleet`, `Comet` are added; no id or key is renamed. The roll bonus comes from `Config.WEATHER[id].mutation / chanceBonus` (WEATHER.md); loading never depends on it.
 
 ## 8.9c DataStore schema v6: settings, plotSkin, stealLog (`Config.SAVE_VERSION = 6`)
 
