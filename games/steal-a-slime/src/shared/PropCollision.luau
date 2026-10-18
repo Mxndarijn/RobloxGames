@@ -158,6 +158,21 @@ add({
 	find = { under = FOUNTAIN, names = { "^FountainMesh$" } },
 	also = { under = FOUNTAIN, names = { "^%a+Collider%d*$" }, parts = true },
 })
+-- FEATURES.FountainSplit pieces (default off, draft): with the flag on MeshSwap places them under FountainMesh and the tower
+-- colliders go non-colliding (docs/FOUNTAIN_SPLIT.md). Off: none of them exist.
+for _, piece in { "basin", "dome", "eave", "silo" } do
+	mesh(
+		"fountain_split_" .. piece,
+		"fountain_split_" .. piece,
+		"jolt",
+		1,
+		"PreciseConvexDecomposition",
+		FOUNTAIN,
+		"flag off: not created",
+		"FEATURES.FountainSplit tower piece: PCD replaces the hand-placed Basin / Trim / Silo / Top colliders (draft, needs the Studio walk)",
+		{ walk = false, flag = { name = "FountainSplit", off = 0 } }
+	)
+end
 parts(
 	"fountain_slide_colliders",
 	"jolt",
