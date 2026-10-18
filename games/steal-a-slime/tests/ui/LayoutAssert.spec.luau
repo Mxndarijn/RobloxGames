@@ -5,6 +5,7 @@ local fs = require("@lune/fs")
 
 local Config = require("../../src/shared/Config")
 local Hint = require("../../src/ui/Hint")
+local InventoryLayout = require("../../src/ui/InventoryLayout")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local Nav = require("../../src/ui/Nav")
@@ -189,7 +190,7 @@ describe("v18 viewports", function()
 		end
 	end)
 	it("the bottom clusters are bigger than the H1 sizes (B4) and clear the touch controls", function()
-		local desktop, phone = Layout.screen(1920, 1080), Layout.screen(390, 844)
+		local desktop, phone = Layout.screen(1920, 1080), Layout.screen(844, 390)
 		expect(desktop.money.rect.w >= 240 and desktop.money.cash.h >= 56).toBe(true) -- H1: 200 x 44
 		expect(desktop.status.slots[1].w >= 88).toBe(true) -- H1: 54
 		expect(phone.money.cash.h > 40 and phone.status.slots[1].w > 54).toBe(true) -- H1 phone: 40, 54
@@ -242,6 +243,53 @@ describe("landscape phone (v27 gate N1)", function()
 			expect(s.panel.h >= 0.5 * s.height).toBe(true)
 		end
 	)
+	for _, vp in LayoutAssert.PHONE_VIEWPORTS do
+		it(`{vp.name}: nav at the top, money | hotbar | events share one bottom row`, function()
+			local s = Layout.screen(vp.w, vp.h)
+			expect(s.phone).toBe(true)
+			local bar =
+				InventoryLayout.bar(s.hotbar, InventoryLayout.MAX_SLOTS, s.compact, Layout.MIN_TOUCH_DESIGN, s.tight)
+			expect(s.nav.y).toBe(Layout.TOP)
+			local bottom = bar.rect.y + bar.rect.h
+			expect(math.abs(s.money.rect.y + s.money.rect.h - bottom) <= LayoutAssert.BOTTOM_ALIGN).toBe(true)
+			expect(math.abs(s.status.rect.y + s.status.rect.h - bottom) <= LayoutAssert.BOTTOM_ALIGN).toBe(true)
+			expect(s.money.rect.x + s.money.rect.w <= bar.rect.x).toBe(true)
+			expect(bar.rect.x + bar.rect.w <= s.status.rect.x).toBe(true)
+			expect(bar.shown >= (if s.tight then 3 else 8)).toBe(true)
+			local check = LayoutAssert.new(vp.name, s)
+			LayoutAssert.hotbarChecks(check)
+			expect(check.report()).toBe("")
+		end)
+	end
+	it("only portrait 390 wide is tight; PC and 1024x768 are not phones and keep the nav at NAV.top", function()
+		for _, vp in LayoutAssert.PHONE_VIEWPORTS do
+			expect(Layout.screen(vp.w, vp.h).tight).toBe(vp.w == 390)
+		end
+		for _, vp in { { 1024, 768 }, { 1024, 710 }, { 1366, 768 }, { 1920, 1080 } } do
+			local s = Layout.screen(vp[1], vp[2])
+			expect(s.phone).toBe(false)
+			expect(s.tight).toBe(false)
+			expect(s.nav.y).toBe(Layout.NAV.top)
+		end
+	end)
+	it("the landscape row check catches a hotbar off the bottom row, a nav off the top and an overlap", function()
+		local s = table.clone(Layout.screen(844, 390)) :: any
+		s.hotbar = Layout.rect(s.hotbar.x, s.hotbar.y + 20, s.hotbar.w, s.hotbar.h)
+		local check = LayoutAssert.new("probe", s)
+		LayoutAssert.hotbarChecks(check)
+		expect(has(check.report(), "is not aligned with the hotbar bottom")).toBe(true)
+		local low = table.clone(Layout.screen(844, 390)) :: any
+		low.nav = Layout.rect(low.nav.x, 60, low.nav.w, low.nav.h)
+		local lowCheck = LayoutAssert.new("probe", low)
+		LayoutAssert.hotbarChecks(lowCheck)
+		expect(has(lowCheck.report(), "is not at the top")).toBe(true)
+		local over = table.clone(Layout.screen(844, 390)) :: any
+		over.status = table.clone(over.status)
+		over.status.rect = Layout.rect(over.hotbar.x + 40, over.status.rect.y, over.status.rect.w, over.status.rect.h)
+		local overCheck = LayoutAssert.new("probe", over)
+		LayoutAssert.hotbarChecks(overCheck)
+		expect(has(overCheck.report(), "Status")).toBe(true)
+	end)
 	it("portrait, tablet and desktop keep the 2-column nav", function()
 		for _, vp in { { 390, 844 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } } do
 			local s = Layout.screen(vp[1], vp[2])

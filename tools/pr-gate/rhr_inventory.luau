@@ -99,10 +99,11 @@ local Widgets = UiHarness.ui("Widgets")
 local PVP = { "KnockGlove1", "GooBlaster1", "FunConfetti" }
 
 local cases = {
-	{ name = "phone-portrait", w = 390, h = 844, panel = false },
-	{ name = "phone-landscape", w = 844, h = 390, panel = false },
+	{ name = "phone-portrait", w = 390, h = 844, panel = false, raw = true },
+	{ name = "phone-landscape", w = 844, h = 390, panel = false, raw = true },
+	{ name = "phone-landscape-844x332", w = 844, h = 332, panel = false, raw = true },
 	{ name = "pc-1366x768", w = 1366, h = 768, panel = false },
-	{ name = "pc-1920x1080", w = 1920, h = 1080, panel = false },
+	{ name = "pc-1920x1080", w = 1920, h = 1080, panel = false, raw = true },
 	{ name = "pc-1920x1080-tooltip", w = 1920, h = 1080, panel = false, tooltip = true },
 	{ name = "pc-1920x1080-panel", w = 1920, h = 1080, panel = true },
 	{ name = "phone-portrait-panel", w = 390, h = 844, panel = true },
@@ -110,7 +111,8 @@ local cases = {
 
 local manifest = { topbar = TOPBAR, cases = {} }
 for _, case in cases do
-	local gw, gh = case.w, case.h - TOPBAR
+	-- `raw`: the ScreenGui is exactly w x h (a gate size); otherwise it is the viewport minus the top bar.
+	local gw, gh = case.w, if case.raw then case.h else case.h - TOPBAR
 	local s = Layout.screen(gw, gh)
 	local gui = UiHarness.root()
 	gui.Name = "SlimeUI"

@@ -328,11 +328,14 @@ function Hud.new(parent: Instance, ctx: any)
 		screen = s
 		compact = s.compact
 		local M = Layout.MONEY
-		cashLabel.TextSize = if compact then M.camountSize else M.amountSize
+		local tight = s.tight
+		local T = Layout.MONEY_TIGHT
+		cashLabel.TextSize = if tight then T.amountSize elseif compact then M.camountSize else M.amountSize
 		for _, value in { incomeLabel, rebirthLabel } do
-			value.TextSize = if compact then M.cchipSize else M.chipSize -- "$98.7T/s" fits a phone chip
+			-- "$98.7T/s" fits a phone chip
+			value.TextSize = if tight then T.chipSize elseif compact then M.cchipSize else M.chipSize
 		end
-		local coinSize = if compact then M.cicon else M.icon
+		local coinSize = if tight then T.icon elseif compact then M.cicon else M.icon
 		coin.instance.Size = UDim2.fromOffset(coinSize, coinSize)
 		-- Whole pixels (a phone's design width is fractional; UDim offsets are integers).
 		local function whole(r: Layout.Rect): (number, number, number, number)
@@ -352,7 +355,7 @@ function Hud.new(parent: Instance, ctx: any)
 			local frame, r = entry[1] :: Frame, entry[2] :: Layout.Rect
 			frame.Position = UDim2.fromOffset(math.round(r.x - m.rect.x), math.round(r.y - m.rect.y))
 			frame.Size = UDim2.fromOffset(math.round(r.w), math.round(r.h))
-			local left, width = Layout.moneyTextBox(r, entry[4] :: boolean, compact)
+			local left, width = Layout.moneyTextBox(r, entry[4] :: boolean, compact, tight)
 			local label = entry[3] :: TextLabel
 			label.Position = UDim2.fromOffset(left, 0)
 			label.Size = UDim2.fromOffset(width, math.round(r.h))
@@ -365,12 +368,13 @@ function Hud.new(parent: Instance, ctx: any)
 		statusRoot.Position = UDim2.fromOffset(sx, sy)
 		statusRoot.Size = UDim2.fromOffset(sw, sh)
 		local S = Layout.STATUS
-		local iconSize = if compact then S.cicon else S.icon
+		local ST = Layout.STATUS_TIGHT
+		local iconSize = if tight then ST.icon elseif compact then S.cicon else S.icon
 		for _, entry in statusSlots do
-			entry.frame.Size = UDim2.fromOffset(Layout.statusSlotWidth(compact), s.status.rect.h)
+			entry.frame.Size = UDim2.fromOffset(Layout.statusSlotWidth(compact, tight), s.status.rect.h)
 			entry.icon.instance.Size = UDim2.fromOffset(iconSize, iconSize)
-			entry.label.TextSize = if compact then S.clabelSize else S.labelSize
-			entry.label.Size = UDim2.new(1, 0, 0, if compact then S.clabel else S.label)
+			entry.label.TextSize = if tight then ST.labelSize elseif compact then S.clabelSize else S.labelSize
+			entry.label.Size = UDim2.new(1, 0, 0, if tight then ST.label elseif compact then S.clabel else S.label)
 			entry.label.Position = UDim2.fromOffset(0, iconSize + S.labelGap)
 		end
 		statusSig = "" -- re-pack the slots in the new boxes

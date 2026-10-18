@@ -405,12 +405,13 @@ function Inventory.new(parent: Instance, deps: Deps)
 		local now = deps.serverNow()
 		local zone = if screen then screen.hotbar else Layout.rect(0, 0, 600, 67)
 		local compact = if screen then screen.compact else false
-		local bar = InventoryLayout.bar(zone, #entries, compact, Layout.MIN_TOUCH_DESIGN)
+		local tight = if screen then screen.tight else false
+		local bar = InventoryLayout.bar(zone, #entries, compact, Layout.MIN_TOUCH_DESIGN, tight)
 		root.Position = fromOffset(bar.rect.x, bar.rect.y)
 		root.Size = fromOffset(bar.rect.w, bar.rect.h)
 		local slotSize = if bar.slots[1]
 			then bar.slots[1].w
-			else InventoryLayout.slotSize(compact, Layout.MIN_TOUCH_DESIGN)
+			else InventoryLayout.slotSize(compact, Layout.MIN_TOUCH_DESIGN, tight)
 		for i, slot in barSlots do
 			local r = bar.slots[i]
 			if r then

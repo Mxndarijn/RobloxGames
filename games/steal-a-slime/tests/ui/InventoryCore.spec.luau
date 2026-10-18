@@ -228,17 +228,18 @@ describe("hotbar at the gate sizes (raw and under the 58 px top bar)", function(
 					local check = LayoutAssert.new(`{size[1]}x{size[2]}`, screen)
 					LayoutAssert.hotbarChecks(check)
 					expect(check.report()).toBe("")
-					local bar = InventoryLayout.bar(screen.hotbar, 3, screen.compact, Layout.MIN_TOUCH_DESIGN)
+					local bar =
+						InventoryLayout.bar(screen.hotbar, 3, screen.compact, Layout.MIN_TOUCH_DESIGN, screen.tight)
 					expect(bar.shown).toBe(3)
 				end
 			)
 		end
 	end
-	it("a desktop bar holds all nine number-key slots; the narrowest phone holds at least four", function()
+	it("a desktop bar holds all nine number-key slots; the narrowest phone (tight bar) holds at least three", function()
 		local d = Layout.screen(1920, 1080)
 		expect(InventoryLayout.bar(d.hotbar, 9, false, Layout.MIN_TOUCH_DESIGN).shown).toBe(9)
 		local p = Layout.screen(390, 844)
-		expect(InventoryLayout.bar(p.hotbar, 9, true, Layout.MIN_TOUCH_DESIGN).shown >= 4).toBe(true)
+		expect(InventoryLayout.bar(p.hotbar, 9, true, Layout.MIN_TOUCH_DESIGN, p.tight).shown >= 3).toBe(true)
 	end)
 	it("the hotbar check catches a bar over the money cluster", function()
 		local s = table.clone(Layout.screen(1920, 1080)) :: any

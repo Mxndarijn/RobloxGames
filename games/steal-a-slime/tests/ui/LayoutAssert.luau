@@ -106,6 +106,15 @@ LayoutAssert.LANDSCAPE_VIEWPORTS = table.freeze({
 	table.freeze({ name = "844x332", w = 844, h = 332 }),
 })
 
+-- Every phone-classified gate size: landscape 844x390 / 844x332 and portrait 390x844 (and under the top bar,
+-- 390x786). Layout.screen sets `phone` for these; 1024x768 and wider are not phones.
+LayoutAssert.PHONE_VIEWPORTS = table.freeze({
+	table.freeze({ name = "844x390", w = 844, h = 390 }),
+	table.freeze({ name = "844x332", w = 844, h = 332 }),
+	table.freeze({ name = "390x844", w = 390, h = 844 }),
+	table.freeze({ name = "390x786", w = 390, h = 786 }),
+})
+
 local EPS = 1e-6
 
 local function fmt(r: Rect): string
@@ -248,19 +257,25 @@ LayoutAssert.BIG_STATE = table.freeze({
 function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
 	local m = screen.money
 	local s = LayoutAssert.BIG_STATE
-	local compact = screen.compact
+	local compact, tight = screen.compact, screen.tight
 	local out: { TextDesc } = {}
-	local _, cashW = Layout.moneyTextBox(m.cash, true, compact)
+	local _, cashW = Layout.moneyTextBox(m.cash, true, compact, tight)
 	table.insert(out, {
 		name = "Money amount",
 		text = Format.formatCash(s.cash),
-		size = if compact then Layout.MONEY.camountSize else Layout.MONEY.amountSize,
+		size = if tight
+			then Layout.MONEY_TIGHT.amountSize
+			elseif compact then Layout.MONEY.camountSize
+			else Layout.MONEY.amountSize,
 		bold = true,
 		w = cashW,
 		h = m.cash.h,
 	})
-	local chip = if compact then Layout.MONEY.cchipSize else Layout.MONEY.chipSize
-	local _, incomeW = Layout.moneyTextBox(m.income, false, compact)
+	local chip = if tight
+		then Layout.MONEY_TIGHT.chipSize
+		elseif compact then Layout.MONEY.cchipSize
+		else Layout.MONEY.chipSize
+	local _, incomeW = Layout.moneyTextBox(m.income, false, compact, tight)
 	table.insert(out, {
 		name = "Income chip",
 		text = Format.formatRate(s.incomePerSec),
@@ -269,7 +284,7 @@ function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
 		w = incomeW,
 		h = m.income.h,
 	})
-	local _, rebirthW = Layout.moneyTextBox(m.rebirths, false, compact)
+	local _, rebirthW = Layout.moneyTextBox(m.rebirths, false, compact, tight)
 	table.insert(out, {
 		name = "Rebirths chip",
 		text = `{s.rebirths} {Format.formatMultiplier(s.rebirthMultiplier)}`,
@@ -289,10 +304,13 @@ function LayoutAssert.statusTexts(screen: Layout.Screen): { TextDesc }
 		table.insert(out, {
 			name = `Status slot {text}`,
 			text = text,
-			size = if screen.compact then S.clabelSize else S.labelSize,
+			size = if screen.tight
+				then Layout.STATUS_TIGHT.labelSize
+				elseif screen.compact then S.clabelSize
+				else S.labelSize,
 			bold = true,
-			w = Layout.statusSlotWidth(screen.compact),
-			h = if screen.compact then S.clabel else S.label,
+			w = Layout.statusSlotWidth(screen.compact, screen.tight),
+			h = if screen.tight then Layout.STATUS_TIGHT.label elseif screen.compact then S.clabel else S.label,
 		})
 	end
 	return out
@@ -908,8 +926,8 @@ function LayoutAssert.notSquashed(check: Checker)
 		check.aspect(
 			`Status.slot{i}`,
 			slot,
-			Layout.statusSlotWidth(screen.compact),
-			Layout.statusHeight(screen.compact)
+			Layout.statusSlotWidth(screen.compact, screen.tight),
+			Layout.statusHeight(screen.compact, screen.tight)
 		)
 	end
 	local close = Layout.panelClose(Layout.panelFor(screen, "Shop"))
@@ -981,7 +999,8 @@ function LayoutAssert.hotbarChecks(check: Checker)
 	local screen = check.screen
 	local zone = screen.hotbar
 	check.onScreen("Hotbar.zone", zone, Layout.MARGIN)
-	local bar = InventoryLayout.bar(zone, InventoryLayout.MAX_SLOTS, screen.compact, Layout.MIN_TOUCH_DESIGN)
+	local bar =
+		InventoryLayout.bar(zone, InventoryLayout.MAX_SLOTS, screen.compact, Layout.MIN_TOUCH_DESIGN, screen.tight)
 	if bar.shown < 3 then
 		check.fail(`Hotbar holds only {bar.shown} item slots in {fmt(zone)} (want at least 3)`)
 	end
@@ -1003,7 +1022,8 @@ function LayoutAssert.hotbarChecks(check: Checker)
 	for _, cell in cells do
 		local name, r = cell[1] :: string, cell[2] :: Rect
 		check.inside(name, r, "Hotbar.bar", bar.rect)
-		if screen.compact then
+		-- Tight (390 px portrait): the shared bottom row leaves only TIGHT.slot design px per slot, below MIN_TOUCH.
+		if screen.compact and not screen.tight then
 			check.touch(name, r)
 		end
 	end
@@ -1021,6 +1041,37 @@ function LayoutAssert.hotbarChecks(check: Checker)
 	do
 		check.noOverlap("Hotbar.bar", bar.rect, other[1] :: string, other[2] :: Rect)
 	end
+	if screen.phone then
+		LayoutAssert.phoneRowChecks(check, bar.rect)
+	end
+end
+
+-- Phones (Layout.phone: landscape and portrait): the nav grid sits at the very top (the top margin), and the money
+-- block, the hotbar and the events row share one bottom row: bottom edges within BOTTOM_ALIGN px, money left of
+-- the hotbar left of the events, none overlapping.
+LayoutAssert.BOTTOM_ALIGN = 2
+
+function LayoutAssert.phoneRowChecks(check: Checker, bar: Rect)
+	local screen = check.screen
+	if math.abs(screen.nav.y - Layout.TOP) > EPS then
+		check.fail(`Nav {fmt(screen.nav)} is not at the top (y should be {Layout.TOP})`)
+	end
+	local money, status = screen.money.rect, screen.status.rect
+	local bottoms = { Money = money.y + money.h, Hotbar = bar.y + bar.h, Status = status.y + status.h }
+	for name, bottom in bottoms do
+		if math.abs(bottom - bottoms.Hotbar) > LayoutAssert.BOTTOM_ALIGN then
+			check.fail(
+				`{name} bottom {bottom} is not aligned with the hotbar bottom {bottoms.Hotbar} (within {LayoutAssert.BOTTOM_ALIGN} px)`
+			)
+		end
+	end
+	if not (money.x + money.w <= bar.x + EPS and bar.x + bar.w <= status.x + EPS) then
+		check.fail(`bottom row is not money {fmt(money)} | hotbar {fmt(bar)} | events {fmt(status)} left to right`)
+	end
+	check.noOverlap("Money", money, "Hotbar.bar", bar)
+	check.noOverlap("Hotbar.bar", bar, "Status", status)
+	check.noOverlap("Money", money, "Status", status)
+	check.noOverlap("Nav", screen.nav, "Money", money)
 end
 
 function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker

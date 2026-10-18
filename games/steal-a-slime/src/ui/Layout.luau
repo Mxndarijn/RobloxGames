@@ -42,6 +42,8 @@ export type Screen = {
 	width: number, -- design px
 	height: number,
 	compact: boolean,
+	phone: boolean, -- a phone (portrait, or landscape under 500 px high): nav at the very top, money | hotbar | events share the bottom row
+	tight: boolean, -- portrait phone too narrow for the full-size row: smaller money block, event slots and hotbar slots
 	short: boolean, -- landscape phone: more nav columns, cards between the clusters (Layout.screen)
 	navColumns: number,
 	bottomInset: number,
@@ -287,22 +289,46 @@ Layout.STATUS = table.freeze({
 	labelGap = 2,
 })
 
+-- Tight phone row (portrait, 390 px wide: money | hotbar | events share one bottom row): smaller money block
+-- (the two chips stack under the plate) and event slots. Used when Layout.screen sets `tight`.
+Layout.MONEY_TIGHT =
+	table.freeze({ w = 124, plate = 38, chip = 20, gap = 3, icon = 28, amountSize = 18, chipSize = 11 })
+Layout.STATUS_TIGHT = table.freeze({ slot = 40, icon = 28, label = 14, labelSize = 10 })
+
 -- Slot ids, left to right (HudClusters.STATUS_IDS lists the same).
 Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend" })
 
-function Layout.moneyHeight(compact: boolean): number
+function Layout.moneyHeight(compact: boolean, tight: boolean?): number
+	if tight then
+		local t = Layout.MONEY_TIGHT
+		return t.plate + t.gap * 2 + t.chip * 2
+	end
 	local m = Layout.MONEY
 	return (if compact then m.cplate else m.plate)
 		+ (if compact then m.cgap else m.gap)
 		+ (if compact then m.cchip else m.chip)
 end
 
-function Layout.moneyWidth(compact: boolean): number
+function Layout.moneyWidth(compact: boolean, tight: boolean?): number
+	if tight then
+		return Layout.MONEY_TIGHT.w
+	end
 	return if compact then Layout.MONEY.cw else Layout.MONEY.w
 end
 
 -- The money cluster with its bottom-left corner at (x, bottom).
-function Layout.moneyCluster(compact: boolean, x: number, bottom: number): MoneyHud
+function Layout.moneyCluster(compact: boolean, x: number, bottom: number, tight: boolean?): MoneyHud
+	if tight then
+		local t = Layout.MONEY_TIGHT
+		local h = Layout.moneyHeight(compact, true)
+		local y = bottom - h
+		return {
+			rect = Layout.rect(x, y, t.w, h),
+			cash = Layout.rect(x, y, t.w, t.plate),
+			income = Layout.rect(x, y + t.plate + t.gap, t.w, t.chip),
+			rebirths = Layout.rect(x, y + t.plate + t.gap * 2 + t.chip, t.w, t.chip),
+		}
+	end
 	local m = Layout.MONEY
 	local w = Layout.moneyWidth(compact)
 	local plate = if compact then m.cplate else m.plate
@@ -321,31 +347,39 @@ end
 
 -- Text column of a money box: the plate's amount sits right of the coin, a chip's text right of its
 -- icon (Hud builds the same numbers). Returns x offset and width inside the box.
-function Layout.moneyTextBox(box: Rect, isPlate: boolean, compact: boolean): (number, number)
+function Layout.moneyTextBox(box: Rect, isPlate: boolean, compact: boolean, tight: boolean?): (number, number)
 	local m = Layout.MONEY
-	local left = if isPlate then (if compact then m.cicon else m.icon) + 12 else box.h
+	local plateIcon = if tight then Layout.MONEY_TIGHT.icon elseif compact then m.cicon else m.icon
+	local left = if isPlate then plateIcon + (if tight then 8 else 12) else box.h
 	local right = if isPlate then 8 else 6
 	return left, box.w - left - right
 end
 
-function Layout.statusSlotWidth(compact: boolean): number
+function Layout.statusSlotWidth(compact: boolean, tight: boolean?): number
+	if tight then
+		return Layout.STATUS_TIGHT.slot
+	end
 	return if compact then Layout.STATUS.cslot else Layout.STATUS.slot
 end
 
-function Layout.statusHeight(compact: boolean): number
+function Layout.statusHeight(compact: boolean, tight: boolean?): number
 	local s = Layout.STATUS
+	if tight then
+		return Layout.STATUS_TIGHT.icon + s.labelGap + Layout.STATUS_TIGHT.label
+	end
 	return (if compact then s.cicon else s.icon) + s.labelGap + (if compact then s.clabel else s.label)
 end
 
-function Layout.statusWidth(compact: boolean): number
+function Layout.statusWidth(compact: boolean, tight: boolean?): number
 	local s = Layout.STATUS
-	return s.count * Layout.statusSlotWidth(compact) + (s.count - 1) * s.gap
+	return s.count * Layout.statusSlotWidth(compact, tight) + (s.count - 1) * s.gap
 end
 
 -- The status cluster with its bottom-right corner at (right, bottom).
-function Layout.statusCluster(compact: boolean, right: number, bottom: number): StatusHud
+function Layout.statusCluster(compact: boolean, right: number, bottom: number, tight: boolean?): StatusHud
 	local s = Layout.STATUS
-	local w, h, slotW = Layout.statusWidth(compact), Layout.statusHeight(compact), Layout.statusSlotWidth(compact)
+	local w, h, slotW =
+		Layout.statusWidth(compact, tight), Layout.statusHeight(compact, tight), Layout.statusSlotWidth(compact, tight)
 	local x, y = right - w, bottom - h
 	local slots = {}
 	for i = 1, s.count do
@@ -696,16 +730,28 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	-- Bottom clusters (H1): on the inset line (compact: lifted off the touch controls), bottom-left /
 	-- bottom-right.
 	local rise = if compact then math.ceil(Layout.TOUCH_RISE / scale) else 0
-	local money = Layout.moneyCluster(compact, m, H - inset - rise)
-	local status = Layout.statusCluster(compact, W - m, H - inset - rise)
+	-- Phones (portrait, or landscape under TUTORIAL_SHORT_HEIGHT): the nav grid sits at the very top and the
+	-- money block, the hotbar and the events row share one bottom row (`rowBottom`, lifted off the touch
+	-- controls). Portrait too narrow for the full-size row (money + events + a 3-item hotbar) goes `tight`.
+	-- A tablet-sized compact screen (1024x768) is not a phone and keeps the desktop arrangement.
+	local phone = compact and (viewportW < Layout.COMPACT_WIDTH or viewportH < Layout.TUTORIAL_SHORT_HEIGHT)
+	local rowBottom = H - inset - rise
+	local fullRowW = Layout.moneyWidth(compact)
+		+ Layout.statusWidth(compact)
+		+ InventoryLayout.barWidth(4, InventoryLayout.slotSize(compact, Layout.MIN_TOUCH_DESIGN))
+		+ 2 * (m + gap)
+	local tight = phone and W < fullRowW
+	local money = Layout.moneyCluster(compact, m, rowBottom, tight)
+	local status = Layout.statusCluster(compact, W - m, rowBottom, tight)
+	local hotbarH = InventoryLayout.height(compact, Layout.MIN_TOUCH_DESIGN, tight)
 
 	-- 1. "Short" (landscape phone): the default two nav columns won't fit above the money cluster, so
 	-- the nav starts at the top margin, takes more columns, and the bottom cards go between the clusters.
 	local short = compact and Layout.TOP + Layout.navHeight(compact) + gap > money.rect.y - gap
-	local top = if short then Layout.TOP else Layout.NAV.top
+	local top = if short or phone then Layout.TOP else Layout.NAV.top
 	-- Narrower than the carry card plus both clusters (portrait phones): the bottom cards sit above
 	-- the clusters instead of beside them.
-	local clusterH = math.max(money.rect.h, status.rect.h)
+	local clusterH = math.max(money.rect.h, status.rect.h, if phone then hotbarH else 0)
 	local lift = if not short and W < Layout.CARRY.w + money.rect.w + status.rect.w + 2 * (m + gap)
 		then rise + clusterH + gap
 		else 0
@@ -713,7 +759,6 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	-- S3 hotbar (InventoryLayout): bottom-centre between the clusters, above them on a narrow phone; short
 	-- phones hug the bottom edge. The server unequips tools while carrying, so the bar is hidden then and the
 	-- carry cards may use its place; only the plain tutorial card rises above it (`tutorialLift`).
-	local hotbarH = InventoryLayout.height(compact, Layout.MIN_TOUCH_DESIGN)
 	local cardMargin = if short and viewportH < Layout.TUTORIAL_SHORT_HEIGHT
 		then Layout.TUTORIAL_SHORT_MARGIN / scale
 		else nil
@@ -723,8 +768,10 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	-- 2. Nav: top-left, 2 columns (short: as many as it takes to fit from the top down to the money
 	-- cluster; the bottom cards then sit right of the money cluster, step 3).
 	local fullRow = Layout.rect(m, 0, W - m * 2, 0)
-	local hotbarBottom = if short then H - math.max(cardMargin or inset, m) else H - cardInset
-	local tutorialLift = (H - (cardMargin or cardInset)) - (hotbarBottom - hotbarH) + gap
+	local hotbarBottom = if phone then rowBottom else H - cardInset
+	-- Phones: the tutorial card already clears the row (portrait: the cards sit above it; landscape: the card hugs
+	-- the bottom edge, below the row), so only the desktop arrangement lifts it above the hotbar.
+	local tutorialLift = if phone then 0 else (H - (cardMargin or cardInset)) - (hotbarBottom - hotbarH) + gap
 	local _, tutorial0, tutorialCarrying0 = bottomCards(fullRow, W, H, cardInset, nil, nil, tutorialLift)
 	local navBottom = if short then money.rect.y - gap else math.min(tutorial0.y, tutorialCarrying0.y) - gap
 	navBottom = math.min(navBottom, money.rect.y - gap)
@@ -744,8 +791,9 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	local between = Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0)
 	-- Truly bottom-centre: the zone is symmetric about the screen centre, as wide as the nearer cluster allows.
 	local half = math.max(math.min(W / 2 - between.x, between.x + between.w - W / 2), 0)
-	local hotbarX = if lift > 0 then m else W / 2 - half
-	local hotbarW = if lift > 0 then W - m * 2 else half * 2
+	local stacked = lift > 0 and not phone
+	local hotbarX = if stacked then m else W / 2 - half
+	local hotbarW = if stacked then W - m * 2 else half * 2
 	local hotbar = Layout.rect(hotbarX, hotbarBottom - hotbarH, hotbarW, hotbarH)
 
 	-- 4. The column (right of the nav) above the bottom cards; menus use the
@@ -778,6 +826,8 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 		width = W,
 		height = H,
 		compact = compact,
+		phone = phone,
+		tight = tight,
 		short = short,
 		navColumns = columns,
 		bottomInset = inset,
