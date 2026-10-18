@@ -1812,15 +1812,15 @@
   "slime_lane": {
     "assetId": "87473643950432",
     "assetType": "Model",
-    "meshId": "rbxassetid://107989172597936",
+    "meshId": "rbxassetid://135233109223925",
     "meshSize": [
       139.095,
       0.43,
       135.756
     ],
-    "sha256": "76bb4d09be3e2ed7",
-    "uploadedAt": "2026-10-18T13:02:20Z",
-    "versions": 3
+    "sha256": "16df4b72178881b8",
+    "uploadedAt": "2026-10-18T14:59:53Z",
+    "versions": 4
   },
   "slime_wobble": {
     "assetId": "73195420238991",

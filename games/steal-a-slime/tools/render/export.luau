@@ -381,9 +381,7 @@ end
 
 -- The goo lane (server/ParadeView.place, a runtime folder): the one smooth kit mesh at its pivot (like a MeshSwap
 -- slot: no turn here, Blender imports on the documented axes) once it is uploaded or --pending; else the strips.
--- --lane-strips draws the strip stand-ins even where the mesh is uploaded (the look of the mesh-less fallback, and of a
--- mesh that ends where the drain taper starts).
-if swappable(ParadeLane.MESH) and not table.find(process.args, "--lane-strips") then
+if swappable(ParadeLane.MESH) then
 	local at = ParadeLane.MESH_PIVOT
 	table.insert(meshes, {
 		mesh = ParadeLane.MESH,
@@ -403,19 +401,6 @@ else
 			transparency = 0,
 		})
 	end
-end
-
--- The goo carried on over the drain's curb into the funnel (server/ParadeView, Plaza.DrainMouth): always strips.
-for _, strip in ParadeLane.drainStrips() do
-	table.insert(parts, {
-		name = `Workspace.Map.Plaza.DrainMouth.{strip.name}`,
-		shape = strip.shape or "Cylinder",
-		size = strip.size,
-		cf = strip.cf,
-		color = { ParadeLane.COLOR[1] / 255, ParadeLane.COLOR[2] / 255, ParadeLane.COLOR[3] / 255 },
-		material = "SmoothPlastic",
-		transparency = 0,
-	})
 end
 
 -- The co-op ritual circle (server/RitualView, a runtime model): disc, ring, spots and orb.

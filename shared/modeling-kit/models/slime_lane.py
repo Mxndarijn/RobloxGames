@@ -83,27 +83,65 @@ minr = min(turn_radius(path[i - 1], path[i], path[i + 1]) for i in range(1, n - 
 assert minr > HW + 0.1, f"tightest bend radius {minr:.2f} <= half width {HW}: the sweep would fold"
 
 
-# Cut the lane where the game's drain taper starts (src["cut"], ParadeLane.stripEndPoints): project it onto the
-# centreline, keep every ring before it unchanged and end with one ring ON the cut, square to the lane. The taper
-# strips (ParadeLane.drainStrips) carry on from there and overlap this end.
-if "cut" in src:
-    cx, cz = src["cut"]
-    best = None
-    for i in range(n - 1):
-        ax, az = path[i]
-        dx, dz = path[i + 1][0] - ax, path[i + 1][1] - az
-        k = min(1.0, max(0.0, ((cx - ax) * dx + (cz - az) * dz) / max(dx * dx + dz * dz, 1e-12)))
-        d = math.hypot(cx - ax - dx * k, cz - az - dz * k)
-        if best is None or d < best[0]:
-            best = (d, i, k)
-    d, i, k = best
-    assert d < 0.1, f"cut point is {d:.3f} studs from the centreline"
-    a, b = path[i], path[i + 1]
-    end = (a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k)
-    seg = math.hypot(b[0] - a[0], b[1] - a[1]) or 1
-    path = path[:i + 1] + [end]
-    tang = tang[:i + 1] + [((b[0] - a[0]) / seg, (b[1] - a[1]) / seg)]   # the last ring is square to its segment
+# Extend the lane's end along its own last curve (a circular arc through the last rings) until it touches the goo drain's
+# outer curb (src["drain"]: curb centre x, z and outer radius). Every ring that is already there stays as it is. The end is
+# cut to follow the curb arc (each lateral sample stops on the circle), so no corner rides onto the curb: the lane butts
+# against the curb's outer face with END_OVERLAP studs of overlap and no gap.
+END_OVERLAP = 0.05
+STEP_EXT = 0.5
+if "drain" in src:
+    dc = (src["drain"]["x"], src["drain"]["z"])
+    rcurb = src["drain"]["radius"] - END_OVERLAP
+    last = path[-1]
+    back = next(p for p in reversed(path[:-1]) if math.dist(p, last) >= 4.0)
+    back2 = next(p for p in reversed(path[:path.index(back)]) if math.dist(p, back) >= 4.0)
+    hx, hz = last[0] - path[-2][0], last[1] - path[-2][1]
+    hl = math.hypot(hx, hz)
+    hx, hz = hx / hl, hz / hl
+    r = turn_radius(back2, back, last)
+    cross = (back[0] - back2[0]) * (last[1] - back[1]) - (back[1] - back2[1]) * (last[0] - back[0])
+    turn = (1 if cross > 0 else -1) * STEP_EXT / r if r != float("inf") else 0.0   # heading change per ring (rad)
+    ext = []
+    x, z = last
+    for _ in range(40):
+        c, s_ = math.cos(turn), math.sin(turn)
+        hx, hz = hx * c - hz * s_, hx * s_ + hz * c
+        x, z = x + hx * STEP_EXT, z + hz * STEP_EXT
+        ext.append((x, z))
+        if math.dist((x, z), dc) < rcurb - HW - 0.5:
+            break
+    assert math.dist(ext[-1], dc) < rcurb - HW, "the arc does not reach the drain"
+    path = path + ext
     n = len(path)
+    tang = []
+    for i in range(n):
+        a, b = path[max(0, i - 1)], path[min(n - 1, i + 1)]
+        d = math.hypot(b[0] - a[0], b[1] - a[1]) or 1
+        tang.append(((b[0] - a[0]) / d, (b[1] - a[1]) / d))
+    full = [[(path[i][0] + -tang[i][1] * HW * s, path[i][1] + tang[i][0] * HW * s) for s in SPS] for i in range(n)]
+    firsts = []
+    for j in range(len(SPS)):
+        firsts.append(next(i for i in range(n) if math.dist(full[i][j], dc) < rcurb))
+    keep = min(firsts)   # rings 0..keep-1 are entirely outside the curb
+    end = []
+    for j in range(len(SPS)):
+        a, b = full[firsts[j] - 1][j], full[firsts[j]][j]
+        lo, hi = 0.0, 1.0   # bisect the point where the offset line meets the curb circle
+        for _ in range(40):
+            mid = (lo + hi) / 2
+            q = (a[0] + (b[0] - a[0]) * mid, a[1] + (b[1] - a[1]) * mid)
+            if math.dist(q, dc) < rcurb:
+                hi = mid
+            else:
+                lo = mid
+        end.append((a[0] + (b[0] - a[0]) * lo, a[1] + (b[1] - a[1]) * lo))
+    path, tang = path[:keep], tang[:keep]
+    rows_override = full[:keep] + [end]
+    n = keep + 1
+    path.append(end[SPS.index(0)])   # the centreline ends on the circle
+    tang.append(tang[-1])
+else:
+    rows_override = None
 
 
 def height(s):
@@ -117,6 +155,8 @@ rows = []
 for i in range(n):
     nx, nz = -tang[i][1], tang[i][0]
     rows.append([(path[i][0] + nx * HW * s, path[i][1] + nz * HW * s) for s in SPS])
+if rows_override:
+    rows = rows_override
 xs = [p[0] for r in rows for p in r]
 zs = [p[1] for r in rows for p in r]
 PIV = ((min(xs) + max(xs)) / 2, (min(zs) + max(zs)) / 2, (BOTTOM_Y + LANE_Y) / 2)
@@ -171,6 +211,8 @@ vy = [v.co.y for v in o.data.vertices]
 info = {
     "pivot": [PIV[0], PIV[2], PIV[1]],   # Roblox world (x, y, z) of the bbox centre
     "size": [max(vx) - min(vx), max(vz) - min(vz), max(vy) - min(vy)],   # Roblox (x, y, z) studs
+    "drain": src.get("drain"), "endRing": [[round(x, 3), round(z, 3)] for x, z in rows[-1]],
+    "widths": [round(math.dist(r[0], r[-1]), 3) for r in rows[:-1]],   # every full ring (the last one follows the curb)
     "crownY": LANE_Y, "edgeY": EDGE_Y, "halfWidth": HW, "rings": n,
     "centre": [[round(p[0], 3), round(p[1], 3)] for p in path],
 }

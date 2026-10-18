@@ -2,7 +2,7 @@
 -- lune run tools/render/lane_centreline   (from games/steal-a-slime)
 -- Writes the goo lane's centreline for shared/modeling-kit/models/slime_lane.py:
 -- the slide mouth, the lead-in to ENTRY, then every ParadeLane waypoint ({ x, z } in world studs),
--- with LANE_Y, HALF_WIDTH, the lane colour and `cut`, the point where the mesh ends (the drain taper starts).
+-- with LANE_Y, HALF_WIDTH, the lane colour and the drain curb the end touches.
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
 
@@ -16,10 +16,6 @@ for _, p in ParadeLane.WAYPOINTS do
 	table.insert(points, { p[1], p[2] })
 end
 
--- The mesh ends where the drain taper starts (ParadeLane.stripEndPoints' last point); the taper strips carry on from there.
-local stripEnd = ParadeLane.stripEndPoints()
-local cut = stripEnd[#stripEnd]
-
 local OUT = "../../shared/modeling-kit/inputs/slime_lane_centreline.json"
 fs.writeFile(
 	OUT,
@@ -28,7 +24,8 @@ fs.writeFile(
 		halfWidth = ParadeLane.HALF_WIDTH,
 		color = ParadeLane.COLOR,
 		points = points,
-		cut = { cut[1], cut[2] },
+		-- the drain's outer curb disc (WorldLayout DrainCurb, centre z 52.475): the mesh end stops on its outer face
+		drain = { x = ParadeLane.DRAIN.x, z = 52.475, radius = ParadeLane.DRAIN.lipRadius },
 	})
 )
 print(`wrote {OUT}: {#points} points`)
