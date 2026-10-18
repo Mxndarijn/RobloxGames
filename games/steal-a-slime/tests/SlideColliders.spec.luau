@@ -23,6 +23,8 @@ local Config = require("../src/shared/Config")
 local SPECS = SlideColliders.build(PATH, true)
 -- What the server places: SPECS plus the ground posts and staves brackets (SlideColliders.supports).
 local LIVE = SlideColliders.all(PATH, WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES), true)
+-- With FEATURES.SlidePCD the loaded mesh is the slide's collision and MeshSwap retires Floor / Joint / Post / Brace.
+local LIVE_PCD = SlideColliders.all(PATH, WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES), true, true)
 local EPS = 1e-3
 local PLAYER_HEIGHT = 5 -- R15 character, feet to head
 local JUMP_REACH = 7.5 -- a default Roblox jump clears ~7.2 studs; stay above it
@@ -99,6 +101,23 @@ describe("SlideColliders specs", function()
 				true
 			)
 		end
+	end)
+	it("SlidePCD drops exactly the Floor / Joint / Post / Brace boxes and keeps Fill, JointFill and Skirt", function()
+		local kinds = {}
+		for _, spec in LIVE_PCD do
+			kinds[spec.kind] = (kinds[spec.kind] or 0) + 1
+			expect(SlideColliders.PCD_RETIRED[spec.kind]).toBe(nil)
+		end
+		expect(kinds.Fill > 0 and kinds.Skirt > 0).toBe(true)
+		local retired = 0
+		for _, spec in LIVE do
+			if SlideColliders.PCD_RETIRED[spec.kind] then
+				retired += 1
+			end
+		end
+		expect(retired > 0).toBe(true)
+		expect(#LIVE_PCD).toBe(#LIVE - retired)
+		expect(#SlideColliders.all(PATH, WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES), true, false)).toBe(#LIVE)
 	end)
 	it("flag off keeps the old low-only stretch", function()
 		for _, spec in SlideColliders.build(PATH) do
@@ -300,12 +319,13 @@ describe("SlideColliders in the live server", function()
 			expect(folder ~= nil).toBe(true)
 			local parts = folder:GetChildren()
 			local fillCount = 0
-			for _, spec in LIVE do
+			local live = if state == "mesh loaded" and Config.FEATURES.SlidePCD then LIVE_PCD else LIVE
+			for _, spec in live do
 				if spec.kind == "Fill" then
 					fillCount += 1
 				end
 			end
-			expect(#parts).toBe(#LIVE + 2 * fillCount) -- every Fill is the box plus two roof wedges (bug #9)
+			expect(#parts).toBe(#live + 2 * fillCount) -- every Fill is the box plus two roof wedges (bug #9)
 			local names = byName()
 			for _, part in parts do
 				local spec = names[part.Name]

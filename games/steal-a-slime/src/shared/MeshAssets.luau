@@ -393,7 +393,7 @@ entries["slime_lane"] =
 -- FEATURES.FountainSplit (default off; MeshSwap.swapFountainSplit): the slime_fountain mesh cut into 5 pieces by
 -- shared/modeling-kit/models/slime_fountain_split.py (out/fountain_split.json has the numbers, tris sum to the whole:
 -- 6354). NOT world slots and not preloaded (allMeshIds skips them): with the flag off nothing loads them. The four
--- tower pieces are PreciseConvexDecomposition (COLLISION below); the slide piece is decor, the slide keeps SlideColliders.
+-- tower pieces are PreciseConvexDecomposition (COLLISION below); the slide piece is PCD only with FEATURES.SlidePCD, else decor.
 entries["fountain_split_basin"] = {
 	assetId = 113404417037788,
 	meshId = "rbxassetid://108371724846314",
@@ -414,7 +414,7 @@ entries["fountain_split_eave"] = {
 }
 entries["fountain_split_silo"] = {
 	assetId = 70694440108004,
-	meshId = "rbxassetid://126104512688719",
+	meshId = "rbxassetid://103574045671668",
 	size = { 26.223, 30.673, 26.563 },
 	offset = { -6.51, -6.321, -7.572 },
 }
@@ -429,7 +429,8 @@ local MeshAssets = {}
 MeshAssets.NAMES = table.freeze(NAMES)
 MeshAssets.entries = entries
 
--- The FEATURES.FountainSplit pieces, in the order MeshSwap places them; the first four collide (PCD), the slide is decor.
+-- The FEATURES.FountainSplit pieces, in the order MeshSwap places them; the first four collide (PCD), the slide only with
+-- FEATURES.SlidePCD (MeshSwap.splitFidelity), else it is decor.
 MeshAssets.FOUNTAIN_SPLIT = table.freeze({
 	"fountain_split_basin",
 	"fountain_split_dome",
@@ -540,6 +541,9 @@ MeshAssets.COLLISION = table.freeze({
 	fountain_split_dome = "PreciseConvexDecomposition",
 	fountain_split_eave = "PreciseConvexDecomposition",
 	fountain_split_silo = "PreciseConvexDecomposition",
+	-- FEATURES.SlidePCD: the slide with real collision (trough walls, floor, posts, braces). MeshSwap only asks for it with the
+	-- flag on; the trough stays a walkable ramp, so the SlideColliders Fill block / ridge roof / Skirt stay (docs/COLLISION.md).
+	fountain_split_slide = "PreciseConvexDecomposition",
 })
 
 function MeshAssets.collision(name: string): string?

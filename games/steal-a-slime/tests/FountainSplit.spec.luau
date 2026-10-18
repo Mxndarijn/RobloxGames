@@ -11,6 +11,7 @@ local serde = require("@lune/serde")
 local Config = require("../src/shared/Config")
 local MeshAssets = require("../src/shared/MeshAssets")
 local Runtime = require("../tools/livetest/Runtime")
+local SlideColliders = require("../src/shared/SlideColliders")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -29,6 +30,9 @@ local whole = serde.decode("json", fs.readFile(`{KIT_OUT}/slime_fountain.stats.j
 describe("FountainSplit data", function()
 	it("is behind FEATURES.FountainSplit, default on", function()
 		expect(Config.FEATURES.FountainSplit).toBe(true)
+	end)
+	it("the slide is PCD behind FEATURES.SlidePCD, default on", function()
+		expect(Config.FEATURES.SlidePCD).toBe(true)
 	end)
 	it("lists the 5 pieces, all uploaded, none in the world slot list", function()
 		expect(#MeshAssets.FOUNTAIN_SPLIT).toBe(5)
@@ -72,13 +76,16 @@ describe("FountainSplit data", function()
 			expect(math.abs(hi[i] - native[i] / 2) <= EPS).toBe(true)
 		end
 	end)
-	it("the tower pieces are PreciseConvexDecomposition, the slide piece has no collision", function()
-		for _, name in TOWER do
-			expect(MeshAssets.collision(name)).toBe(PCD)
+	it(
+		"the tower pieces and the slide are PreciseConvexDecomposition (the slide only with FEATURES.SlidePCD)",
+		function()
+			for _, name in TOWER do
+				expect(MeshAssets.collision(name)).toBe(PCD)
+			end
+			expect(MeshAssets.collision(SLIDE)).toBe(PCD)
+			expect(MeshAssets.collision(M)).toBe(nil) -- the whole mesh stays decor
 		end
-		expect(MeshAssets.collision(SLIDE)).toBe(nil)
-		expect(MeshAssets.collision(M)).toBe(nil) -- the whole mesh stays decor
-	end)
+	)
 	it("keeps the pieces out of the client preload list", function()
 		local ids = {}
 		for _, id in MeshAssets.allMeshIds() do
@@ -113,7 +120,7 @@ local function collision(volcano): { [string]: boolean }
 end
 
 -- flag: FEATURES.FountainSplit in the built place's Config; failId: a mesh id whose CreateMeshPartAsync throws.
-local function boot(flag: boolean, failId: string?)
+local function boot(flag: boolean, failId: string?, slidePcd: boolean?)
 	local rt
 	local asked = {} -- { meshId, fidelity, state = collision while that fetch was in flight }
 	rt = Runtime.new(path, {
@@ -137,6 +144,7 @@ local function boot(flag: boolean, failId: string?)
 	-- scripts/test-flags forces every flag in the built Config, so set the line either way
 	local patched, n = string.gsub(config.Source, "FountainSplit = %a+,", `FountainSplit = {flag},`)
 	assert(n == 1, "FEATURES.FountainSplit line not found in Config")
+	patched = string.gsub(patched, "SlidePCD = %a+,", `SlidePCD = {slidePcd ~= false},`)
 	config.Source = patched
 	rt:boot()
 	rt:advance(2)
@@ -147,7 +155,8 @@ end
 local off = boot(false)
 local on = boot(true)
 local broken = boot(true, MeshAssets.meshId("fountain_split_dome")) -- one piece fails to load
-local slideBroken = boot(true, MeshAssets.meshId(SLIDE)) -- the decor piece failing counts too
+local slideBroken = boot(true, MeshAssets.meshId(SLIDE)) -- the slide piece failing counts too
+local slideOff = boot(true, nil, false) -- FEATURES.SlidePCD off: decor slide, every box
 require("@lune/fs").removeFile(path)
 
 local function askedFor(run, meshId)
@@ -222,18 +231,21 @@ describe("FountainSplit on", function()
 			expect(askedFor(on, MeshAssets.meshId(name))).toBe(1)
 		end
 	end)
-	it("makes the 4 tower pieces solid PCD and the slide piece decor", function()
+	it("makes the 4 tower pieces and the slide solid PCD (the slide with FEATURES.SlidePCD)", function()
 		for _, name in TOWER do
 			local piece = on.slot[name]
 			expect(piece.CanCollide).toBe(true)
 			expect(piece.CollisionFidelity).toBe(roblox.Enum.CollisionFidelity.PreciseConvexDecomposition)
 		end
-		expect(on.slot[SLIDE].CanCollide).toBe(false)
+		local slideSolid = true -- boot(true) leaves FEATURES.SlidePCD on in the built place
+		expect(on.slot[SLIDE].CanCollide).toBe(slideSolid)
 		for _, call in on.asked do
 			local name = PIECE_BY_ID[call.meshId]
 			if name then
 				expect(call.fidelity).toBe(
-					if name ~= SLIDE then roblox.Enum.CollisionFidelity.PreciseConvexDecomposition else nil
+					if name ~= SLIDE or slideSolid
+						then roblox.Enum.CollisionFidelity.PreciseConvexDecomposition
+						else nil
 				)
 			end
 		end
@@ -278,6 +290,45 @@ describe("FountainSplit on", function()
 		end
 		-- stand-ins and colliders alike: the PCD pieces are the tower's collision now
 		expectAll(collision(volcano), false)
+	end)
+	it(
+		"retires the Floor / Joint / Post / Brace boxes the PCD slide replaces, keeps Fill, JointFill and Skirt",
+		function()
+			local kinds = {}
+			for _, part in on.volcano.SlideColliders:GetChildren() do
+				local kind = part:GetAttribute("FountainCollider")
+				kinds[kind] = (kinds[kind] or 0) + 1
+			end
+			for kind in SlideColliders.PCD_RETIRED do
+				expect(kinds[kind]).toBe(nil)
+			end
+			expect(kinds.Fill > 0 and kinds.Skirt > 0).toBe(true)
+			local want = SlideColliders.all(
+				WorldLayout.SLIDE_PATH,
+				WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES),
+				Config.FEATURES.SlideCollision,
+				true
+			)
+			local fills = 0
+			for _, spec in want do
+				fills += if spec.kind == "Fill" then 2 else 0 -- the roof wedges
+			end
+			expect(#on.volcano.SlideColliders:GetChildren()).toBe(#want + fills)
+		end
+	)
+	it("keeps every box when the SlidePCD flag is off in the built place", function()
+		local want = SlideColliders.all(
+			WorldLayout.SLIDE_PATH,
+			WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES),
+			Config.FEATURES.SlideCollision,
+			false
+		)
+		local fills = 0
+		for _, spec in want do
+			fills += if spec.kind == "Fill" then 2 else 0 -- the roof wedges
+		end
+		expect(#slideOff.volcano.SlideColliders:GetChildren()).toBe(#want + fills)
+		expect(slideOff.slot[SLIDE].CanCollide).toBe(false)
 	end)
 	it("leaves the slide's own colliders on", function()
 		local slide = on.volcano:FindFirstChild("SlideColliders")

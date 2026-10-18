@@ -174,15 +174,28 @@ for _, piece in { "basin", "dome", "eave", "silo" } do
 		flag = { name = "FountainSplit", off = 0 },
 	})
 end
+-- FEATURES.SlidePCD: the slide mesh is a PCD collision mesh (trough floor, rims, posts, braces). Needs FountainSplit; off: decor.
+add({
+	kind = "fountain_split_slide",
+	mesh = "fountain_split_slide",
+	owner = "jolt",
+	count = 1,
+	collision = "PreciseConvexDecomposition",
+	now = "flag off: not created",
+	reason = "FEATURES.SlidePCD: the real slide collision (walls, floor, posts, braces); the Fill block + ridge roof and the Skirt stay because the PCD trough is a walkable ramp (docs/COLLISION.md)",
+	find = { under = FOUNTAIN, names = { "^fountain_split_slide$" }, parts = true },
+	walk = false,
+	flag = { name = "SlidePCD", off = 0 },
+})
 parts(
 	"fountain_slide_colliders",
 	"jolt",
-	270,
+	194,
 	"colliders",
 	FOUNTAIN .. ".SlideColliders",
 	nil,
-	"on (Floor, Fill, wedge roof, Joint, Skirt, Post, Brace)",
-	"solid slide block so nobody enters or climbs the trough; slimes ride it anchored with CanCollide=false (bug #9). Unchanged, probed by bug09_slide_stand (270 parts with FEATURES.SlideCollision, the low stretch only, 120, without)",
+	"on (Fill, wedge roof, JointFill, Skirt; Floor, Joint, Post, Brace retired by FEATURES.SlidePCD)",
+	"solid slide block so nobody enters or climbs the trough; slimes ride it anchored with CanCollide=false (bug #9). Probed by bug09_slide_stand (194 parts with SlideCollision + SlidePCD; 270 with SlidePCD off; the low stretch only, 120, without SlideCollision)",
 	{ walk = false, flag = { name = "SlideCollision", off = 120 } }
 )
 mesh(
