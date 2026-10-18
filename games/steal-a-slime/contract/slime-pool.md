@@ -11,7 +11,13 @@ as before (`Genome.sanitize`).
   `frost`: `chomp pengoo` (3), `frostbite zap` (4), `ninja` (5).
   `starlight`: `imp drako` (4), `robo` (5), `seraph amethyst prism` (6), `eclipse boo` (7).
   Families keep their ids and rank gates (§19); a family may now have several species per tier, none at some tiers,
-  and Secret species. Merge-only hybrids, bosses and event Secrets are modelled but not in the roster yet.
+  and Secret species.
+- **Kinds (`Entry.kind`).** `"spawn"` (the 32 above: the fountain and random merges; `SlimeRoster.forTier` returns only
+  these), `"hybrid"` (merge recipes only): `soda rocky_road` (2), `bloom honey_toad truffle` (3),
+  `sushi snow_bunny moo_shroom catfish` (4), `steam kraken thunderbee` (5), `cyber_ninja dragon_king` (6), `nightwing` (7);
+  `"boss"` (the boss event only): `goozilla queen_jelly` (6), `mecha_goo` (7); `"event"` (a limited Secret, only while
+  its event runs): `glitch doodle origami disco isle chrono kitsune` (7). `SlimeRoster.ofKind(kind)` lists one kind.
+  Non-spawn species have no family. Every kind has a look and a species mesh.
 - **Looks (`Shared.SlimeLooks`).** Every species has `kit = "slime_<id>"`, a fully coloured mesh (body, pattern,
   accessories and face in vertex colours). `colour` stays the species colour for UI and the procedural fallback.
 - **Meshes (`Shared.MeshAssets`).** `entries["slime_<id>"] = { assetId, size, offset }`: `size` is the native size of a
