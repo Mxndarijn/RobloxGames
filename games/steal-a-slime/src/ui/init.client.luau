@@ -738,6 +738,10 @@ end)
 -- §5.3): the server only places the prompts; this client opens the menu.
 local PROMPT_MENUS =
 	MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, Config.FEATURES.WorldShops == true)
+-- The 3-slime vat prompt (owner only) opens the merge menu (CONTRACT.md §21.1).
+if Config.FEATURES.MergeVat3 then
+	PROMPT_MENUS[Constants.MERGE_PROMPT_NAME] = "Merge"
+end
 ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt, who: Player)
 	local key = PROMPT_MENUS[prompt.Name]
 	if key and who == player then

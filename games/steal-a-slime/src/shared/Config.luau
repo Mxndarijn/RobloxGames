@@ -725,6 +725,7 @@ local Config = {
 	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (never into Secret)
 	TRIPLE_MERGE_MUTATION_CHANCE = 0.3, -- chance of a fresh mutation on top of the inherited ones
 	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
+	AUTO_MERGE_MAX = 25, -- most groups of three one Request("AutoMerge") merges (MergePlan, CONTRACT.md §21.1)
 
 	-- Stacking mutations (FEATURES.MutationStacking)
 	MAX_MUTATIONS = 3, -- a slime carries at most this many mutations (a fused combo counts as one)

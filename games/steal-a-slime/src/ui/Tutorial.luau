@@ -45,7 +45,7 @@ Tutorial.STEPS = table.freeze({
 	table.freeze({
 		id = "Merge",
 		title = "Merge",
-		body = "Two slimes of the same rarity merge into a rarer one. " .. "Press E at the merge vat on your plot.",
+		body = "Slimes of the same rarity merge into a rarer one. Press E at the merge vat on your plot to pick them.",
 	}),
 	table.freeze({
 		id = "Steal",

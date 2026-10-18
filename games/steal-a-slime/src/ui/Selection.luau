@@ -2,7 +2,7 @@
 --[[
 	Selection
 
-	Pure helpers for picking slimes in the UI (merge pair, sorting).
+	Pure helpers for picking slimes in the UI (the merge vat load, sorting).
 	Works on the `State.slimes` shape. Client-side checks only gate
 	buttons; the server still validates every Request.
 ]]
@@ -24,55 +24,79 @@ function Selection.findSlime<T>(slimes: { T }, id: string?): T?
 	return nil
 end
 
--- Whether ids `a` and `b` are a valid merge pair: two distinct owned slimes of
--- the same tier, neither currently being stolen. Returns a reason when not.
-function Selection.canMergePair(slimes: { SlimeViewLike }, a: string?, b: string?): (boolean, string?)
-	if a == nil or b == nil then
-		return false, "Pick two slimes"
+export type VatSlime = SlimeLike & { name: string?, keep: boolean? }
+export type VatView = { slime: VatSlime, income: number, stolenBy: number? }
+
+-- Why `view` can't go in the vat right now, or nil when it can.
+function Selection.blocked(view: VatView): string?
+	local name = view.slime.name or "This slime"
+	if view.stolenBy ~= nil then
+		return `{name} is being stolen`
+	elseif view.slime.keep then
+		return `{name} is kept: tap 🔒 to free it`
 	end
-	if a == b then
-		return false, "Pick two different slimes"
+	return nil
+end
+
+--[[
+	Whether ids are a valid vat load of `count` slimes (3 for the 3-slime vat, 2 for the pair vat): distinct
+	owned slimes of one rarity, none being stolen or kept. Returns a player-facing reason when not.
+	`rarityName(tier)` names a rarity for the "pick N more" hint.
+]]
+function Selection.vatLoad(
+	slimes: { VatView },
+	ids: { string },
+	count: number,
+	rarityName: ((number) -> string)?
+): (boolean, string?)
+	local views: { VatView } = {}
+	for _, id in ids do
+		local view = Selection.findSlime(slimes, id)
+		if view == nil then
+			return false, "A slime left your plot"
+		end
+		if table.find(views, view) then
+			return false, `Pick {count} different slimes`
+		end
+		table.insert(views, view)
 	end
-	local va = Selection.findSlime(slimes, a)
-	local vb = Selection.findSlime(slimes, b)
-	if va == nil or vb == nil then
-		return false, "Slime no longer on your plot"
+	for _, view in views do
+		local reason = Selection.blocked(view)
+		if reason then
+			return false, reason
+		end
 	end
-	if va.stolenBy ~= nil or vb.stolenBy ~= nil then
-		return false, "A slime is being stolen"
+	for _, view in views do
+		if view.slime.tier ~= views[1].slime.tier then
+			return false, `All {count} must be the same rarity`
+		end
 	end
-	if va.slime.tier ~= vb.slime.tier then
-		return false, "Slimes must be the same tier"
+	if #views == 0 then
+		return false, `Pick {count} slimes of the same rarity`
+	end
+	if #views < count then
+		local left = count - #views
+		local rarity = if rarityName then `{rarityName(views[1].slime.tier)} ` else ""
+		return false, `Pick {left} more {rarity}slime{if left == 1 then "" else "s"}`
+	end
+	if #views > count then
+		return false, `Only {count} slimes fit in the vat`
 	end
 	return true, nil
 end
 
--- Whether ids a, b, c are a valid 3-slime vat load (FEATURES.MergeVat3): three distinct owned slimes of
--- one tier, none being stolen. Returns a reason when not.
-function Selection.canMergeTriple(slimes: { SlimeViewLike }, ids: { string }): (boolean, string?)
-	if #ids < 3 then
-		return false, "Pick three slimes"
+-- Taps `id` in the vat selection: picked -> removed; another rarity than the picks -> a fresh selection
+-- with only `id`; otherwise added (oldest dropped past `count`). Returns a new list.
+function Selection.pick(selection: { string }, id: string, slimes: { VatView }, count: number): { string }
+	if table.find(selection, id) then
+		return Selection.toggle(selection, id, count)
 	end
-	local views = {}
-	for i = 1, 3 do
-		local view = Selection.findSlime(slimes, ids[i])
-		if view == nil then
-			return false, "Slime no longer on your plot"
-		end
-		views[i] = view
+	local view = Selection.findSlime(slimes, id)
+	local first = Selection.findSlime(slimes, selection[1])
+	if view and first and first.slime.tier ~= view.slime.tier then
+		return { id }
 	end
-	if ids[1] == ids[2] or ids[2] == ids[3] or ids[1] == ids[3] then
-		return false, "Pick three different slimes"
-	end
-	for _, view in views do
-		if view.stolenBy ~= nil then
-			return false, "A slime is being stolen"
-		end
-	end
-	if views[1].slime.tier ~= views[2].slime.tier or views[2].slime.tier ~= views[3].slime.tier then
-		return false, "Slimes must be the same tier"
-	end
-	return true, nil
+	return Selection.toggle(selection, id, count)
 end
 
 -- Toggles `id` in a selection of at most `max` ids (oldest dropped first).
