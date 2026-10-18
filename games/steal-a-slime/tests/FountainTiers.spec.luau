@@ -112,7 +112,7 @@ describe("FountainTiers: species", function()
 		"Classic rolls never see a family type, and the Classic roster is 15 types with Midas the only Secret",
 		function()
 			local n = 0
-			for _, entry in SlimeRoster.ROSTER do
+			for _, entry in SlimeRoster.ofKind("spawn") do
 				if entry.family == nil then
 					n += 1
 				else
