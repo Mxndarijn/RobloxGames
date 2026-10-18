@@ -4,16 +4,15 @@
 
 	Always-visible HUD (H1 / B4, see HudClusters / Layout.moneyCluster): bottom-left the money plate with a
 	big coin and amount, the income/s and rebirths chips under it; bottom-right status icons with timers
-	(Slime Rain from the workspace RainActive / RainEndsAt / RainNextAt attributes, else State.rain; the live
-	server modifier; the friend boost). Hovering an icon with the mouse, or tapping it on touch, opens a tooltip
+	in a pill tucked onto each icon's bottom edge (Slime Rain from the workspace RainActive / RainEndsAt /
+	RainNextAt attributes, else State.rain; the live server modifier; the friend boost; this week's featured
+	event Secret, State.featuredSecret). Hovering an icon with the mouse, or tapping it on touch, opens a tooltip
 	(B8: name, what it does, time left); a second tap or a tap elsewhere closes it. A stack of banners at the
-	top centre (hidden ones collapse): "your slime is being stolen", the Mystery Egg hatch, the events
-	board and this week's featured event Secret (State.featuredSecret). The top bar (lock block, Lock, Buy pad, Daily) is gone (B7), and so are the toasts (B6, init.client).
+	top centre (hidden ones collapse): "your slime is being stolen" and the Mystery Egg hatch. The top bar (lock block, Lock, Buy pad, Daily) is gone (B7), and so are the toasts (B6, init.client).
 	`layout(screen)` from init.client places everything. No boss, rare-drop or weekend notices any more.
 ]]
 
 local EggReveal = require(script.Parent.EggReveal)
-local EventSecretBanner = require(script.Parent.EventSecretBanner)
 local HudClusters = require(script.Parent.HudClusters)
 local ItemIconView = require(script.Parent.ItemIconView)
 local ItemIcons = require(script.Parent.ItemIcons)
@@ -39,8 +38,6 @@ local GREEN = Color3.fromRGB(126, 217, 87)
 local LILAC = Color3.fromRGB(169, 139, 240)
 local BADGE = Color3.fromRGB(43, 27, 77)
 local CHUNKY = Enum.Font.FredokaOne
--- The featured event Secret banner: a calm week-long line, smaller than the alerts above it.
-local FEATURED_BANNER = table.freeze({ textSize = 16 })
 
 -- A top-light to bottom-dark UIGradient for depth. A UIGradient multiplies the frame's own colour, so the
 -- two stops are grey brightness factors (1 = the colour as is), not colours.
@@ -232,7 +229,8 @@ function Hud.new(parent: Instance, ctx: any)
 		Parent = badge,
 	})
 
-	-- Bottom-right cluster (Layout.statusCluster): one pooled slot per HudClusters id, icon + timer under it.
+	-- Bottom-right cluster (Layout.statusCluster): one pooled slot per HudClusters id, icon + timer pill on its
+	-- bottom edge (Layout.statusMetrics; the pill is created after the icon, so it draws over it).
 	-- A slot is a button: hover / tap opens its tooltip.
 	local statusRoot = create("Frame", {
 		Name = "Status",
@@ -260,17 +258,23 @@ function Hud.new(parent: Instance, ctx: any)
 			Position = UDim2.fromScale(0.5, 0),
 			Parent = frame,
 		}, registry)
+		local sm = Layout.statusMetrics(false)
 		local label = Widgets.label({
 			Name = "Timer",
 			Font = Theme.Font,
-			TextSize = Layout.STATUS.labelSize,
-			TextStrokeTransparency = 0.2,
+			TextSize = sm.textSize,
+			TextStrokeTransparency = 0.6,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextTruncate = Enum.TextTruncate.None,
-			Size = UDim2.new(1, 0, 0, Layout.STATUS.label),
-			Position = UDim2.fromOffset(0, Layout.STATUS.icon + Layout.STATUS.labelGap),
+			BackgroundColor3 = Theme.Bg,
+			BackgroundTransparency = 0.12,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Size = UDim2.fromOffset(sm.slot, sm.pill),
+			Position = UDim2.new(0.5, 0, 0, sm.icon - sm.overlap),
 			Parent = frame,
 		})
+		create("UICorner", { CornerRadius = UDim.new(0.5, 0), Parent = label })
+		Widgets.stroke(Theme.BgLight, 1.5).Parent = label
 		statusSlots[id] = { frame = frame, icon = icon, label = label }
 	end
 
@@ -315,9 +319,6 @@ function Hud.new(parent: Instance, ctx: any)
 	local steal = banner(banners, "StealAlert", Theme.Bad, 1)
 	local egg = banner(banners, "EggReveal", Color3.fromRGB(190, 120, 30), 6)
 	egg.TextSize = 17
-	local featured = banner(banners, "FeaturedSecret", Theme.BgLight, 8)
-	featured.TextSize = FEATURED_BANNER.textSize
-	featured.TextColor3 = Theme.Gold
 	-- The Mystery Egg's item icon sits at the banner's left edge (the text drops its egg emoji).
 	local EGG_ICON = 28
 	local eggPad = egg:FindFirstChildOfClass("UIPadding") :: UIPadding
@@ -345,6 +346,7 @@ function Hud.new(parent: Instance, ctx: any)
 	local current: any = nil
 	local screen: Layout.Screen? = nil
 	local compact = false
+	local statusTight = false -- the status slots use Layout.STATUS_TIGHT sizes
 	local statusSig = "" -- signature of the status slots last drawn
 	local tipId: string? = nil -- the status slot whose tooltip is open
 	local slotRects: { [string]: Layout.Rect } = {} -- shown slots' boxes in design px, for the tap-elsewhere test
@@ -511,15 +513,14 @@ function Hud.new(parent: Instance, ctx: any)
 		local sx, sy, sw, sh = whole(s.status.rect)
 		statusRoot.Position = UDim2.fromOffset(sx, sy)
 		statusRoot.Size = UDim2.fromOffset(sw, sh)
-		local S = Layout.STATUS
-		local ST = Layout.STATUS_TIGHT
-		local iconSize = if tight then ST.icon elseif compact then S.cicon else S.icon
+		local sm = Layout.statusMetrics(compact, tight)
+		statusTight = tight
 		for _, entry in statusSlots do
-			entry.frame.Size = UDim2.fromOffset(Layout.statusSlotWidth(compact, tight), s.status.rect.h)
-			entry.icon.instance.Size = UDim2.fromOffset(iconSize, iconSize)
-			entry.label.TextSize = if tight then ST.labelSize elseif compact then S.clabelSize else S.labelSize
-			entry.label.Size = UDim2.new(1, 0, 0, if tight then ST.label elseif compact then S.clabel else S.label)
-			entry.label.Position = UDim2.fromOffset(0, iconSize + S.labelGap)
+			entry.frame.Size = UDim2.fromOffset(sm.slot, Layout.statusHeight(compact, tight))
+			entry.icon.instance.Size = UDim2.fromOffset(sm.icon, sm.icon)
+			entry.label.TextSize = sm.textSize
+			entry.label.Size = UDim2.fromOffset(Layout.statusPillWidth(entry.label.Text, compact, tight), sm.pill)
+			entry.label.Position = UDim2.new(0.5, 0, 0, sm.icon - sm.overlap)
 		end
 		statusSig = "" -- re-pack the slots in the new boxes
 		banners.Size = UDim2.fromOffset(math.round(s.banners.w), 0)
@@ -570,6 +571,7 @@ function Hud.new(parent: Instance, ctx: any)
 			modifierEnabled = ctx.Config.FEATURES.CycleModifier == true,
 			friends = current.friends,
 			friendsEnabled = ctx.Config.FEATURES.FriendBonus == true,
+			featuredSecret = current.featuredSecret,
 		}, now)
 		local parts = {}
 		for _, slot in slots do
@@ -597,6 +599,8 @@ function Hud.new(parent: Instance, ctx: any)
 					entry.icon.setActive(true)
 				end
 				entry.label.Text = slot.text
+				entry.label.Size =
+					UDim2.fromOffset(Layout.statusPillWidth(slot.text, compact, statusTight), entry.label.Size.Y.Offset)
 				entry.label.TextColor3 = if slot.kind == "soon" then Theme.Muted else Theme.Text
 				entry.frame:SetAttribute("Kind", slot.kind)
 				entry.frame.Visible = true
@@ -611,15 +615,9 @@ function Hud.new(parent: Instance, ctx: any)
 		if eggText then
 			egg.Text = string.gsub(eggText, "^🥚 ", "")
 		end
-
-		local featuredText = EventSecretBanner.banner(current.featuredSecret, now)
-		featured.Visible = featuredText ~= nil
-		if featuredText then
-			featured.Text = featuredText
-		end
 	end
 
-	-- Studio only (PC watcher shot): opens the tooltip of a status slot id ("Rain" | "Event" | "Friend"); nil closes.
+	-- Studio only (PC watcher shot): opens the tooltip of a status slot id ("Rain" | "Event" | "Friend" | "Secret"); nil closes.
 	function self.showTooltip(id: string?)
 		setTooltip(id)
 	end
