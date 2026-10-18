@@ -722,7 +722,10 @@ local Config = {
 	MERGE_MUTATION_CHANCE = 0.15,
 	MERGE_SIZE_BONUS = 0.1,
 	-- 3-slime merge (FEATURES.MergeVat3, TripleMerge)
-	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (never into Secret)
+	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (up to MERGE_JUMP_MAX_TIER)
+	MERGE_MAX_TIER = 6, -- a random merge result is at most Mythic (Secret only from recipes and finds)
+	MERGE_JUMP_MAX_TIER = 5, -- a +2 jump lands on Legendary at most
+	MERGE_ASSIST_CHANCE = 0.35, -- share of random merge results drawn from the species the player hasn't found
 	TRIPLE_MERGE_MUTATION_CHANCE = 0.3, -- chance of a fresh mutation on top of the inherited ones
 	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
 	AUTO_MERGE_MAX = 25, -- most groups of three one Request("AutoMerge") merges (MergePlan, CONTRACT.md §21.1)
