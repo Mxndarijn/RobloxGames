@@ -18,12 +18,20 @@ edges with coincident vertices, no gap shows). Numbers: `out/fountain_split.json
 | `fountain_split_dome` | red dome shoulder (z 31.3..35.9) + its goo collar | 1157 | PCD |
 | `fountain_split_eave` | eave underside and edge (z 30..31.3) | 291 | PCD |
 | `fountain_split_silo` | plinth, trim, staves, hoops below z 30 + the goo drips there | 1960 | PCD |
-| `fountain_split_slide` | trough, slide goo, supports | 2180 | none (decor) |
+| `fountain_split_slide` | trough, slide goo, supports | 2180 | PCD with `FEATURES.SlidePCD` (else decor) |
 
-Sum 6354 = the whole mesh. The slide stays the `SlideColliders` block (a precise slide would make the trough walkable, bug #9,
-COLLISION.md). Each piece's `offset` (MeshAssets) is its bbox centre minus the whole mesh's bbox centre in the slot's axes
+Sum 6354 = the whole mesh. `FEATURES.SlidePCD` makes the slide piece PCD too (walls, floor, posts, braces become real collision) and
+MeshSwap retires the `SlideColliders` Floor / Joint / Post / Brace boxes (270 -> 194); the `Fill` block, ridge roof, `Skirt` and
+`SlideTopWatch` stay because the PCD trough is a walkable ramp (bug #9). Probe numbers in COLLISION.md. Each piece's `offset` (MeshAssets) is its bbox centre minus the whole mesh's bbox centre in the slot's axes
 (Roblox X, Y, Z = kit x, kit z, -kit y, rotated with the slot; `IMPORT_YAW` turns only the mesh). Piece asset / mesh ids: `MeshAssets`,
 `shared/modeling-kit/uploaded.json`.
+
+Silo-hole report (v224, "pale gap between two staves above the red band"): not an open face. The pieces have exactly the whole mesh's 4120
+faces, the whole mesh is watertight and consistently wound, no corner normal is flipped, and the only open edges are the cut seams
+(z 30.0, 31.3, 35.9) whose vertices coincide. The pale patch is paint in the source: the strip above the door's cream lintel (z 10.0..15.1,
+4 door columns) had cream bottom corners and wood top corners (cream-to-wood gradient). `slime_fountain_split.py` repaints those 8 corners
+as wood in the silo piece (`fix_door_strip`); silo re-uploaded (asset 70694440108004 v2, meshId rbxassetid://103574045671668). The whole
+`slime_fountain` mesh (fallback when a piece fails to load) still has the pale strip.
 
 The cut pieces are open surfaces (no caps, to keep the face set identical). Whether Roblox's PCD handles them as well as it
 handles the closed whole mesh is exactly what the ball-drop test measures.
@@ -35,9 +43,10 @@ with `CollisionFidelity = PreciseConvexDecomposition`, `RenderFidelity = Precise
 and `IMPORT_YAW` as the single mesh, children of the slot named after the piece. Only then the stand-ins and the hand-placed
 `MeshCollider` parts (BasinCollider, TrimCollider, SiloCollider, TopCollider<i>) go non-colliding (they stay in the map, switched
 off, so the part count does not drop). If any piece fails (no id, CreateMeshPartAsync error) nothing is placed and the single mesh
-and the colliders behave exactly as without the flag. `SlideColliders` stay on in every case.
+and the colliders behave exactly as without the flag, every `SlideColliders` box included. With the pieces placed and `SlidePCD` on,
+`MeshSwap.apply` ends by retiring the boxes the slide mesh replaces; `Fill`, `JointFill`, the roof wedges and `Skirt` stay.
 
-`MeshAssets.COLLISION` now also lists the 4 PCD pieces (a global table); `tests/MeshCollision.spec` counts them only with the flag
+`MeshAssets.COLLISION` also lists the 4 PCD pieces and the slide (a global table; the slide is only asked for with `SlidePCD`); `tests/MeshCollision.spec` counts them only with the flag
 on. The pieces are not in `allMeshIds()` (no client preload with the flag off). Not in `FeatureOverride.FLAGS` on purpose: the
 pc-watcher sets those at boot for a whole run, which would flip the fountain for every shot; use the experiment shot below.
 
