@@ -272,6 +272,13 @@ local function merge3(world: World, session: Session, args: { any }, ctx: Contex
 	return result(MergeVat.merge3(world, session, { args[1], args[2], args[3] }))
 end
 
+local function autoMerge(world: World, session: Session, mask: number, ctx: Context): Result
+	if not feature(ctx, "MergeVat3") then
+		return fail("the 3-slime vat is off")
+	end
+	return result(MergeVat.autoMerge(world, session, mask))
+end
+
 local function equipPlotSkin(world: World, session: Session, id: string, ctx: Context): Result
 	if not feature(ctx, "PlotSkins") then
 		return fail("plot skins are off")
@@ -543,6 +550,10 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return result(MergeVat.merge(world, session, args[1], args[2]))
 	elseif action == "Merge3" then
 		return merge3(world, session, args, ctx)
+	elseif action == "AutoMerge" then
+		return autoMerge(world, session, args[1], ctx)
+	elseif action == "KeepSlime" then
+		return result(MergeVat.setKeep(session, args[1], args[2]))
 	elseif action == "Lock" then
 		return result(StealService.buyLock(world, session, now))
 	elseif action == "Rebirth" then
@@ -688,6 +699,9 @@ function Actions.triggerPlotPrompt(
 		local text = if owner then `This is {owner.name}'s base` else "Nobody owns this plot"
 		World.notify(world, userId, text, "info", nil)
 		return fail(text)
+	end
+	if kind == "Merge" and feature(ctx, "MergeVat3") then
+		return OK -- the owner's client opens the merge menu (CONTRACT.md §21.1)
 	end
 	local args = {}
 	if kind == "Merge" then

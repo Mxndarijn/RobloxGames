@@ -103,13 +103,13 @@ function WorldProps.worldShops(): boolean
 	return Config.FEATURES.WorldShops == true
 end
 
--- A shop stand builder: Props.shopStand renamed, its sign text set (no new parts).
+-- A shop stand builder: Props.shopStand in the look of `shopId` (Props.STAND_STYLES), renamed, its sign text set.
 local function standBuilder(Props: any, name: string, shopId: string?): (() -> Instance)?
 	if not (Props and Props.shopStand) then
 		return nil
 	end
 	return function()
-		local model = Props.shopStand()
+		local model = Props.shopStand(shopId)
 		model.Name = name
 		local text = shopId and model:FindFirstChild("Text", true)
 		if text and text:IsA("TextLabel") then

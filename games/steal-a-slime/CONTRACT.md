@@ -155,6 +155,9 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | Action | Args | Effect / `message` on failure |
 |---|---|---|
 | `"Merge"` | `slimeIdA: string, slimeIdB: string` | Merges two owned, not-busy slimes of the same tier. |
+| `"Merge3"` | `slimeIdA: string, slimeIdB: string, slimeIdC: string` | `FEATURES.MergeVat3`: three owned, not-busy, not-kept slimes of one rarity become one of a higher rarity (§21). |
+| `"AutoMerge"` | `tierMask: number` | `FEATURES.MergeVat3`: merges every group of three the server's `MergePlan` finds in the chosen rarities (bit `t - 1` = rarity `t`), lowest income first, never the favourite or kept slimes (§21.1). `"nothing to merge"` when there is none. |
+| `"KeepSlime"` | `slimeId: string, keep: boolean` | Marks an owned slime as kept (never merged) or clears it (§21.1). |
 | `"Lock"` | none | Buys or extends the plot lock. Costs `Economy.lockCost(income)`. |
 | `"Rebirth"` | none | Rebirths if `Progression.canRebirth`. |
 | `"Sell"` | `slimeId: string` | Sells for `Economy.sellPrice`. |

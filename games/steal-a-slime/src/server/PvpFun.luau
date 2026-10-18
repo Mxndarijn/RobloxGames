@@ -73,7 +73,8 @@ end
 -- An aim point within FUN_AIM_RANGE of the attacker and outside every safe zone.
 local function aimPoint(call: PvpService.UseCall): (Vec?, string?)
 	local aim: any = call.aim
-	if type(aim) ~= "userdata" and type(aim) ~= "table" then
+	-- a Roblox Vector3 is a native vector (type "vector"); Lune tests also pass plain tables
+	if type(aim) ~= "vector" and type(aim) ~= "table" and typeof(aim) ~= "Vector3" then
 		return nil, "no aim"
 	end
 	local point: Vec = { X = aim.X, Y = aim.Y, Z = aim.Z }
@@ -86,7 +87,7 @@ local function aimPoint(call: PvpService.UseCall): (Vec?, string?)
 	if PvpRules.inSafeZone(point) then
 		return nil, "safe zone"
 	end
-	return point, nil
+	return aim :: any, nil -- the Vector3 itself: clients only draw effects at a Vector3 position
 end
 
 local function balloon(call: PvpService.UseCall): (boolean, string?)

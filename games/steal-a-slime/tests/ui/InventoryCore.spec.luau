@@ -308,3 +308,128 @@ describe("InventoryCore consumables (S3 stacks)", function()
 		expect(Remotes.ACTIONS[InventoryCore.USE_ACTION] ~= nil).toBe(true)
 	end)
 end)
+
+describe("InventoryCore.pvpUseRequest", function()
+	local PvpRules = require("../../src/shared/PvpRules")
+	local ME = { X = 0, Y = 3, Z = 0 }
+
+	local function equipped(id: string, readyAt: number?): InventoryCore.Entry
+		local entries = InventoryCore.entries(input({
+			pvp = { owned = { [id] = true }, equipped = id, cooldowns = { [id] = readyAt } },
+		}))
+		return entries[2]
+	end
+	local function use(id: string, aim: any, readyAt: number?): (InventoryCore.PvpUse?, string?)
+		aim.players = aim.players or {}
+		return InventoryCore.pvpUseRequest(equipped(id, readyAt), PvpRules.tool(id), aim, Config, 100)
+	end
+	local function at(x: number): any
+		return { X = x, Y = 3, Z = 0 }
+	end
+
+	it("every PvP item has an aim mode and sends UsePvpItem, a real Request action", function()
+		for _, def in Config.PVP_TOOLS do
+			local mode = InventoryCore.pvpAimMode(def)
+			expect(InventoryCore.PVP_AIM[def.id] ~= nil or InventoryCore.PVP_AIM[def.line] ~= nil).toBe(true)
+			expect(type(mode)).toBe("string")
+		end
+		local args = Remotes.ACTIONS[InventoryCore.PVP_USE_ACTION].args
+		expect(table.concat(args, ",")).toBe("string,number?,vector3?")
+	end)
+
+	it("gloves target the clicked player in reach, else the nearest, thieves first", function()
+		local players = { { userId = 2, position = at(4) }, { userId = 3, position = at(8), carrying = true } }
+		local r = use("KnockGlove1", { self = ME, players = players }) :: InventoryCore.PvpUse
+		expect(r.action).toBe("UsePvpItem")
+		expect(r.itemId).toBe("KnockGlove1")
+		expect(r.target).toBe(3) -- the thief, though farther
+		expect(r.aim).toBe(nil)
+		expect((use("KnockGlove1", { self = ME, players = players, hovered = 2 }) :: any).target).toBe(2)
+		-- clicked but out of reach: the nearest in reach instead
+		local far = { { userId = 2, position = at(4) }, { userId = 4, position = at(50) } }
+		expect((use("KnockGlove1", { self = ME, players = far, hovered = 4 }) :: any).target).toBe(2)
+	end)
+
+	it("a glove with nobody in reach sends nothing and says why", function()
+		local r, why = use("KnockGlove2", { self = ME, players = { { userId = 2, position = at(30) } } })
+		expect(r).toBe(nil)
+		expect(why).toBe("No one in reach")
+		local _, noSelf = use("KnockGlove2", { players = {} })
+		expect(noSelf).toBe("Can't find you")
+	end)
+
+	it("a cooling-down item sends nothing and shows the seconds left", function()
+		local r, why = use("GooBlaster1", { self = ME, point = at(10) }, 102.3)
+		expect(r).toBe(nil)
+		expect(why).toBe("Ready in 3s")
+	end)
+
+	it("blasters shoot at the clicked player, else the clicked point, else far along the ray", function()
+		local players = { { userId = 2, position = at(20) } }
+		local hit = use("GooBlaster2", { self = ME, players = players, hovered = 2, point = at(19) }) :: any
+		expect(hit.aim.X).toBe(20)
+		expect(hit.target).toBe(nil)
+		expect((use("GooBlaster2", { self = ME, point = at(15) }) :: any).aim.X).toBe(15)
+		expect((use("GooBlaster2", { self = ME, far = at(200) }) :: any).aim.X).toBe(200)
+		local none, why = use("GooBlaster2", { self = ME })
+		expect(none).toBe(nil)
+		expect(why).toBe("Aim somewhere")
+	end)
+
+	it("traps and the balloon need a clicked point", function()
+		expect((use("GooTrap1", { self = ME, point = at(6) }) :: any).aim.X).toBe(6)
+		expect((use("FunBalloon", { self = ME, point = at(6) }) :: any).aim.X).toBe(6)
+		local none, why = use("GooTrap1", { self = ME, far = at(200) })
+		expect(none).toBe(nil)
+		expect(why).toBe("Aim at the ground")
+	end)
+
+	it("bounce pad and fireworks use the point only within FUN_AIM_RANGE, else your own spot", function()
+		local near = at(Config.PVP.FUN_AIM_RANGE - 1)
+		local far = at(Config.PVP.FUN_AIM_RANGE + 1)
+		expect((use("FunBouncePad", { self = ME, point = near }) :: any).aim.X).toBe(near.X)
+		local own = use("FunFireworks", { self = ME, point = far }) :: any
+		expect(own.aim).toBe(nil)
+		expect(own.target).toBe(nil)
+	end)
+
+	it("self items send no target and no aim, whoever is around", function()
+		local players = { { userId = 2, position = at(2) } }
+		local r = use("FunConfetti", { self = ME, players = players, hovered = 2, point = at(2) }) :: any
+		expect(r.itemId).toBe("FunConfetti")
+		expect(r.target).toBe(nil)
+		expect(r.aim).toBe(nil)
+		expect((use("FunBubbles", { self = ME, players = players }) :: any).target).toBe(nil)
+	end)
+
+	it("the hat launcher targets only the clicked player, the squeaky hammer only a nearby thief", function()
+		local players = { { userId = 2, position = at(3) }, { userId = 3, position = at(5), carrying = true } }
+		expect((use("FunHatLauncher", { self = ME, players = players }) :: any).target).toBe(nil)
+		expect((use("FunHatLauncher", { self = ME, players = players, hovered = 2 }) :: any).target).toBe(2)
+		expect((use("FunSqueaky", { self = ME, players = players }) :: any).target).toBe(3)
+		local calm = { { userId = 2, position = at(3) } }
+		local squeak = use("FunSqueaky", { self = ME, players = calm }) :: any
+		expect(squeak ~= nil and squeak.target == nil).toBe(true)
+	end)
+
+	it("the dance bomb needs a player in reach", function()
+		local players = { { userId = 3, position = at(5), carrying = true } }
+		expect((use("FunDanceBomb", { self = ME, players = players }) :: any).target).toBe(3)
+		local none = use("FunDanceBomb", { self = ME, players = {} })
+		expect(none).toBe(nil)
+	end)
+
+	it("an item that is not the equipped PvP item sends nothing, silently", function()
+		local entries = InventoryCore.entries(input({ pvp = { owned = { KnockGlove1 = true }, cooldowns = {} } }))
+		local r, why =
+			InventoryCore.pvpUseRequest(entries[2], PvpRules.tool("KnockGlove1"), { players = {} }, Config, 100)
+		expect(r).toBe(nil)
+		expect(why).toBe(nil)
+		expect(InventoryCore.pvpUseRequest(entries[1], nil, { players = {} }, Config, 100)).toBe(nil)
+	end)
+
+	it("server refusals read as tips", function()
+		expect(InventoryCore.reasonText("too far away")).toBe("Too far away")
+		expect(InventoryCore.reasonText(nil)).toBe("Can't use that here")
+	end)
+end)
