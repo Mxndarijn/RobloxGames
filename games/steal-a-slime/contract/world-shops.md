@@ -7,7 +7,7 @@
 | Shop | Id | Name | Bought with (existing logic, reused) |
 |---|---|---|---|
 | ItemShop | `Lock` | "Lock base" | `Request("Lock")` (`StealService.buyLock`) |
-| ItemShop | `MysteryEgg` | "Mystery Egg" (`FEATURES.MysteryEgg`) | `BuyEgg` |
+| ItemShop | `MysteryEgg` | "Mystery Egg" | `BuyEgg` |
 | ItemShop | `SpeedCoil` | "Speed Coil" (once; **moved here from the Upgrade Shop 2026-10-18, Merijn: it is an item because it works while held**; still a `SpeedCoil` Tool in the Backpack, so it has a hotbar slot and shows in the inventory panel) | `BuySpeedCoil` |
 | ItemShop | `MutationSpray` / `LuckPotion` / `WeatherTotem` | "Mutation Spray" / "Luck Potion" / "Weather Totem" (`FEATURES.Consumables`, restocking; bought into a held stack, used later with `UseConsumable`, see restocking-shop.md) | `BuyConsumable(itemId, slimeId?)` (`slimeId` ignored) |
 | ItemShop | `Config.PVP_TOOLS` ids | per `PVP_TOOLS[id].name` (`FEATURES.PvP`, default off; listed only when on) | `BuyPvpItem(itemId)` |
