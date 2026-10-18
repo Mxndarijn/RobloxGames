@@ -2,6 +2,10 @@
 
 Monorepo for Merijn's Roblox games. Layout and rules: [README.md](README.md). How we build, test and release: [guides/README.md](guides/README.md). Each game and the modeling kit have their own `CLAUDE.md` with hard rules; read the one for the area you work in (`games/<name>/CLAUDE.md`, `shared/modeling-kit/CLAUDE.md`).
 
+## Shared code first
+
+Game-agnostic systems live in [shared/luau](shared/luau/README.md): inventory with a default, overridable hotbar UI, session-locked saves, save migrations, rate limiting, formatting, seeded random. Before building one of these in a game, use or extend the shared module. When a system you build in a game has nothing game-specific in it, move it to `shared/luau` following [its rules](shared/luau/CLAUDE.md) (pure core plus thin Roblox adapter, injected dependencies, overridable defaults, Lune specs).
+
 ## Get the task done: use every tool you have
 
 You may use whatever helps finish the task well, without asking first:
