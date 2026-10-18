@@ -168,7 +168,7 @@ local RARITIES: { Rarity } = {
 		tier = 5,
 		name = "Legendary",
 		income = 80,
-		weight = 1.45,
+		weight = 1.2,
 		color = { 255, 190, 40 },
 		carrySlow = 0.25,
 		escapeTime = 17,
@@ -177,17 +177,17 @@ local RARITIES: { Rarity } = {
 		tier = 6,
 		name = "Mythic",
 		income = 250,
-		weight = 0.35,
+		weight = 0.2,
 		color = { 255, 60, 90 },
 		carrySlow = 0.3,
 		escapeTime = 15,
 	},
 	{
-		-- Secret: ~1 in 1000 wild spawns (0.1 / (100 + 0.1)); announced to everyone.
+		-- Secret: ~1 in 2000 wild spawns (0.05 / 99.65); announced to everyone.
 		tier = 7,
 		name = "Secret",
 		income = 800,
-		weight = 0.1,
+		weight = 0.05,
 		color = { 20, 240, 220 },
 		carrySlow = 0.35,
 		escapeTime = 15,
@@ -644,6 +644,10 @@ local Config = {
 
 	MIN_SIZE = 0.8,
 	MAX_SIZE = 2.0,
+	-- Mythic / Secret presentation (contract/slime-odds.md): a generated slime of these tiers is at least this big
+	-- (Genome.sizeFloor) and lives this many WILD_LIFETIMEs in the wild (Spawner.wildLifetime). Other tiers: none / 1.
+	TIER_SIZE_FLOOR = table.freeze({ [6] = 1.2, [7] = 1.4 }) :: { [number]: number },
+	TIER_LIFETIME_MULT = table.freeze({ [6] = 1.5, [7] = 2 }) :: { [number]: number },
 
 	-- World
 	PLOT_COUNT = 8, -- one plot per player; server MaxPlayers = 8
@@ -757,7 +761,6 @@ local Config = {
 	SECRET_TIER = 7, -- Config.RARITIES tier of the Secret slimes (SlimeRoster.SECRET_TIER)
 	RARE_ANNOUNCE_TIER = 5, -- wild drops of this tier or higher: Notify everyone + RareSpawn attributes
 	FREE_DROP_CHANCE = 0.25, -- share of wild slimes that cost nothing to grab
-	FAMILY_DROP_CHANCE = 0.3, -- FEATURES.FountainTiers: share of fountain drops that are a family slime (from the families the server's fountain tier has opened)
 	WILD_PRICE_SECONDS = 20, -- other wild slimes cost this many seconds of their income
 
 	-- Slime Rain event

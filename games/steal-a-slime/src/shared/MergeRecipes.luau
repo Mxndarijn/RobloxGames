@@ -1,6 +1,6 @@
 --!strict
 --[[
-	MergeRecipes (pure, CONTRACT.md §32)
+	MergeRecipes (pure, CONTRACT.md §33)
 
 	Which slime three slimes of one tier make in the vat. Three spawning species of tier T that form a recipe
 	(a multiset: order doesn't matter, repeats count) give that recipe's hybrid of tier T + 1. Anything else

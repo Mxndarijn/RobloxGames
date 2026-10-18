@@ -3,12 +3,12 @@
 	FountainTiers (FEATURES.FountainTiers, CONTRACT.md §19)
 
 	The central fountain upgrades with rank. Rank thresholds are the Config.REBIRTH_TIERS entries that carry a
-	`family`: Slime Wrangler (3 rebirths) opens Orchard, Goo Tycoon (6) Frost, Slime Sovereign (10) Starlight.
+	`family`: Slime Wrangler (3 rebirths) opens Garden, Goo Tycoon (6) Frost & Sea, Slime Sovereign (10) Starlight.
 	  * Fountain tier (1..4): the best rank seen on this server since it started (World.fountainTier, never
 	    goes back down while the server lives). It drives the look (ring / crest / glow; client FountainTierFx
 	    reads the workspace attribute Constants.FOUNTAIN_TIER_ATTRIBUTE) and the drop pool.
-	  * Drop pool: Classic always, plus every family the tier has opened. FAMILY_DROP_CHANCE of drops are a
-	    family type (by weight), rolled with that family's luck on the tier >= 3 weights.
+	  * Drop pool: Classic (Meadow) always, plus every family the tier has opened. A drop rolls its rarity first,
+	    then a species uniformly over that tier's species in the pool (Genome.speciesPool, contract/slime-odds.md).
 	  * Catching a family slime needs your own rank to have opened it (a stolen one is already owned).
 	No income multiplier and no price: a family slime sells / earns like a Classic one of the same tier,
 	size and mutation (the economy is untouched). Species are SlimeRoster entries with `family` set, so a
@@ -17,14 +17,11 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
-local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 
 export type Family = {
 	id: string, -- permanent: SlimeRoster Entry.family and Config.REBIRTH_TIERS[i].family
 	name: string,
 	tier: number, -- fountain tier that opens it (2..4)
-	weight: number, -- pick weight among the open families
-	luck: number, -- multiplies the tier >= 3 rarity weights of its drops
 }
 
 export type Look = {
@@ -42,11 +39,13 @@ local FountainTiers = {}
 FountainTiers.MAX_TIER = 4
 
 local FAMILIES: { Family } = {
-	table.freeze({ id = "orchard", name = "Orchard", tier = 2, weight = 5, luck = 1.2 }),
-	table.freeze({ id = "frost", name = "Frost", tier = 3, weight = 3, luck = 1.4 }),
-	table.freeze({ id = "starlight", name = "Starlight", tier = 4, weight = 2, luck = 1.7 }),
+	table.freeze({ id = "orchard", name = "Garden", tier = 2 }),
+	table.freeze({ id = "frost", name = "Frost & Sea", tier = 3 }),
+	table.freeze({ id = "starlight", name = "Starlight", tier = 4 }),
 }
 FountainTiers.FAMILIES = table.freeze(FAMILIES)
+-- Display name of the Classic species (family nil).
+FountainTiers.CLASSIC_NAME = "Meadow"
 
 local function look(
 	name: string,
@@ -71,8 +70,8 @@ end
 -- Index = tier. Tier 1 is the fountain as shipped: nothing is added, the glow is left as built.
 FountainTiers.LOOKS = table.freeze({
 	look("Meadow Fountain", false, false, { 255, 255, 255 }, "SmoothPlastic", { 150, 255, 200 }, 1),
-	look("Orchard Fountain", true, false, { 205, 127, 50 }, "SmoothPlastic", { 255, 170, 90 }, 2),
-	look("Frost Fountain", true, true, { 205, 215, 230 }, "Foil", { 150, 220, 255 }, 3),
+	look("Garden Fountain", true, false, { 205, 127, 50 }, "SmoothPlastic", { 255, 170, 90 }, 2),
+	look("Frost & Sea Fountain", true, true, { 205, 215, 230 }, "Foil", { 150, 220, 255 }, 3),
 	look("Starlight Fountain", true, true, { 255, 200, 60 }, "Neon", { 255, 225, 120 }, 4),
 })
 
@@ -122,29 +121,6 @@ function FountainTiers.pool(tier: number): { string }
 	return out
 end
 
--- The family of the next drop from `pool`, or nil for a Classic drop. Draws nothing from `rng` for an
--- empty pool, so drop sequences with the feature off (or at tier 1) are exactly the v28 ones.
-function FountainTiers.roll(rng: Rng.Rng, pool: { string }): string?
-	if #pool == 0 then
-		return nil
-	end
-	if rng:float() >= Config.FAMILY_DROP_CHANCE then
-		return nil
-	end
-	local weights = {}
-	for i, id in pool do
-		local family = byId[id]
-		weights[i] = if family then family.weight else 0
-	end
-	return pool[Rng.weightedIndex(weights, rng:float())]
-end
-
--- Rarity-luck multiplier of a family's drops (1 for Classic / unknown).
-function FountainTiers.luck(id: string?): number
-	local family = FountainTiers.family(id)
-	return if family then family.luck else 1
-end
-
 -- Failure text when a player of `rebirths` can't catch a slime of family `id` (nil family = Classic), else nil.
 function FountainTiers.catchBlock(rebirths: number, id: string?): string?
 	local needed = if id then FountainTiers.rebirthsFor(id) else nil
@@ -161,7 +137,7 @@ function FountainTiers.catchBlock(rebirths: number, id: string?): string?
 	return `Reach {title} ({needed} rebirths) to catch {family.name} slimes`
 end
 
--- "Orchard slimes now drop" for a toast when the fountain reaches `tier` (nil at tier 1).
+-- "Garden slimes now drop" for a toast when the fountain reaches `tier` (nil at tier 1).
 function FountainTiers.upgradeText(tier: number): string?
 	if tier <= 1 then
 		return nil
@@ -184,7 +160,7 @@ function FountainTiers.best(rebirthsList: { number }): number
 	return best
 end
 
--- Rank text for Perks.tierText ("opens the Orchard slimes").
+-- Rank text for Perks.tierText ("opens the Garden slimes").
 function FountainTiers.rankText(familyId: string): string
 	local family = FountainTiers.family(familyId)
 	return if family then `opens the {family.name} slimes` else ""
