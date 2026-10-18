@@ -53,6 +53,17 @@ function Format.formatDuration(seconds: number): string
 	return string.format("%d:%02d", m, s)
 end
 
+-- A long countdown: "1d 4h" from a day, "5h 12m" from an hour, then formatDuration ("m:ss").
+function Format.formatTimeLeft(seconds: number): string
+	local total = math.ceil(seconds)
+	if total >= 86400 then
+		return string.format("%dd %dh", total // 86400, (total % 86400) // 3600)
+	elseif total >= 3600 then
+		return string.format("%dh %dm", total // 3600, (total % 3600) // 60)
+	end
+	return Format.formatDuration(total)
+end
+
 -- Client clock sync: offset = state.serverTime - os.clock() when a State arrives,
 -- then serverNow(offset, os.clock()) ticks locally between snapshots.
 function Format.clockOffset(serverTime: number, localClock: number): number
