@@ -629,6 +629,22 @@ local LANDING_GAP =
 local LANDING_SIZE: Vec = { 13.145, 3.145, 10.27 }
 local LANDING_BBOX = 38.678
 
+-- Collision for the curb (the box above is deeper than the stones: it stays decor). The real stones (kit
+-- ranch_landing_ring: r 34..35.7 from the plaza centre, 1.25 +- 0.08 tall, three per tile) get one thin invisible box
+-- per tile, LANDING_CURB_HEIGHT high: under a Humanoid's step height, so it is a step-over, never a wall. The wood
+-- stake at each tile's -X end (0.8 x 0.8, 2.6 tall, kit angle -9.4 deg) gets its own post. The ring is open over the
+-- seven gap tiles (the slide mouth and the lane start), so nobody is walled in. docs/COLLISION.md.
+WorldLayout.LANDING_CURB_HEIGHT = 1.3
+local LANDING_CURB_RADIUS = 34.85 -- centre line of the stones
+local LANDING_CURB_LENGTH = 12.0 -- chord of one tile's three stones (arc 12.4, seams)
+local LANDING_CURB_DEPTH = 1.7
+local LANDING_STAKE_ANGLE = -9.4 -- degrees from the tile's middle, kit x is world x
+-- Goo drain (kit ranch_goo_drain): the curb ring (r 4.4, 1.0 + 0.22 warning tiles) round the funnel is one disc, the
+-- warning post (0.7 x 4.2) and its plaque (2.6 x 1.9 x 0.35) on the fountain side. Kit +y is world -z; the curb
+-- centre is 0.475 past the box centre (ParadeLane.DRAIN z 52.5).
+WorldLayout.DRAIN_CURB_HEIGHT = 1.22
+local DRAIN_CENTRE_Z = 52.475
+
 -- Outer edge of the curb on +Z (r 43.8): the slide exit strip starts here.
 WorldLayout.LANDING_OUTER_RADIUS = LANDING_BBOX + LANDING_SIZE[3] / 2
 
@@ -882,6 +898,49 @@ local function visualMesh(node: WorldNode, mesh: string): WorldNode
 		node.transparency = 1
 	end
 	return meshSlot(node, mesh)
+end
+
+-- The landing ring's and the goo drain's solids (see the constants above): invisible Parts, built at runtime by
+-- server/PlazaColliders under Map.Plaza.PlazaColliders. Not part of build(): the 1400 layout parts budget is full.
+function WorldLayout.plazaColliders(): { WorldNode }
+	local c = WorldLayout.FOUNTAIN_CENTRE
+	local colliders: { WorldNode } = {}
+	local function solidBlock(name: string, size: Vec, pos: Vec, yaw: number)
+		local part = block(name, size, pos, STONE, "Slate", { 0, yaw, 0 })
+		part.transparency = 1
+		part.canQuery = false
+		part.canTouch = false
+		table.insert(colliders, part)
+	end
+	for i = 0, LANDING_TILES - 1 do
+		if LANDING_GAP[i] then
+			continue
+		end
+		local yaw = i * (360 / LANDING_TILES)
+		local a, h = math.rad(yaw), WorldLayout.LANDING_CURB_HEIGHT
+		solidBlock(
+			`LandingCurb{i + 1}`,
+			{ LANDING_CURB_LENGTH, h, LANDING_CURB_DEPTH },
+			{ c[1] + math.sin(a) * LANDING_CURB_RADIUS, c[2] + h / 2, c[3] + math.cos(a) * LANDING_CURB_RADIUS },
+			yaw
+		)
+		local s = a + math.rad(LANDING_STAKE_ANGLE)
+		solidBlock(
+			`LandingStake{i + 1}`,
+			{ 0.8, 2.6, 0.8 },
+			{ c[1] + math.sin(s) * LANDING_CURB_RADIUS, c[2] + 1.3, c[3] + math.cos(s) * LANDING_CURB_RADIUS },
+			math.deg(s)
+		)
+	end
+	local drainH = WorldLayout.DRAIN_CURB_HEIGHT
+	local curb = disc("DrainCurb", drainH, 8.8, { c[1], c[2] + drainH / 2, c[3] + DRAIN_CENTRE_Z }, STONE, "Slate")
+	curb.transparency = 1
+	curb.canQuery = false
+	curb.canTouch = false
+	table.insert(colliders, curb)
+	solidBlock("DrainPost", { 0.7, 4.2, 0.7 }, { c[1], c[2] + 2.1, c[3] + DRAIN_CENTRE_Z - 5 }, 0)
+	solidBlock("DrainPlaque", { 2.6, 1.9, 0.35 }, { c[1], c[2] + 3.5, c[3] + DRAIN_CENTRE_Z - 4.5 }, 0)
+	return colliders
 end
 
 local function plaza(): WorldNode

@@ -304,28 +304,32 @@ for i = 1, 3 do
 	)
 end
 -- Plaza ground features
-mesh(
-	"landing_ring",
-	"ranch_landing_ring",
-	"jolt",
-	11,
-	"off",
-	PLAZA,
-	"mesh off, slot off",
-	"curb stones round the wild-slime drop zone: players and slimes cross it (the slot box is deeper than the stones and must not leave an invisible wall, WorldLayout). DECISION for Merijn: a solid ring would wall players off the slime landing area",
-	{ walk = false }
-)
-mesh(
-	"goo_drain",
-	"ranch_goo_drain",
-	"jolt",
-	1,
-	"off",
-	PLAZA,
-	"mesh off, slot off",
-	"the goo drain at the slide exit: a floor feature the slimes and the splash use. DECISION for Merijn (a Box would close the slide exit)",
-	{ walk = false }
-)
+-- The mesh stays decor (the slot box is deeper than the stones, a Box/Hull would be a 3-stud wall round the fountain):
+-- the solids are thin invisible parts under the stones (Map.Plaza.PlazaColliders), found through `also`.
+add({
+	kind = "landing_ring",
+	mesh = "ranch_landing_ring",
+	owner = "jolt",
+	count = 11,
+	collision = "colliders",
+	now = "mesh off; 22 colliders on (LandingCurb1..18 + LandingStake1..18 minus the 7 gap tiles)",
+	reason = "curb stones round the wild-slime drop zone, solid since Merijn's no-walk-through decision: one 12 x 1.3 x 1.7 box per tile under the stones (a step-over, 1.3 < 1.5) plus the 0.8 x 2.6 stake; the ring stays open over the 7 gap tiles at the slide mouth and lane start; the mesh bbox is 10 studs deep and 3.1 tall, so Box would be an invisible wall",
+	find = { under = PLAZA, mesh = "ranch_landing_ring" },
+	also = { under = PLAZA, names = { "^LandingCurb%d+$", "^LandingStake%d+$" }, parts = true },
+	was = "off",
+})
+add({
+	kind = "goo_drain",
+	mesh = "ranch_goo_drain",
+	owner = "jolt",
+	count = 1,
+	collision = "colliders",
+	now = "mesh off; 3 colliders on (DrainCurb, DrainPost, DrainPlaque)",
+	reason = "the goo drain at the slide exit, solid since Merijn's no-walk-through decision: a 1.22-tall disc over the curb ring and funnel (a step-over) plus the warning post and plaque on the fountain side; the slime lane ends outside the curb and slimes never collide, so the slide exit and the lane stay open; a Box would add 1.8-stud corners and close the exit",
+	find = { under = PLAZA, mesh = "ranch_goo_drain" },
+	also = { under = PLAZA, names = { "^DrainCurb$", "^DrainPost$", "^DrainPlaque$" }, parts = true },
+	was = "off",
+})
 -- B11 floor (visuals/shared/FloorLayout): the two baked boardwalk meshes, one slot each at the hub
 mesh(
 	"floor_deck",
