@@ -406,18 +406,21 @@ end
 -- down to the ribbon's width. The lane's own strips() stop where the taper starts. The taper bends from EXIT's heading
 -- onto the radial line through the nearest GAP between two warning tiles; the POUR is a ribbon of that same width, a few
 -- slightly tilted slabs riding that gap line over the curb (it only laps the tiles' edges) and into the basin, ending
--- just above the goo. Visual only, drawn in every mode. The uploaded lane mesh ends at EXIT at the full lane width, so
--- with the mesh the taper strips only show from EXIT on (a re-exported mesh ending TAPER_START studs earlier fixes that).
+-- just above the goo. Visual only, drawn in every mode. The lane mesh (models/slime_lane.py) ends with a square cut exactly where
+-- the taper starts (the `cut` in out/slime_lane_pivot.json's input), and the first taper strip laps it by TAPER_MESH_OVERLAP.
 ParadeLane.GRATE_RADIUS = 1.3 -- brass grate hoop (ranch_goo_drain Hoop r 1.15 + a hair)
 ParadeLane.RIM_TILE_GAP_DEGREES = 30 -- the 12 warning tiles (ranch_goo_drain Warn0-11) meet every 30 degrees, a 4 degree gap
 ParadeLane.POUR_START_RADIUS = 5.6 -- the tapered lane ends just outside the curb (r 4.4) and the pour begins here
 ParadeLane.POUR_END_RADIUS = 2.0 -- the pour ends this far from the drain's centre: inside the rim, outside the grate
 ParadeLane.POUR_CROWN_Y = 1.34 -- over the curb (1.0) and its warning tiles (1.22)
 ParadeLane.POUR_DIP_Y = 0.74 -- the pour's end: a hair above the funnel's goo there (r 2: 0.67)
-ParadeLane.POUR_HALF_WIDTH = 1.0 -- the ribbon is 2 studs wide, the taper's end width
+ParadeLane.POUR_HALF_WIDTH = 0.75 -- the ribbon is 1.5 studs wide, the taper's end width: it laps only the inner ~0.6 stud of the two tiles beside the gap
 ParadeLane.TAPER_START = 8.5 -- studs before EXIT where the lane starts to narrow
-ParadeLane.TAPER_STEP = 0.3 -- studs per tapered strip: each is a fixed width, so the width steps down by under 0.1 per side
-ParadeLane.POUR_STEPS = 20
+ParadeLane.TAPER_STEP = 0.25 -- studs per tapered strip: each is a fixed width, so the width steps down by under 0.1 per side
+ParadeLane.TAPER_STRIP_STEP = 0.01 -- the taper's every-other-strip raise (strips() uses STRIP_STEP): small, so the overlaps do not read as slats
+ParadeLane.TAPER_OVERLAP = 0.06 -- reach of a taper strip past its mitre
+ParadeLane.TAPER_MESH_OVERLAP = 0.25 -- the first taper strip reaches this far back over the lane mesh's end
+ParadeLane.POUR_STEPS = 12
 ParadeLane.POUR_THICKNESS = 0.25
 ParadeLane.POUR_OVERLAP = 0.04
 
@@ -532,15 +535,18 @@ local function laneExtension(): { any }
 				return 0
 			end
 			local cos = math.clamp(ux[i] * ux[j] + uz[i] * uz[j], -1, 1)
-			return hw * math.tan(math.acos(cos) / 2) + ParadeLane.JOIN_OVERLAP
+			return hw * math.tan(math.acos(cos) / 2) + ParadeLane.TAPER_OVERLAP
 		end
 		-- the raised strips (odd i) get their own crown radius so every strip meets the ground at exactly hw: a shared
 		-- radius would make them a few hundredths wider at the edge and the silhouette saw-toothed
-		local top = ParadeLane.LANE_Y + (if i % 2 == 1 then ParadeLane.STRIP_STEP else 0)
+		local top = ParadeLane.LANE_Y + (if i % 2 == 1 then ParadeLane.TAPER_STRIP_STEP else 0)
 		local radius = (hw ^ 2 + top ^ 2) / (2 * top)
 		local ea, eb = reach(i - 1), reach(i + 1)
+		if i == 1 then
+			ea = math.max(ea, ParadeLane.TAPER_MESH_OVERLAP) -- laps the lane mesh's square cut: no seam gap
+		end
 		if i == count then
-			eb = ParadeLane.JOIN_OVERLAP -- the pour's first slab lies over this end
+			eb = ParadeLane.TAPER_OVERLAP -- the pour's first slab lies over this end
 		end
 		local shift = (eb - ea) / 2
 		local a, b = pts[i], pts[i + 1]

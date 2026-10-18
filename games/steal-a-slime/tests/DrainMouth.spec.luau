@@ -38,7 +38,7 @@ describe("ParadeLane drain mouth", function()
 			expect(first.shape).toBe(nil) -- Cylinder, like ParadeLane.strips()
 			expect(first.size[1] > 0).toBe(true)
 			local top = first.cf[2] + first.size[2] / 2
-			expect(math.abs(top - (ParadeLane.LANE_Y + ParadeLane.STRIP_STEP)) < 1e-6).toBe(true)
+			expect(math.abs(top - (ParadeLane.LANE_Y + ParadeLane.TAPER_STRIP_STEP)) < 1e-6).toBe(true)
 		end
 	)
 	it("narrows monotonically from the lane width to the ribbon width over ~8-12 studs, in small even steps", function()
@@ -54,7 +54,7 @@ describe("ParadeLane drain mouth", function()
 		end
 		expect(arc >= 8 and arc <= 13).toBe(true)
 		expect(math.abs(lane[#lane][3] - ParadeLane.POUR_HALF_WIDTH) < 1e-9).toBe(true)
-		expect(ParadeLane.POUR_HALF_WIDTH * 2 >= 1.8 and ParadeLane.POUR_HALF_WIDTH * 2 <= 2.2).toBe(true)
+		expect(ParadeLane.POUR_HALF_WIDTH * 2 >= 1.4 and ParadeLane.POUR_HALF_WIDTH * 2 <= 2.2).toBe(true)
 		-- the second differences of the width are small too (a curve, not a staircase)
 		for i = 3, #lane do
 			local k = (lane[i - 2][3] - lane[i - 1][3]) - (lane[i - 1][3] - lane[i][3])
@@ -87,7 +87,7 @@ describe("ParadeLane drain mouth", function()
 		for _, p in pour do
 			expect(math.abs(math.deg(math.atan2(p[3] - D.z, p[1] - D.x)) - deg) < 1e-6).toBe(true)
 			-- at the tile ring (r 3.45-4.25) the ribbon laps at most a tile's edge: under a tile (arc ~1.7 studs)
-			expect(p[4] <= 1.0 + 1e-9).toBe(true)
+			expect(p[4] <= 0.75 + 1e-9).toBe(true)
 		end
 		expect(TILE_GAP > 0).toBe(true)
 	end)

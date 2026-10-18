@@ -18,9 +18,9 @@
 	  (drops, landings) pass through. Glossy goo in the slide's water colour
 	  (ParadeLane.COLOR). Idempotent.
 	  Plaza.DrainMouth (always strips): ParadeLane.drainStrips(), the lane's own Cylinder strips narrowing over its last
-	  ParadeLane.TAPER_START studs (the stand-in strips stop where this starts) to the pour's 2 stud width, then a ribbon of tilted
-	  slabs of that width through the gap between two rim tiles into the basin. The uploaded lane mesh ends at EXIT at the
-	  full width, so it hides the first part of the taper (see ParadeLane).
+	  ParadeLane.TAPER_START studs (the stand-in strips stop where this starts) to the pour's 1.5 stud width, then a ribbon of tilted
+	  slabs of that width through the gap between two rim tiles into the basin. The uploaded lane mesh ends with a square cut
+	  where the taper starts, and the first taper strip laps it (see ParadeLane).
 
 	ParadeView.splash(effects): Instance?
 	  The goo splash at the drain when a lane slime leaves (World event

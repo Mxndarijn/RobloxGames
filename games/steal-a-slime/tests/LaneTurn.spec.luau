@@ -82,7 +82,8 @@ describe("slime lane has no sharp turn (probe bug04_lane_smooth)", function()
 	it("the mesh centreline stays within 0.3 studs of the walker route", function()
 		local info = serde.decode("json", fs.readFile("../../shared/modeling-kit/out/slime_lane_pivot.json"))
 		local C = info.centre
-		for s = -ParadeLane.LEAD_LENGTH, ParadeLane.LENGTH, 0.5 do
+		-- the mesh stops where the drain taper starts (<= TAPER_START + 1.2 before EXIT, see LaneMesh.spec)
+		for s = -ParadeLane.LEAD_LENGTH, ParadeLane.LENGTH - ParadeLane.TAPER_START - 1.2, 0.5 do
 			local x, z = ParadeLane.pointAt(s)
 			local best = math.huge
 			for i = 1, #C - 1 do
