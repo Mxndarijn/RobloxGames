@@ -157,8 +157,10 @@ local function reportProfiler(profiler: Profiler.Profiler, frameStart: number)
 	if line then
 		print(line)
 		workspace:SetAttribute("ProfilerSummary", line) -- read-only dump for admins / the Studio Properties panel
-		for _, w in warnings or {} do
-			warn(w)
+		if warnings then
+			for _, w in warnings do
+				warn(w)
+			end
 		end
 	end
 end
