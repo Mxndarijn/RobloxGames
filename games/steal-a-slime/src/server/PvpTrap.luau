@@ -10,7 +10,8 @@
 	A thief carrying the OWNER's slime who enters the radius is frozen for the tier's `control` seconds
 	(PvpRules.applyControl: <= 2 s, then 3 s immunity; an immune thief passes and the trap stays armed). The
 	freeze is WalkSpeed 0 through the normal TargetWalkSpeed enforcement (WorldView asks `frozen`). No damage.
-	Placing beyond the tier's `traps` count is refused. Traps go on owner leave (PvpService.onCleanup).
+	Placing beyond the tier's `traps` count, or farther than Config.PVP.TRAP_PLACE_RANGE from the owner's
+	server-side position, is refused. Traps go on owner leave (PvpService.onCleanup).
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -52,7 +53,7 @@ local function handler(call: PvpService.UseCall): (boolean, string?)
 	local list = traps[session] or {}
 	local check = call.ctx.pointOnOwnPlot -- nil = nothing can be placed
 	local onPlot = check ~= nil and PvpTrapRules.validAim(call.aim) and check(session, call.aim :: any)
-	local ok, reason = PvpTrapRules.canPlace(call.tool, #list, call.aim, onPlot, true) -- PvpService.use only calls a handler with the flag on
+	local ok, reason = PvpTrapRules.canPlace(call.tool, #list, call.position, call.aim, onPlot, true) -- PvpService.use only calls a handler with the flag on
 	if not ok then
 		return false, reason
 	end

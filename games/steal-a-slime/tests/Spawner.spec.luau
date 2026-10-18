@@ -151,7 +151,7 @@ describe("Spawner Slime Rain", function()
 	end)
 end)
 
-describe("Boss Slime (FEATURES.BossSlime)", function()
+describe("Boss Slime", function()
 	it("spawns a free, max-size Epic+ mutated boss that ignores the cap", function()
 		local world = ServerFixtures.world()
 		for _ = 1, Config.MAX_WILD_SLIMES do

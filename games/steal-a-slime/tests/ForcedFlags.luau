@@ -20,8 +20,6 @@ ForcedFlags.off = {
 	["WeeklyEvents vs live admin events (#130)"] = "AdminEvents",
 	["FeatureOverride > leaves the shipped defaults unchanged under Lune (install is a no-op)"] = "the shipped defaults (all-off mode forces every flag false)",
 	["Merge and Appraise stacking"] = "MutationStacking",
-	["Boss Slime (FEATURES.BossSlime)"] = "BossSlime",
-	["Player-facing copy"] = "BossSlime",
 	["MysteryEgg save format"] = "MutationStacking",
 	["Consumables schedule"] = "Consumables",
 	["Consumable stacks"] = "Consumables",
@@ -46,7 +44,6 @@ ForcedFlags.off = {
 	["Snapshot.build > has every Types.State field with the right values"] = "MutationStacking (the Dex total)",
 	["Genome.rollMutation with weather"] = "Weather",
 	["Weather flag"] = "Weather",
-	["SnowGround flag > is on and WeatherFx checks it before SnowGround.start"] = "SnowGround",
 	["Weather mutation config"] = "Weather",
 	["RainMagnet: target and roll"] = "MutationStacking",
 	["RainMagnet: deposit hook > a full mutation stack is left alone, a fusing combo still fits"] = "MutationStacking",
@@ -57,9 +54,6 @@ ForcedFlags.off = {
 	["welcome-back on join > carries the offline cash and the slimes that grew"] = "GrowingSlimes",
 	["Habitats table"] = "Habitats",
 	["LiveBoot (server Script in the fake runtime) > with FEATURES.Habitats on, every pad carries a known habitat id and the server builds no looks"] = "Habitats",
-	["MinimapData (FEATURES.Minimap)"] = "Minimap",
-	["Perks.petPassive"] = "PetPassives",
-	["applied server-side"] = "PetPassives",
 	["Revenge config"] = "Revenge",
 	["Revenge window"] = "Revenge",
 	["Revenge lock cost"] = "Revenge",
@@ -70,6 +64,7 @@ ForcedFlags.off = {
 	["SlideColliders specs"] = "SlideCollision",
 	["SlideColliders in the live server"] = "SlideCollision",
 	["FountainSplit data > is behind FEATURES.FountainSplit, default on"] = "FountainSplit",
+	["FountainSplit data > the slide is PCD behind FEATURES.SlidePCD, default on"] = "SlidePCD",
 }
 
 -- Spec modules that assert a flag at load time.

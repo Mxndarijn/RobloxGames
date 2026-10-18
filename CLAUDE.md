@@ -16,6 +16,20 @@ You may use whatever helps finish the task well, without asking first:
 - **Browser** (built-in browser pane) for Roblox docs, the Creator Dashboard and other references.
 - **Scripts and CLIs**: Rojo, Lune, selene, stylua, Python, ImageMagick, ffmpeg, `gh`.
 
+## Studio runs hidden: never interrupt Merijn
+
+Merijn works on this PC while you run. Whenever you need Studio and none is already open, start it on a hidden desktop, never a normal window:
+
+```sh
+python tools/pipeline/pc-watcher/studio_hidden.py open <place.rbxl>   # build the place with Rojo first
+python tools/pipeline/pc-watcher/studio_hidden.py close               # when you are done
+```
+
+- Don't launch `RobloxStudioBeta.exe` directly, and don't bring any window to the front.
+- Don't use `user_mouse_input` or `user_keyboard_input`: they move the real cursor and press real keys. Drive the game with `execute_luau` instead.
+- Close only the Studio you started, with `close` (no save dialog). Never close or touch a Studio Merijn opened.
+- Ask Merijn only when you truly can't continue without that input; otherwise pick a sensible default and report it at the end.
+
 Verify in the real game where you can (Studio playtest, screenshots, the tests in each game's `CLAUDE.md`), and report honestly what you could not check.
 
 The hard rules still win over "get it done": no production DataStores, no real publish or upload without Merijn's OK, no secrets printed or committed (see the per-area `CLAUDE.md` files).

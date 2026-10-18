@@ -1,5 +1,5 @@
 --!strict
--- Weather-driven mutations (FEATURES.WeatherMutations, save v5): Rain -> Wet, Snow -> Frozen,
+-- Weather-driven mutations (save v5): Rain -> Wet, Snow -> Frozen,
 -- Starfall -> Galaxy, and the v4 -> v5 save migration. Fixtures are v3 / v4 saves as serialized then.
 local Config = require("../src/shared/Config")
 local Genome = require("../src/shared/Genome")
@@ -22,7 +22,6 @@ local FAVOURED = { Rain = "Wet", Snow = "Frozen", Starfall = "Galaxy" }
 
 describe("Weather mutation config", function()
 	it("maps Rain/Snow/Starfall to real mutations with a bonus, Clear to none", function()
-		expect(Config.FEATURES.WeatherMutations).toBe(true)
 		for id, m in FAVOURED do
 			expect(Config.WEATHER[id].mutation).toBe(m)
 			expect(Config.WEATHER[id].chanceBonus > 0).toBe(true)

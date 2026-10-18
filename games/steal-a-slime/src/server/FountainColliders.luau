@@ -37,6 +37,22 @@ local function place(part: BasePart, kind: string, folder: Folder)
 	part.Parent = folder
 end
 
+-- FEATURES.SlidePCD: MeshSwap placed the slide as a PCD collision mesh, so the boxes it replaces (SlideColliders.PCD_RETIRED:
+-- Floor / Joint / Post / Brace) are destroyed. Returns how many. Called only once the mesh exists; a failed mesh keeps every box.
+function FountainColliders.retirePcd(): number
+	local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
+	local volcano = map and map:FindFirstChild("Volcano")
+	local folder = volcano and volcano:FindFirstChild(SlideColliders.FOLDER)
+	local n = 0
+	for _, part in if folder then folder:GetChildren() else {} do
+		if SlideColliders.PCD_RETIRED[part:GetAttribute(FountainColliders.ATTRIBUTE)] then
+			part:Destroy()
+			n += 1
+		end
+	end
+	return n
+end
+
 function FountainColliders.place(): Folder?
 	local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
 	local volcano = map and map:FindFirstChild("Volcano")
