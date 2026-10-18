@@ -50,6 +50,7 @@ Fired to the buyer only. `State` is re-sent after every purchase as today.
 
 ## 27.6 Feature flag `FEATURES.WorldShops` (default `true` for server / world)
 - On: both stands exist, `OpenShop` / `CloseShop` / `ShopBuy` / `ShopEvent` work, range is validated. The existing buy actions called **without** an open matching shop answer `"open the <Item|Upgrade> Shop first"` (`code "NotOpen"`) **only once** `FEATURES.WorldShopsStrict` (on since HUD v2, the HUD Shop button is gone).
+- **Plot pad exception:** the owner-only plot prompts (`LockPrompt` "Lock", `BuyPadPrompt` "BuyPad", `MergePrompt` "Merge") are not shop purchases and never hit the strict gate: `Actions.handlePlotPad` checks the character is within `PlotPadGuard.range()` (`Config.PLOT_PAD_PROMPT_DISTANCE` + `PLOT_PAD_RANGE_SLACK`) of THAT prompt's own part (`ctx.plotPadAccess`), else `"walk closer to your lock pad"`. Under strict, `Request("Lock")` (HUD Lock button) is also allowed while standing at the owner's own LockButton; anywhere else it needs the Item Shop as before. `ShopBuy` is unchanged.
 - Off: no stands, `OpenShop` / `ShopBuy` answer `"the shops are closed"` (`FlagOff`), no `ShopEvent`, no attribute; the single `ShopStand` and HUD Shop panel behave exactly as before.
 - Old HUD **Shop** button: removed in HUD v2; `WorldShopsStrict` is on. The `ShopStand` / `ShopPrompt` prompt still opens the combined panel.
 

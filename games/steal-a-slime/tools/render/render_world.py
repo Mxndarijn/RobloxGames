@@ -35,6 +35,7 @@ ap.add_argument("--engine", default="cycles")
 ap.add_argument("--suffix", default="")
 ap.add_argument("--blend", default="")
 ap.add_argument("--rename", default="")  # view=file pairs, e.g. 08=border_terrain_along: the file name (no .png, no suffix) of a view
+ap.add_argument("--seed", type=int, default=0)  # Cycles seed (default 0 = Blender's own); a different seed gives the noise floor of an A/B diff
 ap.add_argument("--skin", default="")  # plot skin id of the scene (export --skin): names view 10 plot_skin_<id>.png
 args = ap.parse_args(argv)
 
@@ -574,6 +575,7 @@ if args.engine == "cycles":
         pass
     print("cycles device", cy.device)
     cy.samples = args.samples
+    cy.seed = args.seed
     cy.use_adaptive_sampling = True
     cy.adaptive_threshold = 0.02
     cy.use_denoising = True
@@ -712,6 +714,10 @@ VIEWS = {
     "37_floor_aerial": lambda: look((0, 175, -150), (0, 0, 70), lens=28),
     # sand yard dressing (YardProps): low across the outer yard band behind and between the plots (yard bearings: x = sin, z = cos)
     "38_yard_band": lambda: look(yard_polar(102, 212, 8), yard_polar(152, 198, 3), lens=22),
+    # FEATURES.FountainSplit (export --fountain-split): the tower from the plaza at player height (5 studs), and from high
+    # up, three-quarter; render the same two views of scene.json and scene_fountain_split.json and diff the PNGs
+    "31_fountain_eye": lambda: look((-38, 5, -52), (0, 22, 0), lens=24),
+    "32_fountain_aerial": lambda: look((-62, 88, -78), (-4, 18, -6), lens=28),
 }
 
 

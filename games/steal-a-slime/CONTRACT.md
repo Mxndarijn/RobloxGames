@@ -398,3 +398,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §25 | [server-profiler.md](contract/server-profiler.md) | v23: server performance profiler (`FEATURES.ServerProfiler`, default `false`) |
 | §26 | [pvp.md](contract/pvp.md) | v22: PvP fairness core (`FEATURES.PvP`, default `false`) |
 | §27 | [world-shops.md](contract/world-shops.md) | World shops: Item Shop and Upgrade Shop (`FEATURES.WorldShops`, default `true`; server + world implemented 2026-10-17, client UI pending) |
+| §28 | [fountain-split.md](contract/fountain-split.md) | Fountain split: PCD tower pieces (`FEATURES.FountainSplit`, default `false`, draft for Merijn's collision choice) |

@@ -238,7 +238,7 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT", "FOV"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": set(), "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "slide_top_drop": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "mesh_stand": {"MESHES"}, "revenge_set": {"PLOT", "WAIT"},
+        "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": {"SPLIT"}, "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "slide_top_drop": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "mesh_stand": {"MESHES"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
         "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "tooltip": {"ID"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "world_shop": {"SHOP"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "pvp_feel": {"PART"}, "bat_hit": {"PART"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"}, "bug08_lock_enter": {"PART"}, "bug11_char_walk": {"PART"},
     }
@@ -318,12 +318,21 @@ def t_files():
           all(x in open(os.path.join(HERE, "luau", "perf_server.luau"), encoding="utf-8").read()
               for x in ("runtime_parts = runtimeParts", "parade_lane", "slide_colliders", "runtime_parts_transient"))
           and watcher.DEFAULTS["runtime_part_budget"] == 3000)
-    fwalks = [s for s in shots if s.get("fountain_walk")]
+    fwalks = [s for s in shots if s.get("fountain_walk") and not s.get("fountain_split")]
     check("a fountain_walk shot proves nobody sinks into the fountain top (C10)",
           len(fwalks) == 1 and fwalks[0].get("target") == "FountainMesh", fwalks)
+    fsplit = [s for s in shots if s.get("fountain_split")]
+    check("one fountain_split shot runs the HARD grid + the 4-variant drop on the FountainSplit pieces, advisory (draft)",
+          len(fsplit) == 1 and fsplit[0].get("fountain_walk") is True and fsplit[0].get("target") == "FountainMesh"
+          and fsplit[0].get("bug_probe", {}).get("luau") == "bug11_collision_fidelity" and fsplit[0]["bug_probe"].get("extra") is True, fsplit)
+    check("fountain_split is advisory: not part of the fountain_walk_failed verdict, and watcher passes split to the luau",
+          'not r.get("fountain_split") and not r["fountain_walk"].get("ok")' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read()
+          and "split=split" in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read())
     fw = open(os.path.join(HERE, "luau", "fountain_walk.luau"), encoding="utf-8").read()
     check("fountain_walk is dense (polar grid, resting + rolling, character-sized balls, no self-collision)",
           all(x in fw for x in ("ri * 0.5", "AssemblyLinearVelocity", "{ 2, 4 }", "CollisionGroupSetCollidable", "TopCollider")), None)
+    check("fountain_walk SPLIT builds the PCD pieces from MeshAssets, switches only the MeshCollider parts off and restores them",
+          all(x in fw for x in ("%%SPLIT%%", "FOUNTAIN_SPLIT", "CreateMeshPartAsync", "IMPORT_YAW", "MeshCollider", "offColliders", "CanCollide = true")), None)
     check("a failing fountain_walk fails the run (hard), not just warns",
           '"fountain_walk_failed": True}' in open(os.path.join(HERE, "watcher.py"), encoding="utf-8").read())
     dfx = [s for s in shots if s.get("despawn_fx")]
@@ -917,7 +926,7 @@ def t_bugs():
               "bug09_slide_stand": ("cannot_enter", "cannot_climb", "cannot_stand_on", "slimes_still_ride", "bottom_reachable"),
               "bug10_fountain_statues": ("pushed_out_or_on_top", "jump_no_snag"),
               "bug11_char_walk": ("stile_over", "barn_loft", "fence_line_walk", "ranch_fence_stile", "ranch_barn_loft"),
-              "bug11_collision_fidelity": ("CreateMeshPartAsync", "PreciseConvexDecomposition", "Hull", "parts_saved", "colliders", "mesh_pcd", "mesh_hull")}
+              "bug11_collision_fidelity": ("CreateMeshPartAsync", "PreciseConvexDecomposition", "Hull", "parts_saved", "colliders", "mesh_pcd", "mesh_hull", "split_pcd", "FOUNTAIN_SPLIT")}
     for name, words in expect.items():
         src = open(os.path.join(HERE, "luau", name + ".luau"), encoding="utf-8").read()
         check("%s has its checks (%s...)" % (name, words[0]), all(w in src for w in words), [w for w in words if w not in src])

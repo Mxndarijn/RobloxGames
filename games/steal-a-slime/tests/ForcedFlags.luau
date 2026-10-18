@@ -12,6 +12,7 @@ ForcedFlags.off = {
 	["world shops config > WorldShops is on by default"] = "WorldShops",
 	["world shops config > WorldShopsStrict is on by default"] = "WorldShopsStrict",
 	["world shop stands in the booted server"] = "WorldShops",
+	["plot pad prompts on the real world (WorldShopsStrict on)"] = "WorldShopsStrict",
 	["AdminEvents gate"] = "AdminEvents",
 	["PvpRules config > is on by default (Merijn 2026-10-17: PvP ships on)"] = "PvP",
 	["AdminEvents parse + validate"] = "AdminEvents",
@@ -71,6 +72,7 @@ ForcedFlags.off = {
 	["SlideColliders in the live server"] = "SlideCollision",
 	["WelcomeBack.report"] = "WelcomeBack",
 	["welcome-back on join"] = "WelcomeBack",
+	["FountainSplit data > is behind FEATURES.FountainSplit, default on"] = "FountainSplit",
 }
 
 -- Spec modules that assert a flag at load time.
@@ -112,6 +114,21 @@ ForcedFlags.needOff = {
 	["TripleMerge: server action > is refused with the flag off and merges with it on"] = "MergeVat3",
 	["WeeklyEvents config > is off by default and every rotation entry is a real, plain mutation"] = "WeeklyEvents",
 	["driver choice > ships with the uploaded animations off"] = "SlimeAnimations",
+	-- FEATURES.FountainSplit on: the fountain is 5 PCD pieces and the hand-placed colliders stay off (tests/FountainSplit.spec);
+	-- these pin the single Mesh child and the colliders turned on by it
+	["fountain collider, mesh loading > stays that way while the fountain's CreateMeshPartAsync is in flight"] = "FountainSplit",
+	["fountain collider, mesh loaded > swaps the mesh in as visual-only"] = "FountainSplit",
+	["fountain collider, mesh loaded > switches all three colliders on and the stand-ins off in the same step"] = "FountainSplit",
+	["fountain collider, mesh loaded > keeps the plinth and silo colliders on the kit profile"] = "FountainSplit",
+	["fountain collider, mesh loaded > leaves no invisible step around the base (only the base and top colliders collide unseen)"] = "FountainSplit",
+	["fountain collider, mesh loaded > setMeshCollision is the one switch: off restores the stand-ins, on again matches MeshSwap"] = "FountainSplit",
+	["fountain bevel collider, real numbers > loaded: plinth r13.1 h0-1.5, bevel r12.3 h1.5-2.4, wall r11.2 h1.5-31.3"] = "FountainSplit",
+	["fountain bevel collider, real numbers > loaded: the collision silhouette follows the profile (no sink between h1.5 and h2.4)"] = "FountainSplit",
+	["fountain top collider, profile > stacks invisible upright cylinders on the silo axis from the eave to the basin floor"] = "FountainSplit",
+	["fountain top collider, no holes > loaded: the collision covers the dome, never under the profile, never far over it"] = "FountainSplit",
+	["fountain top collider, no holes > loaded: every radius from the axis to the eave edge has a collider top above the wall"] = "FountainSplit",
+	["fountain top collider, no holes > states: loaded and loading are never both off or both on"] = "FountainSplit",
+	["MeshSwap uniform scale (live boot, every upload answered) > swaps every uploaded MeshAsset slot"] = "FountainSplit",
 }
 
 return ForcedFlags

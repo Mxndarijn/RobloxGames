@@ -63,7 +63,15 @@ describe("MeshSwap collision in the live server", function()
 		expect(asked[emerge]).toBe(roblox.Enum.CollisionFidelity.Box)
 		local solid = {}
 		local want = 0
+		-- the FEATURES.FountainSplit pieces are only created with the flag on (tests/FountainSplit.spec)
+		local splitPieces = {}
+		for _, piece in MeshAssets.FOUNTAIN_SPLIT do
+			splitPieces[piece] = true
+		end
 		for name, fidelity in MeshAssets.COLLISION do
+			if splitPieces[name] and not Config.FEATURES.FountainSplit then
+				continue
+			end
 			solid[MeshAssets.meshId(name)] = (roblox.Enum.CollisionFidelity :: any)[fidelity]
 			want += 1
 		end
@@ -155,8 +163,8 @@ local DECOR = {
 	phoenix_gate = "the entrance: a Box would close the 14-stud opening, the GatePost stand-ins keep the posts (PCD would be the mesh route)",
 	phoenix_pad_crate = "the pad's own Pad part is the gameplay surface; the stand is its decor",
 	phoenix_top_earners_board = "WorldProps Model: its invisible Collider keeps the Model's bounds",
-	ranch_landing_ring = "ground-level tiles wilds land on: a Hull would be a 3-stud step wall round the fountain",
-	ranch_goo_drain = "flat drain at the slide exit that wilds land on",
+	ranch_landing_ring = "mesh stays decor (bbox 10 deep x 3.1 tall: Box/Hull = invisible wall); the stones are solid through thin Plaza colliders (LandingCurb/LandingStake, PropCollision landing_ring)",
+	ranch_goo_drain = "mesh stays decor; solid through the DrainCurb disc + post + plaque colliders (PropCollision goo_drain), so the slide exit stays open",
 	ranch_horseshoe_pit = "1.8 stud flat sand pit, walk over it",
 	ranch_lantern_post = "not placed (RanchProps.INTENTIONALLY_UNPLACED); its arm hangs overhead",
 	ranch_pumpkin_patch = "low foliage patch, walk through",
@@ -232,8 +240,12 @@ describe("bug #11 part 1: real mesh collision", function()
 	end)
 	it("has Hull for blobs, Box for boxes, and PCD only on the marked walkable shape (barn loft)", function()
 		local pcd = {}
+		local split = {} -- the FEATURES.FountainSplit tower pieces, flag off by default: tests/FountainSplit.spec
+		for _, piece in MeshAssets.FOUNTAIN_SPLIT do
+			split[piece] = true
+		end
 		for name, fidelity in MeshAssets.COLLISION do
-			if fidelity == "PreciseConvexDecomposition" then
+			if fidelity == "PreciseConvexDecomposition" and not split[name] then
 				table.insert(pcd, name)
 			end
 		end

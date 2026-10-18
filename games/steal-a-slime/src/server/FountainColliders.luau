@@ -11,7 +11,7 @@
 	(MeshCollider, switched by MeshSwap) they stay on in every state: the
 	fountain mesh's slide and the Chute stand-in follow the same
 	WorldLayout.SLIDE_PATH, so the trough is in the same place either way.
-	Wild slimes ride it anchored with CanCollide off (FountainRide), so the
+	The kit's ground posts and staves brackets get a box each (SlideColliders.supports). Wild slimes ride it anchored with CanCollide off (FountainRide), so the
 	colliders never stop them. Idempotent (an existing folder is kept).
 ]]
 
@@ -24,7 +24,7 @@ local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
 local FountainColliders = {}
 
-FountainColliders.ATTRIBUTE = "FountainCollider" -- = the spec kind (Floor / Fill / Skirt / Joint)
+FountainColliders.ATTRIBUTE = "FountainCollider" -- = the spec kind (Floor / Fill / Skirt / Joint / Post / Brace)
 
 local function place(part: BasePart, kind: string, folder: Folder)
 	part.Anchored = true
@@ -49,7 +49,13 @@ function FountainColliders.place(): Folder?
 	end
 	local folder = Instance.new("Folder")
 	folder.Name = SlideColliders.FOLDER
-	for _, spec in SlideColliders.build(WorldLayout.SLIDE_PATH, Config.FEATURES.SlideCollision) do
+	for _, spec in
+		SlideColliders.all(
+			WorldLayout.SLIDE_PATH,
+			WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES),
+			Config.FEATURES.SlideCollision
+		)
+	do
 		local c, f, s = spec.centre, spec.forward, spec.size
 		local centre = Vector3.new(c[1], c[2], c[3])
 		local frame = CFrame.lookAt(centre, centre + Vector3.new(f[1], f[2], f[3]))

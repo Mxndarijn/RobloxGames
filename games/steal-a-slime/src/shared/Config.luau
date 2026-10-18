@@ -815,6 +815,7 @@ local Config = {
 		StealAlerts = true, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
 		WelcomeBack = true, -- v20 welcome-back card on join after WELCOME_BACK_MIN_SECONDS away (WelcomeBack, CONTRACT.md §19): offline cash, slimes grown, streak + goal; false = no State field, no card
 		WeeklyEvents = true, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
+		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)
 		FountainTiers = true, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
 		MergeVat3 = true, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, keeping every mutation (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Consumables = true, -- restocking Shop section: mutation spray, luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
@@ -1118,6 +1119,11 @@ local Config = {
 	-- World shops (FEATURES.WorldShops, CONTRACT.md §27): studs from the character's HumanoidRootPart to the stand's Counter,
 	-- checked on the server on OpenShop and on every purchase; out of range closes the shop.
 	SHOP_RANGE = 14,
+
+	-- Owner-only plot pad prompts (LockPrompt / BuyPadPrompt / MergePrompt): the prompts' MaxActivationDistance, and the extra
+	-- studs the server allows on top of it (lag, the prompt part's own size) when it checks the owner against THAT prompt part.
+	PLOT_PAD_PROMPT_DISTANCE = 10,
+	PLOT_PAD_RANGE_SLACK = 4,
 
 	-- Friend income bonus (FEATURES.FriendBonus, CONTRACT.md §11)
 	FRIEND_BONUS_PER_FRIEND = 0.1, -- +10% income per friend in the same server
