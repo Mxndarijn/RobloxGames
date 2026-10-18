@@ -20,9 +20,9 @@ edges with coincident vertices, no gap shows). Numbers: `out/fountain_split.json
 | `fountain_split_silo` | plinth, trim, staves, hoops below z 30 + the goo drips there | 1960 | PCD |
 | `fountain_split_slide` | trough, slide goo, supports | 2180 | PCD with `FEATURES.SlidePCD` (else decor) |
 
-Sum 6354 = the whole mesh. `FEATURES.SlidePCD` makes the slide piece PCD too (walls, floor, posts, braces become real collision) and
-MeshSwap retires the `SlideColliders` Floor / Joint / Post / Brace boxes (270 -> 194); the `Fill` block, ridge roof, `Skirt` and
-`SlideTopWatch` stay because the PCD trough is a walkable ramp (bug #9). Probe numbers in COLLISION.md. Each piece's `offset` (MeshAssets) is its bbox centre minus the whole mesh's bbox centre in the slot's axes
+Sum 6354 = the whole mesh. `FEATURES.SlidePCD` makes the slide piece PCD too (walls, posts, braces become real collision) and
+MeshSwap retires the `SlideColliders` Post / Brace boxes (145 -> 132); the floor slabs (the walk surface), rails and `Skirt` stay (the
+slide is walkable, COLLISION.md). Each piece's `offset` (MeshAssets) is its bbox centre minus the whole mesh's bbox centre in the slot's axes
 (Roblox X, Y, Z = kit x, kit z, -kit y, rotated with the slot; `IMPORT_YAW` turns only the mesh). Piece asset / mesh ids: `MeshAssets`,
 `shared/modeling-kit/uploaded.json`.
 

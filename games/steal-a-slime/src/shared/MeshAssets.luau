@@ -541,8 +541,8 @@ MeshAssets.COLLISION = table.freeze({
 	fountain_split_dome = "PreciseConvexDecomposition",
 	fountain_split_eave = "PreciseConvexDecomposition",
 	fountain_split_silo = "PreciseConvexDecomposition",
-	-- FEATURES.SlidePCD: the slide with real collision (trough walls, floor, posts, braces). MeshSwap only asks for it with the
-	-- flag on; the trough stays a walkable ramp, so the SlideColliders Fill block / ridge roof / Skirt stay (docs/COLLISION.md).
+	-- FEATURES.SlidePCD: the slide with real collision (trough walls, posts, braces). MeshSwap only asks for it with the flag on;
+	-- the SlideColliders floor slabs, rails and Skirt stay (the walk surface, docs/COLLISION.md).
 	fountain_split_slide = "PreciseConvexDecomposition",
 })
 

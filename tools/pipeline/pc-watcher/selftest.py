@@ -238,7 +238,7 @@ def t_files():
         "client_stats": {"SECONDS"}, "shot_find": {"TARGET", "INDEX"}, "geometry": {"CHECKS"},
         "panel_visible": {"PANEL", "SHOW"}, "ui_isolate": {"KEEP", "HIDE"},
         "shot_camera": {"EYE", "AT", "FOV"}, "menu_measure": {"PANEL"}, "slime_fill": {"TARGET"},
-        "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": {"SPLIT"}, "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "slide_top_drop": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "mesh_stand": {"MESHES"}, "revenge_set": {"PLOT", "WAIT"},
+        "phone_perf": {"SECONDS"}, "perf_stress": {"TARGET"}, "perf_quality": {"LEVEL"}, "perf_terrain_attr": set(), "perf_terrain_clear": set(), "perf_meshclone": {"TARGET"}, "perf_unique": {"COUNT"}, "perf_mem": set(), "perf_clean": set(), "perf_window": {"SECONDS", "CENTRE", "RADIUS", "HEIGHT"}, "perf_pose": {"ANGLE", "ON", "CENTRE", "RADIUS", "HEIGHT"}, "perf_phone_emulate": {"DEVICE"}, "fountain_walk": {"SPLIT"}, "habitat_set": {"PATH", "HABITAT", "WAIT", "LEAVE"}, "weather_set": {"WEATHER", "WAIT", "COVER"}, "slime_motion": {"PATH", "KIND", "WAIT"}, "slime_seat": {"PATH"}, "slide_walk": set(), "ring_slimes": set(), "despawn_fx": {"PATH", "WAIT"}, "wild_pace": {"SECONDS"}, "mesh_stand": {"MESHES"}, "revenge_set": {"PLOT", "WAIT"},
         "hold_fill": {"NAME", "ON"}, "seat_clear": set(), "shot_aim": {"EYE", "AT"}, "growth_wait": {"PATH", "WAIT"},
         "slime_anim": {"PATH", "ANIM", "ID", "WAIT"}, "pad_seat": {"PATH"}, "rebirth_slime": {"STATE"}, "tooltip": {"ID"}, "friend_bonus": {"COUNT"}, "plot_slime": {"STATE"}, "admin_event": {"EVENT"}, "panel_scroll": {"PANEL", "TARGET"}, "pcw_attr": {"NAME", "VALUE"}, "pcw_clock": {"TIME"}, "weekend": {"ON"}, "rain": {"ON"}, "steal_alert": {"ON"}, "fx_streaks": {"MAX"}, "plot_skin": {"SKIN"}, "fountain_tier": {"TIER"}, "merge_vat": {"ON"}, "rain_magnet": {"ON"}, "world_shop": {"SHOP"}, "arrow_step": {"STEP"}, "dex_rows": {"COUNT"}, "panel_scroll_row": {"PANEL", "ROW"}, "daily_popup": {"ON"}, "welcome_back": {"ON"}, "flag_set": {"NAMES", "ON"}, "pvp_feel": {"PART"}, "bat_hit": {"PART"}, "profiler_readout": {"WAIT"}, "audio_panel": {"ON"}, "bug_text_scan": {"PATTERN", "SHOW"}, "bug08_lock_enter": {"PART"}, "bug11_char_walk": {"PART"},
     }
@@ -278,10 +278,12 @@ def t_files():
     check("a slide_walk shot proves nobody falls through the slide, top to bottom",
           len(walks) == 1 and walks[0].get("target") == "slide" and walks[0].get("todo") == "B6", walks)
     sw = open(os.path.join(HERE, "luau", "slide_walk.luau"), encoding="utf-8").read()
-    check("slide_walk checks the solid slide block: enter / climb (HARD) and stand / ride / reach (soft)",
-          all(x in sw for x in ("cannot_enter", "cannot_climb", "cannot_stand_on", "slimes_still_ride", "bottom_reachable", "SlideFill", "soft_failed", "violations")), None)
-    check("slide_walk's HARD ok is only cannot_enter and cannot_climb",
-          'name == "cannot_enter" or name == "cannot_climb"' in sw and "ok = #violations == 0" in sw)
+    check("slide_walk checks the walkable slide: climb / side entry (HARD) and stay / ride / reach (soft)",
+          all(x in sw for x in ("can_climb", "cannot_enter_from_side", "stays_on", "slimes_still_ride", "bottom_reachable",
+                                "^SlideFloor(%d+)$", "^SlideRail(%d+)[LR]$", "soft_failed", "violations")), None)
+    check("slide_walk no longer looks for the retired slide fill / roof", not any(x in sw for x in ("SlideFill", "WedgePart", "SlideTop")))
+    check("slide_walk's HARD ok is only can_climb and cannot_enter_from_side",
+          'name == "can_climb" or name == "cannot_enter_from_side"' in sw and "ok = #violations == 0" in sw)
     def shared_body(path):
         t = open(os.path.join(HERE, "luau", path), encoding="utf-8").read()
         return t.split("-- ==== shared slide probe body", 1)[1].split("-- ==== end of shared body ====")[0]
@@ -923,7 +925,7 @@ def t_bugs():
           [s["id"] for s in probes if not any(watcher.shot_selected_by(s, r) for r in other)])
     expect = {"bug08_lock_enter": ("owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "leaves_freely", "thrown_slime_not_stuck", "enforceLocks", "LoadCharacter",
                             "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze", "corner_jump", "LockBarrier", "junctions"),
-              "bug09_slide_stand": ("cannot_enter", "cannot_climb", "cannot_stand_on", "slimes_still_ride", "bottom_reachable"),
+              "bug09_slide_stand": ("can_climb", "cannot_enter_from_side", "stays_on", "slimes_still_ride", "bottom_reachable"),
               "bug10_fountain_statues": ("pushed_out_or_on_top", "jump_no_snag"),
               "bug11_char_walk": ("stile_over", "barn_loft", "fence_line_walk", "ranch_fence_stile", "ranch_barn_loft"),
               "bug11_collision_fidelity": ("CreateMeshPartAsync", "PreciseConvexDecomposition", "Hull", "parts_saved", "colliders", "mesh_pcd", "mesh_hull", "split_pcd", "FOUNTAIN_SPLIT")}

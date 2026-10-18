@@ -1,5 +1,6 @@
 --!nocheck
--- The fountain slide blocks a walking player everywhere (Merijn, LIVE v215: "players still pass through the slide").
+-- Nobody walks through the fountain slide from the side (Merijn, LIVE v215: "players still pass through the slide"); walking
+-- ON it, along the ramp, is tests/SlideColliders.spec.
 -- Runs in BOTH runtimes (tools/pipeline/stage-specs stages it into the cloud test place; string requires to ../src and
 -- ./ only, no @lune). The mesh points are re-derived from the kit source numbers (no FBX read).
 --
@@ -9,12 +10,12 @@
 --
 -- Lune and cloud: pure geometry on SlideColliders.all (what server/FountainColliders places).
 --   * a stand-in character box (2 wide, 5 tall, 1 deep) walks at 16 studs/s in 1/60 s steps into the slide from BOTH
---     sides at several points of every segment (low stretch, middle, top), at the slide's own height and, where the
---     block reaches the ground, at the ground; and into every Post / Brace from four sides. The first blocked step is
---     outside the trough, never at the ride line.
+--     sides at several points of every segment (low stretch, middle, top), at the slide's own height (the rails stop it)
+--     and, where the slab reaches the ground, at the ground; and into every Post / Brace from four sides. The first
+--     blocked step is outside the trough, never at the ride line.
 --   * every visible post / bracket point (re-derived from the kit source numbers) is inside a collider.
---   * the ride path (WorldLayout.SLIDE_PATH, the rider's centre) is in no Post / Brace; the existing floor / fill / joint
---     blocks do contain it, which is only allowed because riders are anchored and non-colliding (checked in the cloud half
+--   * the ride path (WorldLayout.SLIDE_PATH, the rider's centre) is in no Post / Brace / Rail; it runs along the floor /
+--     joint slabs' top, which is only allowed because riders are anchored and non-colliding (checked in the cloud half
 --     on a real ModelFactory slime; tests/SlideColliders.spec "riding slimes are anchored and never collide" in Lune).
 --
 -- Cloud only: FountainColliders.place() builds the real Parts (Map.Volcano.SlideColliders); Blockcast the stand-in at the
@@ -38,7 +39,7 @@ local CHAR_HALF = { 1, 2.5, 0.5 } -- 2 wide, 5 tall, 1 deep (depth along the wal
 local GROUND_ROOT = 3 -- R15 root at hip height
 local PATH = WorldLayout.SLIDE_PATH
 local KIT = WorldLayout.slidePath(WorldLayout.KIT_SLIDE_SAMPLES)
-local SPECS = SlideColliders.all(PATH, KIT, true) -- the roof wedges sit above FILL, over a walker's head: not listed
+local SPECS = SlideColliders.all(PATH, KIT, true)
 
 --------------------------------------------------------------------------------------------------------------------
 -- Boxes
@@ -175,14 +176,14 @@ end
 --------------------------------------------------------------------------------------------------------------------
 
 describe("the slide blocks a walking player (stand-in box at 16 studs/s)", function()
-	it("is built from more than the solid block: the supports are in the live specs", function()
+	it("is built from more than the ramp: the supports are in the live specs", function()
 		local kinds = {}
 		for _, spec in SPECS do
 			kinds[spec.kind] = (kinds[spec.kind] or 0) + 1
 		end
 		expect((kinds.Post or 0) > 0).toBe(true)
 		expect((kinds.Brace or 0) > 0).toBe(true)
-		expect(kinds.Fill > 0 and kinds.Floor > 0 and kinds.Skirt > 0 and kinds.Joint > 0).toBe(true)
+		expect(kinds.Rail > 0 and kinds.Floor > 0 and kinds.Skirt > 0 and kinds.Joint > 0).toBe(true)
 	end)
 
 	for _, mode in { "at the slide's own height", "at the ground" } do
@@ -374,19 +375,19 @@ describe("the ride path is clear of the new colliders", function()
 		return out
 	end
 
-	it("passes through no Post and no Brace, only through the floor / fill / joint block it rides in", function()
+	it("passes through no Post, Brace or Rail, only along the floor / joint slabs it rides on", function()
 		local inside = {}
 		for _, p in ridePoints() do
 			local e = anyBox(p, 0)
 			if e then
 				inside[e.spec.kind] = true
-				expect(e.spec.kind == "Post" or e.spec.kind == "Brace").toBe(false)
+				expect(e.spec.kind == "Post" or e.spec.kind == "Brace" or e.spec.kind == "Rail").toBe(false)
 			end
 		end
-		-- the ride line is inside the slide block by design: that holds because riders never collide (FountainRide)
-		expect(inside.Floor or inside.Fill or inside.Joint).toBe(true)
+		-- the ride line touches the walk slabs by design: that holds because riders never collide (FountainRide)
+		expect(inside.Floor or inside.Joint).toBe(true)
 		for kind in inside do
-			expect(kind == "Floor" or kind == "Fill" or kind == "Joint" or kind == "Skirt").toBe(true)
+			expect(kind == "Floor" or kind == "Joint" or kind == "Skirt").toBe(true)
 		end
 	end)
 end)
@@ -484,20 +485,14 @@ if IN_ROBLOX then
 
 		it("holds every spec as a solid anchored Part in the default collision group", function()
 			local f = get()
-			local fills = 0
-			for _, spec in SPECS do
-				if spec.kind == "Fill" then
-					fills += 1
-				end
-			end
 			-- the live flag decides; with SlideCollision on this is the full set
 			if Config.FEATURES.SlideCollision then
-				expect(#f:GetChildren()).toBe(#SPECS + 2 * fills)
+				expect(#f:GetChildren()).toBe(#SPECS)
 			end
 			for _, part in f:GetChildren() do
 				expect(part.Anchored and part.CanCollide).toBe(true)
 				expect(part.CollisionGroup).toBe("Default")
-				-- only MeshPart / UnionOperation have CollisionFidelity; the slide colliders are plain Parts and WedgeParts
+				-- only MeshPart / UnionOperation have CollisionFidelity; the slide colliders are plain Parts
 				if part:IsA("MeshPart") or part:IsA("UnionOperation") then
 					expect(part.CollisionFidelity ~= Enum.CollisionFidelity.PreciseConvexDecomposition).toBe(true)
 				end
@@ -731,7 +726,7 @@ if IN_ROBLOX then
 			end)
 
 			it(
-				"the trough floor is a gentle ramp (why the Fill block stays): no ride segment is steeper than 20 degrees",
+				"the trough floor is a gentle ramp a Humanoid walks: no ride segment is steeper than 20 degrees",
 				function()
 					for i = 2, #KIT - 1 do
 						local a, b = KIT[i - 1], KIT[i + 1]
