@@ -103,6 +103,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
   - Autosave every `AUTOSAVE_INTERVAL`, plus on leave and on `BindToClose` (waits up to 25 s for pending saves).
   - Load retries 5 times with `SessionLock.backoff`. In a live server a failed load kicks the player; in Studio they get an unsaved fresh profile.
   - A save retries 3 times. If another server took the session over, this server stops saving that player.
+  - A stored record this build can't safely overwrite (`SaveData.check`: `"newer"` = version above `SAVE_VERSION`, e.g. during a rolling update; `"unreadable"` = not a save it recognises) loads best-effort but the session is **read-only**: saves only refresh / release the lock and write the stored data back untouched, the leaderboard store is not written, the server `warn`s once and the player gets a `"bad"` Notify that progress won't save.
   - Set the workspace attribute `DataStoreMode = "Memory"` to use an in-memory store (no DataStore calls; the leaderboard then ranks this server's players only). Never set it in the published place: `default.project.json` sets no Workspace attributes, and the publish step checks the built file.
   - **Failures are visible:** the server sets the workspace attribute `DataStoreStatus` (`Constants.DATASTORE_STATUS_ATTRIBUTE`) and `warn`s `[Server] DataStoreStatus = ...` on every change to a bad state. Values: `"Ok"` (real DataStore, last load/save succeeded), `"Memory"` (`DataStoreMode = "Memory"`), `"Unavailable"` (`GetDataStore` failed at start; the server fell back to memory and **nothing saves**), `"Error"` (the last load or save hit a DataStore error after retries; goes back to `"Ok"` on the next success).
 - **Leaderboard:**
@@ -163,7 +164,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"BuyEgg"` | none | Buys a Mystery Egg with cash only (`Shared.MysteryEgg.price` = `MYSTERY_EGG_PRICE` x rebirth multiplier). It hatches a slime rolled from `MYSTERY_EGG_DROPS` onto the lowest free pad via `PlayerData.addSlime`; `State.egg.hatched` carries it for the reveal banner. Failures: `"not enough cash"`, `"plot full"` (nothing charged). Save format unchanged. Events: server-only `Server/MysteryEgg.spawnForEvent(world, userId, count, now)` hatches free eggs, no remote. |
 | `"Drop"` | none | Drops what you're carrying. Wild → falls to the ground; stolen → escapes home. |
 | `"Appraise"` | `slimeId: string, kind: "mutation" \| "size"` | Pays `Appraise.cost` (`APPRAISE_COST_FRACTION` = 30% of `Economy.sellPrice`) to reroll that owned, not-busy slime's mutation or size. Only `mutation` / `size` change. Success returns `{ ok = true, appraisal = Types.Appraisal }` (before / after, cost). Fails with `"not your slime"`, `"not enough cash"`, `"slime is busy"`. `SlimeView.appraiseCost` is the current price. |
-| `"Sync"` | none | The server re-sends `State` right away. The UI calls it once on start. |
+| `"Sync"` | none | The server re-sends `State` right away. The UI calls it once on start. At most one per `STATE_MIN_INTERVAL` (0.25 s); a faster one answers `"too fast"`. |
 
 `Notify` sound names: `"Alarm"` (your slime is being stolen), `"Grab"`, `"Stolen"`, `"Escape"`, `"Slap"`, `"Lock"`, `"Unlock"`, `"Merge"`, `"Cash"`, `"Deposit"`, `"Rain"`, `"Rebirth"`, or `nil`. The sound name doubles as the **effect hook**: clients may also play a particle burst or screen effect keyed on it (the world-space bursts themselves are server-played, §5.4). Purchases (pads, shop upgrades) and the daily reward use `"Cash"`; finishing the tutorial sends Notify "Tutorial complete!" (`"good"`, no sound).
 
@@ -229,7 +230,7 @@ The `slimeData` shape is `Types.SlimeData`, the same as `Genome.Slime` and the s
 **When it's sent:**
 1. Once the player's data has loaded.
 2. On every `Request("Sync")`.
-3. After any change to that player's state: an action, income tick, steal, escape, rebirth, Slime Rain start/end, or lock expiry. Changes are coalesced to at most one push per `STATE_MIN_INTERVAL` (0.25 s). That includes `Sync`, which isn't rate-limited. The server flushes due pushes on every Heartbeat tick (0.1 s) and right after each `Request`.
+3. After any change to that player's state: an action, income tick, steal, escape, rebirth, Slime Rain start/end, or lock expiry. Changes are coalesced to at most one push per `STATE_MIN_INTERVAL` (0.25 s). That includes `Sync`, which is limited to one per `STATE_MIN_INTERVAL`. The server flushes due pushes on every Heartbeat tick (0.1 s) and right after each `Request` that got past the guards (a call refused as unknown, still loading, bad argument or too fast does no world refresh and no flush).
 4. At least once a second while income is above 0.
 
 The client always replaces its copy and never diffs.

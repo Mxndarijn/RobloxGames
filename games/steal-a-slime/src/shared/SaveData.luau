@@ -41,6 +41,9 @@
 	missing / junk -> nothing owned, ids that are not Config.PVP_TOOLS are ignored, numbers are clamped (SaveData.cleanPvp).
 	Unknown/newer versions are read field-by-field with the v5 sanitizer (both
 	`mutations` and the legacy `mutation` are understood, nothing is dropped).
+	SaveData.check tells DataService whether a stored record may be overwritten:
+	"newer" (version above Config.SAVE_VERSION, e.g. a rolling update) and
+	"unreadable" (not a save we recognise) are loaded best-effort but never saved over.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -272,6 +275,35 @@ function SaveData.cleanQuests(raw: any): PlayerData.DailyQuests
 		end
 	end
 	return out
+end
+
+export type Verdict = "empty" | "ok" | "newer" | "unreadable"
+
+-- Is the stored value (SessionLock-unwrapped) safe to overwrite with this build's serialize? Pure.
+--   "empty": nothing stored (new player); "ok": a save this build knows (v1 legacy .. SAVE_VERSION);
+--   "newer": a version above Config.SAVE_VERSION; "unreadable": anything else (deserialize would give a fresh
+--   profile, and saving that would wipe the record).
+function SaveData.check(stored: any): Verdict
+	if stored == nil then
+		return "empty"
+	end
+	if type(stored) ~= "table" then
+		return "unreadable"
+	end
+	if stored.version == nil then
+		if stored.Cash ~= nil or stored.Slimes ~= nil or stored.Rebirths ~= nil then
+			return "ok" -- v1 legacy
+		end
+		return "unreadable"
+	end
+	local version = tonumber(stored.version)
+	if version == nil or version ~= version then
+		return "unreadable"
+	end
+	if version > Config.SAVE_VERSION then
+		return "newer"
+	end
+	return "ok"
 end
 
 function SaveData.migrate(raw: any): { [string]: any }?

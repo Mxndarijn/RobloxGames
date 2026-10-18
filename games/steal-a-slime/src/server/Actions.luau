@@ -4,8 +4,10 @@
 
 	The `Request` RemoteFunction dispatcher (CONTRACT.md §3). Validates every
 	argument against Remotes.ACTIONS with Shared.Validate, rate-limits per
-	action (Validate.ACTIONS; Sync is free but coalesced by Snapshot), calls
-	the system and returns a RequestResult. Never errors.
+	action (Validate.ACTIONS; Sync at most once per Config.STATE_MIN_INTERVAL,
+	the State coalescing window), calls the system and returns a RequestResult
+	plus `ran` (true once the call got past every guard and was dispatched; the
+	adapter only refreshes the world view then). Never errors.
 
 	`ctx` gives the adapter's world queries:
 	  distanceBetween(userIdA, userIdB) -> number (math.huge if unknown)
@@ -603,30 +605,50 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	return fail("unknown action")
 end
 
-function Actions.handle(world: World, userId: number, action: any, raw: { any }, now: number, ctx: Context): Result
+-- Sync can't push State faster than the coalescing window anyway, so a spammed Sync is refused before it costs a refresh.
+local function allowSync(session: Session, now: number): boolean
+	local last = session.limiter.Sync
+	if last and now - last < Config.STATE_MIN_INTERVAL then
+		return false
+	end
+	session.limiter.Sync = now
+	return true
+end
+
+-- Returns (result, ran): `ran` is false when a guard refused the call before dispatch (unknown action, still loading,
+-- bad argument, too fast), so the adapter can skip the world-wide view refresh for spam it never acted on.
+function Actions.handle(
+	world: World,
+	userId: number,
+	action: any,
+	raw: { any },
+	now: number,
+	ctx: Context
+): (Result, boolean)
 	if type(action) ~= "string" or Remotes.ACTIONS[action] == nil then
-		return fail("unknown action")
+		return fail("unknown action"), false
 	end
 	local session = World.session(world, userId)
 	if not session then
-		return fail("still loading")
+		return fail("still loading"), false
 	end
 	local args, reason = Actions.parseArgs(action, raw)
 	if not args then
-		return fail(reason or "bad argument")
+		return fail(reason or "bad argument"), false
 	end
-	if action ~= "Sync" and not Validate.allow(session.limiter, action, now) then
-		return fail("too fast")
+	local allowed = if action == "Sync" then allowSync(session, now) else Validate.allow(session.limiter, action, now)
+	if not allowed then
+		return fail("too fast"), false
 	end
 	local ok, res = pcall(dispatch, world, session, action, args, now, ctx)
 	if not ok then
-		return fail("server error")
+		return fail("server error"), true
 	end
 	-- Sync re-sends (still coalesced to STATE_MIN_INTERVAL); successful actions changed state.
 	if res.ok then
 		World.markDirty(session)
 	end
-	return res
+	return res, true
 end
 
 -- The owner-only plot prompts (LockPrompt, BuyPadPrompt, MergePrompt). The caller has already checked that the player owns the
@@ -651,7 +673,8 @@ function Actions.handlePlotPad(
 	end
 	local padCtx = table.clone(ctx)
 	padCtx.strictBypass = true
-	return Actions.handle(world, userId, kind, args, now, padCtx)
+	local res = Actions.handle(world, userId, kind, args, now, padCtx)
+	return res
 end
 
 return Actions
