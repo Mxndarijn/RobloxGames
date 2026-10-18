@@ -184,7 +184,7 @@ Owning the coil makes the server enforce WalkSpeed `SPEED_COIL_WALK_SPEED` (22) 
 
 ## 8.11 Dropped slimes
 
-A dropped wild slime is snapped to the first **collidable** surface under the drop point: raycast from 4 studs above the carrier's root straight down (`RespectCanCollide = true`, excluding characters and slime models), so it lands on the ground, a plot base or a ramp, never on a head, canopy or invisible trigger. No hit within 200 studs: it goes back to its fountain landing spot. It falls there over 0.3 s and stays anchored (§4). The Lune harness checks it (`tools/livetest`).
+A dropped wild slime is snapped to the first **collidable** surface under the drop point: raycast from 4 studs above the carrier's root straight down (`RespectCanCollide = true`, excluding characters and slime models), so it lands on the ground, a plot base or a ramp, never on a head, canopy or invisible trigger. No hit within 200 studs: it goes back to its fountain landing spot. It falls there over 0.3 s and stays anchored (§4). With `FEATURES.Parade` it then walks back to the parade lane (§37). The Lune harness checks it (`tools/livetest`).
 
 ## 8.12 Test hooks (server-only, never live)
 
