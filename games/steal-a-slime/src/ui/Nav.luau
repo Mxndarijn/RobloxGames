@@ -3,21 +3,22 @@
 	Nav
 
 	Left-bar entries and their badges (H1 HUD: Plot, Rebirth, Goals, SlimeDex, Codes; the Merge, Shop and
-	Top menus have no button, see init.client panelByKey). Pure (tests/ui/Nav.spec.luau); the
+	Top menus have no button, see init.client panelByKey). Shown as a grid of rounded tiles, icon over label (B5). Pure (tests/ui/Nav.spec.luau); the
 	buttons themselves are built in init.client.luau. Badges are short hints
 	derived from the latest State ("!" = something to do there).
 ]]
 
-export type Entry = { key: string, icon: string, label: string }
+-- `item` = the ItemIcons registry id of the tile's picture (B5); `icon` = the plain glyph for text (hint bubbles).
+export type Entry = { key: string, icon: string, label: string, item: string }
 
 local Nav = {}
 
 Nav.ENTRIES = table.freeze({
-	table.freeze({ key = "Plot", icon = "🏠", label = "Plot" }),
-	table.freeze({ key = "Rebirth", icon = "♻️", label = "Rebirth" }),
-	table.freeze({ key = "Goals", icon = "🎯", label = "Goals" }),
-	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex" }),
-	table.freeze({ key = "Codes", icon = "🎁", label = "Codes" }),
+	table.freeze({ key = "Plot", icon = "🏠", label = "Plot", item = "PlotSkin_classic" }),
+	table.freeze({ key = "Rebirth", icon = "♻️", label = "Rebirth", item = "Rebirth" }),
+	table.freeze({ key = "Goals", icon = "🎯", label = "Goals", item = "Quest" }),
+	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex", item = "Dex_10" }),
+	table.freeze({ key = "Codes", icon = "🎁", label = "Codes", item = "Gift" }),
 } :: { Entry })
 
 local function num(value: any): number

@@ -29,7 +29,6 @@ local function ctx(extra: { [string]: any }?): any
 		playerName = function()
 			return "Tester"
 		end,
-		toast = function() end,
 		itemIcons = UiHarness.ui("ItemIcons").build(Config),
 	}
 	for k, v in extra or {} do
@@ -61,20 +60,6 @@ describe("UI performance budget", function()
 end)
 
 describe("event-driven loops", function()
-	it("Toasts: no wakeups when idle, one 0.25 s loop while toasts live, none after they expire", function()
-		UiHarness.virtualTime(true)
-		local toasts = UiHarness.ui("Toasts").new(UiHarness.root(), UiHarness.ui("ItemIcons").build(Config), Config)
-		expect(sleeping()).toBe(0)
-		toasts.push("hello", "info")
-		toasts.push("again", "info")
-		expect(UiHarness.sleepers()["0.25"]).toBe(1)
-		UiHarness.advance(120)
-		expect(sleeping()).toBe(0)
-		toasts.push("later", "info")
-		expect(sleeping()).toBe(1)
-		UiHarness.virtualTime(false)
-	end)
-
 	it("Shop: the restock countdown ticks only while the card is open", function()
 		UiHarness.virtualTime(true)
 		local shop = UiHarness.ui("Panels/Shop").new(UiHarness.root(), ctx())

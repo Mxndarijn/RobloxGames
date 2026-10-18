@@ -60,7 +60,7 @@ src/visuals/tools/  Archer's Lune map tools (not in the Rojo tree). build-map wr
                     src/visuals/static/*.rbxm, which is NOT mapped: world/ is the only
                     map source in default.project.json                          Archer
 src/ui/          -> StarterPlayerScripts.UI         (LocalScript + modules)      Jolt
-  HUD, plot/merge/rebirth panels, Slimedex, steal alerts, toasts, leaderboard
+  HUD, plot/merge/rebirth panels, Slimedex, steal alerts, leaderboard
 tests/           Lune unit tests (not in the Rojo tree)                          Jolt
 world/           -> Workspace: Map, Plots, HubSpawn (.rbxmx, generated)          Phoenix
 scripts/         Lune build tools (not in the Rojo tree): gen-world, check-place Phoenix
@@ -141,7 +141,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 |---|---|---|---|
 | `Request` | RemoteFunction | client → server | `InvokeServer(action: Action, ...args)` → `RequestResult = { ok: boolean, message: string? }` |
 | `State` | RemoteEvent | server → client | `FireClient(player, state: Types.State)` (§5) |
-| `Notify` | RemoteEvent | server → client | `FireClient(player, text: string, kind: "info" \| "good" \| "bad", sound: string?, itemId: string?)`. `itemId` (optional) is the UI ItemIcons registry id the toast is about (`"SpeedCoil"`, `"Upgrade_Luck"`, `"PlotSkin_candy"`); absent/unknown ids fall back to the client text heuristic. Global toasts (Slime Rain) use `FireAllClients`. |
+| `Notify` | RemoteEvent | server → client | `FireClient(player, text: string, kind: "info" \| "good" \| "bad", sound: string?, itemId: string?)`. `itemId` (optional) is the UI ItemIcons registry id the toast is about (`"SpeedCoil"`, `"Upgrade_Luck"`, `"PlotSkin_candy"`); absent/unknown ids fall back to the client text heuristic. Global toasts (Slime Rain) use `FireAllClients`. **Oct 18 (B6, Merijn): the client draws no toast any more; a Notify only plays its `sound`.** The server side is unchanged. |
 | `Leaderboard` | RemoteEvent | server → client | `FireClient/FireAllClients(board: { stat: "TotalEarned", entries: { { rank: number, userId: number, name: string, value: number } } })` |
 
 `Request` actions (from `Remotes.ACTIONS`; rate limits in `Validate.ACTIONS`):
@@ -391,7 +391,6 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §17 | [steal-alerts.md](contract/steal-alerts.md) | v21: full steal alerts (2026-10-16) |
 | §18 | [weekly-event-rotation.md](contract/weekly-event-rotation.md) | v21: weekly event rotation (2026-10-16) |
 | §19 | [fountain-tiers.md](contract/fountain-tiers.md) | v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`, default `false`) |
-| §20 | [server-events-board.md](contract/server-events-board.md) | v21: server events board (2026-10-17) |
 | §21 | [merge-vat3.md](contract/merge-vat3.md) | v19: 3-slime merge vat (`FEATURES.MergeVat3`, default `false`) |
 | §22 | [restocking-shop.md](contract/restocking-shop.md) | v29 #13: restocking consumables shop (2026-10-16) |
 | §23 | [rain-magnet.md](contract/rain-magnet.md) | v19: Rain Magnet upgrade (`FEATURES.RainMagnet`, default `false`) |

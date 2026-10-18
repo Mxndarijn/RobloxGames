@@ -1,6 +1,6 @@
 --!strict
 -- v18: nav badges (SlimeDex "NN%", "!", "$") sit fully inside their button at
--- all five gate sizes, nav collapsed and expanded (rail and grid layouts).
+-- all five gate sizes (B5: on the top-right corner of their rounded tile, not on the label).
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local TestRunner = require("../TestRunner")
@@ -25,5 +25,22 @@ describe("nav badges stay inside their buttons", function()
 				expect(check.report()).toBe("")
 			end)
 		end
+	end
+end)
+
+describe("the SlimeDex % badge stays on its tile (B5)", function()
+	for _, entry in LayoutAssert.screens(LayoutAssert.GATE_VIEWPORTS) do
+		it(entry.label, function()
+			local s = entry.screen
+			for i, nav in require("../../src/ui/Nav").ENTRIES do
+				local b = s.navButtons[i]
+				local tile = Layout.navTile(s.compact, b)
+				local badge = Layout.navBadge(b, "100%")
+				expect(Layout.overlaps(badge, tile)).toBe(true) -- sits on the tile's corner ...
+				expect(badge.y + badge.h <= tile.y + tile.h).toBe(true) -- ... above the label row
+				expect(badge.x >= b.x and badge.x + badge.w <= b.x + b.w).toBe(true) -- ... inside its button
+				expect(nav.key ~= "").toBe(true)
+			end
+		end)
 	end
 end)

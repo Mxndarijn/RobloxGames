@@ -10,8 +10,6 @@
 
 local Icons = {}
 
-Icons.NAV_COLLAPSED = "Menu"
-Icons.NAV_EXPANDED = "< Menu"
 Icons.FAV_ON = "★"
 Icons.FAV_OFF = "+"
 Icons.SOUND_ON = "🔊"

@@ -7,9 +7,11 @@
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
 
-local GroundTerrain = require("../src/visuals/shared/GroundTerrain")
+local Config = require("../src/shared/Config")
+local FloorLayout = require("../src/visuals/shared/FloorLayout")
 local MeshAssets = require("../src/shared/MeshAssets")
 local TestRunner = require("./TestRunner")
+local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -84,50 +86,68 @@ describe("pc-watcher shot targets", function()
 		end
 		expect(#missing).toBe(0)
 	end)
-	it("the #270 path shots use fixed pos / look cameras (the paths are terrain, no instance to target)", function()
-		for _, file in
-			{
-				"81-v29-b5-path-eye-spoke",
-				"82-v29-b5-path-eye-ring",
-				"83-v29-b5-path-junction",
-				"172-bug13-walk-path-look",
-				"174-bug15-sand-grass-blend",
-			}
-		do
-			local s = serde.decode("json", fs.readFile(`{SHOTS}/{file}.json`))
-			expect(s.target).toBe(nil)
-			expect(#s.pos).toBe(3)
-			expect(#s.look).toBe(3)
-		end
-	end)
 	it(
-		"the #270 path shots look at the terrain they check (GroundTerrain materials, not a stale coordinate)",
+		"the #318 boardwalk shots use fixed pos / look cameras (the boardwalk is one baked mesh, no instance per part)",
 		function()
-			-- 81 / 82 / 83 / 172 look at the dirt path (Ground); 174 (bug 15) looks at the plaza sand feather band, so
-			-- both Sand and Grass lie within 6 studs of its look point along the radius
 			for _, file in
 				{
 					"81-v29-b5-path-eye-spoke",
 					"82-v29-b5-path-eye-ring",
 					"83-v29-b5-path-junction",
 					"172-bug13-walk-path-look",
+					"174-bug15-sand-grass-blend",
 				}
 			do
 				local s = serde.decode("json", fs.readFile(`{SHOTS}/{file}.json`))
-				expect(GroundTerrain.material(s.look[1], s.look[3])).toBe("Ground")
+				expect(s.target).toBe(nil)
+				expect(#s.pos).toBe(3)
+				expect(#s.look).toBe(3)
 			end
-			local s = serde.decode("json", fs.readFile(`{SHOTS}/174-bug15-sand-grass-blend.json`))
-			local x, z = s.look[1], s.look[3]
-			local r = math.sqrt(x * x + z * z)
-			local seen = {}
-			for dr = -6, 6, 2 do
-				local k = (r + dr) / r
-				seen[GroundTerrain.material(x * k, z * k)] = true
-			end
-			expect(seen.Sand == true and seen.Grass == true and seen.Ground == nil).toBe(true)
-			expect(GroundTerrain.material(s.pos[1], s.pos[3])).toBe("Grass") -- the camera stands on grass, not on the ring path
 		end
 	)
+	it(
+		"the boardwalk shots look at the boardwalk part they check (FloorLayout geometry, not a stale coordinate)",
+		function()
+			local ringR, half = WorldLayout.RING_PATH_RADIUS, WorldLayout.RING_PATH_WIDTH / 2
+			local step = 360 / Config.PLOT_COUNT
+			local function onRing(x: number, z: number): boolean
+				return math.abs(math.sqrt(x * x + z * z) - ringR) <= half
+			end
+			-- on a spoke: within half the spoke width of a spoke's centre line, between the plaza and the ramp
+			local function onSpoke(x: number, z: number): boolean
+				local r = math.sqrt(x * x + z * z)
+				local bearing = math.deg(math.atan2(x, z)) % 360
+				local off = math.rad(math.min(bearing % step, step - bearing % step))
+				return r > FloorLayout.PLAZA_DISC_RADIUS
+					and r <= FloorLayout.SPOKE_PLANK_END
+					and r * math.sin(off) <= FloorLayout.SPOKE_WIDTH / 2
+			end
+			local function look(file: string): (number, number)
+				local s = serde.decode("json", fs.readFile(`{SHOTS}/{file}.json`))
+				return s.look[1], s.look[3]
+			end
+			local x, z = look("81-v29-b5-path-eye-spoke")
+			expect(onSpoke(x, z) and not onRing(x, z)).toBe(true)
+			x, z = look("172-bug13-walk-path-look")
+			expect(onSpoke(x, z) and not onRing(x, z)).toBe(true)
+			x, z = look("82-v29-b5-path-eye-ring")
+			expect(onRing(x, z) and not onSpoke(x, z)).toBe(true)
+			x, z = look("83-v29-b5-path-junction")
+			expect(onRing(x, z) and onSpoke(x, z)).toBe(true)
+		end
+	)
+	it("shot 174 looks from the ring boardwalk at the lawn / sand edge", function()
+		local s = serde.decode("json", fs.readFile(`{SHOTS}/174-bug15-sand-grass-blend.json`))
+		local step = 360 / Config.PLOT_COUNT
+		local function polar(x: number, z: number): (number, number)
+			return math.sqrt(x * x + z * z), math.deg(math.atan2(x, z)) % step
+		end
+		local cr = polar(s.pos[1], s.pos[3])
+		expect(math.abs(cr - WorldLayout.RING_PATH_RADIUS) <= WorldLayout.RING_PATH_WIDTH / 2).toBe(true)
+		local lr, la = polar(s.look[1], s.look[3])
+		expect(lr > FloorLayout.LAWN_R0 and lr < FloorLayout.LAWN_R1).toBe(true)
+		expect(la > FloorLayout.LAWN_MARGIN_DEG and la < step - FloorLayout.LAWN_MARGIN_DEG).toBe(true)
+	end)
 	it("the bug-11 mesh-collision shots target the placed RanchProps instances", function()
 		local want = {
 			["183-bug11-hull-stand.json"] = "Well",

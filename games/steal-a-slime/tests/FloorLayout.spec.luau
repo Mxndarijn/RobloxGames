@@ -9,6 +9,7 @@ local MeshAssets = require("../src/shared/MeshAssets")
 local SnowCover = require("../src/visuals/shared/SnowCover")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
+local YardProps = require("../src/visuals/shared/YardProps")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -349,14 +350,17 @@ describe("FloorLayout terrain grass swap", function()
 end)
 
 describe("FloorLayout budget", function()
-	it("adds a handful of parts: field 3, paths 11, lawns 32", function()
+	it("adds a handful of parts: field 3, paths 11, lawns 32, yard patches (YardProps.PATCHES)", function()
 		expect(#folder("Field").children).toBe(3)
+		expect(#folder("YardPatches").children).toBe(#YardProps.PATCHES)
 		expect(#folder("Paths").children).toBe(3 + Config.PLOT_COUNT)
 		expect(#folder("Lawns").children).toBe(FloorLayout.LAWN_BLOCKS * Config.PLOT_COUNT)
-		expect(#floorParts()).toBe(3 + 3 + Config.PLOT_COUNT + FloorLayout.LAWN_BLOCKS * Config.PLOT_COUNT)
+		expect(#floorParts()).toBe(
+			3 + 3 + Config.PLOT_COUNT + FloorLayout.LAWN_BLOCKS * Config.PLOT_COUNT + #YardProps.PATCHES
+		)
 	end)
-	it("is built into Map as Field / Paths / Lawns with unique names", function()
-		for _, name in { "Field", "Paths", "Lawns" } do
+	it("is built into Map as Field / Paths / Lawns / YardPatches with unique names", function()
+		for _, name in { "Field", "Paths", "Lawns", "YardPatches" } do
 			expect(mapChild(name) ~= nil).toBe(true)
 		end
 		local seen = {}

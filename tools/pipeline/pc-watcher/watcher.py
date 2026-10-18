@@ -1706,8 +1706,6 @@ def step_shots(run):
                         res["error"] = "overlay visible with no menu open: %s" % ", ".join(over)
                 if shot.get("rebirth_slime"):  # v29: force the required-slime state (owned / missing) in Studio
                     res["rebirth_slime"] = run.need_luau("rebirth_slime", "Client", timeout=15, state=shot["rebirth_slime"])
-                if shot.get("badge_toast"):  # v29 #6: show the badge-unlocked toast (Studio-only hook)
-                    res["badge_toast"] = run.need_luau("badge_toast", "Client", timeout=15, name=shot["badge_toast"])
                 if shot.get("friend_bonus"):  # v29 #4: fake N friends in the server (badge + income line)
                     res["friend_bonus"] = run.need_luau("friend_bonus", "Client", timeout=15, count=int(shot["friend_bonus"]))
                 if shot.get("admin_event"):  # v29 #10: fake a live admin event banner (Studio only)
@@ -1716,6 +1714,10 @@ def step_shots(run):
                     res["weekend"] = run.need_luau("weekend", "Client", timeout=15, on=True)
                 if shot.get("rain"):  # H1 HUD: fake a running Slime Rain for the bottom-right status slot (Studio only)
                     res["rain"] = run.need_luau("rain", "Client", timeout=15, on=True)
+                if shot.get("tooltip"):  # B8: open the tooltip of a bottom-right status icon ("Rain" | "Event" | "Friend")
+                    tip = res["tooltip"] = run.need_luau("tooltip", "Client", timeout=15, id=shot["tooltip"])
+                    if not (tip.get("tooltip") and tip.get("visible") and tip.get("on_screen")):
+                        res["error"] = "status tooltip not shown on screen: %s" % tip
                 if shot.get("steal_alert"):  # v21: fake a theft of my slime: edge flash, arrow, join notice (Studio only)
                     sa = res["steal_alert"] = run.need_luau("steal_alert", "Client", timeout=15, on=True)
                     if not sa.get("fx") or not sa.get("arrow_visible"):
@@ -1811,6 +1813,8 @@ def step_shots(run):
                     run.luau("weekend", "Client", timeout=15, on=False)
                 if shot.get("rain"):
                     run.luau("rain", "Client", timeout=15, on=False)
+                if shot.get("tooltip"):
+                    run.luau("tooltip", "Client", timeout=15, id="")
                 if shot.get("steal_alert"):
                     run.luau("steal_alert", "Client", timeout=15, on=False)
                 if shot.get("plot_skin"):

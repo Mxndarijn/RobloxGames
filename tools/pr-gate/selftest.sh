@@ -5,8 +5,8 @@
 # the working tree is never modified.
 #
 #   logic   a failing spec fixture copied into tests/
-#   layout  src/ui/Layout.luau edits: one nav column (PR #60's off-screen
-#           Rebirth / Goals / Dex / Leaders at 844x390), squashed nav buttons,
+#   layout  src/ui/Layout.luau edits: one nav column (PR #60's nav tiles running
+#           into the money cluster at 844x390), squashed nav buttons,
 #           the carry card moved over the nav (covered buttons); each must fail
 #           the Lune part and, when rhr is installed, the rhr part on its own
 #   budget  501 MeshParts (counts fixture, must pass with a WARN), a triangle limit under today's
@@ -115,22 +115,22 @@ layout_case() {
 }
 
 echo "=== selftest: layout ==="
-layout_case "one nav column at 844x390 (pre-#60 off-screen nav)" \
-	"local columns = if short then Layout.navColumns(H - inset - top) else 1" \
+layout_case "one nav column at 844x390 (pre-#60 nav runs into the money cluster)" \
+	"local columns = if short then Layout.navColumns(compact, navBottom - top) else Layout.NAV.columns" \
 	"local columns = 1" \
-	"844x390 nav collapsed\] Nav\.(Rebirth|Goals|Dex|Leaders) .* is off the" \
-	"\[844x390-collapsed\] Nav/(Rebirth|Goals|Dex|Leaders) .* is off the 844x390 screen"
+	"844x390\] Nav\.(Goals|Dex) .* overlaps Money" \
+	"\[844x390\] Nav/(Goals|Dex) .* is covered by SlimeUI/Root/Money"
 layout_case "squashed nav buttons (70% height)" \
-	"nav.y + p + row * (size + gap), w, size))" \
-	"nav.y + p + row * (size + gap), w, size * 0.7))" \
+	"nav.y + row * (h + gap), w, h))" \
+	"nav.y + row * (h + gap), w, h * 0.7))" \
 	"Nav\.Dex .* is squashed" \
 	"Nav/Dex .* is squashed"
 layout_case "carry card moved over the nav (covered buttons)" \
-	"local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, inset, beside)" \
-	"local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, inset, beside)
+	"local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, cardInset, beside, cardMargin)" \
+	"local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, cardInset, beside, cardMargin)
 	carry = Layout.rect(nav.x, nav.y, carry.w, carry.h)" \
-	"Nav\.(Toggle|Plot) .* overlaps Carry" \
-	"Nav/(NavToggle|Plot) .* is covered (by SlimeUI/Root/Carry|: a click at its centre goes to SlimeUI/Root/Carry)"
+	"Nav\.Plot .* overlaps Carry" \
+	"Nav/Plot .* is covered (by SlimeUI/Root/Carry|: a click at its centre goes to SlimeUI/Root/Carry)"
 
 echo "=== selftest: budget ==="
 expect_ok "budget: 501 MeshParts only warns (counts fixture)" "WARN: MeshParts 501 > soft budget 500" \

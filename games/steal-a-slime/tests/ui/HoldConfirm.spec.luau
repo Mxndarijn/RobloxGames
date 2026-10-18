@@ -86,9 +86,8 @@ describe("B1: hold-to-confirm buttons", function()
 		end
 		return ctor
 	end
-	it("HUD Lock / Extend and Buy next pad, Sell, Rebirth, shop Buy and Merge use Widgets.holdButton", function()
-		expect(importantButtons("src/ui/Hud.luau", "Lock")).toBe("holdButton")
-		expect(importantButtons("src/ui/Hud.luau", "BuyPad")).toBe("holdButton")
+	it("Sell, Rebirth, shop Buy and Merge use Widgets.holdButton (the HUD Lock / Buy pad are gone, B7)", function()
+		expect(string.find(read("src/ui/Hud.luau"), "holdButton", 1, true)).toBeNil()
 		expect(importantButtons("src/ui/Panels/Plot.luau", "Sell")).toBe("holdButton")
 		-- Appraise rerolls spend cash: both popup buttons are built by popupButton -> holdButton.
 		expect(importantButtons("src/ui/Panels/Plot.luau", "Appraise")).toBe("button") -- opener is free

@@ -41,7 +41,7 @@ describe("UI glyphs", function()
 		expect(#bad("\u{267B}\u{FE0F}")).toBe(0)
 	end)
 	it("HUD chrome icons and nav badges are safe", function()
-		for _, v in { Icons.NAV_COLLAPSED, Icons.NAV_EXPANDED, Icons.FAV_ON, Icons.FAV_OFF } do
+		for _, v in { Icons.FAV_ON, Icons.FAV_OFF } do
 			expect(#bad(v)).toBe(0)
 		end
 		for _, entry in Nav.ENTRIES do

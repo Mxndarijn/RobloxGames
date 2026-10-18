@@ -1,7 +1,0 @@
-{
-  "id": "item-icons-badge-toast",
-  "todo": "item-icons",
-  "kind": "ui",
-  "badge_toast": "Dex Master",
-  "note": "Item icons: badge unlock toast shows the gold medal item icon (Badge_Dex100) instead of the old star circle"
-}

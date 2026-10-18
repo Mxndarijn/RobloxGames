@@ -5,23 +5,25 @@
 	Pure layout rules shared by the UI and its tests (tests/ui/Layout.spec,
 	tests/ui/LayoutAssert): the ZIndex layers of the top-level overlays,
 	scroll list settings, the root UIScale, touch-target sizes and the
-	rectangles of the HUD, left nav, full-window menu panels and bottom cards. No
+	rectangles of the bottom clusters, left nav, full-window menu panels and bottom cards. No
 	Instances here; Widgets / Hud / init.client apply them.
 
 	Coordinates are design px: the ScreenGui's AbsoluteSize divided by
 	`uiScale` (the root UIScale multiplies everything back). A Rect is
 	{ x, y, w, h } from the top-left of the ScreenGui.
 
-	Target viewports (v18): 390x844 phone (scale MIN_SCALE, "compact": two
-	HUD rows, nav collapsed to an icon strip, room kept for Roblox's touch
-	controls) and 1920x1080 desktop (scale 1, one HUD row, labelled nav).
-	v27: landscape phone (844x390, 844x332 under the top bar) is "short":
-	one compact HUD row, the nav as a grid of columns above the money
-	cluster and the bottom cards between the two bottom clusters, so every
-	nav button stays on screen (Layout.screen).
+	Target viewports (v18): 390x844 phone (scale MIN_SCALE, "compact", room kept
+	for Roblox's touch controls) and 1920x1080 desktop (scale 1).
+	v27: landscape phone (844x390, 844x332 under the top bar) is "short": the
+	nav tiles take more columns above the money cluster and the bottom cards sit
+	between the two bottom clusters, so every nav tile stays on screen
+	(Layout.screen).
 	H1 (2026-10-17): the money (bottom-left) and status (bottom-right)
 	clusters sit on the bottom inset line; on phones they are lifted
 	TOUCH_RISE px off the touch controls and portrait cards sit above them.
+	Oct 18: no top bar and no toasts any more (B6 / B7); the left nav is a grid of
+	rounded tiles, icon over label, 2 columns (B5); the bottom clusters are bigger
+	(B4) and a status icon can show a tooltip (B8, Layout.statusTooltip).
 ]]
 
 local InventoryLayout = if script then require(script.Parent.InventoryLayout) else require("./InventoryLayout")
@@ -29,7 +31,6 @@ local Nav = if script then require(script.Parent.Nav) else require("./Nav")
 local Tutorial = if script then require(script.Parent.Tutorial) else require("./Tutorial")
 
 export type Rect = { x: number, y: number, w: number, h: number }
-export type HudLayout = { rect: Rect, items: { [string]: Rect }, rows: { { string } } }
 -- Bottom-left cluster (H1): the money plate, the income / rebirths chips under it.
 export type MoneyHud = { rect: Rect, cash: Rect, income: Rect, rebirths: Rect }
 -- Bottom-right cluster (H1): STATUS.count icon slots, [1] leftmost; shown ones pack to the right.
@@ -41,21 +42,18 @@ export type Screen = {
 	width: number, -- design px
 	height: number,
 	compact: boolean,
-	short: boolean, -- landscape phone: one HUD row, nav grid (Layout.screen)
-	navCollapsed: boolean,
+	short: boolean, -- landscape phone: more nav columns, cards between the clusters (Layout.screen)
 	navColumns: number,
 	bottomInset: number,
-	hud: HudLayout,
 	money: MoneyHud, -- bottom-left: Money, Income/s, Rebirths (above the touch inset)
 	status: StatusHud, -- bottom-right: event timers + friend boost (above the touch inset)
 	hotbar: Rect, -- S3 inventory hotbar zone: bottom-centre between the clusters (above them on a narrow phone)
 	banners: Rect,
-	toasts: Rect,
 	sound: Rect, -- FEATURES.Audio button: the top-right slot a menu's X would use (hidden while a menu is open)
 	nav: Rect,
-	navButtons: { Rect }, -- [1] = collapse toggle, then Nav.ENTRIES order
-	column: Rect, -- right of the nav, under the HUD, above the bottom cards
-	panel: Rect, -- full-window menu backdrop: column width, HUD to bottom inset
+	navButtons: { Rect }, -- Nav.ENTRIES order (a tile and its label)
+	column: Rect, -- right of the nav, above the bottom cards
+	panel: Rect, -- full-window menu backdrop: column width, top margin to bottom inset
 	menuX: number, -- left edge of every menu card (Layout.panelFor)
 	menuW: number, -- width of every menu card
 	carry: Rect,
@@ -76,9 +74,9 @@ Layout.CLOSE_WITH_ESCAPE = true
 -- menu panels, the tutorial over the daily popup, and the carry panel
 -- (Drop) over both.
 Layout.ZINDEX = table.freeze({
-	Base = 1, -- HUD, nav, the menu backdrop
+	Base = 1, -- bottom clusters, nav, the menu backdrop
 	Menu = 2, -- menu cards (over the backdrop, whatever their sibling order)
-	Banners = 3, -- HUD banners, toasts and the tutorial hint
+	Banners = 3, -- HUD banners and the tutorial hint
 	Daily = 5,
 	Tutorial = 15,
 	Carry = 30,
@@ -132,7 +130,7 @@ Layout.TOUCH_CONTROLS_HEIGHT = 90
 Layout.TOUCH_RISE = 40
 
 Layout.MARGIN = 12
-Layout.TOP = 8
+Layout.TOP = 12 -- top margin: nav on short screens, the banner stack and the menu card area
 Layout.GAP = 12
 
 local function finite(value: number): boolean
@@ -250,143 +248,110 @@ function Layout.wrappedHeight(text: string, size: number, boxWidth: number, bold
 	return lines * size * Layout.LINE_HEIGHT
 end
 
--- HUD --------------------------------------------------------------------------
--- Absolute placement from HUD_ROWS (not a UIListLayout) so tests see the
--- same boxes the player does. Hidden items take no space.
-
-Layout.HUD_PADDING = 8
-Layout.HUD_GAP = 6
-Layout.HUD_ROW_HEIGHT = Layout.BUTTON
-
--- w = desktop width, cw = compact width; h = height (centred in the row).
-Layout.HUD_ITEMS = table.freeze({
-	LockStatus = table.freeze({ w = 200, cw = 180, h = 56 }),
-	Lock = table.freeze({ w = 140, cw = 116, h = Layout.BUTTON, button = true }),
-	BuyPad = table.freeze({ w = 160, cw = 134, h = Layout.BUTTON, button = true }),
-	Daily = table.freeze({ w = 120, cw = 96, h = Layout.BUTTON, button = true }),
-})
-
--- H1: the money / income / rebirths chips moved to the bottom-left cluster (Layout.moneyCluster), the
--- Pads chip and the Shop button are gone; the lock block, Lock, Buy pad and Daily have no other home yet.
-Layout.HUD_ROWS = table.freeze({
-	wide = table.freeze({
-		table.freeze({ "LockStatus", "Lock", "BuyPad", "Daily" }),
-	}),
-	compact = table.freeze({
-		table.freeze({ "LockStatus", "Daily" }),
-		table.freeze({ "Lock", "BuyPad" }),
-	}),
-	-- Short landscape phone (Layout.screen): the compact items on one row.
-	compactOneRow = table.freeze({
-		table.freeze({ "LockStatus", "Lock", "BuyPad", "Daily" }),
-	}),
-})
-
--- HUD bar (top centre) and its items in screen design px. `visible[name] ==
--- false` hides an item. `oneRow` puts the compact items on a single row.
-function Layout.hud(width: number, compact: boolean, visible: { [string]: boolean }?, oneRow: boolean?): HudLayout
-	local pad, gap = Layout.HUD_PADDING, Layout.HUD_GAP
-	local rows: { { string } } = {}
-	local rowWidths: { number } = {}
-	local layoutRows = if not compact
-		then Layout.HUD_ROWS.wide
-		elseif oneRow then Layout.HUD_ROWS.compactOneRow
-		else Layout.HUD_ROWS.compact
-	for _, row in layoutRows :: { { string } } do
-		local names = {}
-		local w = 0
-		for _, name in row do
-			if visible == nil or visible[name] ~= false then
-				local item = (Layout.HUD_ITEMS :: any)[name]
-				w += (if #names > 0 then gap else 0) + (if compact then item.cw else item.w)
-				table.insert(names, name)
-			end
-		end
-		if #names > 0 then
-			table.insert(rows, names)
-			table.insert(rowWidths, w)
-		end
-	end
-	local inner = 0
-	for _, w in rowWidths do
-		inner = math.max(inner, w)
-	end
-	local barW = inner + pad * 2
-	local barH = #rows * Layout.HUD_ROW_HEIGHT + math.max(#rows - 1, 0) * gap + pad * 2
-	local bar = Layout.rect((width - barW) / 2, Layout.TOP, barW, barH)
-	local items: { [string]: Rect } = {}
-	for r, names in rows do
-		local x = bar.x + pad + (inner - rowWidths[r]) / 2
-		local rowY = bar.y + pad + (r - 1) * (Layout.HUD_ROW_HEIGHT + gap)
-		for _, name in names do
-			local item = (Layout.HUD_ITEMS :: any)[name]
-			local w = if compact then item.cw else item.w
-			items[name] = Layout.rect(x, rowY + (Layout.HUD_ROW_HEIGHT - item.h) / 2, w, item.h)
-			x += w + gap
-		end
-	end
-	return { rect = bar, items = items, rows = rows }
-end
-
 -- Bottom clusters (H1) -----------------------------------------------------------
 -- Money (bottom-left, as in the reference): a plate with the coin and the big amount, the income/s
 -- and rebirths chips under it. Status (bottom-right): up to STATUS.count icon slots with a timer or
 -- a label under each. Both sit on the bottom inset line (above Roblox's thumbstick / jump button).
 
+-- B4 (Merijn, ui_reference.png): both clusters are about twice the H1 size; the PC money block is a further
+-- ~1.4x (2026-10-18) to match the concept's proportions. `c`-prefixed values are the phone
+-- (compact) sizes; they are still bigger than the H1 desktop ones.
 Layout.MONEY = table.freeze({
-	w = 200,
-	cw = 176,
-	plate = 44,
-	cplate = 40,
-	chip = 26,
-	cchip = 22,
-	gap = 4,
-	icon = 36, -- coin icon on the plate (square)
-	chipIcon = 18,
+	w = 360,
+	cw = 196,
+	plate = 84,
+	cplate = 50,
+	chip = 42,
+	cchip = 26,
+	gap = 5,
+	cgap = 4,
+	icon = 74, -- coin icon on the plate (square)
+	cicon = 44,
+	amountSize = 48,
+	camountSize = 28,
+	chipSize = 21,
+	cchipSize = 13,
 })
 
-Layout.STATUS = table.freeze({ count = 3, slot = 54, h = 66, gap = 2, icon = 40 })
+Layout.STATUS = table.freeze({
+	count = 3,
+	slot = 92,
+	cslot = 62,
+	icon = 64,
+	cicon = 46,
+	label = 24, -- timer / boost text row under the icon
+	clabel = 18,
+	labelSize = 18,
+	clabelSize = 14,
+	gap = 2,
+	labelGap = 2,
+})
 
 -- Slot ids, left to right (HudClusters.STATUS_IDS lists the same).
 Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend" })
 
 function Layout.moneyHeight(compact: boolean): number
 	local m = Layout.MONEY
-	return (if compact then m.cplate else m.plate) + m.gap + (if compact then m.cchip else m.chip)
+	return (if compact then m.cplate else m.plate)
+		+ (if compact then m.cgap else m.gap)
+		+ (if compact then m.cchip else m.chip)
+end
+
+function Layout.moneyWidth(compact: boolean): number
+	return if compact then Layout.MONEY.cw else Layout.MONEY.w
 end
 
 -- The money cluster with its bottom-left corner at (x, bottom).
 function Layout.moneyCluster(compact: boolean, x: number, bottom: number): MoneyHud
 	local m = Layout.MONEY
-	local w = if compact then m.cw else m.w
+	local w = Layout.moneyWidth(compact)
 	local plate = if compact then m.cplate else m.plate
 	local chip = if compact then m.cchip else m.chip
+	local gap = if compact then m.cgap else m.gap
 	local h = Layout.moneyHeight(compact)
 	local y = bottom - h
-	local incomeW = math.floor((w - m.gap) * 0.52)
+	local incomeW = math.floor((w - gap) * 0.52)
 	return {
 		rect = Layout.rect(x, y, w, h),
 		cash = Layout.rect(x, y, w, plate),
-		income = Layout.rect(x, y + plate + m.gap, incomeW, chip),
-		rebirths = Layout.rect(x + incomeW + m.gap, y + plate + m.gap, w - incomeW - m.gap, chip),
+		income = Layout.rect(x, y + plate + gap, incomeW, chip),
+		rebirths = Layout.rect(x + incomeW + gap, y + plate + gap, w - incomeW - gap, chip),
 	}
 end
 
-function Layout.statusWidth(): number
+-- Text column of a money box: the plate's amount sits right of the coin, a chip's text right of its
+-- icon (Hud builds the same numbers). Returns x offset and width inside the box.
+function Layout.moneyTextBox(box: Rect, isPlate: boolean, compact: boolean): (number, number)
+	local m = Layout.MONEY
+	local left = if isPlate then (if compact then m.cicon else m.icon) + 12 else box.h
+	local right = if isPlate then 8 else 6
+	return left, box.w - left - right
+end
+
+function Layout.statusSlotWidth(compact: boolean): number
+	return if compact then Layout.STATUS.cslot else Layout.STATUS.slot
+end
+
+function Layout.statusHeight(compact: boolean): number
 	local s = Layout.STATUS
-	return s.count * s.slot + (s.count - 1) * s.gap
+	return (if compact then s.cicon else s.icon) + s.labelGap + (if compact then s.clabel else s.label)
+end
+
+function Layout.statusWidth(compact: boolean): number
+	local s = Layout.STATUS
+	return s.count * Layout.statusSlotWidth(compact) + (s.count - 1) * s.gap
 end
 
 -- The status cluster with its bottom-right corner at (right, bottom).
-function Layout.statusCluster(right: number, bottom: number): StatusHud
+function Layout.statusCluster(compact: boolean, right: number, bottom: number): StatusHud
 	local s = Layout.STATUS
-	local w = Layout.statusWidth()
-	local x, y = right - w, bottom - s.h
+	local w, h, slotW = Layout.statusWidth(compact), Layout.statusHeight(compact), Layout.statusSlotWidth(compact)
+	local x, y = right - w, bottom - h
 	local slots = {}
 	for i = 1, s.count do
-		table.insert(slots, Layout.rect(x + (i - 1) * (s.slot + s.gap), y, s.slot, s.h))
+		table.insert(slots, Layout.rect(x + (i - 1) * (slotW + s.gap), y, slotW, h))
 	end
-	return { rect = Layout.rect(x, y, w, s.h), slots = slots }
+	return { rect = Layout.rect(x, y, w, h), slots = slots }
 end
 
 -- Slot rect for the `index`-th (1 = leftmost) of `shown` visible slots: they pack against the right edge.
@@ -394,16 +359,72 @@ function Layout.statusSlot(status: StatusHud, index: number, shown: number): Rec
 	return status.slots[Layout.STATUS.count - shown + index]
 end
 
+-- Status tooltip (B8): a small card above the tapped / hovered status icon with the event's name, what it
+-- does and the time left. `tooltipBox` fits the texts; `tooltipRect` keeps the card on screen.
+Layout.TOOLTIP = table.freeze({
+	w = 236,
+	cw = 212,
+	pad = 10,
+	gap = 8, -- between the card and the icon
+	titleSize = 17,
+	bodySize = 14,
+	timeSize = 14,
+	cbodySize = 13,
+	line = 4, -- between the text lines
+})
+
+function Layout.tooltipBox(
+	compact: boolean,
+	title: string,
+	body: string,
+	time: string
+): (number, number, { titleH: number, bodyH: number, timeH: number })
+	local t = Layout.TOOLTIP
+	local w = if compact then t.cw else t.w
+	local inner = w - t.pad * 2
+	local bodySize = if compact then t.cbodySize else t.bodySize
+	local lines = {
+		titleH = math.ceil(Layout.wrappedHeight(title, t.titleSize, inner, true)),
+		bodyH = math.ceil(Layout.wrappedHeight(body, bodySize, inner, false)),
+		timeH = math.ceil(Layout.wrappedHeight(time, t.timeSize, inner, true)),
+	}
+	return w, t.pad * 2 + lines.titleH + lines.bodyH + lines.timeH + t.line * 2, lines
+end
+
+-- The card over `anchor` (a status slot), centred on it, clamped MARGIN inside the screen; below the icon
+-- if there is no room above.
+function Layout.tooltipRect(screen: Screen, anchor: Rect, w: number, h: number): Rect
+	local m, gap = Layout.MARGIN, Layout.TOOLTIP.gap
+	local x = math.clamp(anchor.x + anchor.w / 2 - w / 2, m, math.max(screen.width - m - w, m))
+	local y = anchor.y - gap - h
+	if y < m then
+		y = math.min(anchor.y + anchor.h + gap, math.max(screen.height - m - h, m))
+	end
+	return Layout.rect(x, y, w, h)
+end
+
 -- Nav ----------------------------------------------------------------------------
+-- B5 (ui_reference.png): a grid of rounded square tiles, the icon on the tile, the label under it, `columns`
+-- (default 2) wide, filled left to right then down. No panel behind it. A nav "button" (navButtons) is a tile
+-- plus its label, so a tap on either opens the menu.
 
 Layout.NAV = table.freeze({
 	left = Layout.MARGIN,
-	padding = 6,
-	gap = 3, -- 9 buttons still fit a 390x844 phone above the bottom cards
-	button = Layout.BUTTON,
-	expandedWidth = 148, -- fits the longest label ("SlimeDex")
-	collapsedWidth = 68, -- 56 px icon buttons + padding (~54 screen px on a phone)
-	count = #Nav.ENTRIES + 1, -- + the collapse toggle
+	top = 56, -- under Roblox's own profile / voice chips (top-left); short screens start at Layout.TOP
+	columns = 2,
+	gap = 8,
+	cgap = 6,
+	cell = 78, -- tile + label width: fits the longest label ("SlimeDex") at labelSize
+	ccell = 70,
+	tile = 66, -- the rounded square
+	ctile = 58, -- 58 x 0.8 = 46 screen px >= MIN_TOUCH
+	label = 20, -- label row under the tile
+	clabel = 17,
+	labelSize = 16,
+	clabelSize = 13,
+	labelGap = 2,
+	iconInset = 8, -- item icon inside the tile
+	count = #Nav.ENTRIES,
 })
 
 -- Nav badge chip: top-right corner of its button, inset so it never leaves the
@@ -417,56 +438,66 @@ function Layout.navBadge(button: Rect, text: string): Rect
 	return Layout.rect(button.x + button.w - b.inset - w, button.y + b.inset, w, b.height)
 end
 
--- Nav width for `columns` button columns (default 1).
-function Layout.navWidth(collapsed: boolean, columns: number?): number
-	local one = if collapsed then Layout.NAV.collapsedWidth else Layout.NAV.expandedWidth
-	local cols = columns or 1
-	local p = Layout.NAV.padding
-	return p * 2 + cols * (one - p * 2) + (cols - 1) * Layout.NAV.gap
+function Layout.navCellSize(compact: boolean): (number, number)
+	local n = Layout.NAV
+	return if compact then n.ccell else n.cell,
+		(if compact then n.ctile + n.labelGap + n.clabel else n.tile + n.labelGap + n.label)
+end
+
+function Layout.navGap(compact: boolean): number
+	return if compact then Layout.NAV.cgap else Layout.NAV.gap
+end
+
+-- The rounded square inside a nav button box.
+function Layout.navTile(compact: boolean, button: Rect): Rect
+	local tile = if compact then Layout.NAV.ctile else Layout.NAV.tile
+	return Layout.rect(button.x + (button.w - tile) / 2, button.y, tile, tile)
+end
+
+-- Nav width for `columns` tile columns (default NAV.columns).
+function Layout.navWidth(compact: boolean, columns: number?): number
+	local cols = columns or Layout.NAV.columns
+	local w = Layout.navCellSize(compact)
+	return cols * w + (cols - 1) * Layout.navGap(compact)
 end
 
 -- Nav height for `count` buttons (default all) in `columns` columns.
-function Layout.navHeight(count: number?, columns: number?): number
-	local n = math.ceil((count or Layout.NAV.count) / (columns or 1))
-	return Layout.NAV.padding * 2 + n * Layout.NAV.button + math.max(n - 1, 0) * Layout.NAV.gap
+function Layout.navHeight(compact: boolean, count: number?, columns: number?): number
+	local rows = math.ceil((count or Layout.NAV.count) / (columns or Layout.NAV.columns))
+	local _, h = Layout.navCellSize(compact)
+	return rows * h + math.max(rows - 1, 0) * Layout.navGap(compact)
 end
 
--- Fewest columns (1..count) whose nav fits in `height`; all columns (one
--- row) when nothing fits.
-function Layout.navColumns(height: number, count: number?): number
+-- Fewest columns (NAV.columns..count) whose nav fits in `height`; all columns (one row) when nothing fits.
+function Layout.navColumns(compact: boolean, height: number, count: number?): number
 	local n = count or Layout.NAV.count
-	for cols = 1, n do
-		if Layout.navHeight(n, cols) <= height then
+	for cols = Layout.NAV.columns, n do
+		if Layout.navHeight(compact, n, cols) <= height then
 			return cols
 		end
 	end
 	return n
 end
 
--- Collapsed on phones / small windows, labelled on desktop.
-function Layout.navDefaultCollapsed(viewportW: number, viewportH: number): boolean
-	return Layout.isCompact(viewportW, viewportH)
+-- The nav: left edge, top at `top`.
+function Layout.navRect(compact: boolean, top: number, count: number?, columns: number?): Rect
+	return Layout.rect(
+		Layout.NAV.left,
+		top,
+		Layout.navWidth(compact, columns),
+		Layout.navHeight(compact, count, columns)
+	)
 end
 
--- The nav: left edge, centred in the band between `top` and `bottom`, never
--- above `top`.
-function Layout.navRect(collapsed: boolean, top: number, bottom: number, count: number?, columns: number?): Rect
-	local h = Layout.navHeight(count, columns)
-	local y = math.max(top, top + (bottom - top - h) / 2)
-	return Layout.rect(Layout.NAV.left, y, Layout.navWidth(collapsed, columns), h)
-end
-
--- Button boxes inside a nav rect ([1] = toggle), filled column by column.
-function Layout.navButtons(nav: Rect, count: number?, columns: number?): { Rect }
+-- Button boxes inside a nav rect (Nav.ENTRIES order), filled left to right, then down.
+function Layout.navButtons(compact: boolean, nav: Rect, count: number?, columns: number?): { Rect }
 	local out = {}
-	local p, gap, size = Layout.NAV.padding, Layout.NAV.gap, Layout.NAV.button
-	local n = count or Layout.NAV.count
-	local cols = columns or 1
-	local perColumn = math.ceil(n / cols)
-	local w = (nav.w - p * 2 - (cols - 1) * gap) / cols
-	for i = 1, n do
-		local col, row = (i - 1) // perColumn, (i - 1) % perColumn
-		table.insert(out, Layout.rect(nav.x + p + col * (w + gap), nav.y + p + row * (size + gap), w, size))
+	local gap = Layout.navGap(compact)
+	local w, h = Layout.navCellSize(compact)
+	local cols = columns or Layout.NAV.columns
+	for i = 1, count or Layout.NAV.count do
+		local col, row = (i - 1) % cols, (i - 1) // cols
+		table.insert(out, Layout.rect(nav.x + col * (w + gap), nav.y + row * (h + gap), w, h))
 	end
 	return out
 end
@@ -476,12 +507,12 @@ end
 Layout.CARRY = table.freeze({ w = 420, h = 96 })
 -- Carry card text column = card width minus this (swatch left, Drop right).
 Layout.CARRY_TEXT_RESERVE = 190
-Layout.CARRY_MIN_W = 340 -- narrowest carry card (short screens, beside the tutorial card)
+Layout.CARRY_MIN_W = 320 -- narrowest carry card (short screens, beside the tutorial card)
 Layout.TUTORIAL_BESIDE_MIN = 260 -- narrowest tutorial card beside the carry card
 Layout.DAILY = table.freeze({ w = 420, h = 300 })
 Layout.TUTORIAL = table.freeze({ w = 520, bodyTop = 68, bodyTextSize = 14, padX = 14, padBottom = 12 })
 -- Short (landscape phone) screens: the tutorial card sits this many screen px
--- above the bottom edge, below the banner stack and the toast column.
+-- above the bottom edge, below the banner stack.
 Layout.TUTORIAL_SHORT_MARGIN = 8
 Layout.TUTORIAL_SHORT_HEIGHT = 500 -- viewport px: shorter than this is a landscape phone
 
@@ -519,7 +550,6 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Welcome = 380,
 })
 Layout.BANNER_WIDTH = 560
-Layout.TOAST_WIDTH = 320
 
 -- Space kept free at the bottom of the screen (touch controls on phones).
 function Layout.bottomInset(compact: boolean): number
@@ -537,7 +567,7 @@ function Layout.tutorialHeight(width: number): number
 end
 
 -- The full-window menu box: right of the nav (so the player can switch
--- menus), from under the HUD down to the bottom inset (touch controls on
+-- menus), from the top margin down to the bottom inset (touch controls on
 -- phones). The bottom cards (carry, tutorial) draw above it (ZINDEX), so
 -- Drop / Hide stay tappable while a menu is open.
 function Layout.fullWindowRect(columnX: number, top: number, width: number, height: number, inset: number): Rect
@@ -570,18 +600,12 @@ end
 
 -- The menu card for a Nav key (or "Guide" / "Welcome") on `screen`: screen.menuX /
 -- menuW, as tall as its measured body content (`contentH`, Widgets.contentHeight;
--- MENU_HEIGHTS when nil), at most the backdrop. Centred in the backdrop
--- unless that would push its X under the toasts (phones: the card spans the
--- width), then at the top of the backdrop, where the X has always been.
+-- MENU_HEIGHTS when nil), at most the backdrop, centred in it.
 function Layout.panelFor(screen: Screen, key: string, contentH: number?): Rect
 	local back = screen.panel
 	local want = if contentH then Layout.cardHeight(contentH) else Layout.menuHeight(key)
 	local h = math.min(want, back.h)
 	local y = back.y + math.floor((back.h - h) / 2)
-	local close = Layout.panelClose(Layout.rect(screen.menuX, y, screen.menuW, h))
-	if Layout.overlaps(close, screen.toasts) or Layout.overlaps(close, screen.hud.rect) then
-		y = back.y
-	end
 	return Layout.rect(screen.menuX, y, screen.menuW, h)
 end
 
@@ -623,10 +647,7 @@ local function centredIn(column: Rect, screenW: number, width: number): (number,
 	return x, w
 end
 
-export type ScreenOptions = {
-	navCollapsed: boolean?, -- nil: Layout.navDefaultCollapsed
-	hudVisible: { [string]: boolean }?,
-}
+export type ScreenOptions = {}
 
 -- Bottom cards centred on the screen inside `row` (x / w only): carry on the
 -- bottom line, tutorial above the inset, and above the carry card while
@@ -662,28 +683,13 @@ local function bottomCards(
 	return carry, tutorial, tutorialCarrying
 end
 
--- The toast stack's box with the banner stack `bannerH` px tall: toasts that
--- would sit under the banners (phones: both reach the middle) start below them.
-function Layout.toastBox(screen: Screen, bannerH: number): Rect
-	local t, b = screen.toasts, screen.banners
-	if bannerH <= 0 or t.x >= b.x + b.w or b.x >= t.x + t.w then
-		return t
-	end
-	local y = math.max(t.y, b.y + bannerH + Layout.GAP)
-	return Layout.rect(t.x, y, t.w, math.max(math.min(t.h, screen.height - Layout.MARGIN - y), 0))
-end
-
 -- Every top-level box for a ScreenGui of viewportW x viewportH (see header).
--- One pass in priority order: HUD, nav, bottom cards, then the menu column
+-- One pass in priority order: the bottom clusters, nav, bottom cards, then the menu column
 -- and overlays in what is left, so nothing has to be moved afterwards.
-function Layout.screen(viewportW: number, viewportH: number, options: ScreenOptions?): Screen
-	local opts: ScreenOptions = options or {}
+function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOptions?): Screen
 	local scale = Layout.uiScale(viewportW, viewportH)
 	local W, H = viewportW / scale, viewportH / scale
 	local compact = Layout.isCompact(viewportW, viewportH)
-	local collapsed = if opts.navCollapsed == nil
-		then Layout.navDefaultCollapsed(viewportW, viewportH)
-		else opts.navCollapsed
 	local m, gap = Layout.MARGIN, Layout.GAP
 	local inset = Layout.bottomInset(compact)
 
@@ -691,25 +697,18 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	-- bottom-right.
 	local rise = if compact then math.ceil(Layout.TOUCH_RISE / scale) else 0
 	local money = Layout.moneyCluster(compact, m, H - inset - rise)
-	local status = Layout.statusCluster(W - m, H - inset - rise)
+	local status = Layout.statusCluster(compact, W - m, H - inset - rise)
 
-	-- 1. HUD. "Short" (landscape phone): one nav column won't fit between a
-	-- two-row compact HUD and the money cluster, so the HUD takes one row when
-	-- that row fits the width.
-	local hud = Layout.hud(W, compact, opts.hudVisible)
-	local short = false
-	if compact and hud.rect.y + hud.rect.h + gap + Layout.navHeight() > money.rect.y - gap then
-		local oneRow = Layout.hud(W, compact, opts.hudVisible, true)
-		if oneRow.rect.w <= W - m * 2 then
-			short, hud = true, oneRow
-		end
-	end
-	local hudBottom = hud.rect.y + hud.rect.h
-	local top = hudBottom + gap
+	-- 1. "Short" (landscape phone): the default two nav columns won't fit above the money cluster, so
+	-- the nav starts at the top margin, takes more columns, and the bottom cards go between the clusters.
+	local short = compact and Layout.TOP + Layout.navHeight(compact) + gap > money.rect.y - gap
+	local top = if short then Layout.TOP else Layout.NAV.top
 	-- Narrower than the carry card plus both clusters (portrait phones): the bottom cards sit above
 	-- the clusters instead of beside them.
 	local clusterH = math.max(money.rect.h, status.rect.h)
-	local lift = if not short and W < Layout.CARRY.w + 2 * (Layout.MONEY.w + m + gap) then rise + clusterH + gap else 0
+	local lift = if not short and W < Layout.CARRY.w + money.rect.w + status.rect.w + 2 * (m + gap)
+		then rise + clusterH + gap
+		else 0
 	local cardInset = inset + lift
 	-- S3 hotbar (InventoryLayout): bottom-centre between the clusters, above them on a narrow phone; short
 	-- phones hug the bottom edge. The server unequips tools while carrying, so the bar is hidden then and the
@@ -718,70 +717,55 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 	local cardMargin = if short and viewportH < Layout.TUTORIAL_SHORT_HEIGHT
 		then Layout.TUTORIAL_SHORT_MARGIN / scale
 		else nil
-	-- Short and too low to stack the tutorial over the carry card: they go
-	-- side by side, which leaves no width for a labelled nav grid.
+	-- Short and too low to stack the tutorial over the carry card: they go side by side.
 	local beside = short and H - inset - top < Layout.CARRY.h + gap + Layout.tutorialHeight(Layout.TUTORIAL.w)
-	if beside then
-		collapsed = true
-	end
 
-	-- 2. Nav: centred between the HUD and the highest bottom card / the money cluster. Short: as
-	-- many columns as it takes to fit from the HUD down to the money cluster; the bottom cards
-	-- then sit right of the money cluster (step 3).
+	-- 2. Nav: top-left, 2 columns (short: as many as it takes to fit from the top down to the money
+	-- cluster; the bottom cards then sit right of the money cluster, step 3).
 	local fullRow = Layout.rect(m, 0, W - m * 2, 0)
 	local hotbarBottom = if short then H - math.max(cardMargin or inset, m) else H - cardInset
 	local tutorialLift = (H - (cardMargin or cardInset)) - (hotbarBottom - hotbarH) + gap
 	local _, tutorial0, tutorialCarrying0 = bottomCards(fullRow, W, H, cardInset, nil, nil, tutorialLift)
 	local navBottom = if short then money.rect.y - gap else math.min(tutorial0.y, tutorialCarrying0.y) - gap
 	navBottom = math.min(navBottom, money.rect.y - gap)
-	local columns = if short then Layout.navColumns(navBottom - top) else 1
-	if columns > 2 then
-		collapsed = true -- a labelled 3-column grid would squeeze the bottom cards and menus
-	end
-	local nav = Layout.navRect(collapsed, top, navBottom, nil, columns)
-	local columnX = nav.x + nav.w + gap
+	local columns = if short then Layout.navColumns(compact, navBottom - top) else Layout.NAV.columns
+	local nav = Layout.navRect(compact, top, nil, columns)
+	local navRight = nav.x + nav.w + gap
+	-- Phones: an open menu card gets the nav's width too (init.client hides the nav tiles while a menu is open);
+	-- desktop: the card area is right of the nav so the player can switch menus.
+	local columnX = if compact then m else navRight
 	local columnW = W - m - columnX
 
-	-- 3. Bottom cards. Full screen width (the nav ends above them), so a
-	-- phone card doesn't shrink when the nav is expanded; short: between the money cluster
+	-- 3. Bottom cards. Full screen width (the nav ends above them); short: between the money cluster
 	-- and the status cluster (the nav sits above the money cluster, clear of the cards).
 	local cardsX = money.rect.x + money.rect.w + gap
 	local row = if short then Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0) else fullRow
 	local carry, tutorial, tutorialCarrying = bottomCards(row, W, H, cardInset, beside, cardMargin, tutorialLift)
 	local between = Layout.rect(cardsX, 0, math.max(status.rect.x - gap - cardsX, 0), 0)
-	local hotbarX = if lift > 0 then m else between.x
-	local hotbarW = if lift > 0 then W - m * 2 else between.w
+	-- Truly bottom-centre: the zone is symmetric about the screen centre, as wide as the nearer cluster allows.
+	local half = math.max(math.min(W / 2 - between.x, between.x + between.w - W / 2), 0)
+	local hotbarX = if lift > 0 then m else W / 2 - half
+	local hotbarW = if lift > 0 then W - m * 2 else half * 2
 	local hotbar = Layout.rect(hotbarX, hotbarBottom - hotbarH, hotbarW, hotbarH)
 
 	-- 4. The column (right of the nav) above the bottom cards; menus use the
 	-- full-window box, which runs on down to the bottom inset.
-	local column = Layout.rect(columnX, top, columnW, math.max(math.min(tutorial.y, carry.y) - gap - top, 0))
-	local panel = Layout.fullWindowRect(columnX, top, W, H, inset)
+	local column =
+		Layout.rect(columnX, Layout.TOP, columnW, math.max(math.min(tutorial.y, carry.y) - gap - Layout.TOP, 0))
+	local panel = Layout.fullWindowRect(columnX, Layout.TOP, W, H, inset)
 
 	-- Menu cards: MENU_WIDTH (at most the backdrop), centred in it.
 	local menuW = math.min(Layout.MENU_WIDTH, panel.w)
 	local menuX = panel.x + math.floor((panel.w - menuW) / 2)
 
-	-- 5. Overlays. Banners and toasts draw above menus, so both keep clear of the menu
-	-- close X (top-right of the card / the full-window box). Banners may cover
-	-- a menu title, but stay centred left of the X column; toasts stack under
-	-- the X row.
-	local wideClose = Layout.panelClose(Layout.fullWindowRect(0, top, W, H, inset))
-	local cardClose = Layout.panelClose(Layout.rect(menuX, top, menuW, 0))
+	-- 5. Overlays. Banners draw above menus, so they keep clear of the menu close X (top-right of the
+	-- card / the full-window box) and right of the nav: centred in the strip between them.
+	local wideClose = Layout.panelClose(Layout.fullWindowRect(0, Layout.TOP, W, H, inset))
+	local cardClose = Layout.panelClose(Layout.rect(menuX, Layout.TOP, menuW, 0))
 	local close = if cardClose.x < wideClose.x then cardClose else wideClose
-	-- Short: the nav runs up to the HUD, so banners also keep right of it.
-	local bannerX, bannerW
-	if short then
-		local span = Layout.rect(columnX, 0, math.max(close.x - gap - columnX, 0), 0)
-		bannerX, bannerW = centredIn(span, W, Layout.BANNER_WIDTH)
-	else
-		bannerW = math.min(Layout.BANNER_WIDTH, W - m * 2, 2 * (close.x - gap) - W)
-		bannerX = (W - bannerW) / 2
-	end
-	local banners = Layout.rect(bannerX, hudBottom + 8, bannerW, 0)
-	local toastW = math.min(Layout.TOAST_WIDTH, W - m * 2)
-	local toastY = wideClose.y + wideClose.h + gap
-	local toasts = Layout.rect(W - m - toastW, toastY, toastW, math.max(math.min(300, H - m - toastY), 0))
+	local span = Layout.rect(navRight, 0, math.max(close.x - gap - navRight, 0), 0)
+	local bannerX, bannerW = centredIn(span, W, Layout.BANNER_WIDTH)
+	local banners = Layout.rect(bannerX, Layout.TOP, bannerW, 0)
 
 	local dailyW = math.min(Layout.DAILY.w, W - m * 2)
 	local dailyH = math.min(Layout.DAILY.h, H - m * 2)
@@ -795,18 +779,15 @@ function Layout.screen(viewportW: number, viewportH: number, options: ScreenOpti
 		height = H,
 		compact = compact,
 		short = short,
-		navCollapsed = collapsed,
 		navColumns = columns,
 		bottomInset = inset,
-		hud = hud,
 		money = money,
 		status = status,
 		hotbar = hotbar,
 		banners = banners,
-		toasts = toasts,
 		sound = wideClose,
 		nav = nav,
-		navButtons = Layout.navButtons(nav, nil, columns),
+		navButtons = Layout.navButtons(compact, nav, nil, columns),
 		column = column,
 		panel = panel,
 		menuX = menuX,

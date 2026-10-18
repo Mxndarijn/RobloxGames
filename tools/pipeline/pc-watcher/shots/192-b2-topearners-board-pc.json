@@ -1,0 +1,10 @@
+{
+  "id": "b2-topearners-board-pc",
+  "todo": "b2",
+  "kind": "world",
+  "target": "LeaderboardBoard",
+  "from": "centre",
+  "dist": 16,
+  "height": 11,
+  "note": "B2 (Merijn 2026-10-18): the Top Earners list sits straight on the board's warm cream face, no black backing panel; dark ink (brown names, green money, gold / silver / bronze ranks) at 4.5:1 or better, tan stripes, my own row mint. Look for any dark rectangle behind the text"
+}

@@ -69,17 +69,11 @@ describe("banners never cover an open menu card's title or X", function()
 		for _, name in
 			{
 				"StealAlert",
-				"EventsBoard",
 				"EggReveal",
-				"PadHint",
 			}
 		do
-			-- EventsBoard is a content-sized Frame (icon rows) parented to banners, not a plain text banner
 			local isBanner = string.find(hud, `banner(banners, "{name}"`, 1, true) ~= nil
-			local isBannersFrame = name == "EventsBoard"
-				and string.find(hud, `Name = "EventsBoard"`, 1, true) ~= nil
-				and string.find(hud, "Parent = banners,", 1, true) ~= nil
-			expect(isBanner or isBannersFrame).toBe(true)
+			expect(isBanner).toBe(true)
 		end
 	end)
 end)
@@ -97,7 +91,7 @@ describe("tutorial UI never covers an open menu card", function()
 				end
 				for _, step in { "Lock", "BuyPad", "Merge", "Rebirth" } do
 					local view = Hint.fromState({ tutorialStepId = step }, nil)
-					local p = if view then Hint.place(s, s.hud, view) else nil
+					local p = if view then Hint.place(s, view) else nil
 					if p then
 						expect(MenuState.tutorialRect(key, p.ring)).toBeNil()
 						expect(MenuState.tutorialRect(key, p.bubble)).toBeNil()

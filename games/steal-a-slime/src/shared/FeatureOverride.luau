@@ -19,7 +19,6 @@ FeatureOverride.FLAGS = table.freeze({
 	"RainMagnet",
 	"StealAlerts",
 	"WeeklyEvents",
-	"EventsBoard",
 	"PlotSkins",
 	"ServerProfiler",
 	"Audio",
