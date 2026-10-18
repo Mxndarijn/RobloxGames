@@ -25,7 +25,7 @@ nothing changes piecemeal. `WeatherFx` writes the tint; `NightSky` listens to `W
 Atmosphere / ambient part on top of the day-night look. A change mid-tween starts from what is on screen. Targets live in
 `WeatherLook.LOOKS[id].tint / atmo`. Shots: `18-weather-<id>-<device>` (settled, 3.9 s) and `18-weather-<id>-mid-<device>` (1.2 s).
 
-## Ground snow (SnowGround v2, `FEATURES.SnowGround`)
+## Ground snow (SnowGround v2)
 
 ON. "Snow on the surfaces, no sheet": v1 laid one translucent Snow Part over the whole ground and washed the plaza sand and
 paths into a flat grey/white sheet (cut in #223). v2 has NO overlay. `visuals/client/SnowGround` tints surfaces that already
@@ -33,7 +33,7 @@ exist, client-side only: the `Ground` block (and other big flat grass parts) ler
 weight; the border Terrain gets `SetMaterialColor` for Grass / LeafyGrass (full) and Rock (35 %); paths, the plaza disc and
 the pads get only a light frost (max 22 %) so they stay readable. Materials never change (no pop). Cost: 0 parts, 0 mesh
 slots (`SnowCover.PART_COUNT / MESH_SLOTS`), and it is flush by construction: no second layer, so no z-fighting and nothing
-clipping into props. Props / roofs get no snow. `WeatherFx` only calls `SnowGround.start` with the flag on.
+clipping into props. Props / roofs get no snow. `WeatherFx` only calls `SnowGround.start` with `FEATURES.Weather` on (or the weather debug attribute set).
 
 **SnowKind (B11 floor).** A surface can declare its class with the attribute `SnowKind` = `grass` | `path` | `none`
 (`SnowCover.KIND_ATTRIBUTE`; it wins over the name / folder / material guess in `SnowCover.classify`). `FloorLayout` sets it on
@@ -95,7 +95,7 @@ New ids are appended to `Config.MUTATIONS` by #8 (the array is ordered by multip
 `tests/Weather.spec.luau` (cycle, replication, quality scaling and cap, flag off, hook API). Watcher shots
 `18-weather-Rain|Snow|Starfall` (`shots/*.json`, `weather` + `wait`, `luau/weather_set`).
 
-## Weather mutations (#8, FEATURES.WeatherMutations, save v5)
+## Weather mutations (#8, save v5)
 
 `Config.WEATHER`: Rain -> `Wet` (+0.10), Snow -> `Frozen` (+0.10), Starfall -> `Galaxy` (+0.05), Clear none. `Genome.rollMutation`
 reads `Weather.data(Weather.getCurrent())` through a cache refreshed from `Weather.Changed` (`Genome.bindWeather`): while a weather with a

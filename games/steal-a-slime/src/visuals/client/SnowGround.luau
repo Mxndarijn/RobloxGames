@@ -1,6 +1,6 @@
 --!strict
 --[[
-	SnowGround v2 (VisualsClient module, FEATURES.SnowGround): "snow on the surfaces, no sheet".
+	SnowGround v2 (VisualsClient module): "snow on the surfaces, no sheet".
 
 	Client-only ground snow made by TINTING surfaces that already exist, so it adds zero parts and zero mesh
 	slots (SnowCover.PART_COUNT / MESH_SLOTS = 0) and is flush by construction: there is no second layer to

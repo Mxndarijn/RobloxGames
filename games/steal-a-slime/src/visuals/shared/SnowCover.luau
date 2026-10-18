@@ -1,6 +1,6 @@
 --!strict
 --[[
-	SnowCover (owner: Archer, FEATURES.Weather + FEATURES.SnowGround, SnowGround v2)
+	SnowCover (owner: Archer, FEATURES.Weather, SnowGround v2)
 
 	The ground snow as pure maths, so the Lune tests and the render exporter share it with the client.
 	`level` is 0..1: it builds up while it snows (BUILD_SECONDS from bare to full) and melts away after
