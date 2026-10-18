@@ -294,9 +294,6 @@ local function setAudioSettings(session: Session, music: number, sfx: number, mu
 end
 
 local function appraise(world: World, session: Session, id: string, kind: string, now: number, ctx: Context): Result
-	if not Config.FEATURES.Appraise then
-		return fail("appraise is off")
-	end
 	if World.isBusy(world, id) then
 		return fail("slime is busy")
 	end

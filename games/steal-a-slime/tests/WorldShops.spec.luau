@@ -58,13 +58,13 @@ describe("Shops catalogue", function()
 			end
 			return false
 		end
-		local on = Shops.items("ItemShop", { MysteryEgg = true, Consumables = false, PvP = true })
+		local on = Shops.items("ItemShop", { Consumables = false, PvP = true })
 		expect(has(on, "MysteryEgg")).toBe(true)
 		expect(has(on, "MutationSpray")).toBe(false)
 		expect(has(on, Config.PVP_TOOLS[1].id)).toBe(true)
 		local off = Shops.items("ItemShop", {})
 		expect(has(off, "Lock")).toBe(true)
-		expect(has(off, "MysteryEgg")).toBe(false)
+		expect(has(off, "MysteryEgg")).toBe(true)
 		expect(has(Shops.items("UpgradeShop", {}), "RainMagnet")).toBe(false)
 		expect(has(Shops.items("UpgradeShop", { RainMagnet = true }), "RainMagnet")).toBe(true)
 		expect(#Shops.items("Nope", {})).toBe(0)

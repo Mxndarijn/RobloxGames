@@ -40,8 +40,7 @@ local function slime()
 end
 
 describe("Appraise", function()
-	it("is a flagged, rate-limited, declared action (default on)", function()
-		expect(Config.FEATURES.Appraise).toBe(true)
+	it("is a rate-limited, declared action", function()
 		expect(Remotes.ACTIONS.Appraise ~= nil).toBeTruthy()
 		expect(Validate.ACTIONS.Appraise ~= nil).toBeTruthy()
 	end)

@@ -45,7 +45,7 @@ Remotes.ACTIONS = table.freeze({
 	BuyUpgrade = table.freeze({ args = { "string" } }), -- Config.UPGRADES id (CONTRACT.md §8.1)
 	BuyEgg = table.freeze({ args = {} }), -- Mystery Egg: cash only, hatches into a slime on your plot
 	Drop = table.freeze({ args = {} }),
-	Appraise = table.freeze({ args = { "string", "string" } }), -- slimeId, "mutation" | "size" (FEATURES.Appraise)
+	Appraise = table.freeze({ args = { "string", "string" } }), -- slimeId, "mutation" | "size"
 	Redeem = table.freeze({ args = { "code" } }), -- typed code text (Codes.normalize on the server)
 	EquipPlotSkin = table.freeze({ args = { "string" } }), -- Config.PLOT_SKINS id (FEATURES.PlotSkins, CONTRACT.md §15)
 	BuyConsumable = table.freeze({ args = { "string", "string?" } }), -- Config.CONSUMABLES id, slimeId (ignored: buying only adds to the held stack) (FEATURES.Consumables)

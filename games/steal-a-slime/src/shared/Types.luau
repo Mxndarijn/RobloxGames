@@ -37,7 +37,7 @@ export type SlimeView = {
 	slime: SlimeData,
 	income: number, -- cash/sec incl. rebirth multiplier (0 while stolenBy ~= nil)
 	sellPrice: number,
-	appraiseCost: number?, -- Appraise price (FEATURES.Appraise); nil when the feature is off
+	appraiseCost: number?, -- Appraise price (Appraise.cost)
 	stolenBy: number?, -- UserId of the player currently carrying it away
 }
 
@@ -91,7 +91,7 @@ export type DailyView = { available: boolean, streak: number, amount: number, da
 export type ShopView = {
 	LockUpgrade: { price: number?, level: number, maxLevel: number },
 	SpeedCoil: { price: number?, owned: boolean },
-	MysteryEgg: { price: number }?, -- FEATURES.MysteryEgg only
+	MysteryEgg: { price: number },
 }
 
 -- State.pvp (FEATURES.PvP, CONTRACT.md §26.1): nil with the flag off.
@@ -128,7 +128,6 @@ export type ConsumablesView = {
 
 -- State.egg: the newest hatch, for the reveal banner (never saved).
 export type EggView = {
-	enabled: boolean,
 	price: number,
 	hatched: { slime: SlimeData, at: number }?,
 }
@@ -226,7 +225,7 @@ export type State = {
 	stats: StatsView,
 	boss: BossView,
 	modifier: ModifierView, -- FEATURES.CycleModifier
-	egg: EggView, -- FEATURES.MysteryEgg
+	egg: EggView,
 	consumables: ConsumablesView?, -- FEATURES.Consumables (nil when off)
 	pvp: PvpView?, -- FEATURES.PvP (nil when off)
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
@@ -235,7 +234,7 @@ export type State = {
 	settings: { musicVolume: number, sfxVolume: number, muted: boolean }?, -- FEATURES.Audio: saved Sound card values (nil when off)
 	plotSkin: string?, -- FEATURES.PlotSkins: equipped skin id (nil when off)
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
-	welcomeBack: { away: number, cash: number, grown: number }?, -- FEATURES.WelcomeBack: join report (seconds away, offline cash paid, pad slimes grown); nil = none (CONTRACT.md §19)
+	welcomeBack: { away: number, cash: number, grown: number }?, -- join report (seconds away, offline cash paid, pad slimes grown); nil = none (CONTRACT.md §19)
 	stealAway: string?, -- FEATURES.StealAlerts: "While you were away N slimes were stolen by ..." from the saved steal log; nil = none (CONTRACT.md §17)
 }
 

@@ -37,12 +37,12 @@
 	Both paths share the LOD: nearest SlimeLife.MAX_ACTIVE slimes, within
 	MAX_DISTANCE and on screen.
 
-	LOD (Config.FEATURES.SlimeLod, off by default; SlimeLod, Config.SLIME_LOD):
+	LOD (SlimeLod, Config.SLIME_LOD):
 	the "motor" rigs get a tier per reselect from the camera distance and the
 	saved graphics quality. near = full motion every frame, mid = squish only
 	(smaller, every MID_EVERY frames), far = Transform reset once, then
 	skipped. The model attribute LifeTier ("near" | "mid" | "far", client-only)
-	says which; pc-watcher counts it. Flag off = every motor slime is near.
+	says which; pc-watcher counts it.
 
 	Cost: at most SlimeLife.MAX_ACTIVE rigs within SlimeLife.MAX_DISTANCE of
 	the camera, 3-4 property writes each per frame, selection 4x a second,
@@ -122,7 +122,6 @@ local animationIds = if animationsOn then SlimeAnim.ids(MeshAssets.animationId) 
 local probe: SlimeAnim.Verdict? = nil -- nil = not started; "wait" | "ok" | "failed"
 local animationInstances: { [string]: Animation } = {} -- one per id, shared by every rig
 local active: { [string]: boolean } = {}
-local lodOn = Config.FEATURES.SlimeLod == true
 local lodConfig: SlimeLod.Cfg = Config.SLIME_LOD
 local qualityLevel: number? = nil
 local frame = 0
@@ -671,16 +670,14 @@ local function reselect(camera: Camera)
 		active[slimeId(model)] = true
 	end
 	-- LOD tiers for the motor rigs, from the distances this selection already measured.
-	if lodOn then
-		refreshQuality()
-		for _, c in cands do
-			local rig = motorRigs[(c :: any).model]
-			if rig then
-				local tier = SlimeLod.tierFor(lodConfig, qualityLevel, c.distance, rig.tier)
-				if tier ~= rig.tier then
-					rig.tier = tier
-					rig.model:SetAttribute("LifeTier", tier)
-				end
+	refreshQuality()
+	for _, c in cands do
+		local rig = motorRigs[(c :: any).model]
+		if rig then
+			local tier = SlimeLod.tierFor(lodConfig, qualityLevel, c.distance, rig.tier)
+			if tier ~= rig.tier then
+				rig.tier = tier
+				rig.model:SetAttribute("LifeTier", tier)
 			end
 		end
 	end

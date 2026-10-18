@@ -59,7 +59,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			slime = slime,
 			income = if carrier then 0 else PlayerData.slimeIncome(data, slime),
 			sellPrice = Economy.sellPrice(slime, rebirths),
-			appraiseCost = if Config.FEATURES.Appraise then Appraise.cost(slime, rebirths) else nil,
+			appraiseCost = Appraise.cost(slime, rebirths),
 			stolenBy = carrier,
 		})
 	end

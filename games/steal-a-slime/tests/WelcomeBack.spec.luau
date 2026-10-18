@@ -23,8 +23,7 @@ local function join(away: number): any
 end
 
 describe("WelcomeBack.report", function()
-	it("is on by default with a multi-hour threshold", function()
-		expect(Config.FEATURES.WelcomeBack).toBe(true)
+	it("has a multi-hour threshold", function()
 		expect(MIN >= 3600).toBe(true)
 	end)
 	it("needs at least WELCOME_BACK_MIN_SECONDS away", function()

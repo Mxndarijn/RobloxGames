@@ -2,7 +2,7 @@
 --[[
 	Plot panel: every slime on the plot with tier, income and sell price.
 	Buttons: Sell(slimeId) (hold to confirm), Favorite(slimeId) / Favorite(nil),
-	Appraise (FEATURES.Appraise): opens a popup with the cost; Appraise(slimeId,
+	Appraise: opens a popup with the cost; Appraise(slimeId,
 	"mutation" | "size") rerolls it and the popup shows before -> after.
 	Rows being stolen turn red and show the thief.
 ]]

@@ -582,7 +582,7 @@ function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
 	}
 	local actions = Remotes.ACTIONS
 	local features = table.clone(Config.FEATURES)
-	for _, flag in { "MysteryEgg", "Consumables", "PvP", "RainMagnet" } do
+	for _, flag in { "Consumables", "PvP", "RainMagnet" } do
 		(features :: any)[flag] = true
 	end
 	for _, shopId in Shops.ORDER do

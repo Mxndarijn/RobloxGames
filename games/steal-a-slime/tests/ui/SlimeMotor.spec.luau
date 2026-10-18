@@ -279,7 +279,7 @@ describe("pets stay static", function()
 	end)
 end)
 
-describe("LOD tiers (FEATURES.SlimeLod)", function()
+describe("LOD tiers", function()
 	local cfg = Config.SLIME_LOD
 	local function tiers(level: number?, distances: { number }): { string }
 		local out = {}
@@ -289,8 +289,7 @@ describe("LOD tiers (FEATURES.SlimeLod)", function()
 		return out
 	end
 
-	it("is on and the thresholds are in Config", function()
-		expect(Config.FEATURES.SlimeLod).toBe(true)
+	it("has its thresholds in Config", function()
 		expect(cfg.NEAR < cfg.MID).toBe(true)
 		expect(cfg.NEAR_LOW < cfg.NEAR and cfg.MID_LOW < cfg.MID).toBe(true)
 		expect(cfg.MID < SlimeLife.MAX_DISTANCE).toBe(true)
@@ -423,9 +422,8 @@ describe("LOD tiers (FEATURES.SlimeLod)", function()
 		expect(counts.near > 0 and counts.mid > 0).toBe(true)
 	end)
 
-	it("the runner gates tiers on the flag, reselects 4x a second and reads quality via the module", function()
+	it("the runner reselects 4x a second and reads quality via the module", function()
 		local src = fs.readFile("src/ui/SlimeLifeRunner.client.luau")
-		expect(string.find(src, "Config.FEATURES.SlimeLod == true", 1, true) ~= nil).toBe(true)
 		expect(string.find(src, "SELECT_EVERY = 0.25", 1, true) ~= nil).toBe(true)
 		expect(string.find(src, "SlimeLod.tierFor(", 1, true) ~= nil).toBe(true)
 		expect(string.find(src, "SlimeMotor.park", 1, true) ~= nil).toBe(true)

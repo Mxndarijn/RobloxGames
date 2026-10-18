@@ -662,7 +662,7 @@ local Config = {
 	SELL_SECONDS = 30, -- a slime sells for this many seconds of its income
 	OFFLINE_RATE = 0.5, -- fraction of income earned while offline
 	OFFLINE_CAP_SECONDS = 2 * 60 * 60, -- offline income stops accruing after 2 h
-	WELCOME_BACK_MIN_SECONDS = 4 * 60 * 60, -- FEATURES.WelcomeBack: away at least this long = a welcome-back card on join
+	WELCOME_BACK_MIN_SECONDS = 4 * 60 * 60, -- away at least this long = a welcome-back card on join
 
 	-- Rebirth
 	REBIRTH_BASE_COST = 5000,
@@ -730,7 +730,7 @@ local Config = {
 	MAX_MUTATIONS = 3, -- a slime carries at most this many mutations (a fused combo counts as one)
 	STACK_MUTATION_CHANCE = 0.25, -- chance per free slot that a mutated slime rolls one more (drops, merges, Appraise)
 
-	-- Appraise (FEATURES.Appraise): reroll one owned slime's mutation or size
+	-- Appraise: reroll one owned slime's mutation or size
 	APPRAISE_COST_FRACTION = 0.3, -- of the slime's current value (Economy.sellPrice)
 	APPRAISE_MUTATION_CHANCE = 0.6, -- chance a mutation reroll lands on a mutation (else None)
 
@@ -798,14 +798,11 @@ local Config = {
 		SlimeAnimations = true, -- slimes play the uploaded KeyframeSequences (MeshAssets.ANIMATIONS) once a probe track loads; false = procedural Motor6D motion (ui/SlimeMotor)
 		CycleModifier = true, -- a server modifier (Luck Surge, Mutation Surge, ...) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); needs DayNight; false = no modifier
 		SlideCollision = true, -- invisible colliders along the FULL fountain slide, top to mouth (B6: players fell through above LOW_SLIDE_Y); false = low stretch only
-		Appraise = true, -- pay APPRAISE_COST_FRACTION of a slime's value to reroll its mutation or size (Appraise)
-		MysteryEgg = true, -- a cash-only Mystery Egg in the Shop hatches a random slime (MysteryEgg); false = no egg, BuyEgg refused
 		FriendBonus = true, -- +FRIEND_BONUS_PER_FRIEND income per friend in the same server, up to FRIEND_BONUS_CAP (FriendBonus); false = no bonus
 		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
 		WeatherMutations = true, -- the current weather boosts the roll chance of its mutation (Config.WEATHER[id].mutation / chanceBonus; Genome.rollMutation); needs Weather to be on to ever leave Clear
 		Weather = true, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md
 		SnowGround = true, -- SnowGround v2: client ground snow by tinting the existing Ground / Terrain / paths (no extra parts or meshes), settles during Snow, melts after; v1 (one flat Snow Part) was cut in #223. Snowfall particles stay with Weather.
-		SlimeLod = true, -- distance / graphics-quality LOD tiers for the code-driven slime motion (SLIME_LOD, ui/SlimeLod); false = every animated slime gets full motion as before
 		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
 		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		PetPassives = true, -- the favourite (follow) slime grants a small capped perk by tier / mutations: income, luck or merge mutation chance (Perks.petPassive, CONTRACT.md §14); false = cosmetic only
@@ -813,7 +810,6 @@ local Config = {
 		PlotSkins = true, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
 		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
 		StealAlerts = true, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
-		WelcomeBack = true, -- v20 welcome-back card on join after WELCOME_BACK_MIN_SECONDS away (WelcomeBack, CONTRACT.md §19): offline cash, slimes grown, streak + goal; false = no State field, no card
 		WeeklyEvents = true, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
 		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)
 		FountainTiers = true, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
@@ -878,7 +874,7 @@ local Config = {
 		NAME_MAX = 20,
 	}),
 
-	-- Slime motion LOD (FEATURES.SlimeLod, ui/SlimeLod). Studs from the camera: full motion up to
+	-- Slime motion LOD (ui/SlimeLod). Studs from the camera: full motion up to
 	-- NEAR, squish only (smaller, every MID_EVERY frames) up to MID, static beyond. At a saved
 	-- graphics quality level of 1..LOW_QUALITY_MAX (0 = Automatic counts as normal) the *_LOW radii apply.
 	SLIME_LOD = table.freeze({
@@ -971,7 +967,7 @@ local Config = {
 		}),
 	}),
 
-	-- Mystery Egg (FEATURES.MysteryEgg): bought with in-game cash only, never Robux. The price is
+	-- Mystery Egg: bought with in-game cash only, never Robux. The price is
 	-- MYSTERY_EGG_PRICE x the rebirth multiplier, so selling the hatch never beats the price.
 	-- `tier` is a Config.RARITIES tier, `weight` its share of the drop table (Common and Secret never drop).
 	MYSTERY_EGG_PRICE = 2000,

@@ -1,6 +1,6 @@
 --!strict
 --[[
-	MysteryEgg (server, FEATURES.MysteryEgg)
+	MysteryEgg (server)
 
 	`buy` is the `BuyEgg` action: validates cash and the free pad through
 	Shared.MysteryEgg, hatches the slime onto the buyer's plot and records it

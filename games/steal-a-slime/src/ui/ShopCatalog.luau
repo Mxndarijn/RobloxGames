@@ -74,7 +74,7 @@ ShopCatalog.ITEMS = table.freeze({
 		name = "Mystery Egg",
 		icon = "🥚",
 		description = "Hatches a random slime. Cash only.",
-		action = "BuyEgg", -- shown only while State.shop.MysteryEgg exists (FEATURES.MysteryEgg)
+		action = "BuyEgg",
 		args = {},
 	}),
 } :: { Item })

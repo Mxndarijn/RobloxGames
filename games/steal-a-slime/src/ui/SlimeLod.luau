@@ -1,6 +1,6 @@
 --!strict
 --[[
-	SlimeLod (FEATURES.SlimeLod): level of detail for the code-driven slime
+	SlimeLod: level of detail for the code-driven slime
 	motion (SlimeMotor), on top of SlimeLife.select's cap and on-screen check.
 
 	  SlimeLod.readQuality(settings) -> number?   saved graphics level, nil = unknown

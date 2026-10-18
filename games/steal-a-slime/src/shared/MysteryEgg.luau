@@ -1,6 +1,6 @@
 --!strict
 --[[
-	MysteryEgg (pure, FEATURES.MysteryEgg)
+	MysteryEgg (pure)
 
 	A Shop egg bought with in-game cash only (never Robux). It hatches into a
 	slime rolled from Config.MYSTERY_EGG_DROPS (tier weights) through the same
@@ -20,10 +20,6 @@ local Types = if script then require(script.Parent.Types) else require("./Types"
 type Data = PlayerData.Data
 
 local MysteryEgg = {}
-
-function MysteryEgg.enabled(): boolean
-	return Config.FEATURES.MysteryEgg == true
-end
 
 -- Cash price for this player.
 function MysteryEgg.price(data: Data): number
@@ -70,9 +66,6 @@ end
 	Returns (true, slime) or (false, reason).
 ]]
 function MysteryEgg.hatchInto(data: Data, rng: Rng.Rng, id: string): (boolean, Genome.Slime | string)
-	if not MysteryEgg.enabled() then
-		return false, "eggs are off"
-	end
 	if not PlayerData.freePad(data) then
 		return false, "plot full"
 	end
@@ -89,9 +82,6 @@ end
 	The plot and the cash are checked before anything changes.
 ]]
 function MysteryEgg.buy(data: Data, rng: Rng.Rng, id: string): (boolean, Genome.Slime | string)
-	if not MysteryEgg.enabled() then
-		return false, "eggs are off"
-	end
 	if not PlayerData.freePad(data) then
 		return false, "plot full"
 	end
@@ -102,7 +92,7 @@ function MysteryEgg.buy(data: Data, rng: Rng.Rng, id: string): (boolean, Genome.
 end
 
 function MysteryEgg.view(data: Data, hatched: { slime: Genome.Slime, at: number }?): Types.EggView
-	return { enabled = MysteryEgg.enabled(), price = MysteryEgg.price(data), hatched = hatched }
+	return { price = MysteryEgg.price(data), hatched = hatched }
 end
 
 return table.freeze(MysteryEgg)

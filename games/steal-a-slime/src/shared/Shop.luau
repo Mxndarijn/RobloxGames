@@ -65,9 +65,8 @@ function Shop.walkSpeed(data: Data): number
 end
 
 function Shop.view(data: Data): Types.ShopView
-	local egg = if Config.FEATURES.MysteryEgg then { price = MysteryEgg.price(data) } else nil
 	return {
-		MysteryEgg = egg,
+		MysteryEgg = { price = MysteryEgg.price(data) },
 		LockUpgrade = {
 			price = Shop.lockUpgradeCost(data.lockLevel),
 			level = data.lockLevel,
