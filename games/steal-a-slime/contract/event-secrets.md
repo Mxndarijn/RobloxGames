@@ -11,6 +11,8 @@ no save-format change, nothing saved. Design note: `shared/modeling-kit/models/p
   - `EventSecrets.featured(now) -> Featured` with `Featured = { id, name, week, startsAt, endsAt }`.
   - `EventSecrets.extraSpecies(now) -> { SlimeRoster.Entry }`: the featured entry as a one-item list, for the spawn pool.
   - `EventSecrets.view(now) -> FeaturedSecretView` (`{ id, name, endsAt }`) for State.
+  - `EventSecrets.featuredWeek(id, now) -> number?`: unix start of the week `id` is featured (this week when it is
+    featured now, else its next week); nil for an id outside the rotation. The Dex reads it.
 - **Spawn pool.** A wild fountain drop (`Spawner.spawnOne`) passes `EventSecrets.extraSpecies(unix)` as the optional
   `extraSpecies` argument of `Fountain.roll` (last argument), which hands it to `Genome.generate` (`GenerateOptions.extraSpecies`)
   and `Genome.rollSpecies(tier, roll, family, extra)`. `rollSpecies` appends only the extra entries whose tier equals the

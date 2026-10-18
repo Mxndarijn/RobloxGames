@@ -33,6 +33,18 @@ function EventSecrets.featured(now: number): Featured
 	return { id = entry.id, name = entry.name, week = week, startsAt = startsAt, endsAt = startsAt + WEEK }
 end
 
+-- Unix start of the week `id` is featured: this week when it is featured now, else its next week.
+-- nil for an id that is not in the rotation.
+function EventSecrets.featuredWeek(id: string, now: number): number?
+	local week = WeeklyEvents.weekIndex(now)
+	for offset = 0, #ROTATION - 1 do
+		if EventSecrets.entryForWeek(week + offset).id == id then
+			return WeeklyEvents.weekStart(week + offset)
+		end
+	end
+	return nil
+end
+
 -- The featured entry as a list for `extraSpecies` (Genome.rollSpecies only uses entries of the rolled tier).
 function EventSecrets.extraSpecies(now: number): { SlimeRoster.Entry }
 	return { EventSecrets.entryForWeek(WeeklyEvents.weekIndex(now)) }

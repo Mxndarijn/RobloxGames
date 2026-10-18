@@ -60,6 +60,19 @@ describe("EventSecrets rotation", function()
 	end)
 end)
 
+describe("EventSecrets.featuredWeek", function()
+	it("is this week for the featured Secret and the next featured week for the others", function()
+		local now = MON + 2 * DAY
+		expect(EventSecrets.featuredWeek(EventSecrets.featured(now).id, now)).toBe(MON)
+		for offset = 1, #EventSecrets.ROTATION - 1 do
+			local later = MON + offset * 7 * DAY
+			expect(EventSecrets.featuredWeek(EventSecrets.featured(later).id, now)).toBe(later)
+		end
+		expect(EventSecrets.featuredWeek("midas", now)).toBeNil()
+		expect(EventSecrets.featuredWeek("nope", now)).toBeNil()
+	end)
+end)
+
 describe("EventSecrets in the spawn pool", function()
 	it("rollSpecies adds the extra Secret as one equal slot of its own tier only", function()
 		local extra = EventSecrets.extraSpecies(MON)
