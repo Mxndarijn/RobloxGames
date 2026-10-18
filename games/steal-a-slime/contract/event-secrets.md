@@ -26,6 +26,7 @@ no save-format change, nothing saved. Design note: `shared/modeling-kit/models/p
   earns, can be stolen and merged like any Secret (`Genome.sanitize` keeps every roster id; a tier-7 merge stays tier 7).
 - **State.** `featuredSecret: FeaturedSecretView?` (`Types.FeaturedSecretView = { id: string, name: string, endsAt: number }`,
   `endsAt` in server time, the same clock as `State.serverTime`).
-- **Client.** The HUD banner stack (top centre, hidden with a menu open) shows `EventSecretBanner.banner(view, now)`:
-  `"✨ Featured Secret this week: Kitsune (ends in 3d 4h)"`, `"5h 12m"` below a day, `"m:ss"` in the last hour; nil when
-  absent, malformed or over.
+- **Client.** No top banner. The bottom-right event icon row (`HudClusters.secret(view, now)`, slot id `"Secret"`,
+  rightmost) shows the featured Secret with the time until it rotates under the icon (`Format.formatTimeLeft`:
+  `"3d 4h"`, `"5h 12m"` below a day, `"m:ss"` in the last hour). Its tooltip reads "Featured Secret: Kitsune" /
+  "Can spawn as a Secret this week." / "Ends in 3d 4h". No slot when absent, malformed or over.
