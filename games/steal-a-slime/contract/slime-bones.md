@@ -15,14 +15,15 @@ A species mesh (§30) is a rigged Model: `SlimeMesh` clones its MeshPart as the 
 | `Lids` | hidden closed-eye arcs | blink: out of the body by `0.165 * scale / eyeShare` studs |
 | `Wing*` `Ear*` `Ant*` `Tail*` `Fin*` `Pec*` `Tent*` `Ribbon*` `Band*` `Flame*` | one per accessory | presets by name prefix (below) |
 
-- `H` = body height from the rig itself: the `Top` bone sits at `0.45 H` above `Root`. `scale` = `Mesh.Size.Y / Mesh.MeshSize.Y` (1 when unknown). `eyeShare` = the mesh's `EyeShare` attribute when set, else `SlimeBones.EYE_SHARE`.
-- Directions come from each bone's rest position in the Mesh's own space (Y up): a side pushes along its horizontal offset from the axis, the eyes go in and the lids come out along the `Eyes` / `Lids` horizontal offset (the face side). So `MeshAssets.IMPORT_YAW` and the FBX axis swap need no special case: only "Y is up" is assumed.
-- `Bone.Transform` is in the bone's own space. At attach the client composes each bone's rest frame (its `CFrame` chain up to the Mesh) and turns every Mesh-space move and axis into that frame once; per frame it only builds the CFrame.
+- **How Roblox treats these bones** (measured in Studio on the uploaded `slime_bubbles` and `slime_drako`): a bone's reported rest position (its `CFrame` chain up to the Mesh) is where its part is drawn **mirrored in Z** and **not scaled** with the Mesh's Size (a scripted Size change leaves the bones where they are). A `Transform` translation moves the part by plain Mesh-space studs, and a rotation turns it about the reported (mirrored, unscaled) position. So the client works from `drawnAt(p) = (p.X, p.Y, -p.Z) * scale` and adds `shift - R * shift` (`shift` = drawn minus reported) to every turn, so a part turns about where it is drawn. Scaling the bones by hand double-scales the mesh: don't.
+- `H` = body height from the rig itself: the drawn `Top` sits at `0.45 H` above the drawn `Root`. `scale` = `Mesh.Size.Y / Mesh.MeshSize.Y` (1 when unknown). `eyeShare` = the mesh's `EyeShare` attribute when set, else `SlimeBones.EYE_SHARE`.
+- Directions come from each part's drawn position in the Mesh's own space (Y up): a side pushes along its horizontal offset from the axis, the eyes go in and the lids come out along the `Eyes` / `Lids` horizontal offset (the face side). So `MeshAssets.IMPORT_YAW` needs no special case.
+- `Bone.Transform` is in the bone's own space. At attach the client composes each bone's rest frame (its `CFrame` chain up to the Mesh) and turns every Mesh-space move and axis into that frame once; per frame it only builds the CFrames.
 - Blink: every `BLINK_EVERY` (random in the range) for `BLINK_TIME` s; the eyes stay closed (happy `^^`) through the middle of a hop's air time.
 
 ### Accessory presets (angle about a Mesh-space axis at the bone's pivot)
 
-`outward` = the bone's horizontal offset from the axis, `tang = up x outward` (so a left and a right part mirror each other), `phase = atan2` of that offset.
+`outward` = the part's drawn horizontal offset from the axis, `tang = up x outward` (so a left and a right part mirror each other), `phase = atan2` of that offset.
 
 | prefix | axis | angle |
 |---|---|---|
@@ -37,7 +38,7 @@ A species mesh (§30) is a rigged Model: `SlimeMesh` clones its MeshPart as the 
 
 ## Wiring (`ui/SlimeBones`, `ui/SlimeMotor`, `ui/SlimeLifeRunner`)
 
-- `SlimeBones` is pure apart from CFrame / Vector3 at call time: `kind(name)`, `preset(name)`, `body(sy, H)`, `tilt(params, t, hopDt)`, `blink(now, blinkAt, hopDt)`, `accessory(preset, t, phase, air)` return numbers; `attach(mesh, now, rand)`, `step`, `squish`, `release` drive a rig.
+- `SlimeBones` is pure apart from CFrame / Vector3 at call time: `drawnAt(p, scale)`, `kind(name)`, `preset(name)`, `body(sy, H)`, `tilt(params, t, hopDt)`, `blink(now, blinkAt, hopDt)`, `accessory(preset, t, phase, air)` return numbers; `attach(mesh, now, rand)`, `step`, `squish`, `release` drive a rig.
 - `SlimeMotor.attach` attaches `SlimeBones` when the `"Mesh"` MeshPart has Bones. A boned slime then **does not change the Mesh's Size** (no `LifeSkinSize` attribute either): the squash and stretch of the breathing and of SlimeLife's hops (anticipation, stretch, landing squash) go through `Top` / `Side*` instead, so they don't double up. The SkinRoot / FaceRoot Transform keeps the hop lift, look yaw and wobble tilt, without the squashed-centre drop.
 - LOD (`SlimeLod`, `SlimeLife.MAX_ACTIVE` and on-screen cull unchanged): near = full bone pose every frame; mid = body squash only on the mid frames (eyes and accessories put back to rest once); far = every Transform reset once, then skipped.
 - Release (the slime leaves the active set, changes State, despawns, is removed): every Transform back to identity. `SlimeBones` makes no connections and no Instances, so `release` is its whole cleanup; it rides the runner's one RenderStepped loop.

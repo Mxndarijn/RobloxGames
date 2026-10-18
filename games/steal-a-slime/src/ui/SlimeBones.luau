@@ -19,10 +19,10 @@
 	  SlimeBones.release(rig)                      every Transform to identity (far tier, release)
 
 	Every move is given in the Mesh's own space (Y up) and turned into each
-	bone's rest frame once at attach, so a frame builds one CFrame per bone and
-	allocates no tables. Directions (side push, eyes in, lids out, accessory
-	axes) come from the bones' rest positions, so the mesh's import turn needs
-	no special case.
+	bone's rest frame once at attach, so a frame builds a CFrame or two per bone
+	and allocates no tables. Directions (side push, eyes in, lids out, accessory
+	axes) come from where each bone's part is drawn (drawnAt), so the mesh's
+	import turn needs no special case; turns are about that point too.
 ]]
 
 local SlimeLife = if script then require(script.Parent.SlimeLife) else require("./SlimeLife")
@@ -153,6 +153,7 @@ type Entry = {
 	dir: Vector3, -- bone-local move direction (Top: up, Side: outward, Eyes: in, Lids: out)
 	up: Vector3, -- bone-local up (sides drop along it)
 	axis: Vector3, -- bone-local rotation axis (Top tilt, accessories)
+	shift: Vector3, -- bone-local: where the part is drawn minus where the bone reports its pivot
 	preset: Preset?,
 	phase: number,
 }
@@ -179,6 +180,20 @@ end
 
 local function unitOr(v: Vector3, fallback: Vector3): Vector3
 	return if v.Magnitude > 1e-4 then v.Unit else fallback
+end
+
+-- Where a bone's part is drawn, from the bone's reported rest position (Mesh space). Measured in
+-- Studio on an uploaded species mesh: the reported positions are the drawn ones mirrored in Z and
+-- not scaled with the Mesh Size, while a Transform moves the part in plain Mesh-space studs and
+-- rotates it about the reported (unscaled, mirrored) position.
+function SlimeBones.drawnAt(reported: Vector3, scale: number): Vector3
+	return Vector3.new(reported.X, reported.Y, -reported.Z) * scale
+end
+
+-- A Transform turning by `rot` about where the part is drawn (`shift` = drawn - reported pivot,
+-- all bone-local), after moving it by `move`.
+local function turnAbout(rot: CFrame, shift: Vector3, move: Vector3): CFrame
+	return CFrame.new(move + shift - rot * shift) * rot
 end
 
 -- The bone's rest frame in the mesh's space: its CFrame chain up to the mesh.
@@ -217,14 +232,18 @@ function SlimeBones.attach(mesh: BasePart, now: number, rand: Rand): Rig?
 		return nil
 	end
 	local up = Vector3.new(0, 1, 0)
-	local rootY = if byName.Root then byName.Root.Position.Y else 0
-	local H = if byName.Top then (byName.Top.Position.Y - rootY) / SlimeBones.TOP_AT else 0
-	local faceAt = byName.Eyes or byName.Lids
-	local front = unitOr(if faceAt then flat(faceAt.Position) else Vector3.zero, Vector3.new(0, 0, -1))
-	local lateral = unitOr(up:Cross(front), Vector3.new(1, 0, 0))
 	local scale = readNumber(function()
 		return (mesh :: any).Size.Y / (mesh :: any).MeshSize.Y
 	end) or 1
+	local function drawn(name: string): Vector3?
+		local rest = byName[name]
+		return if rest then SlimeBones.drawnAt(rest.Position, scale) else nil
+	end
+	local top, root = drawn("Top"), drawn("Root")
+	local H = if top then (top.Y - (if root then root.Y else 0)) / SlimeBones.TOP_AT else 0
+	local faceAt = drawn("Eyes") or drawn("Lids")
+	local front = unitOr(if faceAt then flat(faceAt) else Vector3.zero, Vector3.new(0, 0, 1))
+	local lateral = unitOr(up:Cross(front), Vector3.new(1, 0, 0))
 	local share = readNumber(function()
 		return mesh:GetAttribute(SlimeBones.EYE_SHARE_ATTRIBUTE)
 	end) or SlimeBones.EYE_SHARE
@@ -232,7 +251,8 @@ function SlimeBones.attach(mesh: BasePart, now: number, rand: Rand): Rig?
 	local entries: { Entry } = {}
 	for _, f in found do
 		local rot = f.rest.Rotation
-		local outward = unitOr(flat(f.rest.Position), front)
+		local at = SlimeBones.drawnAt(f.rest.Position, scale)
+		local outward = unitOr(flat(at), front)
 		local tang = up:Cross(outward)
 		local kind, dir, axis, preset = KIND_ACC, Vector3.zero, up, nil
 		if f.kind == "Top" then
@@ -254,8 +274,9 @@ function SlimeBones.attach(mesh: BasePart, now: number, rand: Rand): Rig?
 			dir = rot:VectorToObjectSpace(dir),
 			up = rot:VectorToObjectSpace(up),
 			axis = rot:VectorToObjectSpace(unitOr(axis, up)),
+			shift = rot:VectorToObjectSpace(at - f.rest.Position),
 			preset = preset,
-			phase = math.atan2(f.rest.Position.Z, f.rest.Position.X),
+			phase = math.atan2(at.Z, at.X),
 		})
 	end
 	return {
@@ -271,7 +292,7 @@ end
 
 local function writeBody(entry: Entry, topDy: number, bulge: number, drop: number, tilt: number)
 	if entry.kind == KIND_TOP then
-		entry.bone.Transform = CFrame.new(entry.dir * topDy) * CFrame.fromAxisAngle(entry.axis, tilt)
+		entry.bone.Transform = turnAbout(CFrame.fromAxisAngle(entry.axis, tilt), entry.shift, entry.dir * topDy)
 	elseif entry.kind == KIND_SIDE then
 		entry.bone.Transform = CFrame.new(entry.dir * bulge + entry.up * drop)
 	end
@@ -298,8 +319,8 @@ function SlimeBones.step(
 	for _, entry in rig.entries do
 		local kind = entry.kind
 		if kind == KIND_ACC then
-			entry.bone.Transform =
-				CFrame.fromAxisAngle(entry.axis, SlimeBones.accessory(entry.preset :: Preset, t, entry.phase, air))
+			local angle = SlimeBones.accessory(entry.preset :: Preset, t, entry.phase, air)
+			entry.bone.Transform = turnAbout(CFrame.fromAxisAngle(entry.axis, angle), entry.shift, Vector3.zero)
 		elseif kind == KIND_EYES then
 			entry.bone.Transform = CFrame.new(entry.dir * (rig.eyeIn * closed))
 		elseif kind == KIND_LIDS then

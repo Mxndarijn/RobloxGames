@@ -111,8 +111,9 @@ describe("SlimeBones pose math", function()
 	end)
 end)
 
--- A rigged slime whose Mesh carries the _slimerig bones. Mesh space: Y up, the face at -Z
--- (the import turn). Each bone gets an odd own orientation so the bone-space conversion is tested.
+-- A rigged slime whose Mesh carries the _slimerig bones. Mesh space: Y up, the face drawn at +Z, so
+-- (bones report the drawn positions mirrored in Z, SlimeBones.drawnAt) the Eyes bone sits at -Z.
+-- Each bone gets an odd own orientation so the bone-space conversion is tested.
 local H, R = 2, 1
 local WORLD = {
 	Root = CFrame.new(0, 0, 0) * CFrame.Angles(-math.pi / 2, 0, 0),
@@ -232,8 +233,8 @@ describe("SlimeBones driver on a rigged species mesh", function()
 				lowest = top.Y
 				maxSide = moved(bones, "SideL").X
 				local f = moved(bones, "SideF")
-				expect(f.Z < 0).toBe(true) -- the front side pushes to the front
-				expect(moved(bones, "SideB").Z > 0).toBe(true)
+				expect(f.Z > 0).toBe(true) -- the front side pushes to the front (drawn at +Z)
+				expect(moved(bones, "SideB").Z < 0).toBe(true)
 				expect(moved(bones, "SideR").X < 0).toBe(true)
 			end
 		end
@@ -243,7 +244,7 @@ describe("SlimeBones driver on a rigged species mesh", function()
 		expect(horizontal < 1e-4).toBe(true)
 	end)
 
-	it("blinks: the eyes go into the body (+Z) while the lids come out (-Z)", function()
+	it("blinks: the eyes go into the body (-Z) while the lids come out (+Z)", function()
 		local model, bones = bonedSlime()
 		local r = rand(11)
 		local motor = SlimeMotor.attach(model, 0, r)
@@ -252,8 +253,8 @@ describe("SlimeBones driver on a rigged species mesh", function()
 		SlimeMotor.step(motor, blinkAt + SlimeBones.BLINK_TIME / 2, r)
 		local eyes, lids = moved(bones, "Eyes"), moved(bones, "Lids")
 		local share = SlimeBones.EYE_SHARE
-		expect(near(eyes.Z, SlimeBones.EYE_IN / share, 1e-3)).toBe(true)
-		expect(near(lids.Z, -SlimeBones.LID_OUT / share, 1e-3)).toBe(true)
+		expect(near(eyes.Z, -SlimeBones.EYE_IN / share, 1e-3)).toBe(true)
+		expect(near(lids.Z, SlimeBones.LID_OUT / share, 1e-3)).toBe(true)
 		SlimeMotor.step(motor, blinkAt + SlimeBones.BLINK_TIME + 0.05, r)
 		expect(moved(bones, "Eyes").Magnitude < 1e-6).toBe(true)
 		expect(motor.bones.blinkAt > blinkAt).toBe(true) -- the next blink is scheduled
@@ -277,6 +278,22 @@ describe("SlimeBones driver on a rigged species mesh", function()
 		end
 		expect(maxTip > math.sin(math.rad(20))).toBe(true)
 		expect(maxTailGap > 0.1).toBe(true)
+	end)
+
+	it("turns each part about where it is drawn, not about the bone's mirrored position", function()
+		local model, bones = bonedSlime()
+		local r = rand(19)
+		local motor = SlimeMotor.attach(model, 0, r)
+		SlimeMotor.step(motor, 0.4, r)
+		for _, name in { "WingL", "WingR", "Tail-1", "Tail-2" } do
+			local rest = WORLD[name]
+			local delta = rest * bones[name].Transform * rest:Inverse()
+			local drawn = SlimeBones.drawnAt(rest.Position, 1)
+			local spin = delta.Rotation * Vector3.new(0, 0, 1) - Vector3.new(0, 0, 1)
+			expect(spin.Magnitude > 1e-3).toBe(true) -- it does turn
+			expect((delta * drawn - drawn).Magnitude < 1e-4).toBe(true)
+		end
+		expect(SlimeBones.drawnAt(Vector3.new(1, 2, 3), 2) == Vector3.new(2, 4, -6)).toBe(true)
 	end)
 
 	it("mid tier squashes the body only; far tier and release put every bone at rest", function()
