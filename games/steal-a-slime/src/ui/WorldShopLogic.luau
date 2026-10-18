@@ -29,6 +29,7 @@ export type Row = {
 	enabled: boolean,
 	buttonText: string,
 	levelText: string?,
+	progress: number?, -- level / maxLevel of a leveled upgrade (the Upgrade Shop's level bar)
 	price: number?,
 	arg: string?, -- ShopBuy arg: the slime id of a Mutation Spray
 }
@@ -111,6 +112,16 @@ function WorldShopLogic.nameSize(name: string): number
 	return if #name > WorldShopLogic.NAME_LONG then WorldShopLogic.NAME_SIZE_LONG else WorldShopLogic.NAME_SIZE
 end
 
+-- The line under the cash that says what kind of shop this is (the Item Shop's restock timer takes its place).
+WorldShopLogic.TAGLINE = table.freeze({
+	ItemShop = "Tools, eggs & potions",
+	UpgradeShop = "Permanent - kept on rebirth",
+})
+
+function WorldShopLogic.tagline(shopId: string): string
+	return (WorldShopLogic.TAGLINE :: any)[shopId] or ""
+end
+
 function WorldShopLogic.title(shopId: string): string
 	local shop = Shops.shop(shopId)
 	return if shop then shop.name else "Shop"
@@ -160,6 +171,7 @@ local function staticRow(shopId: string, item: Shops.Item, state: any, actions: 
 		enabled = view.enabled,
 		buttonText = view.buttonText,
 		levelText = view.levelText,
+		progress = view.progress,
 		price = view.price,
 	})
 end
@@ -194,6 +206,7 @@ local function upgradeRow(shopId: string, item: Shops.Item, state: any, actions:
 		enabled = view.enabled,
 		buttonText = view.buttonText,
 		levelText = view.levelText,
+		progress = view.progress,
 		price = view.price,
 	})
 end
