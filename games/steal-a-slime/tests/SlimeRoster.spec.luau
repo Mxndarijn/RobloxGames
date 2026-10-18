@@ -17,20 +17,42 @@ describe("SlimeRoster", function()
 		expect(SlimeRoster.SECRET_TIER).toBe(Config.MAX_TIER)
 	end)
 
-	it("has 32 species: 15 Classic, Orchard 4, Frost 5, Starlight 8, and Secret = Midas, Eclipse, Boo", function()
-		local byFamily: { [string]: number } = {}
-		local secret = {}
+	it(
+		"has 32 spawning species: 15 Classic, Orchard 4, Frost 5, Starlight 8, and Secret = Midas, Eclipse, Boo",
+		function()
+			local byFamily: { [string]: number } = {}
+			local secret = {}
+			local spawning = SlimeRoster.ofKind("spawn")
+			for _, entry in spawning do
+				local family = entry.family or "classic"
+				byFamily[family] = (byFamily[family] or 0) + 1
+				if entry.tier == SlimeRoster.SECRET_TIER then
+					table.insert(secret, entry.id)
+				end
+			end
+			expect(#spawning).toBe(32)
+			expect(byFamily).toEqual({ classic = 15, orchard = 4, frost = 5, starlight = 8 })
+			table.sort(secret)
+			expect(secret).toEqual({ "boo", "eclipse", "midas" })
+		end
+	)
+
+	it("adds 15 hybrids, 3 bosses and 7 event Secrets that never roll as a spawn", function()
+		expect(#SlimeRoster.ofKind("hybrid")).toBe(15)
+		expect(#SlimeRoster.ofKind("boss")).toBe(3)
+		expect(#SlimeRoster.ofKind("event")).toBe(7)
+		expect(#SlimeRoster.ROSTER).toBe(57)
 		for _, entry in SlimeRoster.ROSTER do
-			local family = entry.family or "classic"
-			byFamily[family] = (byFamily[family] or 0) + 1
-			if entry.tier == SlimeRoster.SECRET_TIER then
-				table.insert(secret, entry.id)
+			expect(entry.family == nil or entry.kind == "spawn").toBe(true)
+			if entry.kind ~= "spawn" then
+				for _, other in SlimeRoster.forTier(entry.tier) do
+					expect(other.id ~= entry.id).toBe(true)
+				end
 			end
 		end
-		expect(#SlimeRoster.ROSTER).toBe(32)
-		expect(byFamily).toEqual({ classic = 15, orchard = 4, frost = 5, starlight = 8 })
-		table.sort(secret)
-		expect(secret).toEqual({ "boo", "eclipse", "midas" })
+		for _, entry in SlimeRoster.ofKind("event") do
+			expect(entry.tier).toBe(SlimeRoster.SECRET_TIER)
+		end
 	end)
 
 	it("uses unique lower-case ids with a name and look note", function()
