@@ -41,6 +41,32 @@ lumpy pile has a concave-looking, uneven top that a character slides off or sink
 pile use `Box` (flat top, no extra part) or, if the box is too fat, one thin invisible anchored cap
 Part. The emerge stack uses `Box`: it sits above the slide block and the ride is non-colliding.
 
+## The slide as a PCD mesh (FEATURES.SlidePCD, on)
+
+With `FEATURES.FountainSplit` the slide is its own mesh, `fountain_split_slide`, and `MeshAssets.COLLISION` makes it
+`PreciseConvexDecomposition` (MeshSwap passes it through `CreateMeshPartAsync`; with `SlidePCD` off `MeshSwap.splitFidelity` returns nil
+and it is decor as before). Probe on the published v224 server (`pipeline/probes/slidepcd/pcd.luau`, result `pcd-final.json`; no
+gameplay physics runs in a cloud task, so these are casts against the mesh alone):
+
+| check | result |
+|---|---|
+| creation | `CreateMeshPartAsync(.., {CollisionFidelity = PreciseConvexDecomposition, RenderFidelity = Precise})` ok, reads back PCD |
+| trough walls, 2x5x1 Blockcast from outside, 62 samples x 2 sides x 2 heights | 248 / 248 blocked; stops 3.95..4.15 studs from the ride line (median 4.15) |
+| posts and braces, 4 sides each | 52 / 52 blocked |
+| walk under the trough (ground-level box, bottom <= 8) | passes at bottoms 7.12 .. 5.7; the thin shell leaves that gap |
+| trough rims above the floor | 0.9 .. 2.2 studs; rim top <= 7.2 (a jump) from sample 50 down to the mouth (16 of 64 samples) |
+| ride-line slope | 14.5 degrees max, surface normals up to 86 degrees at the rims; Humanoid `MaxSlopeAngle` is 89 |
+| stand-in walked up the trough in 0.5 studs steps, step tolerance 1 | climbs from y 0.7 to 17 (16 studs, slopes 4..12 degrees) before the sim stops; at 0.3 tolerance it stops at a 0.4 stud seam after 2.5 studs |
+
+So PCD makes the walls and supports real, but the trough is still a **walkable concave ramp** (bug #9). What `SlidePCD` retires, once
+MeshSwap has placed the mesh (`FountainColliders.retirePcd`, run at the end of `MeshSwap.apply`, `SlideColliders.PCD_RETIRED`):
+`Floor`, `Joint` (the floor slabs), `Post` and `Brace`: 76 parts, 270 -> 194. What stays and why: the `Fill` blocks (+ `JointFill`, the
+ridge-roof wedges, `SlideTopWatch`) keep players out of the ramp, and the `Skirt` keeps the 5.7+ stud gap under the low trough closed. If the
+slide mesh fails to load nothing is retired (every box, as before); `SlidePCD = false` restores today's behaviour. Riders are unaffected:
+wild slimes ride anchored (`WorldView.unweld` / `PivotTo`) with every part `CanCollide = false` (`SlimeMesh`, `SlimeRig`), so no
+physics acts between them and the mesh. The mesh is placed `CanQuery = false` like the tower pieces; collision does not need it, but
+whether the Humanoid floor check does is a **Studio check** after a publish.
+
 ## Players solid, slimes not: the slide
 
 The fountain slide is part of the one `slime_fountain` MeshPart, which cannot be split into slide
@@ -118,7 +144,7 @@ floor part); it needs no call site and touches no terrain-height file.
 | `Box` | `slime_fountain_emerge` (bug #10, main), `ranch_fence_20`, `phoenix_fence_segment`, `phoenix_corner_post` (the plot fence), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_bench`, `ranch_compost_bin`, `ranch_flower_planter`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_wagon`, `ranch_water_trough`, `ranch_barrel`, `ranch_well`, `ranch_fence_stile` (v196 follow-up) |
 | `Hull` | `merge_vat`, `ranch_shop_stand` (already), `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_slime_coop`, `ranch_water_pump`, `ranch_weathervane`, `ranch_wheelbarrow`, `ranch_windmill` |
 | `PreciseConvexDecomposition` | `ranch_barn_loft` (loft over an open floor), marked "PCD: Phoenix Studio check" |
-| none (decor) | `slime_fountain` (tower, hand colliders stay), `phoenix_gate` (a Box/Hull would close the 14-stud opening; its GatePost stand-ins keep the posts; PCD is the later mesh route), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring` and `ranch_goo_drain` (decor meshes, solid through the thin `PlazaColliders` parts, see the last section), `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, `rain_magnet`, every slime kit mesh, `slime_lane` |
+| none (decor) | `slime_fountain` (tower, hand colliders stay; the split pieces are in `MeshAssets.COLLISION`, the slide only with `SlidePCD`), `phoenix_gate` (a Box/Hull would close the 14-stud opening; its GatePost stand-ins keep the posts; PCD is the later mesh route), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring` and `ranch_goo_drain` (decor meshes, solid through the thin `PlazaColliders` parts, see the last section), `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, `rain_magnet`, every slime kit mesh, `slime_lane` |
 
 `tests/MeshCollision.spec` makes every mesh name either solid or decor-with-a-reason.
 
@@ -191,7 +217,7 @@ after #11 / #16 / #10):
 - **World decor, signs, podiums, shop stands, vat, barn, loft, windmill, wagons, barrels, crates, stiles:** unchanged, already `Box` /
   `Hull` / `PreciseConvexDecomposition` (see Conversions above). The decor boulders (45) and mushrooms (15) are primitives that
   collide on their own.
-- **Fountain tower (22 colliders), slide colliders (257, 270 since the supports), StackGuard:** untouched, only inventoried.
+- **Fountain tower (22 colliders), slide colliders (257, 270 since the supports; 194 with FEATURES.SlidePCD), StackGuard:** untouched, only inventoried.
 
 Left off on purpose (reason per kind in `PropCollision`): meadow grass, flowers and half-sunk pebbles (ground cover), the
 sunflower / pumpkin patches and horseshoe pit (COLLISION.md: patches stay passable), the ritual circle's flat markings, the

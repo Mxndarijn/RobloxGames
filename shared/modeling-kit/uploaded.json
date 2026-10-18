@@ -69,15 +69,15 @@
   "fountain_split_silo": {
     "assetId": "70694440108004",
     "assetType": "Model",
-    "meshId": "rbxassetid://126104512688719",
+    "meshId": "rbxassetid://103574045671668",
     "meshSize": [
       26.223,
       30.673,
       26.563
     ],
-    "sha256": "14effe4026d3bf32",
-    "uploadedAt": "2026-10-17T16:54:09Z",
-    "versions": 1
+    "sha256": "bad92bd7817aed86",
+    "uploadedAt": "2026-10-18T15:20:33Z",
+    "versions": 2
   },
   "fountain_split_slide": {
     "assetId": "80263316335801",

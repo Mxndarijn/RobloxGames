@@ -27,6 +27,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local FountainColliders = require(script.Parent.FountainColliders)
 local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
 local VatDecor = require(ReplicatedStorage.Visuals.VatDecor)
 
@@ -124,19 +125,32 @@ function MeshSwap.setMeshCollision(scope: Instance, name: string, loaded: boolea
 	end
 end
 
+-- The collision fidelity a FountainSplit piece is made with: MeshAssets.COLLISION, except the slide piece, which only collides
+-- with FEATURES.SlidePCD (else it is decor and the SlideColliders boxes are the slide).
+local function splitFidelity(piece: string): string?
+	if piece == "fountain_split_slide" and not Config.FEATURES.SlidePCD then
+		return nil
+	end
+	return MeshAssets.collision(piece)
+end
+
+-- Set once the PCD slide is placed; apply() then retires the SlideColliders boxes it replaces after its scan (the scan walks a
+-- snapshot of the map, which must not lose the very parts being destroyed).
+local slidePcdPlaced = false
+
 -- FEATURES.FountainSplit: the fountain slot gets MeshAssets.FOUNTAIN_SPLIT instead of the one slime_fountain mesh. Same
 -- fit as swap() (one uniform scale into the slot box, standing on its bottom, turned IMPORT_YAW), each piece moved by its
 -- entry offset (slot axes, scaled) so the assembled pieces sit exactly where the whole mesh drew. All pieces are created
 -- first; if any fails (no id, no size, CreateMeshPartAsync error) nothing is placed and false is returned, so swap() goes on
 -- with the single mesh and the hand-placed colliders. Only after all of them exist the stand-ins AND the MeshCollider parts
--- (Basin / Trim / Silo / Top) go non-colliding: the PCD pieces are the tower's collision. The slide piece is decor; the
--- slide's own collision is FountainColliders' SlideColliders block (docs/COLLISION.md).
+-- (Basin / Trim / Silo / Top) go non-colliding: the PCD pieces are the tower's collision. The slide piece is PCD with FEATURES.SlidePCD (apply()
+-- then retires the Floor / Joint / Post / Brace boxes), else decor under the SlideColliders blocks (docs/COLLISION.md).
 local function swapFountainSplit(target: BasePart, name: string, scope: Instance): boolean
 	local bases: { MeshPart } = {}
 	for _, piece in MeshAssets.FOUNTAIN_SPLIT do
 		local entry = MeshAssets.get(piece)
 		local meshId = MeshAssets.meshId(piece)
-		local base = meshId and template(meshId, MeshAssets.collision(piece))
+		local base = meshId and template(meshId, splitFidelity(piece))
 		if not (base and entry and entry.size and entry.offset) then
 			return false
 		end
@@ -149,7 +163,7 @@ local function swapFountainSplit(target: BasePart, name: string, scope: Instance
 	for i, piece in MeshAssets.FOUNTAIN_SPLIT do
 		local entry = MeshAssets.get(piece) :: MeshAssets.Entry
 		local size, offset = entry.size :: { number }, entry.offset :: { number }
-		local fidelity = MeshAssets.collision(piece)
+		local fidelity = splitFidelity(piece)
 		local mesh = bases[i]:Clone()
 		mesh.Name = piece
 		mesh.Size = Vector3.new(size[1] * k, size[2] * k, size[3] * k)
@@ -169,6 +183,7 @@ local function swapFountainSplit(target: BasePart, name: string, scope: Instance
 		mesh.Parent = target
 	end
 	MeshSwap.setMeshCollision(scope, name, true, false)
+	slidePcdPlaced = Config.FEATURES.SlidePCD
 	return true
 end
 
@@ -426,6 +441,10 @@ function MeshSwap.apply(): number
 				end
 			end
 		end
+	end
+	if slidePcdPlaced then
+		slidePcdPlaced = false
+		FountainColliders.retirePcd()
 	end
 	return count
 end
