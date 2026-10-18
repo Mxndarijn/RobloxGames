@@ -13,6 +13,11 @@
 	  errors. If another server took the session over, the save is refused
 	  and this server stops saving that player (no duplicated slimes).
 	* release = true on leave / BindToClose frees the session lock.
+	* Read-only sessions: when the stored record is from a newer SAVE_VERSION
+	  (rolling update) or unreadable (SaveData.check), load still succeeds with
+	  a best-effort profile but the record is never overwritten: save only
+	  refreshes / releases the lock and writes the stored data back untouched.
+	  `log` is told once per load.
 
 	Backend: { update: (key, transform: (old: any) -> any?) -> any }, which
 	may error (the Roblox adapter wraps DataStore:UpdateAsync).
@@ -34,6 +39,7 @@ export type Options = {
 	wait: (seconds: number) -> (),
 	loadAttempts: number?,
 	saveAttempts: number?,
+	log: ((message: string) -> ())?,
 }
 
 export type DataService = {
@@ -43,7 +49,9 @@ export type DataService = {
 	wait: (seconds: number) -> (),
 	loadAttempts: number,
 	saveAttempts: number,
+	log: (message: string) -> (),
 	lost: { [number]: boolean }, -- userIds whose session another server took over
+	readOnly: { [number]: SaveData.Verdict }, -- userIds whose stored record must not be overwritten ("newer" / "unreadable")
 }
 
 local DataService = {}
@@ -60,7 +68,9 @@ function DataService.new(options: Options): DataService
 		wait = options.wait,
 		loadAttempts = options.loadAttempts or 5,
 		saveAttempts = options.saveAttempts or 3,
+		log = options.log or warn,
 		lost = {},
+		readOnly = {},
 	}
 end
 
@@ -79,6 +89,15 @@ function DataService.load(service: DataService, userId: number): (boolean, Playe
 		end)
 		if ok and status ~= nil and status ~= "locked" then
 			service.lost[userId] = nil
+			local verdict = SaveData.check(stored)
+			if verdict == "newer" or verdict == "unreadable" then
+				service.readOnly[userId] = verdict
+				service.log(
+					`[DataService] {key}: stored record is {verdict}; this session is read-only and will not save`
+				)
+			else
+				service.readOnly[userId] = nil
+			end
 			return true, SaveData.deserialize(stored)
 		end
 		reason = if ok and status == "locked" then "your data is open on another server" else "DataStore error"
@@ -89,7 +108,13 @@ function DataService.load(service: DataService, userId: number): (boolean, Playe
 	return false, reason
 end
 
--- Returns (ok, reason?). Yields between retries.
+-- The verdict that made this player's session read-only, or nil when saves write normally.
+function DataService.readOnly(service: DataService, userId: number): SaveData.Verdict?
+	return service.readOnly[userId]
+end
+
+-- Returns (ok, reason?). Yields between retries. A read-only session returns (true, "read-only") once the lock is
+-- refreshed / released; its stored data is written back as it was.
 function DataService.save(
 	service: DataService,
 	userId: number,
@@ -100,16 +125,21 @@ function DataService.save(
 		return false, "session lost"
 	end
 	local key = DataService.key(userId)
+	local readOnly = service.readOnly[userId] ~= nil
 	for attempt = 1, service.saveAttempts do
 		local written: boolean? = nil
 		local ok = pcall(service.backend.update, key, function(old: any): any?
 			local now = service.now()
-			local record, wrote = SessionLock.write(old, service.jobId, now, SaveData.serialize(data, now), release)
+			local payload = if readOnly then (SessionLock.unwrap(old)) else SaveData.serialize(data, now)
+			local record, wrote = SessionLock.write(old, service.jobId, now, payload, release)
 			written = wrote
 			return record
 		end)
 		if ok and written then
-			return true, nil
+			if readOnly and release then
+				service.readOnly[userId] = nil
+			end
+			return true, if readOnly then "read-only" else nil
 		end
 		if ok and written == false then
 			service.lost[userId] = true

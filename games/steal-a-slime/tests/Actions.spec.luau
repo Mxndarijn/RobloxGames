@@ -1,6 +1,7 @@
 --!strict
 local Actions = require("../src/server/Actions")
 local Carry = require("../src/server/Carry")
+local Config = require("../src/shared/Config")
 local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
 local PlayerData = require("../src/shared/PlayerData")
@@ -55,14 +56,33 @@ describe("Actions.handle guards", function()
 		end
 		expect((Actions.parseArgs("Favorite", {})) ~= nil).toBeTruthy()
 	end)
-	it("rate-limits per action but never Sync", function()
+	it("rate-limits per action, Sync to one per STATE_MIN_INTERVAL", function()
 		local world = ServerFixtures.world()
 		ServerFixtures.join(world, 1)
 		expect(call(world, 1, "Favorite", nil).ok).toBe(true)
 		expect(call(world, 1, "Favorite", nil).message).toBe("too fast")
+		expect(call(world, 1, "Sync").ok).toBe(true)
 		for _ = 1, 5 do
-			expect(call(world, 1, "Sync").ok).toBe(true)
+			expect(call(world, 1, "Sync").message).toBe("too fast")
 		end
+		local later = T0 + 100 + Config.STATE_MIN_INTERVAL
+		expect(Actions.handle(world, 1, "Sync", {}, later, ctx).ok).toBe(true)
+	end)
+	it("reports whether the call was dispatched (the adapter skips the world refresh otherwise)", function()
+		local world = ServerFixtures.world()
+		ServerFixtures.join(world, 1)
+		local function ran(userId: number, action: any, ...: any): boolean
+			local _, dispatched = call(world, userId, action, ...)
+			return dispatched
+		end
+		expect(ran(1, "Explode")).toBe(false)
+		expect(ran(2, "Sync")).toBe(false) -- still loading
+		expect(ran(1, "Sell", 5)).toBe(false) -- bad argument
+		expect(ran(1, "Favorite", nil)).toBe(true)
+		expect(ran(1, "Favorite", nil)).toBe(false) -- too fast
+		expect(ran(1, "Sell", "nope")).toBe(true) -- dispatched, refused by the system ("not your slime")
+		expect(ran(1, "Sync")).toBe(true)
+		expect(ran(1, "Sync")).toBe(false)
 	end)
 	it("Sync and successful actions mark State dirty", function()
 		local world = ServerFixtures.world()
