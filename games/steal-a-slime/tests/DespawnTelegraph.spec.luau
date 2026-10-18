@@ -53,10 +53,9 @@ describe("DespawnTelegraph timing", function()
 		expect(DespawnTelegraph.progress(105, EXPIRES, W)).toBe(1)
 		expect(DespawnTelegraph.progress(97, EXPIRES, 0)).toBe(1)
 	end)
-	it("warn window fits inside both lifetimes", function()
+	it("warn window fits inside the wild lifetime", function()
 		expect(Config.DESPAWN_TELEGRAPH_SECONDS > 0).toBeTruthy()
 		expect(Config.DESPAWN_TELEGRAPH_SECONDS < Config.WILD_LIFETIME).toBeTruthy()
-		expect(Config.DESPAWN_TELEGRAPH_SECONDS < Config.BOSS_LIFETIME).toBeTruthy()
 		expect(type(Config.FEATURES.DespawnTelegraph)).toBe("boolean")
 	end)
 end)
@@ -124,12 +123,6 @@ describe("DespawnTelegraph in Scene / Spawner", function()
 			expect(inside).toBeNil()
 		end
 	end)
-	it("Scene sets despawnAt on a wild Boss Slime too", function()
-		local world = ServerFixtures.world()
-		local id = Spawner.spawnBoss(world, T0)
-		local at = T0 + Config.BOSS_LIFETIME - 1
-		expect(Scene.describe(world, at)[id].despawnAt).toBe(if enabled then T0 + Config.BOSS_LIFETIME else nil)
-	end)
 	it("carried slimes never get despawnAt", function()
 		local world = ServerFixtures.world()
 		local id = Spawner.spawnOne(world, T0)
@@ -161,10 +154,10 @@ describe("DespawnTelegraph after a carry", function()
 	local enabled = Config.FEATURES.DespawnTelegraph
 	local WINDOW = Config.DESPAWN_TELEGRAPH_SECONDS
 
-	local function grabAndDrop(boss: boolean, dropAt: number): (any, string)
+	local function grabAndDrop(dropAt: number): (any, string)
 		local world = ServerFixtures.world()
 		ServerFixtures.join(world, 1, nil, 1e9)
-		local id = if boss then Spawner.spawnBoss(world, T0) else Spawner.spawnOne(world, T0)
+		local id = Spawner.spawnOne(world, T0)
 		expect((Carry.grab(world, 1, id, 5, T0 + 1))).toBe(true)
 		expect(Carry.release(world, 1, dropAt, nil, "drop")).toBe(true)
 		return world, id
@@ -172,18 +165,11 @@ describe("DespawnTelegraph after a carry", function()
 
 	it("a dropped wild slime gets a fresh WILD_LIFETIME and warns again before it", function()
 		local dropAt = T0 + 30
-		local world, id = grabAndDrop(false, dropAt)
+		local world, id = grabAndDrop(dropAt)
 		local expiresAt = dropAt + Config.WILD_LIFETIME
 		expect(world.wild[id].expiresAt).toBe(expiresAt)
 		expect(Scene.describe(world, expiresAt - WINDOW - 0.1)[id].despawnAt).toBeNil()
 		expect(Scene.describe(world, expiresAt - WINDOW)[id].despawnAt).toBe(if enabled then expiresAt else nil)
-	end)
-	it("a dropped Boss Slime keeps the boss lifetime, not the normal one", function()
-		local dropAt = T0 + 30
-		local world, id = grabAndDrop(true, dropAt)
-		expect(world.wild[id].expiresAt).toBe(dropAt + Config.BOSS_LIFETIME)
-		local early = dropAt + Config.WILD_LIFETIME - 1 -- the old (wrong) window
-		expect(Scene.describe(world, early)[id].despawnAt).toBeNil()
 	end)
 	it("the warning window closes in the same step the slime is removed", function()
 		local world = ServerFixtures.world()

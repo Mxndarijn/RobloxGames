@@ -5,6 +5,7 @@
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
 
+local BossEvent = require("../src/server/BossEvent")
 local Config = require("../src/shared/Config")
 local Fountain = require("../src/shared/Fountain")
 local Genome = require("../src/shared/Genome")
@@ -154,9 +155,11 @@ describe("Player-facing copy", function()
 		local world = ServerFixtures.world()
 		ServerFixtures.join(world, 1)
 		world.pity.sinceLegendary = Config.PITY_LEGENDARY - 1 -- the next drop is announced
-		local stop = T0 + math.max(Config.BOSS_FIRST_AT, Config.RAIN_FIRST_AT + Config.RAIN_DURATION) + 5
+		local bossOver = Config.BOSS.FIRST_AT + Config.BOSS.FIGHT_SECONDS
+		local stop = T0 + math.max(bossOver, Config.RAIN_FIRST_AT + Config.RAIN_DURATION) + 5
 		for t = T0, stop do
 			Spawner.step(world, t)
+			BossEvent.step(world, t)
 		end
 		local texts = {}
 		for _, event in world.outbox do
@@ -167,7 +170,7 @@ describe("Player-facing copy", function()
 		end
 		local all = table.concat(texts, "\n")
 		expect(string.find(all, "spilled from the fountain", 1, true) ~= nil).toBe(true)
-		expect(string.find(all, "slid into the plaza", 1, true) ~= nil).toBe(true)
+		expect(string.find(all, "is in the plaza", 1, true) ~= nil).toBe(true) -- the boss arrives
 		expect(string.find(all, "Head to the fountain", 1, true) ~= nil).toBe(true)
 	end)
 	it("rare drop text uses the mutation display name", function()

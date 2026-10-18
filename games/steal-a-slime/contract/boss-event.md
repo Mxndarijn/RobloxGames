@@ -15,7 +15,7 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
 
 - **Schedule (`server/BossEvent`).** The first boss arrives `BOSS.FIRST_AT` after server start, then every
   `BOSS.INTERVAL` after the previous arrival. The warning starts `BOSS.WARNING_SECONDS` before the arrival. If Slime Rain
-  is running at that moment, or due within `BOSS.RAIN_GAP` of the arrival, the arrival moves `BOSS.SKIP_DELAY` later
+  is still running at the arrival, or starts within `BOSS.RAIN_GAP` after it, the arrival moves `BOSS.SKIP_DELAY` later
   (checked again then). `world.nextBossAt` is the next arrival (workspace attribute `BossNextAt` as before).
 - **Rotation.** `BOSS.ROTATION` in order (`goozilla queen_jelly goozilla queen_jelly mecha_goo`), looping. A Secret-tier
   slot (`mecha_goo`) needs `world.fountainTier >= BOSS.SECRET_FOUNTAIN_TIER` (Starlight); otherwise it is

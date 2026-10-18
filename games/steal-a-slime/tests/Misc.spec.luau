@@ -45,12 +45,14 @@ describe("Fountain", function()
 			expect(d.slime.id).toBe(tostring(i))
 		end
 	end)
-	it("no spawn, boss, dropped spot or lane step lands in the ring band (r 31-34, plus margin)", function()
+	it("no spawn, boss shed, dropped spot or lane step lands in the ring band (r 31-34, plus margin)", function()
 		local SAFE = Fountain.RING_BAND_OUTER + Fountain.SLIME_RADIUS -- whole slime past the curb
 		expect(Fountain.RING_BAND_INNER <= 31 and Fountain.RING_BAND_OUTER >= 34).toBe(true)
 		local world = ServerFixtures.world()
 		for i = 1, 300 do
-			local id = if i % 10 == 0 then Spawner.spawnBoss(world, 0) else Spawner.spawnOne(world, 0)
+			local id = if i % 10 == 0
+				then Spawner.spawnBonus(world, 0, 1, Config.BOSS.DROP_LUCK)[1]
+				else Spawner.spawnOne(world, 0)
 			local wild = world.wild[id]
 			expect(wild.radius >= SAFE).toBe(true)
 			-- walking the lane (the wander route), whatever lateral offset the roll gives

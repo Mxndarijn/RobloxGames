@@ -1,5 +1,4 @@
 --!strict
-local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local GameLoop = require("../src/server/GameLoop")
@@ -151,64 +150,34 @@ describe("Spawner Slime Rain", function()
 	end)
 end)
 
-describe("Boss Slime", function()
-	it("spawns a free, max-size Epic+ mutated boss that ignores the cap", function()
+describe("Spawner and the boss event", function()
+	it("the boss never counts toward the wild cap and never expires through the fountain", function()
+		local world = ServerFixtures.world()
+		world.wild.boss = {
+			slime = Fixtures.slime("boss", 6),
+			price = 0,
+			spawnedAt = T0,
+			expiresAt = T0 + 1,
+			angle = 0,
+			radius = 40,
+			boss = true,
+		}
+		expect(Spawner.wildCount(world)).toBe(0)
+		world.nextSpawnAt = math.huge
+		Spawner.step(world, T0 + Config.WILD_LIFETIME * 2)
+		expect(world.wild.boss ~= nil).toBe(true)
+	end)
+	it("spawnBonus adds free slimes past the cap", function()
 		local world = ServerFixtures.world()
 		for _ = 1, Config.MAX_WILD_SLIMES do
 			Spawner.spawnOne(world, T0)
 		end
-		local id = Spawner.spawnBoss(world, T0)
-		local boss = world.wild[id]
-		expect(boss.boss).toBe(true)
-		expect(boss.price).toBe(0)
-		expect(boss.slime.tier >= Config.BOSS_TIER).toBeTruthy()
-		expect(boss.slime.size).toBe(Config.MAX_SIZE)
-		expect(boss.slime.mutation ~= "None").toBeTruthy()
-		expect(boss.expiresAt).toBe(T0 + Config.BOSS_LIFETIME)
-		expect(Spawner.bossId(world)).toBe(id)
-	end)
-	it("spills on schedule, one at a time, and announces the catch", function()
-		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1)
-		local first = T0 + Config.BOSS_FIRST_AT
-		Spawner.step(world, first - 1)
-		expect(Spawner.bossId(world)).toBeNil()
-		Spawner.step(world, first)
-		local id = Spawner.bossId(world)
-		expect(id ~= nil).toBeTruthy()
-		expect(world.nextBossAt).toBe(first + Config.BOSS_INTERVAL)
-		assert(id, "boss spawned")
-		expect((Carry.grab(world, 1, id, 1, first + 1))).toBe(true)
-		expect((Carry.deposit(world, 1))).toBe(true)
-		expect(s.data.slimes[1].id).toBe(id)
-		expect(Spawner.bossId(world)).toBeNil()
-		local caught = false
-		for _, e in world.outbox do
-			if e.type == "Notify" and e.userId == nil and string.find(e.text or "", "caught the Boss", 1, true) then
-				caught = true
-			end
+		local ids = Spawner.spawnBonus(world, T0, Config.BOSS.SHED_COUNT, Config.BOSS.DROP_LUCK)
+		expect(#ids).toBe(Config.BOSS.SHED_COUNT)
+		expect(Spawner.wildCount(world)).toBe(Config.MAX_WILD_SLIMES + Config.BOSS.SHED_COUNT)
+		for _, id in ids do
+			expect(world.wild[id].price).toBe(0)
+			expect(world.wild[id].expiresAt).toBe(T0 + Config.WILD_LIFETIME)
 		end
-		expect(caught).toBe(true)
-	end)
-	it("reports State.boss and pushes State to everyone when it starts and ends", function()
-		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1)
-		local first = T0 + Config.BOSS_FIRST_AT
-		local active, endsAt = Spawner.boss(world)
-		expect(active).toBe(false)
-		expect(endsAt).toBeNil()
-		Spawner.step(world, first - 1)
-		s.dirty = false
-		Spawner.step(world, first)
-		active, endsAt = Spawner.boss(world)
-		expect(active).toBe(true)
-		expect(endsAt).toBe(first + Config.BOSS_LIFETIME)
-		expect(s.dirty).toBe(true)
-		s.dirty = false
-		Spawner.step(world, first + 1)
-		expect(s.dirty).toBe(false)
-		Spawner.step(world, first + Config.BOSS_LIFETIME)
-		expect((Spawner.boss(world))).toBe(false)
-		expect(s.dirty).toBe(true)
 	end)
 end)

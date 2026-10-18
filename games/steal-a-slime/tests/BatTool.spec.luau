@@ -250,3 +250,63 @@ describe("BatTool.swing with PvP on", function()
 		done()
 	end)
 end)
+
+describe("BatTool.swing on the boss (contract/boss-event.md)", function()
+	local BossEvent = require("../src/server/BossEvent")
+	local BOSS = Config.BOSS
+	local BOSS_AT = { X = ORIGIN.X + 15, Y = 6, Z = ORIGIN.Z } -- in front, inside HIT_REACH, past SLAP_REACH
+
+	-- Players 1 and 2 at ORIGIN and just beside it; the boss has arrived (phase "fight") at T0.
+	local function fight(): (any, any, any, PvpService.Context)
+		moves = {}
+		poses = { [1] = ORIGIN, [2] = { X = ORIGIN.X + 3, Y = 3, Z = ORIGIN.Z } }
+		for userId = 1, 2 do
+			BatTool.forget(userId)
+		end
+		local world = ServerFixtures.world()
+		current = world
+		world.startedAt = T0 - Config.RAIN_FIRST_AT - Config.RAIN_DURATION - 600
+		local a = ServerFixtures.join(world, 1)
+		local b = ServerFixtures.join(world, 2)
+		world.nextBossAt = T0
+		BossEvent.step(world, T0 - BOSS.WARNING_SECONDS)
+		BossEvent.step(world, T0)
+		local ctx = table.clone(bat)
+		ctx.slimePosition = function(id: string)
+			return if id == BossEvent.bossId(world) then BOSS_AT else nil
+		end
+		return world, a, b, ctx
+	end
+
+	it("a swing at the fighting boss in reach and in front adds a meter point", function()
+		local world, a, _, ctx = fight()
+		expect((BatTool.swing(world, a, T0 + 1, ctx, false))).toBe(true)
+		expect(world.boss.fight.contributions[1]).toBe(1)
+		expect(#moves).toBe(0) -- the boss is never launched
+		poses[1] = { X = BOSS_AT.X - BOSS.HIT_REACH - 2, Y = 3, Z = ORIGIN.Z }
+		local hit = BatTool.swing(world, a, T0 + 2, ctx, false)
+		expect(hit).toBe(false)
+		expect(world.boss.fight.contributions[1]).toBe(1)
+		done()
+	end)
+	it("a swing at the boss carrier drops the boss on the spot", function()
+		local world, a, b, ctx = fight()
+		local t = T0 + 1
+		while world.boss.fight.phase == "fight" do
+			BatTool.forget(1)
+			BatTool.swing(world, a, t, ctx, false)
+			t += BOSS.HIT_GAP
+		end
+		local id = BossEvent.bossId(world) :: string
+		expect((Carry.grab(world, 1, id, 1, t))).toBe(true)
+		poses[2] = { X = ORIGIN.X + 6, Y = 3, Z = ORIGIN.Z }
+		expect((BatTool.swing(world, b, t + 1, ctx, false))).toBe(false) -- facing away (+X) from player 1
+		poses[2] = { X = ORIGIN.X - 6, Y = 3, Z = ORIGIN.Z }
+		BatTool.forget(2)
+		expect((BatTool.swing(world, b, t + 2, ctx, false))).toBe(true)
+		expect(a.carry).toBeNil()
+		expect(world.wild[id].position).toBe(ORIGIN)
+		expect(b.lastSlapAt).toBe(t + 2)
+		done()
+	end)
+end)

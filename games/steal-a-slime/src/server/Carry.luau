@@ -9,9 +9,12 @@
 	* Wild slime: free or costs its price, charged on grab. Dropped -> it
 	  lands where the carrier stood and its lifetime restarts.
 	* Pad slime of another player: StealService.steal. Dropped -> escapes home.
+	* The hauled boss (contract/boss-event.md): grabbed only in the haul phase (top contributor first), carried at
+	  the boss carry slow, dropped on the spot, and deposited onto the trophy stand (no pad needed).
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local FountainTiers = if Shared then require(Shared.FountainTiers) else require("../shared/FountainTiers")
@@ -23,6 +26,7 @@ local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
+local Trophies = if Shared then require(Shared.Trophies) else require("../shared/Trophies")
 local PvpBlaster = if script then require(script.Parent.PvpBlaster) else require("./PvpBlaster")
 local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
@@ -85,6 +89,18 @@ function Carry.grabWild(
 	if distance ~= distance or distance > Config.STEAL_REACH then
 		return false, "too far away"
 	end
+	local fight = if wild.boss and world.boss then world.boss.fight else nil
+	if wild.boss then
+		if not fight then
+			return false, "slime is gone"
+		end
+		local priority = fight.priorityUserId
+		local ok, reason =
+			BossFight.canGrab(fight, session.userId, now, priority ~= nil and world.sessions[priority] ~= nil)
+		if not ok then
+			return false, reason
+		end
+	end
 	-- Checked before the price is charged, so a refused grab costs nothing.
 	local block = Carry.familyBlock(session.data.rebirths, wild.slime)
 	if block then
@@ -100,9 +116,21 @@ function Carry.grabWild(
 		ownerUserId = nil,
 		timer = Steal.newCarry("wild", wild.slime.tier, now),
 		slime = wild.slime,
+		boss = if fight then true else nil,
 	}
 	world.carriedBy[slimeId] = session.userId
 	World.markDirty(session)
+	if fight then
+		BossFight.grab(fight, session.userId)
+		World.markAllDirty(world)
+		World.notify(
+			world,
+			nil,
+			`{session.name} grabbed {wild.slime.name}! Bonk them to make them drop it!`,
+			"info",
+			nil
+		)
+	end
 	World.tutorial(world, session, "Grab")
 	return true, nil
 end
@@ -142,6 +170,33 @@ function Carry.applyMagnet(world: World, session: Session, slime: Genome.Slime, 
 	return true
 end
 
+-- The boss carrier got home: the boss goes on the trophy stand (Trophies.award) and the fight is won.
+function Carry.depositBoss(world: World, session: Session, carry: World.CarryState, now: number): (boolean, string?)
+	world.wild[carry.slimeId] = nil
+	world.carriedBy[carry.slimeId] = nil
+	session.carry = nil
+	local fight = world.boss and world.boss.fight
+	if fight then
+		BossFight.win(fight, session.userId, now)
+	end
+	local result, trophy = Trophies.award(session.data, carry.slime, world.rng)
+	World.markAllDirty(world)
+	World.notify(world, nil, `{session.name} brought {carry.slime.name} home!`, "good", "Rain")
+	if result == "reroll" then
+		World.notify(
+			world,
+			session.userId,
+			`Your {trophy.name} trophy got a new mutation: {Genome.mutationsDisplay(Genome.mutationList(trophy))}!`,
+			"good",
+			"Cash"
+		)
+	else
+		World.notify(world, session.userId, `{trophy.name} is on your trophy stand!`, "good", "Deposit")
+	end
+	World.effect(world, "Collect", { userId = session.userId })
+	return true, nil
+end
+
 --[[
 	The carrier reached their own HomeZone. Wild slimes go on a free pad;
 	stolen ones move to the thief with Steal.complete (and, given `now`, open the
@@ -155,17 +210,16 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		return false, "not carrying"
 	end
 	local name = Genome.displayName(carry.slime)
+	if carry.boss then
+		return Carry.depositBoss(world, session, carry, now or 0)
+	end
 	if carry.kind == "wild" then
 		if not PlayerData.freePad(session.data) then
 			return false, "plot full"
 		end
-		local wasBoss = world.wild[carry.slimeId] and world.wild[carry.slimeId].boss
 		world.wild[carry.slimeId] = nil
 		world.carriedBy[carry.slimeId] = nil
 		session.carry = nil
-		if wasBoss then
-			World.notify(world, nil, `{session.name} caught the Boss Slime!`, "info", nil)
-		end
 		local slime = carry.slime
 		slime.pad = nil
 		slime.keep = nil -- a kept mark belongs to the previous owner
@@ -243,8 +297,15 @@ function Carry.release(world: World, userId: number, now: number, position: any?
 	local wild = world.wild[carry.slimeId]
 	if wild then
 		wild.position = position
-		-- A dropped Boss Slime keeps the boss lifetime (DespawnTelegraph warns before either).
-		wild.expiresAt = now + (if wild.boss then Config.BOSS_LIFETIME else Config.WILD_LIFETIME)
+		if wild.boss then
+			-- The hauled boss lies on the spot; the haul deadline (expiresAt) stays.
+			if world.boss then
+				BossFight.drop(world.boss.fight)
+			end
+			World.markAllDirty(world)
+		else
+			wild.expiresAt = now + Config.WILD_LIFETIME
+		end
 	end
 	World.markDirty(session)
 	return true
@@ -276,11 +337,15 @@ end
 -- WalkSpeed while carrying: the carry slowdown applies to the player's own base speed,
 -- so the Speed Coil helps while carrying too (CONTRACT.md §8.10).
 -- Strong Arms (Perks.carrySlowFactor) shrinks the slowdown.
+-- The hauled boss is the exception: BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW), no Speed Coil, no Strong Arms.
 function Carry.walkSpeed(session: Session, now: number): number
 	local carry = session.carry
 	local base = Shop.walkSpeed(session.data)
 	if not carry then
 		return base
+	end
+	if carry.boss then
+		return Config.BASE_WALK_SPEED * (1 - Config.BOSS.CARRY_SLOW)
 	end
 	return base * (1 - Steal.carrySlow(carry.timer, now) * Perks.carrySlowFactor(session.data))
 end
