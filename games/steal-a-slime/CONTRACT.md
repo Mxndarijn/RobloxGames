@@ -207,7 +207,7 @@ The `slimeData` shape is `Types.SlimeData`, the same as `Genome.Slime` and the s
 }
 ```
 
-**Roster (v28):** wild slimes roll their tier exactly as before, then pick a species of that tier from `SlimeRoster` (uniform within the tier); `name` is the species display name. Saved slimes keep their stored `name`; `species` is optional and an unknown id is dropped on load. Secret species (tier 7) are roster-only and never spawn. Mutations are ordered by multiplier (Merge ranks by position): Glow 1.5/50, Lava 2/30 (shown as "Syrup", save id stays `Lava`), Galaxy 3/15, Rainbow 4/8, Gold 5/5, Crystal 7/2, Eclipse 10/0.5.
+**Roster (v28):** wild slimes roll their tier exactly as before, then pick a species of that tier from `SlimeRoster` (uniform within the tier); `name` is the species display name. Saved slimes keep their stored `name`; `species` is optional and an unknown id is dropped on load. Secret species (tier 7) spawn like any other tier. The roster is the slime pool (§30). Mutations are ordered by multiplier (Merge ranks by position): Glow 1.5/50, Lava 2/30 (shown as "Syrup", save id stays `Lava`), Galaxy 3/15, Rainbow 4/8, Gold 5/5, Crystal 7/2, Eclipse 10/0.5.
 
 **Growth (FEATURES.GrowingSlimes, `Shared.Growth`):** a pad slime's `growth` rises by `dt / GROWTH_SECONDS` (Income.step, carried slimes skip); on join `(now - lastOnline)` capped at `GROWTH_OFFLINE_CAP_SECONDS` counts too. `Genome.baseIncome` x `1 + GROWTH_MAX_INCOME_BONUS * growth` (so sell price too). Saved as optional `growth` per slime (rounded to 4 decimals); missing = 0, `SAVE_VERSION` stays 3. The server scales the model by `Growth.scale` and shows a `GrowthLabel` "Growth N%" (model attribute `Growth`).
 
@@ -412,3 +412,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §27 | [world-shops.md](contract/world-shops.md) | World shops: Item Shop and Upgrade Shop (`FEATURES.WorldShops`) |
 | §28 | [fountain-split.md](contract/fountain-split.md) | Fountain split: PCD tower pieces (`FEATURES.FountainSplit`) |
 | §29 | [inventory.md](contract/inventory.md) | S3: inventory hotbar + panel (client only, 2026-10-18) |
+| §30 | [slime-pool.md](contract/slime-pool.md) | Slime pool: 32 species, one fully coloured mesh each |
