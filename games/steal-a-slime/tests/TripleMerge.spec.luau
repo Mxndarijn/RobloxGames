@@ -45,21 +45,24 @@ describe("TripleMerge: rules", function()
 			"slimes must be the same rarity"
 		)
 	end)
-	it("the tier is T+1, or T+2 on the jump roll, and never lands in Secret by jumping", function()
+	it("the tier is T+1 up to Mythic, T+2 only up to Legendary, and Secret stays Secret", function()
 		for tier = 1, Config.MAX_TIER do
 			local odds = TripleMerge.odds(tier)
-			expect(odds.tier).toBe(math.min(tier + 1, Config.MAX_TIER))
+			local expected = if tier >= Config.MAX_TIER
+				then Config.MAX_TIER
+				else math.min(tier + 1, Config.MERGE_MAX_TIER)
+			expect(odds.tier).toBe(expected)
 			if odds.jumpTier then
 				expect(odds.jumpTier).toBe(tier + 2)
-				expect(odds.jumpTier <= Config.MAX_TIER - 1).toBe(true)
+				expect(odds.jumpTier <= Config.MERGE_JUMP_MAX_TIER).toBe(true)
 				expect(odds.jumpChance).toBe(Config.TRIPLE_MERGE_JUMP_CHANCE)
 			else
 				expect(odds.jumpChance).toBe(0)
 			end
 		end
-		expect(TripleMerge.odds(4).jumpTier).toBe(6)
-		expect(TripleMerge.odds(5).jumpTier).toBeNil()
-		expect(TripleMerge.odds(6).tier).toBe(Config.SECRET_TIER)
+		expect(TripleMerge.odds(3).jumpTier).toBe(5)
+		expect(TripleMerge.odds(4).jumpTier).toBeNil()
+		expect(TripleMerge.odds(6).tier).toBe(6)
 		expect(TripleMerge.odds(7).tier).toBe(7)
 	end)
 	it("rolls the jump at about TRIPLE_MERGE_JUMP_CHANCE and never lower than T+1", function()
@@ -112,6 +115,131 @@ describe("TripleMerge: rules", function()
 		local child = TripleMerge.merge(three(Config.MAX_TIER), Rng.new(4), "x")
 		expect(child.tier).toBe(Config.MAX_TIER)
 		expect(child.mutation ~= "None").toBe(true)
+	end)
+end)
+
+describe("TripleMerge: recipes, caps and the assist", function()
+	local MergeRecipes = require("../src/shared/MergeRecipes")
+	local SlimeRoster = require("../src/shared/SlimeRoster")
+
+	local function trio(tier: number, species: { string }): { Genome.Slime }
+		local out = {}
+		for i, id in { "a", "b", "c" } do
+			out[i] = slime(id, tier, { species = species[i] })
+		end
+		return out
+	end
+	local everything: MergeRecipes.Ctx = { unlocked = MergeRecipes.unlockedFor(math.huge) }
+
+	it("a recipe hit gives its hybrid one tier up, never a jump, whatever the seed", function()
+		for _, recipe in MergeRecipes.RECIPES do
+			for seed = 1, 20 do
+				local child =
+					TripleMerge.merge(trio(recipe.tier - 1, recipe.inputs), Rng.new(seed), "x", nil, everything)
+				expect(child.species).toBe(recipe.id)
+				expect(child.tier).toBe(recipe.tier)
+				expect(child.name).toBe((SlimeRoster.get(recipe.id) :: any).name)
+			end
+		end
+	end)
+	it("a random merge never makes a Secret: Mythic x3 gives a Mythic spawn species", function()
+		for seed = 1, 300 do
+			local child = TripleMerge.merge(trio(6, { "cosmo", "cosmo", "cosmo" }), Rng.new(seed), "x", nil, everything)
+			expect(child.tier).toBe(6)
+			expect((SlimeRoster.get(child.species :: string) :: any).kind).toBe("spawn")
+		end
+	end)
+	it("a +2 jump lands on Legendary at most: Epic x3 is always Legendary", function()
+		local jumped = false
+		for seed = 1, 400 do
+			expect(TripleMerge.merge(three(4), Rng.new(seed), "x").tier).toBe(5)
+			jumped = jumped or TripleMerge.merge(three(3), Rng.new(seed), "y").tier == 5
+		end
+		expect(jumped).toBe(true)
+	end)
+	it("random results are unlocked spawn species, never hybrids, bosses or event Secrets", function()
+		local rng = Rng.new(11)
+		for i = 1, 600 do
+			local tier = (i % 6) + 1
+			local child = TripleMerge.merge(three(tier), rng, `r{i}`)
+			local entry = SlimeRoster.get(child.species :: string) :: any
+			expect(entry.kind).toBe("spawn")
+			expect(entry.family).toBeNil() -- the default ctx opens Classic only
+		end
+	end)
+	it("the assist gives an unfound species about MERGE_ASSIST_CHANCE more often", function()
+		-- Rare pool with every family open: whiskers lop moo chomp pengoo. Found: all but pengoo.
+		local found = { whiskers = true, lop = true, moo = true, chomp = true }
+		local ctx: MergeRecipes.Ctx = { unlocked = everything.unlocked, found = found }
+		local rng = Rng.new(21)
+		local hits, n = 0, 4000
+		for i = 1, n do
+			local child = TripleMerge.merge(three(2), rng, `a{i}`, nil, ctx)
+			if child.tier == 3 and child.species == "pengoo" then
+				hits += 1
+			end
+		end
+		local base = 1 - Config.TRIPLE_MERGE_JUMP_CHANCE
+		local expected = base * (Config.MERGE_ASSIST_CHANCE + (1 - Config.MERGE_ASSIST_CHANCE) / 5)
+		expect(math.abs(hits / n - expected) < 0.03).toBe(true)
+	end)
+	it("one seed is one result, and a recipe hit draws the same numbers as a random merge", function()
+		local recipe = MergeRecipes.recipeFor("soda") :: MergeRecipes.Recipe
+		local function after(ins: { Genome.Slime }): number
+			local rng = Rng.new(77)
+			TripleMerge.merge(ins, rng, "x", nil, everything)
+			return rng:float()
+		end
+		expect(after(trio(1, recipe.inputs))).toBe(after(trio(1, { "gummy", "gummy", "pebble" })))
+		local a = TripleMerge.merge(trio(1, { "gummy", "gummy", "pebble" }), Rng.new(5), "x", nil, everything)
+		local b = TripleMerge.merge(trio(1, { "gummy", "gummy", "pebble" }), Rng.new(5), "x", nil, everything)
+		expect(a).toEqual(b)
+	end)
+	it("apply reads the save: rank-opened families and the owned species", function()
+		local d = Fixtures.data({
+			slime("a", 1, { species = "bubbles" }),
+			slime("b", 1, { species = "gummy" }),
+			slime("c", 1, { species = "mochi" }),
+		})
+		local ctx = TripleMerge.ctxFor(d)
+		expect(ctx.found and ctx.found.bubbles).toBe(true)
+		expect(ctx.unlocked(SlimeRoster.get("prickles") :: any)).toBe(false)
+		d.rebirths = 100
+		expect(TripleMerge.ctxFor(d).unlocked(SlimeRoster.get("prickles") :: any)).toBe(true)
+		local ok, child = TripleMerge.apply(d, { "a", "b", "c" }, nil, Rng.new(1), "n")
+		expect(ok).toBe(true)
+		expect((child :: Genome.Slime).species).toBe("soda")
+	end)
+end)
+
+describe("TripleMerge: recipe toast", function()
+	local function soda(id: string, species: string)
+		return slime(id, 1, { species = species })
+	end
+	it("a recipe hit says 'discovered' the first time and 'brewed' after", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, {
+			soda("a", "bubbles"),
+			soda("b", "gummy"),
+			soda("c", "mochi"),
+			soda("d", "bubbles"),
+			soda("e", "gummy"),
+			soda("f", "mochi"),
+		})
+		expect((MergeVat.merge3(world, s, { "a", "b", "c" }))).toBe(true)
+		local texts = ServerFixtures.notifications(world, 1)
+		expect(table.find(texts, "You discovered Soda Pop!") ~= nil).toBe(true)
+		expect((MergeVat.merge3(world, s, { "d", "e", "f" }))).toBe(true)
+		texts = ServerFixtures.notifications(world, 1)
+		expect(table.find(texts, "You brewed a Soda Pop!") ~= nil).toBe(true)
+	end)
+	it("a random merge gets no recipe toast", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1, { soda("a", "gummy"), soda("b", "gummy"), soda("c", "pebble") })
+		expect((MergeVat.merge3(world, s, { "a", "b", "c" }))).toBe(true)
+		for _, text in ServerFixtures.notifications(world, 1) do
+			expect(string.find(text, "discovered", 1, true)).toBeNil()
+		end
 	end)
 end)
 

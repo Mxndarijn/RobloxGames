@@ -2,15 +2,17 @@
 --[[
 	MergePreview (pure, CONTRACT.md §21.1)
 
-	The one place the merge menu asks "what will these slimes make?". Today every load gives a random species
-	of the next rarity (`kind = "random"`). `MergePreview.recipeFor` is the hook for merge recipes: when it
-	returns a recipe, the preview names that species (`kind = "recipe"`), or hides it behind a silhouette and
-	a hint while the player has not discovered it. Only shows odds; the server rolls the real child.
+	The one place the merge menu asks "what will these slimes make?". Three picks that form a merge recipe
+	whose hybrid the player has already found preview as that hybrid (`kind = "recipe"`, CONTRACT.md §35).
+	Every other load, an undiscovered recipe hit included, previews as a random species of the next rarity
+	(`kind = "random"`), so the menu never gives a recipe away. Only shows odds; the server rolls the child.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Merge = if script then require(script.Parent.Merge) else require("./Merge")
+local MergeRecipes = if script then require(script.Parent.MergeRecipes) else require("./MergeRecipes")
+local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 local TripleMerge = if script then require(script.Parent.TripleMerge) else require("./TripleMerge")
 
 type Slime = Genome.Slime
@@ -19,13 +21,11 @@ export type Recipe = {
 	species: string, -- SlimeRoster id of the result
 	name: string, -- its display name
 	tier: number,
-	discovered: boolean, -- false = show a silhouette and `hint`
-	hint: string?,
 }
 
 export type Preview = {
 	kind: "random" | "recipe",
-	title: string, -- "Random Rare slime", the recipe species' name, or "???"
+	title: string, -- "Random Rare slime" or the recipe hybrid's name
 	tier: number,
 	rarity: string,
 	color: { number }, -- rarity colour
@@ -36,16 +36,41 @@ export type Preview = {
 	freshMutationChance: number, -- 0..1, chance of one more on top
 	size: number, -- expected size
 	species: string?, -- recipe only
-	discovered: boolean, -- false only for an undiscovered recipe
-	hint: string?, -- recipe only, while undiscovered
 }
 
 local MergePreview = {}
 
--- The merge recipe these slimes match, or nil (then the result is a random species of the next rarity).
--- `known` is whatever the recipe lookup needs to tell discovered results apart (the menu passes State).
-function MergePreview.recipeFor(_slimes: { Slime }, _known: any?): Recipe?
-	return nil
+-- Species the State's species Dex marks found (`dex.entries[i] = { id, found }`); nil for any other shape.
+local function foundInDex(dex: any): { [string]: boolean }?
+	if type(dex) ~= "table" or type(dex.entries) ~= "table" then
+		return nil
+	end
+	local found: { [string]: boolean } = {}
+	for _, entry: any in dex.entries :: { any } do
+		if type(entry) == "table" and entry.found == true and type(entry.id) == "string" then
+			found[entry.id] = true
+		end
+	end
+	return found
+end
+
+-- The merge recipe these three slimes match when the player has found its hybrid, else nil (then the
+-- preview is a random species of the next rarity). `known` is the client's State: its owned slimes and
+-- the species Dex (`dex.entries`) say what the player has found.
+function MergePreview.recipeFor(slimes: { Slime }, known: any?): Recipe?
+	if #slimes ~= TripleMerge.COUNT or slimes[1].tier ~= slimes[2].tier or slimes[2].tier ~= slimes[3].tier then
+		return nil
+	end
+	local recipe = MergeRecipes.find({ slimes[1].species, slimes[2].species, slimes[3].species })
+	if not recipe or recipe.tier ~= slimes[1].tier + 1 then
+		return nil
+	end
+	local state = if type(known) == "table" then known else {}
+	if not MergeRecipes.isDiscovered(recipe.id, MergeRecipes.foundOf(state.slimes, foundInDex(state.dex))) then
+		return nil
+	end
+	local entry = SlimeRoster.get(recipe.id) :: SlimeRoster.Entry
+	return { species = recipe.id, name = entry.name, tier = recipe.tier }
 end
 
 local function expectedSize(slimes: { Slime }, bonus: number): number
@@ -83,12 +108,12 @@ function MergePreview.forSlimes(slimes: { Slime }, known: any?, mutationBonus: n
 		fresh = 1 -- maxed slimes always roll a fresh mutation
 	end
 
-	local recipe = MergePreview.recipeFor(slimes, known)
+	local recipe = if triple then MergePreview.recipeFor(slimes, known) else nil
 	if recipe then
 		tier, jumpTier, jumpChance = recipe.tier, nil, 0
 	end
 	local rarity = Genome.rarity(tier)
-	local title = if recipe then (if recipe.discovered then recipe.name else "???") else `Random {rarity.name} slime`
+	local title = if recipe then recipe.name else `Random {rarity.name} slime`
 	return {
 		kind = if recipe then "recipe" else "random",
 		title = title,
@@ -102,8 +127,6 @@ function MergePreview.forSlimes(slimes: { Slime }, known: any?, mutationBonus: n
 		freshMutationChance = fresh,
 		size = size,
 		species = if recipe then recipe.species else nil,
-		discovered = if recipe then recipe.discovered else true,
-		hint = if recipe and not recipe.discovered then recipe.hint else nil,
 	}
 end
 

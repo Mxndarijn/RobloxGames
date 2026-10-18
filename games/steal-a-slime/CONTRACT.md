@@ -255,7 +255,7 @@ The client always replaces its copy and never diffs.
 	carrying: { slime: SlimeData, kind: "wild" | "stolen", ownerUserId: number?,
 	            startedAt: number, escapeAt: number?, walkSpeed: number }?,
 	rain: { active: boolean, endsAt: number?, nextAt: number? },
-	dex: DexView,                               -- species Dex (§35.4)
+	dex: DexView,                               -- species Dex (§36.4)
 	daily: { available: boolean, streak: number, amount: number, day: number },
 	shop: {
 		LockUpgrade: { price: number?, level: number, maxLevel: number },  -- price nil = maxed
@@ -417,4 +417,5 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §32 | [slime-odds.md](contract/slime-odds.md) | Slime odds: rarity weights, family drop rule, Mythic / Secret presentation |
 | §33 | [boss-event.md](contract/boss-event.md) | Boss event: team meter fight, haul race, unstealable trophy |
 | §34 | [event-secrets.md](contract/event-secrets.md) | Event Secrets: one featured Secret per week joins the Secret pool |
-| §35 | [species-dex.md](contract/species-dex.md) | Species Dex: 50 species, mutation stamps, the new milestone ladder |
+| §35 | [merge-recipes.md](contract/merge-recipes.md) | Merge recipes, merge caps and the merge assist |
+| §36 | [species-dex.md](contract/species-dex.md) | Species Dex: 50 species, mutation stamps, the new milestone ladder |

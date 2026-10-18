@@ -5,13 +5,16 @@
 	Three slimes of ONE rarity go into the vat and one slime of a higher rarity comes out (all three are
 	consumed). The rules are fixed; only the odds are rolled, from the server's Rng, so one seed always gives
 	one result:
-	  * tier      T + 1 (like the two-slime vat); with Config.TRIPLE_MERGE_JUMP_CHANCE it is T + 2, but never
-	              into the Secret tier (a jump needs T + 2 below MAX_TIER; Secret stays a find). Tier-7 inputs
-	              stay tier 7 and always roll a fresh mutation, as in Merge.
+	  * recipe    three species that form a merge recipe give its hybrid (MergeRecipes, CONTRACT.md §35): one
+	              tier up, no jump. Anything else is a random merge:
+	  * tier      T + 1, at most Config.MERGE_MAX_TIER (Mythic x3 gives a Mythic, never a Secret); with
+	              Config.TRIPLE_MERGE_JUMP_CHANCE it is T + 2 when that is at most Config.MERGE_JUMP_MAX_TIER.
+	              Tier-7 inputs stay tier 7 and always roll a fresh mutation, as in Merge.
 	  * mutation  the strongest of the three (equal ones upgrade, Merge.inheritedMutation), every other
 	              mutation they carry too (strongest first, combos fuse, as many as fit), plus a fresh roll
 	              (Config.TRIPLE_MERGE_MUTATION_CHANCE; pet bonus included).
-	  * species   the child is a real SlimeRoster species of its tier (its name and colour), not a blended name.
+	  * species   a spawning species of that tier from the player's unlocked families (its name and colour);
+	              Config.MERGE_ASSIST_CHANCE of them from the species the player hasn't found yet.
 	  * size      mean of the three + Config.TRIPLE_MERGE_SIZE_BONUS.
 	  * traits    pattern / eyes / mouth each from one of the three.
 	Anti-dupe: `apply` checks everything first (three DIFFERENT ids, owned, not busy, not kept, same tier) and only then
@@ -22,10 +25,12 @@
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Merge = if script then require(script.Parent.Merge) else require("./Merge")
+local MergeRecipes = if script then require(script.Parent.MergeRecipes) else require("./MergeRecipes")
 local Perks = if script then require(script.Parent.Perks) else require("./Perks")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 local SlimeLooks = if script then require(script.Parent.SlimeLooks) else require("./SlimeLooks")
+local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 type Slime = Genome.Slime
 
@@ -53,11 +58,11 @@ function TripleMerge.canMerge(slimes: { Slime? }): (boolean, string?)
 	return true, nil
 end
 
--- What three slimes of `tier` can become (for the UI preview and the roll).
+-- What a random merge of three slimes of `tier` can become (for the UI preview).
 function TripleMerge.odds(tier: number, mutationBonus: number?): Odds
-	local base = math.min(tier + 1, Config.MAX_TIER)
+	local base = if tier >= Config.MAX_TIER then Config.MAX_TIER else math.min(tier + 1, Config.MERGE_MAX_TIER)
 	local jump = tier + 2
-	local canJump = tier < Config.MAX_TIER and jump <= Config.MAX_TIER - 1
+	local canJump = jump <= Config.MERGE_JUMP_MAX_TIER
 	return {
 		tier = base,
 		jumpTier = if canJump then jump else nil,
@@ -111,18 +116,58 @@ function TripleMerge.keptMutations(slimes: { Slime }): { string }
 	return mutations
 end
 
--- Builds the child (no side effects). `slimes` must have passed canMerge. Draw order is fixed: jump, species,
--- fresh mutation (2 draws), three trait picks (pattern, eyes, mouth), stacking.
-function TripleMerge.merge(slimes: { Slime }, rng: Rng.Rng, id: string, mutationBonus: number?): Slime
+-- The recipe context of a player's save: families their rank opened, species they have found.
+function TripleMerge.ctxFor(data: PlayerData.Data): MergeRecipes.Ctx
+	return {
+		unlocked = MergeRecipes.unlockedFor(data.rebirths),
+		found = MergeRecipes.foundOf(data.slimes, (data :: any).found),
+	}
+end
+
+local CLASSIC_ONLY: MergeRecipes.Ctx = { unlocked = MergeRecipes.unlockedFor(0) }
+
+local function pickSpecies(list: { string }, roll: number): string?
+	if #list == 0 then
+		return nil
+	end
+	return list[math.clamp(math.floor(roll * #list) + 1, 1, #list)]
+end
+
+-- Builds the child (no side effects). `slimes` must have passed canMerge. `ctx` (default: Classic only,
+-- nothing found) picks the random pool and the assist. Draw order is fixed, recipe or not: jump, assist,
+-- species, fresh mutation (2 draws), three trait picks (pattern, eyes, mouth), stacking.
+function TripleMerge.merge(
+	slimes: { Slime },
+	rng: Rng.Rng,
+	id: string,
+	mutationBonus: number?,
+	ctx: MergeRecipes.Ctx?
+): Slime
 	local a, b, c = slimes[1], slimes[2], slimes[3]
+	local recipeCtx = ctx or CLASSIC_ONLY
+	local outcome = MergeRecipes.resolve({
+		{ tier = a.tier, species = a.species },
+		{ tier = b.tier, species = b.species },
+		{ tier = c.tier, species = c.species },
+	}, recipeCtx)
 	local odds = TripleMerge.odds(a.tier, mutationBonus)
 	local maxed = a.tier >= Config.MAX_TIER
-	local tier = odds.tier
-	if odds.jumpTier and rng:float() < odds.jumpChance then
-		tier = odds.jumpTier
-	end
+	local jumpRoll, assistRoll, speciesRoll = rng:float(), rng:float(), rng:float()
 
-	local species = Genome.rollSpecies(tier, rng:float())
+	local tier = outcome.tier
+	local speciesId: string?
+	if outcome.recipe then
+		speciesId = outcome.recipe.id
+	else
+		local pool, assistPool, assistChance = outcome.pool, outcome.assistPool, outcome.assistChance
+		if outcome.jumpTier and jumpRoll < outcome.jumpChance then
+			tier = outcome.jumpTier
+			pool, assistPool = MergeRecipes.pool(tier, recipeCtx)
+			assistChance = if #assistPool > 0 then Config.MERGE_ASSIST_CHANCE else 0
+		end
+		speciesId = pickSpecies(if assistRoll < assistChance then assistPool else pool, speciesRoll)
+	end
+	local species = if speciesId then SlimeRoster.get(speciesId) else nil
 	local look = if species then SlimeLooks.get(species.id) else nil
 
 	local mutation = TripleMerge.inheritedPrimary(slimes)
@@ -216,7 +261,7 @@ function TripleMerge.apply(
 	for _, id in ids do
 		wasFavorite = wasFavorite or data.favoriteId == id
 	end
-	local child = TripleMerge.merge(parents, rng, newId, Perks.petMutationBonus(data))
+	local child = TripleMerge.merge(parents, rng, newId, Perks.petMutationBonus(data), TripleMerge.ctxFor(data))
 	for _, id in ids do
 		PlayerData.removeSlime(data, id)
 	end
