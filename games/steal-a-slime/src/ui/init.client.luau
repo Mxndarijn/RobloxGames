@@ -254,6 +254,7 @@ local inventory = Inventory.new(gui, {
 	keyboard = game:GetService("UserInputService").KeyboardEnabled,
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
+InventoryTools.bindBag(inventory.isBagKey, inventory.toggleBag)
 InventoryTools.bindUse(inventory.useHeld)
 local stealFx = StealAlertFx.new(gui, {
 	Config = Config,
@@ -909,13 +910,16 @@ if game:GetService("RunService"):IsStudio() then
 	end)
 end
 
--- Gamepad B always closes the open menu (same as its X), and Esc too while
+-- Gamepad B always closes the open menu or the bag (same as its X), and Esc too while
 -- Layout.CLOSE_WITH_ESCAPE is true (v27 default); see MenuClose.
 local closeMenuAction = MenuClose.bind(ContextActionService, Layout.CLOSE_WITH_ESCAPE, function()
-	return MenuClose.topKey(openKey, dailyPopup.isOpen())
+	return MenuClose.topKey(openKey, dailyPopup.isOpen(), inventory.panelOpen())
 end, function()
-	if dailyPopup.isOpen() then
+	local top = MenuClose.topKey(openKey, dailyPopup.isOpen(), inventory.panelOpen())
+	if top == "Daily" then
 		dailyPopup.close()
+	elseif top == MenuClose.BAG then
+		inventory.setPanelOpen(false)
 	else
 		setOpen(nil)
 	end

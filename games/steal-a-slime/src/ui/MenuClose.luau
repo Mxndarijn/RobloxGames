@@ -23,9 +23,12 @@ function MenuClose.promptMenus(shopPrompt: string, guidePrompt: string, worldSho
 	return { [shopPrompt] = "Shop", [guidePrompt] = "Guide" }
 end
 
--- What Esc / B closes: the Daily popup sits over every card, so it wins.
-function MenuClose.topKey(openKey: string?, dailyOpen: boolean): string?
-	return if dailyOpen then "Daily" else openKey
+-- What Esc / B closes: the Daily popup sits over every card, so it wins; the bag panel only shows with no card open.
+function MenuClose.topKey(openKey: string?, dailyOpen: boolean, bagOpen: boolean?): string?
+	if dailyOpen then
+		return "Daily"
+	end
+	return openKey or (if bagOpen then MenuClose.BAG else nil)
 end
 
 export type Service = {
@@ -39,6 +42,7 @@ export type Service = {
 }
 
 MenuClose.ACTION = "CloseMenu"
+MenuClose.BAG = "Bag"
 
 function MenuClose.bind(service: Service, withEscape: boolean, getOpen: () -> string?, close: () -> ())
 	local function handler(_: string, inputState: Enum.UserInputState)
