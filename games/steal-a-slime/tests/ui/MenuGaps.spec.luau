@@ -7,11 +7,12 @@ local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
 local Constants = require("../../src/shared/Constants")
+local Fixtures = require("../Fixtures")
 local Genome = require("../../src/shared/Genome")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local Remotes = require("../../src/shared/Remotes")
-local SlimeDex = require("../../src/ui/SlimeDex")
+local SpeciesDex = require("../../src/shared/SpeciesDex")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
@@ -21,7 +22,7 @@ local SlimePreview = UiHarness.ui("SlimePreview")
 local MenuClose = UiHarness.ui("MenuClose")
 local Widgets = UiHarness.ui("Widgets")
 
-local TOTAL = Config.MAX_TIER * (#Config.MUTATIONS + 1) * #Config.PATTERNS * #Config.EYES
+local DEX = Fixtures.dex({ "gummy" })
 
 local function ctx(): any
 	return {
@@ -151,7 +152,7 @@ describe("content-sized menu cards", function()
 			for _, name in { "Codes", "Guide", "Dex" } do
 				local panel = UiHarness.ui(`Panels/{name}`).new(UiHarness.root(), ctx())
 				if name == "Dex" then
-					panel.update({ dex = { "1:None:Plain:Round" }, dexTotal = TOTAL })
+					panel.update({ dex = DEX })
 					panel.setOpen(true)
 				end
 				local content = Widgets.contentHeight(UiHarness.find(panel.frame, "Body"))
@@ -168,14 +169,14 @@ describe("content-sized menu cards", function()
 	end
 end)
 
-local function openDex(w: number, h: number, dex: { string }, extra: { [string]: any }?): any
+local function openDex(w: number, h: number, dex: any, extra: { [string]: any }?): any
 	local panel = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
 	panel.frame.Visible = false
 	local raw = Layout.panelFor(Layout.screen(w, h), "Dex")
 	local r = Layout.rect(math.floor(raw.x), math.floor(raw.y), math.floor(raw.w), math.floor(raw.h))
 	panel.frame.Size = UDim2.fromOffset(r.w, r.h)
 	panel.layout(r)
-	local state: { [string]: any } = { dex = dex, dexTotal = TOTAL }
+	local state: { [string]: any } = { dex = dex }
 	for k, v in extra or {} do
 		state[k] = v
 	end
@@ -191,19 +192,16 @@ end
 
 describe("SlimeDex header", function()
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
-		it(`{vp.name}: tier counts, reward line and list do not overlap`, function()
-			local panel = openDex(vp.w, vp.h, { "1:None:Plain:Round" }, {
-				dexRewards = { { count = 10, reward = 1000, bonus = 0.02, claimed = false } },
+		it(`{vp.name}: counts, bar, reward line and list do not overlap`, function()
+			local panel = openDex(vp.w, vp.h, DEX, {
+				dexRewards = { { ladder = "species", count = 8, reward = 1000, bonus = 0.02, claimed = false } },
 			})
 			local check = LayoutAssert.new(vp.name, Layout.screen(vp.w, vp.h))
-			local tiers = UiHarness.find(panel.frame, "Tiers")
-			local rewards = UiHarness.find(panel.frame, "Rewards")
-			local list = UiHarness.find(panel.frame, "List")
-			local bar = UiHarness.find(panel.frame, "Percent")
 			local shown = {}
-			for _, item in { { "Tiers", tiers }, { "Rewards", rewards }, { "List", list } } do
-				if item[2].Visible then
-					table.insert(shown, item)
+			for _, name in { "Count", "Caption", "Rewards", "List" } do
+				local item = UiHarness.find(panel.frame, name)
+				if item.Visible then
+					table.insert(shown, { name, item })
 				end
 			end
 			for i = 1, #shown do
@@ -211,22 +209,23 @@ describe("SlimeDex header", function()
 					check.noOverlap(shown[i][1], rect(shown[i][2]), shown[j][1], rect(shown[j][2]))
 				end
 			end
-			expect(bar ~= nil).toBe(true)
+			expect(UiHarness.find(panel.frame, "Percent") ~= nil).toBe(true)
 			expect(#check.problems).toBe(0)
 		end)
 	end
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
 		it(`{vp.name}: the milestone bar card is the first list row and its parts stay inside it`, function()
-			local panel = openDex(vp.w, vp.h, { "1:None:Plain:Round" }, {
+			local panel = openDex(vp.w, vp.h, DEX, {
 				dexRewards = {
-					{ count = 10, reward = 1000, bonus = 0.02, claimed = true },
-					{ count = 25, reward = 2500, bonus = 0.03, claimed = false },
+					{ ladder = "species", count = 1, reward = 1000, bonus = 0.02, claimed = true },
+					{ ladder = "species", count = 8, reward = 2500, bonus = 0.03, claimed = false },
+					{ ladder = "stamps", count = 50, reward = 2500, bonus = 0.03, claimed = false },
 				},
 			})
 			local card = UiHarness.find(panel.frame, "Milestones")
 			expect(card.Visible).toBe(true)
-			expect(UiHarness.find(card, "MilestoneCount").Text).toBe("Next reward: 1 / 25")
-			expect(UiHarness.find(card, "MilestoneTicks").Text).toBe("✅10  25")
+			expect(UiHarness.find(card, "MilestoneCount").Text).toBe("Next reward: 1 / 8 species")
+			expect(UiHarness.find(card, "MilestoneTicks").Text).toBe("✅1  8")
 			expect(UiHarness.find(card, "Icon") ~= nil).toBe(true)
 			expect(UiHarness.find(card, "MilestoneBar") ~= nil).toBe(true)
 			local check = LayoutAssert.new(vp.name, Layout.screen(vp.w, vp.h))
@@ -239,57 +238,34 @@ describe("SlimeDex header", function()
 		end)
 	end
 	it("hides the milestone card on a server without dex rewards", function()
-		local panel = openDex(1920, 1080, {})
+		local panel = openDex(1920, 1080, DEX)
 		expect(UiHarness.find(panel.frame, "Milestones")).toBeNil()
-	end)
-	it("the tier grid is tall enough for every rarity at three per row", function()
-		local rows = math.ceil(Config.MAX_TIER / 3)
-		local need = rows * 18 + (rows - 1) * 4
-		local panel = openDex(1920, 1080, {})
-		expect(UiHarness.find(panel.frame, "Tiers").Size.Y.Offset >= need).toBe(true)
-		expect(UiHarness.find(panel.frame, "Tiers").Position.Y.Offset + need <= SlimeDex.HEADER.tiers).toBe(true)
 	end)
 end)
 
 describe("SlimeDex virtualised previews", function()
-	local many = {}
-	for _, mutation in { "None", "Glow" } do
-		for _, pattern in Config.PATTERNS do
-			for _, eyes in Config.EYES do
-				table.insert(many, `2:{mutation}:{pattern}:{eyes}`)
-			end
-		end
-	end
-	local function rowAt(list: any, index: number): any
-		for _, row in list:GetChildren() do
-			if row:IsA("GuiObject") and row.LayoutOrder == index then
-				return row
-			end
-		end
-		return nil
-	end
-	local function previewLive(row: any): boolean
-		local preview = UiHarness.find(row, "Preview")
+	local function previewLive(card: any): boolean
+		local preview = UiHarness.find(card, "Preview")
 		return preview.Visible and UiHarness.find(preview, "World") ~= nil
 	end
 
-	it("a row at index 40 scrolled into view gets a live preview; live count stays <= cap", function()
-		local panel = openDex(390, 844, many)
+	it("the 40th card scrolled into view gets a live preview; live count stays <= cap", function()
+		local panel = openDex(390, 844, DEX)
 		local list = UiHarness.find(panel.frame, "List")
-		expect(#many > 40).toBe(true)
-		local row = rowAt(list, 40)
-		expect(previewLive(row)).toBe(false) -- off screen at the top: swatch only
+		local id = SpeciesDex.ENTRIES[40].id
+		local card = UiHarness.find(list, id)
+		expect(previewLive(card)).toBe(false) -- off screen at the top: no viewport
 		expect(panel.liveCount() <= SlimePreview.MAX_LIVE).toBe(true)
-		list.CanvasPosition = Vector2.new(0, row.Position.Y.Offset - 40)
+		list.CanvasPosition = Vector2.new(0, card.Parent.Position.Y.Offset - 40)
 		panel.refreshPreviews()
-		expect(previewLive(rowAt(list, 40))).toBe(true)
+		expect(previewLive(card)).toBe(true)
 		expect(panel.liveCount() <= SlimePreview.MAX_LIVE).toBe(true)
 		expect(panel.liveCount() > 0).toBe(true)
-		-- recycled: the top rows gave their previews back
-		expect(previewLive(rowAt(list, 1))).toBe(false)
+		-- recycled: the top cards gave their previews back
+		expect(previewLive(UiHarness.find(list, SpeciesDex.ENTRIES[1].id))).toBe(false)
 	end)
 	it("never mounts more than MAX_LIVE even on a tall window", function()
-		local panel = openDex(1920, 1080, many)
+		local panel = openDex(1920, 1080, DEX)
 		expect(panel.liveCount() <= SlimePreview.MAX_LIVE).toBe(true)
 		local list = UiHarness.find(panel.frame, "List")
 		for y = 0, list.CanvasSize.Y.Offset, 300 do

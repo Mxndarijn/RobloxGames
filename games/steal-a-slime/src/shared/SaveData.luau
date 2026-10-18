@@ -19,7 +19,7 @@
 	    goals = { [goalId] = stagesPaid }, dexRewards = n
 	    plus (no bump; missing -> none) redeemed = { code }, boost = { mult, untilAt }
 	    v2 -> v3: zero upgrades / goals / dexRewards, stats.caught seeded with
-	    max(#slimes, dex count), tutorialStep 4..6 -> 5..7 (BuyPad step).
+	    #slimes, tutorialStep 4..6 -> 5..7 (BuyPad step).
 	  v4 (current): v3 plus slimes[i].mutations = { name } (every mutation, at most
 	    Config.MAX_MUTATIONS; combos stored by their combo name). The single
 	    `mutation` field is still written (the primary = strongest mutation) so a v3
@@ -37,6 +37,9 @@
 	the two unversioned fields above are now versioned: v5 -> v6 (migrateV5) keeps a known plotSkin id and
 	cleans stealLog / settings, junk or missing -> classic / empty / defaults. Pure, idempotent and
 	independent of every feature flag: a flag that is off leaves its field stored, just unused.
+	SlimeDex (CONTRACT.md §35.2, no version bump): found = { speciesId }, stamps = { "<species>:<Mutation>" },
+	speciesRewards / stampRewards = milestones paid; missing -> empty / 0, unknown ids dropped, owned slimes
+	always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
 	pvp (FEATURES.PvP, CONTRACT.md §26) is optional and needs no version bump: { tiers = { [line] = tier }, fun = { id }, played = seconds };
 	missing / junk -> nothing owned, ids that are not Config.PVP_TOOLS are ignored, numbers are clamped (SaveData.cleanPvp).
 	Unknown/newer versions are read field-by-field with the v5 sanitizer (both
@@ -51,6 +54,7 @@ local AudioSettings = if script then require(script.Parent.AudioSettings) else r
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
+local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require("./SpeciesDex")
 local StealAlert = if script then require(script.Parent.StealAlert) else require("./StealAlert")
 local TutorialProgress = if script then require(script.Parent.TutorialProgress) else require("./TutorialProgress")
 
@@ -354,10 +358,17 @@ function SaveData.deserialize(stored: any): Data
 			streak = num(raw.daily.streak, 0, 0, 1e6),
 		}
 	end
-	if type(raw.dex) == "table" then
-		for _, key in raw.dex do
-			if type(key) == "string" and #key <= 64 then
-				data.dex[key] = true
+	if type(raw.found) == "table" then
+		for _, id in raw.found do
+			if SpeciesDex.isSpecies(id) then
+				data.found[id] = true
+			end
+		end
+	end
+	if type(raw.stamps) == "table" then
+		for _, key in raw.stamps do
+			if SpeciesDex.isStamp(key) then
+				data.stamps[key] = true
 			end
 		end
 	end
@@ -426,8 +437,8 @@ function SaveData.deserialize(stored: any): Data
 		sold = num(stats.sold, 0, 0, 1e9),
 	}
 	if (tonumber(raw.migratedFrom or raw.version) or 0) < 3 then
-		-- v2 never counted catches: every slime on the plot / dex entry was caught or merged at least.
-		data.stats.caught = math.max(#data.slimes, PlayerData.dexCount(data))
+		-- v2 never counted catches: every slime on the plot was caught or merged at least.
+		data.stats.caught = #data.slimes
 	end
 	if type(raw.goals) == "table" then
 		for _, goal in Config.GOALS do
@@ -438,7 +449,8 @@ function SaveData.deserialize(stored: any): Data
 		end
 	end
 	data.quests = SaveData.cleanQuests(raw.quests) -- daily quests (no version bump: missing -> nothing rolled)
-	data.dexRewards = num(raw.dexRewards, 0, 0, #Config.DEX_MILESTONES)
+	data.speciesRewards = num(raw.speciesRewards, 0, 0, #Config.DEX_MILESTONES.species)
+	data.stampRewards = num(raw.stampRewards, 0, 0, #Config.DEX_MILESTONES.stamps)
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
 	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
@@ -508,11 +520,15 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			keep = if slime.keep == true then true else nil, -- optional (CONTRACT.md §21.1): missing = not kept, no version bump
 		})
 	end
-	local dex = {}
-	for key in data.dex do
-		table.insert(dex, key)
+	local found, stamps = {}, {}
+	for id in data.found do
+		table.insert(found, id)
 	end
-	table.sort(dex)
+	table.sort(found)
+	for key in data.stamps do
+		table.insert(stamps, key)
+	end
+	table.sort(stamps)
 	local redeemed = {}
 	for code in data.redeemed do
 		table.insert(redeemed, code)
@@ -533,7 +549,8 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		favoriteId = data.favoriteId,
 		lastOnline = math.floor(now or data.lastOnline),
 		daily = { lastDay = data.daily.lastDay, streak = data.daily.streak },
-		dex = dex,
+		found = found,
+		stamps = stamps,
 		totalEarned = math.floor(data.totalEarned),
 		totalStolen = data.totalStolen,
 		lockLevel = data.lockLevel,
@@ -547,7 +564,8 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			sold = data.stats.sold,
 		},
 		goals = table.clone(data.goals),
-		dexRewards = data.dexRewards,
+		speciesRewards = data.speciesRewards,
+		stampRewards = data.stampRewards,
 		quests = SaveData.cleanQuests(data.quests),
 		plotSkin = data.plotSkin,
 		stealLog = StealAlert.clean(data.stealLog),

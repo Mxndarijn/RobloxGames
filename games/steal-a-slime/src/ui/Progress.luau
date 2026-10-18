@@ -3,9 +3,9 @@
 	Progress
 
 	Rebirth ladder and SlimeDex completion for the Rebirth / SlimeDex panels.
-	Pure (tests/ui/Progress.spec.luau). Reads CONTRACT §5.1 fields, plus the
-	optional v13 fields (§8.2: rebirthTitle, nextRebirthTier, dexRewards,
-	dexBonus) when a server sends them;
+	Pure (tests/ui/Progress.spec.luau). Reads CONTRACT §5.1 fields, State.dex
+	(§35.4), plus the optional v13 fields (§8.2: rebirthTitle, nextRebirthTier,
+	dexRewards, dexBonus) when a server sends them;
 	future rebirth costs come from the caller's `costOf(rebirths)` (the panel
 	passes Shared.Economy.rebirthCost) so the formula lives in one place.
 ]]
@@ -139,23 +139,25 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 	}
 end
 
--- Dex keys are "tier:mutation:pattern:eyes" (Genome.dexKey); every tier has
--- the same number of combinations, so the per-tier total is total / #tiers.
-function Progress.dex(dex: any, total: any, tierNames: { string }): DexProgress
-	local keys = if type(dex) == "table" then dex else {}
-	local count = #keys
-	local all = num(total)
-	local perTier = if #tierNames > 0 and all % #tierNames == 0 then all // #tierNames else nil
+-- State.dex (CONTRACT.md §35.4): species found over the 50 entries, and per rarity (event Secrets are bonus
+-- entries and count nowhere here).
+function Progress.dex(dex: any, tierNames: { string }): DexProgress
+	local d = if type(dex) == "table" then dex else {}
+	local count, all = num(d.found), num(d.total)
 	local counts: { number } = {}
-	for _, key in keys do
-		local tier = tonumber(string.match(tostring(key), "^(%d+):"))
+	local totals: { number } = {}
+	for _, e in (if type(d.entries) == "table" then d.entries else {}) :: { any } do
+		local tier = if type(e) == "table" and e.kind ~= "event" then tonumber(e.tier) else nil
 		if tier then
-			counts[tier] = (counts[tier] or 0) + 1
+			totals[tier] = (totals[tier] or 0) + 1
+			if e.found == true then
+				counts[tier] = (counts[tier] or 0) + 1
+			end
 		end
 	end
 	local byTier: { TierCount } = {}
 	for i, name in tierNames do
-		byTier[i] = { name = name, count = counts[i] or 0, total = perTier }
+		byTier[i] = { name = name, count = counts[i] or 0, total = totals[i] }
 	end
 	local fraction = if all > 0 then math.clamp(count / all, 0, 1) else 0
 	return {
@@ -186,20 +188,31 @@ function Progress.rank(state: any): { title: string?, next: string? }
 	return { title = `Rank: {title}`, next = nextText }
 end
 
--- v13 SlimeDex rewards; both nil on a server without them.
+-- A State.dexRewards entry's ladder; entries without one count as species.
+local function ladderOf(r: any): string
+	return if r.ladder == "stamps" then "stamps" else "species"
+end
+
+-- SlimeDex rewards (State.dexRewards, both ladders): the next unclaimed milestone of each as one line
+-- ("Next: 15 species +$5K, +3% income · 50 stamps +$10K, +3% income"), and the bonus. All nil on a server
+-- without them.
 function Progress.dexRewards(state: any): { next: string?, bonus: string?, dexPercent: string? }
 	local rewards = state.dexRewards
 	if type(rewards) ~= "table" then
 		return { next = nil, bonus = nil, dexPercent = nil }
 	end
-	local nextText = "All SlimeDex rewards collected!"
+	local parts: { string } = {}
+	local seen: { [string]: boolean } = {}
 	for _, r in rewards do
-		if type(r) == "table" and r.claimed ~= true then
-			nextText =
-				`Next reward at {num(r.count)}: +{Format.formatCash(num(r.reward))} and +{pct(num(r.bonus))} income`
-			break
+		if type(r) == "table" and r.claimed ~= true and not seen[ladderOf(r)] then
+			seen[ladderOf(r)] = true
+			table.insert(
+				parts,
+				`{num(r.count)} {ladderOf(r)} +{Format.formatCash(num(r.reward))}, +{pct(num(r.bonus))} income`
+			)
 		end
 	end
+	local nextText = if #parts > 0 then `Next: {table.concat(parts, " · ")}` else "All SlimeDex rewards collected!"
 	local bonus = num(state.dexBonus)
 	return {
 		next = nextText,
@@ -208,10 +221,10 @@ function Progress.dexRewards(state: any): { next: string?, bonus: string?, dexPe
 	}
 end
 
--- Progress bar toward the next unclaimed SlimeDex milestone (state.dexRewards):
--- `icon` is its ItemIcons id, `label` "12 / 25", `ticks` one entry per milestone
--- with a claimed mark. nil on a server without dex rewards; `next` is nil once
--- every milestone is claimed (bar full).
+-- Progress bar toward the next unclaimed species milestone (state.dexRewards, ladder "species";
+-- the count is state.dex.found): `icon` is its ItemIcons id, `label` "12 / 15", `ticks` one entry per
+-- species milestone with a claimed mark. nil on a server without dex rewards; `next` is nil once every
+-- species milestone is claimed (bar full).
 export type DexTick = { text: string, claimed: boolean }
 export type DexMilestoneBar = {
 	icon: string,
@@ -227,13 +240,13 @@ function Progress.dexMilestones(state: any): DexMilestoneBar?
 	if type(rewards) ~= "table" or #rewards == 0 then
 		return nil
 	end
-	local count = if type(state.dex) == "table" then #state.dex else 0
+	local count = if type(state.dex) == "table" then num(state.dex.found) else 0
 	local ticks: { DexTick } = {}
 	local parts: { string } = {}
 	local target: number? = nil
 	local last = 0
 	for _, r in rewards do
-		if type(r) == "table" then
+		if type(r) == "table" and ladderOf(r) == "species" then
 			local n = num(r.count)
 			last = n
 			local claimed = r.claimed == true
@@ -244,6 +257,9 @@ function Progress.dexMilestones(state: any): DexMilestoneBar?
 			table.insert(ticks, { text = text, claimed = claimed })
 			table.insert(parts, text)
 		end
+	end
+	if #ticks == 0 then
+		return nil
 	end
 	local shown = target or last
 	return {

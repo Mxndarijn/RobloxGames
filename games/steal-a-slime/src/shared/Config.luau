@@ -432,14 +432,23 @@ for _, quest in DAILY_QUEST_POOL do
 	table.freeze(quest)
 end
 
-local DEX_MILESTONES: { DexMilestone } = {
-	{ count = 10, reward = 500, bonus = 0.02 },
-	{ count = 25, reward = 2500, bonus = 0.03 },
-	{ count = 50, reward = 10000, bonus = 0.05 },
-	{ count = 100, reward = 50000, bonus = 0.05 },
-	{ count = 200, reward = 250000, bonus = 0.1 },
-	{ count = 400, reward = 1.5e6, bonus = 0.15 },
-	{ count = 720, reward = 1e7, bonus = 0.25 },
+-- SlimeDex ladders (CONTRACT.md §35.3): species found (of 50) and core mutation stamps (of 376).
+-- `reward` is cash x rebirthMultiplier, `bonus` a permanent income bonus (both ladders add up to 0.65).
+local DEX_MILESTONES: { species: { DexMilestone }, stamps: { DexMilestone } } = {
+	species = {
+		{ count = 8, reward = 1000, bonus = 0.02 },
+		{ count = 15, reward = 5000, bonus = 0.03 },
+		{ count = 20, reward = 25000, bonus = 0.05 },
+		{ count = 32, reward = 250000, bonus = 0.1 },
+		{ count = 40, reward = 1.5e6, bonus = 0.1 },
+		{ count = 50, reward = 1e7, bonus = 0.15 },
+	},
+	stamps = {
+		{ count = 50, reward = 10000, bonus = 0.03 },
+		{ count = 100, reward = 100000, bonus = 0.05 },
+		{ count = 200, reward = 1e6, bonus = 0.05 },
+		{ count = 376, reward = 2.5e7, bonus = 0.07 },
+	},
 }
 
 local PLOT_SKINS: { PlotSkin } = {
@@ -582,7 +591,7 @@ local PVP_TOOLS: { PvpTool } = {
 	fun("FunFireworks", "Goo Fireworks", 10, 20, true, {}),
 }
 
-for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES } :: { { any } } do
+for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES.species, DEX_MILESTONES.stamps } :: { { any } } do
 	for _, entry in list do
 		table.freeze(entry)
 	end
@@ -677,7 +686,10 @@ local Config = {
 	-- Permanent upgrades (Request("BuyUpgrade", id)), goals and SlimeDex rewards (CONTRACT.md §8.8)
 	UPGRADES = table.freeze(UPGRADES),
 	GOALS = table.freeze(GOALS),
-	DEX_MILESTONES = table.freeze(DEX_MILESTONES),
+	DEX_MILESTONES = table.freeze({
+		species = table.freeze(DEX_MILESTONES.species),
+		stamps = table.freeze(DEX_MILESTONES.stamps),
+	}),
 	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §15)
 	PLOT_SKIN_DEFAULT = "classic",
 

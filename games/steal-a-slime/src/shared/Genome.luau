@@ -378,12 +378,6 @@ function Genome.displayName(slime: Slime): string
 	return `{rarity} {slime.name}`
 end
 
--- SlimeDex entry: which visible combination this slime is (its primary mutation, so the
--- dex stays a fixed size: stacks count as their strongest mutation, combos have their own).
-function Genome.dexKey(slime: Slime): string
-	return `{slime.tier}:{Genome.primaryMutation(Genome.mutationList(slime))}:{slime.pattern}:{slime.eyes}`
-end
-
 function Genome.copy(slime: Slime): Slime
 	local c = table.clone(slime)
 	c.color = table.clone(slime.color)

@@ -6,12 +6,15 @@ local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
 local Constants = require("../../src/shared/Constants")
+local Fixtures = require("../Fixtures")
 local Genome = require("../../src/shared/Genome")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local Remotes = require("../../src/shared/Remotes")
 local SlimeDex = require("../../src/ui/SlimeDex")
+local SlimeLooks = require("../../src/shared/SlimeLooks")
 local SlimeRoster = require("../../src/shared/SlimeRoster")
+local SpeciesDex = require("../../src/shared/SpeciesDex")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
@@ -20,8 +23,7 @@ local Color3, UDim2, Enum, Vector2 = roblox.Color3, roblox.UDim2, roblox.Enum, r
 
 local SlimePreview = UiHarness.ui("SlimePreview")
 local PARTS = { "Body", "EyeWhiteL", "EyeWhiteR", "PupilL", "PupilR" }
-local TOTAL = Config.MAX_TIER * (#Config.MUTATIONS + 1) * #Config.PATTERNS * #Config.EYES
-local DEX = { "2:None:Plain:Round", "1:Glow:Spots:Happy", "1:None:Plain:Round" }
+local DEX = Fixtures.dex({ "gummy", "mochi", "bumble" })
 
 local function rgb(c: { number }): any
 	return Color3.fromRGB(c[1], c[2], c[3])
@@ -32,6 +34,8 @@ local function ctx(): any
 		Config = Config,
 		Constants = Constants,
 		Genome = Genome,
+		SlimeRoster = SlimeRoster,
+		SlimeLooks = SlimeLooks,
 		actions = Remotes.ACTIONS,
 		send = function() end,
 		serverNow = function()
@@ -164,125 +168,107 @@ describe("SlimePreview.mount", function()
 	end)
 end)
 
-local function openDex(w: number, h: number, dex: { string }): any
-	local panel = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
+local function openDex(w: number, h: number, dex: any, extra: { [string]: any }?): any
+	local panel = UiHarness.ui("Panels/Dex").new(UiHarness.root(), (extra or ctx()) :: any)
 	local r = Layout.panelFor(Layout.screen(w, h), "Dex")
 	panel.frame.Size = UDim2.fromOffset(math.floor(r.w), math.floor(r.h))
+	panel.layout(Layout.rect(math.floor(r.x), math.floor(r.y), math.floor(r.w), math.floor(r.h)))
 	panel.setOpen(true)
-	panel.update({ dex = dex, dexTotal = TOTAL })
+	panel.update({ dex = dex })
 	return panel
+end
+
+-- A card by species id (cards sit inside their grid line).
+local function cardIn(panel: any, id: string): any
+	return UiHarness.find(UiHarness.find(panel.frame, "List"), id)
+end
+
+-- Scrolls the list so `id`'s line is at the top and refreshes the previews.
+local function scrollTo(panel: any, id: string)
+	local list = UiHarness.find(panel.frame, "List")
+	list.CanvasPosition = Vector2.new(0, cardIn(panel, id).Parent.Position.Y.Offset - 4)
+	panel.refreshPreviews()
 end
 
 describe("SlimeDex panel previews", function()
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
-		it(`{vp.name}: a ViewportFrame per row fills the square image box inside the row`, function()
+		it(`{vp.name}: a ViewportFrame per card fills the square preview box inside the card`, function()
 			local panel = openDex(vp.w, vp.h, DEX)
-			local list = UiHarness.find(panel.frame, "List")
-			for _, key in { "1:Glow:Spots:Happy", "locked:1" } do
-				local row = list:FindFirstChild(key)
-				local image = row:FindFirstChild("Image")
+			for _, id in { "gummy", "pebble" } do
+				local card = cardIn(panel, id)
+				local image = card:FindFirstChild("Image")
 				local preview = image:FindFirstChild("Preview")
 				expect(preview.ClassName).toBe("ViewportFrame")
 				expect(preview.Visible).toBe(true)
 				expect(preview.Size).toBe(UDim2.fromScale(1, 1))
 				expect(image.Size.X.Offset).toBe(image.Size.Y.Offset)
-				expect(image.Size.Y.Offset <= row.Size.Y.Offset).toBe(true)
-				expect(image.Size.X.Offset < panel.frame.Size.X.Offset).toBe(true)
-				expect(preview.ZIndex < image:FindFirstChild("Glyph").ZIndex).toBe(true)
+				expect(image.Size.Y.Offset <= card.Size.Y.Offset).toBe(true)
+				expect(image.Size.X.Offset <= card.Size.X.Offset).toBe(true)
 			end
-			local glow = list:FindFirstChild("1:Glow:Spots:Happy"):FindFirstChild("Image")
-			local model = glow:FindFirstChild("Preview"):FindFirstChild("World"):GetChildren()[1]
-			expect(model:FindFirstChild("Body").Color).toBe(rgb(SlimeDex.MUTATION_COLORS.Glow))
-			local locked = list:FindFirstChild("locked:1"):FindFirstChild("Image")
-			local blob = locked:FindFirstChild("Preview"):FindFirstChild("World"):GetChildren()[1]
-			expect(blob:FindFirstChild("Body").Color).toBe(SlimePreview.SILHOUETTE)
-			expect(locked:FindFirstChild("Glyph").Visible).toBe(true) -- ? over the silhouette
+			-- No species mesh builder here: the blob in the species colour, black for an unfound species.
+			local found = UiHarness.find(cardIn(panel, "gummy"), "World"):GetChildren()[1]
+			expect(found:FindFirstChild("Body").Color).toBe(rgb(SlimeLooks.get("gummy").color))
+			local silhouette = UiHarness.find(cardIn(panel, "pebble"), "World"):GetChildren()[1]
+			expect(silhouette:FindFirstChild("Body").Color).toBe(SlimePreview.SILHOUETTE)
 		end)
 	end
-	local NEW_ROWS = {
-		"5:Rainbow:Plain:Round",
-		"6:Crystal:Spots:Happy",
-		"6:Eclipse:Plain:Round",
-		"4:Lava:Spots:Happy", -- old save id, shows as Syrup
-	}
-	for _, vp in LayoutAssert.GATE_VIEWPORTS do
-		it(`{vp.name}: v28 mutation rows (and Lava/Syrup) get a finished ViewportFrame preview`, function()
-			local panel = openDex(vp.w, vp.h, NEW_ROWS)
-			local list = UiHarness.find(panel.frame, "List")
-			local accent = { Rainbow = "BandRed", Crystal = "Shard", Eclipse = "Corona", Lava = nil }
-			for _, key in NEW_ROWS do
-				local mutation = string.match(key, "^%d+:([^:]+)") :: string
-				local row = list:FindFirstChild(key)
-				list.CanvasPosition = Vector2.new(0, row.Position.Y.Offset - 4) -- previews follow the scroll window
-				panel.refreshPreviews()
-				local image = row:FindFirstChild("Image")
-				local preview = image:FindFirstChild("Preview")
-				expect(preview.ClassName).toBe("ViewportFrame")
-				expect(preview.Visible).toBe(true)
-				expect(image.Size.Y.Offset <= row.Size.Y.Offset).toBe(true)
-				local model = preview:FindFirstChild("World"):GetChildren()[1]
-				expect(model:GetAttribute("Mutation")).toBe(mutation)
-				expect(model:FindFirstChild("Body").Color).toBe(rgb((SlimeDex.MUTATION_COLORS :: any)[mutation]))
-				if accent[mutation] then
-					expect(model:FindFirstChild(accent[mutation]) ~= nil).toBe(true)
-				end
-				local title = row:FindFirstChild("Title").Text
-				expect(string.find(string.lower(title), "lava", 1, true)).toBeNil()
-			end
-			expect(list:FindFirstChild("4:Lava:Spots:Happy"):FindFirstChild("Title").Text).toBe(
-				"Epic · Syrup · Spots · Happy"
-			)
-		end)
-	end
-	it("remounts a row's preview when only its mutation finish changes", function()
-		local panel = openDex(1920, 1080, { "6:Crystal:Plain:Round" })
-		local list = UiHarness.find(panel.frame, "List")
-		local world = UiHarness.find(list:FindFirstChild("6:Crystal:Plain:Round"), "World")
-		expect(world:GetChildren()[1]:GetAttribute("Mutation")).toBe("Crystal")
-		panel.update({ dex = { "6:Crystal:Plain:Round" }, dexTotal = TOTAL })
-		expect(world:GetChildren()[1]:FindFirstChild("Shard") ~= nil).toBe(true)
+	it("mounts the species mesh from ctx.buildSpecies, painted black when not found", function()
+		local built: { string } = {}
+		local c = ctx()
+		c.SlimeRoster = SlimeRoster
+		c.SlimeLooks = SlimeLooks
+		c.buildSpecies = function(id: string)
+			table.insert(built, id)
+			local model = UiHarness.Instance.new("Model")
+			local part = UiHarness.Instance.new("Part")
+			part.Name = "Mesh"
+			part.Color = Color3.new(1, 1, 1)
+			part.Parent = model
+			return model
+		end
+		local panel = openDex(1920, 1080, DEX, c)
+		expect(table.find(built, "gummy") ~= nil).toBe(true)
+		local found = UiHarness.find(cardIn(panel, "gummy"), "World"):GetChildren()[1]
+		expect(found:FindFirstChild("Mesh").Color).toBe(Color3.new(1, 1, 1))
+		local silhouette = UiHarness.find(cardIn(panel, "pebble"), "World"):GetChildren()[1]
+		expect(silhouette:FindFirstChild("Mesh").Color).toBe(SlimePreview.SILHOUETTE)
+		expect(cardIn(panel, "pebble"):FindFirstChild("Image"):FindFirstChild("Glyph").Visible).toBe(false)
 	end)
-	it("keeps the same viewport model across updates with an unchanged row", function()
+	it("remounts a card's preview when it gets found", function()
+		local c = ctx()
+		c.SlimeLooks = SlimeLooks
+		local panel = openDex(1920, 1080, DEX, c)
+		local world = UiHarness.find(cardIn(panel, "pebble"), "World")
+		expect(world:GetChildren()[1]:FindFirstChild("Body").Color).toBe(SlimePreview.SILHOUETTE)
+		panel.update({ dex = Fixtures.dex({ "gummy", "mochi", "pebble" }) })
+		expect(world:GetChildren()[1]:FindFirstChild("Body").Color).toBe(rgb(SlimeLooks.get("pebble").color))
+	end)
+	it("keeps the same viewport model across updates with an unchanged card", function()
 		local panel = openDex(1920, 1080, DEX)
-		local list = UiHarness.find(panel.frame, "List")
-		local world = UiHarness.find(list:FindFirstChild("1:Glow:Spots:Happy"), "World")
+		local world = UiHarness.find(cardIn(panel, "gummy"), "World")
 		local model = world:GetChildren()[1]
-		panel.update({ dex = DEX, dexTotal = TOTAL })
+		panel.update({ dex = DEX })
 		expect(world:GetChildren()[1]).toBe(model)
 	end)
-	it(`mounts at most MAX_LIVE previews, for the rows in the scroll window only`, function()
-		local many = {}
-		for _, pattern in Config.PATTERNS do
-			for _, eyes in Config.EYES do
-				table.insert(many, `2:None:{pattern}:{eyes}`)
-			end
-		end
-		expect(#many + Config.MAX_TIER > SlimePreview.MAX_LIVE).toBe(true)
-		local panel = openDex(390, 844, many)
-		local list = UiHarness.find(panel.frame, "List")
-		local live, first, last = 0, false, false
-		for _, row in list:GetChildren() do
-			local preview = row:IsA("GuiObject") and UiHarness.find(row, "Preview")
-			if preview then
-				if preview.Visible then
-					live += 1
-					first = first or row.LayoutOrder == 1
-				else
-					expect(preview:FindFirstChild("World")).toBeNil()
-					last = last or row.LayoutOrder == #many + Config.MAX_TIER
-				end
-			end
-		end
-		expect(first).toBe(true)
-		expect(last).toBe(true)
+	it("mounts at most MAX_LIVE previews, for the cards in the scroll window only", function()
+		expect(SpeciesDex.TOTAL > SlimePreview.MAX_LIVE).toBe(true)
+		local panel = openDex(390, 844, DEX)
+		local first = cardIn(panel, SpeciesDex.ENTRIES[1].id)
+		local last = cardIn(panel, SpeciesDex.BONUS[#SpeciesDex.BONUS].id)
+		expect(UiHarness.find(first, "Preview").Visible).toBe(true)
+		expect(UiHarness.find(last, "Preview").Visible).toBe(false)
+		expect(UiHarness.find(last, "World")).toBeNil()
+		local live = panel.liveCount()
 		expect(live > 0 and live <= SlimePreview.MAX_LIVE).toBe(true)
-		expect(panel.liveCount()).toBe(live)
+		scrollTo(panel, SpeciesDex.BONUS[#SpeciesDex.BONUS].id)
+		expect(UiHarness.find(last, "Preview").Visible).toBe(true)
+		expect(UiHarness.find(first, "World")).toBeNil()
+		expect(panel.liveCount() <= SlimePreview.MAX_LIVE).toBe(true)
 	end)
 end)
 
 describe("SlimeDex previews rebuild only while open", function()
-	local NEW = "3:None:Plain:Round"
-	local MORE = { DEX[1], DEX[2], DEX[3], NEW }
+	local MORE = Fixtures.dex({ "gummy", "mochi", "bumble", "moo" })
 
 	local function closedDex(): any
 		local panel = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
@@ -293,51 +279,48 @@ describe("SlimeDex previews rebuild only while open", function()
 
 	it("does not rebuild while closed: the update only marks the list dirty", function()
 		local panel = closedDex()
-		panel.update({ dex = DEX, dexTotal = TOTAL })
+		panel.update({ dex = DEX })
 		expect(panel.builds()).toBe(0)
 		expect(UiHarness.find(panel.frame, "Preview")).toBeNil()
 		-- Built once, then closed: a later update leaves the list alone.
 		panel.setOpen(true)
 		panel.setOpen(false)
-		panel.update({ dex = MORE, dexTotal = TOTAL })
+		panel.update({ dex = MORE })
 		expect(panel.builds()).toBe(1)
-		expect(UiHarness.find(panel.frame, "List"):FindFirstChild(NEW)).toBeNil()
-		expect(UiHarness.find(panel.frame, "Count").Text).toBe("Discovered 4 / " .. TOTAL) -- header still live
+		expect(cardIn(panel, "moo"):GetAttribute("Found")).toBe(false)
+		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`Species 4 / {SpeciesDex.TOTAL}`) -- header still live
 	end)
 	it("rebuilds on open when dirty (never built, or changed while closed)", function()
 		local panel = closedDex()
-		panel.update({ dex = DEX, dexTotal = TOTAL })
+		panel.update({ dex = DEX })
 		panel.setOpen(true)
 		expect(panel.builds()).toBe(1)
-		local list = UiHarness.find(panel.frame, "List")
-		expect(UiHarness.find(list:FindFirstChild(DEX[2]), "World") ~= nil).toBe(true)
 		panel.setOpen(false)
-		panel.update({ dex = MORE, dexTotal = TOTAL })
+		panel.update({ dex = MORE })
 		panel.setOpen(true)
 		expect(panel.builds()).toBe(2)
-		expect(UiHarness.find(list:FindFirstChild(NEW), "World") ~= nil).toBe(true)
+		expect(cardIn(panel, "moo"):GetAttribute("Found")).toBe(true)
 	end)
 	it("rebuilds while open when an update makes it dirty", function()
 		local panel = closedDex()
 		panel.setOpen(true)
 		expect(panel.builds()).toBe(0) -- nothing to build before the first state
-		panel.update({ dex = DEX, dexTotal = TOTAL })
+		panel.update({ dex = DEX })
 		expect(panel.builds()).toBe(1)
-		panel.update({ dex = MORE, dexTotal = TOTAL })
+		panel.update({ dex = MORE })
 		expect(panel.builds()).toBe(2)
-		local list = UiHarness.find(panel.frame, "List")
-		expect(UiHarness.find(list:FindFirstChild(NEW), "World") ~= nil).toBe(true)
+		expect(cardIn(panel, "moo"):GetAttribute("Found")).toBe(true)
 	end)
 	it("does not rebuild redundantly on open, or on an unchanged update, when clean", function()
 		local panel = closedDex()
-		panel.update({ dex = DEX, dexTotal = TOTAL })
+		panel.update({ dex = DEX })
 		panel.setOpen(true)
-		local world = UiHarness.find(UiHarness.find(panel.frame, "List"):FindFirstChild(DEX[2]), "World")
+		local world = UiHarness.find(cardIn(panel, "gummy"), "World")
 		local model = world:GetChildren()[1]
 		panel.setOpen(false)
-		panel.update({ dex = table.clone(DEX), dexTotal = TOTAL }) -- same rows: stays clean
+		panel.update({ dex = Fixtures.dex({ "gummy", "mochi", "bumble" }) }) -- same cards: stays clean
 		panel.setOpen(true)
-		panel.update({ dex = DEX, dexTotal = TOTAL }) -- init.client updates right after opening
+		panel.update({ dex = DEX }) -- init.client updates right after opening
 		expect(panel.builds()).toBe(1)
 		expect(world:GetChildren()[1]).toBe(model)
 	end)

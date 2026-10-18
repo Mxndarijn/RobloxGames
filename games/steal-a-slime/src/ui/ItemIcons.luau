@@ -66,13 +66,9 @@ ItemIcons.IMAGES = {
 	Consumable_MutationSpray = 132258473401570,
 	Consumable_WeatherTotem = 128919354425403,
 	Daily = 136919499537484,
-	Dex_10 = 121377018671664,
-	Dex_100 = 104036768146434,
-	Dex_200 = 124460827254481,
-	Dex_25 = 103082196233051,
-	Dex_400 = 119341987106293,
+	DexStamps_100 = 104036768146434,
+	DexStamps_200 = 124460827254481,
 	Dex_50 = 98335037376213,
-	Dex_720 = 86513854908521,
 	Event_luck = 110897664124431,
 	Event_mutation = 77556138887188,
 	Event_rain = 85475866363499,
@@ -148,6 +144,11 @@ ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 -- Items an artist must still render: in a DRAWN group but with no recipe worth shipping. Empty now.
 -- The H1 HUD icons (group "hud", not drawn) keep their tile + glyph until Archer renders them.
 ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
+
+-- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
+-- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet.
+ItemIcons.AWAITING_UPLOAD =
+	table.freeze({ "Dex_8", "Dex_15", "Dex_20", "Dex_32", "Dex_40", "DexStamps_50", "DexStamps_376" } :: { string })
 
 -- Kit meshes that exist in MeshAssets (shared/MeshAssets NAMES) and may back a "mesh" model.
 ItemIcons.MESHES = table.freeze({
@@ -527,15 +528,18 @@ function ItemIcons.build(config: any)
 		})
 	end
 
-	for i, m in config.DEX_MILESTONES do
-		add({
-			id = `Dex_{m.count}`,
-			name = `Dex {m.count}`,
-			group = "goal",
-			color = { 255, 200 - math.min(i, 7) * 12, 80 },
-			glyph = "🏆",
-			brief = `Gold trophy with a slime on top and the number {m.count} on the base; front view.`,
-		})
+	for _, pair in { { "species", "Dex" }, { "stamps", "DexStamps" } } do
+		local ladder, prefix = pair[1], pair[2]
+		for i, m in config.DEX_MILESTONES[ladder] do
+			add({
+				id = `{prefix}_{m.count}`,
+				name = if ladder == "species" then `Dex {m.count} species` else `Dex {m.count} stamps`,
+				group = "goal",
+				color = { 255, 200 - math.min(i, 7) * 12, 80 },
+				glyph = "🏆",
+				brief = `Gold trophy with a slime on top and the number {m.count} on the base; front view.`,
+			})
+		end
 	end
 
 	for _, b in config.BADGES do
@@ -611,7 +615,7 @@ local GOAL_ALIASES: { [string]: string } = {
 	FillPads = "Goal_Pads",
 	AllPads = "Goal_Pads",
 	BestTier = "Goal_Catch",
-	Dex = "Dex_10",
+	Dex = "Dex_50",
 }
 
 -- Registry id for a Goals panel row: server goal ids (Catch, Merge, ...) and the local ones (FillPads, Daily, ...).

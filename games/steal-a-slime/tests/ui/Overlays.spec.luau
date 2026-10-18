@@ -60,7 +60,10 @@ describe("overlays start hidden and follow their menu", function()
 			local panel = UiHarness.ui(`Panels/{file}`).new(UiHarness.root(), ctx())
 			expect(panel.frame.Visible).toBe(false)
 			if panel.update then
-				pcall(panel.update, { cash = 0, slimes = {}, rebirths = 0, dex = {}, dexTotal = 1 })
+				pcall(
+					panel.update,
+					{ cash = 0, slimes = {}, rebirths = 0, dex = { found = 0, total = 50, entries = {} } }
+				)
 			end
 			expect(panel.frame.Visible).toBe(false)
 			expect(key ~= "").toBe(true)

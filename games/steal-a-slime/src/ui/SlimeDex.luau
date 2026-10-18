@@ -2,44 +2,53 @@
 --[[
 	SlimeDex
 
-	Rows of the SlimeDex panel (Panels/Dex). Pure (tests/ui/SlimeDex.spec).
-
-	Every discovered Genome.dexKey gets a row with an image: an uploaded
-	picture from IMAGES when there is one, else a placeholder swatch in the
-	mutation (or rarity) colour. Undiscovered entries are not listed one by
-	one (dexTotal is 720 keys, mostly locked: too many rows on a phone);
-	each tier gets one silhouette row instead (dark fill, "?", no names).
-	Panels/Dex renders a ViewportFrame per row: the real in-world slime
-	model (Visuals.ModelFactory, from SlimeDex.genome) when the client has
-	it, else the SlimePreview blob from `color` and `mutation`. Uploaded
-	thumbnails still win: see v28-NEEDS-UPLOAD.md for the files to make.
+	The SlimeDex panel's content (Panels/Dex), pure (tests/ui/SlimeDex.spec). State.dex (CONTRACT.md §35.4)
+	becomes one card per species, grouped by rarity under a header line, the event Secrets last as a bonus
+	section. A card is found (full colour mesh, name, stamp row) or a silhouette ("???", the hint, and for
+	hybrids three ingredient slots that fill in as the player finds each ingredient). The server decides what is
+	revealed; this module only formats it. `lines` packs the cards into grid lines for a list width
+	(`grid`: as many columns as fit, one on a narrow phone), so the panel stacks lines like any scroll list.
 ]]
 
-local Format = if script then require(script.Parent.Format) else require("./Format")
-local Progress = if script then require(script.Parent.Progress) else require("./Progress")
+export type Stamp = { mutation: string, label: string, color: { number }, on: boolean, gold: boolean }
+export type Slot = { species: string?, label: string, color: { number } }
 
-export type Row = {
-	key: string, -- the dexKey, or "locked:<tier>"
+export type Card = {
+	key: string, -- species id
+	kind: string, -- "spawn" | "hybrid" | "boss" | "event"
 	tier: number,
-	locked: boolean,
-	title: string,
-	detail: string,
-	image: string?, -- rbxassetid://..., nil = placeholder swatch
-	color: { number }, -- swatch / silhouette fill (RGB 0..255)
-	mutation: string?, -- save id of a discovered row ("None", "Lava", ...); nil when locked
-	skin: { id: string, unlocked: boolean, equipped: boolean }?, -- plot skin card (FEATURES.PlotSkins), not a slime row
+	found: boolean,
+	title: string, -- name, or "???"
+	hint: string?,
+	badge: string?, -- "Merge-only" | "Boss" | "Event"
+	slots: { Slot }?, -- hybrids: the three ingredients
+	stamps: { Stamp }, -- the 8 core stamps (empty for bosses and event Secrets)
+	gold: { Stamp }, -- gold bonus stamps the player has
+	color: { number }, -- rarity frame colour
+	speciesColor: { number }, -- the species' own colour (preview fallback)
 }
+
+export type Line = {
+	key: string,
+	kind: string, -- "header" | "cards"
+	tier: number,
+	title: string?, -- header
+	detail: string?, -- header: "3 / 6"
+	cards: { Card }?, -- cards line, left to right
+}
+
+export type Grid = { columns: number, cardW: number, cardH: number, gap: number }
+
+-- Species name and colour for ingredient slots and previews (Panels/Dex builds it from SlimeRoster / SlimeLooks).
+export type Lookup = (id: string) -> (string?, { number }?)
 
 local SlimeDex = {}
 
--- Uploaded pictures: a dexKey ("3:Glow:Spots:Happy") or a whole tier +
--- mutation ("3:Glow") -> image asset id. Empty until art is uploaded.
-SlimeDex.IMAGES = table.freeze({} :: { [string]: string })
-
 SlimeDex.SILHOUETTE = table.freeze({ 24, 26, 36 })
+SlimeDex.UNKNOWN = "???"
+SlimeDex.BONUS_TIER = 0 -- section key of the event Secrets
 
--- Placeholder swatch per mutation save id ("Lava" displays as Syrup); "None"
--- uses the rarity colour.
+-- Stamp dot per mutation save id ("Lava" displays as Syrup); "None" uses the rarity colour.
 SlimeDex.MUTATION_COLORS = table.freeze({
 	Glow = table.freeze({ 255, 245, 150 }),
 	Lava = table.freeze({ 255, 110, 40 }),
@@ -50,7 +59,7 @@ SlimeDex.MUTATION_COLORS = table.freeze({
 	Rainbow = table.freeze({ 255, 120, 200 }),
 	Crystal = table.freeze({ 150, 235, 255 }),
 	Eclipse = table.freeze({ 30, 20, 50 }),
-	-- Combos (Config.COMBOS)
+	-- Combos (Config.COMBOS / WEATHER_COMBOS)
 	Solar = table.freeze({ 255, 170, 90 }),
 	Nebula = table.freeze({ 190, 80, 160 }),
 	Aurora = table.freeze({ 120, 255, 190 }),
@@ -59,107 +68,267 @@ SlimeDex.MUTATION_COLORS = table.freeze({
 	Comet = table.freeze({ 150, 170, 255 }),
 })
 
-function SlimeDex.image(key: string, images: { [string]: string }?): string?
-	local map = images or SlimeDex.IMAGES
-	local tierMutation = string.match(key, "^(%d+:[^:]+)")
-	return map[key] or (if tierMutation then map[tierMutation] else nil)
+SlimeDex.BADGES = table.freeze({ hybrid = "Merge-only", boss = "Boss", event = "Event" })
+
+-- Card grid (design px): cards at least CARD_MIN_W wide, at most MAX_COLUMNS per line.
+SlimeDex.CARD = table.freeze({
+	minW = 150,
+	h = 188,
+	gap = 8,
+	maxColumns = 6,
+	preview = 76, -- square mesh preview at the top
+	header = 26, -- rarity header line
+})
+
+local function mutationNames(config: any): { [string]: string }
+	local names: { [string]: string } = { None = "Plain" }
+	for _, list in { config.MUTATIONS, config.COMBOS, config.WEATHER_MUTATIONS, config.WEATHER_COMBOS } do
+		for _, m in list or {} do
+			names[m.name] = m.displayName or m.name
+		end
+	end
+	return names
 end
 
--- A display genome for a dex row (Genome.Slime shape, for
--- Visuals.ModelFactory.build): the dexKey's tier, mutation, pattern and eyes
--- on a size-1 body in the row colour, smiling. Locked rows get the tier's
--- plain look (the panel paints it as a silhouette). nil for a bad key.
-function SlimeDex.genome(row: Row): { [string]: any }?
-	local tier, mutation, pattern, eyes = string.match(row.key, "^(%d+):([^:]+):([^:]+):([^:]+)$")
-	if row.locked then
-		tier = string.match(row.key, "^locked:(%d+)$")
-		mutation, pattern, eyes = "None", "Plain", "Round"
-	end
-	local t = tonumber(tier)
-	if t == nil then
-		return nil
-	end
-	return {
-		id = `Dex_{row.key}`,
-		name = "",
-		tier = t,
-		color = { row.color[1], row.color[2], row.color[3] },
-		size = 1,
-		pattern = pattern,
-		eyes = eyes,
-		mouth = "Smile",
-		mutation = mutation,
-	}
+local function str(value: any): string?
+	return if type(value) == "string" and value ~= "" then value else nil
 end
 
--- Discovered rows of each tier (sorted by key), then that tier's silhouette
--- row while some of it is still undiscovered. `config` supplies RARITIES and
--- MUTATIONS (save id -> displayName for the titles).
-function SlimeDex.rows(dex: any, total: any, config: any, images: { [string]: string }?): { Row }
-	local tierNames: { string } = {}
-	for i, rarity in config.RARITIES do
-		tierNames[i] = rarity.name
-	end
-	local mutationNames: { [string]: string } = {}
+-- One card per State.dex entry, in State order. Junk entries are skipped.
+function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
+	local out: { Card } = {}
+	local entries = if type(dex) == "table" and type(dex.entries) == "table" then dex.entries else {}
+	local names = mutationNames(config)
+	local core: { string } = { "None" }
 	for _, m in config.MUTATIONS or {} do
-		mutationNames[m.name] = m.displayName or m.name
+		table.insert(core, m.name)
 	end
-	for _, c in config.COMBOS or {} do
-		mutationNames[c.name] = c.displayName or c.name
-	end
-	for _, list in { config.WEATHER_MUTATIONS or {}, config.WEATHER_COMBOS or {} } do
-		for _, m in list do
-			mutationNames[m.name] = m.displayName or m.name
-		end
-	end
-	local progress = Progress.dex(dex, total, tierNames)
-	local byTier: { [number]: { string } } = {}
-	for _, key in (if type(dex) == "table" then dex else {}) :: { any } do
-		local tier = tonumber(string.match(tostring(key), "^(%d+):"))
-		if tier then
-			byTier[tier] = byTier[tier] or {}
-			table.insert(byTier[tier], tostring(key))
-		end
-	end
-	local out: { Row } = {}
-	for tier, name in tierNames do
-		local keys = byTier[tier] or {}
-		table.sort(keys)
-		local rarityColor = config.RARITIES[tier].color
-		for _, key in keys do
-			local mutation = string.match(key, "^%d+:([^:]+)")
+	for _, e in entries :: { any } do
+		local id = if type(e) == "table" then str(e.id) else nil
+		local tier = if type(e) == "table" then tonumber(e.tier) else nil
+		local rarity = if tier then config.RARITIES[tier] else nil
+		if id and tier and rarity then
+			local kind = str(e.kind) or "spawn"
+			local found = e.found == true
+			local ownColor: { number }? = nil
+			if lookup then
+				local _, color = lookup(id)
+				ownColor = color
+			end
+			local stamps: { Stamp } = {}
+			if kind == "spawn" or kind == "hybrid" then
+				local have: { [string]: boolean } = {}
+				for _, m in (if type(e.stamps) == "table" then e.stamps else {}) :: { any } do
+					have[tostring(m)] = true
+				end
+				for _, m in core do
+					table.insert(stamps, {
+						mutation = m,
+						label = names[m] or m,
+						color = (SlimeDex.MUTATION_COLORS :: any)[m] or rarity.color,
+						on = have[m] == true,
+						gold = false,
+					})
+				end
+			end
+			local gold: { Stamp } = {}
+			for _, m in (if type(e.gold) == "table" then e.gold else {}) :: { any } do
+				local name = tostring(m)
+				table.insert(gold, {
+					mutation = name,
+					label = names[name] or name,
+					color = (SlimeDex.MUTATION_COLORS :: any)[name] or rarity.color,
+					on = true,
+					gold = true,
+				})
+			end
+			local slots: { Slot }? = nil
+			if kind == "hybrid" and type(e.ingredients) == "table" then
+				local list: { Slot } = {}
+				for i = 1, 3 do
+					local species = str(e.ingredients[i])
+					local name, color = nil, nil
+					if species and lookup then
+						name, color = lookup(species)
+					end
+					list[i] = {
+						species = species,
+						label = if species then name or species else "?",
+						color = if species then color or rarity.color else SlimeDex.SILHOUETTE,
+					}
+				end
+				slots = list
+			end
 			table.insert(out, {
-				key = key,
+				key = id,
+				kind = kind,
 				tier = tier,
-				locked = false,
-				title = Format.dexLabel(key, tierNames, mutationNames),
-				detail = "Discovered",
-				image = SlimeDex.image(key, images),
-				color = (SlimeDex.MUTATION_COLORS :: any)[mutation or ""] or rarityColor,
-				mutation = mutation,
-			})
-		end
-		local t = progress.byTier[tier]
-		local left = if t.total then t.total - t.count else 0
-		if left > 0 then
-			table.insert(out, {
-				key = `locked:{tier}`,
-				tier = tier,
-				locked = true,
-				title = `??? · {name}`,
-				detail = `{left} more to discover`,
-				image = nil,
-				color = SlimeDex.SILHOUETTE,
+				found = found,
+				title = str(e.name) or SlimeDex.UNKNOWN,
+				hint = str(e.hint),
+				badge = (SlimeDex.BADGES :: any)[kind],
+				slots = slots,
+				stamps = stamps,
+				gold = gold,
+				color = rarity.color,
+				speciesColor = ownColor or rarity.color,
 			})
 		end
 	end
 	return out
 end
 
--- Plot skin cards (FEATURES.PlotSkins, CONTRACT.md §15) shown above the slime rows: one per
--- State.plotSkins entry, locked / unlocked with the SlimeDex set progress. Empty without the field.
-function SlimeDex.skinRows(plotSkins: any, config: any): { Row }
-	local out: { Row } = {}
+-- Columns, card width and height for a list `width` design px wide.
+function SlimeDex.grid(width: number): Grid
+	local c = SlimeDex.CARD
+	local columns = math.clamp(math.floor((width + c.gap) / (c.minW + c.gap)), 1, c.maxColumns)
+	local cardW = math.max(1, math.floor((width - c.gap * (columns - 1)) / columns))
+	return { columns = columns, cardW = cardW, cardH = c.h, gap = c.gap }
+end
+
+-- Header + card lines: one rarity at a time (found count over the rarity's cards), the bonus section
+-- (event Secrets) last. `columns` cards per line.
+function SlimeDex.lines(cards: { Card }, columns: number, config: any): { Line }
+	local byTier: { [number]: { Card } } = {}
+	local bonus: { Card } = {}
+	for _, card in cards do
+		if card.kind == "event" then
+			table.insert(bonus, card)
+		else
+			byTier[card.tier] = byTier[card.tier] or {}
+			table.insert(byTier[card.tier], card)
+		end
+	end
+	local out: { Line } = {}
+	local function section(tier: number, title: string, list: { Card })
+		local found = 0
+		for _, card in list do
+			if card.found then
+				found += 1
+			end
+		end
+		table.insert(
+			out,
+			{ key = `header:{tier}`, kind = "header", tier = tier, title = title, detail = `{found} / {#list}` }
+		)
+		for start = 1, #list, columns do
+			table.insert(out, {
+				key = `cards:{tier}:{(start - 1) // columns + 1}`,
+				kind = "cards",
+				tier = tier,
+				cards = table.move(list, start, math.min(start + columns - 1, #list), 1, {}),
+			})
+		end
+	end
+	for tier, rarity in config.RARITIES do
+		local list = byTier[tier]
+		if list and #list > 0 then
+			section(tier, rarity.name, list)
+		end
+	end
+	if #bonus > 0 then
+		section(SlimeDex.BONUS_TIER, "Bonus: Event Secrets", bonus)
+	end
+	return out
+end
+
+-- A display genome for a card (Genome.Slime shape, for Visuals.ModelFactory.build): the species on a size-1
+-- body in its colour. The panel paints it flat black for an unfound card.
+function SlimeDex.genome(card: Card): { [string]: any }
+	return {
+		id = `Dex_{card.key}`,
+		name = "",
+		tier = card.tier,
+		species = card.key,
+		color = { card.speciesColor[1], card.speciesColor[2], card.speciesColor[3] },
+		size = 1,
+		pattern = "Plain",
+		eyes = "Round",
+		mouth = "Smile",
+		mutation = "None",
+	}
+end
+
+export type Summary = {
+	percent: string,
+	fraction: number,
+	count: string, -- "Species 12 / 50"
+	stamps: string, -- "Stamps 40 / 376 · 2 gold · Secrets 1 / 7"
+}
+
+function SlimeDex.summary(dex: any): Summary
+	local d = if type(dex) == "table" then dex else {}
+	local function n(v: any): number
+		return if type(v) == "number" then v else 0
+	end
+	local found, total = n(d.found), n(d.total)
+	local fraction = if total > 0 then math.clamp(found / total, 0, 1) else 0
+	local extras = {}
+	if n(d.gold) > 0 then
+		table.insert(extras, `{n(d.gold)} gold`)
+	end
+	if n(d.bonusTotal) > 0 then
+		table.insert(extras, `Secrets {n(d.bonusFound)} / {n(d.bonusTotal)}`)
+	end
+	local stampLine = `Stamps {n(d.stamps)} / {n(d.stampTotal)}`
+	if #extras > 0 then
+		stampLine ..= ` · {table.concat(extras, " · ")}`
+	end
+	return {
+		percent = `{math.floor(fraction * 100)}%`,
+		fraction = fraction,
+		count = `Species {found} / {total}`,
+		stamps = stampLine,
+	}
+end
+
+-- Panel header above the list (Panels/Dex, design px): percent + count + stamps (40), the bar (to 64),
+-- then the rewards line (36) when there is one.
+SlimeDex.HEADER = table.freeze({ count = 40, bar = 64, rewards = 36, gap = 4 })
+-- The list keeps at least one rarity header and part of a card visible + scroll padding.
+SlimeDex.MIN_LIST = 72 + 12
+
+export type Header = { bar: boolean, rewards: boolean, rewardsY: number, listTop: number }
+
+-- What fits above the list in a `bodyH` tall panel body: the rewards line goes first, then the bar, until the
+-- list is MIN_LIST tall (short landscape phones). The list height is never negative.
+function SlimeDex.header(bodyH: number, hasRewards: boolean): Header
+	local h = SlimeDex.HEADER
+	local options = {
+		{ bar = true, rewards = hasRewards },
+		{ bar = true, rewards = false },
+		{ bar = false, rewards = false },
+	}
+	local out: Header
+	for _, o in options do
+		local top = if o.bar then h.bar else h.count
+		out = {
+			bar = o.bar,
+			rewards = o.rewards,
+			rewardsY = top,
+			listTop = top + h.gap + (if o.rewards then h.rewards else 0),
+		}
+		if bodyH - out.listTop >= SlimeDex.MIN_LIST then
+			break
+		end
+	end
+	return out
+end
+
+-- Plot skin cards (FEATURES.PlotSkins, CONTRACT.md §15) shown above the species: one per State.plotSkins entry,
+-- locked / unlocked with the SlimeDex set progress. Empty without the field.
+export type SkinRow = {
+	key: string,
+	tier: number,
+	locked: boolean,
+	title: string,
+	detail: string,
+	color: { number },
+	skin: { id: string, unlocked: boolean, equipped: boolean },
+}
+
+function SlimeDex.skinRows(plotSkins: any, config: any): { SkinRow }
+	local out: { SkinRow } = {}
 	if type(plotSkins) ~= "table" then
 		return out
 	end
@@ -174,55 +343,16 @@ function SlimeDex.skinRows(plotSkins: any, config: any): { Row }
 			local detail = if equipped
 				then `Equipped · {set}`
 				elseif unlocked then `Unlocked · {set}`
-				else `{set}: {skin.owned}/{skin.needed} to unlock`
+				else `{set}: {skin.owned}/{skin.needed} species to unlock`
 			table.insert(out, {
 				key = `skin:{skin.id}`,
 				tier = skin.tier or 0,
 				locked = not unlocked,
 				title = `Plot skin · {skin.name}`,
 				detail = detail,
-				image = nil,
 				color = floors[skin.id] or SlimeDex.SILHOUETTE,
-				mutation = nil,
 				skin = { id = skin.id, unlocked = unlocked, equipped = equipped },
 			})
-		end
-	end
-	return out
-end
-
--- Panel header above the list (Panels/Dex, design px): percent + count
--- (40), the bar (to 64), the per-rarity grid (7 rarities, three per row =
--- three 18 px rows, to 128), then the rewards line (36) when there is one.
-SlimeDex.HEADER = table.freeze({ count = 40, bar = 64, tiers = 128, rewards = 36, gap = 4 })
--- The list keeps at least one 72 px row (Panels/Dex) + scroll padding.
-SlimeDex.MIN_LIST = 72 + 12
-
-export type Header = { bar: boolean, tiers: boolean, rewards: boolean, rewardsY: number, listTop: number }
-
--- What fits above the list in a `bodyH` tall panel body: the tier grid goes
--- first, then the rewards line, then the bar, until the list is MIN_LIST
--- tall (short landscape phones). The list height is never negative.
-function SlimeDex.header(bodyH: number, hasRewards: boolean): Header
-	local h = SlimeDex.HEADER
-	local options = {
-		{ bar = true, tiers = true, rewards = hasRewards },
-		{ bar = true, tiers = false, rewards = hasRewards },
-		{ bar = true, tiers = false, rewards = false },
-		{ bar = false, tiers = false, rewards = false },
-	}
-	local out: Header
-	for _, o in options do
-		local top = if o.tiers then h.tiers elseif o.bar then h.bar else h.count
-		out = {
-			bar = o.bar,
-			tiers = o.tiers,
-			rewards = o.rewards,
-			rewardsY = top,
-			listTop = top + h.gap + (if o.rewards then h.rewards else 0),
-		}
-		if bodyH - out.listTop >= SlimeDex.MIN_LIST then
-			break
 		end
 	end
 	return out

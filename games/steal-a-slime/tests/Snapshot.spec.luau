@@ -4,7 +4,9 @@ local Config = require("../src/shared/Config")
 local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
 local ServerFixtures = require("./ServerFixtures")
+local SlimeRoster = require("../src/shared/SlimeRoster")
 local Snapshot = require("../src/server/Snapshot")
+local SpeciesDex = require("../src/shared/SpeciesDex")
 local Steal = require("../src/shared/Steal")
 local TestRunner = require("./TestRunner")
 
@@ -28,7 +30,6 @@ local STATE_KEYS = {
 	"lockDuration",
 	"rain",
 	"dex",
-	"dexTotal",
 	"daily",
 	"shop",
 	-- v13 (CONTRACT.md §8.2): always sent
@@ -49,7 +50,7 @@ local STATE_KEYS = {
 describe("Snapshot.build", function()
 	it("has every Types.State field with the right values", function()
 		local world = ServerFixtures.world()
-		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2) }, 77)
+		local s = ServerFixtures.join(world, 1, { Fixtures.slime("a", 2, { species = "bumble" }) }, 77)
 		s.data.padsUnlocked = 4
 		local state = Snapshot.build(world, s, T0)
 		for _, key in STATE_KEYS do
@@ -63,8 +64,9 @@ describe("Snapshot.build", function()
 		expect(state.nextPadCost).toBe(Economy.padCost(4))
 		expect(state.lockUntil).toBe(T0 + Config.JOIN_LOCK_SECONDS)
 		expect(state.lockDuration).toBe(Steal.lockDuration(0))
-		expect(state.dexTotal).toBe(2016)
-		expect(#state.dex).toBe(1)
+		expect(state.dex.total).toBe(SpeciesDex.TOTAL)
+		expect(state.dex.found).toBe(1)
+		expect(state.dex.stamps).toBe(1)
 		expect(state.rain.active).toBe(false)
 		expect(state.rain.nextAt).toBe(T0 + Config.RAIN_FIRST_AT)
 		expect(state.daily.available).toBe(true)
@@ -96,6 +98,49 @@ describe("Snapshot.build", function()
 		local world = ServerFixtures.world()
 		local s = ServerFixtures.join(world, 1)
 		expect(Snapshot.build(world, s, T0).nextPadCost).toBeNil()
+	end)
+end)
+
+describe("Snapshot State.dex", function()
+	local function entry(state: any, id: string): any
+		for _, e in state.dex.entries do
+			if e.id == id then
+				return e
+			end
+		end
+		error(`no entry {id}`)
+	end
+	it("lists the 50 entries and the event Secrets with counts, stamps and gold stamps", function()
+		local world = ServerFixtures.world()
+		local glow = Fixtures.slime("a", 1, { species = "gummy", mutation = "Glow", mutations = { "Glow" } })
+		local solar = Fixtures.slime("b", 1, { species = "gummy", mutation = "Solar", mutations = { "Solar" } })
+		local s = ServerFixtures.join(world, 1, { glow, solar, Fixtures.slime("c", 1, { species = "gummy" }) })
+		local state = Snapshot.build(world, s, T0) :: any
+		expect(#state.dex.entries).toBe(SpeciesDex.TOTAL + #SpeciesDex.BONUS)
+		expect(state.dex.found).toBe(1)
+		expect(state.dex.total).toBe(SpeciesDex.TOTAL)
+		expect(state.dex.stamps).toBe(2) -- gummy:None, gummy:Glow
+		expect(state.dex.stampTotal).toBe(SpeciesDex.STAMP_TOTAL)
+		expect(state.dex.gold).toBe(1) -- gummy:Solar
+		expect(state.dex.bonusTotal).toBe(#SpeciesDex.BONUS)
+		local gummy = entry(state, "gummy")
+		expect(gummy.found).toBe(true)
+		expect(gummy.name).toBe("Gummy")
+		expect(table.concat(gummy.stamps, ",")).toBe("None,Glow")
+		expect(table.concat(gummy.gold, ",")).toBe("Solar")
+		local moo = entry(state, "moo")
+		expect(moo.found).toBe(false)
+		expect(moo.name).toBeNil()
+		expect(entry(state, "goozilla").hint).toBe(SpeciesDex.BOSS_HINT)
+		expect(entry(state, "glitch").kind).toBe("event")
+	end)
+	it("State.dex totals match the roster: 32 spawn + 15 hybrids + 3 bosses, 47 x 8 stamps", function()
+		expect(#SlimeRoster.ofKind("spawn") + #SlimeRoster.ofKind("hybrid") + #SlimeRoster.ofKind("boss")).toBe(
+			SpeciesDex.TOTAL
+		)
+		expect(SpeciesDex.TOTAL).toBe(50)
+		expect(SpeciesDex.STAMP_TOTAL).toBe(376)
+		expect(#SpeciesDex.BONUS).toBe(#SlimeRoster.ofKind("event"))
 	end)
 end)
 

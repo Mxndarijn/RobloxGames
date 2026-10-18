@@ -18,6 +18,7 @@ local ServerFixtures = require("./ServerFixtures")
 local Sessions = require("../src/server/Sessions")
 local Snapshot = require("../src/server/Snapshot")
 local Spawner = require("../src/server/Spawner")
+local SpeciesDex = require("../src/shared/SpeciesDex")
 local Steal = require("../src/shared/Steal")
 local TestRunner = require("./TestRunner")
 local Upgrades = require("../src/shared/Upgrades")
@@ -136,7 +137,7 @@ describe("Upgrades (BuyUpgrade)", function()
 		local base = PlayerData.incomePerSecond(data)
 		data.upgrades.Income = 2
 		expect(PlayerData.incomePerSecond(data)).toBeCloseTo(base * 1.2)
-		data.dexRewards = 2 -- +2 % +3 %
+		data.speciesRewards = 2 -- +2 % +3 %
 		expect(PlayerData.incomePerSecond(data)).toBeCloseTo(base * 1.2 * 1.05)
 		data.rebirths = 7
 		local mult = Economy.rebirthMultiplier(7)
@@ -243,28 +244,69 @@ describe("Goals and SlimeDex rewards", function()
 		expect(view[1].done).toBe(false)
 		expect(view[1].nextTitle).toBe(Goals.title(Config.GOALS[1], Config.GOALS[1].targets[5]))
 	end)
-	it("builds the plot DexTierMask from discovered tiers", function()
+	it("builds the plot DexTierMask from found species tiers", function()
 		local data = Fixtures.data()
-		data.dex = {}
-		expect(Collection.tierMask(data)).toBe(0)
-		data.dex["1:None:Plain:Round"] = true
-		data.dex["3:Glow:Spots:Wide"] = true
-		data.dex["3:None:Belly:Happy"] = true
-		data.dex["6:Gold:Plain:Angry"] = true
-		data.dex["junk"] = true
-		expect(Collection.tierMask(data)).toBe(0b100101)
+		expect(SpeciesDex.tierMask(data)).toBe(0)
+		data.found.gummy = true -- 1
+		data.found.whiskers = true -- 3
+		data.found.moo = true -- 3
+		data.found.cosmo = true -- 6
+		data.found.junk = true
+		expect(SpeciesDex.tierMask(data)).toBe(0b100101)
 	end)
-	it("pays SlimeDex milestones with a permanent income bonus", function()
+	it("pays SlimeDex milestones of both ladders with a permanent income bonus", function()
 		local data = Fixtures.data()
-		for i = 1, 26 do
-			data.dex[`k{i}`] = true
+		local species = Config.DEX_MILESTONES.species
+		for i = 1, species[2].count + 1 do
+			data.found[SpeciesDex.ENTRIES[i].id] = true
 		end
 		local paid = Collection.check(data)
 		expect(#paid).toBe(2)
-		expect(data.dexRewards).toBe(2)
-		expect(Perks.dexBonus(data)).toBeCloseTo(0.05)
-		expect(Collection.view(data)[2].claimed).toBe(true)
-		expect(Collection.view(data)[3].claimed).toBe(false)
+		expect(paid[1].ladder).toBe("species")
+		expect(paid[1].reward).toBe(species[1].reward)
+		expect(data.speciesRewards).toBe(2)
+		expect(data.stampRewards).toBe(0)
+		expect(Perks.dexBonus(data)).toBeCloseTo(species[1].bonus + species[2].bonus)
+		local view = Collection.view(data)
+		expect(#view).toBe(#species + #Config.DEX_MILESTONES.stamps)
+		expect(view[2].claimed).toBe(true)
+		expect(view[3].claimed).toBe(false)
+		expect(view[#species + 1].ladder).toBe("stamps")
+		-- Core stamps pay the stamp ladder; gold stamps and bonus entries count for nothing.
+		local stamps = Config.DEX_MILESTONES.stamps
+		local n = 0
+		for _, entry in SpeciesDex.ENTRIES do
+			for _, m in SpeciesDex.CORE_STAMPS do
+				if n < stamps[1].count and entry.kind ~= "boss" then
+					data.stamps[`{entry.id}:{m}`] = true
+					n += 1
+				end
+			end
+		end
+		data.stamps["gummy:Solar"] = true
+		data.found.glitch = true
+		local more = Collection.check(data)
+		expect(#more).toBe(1)
+		expect(more[1].ladder).toBe("stamps")
+		expect(data.stampRewards).toBe(1)
+		expect(#Collection.check(data)).toBe(0) -- paid once
+		expect(Perks.dexBonus(data)).toBeCloseTo(species[1].bonus + species[2].bonus + stamps[1].bonus)
+	end)
+	it("the ladders follow the design: 8 .. 50 species, 50 .. 376 stamps, +65 % income in all", function()
+		local total = 0
+		for _, ladder in { Config.DEX_MILESTONES.species, Config.DEX_MILESTONES.stamps } do
+			for i, m in ladder do
+				total += m.bonus
+				if i > 1 then
+					expect(m.count > ladder[i - 1].count).toBe(true)
+					expect(m.reward > ladder[i - 1].reward).toBe(true)
+				end
+			end
+		end
+		local species, stamps = Config.DEX_MILESTONES.species, Config.DEX_MILESTONES.stamps
+		expect(species[#species].count).toBe(SpeciesDex.TOTAL)
+		expect(stamps[#stamps].count).toBe(SpeciesDex.STAMP_TOTAL)
+		expect(total).toBeCloseTo(0.65)
 	end)
 	it("puts every v13 field in State", function()
 		local world = ServerFixtures.world()
@@ -342,12 +384,12 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		expect(d.lockLevel).toBe(2)
 		expect(d.speedCoil).toBe(true)
 		expect(d.daily.streak).toBe(4)
-		expect(PlayerData.dexCount(d)).toBe(36) -- 30 saved keys + 6 from the slimes on the plot
+		expect(PlayerData.dexCount(d)).toBe(0) -- old combination keys are ignored; these slimes have no species
 		expect(d.tutorialStep).toBe(6) -- still Steal, now step 6
 		expect(next(d.upgrades)).toBeNil()
 		expect(next(d.goals)).toBeNil()
-		expect(d.dexRewards).toBe(0)
-		expect(d.stats.caught).toBe(36) -- max(#slimes, dex count)
+		expect(d.speciesRewards).toBe(0)
+		expect(d.stats.caught).toBe(8) -- the slimes on the plot
 		expect(d.stats.merges).toBe(0)
 	end)
 	it("pays reached goals and dex milestones once on the first join", function()
@@ -356,12 +398,12 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		local cash = d.cash
 		local s = Sessions.join(world, 1, "Vet", d, T0)
 		assert(s, "session")
-		expect(s.data.goals.Catch).toBe(2) -- 1, 10
+		expect(s.data.goals.Catch).toBe(1) -- 1 (8 caught)
 		expect(s.data.goals.Steal).toBe(2) -- 1, 10
 		expect(s.data.goals.Pads).toBe(4)
 		expect(s.data.goals.Earn).toBe(2) -- 10K, 1M
 		expect(s.data.goals.Rebirth).toBe(2) -- 1, 3
-		expect(s.data.dexRewards).toBe(2) -- 10, 25
+		expect(s.data.speciesRewards).toBe(0) -- no species found
 		expect(s.data.cash > cash).toBe(true)
 		local again = SaveData.deserialize(SaveData.serialize(s.data, T0))
 		local world2 = ServerFixtures.world()
@@ -376,16 +418,18 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		d.upgrades.Luck = 99
 		d.stats.merges = 7
 		d.goals.Merge = 1
-		d.dexRewards = 2
+		d.speciesRewards = 2
+		d.stampRewards = 1
 		local raw = SaveData.serialize(d, T0)
 		expect(raw.version).toBe(Config.SAVE_VERSION)
 		local back = SaveData.deserialize(raw)
 		expect(back.upgrades.Income).toBe(3)
 		expect(back.upgrades.Luck).toBe(5) -- clamped to maxLevel
 		expect(back.stats.merges).toBe(7)
-		expect(back.stats.caught).toBe(36)
+		expect(back.stats.caught).toBe(8)
 		expect(back.goals.Merge).toBe(1)
-		expect(back.dexRewards).toBe(2)
+		expect(back.speciesRewards).toBe(2)
+		expect(back.stampRewards).toBe(1)
 		expect(back.tutorialStep).toBe(6)
 	end)
 	it("survives garbage in the v3 fields", function()
@@ -394,7 +438,8 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		raw.upgrades = { Income = "lots", CarrySpeed = -4, Bogus = 3 }
 		raw.stats = "nope"
 		raw.goals = { Catch = 1e9, Fake = 2 }
-		raw.dexRewards = 1e9
+		raw.speciesRewards = 1e9
+		raw.stampRewards = "lots"
 		local d = SaveData.deserialize(raw)
 		expect(d.upgrades.Income).toBeNil()
 		expect(d.upgrades.CarrySpeed).toBeNil()
@@ -402,6 +447,7 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		expect(d.stats.caught).toBe(0)
 		expect(d.goals.Catch).toBe(5)
 		expect((d.goals :: any).Fake).toBeNil()
-		expect(d.dexRewards).toBe(#Config.DEX_MILESTONES)
+		expect(d.speciesRewards).toBe(#Config.DEX_MILESTONES.species)
+		expect(d.stampRewards).toBe(0)
 	end)
 end)

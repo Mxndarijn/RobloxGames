@@ -22,7 +22,7 @@ type Session = World.Session
 local MergeVat = {}
 
 function MergeVat.merge(world: World, session: Session, idA: string, idB: string): (boolean, string?)
-	local known = table.clone(session.data.dex)
+	local known = table.clone(session.data.found)
 	local ok, result = Merge.apply(session.data, idA, idB, World.busySet(world), world.rng, world.newId())
 	if not ok then
 		return false, result :: string
@@ -30,7 +30,7 @@ function MergeVat.merge(world: World, session: Session, idA: string, idB: string
 	local child = result :: Genome.Slime
 	session.data.stats.merges += 1
 	World.markDirty(session)
-	local isNew = not known[Genome.dexKey(child)]
+	local isNew = child.species ~= nil and not known[child.species]
 	World.notify(
 		world,
 		session.userId,
@@ -46,7 +46,7 @@ end
 -- FEATURES.MergeVat3 (the caller checks the flag): three slimes of one rarity -> one of a higher rarity
 -- (TripleMerge.apply: validated first, so a refused merge changes nothing). The child takes the first pad.
 function MergeVat.merge3(world: World, session: Session, ids: { string }): (boolean, string?)
-	local known = table.clone(session.data.dex)
+	local known = table.clone(session.data.found)
 	local ok, result = TripleMerge.apply(session.data, ids, World.busySet(world), world.rng, world.newId())
 	if not ok then
 		return false, result :: string
@@ -54,7 +54,7 @@ function MergeVat.merge3(world: World, session: Session, ids: { string }): (bool
 	local child = result :: Genome.Slime
 	session.data.stats.merges += 1
 	World.markDirty(session)
-	local isNew = not known[Genome.dexKey(child)]
+	local isNew = child.species ~= nil and not known[child.species]
 	World.notify(
 		world,
 		session.userId,
@@ -80,7 +80,7 @@ function MergeVat.autoMerge(world: World, session: Session, mask: number): (bool
 	if #groups == 0 then
 		return false, "nothing to merge"
 	end
-	local known = table.clone(session.data.dex)
+	local known = table.clone(session.data.found)
 	local made: { Genome.Slime } = {}
 	for _, group in groups do
 		local ok, result = TripleMerge.apply(session.data, group.ids, busy, world.rng, world.newId())
@@ -99,8 +99,8 @@ function MergeVat.autoMerge(world: World, session: Session, mask: number): (bool
 		if child.tier > best.tier then
 			best = child
 		end
-		if not known[Genome.dexKey(child)] then
-			known[Genome.dexKey(child)] = true
+		if child.species and not known[child.species] then
+			known[child.species] = true
 			fresh += 1
 		end
 	end

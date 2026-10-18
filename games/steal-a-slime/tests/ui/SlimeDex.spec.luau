@@ -1,31 +1,38 @@
 --!strict
--- SlimeDex rows (src/ui/SlimeDex.luau) and the real SlimeDex panel and menu
--- chrome built under tests/ui/UiHarness.luau: a picture per discovered
--- slime, a silhouette per tier for the rest, rows stacked by
--- Layout.stackRows, and the close X on every menu.
+-- SlimeDex cards (src/ui/SlimeDex.luau) and the real SlimeDex panel built under tests/ui/UiHarness.luau:
+-- one card per species grouped by rarity, silhouettes with hints and ingredient slots for what is not found,
+-- stamp dots, a grid that fits the panel width, and the close X on every menu.
 local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
 local Constants = require("../../src/shared/Constants")
+local Fixtures = require("../Fixtures")
 local Genome = require("../../src/shared/Genome")
 local Layout = require("../../src/ui/Layout")
 local Remotes = require("../../src/shared/Remotes")
 local SlimeDex = require("../../src/ui/SlimeDex")
+local SlimeLooks = require("../../src/shared/SlimeLooks")
+local SlimeRoster = require("../../src/shared/SlimeRoster")
+local SpeciesDex = require("../../src/shared/SpeciesDex")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local UDim2 = roblox.UDim2
 
-local TOTAL = Config.MAX_TIER * (#Config.MUTATIONS + 1) * #Config.PATTERNS * #Config.EYES
-local PER_TIER = TOTAL // Config.MAX_TIER
-local DEX = { "2:None:Plain:Round", "1:Glow:Spots:Happy", "1:None:Plain:Round" }
+local RECIPES = {
+	soda = { inputs = { "bubbles", "gummy", "mochi" }, hint = "Fizzy, chewy and soft." },
+}
+local SOURCES = Fixtures.dexSources(RECIPES, { glitch = 1760918400 })
+local DEX = Fixtures.dex({ "gummy", "mochi", "bumble" }, { "gummy:None", "gummy:Glow", "gummy:Solar" }, SOURCES)
 
 local function ctx(): any
 	return {
 		Config = Config,
 		Constants = Constants,
 		Genome = Genome,
+		SlimeRoster = SlimeRoster,
+		SlimeLooks = SlimeLooks,
 		actions = Remotes.ACTIONS,
 		send = function() end,
 		serverNow = function()
@@ -38,68 +45,141 @@ local function ctx(): any
 	}
 end
 
-describe("SlimeDex.rows", function()
-	it("lists discovered slimes by tier, each followed by that tier's silhouette row", function()
-		local rows = SlimeDex.rows(DEX, TOTAL, Config)
-		local keys = {}
-		for _, row in rows do
-			table.insert(keys, row.key)
+local function lookup(id: string): (string?, { number }?)
+	local entry, look = SlimeRoster.get(id), SlimeLooks.get(id)
+	return if entry then entry.name else nil, if look then look.color else nil
+end
+
+local function cardOf(cards: { SlimeDex.Card }, id: string): SlimeDex.Card
+	for _, card in cards do
+		if card.key == id then
+			return card
 		end
-		expect(table.concat(keys, ",", 1, 5)).toBe(
-			"1:Glow:Spots:Happy,1:None:Plain:Round,locked:1,2:None:Plain:Round,locked:2"
-		)
-		expect(#rows).toBe(#DEX + Config.MAX_TIER) -- every tier still has undiscovered slimes
+	end
+	error(`no card {id}`)
+end
+
+describe("SlimeDex.cards", function()
+	it("has one card per Dex entry and bonus entry, in State order", function()
+		local cards = SlimeDex.cards(DEX, Config, lookup)
+		expect(#cards).toBe(SpeciesDex.TOTAL + #SpeciesDex.BONUS)
+		expect(cards[1].key).toBe(SpeciesDex.ENTRIES[1].id)
+		expect(cards[#cards].kind).toBe("event")
 	end)
-	it("gives discovered rows a name and a colour, locked rows a silhouette with no names", function()
-		local rows = SlimeDex.rows(DEX, TOTAL, Config)
-		local glow, plain, locked = rows[1], rows[2], rows[3]
-		expect(glow.locked).toBe(false)
-		expect(glow.title).toBe(`{Config.RARITIES[1].name} · Glow · Spots · Happy`)
-		expect(glow.color).toBe(SlimeDex.MUTATION_COLORS.Glow)
-		expect(plain.color).toBe(Config.RARITIES[1].color)
-		expect(locked.locked).toBe(true)
-		expect(locked.color).toBe(SlimeDex.SILHOUETTE)
-		expect(locked.image).toBeNil()
-		expect(locked.detail).toBe(`{PER_TIER - 2} more to discover`)
-		for _, part in { "Glow", "Spots", "Plain", "Round", "Happy" } do
-			expect(string.find(locked.title, part, 1, true)).toBeNil()
-		end
-	end)
-	it("uses an uploaded picture by dexKey, then by tier + mutation, else none", function()
-		local images = { ["1:Glow:Spots:Happy"] = "rbxassetid://1", ["2:None"] = "rbxassetid://2" }
-		local rows = SlimeDex.rows(DEX, TOTAL, Config, images)
-		expect(rows[1].image).toBe("rbxassetid://1")
-		expect(rows[2].image).toBeNil()
-		expect(rows[4].image).toBe("rbxassetid://2")
-	end)
-	it("drops a tier's silhouette once it is complete, and survives bad State", function()
-		local all = {}
-		for _, mutation in { "None", "Glow", "Lava", "Galaxy", "Rainbow", "Gold", "Crystal", "Eclipse" } do
-			for _, pattern in Config.PATTERNS do
-				for _, eyes in Config.EYES do
-					table.insert(all, `1:{mutation}:{pattern}:{eyes}`)
-				end
+	it("a found species shows its name, rarity colour and lit stamps; gold stamps come separately", function()
+		local gummy = cardOf(SlimeDex.cards(DEX, Config, lookup), "gummy")
+		expect(gummy.found).toBe(true)
+		expect(gummy.title).toBe("Gummy")
+		expect(gummy.color).toBe(Config.RARITIES[1].color)
+		expect(#gummy.stamps).toBe(#SpeciesDex.CORE_STAMPS)
+		local lit = {}
+		for _, stamp in gummy.stamps do
+			if stamp.on then
+				table.insert(lit, stamp.mutation)
 			end
 		end
-		expect(#all).toBe(PER_TIER)
-		for _, row in SlimeDex.rows(all, TOTAL, Config) do
-			expect(row.key ~= "locked:1").toBe(true)
-		end
-		expect(#SlimeDex.rows(nil, nil, Config)).toBe(0)
-		expect(#SlimeDex.rows({ "garbage" }, TOTAL, Config)).toBe(Config.MAX_TIER)
+		expect(table.concat(lit, ",")).toBe("None,Glow")
+		expect(#gummy.gold).toBe(1)
+		expect(gummy.gold[1].mutation).toBe("Solar")
+		-- Lava is shown as Syrup on the dot's label.
+		local lava = gummy.stamps[table.find(SpeciesDex.CORE_STAMPS, "Lava") :: number]
+		expect(lava.label).toBe("Syrup")
+		expect(lava.on).toBe(false)
+	end)
+	it("an unfound species is a silhouette named ???", function()
+		local moo = cardOf(SlimeDex.cards(DEX, Config, lookup), "moo")
+		expect(moo.found).toBe(false)
+		expect(moo.title).toBe("???")
+		expect(moo.badge).toBeNil()
+	end)
+	it("a hybrid shows its hint, a Merge-only badge and fills the ingredient slots it has found", function()
+		local soda = cardOf(SlimeDex.cards(DEX, Config, lookup), "soda")
+		expect(soda.found).toBe(false)
+		expect(soda.title).toBe("???")
+		expect(soda.badge).toBe("Merge-only")
+		expect(soda.hint).toBe("Fizzy, chewy and soft.")
+		local slots = soda.slots :: { SlimeDex.Slot }
+		expect(#slots).toBe(3)
+		expect(slots[1].species).toBeNil() -- bubbles: not found
+		expect(slots[1].label).toBe("?")
+		expect(slots[2].species).toBe("gummy")
+		expect(slots[2].label).toBe("Gummy")
+		expect(slots[3].species).toBe("mochi")
+	end)
+	it("a known recipe names the hybrid before it is crafted", function()
+		local dex = Fixtures.dex({ "bubbles", "gummy", "mochi" }, nil, SOURCES)
+		local soda = cardOf(SlimeDex.cards(dex, Config, lookup), "soda")
+		expect(soda.found).toBe(false)
+		expect(soda.title).toBe("Soda Pop")
+	end)
+	it("bosses say how to get them and carry no stamps; event Secrets are a bonus section", function()
+		local cards = SlimeDex.cards(DEX, Config, lookup)
+		local boss = cardOf(cards, "goozilla")
+		expect(boss.hint).toBe(SpeciesDex.BOSS_HINT)
+		expect(boss.badge).toBe("Boss")
+		expect(#boss.stamps).toBe(0)
+		local glitch = cardOf(cards, "glitch")
+		expect(glitch.badge).toBe("Event")
+		expect(#glitch.stamps).toBe(0)
+	end)
+	it("survives a missing or junk State.dex", function()
+		expect(#SlimeDex.cards(nil, Config)).toBe(0)
+		expect(#SlimeDex.cards({ entries = { "junk", { id = 3 }, { id = "moo", tier = 99 } } }, Config)).toBe(0)
 	end)
 end)
 
--- The SlimeDex panel built for real, sized like a full-window menu
--- (init.client applyLayout: frame size, then panel.layout).
-local function openDex(w: number, h: number, dex: { string }, extra: { [string]: any }?): (any, Layout.Rect)
+describe("SlimeDex.grid / lines", function()
+	it("fits as many cards as the width allows, one column on a narrow phone", function()
+		expect(SlimeDex.grid(140).columns).toBe(1)
+		expect(SlimeDex.grid(SlimeDex.CARD.minW * 2 + SlimeDex.CARD.gap).columns).toBe(2)
+		expect(SlimeDex.grid(5000).columns).toBe(SlimeDex.CARD.maxColumns)
+		for _, w in { 140, 330, 480, 900, 1500 } do
+			local g = SlimeDex.grid(w)
+			expect(g.columns * g.cardW + (g.columns - 1) * g.gap <= math.max(w, g.cardW)).toBe(true)
+		end
+	end)
+	it("groups cards under one header per rarity with its found count, event Secrets last", function()
+		local cards = SlimeDex.cards(DEX, Config, lookup)
+		local lines = SlimeDex.lines(cards, 3, Config)
+		expect(lines[1].kind).toBe("header")
+		expect(lines[1].title).toBe(Config.RARITIES[1].name)
+		expect(lines[1].detail).toBe(`2 / {SpeciesDex.tierSize(1)}`)
+		local headers, placed = {}, 0
+		for _, line in lines do
+			if line.kind == "header" then
+				table.insert(headers, line.tier)
+			else
+				local n = #(line.cards :: { SlimeDex.Card })
+				expect(n >= 1 and n <= 3).toBe(true)
+				placed += n
+			end
+		end
+		expect(placed).toBe(#cards)
+		expect(#headers).toBe(Config.MAX_TIER + 1)
+		expect(headers[#headers]).toBe(SlimeDex.BONUS_TIER)
+	end)
+end)
+
+describe("SlimeDex.summary", function()
+	it("shows species, stamps, gold and bonus Secrets", function()
+		local s = SlimeDex.summary(DEX)
+		expect(s.count).toBe(`Species 3 / {SpeciesDex.TOTAL}`)
+		expect(s.percent).toBe(`{math.floor(3 / SpeciesDex.TOTAL * 100)}%`)
+		expect(s.stamps).toBe(`Stamps 2 / {SpeciesDex.STAMP_TOTAL} · 1 gold · Secrets 0 / {#SpeciesDex.BONUS}`)
+		expect(SlimeDex.summary(nil).percent).toBe("0%")
+	end)
+end)
+
+-- The SlimeDex panel built for real, sized like a full-window menu (init.client applyLayout: frame size,
+-- then panel.layout).
+local function openDex(w: number, h: number, dex: any, extra: { [string]: any }?): (any, Layout.Rect)
 	local panel = UiHarness.ui("Panels/Dex").new(UiHarness.root(), ctx())
 	panel.frame.Visible = false
 	local raw = Layout.panelFor(Layout.screen(w, h), "Dex")
 	local r = Layout.rect(math.floor(raw.x), math.floor(raw.y), math.floor(raw.w), math.floor(raw.h))
 	panel.frame.Size = UDim2.fromOffset(r.w, r.h)
 	panel.layout(r)
-	local state: { [string]: any } = { dex = dex, dexTotal = TOTAL }
+	local state: { [string]: any } = { dex = dex }
 	for k, v in extra or {} do
 		state[k] = v
 	end
@@ -109,82 +189,133 @@ local function openDex(w: number, h: number, dex: { string }, extra: { [string]:
 	return panel, r
 end
 
+local function card(panel: any, id: string): any
+	return UiHarness.find(UiHarness.find(panel.frame, "List"), id)
+end
+
 describe("SlimeDex panel", function()
-	it("is titled SlimeDex", function()
+	it("is titled SlimeDex and shows the species and stamp counts", function()
 		local panel = openDex(390, 844, DEX)
 		expect(UiHarness.find(panel.frame, "Title").Text).toBe("SlimeDex")
+		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`Species 3 / {SpeciesDex.TOTAL}`)
+		expect(string.find(UiHarness.find(panel.frame, "Caption").Text, "Stamps 2", 1, true) ~= nil).toBe(true)
 	end)
-	it("shows a coloured picture for discovered rows and a ? silhouette for locked ones", function()
+	it("a found card has its name and lit stamp dots; an unfound one is ??? with a ? glyph", function()
 		local panel = openDex(1920, 1080, DEX)
-		local list = UiHarness.find(panel.frame, "List")
-		local found = list:FindFirstChild("1:Glow:Spots:Happy")
-		local locked = list:FindFirstChild("locked:1")
-		expect(found ~= nil and locked ~= nil).toBe(true)
-		expect(found:GetAttribute("Locked")).toBe(false)
-		expect(locked:GetAttribute("Locked")).toBe(true)
-		local image = found:FindFirstChild("Image")
-		expect(image.Size.X.Offset).toBe(image.Size.Y.Offset) -- square
-		expect(image.Size.Y.Offset <= found.Size.Y.Offset).toBe(true)
-		local glow = SlimeDex.MUTATION_COLORS.Glow
-		expect(image.BackgroundColor3).toBe(roblox.Color3.fromRGB(glow[1], glow[2], glow[3]))
-		expect(image:FindFirstChild("Glyph").Visible).toBe(false)
-		local silhouette = locked:FindFirstChild("Image")
-		local s = SlimeDex.SILHOUETTE
-		expect(silhouette.BackgroundColor3).toBe(roblox.Color3.fromRGB(s[1], s[2], s[3]))
-		expect(silhouette:FindFirstChild("Glyph").Visible).toBe(true)
-		expect(silhouette:FindFirstChild("Picture").Visible).toBe(false)
+		local gummy = card(panel, "gummy")
+		expect(gummy:GetAttribute("Found")).toBe(true)
+		expect(UiHarness.find(gummy, "Title").Text).toBe("Gummy")
+		local stamps = UiHarness.find(gummy, "Stamps")
+		expect(UiHarness.find(stamps, "Stamp1"):GetAttribute("On")).toBe(true)
+		expect(UiHarness.find(stamps, "Stamp3"):GetAttribute("On")).toBe(false)
+		expect(UiHarness.find(stamps, "Gold").Visible).toBe(true)
+		local moo = card(panel, "moo")
+		expect(moo:GetAttribute("Found")).toBe(false)
+		expect(UiHarness.find(moo, "Title").Text).toBe("???")
+		local image = UiHarness.find(moo, "Image")
+		expect(image.Size.X.Offset).toBe(image.Size.Y.Offset) -- square preview box
 	end)
-	it("stacks rows by Layout.stackRows and grows the canvas so the list scrolls", function()
-		local many = {}
-		for _, pattern in Config.PATTERNS do
-			for _, eyes in Config.EYES do
-				table.insert(many, `2:None:{pattern}:{eyes}`)
-			end
-		end
-		local panel = openDex(390, 844, many)
+	it("a hybrid card shows the badge, the hint and three slots, filled for found ingredients", function()
+		local panel = openDex(1920, 1080, DEX)
+		local soda = card(panel, "soda")
+		expect(UiHarness.find(soda, "Badge").Visible).toBe(true)
+		expect(UiHarness.find(soda, "Badge").Text).toBe("Merge-only")
+		expect(UiHarness.find(soda, "Hint").Text).toBe("Fizzy, chewy and soft.")
+		local slots = UiHarness.find(soda, "Slots")
+		expect(slots.Visible).toBe(true)
+		expect(UiHarness.find(slots, "Slot1").Text).toBe("?")
+		expect(UiHarness.find(slots, "Slot2"):GetAttribute("Species")).toBe("gummy")
+		expect(UiHarness.find(card(panel, "gummy"), "Slots").Visible).toBe(false)
+	end)
+	it("stacks lines by Layout.stackRows, keeps every card inside its line and grows the canvas", function()
+		local panel = openDex(390, 844, DEX)
 		local list = UiHarness.find(panel.frame, "List")
-		local rows = {}
+		local lines = {}
 		for _, child in list:GetChildren() do
-			if child:IsA("GuiObject") then
-				table.insert(rows, child)
+			if child:IsA("GuiObject") and child.Visible then
+				table.insert(lines, child)
 			end
 		end
-		table.sort(rows, function(a, b)
+		table.sort(lines, function(a, b)
 			return a.LayoutOrder < b.LayoutOrder
 		end)
 		local heights = {}
-		for i, row in rows do
-			heights[i] = row.Size.Y.Offset
+		for i, line in lines do
+			heights[i] = line.Size.Y.Offset
 		end
 		local ys, canvas = Layout.stackRows(heights, list:GetAttribute("ListGap"))
-		for i, row in rows do
-			expect(row.Position.Y.Offset).toBe(ys[i])
-			if i > 1 then
-				expect(row.Position.Y.Offset >= rows[i - 1].Position.Y.Offset + rows[i - 1].Size.Y.Offset).toBe(true)
+		local cards = 0
+		for i, line in lines do
+			expect(line.Position.Y.Offset).toBe(ys[i])
+			for _, c in line:GetChildren() do
+				if c:IsA("Frame") and c:GetAttribute("Found") ~= nil then
+					cards += 1
+					expect(c.Position.Y.Offset).toBe(0)
+					expect(c.Size.Y.Offset <= line.Size.Y.Offset).toBe(true)
+				end
 			end
 		end
+		expect(cards).toBe(SpeciesDex.TOTAL + #SpeciesDex.BONUS)
 		expect(list.CanvasSize.Y.Offset).toBe(canvas)
-		expect(#rows).toBe(#many + Config.MAX_TIER)
 		local body = Layout.panelBody(Layout.panelFor(Layout.screen(390, 844), "Dex"))
 		expect(canvas > body.h).toBe(true) -- taller than the panel: it scrolls
+	end)
+	for _, vp in { { 390, 844 }, { 844, 390 }, { 1024, 768 }, { 1920, 1080 } } do
+		it(`{vp[1]}x{vp[2]}: cards of a line sit side by side inside the list width`, function()
+			local panel, r = openDex(vp[1], vp[2], DEX)
+			local g = panel.grid()
+			local body = Layout.panelBody(r)
+			expect(g.columns >= 1).toBe(true)
+			local line = UiHarness.find(UiHarness.find(panel.frame, "List"), "cards:1:1")
+			local right = 0
+			for _, c in line:GetChildren() do
+				if c:IsA("Frame") and c:GetAttribute("Found") ~= nil then
+					right = math.max(right, c.Position.X.Offset + c.Size.X.Offset)
+				end
+			end
+			expect(right <= body.w).toBe(true)
+			if vp[1] < 500 then
+				expect(g.columns <= 2).toBe(true) -- a phone shows one or two cards per line
+			end
+		end)
+	end
+end)
+
+describe("SpeciesModel (the card's species mesh)", function()
+	it("clones the server-replicated kit as a white, anchored Model; nil while the kit is missing", function()
+		local SpeciesModel = UiHarness.ui("SpeciesModel")
+		local folder = UiHarness.Instance.new("Folder")
+		local kit = UiHarness.Instance.new("Part")
+		kit.Name = "slime_moo"
+		kit.Color = roblox.Color3.new(1, 0, 0)
+		kit.Parent = folder
+		local present = true
+		local build = SpeciesModel.builder(function()
+			return if present then folder else nil
+		end, 180)
+		local model = build("moo")
+		expect(model ~= nil).toBe(true)
+		local part = model:FindFirstChild("Mesh")
+		expect(part.Anchored).toBe(true)
+		expect(part.Color).toBe(roblox.Color3.new(1, 1, 1))
+		expect(model.PrimaryPart).toBe(part)
+		expect(kit.Parent).toBe(folder) -- the template stays
+		expect(build("gummy")).toBeNil()
+		present = false
+		expect(build("moo")).toBeNil()
 	end)
 end)
 
 describe("SlimeDex.header (short panel bodies)", function()
-	it("keeps the full header (tiers at 128, list at 132 / 168 with rewards) on a tall body", function()
+	it("keeps the bar and rewards on a tall body", function()
 		local h = SlimeDex.header(700, true)
-		expect(h.tiers and h.bar and h.rewards).toBe(true)
-		expect(h.rewardsY).toBe(128)
-		expect(h.listTop).toBe(168)
-		expect(SlimeDex.header(700, false).listTop).toBe(132)
+		expect(h.bar and h.rewards).toBe(true)
+		expect(h.rewardsY).toBe(SlimeDex.HEADER.bar)
+		expect(h.listTop).toBe(SlimeDex.HEADER.bar + SlimeDex.HEADER.gap + SlimeDex.HEADER.rewards)
+		expect(SlimeDex.header(700, false).listTop).toBe(SlimeDex.HEADER.bar + SlimeDex.HEADER.gap)
 	end)
-	it("drops the tier grid, then rewards, then the bar until a list row fits", function()
-		expect(SlimeDex.MIN_LIST).toBe(84) -- one 72 px row (v28) + scroll padding
-		local noTiers = SlimeDex.header(200, true) -- 200 - 168 < MIN_LIST <= 200 - 104
-		expect(noTiers.tiers).toBe(false)
-		expect(noTiers.rewards).toBe(true)
-		expect(noTiers.listTop).toBe(64 + 4 + 36)
-		local noRewards = SlimeDex.header(160, true) -- 160 - 104 < MIN_LIST <= 160 - 68
+	it("drops the rewards, then the bar, until the list keeps MIN_LIST", function()
+		local noRewards = SlimeDex.header(160, true)
 		expect(noRewards.rewards).toBe(false)
 		expect(noRewards.bar).toBe(true)
 		local minimal = SlimeDex.header(131, true) -- the 844x332 body
@@ -192,9 +323,9 @@ describe("SlimeDex.header (short panel bodies)", function()
 		expect(131 - minimal.listTop >= SlimeDex.MIN_LIST).toBe(true)
 	end)
 	for _, vp in { { 390, 844 }, { 844, 390 }, { 844, 332 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } } do
-		it(`{vp[1]}x{vp[2]}: the real panel's list is at least one row tall`, function()
+		it(`{vp[1]}x{vp[2]}: the real panel's list is at least MIN_LIST tall`, function()
 			local panel, r = openDex(vp[1], vp[2], DEX, {
-				dexRewards = { { count = 10, reward = 1000, bonus = 0.02, claimed = false } },
+				dexRewards = { { ladder = "species", count = 8, reward = 1000, bonus = 0.02, claimed = false } },
 			})
 			local list = UiHarness.find(panel.frame, "List")
 			local bodyH = Layout.panelBody(r).h

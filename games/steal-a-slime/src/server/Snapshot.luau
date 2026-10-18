@@ -24,6 +24,7 @@ local PlayerData = if Shared then require(Shared.PlayerData) else require("../sh
 local PlotSkins = if Shared then require(Shared.PlotSkins) else require("../shared/PlotSkins")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
+local SpeciesDex = if Shared then require(Shared.SpeciesDex) else require("../shared/SpeciesDex")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
@@ -31,6 +32,7 @@ local Types = if Shared then require(Shared.Types) else require("../shared/Types
 local Upgrades = if Shared then require(Shared.Upgrades) else require("../shared/Upgrades")
 local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
+local DexSources = if script then require(script.Parent.DexSources) else require("./DexSources")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
@@ -40,13 +42,6 @@ type World = World.World
 type Session = World.Session
 
 local Snapshot = {}
-
--- tiers x (None + mutations + combos with FEATURES.MutationStacking) x patterns x eyes.
--- A stacked slime counts as its primary mutation, so the total stays fixed.
-Snapshot.DEX_TOTAL = Config.MAX_TIER
-	* (#Config.MUTATIONS + 1 + (if Config.FEATURES.MutationStacking then #Config.COMBOS else 0))
-	* #Config.PATTERNS
-	* #Config.EYES
 
 function Snapshot.build(world: World, session: Session, now: number): Types.State
 	local data = session.data
@@ -77,12 +72,6 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		}
 	end
 
-	local dex = {}
-	for key in data.dex do
-		table.insert(dex, key)
-	end
-	table.sort(dex)
-
 	local rainActive, endsAt, nextAt = Spawner.rain(world, now)
 	local bossActive, bossEndsAt = Spawner.boss(world)
 	local canRebirth = Progression.canRebirth(data)
@@ -112,8 +101,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		lockDuration = Steal.lockDuration(rebirths, data.lockLevel),
 		carrying = carrying,
 		rain = { active = rainActive, endsAt = endsAt, nextAt = nextAt },
-		dex = dex,
-		dexTotal = Snapshot.DEX_TOTAL,
+		dex = SpeciesDex.view(data, now, DexSources),
 		daily = {
 			available = dailyAvailable,
 			streak = data.daily.streak,

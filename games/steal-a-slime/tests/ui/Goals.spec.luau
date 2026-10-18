@@ -25,8 +25,7 @@ local function base(): any
 		padsMax = 8,
 		nextPadCost = 500,
 		slimes = slimes({ 1, 2 }),
-		dex = { "1:None:Plain:Round", "2:None:Plain:Round" },
-		dexTotal = 720,
+		dex = { found = 2, total = 50 },
 		daily = { available = true, streak = 2, amount = 300, day = 3 },
 		shop = {
 			LockUpgrade = { price = 500, level = 1, maxLevel = 5 },
@@ -56,7 +55,7 @@ describe("Goals.derive", function()
 		expect(g.Rebirth.title).toBe("Reach your first rebirth")
 		expect(g.Rebirth.fraction).toBeCloseTo(0.2)
 		expect(g.Dex.title).toBe("Discover 5% of the SlimeDex")
-		expect(g.Dex.detail).toBe("2/36 slimes (0%)")
+		expect(g.Dex.detail).toBe("2/3 species (4%)")
 		expect(g.LockUpgrade.detail).toBe("Level 1/5")
 		expect(g.SpeedCoil.done).toBe(true)
 	end)
@@ -67,7 +66,7 @@ describe("Goals.derive", function()
 		s.daily.available = false
 		s.canRebirth = true
 		s.rebirths = 2
-		s.dex = table.create(40, "x")
+		s.dex = { found = 3, total = 50 }
 		local g = byId(Goals.derive(s, TIERS))
 		expect(g.FillPads.done).toBe(true)
 		expect(g.AllPads.done).toBe(true)

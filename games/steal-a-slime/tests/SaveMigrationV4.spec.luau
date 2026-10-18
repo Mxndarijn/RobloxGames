@@ -113,7 +113,7 @@ describe("SaveData.migrate / deserialize of old saves", function()
 			expect(slime.mutation).toBe(m.name)
 			expect(#(slime.mutations :: { string })).toBe(1)
 			expect(Genome.baseIncome(slime)).toBe(legacyIncome(4, 1.25, m.name))
-			expect(Genome.dexKey(slime)).toBe(`4:{m.name}:Spots:Happy`)
+			expect(Genome.primaryMutation(Genome.mutationList(slime))).toBe(m.name)
 			expect(Genome.displayName(slime)).toBe(`{m.displayName} Epic Globble`)
 		end
 	end)

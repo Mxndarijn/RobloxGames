@@ -50,6 +50,7 @@ export type Deps = {
 	assetId: number?,
 	spawn: ((() -> ()) -> ())?, -- runs a kit fetch; default task.spawn (inline without it)
 	warn: ((string) -> ())?,
+	onKit: ((kit: string, mesh: MeshPart) -> ())?, -- a species kit finished loading (WorldView replicates it for the SlimeDex)
 }
 
 export type SlimeMesh = {
@@ -112,6 +113,9 @@ function SlimeMesh.load(self: SlimeMesh): Look
 			end)
 			if kitOk and kitMesh then
 				self.kits[kit] = kitMesh
+				if self.deps.onKit then
+					self.deps.onKit(kit, kitMesh)
+				end
 			else
 				table.insert(failed, kit)
 			end

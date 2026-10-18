@@ -12,6 +12,7 @@ local AudioSettings = if script then require(script.Parent.AudioSettings) else r
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Perks = if script then require(script.Parent.Perks) else require("./Perks")
+local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require("./SpeciesDex")
 local StealAlert = if script then require(script.Parent.StealAlert) else require("./StealAlert")
 
 type Slime = Genome.Slime
@@ -43,7 +44,8 @@ export type Data = {
 	lastOnline: number, -- unix seconds of the last save while playing
 	daily: Daily,
 	quests: DailyQuests, -- Quests (day 0 = nothing rolled yet)
-	dex: { [string]: boolean },
+	found: { [string]: boolean }, -- SlimeDex species found (SpeciesDex, CONTRACT.md §35)
+	stamps: { [string]: boolean }, -- SlimeDex stamps "<species>:<Mutation>"
 	totalEarned: number,
 	totalStolen: number,
 	lockLevel: number, -- Shop: lock upgrade level 0..LOCK_UPGRADE_MAX
@@ -53,7 +55,8 @@ export type Data = {
 	upgrades: { [string]: number }, -- Config.UPGRADES id -> level
 	stats: Stats,
 	goals: { [string]: number }, -- Config.GOALS id -> stages paid
-	dexRewards: number, -- Config.DEX_MILESTONES paid
+	speciesRewards: number, -- Config.DEX_MILESTONES.species paid
+	stampRewards: number, -- Config.DEX_MILESTONES.stamps paid
 	plotSkin: string, -- equipped Config.PLOT_SKINS id (PlotSkins; "classic" = default)
 	-- Redeem codes (Codes, CONTRACT.md §10)
 	redeemed: { [string]: boolean }, -- normalized codes already used
@@ -81,7 +84,8 @@ function PlayerData.new(): Data
 		lastOnline = 0,
 		daily = { lastDay = 0, streak = 0 },
 		quests = { day = 0, slots = {} },
-		dex = {},
+		found = {},
+		stamps = {},
 		totalEarned = 0,
 		totalStolen = 0,
 		lockLevel = 0,
@@ -90,7 +94,8 @@ function PlayerData.new(): Data
 		upgrades = {},
 		stats = { caught = 0, merges = 0, locks = 0, sold = 0 },
 		goals = {},
-		dexRewards = 0,
+		speciesRewards = 0,
+		stampRewards = 0,
 		plotSkin = Config.PLOT_SKIN_DEFAULT,
 		redeemed = {},
 		boostMult = 1,
@@ -136,21 +141,15 @@ function PlayerData.freePad(data: Data): number?
 	return nil
 end
 
+-- Records the slime in the SlimeDex (species found + mutation stamp). Every way of getting a slime runs this
+-- (addSlime does). Returns whether the species is new.
 function PlayerData.discover(data: Data, slime: Slime): boolean
-	local key = Genome.dexKey(slime)
-	if data.dex[key] then
-		return false
-	end
-	data.dex[key] = true
-	return true
+	return SpeciesDex.record(data, slime)
 end
 
+-- SlimeDex entries found (of SpeciesDex.TOTAL).
 function PlayerData.dexCount(data: Data): number
-	local n = 0
-	for _ in data.dex do
-		n += 1
-	end
-	return n
+	return SpeciesDex.count(data)
 end
 
 -- Puts a slime on a free pad (or `pad` if given and free). Returns the pad.

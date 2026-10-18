@@ -23,3 +23,17 @@ Items that already render a real 3D model (mutations, plot skins) are not listed
 |---|---|---|---|---|
 | `Income` | Income per second | hud | 110, 210, 100 | A green up-arrow rising out of a small stack of gold coins; front view. |
 | `FriendBoost` | Friend boost | hud | 90, 200, 120 | Two smiling slimes (green and pink) side by side with a small gold plus sign; front view. |
+
+## Drawn until uploaded
+
+These show their UI-drawn scene (`src/ui/ItemIconArt.luau`) until a picture is uploaded (`ItemIcons.AWAITING_UPLOAD`).
+
+| id | name | what to render |
+|---|---|---|
+| Dex_8 | Dex 8 species | Gold trophy with a slime on top and the number 8 on the base; front view. |
+| Dex_15 | Dex 15 species | Gold trophy with a slime on top and the number 15 on the base; front view. |
+| Dex_20 | Dex 20 species | Gold trophy with a slime on top and the number 20 on the base; front view. |
+| Dex_32 | Dex 32 species | Gold trophy with a slime on top and the number 32 on the base; front view. |
+| Dex_40 | Dex 40 species | Gold trophy with a slime on top and the number 40 on the base; front view. |
+| DexStamps_50 | Dex 50 stamps | Gold trophy with a slime on top and the number 50 on the base; front view. |
+| DexStamps_376 | Dex 376 stamps | Gold trophy with a slime on top and the number 376 on the base; front view. |

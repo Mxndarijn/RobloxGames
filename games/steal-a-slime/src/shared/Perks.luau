@@ -9,7 +9,8 @@
 	    lock bonuses; the best unlocked value wins, they don't stack;
 	  * upgrade levels (Config.UPGRADES): income, carry slowdown, offline cap,
 	    luck;
-	  * SlimeDex milestone bonus (Config.DEX_MILESTONES, data.dexRewards paid).
+	  * SlimeDex milestone bonus (Config.DEX_MILESTONES: data.speciesRewards /
+	    stampRewards paid).
 	Pure: no Roblox APIs.
 ]]
 
@@ -21,7 +22,8 @@ local FountainTiers = if script then require(script.Parent.FountainTiers) else r
 export type Progress = {
 	rebirths: number,
 	upgrades: { [string]: number },
-	dexRewards: number,
+	speciesRewards: number,
+	stampRewards: number,
 	boostMult: number?, -- redeem-code income boost while active (Codes), nil / 1 = none
 	friendBonus: number?, -- runtime friend bonus (FriendBonus, never saved), nil / 0 = none
 	slimes: { any }?, -- owned slimes (follow-pet passive lookup)
@@ -140,11 +142,16 @@ local function upgradeEffect(data: Progress, id: string): number
 	return if def then Perks.upgradeLevel(data, id) * def.step else 0
 end
 
--- Income bonus from paid SlimeDex milestones (0.05 = +5 %).
+-- Income bonus from paid SlimeDex milestones of both ladders (0.05 = +5 %).
 function Perks.dexBonus(data: Progress): number
 	local total = 0
-	for i = 1, math.clamp(data.dexRewards or 0, 0, #Config.DEX_MILESTONES) do
-		total += Config.DEX_MILESTONES[i].bonus
+	for _, ladder in
+		{ { Config.DEX_MILESTONES.species, data.speciesRewards }, { Config.DEX_MILESTONES.stamps, data.stampRewards } }
+	do
+		local list, paid = ladder[1] :: { Config.DexMilestone }, ladder[2] :: number?
+		for i = 1, math.clamp(math.floor(tonumber(paid) or 0), 0, #list) do
+			total += list[i].bonus
+		end
 	end
 	return total
 end

@@ -17,7 +17,7 @@ Nav.ENTRIES = table.freeze({
 	table.freeze({ key = "Plot", icon = "🏠", label = "Plot", item = "PlotSkin_classic" }),
 	table.freeze({ key = "Rebirth", icon = "♻️", label = "Rebirth", item = "Rebirth" }),
 	table.freeze({ key = "Goals", icon = "🎯", label = "Goals", item = "Quest" }),
-	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex", item = "Dex_10" }),
+	table.freeze({ key = "Dex", icon = "📖", label = "SlimeDex", item = "Dex_50" }),
 	table.freeze({ key = "Codes", icon = "🎁", label = "Codes", item = "Gift" }),
 } :: { Entry })
 
@@ -85,9 +85,10 @@ function Nav.badges(state: any): { [string]: string }
 	if state.canRebirth == true then
 		out.Rebirth = "!"
 	end
-	local total = num(state.dexTotal)
-	if total > 0 and type(state.dex) == "table" then
-		out.Dex = `{math.floor(#state.dex / total * 100)}%`
+	local dex = if type(state.dex) == "table" then state.dex else {}
+	local total = num(dex.total)
+	if total > 0 then
+		out.Dex = `{math.floor(num(dex.found) / total * 100)}%`
 	end
 	return out
 end

@@ -56,8 +56,11 @@ local function definitions(): { [string]: string }
 	for _, g in Config.GOALS do
 		out[`Goal_{g.id}`] = "Config.GOALS"
 	end
-	for _, m in Config.DEX_MILESTONES do
-		out[`Dex_{m.count}`] = "Config.DEX_MILESTONES"
+	for _, m in Config.DEX_MILESTONES.species do
+		out[`Dex_{m.count}`] = "Config.DEX_MILESTONES.species"
+	end
+	for _, m in Config.DEX_MILESTONES.stamps do
+		out[`DexStamps_{m.count}`] = "Config.DEX_MILESTONES.stamps"
 	end
 	for _, b in Config.BADGES do
 		out[ItemIcons.badge(b.key)] = "Config.BADGES"
@@ -225,7 +228,7 @@ describe("uploaded item icon images", function()
 		local n = 0
 		for _, id in registry.order do
 			local spec = registry.byId[id]
-			if ItemIcons.DRAWN_GROUPS[spec.group] then
+			if ItemIcons.DRAWN_GROUPS[spec.group] and table.find(ItemIcons.AWAITING_UPLOAD, id) == nil then
 				n += 1
 				local image = ItemIcons.IMAGES[id]
 				expect(`{id}: {type(image) == "number" and image > 0 and image == math.floor(image)}`).toBe(
@@ -233,7 +236,16 @@ describe("uploaded item icon images", function()
 				)
 			end
 		end
-		expect(n).toBe(57)
+		expect(n).toBe(53)
+	end)
+	it("ids awaiting an upload are real drawn-group ids with a UI-drawn scene", function()
+		local ItemIconArt = UiHarness.ui("ItemIconArt")
+		for _, id in ItemIcons.AWAITING_UPLOAD do
+			local spec = registry.byId[id]
+			expect(`{id}: {spec ~= nil and ItemIcons.DRAWN_GROUPS[spec.group] == true}`).toBe(`{id}: true`)
+			expect(`{id}: {spec and spec.source}`).toBe(`{id}: drawn`)
+			expect(`{id}: {ItemIconArt.has(id)}`).toBe(`{id}: true`)
+		end
 	end)
 
 	it("IMAGES holds no stale ids and no duplicate asset ids", function()
@@ -265,7 +277,7 @@ describe("uploaded item icon images", function()
 	it("image specs resolve to source image; the 3 mesh skins stay models with the image as fallback", function()
 		for _, id in registry.order do
 			local spec = registry.byId[id]
-			if ItemIcons.DRAWN_GROUPS[spec.group] then
+			if ItemIcons.DRAWN_GROUPS[spec.group] and table.find(ItemIcons.AWAITING_UPLOAD, id) == nil then
 				expect(spec.image).toBe(ItemIcons.IMAGES[id])
 				expect(`{id}: {spec.source}`).toBe(`{id}: {if spec.model then "model" else "image"}`)
 			end
@@ -278,7 +290,7 @@ describe("uploaded item icon images", function()
 
 	it("ItemIconView shows the picture (Fit, transparent) with a quiet tile, and no drawn scene", function()
 		ItemIconView.resetLive()
-		for _, id in { "Lock", "Dex_100", "Badge_Millionaire", "PlotSkin_classic", "Code_WELCOME" } do
+		for _, id in { "Lock", "Dex_50", "Badge_Millionaire", "PlotSkin_classic", "Code_WELCOME" } do
 			local icon = ItemIconView.new({ Id = id, Size = 36, Parent = UiHarness.root() }, registry)
 			icon.setActive(true)
 			expect(icon.source).toBe("image")

@@ -121,10 +121,13 @@ describe("PlayerData plot", function()
 		expect(PlayerData.freePad(data)).toBe(1)
 		expect((PlayerData.addSlime(data, Fixtures.slime("b")))).toBe(false)
 	end)
-	it("records SlimeDex entries once", function()
-		local data = Fixtures.data({ Fixtures.slime("a"), Fixtures.slime("b") })
+	it("records SlimeDex species once", function()
+		local data = Fixtures.data({
+			Fixtures.slime("a", 1, { species = "gummy" }),
+			Fixtures.slime("b", 1, { species = "gummy" }),
+		})
 		expect(PlayerData.dexCount(data)).toBe(1)
-		PlayerData.addSlime(data, Fixtures.slime("c", 2))
+		PlayerData.addSlime(data, Fixtures.slime("c", 2, { species = "bumble" }))
 		expect(PlayerData.dexCount(data)).toBe(2)
 	end)
 	it("buys pads with cash", function()

@@ -15,6 +15,7 @@ local Remotes = require("../src/shared/Remotes")
 local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
 local Snapshot = require("../src/server/Snapshot")
+local SpeciesDex = require("../src/shared/SpeciesDex")
 local StaticWorld = require("../scripts/StaticWorld")
 local TestRunner = require("./TestRunner")
 local Validate = require("../src/shared/Validate")
@@ -29,28 +30,25 @@ local function skin(id: string): Config.PlotSkin
 	return PlotSkins.get(id) :: Config.PlotSkin
 end
 
--- A profile that holds `count` dex keys of `tier` (distinct, counted mutations first).
+-- A profile that found `count` species entries of `tier`.
 local function withSet(tier: number, count: number): PlayerData.Data
 	local data = PlayerData.new()
 	local n = 0
-	local mutations = { "None" }
-	for _, m in Config.MUTATIONS do
-		table.insert(mutations, m.name)
-	end
-	for _, c in Config.COMBOS do
-		table.insert(mutations, c.name)
-	end
-	for _, m in mutations do
-		for _, p in Config.PATTERNS do
-			for _, e in Config.EYES do
-				if n < count then
-					data.dex[`{tier}:{m}:{p}:{e}`] = true
-					n += 1
-				end
-			end
+	for _, entry in SpeciesDex.ENTRIES do
+		if entry.tier == tier and n < count then
+			data.found[entry.id] = true
+			n += 1
 		end
 	end
 	return data
+end
+
+-- Species in a tier's set, and how many unlock its skin (75 %).
+local function size(tier: number): number
+	return SpeciesDex.tierSize(tier)
+end
+local function need(tier: number): number
+	return math.ceil(size(tier) * 0.75)
 end
 
 local ctx: Actions.Context = {
@@ -101,49 +99,56 @@ describe("plot skins: config", function()
 end)
 
 describe("plot skins: unlock thresholds", function()
-	it("a Dex set is 288 keys (Snapshot.DEX_TOTAL / MAX_TIER)", function()
-		expect(PlotSkins.setSize() * Config.MAX_TIER).toBe(Snapshot.DEX_TOTAL)
-		expect(PlotSkins.setSize()).toBe(288)
+	it("a Dex set is its tier's species entries, and the sets add up to the Dex", function()
+		local total = 0
+		for tier = 1, Config.MAX_TIER do
+			expect(PlotSkins.setSize(tier)).toBe(size(tier))
+			expect(size(tier) > 0).toBe(true)
+			total += size(tier)
+		end
+		expect(total).toBe(SpeciesDex.TOTAL)
 	end)
 	it("unlocks at ceil(75 % of the set) keys: one short is locked, exactly enough is unlocked", function()
 		local needed = PlotSkins.needed(skin("mushroom"))
-		expect(needed).toBe(216)
+		expect(needed).toBe(need(1))
 		expect(PlotSkins.unlocked(withSet(1, needed - 1), skin("mushroom"))).toBe(false)
 		expect(PlotSkins.unlocked(withSet(1, needed), skin("mushroom"))).toBe(true)
-		expect(PlotSkins.unlocked(withSet(1, 288), skin("mushroom"))).toBe(true)
+		expect(PlotSkins.unlocked(withSet(1, size(1)), skin("mushroom"))).toBe(true)
 	end)
 	it("counts only the skin's own tier", function()
-		expect(PlotSkins.unlocked(withSet(2, 288), skin("mushroom"))).toBe(false)
-		expect(PlotSkins.unlocked(withSet(2, 216), skin("candy"))).toBe(true)
-		expect(PlotSkins.unlocked(withSet(3, 216), skin("crystal"))).toBe(true)
-		expect(PlotSkins.unlocked(withSet(3, 216), skin("candy"))).toBe(false)
+		expect(PlotSkins.unlocked(withSet(2, size(2)), skin("mushroom"))).toBe(false)
+		expect(PlotSkins.unlocked(withSet(2, need(2)), skin("candy"))).toBe(true)
+		expect(PlotSkins.unlocked(withSet(3, need(3)), skin("crystal"))).toBe(true)
+		expect(PlotSkins.unlocked(withSet(3, need(3)), skin("candy"))).toBe(false)
 	end)
-	it("ignores weather mutation keys (Wet / Frozen are not in the Dex total)", function()
-		local data = withSet(1, 215)
-		data.dex["1:Wet:Plain:Round"] = true
-		data.dex["1:Frozen:Plain:Round"] = true
-		data.dex["1:Sleet:Plain:Round"] = true
-		expect(PlotSkins.owned(data, 1)).toBe(215)
+	it("counts species, not stamps or bonus entries", function()
+		local data = withSet(1, need(1) - 1)
+		data.stamps["gummy:Gold"] = true
+		data.stamps["gummy:Wet"] = true
+		data.found.glitch = true -- an event Secret
+		data.found.nope = true
+		expect(PlotSkins.owned(data, 1)).toBe(need(1) - 1)
 		expect(PlotSkins.unlocked(data, skin("mushroom"))).toBe(false)
 	end)
 	it("classic is always unlocked, and view() reports progress with classic first", function()
-		local data = withSet(1, 100)
+		local data = withSet(1, 2)
 		local view = PlotSkins.view(data)
 		expect(#view).toBe(#Config.PLOT_SKINS)
 		expect(view[1].id).toBe("classic")
 		expect(view[1].unlocked and view[1].equipped).toBe(true)
-		expect(view[2].owned).toBe(100)
-		expect(view[2].needed).toBe(216)
+		expect(view[2].owned).toBe(2)
+		expect(view[2].needed).toBe(need(1))
+		expect(view[2].total).toBe(size(1))
 		expect(view[2].unlocked).toBe(false)
 		expect(view[2].setName).toBe("Common")
-		expect(math.abs(view[2].fraction - 100 / 288) < 1e-9).toBe(true)
+		expect(math.abs(view[2].fraction - 2 / size(1)) < 1e-9).toBe(true)
 		expect(view[3].owned).toBe(0)
 	end)
 end)
 
 describe("plot skins: equip", function()
 	it("PlotSkins.equip refuses unknown and locked skins and leaves the profile alone", function()
-		local data = withSet(1, 10)
+		local data = withSet(1, 1)
 		local ok, why = PlotSkins.equip(data, "nope")
 		expect(ok).toBe(false)
 		expect(why).toBe("unknown plot skin")
@@ -154,7 +159,7 @@ describe("plot skins: equip", function()
 		expect(PlotSkins.equip(data, 42 :: any)).toBe(false)
 	end)
 	it("equips an unlocked skin, and classic always", function()
-		local data = withSet(1, 216)
+		local data = withSet(1, need(1))
 		expect(PlotSkins.equip(data, "mushroom")).toBe(true)
 		expect(data.plotSkin).toBe("mushroom")
 		expect(PlotSkins.current(data)).toBe("mushroom")
@@ -179,8 +184,8 @@ describe("plot skins: equip", function()
 		expect(res.ok).toBe(false)
 		expect(res.message).toBe("plot skin is locked")
 		expect(session.data.plotSkin).toBe("classic")
-		for key in withSet(1, 216).dex do
-			session.data.dex[key] = true
+		for key in withSet(1, need(1)).found do
+			session.data.found[key] = true
 		end
 		res = equip(world, 1, "mushroom")
 		expect(res.ok).toBe(true)
@@ -198,8 +203,8 @@ describe("plot skins: equip", function()
 	it("with the flag off the Request is refused, even for an unlocked skin", function()
 		local world = ServerFixtures.world()
 		local session = ServerFixtures.join(world, 1, {}, 0)
-		for key in withSet(1, 288).dex do
-			session.data.dex[key] = true
+		for key in withSet(1, size(1)).found do
+			session.data.found[key] = true
 		end
 		local res = equip(world, 1, "mushroom", offCtx)
 		expect(res.ok).toBe(false)
@@ -218,14 +223,14 @@ end)
 describe("plot skins: save", function()
 	it("writes plotSkin at the current SAVE_VERSION", function()
 		expect(Config.SAVE_VERSION).toBe(6)
-		local data = withSet(2, 216)
+		local data = withSet(2, need(2))
 		data.plotSkin = "candy"
 		local out = SaveData.serialize(data, T0)
 		expect(out.plotSkin).toBe("candy")
 		expect(out.version).toBe(Config.SAVE_VERSION)
 	end)
 	it("round-trips an unlocked skin", function()
-		local data = withSet(2, 216)
+		local data = withSet(2, need(2))
 		data.plotSkin = "candy"
 		local back = SaveData.deserialize(SaveData.serialize(data, T0))
 		expect(back.plotSkin).toBe("candy")
@@ -247,7 +252,7 @@ describe("plot skins: save", function()
 		end
 	end)
 	it("SaveData.migratePlotSkin is pure and defaults to classic", function()
-		local data = withSet(3, 216)
+		local data = withSet(3, need(3))
 		expect(SaveData.migratePlotSkin({ plotSkin = "crystal" }, data)).toBe("crystal")
 		expect(SaveData.migratePlotSkin({ plotSkin = "candy" }, data)).toBe("classic")
 		expect(SaveData.migratePlotSkin(nil, data)).toBe("classic")

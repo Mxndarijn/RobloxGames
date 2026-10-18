@@ -586,8 +586,13 @@ for key in BADGE_EMBLEMS do
 	end
 end
 
-for _, count in { 10, 25, 50, 100, 200, 400, 720 } do
-	RECIPES[`Dex_{count}`] = function(p)
+-- SlimeDex milestone trophies (Config.DEX_MILESTONES): "Dex_<species count>" and "DexStamps_<stamp count>".
+local function trophyRecipe(id: string): ((Pen) -> ())?
+	local count = tonumber(string.match(id, "^Dex_(%d+)$") or string.match(id, "^DexStamps_(%d+)$"))
+	if count == nil then
+		return nil
+	end
+	return function(p)
 		trophy(p, count)
 	end
 end
@@ -649,12 +654,12 @@ RECIPES.Code_LAUNCH = RECIPES.Cash
 ItemIconArt.RECIPES = table.freeze(RECIPES)
 
 function ItemIconArt.has(id: string): boolean
-	return RECIPES[id] ~= nil
+	return RECIPES[id] ~= nil or trophyRecipe(id) ~= nil
 end
 
 -- Rebuilds the recipe for `id` into `parent` (an empty frame); false when there is none.
 function ItemIconArt.draw(parent: Instance, id: string, z: number): boolean
-	local recipe = RECIPES[id]
+	local recipe = RECIPES[id] or trophyRecipe(id)
 	if recipe == nil then
 		return false
 	end

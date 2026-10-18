@@ -671,9 +671,9 @@ scenario("ui", function()
 		"ui: SlimeDex panel, nav badge and plot DexCount/DexTotal/DexTierMask agree",
 		dexRewards.next ~= nil
 			and badges.Dex ~= nil
-			and plot:GetAttribute("DexCount") == #state.dex
-			and plot:GetAttribute("DexTotal") == state.dexTotal
-			and state.dexTotal == 1152
+			and plot:GetAttribute("DexCount") == state.dex.found
+			and plot:GetAttribute("DexTotal") == state.dex.total
+			and state.dex.total == 50
 			and (plot:GetAttribute("DexTierMask") or 0) > 0
 			and plot:GetAttribute("PlotPrice") == nil,
 		`DexCount={plot:GetAttribute("DexCount")}/{plot:GetAttribute("DexTotal")} mask={plot:GetAttribute("DexTierMask")} badge={badges.Dex}; "{dexRewards.next}"`
