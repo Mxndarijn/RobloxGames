@@ -69,6 +69,7 @@ export type Data = {
 	settings: AudioSettings.Settings, -- Sound card values (save v6; used only with FEATURES.Audio)
 	consumables: Consumables, -- restocking shop purchases (added without a version bump)
 	pvp: Pvp, -- FEATURES.PvP owned items (PvpRules, CONTRACT.md §26; added without a version bump)
+	trophies: { Slime }, -- boss trophies, one per boss species (contract/boss-event.md; added without a version bump)
 }
 
 local PlayerData = {}
@@ -104,6 +105,7 @@ function PlayerData.new(): Data
 		settings = AudioSettings.defaults(),
 		consumables = { slot = 0, bought = {}, held = {} },
 		pvp = { tiers = {}, fun = {}, played = 0 },
+		trophies = {},
 	}
 end
 
@@ -187,8 +189,10 @@ function PlayerData.removeSlime(data: Data, id: string): Slime?
 end
 
 -- Plot income incl. rebirth, upgrade, rank and SlimeDex bonuses (Perks.incomeMultiplier).
+-- Pad slimes (minus `skip`, the ones being carried) plus boss trophies, which always earn.
 function PlayerData.incomePerSecond(data: Data, skip: { [string]: boolean }?): number
-	return Economy.plotIncome(data.slimes, data.rebirths, skip) * Perks.bonusMultiplier(data)
+	local base = Economy.plotIncome(data.slimes, data.rebirths, skip) + Economy.plotIncome(data.trophies, data.rebirths)
+	return base * Perks.bonusMultiplier(data)
 end
 
 -- One slime's income for this player (State SlimeView.income).

@@ -59,6 +59,8 @@ export type Context = {
 	pose: ((userId: number) -> (PvpRules.Vec?, PvpRules.Vec?))?,
 	-- Roblox: Vector3.new for event positions; nil keeps plain tables (Lune)
 	toVector3: ((position: PvpRules.Vec) -> any)?,
+	-- a slime model's Body position (the Bat's reach to the boss); nil = no model
+	slimePosition: ((slimeId: string) -> PvpRules.Vec?)?,
 }
 
 local PvpService = {}

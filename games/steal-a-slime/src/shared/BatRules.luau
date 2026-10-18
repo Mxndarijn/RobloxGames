@@ -16,14 +16,22 @@ export type Candidate = { userId: number, position: Vec, carrying: boolean }
 local BatRules = {}
 
 -- Nearest carrying thief (not `selfUserId`) within reach and in front of `look` (a unit-ish horizontal vector), or nil.
-function BatRules.pickTarget(origin: Vec, look: Vec, candidates: { Candidate }, selfUserId: number): (number?, number)
+-- `reach` defaults to SLAP_REACH (the boss uses Config.BOSS.HIT_REACH: it is far wider than a player).
+function BatRules.pickTarget(
+	origin: Vec,
+	look: Vec,
+	candidates: { Candidate },
+	selfUserId: number,
+	reach: number?
+): (number?, number)
+	local maxReach = reach or Config.SLAP_REACH
 	local lookLength = math.sqrt(look.X * look.X + look.Z * look.Z)
 	local best, bestDistance = nil :: number?, math.huge
 	for _, c in candidates do
 		if c.userId ~= selfUserId and c.carrying then
 			local dx, dy, dz = c.position.X - origin.X, c.position.Y - origin.Y, c.position.Z - origin.Z
 			local distance = math.sqrt(dx * dx + dy * dy + dz * dz)
-			if distance == distance and distance <= Config.SLAP_REACH and distance < bestDistance then
+			if distance == distance and distance <= maxReach and distance < bestDistance then
 				local flat = math.sqrt(dx * dx + dz * dz)
 				local facing = distance <= Config.BAT.CLOSE_STUDS
 					or (

@@ -414,7 +414,6 @@ scenario("ui", function()
 	local Nav = require(UI.Nav)
 	local LockHud = require(UI.LockHud)
 	local PromptHide = require(UI.PromptHide)
-	local RareAnnounce = require(UI.RareAnnounce)
 	local Config = require(Shared.Config)
 	local Remotes = require(Shared.Remotes)
 	local plot = S.WorldView.plot(session.plotIndex)
@@ -491,19 +490,33 @@ scenario("ui", function()
 		table.concat(mine, ",") == "nil,nil,nil" and table.concat(theirs, ",") == "owner,owner,owner",
 		`owner {table.concat(mine, ",")}; other {table.concat(theirs, ",")}`
 	)
-	local id = S.Spawner.spawnBoss(world, now())
-	st = state()
-	local body = S.WorldView.slimeBody(id)
-	local name = body and RareAnnounce.nameFromObjectText(body.GrabPrompt.ObjectText)
-	local banner = st.boss.active and RareAnnounce.banner({ name = name, expiresAt = st.boss.endsAt }, nil, now())
-	world.wild[id].expiresAt = now()
-	S.Spawner.step(world, now())
-	local cleared = state().boss
+	-- Boss event (contract/boss-event.md): the heads-up reaches State.boss, then the boss stands in the plaza at
+	-- BOSS.SCALE in the real engine (Model:ScaleTo).
+	local BossEvent = require(S.module.BossEvent)
+	world.startedAt = now() - Config.RAIN_FIRST_AT - Config.RAIN_DURATION - 120 -- keep Slime Rain clear of it
+	world.boss = nil
+	world.nextBossAt = now() + Config.BOSS.WARNING_SECONDS
+	BossEvent.step(world, now())
+	local warned = S.Snapshot.build(world, session, now()).boss
+	world.boss.fight.endsAt = now()
+	BossEvent.step(world, now())
+	S.refreshView(now())
+	local bossId = world.boss.slimeId
+	local bossBody = bossId and S.WorldView.slimeBody(bossId)
+	local bossModel = bossBody and bossBody.Parent
 	check(
-		"ui: State.boss drives the boss banner and clears on expiry",
-		banner ~= nil and banner.kind == "boss" and cleared.active == false and cleared.endsAt == nil,
-		`banner "{banner and banner.text}"; after expiry active={cleared.active}`
+		"boss: heads-up in State.boss, then the boss stands in the plaza at BOSS.SCALE",
+		warned.phase == "warning"
+			and bossModel ~= nil
+			and bossModel:GetAttribute("Boss") == true
+			and math.abs(bossModel:GetScale() - Config.BOSS.SCALE) < 1e-3,
+		`phase {warned.phase} ({warned.kind}); model scale {bossModel and bossModel:GetScale()}`
 	)
+	if bossId then
+		world.wild[bossId] = nil
+	end
+	world.boss = nil
+	S.refreshView(now())
 end)
 
 task.wait(0.5)

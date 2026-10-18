@@ -19,7 +19,10 @@
 	         first grab -> rebirth 8
 	  ui     the real State / attributes / prompts through the pure src/ui
 	         modules: BuyUpgrade row, goals, dex, lock / pad buttons,
-	         PromptHide, Boss banner (State.boss)
+	         PromptHide
+	  boss   two stand-ins fight the boss with their bats (meter, sheds,
+	         helper eggs), race the haul (head start, boss carry slow, a
+	         slap drops it) and bring it home onto the trophy stand
 
 	Prints PASS / FAIL per check and exits 1 on any FAIL. The cloud twin is
 	tools/livetest/cloud/session.luau (Luau Execution, ci/run.py).
@@ -115,6 +118,7 @@ local function respawn()
 	local hum = Instance.new("Humanoid")
 	hum.Health = 100
 	hum.WalkSpeed = 16
+	hum.PlatformStand = false
 	hum.Parent = character
 	character.PrimaryPart = part
 	character.Parent = rt.workspace
@@ -592,7 +596,7 @@ end)
 ---------------------------------------------------------------------------
 -- ui: the server's real State / attributes / prompts through Jolt's pure UI
 -- modules (src/ui): BuyUpgrade shop rows, server goals, SlimeDex, lock / pad
--- buttons, owner-only prompt hiding, Boss Slime banner (State.boss)
+-- buttons, owner-only prompt hiding
 ---------------------------------------------------------------------------
 scenario("ui", function()
 	local RS = rt.game:GetService("ReplicatedStorage")
@@ -601,7 +605,7 @@ scenario("ui", function()
 		return rt:require(UI:FindFirstChild(name))
 	end
 	local ShopCatalog, Goals, Progress, Nav = ui("ShopCatalog"), ui("Goals"), ui("Progress"), ui("Nav")
-	local LockHud, PromptHide, RareAnnounce = ui("LockHud"), ui("PromptHide"), ui("RareAnnounce")
+	local LockHud, PromptHide = ui("LockHud"), ui("PromptHide")
 	local Config = rt:require(RS.Shared.Config)
 	local Remotes = rt:require(RS.Shared.Remotes)
 	local function now()
@@ -722,36 +726,164 @@ scenario("ui", function()
 		table.concat(mine, ",") == "nil,nil,nil" and table.concat(theirs, ",") == "owner,owner,owner",
 		`owner {table.concat(mine, ",")}; neighbour {table.concat(theirs, ",")}`
 	)
+end)
 
-	-- Boss Slime: State.boss drives the banner; it clears on expiry.
-	local Spawner = rt:require(server:FindFirstChild("Spawner"))
-	local before = lastState().boss
-	local id = Spawner.spawnBoss(world, now())
+---------------------------------------------------------------------------
+-- boss: two stand-ins fight the boss, race the haul and win a trophy (contract/boss-event.md)
+---------------------------------------------------------------------------
+scenario("boss", function()
+	local RS = rt.game:GetService("ReplicatedStorage")
+	local Config = rt:require(RS.Shared.Config)
+	local BOSS = Config.BOSS
+	local function now()
+		return rt.workspace:GetServerTimeNow()
+	end
+	local function stateOf(userId)
+		for i = #rt.records, 1, -1 do
+			local r = rt.records[i]
+			if r.kind == "FireClient" and r.name == "State" and r.userId == userId then
+				return r.args[1]
+			end
+		end
+		return nil
+	end
+	local HELPER_ID = 6262
+	local helper = rt:addPlayer(HELPER_ID, "Helper", Vector3.new(0, 10, 0))
+	rt:advance(1)
+	local helperSession = world.sessions[HELPER_ID]
+	assert(helperSession, "helper did not get a session")
+	local function rootOf(p)
+		return p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+	end
+	local function bat(p)
+		local backpack = p:FindFirstChildOfClass("Backpack")
+		return (backpack and backpack:FindFirstChild(Config.BAT.TOOL_NAME))
+			or (p.Character and p.Character:FindFirstChild(Config.BAT.TOOL_NAME))
+	end
+	local function face(p, at, target)
+		rootOf(p).CFrame = CFrame.lookAt(at, Vector3.new(target.X, at.Y, target.Z))
+	end
+	local players = 0
+	for _ in world.sessions do
+		players += 1
+	end
+	-- Keep Slime Rain far from this arrival so the schedule doesn't skip it, then arrive in WARNING_SECONDS.
+	world.startedAt = now() - Config.RAIN_FIRST_AT - Config.RAIN_DURATION - 120
+	world.boss = nil
+	world.nextBossAt = now() + BOSS.WARNING_SECONDS
 	rt:advance(0.5)
-	state = lastState()
-	local body = S.WorldView.slimeBody(id)
-	local name = body and RareAnnounce.nameFromObjectText(body:FindFirstChild("GrabPrompt").ObjectText)
-	local banner = state.boss.active and RareAnnounce.banner({ name = name, expiresAt = state.boss.endsAt }, nil, now())
+	local warn = stateOf(USER_ID).boss
 	check(
-		"ui: State.boss active -> boss banner with countdown",
-		before.active == false
-			and state.boss.active == true
-			and math.abs(state.boss.endsAt - world.wild[id].expiresAt) < 0.01
-			and banner ~= nil
-			and banner.kind == "boss"
-			and body.Parent:GetAttribute("Boss") == true,
-		`boss {before.active} -> {state.boss.active}, endsAt in {state.boss.endsAt and math.floor(
-			state.boss.endsAt - now()
-		)}s; banner "{banner and banner.text}"`
+		"boss: the heads-up reaches every player through State.boss",
+		warn.phase == "warning" and stateOf(HELPER_ID).boss.phase == "warning" and warn.kind ~= nil,
+		`phase {warn.phase}, kind {warn.kind}, arrives in {warn.endsAt and math.floor(warn.endsAt - now())} s`
 	)
-	world.wild[id].expiresAt = now()
+	world.boss.fight.endsAt = now()
 	rt:advance(0.5)
-	state = lastState()
+	local id = world.boss.slimeId
+	local body = id and S.WorldView.slimeBody(id)
+	local model = body and body.Parent
 	check(
-		"ui: State.boss clears when the boss expires",
-		state.boss.active == false and state.boss.endsAt == nil and S.WorldView.slimeBody(id) == nil,
-		`boss.active={state.boss.active}`
+		"boss: it arrives in the plaza at BOSS.SCALE with its prompt off",
+		body ~= nil
+			and model:GetAttribute("Boss") == true
+			and math.abs(model:GetScale() - BOSS.SCALE) < 1e-3
+			and body:FindFirstChild("GrabPrompt").Enabled == false
+			and stateOf(USER_ID).boss.phase == "fight",
+		`model {model and model.Name}, scale {model and model:GetScale()}, phase {stateOf(USER_ID).boss.phase}`
 	)
+	-- Both swing until the meter fills; the stand-in hits more often, so it is the top contributor.
+	local bossPos = S.WorldView.slimePosition(id)
+	local wildBefore = 0
+	for _ in world.wild do
+		wildBefore += 1
+	end
+	local swings = 0
+	while world.boss.fight.phase == "fight" and swings < 400 do
+		swings += 1
+		face(player, bossPos + Vector3.new(0, 0, 8), bossPos)
+		bat(player).Activated:Fire()
+		if swings % 2 == 0 then
+			face(helper, bossPos + Vector3.new(8, 0, 0), bossPos)
+			bat(helper).Activated:Fire()
+		end
+		rt:advance(BOSS.HIT_GAP + 0.05)
+	end
+	local fight = world.boss.fight
+	local wildAfter = 0
+	for _ in world.wild do
+		wildAfter += 1
+	end
+	check(
+		"boss: bat hits fill a meter that scales with players; it sheds slimes on the way",
+		fight.phase == "haul" and wildAfter - 1 > wildBefore,
+		`{swings} swing rounds, {players} players (target {BOSS.POINTS_PER_PLAYER * players}), hits {fight.contributions[USER_ID]} / {fight.contributions[HELPER_ID]}, wild {wildBefore} -> {wildAfter}`
+	)
+	check(
+		"boss: every helper gets a free egg",
+		session.egg ~= nil and helperSession.egg ~= nil,
+		`egg reveal: stand-in {session.egg ~= nil}, helper {helperSession.egg ~= nil}`
+	)
+	check(
+		"boss: it pops to carry size for the haul",
+		math.abs(model:GetScale() - 1) < 1e-3 and body:FindFirstChild("GrabPrompt").Enabled == true,
+		`scale {model:GetScale()}`
+	)
+	-- Head start: the helper's grab is refused, the top contributor's works.
+	moveTo(body.CFrame.Position + Vector3.new(2, 2, 0))
+	rootOf(helper).CFrame = CFrame.new(body.CFrame.Position + Vector3.new(-2, 2, 0))
+	body:FindFirstChild("GrabPrompt").Triggered:Fire(helper)
+	rt:advance(0.3)
+	local helperRefused = world.carriedBy[id] == nil
+	body:FindFirstChild("GrabPrompt").Triggered:Fire(player)
+	rt:advance(0.5)
+	local speed = player:GetAttribute("TargetWalkSpeed")
+	check(
+		"boss: the top contributor grabs first and walks at the boss carry slow",
+		helperRefused
+			and world.carriedBy[id] == USER_ID
+			and math.abs((speed or 0) - Config.BASE_WALK_SPEED * (1 - BOSS.CARRY_SLOW)) < 0.01,
+		`helper refused {helperRefused}, carrier {world.carriedBy[id]}, TargetWalkSpeed {speed}`
+	)
+	-- The helper bonks the carrier: the boss drops on the spot.
+	local carrierAt = rootOf(player).CFrame.Position
+	face(helper, carrierAt + Vector3.new(4, 0, 0), carrierAt)
+	rt:advance(Config.SLAP_COOLDOWN)
+	bat(helper).Activated:Fire()
+	rt:advance(0.5)
+	check(
+		"boss: a slap drops the boss on the spot",
+		world.carriedBy[id] == nil and world.wild[id] ~= nil and world.wild[id].position ~= nil,
+		`carrier {world.carriedBy[id]}, dropped at {world.wild[id] and world.wild[id].position}`
+	)
+	-- Grab it back and carry it home.
+	rt:advance(0.5)
+	body = S.WorldView.slimeBody(id)
+	moveTo(body.CFrame.Position + Vector3.new(2, 2, 0))
+	body:FindFirstChild("GrabPrompt").Triggered:Fire(player)
+	rt:advance(0.3)
+	local income = stateOf(USER_ID).incomePerSec
+	moveTo(S.WorldView.plotSpawn(session.plotIndex).Position)
+	rt:advance(1)
+	local after = stateOf(USER_ID)
+	local plot = S.WorldView.plot(session.plotIndex)
+	local stand = plot and plot:FindFirstChild(`Trophy_{fight.species}`)
+	check(
+		"boss: home is a win: the trophy stands by the plot and earns",
+		#session.data.trophies == 1
+			and after.boss.phase == "won"
+			and after.boss.trophies == 1
+			and stand ~= nil
+			and after.incomePerSec > income,
+		`trophies {#session.data.trophies}, phase {after.boss.phase}, stand {stand and stand:GetFullName()}, income {income} -> {after.incomePerSec}`
+	)
+	rt:advance(BOSS.LINGER_SECONDS + 0.5)
+	check("boss: the event clears after the result", world.boss == nil and stateOf(USER_ID).boss.phase == nil, "")
+	rt.game:GetService("Players").PlayerRemoving:Fire(helper)
+	rt:advance(0.3)
+	table.remove(rt.players, table.find(rt.players, helper))
+	helper:Destroy()
+	rt:advance(0.3)
 end)
 
 ---------------------------------------------------------------------------

@@ -49,7 +49,7 @@ Fountain.roll(rng, id, raining, minTier?, luckMult?, mutationMult?, weeklyMutati
 - **Size floor** (`Genome.sizeFloor(tier)`, 0 for other tiers): `Genome.generate` raises a rolled size to the floor
   (`MAX_SIZE` stays the cap). Applies to every generated slime of that tier (fountain, rain, eggs).
 - **Lifetime** (`Fountain.wildLifetime(slime)`): fountain spawns and a dropped carry (`Carry.release`) live
-  `WILD_LIFETIME x TIER_LIFETIME_MULT[tier]` (1 for other tiers); the boss keeps `BOSS_LIFETIME`. The parade walk is
+  `WILD_LIFETIME x TIER_LIFETIME_MULT[tier]` (1 for other tiers); the boss leaves only through the boss event (§33). The parade walk is
   a function of the lifetime (`ParadeLane`), so a longer life walks the lane slower.
 - **Spawn announce** (unchanged rule, `RARE_ANNOUNCE_TIER` 5): every player gets the Notify
   `Spawner.rareText` ("A MYTHIC Cosmo spilled from the fountain!!", the species name in it), sound `"Rare"`, or
