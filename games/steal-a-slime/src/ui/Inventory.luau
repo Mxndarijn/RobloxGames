@@ -57,6 +57,17 @@ local KEYS: { [Enum.KeyCode]: number } = {
 	[Enum.KeyCode.Nine] = 9,
 }
 
+-- Keys that open / close the bag: ` (Roblox's own backpack key, free while the default backpack is off), B, and
+-- gamepad Y. `label` is the key shown on the bag cell and in its tooltip on keyboards.
+Inventory.BAG_KEYS = table.freeze({
+	keys = table.freeze({
+		[Enum.KeyCode.Backquote] = true,
+		[Enum.KeyCode.B] = true,
+		[Enum.KeyCode.ButtonY] = true,
+	}),
+	label = "`",
+})
+
 type Deps = {
 	Config: any,
 	itemIcons: any, -- ItemIcons registry
@@ -344,9 +355,23 @@ function Inventory.new(parent: Instance, deps: Deps)
 		ZIndex = 2,
 		Parent = bag,
 	})
+	Widgets.label({
+		Name = "Number",
+		Text = Inventory.BAG_KEYS.label,
+		Visible = keyboard,
+		Font = Theme.Font,
+		TextSize = 13,
+		TextStrokeTransparency = 0.4,
+		TextTruncate = Enum.TextTruncate.None,
+		Size = fromOffset(18, 16),
+		Position = fromOffset(4, 1),
+		ZIndex = 6,
+		Parent = bag,
+	})
 	bagIcon.TextYAlignment = Enum.TextYAlignment.Center
+	local bagTip = if keyboard then `Inventory ({Inventory.BAG_KEYS.label})` else "Inventory"
 	bag.MouseEnter:Connect(function()
-		showTip(bag, "Inventory")
+		showTip(bag, bagTip)
 	end)
 	bag.MouseLeave:Connect(hideTip)
 
@@ -672,6 +697,24 @@ function Inventory.new(parent: Instance, deps: Deps)
 
 	function self.keyCodeToSlot(key: Enum.KeyCode): number?
 		return KEYS[key]
+	end
+
+	function self.isBagKey(key: Enum.KeyCode): boolean
+		return Inventory.BAG_KEYS.keys[key] == true
+	end
+
+	-- The bag key: closes an open bag, opens it unless the bar is hidden (a menu is open or carrying).
+	-- True when the panel changed.
+	function self.toggleBag(): boolean
+		if panelOpen then
+			setPanelOpen(false)
+			return true
+		end
+		if menuOpen or carrying then
+			return false
+		end
+		setPanelOpen(true)
+		return true
 	end
 
 	-- Cooldown numbers tick once a second between State pushes.

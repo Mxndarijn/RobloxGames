@@ -201,6 +201,62 @@ describe("Inventory panel", function()
 	end)
 end)
 
+describe("Inventory bag key", function()
+	local Enum = require("@lune/roblox").Enum
+
+	it("` and B on a keyboard and Y on a gamepad are bag keys; the number keys and E are not", function()
+		local inv = mount(nil)
+		expect(inv.isBagKey(Enum.KeyCode.Backquote)).toBe(true)
+		expect(inv.isBagKey(Enum.KeyCode.B)).toBe(true)
+		expect(inv.isBagKey(Enum.KeyCode.ButtonY)).toBe(true)
+		for _, key in { Enum.KeyCode.One, Enum.KeyCode.E, Enum.KeyCode.Escape, Enum.KeyCode.ButtonB } do
+			expect(inv.isBagKey(key)).toBe(false)
+		end
+		expect(inv.keyCodeToSlot(Enum.KeyCode.B)).toBe(nil)
+	end)
+
+	it("toggles the panel open and closed", function()
+		local inv = mount(nil)
+		expect(inv.toggleBag()).toBe(true)
+		expect(inv.panelOpen()).toBe(true)
+		expect(inv.panel.frame.Visible).toBe(true)
+		expect(inv.toggleBag()).toBe(true)
+		expect(inv.panelOpen()).toBe(false)
+		expect(inv.panel.frame.Visible).toBe(false)
+	end)
+
+	it("does not open while a menu is open or while carrying", function()
+		local inv = mount(nil)
+		inv.setMenuOpen(true)
+		expect(inv.toggleBag()).toBe(false)
+		expect(inv.panelOpen()).toBe(false)
+		inv.setMenuOpen(false)
+		inv.update({ carrying = { slimeId = "x" } })
+		expect(inv.toggleBag()).toBe(false)
+		expect(inv.panelOpen()).toBe(false)
+		inv.update({})
+		expect(inv.toggleBag()).toBe(true)
+	end)
+
+	it("shows the key on the bag cell on keyboards only", function()
+		local inv = mount(nil)
+		local label = UiHarness.find(inv.bag, "Number")
+		expect(label.Text).toBe(Inventory.BAG_KEYS.label)
+		expect(label.Visible).toBe(true)
+		local touch = Inventory.new(UiHarness.root(), {
+			Config = Config,
+			itemIcons = ItemIcons.build(Config),
+			send = function() end,
+			tools = fakeTools({}),
+			serverNow = function()
+				return 100
+			end,
+			keyboard = false,
+		})
+		expect(UiHarness.find(touch.bag, "Number").Visible).toBe(false)
+	end)
+end)
+
 describe("Inventory mount", function()
 	local src = fs.readFile("src/ui/init.client.luau")
 	local function has(needle: string): boolean
