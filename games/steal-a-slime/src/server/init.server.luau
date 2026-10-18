@@ -133,13 +133,9 @@ task.spawn(function()
 		warn(`[Server] BorderTerrainView.place failed: {err}`)
 	end
 end)
--- Slime Ranch kit meshes over the MeshAsset placeholders (yields; never blocks boot).
-task.spawn(function()
-	local ok, err = pcall(MeshSwap.apply)
-	if not ok then
-		warn(`[Server] MeshSwap.apply failed: {err}`)
-	end
-end)
+-- Slime Ranch kit meshes over the MeshAsset placeholders and the merge vats, then WorldMeshesReady
+-- (yields; never blocks boot).
+task.spawn(MeshSwap.applyAll)
 
 -- FEATURES.PlotSkins: decor templates for the clients (no world slots; no-op while the flag is off).
 task.spawn(function()
@@ -154,14 +150,6 @@ task.spawn(function()
 	local ok, err = pcall(MeshSwap.publishFountainTierTemplates)
 	if not ok then
 		warn(`[Server] MeshSwap.publishFountainTierTemplates failed: {err}`)
-	end
-end)
-
--- Every plot's MergeVat disc wears the merge_vat model (bug #16; no world slot, independent of FEATURES.MergeVat3).
-task.spawn(function()
-	local ok, err = pcall(MeshSwap.swapPlotVats)
-	if not ok then
-		warn(`[Server] MeshSwap.swapPlotVats failed: {err}`)
 	end
 end)
 

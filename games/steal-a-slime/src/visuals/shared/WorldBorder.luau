@@ -290,7 +290,7 @@ WorldBorder.DEFS = table.freeze({
 -- edge past the wall line (a piece is pulled in to stay on the Ground).
 WorldBorder.LAYERS = table.freeze({
 	inner = { base = 4, cap = 28, gap = { -1.5, 2.5 }, o = { 0.5, 2.5 }, opening = { 8, 22 }, openingChance = 0.1 },
-	mid = { base = 14, cap = 32, gap = { -4, 1 }, o = { 5, 22 }, open = { 20, 80 }, cluster = { 3, 6 } },
+	mid = { base = 14, cap = 26, gap = { -4, 1 }, o = { 5, 22 }, open = { 20, 80 }, cluster = { 3, 6 } },
 	outer = { base = 34, cap = 8, gap = { 30, 120 }, o = { 14, 40 } },
 })
 WorldBorder.THEMES = table.freeze({
@@ -301,8 +301,8 @@ WorldBorder.THEMES = table.freeze({
 -- Giants (border v5 + v6): six NEW tree meshes (shared/modeling-kit models/giant_*.py: the v5 three at
 -- 78-87 studs native, the v6 elder oak, sequoia spire and cloud tree at 100-160; the border pines are
 -- 25 native, 22-36 placed) scaled to 90-215 studs, set on the terrain in three overlapping radial depth
--- bands with irregular gaps round the ring. Each is one MeshAsset slot (BORDER_SLOT_COUNT 72 + GIANT_COUNT).
-WorldBorder.GIANT_COUNT = 30
+-- bands with irregular gaps round the ring. Each is one MeshAsset slot (BORDER_SLOT_COUNT 66 + GIANT_COUNT).
+WorldBorder.GIANT_COUNT = 20
 WorldBorder.GIANT_MAX_AXIS = 215
 -- Studs past the Ground edge, along the bearing: near the hills, mid, and far
 -- (still ahead of the mountains' feet, which start PEAK_CLEAR past the edge). The bands overlap, so the

@@ -170,13 +170,13 @@ WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
 -- are world triangles (<= 500000, pr-gate budget.sh from the kit FBX) and unique meshes (<= 120, runtime budget).
 -- #80's hard per-category split (fence 128 / gate posts 8 / border 96 / decor 152 / runtime 16 = 400) was folded
 -- into those limits; BORDER_SLOT_COUNT stays as a layout-correctness pin (a change to the ring trips it).
---   border  Map.Border's slots: 102 = 72 decor pieces + 30 giant trees (border v5's 22, then v6's six-species ring of 30).
+--   border  Map.Border's slots: 86 = 66 decor pieces + 20 giant trees.
 --   runtime MeshParts the pc-watcher counts in the play world that WorldLayout.build() does not produce: 16, the
 --           constant gap between the build count and the watcher's (340 vs 356 at 09ea65e, 398 vs 414 at
 --           b84f795). RUNTIME_SLOT_ALLOWANCE is the Studio calibration offset (the podium R15 rig); the pr-gate
 --           runtime counter adds it to parts, MeshParts and unique meshes (tools/pr-gate/README.md).
 WorldLayout.MESH_SLOT_BUDGET = 500
-WorldLayout.BORDER_SLOT_COUNT = 102
+WorldLayout.BORDER_SLOT_COUNT = 86
 WorldLayout.RUNTIME_SLOT_ALLOWANCE = 16
 -- Parts outside Map.Border (THEME.md asked <= 1200; raised to 1400 for the
 -- primitive meadow clusters in the grass band behind the plots). Asserted
