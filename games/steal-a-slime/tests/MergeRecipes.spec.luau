@@ -1,5 +1,5 @@
 --!strict
--- Merge recipes (CONTRACT.md §31): the 15 recipes, the pure lookup and its random fallback.
+-- Merge recipes (CONTRACT.md §32): the 15 recipes, the pure lookup and its random fallback.
 local Config = require("../src/shared/Config")
 local MergeRecipes = require("../src/shared/MergeRecipes")
 local SlimeRoster = require("../src/shared/SlimeRoster")

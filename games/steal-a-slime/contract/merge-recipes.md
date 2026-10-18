@@ -1,4 +1,4 @@
-# §31 Merge recipes, merge caps and the merge assist
+# §32 Merge recipes, merge caps and the merge assist
 
 Design: `docs/SLIME-ECONOMY.md` §1.2 (caps, assist) and §2 (recipes). Builds on the 3-slime vat (§21) and the hybrid
 kind in the roster (§30). No save change: "found" is read from what the save already holds.

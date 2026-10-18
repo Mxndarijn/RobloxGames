@@ -1,6 +1,6 @@
 --!strict
 --[[
-	MergeRecipes (pure, CONTRACT.md §31)
+	MergeRecipes (pure, CONTRACT.md §32)
 
 	Which slime three slimes of one tier make in the vat. Three spawning species of tier T that form a recipe
 	(a multiset: order doesn't matter, repeats count) give that recipe's hybrid of tier T + 1. Anything else
@@ -138,8 +138,9 @@ function MergeRecipes.foundOf(slimes: { any }?, found: { [string]: boolean }?): 
 			end
 		end
 	end
-	for _, s in slimes or {} do
-		local slime = if type(s) == "table" and type(s.slime) == "table" then s.slime else s
+	local list: { any } = if slimes then slimes else {}
+	for _, s: any in list do
+		local slime: any = if type(s) == "table" and type(s.slime) == "table" then s.slime else s
 		if type(slime) == "table" and type(slime.species) == "string" then
 			out[slime.species] = true
 		end

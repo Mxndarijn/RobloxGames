@@ -3,7 +3,7 @@
 	MergePreview (pure, CONTRACT.md §21.1)
 
 	The one place the merge menu asks "what will these slimes make?". Three picks that form a merge recipe
-	whose hybrid the player has already found preview as that hybrid (`kind = "recipe"`, CONTRACT.md §31).
+	whose hybrid the player has already found preview as that hybrid (`kind = "recipe"`, CONTRACT.md §32).
 	Every other load, an undiscovered recipe hit included, previews as a random species of the next rarity
 	(`kind = "random"`), so the menu never gives a recipe away. Only shows odds; the server rolls the child.
 ]]
