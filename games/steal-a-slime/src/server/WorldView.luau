@@ -1014,7 +1014,7 @@ function WorldView.updatePlayer(player: Player, session: World.Session, now: num
 		PvpTrap.tick(session, root and root.Position, now)
 		PvpFun.tick(session, root and root.Position, now)
 	end
-	local pet = if Config.FEATURES.FollowPets then Progression.keeper(data) else nil
+	local pet = Progression.keeper(data)
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
 	if data.speedCoil then
 		ensureSpeedCoil(player)

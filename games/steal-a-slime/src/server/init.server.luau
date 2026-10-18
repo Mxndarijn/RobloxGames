@@ -997,7 +997,7 @@ local function stepPlayers(t: number)
 		wasRaining = world.raining
 		WorldView.setRain(Spawner.rain(world, t))
 	end
-	WorldView.setBossNextAt(if Config.FEATURES.BossSlime then world.nextBossAt else nil)
+	WorldView.setBossNextAt(world.nextBossAt)
 end
 
 -- Kill plane: every player (loaded or not) who falls off the world goes back up.
@@ -1061,7 +1061,7 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 	lastView = t
-	if Config.FEATURES.DayNight and t - lastClock >= 0.5 then
+	if t - lastClock >= 0.5 then
 		lastClock = t
 		-- Studio-only PC watcher hook: Lighting attribute "PcwClock" pins the time of day (daytime border shots)
 		local pinned = if RunService:IsStudio() and memoryMode then Lighting:GetAttribute("PcwClock") else nil
