@@ -40,13 +40,23 @@ function PvpTrapRules.validAim(aim: any): boolean
 	return finite(aim.X) and finite(aim.Y) and finite(aim.Z)
 end
 
+-- Is `aim` within Config.PVP.TRAP_PLACE_RANGE of `origin` (the owner's server-side position)?
+function PvpTrapRules.inReach(origin: Vec, aim: Vec): boolean
+	local dx, dy, dz = aim.X - origin.X, aim.Y - origin.Y, aim.Z - origin.Z
+	local d2 = dx * dx + dy * dy + dz * dz
+	local range = Config.PVP.TRAP_PLACE_RANGE
+	return d2 == d2 and d2 <= range * range
+end
+
 --[[
-	May the owner place `tool` at `aim`? `armed` = traps the owner already has. Placing beyond `tool.traps` is
-	REFUSED (it does not replace the oldest). `onOwnPlot` = the aim lies on the owner's own plot.
+	May the owner standing at `origin` place `tool` at `aim`? `armed` = traps the owner already has. Placing
+	beyond `tool.traps` is REFUSED (it does not replace the oldest). `onOwnPlot` = the aim lies on the owner's
+	own plot. `origin` comes from the server, never the client.
 ]]
 function PvpTrapRules.canPlace(
 	tool: Config.PvpTool,
 	armed: number,
+	origin: Vec,
 	aim: any,
 	onOwnPlot: boolean,
 	flag: boolean?
@@ -59,6 +69,9 @@ function PvpTrapRules.canPlace(
 	end
 	if not PvpTrapRules.validAim(aim) then
 		return false, "no aim"
+	end
+	if not PvpTrapRules.validAim(origin) or not PvpTrapRules.inReach(origin, aim) then
+		return false, "too far away"
 	end
 	if not onOwnPlot then
 		return false, "only on your own plot"

@@ -1175,6 +1175,7 @@ local Config = {
 		LAUNCH_GUARD_SECONDS = 5, -- after a PvP launch / while under control the void guard (Rescue.PVP_SAFE_Y) is armed
 		KNOCKBACK_CONTROL_SECONDS = 0.6, -- a knockback counts as control (PvpRules.applyControl), then immunity
 		FUN_AIM_RANGE = 40, -- studs: how far a Balloon / Bounce Pad / Fireworks aim point may be
+		TRAP_PLACE_RANGE = 40, -- studs: how far from the owner a Goo Trap may be placed
 		FUN_NUDGE_CONTROL_SECONDS = 0.3, -- Squeaky Hammer nudge counts as a tiny control
 		FIREWORKS_SECONDS = 4, -- FunFireworks Effect duration
 		BOUNCE_PAD_SECONDS = 60, -- a placed Bounce Pad lives this long
