@@ -34,67 +34,43 @@ local function e(id: string, name: string, tier: number, look: string, family: s
 end
 
 local ROSTER: { Entry } = {
-	-- 1 Common (6): slime_base, soft field colours
-	e("pudding", "Pudding Slime", 1, "butterscotch yellow, slime_base"),
-	e("clover", "Clover Slime", 1, "meadow green, slime_base, Spots pattern"),
-	e("oatmeal", "Oatmeal Slime", 1, "warm oat beige, slime_base, Belly pattern"),
-	e("radish", "Radish Slime", 1, "radish pink, slime_base"),
-	e("puddle", "Puddle Slime", 1, "pond blue, slime_base"),
-	e("haystack", "Haystack Slime", 1, "straw gold, slime_base, Stripes pattern"),
-	-- 2 Uncommon (6): slime_base + slime_acc_leaf
-	e("sprout", "Sprout Slime", 2, "fresh green, leaf"),
-	e("carrot", "Carrot Slime", 2, "carrot orange, leaf as carrot top"),
-	e("berry", "Berry Slime", 2, "raspberry red, leaf, Spots seeds"),
-	e("minty", "Minty Slime", 2, "mint, leaf"),
-	e("pumpkin", "Pumpkin Slime", 2, "pumpkin orange, leaf, Stripes ribs"),
-	e("tulip", "Tulip Slime", 2, "tulip pink, leaf"),
-	-- 3 Rare (5): slime_ears
-	e("bunny_puff", "Bunny Puff", 3, "cream-pink, slime_ears"),
-	e("caramel_kitty", "Caramel Kitty", 3, "caramel, slime_ears"),
-	e("moo_goo", "Moo Goo", 3, "white + black Spots, slime_ears"),
-	e("piglet", "Piglet Slime", 3, "piggy pink, slime_ears"),
-	e("cocoa_pup", "Cocoa Pup", 3, "cocoa brown, slime_ears"),
-	-- 4 Epic (5): slime_horns
-	e("billy_gum", "Billy Gum", 4, "bubblegum pink, slime_horns (goat)"),
-	e("rodeo_ram", "Rodeo Ram", 4, "wool cream body, barn-red horns, slime_horns"),
-	e("licorice_bull", "Licorice Bull", 4, "licorice black, slime_horns"),
-	e("toffee_buck", "Toffee Buck", 4, "toffee brown, slime_horns"),
-	e("sour_apple", "Sour Apple Imp", 4, "sour-apple green, slime_horns, Fang mouth"),
-	-- 5 Legendary (4): slime_base + slime_acc_crown
-	e("honey_queen", "Honey Queen", 5, "honey amber, crown"),
-	e("harvest_king", "Harvest King", 5, "wheat gold, crown"),
-	e("blue_ribbon", "Blue Ribbon", 5, "prize blue, crown"),
-	e("marshmallow_duke", "Marshmallow Duke", 5, "marshmallow white, crown"),
-	-- 6 Mythic (3): slime_base + slime_acc_crystal
-	e("rock_candy", "Rock Candy", 6, "sugar lilac, crystal cluster"),
-	e("dewdrop_spirit", "Dewdrop Spirit", 6, "dew aqua, crystal cluster, Glow-like sheen"),
-	e("gumdrop_titan", "Gumdrop Titan", 6, "cherry red, crystal cluster, MAX size look"),
-	-- Secret (2): roster-only tier 7
-	e("golden_goose_goo", "Golden Goose Goo", SECRET_TIER, "gold body, crown + crystal, slime_wobble drips"),
-	e("moonmilk", "Moonmilk", SECRET_TIER, "midnight blue + pale white, slime_ears + crystal"),
-	-- v19 families (FountainTiers): one per rank, one type per tier 1..6, dropped by the upgraded fountain.
-	-- Same kits per tier as Classic (leaf / ears / horns / crown / crystal), new colours and names.
-	-- Orchard (Slime Wrangler)
-	e("apple_pop", "Apple Pop", 1, "orchard red, slime_base", "orchard"),
-	e("pear_drop", "Pear Drop", 2, "pear green, leaf", "orchard"),
-	e("peach_fuzz", "Peach Fuzz", 3, "peach, slime_ears", "orchard"),
-	e("plum_stag", "Plum Stag", 4, "plum purple, slime_horns", "orchard"),
-	e("cherry_baron", "Cherry Baron", 5, "dark cherry, crown", "orchard"),
-	e("citrine_quince", "Citrine Quince", 6, "citrine yellow, crystal cluster", "orchard"),
-	-- Frost (Goo Tycoon)
-	e("vanilla_scoop", "Vanilla Scoop", 1, "vanilla cream, slime_base", "frost"),
-	e("mint_chip", "Mint Chip", 2, "mint, leaf", "frost"),
-	e("sherbet_bunny", "Sherbet Bunny", 3, "sherbet orange-pink, slime_ears", "frost"),
-	e("icicle_ibex", "Icicle Ibex", 4, "ice blue, slime_horns", "frost"),
-	e("snowcone_duke", "Snowcone Duke", 5, "snowcone white-blue, crown", "frost"),
-	e("glacier_gem", "Glacier Gem", 6, "glacier cyan, crystal cluster", "frost"),
-	-- Starlight (Slime Sovereign)
-	e("stardust_blob", "Stardust Blob", 1, "stardust violet, slime_base", "starlight"),
-	e("nebula_sprout", "Nebula Sprout", 2, "nebula magenta, leaf", "starlight"),
-	e("comet_kitty", "Comet Kitty", 3, "comet indigo, slime_ears", "starlight"),
-	e("meteor_ram", "Meteor Ram", 4, "meteor orange, slime_horns", "starlight"),
-	e("aurora_queen", "Aurora Queen", 5, "aurora teal, crown", "starlight"),
-	e("supernova_titan", "Supernova Titan", 6, "supernova white-gold, crystal cluster", "starlight"),
+	-- The slime pool (shared/modeling-kit/models/pool, docs/SLIME-ECONOMY.md §1.3): one mesh per
+	-- species, `look` is the pitch. Classic (Meadow) is open from the start.
+	e("gummy", "Gummy", 1, "lime gumdrop, toothy grin"),
+	e("mochi", "Mochi", 1, "wide pink rice cake, sleepy"),
+	e("bubbles", "Bubbles", 1, "sky-blue ball with soap bubbles"),
+	e("pebble", "Pebble", 1, "mossy rock, grumpy unibrow"),
+	e("bumble", "Bumble", 2, "bee with shades"),
+	e("mushie", "Mushie", 2, "shy red mushroom cap"),
+	e("froggo", "Froggo", 2, "frog, tongue out"),
+	e("whiskers", "Whiskers", 3, "orange tabby cat, wink"),
+	e("lop", "Lop", 3, "pink bunny with floppy ears"),
+	e("moo", "Moo", 3, "cow with bell collar"),
+	e("blaze", "Blaze", 4, "fire slime with a flame top"),
+	e("octo", "Octo", 4, "purple octopus"),
+	e("king", "King Goo", 5, "crown, cape, mustache"),
+	e("cosmo", "Cosmo", 6, "galaxy with a planet ring"),
+	e("midas", "Midas", SECRET_TIER, "dripping gold, shades, chain"),
+	-- Garden (orchard id): Slime Wrangler
+	e("sprout", "Sprout", 1, "pear slime with a two-leaf sprout", "orchard"),
+	e("cheddar", "Cheddar", 1, "cheese cube", "orchard"),
+	e("prickles", "Prickles", 2, "cactus with a flower", "orchard"),
+	e("flan", "Flan", 2, "caramel pudding with a cherry", "orchard"),
+	-- Frost & Sea (frost id): Goo Tycoon
+	e("chomp", "Chomp", 3, "shark with a scar", "frost"),
+	e("pengoo", "Pengoo", 3, "penguin in a top hat", "frost"),
+	e("frostbite", "Frostbite", 4, "ice slime with icicles and shades", "frost"),
+	e("zap", "Zap", 4, "storm cloud and lightning", "frost"),
+	e("ninja", "Ninja", 5, "masked ninja with katana", "frost"),
+	-- Starlight: Slime Sovereign
+	e("imp", "Imp", 4, "little devil with bat wings", "starlight"),
+	e("drako", "Drako", 4, "baby dragon", "starlight"),
+	e("robo", "Robo", 5, "chrome robot with visor", "starlight"),
+	e("seraph", "Seraph", 6, "angel with halo and wings", "starlight"),
+	e("amethyst", "Amethyst", 6, "crystal golem", "starlight"),
+	e("prism", "Prism", 6, "rainbow unicorn on a cloud", "starlight"),
+	e("eclipse", "Eclipse", SECRET_TIER, "void slime with a burning ring", "starlight"),
+	e("boo", "Boo", SECRET_TIER, "floating ghost", "starlight"),
 }
 
 -- Proposed new mutations, ordered by multiplier with the existing ones:
@@ -134,8 +110,7 @@ function SlimeRoster.get(id: string): Entry?
 	return byId[id]
 end
 
--- Types of `tier` in one family: `family` nil = the Classic roster (the 31 original types), so
--- every v28 roll and count is unchanged by the families.
+-- Types of `tier` in one family: `family` nil = the Classic (Meadow) species.
 function SlimeRoster.forTier(tier: number, family: string?): { Entry }
 	local out = {}
 	for _, entry in ROSTER do

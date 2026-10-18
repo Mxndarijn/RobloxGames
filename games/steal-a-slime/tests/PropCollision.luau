@@ -803,13 +803,6 @@ local UNPLACED: { [string]: { string } } = {
 	habitat_rodeo_barrel = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
 	habitat_show_stool = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
 	habitat_syrup_pool = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
-	slime_base = { "jolt", "slime kit mesh cloned per slime (SlimeMesh), never a world prop" },
-	slime_acc_leaf = { "jolt", "slime kit mesh cloned per slime (SlimeMesh), never a world prop" },
-	slime_ears = { "jolt", "slime kit mesh cloned per slime (SlimeMesh), never a world prop" },
-	slime_horns = { "jolt", "slime kit mesh cloned per slime (SlimeMesh), never a world prop" },
-	slime_acc_crown = { "jolt", "slime kit mesh cloned per slime (SlimeMesh), never a world prop" },
-	slime_acc_crystal = { "jolt", "slime kit mesh cloned per slime (SlimeMesh), never a world prop" },
-	slime_wobble = { "jolt", "slime kit mesh cloned per slime (SlimeMesh), never a world prop" },
 	slime_lane = { "jolt", "the parade lane strip (entry parade_lane), laid by ParadeView, not a MeshAsset slot" },
 }
 

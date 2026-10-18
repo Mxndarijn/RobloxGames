@@ -97,14 +97,18 @@ local FAMILY: { [string]: string } = {
 
 -- Per-type overrides (SlimeRoster ids); everything else uses its family.
 local TYPE: { [string]: string } = {
-	pudding = "syrup_pool",
-	puddle = "syrup_pool",
-	honey_queen = "syrup_pool",
-	clover = "mushroom_ring",
-	moonmilk = "mushroom_ring",
-	rodeo_ram = "rodeo_barrel",
-	gumdrop_titan = "candy_patch",
-	golden_goose_goo = "hay_nest",
+	flan = "syrup_pool",
+	bubbles = "syrup_pool",
+	froggo = "syrup_pool",
+	chomp = "syrup_pool",
+	octo = "syrup_pool",
+	mushie = "mushroom_ring",
+	sprout = "flower_bed",
+	prickles = "flower_bed",
+	moo = "rodeo_barrel",
+	cheddar = "candy_patch",
+	midas = "hay_nest",
+	boo = "mushroom_ring",
 }
 
 local byId: { [string]: Habitat } = {}

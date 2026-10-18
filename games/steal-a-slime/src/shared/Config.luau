@@ -235,18 +235,18 @@ local WEATHER_COMBOS: { Combo } = {
 -- the next level needs it again. Rarity escalates; a level without an entry
 -- uses the last entry below it (Progression.requiredSpecies).
 local REBIRTH_SLIMES: { [number]: string } = {
-	[1] = "sprout", -- Uncommon
-	[2] = "carrot",
-	[3] = "bunny_puff", -- Rare
-	[4] = "piglet",
-	[5] = "billy_gum", -- Epic
-	[6] = "rodeo_ram",
-	[7] = "honey_queen", -- Legendary
-	[8] = "harvest_king",
-	[9] = "rock_candy", -- Mythic
-	[10] = "gumdrop_titan",
-	[15] = "moonmilk", -- Secret
-	[20] = "golden_goose_goo",
+	[1] = "bumble", -- Uncommon
+	[2] = "froggo",
+	[3] = "lop", -- Rare
+	[4] = "moo",
+	[5] = "blaze", -- Epic
+	[6] = "octo",
+	[7] = "king", -- Legendary
+	[8] = "ninja",
+	[9] = "cosmo", -- Mythic
+	[10] = "cosmo",
+	[15] = "midas", -- Secret
+	[20] = "eclipse",
 }
 
 local REBIRTH_TIERS: { RebirthTier } = {

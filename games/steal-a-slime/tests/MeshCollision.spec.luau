@@ -191,7 +191,6 @@ for _, group in
 	{
 		"ranch_border_", -- the world border pieces: beyond the invisible wall ring (WorldBorder), out of reach
 		"habitat_", -- 7.8 stud pad seats slimes rest in: low decor, players walk over
-		"slime_acc_", -- worn by slimes
 	}
 do
 	for _, name in MeshAssets.NAMES do
@@ -199,9 +198,6 @@ do
 			DECOR[name] = `{group}* decor`
 		end
 	end
-end
-for _, name in { "slime_base", "slime_ears", "slime_horns", "slime_wobble" } do
-	DECOR[name] = "per-type slime kit mesh worn by slimes"
 end
 
 -- The invisible colliders bug #11 removed: each plot's five Wall* blocks, as plot-local (centre x, z, size x, z).

@@ -21,13 +21,15 @@
 	Typed slimes (v28 `species`) also get the Species attribute and, when
 	unmutated, their SlimeLooks material on Body and Mesh (both looks).
 
-	Per-type kits (SlimeLooks.get(species).kit, uploaded in MeshAssets): load() also
-	fetches each kit mesh by its assetId. slime_base / slime_ears / slime_horns /
-	slime_wobble are whole bodies (native 3 studs, fitted uniformly into Body's box);
-	slime_acc_* are small accessories added on top of a slime_base body. A kit that
-	fails to load or dress falls back to the shared package mesh, then to the
-	procedural ball. Kits are cloned per slime, so they are not world mesh slots
-	(WorldLayout.MESH_SLOT_BUDGET counts MeshAsset tags only).
+	Species meshes (SlimeLooks.get(species).kit = "slime_<id>", uploaded in
+	MeshAssets with size + offset): load() also fetches each one by its assetId.
+	A species mesh is fully coloured (Color white) and carries its own face,
+	pattern and accessories, so the procedural ones are hidden (isReplacedPart);
+	it is worn at size-1 scale x the slime's size, placed from the bottom centre,
+	and keeps its Bones. A kit that fails to load or dress falls back to the
+	shared package mesh, then to the procedural ball. Kits are cloned per slime,
+	so they are not world mesh slots (WorldLayout.MESH_SLOT_BUDGET counts
+	MeshAsset tags only).
 
 	Pure apart from the injected functions: Lune tests cover the fallback paths.
 ]]
@@ -60,21 +62,6 @@ export type SlimeMesh = {
 local SlimeMesh = {}
 
 SlimeMesh.MESH_NAME = "Mesh"
-SlimeMesh.ACCESSORY_NAME = "Accessory"
--- Share of an accessory's height sunk into the body so it sits on the surface.
-SlimeMesh.ACCESSORY_SINK = 0.25
-
--- The body kit and optional accessory kit for a SlimeLooks kit name: slime_acc_*
--- sit on a slime_base body, every other kit is the body itself.
-function SlimeMesh.plan(kit: string?): (string?, string?)
-	if not kit then
-		return nil, nil
-	end
-	if string.sub(kit, 1, 10) == "slime_acc_" then
-		return "slime_base", kit
-	end
-	return kit, nil
-end
 
 function SlimeMesh.new(deps: Deps): SlimeMesh
 	return { deps = deps, template = nil, kits = {}, look = "Procedural" }
@@ -144,20 +131,85 @@ local function anchorFor(model: Model, body: BasePart): BasePart
 	return if skin and skin:IsA("BasePart") then skin else body
 end
 
--- kit: a MeshAssets name; its native size is fitted uniformly into Body's box
--- (never stretched). nil = the shared package, stretched to the box as before.
+-- Procedural parts a species mesh replaces (it carries its own face, pattern and accessories).
+-- Tier rim, aura, glow shell and the mutation effects stay.
+local REPLACED_PREFIXES = {
+	"Eye",
+	"Iris",
+	"Pupil",
+	"Lid",
+	"Lash",
+	"Brow",
+	"Blush",
+	"Cheek",
+	"Mouth",
+	"Smile",
+	"Tongue",
+	"Fang",
+	"Happy",
+	"Shine",
+	"Glint",
+	"Gloss",
+	"Spot",
+	"Stripe",
+	"Belly",
+	"Leaf",
+	"Horn",
+	"Crown",
+	"Halo",
+}
+
+function SlimeMesh.isReplacedPart(name: string): boolean
+	for _, prefix in REPLACED_PREFIXES do
+		if string.sub(name, 1, #prefix) == prefix then
+			return true
+		end
+	end
+	return false
+end
+
+-- A species mesh (MeshAssets entry with an `offset`): native size is for a size-1 slime
+-- (Config.SLIME_BASE_DIAMETER wide), placed by its bbox centre relative to the slime's bottom
+-- centre, so wings, tails and rings stick out instead of shrinking the body. Its vertex colours
+-- are the look: Color stays white. Uploaded meshes arrive turned MeshAssets.IMPORT_YAW from the
+-- kit's documented axes (the same turn MeshSwap gives world props); without it the face is at
+-- the back.
+local function speciesFit(body: BasePart, entry: MeshAssets.Entry): (Vector3, CFrame)
+	local native = entry.size :: { number }
+	local offset = entry.offset :: { number }
+	local scale = body.Size.X / Config.SLIME_BASE_DIAMETER
+	local bottom = body.CFrame * CFrame.new(0, -body.Size.Y / 2, 0)
+	return Vector3.new(native[1] * scale, native[2] * scale, native[3] * scale),
+		bottom * CFrame.new(offset[1] * scale, offset[2] * scale, offset[3] * scale) * CFrame.Angles(
+			0,
+			math.rad(MeshAssets.IMPORT_YAW),
+			0
+		)
+end
+
+-- kit: a MeshAssets name. A species kit is worn at its own scale (speciesFit); any other kit is
+-- fitted uniformly into Body's box (never stretched). nil = the shared package, stretched to the box.
 local function dress(model: Model, template: MeshPart, kit: string?)
 	local body = model.PrimaryPart :: BasePart
 	local mesh = template:Clone()
 	mesh.Name = SlimeMesh.MESH_NAME
-	if kit then
-		local fitted = MeshAssets.fit(kit, { body.Size.X, body.Size.Y, body.Size.Z })
-		mesh.Size = Vector3.new(fitted[1], fitted[2], fitted[3])
+	local entry = if kit then MeshAssets.get(kit) else nil
+	local species = entry ~= nil and entry.offset ~= nil and entry.size ~= nil
+	if species then
+		local size, cframe = speciesFit(body, entry :: MeshAssets.Entry)
+		mesh.Size = size
+		mesh.CFrame = cframe
+		mesh.Color = Color3.new(1, 1, 1)
 	else
-		mesh.Size = body.Size
+		if kit then
+			local fitted = MeshAssets.fit(kit, { body.Size.X, body.Size.Y, body.Size.Z })
+			mesh.Size = Vector3.new(fitted[1], fitted[2], fitted[3])
+		else
+			mesh.Size = body.Size
+		end
+		mesh.CFrame = body.CFrame
+		mesh.Color = body.Color
 	end
-	mesh.CFrame = body.CFrame
-	mesh.Color = body.Color
 	mesh.Material = body.Material
 	mesh.Transparency = 0
 	mesh.Anchored = false
@@ -167,7 +219,9 @@ local function dress(model: Model, template: MeshPart, kit: string?)
 	mesh.CanQuery = false
 	mesh.CastShadow = true
 	for _, child in mesh:GetChildren() do
-		child:Destroy() -- no scripts / welds from the package
+		if not child:IsA("Bone") then
+			child:Destroy() -- no scripts / welds from the package; a species rig keeps its bones
+		end
 	end
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = anchorFor(model, body)
@@ -177,35 +231,14 @@ local function dress(model: Model, template: MeshPart, kit: string?)
 	-- Body stays the PrimaryPart and the prompt / raycast target, just invisible.
 	body.Transparency = 1
 	body.CastShadow = false
-end
-
--- An accessory kit (leaf / crown / crystal) on top of the body, sunk a little
--- into it and scaled with the slime (native sizes are for a 3 stud slime).
-local function addAccessory(model: Model, template: MeshPart, kit: string)
-	local body = model.PrimaryPart :: BasePart
-	local native = (MeshAssets.get(kit) :: MeshAssets.Entry).size :: { number }
-	local scale = body.Size.Y / Config.SLIME_BASE_DIAMETER
-	local acc = template:Clone()
-	acc.Name = SlimeMesh.ACCESSORY_NAME
-	acc.Size = Vector3.new(native[1] * scale, native[2] * scale, native[3] * scale)
-	local lift = body.Size.Y / 2 + acc.Size.Y * (0.5 - SlimeMesh.ACCESSORY_SINK)
-	acc.CFrame = body.CFrame * CFrame.new(0, lift, 0)
-	acc.Color = body.Color
-	acc.Material = body.Material
-	acc.Transparency = 0
-	acc.Anchored = false
-	acc.Massless = true
-	acc.CanCollide = false
-	acc.CanTouch = false
-	acc.CanQuery = false
-	for _, child in acc:GetChildren() do
-		child:Destroy()
+	if species then
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") and part ~= mesh and SlimeMesh.isReplacedPart(part.Name) then
+				part.Transparency = 1
+				part.CastShadow = false
+			end
+		end
 	end
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = anchorFor(model, body)
-	weld.Part1 = acc
-	weld.Parent = acc
-	acc.Parent = model
 end
 
 -- The type's material on Body and Mesh; a mutation keeps its own material.
@@ -219,7 +252,7 @@ local function applySpecies(model: Model, slimeData: Types.SlimeData)
 		return
 	end
 	local material = (Enum.Material :: any)[look.material]
-	for _, name in { "Body", SlimeMesh.MESH_NAME, SlimeMesh.ACCESSORY_NAME } do
+	for _, name in { "Body", SlimeMesh.MESH_NAME } do
 		local part = model:FindFirstChild(name)
 		if part and part:IsA("BasePart") then
 			part.Material = material
@@ -238,11 +271,11 @@ end
 function SlimeMesh.build(self: SlimeMesh, slimeData: Types.SlimeData): Model
 	local model = self.deps.factory.build(slimeData)
 	local look = SlimeLooks.get(slimeData.species)
-	local bodyKit, accKit = SlimeMesh.plan(look and look.kit)
+	local kit = look and look.kit
 	local attempts: { { template: MeshPart, kit: string? } } = {}
-	local kitTemplate = if bodyKit then self.kits[bodyKit] else nil
-	if bodyKit and kitTemplate then
-		table.insert(attempts, { template = kitTemplate, kit = bodyKit })
+	local kitTemplate = if kit then self.kits[kit] else nil
+	if kit and kitTemplate then
+		table.insert(attempts, { template = kitTemplate, kit = kit })
 	end
 	if self.template then
 		table.insert(attempts, { template = self.template, kit = nil })
@@ -250,13 +283,6 @@ function SlimeMesh.build(self: SlimeMesh, slimeData: Types.SlimeData): Model
 	for _, attempt in attempts do
 		local ok, err = pcall(dress :: any, model, attempt.template, attempt.kit)
 		if ok then
-			local accTemplate = if accKit and attempt.kit then self.kits[accKit] else nil
-			if accKit and accTemplate then
-				local accOk, accErr = pcall(addAccessory :: any, model, accTemplate, accKit)
-				if not accOk then
-					report(self, `slime accessory {accKit} failed for {slimeData.id} ({accErr}); body only`)
-				end
-			end
 			return finish(self, model, slimeData)
 		end
 		report(self, `slime mesh dress failed for {slimeData.id} ({err}); using fallback look`)

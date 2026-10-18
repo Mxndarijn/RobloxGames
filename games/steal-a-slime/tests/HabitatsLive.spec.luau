@@ -48,7 +48,7 @@ end
 local empty = read(pad(3))
 table.insert(session.data.slimes, {
 	id = "hab1",
-	name = "Rock",
+	name = "Cosmo",
 	tier = 6,
 	color = { 200, 180, 255 },
 	size = 1,
@@ -57,7 +57,7 @@ table.insert(session.data.slimes, {
 	mouth = "Smile",
 	mutation = "None",
 	pad = 3,
-	species = "rock_candy",
+	species = "cosmo",
 })
 rt:advance(1)
 local placed = read(pad(3))

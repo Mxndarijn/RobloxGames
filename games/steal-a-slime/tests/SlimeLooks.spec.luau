@@ -58,7 +58,7 @@ describe("SlimeLooks roster audit", function()
 		expect(SlimeLooks.get("nope")).toBeNil()
 		expect(SlimeLooks.get(nil)).toBeNil()
 		expect(SlimeLooks.anim("nope", "idle")).toBeNil()
-		expect(SlimeLooks.anim("pudding", "dance")).toBeNil()
+		expect(SlimeLooks.anim("gummy", "dance")).toBeNil()
 	end)
 
 	it("has the visuals client play each procedural state with the same numbers", function()
@@ -67,23 +67,23 @@ describe("SlimeLooks roster audit", function()
 			return string.find(src, needle, 1, true) ~= nil
 		end
 		expect(has("CollectionService:GetInstanceAddedSignal(Constants.SLIME_TAG)")).toBe(true)
-		local idle = SlimeLooks.anim("pudding", "idle") :: SlimeLooks.Anim
-		local wobble = SlimeLooks.anim("pudding", "wobble") :: SlimeLooks.Anim
-		local move = SlimeLooks.anim("pudding", "move") :: SlimeLooks.Anim
+		local idle = SlimeLooks.anim("gummy", "idle") :: SlimeLooks.Anim
+		local wobble = SlimeLooks.anim("gummy", "wobble") :: SlimeLooks.Anim
+		local move = SlimeLooks.anim("gummy", "move") :: SlimeLooks.Anim
 		expect(has(`math.sin(t * {idle.frequency}) * 0.5 + 0.5) * {idle.amplitude} * size`)).toBe(true)
 		expect(has(`math.sin(t * {wobble.frequency}) * {wobble.amplitude}`)).toBe(true)
 		expect(has(`if state == "{move.slimeState}" then`)).toBe(true)
 		expect(has(`math.abs(math.sin(t * {move.frequency})) * {move.amplitude} * size`)).toBe(true)
 	end)
 
-	it("only names real uploaded ids for kit meshes that are in MeshAssets", function()
+	it("only names uploaded species kits that are in MeshAssets, with a size and an offset", function()
 		for _, kit in SlimeLooks.KITS do
-			local meshId = MeshAssets.meshId(kit)
-			expect(meshId ~= nil).toBe(true) -- uploaded (v28 slime meshes)
-			expect(string.match(meshId :: string, "^rbxassetid://%d+$") ~= nil).toBe(true)
 			local entry = MeshAssets.get(kit) :: MeshAssets.Entry
-			expect(entry.assetId ~= nil and entry.assetId > 0).toBe(true)
+			expect(entry ~= nil).toBe(true)
+			expect(entry.assetId ~= nil and (entry.assetId :: number) > 0).toBe(true)
 			expect(#(entry.size :: { number })).toBe(3)
+			expect(#(entry.offset :: { number })).toBe(3)
+			expect(table.find(MeshAssets.NAMES, kit)).toBeNil() -- worn by SlimeMesh, never a world slot
 		end
 		expect(Config.SLIME_MESH_ASSET_ID > 0).toBe(true)
 	end)
@@ -125,8 +125,8 @@ describe("SlimeLooks wiring", function()
 			end,
 			warn = function() end,
 		})
-		local slime = Fixtures.slime("a", 3, { species = "moo_goo", mutation = "Glow" })
+		local slime = Fixtures.slime("a", 3, { species = "moo", mutation = "Glow" })
 		expect(SlimeMesh.build(mesh, slime)).toBe(model :: any)
-		expect(attrs[Constants.SPECIES_ATTRIBUTE]).toBe("moo_goo")
+		expect(attrs[Constants.SPECIES_ATTRIBUTE]).toBe("moo")
 	end)
 end)

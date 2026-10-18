@@ -1,4 +1,6 @@
 --!strict
+local roblox = require("@lune/roblox")
+
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local SlimeMesh = require("../src/server/SlimeMesh")
@@ -51,7 +53,7 @@ describe("SlimeMesh fallback", function()
 		expect(requested[1]).toBe(Config.SLIME_MESH_ASSET_ID)
 		expect(#warnings).toBe(2) -- shared package + one line for the kit meshes
 		expect(string.find(warnings[1], "403", 1, true) ~= nil).toBeTruthy()
-		expect(string.find(warnings[2], "slime_base", 1, true) ~= nil).toBeTruthy()
+		expect(string.find(warnings[2], "slime_gummy", 1, true) ~= nil).toBeTruthy()
 		expect(next(mesh.kits)).toBeNil()
 
 		local model = SlimeMesh.build(mesh, Fixtures.slime("a", 3)) :: any
@@ -112,20 +114,6 @@ local function meshAsset(): any
 end
 
 describe("SlimeMesh kits", function()
-	it("plans a body kit and an optional accessory per SlimeLooks kit", function()
-		local body, acc = SlimeMesh.plan("slime_ears")
-		expect(body).toBe("slime_ears")
-		expect(acc).toBeNil()
-		body, acc = SlimeMesh.plan("slime_acc_crown")
-		expect(body).toBe("slime_base")
-		expect(acc).toBe("slime_acc_crown")
-		expect(SlimeMesh.plan(nil)).toBeNil()
-		for _, kit in SlimeLooks.KITS do
-			local b = SlimeMesh.plan(kit)
-			expect(b ~= nil and MeshAssets.get(b :: string) ~= nil).toBe(true)
-		end
-	end)
-
 	it("loads every kit by its uploaded assetId, after the shared package", function()
 		local mesh, _, warnings, requested = setup(function(): any
 			return meshAsset()
@@ -157,15 +145,104 @@ describe("SlimeMesh kits", function()
 		local mesh, factory, warnings = setup(function(): any
 			error("unused")
 		end)
-		mesh.kits.slime_ears = {} :: any
+		mesh.kits.slime_lop = {} :: any
 		mesh.template = {} :: any
 		local slime = Fixtures.slime("d")
-		slime.species = "bunny_puff"
+		slime.species = "lop"
 		local model = SlimeMesh.build(mesh, slime) :: any
 		expect(#factory.built).toBe(3)
 		expect(factory.built[1].destroyed).toBe(true)
 		expect(factory.built[2].destroyed).toBe(true)
 		expect(model).toBe(factory.built[3])
 		expect(#warnings).toBe(3) -- two dress failures + the fake model's type look
+	end)
+end)
+
+-- Roblox globals SlimeMesh uses at call time; swapped in only while dressing a real Model.
+local GLOBALS = {
+	Instance = roblox.Instance,
+	Vector3 = roblox.Vector3,
+	CFrame = roblox.CFrame,
+	Color3 = roblox.Color3,
+	Enum = roblox.Enum,
+}
+
+local function withRobloxGlobals<T>(fn: () -> T): T
+	local env = getfenv(SlimeMesh.build)
+	local saved = {}
+	for name, value in GLOBALS do
+		saved[name] = env[name]
+		env[name] = value
+	end
+	local ok, result = pcall(fn)
+	for name in GLOBALS do
+		env[name] = saved[name]
+	end
+	if not ok then
+		error(result, 0)
+	end
+	return result
+end
+
+-- A procedural slime Model: Body (PrimaryPart) plus a face and a tier rim.
+local function slimeModel(): any
+	local model = roblox.Instance.new("Model")
+	local body = roblox.Instance.new("Part")
+	body.Name = "Body"
+	body.Size = roblox.Vector3.new(6, 6, 6)
+	body.Color = roblox.Color3.fromRGB(120, 200, 90)
+	body.Parent = model
+	model.PrimaryPart = body
+	for _, name in { "EyeL", "MouthMid", "TierRim" } do
+		local part = roblox.Instance.new("Part")
+		part.Name = name
+		part.Parent = model
+	end
+	return model
+end
+
+describe("SlimeMesh species kits", function()
+	it("wears a kit with an offset at size-1 scale, Color white, and hides the procedural face", function()
+		local kit = "slime_gummy"
+		local entry = MeshAssets.get(kit) :: any
+		assert(entry and entry.offset and entry.size, "species kit entry with offset + size")
+		expect((SlimeLooks.get("gummy") :: any).kit).toBe(kit)
+		local model = slimeModel()
+		local mesh = SlimeMesh.new({
+			factory = {
+				build = function(): any
+					return model
+				end,
+			} :: any,
+			loadAsset = function(): any
+				error("unused")
+			end,
+			warn = function(message: string)
+				error(message)
+			end,
+		})
+		local template = roblox.Instance.new("MeshPart")
+		local bone = roblox.Instance.new("Bone")
+		bone.Parent = template
+		roblox.Instance.new("Weld").Parent = template
+		mesh.kits[kit] = template :: any
+		local built = withRobloxGlobals(function()
+			return SlimeMesh.build(mesh, Fixtures.slime("e", 1, { species = "gummy" }))
+		end) :: any
+		expect(built).toBe(model)
+		local worn = model:FindFirstChild(SlimeMesh.MESH_NAME)
+		assert(worn, "species mesh")
+		expect(worn.Color == roblox.Color3.new(1, 1, 1)).toBe(true)
+		local scale = 6 / Config.SLIME_BASE_DIAMETER
+		expect(worn.Size.X).toBeCloseTo(entry.size[1] * scale, 1e-3)
+		expect(worn.Size.Y).toBeCloseTo(entry.size[2] * scale, 1e-3)
+		expect(worn:FindFirstChildWhichIsA("Bone") ~= nil).toBe(true)
+		expect(worn:FindFirstChildWhichIsA("Weld")).toBeNil()
+		expect(model.Body.Transparency).toBe(1)
+		expect(model.EyeL.Transparency).toBe(1)
+		expect(model.MouthMid.Transparency).toBe(1)
+		expect(model.TierRim.Transparency).toBe(0)
+		expect(SlimeMesh.isReplacedPart("EyeL") and SlimeMesh.isReplacedPart("MouthMid")).toBe(true)
+		expect(SlimeMesh.isReplacedPart("TierRim")).toBe(false)
 	end)
 end)
