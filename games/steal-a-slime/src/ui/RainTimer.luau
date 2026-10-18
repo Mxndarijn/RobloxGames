@@ -7,7 +7,7 @@
 	falls back to `State.rain` (§5.1). Pure (tests/ui/RainTimer.spec.luau);
 	Hud reads the attributes and passes them in.
 
-	The attribute names aren't in Constants yet (UI-CONTRACT-GAPS.md), so
+	The attribute names aren't in Constants yet (docs/archive/UI-CONTRACT-GAPS.md), so
 	they live here.
 ]]
 

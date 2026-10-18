@@ -87,7 +87,7 @@ describe("Instance attributes", function()
 	end)
 end)
 
-describe("UI gaps closed (UI-CONTRACT-GAPS.md)", function()
+describe("UI gaps closed (docs/archive/UI-CONTRACT-GAPS.md)", function()
 	it("has a Request action for every ShopCatalog item", function()
 		local ShopCatalog = require("../src/ui/ShopCatalog")
 		for _, item in ShopCatalog.ITEMS do

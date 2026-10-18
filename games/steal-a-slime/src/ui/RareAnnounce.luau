@@ -20,7 +20,7 @@
 	     "A BOSS SLIME slid into the plaza: <name>! ..."; the catch is "<who> caught the
 	     Boss Slime!"). Covers streamed-out models. If the server wording
 	     changes, only the patterns below need updating.
-	A future `State.boss` / Notify kind would replace both (UI-CONTRACT-GAPS.md).
+	A future `State.boss` / Notify kind would replace both (docs/archive/UI-CONTRACT-GAPS.md).
 ]]
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
