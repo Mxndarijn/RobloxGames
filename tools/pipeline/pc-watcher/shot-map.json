@@ -27,6 +27,7 @@
      "{G}/src/server/BatTool.luau", "{G}/src/shared/Bat*.luau"], "shots": ["bat-*"]},
         {"name": "pvp (advisory feel probes)", "paths": ["tools/pipeline/pc-watcher/luau/pvp_*.luau", "tools/pipeline/pc-watcher/shots/*pvp*",
      "{G}/src/server/Pvp*.luau", "{G}/src/shared/Pvp*.luau", "{G}/src/ui/PvpEffects.luau"], "shots": ["pvp-*"]},
+    {"name": "B9 prop collision (advisory walk probe)", "paths": ["tools/pipeline/pc-watcher/luau/b9_*.luau", "tools/pipeline/pc-watcher/shots/*b9*", "{G}/src/shared/PropCollision.luau"], "shots": ["b9-*"]},
     {"name": "shop UI", "paths": ["{G}/src/ui/Panels/Shop.luau", "{G}/src/ui/Panels/WorldShop.luau", "{G}/src/ui/WorldShopLogic.luau", "{G}/src/ui/ShopCatalog.luau"],
      "shots": ["*shop*"], "steps": ["devices"]},
     {"name": "dex", "paths": ["{G}/src/ui/Panels/Dex.luau", "{G}/src/ui/SlimeDex.luau", "{G}/src/ui/SlimePreview.luau"],

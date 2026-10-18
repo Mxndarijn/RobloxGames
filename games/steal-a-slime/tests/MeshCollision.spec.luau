@@ -150,6 +150,8 @@ end)
 -- Every MeshAssets name is either solid (COLLISION) or listed here as decor with its reason, so a new mesh forces a decision.
 local DECOR = {
 	slime_fountain = "the tower: hand-placed Basin / Trim / Silo / Top + SlideColliders stay (docs/COLLISION.md, #252)",
+	ranch_floor_deck = "B11 floor: flat timber plaza deck, 0.21 studs on the terrain; the terrain is the walk surface",
+	ranch_floor_paths = "B11 floor: flat boardwalk ring + spokes, 0.21 studs on the terrain; the terrain is the walk surface (the gate ramps are parts)",
 	phoenix_gate = "the entrance: a Box would close the 14-stud opening, the GatePost stand-ins keep the posts (PCD would be the mesh route)",
 	phoenix_pad_crate = "the pad's own Pad part is the gameplay surface; the stand is its decor",
 	phoenix_top_earners_board = "WorldProps Model: its invisible Collider keeps the Model's bounds",

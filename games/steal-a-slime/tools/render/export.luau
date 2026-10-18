@@ -23,6 +23,7 @@ local serde = require("@lune/serde")
 
 local BorderTerrain = require("../../src/visuals/shared/BorderTerrain")
 local Config = require("../../src/shared/Config")
+local FloorLayout = require("../../src/visuals/shared/FloorLayout")
 local FountainTierDecor = require("../../src/visuals/shared/FountainTierDecor")
 local FountainTiers = require("../../src/shared/FountainTiers")
 local GroundTerrain = require("../../src/visuals/shared/GroundTerrain")
@@ -163,6 +164,14 @@ for _, scope in { built.map, built.plots } do
 			if inst:IsA("BasePart") and inst:GetAttribute("MeshTint") == true then
 				-- WorldBorder giants: MeshSwap copies the slot's Color onto the mesh
 				tint = { inst.Color.R, inst.Color.G, inst.Color.B }
+				-- SnowGround frosts the MeshPart colour (its slot's SnowKind), like the part tints below
+				local kind = if snowTints
+					then SnowCover.classify(inst.Name, "", false, 1, 1, 0, inst:GetAttribute(SnowCover.KIND_ATTRIBUTE))
+					else nil
+				if kind then
+					local w = if kind == "grass" then snowTints.grass else snowTints.path
+					tint = { SnowCover.lerpColor(tint[1], tint[2], tint[3], w) }
+				end
 			end
 			local skinMesh = skinDef and skinDef.decor and inst.Name == "Mailbox_1"
 			if skinMesh then
@@ -305,7 +314,8 @@ for _, scope in { built.map, built.plots } do
 					d.Parent ~= nil and d.Parent.Name == "Paths",
 					d.Size.X,
 					d.Size.Z,
-					d.Transparency
+					d.Transparency,
+					d:GetAttribute(SnowCover.KIND_ATTRIBUTE)
 				)
 				if kind then
 					local w = if kind == "grass" then snowTints.grass else snowTints.path
@@ -458,7 +468,9 @@ if not table.find(process.args, "--no-terrain") then
 	local letter = { Grass = "G", Ground = "D", Sand = "S" }
 	local mats = {}
 	for i, m in grid.materials do
-		mats[i] = letter[m]
+		-- server/FloorTerrain: the grass under the floor is sand (its tufts would poke through it)
+		local j, k = (i - 1) // grid.n, (i - 1) % grid.n
+		mats[i] = letter[FloorLayout.groundMaterial(grid.min + k * grid.cell, grid.min + j * grid.cell, m)]
 	end
 	local tint, low = {}, {}
 	for name, c in GroundTerrain.COLORS do

@@ -1197,6 +1197,20 @@
     "uploadedAt": "2026-10-16T07:04:20Z",
     "versions": 1
   },
+  "ranch_floor_deck": {
+    "assetId": "133184278728331",
+    "assetType": "Model",
+    "sha256": "98b1bc7d422e3d16",
+    "uploadedAt": "2026-10-17T23:16:57Z",
+    "versions": 1
+  },
+  "ranch_floor_paths": {
+    "assetId": "87043105060649",
+    "assetType": "Model",
+    "sha256": "f310cd31590679e1",
+    "uploadedAt": "2026-10-17T23:17:15Z",
+    "versions": 1
+  },
   "ranch_flower_planter": {
     "assetId": "119401948136413",
     "assetType": "Model",

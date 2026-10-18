@@ -224,7 +224,7 @@ describe("GroundTerrain voxels", function()
 		expect(GroundTerrain.RENDER_SURFACE <= lowest + 0.25).toBe(true)
 	end)
 	it(
-		"is a pure module: the world has no Paths folder, no plaza disc and the Ground part is invisible void-safety",
+		"is a pure module: no dirt path parts (Ring / Path / SlideExit), and the Ground part is invisible void-safety",
 		function()
 			local found = {}
 			walk({ children = WorldLayout.build() }, function(n)
@@ -232,7 +232,6 @@ describe("GroundTerrain voxels", function()
 					found[n.name] = n
 				end
 			end)
-			expect(found.Paths).toBe(nil)
 			expect(found.Ring1).toBe(nil)
 			expect(found.Path1).toBe(nil)
 			expect(found.SlideExit).toBe(nil)
