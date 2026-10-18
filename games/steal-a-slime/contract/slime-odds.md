@@ -1,4 +1,4 @@
-# §31 Slime odds: rarity weights, the family drop rule, Mythic and Secret presentation
+# §32 Slime odds: rarity weights, the family drop rule, Mythic and Secret presentation
 
 Owner: Phoenix (server, shared), Archer (visuals). Design: `docs/SLIME-ECONOMY.md` §1.2 (weights), §1.3 (drop rule),
 §4 (presentation). Merge caps (§1.2 "Merge caps") are `TripleMerge`'s and not part of this file. No save change.

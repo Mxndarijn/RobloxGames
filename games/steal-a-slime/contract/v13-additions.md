@@ -93,7 +93,7 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 ## 8.7 Rarity curve
 
-- `Config.RARITIES[i].weight`: see [slime-odds.md](slime-odds.md) (§31) for the current weights.
+- `Config.RARITIES[i].weight`: see [slime-odds.md](slime-odds.md) (§32) for the current weights.
 - **Pity** (per server, `world.pity`): after `PITY_EPIC` (30) drops in a row without an Epic+, the next drop is at least Epic; after `PITY_LEGENDARY` (300) without a Legendary+, at least Legendary. Rain luck stacks.
 - Legendary+ (`RARE_ANNOUNCE_TIER` = 5) wild drops (fountain or rain, not the Boss Slime, which has its own toast) get the `RareSpawn` attribute, update the workspace `RareSpawn*` attributes and send the `"Rare"` Notify to everyone.
 

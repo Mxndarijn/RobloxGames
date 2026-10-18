@@ -18,8 +18,13 @@
 	LifeSquash mesh gone. The skin's original Size sits in the model attribute
 	"LifeSkinSize" while it is squashed, so PetRig can restore a clone taken
 	mid-squash.
+
+	A species mesh with Bones (contract/slime-bones.md) keeps its Size: SlimeBones
+	squashes and stretches it through the Top / Side bones, blinks and moves the
+	accessories, and the Transform drops the squashed-centre offset.
 ]]
 
+local SlimeBones = if script then require(script.Parent.SlimeBones) else require("./SlimeBones")
 local SlimeLife = if script then require(script.Parent.SlimeLife) else require("./SlimeLife")
 
 local SlimeMotor = {}
@@ -40,6 +45,7 @@ export type Motor = {
 	skin: MeshPart?,
 	skinSize: Vector3?,
 	squash: SpecialMesh?,
+	bones: SlimeBones.Rig?, -- the skin's Bones drive the squash instead of its Size
 	params: SlimeLife.Params,
 	clock: SlimeLife.Clock,
 	pose: SlimeLife.Pose, -- scratch, reused every frame
@@ -79,7 +85,8 @@ function SlimeMotor.attach(model: Model, now: number, rand: Rand): Motor?
 		mesh.Parent = body
 		squash = mesh
 	end
-	if skin then
+	local bones = if skin then SlimeBones.attach(skin, now, rand) else nil
+	if skin and not bones then
 		model:SetAttribute(SlimeMotor.SKIN_SIZE_ATTRIBUTE, skin.Size)
 	end
 	return {
@@ -90,6 +97,7 @@ function SlimeMotor.attach(model: Model, now: number, rand: Rand): Motor?
 		skin = skin,
 		skinSize = if skin then skin.Size else nil,
 		squash = squash,
+		bones = bones,
 		params = params,
 		clock = SlimeLife.newClock(params, now, rand),
 		pose = { lift = 0, yaw = 0, pitch = 0, roll = 0, sx = 1, sy = 1, sz = 1 },
@@ -122,13 +130,19 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand): boolean
 	local size = (motor.model:GetAttribute("Size") :: number?) or 1
 	local r = motor.body.Size.Y / 2
 	local lift = pose.lift * size
-	-- Rock and turn around the bottom centre; the squashed centre sits r * sy up.
+	local bones = motor.bones
+	-- Rock and turn around the bottom centre; the squashed centre sits r * sy up
+	-- (bones squash the mesh from its foot, so a boned skin keeps its centre).
 	local transform = CFrame.new(0, -r + lift, 0)
 		* CFrame.Angles(0, pose.yaw, 0)
 		* CFrame.Angles(pose.pitch, 0, pose.roll)
-		* CFrame.new(0, r * pose.sy, 0)
+		* CFrame.new(0, if bones then r else r * pose.sy, 0)
 	motor.face.Transform = transform
 	motor.skinJoint.Transform = transform
+	if bones then
+		SlimeBones.step(bones, motor.params, motor.clock, pose, now, rand)
+		return landed
+	end
 	local scale = Vector3.new(pose.sx, pose.sy, pose.sz)
 	if motor.skin and motor.skinSize then
 		motor.skin.Size = motor.skinSize * scale
@@ -145,6 +159,12 @@ end
 function SlimeMotor.stepSquish(motor: Motor, now: number, amp: number)
 	motor.parked = false
 	local sy = SlimeLife.squishY(motor.params, motor.clock, now, amp)
+	if motor.bones then
+		motor.face.Transform = CFrame.new()
+		motor.skinJoint.Transform = CFrame.new()
+		SlimeBones.squish(motor.bones, sy)
+		return
+	end
 	local sxz = 1 / math.sqrt(sy)
 	local r = motor.body.Size.Y / 2
 	local transform = CFrame.new(0, r * (sy - 1), 0)
@@ -163,7 +183,9 @@ end
 local function rest(motor: Motor)
 	motor.face.Transform = CFrame.new()
 	motor.skinJoint.Transform = CFrame.new()
-	if motor.skin and motor.skinSize then
+	if motor.bones then
+		SlimeBones.release(motor.bones)
+	elseif motor.skin and motor.skinSize then
 		motor.skin.Size = motor.skinSize
 	end
 	if motor.squash then
