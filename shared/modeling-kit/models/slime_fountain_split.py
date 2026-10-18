@@ -12,6 +12,12 @@
 # leaves two open edges with coincident vertices; no gap is visible). Everything that is not the silo shell or the
 # goo crown (slide trough, slide goo, supports) is the "slide" piece: decor only, the slide keeps SlideColliders.
 #
+# One colour fix (the silo-hole report, v224): above the door's cream lintel the source silo has a 5-stud strip (z 10.0..15.1,
+# the 4 door columns) whose two bottom corners are painted lintel cream and whose top corners are stave wood, so it reads as a
+# pale hole between two staves (models/slime_fountain.py paints the lintel by VERTEX z, and the strip's bottom ring is at the
+# lintel's top z). The split is faithful (same 4120 faces as the whole mesh, no open face, no flipped one: checked in
+# the asserts below), so the cause is that paint, and `fix_door_strip` repaints those corners as wood, only in this piece.
+#
 # Every piece keeps the original's frame (origin included). Roblox centres a MeshPart on its bbox, so each piece is
 # placed at (original bbox centre + offset); offset = piece bbox centre - original bbox centre, written to
 # out/fountain_split.json in kit axes and in Roblox slot axes (X, Y, Z) = (kit x, kit z, -kit y), the same convention
@@ -38,6 +44,41 @@ def load(path):
     objs = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     assert len(objs) == 1, objs
     return objs[0]
+
+
+CREAM = (0.94, 0.84, 0.66)  # the lintel colour of models/slime_fountain.py
+DOOR_STRIP_Z = (9.99, 15.3)  # the strip above the lintel: its bottom ring is the lintel's top (z 10.0), its top ring z 15.1
+STRIP_SHADE = 0.89  # bottom / top wood colour of a stave face over that height (neighbouring staves: 0.41 / 0.46, 0.52 / 0.58)
+
+
+def is_cream(c):
+    return all(abs(a - b) < 0.02 for a, b in zip(c[:3], CREAM))
+
+
+def fix_door_strip(o):
+    """Repaint the cream corners of the strip above the door lintel as the stave wood of the strip's top corners (x STRIP_SHADE,
+    the foot-dark gradient the neighbouring staves have). Returns how many corners were changed. Positions, normals and faces
+    are untouched."""
+    me = o.data
+    col = me.color_attributes["Col"]
+    changed = 0
+    for p in me.polygons:
+        zs = [me.vertices[me.loops[li].vertex_index].co.z for li in p.loop_indices]
+        if min(zs) < DOOR_STRIP_Z[0] or max(zs) > DOOR_STRIP_Z[1] or max(zs) - min(zs) < 1.0:
+            continue
+        lis = list(p.loop_indices)
+        cream = [li for li in lis if is_cream(col.data[li].color)]
+        wood = [li for li in lis if not is_cream(col.data[li].color)]
+        if not cream or not wood:
+            continue
+        for li in cream:
+            v = me.vertices[me.loops[li].vertex_index].co
+            # the wood corner straight above this one (same stave edge): nearest in plan
+            top = min(wood, key=lambda w: (me.vertices[me.loops[w].vertex_index].co.xy - v.xy).length)
+            c = col.data[top].color
+            col.data[li].color = (c[0] * STRIP_SHADE, c[1] * STRIP_SHADE, c[2] * STRIP_SHADE, c[3])
+            changed += 1
+    return changed
 
 
 def tri_count(me):
@@ -160,6 +201,8 @@ def export(o, path):
 
 def main():
     src = load(SRC)
+    fixed = fix_door_strip(src)  # in memory only: out/slime_fountain.fbx (the whole mesh) is not rewritten
+    assert fixed == 8, fixed  # 4 door columns x 2 cream corners
     me = src.data
     lo0, hi0 = bbox(me)
     c0 = (lo0 + hi0) / 2
@@ -210,7 +253,9 @@ def main():
         roundtrip += corners([o for o in bpy.context.scene.objects if o.type == "MESH"][0])
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.import_scene.fbx(filepath=SRC)
-    check_corners(corners([o for o in bpy.context.scene.objects if o.type == "MESH"][0]), roundtrip, "exported FBX vs source")
+    whole = [o for o in bpy.context.scene.objects if o.type == "MESH"][0]
+    fix_door_strip(whole)
+    check_corners(corners(whole), roundtrip, "exported FBX vs source")
     summary = {
         "source": "out/slime_fountain.fbx", "tris": tris0,
         "size_roblox": [round(hi0.x - lo0.x, 3), round(hi0.z - lo0.z, 3), round(hi0.y - lo0.y, 3)],

@@ -625,6 +625,130 @@ if IN_ROBLOX then
 			expect(registered >= 1).toBe(true) -- Default always exists
 		end)
 
+		-- FEATURES.SlidePCD: the slide mesh made as MeshSwap makes it (PreciseConvexDecomposition, slot fit + offset + IMPORT_YAW).
+		-- Probe numbers: pipeline/probes/slidepcd/pcd-final.json (published place v224).
+		describe("the PCD slide mesh alone (cloud)", function()
+			local slide
+			local function getSlide()
+				if slide then
+					return slide
+				end
+				local MeshAssets = require("../src/shared/MeshAssets")
+				local node
+				local function find(nodes)
+					for _, n in nodes do
+						if n.name == "FountainMesh" then
+							node = n
+						end
+						if n.children then
+							find(n.children)
+						end
+					end
+				end
+				find(WorldLayout.build())
+				local entry = MeshAssets.get("fountain_split_slide")
+				slide = game:GetService("AssetService"):CreateMeshPartAsync(MeshAssets.meshId("fountain_split_slide"), {
+					RenderFidelity = Enum.RenderFidelity.Precise,
+					CollisionFidelity = Enum.CollisionFidelity[MeshAssets.collision("fountain_split_slide")],
+				})
+				local _, k, below = MeshAssets.fit("slime_fountain", node.size)
+				slide.Size = Vector3.new(entry.size[1] * k, entry.size[2] * k, entry.size[3] * k)
+				slide.CFrame = CFrame.new(node.pos[1], node.pos[2], node.pos[3])
+					* CFrame.new(0, -below, 0)
+					* CFrame.new(entry.offset[1] * k, entry.offset[2] * k, entry.offset[3] * k)
+					* CFrame.Angles(0, math.rad(MeshAssets.IMPORT_YAW), 0)
+				slide.Anchored = true
+				slide.CanCollide = true
+				slide.CanQuery = true -- the casts need it; physics collision does not
+				slide.Parent = workspace
+				return slide
+			end
+			local function params()
+				local p = RaycastParams.new()
+				p.FilterType = Enum.RaycastFilterType.Include
+				p.FilterDescendantsInstances = { getSlide() }
+				return p
+			end
+
+			it("is made with PreciseConvexDecomposition", function()
+				expect(getSlide().CollisionFidelity).toBe(Enum.CollisionFidelity.PreciseConvexDecomposition)
+			end)
+
+			it("Blockcast: the trough walls stop the box from both sides at every ride sample", function()
+				local rp = params()
+				local blocked = 0
+				for i = 3, #KIT - 2 do
+					local p, a, b = KIT[i], KIT[i - 1], KIT[i + 1]
+					local t = unit({ b[1] - a[1], 0, b[3] - a[3] })
+					local right = { -t[3], 0, t[1] }
+					for _, side in { -1, 1 } do
+						local start = Vector3.new(
+							p[1] + right[1] * side * START,
+							p[2] + GROUND_ROOT,
+							p[3] + right[3] * side * START
+						)
+						local dir = Vector3.new(-right[1] * side, 0, -right[3] * side)
+						local hit = workspace:Blockcast(
+							CFrame.lookAt(start, start + dir),
+							Vector3.new(2, 5, 1),
+							dir * START,
+							rp
+						)
+						expect(hit ~= nil).toBe(true)
+						blocked += 1
+					end
+				end
+				expect(blocked > 100).toBe(true)
+			end)
+
+			it("Blockcast: every Post and Brace the boxes stood in for is solid in the mesh from four sides", function()
+				local rp = params()
+				local seen = 0
+				for _, e in BOXES do
+					local kind = e.spec.kind
+					if kind ~= "Post" and kind ~= "Brace" then
+						continue
+					end
+					local c = e.box.c
+					local y = if kind == "Post" then GROUND_ROOT else c[2]
+					for _, axisIndex in { 1, 3 } do
+						for _, sign in { -1, 1 } do
+							local axis = e.box.axes[axisIndex]
+							local start = Vector3.new(c[1] + axis[1] * sign * START, y, c[3] + axis[3] * sign * START)
+							local dir = Vector3.new(-axis[1] * sign, 0, -axis[3] * sign)
+							local hit = workspace:Blockcast(
+								CFrame.lookAt(start, start + dir),
+								Vector3.new(2, 5, 1),
+								dir * START,
+								rp
+							)
+							expect(hit ~= nil).toBe(true)
+							seen += 1
+						end
+					end
+				end
+				expect(seen >= 8).toBe(true)
+			end)
+
+			it(
+				"the trough floor is a gentle ramp (why the Fill block stays): no ride segment is steeper than 20 degrees",
+				function()
+					for i = 2, #KIT - 1 do
+						local a, b = KIT[i - 1], KIT[i + 1]
+						local flat = math.sqrt((b[1] - a[1]) ^ 2 + (b[3] - a[3]) ^ 2)
+						expect(math.deg(math.atan2(math.abs(b[2] - a[2]), flat)) < 20).toBe(true) -- Humanoid.MaxSlopeAngle is 89
+					end
+				end
+			)
+
+			it("cleans up the mesh", function()
+				if slide then
+					slide:Destroy()
+					slide = nil
+				end
+			end)
+		end)
+
 		it("cleans up what it made", function()
 			if temp then
 				temp:Destroy()
