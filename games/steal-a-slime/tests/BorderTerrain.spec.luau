@@ -15,9 +15,9 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 -- tools/pr-gate/budget_counts: mesh slots with the 30 giant trees of border v6 (22 of v5 before)
 -- and 8 small border pieces retired (the terrain itself adds none).
-local BASELINE_MESH_SLOTS = 402 -- 391 + the Upgrade Shop stand (CONTRACT.md §27.2) + 8 more giants (v6) + the B11 floor's deck and boardwalk
+local BASELINE_MESH_SLOTS = 468 -- 391 + the Upgrade Shop stand (CONTRACT.md §27.2) + 8 more giants (v6) + the B11 floor's deck and boardwalk + the sand yard's dressing (YardProps: 66 props)
 -- Part nodes outside Map.Border: 1332 (main, after the SlideExit strip went) minus the 41 path / plaza parts that became GroundTerrain voxels, minus the 40 invisible plot Wall* blocks (bug #11).
-local BASELINE_PARTS = 1300 -- 1251 + the B11 floor (FloorLayout: 3 field discs, plaza disc, 2 mesh slots, 8 gate ramps, 32 lawn blocks) and the meadow it moved
+local BASELINE_PARTS = 1360 -- 1251 + the B11 floor (FloorLayout: 3 field discs, plaza disc, 2 mesh slots, 8 gate ramps, 32 lawn blocks) and the meadow it moved + the sand yard's 66 props (YardProps) minus the scattered rocks / mushrooms that made room
 
 local field = BorderTerrain.field()
 local INNER = BorderTerrain.INNER

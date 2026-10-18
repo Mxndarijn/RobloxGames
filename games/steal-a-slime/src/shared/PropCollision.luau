@@ -290,7 +290,7 @@ mesh(
 	ON_MESH,
 	"sign boards on posts, 12.6x14.5x7.5; the old slot box was this bbox"
 )
-mesh("goo_sign", "ranch_goo_sign", "jolt", 1, "Box", DECOR, ON_MESH, "8.8x8.2x3.7 signboard")
+mesh("goo_sign", "ranch_goo_sign", "jolt", 3, "Box", DECOR, ON_MESH, "8.8x8.2x3.7 signboard")
 for i = 1, 3 do
 	mesh(
 		`plaza_podium_{i}`,
@@ -364,36 +364,36 @@ parts(
 -- World decor (RanchProps): bug #11 converted these; kept exactly. Box / Hull per docs/COLLISION.md.
 local DECOR_PROPS: { { string | number } } = {
 	-- kind, mesh, count, fidelity, reason
-	{ "decor_crate", "ranch_crate", 1, "Box", "3x3x3 cube: the box is the shape" },
-	{ "decor_crate_goo", "ranch_crate_goo", 1, "Box", "3x3x3 cube: the box is the shape" },
-	{ "decor_feed_trough", "ranch_feed_trough", 1, "Box", "6x2.3x2.5 low box" },
-	{ "decor_hay_bale", "ranch_hay_bale", 1, "Box", "4x2.6x2.6 bale" },
+	{ "decor_crate", "ranch_crate", 2, "Box", "3x3x3 cube: the box is the shape" },
+	{ "decor_crate_goo", "ranch_crate_goo", 2, "Box", "3x3x3 cube: the box is the shape" },
+	{ "decor_feed_trough", "ranch_feed_trough", 4, "Box", "6x2.3x2.5 low box" },
+	{ "decor_hay_bale", "ranch_hay_bale", 7, "Box", "4x2.6x2.6 bale" },
 	{
 		"decor_barrel",
 		"ranch_barrel",
-		1,
+		2,
 		"Box",
 		"2.5x2.6x2.7 near-cylinder, a box has faces a walker stops against (v196)",
 	},
 	{ "decor_fence_stile", "ranch_fence_stile", 1, "Box", "5.8x5.5x4.9 solid block players jump onto (v196)" },
 	{ "decor_hitching_post", "ranch_hitching_post", 1, "Box", "7.3x4.8x3.2 rail between posts" },
-	{ "decor_water_trough", "ranch_water_trough", 1, "Box", "9.7x3.6x3.2 low box" },
+	{ "decor_water_trough", "ranch_water_trough", 5, "Box", "9.7x3.6x3.2 low box" },
 	{ "decor_wagon", "ranch_wagon", 1, "Box", "9.9x3x5.8 cart, flat bed to stand on" },
-	{ "decor_compost_bin", "ranch_compost_bin", 1, "Box", "5.5x4.8x5.3 slatted bin" },
-	{ "decor_tool_rack", "ranch_tool_rack", 1, "Box", "7.7x8x3 rack, a flat wall" },
-	{ "decor_flower_planter", "ranch_flower_planter", 1, "Box", "5.2x3.2x2 planter box" },
-	{ "decor_picnic_table", "ranch_picnic_table", 1, "Box", "8.1x3.4x6 table with benches" },
+	{ "decor_compost_bin", "ranch_compost_bin", 2, "Box", "5.5x4.8x5.3 slatted bin" },
+	{ "decor_tool_rack", "ranch_tool_rack", 2, "Box", "7.7x8x3 rack, a flat wall" },
+	{ "decor_flower_planter", "ranch_flower_planter", 5, "Box", "5.2x3.2x2 planter box" },
+	{ "decor_picnic_table", "ranch_picnic_table", 2, "Box", "8.1x3.4x6 table with benches" },
 	{ "decor_well", "ranch_well", 1, "Box", "6.9x7.7x5.5 stone well with a roof (v196)" },
-	{ "decor_bench", "ranch_bench", 1, "Box", "6x4x2.4 bench with a back" },
+	{ "decor_bench", "ranch_bench", 5, "Box", "6x4x2.4 bench with a back" },
 	{ "decor_shed", "ranch_shed", 1, "Hull", "10.6x9.3x8.6 gabled shed: the hull follows the roof" },
 	{ "decor_slime_coop", "ranch_slime_coop", 1, "Hull", "7.4x7.7x7.8 gabled coop" },
-	{ "decor_rain_barrel", "ranch_rain_barrel", 1, "Hull", "3.3x5.6x5.5 barrel with a pipe" },
-	{ "decor_barrel_stack", "ranch_barrel_stack", 1, "Hull", "5.2x5.4x4.7 pyramid of barrels" },
-	{ "decor_milk_churn", "ranch_milk_churn", 1, "Hull", "2.7x6.1x2.5 churn" },
-	{ "decor_scarecrow", "ranch_scarecrow", 1, "Hull", "7.2x9x3.5 pole with arms" },
-	{ "decor_goo_bucket", "ranch_goo_bucket", 1, "Hull", "2.2x2.8x2.1 bucket" },
-	{ "decor_goo_hive", "ranch_goo_hive", 1, "Hull", "3.8x5.7x4.8 dome" },
-	{ "decor_weathervane", "ranch_weathervane", 1, "Hull", "5x8.6x3.4 vane on a pole" },
+	{ "decor_rain_barrel", "ranch_rain_barrel", 4, "Hull", "3.3x5.6x5.5 barrel with a pipe" },
+	{ "decor_barrel_stack", "ranch_barrel_stack", 5, "Hull", "5.2x5.4x4.7 pyramid of barrels" },
+	{ "decor_milk_churn", "ranch_milk_churn", 5, "Hull", "2.7x6.1x2.5 churn" },
+	{ "decor_scarecrow", "ranch_scarecrow", 2, "Hull", "7.2x9x3.5 pole with arms" },
+	{ "decor_goo_bucket", "ranch_goo_bucket", 5, "Hull", "2.2x2.8x2.1 bucket" },
+	{ "decor_goo_hive", "ranch_goo_hive", 3, "Hull", "3.8x5.7x4.8 dome" },
+	{ "decor_weathervane", "ranch_weathervane", 2, "Hull", "5x8.6x3.4 vane on a pole" },
 	{ "decor_wheelbarrow", "ranch_wheelbarrow", 1, "Hull", "6.6x3.5x3.8 wheelbarrow" },
 	{ "decor_feed_sacks", "ranch_feed_sacks", 1, "Hull", "5.2x3.5x5.3 pile of sacks" },
 	{
@@ -403,10 +403,10 @@ local DECOR_PROPS: { { string | number } } = {
 		"Hull",
 		"8.4x17.4x9.7 tower: the hull is the tower, the sails are overhead",
 	},
-	{ "decor_birdhouse", "ranch_birdhouse", 1, "Hull", "3.6x8x3.4 house on a pole" },
-	{ "decor_water_pump", "ranch_water_pump", 1, "Hull", "3.8x4.4x4.9 pump" },
-	{ "decor_campfire", "ranch_campfire", 1, "Hull", "4.3x4.6x4.3 stone ring and logs" },
-	{ "decor_log_pile", "ranch_log_pile", 1, "Hull", "10.9x4x6.8 stacked logs" },
+	{ "decor_birdhouse", "ranch_birdhouse", 2, "Hull", "3.6x8x3.4 house on a pole" },
+	{ "decor_water_pump", "ranch_water_pump", 2, "Hull", "3.8x4.4x4.9 pump" },
+	{ "decor_campfire", "ranch_campfire", 2, "Hull", "4.3x4.6x4.3 stone ring and logs" },
+	{ "decor_log_pile", "ranch_log_pile", 5, "Hull", "10.9x4x6.8 stacked logs" },
 	{
 		"decor_barn_loft",
 		"ranch_barn_loft",
@@ -440,6 +440,7 @@ mesh(
 	ON_MESH,
 	"1.4x5.4x2.7 box on a post at each plot's front edge: a Map.Decor slot of the world, but the per-plot mailbox that plot skins replace"
 )
+local YARD_PATCHES: { [string]: number } = { decor_horseshoe_pit = 2, decor_sunflower_patch = 2 }
 for _, p in
 	{
 		{
@@ -455,14 +456,15 @@ for _, p in
 		},
 	}
 do
-	mesh(p[1], p[2], "jolt", 1, "off", DECOR, "mesh off, slot off", p[3])
+	-- the sand yard (YardProps) stands more of these than the farmyards' one each
+	mesh(p[1], p[2], "jolt", YARD_PATCHES[p[1]] or 1, "off", DECOR, "mesh off, slot off", p[3])
 end
 
 -- Scattered primitives (WorldLayout.scatter): they collide on their own
 parts(
 	"decor_rocks",
 	"jolt",
-	45,
+	43,
 	"colliders",
 	DECOR,
 	{ "^Rock%d+$" },
@@ -472,7 +474,7 @@ parts(
 parts(
 	"decor_mushrooms",
 	"jolt",
-	15,
+	13,
 	"colliders",
 	DECOR,
 	{ "^Mushroom%d+$" },

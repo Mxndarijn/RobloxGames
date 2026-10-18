@@ -1,0 +1,83 @@
+--!strict
+--[[
+	YardProps (owner: Archer; GENERATED, do not edit by hand)
+
+	The sand yard's dressing: small clusters in the gaps between plots and on the sand behind them, plus a few single
+	props. `lune run tools/yard/generate` writes this file from tools/yard/YardGen.luau (seed 20261018); tests/YardDress.spec
+	regenerates it in memory and fails when the two differ.
+
+	Row: { name, mesh, angle, r, yaw (relative to the angle, like RanchProps), scale (uniform), tint { r, g, b } (MeshTint) }.
+	RanchProps turns each row into a "yard" placement; WorldLayout makes the mesh slot.
+]]
+
+return table.freeze({
+	SEED = 20261018,
+	ROWS = {
+		{ "Yard_water_trough_1", "ranch_water_trough", 24.15, 154.01, 291.22, 1.09, { 253, 250, 250 } },
+		{ "Yard_hay_bale_1", "ranch_hay_bale", 22.84, 158.58, 299.64, 1.35, { 236, 239, 231 } },
+		{ "Yard_goo_bucket_1", "ranch_goo_bucket", 21.97, 148.49, 233, 1.2, { 236, 234, 236 } },
+		{ "Yard_bench_1", "ranch_bench", 22.13, 173.51, 186.84, 1.17, { 234, 237, 229 } },
+		{ "Yard_flower_planter_1", "ranch_flower_planter", 22.13, 166.46, 124.77, 1.04, { 251, 251, 245 } },
+		{ "Yard_rain_barrel_1", "ranch_rain_barrel", 23.3, 179.38, 260, 1.23, { 240, 236, 238 } },
+		{ "Yard_water_trough_2", "ranch_water_trough", 66.07, 156.82, 240.5, 1.09, { 242, 246, 235 } },
+		{ "Yard_hay_bale_2", "ranch_hay_bale", 64.32, 153.08, 259.49, 1.25, { 234, 232, 232 } },
+		{ "Yard_goo_bucket_2", "ranch_goo_bucket", 64.41, 164.41, 323.27, 1.15, { 233, 235, 231 } },
+		{ "Yard_water_trough_3", "ranch_water_trough", 67.99, 143.95, 270.49, 1.16, { 244, 244, 245 } },
+		{ "Yard_hay_bale_3", "ranch_hay_bale", 65.46, 145.09, 253.46, 1.21, { 239, 238, 236 } },
+		{ "Yard_goo_bucket_3", "ranch_goo_bucket", 67.79, 135.26, 237.09, 1.31, { 246, 243, 242 } },
+		{ "Yard_rock_boulder_1", "ranch_border_rock_boulder", 110.06, 171.45, 219.39, 0.58, { 241, 242, 237 } },
+		{ "Yard_rock_cluster_1", "ranch_border_rock_cluster", 111.81, 177.59, 14.87, 0.58, { 239, 241, 237 } },
+		{ "Yard_rock_slab_1", "ranch_border_rock_slab", 110.11, 164.09, 30.97, 0.53, { 248, 244, 242 } },
+		{ "Yard_water_trough_4", "ranch_water_trough", 111.83, 141.86, 83.9, 1.32, { 250, 245, 248 } },
+		{ "Yard_hay_bale_4", "ranch_hay_bale", 113.86, 144.62, 103.25, 1.23, { 243, 241, 233 } },
+		{ "Yard_goo_bucket_4", "ranch_goo_bucket", 113.33, 132.92, 39.72, 1.16, { 233, 235, 224 } },
+		{ "Yard_rock_boulder_2", "ranch_border_rock_boulder", 159.36, 180.1, 72.3, 0.53, { 231, 232, 230 } },
+		{ "Yard_rock_cluster_2", "ranch_border_rock_cluster", 158.12, 172.62, 34.88, 0.58, { 234, 239, 231 } },
+		{ "Yard_rock_slab_2", "ranch_border_rock_slab", 158.3, 187.04, 153.93, 0.5, { 250, 252, 244 } },
+		{ "Yard_bench_2", "ranch_bench", 158.59, 157.74, 197.76, 1.36, { 254, 254, 252 } },
+		{ "Yard_flower_planter_2", "ranch_flower_planter", 158.63, 150.41, 103.32, 1.06, { 231, 232, 229 } },
+		{ "Yard_rain_barrel_2", "ranch_rain_barrel", 159.85, 162.6, 120.38, 1.06, { 243, 245, 237 } },
+		{ "Yard_rock_boulder_3", "ranch_border_rock_boulder", 199.93, 182.31, 296.39, 0.54, { 243, 241, 238 } },
+		{ "Yard_rock_cluster_3", "ranch_border_rock_cluster", 202.44, 179.96, 117.01, 0.52, { 250, 251, 241 } },
+		{ "Yard_rock_slab_3", "ranch_border_rock_slab", 199.11, 189.08, 156.81, 0.59, { 253, 255, 248 } },
+		{ "Yard_milk_churn_1", "ranch_milk_churn", 204.51, 152.96, 324.5, 1.21, { 233, 232, 224 } },
+		{ "Yard_milk_churn_2", "ranch_milk_churn", 204.73, 147.92, 99.29, 1.1, { 227, 233, 225 } },
+		{ "Yard_goo_hive_1", "ranch_goo_hive", 203.71, 158.04, 37.25, 1.17, { 230, 233, 230 } },
+		{ "Yard_flower_planter_3", "ranch_flower_planter", 244.86, 161.59, 127.08, 1.14, { 238, 236, 230 } },
+		{ "Yard_flower_planter_4", "ranch_flower_planter", 247.74, 166.56, 136.04, 1.3, { 229, 232, 225 } },
+		{ "Yard_sunflower_patch_1", "ranch_sunflower_patch", 244.49, 170.3, 256.76, 1.1, { 248, 246, 239 } },
+		{ "Yard_birdhouse_1", "ranch_birdhouse", 242.87, 160.69, 120.63, 1.13, { 238, 238, 231 } },
+		{ "Yard_milk_churn_3", "ranch_milk_churn", 293.92, 160.55, 320.53, 1.1, { 238, 235, 234 } },
+		{ "Yard_milk_churn_4", "ranch_milk_churn", 292.51, 157.58, 5.23, 1.1, { 235, 237, 234 } },
+		{ "Yard_goo_hive_2", "ranch_goo_hive", 295.31, 164.61, 32.92, 1.1, { 242, 247, 240 } },
+		{ "Yard_hay_bale_5", "ranch_hay_bale", 293.69, 147.39, 329.43, 1.15, { 247, 244, 244 } },
+		{ "Yard_hay_bale_6", "ranch_hay_bale", 294.86, 153.25, 325.67, 1.24, { 245, 241, 238 } },
+		{ "Yard_crate_1", "ranch_crate", 291.79, 145.26, 342.14, 1.16, { 249, 250, 241 } },
+		{ "Yard_crate_goo_1", "ranch_crate_goo", 293.79, 141.95, 355.29, 1.13, { 233, 234, 228 } },
+		{ "Yard_barrel_1", "ranch_barrel", 295.91, 147.03, 7.84, 1.15, { 242, 238, 239 } },
+		{ "Yard_campfire_1", "ranch_campfire", 37.61, 204.79, 104.47, 1.27, { 231, 228, 224 } },
+		{ "Yard_bench_3", "ranch_bench", 39.39, 198.56, 195.71, 1.16, { 236, 236, 230 } },
+		{ "Yard_bench_4", "ranch_bench", 37.95, 211.96, 175.45, 1.21, { 247, 247, 241 } },
+		{ "Yard_log_pile_1", "ranch_log_pile", 35.23, 202.19, 82.83, 1.12, { 238, 241, 232 } },
+		{ "Yard_log_pile_2", "ranch_log_pile", 97.68, 211.11, 122.46, 1.09, { 255, 254, 247 } },
+		{ "Yard_barrel_stack_1", "ranch_barrel_stack", 96.86, 200.21, 31.36, 1.2, { 239, 239, 235 } },
+		{ "Yard_feed_trough_1", "ranch_feed_trough", 96.27, 215.84, 129.67, 1.38, { 248, 246, 243 } },
+		{ "Yard_log_pile_3", "ranch_log_pile", 230.96, 207.82, 279.09, 1.12, { 234, 235, 231 } },
+		{ "Yard_barrel_stack_2", "ranch_barrel_stack", 229, 199.09, 127.47, 1.12, { 238, 239, 231 } },
+		{ "Yard_feed_trough_2", "ranch_feed_trough", 232.87, 207.92, 279.27, 1.19, { 229, 228, 227 } },
+		{ "Yard_log_pile_4", "ranch_log_pile", 281.81, 209.76, 339.25, 1.08, { 248, 250, 240 } },
+		{ "Yard_barrel_stack_3", "ranch_barrel_stack", 278.85, 210.89, 345.87, 1.23, { 255, 250, 243 } },
+		{ "Yard_feed_trough_3", "ranch_feed_trough", 282.71, 203.55, 332.38, 1.33, { 244, 247, 235 } },
+		{ "Yard_goo_sign_1", "ranch_goo_sign", 289, 175.76, 198.33, 1.19, { 236, 231, 227 } },
+		{ "Yard_goo_sign_2", "ranch_goo_sign", 289.88, 203.99, 185.24, 1.07, { 240, 240, 241 } },
+		{ "Yard_horseshoe_pit_1", "ranch_horseshoe_pit", 103.68, 92.65, 168.87, 1.13, { 243, 242, 236 } },
+		{ "Yard_barrel_stack_4", "ranch_barrel_stack", 339.27, 172.87, 172.5, 1.09, { 251, 253, 245 } },
+		{ "Yard_rain_barrel_3", "ranch_rain_barrel", 266.17, 210.09, 60.17, 1.29, { 243, 241, 239 } },
+		{ "Yard_compost_bin_1", "ranch_compost_bin", 208.63, 95.41, 286.72, 1.15, { 241, 241, 230 } },
+		{ "Yard_water_pump_1", "ranch_water_pump", 51.32, 212.06, 198.62, 1.2, { 252, 255, 249 } },
+		{ "Yard_weathervane_1", "ranch_weathervane", 348.99, 195.03, 283.04, 1.22, { 239, 235, 227 } },
+		{ "Yard_tool_rack_1", "ranch_tool_rack", 282.52, 92.55, 168.33, 1.12, { 246, 250, 241 } },
+		{ "Yard_picnic_table_1", "ranch_picnic_table", 220.13, 204.28, 220.44, 1.21, { 244, 241, 241 } },
+		{ "Yard_scarecrow_1", "ranch_scarecrow", 153.15, 202, 26.74, 1.15, { 255, 255, 252 } },
+	} :: { { any } },
+})
