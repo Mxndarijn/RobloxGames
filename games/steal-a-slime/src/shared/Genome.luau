@@ -28,6 +28,7 @@ export type Slime = {
 	pad: number?, -- home pad on the owner's plot (nil while wild)
 	species: string?, -- SlimeRoster id (wild spawns since v28; nil for older/merged slimes)
 	growth: number?, -- 0..1 (FEATURES.GrowingSlimes, Growth); nil = not grown yet (old saves, wild, merged slimes)
+	keep: boolean?, -- kept by its owner: never merged (CONTRACT.md §21.1); nil = not kept
 }
 
 export type GenerateOptions = {
@@ -220,7 +221,7 @@ function Genome.rollTier(roll: number, luck: number?, minTier: number?): number
 	return Rng.weightedIndex(weights, roll)
 end
 
--- Weather bonus (FEATURES.WeatherMutations): the current weather's mutation and extra roll chance,
+-- Weather bonus: the current weather's mutation and extra roll chance,
 -- cached and refreshed from Weather.Changed so a roll does no lookup.
 local weatherMutation: string? = nil
 local weatherBonus = 0
@@ -228,7 +229,7 @@ local weatherConnection: { Disconnect: (any) -> () }? = nil
 
 local function refreshWeather()
 	local w = Weather.data(Weather.getCurrent())
-	if Config.FEATURES.WeatherMutations and w and w.mutation and w.chanceBonus > 0 then
+	if w and w.mutation and w.chanceBonus > 0 then
 		weatherMutation, weatherBonus = w.mutation, w.chanceBonus
 	else
 		weatherMutation, weatherBonus = nil, 0
@@ -452,6 +453,7 @@ function Genome.sanitize(raw: any): Slime?
 		pad = if pad then math.floor(pad) else nil,
 		species = if type(raw.species) == "string" and SlimeRoster.get(raw.species) then raw.species else nil,
 		growth = if growth then math.floor(math.min(growth, 1) * 1e4 + 0.5) / 1e4 else nil,
+		keep = if raw.keep == true then true else nil,
 	}
 end
 

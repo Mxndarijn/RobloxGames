@@ -179,6 +179,9 @@ function Merge.apply(
 	end
 	local a = PlayerData.findSlime(data, idA)
 	local b = PlayerData.findSlime(data, idB)
+	if (a and a.keep) or (b and b.keep) then
+		return false, "slime is kept"
+	end
 	local ok, reason = Merge.canMerge(a, b)
 	if not ok or not a or not b then
 		return false, reason or "cannot merge"

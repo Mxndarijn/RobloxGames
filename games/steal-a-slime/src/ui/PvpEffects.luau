@@ -360,8 +360,7 @@ local function placeMarker(payload: { [string]: any })
 	if type(trapId) ~= "string" or typeof(position) ~= "Vector3" then
 		return
 	end
-	local tool = (Config.PVP_TOOLS :: any)[payload.itemId]
-	local marker = Logic.marker(payload.itemId, tool, Config.PVP)
+	local marker = Logic.markerFor(payload.itemId, Config.PVP_TOOLS, Config.PVP)
 	if not marker or not Logic.markerVisible(marker, payload.owner, Players.LocalPlayer.UserId) then
 		return
 	end

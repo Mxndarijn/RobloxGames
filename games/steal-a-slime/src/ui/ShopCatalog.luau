@@ -40,6 +40,7 @@ export type ItemView = {
 	enabled: boolean,
 	buttonText: string,
 	levelText: string?,
+	progress: number?, -- level / maxLevel (0..1) of a leveled item
 }
 
 local ShopCatalog = {}
@@ -178,6 +179,11 @@ function ShopCatalog.view(item: Item, state: any, actions: { [string]: any }, co
 		levelText = if type(level) == "number"
 			then (if type(maxLevel) == "number" then `Lv {level}/{maxLevel}` else `Lv {level}`)
 			else nil,
+		progress = if type(level) == "number"
+				and type(maxLevel) == "number"
+				and maxLevel > 0
+			then math.clamp(level / maxLevel, 0, 1)
+			else nil,
 	}
 end
 
@@ -230,6 +236,7 @@ function ShopCatalog.upgradeViews(state: any, actions: { [string]: any }): { Ite
 				enabled = available and unlocked and not maxed and (price == nil or cash >= price),
 				buttonText = buttonText,
 				levelText = `Lv {level}/{maxLevel}`,
+				progress = if maxLevel > 0 then math.clamp(level / maxLevel, 0, 1) else nil,
 			})
 		end
 	end

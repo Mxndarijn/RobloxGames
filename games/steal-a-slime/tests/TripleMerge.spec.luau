@@ -1,6 +1,6 @@
 --!strict
 -- 3-slime merge vat (FEATURES.MergeVat3, CONTRACT.md §21): rules, odds, determinism, anti-dupe, the Merge3
--- action, the panel's switch and the vat decor. The flag is off by default; flag-on paths use ctx.mergeVat3.
+-- action and the vat decor. The flag is off by default; flag-on paths use ctx.mergeVat3.
 local Actions = require("../src/server/Actions")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
@@ -12,7 +12,6 @@ local PlayerData = require("../src/shared/PlayerData")
 local RanchProps = require("../src/visuals/shared/RanchProps")
 local Remotes = require("../src/shared/Remotes")
 local Rng = require("../src/shared/Rng")
-local Selection = require("../src/ui/Selection")
 local ServerFixtures = require("./ServerFixtures")
 local TestRunner = require("./TestRunner")
 local TripleMerge = require("../src/shared/TripleMerge")
@@ -219,27 +218,7 @@ describe("TripleMerge: server action", function()
 	end)
 end)
 
-describe("TripleMerge: panel + decor", function()
-	local views = {}
-	for i, id in { "a", "b", "c", "d" } do
-		views[i] = { slime = slime(id, if id == "d" then 3 else 2), income = 1 }
-	end
-	it("Selection.canMergeTriple wants three different owned same-tier slimes", function()
-		expect((Selection.canMergeTriple(views, { "a", "b", "c" }))).toBe(true)
-		expect((Selection.canMergeTriple(views, { "a", "b" }))).toBe(false)
-		expect((Selection.canMergeTriple(views, { "a", "a", "b" }))).toBe(false)
-		expect((Selection.canMergeTriple(views, { "a", "b", "d" }))).toBe(false)
-		expect((Selection.canMergeTriple(views, { "a", "b", "zzz" }))).toBe(false)
-		local stolen = { views[1], views[2], { slime = slime("c", 2), income = 1, stolenBy = 9 } }
-		expect((Selection.canMergeTriple(stolen, { "a", "b", "c" }))).toBe(false)
-	end)
-	it("the panel only shows the 2 / 3 switch with the flag, and sends Merge3 for three", function()
-		local fs = require("@lune/fs")
-		local src = fs.readFile("src/ui/Panels/Merge.luau")
-		expect(string.find(src, "ctx.Config.FEATURES.MergeVat3 == true", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, 'ctx.send("Merge3"', 1, true) ~= nil).toBe(true)
-		expect(string.find(src, 'ctx.send("Merge", a, b)', 1, true) ~= nil).toBe(true)
-	end)
+describe("TripleMerge: decor", function()
 	it("the vat stands on the disc's bottom at the disc's width and takes no world slot", function()
 		local pose = VatDecor.pose(0, 3, 0)
 		expect(math.abs(pose.position[2] - pose.size[2] / 2 - 1) < 1e-9).toBe(true)

@@ -42,7 +42,7 @@ export type Screen = {
 	width: number, -- design px
 	height: number,
 	compact: boolean,
-	phone: boolean, -- a phone (portrait, or landscape under 500 px high): nav at the very top, money | hotbar | events share the bottom row
+	phone: boolean, -- a phone (portrait, or landscape under 500 px high): money | hotbar | events share the bottom row
 	tight: boolean, -- portrait phone too narrow for the full-size row: smaller money block, event slots and hotbar slots
 	short: boolean, -- landscape phone: more nav columns, cards between the clusters (Layout.screen)
 	navColumns: number,
@@ -497,7 +497,7 @@ end
 
 Layout.NAV = table.freeze({
 	left = Layout.MARGIN,
-	top = 56, -- under Roblox's own profile / voice chips (top-left); short screens start at Layout.TOP
+	top = 56, -- highest the nav may go, under Roblox's own profile / voice chips (Layout.screen puts it lower)
 	columns = 2,
 	gap = 8,
 	cgap = 6,
@@ -832,7 +832,7 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	-- Short and too low to stack the tutorial over the carry card: they go side by side.
 	local beside = short and H - inset - top < Layout.CARRY.h + gap + Layout.tutorialHeight(Layout.TUTORIAL.w)
 
-	-- 2. Nav: top-left, 2 columns (short: as many as it takes to fit from the top down to the money
+	-- 2. Nav: left, 2 columns, low (short: as many as it takes to fit from the top down to the money
 	-- cluster; the bottom cards then sit right of the money cluster, step 3).
 	local fullRow = Layout.rect(m, 0, W - m * 2, 0)
 	local hotbarBottom = if phone then rowBottom else H - cardInset
@@ -845,7 +845,12 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	local navBottom = if short then money.rect.y - gap else math.min(tutorial0.y, tutorialCarrying0.y) - gap
 	navBottom = math.min(navBottom, money.rect.y - gap)
 	local columns = if short then Layout.navColumns(compact, navBottom - top) else Layout.NAV.columns
-	local nav = Layout.navRect(compact, top, nil, columns)
+	-- The nav sits low on the left, its bottom on `navBottom`, so it stays clear of Roblox's chat window
+	-- (top-left). Landscape phones have no height to spare and keep it at the top margin.
+	local navTop = if short or landscapePhone
+		then top
+		else math.max(top, navBottom - Layout.navHeight(compact, nil, columns))
+	local nav = Layout.navRect(compact, navTop, nil, columns)
 	local navRight = nav.x + nav.w + gap
 	-- Phones: an open menu card gets the nav's width too (init.client hides the nav tiles while a menu is open);
 	-- desktop: the card area is right of the nav so the player can switch menus.

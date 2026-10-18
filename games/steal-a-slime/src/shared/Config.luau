@@ -725,6 +725,7 @@ local Config = {
 	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (never into Secret)
 	TRIPLE_MERGE_MUTATION_CHANCE = 0.3, -- chance of a fresh mutation on top of the inherited ones
 	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
+	AUTO_MERGE_MAX = 25, -- most groups of three one Request("AutoMerge") merges (MergePlan, CONTRACT.md §21.1)
 
 	-- Stacking mutations (FEATURES.MutationStacking)
 	MAX_MUTATIONS = 3, -- a slime carries at most this many mutations (a fused combo counts as one)
@@ -789,23 +790,16 @@ local Config = {
 
 	-- Extras, each behind a flag (CONTRACT.md §2 Extras). false = fully off.
 	FEATURES = table.freeze({
-		BossSlime = true, -- a big free Epic+ slime spills from the fountain every BOSS_INTERVAL
-		FollowPets = true, -- your favourite (or best) slime follows you as a small pet (client-only)
-		DayNight = true, -- Lighting.ClockTime cycles every DAY_LENGTH seconds
-		Minimap = true, -- Visuals.MinimapData points of interest for a UI minimap
 		DespawnTelegraph = true, -- wild slime models get DespawnAt before they expire; false = silent removal
 		Habitats = true, -- pads turn into their slime's habitat (HABITATS.md); false = pads as before
 		SlimeAnimations = true, -- slimes play the uploaded KeyframeSequences (MeshAssets.ANIMATIONS) once a probe track loads; false = procedural Motor6D motion (ui/SlimeMotor)
-		CycleModifier = true, -- a server modifier (Luck Surge, Mutation Surge, ...) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); needs DayNight; false = no modifier
+		CycleModifier = true, -- a server modifier (Luck Surge, Mutation Surge, ...) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); false = no modifier
 		SlideCollision = true, -- invisible colliders along the FULL fountain slide, top to mouth (B6: players fell through above LOW_SLIDE_Y); false = low stretch only
 		FriendBonus = true, -- +FRIEND_BONUS_PER_FRIEND income per friend in the same server, up to FRIEND_BONUS_CAP (FriendBonus); false = no bonus
 		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
-		WeatherMutations = true, -- the current weather boosts the roll chance of its mutation (Config.WEATHER[id].mutation / chanceBonus; Genome.rollMutation); needs Weather to be on to ever leave Clear
 		Weather = true, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md
-		SnowGround = true, -- SnowGround v2: client ground snow by tinting the existing Ground / Terrain / paths (no extra parts or meshes), settles during Snow, melts after; v1 (one flat Snow Part) was cut in #223. Snowfall particles stay with Weather.
 		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
 		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
-		PetPassives = true, -- the favourite (follow) slime grants a small capped perk by tier / mutations: income, luck or merge mutation chance (Perks.petPassive, CONTRACT.md §14); false = cosmetic only
 		CoopRitual = true, -- 2-4 players stand on the ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
 		PlotSkins = true, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
 		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
@@ -816,7 +810,7 @@ local Config = {
 		FountainTiers = true, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
 		MergeVat3 = true, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, keeping every mutation (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
 		Consumables = true, -- restocking Shop section: mutation spray, luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
-		RainMagnet = true, -- v19: the Rain Magnet upgrade (rank 6): a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) may pick up that weather's mutation; needs Weather + WeatherMutations to ever have a target (RainMagnet, CONTRACT.md §23); false = no upgrade in the shop, no purchase, no effect (needs frame review)
+		RainMagnet = true, -- v19: the Rain Magnet upgrade (rank 6): a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) may pick up that weather's mutation; needs Weather to ever have a target (RainMagnet, CONTRACT.md §23); false = no upgrade in the shop, no purchase, no effect (needs frame review)
 		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Audio = true, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
 		PvP = true, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, safe zones, new-player shield, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
@@ -904,13 +898,13 @@ local Config = {
 		REDUCED_ATTRIBUTE = "ReducedMotion", -- LocalPlayer attribute; true = no tween, no puff
 	}),
 
-	-- Boss Slime event (FEATURES.BossSlime)
+	-- Boss Slime event (Spawner.spawnBoss)
 	BOSS_FIRST_AT = 8 * 60, -- seconds after server start
 	BOSS_INTERVAL = 15 * 60,
 	BOSS_TIER = 4, -- Epic
 	BOSS_LIFETIME = 120,
 
-	-- Day / night (FEATURES.DayNight)
+	-- Day / night (DayNight)
 	DAY_LENGTH = 12 * 60, -- seconds per full day
 	DAY_FRACTION = 0.7, -- share of the cycle that is daytime (06:30-17:30)
 
@@ -956,7 +950,7 @@ local Config = {
 		BONUS = table.freeze({ [2] = 0.3, [3] = 0.2, [4] = 0.3 }), -- Blessed income bonus by participants; tiers above SPOTS stay as data but can't be reached (Ritual.bonus caps at SPOTS)
 	}),
 
-	-- Follow-pet passives (FEATURES.PetPassives, CONTRACT.md §14). The kind comes from the favourite slime's tier;
+	-- Follow-pet passives (Perks.petPassive, CONTRACT.md §14). The kind comes from the favourite slime's tier;
 	-- value = tier * perTier + MUTATION_STEP per mutation, capped per kind. All additive and server-side.
 	PET_PASSIVES = table.freeze({
 		MUTATION_STEP = 0.01, -- extra per mutation on the slime
@@ -1176,6 +1170,7 @@ local Config = {
 		LAUNCH_GUARD_SECONDS = 5, -- after a PvP launch / while under control the void guard (Rescue.PVP_SAFE_Y) is armed
 		KNOCKBACK_CONTROL_SECONDS = 0.6, -- a knockback counts as control (PvpRules.applyControl), then immunity
 		FUN_AIM_RANGE = 40, -- studs: how far a Balloon / Bounce Pad / Fireworks aim point may be
+		TRAP_PLACE_RANGE = 40, -- studs: how far from the owner a Goo Trap may be placed
 		FUN_NUDGE_CONTROL_SECONDS = 0.3, -- Squeaky Hammer nudge counts as a tiny control
 		FIREWORKS_SECONDS = 4, -- FunFireworks Effect duration
 		BOUNCE_PAD_SECONDS = 60, -- a placed Bounce Pad lives this long

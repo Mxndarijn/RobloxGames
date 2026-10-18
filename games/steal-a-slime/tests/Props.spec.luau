@@ -96,6 +96,30 @@ describe("Props placed by WorldProps", function()
 		local sign = Props.shopStand().Sign
 		expect(sign.SignGui.LightInfluence).toBe(0)
 	end)
+	it("gives each shop stand its own look: sign colours, decor that survives the skin, a centred box", function()
+		local item, upgrade = Props.shopStand("ItemShop"), Props.shopStand("UpgradeShop")
+		expect(item.Sign.Color ~= upgrade.Sign.Color).toBe(true)
+		expect(upgrade:GetAttribute("MeshTint")).toBe(Props.STAND_STYLES.UpgradeShop.tint)
+		for _, stand in { item, upgrade } do
+			local kept, lo, hi = 0, math.huge, -math.huge
+			for _, d in stand:GetDescendants() do
+				if d:IsA("BasePart") then
+					lo = math.min(lo, d.CFrame.Position.X - d.Size.X / 2)
+					hi = math.max(hi, d.CFrame.Position.X + d.Size.X / 2)
+					if d:GetAttribute("MeshKeep") == true then
+						kept += 1
+						expect(d.CanCollide).toBe(false)
+						expect(d.CanQuery).toBe(false)
+					end
+				end
+			end
+			expect(kept > 0).toBe(true)
+			expect(lo).toBeCloseTo(-hi, 3) -- the skin lands on the box centre: decor never shifts it
+		end
+		expect(item:FindFirstChild("DecorEgg") ~= nil).toBe(true)
+		expect(upgrade:FindFirstChild("DecorAnvilTop") ~= nil).toBe(true)
+		expect(Props.shopStand():FindFirstChild("DecorEgg")).toBeNil() -- the single ShopStand keeps its plain look
+	end)
 	it("builds the SpeedCoil tool with an unanchored Handle", function()
 		local tool = Props.speedCoil()
 		expect(tool.ClassName).toBe("Tool")
@@ -122,7 +146,7 @@ describe("Props placed by WorldProps", function()
 	end)
 end)
 
-describe("MinimapData (FEATURES.Minimap)", function()
+describe("MinimapData", function()
 	local MinimapData = require("../src/visuals/shared/MinimapData")
 	it("lists the fountain, every plot, the props and the spawn", function()
 		local points = MinimapData.points()

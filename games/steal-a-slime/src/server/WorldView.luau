@@ -566,7 +566,9 @@ function WorldView.addPlotPrompts(onTrigger: (Player, number, string) -> ())
 			local prompt = Instance.new("ProximityPrompt")
 			prompt.Name = name
 			prompt.KeyboardKeyCode = Enum.KeyCode.E
-			prompt.HoldDuration = Config.HOLD_CONFIRM_SECONDS
+			-- The 3-slime vat prompt only opens the merge menu (the menu confirms each merge), so it is instant.
+			local opensMenu = kind == "Merge" and Config.FEATURES.MergeVat3
+			prompt.HoldDuration = if opensMenu then 0 else Config.HOLD_CONFIRM_SECONDS
 			prompt.RequiresLineOfSight = false
 			prompt.MaxActivationDistance = Config.PLOT_PAD_PROMPT_DISTANCE
 			prompt.Enabled = false
@@ -1014,7 +1016,7 @@ function WorldView.updatePlayer(player: Player, session: World.Session, now: num
 		PvpTrap.tick(session, root and root.Position, now)
 		PvpFun.tick(session, root and root.Position, now)
 	end
-	local pet = if Config.FEATURES.FollowPets then Progression.keeper(data) else nil
+	local pet = Progression.keeper(data)
 	setAttribute(player, Constants.PET_ATTRIBUTE, pet and pet.id)
 	if data.speedCoil then
 		ensureSpeedCoil(player)

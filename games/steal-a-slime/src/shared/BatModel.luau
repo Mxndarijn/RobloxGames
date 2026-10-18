@@ -21,5 +21,6 @@ BatModel.ICON_ID = "rbxassetid://107609481658581" :: string? -- ItemIcons Pvp_Ba
 BatModel.SIZE = if entry and entry.size then entry.size else { 1.351, 5.09, 1.351 } -- studs, the mesh's native size
 BatModel.GRIP = { pos = { 0, -1.345, 0 }, rotDeg = { 0, 0, 0 } } -- the red wrap centre, 1.2 above the pommel
 BatModel.COLOR = { 0.72, 0.5, 0.28 } -- placeholder wood colour (RGB 0..1)
+BatModel.SWING_SOUND = "rbxassetid://12222216" -- whoosh on every swing (classic library sword slash)
 
 return BatModel

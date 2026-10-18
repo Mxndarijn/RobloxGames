@@ -1,13 +1,13 @@
 --!strict
 --[[
-	MinimapData (FEATURES.Minimap)
+	MinimapData
 
 	Points of interest for a UI minimap, straight from WorldLayout (no
 	Instances): the fountain (map centre), every plot (index i -> workspace
 	Plot with PlotIndex i, whose OwnerUserId attribute says who owns it), the
 	props at PROP_SPOTS and the hub spawn. `toMap` turns world X/Z into 0..1 map
 	coordinates over the Ground (u = +X to the right, v = +Z downwards).
-	Pure; returns no points when the flag is off.
+	Pure.
 ]]
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
@@ -39,9 +39,6 @@ MinimapData.SHOP_PINS = table.freeze({
 }) :: { [string]: { label: string, icon: string } }
 
 function MinimapData.points(): { Point }
-	if not Config.FEATURES.Minimap then
-		return {}
-	end
 	local points: { Point } = { { kind = "Fountain", name = "Fountain", x = 0, z = 0 } }
 	for i = 1, Config.PLOT_COUNT do
 		local c = WorldLayout.plotCentre(i)

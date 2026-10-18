@@ -43,10 +43,10 @@ return table.freeze({
 	RAIN_ACTIVE_ATTRIBUTE = "RainActive", -- workspace: same as SlimeRain
 	RAIN_ENDS_AT_ATTRIBUTE = "RainEndsAt", -- workspace: server time, while raining
 	RAIN_NEXT_AT_ATTRIBUTE = "RainNextAt", -- workspace: server time, while not raining
-	BOSS_NEXT_AT_ATTRIBUTE = "BossNextAt", -- workspace: server time of the next Boss Slime (FEATURES.BossSlime)
+	BOSS_NEXT_AT_ATTRIBUTE = "BossNextAt", -- workspace: server time of the next Boss Slime
 	TUTORIAL_STEP_ATTRIBUTE = "TutorialStep", -- Player: 1..6, nil = done / not loaded
 	SPEED_COIL_ATTRIBUTE = "SpeedCoil", -- Player: true once the Speed Coil is owned
-	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FEATURES.FollowPets), nil = none
+	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FollowPets), nil = none
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
 	SHOP_STAND = "ShopStand", -- alias of the Item Shop while FEATURES.WorldShops is off (the single HUD-shop stand)
