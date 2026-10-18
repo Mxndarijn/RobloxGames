@@ -1,0 +1,109 @@
+{
+  "name": "pet_cloud",
+  "model": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/models/pet_cloud.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 560,
+  "meshes": [
+    {
+      "name": "pet_cloud",
+      "tris": 560,
+      "verts": 294,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        3.298,
+        1.225,
+        2.392
+      ],
+      "materials": [
+        "pet_cloud_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pet_cloud_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    3.298,
+    1.225,
+    2.392
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pet_cloud_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/pet_cloud.fbx",
+  "fbx_bytes": 33404,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/.tiles/pet_cloud_0.png"
+    },
+    {
+      "view": "side",
+      "path": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/.tiles/pet_cloud_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/.tiles/pet_cloud_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/.tiles/pet_cloud_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.155,
+    "stats_s": 0.002,
+    "setup_s": 0.001,
+    "render_s": [
+      0.927,
+      0.379,
+      0.398,
+      0.444
+    ],
+    "export_s": 0.078
+  },
+  "sheet": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/pet_cloud_sheet.png",
+  "timings": {
+    "wall_s": 3.25,
+    "blender_process_s": 3.16,
+    "compose_s": 0.083,
+    "model_s": 0.155,
+    "stats_s": 0.002,
+    "setup_s": 0.001,
+    "render_s": [
+      0.927,
+      0.379,
+      0.398,
+      0.444
+    ],
+    "export_s": 0.078
+  }
+}

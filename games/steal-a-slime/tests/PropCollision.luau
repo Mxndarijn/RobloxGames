@@ -774,6 +774,7 @@ parts(
 
 -- name -> { owner, reason }
 local UNPLACED: { [string]: { string } } = {
+	pet_cloud = { "jolt", "the follow pet's cloud (client FollowPets), cloned per follower, never a world slot; decor" },
 	ranch_bat = { "jolt", "the held Bat tool's Handle (BatTool), never a world slot; a tool has no collision" },
 	ranch_border_fence_broken = { "jolt", "border piece not used by WorldBorder.CHUNKS / DEFS" },
 	ranch_border_hedge_stepped = { "jolt", "border piece not used by WorldBorder.DEFS" },

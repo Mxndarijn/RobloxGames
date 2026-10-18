@@ -3,6 +3,7 @@
 -- their factory welds back (src/visuals/client/PetRig.luau).
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
+local fs = require("@lune/fs")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -114,5 +115,38 @@ describe("PetRig.stripLife on a rigged, animated slime", function()
 			end
 		end
 		expect(joints).toBe(1)
+	end)
+end)
+
+-- FollowPets (src/visuals/client/FollowPets): the pet stands on the pet_cloud mesh and glides with PetFollow.
+describe("FollowPets source", function()
+	local src = fs.readFile("src/visuals/client/FollowPets.luau")
+	local function has(text: string): boolean
+		return string.find(src, text, 1, true) ~= nil
+	end
+	it("loads the cloud once from the MeshAssets meshId and falls back without it", function()
+		expect(has('MeshAssets.meshId("pet_cloud")')).toBe(true)
+		expect(has("CreateMeshPartAsync")).toBe(true)
+		expect(has("pcall")).toBe(true)
+		expect(has('cloudStatus = "failed"')).toBe(true)
+		expect(has("template:Clone()")).toBe(true) -- cloned per follower
+		expect(has('Instance.new("Part")')).toBe(true) -- the invisible Mount when there is no cloud
+	end)
+	it("makes the cloud decor: no collision, query, touch or shadow", function()
+		for _, prop in { "CanCollide = false", "CanQuery = false", "CanTouch = false", "CastShadow = false" } do
+			expect(has(`part.{prop}`)).toBe(true)
+		end
+	end)
+	it("drives every pet from one RenderStepped connection through PetFollow", function()
+		local _, connections = string.gsub(src, "RenderStepped:Connect", "")
+		expect(connections).toBe(1)
+		expect(has("PetFollow.step(")).toBe(true)
+		expect(has(":Lerp(")).toBe(false) -- the old per-frame CFrame lerp is gone
+		expect(has("MAX_DISTANCE = 200")).toBe(true)
+		expect(has("FollowPets.POLL = 0.5")).toBe(true)
+	end)
+	it("keeps the pet readable on the cloud", function()
+		expect(has("FollowPets.SCALE = 0.55")).toBe(true)
+		expect(has("FollowPets.CLOUD_SCALE = 0.9")).toBe(true)
 	end)
 end)
