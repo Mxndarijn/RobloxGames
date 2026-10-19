@@ -606,7 +606,7 @@ Layout.NAV = table.freeze({
 
 -- Nav badge chip: top-right corner of its button, inset so it never leaves the
 -- button (init.client builds the same numbers).
-Layout.NAV_BADGE = table.freeze({ inset = 2, height = 16, minWidth = 16, textSize = 11, padding = 4 })
+Layout.NAV_BADGE = table.freeze({ inset = 2, height = 22, minWidth = 22, textSize = 16, padding = 5 })
 
 function Layout.navBadge(button: Rect, text: string): Rect
 	local b = Layout.NAV_BADGE
