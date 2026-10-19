@@ -29,6 +29,7 @@ local Consumables = if Shared then require(Shared.Consumables) else require("../
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local DayNight = if Shared then require(Shared.DayNight) else require("../shared/DayNight")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local ParadeChoreo = if Shared then require(Shared.ParadeChoreo) else require("../shared/ParadeChoreo")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
@@ -125,6 +126,41 @@ function Spawner.familyPool(world: World, enabled: boolean?): { string }?
 	return FountainTiers.pool(world.fountainTier)
 end
 
+-- FEATURES.SlimeChoreo: the lane beats of a new lane wild. A copycat (ParadeChoreo.copies, a hash of its id, no
+-- world.rng roll) of the same species right behind another lane wild takes that slime's seed, so it repeats its beats
+-- at the same lane spots. nil with the feature or the parade off.
+function Spawner.choreoFor(
+	world: World,
+	id: string,
+	slime: Genome.Slime,
+	now: number,
+	enabled: boolean?
+): { seed: number }?
+	if not (if enabled == nil then Config.FEATURES.SlimeChoreo else enabled) or not ParadeLane.enabled() then
+		return nil
+	end
+	local seed = ParadeChoreo.seedFor(id)
+	if slime.species and ParadeChoreo.copies(id) then
+		local ahead: World.Wild? = nil
+		for otherId, wild in world.wild do
+			if
+				otherId ~= id
+				and wild.choreo ~= nil
+				and not wild.boss
+				and ParadeLane.onLane(wild, world.carriedBy[otherId] ~= nil)
+				and now - wild.spawnedAt <= ParadeChoreo.COPY_WINDOW
+				and (ahead == nil or wild.spawnedAt > ahead.spawnedAt)
+			then
+				ahead = wild
+			end
+		end
+		if ahead and ahead.choreo and ahead.slime.species == slime.species then
+			seed = ahead.choreo.seed
+		end
+	end
+	return { seed = seed }
+end
+
 function Spawner.spawnOne(world: World, now: number): string
 	local id = world.newId()
 	local luckMult = CycleModifier.multiplier(world.modifier)
@@ -163,6 +199,7 @@ function Spawner.spawnOne(world: World, now: number): string
 		radius = drop.radius,
 		position = nil,
 		rare = rare,
+		choreo = Spawner.choreoFor(world, id, drop.slime, now),
 	}
 	return id
 end
@@ -182,6 +219,7 @@ function Spawner.spawnBonus(world: World, now: number, count: number, luckMult: 
 			angle = drop.angle,
 			radius = drop.radius,
 			position = nil,
+			choreo = Spawner.choreoFor(world, id, drop.slime, now),
 		}
 		table.insert(ids, id)
 	end
