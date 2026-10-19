@@ -10,7 +10,8 @@
 	           rains, a dimmed countdown for the last RainTimer.SOON_SECONDS before the next one;
 	    Event  the live server modifier (State.modifier: dawn / dusk modifier, admin Luck event) with the
 	           time left;
-	    Friend the friend income bonus ("+10%", no timer).
+	    Friend the friend income bonus ("+10%", no timer);
+	    Secret this week's featured event Secret (State.featuredSecret) with the time until it rotates ("4h 6m").
 	  The weekend boost is never a slot (Merijn, HUD-DESIGN.md: "Weekend boost: NOT shown").
 	Tooltip (B8, 2026-10-18): each slot also carries its name and what it does; `tooltip` turns that plus the
 	live timer into the 3 lines of the card (name, effect, time left), and `nextTooltip` is the open / close
@@ -24,10 +25,10 @@ local RainTimer = if script then require(script.Parent.RainTimer) else require("
 
 export type Money = { cash: string, income: string, rebirths: string, rebirthCount: string, multiplier: string }
 export type Slot = {
-	id: string, -- "Rain" | "Event" | "Friend"
+	id: string, -- "Rain" | "Event" | "Friend" | "Secret"
 	icon: string, -- ItemIcons id
 	text: string, -- the timer, or "+10%"
-	kind: string, -- "active" | "soon" | "boost"
+	kind: string, -- "active" | "soon" | "boost" | "week"
 	name: string, -- tooltip title: "Slime Rain"
 	effect: string, -- tooltip body: what the event does
 }
@@ -38,12 +39,15 @@ export type Inputs = {
 	modifierEnabled: boolean,
 	friends: FriendBadge.View?,
 	friendsEnabled: boolean,
+	featuredSecret: FeaturedSecret?,
 }
+-- State.featuredSecret: this week's event Secret, `endsAt` in server time.
+export type FeaturedSecret = { id: string, name: string, endsAt: number }
 
 local HudClusters = {}
 
 -- Slot ids in display order, left to right (Layout.STATUS_SLOTS).
-HudClusters.STATUS_IDS = table.freeze({ "Rain", "Event", "Friend" })
+HudClusters.STATUS_IDS = table.freeze({ "Rain", "Event", "Friend", "Secret" })
 
 HudClusters.ICONS = table.freeze({
 	Cash = "Cash",
@@ -51,6 +55,7 @@ HudClusters.ICONS = table.freeze({
 	Rebirths = "Rebirth",
 	Rain = "Event_rain",
 	Friend = "FriendBoost",
+	Secret = "Badge_FirstSecret",
 })
 
 HudClusters.RAIN_EFFECT = "Slimes pour from the sky and rarer ones show up more often. Grab them!"
@@ -141,6 +146,28 @@ function HudClusters.friend(view: FriendBadge.View?, enabled: boolean): Slot?
 	}
 end
 
+-- The featured event Secret slot; nil when absent, malformed or over.
+function HudClusters.secret(view: FeaturedSecret?, now: number): Slot?
+	if type(view) ~= "table" or type(view.name) ~= "string" or view.name == "" then
+		return nil
+	end
+	if type(view.endsAt) ~= "number" or view.endsAt ~= view.endsAt then
+		return nil
+	end
+	local remaining = Format.remainingSeconds(view.endsAt, now)
+	if remaining <= 0 then
+		return nil
+	end
+	return {
+		id = "Secret",
+		icon = HudClusters.ICONS.Secret,
+		text = Format.formatTimeLeft(remaining),
+		kind = "week",
+		name = `Featured Secret: {view.name}`,
+		effect = "Can spawn as a Secret this week.",
+	}
+end
+
 -- The shown slots, left to right (never more than Layout.STATUS.count).
 function HudClusters.status(input: Inputs, now: number): { Slot }
 	local out: { Slot } = {}
@@ -156,13 +183,19 @@ function HudClusters.status(input: Inputs, now: number): { Slot }
 	if friend then
 		table.insert(out, friend)
 	end
+	local secret = HudClusters.secret(input.featuredSecret, now)
+	if secret then
+		table.insert(out, secret)
+	end
 	return out
 end
 
 -- The tooltip card text for a shown slot: name, what it does, and the time left (the slot's live timer).
 function HudClusters.tooltip(slot: Slot): Tooltip
 	local time
-	if slot.kind == "boost" then
+	if slot.kind == "week" then
+		time = `Ends in {slot.text}`
+	elseif slot.kind == "boost" then
 		time = "Active while friends are here"
 	elseif string.find(slot.text, ":", 1, true) == nil then
 		time = "Active now" -- an untimed modifier ("x3") or a rain without an end time ("Now")

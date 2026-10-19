@@ -314,22 +314,136 @@ describe("H1 HUD: bottom-right cluster (mounted Hud)", function()
 	end)
 end)
 
+-- The featured event Secret is a status slot (rightmost) with the time until it rotates, not a top banner.
+describe("H1 HUD: featured Secret status slot", function()
+	local FEATURED = { id = "origami", name = "Origami", endsAt = 1000 + 4 * 3600 + 6 * 60 }
+	local function slot(gui: any, id: string): any
+		return UiHarness.find(UiHarness.find(gui, "Status"), id)
+	end
+
+	it("words the slot and its tooltip: time until it rotates, can spawn as a Secret this week", function()
+		local secret = HudClusters.secret(FEATURED, 1000) :: HudClusters.Slot
+		expect(secret.id).toBe("Secret")
+		expect(secret.text).toBe("4h 6m")
+		expect(secret.icon).toBe(HudClusters.ICONS.Secret)
+		local tip = HudClusters.tooltip(secret)
+		expect(tip.title).toBe("Featured Secret: Origami")
+		expect(tip.body).toBe("Can spawn as a Secret this week.")
+		expect(tip.time).toBe("Ends in 4h 6m")
+		expect((HudClusters.secret({ id = "o", name = "O", endsAt = 1000 + 3 * 86400 + 4 * 3600 }, 1000) :: any).text).toBe(
+			"3d 4h"
+		)
+		expect((HudClusters.secret({ id = "o", name = "O", endsAt = 1125 }, 1000) :: any).text).toBe("2:05")
+	end)
+
+	it("no slot when the featured Secret is absent, malformed or over", function()
+		expect(HudClusters.secret(nil, 1000)).toBeNil()
+		expect(HudClusters.secret({ id = "o", name = "", endsAt = 2000 } :: any, 1000)).toBeNil()
+		expect(HudClusters.secret({ id = "o", name = "O", endsAt = 0 / 0 } :: any, 1000)).toBeNil()
+		expect(HudClusters.secret({ id = "o", name = "O", endsAt = 1000 }, 1000)).toBeNil()
+	end)
+
+	it("the mounted slot shows the icon and the rotate timer, rightmost, next to the other events", function()
+		setAttributes({ RainActive = true, RainEndsAt = 1097 })
+		local hud, gui, screen = mount(1920, 1080)
+		hud.update(state({ featuredSecret = FEATURED, friends = { count = 1, bonus = 0.1 } }))
+		local secret = slot(gui, "Secret")
+		expect(secret.Visible).toBe(true)
+		expect(UiHarness.find(secret, "Timer").Text).toBe("4h 6m")
+		expect(UiHarness.find(secret, "Icon"):GetAttribute("ItemId")).toBe(HudClusters.ICONS.Secret)
+		expect(secret.Position.X.Offset + Layout.statusSlotWidth(false)).toBe(screen.status.rect.w)
+		expect(slot(gui, "Friend").Position.X.Offset < secret.Position.X.Offset).toBe(true)
+		expect(slot(gui, "Rain").Position.X.Offset < slot(gui, "Friend").Position.X.Offset).toBe(true)
+		hud.update(state({ friends = { count = 1, bonus = 0.1 } }))
+		expect(secret.Visible).toBe(false)
+		setAttributes()
+	end)
+
+	it("hover shows the featured Secret tooltip", function()
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+		local hud, gui = mount(1920, 1080)
+		hud.update(state({ featuredSecret = FEATURED }))
+		UiHarness.fire(slot(gui, "Secret"), "MouseEnter")
+		local tip = UiHarness.find(gui, "Tooltip")
+		expect(tip.Visible).toBe(true)
+		expect(UiHarness.find(tip, "Title").Text).toBe("Featured Secret: Origami")
+		expect(UiHarness.find(tip, "Body").Text).toBe("Can spawn as a Secret this week.")
+		expect(UiHarness.find(tip, "Time").Text).toBe("Ends in 4h 6m")
+		UiHarness.fire(slot(gui, "Secret"), "MouseLeave")
+	end)
+
+	for _, vp in LayoutAssert.GATE_VIEWPORTS do
+		it(
+			`{vp.name}: each timer is a pill centred on its icon's bottom edge, inside the slot, its text fitting`,
+			function()
+				setAttributes({ RainActive = true, RainEndsAt = 1000 + 3725 })
+				local hud, gui, screen = mount(vp.w, vp.h)
+				hud.update(state({
+					featuredSecret = { id = "o", name = "Origami", endsAt = 1000 + 6 * 86400 + 23 * 3600 },
+					friends = { count = 20, bonus = 1 },
+				}))
+				local sm = Layout.statusMetrics(screen.compact, screen.tight)
+				local check = LayoutAssert.new(vp.name, screen)
+				for _, id in { "Rain", "Friend", "Secret" } do
+					local frame = slot(gui, id)
+					local pill = UiHarness.find(frame, "Timer")
+					expect(`{id} anchor {pill.AnchorPoint.X} at {pill.Position.X.Scale}`).toBe(`{id} anchor 0.5 at 0.5`)
+					expect(pill.Position.Y.Offset).toBe(sm.icon - sm.overlap)
+					expect(pill.Position.Y.Offset + pill.Size.Y.Offset).toBe(frame.Size.Y.Offset)
+					expect(pill.Size.X.Offset <= frame.Size.X.Offset).toBe(true)
+					expect(pill.TextSize).toBe(sm.textSize)
+					check.text({
+						name = `{id} pill`,
+						text = pill.Text,
+						size = pill.TextSize,
+						bold = true,
+						w = pill.Size.X.Offset,
+						h = pill.Size.Y.Offset,
+					})
+				end
+				expect(check.report()).toBe("")
+				setAttributes()
+			end
+		)
+	end
+
+	it("the event buttons are big enough to tap on a phone and bigger than the money chips on PC", function()
+		for _, vp in LayoutAssert.GATE_VIEWPORTS do
+			local s = Layout.screen(vp.w, vp.h)
+			local sm = Layout.statusMetrics(s.compact, s.tight)
+			expect(`{vp.name} slot {sm.slot * s.scale >= Layout.MIN_TOUCH - 10}`).toBe(`{vp.name} slot true`)
+		end
+		expect(Layout.statusMetrics(false).icon > Layout.MONEY.chip).toBe(true)
+	end)
+
+	it("all four events fit at once at every gate size: inside the row, none overlapping", function()
+		for _, vp in LayoutAssert.GATE_VIEWPORTS do
+			local s = Layout.screen(vp.w, vp.h)
+			expect(#s.status.slots).toBe(#HudClusters.STATUS_IDS)
+			local check = LayoutAssert.new(vp.name, s)
+			LayoutAssert.clusterChecks(check)
+			expect(check.report()).toBe("")
+		end
+	end)
+end)
+
 describe("H1 HUD: nothing new top-right / top-middle", function()
-	local KEPT_BANNERS = "EggReveal,FeaturedSecret,StealAlert" -- top centre; PadHint went with the Buy pad button (B7)
+	local KEPT_BANNERS = "EggReveal,StealAlert" -- top centre; the featured Secret is a status slot
 	it("the top banner stack holds only the kept (no-slot) notices", function()
 		local _, gui = mount(1920, 1080)
 		expect(table.concat(names(UiHarness.find(gui, "Banners")), ",")).toBe(`{KEPT_BANNERS}`)
 	end)
-	it("the featured Secret banner shows State.featuredSecret and hides without it", function()
+	it("the featured Secret has no top banner, whatever State.featuredSecret says", function()
 		local hud, gui = mount(1920, 1080)
-		local banner = UiHarness.find(gui, "FeaturedSecret")
 		hud.update(
 			state({ featuredSecret = { id = "kitsune", name = "Kitsune", endsAt = 1000 + 3 * 86400 + 4 * 3600 } })
 		)
-		expect(banner.Visible).toBe(true)
-		expect(banner.Text).toBe("✨ Featured Secret this week: Kitsune (ends in 3d 4h)")
-		hud.update(state())
-		expect(banner.Visible).toBe(false)
+		expect(UiHarness.find(UiHarness.find(gui, "Banners"), "FeaturedSecret")).toBeNil()
+		for _, node in UiHarness.descendants(UiHarness.find(gui, "Banners")) do
+			if node:IsA("TextLabel") then
+				expect(string.find(node.Text, "Featured Secret", 1, true)).toBeNil()
+			end
+		end
 	end)
 	it("there are no toasts: no Toasts frame, no toast code in the client (B6)", function()
 		local _, gui = mount(1920, 1080)
@@ -354,7 +468,7 @@ describe("H1 HUD: nothing new top-right / top-middle", function()
 			expect(`{needle}: {has(hudSrc, needle)}`).toBe(`{needle}: false`)
 		end
 	end)
-	it("both clusters sit on the bottom line (the touch-controls floor) at every viewport", function()
+	it("both clusters sit on the bottom line (the touch-controls floor), the desktop events row above it", function()
 		local viewports = {}
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
 			table.insert(viewports, vp)
@@ -367,7 +481,11 @@ describe("H1 HUD: nothing new top-right / top-middle", function()
 			local rise = Layout.rowRise(s)
 			local floor = s.height - s.bottomInset - rise
 			expect(`{vp.name} money: {s.money.rect.y + s.money.rect.h == floor}`).toBe(`{vp.name} money: true`)
-			expect(`{vp.name} status: {s.status.rect.y + s.status.rect.h == floor}`).toBe(`{vp.name} status: true`)
+			-- off phones the events row stands STATUS.raise above that line
+			local statusFloor = floor - (if s.phone then 0 else Layout.STATUS.raise)
+			expect(`{vp.name} status: {s.status.rect.y + s.status.rect.h == statusFloor}`).toBe(
+				`{vp.name} status: true`
+			)
 			expect(s.money.rect.x).toBe(Layout.MARGIN)
 			expect(s.status.rect.x + s.status.rect.w).toBe(s.width - Layout.MARGIN)
 			-- the corner the sound slot uses (top-right) stays its
