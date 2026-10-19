@@ -52,7 +52,7 @@ Client effect sounds (Roblox-created, `AssetTypeId` 3, `IsPublicDomain` true, ve
 | `PvpSquirt` | 12222103 | Rubber band sling shot.wav | blaster shot / splat |
 | `PvpBoing` | 12222124 | Short spring sound.wav | Bounce Pad |
 | `PvpPop` | 12221996 | flashbulb.wav | confetti / balloon / hat / dance |
-| `PvpSqueak` | 12221990 | electronicpingshort.wav | Squeaky Hammer |
+| `PvpSqueak` | 9125994570 | Squeeze Toy Squeaky Rubber (Pro Sound Effects, public domain) | Squeaky Hammer |
 | `PvpFirework` | 12222065 | Launching rocket.wav | fireworks |
 | `PvpBubble` | 12222054 | Kerplunk.wav | Bubble Wand |
 
