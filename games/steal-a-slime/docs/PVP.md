@@ -8,7 +8,7 @@ Flag: `Config.FEATURES.PvP` (default `false`). Contract: `CONTRACT.md` §26. Cod
 2. Server-enforced cooldown, never below 1.5 s.
 3. Nothing deals damage or can kill. Knockback is horizontal with a small arc, capped per tier, and the landing point is clamped inside the map. A PvP fall causes no damage.
 4. Max 2 s crowd control (slows max 3 s), then 3 s control immunity. Safe zones (spawn, shop, fountain) and the new-player shield (10 min played or first rebirth; ends early if the player steals) block all tools.
-5. Tools work only on your own plot, or against a thief carrying a slime. Purely cosmetic fun items are exempt from that rule but still respect safe zones and the shield (`FunConfetti` may be used inside a safe zone).
+5. Tools work only on your own plot, or against a thief carrying a slime. Fun items are aimed toys that follow their own rules (CONTRACT.md §26.4); their control effects still respect the shield and the control cap.
 6. Show-off, not power gap: the top tier is about 2x the base effect. A higher tier replaces the lower one.
 
 Price = `max(100, floor(k x Economy.rebirthCost(gate)))`, k = 0.03 for tools, 0.01 for fun items (the pacing sim tunes it). The base slap stays free (4 studs push, PR B).
@@ -36,7 +36,18 @@ Ranks 15 and 30 add cosmetic gold skins / aura FX later (no item in this PR).
 
 **Goo Blaster** (server hitscan, range 40 / 45 / 50, only vs a thief carrying a slime): Squirter slow 30 % for 2 s, cooldown 12 s; Blaster 40 % / 2.5 s / 11 s; Cannon 50 % / 3 s / 10 s.
 
-**Fun items** (cooldown): Confetti 5 s, Balloon 3 s (decals fade after 10 s, max 8), Bubbles 4 s, Bounce Pad 10 s (own plot, max 1, 25 studs straight up, thieves 1.2 s then immunity), Squeaky Hammer 3 s (2-stud nudge on a thief only), Hat Launcher 8 s (self or friends, 30 s), Dance Bomb 45 s (own plot, thieves only, 2 s), Fireworks 20 s (own plot, cosmetic).
+**Fun items** (CONTRACT.md §26.4; tunables in `Config.PVP_FUN`, cooldowns in the `PVP_TOOLS` rows): toys first, power second. Every one is aimed with a click (no target pick), works anywhere and needs no plot of your own.
+
+- **Confetti Popper:** aim anywhere, also straight up; the burst rains down over about 10 studs and sticks confetti on everyone under it for a few seconds. Hold to charge a mega pop.
+- **Goo Balloon:** lobbed in an arc; the splash paints everyone in it goo green for 10 s and leaves a splat on the ground. A thief in the splash is slowed a little.
+- **Bubble Wand:** blows a stream of floating bubbles. A player who touches one floats in a bubble for 1.5 s (control); anyone else can click the bubble to pop it early. A wild slime it touches floats up, drifts and lands (cosmetic).
+- **Bounce Pad:** a trampoline, at most 2 live, 60 s each. Everyone bounces on it, wild slimes too; the owner bounces higher with a flip.
+- **Squeaky Hammer:** bonk a slime (wild or on any pad) and it squashes flat with a squeak, wobbles and springs back with an excited bounce: no harm, no theft, no value change. Bonk a player and they pancake for 0.8 s, then spring back with a BOING and a small push. Three hits on the same target in quick succession is a giant squeak.
+- **Slime Hat Launcher:** a hit player wears a slime hat for 30 s (stacks to 3); a miss turns into a little hat-slime that hops around for 20 s.
+- **Dance Bomb:** a lobbed disco bubble with lights and music; everyone inside dances for 2 s (control).
+- **Goo Fireworks:** a rocket that bursts high in the colour of your favourite slime, visible across the map; nearby wild slimes cheer-hop. Hold to fire a 3-rocket volley.
+
+A thief carrying a stolen slime who gets lifted, bounced, bonked or made to dance drops it, and the slime goes home. Shielded players only get the cosmetic part (confetti, paint, hats, fireworks).
 
 ## Hit feel (tuning and sounds)
 
