@@ -200,7 +200,7 @@ describe("WorldLayout matches the server's expectations", function()
 			expect(plot.attributes[Constants.PLOT_INDEX_ATTRIBUTE]).toBe(i)
 			expect(child(plot, Constants.HOME_ZONE) ~= nil).toBe(true)
 			expect(child(plot, Constants.PLOT_SLIMES_FOLDER) ~= nil).toBe(true)
-			for j = 1, Config.PADS_MAX do
+			for j = 1, Config.PADS_PER_FLOOR do
 				local pad = child(plot, `Pad_{j}`)
 				expect(pad and pad.attributes[Constants.PAD_INDEX_ATTRIBUTE]).toBe(j)
 			end

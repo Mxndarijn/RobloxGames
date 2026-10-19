@@ -1,6 +1,7 @@
 --!strict
 -- Owner-only plot prompts and lock / pad attributes (CONTRACT.md §8.4-§8.5).
 local Config = require("../src/shared/Config")
+local Economy = require("../src/shared/Economy")
 local PlotPrompts = require("../src/server/PlotPrompts")
 local ServerFixtures = require("./ServerFixtures")
 local TestRunner = require("./TestRunner")
@@ -38,14 +39,25 @@ describe("PlotPrompts.describe", function()
 		s.data.padsUnlocked = Config.PADS_START
 		local view = PlotPrompts.describe(world, s.plotIndex, T0)
 		expect(view.buyPad.pad).toBe(Config.PADS_START + 1)
-		expect(view.buyPad.actionText).toBe(`Buy pad ${Config.PAD_BASE_COST}`)
+		local first = Config.BASE_FLOORS[1].firstPadCost
+		expect(view.buyPad.actionText).toBe(`Buy pad ${first}`)
 		expect(view.buyPad.objectText).toBe(`Pad {Config.PADS_START + 1} of {Config.PADS_MAX}`)
-		expect(view.nextPadCost).toBe(Config.PAD_BASE_COST)
+		expect(view.nextPadCost).toBe(first)
 		s.data.padsUnlocked = Config.PADS_MAX
 		local full = PlotPrompts.describe(world, s.plotIndex, T0)
 		expect(full.buyPad.enabled).toBe(false)
 		expect(full.nextPadCost).toBeNil()
 		expect(full.buyPad.pad).toBe(Config.PADS_MAX)
+	end)
+	it("sells a floor's first pad as building that floor", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		s.data.padsUnlocked = Config.PADS_PER_FLOOR
+		local view = PlotPrompts.describe(world, s.plotIndex, T0)
+		expect(view.buyPad.pad).toBe(Config.PADS_PER_FLOOR + 1)
+		expect(view.buyPad.actionText).toBe(`Build floor 2 ${Economy.formatNumber(Config.BASE_FLOORS[2].firstPadCost)}`)
+		s.data.padsUnlocked = Config.PADS_PER_FLOOR + 1
+		expect(string.sub(PlotPrompts.describe(world, s.plotIndex, T0).buyPad.actionText, 1, 8)).toBe("Buy pad ")
 	end)
 	it("formats clocks", function()
 		expect(PlotPrompts.clock(0)).toBe("0:00")

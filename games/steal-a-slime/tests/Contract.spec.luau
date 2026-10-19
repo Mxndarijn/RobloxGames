@@ -56,10 +56,14 @@ describe("Config matches the design", function()
 			last = rarity.escapeTime
 		end
 	end)
-	it("runs Slime Rain hourly for 3 minutes on 8 pads", function()
+	it("runs Slime Rain hourly for 3 minutes", function()
 		expect(Config.RAIN_INTERVAL).toBe(3600)
 		expect(Config.RAIN_DURATION).toBe(180)
-		expect(Config.PADS_MAX).toBe(8)
+	end)
+	it("grows a base by floors of 8 pads up to 32", function()
+		expect(Config.PADS_PER_FLOOR).toBe(8)
+		expect(#Config.BASE_FLOORS).toBe(4)
+		expect(Config.PADS_MAX).toBe(32)
 	end)
 	it("rolls rarities 52 / 28 / 13 / 5.2 / 1.2 / 0.2 / 0.05 with no family drop share", function()
 		local weights = {}

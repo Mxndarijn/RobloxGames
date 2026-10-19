@@ -79,8 +79,8 @@ describe("kit mesh slots keep the mesh's proportions", function()
 			end
 		end)
 		expect(table.concat(bad, "; ")).toBe("")
-		-- 8 plots x (PADS_MAX stands + gate + 4 corner posts) + plaza + decor
-		expect(checked >= Config.PLOT_COUNT * (Config.PADS_MAX + 5)).toBe(true)
+		-- 8 plots x (PADS_PER_FLOOR stands + gate + 4 corner posts) + plaza + decor
+		expect(checked >= Config.PLOT_COUNT * (Config.PADS_PER_FLOOR + 5)).toBe(true)
 	end)
 	it("gives the ranch hay bale behind the plots its native proportions", function()
 		local found = 0
@@ -101,7 +101,7 @@ describe("pad stands", function()
 	it("puts each stand on the Base at native size, turned with the plot", function()
 		for i, plot in plots do
 			local _, yaw = WorldLayout.plotCentre(i)
-			for j = 1, Config.PADS_MAX do
+			for j = 1, Config.PADS_PER_FLOOR do
 				local pad = child(plot, `Pad_{j}`)
 				local stand = child(pad, "Stand")
 				local look = meshOf(stand) :: string
@@ -122,7 +122,7 @@ describe("pad stands", function()
 	end)
 	it("tops the Pad at the stand's seat, so slimes rest on the mesh", function()
 		for i, plot in plots do
-			for j = 1, Config.PADS_MAX do
+			for j = 1, Config.PADS_PER_FLOOR do
 				local pad = child(plot, `Pad_{j}`)
 				local look = meshOf(child(pad, "Stand")) :: string
 				local seat = WorldLayout.PAD_SEAT_Y
@@ -142,7 +142,7 @@ describe("pad stands", function()
 		expect(WorldLayout.PAD_MESH).toBe("phoenix_pad_crate")
 		expect(WorldLayout.PAD_SEAT_Y).toBe(2.4)
 		for _, plot in plots do
-			for j = 1, Config.PADS_MAX do
+			for j = 1, Config.PADS_PER_FLOOR do
 				local pad = child(plot, `Pad_{j}`)
 				expect(meshOf(child(pad, "Stand"))).toBe(WorldLayout.PAD_MESH)
 				expect((pad.size :: Vec)[2]).toBeCloseTo(WorldLayout.PAD_SEAT_Y)

@@ -28,6 +28,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local BaseFloors = require(script.Parent.BaseFloors)
 local BossWander = require(ReplicatedStorage.Shared.BossWander)
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -86,15 +87,19 @@ WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart
 -- World lookup
 ---------------------------------------------------------------------------
 
-function WorldView.setup()
+-- Returns the WorldBuilder module when it built the world (nil on the greybox): its buildFloor adds upper floors.
+function WorldView.setup(): any?
 	-- The world ships static in the place (world/*.rbxmx); WorldBuilder is idempotent and reuses it.
 	-- Build before anything that yields (LoadAsset below): characters may already be spawning.
 	-- Greybox only if the builder is missing or fails.
 	local visuals = ReplicatedStorage:FindFirstChild("Visuals")
 	local builder = visuals and visuals:FindFirstChild("WorldBuilder")
+	local built: any? = nil
 	if builder then
 		local ok, err = pcall(function()
-			(require(builder :: ModuleScript) :: any).build(workspace)
+			local module = require(builder :: ModuleScript) :: any
+			module.build(workspace)
+			built = module
 		end)
 		if not ok then
 			warn(`[Server] WorldBuilder.build failed: {err}`)
@@ -102,6 +107,7 @@ function WorldView.setup()
 	end
 	if not workspace:FindFirstChild(Constants.PLOTS_FOLDER) then
 		FallbackWorld.build()
+		built = nil
 	end
 	-- FallenPartsDestroyHeight is plugin-only to write; default.project.json sets it.
 	if workspace.FallenPartsDestroyHeight > Rescue.KILL_PLANE_Y then
@@ -140,6 +146,7 @@ function WorldView.setup()
 		folder.Name = Constants.WILD_FOLDER
 		folder.Parent = workspace
 	end
+	return built
 end
 
 -- Plot model with PlotIndex == index (cached while it stays in workspace.Plots).
@@ -1089,7 +1096,8 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 	ejectFromStack(character, root)
 end
 
-function WorldView.updatePlots(world: World.World, now: number)
+-- `floors` (nil on the greybox) builds and removes the plots' upper floors (BaseFloors).
+function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloors.Context?)
 	local habitatsOn = Config.FEATURES.Habitats
 	HabitatPads.step(habitats, world, now, habitatsOn)
 	for index = 1, world.plotCount do
@@ -1097,6 +1105,9 @@ function WorldView.updatePlots(world: World.World, now: number)
 		if plot then
 			local userId = world.plots[index]
 			local session = userId and world.sessions[userId]
+			if floors then
+				BaseFloors.sync(plot, index, if session then session.data.padsUnlocked else 0, floors)
+			end
 			local view = PlotPrompts.describe(world, index, now)
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)
 			setIfChanged(plot, "LockUntil", if session then session.lockUntil else 0)
@@ -1170,7 +1181,9 @@ function WorldView.pointInHomeZone(position: Vector3, plotIndex: number): boolea
 	end
 	local p = zone.CFrame:PointToObjectSpace(position)
 	local half = zone.Size / 2
-	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= half.Y + 8
+	local reachUp = zone:GetAttribute("ReachUp")
+	local top = half.Y + 8 + (if type(reachUp) == "number" then reachUp else 0)
+	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
 end
 
 -- Spawn point on top of the plot's Base.

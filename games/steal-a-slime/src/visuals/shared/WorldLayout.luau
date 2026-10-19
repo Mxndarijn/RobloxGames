@@ -283,6 +283,9 @@ WorldLayout.PAD_SEAT_Y = 2.4
 -- habitat overlays rest on it at height y, on the rim band between the mat
 -- (half side matHalf) and the deck edge (half side half).
 WorldLayout.PAD_DECK = table.freeze({ y = 2.5, half = 3.75, matHalf = 2.6 })
+-- Upper floors (Config.BASE_FLOORS, built at runtime by server/BaseFloors): floor f's walking surface is
+-- FLOOR_HEIGHT above floor f - 1's.
+WorldLayout.FLOOR_HEIGHT = 14
 -- phoenix_gate's cream name board at native size (models/phoenix_gate.py
 -- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line;
 -- "SignRim" behind it ends 0.4 in front of the wall line).
@@ -1024,11 +1027,18 @@ end
 
 -- Local pad centre (x, z) for pad index 1..PADS_MAX: rows of four, front
 -- row first, the vat and lock button sit between the pads and the entrance.
+-- Every floor repeats the same grid (WorldLayout.floorTop gives its height).
 function WorldLayout.padOffset(j: number): (number, number)
 	local perRow = 4
-	local col = (j - 1) % perRow
-	local row = (j - 1) // perRow
+	local k = (j - 1) % Config.PADS_PER_FLOOR
+	local col = k % perRow
+	local row = k // perRow
 	return (col - (perRow - 1) / 2) * 16, 2 + row * 16
+end
+
+-- Plot-local height of floor f's walking surface (floor 1 is the Base top).
+function WorldLayout.floorTop(f: number): number
+	return WorldLayout.PLOT_FLOOR_TOP + (f - 1) * WorldLayout.FLOOR_HEIGHT
 end
 
 function WorldLayout.plotCentre(i: number): (Vec, number)
@@ -1227,6 +1237,23 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	return nodes
 end
 
+-- Pad_<j> on its floor: the Pad stays the gameplay surface (collision, prompt, slimes rest on its top) from the
+-- floor up to the stand's seat; the stand mesh sits on the floor at native size and the Pad hides under it once it
+-- lands.
+local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): WorldNode
+	local x, z = WorldLayout.padOffset(j)
+	local y = WorldLayout.floorTop(math.ceil(j / Config.PADS_PER_FLOOR))
+	local look = WorldLayout.PAD_MESH
+	local seat = WorldLayout.PAD_SEAT_Y
+	local pad = block(`Pad_{j}`, { 8, seat, 8 }, at({ x, y + seat / 2, z }), color, "SmoothPlastic", { 0, yaw, 0 })
+	pad.attributes = { PadIndex = j }
+	standIn(pad, look)
+	local stand = meshSize(look, 1)
+	pad.children =
+		{ meshSlot(block("Stand", stand, at({ x, y + stand[2] / 2, z }), color, nil, { 0, yaw, 0 }), look, true) }
+	return pad
+end
+
 local function plot(i: number): WorldNode
 	local centre, yaw = WorldLayout.plotCentre(i)
 	local at = frame(centre, yaw)
@@ -1235,26 +1262,16 @@ local function plot(i: number): WorldNode
 	local children: { WorldNode } = {
 		block("Base", { s, 1, s }, at({ 0, 0.5, 0 }), mix(color, PLOT_BASE_GREY, 0.55), "Pavement", { 0, yaw, 0 }),
 	}
-	for j = 1, Config.PADS_MAX do
-		local x, z = WorldLayout.padOffset(j)
-		local look = WorldLayout.PAD_MESH
-		-- Pad stays the gameplay surface (collision, prompt, slimes rest on its
-		-- top) from the Base up to the stand's seat; the stand mesh sits on the
-		-- Base at native size and the Pad hides under it once it lands.
-		local seat = WorldLayout.PAD_SEAT_Y
-		local pad = block(`Pad_{j}`, { 8, seat, 8 }, at({ x, 1 + seat / 2, z }), color, "SmoothPlastic", { 0, yaw, 0 })
-		pad.attributes = { PadIndex = j }
-		standIn(pad, look)
-		local stand = meshSize(look, 1)
-		pad.children =
-			{ meshSlot(block("Stand", stand, at({ x, 1 + stand[2] / 2, z }), color, nil, { 0, yaw, 0 }), look, true) }
-		table.insert(children, pad)
+	for j = 1, Config.PADS_PER_FLOOR do
+		table.insert(children, padNode(j, at, yaw, color))
 	end
 
 	local zone = block("HomeZone", { s, 14, s }, at({ 0, 8, 0 }), color, "SmoothPlastic", { 0, yaw, 0 })
 	zone.transparency = 1
 	zone.canCollide = false
 	zone.canQuery = false
+	-- The zone check reaches up over every upper floor (CONTRACT.md §5.3).
+	zone.attributes = { ReachUp = (#Config.BASE_FLOORS - 1) * WorldLayout.FLOOR_HEIGHT }
 	table.insert(children, zone)
 
 	local vat = disc("MergeVat", 4, 9, at({ -19, 3, -14 }), { 150, 160, 180 }, "Metal", yaw)

@@ -98,7 +98,11 @@ describe("MysteryEgg.spawnForEvent", function()
 		expect(#hatched).toBe(3)
 		expect(#session.data.slimes).toBe(3)
 		expect(session.data.cash).toBe(0)
-		expect(#ServerEgg.spawnForEvent(world, 1, 50, T0)).toBe(session.data.padsUnlocked - 3)
+		local filled = 0
+		for _ = 1, math.ceil(Config.PADS_MAX / ServerEgg.MAX_EVENT_EGGS) do
+			filled += #ServerEgg.spawnForEvent(world, 1, 50, T0)
+		end
+		expect(filled).toBe(session.data.padsUnlocked - 3)
 		expect(#ServerEgg.spawnForEvent(world, 1, 1, T0)).toBe(0)
 		expect(#ServerEgg.spawnForEvent(world, 99, 1, T0)).toBe(0)
 	end)

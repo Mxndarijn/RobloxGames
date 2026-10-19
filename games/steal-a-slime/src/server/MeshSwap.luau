@@ -584,21 +584,40 @@ function MeshSwap.applyAll(): number
 	return placed
 end
 
+-- Swaps every slot in `instances` and their descendants; `scope` is the Map or Plots root they sit under.
+local function applyTo(instances: { Instance }, scope: Instance): number
+	local count = 0
+	for _, top in instances do
+		local list = { top }
+		for _, d in top:GetDescendants() do
+			table.insert(list, d)
+		end
+		for _, inst in list do
+			local name = inst:GetAttribute("MeshAsset")
+			if
+				(inst:IsA("BasePart") or inst:IsA("Model"))
+				and typeof(name) == "string"
+				and swap(inst :: any, name, scope)
+			then
+				count += 1
+			end
+		end
+	end
+	return count
+end
+
+-- Meshes for slots added after boot (server/BaseFloors' upper floors). Yields while a template loads.
+function MeshSwap.applyUnder(instances: { Instance }): number
+	local plots = workspace:FindFirstChild("Plots")
+	return if plots then applyTo(instances, plots) else 0
+end
+
 -- Returns how many placeholders got a mesh.
 function MeshSwap.apply(): number
 	local count = 0
 	for _, root in { workspace:FindFirstChild("Map"), workspace:FindFirstChild("Plots") } do
 		if root then
-			for _, inst in root:GetDescendants() do
-				local name = inst:GetAttribute("MeshAsset")
-				if
-					(inst:IsA("BasePart") or inst:IsA("Model"))
-					and typeof(name) == "string"
-					and swap(inst :: any, name, root)
-				then
-					count += 1
-				end
-			end
+			count += applyTo(root:GetChildren(), root)
 		end
 	end
 	if slidePcdPlaced then

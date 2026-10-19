@@ -289,8 +289,8 @@ local GOALS: { Goal } = {
 		id = "Pads",
 		title = "Unlock <n> pad<s>",
 		stat = "pads",
-		targets = { 5, 6, 7, 8 },
-		rewards = { 200, 1000, 5000, 20000 },
+		targets = { 6, 8, 16, 24, 32 },
+		rewards = { 500, 5000, 100000, 10000000, 1000000000 },
 	},
 	{
 		id = "Earn",
@@ -554,6 +554,17 @@ end
 -- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
 -- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
 local SLIME_MOVE_SPEED_MULT = 0.65
+-- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). Row f prices floor f's pads: its first pad you
+-- buy costs `firstPadCost`, every next one on that floor `growth` times the one before. Floor 1's first bought pad is
+-- pad PADS_START + 1; on a higher floor it is the floor's first pad, so its price is also the price of the new floor.
+-- Adding a row adds a floor.
+local PADS_PER_FLOOR = 8
+local BASE_FLOORS = table.freeze({
+	table.freeze({ firstPadCost = 100, growth = 2.5 }),
+	table.freeze({ firstPadCost = 25_000, growth = 1.6 }),
+	table.freeze({ firstPadCost = 2_500_000, growth = 1.6 }),
+	table.freeze({ firstPadCost = 250_000_000, growth = 1.6 }),
+})
 local SPAWN_INTERVAL = 4 -- seconds between fountain drops; Slime Rain keeps this pace
 local RITUAL_MIN_PLAYERS = 2 -- Config.RITUAL.MIN_PLAYERS; also the number of stand spots
 local WILD_BASE_LIFETIME = 75 -- seconds at the old pace
@@ -584,9 +595,9 @@ local Config = {
 	-- Economy
 	STARTING_CASH = 25,
 	PADS_START = 4,
-	PADS_MAX = 8, -- design MVP: 8 pads per plot
-	PAD_BASE_COST = 100,
-	PAD_COST_GROWTH = 2.5,
+	PADS_PER_FLOOR = PADS_PER_FLOOR,
+	BASE_FLOORS = BASE_FLOORS,
+	PADS_MAX = #BASE_FLOORS * PADS_PER_FLOOR,
 	SELL_SECONDS = 30, -- a slime sells for this many seconds of its income
 	OFFLINE_RATE = 0.5, -- fraction of income earned while offline
 	OFFLINE_CAP_SECONDS = 2 * 60 * 60, -- offline income stops accruing after 2 h

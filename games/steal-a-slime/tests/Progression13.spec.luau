@@ -378,7 +378,7 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		assert(s, "session")
 		expect(s.data.goals.Catch).toBe(1) -- 1 (8 caught)
 		expect(s.data.goals.Steal).toBe(2) -- 1, 10
-		expect(s.data.goals.Pads).toBe(4)
+		expect(s.data.goals.Pads).toBe(2) -- 6, 8
 		expect(s.data.goals.Earn).toBe(2) -- 10K, 1M
 		expect(s.data.goals.Rebirth).toBe(2) -- 1, 3
 		expect(s.data.speciesRewards).toBe(0) -- no species found
