@@ -9,13 +9,13 @@
 	the aim and draws the same arc from the PvpEvent "Effect".
 
 	  Squirter  rapid fire: `shots` per tank, `shotGap` apart; the cooldown (the refill) starts after the last shot.
-	            Each hit stacks a little slow (PvpSlow.stack, capped by SLOW_MAX_SECONDS). No catch.
-	  Blaster   `blobs` in a fan `spreadDeg` apart; each player is hit at most once per shot; a thief is caught.
-	  Cannon    one big lob: everyone within `splash` of the impact is slowed (thieves caught) and a slowing pool
-	            stays `poolSeconds`.
-	A blob that hits nobody leaves a slippery splat (SPLAT_*). Pools and splats are server-side zones (no Instance)
-	stepped in the per-player WorldView tick; they slow whoever walks in (not the shooter, not shielded players,
-	immunity respected). No Humanoid health is ever changed.
+	            Each hit stacks a little slow (PvpSlow.stack, capped by SLOW_MAX_SECONDS).
+	  Blaster   `blobs` in a fan `spreadDeg` apart; each player is hit at most once per shot.
+	  Cannon    one big lob: everyone within `splash` of the impact is slowed and a slowing pool stays `poolSeconds`.
+	Every player a blob, a splash, a pool or a splat hits is caught when carrying a stolen slime (PvpService.catchThief,
+	immunity or not). A blob that hits nobody leaves a slippery splat (SPLAT_*). Pools and splats are server-side zones
+	(no Instance) stepped in the per-player WorldView tick; they slow whoever walks in (not the shooter, not shielded
+	players, immunity respected). No Humanoid health is ever changed.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -90,7 +90,7 @@ local function hitPlayer(call: PvpService.UseCall, victim: Session): (number, bo
 			PvpSlow.slow(victim, now, PvpBlasterRules.slowFactor(tool.slow), now + applied)
 		end
 	end
-	local caught = tool.catches == true and PvpService.catchThief(call.world, victim, call.session, now) ~= nil
+	local caught = PvpService.catchThief(call.world, victim, call.session, now) ~= nil
 	return applied, caught
 end
 
@@ -262,12 +262,16 @@ function PvpBlaster.tick(
 		end
 	end
 	local state = PvpService.state(victim)
-	if not position or not state or PvpService.isShielded(victim, now) or not PvpRules.canControl(state, now) then
+	if not position or not state or PvpService.isShielded(victim, now) then
 		return 0
 	end
 	for _, list in zones do
 		for _, zone in list do
 			if zone.owner ~= victim.userId and PvpTrapRules.within(zone.position, zone.radius, position) then
+				PvpService.catchThief(world, victim, world.sessions[zone.owner], now)
+				if not PvpRules.canControl(state, now) then
+					return 0
+				end
 				local applied = PvpRules.applySlow(state, zone.seconds, now)
 				if applied > 0 then
 					PvpSlow.slow(victim, now, PvpBlasterRules.slowFactor(zone.slow), now + applied)

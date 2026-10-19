@@ -15,8 +15,8 @@
 	is the bubble around a lifted player (`ctx.funBubble`, server/PvpFunView).
 
 	Shielded players only get the cosmetic part (confetti, paint, hats); control goes through PvpRules.applyControl
-	(cap, then immunity). A thief carrying a stolen slime who is lifted, bounced, bonked or made to dance loses it:
-	PvpService.catchThief bounces the slime back to its owner. No Humanoid health is ever changed.
+	(cap, then immunity). A thief carrying a stolen slime who is confettied, splashed, lifted, bounced, bonked, hatted
+	or made to dance loses it: PvpService.catchThief bounces the slime back to its owner. No Humanoid health is ever changed.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -133,7 +133,8 @@ local function noTarget(call: PvpService.UseCall): (boolean, string?)
 	return true, nil
 end
 
--- Confetti Popper: a burst along the aim (also straight up) that rains on everyone under it. Cosmetic only.
+-- Confetti Popper: a burst along the aim (also straight up) that rains on everyone under it. Cosmetic, except that
+-- a thief under the rain is caught.
 local function confetti(call: PvpService.UseCall): (boolean, string?)
 	local cfg = FUN.CONFETTI
 	local center = PvpFunRules.within(call.position, aimOf(call, cfg.RANGE), cfg.RANGE)
@@ -146,6 +147,9 @@ local function confetti(call: PvpService.UseCall): (boolean, string?)
 		local p = other.position
 		if PvpFunRules.flatDistance(center, p) <= radius and p.Y <= center.Y + CONFETTI_ABOVE then
 			table.insert(targets, other.session.userId)
+			if other.session ~= call.session and not PvpService.isShielded(other.session, call.now) then
+				PvpService.catchThief(call.world, other.session, call.session, call.now)
+			end
 		end
 	end
 	fire(call.world, call.now, {
@@ -367,7 +371,8 @@ local function squeaky(call: PvpService.UseCall): (boolean, string?)
 	return true, nil
 end
 
--- Slime Hat Launcher: a hat shot toward the aim; the first other player in its path wears it (stacking).
+-- Slime Hat Launcher: a hat shot toward the aim; the first other player in its path wears it (stacking) and is
+-- caught when carrying a stolen slime.
 local function hatLauncher(call: PvpService.UseCall): (boolean, string?)
 	local cfg = FUN.HATS
 	local p = call.position
@@ -382,6 +387,9 @@ local function hatLauncher(call: PvpService.UseCall): (boolean, string?)
 	local stack = 0
 	local seconds = call.tool.hatSeconds or 0
 	if target then
+		if not PvpService.isShielded(target, call.now) then
+			PvpService.catchThief(call.world, target, call.session, call.now)
+		end
 		local worn = hats[target]
 		stack = PvpFunRules.hatStack(if worn then worn.count else 0, worn ~= nil and call.now < worn.untilTime)
 		hats[target] = { count = stack, untilTime = call.now + seconds }
@@ -533,6 +541,9 @@ local function stepLandings(world: World.World, session: Session, position: Vec,
 						if applied > 0 then
 							slows[session] = { factor = 1 - (tool.slow or 0), untilTime = now + applied }
 						end
+					end
+					if session ~= landing.owner and not PvpService.isShielded(session, now) then
+						PvpService.catchThief(world, session, landing.owner, now)
 					end
 					fire(world, now, {
 						attacker = landing.owner.userId,

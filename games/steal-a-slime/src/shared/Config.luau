@@ -114,7 +114,6 @@ export type PvpTool = {
 	splash: number?, -- Cannon: studs around the impact that are slowed
 	pool: number?, -- Cannon: radius of the slowing pool, studs
 	poolSeconds: number?, -- Cannon: how long the pool stays
-	catches: boolean?, -- Blaster: a hit on a thief sends the slime home
 	radius: number?, -- Trap: studs
 	pull: number?, -- Mega Trap: studs around it that are pulled in
 	spitArc: number?, -- Mega Trap: studs of vertical arc of the spit
@@ -537,7 +536,6 @@ local PVP_TOOLS: { PvpTool } = {
 		spreadDeg = 8,
 		slow = 0.4,
 		slowSeconds = 2,
-		catches = true,
 	}),
 	blaster("GooBlaster3", "Goo Cannon", 3, 20, {
 		cooldown = 6,
@@ -548,7 +546,6 @@ local PVP_TOOLS: { PvpTool } = {
 		poolSeconds = 4,
 		slow = 0.5,
 		slowSeconds = 3,
-		catches = true,
 	}),
 	-- Fun items (CONTRACT.md §26.8): the rest of their tunables live in PVP_FUN.
 	fun("FunConfetti", "Confetti Popper", 0, 3, true, { allowInSafeZone = true }),

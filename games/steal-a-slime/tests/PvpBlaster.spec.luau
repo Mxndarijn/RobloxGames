@@ -214,14 +214,35 @@ describe("Blaster use", function()
 		expect(PvpSlow.walkFactor(b, T0 + 1 + PVP.SLOW_MAX_SECONDS)).toBe(1)
 		done()
 	end)
-	it("the Squirter does not catch a thief; the Blaster and the Cannon do", function()
+	it("every blaster tier catches a thief it hits: the slime goes home with one toast", function()
 		for _, id in TIERS do
 			local world, a, b = setup(id)
 			expect((StealService.steal(world, b, "gem", 1, T0))).toBe(true)
 			expect(fire(world, a, positions[2], T0 + 1, id)).toBe(true)
-			expect(b.carry == nil).toBe(id ~= "GooBlaster1")
+			expect(b.carry).toBeNil()
+			expect(world.escaping.gem ~= nil).toBe(true)
+			local toasts = 0
+			for _, text in ServerFixtures.notifications(world, 1) do
+				if text == `You caught {b.name}! The slime went home.` then
+					toasts += 1
+				end
+			end
+			expect(toasts).toBe(1)
 			done()
 		end
+	end)
+	it("a thief walking into a splat is caught, also while immune to its slow", function()
+		local world, a, b = setup("GooBlaster2")
+		positions[2], positions[3] = { X = 500, Y = 3, Z = 0 }, { X = 500, Y = 3, Z = 10 }
+		local miss = { X = 230, Y = 3, Z = -200 }
+		expect(fire(world, a, miss, T0 + 1, "GooBlaster2")).toBe(true)
+		expect((StealService.steal(world, b, "gem", 1, T0 + 2))).toBe(true)
+		PvpRules.applyControl(PvpService.state(b) :: any, 1, T0 + 2) -- under control: immune to the slip
+		local spot = PvpBlaster.zones(a)[1].position
+		expect(PvpBlaster.tick(world, b, spot, T0 + 2.1, env)).toBe(0)
+		expect(b.carry).toBeNil()
+		expect(world.escaping.gem ~= nil).toBe(true)
+		done()
 	end)
 	it("the Cannon splashes everyone within 6 studs and leaves a pool", function()
 		local world, a, b, c = setup("GooBlaster3")
