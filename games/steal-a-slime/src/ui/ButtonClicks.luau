@@ -2,8 +2,9 @@
 --[[
 	ButtonClicks
 
-	Every GuiButton under `root` plays the "click" sound when pressed, so the HUD and every menu click
-	without each panel wiring it. Buttons made later (panels built on demand, list rows) are picked up
+	Every GuiButton under `root` (the game's own ScreenGui, not PlayerGui, so Roblox's touch jump button
+	stays quiet) plays the "click" sound when pressed, so the HUD and every menu click without each panel
+	wiring it. Buttons made later (panels built on demand, list rows) are picked up
 	through DescendantAdded.
 
 	`play` is injected (SoundController.play in the client, a stub in tests/ui/ButtonClicks.spec.luau).

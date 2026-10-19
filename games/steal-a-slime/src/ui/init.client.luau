@@ -137,7 +137,7 @@ local soundController = if Config.FEATURES.Audio == true
 	then SoundController.new(Config, player, require(Shared:WaitForChild("DayNight")))
 	else nil
 if soundController then
-	require(script.ButtonClicks).start(player:WaitForChild("PlayerGui"), SoundController.play)
+	require(script.ButtonClicks).start(gui, SoundController.play)
 end
 
 -- Display names for UserIds (thieves, carriers). Async lookup for players who left.
