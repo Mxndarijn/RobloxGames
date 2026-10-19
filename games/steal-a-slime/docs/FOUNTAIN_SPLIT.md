@@ -47,7 +47,7 @@ and the colliders behave exactly as without the flag, every `SlideColliders` box
 `MeshSwap.apply` ends by retiring the boxes the slide mesh replaces; `Fill`, `JointFill`, the roof wedges and `Skirt` stay.
 
 `MeshAssets.COLLISION` also lists the 4 PCD pieces and the slide (a global table; the slide is only asked for with `SlidePCD`); `tests/MeshCollision.spec` counts them only with the flag
-on. The pieces are not in `allMeshIds()` (no client preload with the flag off). Not in `FeatureOverride.FLAGS` on purpose: the
+on. With the flag off no piece MeshPart exists, so the client preloads none. Not in `FeatureOverride.FLAGS` on purpose: the
 pc-watcher sets those at boot for a whole run, which would flip the fountain for every shot; use the experiment shot below.
 
 ## Budgets (tools/pr-gate)

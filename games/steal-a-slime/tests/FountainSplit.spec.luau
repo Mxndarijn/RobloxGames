@@ -86,16 +86,6 @@ describe("FountainSplit data", function()
 			expect(MeshAssets.collision(M)).toBe(nil) -- the whole mesh stays decor
 		end
 	)
-	it("keeps the pieces out of the client preload list", function()
-		local ids = {}
-		for _, id in MeshAssets.allMeshIds() do
-			ids[id] = true
-		end
-		for _, name in MeshAssets.FOUNTAIN_SPLIT do
-			expect(ids[MeshAssets.meshId(name)]).toBe(nil)
-		end
-		expect(ids[MeshAssets.meshId(M)]).toBe(true)
-	end)
 end)
 
 local path = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-fsplit-{os.time()}-{math.random(1, 1e9)}.rbxlx`

@@ -373,7 +373,7 @@ entries["slime_lane"] =
 
 -- FEATURES.FountainSplit (default off; MeshSwap.swapFountainSplit): the slime_fountain mesh cut into 5 pieces by
 -- shared/modeling-kit/models/slime_fountain_split.py (out/fountain_split.json has the numbers, tris sum to the whole:
--- 6354). NOT world slots and not preloaded (allMeshIds skips them): with the flag off nothing loads them. The four
+-- 6354). NOT world slots: with the flag off nothing loads them. The four
 -- tower pieces are PreciseConvexDecomposition (COLLISION below); the slide piece is PCD only with FEATURES.SlidePCD, else decor.
 entries["fountain_split_basin"] = {
 	assetId = 113404417037788,
@@ -494,10 +494,6 @@ MeshAssets.FOUNTAIN_SPLIT = table.freeze({
 	"fountain_split_silo",
 	"fountain_split_slide",
 })
-local splitPiece: { [string]: boolean } = {}
-for _, name in MeshAssets.FOUNTAIN_SPLIT do
-	splitPiece[name] = true
-end
 
 -- Yaw (degrees) MeshSwap adds to a mesh in a WorldLayout slot. WorldLayout
 -- lays slots out with the kit's documented axes (FBX Lcl Rotation: Roblox
@@ -614,24 +610,6 @@ end
 function MeshAssets.meshId(name: string): string?
 	local e = entries[name]
 	return e and e.meshId
-end
-
--- Every uploaded mesh id (kit meshes + slime kit), sorted and de-duplicated:
--- the client preloads them all (visuals/client/Preload) so no mesh pops in.
-function MeshAssets.allMeshIds(): { string }
-	local seen, out = {}, {}
-	for name, e in entries do
-		if splitPiece[name] then
-			continue -- FEATURES.FountainSplit pieces load only with the flag on (the replicated MeshParts are preloaded then)
-		end
-		local id = e.meshId
-		if id and not seen[id] then
-			seen[id] = true
-			table.insert(out, id)
-		end
-	end
-	table.sort(out)
-	return out
 end
 
 -- Uniform fit of `name` into a box: the largest native size x one scale that
