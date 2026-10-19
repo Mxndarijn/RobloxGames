@@ -65,7 +65,9 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 		local reach = if phase == "stop" then smooth(u * 3) elseif phase == "post" then 1 - smooth(u * 2) else 0
 		p.lean = side * 1.1 * reach
 		p.roll = side * 0.12 * reach
-		if phase == "stop" then
+		if phase == "post" then
+			p.yaw = -side * 1.2 * reach
+		elseif phase == "stop" then
 			p.yaw = -side * 1.2 * smooth(u * 3)
 			p.tilt = 0.35
 			if u > 0.15 and u < 0.75 then

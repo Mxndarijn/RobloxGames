@@ -33,6 +33,9 @@ local SlimeReact = require(script.Parent:WaitForChild("SlimeReact"))
 local SlimeActor = {}
 
 SlimeActor.NERVES_LOOK_DISTANCE = 26 -- studs: a nervous slime looks back at a player this close
+SlimeActor.TURN_RATE = 9 -- 1 / s: how fast the body turns to a new look (shortest way round)
+-- The Body replicates about this late: beats are looked up this far back, so a pose starts when the slime stops.
+SlimeActor.REPLICATION_LAG = 0.12
 SlimeActor.BUMP_SECONDS = 0.35
 SlimeActor.BUMPED_SECONDS = 0.5
 -- Face -> bones: lids shut (closed) or eyes bulging (pop), SlimeBones.Extra.
@@ -66,6 +69,10 @@ export type Actor = {
 	beatPose: SlimeBeats.Pose,
 	reactPose: SlimeReact.Pose,
 	mods: SlimeMotor.Mods,
+	yaw: number, -- smoothed turn from the heading
+	yawWeight: number, -- smoothed share of that turn
+	lastNow: number,
+	species: string?,
 	plan: ParadeChoreo.Plan?,
 	planKey: string?,
 	emote: string?,
@@ -148,6 +155,10 @@ function SlimeActor.attach(model: Model, motor: SlimeMotor.Motor, now: number): 
 		beatPose = {} :: any,
 		reactPose = {} :: any,
 		mods = SlimeMotor.newMods(),
+		yaw = 0,
+		yawWeight = 0,
+		lastNow = now,
+		species = if type(species) == "string" then species else nil,
 		plan = nil,
 		planKey = nil,
 		emote = nil,
@@ -174,8 +185,14 @@ local function planOf(actor: Actor): (ParadeChoreo.Plan?, number, number)
 		actor.plan, actor.planKey = nil, nil
 		return nil, 0, 0
 	end
+	-- The Species attribute can land after the rig: the temperament (and so the plan) follows it.
+	local species = model:GetAttribute(Constants.SPECIES_ATTRIBUTE)
+	if type(species) == "string" and species ~= actor.species then
+		actor.species = species
+		actor.persona = SlimePersona.of(species)
+	end
 	local startAt, seconds, lead = ParadeLane.walkTimes(at, untilAt)
-	local key = `{seed}|{at}|{untilAt}`
+	local key = `{seed}|{at}|{untilAt}|{actor.persona.temper}`
 	if actor.planKey ~= key then
 		actor.plan = ParadeChoreo.plan(seed, actor.persona.temper, seconds, lead)
 		actor.planKey = key
@@ -191,6 +208,10 @@ local function face(mods: SlimeMotor.Mods, name: string?)
 	end
 end
 
+local function wrap(a: number): number
+	return (a + math.pi) % (2 * math.pi) - math.pi
+end
+
 -- Yaw from the slime's heading to world point `at` (+ = left).
 local function yawTo(body: BasePart, from: Vector3, at: Vector3): (number, number)
 	local rel = body.CFrame:VectorToObjectSpace(at - from)
@@ -204,12 +225,17 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 	local look = body.CFrame.LookVector
 	local state = model:GetAttribute("State")
 	local wild = state == "Wild"
+	-- On the fountain slide (Riding); the lead-in from the slide mouth also says Riding, but there it walks.
+	local laneAt = model:GetAttribute(Constants.LANE_AT_ATTRIBUTE)
 	local riding = model:GetAttribute(Constants.RIDING_ATTRIBUTE) == true
+		and (type(laneAt) ~= "number" or serverNow - laneAt < ParadeLane.RIDE_SECONDS)
 
 	-- Gait (frozen to the anchor while it rides the slide)
 	local g = actor.gaitPose
 	if riding then
-		actor.gait = SlimeGait.new(pos.X, pos.Z, now, actor.gait.phase)
+		local st = actor.gait
+		st.stage, st.visX, st.visZ, st.side, st.lastX, st.lastZ, st.lastT = "ground", pos.X, pos.Z, 0, pos.X, pos.Z, now
+		st.vx, st.vz, st.landedAt = 0, 0, now - 10
 	end
 	SlimeGait.step(actor.gait, actor.persona, pos.X, pos.Z, look.X, look.Z, now, rand, g)
 	if riding then
@@ -244,7 +270,7 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 	if wild and not riding and Config.FEATURES.SlimeChoreo then
 		local plan, startAt, untilAt = planOf(actor)
 		if plan then
-			local beat, phase, u = ParadeChoreo.beatAt(plan, serverNow - startAt)
+			local beat, phase, u = ParadeChoreo.beatAt(plan, serverNow - SlimeActor.REPLICATION_LAG - startAt)
 			if beat then
 				local b = SlimeBeats.pose(beat.kind, phase, u, beat.side, now, actor.beatPose)
 				standing = phase == "stop"
@@ -273,10 +299,11 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 				if player then
 					yaw, dist = yawTo(body, actor.visible, player)
 				end
-				if dist < SlimeActor.NERVES_LOOK_DISTANCE then
-					mods.yaw, mods.yawWeight = yaw, math.max(mods.yawWeight, 0.7 * k)
-				else
-					mods.yaw, mods.yawWeight = math.pi * 0.8, math.max(mods.yawWeight, 0.5 * k)
+				-- a glance back, unless a beat already holds the turn
+				local want = if dist < SlimeActor.NERVES_LOOK_DISTANCE then 0.7 * k else 0.5 * k
+				if want > mods.yawWeight then
+					mods.yaw = if dist < SlimeActor.NERVES_LOOK_DISTANCE then yaw else math.pi * 0.8
+					mods.yawWeight = want
 				end
 			end
 		end
@@ -334,6 +361,19 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 		faceName = "surprised"
 		emote = emote or "ask"
 	end
+
+	-- Turn smoothly, the shortest way round. A spin (a turn past half a circle) plays as given.
+	local dt = math.max(now - actor.lastNow, 0)
+	actor.lastNow = now
+	local k = 1 - math.exp(-dt * SlimeActor.TURN_RATE)
+	if math.abs(mods.yaw) > math.pi + 1e-3 then
+		actor.yaw, actor.yawWeight = mods.yaw, mods.yawWeight
+	else
+		local target = wrap(mods.yaw)
+		actor.yaw = wrap(actor.yaw + wrap(target - actor.yaw) * (if mods.yawWeight > 0.01 then k else 0))
+		actor.yawWeight += (mods.yawWeight - actor.yawWeight) * k
+	end
+	mods.yaw, mods.yawWeight = actor.yaw, actor.yawWeight
 
 	face(mods, faceName)
 	actor.emote = emote

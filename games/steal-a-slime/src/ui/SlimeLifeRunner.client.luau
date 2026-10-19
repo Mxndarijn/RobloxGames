@@ -124,7 +124,9 @@ local animRigs: { [Model]: AnimRig } = {}
 local motorRigs: { [Model]: MotorRig } = {}
 local noMotor: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any -- motor step threw: this slime uses welds
 local trackSets: { [Model]: SlimeAnim.Tracks } = setmetatable({}, { __mode = "k" }) :: any
-local animationsOn = Config.FEATURES.SlimeAnimations == true
+-- FEATURES.SlimeChoreo drives every rig through SlimeMotor (gaits, beats, reactions ride on its Transform and bones),
+-- so the uploaded KeyframeSequences stay off with it.
+local animationsOn = Config.FEATURES.SlimeAnimations == true and Config.FEATURES.SlimeChoreo ~= true
 local animationIds = if animationsOn then SlimeAnim.ids(MeshAssets.animationId) else nil
 local probe: SlimeAnim.Verdict? = nil -- nil = not started; "wait" | "ok" | "failed"
 local animationInstances: { [string]: Animation } = {} -- one per id, shared by every rig
@@ -737,7 +739,7 @@ local function neighbours(at: Vector3, radius: number, except: Model): { SlimeAc
 	local out = {}
 	for model, rig in motorRigs do
 		local actor = rig.actor
-		if actor and model ~= except and (actor.visible - at).Magnitude < radius then
+		if actor and rig.tier == "near" and model ~= except and (actor.visible - at).Magnitude < radius then
 			table.insert(out, actor)
 		end
 	end

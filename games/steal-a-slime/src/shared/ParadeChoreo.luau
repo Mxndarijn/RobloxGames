@@ -147,15 +147,21 @@ function ParadeChoreo.plan(seed: number, temper: string?, walkSeconds: number, l
 		local side = if rng:float() < 0.5 then -1 else 1
 		-- Every beat runs ahead a little first (that buys a longer stop inside the leash); eager ones more.
 		local pre = stop * ParadeChoreo.PRE_SHARE[if spec.pre then 2 else 1]
-		-- Keep the lead and the lag inside the leash (the ramps add 0.42 r ahead, 0.22 r / 0.82 r behind).
-		pre = math.min(pre, (leash - 0.42 * r) / up)
-		stop = math.min(stop, leash + up * pre - (if pre > 0 then 0.22 else 0.82) * r)
+		-- Keep the lead and the lag inside the leash. With c = CATCH_SPEED and up = c - 1 the ramps add
+		-- up r / 2 + up^2 r / (2c) ahead, and r (up - 1/2 - 1 / (2c)) (run-ahead) or r (1/2 + 1 / (2c)) behind.
+		pre = math.min(pre, (leash - (up / 2 + up * up / (2 * catch)) * r) / up)
+		if pre > 0 then
+			stop = math.min(stop, leash + up * pre + (up - 0.5 - 0.5 / catch) * r)
+		else
+			stop = math.min(stop, leash - (0.5 + 0.5 / catch) * r)
+		end
+		-- The catch-up that brings the offset back to exactly 0.
 		local catchUp, total
 		if pre > 0 then
-			catchUp = (stop - up * pre - 0.2 * r) / up
+			catchUp = (stop - up * pre - (2 * up - 1) * r) / up
 			total = r + pre + r + stop + r + catchUp + r
 		else
-			catchUp = (stop + 0.4 * r) / up
+			catchUp = (stop + (1 - up) * r) / up
 			total = r + stop + r + catchUp + r
 		end
 		if at + total > last then

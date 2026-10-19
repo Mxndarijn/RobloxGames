@@ -19,13 +19,13 @@ gets `SlimePersona.DEFAULT`. One table, read by the server (temperament picks th
 
 ## Lane beats (`Shared.ParadeChoreo`, pure; server authoritative)
 
-- `ParadeChoreo.seedFor(id) -> number`, `ParadeChoreo.plan(seed, temper, walkSeconds) -> Plan`. The plan is a list of
+- `ParadeChoreo.seedFor(id) -> number`, `ParadeChoreo.plan(seed, temper, walkSeconds, leadSeconds) -> Plan`. The plan is a list of
   beats, each `{ kind, t0, s0, s1, stop, pre, side }` in seconds since the walk starts (the slide mouth,
   `spawnedAt + RIDE_SECONDS`), and the matching speed keys.
 - A beat: an optional run-ahead (`pre`, speed `CATCH_SPEED` x), a stop of `stop` seconds (speed 0), then a catch-up at
   `CATCH_SPEED` x. Speed changes ramp over `RAMP` seconds and every beat nets out to zero, so
   `ParadeChoreo.offset(plan, t)` (studs ahead of the plain lane spot) is 0 between beats and at the end of the walk.
-  `|offset| <= LEASH x walkSpeed / 4` studs, speed stays in `0..CATCH_SPEED` x. No beat in the lead-in, none in the last
+  `|offset| <= LEASH` seconds of plain walking (`LEASH x walkSpeed` studs), speed stays in `0..CATCH_SPEED` x. No beat in the lead-in, none in the last
   `QUIET_END` seconds of the walk (the despawn telegraph is the slime's last act).
 - Beat kinds: `look sniff slurp nap trip spin cheer hide zoom huff stuck`. Weights per temperament in
   `ParadeChoreo.WEIGHTS`.
@@ -42,7 +42,10 @@ gets `SlimePersona.DEFAULT`. One table, read by the server (temperament picks th
 ## Client life (`src/ui`)
 
 All of it runs inside `SlimeLifeRunner`'s one frame loop, only for the `SlimeLife.MAX_ACTIVE` near rigs (LOD "near";
-mid and far tiers keep today's squish / rest). Pure parts have Lune specs.
+mid and far tiers keep today's squish / rest). Pure parts have Lune specs. With the flag on every rig runs on the
+procedural `SlimeMotor` path (the uploaded KeyframeSequences of `FEATURES.SlimeAnimations` stay off), since the life
+rides on its Transform and the species bones. On the slide itself (`Riding` and less than `RIDE_SECONDS` since
+`LaneAt`) the gait waits; the lead-in from the slide mouth already walks.
 
 - **Gaits (`ui/SlimeGait`, pure).** The visible slime is offset from the replicated Body by the `SkinRoot` /
   `FaceRoot` Motor6D `Transform` (Body never moves). Anchor velocity = the Body's own movement, smoothed.
@@ -53,7 +56,8 @@ mid and far tiers keep today's squish / rest). Pure parts have Lune specs.
     `zig` (to the other side of the lane), `small` (after a boing or a flop).
   - `Ooze`: inchworm surges, `Waddle`: side-to-side rocking steps, `Scoot`: short pushes, `Float`: hovers and bobs.
     All locked to the distance moved, so a stopped slime stands still.
-- **Beat poses (`ui/SlimeBeats`, pure).** The client looks the beat up in the plan at `GetServerTimeNow()` and poses
+- **Beat poses (`ui/SlimeBeats`, pure).** The client looks the beat up in the plan at `GetServerTimeNow()` minus
+  `SlimeActor.REPLICATION_LAG` (the Body arrives that late) and poses
   the slime (turns, leans, squash, lift) with an expression and an emote.
 - **Reactions (`ui/SlimeReact`, pure).** Within `REACT_DISTANCE` of the local character: affordable (leaderstats
   `Cash >= Price`) and within `NEAR` = "pick me" (faces you, bounces, ♥); otherwise by temperament (Shy shrinks away,
