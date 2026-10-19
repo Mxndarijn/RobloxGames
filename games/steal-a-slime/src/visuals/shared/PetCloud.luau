@@ -4,16 +4,17 @@
 
 	Builds the wrapper a FollowPets pet glides in: Model "Pet_<id>" = PrimaryPart + "Slime" standing on it. With a
 	cloud template (the MeshPart the server publishes under ReplicatedStorage.PetCloudMeshes, native size) the
-	PrimaryPart is a clone of it, at least CLOUD_SCALE and grown so it is CLOUD_FIT x the slime's visible footprint,
+	PrimaryPart is a clone of it, grown to CLOUD_FIT x the slime's visible footprint (CLOUD_SCALE to CLOUD_MAX_SCALE),
 	and the slime's foot sinks CLOUD_SINK into its top. A grown cloud keeps its bottom where a CLOUD_SCALE one would
 	hover (its pivot sits below its centre). Without a template a small invisible Mount is the PrimaryPart and the
 	slime stands level with the owner's feet. attach() swaps a Mount for a cloud later, so a pet never waits for the
 	template. The wrapper's pivot is the PrimaryPart pivot: PetFollow's goal. Every part made here is decor (no
 	collision, query, touch or shadow).
 
-	Ground decor of the slime (the rarity ring, SlimeLayout "TierRim") is removed: on a cloud it reads as a big
-	disc under the pet. The slime is measured by its visible parts only (visibleBox): a species slime keeps an invisible Body ball and
-	hidden procedural parts that do not line up with its mesh.
+	Ground decor of the slime (SlimeLayout's rarity ring "TierRim" and goo "Puddle") is removed: on a cloud it reads
+	as a flat disc under the pet. The slime is measured by its visible parts only, glow shells (UNMEASURED) left out
+	(visibleBox): a species slime keeps an invisible Body ball and hidden procedural parts that do not line up with
+	its mesh.
 ]]
 
 local PetFollow = if script then require(script.Parent.PetFollow) else require("./PetFollow")
@@ -24,11 +25,13 @@ PetCloud.MESH = "pet_cloud" -- MeshAssets name, and the template's name in the f
 PetCloud.FOLDER = "PetCloudMeshes" -- ReplicatedStorage folder the server publishes the template into
 PetCloud.CLOUD_SCALE = 0.9 -- smallest scale, of the native 3.3 x 1.2 x 2.4 mesh
 PetCloud.CLOUD_FIT = 1.15 -- the cloud is at least this x the slime's visible width and depth
+PetCloud.CLOUD_MAX_SCALE = 1.6 -- a huge slime overhangs its cloud rather than riding a giant one
 PetCloud.CLOUD_SINK = 0.12 -- the slime's foot sinks this far into the cloud's top (studs)
 PetCloud.CLOUD_NAME = "Cloud"
 PetCloud.MOUNT_NAME = "Mount"
 PetCloud.SLIME_NAME = "Slime"
-PetCloud.GROUND_PARTS = table.freeze({ "TierRim" }) -- removed from the slime: they belong on the ground
+PetCloud.GROUND_PARTS = table.freeze({ "TierRim", "Puddle" }) -- removed from the slime: they belong on the ground
+PetCloud.UNMEASURED = table.freeze({ "Aura" }) -- see-through glow shells: not part of the slime's footprint
 
 -- Anchored, no collision, no query, no touch, no shadow.
 function PetCloud.decor(part: BasePart)
@@ -44,7 +47,7 @@ end
 function PetCloud.visibleBox(model: Model): (Vector3, Vector3)
 	local lo, hi = Vector3.new(math.huge, math.huge, math.huge), Vector3.new(-math.huge, -math.huge, -math.huge)
 	for _, part in model:GetDescendants() do
-		if part:IsA("BasePart") and part.Transparency < 1 then
+		if part:IsA("BasePart") and part.Transparency < 1 and not table.find(PetCloud.UNMEASURED, part.Name) then
 			local cf, half = part.CFrame, part.Size / 2
 			-- Axis-aligned half extents of the turned part.
 			local ext = Vector3.new(
@@ -63,10 +66,12 @@ function PetCloud.visibleBox(model: Model): (Vector3, Vector3)
 	return (lo + hi) / 2, hi - lo
 end
 
--- Scale of the cloud under a slime whose visible box is `slime` big: CLOUD_SCALE, or more for a wide slime.
+-- Scale of the cloud under a slime whose visible box is `slime` big: CLOUD_SCALE, more for a wide slime, at most
+-- CLOUD_MAX_SCALE.
 function PetCloud.cloudScale(native: Vector3, slime: Vector3): number
 	local fit = PetCloud.CLOUD_FIT
-	return math.max(PetCloud.CLOUD_SCALE, slime.X * fit / native.X, slime.Z * fit / native.Z)
+	local scale = math.max(PetCloud.CLOUD_SCALE, slime.X * fit / native.X, slime.Z * fit / native.Z)
+	return math.min(scale, PetCloud.CLOUD_MAX_SCALE)
 end
 
 local function makeCloud(template: BasePart, slime: Model): BasePart

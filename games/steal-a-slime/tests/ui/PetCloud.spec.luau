@@ -196,13 +196,16 @@ describe("PetCloud.cloudScale", function()
 		expect(PetCloud.cloudScale(NATIVE, roblox.Vector3.new(1, 1, 1))).toBe(PetCloud.CLOUD_SCALE)
 	end)
 	it("grows the cloud to CLOUD_FIT x a wide slime's width", function()
-		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(6, 3, 1))
-		expect(NATIVE.X * scale).toBeCloseTo(6 * PetCloud.CLOUD_FIT, 1e-6)
+		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(4, 3, 1))
+		expect(NATIVE.X * scale).toBeCloseTo(4 * PetCloud.CLOUD_FIT, 1e-6)
 		expect(NATIVE.Z * scale >= 1 * PetCloud.CLOUD_FIT).toBe(true)
 	end)
+	it("stops at CLOUD_MAX_SCALE under a huge slime", function()
+		expect(PetCloud.cloudScale(NATIVE, roblox.Vector3.new(20, 3, 20))).toBe(PetCloud.CLOUD_MAX_SCALE)
+	end)
 	it("grows the cloud to CLOUD_FIT x a deep slime's depth", function()
-		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(1, 3, 4))
-		expect(NATIVE.Z * scale).toBeCloseTo(4 * PetCloud.CLOUD_FIT, 1e-6)
+		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(1, 3, 3))
+		expect(NATIVE.Z * scale).toBeCloseTo(3 * PetCloud.CLOUD_FIT, 1e-6)
 		expect(NATIVE.X * scale >= 1 * PetCloud.CLOUD_FIT).toBe(true)
 	end)
 end)
@@ -245,6 +248,16 @@ describe("PetCloud.visibleBox", function()
 		expect(centre.Y - size.Y / 2).toBeCloseTo(0, 1e-5) -- the ring's bottom, not Body's
 		expect(centre.Y + size.Y / 2).toBeCloseTo(2, 1e-5) -- the mesh's top, not the hidden crown
 	end)
+	it("leaves the see-through glow shells out", function()
+		local model = species(3)
+		local aura = new("Part")
+		aura.Name = "Aura"
+		aura.Size = roblox.Vector3.new(6, 6, 6)
+		aura.Transparency = 0.88
+		aura.Parent = model
+		local _, size = PetCloud.visibleBox(model)
+		expect(size.X).toBeCloseTo(3, 1e-5)
+	end)
 	it("falls back to the whole box when nothing can be seen", function()
 		local model = species(3)
 		for _, part in UiHarness.descendants(model) do
@@ -257,18 +270,37 @@ end)
 
 describe("PetCloud.mount under a big species slime", function()
 	local source = template()
-	local wrapper = PetCloud.mount(species(5), 9, source)
+	local wrapper = PetCloud.mount(species(3.5), 9, source)
 	local cloud = wrapper.PrimaryPart
 	local s = UiHarness.find(wrapper, PetCloud.SLIME_NAME)
 	it("grows the cloud past the slime's visible footprint", function()
-		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(5, 2, 4)) -- the mesh alone, the ring is gone
+		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(3.5, 2, 2.8)) -- the mesh alone, the ring is gone
 		expect(cloud.Size.X).toBeCloseTo(NATIVE.X * scale, 1e-5)
-		expect(cloud.Size.X >= 5 * PetCloud.CLOUD_FIT - 1e-4).toBe(true)
-		expect(cloud.Size.Z >= 4 * PetCloud.CLOUD_FIT - 1e-4).toBe(true) -- Size is float32
+		expect(cloud.Size.X >= 3.5 * PetCloud.CLOUD_FIT - 1e-4).toBe(true)
+		expect(cloud.Size.Z >= 2.8 * PetCloud.CLOUD_FIT - 1e-4).toBe(true) -- Size is float32
 	end)
 	it("drops the rarity ring: it is ground decor", function()
 		expect(UiHarness.find(wrapper, "TierRim")).toBeNil()
 		expect(UiHarness.find(wrapper, "Mesh") ~= nil).toBe(true)
+	end)
+	it("drops the goo puddle of a procedural slime too", function()
+		local model = slime()
+		local puddle = new("Part")
+		puddle.Name = "Puddle"
+		puddle.Parent = model
+		local pet = PetCloud.mount(model, 2, template())
+		expect(UiHarness.find(pet, "Puddle")).toBeNil()
+		expect(UiHarness.find(pet, "Body") ~= nil).toBe(true)
+	end)
+	it("gets the same cloud and seat when the cloud arrives late", function()
+		local late = PetCloud.mount(species(3.5), 9, nil)
+		PetCloud.attach(late, template())
+		local cloudLate = late.PrimaryPart
+		expect(cloudLate.Size.X).toBeCloseTo(cloud.Size.X, 1e-5)
+		expect(cloudLate.PivotOffset.Position.Y).toBeCloseTo(cloud.PivotOffset.Position.Y, 1e-5)
+		expect(UiHarness.find(late, "TierRim")).toBeNil()
+		local pivot = UiHarness.find(late, PetCloud.SLIME_NAME):GetPivot().Position
+		expect(pivot.Y).toBeCloseTo(cloudLate.Size.Y / 2 - PetCloud.CLOUD_SINK, 1e-5)
 	end)
 	it("keeps the grown cloud's bottom where a CLOUD_SCALE cloud's would be", function()
 		local bottom = cloud.PivotOffset:Inverse().Position.Y - cloud.Size.Y / 2
