@@ -508,7 +508,10 @@ end
 
 local function eggMesh(name: string): MeshPart?
 	local mesh = eggMeshes[name]
-	return if mesh then mesh else nil
+	if mesh == nil or mesh == false then
+		return nil
+	end
+	return mesh :: MeshPart
 end
 
 -- Builds a Mystery Egg model: the uploaded meshes when they loaded, else primitives.

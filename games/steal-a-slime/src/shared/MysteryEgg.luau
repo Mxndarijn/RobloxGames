@@ -106,7 +106,7 @@ end
 	(not in `skip`) gets (WARM_SPEED - 1) x `seconds` closer, never past `now`.
 	Returns how many eggs moved.
 ]]
-function MysteryEgg.warm(data: Data, seconds: number, now: number, skip: { [string]: boolean }?): number
+function MysteryEgg.warm(data: Data, seconds: number, now: number, skip: { [string]: any }?): number
 	if seconds ~= seconds or seconds <= 0 then
 		return 0
 	end
