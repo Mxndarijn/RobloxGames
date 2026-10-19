@@ -443,6 +443,7 @@ UiHarness.stats = {
 	disconnects = { RenderStepped = 0, Heartbeat = 0, Stepped = 0 } :: { [string]: number },
 	tweensCreated = 0,
 	tweensPlayed = 0,
+	tweensCancelled = 0,
 	wakeups = 0,
 }
 
@@ -509,6 +510,9 @@ services.TweenService = {
 		return {
 			Play = function()
 				UiHarness.stats.tweensPlayed += 1
+			end,
+			Cancel = function()
+				UiHarness.stats.tweensCancelled += 1
 			end,
 		}
 	end,

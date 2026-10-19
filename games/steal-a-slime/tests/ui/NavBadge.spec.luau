@@ -1,5 +1,5 @@
 --!strict
--- Nav badges ("!", "$") sit fully inside their button at all five gate sizes (B5: on the top-right
+-- Nav badges ("!") sit fully inside their button at all five gate sizes (B5: on the top-right
 -- corner of their rounded tile, not on the label). The SlimeDex tile has no badge: DexJarView.
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")

@@ -12,6 +12,8 @@
 -- `item` = the ItemIcons registry id of the tile's picture (B5); `icon` = the plain glyph for text (hint bubbles).
 export type Entry = { key: string, icon: string, label: string, item: string }
 
+local SlimeDex = if script then require(script.Parent.SlimeDex) else require("./SlimeDex")
+
 local Nav = {}
 
 Nav.ENTRIES = table.freeze({
@@ -89,8 +91,8 @@ function Nav.dexProgress(state: any): DexProgress?
 	if total <= 0 then
 		return nil
 	end
-	local fraction = math.clamp(num(dex.found) / total, 0, 1)
-	return { fraction = fraction, text = `{math.floor(fraction * 100)}%` }
+	local summary = SlimeDex.summary(dex) -- the panel's percent, so both always agree
+	return { fraction = summary.fraction, text = summary.percent }
 end
 
 return table.freeze(Nav)

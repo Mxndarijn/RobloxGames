@@ -406,6 +406,7 @@ local NAV_TILE_COLOR = Color3.fromRGB(58, 36, 110) -- the money plate's purple, 
 local openKey: string? = nil
 local soundButton: any = nil -- FEATURES.Audio only
 local navButtons: { [string]: NavButton } = {}
+local dexJar: DexJarView.View? = nil -- the SlimeDex tile's slime jar
 local screen: Layout.Screen? = nil
 local applyLayout: () -> ()
 local refreshHint: () -> ()
@@ -421,6 +422,9 @@ local function styleNav(btn: NavButton, selected: boolean)
 	btn.label.TextColor3 = if selected then Theme.Accent else Theme.Text
 	btn.stroke.Color = if selected then Color3.new(1, 1, 1) else Color3.fromRGB(10, 10, 20)
 	btn.stroke.Thickness = if selected then 4 else 3
+	if btn.button.Name == "Dex" and dexJar then
+		dexJar.setSelected(selected)
+	end
 end
 
 -- Open state is derived from the cards' own Visible: the backdrop, nav
@@ -706,7 +710,6 @@ if soundPanel then
 	player:GetAttributeChangedSignal("AudioMuted"):Connect(refreshIcon)
 end
 
-local dexJar: DexJarView.View? = nil
 for _, entry in panels do
 	local navEntry = entry.nav :: Nav.Entry
 	local button = Widgets.create("TextButton", {
@@ -730,6 +733,7 @@ for _, entry in panels do
 		Name = "Icon",
 		Id = navEntry.item,
 		Size = Layout.NAV.tile - Layout.NAV.iconInset * 2,
+		ZIndex = Layout.NAV_TILE_Z.icon,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Parent = tile,
@@ -1014,7 +1018,6 @@ local function updateBadges(state: Types.State)
 		btn.badge.Visible = text ~= nil
 		if text then
 			btn.badge.Text = text
-			btn.badge.BackgroundColor3 = if text == "!" then Theme.Bad else Theme.Info
 		end
 	end
 	if dexJar then
