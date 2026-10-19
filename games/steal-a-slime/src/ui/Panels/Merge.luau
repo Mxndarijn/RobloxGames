@@ -128,6 +128,7 @@ function Merge.new(parent: Instance, ctx: any)
 	local open = false
 	-- The well behind a live preview (a slime without one shows its colour circle).
 	local well = Theme.Row:Lerp(Theme.Ink, SlimePreview.WELL_TINT)
+	local previewBuilders: SlimePreview.Builders = { species = ctx.buildSpecies, slime = ctx.buildSlime }
 	local bodyW, bodyH = Layout.MENU_WIDTH - Layout.PANEL_CHROME.pad * 2, 460
 	-- The tallest body this screen allows the card (its full menu height, clamped to the backdrop). The side
 	-- layout follows this, not the content-sized body, so a short list never squeezes the vat into a column.
@@ -624,7 +625,7 @@ function Merge.new(parent: Instance, ctx: any)
 				})
 			end
 		end
-		SlimePreview.syncNearest(entries, list.CanvasPosition.Y + viewH / 2, ctx.buildSlime)
+		SlimePreview.syncNearest(entries, list.CanvasPosition.Y + viewH / 2, previewBuilders)
 		for _, row in rows.rows do
 			if not row.header then
 				paintAvatar(row)
@@ -893,7 +894,7 @@ function Merge.new(parent: Instance, ctx: any)
 			slot.swatch.Visible = s ~= nil
 			slot.plus.Visible = s == nil
 			if s then
-				SlimePreview.mountSlime(slot.preview, s, ctx.buildSlime)
+				SlimePreview.mountSlime(slot.preview, s, previewBuilders)
 				slot.swatch.BackgroundColor3 = if slot.preview.Visible then well else Widgets.color3(s.color)
 				slot.name.Text = tostring(s.name)
 				slot.name.TextColor3 = Widgets.color3(rarity(s.tier).color)

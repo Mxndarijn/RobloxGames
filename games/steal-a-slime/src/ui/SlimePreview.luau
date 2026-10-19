@@ -221,23 +221,46 @@ function SlimePreview.lookOf(slime: any): string
 	}, ":")
 end
 
--- Shows `slime` (a genome) in `viewport`: the model from `build` (ctx.buildSlime), or the Ball blob in its
--- colour when there is no builder or it fails. Does nothing while the viewport already shows this look (a
--- failed look is not retried). The viewport is visible only while something is mounted.
-function SlimePreview.mountSlime(viewport: Instance, slime: any, build: ((any) -> Model?)?)
-	local look = SlimePreview.lookOf(slime)
-	if viewport:GetAttribute("Look") == look then
+-- Where a slime preview's model comes from: `species` (ctx.buildSpecies) gives the species mesh the SlimeDex
+-- shows, `slime` (ctx.buildSlime) the generated model from the genome. Either may be nil.
+export type Builders = {
+	species: ((speciesId: string) -> Model?)?,
+	slime: ((genome: any) -> Model?)?,
+}
+
+-- Shows `slime` (a genome) in `viewport` the way the SlimeDex shows its species: the species mesh when it has
+-- replicated, else the generated model, else the Ball blob in the slime's colour. The mounted look names its
+-- source, so a row that fell back switches to the mesh once it arrives; a mesh look is never rebuilt and a
+-- failed fallback is not retried. The viewport is visible only while something is mounted.
+function SlimePreview.mountSlime(viewport: Instance, slime: any, builders: Builders?)
+	local base = SlimePreview.lookOf(slime)
+	local current = viewport:GetAttribute("Look")
+	if current == `{base}:mesh` then
+		return
+	end
+	local b: Builders = builders or {}
+	if b.species and type(slime.species) == "string" then
+		local built, model = pcall(b.species, slime.species)
+		if built and model ~= nil then
+			if SlimePreview.mountModel(viewport, model, nil) then
+				viewport:SetAttribute("Look", `{base}:mesh`);
+				(viewport :: ViewportFrame).Visible = true
+				return
+			end
+		end
+	end
+	if current == `{base}:built` then
 		return
 	end
 	local ok = false
-	if build then
-		local built, model = pcall(build, slime)
+	if b.slime then
+		local built, model = pcall(b.slime, slime)
 		ok = built and model ~= nil and SlimePreview.mountModel(viewport, model, nil)
 	end
 	if not ok then
 		ok = SlimePreview.mount(viewport, if type(slime.color) == "table" then slime.color else {}, nil)
 	end
-	viewport:SetAttribute("Look", look);
+	viewport:SetAttribute("Look", `{base}:built`);
 	(viewport :: ViewportFrame).Visible = ok
 end
 
@@ -259,7 +282,7 @@ export type ListEntry = {
 
 -- List virtualisation: the MAX_LIVE entries nearest `centre` (a canvas y, the middle of the scroll window)
 -- show their slime; every other entry is emptied. Ties go to the higher row.
-function SlimePreview.syncNearest(entries: { ListEntry }, centre: number, build: ((any) -> Model?)?)
+function SlimePreview.syncNearest(entries: { ListEntry }, centre: number, builders: Builders?)
 	local order = table.clone(entries)
 	table.sort(order, function(a, b)
 		local da, db = math.abs(a.y + a.h / 2 - centre), math.abs(b.y + b.h / 2 - centre)
@@ -270,7 +293,7 @@ function SlimePreview.syncNearest(entries: { ListEntry }, centre: number, build:
 	end)
 	for i, entry in order do
 		if i <= SlimePreview.MAX_LIVE then
-			SlimePreview.mountSlime(entry.viewport, entry.slime, build)
+			SlimePreview.mountSlime(entry.viewport, entry.slime, builders)
 		else
 			SlimePreview.unmountSlime(entry.viewport)
 		end

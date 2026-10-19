@@ -358,6 +358,7 @@ function Plot.new(parent: Instance, ctx: any)
 
 	-- The well behind a live preview, the slime's colour circle without one.
 	local well = Theme.Row:Lerp(Theme.Ink, SlimePreview.WELL_TINT)
+	local previewBuilders: SlimePreview.Builders = { species = ctx.buildSpecies, slime = ctx.buildSlime }
 	local function paintAvatar(row: any)
 		row.swatch.BackgroundColor3 = if row.preview.Visible then well else Widgets.color3(row.slime.color)
 	end
@@ -426,7 +427,7 @@ function Plot.new(parent: Instance, ctx: any)
 				h = row.instance.Size.Y.Offset,
 			})
 		end
-		SlimePreview.syncNearest(entries, list.CanvasPosition.Y + viewH / 2, ctx.buildSlime)
+		SlimePreview.syncNearest(entries, list.CanvasPosition.Y + viewH / 2, previewBuilders)
 		for _, row in rows.rows do
 			paintAvatar(row)
 		end

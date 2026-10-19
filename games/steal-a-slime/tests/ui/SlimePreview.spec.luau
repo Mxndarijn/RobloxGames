@@ -329,12 +329,56 @@ describe("SlimePreview.syncNearest", function()
 		end
 		local vf = UiHarness.Instance.new("ViewportFrame")
 		local slime = Fixtures.slime("a")
-		SlimePreview.mountSlime(vf, slime, build)
-		SlimePreview.mountSlime(vf, table.clone(slime), build)
+		SlimePreview.mountSlime(vf, slime, { slime = build })
+		SlimePreview.mountSlime(vf, table.clone(slime), { slime = build })
 		expect(builds).toBe(1)
-		SlimePreview.mountSlime(vf, Fixtures.slime("a", 1, { pattern = "Spots" }), build)
+		SlimePreview.mountSlime(vf, Fixtures.slime("a", 1, { pattern = "Spots" }), { slime = build })
 		expect(builds).toBe(2)
 		expect(SlimePreview.lookOf(slime) ~= SlimePreview.lookOf(Fixtures.slime("a", 1, { size = 1.5 }))).toBe(true)
+	end)
+	it("shows the species mesh like the SlimeDex, and switches to it once it replicates", function()
+		local meshReady = false
+		local speciesAsked, generated = 0, 0
+		local builders = {
+			species = function(id: string): any
+				speciesAsked += 1
+				if not meshReady then
+					return nil
+				end
+				local model = UiHarness.Instance.new("Model")
+				model.Name = `Dex_{id}`
+				return model
+			end,
+			slime = function(genome: any): any
+				generated += 1
+				local model = UiHarness.Instance.new("Model")
+				model.Name = `Slime_{genome.id}`
+				return model
+			end,
+		}
+		local vf = UiHarness.Instance.new("ViewportFrame")
+		local slime = Fixtures.slime("a")
+		slime.species = "gummy"
+		-- No mesh yet: the generated model, built once however often the row updates.
+		SlimePreview.mountSlime(vf, slime, builders)
+		SlimePreview.mountSlime(vf, slime, builders)
+		expect(generated).toBe(1)
+		expect(vf.Visible).toBe(true)
+		-- The mesh arrives: the next update swaps it in, and later updates don't ask again.
+		meshReady = true
+		SlimePreview.mountSlime(vf, slime, builders)
+		local asked = speciesAsked
+		SlimePreview.mountSlime(vf, slime, builders)
+		expect(speciesAsked).toBe(asked)
+		expect(generated).toBe(1)
+		expect(string.sub(vf:GetAttribute("Look"), -5)).toBe(":mesh")
+		-- A slime without a species never asks for a mesh.
+		local plain = UiHarness.Instance.new("ViewportFrame")
+		local before = speciesAsked
+		local other = Fixtures.slime("b")
+		other.species = nil
+		SlimePreview.mountSlime(plain, other, builders)
+		expect(speciesAsked).toBe(before)
 	end)
 end)
 
