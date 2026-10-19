@@ -23,6 +23,7 @@
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local SlimePersona = if Shared then require(Shared.SlimePersona) else require("../shared/SlimePersona")
 
 local SlimeGait = {}
@@ -32,7 +33,8 @@ SlimeGait.MAX_GAP = 9 -- studs between the visible body and the anchor before it
 SlimeGait.MIN_SPEED = 0.3 -- studs / s: slower than this counts as standing (no new jump)
 SlimeGait.VELOCITY_RATE = 8 -- 1 / s: how fast the anchor velocity estimate follows (the Body replicates in steps)
 SlimeGait.STRING_SHARE = 0.28 -- share of the air time the goo string hangs on
-SlimeGait.ZIG = { 0.6, 1.1 } -- studs to the side a zig-zag hop lands
+-- studs to the side a zig-zag hop lands: a third to 0.6 of the lane room beside the outermost walking line
+SlimeGait.ZIG = table.freeze({ ParadeLane.ROOM / 3, ParadeLane.ROOM * 0.6 })
 SlimeGait.SHY = 0.7 -- Shy hoppers jump this much lower
 SlimeGait.JIGGLE = { stiff = 45, damp = 4.5, gain = 0.04, max = 0.35 } -- crown lag: spring on the visible acceleration
 

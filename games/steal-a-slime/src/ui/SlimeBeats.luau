@@ -12,7 +12,12 @@
 	      side = -1 | 1, now = any running clock (wiggles)
 ]]
 
+local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
+
 local SlimeBeats = {}
+
+SlimeBeats.SNIFF_LEAN = ParadeLane.ROOM * 0.6 -- studs a sniff leans out towards the lane edge
 
 export type Emote = "love" | "alert" | "ask" | "star" | "note" | "dots" | "sleep" | "dizzy" | "angry" | "sweat"
 
@@ -63,7 +68,7 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 		end
 	elseif kind == "sniff" then
 		local reach = if phase == "stop" then smooth(u * 3) elseif phase == "post" then 1 - smooth(u * 2) else 0
-		p.lean = side * 1.1 * reach
+		p.lean = side * SlimeBeats.SNIFF_LEAN * reach
 		p.roll = side * 0.12 * reach
 		if phase == "post" then
 			p.yaw = -side * 1.2 * reach

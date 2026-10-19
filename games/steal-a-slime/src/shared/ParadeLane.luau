@@ -40,6 +40,12 @@
 	inside Visuals.PropClearance's keep-clear rings (landing band r 34-62,
 	lane / gate posts r 62.25-73.75), so kit props stay off it.
 
+	Width: the lane ends cut onto the goo drain's curb (r 4.4) at one
+	uniform width, so HALF_WIDTH stays under the curb radius. The props
+	would allow more: the tightest spots are the ring path beside the r 68
+	runs and the ~12.4-stud gap between the landing ring and the spawn pad,
+	which cap CLEARANCE near 6.2.
+
 	Readability of the despawn telegraph (DespawnTelegraphFx):
 	the warning window (DESPAWN_TELEGRAPH_SECONDS) starts while the slime is
 	still walking the lane next to the drain (WARN_SECONDS > DRAIN_SECONDS)
@@ -77,9 +83,11 @@ export type Pose = {
 
 local ParadeLane = {}
 
-ParadeLane.LANE_RADIUS = 68 -- FOUNTAIN_SIZES goo-parade centreline (PropClearance keeps r 64.75-71.25 clear)
-ParadeLane.HALF_WIDTH = 3.25 -- kit lane incl. edging: 6.5 studs wide
-ParadeLane.SPREAD = 3 -- slimes walk up to SPREAD / 2 either side of the centreline (from their Fountain.roll radius)
+ParadeLane.LANE_RADIUS = 68 -- FOUNTAIN_SIZES goo-parade centreline (PropClearance keeps r 62.25-73.75 clear)
+ParadeLane.HALF_WIDTH = 4.2 -- kit lane incl. edging: 8.4 studs wide
+ParadeLane.SPREAD = 3.4 -- slimes walk up to SPREAD / 2 either side of the centreline (from their Fountain.roll radius)
+-- Studs from the outermost walking line to the lane edge: the room a slime's zig-zag hops and sniffs lean into.
+ParadeLane.ROOM = ParadeLane.HALF_WIDTH - ParadeLane.SPREAD / 2
 ParadeLane.SLIME_RADIUS = Config.SLIME_BASE_DIAMETER * Config.MAX_SIZE / 2 -- the biggest slime
 ParadeLane.MARGIN = 1
 -- Air from the centreline to any prop: the lane edge or the widest slime, whichever is further, + MARGIN.
@@ -116,8 +124,8 @@ local CONTROLS: { { number } } = {
 	{ 124, 50 }, -- ENTRY: where the ride lands, just past the landing-ring gap, on the mouth's run-out line
 	{ 146, 68 },
 	{ 170, 68 },
-	{ 186, 49.8 }, -- inside the hub SpawnLocation (12 x 12 at r 64, 202.5°)
-	{ 219, 49.8 },
+	{ 186, 50 }, -- between the landing ring and the hub SpawnLocation (12 x 12 at r 64, 202.5°), centred in the gap
+	{ 219, 50 },
 	{ 235, 68 },
 	{ 262, 68 },
 	{ 276, 56 }, -- inside the podiums (285°-300°) and the signpost (337.5°)
@@ -376,7 +384,7 @@ ParadeLane.JOIN_OVERLAP = 0.1
 -- centre, world studs; out/slime_lane_pivot.json), laid like a MeshSwap slot (turned MeshAssets.IMPORT_YAW).
 -- Its crown is LANE_Y, its edges sit EDGE_Y (under the ground), its width is 2 * HALF_WIDTH.
 ParadeLane.MESH = "slime_lane"
-ParadeLane.MESH_PIVOT = table.freeze({ 0.472784, 0.135, -1.707947 })
+ParadeLane.MESH_PIVOT = table.freeze({ 0.467672, 0.135, -1.713052 })
 ParadeLane.EDGE_Y = -0.05
 ParadeLane.COLOR = table.freeze({ 140, 222, 200 }) -- the slide's water
 function ParadeLane.strips(): { any }
