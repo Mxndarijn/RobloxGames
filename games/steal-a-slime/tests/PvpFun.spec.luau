@@ -110,8 +110,15 @@ local function steal(world: any, thief: any, at: number)
 	expect(thief.carry ~= nil).toBe(true)
 end
 
+-- The thief's slime went home, and the user (userId 1) got exactly one "You caught" toast for it.
 local function wentHome(world: any, thief: any): boolean
-	return thief.carry == nil and world.carriedBy.gem == nil and world.escaping.gem ~= nil
+	local toasts = 0
+	for _, text in ServerFixtures.notifications(world, 1) do
+		if text == `You caught {thief.name}! The slime went home.` then
+			toasts += 1
+		end
+	end
+	return thief.carry == nil and world.carriedBy.gem == nil and world.escaping.gem ~= nil and toasts == 1
 end
 
 local function tick(world: any, session: any, at: number)
@@ -348,9 +355,6 @@ describe("Bubble Wand", function()
 		positions[2] = bubbleSpot(1, T0 + 2.5)
 		tick(world, b, T0 + 2.5)
 		expect(wentHome(world, b)).toBe(true)
-		expect(table.find(ServerFixtures.notifications(world, 1), "You caught P2! The slime bounced home.") ~= nil).toBe(
-			true
-		)
 		done()
 	end)
 end)

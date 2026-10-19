@@ -16,7 +16,7 @@
 
 	Shielded players only get the cosmetic part (confetti, paint, hats); control goes through PvpRules.applyControl
 	(cap, then immunity). A thief carrying a stolen slime who is lifted, bounced, bonked or made to dance loses it:
-	`sendSlimeHome` bounces the slime back to its owner. No Humanoid health is ever changed.
+	PvpService.catchThief bounces the slime back to its owner. No Humanoid health is ever changed.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -25,7 +25,6 @@ local PvpFunRules = if Shared then require(Shared.PvpFunRules) else require("../
 local PvpKnockbackRules = if Shared then require(Shared.PvpKnockbackRules) else require("../shared/PvpKnockbackRules")
 local PvpRules = if Shared then require(Shared.PvpRules) else require("../shared/PvpRules")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
-local StealService = if script then require(script.Parent.StealService) else require("./StealService")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type Vec = PvpRules.Vec
@@ -42,8 +41,6 @@ type Landing = {
 }
 type Stream = PvpFunRules.Stream & { id: string, owner: Session, popped: { [number]: boolean } }
 type Pad = { id: string, owner: Session, position: Vec, expiresAt: number }
--- Who catches a thief: the world, the catcher and the time (a UseCall fits).
-type Catch = { world: World.World, session: Session, now: number }
 
 local FUN = Config.PVP_FUN
 local LANDINGS_MAX = 16
@@ -91,21 +88,6 @@ local function controllable(session: Session, now: number): (boolean, PvpRules.S
 	end
 	return PvpRules.canControl(state, now), state
 end
-
---[[
-	A caught thief drops the stolen slime and it bounces back to its owner: the same path as the Bat's slap
-	(StealService.escape with "slap": drop, bounce home, both toasts), plus a toast for the catcher. Returns true
-	when `target` was carrying a stolen slime.
-]]
-local function sendSlimeHome(call: Catch, target: Session): boolean
-	if not isThief(target) then
-		return false
-	end
-	StealService.escape(call.world, target, call.now, "slap")
-	World.notify(call.world, call.session.userId, `You caught {target.name}! The slime bounced home.`, "good", "Slap")
-	return true
-end
-PvpFun.sendSlimeHome = sendSlimeHome
 
 -- The aim point: the sent `aim` when usable, else `ahead` studs in front of the user (ctx.pose), else the user's spot.
 local function aimOf(call: PvpService.UseCall, ahead: number): Vec
@@ -364,7 +346,7 @@ local function squeaky(call: PvpService.UseCall): (boolean, string?)
 		return true, nil
 	end
 	payload.target = target.userId
-	sendSlimeHome(call, target)
+	PvpService.catchThief(call.world, target, call.session, call.now)
 	local free, state = controllable(target, call.now)
 	if free and state then
 		local applied = PvpRules.applyControl(state, call.tool.control or 0, call.now)
@@ -539,7 +521,6 @@ local function stepLandings(world: World.World, session: Session, position: Vec,
 		if now > landing.endsAt then
 			table.remove(landings, i)
 		elseif now >= landing.landAt and not landing.hit[session] then
-			local catch: Catch = { world = world, session = landing.owner, now = now }
 			if landing.kind == "balloon" then
 				local radius = FUN.BALLOON.SPLASH_RADIUS
 				if PvpFunRules.inArea(landing.position, radius, AREA_HEIGHT, position) then
@@ -568,7 +549,7 @@ local function stepLandings(world: World.World, session: Session, position: Vec,
 					landing.hit[session] = true
 					local tool = PvpRules.tool("FunDanceBomb") :: Config.PvpTool
 					if not PvpService.isShielded(session, now) then
-						sendSlimeHome(catch, session)
+						PvpService.catchThief(world, session, landing.owner, now)
 					end
 					local free, state = controllable(session, now)
 					local applied = if free and state then PvpRules.applyControl(state, tool.control or 0, now) else 0
@@ -605,7 +586,7 @@ local function stepStreams(world: World.World, session: Session, position: Vec, 
 					local free, state = controllable(session, now)
 					local applied = 0
 					if not PvpService.isShielded(session, now) then
-						sendSlimeHome({ world = world, session = stream.owner, now = now }, session)
+						PvpService.catchThief(world, session, stream.owner, now)
 					end
 					local bubble = ctx.funBubble
 					if free and state and bubble then
@@ -656,7 +637,7 @@ local function stepPads(world: World.World, session: Session, position: Vec, now
 				if isOwner or not PvpService.isShielded(session, now) then
 					lastBounce[session] = now
 					if not isOwner then
-						sendSlimeHome({ world = world, session = owner, now = now }, session)
+						PvpService.catchThief(world, session, owner, now)
 					end
 					local lift = { X = 0, Y = if isOwner then tool.height or cfg.HEIGHT else cfg.HEIGHT, Z = 0 }
 					if launch(session.userId, lift) then
