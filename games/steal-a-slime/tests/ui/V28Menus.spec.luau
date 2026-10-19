@@ -251,7 +251,7 @@ describe("v28 item 3: one shop menu from the ShopStand prompt", function()
 				expect(UiHarness.find(child, "List")).toBeNil() -- no nested menu
 			end
 		end
-		expect(#rows).toBe(#ShopCatalog.ITEMS + 1)
+		expect(#rows).toBe(#ShopCatalog.ITEMS + 2)
 		expect(UiHarness.find(panel.frame, "Cash").Text).toBe("💰 $5K")
 		local luck = list:FindFirstChild("Upgrade_Luck")
 		expect(luck:FindFirstChild("Description").Text).toBe("+4% rarity-up chance")

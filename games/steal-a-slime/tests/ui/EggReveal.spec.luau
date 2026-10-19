@@ -1,7 +1,5 @@
 --!strict
 local EggReveal = require("../../src/ui/EggReveal")
-local Remotes = require("../../src/shared/Remotes")
-local ShopCatalog = require("../../src/ui/ShopCatalog")
 local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -19,33 +17,5 @@ describe("EggReveal.banner", function()
 		expect(EggReveal.banner(view, 107, 6, nameOf)).toBeNil()
 		expect(EggReveal.banner({}, 100, 6, nameOf)).toBeNil()
 		expect(EggReveal.banner(nil, 100, 6, nameOf)).toBeNil()
-	end)
-end)
-
-describe("ShopCatalog egg row", function()
-	local state = { cash = 5000, shop = { MysteryEgg = { price = 2000 } } }
-	local function has(views: { ShopCatalog.ItemView }): boolean
-		for _, v in views do
-			if v.item.id == "MysteryEgg" then
-				return true
-			end
-		end
-		return false
-	end
-	it("is a buy row priced from State.shop", function()
-		expect(has(ShopCatalog.views(state, Remotes.ACTIONS))).toBe(true)
-		local view = ShopCatalog.view(ShopCatalog.find("MysteryEgg") :: ShopCatalog.Item, state, Remotes.ACTIONS)
-		expect(view.buttonText).toBe("$2K")
-		expect(view.enabled).toBe(true)
-		expect(
-			ShopCatalog.view(
-				ShopCatalog.find("MysteryEgg") :: ShopCatalog.Item,
-				{ cash = 5, shop = state.shop },
-				Remotes.ACTIONS
-			).enabled
-		).toBe(false)
-	end)
-	it("is hidden while State.shop has no egg entry", function()
-		expect(has(ShopCatalog.views({ cash = 5000, shop = {} }, Remotes.ACTIONS))).toBe(false)
 	end)
 end)

@@ -2,11 +2,10 @@
 --[[
 	MysteryEgg (server)
 
-	`buy` is the `BuyEgg` action: validates cash and the free pad through
-	Shared.MysteryEgg, hatches the slime onto the buyer's plot and records it
-	for the reveal banner (State.egg). `spawnForEvent` is the server-side
-	admin / event hook: it hatches free eggs for a player with no remote, no
-	cash and no Robux. Pure: no Roblox APIs.
+	`spawnForEvent` is the server-side event hook (boss helper eggs): it
+	hatches free eggs onto a player's plot through Shared.MysteryEgg, with no
+	remote, no cash and no Robux, and records each hatch for the reveal banner
+	(State.egg). Pure: no Roblox APIs.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -25,16 +24,6 @@ local function reveal(world: World, session: Session, slime: Genome.Slime, now: 
 	session.egg = { slime = slime, at = now }
 	World.markDirty(session)
 	World.notify(world, session.userId, `Your egg hatched: {Genome.displayName(slime)}!`, "good", "Cash", "MysteryEgg")
-end
-
--- Returns (ok, reason?). Charges cash.
-function MysteryEgg.buy(world: World, session: Session, now: number): (boolean, string?)
-	local ok, value = SharedEgg.buy(session.data, world.rng, world.newId())
-	if not ok then
-		return false, value :: string
-	end
-	reveal(world, session, value :: Genome.Slime, now)
-	return true, nil
 end
 
 --[[

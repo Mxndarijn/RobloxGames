@@ -68,7 +68,6 @@ local function baseState(extra: { [string]: any }?): any
 		shop = {
 			LockUpgrade = { price = 750, level = 2, maxLevel = 5 },
 			SpeedCoil = { price = 4000, owned = false },
-			MysteryEgg = { price = 900 },
 		},
 		upgrades = upgrades,
 		consumables = {
@@ -143,7 +142,7 @@ describe("WorldShopLogic.rows", function()
 	it("filters rows by feature flags", function()
 		local off = features({ Consumables = false, PvP = false })
 		local itemRows = ids(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, off, Config))
-		expect(table.concat(itemRows, ",")).toBe("Lock,MysteryEgg,SpeedCoil")
+		expect(table.concat(itemRows, ",")).toBe("Lock,SpeedCoil")
 		local upgradeRows = ids(WorldShopLogic.rows("UpgradeShop", baseState(), ACTIONS, off, Config))
 		expect(table.find(upgradeRows, "Income")).toBeTruthy()
 		local all = ids(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config))
@@ -163,7 +162,7 @@ describe("WorldShopLogic.rows", function()
 		end
 	end)
 
-	it("Lock and the Mystery Egg show their price and buy state", function()
+	it("Lock shows its price and buy state", function()
 		local rows = WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config)
 		local lock = find(rows, "Lock")
 		expect(lock.status).toBe("buy")
@@ -173,7 +172,6 @@ describe("WorldShopLogic.rows", function()
 			find(WorldShopLogic.rows("ItemShop", baseState({ cash = 5 }), ACTIONS, features(), Config), "Lock")
 		expect(broke.enabled).toBe(false)
 		expect(broke.status).toBe("buy")
-		expect(find(rows, "MysteryEgg").buttonText).toBe("$900")
 	end)
 
 	it("the Speed Coil is an Item Shop row: price, then Owned", function()

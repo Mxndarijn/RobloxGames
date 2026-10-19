@@ -4,7 +4,7 @@
 
 	The catalogue of the two world shops, one source for the server (ShopBuy item membership, which existing
 	action a purchase delegates to) and for the client UI. Names / icons / text come from Config (UPGRADES,
-	CONSUMABLES, PVP_TOOLS); Lock, Longer locks, Speed Coil and Mystery Egg are the strings the HUD Shop already
+	CONSUMABLES, PVP_TOOLS); Lock, Longer locks and Speed Coil are the strings the HUD Shop already
 	shows. Ids are action args and save keys: never rename. Pure: no Roblox APIs.
 ]]
 
@@ -54,7 +54,6 @@ end
 
 local itemRows: { Item } = {
 	item("Lock", "Lock base", "🔒", "Blocks thieves.", "Lock", false, nil),
-	item("MysteryEgg", "Mystery Egg", "🥚", "Hatches a random slime. Cash only.", "BuyEgg", false, nil),
 	-- An item, not an upgrade: it works while it is held in the hand (a Tool in the Backpack, a hotbar slot).
 	item("SpeedCoil", "Speed Coil", "⚡", "Run faster, also while carrying", "BuySpeedCoil", false, nil),
 }
@@ -145,7 +144,7 @@ function Shops.shopOf(itemId: any): string?
 	return nil
 end
 
--- The shop whose purchase action is `action` (Lock, BuyEgg, BuyUpgrade, ...), or nil for any other action.
+-- The shop whose purchase action is `action` (Lock, BuySpeedCoil, BuyUpgrade, ...), or nil for any other action.
 function Shops.shopOfAction(action: any): string?
 	for _, shopId in Shops.ORDER do
 		for _, row in (Shops.SHOPS[shopId] :: Shop).items do

@@ -77,14 +77,6 @@ ShopCatalog.ITEMS = table.freeze({
 		action = "BuySpeedCoil", -- TODO(CONTRACT): expected action name
 		args = {},
 	}),
-	table.freeze({
-		id = "MysteryEgg",
-		name = "Mystery Egg",
-		icon = "🥚",
-		description = "Hatches a random slime. Cash only.",
-		action = "BuyEgg",
-		args = {},
-	}),
 } :: { Item })
 
 -- Badge emoji per v13 upgrade id (Config.UPGRADES); unknown ids get ⬆️.
@@ -314,9 +306,7 @@ end
 function ShopCatalog.views(state: any, actions: { [string]: any }, config: any?): { ItemView }
 	local out = {}
 	for _, item in ShopCatalog.ITEMS do
-		if item.id ~= "MysteryEgg" or ShopCatalog.status(item, state) then
-			table.insert(out, ShopCatalog.view(item, state, actions, config))
-		end
+		table.insert(out, ShopCatalog.view(item, state, actions, config))
 	end
 	for _, view in ShopCatalog.upgradeViews(state, actions) do
 		table.insert(out, view)

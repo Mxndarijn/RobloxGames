@@ -185,7 +185,7 @@ local HAND: { Hand } = {
 	{
 		id = "MysteryEgg",
 		name = "Mystery Egg",
-		group = "shop",
+		group = "misc",
 		color = { 200, 120, 230 },
 		glyph = "🥚",
 		brief = "A big egg, cream shell with purple spots and a bold white question mark, tiny sparkles; front view, slightly tilted, soft glow behind.",

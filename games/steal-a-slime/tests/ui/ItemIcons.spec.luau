@@ -447,7 +447,6 @@ describe("item icons on the surfaces", function()
 		panel.update({
 			cash = 1e6,
 			shop = {
-				MysteryEgg = { price = 100 },
 				LockUpgrade = { price = 5, level = 0, maxLevel = 5 },
 				SpeedCoil = { price = 9 },
 			},
@@ -480,7 +479,7 @@ describe("item icons on the surfaces", function()
 				expect(registry.byId[inst:GetAttribute("ItemId")] ~= nil).toBe(true)
 			end
 		end
-		expect(seen).toBe(6)
+		expect(seen).toBe(5)
 	end)
 
 	it("Codes, Goals and the Daily popup draw item icons", function()
