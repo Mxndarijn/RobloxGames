@@ -102,3 +102,7 @@ TROPHY_GAP`. Values live in `Config.luau` only.
   WorldView walks an undropped boss along its `BossWander` plan (seeded from the slime id, starting at its arrival) every
   frame of the fight and leaves it at the pose of `wanderUntil` in the haul; never on the parade lane or the fountain
   ride. The model keeps attribute `Boss = true`.
+- While it walks (undropped, wild) the model also carries `BossWalkSeed` (`BossWander.seed` of its id), `BossWalkAt`
+  (its arrival, server time) and `BossWalkUntil` (the haul start, nil while it fights); any other state clears them. The
+  client builds the same plan and draws the pose at `GetServerTimeNow` every frame, so the walk runs at frame rate,
+  not at replication rate. In every pause the boss turns (eased, `BossWander.TURN_SECONDS`) to its next walk.
