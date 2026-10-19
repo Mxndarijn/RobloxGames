@@ -17,7 +17,7 @@
 local Preload = {}
 
 Preload.BATCH = 40
-Preload.ROOTS = { "Map", "Plots" }
+Preload.ROOTS = table.freeze({ "Map", "Plots" })
 
 -- Engine access, overridable by specs. `preload` gets one batch of Instances.
 export type Context = {
@@ -50,7 +50,7 @@ function Preload.batches(items: { any }, size: number): { { any } }
 	return out
 end
 
--- Starts the preload; returns a cleanup that stops watching for new MeshParts.
+-- Starts the preload; returns a cleanup that stops watching for new MeshParts. Call once per client.
 function Preload.start(ctx: Context?): () -> ()
 	local connections: { RBXScriptConnection } = {}
 	local stopped = false
@@ -73,13 +73,8 @@ function Preload.start(ctx: Context?): () -> ()
 			if not root or stopped then
 				return
 			end
-			local queue: { Instance } = {}
-			for _, d in root:GetDescendants() do
-				if d:IsA("MeshPart") then
-					table.insert(queue, d)
-				end
-			end
-			preload(queue)
+			-- Watch before the first preload yields: cleanup always reaches the connection, and a MeshPart added
+			-- meanwhile is not missed.
 			table.insert(
 				connections,
 				root.DescendantAdded:Connect(function(d)
@@ -88,6 +83,13 @@ function Preload.start(ctx: Context?): () -> ()
 					end
 				end)
 			)
+			local queue: { Instance } = {}
+			for _, d in root:GetDescendants() do
+				if d:IsA("MeshPart") then
+					table.insert(queue, d)
+				end
+			end
+			preload(queue)
 		end)
 	end
 	return cleanup

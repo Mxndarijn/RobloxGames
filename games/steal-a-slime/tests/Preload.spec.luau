@@ -124,6 +124,56 @@ describe("mesh preload", function()
 		expect(#batches).toBe(0)
 		expect(#map.listeners).toBe(0)
 	end)
+	it("leaves no listener when cleanup runs during the first preload", function()
+		local map = fakeRoot({ fake("MeshPart") })
+		local cleanup: (() -> ())? = nil
+		local cleanedDuringPreload = false
+		local watchers: { () -> () } = {}
+		cleanup = Preload.start({
+			preload = function(_batch)
+				-- PreloadAsync yields; the client tears down while it is still fetching
+				if cleanup and not cleanedDuringPreload then
+					cleanedDuringPreload = true
+					cleanup()
+				end
+			end,
+			waitForRoot = function(name)
+				return if name == "Map" then map else nil
+			end,
+			spawn = function(fn, ...)
+				local args = table.pack(...)
+				table.insert(watchers, function()
+					fn(table.unpack(args, 1, args.n))
+				end)
+			end,
+		} :: any)
+		for _, watch in watchers do
+			watch()
+		end
+		expect(cleanedDuringPreload).toBe(true)
+		expect(#map.listeners).toBe(0)
+	end)
+	it("preloads a MeshPart added while the first preload runs", function()
+		local map = fakeRoot({ fake("MeshPart") })
+		local late = fake("MeshPart")
+		local batches: { { any } } = {}
+		Preload.start({
+			preload = function(batch)
+				table.insert(batches, batch)
+				if #batches == 1 then
+					map.fire(late) -- added while PreloadAsync is still fetching the snapshot
+				end
+			end,
+			waitForRoot = function(name)
+				return if name == "Map" then map else nil
+			end,
+			spawn = function(fn, ...)
+				fn(...)
+			end,
+		} :: any)
+		expect(#batches).toBe(2)
+		expect(batches[2][1]).toBe(late)
+	end)
 	it("skips a root that never appears", function()
 		local batches = run({})
 		expect(#batches).toBe(0)
