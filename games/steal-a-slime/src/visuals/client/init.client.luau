@@ -89,7 +89,13 @@ local function onSlime(instance: Instance)
 				if child.Name == "Body" then
 					pending[instance]:Disconnect()
 					pending[instance] = nil
-					task.defer(onSlime, instance) -- after the rest of the model (eyes) has landed
+					-- after the rest of the model (eyes) has landed; skip a slime
+					-- removed in between, or its track would never be dropped
+					task.defer(function()
+						if instance.Parent and instance:HasTag(Constants.SLIME_TAG) then
+							onSlime(instance)
+						end
+					end)
 				end
 			end)
 		end
