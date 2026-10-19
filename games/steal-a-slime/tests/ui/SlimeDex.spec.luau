@@ -335,6 +335,39 @@ describe("SlimeDex.header (short panel bodies)", function()
 	end
 end)
 
+-- "100%" in Theme.Font (FredokaOne) is this many em wide: Studio TextBounds 116 px at 56, 60 px at 28.
+local PERCENT_EM = 2.15
+
+-- The percent label fits "100%" (box at least as wide and as tall as the text) and the first chip starts past it.
+local function expectPercentFits(panel: any)
+	local percent = UiHarness.find(panel.frame, "Percent")
+	expect(percent.Size.X.Offset >= PERCENT_EM * percent.TextSize).toBe(true)
+	expect(percent.Size.Y.Offset >= percent.TextSize).toBe(true)
+	local count = UiHarness.find(panel.frame, "Count")
+	expect(count.Position.X.Offset >= percent.Position.X.Offset + percent.Size.X.Offset).toBe(true)
+end
+
+describe("SlimeDex percent header", function()
+	for _, vp in { { 390, 844 }, { 844, 390 }, { 844, 332 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } } do
+		it(`{vp[1]}x{vp[2]}: keeps the big percent, and "100%" fits it`, function()
+			local panel = openDex(vp[1], vp[2], DEX)
+			local percent = UiHarness.find(panel.frame, "Percent")
+			expect(percent.Size.Y.Offset).toBe(SlimeDex.HEADER.percent)
+			expectPercentFits(panel)
+		end)
+	end
+	it('a body too short for the big percent gets the compact one, and "100%" fits it', function()
+		local panel, r = openDex(844, 332, DEX)
+		local body = Layout.panelBody(r)
+		local short = Layout.rect(r.x, r.y, r.w, r.h - body.h + 131)
+		panel.frame.Size = UDim2.fromOffset(short.w, short.h)
+		panel.layout(short)
+		local percent = UiHarness.find(panel.frame, "Percent")
+		expect(percent.Size.Y.Offset).toBe(SlimeDex.HEADER.chip)
+		expectPercentFits(panel)
+	end)
+end)
+
 describe("SlimeDex.rewardCard", function()
 	local REWARDS = {
 		{ ladder = "species", count = 8, reward = 1000, bonus = 0.02, claimed = true },
