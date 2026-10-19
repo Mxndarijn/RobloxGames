@@ -1,0 +1,109 @@
+{
+  "name": "pvp_fun_bounce_pad",
+  "model": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\models\\pvp_fun_bounce_pad.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1424,
+  "meshes": [
+    {
+      "name": "pvp_fun_bounce_pad",
+      "tris": 1424,
+      "verts": 740,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        3.0,
+        0.913,
+        3.0
+      ],
+      "materials": [
+        "pvp_fun_bounce_pad_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pvp_fun_bounce_pad_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    3.0,
+    0.913,
+    3.0
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pvp_fun_bounce_pad_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": null,
+  "fbx_bytes": null,
+  "engine": "workbench",
+  "mode": "quick",
+  "look": "clay",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bounce_pad_quick_0.png"
+    },
+    {
+      "view": "side",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bounce_pad_quick_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bounce_pad_quick_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bounce_pad_quick_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.185,
+    "stats_s": 0.004,
+    "setup_s": 0.001,
+    "render_s": [
+      0.696,
+      0.016,
+      0.013,
+      0.013
+    ],
+    "export_s": 0.0
+  },
+  "sheet": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\pvp_fun_bounce_pad_quick_sheet.png",
+  "timings": {
+    "wall_s": 1.52,
+    "blender_process_s": 1.47,
+    "compose_s": 0.046,
+    "model_s": 0.185,
+    "stats_s": 0.004,
+    "setup_s": 0.001,
+    "render_s": [
+      0.696,
+      0.016,
+      0.013,
+      0.013
+    ],
+    "export_s": 0.0
+  }
+}
