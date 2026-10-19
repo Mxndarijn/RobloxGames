@@ -323,7 +323,7 @@ end
 
 local function addTier(ctx: Ctx, tier: number, tierColor: Vec, bodyColor: Vec)
 	local d, r = ctx.d, ctx.r
-	-- Goo puddle under the body (no rarity ring: nothing flat and coloured under a slime).
+	-- Body-coloured goo puddle under the ball. No rarity-coloured ring: rarity shows in the accents below.
 	local puddleD = 0.92 * d
 	push(
 		ctx,
