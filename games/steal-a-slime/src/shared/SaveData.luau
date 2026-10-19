@@ -582,6 +582,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			species = slime.species, -- optional (v28), dropped on load if unknown
 			growth = slime.growth, -- optional (FEATURES.GrowingSlimes): missing = 0, no version bump
 			keep = if slime.keep == true then true else nil, -- optional (CONTRACT.md §21.1): missing = not kept, no version bump
+			egg = if slime.egg then { kind = slime.egg.kind, hatchAt = slime.egg.hatchAt } else nil, -- optional (contract/mystery-egg.md): missing = a slime, no version bump
 		})
 	end
 	local found = {}

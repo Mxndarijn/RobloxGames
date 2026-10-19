@@ -28,7 +28,10 @@ local EventSecrets = if Shared then require(Shared.EventSecrets) else require(".
 local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local DayNight = if Shared then require(Shared.DayNight) else require("../shared/DayNight")
+local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
+local ParadeChoreo = if Shared then require(Shared.ParadeChoreo) else require("../shared/ParadeChoreo")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local Progression = if Shared then require(Shared.Progression) else require("../shared/Progression")
 local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
@@ -125,7 +128,103 @@ function Spawner.familyPool(world: World, enabled: boolean?): { string }?
 	return FountainTiers.pool(world.fountainTier)
 end
 
+-- Loose Mystery Eggs (on the lane, dropped or carried).
+function Spawner.wildEggCount(world: World): number
+	local n = 0
+	for _, wild in world.wild do
+		if wild.slime.egg then
+			n += 1
+		end
+	end
+	return n
+end
+
+-- FEATURES.MysteryEggs: whether this fountain drop is an egg (rolled on world.eggRng). `enabled` (tests) overrides
+-- the flag.
+function Spawner.rollEgg(world: World, enabled: boolean?): boolean
+	if not (if enabled == nil then Config.FEATURES.MysteryEggs else enabled) then
+		return false
+	end
+	if Spawner.wildEggCount(world) >= MysteryEgg.wildCap(world.raining) then
+		return false
+	end
+	return world.eggRng:float() < MysteryEgg.dropChance(world.raining)
+end
+
+-- A wild Mystery Egg on the lane (contract/mystery-egg.md): the slime inside is rolled now; no pity, no luck.
+function Spawner.spawnEgg(world: World, now: number): string
+	local id = world.newId()
+	local rng = world.eggRng
+	local slime, kind = MysteryEgg.rollWild(rng, id)
+	local rare = if kind.announce then kind.tier else nil
+	if rare then
+		World.notify(
+			world,
+			nil,
+			`A {string.upper(EggKind.displayName(kind))} rolled out of the fountain!`,
+			"good",
+			"Rare"
+		)
+		World.emit(world, { type = "Rare", slimeId = id, tier = kind.tier })
+	end
+	world.wild[id] = {
+		slime = slime,
+		price = MysteryEgg.price(kind, rng:float()),
+		spawnedAt = now,
+		expiresAt = now + Fountain.wildLifetime(slime),
+		angle = rng:float() * math.pi * 2,
+		radius = Fountain.MIN_RADIUS + rng:float() * (Fountain.MAX_RADIUS - Fountain.MIN_RADIUS),
+		position = nil,
+		rare = rare,
+	}
+	return id
+end
+
+-- FEATURES.SlimeChoreo: the lane beats of a new lane wild. A copycat (ParadeChoreo.copies, a hash of its id, no
+-- world.rng roll) of the same species right behind another lane wild takes that slime's seed, so it repeats its beats
+-- at the same lane spots. nil with the feature or the parade off.
+function Spawner.choreoFor(
+	world: World,
+	id: string,
+	slime: Genome.Slime,
+	now: number,
+	enabled: boolean?
+): { seed: number }?
+	if not (if enabled == nil then Config.FEATURES.SlimeChoreo else enabled) or not ParadeLane.enabled() then
+		return nil
+	end
+	local seed = ParadeChoreo.seedFor(id)
+	if slime.species and ParadeChoreo.copies(id) then
+		local ahead: World.Wild? = nil
+		for otherId, wild in world.wild do
+			if
+				otherId ~= id
+				and wild.choreo ~= nil
+				and not wild.boss
+				and ParadeLane.onLane(wild, world.carriedBy[otherId] ~= nil)
+				and now - wild.spawnedAt <= ParadeChoreo.COPY_WINDOW
+				and (ahead == nil or wild.spawnedAt > ahead.spawnedAt)
+			then
+				ahead = wild
+			end
+		end
+		if ahead and ahead.choreo and ahead.slime.species == slime.species then
+			seed = ahead.choreo.seed
+		end
+	end
+	return { seed = seed }
+end
+
+-- One fountain drop: now and then a Mystery Egg (Spawner.rollEgg), else a slime.
 function Spawner.spawnOne(world: World, now: number): string
+	if Spawner.rollEgg(world) then
+		return Spawner.spawnEgg(world, now)
+	end
+	return Spawner.spawnSlime(world, now)
+end
+
+-- One wild slime from the fountain: luck, pity, families, event Secrets and the Legendary+ announcement.
+function Spawner.spawnSlime(world: World, now: number): string
 	local id = world.newId()
 	local luckMult = CycleModifier.multiplier(world.modifier)
 	luckMult = Consumables.spawnLuck(luckMult, world.potionUntil > now)
@@ -163,6 +262,7 @@ function Spawner.spawnOne(world: World, now: number): string
 		radius = drop.radius,
 		position = nil,
 		rare = rare,
+		choreo = Spawner.choreoFor(world, id, drop.slime, now),
 	}
 	return id
 end
@@ -182,6 +282,7 @@ function Spawner.spawnBonus(world: World, now: number, count: number, luckMult: 
 			angle = drop.angle,
 			radius = drop.radius,
 			position = nil,
+			choreo = Spawner.choreoFor(world, id, drop.slime, now),
 		}
 		table.insert(ids, id)
 	end

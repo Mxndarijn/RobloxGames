@@ -20,9 +20,9 @@
 	  ui     the real State / attributes / prompts through the pure src/ui
 	         modules: BuyUpgrade row, goals, dex, lock / pad buttons,
 	         PromptHide
-	  boss   two stand-ins fight the boss with their bats (meter, sheds,
-	         helper eggs), race the haul (head start, boss carry slow, a
-	         slap drops it) and bring it home onto the trophy stand
+	  boss   two stand-ins fight the boss with their bats (meter, sheds),
+	         race the haul (head start, boss carry slow, a slap drops it)
+	         and bring it home onto the trophy stand
 
 	Prints PASS / FAIL per check and exits 1 on any FAIL. The cloud twin is
 	tools/livetest/cloud/session.luau (Luau Execution, ci/run.py).
@@ -821,11 +821,6 @@ scenario("boss", function()
 		"boss: bat hits fill a meter that scales with players; it sheds slimes on the way",
 		fight.phase == "haul" and wildAfter - 1 > wildBefore,
 		`{swings} swing rounds, {players} players (target {BOSS.POINTS_PER_PLAYER * players}), hits {fight.contributions[USER_ID]} / {fight.contributions[HELPER_ID]}, wild {wildBefore} -> {wildAfter}`
-	)
-	check(
-		"boss: every helper gets a free egg",
-		session.egg ~= nil and helperSession.egg ~= nil,
-		`egg reveal: stand-in {session.egg ~= nil}, helper {helperSession.egg ~= nil}`
 	)
 	local haulPos = S.WorldView.slimePosition(id)
 	local moved = if haulPos and lastFightPos

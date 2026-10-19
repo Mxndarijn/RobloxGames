@@ -53,16 +53,20 @@
 ]]
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local MeshAssets = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("MeshAssets"))
+local SlimeActor = require(script.Parent:WaitForChild("SlimeActor"))
 local SlimeAnim = require(script.Parent:WaitForChild("SlimeAnim"))
+local SlimeEmotes = require(script.Parent:WaitForChild("SlimeEmotes"))
 local SlimeLife = require(script.Parent:WaitForChild("SlimeLife"))
 local SlimeLod = require(script.Parent:WaitForChild("SlimeLod"))
 local SlimeMotor = require(script.Parent:WaitForChild("SlimeMotor"))
+local SlimeReact = require(script.Parent:WaitForChild("SlimeReact"))
 
 local SELECT_EVERY = 0.25
 local ACQUIRE_PER_TICK = 4
@@ -97,6 +101,7 @@ type MotorRig = {
 	tier: SlimeLod.Tier,
 	slot: number, -- staggers the mid-tier frames across slimes
 	motor: SlimeMotor.Motor,
+	actor: SlimeActor.Actor?, -- FEATURES.SlimeChoreo: gait, lane beats, reactions (near tier)
 	params: SlimeLife.Params,
 	sparkle: ParticleEmitter?,
 	conns: { RBXScriptConnection },
@@ -120,7 +125,9 @@ local animRigs: { [Model]: AnimRig } = {}
 local motorRigs: { [Model]: MotorRig } = {}
 local noMotor: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any -- motor step threw: this slime uses welds
 local trackSets: { [Model]: SlimeAnim.Tracks } = setmetatable({}, { __mode = "k" }) :: any
-local animationsOn = Config.FEATURES.SlimeAnimations == true
+-- FEATURES.SlimeChoreo drives every rig through SlimeMotor (gaits, beats, reactions ride on its Transform and bones),
+-- so the uploaded KeyframeSequences stay off with it.
+local animationsOn = Config.FEATURES.SlimeAnimations == true and Config.FEATURES.SlimeChoreo ~= true
 local animationIds = if animationsOn then SlimeAnim.ids(MeshAssets.animationId) else nil
 local probe: SlimeAnim.Verdict? = nil -- nil = not started; "wait" | "ok" | "failed"
 local animationInstances: { [string]: Animation } = {} -- one per id, shared by every rig
@@ -129,6 +136,14 @@ local lodConfig: SlimeLod.Cfg = Config.SLIME_LOD
 local qualityLevel: number? = nil
 local frame = 0
 local slotCounter = 0
+local lifeOn = Config.FEATURES.SlimeChoreo == true
+local emotes: SlimeEmotes.Pool? = nil
+local slimeConns: { [Model]: { RBXScriptConnection } } = {}
+-- Contract/slime-life.md social reactions: how far away neighbours notice a slime leaving.
+local DRAIN_WATCH_DISTANCE = 20
+local DRAIN_WATCH_SECONDS = 1.6
+local BUMP_GAP = 0.85 -- share of the two radii two slimes may close to before they bump
+local BUMP_COOLDOWN = 2.5
 
 -- UserGameSettings.SavedQualityLevel, read safely (UserSettings() can throw outside a full client).
 local function refreshQuality()
@@ -447,6 +462,9 @@ local function releaseMotor(model: Model)
 	for _, conn in rig.conns do
 		conn:Disconnect()
 	end
+	if rig.actor then
+		pcall(SlimeActor.release, rig.actor)
+	end
 	pcall(SlimeMotor.release, rig.motor)
 	if rig.sparkle then
 		rig.sparkle:Destroy()
@@ -471,6 +489,7 @@ local function acquireMotor(model: Model): MotorRig?
 		tier = "near",
 		slot = slotCounter,
 		motor = motor,
+		actor = if lifeOn then SlimeActor.attach(model, motor, os.clock()) else nil,
 		params = motor.params,
 		sparkle = nil,
 		conns = {},
@@ -727,19 +746,148 @@ local function step(rig: Rig, now: number)
 	end
 end
 
+-- Contract/slime-life.md social reactions: animated neighbours startle when a slime is grabbed and watch a slime
+-- that starts to leave (its despawn telegraph).
+local function neighbours(at: Vector3, radius: number, except: Model): { SlimeActor.Actor }
+	local out = {}
+	for model, rig in motorRigs do
+		local actor = rig.actor
+		if actor and rig.tier == "near" and model ~= except and (actor.visible - at).Magnitude < radius then
+			table.insert(out, actor)
+		end
+	end
+	return out
+end
+
+local function onStateChanged(model: Model)
+	local body = bodyOf(model)
+	if not (lifeOn and body and model:GetAttribute("State") == "Carried") then
+		return
+	end
+	local now = os.clock()
+	for _, actor in neighbours(body.Position, SlimeReact.STARTLE_DISTANCE, model) do
+		SlimeActor.frighten(actor, now, body.Position, (actor.visible - body.Position).Magnitude * 0.03)
+	end
+end
+
+local function onDespawnAt(model: Model)
+	local body = bodyOf(model)
+	if not (lifeOn and body and model:GetAttribute(Constants.DESPAWN_AT_ATTRIBUTE) ~= nil) then
+		return
+	end
+	local now = os.clock()
+	for _, actor in neighbours(body.Position, DRAIN_WATCH_DISTANCE, model) do
+		SlimeActor.watch(actor, body.Position, now + DRAIN_WATCH_SECONDS, "worried")
+	end
+end
+
 local function onSlime(instance: Instance)
-	if instance:IsA("Model") then
+	-- A Mystery Egg has no face or skin to animate (its looks are Visuals EggFx).
+	if
+		instance:IsA("Model")
+		and not slimes[instance]
+		and instance:GetAttribute(Constants.EGG_KIND_ATTRIBUTE) == nil
+	then
 		slimes[instance] = true
+		if lifeOn then
+			slimeConns[instance] = {
+				instance:GetAttributeChangedSignal("State"):Connect(function()
+					onStateChanged(instance)
+				end),
+				instance:GetAttributeChangedSignal(Constants.DESPAWN_AT_ATTRIBUTE):Connect(function()
+					onDespawnAt(instance)
+				end),
+			}
+		end
 	end
 end
 
 local function onSlimeRemoved(instance: Instance)
 	if instance:IsA("Model") then
 		slimes[instance] = nil
+		local conns = slimeConns[instance]
+		if conns then
+			for _, conn in conns do
+				conn:Disconnect()
+			end
+			slimeConns[instance] = nil
+		end
 		release(instance)
 		releaseAnim(instance)
 		releaseMotor(instance)
 	end
+end
+
+-- What every actor needs from this frame: the local character and its cash (leaderstats).
+local lifeFrame: SlimeActor.Frame = { player = nil, cash = nil }
+local function readFrame()
+	local player = Players.LocalPlayer
+	local character = player and player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	lifeFrame.player = if root and root:IsA("BasePart") then root.Position else nil
+	local stats = player and player:FindFirstChild("leaderstats")
+	local cash = stats and stats:FindFirstChild("Cash")
+	lifeFrame.cash = if cash and cash:IsA("ValueBase") then tonumber((cash :: any).Value) else nil
+end
+
+-- Two lane slimes closer than their radii allow: the one behind bumps the one ahead (once per cooldown).
+local function bumps(now: number)
+	local list = {}
+	for model, rig in motorRigs do
+		local actor = rig.actor
+		if actor and rig.tier == "near" and model:GetAttribute("State") == "Wild" then
+			table.insert(list, actor)
+		end
+	end
+	for i = 1, #list do
+		local a = list[i]
+		for j = i + 1, #list do
+			local b = list[j]
+			local gap = (a.visible - b.visible).Magnitude
+			local room = (a.motor.body.Size.X + b.motor.body.Size.X) / 2 * BUMP_GAP
+			if gap < room then
+				-- The one behind: the other lies ahead along its heading.
+				local look = a.motor.body.CFrame.LookVector
+				local behind, ahead = a, b
+				if (a.visible - b.visible):Dot(look) > 0 then
+					behind, ahead = b, a
+				end
+				if now - behind.bumpAt > BUMP_COOLDOWN and behind.speed >= ahead.speed then
+					SlimeActor.bump(behind, now, true)
+					SlimeActor.bump(ahead, now, false)
+				end
+			end
+		end
+	end
+end
+
+local function showEmotes(camera: Camera, now: number)
+	if not emotes then
+		local gui = Players.LocalPlayer and Players.LocalPlayer:FindFirstChild("PlayerGui")
+		if not gui then
+			return
+		end
+		emotes = SlimeEmotes.new(gui)
+	end
+	local cameraPos = camera.CFrame.Position
+	local wants = {}
+	for model, rig in motorRigs do
+		local actor = rig.actor
+		local root = rig.motor.skinJoint.Part1
+		if actor and actor.emote and rig.tier == "near" and root and root:IsA("BasePart") then
+			table.insert(wants, {
+				adornee = root,
+				emote = actor.emote,
+				height = rig.motor.body.Size.Y / 2 + 0.6,
+				key = model,
+				distance = (actor.visible - cameraPos).Magnitude,
+			})
+		end
+	end
+	table.sort(wants, function(x, y)
+		return x.distance < y.distance
+	end)
+	SlimeEmotes.show(emotes :: SlimeEmotes.Pool, wants :: any, now)
 end
 
 CollectionService:GetInstanceAddedSignal(Constants.SLIME_TAG):Connect(onSlime)
@@ -769,11 +917,21 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 	frame += 1
+	if lifeOn then
+		readFrame()
+	end
+	local serverNow = workspace:GetServerTimeNow()
 	for model, rig in motorRigs do
 		if model.Parent then
 			local tier = rig.tier
 			local ok, result = true, false :: any
-			if tier == "near" then
+			local actor = rig.actor
+			if tier == "near" and actor then
+				ok, result = pcall(SlimeActor.update, actor, lifeFrame, now, serverNow, math.random)
+				if ok then
+					ok, result = pcall(SlimeMotor.step, rig.motor, now, math.random, actor.mods)
+				end
+			elseif tier == "near" then
 				ok, result = pcall(SlimeMotor.step, rig.motor, now, math.random)
 			elseif SlimeLod.due(tier, frame, rig.slot, lodConfig) then
 				ok, result = pcall(SlimeMotor.stepSquish, rig.motor, now, lodConfig.MID_AMPLITUDE)
@@ -787,7 +945,17 @@ RunService.RenderStepped:Connect(function()
 			elseif result and rig.sparkle and rig.params.landBurst > 0 then
 				rig.sparkle:Emit(rig.params.landBurst)
 			end
+			if actor and tier ~= "near" then
+				actor.emote = nil
+				if actor.string then
+					actor.string.Enabled = false
+				end
+			end
 		end
+	end
+	if lifeOn then
+		bumps(now)
+		showEmotes(camera, now)
 	end
 	for model, rig in rigs do
 		if model.Parent and not rig.dirty then

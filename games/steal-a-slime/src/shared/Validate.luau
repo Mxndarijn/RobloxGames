@@ -20,6 +20,7 @@ Validate.ACTIONS = table.freeze({
 	Rebirth = 2,
 	Sell = 0.25,
 	Favorite = 0.25,
+	HatchEgg = 0.5,
 	BuyPad = 0.5,
 	Daily = 1,
 	ClaimQuest = 0.3,

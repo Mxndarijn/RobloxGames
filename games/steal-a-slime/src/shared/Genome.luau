@@ -9,6 +9,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local EggKind = if script then require(script.Parent.EggKind) else require("./EggKind")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 local SlimeLooks = if script then require(script.Parent.SlimeLooks) else require("./SlimeLooks")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
@@ -26,6 +27,7 @@ export type Slime = {
 	species: string?, -- SlimeRoster id (wild spawns since v28; nil for older/merged slimes)
 	growth: number?, -- 0..1 (FEATURES.GrowingSlimes, Growth); nil = not grown yet (old saves, wild, merged slimes)
 	keep: boolean?, -- kept by its owner: never merged (CONTRACT.md §21.1); nil = not kept
+	egg: EggKind.Egg?, -- still a Mystery Egg (contract/mystery-egg.md): the rest of the record is the slime inside
 }
 
 export type GenerateOptions = {
@@ -159,20 +161,36 @@ function Genome.growthFraction(slime: Slime): number
 	return math.clamp(g, 0, 1)
 end
 
--- Cash/sec before the rebirth multiplier (incl. growth).
+-- Cash/sec before the rebirth multiplier (incl. growth); an egg earns nothing.
 function Genome.baseIncome(slime: Slime): number
+	if slime.egg then
+		return 0
+	end
 	local growth = 1 + Config.GROWTH_MAX_INCOME_BONUS * Genome.growthFraction(slime)
 	return Genome.rarity(slime.tier).income * slime.size * growth
 end
 
+-- "Rare Lop"; an egg shows its egg name ("Golden Mystery Egg"), never the slime inside.
 function Genome.displayName(slime: Slime): string
+	local kind = EggKind.of(slime)
+	if kind then
+		return EggKind.displayName(kind)
+	end
 	local rarity = Genome.rarity(slime.tier).name
 	return `{rarity} {slime.name}`
+end
+
+-- Whether this record is still an unhatched Mystery Egg.
+function Genome.isEgg(slime: Slime): boolean
+	return EggKind.isEgg(slime)
 end
 
 function Genome.copy(slime: Slime): Slime
 	local c = table.clone(slime)
 	c.color = table.clone(slime.color)
+	if slime.egg then
+		c.egg = table.clone(slime.egg)
+	end
 	return c
 end
 
@@ -224,6 +242,7 @@ function Genome.sanitize(raw: any): Slime?
 		species = if type(raw.species) == "string" and SlimeRoster.get(raw.species) then raw.species else nil,
 		growth = if growth then math.floor(math.min(growth, 1) * 1e4 + 0.5) / 1e4 else nil,
 		keep = if raw.keep == true then true else nil,
+		egg = EggKind.sanitize(raw.egg),
 	}
 end
 

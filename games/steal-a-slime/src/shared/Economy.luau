@@ -9,6 +9,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local NumberFormat = if script then require(script.Parent.NumberFormat) else require("./NumberFormat")
+local EggKind = if script then require(script.Parent.EggKind) else require("./EggKind")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 
 type Slime = Genome.Slime
@@ -80,7 +81,12 @@ function Economy.offlineIncome(
 	return math.floor(incomePerSec * seconds * (rate or Config.OFFLINE_RATE)), seconds
 end
 
+-- Cash for selling a slime; an egg sells for its kind's flat `sell` x the rebirth multiplier.
 function Economy.sellPrice(slime: Slime, rebirths: number): number
+	local kind = EggKind.of(slime)
+	if kind then
+		return math.max(1, math.floor(kind.sell * Economy.rebirthMultiplier(rebirths)))
+	end
 	return math.max(1, math.floor(Economy.slimeIncome(slime, rebirths) * Config.SELL_SECONDS))
 end
 

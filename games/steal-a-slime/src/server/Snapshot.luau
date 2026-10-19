@@ -15,6 +15,7 @@ local Appraise = if Shared then require(Shared.Appraise) else require("../shared
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
+local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Weekend = if Shared then require(Shared.Weekend) else require("../shared/Weekend")
 local EventSecrets = if Shared then require(Shared.EventSecrets) else require("../shared/EventSecrets")
@@ -53,7 +54,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 	for _, slime in data.slimes do
 		local carrier = world.carriedBy[slime.id]
 		table.insert(slimes, {
-			slime = slime,
+			slime = EggKind.mask(slime), -- an egg never shows the slime inside (contract/mystery-egg.md)
 			income = if carrier then 0 else PlayerData.slimeIncome(data, slime),
 			sellPrice = Economy.sellPrice(slime, rebirths),
 			appraiseCost = Appraise.cost(slime, rebirths),
@@ -65,7 +66,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 	local carry = session.carry
 	if carry then
 		carrying = {
-			slime = carry.slime,
+			slime = EggKind.mask(carry.slime),
 			kind = carry.kind,
 			ownerUserId = carry.ownerUserId,
 			startedAt = carry.timer.startedAt,
@@ -128,6 +129,9 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		welcomeBack = session.welcome,
 		hotbar = if data.hotbar then table.clone(data.hotbar) else nil,
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
+		blessed = if data.ritualBonus and session.blessedUntil
+			then { bonus = data.ritualBonus, endsAt = session.blessedUntil }
+			else nil,
 		rebirthTitle = Perks.title(rebirths),
 		rebirthTiers = Snapshot.rebirthTiers(rebirths),
 		nextRebirthTier = Snapshot.nextRebirthTier(rebirths),

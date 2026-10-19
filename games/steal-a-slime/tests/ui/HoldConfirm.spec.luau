@@ -55,7 +55,7 @@ describe("B1: hold-to-confirm prompts", function()
 	end)
 	it("slime, plot (Lock / Merge / BuyPad) prompts all take the constant, never a literal", function()
 		local view = holdAssignments("src/server/WorldView.luau")
-		expect(#view).toBe(3) -- slime (initial), slime (reconcile), plot prompts
+		expect(#view).toBe(4) -- slime (initial), Mystery Egg HatchPrompt, slime (reconcile), plot prompts
 		for _, rhs in view do
 			expect(string.find(rhs, "HOLD_CONFIRM_SECONDS", 1, true) ~= nil or rhs == "entry.promptHold").toBe(true)
 		end

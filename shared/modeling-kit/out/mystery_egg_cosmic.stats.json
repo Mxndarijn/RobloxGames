@@ -1,0 +1,109 @@
+{
+  "name": "mystery_egg_cosmic",
+  "model": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\models\\mystery_egg_cosmic.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1492,
+  "meshes": [
+    {
+      "name": "mystery_egg_cosmic",
+      "tris": 1492,
+      "verts": 772,
+      "ngons": 4,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        1.809,
+        2.2,
+        1.792
+      ],
+      "materials": [
+        "mystery_egg_cosmic_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "mystery_egg_cosmic_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    1.809,
+    2.2,
+    1.792
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "mystery_egg_cosmic_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\mystery_egg_cosmic.fbx",
+  "fbx_bytes": 43756,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_cosmic_0.png"
+    },
+    {
+      "view": "side",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_cosmic_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_cosmic_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_cosmic_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.181,
+    "stats_s": 0.003,
+    "setup_s": 0.032,
+    "render_s": [
+      0.172,
+      0.149,
+      0.141,
+      0.177
+    ],
+    "export_s": 0.274
+  },
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\mystery_egg_cosmic_sheet.png",
+  "timings": {
+    "wall_s": 1.63,
+    "blender_process_s": 1.58,
+    "compose_s": 0.052,
+    "model_s": 0.181,
+    "stats_s": 0.003,
+    "setup_s": 0.032,
+    "render_s": [
+      0.172,
+      0.149,
+      0.141,
+      0.177
+    ],
+    "export_s": 0.274
+  }
+}
