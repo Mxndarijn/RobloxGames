@@ -54,7 +54,8 @@ code: `_r03.png`. Bolt, arch, shards and tufts still sit right on the new shape 
 | star_cushion | r02-r03 | 1320 | y scaled 0.92, then 0.9: inside 2.4. Keeps its own proportions (`NOFIT`): fitted to 3.3 x 2.4 it stops being a star. Final. |
 | crescent_moon | r01 | 1596 | Swept crescent (68 degree arc, round section, width tapering to the horns). Read as a banana from every view; craters invisible. |
 | crescent_moon | r02 | 1608 | Arc to 96 degrees (horns curl in), slimmer, richer gold. Still a banana from the top: the width tapered like a fruit. |
-| crescent_moon | r03 | 1608 | Nearly even width with flat faces: a crescent coin. Craters painted on both flat faces at positions computed on the arc. Reads as a moon. Final. |
+| crescent_moon | r03 | 1608 | Nearly even width with flat faces: a crescent coin. Craters painted on both flat faces at positions computed on the arc. Reads as a moon. |
+| crescent_moon | r04 | 1608 | Review: the dark round craters read as Swiss cheese. Now 3 big soft dimples (wide falloff, lighter gold, 70 %). Final. |
 | mushroom | r01 | 1880 | Lathe cap with per-face colours (gill stripes underneath, red gradient), 9 raised spot lenses on the cap normal. Stem hidden under the cap. |
 | mushroom | r02 | 1880 | Cap underside raised 0.12, stem longer: the stem shows from the front. Final. |
 | pancakes | r01 | 2184 | 4 lathe cakes (browned faces, light side band), syrup slab, 6 tube drips. Over budget, syrup too orange. |
@@ -69,5 +70,5 @@ code: `_r03.png`. Bolt, arch, shards and tufts still sit right on the new shape 
 | royal_cushion | r02 | 1724 | Lower pillow resolution, 34 piping points. With the pet the tassels floated off the corners. |
 | royal_cushion | r03 | 1724 | Tassels hang from the piping's corners (45 degrees on the squircle). Final. |
 
-Weak spots: the moon's craters read a little like cheese holes; the hoverboard and the clam lid are big decoration around a low
+Weak spots: the hoverboard and the clam lid are big decoration around a low
 seat; the star and hoverboard footprints are smaller than 3.3 x 2.4 on purpose. Still Cycles estimates: nothing uploaded or run in Studio.

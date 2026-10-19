@@ -79,30 +79,30 @@
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.15,
-    "stats_s": 0.003,
-    "setup_s": 0.018,
+    "model_s": 0.186,
+    "stats_s": 0.004,
+    "setup_s": 0.022,
     "render_s": [
-      0.397,
-      0.281,
-      0.281,
-      0.326
+      0.541,
+      0.352,
+      0.367,
+      0.337
     ],
     "export_s": 0.0
   },
   "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_crescent_moon_roblox_sheet.png",
   "timings": {
-    "wall_s": 3.49,
-    "blender_process_s": 3.29,
-    "compose_s": 0.205,
-    "model_s": 0.15,
-    "stats_s": 0.003,
-    "setup_s": 0.018,
+    "wall_s": 4.08,
+    "blender_process_s": 3.78,
+    "compose_s": 0.297,
+    "model_s": 0.186,
+    "stats_s": 0.004,
+    "setup_s": 0.022,
     "render_s": [
-      0.397,
-      0.281,
-      0.281,
-      0.326
+      0.541,
+      0.352,
+      0.367,
+      0.337
     ],
     "export_s": 0.0
   }

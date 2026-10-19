@@ -129,13 +129,13 @@ def crescent_moon():
             ring.append(p + inward * th * math.copysign(abs(c) ** 0.7, c) + Vector((0, 1, 0)) * w * math.copysign(abs(sn) ** 0.35, sn))
         rings.append(ring)
     body = rings_mesh("Moon", rings, poles=(tips[0], tips[1]))
-    MOON, LIGHT, CRATER = rgb(255, 204, 64), rgb(255, 236, 140), rgb(222, 150, 40)
+    MOON, LIGHT, CRATER = rgb(255, 204, 64), rgb(255, 236, 140), rgb(240, 180, 58)
     def arc(s, off):  # a point on the flat front face: arc position s (-1..1), off across the band (-1 outer .. 1 inner)
         phi = s * PHI
         th = 0.04 + 0.4 * (1 - s * s) ** 0.9
         return Vector((Ra * math.sin(phi) - math.sin(phi) * th * off, 0.0, zb + Ra - Ra * math.cos(phi) + math.cos(phi) * th * off))
     craters = []
-    for s_, off, r in [(-0.5, -0.1, 0.17), (0.08, 0.15, 0.2), (0.45, -0.25, 0.13), (-0.12, -0.55, 0.1), (0.7, 0.2, 0.09), (-0.75, 0.1, 0.09)]:
+    for s_, off, r in [(-0.45, -0.05, 0.2), (0.1, 0.15, 0.24), (0.5, -0.2, 0.15)]:  # few, big, soft: dimples, not holes
         for y in (-1, 1):
             q = arc(s_, off)
             q.y = y * 0.82
@@ -145,7 +145,7 @@ def crescent_moon():
         c = mix(MOON, LIGHT, clamp(0.45 + 0.55 * n.z))
         for cp, r in craters:
             d = (co - cp).length / r
-            c = mix(c, CRATER, (1 - sstep(0.7, 1.0, d)) * 0.9)
+            c = mix(c, CRATER, (1 - sstep(0.2, 1.0, d)) * 0.7)
         return shade(c, 1 - 0.2 * clamp(-n.z))
     paint(body, f)
     parts = [body]
