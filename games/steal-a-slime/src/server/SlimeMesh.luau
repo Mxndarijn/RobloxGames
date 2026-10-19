@@ -23,7 +23,8 @@
 	Species meshes (SlimeLooks.get(species).kit = "slime_<id>", uploaded in
 	MeshAssets with size + offset): load() also fetches each one by its assetId.
 	A species mesh is fully coloured (Color white) and carries its own face,
-	pattern and accessories, so the procedural ones are hidden (isReplacedPart);
+	pattern and accessories, so the procedural ones and the ball's goo puddle are hidden
+	(isReplacedPart); the tier rim becomes a thin ground ring at its foot and the aura / glow shells wrap it;
 	it is worn at size-1 scale x the slime's size, placed from the bottom centre,
 	and keeps its Bones. A kit that fails to load or dress falls back to the
 	shared package mesh, then to the procedural ball. Kits are cloned per slime,
@@ -134,9 +135,11 @@ local function anchorFor(model: Model, body: BasePart): BasePart
 	return if skin and skin:IsA("BasePart") then skin else body
 end
 
--- Procedural parts a species mesh replaces (it carries its own face, pattern and accessories).
--- Tier rim, aura, and glow shell stay.
+-- Procedural parts a species mesh replaces (it carries its own face, pattern and accessories). The goo
+-- puddle is sized for the ball and would stand out under the mesh's foot as a thick disc.
+-- Tier rim and aura stay, refitted to the mesh (fitToMesh).
 local REPLACED_PREFIXES = {
+	"Puddle",
 	"Eye",
 	"Iris",
 	"Pupil",
@@ -190,6 +193,52 @@ local function speciesFit(body: BasePart, entry: MeshAssets.Entry): (Vector3, CF
 		)
 end
 
+-- Under a species mesh the tier rim is a thin ground ring around the foot, and the aura shell wraps the mesh.
+SlimeMesh.RING_THICKNESS = 0.02 -- x Body diameter
+SlimeMesh.RING_WIDTH = 1.04 -- x Body diameter, never wider than the mesh footprint
+SlimeMesh.RING_LIFT = 0.02 -- studs between the ground and the ring, clear of the pad top
+-- x the mesh body: its height or its narrow footprint side, so wings and tails don't blow the shell up
+SlimeMesh.SHELLS = table.freeze({ Aura = 1.15 }) :: { [string]: number }
+
+-- Moves a welded decoration: its WeldConstraint keeps the offset it had when it was enabled.
+local function repose(model: Model, part: BasePart, size: Vector3, cframe: CFrame)
+	local welds: { WeldConstraint } = {}
+	for _, weld in model:GetDescendants() do
+		if weld:IsA("WeldConstraint") and (weld.Part0 == part or weld.Part1 == part) and weld.Enabled then
+			weld.Enabled = false
+			table.insert(welds, weld)
+		end
+	end
+	part.Size = size
+	part.CFrame = cframe
+	for _, weld in welds do
+		weld.Enabled = true
+	end
+end
+
+local function fitToMesh(model: Model, body: BasePart, mesh: MeshPart)
+	local d = body.Size.X
+	local bottom = body.CFrame * CFrame.new(0, -body.Size.Y / 2, 0)
+	local rim = model:FindFirstChild("TierRim")
+	if rim and rim:IsA("BasePart") then
+		local h = SlimeMesh.RING_THICKNESS * d
+		local w = math.min(SlimeMesh.RING_WIDTH * d, mesh.Size.X, mesh.Size.Z)
+		local up = bottom * CFrame.new(0, SlimeMesh.RING_LIFT + h / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
+		repose(model, rim, Vector3.new(h, w, w), up)
+	end
+	local centre = bottom:PointToObjectSpace(mesh.CFrame.Position)
+	local side = math.max(mesh.Size.Y, math.min(mesh.Size.X, mesh.Size.Z))
+	for name, k in SlimeMesh.SHELLS do
+		local shell = model:FindFirstChild(name)
+		if shell and shell:IsA("BasePart") then
+			local s = side * k
+			-- Never below the ground: a flat, wide mesh gets its shell lifted.
+			local at = bottom * CFrame.new(centre.X, math.max(centre.Y, s / 2), centre.Z)
+			repose(model, shell, Vector3.new(s, s, s), at)
+		end
+	end
+end
+
 -- kit: a MeshAssets name. A species kit is worn at its own scale (speciesFit); any other kit is
 -- fitted uniformly into Body's box (never stretched). nil = the shared package, stretched to the box.
 local function dress(model: Model, template: MeshPart, kit: string?)
@@ -241,6 +290,7 @@ local function dress(model: Model, template: MeshPart, kit: string?)
 				part.CastShadow = false
 			end
 		end
+		fitToMesh(model, body, mesh)
 	end
 end
 
