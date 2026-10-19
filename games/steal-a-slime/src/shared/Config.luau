@@ -9,18 +9,11 @@
 export type Rarity = {
 	tier: number,
 	name: string,
-	income: number, -- cash/sec for a size-1.0, unmutated slime at 0 rebirths
+	income: number, -- cash/sec for a size-1.0, plain slime at 0 rebirths
 	weight: number, -- relative fountain drop weight
 	color: { number }, -- UI colour (RGB 0..255)
 	carrySlow: number, -- base WalkSpeed fraction lost while carrying
 	escapeTime: number, -- seconds a thief may hold it before it escapes for sure
-}
-
-export type Mutation = {
-	name: string, -- permanent save id (slimes, dex keys); never rename
-	displayName: string, -- what players see (docs/archive/RANCH_RENAME.md: Lava shows as Syrup)
-	multiplier: number,
-	weight: number, -- relative weight when a mutation is rolled
 }
 
 -- A restocking consumable (FEATURES.Consumables, Config.CONSUMABLES).
@@ -32,15 +25,6 @@ export type Consumable = {
 	price: number, -- x the rebirth multiplier
 	minStock: number, -- per-restock quantity per player is rolled in minStock..maxStock
 	maxStock: number,
-}
-
--- A pair of mutations that fuse into one combo mutation (FEATURES.MutationStacking).
-export type Combo = {
-	a: string, -- Config.MUTATIONS names (order does not matter)
-	b: string,
-	name: string, -- combo save id; never rename, never collides with a MUTATIONS name
-	displayName: string,
-	multiplier: number, -- total multiplier of the combo (above a * b)
 }
 
 -- v13 progression (CONTRACT.md §8.8)
@@ -194,41 +178,6 @@ local RARITIES: { Rarity } = {
 	},
 }
 
-local MUTATIONS: { Mutation } = {
-	-- Ordered by multiplier (Merge ranks by position). `name` is the save id;
-	-- `displayName` is what players see (Lava shows as Syrup).
-	{ name = "Glow", displayName = "Glow", multiplier = 1.5, weight = 50 },
-	{ name = "Lava", displayName = "Syrup", multiplier = 2, weight = 30 },
-	{ name = "Galaxy", displayName = "Galaxy", multiplier = 3, weight = 15 },
-	{ name = "Rainbow", displayName = "Rainbow", multiplier = 4, weight = 8 },
-	{ name = "Gold", displayName = "Gold", multiplier = 5, weight = 5 },
-	{ name = "Crystal", displayName = "Crystal", multiplier = 7, weight = 2 },
-	{ name = "Eclipse", displayName = "Eclipse", multiplier = 10, weight = 0.5 },
-}
-
--- Weather-only mutations (Config.WEATHER[id].mutation). Kept out of MUTATIONS so the plain roll pool,
--- the merge ladder and the Dex total stay exactly as they were; Genome.mutationInfo knows both lists.
--- Weight 0: never rolled plain, only through the weather bonus in Genome.rollMutation.
-local WEATHER_MUTATIONS: { Mutation } = {
-	{ name = "Wet", displayName = "Wet", multiplier = 1.75, weight = 0 },
-	{ name = "Frozen", displayName = "Frozen", multiplier = 2.5, weight = 0 },
-}
-
--- Combo mutations (FEATURES.MutationStacking): when a slime holds both `a` and `b` they fuse into
--- `name`, worth `multiplier` instead of a * b. Dex keys use the combo name.
-local COMBOS: { Combo } = {
-	{ a = "Glow", b = "Lava", name = "Solar", displayName = "Solar", multiplier = 4 }, -- 1.5 * 2 = 3
-	{ a = "Lava", b = "Galaxy", name = "Nebula", displayName = "Nebula", multiplier = 8 }, -- 2 * 3 = 6
-	{ a = "Galaxy", b = "Rainbow", name = "Aurora", displayName = "Aurora", multiplier = 15 }, -- 3 * 4 = 12
-	{ a = "Gold", b = "Crystal", name = "Royal", displayName = "Royal", multiplier = 45 }, -- 5 * 7 = 35
-}
-
--- Combos that use a weather-only mutation (same rules as COMBOS; kept apart so COMBOS and the Dex total do not change).
-local WEATHER_COMBOS: { Combo } = {
-	{ a = "Wet", b = "Frozen", name = "Sleet", displayName = "Sleet", multiplier = 6 }, -- 1.75 * 2.5 = 4.4
-	{ a = "Frozen", b = "Galaxy", name = "Comet", displayName = "Comet", multiplier = 11 }, -- 2.5 * 3 = 7.5
-}
-
 -- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player
 -- to own one slime of this SlimeRoster species (data.slimes, i.e. on a pad).
 -- Not consumed: the normal rebirth wipe applies, so keep it as the keeper if
@@ -304,18 +253,6 @@ local UPGRADES: { Upgrade } = {
 		growth = 3,
 		requires = 5,
 		step = 0.04,
-	},
-	-- v19 (RainMagnet, CONTRACT.md §23): off with FEATURES.RainMagnet; the def stays so saves keep the level.
-	{
-		id = "RainMagnet",
-		name = "Rain Magnet",
-		text = "+5% chance a slime you bring home in Rain, Snow or Starfall picks up that weather's mutation",
-		maxLevel = 5,
-		base = 300000,
-		growth = 3,
-		requires = 6,
-		step = 0.05,
-		flag = "RainMagnet",
 	},
 }
 
@@ -432,9 +369,9 @@ for _, quest in DAILY_QUEST_POOL do
 	table.freeze(quest)
 end
 
--- SlimeDex ladders (CONTRACT.md §36.3): species found (of 50) and core mutation stamps (of 376).
--- `reward` is cash x rebirthMultiplier, `bonus` a permanent income bonus (both ladders add up to 0.65).
-local DEX_MILESTONES: { species: { DexMilestone }, stamps: { DexMilestone } } = {
+-- SlimeDex ladder (CONTRACT.md §36.3): species found (of 50).
+-- `reward` is cash x rebirthMultiplier, `bonus` a permanent income bonus (the ladder adds up to 0.45).
+local DEX_MILESTONES: { species: { DexMilestone } } = {
 	species = {
 		{ count = 8, reward = 1000, bonus = 0.02 },
 		{ count = 15, reward = 5000, bonus = 0.03 },
@@ -442,12 +379,6 @@ local DEX_MILESTONES: { species: { DexMilestone }, stamps: { DexMilestone } } = 
 		{ count = 32, reward = 250000, bonus = 0.1 },
 		{ count = 40, reward = 1.5e6, bonus = 0.1 },
 		{ count = 50, reward = 1e7, bonus = 0.15 },
-	},
-	stamps = {
-		{ count = 50, reward = 10000, bonus = 0.03 },
-		{ count = 100, reward = 100000, bonus = 0.05 },
-		{ count = 200, reward = 1e6, bonus = 0.05 },
-		{ count = 376, reward = 2.5e7, bonus = 0.07 },
 	},
 }
 
@@ -591,7 +522,7 @@ local PVP_TOOLS: { PvpTool } = {
 	fun("FunFireworks", "Goo Fireworks", 10, 20, true, {}),
 }
 
-for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES.species, DEX_MILESTONES.stamps } :: { { any } } do
+for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES.species } :: { { any } } do
 	for _, entry in list do
 		table.freeze(entry)
 	end
@@ -619,19 +550,6 @@ for _, rarity in RARITIES do
 	table.freeze(rarity.color)
 	table.freeze(rarity)
 end
-for _, mutation in MUTATIONS do
-	table.freeze(mutation)
-end
-for _, combo in COMBOS do
-	table.freeze(combo)
-end
-for _, mutation in WEATHER_MUTATIONS do
-	table.freeze(mutation)
-end
-for _, combo in WEATHER_COMBOS do
-	table.freeze(combo)
-end
-
 -- v30 C9: wild slimes moved too fast. Every wild-slime pace (the parade lane walk, its hop rate) scales by this;
 -- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
 -- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
@@ -641,10 +559,6 @@ local WILD_BASE_LIFETIME = 75 -- seconds at the old pace
 
 local Config = {
 	RARITIES = table.freeze(RARITIES),
-	MUTATIONS = table.freeze(MUTATIONS),
-	COMBOS = table.freeze(COMBOS),
-	WEATHER_MUTATIONS = table.freeze(WEATHER_MUTATIONS),
-	WEATHER_COMBOS = table.freeze(WEATHER_COMBOS),
 	MAX_TIER = #RARITIES,
 
 	PATTERNS = table.freeze({ "Plain", "Spots", "Stripes", "Belly" }),
@@ -692,7 +606,6 @@ local Config = {
 	GOALS = table.freeze(GOALS),
 	DEX_MILESTONES = table.freeze({
 		species = table.freeze(DEX_MILESTONES.species),
-		stamps = table.freeze(DEX_MILESTONES.stamps),
 	}),
 	PLOT_SKINS = table.freeze(PLOT_SKINS), -- plot skins unlocked by SlimeDex sets (CONTRACT.md §15)
 	PLOT_SKIN_DEFAULT = "classic",
@@ -735,24 +648,17 @@ local Config = {
 	SPEED_COIL_WALK_SPEED = 22, -- base WalkSpeed; the carry slowdown applies to it
 
 	-- Merge
-	MERGE_MUTATION_CHANCE = 0.15,
 	MERGE_SIZE_BONUS = 0.1,
 	-- 3-slime merge (FEATURES.MergeVat3, TripleMerge)
 	TRIPLE_MERGE_JUMP_CHANCE = 0.2, -- chance the result is two rarities up (up to MERGE_JUMP_MAX_TIER)
 	MERGE_MAX_TIER = 6, -- a random merge result is at most Mythic (Secret only from recipes and finds)
 	MERGE_JUMP_MAX_TIER = 5, -- a +2 jump lands on Legendary at most
 	MERGE_ASSIST_CHANCE = 0.35, -- share of random merge results drawn from the species the player hasn't found
-	TRIPLE_MERGE_MUTATION_CHANCE = 0.3, -- chance of a fresh mutation on top of the inherited ones
 	TRIPLE_MERGE_SIZE_BONUS = 0.15, -- added to the parents' mean size
 	AUTO_MERGE_MAX = 25, -- most groups of three one Request("AutoMerge") merges (MergePlan, CONTRACT.md §21.1)
 
-	-- Stacking mutations (FEATURES.MutationStacking)
-	MAX_MUTATIONS = 3, -- a slime carries at most this many mutations (a fused combo counts as one)
-	STACK_MUTATION_CHANCE = 0.25, -- chance per free slot that a mutated slime rolls one more (drops, merges, Appraise)
-
-	-- Appraise: reroll one owned slime's mutation or size
+	-- Appraise: reroll one owned slime's size
 	APPRAISE_COST_FRACTION = 0.3, -- of the slime's current value (Economy.sellPrice)
-	APPRAISE_MUTATION_CHANCE = 0.6, -- chance a mutation reroll lands on a mutation (else None)
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = 4,
@@ -766,7 +672,6 @@ local Config = {
 	-- Despawn telegraph FX: PLACEHOLDER id. Replace with a real short pop/poof id before
 	-- enabling DESPAWN_POOF_SOUND. The client never plays id 0; don't ship 0 as "the sound".
 	DESPAWN_POOF_SOUND_ID = "rbxassetid://0",
-	DROP_MUTATION_CHANCE = 0.03,
 	-- v13 rarity curve (CONTRACT.md §8.7): pity per server, Legendary+ drops are announced
 	PITY_EPIC = 30, -- after this many drops without an Epic+, the next one is at least Epic
 	PITY_LEGENDARY = 300, -- same for Legendary+
@@ -780,28 +685,21 @@ local Config = {
 	RAIN_FIRST_AT = 5 * 60,
 	RAIN_DURATION = 3 * 60, -- design: 3 minutes
 	RAIN_SPAWN_INTERVAL = 0.75,
-	RAIN_MUTATION_CHANCE = 0.35,
 	RAIN_LUCK = 3, -- rarity weights for tier >= 3 multiplied by this during rain
 	RAIN_WARNING_SECONDS = 60, -- everyone gets a heads-up toast this long before a rain
 
 	-- Weekly event rotation (FEATURES.WeeklyEvents, CONTRACT.md §17). The whole schedule is a pure function
 	-- of unix time (UTC), so every server agrees. Weeks run Monday 00:00 - Sunday 24:00 UTC (ISO weeks).
-	-- Each week's mutation is MUTATION_ROTATION[week % n]; on that week's Saturday, `TRAIT_START_HOUR`
-	-- (UTC) a TRAITS[week % m] event runs for TRAIT_SECONDS (shorter than a day, so it never spills over).
-	-- `chanceBonus` is added to the wild drop mutation chance for that mutation only (the same roll window
-	-- as the weather bonus); `luck` / `mutation` multiply the rarity luck / mutation chance like a
-	-- CycleModifier. WeeklyEvents clamps every value to MAX_* whatever is written here.
+	-- On each week's Saturday, `TRAIT_START_HOUR` (UTC) a TRAITS[week % m] event runs for TRAIT_SECONDS
+	-- (shorter than a day, so it never spills over); `luck` multiplies the rarity luck like a
+	-- CycleModifier. WeeklyEvents clamps every value to MAX_MULTIPLIER whatever is written here.
 	WEEKLY = table.freeze({
-		MUTATION_ROTATION = table.freeze({ "Glow", "Lava", "Galaxy", "Rainbow", "Gold", "Crystal" }), -- Config.MUTATIONS names; "Eclipse" stays rare
-		MUTATION_CHANCE_BONUS = 0.03, -- doubles the base 3 % drop chance for the week's mutation, no more
 		TRAIT_WEEKDAY = 6, -- Saturday (0 = Sunday)
 		TRAIT_START_HOUR = 18, -- UTC
 		TRAIT_SECONDS = 2 * 60 * 60,
 		TRAITS = table.freeze({
-			table.freeze({ id = "lucky", label = "Lucky Saturday", icon = "🍀", luck = 1.5, mutation = 1 }),
-			table.freeze({ id = "mutant", label = "Mutant Saturday", icon = "🧬", luck = 1, mutation = 1.5 }),
+			table.freeze({ id = "lucky", label = "Lucky Saturday", icon = "🍀", luck = 1.5 }),
 		}),
-		MAX_CHANCE_BONUS = 0.05,
 		MAX_MULTIPLIER = 2,
 		SYNC_SECONDS = 60, -- the server re-checks the schedule at least this often
 	}),
@@ -811,24 +709,22 @@ local Config = {
 		DespawnTelegraph = true, -- wild slime models get DespawnAt before they expire; false = silent removal
 		Habitats = true, -- pads turn into their slime's habitat (HABITATS.md); false = pads as before
 		SlimeAnimations = true, -- slimes play the uploaded KeyframeSequences (MeshAssets.ANIMATIONS) once a probe track loads; false = procedural Motor6D motion (ui/SlimeMotor)
-		CycleModifier = true, -- a server modifier (Luck Surge, Mutation Surge, ...) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); false = no modifier
+		CycleModifier = true, -- a server modifier (Luck Surge, Golden Hour) is rolled at each dawn and dusk of the DayNight cycle (CycleModifier); false = no modifier
 		SlideCollision = true, -- invisible colliders along the FULL fountain slide, top to mouth (B6: players fell through above LOW_SLIDE_Y); false = low stretch only
 		FriendBonus = true, -- +FRIEND_BONUS_PER_FRIEND income per friend in the same server, up to FRIEND_BONUS_CAP (FriendBonus); false = no bonus
-		MutationStacking = true, -- slimes can carry several mutations and some pairs fuse into a combo (Config.COMBOS); false = rolls give at most one mutation (saves still migrate and load)
 		Weather = true, -- Rain / Snow / Starfall cycle (WeatherService) and client visuals (WeatherFx); WEATHER.md
 		GrowingSlimes = true, -- slimes on a pad grow over time (+GROWTH_MAX_INCOME_BONUS income at full growth, offline time counts, capped) (Growth); false = no growth, income and size unchanged
-		AdminEvents = true, -- admin-only timed Luck / Mutation surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
+		AdminEvents = true, -- admin-only timed Luck surge and Slime Rain, chat command + MessagingService (AdminEvents, CONTRACT.md §12); false = never triggers
 		CoopRitual = true, -- 2-4 players stand on the ritual circle for a timed "Blessed" income boost (Ritual, CONTRACT.md §13); false = no circle, no boost
 		PlotSkins = true, -- plot skins unlocked by owning ~75 % of a SlimeDex set (PlotSkins, CONTRACT.md §15); false = no remote, State fields, plot attribute or visuals (risky: needs frame review)
 		Revenge = true, -- for REVENGE_SECONDS after a thief robs you, you see their plot highlighted and their lock costs them x REVENGE_LOCK_COST_MULT (server/Revenge, CONTRACT.md §16); false = no marks, no highlight, normal lock price
 		StealAlerts = true, -- v21 full steal alerts (StealAlert, CONTRACT.md §17): owner gets a red screen-edge flash, a repeating alarm, a direction arrow + world ping to the thief; the carrying thief gets a trail; a SLAP gets a hit effect; a "while you were away" notice on join from a capped saved steal log; false = the plain banner + toast only (needs frame review)
-		WeeklyEvents = true, -- rotating weekly mutation boost (one Config.MUTATIONS entry per ISO week) + a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no boost, no attribute
+		WeeklyEvents = true, -- a timed Saturday trait event, a pure function of os.time (WeeklyEvents, CONTRACT.md §18); false = no event, no attribute
 		FountainSplit = true, -- draft for Merijn's fountain collision choice (a): MeshSwap places the slime_fountain as 5 meshes (basin, dome, eave, silo, slide; same look) and the tower pieces collide as PreciseConvexDecomposition instead of the hand-placed Basin / Trim / Silo / Top colliders (SlideColliders stay); any piece failing to load keeps the single mesh and the colliders (CONTRACT.md §28, docs/COLLISION.md; needs a Studio walk + ball-drop test before it can ship)
 		SlidePCD = true, -- the slide as a real collision mesh: MeshSwap makes fountain_split_slide PreciseConvexDecomposition (needs FountainSplit) and, once it is placed, FountainColliders drops the SlideColliders Post / Brace boxes it replaces; the floor slabs (the walk surface), rails and Skirt stay (docs/COLLISION.md); false = decor slide and every box
 		FountainTiers = true, -- v19: the central fountain upgrades with the server's best rank (FountainTiers: ring, crest, glow) and each rank opens a slime family that drops from it; catching a family slime needs your own rank; false = one Meadow fountain, Classic drops only (needs frame review)
-		MergeVat3 = true, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, keeping every mutation (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
-		Consumables = true, -- restocking Shop section: mutation spray, luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
-		RainMagnet = true, -- v19: the Rain Magnet upgrade (rank 6): a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) may pick up that weather's mutation; needs Weather to ever have a target (RainMagnet, CONTRACT.md §23); false = no upgrade in the shop, no purchase, no effect (needs frame review)
+		MergeVat3 = true, -- v19: the plot merge vat takes 3 slimes of one rarity for one of the next (or, sometimes, two) rarities, (TripleMerge, Request Merge3, CONTRACT.md §21); false = the two-slime vat only (needs frame review)
+		Consumables = true, -- restocking Shop section: luck potion, weather totem on a server-wide CONSUMABLES_RESTOCK_SECONDS schedule (Consumables); false = no section, BuyConsumable refused
 		ServerProfiler = false, -- dev tool, stays off in live (log + clock reads only help while profiling). v23: rolling per-system server timings, a one-line log every PROFILER.LOG_INTERVAL s and budget warnings (server/Profiler, CONTRACT.md §25); false = no clock reads, no log
 		Audio = true, -- v23 SoundController: central SFX registry, Music / SFX SoundGroups, mute + volume, day/night ambience (ui/SoundController, ui/AudioLogic, CONTRACT.md §2 Extras); false = Notify sounds play as before, no groups, no ambience, no toggle
 		PvP = true, -- v22 PvP fairness core (PvpRules, server/PvpService, CONTRACT.md §26, docs/PVP.md): rank-gated tools and fun items bought with cash, safe zones, new-player shield, control limits; false = BuyPvpItem refused, no runtime state, no attributes, nothing saved changes
@@ -945,7 +841,6 @@ local Config = {
 		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
-		MIN_MUTATION = "Glow", -- a trophy always carries a mutation
 		TROPHY_GAP = 12, -- studs between trophy pedestals beside the plot (a MAX_SIZE boss mesh is about 10 wide)
 	}),
 
@@ -954,22 +849,20 @@ local Config = {
 	DAY_FRACTION = 0.7, -- share of the cycle that is daytime (06:30-17:30)
 
 	-- Server modifier per day / night phase (FEATURES.CycleModifier). Weighted roll at each dawn
-	-- and dusk; `luck` multiplies the rarity weight of tier >= 3 (like RAIN_LUCK), `mutation`
-	-- multiplies the wild mutation chance. "None" must stay (it is the quiet phase).
+	-- and dusk; `luck` multiplies the rarity weight of tier >= 3 (like RAIN_LUCK).
+	-- "None" must stay (it is the quiet phase).
 	MODIFIERS = table.freeze({
-		table.freeze({ name = "None", label = "None", weight = 5, luck = 1, mutation = 1 }),
-		table.freeze({ name = "LuckSurge", label = "Luck Surge", weight = 3, luck = 2, mutation = 1 }),
-		table.freeze({ name = "MutationSurge", label = "Mutation Surge", weight = 3, luck = 1, mutation = 3 }),
-		table.freeze({ name = "GoldenHour", label = "Golden Hour", weight = 1, luck = 1.5, mutation = 2 }),
+		table.freeze({ name = "None", label = "None", weight = 5, luck = 1 }),
+		table.freeze({ name = "LuckSurge", label = "Luck Surge", weight = 3, luck = 2 }),
+		table.freeze({ name = "GoldenHour", label = "Golden Hour", weight = 1, luck = 1.5 }),
 	}),
 
 	-- Live admin events (FEATURES.AdminEvents, CONTRACT.md §12). Only these UserIds (plus the place
 	-- owner when the creator is a user) may trigger one. Chat: "/event luck 10" (minutes).
 	ADMIN_USER_IDS = table.freeze({} :: { number }),
 	ADMIN_EVENTS = table.freeze({
-		table.freeze({ id = "luck", label = "Luck Event", icon = "🍀", luck = 3, mutation = 1 }),
-		table.freeze({ id = "mutation", label = "Mutation Event", icon = "🧬", luck = 1, mutation = 4 }),
-		table.freeze({ id = "rain", label = "Slime Rain", icon = "🌧", luck = 1, mutation = 1 }), -- Spawner.forceRain
+		table.freeze({ id = "luck", label = "Luck Event", icon = "🍀", luck = 3 }),
+		table.freeze({ id = "rain", label = "Slime Rain", icon = "🌧", luck = 1 }), -- Spawner.forceRain
 	}),
 	ADMIN_EVENT_DEFAULT_SECONDS = 600,
 	ADMIN_EVENT_MIN_SECONDS = 30,
@@ -996,14 +889,12 @@ local Config = {
 	}),
 
 	-- Follow-pet passives (Perks.petPassive, CONTRACT.md §14). The kind comes from the favourite slime's tier;
-	-- value = tier * perTier + MUTATION_STEP per mutation, capped per kind. All additive and server-side.
+	-- value = tier * perTier, capped per kind. All additive and server-side.
 	PET_PASSIVES = table.freeze({
-		MUTATION_STEP = 0.01, -- extra per mutation on the slime
-		KIND_BY_TIER = table.freeze({ "income", "income", "luck", "luck", "mutation", "mutation", "luck" }),
+		KIND_BY_TIER = table.freeze({ "income", "income", "luck", "luck", "income", "luck", "luck" }),
 		KINDS = table.freeze({
 			income = table.freeze({ icon = "💰", word = "income", perTier = 0.01, cap = 0.08 }), -- x(1 + value) income
 			luck = table.freeze({ icon = "🍀", word = "luck", perTier = 0.01, cap = 0.06 }), -- added to Perks.luckChance
-			mutation = table.freeze({ icon = "🧬", word = "mutation", perTier = 0.02, cap = 0.12 }), -- added to the merge mutation chance
 		}),
 	}),
 
@@ -1011,7 +902,6 @@ local Config = {
 	-- MYSTERY_EGG_PRICE x the rebirth multiplier, so selling the hatch never beats the price.
 	-- `tier` is a Config.RARITIES tier, `weight` its share of the drop table (Common and Secret never drop).
 	MYSTERY_EGG_PRICE = 2000,
-	MYSTERY_EGG_MUTATION_CHANCE = 0.05,
 	MYSTERY_EGG_REVEAL_SECONDS = 6, -- how long the hatch banner stays up
 	MYSTERY_EGG_DROPS = table.freeze({
 		table.freeze({ tier = 2, weight = 50 }),
@@ -1027,15 +917,6 @@ local Config = {
 	CONSUMABLES_RESTOCK_SECONDS = 5 * 60,
 	CONSUMABLE_HELD_MAX = 99, -- most of one consumable a player can hold (a purchase over it is refused)
 	CONSUMABLES = table.freeze({
-		table.freeze({
-			id = "MutationSpray",
-			name = "Mutation Spray",
-			icon = "🧪",
-			text = "Adds a mutation to your favourite slime (or rerolls it).",
-			price = 3000,
-			minStock = 1,
-			maxStock = 3,
-		}),
 		table.freeze({
 			id = "LuckPotion",
 			name = "Luck Potion",
@@ -1061,38 +942,28 @@ local Config = {
 	SPAWN_LUCK_CAP = 4, -- potion x cycle modifier luck never goes above this (a modifier alone may)
 
 	-- Weather (FEATURES.Weather, WEATHER.md). Clear plus three visual types, cycled by the server.
-	-- `mutation` (a Config.MUTATIONS name) and `chanceBonus` (extra absolute chance, on top of the roll's own
-	-- chance, that the roll lands on that mutation) are read by Genome.rollMutation while that weather is current.
 	WEATHER_ORDER = table.freeze({ "Clear", "Rain", "Snow", "Starfall" }),
 	WEATHER = table.freeze({
 		Clear = table.freeze({
 			displayName = "Clear",
-			mutation = nil,
-			chanceBonus = 0,
 			weight = 4,
 			minSeconds = 240,
 			maxSeconds = 420,
 		}),
 		Rain = table.freeze({
 			displayName = "Rain",
-			mutation = "Wet",
-			chanceBonus = 0.1,
 			weight = 3,
 			minSeconds = 120,
 			maxSeconds = 210,
 		}),
 		Snow = table.freeze({
 			displayName = "Snow",
-			mutation = "Frozen",
-			chanceBonus = 0.1,
 			weight = 3,
 			minSeconds = 120,
 			maxSeconds = 210,
 		}),
 		Starfall = table.freeze({
 			displayName = "Starfall",
-			mutation = "Galaxy",
-			chanceBonus = 0.05,
 			weight = 1,
 			minSeconds = 90,
 			maxSeconds = 150,
@@ -1227,7 +1098,7 @@ local Config = {
 	PVP_TOOLS = table.freeze(PVP_TOOLS),
 
 	-- Persistence
-	SAVE_VERSION = 6, -- CONTRACT.md §8.9 (v4: slime.mutations list, SaveData.migrateV3; v5: weather mutations Wet/Frozen, SaveData.migrateV4; v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5)
+	SAVE_VERSION = 7, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6)
 	AUTOSAVE_INTERVAL = 60,
 	SESSION_STALE_SECONDS = 180, -- a session lock older than this may be taken over
 	MAX_SLIMES_SAVED = 64,

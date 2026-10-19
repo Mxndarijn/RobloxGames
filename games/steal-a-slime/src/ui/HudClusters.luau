@@ -8,7 +8,7 @@
 	* Status (bottom-right): one icon + timer slot per running thing, packed to the right edge, left to right:
 	    Rain   Slime Rain (workspace RainActive / RainEndsAt / RainNextAt, else State.rain): the time left while it
 	           rains, a dimmed countdown for the last RainTimer.SOON_SECONDS before the next one;
-	    Event  the live server modifier (State.modifier: dawn / dusk modifier, admin Luck / Mutation event) with the
+	    Event  the live server modifier (State.modifier: dawn / dusk modifier, admin Luck event) with the
 	           time left;
 	    Friend the friend income bonus ("+10%", no timer).
 	  The weekend boost is never a slot (Merijn, HUD-DESIGN.md: "Weekend boost: NOT shown").
@@ -113,17 +113,15 @@ function HudClusters.event(view: ModifierBadge.View?, now: number, enabled: bool
 	if view.endsAt then
 		text = Format.formatDuration(Format.remainingSeconds(view.endsAt, now))
 	else
-		text = string.format("x%g", if view.luck ~= 1 then view.luck else view.mutation)
+		text = string.format("x%g", view.luck)
 	end
 	return {
 		id = "Event",
-		icon = if view.luck ~= 1 then "Event_luck" else "Event_mutation",
+		icon = "Event_luck",
 		text = text,
 		kind = "active",
 		name = view.label,
-		effect = if view.luck ~= 1
-			then `x{string.format("%g", view.luck)} luck: rarer slimes show up more often.`
-			else `x{string.format("%g", view.mutation)} mutations: slimes mutate more often.`,
+		effect = `x{string.format("%g", view.luck)} luck: rarer slimes show up more often.`,
 	}
 end
 

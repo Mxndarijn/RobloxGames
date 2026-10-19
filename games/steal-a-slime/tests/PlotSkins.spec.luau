@@ -121,10 +121,8 @@ describe("plot skins: unlock thresholds", function()
 		expect(PlotSkins.unlocked(withSet(3, need(3)), skin("crystal"))).toBe(true)
 		expect(PlotSkins.unlocked(withSet(3, need(3)), skin("candy"))).toBe(false)
 	end)
-	it("counts species, not stamps or bonus entries", function()
+	it("counts species, not bonus entries", function()
 		local data = withSet(1, need(1) - 1)
-		data.stamps["gummy:Gold"] = true
-		data.stamps["gummy:Wet"] = true
 		data.found.glitch = true -- an event Secret
 		data.found.nope = true
 		expect(PlotSkins.owned(data, 1)).toBe(need(1) - 1)
@@ -222,7 +220,6 @@ end)
 
 describe("plot skins: save", function()
 	it("writes plotSkin at the current SAVE_VERSION", function()
-		expect(Config.SAVE_VERSION).toBe(6)
 		local data = withSet(2, need(2))
 		data.plotSkin = "candy"
 		local out = SaveData.serialize(data, T0)

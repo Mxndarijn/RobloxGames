@@ -45,7 +45,6 @@ export type Data = {
 	daily: Daily,
 	quests: DailyQuests, -- Quests (day 0 = nothing rolled yet)
 	found: { [string]: boolean }, -- SlimeDex species found (SpeciesDex, CONTRACT.md §36)
-	stamps: { [string]: boolean }, -- SlimeDex stamps "<species>:<Mutation>"
 	totalEarned: number,
 	totalStolen: number,
 	lockLevel: number, -- Shop: lock upgrade level 0..LOCK_UPGRADE_MAX
@@ -56,7 +55,6 @@ export type Data = {
 	stats: Stats,
 	goals: { [string]: number }, -- Config.GOALS id -> stages paid
 	speciesRewards: number, -- Config.DEX_MILESTONES.species paid
-	stampRewards: number, -- Config.DEX_MILESTONES.stamps paid
 	plotSkin: string, -- equipped Config.PLOT_SKINS id (PlotSkins; "classic" = default)
 	-- Redeem codes (Codes, CONTRACT.md §10)
 	redeemed: { [string]: boolean }, -- normalized codes already used
@@ -86,7 +84,6 @@ function PlayerData.new(): Data
 		daily = { lastDay = 0, streak = 0 },
 		quests = { day = 0, slots = {} },
 		found = {},
-		stamps = {},
 		totalEarned = 0,
 		totalStolen = 0,
 		lockLevel = 0,
@@ -96,7 +93,6 @@ function PlayerData.new(): Data
 		stats = { caught = 0, merges = 0, locks = 0, sold = 0 },
 		goals = {},
 		speciesRewards = 0,
-		stampRewards = 0,
 		plotSkin = Config.PLOT_SKIN_DEFAULT,
 		redeemed = {},
 		boostMult = 1,
@@ -143,7 +139,7 @@ function PlayerData.freePad(data: Data): number?
 	return nil
 end
 
--- Records the slime in the SlimeDex (species found + mutation stamp). Every way of getting a slime runs this
+-- Records the slime in the SlimeDex (species found). Every way of getting a slime runs this
 -- (addSlime does). Returns whether the species is new.
 function PlayerData.discover(data: Data, slime: Slime): boolean
 	return SpeciesDex.record(data, slime)

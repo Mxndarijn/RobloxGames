@@ -2,23 +2,20 @@
 --[[
 	SpeciesDex (pure, CONTRACT.md §36)
 
-	The SlimeDex: one entry per spawn, hybrid and boss species (50), the event Secrets as bonus entries, and
-	mutation stamps "<species>:<Mutation>". `record` is what PlayerData.discover runs for every slime a player
-	gets: it sets data.found[species] and the stamp of the slime's primary mutation. Counts feed Collection
+	The SlimeDex: one entry per spawn, hybrid and boss species (50) and the event Secrets as bonus entries.
+	`record` is what PlayerData.discover runs for every slime a player gets: it sets data.found[species]. Counts feed Collection
 	(milestones), PlotSkins, Badges and the plot attributes; `view` builds State.dex. Recipe hints and the
 	featured-Secret week come in through `Sources`, so this module needs neither MergeRecipes nor EventSecrets.
 	No Roblox APIs.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
-local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
 
 type Entry = SlimeRoster.Entry
 
 export type Data = {
 	found: { [string]: boolean },
-	stamps: { [string]: boolean },
 }
 
 export type Recipe = { inputs: { string }, hint: string }
@@ -38,16 +35,11 @@ export type EntryView = {
 	name: string?,
 	hint: string?,
 	ingredients: { string }?,
-	stamps: { string },
-	gold: { string },
 }
 
 export type View = {
 	found: number,
 	total: number,
-	stamps: number,
-	stampTotal: number,
-	gold: number,
 	bonusFound: number,
 	bonusTotal: number,
 	entries: { EntryView },
@@ -56,50 +48,20 @@ export type View = {
 local ENTRIES: { Entry } = {}
 local BONUS = SlimeRoster.ofKind("event")
 local inDex: { [string]: Entry } = {}
-local stamped: { [string]: boolean } = {}
 for _, entry in SlimeRoster.ROSTER do
 	if entry.kind == "spawn" or entry.kind == "hybrid" or entry.kind == "boss" then
 		table.insert(ENTRIES, entry)
 		inDex[entry.id] = entry
-		stamped[entry.id] = entry.kind ~= "boss"
-	end
-end
-
--- "None" + the plain mutations: the 8 core stamps of a species, in display order.
-local CORE: { string } = { "None" }
-local isCore: { [string]: boolean } = { None = true }
-for _, m in Config.MUTATIONS do
-	table.insert(CORE, m.name)
-	isCore[m.name] = true
-end
--- Combo and weather mutations: gold bonus stamps.
-local isGold: { [string]: boolean } = {}
-for _, list in { Config.COMBOS, Config.WEATHER_MUTATIONS, Config.WEATHER_COMBOS } :: { { any } } do
-	for _, m in list do
-		isGold[m.name] = true
-	end
-end
-
-local stampSpecies = 0
-for _, yes in stamped do
-	if yes then
-		stampSpecies += 1
 	end
 end
 
 local SpeciesDex = {
 	ENTRIES = table.freeze(ENTRIES),
 	BONUS = BONUS,
-	CORE_STAMPS = table.freeze(CORE),
 	TOTAL = #ENTRIES,
-	STAMP_TOTAL = stampSpecies * #CORE,
 	BOSS_HINT = "Defeat the boss event",
 	UNKNOWN = "???",
 }
-
-function SpeciesDex.stampKey(species: string, mutation: string): string
-	return `{species}:{mutation}`
-end
 
 -- A species the Dex knows: an entry or a bonus entry.
 function SpeciesDex.isSpecies(id: any): boolean
@@ -110,19 +72,8 @@ function SpeciesDex.isSpecies(id: any): boolean
 	return entry ~= nil and (inDex[id] ~= nil or entry.kind == "event")
 end
 
--- A stamp key that can exist: a stamped species and a core or gold mutation.
-function SpeciesDex.isStamp(key: any): boolean
-	if type(key) ~= "string" then
-		return false
-	end
-	local species, mutation = string.match(key, "^([^:]+):([^:]+)$")
-	return species ~= nil
-		and stamped[species] == true
-		and (isCore[mutation :: string] == true or isGold[mutation :: string] == true)
-end
-
--- Marks the slime's species found and its primary-mutation stamp. Returns whether the species is new.
-function SpeciesDex.record(data: Data, slime: { species: string?, mutation: string, mutations: { string }? }): boolean
+-- Marks the slime's species found. Returns whether the species is new.
+function SpeciesDex.record(data: Data, slime: { species: string? }): boolean
 	local species = slime.species
 	if not SpeciesDex.isSpecies(species) then
 		return false
@@ -130,10 +81,6 @@ function SpeciesDex.record(data: Data, slime: { species: string?, mutation: stri
 	local id = species :: string
 	local fresh = not data.found[id]
 	data.found[id] = true
-	local key = SpeciesDex.stampKey(id, Genome.primaryMutation(Genome.mutationList(slime :: any)))
-	if SpeciesDex.isStamp(key) then
-		data.stamps[key] = true
-	end
 	return fresh
 end
 
@@ -153,32 +100,6 @@ function SpeciesDex.bonusCount(data: Data): number
 	local n = 0
 	for _, entry in BONUS do
 		if data.found[entry.id] then
-			n += 1
-		end
-	end
-	return n
-end
-
-local function mutationOf(key: string): string?
-	return string.match(key, ":([^:]+)$")
-end
-
--- Core stamps (out of STAMP_TOTAL).
-function SpeciesDex.stampCount(data: Data): number
-	local n = 0
-	for key in data.stamps do
-		if SpeciesDex.isStamp(key) and isCore[mutationOf(key) :: string] then
-			n += 1
-		end
-	end
-	return n
-end
-
--- Gold bonus stamps (combo and weather mutations).
-function SpeciesDex.goldCount(data: Data): number
-	local n = 0
-	for key in data.stamps do
-		if SpeciesDex.isStamp(key) and isGold[mutationOf(key) :: string] then
 			n += 1
 		end
 	end
@@ -218,25 +139,6 @@ function SpeciesDex.tierMask(data: Data): number
 	return mask
 end
 
-local function stampsOf(data: Data, id: string): ({ string }, { string })
-	local core, gold = {}, {}
-	if not stamped[id] then
-		return core, gold
-	end
-	for _, mutation in CORE do
-		if data.stamps[SpeciesDex.stampKey(id, mutation)] then
-			table.insert(core, mutation)
-		end
-	end
-	for mutation in isGold do
-		if data.stamps[SpeciesDex.stampKey(id, mutation)] then
-			table.insert(gold, mutation)
-		end
-	end
-	table.sort(gold)
-	return core, gold
-end
-
 -- "19 Oct" for a unix time (UTC).
 function SpeciesDex.weekLabel(startsAt: number): string
 	return `{tonumber(os.date("!%d", startsAt))} {os.date("!%b", startsAt)}`
@@ -244,7 +146,6 @@ end
 
 local function entryView(data: Data, entry: Entry, now: number, sources: Sources): EntryView
 	local found = data.found[entry.id] == true
-	local core, gold = stampsOf(data, entry.id)
 	local view: EntryView = {
 		id = entry.id,
 		tier = entry.tier,
@@ -253,8 +154,6 @@ local function entryView(data: Data, entry: Entry, now: number, sources: Sources
 		name = if found then entry.name else nil,
 		hint = nil,
 		ingredients = nil,
-		stamps = core,
-		gold = gold,
 	}
 	if entry.kind == "hybrid" then
 		local recipe = sources.recipeFor(entry.id)
@@ -299,9 +198,6 @@ function SpeciesDex.view(data: Data, now: number, sources: Sources): View
 	return {
 		found = SpeciesDex.count(data),
 		total = SpeciesDex.TOTAL,
-		stamps = SpeciesDex.stampCount(data),
-		stampTotal = SpeciesDex.STAMP_TOTAL,
-		gold = SpeciesDex.goldCount(data),
 		bonusFound = SpeciesDex.bonusCount(data),
 		bonusTotal = #BONUS,
 		entries = entries,

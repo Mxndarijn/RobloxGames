@@ -90,7 +90,6 @@ local PATTERNS: { { string } } = {
 	{ "pick a slime", "BadTarget" },
 	{ "not your slime", "BadTarget" },
 	{ "slime is busy", "BadTarget" },
-	{ "can't take another mutation", "BadTarget" },
 	{ "too fast", "Busy" },
 }
 

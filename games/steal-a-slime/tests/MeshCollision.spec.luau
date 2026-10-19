@@ -177,7 +177,6 @@ local DECOR = {
 	plot_skin_crystal = "client-cloned plot skin template, not a world slot",
 	fountain_tier_ring = "client-cloned tier decor, floats over the fountain",
 	fountain_tier_crest = "client-cloned tier decor, floats over the fountain",
-	rain_magnet = "client-cloned prop on the owner's plot",
 	ranch_bat = "held Tool Handle mesh (Tool 'Bat'): CanCollide false, never placed in the world",
 	giant_broadleaf = "border tree beyond the world wall ring, out of reach, canopy overhead",
 	giant_pine_layered = "border tree beyond the world wall ring, out of reach",

@@ -3,8 +3,8 @@
 	Appraise
 
 	Pay Config.APPRAISE_COST_FRACTION of an owned slime's current value
-	(Economy.sellPrice) to reroll its mutation or its size. Only those two
-	fields of the slime change, so the save format is untouched. The roll comes
+	(Economy.sellPrice) to reroll its size. Only that
+	field of the slime changes, so the save format is untouched. The roll comes
 	from the caller's Rng, so a seed gives the same result in Lune and Roblox.
 	Pure: no Roblox APIs.
 ]]
@@ -18,7 +18,7 @@ local Types = if script then require(script.Parent.Types) else require("./Types"
 
 local Appraise = {}
 
-Appraise.KINDS = table.freeze({ "mutation", "size" })
+Appraise.KINDS = table.freeze({ "size" })
 
 -- Price to reroll `slime` at the owner's rebirth count (at least 1).
 function Appraise.cost(slime: Genome.Slime, rebirths: number): number
@@ -31,7 +31,7 @@ function Appraise.rollSize(roll: number): number
 end
 
 --[[
-	Rerolls `kind` ("mutation" | "size") of the owned slime `id`. Returns
+	Rerolls `kind` ("size") of the owned slime `id`. Returns
 	(true, appraisal) or (false, reason). Checks ownership, kind and cash
 	before anything is spent or changed.
 ]]
@@ -45,7 +45,7 @@ function Appraise.reroll(
 	if not slime then
 		return false, "not your slime"
 	end
-	if kind ~= "mutation" and kind ~= "size" then
+	if kind ~= "size" then
 		return false, "bad argument"
 	end
 	local cost = Appraise.cost(slime, data.rebirths)
@@ -56,24 +56,11 @@ function Appraise.reroll(
 		slimeId = id,
 		kind = kind,
 		cost = cost,
-		beforeMutation = slime.mutation,
-		afterMutation = slime.mutation,
-		beforeMutations = Genome.mutationList(slime),
-		afterMutations = Genome.mutationList(slime),
 		beforeSize = slime.size,
 		afterSize = slime.size,
 	}
-	if kind == "mutation" then
-		local first = Genome.rollMutation(rng:float(), rng:float(), Config.APPRAISE_MUTATION_CHANCE)
-		-- A reroll replaces the whole list; with stacking it can land on several (and combos).
-		Genome.setMutations(slime, Genome.stackMutations(if first == "None" then {} else { first }, rng))
-		appraisal.afterMutation = slime.mutation
-		appraisal.afterMutations = Genome.mutationList(slime)
-		PlayerData.discover(data, slime)
-	else
-		slime.size = Appraise.rollSize(rng:float())
-		appraisal.afterSize = slime.size
-	end
+	slime.size = Appraise.rollSize(rng:float())
+	appraisal.afterSize = slime.size
 	return true, appraisal
 end
 

@@ -25,7 +25,6 @@ end
 
 describe("save v6: migration", function()
 	it("is exactly one version above v5", function()
-		expect(Config.SAVE_VERSION).toBe(6)
 		expect(SaveData.migrateV5(v5Save()).version).toBe(6)
 	end)
 	it("a v5 save without the fields gets classic / empty / default settings", function()
@@ -91,7 +90,7 @@ describe("save v6: migration", function()
 			expect(d.plotSkin).toBe("classic")
 		end
 		expect(SaveData.deserialize({ Cash = 5, Rebirths = 0, Slimes = {} }).settings.muted).toBe(false)
-		expect(SaveData.migrate(v5Save()).version).toBe(6)
+		expect(SaveData.migrate(v5Save()).version).toBe(Config.SAVE_VERSION)
 	end)
 	it("a newer version is read field by field and still cleaned", function()
 		local d = SaveData.deserialize({ version = 99, cash = 3, settings = { musicVolume = 9, muted = true } })
@@ -106,7 +105,7 @@ describe("save v6: round trip and flags", function()
 		data.settings = { musicVolume = 0.55, sfxVolume = 0.1, muted = true }
 		data.stealLog = { { thief = "Bob", slime = "Blorp", at = 50 } }
 		local stored = SaveData.serialize(data, T0)
-		expect(stored.version).toBe(6)
+		expect(stored.version).toBe(Config.SAVE_VERSION)
 		local back = SaveData.deserialize(stored)
 		expect(back.settings.musicVolume).toBe(0.55)
 		expect(back.settings.sfxVolume).toBe(0.1)

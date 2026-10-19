@@ -136,7 +136,6 @@ describe("BossEvent fight", function()
 		expect(boss.slime.species).toBe("goozilla")
 		expect(boss.slime.tier).toBe(6)
 		expect(boss.slime.size).toBe(Config.MAX_SIZE)
-		expect(#(boss.slime.mutations :: { string }) >= 1).toBe(true)
 		expect(Spawner.wildCount(w)).toBe(0)
 		local entry = Scene.describe(w, T0 + BOSS.WARNING_SECONDS)[id]
 		expect(entry.boss).toBe(true)

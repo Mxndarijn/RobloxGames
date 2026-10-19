@@ -196,18 +196,13 @@ describe("Weather flag", function()
 end)
 
 describe("Weather hook for #8", function()
-	it(
-		"exposes getCurrent, Changed and Config.WEATHER[id] with a mutation and chanceBonus on every weather but Clear",
-		function()
-			expect(type(Weather.getCurrent)).toBe("function")
-			expect(type(Weather.Changed.Connect)).toBe("function")
-			for _, id in Config.WEATHER_ORDER do
-				local data = Weather.data(id)
-				expect(data.chanceBonus >= 0).toBe(true)
-				expect((data.mutation == nil) == (data.chanceBonus == 0)).toBe(true)
-			end
+	it("exposes getCurrent, Changed and Config.WEATHER[id] for every weather", function()
+		expect(type(Weather.getCurrent)).toBe("function")
+		expect(type(Weather.Changed.Connect)).toBe("function")
+		for _, id in Config.WEATHER_ORDER do
+			expect(Weather.data(id) ~= nil).toBe(true)
 		end
-	)
+	end)
 end)
 
 describe("Weather grade (F1)", function()

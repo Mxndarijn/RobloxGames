@@ -383,7 +383,6 @@ describe("PvpRules save field", function()
 		local back = SaveData.deserialize(old)
 		expect(back.pvp).toEqual({ tiers = {}, fun = {}, played = 0 })
 		expect(back.version).toBe(Config.SAVE_VERSION)
-		expect(Config.SAVE_VERSION).toBe(6) -- v6 came from #236 (audio settings); PvP adds no bump
 		expect(SaveData.serialize(back).pvp).toEqual({ tiers = {}, fun = {}, played = 0 })
 	end)
 	it("clamps hostile values and ignores unknown ids", function()

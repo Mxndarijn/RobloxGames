@@ -125,7 +125,7 @@ describe("SlimeLooks wiring", function()
 			end,
 			warn = function() end,
 		})
-		local slime = Fixtures.slime("a", 3, { species = "moo", mutation = "Glow" })
+		local slime = Fixtures.slime("a", 3, { species = "moo" })
 		expect(SlimeMesh.build(mesh, slime)).toBe(model :: any)
 		expect(attrs[Constants.SPECIES_ATTRIBUTE]).toBe("moo")
 	end)

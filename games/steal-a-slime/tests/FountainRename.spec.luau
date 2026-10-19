@@ -1,7 +1,7 @@
 --!strict
 -- Volcano -> slime fountain rename (docs/archive/RANCH_RENAME.md): save ids stay, players
--- see the new names. Old saves with the "Lava" mutation load identically and
--- display as "Syrup"; no player-facing string says volcano / lava / erupt.
+-- see the new names. Old saves that still carry a mutation load without it;
+-- no player-facing string says volcano / lava / erupt.
 local fs = require("@lune/fs")
 local serde = require("@lune/serde")
 
@@ -13,7 +13,6 @@ local PlayerData = require("../src/shared/PlayerData")
 local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
 local SlimeDex = require("../src/ui/SlimeDex")
-local SlimeRoster = require("../src/shared/SlimeRoster")
 local Spawner = require("../src/server/Spawner")
 local SpeciesDex = require("../src/shared/SpeciesDex")
 local TestRunner = require("./TestRunner")
@@ -25,10 +24,9 @@ local T0 = ServerFixtures.T0
 local BANNED = { "volcan", "lava", "erupt" }
 
 -- Internal names that are not shown to players: the legacy Map.Volcano model,
--- the "Lava" mutation save id and the client FX preset / decor part names.
+-- and the client FX preset / decor part names.
 local INTERNAL = {
 	["Volcano"] = true,
-	["Lava"] = true,
 	["Map.Volcano.Crater"] = true,
 	["Eruption"] = true,
 }
@@ -69,56 +67,23 @@ describe("Fountain module", function()
 	end)
 end)
 
-describe("Mutation display names", function()
-	it("keeps every mutation save id and shows Lava as Syrup", function()
-		local ids, shown = {}, {}
-		for _, m in Config.MUTATIONS do
-			table.insert(ids, m.name)
-			shown[m.name] = m.displayName
-		end
-		expect(ids).toEqual({ "Glow", "Lava", "Galaxy", "Rainbow", "Gold", "Crystal", "Eclipse" })
-		expect(shown).toEqual({
-			Glow = "Glow",
-			Lava = "Syrup",
-			Galaxy = "Galaxy",
-			Rainbow = "Rainbow",
-			Gold = "Gold",
-			Crystal = "Crystal",
-			Eclipse = "Eclipse",
-		})
-		for _, m in Config.MUTATIONS do
-			expect(banned(m.displayName)).toBeNil()
-			expect(SlimeRoster.MUTATION_DISPLAY[m.name]).toBe(m.displayName)
-		end
-	end)
-	it("maps ids to display names and passes None / unknown ids through", function()
-		expect(Genome.mutationDisplayName("Lava")).toBe("Syrup")
-		expect(Genome.mutationDisplayName("Glow")).toBe("Glow")
-		expect(Genome.mutationDisplayName("None")).toBe("None")
-		expect(Genome.mutationDisplayName("Nope")).toBe("Nope")
-		expect(Genome.mutationMultiplier("Lava")).toBe(2)
-		expect(Genome.mutationDisplay).toBe(Genome.mutationDisplayName) -- v28 alias
-	end)
-end)
-
 describe("Old saves after the rename", function()
-	it("load the Lava mutation, the SlimeDex and favourite unchanged", function()
+	it("load the slimes, the SlimeDex and favourite without the old mutation", function()
 		local data = SaveData.deserialize(serde.decode("json", OLD_SAVE))
-		local lava = PlayerData.findSlime(data, "old-lava")
-		assert(lava, "old Lava slime loaded")
-		expect(lava.mutation).toBe("Lava")
-		expect(lava.pad).toBe(1)
-		expect(Genome.baseIncome(lava)).toBe(Config.RARITIES[4].income * 2)
+		local old = PlayerData.findSlime(data, "old-lava")
+		assert(old, "old slime loaded")
+		expect((old :: any).mutation).toBeNil()
+		expect(old.pad).toBe(1)
+		expect(Genome.baseIncome(old)).toBe(Config.RARITIES[4].income)
 		expect(data.favoriteId).toBe("old-lava")
-		expect(data.stamps["blaze:Lava"]).toBe(true)
-		expect(data.stamps["bumble:Glow"]).toBe(true)
-		expect(PlayerData.dexCount(data)).toBe(2) -- the old combination keys are not read
+		expect(data.found["blaze"]).toBe(true)
+		expect(data.found["bumble"]).toBe(true)
 	end)
 	it("display the new names", function()
 		local data = SaveData.deserialize(serde.decode("json", OLD_SAVE))
-		local lava = PlayerData.findSlime(data, "old-lava")
-		assert(lava, "old Lava slime loaded")
-		expect(Genome.displayName(lava)).toBe("Syrup Epic Blorp")
+		local old = PlayerData.findSlime(data, "old-lava")
+		assert(old, "old slime loaded")
+		expect(Genome.displayName(old)).toBe("Epic Blorp")
 		local view = SpeciesDex.view(data, 0, {
 			recipeFor = function()
 				return nil
@@ -127,32 +92,17 @@ describe("Old saves after the rename", function()
 				return nil
 			end,
 		})
-		local blaze = nil
 		for _, card in SlimeDex.cards(view, Config) do
 			expect(banned(card.title)).toBeNil()
-			for _, stamp in card.stamps do
-				expect(banned(stamp.label)).toBeNil()
-			end
-			if card.key == "blaze" then
-				blaze = card
-			end
 		end
-		assert(blaze, "blaze card")
-		local stamp = blaze.stamps[table.find(SpeciesDex.CORE_STAMPS, "Lava") :: number]
-		expect(stamp.on).toBe(true)
-		expect(stamp.label).toBe("Syrup")
-		expect(stamp.color).toBe(SlimeDex.MUTATION_COLORS.Lava)
 	end)
-	it("save back with the old ids (no Syrup in the stored data)", function()
+	it("save back without the old mutation", function()
 		local data = SaveData.deserialize(serde.decode("json", OLD_SAVE))
 		local json = serde.encode("json", SaveData.serialize(data, 1700000000))
-		expect(string.find(json, '"Lava"', 1, true) ~= nil).toBe(true)
-		expect(string.find(json, "blaze:Lava", 1, true) ~= nil).toBe(true)
-		expect(string.find(json, "Syrup", 1, true)).toBeNil()
+		expect(string.find(json, "mutation", 1, true)).toBeNil()
 		local again = SaveData.deserialize(serde.decode("json", json))
 		expect(again.slimes).toEqual(data.slimes)
 		expect(again.found).toEqual(data.found)
-		expect(again.stamps).toEqual(data.stamps)
 		expect(again.favoriteId).toBe(data.favoriteId)
 	end)
 	it("still migrate v1 saves", function()
@@ -186,9 +136,9 @@ describe("Player-facing copy", function()
 		expect(string.find(all, "is in the plaza", 1, true) ~= nil).toBe(true) -- the boss arrives
 		expect(string.find(all, "Head to the fountain", 1, true) ~= nil).toBe(true)
 	end)
-	it("rare drop text uses the mutation display name", function()
-		local slime = Genome.copy(Genome.sanitize({ id = "r", tier = 5, name = "Globble", mutation = "Lava" }) :: any)
-		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Syrup Globble spilled from the fountain!")
+	it("rare drop text uses the display name", function()
+		local slime = Genome.copy(Genome.sanitize({ id = "r", tier = 5, name = "Globble" }) :: any)
+		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Globble spilled from the fountain!")
 	end)
 	it("no string literal in src says volcano / lava / erupt (internal names excepted)", function()
 		local hits = {}

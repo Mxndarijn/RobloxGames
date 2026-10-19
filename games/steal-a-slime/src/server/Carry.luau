@@ -21,8 +21,6 @@ local Fountain = if Shared then require(Shared.Fountain) else require("../shared
 local FountainTiers = if Shared then require(Shared.FountainTiers) else require("../shared/FountainTiers")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
-local RainMagnet = if Shared then require(Shared.RainMagnet) else require("../shared/RainMagnet")
-local Weather = if Shared then require(Shared.Weather) else require("../shared/Weather")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
@@ -151,29 +149,6 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	return StealService.steal(world, session, slimeId, distance, now)
 end
 
--- Rain Magnet (Perks.rainMagnetChance, FEATURES.RainMagnet): the current weather's mutation (RainMagnet.target) may
--- stick to a wild slime the player brings home. Toasts the player; true when the slime changed. `enabled`
--- (tests) overrides the flag.
-function Carry.applyMagnet(world: World, session: Session, slime: Genome.Slime, enabled: boolean?): boolean
-	local pulled = RainMagnet.attract(
-		slime,
-		RainMagnet.target(Weather.getCurrent(), world.raining),
-		Perks.rainMagnetChance(session.data, enabled),
-		world.rng
-	)
-	if not pulled then
-		return false
-	end
-	World.notify(
-		world,
-		session.userId,
-		`Rain Magnet! Your slime picked up {Genome.mutationDisplayName(pulled)}!`,
-		"good",
-		"Cash"
-	)
-	return true
-end
-
 -- The boss carrier got home: the boss goes on the trophy stand (Trophies.award) and the fight is won.
 function Carry.depositBoss(world: World, session: Session, carry: World.CarryState, now: number): (boolean, string?)
 	world.wild[carry.slimeId] = nil
@@ -183,17 +158,11 @@ function Carry.depositBoss(world: World, session: Session, carry: World.CarrySta
 	if fight then
 		BossFight.win(fight, session.userId, now)
 	end
-	local result, trophy = Trophies.award(session.data, carry.slime, world.rng)
+	local result, trophy = Trophies.award(session.data, carry.slime)
 	World.markAllDirty(world)
 	World.notify(world, nil, `{session.name} brought {carry.slime.name} home!`, "good", "Rain")
-	if result == "reroll" then
-		World.notify(
-			world,
-			session.userId,
-			`Your {trophy.name} trophy got a new mutation: {Genome.mutationsDisplay(Genome.mutationList(trophy))}!`,
-			"good",
-			"Cash"
-		)
+	if result == "owned" then
+		World.notify(world, session.userId, `Your {trophy.name} trophy is already on the stand.`, "info", "Cash")
 	else
 		World.notify(world, session.userId, `{trophy.name} is on your trophy stand!`, "good", "Deposit")
 	end
@@ -246,10 +215,6 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 				"good",
 				"Cash"
 			)
-			name = Genome.displayName(slime)
-		end
-		-- Rain Magnet (Perks.rainMagnetChance, FEATURES.RainMagnet): the current weather's mutation.
-		if Carry.applyMagnet(world, session, slime) then
 			name = Genome.displayName(slime)
 		end
 		PlayerData.addSlime(session.data, slime)

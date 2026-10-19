@@ -30,7 +30,6 @@
 
 local AssetService = game:GetService("AssetService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
@@ -424,37 +423,6 @@ function MeshSwap.swapPlotVats(): number
 		end
 	end
 	return count
-end
-
--- FEATURES.RainMagnet: the rain_magnet mesh as a template in ReplicatedStorage.RainMagnetMeshes (named by mesh,
--- native size); the client stands a clone on the owner's plot (RainMagnetFx), so it takes no WorldLayout slot.
--- Also published in Studio so the pc-watcher shot can force the look with the flag off. Yields.
-function MeshSwap.publishRainMagnetTemplates(): number
-	if not (Config.FEATURES.RainMagnet or RunService:IsStudio()) then
-		return 0
-	end
-	local folder = ReplicatedStorage:FindFirstChild("RainMagnetMeshes")
-	if not folder then
-		folder = Instance.new("Folder")
-		folder.Name = "RainMagnetMeshes"
-		folder.Parent = ReplicatedStorage
-	end
-	local name = "rain_magnet"
-	local meshId = MeshAssets.meshId(name)
-	local entry = MeshAssets.get(name)
-	local base = meshId and template(meshId)
-	if entry and entry.size and base and not (folder :: Folder):FindFirstChild(name) then
-		local mesh = base:Clone()
-		mesh.Name = name
-		mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
-		mesh.Anchored = true
-		mesh.CanCollide = false
-		mesh.CanQuery = false
-		mesh.CanTouch = false
-		mesh.Parent = folder
-		return 1
-	end
-	return 0
 end
 
 type Job = { meshId: string, fidelity: string? }

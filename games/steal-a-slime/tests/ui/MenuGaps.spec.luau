@@ -219,7 +219,6 @@ describe("SlimeDex header", function()
 				dexRewards = {
 					{ ladder = "species", count = 1, reward = 1000, bonus = 0.02, claimed = true },
 					{ ladder = "species", count = 8, reward = 2500, bonus = 0.03, claimed = false },
-					{ ladder = "stamps", count = 50, reward = 2500, bonus = 0.03, claimed = false },
 				},
 			})
 			local card = UiHarness.find(panel.frame, "Milestones")

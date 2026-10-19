@@ -4,7 +4,6 @@
 -- Cloud-eligible: pure require paths, no @lune, UTC maths done by hand (no os.time table).
 local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
-local Genome = require("../src/shared/Genome")
 local ServerFixtures = require("./ServerFixtures")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
@@ -55,7 +54,7 @@ describe("WeeklyEvents anchors", function()
 end)
 
 describe("WeeklyEvents flag off", function()
-	rawIt("the real config flag is off and publish clears a stale attribute without writing twice", function()
+	rawIt("with the flag off, publish clears a stale attribute without writing twice", function()
 		expect(WeeklyEvents.enabled()).toBe(Config.FEATURES.WeeklyEvents)
 		WeeklyEvents.setForced(false)
 		local h = holder()
@@ -88,7 +87,7 @@ describe("WeeklyEvents flag off", function()
 			for _ = 1, 200 do
 				local id = Spawner.spawnOne(world, ServerFixtures.T0)
 				local slime = world.wild[id].slime
-				table.insert(out, `{slime.tier}:{table.concat(Genome.mutationList(slime), "+")}`)
+				table.insert(out, `{slime.tier}:{slime.species}`)
 				world.wild[id] = nil
 			end
 			return table.concat(out, ",")
@@ -104,39 +103,30 @@ describe("WeeklyEvents boundaries", function()
 	it("fractional server time (GetServerTimeNow) switches exactly at the boundary", function()
 		expect(WeeklyEvents.weekIndex(MON - 0.001)).toBe(WeeklyEvents.weekIndex(MON) - 1)
 		expect(WeeklyEvents.weekIndex(MON + 0.001)).toBe(WeeklyEvents.weekIndex(MON))
-		expect(#WeeklyEvents.current(SAT_START - 0.5)).toBe(1)
-		expect(#WeeklyEvents.current(SAT_START + 0.5)).toBe(2)
-		expect(#WeeklyEvents.current(SAT_START + TRAIT - 0.5)).toBe(2)
-		expect(#WeeklyEvents.current(SAT_START + TRAIT)).toBe(1)
+		expect(#WeeklyEvents.current(SAT_START - 0.5)).toBe(0)
+		expect(#WeeklyEvents.current(SAT_START + 0.5)).toBe(1)
+		expect(#WeeklyEvents.current(SAT_START + TRAIT - 0.5)).toBe(1)
+		expect(#WeeklyEvents.current(SAT_START + TRAIT)).toBe(0)
 		local d = WeeklyEvents.decode(WeeklyEvents.encode(SAT_START + 0.5))
 		expect(d ~= nil).toBe(true)
 		expect((d :: WeeklyEvents.Decoded).trait ~= nil).toBe(true)
 	end)
-	it("the multipliers drop back to 1 on the exact end second and on the week switch", function()
-		expect(
-			select(1, WeeklyEvents.multipliers(SAT_START + TRAIT - 1))
-					* select(2, WeeklyEvents.multipliers(SAT_START + TRAIT - 1))
-				> 1
-		).toBe(true)
-		expect(select(1, WeeklyEvents.multipliers(SAT_START + TRAIT))).toBe(1)
-		expect(select(2, WeeklyEvents.multipliers(SAT_START + TRAIT))).toBe(1)
-		local before = WeeklyEvents.mutationBoost(MON + 7 * DAY - 1)
-		local after = WeeklyEvents.mutationBoost(MON + 7 * DAY)
-		expect(before ~= after).toBe(true)
+	it("the multiplier drops back to 1 on the exact end second", function()
+		expect(WeeklyEvents.multiplier(SAT_START + TRAIT - 1) > 1).toBe(true)
+		expect(WeeklyEvents.multiplier(SAT_START + TRAIT)).toBe(1)
 	end)
-	it("times before the epoch and far in the future still give one valid mutation week", function()
+	it("times before the epoch and far in the future still give a valid next event", function()
 		for _, t in { -5 * DAY, 0, 4_000_000_000 } do
-			local e = WeeklyEvents.mutationEvent(t)
-			expect(e.startsAt <= t and t < e.endsAt).toBe(true)
-			expect(e.endsAt - e.startsAt).toBe(7 * DAY)
-			expect(WeeklyEvents.next(t).startsAt > t).toBe(true)
+			local e = WeeklyEvents.next(t)
+			expect(e.startsAt > t).toBe(true)
+			expect(e.endsAt > e.startsAt).toBe(true)
 			expect(WeeklyEvents.decode(WeeklyEvents.encode(t)) ~= nil).toBe(true)
 		end
 	end)
-	it("trait ends inside its week and every trait id / mutation survives the attribute format", function()
+	it("the trait ends inside its week and every trait id survives the attribute format", function()
 		for w = 0, 11 do
 			local t = MON + w * 7 * DAY
-			local trait = WeeklyEvents.current(t + 5 * DAY + 19 * 3600)[2]
+			local trait = WeeklyEvents.current(t + 5 * DAY + 19 * 3600)[1]
 			expect(trait ~= nil).toBe(true)
 			expect(trait.endsAt <= t + 7 * DAY).toBe(true)
 			expect(WeeklyEvents.decode(WeeklyEvents.encode(t + 5 * DAY + 19 * 3600)) ~= nil).toBe(true)

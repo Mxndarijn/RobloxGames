@@ -15,10 +15,7 @@
 	  * pattern Plain / Spots / Stripes / Belly
 	  * eyes Round / Sleepy / Angry / Happy / Cyclops / Wide
 	  * mouth Smile / Open / Flat / Fang
-	  * body material: the slime type's SlimeLooks material (unmutated only;
-	    unknown type -> SmoothPlastic)
-	  * mutation None / Glow (neon + light) / Lava (crust + cracks) /
-	    Galaxy (dark purple + stars) / Gold (foil + sparkles)
+	  * body material: the slime type's SlimeLooks material (unknown type -> SmoothPlastic)
 ]]
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
@@ -39,21 +36,18 @@ export type PartSpec = {
 	color: Vec, -- RGB 0..255
 	material: string, -- Enum.Material name
 	transparency: number,
-	light: { color: Vec, range: number, brightness: number }?, -- PointLight (Body only)
-	sparkles: { color: Vec }?, -- Sparkles (Body only)
 }
 
 local WHITE = { 255, 255, 255 }
 local INK = { 30, 20, 30 }
 local MOUTH = { 60, 15, 30 }
--- Face lines on dark bodies (Lava crust, Galaxy) would vanish in INK.
+-- Face lines on dark bodies would vanish in INK.
 local INK_ON_DARK = { 255, 225, 190 }
 local MOUTH_ON_DARK = { 255, 150, 110 }
 local TONGUE = { 255, 120, 150 }
 local IVORY = { 245, 235, 210 }
 local CROWN_GOLD = { 255, 205, 60 }
 local LEAF = { 90, 200, 80 }
-local LAVA_GLOW = { 255, 120, 20 }
 
 local EYE_PITCH = 14
 local MOUTH_PITCH = -15
@@ -143,27 +137,7 @@ end
 
 local function bodyLook(slime: Types.SlimeData): (Vec, string)
 	local c = { slime.color[1], slime.color[2], slime.color[3] }
-	if slime.mutation == "Glow" then
-		return mix(c, WHITE, 0.15), "Neon"
-	elseif slime.mutation == "Lava" then
-		return { 58, 28, 22 }, "Basalt"
-	elseif slime.mutation == "Wet" then
-		return mix(c, { 70, 150, 255 }, 0.5), "Glass"
-	elseif slime.mutation == "Frozen" then
-		return mix(c, { 200, 240, 255 }, 0.6), "Ice"
-	elseif slime.mutation == "Galaxy" then
-		return { 48, 18, 92 }, "SmoothPlastic"
-	elseif slime.mutation == "Gold" then
-		return { 255, 196, 56 }, "Foil"
-	elseif slime.mutation == "Rainbow" then
-		return mix(c, WHITE, 0.3), "Neon"
-	elseif slime.mutation == "Crystal" then
-		return mix(c, { 170, 240, 255 }, 0.5), "Glass"
-	elseif slime.mutation == "Eclipse" then
-		return { 26, 18, 40 }, "Neon"
-	end
-	-- Unmutated: the slime type's SlimeLooks material; unknown or missing
-	-- types (merged/older slimes, bad names) keep plain plastic.
+	-- The slime type's SlimeLooks material; unknown or missing types keep plain plastic.
 	local look = SlimeLooks.get(slime.species)
 	if look and SlimeLooks.isMaterial(look.material) then
 		return c, look.material
@@ -486,87 +460,6 @@ local function addTier(ctx: Ctx, tier: number, tierColor: Vec, bodyColor: Vec)
 	end
 end
 
--- Mutations --------------------------------------------------------------
-
-local CRACKS = {
-	{ 60, 20, 30, 0.3 },
-	{ -60, 25, -40, 0.28 },
-	{ 100, -10, 70, 0.32 },
-	{ -100, -15, -60, 0.3 },
-	{ 150, 30, 10, 0.35 },
-	{ -150, 20, -20, 0.3 },
-	{ 180, -25, 80, 0.3 },
-	{ 0, 58, 90, 0.26 },
-	{ 40, -48, 20, 0.22 },
-	{ -40, -48, -30, 0.22 },
-	{ 120, 45, 50, 0.25 },
-	{ -120, 45, -50, 0.25 },
-}
-
-local GLINTS = { { -50, 45 }, { 55, 20 }, { -80, -20 }, { 70, -40 } }
-
--- Evenly spread directions (golden spiral) that skip the face and bottom.
-local function starDirections(count: number): { Vec }
-	local out = {}
-	for i = 0, count - 1 do
-		local y = 1 - 2 * (i + 0.5) / count
-		local rad = math.sqrt(1 - y * y)
-		local a = i * 2.399963
-		local n = { math.cos(a) * rad, y, math.sin(a) * rad }
-		local onFace = n[3] < -0.55 and math.abs(n[2]) < 0.5
-		if not onFace and y > -0.75 then
-			table.insert(out, n)
-		end
-	end
-	return out
-end
-
-local STAR_COLORS = { WHITE, { 160, 220, 255 }, { 255, 170, 230 }, { 255, 240, 170 } }
-
-local function addMutation(ctx: Ctx, mutation: string, bodyColor: Vec)
-	local d, r = ctx.d, ctx.r
-	if mutation == "Glow" then
-		local shell = 1.12 * d
-		push(ctx, part("GlowShell", "Ball", { shell, shell, shell }, ctx.centre, { 0, 0, 0 }, bodyColor, "Neon", 0.8))
-	elseif mutation == "Lava" then
-		for i, c in CRACKS do
-			local size = { 0.045 * d, c[4] * d, 0.03 * d }
-			onSurface(ctx, `Crack{i}`, "Block", size, c[1], c[2], 0, LAVA_GLOW, "Neon", c[3])
-		end
-		for i, side in { -1, 1 } do
-			local e = 0.07 * d
-			local n = LayoutMath.direction(side * 25, 70)
-			local pos = LayoutMath.add(ctx.centre, LayoutMath.scale(n, r + 0.08 * d))
-			push(ctx, part(`Ember{i}`, "Ball", { e, e, e }, pos, { 0, 0, 0 }, { 255, 180, 60 }, "Neon"))
-		end
-	elseif mutation == "Galaxy" then
-		local shell = 1.04 * d
-		push(
-			ctx,
-			part(
-				"Nebula",
-				"Ball",
-				{ shell, shell, shell },
-				ctx.centre,
-				{ 0, 0, 0 },
-				{ 150, 80, 255 },
-				"ForceField",
-				0.3
-			)
-		)
-		for i, n in starDirections(24) do
-			local s = (if i % 3 == 0 then 0.055 else 0.035) * d
-			local pos = LayoutMath.add(ctx.centre, LayoutMath.scale(n, r + 0.005 * d))
-			push(ctx, part(`Star{i}`, "Ball", { s, s, s }, pos, { 0, 0, 0 }, STAR_COLORS[i % #STAR_COLORS + 1], "Neon"))
-		end
-	elseif mutation == "Gold" then
-		for i, g in GLINTS do
-			local s = 0.08 * d
-			onSurface(ctx, `Glint{i}`, "Block", { s, s, 0.01 * d }, g[1], g[2], 0.06 * d, { 255, 250, 200 }, "Neon", 45)
-		end
-	end
-end
-
 -- Public -----------------------------------------------------------------
 
 function SlimeLayout.diameter(size: number): number
@@ -591,23 +484,13 @@ function SlimeLayout.build(slime: Types.SlimeData): { PartSpec }
 	}
 
 	local body = part("Body", "Ball", { d, d, d }, ctx.centre, { 0, 0, 0 }, bodyColor, bodyMaterial)
-	if slime.mutation == "Glow" then
-		body.light = { color = bodyColor, range = 6 + 2 * d, brightness = 2 }
-	elseif slime.mutation == "Lava" then
-		body.light = { color = LAVA_GLOW, range = 4 + 1.5 * d, brightness = 1.5 }
-	elseif slime.mutation == "Gold" then
-		body.sparkles = { color = { 255, 230, 120 } }
-	end
 	push(ctx, body)
 
 	local patternMaterial = if bodyMaterial == "Neon" then "SmoothPlastic" else bodyMaterial
 	addPattern(ctx, slime.pattern, bodyColor, patternMaterial)
-	addMutation(ctx, slime.mutation, bodyColor)
 	addEyes(ctx, slime.eyes, bodyColor, tierRgb)
 	addMouth(ctx, slime.mouth)
-	if slime.mutation ~= "Lava" then
-		onSurface(ctx, "Gloss", "Ball", { 0.16 * d, 0.1 * d, 0.05 * d }, -38, 42, 0, WHITE, "SmoothPlastic", -30, 0.35)
-	end
+	onSurface(ctx, "Gloss", "Ball", { 0.16 * d, 0.1 * d, 0.05 * d }, -38, 42, 0, WHITE, "SmoothPlastic", -30, 0.35)
 	addTier(ctx, tier, tierRgb, bodyColor)
 	return ctx.specs
 end

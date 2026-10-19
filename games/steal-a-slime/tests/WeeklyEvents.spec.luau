@@ -1,10 +1,9 @@
 --!strict
--- Weekly event rotation (FEATURES.WeeklyEvents, CONTRACT.md §17): pure schedule, 3-week fake-clock simulation,
+-- Weekly trait event (FEATURES.WeeklyEvents, CONTRACT.md §17): pure schedule, 3-week fake-clock simulation,
 -- caps, the roll window, the replicated attribute and the interaction with live admin events.
 local AdminEventsService = require("../src/server/AdminEventsService")
 local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
-local Genome = require("../src/shared/Genome")
 local ServerFixtures = require("./ServerFixtures")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
@@ -33,30 +32,17 @@ local function it(name: string, fn: () -> ())
 end
 
 describe("WeeklyEvents config", function()
-	rawIt("is off by default and every rotation entry is a real, plain mutation", function()
-		expect(Config.FEATURES.WeeklyEvents).toBe(false)
-		expect(WeeklyEvents.enabled()).toBe(false)
-		local mutation, bonus = WeeklyEvents.mutationBoost(MON)
-		expect(mutation).toBeNil()
-		expect(bonus).toBe(0)
-		expect(select(1, WeeklyEvents.multipliers(SAT_START))).toBe(1)
-		expect(#Config.WEEKLY.MUTATION_ROTATION > 1).toBe(true)
-		for _, name in Config.WEEKLY.MUTATION_ROTATION do
-			local found = false
-			for _, m in Config.MUTATIONS do
-				found = found or m.name == name
-			end
-			expect(found).toBe(true)
-		end
+	rawIt("follows the flag, and gives no luck while it is off", function()
+		expect(WeeklyEvents.enabled()).toBe(Config.FEATURES.WeeklyEvents)
+		WeeklyEvents.setForced(false)
+		expect(WeeklyEvents.multiplier(SAT_START)).toBe(1)
+		WeeklyEvents.setForced(nil)
 	end)
 	it("keeps the boost small and capped", function()
-		expect(Config.WEEKLY.MUTATION_CHANCE_BONUS <= Config.WEEKLY.MAX_CHANCE_BONUS).toBe(true)
-		expect(Config.WEEKLY.MAX_CHANCE_BONUS <= 0.1).toBe(true)
 		expect(Config.WEEKLY.MAX_MULTIPLIER <= 2).toBe(true)
 		expect(Config.WEEKLY.TRAIT_SECONDS < DAY).toBe(true)
 		for _, trait in Config.WEEKLY.TRAITS do
 			expect(trait.luck >= 1 and trait.luck <= Config.WEEKLY.MAX_MULTIPLIER).toBe(true)
-			expect(trait.mutation >= 1 and trait.mutation <= Config.WEEKLY.MAX_MULTIPLIER).toBe(true)
 		end
 	end)
 end)
@@ -77,21 +63,13 @@ describe("WeeklyEvents weeks", function()
 		expect(year).toBe(2025)
 		expect(number).toBe(1)
 	end)
-	it("the mutation event covers exactly its week", function()
-		local e = WeeklyEvents.mutationEvent(MON + 3 * DAY)
-		expect(e.startsAt).toBe(MON)
-		expect(e.endsAt).toBe(MON + 7 * DAY)
-		expect(e.kind).toBe("mutation")
-		expect(e.id).toBe(e.mutation)
-	end)
 	it("the trait event is Saturday 18:00-20:00 UTC", function()
-		expect(#WeeklyEvents.current(SAT_START - 1)).toBe(1)
+		expect(#WeeklyEvents.current(SAT_START - 1)).toBe(0)
 		local live = WeeklyEvents.current(SAT_START)
-		expect(#live).toBe(2)
-		expect(live[2].kind).toBe("trait")
-		expect(live[2].startsAt).toBe(SAT_START)
-		expect(live[2].endsAt).toBe(SAT_START + Config.WEEKLY.TRAIT_SECONDS)
-		expect(#WeeklyEvents.current(SAT_START + Config.WEEKLY.TRAIT_SECONDS)).toBe(1)
+		expect(#live).toBe(1)
+		expect(live[1].startsAt).toBe(SAT_START)
+		expect(live[1].endsAt).toBe(SAT_START + Config.WEEKLY.TRAIT_SECONDS)
+		expect(#WeeklyEvents.current(SAT_START + Config.WEEKLY.TRAIT_SECONDS)).toBe(0)
 	end)
 end)
 
@@ -99,78 +77,28 @@ describe("WeeklyEvents 3-week simulation (fake clock)", function()
 	local STEP = 600
 	local DAYS = 21
 	local sat = {} :: { { startsAt: number, endsAt: number, week: number } }
-	local seenWeeks = {} :: { [number]: string }
-	local order = {} :: { number }
 
-	it("always one mutation event, at most one trait event, no overlap, correct boundaries", function()
-		local lastWeek: number? = nil
+	it("at most one trait event, Saturday only, no overlap, correct boundaries", function()
 		local lastTraitKey: number? = nil
 		for t = MON, MON + DAYS * DAY - STEP, STEP do
 			local live = WeeklyEvents.current(t)
-			expect(#live >= 1 and #live <= 2).toBe(true)
-			expect(live[1].kind).toBe("mutation")
-			expect(live[1].startsAt <= t and t < live[1].endsAt).toBe(true)
-			local mutationEvents = 0
-			local traitEvents = 0
+			expect(#live <= 1).toBe(true)
 			for _, e in live do
-				if e.kind == "mutation" then
-					mutationEvents += 1
-				else
-					traitEvents += 1
-					expect(e.startsAt <= t and t < e.endsAt).toBe(true)
-					-- Saturday only
-					local wd = tonumber(os.date("!%w", t))
-					expect(wd).toBe(6)
-					if lastTraitKey ~= e.startsAt then
-						lastTraitKey = e.startsAt
-						table.insert(sat, { startsAt = e.startsAt, endsAt = e.endsAt, week = e.week })
-					end
+				expect(e.startsAt <= t and t < e.endsAt).toBe(true)
+				local wd = tonumber(os.date("!%w", t))
+				expect(wd).toBe(6)
+				if lastTraitKey ~= e.startsAt then
+					lastTraitKey = e.startsAt
+					table.insert(sat, { startsAt = e.startsAt, endsAt = e.endsAt, week = e.week })
 				end
-			end
-			expect(mutationEvents).toBe(1)
-			expect(traitEvents <= 1).toBe(true)
-			local week = WeeklyEvents.weekIndex(t)
-			if week ~= lastWeek then
-				-- the rotation only switches at Monday 00:00 UTC
-				expect(os.date("!%w %H:%M", t)).toBe("1 00:00")
-				table.insert(order, week)
-				seenWeeks[week] = live[1].id
-				lastWeek = week
-			else
-				expect(seenWeeks[week]).toBe(live[1].id)
 			end
 		end
 	end)
 	it("three weeks, three Saturday events that do not overlap", function()
-		expect(#order).toBe(3)
 		expect(#sat).toBe(3)
 		for i = 2, #sat do
 			expect(sat[i - 1].endsAt <= sat[i].startsAt).toBe(true)
 		end
-	end)
-	it("consecutive weeks rotate to a different mutation", function()
-		for i = 2, #order do
-			expect(seenWeeks[order[i]] ~= seenWeeks[order[i - 1]]).toBe(true)
-		end
-	end)
-	it("a full rotation cycle visits every entry once, in config order, then repeats", function()
-		local rotation = Config.WEEKLY.MUTATION_ROTATION
-		local first = WeeklyEvents.weekIndex(MON)
-		local ids = {}
-		for i = 0, #rotation * 2 - 1 do
-			ids[i] = WeeklyEvents.mutationEvent(MON + i * 7 * DAY).id
-		end
-		local start = table.find(rotation, ids[0]) :: number
-		for i = 0, #rotation - 1 do
-			expect(ids[i]).toBe(rotation[(start - 1 + i) % #rotation + 1])
-			expect(ids[i + #rotation]).toBe(ids[i])
-		end
-		expect(WeeklyEvents.weekIndex(MON + 7 * DAY)).toBe(first + 1)
-	end)
-	it("the trait alternates with the weeks too", function()
-		local a = WeeklyEvents.current(SAT_START)[2].id
-		local b = WeeklyEvents.current(SAT_START + 7 * DAY)[2].id
-		expect(a ~= b).toBe(true)
 	end)
 	it("next() is strictly in the future and is the first event that then starts", function()
 		for t = MON, MON + DAYS * DAY - STEP, STEP * 3 do
@@ -180,75 +108,48 @@ describe("WeeklyEvents 3-week simulation (fake clock)", function()
 			for _, e in WeeklyEvents.current(nextEvent.startsAt - 1) do
 				expect(e.startsAt <= t).toBe(true)
 			end
-			local started = WeeklyEvents.current(nextEvent.startsAt)
 			local found = false
-			for _, e in started do
-				found = found
-					or (e.kind == nextEvent.kind and e.id == nextEvent.id and e.startsAt == nextEvent.startsAt)
+			for _, e in WeeklyEvents.current(nextEvent.startsAt) do
+				found = found or (e.id == nextEvent.id and e.startsAt == nextEvent.startsAt)
 			end
 			expect(found).toBe(true)
 		end
 	end)
-	it("next() from Sunday evening is Monday's new mutation week; during the trait it is Monday too", function()
-		local sunday = MON + 6 * DAY + 12 * 3600
-		local e = WeeklyEvents.next(sunday)
-		expect(e.kind).toBe("mutation")
-		expect(e.startsAt).toBe(MON + 7 * DAY)
-		expect(WeeklyEvents.next(SAT_START + 60).startsAt).toBe(MON + 7 * DAY)
-		expect(WeeklyEvents.next(MON + 60).kind).toBe("trait")
+	it("next() from Monday is this Saturday; during the trait or after it, next Saturday", function()
+		expect(WeeklyEvents.next(MON + 60).startsAt).toBe(SAT_START)
+		expect(WeeklyEvents.next(SAT_START + 60).startsAt).toBe(SAT_START + 7 * DAY)
+		expect(WeeklyEvents.next(MON + 6 * DAY + 12 * 3600).startsAt).toBe(SAT_START + 7 * DAY)
 	end)
 end)
 
 describe("WeeklyEvents effects", function()
-	it("multipliers are 1 outside the trait window and within the caps inside", function()
-		local luck, mutation = WeeklyEvents.multipliers(SAT_START - 1)
-		expect(luck).toBe(1)
-		expect(mutation).toBe(1)
+	it("the multiplier is 1 outside the trait window and within the cap inside", function()
+		expect(WeeklyEvents.multiplier(SAT_START - 1)).toBe(1)
+		expect(WeeklyEvents.multiplier(SAT_START + Config.WEEKLY.TRAIT_SECONDS)).toBe(1)
 		for week = 0, 3 do
-			luck, mutation = WeeklyEvents.multipliers(SAT_START + week * 7 * DAY)
-			expect(luck >= 1 and luck <= Config.WEEKLY.MAX_MULTIPLIER).toBe(true)
-			expect(mutation >= 1 and mutation <= Config.WEEKLY.MAX_MULTIPLIER).toBe(true)
-			expect(luck > 1 or mutation > 1).toBe(true)
+			local luck = WeeklyEvents.multiplier(SAT_START + week * 7 * DAY)
+			expect(luck > 1 and luck <= Config.WEEKLY.MAX_MULTIPLIER).toBe(true)
 		end
 	end)
-	it("the mutation boost names the week's mutation with a capped bonus", function()
-		local name, bonus = WeeklyEvents.mutationBoost(MON + DAY)
-		expect(name).toBe(WeeklyEvents.mutationEvent(MON).mutation)
-		expect(bonus > 0 and bonus <= Config.WEEKLY.MAX_CHANCE_BONUS).toBe(true)
-	end)
-	it("Genome.rollMutation: the weekly window sits right after the chance, others unchanged", function()
-		local chance = 0.03
-		expect(Genome.rollMutation(0.5, 0.5, chance, "Gold", 0.04)).toBe("None")
-		expect(Genome.rollMutation(0.031, 0.5, chance, "Gold", 0.04)).toBe("Gold")
-		expect(Genome.rollMutation(0.0699, 0.5, chance, "Gold", 0.04)).toBe("Gold")
-		expect(Genome.rollMutation(0.07, 0.5, chance, "Gold", 0.04)).toBe("None")
-		expect(Genome.rollMutation(0.01, 0.0, chance, "Gold", 0.04)).toBe(Genome.rollMutation(0.01, 0.0, chance))
-		expect(Genome.rollMutation(0.031, 0.5, chance)).toBe("None")
-	end)
-	it("the boost raises the week's mutation share of drops only", function()
+	it("the trait raises the rare share of drops", function()
 		local original = Spawner.unixTime
-		local function count(at: number): { [string]: number }
+		local function rare(at: number): number
 			Spawner.unixTime = function()
 				return at
 			end
 			local world = ServerFixtures.world()
-			local counts: { [string]: number } = {}
+			local n = 0
 			for _ = 1, 3000 do
 				local id = Spawner.spawnOne(world, ServerFixtures.T0)
-				for _, m in Genome.mutationList(world.wild[id].slime) do
-					counts[m] = (counts[m] or 0) + 1
-				end
+				n += if world.wild[id].slime.tier >= 3 then 1 else 0
 				world.wild[id] = nil
 			end
-			return counts
+			return n
 		end
-		local boosted = WeeklyEvents.mutationEvent(MON).mutation :: string
-		local inWeek = count(MON + DAY)
-		local otherWeekName = WeeklyEvents.mutationEvent(MON + 7 * DAY).mutation :: string
-		local otherWeek = count(MON + 8 * DAY)
+		local quiet = rare(MON + DAY)
+		local trait = rare(SAT_START + 60)
 		Spawner.unixTime = original
-		expect((inWeek[boosted] or 0) > (otherWeek[boosted] or 0)).toBe(true)
-		expect((otherWeek[otherWeekName] or 0) > (inWeek[otherWeekName] or 0)).toBe(true)
+		expect(trait > quiet).toBe(true)
 	end)
 end)
 
@@ -261,20 +162,20 @@ describe("WeeklyEvents vs live admin events (#130)", function()
 		local world = ServerFixtures.world()
 		if admin then
 			local svc = AdminEventsService.new(world, 1000, nil)
-			AdminEventsService.command(svc, 1000, "/event mutation 10", ServerFixtures.T0)
+			AdminEventsService.command(svc, 1000, "/event luck 10", ServerFixtures.T0)
 			expect(world.adminEvent ~= nil).toBe(true)
 		end
 		local out = {}
 		for _ = 1, 400 do
 			local id = Spawner.spawnOne(world, ServerFixtures.T0)
 			local slime = world.wild[id].slime
-			table.insert(out, `{slime.tier}:{table.concat(Genome.mutationList(slime), "+")}`)
+			table.insert(out, `{slime.tier}:{slime.species}`)
 			world.wild[id] = nil
 		end
 		Spawner.unixTime = original
 		return out
 	end
-	it("a running admin event replaces the weekly boosts: drops equal in any week, trait or not", function()
+	it("a running admin event replaces the weekly boost: drops equal in any week, trait or not", function()
 		local a = drops(MON + DAY, true)
 		local b = drops(MON + 8 * DAY, true)
 		local c = drops(SAT_START + 60, true)
@@ -286,7 +187,7 @@ describe("WeeklyEvents vs live admin events (#130)", function()
 		local trait = drops(SAT_START + 60, false)
 		expect(table.concat(quiet, ",") ~= table.concat(trait, ",")).toBe(true)
 	end)
-	it("after the admin event ends the weekly boosts apply again", function()
+	it("after the admin event ends the weekly boost applies again", function()
 		Spawner.unixTime = function()
 			return SAT_START + 60
 		end
@@ -319,9 +220,9 @@ describe("WeeklyEvents attribute", function()
 			local live = WeeklyEvents.current(t)
 			local nextEvent = WeeklyEvents.next(t)
 			local decoded = d :: WeeklyEvents.Decoded
-			expect(decoded.mutation).toBe(live[1].id)
-			expect(decoded.mutationEndsAt).toBe(live[1].endsAt)
-			expect(decoded.trait).toBe(if live[2] then live[2].id else nil)
+			expect(decoded.week).toBe(WeeklyEvents.weekIndex(t))
+			expect(decoded.trait).toBe(if live[1] then live[1].id else nil)
+			expect(decoded.traitEndsAt).toBe(if live[1] then live[1].endsAt else nil)
 			expect(decoded.nextId).toBe(nextEvent.id)
 			expect(decoded.nextStartsAt).toBe(nextEvent.startsAt)
 		end
