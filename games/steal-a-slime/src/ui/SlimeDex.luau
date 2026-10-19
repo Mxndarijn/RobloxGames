@@ -208,9 +208,9 @@ end
 -- Panel header above the list (Panels/Dex, design px): the big percent on the left and the count chips beside
 -- it, wrapping onto more rows on a narrow body. Compact (short bodies): a smaller percent and one chip row.
 SlimeDex.HEADER = table.freeze({
-	percent = 44, -- big percent block height
-	percentW = 96,
-	compactW = 60, -- percent width in the compact header
+	percent = 60, -- big percent block height
+	percentW = 128, -- fits "100%" at Panels/Dex STYLE.percent
+	compactW = 68, -- percent width in the compact header
 	chip = 26,
 	chipGap = 6,
 	gap = 8, -- header to list

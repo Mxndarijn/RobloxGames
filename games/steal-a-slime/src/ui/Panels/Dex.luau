@@ -37,8 +37,8 @@ local Dex = {}
 
 -- Design px and text sizes of the panel's parts.
 local STYLE = table.freeze({
-	percent = 40,
-	compactPercent = 24,
+	percent = 56,
+	compactPercent = 28,
 	chip = 15,
 	chipPad = 20, -- chip width beyond its text
 	chipGap = 10, -- percent to the first chip
