@@ -4,9 +4,10 @@
 # to 3.3 x 2.4 stops reading as one).
 import math
 from models._pet_mount import *
+from lib.goo import Ball, metaball_mesh
 
 GOLD, GOLD_D = rgb(255, 208, 72), rgb(226, 160, 48)
-NOFIT = {"star_cushion", "hoverboard"}
+NOFIT = {"star_cushion", "hoverboard", "crescent_moon"}
 
 
 def rings_mesh(name, rings, colour=None, poles=(None, None)):
@@ -106,59 +107,58 @@ def star_cushion():
 
 # ---------------------------------------------------------------- crescent moon
 def crescent_moon():
-    """A thick crescent rocking on its belly, horns up at the ends (the front view is the moon's smile); the pet sits
-    in the dip. Pale butter yellow with soft craters on the outside, a little star on the left horn."""
-    Ra, PHI, NS, NA = 1.2, math.radians(96), 18, 38
-    zb = 0.46  # centre of the section at the bottom of the arc
-    rings = []
-    tips = []
-    for i in range(NA + 1):
-        s = -1 + 2 * i / NA
-        phi = s * PHI
-        p = Vector((Ra * math.sin(phi), 0.0, zb + Ra - Ra * math.cos(phi)))
-        inward = Vector((-math.sin(phi), 0.0, math.cos(phi)))
-        th = 0.04 + 0.4 * (1 - s * s) ** 0.9  # half thickness (in the arc plane)
-        w = 0.12 + 0.7 * (1 - s ** 8) ** 0.5  # half width (y): nearly even, a crescent coin, not a banana
-        if i in (0, NA):
-            tips.append(p - Vector((math.cos(phi), 0, math.sin(phi))) * 0.06 * (1 if i == 0 else -1))
-            continue
-        ring = []
-        for k in range(NS):
-            ps = k * math.tau / NS
-            c, sn = math.cos(ps), math.sin(ps)
-            ring.append(p + inward * th * math.copysign(abs(c) ** 0.7, c) + Vector((0, 1, 0)) * w * math.copysign(abs(sn) ** 0.35, sn))
-        rings.append(ring)
-    body = rings_mesh("Moon", rings, poles=(tips[0], tips[1]))
-    MOON, LIGHT, CRATER = rgb(255, 204, 64), rgb(255, 236, 140), rgb(240, 180, 58)
-    def arc(s, off):  # a point on the flat front face: arc position s (-1..1), off across the band (-1 outer .. 1 inner)
-        phi = s * PHI
-        th = 0.04 + 0.4 * (1 - s * s) ** 0.9
-        return Vector((Ra * math.sin(phi) - math.sin(phi) * th * off, 0.0, zb + Ra - Ra * math.cos(phi) + math.cos(phi) * th * off))
-    craters = []
-    for s_, off, r in [(-0.45, -0.05, 0.2), (0.1, 0.15, 0.24), (0.5, -0.2, 0.15)]:  # few, big, soft: dimples, not holes
-        for y in (-1, 1):
-            q = arc(s_, off)
-            q.y = y * 0.82
-            craters.append((q, r))
+    """A pale crescent moon lying flat like a cushion: a round disc with a big bite taken out of the back. The pet sits
+    on the thick front band; the slim horns sweep round behind it, low, so nothing rises up round the pet.
+    Pale lemon on top, cool silver sides (warm gold and a puffy, lumpy body read as a croissant), a star on each horn.
+    Built at its final size (NOFIT)."""
+    R, HC, HR = 1.48, 1.2, 1.45  # outer disc radius; the bite: a disc centred at y = HC with radius HR
 
-    def f(co, n):
-        c = mix(MOON, LIGHT, clamp(0.45 + 0.55 * n.z))
-        for cp, r in craters:
-            d = (co - cp).length / r
-            c = mix(c, CRATER, (1 - sstep(0.2, 1.0, d)) * 0.7)
-        return shade(c, 1 - 0.2 * clamp(-n.z))
+    def depth(x, y):  # how far (x, y) is inside the crescent (distance to the nearer edge), < 0 outside
+        return min(R - math.hypot(x, y), math.hypot(x, y - HC) - HR)
+    balls = []
+    st = 0.12
+    n = int(R / st) + 1
+    for i in range(-n, n + 1):
+        for j in range(-n, n + 1):
+            x, y = i * st, j * st
+            d = depth(x, y)
+            if d > 0.05:
+                # balls shrink toward the edges and the horns, so the horns taper to sharp points and drop lower
+                r = min(0.26, 0.04 + 0.5 * d)
+                balls.append(Ball((x, y, 0.08 + 0.9 * r), (r, r, r)))
+    body = metaball_mesh("Moon", balls, resolution=0.05, tris=1400, smooth=2)
+    me = body.data
+    z_lo = min(v.co.z for v in me.vertices)
+    for v in me.vertices:
+        v.co.z -= z_lo
+    raw = max(v.co.z for v in me.vertices if math.hypot(v.co.x, v.co.y + 0.8) < 0.4)  # top of the front band
+    K = 0.16
+    for v in me.vertices:  # soft flat top, like the cloud
+        z0 = raw - K
+        if v.co.z > z0:
+            v.co.z = z0 + K * math.tanh((v.co.z - z0) / K)
+    me.update()
+    TOP_C, SIDE, BELLY = rgb(255, 246, 196), rgb(212, 212, 238), rgb(160, 166, 214)
+
+    def f(co, n):  # pale lemon top fading to cool silver sides and a lavender belly
+        c = mix(SIDE, TOP_C, sstep(0.1, 0.85, n.z))
+        return mix(c, BELLY, clamp(-n.z) * 0.8)
     paint(body, f)
     parts = [body]
-    # a small star on the tip of the left horn
+    # a small star standing on each horn
     pts = []
     for k in range(10):
         a = math.pi / 2 + k * math.pi / 5
-        r = 0.3 if k % 2 == 0 else 0.13
+        r = 0.24 if k % 2 == 0 else 0.1
         pts.append((r * math.cos(a), r * math.sin(a)))
-    tip = tips[0]
-    star = extrude_poly("HornStar", pts, 0.14, pos=(tip.x - 0.3, 0.0, tip.z + 0.12), bevel_w=0.04)
-    paint(star, lambda co, n: mix(rgb(255, 214, 64), rgb(255, 250, 190), clamp(-n.y * 0.8 + 0.2)))
-    parts.append(star)
+    for side, size in ((-1, 1.0), (1, 0.72)):
+        tip = max((v.co for v in me.vertices if v.co.x * side > 0), key=lambda c: c.y)  # the horn's tip
+        hx, hy = tip.x - side * 0.12, tip.y - 0.22  # a little back from the tip, where the horn still has some body
+        hz = max(v.co.z for v in me.vertices if math.hypot(v.co.x - hx, v.co.y - hy) < 0.18)
+        star = extrude_poly("HornStar%d" % side, [(x * size, z * size) for x, z in pts], 0.1, pos=(hx, hy, hz + 0.15 * size),
+                            bevel_w=0.03)  # its lower points sink into the horn
+        paint(star, lambda co, n: mix(rgb(255, 210, 70), rgb(255, 246, 180), clamp(-n.y * 0.8 + 0.2)))
+        parts.append(star)
     return parts
 
 

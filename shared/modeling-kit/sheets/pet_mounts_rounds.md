@@ -55,7 +55,7 @@ code: `_r03.png`. Bolt, arch, shards and tufts still sit right on the new shape 
 | crescent_moon | r01 | 1596 | Swept crescent (68 degree arc, round section, width tapering to the horns). Read as a banana from every view; craters invisible. |
 | crescent_moon | r02 | 1608 | Arc to 96 degrees (horns curl in), slimmer, richer gold. Still a banana from the top: the width tapered like a fruit. |
 | crescent_moon | r03 | 1608 | Nearly even width with flat faces: a crescent coin. Craters painted on both flat faces at positions computed on the arc. Reads as a moon. |
-| crescent_moon | r04 | 1608 | Review: the dark round craters read as Swiss cheese. Now 3 big soft dimples (wide falloff, lighter gold, 70 %). Final. |
+| crescent_moon | r04 | 1608 | Review: the dark round craters read as Swiss cheese. Now 3 big soft dimples (wide falloff, lighter gold, 70 %). |
 | mushroom | r01 | 1880 | Lathe cap with per-face colours (gill stripes underneath, red gradient), 9 raised spot lenses on the cap normal. Stem hidden under the cap. |
 | mushroom | r02 | 1880 | Cap underside raised 0.12, stem longer: the stem shows from the front. Final. |
 | pancakes | r01 | 2184 | 4 lathe cakes (browned faces, light side band), syrup slab, 6 tube drips. Over budget, syrup too orange. |
@@ -72,3 +72,14 @@ code: `_r03.png`. Bolt, arch, shards and tufts still sit right on the new shape 
 
 Weak spots: the hoverboard and the clam lid are big decoration around a low
 seat; the star and hoverboard footprints are smaller than 3.3 x 2.4 on purpose. Still Cycles estimates: nothing uploaded or run in Studio.
+
+## Crescent moon redo (2026-10-19)
+Merijn: the slime disappears in the curve (the upright horns wrap round it). The moon now lies flat like a cushion.
+
+| round | tris | what changed |
+|---|---|---|
+| r05 | 1726 | Flat crescent: a disc (R 1.48) with a bite (disc at y 1.107, r 1.17) filled with metaballs on a 0.2 grid, soft flat top. The slime sits fully on top. But the bite was shallow (reads as a bean pillow), the skin lumpy, the dimples like bruises. |
+| r06 | 1776 | Deeper bite (y 0.95, r 1.2), ball size follows the distance to the edge so the horns taper to points, 2 smooth passes, no dimples. Reads as a crescent, but the star floated (the horn moved). |
+| r07 | 1776 | Star pinned to the horn (found from the mesh, not a fixed point). Merijn: now it looks like a croissant (gold, puffy, fat curled ends). |
+| r08 | 2052 | Pale lemon top, cool silver sides, lavender belly; bigger bite (y 1.2, r 1.45) for slim horns; smaller, flatter balls on a 0.12 grid; a star on each horn. |
+| r09 | 1952 | Decimate target 1400. Final (OK'd by Merijn). |
