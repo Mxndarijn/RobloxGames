@@ -133,6 +133,8 @@ type Deps = {
 	request: ((action: string, done: (result: any) -> (), ...any) -> ())?,
 	-- What a click at a screen point aims at (ui/PvpAim.sample); nil = PvP items can't be used.
 	aim: ((screen: Vector2 | Vector3) -> InventoryCore.Aim)?,
+	-- Plays the equipped item's use animation on the local character (ui/PvpAnim); nil = none.
+	animate: ((itemId: string) -> ())?,
 	tools: any, -- InventoryTools.Provider
 	serverNow: () -> number,
 	keyboard: boolean?, -- show number keys (default true)
@@ -1379,13 +1381,14 @@ function Inventory.new(parent: Instance, deps: Deps)
 			if not deps.aim or not at then
 				return false
 			end
-			local use, reason = InventoryCore.pvpUseRequest(
-				pvpEntry,
-				toolDef(pvpEntry.itemId),
-				deps.aim(at),
-				deps.Config,
-				deps.serverNow()
-			)
+			local serverNow = deps.serverNow()
+			local use, reason =
+				InventoryCore.pvpUseRequest(pvpEntry, toolDef(pvpEntry.itemId), deps.aim(at), deps.Config, serverNow)
+			if deps.animate and InventoryCore.pvpReady(pvpEntry, serverNow) then
+				-- the swing / punch / throw shows at once, also for a whiff the server never hears about
+				lastUse = now
+				deps.animate(pvpEntry.itemId)
+			end
 			if not use then
 				if reason then
 					feedback(pvpEntry, reason)

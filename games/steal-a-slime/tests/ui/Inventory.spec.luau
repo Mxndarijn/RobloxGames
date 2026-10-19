@@ -428,10 +428,13 @@ end)
 
 describe("Inventory PvP item use", function()
 	local GLOVE = "KnockGlove1"
+	local animated: { string } = {}
+	local alone = false -- nobody else in the world
 	local function mountPvp(equipped: string?, reply: any?, cooldowns: any?)
 		local gui = UiHarness.root()
 		local sent: { { any } } = {}
 		local aims = 0
+		animated = {}
 		local inv = Inventory.new(gui, {
 			Config = Config,
 			itemIcons = ItemIcons.build(Config),
@@ -446,8 +449,13 @@ describe("Inventory PvP item use", function()
 				aims += 1
 				return {
 					self = { X = 0, Y = 3, Z = 0 },
-					players = { { userId = 7, position = { X = 4, Y = 3, Z = 0 }, carrying = true } },
+					players = if alone
+						then {}
+						else { { userId = 7, position = { X = 4, Y = 3, Z = 0 }, carrying = true } },
 				}
+			end,
+			animate = function(itemId: string)
+				table.insert(animated, itemId)
 			end,
 			tools = fakeTools({ { name = "Bat", equipped = false } }),
 			serverNow = function()
@@ -471,6 +479,26 @@ describe("Inventory PvP item use", function()
 		expect(sent[1][3]).toBe(7)
 		expect(inv.useHeld(SCREEN)).toBe(false) -- inside the gap
 		expect(#sent).toBe(1)
+	end)
+
+	it("a click plays the item's use animation at once, also a whiff with nobody in reach", function()
+		local inv, sent = mountPvp(GLOVE)
+		inv.useHeld(SCREEN)
+		expect(animated).toEqual({ GLOVE })
+		alone = true
+		inv, sent = mountPvp(GLOVE)
+		expect(inv.useHeld(SCREEN)).toBe(false)
+		alone = false
+		expect(#sent).toBe(0)
+		expect(animated).toEqual({ GLOVE })
+		expect(inv.useHeld(SCREEN)).toBe(false) -- the whiff starts the gap too
+		expect(animated).toEqual({ GLOVE })
+	end)
+
+	it("a cooling-down item plays no animation", function()
+		local inv = mountPvp(GLOVE, nil, { [GLOVE] = 103 })
+		inv.useHeld(SCREEN)
+		expect(animated).toEqual({})
 	end)
 
 	it("nothing equipped: a click sends nothing and samples nothing", function()

@@ -25,27 +25,31 @@ export type Burst = {
 	size: number,
 	lift: number, -- upward acceleration (balloons / bubbles float up), negative = falls
 	ring: boolean?, -- horizontal ring (Bounce)
-	height: number?, -- emit this many studs above the position (Fireworks)
+	height: number?, -- emit this many studs above the position (Fireworks); on a character, above its root (< 0 = feet)
 }
 export type Plan = {
 	effect: string,
 	seconds: number, -- every instance of this effect is gone by now
 	sfx: string?,
 	burst: Burst?,
-	highlight: { color: RGB, seconds: number }?,
+	ring: Burst?, -- a second, flat ring burst (impact shock wave, goo splash)
+	highlight: { color: RGB, seconds: number, impact: RGB? }?, -- impact = the colour of the first instant
+	beam: { seconds: number, color: RGB, width: number? }?,
 	shake: { amplitude: number, seconds: number }?, -- victim only
-	beam: { seconds: number, color: RGB }?,
 	trail: number?, -- seconds (Bounce)
 	applyVelocity: boolean, -- the victim's client launches its own root with payload.velocity
 	onTarget: boolean, -- emit at the target's character (else at payload.position)
+	attackerAnim: boolean, -- the attacker plays the item's use animation (ui/PvpAnim); false for traps / pads springing
+	targetHit: boolean, -- the target plays the `hit` recoil (it was pushed)
 }
 export type Marker = { shape: "puddle" | "pad", diameter: number, color: RGB, ownerOnly: boolean, seconds: number? }
 
 PvpEffectsLogic.FX_RANGE = 220 -- studs: farther effects are skipped (clients may skip beyond their stream radius)
 PvpEffectsLogic.HIGHLIGHT_CAP = 8 -- Roblox allows ~31 Highlights in total; we stay far below
 PvpEffectsLogic.SHAKE_SECONDS = 0.3
-PvpEffectsLogic.SHAKE_AMPLITUDE = 0.25 -- studs
-PvpEffectsLogic.FLASH_SECONDS = 0.2
+PvpEffectsLogic.SHAKE_AMPLITUDE = 0.35 -- studs
+PvpEffectsLogic.FLASH_SECONDS = 0.22
+PvpEffectsLogic.FEET = -2.6 -- studs below the root: where a goo splash ring sits
 PvpEffectsLogic.MISS_BEAM_SECONDS = 0.4
 PvpEffectsLogic.BOUNCE_TRAIL_SECONDS = 0.6
 
@@ -101,6 +105,8 @@ local function cosmetic(itemId: string, pvp: any, duration: any): Plan
 		burst = { count = 30, colors = CONFETTI, texture = SPARK, speed = 18, size = 0.5, lift = -20 },
 		applyVelocity = false,
 		onTarget = false,
+		attackerAnim = true,
+		targetHit = false,
 	}
 	local burst = plan.burst :: Burst
 	if itemId == "FunBalloon" then
@@ -133,6 +139,7 @@ local function cosmetic(itemId: string, pvp: any, duration: any): Plan
 		plan.sfx = "PvpSqueak"
 		plan.onTarget = true
 		plan.applyVelocity = true
+		plan.targetHit = true
 		plan.burst = { count = 8, colors = { { 1, 0.9, 0.3 } }, texture = SPARK, speed = 8, size = 0.5, lift = 0 }
 	else
 		plan.burst = burst -- FunConfetti and unknown cosmetics: the default confetti
@@ -157,11 +164,22 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 			effect = "Knockback",
 			seconds = fx,
 			sfx = "PvpHit",
-			burst = { count = 14, colors = { color, WHITE }, texture = SPARK, speed = 16, size = 0.8, lift = 0 },
-			highlight = { color = color, seconds = PvpEffectsLogic.FLASH_SECONDS },
+			burst = { count = 16, colors = { color, WHITE }, texture = SPARK, speed = 18, size = 0.8, lift = 0 },
+			ring = {
+				count = 12,
+				colors = { WHITE, color },
+				texture = SPARK,
+				speed = 24,
+				size = 0.6,
+				lift = 0,
+				ring = true,
+			},
+			highlight = { color = color, seconds = PvpEffectsLogic.FLASH_SECONDS, impact = WHITE },
 			shake = { amplitude = PvpEffectsLogic.SHAKE_AMPLITUDE, seconds = PvpEffectsLogic.SHAKE_SECONDS },
 			applyVelocity = true,
 			onTarget = true,
+			attackerAnim = true,
+			targetHit = true,
 		}
 	elseif effect == "Freeze" then
 		local seconds = clampSeconds(payload.duration, 0.1, pvp.CONTROL_MAX_SECONDS)
@@ -170,9 +188,21 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 			seconds = math.max(fx, seconds),
 			sfx = "PvpGoo",
 			burst = { count = 18, colors = { GOO, GOO_DARK }, texture = SMOKE, speed = 12, size = 1.2, lift = -6 },
-			highlight = { color = GOO, seconds = seconds },
+			ring = {
+				count = 14,
+				colors = { GOO, GOO_DARK },
+				texture = SMOKE,
+				speed = 14,
+				size = 1.4,
+				lift = -4,
+				ring = true,
+				height = PvpEffectsLogic.FEET,
+			},
+			highlight = { color = GOO, seconds = seconds, impact = WHITE },
 			applyVelocity = false,
 			onTarget = true,
+			attackerAnim = false,
+			targetHit = false,
 		}
 	elseif effect == "Slow" then
 		local hit = payload.target ~= nil
@@ -182,20 +212,25 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 				effect = "Slow",
 				seconds = math.max(fx, seconds),
 				sfx = "PvpSquirt",
-				burst = { count = 12, colors = { GOO, GOO_DARK }, texture = SMOKE, speed = 10, size = 1.0, lift = -8 },
-				highlight = { color = GOO, seconds = seconds },
-				beam = { seconds = PvpEffectsLogic.FLASH_SECONDS + 0.05, color = GOO },
+				burst = { count = 16, colors = { GOO, GOO_DARK }, texture = SMOKE, speed = 12, size = 1.1, lift = -10 },
+				ring = { count = 10, colors = { GOO }, texture = SMOKE, speed = 16, size = 0.9, lift = -6, ring = true },
+				highlight = { color = GOO, seconds = seconds, impact = WHITE },
+				beam = { seconds = PvpEffectsLogic.FLASH_SECONDS + 0.08, color = GOO, width = 0.9 },
 				applyVelocity = false,
 				onTarget = true,
+				attackerAnim = true,
+				targetHit = false,
 			}
 		else
 			plan = {
 				effect = "Slow",
 				seconds = PvpEffectsLogic.MISS_BEAM_SECONDS,
 				sfx = "PvpSquirt",
-				beam = { seconds = PvpEffectsLogic.MISS_BEAM_SECONDS, color = GOO },
+				beam = { seconds = PvpEffectsLogic.MISS_BEAM_SECONDS, color = GOO, width = 0.7 },
 				applyVelocity = false,
 				onTarget = false,
+				attackerAnim = true,
+				targetHit = false,
 			}
 		end
 	elseif effect == "Dance" then
@@ -208,6 +243,8 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 			highlight = { color = { 1, 0.7, 0.95 }, seconds = seconds },
 			applyVelocity = false,
 			onTarget = true,
+			attackerAnim = true,
+			targetHit = false,
 		}
 	elseif effect == "Bounce" then
 		plan = {
@@ -226,6 +263,8 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 			trail = PvpEffectsLogic.BOUNCE_TRAIL_SECONDS,
 			applyVelocity = true,
 			onTarget = true,
+			attackerAnim = false,
+			targetHit = true,
 		}
 	elseif effect == "Cosmetic" then
 		plan = cosmetic(type(itemId) == "string" and itemId or "", pvp, payload.duration)
@@ -235,6 +274,9 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 	end
 	if plan.burst and plan.burst.count > 0 then
 		plan.burst.count = PvpEffectsLogic.scaleCount(plan.burst.count, low)
+	end
+	if plan.ring then
+		plan.ring.count = PvpEffectsLogic.scaleCount(plan.ring.count, low)
 	end
 	-- Nothing outlives its own `seconds`: the highlight / trail / beam fit inside it.
 	local ceiling = plan.seconds

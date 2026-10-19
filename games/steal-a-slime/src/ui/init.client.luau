@@ -89,7 +89,15 @@ local notifyEvent = Remotes.get(Constants.NOTIFY) :: RemoteEvent
 local leaderboardEvent = Remotes.get("Leaderboard") :: RemoteEvent
 -- Hit / trap / blaster / fun FX + SFX and the victim-side launch from PvpEvent (CONTRACT.md §26.1). Always on: the live
 -- default Bat's knockback (itemId "Bat") rides the same event; with FEATURES.PvP off nothing else ever fires it.
-require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent)
+-- The Bat / PvP item use animations and hold pose (CONTRACT.md §26.3) ride the same events and replicated attributes.
+local pvpAnim = require(script.PvpAnim).start({
+	tools = Config.PVP_TOOLS,
+	equippedAttribute = Constants.PVP_EQUIPPED_ATTRIBUTE,
+	batSwingAttribute = Constants.BAT_SWING_ATTRIBUTE,
+	batName = Config.BAT.TOOL_NAME,
+	swingGap = Config.BAT.SWING_GAP,
+})
+require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent, pvpAnim)
 
 local gui = Widgets.create("ScreenGui", {
 	Name = "SlimeUI",
@@ -266,6 +274,9 @@ local inventory = Inventory.new(gui, {
 	end,
 	aim = function(screen: Vector2 | Vector3): any
 		return PvpAim.sample(screen, Constants.CARRYING_ATTRIBUTE)
+	end,
+	animate = function(itemId: string)
+		pvpAnim.playItem(player.UserId, itemId)
 	end,
 	tools = InventoryTools.new(player),
 	serverNow = serverNow,

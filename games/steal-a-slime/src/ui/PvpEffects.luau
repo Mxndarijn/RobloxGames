@@ -10,7 +10,11 @@
 	Bounce Pad, destroyed on TrapCleared. The victim's client also applies the payload `velocity` to its own root
 	(it owns the character; the server's own set is weak for a real player) and shakes its camera for <= 0.3 s.
 
-	PvpEffects.start(remote) connects PvpEvent (init.client calls it only with the flag on); PvpEffects.play(payload)
+	Animations ride the same events (CONTRACT.md §26.3): the attacker of a use plays its item's animation (not the
+	local player, whose own client already played it on the click; not the Bat, whose swing comes from BatSwingAt),
+	the owner of a placed trap / pad plays the throw and a pushed target plays the `hit` recoil (ui/PvpAnim).
+
+	PvpEffects.start(remote, anim?) connects PvpEvent (`anim` = the ui/PvpAnim handle); PvpEffects.play(payload)
 	is the same entry for a probe; PvpEffects.activeCount() / markerCount(); PvpEffects.stop().
 ]]
 
@@ -38,6 +42,7 @@ local highlights: { [Instance]: { highlight: Highlight, untilAt: number } } = {}
 local highlightCount = 0
 local shakes: { { startedAt: number, seconds: number, amplitude: number } } = {}
 local SHAKE_BIND = "PvpEffectsShake"
+local anim: any = nil -- the ui/PvpAnim handle given to start (nil = no animations)
 
 local function lowQuality(): boolean
 	local ok, settings = pcall(function()
@@ -145,6 +150,13 @@ local function playSfx(name: string?, parent: Instance?, involved: boolean)
 end
 
 local function emitBurst(parent: Instance, burst: Logic.Burst, seconds: number)
+	if burst.height and parent:IsA("BasePart") then
+		local offset = Instance.new("Attachment")
+		offset.Position = Vector3.new(0, burst.height, 0)
+		offset.Parent = parent
+		track(offset, "attachment", seconds)
+		parent = offset
+	end
 	local emitter = Instance.new("ParticleEmitter")
 	emitter.Rate = 0
 	emitter.Texture = burst.texture or ""
@@ -161,7 +173,7 @@ local function emitBurst(parent: Instance, burst: Logic.Burst, seconds: number)
 	emitter:Emit(burst.count)
 end
 
-local function flash(character: Model, color: Color3, seconds: number)
+local function flash(character: Model, color: Color3, seconds: number, impact: Color3?)
 	local now = os.clock()
 	local entry = highlights[character]
 	if entry then
@@ -189,7 +201,19 @@ local function flash(character: Model, color: Color3, seconds: number)
 			highlightCount -= 1
 		end
 	end)
-	if seconds <= 0.3 then
+	if impact then
+		-- the first instant is a bright impact flash that settles into the effect colour
+		highlight.FillColor = impact
+		highlight.FillTransparency = 0.05
+		local fade = if seconds <= 0.3
+			then { FillTransparency = 1, OutlineTransparency = 1 }
+			else { FillTransparency = 0.4 }
+		local goal: { [string]: any } = { FillColor = color }
+		for key, value in fade do
+			goal[key] = value
+		end
+		TweenService:Create(highlight, TweenInfo.new(math.min(seconds, 0.3), Enum.EasingStyle.Quad), goal):Play()
+	elseif seconds <= 0.3 then
 		TweenService:Create(highlight, TweenInfo.new(seconds), { FillTransparency = 1, OutlineTransparency = 1 }):Play()
 	end
 	local function check()
@@ -265,7 +289,11 @@ local function applyLaunch(character: Model?, velocity: any)
 	end
 end
 
-local function beam(from: BasePart?, toAttachment: Attachment, spec: { seconds: number, color: Logic.RGB })
+local function beam(
+	from: BasePart?,
+	toAttachment: Attachment,
+	spec: { seconds: number, color: Logic.RGB, width: number? }
+)
 	if not from then
 		return
 	end
@@ -276,8 +304,12 @@ local function beam(from: BasePart?, toAttachment: Attachment, spec: { seconds: 
 	b.Attachment0 = a0
 	b.Attachment1 = toAttachment
 	b.Color = ColorSequence.new(color3(spec.color))
-	b.Width0 = 0.6
-	b.Width1 = 0.25
+	local width = spec.width or 0.6
+	b.Width0 = width
+	b.Width1 = width * 0.45
+	b.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	b.TextureSpeed = 4
+	b.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 0.2) })
 	b.FaceCamera = true
 	b.LightEmission = 0.5
 	b.Segments = 1
@@ -311,6 +343,14 @@ local function playEffect(payload: { [string]: any })
 		return
 	end
 	local isTarget = payload.target == localId
+	if anim then
+		if plan.attackerAnim and payload.attacker ~= localId and payload.itemId ~= "Bat" then
+			anim.playItem(payload.attacker, payload.itemId)
+		end
+		if plan.targetHit and type(payload.target) == "number" then
+			anim.play(payload.target, "hit")
+		end
+	end
 	local targetCharacter = characterOf(payload.target)
 	if isTarget and plan.applyVelocity and payload.velocity then
 		applyLaunch(targetCharacter, payload.velocity)
@@ -338,8 +378,17 @@ local function playEffect(payload: { [string]: any })
 		end
 		emitBurst(burstParent, plan.burst, plan.seconds)
 	end
+	if plan.ring then
+		emitBurst(parent, plan.ring, plan.seconds)
+	end
 	if plan.highlight and targetCharacter then
-		flash(targetCharacter, color3(plan.highlight.color), plan.highlight.seconds)
+		local impact = plan.highlight.impact
+		flash(
+			targetCharacter,
+			color3(plan.highlight.color),
+			plan.highlight.seconds,
+			if impact then color3(impact) else nil
+		)
 	end
 	if plan.beam then
 		local from = handOf(characterOf(payload.attacker))
@@ -397,6 +446,9 @@ function PvpEffects.play(payload: any)
 	end
 	local kind = payload.kind
 	if kind == "TrapPlaced" then
+		if anim and payload.owner ~= Players.LocalPlayer.UserId then
+			anim.playItem(payload.owner, payload.itemId)
+		end
 		placeMarker(payload)
 	elseif kind == "TrapCleared" then
 		local part = if type(payload.trapId) == "string" then markers[payload.trapId] else nil
@@ -417,10 +469,11 @@ function PvpEffects.markerCount(): number
 	return tracker.count("marker")
 end
 
-function PvpEffects.start(remote: RemoteEvent)
+function PvpEffects.start(remote: RemoteEvent, animHandle: any?)
 	if connection then
 		return
 	end
+	anim = animHandle
 	connection = remote.OnClientEvent:Connect(function(payload: any)
 		local ok, err = pcall(PvpEffects.play, payload)
 		if not ok then
@@ -434,6 +487,7 @@ function PvpEffects.stop()
 		connection:Disconnect()
 		connection = nil
 	end
+	anim = nil
 	stopShake()
 	for _, part in markers do
 		part:Destroy()

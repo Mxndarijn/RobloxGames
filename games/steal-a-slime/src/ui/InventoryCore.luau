@@ -287,6 +287,11 @@ local function positionOf(aim: Aim, userId: number?): Vec?
 	return nil
 end
 
+-- The equipped PvP `entry` is off cooldown at `now` (server time): a click on it plays its use animation.
+function InventoryCore.pvpReady(entry: Entry, now: number): boolean
+	return entry.kind == "pvp" and entry.equipped == true and not (entry.readyAt and entry.readyAt > now)
+end
+
 --[[
 	The UsePvpItem request for the equipped PvP `entry` (tool = its Config.PVP_TOOLS row) from what the click
 	pointed at, or (nil, player-facing reason) when there is nothing to send: not equipped, still cooling down,
