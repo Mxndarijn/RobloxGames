@@ -87,10 +87,17 @@ function Fountain.wildLifetime(slime: Genome.Slime): number
 	return Config.WILD_LIFETIME * (Config.TIER_LIFETIME_MULT[slime.tier] or 1)
 end
 
+-- Most wild slimes alive at once: MAX_WILD_SLIMES, raised by RAIN_WILD_CAP_MULT during rain.
+function Fountain.wildCap(raining: boolean): number
+	if raining then
+		return math.floor(Config.MAX_WILD_SLIMES * Config.RAIN_WILD_CAP_MULT)
+	end
+	return Config.MAX_WILD_SLIMES
+end
+
 -- Whether another wild slime may spawn.
 function Fountain.canSpawn(wildCount: number, raining: boolean): boolean
-	local cap = if raining then Config.MAX_WILD_SLIMES * 2 else Config.MAX_WILD_SLIMES
-	return wildCount < cap
+	return wildCount < Fountain.wildCap(raining)
 end
 
 return Fountain

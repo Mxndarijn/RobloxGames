@@ -84,7 +84,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Spawner:** a wild slime drops every `SPAWN_INTERVAL`, up to `MAX_WILD_SLIMES` alive (`Fountain.roll`). Each lives for `WILD_LIFETIME`.
   - `FREE_DROP_CHANCE` of drops are free.
   - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab.
-  - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Spawns are faster, luck is ×3 (`Progression.rainStatus`).
+  - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Spawns are a little faster, the wild cap is ×2 and luck is ×5 (`Progression.rainStatus`, `Fountain.wildCap`).
 - **Carry:** grabbing and stealing use a **ProximityPrompt** (`GrabPrompt`) that the server puts on each slime's `Body`. There is no remote for this.
   - The prompt's `ActionText` is `"Grab"`, `"Buy $<price>"` (`Economy.formatNumber`) or `"Steal"`. `ObjectText` is `Genome.displayName`.
   - Steal prompts (HoldDuration 0.4) are enabled only while the plot is unlocked. They are **hidden from the slime's owner**: the server sets the prompt attribute `HideFromUserId = <owner UserId>` (`Constants.PROMPT_HIDE_ATTRIBUTE`, §5.2) and the client hides it locally. If a client doesn't hide it, triggering it is still refused with "that's your own slime".
@@ -345,7 +345,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `RARITIES[i].escapeTime` | 25, 23, 21, 19, 17, 15 | "15–25 s by rarity" |
 | `RARITIES[i].carrySlow` (+`STOLEN_EXTRA_SLOW` ramp, max `MAX_CARRY_SLOW`) | 0.05…0.30 (+0.25, ≤0.6) | "slows the carrier more the rarer it is" |
 | `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × growth |
-| `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 3 | "every hour … for 3 minutes" |
+| `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 5 | "every hour … for 3 minutes" |
 | `PADS_START` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 8 | MVP "8 pads" |
 | `OFFLINE_RATE` / `OFFLINE_CAP_SECONDS` | 0.5 / 7200 | capped offline income |
 | `REBIRTH_BASE_COST` / `REBIRTH_COST_GROWTH` / `REBIRTH_MULTIPLIER_STEP` | 5000 / 3 / 0.5 | rebirth gives a multiplier, keeps one favourite |

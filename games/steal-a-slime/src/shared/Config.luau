@@ -684,8 +684,10 @@ local Config = {
 	RAIN_INTERVAL = 60 * 60, -- design: hourly
 	RAIN_FIRST_AT = 5 * 60,
 	RAIN_DURATION = 3 * 60, -- design: 3 minutes
-	RAIN_SPAWN_INTERVAL = 0.75,
-	RAIN_LUCK = 3, -- rarity weights for tier >= 3 multiplied by this during rain
+	-- Rain is about luck, not a flood: spawns a little faster, a bigger crowd, much better odds.
+	RAIN_SPAWN_INTERVAL = 2,
+	RAIN_WILD_CAP_MULT = 2, -- MAX_WILD_SLIMES x this during rain (Fountain.wildCap)
+	RAIN_LUCK = 5, -- rarity weights for tier >= 3 multiplied by this during rain
 	RAIN_WARNING_SECONDS = 60, -- everyone gets a heads-up toast this long before a rain
 
 	-- Weekly event rotation (FEATURES.WeeklyEvents, CONTRACT.md §17). The whole schedule is a pure function
