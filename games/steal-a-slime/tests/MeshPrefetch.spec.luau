@@ -7,6 +7,7 @@ local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
 local Constants = require("../src/shared/Constants")
+local MeshAssets = require("../src/shared/MeshAssets")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
 
@@ -20,8 +21,11 @@ local path = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-prefetch-{os.time()}.
 local built = process.exec("rojo", { "build", "-o", path })
 assert(built.ok, `rojo build failed: {built.stderr}`)
 
-local function boot(loads: boolean)
-	local run = { asked = {}, live = 0, peak = 0, readyAt = nil }
+local PET_CLOUD_ID = MeshAssets.meshId("pet_cloud")
+
+-- `petCloudFails`: that many pet cloud loads error before one succeeds (math.huge = never); every other mesh follows `loads`.
+local function boot(loads: boolean, petCloudFails: number?)
+	local run = { asked = {}, live = 0, peak = 0, readyAt = nil, petCloudAsks = 0 }
 	local rt
 	rt = Runtime.new(path, {
 		createMeshPart = function(meshId, options)
@@ -31,6 +35,13 @@ local function boot(loads: boolean)
 			run.peak = math.max(run.peak, run.live)
 			rt:wait(FETCH_SECONDS)
 			run.live -= 1
+			if meshId == PET_CLOUD_ID and petCloudFails then
+				run.petCloudAsks += 1
+				if run.petCloudAsks <= petCloudFails then
+					error("livetest: pet cloud load failed")
+				end
+				return roblox.Instance.new("MeshPart")
+			end
 			if loads then
 				return roblox.Instance.new("MeshPart")
 			end
@@ -46,6 +57,7 @@ local function boot(loads: boolean)
 			break
 		end
 	end
+	rt:advance(130, 0.5) -- past the pet cloud's last retry wait
 	run.rt = rt
 	run.fetches = 0
 	for _, n in run.asked do
@@ -56,6 +68,8 @@ end
 
 local loaded = boot(true)
 local failed = boot(false)
+local flaky = boot(true, 2)
+local never = boot(true, math.huge)
 fs.removeFile(path)
 
 describe("mesh prefetch", function()
@@ -94,5 +108,41 @@ describe("mesh prefetch", function()
 	end)
 	it("still marks the world ready when every fetch fails", function()
 		expect(failed.readyAt ~= nil).toBe(true)
+	end)
+end)
+
+local function petCloud(run: any): any
+	local folder = run.rt.game:GetService("ReplicatedStorage"):FindFirstChild("PetCloudMeshes")
+	return folder and folder:FindFirstChild("pet_cloud")
+end
+
+describe("pet cloud template", function()
+	it("is published once as a decor MeshPart at its native size", function()
+		local mesh = petCloud(loaded)
+		expect(mesh ~= nil).toBe(true)
+		expect(mesh.ClassName).toBe("MeshPart")
+		expect(mesh.Anchored).toBe(true)
+		expect(mesh.CanCollide).toBe(false)
+		expect(mesh.CanQuery).toBe(false)
+		expect(mesh.CanTouch).toBe(false)
+		expect(mesh.CastShadow).toBe(false)
+		local size = MeshAssets.get("pet_cloud").size :: { number }
+		expect(mesh.Size.X).toBeCloseTo(size[1], 1e-3)
+		expect(mesh.Size.Y).toBeCloseTo(size[2], 1e-3)
+		expect(#loaded.rt.game:GetService("ReplicatedStorage").PetCloudMeshes:GetChildren()).toBe(1)
+	end)
+	it("is retried after a failed load and published once a retry works", function()
+		expect(flaky.petCloudAsks).toBe(3)
+		expect(petCloud(flaky) ~= nil).toBe(true)
+		expect(#flaky.rt.errors).toBe(0)
+	end)
+	it("gives up after a bounded number of tries and never publishes", function()
+		expect(never.petCloudAsks).toBe(6) -- 1 + #PET_CLOUD_RETRY_DELAYS
+		expect(petCloud(never)).toBeNil()
+		expect(#never.rt.errors).toBe(0)
+	end)
+	it("does not hold up the world meshes", function()
+		expect(never.readyAt ~= nil).toBe(true)
+		expect(flaky.readyAt ~= nil).toBe(true)
 	end)
 end)

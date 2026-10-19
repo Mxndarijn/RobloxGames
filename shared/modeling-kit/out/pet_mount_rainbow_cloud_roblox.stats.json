@@ -1,0 +1,164 @@
+{
+  "name": "pet_mount_rainbow_cloud",
+  "model": "models/pet_mount_rainbow_cloud.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1786,
+  "meshes": [
+    {
+      "name": "pet_mount_rainbow_cloud",
+      "tris": 1786,
+      "verts": 907,
+      "ngons": 12,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        3.3,
+        1.737,
+        2.4
+      ],
+      "materials": [
+        "pet_mount_rainbow_cloud_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pet_mount_rainbow_cloud_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    3.3,
+    1.737,
+    2.4
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pet_mount_rainbow_cloud_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": null,
+  "fbx_bytes": null,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_3.png"
+    }
+  ],
+  "turntable": [
+    {
+      "view": "0deg",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_tt0.png"
+    },
+    {
+      "view": "45deg",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_tt1.png"
+    },
+    {
+      "view": "90deg",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_tt2.png"
+    },
+    {
+      "view": "135deg",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_tt3.png"
+    },
+    {
+      "view": "180deg",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_tt4.png"
+    },
+    {
+      "view": "225deg",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_tt5.png"
+    },
+    {
+      "view": "270deg",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_tt6.png"
+    },
+    {
+      "view": "315deg",
+      "path": "out/.tiles/pet_mount_rainbow_cloud_roblox_tt7.png"
+    }
+  ],
+  "timings_blender": {
+    "model_s": 0.144,
+    "stats_s": 0.003,
+    "setup_s": 0.002,
+    "render_s": [
+      1.101,
+      1.023,
+      1.273,
+      1.249
+    ],
+    "turntable_s": [
+      1.198,
+      1.072,
+      1.133,
+      1.269,
+      1.074,
+      0.869,
+      1.149,
+      0.96
+    ],
+    "export_s": 0.0
+  },
+  "turntable_png": "out/pet_mount_rainbow_cloud_roblox_turntable.png",
+  "turntable_gif": "out/pet_mount_rainbow_cloud_roblox_turntable.gif",
+  "sheet": "out/pet_mount_rainbow_cloud_roblox_sheet.png",
+  "timings": {
+    "wall_s": 14.49,
+    "blender_process_s": 13.87,
+    "compose_s": 0.622,
+    "model_s": 0.144,
+    "stats_s": 0.003,
+    "setup_s": 0.002,
+    "render_s": [
+      1.101,
+      1.023,
+      1.273,
+      1.249
+    ],
+    "turntable_s": [
+      1.198,
+      1.072,
+      1.133,
+      1.269,
+      1.074,
+      0.869,
+      1.149,
+      0.96
+    ],
+    "export_s": 0.0
+  }
+}

@@ -123,6 +123,7 @@ local NAMES = {
 	"ranch_bat",
 	"ranch_floor_deck",
 	"ranch_floor_paths",
+	"pet_cloud",
 }
 
 local entries: { [string]: Entry } = {}
@@ -359,6 +360,10 @@ entries["ranch_floor_deck"] =
 	{ assetId = 133184278728331, meshId = "rbxassetid://134304234441487", size = { 131.2, 0.21, 131.2 } }
 entries["ranch_floor_paths"] =
 	{ assetId = 87043105060649, meshId = "rbxassetid://120582459397748", size = { 192, 0.21, 192 } }
+-- Follow pet cloud (models/pet_cloud.py, 1800 tris): a soft smooth-shaded cloud under the favourite slime's clone. Decor, no
+-- collision (not in COLLISION); MeshSwap.publishPetCloudTemplate publishes it, the client FollowPets clones it per follower, NOT a world slot. Uploaded 2026-10-18, v2 (smooth) 2026-10-19.
+entries["pet_cloud"] =
+	{ assetId = 76853347194916, meshId = "rbxassetid://131511097265313", size = { 3.261, 1.225, 2.393 } }
 
 -- The goo parade lane as ONE curved mesh (models/slime_lane.py, bug 4): not a WorldLayout slot (ParadeView lays
 -- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17; ParadeView swaps the ParadeLane.strips() stand-ins for it
