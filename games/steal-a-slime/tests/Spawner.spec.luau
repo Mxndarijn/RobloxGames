@@ -123,8 +123,13 @@ describe("Spawner Slime Rain", function()
 			t += 0.25
 		end
 		local expected = math.floor(30 / Config.RAIN_SPAWN_INTERVAL)
-		expect(Spawner.wildCount(world) >= math.min(expected - 1, Config.MAX_WILD_SLIMES * 2)).toBeTruthy()
-		expect(Spawner.wildCount(world) > Config.MAX_WILD_SLIMES).toBeTruthy()
+		expect(Spawner.wildCount(world) >= math.min(expected - 1, Fountain.wildCap(true))).toBeTruthy()
+		while t < start + Config.RAIN_DURATION - 1 do
+			GameLoop.step(world, t)
+			t += 0.25
+		end
+		expect(Spawner.wildCount(world)).toBe(Fountain.wildCap(true))
+		expect(Fountain.wildCap(true) > Config.MAX_WILD_SLIMES).toBeTruthy()
 	end)
 	it("rain drops are luckier than normal drops", function()
 		local function rareShare(raining: boolean): number
