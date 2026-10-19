@@ -35,8 +35,6 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
   and the goo drain's lip. Every point of the loop is in the area.
 - **Hits.** The Bat (`BatTool.swing`, no remote): a carrying thief or boss carrier in reach is tried first (the slap);
   otherwise the boss in the fight phase is hit when its Body is within `BOSS.HIT_REACH` and in front (`BatRules`).
-- **Helpers.** When the meter fills, every player whose points are at least `BOSS.HELPER_SHARE` of the top
-  contributor's gets `BOSS.HELPER_EGGS` free Mystery Egg (`MysteryEgg.spawnForEvent`, plot space permitting) and a toast.
 - **Haul.** For the first `BOSS.PRIORITY_SECONDS` only the top contributor may grab it (if still on the server); then
   anyone. The carrier walks at `BASE_WALK_SPEED x (1 - BOSS.CARRY_SLOW)`: no Speed Coil, no Strong Arms
   (`Carry.walkSpeed`). A Bat slap (reach `SLAP_REACH`, the shared slap cooldown) or `Request("Drop")` drops it on the
@@ -72,7 +70,7 @@ boss: {
 	endsAt: number?, -- server time the current phase ends (warning: the arrival)
 	nextAt: number?, -- server time of the next arrival when no event is on
 	yourPoints: number, -- this player's hits on this boss
-	yourShare: number, -- yourPoints / top contributor's points, 0..1 (helpers need BOSS.HELPER_SHARE)
+	yourShare: number, -- yourPoints / top contributor's points, 0..1
 	carrierName: string?, -- haul: who carries it
 	priorityName: string?, -- haul: the top contributor while their head start runs
 	priorityUntil: number?,
@@ -92,7 +90,7 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 
 `FIRST_AT INTERVAL WARNING_SECONDS RAIN_GAP SKIP_DELAY FIGHT_SECONDS HAUL_SECONDS LINGER_SECONDS PRIORITY_SECONDS
 POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT BURST_COUNT DROP_LUCK CARRY_SLOW
-SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_SPEED WANDER_CLEARANCE HELPER_SHARE HELPER_EGGS ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK
+SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_SPEED WANDER_CLEARANCE ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK
 TROPHY_GAP`. Values live in `Config.luau` only.
 
 ## World / Scene

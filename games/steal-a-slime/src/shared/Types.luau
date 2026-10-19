@@ -130,7 +130,7 @@ export type ConsumablesView = {
 	held: { [string]: number }, -- item id -> stack held (every consumable with a stack, shown or not)
 }
 
--- State.egg: the newest boss helper egg hatch, for the reveal banner (never saved).
+-- State.egg: the newest Mystery Egg hatch, for the reveal banner (never saved).
 export type EggView = {
 	hatched: { slime: SlimeData, at: number }?,
 }

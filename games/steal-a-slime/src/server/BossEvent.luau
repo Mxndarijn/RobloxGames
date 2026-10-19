@@ -4,7 +4,7 @@
 
 	The boss event over World: the schedule (world.nextBossAt, skipped around Slime Rain), the rotation
 	(world.bossIndex), the running event (world.boss = Shared.BossFight state + the wild boss slime), Bat hits on the
-	boss, sheds and bursts (Spawner.spawnBonus), helper eggs (MysteryEgg.spawnForEvent), the slap that drops the
+	boss, sheds and bursts (Spawner.spawnBonus), the slap that drops the
 	hauled boss on the spot, and State.boss. Grabbing and bringing the boss home go through Carry (grabWild /
 	depositBoss). Every change marks every session dirty, so State.boss is pushed to everyone.
 ]]
@@ -16,7 +16,6 @@ local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../
 local Trophies = if Shared then require(Shared.Trophies) else require("../shared/Trophies")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
-local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -120,24 +119,13 @@ local function arrive(world: World, event: World.BossEvent, now: number)
 	)
 end
 
--- The meter is full: the boss shrinks to carry size, helpers get their egg, the top contributor's head start runs.
+-- The meter is full: the boss shrinks to carry size and the top contributor's head start runs.
 local function startHaul(world: World, event: World.BossEvent, now: number)
 	local fight = event.fight
 	local wild = event.slimeId and world.wild[event.slimeId]
 	if wild then
 		wild.expiresAt = fight.endsAt
 		wild.wanderUntil = now
-	end
-	for _, userId in BossFight.helpers(fight) do
-		local eggs = MysteryEgg.spawnForEvent(world, userId, BOSS.HELPER_EGGS, now)
-		if #eggs == 0 then
-			World.notify(
-				world,
-				userId,
-				"You helped beat the boss! Your plot is full, so no free egg this time.",
-				"info"
-			)
-		end
 	end
 	local top = nameOf(world, fight.priorityUserId)
 	local name = if wild then wild.slime.name else "The boss"

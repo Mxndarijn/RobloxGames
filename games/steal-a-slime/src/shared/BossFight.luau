@@ -97,22 +97,6 @@ function BossFight.share(state: State, userId: number): number
 	return math.clamp((state.contributions[userId] or 0) / top, 0, 1)
 end
 
--- Players whose points reach HELPER_SHARE of the top contribution, sorted by userId.
-function BossFight.helpers(state: State): { number }
-	local _, top = BossFight.top(state)
-	local out = {}
-	if top <= 0 then
-		return out
-	end
-	for userId, points in state.contributions do
-		if points >= top * BOSS.HELPER_SHARE then
-			table.insert(out, userId)
-		end
-	end
-	table.sort(out)
-	return out
-end
-
 -- One Bat hit by `userId`. Returns (counted, reason): one point at most every HIT_GAP seconds per player.
 function BossFight.hit(state: State, userId: number, now: number): (boolean, string?)
 	if state.phase ~= "fight" then

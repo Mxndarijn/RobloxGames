@@ -856,8 +856,6 @@ local Config = {
 		WANDER_ARC = math.rad(45), -- the boss wanders within this either side of SPOT_ANGLE (BossWander; the lane and drain fence it in)
 		WANDER_SPEED = 4, -- studs per second: it walks the whole fight without stopping
 		WANDER_CLEARANCE = 8, -- studs from its centre to the parade lane's edge and the goo drain's lip
-		HELPER_SHARE = 0.1, -- share of the top contribution a helper needs for the egg
-		HELPER_EGGS = 1,
 		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
@@ -918,16 +916,7 @@ local Config = {
 		}),
 	}),
 
-	-- Mystery Egg: the free egg every boss helper gets (BOSS.HELPER_EGGS).
-	-- `tier` is a Config.RARITIES tier, `weight` its share of the drop table (Common and Secret never drop).
-	MYSTERY_EGG_REVEAL_SECONDS = 6, -- how long the hatch banner stays up
-	MYSTERY_EGG_DROPS = table.freeze({
-		table.freeze({ tier = 2, weight = 50 }),
-		table.freeze({ tier = 3, weight = 30 }),
-		table.freeze({ tier = 4, weight = 14 }),
-		table.freeze({ tier = 5, weight = 5 }),
-		table.freeze({ tier = 6, weight = 1 }),
-	}),
+	MYSTERY_EGG_REVEAL_SECONDS = 6, -- how long the Mystery Egg hatch banner stays up
 	-- Wild Mystery Eggs (FEATURES.MysteryEggs, contract/mystery-egg.md). Each KINDS entry: `id` (saved, never rename),
 	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
 	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `price` (cash to
