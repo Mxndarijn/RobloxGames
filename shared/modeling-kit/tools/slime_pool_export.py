@@ -41,7 +41,7 @@ def fmt(v):
 
 
 def patch_meshassets(path, attach):
-    src = open(path, encoding="utf-8").read()
+    src = open(path, encoding="utf-8", newline="").read()  # keep the file's own line endings
     missing = []
     for name, a in sorted(attach.items()):
         size = "{ " + ", ".join(fmt(v) for v in a["roblox_size"]) + " }"
@@ -51,7 +51,7 @@ def patch_meshassets(path, attach):
         src, n = pat.subn(lambda m: m.group(1) + size + m.group(2) + off, src, count=1)
         if n == 0:
             missing.append(name)
-    open(path, "w", encoding="utf-8", newline="\n").write(src)
+    open(path, "w", encoding="utf-8", newline="").write(src)
     if missing:
         print("not in MeshAssets (left alone): " + ", ".join(missing))
 

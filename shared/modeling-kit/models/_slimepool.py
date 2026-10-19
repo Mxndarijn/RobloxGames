@@ -176,6 +176,7 @@ class Body:
 
     @staticmethod
     def radius_of(P, z):
+        """radius of profile P at height z (piecewise linear; the end radii outside it)."""
         if z <= P[0][0]:
             return P[0][1]
         for (z0, r0), (z1, r1) in zip(P, P[1:]):
@@ -184,13 +185,7 @@ class Body:
         return P[-1][1]
 
     def radius(self, z):
-        P = self.prof
-        if z <= P[0][0]:
-            return P[0][1]
-        for (z0, r0), (z1, r1) in zip(P, P[1:]):
-            if z0 <= z <= z1:
-                return r0 + (r1 - r0) * (z - z0) / max(z1 - z0, 1e-9)
-        return P[-1][1]
+        return Body.radius_of(self.prof, z)
 
     def point(self, a, z, extra=0.0):
         """surface point at yaw a (radians, 0 front) and height z (+extra studs radially)."""
