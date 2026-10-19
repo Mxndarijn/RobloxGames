@@ -1,7 +1,8 @@
 --!strict
 -- The merge menu (Panels/Merge, CONTRACT.md §21.1) built through UiHarness and fed State: slots, the result
 -- preview, reasons, Pick for me, kept slimes, the auto-merge confirm card, the reveal after a merge, the pair
--- vat with FEATURES.MergeVat3 off, and the layout at phone, landscape and desktop sizes.
+-- vat with FEATURES.MergeVat3 off, the slime previews in rows and slots, and the layout at phone, landscape and
+-- desktop sizes.
 local Config = require("../../src/shared/Config")
 local Constants = require("../../src/shared/Constants")
 local Fixtures = require("../Fixtures")
@@ -12,14 +13,15 @@ local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
-local Enum = (require("@lune/roblox") :: any).Enum
+local roblox = require("@lune/roblox") :: any
+local Enum, Vector3 = roblox.Enum, roblox.Vector3
 
 local function view(id: string, tier: number, income: number, extra: { [string]: any }?): any
 	local s = Fixtures.slime(id, tier, extra)
 	return { slime = s, income = income, sellPrice = 1, stolenBy = if extra then extra.stolenBy else nil }
 end
 
-local function build(options: { triple: boolean? }?): (any, { { any } }, any)
+local function build(options: { triple: boolean?, buildSlime: ((any) -> any)? }?): (any, { { any } }, any)
 	local sent: { { any } } = {}
 	local triple = not (options and options.triple == false)
 	local config = setmetatable({ FEATURES = setmetatable({ MergeVat3 = triple }, { __index = Config.FEATURES }) }, {
@@ -36,6 +38,7 @@ local function build(options: { triple: boolean? }?): (any, { { any } }, any)
 		serverNow = function()
 			return 1000
 		end,
+		buildSlime = if options then options.buildSlime else nil,
 	}
 	local root = UiHarness.root()
 	local panel = UiHarness.ui("Panels/Merge").new(root, ctx)
@@ -291,4 +294,114 @@ describe("Merge menu: layout", function()
 			expect(list.Position.X.Offset + list.Size.X.Offset <= b.w + 0.5).toBe(true)
 		end)
 	end
+end)
+
+describe("Merge menu: slime previews", function()
+	local SlimePreview = UiHarness.ui("SlimePreview")
+	local Widgets = UiHarness.ui("Widgets")
+	local built: { string } = {}
+	local function fakeBuild(genome: any): any
+		local model = UiHarness.Instance.new("Model")
+		model.Name = `Slime_{genome.id}`
+		local body = UiHarness.Instance.new("Part")
+		body.Name = "Body"
+		body.Size = Vector3.new(4, 3, 4)
+		body.Parent = model
+		table.insert(built, genome.id)
+		return model
+	end
+	-- More slimes than SlimePreview.MAX_LIVE, cheapest first: p01 tops the list, the last ones sit past the cap.
+	local function many(n: number): { any }
+		local out = {}
+		for i = 1, n do
+			table.insert(out, view(string.format("p%02d", i), 1, i))
+		end
+		return out
+	end
+	local function preview(panel: any, id: string): any
+		return child(child(find(panel, "List"), id), "Preview")
+	end
+	local function live(panel: any): number
+		local n = 0
+		for _, node in UiHarness.descendants(find(panel, "List")) do
+			if node.Name == "Preview" and node:GetAttribute("Look") ~= nil then
+				n += 1
+			end
+		end
+		return n
+	end
+	local N = SlimePreview.MAX_LIVE + 6
+
+	it("the first rows show their built model; rows past the cap keep the colour circle", function()
+		table.clear(built)
+		local panel = build({ buildSlime = fakeBuild })
+		panel.setOpen(true)
+		panel.update(state(many(N)))
+		expect(live(panel)).toBe(SlimePreview.MAX_LIVE)
+		expect(#built).toBe(SlimePreview.MAX_LIVE)
+		local first = preview(panel, "p01")
+		expect(first.Visible).toBe(true)
+		expect(UiHarness.find(first, "Slime_p01") ~= nil).toBe(true)
+		expect(first.CurrentCamera ~= nil).toBe(true)
+		local well = Widgets.Theme.Row:Lerp(Widgets.Theme.Ink, SlimePreview.WELL_TINT)
+		expect(first.Parent.BackgroundColor3).toBe(well)
+		local last = preview(panel, string.format("p%02d", N))
+		expect(last.Visible).toBe(false)
+		expect(last:GetAttribute("Look")).toBe(nil)
+		expect(last.Parent.BackgroundColor3).toBe(Widgets.color3(Fixtures.slime("x").color))
+	end)
+
+	it("a State push with the same slimes rebuilds nothing; a new look rebuilds only that row", function()
+		table.clear(built)
+		local panel = build({ buildSlime = fakeBuild })
+		panel.setOpen(true)
+		panel.update(state(many(N)))
+		local before = #built
+		panel.update(state(many(N)))
+		expect(#built).toBe(before)
+		local changed = many(N)
+		changed[3] = view("p03", 1, 3, { color = { 10, 200, 30 } })
+		panel.update(state(changed))
+		expect(#built).toBe(before + 1)
+		expect(built[#built]).toBe("p03")
+	end)
+
+	it("a closed card mounts nothing", function()
+		table.clear(built)
+		local panel = build({ buildSlime = fakeBuild })
+		panel.update(state(many(N)))
+		expect(live(panel)).toBe(0)
+		expect(#built).toBe(0)
+	end)
+
+	it("without a builder (or when it fails) rows show the blob preview", function()
+		local panel = build({
+			buildSlime = function()
+				error("no Visuals")
+			end,
+		})
+		panel.setOpen(true)
+		panel.update(state(many(3)))
+		local p = preview(panel, "p01")
+		expect(p.Visible).toBe(true)
+		expect(UiHarness.find(p, "Body") ~= nil).toBe(true)
+		local plain = build()
+		plain.setOpen(true)
+		plain.update(state(many(3)))
+		expect(preview(plain, "p02").Visible).toBe(true)
+	end)
+
+	it("a filled vat slot shows the slime's preview; an emptied slot drops it", function()
+		table.clear(built)
+		local panel = build({ buildSlime = fakeBuild })
+		panel.setOpen(true)
+		panel.update(state(SLIMES))
+		UiHarness.fire(child(child(find(panel, "List"), "c2"), "Add"), "Activated")
+		local slot = child(find(panel, "Slot1"), "Preview")
+		expect(slot.Visible).toBe(true)
+		expect(UiHarness.find(slot, "Slime_c2") ~= nil).toBe(true)
+		tap(panel, "Slot1")
+		expect(slot.Visible).toBe(false)
+		expect(slot:GetAttribute("Look")).toBe(nil)
+	end)
 end)

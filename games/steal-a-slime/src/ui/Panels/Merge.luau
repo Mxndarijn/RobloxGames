@@ -6,7 +6,9 @@
 	(Shared.MergePreview: "Random <Rarity> slime", the jump chance, the expected size), a reason
 	line while the load is not valid, and the buttons: Pick for me (MergePlan.suggest), the hold-to-confirm
 	Merge (Request "Merge3" / "Merge") and Auto-merge. Below: rarity filter chips and the slime list grouped
-	by rarity (name, size, income; favourite / kept / stolen tags). Each row ends in two squares: Add (puts the
+	by rarity (name, size, income; favourite / kept / stolen tags). Each row starts with a round avatar well
+	holding the slime's 3D preview in a rarity-coloured ring (SlimePreview; the rows nearest the scroll window,
+	at most SlimePreview.MAX_LIVE, the rest show a colour circle); filled slots show the same preview. Each row ends in two squares: Add (puts the
 	slime in the vat, a gold tick once it is in, a sunken well while it can't go in) and the keep toggle that
 	sends Request "KeepSlime" (gold padlock while kept).
 	Auto-merge opens a confirm card: rarity toggles, what MergePlan would merge, and a hold-to-confirm button
@@ -19,6 +21,7 @@ local UI = script.Parent.Parent
 local Format = require(UI.Format)
 local Layout = require(UI.Layout)
 local Selection = require(UI.Selection)
+local SlimePreview = require(UI.SlimePreview)
 local Widgets = require(UI.Widgets)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -122,7 +125,13 @@ function Merge.new(parent: Instance, ctx: any)
 	local count = if tripleOn() then 3 else 2
 	local filter: number? = nil -- rarity chip; nil = all
 	local compact = false
+	local open = false
+	-- The well behind a live preview (a slime without one shows its colour circle).
+	local well = Theme.Row:Lerp(Theme.Ink, SlimePreview.WELL_TINT)
 	local bodyW, bodyH = Layout.MENU_WIDTH - Layout.PANEL_CHROME.pad * 2, 460
+	-- The tallest body this screen allows the card (its full menu height, clamped to the backdrop). The side
+	-- layout follows this, not the content-sized body, so a short list never squeezes the vat into a column.
+	local roomH = bodyH
 	local autoTiers: { [number]: boolean } = { [1] = true, [2] = true }
 	local allAutoTiers: { [number]: boolean } = {}
 	for tier = 1, MergePlan.MAX_AUTO_TIER do
@@ -142,6 +151,7 @@ function Merge.new(parent: Instance, ctx: any)
 		button: TextButton,
 		stroke: UIStroke,
 		swatch: Frame,
+		preview: ViewportFrame,
 		plus: TextLabel,
 		name: TextLabel,
 		join: TextLabel?,
@@ -166,6 +176,13 @@ function Merge.new(parent: Instance, ctx: any)
 			Parent = button,
 		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), Widgets.stroke(Theme.Ink, SIZE.avatarStroke) }) :: Frame
 		Widgets.shade(swatch)
+		local preview = create("ViewportFrame", {
+			Name = "Preview",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Visible = false,
+			Parent = swatch,
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) }) :: ViewportFrame
 		local plus = Widgets.label({
 			Name = "Plus",
 			Text = "+",
@@ -195,7 +212,15 @@ function Merge.new(parent: Instance, ctx: any)
 				Parent = vat,
 			})
 			else nil
-		slots[i] = { button = button, stroke = stroke, swatch = swatch, plus = plus, name = name, join = join }
+		slots[i] = {
+			button = button,
+			stroke = stroke,
+			swatch = swatch,
+			preview = preview,
+			plus = plus,
+			name = name,
+			join = join,
+		}
 		button.Activated:Connect(function()
 			local id = selected[i]
 			if id then
@@ -392,6 +417,13 @@ function Merge.new(parent: Instance, ctx: any)
 		Widgets.shade(swatch)
 		local ring = Widgets.stroke(Theme.Ink, SIZE.avatarStroke)
 		ring.Parent = swatch
+		local preview = create("ViewportFrame", {
+			Name = "Preview",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Visible = false,
+			Parent = swatch,
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 		local textX = SIZE.rowPad + SIZE.swatch + 10
 		local rightW = SIZE.rowPad + SIZE.add + SIZE.buttonGap + SIZE.keep + SIZE.buttonGap
 		local name = Widgets.label({
@@ -433,6 +465,7 @@ function Merge.new(parent: Instance, ctx: any)
 			instance = btn,
 			stroke = stroke,
 			swatch = swatch,
+			preview = preview,
 			ring = ring,
 			name = name,
 			rainbow = rainbow,
@@ -486,6 +519,14 @@ function Merge.new(parent: Instance, ctx: any)
 		return row
 	end
 
+	-- A row's avatar: the well while its preview is live, else the slime's colour circle; faded with the row.
+	local function paintAvatar(row: any)
+		row.swatch.BackgroundColor3 = if row.preview.Visible then well else Widgets.color3(row.slime.color)
+		local fade = if row.dim then SIZE.dimSwatch else 0
+		row.swatch.BackgroundTransparency = fade
+		row.preview.ImageTransparency = fade
+	end
+
 	local function updateRow(row: any, item: any)
 		if row.header then
 			local r = rarity(item.tier)
@@ -512,7 +553,7 @@ function Merge.new(parent: Instance, ctx: any)
 		local blocked = Selection.blocked(view)
 		local otherTier = #selected > 0 and slot == nil and Merge.selectionTier(slimes, selected) ~= slime.tier
 		local favourite = state and state.favoriteId == slime.id
-		row.swatch.BackgroundColor3 = Widgets.color3(slime.color)
+		row.slime = slime
 		row.ring.Color = Widgets.color3(r.color)
 		row.name.Text = (if favourite then "⭐ " else "") .. tostring(slime.name)
 		row.name.TextColor3 = if secret then Theme.Text else Widgets.color3(r.color)
@@ -558,12 +599,39 @@ function Merge.new(parent: Instance, ctx: any)
 		row.name.TextTransparency = fade
 		row.info.TextTransparency = fade
 		row.income.TextTransparency = fade
-		row.swatch.BackgroundTransparency = if dim then SIZE.dimSwatch else 0
+		row.dim = dim
+		paintAvatar(row)
 	end
 
 	local rows = Widgets.keyedList(list, function(item: any)
 		return item.key
 	end, makeRow, updateRow)
+
+	-- Live previews for the slime rows nearest the middle of the scroll window (only while the card is open).
+	local function refreshPreviews()
+		if not open then
+			return
+		end
+		local viewH = math.max(bodyH - list.Position.Y.Offset, 0)
+		local entries: { SlimePreview.ListEntry } = {}
+		for _, row in rows.rows do
+			if not row.header then
+				table.insert(entries, {
+					viewport = row.preview,
+					slime = row.slime,
+					y = row.instance.Position.Y.Offset,
+					h = row.instance.Size.Y.Offset,
+				})
+			end
+		end
+		SlimePreview.syncNearest(entries, list.CanvasPosition.Y + viewH / 2, ctx.buildSlime)
+		for _, row in rows.rows do
+			if not row.header then
+				paintAvatar(row)
+			end
+		end
+	end
+	list:GetPropertyChangedSignal("CanvasPosition"):Connect(refreshPreviews)
 
 	---------------------------------------------------------------- auto-merge confirm card
 	local auto = create("Frame", {
@@ -643,8 +711,8 @@ function Merge.new(parent: Instance, ctx: any)
 
 	---------------------------------------------------------------- layout
 	function place()
-		local w, h = bodyW, bodyH
-		compact = h < SIZE.shortBody
+		local w = bodyW
+		compact = roomH < SIZE.shortBody
 		local gap = SIZE.gap
 		local vatW = if compact then math.min(SIZE.sideW, math.floor(w * 0.5)) else w
 		local slotSize = if compact then SIZE.slotSmall else SIZE.slot
@@ -825,11 +893,13 @@ function Merge.new(parent: Instance, ctx: any)
 			slot.swatch.Visible = s ~= nil
 			slot.plus.Visible = s == nil
 			if s then
-				slot.swatch.BackgroundColor3 = Widgets.color3(s.color)
+				SlimePreview.mountSlime(slot.preview, s, ctx.buildSlime)
+				slot.swatch.BackgroundColor3 = if slot.preview.Visible then well else Widgets.color3(s.color)
 				slot.name.Text = tostring(s.name)
 				slot.name.TextColor3 = Widgets.color3(rarity(s.tier).color)
 				slot.stroke.Color = Widgets.color3(rarity(s.tier).color)
 			else
+				SlimePreview.unmountSlime(slot.preview)
 				slot.name.Text = ""
 				slot.stroke.Color = Theme.Ink
 			end
@@ -956,6 +1026,7 @@ function Merge.new(parent: Instance, ctx: any)
 			end
 		end
 		rows.sync(items)
+		refreshPreviews()
 
 		updateSlots()
 		showResult()
@@ -1030,10 +1101,16 @@ function Merge.new(parent: Instance, ctx: any)
 
 	local self = { frame = panel.frame, close = panel.close }
 
-	-- Called by init.client with the panel box (Layout.panelFor).
-	function self.layout(r: any)
+	function self.setOpen(isOpen: boolean)
+		open = isOpen
+		refreshPreviews()
+	end
+
+	-- Called by init.client with the panel box (Layout.panelFor) and the screen it was placed on.
+	function self.layout(r: any, screen: any?)
 		local b = Layout.panelBody(r)
 		bodyW, bodyH = math.floor(b.w), math.floor(b.h)
+		roomH = if screen then math.floor(Layout.panelBody(Layout.panelFor(screen, "Merge")).h) else bodyH
 		place()
 	end
 

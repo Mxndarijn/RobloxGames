@@ -395,7 +395,7 @@ describe("landscape phone (v27 gate N1)", function()
 		expect(has(check.report(), "Dex list is")).toBe(true)
 	end)
 	it("init.client places panels via panel.layout", function()
-		expect(has(read("src/ui/init.client.luau"), "entry.panel.layout(r)")).toBe(true)
+		expect(has(read("src/ui/init.client.luau"), "entry.panel.layout(r, s)")).toBe(true)
 	end)
 end)
 

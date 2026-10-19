@@ -2,7 +2,8 @@
 --[[
 	Plot panel: every slime on the plot with its income and sell price.
 	Top line: pads in use and income per second as two chips. Each row: a round
-	colour avatar, the name in its rarity colour (Secrets in a rainbow), income
+	avatar well with the slime's 3D preview (SlimePreview; the rows nearest the
+	scroll window, at most SlimePreview.MAX_LIVE, the rest show a colour circle), the name in its rarity colour (Secrets in a rainbow), income
 	in gold, the favourite's perk chip, a star toggle and, under the name line,
 	Appraise and Sell.
 	Buttons: Sell(slimeId) (hold to confirm), Favorite(slimeId) / Favorite(nil),
@@ -18,6 +19,7 @@ local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
 local Layout = require(UI.Layout)
 local Selection = require(UI.Selection)
+local SlimePreview = require(UI.SlimePreview)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -134,6 +136,7 @@ function Plot.new(parent: Instance, ctx: any)
 	})
 
 	local favoriteId: string? = nil
+	local open = false
 	local petPerk: any = nil -- State.petPerk: the favourite's passive, shown as a chip on its row
 	local latestViews: { [string]: any } = {}
 
@@ -246,6 +249,13 @@ function Plot.new(parent: Instance, ctx: any)
 			Parent = frame,
 		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), Widgets.stroke(Theme.Ink, R.avatarStroke) })
 		Widgets.shade(avatar)
+		local preview = create("ViewportFrame", {
+			Name = "Preview",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Visible = false,
+			Parent = avatar,
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
 		local textW = -(R.textX + R.pad + R.fav + 8)
 		local name = Widgets.label({
 			Name = "SlimeName",
@@ -336,6 +346,7 @@ function Plot.new(parent: Instance, ctx: any)
 			chip = chip,
 			instance = frame,
 			swatch = avatar,
+			preview = preview,
 			name = name,
 			rainbow = rainbow,
 			sub = sub,
@@ -345,13 +356,20 @@ function Plot.new(parent: Instance, ctx: any)
 		}
 	end
 
+	-- The well behind a live preview, the slime's colour circle without one.
+	local well = Theme.Row:Lerp(Theme.Ink, SlimePreview.WELL_TINT)
+	local function paintAvatar(row: any)
+		row.swatch.BackgroundColor3 = if row.preview.Visible then well else Widgets.color3(row.slime.color)
+	end
+
 	local function updateRow(row: any, view: any)
 		local slime = view.slime
 		local rarity = ctx.Config.RARITIES[slime.tier]
 		local isFav = slime.id == favoriteId
 		local isSecret = slime.tier == ctx.Config.SECRET_TIER
 		local stolen = view.stolenBy ~= nil
-		row.swatch.BackgroundColor3 = Widgets.color3(slime.color)
+		row.slime = slime
+		paintAvatar(row)
 		row.name.Text = (if isFav then `{Icons.FAV_ON} ` else "") .. ctx.Genome.displayName(slime)
 		row.name.TextColor3 = if isSecret then Theme.Text elseif rarity then Widgets.color3(rarity.color) else Theme.Text
 		row.rainbow.Enabled = isSecret
@@ -392,7 +410,35 @@ function Plot.new(parent: Instance, ctx: any)
 		return view.slime.id
 	end, makeRow, updateRow)
 
+	-- Live previews for the rows nearest the middle of the scroll window (only while the card is open).
+	local function refreshPreviews()
+		if not open then
+			return
+		end
+		local chrome = Layout.PANEL_CHROME
+		local viewH = math.max(panel.frame.Size.Y.Offset - chrome.header - chrome.pad - head.listY, 0)
+		local entries: { SlimePreview.ListEntry } = {}
+		for _, row in rows.rows do
+			table.insert(entries, {
+				viewport = row.preview,
+				slime = row.slime,
+				y = row.instance.Position.Y.Offset,
+				h = row.instance.Size.Y.Offset,
+			})
+		end
+		SlimePreview.syncNearest(entries, list.CanvasPosition.Y + viewH / 2, ctx.buildSlime)
+		for _, row in rows.rows do
+			paintAvatar(row)
+		end
+	end
+	list:GetPropertyChangedSignal("CanvasPosition"):Connect(refreshPreviews)
+
 	local self = { frame = panel.frame, close = panel.close }
+
+	function self.setOpen(isOpen: boolean)
+		open = isOpen
+		refreshPreviews()
+	end
 
 	function self.update(state: any)
 		favoriteId = state.favoriteId
@@ -409,6 +455,7 @@ function Plot.new(parent: Instance, ctx: any)
 		incomeChip.Text = Format.formatRate(state.incomePerSec)
 		empty.Visible = count == 0
 		rows.sync(Selection.sorted(state.slimes, favoriteId))
+		refreshPreviews()
 	end
 
 	return self

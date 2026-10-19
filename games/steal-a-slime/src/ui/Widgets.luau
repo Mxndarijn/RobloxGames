@@ -394,7 +394,7 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		Parent = parent,
 	}, { Widgets.corner(radius), Widgets.stroke(Theme.Ink, kit.stroke) })
 	-- The band: rounded on top, square at the bottom (a second, unrounded strip covers the lower corners).
-	local bandH = c.header - kit.stroke
+	local bandH = c.header - c.bodyGap - kit.stroke
 	local bandShade = 0.78 -- the band's bottom brightness; the square foot strip matches it
 	local band = create("Frame", {
 		Name = "Band",

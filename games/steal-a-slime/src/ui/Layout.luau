@@ -652,7 +652,8 @@ Layout.PANEL_CHROME = table.freeze({
 	icon = 60, -- the corner icon tile left of the title (a copy of the nav tile)
 	iconRise = 12, -- how far the tile pokes up above the card's top edge
 	iconSize = 32, -- the emoji on that tile
-	header = Layout.MIN_TOUCH_DESIGN + 12, -- closeInset above and below the X
+	bodyGap = 8, -- space between the band's ink rule and the body
+	header = Layout.MIN_TOUCH_DESIGN + 12 + 8, -- the band (closeInset above and below the X) plus bodyGap
 })
 
 -- v28 (Merijn: "like Steal a Brainrot"): every menu is a card sized to its
@@ -671,7 +672,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Dex = 600,
 	Leaders = 460,
 	Codes = 300,
-	Sound = 275,
+	Sound = 283,
 	Guide = 380,
 	Welcome = 380,
 })

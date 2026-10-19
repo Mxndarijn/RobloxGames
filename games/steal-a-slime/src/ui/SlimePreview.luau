@@ -22,8 +22,8 @@ export type Opts = {
 
 local SlimePreview = {}
 
--- At most this many Dex rows (by list position) get a live ViewportFrame;
--- later rows keep the colour swatch.
+-- At most this many rows of one list (Dex cards, Merge and Plot slime rows) get a live ViewportFrame;
+-- the rest keep the colour swatch.
 SlimePreview.MAX_LIVE = 24
 
 SlimePreview.SILHOUETTE = Color3.fromRGB(28, 30, 38)
@@ -198,6 +198,81 @@ function SlimePreview.unmount(viewport: Instance)
 	for _, child in viewport:GetChildren() do
 		if child:IsA("WorldModel") or child:IsA("Camera") then
 			child:Destroy()
+		end
+	end
+end
+
+-- How far an avatar well behind a slime preview leans from Theme.Row towards Theme.Ink.
+SlimePreview.WELL_TINT = 0.4
+
+-- What a slime's preview looks like: the genome fields its model is built from. A viewport is remounted only
+-- when this changes.
+function SlimePreview.lookOf(slime: any): string
+	local c = if type(slime.color) == "table" then slime.color else {}
+	return table.concat({
+		tostring(slime.id),
+		tostring(slime.species),
+		tostring(slime.tier),
+		`{c[1]},{c[2]},{c[3]}`,
+		tostring(slime.size),
+		tostring(slime.pattern),
+		tostring(slime.eyes),
+		tostring(slime.mouth),
+	}, ":")
+end
+
+-- Shows `slime` (a genome) in `viewport`: the model from `build` (ctx.buildSlime), or the Ball blob in its
+-- colour when there is no builder or it fails. Does nothing while the viewport already shows this look (a
+-- failed look is not retried). The viewport is visible only while something is mounted.
+function SlimePreview.mountSlime(viewport: Instance, slime: any, build: ((any) -> Model?)?)
+	local look = SlimePreview.lookOf(slime)
+	if viewport:GetAttribute("Look") == look then
+		return
+	end
+	local ok = false
+	if build then
+		local built, model = pcall(build, slime)
+		ok = built and model ~= nil and SlimePreview.mountModel(viewport, model, nil)
+	end
+	if not ok then
+		ok = SlimePreview.mount(viewport, if type(slime.color) == "table" then slime.color else {}, nil)
+	end
+	viewport:SetAttribute("Look", look);
+	(viewport :: ViewportFrame).Visible = ok
+end
+
+-- Empties a viewport mounted by mountSlime and hides it.
+function SlimePreview.unmountSlime(viewport: Instance)
+	if viewport:GetAttribute("Look") ~= nil then
+		SlimePreview.unmount(viewport)
+		viewport:SetAttribute("Look", nil)
+	end
+	(viewport :: ViewportFrame).Visible = false
+end
+
+export type ListEntry = {
+	viewport: Instance,
+	slime: any, -- the genome to show
+	y: number, -- the row's top inside the list canvas (design px)
+	h: number,
+}
+
+-- List virtualisation: the MAX_LIVE entries nearest `centre` (a canvas y, the middle of the scroll window)
+-- show their slime; every other entry is emptied. Ties go to the higher row.
+function SlimePreview.syncNearest(entries: { ListEntry }, centre: number, build: ((any) -> Model?)?)
+	local order = table.clone(entries)
+	table.sort(order, function(a, b)
+		local da, db = math.abs(a.y + a.h / 2 - centre), math.abs(b.y + b.h / 2 - centre)
+		if da ~= db then
+			return da < db
+		end
+		return a.y < b.y
+	end)
+	for i, entry in order do
+		if i <= SlimePreview.MAX_LIVE then
+			SlimePreview.mountSlime(entry.viewport, entry.slime, build)
+		else
+			SlimePreview.unmountSlime(entry.viewport)
 		end
 	end
 end
