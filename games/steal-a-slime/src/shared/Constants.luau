@@ -108,4 +108,5 @@ return table.freeze({
 	STEALING_ATTRIBUTE = "Stealing", -- Player: true while carrying a stolen slime (the client draws the thief trail), nil otherwise
 	SLAP_HIT_ATTRIBUTE = "SlapHitAt", -- Player: server time the player was last slapped off a stolen slime (the client draws the hit effect)
 	HABITAT_FOLDER = "ClientHabitats", -- client-only workspace folder for habitat looks
+	HABITAT_MESHES = "HabitatMeshes", -- ReplicatedStorage folder: server-made overlay MeshPart templates (MeshSwap)
 })
