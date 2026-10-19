@@ -294,7 +294,8 @@ Layout.MONEY = table.freeze({
 })
 
 -- Each status slot is an icon with its timer in a dark pill tucked `overlap` px up over the icon's bottom edge,
--- centred under it. Off phones the row sits `raise` px above the money block's line, clear of the screen edge.
+-- centred under it. The row's bottom (the pills) sits on the money block's line, level with the hotbar
+-- (`raise` = 0, Merijn 2026-10-19: the old 18 px lift made the icons float above the rest of the bottom row).
 Layout.STATUS = table.freeze({
 	count = 4,
 	slot = 92,
@@ -310,7 +311,7 @@ Layout.STATUS = table.freeze({
 	pillPad = 8, -- pill padding left and right of the text
 	cpillPad = 6,
 	gap = 4,
-	raise = 18,
+	raise = 0,
 	phoneColumns = 2,
 })
 
@@ -901,7 +902,8 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 		+ 2 * (m + gap)
 	local tight = phone and W < fullRowW
 	local money = Layout.moneyCluster(compact, m, rowBottom, tight)
-	-- Off phones the events row stands STATUS.raise above the money line; on phones it shares the bottom row.
+	-- The events row stands STATUS.raise above the money line off phones (0: it shares that line); on phones it
+	-- always shares the bottom row.
 	local statusRaise = if phone then 0 else Layout.STATUS.raise
 	local status = Layout.statusCluster(compact, W - m, rowBottom - statusRaise, tight, phone)
 	local hotbarH = InventoryLayout.height(compact, Layout.MIN_TOUCH_DESIGN, tight)

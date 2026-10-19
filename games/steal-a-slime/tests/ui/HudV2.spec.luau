@@ -481,7 +481,7 @@ describe("H1 HUD: nothing new top-right / top-middle", function()
 			local rise = Layout.rowRise(s)
 			local floor = s.height - s.bottomInset - rise
 			expect(`{vp.name} money: {s.money.rect.y + s.money.rect.h == floor}`).toBe(`{vp.name} money: true`)
-			-- off phones the events row stands STATUS.raise above that line
+			-- off phones the events row stands STATUS.raise above that line (0: level with it)
 			local statusFloor = floor - (if s.phone then 0 else Layout.STATUS.raise)
 			expect(`{vp.name} status: {s.status.rect.y + s.status.rect.h == statusFloor}`).toBe(
 				`{vp.name} status: true`
