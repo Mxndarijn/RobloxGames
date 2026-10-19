@@ -106,8 +106,8 @@ describe("B1: hold-to-confirm buttons", function()
 		local plot = read("src/ui/Panels/Plot.luau")
 		local reroll = string.match(plot, "local rerollBtn = Widgets%.holdButton%(.-\n\trerollBtn")
 		expect(reroll ~= nil and string.find(reroll, "HOLD_CONFIRM_SECONDS", 1, true) ~= nil).toBe(true)
-		-- The only caller of ctx.request("Appraise") is reroll, reached only from the hold buttons.
-		local _, n = string.gsub(plot, 'ctx%.request%("Appraise"', "")
+		-- The only caller of ctx.ask("Appraise") is reroll, reached only from the hold buttons.
+		local _, n = string.gsub(plot, 'ctx%.ask%("Appraise"', "")
 		expect(n).toBe(1)
 	end)
 	it("the two-click confirmButton is gone", function()

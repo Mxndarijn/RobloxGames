@@ -234,6 +234,10 @@ local ctx: { [string]: any } = {
 	actions = Remotes.ACTIONS,
 	send = send,
 	request = invoke,
+	-- Like request, but `done` also gets a refusal ({ ok = false, message }) for the panel to show.
+	ask = function(action: string, done: (any) -> (), ...: any)
+		call(action, done, done, ...)
+	end,
 	serverNow = serverNow,
 	playerName = playerName,
 	itemIcons = itemIcons,

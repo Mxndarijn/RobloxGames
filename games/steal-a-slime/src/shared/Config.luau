@@ -659,6 +659,7 @@ local Config = {
 
 	-- Appraise: reroll one owned slime's size
 	APPRAISE_COST_FRACTION = 0.3, -- of the slime's current value (Economy.sellPrice)
+	APPRAISE_SIZE_DECIMALS = 2, -- a rerolled size is rounded to this many decimals (Appraise.rollSize)
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = 4,

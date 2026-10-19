@@ -9,7 +9,9 @@
 	Buttons: Sell(slimeId) (hold to confirm), Favorite(slimeId) / Favorite(nil),
 	Appraise: swaps the list for the Appraise screen (AppraiseView): the slime, its size on a tape from
 	Config.MIN_SIZE to MAX_SIZE, the odds that a reroll beats it, and Appraise(slimeId, "size") (hold to
-	confirm); after a reroll a card shows was -> now for size and income.
+	confirm, one request at a time; greyed out at the biggest size or without the cash); after a reroll a card
+	shows was -> now for size and income from the server's answer, and a refusal shows its reason. A slime
+	that is stolen or gone closes the screen.
 	Rows being stolen turn red and show the thief.
 ]]
 
@@ -101,7 +103,10 @@ Plot.POPUP = table.freeze({
 	rerollSize = 20,
 	backH = 44,
 	backSize = 17,
+	statusH = 20, -- a refused reroll's reason, under the button
+	statusSize = 14,
 	gap = 10,
+	answerWait = 8, -- seconds a reroll may wait for the server before the button takes holds again
 	resultTint = 0.3, -- result card: Row toward Good / Bad
 	tickTransparency = 0.45,
 })
@@ -168,6 +173,7 @@ function Plot.new(parent: Instance, ctx: any)
 	local setAppraise: (id: string?) -> ()
 	local cfg = ctx.Config
 	local minSize, maxSize = cfg.MIN_SIZE :: number, cfg.MAX_SIZE :: number
+	local decimals = cfg.APPRAISE_SIZE_DECIMALS :: number
 	local popup = create("Frame", {
 		Name = "AppraisePopup",
 		Visible = false,
@@ -176,7 +182,12 @@ function Plot.new(parent: Instance, ctx: any)
 		Parent = panel.body,
 	})
 	local popupId: string? = nil
-	local popupResult: AppraiseView.Result? = nil
+	local popupAnswer: any = nil -- the last reroll's Types.Appraisal for this slime; `synced` once State shows it
+	local popupError: string? = nil -- a refused reroll's reason
+	local pending: number? = nil -- the reroll request in flight
+	local requests = 0
+	local canReroll = false
+	local cash: number? = nil -- State.cash
 	local appraiseArt = ItemIconView.new({
 		Name = "AppraiseIcon",
 		Id = "Appraise",
@@ -387,17 +398,35 @@ function Plot.new(parent: Instance, ctx: any)
 	local refreshPopup: () -> ()
 	local function reroll()
 		local id = popupId
-		local view = popupSlime()
-		if id == nil or view == nil or ctx.request == nil then
+		if id == nil or popupSlime() == nil or ctx.ask == nil or pending ~= nil or not canReroll then
 			return
 		end
-		local incomeBefore = view.income or 0
-		ctx.request("Appraise", function(result: any)
-			local a = result and result.appraisal
-			if not a or a.slimeId ~= id or popupId ~= id then
+		requests += 1
+		local token = requests
+		pending = token
+		popupError = nil
+		task.delay(P.answerWait, function()
+			if pending == token then
+				pending = nil
+				if popupId ~= nil then
+					refreshPopup()
+				end
+			end
+		end)
+		refreshPopup()
+		ctx.ask("Appraise", function(result: any)
+			if pending == token then
+				pending = nil
+			end
+			if popupId ~= id then
 				return
 			end
-			popupResult = AppraiseView.result(a.beforeSize, a.afterSize, incomeBefore)
+			local a = if type(result) == "table" and result.ok ~= false then result.appraisal else nil
+			if type(a) == "table" and a.slimeId == id then
+				popupAnswer = table.clone(a)
+			else
+				popupError = AppraiseView.refusal(if type(result) == "table" then result.message else nil)
+			end
 			refreshPopup()
 		end, id, "size")
 	end
@@ -421,6 +450,16 @@ function Plot.new(parent: Instance, ctx: any)
 		end
 	)
 	backBtn.instance.Parent = popup
+	local status = Widgets.label({
+		Name = "Status",
+		Visible = false,
+		TextSize = P.statusSize,
+		TextColor3 = Theme.Bad,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Size = UDim2.new(1, 0, 0, P.statusH),
+		Parent = popup,
+	})
 
 	-- Stacks the screen's blocks (the result card only after a reroll) and sizes the popup to them.
 	local function placeAppraise()
@@ -435,6 +474,9 @@ function Plot.new(parent: Instance, ctx: any)
 			table.insert(blocks, rule)
 		end
 		table.insert(blocks, rerollBtn.instance)
+		if status.Visible then
+			table.insert(blocks, status)
+		end
 		table.insert(blocks, backBtn.instance)
 		for _, b in blocks do
 			b.Position = UDim2.fromOffset(0, y)
@@ -456,7 +498,7 @@ function Plot.new(parent: Instance, ctx: any)
 
 	refreshPopup = function()
 		local view = popupSlime()
-		if view == nil then
+		if view == nil or view.stolenBy ~= nil then
 			setAppraise(nil)
 			return
 		end
@@ -466,14 +508,19 @@ function Plot.new(parent: Instance, ctx: any)
 		heroName.Text = ctx.Genome.displayName(slime)
 		heroName.TextColor3 = if isSecret then Theme.Text elseif rarity then Widgets.color3(rarity.color) else Theme.Text
 		heroRainbow.Enabled = isSecret
-		-- A reroll's answer can land before the State push with the new size: show the answer meanwhile
-		-- (income and price scale with size).
-		local r = popupResult
+		-- A reroll's answer can land before the State push with the new size: show the server's answer until
+		-- State shows it too (cash in that State is from before the reroll, so the cost is still to come off).
+		local a = popupAnswer
 		local size, income, cost = slime.size, view.income or 0, view.appraiseCost
-		if r and r.better ~= nil and math.abs(slime.size - r.beforeSize) < 0.005 then
-			size, income = r.afterSize, r.incomeAfter
-			cost = if cost then math.max(1, math.floor(cost * r.afterSize / r.beforeSize)) else nil
+		local unpaid = 0
+		if a and not a.synced then
+			if math.abs(slime.size - a.afterSize) < 0.005 then
+				a.synced = true
+			else
+				size, income, cost, unpaid = a.afterSize, a.incomeAfter, a.costAfter, a.cost
+			end
 		end
+		local r = if a then AppraiseView.result(a) else nil
 		local sizeText = AppraiseView.sizeText(size)
 		sizeChip.Text = sizeText
 		heroIncome.Text = `<font color="{colorHex(Theme.Gold)}">{Format.formatRate(income)}</font> at size {sizeText}`
@@ -485,7 +532,7 @@ function Plot.new(parent: Instance, ctx: any)
 		better.Size = UDim2.fromScale(1 - now, 1)
 		better.Visible = now < 1
 
-		local o = AppraiseView.odds(size, minSize, maxSize)
+		local o = AppraiseView.odds(size, minSize, maxSize, decimals)
 		odds.Text =
 			`<font face="FredokaOne" color="{colorHex(if o.warn then Theme.Warn else Theme.Good)}">{o.chance}</font> {o.detail}`
 
@@ -506,14 +553,29 @@ function Plot.new(parent: Instance, ctx: any)
 			ghostPin.Position = UDim2.new(AppraiseView.fraction(r.beforeSize, minSize, maxSize), 0, 0, -P.pinH)
 			ghostTag.Text = AppraiseView.sizeText(r.beforeSize)
 		end
-		rerollBtn.setText(if cost then `Reroll for {Format.formatCash(cost)}` else "Reroll")
+		local biggest = AppraiseView.betterChance(size, minSize, maxSize, decimals) <= 0
+		local affordable = cash == nil or cost == nil or cash - unpaid >= cost
+		canReroll = pending == nil and not biggest and affordable
+		rerollBtn.setEnabled(canReroll)
+		local price = if cost then Format.formatCash(cost) else nil
+		rerollBtn.setText(
+			if pending ~= nil
+				then "Rerolling..."
+				elseif biggest then "Already the biggest size"
+				elseif not affordable and price then `Need {price} to reroll`
+				elseif price then `Reroll for {price}`
+				else "Reroll"
+		)
+		status.Visible = popupError ~= nil
+		status.Text = popupError or ""
 		placeAppraise()
 	end
 
 	-- Opens the Appraise screen for slime `id` (nil = back to the list).
 	setAppraise = function(id: string?)
 		popupId = id
-		popupResult = nil
+		popupAnswer = nil
+		popupError = nil
 		local on = id ~= nil
 		popup.Visible = on
 		list.Visible = not on
@@ -746,6 +808,7 @@ function Plot.new(parent: Instance, ctx: any)
 	function self.update(state: any)
 		favoriteId = state.favoriteId
 		petPerk = state.petPerk
+		cash = state.cash
 		latestViews = {}
 		for _, view in state.slimes do
 			latestViews[view.slime.id] = view
