@@ -283,9 +283,24 @@ WorldLayout.PAD_SEAT_Y = 2.4
 -- habitat overlays rest on it at height y, on the rim band between the mat
 -- (half side matHalf) and the deck edge (half side half).
 WorldLayout.PAD_DECK = table.freeze({ y = 2.5, half = 3.75, matHalf = 2.6 })
--- Upper floors (Config.BASE_FLOORS, built at runtime by server/BaseFloors): floor f's walking surface is
--- FLOOR_HEIGHT above floor f - 1's.
-WorldLayout.FLOOR_HEIGHT = 14
+-- The goo jar tower (CONTRACT.md §5.3): floor f is the inside of glass jar f, FLOOR_HEIGHT above floor f - 1.
+-- Plot-local angles: a point at angle a (degrees) and radius r is (r cos a, r sin a) in (x, z), so -90 is the
+-- entrance side (-Z), where jar 1's door is. Jars shrink upwards; each jar's pads sit on PAD_RINGS[f] facing the
+-- centre, with at least a 3-stud walkway between pads and 4.5 studs to the glass. The spiral stair from floor f to
+-- f + 1 winds round the centre post (STAIR: post radius, tread outer radius, one 1-stud step per STAIR.angle
+-- degrees), up through the hole in the deck above; each stair starts a quarter turn past where the one below
+-- arrived. Upper floors (Config.BASE_FLOORS beyond 1) are built at runtime by server/BaseFloors.
+WorldLayout.FLOOR_HEIGHT = 16
+WorldLayout.JAR_RADII = table.freeze({ 34, 31, 29, 27 })
+WorldLayout.PAD_RINGS = table.freeze({ 21, 20, 19, 18 })
+WorldLayout.JAR_WALL = 1 -- glass thickness
+WorldLayout.JAR_WALL_SEGMENTS = 24
+WorldLayout.DECK_SEGMENTS = 16
+WorldLayout.DOOR = table.freeze({ angle = -90, width = 9.2, height = 11 })
+WorldLayout.STAIR = table.freeze({ post = 2, outer = 8, hole = 8.6, angle = 22.5, firstAngle = 90 })
+WorldLayout.MOAT = table.freeze({ inner = 35.5, outer = 38.6 })
+-- The drop tube runs down the back; every upper jar's hatch sits at this angle, the splash pool outside the moat.
+WorldLayout.DROP_ANGLE = 70
 -- phoenix_gate's cream name board at native size (models/phoenix_gate.py
 -- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line;
 -- "SignRim" behind it ends 0.4 in front of the wall line).
@@ -1025,15 +1040,49 @@ end
 
 -- Plots ------------------------------------------------------------------
 
--- Local pad centre (x, z) for pad index 1..PADS_MAX: rows of four, front
--- row first, the vat and lock button sit between the pads and the entrance.
--- Every floor repeats the same grid (WorldLayout.floorTop gives its height).
-function WorldLayout.padOffset(j: number): (number, number)
-	local perRow = 4
+local function polar(r: number, deg: number): (number, number)
+	local a = math.rad(deg)
+	return r * math.cos(a), r * math.sin(a)
+end
+WorldLayout.polar = polar
+
+-- The floor (jar) pad j stands on.
+function WorldLayout.padFloor(j: number): number
+	return math.ceil(j / Config.PADS_PER_FLOOR)
+end
+
+-- Plot-local angle (degrees) of pad j on its jar's pad ring: the ring starts half a step past the door.
+function WorldLayout.padAngle(j: number): number
 	local k = (j - 1) % Config.PADS_PER_FLOOR
-	local col = k % perRow
-	local row = k // perRow
-	return (col - (perRow - 1) / 2) * 16, 2 + row * 16
+	local step = 360 / Config.PADS_PER_FLOOR
+	return WorldLayout.DOOR.angle + step / 2 + k * step
+end
+
+-- Local pad centre (x, z) for pad index 1..PADS_MAX on its jar's pad ring.
+function WorldLayout.padOffset(j: number): (number, number)
+	return polar(WorldLayout.PAD_RINGS[WorldLayout.padFloor(j)], WorldLayout.padAngle(j))
+end
+
+-- Plot-local yaw (degrees) that turns pad j's box square to the jar's centre.
+function WorldLayout.padYaw(j: number): number
+	return 90 - WorldLayout.padAngle(j)
+end
+
+-- Inner radius of jar f's glass.
+function WorldLayout.jarRadius(f: number): number
+	return WorldLayout.JAR_RADII[f]
+end
+
+-- Plot-local angle (degrees) of tread k (1..steps) of the stair that climbs from floor f to f + 1. Tread k's top is
+-- k studs above floor f; the last tread is flush with the deck above.
+function WorldLayout.treadAngle(f: number, k: number): number
+	local st = WorldLayout.STAIR
+	local turn = 360 + 90 -- one full turn per floor, then a quarter turn on to the next stair's first tread
+	return (st.firstAngle + (f - 1) * turn + (k - 1) * st.angle) % 360
+end
+
+function WorldLayout.stairSteps(): number
+	return math.floor(WorldLayout.FLOOR_HEIGHT + 0.5)
 end
 
 -- Plot-local height of floor f's walking surface (floor 1 is the Base top).
@@ -1242,16 +1291,135 @@ end
 -- lands.
 local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): WorldNode
 	local x, z = WorldLayout.padOffset(j)
-	local y = WorldLayout.floorTop(math.ceil(j / Config.PADS_PER_FLOOR))
+	local y = WorldLayout.floorTop(WorldLayout.padFloor(j))
+	local turn = { 0, yaw + WorldLayout.padYaw(j), 0 }
 	local look = WorldLayout.PAD_MESH
 	local seat = WorldLayout.PAD_SEAT_Y
-	local pad = block(`Pad_{j}`, { 8, seat, 8 }, at({ x, y + seat / 2, z }), color, "SmoothPlastic", { 0, yaw, 0 })
+	local pad = block(`Pad_{j}`, { 8, seat, 8 }, at({ x, y + seat / 2, z }), color, "SmoothPlastic", turn)
 	pad.attributes = { PadIndex = j }
 	standIn(pad, look)
 	local stand = meshSize(look, 1)
-	pad.children =
-		{ meshSlot(block("Stand", stand, at({ x, y + stand[2] / 2, z }), color, nil, { 0, yaw, 0 }), look, true) }
+	pad.children = { meshSlot(block("Stand", stand, at({ x, y + stand[2] / 2, z }), color, nil, turn), look, true) }
 	return pad
+end
+
+local JAR_GLASS = { 200, 240, 244 }
+local JAR_CORK = { 214, 170, 116 }
+local JAR_GOO = { 110, 226, 170 }
+WorldLayout.JAR_GLASS_TRANSPARENCY = 0.6
+
+-- A box whose local +Z points out along plot-local angle `deg` at radius `r`, `size` = { tangential, height,
+-- radial }, its centre `y` up.
+local function radial(name: string, size: Vec, r: number, deg: number, y: number, at: (Vec) -> Vec, yaw: number): WorldNode
+	local x, z = polar(r, deg)
+	return block(name, size, at({ x, y, z }), JAR_GLASS, "Glass", { 0, yaw + 90 - deg, 0 })
+end
+
+-- Jar f's glass wall: JAR_WALL_SEGMENTS collidable segments from floor f up to the deck (or lid) above; jar 1 has the
+-- door in the segment at DOOR.angle (a lintel over the opening). Glass never blocks prompts or raycasts.
+local function jarWall(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
+	local out = {}
+	local n = WorldLayout.JAR_WALL_SEGMENTS
+	local r = WorldLayout.jarRadius(f) + WorldLayout.JAR_WALL / 2
+	local width = 2 * r * math.sin(math.pi / n) + 0.3
+	local h = WorldLayout.FLOOR_HEIGHT - 1
+	local base = WorldLayout.floorTop(f)
+	for k = 1, n do
+		local deg = WorldLayout.DOOR.angle + (k - 1) * 360 / n
+		local node
+		if f == 1 and k == 1 then
+			local dh = WorldLayout.DOOR.height
+			node = radial("DoorLintel", { width, h - dh, WorldLayout.JAR_WALL }, r, deg, base + dh + (h - dh) / 2, at, yaw)
+		else
+			node = radial(`Wall_{k}`, { width, h, WorldLayout.JAR_WALL }, r, deg, base + h / 2, at, yaw)
+		end
+		node.transparency = WorldLayout.JAR_GLASS_TRANSPARENCY
+		node.canQuery = false
+		node.canTouch = false
+		table.insert(out, node)
+	end
+	return out
+end
+
+-- Floor f's deck (f >= 2): DECK_SEGMENTS boxes making a ring from the stair hole out over jar f - 1's glass, so it is
+-- also that jar's lid. Its top is floor f's walking surface.
+local function jarDeck(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
+	local out = {}
+	local n = WorldLayout.DECK_SEGMENTS
+	local inner = WorldLayout.STAIR.hole
+	local outer = WorldLayout.jarRadius(f - 1) + WorldLayout.JAR_WALL
+	local width = 2 * outer * math.sin(math.pi / n) * 1.02
+	for k = 1, n do
+		local deg = (k - 0.5) * 360 / n
+		local node = radial(`Deck_{k}`, { width, 1, outer - inner }, (inner + outer) / 2, deg, WorldLayout.floorTop(f) - 0.5, at, yaw)
+		node.color = JAR_GOO
+		node.material = "SmoothPlastic"
+		table.insert(out, node)
+	end
+	return out
+end
+
+-- The spiral stair from floor f up to floor f + 1: the centre post and one tread per stud of height.
+local function jarStair(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
+	local st = WorldLayout.STAIR
+	local base = WorldLayout.floorTop(f)
+	local h = WorldLayout.FLOOR_HEIGHT
+	local out = { disc("StairPost", h, st.post * 2, at({ 0, base + h / 2, 0 }), JAR_GOO, "SmoothPlastic", yaw) }
+	local mid = (st.post + st.outer) / 2
+	for k = 1, WorldLayout.stairSteps() do
+		local node = radial(`Tread_{k}`, { 2.9, 1, st.outer - st.post + 0.4 }, mid, WorldLayout.treadAngle(f, k), base + k - 0.5, at, yaw)
+		node.color = JAR_CORK
+		node.material = "Wood"
+		table.insert(out, node)
+	end
+	return out
+end
+
+-- Jar f's lid: the roof while jar f is the top jar (server/BaseFloors hides it while jar f + 1 stands).
+local function jarLid(f: number, at: (Vec) -> Vec, yaw: number): WorldNode
+	local r = WorldLayout.jarRadius(f) + WorldLayout.JAR_WALL
+	local lid = disc("Lid", 1, r * 2, at({ 0, WorldLayout.floorTop(f + 1) - 0.5, 0 }), JAR_CORK, "Wood", yaw)
+	lid.attributes = { JarLid = f }
+	return lid
+end
+
+-- Plot-local landing point (x, y, z) of the drop tube: the splash pool behind the tower.
+function WorldLayout.dropLanding(): Vec
+	local x, z = polar(WorldLayout.MOAT.outer + 1.0, WorldLayout.DROP_ANGLE)
+	return { x, WorldLayout.PLOT_FLOOR_TOP + 3, z }
+end
+
+-- Upper jar f (2..#BASE_FLOORS) of plot i, as the nodes the server adds under Plot_<i>: a Floor_<f> Model (deck,
+-- glass wall, the stair up from floor f - 1, the lid, the drop-tube hatch) and the jar's Pad_<j>.
+function WorldLayout.floor(i: number, f: number): { WorldNode }
+	assert(f >= 2 and f <= #Config.BASE_FLOORS, `floor {f} is not an upper floor`)
+	local centre, yaw = WorldLayout.plotCentre(i)
+	local at = frame(centre, yaw)
+	local color = PLOT_COLORS[(i - 1) % #PLOT_COLORS + 1]
+	local children: { WorldNode } = {}
+	for _, list in { jarDeck(f, at, yaw), jarWall(f, at, yaw), jarStair(f - 1, at, yaw) } do
+		for _, node in list do
+			table.insert(children, node)
+		end
+	end
+	table.insert(children, jarLid(f, at, yaw))
+	local hatch = radial(
+		"DropHatch",
+		{ 3.4, 4, 0.6 },
+		WorldLayout.jarRadius(f) - 0.4,
+		WorldLayout.DROP_ANGLE,
+		WorldLayout.floorTop(f) + 2,
+		at,
+		yaw
+	)
+	hatch.color = JAR_CORK
+	hatch.material = "Wood"
+	table.insert(children, hatch)
+	local nodes: { WorldNode } = { { name = `Floor_{f}`, class = "Model", attributes = { FloorIndex = f }, children = children } }
+	for j = (f - 1) * Config.PADS_PER_FLOOR + 1, f * Config.PADS_PER_FLOOR do
+		table.insert(nodes, padNode(j, at, yaw, color))
+	end
+	return nodes
 end
 
 local function plot(i: number): WorldNode

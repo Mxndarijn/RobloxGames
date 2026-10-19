@@ -19,6 +19,9 @@
 	forced on adopted parts is Anchored = true (the static map never falls).
 	Plot attributes OwnerUserId / LockUntil / Rebirths get a 0 default only
 	while missing.
+
+	WorldBuilder.buildFloor(plot, plotIndex, floor) adds one upper jar of the
+	goo jar tower (WorldLayout.floor); the server's BaseFloors calls it.
 ]]
 
 local Effects = if script then require(script.Parent.Effects) else require("./Effects")
@@ -94,6 +97,16 @@ function WorldBuilder.build(parent: Instance?): { map: Folder, plots: Folder }
 		table.insert(built, ensure(root, node))
 	end
 	return { map = built[1] :: Folder, plots = built[2] :: Folder }
+end
+
+-- Adds upper jar `floor` (WorldLayout.floor) under `plot` (Plot_<plotIndex>); returns the top-level instances
+-- (Floor_<floor> and its pads). Idempotent like build().
+function WorldBuilder.buildFloor(plot: Instance, plotIndex: number, floor: number): { Instance }
+	local built = {}
+	for _, node in WorldLayout.floor(plotIndex, floor) do
+		table.insert(built, ensure(plot, node))
+	end
+	return built
 end
 
 return WorldBuilder

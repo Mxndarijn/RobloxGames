@@ -6,7 +6,8 @@
 	stands while Economy.floorsShown(padsUnlocked) >= f (0 pads on a free plot), and goes when that stops (the owner
 	left). `ctx.build` adds a floor's instances (WorldBuilder.buildFloor), `ctx.meshes` gives their slots the kit
 	meshes (MeshSwap.applyUnder, run in its own thread because it yields). Removing a floor parks the BuyPadPrompt
-	on floor 1 first, so the prompt record never points at a destroyed pad. Holds no gameplay rules.
+	on floor 1 first, so the prompt record never points at a destroyed pad. A jar's lid (parts with the JarLid
+	attribute) is hidden and non-colliding while the jar above it stands. Holds no gameplay rules.
 ]]
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -42,17 +43,36 @@ local function removeFloor(plot: Instance, floor: number)
 	end
 end
 
+-- Every lid of the plot: shown and solid only while it is the top jar's (no Floor_<n + 1> above it).
+local function setLids(plot: Instance)
+	for _, d in plot:GetDescendants() do
+		local n = d:GetAttribute("JarLid")
+		if typeof(n) == "number" and d:IsA("BasePart") then
+			local covered = plot:FindFirstChild(`Floor_{n + 1}`) ~= nil
+			d.Transparency = if covered then 1 else 0
+			d.CanCollide = not covered
+			d.CanQuery = not covered
+		end
+	end
+end
+
 -- Builds or removes plot `plotIndex`'s upper floors for an owner with `padsUnlocked` pads (0 = free plot).
 function BaseFloors.sync(plot: Instance, plotIndex: number, padsUnlocked: number, ctx: Context)
 	local shown = if padsUnlocked > 0 then Economy.floorsShown(padsUnlocked) else 1
+	local changed = false
 	for floor = 2, #Config.BASE_FLOORS do
 		local present = plot:FindFirstChild(`Floor_{floor}`) ~= nil
 		if floor <= shown and not present then
 			local built = ctx.build(plot, plotIndex, floor)
 			task.spawn(ctx.meshes, built)
+			changed = true
 		elseif floor > shown and present then
 			removeFloor(plot, floor)
+			changed = true
 		end
+	end
+	if changed then
+		setLids(plot)
 	end
 end
 
