@@ -8,6 +8,7 @@ local TestRunner = require("./TestRunner")
 
 local MeshAssets = require("../src/shared/MeshAssets")
 local SlimeLooks = require("../src/shared/SlimeLooks")
+local SlimeRoster = require("../src/shared/SlimeRoster")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -244,5 +245,125 @@ describe("SlimeMesh species kits", function()
 		expect(model.TierRim.Transparency).toBe(0)
 		expect(SlimeMesh.isReplacedPart("EyeL") and SlimeMesh.isReplacedPart("MouthMid")).toBe(true)
 		expect(SlimeMesh.isReplacedPart("TierRim")).toBe(false)
+	end)
+end)
+
+-- A slime Model from the real SlimeLayout parts, built the way ModelFactory does (Body PrimaryPart at its
+-- bottom-centre pivot, every other part welded to Body), with no rig: Lune has no CollectionService.
+local SlimeLayout = require("../src/visuals/shared/SlimeLayout")
+
+local function layoutModel(slime: any): any
+	local model = roblox.Instance.new("Model")
+	local body
+	for i, spec in SlimeLayout.build(slime) do
+		local part = roblox.Instance.new("Part")
+		part.Name = spec.name
+		part.Shape = (roblox.Enum.PartType :: any)[spec.shape]
+		part.Size = roblox.Vector3.new(spec.size[1], spec.size[2], spec.size[3])
+		part.CFrame = roblox.CFrame.new(spec.pos[1], spec.pos[2], spec.pos[3])
+			* roblox.CFrame.fromOrientation(math.rad(spec.rot[1]), math.rad(spec.rot[2]), math.rad(spec.rot[3]))
+		part.Material = (roblox.Enum.Material :: any)[spec.material]
+		part.Transparency = spec.transparency
+		if i == 1 then
+			body = part
+			model.PrimaryPart = part
+		else
+			local weld = roblox.Instance.new("WeldConstraint")
+			weld.Enabled = true -- Lune has no default for it
+			weld.Part0 = body
+			weld.Part1 = part
+			weld.Parent = part
+		end
+		part.Parent = model
+	end
+	return model
+end
+
+-- World-space box of a part: (min, max) corners.
+local function bounds(part: any): (any, any)
+	local cf, half = part.CFrame, part.Size / 2
+	local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+	local extent = roblox.Vector3.new(
+		math.abs(r.X) * half.X + math.abs(u.X) * half.Y + math.abs(l.X) * half.Z,
+		math.abs(r.Y) * half.X + math.abs(u.Y) * half.Y + math.abs(l.Y) * half.Z,
+		math.abs(r.Z) * half.X + math.abs(u.Z) * half.Y + math.abs(l.Z) * half.Z
+	)
+	return cf.Position - extent, cf.Position + extent
+end
+
+-- A species slime dressed in its own kit (a bare MeshPart template at the kit's native size).
+local function dressedSpecies(species: string, tier: number): any
+	local look = SlimeLooks.get(species) :: any
+	local entry = MeshAssets.get(look.kit) :: any
+	local slime = Fixtures.slime(`{species}{tier}`, tier, { species = species, size = 1.4 })
+	local model = layoutModel(slime)
+	local mesh = SlimeMesh.new({
+		factory = {
+			build = function(): any
+				return model
+			end,
+		} :: any,
+		loadAsset = function(): any
+			error("unused")
+		end,
+		warn = function(message: string)
+			error(message)
+		end,
+	})
+	local template = roblox.Instance.new("MeshPart")
+	template.Size = roblox.Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+	mesh.kits[look.kit] = template :: any
+	withRobloxGlobals(function()
+		return SlimeMesh.build(mesh, slime)
+	end)
+	return model
+end
+
+local FOOT_MARGIN = 0.05 -- studs
+
+describe("SlimeMesh species foot", function()
+	it("leaves nothing sticking out below or around the foot of any tier", function()
+		for tier = 1, Config.SECRET_TIER do
+			local model = dressedSpecies("lop", tier)
+			local body, worn = model.Body, model[SlimeMesh.MESH_NAME]
+			local d = body.Size.X
+			local ground = body.CFrame.Position.Y - body.Size.Y / 2
+			local footHalf = math.min(SlimeMesh.RING_WIDTH * d, worn.Size.X, worn.Size.Z) / 2
+			expect(model.Puddle.Transparency).toBe(1)
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") and part.Transparency < 1 and part ~= worn then
+					local low, high = bounds(part)
+					local label = `{part.Name} (tier {tier})`
+					assert(low.Y >= ground - FOOT_MARGIN, `{label} sinks below the ground`)
+					if SlimeMesh.SHELLS[part.Name] then
+						assert(high.Y >= ground + worn.Size.Y, `{label} does not wrap the mesh`)
+					elseif low.Y < ground + 0.1 * d then
+						local reach = math.max(high.X - body.CFrame.Position.X, body.CFrame.Position.X - low.X)
+						assert(reach <= footHalf + FOOT_MARGIN, `{label} sticks out around the foot`)
+					end
+				end
+			end
+		end
+	end)
+
+	it("draws the rarity as a thin ground ring no wider than the mesh footprint, for every species kit", function()
+		local checked = 0
+		for _, entry in SlimeRoster.ROSTER do
+			local look = SlimeLooks.get(entry.id)
+			if look and (MeshAssets.get(look.kit) :: any).offset then
+				local model = dressedSpecies(entry.id, entry.tier)
+				local body, rim, worn = model.Body, model.TierRim, model[SlimeMesh.MESH_NAME]
+				local d = body.Size.X
+				local ground = body.CFrame.Position.Y - body.Size.Y / 2
+				local low, high = bounds(rim)
+				expect(rim.Transparency).toBe(0)
+				assert(high.Y - low.Y <= 0.03 * d, `{entry.id} ring is not thin`)
+				assert(low.Y >= ground and low.Y <= ground + FOOT_MARGIN, `{entry.id} ring floats off the ground`)
+				expect(rim.Size.Y <= math.min(worn.Size.X, worn.Size.Z) + 1e-6).toBe(true)
+				expect(rim.Size.Y <= SlimeMesh.RING_WIDTH * d + 1e-6).toBe(true)
+				checked += 1
+			end
+		end
+		expect(checked > 10).toBe(true)
 	end)
 end)
