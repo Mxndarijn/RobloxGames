@@ -12,6 +12,7 @@ local Format = if script then require(script.Parent.Format) else require("./Form
 export type Tone = "warn" | "fight" | "haul" | "good" | "bad"
 
 export type View = {
+	icon: string, -- emoji on the card's tile
 	title: string,
 	detail: string,
 	meter: number, -- 0..1 bar fill
@@ -37,7 +38,8 @@ function BossMeterLogic.view(boss: any, now: number): View?
 	local phase = boss.phase
 	if phase == "warning" then
 		return {
-			title = `👑 BOSS INCOMING: {name}`,
+			icon = "👑",
+			title = `BOSS INCOMING: {name}`,
 			detail = "Head to the plaza and grab your bat!",
 			meter = 0,
 			timer = timer,
@@ -48,7 +50,8 @@ function BossMeterLogic.view(boss: any, now: number): View?
 			then `Your hits: {points} ({percent(boss.yourShare or 0)}% of the top helper)`
 			else "Hit it with your bat to fill the goo meter!"
 		return {
-			title = `👑 {name}: goo meter {percent(meter)}%`,
+			icon = "👑",
+			title = `{name}: goo meter {percent(meter)}%`,
 			detail = yours,
 			meter = meter,
 			timer = timer,
@@ -59,11 +62,12 @@ function BossMeterLogic.view(boss: any, now: number): View?
 			then `{boss.carrierName} is carrying it! Bonk them to make them drop it!`
 			elseif type(boss.priorityName) == "string" then `{boss.priorityName} grabs first, then anyone!`
 			else "It's down! Grab it and carry it home!"
-		return { title = `👑 {name} is down!`, detail = detail, meter = 1, timer = timer, tone = "haul" }
+		return { icon = "👑", title = `{name} is down!`, detail = detail, meter = 1, timer = timer, tone = "haul" }
 	elseif phase == "won" then
 		local who = if type(boss.winnerName) == "string" then boss.winnerName else "Someone"
 		return {
-			title = `🏆 {who} brought {name} home!`,
+			icon = "🏆",
+			title = `{who} brought {name} home!`,
 			detail = "It's on their trophy stand now.",
 			meter = 1,
 			timer = nil,
@@ -71,7 +75,8 @@ function BossMeterLogic.view(boss: any, now: number): View?
 		}
 	elseif phase == "failed" then
 		return {
-			title = `💥 {name} burst!`,
+			icon = "💥",
+			title = `{name} burst!`,
 			detail = "Grab the wild slimes it left behind!",
 			meter = meter,
 			timer = nil,

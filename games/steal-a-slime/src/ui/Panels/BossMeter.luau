@@ -2,6 +2,8 @@
 --[[
 	Boss card (top centre, under the HUD banner stack) while `State.boss` has a phase: the heads-up, the goo meter
 	with your hits, the haul and the result (BossMeterLogic). Read-only: hits are Bat swings, grabs the boss's prompt.
+	Drawn in the HUD kit: a purple plate with an ink outline, the phase icon on a chunky tile in the phase colour, a
+	stroked title, the time left in an ink chip and an ink-track goo meter.
 ]]
 
 local UI = script.Parent.Parent
@@ -10,31 +12,40 @@ local Layout = require(UI.Layout)
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
+local KIT = Widgets.KIT
 local create = Widgets.create
 
 local SIZE = table.freeze({
 	width = 420,
-	height = 74,
+	height = 84,
 	pad = 10,
-	title = 18,
+	radius = 18,
+	tile = 58,
+	tileText = 32,
+	title = 20,
+	titleHeight = 24,
 	detail = 14,
-	timerWidth = 60,
-	bar = 10,
+	detailHeight = 18,
+	timer = 16,
+	timerHeight = 24,
+	timerWidth = 64, -- room the title leaves for the chip ("1:05")
+	bar = 14,
 	gap = 6, -- under the banner stack
 })
 
+-- Tile and meter colour per BossMeterLogic tone.
 local TONES = table.freeze({
 	warn = Theme.Warn,
 	fight = Theme.Bad,
 	haul = Theme.Gold,
 	good = Theme.Good,
-	bad = Theme.Muted,
+	bad = Theme.Band,
 })
 
 local BossMeter = {}
 
 function BossMeter.new(parent: Instance, ctx: any)
-	local border = Widgets.stroke(Theme.Warn, 2)
+	local z = Layout.ZINDEX.Banners
 	local frame = create("Frame", {
 		Name = "BossMeter",
 		Visible = false,
@@ -42,50 +53,69 @@ function BossMeter.new(parent: Instance, ctx: any)
 		Position = UDim2.new(0.5, 0, 0, Layout.TOP),
 		Size = UDim2.fromOffset(SIZE.width, SIZE.height),
 		BackgroundColor3 = Theme.Bg,
-		BackgroundTransparency = 0.1,
-		ZIndex = Layout.ZINDEX.Banners,
+		ZIndex = z,
 		Parent = parent,
-	}, { Widgets.corner(12), border })
+	}, { Widgets.corner(SIZE.radius), Widgets.stroke(Theme.Ink, KIT.stroke) })
+	local tile = create("Frame", {
+		Name = "IconTile",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, SIZE.pad, 0.5, 0),
+		Size = UDim2.fromOffset(SIZE.tile, SIZE.tile),
+		BackgroundColor3 = Theme.Warn,
+		ZIndex = z,
+		Parent = frame,
+	}, { Widgets.corner(KIT.radius), Widgets.stroke(Theme.Ink, KIT.stroke) })
+	Widgets.shade(tile)
+	local icon = Widgets.label({
+		Name = "Icon",
+		TextSize = SIZE.tileText,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextTruncate = Enum.TextTruncate.None,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = z,
+		Parent = tile,
+	})
+	local textX = SIZE.pad * 2 + SIZE.tile
+	local timer = Widgets.chip({
+		Name = "Timer",
+		TextSize = SIZE.timer,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -SIZE.pad, 0, SIZE.pad),
+		Size = UDim2.fromOffset(0, SIZE.timerHeight),
+		ZIndex = z,
+		Parent = frame,
+	}, Theme.Gold)
 	local title = Widgets.label({
 		Name = "Title",
 		Font = Theme.Font,
 		TextSize = SIZE.title,
-		Size = UDim2.new(1, -(SIZE.pad * 2 + SIZE.timerWidth), 0, 22),
-		Position = UDim2.fromOffset(SIZE.pad, 6),
-		ZIndex = Layout.ZINDEX.Banners,
-		Parent = frame,
-	})
-	local timer = Widgets.label({
-		Name = "Timer",
-		Font = Theme.Font,
-		TextSize = SIZE.title,
-		TextXAlignment = Enum.TextXAlignment.Right,
-		AnchorPoint = Vector2.new(1, 0),
-		Size = UDim2.fromOffset(SIZE.timerWidth, 22),
-		Position = UDim2.new(1, -SIZE.pad, 0, 6),
-		ZIndex = Layout.ZINDEX.Banners,
+		TextStrokeColor3 = Theme.Ink,
+		TextStrokeTransparency = 0,
+		Size = UDim2.new(1, -textX - SIZE.pad, 0, SIZE.titleHeight),
+		Position = UDim2.fromOffset(textX, SIZE.pad),
+		ZIndex = z,
 		Parent = frame,
 	})
 	local detail = Widgets.label({
 		Name = "Detail",
 		TextSize = SIZE.detail,
 		TextColor3 = Theme.Muted,
-		Size = UDim2.new(1, -SIZE.pad * 2, 0, 18),
-		Position = UDim2.fromOffset(SIZE.pad, 30),
-		ZIndex = Layout.ZINDEX.Banners,
+		Size = UDim2.new(1, -textX - SIZE.pad, 0, SIZE.detailHeight),
+		Position = UDim2.fromOffset(textX, SIZE.pad + SIZE.titleHeight + 2),
+		ZIndex = z,
 		Parent = frame,
 	})
 	local bar, setBar = Widgets.bar(
 		frame,
 		Theme.Bad,
-		UDim2.new(1, -SIZE.pad * 2, 0, SIZE.bar),
-		UDim2.new(0, SIZE.pad, 1, -(SIZE.bar + SIZE.pad))
+		UDim2.new(1, -textX - SIZE.pad, 0, SIZE.bar),
+		UDim2.new(0, textX, 1, -(SIZE.bar + SIZE.pad))
 	)
 	bar.Name = "Meter"
-	bar.ZIndex = Layout.ZINDEX.Banners
+	bar.ZIndex = z
 	local fill = bar:FindFirstChildOfClass("Frame")
 	if fill then
-		fill.ZIndex = Layout.ZINDEX.Banners
+		fill.ZIndex = z
 	end
 
 	local boss: any = nil
@@ -117,13 +147,17 @@ function BossMeter.new(parent: Instance, ctx: any)
 		local height = bannerHeight()
 		frame.Position = UDim2.new(0.5, 0, 0, top + (if height > 0 then height + SIZE.gap else 0))
 		local tone = TONES[view.tone]
-		border.Color = tone
+		tile.BackgroundColor3 = tone
 		if fill then
-			fill.BackgroundColor3 = tone
+			fill.BackgroundColor3 = if view.tone == "bad" then Theme.Muted else tone
 		end
+		icon.Text = view.icon
 		title.Text = view.title
 		detail.Text = view.detail
 		timer.Text = view.timer or ""
+		timer.Visible = view.timer ~= nil
+		local chipRoom = if view.timer then SIZE.timerWidth + SIZE.pad else 0
+		title.Size = UDim2.new(1, -textX - SIZE.pad - chipRoom, 0, SIZE.titleHeight)
 		setBar(view.meter)
 	end
 

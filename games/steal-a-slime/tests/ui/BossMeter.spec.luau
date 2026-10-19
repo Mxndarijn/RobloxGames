@@ -22,7 +22,8 @@ describe("BossMeterLogic.view", function()
 	end)
 	it("heads-up with the arrival countdown", function()
 		local v = BossMeterLogic.view(boss({ phase = "warning", endsAt = 1065 }), 1000) :: BossMeterLogic.View
-		expect(v.title).toBe("👑 BOSS INCOMING: Goozilla")
+		expect(v.icon).toBe("👑")
+		expect(v.title).toBe("BOSS INCOMING: Goozilla")
 		expect(v.timer).toBe("1:05")
 		expect(v.tone).toBe("warn")
 	end)
@@ -31,7 +32,7 @@ describe("BossMeterLogic.view", function()
 			boss({ phase = "fight", meter = 0.42, endsAt = 1090, yourPoints = 7, yourShare = 0.5 }),
 			1000
 		) :: BossMeterLogic.View
-		expect(v.title).toBe("👑 Goozilla: goo meter 42%")
+		expect(v.title).toBe("Goozilla: goo meter 42%")
 		expect(v.detail).toBe("Your hits: 7 (50% of the top helper)")
 		expect(v.meter).toBe(0.42)
 		local idle = BossMeterLogic.view(boss({ phase = "fight", meter = 0 }), 1000) :: BossMeterLogic.View
@@ -45,9 +46,11 @@ describe("BossMeterLogic.view", function()
 	end)
 	it("the result: won or burst", function()
 		local won = BossMeterLogic.view(boss({ phase = "won", winnerName = "Ann" }), 0) :: BossMeterLogic.View
-		expect(won.title).toBe("🏆 Ann brought Goozilla home!")
+		expect(won.icon).toBe("🏆")
+		expect(won.title).toBe("Ann brought Goozilla home!")
 		local failed = BossMeterLogic.view(boss({ phase = "failed" }), 0) :: BossMeterLogic.View
-		expect(failed.title).toBe("💥 Goozilla burst!")
+		expect(failed.icon).toBe("💥")
+		expect(failed.title).toBe("Goozilla burst!")
 	end)
 end)
 
@@ -64,7 +67,8 @@ describe("Panels/BossMeter", function()
 		expect(frame.Visible).toBe(false)
 		panel.update({ boss = boss({ phase = "fight", meter = 0.5, endsAt = 1030 }) })
 		expect(frame.Visible).toBe(true)
-		expect(UiHarness.find(frame, "Title").Text).toBe("👑 Goozilla: goo meter 50%")
+		expect(UiHarness.find(frame, "Title").Text).toBe("Goozilla: goo meter 50%")
+		expect(UiHarness.find(frame, "Icon").Text).toBe("👑")
 		expect(UiHarness.find(frame, "Timer").Text).toBe("0:30")
 		local fill = UiHarness.find(frame, "Meter"):FindFirstChildOfClass("Frame")
 		expect(fill.Size.X.Scale).toBe(0.5)

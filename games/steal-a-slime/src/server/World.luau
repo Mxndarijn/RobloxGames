@@ -73,6 +73,7 @@ export type Wild = {
 	position: any?, -- set when a carrier drops it somewhere else (adapter-defined)
 	returning: ParadeLane.Return?, -- FEATURES.Parade: its walk back to the lane after a drop (contract/slime-walk.md)
 	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts toward the wild cap
+	wanderUntil: number?, -- the boss: server time the haul started; its BossWander pose stays there
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
 }
 

@@ -28,6 +28,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
+local BossWander = require(ReplicatedStorage.Shared.BossWander)
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
@@ -236,14 +237,26 @@ local function volcanoLanding(wild: World.Wild): CFrame
 	return surfaceBelow(Vector3.new(spot.X, origin.Y + 200, spot.Z), 400) or CFrame.new(spot.X, 0, spot.Z)
 end
 
--- The boss spot (Config.BOSS.SPOT_ANGLE / SPOT_RADIUS around the fountain centre), on the ground, facing the fountain.
-local function bossLanding(): CFrame
+-- Each boss slime's walk (BossWander) by slime id, planned from its arrival.
+local bossPlans: { [string]: BossWander.Plan } = {}
+
+local function bossPlan(id: string, wild: World.Wild): BossWander.Plan
+	local plan = bossPlans[id]
+	if not plan then
+		plan = BossWander.plan(BossWander.seed(id), wild.spawnedAt, Config.BOSS.FIGHT_SECONDS)
+		bossPlans[id] = plan
+	end
+	return plan
+end
+
+-- The boss on its walk at `now` (round the fountain centre), on the ground, facing where it walks.
+local function bossCFrame(plan: BossWander.Plan, now: number): CFrame
 	local origin = crater()
-	local angle, radius = Config.BOSS.SPOT_ANGLE, Config.BOSS.SPOT_RADIUS
-	local spot = origin + Vector3.new(math.cos(angle) * radius, 0, math.sin(angle) * radius)
+	local p, face = BossWander.pose(plan, now)
+	local spot = origin + Vector3.new(p[1], 0, p[2])
 	local ground = surfaceBelow(Vector3.new(spot.X, origin.Y + 200, spot.Z), 400) or CFrame.new(spot.X, 0, spot.Z)
 	local at = ground.Position
-	return CFrame.lookAt(at, Vector3.new(origin.X, at.Y, origin.Z))
+	return CFrame.lookAt(at, at + Vector3.new(face[1], 0, face[2]))
 end
 
 local function wildLanding(wild: World.Wild): CFrame
@@ -355,6 +368,20 @@ local function followLane(id: string, key: string, wild: World.Wild)
 					record.model:SetAttribute(Constants.RIDING_ATTRIBUTE, if leading then true else nil)
 				end
 			end
+			RunService.Heartbeat:Wait()
+		end
+	end)
+end
+
+-- Walks the fighting boss along its plan every frame until its record changes (the haul pops it to carry size).
+local function followBoss(id: string, key: string, plan: BossWander.Plan)
+	task.spawn(function()
+		while true do
+			local record = records[id]
+			if not record or record.key ~= key or not record.model.Parent then
+				return
+			end
+			record.model:PivotTo(bossCFrame(plan, workspace:GetServerTimeNow()))
 			RunService.Heartbeat:Wait()
 		end
 	end)
@@ -509,8 +536,13 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 			return true
 		end
 		if entry.boss and wild.position == nil then
-			-- The boss walks in at its plaza spot: no parade lane, no fountain ride.
-			model:PivotTo(bossLanding())
+			-- The boss wanders round its plaza spot while it fights (no parade lane, no fountain ride) and stays
+			-- where the haul caught it.
+			local plan = bossPlan(entry.id, wild)
+			model:PivotTo(bossCFrame(plan, wild.wanderUntil or workspace:GetServerTimeNow()))
+			if wild.wanderUntil == nil then
+				followBoss(entry.id, entry.key, plan)
+			end
 			return true
 		end
 		local plan = wild.returning
@@ -577,22 +609,29 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 end
 
 ---------------------------------------------------------------------------
--- Trophy stands (contract/boss-event.md): one pedestal per boss trophy beside the owner's plot
+-- Trophy stands (contract/boss-event.md): one pedestal per boss trophy beside the plot's Dex board
 ---------------------------------------------------------------------------
 
 local TROPHY_PEDESTAL = Vector3.new(9, 2, 9)
 local TROPHY_COLOR = Color3.fromRGB(255, 205, 70)
 local trophyModels: { [string]: Instance } = {}
 
--- Pedestal `slot` (1-based) of `plotIndex`: outside the Base's +X edge, spaced Config.BOSS.TROPHY_GAP.
+-- Pedestal `slot` (1-based) of `plotIndex`, on the Base in front of the back wall and facing the gate (the Base's -Z):
+-- slot 1 left of the Dex board, slot 2 right of it, slot 3 further left, Config.BOSS.TROPHY_GAP apart.
 local function trophySpot(plotIndex: number, slot: number): CFrame?
 	local plot = WorldView.plot(plotIndex)
 	local base = plot and plot:FindFirstChild("Base")
-	if not (base and base:IsA("BasePart")) then
+	local board = plot and plot:FindFirstChild("DexBoard")
+	if not (base and base:IsA("BasePart") and board and board:IsA("Model")) then
 		return nil
 	end
-	local z = (slot - 2) * Config.BOSS.TROPHY_GAP
-	return base.CFrame * CFrame.new(base.Size.X / 2 + TROPHY_PEDESTAL.X, base.Size.Y / 2, z)
+	local boardAt, boardSize = board:GetBoundingBox()
+	local boardLocal = base.CFrame:PointToObjectSpace(boardAt.Position)
+	local ring = math.ceil(slot / 2) -- 1, 1, 2
+	local side = if slot % 2 == 1 then -1 else 1
+	local x = boardLocal.X + side * (boardSize.X / 2 + Config.BOSS.TROPHY_GAP * (ring - 0.5))
+	local z = boardLocal.Z - boardSize.Z / 2 - TROPHY_PEDESTAL.Z / 2
+	return base.CFrame * CFrame.new(x, base.Size.Y / 2, z)
 end
 
 local function buildTrophy(slime: Genome.Slime, spot: CFrame, parent: Instance): Instance?
@@ -664,6 +703,7 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 		if not entries[id] then
 			record.model:Destroy()
 			records[id] = nil
+			bossPlans[id] = nil
 		end
 	end
 	for id, entry in entries do

@@ -792,7 +792,7 @@ scenario("boss", function()
 			and stateOf(USER_ID).boss.phase == "fight",
 		`model {model and model.Name}, scale {model and model:GetScale()}, phase {stateOf(USER_ID).boss.phase}`
 	)
-	-- Both swing until the meter fills; the stand-in hits more often, so it is the top contributor.
+	-- Both follow it and swing until the meter fills; the stand-in hits more often, so it is the top contributor.
 	local bossPos = S.WorldView.slimePosition(id)
 	local wildBefore = 0
 	for _ in world.wild do
@@ -801,6 +801,7 @@ scenario("boss", function()
 	local swings = 0
 	while world.boss.fight.phase == "fight" and swings < 400 do
 		swings += 1
+		bossPos = S.WorldView.slimePosition(id) or bossPos -- it wanders (BossWander)
 		face(player, bossPos + Vector3.new(0, 0, 8), bossPos)
 		bat(player).Activated:Fire()
 		if swings % 2 == 0 then
