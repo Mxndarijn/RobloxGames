@@ -13,7 +13,7 @@
 	  * WorldPivot sits at the bottom centre: model:PivotTo(padTopCFrame)
 	    rests the slime on the pad. A Model with a PrimaryPart pivots around
 	    the PrimaryPart's pivot, so Body.PivotOffset points at the bottom too.
-	  * Attributes SlimeId, Tier, Mutation, Size; CollectionService tag
+	  * Attributes SlimeId, Tier, Size; CollectionService tag
 	    Constants.SLIME_TAG.
 	  * Pure function of slimeData: no yields, no scripts, no services beyond
 	    CollectionService, works on server and client (ViewportFrames).
@@ -75,20 +75,6 @@ function ModelFactory.build(slimeData: Types.SlimeData): Model
 	-- Bottom centre of the ball, in Body space.
 	body.PivotOffset = CFrame.new(0, -bodySpec.size[2] / 2, 0)
 	body.Parent = model
-	if bodySpec.light then
-		local light = Instance.new("PointLight")
-		light.Color = rgb(bodySpec.light.color)
-		light.Range = bodySpec.light.range
-		light.Brightness = bodySpec.light.brightness
-		light.Shadows = false
-		light.Parent = body
-	end
-	if bodySpec.sparkles then
-		local sparkles = Instance.new("Sparkles")
-		sparkles.SparkleColor = rgb(bodySpec.sparkles.color)
-		sparkles.Parent = body
-	end
-
 	for i = 2, #specs do
 		local part = makePart(specs[i])
 		local weld = Instance.new("WeldConstraint")
@@ -103,7 +89,6 @@ function ModelFactory.build(slimeData: Types.SlimeData): Model
 	model.WorldPivot = CFrame.new()
 	model:SetAttribute("SlimeId", slimeData.id)
 	model:SetAttribute("Tier", slimeData.tier)
-	model:SetAttribute("Mutation", slimeData.mutation)
 	model:SetAttribute("Size", slimeData.size)
 	CollectionService:AddTag(model, Constants.SLIME_TAG)
 	return model

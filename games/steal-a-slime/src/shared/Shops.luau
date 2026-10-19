@@ -68,8 +68,7 @@ end
 local upgradeRows: { Item } = {
 	item("LockUpgrade", "Longer locks", "⏱️", "Every lock lasts longer.", "BuyLockUpgrade", false, nil),
 }
-local UPGRADE_ICONS: { [string]: string } =
-	{ Income = "🍪", CarrySpeed = "💪", OfflineCap = "🌙", Luck = "🍀", RainMagnet = "🧲" }
+local UPGRADE_ICONS: { [string]: string } = { Income = "🍪", CarrySpeed = "💪", OfflineCap = "🌙", Luck = "🍀" }
 for _, def in Config.UPGRADES do
 	table.insert(
 		upgradeRows,

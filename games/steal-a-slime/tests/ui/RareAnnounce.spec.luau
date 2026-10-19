@@ -17,7 +17,7 @@ end)
 describe("RareAnnounce Legendary+ drops (CONTRACT §8.6 / §8.7)", function()
 	local TIERS = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic" }
 	it("classifies the Rare Notify by sound or wording", function()
-		expect(RareAnnounce.classify("A LEGENDARY Glow Globble spilled from the fountain!", "Rare")).toBe("drop")
+		expect(RareAnnounce.classify("A LEGENDARY Globble spilled from the fountain!", "Rare")).toBe("drop")
 		expect(RareAnnounce.classify("A MYTHIC Zed spilled from the fountain!!", nil)).toBe("drop")
 		expect(RareAnnounce.classify("Goal complete: Catch 10 slimes! +$500", "Goal")).toBeNil()
 	end)

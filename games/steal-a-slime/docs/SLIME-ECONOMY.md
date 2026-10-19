@@ -14,7 +14,7 @@ The numbers come from the simulation in [economy-sim/](economy-sim/): `slime_eco
 | Recipes | All three inputs one tier, hybrid one tier up (the vat rule stays "same rarity"). Hybrids show in the Dex as silhouettes; each input reveals itself once you have found that species. |
 | Bosses | A giant boss every 20 min: a team fight (fill its goo meter with hits), then a carry race where it can be slapped loose and stolen. The depositor gets the boss slime on an unstealable trophy stand; every helper gets a free egg. |
 | Top layer | **No eighth tier.** Make Mythic and Secret feel special with size, aura, a longer parade, and louder announcements. Bosses and the Secret-tier hybrid are the "beyond Secret" chase. |
-| Dex | Species Dex (50 entries) plus mutation stamps (species x 8). The old 1152-combo Dex is kept frozen as "Classic Dex", and veterans keep their income bonus. |
+| Dex | Species Dex (50 entries), one per species, with a milestone ladder that pays cash and permanent income. |
 | Saves | `SAVE_VERSION` 7: every saved slime gets a new species through a fixed legacy map, the new Dex is seeded from owned slimes, and old ids stay loadable forever. |
 
 Sim headline (proposed rules, active player, 6-player mixed server, medians of 24 runs): first Mythic **0.9 h**, first Secret **3.4 h**, all 32 spawning species **21.5 h**, all 15 hybrids **23.5 h**, full 50-entry Dex **30 h** (p90 38.5 h). A casual player needs **47 h** for the full Dex. Details in §7.3.
@@ -26,7 +26,7 @@ Sim headline (proposed rules, active player, 6-player mixed server, medians of 2
 ### 1.1 What happens today
 
 - `SPAWN_INTERVAL` 4 s, so 900 rolls per hour. But `Spawner` **skips** a roll while 18 wilds are alive (`Fountain.canSpawn`), and a slime nobody grabs lives `WILD_LIFETIME` 115 s. An untouched plaza holds 115 / 4 ≈ 29 slimes, so the cap binds: an empty or quiet server gets about 18 / 115 s ≈ 560 spawns per hour. On a busy server (players grab most slimes within seconds) it is about 840 per hour (sim). That is fine: quiet servers drop fewer slimes, but there are also fewer players sharing them. **No change proposed;** in the sim a 2-player server (666 spawns/h) keeps pace with a full 8-player one (895/h) because there is less competition.
-- Weights 52 / 28 / 13 / 5.2 / 1.45 / 0.35 / 0.1, `luck` multiplies tiers 3+, server pity (Epic after 30 dry drops, Legendary after 300), Slime Rain for 3 min every hour (0.75 s spawns, cap x2, luck x3, 35 % mutations).
+- Weights 52 / 28 / 13 / 5.2 / 1.45 / 0.35 / 0.1, `luck` multiplies tiers 3+, server pity (Epic after 30 dry drops, Legendary after 300), Slime Rain for 3 min every hour (0.75 s spawns, cap x2, luck x3).
 - The merge vat turns three of one tier into one of the next (20 % two tiers, never a jump into Secret; Mythic x3 does give a Secret). With today's odds and vat (sim scenario `today_rules`), the merge cascade and stealing, not the fountain, decide how fast a player reaches the top tiers. An active player who merges everything sees a first Mythic after 0.6 h and a first Secret after 1.4 h. That is too fast for "1 in 1000" tiers.
 
 ### 1.2 New weights
@@ -48,7 +48,7 @@ Why only the top three change: Common to Epic are what players catch and merge a
 **Merge caps** (`TripleMerge`, in the same PR as the weights):
 
 - A +2 jump may land on Legendary at most (today: up to Mythic). Rare x3 can still jump to Legendary; Epic x3 cannot jump to Mythic.
-- A random merge never makes a Secret. Mythic x3 gives a Mythic (a random Mythic species, assist below, plus the usual fresh-mutation roll). Secret comes from the fountain, Slime Rain, boss showers and the Nightwing recipe.
+- A random merge never makes a Secret. Mythic x3 gives a Mythic (a random Mythic species, assist below). Secret comes from the fountain, Slime Rain, boss showers and the Nightwing recipe.
 - **Merge assist:** 35 % of random results come from the species of that tier you have not found yet (when there are any). It costs nothing to build (the server knows the player's Dex), it hides inside "random", and it cuts the long tail of the last missing species.
 
 ### 1.3 Families: which species open when
@@ -83,11 +83,11 @@ Rebirth 10 asking for a hybrid teaches recipes right before Starlight opens.
 ### 2.1 Rules
 
 - The vat rule stays: three slimes of **one** tier. A recipe is a **multiset of three species of one tier T**, and its hybrid is tier T + 1. Order doesn't matter, and duplicates are allowed (moo + moo + lop).
-- Recipe first: if the three species form a recipe, the result is that hybrid. There is no jump and no species roll. Mutations, size and traits follow the normal `TripleMerge` rules.
+- Recipe first: if the three species form a recipe, the result is that hybrid. There is no jump and no species roll. Size and traits follow the normal `TripleMerge` rules.
 - Otherwise the result is the random fallback: a spawning species of T + 1 (or T + 2 on a jump) from the player's unlocked pool, with the assist from §1.2. Hybrids and bosses are never a random result.
 - A recipe hits **whether or not the player knows it**: experimenting finds recipes.
 - Inputs with no species (pre-v28 slimes are given one in the save migration, so this only covers bad data) never hit a recipe.
-- Tier-7 inputs behave as today: the result stays Secret with a guaranteed fresh mutation. There are no Secret-input recipes.
+- Tier-7 inputs behave as today: the result stays Secret. There are no Secret-input recipes.
 - Hybrids are normal slimes of their tier afterwards: they earn, sell, can be stolen and can go into a random merge.
 
 The art's suggested parents mix tiers (for example Sushi = mochi + chomp + sprout). Mixed-tier recipes would mean the vat must accept mixed tiers, and refusing mixed non-recipes would leak recipes for free. So the recipes below keep to one tier and keep the most recognisable parent features. That is decision 3 in §8.
@@ -125,7 +125,7 @@ Hybrid ids are new and permanent. None clashes with an old roster id.
 | Not found, no ingredient found | Black silhouette of the hybrid (its real mesh, flat black), tier colour frame, name "???", a "Merge-only" badge, three "?" ingredient slots. |
 | Some ingredients found | Each slot whose species you have in the Dex shows that species' icon (x2 / x3 for repeats). |
 | All ingredients found ("known") | Name and hint line shown, all three slots shown. The merge menu can now name this recipe (below). |
-| Crafted | Full-colour card, plus mutation stamps like any species. |
+| Crafted | Full-colour card, like any species. |
 
 - All 15 silhouettes are visible from the first Dex visit. That is the hook: players see a fish-cat silhouette and go looking.
 - The hint line only shows once the recipe is known, so it confirms more than it reveals. A variant: show it from the start as a riddle. That is up to the Dex/UI owner and changes nothing server-side.
@@ -169,10 +169,10 @@ MergeRecipes.hint(recipe: Recipe, found): { revealed: { string? }, known: boolea
 
 1. Not exactly three inputs, or not one tier: `refused` (same reasons `TripleMerge.canMerge` gives today).
 2. Tier T < 7 and `find(species)` hits: `recipe`.
-3. T = 7: `random` with `tier = 7`, no jump, pool = the unlocked Secret species (the existing "stays Secret, fresh mutation" path).
+3. T = 7: `random` with `tier = 7`, no jump, pool = the unlocked Secret species (the existing "stays Secret" path).
 4. Otherwise: `random` with `tier = min(T + 1, MERGE_MAX_TIER)` and the jump only when `T + 2 <= MERGE_JUMP_MAX_TIER`. The pool comes from `SlimeRoster.forTier` over the unlocked families, never hybrids or bosses.
 
-`resolve` draws no random numbers. `TripleMerge.merge` rolls from the outcome in a fixed order: jump, assist, species, then the existing mutation, trait and stack draws. It always draws the jump and species numbers, even on a recipe hit, so one seed stays one result whatever the inputs. The menu calls `resolve` for its preview and shows "Recipe: X" only when `isKnown`. It never sees the roll.
+`resolve` draws no random numbers. `TripleMerge.merge` rolls from the outcome in a fixed order: jump, assist, species, then the trait draws. It always draws the jump and species numbers, even on a recipe hit, so one seed stays one result whatever the inputs. The menu calls `resolve` for its preview and shows "Recipe: X" only when `isKnown`. It never sees the roll.
 
 Config additions (names for the contract): `MERGE_MAX_TIER = 6`, `MERGE_JUMP_MAX_TIER = 5`, `MERGE_ASSIST_CHANCE = 0.35`. `TRIPLE_MERGE_JUMP_CHANCE` (0.2) stays.
 
@@ -186,9 +186,9 @@ Today `FEATURES.BossSlime` drops a free, max-size Epic+ wild slime every 15 min.
 |---|---|
 | Schedule | First boss 8 min after server start, then every **20 min** (`BOSS_INTERVAL` 1200). It skips (moves 5 min later) if Slime Rain is running or due within 3 min. A 60 s heads-up toast and fountain rumble come first. |
 | Which boss | Rotation Goozilla, Queen Jelly, Goozilla, Queen Jelly, **Mecha Goo**. Mecha Goo (Secret tier) only comes on a server whose fountain is Starlight (tier 4); otherwise that slot is Goozilla. The boss is tier 6 (Goozilla, Queen Jelly) or 7 (Mecha Goo), shown about 4x a MAX_SIZE slime. |
-| 1. Fight (max 90 s) | The boss sits in the plaza with a **goo meter**. Bat hits and slaps on it fill the meter, 1 point per hit per player, at most one hit per 0.4 s. The meter needs **25 x players on the server** points, so it takes about the same time on any server. With nobody hitting it drains 2 %/s. Every 25 % the boss sheds 2 wild slimes (luck x3, Rain mutation chance). The server keeps each player's contribution. |
+| 1. Fight (max 90 s) | The boss sits in the plaza with a **goo meter**. Bat hits and slaps on it fill the meter, 1 point per hit per player, at most one hit per 0.4 s. The meter needs **25 x players on the server** points, so it takes about the same time on any server. With nobody hitting it drains 2 %/s. Every 25 % the boss sheds 2 wild slimes (luck x3). The server keeps each player's contribution. |
 | 2. Haul (max 90 s) | When the meter is full the boss pops down to carry size. The top contributor may grab it for the first 5 s, then anyone can. The carrier walks at the boss carry slow (0.6) and can't use the Speed Coil. A slap makes the carrier **drop it on the spot** (not "escape home": it has no home yet), and anyone can grab it again. That is the steal moment. |
-| Win | The player who brings it home gets the **boss slime**: species `goozilla` / `queen_jelly` / `mecha_goo`, MAX_SIZE, at least Glow. It goes on a **trophy stand** beside the plot: no pad needed, it earns income, and it **can't be stolen or merged** (one per boss species; a duplicate becomes a mutation reroll on the trophy). |
+| Win | The player who brings it home gets the **boss slime**: species `goozilla` / `queen_jelly` / `mecha_goo`, MAX_SIZE. It goes on a **trophy stand** beside the plot: no pad needed, it earns income, and it **can't be stolen or merged** (one per boss species). |
 | Everyone who helped | Every player with at least 10 % of the top contribution gets a free egg (`MysteryEgg.spawnForEvent`, which exists already) and a toast. |
 | Fail | Meter not full in 90 s, or nobody brings it home in 90 s: the boss bursts into 6 wild slimes (luck x3) and sinks into the drain. |
 
@@ -221,39 +221,28 @@ All of this is visuals and Notify text (Archer and Jolt), plus two Config number
 
 ---
 
-## 5. Dex, mutations and save migration
+## 5. Dex and save migration
 
 ### 5.1 The new Dex
 
-Today `Genome.dexKey` = tier : mutation : pattern : eyes (1152 combos). With baked species meshes, pattern and eyes no longer show (POOL.md), so the old key counts things players can't see. The new Dex counts what they can see:
+With baked species meshes, pattern and eyes no longer show (POOL.md), so the Dex counts what players can see:
 
 - **Species entries: 50** (32 spawning + 15 hybrids + 3 bosses). One per species, set the first time you own one (catch, steal, merge, recipe, boss, egg).
-- **Mutation stamps: 47 x 8 = 376** (spawning species and hybrids, each with None + the 7 core mutations, keyed by the slime's primary mutation as today). Combo and weather mutations (Solar, Nebula, Aurora, Royal, Wet, Frozen, Sleet, Comet) are **gold bonus stamps**. They show on the card but are outside the 376, so the total doesn't depend on weather. Bosses get no stamps.
 
-New Dex milestones (replace `DEX_MILESTONES`). Cash x rebirth multiplier as today. The income bonuses add up to 0.65, the same total as the old ladder:
+Dex milestones (`DEX_MILESTONES`). Cash x rebirth multiplier. The income bonuses add up to 0.45:
 
-| Ladder | Count | Cash | Income bonus |
-|---|---:|---:|---:|
-| Species | 8 | 1 000 | 0.02 |
-| Species | 15 (the whole start pool) | 5 000 | 0.03 |
-| Species | 20 | 25 000 | 0.05 |
-| Species | 32 | 250 000 | 0.10 |
-| Species | 40 | 1.5 M | 0.10 |
-| Species | 50 | 10 M | 0.15 |
-| Stamps | 50 | 10 000 | 0.03 |
-| Stamps | 100 | 100 000 | 0.05 |
-| Stamps | 200 | 1 M | 0.05 |
-| Stamps | 376 | 25 M | 0.07 |
+| Count | Cash | Income bonus |
+|---:|---:|---:|
+| 8 | 1 000 | 0.02 |
+| 15 (the whole start pool) | 5 000 | 0.03 |
+| 20 | 25 000 | 0.05 |
+| 32 | 250 000 | 0.10 |
+| 40 | 1.5 M | 0.10 |
+| 50 | 10 M | 0.15 |
 
 Tier sets (all species of one tier found) keep driving the plot skins (`PLOT_SKINS[i].set` with `threshold` 0.75 reads the species Dex instead of `Collection.tierMask`). Badges with `dexPercent` read the species count over 50.
 
-### 5.2 How mutations add variety
-
-- Mutations stay as they are (weights, multipliers, stacking, combos, weather). With baked colours they show as **material and effects** (POOL.md: Gold = Foil and sparkles, Glow = Neon aura, Lava/Syrup = embers, Galaxy = stars, Rainbow = hue-cycling outline, Crystal = Glass, Eclipse = dark aura). That needs a `MutationFx` visual pass (Archer) and makes the 8 stamps per species visibly different.
-- Stamps are the long tail after the species Dex: the sim's active player has 50 stamps after about 2 h, 100 after 9 h and 150 after 20 h. The 376 entry is a "forever" goal, while the species Dex is the one meant to finish in about 20-40 h.
-- Merges keep every mutation (TripleMerge rules), so stamps also come from merging. A Mythic x3 merge (no Secret) is how late players farm Mythic stamps.
-
-### 5.3 Old roster ids: save-safe migration (`SAVE_VERSION` 7)
+### 5.2 Old roster ids: save-safe migration (`SAVE_VERSION` 7)
 
 Rules: a saved id is never renamed or reused with a new meaning. `SlimeRoster` keeps a frozen `LEGACY` map (old id -> new id) **forever**, so a v6 save loaded in a year still maps. All mappings keep the slime's tier, so income, sell value and merges are unchanged by the migration.
 
@@ -288,11 +277,10 @@ Rules: a saved id is never renamed or reused with a new meaning. `SlimeRoster` k
 `SaveData.migrateV6` (makes v7):
 
 1. Every slime: `species` = `LEGACY[species]` if it is an old id. If it has **no** species (pre-v28 and pair-vat slimes), pick one by a stable hash of the slime id among the Meadow species of its tier. `name` = the new display name. Tier, size, mutations and growth are untouched.
-2. `data.found` (new, `{ [speciesId]: true }`) and `data.stamps` (new, `{ ["<species>:<Mutation>"]: true }`) are seeded from the migrated slimes. Old players start the new Dex with what they own.
-3. The old `data.dex` and `data.dexRewards` stay as they are, read-only: the "Classic Dex" badge on the Dex screen (count out of 1152). **Income bonus = max(old ladder bonus, new ladder bonus)**, so nobody loses income and veterans aren't paid twice.
+2. `data.found` (`{ [speciesId]: true }`) is seeded from the migrated slimes. Old players start the new Dex with what they own.
+3. The old `data.dex` and `data.dexRewards` are not read; the Dex is seeded from owned slimes and the species ladder pays from there.
 4. `data.trophies` (new, boss species -> slime) starts empty. `data.newDexRewards` counts paid new milestones.
 5. `Genome.sanitize` maps legacy ids on every load (not only in the migration). Steal logs, favourites and pet ids hold slime ids, not species, so they need nothing.
-6. Mutation `Eclipse` and species `eclipse` share a word but live in different fields. Dex stamp keys are `species:Mutation` (`eclipse:Eclipse`), so they can't collide.
 
 Tests (`tests/SaveMigrationV7.spec.luau`): a real v6 table with old Classic, family, Secret and nil-species slimes migrates to the mapped species with the same tier; old `sprout` becomes `prickles` (tier 2) and never `sprig`; the income bonus is kept; the round trip in `SaveData.spec`.
 
@@ -307,10 +295,10 @@ Each step is one PR on its own `feat/...` branch from `main`, with the contract 
 | 1 | `docs(steal-a-slime): slime pool contract` | Phoenix | `contract/slime-pool.md` + index line: species ids (incl. `sprig`), families, recipes, `MergeRecipes` API, Config names, save v7 fields, `State.dex` shape, boss State. Rename `sprout` -> `sprig` in `models/pool/roster.json`. | Contract.spec additions. |
 | 2 | `feat(steal-a-slime): new slime roster behind FEATURES.SlimePool` | Phoenix (+Archer looks) | `SlimeRoster` entries with `kind` (spawn / hybrid / boss) and `LEGACY`, `SlimeLooks` for the new meshes, `Genome.rollSpecies` (spawning only, uniform over open families), `FountainTiers` (new members and display names, drop `FAMILY_DROP_CHANCE` and family luck), `REBIRTH_SLIMES`. Flag off = today's roster. **Needs the 32 meshes uploaded (Merijn's OK)**, so the flag stays off until then. | Roster, FountainTiers, Genome specs. Flag on and off in `test-flags`. |
 | 3 | `feat(steal-a-slime): merge recipes` | Phoenix | `MergeRecipes.luau` (pure), `TripleMerge` uses `resolve` (recipe hit, `MERGE_MAX_TIER`, `MERGE_JUMP_MAX_TIER`, assist), recipe toast. Hand `resolve` / `isKnown` to the merge-menu session. | `MergeRecipes.spec` (every recipe hits in any order, no shared keys, mixed tier refused, nil species never hits, pool excludes hybrids, bosses and locked families), `TripleMerge.spec` seed-stability. |
-| 4 | `feat(steal-a-slime): save v7 and species Dex` | Phoenix, then Jolt for the UI | `SaveData.migrateV6`, `data.found` / `stamps` / `trophies` / `newDexRewards`, `Collection` new ladder with the max() bonus, `State.dex` = species + stamps + hints, PlotSkins and Badges on the new counts. Jolt: Dex cards with silhouettes, ingredient slots and the Classic badge. | `SaveMigrationV7.spec`, SaveData round trip, Collection, Snapshot, UI Dex spec. |
-| 5 | `feat(steal-a-slime): new rarity odds and top-tier presentation` | Phoenix + Archer | Config weights, size floors, lifetime multipliers for 6/7, announcements; Archer: auras, beam, eruption, pedestal glow, `MutationFx` materials. | Contract "Config matches the design", Spawner and Fountain specs. Studio playtest for the visuals. |
+| 4 | `feat(steal-a-slime): save v7 and species Dex` | Phoenix, then Jolt for the UI | `SaveData.migrateV6`, `data.found` / `trophies` / `speciesRewards`, `Collection` species ladder, `State.dex` = species + hints, PlotSkins and Badges on the new counts. Jolt: Dex cards with silhouettes, and ingredient slots. | `SaveMigrationV7.spec`, SaveData round trip, Collection, Snapshot, UI Dex spec. |
+| 5 | `feat(steal-a-slime): new rarity odds and top-tier presentation` | Phoenix + Archer | Config weights, size floors, lifetime multipliers for 6/7, announcements; Archer: auras, beam, eruption, pedestal glow. | Contract "Config matches the design", Spawner and Fountain specs. Studio playtest for the visuals. |
 | 6 | `feat(steal-a-slime): boss fight` | Phoenix + Archer + Jolt | `BossFight` (pure: meter, contributions, phases, deadlines), Spawner schedule and rotation, haul via `Carry`, trophy stand, eggs for helpers, `State.boss` fields, boss meter UI, giant boss visuals. Replaces today's `BossSlime` branch, so that flag's old path is deleted. | `BossFight.spec` (meter scales with players, drain, fail paths, top contributor priority, slap drop), Carry spec, livetest session with 2 stand-in players. |
-| 7 | `refactor(steal-a-slime): retire the pair merge` | Phoenix | Delete `Merge.luau`'s pair path (`Request("Merge")`) once `MergeVat3` expires, keeping `Merge.inheritedMutation` (moved to TripleMerge). | Delete its specs. |
+| 7 | `refactor(steal-a-slime): retire the pair merge` | Phoenix | Delete `Merge.luau`'s pair path (`Request("Merge")`) once `MergeVat3` expires. | Delete its specs. |
 | 8 | `feat(steal-a-slime): progression telemetry` | Phoenix | AnalyticsService funnel events (rebirth n, first of tier, species count, recipe crafted), **no DataStore**, to check the sim's rebirth-pace assumption after launch. | Spec on the pure event builder. |
 
 Steps 2 to 5 should go live together, on one release with `SlimePool` on: the new Dex makes no sense on the old roster. Step 6 can follow a release later.
@@ -323,8 +311,8 @@ Steps 2 to 5 should go live together, on one release with `SlimePool` on: the ne
 
 `economy-sim/slime_economy_sim.py` steps one server second by second for 60 played hours, 24 seeds per scenario:
 
-- **Fountain:** a roll every 4 s while fewer than 18 wilds are alive (36 in Rain), lifetime 115 s, the scenario's weights, `luck` x3 for tiers 3+ during Rain, server pity (Epic 30 / Legendary 300), 3 % drop mutation (35 % in Rain), Slime Rain 3 min every hour from minute 5. Species are uniform over the tier's species in the families the fountain has opened.
-- **Players:** "you" plus the other players (fixed ranks, a mixed server). Each one walks to the plaza (10 s), grabs the best slime they may catch (tier first; a species they lack counts as about two tiers more; then a stronger mutation; "you" also chase the ingredients of the one known recipe you are working on) and carries it home (14 s + 1.5 s per tier). All times are divided by an **activity** factor (0.6 = 40 % of the time goes to locking, defending, shopping, AFK). Cash is not modelled: every wild is assumed affordable.
+- **Fountain:** a roll every 4 s while fewer than 18 wilds are alive (36 in Rain), lifetime 115 s, the scenario's weights, `luck` x3 for tiers 3+ during Rain, server pity (Epic 30 / Legendary 300), Slime Rain 3 min every hour from minute 5. Species are uniform over the tier's species in the families the fountain has opened.
+- **Players:** "you" plus the other players (fixed ranks, a mixed server). Each one walks to the plaza (10 s), grabs the best slime they may catch (tier first; a species they lack counts as about two tiers more; "you" also chase the ingredients of the one known recipe you are working on) and carries it home (14 s + 1.5 s per tier). All times are divided by an **activity** factor (0.6 = 40 % of the time goes to locking, defending, shopping, AFK). Cash is not modelled: every wild is assumed affordable.
 - **Merges:** after every deposit, known recipes first, then any three spare slimes of one tier (keeping a known recipe's ingredients). 8 pads; extras are sold, lowest first. Merge results follow §2: recipe hit, else random with the scenario's jump, caps and assist. Other players merge too, without recipes or assist.
 - **Stealing:** each player makes `steals_per_hour` successful steals (Poisson). The victim is random, the slime is their best one half the time and otherwise random. Trophies can't be stolen. A steal also counts for the Dex.
 - **Rebirths:** "you" rebirth at fixed played hours (assumption below). A rebirth keeps your best slime and wipes the rest. The Dex is kept.
@@ -361,8 +349,6 @@ Medians (p90 in brackets) in played hours, 24 runs of 60 h each. `>60` = not rea
 | All 15 hybrids | 23.5 (37.1) | 24.8 (36.5) | 25.1 (36.0) | 43.0 (48.5) | 22.1 (33.2) | 26.7 (58.7) | 23.6 (30.1) | 26.4 (36.6) |
 | All 3 bosses | 24.8 (29.8) | 26.5 (33.1) | 24.8 (38.1) | 38.1 (54.8) | 16.5 (36.1) | 8.1 (16.1) | 19.8 (23.1) | 12.5 (27.8) |
 | **Full Dex (50)** | **30.1 (38.5)** | 28.1 (38.1) | 28.8 (43.1) | 47.3 (57.1) | 32.0 (52.0) | 29.7 (>60) | 28.3 (40.2) | 32.4 (36.8) |
-| 100 mutation stamps | 8.6 | 8.4 | 9.1 | 17.6 | 7.9 | 8.1 | 11.9 | 12.1 |
-| 150 mutation stamps | 19.7 | 19.1 | 19.3 | 39.3 | 18.5 | 19.1 | 24.2 | 28.4 |
 
 What the numbers say:
 
@@ -383,4 +369,4 @@ Full tables, including per-species medians and how each species was first found 
 2. **Make the top rarer, and how.** The proposal: Legendary / Mythic / Secret weights 1.45 / 0.35 / 0.1 -> 1.2 / 0.2 / 0.05; no +2 jump into Mythic; **no random merge into Secret** (Mythic x3 gives a Mythic); a 35 % merge assist toward missing species. Players will feel this as a nerf of the vat. The alternative is today's odds (first Secret at 1.4 h).
 3. **Recipes: one tier only.** All three inputs are one tier, and the hybrid is one tier up. The vat and menu rules stay simple and recipes can't be probed for free, but some recipes differ from the art's suggested parents (Sushi = chomp + chomp + pengoo, Dragon King = king x3). The alternative is mixed-tier recipes, which need a new vat rule and a recipe book.
 4. **Boss shape.** The proposal: every 20 min, a team meter fight, then a slap-able carry race, then an unstealable trophy, and a free egg for every helper. That replaces today's "first grab wins" boss. Do you want the trophy unstealable, and is 20 min the right pace (3 per hour, beside the hourly Slime Rain)?
-5. **No eighth tier.** Keep Mythic and Secret as the top and make them feel special (size floors, aura, longer parade, eruption on a Secret spawn). The new Dex (50 species + 376 stamps) replaces the 1152-combo Dex, which stays as a frozen "Classic Dex". Veterans keep the higher of the old and new income bonus. OK to retire the old Dex like that?
+5. **No eighth tier.** Keep Mythic and Secret as the top and make them feel special (size floors, aura, longer parade, eruption on a Secret spawn). The Dex counts the 50 species.

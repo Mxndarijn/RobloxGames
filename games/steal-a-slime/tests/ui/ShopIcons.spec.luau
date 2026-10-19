@@ -11,7 +11,6 @@ local EXPECTED = {
 	"Lock",
 	"MysteryEgg",
 	"SpeedCoil",
-	"Consumable_MutationSpray",
 	"Consumable_LuckPotion",
 	"Consumable_WeatherTotem",
 	"Pvp_KnockGlove1",
@@ -38,7 +37,6 @@ local EXPECTED = {
 	"Upgrade_CarrySpeed",
 	"Upgrade_OfflineCap",
 	"Upgrade_Luck",
-	"Upgrade_RainMagnet",
 }
 
 local function allItems(): { Shops.Item }

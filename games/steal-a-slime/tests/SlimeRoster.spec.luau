@@ -68,30 +68,4 @@ describe("SlimeRoster", function()
 			expect(string.find(lower, "lava", 1, true)).toBe(nil)
 		end
 	end)
-
-	it("keeps existing mutation save ids and adds new ones on the curve", function()
-		local names = {}
-		for _, m in Config.MUTATIONS do
-			names[m.name] = m
-		end
-		for _, keep in { "Glow", "Lava", "Galaxy", "Gold" } do
-			expect(names[keep] ~= nil).toBe(true)
-			expect(SlimeRoster.MUTATION_DISPLAY[keep] ~= nil).toBe(true)
-		end
-		expect(SlimeRoster.MUTATION_DISPLAY.Lava).toBe("Syrup")
-		expect(names.Lava.displayName).toBe("Syrup")
-		for _, m in SlimeRoster.NEW_MUTATIONS do
-			-- v28: wired into Config with the drafted values.
-			expect(names[m.name] ~= nil).toBe(true)
-			expect(names[m.name].multiplier).toBe(m.multiplier)
-			expect(names[m.name].weight).toBe(m.weight)
-			expect(SlimeRoster.MUTATION_DISPLAY[m.name] ~= nil).toBe(true)
-		end
-		-- Config order is the merge rank: multiplier up, weight down.
-		for i = 2, #Config.MUTATIONS do
-			local a, b = Config.MUTATIONS[i - 1], Config.MUTATIONS[i]
-			expect(b.multiplier > a.multiplier).toBe(true)
-			expect(b.weight < a.weight).toBe(true)
-		end
-	end)
 end)

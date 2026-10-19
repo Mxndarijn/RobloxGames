@@ -67,7 +67,7 @@ Every field above is in every snapshot (the server never leaves one out); only t
 | `Plot_<i>` | `DexTotal` (`PLOT_DEX_TOTAL_ATTRIBUTE`) | `number`, always 1152 (= `State.dexTotal`) |
 | `Plot_<i>` | `DexTierMask` (`PLOT_DEX_TIER_MASK_ATTRIBUTE`) | `number`, optional for readers: bit k-1 set when the owner has discovered any tier-k slime (0 = free plot) |
 | `Plot_<i>` | `PlotPrice` (`PLOT_PRICE_ATTRIBUTE`) | `number?`, reserved for paid plots; **never set in v13** (plots are free), so readers show no price |
-| slime model (server SlimeMesh) | `Species` (`SPECIES_ATTRIBUTE`) | `string?`, the SlimeRoster id of a typed slime (v28); nil for untyped / older slimes. Its colour and material come from `Shared.SlimeLooks` (unmutated slimes only: a mutation material wins). |
+| slime model (server SlimeMesh) | `Species` (`SPECIES_ATTRIBUTE`) | `string?`, the SlimeRoster id of a typed slime (v28); nil for untyped / older slimes. Its colour and material come from `Shared.SlimeLooks`. |
 | wild slime model | `RareSpawn` (`RARE_ATTRIBUTE`) | `number?`, the tier, only on wild Legendary+ (tier >= `RARE_ANNOUNCE_TIER`) drops |
 | wild slime model | `Riding` (`RIDING_ATTRIBUTE`) | `true` while the slime rides the fountain slide (emerge to landing / lane entry), else `nil`; the pc-watcher ring_slimes probe skips these |
 | wild slime model | `DespawnAt` (`DESPAWN_AT_ATTRIBUTE`) | `number?`, server time the slime is removed (= its expiry). Set only for the last `Config.DESPAWN_TELEGRAPH_SECONDS` (5) while uncarried, and only with `FEATURES.DespawnTelegraph`; nil otherwise. Clients count down `DespawnAt - workspace:GetServerTimeNow()` (`Shared.DespawnTelegraph`). The server still removes only at expiry, never earlier. Flag off = silent removal as before. The client countdown + shrink never fade, blink or highlight the slime (v30 C8). |
@@ -89,7 +89,7 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 ## 8.6 Notify sound names (added to §3)
 
-`"Rare"`: a Legendary+ wild drop (everyone, `"good"`: `"A LEGENDARY <name> spilled from the fountain!"`, Mythic: `"A MYTHIC <name> spilled from the fountain!!"`; mutations use their display name). `"Goal"`: a goal stage or dex milestone paid (`"good"`: `"Goal complete: <title>! +$<n>"`, `"Slimedex <count>: +$<n> and +<pct>% income!"`). **Sound IDs are stand-ins:** Jolt's `src/ui/Sounds` maps `"Rare"` and `"Goal"` to placeholder catalog sounds (Rare reuses Rain `12222200`, Goal reuses Cash `12222140`) until real ones are picked. A new rebirth rank sends `"New rank: <title>! <text>"` (`"good"`, `"Rebirth"`), and a Luck upgrade proc sends `"Lucky! Your <old> slime became <rarity>!"` (`"good"`, `"Cash"`).
+`"Rare"`: a Legendary+ wild drop (everyone, `"good"`: `"A LEGENDARY <name> spilled from the fountain!"`, Mythic: `"A MYTHIC <name> spilled from the fountain!!"`). `"Goal"`: a goal stage or dex milestone paid (`"good"`: `"Goal complete: <title>! +$<n>"`, `"Slimedex <count>: +$<n> and +<pct>% income!"`). **Sound IDs are stand-ins:** Jolt's `src/ui/Sounds` maps `"Rare"` and `"Goal"` to placeholder catalog sounds (Rare reuses Rain `12222200`, Goal reuses Cash `12222140`) until real ones are picked. A new rebirth rank sends `"New rank: <title>! <text>"` (`"good"`, `"Rebirth"`), and a Luck upgrade proc sends `"Lucky! Your <old> slime became <rarity>!"` (`"good"`, `"Cash"`).
 
 ## 8.7 Rarity curve
 
@@ -167,23 +167,16 @@ dexRewards = n,                                                       -- dex mil
 Migration (`SaveData.migrate`, pure, tested with a v12-shaped save): v1 -> v2 as before; v2 (or a version-less v2 shape) -> v3 adds zero upgrades / stats / goals / dexRewards, seeds `stats.caught = max(#slimes, dex count)`, and remaps `tutorialStep` 4..6 -> 5..7 (§8.3). Unknown or newer versions are read field by field with the v3 sanitizer. Everything is clamped (levels to `maxLevel`, stages to `#targets`).
 
 
-## 8.9a DataStore schema v4: stacking mutations (`Config.SAVE_VERSION = 4`)
-
-Same store and key; no key or field is renamed. v4 = v3 plus `slimes[i].mutations = { name, ... }` (at most `Config.MAX_MUTATIONS`; a fused combo from `Config.COMBOS` is stored by its combo name). The single `mutation` field is still written (the strongest entry, "None" when empty): v3 readers, visuals and dex keys use it.
-
-`SaveData.migrateV3` (v1/v2/v3 -> v4) is pure, returns a copy and is idempotent: `mutations = {}` for "None" / missing, else `{ mutation }`; a slime that already has a list is untouched. Value is the product of the list (a single entry = the v3 value). A version above 4 is never rewritten by the migration; `Genome.sanitize` reads both fields. `FEATURES.MutationStacking` (default on) only controls new rolls (stack chance `STACK_MUTATION_CHANCE`, combo fusing, merge carry-over); migration and loading always run. The Dex counts a stacked slime under its primary mutation (`DEX_TOTAL` adds `#COMBOS` with the flag on).
-
-
-## 8.9b DataStore schema v5: weather mutations (`Config.SAVE_VERSION = 5`)
-
-No field changes. `SaveData.migrateV4` (v4 -> v5, pure, idempotent) drops duplicate / "None" / non-string entries from each slime's `mutations` and rebuilds a missing list from `mutation`; clean slimes pass through untouched. New mutation ids `Wet`, `Frozen` and combos `Sleet`, `Comet` are added; no id or key is renamed. The roll bonus comes from `Config.WEATHER[id].mutation / chanceBonus` (WEATHER.md); loading never depends on it.
-
 ## 8.9c DataStore schema v6: settings, plotSkin, stealLog (`Config.SAVE_VERSION = 6`)
 
 - **New field:** `settings = { musicVolume: number 0..1, sfxVolume: number 0..1, muted: boolean }` (`Shared.AudioSettings`; volumes rounded to 0.01; defaults `Config.AUDIO.DEFAULT_MUSIC_VOLUME` / `DEFAULT_SFX_VOLUME`, not muted). Missing or junk fields load as their default.
 - **Migration:** `SaveData.migrateV5` (v5 -> v6, pure, idempotent) normalises three fields that were unversioned before: `plotSkin` (a known skin id is kept, else `"classic"`; unlock is still checked on load), `stealLog` (`StealAlert.clean`, capped at `LOG_CAP` 12, junk -> empty) and `settings` (`AudioSettings.clean`). It never looks at a feature flag: with `PlotSkins`, `StealAlerts` or `Audio` off the field is kept, saved again and simply unused.
 - **Remote:** `Request("SetAudioSettings", musicVolume: number, sfxVolume: number, muted: boolean)`, rate limit 0.5 s. Wrong types and non-finite numbers are `"bad argument"`; numbers are clamped to 0..1. With `FEATURES.Audio` off it is refused (`"audio settings are off"`) and the save is not touched.
 - **State:** `settings?` (same shape), only with `FEATURES.Audio` on.
+
+## 8.9d DataStore schema v7: no slime mutations (`Config.SAVE_VERSION = 7`)
+
+No new fields. `SaveData.migrateV6` (v6 -> v7, pure, idempotent) drops the `mutation` / `mutations` fields from every stored slime (pads, bag, carried), the mutation stamps from the Dex, the `MutationSpray` consumable and the `RainMagnet` upgrade level. Old saves load unchanged otherwise; unknown legacy values are ignored, never an error.
 
 ## 8.10 Speed Coil (replaces the §2 bullet)
 

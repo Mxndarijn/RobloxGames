@@ -69,7 +69,6 @@ describe("Snapshot.build", function()
 		expect(state.lockDuration).toBe(Steal.lockDuration(0))
 		expect(state.dex.total).toBe(SpeciesDex.TOTAL)
 		expect(state.dex.found).toBe(1)
-		expect(state.dex.stamps).toBe(1)
 		expect(state.rain.active).toBe(false)
 		expect(state.rain.nextAt).toBe(T0 + Config.RAIN_FIRST_AT)
 		expect(state.daily.available).toBe(true)
@@ -116,24 +115,20 @@ describe("Snapshot State.dex", function()
 		end
 		error(`no entry {id}`)
 	end
-	it("lists the 50 entries and the event Secrets with counts, stamps and gold stamps", function()
+	it("lists the 50 entries and the event Secrets with counts", function()
 		local world = ServerFixtures.world()
-		local glow = Fixtures.slime("a", 1, { species = "gummy", mutation = "Glow", mutations = { "Glow" } })
-		local solar = Fixtures.slime("b", 1, { species = "gummy", mutation = "Solar", mutations = { "Solar" } })
-		local s = ServerFixtures.join(world, 1, { glow, solar, Fixtures.slime("c", 1, { species = "gummy" }) })
+		local s = ServerFixtures.join(world, 1, {
+			Fixtures.slime("a", 1, { species = "gummy" }),
+			Fixtures.slime("c", 1, { species = "gummy" }),
+		})
 		local state = Snapshot.build(world, s, T0) :: any
 		expect(#state.dex.entries).toBe(SpeciesDex.TOTAL + #SpeciesDex.BONUS)
 		expect(state.dex.found).toBe(1)
 		expect(state.dex.total).toBe(SpeciesDex.TOTAL)
-		expect(state.dex.stamps).toBe(2) -- gummy:None, gummy:Glow
-		expect(state.dex.stampTotal).toBe(SpeciesDex.STAMP_TOTAL)
-		expect(state.dex.gold).toBe(1) -- gummy:Solar
 		expect(state.dex.bonusTotal).toBe(#SpeciesDex.BONUS)
 		local gummy = entry(state, "gummy")
 		expect(gummy.found).toBe(true)
 		expect(gummy.name).toBe("Gummy")
-		expect(table.concat(gummy.stamps, ",")).toBe("None,Glow")
-		expect(table.concat(gummy.gold, ",")).toBe("Solar")
 		local moo = entry(state, "moo")
 		expect(moo.found).toBe(false)
 		expect(moo.name).toBeNil()
@@ -168,12 +163,11 @@ describe("Snapshot State.dex", function()
 			end
 		end
 	end)
-	it("State.dex totals match the roster: 32 spawn + 15 hybrids + 3 bosses, 47 x 8 stamps", function()
+	it("State.dex totals match the roster: 32 spawn + 15 hybrids + 3 bosses", function()
 		expect(#SlimeRoster.ofKind("spawn") + #SlimeRoster.ofKind("hybrid") + #SlimeRoster.ofKind("boss")).toBe(
 			SpeciesDex.TOTAL
 		)
 		expect(SpeciesDex.TOTAL).toBe(50)
-		expect(SpeciesDex.STAMP_TOTAL).toBe(376)
 		expect(#SpeciesDex.BONUS).toBe(#SlimeRoster.ofKind("event"))
 	end)
 end)

@@ -5,7 +5,7 @@
 	Applies a live event to the World and carries it across servers. Entry points:
 	`command` (a chat line from a player; ignored unless they are an admin) and `receive`
 	(a MessagingService payload; re-validated, the sender must be an admin, rate-limited).
-	Luck / mutation events override the dawn / dusk modifier until they end (Spawner.stepModifier);
+	Luck events override the dawn / dusk modifier until they end (Spawner.stepModifier);
 	rain reuses Spawner.forceRain. The messaging transport is injected so tests need no Roblox.
 ]]
 
@@ -59,7 +59,6 @@ function AdminEventsService.apply(service: Service, payload: AdminShared.Payload
 				label = def.label,
 				weight = 0,
 				luck = def.luck,
-				mutation = def.mutation,
 			},
 		}
 		Spawner.stepModifier(world, now)

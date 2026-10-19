@@ -20,7 +20,6 @@
 ]]
 
 local ItemIcons = if script then require(script.Parent.ItemIcons) else require("./ItemIcons")
-local ShopCatalog = if script then require(script.Parent.ShopCatalog) else require("./ShopCatalog")
 
 export type ToolInfo = { name: string, equipped: boolean }
 export type Entry = {
@@ -194,18 +193,10 @@ function InventoryCore.select(entry: Entry): Action
 end
 
 -- The Request that uses the consumable `entry` in hand: (action, itemId, slimeId?), or nil when it cannot be
--- used yet (not a consumable, not in hand, or a Mutation Spray with no slime to put it on). The server
--- re-checks everything; the slime is the spray's usual target (the favourite, else the highest tier).
-function InventoryCore.useRequest(entry: Entry, state: any): { string }?
+-- used yet (not a consumable or not in hand). The server re-checks everything.
+function InventoryCore.useRequest(entry: Entry): { string }?
 	if entry.kind ~= "consumable" or not entry.equipped then
 		return nil
-	end
-	if entry.itemId == "MutationSpray" then
-		local target = ShopCatalog.sprayTarget(if type(state) == "table" then state else {})
-		if target == nil then
-			return nil
-		end
-		return { InventoryCore.USE_ACTION, entry.itemId, target }
 	end
 	return { InventoryCore.USE_ACTION, entry.itemId }
 end

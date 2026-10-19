@@ -32,11 +32,7 @@ local function call(world: any, userId: number, seed: number, now: number, ...: 
 end
 
 local function slime()
-	return Fixtures.slime(
-		"a",
-		4,
-		{ mutation = "Glow", mutations = { "Glow" }, size = 1.2, pattern = "Spots", eyes = "Happy" }
-	)
+	return Fixtures.slime("a", 4, { size = 1.2, pattern = "Spots", eyes = "Happy" })
 end
 
 describe("Appraise", function()
@@ -50,7 +46,7 @@ describe("Appraise", function()
 		expect(Config.APPRAISE_COST_FRACTION).toBe(0.3)
 		expect(Appraise.cost(s, 2)).toBe(math.floor(value * 0.3))
 		-- a cheaper slime costs less: tracks the current value
-		local bigger = Fixtures.slime("b", 4, { mutation = "Gold", size = 1.2 })
+		local bigger = Fixtures.slime("b", 5, { size = 1.2 })
 		expect(Appraise.cost(bigger, 2) > Appraise.cost(s, 2)).toBeTruthy()
 	end)
 	it("charges exactly the cost through the Request action", function()
@@ -58,12 +54,11 @@ describe("Appraise", function()
 		local s = slime()
 		local price = Appraise.cost(s, 0)
 		local session = ServerFixtures.join(world, 1, { s }, price + 7)
-		local res = call(world, 1, 5, T0 + 100, "a", "mutation")
+		local res = call(world, 1, 5, T0 + 100, "a", "size")
 		expect(res.ok).toBe(true)
 		expect(session.data.cash).toBe(7)
 		expect(res.appraisal.cost).toBe(price)
-		expect(res.appraisal.beforeMutation).toBe("Glow")
-		expect(res.appraisal.afterMutation).toBe(session.data.slimes[1].mutation)
+		expect(res.appraisal.kind).toBe("size")
 	end)
 	it("rejects insufficient cash and changes nothing", function()
 		local world = ServerFixtures.world()
@@ -75,7 +70,6 @@ describe("Appraise", function()
 		expect(res.message).toBe("not enough cash")
 		expect(session.data.cash).toBe(price - 1)
 		expect(session.data.slimes[1].size).toBe(1.2)
-		expect(session.data.slimes[1].mutation).toBe("Glow")
 	end)
 	it("rejects a non-owner and a bad kind without spending", function()
 		local world = ServerFixtures.world()
@@ -86,7 +80,8 @@ describe("Appraise", function()
 		expect(res.message).toBe("not your slime")
 		expect(other.data.cash).toBe(10_000)
 		expect(call(world, 1, 5, T0 + 100, "a", "tier").message).toBe("bad argument")
-		expect(call(world, 1, 5, T0 + 200, "nope", "size").message).toBe("not your slime")
+		expect(call(world, 1, 5, T0 + 200, "a", "mutation").message).toBe("bad argument")
+		expect(call(world, 1, 5, T0 + 300, "nope", "size").message).toBe("not your slime")
 	end)
 	it("is rate-limited", function()
 		local world = ServerFixtures.world()
@@ -95,22 +90,13 @@ describe("Appraise", function()
 		expect(call(world, 1, 6, T0 + 100.1, "a", "size").message).toBe("too fast")
 		expect(call(world, 1, 6, T0 + 101, "a", "size").ok).toBe(true)
 	end)
-	it("a mutation reroll changes only the mutation, a size reroll only the size", function()
+	it("a size reroll changes only the size", function()
 		for seed = 1, 20 do
 			local data = Fixtures.data({ slime() }, 1_000_000)
 			local before = Genome.copy(data.slimes[1])
-			local ok = Appraise.reroll(data, "a", "mutation", Rng.new(seed))
-			expect(ok).toBe(true)
+			expect((Appraise.reroll(data, "a", "size", Rng.new(seed)))).toBe(true)
 			local after = data.slimes[1]
 			local expected = Genome.copy(before)
-			expected.mutation = after.mutation
-			expected.mutations = after.mutations
-			expect(Genome.copy(after)).toEqual(expected)
-
-			data = Fixtures.data({ slime() }, 1_000_000)
-			expect((Appraise.reroll(data, "a", "size", Rng.new(seed)))).toBe(true)
-			after = data.slimes[1]
-			expected = Genome.copy(before)
 			expected.size = after.size
 			expect(Genome.copy(after)).toEqual(expected)
 			expect(after.size >= Config.MIN_SIZE and after.size <= Config.MAX_SIZE).toBeTruthy()
@@ -123,18 +109,8 @@ describe("Appraise", function()
 			return appraisal
 		end
 		for seed = 1, 10 do
-			expect(run("mutation", seed)).toEqual(run("mutation", seed))
 			expect(run("size", seed)).toEqual(run("size", seed))
 		end
-		local seen: { [string]: boolean } = {}
-		for seed = 1, 40 do
-			seen[(run("mutation", seed) :: any).afterMutation] = true
-		end
-		local kinds = 0
-		for _ in seen do
-			kinds += 1
-		end
-		expect(kinds > 1).toBeTruthy()
 	end)
 	it("keeps the save format: same fields before and after", function()
 		local data = Fixtures.data({ slime() }, 1_000_000)
@@ -143,7 +119,6 @@ describe("Appraise", function()
 			table.insert(keys, k)
 		end
 		table.sort(keys)
-		Appraise.reroll(data, "a", "mutation", Rng.new(3))
 		Appraise.reroll(data, "a", "size", Rng.new(3))
 		local after = {}
 		for k in data.slimes[1] do

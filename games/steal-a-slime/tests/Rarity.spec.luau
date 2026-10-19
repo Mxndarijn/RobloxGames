@@ -96,18 +96,10 @@ end)
 describe("Spawner.rareText / pityTier", function()
 	it("names the rarity in capitals, Mythic and Secret get two bangs", function()
 		local slime = Genome.generate((require("../src/shared/Rng") :: any).new(1), { id = "x", tier = 5 })
-		slime.mutation = "Gold"
 		slime.name = "Globble"
-		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Gold Globble spilled from the fountain!")
+		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Globble spilled from the fountain!")
 		slime.tier = 6
-		slime.mutation = "None"
 		expect(Spawner.rareText(slime)).toBe("A MYTHIC Globble spilled from the fountain!!")
-	end)
-	it("displays Lava as Syrup in the toast (save id kept)", function()
-		local slime = Genome.generate((require("../src/shared/Rng") :: any).new(1), { id = "x", tier = 5 })
-		slime.mutation = "Lava"
-		slime.name = "Globble"
-		expect(Spawner.rareText(slime)).toBe("A LEGENDARY Syrup Globble spilled from the fountain!")
 	end)
 	it("floors at Epic after PITY_EPIC - 1 misses and Legendary after PITY_LEGENDARY - 1", function()
 		expect(Spawner.pityTier({ sinceEpic = 0, sinceLegendary = 0 })).toBeNil()

@@ -13,14 +13,11 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
-local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 local Types = if script then require(script.Parent.Types) else require("./Types")
 
 type Data = PlayerData.Data
-
-local SPRAY_TRIES = 8
 
 local Consumables = {}
 
@@ -178,35 +175,6 @@ end
 
 function Consumables.potionFull(untilAt: number, now: number): boolean
 	return untilAt - now >= Config.LUCK_POTION_MAX_SECONDS
-end
-
---[[
-	The mutation list after a spray, or nil when it cannot change. One mutation is rolled from the
-	MUTATIONS weights and added (stacking: combos fuse, a full slime refuses); with MutationStacking off
-	a slime holds one mutation, so the spray replaces it with a different one.
-]]
-function Consumables.spray(slime: Genome.Slime, rng: Rng.Rng): { string }?
-	local current = Genome.mutationList(slime)
-	local weights = {}
-	for i, m in Config.MUTATIONS do
-		weights[i] = m.weight
-	end
-	rng:float() -- the first draw of a Park-Miller LCG is correlated with its seed (a clock-seeded rng)
-	-- A roll that changes nothing (already owned, fuses to the same, no room) is rolled again, a few times.
-	for _ = 1, SPRAY_TRIES do
-		local rolled = Config.MUTATIONS[Rng.weightedIndex(weights, rng:float())].name
-		if not Config.FEATURES.MutationStacking then
-			if rolled ~= slime.mutation then
-				return { rolled }
-			end
-		else
-			local out = Genome.addMutation(current, rolled)
-			if table.concat(out, ",") ~= table.concat(current, ",") then
-				return out
-			end
-		end
-	end
-	return nil
 end
 
 --[[

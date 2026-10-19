@@ -47,18 +47,18 @@ Remotes.ACTIONS = table.freeze({
 	BuyUpgrade = table.freeze({ args = { "string" } }), -- Config.UPGRADES id (CONTRACT.md §8.1)
 	BuyEgg = table.freeze({ args = {} }), -- Mystery Egg: cash only, hatches into a slime on your plot
 	Drop = table.freeze({ args = {} }),
-	Appraise = table.freeze({ args = { "string", "string" } }), -- slimeId, "mutation" | "size"
+	Appraise = table.freeze({ args = { "string", "string" } }), -- slimeId, "size"
 	Redeem = table.freeze({ args = { "code" } }), -- typed code text (Codes.normalize on the server)
 	EquipPlotSkin = table.freeze({ args = { "string" } }), -- Config.PLOT_SKINS id (FEATURES.PlotSkins, CONTRACT.md §15)
 	BuyConsumable = table.freeze({ args = { "string", "string?" } }), -- Config.CONSUMABLES id, slimeId (ignored: buying only adds to the held stack) (FEATURES.Consumables)
-	UseConsumable = table.freeze({ args = { "string", "string?" } }), -- held Config.CONSUMABLES id, slimeId (MutationSpray only): applies the effect, stack -1 (FEATURES.Consumables)
+	UseConsumable = table.freeze({ args = { "string", "string?" } }), -- held Config.CONSUMABLES id, unused slot (string?): applies the effect, stack -1 (FEATURES.Consumables)
 	SetAudioSettings = table.freeze({ args = { "number", "number", "boolean" } }), -- musicVolume, sfxVolume (clamped 0..1), muted (FEATURES.Audio, CONTRACT.md §8.9c)
 	BuyPvpItem = table.freeze({ args = { "string" } }), -- Config.PVP_TOOLS id (FEATURES.PvP, CONTRACT.md §26)
 	EquipPvpItem = table.freeze({ args = { "string?" } }), -- owned Config.PVP_TOOLS id, nil unequips (FEATURES.PvP)
 	UsePvpItem = table.freeze({ args = { "string", "number?", "vector3?" } }), -- itemId, targetUserId, aim point (FEATURES.PvP)
 	OpenShop = table.freeze({ args = { "string" } }), -- shopId "ItemShop" | "UpgradeShop" (FEATURES.WorldShops, CONTRACT.md §27)
 	CloseShop = table.freeze({ args = {} }), -- clears the open shop
-	ShopBuy = table.freeze({ args = { "string", "string", "string?" } }), -- shopId, itemId, slimeId (MutationSpray only); delegates to the item's existing buy action
+	ShopBuy = table.freeze({ args = { "string", "string", "string?" } }), -- shopId, itemId, unused slot (string?); delegates to the item's existing buy action
 	Sync = table.freeze({ args = {} }), -- server re-sends State
 } :: { [string]: ActionDef })
 

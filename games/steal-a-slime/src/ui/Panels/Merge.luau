@@ -3,10 +3,10 @@
 	Merge menu (the plot's merge vat, CONTRACT.md §21 / §21.1). Opens from the vat prompt.
 
 	Top: the vat. Three slots (two with FEATURES.MergeVat3 off), an arrow and the result card
-	(Shared.MergePreview: "Random <Rarity> slime", the jump chance, the mutations that carry over), a reason
+	(Shared.MergePreview: "Random <Rarity> slime", the jump chance, the expected size), a reason
 	line while the load is not valid, and the buttons: Pick for me (MergePlan.suggest), the hold-to-confirm
 	Merge (Request "Merge3" / "Merge") and Auto-merge. Below: rarity filter chips and the slime list grouped
-	by rarity (species, mutations, size, income; favourite / kept / stolen tags; a keep toggle per row that
+	by rarity (species, size, income; favourite / kept / stolen tags; a keep toggle per row that
 	sends Request "KeepSlime").
 	Auto-merge opens a confirm card: rarity toggles, what MergePlan would merge, and a hold-to-confirm button
 	that sends Request("AutoMerge", mask). The client only suggests; the server plans again and decides.
@@ -433,10 +433,6 @@ function Merge.new(parent: Instance, ctx: any)
 		row.name.Text = (if favourite then "⭐ " else "") .. tostring(slime.name)
 		row.name.TextColor3 = Widgets.color3(r.color)
 		local parts = {}
-		local mutations = Genome.mutationsDisplay(Genome.mutationList(slime))
-		if mutations ~= "" then
-			table.insert(parts, `✨ {mutations}`)
-		end
 		table.insert(parts, `📏 {string.format("%.2f", slime.size or 1)}`)
 		table.insert(parts, `💰 {Format.formatRate(view.income or 0)}`)
 		row.info.Text = table.concat(parts, "  ")
@@ -706,7 +702,7 @@ function Merge.new(parent: Instance, ctx: any)
 			resultTitle.Text = "Result"
 			resultTitle.TextColor3 = Theme.Muted
 			resultOdds.Text = `{count} same-rarity slimes → 1 rarer`
-			resultKeeps.Text = if count == 3 then "Every mutation carries over" else "The best mutation carries over"
+			resultKeeps.Text = "Size follows the average of the slimes"
 			return
 		end
 		local preview = MergePreview.forSlimes(picks, state, nil, count)
@@ -718,17 +714,8 @@ function Merge.new(parent: Instance, ctx: any)
 		resultTitle.TextColor3 = color
 		resultOdds.Text = if preview.jumpRarity
 			then `⚡ {math.floor(preview.jumpChance * 100 + 0.5)}% chance: {preview.jumpRarity}!`
-			else `🎲 {math.floor(preview.freshMutationChance * 100 + 0.5)}% bonus mutation`
-		local keeps = {}
-		if #preview.mutations > 0 then
-			local names = {}
-			for _, m in preview.mutations do
-				table.insert(names, Genome.mutationDisplayName(m))
-			end
-			table.insert(keeps, `Keeps {table.concat(names, ", ")}`)
-		end
-		table.insert(keeps, `Size ~{string.format("%.2f", preview.size)}`)
-		resultKeeps.Text = table.concat(keeps, " · ")
+			else `🎲 A random {preview.rarity} species`
+		resultKeeps.Text = `Size ~{string.format("%.2f", preview.size)}`
 	end
 
 	local function updateSlots()

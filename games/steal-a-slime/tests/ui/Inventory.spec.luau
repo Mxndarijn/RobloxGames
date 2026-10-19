@@ -291,8 +291,7 @@ end)
 describe("Inventory consumable stacks (S3)", function()
 	local function stackState(extra: any?): any
 		local state: any = {
-			consumables = { held = { LuckPotion = 3, MutationSpray = 1 } },
-			slimes = { { slime = { id = "s1", tier = 2 } } },
+			consumables = { held = { LuckPotion = 1, WeatherTotem = 3 } },
 			pvp = { owned = {}, cooldowns = {} },
 		}
 		for k, v in extra or {} do
@@ -305,7 +304,7 @@ describe("Inventory consumable stacks (S3)", function()
 	it("shows the Speed Coil and each consumable with its stack count on the hotbar", function()
 		local inv = mount(stackState(), COIL)
 		local slots = visibleSlots(inv)
-		expect(#slots).toBe(4) -- Bat, Speed Coil, Mutation Spray, Luck Potion
+		expect(#slots).toBe(4) -- Bat, Speed Coil, Luck Potion, Weather Totem
 		expect(UiHarness.find(slots[3], "Count").Text).toBe("1")
 		expect(UiHarness.find(slots[3], "Count").Visible).toBe(true)
 		expect(UiHarness.find(slots[4], "Count").Text).toBe("3")
@@ -315,7 +314,7 @@ describe("Inventory consumable stacks (S3)", function()
 	it("a number key puts the consumable in hand, the same number again puts it away; nothing is sent", function()
 		local inv, tools, sent = mount(stackState(), COIL)
 		expect(inv.pressKey(4)).toBe(true)
-		expect(inv.heldConsumable()).toBe("LuckPotion")
+		expect(inv.heldConsumable()).toBe("WeatherTotem")
 		expect(tools.calls[1]).toBe("unequipAll") -- one hand
 		expect(visibleSlots(inv)[4].BackgroundColor3).toBe(Inventory.COLORS.selected)
 		expect(#sent).toBe(0)
@@ -331,28 +330,20 @@ describe("Inventory consumable stacks (S3)", function()
 		inv.pressKey(4)
 		expect(inv.useHeld()).toBe(true)
 		expect(sent[1][1]).toBe("UseConsumable")
-		expect(sent[1][2]).toBe("LuckPotion")
+		expect(sent[1][2]).toBe("WeatherTotem")
 		expect(sent[1][3]).toBeNil()
 		expect(inv.useHeld()).toBe(false) -- inside the gap: the server's rate limit is never hit by a double click
 		expect(#sent).toBe(1)
 	end)
 
-	it("the spray goes on the usual target slime", function()
-		local inv, _, sent = mount(stackState())
-		inv.pressKey(2) -- Bat, Mutation Spray
-		expect(inv.useHeld()).toBe(true)
-		expect(sent[1][2]).toBe("MutationSpray")
-		expect(sent[1][3]).toBe("s1")
-	end)
-
 	it("the hand empties when the last one is used, a Tool or PvP item is picked, or the player carries", function()
 		local inv = mount(stackState(), COIL)
 		inv.pressKey(3)
-		expect(inv.heldConsumable()).toBe("MutationSpray")
-		inv.update(stackState({ consumables = { held = { LuckPotion = 3 } } })) -- the spray was used up
+		expect(inv.heldConsumable()).toBe("LuckPotion")
+		inv.update(stackState({ consumables = { held = { WeatherTotem = 3 } } })) -- the potion was used up
 		expect(inv.heldConsumable()).toBeNil()
 		inv.pressKey(3)
-		expect(inv.heldConsumable()).toBe("LuckPotion")
+		expect(inv.heldConsumable()).toBe("WeatherTotem")
 		inv.pressKey(1) -- the Bat
 		expect(inv.heldConsumable()).toBeNil()
 		inv.pressKey(3)

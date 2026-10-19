@@ -1,13 +1,11 @@
 --!strict
 --[[
-	SlimeRoster (wired v28: Genome.generate picks species; Config.MUTATIONS holds the new mutations)
+	SlimeRoster (wired v28: Genome.generate picks species)
 
-	Named Slime Ranch slime types per rarity tier, plus a Secret tier and the
-	proposed Rainbow / Crystal / Eclipse mutations. Pure data, no Roblox APIs.
+	Named Slime Ranch slime types per rarity tier, plus a Secret tier. Pure data, no Roblox APIs.
 
 	Save safety: ids are new, lower-case and permanent. Nothing here renames a
-	Config.RARITIES tier or a Config.MUTATIONS name (Glow/Lava/Galaxy/Gold);
-	Lava keeps its save id and only displays as "Syrup" (docs/archive/RANCH_RENAME.md).
+	Config.RARITIES tier.
 	Tiers 1..7 match Config.RARITIES (SECRET_TIER = 7, the Secret
 	rarity).
 ]]
@@ -24,13 +22,6 @@ export type Entry = {
 -- spawn: the fountain and random merges. hybrid: merge recipes only. boss: the boss event only.
 -- event: a limited Secret, only while its event runs.
 export type Kind = "spawn" | "hybrid" | "boss" | "event"
-
-export type MutationDraft = {
-	name: string, -- permanent save id
-	display: string,
-	multiplier: number,
-	weight: number, -- relative to Glow 50 / Lava 30 / Galaxy 15 / Gold 5
-}
 
 local SECRET_TIER = 7
 
@@ -117,27 +108,6 @@ local ROSTER: { Entry } = {
 	k("event", "kitsune", "Kitsune", SECRET_TIER, "nine-tailed spirit fox"),
 }
 
--- Proposed new mutations, ordered by multiplier with the existing ones:
--- Glow 1.5 / Lava 2 / Galaxy 3 / Rainbow 4 / Gold 5 / Crystal 7 / Eclipse 10.
-local NEW_MUTATIONS: { MutationDraft } = {
-	table.freeze({ name = "Rainbow", display = "Rainbow", multiplier = 4, weight = 8 }),
-	table.freeze({ name = "Crystal", display = "Crystal", multiplier = 7, weight = 2 }),
-	table.freeze({ name = "Eclipse", display = "Eclipse", multiplier = 10, weight = 0.5 }),
-}
-
--- Display names for existing mutation save ids (docs/archive/RANCH_RENAME.md).
-local MUTATION_DISPLAY = table.freeze({
-	Glow = "Glow",
-	Lava = "Syrup",
-	Wet = "Wet",
-	Frozen = "Frozen",
-	Galaxy = "Galaxy",
-	Gold = "Gold",
-	Rainbow = "Rainbow",
-	Crystal = "Crystal",
-	Eclipse = "Eclipse",
-})
-
 local byId: { [string]: Entry } = {}
 for _, entry in ROSTER do
 	byId[entry.id] = entry
@@ -146,8 +116,6 @@ end
 local SlimeRoster = {
 	SECRET_TIER = SECRET_TIER,
 	ROSTER = table.freeze(ROSTER),
-	NEW_MUTATIONS = table.freeze(NEW_MUTATIONS),
-	MUTATION_DISPLAY = MUTATION_DISPLAY,
 }
 
 function SlimeRoster.get(id: string): Entry?

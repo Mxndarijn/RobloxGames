@@ -164,12 +164,12 @@ describe("H1 HUD: HudClusters (pure)", function()
 		expect(HudClusters.rain(nil, 1000)).toBeNil()
 	end)
 	it("shows the live modifier with its timer, and the friend boost without one", function()
-		local mod = { name = "Admin_luck", label = "Luck Event", luck = 3, mutation = 1, endsAt = 1540, icon = "🍀" }
+		local mod = { name = "Admin_luck", label = "Luck Event", luck = 3, endsAt = 1540, icon = "🍀" }
 		local event = HudClusters.event(mod, 1000, true) :: HudClusters.Slot
 		expect(event.text).toBe("9:00")
 		expect(event.icon).toBe("Event_luck")
 		expect(HudClusters.event(mod, 1000, false)).toBeNil()
-		expect(HudClusters.event({ name = "None", label = "", luck = 1, mutation = 1 }, 1000, true)).toBeNil()
+		expect(HudClusters.event({ name = "None", label = "", luck = 1 }, 1000, true)).toBeNil()
 		local friend = HudClusters.friend({ count = 1, bonus = 0.1 }, true) :: HudClusters.Slot
 		expect(friend.text).toBe("+10%")
 		expect(friend.icon).toBe("FriendBoost")
@@ -179,7 +179,7 @@ describe("H1 HUD: HudClusters (pure)", function()
 		local slots = HudClusters.status(
 			{
 				rain = { active = true, endsAt = 1097 },
-				modifier = { name = "Admin_luck", label = "Luck", luck = 3, mutation = 1, endsAt = 1540 },
+				modifier = { name = "Admin_luck", label = "Luck", luck = 3, endsAt = 1540 },
 				modifierEnabled = true,
 				friends = { count = 1, bonus = 0.1 },
 				friendsEnabled = true,
@@ -256,7 +256,6 @@ describe("H1 HUD: bottom-right cluster (mounted Hud)", function()
 				name = "Admin_luck",
 				label = "Luck Event",
 				luck = 3,
-				mutation = 1,
 				endsAt = 1540,
 				icon = "🍀",
 			},
@@ -459,7 +458,7 @@ end)
 
 -- B8: a status icon explains itself: mouse hover on PC, a tap on touch (a second tap or a tap elsewhere closes it).
 describe("H1 HUD: status icon tooltip (B8)", function()
-	local EVENT = { name = "Admin_luck", label = "Luck Event", luck = 3, mutation = 1, endsAt = 1540, icon = "🍀" }
+	local EVENT = { name = "Admin_luck", label = "Luck Event", luck = 3, endsAt = 1540, icon = "🍀" }
 
 	local function running(w: number, h: number): (any, any, Layout.Screen)
 		setAttributes({ RainActive = true, RainEndsAt = 1097 })
@@ -485,11 +484,7 @@ describe("H1 HUD: status icon tooltip (B8)", function()
 		expect(luck.title).toBe("Luck Event")
 		expect(luck.body).toBe("x3 luck: rarer slimes show up more often.")
 		expect(luck.time).toBe("Time left: 9:00")
-		local mutation = { name = "Admin_mutation", label = "Mutation Event", luck = 1, mutation = 4, endsAt = 1540 }
-		expect(HudClusters.tooltip(HudClusters.event(mutation, 1000, true) :: HudClusters.Slot).body).toBe(
-			"x4 mutations: slimes mutate more often."
-		)
-		local untimed = { name = "Dusk", label = "Dusk", luck = 2, mutation = 1 }
+		local untimed = { name = "Dusk", label = "Dusk", luck = 2 }
 		expect(HudClusters.tooltip(HudClusters.event(untimed, 1000, true) :: HudClusters.Slot).time).toBe("Active now")
 		local friend = HudClusters.tooltip(HudClusters.friend({ count = 1, bonus = 0.1 }, true) :: HudClusters.Slot)
 		expect(friend.title).toBe("Friend boost")

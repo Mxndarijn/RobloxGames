@@ -97,11 +97,10 @@ describe("Progress v13 rank / dex rewards", function()
 				{ ladder = "species", count = 8, reward = 500, bonus = 0.02, claimed = true },
 				{ ladder = "species", count = 15, reward = 2500, bonus = 0.03, claimed = false },
 				{ ladder = "species", count = 20, reward = 9000, bonus = 0.05, claimed = false },
-				{ ladder = "stamps", count = 50, reward = 10000, bonus = 0.03, claimed = false },
 			},
 			dexBonus = 0.02,
 		})
-		expect(d.next).toBe("Next: 15 species +$2.5K, +3% income · 50 stamps +$10K, +3% income")
+		expect(d.next).toBe("Next: 15 species +$2.5K, +3% income")
 		expect(d.bonus).toBe("SlimeDex bonus: +2% income")
 		local all = Progress.dexRewards({ dexRewards = { { count = 10, reward = 1, bonus = 0.02, claimed = true } } })
 		expect(all.next).toBe("All SlimeDex rewards collected!")
@@ -115,7 +114,6 @@ describe("Progress v13 rank / dex rewards", function()
 			dexRewards = {
 				{ ladder = "species", count = 10, reward = 1, bonus = 0.02, claimed = true },
 				{ ladder = "species", count = 25, reward = 1, bonus = 0.03, claimed = false },
-				{ ladder = "stamps", count = 50, reward = 1, bonus = 0.03, claimed = false },
 			},
 		})
 		expect(m.icon).toBe("Dex_25")
@@ -134,6 +132,5 @@ describe("Progress v13 rank / dex rewards", function()
 		expect(m.next).toBeNil()
 		expect(m.icon).toBe("Dex_10")
 		expect(Progress.dexMilestones({})).toBeNil()
-		expect(Progress.dexMilestones({ dexRewards = { { ladder = "stamps", count = 50, claimed = false } } })).toBeNil()
 	end)
 end)

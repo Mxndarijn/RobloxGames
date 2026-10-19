@@ -4,7 +4,6 @@ local Config = require("../src/shared/Config")
 local ConsumableShop = require("../src/server/ConsumableShop")
 local Consumables = require("../src/shared/Consumables")
 local Fixtures = require("./Fixtures")
-local Genome = require("../src/shared/Genome")
 local PlayerData = require("../src/shared/PlayerData")
 local Remotes = require("../src/shared/Remotes")
 local Rng = require("../src/shared/Rng")
@@ -85,7 +84,7 @@ describe("Consumables schedule", function()
 		local seen = {}
 		for slot = 1000, 1040 do
 			local stock, weather = Consumables.stock(slot)
-			seen[`{stock.MutationSpray}{stock.LuckPotion}{stock.WeatherTotem}{weather}`] = true
+			seen[`{stock.LuckPotion}{stock.WeatherTotem}{weather}`] = true
 		end
 		local n = 0
 		for _ in seen do
@@ -140,9 +139,9 @@ describe("Consumables purchase rules", function()
 	end)
 	it("scales the price with rebirths and rejects unknown items", function()
 		local d = Fixtures.data()
-		local base = Consumables.price(d, "MutationSpray") :: number
+		local base = Consumables.price(d, "LuckPotion") :: number
 		d.rebirths = 3
-		expect((Consumables.price(d, "MutationSpray") :: number) > base).toBe(true)
+		expect((Consumables.price(d, "LuckPotion") :: number) > base).toBe(true)
 		expect(Consumables.price(d, "Nope")).toBeNil()
 		local world = ServerFixtures.world()
 		ServerFixtures.join(world, 1, { Fixtures.slime("a", 2) }, 1e9)
@@ -151,46 +150,6 @@ describe("Consumables purchase rules", function()
 end)
 
 describe("Consumables effects", function()
-	it("sprays a mutation onto an owned slime (stacking)", function()
-		local slot = slotWith("MutationSpray", 1)
-		local now = slot * STEP + 1
-		local world = ServerFixtures.world(now)
-		local s = Fixtures.slime("a", 3, { mutation = "Glow", mutations = { "Glow" } })
-		local session = ServerFixtures.join(world, 1, { s }, 1e9, now)
-		local res
-		for seed = 1, 20 do
-			session.data.consumables = { slot = 0, bought = {}, held = { MutationSpray = 1 } }
-			res = Actions.handle(world, 1, "UseConsumable", { "MutationSpray", "a" }, now + seed * 2, {
-				distanceBetween = function()
-					return 2
-				end,
-				positionOf = function()
-					return "pos"
-				end,
-				rng = Rng.new(seed),
-			})
-			if res.ok then
-				break
-			end
-		end
-		expect(res.message).toBeNil()
-		local list = Genome.mutationList(session.data.slimes[1])
-		expect(#list >= 1).toBe(true)
-		expect(session.data.consumables.held.MutationSpray).toBeNil() -- the use took the one from the stack
-	end)
-	it("rejects a spray on someone else's slime and keeps the stack", function()
-		local slot = slotWith("MutationSpray", 1)
-		local now = slot * STEP + 1
-		local world = ServerFixtures.world(now)
-		ServerFixtures.join(world, 1, { Fixtures.slime("a", 3) }, 1e9, now)
-		local other = ServerFixtures.join(world, 2, { Fixtures.slime("b", 3) }, 1e9, now)
-		expect(buy(world, 2, now, "MutationSpray").ok).toBe(true) -- buying needs no slime
-		local res = use(world, 2, now, "MutationSpray", "a")
-		expect(res.ok).toBe(false)
-		expect(res.message).toBe("not your slime")
-		expect(use(world, 2, now, "MutationSpray").message).toBe("pick a slime")
-		expect(other.data.consumables.held.MutationSpray).toBe(1)
-	end)
 	it("a luck potion boosts spawn luck, caps it and stacks with the modifier", function()
 		expect(Consumables.spawnLuck(1, false)).toBe(1)
 		expect(Consumables.spawnLuck(1, true)).toBe(Config.LUCK_POTION_MULT)

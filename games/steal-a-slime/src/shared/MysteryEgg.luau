@@ -57,7 +57,6 @@ function MysteryEgg.hatch(rng: Rng.Rng, id: string): Genome.Slime
 	return Genome.generate(rng, {
 		id = id,
 		tier = MysteryEgg.rollTier(rng:float()),
-		mutationChance = Config.MYSTERY_EGG_MUTATION_CHANCE,
 	})
 end
 

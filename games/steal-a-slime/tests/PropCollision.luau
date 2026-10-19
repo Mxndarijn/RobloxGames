@@ -791,7 +791,6 @@ local UNPLACED: { [string]: { string } } = {
 		"jolt",
 		"client template cloned over the fountain at tier 3+ (FountainTierFx), visual only",
 	},
-	rain_magnet = { "gojo", "client template standing on the owner's plot (RainMagnetFx), visual only" },
 	plot_skin_mushroom = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_candy = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_crystal = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },

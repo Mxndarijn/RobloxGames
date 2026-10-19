@@ -85,7 +85,6 @@ return table.freeze({
 	GROWTH_LABEL_NAME = "GrowthLabel", -- BillboardGui on the slime Body
 	GROWTH_OVERRIDE_ATTRIBUTE = "PcwGrowth", -- slime model: Studio-only whole percent shown instead of the real growth (pc-watcher shot)
 	FOUNTAIN_TIER_ATTRIBUTE = "FountainTier", -- workspace: fountain tier 1..4 (FEATURES.FountainTiers, FountainTiers); clients draw the ring / crest / glow from it
-	PLOT_RAIN_MAGNET_ATTRIBUTE = "RainMagnet", -- Plot_<i>: Rain Magnet upgrade level of the owner (FEATURES.RainMagnet; nil / 0 = none)
 	RARE_SPAWN_ID_ATTRIBUTE = "RareSpawnId", -- workspace: latest rare drop
 	RARE_SPAWN_TIER_ATTRIBUTE = "RareSpawnTier",
 	RARE_SPAWN_AT_ATTRIBUTE = "RareSpawnAt", -- workspace: server time of the latest rare drop

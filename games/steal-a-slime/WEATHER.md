@@ -67,43 +67,14 @@ lasts >= 120 s so a melt starts from 1) and the phase is "snowing or not" (`Snow
 paths cleared first. Missing stamps: full while snowing, bare while clear. `SnowCoverDebug` / `WeatherDebug`
 start from 0 and ignore the stamps. `SnowGround.start` places the level once.
 
-## Hook for #8
-
-For Gojo (stacking mutations + combos). Nothing in the mutation code reads weather yet.
+## API
 
 - `Weather.getCurrent() -> id` (`"Clear" | "Rain" | "Snow" | "Starfall"`), server and client. On the server it
   is current once `WeatherService.start` ran (flag on); with the flag off it stays `"Clear"`.
 - `Weather.Changed:Connect(function(new, old) end)` returns `{ Disconnect }`.
-- `Config.WEATHER[id] = { displayName, mutation = nil, chanceBonus = 0, weight, minSeconds, maxSeconds }`.
-  - `mutation`: a `Config.MUTATIONS[].name` the weather favours. Left **nil** for #8 to fill in.
-  - `chanceBonus`: added to the mutation roll chance while that weather is current (0 = no effect).
-- To use it in the roll: `local w = Weather.data(Weather.getCurrent())`; if `w.mutation` then add
-  `w.chanceBonus` to the chance for that mutation.
-
-Proposed mapping (docs only, no ids added here; today's ids: Glow, Lava (shown Syrup), Galaxy, Rainbow, Gold, Crystal, Eclipse):
-
-| Weather  | Proposed mutation | Note |
-| -------- | ----------------- | ---- |
-| Rain     | `Wet` (new id)    | no existing id fits; fallback `Glow` |
-| Snow     | `Frozen` (new id) | fallback `Crystal` |
-| Starfall | `Galaxy`          | exists; `Starry` / `Cosmic` if #8 wants a separate one |
-
-New ids are appended to `Config.MUTATIONS` by #8 (the array is ordered by multiplier and `name` is the permanent save id).
+- `Config.WEATHER[id] = { displayName, weight, minSeconds, maxSeconds }`. Weather is visual and ambient; it does not change slime rolls.
 
 ## Tests and proof
 
 `tests/Weather.spec.luau` (cycle, replication, quality scaling and cap, flag off, hook API). Watcher shots
 `18-weather-Rain|Snow|Starfall` (`shots/*.json`, `weather` + `wait`, `luau/weather_set`).
-
-## Weather mutations (#8, save v5)
-
-`Config.WEATHER`: Rain -> `Wet` (+0.10), Snow -> `Frozen` (+0.10), Starfall -> `Galaxy` (+0.05), Clear none. `Genome.rollMutation`
-reads `Weather.data(Weather.getCurrent())` through a cache refreshed from `Weather.Changed` (`Genome.bindWeather`): while a weather with a
-mutation is current, roll values in `[chance, chance + chanceBonus)` land on that mutation. No other mutation's chance changes, and Clear is
-identical to before. `Wet` (x1.75) and `Frozen` (x2.5) have weight 0, so they only come from weather (or a merge ladder step); combos
-`Sleet` (Wet + Frozen) and `Comet` (Frozen + Galaxy). Save v4 -> v5 (`SaveData.migrateV4`) only normalises each slime's `mutations` list;
-ids and keys are unchanged. Tests: `tests/WeatherMutations.spec.luau`. Shot: `21-weather-mutation-dex` (`shots/96-21-weather-mutation-dex.json`).
-
-## Rain Magnet (v19, FEATURES.RainMagnet)
-
-An upgrade (rank 6) that makes a wild slime you bring home during Rain / Snow / Starfall (or the Slime Rain event) pick up that weather's mutation with +5 % per level. It reads the same `Config.WEATHER[id].mutation` hook and `Weather.getCurrent()` as `Genome.rollMutation`; see CONTRACT §23 and `tests/RainMagnet.spec.luau`.

@@ -12,8 +12,6 @@
 -- (real VatDecor.pose) over every plot's MergeVat disc; --cylinder keeps the old primitive and writes scene[_pending]_cylinder.json. --fountain-tier <1..4> shows the
 -- FEATURES.FountainTiers look (real FountainTierDecor poses + FountainTiers.LOOKS glow) and writes
 -- scene[_pending]_tier_<n>.json.
--- --magnet stands the FEATURES.RainMagnet prop (real MagnetDecor.pose) beside Plot_1's MergeVat disc and writes
--- scene[_pending]_magnet.json.
 -- --snow <level 0..1> [--snow-phase settle|melt] shows SnowGround v2 (the same SnowCover tints and colour lerp as the
 -- client) on the part colours and the border terrain colours, and writes scene[_pending]_snow_<phase>_<level>.json.
 -- --fountain-split draws the FEATURES.FountainSplit look instead of the single slime_fountain mesh: the 5 pieces of
@@ -31,7 +29,6 @@ local FountainTierDecor = require("../../src/visuals/shared/FountainTierDecor")
 local FountainTiers = require("../../src/shared/FountainTiers")
 local GroundTerrain = require("../../src/visuals/shared/GroundTerrain")
 local Habitats = require("../../src/shared/Habitats")
-local MagnetDecor = require("../../src/visuals/shared/MagnetDecor")
 local MeshAssets = require("../../src/shared/MeshAssets")
 local ParadeLane = require("../../src/shared/ParadeLane")
 local PlotDecor = require("../../src/visuals/shared/PlotDecor")
@@ -48,7 +45,6 @@ local OUT = "tools/render/out"
 local SKIN_ARG = table.find(process.args, "--skin")
 -- Bug #16: the merge_vat model is the default look of every plot's vat; --cylinder exports the old primitive (before shot).
 local CYLINDER = table.find(process.args, "--cylinder") ~= nil
-local MAGNET = table.find(process.args, "--magnet") ~= nil
 local FOUNTAIN_SPLIT = table.find(process.args, "--fountain-split") ~= nil
 local SKIN = if SKIN_ARG then process.args[SKIN_ARG + 1] else nil
 local TIER_ARG = table.find(process.args, "--fountain-tier")
@@ -289,24 +285,6 @@ for _, plot in built.plots:GetChildren() do
 	end
 end
 
--- Rain Magnet prop (client RainMagnetFx): beside Plot_1's vat disc, turned with the plot.
-local magnetFocus = nil
-if MAGNET then
-	local plot = built.plots:FindFirstChild("Plot_1")
-	local disc = plot:FindFirstChild("MergeVat")
-	local pose = MagnetDecor.pose()
-	local turn = plot:FindFirstChild("Base").CFrame.Rotation
-	local at = disc.CFrame.Position
-		+ turn:VectorToWorldSpace(Vector3.new(pose.offset[1], pose.offset[2], pose.offset[3]))
-	table.insert(meshes, {
-		mesh = MagnetDecor.MESH,
-		cf = cfOf(CFrame.new(at) * turn),
-		size = pose.size,
-		path = "Workspace.ClientRainMagnet.rain_magnet",
-	})
-	magnetFocus = { at.X, at.Y, at.Z }
-end
-
 -- Habitat pads (client HabitatFx): the mesh at native footprint on the pad
 -- bottom, Y scaled to pad height / seat; the stand and pad hide.
 for _, h in HABITAT_PADS do
@@ -525,7 +503,6 @@ local suffix = (if PENDING then "_pending" else "")
 	.. (if SKIN then `_skin_{SKIN}` else "")
 	.. (if TIER then `_tier_{TIER}` else "")
 	.. (if CYLINDER then "_cylinder" else "")
-	.. (if MAGNET then "_magnet" else "")
 	.. (if FOUNTAIN_SPLIT then "_fountain_split" else "")
 	.. (if SNOW then `_snow_{SNOW_PHASE}_{SNOW}` else "")
 fs.writeFile(
@@ -541,7 +518,6 @@ fs.writeFile(
 		terrain = terrain,
 		ground = ground,
 		vat = vatFocus,
-		magnet = magnetFocus,
 		ritual = ritualAt,
 		lane = ParadeLane.WAYPOINTS,
 		laneStart = ParadeLane.MOUTH,

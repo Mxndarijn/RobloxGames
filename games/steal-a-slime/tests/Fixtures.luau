@@ -18,7 +18,6 @@ function Fixtures.slime(id: string, tier: number?, overrides: { [string]: any }?
 		pattern = "Plain",
 		eyes = "Round",
 		mouth = "Smile",
-		mutation = "None",
 		pad = nil,
 	}
 	if overrides then
@@ -67,20 +66,11 @@ function Fixtures.dexSources(
 	}
 end
 
--- A State.dex (SpeciesDex.view) for a player who found `found` (species ids) and stamped `stamps`
--- ("<species>:<Mutation>").
-function Fixtures.dex(
-	found: { string }?,
-	stamps: { string }?,
-	sources: SpeciesDex.Sources?,
-	now: number?
-): SpeciesDex.View
-	local data = { found = {}, stamps = {} }
+-- A State.dex (SpeciesDex.view) for a player who found `found` (species ids).
+function Fixtures.dex(found: { string }?, sources: SpeciesDex.Sources?, now: number?): SpeciesDex.View
+	local data = { found = {} }
 	for _, id in found or {} do
 		data.found[id] = true
-	end
-	for _, key in stamps or {} do
-		data.stamps[key] = true
 	end
 	return SpeciesDex.view(data, now or 0, sources or Fixtures.dexSources())
 end

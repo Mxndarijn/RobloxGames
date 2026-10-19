@@ -86,14 +86,12 @@ ShopCatalog.UPGRADE_ICONS = table.freeze({
 	CarrySpeed = "💪",
 	OfflineCap = "🌙",
 	Luck = "🍀",
-	RainMagnet = "🧲",
 })
 
 -- v28 short row text per upgrade id: the leading number of `text` (e.g.
 -- "+4%") + this phrase. Unknown ids (or no number) keep the server text.
 ShopCatalog.UPGRADE_SHORT = table.freeze({
 	Luck = "rarity-up chance",
-	RainMagnet = "weather mutation chance",
 })
 
 -- The one-line description of a v13 upgrade row.
@@ -243,23 +241,8 @@ function ShopCatalog.upgradeViews(state: any, actions: { [string]: any }): { Ite
 	return out
 end
 
--- The slime a Mutation Spray goes on: the favourite, else the highest tier (the server re-checks it).
-function ShopCatalog.sprayTarget(state: any): string?
-	local best: any = nil
-	for _, view in state.slimes or {} do
-		local slime = view.slime
-		if slime.id == state.favoriteId then
-			return slime.id
-		end
-		if best == nil or slime.tier > best.tier then
-			best = slime
-		end
-	end
-	return if best then best.id else nil
-end
-
 -- Restocking consumables (FEATURES.Consumables, `State.consumables`): one row per stocked item, bought
--- with Request("BuyConsumable", id): it adds to the held stack, the target (the spray's slime) is picked on use.
+-- with Request("BuyConsumable", id): it adds to the held stack.
 -- Empty while the feature is off.
 function ShopCatalog.consumableViews(state: any, actions: { [string]: any }): { ItemView }
 	local out = {}
