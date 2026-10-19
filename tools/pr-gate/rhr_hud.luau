@@ -144,7 +144,7 @@ end
 local manifest = { topbar = TOPBAR, cases = {} }
 local Z = Layout.ZINDEX
 
--- The three status slots as a running game shows them (rain, luck event, friend boost).
+-- The four status slots as a running game shows them (rain, luck event, friend boost, featured Secret).
 local NOW = 1000
 local SLOTS = HudClusters.status({
 	rain = { active = true, endsAt = NOW + 97 },
@@ -152,6 +152,7 @@ local SLOTS = HudClusters.status({
 	modifierEnabled = true,
 	friends = { count = 1, bonus = 0.1 },
 	friendsEnabled = true,
+	featuredSecret = { id = "origami", name = "Origami", endsAt = NOW + 4 * 3600 + 6 * 60 },
 }, NOW)
 
 local function buildCase(vp: { name: string, w: number, h: number }, tooltipSlot: number?)
@@ -247,11 +248,10 @@ local function buildCase(vp: { name: string, w: number, h: number }, tooltipSlot
 	chip(moneyRoot, "Rebirths", m.rebirths, m.rect, "Rebirth", "8 x5", Color3.fromRGB(70, 50, 140), chipSize)
 	table.insert(boxes, { path = "Money", rect = m.rect })
 
-	-- Status cluster (bottom right): an icon with its timer under it per running thing.
+	-- Status cluster (bottom right): per running thing an icon with its timer in a dark pill tucked onto the
+	-- icon's bottom edge, as Hud lays it out from Layout.statusMetrics.
 	local statusRoot = frame("Status", s.status.rect, root, Z.Base, true)
-	local S = Layout.STATUS
-	local ST = Layout.STATUS_TIGHT
-	local iconSize = if s.tight then ST.icon elseif s.compact then S.cicon else S.icon
+	local sm = Layout.statusMetrics(s.compact, s.tight)
 	local slotW, slotH = Layout.statusSlotWidth(s.compact, s.tight), Layout.statusHeight(s.compact, s.tight)
 	local slotRects = {}
 	for i, slot in SLOTS do
@@ -263,14 +263,18 @@ local function buildCase(vp: { name: string, w: number, h: number }, tooltipSlot
 			statusRoot
 		)
 		place(b, r, s.status.rect)
-		icon(b, slot.icon, iconSize, UDim2.new(0.5, 0, 0, 0), Vector2.new(0.5, 0))
-		text("Timer", b, {
+		icon(b, slot.icon, sm.icon, UDim2.new(0.5, 0, 0, 0), Vector2.new(0.5, 0))
+		local pill = text("Timer", b, {
 			Text = slot.text,
-			TextSize = if s.tight then ST.labelSize elseif s.compact then S.clabelSize else S.labelSize,
-			Size = UDim2.new(1, 0, 0, if s.tight then ST.label elseif s.compact then S.clabel else S.label),
-			Position = UDim2.fromOffset(0, iconSize + S.labelGap),
-			TextStrokeTransparency = 0.2,
+			TextSize = sm.textSize,
+			BackgroundColor3 = Color3.fromRGB(28, 30, 44),
+			BackgroundTransparency = 0.12,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Size = UDim2.fromOffset(Layout.statusPillWidth(slot.text, s.compact, s.tight), sm.pill),
+			Position = UDim2.new(0.5, 0, 0, sm.icon - sm.overlap),
+			TextStrokeTransparency = 0.6,
 		})
+		make("UICorner", { CornerRadius = UDim.new(0.5, 0) }, pill)
 		want(`Status/{slot.id}`, r, slotW, slotH, s.tight)
 	end
 
