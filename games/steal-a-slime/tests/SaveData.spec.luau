@@ -91,6 +91,31 @@ describe("SaveData round trip", function()
 	end)
 end)
 
+describe("SaveData hotbar order", function()
+	it("round-trips a saved order and leaves the key out until one is set", function()
+		local data = Fixtures.data(nil, 0)
+		local raw = SaveData.serialize(data, 1700000000)
+		expect((raw :: any).hotbar).toBeNil()
+		expect(SaveData.deserialize(serde.decode("json", serde.encode("json", raw))).hotbar).toBeNil()
+		data.hotbar = { "tool:Bat", "", "pvp:bonk_glove", "", "", "", "", "", "consumable:LuckPotion" }
+		raw = SaveData.serialize(data, 1700000000)
+		local back = SaveData.deserialize(serde.decode("json", serde.encode("json", raw)))
+		expect(back.hotbar).toEqual(data.hotbar)
+		expect(back.version).toBe(Config.SAVE_VERSION)
+	end)
+	it("cleans a junk hotbar: not a list -> nil, bad keys -> empty slots, at most 9", function()
+		expect(SaveData.deserialize({ version = Config.SAVE_VERSION, hotbar = "tool:Bat" }).hotbar).toBeNil()
+		local back = SaveData.deserialize({
+			version = Config.SAVE_VERSION,
+			hotbar = { "tool:Bat", {}, "tool:Bat", "x:y", "", "", "", "", "", "pvp:bonk_glove" },
+		})
+		expect(back.hotbar).toEqual({ "tool:Bat", "", "", "", "", "", "", "", "" })
+	end)
+	it("an older save without a hotbar loads with none", function()
+		expect(SaveData.deserialize({ version = 6, cash = 5 }).hotbar).toBeNil()
+	end)
+end)
+
 describe("SaveData.deserialize", function()
 	it("gives a fresh profile for nil / garbage", function()
 		for _, v in { nil, 5, "x", {}, { foo = 1 } } :: { any } do

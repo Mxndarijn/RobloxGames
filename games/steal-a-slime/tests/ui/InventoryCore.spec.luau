@@ -228,7 +228,11 @@ describe("InventoryLayout geometry", function()
 		expect(InventoryLayout.slotCount(2, 536)).toBe(8)
 		expect(InventoryLayout.slotCount(9, 536)).toBe(12)
 		expect(InventoryLayout.slotCount(2, 440)).toBe(6)
-		expect(InventoryLayout.contentHeight(2, 536)).toBe(c.top + c.topGap + InventoryLayout.gridHeight(8, 536))
+		local _, gridTop = InventoryLayout.bagTop(InventoryLayout.plateSlot(536))
+		expect(InventoryLayout.contentHeight(2, 536)).toBe(gridTop + InventoryLayout.gridHeight(8, 536))
+		expect(InventoryLayout.contentHeight(2, 536, 30)).toBe(
+			gridTop + InventoryLayout.gridHeight(8, 536) + InventoryLayout.PLATE.footerGap + 30
+		)
 	end)
 end)
 
@@ -440,5 +444,165 @@ describe("InventoryCore.pvpUseRequest", function()
 	it("server refusals read as tips", function()
 		expect(InventoryCore.reasonText("too far away")).toBe("Too far away")
 		expect(InventoryCore.reasonText(nil)).toBe("Can't use that here")
+	end)
+end)
+
+describe("InventoryCore hotbar order", function()
+	local def = Config.PVP_TOOLS[1]
+	local function owned(): { InventoryCore.Entry }
+		return InventoryCore.entries(input({
+			tools = { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } },
+			pvp = { owned = { [def.id] = true }, cooldowns = {} },
+		}))
+	end
+	local function slotKeysOf(slots: { InventoryCore.Entry? }): string
+		local out = {}
+		for i = 1, 9 do
+			local e = slots[i]
+			out[i] = if e then e.key else ""
+		end
+		return table.concat(out, ",")
+	end
+	local PVP = `pvp:{def.id}`
+	local EMPTY = table.create(9, "")
+
+	it("no saved order: the first slots are the entries in list order, the rest empty", function()
+		local slots = InventoryCore.hotbarSlots(owned(), nil, 9)
+		expect(slotKeysOf(slots)).toBe(`tool:Bat,tool:SpeedCoil,{PVP},,,,,,`)
+		expect(InventoryCore.lastFilled(slots, 9)).toBe(3)
+		local many = {}
+		for i = 1, 11 do
+			many[i] = { key = `tool:T{i}` } :: any
+		end
+		local capped = InventoryCore.hotbarSlots(many, nil, 9)
+		expect(capped[9].key).toBe("tool:T9")
+		expect(capped[10]).toBeNil()
+	end)
+
+	it("a saved order puts each owned item on its slot; unowned keys and blanks show empty", function()
+		local saved = { PVP, "", "tool:Bat", "consumable:LuckPotion", "", "", "", "", "" }
+		local slots = InventoryCore.hotbarSlots(owned(), saved, 9)
+		expect(slotKeysOf(slots)).toBe(`{PVP},,tool:Bat,,,,,,`)
+		expect(InventoryCore.lastFilled(slots, 9)).toBe(3)
+		-- the unowned key keeps its slot in the key list
+		expect(InventoryCore.slotKeys(owned(), saved, 9)[4]).toBe("consumable:LuckPotion")
+		expect(InventoryCore.lastFilled(InventoryCore.hotbarSlots(owned(), EMPTY, 9), 9)).toBe(0)
+	end)
+
+	it("savedKeys: nil for no order, always max keys, a repeated key keeps its first slot", function()
+		expect(InventoryCore.savedKeys(nil, 9)).toBeNil()
+		expect(InventoryCore.savedKeys("x", 9)).toBeNil()
+		local keys = InventoryCore.savedKeys({ "tool:Bat", "tool:Bat", 5 }, 9) :: { string }
+		expect(#keys).toBe(9)
+		expect(InventoryCore.orderString(keys)).toBe("tool:Bat,,,,,,,,")
+	end)
+
+	it("byKey skips empty slots and slots the bar does not show", function()
+		local slots = InventoryCore.hotbarSlots(owned(), { "tool:Bat", "", PVP, "", "", "", "", "", "" }, 9)
+		expect((InventoryCore.byKey(slots, 3, 1) :: any).key).toBe("tool:Bat")
+		expect(InventoryCore.byKey(slots, 3, 2)).toBeNil()
+		expect((InventoryCore.byKey(slots, 3, 3) :: any).key).toBe(PVP)
+		expect(InventoryCore.byKey(slots, 2, 3)).toBeNil()
+	end)
+
+	local base = { "tool:Bat", "tool:SpeedCoil", "", "", "", "", "", "", "" }
+	local function drop(from: any, to: any): string
+		return InventoryCore.orderString(InventoryCore.applyDrop(base, from, to))
+	end
+
+	it("bag -> empty slot: the item goes there", function()
+		expect(drop({ kind = "bag", key = PVP }, { kind = "bar", index = 4 })).toBe(
+			`tool:Bat,tool:SpeedCoil,,{PVP},,,,,`
+		)
+	end)
+	it("bag -> filled slot: the item goes there and the old one back to the bag", function()
+		expect(drop({ kind = "bag", key = PVP }, { kind = "bar", index = 1 })).toBe(`{PVP},tool:SpeedCoil,,,,,,,`)
+	end)
+	it("bar -> bar: the two swap; onto an empty slot it moves", function()
+		expect(drop({ kind = "bar", index = 1 }, { kind = "bar", index = 2 })).toBe("tool:SpeedCoil,tool:Bat,,,,,,,")
+		expect(drop({ kind = "bar", index = 1 }, { kind = "bar", index = 5 })).toBe(",tool:SpeedCoil,,,tool:Bat,,,,")
+	end)
+	it("bar -> bag clears the slot", function()
+		expect(drop({ kind = "bar", index = 2 }, { kind = "bag" })).toBe("tool:Bat,,,,,,,,")
+	end)
+	it("a bag item already on the bar moves (never on two slots); same slot and bag -> bag change nothing", function()
+		expect(drop({ kind = "bag", key = "tool:Bat" }, { kind = "bar", index = 3 })).toBe(
+			",tool:SpeedCoil,tool:Bat,,,,,,"
+		)
+		expect(drop({ kind = "bar", index = 2 }, { kind = "bar", index = 2 })).toBe(InventoryCore.orderString(base))
+		expect(drop({ kind = "bag", key = PVP }, { kind = "bag" })).toBe(InventoryCore.orderString(base))
+		expect(drop({ kind = "bar", index = 4 }, { kind = "bar", index = 1 })).toBe(InventoryCore.orderString(base))
+	end)
+	it("applyDrop returns a new list and leaves the old one as it was", function()
+		local out = InventoryCore.applyDrop(base, { kind = "bar", index = 2 }, { kind = "bag" })
+		expect(out ~= base).toBe(true)
+		expect(base[2]).toBe("tool:SpeedCoil")
+	end)
+
+	it("orderString joins all nine slots (8 commas, empty slots as blanks)", function()
+		local text = InventoryCore.orderString(EMPTY)
+		expect(text).toBe(",,,,,,,,")
+		expect(InventoryCore.orderString(base)).toBe("tool:Bat,tool:SpeedCoil,,,,,,,")
+	end)
+
+	it(
+		"placeNew puts new keys on the first empty slots, skips keys already there (even unowned), stops when full",
+		function()
+			local saved = { "tool:Bat", "", "consumable:LuckPotion", "", "", "", "", "", "" }
+			local out, changed = InventoryCore.placeNew(saved, { PVP, "consumable:LuckPotion", "tool:SpeedCoil" })
+			expect(changed).toBe(true)
+			expect(InventoryCore.orderString(out)).toBe(`tool:Bat,{PVP},consumable:LuckPotion,tool:SpeedCoil,,,,,`)
+			expect(saved[2]).toBe("")
+			local _, again = InventoryCore.placeNew(saved, { "consumable:LuckPotion" })
+			expect(again).toBe(false)
+			local full = table.create(9, "tool:X")
+			for i = 1, 9 do
+				full[i] = `tool:T{i}`
+			end
+			local same, moved = InventoryCore.placeNew(full, { PVP })
+			expect(moved).toBe(false)
+			expect(InventoryCore.orderString(same)).toBe(InventoryCore.orderString(full))
+		end
+	)
+
+	it("cleanOrder empties keys the server would refuse, so one odd Tool name never sinks the order", function()
+		local out = InventoryCore.cleanOrder({ "tool:Bat", "tool:Bad,Name", "tool: Lead", PVP, "", "", "", "", "" })
+		expect(InventoryCore.orderString(out)).toBe(`tool:Bat,,,{PVP},,,,,`)
+	end)
+
+	it("SetHotbar is a real Remotes action", function()
+		expect(Remotes.ACTIONS[InventoryCore.HOTBAR_ACTION] ~= nil).toBe(true)
+	end)
+end)
+
+describe("InventoryLayout hotbar plate", function()
+	local P = InventoryLayout.PLATE
+	it("nine slots on two rows (five then four), inside the plate, the plate inside the body", function()
+		for _, w in { 440, 536 } do
+			local slot = InventoryLayout.plateSlot(w)
+			local rect, slots = InventoryLayout.plate(w, slot)
+			expect(#slots).toBe(9)
+			expect(rect.x >= 0 and rect.x + rect.w <= w).toBe(true)
+			expect(slots[5].y).toBe(slots[1].y)
+			expect(slots[6].y > slots[5].y).toBe(true)
+			expect(slots[6].x).toBe(slots[1].x)
+			for _, s in slots do
+				expect(s.x >= 0 and s.x + s.w <= rect.w and s.y + s.h <= rect.h).toBe(true)
+			end
+			expect(slot <= P.max).toBe(true)
+		end
+	end)
+	it("a short body shrinks the plate so the bag grid keeps its room, never below the floor", function()
+		local tall = InventoryLayout.plateSlot(536)
+		local short = InventoryLayout.plateSlot(536, 303)
+		expect(short < tall).toBe(true)
+		local _, gridTop = InventoryLayout.bagTop(short)
+		expect(303 - gridTop >= P.minGrid).toBe(true)
+		expect(InventoryLayout.plateSlot(536, 10)).toBe(P.min)
+	end)
+	it("hit finds the rect under a point", function()
+		local rects = { { x = 0, y = 0, w = 10, h = 10 }, { x = 20, y = 0, w = 10, h = 10 } }
+		expect(InventoryLayout.hit(rects, 25, 5)).toBe(2)
+		expect(InventoryLayout.hit(rects, 15, 5)).toBeNil()
 	end)
 end)

@@ -106,6 +106,18 @@ describe("Snapshot.build", function()
 	end)
 end)
 
+describe("Snapshot State.hotbar", function()
+	it("is nil until set, then the saved 9 keys", function()
+		local world = ServerFixtures.world()
+		local s = ServerFixtures.join(world, 1)
+		expect(Snapshot.build(world, s, T0).hotbar).toBeNil()
+		s.data.hotbar = { "tool:Bat", "", "", "", "", "", "", "", "pvp:bonk_glove" }
+		local state = Snapshot.build(world, s, T0)
+		expect(state.hotbar).toEqual(s.data.hotbar)
+		expect(state.hotbar ~= s.data.hotbar).toBe(true) -- a copy, not the live save table
+	end)
+end)
+
 describe("Snapshot State.dex", function()
 	local function entry(state: any, id: string): any
 		for _, e in state.dex.entries do

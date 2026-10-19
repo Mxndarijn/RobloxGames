@@ -2,9 +2,12 @@
 --[[
 	Inventory (S3): the hotbar and the inventory panel that replace Roblox's default backpack bar.
 
-	Bottom-centre hotbar (Layout.screen's `hotbar` zone, InventoryLayout): the Bat first, then every other
-	held Tool and every owned PvP item (InventoryCore.entries), each a rounded purple slot with its ItemIcons
-	picture, a selected highlight, the stack count when there is one and the number key (1-9) on keyboards.
+	Bottom-centre hotbar (Layout.screen's `hotbar` zone, InventoryLayout): the player's hotbar slots 1-9
+	(InventoryCore.hotbarSlots: the saved State.hotbar order, or by default the Bat, every other held Tool, every
+	owned PvP item and consumable in InventoryCore.entries order), up to the last filled slot, each a rounded
+	purple slot with its ItemIcons picture, a selected highlight, the stack count when there is one and the
+	number key (1-9) on keyboards; an empty slot before the last filled one is a dim Ink cell and its key does
+	nothing.
 	The name shows on hover (mouse) or on a long press (touch). A tap / click / number key equips (or puts
 	away) the item through the EXISTING actions only: a Tool through the Humanoid, a PvP item through
 	Request("EquipPvpItem"), a consumable (the stack count on its slot) goes into the hand client-side and is
@@ -15,9 +18,16 @@
 	held (also the items that did not fit the bar on a narrow phone). Hidden while carrying (the server
 	unequips tools then) and while a menu is open. Client-only: the stack counts come from State.consumables.
 
-	The bag panel's cells are hotbar slots (same fill, outline, selection ring and key number for the items on
-	the bar) with the name under the picture; empty Ink slots fill the grid to whole rows (InventoryLayout.CELL)
-	and the card is sized to that grid. A tap / click on a cell equips like the hotbar and closes the panel.
+	The bag panel (built on first open) shows the hotbar on a plate (the 9 slots on two rows, empty ones as Ink
+	wells with their key) over the bag: every owned item as a hotbar-style cell with the name under the picture
+	and, when it is on the bar, a gold tag with its key; empty Ink slots fill the grid to whole rows
+	(InventoryLayout.CELL) and the card is sized to its content. A tap / click on a cell or plate slot equips like
+	the hotbar and closes the panel. Pressing one and moving past DRAG.threshold drags it instead: a ghost follows
+	the pointer, the plate slot under it gets a gold ring, and the drop rearranges the hotbar
+	(InventoryCore.applyDrop). The new order shows at once and goes to the server as Request("SetHotbar", order);
+	it wins over State.hotbar until a State carries it (or the server refuses it). An item first seen this
+	session while an order is saved goes on the first empty slot (InventoryCore.placeNew), so a new purchase
+	still lands on the bar.
 ]]
 
 local InventoryCore = require(script.Parent.InventoryCore)
@@ -54,9 +64,35 @@ Inventory.PANEL = table.freeze({
 	hintSize = 14,
 	chipSize = 13,
 	nameSize = 14,
+	headingSize = 18,
 	emptyTransparency = 0.45,
-	chipRoom = 96, -- width the hint leaves for the count chip
+	headingRoom = 120, -- width a heading keeps left of its hint / count chip
+	plateRadius = 18,
+	plateStroke = 3,
+	tagSize = 12, -- the gold key tag on a bag cell that is on the bar
+	tagW = 22,
+	tagH = 18,
+	tagInset = 5,
 })
+
+-- Dragging a cell onto the hotbar plate.
+Inventory.DRAG = table.freeze({
+	threshold = 8, -- design px a press moves before it is a drag instead of a tap
+	rotation = -6, -- the ghost's tilt
+	ring = 3, -- the ghost's white ring and the target's gold ring
+	ringOut = 8, -- how far the target ring sits outside the slot (both sides together)
+	liftTransparency = 0.35, -- the Ink veil over the dragged item's own cell
+})
+
+Inventory.ORDER_GAP = 0.35 -- seconds between two SetHotbar sends (the server allows one per 0.3 s)
+Inventory.ORDER_TIMEOUT = 5 -- seconds an unconfirmed order (or an unanswered send) is trusted
+-- Server refusals that pass on their own (Actions: rate limit, session not loaded yet): the order is sent again.
+Inventory.ORDER_RETRY = table.freeze({ ["too fast"] = true, ["still loading"] = true })
+
+function Inventory.footerText(keyboard: boolean): string
+	return "Drag an item onto a hotbar slot to put it there. Drag it off the bar to take it off. "
+		.. `{if keyboard then "Click" else "Tap"} an item to equip it.`
+end
 
 local KEYS: { [Enum.KeyCode]: number } = {
 	[Enum.KeyCode.One] = 1,
@@ -92,6 +128,8 @@ type Deps = {
 	tools: any, -- InventoryTools.Provider
 	serverNow: () -> number,
 	keyboard: boolean?, -- show number keys (default true)
+	-- UserInputService (InputChanged / InputEnded follow a drag); default the real service.
+	input: any?,
 }
 
 type Slot = {
@@ -101,16 +139,37 @@ type Slot = {
 	count: TextLabel,
 	cooldown: TextLabel,
 	entry: Entry?,
+	name: TextLabel?, -- panel cells: the name under the picture
+	tag: TextLabel?, -- bag cells: the gold key tag
+	from: InventoryCore.DragFrom?, -- panel cells: what a drag from here moves
 }
 type Entry = InventoryCore.Entry
+type Rect = InventoryLayout.Rect
+type Press = {
+	slot: Slot,
+	from: InventoryCore.DragFrom,
+	input: InputObject,
+	x: number,
+	y: number,
+	dragging: boolean,
+	conns: { RBXScriptConnection },
+}
 
 function Inventory.new(parent: Instance, deps: Deps)
 	local registry = InventoryCore.withTools(deps.itemIcons)
 	local C = Inventory.COLORS
+	local P = Inventory.PANEL
+	local DRAG = Inventory.DRAG
+	local CELL = InventoryLayout.CELL
+	local MAX = InventoryLayout.MAX_SLOTS
 	local keyboard = deps.keyboard ~= false
+	local userInput: any = deps.input or game:GetService("UserInputService")
+	local footerText = Inventory.footerText(keyboard)
 
 	local state: any = nil -- latest State
 	local entries: { Entry } = {}
+	local slots: { Entry? } = {} -- the hotbar slots 1..MAX (holes = empty)
+	local keys: { string } = table.create(MAX, "") -- their keys, "" = empty
 	local signature = ""
 	local menuOpen = false
 	local carrying = false
@@ -119,6 +178,9 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local heldConsumable: string? = nil -- the consumable in hand (client-side; the server only validates the use)
 	local lastUse = -math.huge
 	local lastPvpEquipped: string? = nil
+	local pendingOrder: { string }? = nil -- the order the player just made, until a State confirms it
+	local pendingAt = -math.huge
+	local seen: { [string]: boolean }? = nil -- every entry key seen this session (nil until the first State)
 	local setPanelOpen: (open: boolean) -> ()
 
 	-- Hotbar ------------------------------------------------------------------------------------------
@@ -239,7 +301,9 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local function styleSlot(slot: Slot, entry: Entry, now: number)
 		slot.entry = entry
 		slot.icon.set(entry.iconId)
+		slot.icon.instance.Visible = true
 		slot.button.BackgroundColor3 = if entry.equipped then C.selected else C.slot
+		slot.button.BackgroundTransparency = 0
 		local stroke = slot.button:FindFirstChildOfClass("UIStroke") :: UIStroke
 		stroke.Color = if entry.equipped then C.ring else C.stroke
 		stroke.Thickness = if entry.equipped then 3 else 2
@@ -249,6 +313,28 @@ function Inventory.new(parent: Instance, deps: Deps)
 		local left = InventoryCore.cooldownText(entry, now)
 		slot.cooldown.Visible = left ~= nil
 		slot.cooldown.Text = left or ""
+		slot.number.TextColor3 = Theme.Text
+		if slot.name then
+			slot.name.Text = entry.name
+			slot.name.Visible = true
+		end
+	end
+
+	-- An empty hotbar slot: an Ink well (see-through by `transparency`) with only its key number.
+	local function styleEmpty(slot: Slot, transparency: number)
+		slot.entry = nil
+		slot.icon.instance.Visible = false
+		slot.button.BackgroundColor3 = Theme.Ink
+		slot.button.BackgroundTransparency = transparency
+		local stroke = slot.button:FindFirstChildOfClass("UIStroke") :: UIStroke
+		stroke.Color = C.stroke
+		stroke.Thickness = 2
+		slot.count.Visible = false
+		slot.cooldown.Visible = false
+		slot.number.TextColor3 = Theme.Muted
+		if slot.name then
+			slot.name.Visible = false
+		end
 	end
 
 	local sync: (force: boolean?) -> ()
@@ -286,7 +372,15 @@ function Inventory.new(parent: Instance, deps: Deps)
 		end
 	end
 
-	local function bindSlot(slot: Slot, onActivate: (Entry) -> (), withTip: boolean)
+	-- The tap that ends a drag is not a tap: the cell the drag started from ignores its next Activated.
+	local suppressTap: GuiObject? = nil
+
+	local function bindSlot(
+		slot: Slot,
+		onActivate: (Entry) -> (),
+		withTip: boolean,
+		onPress: ((Slot, InputObject) -> ())?
+	)
 		local pressedAt: number? = nil
 		local longPressed = false
 		if withTip then
@@ -298,6 +392,9 @@ function Inventory.new(parent: Instance, deps: Deps)
 			slot.button.MouseLeave:Connect(hideTip)
 		end
 		slot.button.InputBegan:Connect(function(input: InputObject)
+			if onPress then
+				onPress(slot, input)
+			end
 			if input.UserInputType ~= Enum.UserInputType.Touch then
 				return
 			end
@@ -317,6 +414,10 @@ function Inventory.new(parent: Instance, deps: Deps)
 			end
 		end)
 		slot.button.Activated:Connect(function()
+			if suppressTap == slot.button then
+				suppressTap = nil
+				return
+			end
 			if longPressed then
 				longPressed = false
 				return
@@ -329,7 +430,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	end
 
 	local barSlots: { Slot } = {}
-	for i = 1, InventoryLayout.MAX_SLOTS do
+	for i = 1, MAX do
 		local slot = makeSlot(root, InventoryLayout.SLOT, keyboard)
 		slot.button.Name = `Slot{i}`
 		slot.number.Text = tostring(i)
@@ -388,12 +489,112 @@ function Inventory.new(parent: Instance, deps: Deps)
 	end)
 	bag.MouseLeave:Connect(hideTip)
 
-	-- The bar for the current entries and screen (geometry only).
+	-- The bar for the current slots and screen (geometry only): slots 1..last filled, clamped to what fits.
 	local function barGeometry(): InventoryLayout.Bar
 		local zone = if screen then screen.hotbar else Layout.rect(0, 0, 600, 67)
 		local compact = if screen then screen.compact else false
 		local tight = if screen then screen.tight else false
-		return InventoryLayout.bar(zone, #entries, compact, Layout.MIN_TOUCH_DESIGN, tight)
+		return InventoryLayout.bar(zone, InventoryCore.lastFilled(slots, MAX), compact, Layout.MIN_TOUCH_DESIGN, tight)
+	end
+
+	-- Hotbar order ------------------------------------------------------------------------------------
+	local function savedOrder(): { string }?
+		return pendingOrder or InventoryCore.savedKeys(if state then state.hotbar else nil, MAX)
+	end
+
+	-- One SetHotbar in flight at a time, ORDER_GAP apart; a newer order made meanwhile goes after it.
+	local flight = { busy = false, at = -math.huge, queued = false, delayed = false }
+	local function sendOrder()
+		local order = pendingOrder
+		if order == nil then
+			return
+		end
+		local now = os.clock()
+		if flight.busy and now - flight.at < Inventory.ORDER_TIMEOUT then
+			flight.queued = true
+			return
+		end
+		local wait = flight.at + Inventory.ORDER_GAP - now
+		if wait > 0 then
+			if not flight.delayed then
+				flight.delayed = true
+				task.delay(wait, function()
+					flight.delayed = false
+					sendOrder()
+				end)
+			end
+			return
+		end
+		flight.at = now
+		flight.queued = false
+		local text = InventoryCore.orderString(order)
+		local call = deps.request
+		if call then
+			flight.busy = true
+			local sentAt = now
+			call(InventoryCore.HOTBAR_ACTION, function(result: any)
+				flight.busy = false
+				local refused = type(result) == "table" and result.ok == false
+				if refused and pendingOrder == order then
+					local passing = Inventory.ORDER_RETRY[result.message] == true
+					if passing and os.clock() - pendingAt < Inventory.ORDER_TIMEOUT then
+						flight.queued = true -- the same order again, ORDER_GAP after this one
+					else
+						pendingOrder = nil -- refused: the server's order stands
+						sync(true)
+					end
+				end
+				if flight.queued then
+					sendOrder()
+				end
+			end, text)
+			-- a call that never answers (the remote failed) frees the line after ORDER_TIMEOUT
+			task.delay(Inventory.ORDER_TIMEOUT, function()
+				if flight.busy and flight.at == sentAt then
+					flight.busy = false
+					if flight.queued then
+						sendOrder()
+					end
+				end
+			end)
+		else
+			deps.send(InventoryCore.HOTBAR_ACTION, text)
+		end
+	end
+
+	-- Makes `order` the hotbar now and sends it; false when it is the order already shown.
+	local function setOrder(wanted: { string }): boolean
+		local order = InventoryCore.cleanOrder(wanted)
+		if InventoryCore.orderString(order) == InventoryCore.orderString(keys) then
+			return false
+		end
+		pendingOrder = order
+		pendingAt = os.clock()
+		keys = order
+		sendOrder()
+		return true
+	end
+
+	-- Items first seen this session go on the first empty slot of a saved order.
+	local function placeNewItems()
+		local known = seen
+		if known == nil then
+			return
+		end
+		local fresh: { string } = {}
+		for _, entry in entries do
+			if not known[entry.key] then
+				known[entry.key] = true
+				table.insert(fresh, entry.key)
+			end
+		end
+		local saved = savedOrder()
+		if #fresh > 0 and saved then
+			local placed, changed = InventoryCore.placeNew(saved, fresh)
+			if changed then
+				setOrder(placed)
+			end
+		end
 	end
 
 	-- Inventory panel -------------------------------------------------------------------------------
@@ -408,41 +609,52 @@ function Inventory.new(parent: Instance, deps: Deps)
 		Parent = parent,
 	}) :: TextButton
 	local panel = Widgets.panel(parent, "InventoryPanel", "Inventory", "🎒")
-	local P = Inventory.PANEL
-	local CELL = InventoryLayout.CELL
-	Widgets.label({
-		Name = "Hint",
-		Text = `{if keyboard then "Click" else "Tap"} an item to equip it.`,
-		TextSize = P.hintSize,
-		TextColor3 = Theme.Muted,
-		Size = UDim2.new(1, -P.chipRoom, 0, CELL.top),
-		Parent = panel.body,
-	})
-	local countChip = Widgets.chip({
-		Name = "Count",
-		Font = Theme.FontBody,
-		TextSize = P.chipSize,
-		TextColor3 = Theme.Muted,
-		BackgroundColor3 = Theme.Row,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 1),
-		Size = fromOffset(0, CELL.top - 2),
-		Parent = panel.body,
-	})
-	local list = Widgets.scroll({
-		Name = "Grid",
-		AutomaticCanvasSize = Enum.AutomaticSize.None,
-		Position = fromOffset(0, CELL.top + CELL.topGap),
-		Size = UDim2.new(1, 0, 1, -(CELL.top + CELL.topGap)),
-		Parent = panel.body,
-	})
-	local gridCells: { Slot } = {}
-	local cellNames: { TextLabel } = {}
-	local emptyCells: { Frame } = {}
 
-	local function makeCell(): (Slot, TextLabel)
-		local slot = makeSlot(list, CELL.max, false)
-		slot.button.Name = "Item"
+	local function bodyWidth(): number
+		return if screen then Layout.panelBody(Layout.panelFor(screen, "Inventory")).w else Layout.MENU_WIDTH
+	end
+
+	-- The card sized to its content (Layout.panelFor clamps it to the backdrop; the bag grid scrolls past that).
+	-- Returns the body height, nil before the first layout.
+	local function placePanel(): number?
+		if not screen then
+			return nil
+		end
+		local bodyW = bodyWidth()
+		local footerH = Layout.wrappedHeight(footerText, P.hintSize, bodyW)
+		local r = Layout.panelFor(screen, "Inventory", InventoryLayout.contentHeight(#entries, bodyW, footerH))
+		panel.frame.Position = fromOffset(r.x, r.y)
+		panel.frame.Size = fromOffset(r.w, r.h)
+		return Layout.panelBody(r).h
+	end
+
+	-- A heading line: the title left, `detail` (a label or chip) right.
+	local function heading(name: string, text: string): Frame
+		local row = create("Frame", {
+			Name = name,
+			BackgroundTransparency = 1,
+			Size = UDim2.new(1, 0, 0, CELL.top),
+			Parent = panel.body,
+		})
+		Widgets.label({
+			Name = "Title",
+			Text = text,
+			Font = Theme.Font,
+			TextSize = P.headingSize,
+			TextColor3 = Theme.Text,
+			TextStrokeColor3 = Theme.Ink,
+			TextStrokeTransparency = 0,
+			Size = UDim2.new(1, -P.headingRoom, 1, 0),
+			Parent = row,
+		})
+		return row
+	end
+
+	local panelOnDrag: (Slot, InputObject) -> ()
+
+	-- A panel cell: a hotbar slot with the name under the picture.
+	local function makeCell(host: Instance, size: number, withNumber: boolean): Slot
+		local slot = makeSlot(host, size, withNumber)
 		Widgets.shade(slot.button)
 		slot.icon.instance.AnchorPoint = Vector2.new(0.5, 0)
 		slot.count.AnchorPoint = Vector2.new(1, 0)
@@ -450,8 +662,8 @@ function Inventory.new(parent: Instance, deps: Deps)
 		bindSlot(slot, function(e: Entry)
 			perform(e)
 			setPanelOpen(false)
-		end, false)
-		local name = Widgets.label({
+		end, false, panelOnDrag)
+		slot.name = Widgets.label({
 			Name = "Name",
 			Font = Theme.Font,
 			TextSize = P.nameSize,
@@ -465,70 +677,214 @@ function Inventory.new(parent: Instance, deps: Deps)
 			ZIndex = 6,
 			Parent = slot.button,
 		})
-		return slot, name
+		return slot
 	end
 
-	local function makeEmpty(): Frame
+	-- Sizes a panel cell: `size` square, the picture above the name.
+	local function sizeCell(slot: Slot, size: number)
+		local iconSize = math.max(1, size - CELL.inset * 2 - CELL.name)
+		slot.button.Size = fromOffset(size, size)
+		slot.icon.instance.Size = fromOffset(iconSize, iconSize)
+		slot.icon.instance.Position = UDim2.new(0.5, 0, 0, CELL.inset)
+	end
+
+	type Parts = {
+		bagHeading: Frame,
+		countChip: TextLabel,
+		barHeading: Frame,
+		plate: Frame,
+		plateSlots: { Slot },
+		list: ScrollingFrame,
+		footer: TextLabel,
+	}
+	local parts: Parts? = nil
+	local gridCells: { Slot } = {}
+	local emptyCells: { Frame } = {}
+	local plateHits: { Rect } = {} -- the plate slots in design px (ScreenGui space), for the drop
+
+	-- The panel's content, built on first open.
+	local function ensureParts(): Parts
+		if parts then
+			return parts
+		end
+		-- the bag heading first: its count chip is the panel's first "Count"
+		local bagHeading = heading("BagHeading", "Bag")
+		local countChip = Widgets.chip({
+			Name = "Count",
+			Font = Theme.FontBody,
+			TextSize = P.chipSize,
+			TextColor3 = Theme.Muted,
+			BackgroundColor3 = Theme.Row,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 0, 0, 1),
+			Size = fromOffset(0, CELL.top - 2),
+			Parent = bagHeading,
+		})
+		local barHeading = heading("HotbarHeading", "Hotbar")
+		Widgets.label({
+			Name = "Hint",
+			Text = "Drag items here",
+			TextSize = P.hintSize,
+			TextColor3 = Theme.Muted,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.fromScale(1, 0),
+			Size = UDim2.new(0, P.headingRoom * 2, 1, 0),
+			Parent = barHeading,
+		})
+		local plate = create("Frame", {
+			Name = "HotbarPlate",
+			BackgroundColor3 = C.plate,
+			Parent = panel.body,
+		}, { Widgets.corner(P.plateRadius), Widgets.stroke(Theme.Ink, P.plateStroke) })
+		local plateSlots: { Slot } = {}
+		for i = 1, MAX do
+			local slot = makeCell(plate, InventoryLayout.PLATE.max, true)
+			slot.button.Name = `HotbarSlot{i}`
+			slot.number.Text = tostring(i)
+			slot.from = { kind = "bar", index = i }
+			plateSlots[i] = slot
+		end
+		local list = Widgets.scroll({
+			Name = "Grid",
+			AutomaticCanvasSize = Enum.AutomaticSize.None,
+			Parent = panel.body,
+		})
+		local footer = Widgets.label({
+			Name = "Footer",
+			Text = footerText,
+			TextSize = P.hintSize,
+			TextColor3 = Theme.Muted,
+			TextWrapped = true,
+			TextTruncate = Enum.TextTruncate.None,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			Parent = list,
+		})
+		local made: Parts = {
+			bagHeading = bagHeading,
+			countChip = countChip,
+			barHeading = barHeading,
+			plate = plate,
+			plateSlots = plateSlots,
+			list = list,
+			footer = footer,
+		}
+		parts = made
+		return made
+	end
+
+	local function makeTag(slot: Slot): TextLabel
+		local tag = Widgets.label({
+			Name = "OnBar",
+			Visible = false,
+			Font = Theme.Font,
+			TextSize = P.tagSize,
+			TextColor3 = Theme.Ink,
+			BackgroundTransparency = 0,
+			BackgroundColor3 = Theme.Gold,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextTruncate = Enum.TextTruncate.None,
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -P.tagInset, 0, P.tagInset),
+			Size = fromOffset(P.tagW, P.tagH),
+			ZIndex = 6,
+			Parent = slot.button,
+		})
+		Widgets.corner(6).Parent = tag
+		Widgets.stroke(Theme.Ink, 2).Parent = tag
+		return tag
+	end
+
+	local function makeEmpty(host: Instance): Frame
 		return create("Frame", {
 			Name = "Empty",
 			BackgroundColor3 = Theme.Ink,
 			BackgroundTransparency = P.emptyTransparency,
 			BorderSizePixel = 0,
-			Parent = list,
+			Parent = host,
 		}, { Widgets.corner(10) })
 	end
 
-	local function bodyWidth(): number
-		return if screen then Layout.panelBody(Layout.panelFor(screen, "Inventory")).w else Layout.MENU_WIDTH
-	end
-
-	-- The card sized to its grid (Layout.panelFor clamps it to the backdrop; the grid scrolls past that).
-	local function placePanel()
-		if not screen then
-			return
+	-- Design-px offset of `gui` from the ScreenGui (every frame on the way is top-left anchored).
+	local function offsetOf(gui: GuiObject): (number, number)
+		local x, y = 0, 0
+		local node: Instance? = gui
+		while node and node ~= parent and node:IsA("GuiObject") do
+			local pos = (node :: GuiObject).Position
+			x += pos.X.Offset
+			y += pos.Y.Offset
+			node = node.Parent
 		end
-		local r = Layout.panelFor(screen, "Inventory", InventoryLayout.contentHeight(#entries, bodyWidth()))
-		panel.frame.Position = fromOffset(r.x, r.y)
-		panel.frame.Size = fromOffset(r.w, r.h)
+		return x, y
 	end
 
-	local function refreshGrid(now: number)
+	local function refreshPanel(now: number)
+		local p = ensureParts()
 		local bodyW = bodyWidth()
+		local bodyH = placePanel()
+		-- Hotbar plate.
+		local slotSize = InventoryLayout.plateSlot(bodyW, bodyH)
+		local plateRect, plateRects = InventoryLayout.plate(bodyW, slotSize)
+		p.barHeading.Position = fromOffset(0, 0)
+		p.plate.Position = fromOffset(plateRect.x, plateRect.y)
+		p.plate.Size = fromOffset(plateRect.w, plateRect.h)
+		local plateX, plateY = offsetOf(p.plate)
+		for i, slot in p.plateSlots do
+			local r = plateRects[i]
+			sizeCell(slot, r.w)
+			slot.button.Position = fromOffset(r.x, r.y)
+			local entry = slots[i]
+			if entry then
+				styleSlot(slot, entry, now)
+			else
+				styleEmpty(slot, 0)
+			end
+			plateHits[i] = { x = plateX + r.x, y = plateY + r.y, w = r.w, h = r.h }
+		end
+		-- Bag.
+		local headingY, gridY = InventoryLayout.bagTop(slotSize)
+		p.bagHeading.Position = fromOffset(0, headingY)
+		p.list.Position = fromOffset(0, gridY)
+		p.list.Size = UDim2.new(1, 0, 1, -gridY)
 		local cols = InventoryLayout.columns(bodyW)
 		local size = InventoryLayout.cellSize(bodyW)
 		local total = InventoryLayout.slotCount(#entries, bodyW)
 		local gridW = cols * size + (cols - 1) * CELL.gap
 		local x0 = math.floor((bodyW - gridW) / 2)
-		local shown = if keyboard then barGeometry().shown else 0
-		local iconSize = size - CELL.inset * 2 - CELL.name
 		local function at(i: number): UDim2
 			local col, row = (i - 1) % cols, (i - 1) // cols
 			return fromOffset(x0 + col * (size + CELL.gap), row * (size + CELL.gap))
 		end
 		for i, entry in entries do
-			if gridCells[i] == nil then
-				gridCells[i], cellNames[i] = makeCell()
+			local slot = gridCells[i]
+			if slot == nil then
+				slot = makeCell(p.list, size, false)
+				slot.button.Name = "Item"
+				slot.tag = makeTag(slot)
+				gridCells[i] = slot
 			end
-			local slot, name = gridCells[i], cellNames[i]
 			styleSlot(slot, entry, now)
-			name.Text = entry.name
-			slot.number.Visible = i <= shown
-			slot.number.Text = tostring(i)
+			slot.from = { kind = "bag", key = entry.key }
+			local onBar = InventoryCore.slotOf(keys, entry.key)
+			local tag = slot.tag :: TextLabel
+			tag.Visible = onBar ~= nil
+			tag.Text = if onBar then tostring(onBar) else ""
+			-- the stack count steps down under the tag
+			slot.count.Position = UDim2.new(1, -6, 0, if onBar then P.tagInset + P.tagH + 2 else 4)
 			slot.button.Visible = true
-			slot.button.Size = fromOffset(size, size)
 			slot.button.Position = at(i)
-			slot.icon.instance.Size = fromOffset(iconSize, iconSize)
-			slot.icon.instance.Position = UDim2.new(0.5, 0, 0, CELL.inset)
+			sizeCell(slot, size)
 		end
 		for i = #entries + 1, #gridCells do
 			gridCells[i].button.Visible = false
+			gridCells[i].entry = nil
 		end
 		local empties = total - #entries
 		for k = 1, math.max(empties, #emptyCells) do
 			local cell = emptyCells[k]
 			if k <= empties then
 				if cell == nil then
-					cell = makeEmpty()
+					cell = makeEmpty(p.list)
 					emptyCells[k] = cell
 				end
 				cell.Visible = true
@@ -538,9 +894,189 @@ function Inventory.new(parent: Instance, deps: Deps)
 				cell.Visible = false
 			end
 		end
-		countChip.Text = if #entries == 1 then "1 item" else `{#entries} items`
-		list.CanvasSize = fromOffset(0, InventoryLayout.gridHeight(total, bodyW))
-		placePanel()
+		p.countChip.Text = if #entries == 1 then "1 item" else `{#entries} items`
+		local gridH = InventoryLayout.gridHeight(total, bodyW)
+		local footerH = Layout.wrappedHeight(footerText, P.hintSize, bodyW)
+		local footerY = gridH + InventoryLayout.PLATE.footerGap
+		p.footer.Position = fromOffset(0, footerY)
+		p.footer.Size = fromOffset(bodyW, footerH)
+		p.list.CanvasSize = fromOffset(0, footerY + footerH)
+	end
+
+	-- Drag ---------------------------------------------------------------------------------------------
+	type DragParts = { ghost: Frame, icon: any, name: TextLabel, lift: Frame, ring: Frame }
+	local dragParts: DragParts? = nil
+	local press: Press? = nil
+
+	local function ensureDragParts(): DragParts
+		if dragParts then
+			return dragParts
+		end
+		local ghost = create("Frame", {
+			Name = "DragGhost",
+			Visible = false,
+			BackgroundColor3 = C.slot,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Rotation = DRAG.rotation,
+			ZIndex = Layout.ZINDEX.Banners,
+			Parent = parent,
+		}, { Widgets.corner(10), Widgets.stroke(C.ring, DRAG.ring) })
+		Widgets.shade(ghost)
+		local icon = ItemIconView.new({
+			Name = "Icon",
+			Id = "Unknown",
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, CELL.inset),
+			ZIndex = 2,
+			Parent = ghost,
+		}, registry)
+		local name = Widgets.label({
+			Name = "Name",
+			Font = Theme.Font,
+			TextSize = P.nameSize,
+			TextColor3 = Theme.Text,
+			TextStrokeColor3 = Theme.Ink,
+			TextStrokeTransparency = 0,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -CELL.inset / 2),
+			Size = UDim2.new(1, -CELL.inset, 0, CELL.name),
+			ZIndex = 6,
+			Parent = ghost,
+		})
+		local lift = create("Frame", {
+			Name = "Lift",
+			BackgroundColor3 = Theme.Ink,
+			BackgroundTransparency = DRAG.liftTransparency,
+			Size = UDim2.fromScale(1, 1),
+			ZIndex = 8,
+		}, { Widgets.corner(10) })
+		local ring = create("Frame", {
+			Name = "DropRing",
+			BackgroundTransparency = 1,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.new(1, DRAG.ringOut, 1, DRAG.ringOut),
+			ZIndex = 9,
+		}, { Widgets.corner(14), Widgets.stroke(Theme.Gold, DRAG.ring) })
+		local made: DragParts = { ghost = ghost, icon = icon, name = name, lift = lift, ring = ring }
+		dragParts = made
+		return made
+	end
+
+	local function toDesign(position: any): (number, number)
+		local scale = if screen then screen.scale else 1
+		return position.X / scale, position.Y / scale
+	end
+
+	local function endPress()
+		local p = press
+		if p == nil then
+			return
+		end
+		press = nil
+		for _, conn in p.conns do
+			conn:Disconnect()
+		end
+		if dragParts then
+			dragParts.ghost.Visible = false
+			dragParts.lift.Parent = nil
+			dragParts.ring.Parent = nil
+		end
+		if parts then
+			parts.list.ScrollingEnabled = true
+		end
+	end
+
+	local function beginDrag(p: Press)
+		local entry = p.slot.entry
+		if entry == nil then
+			return
+		end
+		p.dragging = true
+		suppressTap = p.slot.button
+		hideTip()
+		local d = ensureDragParts()
+		local size = p.slot.button.Size.X.Offset
+		d.ghost.Size = fromOffset(size, size)
+		local iconSize = math.max(1, size - CELL.inset * 2 - CELL.name)
+		d.icon.instance.Size = fromOffset(iconSize, iconSize)
+		d.icon.set(entry.iconId)
+		d.name.Text = entry.name
+		d.ghost.Visible = true
+		d.lift.Parent = p.slot.button
+		if parts then
+			parts.list.ScrollingEnabled = false -- a touch drag moves the item, not the bag
+		end
+	end
+
+	local function moveDrag(x: number, y: number)
+		local d = ensureDragParts()
+		d.ghost.Position = fromOffset(x, y)
+		local target = InventoryLayout.hit(plateHits, x, y)
+		local p = parts
+		d.ring.Parent = if target and p then p.plateSlots[target].button else nil
+	end
+
+	local function drop(from: InventoryCore.DragFrom, x: number, y: number)
+		local target = InventoryLayout.hit(plateHits, x, y)
+		local to: InventoryCore.DragTo = if target then { kind = "bar", index = target } else { kind = "bag" }
+		if setOrder(InventoryCore.applyDrop(keys, from, to)) then
+			sync(true)
+		end
+	end
+
+	-- A press on a panel cell: it becomes a drag once it moves DRAG.threshold, else the button's Activated taps.
+	-- Moves and the release come from UserInputService (they leave the cell); a touch follows its own finger only.
+	function panelOnDrag(slot: Slot, io: InputObject)
+		local kind = io.UserInputType
+		if kind ~= Enum.UserInputType.MouseButton1 and kind ~= Enum.UserInputType.Touch then
+			return
+		end
+		suppressTap = nil
+		endPress()
+		local from = slot.from
+		if not panelOpen or slot.entry == nil or from == nil then
+			return
+		end
+		local x, y = toDesign(io.Position)
+		local touch = kind == Enum.UserInputType.Touch
+		local p: Press = { slot = slot, from = from, input = io, x = x, y = y, dragging = false, conns = {} }
+		press = p
+		local function ours(other: InputObject, mouseKind: Enum.UserInputType): boolean
+			return if touch then other == io else other.UserInputType == mouseKind
+		end
+		table.insert(
+			p.conns,
+			userInput.InputChanged:Connect(function(changed: InputObject)
+				if press ~= p or not ours(changed, Enum.UserInputType.MouseMovement) then
+					return
+				end
+				local cx, cy = toDesign(changed.Position)
+				if not p.dragging then
+					local dx, dy = cx - p.x, cy - p.y
+					if dx * dx + dy * dy < DRAG.threshold * DRAG.threshold then
+						return
+					end
+					beginDrag(p)
+				end
+				moveDrag(cx, cy)
+			end)
+		)
+		table.insert(
+			p.conns,
+			userInput.InputEnded:Connect(function(ended: InputObject)
+				if press ~= p or not ours(ended, Enum.UserInputType.MouseButton1) then
+					return
+				end
+				local dragging = p.dragging
+				local ex, ey = toDesign(ended.Position)
+				endPress()
+				if dragging then
+					drop(p.from, ex, ey)
+				end
+			end)
+		)
 	end
 
 	-- Refresh --------------------------------------------------------------------------------------
@@ -588,7 +1124,12 @@ function Inventory.new(parent: Instance, deps: Deps)
 				slot.button.Position = fromOffset(r.x - bar.rect.x, r.y - bar.rect.y)
 				slot.button.Size = fromOffset(r.w, r.h)
 				slot.icon.instance.Size = fromOffset(r.w - 14, r.h - 14)
-				styleSlot(slot, entries[i], now)
+				local entry = slots[i]
+				if entry then
+					styleSlot(slot, entry, now)
+				else
+					styleEmpty(slot, P.emptyTransparency)
+				end
 			else
 				slot.button.Visible = false
 				slot.entry = nil
@@ -607,12 +1148,16 @@ function Inventory.new(parent: Instance, deps: Deps)
 
 	function sync(force: boolean?)
 		entries = currentEntries()
-		local sig = InventoryCore.signature(entries)
+		placeNewItems()
+		local saved = savedOrder()
+		keys = InventoryCore.slotKeys(entries, saved, MAX)
+		slots = InventoryCore.hotbarSlots(entries, saved, MAX)
+		local sig = `{InventoryCore.signature(entries)}#{InventoryCore.orderString(keys)}`
 		if sig ~= signature or force then
 			signature = sig
 			applyBar()
-			if panelOpen then
-				refreshGrid(deps.serverNow())
+			if panelOpen and press == nil then
+				refreshPanel(deps.serverNow())
 			end
 		end
 		root.Visible = not (menuOpen or carrying)
@@ -627,9 +1172,10 @@ function Inventory.new(parent: Instance, deps: Deps)
 		backdrop.Visible = open
 		if open then
 			hideTip()
-			entries = currentEntries()
-			signature = InventoryCore.signature(entries)
-			refreshGrid(deps.serverNow())
+			sync(true)
+			refreshPanel(deps.serverNow())
+		else
+			endPress()
 		end
 	end
 	self.setPanelOpen = setPanelOpen
@@ -667,10 +1213,26 @@ function Inventory.new(parent: Instance, deps: Deps)
 			heldConsumable = nil -- an equipped PvP item took the hand
 		end
 		lastPvpEquipped = pvpNow
+		local pending = pendingOrder
+		if pending then
+			local server = InventoryCore.savedKeys(if newState then newState.hotbar else nil, MAX)
+			local confirmed = server ~= nil and InventoryCore.orderString(server) == InventoryCore.orderString(pending)
+			if confirmed or os.clock() - pendingAt > Inventory.ORDER_TIMEOUT then
+				pendingOrder = nil
+			end
+		end
 		if carrying and panelOpen then
 			setPanelOpen(false)
 		end
 		sync()
+		if seen == nil then
+			-- the first State: what the player has now is not new
+			local known: { [string]: boolean } = {}
+			for _, entry in entries do
+				known[entry.key] = true
+			end
+			seen = known
+		end
 	end
 
 	-- A Menu card is open: the hotbar and the panel step aside.
@@ -682,13 +1244,13 @@ function Inventory.new(parent: Instance, deps: Deps)
 		sync()
 	end
 
-	-- Number key n (1-9) selects the n-th slot shown; false when nothing was there / the bar is hidden.
+	-- Number key n (1-9) selects hotbar slot n when the bar shows it; false when it is empty / the bar is hidden.
 	function self.pressKey(n: number): boolean
 		if menuOpen or carrying or panelOpen then
 			return false
 		end
 		local bar = applyBar()
-		local entry = InventoryCore.byKey(entries, bar.shown, n)
+		local entry = InventoryCore.byKey(slots, bar.shown, n)
 		if entry then
 			perform(entry)
 			return true

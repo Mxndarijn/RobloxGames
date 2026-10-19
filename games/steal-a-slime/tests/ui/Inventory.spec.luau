@@ -193,10 +193,10 @@ describe("Inventory panel", function()
 			inv.setPanelOpen(true)
 			local items, empties, rows = 0, 0, {}
 			for _, cell in UiHarness.find(inv.panel.frame, "Grid"):GetChildren() do
-				if cell.Visible then
+				if cell.Visible and (cell.Name == "Item" or cell.Name == "Empty") then
 					if cell.Name == "Item" then
 						items += 1
-					elseif cell.Name == "Empty" then
+					else
 						empties += 1
 					end
 					local y = cell.Position.Y.Offset
@@ -212,7 +212,7 @@ describe("Inventory panel", function()
 		end
 	end)
 
-	it("cells copy the hotbar: key number for items on the bar, the selection ring on the equipped one", function()
+	it("cells copy the hotbar: a gold key tag for items on the bar, the selection ring on the equipped one", function()
 		local inv = mount(nil, { { name = "Bat", equipped = true }, { name = "SpeedCoil", equipped = false } })
 		inv.setPanelOpen(true)
 		local cells = {}
@@ -223,9 +223,10 @@ describe("Inventory panel", function()
 		end
 		local bat, coil = cells.Bat, cells["Speed Coil"]
 		expect(bat ~= nil and coil ~= nil).toBe(true)
-		expect(UiHarness.find(bat, "Number").Visible).toBe(true)
-		expect(UiHarness.find(bat, "Number").Text).toBe("1")
-		expect(UiHarness.find(coil, "Number").Text).toBe("2")
+		expect(UiHarness.find(bat, "Number").Visible).toBe(false)
+		expect(UiHarness.find(bat, "OnBar").Visible).toBe(true)
+		expect(UiHarness.find(bat, "OnBar").Text).toBe("1")
+		expect(UiHarness.find(coil, "OnBar").Text).toBe("2")
 		expect(bat.BackgroundColor3).toBe(Inventory.COLORS.selected)
 		expect(bat:FindFirstChildOfClass("UIStroke").Color).toBe(Inventory.COLORS.ring)
 		expect(coil.BackgroundColor3).toBe(Inventory.COLORS.slot)
@@ -241,12 +242,13 @@ describe("Inventory panel", function()
 		expect(inv.panelOpen()).toBe(false)
 	end)
 
-	it("sits in the Inventory menu card sized to its grid and steps aside for another menu / carrying", function()
+	it("sits in the Inventory menu card sized to its content and steps aside for another menu / carrying", function()
 		local inv = mount(nil)
 		local s = Layout.screen(1920, 1080)
 		inv.layout(s)
 		local body = Layout.panelBody(Layout.panelFor(s, "Inventory"))
-		local r = Layout.panelFor(s, "Inventory", InventoryLayout.contentHeight(1, body.w))
+		local footer = Layout.wrappedHeight(Inventory.footerText(true), Inventory.PANEL.hintSize, body.w)
+		local r = Layout.panelFor(s, "Inventory", InventoryLayout.contentHeight(1, body.w, footer))
 		expect(inv.panel.frame.Position.X.Offset).toBe(r.x)
 		expect(inv.panel.frame.Size.Y.Offset).toBe(r.h)
 		inv.setPanelOpen(true)
@@ -332,11 +334,12 @@ describe("Inventory mount", function()
 		local tools = fs.readFile("src/ui/InventoryTools.luau")
 		expect(string.find(tools, "SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)", 1, true) ~= nil).toBe(true)
 	end)
-	it("the only server names it touches are EquipPvpItem, UsePvpItem and UseConsumable", function()
+	it("the only server names it touches are EquipPvpItem, UsePvpItem, UseConsumable and SetHotbar", function()
 		local core = fs.readFile("src/ui/InventoryCore.luau")
 		expect(string.find(core, 'PVP_ACTION = "EquipPvpItem"', 1, true) ~= nil).toBe(true)
 		expect(string.find(core, 'USE_ACTION = "UseConsumable"', 1, true) ~= nil).toBe(true)
 		expect(string.find(core, 'PVP_USE_ACTION = "UsePvpItem"', 1, true) ~= nil).toBe(true)
+		expect(string.find(core, 'HOTBAR_ACTION = "SetHotbar"', 1, true) ~= nil).toBe(true)
 		local code = GlyphCheck.stripComments(core)
 		-- "BuyConsumable" is only the ItemIcons key of a consumable's picture, never sent
 		for _, other in { "BuyUpgrade", "RemoteEvent", "InvokeServer" } do
@@ -491,5 +494,341 @@ describe("Inventory PvP item use", function()
 		expect(inv.useHeld(SCREEN)).toBe(false)
 		expect(#sent).toBe(0)
 		expect(UiHarness.find(gui, "Tip").Text).toBe("Ready in 3s")
+	end)
+end)
+
+describe("Inventory hotbar order and drag", function()
+	local Enum = require("@lune/roblox").Enum
+	local Theme = UiHarness.ui("Widgets").Theme
+	local MOUSE, MOVE, TOUCH =
+		Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseMovement, Enum.UserInputType.Touch
+	local COIL = { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } }
+
+	-- UserInputService stand-in: InputChanged / InputEnded keep their handlers and Fire runs them.
+	local function fakeInput()
+		local function event()
+			local e = { handlers = {} :: { any } }
+			function e.Connect(this: any, handler: any)
+				table.insert(this.handlers, handler)
+				return {
+					Disconnect = function()
+						local i = table.find(this.handlers, handler)
+						if i then
+							table.remove(this.handlers, i)
+						end
+					end,
+				}
+			end
+			function e.Fire(this: any, ...: any)
+				for _, handler in table.clone(this.handlers) do
+					handler(...)
+				end
+			end
+			return e
+		end
+		return { InputChanged = event(), InputEnded = event() }
+	end
+
+	local function mountOrder(hotbar: { string }?, items: any?)
+		local gui = UiHarness.root()
+		local tools = fakeTools(items or table.clone(COIL))
+		local sent: { { any } } = {}
+		local input = fakeInput()
+		local inv = Inventory.new(gui, {
+			Config = Config,
+			itemIcons = ItemIcons.build(Config),
+			send = function(action: string, ...: any)
+				table.insert(sent, { action, ... })
+			end,
+			tools = tools,
+			serverNow = function()
+				return 100
+			end,
+			keyboard = true,
+			input = input,
+		})
+		inv.layout(Layout.screen(1920, 1080)) -- scale 1: screen px = design px
+		inv.update({ hotbar = hotbar, pvp = { owned = {}, cooldowns = {} } })
+		return inv, tools, sent, gui, input
+	end
+
+	local function order(...: string): { string }
+		local keys = table.create(9, "")
+		for i, key in { ... } do
+			keys[i] = key
+		end
+		return keys
+	end
+
+	-- The centre of `gui` in ScreenGui space (sum of the offsets up the tree).
+	local function centre(gui: any): { X: number, Y: number }
+		local x, y = gui.Size.X.Offset / 2, gui.Size.Y.Offset / 2
+		local node = gui
+		while node and node.ClassName ~= "ScreenGui" do
+			x += node.Position.X.Offset
+			y += node.Position.Y.Offset
+			node = node.Parent
+		end
+		return { X = x, Y = y }
+	end
+
+	local function bagCell(inv: any, name: string): any
+		for _, cell in UiHarness.find(inv.panel.frame, "Grid"):GetChildren() do
+			if cell.Visible and cell.Name == "Item" and UiHarness.find(cell, "Name").Text == name then
+				return cell
+			end
+		end
+		return nil
+	end
+
+	local function plateSlot(inv: any, i: number): any
+		return UiHarness.find(inv.panel.frame, `HotbarSlot{i}`)
+	end
+
+	local function hotbarSends(sent: { { any } }): { string }
+		local out = {}
+		for _, call in sent do
+			if call[1] == "SetHotbar" then
+				table.insert(out, call[2])
+			end
+		end
+		return out
+	end
+
+	-- A mouse drag from `cell` to point `to`, with a stop on the way so the threshold is passed.
+	local function mouseDrag(input: any, cell: any, to: { X: number, Y: number })
+		local from = centre(cell)
+		UiHarness.fire(cell, "InputBegan", { UserInputType = MOUSE, Position = from })
+		input.InputChanged:Fire({ UserInputType = MOVE, Position = { X = from.X + 20, Y = from.Y } })
+		input.InputChanged:Fire({ UserInputType = MOVE, Position = to })
+		input.InputEnded:Fire({ UserInputType = MOUSE, Position = to })
+		UiHarness.fire(cell, "Activated") -- Roblox may still fire it on release; a drag is never a tap
+	end
+
+	it("the panel shows the hotbar plate: nine slots, keys 1-9, empty ones as Ink wells", function()
+		local inv = mountOrder(order("tool:Bat", "", "tool:SpeedCoil"))
+		inv.setPanelOpen(true)
+		expect(UiHarness.find(inv.panel.frame, "HotbarPlate") ~= nil).toBe(true)
+		for i = 1, 9 do
+			local slot = plateSlot(inv, i)
+			expect(UiHarness.find(slot, "Number").Text).toBe(tostring(i))
+			expect(UiHarness.find(slot, "Number").Visible).toBe(true)
+		end
+		expect(UiHarness.find(plateSlot(inv, 1), "Name").Text).toBe("Bat")
+		expect(plateSlot(inv, 2).BackgroundColor3).toBe(Theme.Ink)
+		expect(UiHarness.find(plateSlot(inv, 2), "Icon").Visible).toBe(false)
+		expect(UiHarness.find(plateSlot(inv, 3), "Name").Text).toBe("Speed Coil")
+		expect(UiHarness.find(inv.panel.frame, "Footer").Visible).toBe(true)
+	end)
+
+	it("a drag from a bag cell onto hotbar slot 4 sends SetHotbar with that order and shows it at once", function()
+		local inv, tools, sent, gui, input = mountOrder(order("tool:Bat"))
+		inv.setPanelOpen(true)
+		local coil = bagCell(inv, "Speed Coil")
+		expect(UiHarness.find(coil, "OnBar").Visible).toBe(false)
+		local from, to = centre(coil), centre(plateSlot(inv, 4))
+		UiHarness.fire(coil, "InputBegan", { UserInputType = MOUSE, Position = from })
+		input.InputChanged:Fire({ UserInputType = MOVE, Position = { X = from.X + 3, Y = from.Y } })
+		expect(UiHarness.find(gui, "DragGhost")).toBeNil() -- under the threshold: still a press
+		input.InputChanged:Fire({ UserInputType = MOVE, Position = to })
+		local ghost = UiHarness.find(gui, "DragGhost")
+		expect(ghost.Visible).toBe(true)
+		expect(ghost.Position.X.Offset).toBe(math.round(to.X))
+		expect(UiHarness.find(plateSlot(inv, 4), "DropRing") ~= nil).toBe(true)
+		expect(UiHarness.find(coil, "Lift") ~= nil).toBe(true)
+		input.InputEnded:Fire({ UserInputType = MOUSE, Position = to })
+		UiHarness.fire(coil, "Activated")
+		expect(table.concat(hotbarSends(sent), "|")).toBe("tool:Bat,,,tool:SpeedCoil,,,,,")
+		expect(#tools.calls).toBe(0) -- the drop is not a tap
+		expect(inv.panelOpen()).toBe(true)
+		expect(ghost.Visible).toBe(false)
+		expect(UiHarness.find(coil, "Lift")).toBeNil()
+		expect(UiHarness.find(plateSlot(inv, 4), "Name").Text).toBe("Speed Coil")
+		expect(UiHarness.find(coil, "OnBar").Text).toBe("4")
+		-- a State still carrying the old order does not undo the drop; one with the new order confirms it
+		inv.update({ hotbar = order("tool:Bat"), pvp = { owned = {}, cooldowns = {} } })
+		expect(UiHarness.find(plateSlot(inv, 4), "Name").Text).toBe("Speed Coil")
+		inv.update({ hotbar = order("tool:Bat", "", "", "tool:SpeedCoil"), pvp = { owned = {}, cooldowns = {} } })
+		inv.update({ hotbar = order("tool:Bat"), pvp = { owned = {}, cooldowns = {} } })
+		expect(plateSlot(inv, 4).BackgroundColor3).toBe(Theme.Ink) -- confirmed: the server's order rules again
+	end)
+
+	it("a press that does not move is a tap: it equips and closes the panel, and sends no order", function()
+		local inv, tools, sent, _, input = mountOrder(order("tool:Bat"))
+		inv.setPanelOpen(true)
+		local coil = bagCell(inv, "Speed Coil")
+		local at = centre(coil)
+		UiHarness.fire(coil, "InputBegan", { UserInputType = MOUSE, Position = at })
+		input.InputEnded:Fire({ UserInputType = MOUSE, Position = at })
+		UiHarness.fire(coil, "Activated")
+		expect(tools.calls[1]).toBe("equip:SpeedCoil")
+		expect(inv.panelOpen()).toBe(false)
+		expect(#hotbarSends(sent)).toBe(0)
+	end)
+
+	it("dragging between hotbar slots swaps them; dragging one off the bar clears it", function()
+		local inv, _, sent, _, input = mountOrder(order("tool:Bat", "tool:SpeedCoil"))
+		inv.setPanelOpen(true)
+		mouseDrag(input, plateSlot(inv, 1), centre(plateSlot(inv, 2)))
+		expect(hotbarSends(sent)[1]).toBe("tool:SpeedCoil,tool:Bat,,,,,,,")
+		local inv2, _, sent2, _, input2 = mountOrder(order("tool:Bat", "tool:SpeedCoil"))
+		inv2.setPanelOpen(true)
+		mouseDrag(input2, plateSlot(inv2, 2), centre(bagCell(inv2, "Bat")))
+		expect(hotbarSends(sent2)[1]).toBe("tool:Bat,,,,,,,,")
+		expect(inv2.panelOpen()).toBe(true)
+	end)
+
+	it("a touch drag follows its own finger only; another finger moving does nothing", function()
+		local inv, _, sent, _, input = mountOrder(order("tool:Bat"))
+		inv.setPanelOpen(true)
+		local coil = bagCell(inv, "Speed Coil")
+		local finger = { UserInputType = TOUCH, Position = centre(coil) }
+		UiHarness.fire(coil, "InputBegan", finger)
+		local thumb = { UserInputType = TOUCH, Position = centre(plateSlot(inv, 2)) }
+		input.InputChanged:Fire(thumb)
+		input.InputEnded:Fire(thumb)
+		expect(#hotbarSends(sent)).toBe(0)
+		finger.Position = centre(plateSlot(inv, 2))
+		input.InputChanged:Fire(finger)
+		input.InputEnded:Fire(finger)
+		expect(hotbarSends(sent)[1]).toBe("tool:Bat,tool:SpeedCoil,,,,,,,")
+	end)
+
+	it("the bottom bar follows the slots: empty slots in between are dim cells and their key does nothing", function()
+		local inv, tools = mountOrder(order("tool:Bat", "", "", "tool:SpeedCoil"))
+		local slots = visibleSlots(inv)
+		expect(#slots).toBe(4)
+		local second = UiHarness.find(inv.root, "Slot2")
+		expect(second.BackgroundColor3).toBe(Theme.Ink)
+		expect(UiHarness.find(second, "Icon").Visible).toBe(false)
+		expect(inv.pressKey(2)).toBe(false)
+		expect(inv.pressKey(4)).toBe(true)
+		expect(tools.calls[1]).toBe("equip:SpeedCoil")
+		expect(inv.pressKey(5)).toBe(false)
+		expect(#tools.calls).toBe(1)
+	end)
+
+	it("no saved order: the bar is the list order and nothing is sent", function()
+		local inv, _, sent = mountOrder(nil)
+		expect(#visibleSlots(inv)).toBe(2)
+		expect(#hotbarSends(sent)).toBe(0)
+	end)
+
+	it("an item new this session lands on the first empty slot (one SetHotbar); a respawn's Tools do not", function()
+		local inv, tools, sent = mountOrder(order("tool:Bat"))
+		expect(#hotbarSends(sent)).toBe(0) -- the first State is the baseline: the unassigned Speed Coil stays off
+		inv.update({ hotbar = order("tool:Bat"), pvp = { owned = { [PVP.id] = true }, cooldowns = {} } })
+		expect(table.concat(hotbarSends(sent), "|")).toBe(`tool:Bat,pvp:{PVP.id},,,,,,,`)
+		expect(#visibleSlots(inv)).toBe(2)
+		-- respawn: the Backpack empties and fills again; nothing already seen counts as new
+		tools.items = {}
+		for _, cb in tools.listeners do
+			cb()
+		end
+		tools.items = table.clone(COIL)
+		for _, cb in tools.listeners do
+			cb()
+		end
+		expect(#hotbarSends(sent)).toBe(1)
+	end)
+
+	it("with no saved order a new item sends nothing (the default order already lists it)", function()
+		local inv, _, sent = mountOrder(nil)
+		inv.update({ pvp = { owned = { [PVP.id] = true }, cooldowns = {} } })
+		expect(#hotbarSends(sent)).toBe(0)
+		expect(#visibleSlots(inv)).toBe(3)
+	end)
+end)
+
+describe("Inventory hotbar order through request", function()
+	local Enum = require("@lune/roblox").Enum
+	local Theme = UiHarness.ui("Widgets").Theme
+
+	local function mountRequest(replies: { any })
+		local gui = UiHarness.root()
+		local calls: { { any } } = {}
+		local handlers: { any } = {}
+		local input = {
+			InputChanged = {
+				Connect = function(_self: any, h: any)
+					handlers.changed = h
+					return { Disconnect = function() end }
+				end,
+			},
+			InputEnded = {
+				Connect = function(_self: any, h: any)
+					handlers.ended = h
+					return { Disconnect = function() end }
+				end,
+			},
+		}
+		local inv = Inventory.new(gui, {
+			Config = Config,
+			itemIcons = ItemIcons.build(Config),
+			send = function() end,
+			request = function(action: string, done: (any) -> (), ...: any)
+				table.insert(calls, { action, ... })
+				done(replies[#calls] or { ok = true })
+			end,
+			tools = fakeTools({ { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } }),
+			serverNow = function()
+				return 100
+			end,
+			keyboard = true,
+			input = input,
+		})
+		inv.layout(Layout.screen(1920, 1080))
+		local keys = table.create(9, "")
+		keys[1] = "tool:Bat"
+		inv.update({ hotbar = keys, pvp = { owned = {}, cooldowns = {} } })
+		inv.setPanelOpen(true)
+		return inv, calls, handlers
+	end
+
+	local function centre(gui: any): { X: number, Y: number }
+		local x, y = gui.Size.X.Offset / 2, gui.Size.Y.Offset / 2
+		local node = gui
+		while node and node.ClassName ~= "ScreenGui" do
+			x += node.Position.X.Offset
+			y += node.Position.Y.Offset
+			node = node.Parent
+		end
+		return { X = x, Y = y }
+	end
+
+	local function dragCoilTo4(inv: any, handlers: any)
+		local coil
+		for _, cell in UiHarness.find(inv.panel.frame, "Grid"):GetChildren() do
+			if cell.Name == "Item" and cell.Visible and UiHarness.find(cell, "Name").Text == "Speed Coil" then
+				coil = cell
+			end
+		end
+		local to = centre(UiHarness.find(inv.panel.frame, "HotbarSlot4"))
+		UiHarness.fire(coil, "InputBegan", { UserInputType = Enum.UserInputType.MouseButton1, Position = centre(coil) })
+		handlers.changed({ UserInputType = Enum.UserInputType.MouseMovement, Position = to })
+		handlers.ended({ UserInputType = Enum.UserInputType.MouseButton1, Position = to })
+	end
+
+	it("a rate-limited SetHotbar keeps the new order and sends it again after the gap", function()
+		UiHarness.virtualTime(true)
+		local inv, calls, handlers = mountRequest({ { ok = false, message = "too fast" } })
+		dragCoilTo4(inv, handlers)
+		expect(#calls).toBe(1)
+		expect(UiHarness.find(UiHarness.find(inv.panel.frame, "HotbarSlot4"), "Name").Text).toBe("Speed Coil")
+		UiHarness.advance(Inventory.ORDER_GAP + 0.05)
+		expect(#calls).toBe(2)
+		expect(calls[2][1]).toBe("SetHotbar")
+		expect(calls[2][2]).toBe(calls[1][2])
+		expect(calls[2][2]).toBe("tool:Bat,,,tool:SpeedCoil,,,,,")
+		UiHarness.advance(Inventory.ORDER_TIMEOUT)
+		expect(#calls).toBe(2) -- accepted: nothing more to send
+		UiHarness.virtualTime(false)
+	end)
+
+	it("a refusal for any other reason puts the server's order back", function()
+		local inv, calls, handlers = mountRequest({ { ok = false, message = "bad argument" } })
+		dragCoilTo4(inv, handlers)
+		expect(#calls).toBe(1)
+		expect(UiHarness.find(inv.panel.frame, "HotbarSlot4").BackgroundColor3).toBe(Theme.Ink)
 	end)
 end)

@@ -35,6 +35,8 @@
 	missing -> empty / 0, unknown ids dropped, owned slimes always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
 	pvp (FEATURES.PvP, CONTRACT.md §26) is optional and needs no version bump: { tiers = { [line] = tier }, fun = { id }, played = seconds };
 	missing / junk -> nothing owned, ids that are not Config.PVP_TOOLS are ignored, numbers are clamped (SaveData.cleanPvp).
+	hotbar (CONTRACT.md §5.1) is optional and needs no version bump: 9 slot keys, "" = empty; missing / not a list -> nil,
+	bad or repeated keys -> empty slots, entries past slot 9 dropped (HotbarOrder.clean).
 	Unknown/newer versions are read field-by-field with the current sanitizer.
 	SaveData.check tells DataService whether a stored record may be overwritten:
 	"newer" (version above Config.SAVE_VERSION, e.g. a rolling update) and
@@ -44,6 +46,7 @@
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local AudioSettings = if script then require(script.Parent.AudioSettings) else require("./AudioSettings")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
+local HotbarOrder = if script then require(script.Parent.HotbarOrder) else require("./HotbarOrder")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local PlotSkins = if script then require(script.Parent.PlotSkins) else require("./PlotSkins")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
@@ -514,6 +517,7 @@ function SaveData.deserialize(stored: any): Data
 	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
 	data.pvp = SaveData.cleanPvp(raw.pvp) -- FEATURES.PvP (no version bump: missing -> nothing owned)
 	data.trophies = SaveData.cleanTrophies(raw.trophies) -- boss trophies (no version bump: missing -> none)
+	data.hotbar = HotbarOrder.clean(raw.hotbar) -- hotbar order (no version bump: missing / junk -> nil)
 	for _, trophy in data.trophies do
 		PlayerData.discover(data, trophy) -- an owned boss always counts in the SlimeDex
 	end
@@ -633,6 +637,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		},
 		pvp = { tiers = pvp.tiers, fun = pvpFun, played = pvp.played },
 		trophies = SaveData.cleanTrophies(data.trophies),
+		hotbar = HotbarOrder.clean(data.hotbar), -- nil until set: the key is left out
 	}
 end
 
