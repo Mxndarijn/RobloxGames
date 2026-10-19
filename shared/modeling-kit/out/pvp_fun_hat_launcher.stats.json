@@ -1,0 +1,109 @@
+{
+  "name": "pvp_fun_hat_launcher",
+  "model": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\models\\pvp_fun_hat_launcher.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 872,
+  "meshes": [
+    {
+      "name": "pvp_fun_hat_launcher",
+      "tris": 872,
+      "verts": 450,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        1.16,
+        1.944,
+        2.74
+      ],
+      "materials": [
+        "pvp_fun_hat_launcher_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pvp_fun_hat_launcher_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    1.16,
+    1.944,
+    2.74
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pvp_fun_hat_launcher_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\pvp_fun_hat_launcher.fbx",
+  "fbx_bytes": 27996,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_hat_launcher_0.png"
+    },
+    {
+      "view": "side",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_hat_launcher_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_hat_launcher_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_hat_launcher_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.171,
+    "stats_s": 0.002,
+    "setup_s": 0.026,
+    "render_s": [
+      0.167,
+      0.137,
+      0.146,
+      0.162
+    ],
+    "export_s": 0.258
+  },
+  "sheet": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\pvp_fun_hat_launcher_sheet.png",
+  "timings": {
+    "wall_s": 1.51,
+    "blender_process_s": 1.46,
+    "compose_s": 0.051,
+    "model_s": 0.171,
+    "stats_s": 0.002,
+    "setup_s": 0.026,
+    "render_s": [
+      0.167,
+      0.137,
+      0.146,
+      0.162
+    ],
+    "export_s": 0.258
+  }
+}
