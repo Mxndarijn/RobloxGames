@@ -483,6 +483,16 @@ function ParadeLane.distance(spawnedAt: number, expiresAt: number, now: number):
 	return ParadeLane.walked(spawnedAt, expiresAt, now) - LEAD_LENGTH
 end
 
+-- The walk of a slime on the lane (ParadeChoreo times): server time it leaves the slide mouth, seconds it walks
+-- (mouth to drain curb) and seconds of that on the lead-in to ENTRY.
+function ParadeLane.walkTimes(spawnedAt: number, expiresAt: number): (number, number, number)
+	local lifetime = expiresAt - spawnedAt
+	local start, stop = ParadeLane.walkWindow(lifetime)
+	local seconds = (stop - start) * lifetime
+	local total = LEAD_LENGTH + ParadeLane.LENGTH
+	return spawnedAt + start * lifetime, seconds, if total > 0 then seconds * LEAD_LENGTH / total else 0
+end
+
 -- Studs per second a slime walks the lane when it lives `lifetime` seconds.
 function ParadeLane.walkSpeed(lifetime: number): number
 	local start, stop = ParadeLane.walkWindow(lifetime)
@@ -548,8 +558,9 @@ function ParadeLane.entrySpot(lateral: number): { number }
 	return { x, ParadeLane.LANE_Y, z }
 end
 
--- Full pose of a lane slime at `now`.
-function ParadeLane.pose(spawnedAt: number, expiresAt: number, lateral: number, now: number): Pose
+-- Full pose of a lane slime at `now`. `ahead` (FEATURES.SlimeChoreo, ParadeChoreo) moves its walk that many studs
+-- ahead of the plain spot (negative: behind), clamped to the lane.
+function ParadeLane.pose(spawnedAt: number, expiresAt: number, lateral: number, now: number, ahead: number?): Pose
 	local phase = ParadeLane.phase(spawnedAt, expiresAt, now)
 	if phase == "Drain" or phase == "Gone" then
 		local d = ParadeLane.DRAIN
@@ -577,6 +588,9 @@ function ParadeLane.pose(spawnedAt: number, expiresAt: number, lateral: number, 
 		return { position = { x, y, z }, heading = { hx, hz }, phase = phase }
 	end
 	local s = ParadeLane.distance(spawnedAt, expiresAt, now)
+	if ahead then
+		s = math.clamp(s + ahead, -LEAD_LENGTH, ParadeLane.LENGTH)
+	end
 	local _, _, hx, hz = ParadeLane.pointAt(s)
 	local x, z = ParadeLane.offsetAt(s, lateral)
 	return { position = { x, ParadeLane.LANE_Y, z }, heading = { hx, hz }, phase = phase :: Phase }

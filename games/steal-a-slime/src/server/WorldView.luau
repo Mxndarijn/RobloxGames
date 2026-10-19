@@ -43,6 +43,7 @@ local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
 local MeshSwap = require(script.Parent.MeshSwap)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
+local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
@@ -60,6 +61,7 @@ local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local Scene = require(script.Parent.Scene)
 local SlimeLabelView = require(script.Parent.SlimeLabelView)
 local SlimeMesh = require(script.Parent.SlimeMesh)
+local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
 local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local StackGuard = require(script.Parent.StackGuard)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
@@ -348,8 +350,26 @@ local function laneLateral(wild: World.Wild): number
 	return ParadeLane.wildLateral(wild.radius)
 end
 
+-- FEATURES.SlimeChoreo: its lane beats (ParadeChoreo), built once per wild record.
+local plans: { [World.Wild]: ParadeChoreo.Plan } = setmetatable({}, { __mode = "k" }) :: any
+
+-- Studs a lane wild is ahead of (+) or behind (-) its plain lane spot at `now` (0 without a plan).
+local function laneAhead(wild: World.Wild, now: number): number
+	local choreo = wild.choreo
+	if not choreo then
+		return 0
+	end
+	local startAt, seconds, lead = ParadeLane.walkTimes(wild.spawnedAt, wild.expiresAt)
+	local plan = plans[wild]
+	if not plan then
+		plan = ParadeChoreo.plan(choreo.seed, SlimePersona.of(wild.slime.species).temper, seconds, lead)
+		plans[wild] = plan
+	end
+	return ParadeChoreo.offset(plan, now - startAt) * ParadeLane.walkSpeed(wild.expiresAt - wild.spawnedAt)
+end
+
 local function laneCFrame(wild: World.Wild, now: number): CFrame
-	local pose = ParadeLane.pose(wild.spawnedAt, wild.expiresAt, laneLateral(wild), now)
+	local pose = ParadeLane.pose(wild.spawnedAt, wild.expiresAt, laneLateral(wild), now, laneAhead(wild, now))
 	local p, h = pose.position, pose.heading
 	local at = Vector3.new(p[1], p[2], p[3])
 	return CFrame.lookAt(at, at + Vector3.new(h[1], 0, h[2]))
@@ -584,6 +604,15 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	model:SetAttribute("State", entry.state)
 	model:SetAttribute("Price", entry.price)
 	model:SetAttribute(Constants.BOSS_ATTRIBUTE, if entry.boss then true else nil)
+	-- The lane beats: the client rebuilds the same ParadeChoreo plan from these (contract/slime-life.md).
+	local choreo = if entry.state == "Wild"
+			and entry.wild
+			and entry.wild.position == nil
+		then entry.wild.choreo
+		else nil
+	model:SetAttribute(Constants.CHOREO_SEED_ATTRIBUTE, if choreo then choreo.seed else nil)
+	model:SetAttribute(Constants.LANE_AT_ATTRIBUTE, if choreo and entry.wild then entry.wild.spawnedAt else nil)
+	model:SetAttribute(Constants.LANE_UNTIL_ATTRIBUTE, if choreo and entry.wild then entry.wild.expiresAt else nil)
 	model:SetAttribute(Constants.RARE_ATTRIBUTE, entry.rare)
 
 	if entry.state == "Carried" then

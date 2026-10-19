@@ -129,6 +129,9 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		welcomeBack = session.welcome,
 		hotbar = if data.hotbar then table.clone(data.hotbar) else nil,
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
+		blessed = if data.ritualBonus and session.blessedUntil
+			then { bonus = data.ritualBonus, endsAt = session.blessedUntil }
+			else nil,
 		rebirthTitle = Perks.title(rebirths),
 		rebirthTiers = Snapshot.rebirthTiers(rebirths),
 		nextRebirthTier = Snapshot.nextRebirthTier(rebirths),

@@ -118,6 +118,7 @@ function Carry.grabWild(
 	end
 	wild.price = 0 -- paid for: dropping it doesn't charge the next grabber
 	wild.returning = nil
+	wild.choreo = nil -- it walks back with a plain glide (contract/slime-life.md)
 	session.carry = {
 		slimeId = slimeId,
 		kind = "wild",

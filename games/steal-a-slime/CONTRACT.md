@@ -420,4 +420,5 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §36 | [species-dex.md](contract/species-dex.md) | Species Dex: 50 species and the milestone ladder |
 | §37 | [slime-walk.md](contract/slime-walk.md) | Slime walk: wild slimes glide the lane and walk back to it when dropped |
 | §38 | [slime-labels.md](contract/slime-labels.md) | Slime labels: a tag above every loose slime, a sign on every pad |
-| §39 | [mystery-egg.md](contract/mystery-egg.md) | Mystery Eggs: wild eggs that incubate on a pad, can be stolen, hatch into a slime (`FEATURES.MysteryEggs`) |
+| §39 | [slime-life.md](contract/slime-life.md) | Slime life: species gaits, hops, lane beats and reactions |
+| §40 | [mystery-egg.md](contract/mystery-egg.md) | Mystery Eggs: wild eggs that incubate on a pad, can be stolen, hatch into a slime (`FEATURES.MysteryEggs`) |

@@ -82,6 +82,9 @@ return table.freeze({
 	PLOT_PRICE_ATTRIBUTE = "PlotPrice", -- Plot_<i>: reserved; nil while plots are free (v13)
 	RARE_ATTRIBUTE = "RareSpawn", -- wild slime model: tier, only on Legendary+ drops
 	RIDING_ATTRIBUTE = "Riding", -- wild slime model: true while it rides the fountain slide (emerge to landing / lane entry), else nil
+	CHOREO_SEED_ATTRIBUTE = "ChoreoSeed", -- lane wild model: ParadeChoreo seed of its lane beats (FEATURES.SlimeChoreo); nil off the lane
+	LANE_AT_ATTRIBUTE = "LaneAt", -- lane wild model: server time it spawned (wild.spawnedAt), with ChoreoSeed
+	LANE_UNTIL_ATTRIBUTE = "LaneUntil", -- lane wild model: server time it drains (wild.expiresAt), with ChoreoSeed
 	-- wild slime model: server time it despawns; nil outside the telegraph window / FEATURES.DespawnTelegraph off
 	DESPAWN_AT_ATTRIBUTE = "DespawnAt",
 	GROWTH_ATTRIBUTE = "Growth", -- slime model: whole percent 0..100 (FEATURES.GrowingSlimes)
