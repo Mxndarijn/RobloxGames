@@ -14,7 +14,7 @@
 local Sounds = {}
 
 Sounds.IDS = table.freeze({
-	Alarm = "rbxassetid://12222242",
+	Alarm = "rbxassetid://129496339606661", -- siren alarm
 	Grab = "rbxassetid://12221967",
 	Stolen = "rbxassetid://9045131605", -- APM "Red Handed - Hit3" sneaky sting
 	Escape = "rbxassetid://12222216",
