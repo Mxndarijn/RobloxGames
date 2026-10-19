@@ -847,7 +847,7 @@ local Config = {
 		SHED_COUNT = 2, -- wild slimes per shed
 		BURST_COUNT = 6, -- wild slimes when the boss fails
 		DROP_LUCK = 3, -- luck multiplier on shed and burst slimes
-		CARRY_SLOW = 0.6, -- carrier walks at BASE_WALK_SPEED x (1 - this)
+		CARRY_SLOW = 0.3, -- carrier walks at BASE_WALK_SPEED x (1 - this): as slow as the rarest slime (RARITIES carrySlow)
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
 		SPOT_RADIUS = 51, -- studs: between the landing ring and the parade lane
