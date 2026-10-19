@@ -407,7 +407,7 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §22 | [restocking-shop.md](contract/restocking-shop.md) | v29 #13: restocking consumables shop (2026-10-16) |
 | §24 | [welcome-back.md](contract/welcome-back.md) | v20: welcome-back card (2026-10-17) |
 | §25 | [server-profiler.md](contract/server-profiler.md) | v23: server performance profiler (`FEATURES.ServerProfiler`) |
-| §26 | [pvp.md](contract/pvp.md) | v22: PvP fairness core (`FEATURES.PvP`) |
+| §26 | [pvp.md](contract/pvp.md) | PvP: rules, shield, gloves, traps, blasters, fun items (`FEATURES.PvP`) |
 | §27 | [world-shops.md](contract/world-shops.md) | World shops: Item Shop and Upgrade Shop (`FEATURES.WorldShops`) |
 | §28 | [fountain-split.md](contract/fountain-split.md) | Fountain split: PCD tower pieces (`FEATURES.FountainSplit`) |
 | §29 | [inventory.md](contract/inventory.md) | S3: inventory hotbar + panel (client only, 2026-10-18) |
