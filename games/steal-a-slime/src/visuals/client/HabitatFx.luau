@@ -16,10 +16,12 @@
 	first time a pad is seen it snaps to its final state (join in progress),
 	no burst.
 
-	An overlay with an uploaded mesh (Habitats.overlayMesh) is one Part with a
-	FileMesh SpecialMesh (MeshPart.MeshId can't be set from a script) at
-	native size, its bottom on the deck (or `drop` below it). No meshId yet =
-	PLACEHOLDER primitive rim props in Habitats colours.
+	An overlay with an uploaded mesh (Habitats.overlayMesh) is a clone of the
+	server's MeshPart template in ReplicatedStorage.HabitatMeshes
+	(MeshSwap.publishHabitatTemplates; a MeshPart keeps the kit's vertex
+	colours) at native size, its bottom on the deck (or `drop` below it).
+	Until its template arrives, or with no meshId, the overlay is PLACEHOLDER
+	primitive rim props in Habitats colours; looks rebuild when one arrives.
 	Reads attributes only; never fires remotes. Nothing replicates.
 ]]
 
@@ -44,7 +46,7 @@ type Piece = {
 	size: Vector3,
 	offset: CFrame,
 	transparency: number,
-	mesh: SpecialMesh?, -- overlay mesh: rises out of the deck (Y), Scale follows Size
+	rise: boolean, -- overlay mesh: rises out of the deck (height only), footprint fixed
 }
 type Look = { model: Model, pieces: { Piece } }
 type Track = {
@@ -98,28 +100,36 @@ local function piece(
 	part.Size = size
 	part.Transparency = 1
 	part.Parent = model
-	return { part = part, size = size, offset = offset, transparency = transparency or 0 }
+	return { part = part, size = size, offset = offset, transparency = transparency or 0, rise = false }
 end
 
--- One FileMesh piece for an uploaded overlay mesh at native size. FileMesh
--- origin is its bbox centre: the bottom sits `drop` below the deck.
-local function meshPiece(model: Model, overlay: Habitats.OverlayMesh): Piece
+-- The overlay mesh: a clone of the server's MeshPart template at native size.
+-- A MeshPart's origin is its bbox centre: the bottom sits `drop` below the deck.
+local function meshPiece(model: Model, template: BasePart, overlay: Habitats.OverlayMesh): Piece
 	local size = Vector3.new(overlay.size[1], overlay.size[2], overlay.size[3])
-	local p = piece(
-		model,
-		"Mesh",
-		Enum.PartType.Block,
-		size,
-		CFrame.new(0, size.Y / 2 - overlay.drop, 0),
-		Color3.new(1, 1, 1),
-		Enum.Material.SmoothPlastic
-	)
-	local mesh = Instance.new("SpecialMesh")
-	mesh.MeshType = Enum.MeshType.FileMesh
-	mesh.MeshId = overlay.meshId
-	mesh.Parent = p.part
-	p.mesh = mesh
-	return p
+	local part = template:Clone()
+	part.Name = "Mesh"
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.CastShadow = false
+	part.Size = size
+	part.Transparency = 1
+	part.Parent = model
+	return {
+		part = part,
+		size = size,
+		offset = CFrame.new(0, size.Y / 2 - overlay.drop, 0),
+		transparency = 0,
+		rise = true,
+	}
+end
+
+local function templateFor(name: string?): BasePart?
+	local templates = ReplicatedStorage:FindFirstChild(Constants.HABITAT_MESHES)
+	local t = name and templates and templates:FindFirstChild(name)
+	return if t and t:IsA("BasePart") then t else nil
 end
 
 -- Offsets are from the crate deck centre (pad local space, +Y up). The rim
@@ -137,8 +147,9 @@ local function buildLook(pad: BasePart, id: string): Look?
 	local model = Instance.new("Model")
 	model.Name = `{pad.Parent and pad.Parent.Name or "Plot"}_{pad.Name}_{id}`
 	local overlay = Habitats.overlayMesh(id)
-	if overlay then
-		local pieces = { meshPiece(model, overlay) }
+	local template = overlay and templateFor(habitat.overlay)
+	if overlay and template then
+		local pieces = { meshPiece(model, template, overlay) }
 		model.Parent = folder()
 		return { model = model, pieces = pieces }
 	end
@@ -223,11 +234,7 @@ local function poseLook(pad: BasePart, look: Look, w: number, rising: boolean, q
 	for i, p in look.pieces do
 		local s = HabitatMorph.propScale(quality, w, i, n, rising, Config.HABITAT_ANIM)
 		local o = p.offset
-		local grow = if p.mesh then Vector3.new(1, s, 1) else Vector3.new(s, s, s)
-		p.part.Size = p.size * grow
-		if p.mesh then
-			p.mesh.Scale = grow
-		end
+		p.part.Size = p.size * (if p.rise then Vector3.new(1, s, 1) else Vector3.new(s, s, s))
 		p.part.CFrame = deck * CFrame.new(o.Position * Vector3.new(1, s, 1)) * o.Rotation
 		p.part.Transparency = 1 - math.min(1, w * 1.5) * (1 - p.transparency)
 	end
@@ -381,6 +388,22 @@ local function isPad(d: Instance): boolean
 	return d:IsA("BasePart") and d:GetAttribute(Constants.PAD_INDEX_ATTRIBUTE) ~= nil
 end
 
+-- A template arrived (the server publishes them after boot): rebuild the
+-- placeholder looks of that habitat as the mesh, keeping their weights.
+local function onTemplate(name: string)
+	for _, track in tracks do
+		for id, look in track.looks do
+			local habitat = Habitats.get(id)
+			if habitat and habitat.overlay == name then
+				look.model:Destroy()
+				track.looks[id] = nil
+			end
+		end
+		ensureLooks(track)
+		apply(track)
+	end
+end
+
 -- Event-driven: one pass over Plots at start, then DescendantAdded /
 -- DescendantRemoving (streaming, plot rebuilds). No periodic rescans.
 function HabitatFx.attach(plots: Instance): { RBXScriptConnection }
@@ -401,6 +424,15 @@ function HabitatFx.attach(plots: Instance): { RBXScriptConnection }
 			watch(d :: BasePart)
 		end
 	end
+	-- Templates (and their folder) may arrive after this pass.
+	table.insert(
+		conns,
+		ReplicatedStorage.DescendantAdded:Connect(function(d)
+			if d.Parent and d.Parent.Name == Constants.HABITAT_MESHES then
+				onTemplate(d.Name)
+			end
+		end)
+	)
 	return conns
 end
 

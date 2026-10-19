@@ -178,30 +178,49 @@ local afterCount = HabitatFx.count()
 HabitatFx.clear()
 
 -- Same pad once habitat_crystal_grotto_overlay has a meshId (set on the
--- runtime's MeshAssets copy only for this case): one FileMesh piece at native
--- size, its bottom on the crate deck.
+-- runtime's MeshAssets copy only for this case): placeholder until the
+-- server's template lands in ReplicatedStorage.HabitatMeshes, then one clone
+-- of that MeshPart at native size, its bottom on the crate deck.
 local overlayEntry = meshAssets.entries.habitat_crystal_grotto_overlay
-local deckY = rt:require(rt.game:GetService("ReplicatedStorage").Visuals.WorldLayout).PAD_DECK.y
+local replicated = rt.game:GetService("ReplicatedStorage")
+local deckY = rt:require(replicated.Visuals.WorldLayout).PAD_DECK.y
 overlayEntry.meshId = "rbxassetid://123"
 part:SetAttribute("Habitat", "crystal_grotto")
 local meshConns = HabitatFx.attach(plots)
+local beforeTemplate = lookOf(part, "crystal_grotto")
+local waitedPlaceholder =
+	{ beforeTemplate:FindFirstChild("Frame1") ~= nil, beforeTemplate:FindFirstChild("Mesh") ~= nil }
+-- The booted server already made the folder (MeshSwap.publishHabitatTemplates;
+-- no CreateMeshPartAsync here, so it stays empty).
+local templates = replicated:FindFirstChild("HabitatMeshes")
+local serverFolder = templates ~= nil
+if not templates then
+	templates = roblox.Instance.new("Folder")
+	templates.Name = "HabitatMeshes"
+	templates.Parent = replicated
+end
+local template = roblox.Instance.new("MeshPart")
+template.Name = "habitat_crystal_grotto_overlay"
+template.Size = roblox.Vector3.new(overlayEntry.size[1], overlayEntry.size[2], overlayEntry.size[3])
+template.Parent = templates
+signalOf(replicated, "DescendantAdded"):Fire(template)
+rt:runDue()
 local meshLook = lookOf(part, "crystal_grotto")
 local meshPart = meshLook and meshLook:FindFirstChild("Mesh")
-local special = meshPart and meshPart:FindFirstChildOfClass("SpecialMesh")
 local meshShape = {
 	meshLook and #meshLook:GetChildren(),
-	special and special.MeshType == roblox.Enum.MeshType.FileMesh,
-	special and tostring(special.MeshId),
-	special and special.Scale == roblox.Vector3.new(1, 1, 1),
+	meshPart and meshPart.ClassName,
 	meshPart and math.abs(meshPart.Size.X - overlayEntry.size[1]) < 1e-4,
 	meshPart and math.abs(
 		meshPart.CFrame.Position.Y - meshPart.Size.Y / 2 - (part.CFrame.Position.Y - part.Size.Y / 2 + deckY)
 	) < 1e-4,
+	meshPart and meshPart.CanCollide == false and meshPart.CanQuery == false,
 }
 for _, c in meshConns do
 	c:Disconnect()
 end
 HabitatFx.clear()
+template:Destroy()
 
 local emitsLifecycle = emits
 -- Morph behaviour (HabitatMorph through HabitatFx), placeholder looks, camera near the pad.
@@ -374,8 +393,12 @@ describe("HabitatFx client lifecycle (fake runtime)", function()
 	it("draws the placeholder for an overlay with no meshId", function()
 		expect(grownPlaceholder).toEqual({ true, false })
 	end)
-	it("draws the overlay mesh (FileMesh at native size, bottom on the deck) once a meshId exists", function()
-		expect(meshShape).toEqual({ 1, true, "rbxassetid://123", true, true, true })
+	it("keeps the placeholder until the server's overlay template arrives", function()
+		expect(waitedPlaceholder).toEqual({ true, false })
+		expect(serverFolder).toBe(true)
+	end)
+	it("then draws a clone of the template MeshPart at native size, bottom on the deck", function()
+		expect(meshShape).toEqual({ 1, "MeshPart", true, true, true })
 		expect(#rt.errors).toBe(0)
 	end)
 	it("shows the bare base pad for an unknown habitat id", function()

@@ -87,6 +87,7 @@ task.spawn(safeCall, "BorderTerrainView.place", BorderTerrainView.place) -- hill
 task.spawn(safeCall, "MeshSwap.applyAll", MeshSwap.applyAll) -- kit meshes, merge vats, then WorldMeshesReady
 task.spawn(safeCall, "MeshSwap.publishSkinTemplates", MeshSwap.publishSkinTemplates) -- FEATURES.PlotSkins
 task.spawn(safeCall, "MeshSwap.publishFountainTierTemplates", MeshSwap.publishFountainTierTemplates) -- FEATURES.FountainTiers
+task.spawn(safeCall, "MeshSwap.publishHabitatTemplates", MeshSwap.publishHabitatTemplates) -- FEATURES.Habitats
 
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
 local stateEvent = Remotes.get(Constants.STATE) :: RemoteEvent

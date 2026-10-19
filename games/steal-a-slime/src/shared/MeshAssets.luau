@@ -300,15 +300,24 @@ entries["ranch_border_chunk_h_m"] =
 	{ assetId = 88966428868581, meshId = "rbxassetid://104548969463535", size = { 53.606, 28.241, 42 } }
 -- Habitat overlays (Habitats.overlayMesh, HABITATS.md): rim dressing on the crate deck.
 -- Sizes from the kit build (models/habitat_<id>_overlay.py), native W x H x D studs.
-entries["habitat_hay_nest_overlay"] = { size = { 7.638, 1.562, 7.71 } }
-entries["habitat_mushroom_ring_overlay"] = { size = { 7.654, 2.085, 7.639 } }
-entries["habitat_flower_bed_overlay"] = { size = { 7.577, 1.836, 7.574 } }
-entries["habitat_barn_crate_overlay"] = { size = { 7.5, 2.537, 7.5 } }
-entries["habitat_rodeo_barrel_overlay"] = { size = { 7.5, 2.56, 7.5 } }
-entries["habitat_syrup_pool_overlay"] = { size = { 7.855, 3.608, 7.859 } }
-entries["habitat_show_stool_overlay"] = { size = { 7.5, 2.07, 7.5 } }
-entries["habitat_candy_patch_overlay"] = { size = { 7.661, 2.55, 7.661 } }
-entries["habitat_crystal_grotto_overlay"] = { size = { 7.706, 2.572, 7.706 } }
+entries["habitat_hay_nest_overlay"] =
+	{ assetId = 137655301198387, meshId = "rbxassetid://76505649928641", size = { 7.638, 1.562, 7.71 } }
+entries["habitat_mushroom_ring_overlay"] =
+	{ assetId = 96204622852852, meshId = "rbxassetid://117941213958347", size = { 7.654, 2.085, 7.639 } }
+entries["habitat_flower_bed_overlay"] =
+	{ assetId = 130689581528284, meshId = "rbxassetid://138049283294191", size = { 7.577, 1.836, 7.574 } }
+entries["habitat_barn_crate_overlay"] =
+	{ assetId = 118838784104356, meshId = "rbxassetid://118930034023522", size = { 7.5, 2.537, 7.5 } }
+entries["habitat_rodeo_barrel_overlay"] =
+	{ assetId = 139158157244798, meshId = "rbxassetid://95288173500929", size = { 7.5, 2.56, 7.5 } }
+entries["habitat_syrup_pool_overlay"] =
+	{ assetId = 137859014161776, meshId = "rbxassetid://98558816473840", size = { 7.855, 3.608, 7.859 } }
+entries["habitat_show_stool_overlay"] =
+	{ assetId = 79817145042621, meshId = "rbxassetid://123215620422100", size = { 7.5, 2.07, 7.5 } }
+entries["habitat_candy_patch_overlay"] =
+	{ assetId = 127018298955173, meshId = "rbxassetid://115077316656898", size = { 7.661, 2.55, 7.661 } }
+entries["habitat_crystal_grotto_overlay"] =
+	{ assetId = 108153474046130, meshId = "rbxassetid://77383754861489", size = { 7.706, 2.572, 7.706 } }
 -- 20-stud plot fence (models/ranch_fence_20.py): Open Cloud size-check.
 entries["ranch_fence_20"] =
 	{ assetId = 93657150564692, meshId = "rbxassetid://90306341034018", size = { 22, 9.02, 1.8 } }
