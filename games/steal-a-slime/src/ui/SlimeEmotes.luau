@@ -122,7 +122,8 @@ function SlimeEmotes.show(pool: Pool, wants: { Want }, now: number)
 		local want = keep[slot]
 		if not want then
 			slot.gui.Enabled = false
-			(slot.gui :: any).Adornee = nil
+			local gui: any = slot.gui -- Adornee is typed non-optional; nil detaches the bubble
+			gui.Adornee = nil
 			slot.key = nil
 			slot.emote = nil
 		else
