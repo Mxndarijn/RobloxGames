@@ -35,7 +35,7 @@ describe("MeshAssets.COLLISION", function()
 	it("registers the follow-pet cloud as non-colliding decor", function()
 		local entry = MeshAssets.get("pet_cloud")
 		expect(entry ~= nil).toBe(true)
-		expect(MeshAssets.meshId("pet_cloud")).toBe("rbxassetid://95471279068617")
+		expect(MeshAssets.meshId("pet_cloud")).toBe("rbxassetid://131511097265313")
 		expect(entry.assetId).toBe(76853347194916)
 		expect(MeshAssets.collision("pet_cloud")).toBe(nil) -- decor: CanCollide off
 		local size = entry.size

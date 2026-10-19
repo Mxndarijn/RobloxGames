@@ -329,15 +329,15 @@
   "pet_cloud": {
     "assetId": "76853347194916",
     "assetType": "Model",
-    "meshId": "rbxassetid://95471279068617",
+    "meshId": "rbxassetid://131511097265313",
     "meshSize": [
-      3.298,
+      3.261,
       1.225,
-      2.392
+      2.393
     ],
-    "sha256": "dbbd77017c996220",
-    "uploadedAt": "2026-10-18T20:45:31Z",
-    "versions": 1
+    "sha256": "427fe0a20f5c81be",
+    "uploadedAt": "2026-10-19T04:40:54Z",
+    "versions": 2
   },
   "phoenix_corner_post": {
     "assetId": "122993526477202",

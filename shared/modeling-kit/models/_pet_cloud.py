@@ -1,23 +1,40 @@
-# Shared builder for pet_cloud (and its preview scene): lumpy low-poly cloud puffs, light-blue underside fading to white.
+# Shared builder for pet_cloud (and its preview scene): soft cartoon cloud. Round puffs fused into one skin
+# (metaballs, like the goo), smooth-shaded, flat-ish top for the pet, light-blue underside fading to white.
 from lib import *
+from lib.goo import Ball, metaball_mesh, paint_goo
+import math
 
 WHITE, BLUE = rgb(255, 255, 255), rgb(168, 208, 244)
-# (name, x, y, z, radius, squash x/y/z)
+TOP = 1.225  # pet stands here
+# (x, y, z, surface semi-axes)
 PUFFS = [
-    ("Core", 0.0, 0.0, 0.62, 1.0, (1.45, 1.1, 0.58)),
-    ("PuffL", -1.05, 0.1, 0.5, 0.62, (1.0, 1.05, 0.8)),
-    ("PuffR", 1.1, -0.1, 0.48, 0.58, (1.0, 1.0, 0.8)),
-    ("PuffF", 0.35, -0.85, 0.46, 0.55, (1.05, 1.0, 0.8)),
-    ("PuffB", -0.35, 0.88, 0.5, 0.55, (1.1, 1.0, 0.82)),
-    ("PuffFL", -0.8, -0.7, 0.4, 0.42, (1, 1, 0.8)),
-    ("PuffBR", 0.8, 0.75, 0.42, 0.45, (1, 1, 0.8)),
+    (0.0, 0.0, 0.58, (1.10, 0.74, 0.78)),  # body, becomes the flat top
+    (-1.12, 0.10, 0.50, (0.60, 0.62, 0.52)),
+    (1.14, -0.08, 0.48, (0.56, 0.58, 0.50)),
+    (0.40, -0.82, 0.46, (0.58, 0.46, 0.48)),
+    (-0.42, 0.84, 0.48, (0.60, 0.48, 0.50)),
+    (-0.80, -0.70, 0.42, (0.42, 0.38, 0.42)),
+    (0.86, 0.72, 0.42, (0.44, 0.40, 0.42)),
 ]
+FX, FY = 0.95, 0.92  # footprint fit (metaballs bulge where they merge)
+K = 0.30  # soft shoulder of the flat top
 
 
-def cloud_parts():
-    parts = []
-    for i, (n, x, y, z, r, sq) in enumerate(PUFFS):
-        o = blob(n, r, (x, y * 0.82, z), seed=40 + i, subdiv=2, squash=(sq[0], sq[1] * 0.9, sq[2]), jitter=0.07)
-        gradient(o, BLUE, WHITE)
-        parts.append(o)
-    return parts
+def _soft_top(z):
+    z0 = TOP - K
+    return z if z <= z0 else z0 + K * math.tanh((z - z0) / K)
+
+
+def cloud_parts(tris=1800, res=0.07, smooth=1):
+    o = metaball_mesh("PetCloud", [Ball((x * FX, y * FY, z), (s[0] * FX, s[1] * FY, s[2])) for x, y, z, s in PUFFS], resolution=res, tris=tris, smooth=smooth)
+    me = o.data
+    for v in me.vertices:
+        v.co.z = _soft_top(max(v.co.z, 0.0)) * 1.026
+    me.update()
+
+    def col(co, n):  # light blue at the base fading to white by about 60% height
+        t = min(1.0, max(0.0, co.z / (TOP * 0.8)))
+        return mix(BLUE, WHITE, t * t * (3 - 2 * t))
+
+    paint_goo(o, col)
+    return [o]
