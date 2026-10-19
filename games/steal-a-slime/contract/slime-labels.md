@@ -30,14 +30,17 @@ State field, no save-format change.
   (`Constants.SLIME_TAG`), parented to its Body (`Archivable` false) with `Adornee` = Body, `SizeOffset` (0, 0.5) so its
   bottom edge sits `LabelHeight` above the Body. Outlined text, no panel: the name in white edged in the rarity colour,
   the rarity word filled with a gradient of its colour (a rainbow for Secret), the income in green and the price in
-  gold. Size mixes studs and pixels so it shrinks with distance but stays readable; `MaxDistance` hides it far away.
-  Disabled while `LabelPad` is set and the pad is found.
+  gold. Size mixes studs and pixels so it shrinks with distance but stays readable; `MaxDistance` 60 hides it far
+  away. Slimes walk the lane in a line, so each new tag takes the next of three heights, a whole tag height apart
+  (`SizeOffset`, a fraction of the tag's own size, so it holds at any distance). Disabled while `LabelPad` is set and
+  the pad is found.
 - **Pad sign (`src/ui/SlimePadSign`, driven by `SlimeInfoCard`).** A thin non-colliding, non-queried WoodPlanks part with
   a `SurfaceGui` on the pad crate's entrance side (pad-local -Z), in a local `SlimePadSigns` folder. Goo of the rarity
   colour (a rainbow for Secret) runs along its top edge with the rarity written in it and drips down both ends; the
   name (cream) and income (gold) are painted on the wood; the growth fills a goo tube, its percent beside it.
-  The pad is the plot's part with `PadIndex` = `LabelPad`. Moves when the slime changes pad; removed when it leaves
-  the pad or loses its tag.
+  `MaxDistance` 45: the plank is too small to read beyond that. The pad is the plot's part with `PadIndex` =
+  `LabelPad`. Moves when the slime changes pad; looked up again when the model moves (it may land in its plot after
+  `LabelPad` arrives); removed when it leaves the pad or loses its tag.
 - Both are re-rendered only on `AttributeChanged` of the attributes above; no frame loop, no tween. Removed with the
   tag (model destroyed or streamed out). `FollowPets` clones never carry them.
 - **Replaces** the server `GrowthLabel` BillboardGui (growth now lives on the pad sign). The server still scales the
