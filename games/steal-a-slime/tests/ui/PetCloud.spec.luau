@@ -261,8 +261,14 @@ describe("PetCloud.mount under a big species slime", function()
 	local cloud = wrapper.PrimaryPart
 	local s = UiHarness.find(wrapper, PetCloud.SLIME_NAME)
 	it("grows the cloud past the slime's visible footprint", function()
-		expect(cloud.Size.Z).toBeCloseTo(5 * PetCloud.CLOUD_FIT, 1e-5) -- the narrow side of the cloud decides
-		expect(cloud.Size.X >= 5 * PetCloud.CLOUD_FIT).toBe(true)
+		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(5, 2, 4)) -- the mesh alone, the ring is gone
+		expect(cloud.Size.X).toBeCloseTo(NATIVE.X * scale, 1e-5)
+		expect(cloud.Size.X >= 5 * PetCloud.CLOUD_FIT - 1e-4).toBe(true)
+		expect(cloud.Size.Z >= 4 * PetCloud.CLOUD_FIT - 1e-4).toBe(true) -- Size is float32
+	end)
+	it("drops the rarity ring: it is ground decor", function()
+		expect(UiHarness.find(wrapper, "TierRim")).toBeNil()
+		expect(UiHarness.find(wrapper, "Mesh") ~= nil).toBe(true)
 	end)
 	it("keeps the grown cloud's bottom where a CLOUD_SCALE cloud's would be", function()
 		local bottom = cloud.PivotOffset:Inverse().Position.Y - cloud.Size.Y / 2

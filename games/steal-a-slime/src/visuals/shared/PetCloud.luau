@@ -11,7 +11,8 @@
 	template. The wrapper's pivot is the PrimaryPart pivot: PetFollow's goal. Every part made here is decor (no
 	collision, query, touch or shadow).
 
-	The slime is measured by its visible parts only (visibleBox): a species slime keeps an invisible Body ball and
+	Ground decor of the slime (the rarity ring, SlimeLayout "TierRim") is removed: on a cloud it reads as a big
+	disc under the pet. The slime is measured by its visible parts only (visibleBox): a species slime keeps an invisible Body ball and
 	hidden procedural parts that do not line up with its mesh.
 ]]
 
@@ -27,6 +28,7 @@ PetCloud.CLOUD_SINK = 0.12 -- the slime's foot sinks this far into the cloud's t
 PetCloud.CLOUD_NAME = "Cloud"
 PetCloud.MOUNT_NAME = "Mount"
 PetCloud.SLIME_NAME = "Slime"
+PetCloud.GROUND_PARTS = table.freeze({ "TierRim" }) -- removed from the slime: they belong on the ground
 
 -- Anchored, no collision, no query, no touch, no shadow.
 function PetCloud.decor(part: BasePart)
@@ -106,6 +108,11 @@ function PetCloud.mount(slime: Model, userId: number, template: BasePart?): Mode
 	local wrapper = Instance.new("Model")
 	wrapper.Name = `Pet_{userId}`
 	slime.Name = PetCloud.SLIME_NAME
+	for _, part in slime:GetDescendants() do
+		if table.find(PetCloud.GROUND_PARTS, part.Name) and part:IsA("BasePart") then
+			part:Destroy()
+		end
+	end
 	local anchor = if template then makeCloud(template, slime) else makeMount()
 	anchor.CFrame = CFrame.new()
 	anchor.Parent = wrapper
