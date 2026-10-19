@@ -175,7 +175,7 @@ describe("FountainTiers: drops", function()
 		local rng = Rng.new(11)
 		local out = {}
 		for i = 1, n do
-			table.insert(out, Fountain.roll(rng, `s{i}`, false, nil, nil, nil, nil, nil, pool).slime)
+			table.insert(out, Fountain.roll(rng, `s{i}`, false, nil, nil, pool).slime)
 		end
 		return out
 	end
@@ -188,11 +188,10 @@ describe("FountainTiers: drops", function()
 			expect(SlimeRoster.get(slime.species :: string).family).toBeNil()
 		end
 	end)
-	it("families never change the rolled tier: the same seed gives the same tiers and mutations", function()
+	it("families never change the rolled tier: the same seed gives the same tiers", function()
 		local a, b = drops(nil, 400), drops(FountainTiers.pool(FountainTiers.MAX_TIER), 400)
 		for i = 1, 400 do
 			expect(a[i].tier).toBe(b[i].tier)
-			expect(a[i].mutation).toBe(b[i].mutation)
 		end
 	end)
 	it("a full pool drops every spawning species of the tiers rolled, family slimes at their uniform share", function()
@@ -245,7 +244,7 @@ describe("FountainTiers: drops", function()
 		expect(#Genome.speciesPool(1, nil, { event })).toBe(#SlimeRoster.forTier(1))
 		expect(Genome.rollSpecies(SlimeRoster.SECRET_TIER, 0.999, nil, { event })).toBe(event)
 	end)
-	it("family drops sell and earn like Classic ones: no multiplier, same tier / size / mutation income", function()
+	it("family drops sell and earn like Classic ones: no multiplier, same tier / size income", function()
 		local classic = Fixtures.slime("a", 2, { species = "bumble", size = 1.2 })
 		local family = Fixtures.slime("b", 2, { species = "prickles", size = 1.2 })
 		expect(Genome.baseIncome(family)).toBe(Genome.baseIncome(classic))
@@ -330,9 +329,6 @@ describe("FountainTiers: saves", function()
 		local clean = Genome.sanitize(Fixtures.slime("s2", 3, { species = "future_family_slime" })) :: Genome.Slime
 		expect(clean.species).toBeNil()
 		expect(clean.tier).toBe(3)
-	end)
-	it("the save version is unchanged: no new saved field", function()
-		expect(Config.SAVE_VERSION).toBe(6)
 	end)
 end)
 

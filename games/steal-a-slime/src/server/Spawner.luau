@@ -6,7 +6,7 @@
 	MAX_WILD_SLIMES are alive, expires unclaimed ones after their lifetime
 	(Fountain.wildLifetime: WILD_LIFETIME, longer for Mythic / Secret) and
 	runs the Slime Rain schedule (every RAIN_INTERVAL for RAIN_DURATION:
-	faster spawns, RAIN_LUCK, more mutations, double cap), with a heads-up
+	faster spawns, RAIN_LUCK, double cap), with a heads-up
 	toast RAIN_WARNING_SECONDS before each rain.
 
 	FEATURES.Parade: a wild's spot is a pure function of time left
@@ -85,13 +85,11 @@ function Spawner.pityTier(pity: World.Pity): number?
 	return nil
 end
 
--- "A LEGENDARY Glow Globble spilled from the fountain!" (Mythic gets "!!").
+-- "A LEGENDARY Globble spilled from the fountain!" (Mythic gets "!!").
 function Spawner.rareText(slime: Genome.Slime): string
 	local rarity = string.upper(Genome.rarity(slime.tier).name)
-	local shown = Genome.mutationsDisplay(Genome.mutationList(slime))
-	local mutation = if shown ~= "" then `{shown} ` else ""
 	local bang = if slime.tier >= Config.SECRET_TIER - 1 then "!!" else "!"
-	return `A {rarity} {mutation}{slime.name} spilled from the fountain{bang}`
+	return `A {rarity} {slime.name} spilled from the fountain{bang}`
 end
 
 -- FEATURES.FountainTiers: raises world.fountainTier to the best rank on the server (it never drops again while
@@ -128,16 +126,12 @@ end
 
 function Spawner.spawnOne(world: World, now: number): string
 	local id = world.newId()
-	local luckMult, mutationMult = CycleModifier.multipliers(world.modifier)
+	local luckMult = CycleModifier.multiplier(world.modifier)
 	luckMult = Consumables.spawnLuck(luckMult, world.potionUntil > now)
-	local weeklyMutation, weeklyBonus = nil, 0
-	-- A live admin event replaces the weekly boosts (never stacks with them): see CONTRACT.md §17.
+	-- A live admin event replaces the weekly boost (never stacks with it): see CONTRACT.md §17.
 	local unix = Spawner.unixTime()
 	if world.adminEvent == nil and unix then
-		local weeklyLuck, weeklyMutationMult = WeeklyEvents.multipliers(unix)
-		luckMult *= weeklyLuck
-		mutationMult *= weeklyMutationMult
-		weeklyMutation, weeklyBonus = WeeklyEvents.mutationBoost(unix)
+		luckMult *= WeeklyEvents.multiplier(unix)
 	end
 	local drop = Fountain.roll(
 		world.rng,
@@ -145,9 +139,6 @@ function Spawner.spawnOne(world: World, now: number): string
 		world.raining,
 		Spawner.pityTier(world.pity),
 		luckMult,
-		mutationMult,
-		weeklyMutation,
-		weeklyBonus,
 		Spawner.familyPool(world),
 		if unix then EventSecrets.extraSpecies(unix) else nil
 	)
@@ -176,13 +167,12 @@ function Spawner.spawnOne(world: World, now: number): string
 end
 
 -- Bonus wild slimes outside the wild cap (the boss sheds and bursts, contract/boss-event.md): `luckMult` on the
--- rarity roll and the Slime Rain mutation chance, free, no pity, no rare announcement. Returns their ids.
+-- rarity roll, free, no pity, no rare announcement. Returns their ids.
 function Spawner.spawnBonus(world: World, now: number, count: number, luckMult: number): { string }
 	local ids = {}
-	local mutationMult = Config.RAIN_MUTATION_CHANCE / Config.DROP_MUTATION_CHANCE
 	for _ = 1, count do
 		local id = world.newId()
-		local drop = Fountain.roll(world.rng, id, false, nil, luckMult, mutationMult)
+		local drop = Fountain.roll(world.rng, id, false, nil, luckMult)
 		world.wild[id] = {
 			slime = drop.slime,
 			price = 0,

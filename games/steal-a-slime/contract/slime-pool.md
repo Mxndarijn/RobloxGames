@@ -26,8 +26,8 @@ as before (`Genome.sanitize`).
   The old shared kits `slime_base`, `slime_acc_*`, `slime_ears`, `slime_horns`, `slime_wobble` are removed.
 - **Server `SlimeMesh`.** A species mesh is worn as the `Mesh` part: size `size x Body.Size.X / SLIME_BASE_DIAMETER`,
   placed at the body's bottom centre + `offset` (scaled) with `MeshAssets.IMPORT_YAW`, `Color` white, material from
-  `SlimeLooks` (a mutation material wins). It keeps its `Bone` children (skinned rig: Root, Top, Side*, Eyes, Lids,
+  `SlimeLooks`. It keeps its `Bone` children (skinned rig: Root, Top, Side*, Eyes, Lids,
   accessory bones). The procedural face / pattern / tier-crown parts are hidden (`SlimeMesh.isReplacedPart`); Body,
-  TierRim, Aura, GlowShell and mutation effects stay. The per-type accessory path (`SlimeMesh.plan`, `Accessory`) is gone.
+  TierRim, Aura and GlowShell stay. The per-type accessory path (`SlimeMesh.plan`, `Accessory`) is gone.
 - **`Config.REBIRTH_SLIMES`** uses the new ids: 1 bumble, 2 froggo, 3 lop, 4 moo, 5 blaze, 6 octo, 7 king, 8 ninja,
   9-10 cosmo, 15 midas, 20 eclipse.

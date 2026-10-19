@@ -11,7 +11,7 @@
 	    then a species uniformly over that tier's species in the pool (Genome.speciesPool, contract/slime-odds.md).
 	  * Catching a family slime needs your own rank to have opened it (a stolen one is already owned).
 	No income multiplier and no price: a family slime sells / earns like a Classic one of the same tier,
-	size and mutation (the economy is untouched). Species are SlimeRoster entries with `family` set, so a
+	and size (the economy is untouched). Species are SlimeRoster entries with `family` set, so a
 	save only stores a species id it already knew how to store (Genome.sanitize).
 	Pure: no Roblox APIs.
 ]]

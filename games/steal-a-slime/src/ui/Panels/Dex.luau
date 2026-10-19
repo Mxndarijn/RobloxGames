@@ -1,18 +1,18 @@
 --!strict
 --[[
 	SlimeDex panel (Nav key "Dex", CONTRACT.md §36.5). Up top: the big green completion percent and Ink chips
-	("Species n/50", "Stamps n/376", "Secrets n/7", gold stamps when there are any), wrapping onto a second row
-	on a narrow body. Then a scroll list:
+	("Species n/50", "Secrets n/7" when the server has event Secrets), wrapping onto a second row on a narrow
+	body. Then a scroll list:
 	  * the reward card: the next species milestone and what it pays, one bar from 0 to the last milestone with
-	    every milestone marked to scale and numbered under it (the next one in gold), the next stamps milestone
-	    and the current income bonus as muted lines;
+	    every milestone marked to scale and numbered under it (the next one in gold), and the current income
+	    bonus as a muted line;
 	  * "Plot skins": one row per skin with its picture and name; the equipped one carries a green Equipped
 	    stamp, an unlocked one an Equip button, a locked one what unlocks it and a thin progress bar;
 	  * one card per species grouped by rarity (SlimeDex.lines; a header in the rarity colour with a
 	    "n/m found" chip), the event Secrets last. A card shows the species mesh (`ctx.buildSpecies`, a
 	    ViewportFrame) in full colour when found and as a flat black silhouette when not, its name or "???",
-	    the hint, three ingredient slots for hybrids and the 8 stamp dots (+ gold stamps). Cards sit in a grid
-	    that fits the panel width (one column on a narrow phone).
+	    the hint and three ingredient slots for hybrids. Cards sit in a grid that fits the panel width (one
+	    column on a narrow phone).
 
 	The list (and its previews) is only rebuilt while the panel is open: update() while closed just marks it
 	dirty, and setOpen(true) rebuilds if dirty or never built. Previews are virtualised: only cards in or near
@@ -52,9 +52,6 @@ local STYLE = table.freeze({
 	glyph = 30,
 	slot = 24,
 	slotText = 11,
-	dot = 10,
-	dotGap = 3,
-	gold = 11,
 	pad = 6,
 	wellRadius = 11,
 	listGap = 8,
@@ -156,9 +153,7 @@ function Dex.new(parent: Instance, ctx: any)
 	-- Header chips, left to right.
 	local chips = {
 		chip("Count", Theme.Text),
-		chip("Caption", Theme.Text),
 		chip("Secrets", Theme.Text),
-		chip("GoldStamps", Theme.Gold),
 	}
 
 	local list = Widgets.scrollList({
@@ -255,7 +250,6 @@ function Dex.new(parent: Instance, ctx: any)
 			Size = UDim2.new(1, -REWARD.pad * 2, 0, REWARD.tickH),
 			Parent = card,
 		})
-		local also = line("MilestoneAlso", REWARD.note, Theme.Muted, Theme.FontBody)
 		local bonus = line("MilestoneBonus", REWARD.note, Theme.Muted, Theme.FontBody)
 		return {
 			card = card,
@@ -266,7 +260,6 @@ function Dex.new(parent: Instance, ctx: any)
 			ticks = ticks,
 			marks = {} :: { [number]: Frame },
 			labels = {} :: { [number]: TextLabel },
-			also = also,
 			bonus = bonus,
 		}
 	end
@@ -293,7 +286,6 @@ function Dex.new(parent: Instance, ctx: any)
 		y += REWARD.bar + 4
 		mile.ticks.Position = UDim2.fromOffset(REWARD.pad, y)
 		y += REWARD.tickH + REWARD.gap
-		put(mile.also, REWARD.note)
 		put(mile.bonus, REWARD.note)
 		mile.card.Size = UDim2.new(1, -STYLE.scrollBar, 0, y - 2 + REWARD.pad)
 	end
@@ -350,8 +342,6 @@ function Dex.new(parent: Instance, ctx: any)
 				mile.labels[count] = nil
 			end
 		end
-		mile.also.Visible = rc.also ~= nil
-		mile.also.Text = rc.also or ""
 		mile.bonus.Visible = bonusLine ~= nil
 		mile.bonus.Text = bonusLine or ""
 		placeMilestone()
@@ -452,24 +442,6 @@ function Dex.new(parent: Instance, ctx: any)
 			Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke).Parent = slot
 			slots[i] = slot
 		end
-		local stampRow = create("Frame", {
-			Name = "Stamps",
-			BackgroundTransparency = 1,
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -STYLE.pad - 2),
-			Size = UDim2.fromOffset(0, STYLE.dot),
-			Parent = frame,
-		})
-		local dots: { Frame } = {}
-		local goldLabel = Widgets.label({
-			Name = "Gold",
-			Font = Theme.Font,
-			TextSize = STYLE.gold,
-			TextColor3 = Theme.Gold,
-			Size = UDim2.fromOffset(30, STYLE.dot + 4),
-			Visible = false,
-			Parent = stampRow,
-		})
 		return {
 			instance = frame,
 			image = image,
@@ -480,9 +452,6 @@ function Dex.new(parent: Instance, ctx: any)
 			hint = hint,
 			slotRow = slotRow,
 			slots = slots,
-			stampRow = stampRow,
-			dots = dots,
-			goldLabel = goldLabel,
 			card = card,
 		}
 	end
@@ -509,31 +478,6 @@ function Dex.new(parent: Instance, ctx: any)
 				slot:SetAttribute("Species", if s then s.species else nil)
 			end
 		end
-		-- Stamp dots: one per core stamp (lit = stamped), then the gold count.
-		local stamps = card.stamps
-		for i = #v.dots + 1, #stamps do
-			local dot = create("Frame", {
-				Name = `Stamp{i}`,
-				Size = UDim2.fromOffset(STYLE.dot, STYLE.dot),
-				Position = UDim2.fromOffset((i - 1) * (STYLE.dot + STYLE.dotGap), 0),
-				Parent = v.stampRow,
-			}, { Widgets.corner(STYLE.dot // 2) })
-			v.dots[i] = dot
-		end
-		for i, dot in v.dots do
-			local stamp = stamps[i]
-			dot.Visible = stamp ~= nil
-			if stamp then
-				dot.BackgroundColor3 = if stamp.on then Widgets.color3(stamp.color) else Theme.Ink
-				dot:SetAttribute("Mutation", stamp.mutation)
-				dot:SetAttribute("On", stamp.on)
-			end
-		end
-		local dotsW = if #stamps > 0 then #stamps * (STYLE.dot + STYLE.dotGap) - STYLE.dotGap else 0
-		v.goldLabel.Visible = #card.gold > 0
-		v.goldLabel.Text = `+{#card.gold}★`
-		v.goldLabel.Position = UDim2.fromOffset(dotsW + 4, -2)
-		v.stampRow.Size = UDim2.fromOffset(dotsW + (if #card.gold > 0 then 34 else 0), STYLE.dot)
 	end
 
 	local function sizeCard(v: any, g: SlimeDex.Grid, column: number)
@@ -825,21 +769,11 @@ function Dex.new(parent: Instance, ctx: any)
 			table.insert(parts, `{row.key}|{row.locked}|{row.detail}|{row.fraction}|{row.skin.equipped}`)
 		end
 		for _, card in pendingCards do
-			local on = {}
-			for _, stamp in card.stamps do
-				table.insert(on, if stamp.on then "1" else "0")
-			end
 			local slots = {}
 			for _, slot in card.slots or {} do
 				table.insert(slots, slot.species or "")
 			end
-			table.insert(
-				parts,
-				`{card.key}|{card.found}|{card.title}|{card.hint or ""}|{table.concat(on)}|{#card.gold}|{table.concat(
-					slots,
-					","
-				)}`
-			)
+			table.insert(parts, `{card.key}|{card.found}|{card.title}|{card.hint or ""}|{table.concat(slots, ",")}`)
 		end
 		return table.concat(parts, "\n")
 	end
@@ -930,9 +864,7 @@ function Dex.new(parent: Instance, ctx: any)
 		local summary = SlimeDex.summary(state.dex)
 		percent.Text = summary.percent
 		chips[1].Text = summary.count
-		chips[2].Text = summary.stamps
-		chips[3].Text = summary.secrets or ""
-		chips[4].Text = summary.gold or ""
+		chips[2].Text = summary.secrets or ""
 		placeHeader()
 		local rc = SlimeDex.rewardCard(state)
 		if rc and not mile then

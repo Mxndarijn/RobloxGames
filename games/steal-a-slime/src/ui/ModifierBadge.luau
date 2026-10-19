@@ -10,7 +10,7 @@
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
 
-export type View = { name: string, label: string, luck: number, mutation: number, endsAt: number?, icon: string? }
+export type View = { name: string, label: string, luck: number, endsAt: number?, icon: string? }
 
 local ModifierBadge = {}
 
@@ -25,9 +25,6 @@ function ModifierBadge.banner(view: View?, now: number, enabled: boolean): strin
 	local parts = {}
 	if view.luck ~= 1 then
 		table.insert(parts, `{mult(view.luck)} luck`)
-	end
-	if view.mutation ~= 1 then
-		table.insert(parts, `{mult(view.mutation)} mutations`)
 	end
 	local text = if view.icon then `{view.icon} {view.label}` else view.label
 	if #parts > 0 then

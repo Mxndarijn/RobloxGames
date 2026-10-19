@@ -3,11 +3,12 @@
 	Merge menu (the plot's merge vat, CONTRACT.md §21 / §21.1). Opens from the vat prompt.
 
 	Top: the vat. Three slots (two with FEATURES.MergeVat3 off), an arrow and the result card
-	(Shared.MergePreview: "Random <Rarity> slime", the jump chance, the mutations that carry over), a reason
+	(Shared.MergePreview: "Random <Rarity> slime", the jump chance, the expected size), a reason
 	line while the load is not valid, and the buttons: Pick for me (MergePlan.suggest), the hold-to-confirm
 	Merge (Request "Merge3" / "Merge") and Auto-merge. Below: rarity filter chips and the slime list grouped
-	by rarity (species, mutations, size, income; favourite / kept / stolen tags; a keep toggle per row that
-	sends Request "KeepSlime").
+	by rarity (name, size, income; favourite / kept / stolen tags). Each row ends in two squares: Add (puts the
+	slime in the vat, a gold tick once it is in, a sunken well while it can't go in) and the keep toggle that
+	sends Request "KeepSlime" (gold padlock while kept).
 	Auto-merge opens a confirm card: rarity toggles, what MergePlan would merge, and a hold-to-confirm button
 	that sends Request("AutoMerge", mask). The client only suggests; the server plans again and decides.
 	After a merge the slots fly into the result card, and once State brings the new slime the card reveals it.
@@ -27,11 +28,13 @@ local MergePreview = require(Shared:WaitForChild("MergePreview") :: any)
 local TweenService = game:GetService("TweenService")
 
 local Theme = Widgets.Theme
+local KIT = Widgets.KIT
 local create = Widgets.create
 
 local SIZE = table.freeze({
 	slot = 70,
 	slotSmall = 56,
+	slotInset = 8, -- a filled slot's avatar inside its well
 	slotGap = 22, -- holds the "+" between two slots
 	nameH = 18, -- slot caption under each slot
 	arrowW = 26,
@@ -43,10 +46,25 @@ local SIZE = table.freeze({
 	gap = 8,
 	chipH = 40,
 	chipGap = 6,
-	headerH = 26,
-	rowH = Layout.MIN_TOUCH_DESIGN + 6,
-	swatch = 40,
+	headerH = 30,
+	headerChipH = 22,
+	headerChipSize = 12,
+	rowInset = 10, -- row width = list width - inset (room for the scroll bar)
+	rowH = Layout.MIN_TOUCH_DESIGN + 12,
+	rowPad = 8,
+	swatch = 42,
+	avatarStroke = 3,
+	nameY = 9,
+	rowNameH = 22,
+	infoY = 35,
+	infoH = 18,
+	sizeW = 62, -- the size figure; the income follows it
+	selectedStroke = 3,
+	dim = 0.45, -- text transparency of rows that can't join the picks
+	dimSwatch = 0.5,
 	keep = Layout.MIN_TOUCH_DESIGN,
+	add = Layout.MIN_TOUCH_DESIGN,
+	buttonGap = 6,
 	tagW = 96,
 	sideW = 262, -- vat column beside the list on short screens
 	shortBody = 330, -- body heights below this use the side layout
@@ -59,6 +77,24 @@ local SIZE = table.freeze({
 	reveal = 4, -- seconds the result card shows the new slime
 	pendingTimeout = 6, -- seconds to wait for State to bring the new slime
 })
+
+-- Secret names: a rainbow over near-white text (a UIGradient multiplies the text colour).
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Theme.Bad),
+	ColorSequenceKeypoint.new(0.25, Theme.Warn),
+	ColorSequenceKeypoint.new(0.5, Theme.Gold),
+	ColorSequenceKeypoint.new(0.75, Theme.Good),
+	ColorSequenceKeypoint.new(1, Theme.Info),
+})
+
+-- A Widgets.button turned into a pill (filter chips).
+local function pill(button: TextButton)
+	for _, c in button:GetChildren() do
+		if c:IsA("UICorner") then
+			(c :: UICorner).CornerRadius = UDim.new(1, 0)
+		end
+	end
+end
 
 local Merge = {}
 
@@ -116,22 +152,24 @@ function Merge.new(parent: Instance, ctx: any)
 			Name = `Slot{i}`,
 			Text = "",
 			AutoButtonColor = true,
-			BackgroundColor3 = Theme.BgLight,
+			BackgroundColor3 = Theme.Ink,
 			Parent = vat,
-		}, { Widgets.corner(SIZE.slot) }) :: TextButton
-		local stroke = Widgets.stroke(Theme.Muted, 2)
+		}, { Widgets.corner(KIT.radius) }) :: TextButton
+		local stroke = Widgets.stroke(Theme.Ink, KIT.stroke)
 		stroke.Parent = button
 		local swatch = create("Frame", {
 			Name = "Swatch",
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.new(1, -12, 1, -12),
+			Size = UDim2.new(1, -SIZE.slotInset * 2, 1, -SIZE.slotInset * 2),
 			Visible = false,
 			Parent = button,
-		}, { Widgets.corner(SIZE.slot) }) :: Frame
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), Widgets.stroke(Theme.Ink, SIZE.avatarStroke) }) :: Frame
+		Widgets.shade(swatch)
 		local plus = Widgets.label({
 			Name = "Plus",
 			Text = "+",
+			Font = Theme.Font,
 			TextSize = SIZE.textBig,
 			TextColor3 = Theme.Muted,
 			TextXAlignment = Enum.TextXAlignment.Center,
@@ -172,33 +210,32 @@ function Merge.new(parent: Instance, ctx: any)
 		Text = "→",
 		Font = Theme.Font,
 		TextSize = SIZE.textBig,
-		TextColor3 = Theme.Accent,
+		TextColor3 = Theme.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Parent = vat,
 	})
 
-	local result = create("Frame", {
+	local result = Widgets.rowFrame({
 		Name = "Result",
-		BackgroundColor3 = Theme.BgLight,
 		ClipsDescendants = true,
 		Parent = vat,
-	}, { Widgets.corner(14) })
-	local resultStroke = Widgets.stroke(Theme.Muted, 2)
-	resultStroke.Parent = result
+	})
 	local orb = create("Frame", {
 		Name = "Orb",
 		AnchorPoint = Vector2.new(0, 0.5),
-		BackgroundColor3 = Theme.Row,
+		BackgroundColor3 = Theme.Ink,
 		Parent = result,
-	}, { Widgets.corner(SIZE.orb) }) :: Frame
+	}, { Widgets.corner(KIT.radius) }) :: Frame
 	local orbScale = create("UIScale", { Scale = 1, Parent = orb }) :: UIScale
 	local orbMark = Widgets.label({
 		Name = "Mark",
 		Text = "?",
 		Font = Theme.Font,
 		TextSize = SIZE.textBig,
+		TextColor3 = Theme.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
-		TextStrokeTransparency = 0.5,
+		TextStrokeColor3 = Theme.Ink,
+		TextStrokeTransparency = 1,
 		Size = UDim2.fromScale(1, 1),
 		Parent = orb,
 	})
@@ -233,7 +270,7 @@ function Merge.new(parent: Instance, ctx: any)
 		Size = UDim2.fromScale(1, 1),
 		Active = false,
 		Parent = result,
-	}, { Widgets.corner(14) })
+	}, { Widgets.corner(KIT.rowRadius) })
 
 	local reason = Widgets.label({
 		Name = "Reason",
@@ -260,7 +297,7 @@ function Merge.new(parent: Instance, ctx: any)
 		selected = {}
 		task.delay(SIZE.celebrate, function()
 			for _, slot in slots do
-				slot.swatch.Size = UDim2.new(1, -12, 1, -12)
+				slot.swatch.Size = UDim2.new(1, -SIZE.slotInset * 2, 1, -SIZE.slotInset * 2)
 			end
 			refresh()
 		end)
@@ -280,11 +317,10 @@ function Merge.new(parent: Instance, ctx: any)
 	end)
 	local mergeBtn = Widgets.holdButton(
 		{ Name = "MergeButton", Text = "🧪 MERGE", TextSize = SIZE.textTitle + 2 },
-		Theme.Accent,
+		Theme.Good,
 		sendMerge,
 		Config.HOLD_CONFIRM_SECONDS
 	)
-	mergeBtn.instance.TextColor3 = Theme.Bg
 	mergeBtn.instance.Parent = vat
 	local autoBtn: any -- built below; opens the confirm card
 
@@ -305,12 +341,13 @@ function Merge.new(parent: Instance, ctx: any)
 				Size = UDim2.fromOffset(80, SIZE.chipH),
 				Parent = chips,
 			},
-			Theme.Row,
+			Theme.Ink,
 			function()
 				filter = if tier == 0 then nil else tier
 				refresh()
 			end
 		)
+		pill(btn.instance)
 		chipButtons[tier] = btn
 		return btn
 	end
@@ -322,45 +359,64 @@ function Merge.new(parent: Instance, ctx: any)
 			local label = Widgets.label({
 				Name = item.key,
 				Font = Theme.Font,
-				TextSize = SIZE.textSmall + 1,
-				Size = UDim2.new(1, -10, 0, SIZE.headerH),
+				TextSize = SIZE.textTitle,
+				TextTruncate = Enum.TextTruncate.None,
+				Size = UDim2.new(1, -SIZE.rowInset, 0, SIZE.headerH),
 			})
-			return { instance = label, header = true }
+			local countChip = Widgets.chip({
+				Name = "Count",
+				Font = Theme.FontBody,
+				TextSize = SIZE.headerChipSize,
+				AnchorPoint = Vector2.new(0, 0.5),
+				Size = UDim2.fromOffset(0, SIZE.headerChipH),
+				Parent = label,
+			}, Theme.Muted)
+			return { instance = label, header = true, chip = countChip }
 		end
 		local id = item.view.slime.id
 		local btn = create("TextButton", {
 			Name = id,
 			Text = "",
 			AutoButtonColor = true,
-			Size = UDim2.new(1, -10, 0, SIZE.rowH),
+			Size = UDim2.new(1, -SIZE.rowInset, 0, SIZE.rowH),
 			BackgroundColor3 = Theme.Row,
-		}, { Widgets.corner(10) })
-		local stroke = Widgets.stroke(Theme.Accent, 2)
+		}, { Widgets.corner(KIT.rowRadius) })
+		local stroke = Widgets.stroke(Theme.Ink, KIT.rowStroke)
 		stroke.Parent = btn
 		local swatch = create("Frame", {
 			Name = "Swatch",
 			Size = UDim2.fromOffset(SIZE.swatch, SIZE.swatch),
-			Position = UDim2.fromOffset(8, (SIZE.rowH - SIZE.swatch) // 2),
+			Position = UDim2.fromOffset(SIZE.rowPad, (SIZE.rowH - SIZE.swatch) // 2),
 			Parent = btn,
-		}, { Widgets.corner(SIZE.swatch) })
-		local ring = Widgets.stroke(Theme.Muted, 3)
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+		Widgets.shade(swatch)
+		local ring = Widgets.stroke(Theme.Ink, SIZE.avatarStroke)
 		ring.Parent = swatch
-		local textX = 8 + SIZE.swatch + 10
-		local rightW = SIZE.keep + SIZE.tagW + 12
+		local textX = SIZE.rowPad + SIZE.swatch + 10
+		local rightW = SIZE.rowPad + SIZE.add + SIZE.buttonGap + SIZE.keep + SIZE.buttonGap
 		local name = Widgets.label({
 			Name = "Name",
 			Font = Theme.Font,
-			TextSize = SIZE.textTitle - 1,
-			Position = UDim2.fromOffset(textX, 7),
-			Size = UDim2.new(1, -(textX + rightW), 0, 22),
+			TextSize = SIZE.textTitle + 1,
+			Position = UDim2.fromOffset(textX, SIZE.nameY),
+			Size = UDim2.new(1, -(textX + rightW), 0, SIZE.rowNameH),
 			Parent = btn,
 		})
+		local rainbow = create("UIGradient", { Name = "Rainbow", Color = RAINBOW, Enabled = false, Parent = name })
 		local info = Widgets.label({
 			Name = "Info",
-			TextSize = SIZE.textSmall,
+			TextSize = SIZE.textSmall + 1,
 			TextColor3 = Theme.Muted,
-			Position = UDim2.fromOffset(textX, 30),
-			Size = UDim2.new(1, -(textX + rightW), 0, 20),
+			Position = UDim2.fromOffset(textX, SIZE.infoY),
+			Size = UDim2.fromOffset(SIZE.sizeW, SIZE.infoH),
+			Parent = btn,
+		})
+		local income = Widgets.label({
+			Name = "Income",
+			TextSize = SIZE.textSmall + 1,
+			TextColor3 = Theme.Gold,
+			Position = UDim2.fromOffset(textX + SIZE.sizeW, SIZE.infoY),
+			Size = UDim2.new(1, -(textX + SIZE.sizeW + rightW), 0, SIZE.infoH),
 			Parent = btn,
 		})
 		local tag = Widgets.label({
@@ -368,31 +424,24 @@ function Merge.new(parent: Instance, ctx: any)
 			Font = Theme.Font,
 			TextSize = SIZE.textSmall,
 			TextXAlignment = Enum.TextXAlignment.Right,
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -(SIZE.keep + 14), 0.5, 0),
-			Size = UDim2.fromOffset(SIZE.tagW, 22),
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -rightW, 0, SIZE.nameY),
+			Size = UDim2.fromOffset(SIZE.tagW, SIZE.rowNameH),
 			Parent = btn,
 		})
-		local row: any = { instance = btn, stroke = stroke, swatch = swatch, ring = ring, name = name, info = info }
+		local row: any = {
+			instance = btn,
+			stroke = stroke,
+			swatch = swatch,
+			ring = ring,
+			name = name,
+			rainbow = rainbow,
+			info = info,
+			income = income,
+			nameW = -(textX + rightW),
+		}
 		row.tag = tag
-		row.keep = Widgets.button(
-			{
-				Name = "Keep",
-				Text = "🔓",
-				TextSize = SIZE.textTitle,
-				AnchorPoint = Vector2.new(1, 0.5),
-				Position = UDim2.new(1, -6, 0.5, 0),
-				Size = UDim2.fromOffset(SIZE.keep, SIZE.keep),
-				Parent = btn,
-			},
-			Theme.BgLight,
-			function()
-				if row.view then
-					ctx.send("KeepSlime", id, not (row.view.slime.keep == true))
-				end
-			end
-		)
-		btn.Activated:Connect(function()
+		local function pick()
 			local view = row.view
 			if view == nil then
 				return
@@ -406,24 +455,59 @@ function Merge.new(parent: Instance, ctx: any)
 			selected = Selection.pick(selected, id, slimes, count)
 			reveal = nil
 			refresh()
-		end)
+		end
+		row.add = Widgets.button({
+			Name = "Add",
+			Text = "+",
+			TextSize = SIZE.textBig,
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -SIZE.rowPad, 0.5, 0),
+			Size = UDim2.fromOffset(SIZE.add, SIZE.add),
+			Parent = btn,
+		}, Theme.Info, pick)
+		row.keep = Widgets.button(
+			{
+				Name = "Keep",
+				Text = "🔓",
+				TextSize = SIZE.textTitle,
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -(SIZE.rowPad + SIZE.add + SIZE.buttonGap), 0.5, 0),
+				Size = UDim2.fromOffset(SIZE.keep, SIZE.keep),
+				Parent = btn,
+			},
+			Theme.Ink,
+			function()
+				if row.view then
+					ctx.send("KeepSlime", id, not (row.view.slime.keep == true))
+				end
+			end
+		)
+		btn.Activated:Connect(pick)
 		return row
 	end
 
 	local function updateRow(row: any, item: any)
 		if row.header then
 			local r = rarity(item.tier)
-			row.instance.TextColor3 = Widgets.color3(r.color)
+			local secret = item.tier == Config.SECRET_TIER
 			local ready = if item.groups > 0
 				then ` · {item.groups} merge{if item.groups == 1 then "" else "s"} ready`
 				else ""
-			row.instance.Text = `{r.name} · {item.count} slime{if item.count == 1 then "" else "s"}{ready}`
+			row.instance.Text = `{r.name}{ready}`
+			row.instance.TextColor3 = if secret then Theme.Text else Widgets.color3(r.color)
+			if secret and row.rainbow == nil then
+				row.rainbow = create("UIGradient", { Name = "Rainbow", Color = RAINBOW, Parent = row.instance })
+			end
+			row.chip.Text = `{item.count} slime{if item.count == 1 then "" else "s"}`
+			local textW = Layout.textSize(row.instance.Text, SIZE.textTitle, true)
+			row.chip.Position = UDim2.new(0, math.ceil(textW) + SIZE.gap, 0.5, 0)
 			return
 		end
 		local view = item.view
 		local slime = view.slime
 		row.view = view
 		local r = rarity(slime.tier)
+		local secret = slime.tier == Config.SECRET_TIER
 		local slot = table.find(selected, slime.id)
 		local blocked = Selection.blocked(view)
 		local otherTier = #selected > 0 and slot == nil and Merge.selectionTier(slimes, selected) ~= slime.tier
@@ -431,18 +515,13 @@ function Merge.new(parent: Instance, ctx: any)
 		row.swatch.BackgroundColor3 = Widgets.color3(slime.color)
 		row.ring.Color = Widgets.color3(r.color)
 		row.name.Text = (if favourite then "⭐ " else "") .. tostring(slime.name)
-		row.name.TextColor3 = Widgets.color3(r.color)
-		local parts = {}
-		local mutations = Genome.mutationsDisplay(Genome.mutationList(slime))
-		if mutations ~= "" then
-			table.insert(parts, `✨ {mutations}`)
-		end
-		table.insert(parts, `📏 {string.format("%.2f", slime.size or 1)}`)
-		table.insert(parts, `💰 {Format.formatRate(view.income or 0)}`)
-		row.info.Text = table.concat(parts, "  ")
+		row.name.TextColor3 = if secret then Theme.Text else Widgets.color3(r.color)
+		row.rainbow.Enabled = secret
+		row.info.Text = `📏 {string.format("%.2f", slime.size or 1)}`
+		row.income.Text = Format.formatRate(view.income or 0)
 		local isNew = newIds[slime.id] ~= nil and newIds[slime.id] > os.clock()
 		if slot then
-			row.tag.Text, row.tag.TextColor3 = `IN SLOT {slot}`, Theme.Accent
+			row.tag.Text, row.tag.TextColor3 = `IN SLOT {slot}`, Theme.Gold
 		elseif view.stolenBy ~= nil then
 			row.tag.Text, row.tag.TextColor3 = "🏃 being stolen", Theme.Bad
 		elseif slime.keep then
@@ -452,14 +531,34 @@ function Merge.new(parent: Instance, ctx: any)
 		else
 			row.tag.Text = ""
 		end
+		row.name.Size = UDim2.new(1, row.nameW - (if row.tag.Text ~= "" then SIZE.tagW else 0), 0, SIZE.rowNameH)
+		-- Add: lilac "+", a gold tick once in a slot, a sunken well while the slime can't go in.
+		row.add.setEnabled(blocked == nil)
+		if blocked then
+			row.add.setText(if view.stolenBy ~= nil then "🏃" else "🔒")
+		elseif slot then
+			row.add.setColor(Theme.Gold)
+			row.add.setText("✅")
+		else
+			row.add.setColor(Theme.Info)
+			row.add.setText("+")
+		end
+		-- Keep: a gold padlock while kept, a sunken well with a muted open padlock when free (still pressable).
 		row.keep.setText(if slime.keep then "🔒" else "🔓")
-		row.keep.setColor(if slime.keep then Theme.Warn else Theme.BgLight)
-		row.stroke.Enabled = slot ~= nil
+		row.keep.setColor(if slime.keep then Theme.Gold else Theme.Ink)
+		if not slime.keep then
+			row.keep.instance.TextColor3 = Theme.Muted
+			row.keep.instance.TextStrokeTransparency = 1
+		end
+		row.stroke.Color = if slot then Theme.Gold else Theme.Ink
+		row.stroke.Thickness = if slot then SIZE.selectedStroke else KIT.rowStroke
 		local dim = blocked ~= nil or otherTier
 		row.instance.BackgroundColor3 = if slot then Theme.BgLight elseif dim then Theme.Bg else Theme.Row
-		row.name.TextTransparency = if dim then 0.45 else 0
-		row.info.TextTransparency = if dim then 0.45 else 0
-		row.swatch.BackgroundTransparency = if dim then 0.5 else 0
+		local fade = if dim then SIZE.dim else 0
+		row.name.TextTransparency = fade
+		row.info.TextTransparency = fade
+		row.income.TextTransparency = fade
+		row.swatch.BackgroundTransparency = if dim then SIZE.dimSwatch else 0
 	end
 
 	local rows = Widgets.keyedList(list, function(item: any)
@@ -473,14 +572,13 @@ function Merge.new(parent: Instance, ctx: any)
 		BackgroundColor3 = Theme.Bg,
 		Active = true,
 		Parent = body,
-	})
-	Widgets.corner(12).Parent = auto
+	}, { Widgets.corner(KIT.rowRadius), Widgets.stroke(Theme.Ink, KIT.rowStroke) })
 	local autoTitle = Widgets.label({
 		Name = "Title",
 		Text = "⚡ Auto-merge",
 		Font = Theme.Font,
 		TextSize = SIZE.textBig - 2,
-		TextColor3 = Theme.Warn,
+		TextColor3 = Theme.Info,
 		Parent = auto,
 	})
 	local autoInfo = Widgets.label({
@@ -501,7 +599,7 @@ function Merge.new(parent: Instance, ctx: any)
 				TextSize = SIZE.textSmall + 1,
 				Parent = auto,
 			},
-			Theme.Row,
+			Theme.Ink,
 			function()
 				autoTiers[tier] = not autoTiers[tier] or nil
 				refresh()
@@ -520,10 +618,10 @@ function Merge.new(parent: Instance, ctx: any)
 		auto.Visible = false
 		refresh()
 	end
-	local autoCancel = Widgets.button({ Name = "Cancel", Text = "Cancel", Parent = auto }, Theme.Row, closeAuto)
+	local autoCancel = Widgets.button({ Name = "Cancel", Text = "Cancel", Parent = auto }, Theme.Bad, closeAuto)
 	local autoConfirm = Widgets.holdButton(
 		{ Name = "AutoConfirm", TextSize = SIZE.text, Text = "" },
-		Theme.Warn,
+		Theme.Good,
 		function()
 			local mask = MergePlan.maskOf(autoTiers)
 			if mask > 0 then
@@ -536,14 +634,12 @@ function Merge.new(parent: Instance, ctx: any)
 		end,
 		Config.HOLD_CONFIRM_SECONDS
 	)
-	autoConfirm.instance.TextColor3 = Theme.Bg
 	autoConfirm.instance.Parent = auto
 
-	autoBtn = Widgets.button({ Name = "AutoButton", TextSize = SIZE.text, Parent = vat }, Theme.Warn, function()
+	autoBtn = Widgets.button({ Name = "AutoButton", TextSize = SIZE.text, Parent = vat }, Theme.Info, function()
 		auto.Visible = true
 		refresh()
 	end)
-	autoBtn.instance.TextColor3 = Theme.Bg
 
 	---------------------------------------------------------------- layout
 	function place()
@@ -681,7 +777,7 @@ function Merge.new(parent: Instance, ctx: any)
 			local r = rarity(reveal.tier)
 			orb.BackgroundColor3 = Widgets.color3(r.color)
 			orbMark.Text = "✨"
-			resultStroke.Color = Widgets.color3(r.color)
+			Widgets.inkOn(orbMark, orb.BackgroundColor3)
 			resultTitle.Text = reveal.title
 			resultTitle.TextColor3 = Widgets.color3(r.color)
 			resultOdds.Text = reveal.sub
@@ -700,35 +796,27 @@ function Merge.new(parent: Instance, ctx: any)
 			sameTier = sameTier and s.tier == picks[1].tier
 		end
 		if not sameTier then
-			orb.BackgroundColor3 = Theme.Row
+			orb.BackgroundColor3 = Theme.Ink
 			orbMark.Text = "?"
-			resultStroke.Color = Theme.Muted
+			orbMark.TextColor3 = Theme.Muted
+			orbMark.TextStrokeTransparency = 1
 			resultTitle.Text = "Result"
-			resultTitle.TextColor3 = Theme.Muted
+			resultTitle.TextColor3 = Theme.Text
 			resultOdds.Text = `{count} same-rarity slimes → 1 rarer`
-			resultKeeps.Text = if count == 3 then "Every mutation carries over" else "The best mutation carries over"
+			resultKeeps.Text = "Size follows the average of the slimes"
 			return
 		end
 		local preview = MergePreview.forSlimes(picks, state, nil, count)
 		local color = Widgets.color3(preview.color)
 		orb.BackgroundColor3 = color
 		orbMark.Text = if preview.kind == "recipe" then "★" else "?"
-		resultStroke.Color = color
+		Widgets.inkOn(orbMark, color)
 		resultTitle.Text = preview.title
 		resultTitle.TextColor3 = color
 		resultOdds.Text = if preview.jumpRarity
 			then `⚡ {math.floor(preview.jumpChance * 100 + 0.5)}% chance: {preview.jumpRarity}!`
-			else `🎲 {math.floor(preview.freshMutationChance * 100 + 0.5)}% bonus mutation`
-		local keeps = {}
-		if #preview.mutations > 0 then
-			local names = {}
-			for _, m in preview.mutations do
-				table.insert(names, Genome.mutationDisplayName(m))
-			end
-			table.insert(keeps, `Keeps {table.concat(names, ", ")}`)
-		end
-		table.insert(keeps, `Size ~{string.format("%.2f", preview.size)}`)
-		resultKeeps.Text = table.concat(keeps, " · ")
+			else `🎲 A random {preview.rarity} species`
+		resultKeeps.Text = `Size ~{string.format("%.2f", preview.size)}`
 	end
 
 	local function updateSlots()
@@ -743,7 +831,7 @@ function Merge.new(parent: Instance, ctx: any)
 				slot.stroke.Color = Widgets.color3(rarity(s.tier).color)
 			else
 				slot.name.Text = ""
-				slot.stroke.Color = Theme.Muted
+				slot.stroke.Color = Theme.Ink
 			end
 		end
 	end
@@ -772,10 +860,11 @@ function Merge.new(parent: Instance, ctx: any)
 			btn.instance.Size = UDim2.fromOffset(width, SIZE.chipH)
 			btn.instance.Position = UDim2.fromOffset(x, y)
 			local active = (tier == 0 and filter == nil) or tier == filter
-			btn.setColor(
-				if active then (if tier == 0 then Theme.Accent else Widgets.color3(rarity(tier).color)) else Theme.Row
-			)
-			btn.instance.TextColor3 = if active then Theme.Bg else Theme.Text
+			btn.setColor(if active then Theme.Good else Theme.Ink)
+			if not active then
+				btn.instance.TextColor3 = if tier == 0 then Theme.Text else Widgets.color3(rarity(tier).color)
+				btn.instance.TextStrokeTransparency = 1
+			end
 			x += width + SIZE.chipGap
 		end
 		local h = y + SIZE.chipH
@@ -796,8 +885,11 @@ function Merge.new(parent: Instance, ctx: any)
 			btn.instance.Text = if compact
 				then `{if on then "✅" else ""}{rarityName(tier)} {n}`
 				else `{if on then "✅ " else ""}{rarityName(tier)} ({n})`
-			btn.setColor(if on then Widgets.color3(rarity(tier).color) else Theme.Row)
-			btn.instance.TextColor3 = if on then Theme.Bg else Theme.Text
+			btn.setColor(if on then Widgets.color3(rarity(tier).color) else Theme.Ink)
+			if not on then
+				btn.instance.TextColor3 = Theme.Muted
+				btn.instance.TextStrokeTransparency = 1
+			end
 		end
 		local groups = MergePlan.plan(candidates, { tiers = autoTiers })
 		local byTier = MergePlan.countByTier(groups)
@@ -871,7 +963,7 @@ function Merge.new(parent: Instance, ctx: any)
 		mergeBtn.setEnabled(ok)
 		if ok then
 			reason.Text = "Hold MERGE to brew!"
-			reason.TextColor3 = Theme.Accent
+			reason.TextColor3 = Theme.Good
 		elseif reveal and #selected == 0 and reveal.untilAt > now then
 			reason.Text = "Merged! Pick more slimes to go again"
 			reason.TextColor3 = Theme.Gold

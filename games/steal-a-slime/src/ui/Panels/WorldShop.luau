@@ -4,7 +4,7 @@
 	"Upgrade Shop". The server opens it at the stand's ShopPrompt (ShopEvent Open / attribute OpenShop);
 	init.client calls setShop(shopId) and shows the card like every other menu (setOpen("WorldShop"), X,
 	backdrop, Esc / B). Rows come from WorldShopLogic.rows (Shared.Shops + the live State); a Buy hold calls
-	Request("ShopBuy", shopId, itemId, arg?). Panels/Shop is the combined shop for FEATURES.WorldShops off.
+	Request("ShopBuy", shopId, itemId). Panels/Shop is the combined shop for FEATURES.WorldShops off.
 
 	Both shops wear the shared panel purple; the title, the corner icon and the tagline chip tell them apart.
 	A row is the icon tile (a gold stock tag under it for restocking items), the name, a two-line description,
@@ -241,7 +241,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 			Theme.Good,
 			function()
 				if current.enabled then
-					ctx.send("ShopBuy", table.unpack(WorldShopLogic.buyArgs(current), 1, 3))
+					ctx.send("ShopBuy", table.unpack(WorldShopLogic.buyArgs(current), 1, 2))
 				end
 			end,
 			ctx.Config.HOLD_CONFIRM_SECONDS

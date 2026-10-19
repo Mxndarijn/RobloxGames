@@ -29,7 +29,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 local terrain = workspace.Terrain
 local t0 = os.clock()
-local out = { version = game.PlaceVersion, place = game.PlaceId, booted_by_probe = false, boot_errors = {}, threshold = THRESHOLD }
+local out = {
+	version = game.PlaceVersion,
+	place = game.PlaceId,
+	booted_by_probe = false,
+	boot_errors = {},
+	threshold = THRESHOLD,
+}
 
 local function r2(v)
 	return v and math.floor(v * 100 + 0.5) / 100 or nil
@@ -53,19 +59,39 @@ if terrain:GetAttribute("GroundTerrain") == nil then
 				table.insert(out.boot_errors, name .. ": " .. tostring(err):split("\n")[1])
 			end
 		end
-		if spawn then task.spawn(run) else run() end
+		if spawn then
+			task.spawn(run)
+		else
+			run()
+		end
 	end
 	pcall(function()
 		require(Server.Remotes).setup()
 	end)
-	step("WorldView", function(m) m.setup() end)
-	step("GroundTerrainView", function(m) m.place() end)
-	step("WorldProps", function(m) m.place() end)
-	step("RitualView", function(m) m.setup() end)
-	step("FountainColliders", function(m) m.place() end)
-	step("ParadeView", function(m) m.place() end)
-	step("BorderTerrainView", function(m) m.place() end, true)
-	step("MeshSwap", function(m) m.apply() end, true)
+	step("WorldView", function(m)
+		m.setup()
+	end)
+	step("GroundTerrainView", function(m)
+		m.place()
+	end)
+	step("WorldProps", function(m)
+		m.place()
+	end)
+	step("RitualView", function(m)
+		m.setup()
+	end)
+	step("FountainColliders", function(m)
+		m.place()
+	end)
+	step("ParadeView", function(m)
+		m.place()
+	end)
+	step("BorderTerrainView", function(m)
+		m.place()
+	end, true)
+	step("MeshSwap", function(m)
+		m.apply()
+	end, true)
 end
 
 -- 2. wait for terrain, settle
@@ -92,10 +118,23 @@ local function surface(x, z)
 end
 local function measure(label, cf, size)
 	local bottom = cf.Position.Y
-		- (math.abs(cf.RightVector.Y) * size.X + math.abs(cf.UpVector.Y) * size.Y + math.abs(cf.LookVector.Y) * size.Z) / 2
+		- (
+				math.abs(cf.RightVector.Y) * size.X
+				+ math.abs(cf.UpVector.Y) * size.Y
+				+ math.abs(cf.LookVector.Y) * size.Z
+			)
+			/ 2
 	local hx, hz = size.X * 0.4, size.Z * 0.4
 	local top, mat = nil, nil
-	for _, o in { Vector3.zero, Vector3.new(hx, 0, hz), Vector3.new(-hx, 0, hz), Vector3.new(hx, 0, -hz), Vector3.new(-hx, 0, -hz) } do
+	for _, o in
+		{
+			Vector3.zero,
+			Vector3.new(hx, 0, hz),
+			Vector3.new(-hx, 0, hz),
+			Vector3.new(hx, 0, -hz),
+			Vector3.new(-hx, 0, -hz),
+		}
+	do
 		local p = (cf * CFrame.new(o)).Position
 		local s, m = surface(p.X, p.Z)
 		if s and (not top or s > top) then
@@ -139,7 +178,9 @@ end
 local skip = {}
 for _, n in { "WildSlimes" } do
 	local f = workspace:FindFirstChild(n)
-	if f then skip[f] = true end
+	if f then
+		skip[f] = true
+	end
 end
 local mapGround = workspace:FindFirstChild("Map") and workspace.Map:FindFirstChild("Ground")
 local parts, named = {}, {}
@@ -164,22 +205,38 @@ for _, d in workspace:GetDescendants() do
 		end
 	end
 	local n = d.Name
-	if n == "MergeVat" or n == "Sign" or n == "HubSpawn" or d:IsA("SpawnLocation") or n == "Fountain" or n == "FountainMesh" or n == "FountainBase" then
+	if
+		n == "MergeVat"
+		or n == "Sign"
+		or n == "HubSpawn"
+		or d:IsA("SpawnLocation")
+		or n == "Fountain"
+		or n == "FountainMesh"
+		or n == "FountainBase"
+	then
 		local r = measureInst(d, n .. ": " .. d:GetFullName())
-		if r then table.insert(named, r) end
+		if r then
+			table.insert(named, r)
+		end
 	end
 end
 local plots = workspace:FindFirstChild("Plots")
 if plots then
 	for _, plot in plots:GetChildren() do
 		local r = measureInst(plot, "plot bbox: " .. plot.Name)
-		if r then table.insert(named, r) end
+		if r then
+			table.insert(named, r)
+		end
 	end
 end
-table.sort(parts, function(a, b) return a.buried > b.buried end)
+table.sort(parts, function(a, b)
+	return a.buried > b.buried
+end)
 local over = 0
 for _, r in parts do
-	if r.buried > THRESHOLD then over += 1 end
+	if r.buried > THRESHOLD then
+		over += 1
+	end
 end
 out.grounded_parts = #parts
 out.excluded_meadow_stems = excludedStems
@@ -196,11 +253,21 @@ local function column(x, z)
 	local ok, mats, occ = pcall(function()
 		return terrain:ReadVoxels(region, 4)
 	end)
-	if not ok then return { error = tostring(mats) } end
+	if not ok then
+		return { error = tostring(mats) }
+	end
 	local rows = {}
 	for y = 1, occ.Size.Y do
-		table.insert(rows, string.format("y%d..%d %s %.2f", region.CFrame.Position.Y - region.Size.Y / 2 + (y - 1) * 4,
-			region.CFrame.Position.Y - region.Size.Y / 2 + y * 4, mats[1][y][1].Name, occ[1][y][1]))
+		table.insert(
+			rows,
+			string.format(
+				"y%d..%d %s %.2f",
+				region.CFrame.Position.Y - region.Size.Y / 2 + (y - 1) * 4,
+				region.CFrame.Position.Y - region.Size.Y / 2 + y * 4,
+				mats[1][y][1].Name,
+				occ[1][y][1]
+			)
+		)
 	end
 	return rows
 end
@@ -221,9 +288,17 @@ end
 out.pass = out.terrain_ready and #parts > 0 and over == 0
 out.ok = out.pass -- run.sh: exit 0 only when ok == true
 out.result = if out.pass then "PASS" else "FAIL"
-out.summary = string.format("%s: %d/%d grounded parts buried > %.2f studs; worst %s by %s studs (terrain ready %s after %ss)",
-	out.result, over, #parts, THRESHOLD, parts[1] and parts[1].name or "-", tostring(parts[1] and parts[1].buried),
-	tostring(out.terrain_ready), tostring(out.waited_s))
+out.summary = string.format(
+	"%s: %d/%d grounded parts buried > %.2f studs; worst %s by %s studs (terrain ready %s after %ss)",
+	out.result,
+	over,
+	#parts,
+	THRESHOLD,
+	parts[1] and parts[1].name or "-",
+	tostring(parts[1] and parts[1].buried),
+	tostring(out.terrain_ready),
+	tostring(out.waited_s)
+)
 print("TERRAIN_BURIAL " .. out.summary)
 local json = HttpService:JSONEncode(out)
 print(json)

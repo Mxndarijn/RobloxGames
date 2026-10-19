@@ -16,7 +16,6 @@ FeatureOverride.PREFIX = "PcwFlag_"
 FeatureOverride.FLAGS = table.freeze({
 	"FountainTiers",
 	"MergeVat3",
-	"RainMagnet",
 	"StealAlerts",
 	"WeeklyEvents",
 	"PlotSkins",

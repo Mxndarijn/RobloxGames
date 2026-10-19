@@ -70,10 +70,6 @@ HYBRID_TIER = {  # result tier; checked against the input tier below
 BOSSES = {"goozilla": 6, "queen_jelly": 6, "mecha_goo": 7}
 BOSS_ROTATION = ["goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo"]
 
-MUTATIONS = [("Glow", 50), ("Lava", 30), ("Galaxy", 15), ("Rainbow", 8), ("Gold", 5), ("Crystal", 2), ("Eclipse", 0.5)]
-MUT_RANK = {name: i + 1 for i, (name, _) in enumerate(MUTATIONS)}
-MUT_RANK["None"] = 0
-
 
 def load_species() -> dict[str, int]:
     roster = json.loads((POOL / "roster.json").read_text(encoding="utf-8"))
@@ -131,9 +127,6 @@ class Scenario:
     jump_max_tier: int = 6  # a +2 jump may land at most here (today: anything below Secret)
     merge_max_tier: int = 7  # a random (non-recipe) merge result is at most this tier (today: Mythic x3 -> Secret)
     merge_assist: float = 0.0  # chance a random merge result is a species you don't have yet
-    fresh_mutation: float = 0.3
-    drop_mutation: float = 0.03
-    rain_mutation: float = 0.35
     pads: int = 8
     veteran: bool = False  # someone with 10+ rebirths keeps the fountain at tier 4 all session
 
@@ -201,7 +194,6 @@ SCENARIOS = {
 class Slime:
     tier: int
     species: str
-    mutation: str = "None"
     keep: bool = False  # hybrids: never fed to a random merge, sold last
 
 
@@ -212,8 +204,6 @@ class Player:
     tracked: bool = False
     dex: dict = field(default_factory=dict)  # species -> first time (s)
     source: dict = field(default_factory=dict)  # species -> how it was first found
-    stamps: set = field(default_factory=set)  # (species, mutation)
-    stamp_times: list = field(default_factory=list)
     inv: list = field(default_factory=list)  # slimes on pads
     trophies: set = field(default_factory=set)  # boss species on the trophy stand (no pad, can't be stolen)
     ready_at: float = 0.0
@@ -226,22 +216,6 @@ class Player:
     def unlocked(self, species: str) -> bool:
         fam = FAMILY.get(species)
         return fam is None or self.rank >= FAMILY_RANK[fam]
-
-
-def roll_mutation(rng: random.Random, chance: float) -> str:
-    if rng.random() >= chance:
-        return "None"
-    total = sum(w for _, w in MUTATIONS)
-    r = rng.random() * total
-    for name, w in MUTATIONS:
-        r -= w
-        if r < 0:
-            return name
-    return MUTATIONS[-1][0]
-
-
-def stronger(a: str, b: str) -> str:
-    return a if MUT_RANK[a] >= MUT_RANK[b] else b
 
 
 class Sim:
@@ -288,14 +262,14 @@ class Sim:
                 return i + 1
         return len(weights)
 
-    def spawn(self, luck: float, mutation_chance: float):
+    def spawn(self, luck: float):
         tier = self.roll_tier(luck)
         self.pity_epic = 0 if tier >= 4 else self.pity_epic + 1
         self.pity_leg = 0 if tier >= 5 else self.pity_leg + 1
         best = self.fountain_ranks()
         pool = [s for s in SPAWNING if SPECIES_TIER[s] == tier and best >= FAMILY_RANK[FAMILY[s]]]
         species = self.rng.choice(pool)
-        slime = Slime(tier, species, roll_mutation(self.rng, mutation_chance))
+        slime = Slime(tier, species)
         self.wild[self.next_id] = (slime, self.t + self.sc.wild_lifetime)
         self.next_id += 1
         self.spawns += 1
@@ -305,10 +279,6 @@ class Sim:
         if s.species not in p.dex:
             p.dex[s.species] = self.t
             p.source[s.species] = how
-        key = (s.species, s.mutation)
-        if key not in p.stamps:
-            p.stamps.add(key)
-            p.stamp_times.append(self.t)
 
     def pick(self, p: Player) -> int | None:
         best_id, best_score = None, -1
@@ -316,7 +286,7 @@ class Sim:
             if not p.unlocked(s.species):
                 continue  # FountainTiers.catchBlock
             # A species you lack is worth about two tiers (a new Common beats a known Rare, not a known Epic).
-            score = s.tier * 10 + (25 if s.species not in p.dex else 0) + MUT_RANK[s.mutation]
+            score = s.tier * 10 + (25 if s.species not in p.dex else 0)
             if p.tracked and s.species in self.wanted(p):
                 score += 25  # chasing an input of a recipe you know
             if score > best_score:
@@ -353,12 +323,9 @@ class Sim:
 
     def merge_result(self, p: Player, inputs: list[Slime]) -> Slime:
         tier = inputs[0].tier
-        mutation = stronger(stronger(inputs[0].mutation, inputs[1].mutation), inputs[2].mutation)
-        fresh = roll_mutation(self.rng, self.sc.fresh_mutation)
-        mutation = stronger(mutation, fresh)
         hybrid = RECIPE_BY_KEY.get(tuple(sorted(s.species for s in inputs)))
         if hybrid:
-            return Slime(HYBRID_TIER[hybrid], hybrid, mutation, keep=True)
+            return Slime(HYBRID_TIER[hybrid], hybrid, keep=True)
         out = min(tier + 1, self.sc.merge_max_tier)
         if tier + 2 <= self.sc.jump_max_tier and self.rng.random() < self.sc.merge_jump:
             out = tier + 2
@@ -366,7 +333,7 @@ class Sim:
         missing = [s for s in pool if s not in p.dex]
         if missing and self.rng.random() < self.sc.merge_assist:
             pool = missing
-        return Slime(out, self.rng.choice(pool), mutation)
+        return Slime(out, self.rng.choice(pool))
 
     def do_merges(self, p: Player):
         while True:
@@ -394,7 +361,6 @@ class Sim:
                     else:
                         free.append(s)
                 if len(free) >= 3:
-                    free.sort(key=lambda s: MUT_RANK[s.mutation])
                     self.apply_merge(p, free[:3], "merge")
                     done = True
                     break
@@ -417,7 +383,7 @@ class Sim:
         while len(p.inv) > self.sc.pads:
             loose = [s for s in p.inv if not s.keep and s.species not in reserved]
             loose = loose or [s for s in p.inv if not s.keep] or p.inv
-            loose.sort(key=lambda s: (s.tier, MUT_RANK[s.mutation]))
+            loose.sort(key=lambda s: s.tier)
             p.inv.remove(loose[0])  # sold
 
     def deposit(self, p: Player, s: Slime, how: str):
@@ -440,7 +406,7 @@ class Sim:
     def rebirth(self, p: Player):
         p.rank += 1
         if p.inv:
-            best = max(p.inv, key=lambda s: (s.tier, MUT_RANK[s.mutation]))
+            best = max(p.inv, key=lambda s: s.tier)
             p.inv = [best]
 
     def boss(self):
@@ -451,9 +417,9 @@ class Sim:
         # Team fight, then a carry race: modelled as an even chance for every player on the server.
         winner = self.rng.choice(self.players)
         winner.trophies.add(kind)
-        self.record(winner, Slime(BOSSES[kind], kind, "Glow"), "boss")
+        self.record(winner, Slime(BOSSES[kind], kind), "boss")
         for _ in range(self.sc.boss_shower):
-            self.spawn(self.sc.rain_luck, self.sc.rain_mutation)
+            self.spawn(self.sc.rain_luck)
 
     # -- main loop
     def run(self, hours: float) -> dict:
@@ -474,7 +440,7 @@ class Sim:
             if t >= next_spawn:
                 next_spawn = t + (sc.rain_spawn_interval if rain else sc.spawn_interval)
                 if len(self.wild) < sc.wild_cap * (2 if rain else 1):
-                    self.spawn(sc.rain_luck if rain else 1.0, sc.rain_mutation if rain else sc.drop_mutation)
+                    self.spawn(sc.rain_luck if rain else 1.0)
             if t >= next_boss:
                 next_boss = t + sc.boss_interval
                 self.boss()
@@ -504,7 +470,6 @@ class Sim:
         return {
             "dex": dict(you.dex),
             "source": dict(you.source),
-            "stamps": sorted(you.stamp_times),
             "catches_per_h": you.catches / hours,
             "merges_per_h": you.merges / hours,
             "steals_per_h": you.steals / hours,
@@ -574,11 +539,6 @@ def summarize(sc: Scenario, results: list[dict], hours_cap: float) -> str:
     goal("all 15 hybrids", lambda r: all_of(r, list(RECIPES)))
     goal("all 3 bosses", lambda r: all_of(r, list(BOSSES)))
     goal("full Dex (50)", lambda r: all_of(r, ALL_DEX))
-    for count in (50, 100, 150):
-        goal(
-            f"{count} mutation stamps",
-            lambda r, c=count: hours(r["stamps"][c - 1]) if len(r["stamps"]) >= c else None,
-        )
 
     lines += ["", "<details><summary>Per species: median hours to first catch, and how it was first found</summary>", ""]
     lines += ["| Species | Tier | Family | median h | p90 h | wild / merge / steal / recipe / boss |", "|---|---|---|---:|---:|---|"]

@@ -5,48 +5,24 @@
 	`buy` is the `BuyConsumable` action: validates stock, cash and the held-stack cap through
 	Shared.Consumables, then charges, records the purchase and adds one to the held stack. Nothing is applied.
 	`use` is the `UseConsumable` action: validates the item and that the player holds one, applies the effect
-	(the spray / potion / totem code below, unchanged) and only then takes one off the stack, so a refused
+	(the potion / totem code below) and only then takes one off the stack, so a refused
 	effect costs nothing. Pure: no Roblox APIs.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
-local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
-local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local World = if script then require(script.Parent.World) else require("./World")
 
 type World = World.World
 type Session = World.Session
 
 export type Hooks = {
-	rng: Rng.Rng?, -- spray rolls; nil = the world's
 	requestWeather: ((id: string) -> boolean)?, -- Weather service; nil = no totem
 }
 
 local ConsumableShop = {}
-
-local function spray(world: World, session: Session, slimeId: string?, rng: Rng.Rng): (boolean, string?)
-	if slimeId == nil then
-		return false, "pick a slime"
-	end
-	local slime = PlayerData.findSlime(session.data, slimeId)
-	if not slime then
-		return false, "not your slime"
-	end
-	if World.isBusy(world, slimeId) then
-		return false, "slime is busy"
-	end
-	local list = Consumables.spray(slime, rng)
-	if not list then
-		return false, "this slime can't take another mutation"
-	end
-	Genome.setMutations(slime, list)
-	PlayerData.discover(session.data, slime)
-	World.notify(world, session.userId, `Sprayed! Now {Genome.displayName(slime)}.`, "good", "Cash")
-	return true, nil
-end
 
 -- Returns (ok, reason?).
 function ConsumableShop.buy(
@@ -76,7 +52,7 @@ function ConsumableShop.use(
 	world: World,
 	session: Session,
 	itemId: string,
-	slimeId: string?,
+	_slimeId: string?,
 	now: number,
 	hooks: Hooks
 ): (boolean, string?)
@@ -91,13 +67,7 @@ function ConsumableShop.use(
 	if Consumables.held(data, itemId) < 1 then
 		return false, "you don't have any"
 	end
-	if itemId == "MutationSpray" then
-		-- Can fail (bad slime, nothing to add), so the stack is only taken after it worked.
-		local good, reason = spray(world, session, slimeId, hooks.rng or world.rng)
-		if not good then
-			return false, reason
-		end
-	elseif itemId == "LuckPotion" then
+	if itemId == "LuckPotion" then
 		if Consumables.potionFull(world.potionUntil, now) then
 			return false, "the luck potion is already at its longest"
 		end

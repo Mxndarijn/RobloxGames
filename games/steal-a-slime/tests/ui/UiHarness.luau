@@ -141,6 +141,16 @@ function methods.GetBoundingBox(self: any): (any, any)
 	return roblox.CFrame.new(), roblox.Vector3.new(x, y, z)
 end
 
+-- Model / BasePart pivot stand-in: the pose is only remembered (children do not move with it).
+local pivots: { [any]: any } = setmetatable({}, { __mode = "k" }) :: any
+function methods.PivotTo(self: any, cframe: any)
+	pivots[self] = cframe
+end
+
+function methods.GetPivot(self: any): any
+	return pivots[self] or roblox.CFrame.new()
+end
+
 function methods.ClearAllChildren(self: any)
 	for _, child in methods.GetChildren(self) do
 		child:Destroy()

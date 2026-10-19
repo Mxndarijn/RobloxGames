@@ -139,7 +139,7 @@ floor part); it needs no call site and touches no terrain-height file.
 | `Box` | `slime_fountain_emerge` (bug #10, main), `ranch_fence_20`, `phoenix_fence_segment`, `phoenix_corner_post` (the plot fence), `ranch_plaza_signpost`, `phoenix_plaza_podium_1..3`, `ranch_crate`, `ranch_crate_goo`, `ranch_feed_trough`, `ranch_hay_bale`, `ranch_bench`, `ranch_compost_bin`, `ranch_flower_planter`, `ranch_goo_sign`, `ranch_hitching_post`, `ranch_mailbox`, `ranch_picnic_table`, `ranch_tool_rack`, `ranch_wagon`, `ranch_water_trough`, `ranch_barrel`, `ranch_well`, `ranch_fence_stile` (v196 follow-up) |
 | `Hull` | `merge_vat`, `ranch_shop_stand` (already), `ranch_barrel_stack`, `ranch_birdhouse`, `ranch_campfire`, `ranch_feed_sacks`, `ranch_goo_bucket`, `ranch_goo_hive`, `ranch_log_pile`, `ranch_milk_churn`, `ranch_rain_barrel`, `ranch_scarecrow`, `ranch_shed`, `ranch_slime_coop`, `ranch_water_pump`, `ranch_weathervane`, `ranch_wheelbarrow`, `ranch_windmill` |
 | `PreciseConvexDecomposition` | `ranch_barn_loft` (loft over an open floor), marked "PCD: Phoenix Studio check" |
-| none (decor) | `slime_fountain` (tower, hand colliders stay; the split pieces are in `MeshAssets.COLLISION`, the slide only with `SlidePCD`), `phoenix_gate` (a Box/Hull would close the 14-stud opening; its GatePost stand-ins keep the posts; PCD is the later mesh route), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring` and `ranch_goo_drain` (decor meshes, solid through the thin `PlazaColliders` parts, see the last section), `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, `rain_magnet`, every slime kit mesh, `slime_lane` |
+| none (decor) | `slime_fountain` (tower, hand colliders stay; the split pieces are in `MeshAssets.COLLISION`, the slide only with `SlidePCD`), `phoenix_gate` (a Box/Hull would close the 14-stud opening; its GatePost stand-ins keep the posts; PCD is the later mesh route), `phoenix_pad_crate` (the Pad part is the surface), `phoenix_top_earners_board` (Model with its own Collider), `ranch_landing_ring` and `ranch_goo_drain` (decor meshes, solid through the thin `PlazaColliders` parts, see the last section), `ranch_horseshoe_pit`, `ranch_lantern_post`, `ranch_pumpkin_patch`, `ranch_sunflower_patch`, `ranch_border_*`, `giant_*`, `habitat_*`, `plot_skin_*`, `fountain_tier_*`, every slime kit mesh, `slime_lane` |
 
 `tests/MeshCollision.spec` makes every mesh name either solid or decor-with-a-reason.
 
@@ -226,7 +226,7 @@ segments and the gate-side corner post are `Box`; `merge_vat` is `Hull`; no PCD 
 close the 14-stud opening): its `GatePostL` / `GatePostR` stand-ins keep collision after the mesh lands. `phoenix_pad_crate`
 is decor: `Pad_<j>` (8 x 2.4 x 8) is the solid, steppable surface. `phoenix_top_earners_board` is shared with the world board
 (own Collider), so the plot's `DexMesh` slot box (canCollide on, canQuery / canTouch off) is the dex board's collider.
-Client-toggled cosmetics (LockBarrier panels, LockSign, RebirthDecor, habitats, skins, rain magnet) stay non-colliding: hidden
+Client-toggled cosmetics (LockBarrier panels, LockSign, RebirthDecor, habitats, skins) stay non-colliding: hidden
 colliders would be invisible walls, and the Pad / PlotLockGuard already cover those areas.
 
 ## B9 follow-up: the landing ring and the goo drain are solid (Merijn: nobody walks through any object)

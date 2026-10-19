@@ -188,31 +188,20 @@ function Progress.rank(state: any): { title: string?, next: string? }
 	return { title = `Rank: {title}`, next = nextText }
 end
 
--- A State.dexRewards entry's ladder; entries without one count as species.
-local function ladderOf(r: any): string
-	return if r.ladder == "stamps" then "stamps" else "species"
-end
-
--- SlimeDex rewards (State.dexRewards, both ladders): the next unclaimed milestone of each as one line
--- ("Next: 15 species +$5K, +3% income · 50 stamps +$10K, +3% income"), and the bonus. All nil on a server
--- without them.
+-- SlimeDex rewards (State.dexRewards): the next unclaimed milestone as one line
+-- ("Next: 15 species +$5K, +3% income"), and the bonus. All nil on a server without them.
 function Progress.dexRewards(state: any): { next: string?, bonus: string?, dexPercent: string? }
 	local rewards = state.dexRewards
 	if type(rewards) ~= "table" then
 		return { next = nil, bonus = nil, dexPercent = nil }
 	end
-	local parts: { string } = {}
-	local seen: { [string]: boolean } = {}
+	local nextText = "All SlimeDex rewards collected!"
 	for _, r in rewards do
-		if type(r) == "table" and r.claimed ~= true and not seen[ladderOf(r)] then
-			seen[ladderOf(r)] = true
-			table.insert(
-				parts,
-				`{num(r.count)} {ladderOf(r)} +{Format.formatCash(num(r.reward))}, +{pct(num(r.bonus))} income`
-			)
+		if type(r) == "table" and r.claimed ~= true then
+			nextText = `Next: {num(r.count)} species +{Format.formatCash(num(r.reward))}, +{pct(num(r.bonus))} income`
+			break
 		end
 	end
-	local nextText = if #parts > 0 then `Next: {table.concat(parts, " · ")}` else "All SlimeDex rewards collected!"
 	local bonus = num(state.dexBonus)
 	return {
 		next = nextText,
@@ -221,7 +210,7 @@ function Progress.dexRewards(state: any): { next: string?, bonus: string?, dexPe
 	}
 end
 
--- Progress bar toward the next unclaimed species milestone (state.dexRewards, ladder "species";
+-- Progress bar toward the next unclaimed species milestone (state.dexRewards;
 -- the count is state.dex.found): `icon` is its ItemIcons id, `label` "12 / 15", `ticks` one entry per
 -- species milestone with a claimed mark. nil on a server without dex rewards; `next` is nil once every
 -- species milestone is claimed (bar full).
@@ -246,7 +235,7 @@ function Progress.dexMilestones(state: any): DexMilestoneBar?
 	local target: number? = nil
 	local last = 0
 	for _, r in rewards do
-		if type(r) == "table" and ladderOf(r) == "species" then
+		if type(r) == "table" then
 			local n = num(r.count)
 			last = n
 			local claimed = r.claimed == true

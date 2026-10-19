@@ -1,7 +1,7 @@
 --!strict
 -- SlimeDex cards (src/ui/SlimeDex.luau) and the real SlimeDex panel built under tests/ui/UiHarness.luau:
 -- one card per species grouped by rarity, silhouettes with hints and ingredient slots for what is not found,
--- stamp dots, a grid that fits the panel width, and the close X on every menu.
+-- a grid that fits the panel width, and the close X on every menu.
 local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
@@ -24,7 +24,7 @@ local RECIPES = {
 	soda = { inputs = { "bubbles", "gummy", "mochi" }, hint = "Fizzy, chewy and soft." },
 }
 local SOURCES = Fixtures.dexSources(RECIPES, { glitch = 1760918400 })
-local DEX = Fixtures.dex({ "gummy", "mochi", "bumble" }, { "gummy:None", "gummy:Glow", "gummy:Solar" }, SOURCES)
+local DEX = Fixtures.dex({ "gummy", "mochi", "bumble" }, SOURCES)
 
 local function ctx(): any
 	return {
@@ -66,25 +66,11 @@ describe("SlimeDex.cards", function()
 		expect(cards[1].key).toBe(SpeciesDex.ENTRIES[1].id)
 		expect(cards[#cards].kind).toBe("event")
 	end)
-	it("a found species shows its name, rarity colour and lit stamps; gold stamps come separately", function()
+	it("a found species shows its name and rarity colour", function()
 		local gummy = cardOf(SlimeDex.cards(DEX, Config, lookup), "gummy")
 		expect(gummy.found).toBe(true)
 		expect(gummy.title).toBe("Gummy")
 		expect(gummy.color).toBe(Config.RARITIES[1].color)
-		expect(#gummy.stamps).toBe(#SpeciesDex.CORE_STAMPS)
-		local lit = {}
-		for _, stamp in gummy.stamps do
-			if stamp.on then
-				table.insert(lit, stamp.mutation)
-			end
-		end
-		expect(table.concat(lit, ",")).toBe("None,Glow")
-		expect(#gummy.gold).toBe(1)
-		expect(gummy.gold[1].mutation).toBe("Solar")
-		-- Lava is shown as Syrup on the dot's label.
-		local lava = gummy.stamps[table.find(SpeciesDex.CORE_STAMPS, "Lava") :: number]
-		expect(lava.label).toBe("Syrup")
-		expect(lava.on).toBe(false)
 	end)
 	it("an unfound species is a silhouette named ???", function()
 		local moo = cardOf(SlimeDex.cards(DEX, Config, lookup), "moo")
@@ -107,20 +93,18 @@ describe("SlimeDex.cards", function()
 		expect(slots[3].species).toBe("mochi")
 	end)
 	it("a known recipe names the hybrid before it is crafted", function()
-		local dex = Fixtures.dex({ "bubbles", "gummy", "mochi" }, nil, SOURCES)
+		local dex = Fixtures.dex({ "bubbles", "gummy", "mochi" }, SOURCES)
 		local soda = cardOf(SlimeDex.cards(dex, Config, lookup), "soda")
 		expect(soda.found).toBe(false)
 		expect(soda.title).toBe("Soda Pop")
 	end)
-	it("bosses say how to get them and carry no stamps; event Secrets are a bonus section", function()
+	it("bosses say how to get them; event Secrets are a bonus section", function()
 		local cards = SlimeDex.cards(DEX, Config, lookup)
 		local boss = cardOf(cards, "goozilla")
 		expect(boss.hint).toBe(SpeciesDex.BOSS_HINT)
 		expect(boss.badge).toBe("Boss")
-		expect(#boss.stamps).toBe(0)
 		local glitch = cardOf(cards, "glitch")
 		expect(glitch.badge).toBe("Event")
-		expect(#glitch.stamps).toBe(0)
 	end)
 	it("survives a missing or junk State.dex", function()
 		expect(#SlimeDex.cards(nil, Config)).toBe(0)
@@ -161,14 +145,12 @@ describe("SlimeDex.grid / lines", function()
 end)
 
 describe("SlimeDex.summary", function()
-	it("gives the species, stamps, bonus Secrets and gold chips", function()
+	it("gives the species and bonus Secrets chips", function()
 		local s = SlimeDex.summary(DEX)
 		expect(s.count).toBe(`Species 3/{SpeciesDex.TOTAL}`)
 		expect(s.percent).toBe(`{math.floor(3 / SpeciesDex.TOTAL * 100)}%`)
-		expect(s.stamps).toBe(`Stamps 2/{SpeciesDex.STAMP_TOTAL}`)
 		expect(s.secrets).toBe(`Secrets 0/{#SpeciesDex.BONUS}`)
-		expect(s.gold).toBe("★ 1 gold")
-		expect(SlimeDex.summary({ found = 0, total = 50 }).gold).toBeNil()
+		expect(SlimeDex.summary({ found = 0, total = 50 }).secrets).toBeNil()
 		expect(SlimeDex.summary(nil).percent).toBe("0%")
 	end)
 end)
@@ -197,21 +179,17 @@ local function card(panel: any, id: string): any
 end
 
 describe("SlimeDex panel", function()
-	it("is titled SlimeDex and shows the species and stamp counts", function()
+	it("is titled SlimeDex and shows the species and Secrets counts", function()
 		local panel = openDex(390, 844, DEX)
 		expect(UiHarness.find(panel.frame, "Title").Text).toBe("SlimeDex")
 		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`Species 3/{SpeciesDex.TOTAL}`)
-		expect(string.find(UiHarness.find(panel.frame, "Caption").Text, "Stamps 2", 1, true) ~= nil).toBe(true)
+		expect(UiHarness.find(panel.frame, "Secrets").Text).toBe(`Secrets 0/{#SpeciesDex.BONUS}`)
 	end)
-	it("a found card has its name and lit stamp dots; an unfound one is ??? with a ? glyph", function()
+	it("a found card has its name; an unfound one is ??? with a ? glyph", function()
 		local panel = openDex(1920, 1080, DEX)
 		local gummy = card(panel, "gummy")
 		expect(gummy:GetAttribute("Found")).toBe(true)
 		expect(UiHarness.find(gummy, "Title").Text).toBe("Gummy")
-		local stamps = UiHarness.find(gummy, "Stamps")
-		expect(UiHarness.find(stamps, "Stamp1"):GetAttribute("On")).toBe(true)
-		expect(UiHarness.find(stamps, "Stamp3"):GetAttribute("On")).toBe(false)
-		expect(UiHarness.find(stamps, "Gold").Visible).toBe(true)
 		local moo = card(panel, "moo")
 		expect(moo:GetAttribute("Found")).toBe(false)
 		expect(UiHarness.find(moo, "Title").Text).toBe("???")
@@ -346,7 +324,7 @@ describe("SlimeDex.header (short panel bodies)", function()
 			local listH = list.Size.Y.Scale * bodyH + list.Size.Y.Offset
 			expect(listH >= SlimeDex.MIN_LIST).toBe(true)
 			expect(list.Position.Y.Offset + listH <= bodyH + 1e-6).toBe(true)
-			for _, name in { "Percent", "Count", "Caption", "Secrets", "GoldStamps" } do
+			for _, name in { "Percent", "Count", "Secrets" } do
 				local item = UiHarness.find(panel.frame, name)
 				if item.Visible then
 					expect(item.Position.Y.Offset + item.Size.Y.Offset <= list.Position.Y.Offset).toBe(true)
@@ -362,9 +340,8 @@ describe("SlimeDex.rewardCard", function()
 		{ ladder = "species", count = 8, reward = 1000, bonus = 0.02, claimed = true },
 		{ ladder = "species", count = 15, reward = 5000, bonus = 0.03, claimed = false },
 		{ ladder = "species", count = 50, reward = 1e7, bonus = 0.15, claimed = false },
-		{ ladder = "stamps", count = 50, reward = 50000, bonus = 0.03, claimed = false },
 	}
-	it("names the next species milestone, its pay, every tick to scale and the next stamps milestone", function()
+	it("names the next species milestone, its pay and every tick to scale", function()
 		local rc = SlimeDex.rewardCard({ dex = { found = 10 }, dexRewards = REWARDS }) :: SlimeDex.RewardCard
 		expect(rc.title).toBe("Next reward at 15 species")
 		expect(rc.reward).toBe("+$5K and +3% income")
@@ -374,7 +351,6 @@ describe("SlimeDex.rewardCard", function()
 		expect(rc.ticks[1].claimed).toBe(true)
 		expect(rc.ticks[2].isNext).toBe(true)
 		expect(rc.ticks[3].at).toBe(1)
-		expect(rc.also).toBe("Also: 50 stamps for +$50K, +3% income")
 	end)
 	it("fills the bar once every species milestone is claimed; nil without species milestones", function()
 		local done = SlimeDex.rewardCard({
@@ -383,9 +359,8 @@ describe("SlimeDex.rewardCard", function()
 		}) :: SlimeDex.RewardCard
 		expect(done.reward).toBeNil()
 		expect(done.fraction).toBe(1)
-		expect(done.also).toBeNil()
 		expect(SlimeDex.rewardCard({ dex = {} })).toBeNil()
-		expect(SlimeDex.rewardCard({ dexRewards = { { ladder = "stamps", count = 50 } } })).toBeNil()
+		expect(SlimeDex.rewardCard({ dexRewards = {} })).toBeNil()
 	end)
 end)
 

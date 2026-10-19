@@ -44,12 +44,11 @@ kind in the roster (§30). No save change: "found" is read from what the save al
     `{ kind = "refused", reason }` (not three, or not one tier), `{ kind = "recipe", recipe, tier }`, or
     `{ kind = "random", tier, jumpTier?, jumpChance, pool, assistPool, assistChance }`.
 - **Caps (`Config`).** A random merge gives tier `min(T + 1, MERGE_MAX_TIER)` (6, Mythic): Mythic x3 gives a Mythic, a
-  random merge never makes a Secret. Tier-7 inputs stay tier 7 (unlocked Secret spawn species, fresh mutation). The +2
+  random merge never makes a Secret. Tier-7 inputs stay tier 7 (unlocked Secret spawn species). The +2
   jump (`TRIPLE_MERGE_JUMP_CHANCE`) only when `T + 2 <= MERGE_JUMP_MAX_TIER` (5, Legendary).
 - **Assist.** `MERGE_ASSIST_CHANCE` (0.35) of random results come from `assistPool` when it is not empty.
-- **`TripleMerge.merge(slimes, rng, id, mutationBonus?, ctx?)`.** Draw order: jump, assist, species, fresh mutation
-  (2 draws), three trait picks, stacking. Jump, assist and species are drawn on every merge, recipe or not, so one seed
-  gives one result. A recipe hit gives the hybrid at the recipe tier (no jump); mutations, size and traits as usual.
+- **`TripleMerge.merge(slimes, rng, id, ctx?)`.** Draw order: jump, assist, species, three trait picks. Jump, assist and species are drawn on every merge, recipe or not, so one seed
+  gives one result. A recipe hit gives the hybrid at the recipe tier (no jump); size and traits as usual.
   `ctx` defaults to Classic only, nothing found. `TripleMerge.apply` builds `ctx` from the save (`rebirths`, `foundOf`).
   `TripleMerge.odds(tier)` follows the caps.
 - **Toast.** On a recipe hit the merging player gets Notify `"You discovered <Hybrid>!"` the first time (hybrid not

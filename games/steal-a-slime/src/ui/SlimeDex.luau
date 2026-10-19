@@ -4,13 +4,12 @@
 
 	The SlimeDex panel's content (Panels/Dex), pure (tests/ui/SlimeDex.spec). State.dex (CONTRACT.md §36.4)
 	becomes one card per species, grouped by rarity under a header line, the event Secrets last as a bonus
-	section. A card is found (full colour mesh, name, stamp row) or a silhouette ("???", the hint, and for
+	section. A card is found (full colour mesh, name) or a silhouette ("???", the hint, and for
 	hybrids three ingredient slots that fill in as the player finds each ingredient). The server decides what is
 	revealed; this module only formats it. `lines` packs the cards into grid lines for a list width
 	(`grid`: as many columns as fit, one on a narrow phone), so the panel stacks lines like any scroll list.
 ]]
 
-export type Stamp = { mutation: string, label: string, color: { number }, on: boolean, gold: boolean }
 export type Slot = { species: string?, label: string, color: { number } }
 
 export type Card = {
@@ -22,8 +21,6 @@ export type Card = {
 	hint: string?,
 	badge: string?, -- "Merge-only" | "Boss" | "Event"
 	slots: { Slot }?, -- hybrids: the three ingredients
-	stamps: { Stamp }, -- the 8 core stamps (empty for bosses and event Secrets)
-	gold: { Stamp }, -- gold bonus stamps the player has
 	color: { number }, -- rarity frame colour
 	speciesColor: { number }, -- the species' own colour (preview fallback)
 }
@@ -50,47 +47,17 @@ SlimeDex.SILHOUETTE = table.freeze({ 24, 26, 36 })
 SlimeDex.UNKNOWN = "???"
 SlimeDex.BONUS_TIER = 0 -- section key of the event Secrets
 
--- Stamp dot per mutation save id ("Lava" displays as Syrup); "None" uses the rarity colour.
-SlimeDex.MUTATION_COLORS = table.freeze({
-	Glow = table.freeze({ 255, 245, 150 }),
-	Lava = table.freeze({ 255, 110, 40 }),
-	Wet = table.freeze({ 70, 150, 255 }),
-	Frozen = table.freeze({ 190, 235, 255 }),
-	Galaxy = table.freeze({ 130, 90, 220 }),
-	Gold = table.freeze({ 255, 205, 70 }),
-	Rainbow = table.freeze({ 255, 120, 200 }),
-	Crystal = table.freeze({ 150, 235, 255 }),
-	Eclipse = table.freeze({ 30, 20, 50 }),
-	-- Combos (Config.COMBOS / WEATHER_COMBOS)
-	Solar = table.freeze({ 255, 170, 90 }),
-	Nebula = table.freeze({ 190, 80, 160 }),
-	Aurora = table.freeze({ 120, 255, 190 }),
-	Royal = table.freeze({ 255, 225, 120 }),
-	Sleet = table.freeze({ 120, 190, 235 }),
-	Comet = table.freeze({ 150, 170, 255 }),
-})
-
 SlimeDex.BADGES = table.freeze({ hybrid = "Merge-only", boss = "Boss", event = "Event" })
 
 -- Card grid (design px): cards at least CARD_MIN_W wide, at most MAX_COLUMNS per line.
 SlimeDex.CARD = table.freeze({
 	minW = 150,
-	h = 188,
+	h = 172,
 	gap = 8,
 	maxColumns = 6,
 	preview = 80, -- square mesh preview at the top
 	header = 26, -- rarity header line
 })
-
-local function mutationNames(config: any): { [string]: string }
-	local names: { [string]: string } = { None = "Plain" }
-	for _, list in { config.MUTATIONS, config.COMBOS, config.WEATHER_MUTATIONS, config.WEATHER_COMBOS } do
-		for _, m in list or {} do
-			names[m.name] = m.displayName or m.name
-		end
-	end
-	return names
-end
 
 local function str(value: any): string?
 	return if type(value) == "string" and value ~= "" then value else nil
@@ -100,11 +67,6 @@ end
 function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
 	local out: { Card } = {}
 	local entries = if type(dex) == "table" and type(dex.entries) == "table" then dex.entries else {}
-	local names = mutationNames(config)
-	local core: { string } = { "None" }
-	for _, m in config.MUTATIONS or {} do
-		table.insert(core, m.name)
-	end
 	for _, e in entries :: { any } do
 		local id = if type(e) == "table" then str(e.id) else nil
 		local tier = if type(e) == "table" then tonumber(e.tier) else nil
@@ -116,33 +78,6 @@ function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
 			if lookup then
 				local _, color = lookup(id)
 				ownColor = color
-			end
-			local stamps: { Stamp } = {}
-			if kind == "spawn" or kind == "hybrid" then
-				local have: { [string]: boolean } = {}
-				for _, m in (if type(e.stamps) == "table" then e.stamps else {}) :: { any } do
-					have[tostring(m)] = true
-				end
-				for _, m in core do
-					table.insert(stamps, {
-						mutation = m,
-						label = names[m] or m,
-						color = (SlimeDex.MUTATION_COLORS :: any)[m] or rarity.color,
-						on = have[m] == true,
-						gold = false,
-					})
-				end
-			end
-			local gold: { Stamp } = {}
-			for _, m in (if type(e.gold) == "table" then e.gold else {}) :: { any } do
-				local name = tostring(m)
-				table.insert(gold, {
-					mutation = name,
-					label = names[name] or name,
-					color = (SlimeDex.MUTATION_COLORS :: any)[name] or rarity.color,
-					on = true,
-					gold = true,
-				})
 			end
 			local slots: { Slot }? = nil
 			if kind == "hybrid" and type(e.ingredients) == "table" then
@@ -170,8 +105,6 @@ function SlimeDex.cards(dex: any, config: any, lookup: Lookup?): { Card }
 				hint = str(e.hint),
 				badge = (SlimeDex.BADGES :: any)[kind],
 				slots = slots,
-				stamps = stamps,
-				gold = gold,
 				color = rarity.color,
 				speciesColor = ownColor or rarity.color,
 			})
@@ -247,7 +180,6 @@ function SlimeDex.genome(card: Card): { [string]: any }
 		pattern = "Plain",
 		eyes = "Round",
 		mouth = "Smile",
-		mutation = "None",
 	}
 end
 
@@ -255,9 +187,7 @@ export type Summary = {
 	percent: string,
 	fraction: number,
 	count: string, -- "Species 12/50"
-	stamps: string, -- "Stamps 40/376"
 	secrets: string?, -- "Secrets 1/7" (nil without event Secrets)
-	gold: string?, -- "★ 2 gold" (nil without gold stamps)
 }
 
 function SlimeDex.summary(dex: any): Summary
@@ -271,9 +201,7 @@ function SlimeDex.summary(dex: any): Summary
 		percent = `{math.floor(fraction * 100)}%`,
 		fraction = fraction,
 		count = `Species {found}/{total}`,
-		stamps = `Stamps {n(d.stamps)}/{n(d.stampTotal)}`,
 		secrets = if n(d.bonusTotal) > 0 then `Secrets {n(d.bonusFound)}/{n(d.bonusTotal)}` else nil,
-		gold = if n(d.gold) > 0 then `★ {n(d.gold)} gold` else nil,
 	}
 end
 
@@ -329,16 +257,14 @@ export type RewardCard = {
 	reward: string?, -- "+$5K and +2% income"
 	fraction: number, -- species found over the last species milestone
 	ticks: { RewardTick }, -- every species milestone, `at` placed to scale (0..1)
-	also: string?, -- the next stamps milestone: "Also: 50 stamps for +$50K, +3% income"
 }
 
 local function pct(fraction: number): string
 	return `{math.floor(fraction * 100 + 0.5)}%`
 end
 
--- The SlimeDex reward card from State.dexRewards (both ladders) and State.dex.found: the next unclaimed
--- species milestone, one bar from 0 to the last one with every milestone marked, and the next stamps
--- milestone. nil on a server without species milestones.
+-- The SlimeDex reward card from State.dexRewards and State.dex.found: the next unclaimed species milestone
+-- and one bar from 0 to the last one with every milestone marked. nil on a server without species milestones.
 function SlimeDex.rewardCard(state: any): RewardCard?
 	local rewards = if type(state) == "table" then state.dexRewards else nil
 	if type(rewards) ~= "table" then
@@ -349,20 +275,14 @@ function SlimeDex.rewardCard(state: any): RewardCard?
 	end
 	local found = if type(state.dex) == "table" then n(state.dex.found) else 0
 	local species: { any } = {}
-	local nextSpecies, nextStamps = nil, nil
+	local nextSpecies = nil
 	local last = 0
 	for _, r in rewards do
 		if type(r) == "table" then
-			if r.ladder == "stamps" then
-				if r.claimed ~= true and nextStamps == nil then
-					nextStamps = r
-				end
-			else
-				table.insert(species, r)
-				last = math.max(last, n(r.count))
-				if r.claimed ~= true and nextSpecies == nil then
-					nextSpecies = r
-				end
+			table.insert(species, r)
+			last = math.max(last, n(r.count))
+			if r.claimed ~= true and nextSpecies == nil then
+				nextSpecies = r
 			end
 		end
 	end
@@ -387,11 +307,6 @@ function SlimeDex.rewardCard(state: any): RewardCard?
 			else nil,
 		fraction = if nextSpecies then math.clamp(found / last, 0, 1) else 1,
 		ticks = ticks,
-		also = if nextStamps
-			then `Also: {n(nextStamps.count)} stamps for +{Format.formatCash(n(nextStamps.reward))}, +{pct(
-				n(nextStamps.bonus)
-			)} income`
-			else nil,
 	}
 end
 

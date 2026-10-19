@@ -16,7 +16,7 @@ describe("SaveData round trip", function()
 		local data = Fixtures.data(nil, 1234)
 		local rng = Rng.new(11)
 		for i = 1, 5 do
-			PlayerData.addSlime(data, Genome.generate(rng, { id = `s{i}`, mutationChance = 0.5 }))
+			PlayerData.addSlime(data, Genome.generate(rng, { id = `s{i}` }))
 		end
 		data.rebirths = 3
 		data.favoriteId = "s2"
@@ -32,34 +32,28 @@ describe("SaveData round trip", function()
 		expect(back.totalStolen).toBe(7)
 		expect(back.slimes).toEqual(data.slimes)
 		expect(back.found).toEqual(data.found)
-		expect(back.stamps).toEqual(data.stamps)
 		expect(next(back.found) ~= nil).toBe(true) -- generated slimes have a species
 		expect(back.padsUnlocked).toBe(Config.PADS_MAX)
 	end)
-	it("keeps the SlimeDex: found species, stamps (core and gold) and both reward ladders", function()
+	it("keeps the SlimeDex: found species and the species reward ladder", function()
 		local data = Fixtures.data(nil, 0)
 		data.found.moo = true
 		data.found.soda = true
 		data.found.goozilla = true
 		data.found.glitch = true -- bonus entry
-		data.stamps["moo:Gold"] = true
-		data.stamps["soda:None"] = true
-		data.stamps["moo:Solar"] = true -- gold stamp
 		data.speciesRewards = 2
-		data.stampRewards = 1
 		local raw = SaveData.serialize(data, 1700000000)
 		expect(raw.found).toEqual({ "glitch", "goozilla", "moo", "soda" })
-		expect(raw.stamps).toEqual({ "moo:Gold", "moo:Solar", "soda:None" })
+		expect((raw :: any).stamps).toBeNil()
+		expect((raw :: any).stampRewards).toBeNil()
 		expect((raw :: any).dex).toBeNil()
 		expect((raw :: any).dexRewards).toBeNil()
 		local back = SaveData.deserialize(serde.decode("json", serde.encode("json", raw)))
 		expect(back.found).toEqual(data.found)
-		expect(back.stamps).toEqual(data.stamps)
 		expect(back.speciesRewards).toBe(2)
-		expect(back.stampRewards).toBe(1)
 		expect(SaveData.serialize(back, 1700000000)).toEqual(raw)
 	end)
-	it("drops junk Dex ids and stamps, and starts an old combination Dex empty", function()
+	it("drops junk Dex ids and ignores stamps, and starts an old combination Dex empty", function()
 		local back = SaveData.deserialize({
 			version = Config.SAVE_VERSION,
 			found = { "moo", "nope", 42, "goozilla" },
@@ -70,12 +64,9 @@ describe("SaveData round trip", function()
 			dexRewards = 4,
 		})
 		expect(back.found).toEqual({ moo = true, goozilla = true })
-		expect(back.stamps).toEqual({ ["moo:Gold"] = true }) -- bosses and event Secrets have no stamps
 		expect(back.speciesRewards).toBe(#Config.DEX_MILESTONES.species)
-		expect(back.stampRewards).toBe(0)
 		local fresh = SaveData.deserialize({ version = 2, cash = 5, dex = { "1:None:Plain:Round" } })
 		expect(next(fresh.found)).toBeNil()
-		expect(next(fresh.stamps)).toBeNil()
 	end)
 	it("a saved boss trophy counts as found", function()
 		local raw = SaveData.serialize(Fixtures.data(nil, 0), 1700000000)
@@ -85,14 +76,12 @@ describe("SaveData round trip", function()
 		expect(#back.trophies).toBe(1)
 		expect(back.found.goozilla).toBe(true)
 	end)
-	it("owned slimes are always found on load, with their stamp", function()
-		local slime = Fixtures.slime("a", 3, { species = "moo", mutation = "Gold", mutations = { "Gold" } })
+	it("owned slimes are always found on load", function()
+		local slime = Fixtures.slime("a", 3, { species = "moo" })
 		local raw = SaveData.serialize(Fixtures.data({ slime }, 0), 1700000000)
 		raw.found = {}
-		raw.stamps = {}
 		local back = SaveData.deserialize(raw)
 		expect(back.found.moo).toBe(true)
-		expect(back.stamps["moo:Gold"]).toBe(true)
 	end)
 	it("serialized output has the current version and integer cash", function()
 		local data = Fixtures.data(nil, 10.75)

@@ -124,7 +124,6 @@ local function fakeBuild(genome: any): any
 	body.Size = Vector3.new(4, 3, 4)
 	body.Parent = model
 	model:SetAttribute("Tier", genome.tier)
-	model:SetAttribute("Mutation", genome.mutation)
 	table.insert(built, genome)
 	return model
 end

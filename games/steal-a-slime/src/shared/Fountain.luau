@@ -55,8 +55,7 @@ function Fountain.spawnInterval(raining: boolean): number
 end
 
 -- `minTier` (optional, pity) keeps the rarity at or above that tier.
--- `luckMult` / `mutationMult` (optional, CycleModifier) scale the rarity luck and mutation chance.
--- `weeklyMutation` / `weeklyBonus` (optional, WeeklyEvents) raise one mutation's chance.
+-- `luckMult` (optional, CycleModifier) scales the rarity luck.
 -- `families` (optional, FEATURES.FountainTiers: FountainTiers.pool of the server's fountain tier) adds the open
 -- families' species to the pool the species is picked from after the tier is rolled; `extraSpecies` (optional) adds
 -- more entries (an event Secret), counted only at their own tier (Genome.speciesPool, contract/slime-odds.md).
@@ -66,20 +65,13 @@ function Fountain.roll(
 	raining: boolean,
 	minTier: number?,
 	luckMult: number?,
-	mutationMult: number?,
-	weeklyMutation: string?,
-	weeklyBonus: number?,
 	families: { string }?,
 	extraSpecies: { SlimeRoster.Entry }?
 ): Drop
-	local baseChance = if raining then Config.RAIN_MUTATION_CHANCE else Config.DROP_MUTATION_CHANCE
 	local slime = Genome.generate(rng, {
 		id = id,
 		minTier = minTier,
-		mutationChance = math.min(1, baseChance * (mutationMult or 1)),
 		luck = (if raining then Config.RAIN_LUCK else 1) * (luckMult or 1),
-		weeklyMutation = weeklyMutation,
-		weeklyBonus = weeklyBonus,
 		families = families,
 		extraSpecies = extraSpecies,
 	})

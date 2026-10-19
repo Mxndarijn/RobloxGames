@@ -1,7 +1,6 @@
 --!strict
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
-local Genome = require("../src/shared/Genome")
 local Merge = require("../src/shared/Merge")
 local PlayerData = require("../src/shared/PlayerData")
 local Rng = require("../src/shared/Rng")
@@ -19,21 +18,6 @@ describe("Merge.canMerge", function()
 	end)
 end)
 
-describe("Merge.inheritedMutation", function()
-	it("keeps the better parent mutation", function()
-		expect(Merge.inheritedMutation("None", "None")).toBe("None")
-		expect(Merge.inheritedMutation("Glow", "None")).toBe("Glow")
-		expect(Merge.inheritedMutation("None", "Galaxy")).toBe("Galaxy")
-		expect(Merge.inheritedMutation("Lava", "Glow")).toBe("Lava")
-	end)
-	it("upgrades matching mutations, Eclipse stays Eclipse", function()
-		expect(Merge.inheritedMutation("Glow", "Glow")).toBe("Lava")
-		expect(Merge.inheritedMutation("Galaxy", "Galaxy")).toBe("Rainbow")
-		expect(Merge.inheritedMutation("Gold", "Gold")).toBe("Crystal")
-		expect(Merge.inheritedMutation("Eclipse", "Eclipse")).toBe("Eclipse")
-	end)
-end)
-
 describe("Merge.merge", function()
 	it("produces the next tier with blended colour and bigger size", function()
 		local a = slime("a", 2, { color = { 200, 0, 100 }, size = 1 })
@@ -44,29 +28,11 @@ describe("Merge.merge", function()
 		expect(child.color).toEqual({ 150, 25, 50 })
 		expect(child.size).toBeCloseTo(1.1 + Config.MERGE_SIZE_BONUS, 1e-9)
 	end)
-	it("caps tier at MAX_TIER and always mutates max-tier merges", function()
+	it("caps tier at MAX_TIER", function()
 		local rng = Rng.new(10)
 		for i = 1, 30 do
 			local child = Merge.merge(slime("a", Config.MAX_TIER), slime("b", Config.MAX_TIER), rng, `c{i}`)
 			expect(child.tier).toBe(Config.MAX_TIER)
-			expect(child.mutation ~= "None").toBeTruthy()
-		end
-	end)
-	it("sometimes mutates normal merges (about MERGE_MUTATION_CHANCE)", function()
-		local rng = Rng.new(77)
-		local mutated = 0
-		for i = 1, 2000 do
-			if Merge.merge(slime("a", 1), slime("b", 1), rng, `c{i}`).mutation ~= "None" then
-				mutated += 1
-			end
-		end
-		expect(math.abs(mutated / 2000 - Config.MERGE_MUTATION_CHANCE) < 0.03).toBeTruthy()
-	end)
-	it("never lowers an inherited mutation", function()
-		local rng = Rng.new(8)
-		for i = 1, 200 do
-			local child = Merge.merge(slime("a", 1, { mutation = "Galaxy" }), slime("b", 1), rng, `c{i}`)
-			expect(Genome.mutationMultiplier(child.mutation) >= 3).toBeTruthy()
 		end
 	end)
 	it("is deterministic for a seed", function()

@@ -11,7 +11,6 @@ local Genome = require("../../src/shared/Genome")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local Remotes = require("../../src/shared/Remotes")
-local SlimeDex = require("../../src/ui/SlimeDex")
 local SlimeLooks = require("../../src/shared/SlimeLooks")
 local SlimeRoster = require("../../src/shared/SlimeRoster")
 local SpeciesDex = require("../../src/shared/SpeciesDex")
@@ -88,51 +87,6 @@ describe("SlimePreview.build", function()
 			expect(part.Color ~= Color3.fromRGB(245, 248, 255)).toBe(true)
 		end
 		expect(SlimePreview.build({ 1, 2, 3 }):GetAttribute("Locked")).toBe(false)
-	end)
-end)
-
-describe("SlimePreview mutation finishes", function()
-	it("covers every Config mutation (v28 Rainbow / Crystal / Eclipse included)", function()
-		for _, m in Config.MUTATIONS do
-			expect(SlimePreview.FINISHES[m.name] ~= nil).toBe(true)
-			expect((SlimeDex.MUTATION_COLORS :: any)[m.name] ~= nil).toBe(true)
-		end
-		for _, m in SlimeRoster.NEW_MUTATIONS do
-			local finish = SlimePreview.FINISHES[m.name]
-			expect(finish.material ~= nil or finish.accents ~= nil).toBe(true) -- more than a tint
-		end
-	end)
-	it("Rainbow gets three bands, Crystal a glass body + shard, Eclipse a bright corona", function()
-		local rainbow = SlimePreview.build(SlimeDex.MUTATION_COLORS.Rainbow, { mutation = "Rainbow" })
-		expect(rainbow:GetAttribute("Mutation")).toBe("Rainbow")
-		for _, name in { "BandRed", "BandYellow", "BandBlue" } do
-			local band = rainbow:FindFirstChild(name)
-			expect(band.Shape).toBe(Enum.PartType.Cylinder)
-			expect(band.CFrame.Position.Z < 0).toBe(true) -- behind the body, eyes stay visible
-		end
-		local crystal = SlimePreview.build(SlimeDex.MUTATION_COLORS.Crystal, { mutation = "Crystal" })
-		expect(crystal:FindFirstChild("Body").Material).toBe(Enum.Material.Glass)
-		expect(crystal:FindFirstChild("Body").Transparency > 0).toBe(true)
-		expect(crystal:FindFirstChild("Shard").CFrame.Position.Y > 0.9).toBe(true)
-		local eclipse = SlimePreview.build(SlimeDex.MUTATION_COLORS.Eclipse, { mutation = "Eclipse" })
-		expect(eclipse:FindFirstChild("Body").Color).toBe(rgb(SlimeDex.MUTATION_COLORS.Eclipse))
-		expect(eclipse:FindFirstChild("Corona").Material).toBe(Enum.Material.Neon)
-		expect(eclipse:GetAttribute("Locked")).toBe(false) -- dark, but not the locked look
-		for _, model in { rainbow, crystal, eclipse } do
-			for _, name in PARTS do
-				expect(model:FindFirstChild(name) ~= nil).toBe(true)
-			end
-		end
-	end)
-	it("locked rows and unknown / None mutations use the plain look", function()
-		local locked = SlimePreview.build({ 1, 2, 3 }, { locked = true, mutation = "Eclipse" })
-		expect(locked:FindFirstChild("Corona")).toBeNil()
-		expect(locked:GetAttribute("Mutation")).toBeNil()
-		for _, mutation in { "None", "Nope" } do
-			local model = SlimePreview.build({ 1, 2, 3 }, { mutation = mutation })
-			expect(#model:GetChildren()).toBe(#PARTS)
-			expect(model:GetAttribute("Mutation")).toBeNil()
-		end
 	end)
 end)
 

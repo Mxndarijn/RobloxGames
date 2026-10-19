@@ -14,36 +14,28 @@
 	      lockLevel, speedCoil, tutorialStep }
 	    (lockLevel / speedCoil / tutorialStep were added later without a version
 	    bump: missing -> 0 / false / 1 for an empty profile, else 0 = done)
-	  v3 (current, CONTRACT.md §8.9): v2 plus
+	  v3 (CONTRACT.md §8.9): v2 plus
 	    upgrades = { [id] = level }, stats = { caught, merges, locks, sold },
 	    goals = { [goalId] = stagesPaid }, dexRewards = n
 	    plus (no bump; missing -> none) redeemed = { code }, boost = { mult, untilAt }
 	    v2 -> v3: zero upgrades / goals / dexRewards, stats.caught seeded with
 	    #slimes, tutorialStep 4..6 -> 5..7 (BuyPad step).
-	  v4 (current): v3 plus slimes[i].mutations = { name } (every mutation, at most
-	    Config.MAX_MUTATIONS; combos stored by their combo name). The single
-	    `mutation` field is still written (the primary = strongest mutation) so a v3
-	    reader keeps working and DataStore keys/field names never change.
-	    v3 -> v4 (migrateV3): mutations = {} for "None"/missing, else { mutation };
-	    pure, idempotent, never touches a slime that already has a list.
-	v5 (current): v4 plus the weather mutations Wet / Frozen (and combos Sleet / Comet). No
-	field changes: `mutations` / `mutation` keep their shape and old saves load unchanged.
-	v4 -> v5 (migrateV4): drops duplicate / empty / non-string entries from each slime's
-	`mutations` and rebuilds a missing or all-invalid list from `mutation`; pure, idempotent.
+	  v4 / v5: slime mutation lists (SaveData.migrateV3 / migrateV4); stripped again by v7 (migrateV6).
 	plotSkin (FEATURES.PlotSkins, CONTRACT.md §15): missing / unknown / not unlocked -> "classic"
 	(SaveData.migratePlotSkin, run by deserialize). stealLog (FEATURES.StealAlerts, CONTRACT.md §17):
 	a capped list of { thief, slime, at }; missing / junk -> empty. Both were unversioned before v6.
-	v6 (current): v5 plus `settings = { musicVolume, sfxVolume, muted }` (AudioSettings, FEATURES.Audio) and
+	v6: v5 plus `settings = { musicVolume, sfxVolume, muted }` (AudioSettings, FEATURES.Audio) and
 	the two unversioned fields above are now versioned: v5 -> v6 (migrateV5) keeps a known plotSkin id and
 	cleans stealLog / settings, junk or missing -> classic / empty / defaults. Pure, idempotent and
 	independent of every feature flag: a flag that is off leaves its field stored, just unused.
-	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, stamps = { "<species>:<Mutation>" },
-	speciesRewards / stampRewards = milestones paid; missing -> empty / 0, unknown ids dropped, owned slimes
-	always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
+	v7 (current): v6 minus everything mutation related: slimes[i].mutation / .mutations, the Dex `stamps` and
+	`stampRewards`, the MutationSpray consumable and the RainMagnet upgrade level. v6 -> v7 (migrateV6) strips them
+	from the stored table; pure, idempotent. Unknown or legacy values never error.
+	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, speciesRewards = milestones paid;
+	missing -> empty / 0, unknown ids dropped, owned slimes always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
 	pvp (FEATURES.PvP, CONTRACT.md §26) is optional and needs no version bump: { tiers = { [line] = tier }, fun = { id }, played = seconds };
 	missing / junk -> nothing owned, ids that are not Config.PVP_TOOLS are ignored, numbers are clamped (SaveData.cleanPvp).
-	Unknown/newer versions are read field-by-field with the v5 sanitizer (both
-	`mutations` and the legacy `mutation` are understood, nothing is dropped).
+	Unknown/newer versions are read field-by-field with the current sanitizer.
 	SaveData.check tells DataService whether a stored record may be overwritten:
 	"newer" (version above Config.SAVE_VERSION, e.g. a rolling update) and
 	"unreadable" (not a save we recognise) are loaded best-effort but never saved over.
@@ -156,7 +148,6 @@ function SaveData.migrateV1(raw: { [string]: any }): { [string]: any }
 					pattern = "Plain",
 					eyes = "Round",
 					mouth = "Smile",
-					mutation = "None",
 				})
 			end
 		end
@@ -202,9 +193,7 @@ end
 
 -- v4 -> v5. Pure copy, idempotent. Normalises each slime's `mutations` list: strings only, no
 -- "None", no duplicates, order kept; a missing list (or one with nothing valid) is rebuilt from the
--- legacy `mutation`. Names are NOT checked against Config.MUTATIONS here (Genome.sanitize does
--- that on load), so a name this build does not know yet survives the migration. A slime with a
--- clean list is returned as the same table.
+-- legacy `mutation`. Names are not checked. A slime with a clean list is returned as the same table.
 function SaveData.migrateV4(raw: { [string]: any }): { [string]: any }
 	local out = table.clone(raw)
 	local from = tonumber(raw.version)
@@ -275,8 +264,58 @@ function SaveData.migratePlotSkin(raw: any, data: Data): string
 	return Config.PLOT_SKIN_DEFAULT
 end
 
--- Returns a v6-shaped raw table (still untrusted) from any stored value. Saves
--- from a newer version than we know are returned as they are.
+-- v6 -> v7. Pure copy, idempotent, flag-independent. Strips what mutations left in a save: `mutation` /
+-- `mutations` on every stored slime and trophy, the Dex `stamps` and `stampRewards`, MutationSpray stock
+-- and the RainMagnet upgrade level. Never touches `raw`; anything of an unexpected shape is left for deserialize.
+local function stripSlimes(list: any): any
+	if type(list) ~= "table" then
+		return list
+	end
+	local out = {}
+	for i, old in list do
+		if type(old) == "table" and (old.mutation ~= nil or old.mutations ~= nil) then
+			local slime = table.clone(old)
+			slime.mutation = nil
+			slime.mutations = nil
+			out[i] = slime
+		else
+			out[i] = old
+		end
+	end
+	return out
+end
+
+local function stripKey(map: any, key: string): any
+	if type(map) ~= "table" or map[key] == nil then
+		return map
+	end
+	local out = table.clone(map)
+	out[key] = nil
+	return out
+end
+
+function SaveData.migrateV6(raw: { [string]: any }): { [string]: any }
+	local out = table.clone(raw)
+	local from = tonumber(raw.version)
+	if from == nil or from ~= from then
+		from = 0
+	end
+	out.migratedFrom = raw.migratedFrom or from
+	out.slimes = stripSlimes(raw.slimes)
+	out.trophies = stripSlimes(raw.trophies)
+	out.stamps = nil
+	out.stampRewards = nil
+	out.upgrades = stripKey(raw.upgrades, "RainMagnet")
+	if type(raw.consumables) == "table" then
+		local consumables = table.clone(raw.consumables)
+		consumables.bought = stripKey(consumables.bought, "MutationSpray")
+		consumables.held = stripKey(consumables.held, "MutationSpray")
+		out.consumables = consumables
+	end
+	out.version = 7
+	return out
+end
+
 -- Daily quests: keeps only slots whose pool id still exists (a rolled day with none left re-rolls).
 function SaveData.cleanQuests(raw: any): PlayerData.DailyQuests
 	local out: PlayerData.DailyQuests = { day = 0, slots = {} }
@@ -338,22 +377,26 @@ function SaveData.migrate(raw: any): { [string]: any }?
 		return nil
 	end
 	local version = tonumber(raw.version)
+	local migrated = raw
 	if version == nil then
-		if raw.Cash ~= nil or raw.Slimes ~= nil or raw.Rebirths ~= nil then
-			return SaveData.migrateV5(SaveData.migrateV4(SaveData.migrateV3(SaveData.migrateV1(raw))))
+		if raw.Cash == nil and raw.Slimes == nil and raw.Rebirths == nil then
+			return nil
 		end
-		return nil
+		migrated, version = SaveData.migrateV1(raw), 2
 	end
 	if version < 4 then
-		return SaveData.migrateV5(SaveData.migrateV4(SaveData.migrateV3(raw)))
+		migrated = SaveData.migrateV3(migrated)
 	end
 	if version < 5 then
-		return SaveData.migrateV5(SaveData.migrateV4(raw))
+		migrated = SaveData.migrateV4(migrated)
 	end
 	if version < 6 then
-		return SaveData.migrateV5(raw)
+		migrated = SaveData.migrateV5(migrated)
 	end
-	return raw
+	if version < 7 then
+		migrated = SaveData.migrateV6(migrated)
+	end
+	return migrated
 end
 
 --[[
@@ -385,13 +428,6 @@ function SaveData.deserialize(stored: any): Data
 		for _, id in raw.found do
 			if SpeciesDex.isSpecies(id) then
 				data.found[id] = true
-			end
-		end
-	end
-	if type(raw.stamps) == "table" then
-		for _, key in raw.stamps do
-			if SpeciesDex.isStamp(key) then
-				data.stamps[key] = true
 			end
 		end
 	end
@@ -473,7 +509,6 @@ function SaveData.deserialize(stored: any): Data
 	end
 	data.quests = SaveData.cleanQuests(raw.quests) -- daily quests (no version bump: missing -> nothing rolled)
 	data.speciesRewards = num(raw.speciesRewards, 0, 0, #Config.DEX_MILESTONES.species)
-	data.stampRewards = num(raw.stampRewards, 0, 0, #Config.DEX_MILESTONES.stamps)
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
 	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
@@ -539,23 +574,17 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			pattern = slime.pattern,
 			eyes = slime.eyes,
 			mouth = slime.mouth,
-			mutation = Genome.primaryMutation(Genome.mutationList(slime)), -- legacy field, kept for v3 readers
-			mutations = Genome.mutationList(slime),
 			pad = slime.pad,
 			species = slime.species, -- optional (v28), dropped on load if unknown
 			growth = slime.growth, -- optional (FEATURES.GrowingSlimes): missing = 0, no version bump
 			keep = if slime.keep == true then true else nil, -- optional (CONTRACT.md §21.1): missing = not kept, no version bump
 		})
 	end
-	local found, stamps = {}, {}
+	local found = {}
 	for id in data.found do
 		table.insert(found, id)
 	end
 	table.sort(found)
-	for key in data.stamps do
-		table.insert(stamps, key)
-	end
-	table.sort(stamps)
 	local redeemed = {}
 	for code in data.redeemed do
 		table.insert(redeemed, code)
@@ -577,7 +606,6 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		lastOnline = math.floor(now or data.lastOnline),
 		daily = { lastDay = data.daily.lastDay, streak = data.daily.streak },
 		found = found,
-		stamps = stamps,
 		totalEarned = math.floor(data.totalEarned),
 		totalStolen = data.totalStolen,
 		lockLevel = data.lockLevel,
@@ -592,7 +620,6 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		},
 		goals = table.clone(data.goals),
 		speciesRewards = data.speciesRewards,
-		stampRewards = data.stampRewards,
 		quests = SaveData.cleanQuests(data.quests),
 		plotSkin = data.plotSkin,
 		stealLog = StealAlert.clean(data.stealLog),

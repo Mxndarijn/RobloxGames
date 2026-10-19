@@ -55,7 +55,7 @@ describe("CycleModifier roll", function()
 	it("picks the first / last entry at the edges and honours a custom list", function()
 		expect(CycleModifier.pick(0).name).toBe("None")
 		expect(CycleModifier.pick(0.999999).name).toBe(Config.MODIFIERS[#Config.MODIFIERS].name)
-		local only = { { name = "X", label = "X", weight = 1, luck = 9, mutation = 1 } }
+		local only = { { name = "X", label = "X", weight = 1, luck = 9 } }
 		expect(CycleModifier.pick(0.5, only).name).toBe("X")
 	end)
 	it("is a pure function of (seed, phase)", function()
@@ -73,53 +73,43 @@ describe("CycleModifier roll", function()
 	it("has a None entry and positive multipliers", function()
 		expect(find("None").luck).toBe(1)
 		for _, m in Config.MODIFIERS do
-			expect(m.weight > 0 and m.luck >= 1 and m.mutation >= 1).toBeTruthy()
+			expect(m.weight > 0 and m.luck >= 1).toBeTruthy()
 		end
 	end)
 end)
 
 describe("CycleModifier odds", function()
-	local function rates(luck: number, mutation: number): (number, number)
+	local function rareRate(luck: number): number
 		local rng = Rng.new(11)
-		local n, rare, mutated = 6000, 0, 0
+		local n, rare = 6000, 0
 		for i = 1, n do
-			local drop = Fountain.roll(rng, `s{i}`, false, nil, luck, mutation)
+			local drop = Fountain.roll(rng, `s{i}`, false, nil, luck)
 			rare += if drop.slime.tier >= 3 then 1 else 0
-			mutated += if drop.slime.mutation ~= "None" then 1 else 0
 		end
-		return rare / n, mutated / n
+		return rare / n
 	end
 	it("a luck multiplier raises rarer spawns", function()
-		local base = rates(1, 1)
-		local lucky = rates(find("LuckSurge").luck, 1)
+		local base = rareRate(1)
+		local lucky = rareRate(find("LuckSurge").luck)
 		expect(lucky > base * 1.3).toBeTruthy()
 	end)
-	it("a mutation multiplier raises mutation chance", function()
-		local _, base = rates(1, 1)
-		local _, surged = rates(1, find("MutationSurge").mutation)
-		expect(surged > base * 2).toBeTruthy()
-		expect(surged < 1).toBeTruthy()
-	end)
-	it("multipliers are 1 for None and when the feature is off", function()
-		local l, m = CycleModifier.multipliers(find("None"))
-		expect(l).toBe(1)
-		expect(m).toBe(1)
-		local l2, m2 = CycleModifier.multipliers(nil)
-		expect(l2 + m2).toBe(2)
+	it("the multiplier is 1 for None and when the feature is off", function()
+		expect(CycleModifier.multiplier(find("None"))).toBe(1)
+		expect(CycleModifier.multiplier(nil)).toBe(1)
 	end)
 	it("Spawner.spawnOne applies the world's modifier server-side", function()
-		local function mutatedShare(modifier: CycleModifier.Modifier): number
+		local function rareShare(modifier: CycleModifier.Modifier): number
 			local world = ServerFixtures.world()
 			world.modifier = modifier
 			local n = 0
 			for _ = 1, 600 do
 				local id = Spawner.spawnOne(world, T0)
-				n += if world.wild[id].slime.mutation ~= "None" then 1 else 0
+				n += if world.wild[id].slime.tier >= 3 then 1 else 0
 				world.wild[id] = nil
 			end
 			return n / 600
 		end
-		expect(mutatedShare(find("MutationSurge")) > mutatedShare(find("None")) * 2).toBeTruthy()
+		expect(rareShare(find("LuckSurge")) > rareShare(find("None")) * 1.3).toBeTruthy()
 	end)
 end)
 

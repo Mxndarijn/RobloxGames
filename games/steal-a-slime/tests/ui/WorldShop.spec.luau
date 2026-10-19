@@ -23,7 +23,7 @@ local ACTIONS = Remotes.ACTIONS
 
 local function features(overrides: { [string]: boolean }?): any
 	local out: any = table.clone(Config.FEATURES)
-	for _, flag in { "Consumables", "PvP", "RainMagnet" } do
+	for _, flag in { "Consumables", "PvP" } do
 		out[flag] = true
 	end
 	for flag, value in overrides or {} do
@@ -79,10 +79,10 @@ local function baseState(extra: { [string]: any }?): any
 			totemWeather = "Rain",
 			items = {
 				{
-					id = "MutationSpray",
-					name = "Mutation Spray",
-					icon = "🧪",
-					text = "spray",
+					id = "WeatherTotem",
+					name = "Weather Totem",
+					icon = "🗿",
+					text = "totem",
 					price = 3000,
 					left = 2,
 					max = 3,
@@ -141,14 +141,13 @@ describe("WorldShopLogic.rows", function()
 	end)
 
 	it("filters rows by feature flags", function()
-		local off = features({ Consumables = false, PvP = false, RainMagnet = false })
+		local off = features({ Consumables = false, PvP = false })
 		local itemRows = ids(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, off, Config))
 		expect(table.concat(itemRows, ",")).toBe("Lock,MysteryEgg,SpeedCoil")
 		local upgradeRows = ids(WorldShopLogic.rows("UpgradeShop", baseState(), ACTIONS, off, Config))
-		expect(table.find(upgradeRows, "RainMagnet")).toBeNil()
 		expect(table.find(upgradeRows, "Income")).toBeTruthy()
 		local all = ids(WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config))
-		expect(table.find(all, "MutationSpray")).toBeTruthy()
+		expect(table.find(all, "WeatherTotem")).toBeTruthy()
 		expect(#WorldShopLogic.rows("Nope", baseState(), ACTIONS, features(), Config)).toBe(0)
 	end)
 
@@ -222,24 +221,16 @@ describe("WorldShopLogic.rows", function()
 		expect(income.enabled).toBe(false)
 	end)
 
-	it("consumables: sold out, stocked, missing from the restock, and the spray needs no slime to buy", function()
+	it("consumables: sold out, stocked, and a row with no stock entry", function()
 		local state = baseState()
 		local rows = WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config)
 		expect(find(rows, "LuckPotion").status).toBe("soldOut")
 		expect(find(rows, "LuckPotion").buttonText).toBe("Sold out")
 		expect(find(rows, "LuckPotion").enabled).toBe(false)
-		local totem = find(rows, "WeatherTotem") -- not stocked this restock
-		expect(totem.status).toBe("soldOut")
-		expect(totem.enabled).toBe(false)
-		local spray = find(rows, "MutationSpray")
-		expect(spray.status).toBe("buy")
-		expect(spray.enabled).toBe(true)
-		expect(spray.levelText).toBe("2/3 left")
-		expect(spray.arg).toBeNil() -- buying needs no slime: the spray picks its target when used
-		state.slimes = {}
-		local none = find(WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config), "MutationSpray")
-		expect(none.status).toBe("buy")
-		expect(none.enabled).toBe(true)
+		local totem = find(rows, "WeatherTotem")
+		expect(totem.status).toBe("buy")
+		expect(totem.enabled).toBe(true)
+		expect(totem.levelText).toBe("2/3 left")
 		state.consumables = nil
 		expect(find(WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config), "LuckPotion").status).toBe(
 			"soldOut"
@@ -303,20 +294,20 @@ describe("WorldShopLogic.slot", function()
 		expect(find(up, "LockUpgrade").level).toBe(2)
 		expect(find(up, "LockUpgrade").maxLevel).toBe(5)
 		local items = WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config)
-		expect(find(items, "MutationSpray").stockText).toBe("2/3 left")
-		expect(find(items, "MutationSpray").maxLevel).toBeNil()
+		expect(find(items, "WeatherTotem").stockText).toBe("2/3 left")
+		expect(find(items, "WeatherTotem").maxLevel).toBeNil()
 		expect(find(items, "Lock").maxLevel).toBeNil()
 		expect(find(items, "Lock").stockText).toBeNil()
 	end)
 end)
 
 describe("WorldShopLogic.buyArgs", function()
-	it("is shopId, itemId, arg - no row passes a slime any more", function()
+	it("is shopId, itemId", function()
 		local rows = WorldShopLogic.rows("ItemShop", baseState(), ACTIONS, features(), Config)
-		local spray = WorldShopLogic.buyArgs(find(rows, "MutationSpray"))
-		expect(spray[1]).toBe("ItemShop")
-		expect(spray[2]).toBe("MutationSpray")
-		expect(spray[3]).toBeNil() -- buying a spray needs no slime
+		local totem = WorldShopLogic.buyArgs(find(rows, "WeatherTotem"))
+		expect(totem[1]).toBe("ItemShop")
+		expect(totem[2]).toBe("WeatherTotem")
+		expect(totem[3]).toBeNil()
 		local lock = WorldShopLogic.buyArgs(find(rows, "Lock"))
 		expect(lock[1]).toBe("ItemShop")
 		expect(lock[2]).toBe("Lock")
@@ -324,7 +315,7 @@ describe("WorldShopLogic.buyArgs", function()
 		local up = WorldShopLogic.rows("UpgradeShop", baseState(), ACTIONS, features(), Config)
 		expect(WorldShopLogic.buyArgs(find(up, "Income"))[1]).toBe("UpgradeShop")
 		expect(Remotes.ACTIONS.ShopBuy).toBeTruthy()
-		expect(Shops.find("ItemShop", spray[2])).toBeTruthy() -- the server accepts the pair
+		expect(Shops.find("ItemShop", totem[2])).toBeTruthy() -- the server accepts the pair
 	end)
 end)
 
@@ -510,9 +501,9 @@ describe("WorldShopLogic.controller", function()
 		log.controller.onEvent({ kind = "Purchased", shopId = "UpgradeShop", itemId = "Income", price = 9, level = 3 })
 		expect(log.toasts[2].text).toBe("Slime Snacks bought! Lv 3")
 		expect(log.toasts[2].itemId).toBe("Upgrade_Income")
-		log.controller.onEvent({ kind = "Purchased", shopId = "ItemShop", itemId = "MutationSpray", price = 1 })
-		expect(log.toasts[3].text).toBe("Mutation Spray bought!")
-		expect(log.toasts[3].itemId).toBe("Consumable_MutationSpray")
+		log.controller.onEvent({ kind = "Purchased", shopId = "ItemShop", itemId = "WeatherTotem", price = 1 })
+		expect(log.toasts[3].text).toBe("Weather Totem bought!")
+		expect(log.toasts[3].itemId).toBe("Consumable_WeatherTotem")
 	end)
 
 	it("Denied events and failed results toast the mapped text, once per burst", function()
@@ -619,13 +610,13 @@ describe("Panels/WorldShop", function()
 		expect(buy.TextColor3).toBe(Theme.Ink)
 		expect(buy:GetAttribute("HoldConfirm") ~= nil).toBe(true)
 		expect(lock:FindFirstChild("Stock").Visible).toBe(false)
-		local spray = UiHarness.find(panel.frame, "MutationSpray")
-		local stock = spray:FindFirstChild("Stock")
+		local totem = UiHarness.find(panel.frame, "WeatherTotem")
+		local stock = totem:FindFirstChild("Stock")
 		expect(stock.Visible).toBe(true)
 		expect(stock.Text).toBe("2/3 left")
 		expect(stock.BackgroundColor3).toBe(Theme.Gold)
 		expect(stock.TextColor3).toBe(Theme.Ink)
-		expect(stock.ZIndex > spray:FindFirstChild("Icon").ZIndex).toBe(true)
+		expect(stock.ZIndex > totem:FindFirstChild("Icon").ZIndex).toBe(true)
 		local owned = UiHarness.find(panel.frame, "KnockGlove1")
 		expect(owned:FindFirstChild("Buy").Visible).toBe(false)
 		local well = owned:FindFirstChild("Status")

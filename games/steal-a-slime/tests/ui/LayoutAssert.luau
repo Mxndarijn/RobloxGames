@@ -337,19 +337,11 @@ function LayoutAssert.tooltipCards(): { { title: string, body: string, time: str
 		HudClusters.rain({ active = true, endsAt = now + 3725, nextAt = nil }, now),
 		HudClusters.rain({ active = false, endsAt = nil, nextAt = now + 59 }, now),
 		HudClusters.event(
-			{ name = "Admin_luck", label = "Luck Event", luck = 3, mutation = 1, endsAt = now + 1800, icon = "🍀" },
+			{ name = "Admin_luck", label = "Luck Event", luck = 3, endsAt = now + 1800, icon = "🍀" },
 			now,
 			true
 		),
-		HudClusters.event({
-			name = "Admin_mutation",
-			label = "Mutation Event",
-			luck = 1,
-			mutation = 4,
-			endsAt = now + 3725,
-			icon = "🧬",
-		}, now, true),
-		HudClusters.event({ name = "Dusk", label = "Golden Dusk", luck = 2, mutation = 2, endsAt = nil }, now, true),
+		HudClusters.event({ name = "Dusk", label = "Golden Dusk", luck = 2, endsAt = nil }, now, true),
 		HudClusters.friend({ count = 20, bonus = 1 }, true),
 	}
 	for _, slot in slots do
@@ -605,7 +597,7 @@ function LayoutAssert.worldShopTexts(panel: Rect): { TextDesc }
 	}
 	local actions = Remotes.ACTIONS
 	local features = table.clone(Config.FEATURES)
-	for _, flag in { "Consumables", "PvP", "RainMagnet" } do
+	for _, flag in { "Consumables", "PvP" } do
 		(features :: any)[flag] = true
 	end
 	for _, shopId in Shops.ORDER do

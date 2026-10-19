@@ -166,14 +166,12 @@ describe("ShopCatalog consumables (FEATURES.Consumables)", function()
 		return {
 			cash = 5000,
 			serverTime = 1000,
-			favoriteId = "b",
-			slimes = { { slime = { id = "a", tier = 5 } }, { slime = { id = "b", tier = 1 } } },
 			consumables = {
 				restockAt = 1200,
 				items = {
 					{
-						id = "MutationSpray",
-						name = "Mutation Spray",
+						id = "WeatherTotem",
+						name = "Weather Totem",
 						icon = "🧪",
 						text = "t",
 						price = 3000,
@@ -195,16 +193,16 @@ describe("ShopCatalog consumables (FEATURES.Consumables)", function()
 	end
 	it("lists a row per stocked item with quantities, after the other rows", function()
 		local views = ShopCatalog.views(state(2), Remotes.ACTIONS, Config)
-		local spray = views[#views - 1]
-		expect(spray.item.id).toBe("Consumable_MutationSpray")
-		expect(spray.levelText).toBe("2/3 left")
-		expect(spray.enabled).toBe(true)
-		expect(spray.item.action).toBe("BuyConsumable")
+		local totem = views[#views - 1]
+		expect(totem.item.id).toBe("Consumable_WeatherTotem")
+		expect(totem.levelText).toBe("2/3 left")
+		expect(totem.enabled).toBe(true)
+		expect(totem.item.action).toBe("BuyConsumable")
 		expect(Remotes.ACTIONS.BuyConsumable ~= nil).toBe(true)
 	end)
 	it("buys with the item id only, disables sold out and unaffordable rows", function()
 		local views = ShopCatalog.consumableViews(state(0), Remotes.ACTIONS)
-		expect(#views[1].item.args).toBe(1) -- no slime: the target is picked on use
+		expect(#views[1].item.args).toBe(1)
 		expect(views[1].enabled).toBe(false)
 		expect(views[1].buttonText).toBe("Sold out")
 		expect(views[2].enabled).toBe(false) -- 6000 > 5000 cash

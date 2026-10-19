@@ -198,7 +198,7 @@ describe("SlimeDex header", function()
 			})
 			local check = LayoutAssert.new(vp.name, Layout.screen(vp.w, vp.h))
 			local shown = {}
-			for _, name in { "Percent", "Count", "Caption", "Secrets", "GoldStamps", "List" } do
+			for _, name in { "Percent", "Count", "Secrets", "List" } do
 				local item = UiHarness.find(panel.frame, name)
 				if item.Visible then
 					table.insert(shown, { name, item })
@@ -219,7 +219,6 @@ describe("SlimeDex header", function()
 				dexRewards = {
 					{ ladder = "species", count = 1, reward = 1000, bonus = 0.02, claimed = true },
 					{ ladder = "species", count = 8, reward = 2500, bonus = 0.03, claimed = false },
-					{ ladder = "stamps", count = 50, reward = 2500, bonus = 0.03, claimed = false },
 				},
 			})
 			local card = UiHarness.find(panel.frame, "Milestones")
@@ -235,11 +234,10 @@ describe("SlimeDex header", function()
 			local ticks = UiHarness.find(card, "MilestoneTicks")
 			expect(UiHarness.find(ticks, "Tick1"):GetAttribute("Claimed")).toBe(true)
 			expect(UiHarness.find(ticks, "Tick8"):GetAttribute("Next")).toBe(true)
-			expect(UiHarness.find(card, "MilestoneAlso").Text).toBe("Also: 50 stamps for +$2.5K, +3% income")
 			expect(UiHarness.find(card, "MilestoneBar") ~= nil).toBe(true)
 			local check = LayoutAssert.new(vp.name, Layout.screen(vp.w, vp.h))
 			local above = 0
-			for _, name in { "MilestoneCount", "MilestoneReward", "MilestoneBar", "MilestoneTicks", "MilestoneAlso" } do
+			for _, name in { "MilestoneCount", "MilestoneReward", "MilestoneBar", "MilestoneTicks" } do
 				local part = UiHarness.find(card, name)
 				local y = part.Position.Y.Offset + part.Size.Y.Offset
 				expect(y <= card.Size.Y.Offset).toBe(true)

@@ -12,7 +12,7 @@
 	    fallback of a model spec that has a recipe): static
 	    frames over the tile, no viewport, outside the live cap;
 	  * an ImageLabel when the spec has an uploaded `image`;
-	  * a ViewportFrame with the real 3D model (slime + mutation finish, or a
+	  * a ViewportFrame with the real 3D model (a
 	    kit mesh) when the spec has a `model`. Live viewports are lazy (only
 	    while `setActive(true)`: the owner calls it when the icon is on
 	    screen), capped at MAX_LIVE at once across the whole UI (the extra
@@ -34,10 +34,6 @@ ItemIconView.MAX_LIVE = 12
 
 -- builder(viewport, spec) -> mounted. Tests and init.client swap these.
 ItemIconView.builders = {
-	slime = function(viewport: Instance, spec: any): boolean
-		local tint = spec.color
-		return SlimePreview.mount(viewport, tint, { mutation = spec.model.mutation })
-	end,
 	mesh = function(): boolean
 		return false -- ItemIconView.meshBuilder(MeshAssets) from init.client
 	end,

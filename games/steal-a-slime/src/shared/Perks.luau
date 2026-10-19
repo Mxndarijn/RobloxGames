@@ -9,8 +9,7 @@
 	    lock bonuses; the best unlocked value wins, they don't stack;
 	  * upgrade levels (Config.UPGRADES): income, carry slowdown, offline cap,
 	    luck;
-	  * SlimeDex milestone bonus (Config.DEX_MILESTONES: data.speciesRewards /
-	    stampRewards paid).
+	  * SlimeDex milestone bonus (Config.DEX_MILESTONES: data.speciesRewards paid).
 	Pure: no Roblox APIs.
 ]]
 
@@ -23,7 +22,6 @@ export type Progress = {
 	rebirths: number,
 	upgrades: { [string]: number },
 	speciesRewards: number,
-	stampRewards: number,
 	boostMult: number?, -- redeem-code income boost while active (Codes), nil / 1 = none
 	friendBonus: number?, -- runtime friend bonus (FriendBonus, never saved), nil / 0 = none
 	slimes: { any }?, -- owned slimes (follow-pet passive lookup)
@@ -151,11 +149,9 @@ local function paidBonus(list: { Config.DexMilestone }, paid: number?): number
 	return total
 end
 
--- Income bonus from paid SlimeDex milestones of both ladders (0.05 = +5 %).
+-- Income bonus from paid SlimeDex species milestones (0.05 = +5 %).
 function Perks.dexBonus(data: Progress): number
-	local total = paidBonus(Config.DEX_MILESTONES.species, data.speciesRewards)
-		+ paidBonus(Config.DEX_MILESTONES.stamps, data.stampRewards)
-	return total
+	return paidBonus(Config.DEX_MILESTONES.species, data.speciesRewards)
 end
 
 ---------------------------------------------------------------------------
@@ -163,13 +159,6 @@ end
 ---------------------------------------------------------------------------
 
 export type PetPassive = { kind: string, value: number, icon: string, text: string }
-
-local function mutationCount(slime: any): number
-	if slime.mutations then
-		return #slime.mutations
-	end
-	return if slime.mutation ~= nil and slime.mutation ~= "None" then 1 else 0
-end
 
 -- The favourite slime's perk, or nil with no favourite or an unknown tier.
 function Perks.petPassive(data: Progress): PetPassive?
@@ -184,7 +173,7 @@ function Perks.petPassive(data: Progress): PetPassive?
 			if not def then
 				return nil
 			end
-			local value = math.min(slime.tier * def.perTier + mutationCount(slime) * cfg.MUTATION_STEP, def.cap)
+			local value = math.min(slime.tier * def.perTier, def.cap)
 			value = math.floor(value * 1000 + 0.5) / 1000
 			return {
 				kind = kind,
@@ -201,11 +190,6 @@ end
 local function petValue(data: Progress, kind: string): number
 	local perk = Perks.petPassive(data)
 	return if perk and perk.kind == kind then perk.value else 0
-end
-
--- Added to Config.MERGE_MUTATION_CHANCE (Merge.apply).
-function Perks.petMutationBonus(data: Progress): number
-	return petValue(data, "mutation")
 end
 
 -- Everything except the rebirth multiplier: upgrade x rank x dex x code boost x friends x ritual x pet x weekend.
@@ -232,15 +216,6 @@ end
 
 function Perks.offlineCap(data: Progress): number
 	return Config.OFFLINE_CAP_SECONDS + upgradeEffect(data, "OfflineCap")
-end
-
--- Chance that a wild slime this player deposits picks up the current weather's mutation (RainMagnet);
--- 0 with FEATURES.RainMagnet off. `enabled` (tests) overrides the flag.
-function Perks.rainMagnetChance(data: Progress, enabled: boolean?): number
-	if not (if enabled == nil then Config.FEATURES.RainMagnet else enabled) then
-		return 0
-	end
-	return math.min(1, upgradeEffect(data, "RainMagnet"))
 end
 
 -- Chance that a wild slime this player deposits is one rarity higher.

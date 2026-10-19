@@ -8,7 +8,7 @@
 	  * the friendly text of every deny code (ShopEvent Denied.code / Request result.code);
 	  * controller(): which shop is open, from ShopEvent Open / Close / Purchased / Denied and the Player
 	    attribute OpenShop; closing from the client sends Request("CloseShop").
-	The client never decides outcomes: every purchase is Request("ShopBuy", shopId, itemId, arg?).
+	The client never decides outcomes: every purchase is Request("ShopBuy", shopId, itemId).
 ]]
 
 local Shared = if script then game:GetService("ReplicatedStorage"):WaitForChild("Shared") :: any else nil
@@ -34,7 +34,6 @@ export type Row = {
 	maxLevel: number?,
 	stockText: string?, -- restocking consumables: the "2/3 left" tag under the icon
 	price: number?,
-	arg: string?, -- ShopBuy arg: the slime id of a Mutation Spray
 }
 
 local WorldShopLogic = {}
@@ -101,7 +100,6 @@ end
 -- Two lines of 13 px fit beside the badge and the Buy button on a phone; the server texts of the consumables
 -- do not, so the rows say it shorter.
 WorldShopLogic.CONSUMABLE_SHORT = table.freeze({
-	MutationSpray = "Adds a mutation to a slime",
 	LuckPotion = "Better fountain rarity odds",
 	WeatherTotem = "Calls the next weather",
 })
@@ -334,9 +332,9 @@ function WorldShopLogic.slot(r: { status: Status, buttonText: string }): Slot
 	return { kind = "status", text = r.buttonText }
 end
 
--- Request("ShopBuy", ...) arguments of a row: shopId, itemId, arg (MutationSpray: the slime).
+-- Request("ShopBuy", ...) arguments of a row: shopId, itemId.
 function WorldShopLogic.buyArgs(r: Row): { any }
-	return { r.shopId, r.id, r.arg }
+	return { r.shopId, r.id }
 end
 
 -- "Lock base bought!" / "Slime Snacks bought! Lv 3" for ShopEvent Purchased.

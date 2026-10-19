@@ -4,15 +4,15 @@
 
 	A server modifier rolled at each dawn and dusk of the DayNight cycle
 	(competitor-gaps.md #1). The roll is a pure function of (seed, phase), so it
-	never draws from the world's spawn Rng. `luck` and `mutation` are multipliers
-	for the Fountain's rarity weights and mutation chance; "None" is 1 / 1.
+	never draws from the world's spawn Rng. `luck` is a multiplier
+	for the Fountain's rarity weights; "None" is 1.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local DayNight = if script then require(script.Parent.DayNight) else require("./DayNight")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 
-export type Modifier = { name: string, label: string, weight: number, luck: number, mutation: number }
+export type Modifier = { name: string, label: string, weight: number, luck: number }
 
 local CycleModifier = {}
 
@@ -49,12 +49,12 @@ function CycleModifier.at(seed: number, elapsed: number): (Modifier, number, num
 	return CycleModifier.forPhase(seed, phase), phase, left
 end
 
--- Multipliers (luck, mutation) for the active modifier; 1, 1 when the feature is off.
-function CycleModifier.multipliers(modifier: Modifier?): (number, number)
+-- Luck multiplier for the active modifier; 1 when the feature is off.
+function CycleModifier.multiplier(modifier: Modifier?): number
 	if modifier == nil or not Config.FEATURES.CycleModifier then
-		return 1, 1
+		return 1
 	end
-	return modifier.luck, modifier.mutation
+	return modifier.luck
 end
 
 return table.freeze(CycleModifier)

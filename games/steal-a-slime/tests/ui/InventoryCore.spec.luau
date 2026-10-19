@@ -274,7 +274,7 @@ describe("hotbar at the gate sizes (raw and under the 58 px top bar)", function(
 end)
 
 describe("InventoryCore consumables (S3 stacks)", function()
-	local HELD = { MutationSpray = 2, WeatherTotem = 5 }
+	local HELD = { LuckPotion = 2, WeatherTotem = 5 }
 
 	it("lists each consumable with a stack after the Tools and PvP items, count = the stack", function()
 		local def = Config.PVP_TOOLS[1]
@@ -283,14 +283,14 @@ describe("InventoryCore consumables (S3 stacks)", function()
 			held = HELD,
 		}))
 		expect(table.concat(ids(entries), ",")).toBe(
-			`tool:Bat,pvp:{def.id},consumable:MutationSpray,consumable:WeatherTotem`
+			`tool:Bat,pvp:{def.id},consumable:LuckPotion,consumable:WeatherTotem`
 		)
-		local spray = entries[3]
-		expect(spray.kind).toBe("consumable")
-		expect(spray.count).toBe(2)
-		expect(spray.iconId).toBe("Consumable_MutationSpray")
-		expect(registry.get(spray.iconId) ~= nil).toBe(true)
-		expect(InventoryCore.countText(spray.count)).toBe("2")
+		local potion = entries[3]
+		expect(potion.kind).toBe("consumable")
+		expect(potion.count).toBe(2)
+		expect(potion.iconId).toBe("Consumable_LuckPotion")
+		expect(registry.get(potion.iconId) ~= nil).toBe(true)
+		expect(InventoryCore.countText(potion.count)).toBe("2")
 		-- an empty or missing stack is not listed
 		expect(#InventoryCore.entries(input({ held = { LuckPotion = 0 } }))).toBe(1)
 		expect(#InventoryCore.entries(input())).toBe(1)
@@ -306,20 +306,14 @@ describe("InventoryCore consumables (S3 stacks)", function()
 		expect((InventoryCore.select(held[3]) :: any).equip).toBe(false)
 	end)
 
-	it("using needs the item in hand; the spray also needs a slime and sends it", function()
-		local entries = InventoryCore.entries(input({ held = HELD, heldConsumable = "MutationSpray" }))
-		local state = { slimes = { { slime = { id = "a", tier = 1 } }, { slime = { id = "b", tier = 3 } } } }
-		local req = InventoryCore.useRequest(entries[2], state) :: { string }
+	it("using needs the item in hand and sends the item id", function()
+		local entries = InventoryCore.entries(input({ held = HELD, heldConsumable = "LuckPotion" }))
+		local req = InventoryCore.useRequest(entries[2]) :: { string }
 		expect(req[1]).toBe("UseConsumable")
-		expect(req[2]).toBe("MutationSpray")
-		expect(req[3]).toBe("b") -- the highest tier slime
-		expect(InventoryCore.useRequest(entries[2], { slimes = {} })).toBeNil()
-		expect(InventoryCore.useRequest(entries[3], state)).toBeNil() -- not in hand
-		expect(InventoryCore.useRequest(entries[1], state)).toBeNil() -- not a consumable
-		local totem = InventoryCore.entries(input({ held = HELD, heldConsumable = "WeatherTotem" }))[3]
-		local plain = InventoryCore.useRequest(totem, {}) :: { string }
-		expect(#plain).toBe(2)
-		expect(plain[2]).toBe("WeatherTotem")
+		expect(#req).toBe(2)
+		expect(req[2]).toBe("LuckPotion")
+		expect(InventoryCore.useRequest(entries[3])).toBeNil() -- not in hand
+		expect(InventoryCore.useRequest(entries[1])).toBeNil() -- not a consumable
 		expect(Remotes.ACTIONS[InventoryCore.USE_ACTION] ~= nil).toBe(true)
 	end)
 end)

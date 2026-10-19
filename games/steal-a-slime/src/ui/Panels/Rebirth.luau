@@ -383,7 +383,6 @@ function Rebirth.new(parent: Instance, ctx: any)
 						pattern = "Plain",
 						eyes = "Round",
 						mouth = "Smile",
-						mutation = "None",
 						species = slimeNeed.id,
 					}
 					local built, model = pcall(ctx.buildSlime, genome)

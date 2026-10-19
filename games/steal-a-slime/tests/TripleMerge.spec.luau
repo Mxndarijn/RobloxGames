@@ -82,39 +82,22 @@ describe("TripleMerge: rules", function()
 	end)
 	it("is deterministic: one seed and inputs, one child", function()
 		local function make(): Genome.Slime
-			return TripleMerge.merge(three(3, { mutation = "Glow", mutations = { "Glow" } }), Rng.new(99), "x")
+			return TripleMerge.merge(three(3), Rng.new(99), "x")
 		end
 		local x, y = make(), make()
 		expect(x).toEqual(y)
 	end)
-	it("the child is a real species of its tier with its colour, and keeps the strongest mutation", function()
+	it("the child is a real species of its tier with its colour", function()
 		local ins = three(2)
-		ins[1].mutation, ins[1].mutations = "Galaxy", { "Galaxy" }
 		local child = TripleMerge.merge(ins, Rng.new(1), "x")
 		expect(child.species ~= nil).toBe(true)
 		local SlimeRoster = require("../src/shared/SlimeRoster")
 		expect((SlimeRoster.get(child.species :: string) :: any).tier).toBe(child.tier)
-		expect(Genome.mutationMultiplier(child.mutation) >= Genome.mutationMultiplier("Galaxy")).toBe(true)
 		expect(child.size >= Config.MIN_SIZE and child.size <= Config.MAX_SIZE).toBe(true)
 	end)
-	it("keeps every mutation the three carry, as many as fit", function()
-		local ins = three(2)
-		ins[1].mutation, ins[1].mutations = "Galaxy", { "Galaxy" }
-		ins[2].mutation, ins[2].mutations = "Glow", { "Glow" }
-		ins[3].mutation, ins[3].mutations = "Gold", { "Gold" }
-		local list = Genome.mutationList(TripleMerge.merge(ins, Rng.new(5), "x"))
-		expect(#list >= 1 and #list <= Config.MAX_MUTATIONS).toBe(true)
-		expect(Genome.mutationsMultiplier(list) >= 3).toBe(true)
-	end)
-	it("three of one mutation upgrade it", function()
-		local ins = three(2, { mutation = "Glow", mutations = { "Glow" } })
-		local child = TripleMerge.merge(ins, Rng.new(8), "x")
-		expect(Genome.mutationMultiplier(child.mutation) > Genome.mutationMultiplier("Glow")).toBe(true)
-	end)
-	it("maxed inputs stay maxed and always roll a mutation", function()
+	it("maxed inputs stay maxed", function()
 		local child = TripleMerge.merge(three(Config.MAX_TIER), Rng.new(4), "x")
 		expect(child.tier).toBe(Config.MAX_TIER)
-		expect(child.mutation ~= "None").toBe(true)
 	end)
 end)
 
@@ -134,8 +117,7 @@ describe("TripleMerge: recipes, caps and the assist", function()
 	it("a recipe hit gives its hybrid one tier up, never a jump, whatever the seed", function()
 		for _, recipe in MergeRecipes.RECIPES do
 			for seed = 1, 20 do
-				local child =
-					TripleMerge.merge(trio(recipe.tier - 1, recipe.inputs), Rng.new(seed), "x", nil, everything)
+				local child = TripleMerge.merge(trio(recipe.tier - 1, recipe.inputs), Rng.new(seed), "x", everything)
 				expect(child.species).toBe(recipe.id)
 				expect(child.tier).toBe(recipe.tier)
 				expect(child.name).toBe((SlimeRoster.get(recipe.id) :: any).name)
@@ -144,7 +126,7 @@ describe("TripleMerge: recipes, caps and the assist", function()
 	end)
 	it("a random merge never makes a Secret: Mythic x3 gives a Mythic spawn species", function()
 		for seed = 1, 300 do
-			local child = TripleMerge.merge(trio(6, { "cosmo", "cosmo", "cosmo" }), Rng.new(seed), "x", nil, everything)
+			local child = TripleMerge.merge(trio(6, { "cosmo", "cosmo", "cosmo" }), Rng.new(seed), "x", everything)
 			expect(child.tier).toBe(6)
 			expect((SlimeRoster.get(child.species :: string) :: any).kind).toBe("spawn")
 		end
@@ -174,7 +156,7 @@ describe("TripleMerge: recipes, caps and the assist", function()
 		local rng = Rng.new(21)
 		local hits, n = 0, 4000
 		for i = 1, n do
-			local child = TripleMerge.merge(three(2), rng, `a{i}`, nil, ctx)
+			local child = TripleMerge.merge(three(2), rng, `a{i}`, ctx)
 			if child.tier == 3 and child.species == "pengoo" then
 				hits += 1
 			end
@@ -187,12 +169,12 @@ describe("TripleMerge: recipes, caps and the assist", function()
 		local recipe = MergeRecipes.recipeFor("soda") :: MergeRecipes.Recipe
 		local function after(ins: { Genome.Slime }): number
 			local rng = Rng.new(77)
-			TripleMerge.merge(ins, rng, "x", nil, everything)
+			TripleMerge.merge(ins, rng, "x", everything)
 			return rng:float()
 		end
 		expect(after(trio(1, recipe.inputs))).toBe(after(trio(1, { "gummy", "gummy", "pebble" })))
-		local a = TripleMerge.merge(trio(1, { "gummy", "gummy", "pebble" }), Rng.new(5), "x", nil, everything)
-		local b = TripleMerge.merge(trio(1, { "gummy", "gummy", "pebble" }), Rng.new(5), "x", nil, everything)
+		local a = TripleMerge.merge(trio(1, { "gummy", "gummy", "pebble" }), Rng.new(5), "x", everything)
+		local b = TripleMerge.merge(trio(1, { "gummy", "gummy", "pebble" }), Rng.new(5), "x", everything)
 		expect(a).toEqual(b)
 	end)
 	it("apply reads the save: rank-opened families and the owned species", function()

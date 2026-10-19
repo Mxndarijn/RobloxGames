@@ -774,6 +774,10 @@ parts(
 
 -- name -> { owner, reason }
 local UNPLACED: { [string]: { string } } = {
+	pet_cloud = {
+		"jolt",
+		"the follow pet's cloud (published by MeshSwap, cloned by client FollowPets) per follower, never a world slot; decor",
+	},
 	ranch_bat = { "jolt", "the held Bat tool's Handle (BatTool), never a world slot; a tool has no collision" },
 	ranch_border_fence_broken = { "jolt", "border piece not used by WorldBorder.CHUNKS / DEFS" },
 	ranch_border_hedge_stepped = { "jolt", "border piece not used by WorldBorder.DEFS" },
@@ -790,7 +794,6 @@ local UNPLACED: { [string]: { string } } = {
 		"jolt",
 		"client template cloned over the fountain at tier 3+ (FountainTierFx), visual only",
 	},
-	rain_magnet = { "gojo", "client template standing on the owner's plot (RainMagnetFx), visual only" },
 	plot_skin_mushroom = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_candy = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_crystal = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },

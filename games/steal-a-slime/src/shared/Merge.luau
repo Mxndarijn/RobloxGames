@@ -5,15 +5,11 @@
 	Two slimes of the same tier go into the merge vat and one slime of the next
 	tier comes out (both inputs are consumed). The child blends the parents'
 	colours, averages their size plus a bonus, inherits pattern / eyes / mouth
-	from either parent and keeps the best parent mutation. Matching parent
-	mutations upgrade to the next mutation, and there is a MERGE_MUTATION_CHANCE
-	of a fresh mutation. Merging two max-tier slimes always rolls a mutation.
-	Pure: no Roblox APIs.
+	from either parent. Pure: no Roblox APIs.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
-local Perks = if script then require(script.Parent.Perks) else require("./Perks")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 
@@ -34,40 +30,9 @@ function Merge.canMerge(a: Slime?, b: Slime?): (boolean, string?)
 	return true, nil
 end
 
-local function mutationRank(name: string): number
-	for i, m in Config.MUTATIONS do
-		if m.name == name then
-			return i
-		end
-	end
-	return 0
-end
-
--- Mutation the child inherits before any fresh roll.
-function Merge.inheritedMutation(a: string, b: string): string
-	local ra, rb = mutationRank(a), mutationRank(b)
-	if ra > 0 and ra == rb then
-		return Config.MUTATIONS[math.min(ra + 1, #Config.MUTATIONS)].name
-	end
-	if ra >= rb then
-		return if ra > 0 then a else "None"
-	end
-	return b
-end
-
-function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string, chanceBonus: number?): Slime
+function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string): Slime
 	local maxed = a.tier >= Config.MAX_TIER
 	local tier = math.min(a.tier + 1, Config.MAX_TIER)
-
-	local mutation = Merge.inheritedMutation(
-		Genome.primaryMutation(Genome.mutationList(a)),
-		Genome.primaryMutation(Genome.mutationList(b))
-	)
-	local chance = if maxed then 1 else math.min(1, Config.MERGE_MUTATION_CHANCE + (chanceBonus or 0))
-	local rolled = Genome.rollMutation(rng:float(), rng:float(), chance)
-	if mutationRank(rolled) > mutationRank(mutation) then
-		mutation = rolled
-	end
 
 	local color = {}
 	for i = 1, 3 do
@@ -87,31 +52,6 @@ function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string, chanceBonus: 
 		name = nameA
 	end
 
-	-- FEATURES.MutationStacking: the child also keeps the parents' other mutations (strongest
-	-- first, as many as fit, combos fuse) and may roll one more. The rng draws below only happen
-	-- with the flag on and a mutation present, after every other draw.
-	local mutations: { string } = if mutation == "None" then {} else { mutation }
-	if Config.FEATURES.MutationStacking then
-		-- Only the secondary mutations: the primaries were already merged by inheritedMutation.
-		local carried: { string } = {}
-		for _, parent in { a, b } do
-			local list = Genome.mutationList(parent)
-			local primary = Genome.primaryMutation(list)
-			for _, m in list do
-				if m ~= primary and not table.find(carried, m) then
-					table.insert(carried, m)
-				end
-			end
-		end
-		table.sort(carried, function(x, y)
-			return Genome.mutationMultiplier(x) > Genome.mutationMultiplier(y)
-		end)
-		for _, m in carried do
-			mutations = Genome.addMutation(mutations, m)
-		end
-		mutations = Genome.stackMutations(mutations, rng)
-	end
-
 	local child: Slime = {
 		id = id,
 		name = name,
@@ -121,10 +61,8 @@ function Merge.merge(a: Slime, b: Slime, rng: Rng.Rng, id: string, chanceBonus: 
 		pattern = either(a.pattern, b.pattern),
 		eyes = either(a.eyes, b.eyes),
 		mouth = either(a.mouth, b.mouth),
-		mutation = mutation,
 		pad = nil,
 	}
-	Genome.setMutations(child, mutations)
 	return child
 end
 
@@ -188,7 +126,7 @@ function Merge.apply(
 	end
 	local pad = a.pad
 	local wasFavorite = data.favoriteId == idA or data.favoriteId == idB
-	local child = Merge.merge(a, b, rng, newId, Perks.petMutationBonus(data))
+	local child = Merge.merge(a, b, rng, newId)
 	PlayerData.removeSlime(data, idA)
 	PlayerData.removeSlime(data, idB)
 	PlayerData.addSlime(data, child, pad)

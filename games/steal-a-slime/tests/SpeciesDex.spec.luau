@@ -1,10 +1,9 @@
 --!strict
--- The species Dex (src/shared/SpeciesDex.luau, CONTRACT.md §36): entries, stamps, counts and State.dex, and
--- data.found / data.stamps set from every way a player gets a slime.
+-- The species Dex (src/shared/SpeciesDex.luau, CONTRACT.md §36): entries, counts and State.dex, and
+-- data.found set from every way a player gets a slime.
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
-local Genome = require("../src/shared/Genome")
 local MysteryEgg = require("../src/shared/MysteryEgg")
 local PlayerData = require("../src/shared/PlayerData")
 local Rng = require("../src/shared/Rng")
@@ -20,13 +19,11 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local T0 = ServerFixtures.T0
 
 local function blank(): SpeciesDex.Data
-	return { found = {}, stamps = {} }
+	return { found = {} }
 end
 
-local function slime(species: string?, mutations: { string }?): any
-	local s = Fixtures.slime("x", 1, { species = species })
-	Genome.setMutations(s, mutations or {})
-	return s
+local function slime(species: string?): any
+	return Fixtures.slime("x", 1, { species = species })
 end
 
 local function entry(view: SpeciesDex.View, id: string): SpeciesDex.EntryView
@@ -47,7 +44,7 @@ local RECIPES = {
 local WEEKS = { glitch = 1760918400, doodle = 1760918400 + WEEK }
 local SOURCES = Fixtures.dexSources(RECIPES, WEEKS)
 
-describe("SpeciesDex entries and stamps", function()
+describe("SpeciesDex entries", function()
 	it("has 50 entries (spawn, hybrid, boss) and the event Secrets as bonus entries", function()
 		expect(SpeciesDex.TOTAL).toBe(50)
 		expect(#SpeciesDex.ENTRIES).toBe(50)
@@ -55,9 +52,6 @@ describe("SpeciesDex entries and stamps", function()
 			expect(e.kind ~= "event").toBe(true)
 		end
 		expect(#SpeciesDex.BONUS).toBe(#SlimeRoster.ofKind("event"))
-		expect(SpeciesDex.STAMP_TOTAL).toBe(47 * 8)
-		expect(#SpeciesDex.CORE_STAMPS).toBe(#Config.MUTATIONS + 1)
-		expect(SpeciesDex.CORE_STAMPS[1]).toBe("None")
 	end)
 	it("every tier has entries, and the tier sizes add up to the total", function()
 		local sum = 0
@@ -72,42 +66,22 @@ describe("SpeciesDex entries and stamps", function()
 		expect(SpeciesDex.isSpecies("glitch")).toBe(true)
 		expect(SpeciesDex.isSpecies("nope")).toBe(false)
 		expect(SpeciesDex.isSpecies(5)).toBe(false)
-		expect(SpeciesDex.isStamp("moo:Gold")).toBe(true)
-		expect(SpeciesDex.isStamp("soda:None")).toBe(true)
-		expect(SpeciesDex.isStamp("moo:Solar")).toBe(true) -- gold stamp
-		expect(SpeciesDex.isStamp("goozilla:Gold")).toBe(false) -- bosses have none
-		expect(SpeciesDex.isStamp("glitch:Gold")).toBe(false) -- nor event Secrets
-		expect(SpeciesDex.isStamp("moo:Nope")).toBe(false)
-		expect(SpeciesDex.isStamp("moo")).toBe(false)
-		expect(SpeciesDex.isStamp("eclipse:Eclipse")).toBe(true) -- the species and the mutation share a word
 	end)
 end)
 
 describe("SpeciesDex.record", function()
-	it("marks the species found once and stamps its primary mutation", function()
+	it("marks the species found once", function()
 		local data = blank()
-		expect(SpeciesDex.record(data, slime("moo", { "Glow", "Gold" }))).toBe(true)
+		expect(SpeciesDex.record(data, slime("moo"))).toBe(true)
 		expect(SpeciesDex.record(data, slime("moo"))).toBe(false)
 		expect(data.found.moo).toBe(true)
-		expect(data.stamps["moo:Gold"]).toBe(true) -- Gold beats Glow
-		expect(data.stamps["moo:Glow"]).toBeNil()
-		expect(data.stamps["moo:None"]).toBe(true)
 		expect(SpeciesDex.count(data)).toBe(1)
-		expect(SpeciesDex.stampCount(data)).toBe(2)
 	end)
-	it("combo and weather mutations are gold stamps outside the total", function()
+	it("bosses are found; event Secrets count as bonus only", function()
 		local data = blank()
-		SpeciesDex.record(data, slime("gummy", { "Solar" }))
-		SpeciesDex.record(data, slime("gummy", { "Wet" }))
-		expect(SpeciesDex.stampCount(data)).toBe(0)
-		expect(SpeciesDex.goldCount(data)).toBe(2)
-	end)
-	it("bosses are found without stamps; event Secrets count as bonus only", function()
-		local data = blank()
-		SpeciesDex.record(data, slime("goozilla", { "Glow" }))
-		SpeciesDex.record(data, slime("glitch", { "Gold" }))
+		SpeciesDex.record(data, slime("goozilla"))
+		SpeciesDex.record(data, slime("glitch"))
 		expect(data.found.goozilla).toBe(true)
-		expect(next(data.stamps)).toBeNil()
 		expect(SpeciesDex.count(data)).toBe(1)
 		expect(SpeciesDex.bonusCount(data)).toBe(1)
 	end)
@@ -116,7 +90,6 @@ describe("SpeciesDex.record", function()
 		expect(SpeciesDex.record(data, slime(nil))).toBe(false)
 		expect(SpeciesDex.record(data, slime("nope"))).toBe(false)
 		expect(next(data.found)).toBeNil()
-		expect(next(data.stamps)).toBeNil()
 	end)
 	it("tierCount / tierMask follow the found entries", function()
 		local data = blank()
@@ -131,29 +104,22 @@ end)
 describe("SpeciesDex.view (State.dex)", function()
 	it("counts and lists every entry, then the bonus entries", function()
 		local data = blank()
-		SpeciesDex.record(data, slime("gummy", { "Solar" }))
-		SpeciesDex.record(data, slime("gummy", { "Glow" }))
+		SpeciesDex.record(data, slime("gummy"))
 		local view = SpeciesDex.view(data, NOW, SOURCES)
 		expect(view.found).toBe(1)
 		expect(view.total).toBe(50)
-		expect(view.stamps).toBe(1)
-		expect(view.stampTotal).toBe(376)
-		expect(view.gold).toBe(1)
 		expect(view.bonusTotal).toBe(#SpeciesDex.BONUS)
 		expect(#view.entries).toBe(50 + #SpeciesDex.BONUS)
 		expect(view.entries[51].kind).toBe("event")
 		local gummy = entry(view, "gummy")
 		expect(gummy.found).toBe(true)
 		expect(gummy.name).toBe("Gummy")
-		expect(table.concat(gummy.stamps, ",")).toBe("Glow")
-		expect(table.concat(gummy.gold, ",")).toBe("Solar")
 	end)
 	it("never names an unfound spawn species", function()
 		local moo = entry(SpeciesDex.view(blank(), NOW, SOURCES), "moo")
 		expect(moo.found).toBe(false)
 		expect(moo.name).toBeNil()
 		expect(moo.hint).toBeNil()
-		expect(#moo.stamps).toBe(0)
 	end)
 	it("a hybrid always shows its hint; slots reveal found ingredients; the name shows once known", function()
 		local data = blank()
@@ -209,15 +175,12 @@ describe("data.found is set from every source", function()
 		Carry.grab(world, 1, id, 1, T0)
 		expect((Carry.deposit(world, 1))).toBe(true)
 		expect(s.data.found.moo).toBe(true)
-		local caught = PlayerData.findSlime(s.data, id) :: any
-		expect(s.data.stamps[`moo:{Genome.primaryMutation(Genome.mutationList(caught))}`]).toBe(true)
 	end)
 	it("steal: the thief finds the stolen species", function()
 		local victim = Fixtures.data({ Fixtures.slime("v", 4, { species = "octo" }) })
 		local thief = Fixtures.data()
 		expect((Steal.complete(victim, thief, "v"))).toBe(true)
 		expect(thief.found.octo).toBe(true)
-		expect(thief.stamps["octo:None"]).toBe(true)
 	end)
 	it("merge: the vat child's species", function()
 		local data = Fixtures.data({
@@ -233,12 +196,8 @@ describe("data.found is set from every source", function()
 	end)
 	it("recipe: a hybrid child placed by the vat", function()
 		local data = Fixtures.data()
-		PlayerData.addSlime(
-			data,
-			Fixtures.slime("h", 2, { species = "soda", mutation = "Glow", mutations = { "Glow" } })
-		)
+		PlayerData.addSlime(data, Fixtures.slime("h", 2, { species = "soda" }))
 		expect(data.found.soda).toBe(true)
-		expect(data.stamps["soda:Glow"]).toBe(true)
 	end)
 	it("boss trophy: a slime given without a pad goes through PlayerData.discover", function()
 		local data = Fixtures.data()

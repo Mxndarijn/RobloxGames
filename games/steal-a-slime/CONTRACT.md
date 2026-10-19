@@ -84,7 +84,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Spawner:** a wild slime drops every `SPAWN_INTERVAL`, up to `MAX_WILD_SLIMES` alive (`Fountain.roll`). Each lives for `WILD_LIFETIME`.
   - `FREE_DROP_CHANCE` of drops are free.
   - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab.
-  - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Spawns are faster, luck is ×3 and mutations are more likely (`Progression.rainStatus`).
+  - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Spawns are faster, luck is ×3 (`Progression.rainStatus`).
 - **Carry:** grabbing and stealing use a **ProximityPrompt** (`GrabPrompt`) that the server puts on each slime's `Body`. There is no remote for this.
   - The prompt's `ActionText` is `"Grab"`, `"Buy $<price>"` (`Economy.formatNumber`) or `"Steal"`. `ObjectText` is `Genome.displayName`.
   - Steal prompts (HoldDuration 0.4) are enabled only while the plot is unlocked. They are **hidden from the slime's owner**: the server sets the prompt attribute `HideFromUserId = <owner UserId>` (`Constants.PROMPT_HIDE_ATTRIBUTE`, §5.2) and the client hides it locally. If a client doesn't hide it, triggering it is still refused with "that's your own slime".
@@ -129,7 +129,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Rain heads-up:** `RAIN_WARNING_SECONDS` (60) before each rain everyone gets Notify "Slime Rain in 1 minute! …" (`"info"`).
 - **Extras** (each behind `Config.FEATURES.<name>`, `false` turns it fully off, except the ones marked *always on*, whose flag is retired):
   - Boss event (*always on*): a server-wide boss fight, haul race and trophy, see §33 ([boss-event.md](contract/boss-event.md)). The boss model has attribute `Boss = true` (`Constants.BOSS_ATTRIBUTE`).
-  - `FollowPets` (*always on*): the server sets Player attribute `PetSlimeId` (`Constants.PET_ATTRIBUTE`) to `Progression.keeper(data).id` (favourite, else best slime; nil without slimes). VisualsClient (`FollowPets`) clones that slime's replicated model into a local `workspace.ClientPets` folder at 0.45 scale and has it follow its owner. Client-only, cosmetic.
+  - `FollowPets` (*always on*): the server sets Player attribute `PetSlimeId` (`Constants.PET_ATTRIBUTE`) to `Progression.keeper(data).id` (favourite, else best slime; nil without slimes). VisualsClient (`FollowPets`) clones that slime's replicated model into a local `workspace.ClientPets` folder at 0.55 scale, stands it on a low-poly cloud (`MeshAssets` `pet_cloud`, decor: the server (`MeshSwap.publishPetCloudTemplate`, retried a bounded number of times with backoff) publishes one template in `ReplicatedStorage.PetCloudMeshes` and the client clones it via `PetCloud`; the pet is made at once and gets its cloud when the template arrives, an invisible Mount stands in until then) and glides both after its owner: one RenderStepped connection, the pure `PetFollow` spring (`src/visuals/shared`: critically damped position, smoothed yaw, small bob, snap past 60 studs or on the first frame). Client-only, cosmetic.
   - `DayNight` (*always on*): the server sets `Lighting.ClockTime = DayNight.clockTime(elapsed)` twice a second: one day per `DAY_LENGTH` (12 min), daytime 06:30–17:30 for `DAY_FRACTION` (70 %) of it.
   - `Minimap` (*always on*): `ReplicatedStorage.Visuals.MinimapData.points()` lists `{ kind, name, x, z, plotIndex? }` for the fountain (`kind = "Fountain"`, map centre), `Plot_i`, the three props and HubSpawn from WorldLayout; `toMap(x, z)` gives 0..1 map coordinates over the 640-stud Ground. Data only (no UI yet).
   - `Audio`: client `ui/SoundController` (pure rules in `ui/AudioLogic`, ids in `Config.AUDIO`). SoundGroups `SFX` and `Music` under SoundService; a registry (`buy`, `collect`, `steal`, `merge`, `rebirth`, `alarm`, `error`, `click`) maps to `Sounds.IDS` names or `rbxasset://` ids, an empty / malformed id plays nothing. Toast and steal-alert sounds route through it. Ambience: a looped day (birds) / night (crickets) pair crossfaded over `AMBIENT_FADE_SECONDS` from `Lighting.ClockTime` (night = outside `DayNight.SUNRISE..SUNSET`), at `AMBIENT_VOLUME`; the ambient asset ids are empty until uploaded (silent). A small "Sound: on/off" button opens a compact panel (bottom-left) with a Mute toggle and two sliders, SFX and Music / Ambience: 5% steps, percent shown, mouse or touch drag, applied live to the attributes / SoundGroups (pure maths in `AudioLogic.snapVolume` / `volumeFromPixel`). Mute / volumes are Player attributes `AudioMuted`, `AudioSfxVolume`, `AudioMusicVolume`, saved per player since save v6 (§8.9c): `State.settings` is applied once on join (`SoundController.load`) and changes are sent back 0.6 s after the last one with `Request("SetAudioSettings", musicVolume, sfxVolume, muted)`. Flag off = Notify sounds play as before, no groups, ambience or button; the request is refused.
@@ -167,11 +167,11 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"ClaimQuest"` | `slot: number` | Claims daily quest `slot` (1..`DAILY_QUESTS.count`) once finished (`Quests.claim`): cash x rebirth multiplier or an income boost. `State.dailyQuests` has the 3 quests rolled per UTC day (progress = gained since the roll, saved as `quests`; missing = nothing rolled). |
 | `"BuyLockUpgrade"` | none | Buys the next lock-time upgrade level for `Shop.lockUpgradeCost(level)`. Each level makes every bought lock last `LOCK_UPGRADE_SECONDS` longer, up to `LOCK_UPGRADE_MAX` levels. Permanent: saved and kept on rebirth. |
 | `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While you're not carrying, WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Saved and kept on rebirth. An **item**, not an upgrade (Item Shop row, §27.1; a `SpeedCoil` Tool in the Backpack, hotbar slot, inventory panel). |
-| `"BuyConsumable"` | `itemId: string, slimeId: string?` | `FEATURES.Consumables`. Buys one Mutation Spray / Luck Potion / Weather Totem: checks the restock allowance, cash and the held cap (`CONSUMABLE_HELD_MAX`), then **adds one to the held stack** (`data.consumables.held`). Nothing is applied on purchase; `slimeId` is ignored. See [restocking-shop.md](contract/restocking-shop.md). |
+| `"BuyConsumable"` | `itemId: string, slimeId: string?` | `FEATURES.Consumables`. Buys one Luck Potion / Weather Totem: checks the restock allowance, cash and the held cap (`CONSUMABLE_HELD_MAX`), then **adds one to the held stack** (`data.consumables.held`). Nothing is applied on purchase; `slimeId` is ignored. See [restocking-shop.md](contract/restocking-shop.md). |
 | `"UseConsumable"` | `itemId: string, slimeId: string?` | `FEATURES.Consumables`. Uses one held consumable: the server checks the item and that the stack is at least 1, runs the effect (spray onto the owned idle `slimeId`, luck potion, weather totem) and only then takes one off the stack. A refused effect keeps the stack. Rate limit 0.5 s. |
 | `"BuyEgg"` | none | Buys a Mystery Egg with cash only (`Shared.MysteryEgg.price` = `MYSTERY_EGG_PRICE` x rebirth multiplier). It hatches a slime rolled from `MYSTERY_EGG_DROPS` onto the lowest free pad via `PlayerData.addSlime`; `State.egg.hatched` carries it for the reveal banner. Failures: `"not enough cash"`, `"plot full"` (nothing charged). Save format unchanged. Events: server-only `Server/MysteryEgg.spawnForEvent(world, userId, count, now)` hatches free eggs, no remote. |
 | `"Drop"` | none | Drops what you're carrying. Wild → falls to the ground; stolen → escapes home. |
-| `"Appraise"` | `slimeId: string, kind: "mutation" \| "size"` | Pays `Appraise.cost` (`APPRAISE_COST_FRACTION` = 30% of `Economy.sellPrice`) to reroll that owned, not-busy slime's mutation or size. Only `mutation` / `size` change. Success returns `{ ok = true, appraisal = Types.Appraisal }` (before / after, cost). Fails with `"not your slime"`, `"not enough cash"`, `"slime is busy"`. `SlimeView.appraiseCost` is the current price. |
+| `"Appraise"` | `slimeId: string, kind: "size"` | Pays `Appraise.cost` (`APPRAISE_COST_FRACTION` = 30% of `Economy.sellPrice`) to reroll that owned, not-busy slime's size. Only `size` changes. Success returns `{ ok = true, appraisal = Types.Appraisal }` (before / after, cost). Fails with `"not your slime"`, `"not enough cash"`, `"slime is busy"`. `SlimeView.appraiseCost` is the current price. |
 | `"Sync"` | none | The server re-sends `State` right away. The UI calls it once on start. At most one per `STATE_MIN_INTERVAL` (0.25 s); a faster one answers `"too fast"`. |
 
 `Notify` sound names: `"Alarm"` (your slime is being stolen), `"Grab"`, `"Stolen"`, `"Escape"`, `"Slap"`, `"Lock"`, `"Unlock"`, `"Merge"`, `"Cash"`, `"Deposit"`, `"Rain"`, `"Rebirth"`, or `nil`. The sound name doubles as the **effect hook**: clients may also play a particle burst or screen effect keyed on it (the world-space bursts themselves are server-played, §5.4). Purchases (pads, shop upgrades) and the daily reward use `"Cash"`; finishing the tutorial sends Notify "Tutorial complete!" (`"good"`, no sound).
@@ -200,14 +200,13 @@ The `slimeData` shape is `Types.SlimeData`, the same as `Genome.Slime` and the s
 	pattern: string,     -- "Plain" | "Spots" | "Stripes" | "Belly"
 	eyes: string,        -- "Round" | "Sleepy" | "Angry" | "Happy" | "Cyclops" | "Wide"
 	mouth: string,       -- "Smile" | "Open" | "Flat" | "Fang"
-	mutation: string,    -- save id: "None" | "Glow" | "Lava" | "Galaxy" | "Rainbow" | "Gold" | "Crystal" | "Eclipse" ("Lava" displays as "Syrup": Config.MUTATIONS[].displayName)
 	pad: number?,        -- home pad 1..PADS_MAX on the owner's plot; nil while wild/carried
 	species: string?,    -- SlimeRoster id (v28+); nil on older and merged slimes
 	growth: number?,     -- 0..1 (FEATURES.GrowingSlimes); nil = 0, old saves load unchanged
 }
 ```
 
-**Roster (v28):** wild slimes roll their tier exactly as before, then pick a species of that tier from `SlimeRoster` (uniform within the tier); `name` is the species display name. Saved slimes keep their stored `name`; `species` is optional and an unknown id is dropped on load. Secret species (tier 7) spawn like any other tier. The roster is the slime pool (§30). Mutations are ordered by multiplier (Merge ranks by position): Glow 1.5/50, Lava 2/30 (shown as "Syrup", save id stays `Lava`), Galaxy 3/15, Rainbow 4/8, Gold 5/5, Crystal 7/2, Eclipse 10/0.5.
+**Roster (v28):** wild slimes roll their tier exactly as before, then pick a species of that tier from `SlimeRoster` (uniform within the tier); `name` is the species display name. Saved slimes keep their stored `name`; `species` is optional and an unknown id is dropped on load. Secret species (tier 7) spawn like any other tier. The roster is the slime pool (§30).
 
 **Growth (FEATURES.GrowingSlimes, `Shared.Growth`):** a pad slime's `growth` rises by `dt / GROWTH_SECONDS` (Income.step, carried slimes skip); on join `(now - lastOnline)` capped at `GROWTH_OFFLINE_CAP_SECONDS` counts too. `Genome.baseIncome` x `1 + GROWTH_MAX_INCOME_BONUS * growth` (so sell price too). Saved as optional `growth` per slime (rounded to 4 decimals); missing = 0, `SAVE_VERSION` stays 3. The server scales the model by `Growth.scale` and shows a `GrowthLabel` "Growth N%" (model attribute `Growth`).
 
@@ -216,12 +215,12 @@ The `slimeData` shape is `Types.SlimeData`, the same as `Genome.Slime` and the s
 - **PrimaryPart:** `Body`. A part with diameter `SLIME_BASE_DIAMETER × size`.
 - **Physics:** `Body.Anchored = true`. Every part is Massless with `CanCollide = false`. Decoration parts are welded to `Body`, and `Body.CanQuery = true`.
 - **Pivot:** the bottom centre. `Body.PivotOffset` points at the bottom of the ball (and `WorldPivot` matches), so `model:PivotTo(padTop)` sits the slime on the pad. The server places pad slimes with `model:PivotTo(pad.CFrame * CFrame.new(0, pad.Size.Y / 2, 0))` and wild slimes with `PivotTo` a ground-level CFrame; it never offsets by the slime's radius.
-- **Attributes set by the factory:** `SlimeId: string`, `Tier: number`, `Mutation: string`, `Size: number`.
+- **Attributes set by the factory:** `SlimeId: string`, `Tier: number`, `Size: number`.
 - **Tag:** `Constants.SLIME_TAG` (`"Slime"`).
 
 **Guarantees:**
 - It's a pure function of `slimeData`. It doesn't yield, adds no scripts, and works on server and client (ViewportFrames).
-- Pattern, eyes, mouth and mutation must be visibly different from each other.
+- Pattern, eyes and mouth must be visibly different from each other.
 
 **The server (Phoenix) owns everything after `build`:**
 - Parenting: wild slimes go to `workspace.WildSlimes`; pad slimes go to their plot's `Slimes` folder.
@@ -229,7 +228,7 @@ The `slimeData` shape is `Types.SlimeData`, the same as `Genome.Slime` and the s
 - The ProximityPrompt.
 - Unanchoring and welding the model to the carrier's character.
 
-**Mesh look (server-side wrapper, `src/server/SlimeMesh.luau`):** at server start the server loads Jolt's slime mesh package (`Config.SLIME_MESH_ASSET_ID` = 103340234939607) once with `InsertService:LoadAsset` inside a `pcall`, and keeps its first `MeshPart` as a template. Every slime is still built by `ModelFactory.build` (so the contract above is unchanged); with a template the server then adds a welded, non-colliding `MeshPart` named `Mesh`, sized to `Body`'s box and given `Body`'s colour and material (genome / mutation colours stay), and makes `Body` transparent. `Body` stays the PrimaryPart, prompt parent and raycast target; rims, crowns, eyes, mouth and pattern stay. If the asset can't be loaded (no access, no MeshPart) or dressing a slime fails, the server warns once and uses the procedural look. `workspace.SlimeLook` (§5.2) says which one is active.
+**Mesh look (server-side wrapper, `src/server/SlimeMesh.luau`):** at server start the server loads Jolt's slime mesh package (`Config.SLIME_MESH_ASSET_ID` = 103340234939607) once with `InsertService:LoadAsset` inside a `pcall`, and keeps its first `MeshPart` as a template. Every slime is still built by `ModelFactory.build` (so the contract above is unchanged); with a template the server then adds a welded, non-colliding `MeshPart` named `Mesh`, sized to `Body`'s box and given `Body`'s colour and material (genome colours stay), and makes `Body` transparent. `Body` stays the PrimaryPart, prompt parent and raycast target; rims, crowns, eyes, mouth and pattern stay. If the asset can't be loaded (no access, no MeshPart) or dressing a slime fails, the server warns once and uses the procedural look. `workspace.SlimeLook` (§5.2) says which one is active.
 
 ## 5. UI state: `State` payload and world attributes
 
@@ -345,8 +344,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `JOIN_LOCK_SECONDS` / `LOCK_SECONDS` / `LOCK_SECONDS_PER_REBIRTH` | 45 / 60 / 10 | "45 s on join, then a 60 s lock button, +10 s per rebirth" |
 | `RARITIES[i].escapeTime` | 25, 23, 21, 19, 17, 15 | "15–25 s by rarity" |
 | `RARITIES[i].carrySlow` (+`STOLEN_EXTRA_SLOW` ramp, max `MAX_CARRY_SLOW`) | 0.05…0.30 (+0.25, ≤0.6) | "slows the carrier more the rarer it is" |
-| `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × mutation |
-| `MUTATIONS` | Glow ×1.5, Lava (shown "Syrup") ×2, Galaxy ×3, Rainbow ×4, Gold ×5, Crystal ×7, Eclipse ×10 | "Glow, Galaxy, Lava, Gold" + v28 roster (§2 Roster) |
+| `RARITIES[i].income` | 1, 3, 9, 27, 80, 250 | income = rarity × size × growth |
 | `RAIN_INTERVAL` / `RAIN_DURATION` / `RAIN_LUCK` | 3600 / 180 / 3 | "every hour … for 3 minutes" |
 | `PADS_START` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 8 | MVP "8 pads" |
 | `OFFLINE_RATE` / `OFFLINE_CAP_SECONDS` | 0.5 / 7200 | capped offline income |
@@ -355,7 +353,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `STATE_MIN_INTERVAL` / `LEADERBOARD_INTERVAL` | 0.25 / 60 | §5.1, §2 |
 
 | `LOCK_UPGRADE_MAX` / `LOCK_UPGRADE_SECONDS` / `LOCK_UPGRADE_COSTS` | 5 / 15 / 500, 2 000, 8 000, 30 000, 100 000 | shop: longer locks |
-| `MYSTERY_EGG_PRICE` / `MYSTERY_EGG_MUTATION_CHANCE` / `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 2 000 / 0.05 / 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | mystery egg: cash-only hatch |
+| `MYSTERY_EGG_PRICE` / `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 2 000 / 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | mystery egg: cash-only hatch |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
 | `FEATURES` | every flag and its value live in `Config.FEATURES` only; not restated here | §2 Extras |
@@ -363,7 +361,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `DAY_LENGTH` / `DAY_FRACTION` | 720 / 0.7 | day / night |
 | `PITY_EPIC` / `PITY_LEGENDARY` / `RARE_ANNOUNCE_TIER` | 30 / 300 / 5 | v13 rarity (§8.7) |
 | `REBIRTH_LATE_FROM` / `REBIRTH_COST_GROWTH_LATE` / `REBIRTH_TIERS` / `UPGRADES` / `GOALS` / `DEX_MILESTONES` | 5 / 2 / tables | v13 progression (§8.8) |
-| `SAVE_VERSION` | 6 | v13 schema (§8.9), v4 = `slimes[i].mutations` (§8.9a), v5 = weather mutations Wet / Frozen (§8.9b), v6 = `settings` + versioned `plotSkin` / `stealLog` (§8.9c) |
+| `SAVE_VERSION` | 7 | v13 schema (§8.9), v6 = `settings` + versioned `plotSkin` / `stealLog` (§8.9c), v7 = mutation fields stripped (§8.9d) |
 
 All names (remotes, folders, tag, DataStores, the `DataStoreMode` / `DataStoreStatus` / `WorldMeshesReady` / `SlimeLook` / `Carrying` / `SlimeRain` / `RainActive` / `RainEndsAt` / `RainNextAt` / `TutorialStep` / `SpeedCoil` / `PetSlimeId` / `Boss` / `PlotIndex` / `PadIndex` attributes, `ShopStand` / `LeaderboardBoard` / `TutorialNpc` / `SpeedCoil` tool) are in `Constants.luau`.
 
@@ -405,7 +403,6 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §19 | [fountain-tiers.md](contract/fountain-tiers.md) | v19: fountain tiers + slime families per rank (`FEATURES.FountainTiers`) |
 | §21 | [merge-vat3.md](contract/merge-vat3.md) | v19: 3-slime merge vat (`FEATURES.MergeVat3`) |
 | §22 | [restocking-shop.md](contract/restocking-shop.md) | v29 #13: restocking consumables shop (2026-10-16) |
-| §23 | [rain-magnet.md](contract/rain-magnet.md) | v19: Rain Magnet upgrade (`FEATURES.RainMagnet`) |
 | §24 | [welcome-back.md](contract/welcome-back.md) | v20: welcome-back card (2026-10-17) |
 | §25 | [server-profiler.md](contract/server-profiler.md) | v23: server performance profiler (`FEATURES.ServerProfiler`) |
 | §26 | [pvp.md](contract/pvp.md) | v22: PvP fairness core (`FEATURES.PvP`) |
@@ -418,4 +415,4 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §33 | [boss-event.md](contract/boss-event.md) | Boss event: team meter fight, haul race, unstealable trophy |
 | §34 | [event-secrets.md](contract/event-secrets.md) | Event Secrets: one featured Secret per week joins the Secret pool |
 | §35 | [merge-recipes.md](contract/merge-recipes.md) | Merge recipes, merge caps and the merge assist |
-| §36 | [species-dex.md](contract/species-dex.md) | Species Dex: 50 species, mutation stamps, the new milestone ladder |
+| §36 | [species-dex.md](contract/species-dex.md) | Species Dex: 50 species and the milestone ladder |

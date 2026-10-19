@@ -45,11 +45,6 @@ local function definitions(): { [string]: string }
 	for _, u in Config.UPGRADES do
 		out[`Upgrade_{u.id}`] = "Config.UPGRADES"
 	end
-	for _, list in { Config.MUTATIONS, Config.WEATHER_MUTATIONS, Config.COMBOS, Config.WEATHER_COMBOS } :: { { any } } do
-		for _, m in list do
-			out[`Mutation_{m.name}`] = "mutations"
-		end
-	end
 	for code in Config.CODES do
 		out[`Code_{code}`] = "Config.CODES"
 	end
@@ -58,9 +53,6 @@ local function definitions(): { [string]: string }
 	end
 	for _, m in Config.DEX_MILESTONES.species do
 		out[`Dex_{m.count}`] = "Config.DEX_MILESTONES.species"
-	end
-	for _, m in Config.DEX_MILESTONES.stamps do
-		out[`DexStamps_{m.count}`] = "Config.DEX_MILESTONES.stamps"
 	end
 	for _, b in Config.BADGES do
 		out[ItemIcons.badge(b.key)] = "Config.BADGES"
@@ -96,7 +88,7 @@ describe("ItemIcons registry", function()
 					or spec.source == "placeholder"
 			).toBe(true)
 		end
-		expect(n > 60).toBe(true)
+		expect(n > 40).toBe(true)
 	end)
 
 	it("every spec carries a colour and an allowlisted glyph: never a bare emoji box", function()
@@ -135,9 +127,7 @@ describe("ItemIcons registry", function()
 		expect(ItemIcons.forGoal(registry, "whatever")).toBe("Quest")
 	end)
 
-	it("mutations and kit-mesh plot skins are models; the shop gear and classic skin are drawn", function()
-		expect(registry.byId.Mutation_Glow.source).toBe("model")
-		expect(registry.byId.Mutation_Glow.model.kind).toBe("slime")
+	it("kit-mesh plot skins are models; the shop gear and classic skin are drawn", function()
 		expect(registry.byId.PlotSkin_candy.model.kind).toBe("mesh")
 		expect(registry.byId.PlotSkin_classic.source).toBe("image")
 		expect(registry.byId.SpeedCoil.source).toBe("image")
@@ -236,7 +226,7 @@ describe("uploaded item icon images", function()
 				)
 			end
 		end
-		expect(n).toBe(53)
+		expect(n).toBe(48)
 	end)
 	it("ids awaiting an upload are real drawn-group ids with a UI-drawn scene", function()
 		local ItemIconArt = UiHarness.ui("ItemIconArt")
@@ -346,14 +336,14 @@ describe("ItemIconView", function()
 	it("live model viewports are lazy and capped across all icons; extras keep the tile", function()
 		ItemIconView.resetLive()
 		local mounts = 0
-		local saved = ItemIconView.builders.slime
-		ItemIconView.builders.slime = function()
+		local saved = ItemIconView.builders.mesh
+		ItemIconView.builders.mesh = function()
 			mounts += 1
 			return true
 		end
 		local icons = {}
 		for i = 1, ItemIconView.MAX_LIVE + 10 do
-			icons[i] = ItemIconView.new({ Id = "Mutation_Gold", Size = 36, Parent = UiHarness.root() }, registry)
+			icons[i] = ItemIconView.new({ Id = "PlotSkin_candy", Size = 36, Parent = UiHarness.root() }, registry)
 		end
 		expect(mounts).toBe(0) -- lazy: nothing renders until the owner says the icon is on screen
 		expect(ItemIconView.liveCount()).toBe(0)
@@ -363,8 +353,8 @@ describe("ItemIconView", function()
 		expect(ItemIconView.liveCount()).toBe(ItemIconView.MAX_LIVE)
 		expect(mounts).toBe(ItemIconView.MAX_LIVE)
 		expect(icons[1].source).toBe("model")
-		expect(icons[ItemIconView.MAX_LIVE + 1].source).toBe("placeholder")
-		expect(find(icons[ItemIconView.MAX_LIVE + 1].instance, "Glyph").Visible).toBe(true)
+		expect(icons[ItemIconView.MAX_LIVE + 1].source).toBe("image")
+		expect(find(icons[ItemIconView.MAX_LIVE + 1].instance, "Picture").Visible).toBe(true)
 		-- Hiding releases (recycle): the waiting icons take the freed slots on their next activation.
 		icons[1].setActive(false)
 		expect(ItemIconView.liveCount()).toBe(ItemIconView.MAX_LIVE - 1)
@@ -376,30 +366,30 @@ describe("ItemIconView", function()
 			icon.destroy()
 		end
 		expect(ItemIconView.liveCount()).toBe(0)
-		ItemIconView.builders.slime = saved
+		ItemIconView.builders.mesh = saved
 	end)
 
-	it("fallback chain: model fails -> uploaded image -> placeholder tile", function()
+	it("fallback chain: model fails -> uploaded image", function()
 		ItemIconView.resetLive()
-		local saved = ItemIconView.builders.slime
-		ItemIconView.builders.slime = function()
+		local saved = ItemIconView.builders.mesh
+		ItemIconView.builders.mesh = function()
 			return false
 		end
-		local plain = ItemIconView.new({ Id = "Mutation_Gold", Parent = UiHarness.root() }, registry)
+		local plain = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, registry)
 		plain.setActive(true)
-		expect(plain.source).toBe("placeholder")
+		expect(plain.source).toBe("image")
 		expect(ItemIconView.liveCount()).toBe(0)
 
-		local was_Mutation_Gold = ItemIcons.IMAGES.Mutation_Gold
-		ItemIcons.IMAGES.Mutation_Gold = 12345
+		local was_PlotSkin_candy = ItemIcons.IMAGES.PlotSkin_candy
+		ItemIcons.IMAGES.PlotSkin_candy = 12345
 		local withImage = ItemIcons.build(Config)
-		expect(withImage.byId.Mutation_Gold.image).toBe(12345)
-		local icon = ItemIconView.new({ Id = "Mutation_Gold", Parent = UiHarness.root() }, withImage)
+		expect(withImage.byId.PlotSkin_candy.image).toBe(12345)
+		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, withImage)
 		icon.setActive(true)
 		expect(icon.source).toBe("image")
 		expect(find(icon.instance, "Picture").Visible).toBe(true)
 		expect(find(icon.instance, "Picture").Image).toBe("rbxassetid://12345")
-		ItemIcons.IMAGES.Mutation_Gold = was_Mutation_Gold
+		ItemIcons.IMAGES.PlotSkin_candy = was_PlotSkin_candy
 
 		-- An image-only item (no model) uses the picture without any viewport.
 		local was_SpeedCoil = ItemIcons.IMAGES.SpeedCoil
@@ -407,7 +397,7 @@ describe("ItemIconView", function()
 		local coil = ItemIcons.build(Config)
 		expect(coil.byId.SpeedCoil.source).toBe("image")
 		ItemIcons.IMAGES.SpeedCoil = was_SpeedCoil
-		ItemIconView.builders.slime = saved
+		ItemIconView.builders.mesh = saved
 	end)
 
 	it("a mesh builder with no uploaded mesh falls back", function()
@@ -425,17 +415,17 @@ describe("ItemIconView", function()
 
 	it("a changed id releases the old viewport", function()
 		ItemIconView.resetLive()
-		local saved = ItemIconView.builders.slime
-		ItemIconView.builders.slime = function()
+		local saved = ItemIconView.builders.mesh
+		ItemIconView.builders.mesh = function()
 			return true
 		end
-		local icon = ItemIconView.new({ Id = "Mutation_Gold", Parent = UiHarness.root() }, registry)
+		local icon = ItemIconView.new({ Id = "PlotSkin_candy", Parent = UiHarness.root() }, registry)
 		icon.setActive(true)
 		expect(ItemIconView.liveCount()).toBe(1)
 		icon.set("SpeedCoil")
 		expect(ItemIconView.liveCount()).toBe(0)
 		icon.destroy()
-		ItemIconView.builders.slime = saved
+		ItemIconView.builders.mesh = saved
 	end)
 end)
 

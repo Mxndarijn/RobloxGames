@@ -10,7 +10,7 @@
 
 	Colour: Genome.generate gives wild spawns their type's colour (UI, the
 	procedural fallback). Material: server SlimeMesh sets it on Body / Mesh of
-	an unmutated slime (a mutation material always wins). Kit: the species'
+	a slime. Kit: the species'
 	own fully coloured mesh (MeshAssets "slime_<id>", worn with Color white);
 	SlimeMesh falls back to the shared slime package, then the procedural ball.
 

@@ -200,7 +200,7 @@ describe("Upgrades (BuyUpgrade)", function()
 		for _, def in Config.UPGRADES do
 			listed += if def.flag == nil or (Config.FEATURES :: any)[def.flag] == true then 1 else 0
 		end
-		expect(#view).toBe(listed) -- a flag-gated upgrade (RainMagnet) is listed only while its flag is on
+		expect(#view).toBe(listed) -- a flag-gated upgrade is listed only while its flag is on
 		expect(view[1].id).toBe("Income")
 		expect(view[3].unlocked).toBe(true)
 		expect(view[4].unlocked).toBe(false)
@@ -254,7 +254,7 @@ describe("Goals and SlimeDex rewards", function()
 		data.found.junk = true
 		expect(SpeciesDex.tierMask(data)).toBe(0b100101)
 	end)
-	it("pays SlimeDex milestones of both ladders with a permanent income bonus", function()
+	it("pays SlimeDex milestones with a permanent income bonus", function()
 		local data = Fixtures.data()
 		local species = Config.DEX_MILESTONES.species
 		for i = 1, species[2].count + 1 do
@@ -265,48 +265,27 @@ describe("Goals and SlimeDex rewards", function()
 		expect(paid[1].ladder).toBe("species")
 		expect(paid[1].reward).toBe(species[1].reward)
 		expect(data.speciesRewards).toBe(2)
-		expect(data.stampRewards).toBe(0)
 		expect(Perks.dexBonus(data)).toBeCloseTo(species[1].bonus + species[2].bonus)
 		local view = Collection.view(data)
-		expect(#view).toBe(#species + #Config.DEX_MILESTONES.stamps)
+		expect(#view).toBe(#species)
 		expect(view[2].claimed).toBe(true)
 		expect(view[3].claimed).toBe(false)
-		expect(view[#species + 1].ladder).toBe("stamps")
-		-- Core stamps pay the stamp ladder; gold stamps and bonus entries count for nothing.
-		local stamps = Config.DEX_MILESTONES.stamps
-		local n = 0
-		for _, entry in SpeciesDex.ENTRIES do
-			for _, m in SpeciesDex.CORE_STAMPS do
-				if n < stamps[1].count and entry.kind ~= "boss" then
-					data.stamps[`{entry.id}:{m}`] = true
-					n += 1
-				end
-			end
-		end
-		data.stamps["gummy:Solar"] = true
-		data.found.glitch = true
-		local more = Collection.check(data)
-		expect(#more).toBe(1)
-		expect(more[1].ladder).toBe("stamps")
-		expect(data.stampRewards).toBe(1)
+		data.found.glitch = true -- bonus entries count for nothing
+		expect(#Collection.check(data)).toBe(0)
 		expect(#Collection.check(data)).toBe(0) -- paid once
-		expect(Perks.dexBonus(data)).toBeCloseTo(species[1].bonus + species[2].bonus + stamps[1].bonus)
 	end)
-	it("the ladders follow the design: 8 .. 50 species, 50 .. 376 stamps, +65 % income in all", function()
+	it("the ladder follows the design: 8 .. 50 species, +45 % income in all", function()
 		local total = 0
-		for _, ladder in { Config.DEX_MILESTONES.species, Config.DEX_MILESTONES.stamps } do
-			for i, m in ladder do
-				total += m.bonus
-				if i > 1 then
-					expect(m.count > ladder[i - 1].count).toBe(true)
-					expect(m.reward > ladder[i - 1].reward).toBe(true)
-				end
+		local ladder = Config.DEX_MILESTONES.species
+		for i, m in ladder do
+			total += m.bonus
+			if i > 1 then
+				expect(m.count > ladder[i - 1].count).toBe(true)
+				expect(m.reward > ladder[i - 1].reward).toBe(true)
 			end
 		end
-		local species, stamps = Config.DEX_MILESTONES.species, Config.DEX_MILESTONES.stamps
-		expect(species[#species].count).toBe(SpeciesDex.TOTAL)
-		expect(stamps[#stamps].count).toBe(SpeciesDex.STAMP_TOTAL)
-		expect(total).toBeCloseTo(0.65)
+		expect(ladder[#ladder].count).toBe(SpeciesDex.TOTAL)
+		expect(total).toBeCloseTo(0.45)
 	end)
 	it("puts every v13 field in State", function()
 		local world = ServerFixtures.world()
@@ -348,7 +327,6 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 				pattern = "Spots",
 				eyes = "Happy",
 				mouth = "Fang",
-				mutation = if i == 3 then "Gold" else "None",
 				pad = i,
 			})
 		end
@@ -419,7 +397,6 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		d.stats.merges = 7
 		d.goals.Merge = 1
 		d.speciesRewards = 2
-		d.stampRewards = 1
 		local raw = SaveData.serialize(d, T0)
 		expect(raw.version).toBe(Config.SAVE_VERSION)
 		local back = SaveData.deserialize(raw)
@@ -429,7 +406,6 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		expect(back.stats.caught).toBe(8)
 		expect(back.goals.Merge).toBe(1)
 		expect(back.speciesRewards).toBe(2)
-		expect(back.stampRewards).toBe(1)
 		expect(back.tutorialStep).toBe(6)
 	end)
 	it("survives garbage in the v3 fields", function()
@@ -439,7 +415,6 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		raw.stats = "nope"
 		raw.goals = { Catch = 1e9, Fake = 2 }
 		raw.speciesRewards = 1e9
-		raw.stampRewards = "lots"
 		local d = SaveData.deserialize(raw)
 		expect(d.upgrades.Income).toBeNil()
 		expect(d.upgrades.CarrySpeed).toBeNil()
@@ -448,6 +423,5 @@ describe("SaveData v3 migration (v12-shaped save)", function()
 		expect(d.goals.Catch).toBe(5)
 		expect((d.goals :: any).Fake).toBeNil()
 		expect(d.speciesRewards).toBe(#Config.DEX_MILESTONES.species)
-		expect(d.stampRewards).toBe(0)
 	end)
 end)
