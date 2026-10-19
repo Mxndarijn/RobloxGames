@@ -24,7 +24,7 @@
 	MeshAssets with size + offset): load() also fetches each one by its assetId.
 	A species mesh is fully coloured (Color white) and carries its own face,
 	pattern and accessories, so the procedural ones and the ball's goo puddle are hidden
-	(isReplacedPart); the tier rim becomes a thin ground ring at its foot and the aura / glow shells wrap it;
+	(isReplacedPart); the aura / glow shells wrap it;
 	it is worn at size-1 scale x the slime's size, placed from the bottom centre,
 	and keeps its Bones. A kit that fails to load or dress falls back to the
 	shared package mesh, then to the procedural ball. Kits are cloned per slime,
@@ -193,10 +193,7 @@ local function speciesFit(body: BasePart, entry: MeshAssets.Entry): (Vector3, CF
 		)
 end
 
--- Under a species mesh the tier rim is a thin ground ring around the foot, and the aura shell wraps the mesh.
-SlimeMesh.RING_THICKNESS = 0.02 -- x Body diameter
-SlimeMesh.RING_WIDTH = 1.04 -- x Body diameter, never wider than the mesh footprint
-SlimeMesh.RING_LIFT = 0.02 -- studs between the ground and the ring, clear of the pad top
+-- Under a species mesh the aura shell wraps the mesh.
 -- x the mesh body: its height or its narrow footprint side, so wings and tails don't blow the shell up
 SlimeMesh.SHELLS = table.freeze({ Aura = 1.15 }) :: { [string]: number }
 
@@ -217,15 +214,7 @@ local function repose(model: Model, part: BasePart, size: Vector3, cframe: CFram
 end
 
 local function fitToMesh(model: Model, body: BasePart, mesh: MeshPart)
-	local d = body.Size.X
 	local bottom = body.CFrame * CFrame.new(0, -body.Size.Y / 2, 0)
-	local rim = model:FindFirstChild("TierRim")
-	if rim and rim:IsA("BasePart") then
-		local h = SlimeMesh.RING_THICKNESS * d
-		local w = math.min(SlimeMesh.RING_WIDTH * d, mesh.Size.X, mesh.Size.Z)
-		local up = bottom * CFrame.new(0, SlimeMesh.RING_LIFT + h / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
-		repose(model, rim, Vector3.new(h, w, w), up)
-	end
 	local centre = bottom:PointToObjectSpace(mesh.CFrame.Position)
 	local side = math.max(mesh.Size.Y, math.min(mesh.Size.X, mesh.Size.Z))
 	for name, k in SlimeMesh.SHELLS do

@@ -34,7 +34,7 @@ local function slime(): (any, any)
 	local body = part(model, "Body")
 	part(model, "EyeWhite1", body)
 	part(model, "MouthMid", body)
-	part(model, "TierRim", body)
+	part(model, "Puddle", body)
 	part(model, "Mesh", body)
 	return model, body
 end
@@ -74,7 +74,7 @@ describe("SlimeRig.attach", function()
 		local model, body = slime()
 		SlimeRig.attach(model, body)
 		local face, skin = model:FindFirstChild("FaceRoot"), model:FindFirstChild("SkinRoot")
-		local expected = { EyeWhite1 = face, MouthMid = face, TierRim = skin, Mesh = skin }
+		local expected = { EyeWhite1 = face, MouthMid = face, Puddle = skin, Mesh = skin }
 		for name, root in expected do
 			local weld = model:FindFirstChild(name):FindFirstChildWhichIsA("WeldConstraint")
 			expect(weld.Part0 == root).toBe(true)

@@ -185,7 +185,7 @@ local function withRobloxGlobals<T>(fn: () -> T): T
 	return result
 end
 
--- A procedural slime Model: Body (PrimaryPart) plus a face and a tier rim.
+-- A procedural slime Model: Body (PrimaryPart) plus a face and the goo puddle.
 local function slimeModel(): any
 	local model = roblox.Instance.new("Model")
 	local body = roblox.Instance.new("Part")
@@ -194,7 +194,7 @@ local function slimeModel(): any
 	body.Color = roblox.Color3.fromRGB(120, 200, 90)
 	body.Parent = model
 	model.PrimaryPart = body
-	for _, name in { "EyeL", "MouthMid", "TierRim" } do
+	for _, name in { "EyeL", "MouthMid", "Puddle" } do
 		local part = roblox.Instance.new("Part")
 		part.Name = name
 		part.Parent = model
@@ -242,9 +242,8 @@ describe("SlimeMesh species kits", function()
 		expect(model.Body.Transparency).toBe(1)
 		expect(model.EyeL.Transparency).toBe(1)
 		expect(model.MouthMid.Transparency).toBe(1)
-		expect(model.TierRim.Transparency).toBe(0)
+		expect(model.Puddle.Transparency).toBe(1)
 		expect(SlimeMesh.isReplacedPart("EyeL") and SlimeMesh.isReplacedPart("MouthMid")).toBe(true)
-		expect(SlimeMesh.isReplacedPart("TierRim")).toBe(false)
 	end)
 end)
 
@@ -328,7 +327,7 @@ describe("SlimeMesh species foot", function()
 			local body, worn = model.Body, model[SlimeMesh.MESH_NAME]
 			local d = body.Size.X
 			local ground = body.CFrame.Position.Y - body.Size.Y / 2
-			local footHalf = math.min(SlimeMesh.RING_WIDTH * d, worn.Size.X, worn.Size.Z) / 2
+			local footHalf = math.min(worn.Size.X, worn.Size.Z) / 2
 			expect(model.Puddle.Transparency).toBe(1)
 			for _, part in model:GetDescendants() do
 				if part:IsA("BasePart") and part.Transparency < 1 and part ~= worn then
@@ -346,21 +345,25 @@ describe("SlimeMesh species foot", function()
 		end
 	end)
 
-	it("draws the rarity as a thin ground ring no wider than the mesh footprint, for every species kit", function()
+	it("puts no flat disc under any species slime, whatever its rarity", function()
 		local checked = 0
 		for _, entry in SlimeRoster.ROSTER do
 			local look = SlimeLooks.get(entry.id)
 			if look and (MeshAssets.get(look.kit) :: any).offset then
 				local model = dressedSpecies(entry.id, entry.tier)
-				local body, rim, worn = model.Body, model.TierRim, model[SlimeMesh.MESH_NAME]
+				local body, worn = model.Body, model[SlimeMesh.MESH_NAME]
 				local d = body.Size.X
 				local ground = body.CFrame.Position.Y - body.Size.Y / 2
-				local low, high = bounds(rim)
-				expect(rim.Transparency).toBe(0)
-				assert(high.Y - low.Y <= 0.03 * d, `{entry.id} ring is not thin`)
-				assert(low.Y >= ground and low.Y <= ground + FOOT_MARGIN, `{entry.id} ring floats off the ground`)
-				expect(rim.Size.Y <= math.min(worn.Size.X, worn.Size.Z) + 1e-6).toBe(true)
-				expect(rim.Size.Y <= SlimeMesh.RING_WIDTH * d + 1e-6).toBe(true)
+				for _, part in model:GetDescendants() do
+					if part:IsA("BasePart") and part.Transparency < 1 and part ~= worn then
+						local low, high = bounds(part)
+						local flat = high.Y - low.Y < 0.1 * d and high.X - low.X > 0.5 * d
+						assert(
+							not (flat and low.Y < ground + 0.1 * d),
+							`{entry.id}: {part.Name} is a disc on the ground`
+						)
+					end
+				end
 				checked += 1
 			end
 		end

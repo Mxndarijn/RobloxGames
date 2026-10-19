@@ -323,7 +323,7 @@ end
 
 local function addTier(ctx: Ctx, tier: number, tierColor: Vec, bodyColor: Vec)
 	local d, r = ctx.d, ctx.r
-	-- Goo puddle with a tier-coloured rim (neon from Epic up).
+	-- Goo puddle under the body (no rarity ring: nothing flat and coloured under a slime).
 	local puddleD = 0.92 * d
 	push(
 		ctx,
@@ -336,12 +336,6 @@ local function addTier(ctx: Ctx, tier: number, tierColor: Vec, bodyColor: Vec)
 			shade(bodyColor, 0.85),
 			"SmoothPlastic"
 		)
-	)
-	local rimD = (0.96 + 0.02 * tier) * d
-	local rimMat = if tier >= 4 then "Neon" else "SmoothPlastic"
-	push(
-		ctx,
-		part("TierRim", "Cylinder", { 0.04 * d, rimD, rimD }, { 0, 0.02 * d, 0 }, { 0, 0, 90 }, tierColor, rimMat)
 	)
 
 	if tier == 2 then

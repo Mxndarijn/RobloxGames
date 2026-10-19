@@ -210,8 +210,8 @@ describe("PetCloud.cloudScale", function()
 	end)
 end)
 
--- A species slime as SlimeMesh leaves it: an invisible Body ball lower and wider than the visible mesh on top of a
--- thin ring, plus a hidden procedural crown floating above.
+-- A species slime as SlimeMesh leaves it: an invisible Body ball lower and wider than the visible mesh, a tail turned
+-- flat along the mesh top, and a hidden procedural crown floating above.
 local function species(width: number): any
 	local model = new("Model")
 	local body = new("Part")
@@ -225,11 +225,11 @@ local function species(width: number): any
 	mesh.Size = roblox.Vector3.new(width, 2, width * 0.8)
 	mesh.CFrame = roblox.CFrame.new(0.5, 1, 0)
 	mesh.Parent = model
-	local ring = new("Part")
-	ring.Name = "TierRim"
-	ring.Size = roblox.Vector3.new(0.05, width, width) -- a cylinder turned upright
-	ring.CFrame = roblox.CFrame.new(0.5, 0.025, 0) * roblox.CFrame.Angles(0, 0, math.rad(90))
-	ring.Parent = model
+	local tail = new("Part")
+	tail.Name = "Tail"
+	tail.Size = roblox.Vector3.new(0.2, 2, 0.2) -- 2 tall before the turn, 0.2 after it
+	tail.CFrame = roblox.CFrame.new(0.5, 1.9, 0) * roblox.CFrame.Angles(0, 0, math.rad(90))
+	tail.Parent = model
 	local crown = new("Part")
 	crown.Name = "Crown"
 	crown.Size = roblox.Vector3.new(1, 1, 1)
@@ -243,10 +243,10 @@ describe("PetCloud.visibleBox", function()
 	it("boxes only the parts that can be seen, turned parts by their real extent", function()
 		local centre, size = PetCloud.visibleBox(species(3))
 		expect(size.X).toBeCloseTo(3, 1e-5)
-		expect(size.Z).toBeCloseTo(3, 1e-5) -- the ring is as deep as it is wide
+		expect(size.Z).toBeCloseTo(2.4, 1e-5)
 		expect(centre.X).toBeCloseTo(0.5, 1e-5)
-		expect(centre.Y - size.Y / 2).toBeCloseTo(0, 1e-5) -- the ring's bottom, not Body's
-		expect(centre.Y + size.Y / 2).toBeCloseTo(2, 1e-5) -- the mesh's top, not the hidden crown
+		expect(centre.Y - size.Y / 2).toBeCloseTo(0, 1e-5) -- the mesh's bottom, not Body's
+		expect(centre.Y + size.Y / 2).toBeCloseTo(2, 1e-5) -- the turned tail lies flat; the hidden crown is left out
 	end)
 	it("leaves the see-through glow shells out", function()
 		local model = species(3)
@@ -274,14 +274,10 @@ describe("PetCloud.mount under a big species slime", function()
 	local cloud = wrapper.PrimaryPart
 	local s = UiHarness.find(wrapper, PetCloud.SLIME_NAME)
 	it("grows the cloud past the slime's visible footprint", function()
-		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(3.5, 2, 2.8)) -- the mesh alone, the ring is gone
+		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(3.5, 2, 2.8)) -- the mesh
 		expect(cloud.Size.X).toBeCloseTo(NATIVE.X * scale, 1e-5)
 		expect(cloud.Size.X >= 3.5 * PetCloud.CLOUD_FIT - 1e-4).toBe(true)
 		expect(cloud.Size.Z >= 2.8 * PetCloud.CLOUD_FIT - 1e-4).toBe(true) -- Size is float32
-	end)
-	it("drops the rarity ring: it is ground decor", function()
-		expect(UiHarness.find(wrapper, "TierRim")).toBeNil()
-		expect(UiHarness.find(wrapper, "Mesh") ~= nil).toBe(true)
 	end)
 	it("drops the goo puddle of a procedural slime too", function()
 		local model = slime()
@@ -298,7 +294,6 @@ describe("PetCloud.mount under a big species slime", function()
 		local cloudLate = late.PrimaryPart
 		expect(cloudLate.Size.X).toBeCloseTo(cloud.Size.X, 1e-5)
 		expect(cloudLate.PivotOffset.Position.Y).toBeCloseTo(cloud.PivotOffset.Position.Y, 1e-5)
-		expect(UiHarness.find(late, "TierRim")).toBeNil()
 		local pivot = UiHarness.find(late, PetCloud.SLIME_NAME):GetPivot().Position
 		expect(pivot.Y).toBeCloseTo(cloudLate.Size.Y / 2 - PetCloud.CLOUD_SINK, 1e-5)
 	end)

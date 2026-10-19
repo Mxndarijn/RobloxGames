@@ -11,8 +11,8 @@
 	template. The wrapper's pivot is the PrimaryPart pivot: PetFollow's goal. Every part made here is decor (no
 	collision, query, touch or shadow).
 
-	Ground decor of the slime (SlimeLayout's rarity ring "TierRim" and goo "Puddle") is removed: on a cloud it reads
-	as a flat disc under the pet. The slime is measured by its visible parts only, glow shells (UNMEASURED) left out
+	Ground decor of the slime (SlimeLayout's goo "Puddle") is removed: on a cloud it reads as a flat disc under the
+	pet. The slime is measured by its visible parts only, glow shells (UNMEASURED) left out
 	(visibleBox): a species slime keeps an invisible Body ball and hidden procedural parts that do not line up with
 	its mesh.
 ]]
@@ -30,7 +30,7 @@ PetCloud.CLOUD_SINK = 0.12 -- the slime's foot sinks this far into the cloud's t
 PetCloud.CLOUD_NAME = "Cloud"
 PetCloud.MOUNT_NAME = "Mount"
 PetCloud.SLIME_NAME = "Slime"
-PetCloud.GROUND_PARTS = table.freeze({ "TierRim", "Puddle" }) -- removed from the slime: they belong on the ground
+PetCloud.GROUND_PARTS = table.freeze({ "Puddle" }) -- removed from the slime: they belong on the ground
 PetCloud.UNMEASURED = table.freeze({ "Aura" }) -- see-through glow shells: not part of the slime's footprint
 
 -- Anchored, no collision, no query, no touch, no shadow.
