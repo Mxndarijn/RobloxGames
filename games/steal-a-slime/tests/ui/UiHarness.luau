@@ -218,7 +218,9 @@ Mock.__index = function(self: any, key: string): any
 	local ok, value = pcall(function()
 		return rawget(self, "_real")[key]
 	end)
-	if ok then
+	-- A signal table from the real Instance comes from the livetest Runtime's process-wide event shims (a spec that
+	-- booted the server ran first); UiHarness.fire can't reach it, so it gets a recording signal like any event.
+	if ok and not (type(value) == "table" and type(value.Connect) == "function") then
 		return value
 	end
 	-- Not a property: an event (Activated, MouseEnter, Changed, ...). It records its handlers so a spec can

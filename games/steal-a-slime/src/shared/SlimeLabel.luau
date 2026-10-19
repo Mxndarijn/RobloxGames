@@ -16,7 +16,6 @@ export type View = {
 	name: string, -- "Lop", "BOSS Lop"
 	rarity: string, -- "Rare"
 	rarityColor: { number }, -- { r, g, b } of Config.RARITIES
-	mutation: string?, -- "Glow Syrup"; nil = none
 	income: string, -- "+$1.25K/s", "+$0.8/s"
 	extra: string?, -- "Buy $500" (priced wild) or "Growth 46%" (pad); nil = nothing
 }
@@ -25,7 +24,6 @@ export type View = {
 export type Attributes = {
 	name: any,
 	tier: any,
-	mutations: any,
 	income: any,
 	price: any,
 	growth: any,
@@ -38,7 +36,6 @@ local SlimeLabel = {}
 SlimeLabel.ATTRIBUTES = table.freeze({
 	name = Constants.LABEL_NAME_ATTRIBUTE,
 	tier = Constants.LABEL_TIER_ATTRIBUTE,
-	mutations = Constants.LABEL_MUTATIONS_ATTRIBUTE,
 	income = Constants.LABEL_INCOME_ATTRIBUTE,
 	price = "Price",
 	growth = Constants.GROWTH_ATTRIBUTE,
@@ -72,10 +69,9 @@ function SlimeLabel.extraText(price: any, growth: any): string?
 	return if g then Growth.labelText(g) else nil
 end
 
--- Name / tier / mutations attribute values for a slime (LabelIncome is written separately).
-function SlimeLabel.attributes(slime: Genome.Slime): (string, number, string?)
-	local mutations = Genome.mutationsDisplay(Genome.mutationList(slime))
-	return slime.name, Genome.rarity(slime.tier).tier, if mutations ~= "" then mutations else nil
+-- Name / tier attribute values for a slime (LabelIncome is written separately).
+function SlimeLabel.attributes(slime: Genome.Slime): (string, number)
+	return slime.name, Genome.rarity(slime.tier).tier
 end
 
 -- Card lines from the attributes; nil when the model carries no LabelName yet.
@@ -84,12 +80,10 @@ function SlimeLabel.view(attrs: Attributes): View?
 		return nil
 	end
 	local rarity = Genome.rarity(finite(attrs.tier) or 1)
-	local mutation = if type(attrs.mutations) == "string" and attrs.mutations ~= "" then attrs.mutations else nil
 	return {
 		name = if attrs.boss == true then `BOSS {attrs.name}` else attrs.name,
 		rarity = rarity.name,
 		rarityColor = rarity.color,
-		mutation = mutation,
 		income = SlimeLabel.incomeText(attrs.income),
 		extra = SlimeLabel.extraText(attrs.price, attrs.growth),
 	}

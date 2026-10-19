@@ -1,5 +1,5 @@
 --!strict
--- Slime info card text (contract/slime-labels.md): name, rarity, income, mutation, price / growth lines,
+-- Slime info card text (contract/slime-labels.md): name, rarity, income, price / growth lines,
 -- and the income Scene hands to the label.
 local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
@@ -65,14 +65,12 @@ describe("SlimeLabel.view", function()
 		expect(v.name).toBe("Lop")
 		expect(v.rarity).toBe(Config.RARITIES[3].name)
 		expect(v.rarityColor).toBe(Config.RARITIES[3].color)
-		expect(v.mutation).toBeNil()
 		expect(v.income).toBe("+$1.25K/s")
 		expect(v.extra).toBeNil()
 		expect(SlimeLabel.rows(v)).toBe(3)
 	end)
-	it("adds the mutation tag, the boss prefix and the extra row", function()
-		local v = assert(SlimeLabel.view(attrs({ mutations = "Glow Gold", boss = true, price = 900 })))
-		expect(v.mutation).toBe("Glow Gold")
+	it("adds the boss prefix and the extra row", function()
+		local v = assert(SlimeLabel.view(attrs({ boss = true, price = 900 })))
 		expect(v.name).toBe("BOSS Lop")
 		expect(v.extra).toBe("Buy $900")
 		expect(SlimeLabel.rows(v)).toBe(4)
@@ -91,23 +89,17 @@ describe("SlimeLabel.view", function()
 end)
 
 describe("SlimeLabel.attributes", function()
-	it("writes the species name, tier and player-facing mutations", function()
-		local name, tier, mutations =
-			SlimeLabel.attributes(Fixtures.slime("a", 4, { mutation = "Lava", mutations = { "Lava", "Glow" } }))
+	it("writes the species name and tier", function()
+		local name, tier = SlimeLabel.attributes(Fixtures.slime("a", 4))
 		expect(name).toBe("Blorp")
 		expect(tier).toBe(4)
-		expect(mutations).toBe("Syrup Glow")
-	end)
-	it("writes nil mutations for a plain slime", function()
-		local _, _, mutations = SlimeLabel.attributes(Fixtures.slime("a"))
-		expect(mutations).toBeNil()
 	end)
 end)
 
 describe("Scene income for the label", function()
 	it("pad slimes earn with the owner's rebirths, like State SlimeView.income", function()
 		local world = ServerFixtures.world()
-		local slime = Fixtures.slime("a", 3, { size = 1.5, mutation = "Gold" })
+		local slime = Fixtures.slime("a", 3, { size = 1.5 })
 		local session = ServerFixtures.join(world, 1, { slime })
 		session.data.rebirths = 2
 		local e = Scene.describe(world, T0)["a"]

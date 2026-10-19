@@ -84,7 +84,6 @@ return table.freeze({
 	GROWTH_ATTRIBUTE = "Growth", -- slime model: whole percent 0..100 (FEATURES.GrowingSlimes)
 	LABEL_NAME_ATTRIBUTE = "LabelName", -- slime model: species name for the info card (contract/slime-labels.md)
 	LABEL_TIER_ATTRIBUTE = "LabelTier", -- slime model: Config.RARITIES tier
-	LABEL_MUTATIONS_ATTRIBUTE = "LabelMutations", -- slime model: Genome.mutationsDisplay, nil = none
 	LABEL_INCOME_ATTRIBUTE = "LabelIncome", -- slime model: cash per second of this slime
 	LABEL_HEIGHT_ATTRIBUTE = "LabelHeight", -- slime model: studs from the Body centre to the card's bottom edge
 	GROWTH_OVERRIDE_ATTRIBUTE = "PcwGrowth", -- slime model: Studio-only whole percent shown instead of the real growth (pc-watcher shot)

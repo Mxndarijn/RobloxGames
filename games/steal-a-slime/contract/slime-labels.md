@@ -1,17 +1,15 @@
 # §38 Slime labels: one info card above every slime
 
 Every slime model (wild, on a pad, escaping, carried) shows one small card above the top of its mesh: species name in
-the rarity colour, the rarity (and its mutations), its income per second, and the wild buy price or the pad growth.
+the rarity colour, the rarity, its income per second, and the wild buy price or the pad growth.
 The server decides every value and writes it as model attributes; each client draws the card locally. No remote, no
 State field, no save-format change.
 
 - **Model attributes (server, `WorldView.reconcile` via `src/server/SlimeLabelView`).** Names live in `Constants`.
   - `LabelName` (`Constants.LABEL_NAME_ATTRIBUTE`): `slime.name` (the species name, e.g. `"Lop"`).
   - `LabelTier` (`Constants.LABEL_TIER_ATTRIBUTE`): `slime.tier`, the `Config.RARITIES` index.
-  - `LabelMutations` (`Constants.LABEL_MUTATIONS_ATTRIBUTE`): `Genome.mutationsDisplay` of the slime (`"Glow Syrup"`);
-    nil when it has none.
   - `LabelIncome` (`Constants.LABEL_INCOME_ATTRIBUTE`): cash per second of this slime. Owned slimes (pad, escaping,
-    carried away by a thief): `PlayerData.slimeIncome(owner data, slime)` (size, mutations, growth, the owner's rebirth
+    carried away by a thief): `PlayerData.slimeIncome(owner data, slime)` (size, growth, the owner's rebirth
     multiplier and income perks), the same number as `State` `SlimeView.income`. Wild slimes: `Economy.slimeIncome(slime, 0)`
     (no rebirths). Rewritten only when `SlimeLabel.incomeText` of the new value differs from the shown one, so growth
     does not replicate an attribute every tick.
@@ -21,7 +19,7 @@ State field, no save-format change.
   - Existing attributes the card also reads: `Price` (wild buy price; > 0 shows `"Buy $X"`), `Growth` (whole percent,
     shown as `"Growth N%"` on pads), `Boss` (name prefixed `"BOSS "`).
 - **Pure text (`src/shared/SlimeLabel`).** `SlimeLabel.view(attrs) -> View?` turns the attributes into
-  `{ name, rarity, rarityColor, mutation, income, extra }`: `income = "+$1.25K/s"` (`NumberFormat.cash`), `extra` =
+  `{ name, rarity, rarityColor, income, extra }`: `income = "+$1.25K/s"` (`NumberFormat.cash`), `extra` =
   `"Buy $500"` (priced wild) or `"Growth 46%"` (1..100) or nil. nil when `LabelName` is missing.
 - **Client (`src/ui/SlimeInfoCard`, started from `init.client`).** One `BillboardGui` per tagged slime model
   (`Constants.SLIME_TAG`), parented to a local folder under PlayerGui with `Adornee` = Body, `SizeOffset` (0, 0.5) so its

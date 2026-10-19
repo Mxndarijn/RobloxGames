@@ -3,7 +3,7 @@
 	SlimeInfoCard (contract/slime-labels.md)
 
 	One small rounded card above every slime model (tag Constants.SLIME_TAG):
-	species name in the rarity colour, rarity and mutations, income per second,
+	species name in the rarity colour, rarity, income per second,
 	and the wild buy price or the pad growth. The server writes the values as
 	model attributes; the text is Shared.SlimeLabel. Client only, nothing
 	replicates.
@@ -96,13 +96,9 @@ function SlimeInfoCard.size(count: number): UDim2
 	return UDim2.new(s.widthStuds, s.widthPx, weight * s.rowStuds, weight * s.rowPx + 2 * s.padPx)
 end
 
--- Rich text of the rarity row: rarity in its colour, then the mutations in gold.
+-- Rich text of the rarity row: the rarity in its colour.
 function SlimeInfoCard.rarityText(view: SlimeLabel.View): string
-	local text = `<font color="{hex(SlimeInfoCard.textColor(view.rarityColor))}">{view.rarity}</font>`
-	if view.mutation then
-		text ..= ` <font color="{hex(Theme.Muted)}">·</font> <font color="{hex(Theme.Gold)}">{view.mutation}</font>`
-	end
-	return text
+	return `<font color="{hex(SlimeInfoCard.textColor(view.rarityColor))}">{view.rarity}</font>`
 end
 
 local function row(name: string, font: Enum.Font, color: Color3, parent: Instance): TextLabel
@@ -197,7 +193,6 @@ function SlimeInfoCard.read(model: Instance): SlimeLabel.Attributes
 	return {
 		name = model:GetAttribute(a.name),
 		tier = model:GetAttribute(a.tier),
-		mutations = model:GetAttribute(a.mutations),
 		income = model:GetAttribute(a.income),
 		price = model:GetAttribute(a.price),
 		growth = model:GetAttribute(a.growth),
