@@ -751,7 +751,7 @@ local Config = {
 		DEFAULT_SFX_VOLUME = 0.8, -- 0..1, SFX SoundGroup
 		DEFAULT_MUSIC_VOLUME = 0.35, -- 0..1, Music / Ambient SoundGroup
 		AMBIENT_VOLUME = 0.25, -- loop volume inside the Music group (low on purpose)
-		AMBIENT_FADE_SECONDS = 4, -- crossfade day <-> night
+		AMBIENT_FADE_SECONDS = 4, -- fade in at sunrise / out at sunset
 		-- SFX registry name -> Notify sound name (Sounds.IDS) or a direct asset id.
 		SFX = table.freeze({
 			buy = "Cash",
@@ -765,7 +765,7 @@ local Config = {
 		}),
 		-- Ambient loops (20 s seamless, Merijn-owned uploads).
 		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds (original procedural loop, uploaded via Open Cloud; moderation pending at upload)
-		AMBIENT_NIGHT_ID = "rbxassetid://132943569734014", -- crickets (same)
+		AMBIENT_NIGHT_ID = "", -- empty = quiet nights
 	}),
 
 	-- Full steal alerts (FEATURES.StealAlerts, StealAlert / ui/StealAlertFx). Client timings in seconds.
