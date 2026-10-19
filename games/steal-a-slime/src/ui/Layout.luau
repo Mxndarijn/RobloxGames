@@ -281,6 +281,16 @@ Layout.MONEY = table.freeze({
 	camountSize = 28,
 	chipSize = 21,
 	cchipSize = 13,
+	-- The rebirths chip: its share of the chip row (it holds the emblem, count and badge), the emblem's
+	-- size as a multiple of the chip height (it stays inside the chip), the count and badge text.
+	rebirthShare = 0.58,
+	crebirthShare = 0.55,
+	emblem = 0.9,
+	cemblem = 0.9,
+	rebirthSize = 26,
+	crebirthSize = 15,
+	badgeSize = 19,
+	cbadgeSize = 11,
 })
 
 Layout.STATUS = table.freeze({
@@ -308,6 +318,10 @@ Layout.MONEY_TIGHT = table.freeze({
 	icon = 40,
 	amountSize = 18,
 	chipSize = 11,
+	rebirthShare = 0.5,
+	emblem = 0.8,
+	rebirthSize = 11,
+	badgeSize = 8,
 })
 Layout.STATUS_TIGHT = table.freeze({ slot = 40, icon = 28, label = 14, labelSize = 10 })
 
@@ -372,7 +386,7 @@ function Layout.moneyCluster(compact: boolean, x: number, bottom: number, tight:
 	local chipY = y + Layout.moneyChipTop(compact, tight)
 	local gap = if tight then 3 else 5
 	local rowW = w - chipX
-	local incomeW = math.floor((rowW - gap) * 0.5)
+	local incomeW = math.floor((rowW - gap) * (1 - Layout.moneyRebirth(compact, tight).share))
 	local rebirthW = rowW - gap - incomeW
 	return {
 		rect = Layout.rect(x, y, w, h),
@@ -382,14 +396,37 @@ function Layout.moneyCluster(compact: boolean, x: number, bottom: number, tight:
 	}
 end
 
--- Width of the small "x5" badge on the rebirths chip.
+-- Width of the "x5" badge on the rebirths chip.
 function Layout.moneyBadgeWidth(chipH: number): number
-	return math.round(chipH * 0.95)
+	return chipH
+end
+
+-- One size class of the rebirths chip: row share, emblem px (a bare picture filling the chip's height),
+-- count and badge text sizes.
+export type MoneyRebirth = { share: number, emblem: number, countSize: number, badgeSize: number }
+function Layout.moneyRebirth(compact: boolean, tight: boolean?): MoneyRebirth
+	local chip = Layout.moneyMetrics(compact, tight).chip
+	if tight then
+		local t = Layout.MONEY_TIGHT
+		return {
+			share = t.rebirthShare,
+			emblem = math.round(chip * t.emblem),
+			countSize = t.rebirthSize,
+			badgeSize = t.badgeSize,
+		}
+	end
+	local m = Layout.MONEY
+	return {
+		share = if compact then m.crebirthShare else m.rebirthShare,
+		emblem = math.round(chip * (if compact then m.cemblem else m.emblem)),
+		countSize = if compact then m.crebirthSize else m.rebirthSize,
+		badgeSize = if compact then m.cbadgeSize else m.badgeSize,
+	}
 end
 
 -- Text column of a money box, as (x offset, width) inside the box (Hud builds the same numbers). "cash": the
 -- amount right of the coin; "income": the chip text between its padding; "rebirths": the count between the
--- chip's icon and the multiplier badge.
+-- chip's emblem and the multiplier badge.
 function Layout.moneyTextBox(
 	box: Rect,
 	kind: "cash" | "income" | "rebirths",
@@ -403,7 +440,7 @@ function Layout.moneyTextBox(
 	elseif kind == "income" then
 		return 4, box.w - 8
 	end
-	local left = box.h - 4
+	local left = Layout.moneyRebirth(compact, tight).emblem + 5
 	local right = Layout.moneyBadgeWidth(box.h) + 6
 	return left, box.w - left - right
 end

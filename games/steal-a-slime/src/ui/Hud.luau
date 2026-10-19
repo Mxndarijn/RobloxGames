@@ -111,7 +111,7 @@ function Hud.new(parent: Instance, ctx: any)
 
 	-- Bottom-left cluster (Layout.moneyCluster, the reference money block): a round gold coin over the left end
 	-- of a long dark purple pill with the amount; under it the green income/s chip (with a tab pointing down)
-	-- and the lilac rebirths chip (icon, count, "xN" badge) tucked up under the pill's bottom edge.
+	-- and the wider lilac rebirths chip (emblem, count, "xN" badge) tucked up under the pill's bottom edge.
 	local moneyRoot = create("Frame", {
 		Name = "Money",
 		BackgroundTransparency = 1,
@@ -201,15 +201,18 @@ function Hud.new(parent: Instance, ctx: any)
 	local incomeChip, incomeLabel, incomeStroke = chip(moneyRoot, "Income", GREEN)
 	local rebirthChip, rebirthLabel, rebirthStroke = chip(moneyRoot, "Rebirths", LILAC)
 	incomeLabel.TextXAlignment = Enum.TextXAlignment.Center
+	-- The rebirth emblem: no tile, filling the chip's height at its left end.
 	local rebirthIcon = ItemIconView.new({
 		Name = "Icon",
 		Id = HudClusters.ICONS.Rebirths,
 		Size = 20,
+		Bare = true,
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 3, 0.5, 0),
 		ZIndex = 3,
 		Parent = rebirthChip,
 	}, registry)
+	rebirthLabel.TextXAlignment = Enum.TextXAlignment.Center
 	rebirthIcon.setActive(true)
 	local badge = create("Frame", {
 		Name = "Multiplier",
@@ -443,8 +446,9 @@ function Hud.new(parent: Instance, ctx: any)
 		cashLabel.TextSize = if tight then T.amountSize elseif compact then M.camountSize else M.amountSize
 		local chipText = if tight then T.chipSize elseif compact then M.cchipSize else M.chipSize
 		incomeLabel.TextSize = chipText -- "$98.7T/s" fits a phone chip
-		rebirthLabel.TextSize = chipText
-		badgeLabel.TextSize = math.max(8, math.round(chipText * 0.75))
+		local rb = Layout.moneyRebirth(compact, tight)
+		rebirthLabel.TextSize = rb.countSize
+		badgeLabel.TextSize = rb.badgeSize
 		-- Whole pixels (a phone's design width is fractional; UDim offsets are integers).
 		local function whole(r: Layout.Rect): (number, number, number, number)
 			return math.round(r.x), math.round(r.y), math.round(r.w), math.round(r.h)
@@ -503,10 +507,9 @@ function Hud.new(parent: Instance, ctx: any)
 			math.round(m.income.x - m.rect.x + m.income.w * 0.22),
 			math.round(m.income.y - m.rect.y + m.income.h - tabH)
 		)
-		local rebirthIconSize = m.rebirths.h - 6
-		rebirthIcon.instance.Size = UDim2.fromOffset(rebirthIconSize, rebirthIconSize)
+		rebirthIcon.instance.Size = UDim2.fromOffset(rb.emblem, rb.emblem)
 		local badgeW = Layout.moneyBadgeWidth(m.rebirths.h)
-		badge.Size = UDim2.fromOffset(badgeW, math.round(m.rebirths.h * 0.6))
+		badge.Size = UDim2.fromOffset(badgeW, math.round(m.rebirths.h * 0.72))
 		badge.Position = UDim2.new(1, -5, 0.5, 0)
 		local sx, sy, sw, sh = whole(s.status.rect)
 		statusRoot.Position = UDim2.fromOffset(sx, sy)

@@ -288,19 +288,19 @@ function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
 	table.insert(out, {
 		name = "Rebirths chip",
 		text = tostring(s.rebirths),
-		size = chip,
+		size = Layout.moneyRebirth(compact, tight).countSize,
 		bold = true,
 		w = rebirthW,
 		h = m.rebirths.h,
 	})
-	-- the "xN" badge on the chip (Hud: 75 % of the chip text size)
+	-- the "xN" badge on the chip
 	table.insert(out, {
 		name = "Rebirths badge",
 		text = Format.formatMultiplier(s.rebirthMultiplier),
-		size = math.max(8, math.round(chip * 0.75)),
+		size = Layout.moneyRebirth(compact, tight).badgeSize,
 		bold = true,
 		w = Layout.moneyBadgeWidth(m.rebirths.h) - 4,
-		h = math.round(m.rebirths.h * 0.6),
+		h = math.round(m.rebirths.h * 0.72),
 	})
 	return out
 end

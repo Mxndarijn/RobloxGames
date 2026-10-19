@@ -87,7 +87,8 @@ function ItemIconView.meshBuilder(meshAssets: any, assetService: any): (Instance
 	end
 end
 
--- props: Name, Size (square px, default 48), Position, AnchorPoint, ZIndex, Parent, LayoutOrder.
+-- props: Name, Size (square px, default 48), Position, AnchorPoint, ZIndex, Parent, LayoutOrder,
+-- Bare (no tile behind an uploaded picture: for icons sitting on their own coloured surface).
 -- `registry` is ItemIcons.build(Config). Returns the handle.
 function ItemIconView.new(props: { [string]: any }, registry: any)
 	local size: number = props.Size or 48
@@ -158,6 +159,7 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 	local active = false
 	local mounted = false
 	local frameColor: Color3? = nil
+	local bare: boolean = props.Bare == true
 
 	local function unmount()
 		if mounted then
@@ -178,6 +180,8 @@ function ItemIconView.new(props: { [string]: any }, registry: any)
 		-- A real picture carries its own shading: the colour tile behind it only whispers.
 		tile.BackgroundTransparency = if image then 0.82 else 0
 		stroke.Transparency = if image then 0.7 else 0
+		-- A bare icon drops that backdrop entirely when it has a picture (the placeholder keeps its tile).
+		tile.Visible = not (bare and image ~= nil)
 		-- A drawn scene is the icon for "drawn" specs and the fallback of a model that is not mounted.
 		local drawn = image == nil and art:GetAttribute("ArtId") == spec.id
 		art.Visible = drawn
