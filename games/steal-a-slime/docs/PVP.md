@@ -9,7 +9,7 @@ Flag: `Config.FEATURES.PvP`. Contract: `CONTRACT.md` §26 (`contract/pvp.md`). C
 3. Nothing deals damage or can kill. Knockback is mostly horizontal with a capped arc, and the landing point is clamped inside the map. A PvP fall causes no damage; the void guard puts anyone who still falls back.
 4. Max 2 s crowd control (slows max 3 s), then 3 s control immunity.
 5. **No safe zones.** Every PvP item works on anyone, anywhere, except players under the new-player shield. On a player who carries nothing the effect stays light (a push, a short slow, a laugh); nobody loses anything to it.
-6. **A caught thief loses the slime.** Whenever a glove, a trap, the Goo Blaster, the Goo Cannon or a catching Fun item (below) hits a player carrying a stolen slime, the slime bounces home to its owner's plot (`PvpService.catchThief`, the same drop + bounce + notifications as the Bat).
+6. **A caught thief loses the slime.** Whenever any PvP item hits a player carrying a stolen slime, the slime bounces home to its owner's plot (`PvpService.catchThief`, the same drop + bounce + notifications as the Bat).
 7. **New-player shield:** 15 minutes of play time (summed over sessions). Rebirths don't end it; stealing a slime does. A shielded player can't be hit by PvP items (a Fun item still gives them its cosmetic part) and can't use non-cosmetic items. Everyone sees a shield badge over a shielded player's head; the player sees a shield slot with a `mm:ss` countdown in the bottom-right status cluster.
 8. **Fun items are toys first** (CONTRACT.md §26.8): aimed with a click, no target pick, no plot of your own needed. Their control effects still respect the shield and the control cap.
 9. Show-off, not power gap: the top tier is about 2x the base effect.
@@ -59,11 +59,11 @@ Any tier that catches a thief sends the slime home. The trap meshes (`pvp_goo_tr
 
 ## Goo Blasters
 
-Real goo blobs fly a visible arc; the server owns the shot (start point, range, aim, rate) and decides the hit at fire time. A hit slows, splats goo on the edge of the victim's screen and tints them green. A miss leaves a slippery splat on the ground for 5 s.
+Real goo blobs fly a visible arc; the server owns the shot (start point, range, aim, rate) and decides the hit at fire time. A hit slows, splats goo on the edge of the victim's screen and tints them green. A miss leaves a slippery splat on the ground for 5 s; a thief who walks into a splat or a Cannon pool is caught too.
 
 | Blaster | Shot | Effect |
 |---|---|---|
-| Goo Squirter | rapid fire, 6 shots per tank, then a short refill | each hit stacks a little slow (the whole slow capped at 3 s) |
+| Goo Squirter | rapid fire, 6 shots per tank, then a short refill | each hit stacks a little slow (the whole slow capped at 3 s); a hit on a thief sends the slime home |
 | Goo Blaster | 3 blobs in a fan | slow; a hit on a thief sends the slime home |
 | Goo Cannon | hold to aim, a big lob | splashes everyone within 6 studs, leaves a slowing pool for 4 s; a hit on a thief sends the slime home |
 
@@ -80,7 +80,7 @@ Tunables in `Config.PVP_FUN`, cooldowns in the `PVP_TOOLS` rows. Toys first, pow
 - **Dance Bomb:** a lobbed disco bubble with lights and music; everyone inside dances for 2 s (control).
 - **Goo Fireworks:** a rocket that bursts high in the colour of your favourite slime, visible across the map; nearby wild slimes cheer-hop. Hold to fire a 3-rocket volley.
 
-A thief carrying a stolen slime who gets lifted, bounced, bonked or made to dance drops it, and the slime goes home. Shielded players only get the cosmetic part (confetti, paint, hats, fireworks).
+A thief carrying a stolen slime who gets confettied, splashed, lifted, bounced, bonked, hatted or made to dance drops it, and the slime goes home (the fireworks hit nobody). Shielded players only get the cosmetic part (confetti, paint, hats, fireworks).
 
 ## Hit feel (sounds)
 
