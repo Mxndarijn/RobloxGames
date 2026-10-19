@@ -22,7 +22,7 @@ State field, no save-format change.
   `{ name, rarity, rarityColor, income, extra }`: `income = "+$1.25K/s"` (`NumberFormat.cash`), `extra` =
   `"Buy $500"` (priced wild) or `"Growth 46%"` (1..100) or nil. nil when `LabelName` is missing.
 - **Client (`src/ui/SlimeInfoCard`, started from `init.client`).** One `BillboardGui` per tagged slime model
-  (`Constants.SLIME_TAG`), parented to a local folder under PlayerGui with `Adornee` = Body, `SizeOffset` (0, 0.5) so its
+  (`Constants.SLIME_TAG`), parented to its Body (`Archivable` false) with `Adornee` = Body, `SizeOffset` (0, 0.5) so its
   bottom edge sits `LabelHeight` above the Body. Size mixes studs and pixels so it shrinks with distance but stays
   readable; `MaxDistance` hides it far away. Re-rendered only on `AttributeChanged` of the attributes above; no frame
   loop, no tween. Removed with the tag (model destroyed or streamed out). `FollowPets` clones never carry it.
