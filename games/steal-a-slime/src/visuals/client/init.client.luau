@@ -30,6 +30,9 @@
 	Pivot animation only touches anchored Bodies (pad, wild, escaping). Each
 	frame it checks whether the server moved the model since our last write
 	and, if so, rebases on the server's pivot, so it never fights replication.
+	The walking boss (model attributes BossWalkSeed / BossWalkAt / BossWalkUntil)
+	instead rebases every frame on its BossWander pose at server time: the same
+	plan the server walks, drawn at frame rate instead of at replication rate.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -38,6 +41,8 @@ local RunService = game:GetService("RunService")
 
 local Lighting = game:GetService("Lighting")
 
+local BossWander = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossWander"))
+local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local Effects = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("Effects"))
 
@@ -61,6 +66,9 @@ type Track = {
 }
 
 local tracks: { [Model]: Track } = {}
+local bossWalks: { [Model]: { key: string, plan: BossWander.Plan } } = {}
+-- Tagged models whose Body hasn't replicated yet (the tag can arrive first): picked up when it does.
+local pending: { [Model]: RBXScriptConnection } = {}
 
 local function isEye(part: BasePart): boolean
 	local n = part.Name
@@ -76,6 +84,15 @@ local function onSlime(instance: Instance)
 	end
 	local body = instance:FindFirstChild("Body")
 	if not (body and body:IsA("BasePart")) then
+		if not pending[instance] then
+			pending[instance] = instance.ChildAdded:Connect(function(child)
+				if child.Name == "Body" then
+					pending[instance]:Disconnect()
+					pending[instance] = nil
+					task.defer(onSlime, instance) -- after the rest of the model (eyes) has landed
+				end
+			end)
+		end
 		return
 	end
 	local eyes = {}
@@ -107,6 +124,12 @@ local function onSlimeRemoved(instance: Instance)
 		restoreJoint(track)
 		tracks[instance :: Model] = nil
 	end
+	bossWalks[instance :: Model] = nil
+	local waiting = pending[instance :: Model]
+	if waiting then
+		waiting:Disconnect()
+		pending[instance :: Model] = nil
+	end
 end
 
 -- The server's carry joint: a Weld / Motor6D on Body that the factory did
@@ -131,10 +154,50 @@ local function setBlink(track: Track, closed: boolean)
 	end
 end
 
+-- The fountain centre the boss walk is laid out round (the server's WorldView crater()).
+local function craterCentre(): Vector3
+	local map = workspace:FindFirstChild(Constants.MAP_FOLDER)
+	local volcano = map and map:FindFirstChild("Volcano")
+	local crater = volcano and volcano:FindFirstChild("Crater")
+	return if crater and crater:IsA("BasePart") then crater.Position else Vector3.new(0, 20, 0)
+end
+
+-- The walking boss's pose now (its BossWander plan at server time) at height `y`, or nil for any other slime.
+local function bossWalkPose(model: Model, y: number): CFrame?
+	local seed = model:GetAttribute(Constants.BOSS_WALK_SEED_ATTRIBUTE)
+	local at = model:GetAttribute(Constants.BOSS_WALK_AT_ATTRIBUTE)
+	if type(seed) ~= "number" or type(at) ~= "number" then
+		bossWalks[model] = nil
+		return nil
+	end
+	local key = `{seed}|{at}`
+	local walk = bossWalks[model]
+	if not walk or walk.key ~= key then
+		local fresh: { key: string, plan: BossWander.Plan } =
+			{ key = key, plan = BossWander.plan(seed, at, Config.BOSS.FIGHT_SECONDS) }
+		bossWalks[model] = fresh
+		walk = fresh
+	end
+	local now = workspace:GetServerTimeNow()
+	local stopped = model:GetAttribute(Constants.BOSS_WALK_UNTIL_ATTRIBUTE)
+	if type(stopped) == "number" then
+		now = math.min(now, stopped)
+	end
+	local p, face = BossWander.pose(walk.plan, now)
+	local origin = craterCentre()
+	local spot = Vector3.new(origin.X + p[1], y, origin.Z + p[2])
+	return CFrame.lookAt(spot, spot + Vector3.new(face[1], 0, face[2]))
+end
+
 local function animatePivot(track: Track, offset: CFrame)
 	local current = track.model:GetPivot()
 	if not (track.base and track.written and samePivot(current, track.written)) then
 		track.base = current
+	end
+	-- The walking boss: its pose comes from the plan every frame, on the ground height the server last sent.
+	local walk = bossWalkPose(track.model, (track.base :: CFrame).Y)
+	if walk then
+		track.base = walk
 	end
 	local target = (track.base :: CFrame) * offset
 	track.written = target

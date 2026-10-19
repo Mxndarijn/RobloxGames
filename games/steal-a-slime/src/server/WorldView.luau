@@ -502,6 +502,17 @@ end
 -- Returns false when the model couldn't be placed yet (retried next reconcile).
 local function place(record: Record, entry: Scene.Entry, previous: string?): boolean
 	local model = record.model
+	-- An undropped wild boss walks its BossWander plan; the client draws that walk from these (no stutter from
+	-- replication). Anything else clears them.
+	local walk = if entry.boss
+			and entry.state == "Wild"
+			and entry.wild
+			and entry.wild.position == nil
+		then entry.wild
+		else nil
+	model:SetAttribute(Constants.BOSS_WALK_SEED_ATTRIBUTE, if walk then BossWander.seed(entry.id) else nil)
+	model:SetAttribute(Constants.BOSS_WALK_AT_ATTRIBUTE, if walk then walk.spawnedAt else nil)
+	model:SetAttribute(Constants.BOSS_WALK_UNTIL_ATTRIBUTE, if walk then walk.wanderUntil else nil)
 	model:SetAttribute("OwnerUserId", entry.ownerUserId)
 	model:SetAttribute("State", entry.state)
 	model:SetAttribute("Price", entry.price)
