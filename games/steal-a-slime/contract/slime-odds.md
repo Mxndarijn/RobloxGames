@@ -66,7 +66,8 @@ Fountain.roll(rng, id, raining, minTier?, luckMult?,
   - Eruption: when `RareSpawnTier` becomes 7 with a fresh `RareSpawnAt`, every client plays
     `TopTierFx.ERUPTION_SECONDS` (2 s) of camera shake and a sky tint (`Lighting.SecretBurstTint`, a
     `ColorCorrectionEffect`) plus one fountain splash burst; the shake binds to render step only while it runs.
-  - Pedestal glow: a slime with `State == "Pad"` and `Tier >= 6` gets a Neon disc and soft light under it
-    (`TopTierFx.pedestal(tier)`); Secret adds a small sparkle column.
+  - Pedestal glow: a slime with `State == "Pad"` and `Tier >= 6` gets a soft light under it
+    (`TopTierFx.pedestal(tier)`), carried by an invisible disc; Secret adds a small sparkle column. No slime has a
+    flat rarity disc or ring under it.
   - All of it is culled beyond `PlotVisuals.MAX_FX_DISTANCE`, runs in `PlotVisuals`' existing frame loop and adds no
     `RenderStepped` / `Heartbeat` connect.
