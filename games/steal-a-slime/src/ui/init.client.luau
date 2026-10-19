@@ -53,6 +53,7 @@ local Nav = require(script.Nav)
 local PopupQueue = require(script.PopupQueue)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
+local SlimeInfoCard = require(script.SlimeInfoCard)
 local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
@@ -285,6 +286,8 @@ local tutorial = TutorialOverlay.new(gui, ctx)
 local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
+-- One label per slime, a tag above it or a sign on its pad (contract/slime-labels.md): event-driven, no frame work.
+SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = Constants.SLIME_TAG })
 
 -- The dimmed full-window backdrop (Layout.backdrop: the whole viewport, top bar included, square) behind an open menu card (screen.panel).
 -- Made before the panels so their cards draw over it; a tap on it closes

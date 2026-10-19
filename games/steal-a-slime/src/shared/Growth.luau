@@ -52,20 +52,7 @@ function Growth.percentAt(fraction: number): number
 	return math.floor(Growth.clampFraction(fraction) * 100 + 0.5)
 end
 
--- Label text for a whole percent, or nil when there is nothing to show (not grown yet).
-function Growth.labelText(percent: number): string?
-	if type(percent) ~= "number" or percent ~= percent or percent < 1 then
-		return nil
-	end
-	return `Growth {math.min(100, math.floor(percent + 0.5))}%`
-end
-
--- Label text, or nil when there is nothing to show (feature off / not grown yet).
-function Growth.label(slime: Slime): string?
-	return Growth.labelText(Growth.percent(slime))
-end
-
--- Studs from the slime Body's centre to the label centre: `topAbove` = how far the model's
+-- Studs from the slime Body's centre to the bottom edge of its floating tag: `topAbove` = how far the model's
 -- highest part (crown, hat, halo) is above that centre, so the label clears the whole slime.
 function Growth.labelOffset(topAbove: number): number
 	return math.max(topAbove, 0) + Config.GROWTH_LABEL_GAP
