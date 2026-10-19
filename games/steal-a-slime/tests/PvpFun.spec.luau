@@ -1,8 +1,8 @@
 --!strict
 -- The Fun items (FEATURES.PvP, CONTRACT.md §26.8): rank gating and prices, aimed use with no target, who each item
--- reaches, the shield and control rules, a caught thief's slime going home, the server-side records (landings,
--- bubble streams, pads, holds) and that nothing is left once their time is up. Every flag-dependent call passes the
--- flag explicitly so the specs hold in the forced-flag runs too.
+-- reaches, the shield and control rules, a caught thief's slime going home (never for the cosmetic Confetti Popper),
+-- the server-side records (landings, bubble streams, pads, holds) and that nothing is left once their time is up.
+-- Every flag-dependent call passes the flag explicitly so the specs hold in the forced-flag runs too.
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
@@ -243,12 +243,19 @@ describe("Confetti Popper", function()
 		expect(e.radius).toBe(FUN.CONFETTI.MEGA_RADIUS)
 		done()
 	end)
-	it("a thief under the rain is caught: the slime goes home", function()
+	it("is cosmetic only: a thief under the rain, even a mega pop, keeps the slime and keeps walking", function()
 		local world, a, b = setup("FunConfetti")
 		steal(world, b, T0 + 1)
-		expect(use(world, a, "FunConfetti", T0 + 2, NEAR)).toBe(true)
+		expect(use(world, a, "FunConfetti", T0 + 2, NEAR, true)).toBe(true)
 		expect(table.find(effects("Confetti")[1].targets, 2) ~= nil).toBe(true)
-		expect(wentHome(world, b)).toBe(true)
+		tick(world, b, T0 + 2.5)
+		expect(b.carry ~= nil).toBe(true)
+		expect(world.escaping.gem).toBeNil()
+		for _, text in ServerFixtures.notifications(world, 1) do
+			expect(string.find(text, "You caught", 1, true)).toBeNil()
+		end
+		expect(PvpFun.frozen(b, T0 + 2.5)).toBe(false)
+		expect(PvpFun.walkFactor(b, T0 + 2.5)).toBe(1)
 		done()
 	end)
 end)

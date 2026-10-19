@@ -15,8 +15,9 @@
 	is the bubble around a lifted player (`ctx.funBubble`, server/PvpFunView).
 
 	Shielded players only get the cosmetic part (confetti, paint, hats); control goes through PvpRules.applyControl
-	(cap, then immunity). A thief carrying a stolen slime who is confettied, splashed, lifted, bounced, bonked, hatted
-	or made to dance loses it: PvpService.catchThief bounces the slime back to its owner. No Humanoid health is ever changed.
+	(cap, then immunity). A thief carrying a stolen slime who is splashed, lifted, bounced, bonked, hatted or made to
+	dance loses it: PvpService.catchThief bounces the slime back to its owner. The Confetti Popper is purely cosmetic and
+	never catches. No Humanoid health is ever changed.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -133,8 +134,8 @@ local function noTarget(call: PvpService.UseCall): (boolean, string?)
 	return true, nil
 end
 
--- Confetti Popper: a burst along the aim (also straight up) that rains on everyone under it. Cosmetic, except that
--- a thief under the rain is caught.
+-- Confetti Popper: a burst along the aim (also straight up) that rains on everyone under it, shielded players too.
+-- Purely cosmetic: it never catches a thief and never controls.
 local function confetti(call: PvpService.UseCall): (boolean, string?)
 	local cfg = FUN.CONFETTI
 	local center = PvpFunRules.within(call.position, aimOf(call, cfg.RANGE), cfg.RANGE)
@@ -147,9 +148,6 @@ local function confetti(call: PvpService.UseCall): (boolean, string?)
 		local p = other.position
 		if PvpFunRules.flatDistance(center, p) <= radius and p.Y <= center.Y + CONFETTI_ABOVE then
 			table.insert(targets, other.session.userId)
-			if other.session ~= call.session and not PvpService.isShielded(other.session, call.now) then
-				PvpService.catchThief(call.world, other.session, call.session, call.now)
-			end
 		end
 	end
 	fire(call.world, call.now, {
