@@ -154,6 +154,22 @@ describe("SlimeMotor (procedural motion on the rig)", function()
 		expect(mesh.Size == rest).toBe(true)
 		expect(model:GetAttribute("LifeSkinSize")).toBeNil()
 	end)
+
+	it("release after the server rescaled the slime leaves the skin at the new scale, not the old one", function()
+		local model = slime()
+		local r = rand(4)
+		local motor = SlimeMotor.attach(model, 0, r)
+		local body, mesh = model:FindFirstChild("Body"), model:FindFirstChild("Mesh")
+		local rest = mesh.Size
+		for i = 0, 40 do
+			SlimeMotor.step(motor, i / 30, r)
+		end
+		-- the boss's fight size (or growth): the server's ScaleTo replicates new Body and skin sizes
+		body.Size = body.Size * 1.5
+		mesh.Size = rest * 1.5
+		SlimeMotor.release(motor)
+		expect((mesh.Size - rest * 1.5).Magnitude < 1e-6).toBe(true)
+	end)
 end)
 
 describe("driver choice", function()

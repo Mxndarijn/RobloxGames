@@ -15,13 +15,13 @@ export type Bar = { rect: Rect, slots: { Rect }, bag: Rect, shown: number }
 local InventoryLayout = {}
 
 InventoryLayout.MAX_SLOTS = 9 -- number keys 1-9
-InventoryLayout.SLOT = 48 -- desktop slot edge
+InventoryLayout.SLOT = 52 -- desktop slot edge
 InventoryLayout.GAP = 6
 InventoryLayout.PAD = 6
 
 -- Tight bar (portrait phone, 390 px wide: the money block and the events row share the hotbar's row): smaller
 -- slots (below MIN_TOUCH, the width leaves no choice), pad and gap.
-InventoryLayout.TIGHT = table.freeze({ slot = 40, gap = 4, pad = 4 })
+InventoryLayout.TIGHT = table.freeze({ slot = 42, gap = 4, pad = 4 })
 
 -- Slot edge: desktop SLOT; on a phone at least `minTouch` design px (Layout.MIN_TOUCH_DESIGN); tight: TIGHT.slot.
 function InventoryLayout.slotSize(compact: boolean, minTouch: number, tight: boolean?): number

@@ -76,7 +76,7 @@ function Consumables.stock(slot: number): ({ [string]: number }, string)
 	return out, weathers[rng:int(1, #weathers)] or "Rain"
 end
 
--- Cash price for this player (x the rebirth multiplier, like the Mystery Egg).
+-- Cash price for this player (x the rebirth multiplier).
 function Consumables.price(data: Data, id: string): number?
 	local def = Consumables.def(id)
 	if not def then

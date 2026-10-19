@@ -1,8 +1,0 @@
-{
-  "id": "19b-mystery-egg-shop",
-  "todo": "19b",
-  "kind": "ui",
-  "open": "shop",
-  "scroll_to": "MysteryEgg",
-  "note": "TODO 19b: Shop menu shows the Mystery Egg row (egg badge, cash price, Buy button; FEATURES.MysteryEgg); no click"
-}

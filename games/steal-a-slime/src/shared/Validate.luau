@@ -26,7 +26,6 @@ Validate.ACTIONS = table.freeze({
 	BuyLockUpgrade = 0.5,
 	BuySpeedCoil = 0.5,
 	BuyUpgrade = 0.5,
-	BuyEgg = 1,
 	Drop = 0.3,
 	Appraise = 0.5,
 	Redeem = 2,

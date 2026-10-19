@@ -194,7 +194,7 @@ describe("Layout.screen tutorial card on short screens", function()
 			expect(s.tutorialCarrying.y + s.tutorialCarrying.h + Layout.GAP).toBe(s.carry.y)
 		end
 		local d = Layout.screen(1920, 1080)
-		expect(d.tutorial.y).toBe(855)
+		expect(d.tutorial.y).toBe(851)
 		expect(d.tutorialCarrying.y).toBe(819)
 		local p = Layout.screen(390, 844)
 		expect(p.tutorial.y).toBe(659)

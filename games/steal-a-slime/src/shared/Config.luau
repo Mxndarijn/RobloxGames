@@ -848,7 +848,7 @@ local Config = {
 		SHED_COUNT = 2, -- wild slimes per shed
 		BURST_COUNT = 6, -- wild slimes when the boss fails
 		DROP_LUCK = 3, -- luck multiplier on shed and burst slimes
-		CARRY_SLOW = 0.6, -- carrier walks at BASE_WALK_SPEED x (1 - this)
+		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
 		SPOT_RADIUS = 51, -- studs: between the landing ring and the parade lane
@@ -917,10 +917,8 @@ local Config = {
 		}),
 	}),
 
-	-- Mystery Egg: bought with in-game cash only, never Robux. The price is
-	-- MYSTERY_EGG_PRICE x the rebirth multiplier, so selling the hatch never beats the price.
+	-- Mystery Egg: the free egg every boss helper gets (BOSS.HELPER_EGGS).
 	-- `tier` is a Config.RARITIES tier, `weight` its share of the drop table (Common and Secret never drop).
-	MYSTERY_EGG_PRICE = 2000,
 	MYSTERY_EGG_REVEAL_SECONDS = 6, -- how long the hatch banner stays up
 	MYSTERY_EGG_DROPS = table.freeze({
 		table.freeze({ tier = 2, weight = 50 }),
