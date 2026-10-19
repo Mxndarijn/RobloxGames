@@ -82,4 +82,6 @@ Merijn: the slime disappears in the curve (the upright horns wrap round it). The
 | r06 | 1776 | Deeper bite (y 0.95, r 1.2), ball size follows the distance to the edge so the horns taper to points, 2 smooth passes, no dimples. Reads as a crescent, but the star floated (the horn moved). |
 | r07 | 1776 | Star pinned to the horn (found from the mesh, not a fixed point). Merijn: now it looks like a croissant (gold, puffy, fat curled ends). |
 | r08 | 2052 | Pale lemon top, cool silver sides, lavender belly; bigger bite (y 1.2, r 1.45) for slim horns; smaller, flatter balls on a 0.12 grid; a star on each horn. |
-| r09 | 1952 | Decimate target 1400. Final (OK'd by Merijn). |
+| r09 | 1952 | Decimate target 1400. OK'd by Merijn for the look. |
+| r10 | 1952 | Review: the game puts the pet at the bbox centre (y = 0), but the flat top was centred 0.6 in front of it; the slime sat on the band's inner slope (0.57 falling to 0.52) with its back over the bite. Flat top now centred on the bbox centre, bite pushed far back (y 1.7, r 1.7), steeper ball ramp. Seat flat (0.66), but the horns went short and fat (a bean) and the stars floated. |
+| r11 | 1950 | Bite y 1.7, r 1.95: the band's inner edge stays at y -0.25 and the horn tips end further forward (y ~0.4), so the bbox centre lands ~0.4 inside the band; slim horns again. Band flat at 0.62-0.63 from y -0.7 to +0.2 (measured on the exported mesh). Stars sunk into the horns; the star height search has a default. Final. |

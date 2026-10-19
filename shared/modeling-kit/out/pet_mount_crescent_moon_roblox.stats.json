@@ -2,18 +2,18 @@
   "name": "pet_mount_crescent_moon",
   "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\moon-flat\\shared\\modeling-kit\\models\\pet_mount_crescent_moon.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
-  "tris": 1952,
+  "tris": 1950,
   "meshes": [
     {
       "name": "pet_mount_crescent_moon",
-      "tris": 1952,
-      "verts": 982,
+      "tris": 1950,
+      "verts": 981,
       "ngons": 4,
       "non_manifold_edges": 0,
       "size_studs": [
-        2.894,
-        0.734,
-        1.984
+        3.004,
+        0.88,
+        1.765
       ],
       "materials": [
         "pet_mount_crescent_moon_vcol"
@@ -32,9 +32,9 @@
   ],
   "mesh_count": 1,
   "size_studs": [
-    2.894,
-    0.734,
-    1.984
+    3.004,
+    0.88,
+    1.765
   ],
   "non_manifold_edges": 0,
   "materials": [
@@ -79,30 +79,30 @@
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.164,
+    "model_s": 0.177,
     "stats_s": 0.004,
-    "setup_s": 0.019,
+    "setup_s": 0.023,
     "render_s": [
-      0.382,
-      0.269,
-      0.276,
-      0.32
+      0.486,
+      0.336,
+      0.331,
+      0.355
     ],
     "export_s": 0.0
   },
   "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\moon-flat\\shared\\modeling-kit\\out\\pet_mount_crescent_moon_roblox_sheet.png",
   "timings": {
-    "wall_s": 3.59,
-    "blender_process_s": 3.37,
-    "compose_s": 0.219,
-    "model_s": 0.164,
+    "wall_s": 4.06,
+    "blender_process_s": 3.79,
+    "compose_s": 0.269,
+    "model_s": 0.177,
     "stats_s": 0.004,
-    "setup_s": 0.019,
+    "setup_s": 0.023,
     "render_s": [
-      0.382,
-      0.269,
-      0.276,
-      0.32
+      0.486,
+      0.336,
+      0.331,
+      0.355
     ],
     "export_s": 0.0
   }

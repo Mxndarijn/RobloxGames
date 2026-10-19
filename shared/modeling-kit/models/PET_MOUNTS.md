@@ -18,7 +18,7 @@ front -Y, 1 BU = 1 stud), same smooth, soft, rounded slime-cartoon style (smooth
 | `pet_mount_ufo` | 1924 | 3.30 x 1.34 x 2.40 | 1.00 | saucer: blue-grey hull, 6 rim lamps, glass dome at the back, cyan underlight |
 | `pet_mount_lily_pad` | 1800 | 3.30 x 1.56 x 2.40 | 0.99 | green lily pad with notch and veins, pink lotus bud, on a water disc |
 | `pet_mount_star_cushion` | 1320 | 3.09 x 0.94 x 2.38 | 0.94 | puffy golden 5-point star pillow, one point to the front, orange rim (own proportions, not stretched to 3.3 x 2.4) |
-| `pet_mount_crescent_moon` | 1952 | 2.89 x 0.73 x 1.98 | 0.56 | pale crescent lying flat like a cushion (a disc with a big bite out of the back): pale lemon top, cool silver sides, lavender belly, slim horns sweeping low behind the pet, a star on each horn (own proportions) |
+| `pet_mount_crescent_moon` | 1950 | 3.00 x 0.88 x 1.77 | 0.63 | pale crescent lying flat like a cushion (a disc with a big bite out of the back): pale lemon top, cool silver sides, lavender belly, slim horns sweeping low behind the pet, a star on each horn (own proportions) |
 | `pet_mount_mushroom` | 1880 | 3.30 x 1.25 x 2.40 | 1.23 | red toadstool cap with 9 raised white spots, striped cream gills, short stout stem |
 | `pet_mount_pancakes` | 1820 | 3.30 x 0.99 x 2.40 | 0.99 | four golden pancakes, off-centre, maple syrup glaze with five drips down the side |
 | `pet_mount_jelly` | 1626 | 3.30 x 2.18 x 2.40 | 1.17 | wobbly three-layer jelly (raspberry, mango, lime), glossy streak, whipped cream + cherry on the front-right corner |
@@ -30,7 +30,7 @@ Seat height = top surface under the mount's centre (what a pet's foot should tou
 lily pad sit at 1.0 to 1.23; the thin leaf (0.25) and carpet (0.30) float much lower because nothing is under them. The game must
 read the seat height per mount; that belongs to the PR that wires mounts into `FollowPets`, not to these models.
 The second set: mushroom 1.23 and jelly 1.17 match the cloud; pancakes and star sit at 0.94 to 0.99, clam and royal cushion
-0.80, hoverboard 0.70, moon 0.56. Height above ~1.3 is decoration beside the seat (rainbow arch, ice shards, flame tufts, lotus bud, leaf rim,
+0.80, moon 0.63, hoverboard 0.70. Height above ~1.3 is decoration beside the seat (rainbow arch, ice shards, flame tufts, lotus bud, leaf rim,
 moon stars, jelly cherry, clam lid).
 
 ## Files

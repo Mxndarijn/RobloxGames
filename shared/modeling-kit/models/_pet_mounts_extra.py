@@ -111,7 +111,10 @@ def crescent_moon():
     on the thick front band; the slim horns sweep round behind it, low, so nothing rises up round the pet.
     Pale lemon on top, cool silver sides (warm gold and a puffy, lumpy body read as a croissant), a star on each horn.
     Built at its final size (NOFIT)."""
-    R, HC, HR = 1.48, 1.2, 1.45  # outer disc radius; the bite: a disc centred at y = HC with radius HR
+    # outer disc radius; the bite: a disc centred at y = HC with radius HR. The bite sits far back so the band is thick
+    # under the bbox centre, where the game puts the pet: with the band's inner edge at y = HC - HR = -0.25 the horn tips
+    # must stay forward (y ~0.4), which puts the bbox centre ~0.3 inside the band. A big, far bite keeps the horns slim.
+    R, HC, HR = 1.48, 1.7, 1.95
 
     def depth(x, y):  # how far (x, y) is inside the crescent (distance to the nearer edge), < 0 outside
         return min(R - math.hypot(x, y), math.hypot(x, y - HC) - HR)
@@ -124,14 +127,16 @@ def crescent_moon():
             d = depth(x, y)
             if d > 0.05:
                 # balls shrink toward the edges and the horns, so the horns taper to sharp points and drop lower
-                r = min(0.26, 0.04 + 0.5 * d)
+                r = min(0.26, 0.05 + 0.7 * d)  # full height from 0.3 in from the edge: a flat band, tapered horns
                 balls.append(Ball((x, y, 0.08 + 0.9 * r), (r, r, r)))
     body = metaball_mesh("Moon", balls, resolution=0.05, tris=1400, smooth=2)
     me = body.data
     z_lo = min(v.co.z for v in me.vertices)
     for v in me.vertices:
         v.co.z -= z_lo
-    raw = max(v.co.z for v in me.vertices if math.hypot(v.co.x, v.co.y + 0.8) < 0.4)  # top of the front band
+    ys = [v.co.y for v in me.vertices]
+    cy = (min(ys) + max(ys)) / 2  # the bbox centre: where the pet sits once finish() recentres the mesh
+    raw = max(v.co.z for v in me.vertices if math.hypot(v.co.x, v.co.y - cy) < 0.3)  # band top under the pet
     K = 0.16
     for v in me.vertices:  # soft flat top, like the cloud
         z0 = raw - K
@@ -154,8 +159,8 @@ def crescent_moon():
     for side, size in ((-1, 1.0), (1, 0.72)):
         tip = max((v.co for v in me.vertices if v.co.x * side > 0), key=lambda c: c.y)  # the horn's tip
         hx, hy = tip.x - side * 0.12, tip.y - 0.22  # a little back from the tip, where the horn still has some body
-        hz = max(v.co.z for v in me.vertices if math.hypot(v.co.x - hx, v.co.y - hy) < 0.18)
-        star = extrude_poly("HornStar%d" % side, [(x * size, z * size) for x, z in pts], 0.1, pos=(hx, hy, hz + 0.15 * size),
+        hz = max((v.co.z for v in me.vertices if math.hypot(v.co.x - hx, v.co.y - hy) < 0.18), default=tip.z)
+        star = extrude_poly("HornStar%d" % side, [(x * size, z * size) for x, z in pts], 0.1, pos=(hx, hy, hz + 0.08 * size),
                             bevel_w=0.03)  # its lower points sink into the horn
         paint(star, lambda co, n: mix(rgb(255, 210, 70), rgb(255, 246, 180), clamp(-n.y * 0.8 + 0.2)))
         parts.append(star)
