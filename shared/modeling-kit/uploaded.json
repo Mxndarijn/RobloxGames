@@ -326,6 +326,19 @@
     "uploadedAt": "2026-10-16T23:21:26Z",
     "versions": 1
   },
+  "pet_cloud": {
+    "assetId": "76853347194916",
+    "assetType": "Model",
+    "meshId": "rbxassetid://131511097265313",
+    "meshSize": [
+      3.261,
+      1.225,
+      2.393
+    ],
+    "sha256": "427fe0a20f5c81be",
+    "uploadedAt": "2026-10-19T04:40:54Z",
+    "versions": 2
+  },
   "phoenix_corner_post": {
     "assetId": "122993526477202",
     "assetType": "Model",

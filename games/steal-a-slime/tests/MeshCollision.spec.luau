@@ -32,6 +32,17 @@ describe("MeshAssets.COLLISION", function()
 		expect(MeshAssets.collision("slime_fountain_emerge")).toBe("Box")
 		expect(MeshAssets.collision("ranch_pumpkin_patch")).toBe(nil) -- decor stays non-colliding
 	end)
+	it("registers the follow-pet cloud as non-colliding decor", function()
+		local entry = MeshAssets.get("pet_cloud")
+		expect(entry ~= nil).toBe(true)
+		expect(MeshAssets.meshId("pet_cloud")).toBe("rbxassetid://131511097265313")
+		expect(entry.assetId).toBe(76853347194916)
+		expect(MeshAssets.collision("pet_cloud")).toBe(nil) -- decor: CanCollide off
+		local size = entry.size
+		expect(size[1] > 3 and size[1] < 3.5).toBe(true)
+		expect(size[2] > 1 and size[2] < 1.5).toBe(true)
+		expect(size[3] > 2 and size[3] < 2.8).toBe(true)
+	end)
 end)
 
 local path = `{process.env.TMPDIR or "/tmp"}/steal-a-slime-meshcol-{os.time()}-{math.random(1, 1e9)}.rbxlx`
@@ -177,6 +188,7 @@ local DECOR = {
 	plot_skin_crystal = "client-cloned plot skin template, not a world slot",
 	fountain_tier_ring = "client-cloned tier decor, floats over the fountain",
 	fountain_tier_crest = "client-cloned tier decor, floats over the fountain",
+	pet_cloud = "follow pet cloud (published by MeshSwap, cloned by client FollowPets): CanCollide false, never placed in the world",
 	ranch_bat = "held Tool Handle mesh (Tool 'Bat'): CanCollide false, never placed in the world",
 	giant_broadleaf = "border tree beyond the world wall ring, out of reach, canopy overhead",
 	giant_pine_layered = "border tree beyond the world wall ring, out of reach",

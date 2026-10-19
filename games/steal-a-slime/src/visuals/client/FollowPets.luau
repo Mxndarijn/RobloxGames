@@ -6,8 +6,13 @@
 	gets a small client-only copy of that slime trotting behind them. The copy
 	is cloned from the slime's replicated model (tag Constants.SLIME_TAG,
 	attribute SlimeId), stripped of prompts, tags, welds to the outside and
-	gameplay attributes, scaled to SCALE and anchored. Pets live in a local
-	workspace folder "ClientPets"; no remotes, nothing replicates.
+	gameplay attributes, scaled to SCALE and anchored, and stands on a low-poly
+	cloud (PetCloud: a clone of the template the server publishes in
+	ReplicatedStorage.PetCloudMeshes; the pet is made at once and gets the cloud
+	when the template shows up, or stays on its invisible Mount if it never does).
+	The cloud + pet glide after the owner with the pure PetFollow spring (one
+	RenderStepped connection for every pet). Pets live in a local workspace folder "ClientPets"; no remotes, nothing
+	replicates.
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -17,17 +22,19 @@ local RunService = game:GetService("RunService")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 
+local PetCloud = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("PetCloud"))
+local PetFollow = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("PetFollow"))
+
 local PetRig = require(script.Parent:WaitForChild("PetRig"))
 
 local FollowPets = {}
 
-FollowPets.SCALE = 0.45
+FollowPets.SCALE = 0.55 -- the slime on the cloud: 1.65 studs wide, readable at phone size
 FollowPets.POLL = 0.5
-FollowPets.OFFSET = CFrame.new(2.6, 0, 3.2) -- behind and to the right of the player
 FollowPets.MAX_DISTANCE = 200
-FollowPets.FOLLOW_RATE = 8
+-- Follow motion (offset behind and right of the owner, spring, bob) lives in PetFollow.
 
-type Pet = { model: Model, slimeId: string, phase: number }
+type Pet = { model: Model, slimeId: string, follow: PetFollow.State }
 
 local function findSource(slimeId: string): Model?
 	for _, model in CollectionService:GetTagged(Constants.SLIME_TAG) do
@@ -112,13 +119,22 @@ function FollowPets.start()
 				remove(player)
 				local source = findSource(id)
 				local root = rootOf(player)
-				local model = source and makePet(source, player.UserId)
-				if model and root then
-					model:PivotTo(root.CFrame * FollowPets.OFFSET)
-					model.Parent = folder
-					pets[player] = { model = model, slimeId = id, phase = math.random() * math.pi * 2 }
-				elseif model then
-					model:Destroy()
+				local slime = source and makePet(source, player.UserId)
+				if slime and root then
+					local model = PetCloud.mount(slime, player.UserId, PetCloud.find(ReplicatedStorage))
+					model.Parent = folder -- PetFollow's first step snaps it next to the owner
+					pets[player] = {
+						model = model,
+						slimeId = id,
+						follow = PetFollow.new(math.random() * math.pi * 2),
+					}
+				elseif slime then
+					slime:Destroy()
+				end
+			elseif not PetCloud.hasCloud(pet.model) then
+				local template = PetCloud.find(ReplicatedStorage) -- published after this pet was made
+				if template then
+					PetCloud.attach(pet.model, template)
 				end
 			end
 		end
@@ -134,17 +150,26 @@ function FollowPets.start()
 		end
 	end)
 
+	-- One connection drives every pet. Per pet: plain-number PetFollow step, one CFrame build for PivotTo.
+	local maxSq = FollowPets.MAX_DISTANCE * FollowPets.MAX_DISTANCE
 	RunService.RenderStepped:Connect(function(dt: number)
 		local camera = workspace.CurrentCamera
-		local now = os.clock()
+		if not camera then
+			return
+		end
+		local eye = camera.CFrame.Position
 		for player, pet in pets do
 			local root = rootOf(player)
-			if root and camera and (root.Position - camera.CFrame.Position).Magnitude < FollowPets.MAX_DISTANCE then
-				-- Feet level: the HumanoidRootPart centre is ~3 studs above the ground.
-				local bob = math.abs(math.sin(now * 6 + pet.phase)) * 0.6
-				local goal = root.CFrame * FollowPets.OFFSET * CFrame.new(0, -3 + bob, 0)
-				local alpha = 1 - math.exp(-dt * FollowPets.FOLLOW_RATE)
-				pet.model:PivotTo(pet.model:GetPivot():Lerp(goal, alpha))
+			if root then
+				local pos = root.Position
+				local off = pos - eye
+				if off:Dot(off) < maxSq then
+					local yaw = math.rad(root.Orientation.Y)
+					local f = pet.follow
+					PetFollow.step(f, dt, pos.X, pos.Y, pos.Z, yaw)
+					local half = f.yaw * 0.5
+					pet.model:PivotTo(CFrame.new(f.x, f.y + f.bob, f.z, 0, math.sin(half), 0, math.cos(half)))
+				end
 			end
 		end
 	end)
