@@ -44,7 +44,7 @@ end
 
 function Progression.ownsSpecies(data: PlayerData.Data, species: string): boolean
 	for _, s in data.slimes do
-		if s.species == species then
+		if s.species == species and not s.egg then
 			return true
 		end
 	end
@@ -94,7 +94,11 @@ function Progression.keeper(data: PlayerData.Data, exclude: { [string]: boolean 
 	end
 	local best: Slime? = nil
 	for _, s in data.slimes do
-		if not (exclude and exclude[s.id]) and (not best or Genome.baseIncome(s) > Genome.baseIncome(best)) then
+		if
+			not (exclude and exclude[s.id])
+			and not s.egg
+			and (not best or Genome.baseIncome(s) > Genome.baseIncome(best))
+		then
 			best = s
 		end
 	end

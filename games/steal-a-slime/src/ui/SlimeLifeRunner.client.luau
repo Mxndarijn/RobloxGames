@@ -782,7 +782,12 @@ local function onDespawnAt(model: Model)
 end
 
 local function onSlime(instance: Instance)
-	if instance:IsA("Model") and not slimes[instance] then
+	-- A Mystery Egg has no face or skin to animate (its looks are Visuals EggFx).
+	if
+		instance:IsA("Model")
+		and not slimes[instance]
+		and instance:GetAttribute(Constants.EGG_KIND_ATTRIBUTE) == nil
+	then
 		slimes[instance] = true
 		if lifeOn then
 			slimeConns[instance] = {

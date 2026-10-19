@@ -1,0 +1,109 @@
+{
+  "name": "mystery_egg_speckled",
+  "model": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\models\\mystery_egg_speckled.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1392,
+  "meshes": [
+    {
+      "name": "mystery_egg_speckled",
+      "tris": 1392,
+      "verts": 734,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        1.727,
+        2.2,
+        1.714
+      ],
+      "materials": [
+        "mystery_egg_speckled_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "mystery_egg_speckled_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    1.727,
+    2.2,
+    1.714
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "mystery_egg_speckled_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\mystery_egg_speckled.fbx",
+  "fbx_bytes": 43660,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_speckled_0.png"
+    },
+    {
+      "view": "side",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_speckled_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_speckled_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_speckled_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.194,
+    "stats_s": 0.002,
+    "setup_s": 0.031,
+    "render_s": [
+      0.163,
+      0.137,
+      0.145,
+      0.162
+    ],
+    "export_s": 0.286
+  },
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\mystery_egg_speckled_sheet.png",
+  "timings": {
+    "wall_s": 1.59,
+    "blender_process_s": 1.54,
+    "compose_s": 0.053,
+    "model_s": 0.194,
+    "stats_s": 0.002,
+    "setup_s": 0.031,
+    "render_s": [
+      0.163,
+      0.137,
+      0.145,
+      0.162
+    ],
+    "export_s": 0.286
+  }
+}

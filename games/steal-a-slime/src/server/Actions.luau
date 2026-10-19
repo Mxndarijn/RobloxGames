@@ -38,6 +38,7 @@ local PlotPadGuard = if script then require(script.Parent.PlotPadGuard) else req
 local ShopGuard = if script then require(script.Parent.ShopGuard) else require("./ShopGuard")
 local ConsumableShop = if script then require(script.Parent.ConsumableShop) else require("./ConsumableShop")
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
+local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
@@ -572,6 +573,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 			return fail("not your slime")
 		end
 		return OK
+	elseif action == "HatchEgg" then
+		return result(MysteryEgg.hatch(world, session, args[1], now))
 	elseif action == "BuyPad" then
 		return buyPad(world, session)
 	elseif action == "Daily" then
@@ -692,6 +695,15 @@ end
 	owner's client opens the merge menu); without it Merge picks the pair itself (Merge.findPair, the favourite
 	kept out) and toasts when there is none. A refused action toasts its reason. Returns the result.
 ]]
+-- The owner's HatchPrompt on a ready Mystery Egg: the HatchEgg action, with a toast when it is refused.
+function Actions.triggerHatchPrompt(world: World, userId: number, slimeId: string, now: number, ctx: Context): Result
+	local res = Actions.handle(world, userId, "HatchEgg", table.pack(slimeId), now, ctx)
+	if not res.ok and res.message then
+		World.notify(world, userId, res.message, "info", nil)
+	end
+	return res
+end
+
 function Actions.triggerPlotPrompt(
 	world: World,
 	userId: number,

@@ -85,7 +85,9 @@ local function stepPlayers(loop: Loop, t: number)
 		local player = Players:GetPlayerByUserId(userId)
 		if player then
 			local carryId = session.carry and session.carry.slimeId
-			if carryId and WorldView.inHomeZone(player, session.plotIndex) then
+			local home = WorldView.inHomeZone(player, session.plotIndex)
+			session.home = home -- warms the owner's Mystery Eggs (MysteryEgg.step)
+			if carryId and home then
 				local ok, reason = Carry.deposit(world, userId, t)
 				-- Toast once per zone visit, not every tick while standing in a full plot.
 				if not ok and reason == "plot full" and loop.homeZoneFull[userId] ~= carryId then

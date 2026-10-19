@@ -18,6 +18,7 @@
 	  * fountain tiers (FountainTierFx, FEATURES.FountainTiers): ring / crest / glow from the workspace attribute FountainTier
 	  * weather (WeatherFx, FEATURES.Weather): Rain / Snow / Starfall emitters + tint from the workspace attribute Weather
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
+	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
 	  * slime fountain (still Map.Volcano.Crater): goo spray ("Smoke"),
@@ -445,6 +446,15 @@ do
 		warn(`[VisualsClient] habitats disabled: {err}`)
 	end
 end
+local eggFx: any = nil
+do
+	local ok, err = pcall(function()
+		eggFx = require(script:WaitForChild("EggFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] egg fx disabled: {err}`)
+	end
+end
 
 CollectionService:GetInstanceAddedSignal(Constants.SLIME_TAG):Connect(onSlime)
 CollectionService:GetInstanceRemovedSignal(Constants.SLIME_TAG):Connect(onSlimeRemoved)
@@ -465,6 +475,9 @@ RunService.RenderStepped:Connect(function()
 	local cameraPos = camera.CFrame.Position
 	local now = os.clock()
 	stepVolcano(now)
+	if eggFx then
+		eggFx.tick(camera)
+	end
 	for model, track in tracks do
 		if model.Parent then
 			step(track, now, cameraPos)

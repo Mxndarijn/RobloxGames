@@ -8,6 +8,7 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local EggKind = if script then require(script.Parent.EggKind) else require("./EggKind")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Rng = if script then require(script.Parent.Rng) else require("./Rng")
 local SlimeRoster = if script then require(script.Parent.SlimeRoster) else require("./SlimeRoster")
@@ -84,7 +85,9 @@ end
 
 -- Seconds an unclaimed wild slime lives: WILD_LIFETIME, stretched for Mythic / Secret (Config.TIER_LIFETIME_MULT).
 function Fountain.wildLifetime(slime: Genome.Slime): number
-	return Config.WILD_LIFETIME * (Config.TIER_LIFETIME_MULT[slime.tier] or 1)
+	-- A Mystery Egg lives by the tier it shows, never the hidden one inside.
+	local tier = EggKind.shownTier(slime)
+	return Config.WILD_LIFETIME * (Config.TIER_LIFETIME_MULT[tier] or 1)
 end
 
 -- Most wild slimes alive at once: MAX_WILD_SLIMES, raised by RAIN_WILD_CAP_MULT during rain.

@@ -41,6 +41,7 @@ Remotes.ACTIONS = table.freeze({
 	Rebirth = table.freeze({ args = {} }),
 	Sell = table.freeze({ args = { "string" } }), -- slimeId
 	Favorite = table.freeze({ args = { "string?" } }), -- slimeId, nil clears
+	HatchEgg = table.freeze({ args = { "string" } }), -- slime id of the owner's ready Mystery Egg (contract/mystery-egg.md)
 	BuyPad = table.freeze({ args = {} }),
 	Daily = table.freeze({ args = {} }),
 	ClaimQuest = table.freeze({ args = { "number" } }), -- daily quest slot 1..Config.DAILY_QUESTS.count (Quests.claim)

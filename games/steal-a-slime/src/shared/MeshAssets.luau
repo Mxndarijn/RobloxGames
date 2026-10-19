@@ -364,6 +364,17 @@ entries["ranch_floor_paths"] =
 -- collision (not in COLLISION); MeshSwap.publishPetCloudTemplate publishes it, the client FollowPets clones it per follower, NOT a world slot. Uploaded 2026-10-18, v2 (smooth) 2026-10-19.
 entries["pet_cloud"] =
 	{ assetId = 76853347194916, meshId = "rbxassetid://131511097265313", size = { 3.261, 1.225, 2.393 } }
+-- Mystery Egg shells and nest (contract/mystery-egg.md): not map slots, so not in NAMES; WorldView loads them by name.
+entries["mystery_egg_speckled"] =
+	{ assetId = 72448883434671, meshId = "rbxassetid://78500797880978", size = { 1.727, 2.2, 1.714 } }
+entries["mystery_egg_shiny"] =
+	{ assetId = 89189893144899, meshId = "rbxassetid://120597976593446", size = { 1.923, 2.2, 1.93 } }
+entries["mystery_egg_golden"] =
+	{ assetId = 124740474802680, meshId = "rbxassetid://79281704120835", size = { 1.858, 2.2, 1.96 } }
+entries["mystery_egg_cosmic"] =
+	{ assetId = 83469811451722, meshId = "rbxassetid://127150041778047", size = { 1.809, 2.2, 1.792 } }
+entries["mystery_egg_nest"] =
+	{ assetId = 104020921300950, meshId = "rbxassetid://110322947252445", size = { 3.416, 0.903, 3.416 } }
 
 -- The goo parade lane as ONE curved mesh (models/slime_lane.py, bug 4): not a WorldLayout slot (ParadeView lays
 -- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17; ParadeView swaps the ParadeLane.strips() stand-ins for it
