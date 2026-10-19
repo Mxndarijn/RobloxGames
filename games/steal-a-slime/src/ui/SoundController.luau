@@ -4,7 +4,7 @@
 
 	One place for UI / gameplay SFX and the ranch ambience. Creates the SoundGroups
 	"SFX" and "Music" under SoundService, plays registry sounds through them and
-	crossfades a day (birds) / night loop from Lighting.ClockTime (an empty id is silent).
+	crossfades a day (birds) / night (wind and owls) loop from Lighting.ClockTime.
 	Settings (mute, SFX / music volume) live in LocalPlayer attributes AudioMuted /
 	AudioSfxVolume / AudioMusicVolume. They are saved server-side (save v6 `settings`):
 	`load` applies State.settings once on join, the UI sends changes (SetAudioSettings).
