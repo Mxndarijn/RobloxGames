@@ -18,7 +18,7 @@ local Leaderboard = {}
 local MEDALS = { "🥇", "🥈", "🥉" }
 
 function Leaderboard.new(parent: Instance, _ctx: any)
-	local panel = Widgets.panel(parent, "LeaderboardPanel", "Top Earners", "🏆", Color3.fromRGB(210, 170, 40))
+	local panel = Widgets.panel(parent, "LeaderboardPanel", "Top Earners", "🏆")
 
 	local empty = Widgets.label({
 		Name = "Empty",

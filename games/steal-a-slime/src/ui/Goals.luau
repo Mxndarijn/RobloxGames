@@ -14,7 +14,17 @@
 
 local Format = if script then require(script.Parent.Format) else require("./Format")
 
-export type Goal = { id: string, title: string, detail: string, fraction: number, done: boolean, next: string? }
+export type Goal = {
+	id: string,
+	title: string,
+	detail: string, -- one-line summary (Guide card)
+	fraction: number,
+	done: boolean,
+	next: string?,
+	reward: string?, -- server goals: the current stage's cash ("+$25M")
+	meta: string?, -- server goals: progress and stage ("8/10 · Stage 4 of 5")
+	nextShort: string?, -- server goals: the next stage's target ("Next: 20")
+}
 
 local Goals = {}
 
@@ -134,10 +144,17 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 	return out
 end
 
--- v13 `State.goals` -> Goal rows; nil when the field is missing (v12 server).
-function Goals.fromServer(goals: any): { Goal }?
+-- v13 `State.goals` -> Goal rows; nil when the field is missing (v12 server). With `config` (Config) a row
+-- also gets the next stage's target (`nextShort`).
+function Goals.fromServer(goals: any, config: any?): { Goal }?
 	if type(goals) ~= "table" then
 		return nil
+	end
+	local defs: { [string]: any } = {}
+	if type(config) == "table" and type(config.GOALS) == "table" then
+		for _, def in config.GOALS do
+			defs[def.id] = def
+		end
 	end
 	local out: { Goal } = {}
 	for _, g in goals do
@@ -146,13 +163,24 @@ function Goals.fromServer(goals: any): { Goal }?
 			local stage, stages = num(g.stage), num(g.stages)
 			local done = g.done == true
 			local target = if type(g.target) == "number" then g.target else nil
-			local detail
+			local detail, meta
+			local reward: string? = nil
+			local nextShort: string? = nil
 			if done or target == nil then
 				detail = `All {stages} stages done`
+				meta = detail
 			else
-				local reward = if type(g.reward) == "number" then ` · reward {Format.formatCash(g.reward)}` else ""
-				detail =
-					`{Format.shortNumber(progress)}/{Format.shortNumber(target)}{reward} · stage {stage + 1}/{stages}`
+				local cash = if type(g.reward) == "number" then Format.formatCash(g.reward) else nil
+				local count = `{Format.shortNumber(progress)}/{Format.shortNumber(target)}`
+				detail = `{count}{if cash then ` · reward {cash}` else ""} · stage {stage + 1}/{stages}`
+				meta = `{count} · {if stage + 1 >= stages then "Last stage" else `Stage {stage + 1} of {stages}`}`
+				reward = if cash then `+{cash}` else nil
+				local def = defs[g.id]
+				local nextTarget = if def and type(def.targets) == "table" then def.targets[stage + 2] else nil
+				if type(nextTarget) == "number" then
+					local n = Format.shortNumber(nextTarget)
+					nextShort = `Next: {if def.cash then "$" .. n else n}`
+				end
 			end
 			table.insert(out, {
 				id = g.id,
@@ -161,6 +189,9 @@ function Goals.fromServer(goals: any): { Goal }?
 				fraction = if done then 1 elseif target and target > 0 then math.clamp(progress / target, 0, 1) else 0,
 				done = done,
 				next = if not done and type(g.nextTitle) == "string" then `Next: {g.nextTitle}` else nil,
+				reward = reward,
+				meta = meta,
+				nextShort = nextShort,
 			})
 		end
 	end
@@ -177,6 +208,7 @@ export type Quest = {
 	done: boolean,
 	claimed: boolean,
 	reward: string,
+	boost: boolean, -- a timed income boost, not cash
 }
 
 -- `State.dailyQuests` -> quest cards (empty when the server has none) and the reset line.
@@ -199,10 +231,23 @@ function Goals.quests(daily: any): ({ Quest }, string)
 				done = q.done == true,
 				claimed = q.claimed == true,
 				reward = if type(q.reward) == "string" then q.reward else "",
+				boost = q.rewardKind == "boost",
 			})
 		end
 	end
 	return out, `Resets in {Format.formatDuration(math.max(0, num(daily.resetsIn)))}`
+end
+
+-- Quests in slot order, claimed ones last.
+function Goals.sortedQuests(quests: { Quest }): { Quest }
+	local copy = table.clone(quests)
+	table.sort(copy, function(a, b)
+		if a.claimed ~= b.claimed then
+			return not a.claimed
+		end
+		return a.index < b.index
+	end)
+	return copy
 end
 
 -- Open goals first (closest to done on top), finished ones last; stable.

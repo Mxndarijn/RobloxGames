@@ -109,7 +109,7 @@ local Theme = Widgets.Theme
 local Thing = {}
 
 function Thing.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "ThingPanel", "Thing", "🧪", Theme.Accent)
+	local panel = Widgets.panel(parent, "ThingPanel", "Thing", "🧪")
 	local list = Widgets.keyedList(content, keyOf, makeRow, updateRow) -- rows survive State pushes
 	local self = { frame = panel.frame, close = panel.close }
 	function self.update(state: any) list.sync(state.things) end

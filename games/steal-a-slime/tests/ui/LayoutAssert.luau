@@ -43,13 +43,16 @@ local WorldShopLogic = require("../../src/ui/WorldShopLogic")
 local GuidePanel = { TIP_H = 44 }
 local RebirthPanel = {
 	ROWS = {
-		need = { y = 0, h = 112 },
-		slime = { y = 120, h = 72 },
-		gives = { y = 200, h = 40 },
-		keeper = { y = 246, h = 22 },
+		sub = { y = 0, h = 18 },
+		need = { y = 24, h = 128 },
+		gets = { y = 158, h = 18 },
+		gives = { y = 180, h = 50 },
+		keeper = { y = 240, h = 26 },
 		button = { y = 276, h = Layout.BUTTON },
 		note = { y = 338, h = 18 },
 	},
+	CARD = { pad = 12, tick = 24 },
+	SLIME_IMAGE = 52,
 }
 local ShopPanel = { BADGE = 48, BUY_W = 110, DESC_H = 32 }
 
@@ -413,24 +416,44 @@ end
 
 -- Daily popup card texts at their longest.
 function LayoutAssert.dailyTexts(screen: Layout.Screen): { TextDesc }
-	local w = screen.daily.w
-	local tileW = (w - 24) / 7.6 - 4 -- calendar tile (weights 1 x6 + 1.6, see DailyPopup)
+	-- Mirrors DailyPopup.ROWS / TILE / CHIP_SHARE inside the shared panel frame.
+	local card = Layout.rect(0, 0, screen.daily.w, screen.daily.h)
+	local bodyW = Layout.panelBody(card).w
+	local gap, lastWeight, chipShare = 6, 1.6, 0.58
+	local unit = bodyW / (6 + lastWeight)
+	local tileW, lastW = unit - gap, unit * lastWeight - gap
+	local big = Format.formatCash(987.6e12)
 	return {
-		{ name = "Daily tile day", text = "Day 6", size = 10, w = tileW, h = 14 },
-		{ name = "Daily tile amount", text = Format.formatCash(987.6e12), size = 8, w = tileW - 4, h = 14 },
+		{ name = "Daily tile today", text = "Day 6", size = 12, bold = true, w = tileW, h = 17 },
+		{ name = "Daily tile last", text = "Day 7", size = 14, bold = true, w = lastW, h = 17 },
+		{ name = "Daily tile amount", text = big, size = 8, bold = true, w = tileW - 4, h = 16 },
+		{ name = "Daily tile amount (full size)", text = "$3.5K", size = 13, bold = true, w = tileW - 4, h = 16 },
 		{
 			name = "Daily title",
 			text = "Daily Reward",
-			size = 24,
+			size = Layout.PANEL_CHROME.titleSize,
 			bold = true,
-			w = w - 2 * (Layout.MIN_TOUCH_DESIGN + 10),
-			h = 34,
+			w = Layout.panelTitle(card).w,
+			h = Layout.PANEL_CHROME.close,
 		},
-		{ name = "Daily streak", text = "Streak: 77 days", size = 16, w = w, h = 20 },
-		{ name = "Daily amount", text = `+{Format.formatCash(987.6e12)}`, size = 36, bold = true, w = w, h = 44 },
-		{ name = "Daily hint", text = "Come back every day to grow your streak.", size = 13, w = w, h = 18 },
-		{ name = "Daily hint claimed", text = "Come back tomorrow for the next reward.", size = 13, w = w, h = 18 },
-		{ name = "Daily claim", text = "Claimed", size = 20, bold = true, w = 200, h = Layout.BUTTON },
+		{ name = "Daily streak", text = "Streak: 77 days", size = 15, w = bodyW * (1 - chipShare) - gap, h = 26 },
+		{
+			name = "Daily streak day",
+			text = "Day 7 of your streak",
+			size = 15,
+			w = bodyW * (1 - chipShare) - gap,
+			h = 26,
+		},
+		{
+			name = "Daily tomorrow chip",
+			text = `Come back tomorrow for {big}`,
+			size = 8,
+			bold = true,
+			w = bodyW * chipShare - 20,
+			h = 26,
+		},
+		{ name = "Daily amount", text = `+{big}`, size = 40, bold = true, w = bodyW, h = 46 },
+		{ name = "Daily claim", text = "Claimed", size = 22, bold = true, w = bodyW, h = Layout.BUTTON },
 	}
 end
 
@@ -601,24 +624,41 @@ end
 function LayoutAssert.rebirthTexts(panel: Rect): { TextDesc }
 	local w = panel.w - Layout.PANEL_CHROME.pad * 2
 	local rows = RebirthPanel.ROWS
-	local chipW = w / 2 - 4
+	local c = RebirthPanel.CARD
+	local cardW = w / 2 - 4 -- two cards side by side
+	local inner = cardW - c.pad * 2
+	local nameW = cardW - (c.pad + RebirthPanel.SLIME_IMAGE + 10) - c.pad
+	local title = Layout.panelTitle(panel)
 	return {
-		{ name = "Rebirth heading", text = "TO REBIRTH 100 YOU NEED", size = 14, bold = true, w = w - 24, h = 18 },
-		{ name = "Rebirth cost", text = "💰 $987.6Qa", size = 30, bold = true, w = w - 24, h = 36 },
-		{ name = "Rebirth missing", text = "$987.6Qa / $987.6Qa · $987.6Qa more", size = 14, w = w - 24, h = 18 },
-		{ name = "Rebirth income", text = "📈 x99.5 income", size = 16, bold = true, w = chipW, h = rows.gives.h },
-		{ name = "Rebirth lock", text = "🔒 +60s lock", size = 16, bold = true, w = chipW, h = rows.gives.h },
 		{
-			name = "Rebirth button",
-			text = "♻️ Need $987.6Qa more",
-			size = 20,
+			name = "Rebirth title",
+			text = "Rebirth 50", -- the next rebirth's number, Config.MAX_REBIRTHS at most
+			size = Layout.PANEL_CHROME.titleSize,
+			bold = true,
+			w = title.w,
+			h = title.h,
+		},
+		{ name = "Rebirth sub", text = "To rebirth you need both:", size = 14, w = w, h = rows.sub.h },
+		{ name = "Rebirth slime label", text = "This slime", size = 14, w = inner - c.tick, h = 18 },
+		{ name = "Rebirth cost", text = "$987.6Qa", size = 28, bold = true, w = inner, h = 34 },
+		{ name = "Rebirth have", text = "You have $987.6Qa", size = 13, w = inner, h = 18 },
+		{ name = "Rebirth slime name", text = "Dragon King", size = 19, bold = true, w = nameW, h = 24 },
+		{ name = "Rebirth slime desc", text = "Catch or merge one first", size = 13, w = inner, h = 18 },
+		{ name = "Rebirth income", text = "x99.5", size = 22, bold = true, w = cardW, h = 26 },
+		{ name = "Rebirth lock", text = "lock time", size = 12, w = cardW, h = 16 },
+		{
+			name = "Rebirth reason",
+			text = "🔒 Get Dragon King to rebirth",
+			size = 18,
 			bold = true,
 			w = w,
 			h = rows.button.h,
 		},
+		{ name = "Rebirth need", text = "🔒 Need $987.6Qa more", size = 18, bold = true, w = w, h = rows.button.h },
+		{ name = "Rebirth button", text = "♻️ Rebirth!", size = 22, bold = true, w = w, h = rows.button.h },
 		{
 			name = "Rebirth note",
-			text = "Resets cash and slimes. Keeps ★, pads, upgrades.",
+			text = "Resets cash and slimes. Keeps ★ slimes, pads and upgrades.",
 			size = 12,
 			w = w,
 			h = rows.note.h,
@@ -640,20 +680,38 @@ function LayoutAssert.guideTexts(panel: Rect): { TextDesc }
 	return out
 end
 
--- Welcome-back rows (Panels/Welcome): longest copy the card can show, row text = card - 24 - (ICON + 32).
+-- Welcome-back card (Panels/Welcome): the away line, the gold headline and each card's name /
+-- description / amount / count at their longest. Mirrors Welcome.ROWS / CARD.
 function LayoutAssert.welcomeTexts(panel: Rect): { TextDesc }
-	local w = panel.w - Layout.PANEL_CHROME.pad * 2 - 72
-	local out: { TextDesc } = {}
-	local texts = {
-		"+999.99Qa earned while away",
-		"12 slimes grew on your pads",
-		"Daily reward ready: 999.99Qa",
-		"Collect 1000 slimes in total (999/1000)",
+	local bodyW = Layout.panelBody(panel).w
+	local textX, right, sideGap, amountW, countW = 62, 12, 8, 110, 84
+	local plainW = bodyW - textX - right
+	local big = Format.formatCash(999.99e15)
+	return {
+		{ name = "Welcome away", text = "You were away for 99d 23h and earned", size = 16, w = bodyW, h = 22 },
+		{ name = "Welcome headline", text = `+{big}`, size = 44, bold = true, w = bodyW, h = 52 },
+		{ name = "Welcome growth", text = "12 slimes grew", size = 18, bold = true, w = plainW, h = 22 },
+		{ name = "Welcome growth desc", text = "on your pads while you were gone", size = 14, w = plainW, h = 18 },
+		{ name = "Welcome streak", text = "Daily streak: 77 days", size = 18, bold = true, w = plainW, h = 22 },
+		{
+			name = "Welcome daily",
+			text = "Daily reward ready",
+			size = 18,
+			bold = true,
+			w = plainW - amountW - sideGap,
+			h = 22,
+		},
+		{ name = "Welcome daily amount", text = big, size = 20, bold = true, w = amountW, h = 24 },
+		{
+			name = "Welcome goal",
+			text = "Lock your base 1000 times",
+			size = 18,
+			bold = true,
+			w = plainW - countW - sideGap,
+			h = 22,
+		},
+		{ name = "Welcome goal count", text = "999/1000", size = 15, bold = true, w = countW, h = 22 },
 	}
-	for i, text in texts do
-		table.insert(out, { name = `Welcome row {i}`, text = text, size = 18, w = w, h = 56, wrapped = true })
-	end
-	return out
 end
 
 -- Sound card texts (Panels/Sound): the mute button in both states, the two slider names and their percent.
@@ -680,7 +738,7 @@ LayoutAssert.PANEL_TITLES = table.freeze({
 	Plot = "My Plot",
 	Merge = "Merge Vat",
 	Shop = "Shop",
-	Rebirth = "Rebirth",
+	Rebirth = "Rebirth", -- built with this; the open card shows "Rebirth 50" at most (rebirthTexts)
 	Goals = "Goals",
 	Dex = "SlimeDex",
 	Leaders = "Top Earners",

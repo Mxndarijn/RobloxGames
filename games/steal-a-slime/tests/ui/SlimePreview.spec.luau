@@ -288,7 +288,7 @@ describe("SlimeDex previews rebuild only while open", function()
 		panel.update({ dex = MORE })
 		expect(panel.builds()).toBe(1)
 		expect(cardIn(panel, "moo"):GetAttribute("Found")).toBe(false)
-		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`Species 4 / {SpeciesDex.TOTAL}`) -- header still live
+		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`Species 4/{SpeciesDex.TOTAL}`) -- header still live
 	end)
 	it("rebuilds on open when dirty (never built, or changed while closed)", function()
 		local panel = closedDex()

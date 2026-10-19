@@ -56,3 +56,72 @@ describe("Daily.shouldAutoOpen", function()
 		expect(Daily.shouldAutoOpen(nil, false)).toBe(false)
 	end)
 end)
+
+describe("Daily popup card", function()
+	local Config = require("../../src/shared/Config")
+	local Layout = require("../../src/ui/Layout")
+	local LayoutAssert = require("./LayoutAssert")
+	local UiHarness = require("./UiHarness")
+
+	local function build(): (any, { any })
+		local sent = {}
+		local ctx: any = {
+			Config = Config,
+			send = function(...)
+				table.insert(sent, { ... })
+			end,
+		}
+		return UiHarness.ui("Panels/DailyPopup").new(UiHarness.root(), ctx), sent
+	end
+	local function today(day: number): any
+		return { daily = { available = true, streak = day - 1, amount = Config.DAILY_BASE * day } }
+	end
+
+	it("uses the shared panel frame and its red X, which closes the popup", function()
+		local Widgets = UiHarness.ui("Widgets")
+		local popup = build()
+		local close = UiHarness.find(popup.frame, "Close")
+		expect(close.BackgroundColor3).toBe(Widgets.Theme.Bad)
+		popup.open()
+		UiHarness.fire(close, "Activated")
+		expect(popup.isOpen()).toBe(false)
+	end)
+	it("today is the gold tile, level with the other days; short labels between Day N and Day 7", function()
+		local Theme = UiHarness.ui("Widgets").Theme
+		local popup = build()
+		popup.update(today(1))
+		local cap = Config.DAILY_STREAK_CAP
+		local first = UiHarness.find(popup.frame, "Day1")
+		expect(first.BackgroundColor3).toBe(Theme.Gold)
+		expect(UiHarness.find(first, "DayLabel").Text).toBe("Day 1")
+		for day = 2, cap do
+			local tile = UiHarness.find(popup.frame, `Day{day}`)
+			expect(tile.BackgroundColor3).toBe(Theme.Row)
+			expect(tile.Position).toBe(first.Position)
+			expect(tile.Size.Y).toBe(first.Size.Y)
+			expect(UiHarness.find(tile, "DayLabel").Text).toBe(if day == cap then `Day {cap}` else tostring(day))
+			expect(UiHarness.find(tile, "DayAmount").TextColor3).toBe(Theme.Gold)
+		end
+	end)
+	it("shows the big amount, tomorrow's reward and sends Daily from Claim", function()
+		local popup, sent = build()
+		popup.update(today(1))
+		expect(UiHarness.find(popup.frame, "Amount").Text).toBe(`+${Config.DAILY_BASE}`)
+		expect(UiHarness.find(popup.frame, "Streak").Text).toBe("Day 1 of your streak")
+		local chip = UiHarness.find(popup.frame, "Tomorrow")
+		expect(chip.Visible).toBe(true)
+		expect(string.find(chip.Text, "Come back tomorrow for", 1, true) ~= nil).toBe(true)
+		UiHarness.fire(UiHarness.find(popup.frame, "Claim"), "Activated")
+		expect(#sent).toBe(1)
+		expect(sent[1][1]).toBe("Daily")
+	end)
+	it("fits the strip, amount and Claim in the card body at every gate viewport", function()
+		local rows = UiHarness.ui("Panels/DailyPopup").ROWS
+		for _, vp in LayoutAssert.GATE_VIEWPORTS do
+			local s = Layout.screen(vp.w, vp.h)
+			local body = Layout.panelBody(Layout.rect(0, 0, s.daily.w, s.daily.h))
+			local needed = rows.amount.y + rows.amount.h + Layout.BUTTON
+			expect(`{vp.name}: {body.h >= needed}`).toBe(`{vp.name}: true`)
+		end
+	end)
+end)

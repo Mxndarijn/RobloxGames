@@ -110,7 +110,7 @@ local function isPress(input: InputObject): boolean
 end
 
 function Sound.new(parent: Instance, controller: any)
-	local panel = Widgets.panel(parent, "SoundPanel", "Sound", Icons.SOUND_ON, Color3.fromRGB(80, 170, 230))
+	local panel = Widgets.panel(parent, "SoundPanel", "Sound", Icons.SOUND_ON)
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,

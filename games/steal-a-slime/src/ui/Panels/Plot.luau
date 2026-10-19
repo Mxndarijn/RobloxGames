@@ -1,6 +1,10 @@
 --!strict
 --[[
-	Plot panel: every slime on the plot with tier, income and sell price.
+	Plot panel: every slime on the plot with its income and sell price.
+	Top line: pads in use and income per second as two chips. Each row: a round
+	colour avatar, the name in its rarity colour (Secrets in a rainbow), income
+	in gold, the favourite's perk chip, a star toggle and, under the name line,
+	Appraise and Sell.
 	Buttons: Sell(slimeId) (hold to confirm), Favorite(slimeId) / Favorite(nil),
 	Appraise: opens a popup with the cost; Appraise(slimeId,
 	"mutation" | "size") rerolls it and the popup shows before -> after.
@@ -12,6 +16,7 @@ local Format = require(UI.Format)
 local Icons = require(UI.Icons)
 local ItemIconView = require(UI.ItemIconView)
 local ItemIcons = require(UI.ItemIcons)
+local Layout = require(UI.Layout)
 local Selection = require(UI.Selection)
 local Widgets = require(UI.Widgets)
 
@@ -20,27 +25,108 @@ local create = Widgets.create
 
 local Plot = {}
 
+-- Top line chips (design px).
+Plot.HEADER = table.freeze({
+	h = 26,
+	padsW = 132, -- "🟢 50/50 pads"; the income chip starts after it
+	gap = 8,
+	listY = 34,
+})
+
+-- One slime row (design px). Buttons sit on their own line under the name so long names fit.
+Plot.ROW = table.freeze({
+	h = 112,
+	stolenH = 62, -- no buttons while a thief carries it
+	inset = 10, -- row width = list width - inset (room for the scroll bar)
+	pad = 10,
+	avatar = 46,
+	avatarStroke = 3,
+	textX = 66,
+	nameY = 9,
+	nameH = 22,
+	nameSize = 18,
+	subY = 33,
+	subH = 18,
+	subSize = 14,
+	fav = 40,
+	favSize = 26,
+	buttonY = 58,
+	buttonH = 44,
+	appraiseW = 96,
+	sellW = 110,
+	buttonGap = 6,
+	labelSize = 16,
+	priceSize = 12,
+	chipY = 68,
+	chipH = 24,
+	chipSize = 13,
+	favTint = 0.2, -- favourite row: Row toward Gold
+	stolenTint = 0.45, -- row being stolen: Row toward Bad
+})
+
+-- Appraise popup (design px).
+Plot.POPUP = table.freeze({
+	pad = 8,
+	icon = 44,
+	titleY = 6,
+	titleSize = 18,
+	nowY = 34,
+	costY = 60,
+	beforeY = 92,
+	afterY = 118,
+	lineH = 24,
+	textSize = 15,
+	buttonY = 152,
+	buttonH = 40,
+	buttonSize = 14,
+	doneY = 200,
+	doneH = 36,
+})
+
+-- Secret names: a rainbow over near-white text (a UIGradient multiplies the text colour).
+local RAINBOW = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Theme.Bad),
+	ColorSequenceKeypoint.new(0.25, Theme.Warn),
+	ColorSequenceKeypoint.new(0.5, Theme.Gold),
+	ColorSequenceKeypoint.new(0.75, Theme.Good),
+	ColorSequenceKeypoint.new(1, Theme.Info),
+})
+
 -- Every mutation of a slime for the labels ("Glow Syrup"), or "None".
 local function mutationsText(ctx: any, list: { string }): string
 	local shown = ctx.Genome.mutationsDisplay(list)
 	return if shown == "" then "None" else shown
 end
 
-function Plot.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "PlotPanel", "My Plot", "🏠", Color3.fromRGB(70, 130, 220))
+-- A button caption with its price as a smaller second line (RichText).
+local function priced(label: string, price: number): string
+	return `{label}<br/><font size="{Plot.ROW.priceSize}">{Format.formatCash(price)}</font>`
+end
 
-	local header = Widgets.label({
-		Name = "Header",
+function Plot.new(parent: Instance, ctx: any)
+	local panel = Widgets.panel(parent, "PlotPanel", "My Plot", "🏠")
+	local head = Plot.HEADER
+	local R = Plot.ROW
+	local P = Plot.POPUP
+
+	local padsChip = Widgets.chip({
+		Name = "Pads",
 		Text = "",
-		TextColor3 = Theme.Muted,
-		Size = UDim2.new(1, 0, 0, 20),
+		Size = UDim2.fromOffset(0, head.h),
 		Parent = panel.body,
-	})
+	}, Theme.Good)
+	local incomeChip = Widgets.chip({
+		Name = "Income",
+		Text = "",
+		Position = UDim2.fromOffset(head.padsW + head.gap, 0),
+		Size = UDim2.fromOffset(0, head.h),
+		Parent = panel.body,
+	}, Theme.Gold)
 
 	local list = Widgets.scrollList({
 		Name = "List",
-		Position = UDim2.fromOffset(0, 26),
-		Size = UDim2.new(1, 0, 1, -26),
+		Position = UDim2.fromOffset(0, head.listY),
+		Size = UDim2.new(1, 0, 1, -head.listY),
 		Parent = panel.body,
 	}, 6)
 
@@ -57,39 +143,44 @@ function Plot.new(parent: Instance, ctx: any)
 	local petPerk: any = nil -- State.petPerk: the favourite's passive, shown as a chip on its row
 	local latestViews: { [string]: any } = {}
 
-	-- Appraise popup: covers the list while open.
+	-- Appraise popup: covers the list while open (ZIndexBehavior.Sibling: above the list, its sibling).
 	local popup = create("Frame", {
 		Name = "AppraisePopup",
 		Visible = false,
 		BackgroundColor3 = Theme.Bg,
 		Size = UDim2.fromScale(1, 1),
-		ZIndex = 20,
+		ZIndex = Layout.ZINDEX.Menu,
 		Parent = panel.body,
-	}, { Widgets.corner(10) })
+	}, { Widgets.corner(Widgets.KIT.rowRadius), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
 	local popupId: string? = nil
 	local function popupLabel(name: string, y: number, props: { [string]: any }?): TextLabel
 		local p = props or {}
 		p.Name = name
-		p.Size = p.Size or UDim2.new(1, -16, 0, 24)
-		p.Position = UDim2.fromOffset(8, y)
-		p.ZIndex = 21
+		p.TextSize = p.TextSize or P.textSize
+		p.Size = p.Size or UDim2.new(1, -P.pad * 2, 0, P.lineH)
+		p.Position = UDim2.fromOffset(P.pad, y)
 		p.Parent = popup
 		return Widgets.label(p)
 	end
 	ItemIconView.new({
 		Name = "AppraiseIcon",
 		Id = "Appraise",
-		Size = 44,
+		Size = P.icon,
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 0, 4),
-		ZIndex = 21,
+		Position = UDim2.new(1, -P.pad, 0, 4),
 		Parent = popup,
 	}, ItemIcons.of(ctx)).setActive(true)
-	local popupTitle = popupLabel("Title", 6, { Font = Theme.Font, TextSize = 18, Size = UDim2.new(1, -64, 0, 24) })
-	local popupNow = popupLabel("Now", 34, { TextColor3 = Theme.Muted, Size = UDim2.new(1, -64, 0, 24) })
-	local popupCost = popupLabel("Cost", 60, { TextColor3 = Theme.Gold })
-	local popupBefore = popupLabel("Before", 92, { Text = "" })
-	local popupAfter = popupLabel("After", 118, { Font = Theme.Font, Text = "" })
+	local besideIcon = -(P.pad * 2 + P.icon + 12)
+	local popupTitle = popupLabel(
+		"Title",
+		P.titleY,
+		{ Font = Theme.Font, TextSize = P.titleSize, Size = UDim2.new(1, besideIcon, 0, P.lineH) }
+	)
+	local popupNow =
+		popupLabel("Now", P.nowY, { TextColor3 = Theme.Muted, Size = UDim2.new(1, besideIcon, 0, P.lineH) })
+	local popupCost = popupLabel("Cost", P.costY, { Font = Theme.Font, TextColor3 = Theme.Gold })
+	local popupBefore = popupLabel("Before", P.beforeY, { Text = "", TextColor3 = Theme.Muted })
+	local popupAfter = popupLabel("After", P.afterY, { Font = Theme.Font, Text = "" })
 	local function popupSlime(): any?
 		local view = popupId and latestViews[popupId]
 		return view
@@ -117,10 +208,9 @@ function Plot.new(parent: Instance, ctx: any)
 		local btn = Widgets.holdButton({
 			Name = name,
 			Text = text,
-			TextSize = 14,
-			Position = UDim2.new(x, 8, 0, 152),
-			Size = UDim2.new(0.5, -12, 0, 36),
-			ZIndex = 21,
+			TextSize = P.buttonSize,
+			Position = UDim2.new(x, P.pad, 0, P.buttonY),
+			Size = UDim2.new(0.5, -(P.pad + 4), 0, P.buttonH),
 		}, color, onClick, ctx.Config.HOLD_CONFIRM_SECONDS)
 		btn.instance.Parent = popup
 		return btn
@@ -135,10 +225,9 @@ function Plot.new(parent: Instance, ctx: any)
 		{
 			Name = "Done",
 			Text = "Done",
-			TextSize = 14,
-			Position = UDim2.fromOffset(8, 196),
-			Size = UDim2.new(1, -16, 0, 32),
-			ZIndex = 21,
+			TextSize = P.buttonSize,
+			Position = UDim2.fromOffset(P.pad, P.doneY),
+			Size = UDim2.new(1, -P.pad * 2, 0, P.doneH),
 		},
 		Theme.BgLight,
 		function()
@@ -158,47 +247,51 @@ function Plot.new(parent: Instance, ctx: any)
 		popupTitle.Text = `Appraise {ctx.Genome.displayName(slime)}`
 		popupNow.Text =
 			`Mutation: {mutationsText(ctx, ctx.Genome.mutationList(slime))} · size {string.format("%.2f", slime.size)}`
-		popupCost.Text = `Cost: 💰 {Format.formatCash(view.appraiseCost or 0)} per reroll`
+		popupCost.Text = `Cost: {Format.formatCash(view.appraiseCost or 0)} per reroll`
 	end
 
 	local function makeRow(view: any)
 		local id = view.slime.id
-		local frame = create("Frame", {
+		local frame = Widgets.rowFrame({
 			Name = id,
-			Size = UDim2.new(1, -10, 0, 56),
-			BackgroundColor3 = Theme.Row,
-		}, { Widgets.corner(8) })
-		local swatch = create("Frame", {
+			Size = UDim2.new(1, -R.inset, 0, R.h),
+		})
+		local avatar = create("Frame", {
 			Name = "Swatch",
-			Size = UDim2.fromOffset(36, 36),
-			Position = UDim2.fromOffset(8, 10),
+			Size = UDim2.fromOffset(R.avatar, R.avatar),
+			Position = UDim2.fromOffset(R.pad, R.pad),
 			Parent = frame,
-		}, { Widgets.corner(18) })
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), Widgets.stroke(Theme.Ink, R.avatarStroke) })
+		Widgets.shade(avatar)
+		local textW = -(R.textX + R.pad + R.fav + 8)
 		local name = Widgets.label({
 			Name = "SlimeName",
 			Font = Theme.Font,
-			Size = UDim2.new(1, -330, 0, 20),
-			Position = UDim2.fromOffset(52, 8),
+			TextSize = R.nameSize,
+			Size = UDim2.new(1, textW, 0, R.nameH),
+			Position = UDim2.fromOffset(R.textX, R.nameY),
 			Parent = frame,
 		})
+		local rainbow = create("UIGradient", { Name = "Rainbow", Color = RAINBOW, Enabled = false, Parent = name })
 		local sub = Widgets.label({
 			Name = "Sub",
-			TextSize = 13,
-			TextColor3 = Theme.Muted,
-			Size = UDim2.new(1, -330, 0, 18),
-			Position = UDim2.fromOffset(52, 30),
+			TextSize = R.subSize,
+			Size = UDim2.new(1, textW, 0, R.subH),
+			Position = UDim2.fromOffset(R.textX, R.subY),
 			Parent = frame,
 		})
 		local fav = Widgets.button(
 			{
 				Name = "Favorite",
-				Text = Icons.FAV_OFF,
-				TextSize = 20,
-				AnchorPoint = Vector2.new(1, 0.5),
-				Position = UDim2.new(1, -120, 0.5, 0),
-				Size = UDim2.fromOffset(40, 36),
+				Text = Icons.FAV_ON,
+				TextSize = R.favSize,
+				TextXAlignment = Enum.TextXAlignment.Center,
+				TextYAlignment = Enum.TextYAlignment.Center,
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -R.pad, 0, R.pad),
+				Size = UDim2.fromOffset(R.fav, R.fav),
 			},
-			Theme.BgLight,
+			Theme.Gold,
 			function()
 				if favoriteId == id then
 					ctx.send("Favorite", nil)
@@ -212,10 +305,11 @@ function Plot.new(parent: Instance, ctx: any)
 			{
 				Name = "Sell",
 				Text = "Sell",
-				TextSize = 13,
-				AnchorPoint = Vector2.new(1, 0.5),
-				Position = UDim2.new(1, -8, 0.5, 0),
-				Size = UDim2.fromOffset(104, 36),
+				RichText = true,
+				TextSize = R.labelSize,
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -R.pad, 0, R.buttonY),
+				Size = UDim2.fromOffset(R.sellW, R.buttonH),
 			},
 			Theme.Bad,
 			function()
@@ -228,10 +322,11 @@ function Plot.new(parent: Instance, ctx: any)
 			{
 				Name = "Appraise",
 				Text = "Appraise",
-				TextSize = 12,
-				AnchorPoint = Vector2.new(1, 0.5),
-				Position = UDim2.new(1, -166, 0.5, 0),
-				Size = UDim2.fromOffset(84, 36),
+				RichText = true,
+				TextSize = R.labelSize,
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -(R.pad + R.sellW + R.buttonGap), 0, R.buttonY),
+				Size = UDim2.fromOffset(R.appraiseW, R.buttonH),
 			},
 			Theme.Info,
 			function()
@@ -243,30 +338,23 @@ function Plot.new(parent: Instance, ctx: any)
 			end
 		)
 		appraise.instance.Parent = frame
-		-- Follow-pet perk chip ("🍀 +5% luck"), only on the favourite row (which grows to fit it).
-		local chip = create("Frame", {
+		-- Follow-pet perk chip ("🍀 +5% luck"), only on the favourite row, left of the buttons.
+		local chip = Widgets.chip({
 			Name = "PerkChip",
-			Visible = false,
-			Position = UDim2.fromOffset(52, 54),
-			Size = UDim2.fromOffset(150, 20),
-			BackgroundColor3 = Color3.fromRGB(60, 52, 24),
-			Parent = frame,
-		}, { Widgets.corner(10) })
-		local chipText = Widgets.label({
-			Name = "Text",
 			Text = "",
-			TextSize = 13,
-			TextColor3 = Theme.Gold,
-			Position = UDim2.fromOffset(8, 0),
-			Size = UDim2.new(1, -12, 1, 0),
-			Parent = chip,
-		})
+			Visible = false,
+			Font = Theme.FontBody,
+			TextSize = R.chipSize,
+			Position = UDim2.fromOffset(R.textX, R.chipY),
+			Size = UDim2.fromOffset(0, R.chipH),
+			Parent = frame,
+		}, Theme.Good)
 		return {
 			chip = chip,
-			chipText = chipText,
 			instance = frame,
-			swatch = swatch,
+			swatch = avatar,
 			name = name,
+			rainbow = rainbow,
 			sub = sub,
 			fav = fav,
 			sell = sell,
@@ -278,32 +366,41 @@ function Plot.new(parent: Instance, ctx: any)
 		local slime = view.slime
 		local rarity = ctx.Config.RARITIES[slime.tier]
 		local isFav = slime.id == favoriteId
+		local isSecret = slime.tier == ctx.Config.SECRET_TIER
+		local stolen = view.stolenBy ~= nil
 		row.swatch.BackgroundColor3 = Widgets.color3(slime.color)
-		row.name.Text = (if isFav then "★ " else "") .. ctx.Genome.displayName(slime)
-		row.name.TextColor3 = if rarity then Widgets.color3(rarity.color) else Theme.Text
-		row.fav.setText(if isFav then Icons.FAV_ON else Icons.FAV_OFF)
-		row.fav.setColor(if isFav then Theme.Gold else Theme.BgLight)
-		row.sell.setText(`💰 {Format.formatCash(view.sellPrice)}`)
-		local showChip = isFav and petPerk ~= nil
-		row.chip.Visible = showChip
-		row.instance.Size = UDim2.new(1, -10, 0, if showChip then 80 else 56)
-		if showChip then
-			row.chipText.Text = `{petPerk.icon} {petPerk.text}`
+		row.name.Text = (if isFav then `{Icons.FAV_ON} ` else "") .. ctx.Genome.displayName(slime)
+		row.name.TextColor3 = if isSecret then Theme.Text elseif rarity then Widgets.color3(rarity.color) else Theme.Text
+		row.rainbow.Enabled = isSecret
+		-- The star: gold when favourited, a sunken Ink well with a muted star when not (still pressable).
+		row.fav.setColor(if isFav then Theme.Gold else Theme.Ink)
+		if not isFav then
+			row.fav.instance.TextColor3 = Theme.Muted
+			row.fav.instance.TextStrokeTransparency = 1
 		end
-		if view.stolenBy ~= nil then
-			row.instance.BackgroundColor3 = Color3.fromRGB(120, 40, 55)
+		row.sell.setText(priced("Sell", view.sellPrice))
+		local showChip = isFav and petPerk ~= nil and not stolen
+		row.chip.Visible = showChip
+		if showChip then
+			row.chip.Text = `{petPerk.icon} {petPerk.text}`
+		end
+		row.instance.Size = UDim2.new(1, -R.inset, 0, if stolen then R.stolenH else R.h)
+		if stolen then
+			row.instance.BackgroundColor3 = Theme.Row:Lerp(Theme.Bad, R.stolenTint)
 			row.sub.Text = `🚨 {ctx.playerName(view.stolenBy)} is stealing it!`
+			row.sub.Font = Theme.Font
 			row.sub.TextColor3 = Theme.Warn
 			row.sell.instance.Visible = false
 			row.appraise.instance.Visible = false
 		else
-			row.instance.BackgroundColor3 = if isFav then Color3.fromRGB(78, 70, 40) else Theme.Row
-			row.sub.Text = `💰 {Format.formatRate(view.income)}`
-			row.sub.TextColor3 = Theme.Muted
+			row.instance.BackgroundColor3 = if isFav then Theme.Row:Lerp(Theme.Gold, R.favTint) else Theme.Row
+			row.sub.Text = Format.formatRate(view.income)
+			row.sub.Font = Theme.FontBody
+			row.sub.TextColor3 = Theme.Gold
 			row.sell.instance.Visible = true
 			row.appraise.instance.Visible = view.appraiseCost ~= nil
 			if view.appraiseCost then
-				row.appraise.setText(`Appraise\n💰 {Format.formatCash(view.appraiseCost)}`)
+				row.appraise.setText(priced("Appraise", view.appraiseCost))
 			end
 		end
 	end
@@ -325,7 +422,8 @@ function Plot.new(parent: Instance, ctx: any)
 			refreshPopup()
 		end
 		local count = #state.slimes
-		header.Text = `🟢 {count}/{state.padsUnlocked} pads · 💰 {Format.formatRate(state.incomePerSec)}`
+		padsChip.Text = `🟢 {count}/{state.padsUnlocked} pads`
+		incomeChip.Text = Format.formatRate(state.incomePerSec)
 		empty.Visible = count == 0
 		rows.sync(Selection.sorted(state.slimes, favoriteId))
 	end

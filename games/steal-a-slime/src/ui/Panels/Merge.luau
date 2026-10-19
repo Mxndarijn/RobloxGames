@@ -65,7 +65,7 @@ local Merge = {}
 function Merge.new(parent: Instance, ctx: any)
 	local Config = ctx.Config
 	local Genome = ctx.Genome
-	local panel = Widgets.panel(parent, "MergePanel", "Merge Vat", "🧪", Theme.Good)
+	local panel = Widgets.panel(parent, "MergePanel", "Merge Vat", "🧪")
 	local body = panel.body
 
 	local function rarity(tier: number): any

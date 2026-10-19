@@ -10,28 +10,26 @@ local Layout = require(script.Parent.Layout)
 
 local Widgets = {}
 
+-- The HUD's palette (Hud money block) for every panel: ink outlines, deep purple plates, gold money.
+-- Button colours carry meaning: Gold collects a reward, Good spends cash, Info is a side action, Bad sells
+-- or closes. Something you can't press yet is a sunken Ink well (Widgets.status / a disabled button).
 Widgets.Theme = table.freeze({
-	Bg = Color3.fromRGB(28, 30, 44),
-	BgLight = Color3.fromRGB(44, 47, 66),
-	Row = Color3.fromRGB(52, 56, 78),
-	Text = Color3.fromRGB(240, 242, 255),
-	Muted = Color3.fromRGB(165, 170, 200),
-	Accent = Color3.fromRGB(110, 230, 140),
-	Good = Color3.fromRGB(80, 200, 120),
-	Bad = Color3.fromRGB(230, 70, 90),
-	Info = Color3.fromRGB(80, 150, 240),
+	Ink = Color3.fromRGB(30, 18, 51), -- every outline, dark text on bright buttons, sunken wells
+	Bg = Color3.fromRGB(43, 27, 77), -- panel body
+	Row = Color3.fromRGB(59, 36, 102), -- rows and cards
+	BgLight = Color3.fromRGB(76, 48, 130), -- highlighted rows, the header band's bottom
+	Band = Color3.fromRGB(98, 68, 174), -- the header band's top, the corner icon tile
+	Text = Color3.fromRGB(246, 241, 255),
+	Muted = Color3.fromRGB(184, 166, 227),
+	Accent = Color3.fromRGB(126, 217, 87),
+	Good = Color3.fromRGB(126, 217, 87),
+	Bad = Color3.fromRGB(238, 79, 99),
+	Info = Color3.fromRGB(169, 139, 240),
 	Warn = Color3.fromRGB(255, 190, 60),
-	Disabled = Color3.fromRGB(80, 82, 100),
-	Gold = Color3.fromRGB(255, 205, 70),
-	-- The two in-world shops each wear their own colours (Panels/WorldShop): green market vs blue workshop.
-	ItemShop = Color3.fromRGB(70, 170, 95),
-	ItemShopBg = Color3.fromRGB(30, 42, 34),
-	ItemShopRow = Color3.fromRGB(50, 70, 56),
-	UpgradeShop = Color3.fromRGB(95, 125, 240),
-	UpgradeShopBg = Color3.fromRGB(26, 30, 60),
-	UpgradeShopRow = Color3.fromRGB(46, 54, 100),
-	Font = Enum.Font.GothamBold,
-	FontBody = Enum.Font.Gotham,
+	Disabled = Color3.fromRGB(30, 18, 51),
+	Gold = Color3.fromRGB(255, 217, 59),
+	Font = Enum.Font.FredokaOne,
+	FontBody = Enum.Font.GothamMedium,
 })
 
 local Theme = Widgets.Theme
@@ -76,7 +74,7 @@ end
 
 function Widgets.stroke(color: Color3?, thickness: number?): UIStroke
 	return create("UIStroke", {
-		Color = color or Color3.new(0, 0, 0),
+		Color = color or Theme.Ink,
 		Thickness = thickness or 2,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
@@ -115,22 +113,66 @@ export type Button = {
 	setColor: (color: Color3) -> (),
 }
 
--- A rounded TextButton. Clicks while disabled are ignored.
+-- Chunky sizes shared by every panel part (design px).
+Widgets.KIT = table.freeze({
+	stroke = 3, -- ink outline on buttons, the panel and its tiles
+	rowStroke = 2, -- ink outline on rows and cards
+	radius = 13, -- buttons, wells, icon tiles
+	rowRadius = 15,
+	shadeBottom = 0.8, -- a button's bottom brightness under its top (the HUD chips' lip)
+})
+
+-- A top-light to bottom-dark UIGradient (the HUD chips' depth). A UIGradient multiplies the frame's own
+-- colour, so the stops are grey brightness factors.
+function Widgets.shade(parent: Instance, bottom: number?)
+	local b = bottom or Widgets.KIT.shadeBottom
+	create("UIGradient", {
+		Name = "Shade",
+		Rotation = 90,
+		Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.new(b, b, b)),
+		Parent = parent,
+	})
+end
+
+-- True for fills bright enough to carry Ink text (gold, green, lilac); dark or saturated fills (red) get
+-- white text with an ink stroke.
+function Widgets.isBright(color: Color3): boolean
+	return 0.299 * color.R + 0.587 * color.G + 0.114 * color.B > 0.55
+end
+
+-- Text colours for a label on `fill`.
+function Widgets.inkOn(label: TextLabel | TextButton, fill: Color3)
+	if Widgets.isBright(fill) then
+		label.TextColor3 = Theme.Ink
+		label.TextStrokeTransparency = 1
+	else
+		label.TextColor3 = Theme.Text
+		label.TextStrokeColor3 = Theme.Ink
+		label.TextStrokeTransparency = 0
+	end
+end
+
+-- A chunky TextButton: fill, ink outline, a darker bottom. Disabled it turns into a sunken Ink well with
+-- muted text and no outline, so it never reads as pressable. Clicks while disabled are ignored.
 function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () -> ()): Button
+	local kit = Widgets.KIT
 	local baseColor = color or Theme.Info
 	local enabled = true
 	local base = {
 		BackgroundColor3 = baseColor,
-		TextColor3 = Theme.Text,
 		Font = Theme.Font,
-		TextSize = 15,
+		TextSize = 17,
 		AutoButtonColor = true,
 		Size = UDim2.fromOffset(90, 30),
 	}
 	for k, v in props do
 		base[k] = v
 	end
-	local inst = create("TextButton", base, { Widgets.corner(6) }) :: TextButton
+	local inst = create("TextButton", base, { Widgets.corner(kit.radius) }) :: TextButton
+	local stroke = Widgets.stroke(Theme.Ink, kit.stroke)
+	stroke.Parent = inst
+	Widgets.shade(inst)
+	Widgets.inkOn(inst, baseColor)
 	inst.Activated:Connect(function()
 		if enabled then
 			onClick()
@@ -138,22 +180,85 @@ function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () ->
 	end)
 	local self = {} :: Button
 	self.instance = inst
+	local function paint()
+		inst.AutoButtonColor = enabled
+		inst.BackgroundColor3 = if enabled then baseColor else Theme.Disabled
+		stroke.Transparency = if enabled then 0 else 1
+		if enabled then
+			Widgets.inkOn(inst, baseColor)
+		else
+			inst.TextColor3 = Theme.Muted
+			inst.TextStrokeTransparency = 1
+		end
+	end
 	function self.setEnabled(value: boolean)
 		enabled = value
-		inst.AutoButtonColor = value
-		inst.BackgroundColor3 = if value then baseColor else Theme.Disabled
-		inst.TextTransparency = if value then 0 else 0.35
+		paint()
 	end
 	function self.setText(text: string)
 		inst.Text = text
 	end
 	function self.setColor(c: Color3)
 		baseColor = c
-		if enabled then
-			inst.BackgroundColor3 = c
-		end
+		paint()
 	end
 	return self
+end
+
+-- A sunken Ink well holding a state, not an action ("✓ Owned", "🔒 Rebirth 12", "Max"). Never pressable.
+function Widgets.status(props: { [string]: any }): TextLabel
+	local base = {
+		Name = "Status",
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Theme.Ink,
+		Font = Theme.Font,
+		TextSize = 15,
+		TextColor3 = Theme.Muted,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextTruncate = Enum.TextTruncate.None,
+		TextWrapped = true,
+	}
+	for k, v in props do
+		base[k] = v
+	end
+	local label = Widgets.label(base)
+	Widgets.corner(Widgets.KIT.radius).Parent = label
+	return label
+end
+
+-- A small Ink pill for a fact in a panel's top line ("3/8 pads", "$4.66B", "Resets in 3:05").
+function Widgets.chip(props: { [string]: any }, color: Color3?): TextLabel
+	local base = {
+		Name = "Chip",
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Theme.Ink,
+		Font = Theme.Font,
+		TextSize = 15,
+		TextColor3 = color or Theme.Text,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		TextTruncate = Enum.TextTruncate.None,
+		AutomaticSize = Enum.AutomaticSize.X,
+		Size = UDim2.fromOffset(0, 26),
+	}
+	for k, v in props do
+		base[k] = v
+	end
+	local label = Widgets.label(base)
+	create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = label })
+	create("UIPadding", { PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = label })
+	return label
+end
+
+-- A list row or card: Row fill, rounded, thin ink outline.
+function Widgets.rowFrame(props: { [string]: any }): Frame
+	local base = { BackgroundColor3 = Theme.Row, BorderSizePixel = 0 }
+	for k, v in props do
+		base[k] = v
+	end
+	return create("Frame", base, {
+		Widgets.corner(Widgets.KIT.rowRadius),
+		Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke),
+	}) :: Frame
 end
 
 -- Hold progress 0..1 (pure; HoldButton drives it from os.clock).
@@ -199,7 +304,7 @@ function Widgets.holdButton(props: { [string]: any }, color: Color3?, onConfirm:
 		ZIndex = inst.ZIndex + 1,
 		Active = false,
 		Parent = inst,
-	}, { Widgets.corner(6) })
+	}, { Widgets.corner(Widgets.KIT.radius) })
 	local enabled = true
 	local startedAt: number? = nil
 	local conn: RBXScriptConnection? = nil
@@ -269,13 +374,16 @@ end
 
 export type Panel = { frame: Frame, body: Frame, title: TextLabel, close: TextButton, icon: TextLabel }
 
--- A menu card (Layout.PANEL_CHROME): a coloured title band with the menu's
--- emoji `icon`, the title and a close "X" top-right; `body` fills the area
--- under them. init.client sizes the frame (Layout.panelFor) over the dimmed
--- backdrop and wires `close` to setOpen(nil).
-function Widgets.panel(parent: Instance, name: string, titleText: string, icon: string?, color: Color3?): Panel
+-- A menu card (Layout.PANEL_CHROME), the same frame for every menu: a purple
+-- header band with an ink rule under it, the menu's `icon` on a nav-style tile
+-- poking up over the top-left corner, the title in chunky stroked type and the
+-- red close "X" top-right; `body` fills the area under them. init.client sizes
+-- the frame (Layout.panelFor) over the dimmed backdrop and wires `close` to
+-- setOpen(nil).
+function Widgets.panel(parent: Instance, name: string, titleText: string, icon: string?): Panel
 	local c = Layout.PANEL_CHROME
-	local accent = color or Theme.Info
+	local kit = Widgets.KIT
+	local radius = 20
 	local frame = create("Frame", {
 		Name = name,
 		Visible = false, -- shown only by setOpen / the menu manager
@@ -284,38 +392,62 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		BackgroundTransparency = 0,
 		ZIndex = Layout.ZINDEX.Menu,
 		Parent = parent,
-	}, { Widgets.corner(18), Widgets.stroke(Color3.fromRGB(10, 10, 20), 3) })
-	create("Frame", {
+	}, { Widgets.corner(radius), Widgets.stroke(Theme.Ink, kit.stroke) })
+	-- The band: rounded on top, square at the bottom (a second, unrounded strip covers the lower corners).
+	local bandH = c.header - kit.stroke
+	local bandShade = 0.78 -- the band's bottom brightness; the square foot strip matches it
+	local band = create("Frame", {
 		Name = "Band",
 		BorderSizePixel = 0,
-		BackgroundColor3 = accent,
-		Size = UDim2.new(1, 0, 0, c.header - 4),
+		BackgroundColor3 = Theme.Band,
+		Size = UDim2.new(1, 0, 0, bandH),
 		Parent = frame,
-	}, {
-		Widgets.corner(18),
-		create("UIGradient", {
-			Rotation = 90,
-			Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(190, 190, 190)),
-		}),
+	}, { Widgets.corner(radius) })
+	Widgets.shade(band, bandShade)
+	create("Frame", {
+		Name = "BandFoot",
+		BorderSizePixel = 0,
+		BackgroundColor3 = Theme.Band:Lerp(Color3.new(0, 0, 0), 1 - bandShade),
+		Size = UDim2.new(1, 0, 0, radius),
+		Position = UDim2.fromOffset(0, bandH - radius),
+		Parent = frame,
 	})
+	create("Frame", {
+		Name = "BandRule",
+		BorderSizePixel = 0,
+		BackgroundColor3 = Theme.Ink,
+		Size = UDim2.new(1, 0, 0, kit.stroke),
+		Position = UDim2.fromOffset(0, bandH),
+		Parent = frame,
+	})
+	local tile = create("Frame", {
+		Name = "IconTile",
+		BackgroundColor3 = Theme.Band,
+		Size = UDim2.fromOffset(c.icon, c.icon),
+		Position = UDim2.fromOffset(c.pad, -c.iconRise),
+		Parent = frame,
+	}, { Widgets.corner(17), Widgets.stroke(Theme.Ink, kit.stroke) })
+	Widgets.shade(tile)
 	local iconLabel = Widgets.label({
 		Name = "Icon",
 		Text = icon or "",
-		TextSize = 28,
+		TextSize = c.iconSize,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.fromOffset(c.icon, c.close),
-		Position = UDim2.fromOffset(c.pad, c.closeInset),
-		Parent = frame,
+		Size = UDim2.fromScale(1, 1),
+		Parent = tile,
 	})
+	local titleX = c.pad + c.icon + 10
 	local title = Widgets.label({
 		Name = "Title",
 		Text = titleText,
 		Font = Theme.Font,
 		TextSize = c.titleSize,
-		TextStrokeTransparency = 0.4,
-		Size = UDim2.new(1, -(c.pad + c.icon + 6 + c.close + c.closeInset * 2), 0, c.close),
-		Position = UDim2.fromOffset(c.pad + c.icon + 6, c.closeInset),
+		TextColor3 = Theme.Text,
+		TextStrokeColor3 = Theme.Ink,
+		TextStrokeTransparency = 0,
+		Size = UDim2.new(1, -(titleX + c.close + c.closeInset * 2), 0, c.close),
+		Position = UDim2.fromOffset(titleX, c.closeInset),
 		Parent = frame,
 	})
 	local close = create("TextButton", {
@@ -324,6 +456,8 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		Font = Theme.Font,
 		TextSize = 24,
 		TextColor3 = Theme.Text,
+		TextStrokeColor3 = Theme.Ink,
+		TextStrokeTransparency = 0,
 		BackgroundColor3 = Theme.Bad,
 		AutoButtonColor = true,
 		AnchorPoint = Vector2.new(1, 0),
@@ -331,7 +465,8 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 		Size = UDim2.fromOffset(c.close, c.close),
 		ZIndex = 2,
 		Parent = frame,
-	}, { Widgets.corner(12), Widgets.stroke(Color3.fromRGB(90, 20, 30), 2) }) :: TextButton
+	}, { Widgets.corner(kit.radius), Widgets.stroke(Theme.Ink, kit.stroke) }) :: TextButton
+	Widgets.shade(close)
 	local body = create("Frame", {
 		Name = "Body",
 		BackgroundTransparency = 1,
@@ -342,8 +477,8 @@ function Widgets.panel(parent: Instance, name: string, titleText: string, icon: 
 	return { frame = frame, body = body, title = title, close = close, icon = iconLabel }
 end
 
--- A round emoji badge (shop items, rebirth rewards, goals): `size` square,
--- `color` fill.
+-- An emoji icon tile (shop items, rebirth rewards, goals): `size` square,
+-- `color` fill, rounded with a thin ink outline.
 function Widgets.iconBadge(props: { [string]: any }, icon: string, color: Color3, size: number): TextLabel
 	local base = {
 		Name = "Icon",
@@ -359,7 +494,8 @@ function Widgets.iconBadge(props: { [string]: any }, icon: string, color: Color3
 		base[k] = v
 	end
 	local badge = Widgets.label(base)
-	Widgets.corner(math.floor(size / 2)).Parent = badge
+	Widgets.corner(Widgets.KIT.radius).Parent = badge
+	Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke).Parent = badge
 	return badge
 end
 
@@ -451,22 +587,39 @@ function Widgets.contentHeight(body: Instance): number
 	return top + bottomReserve
 end
 
--- A horizontal progress bar; returns the frame and a setter (0..1).
+-- A horizontal progress bar: a rounded Ink track with the shaded fill inset 2 px. Returns the track and a
+-- setter (0..1); an empty bar hides its fill so no sliver of colour shows.
 function Widgets.bar(parent: Instance, color: Color3, size: UDim2, position: UDim2?): (Frame, (number) -> ())
 	local back = create("Frame", {
 		Size = size,
 		Position = position or UDim2.new(),
-		BackgroundColor3 = Theme.BgLight,
+		BackgroundColor3 = Theme.Ink,
+		BorderSizePixel = 0,
 		Parent = parent,
-	}, { Widgets.corner(4) })
+	}, {
+		create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+		create("UIPadding", {
+			PaddingTop = UDim.new(0, 2),
+			PaddingBottom = UDim.new(0, 2),
+			PaddingLeft = UDim.new(0, 2),
+			PaddingRight = UDim.new(0, 2),
+		}),
+	})
 	local fill = create("Frame", {
+		Name = "Fill",
 		Size = UDim2.fromScale(0, 1),
 		BackgroundColor3 = color,
+		BorderSizePixel = 0,
+		Visible = false,
 		Parent = back,
-	}, { Widgets.corner(4) })
-	return back, function(alpha: number)
-		fill.Size = UDim2.fromScale(math.clamp(alpha, 0, 1), 1)
-	end
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	Widgets.shade(fill, 0.78)
+	return back,
+		function(alpha: number)
+			local a = math.clamp(alpha, 0, 1)
+			fill.Size = UDim2.fromScale(a, 1)
+			fill.Visible = a > 0
+		end
 end
 
 function Widgets.color3(rgb: { number }?): Color3

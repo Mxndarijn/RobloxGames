@@ -192,13 +192,13 @@ end
 
 describe("SlimeDex header", function()
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
-		it(`{vp.name}: counts, bar, reward line and list do not overlap`, function()
+		it(`{vp.name}: percent, chips and list do not overlap`, function()
 			local panel = openDex(vp.w, vp.h, DEX, {
 				dexRewards = { { ladder = "species", count = 8, reward = 1000, bonus = 0.02, claimed = false } },
 			})
 			local check = LayoutAssert.new(vp.name, Layout.screen(vp.w, vp.h))
 			local shown = {}
-			for _, name in { "Count", "Caption", "Rewards", "List" } do
+			for _, name in { "Percent", "Count", "Caption", "Secrets", "GoldStamps", "List" } do
 				local item = UiHarness.find(panel.frame, name)
 				if item.Visible then
 					table.insert(shown, { name, item })
@@ -214,7 +214,7 @@ describe("SlimeDex header", function()
 		end)
 	end
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
-		it(`{vp.name}: the milestone bar card is the first list row and its parts stay inside it`, function()
+		it(`{vp.name}: the reward card is the first list row and its parts stack inside it`, function()
 			local panel = openDex(vp.w, vp.h, DEX, {
 				dexRewards = {
 					{ ladder = "species", count = 1, reward = 1000, bonus = 0.02, claimed = true },
@@ -224,15 +224,27 @@ describe("SlimeDex header", function()
 			})
 			local card = UiHarness.find(panel.frame, "Milestones")
 			expect(card.Visible).toBe(true)
-			expect(UiHarness.find(card, "MilestoneCount").Text).toBe("Next reward: 1 / 8 species")
-			expect(UiHarness.find(card, "MilestoneTicks").Text).toBe("✅1  8")
-			expect(UiHarness.find(card, "Icon") ~= nil).toBe(true)
+			local list = UiHarness.find(panel.frame, "List")
+			for _, row in list:GetChildren() do
+				if row ~= card and row:IsA("GuiObject") and row.Visible then
+					expect(card.LayoutOrder < row.LayoutOrder).toBe(true)
+				end
+			end
+			expect(UiHarness.find(card, "MilestoneCount").Text).toBe("Next reward at 8 species")
+			expect(UiHarness.find(card, "MilestoneReward").Text).toBe("+$2.5K and +3% income")
+			local ticks = UiHarness.find(card, "MilestoneTicks")
+			expect(UiHarness.find(ticks, "Tick1"):GetAttribute("Claimed")).toBe(true)
+			expect(UiHarness.find(ticks, "Tick8"):GetAttribute("Next")).toBe(true)
+			expect(UiHarness.find(card, "MilestoneAlso").Text).toBe("Also: 50 stamps for +$2.5K, +3% income")
 			expect(UiHarness.find(card, "MilestoneBar") ~= nil).toBe(true)
 			local check = LayoutAssert.new(vp.name, Layout.screen(vp.w, vp.h))
-			for _, name in { "Icon", "MilestoneCount", "MilestoneBar", "MilestoneTicks" } do
+			local above = 0
+			for _, name in { "MilestoneCount", "MilestoneReward", "MilestoneBar", "MilestoneTicks", "MilestoneAlso" } do
 				local part = UiHarness.find(card, name)
 				local y = part.Position.Y.Offset + part.Size.Y.Offset
 				expect(y <= card.Size.Y.Offset).toBe(true)
+				expect(part.Position.Y.Offset >= above).toBe(true) -- stacked, no overlap
+				above = y
 			end
 			expect(#check.problems).toBe(0)
 		end)

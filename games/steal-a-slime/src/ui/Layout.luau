@@ -648,8 +648,10 @@ Layout.PANEL_CHROME = table.freeze({
 	pad = 12,
 	close = Layout.MIN_TOUCH_DESIGN,
 	closeInset = 6,
-	titleSize = 22,
-	icon = 36, -- emoji icon left of the title
+	titleSize = 26,
+	icon = 60, -- the corner icon tile left of the title (a copy of the nav tile)
+	iconRise = 12, -- how far the tile pokes up above the card's top edge
+	iconSize = 32, -- the emoji on that tile
 	header = Layout.MIN_TOUCH_DESIGN + 12, -- closeInset above and below the X
 })
 

@@ -130,7 +130,7 @@ describe("text that must not be cut off (v15 playtest)", function()
 	it("the rebirth card scrolls a fixed canvas when the card is shorter than it (v28)", function()
 		local src = read("src/ui/Panels/Rebirth.luau")
 		expect(has(src, "CanvasSize = UDim2.fromOffset(0, Rebirth.CONTENT_H)")).toBe(true)
-		expect(has(src, "Keeps ★, pads, upgrades.")).toBe(true) -- one line (LayoutAssert.rebirthTexts)
+		expect(has(src, "Keeps ★ slimes, pads and upgrades.")).toBe(true) -- one line (LayoutAssert.rebirthTexts)
 	end)
 end)
 

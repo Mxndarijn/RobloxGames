@@ -82,18 +82,52 @@ function InventoryLayout.bar(zone: Rect, items: number, compact: boolean, minTou
 	return { rect = { x = x, y = y, w = w, h = h }, slots = slots, bag = bag, shown = shown }
 end
 
--- Inventory panel grid: cells per row for a body `width` and the canvas height for `count` items.
-InventoryLayout.CELL = table.freeze({ w = 96, h = 104, gap = 8, icon = 56 })
+-- Inventory panel: a top line (hint and item count) over a grid of square cells, `columns` per row (4 on a wide
+-- body, 3 below `wideMin`), each at most `max` px. The grid shows at least `minRows` rows and always whole
+-- rows: the cells after the items are empty slots, so the card never shows a blank area.
+InventoryLayout.CELL = table.freeze({
+	gap = 10,
+	max = 116,
+	wideMin = 480,
+	wideColumns = 4,
+	narrowColumns = 3,
+	minRows = 2,
+	inset = 8, -- picture inset from the cell's top and sides
+	name = 18, -- name line under the picture
+	top = 28, -- the top line
+	topGap = 10, -- between the top line and the grid
+})
 
 function InventoryLayout.columns(bodyWidth: number): number
 	local c = InventoryLayout.CELL
-	return math.max(1, math.floor((bodyWidth + c.gap) / (c.w + c.gap)))
+	return if bodyWidth >= c.wideMin then c.wideColumns else c.narrowColumns
 end
 
-function InventoryLayout.gridHeight(count: number, bodyWidth: number): number
+-- Cell edge for a body `width`: the columns fill it, capped at CELL.max.
+function InventoryLayout.cellSize(bodyWidth: number): number
 	local c = InventoryLayout.CELL
-	local rows = math.ceil(count / InventoryLayout.columns(bodyWidth))
-	return if rows <= 0 then 0 else rows * c.h + (rows - 1) * c.gap
+	local cols = InventoryLayout.columns(bodyWidth)
+	return math.max(1, math.min(c.max, math.floor((bodyWidth - (cols - 1) * c.gap) / cols)))
+end
+
+-- Cells drawn for `count` items: whole rows, at least CELL.minRows of them.
+function InventoryLayout.slotCount(count: number, bodyWidth: number): number
+	local cols = InventoryLayout.columns(bodyWidth)
+	return math.max(InventoryLayout.CELL.minRows, math.ceil(count / cols)) * cols
+end
+
+-- Height of `cells` cells laid out in rows.
+function InventoryLayout.gridHeight(cells: number, bodyWidth: number): number
+	local c = InventoryLayout.CELL
+	local rows = math.ceil(cells / InventoryLayout.columns(bodyWidth))
+	local size = InventoryLayout.cellSize(bodyWidth)
+	return if rows <= 0 then 0 else rows * size + (rows - 1) * c.gap
+end
+
+-- Body content height for `count` items: the top line, its gap and the grid with its empty slots.
+function InventoryLayout.contentHeight(count: number, bodyWidth: number): number
+	local c = InventoryLayout.CELL
+	return c.top + c.topGap + InventoryLayout.gridHeight(InventoryLayout.slotCount(count, bodyWidth), bodyWidth)
 end
 
 return table.freeze(InventoryLayout)

@@ -30,8 +30,12 @@ export type Item = {
 -- Server-provided per-item status (expected `State.shop[id]`).
 export type ItemStatus = { price: number?, level: number?, maxLevel: number?, owned: boolean? }
 
+-- What a row's right side shows: a Buy button ("buy", also while unaffordable) or a state.
+export type Status = "buy" | "locked" | "maxed" | "owned" | "soldOut" | "unavailable"
+
 export type ItemView = {
 	item: Item,
+	status: Status,
 	icon: string,
 	description: string,
 	price: number?,
@@ -41,6 +45,9 @@ export type ItemView = {
 	buttonText: string,
 	levelText: string?,
 	progress: number?, -- level / maxLevel (0..1) of a leveled item
+	level: number?, -- current level of a leveled item (one Upgrade Shop pip each)
+	maxLevel: number?,
+	stockText: string?, -- "2/3 left" of a restocking consumable
 }
 
 local ShopCatalog = {}
@@ -156,11 +163,14 @@ function ShopCatalog.view(item: Item, state: any, actions: { [string]: any }, co
 		description = ShopCatalog.speedCoilText(config) or description
 	end
 
+	local owned = status ~= nil and status.owned == true
 	local buttonText
+	local kind: Status = "buy"
 	if not available then
-		buttonText = "Coming soon"
+		buttonText, kind = "Coming soon", "unavailable"
 	elseif maxed then
-		buttonText = if status and status.owned then "Owned" else "Max"
+		buttonText = if owned then "Owned" else "Max"
+		kind = if owned then "owned" else "maxed"
 	elseif price then
 		buttonText = Format.formatCash(price)
 	else
@@ -169,6 +179,7 @@ function ShopCatalog.view(item: Item, state: any, actions: { [string]: any }, co
 
 	return {
 		item = item,
+		status = kind,
 		icon = item.icon,
 		description = description,
 		price = price,
@@ -184,6 +195,8 @@ function ShopCatalog.view(item: Item, state: any, actions: { [string]: any }, co
 				and maxLevel > 0
 			then math.clamp(level / maxLevel, 0, 1)
 			else nil,
+		level = if type(level) == "number" then level else nil,
+		maxLevel = if type(level) == "number" and type(maxLevel) == "number" then maxLevel else nil,
 	}
 end
 
@@ -206,12 +219,13 @@ function ShopCatalog.upgradeViews(state: any, actions: { [string]: any }): { Ite
 			local unlocked = u.unlocked ~= false
 			local price = if type(u.price) == "number" then u.price else nil
 			local buttonText
+			local kind: Status = "buy"
 			if not available then
-				buttonText = "Coming soon"
+				buttonText, kind = "Coming soon", "unavailable"
 			elseif maxed then
-				buttonText = "Max"
+				buttonText, kind = "Max", "maxed"
 			elseif not unlocked then
-				buttonText = `Rebirth {u.requires or "?"}`
+				buttonText, kind = `Rebirth {u.requires or "?"}`, "locked"
 			elseif price then
 				buttonText = Format.formatCash(price)
 			else
@@ -228,6 +242,7 @@ function ShopCatalog.upgradeViews(state: any, actions: { [string]: any }): { Ite
 					action = "BuyUpgrade",
 					args = { u.id },
 				},
+				status = kind,
 				icon = icon,
 				description = text,
 				price = price,
@@ -237,6 +252,8 @@ function ShopCatalog.upgradeViews(state: any, actions: { [string]: any }): { Ite
 				buttonText = buttonText,
 				levelText = `Lv {level}/{maxLevel}`,
 				progress = if maxLevel > 0 then math.clamp(level / maxLevel, 0, 1) else nil,
+				level = level,
+				maxLevel = maxLevel,
 			})
 		end
 	end
@@ -272,10 +289,11 @@ function ShopCatalog.consumableViews(state: any, actions: { [string]: any }): { 
 	for _, c in view.items do
 		local soldOut = c.left <= 0
 		local buttonText
+		local kind: Status = "buy"
 		if not available then
-			buttonText = "Coming soon"
+			buttonText, kind = "Coming soon", "unavailable"
 		elseif soldOut then
-			buttonText = "Sold out"
+			buttonText, kind = "Sold out", "soldOut"
 		else
 			buttonText = Format.formatCash(c.price)
 		end
@@ -288,6 +306,7 @@ function ShopCatalog.consumableViews(state: any, actions: { [string]: any }): { 
 				action = "BuyConsumable",
 				args = { c.id },
 			},
+			status = kind,
 			icon = c.icon,
 			description = c.text,
 			price = c.price,
@@ -296,6 +315,7 @@ function ShopCatalog.consumableViews(state: any, actions: { [string]: any }): { 
 			enabled = available and not soldOut and cash >= c.price,
 			buttonText = buttonText,
 			levelText = `{c.left}/{c.max} left`,
+			stockText = `{c.left}/{c.max} left`,
 		})
 	end
 	return out
