@@ -31,6 +31,7 @@ ForcedFlags.off = {
 	["ParadeLane: handoff to the goo drain"] = "Parade",
 	["ParadeLane: the despawn telegraph stays readable"] = "Parade",
 	["ParadeLane in the live server"] = "Parade",
+	["Carry.release + Spawner: a dropped wild slime walks back and rejoins the lane"] = "Parade",
 	["runtime part budget > boots with no server errors and spawns the parade lane and slide colliders"] = "Parade / SlideCollision",
 	["FriendBonus math"] = "FriendBonus",
 	["Friends.refresh"] = "FriendBonus",
