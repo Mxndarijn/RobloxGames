@@ -49,7 +49,7 @@ local PvpEffects = {}
 local LOOK = table.freeze({
 	popupPx = Vector2.new(140, 48), -- the BONK! / CHOMP! label
 	popupText = 34,
-	popupY = 3, -- studs above the head
+	popupY = 4, -- studs above the head (over the shield badge)
 	popupRise = 2, -- studs it floats up while fading
 	boltWidth = 0.5,
 	boltCurve = 3, -- studs of random bend at each end of the lightning
@@ -63,6 +63,10 @@ local LOOK = table.freeze({
 		{ 0.4, 0.88, 0.16 },
 		{ 0.45, -0.04, 0.12 },
 	}),
+	blobStack = 4, -- particles stacked into one goo blob
+	drops = 6, -- droplets trailing it
+	dropSpeed = 0.9, -- slowest droplet x the blob's speed
+	dropSize = 0.45, -- droplet size x the blob's
 	markerScale = 1.6, -- a placed trap's placeholder model / mesh is this much bigger than in the hand
 })
 local AXIS_TURN: { [string]: CFrame } = {
@@ -394,12 +398,19 @@ local function emitBlob(from: Vector3, to: Vector3, flight: number, spec: { size
 	emitter.Lifetime = NumberRange.new(math.max(flight, 0.05))
 	emitter.Texture = "rbxasset://textures/particles/smoke_main.dds"
 	emitter.Color = ColorSequence.new(color3(spec.color))
-	emitter.LightEmission = 0.35
+	emitter.LightEmission = 0.5
 	emitter.Size = NumberSequence.new(spec.size)
-	emitter.Transparency = NumberSequence.new(0.05)
+	emitter.Transparency = NumberSequence.new(0)
 	emitter.Parent = attachment
 	track(emitter, "emitter", flight + 0.5)
-	emitter:Emit(1)
+	emitter:Emit(LOOK.blobStack) -- stacked on one path: a solid blob
+	-- droplets trailing the blob: a little slower, so they string out behind it on the same arc
+	local drops = emitter:Clone()
+	drops.Speed = NumberRange.new(velocity.Magnitude * LOOK.dropSpeed, velocity.Magnitude)
+	drops.Size = NumberSequence.new(spec.size * LOOK.dropSize)
+	drops.Parent = attachment
+	track(drops, "emitter", flight + 0.5)
+	drops:Emit(LOOK.drops)
 end
 
 -- A word over a character's head ("BONK!") that floats up and fades.
@@ -412,7 +423,6 @@ local function popup(character: Model?, spec: { text: string, color: Logic.RGB, 
 	gui.Name = "PvpPopup"
 	gui.Size = UDim2.fromOffset(LOOK.popupPx.X, LOOK.popupPx.Y)
 	gui.StudsOffset = Vector3.new(0, LOOK.popupY, 0)
-	gui.AlwaysOnTop = true
 	gui.LightInfluence = 0
 	gui.Adornee = head :: any
 	local label = Instance.new("TextLabel")
@@ -429,7 +439,8 @@ local function popup(character: Model?, spec: { text: string, color: Logic.RGB, 
 	track(gui, "popup", spec.seconds)
 	local info = TweenInfo.new(spec.seconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	TweenService:Create(gui, info, { StudsOffset = Vector3.new(0, LOOK.popupY + LOOK.popupRise, 0) }):Play()
-	TweenService:Create(label, info, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	local fade = TweenInfo.new(spec.seconds, Enum.EasingStyle.Quint, Enum.EasingDirection.In) -- solid, then gone at the end
+	TweenService:Create(label, fade, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
 end
 
 -- Lightning from a world point to a character's root (Thunder Glove chain).
