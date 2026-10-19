@@ -1,6 +1,6 @@
 {
   "name": "pet_mount_rainbow_cloud",
-  "model": "models/pet_mount_rainbow_cloud.py",
+  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_mount_rainbow_cloud.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
   "tris": 1786,
   "meshes": [
@@ -52,8 +52,8 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "out/pet_mount_rainbow_cloud.fbx",
-  "fbx_bytes": 57804,
+  "fbx": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_rainbow_cloud.fbx",
+  "fbx_bytes": 58684,
   "engine": "cycles",
   "mode": "full",
   "look": "default",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "out/.tiles/pet_mount_rainbow_cloud_0.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_rainbow_cloud_0.png"
     },
     {
       "view": "side",
-      "path": "out/.tiles/pet_mount_rainbow_cloud_1.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_rainbow_cloud_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "out/.tiles/pet_mount_rainbow_cloud_2.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_rainbow_cloud_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "out/.tiles/pet_mount_rainbow_cloud_3.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_rainbow_cloud_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.129,
-    "stats_s": 0.003,
-    "setup_s": 0.001,
+    "model_s": 0.19,
+    "stats_s": 0.006,
+    "setup_s": 0.03,
     "render_s": [
-      1.059,
-      0.928,
-      0.833,
-      1.183
+      1.265,
+      0.95,
+      1.335,
+      1.377
     ],
-    "export_s": 0.07
+    "export_s": 0.531
   },
-  "sheet": "out/pet_mount_rainbow_cloud_sheet.png",
+  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_rainbow_cloud_sheet.png",
   "timings": {
-    "wall_s": 4.68,
-    "blender_process_s": 4.6,
-    "compose_s": 0.082,
-    "model_s": 0.129,
-    "stats_s": 0.003,
-    "setup_s": 0.001,
+    "wall_s": 8.09,
+    "blender_process_s": 8.0,
+    "compose_s": 0.089,
+    "model_s": 0.19,
+    "stats_s": 0.006,
+    "setup_s": 0.03,
     "render_s": [
-      1.059,
-      0.928,
-      0.833,
-      1.183
+      1.265,
+      0.95,
+      1.335,
+      1.377
     ],
-    "export_s": 0.07
+    "export_s": 0.531
   }
 }

@@ -1,0 +1,109 @@
+{
+  "name": "pet_mount_hoverboard",
+  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_mount_hoverboard.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1928,
+  "meshes": [
+    {
+      "name": "pet_mount_hoverboard",
+      "tris": 1928,
+      "verts": 978,
+      "ngons": 4,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        3.269,
+        1.0,
+        1.407
+      ],
+      "materials": [
+        "pet_mount_hoverboard_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pet_mount_hoverboard_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    3.269,
+    1.0,
+    1.407
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pet_mount_hoverboard_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_hoverboard.fbx",
+  "fbx_bytes": 44828,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_hoverboard_0.png"
+    },
+    {
+      "view": "side",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_hoverboard_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_hoverboard_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_hoverboard_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.157,
+    "stats_s": 0.006,
+    "setup_s": 0.028,
+    "render_s": [
+      1.876,
+      1.708,
+      1.951,
+      2.219
+    ],
+    "export_s": 0.647
+  },
+  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_hoverboard_sheet.png",
+  "timings": {
+    "wall_s": 11.41,
+    "blender_process_s": 11.32,
+    "compose_s": 0.096,
+    "model_s": 0.157,
+    "stats_s": 0.006,
+    "setup_s": 0.028,
+    "render_s": [
+      1.876,
+      1.708,
+      1.951,
+      2.219
+    ],
+    "export_s": 0.647
+  }
+}

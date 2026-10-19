@@ -18,3 +18,15 @@ Preview renders (cloud x0.9 and a tier-3 slime x0.55 on top, as FollowPets mount
 
 Smooth check: re-imported out/pet_cloud.fbx: 1800/1800 faces smooth, 0 of 902 vertices carry split normals. Colours are vertex colours (Col), no UVs/textures.
 Renders: `/workspace/roblox/renders/pet_mounts/cloud_v2_*.png`.
+
+## Cloud v3 (2026-10-19): scalloped all round, floating belly
+| round | wall | tris | size (W x H x D studs) | what changed |
+|---|---|---|---|---|
+| r08 | 3.3 s | 1800 | 3.18 x 1.225 x 2.38 | 10 rim puffs round an ellipse (big and small alternating), two belly puffs, no clamp at z = 0 (the underside rounds off), soft top measured over the centre. The rim puffs overlapped (spacing < diameter): a wavy disc. |
+| r09 | 3.2 s | 1800 | 3.35 x 1.225 x 2.63 | 8 bigger, rounder rim puffs, smaller body: lobes all the way round, rounded belly. Too deep; cream under the game sun. |
+| r10 | 4.0 s | 1798 | 3.35 x 1.225 x 2.63 | Cooler white (240, 247, 255), bluer sides, periwinkle belly on down-facing normals. |
+| r11 | 3.6 s | 1798 | 3.30 x 1.225 x 2.40 | Exact footprint fit inside `cloud_parts()` (every cloud mount gets the same 3.3 x 2.4 body). Final. |
+
+The top over the centre is exactly 1.225 and nothing rises above it: the game seats the pet on the bbox top (`PetCloud.seat`: `anchor.Size.Y / 2`).
+Before/after: `pet_cloud_v3_before_after.png` (the cloud) and `pet_mounts_clouds_v3_before_after.png` (the five cloud mounts, top row before). **Not uploaded**: the live asset (76853347194916, MeshAssets `pet_cloud`) is still v2 until an
+`upload.py --update` is OK'd; then copy the new meshId and size (3.3, 1.225, 2.4) into `uploaded.json` and `MeshAssets.luau`.

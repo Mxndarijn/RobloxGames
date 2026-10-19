@@ -412,3 +412,7 @@ MOUNTS = {
     "ufo": ufo,
     "lily_pad": lily_pad,
 }
+
+# the second set (star cushion, moon, mushroom, pancakes, jelly, hoverboard, clam shell, royal cushion)
+from models._pet_mounts_extra import EXTRA, NOFIT  # noqa: E402
+MOUNTS.update(EXTRA)

@@ -1,6 +1,6 @@
 {
   "name": "pet_mount_flame_cloud",
-  "model": "models/pet_mount_flame_cloud.py",
+  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_mount_flame_cloud.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
   "tris": 1800,
   "meshes": [
@@ -12,7 +12,7 @@
       "non_manifold_edges": 0,
       "size_studs": [
         3.3,
-        1.552,
+        1.53,
         2.4
       ],
       "materials": [
@@ -33,7 +33,7 @@
   "mesh_count": 1,
   "size_studs": [
     3.3,
-    1.552,
+    1.53,
     2.4
   ],
   "non_manifold_edges": 0,
@@ -62,102 +62,47 @@
   "tiles": [
     {
       "view": "front",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_0.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_flame_cloud_roblox_0.png"
     },
     {
       "view": "side",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_1.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_flame_cloud_roblox_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_2.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_flame_cloud_roblox_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_3.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_flame_cloud_roblox_3.png"
     }
   ],
-  "turntable": [
-    {
-      "view": "0deg",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_tt0.png"
-    },
-    {
-      "view": "45deg",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_tt1.png"
-    },
-    {
-      "view": "90deg",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_tt2.png"
-    },
-    {
-      "view": "135deg",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_tt3.png"
-    },
-    {
-      "view": "180deg",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_tt4.png"
-    },
-    {
-      "view": "225deg",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_tt5.png"
-    },
-    {
-      "view": "270deg",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_tt6.png"
-    },
-    {
-      "view": "315deg",
-      "path": "out/.tiles/pet_mount_flame_cloud_roblox_tt7.png"
-    }
-  ],
+  "turntable": [],
   "timings_blender": {
-    "model_s": 0.12,
-    "stats_s": 0.003,
-    "setup_s": 0.002,
+    "model_s": 0.151,
+    "stats_s": 0.004,
+    "setup_s": 0.02,
     "render_s": [
-      0.961,
-      1.015,
-      1.208,
-      1.347
-    ],
-    "turntable_s": [
-      1.036,
-      1.069,
-      1.131,
-      1.188,
-      1.012,
-      1.024,
-      0.862,
-      1.11
+      0.407,
+      0.282,
+      0.282,
+      0.318
     ],
     "export_s": 0.0
   },
-  "turntable_png": "out/pet_mount_flame_cloud_roblox_turntable.png",
-  "turntable_gif": "out/pet_mount_flame_cloud_roblox_turntable.gif",
-  "sheet": "out/pet_mount_flame_cloud_roblox_sheet.png",
+  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_flame_cloud_roblox_sheet.png",
   "timings": {
-    "wall_s": 14.17,
-    "blender_process_s": 13.53,
-    "compose_s": 0.632,
-    "model_s": 0.12,
-    "stats_s": 0.003,
-    "setup_s": 0.002,
+    "wall_s": 3.54,
+    "blender_process_s": 3.31,
+    "compose_s": 0.233,
+    "model_s": 0.151,
+    "stats_s": 0.004,
+    "setup_s": 0.02,
     "render_s": [
-      0.961,
-      1.015,
-      1.208,
-      1.347
-    ],
-    "turntable_s": [
-      1.036,
-      1.069,
-      1.131,
-      1.188,
-      1.012,
-      1.024,
-      0.862,
-      1.11
+      0.407,
+      0.282,
+      0.282,
+      0.318
     ],
     "export_s": 0.0
   }
