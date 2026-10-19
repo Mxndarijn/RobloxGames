@@ -9,8 +9,8 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
 | Phase | Lasts | What happens |
 |---|---|---|
 | `"warning"` | `BOSS.WARNING_SECONDS` | Server-wide Notify (heads-up) and `State.boss.phase = "warning"`. No model yet. |
-| `"fight"` | up to `BOSS.FIGHT_SECONDS` | A wild slime with `boss = true` sits at the plaza boss spot, `BOSS.SCALE` x its size, prompt disabled. Bat hits fill the goo meter. |
-| `"haul"` | up to `BOSS.HAUL_SECONDS` | The boss pops to carry size (scale 1, prompt "Grab", hold 0). Carried through `Carry` like a wild slime. |
+| `"fight"` | up to `BOSS.FIGHT_SECONDS` | A wild slime with `boss = true` wanders the boss area round the plaza boss spot (below), `BOSS.SCALE` x its size, prompt disabled. Bat hits fill the goo meter. |
+| `"haul"` | up to `BOSS.HAUL_SECONDS` | The boss stops where it stood and pops to carry size (scale 1, prompt "Grab", hold 0). Carried through `Carry` like a wild slime. |
 | `"won"` / `"failed"` | `BOSS.LINGER_SECONDS` | Result shown in `State.boss`, then the event clears. |
 
 - **Schedule (`server/BossEvent`).** The first boss arrives `BOSS.FIRST_AT` after server start, then every
@@ -25,6 +25,12 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
   seconds it drains `BOSS.DRAIN_PER_SECOND` of the target per second. Every player's points are kept (they never drain).
   Each `BOSS.SHED_EVERY` of the meter crossed for the first time sheds `BOSS.SHED_COUNT` wild slimes (luck
   `BOSS.DROP_LUCK`, outside the wild cap). The full meter starts the haul.
+- **Wander (`Shared.BossWander`, pure).** In the fight the boss walks a seeded plan of legs: a pause of
+  `BOSS.WANDER_PAUSE` (min, max) seconds, then a straight walk at `BOSS.WANDER_SPEED` to a new point of the boss area. The
+  boss area is the plaza inside the parade lane, within `BOSS.WANDER_ARC` radians either side of `BOSS.SPOT_ANGLE`:
+  its Body (radius `SLIME_BASE_DIAMETER x MAX_SIZE x BOSS.SCALE / 2`) outside the landing ring
+  (`Fountain.LANDING_RING_OUTER`), its centre at least `BOSS.WANDER_CLEARANCE` from the lane's edge
+  and the goo drain's lip. Every point of every leg is in the area. The plan starts at the boss spot, which is in the area.
 - **Hits.** The Bat (`BatTool.swing`, no remote): a carrying thief or boss carrier in reach is tried first (the slap);
   otherwise the boss in the fight phase is hit when its Body is within `BOSS.HIT_REACH` and in front (`BatRules`).
 - **Helpers.** When the meter fills, every player whose points are at least `BOSS.HELPER_SHARE` of the top
@@ -47,8 +53,9 @@ the field has none; `SaveData.cleanTrophies` keeps sanitized slimes of a boss sp
 - A trophy slime: the boss species (its name, colour and mesh), the boss tier, size `MAX_SIZE`.
 - Trophies earn income (added to `PlayerData.incomePerSecond` like a pad slime) and are not in `data.slimes`, so they
   can't be stolen, merged, sold or placed on a pad.
-- Shown on a trophy stand beside the owner's plot (server `TrophyView`, boss mesh through `SlimeMesh`), one pedestal per
-  trophy.
+- Shown inside the owner's plot on gold pedestals beside the Dex board at the back, facing the gate (server
+  `WorldView`, boss mesh through `SlimeMesh`): slot 1 left of the board, slot 2 right, slot 3 further left, each
+  `BOSS.TROPHY_GAP` apart.
 
 ## `State.boss` (`Types.BossView`, in every snapshot)
 
@@ -83,12 +90,15 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 
 `FIRST_AT INTERVAL WARNING_SECONDS RAIN_GAP SKIP_DELAY FIGHT_SECONDS HAUL_SECONDS LINGER_SECONDS PRIORITY_SECONDS
 POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT BURST_COUNT DROP_LUCK CARRY_SLOW
-SCALE SPOT_ANGLE SPOT_RADIUS HELPER_SHARE HELPER_EGGS ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK
+SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_SPEED WANDER_PAUSE WANDER_CLEARANCE HELPER_SHARE HELPER_EGGS ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK
 TROPHY_GAP`. Values live in `Config.luau` only.
 
 ## World / Scene
 
 - `world.boss: BossEvent? = { fight: BossFight.State, slimeId: string? }`, `world.bossIndex` (rotation position).
+- `Wild.wanderUntil: number?` on the boss slime: the server time the haul started (`BossEvent`); its wander pose is
+  frozen there.
 - `Scene.Entry.bossScale` (`BOSS.SCALE` in the fight phase, else nil = 1) and `promptEnabled` only in the haul phase.
-  WorldView places an undropped boss at the boss spot (`BOSS.SPOT_ANGLE` / `SPOT_RADIUS` around the fountain centre),
-  never on the parade lane or the fountain ride. The model keeps attribute `Boss = true`.
+  WorldView walks an undropped boss along its `BossWander` plan (seeded from the slime id, starting at its arrival) every
+  frame of the fight and leaves it at the pose of `wanderUntil` in the haul; never on the parade lane or the fountain
+  ride. The model keeps attribute `Boss = true`.

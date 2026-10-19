@@ -26,14 +26,17 @@ function Appraise.cost(slime: Genome.Slime, rebirths: number): number
 end
 
 function Appraise.rollSize(roll: number): number
+	local scale = 10 ^ Config.APPRAISE_SIZE_DECIMALS
 	local size = Config.MIN_SIZE + roll * (Config.MAX_SIZE - Config.MIN_SIZE)
-	return math.clamp(math.floor(size * 100 + 0.5) / 100, Config.MIN_SIZE, Config.MAX_SIZE)
+	return math.clamp(math.floor(size * scale + 0.5) / scale, Config.MIN_SIZE, Config.MAX_SIZE)
 end
 
 --[[
 	Rerolls `kind` ("size") of the owned slime `id`. Returns
 	(true, appraisal) or (false, reason). Checks ownership, kind and cash
-	before anything is spent or changed.
+	before anything is spent or changed. The appraisal carries the slime's
+	income and reroll price after the roll, the same values the next State
+	sends (Snapshot), so the client never has to estimate them.
 ]]
 function Appraise.reroll(
 	data: PlayerData.Data,
@@ -52,16 +55,20 @@ function Appraise.reroll(
 	if not PlayerData.spend(data, cost) then
 		return false, "not enough cash"
 	end
-	local appraisal: Types.Appraisal = {
-		slimeId = id,
-		kind = kind,
-		cost = cost,
-		beforeSize = slime.size,
-		afterSize = slime.size,
-	}
+	local beforeSize = slime.size
+	local incomeBefore = PlayerData.slimeIncome(data, slime)
 	slime.size = Appraise.rollSize(rng:float())
-	appraisal.afterSize = slime.size
-	return true, appraisal
+	return true,
+		{
+			slimeId = id,
+			kind = "size",
+			cost = cost,
+			beforeSize = beforeSize,
+			afterSize = slime.size,
+			incomeBefore = incomeBefore,
+			incomeAfter = PlayerData.slimeIncome(data, slime),
+			costAfter = Appraise.cost(slime, data.rebirths),
+		}
 end
 
 return table.freeze(Appraise)

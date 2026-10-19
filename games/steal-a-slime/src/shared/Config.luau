@@ -659,6 +659,7 @@ local Config = {
 
 	-- Appraise: reroll one owned slime's size
 	APPRAISE_COST_FRACTION = 0.3, -- of the slime's current value (Economy.sellPrice)
+	APPRAISE_SIZE_DECIMALS = 2, -- a rerolled size is rounded to this many decimals (Appraise.rollSize)
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = 4,
@@ -827,7 +828,7 @@ local Config = {
 		PRIORITY_SECONDS = 5, -- head start for the top contributor in the haul
 		POINTS_PER_PLAYER = 25, -- meter target = this x players on the server
 		HIT_GAP = 0.4, -- one meter point per player per this many seconds
-		HIT_REACH = 22, -- studs from the swinger's root to the boss Body (the boss is SCALE x MAX_SIZE wide)
+		HIT_REACH = 13, -- studs from the swinger's root to the boss Body (about the boss's radius at SCALE + a bat's reach)
 		DRAIN_PER_SECOND = 0.02, -- share of the target lost per second with nobody hitting
 		DRAIN_GRACE = 1, -- seconds without a hit before the drain starts
 		SHED_EVERY = 0.25, -- meter share between sheds
@@ -835,15 +836,19 @@ local Config = {
 		BURST_COUNT = 6, -- wild slimes when the boss fails
 		DROP_LUCK = 3, -- luck multiplier on shed and burst slimes
 		CARRY_SLOW = 0.6, -- carrier walks at BASE_WALK_SPEED x (1 - this)
-		SCALE = 4, -- model scale in the fight phase
-		SPOT_ANGLE = -math.pi / 2, -- boss spot around the fountain centre (radians, 0 = +X)
-		SPOT_RADIUS = 54, -- studs: between the landing ring and the parade lane
+		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
+		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
+		SPOT_RADIUS = 51, -- studs: between the landing ring and the parade lane
+		WANDER_ARC = math.rad(45), -- the boss wanders within this either side of SPOT_ANGLE (BossWander; the lane and drain fence it in)
+		WANDER_SPEED = 5, -- studs per second while it walks
+		WANDER_PAUSE = table.freeze({ 1.5, 3.5 }), -- seconds it stands still between walks (min, max)
+		WANDER_CLEARANCE = 8, -- studs from its centre to the parade lane's edge and the goo drain's lip
 		HELPER_SHARE = 0.1, -- share of the top contribution a helper needs for the egg
 		HELPER_EGGS = 1,
 		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
-		TROPHY_GAP = 12, -- studs between trophy pedestals beside the plot (a MAX_SIZE boss mesh is about 10 wide)
+		TROPHY_GAP = 12, -- studs between trophy pedestals beside the Dex board (a MAX_SIZE boss mesh is about 9 wide)
 	}),
 
 	-- Day / night (DayNight)

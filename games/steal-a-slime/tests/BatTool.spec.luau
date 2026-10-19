@@ -254,7 +254,7 @@ end)
 describe("BatTool.swing on the boss (contract/boss-event.md)", function()
 	local BossEvent = require("../src/server/BossEvent")
 	local BOSS = Config.BOSS
-	local BOSS_AT = { X = ORIGIN.X + 15, Y = 6, Z = ORIGIN.Z } -- in front, inside HIT_REACH, past SLAP_REACH
+	local BOSS_AT = { X = ORIGIN.X + (Config.SLAP_REACH + BOSS.HIT_REACH) / 2, Y = 6, Z = ORIGIN.Z } -- in front, inside HIT_REACH, past SLAP_REACH
 
 	-- Players 1 and 2 at ORIGIN and just beside it; the boss has arrived (phase "fight") at T0.
 	local function fight(): (any, any, any, PvpService.Context)
