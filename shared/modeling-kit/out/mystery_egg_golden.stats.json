@@ -1,0 +1,109 @@
+{
+  "name": "mystery_egg_golden",
+  "model": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\models\\mystery_egg_golden.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1472,
+  "meshes": [
+    {
+      "name": "mystery_egg_golden",
+      "tris": 1472,
+      "verts": 760,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        1.858,
+        2.2,
+        1.96
+      ],
+      "materials": [
+        "mystery_egg_golden_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "mystery_egg_golden_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    1.858,
+    2.2,
+    1.96
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "mystery_egg_golden_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\mystery_egg_golden.fbx",
+  "fbx_bytes": 40700,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_golden_0.png"
+    },
+    {
+      "view": "side",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_golden_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_golden_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\.tiles\\mystery_egg_golden_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.19,
+    "stats_s": 0.002,
+    "setup_s": 0.036,
+    "render_s": [
+      0.163,
+      0.143,
+      0.137,
+      0.154
+    ],
+    "export_s": 0.269
+  },
+  "sheet": "D:\\SoftwareProjects\\RobloxGames-mystery-egg\\shared\\modeling-kit\\out\\mystery_egg_golden_sheet.png",
+  "timings": {
+    "wall_s": 1.57,
+    "blender_process_s": 1.52,
+    "compose_s": 0.053,
+    "model_s": 0.19,
+    "stats_s": 0.002,
+    "setup_s": 0.036,
+    "render_s": [
+      0.163,
+      0.143,
+      0.137,
+      0.154
+    ],
+    "export_s": 0.269
+  }
+}
