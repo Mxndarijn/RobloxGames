@@ -278,7 +278,7 @@ describe("uploaded item icon images", function()
 		end
 	end)
 
-	it("ItemIconView shows the picture (Fit, transparent) with a quiet tile, and no drawn scene", function()
+	it("ItemIconView shows the picture (Fit, transparent) with no tile behind it, and no drawn scene", function()
 		ItemIconView.resetLive()
 		for _, id in { "Lock", "Dex_50", "Badge_Millionaire", "PlotSkin_classic", "Code_WELCOME" } do
 			local icon = ItemIconView.new({ Id = id, Size = 36, Parent = UiHarness.root() }, registry)
@@ -291,7 +291,8 @@ describe("uploaded item icon images", function()
 			expect(picture.BackgroundTransparency).toBe(1)
 			expect(icon.art.Visible).toBe(false)
 			expect(icon.glyph.Visible).toBe(false)
-			expect(icon.tile.BackgroundTransparency > 0.5).toBe(true)
+			expect(icon.tile.BackgroundTransparency).toBe(1)
+			expect(icon.tile:FindFirstChildOfClass("UIStroke").Transparency).toBe(1)
 			icon.destroy()
 		end
 	end)
