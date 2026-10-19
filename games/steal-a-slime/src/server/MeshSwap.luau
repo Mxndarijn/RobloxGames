@@ -35,12 +35,16 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local FountainColliders = require(script.Parent.FountainColliders)
 local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
+local PetCloud = require(ReplicatedStorage.Visuals.PetCloud)
+local Retry = require(ReplicatedStorage.Shared.Retry)
 local VatDecor = require(ReplicatedStorage.Visuals.VatDecor)
 
 local MeshSwap = {}
 
 -- Templates fetched at the same time by prefetch().
 MeshSwap.PREFETCH_WORKERS = 8
+-- Waits (seconds) between the tries of the pet cloud load: 1 try + #delays retries, then the pets keep their Mount.
+MeshSwap.PET_CLOUD_RETRY_DELAYS = { 2, 5, 15, 30, 60 }
 
 local cache: { [string]: MeshPart | false } = {}
 -- Keys whose CreateMeshPartAsync is running, with the threads waiting for it: a second ask for the same template
@@ -379,6 +383,43 @@ function MeshSwap.publishFountainTierTemplates(): number
 		end
 	end
 	return count
+end
+
+-- The follow pet's cloud as ONE template, ReplicatedStorage.PetCloudMeshes.pet_cloud (native size, decor), cloned by
+-- the client (FollowPets). A failed load is forgotten and tried again after each of PET_CLOUD_RETRY_DELAYS; pets
+-- never wait for it. Yields; returns whether the template is published.
+function MeshSwap.publishPetCloudTemplate(): boolean
+	local meshId = MeshAssets.meshId(PetCloud.MESH)
+	local entry = MeshAssets.get(PetCloud.MESH)
+	if not (meshId and entry and entry.size) then
+		return false
+	end
+	local folder = ReplicatedStorage:FindFirstChild(PetCloud.FOLDER)
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = PetCloud.FOLDER
+		folder.Parent = ReplicatedStorage
+	end
+	if (folder :: Folder):FindFirstChild(PetCloud.MESH) then
+		return true
+	end
+	local base = Retry.run(function()
+		local made = template(meshId)
+		if not made then
+			cache[meshId] = nil -- template() remembers a failure; forget it so the next try asks again
+		end
+		return made
+	end, MeshSwap.PET_CLOUD_RETRY_DELAYS, task.wait)
+	if not base then
+		warn(`[Server] MeshSwap {PetCloud.MESH}: no template after {1 + #MeshSwap.PET_CLOUD_RETRY_DELAYS} tries`)
+		return false
+	end
+	local mesh = base:Clone()
+	mesh.Name = PetCloud.MESH
+	mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+	PetCloud.decor(mesh)
+	mesh.Parent = folder
+	return true
 end
 
 -- Bug #16: every plot's MergeVat disc wears the merge_vat model (1 MeshPart per plot, child "VatMesh" of the disc),

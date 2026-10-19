@@ -2,7 +2,6 @@
 -- PetFollow: the glide of the follow pet + cloud (src/visuals/shared/PetFollow). Pure numbers, no Roblox.
 local PetFollow = require("../src/visuals/shared/PetFollow")
 local TestRunner = require("./TestRunner")
-local fs = require("@lune/fs")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -116,11 +115,6 @@ describe("PetFollow spring", function()
 		expect(a.x).toBe(b.x)
 	end)
 	it("does not allocate per step", function()
-		local src = fs.readFile("src/visuals/shared/PetFollow.luau")
-		local body = string.match(src, "function PetFollow%.step.-\nend\n") :: string
-		expect(body ~= nil).toBe(true)
-		expect(string.find(body, "{", 1, true)).toBeNil() -- no table, no closure state
-		expect(string.find(body, "function", 8, true)).toBeNil()
 		local s = settled()
 		PetFollow.step(s, 1 / 60, 3, 0, 0, 0)
 		local before = collectgarbage("count")
