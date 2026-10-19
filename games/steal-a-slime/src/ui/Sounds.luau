@@ -25,11 +25,10 @@ Sounds.IDS = table.freeze({
 	Deposit = "rbxassetid://12222152",
 	Rain = "rbxassetid://12222200",
 	Rebirth = "rbxassetid://12222225",
-	-- v13 (CONTRACT §8.6); stand-ins reusing the Rain / Cash sounds.
-	Rare = "rbxassetid://12222200",
-	Goal = "rbxassetid://12222140",
-	-- Secret spawn announcement; stand-in reusing the Rebirth fanfare.
-	Secret = "rbxassetid://12222225",
+	-- Free Creator Store sounds, each its own so the big moments don't sound like a cash ring.
+	Rare = "rbxassetid://4612374036", -- bling_big_diamond_pickup (2.0 s)
+	Goal = "rbxassetid://4612373884", -- Achievement_unlocked ding (0.2 s)
+	Secret = "rbxassetid://71491555548135", -- Skybound_Gacha_GlowUp (1.9 s)
 	-- v22 PvP feel (FEATURES.PvP, docs/PVP.md): Roblox-created public-domain library sounds.
 	PvpHit = "rbxassetid://12222046", -- hit.wav
 	PvpCollide = "rbxassetid://12221984", -- collide.wav

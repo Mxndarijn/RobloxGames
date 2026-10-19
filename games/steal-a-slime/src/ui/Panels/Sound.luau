@@ -128,7 +128,6 @@ function Sound.new(parent: Instance, controller: any)
 		Theme.Good,
 		function()
 			controller.setMuted(not controller.settings().muted)
-			controller.play("click")
 		end
 	)
 	mute.instance.Parent = content

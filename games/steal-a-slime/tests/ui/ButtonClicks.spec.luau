@@ -1,0 +1,89 @@
+--!strict
+-- Every button under the root clicks (src/ui/ButtonClicks.luau), driven through minimal mock instances.
+local ButtonClicks = require("../../src/ui/ButtonClicks")
+local TestRunner = require("../TestRunner")
+
+local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
+
+local function signal()
+	local handlers = {}
+	return {
+		Connect = function(_, fn)
+			table.insert(handlers, fn)
+			return {
+				Disconnect = function()
+					local i = table.find(handlers, fn)
+					if i then
+						table.remove(handlers, i)
+					end
+				end,
+			}
+		end,
+		Fire = function(_, ...)
+			for _, fn in table.clone(handlers) do
+				fn(...)
+			end
+		end,
+	}
+end
+
+local function instance(isButton: boolean): any
+	local self = { Activated = signal(), DescendantAdded = signal(), children = {} }
+	function self.IsA(_, cls)
+		return isButton and cls == "GuiButton"
+	end
+	function self.GetDescendants()
+		return self.children
+	end
+	return self
+end
+
+local function setup()
+	local played = {}
+	local root = instance(false)
+	local stop = ButtonClicks.start(root, function(name)
+		table.insert(played, name)
+	end)
+	return root, played, stop
+end
+
+describe("ButtonClicks", function()
+	it("clicks for buttons that exist at start", function()
+		local root = instance(false)
+		local button = instance(true)
+		table.insert(root.children, button)
+		local played = {}
+		ButtonClicks.start(root, function(name)
+			table.insert(played, name)
+		end)
+		button.Activated:Fire()
+		expect(#played).toBe(1)
+		expect(played[1]).toBe("click")
+	end)
+	it("clicks for buttons added later, once each", function()
+		local root, played = setup()
+		local button = instance(true)
+		root.DescendantAdded:Fire(button)
+		root.DescendantAdded:Fire(button)
+		button.Activated:Fire()
+		expect(#played).toBe(1)
+	end)
+	it("ignores anything that is not a button", function()
+		local root, played = setup()
+		local frame = instance(false)
+		root.DescendantAdded:Fire(frame)
+		frame.Activated:Fire()
+		expect(#played).toBe(0)
+	end)
+	it("goes quiet after cleanup", function()
+		local root, played, stop = setup()
+		local before = instance(true)
+		root.DescendantAdded:Fire(before)
+		stop()
+		before.Activated:Fire()
+		local after = instance(true)
+		root.DescendantAdded:Fire(after)
+		after.Activated:Fire()
+		expect(#played).toBe(0)
+	end)
+end)
