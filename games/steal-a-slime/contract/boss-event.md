@@ -25,12 +25,14 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
   seconds it drains `BOSS.DRAIN_PER_SECOND` of the target per second. Every player's points are kept (they never drain).
   Each `BOSS.SHED_EVERY` of the meter crossed for the first time sheds `BOSS.SHED_COUNT` wild slimes (luck
   `BOSS.DROP_LUCK`, outside the wild cap). The full meter starts the haul.
-- **Wander (`Shared.BossWander`, pure).** In the fight the boss walks a seeded plan of legs: a pause of
-  `BOSS.WANDER_PAUSE` (min, max) seconds, then a straight walk at `BOSS.WANDER_SPEED` to a new point of the boss area. The
-  boss area is the plaza inside the parade lane, within `BOSS.WANDER_ARC` radians either side of `BOSS.SPOT_ANGLE`:
-  its Body (radius `SLIME_BASE_DIAMETER x MAX_SIZE x BOSS.SCALE / 2`) outside the landing ring
-  (`Fountain.LANDING_RING_OUTER`), its centre at least `BOSS.WANDER_CLEARANCE` from the lane's edge
-  and the goo drain's lip. Every point of every leg is in the area. The plan starts at the boss spot, which is in the area.
+- **Wander (`Shared.BossWander`, pure).** In the fight the boss walks laps of one smooth loop without stopping, at
+  `BOSS.WANDER_SPEED` (it speeds up from a stand over its first second), in a direction seeded per boss. The loop is a
+  racetrack laid along the boss area's strip: two long sides half a track width either side of the strip's (smoothed)
+  middle, joined by round ends as wide as the track, so it never stops, snaps round or turns on the spot. It starts at
+  the loop point nearest the boss spot. The boss area is the plaza inside the parade lane, within `BOSS.WANDER_ARC`
+  radians either side of `BOSS.SPOT_ANGLE`: its Body (radius `SLIME_BASE_DIAMETER x MAX_SIZE x BOSS.SCALE / 2`) outside
+  the landing ring (`Fountain.LANDING_RING_OUTER`), its centre at least `BOSS.WANDER_CLEARANCE` from the lane's edge
+  and the goo drain's lip. Every point of the loop is in the area.
 - **Hits.** The Bat (`BatTool.swing`, no remote): a carrying thief or boss carrier in reach is tried first (the slap);
   otherwise the boss in the fight phase is hit when its Body is within `BOSS.HIT_REACH` and in front (`BatRules`).
 - **Helpers.** When the meter fills, every player whose points are at least `BOSS.HELPER_SHARE` of the top
@@ -90,7 +92,7 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 
 `FIRST_AT INTERVAL WARNING_SECONDS RAIN_GAP SKIP_DELAY FIGHT_SECONDS HAUL_SECONDS LINGER_SECONDS PRIORITY_SECONDS
 POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT BURST_COUNT DROP_LUCK CARRY_SLOW
-SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_SPEED WANDER_PAUSE WANDER_CLEARANCE HELPER_SHARE HELPER_EGGS ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK
+SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_SPEED WANDER_CLEARANCE HELPER_SHARE HELPER_EGGS ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK
 TROPHY_GAP`. Values live in `Config.luau` only.
 
 ## World / Scene
@@ -102,3 +104,7 @@ TROPHY_GAP`. Values live in `Config.luau` only.
   WorldView walks an undropped boss along its `BossWander` plan (seeded from the slime id, starting at its arrival) every
   frame of the fight and leaves it at the pose of `wanderUntil` in the haul; never on the parade lane or the fountain
   ride. The model keeps attribute `Boss = true`.
+- While it walks (undropped, wild) the model also carries `BossWalkSeed` (`BossWander.seed` of its id), `BossWalkAt`
+  (its arrival, server time) and `BossWalkUntil` (the haul start, nil while it fights); any other state clears them. The
+  client builds the same plan and draws the pose at `GetServerTimeNow` every frame, so the walk runs at frame rate,
+  not at replication rate.

@@ -852,8 +852,7 @@ local Config = {
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
 		SPOT_RADIUS = 51, -- studs: between the landing ring and the parade lane
 		WANDER_ARC = math.rad(45), -- the boss wanders within this either side of SPOT_ANGLE (BossWander; the lane and drain fence it in)
-		WANDER_SPEED = 5, -- studs per second while it walks
-		WANDER_PAUSE = table.freeze({ 1.5, 3.5 }), -- seconds it stands still between walks (min, max)
+		WANDER_SPEED = 4, -- studs per second: it walks the whole fight without stopping
 		WANDER_CLEARANCE = 8, -- studs from its centre to the parade lane's edge and the goo drain's lip
 		HELPER_SHARE = 0.1, -- share of the top contribution a helper needs for the egg
 		HELPER_EGGS = 1,

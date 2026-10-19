@@ -49,6 +49,9 @@ return table.freeze({
 	SPEED_COIL_ATTRIBUTE = "SpeedCoil", -- Player: true once the Speed Coil is owned
 	PET_ATTRIBUTE = "PetSlimeId", -- Player: slime id that follows them (FollowPets), nil = none
 	BOSS_ATTRIBUTE = "Boss", -- slime model: true on the wild Boss Slime
+	BOSS_WALK_SEED_ATTRIBUTE = "BossWalkSeed", -- boss model: BossWander seed of its walk (the client draws the walk)
+	BOSS_WALK_AT_ATTRIBUTE = "BossWalkAt", -- boss model: server time the walk starts (its arrival)
+	BOSS_WALK_UNTIL_ATTRIBUTE = "BossWalkUntil", -- boss model: server time the walk stopped (the haul); nil while it walks
 	-- World props (CONTRACT.md §5.3), placed by the server under workspace.Map
 	SHOP_STAND = "ShopStand", -- alias of the Item Shop while FEATURES.WorldShops is off (the single HUD-shop stand)
 	SHOP_STAND_ITEM = "ItemShopStand", -- CONTRACT.md §27.2
