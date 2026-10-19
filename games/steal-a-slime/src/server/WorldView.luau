@@ -374,14 +374,19 @@ local function followLane(id: string, key: string, wild: World.Wild)
 end
 
 -- Walks the fighting boss along its plan every frame until its record changes (the haul pops it to carry size).
-local function followBoss(id: string, key: string, plan: BossWander.Plan)
+-- Never past `wild.wanderUntil`, so it can't walk on between the haul and the next reconcile.
+local function followBoss(id: string, key: string, plan: BossWander.Plan, wild: World.Wild)
 	task.spawn(function()
 		while true do
 			local record = records[id]
 			if not record or record.key ~= key or not record.model.Parent then
 				return
 			end
-			record.model:PivotTo(bossCFrame(plan, workspace:GetServerTimeNow()))
+			local now = workspace:GetServerTimeNow()
+			record.model:PivotTo(bossCFrame(plan, if wild.wanderUntil then math.min(now, wild.wanderUntil) else now))
+			if wild.wanderUntil then
+				return
+			end
 			RunService.Heartbeat:Wait()
 		end
 	end)
@@ -541,7 +546,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 			local plan = bossPlan(entry.id, wild)
 			model:PivotTo(bossCFrame(plan, wild.wanderUntil or workspace:GetServerTimeNow()))
 			if wild.wanderUntil == nil then
-				followBoss(entry.id, entry.key, plan)
+				followBoss(entry.id, entry.key, plan, wild)
 			end
 			return true
 		end

@@ -27,7 +27,9 @@ local BOSS = Config.BOSS
 
 local BossWander = {}
 
-BossWander.INNER_RADIUS = Fountain.LANDING_RING_OUTER + 2 -- the centre stays this far out (the ring is visual only)
+-- The fighting boss's Body radius: its centre stays this far past the landing ring (visual only, but never run through).
+BossWander.BODY_RADIUS = Config.SLIME_BASE_DIAMETER * Config.MAX_SIZE * BOSS.SCALE / 2
+BossWander.INNER_RADIUS = Fountain.LANDING_RING_OUTER + BossWander.BODY_RADIUS
 BossWander.MIN_STEP = 4 -- studs: shorter walks are not worth the turn
 BossWander.MAX_STEP = 18
 BossWander.TRIES = 24 -- target picks per leg before it stays where it is for another pause
