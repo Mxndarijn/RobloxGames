@@ -14,7 +14,7 @@ Design: `docs/PVP.md`. `false` = `BuyPvpItem` refused ("PvP is not open yet"), n
 
 ## 26.4 Knockback gloves (`KnockGlove1-5`, `server/PvpKnockback`, pure `Shared.PvpKnockbackRules`)
 
-- `UsePvpItem(itemId, targetUserId, nil, charged?)`. Reach `tool.reach` (10) from the attacker's server position. A tap is a punch; `charged = true` (the client held the button at least `Config.PVP.CHARGE_SECONDS`) is a power punch: push x `CHARGE_PUSH` (1.5), cooldown x `CHARGE_COOLDOWN`. The server trusts the flag only for that trade (a longer cooldown for a longer push).
+- `UsePvpItem(itemId, targetUserId, nil, charged?)`. The client fires a glove (and the Goo Cannon) on the release of the click / tap; a touch long press counts as held. Reach `tool.reach` (10) from the attacker's server position. A tap is a punch; `charged = true` (the client held the button at least `Config.PVP.CHARGE_SECONDS`) is a power punch: push x `CHARGE_PUSH` (1.5), cooldown x `CHARGE_COOLDOWN`. The server trusts the flag only for that trade (a longer cooldown for a longer push).
 - Order: reach; a thief is caught (`catchThief`, always, also when the push is refused); the push needs `PvpRules.canControl` (then `applyControl` for `KNOCKBACK_CONTROL_SECONDS`); neither caught nor pushed = refused "target is immune" (no cooldown). The push goes through `ctx.launch` along `PvpKnockbackRules.plan`: away from the attacker, `push` studs plus the row's `arc`, capped at `KNOCKBACK_MAX_PUSH` / `KNOCKBACK_ARC_HEIGHT`, landing clamped inside `MAP_BOUNDS` minus `KNOCKBACK_BOUNDS_MARGIN`; the void guard (`Rescue.shouldRescuePvp`) stays.
 - Specials (`tool.special`): `"bonk"` (Bonk: a clean punch, clients pop a "BONK!"), `"bounce"` (Bounce: `pogo` = bounce heights, the victim's client bounces it that many times, each lower), `"boom"` (Boom: everyone else within `blastRadius` of the target is pushed `blastPush` away from it), `"thunder"` (Thunder: up to `chain` other players within `chainRange` of the target are pushed `push x chainFactor`), `"royal"` (Royal: a long push with a high `arc`, gold confetti). Every extra player hit by a blast or chain is also caught when carrying a stolen slime and skips shielded / immune players.
 - Events: `Effect { effect = "Knockback", attacker, target, itemId, special, charged, position, push, velocity, pogo?, duration }` for the punched player; a blast / chain victim gets its own `Knockback` effect with `from` = the punched player's position (`chained = true`).
@@ -39,6 +39,7 @@ Design: `docs/PVP.md`. `false` = `BuyPvpItem` refused ("PvP is not open yet"), n
 ## 26.7 New-player shield look (client, `ui/PvpShield`)
 
 - Everyone sees a shield badge (a BillboardGui over the head) on every player whose `PvpShieldUntil` is in the future.
+- The badge is a BillboardGui in the viewer's own PlayerGui (Adornee = the head), so nothing replicates.
 - The shielded player sees a `Shield` slot in the bottom-right status cluster (`HudClusters.STATUS_IDS`, `Layout.STATUS_SLOTS`) with the shield icon and the `mm:ss` left; it is the first slot, and the cluster shows at most `Layout.STATUS.count` slots.
 
 ## 26.2 The default Bat (LIVE for everyone, NOT behind `FEATURES.PvP`)
@@ -84,7 +85,7 @@ Rate limits: `BuyPvpItem` / `EquipPvpItem` 0.5 s, `UsePvpItem` 0.2 s (`Validate.
 
 Player attributes (replicated, read-only hints for other players' UI): `PvpShieldUntil` (number, server time; nil = not shielded), `PvpEquipped` (string item id; nil = none).
 
-**Runtime parts (hard constraint: zero net parts at rest).** Nothing PvP-related exists in Workspace while the flag is off or while nobody has an item equipped and nothing is placed. The exceptions are the held model of an equipped item (§26.3) and the client-only markers of placed traps / Bounce Pads, removed on `TrapCleared`. Use effects (particles, beams, the flying goo blob as a single particle, popups) are transient and destroyed within their plan's seconds. The server creates no Part for a trap, a blob, a splat or a pool. `RuntimeParts.spec` checks that a PvP-on server at rest adds 0 parts and that a use leaves 0 parts after cleanup.
+**Runtime parts (hard constraint: zero net parts at rest).** Nothing PvP-related exists in Workspace while the flag is off or while nobody has an item equipped and nothing is placed. The exceptions are the held model of an equipped item (§26.3), the client-only markers of placed traps / Bounce Pads (removed on `TrapCleared`) and the client-only flat goo splat / pool a Goo Blaster blob leaves (gone after its seconds). Use effects (particles, beams, the flying goo blob as a single particle, popups) are transient and destroyed within their plan's seconds. The server creates no Part for a trap, a blob, a splat or a pool. `RuntimeParts.spec` checks that a PvP-on server at rest adds 0 parts and that a use leaves 0 parts after cleanup.
 
 ## 26.3 Held models and use animations
 
