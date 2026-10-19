@@ -288,14 +288,25 @@ describe("SpeciesModel (the card's species mesh)", function()
 	end)
 end)
 
--- "100%" in Theme.Font (FredokaOne) is this many em wide: Studio TextBounds 116 px at 56, 60 px at 28.
-local PERCENT_EM = 2.15
+-- Widths (px) of percent texts in Theme.Font (FredokaOne), from Studio TextService:GetTextSize.
+local STUDIO_PERCENT_WIDTHS = {
+	{ "0%", 26, 33 },
+	{ "8%", 26, 32 },
+	{ "42%", 26, 46 },
+	{ "100%", 26, 56 },
+	{ "0%", 56, 68 },
+	{ "8%", 56, 66 },
+	{ "42%", 56, 96 },
+	{ "100%", 56, 116 },
+}
 
--- The percent label is at least as wide and as tall as "100%" at its text size.
+-- The percent label is at least as wide and as tall as its text, and the first chip starts after it.
 local function expectPercentFits(panel: any)
 	local percent = UiHarness.find(panel.frame, "Percent")
-	expect(percent.Size.X.Offset >= PERCENT_EM * percent.TextSize).toBe(true)
+	expect(percent.Size.X.Offset >= SlimeDex.percentWidth(percent.Text, percent.TextSize)).toBe(true)
 	expect(percent.Size.Y.Offset >= percent.TextSize).toBe(true)
+	local count = UiHarness.find(panel.frame, "Count")
+	expect(count.Position.X.Offset >= percent.Size.X.Offset).toBe(true)
 end
 
 -- Every gate and phone size, once each.
@@ -367,8 +378,27 @@ describe("SlimeDex.header (short panel bodies)", function()
 			end
 		)
 	end
+	it("percentWidth covers Studio's measured widths, at most 6 px wider", function()
+		for _, m in STUDIO_PERCENT_WIDTHS do
+			local w = SlimeDex.percentWidth(m[1], m[2])
+			expect(w >= m[3]).toBe(true)
+			expect(w <= m[3] + 6).toBe(true)
+		end
+	end)
+	it("the chips sit right after the percent text: closer at 0% than at 100%", function()
+		local low = openDex(1920, 1080, { found = 0, total = 50 })
+		local full = openDex(1920, 1080, { found = 50, total = 50 })
+		expect(UiHarness.find(low.frame, "Percent").Text).toBe("0%")
+		expect(UiHarness.find(full.frame, "Percent").Text).toBe("100%")
+		expectPercentFits(low)
+		expectPercentFits(full)
+		local lowX = UiHarness.find(low.frame, "Count").Position.X.Offset
+		local fullX = UiHarness.find(full.frame, "Count").Position.X.Offset
+		expect(lowX < fullX).toBe(true)
+		expect(lowX <= SlimeDex.percentWidth("0%", UiHarness.find(low.frame, "Percent").TextSize) + 16).toBe(true)
+	end)
 	it('a body shorter than any real screen gets the compact percent, and "100%" fits it', function()
-		local panel, r = openDex(844, 332, DEX)
+		local panel, r = openDex(844, 332, { found = 50, total = 50 })
 		local short = Layout.rect(r.x, r.y, r.w, r.h - Layout.panelBody(r).h + SHORT_BODY)
 		panel.frame.Size = UDim2.fromOffset(short.w, short.h)
 		panel.layout(short)
