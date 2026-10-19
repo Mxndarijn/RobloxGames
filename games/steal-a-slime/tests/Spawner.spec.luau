@@ -114,7 +114,7 @@ describe("Spawner Slime Rain", function()
 		Spawner.step(world, start + Config.RAIN_INTERVAL - 30)
 		expect(warnings()).toBe(2)
 	end)
-	it("spawns faster and allows a bigger crowd during rain", function()
+	it("spawns on the rain interval and allows a bigger crowd during rain", function()
 		local world = ServerFixtures.world()
 		local start = T0 + Config.RAIN_FIRST_AT
 		local t = start
@@ -128,8 +128,8 @@ describe("Spawner Slime Rain", function()
 			GameLoop.step(world, t)
 			t += 0.25
 		end
-		expect(Spawner.wildCount(world)).toBe(Fountain.wildCap(true))
-		expect(Fountain.wildCap(true) > Config.MAX_WILD_SLIMES).toBeTruthy()
+		expect(Spawner.wildCount(world) > Config.MAX_WILD_SLIMES).toBeTruthy()
+		expect(Spawner.wildCount(world) <= Fountain.wildCap(true)).toBeTruthy()
 	end)
 	it("rain drops are luckier than normal drops", function()
 		local function rareShare(raining: boolean): number

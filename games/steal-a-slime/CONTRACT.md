@@ -84,7 +84,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Spawner:** a wild slime drops every `SPAWN_INTERVAL`, up to `MAX_WILD_SLIMES` alive (`Fountain.roll`). Each lives for `WILD_LIFETIME`.
   - `FREE_DROP_CHANCE` of drops are free.
   - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab.
-  - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Spawns are a little faster, the wild cap is ×2 and luck is ×5 (`Progression.rainStatus`, `Fountain.wildCap`).
+  - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Spawns keep the normal pace, the wild cap is ×2 and luck is ×5 (`Progression.rainStatus`, `Fountain.wildCap`).
 - **Carry:** grabbing and stealing use a **ProximityPrompt** (`GrabPrompt`) that the server puts on each slime's `Body`. There is no remote for this.
   - The prompt's `ActionText` is `"Grab"`, `"Buy $<price>"` (`Economy.formatNumber`) or `"Steal"`. `ObjectText` is `Genome.displayName`.
   - Steal prompts (HoldDuration 0.4) are enabled only while the plot is unlocked. They are **hidden from the slime's owner**: the server sets the prompt attribute `HideFromUserId = <owner UserId>` (`Constants.PROMPT_HIDE_ATTRIBUTE`, §5.2) and the client hides it locally. If a client doesn't hide it, triggering it is still refused with "that's your own slime".

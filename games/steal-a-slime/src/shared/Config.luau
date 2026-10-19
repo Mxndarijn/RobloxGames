@@ -554,6 +554,7 @@ end
 -- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
 -- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
 local SLIME_MOVE_SPEED_MULT = 0.65
+local SPAWN_INTERVAL = 4 -- seconds between fountain drops; Slime Rain keeps this pace
 local RITUAL_MIN_PLAYERS = 2 -- Config.RITUAL.MIN_PLAYERS; also the number of stand spots
 local WILD_BASE_LIFETIME = 75 -- seconds at the old pace
 
@@ -662,7 +663,7 @@ local Config = {
 	APPRAISE_SIZE_DECIMALS = 2, -- a rerolled size is rounded to this many decimals (Appraise.rollSize)
 
 	-- Fountain (wild slime spawns)
-	SPAWN_INTERVAL = 4,
+	SPAWN_INTERVAL = SPAWN_INTERVAL,
 	MAX_WILD_SLIMES = 18,
 	SLIME_MOVE_SPEED_MULT = SLIME_MOVE_SPEED_MULT,
 	WILD_BASE_LIFETIME = WILD_BASE_LIFETIME,
@@ -685,8 +686,8 @@ local Config = {
 	RAIN_INTERVAL = 60 * 60, -- design: hourly
 	RAIN_FIRST_AT = 5 * 60,
 	RAIN_DURATION = 3 * 60, -- design: 3 minutes
-	-- Rain is about luck, not a flood: spawns a little faster, a bigger crowd, much better odds.
-	RAIN_SPAWN_INTERVAL = 2,
+	-- Rain is about luck, not a flood: the normal spawn pace, a bigger crowd, much better odds.
+	RAIN_SPAWN_INTERVAL = SPAWN_INTERVAL,
 	RAIN_WILD_CAP_MULT = 2, -- MAX_WILD_SLIMES x this during rain (Fountain.wildCap)
 	RAIN_LUCK = 5, -- rarity weights for tier >= 3 multiplied by this during rain
 	RAIN_WARNING_SECONDS = 60, -- everyone gets a heads-up toast this long before a rain

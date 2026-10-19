@@ -74,7 +74,7 @@ What to report for v10: shop prompt or panel purchases that don't charge / don't
 
 ### Slime Rain
 - [ ] First rain **5 min after the server starts**, then every hour, lasting 3 min. A global toast announces it; rain particles and a HUD countdown appear.
-- [ ] During rain: drops are a little faster (~every 2 s), rarer tiers are clearly more common (over half the drops are Rare or better).
+- [ ] During rain: drops keep the normal pace (~every 4 s), rarer tiers are clearly more common (over half the drops are Rare or better).
 - Tip: to see rain on demand, be first into a fresh server (or wait for the hourly one; the HUD shows the next rain time).
 
 ### Offline income

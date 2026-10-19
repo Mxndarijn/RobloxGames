@@ -26,7 +26,7 @@ Sim headline (proposed rules, active player, 6-player mixed server, medians of 2
 ### 1.1 What happens today
 
 - `SPAWN_INTERVAL` 4 s, so 900 rolls per hour. But `Spawner` **skips** a roll while 18 wilds are alive (`Fountain.canSpawn`), and a slime nobody grabs lives `WILD_LIFETIME` 115 s. An untouched plaza holds 115 / 4 ≈ 29 slimes, so the cap binds: an empty or quiet server gets about 18 / 115 s ≈ 560 spawns per hour. On a busy server (players grab most slimes within seconds) it is about 840 per hour (sim). That is fine: quiet servers drop fewer slimes, but there are also fewer players sharing them. **No change proposed;** in the sim a 2-player server (666 spawns/h) keeps pace with a full 8-player one (895/h) because there is less competition.
-- Weights 52 / 28 / 13 / 5.2 / 1.45 / 0.35 / 0.1, `luck` multiplies tiers 3+, server pity (Epic after 30 dry drops, Legendary after 300), Slime Rain for 3 min every hour (2 s spawns, cap x2, luck x5).
+- Weights 52 / 28 / 13 / 5.2 / 1.45 / 0.35 / 0.1, `luck` multiplies tiers 3+, server pity (Epic after 30 dry drops, Legendary after 300), Slime Rain for 3 min every hour (normal 4 s spawns, cap x2, luck x5).
 - The merge vat turns three of one tier into one of the next (20 % two tiers, never a jump into Secret; Mythic x3 does give a Secret). With today's odds and vat (sim scenario `today_rules`), the merge cascade and stealing, not the fountain, decide how fast a player reaches the top tiers. An active player who merges everything sees a first Mythic after 0.6 h and a first Secret after 1.4 h. That is too fast for "1 in 1000" tiers.
 
 ### 1.2 New weights
@@ -311,7 +311,7 @@ Steps 2 to 5 should go live together, on one release with `SlimePool` on: the ne
 
 `economy-sim/slime_economy_sim.py` steps one server second by second for 60 played hours, 24 seeds per scenario:
 
-- **Fountain:** a roll every 4 s while fewer than 18 wilds are alive (36 in Rain, one every 2 s), lifetime 115 s, the scenario's weights, `luck` x5 for tiers 3+ during Rain, server pity (Epic 30 / Legendary 300), Slime Rain 3 min every hour from minute 5. Species are uniform over the tier's species in the families the fountain has opened.
+- **Fountain:** a roll every 4 s while fewer than 18 wilds are alive (36 in Rain), lifetime 115 s, the scenario's weights, `luck` x5 for tiers 3+ during Rain, server pity (Epic 30 / Legendary 300), Slime Rain 3 min every hour from minute 5. Species are uniform over the tier's species in the families the fountain has opened.
 - **Players:** "you" plus the other players (fixed ranks, a mixed server). Each one walks to the plaza (10 s), grabs the best slime they may catch (tier first; a species they lack counts as about two tiers more; "you" also chase the ingredients of the one known recipe you are working on) and carries it home (14 s + 1.5 s per tier). All times are divided by an **activity** factor (0.6 = 40 % of the time goes to locking, defending, shopping, AFK). Cash is not modelled: every wild is assumed affordable.
 - **Merges:** after every deposit, known recipes first, then any three spare slimes of one tier (keeping a known recipe's ingredients). 8 pads; extras are sold, lowest first. Merge results follow §2: recipe hit, else random with the scenario's jump, caps and assist. Other players merge too, without recipes or assist.
 - **Stealing:** each player makes `steals_per_hour` successful steals (Poisson). The victim is random, the slime is their best one half the time and otherwise random. Trophies can't be stolen. A steal also counts for the Dex.
