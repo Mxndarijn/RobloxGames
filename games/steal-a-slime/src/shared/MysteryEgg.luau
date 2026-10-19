@@ -2,14 +2,11 @@
 --[[
 	MysteryEgg (pure)
 
-	Two kinds of egg:
-	* The free egg a boss helper gets (Server/MysteryEgg.spawnForEvent): it
-	  hatches at once into a slime rolled from Config.MYSTERY_EGG_DROPS.
-	* The wild Mystery Egg (FEATURES.MysteryEggs, contract/mystery-egg.md): a
-	  slime record with an `egg` field (EggKind). The fountain rolls the slime
-	  inside when the egg spawns; on a pad it incubates for its kind's
-	  hatchSeconds (faster while the owner is home) and the owner hatches it.
-	Both go through Genome.generate and PlayerData, so saves need no new version.
+	The wild Mystery Egg (FEATURES.MysteryEggs, contract/mystery-egg.md): a
+	slime record with an `egg` field (EggKind). The fountain rolls the slime
+	inside when the egg spawns; on a pad it incubates for its kind's
+	hatchSeconds (faster while the owner is home) and the owner hatches it.
+	It goes through Genome.generate and PlayerData, so saves need no new version.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -22,42 +19,6 @@ local Types = if script then require(script.Parent.Types) else require("./Types"
 type Data = PlayerData.Data
 
 local MysteryEgg = {}
-
-function MysteryEgg.weights(): { number }
-	local weights = {}
-	for i, drop in Config.MYSTERY_EGG_DROPS do
-		weights[i] = drop.weight
-	end
-	return weights
-end
-
--- Tier for one roll in [0, 1).
-function MysteryEgg.rollTier(roll: number): number
-	return Config.MYSTERY_EGG_DROPS[Rng.weightedIndex(MysteryEgg.weights(), roll)].tier
-end
-
--- A fresh slime (no pad yet) from the drop table.
-function MysteryEgg.hatch(rng: Rng.Rng, id: string): Genome.Slime
-	return Genome.generate(rng, {
-		id = id,
-		tier = MysteryEgg.rollTier(rng:float()),
-	})
-end
-
---[[
-	Hatches an egg onto the plot. Returns (true, slime) or (false, reason).
-]]
-function MysteryEgg.hatchInto(data: Data, rng: Rng.Rng, id: string): (boolean, Genome.Slime | string)
-	if not PlayerData.freePad(data) then
-		return false, "plot full"
-	end
-	local slime = MysteryEgg.hatch(rng, id)
-	local ok, reason = PlayerData.addSlime(data, slime)
-	if not ok then
-		return false, reason :: string
-	end
-	return true, slime
-end
 
 -- Chance that one fountain drop is an egg.
 function MysteryEgg.dropChance(raining: boolean): number

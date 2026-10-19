@@ -2,15 +2,11 @@
 --[[
 	MysteryEgg (server)
 
-	`spawnForEvent` is the server-side event hook (boss helper eggs): it
-	hatches free eggs onto a player's plot through Shared.MysteryEgg, with no
-	remote, no cash and no Robux, and records each hatch for the reveal banner
-	(State.egg).
-
 	Wild Mystery Eggs (contract/mystery-egg.md): `hatch` is the `HatchEgg`
-	action and the owner's HatchPrompt; `step` (once a second) starts the clock
-	of any pad egg without one, warms the eggs of owners standing at home and
-	toasts the owner once when an egg turns ready. Pure: no Roblox APIs.
+	action and the owner's HatchPrompt (the hatch goes to the reveal banner,
+	State.egg); `step` (once a second) starts the clock of any pad egg without
+	one, warms the eggs of owners standing at home and toasts the owner once
+	when an egg turns ready. Pure: no Roblox APIs.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -25,33 +21,10 @@ type Session = World.Session
 
 local MysteryEgg = {}
 
-MysteryEgg.MAX_EVENT_EGGS = 16 -- per spawnForEvent call
-
 local function reveal(world: World, session: Session, slime: Genome.Slime, now: number)
 	session.egg = { slime = slime, at = now }
 	World.markDirty(session)
 	World.notify(world, session.userId, `Your egg hatched: {Genome.displayName(slime)}!`, "good", "Cash", "MysteryEgg")
-end
-
---[[
-	Event / admin: hatches up to `count` free eggs for `userId` (stops when the
-	plot is full). Returns the hatched slimes. Not reachable from any remote.
-]]
-function MysteryEgg.spawnForEvent(world: World, userId: number, count: number, now: number): { Genome.Slime }
-	local hatched: { Genome.Slime } = {}
-	local session = World.session(world, userId)
-	if not session then
-		return hatched
-	end
-	for _ = 1, math.clamp(math.floor(count), 0, MysteryEgg.MAX_EVENT_EGGS) do
-		local ok, value = SharedEgg.hatchInto(session.data, world.rng, world.newId())
-		if not ok then
-			break
-		end
-		table.insert(hatched, value :: Genome.Slime)
-		reveal(world, session, value :: Genome.Slime, now)
-	end
-	return hatched
 end
 
 --[[
