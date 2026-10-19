@@ -367,6 +367,10 @@ local applyLayout: () -> ()
 local refreshHint: () -> ()
 local pumpPopups: (state: Types.State) -> ()
 local layoutCards: () -> ()
+-- Panels that change their own height (Plot's Appraise screen) ask for a card relayout.
+ctx.relayout = function()
+	layoutCards()
+end
 
 local function styleNav(btn: NavButton, selected: boolean)
 	btn.tile.BackgroundColor3 = if selected then Theme.Accent else NAV_TILE_COLOR

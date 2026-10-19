@@ -7,12 +7,14 @@
 	in gold, the favourite's perk chip, a star toggle and, under the name line,
 	Appraise and Sell.
 	Buttons: Sell(slimeId) (hold to confirm), Favorite(slimeId) / Favorite(nil),
-	Appraise: opens a popup with the cost; Appraise(slimeId, "size") rerolls the size and the popup shows
-	before -> after.
+	Appraise: swaps the list for the Appraise screen (AppraiseView): the slime, its size on a tape from
+	Config.MIN_SIZE to MAX_SIZE, the odds that a reroll beats it, and Appraise(slimeId, "size") (hold to
+	confirm); after a reroll a card shows was -> now for size and income.
 	Rows being stolen turn red and show the thief.
 ]]
 
 local UI = script.Parent.Parent
+local AppraiseView = require(UI.AppraiseView)
 local Format = require(UI.Format)
 local Icons = require(UI.Icons)
 local ItemIconView = require(UI.ItemIconView)
@@ -66,23 +68,42 @@ Plot.ROW = table.freeze({
 	stolenTint = 0.45, -- row being stolen: Row toward Bad
 })
 
--- Appraise popup (design px).
+-- Appraise screen (design px): stacked top to bottom by placeAppraise, the result card only after a reroll.
 Plot.POPUP = table.freeze({
-	pad = 8,
-	icon = 44,
-	titleY = 6,
-	titleSize = 18,
-	nowY = 34,
-	costY = 60,
-	beforeY = 92,
-	afterY = 118,
-	lineH = 24,
-	textSize = 15,
-	buttonY = 152,
-	buttonH = 40,
-	buttonSize = 14,
-	doneY = 200,
-	doneH = 36,
+	well = 84, -- the slime's preview
+	wellStroke = 3,
+	sizeChipH = 24,
+	nameX = 100,
+	nameY = 18,
+	nameH = 26,
+	nameSize = 21,
+	incomeY = 48,
+	incomeH = 20,
+	incomeSize = 15,
+	heroH = 96, -- hero block incl. the size chip under the well
+	resultH = 76,
+	resultBig = 26,
+	resultSmall = 13,
+	pinH = 28, -- size tag above the tape
+	pinW = 52,
+	pinSize = 14,
+	tapeInset = 26, -- tape ends sit this far in, so the end tags stay inside the card
+	tapeH = 22,
+	tapeRadius = 8,
+	tickW = 2,
+	numsH = 18,
+	numSize = 12,
+	oddsH = 40,
+	oddsSize = 14,
+	ruleH = 20,
+	ruleSize = 13,
+	rerollH = 52,
+	rerollSize = 20,
+	backH = 44,
+	backSize = 17,
+	gap = 10,
+	resultTint = 0.3, -- result card: Row toward Good / Bad
+	tickTransparency = 0.45,
 })
 
 -- Secret names: a rainbow over near-white text (a UIGradient multiplies the text colour).
@@ -140,100 +161,376 @@ function Plot.new(parent: Instance, ctx: any)
 	local petPerk: any = nil -- State.petPerk: the favourite's passive, shown as a chip on its row
 	local latestViews: { [string]: any } = {}
 
-	-- Appraise popup: covers the list while open (ZIndexBehavior.Sibling: above the list, its sibling).
+	-- Appraise screen: replaces the list while open. The panel's title and corner tile switch to Appraise, the
+	-- slime's preview sits over a size tape from Config.MIN_SIZE to MAX_SIZE (pin = its size, green = sizes a
+	-- reroll could beat it with), the odds are spelled out, and after a reroll a card shows was -> now.
+	local previewBuilders: SlimePreview.Builders = { species = ctx.buildSpecies, slime = ctx.buildSlime }
+	local setAppraise: (id: string?) -> ()
+	local cfg = ctx.Config
+	local minSize, maxSize = cfg.MIN_SIZE :: number, cfg.MAX_SIZE :: number
 	local popup = create("Frame", {
 		Name = "AppraisePopup",
 		Visible = false,
-		BackgroundColor3 = Theme.Bg,
-		Size = UDim2.fromScale(1, 1),
-		ZIndex = Layout.ZINDEX.Menu,
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 0), -- placeAppraise sets the height; the card is sized to it
 		Parent = panel.body,
-	}, { Widgets.corner(Widgets.KIT.rowRadius), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
+	})
 	local popupId: string? = nil
-	local function popupLabel(name: string, y: number, props: { [string]: any }?): TextLabel
-		local p = props or {}
-		p.Name = name
-		p.TextSize = p.TextSize or P.textSize
-		p.Size = p.Size or UDim2.new(1, -P.pad * 2, 0, P.lineH)
-		p.Position = UDim2.fromOffset(P.pad, y)
-		p.Parent = popup
-		return Widgets.label(p)
-	end
-	ItemIconView.new({
+	local popupResult: AppraiseView.Result? = nil
+	local appraiseArt = ItemIconView.new({
 		Name = "AppraiseIcon",
 		Id = "Appraise",
-		Size = P.icon,
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -P.pad, 0, 4),
+		Size = Layout.PANEL_CHROME.icon - 12,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Parent = panel.icon.Parent,
+	}, ItemIcons.of(ctx))
+	appraiseArt.instance.Visible = false
+
+	local heroWell = create("Frame", {
+		Name = "Well",
+		BackgroundColor3 = Theme.Row:Lerp(Theme.Ink, SlimePreview.WELL_TINT),
+		Size = UDim2.fromOffset(P.well, P.well),
 		Parent = popup,
-	}, ItemIcons.of(ctx)).setActive(true)
-	local besideIcon = -(P.pad * 2 + P.icon + 12)
-	local popupTitle = popupLabel(
-		"Title",
-		P.titleY,
-		{ Font = Theme.Font, TextSize = P.titleSize, Size = UDim2.new(1, besideIcon, 0, P.lineH) }
-	)
-	local popupNow =
-		popupLabel("Now", P.nowY, { TextColor3 = Theme.Muted, Size = UDim2.new(1, besideIcon, 0, P.lineH) })
-	local popupCost = popupLabel("Cost", P.costY, { Font = Theme.Font, TextColor3 = Theme.Gold })
-	local popupBefore = popupLabel("Before", P.beforeY, { Text = "", TextColor3 = Theme.Muted })
-	local popupAfter = popupLabel("After", P.afterY, { Font = Theme.Font, Text = "" })
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }), Widgets.stroke(Theme.Ink, P.wellStroke) })
+	local heroPreview = create("ViewportFrame", {
+		Name = "Preview",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Visible = false,
+		Parent = heroWell,
+	}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+	local sizeChip = Widgets.chip({
+		Name = "SizeChip",
+		Text = "",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromOffset(P.well // 2, P.well - P.sizeChipH // 2),
+		Size = UDim2.fromOffset(0, P.sizeChipH),
+		Parent = popup,
+	}, Theme.Gold)
+	local heroName = Widgets.label({
+		Name = "SlimeName",
+		Font = Theme.Font,
+		TextSize = P.nameSize,
+		Position = UDim2.fromOffset(P.nameX, P.nameY),
+		Size = UDim2.new(1, -P.nameX, 0, P.nameH),
+		Parent = popup,
+	})
+	local heroRainbow = create("UIGradient", { Name = "Rainbow", Color = RAINBOW, Enabled = false, Parent = heroName })
+	local heroIncome = Widgets.label({
+		Name = "Income",
+		RichText = true,
+		TextSize = P.incomeSize,
+		TextColor3 = Theme.Muted,
+		Position = UDim2.fromOffset(P.nameX, P.incomeY),
+		Size = UDim2.new(1, -P.nameX, 0, P.incomeH),
+		Parent = popup,
+	})
+
+	-- Was -> now after a reroll.
+	local resultCard = Widgets.rowFrame({ Name = "Result", Visible = false, Size = UDim2.new(1, 0, 0, P.resultH) })
+	resultCard.Parent = popup
+	local function resultSide(
+		name: string,
+		xScale: number,
+		align: Enum.TextXAlignment
+	): (TextLabel, TextLabel, TextLabel)
+		local function line(suffix: string, y: number, h: number, props: { [string]: any }): TextLabel
+			props.Name = name .. suffix
+			props.TextXAlignment = align
+			props.AnchorPoint = Vector2.new(xScale, 0)
+			props.Position = UDim2.new(xScale, if xScale == 0 then 12 else -12, 0, y)
+			props.Size = UDim2.new(0.4, 0, 0, h)
+			props.Parent = resultCard
+			return Widgets.label(props)
+		end
+		local cap = line("Label", 8, 14, { TextSize = P.resultSmall, TextColor3 = Theme.Muted })
+		local big = line("Size", 22, 28, { Font = Theme.Font, TextSize = P.resultBig })
+		local income = line("Income", 52, 16, { TextSize = P.resultSmall })
+		return cap, big, income
+	end
+	local wasCap, wasSize, wasIncome = resultSide("Was", 0, Enum.TextXAlignment.Left)
+	local nowCap, nowSize, nowIncome = resultSide("Now", 1, Enum.TextXAlignment.Right)
+	wasCap.Text = "Was"
+	nowCap.Text = "Now"
+	Widgets.label({
+		Name = "Arrow",
+		Text = "→",
+		Font = Theme.Font,
+		TextSize = P.resultBig,
+		TextColor3 = Theme.Muted,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(40, 30),
+		Parent = resultCard,
+	})
+
+	-- The size tape: gold, a tick every 0.1, the sizes that would beat the current one striped green on the right.
+	local tapeBlock = create("Frame", {
+		Name = "Tape",
+		BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, P.pinH + P.tapeH + P.numsH + 6),
+		Parent = popup,
+	})
+	local tape = create("Frame", {
+		Name = "Bar",
+		BackgroundColor3 = Theme.Gold,
+		Position = UDim2.fromOffset(P.tapeInset, P.pinH),
+		Size = UDim2.new(1, -P.tapeInset * 2, 0, P.tapeH),
+		Parent = tapeBlock,
+	}, { Widgets.corner(P.tapeRadius), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
+	Widgets.shade(tape)
+	local steps = math.floor((maxSize - minSize) / 0.1 + 0.5)
+	for i = 1, steps - 1 do
+		create("Frame", {
+			Name = "Tick",
+			BorderSizePixel = 0,
+			BackgroundColor3 = Theme.Ink,
+			BackgroundTransparency = P.tickTransparency,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(i / steps, 0),
+			Size = UDim2.new(0, P.tickW, 1, 0),
+			Parent = tape,
+		})
+	end
+	local better = create("Frame", {
+		Name = "Better",
+		BorderSizePixel = 0,
+		BackgroundColor3 = Theme.Good,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.fromScale(0, 1),
+		Parent = tape,
+	}, { Widgets.corner(P.tapeRadius) })
+	for _, v in AppraiseView.ticks(minSize, maxSize) do
+		Widgets.label({
+			Name = "Num",
+			Text = string.format("%.1f", v),
+			Font = Theme.Font,
+			TextSize = P.numSize,
+			TextColor3 = Theme.Muted,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(AppraiseView.fraction(v, minSize, maxSize), 0, 1, 6),
+			Size = UDim2.fromOffset(40, P.numsH),
+			Parent = tape,
+		})
+	end
+	-- A pin: a size tag over the tape with a line down through it. `ghost` = the size before the last reroll.
+	local function pin(name: string, ghost: boolean): (Frame, TextLabel)
+		local holder = create("Frame", {
+			Name = name,
+			BackgroundTransparency = 1,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Size = UDim2.new(0, P.pinW, 1, P.pinH + 6),
+			Position = UDim2.fromOffset(0, -P.pinH),
+			ZIndex = if ghost then 1 else 2,
+			Parent = tape,
+		})
+		create("Frame", {
+			Name = "Line",
+			BorderSizePixel = 0,
+			BackgroundColor3 = if ghost then Theme.Muted else Theme.Ink,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, P.pinH - 6),
+			Size = UDim2.new(0, 4, 1, -(P.pinH - 6)),
+			Parent = holder,
+		}, { create("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+		local tag = Widgets.label({
+			Name = "Tag",
+			Font = Theme.Font,
+			TextSize = P.pinSize,
+			TextColor3 = if ghost then Theme.Muted else Theme.Ink,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			BackgroundTransparency = 0,
+			BackgroundColor3 = if ghost then Theme.Bg else Theme.Text,
+			Size = UDim2.new(1, 0, 0, P.pinH - 6),
+			Parent = holder,
+		})
+		Widgets.corner(8).Parent = tag
+		Widgets.stroke(if ghost then Theme.Muted else Theme.Ink, Widgets.KIT.rowStroke).Parent = tag
+		return holder, tag
+	end
+	local ghostPin, ghostTag = pin("WasPin", true)
+	local nowPin, nowTag = pin("NowPin", false)
+
+	local odds = Widgets.label({
+		Name = "Odds",
+		RichText = true,
+		TextWrapped = true,
+		TextTruncate = Enum.TextTruncate.None,
+		TextSize = P.oddsSize,
+		TextColor3 = Theme.Muted,
+		BackgroundTransparency = 0,
+		BackgroundColor3 = Theme.Ink,
+		Size = UDim2.new(1, 0, 0, P.oddsH),
+		Parent = popup,
+	})
+	Widgets.corner(Widgets.KIT.radius).Parent = odds
+	create("UIPadding", { PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12), Parent = odds })
+	local rule = Widgets.label({
+		Name = "Rule",
+		Text = `A reroll picks a new size from {string.format("%.1f", minSize)} to {string.format("%.1f", maxSize)}. Income grows with size.`,
+		TextSize = P.ruleSize,
+		TextColor3 = Theme.Muted,
+		TextWrapped = true,
+		TextTruncate = Enum.TextTruncate.None,
+		Size = UDim2.new(1, 0, 0, P.ruleH),
+		Parent = popup,
+	})
+
 	local function popupSlime(): any?
 		local view = popupId and latestViews[popupId]
 		return view
 	end
+	local refreshPopup: () -> ()
 	local function reroll()
 		local id = popupId
-		if id == nil or ctx.request == nil then
+		local view = popupSlime()
+		if id == nil or view == nil or ctx.request == nil then
 			return
 		end
+		local incomeBefore = view.income or 0
 		ctx.request("Appraise", function(result: any)
 			local a = result and result.appraisal
-			if not a or a.slimeId ~= id then
+			if not a or a.slimeId ~= id or popupId ~= id then
 				return
 			end
-			popupBefore.Text = `Before: size {string.format("%.2f", a.beforeSize)}`
-			popupAfter.Text = `After: size {string.format("%.2f", a.afterSize)}`
+			popupResult = AppraiseView.result(a.beforeSize, a.afterSize, incomeBefore)
+			refreshPopup()
 		end, id, "size")
 	end
-	local function popupButton(name: string, text: string, color: Color3, onClick: () -> ())
-		local btn = Widgets.holdButton({
-			Name = name,
-			Text = text,
-			TextSize = P.buttonSize,
-			Position = UDim2.fromOffset(P.pad, P.buttonY),
-			Size = UDim2.new(1, -P.pad * 2, 0, P.buttonH),
-		}, color, onClick, ctx.Config.HOLD_CONFIRM_SECONDS)
-		btn.instance.Parent = popup
-		return btn
-	end
-	popupButton("RerollSize", "Reroll size", Theme.Info, reroll)
-	local popupClose = Widgets.button(
+	local rerollBtn = Widgets.holdButton({
+		Name = "RerollSize",
+		Text = "Reroll",
+		TextSize = P.rerollSize,
+		Size = UDim2.new(1, 0, 0, P.rerollH),
+	}, Theme.Good, reroll, cfg.HOLD_CONFIRM_SECONDS)
+	rerollBtn.instance.Parent = popup
+	local backBtn = Widgets.button(
 		{
 			Name = "Done",
-			Text = "Done",
-			TextSize = P.buttonSize,
-			Position = UDim2.fromOffset(P.pad, P.doneY),
-			Size = UDim2.new(1, -P.pad * 2, 0, P.doneH),
+			Text = "Back to My Plot",
+			TextSize = P.backSize,
+			Size = UDim2.new(1, 0, 0, P.backH),
 		},
-		Theme.BgLight,
+		Theme.Info,
 		function()
-			popupId = nil
-			popup.Visible = false
+			setAppraise(nil)
 		end
 	)
-	popupClose.instance.Parent = popup
-	local function refreshPopup()
+	backBtn.instance.Parent = popup
+
+	-- Stacks the screen's blocks (the result card only after a reroll) and sizes the popup to them.
+	local function placeAppraise()
+		local y = P.heroH + P.gap
+		local blocks: { GuiObject } = {}
+		if resultCard.Visible then
+			table.insert(blocks, resultCard)
+		end
+		table.insert(blocks, tapeBlock)
+		table.insert(blocks, odds)
+		if rule.Visible then
+			table.insert(blocks, rule)
+		end
+		table.insert(blocks, rerollBtn.instance)
+		table.insert(blocks, backBtn.instance)
+		for _, b in blocks do
+			b.Position = UDim2.fromOffset(0, y)
+			y += b.Size.Y.Offset + P.gap
+		end
+		local h = y - P.gap
+		if popup.Size.Y.Offset ~= h then
+			popup.Size = UDim2.new(1, 0, 0, h)
+			-- The result card came or went: the card follows without waiting for the next State push.
+			if popup.Visible and ctx.relayout then
+				ctx.relayout()
+			end
+		end
+	end
+
+	local function colorHex(c: Color3): string
+		return `#{c:ToHex()}`
+	end
+
+	refreshPopup = function()
 		local view = popupSlime()
 		if view == nil then
-			popupId = nil
-			popup.Visible = false
+			setAppraise(nil)
 			return
 		end
 		local slime = view.slime
-		popupTitle.Text = `Appraise {ctx.Genome.displayName(slime)}`
-		popupNow.Text = `Size {string.format("%.2f", slime.size)}`
-		popupCost.Text = `Cost: {Format.formatCash(view.appraiseCost or 0)} per reroll`
+		local rarity = cfg.RARITIES[slime.tier]
+		local isSecret = slime.tier == cfg.SECRET_TIER
+		heroName.Text = ctx.Genome.displayName(slime)
+		heroName.TextColor3 = if isSecret then Theme.Text elseif rarity then Widgets.color3(rarity.color) else Theme.Text
+		heroRainbow.Enabled = isSecret
+		-- A reroll's answer can land before the State push with the new size: show the answer meanwhile
+		-- (income and price scale with size).
+		local r = popupResult
+		local size, income, cost = slime.size, view.income or 0, view.appraiseCost
+		if r and r.better ~= nil and math.abs(slime.size - r.beforeSize) < 0.005 then
+			size, income = r.afterSize, r.incomeAfter
+			cost = if cost then math.max(1, math.floor(cost * r.afterSize / r.beforeSize)) else nil
+		end
+		local sizeText = AppraiseView.sizeText(size)
+		sizeChip.Text = sizeText
+		heroIncome.Text = `<font color="{colorHex(Theme.Gold)}">{Format.formatRate(income)}</font> at size {sizeText}`
+		SlimePreview.mountSlime(heroPreview, slime, previewBuilders)
+
+		local now = AppraiseView.fraction(size, minSize, maxSize)
+		nowPin.Position = UDim2.new(now, 0, 0, -P.pinH)
+		nowTag.Text = sizeText
+		better.Size = UDim2.fromScale(1 - now, 1)
+		better.Visible = now < 1
+
+		local o = AppraiseView.odds(size, minSize, maxSize)
+		odds.Text =
+			`<font face="FredokaOne" color="{colorHex(if o.warn then Theme.Warn else Theme.Good)}">{o.chance}</font> {o.detail}`
+
+		local showResult = r ~= nil and math.abs(r.afterSize - size) < 0.005
+		resultCard.Visible = showResult
+		rule.Visible = not showResult
+		ghostPin.Visible = showResult
+		if showResult and r then
+			local tone = if r.better == true then Theme.Good elseif r.better == false then Theme.Bad else Theme.Text
+			resultCard.BackgroundColor3 = if r.better == nil then Theme.Row else Theme.Row:Lerp(tone, P.resultTint)
+			wasSize.Text = AppraiseView.sizeText(r.beforeSize)
+			wasIncome.Text = Format.formatRate(r.incomeBefore)
+			wasIncome.TextColor3 = Theme.Muted
+			nowSize.Text = AppraiseView.sizeText(r.afterSize)
+			nowSize.TextColor3 = tone
+			nowIncome.Text = Format.formatRate(r.incomeAfter)
+			nowIncome.TextColor3 = tone
+			ghostPin.Position = UDim2.new(AppraiseView.fraction(r.beforeSize, minSize, maxSize), 0, 0, -P.pinH)
+			ghostTag.Text = AppraiseView.sizeText(r.beforeSize)
+		end
+		rerollBtn.setText(if cost then `Reroll for {Format.formatCash(cost)}` else "Reroll")
+		placeAppraise()
+	end
+
+	-- Opens the Appraise screen for slime `id` (nil = back to the list).
+	setAppraise = function(id: string?)
+		popupId = id
+		popupResult = nil
+		local on = id ~= nil
+		popup.Visible = on
+		list.Visible = not on
+		padsChip.Visible = not on
+		incomeChip.Visible = not on
+		panel.title.Text = if on then "Appraise" else "My Plot"
+		panel.icon.Visible = not on
+		appraiseArt.instance.Visible = on
+		appraiseArt.setActive(on)
+		if on then
+			refreshPopup()
+		else
+			SlimePreview.unmountSlime(heroPreview)
+		end
+		if ctx.relayout then
+			ctx.relayout()
+		end
 	end
 
 	local function makeRow(view: any)
@@ -323,11 +620,7 @@ function Plot.new(parent: Instance, ctx: any)
 			},
 			Theme.Info,
 			function()
-				popupId = id
-				popup.Visible = true
-				popupBefore.Text = ""
-				popupAfter.Text = ""
-				refreshPopup()
+				setAppraise(id)
 			end
 		)
 		appraise.instance.Parent = frame
@@ -358,7 +651,6 @@ function Plot.new(parent: Instance, ctx: any)
 
 	-- The well behind a live preview, the slime's colour circle without one.
 	local well = Theme.Row:Lerp(Theme.Ink, SlimePreview.WELL_TINT)
-	local previewBuilders: SlimePreview.Builders = { species = ctx.buildSpecies, slime = ctx.buildSlime }
 	local function paintAvatar(row: any)
 		row.swatch.BackgroundColor3 = if row.preview.Visible then well else Widgets.color3(row.slime.color)
 	end
@@ -436,8 +728,18 @@ function Plot.new(parent: Instance, ctx: any)
 
 	local self = { frame = panel.frame, close = panel.close }
 
+	-- Shows the Appraise screen for one of the plot's slimes (what its Appraise button does).
+	function self.openAppraise(id: string)
+		if latestViews[id] then
+			setAppraise(id)
+		end
+	end
+
 	function self.setOpen(isOpen: boolean)
 		open = isOpen
+		if not isOpen and popupId ~= nil then
+			setAppraise(nil)
+		end
 		refreshPreviews()
 	end
 
