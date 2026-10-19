@@ -60,6 +60,31 @@ describe("Appraise", function()
 		expect(res.appraisal.cost).toBe(price)
 		expect(res.appraisal.kind).toBe("size")
 	end)
+	it("answers with the income and price before and after, as the next State shows them", function()
+		local world = ServerFixtures.world()
+		local s = slime()
+		local session = ServerFixtures.join(world, 1, { s }, 100_000)
+		local before = Snapshot.build(world, session, T0 + 99).slimes[1]
+		local res = call(world, 1, 5, T0 + 100, "a", "size")
+		expect(res.ok).toBe(true)
+		local a = res.appraisal
+		expect(a.beforeSize).toBe(1.2)
+		expect(a.incomeBefore).toBe(before.income)
+		expect(a.cost).toBe(before.appraiseCost)
+		local after = Snapshot.build(world, session, T0 + 101).slimes[1]
+		expect(a.afterSize).toBe(after.slime.size)
+		expect(a.incomeAfter).toBe(after.income)
+		expect(a.costAfter).toBe(after.appraiseCost)
+	end)
+	it("rolls sizes on the Config.APPRAISE_SIZE_DECIMALS grid, ends included", function()
+		local scale = 10 ^ Config.APPRAISE_SIZE_DECIMALS
+		expect(Appraise.rollSize(0)).toBe(Config.MIN_SIZE)
+		expect(Appraise.rollSize(0.9999999)).toBe(Config.MAX_SIZE)
+		for i = 0, 99 do
+			local size = Appraise.rollSize(i / 100 + 0.003)
+			expect(math.abs(size * scale - math.floor(size * scale + 0.5)) < 1e-6).toBe(true)
+		end
+	end)
 	it("rejects insufficient cash and changes nothing", function()
 		local world = ServerFixtures.world()
 		local s = slime()

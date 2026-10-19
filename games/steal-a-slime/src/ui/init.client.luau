@@ -234,6 +234,10 @@ local ctx: { [string]: any } = {
 	actions = Remotes.ACTIONS,
 	send = send,
 	request = invoke,
+	-- Like request, but `done` also gets a refusal ({ ok = false, message }) for the panel to show.
+	ask = function(action: string, done: (any) -> (), ...: any)
+		call(action, done, done, ...)
+	end,
 	serverNow = serverNow,
 	playerName = playerName,
 	itemIcons = itemIcons,
@@ -367,6 +371,10 @@ local applyLayout: () -> ()
 local refreshHint: () -> ()
 local pumpPopups: (state: Types.State) -> ()
 local layoutCards: () -> ()
+-- Panels that change their own height (Plot's Appraise screen) ask for a card relayout.
+ctx.relayout = function()
+	layoutCards()
+end
 
 local function styleNav(btn: NavButton, selected: boolean)
 	btn.tile.BackgroundColor3 = if selected then Theme.Accent else NAV_TILE_COLOR
