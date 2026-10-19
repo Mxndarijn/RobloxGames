@@ -1274,8 +1274,8 @@ function WorldView.updatePlayer(
 		ensureSpeedCoil(player)
 	end
 	local target = Carry.targetWalkSpeed(session, now)
-	if Config.FEATURES.PvP and PvpTrap.frozen(session, now) then
-		target = 0 -- Goo Trap freeze (PvpTrap, <= CONTROL_MAX_SECONDS)
+	if Config.FEATURES.PvP and (PvpTrap.frozen(session, now) or PvpFun.frozen(session, now)) then
+		target = 0 -- Goo Trap freeze, Fun bubble / pancake / dance (<= CONTROL_MAX_SECONDS)
 	end
 	setAttribute(player, Constants.WALK_SPEED_ATTRIBUTE, target)
 	if not humanoid then

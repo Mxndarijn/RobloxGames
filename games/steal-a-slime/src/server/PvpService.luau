@@ -40,6 +40,7 @@ export type UseCall = {
 	now: number,
 	position: PvpRules.Vec, -- attacker position
 	targetPosition: PvpRules.Vec?,
+	power: number?, -- the hold charge sent with the use (0..1 after PvpFunRules.power; nil = none)
 }
 export type LineHandler = (call: UseCall) -> (boolean, string?)
 -- What PvP needs from the engine. Actions.Context carries these fields (init.server builds one ctx for both);
@@ -61,6 +62,14 @@ export type Context = {
 	toVector3: ((position: PvpRules.Vec) -> any)?,
 	-- a slime model's Body position (the Bat's reach to the boss); nil = no model
 	slimePosition: ((slimeId: string) -> PvpRules.Vec?)?,
+	-- the Bubble Wand lift (server/PvpFunView): `userId` floats `lift` studs in a clickable bubble for `seconds`;
+	-- `onPop(byUserId, now)` answers whether a click popped it. False = no character.
+	funBubble: ((
+		userId: number,
+		seconds: number,
+		lift: number,
+		onPop: (byUserId: number, now: number) -> boolean
+	) -> boolean)?,
 }
 
 local PvpService = {}
@@ -276,7 +285,8 @@ function PvpService.use(
 	aim: any?,
 	now: number,
 	flag: boolean?,
-	ctx: Context
+	ctx: Context,
+	power: number?
 ): (boolean, string?)
 	local state, extra = runtime(session, flag)
 	if not state or not extra then
@@ -336,6 +346,7 @@ function PvpService.use(
 		now = now,
 		position = position,
 		targetPosition = targetPosition,
+		power = power,
 	})
 	if not used then
 		return false, why or "failed"

@@ -8,7 +8,8 @@
 	right (LeftShoulder rz > 0 swings the left arm in), Waist ry > 0 turns the chest to the left (right shoulder
 	forward), Waist rx > 0 leans the chest back.
 
-	  PvpAnimLogic.kindFor(itemId, tools)   "swing" | "punch" | "blast" | "throw" | "use" (nil = no animation)
+	  PvpAnimLogic.kindFor(itemId, tools)   "swing" | "punch" | "blast" | "throw" | "pop" | "blow" | "bonk" | "use"
+	                                        (nil = no animation); "dance", "flip" and "hit" play on an affected player
 	  PvpAnimLogic.pose(kind, elapsed)      the use pose `elapsed` seconds in, nil once it is over
 	  PvpAnimLogic.holdFor(itemId, tools)   the pose while the item is equipped (nil for the Bat: its Tool pose)
 	  PvpAnimLogic.combine(hold, w, anim)   hold x weight + the use pose, one table
@@ -36,6 +37,17 @@ PvpAnimLogic.JOINTS = table.freeze({
 })
 
 local REST: Pose = {}
+local DISCO_RIGHT: Pose = {
+	RightShoulder = { rx = 2.7, rz = 0.3 },
+	LeftShoulder = { rx = -0.3 },
+	Waist = { rz = 0.22 },
+	Root = { py = -0.15 },
+}
+local DISCO_LEFT: Pose = {
+	RightShoulder = { rx = 0.2 },
+	LeftShoulder = { rx = 2.7, rz = -0.3 },
+	Waist = { rz = -0.22 },
+}
 
 -- Each clip starts and ends at rest (t = 0 and t = 1 are empty), so it never leaves a joint bent.
 local CLIPS: { [string]: Clip } = {
@@ -130,6 +142,108 @@ local CLIPS: { [string]: Clip } = {
 			{ t = 1, pose = REST },
 		},
 	},
+	-- Confetti Popper: point it high, then the pop kicks the arm and the chest back
+	pop = {
+		seconds = 0.45,
+		keys = {
+			{ t = 0, pose = REST },
+			{
+				t = 0.35,
+				pose = { RightShoulder = { rx = 2.3, rz = 0.15 }, RightElbow = { rx = 0.2 }, Waist = { rx = 0.05 } },
+			},
+			{
+				t = 0.55,
+				pose = {
+					RightShoulder = { rx = 2.6, rz = 0.25 },
+					RightElbow = { rx = 0.6 },
+					Waist = { rx = 0.22 },
+					Neck = { rx = 0.2 },
+				},
+			},
+			{ t = 1, pose = REST },
+		},
+	},
+	-- Bubble Wand: the wand to the lips, a long blow, then a sweep to send the bubbles off
+	blow = {
+		seconds = 0.9,
+		keys = {
+			{ t = 0, pose = REST },
+			{
+				t = 0.25,
+				pose = { RightShoulder = { rx = 1.5, rz = -0.25 }, RightElbow = { rx = 1.7 }, Neck = { rx = -0.1 } },
+			},
+			{
+				t = 0.6,
+				pose = { RightShoulder = { rx = 1.5, rz = -0.2 }, RightElbow = { rx = 1.5 }, Waist = { rx = 0.08 } },
+			},
+			{
+				t = 0.8,
+				pose = { RightShoulder = { rx = 1.4, rz = 0.4 }, RightElbow = { rx = 0.2 }, Waist = { ry = 0.2 } },
+			},
+			{ t = 1, pose = REST },
+		},
+	},
+	-- Squeaky Hammer: a big overhead wind-up, then a smash straight down with the chest folding into it
+	bonk = {
+		seconds = 0.42,
+		keys = {
+			{ t = 0, pose = REST },
+			{
+				t = 0.4,
+				pose = { RightShoulder = { rx = 2.9, rz = 0.1 }, RightElbow = { rx = 0.7 }, Waist = { rx = 0.25 } },
+			},
+			{
+				t = 0.62,
+				pose = {
+					RightShoulder = { rx = 0.5 },
+					RightElbow = { rx = 0.05 },
+					Waist = { rx = -0.3 },
+					Neck = { rx = -0.1 },
+				},
+			},
+			{ t = 1, pose = REST },
+		},
+	},
+	-- Dance Bomb victim: disco points, hip sways and a twist, two seconds of it
+	dance = {
+		seconds = 2,
+		keys = {
+			{ t = 0, pose = REST },
+			{ t = 0.12, pose = DISCO_RIGHT },
+			{ t = 0.27, pose = DISCO_LEFT },
+			{ t = 0.42, pose = DISCO_RIGHT },
+			{ t = 0.57, pose = DISCO_LEFT },
+			{
+				t = 0.72,
+				pose = {
+					RightShoulder = { rx = 2.4, rz = 0.9 },
+					LeftShoulder = { rx = 2.4, rz = -0.9 },
+					Waist = { ry = 0.5 },
+					Root = { py = -0.2 },
+				},
+			},
+			{
+				t = 0.87,
+				pose = {
+					RightShoulder = { rx = 2.4, rz = 0.9 },
+					LeftShoulder = { rx = 2.4, rz = -0.9 },
+					Waist = { ry = -0.5 },
+				},
+			},
+			{ t = 1, pose = REST },
+		},
+	},
+	-- Bounce Pad owner: a full backflip (it ends a whole turn round, so the snap back to rest is invisible)
+	flip = {
+		seconds = 0.7,
+		keys = {
+			{ t = 0, pose = REST },
+			{ t = 0.33, pose = { Root = { rx = -2.1, py = 0.6 }, Waist = { rx = -0.3 } } },
+			{ t = 0.66, pose = { Root = { rx = -4.2, py = 0.6 }, Waist = { rx = -0.3 } } },
+			{ t = 0.9999, pose = { Root = { rx = -2 * math.pi } } },
+			{ t = 1, pose = REST },
+		},
+	},
 	-- the victim of a push: a squash down, then the chest snaps back with the arms flung out
 	hit = {
 		seconds = 0.45,
@@ -168,7 +282,10 @@ PvpAnimLogic.HOLD_TWO_HANDS = table.freeze({
 	LeftElbow = { rx = 0.45 },
 } :: Pose)
 
-local THROWN = table.freeze({ FunBouncePad = true, FunBalloon = true, FunFireworks = true })
+local THROWN = table.freeze({ FunBouncePad = true, FunBalloon = true, FunFireworks = true, FunDanceBomb = true })
+-- Fun items with a pose of their own (CONTRACT.md §26.4).
+local FUN_KIND: { [string]: string } =
+	table.freeze({ FunConfetti = "pop", FunBubbles = "blow", FunSqueaky = "bonk", FunHatLauncher = "blast" })
 
 local function toolOf(itemId: string, tools: { any }): any
 	for _, def in tools do
@@ -181,11 +298,14 @@ end
 
 -- The use animation of `itemId` ("Bat" or a Config.PVP_TOOLS id; `tools` = Config.PVP_TOOLS).
 function PvpAnimLogic.kindFor(itemId: any, tools: { any }): string?
-	if itemId == "Bat" or itemId == "FunSqueaky" then
+	if itemId == "Bat" then
 		return "swing"
 	end
 	if type(itemId) ~= "string" then
 		return nil
+	end
+	if FUN_KIND[itemId] then
+		return FUN_KIND[itemId]
 	end
 	local tool = toolOf(itemId, tools)
 	if not tool then

@@ -215,33 +215,38 @@ export type Aim = {
 	hovered: number?, -- userId of the player under the click
 	players: { Other }, -- every other player with a character
 }
-export type PvpUse = { action: string, itemId: string, target: number?, aim: Vec? }
+export type PvpUse = { action: string, itemId: string, target: number?, aim: Vec?, power: number? }
 
 InventoryCore.PVP_USE_ACTION = "UsePvpItem"
 
 --[[
 	How a PvP item picks the UsePvpItem arguments (server/PvpKnockback, PvpTrap, PvpBlaster, PvpFun):
-	  target         a player in reach (the one clicked, else the nearest, thieves first); none = not sent
-	  targetOptional the clicked or nearest thief in reach, else no target (Squeaky Hammer: a squeak on its own)
-	  hovered        only the clicked player in reach, else yourself (Hat Launcher: friends, checked by the server)
-	  shot           the clicked player, else the clicked point, else far along the ray (Goo Blaster hitscan)
-	  point          the clicked world point (Goo Trap, Goo Balloon); none = not sent
-	  pointOptional  the clicked point when within FUN_AIM_RANGE, else your own spot (Bounce Pad, Fireworks)
-	  self           no arguments (Confetti Popper, Bubble Wand)
+	  target  a player in reach (the one clicked, else the nearest, thieves first); none = not sent
+	  shot    the clicked player, else the clicked point, else far along the ray (Goo Blaster hitscan, and every
+	          Fun item: the server pulls a far aim in to the item's range, CONTRACT.md §26.4)
+	  point   the clicked world point (Goo Trap); none = not sent
 ]]
 InventoryCore.PVP_AIM = table.freeze({
 	Knockback = "target",
 	Trap = "point",
 	Blaster = "shot",
-	FunConfetti = "self",
-	FunBubbles = "self",
-	FunBalloon = "point",
-	FunBouncePad = "pointOptional",
-	FunFireworks = "pointOptional",
-	FunSqueaky = "targetOptional",
-	FunHatLauncher = "hovered",
-	FunDanceBomb = "target",
+	Fun = "shot",
 })
+-- Fun items that charge while the click is held (UsePvpItem `power`, CONTRACT.md §26.4).
+InventoryCore.PVP_CHARGE = table.freeze({ FunConfetti = true, FunFireworks = true })
+
+-- The item charges while the click is held (Confetti Popper, Goo Fireworks).
+function InventoryCore.pvpCharges(itemId: any): boolean
+	return type(itemId) == "string" and InventoryCore.PVP_CHARGE[itemId] == true
+end
+
+-- Held seconds -> the UsePvpItem power: 0 for a tap, 1 once the hold reached `chargeSeconds`.
+function InventoryCore.chargePower(held: number, chargeSeconds: number): number
+	if held ~= held or chargeSeconds <= 0 then
+		return 0
+	end
+	return math.clamp(held / chargeSeconds, 0, 1)
+end
 
 function InventoryCore.pvpAimMode(tool: any): string
 	return InventoryCore.PVP_AIM[tool.id] or InventoryCore.PVP_AIM[tool.line] or "self"
@@ -252,9 +257,8 @@ local function distance(a: Vec, b: Vec): number
 	return math.sqrt(dx * dx + dy * dy + dz * dz)
 end
 
--- The player to target: the hovered one when in reach, else (unless onlyHovered) the nearest in reach, thieves
--- (carrying) before anyone else; `thievesOnly` skips non-carrying players in the nearest pick.
-local function pickTarget(aim: Aim, reach: number, onlyHovered: boolean, thievesOnly: boolean): Other?
+-- The player to target: the hovered one when in reach, else the nearest in reach, thieves (carrying) first.
+local function pickTarget(aim: Aim, reach: number): Other?
 	local me = aim.self
 	if not me then
 		return nil
@@ -267,11 +271,9 @@ local function pickTarget(aim: Aim, reach: number, onlyHovered: boolean, thieves
 			if other.userId == aim.hovered then
 				return other
 			end
-			if not onlyHovered and (other.carrying or not thievesOnly) then
-				local score = d - (if other.carrying then reach * 2 else 0) -- any thief beats any non-thief
-				if score < bestScore then
-					best, bestScore = other, score
-				end
+			local score = d - (if other.carrying then reach * 2 else 0) -- any thief beats any non-thief
+			if score < bestScore then
+				best, bestScore = other, score
 			end
 		end
 	end
@@ -297,23 +299,30 @@ end
 	pointed at, or (nil, player-facing reason) when there is nothing to send: not equipped, still cooling down,
 	nobody in reach, no point to aim at. Intent only: the server re-checks reach, zones, shields and cooldowns.
 ]]
-function InventoryCore.pvpUseRequest(entry: Entry, tool: any, aim: Aim, config: any, now: number): (PvpUse?, string?)
+function InventoryCore.pvpUseRequest(
+	entry: Entry,
+	tool: any,
+	aim: Aim,
+	config: any,
+	now: number,
+	power: number?
+): (PvpUse?, string?)
 	if entry.kind ~= "pvp" or not entry.equipped or tool == nil or tool.id ~= entry.itemId then
 		return nil, nil
 	end
 	if entry.readyAt and entry.readyAt > now then
 		return nil, `Ready in {math.ceil(entry.readyAt - now)}s`
 	end
-	local use: PvpUse = { action = InventoryCore.PVP_USE_ACTION, itemId = entry.itemId, target = nil, aim = nil }
+	local use: PvpUse =
+		{ action = InventoryCore.PVP_USE_ACTION, itemId = entry.itemId, target = nil, aim = nil, power = power }
 	local mode = InventoryCore.pvpAimMode(tool)
 	local reach = tool.reach or config.SLAP_REACH
-	if mode == "target" or mode == "targetOptional" or mode == "hovered" then
-		local other = pickTarget(aim, reach, mode == "hovered", mode == "targetOptional")
-		if other then
-			use.target = other.userId
-		elseif mode == "target" then
+	if mode == "target" then
+		local other = pickTarget(aim, reach)
+		if not other then
 			return nil, if aim.self then "No one in reach" else "Can't find you"
 		end
+		use.target = other.userId
 	elseif mode == "shot" then
 		use.aim = positionOf(aim, aim.hovered) or aim.point or aim.far
 		if use.aim == nil then
@@ -323,11 +332,6 @@ function InventoryCore.pvpUseRequest(entry: Entry, tool: any, aim: Aim, config: 
 		use.aim = aim.point
 		if use.aim == nil then
 			return nil, "Aim at the ground"
-		end
-	elseif mode == "pointOptional" then
-		local point = aim.point
-		if point and aim.self and distance(aim.self, point) <= config.PVP.FUN_AIM_RANGE then
-			use.aim = point
 		end
 	end
 	return use, nil

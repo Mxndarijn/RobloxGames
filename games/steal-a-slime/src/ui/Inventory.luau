@@ -187,6 +187,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local panelOpen = false
 	local heldConsumable: string? = nil -- the consumable in hand (client-side; the server only validates the use)
 	local lastUse = -math.huge
+	local charging: { itemId: string, startedAt: number }? = nil -- a held press of a charging PvP item
 	local lastPvpEquipped: string? = nil
 	local pendingOrder: { string }? = nil -- the order the player just made, until a State confirms it
 	local seen: { [string]: boolean }? = nil -- every entry key seen this session (nil until the first State)
@@ -1362,10 +1363,37 @@ function Inventory.new(parent: Instance, deps: Deps)
 		return nil
 	end
 
-	-- Click / tap in the world (`at` = its screen point) with a consumable in hand or a PvP item equipped:
-	-- asks the server to use it. False when nothing is held, the bar is hidden, the use is too soon after the
-	-- last, or there is nothing to send yet (then a tip says why).
-	function self.useHeld(at: (Vector2 | Vector3)?): boolean
+	-- Sends the equipped PvP item's use from the screen point `at` (power = the hold charge, nil = none).
+	local function usePvp(pvpEntry: Entry, at: Vector2 | Vector3, now: number, power: number?): boolean
+		if not deps.aim then
+			return false
+		end
+		local serverNow = deps.serverNow()
+		local use, reason =
+			InventoryCore.pvpUseRequest(pvpEntry, toolDef(pvpEntry.itemId), deps.aim(at), deps.Config, serverNow, power)
+		if deps.animate and InventoryCore.pvpReady(pvpEntry, serverNow) then
+			-- the swing / punch / throw shows at once, also for a whiff the server never hears about
+			lastUse = now
+			deps.animate(pvpEntry.itemId)
+		end
+		if not use then
+			if reason then
+				feedback(pvpEntry, reason)
+			end
+			return false
+		end
+		lastUse = now
+		sendUse(pvpEntry, { use.action, use.itemId, use.target, use.aim, use.power }, 5)
+		return true
+	end
+
+	--[[
+		Click / tap in the world (`at` = its screen point) with a consumable in hand or a PvP item equipped:
+		asks the server to use it. `holdable` = a press that `releaseHeld` will end (mouse, touch long press): an
+		item that charges (InventoryCore.pvpCharges) then waits for the release. False when nothing is held, the
+		bar is hidden, the use is too soon after the last, or there is nothing to send yet (then a tip says why).
+	]]
+	function self.useHeld(at: (Vector2 | Vector3)?, holdable: boolean?): boolean
 		if menuOpen or carrying or panelOpen then
 			return false
 		end
@@ -1381,23 +1409,11 @@ function Inventory.new(parent: Instance, deps: Deps)
 			if not deps.aim or not at then
 				return false
 			end
-			local serverNow = deps.serverNow()
-			local use, reason =
-				InventoryCore.pvpUseRequest(pvpEntry, toolDef(pvpEntry.itemId), deps.aim(at), deps.Config, serverNow)
-			if deps.animate and InventoryCore.pvpReady(pvpEntry, serverNow) then
-				-- the swing / punch / throw shows at once, also for a whiff the server never hears about
-				lastUse = now
-				deps.animate(pvpEntry.itemId)
+			if holdable and InventoryCore.pvpCharges(pvpEntry.itemId) then
+				charging = { itemId = pvpEntry.itemId, startedAt = now }
+				return true
 			end
-			if not use then
-				if reason then
-					feedback(pvpEntry, reason)
-				end
-				return false
-			end
-			lastUse = now
-			sendUse(pvpEntry, { use.action, use.itemId, use.target, use.aim }, 4)
-			return true
+			return usePvp(pvpEntry, at, now, nil)
 		end
 		for _, entry in entries do
 			if entry.kind == "consumable" and entry.itemId == heldConsumable then
@@ -1412,6 +1428,22 @@ function Inventory.new(parent: Instance, deps: Deps)
 			end
 		end
 		return false
+	end
+
+	-- The press of a charging item ended at screen point `at`: sends it with the charge held so far.
+	function self.releaseHeld(at: (Vector2 | Vector3)?): boolean
+		local charge = charging
+		charging = nil
+		local pvpEntry = equippedPvp()
+		if not charge or not at or not pvpEntry or pvpEntry.itemId ~= charge.itemId then
+			return false
+		end
+		if menuOpen or carrying or panelOpen then
+			return false
+		end
+		local now = os.clock()
+		local power = InventoryCore.chargePower(now - charge.startedAt, deps.Config.PVP_FUN.CHARGE_SECONDS)
+		return usePvp(pvpEntry, at, now, power)
 	end
 
 	function self.heldConsumable(): string?

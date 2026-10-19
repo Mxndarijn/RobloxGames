@@ -60,11 +60,15 @@ function InventoryTools.bindBag(isBagKey: (Enum.KeyCode) -> boolean, onBag: () -
 end
 
 -- A click or tap that no GUI took (the world) uses the item in hand: `onUse` gets the screen point and decides
--- if anything is held. Touch uses TouchTap, so dragging the camera or the thumbstick never fires an item.
-function InventoryTools.bindUse(onUse: (screen: Vector2 | Vector3) -> ())
+-- if anything is held. Touch uses TouchTap, so dragging the camera or the thumbstick never fires an item. A mouse
+-- press or a touch long press is `holdable`: `onRelease` gets its end (charging items, CONTRACT.md §26.4).
+function InventoryTools.bindUse(
+	onUse: (screen: Vector2 | Vector3, holdable: boolean?) -> (),
+	onRelease: ((screen: Vector2 | Vector3) -> ())?
+)
 	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
 		if not processed and input.UserInputType == Enum.UserInputType.MouseButton1 then
-			onUse(input.Position)
+			onUse(input.Position, onRelease ~= nil)
 		end
 	end)
 	UserInputService.TouchTap:Connect(function(positions: { Vector2 }, processed: boolean)
@@ -72,6 +76,26 @@ function InventoryTools.bindUse(onUse: (screen: Vector2 | Vector3) -> ())
 			onUse(positions[1])
 		end
 	end)
+	if not onRelease then
+		return
+	end
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			onRelease(input.Position)
+		end
+	end)
+	UserInputService.TouchLongPress:Connect(
+		function(positions: { Vector2 }, state: Enum.UserInputState, processed: boolean)
+			if not positions[1] then
+				return
+			end
+			if state == Enum.UserInputState.Begin and not processed then
+				onUse(positions[1], true)
+			elseif state == Enum.UserInputState.End then
+				onRelease(positions[1])
+			end
+		end
+	)
 end
 
 function InventoryTools.new(player: Player): Provider

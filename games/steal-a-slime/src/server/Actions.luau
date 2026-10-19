@@ -601,7 +601,7 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	elseif action == "EquipPvpItem" then
 		return result(PvpService.equip(session, args[1], feature(ctx, "PvP")))
 	elseif action == "UsePvpItem" then
-		return result(PvpService.use(world, session, args[1], args[2], args[3], now, feature(ctx, "PvP"), ctx))
+		return result(PvpService.use(world, session, args[1], args[2], args[3], now, feature(ctx, "PvP"), ctx, args[4]))
 	elseif action == "SetHotbar" then
 		return result(HotbarOrder.set(session.data, args[1]))
 	elseif action == "Drop" then

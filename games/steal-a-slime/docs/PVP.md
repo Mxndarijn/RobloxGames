@@ -66,6 +66,7 @@ Client effect sounds (Roblox library sounds plus one Pro Sound Effects sound, al
 | `PvpSqueak` | 9125994570 | Squeeze Toy Squeaky Rubber (Pro Sound Effects, public domain) | Squeaky Hammer |
 | `PvpFirework` | 12222065 | Launching rocket.wav | fireworks |
 | `PvpBubble` | 12222054 | Kerplunk.wav | Bubble Wand |
+| `PvpDisco` | 9047231371 | APM "Copacetic - 15" (Roblox-licensed APM music) | Dance Bomb disco bubble |
 
 ## PR sequence
 

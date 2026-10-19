@@ -97,7 +97,14 @@ local pvpAnim = require(script.PvpAnim).start({
 	batName = Config.BAT.TOOL_NAME,
 	swingGap = Config.BAT.SWING_GAP,
 })
-require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent, pvpAnim)
+-- Fun item looks (CONTRACT.md §26.4): PvpEffects hands their events over; stepped by the 10 Hz loop below.
+local pvpFunFx = require(script.PvpFunFx).start({
+	anim = pvpAnim,
+	serverNow = function(): number
+		return workspace:GetServerTimeNow() -- the clock of the PvpEvent times
+	end,
+})
+require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent, pvpAnim, pvpFunFx)
 
 local gui = Widgets.create("ScreenGui", {
 	Name = "SlimeUI",
@@ -285,7 +292,7 @@ local inventory = Inventory.new(gui, {
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
 InventoryTools.bindBag(inventory.isBagKey, inventory.toggleBag)
-InventoryTools.bindUse(inventory.useHeld)
+InventoryTools.bindUse(inventory.useHeld, inventory.releaseHeld)
 local stealFx = StealAlertFx.new(gui, {
 	Config = Config,
 	Constants = Constants,
@@ -1118,6 +1125,7 @@ task.spawn(function()
 				panelByKey.WorldShop.tick()
 			end
 			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
+			pvpFunFx.tick(now)
 		end
 	end
 end)

@@ -31,6 +31,7 @@ local CONTRACT_NAMES = {
 	"PvpSqueak",
 	"PvpFirework",
 	"PvpBubble",
+	"PvpDisco", -- Dance Bomb music (docs/PVP.md)
 }
 
 describe("Sounds.resolve", function()
