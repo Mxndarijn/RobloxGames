@@ -31,9 +31,8 @@ State field, no save-format change.
   bottom edge sits `LabelHeight` above the Body. Outlined text, no panel: the name in white edged in the rarity colour,
   the rarity word filled with a gradient of its colour (a rainbow for Secret), the income in green and the price in
   gold. Size mixes studs and pixels so it shrinks with distance but stays readable; `MaxDistance` 60 hides it far
-  away. Slimes walk the lane in a line, so each new tag takes the next of three heights, a whole tag height apart
-  (`SizeOffset`, a fraction of the tag's own size, so it holds at any distance). Disabled while `LabelPad` is set and
-  the pad is found.
+  away. Every tag sits at the same height above its slime, so neighbours on the lane can overlap. Disabled while
+  `LabelPad` is set and the pad is found.
 - **Pad sign (`src/ui/SlimePadSign`, driven by `SlimeInfoCard`).** A thin non-colliding, non-queried WoodPlanks part with
   a `SurfaceGui` on the pad crate's entrance side (pad-local -Z), in a local `SlimePadSigns` folder. Goo of the rarity
   colour (a rainbow for Secret) runs along its top edge with the rarity written in it and drips down both ends; the

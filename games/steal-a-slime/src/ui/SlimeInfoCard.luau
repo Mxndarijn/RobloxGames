@@ -42,10 +42,6 @@ SlimeInfoCard.SIZE = table.freeze({
 	maxDistance = 60, -- studs: hidden beyond
 	maxTextSize = 72,
 	stroke = 2, -- px outline round every row
-	-- Slimes walk the lane in a line, so their tags would stack. Each new tag takes the next of `levels` heights, a
-	-- whole tag height apart (SizeOffset is a fraction of the tag's own size, so it holds at any distance).
-	staggerLevels = 3,
-	staggerStep = 1,
 })
 
 -- Rows, top to bottom, with heights relative to one row. The name is the largest; the price is next, so it
@@ -104,13 +100,6 @@ function SlimeInfoCard.rows(count: number): { Row }
 		y += h
 	end
 	return out
-end
-
--- Where the `n`th tag made sits: SizeOffset that lifts it 0, 1, .. staggerLevels - 1 tag heights (bottom edge on
--- the anchor at level 0), so slimes made one after another in a line don't stack their tags.
-function SlimeInfoCard.stagger(n: number): Vector2
-	local s = SlimeInfoCard.SIZE
-	return Vector2.new(0, 0.5 + (n % s.staggerLevels) * s.staggerStep)
 end
 
 -- BillboardGui size for `count` rows.
@@ -246,7 +235,6 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 	-- Tagged models whose Body has not replicated yet: the tag can arrive before the model's children.
 	local waiting: { [Instance]: RBXScriptConnection } = {}
 	local ownFolder: Folder? = nil
-	local made = 0 -- tags made so far: picks each new tag's stagger level
 	local function signParent(): Instance
 		if opts.signParent then
 			return opts.signParent
@@ -321,8 +309,6 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 		end
 		local gui = SlimeInfoCard.build()
 		gui.Adornee = body
-		gui.SizeOffset = SlimeInfoCard.stagger(made)
-		made += 1
 		local conn = model.AttributeChanged:Connect(function(name: string)
 			if WATCHED[name] then
 				refresh(model)
