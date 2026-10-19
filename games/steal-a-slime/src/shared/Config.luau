@@ -548,7 +548,7 @@ local PVP_TOOLS: { PvpTool } = {
 		slowSeconds = 3,
 	}),
 	-- Fun items (CONTRACT.md §26.8): the rest of their tunables live in PVP_FUN.
-	fun("FunConfetti", "Confetti Popper", 0, 3, true, { allowInSafeZone = true }),
+	fun("FunConfetti", "Confetti Popper", 0, 3, true, {}),
 	fun("FunBalloon", "Goo Balloon", 1, 3, true, { slow = 0.2, slowSeconds = 2 }), -- slows only a thief in the splash
 	fun("FunBubbles", "Bubble Wand", 3, 5, false, { control = 1.5 }),
 	fun("FunBouncePad", "Bounce Pad", 5, 8, false, { height = 30, maxPlaced = 2 }),
@@ -1126,7 +1126,6 @@ local Config = {
 		CHARGE_SECONDS = 0.5, -- hold the button this long for UsePvpItem `charged` (power punch, mega confetti pop, fireworks volley)
 		CHARGE_PUSH = 1.5, -- power punch: push x this
 		CHARGE_COOLDOWN = 2, -- power punch: cooldown x this
-		FUN_AIM_RANGE = 40, -- studs: how far a Balloon / Bounce Pad / Fireworks aim point may be
 		TRAP_PLACE_RANGE = 40, -- studs: how far from the owner a Goo Trap may be thrown
 		TRAP_MAX_HELD = 5, -- charges per trap tier a player may hold (buying a 6th is refused)
 		TRAP_MAX_LIVE = 5, -- live traps per player over all tiers (a 6th removes the oldest)
@@ -1137,11 +1136,6 @@ local Config = {
 		SPLAT_SLOW = 0.3, -- splat: speed taken away
 		SPLAT_SLOW_SECONDS = 1, -- splat: how long the slip lasts
 		SPLAT_MAX = 6, -- splats / pools per shooter at once (the oldest goes)
-		FUN_NUDGE_CONTROL_SECONDS = 0.3, -- Squeaky Hammer nudge counts as a tiny control
-		FIREWORKS_SECONDS = 4, -- FunFireworks Effect duration
-		BOUNCE_PAD_SECONDS = 60, -- a placed Bounce Pad lives this long
-		BOUNCE_PAD_RADIUS = 4, -- studs: stepping within this horizontal distance triggers it
-		BOUNCE_RETRIGGER_SECONDS = 2, -- the owner's pad cannot relaunch them sooner
 		FX_SECONDS = 1, -- client FX from PvpEvent "Effect" live at most this long (nothing persistent, no server parts)
 		MAP_BOUNDS = table.freeze({ minX = -320, maxX = 320, minZ = -320, maxZ = 320 }), -- WorldBorder.GROUND_HALF = 320, Ground centred on the origin
 	}),
