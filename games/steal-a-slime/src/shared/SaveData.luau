@@ -28,13 +28,17 @@
 	the two unversioned fields above are now versioned: v5 -> v6 (migrateV5) keeps a known plotSkin id and
 	cleans stealLog / settings, junk or missing -> classic / empty / defaults. Pure, idempotent and
 	independent of every feature flag: a flag that is off leaves its field stored, just unused.
-	v7 (current): v6 minus everything mutation related: slimes[i].mutation / .mutations, the Dex `stamps` and
+	v7: v6 minus everything mutation related: slimes[i].mutation / .mutations, the Dex `stamps` and
 	`stampRewards`, the MutationSpray consumable and the RainMagnet upgrade level. v6 -> v7 (migrateV6) strips them
 	from the stored table; pure, idempotent. Unknown or legacy values never error.
+	v8 (current): Goo Traps are charges, not an owned tier: pvp.traps = { [GooTrapN] = charges }. v7 -> v8
+	(migrateV7) turns an owned trap tier (pvp.tiers.Trap = n) into Config.PVP.TRAP_MAX_HELD charges of GooTrap<n>
+	and drops tiers.Trap; pure, idempotent.
 	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, speciesRewards = milestones paid;
 	missing -> empty / 0, unknown ids dropped, owned slimes always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
-	pvp (FEATURES.PvP, CONTRACT.md §26) is optional and needs no version bump: { tiers = { [line] = tier }, fun = { id }, played = seconds };
-	missing / junk -> nothing owned, ids that are not Config.PVP_TOOLS are ignored, numbers are clamped (SaveData.cleanPvp).
+	pvp (FEATURES.PvP, CONTRACT.md §26) is optional: { tiers = { Knockback = tier, Blaster = tier }, traps = { [id] = charges },
+	fun = { id }, played = seconds }; missing / junk -> nothing owned, ids that are not Config.PVP_TOOLS are ignored,
+	numbers are clamped (SaveData.cleanPvp).
 	hotbar (CONTRACT.md §5.1) is optional and needs no version bump: 9 slot keys, "" = empty; missing / not a list -> nil,
 	bad or repeated keys -> empty slots, entries past slot 9 dropped (HotbarOrder.clean).
 	Unknown/newer versions are read field-by-field with the current sanitizer.
@@ -69,7 +73,9 @@ end
 
 local MAX_CASH = 1e15
 
-local PVP_LINES = { "Knockback", "Trap", "Blaster" }
+-- Lines saved as a best tier; Goo Traps (TRAP_LINE) are saved as charges per trap id.
+local PVP_LINES = { "Knockback", "Blaster" }
+local TRAP_LINE = "Trap"
 
 -- Boss trophies of a raw save (read) or of PlayerData (write): sanitized slimes of a boss species (SlimeRoster kind
 -- "boss"), the first one per species, never on a pad. Missing / junk -> none.
@@ -95,11 +101,21 @@ end
 
 -- Sanitizes the pvp field of a raw save (read) or of PlayerData (write; `fun` is a set there, a list in the save).
 function SaveData.cleanPvp(raw: any): PlayerData.Pvp
-	local out: PlayerData.Pvp = { tiers = {}, fun = {}, played = 0 }
+	local out: PlayerData.Pvp = { tiers = {}, traps = {}, fun = {}, played = 0 }
 	if type(raw) ~= "table" then
 		return out
 	end
 	out.played = num(raw.played, 0, 0, Config.PVP.NEW_PLAYER_SHIELD_SECONDS)
+	if type(raw.traps) == "table" then
+		for _, tool in Config.PVP_TOOLS do
+			if tool.line == TRAP_LINE then
+				local n = num(raw.traps[tool.id], 0, 0, Config.PVP.TRAP_MAX_HELD)
+				if n > 0 then
+					out.traps[tool.id] = n
+				end
+			end
+		end
+	end
 	if type(raw.tiers) == "table" then
 		for _, line in PVP_LINES do
 			local top = 0
@@ -319,6 +335,35 @@ function SaveData.migrateV6(raw: { [string]: any }): { [string]: any }
 	return out
 end
 
+-- v7 -> v8: an owned Goo Trap tier becomes a full stack of charges of that tier (the trap it owned; lower tiers
+-- were only superseded). Saved trap ids never change, so the id is GooTrap<tier>.
+function SaveData.migrateV7(raw: { [string]: any }): { [string]: any }
+	local out = table.clone(raw)
+	local from = tonumber(raw.version)
+	if from == nil or from ~= from then
+		from = 0
+	end
+	out.migratedFrom = raw.migratedFrom or from
+	if type(raw.pvp) == "table" then
+		local pvp = table.clone(raw.pvp)
+		local tiers = if type(pvp.tiers) == "table" then table.clone(pvp.tiers) else nil
+		local tier = if tiers then tonumber(tiers.Trap) else nil
+		if tiers then
+			tiers.Trap = nil
+			pvp.tiers = tiers
+		end
+		if tier and tier == tier and tier >= 1 then
+			local traps = if type(pvp.traps) == "table" then table.clone(pvp.traps) else {}
+			local id = `GooTrap{math.floor(tier)}`
+			traps[id] = math.max(tonumber(traps[id]) or 0, Config.PVP.TRAP_MAX_HELD)
+			pvp.traps = traps
+		end
+		out.pvp = pvp
+	end
+	out.version = 8
+	return out
+end
+
 -- Daily quests: keeps only slots whose pool id still exists (a rolled day with none left re-rolls).
 function SaveData.cleanQuests(raw: any): PlayerData.DailyQuests
 	local out: PlayerData.DailyQuests = { day = 0, slots = {} }
@@ -398,6 +443,9 @@ function SaveData.migrate(raw: any): { [string]: any }?
 	end
 	if version < 7 then
 		migrated = SaveData.migrateV6(migrated)
+	end
+	if version < 8 then
+		migrated = SaveData.migrateV7(migrated)
 	end
 	return migrated
 end
@@ -515,7 +563,7 @@ function SaveData.deserialize(stored: any): Data
 	data.plotSkin = SaveData.migratePlotSkin(raw, data)
 	data.stealLog = StealAlert.clean(raw.stealLog) -- FEATURES.StealAlerts (missing -> empty)
 	data.settings = AudioSettings.clean(raw.settings) -- FEATURES.Audio (missing -> defaults)
-	data.pvp = SaveData.cleanPvp(raw.pvp) -- FEATURES.PvP (no version bump: missing -> nothing owned)
+	data.pvp = SaveData.cleanPvp(raw.pvp) -- FEATURES.PvP (missing -> nothing owned)
 	data.trophies = SaveData.cleanTrophies(raw.trophies) -- boss trophies (no version bump: missing -> none)
 	data.hotbar = HotbarOrder.clean(raw.hotbar) -- hotbar order (no version bump: missing / junk -> nil)
 	for _, trophy in data.trophies do
@@ -635,7 +683,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			bought = table.clone(data.consumables.bought),
 			held = table.clone(data.consumables.held),
 		},
-		pvp = { tiers = pvp.tiers, fun = pvpFun, played = pvp.played },
+		pvp = { tiers = pvp.tiers, traps = pvp.traps, fun = pvpFun, played = pvp.played },
 		trophies = SaveData.cleanTrophies(data.trophies),
 		hotbar = HotbarOrder.clean(data.hotbar), -- nil until set: the key is left out
 	}

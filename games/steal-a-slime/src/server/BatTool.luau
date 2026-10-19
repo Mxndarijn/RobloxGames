@@ -50,16 +50,12 @@ local function knock(
 	target: World.Session,
 	origin: Vec,
 	targetPosition: Vec,
-	now: number,
-	pvp: boolean
+	now: number
 ): boolean
 	local state = PvpService.state(target) -- nil with FEATURES.PvP off
 	local launch = ctx.launch -- nil = no knockback, the slap still lands
 	if not launch or (state and not PvpRules.canControl(state, now)) then
 		return false
-	end
-	if pvp and (PvpRules.inSafeZone(origin) or PvpRules.inSafeZone(targetPosition)) then
-		return false -- with PvP on nobody is launched in or out of a safe zone (the glove rule)
 	end
 	local landing, push = PvpKnockbackRules.plan(KNOCK_TOOL, origin, targetPosition)
 	if not launch(target.userId, push, landing) then
@@ -115,9 +111,9 @@ end
 	  * A carrying thief in reach (any flag): StealService.slap (reach, shared cooldown, drop, bounce home, notifications,
 	    StealAlerts FX), then the knockback. Exactly one drop and one push per hit.
 	  * Flag OFF, anything else: nothing happens (no damage, no push), (false, "nothing in reach").
-	  * Flag ON, a non-thief: the PvP melee rules (PvpRules.canTarget's): only on the swinger's OWN plot, never from or into a
-	    safe zone, not a shielded (new) player, not a controlled / immune one, and the shared slap cooldown; the effect is the
-	    knockback only. No damage ever. A thief is always tried first.
+	  * Flag ON, a non-thief: only on the swinger's OWN plot, never by or on a player under the new-player shield, not a
+	    controlled / immune one, and the shared slap cooldown; the effect is the knockback only. No damage ever. A thief
+	    is always tried first.
 	A whiff never spends the slap cooldown. Never errors for a swing at nothing.
 ]]
 function BatTool.swing(
@@ -176,7 +172,7 @@ function BatTool.swing(
 		if not ok then
 			return false, reason
 		end
-		knock(world, ctx, session, target, origin, spot, now, pvp)
+		knock(world, ctx, session, target, origin, spot, now)
 		return true, nil
 	end
 	if targetId then
@@ -185,7 +181,7 @@ function BatTool.swing(
 		if not ok then
 			return false, reason
 		end
-		knock(world, ctx, session, target, origin, positions[targetId], now, pvp)
+		knock(world, ctx, session, target, origin, positions[targetId], now)
 		return true, nil
 	end
 	if bossInReach(world, ctx, session, origin, look) then
@@ -203,13 +199,10 @@ function BatTool.swing(
 	if now - session.lastSlapAt < Config.SLAP_COOLDOWN then
 		return false, "slap on cooldown"
 	end
-	if PvpRules.inSafeZone(origin) or PvpRules.inSafeZone(targetPosition) then
-		return false, "safe zone"
-	end
-	if PvpRules.isShielded(PvpService.state(target), now, target.data.rebirths) then
+	if PvpService.isShielded(target, now) or PvpService.isShielded(session, now) then
 		return false, "shielded"
 	end
-	if not knock(world, ctx, session, target, origin, targetPosition, now, pvp) then
+	if not knock(world, ctx, session, target, origin, targetPosition, now) then
 		return false, "can't push right now"
 	end
 	session.lastSlapAt = now

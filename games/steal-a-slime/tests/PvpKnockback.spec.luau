@@ -1,6 +1,6 @@
 --!strict
--- The Knockback glove line (FEATURES.PvP, CONTRACT.md §26): reach, canTarget matrix, cooldown, control immunity,
--- push clamp / map bounds per tier, thief drop, flag-off refusal, nothing spawned. Every flag-dependent call passes the
+-- The Knockback glove line (FEATURES.PvP, CONTRACT.md §26.4): reach, the shield rules, cooldown, control immunity,
+-- push clamp / map bounds per tier, the power punch, the specials, caught thieves, flag-off refusal, nothing spawned. Every flag-dependent call passes the
 -- flag explicitly so the specs hold in the forced-flag runs too.
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
@@ -14,8 +14,7 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
-local ATTACKER = { X = 200, Y = 3, Z = -200 } -- clear of every safe zone
-local FOUNTAIN = { X = 1, Y = 3, Z = 1 }
+local ATTACKER = { X = 200, Y = 3, Z = -200 }
 local TIERS = { "KnockGlove1", "KnockGlove2", "KnockGlove3", "KnockGlove4", "KnockGlove5" }
 
 local current: any = nil -- the world of the running test
@@ -49,6 +48,8 @@ local function setup(tier: string?): (any, any, any)
 	local a = ServerFixtures.join(world, 1, nil, 1e12)
 	local b = ServerFixtures.join(world, 2, nil, 1e12)
 	a.data.rebirths, b.data.rebirths = 20, 20
+	ServerFixtures.veteran(a)
+	ServerFixtures.veteran(b)
 	PvpService.join(world, a, T0, true)
 	PvpService.join(world, b, T0, true)
 	for _, id in TIERS do
@@ -65,8 +66,27 @@ local function done()
 	PvpService.registerLine("Knockback", nil)
 end
 
-local function use(world: any, a: any, id: string?, at: number): (boolean, string?)
-	return PvpService.use(world, a, id or "KnockGlove1", 2, nil, at, true, env)
+local function use(world: any, a: any, id: string?, at: number, charged: boolean?, target: number?): (boolean, string?)
+	return PvpService.use(world, a, id or "KnockGlove1", target or 2, nil, at, true, env, charged)
+end
+
+-- A third player at `position` (a veteran, so not shielded).
+local function third(world: any, position: any): any
+	local c = ServerFixtures.join(world, 3, nil, 0)
+	ServerFixtures.veteran(c)
+	PvpService.join(world, c, T0, true)
+	positions[3] = position
+	return c
+end
+
+local function knockEffects(): { { [string]: any } }
+	local out = {}
+	for _, e in events() do
+		if e.payload.kind == "Effect" and e.payload.effect == "Knockback" then
+			table.insert(out, e.payload)
+		end
+	end
+	return out
 end
 
 describe("Knockback geometry", function()
@@ -78,7 +98,7 @@ describe("Knockback geometry", function()
 		expect(PvpKnockbackRules.inReach(tool, ATTACKER, { X = 210.1, Y = 3, Z = -200 })).toBe(false)
 		expect(PvpKnockbackRules.inReach(tool, ATTACKER, { X = 200, Y = 14, Z = -200 })).toBe(false)
 	end)
-	it("pushes away from the attacker by the tier's push, with a small arc", function()
+	it("pushes away from the attacker by the tier's push, with the tier's arc", function()
 		for _, id in TIERS do
 			local tool = PvpRules.tool(id) :: any
 			local landing, push = PvpKnockbackRules.plan(tool, ATTACKER, { X = 205, Y = 3, Z = -200 })
@@ -162,24 +182,78 @@ describe("Knockback use", function()
 		expect(next((PvpService.state(a) :: any).cooldowns)).toBeNil()
 		done()
 	end)
-	it("applies the canTarget matrix", function()
+	it("works on anyone anywhere, but never on or by a shielded player", function()
 		local world, a, b = setup()
-		positions[2] = FOUNTAIN
-		positions[1] = { X = 3, Y = 3, Z = 1 }
-		expect(select(2, use(world, a, nil, T0 + 1))).toBe("safe zone")
-		positions[1] = ATTACKER
-		expect(select(2, use(world, a, nil, T0 + 1))).toBe("target is in a safe zone")
-		positions[2] = { X = 205, Y = 3, Z = -200 }
-		b.data.rebirths = 0
+		plot = false -- off the attacker's plot, a player who carries nothing
+		positions[1], positions[2] = { X = 0, Y = 3, Z = 0 }, { X = 3, Y = 3, Z = 1 } -- by the fountain
+		expect(use(world, a, nil, T0 + 1)).toBe(true)
+		b.data.pvp.played = 0
 		PvpService.join(world, b, T0, true) -- a fresh player: shielded
-		expect(select(2, use(world, a, nil, T0 + 1))).toBe("target is shielded")
-		b.data.rebirths = 20
-		plot = false
-		expect(select(2, use(world, a, nil, T0 + 1))).toBe("only on your plot or against a thief")
-		plot = true
-		expect(#moves).toBe(0)
-		expect(next((PvpService.state(a) :: any).cooldowns)).toBeNil()
-		expect(use(world, a, nil, T0 + 2)).toBe(true) -- all clear
+		expect(select(2, use(world, a, nil, T0 + 5))).toBe("target is shielded")
+		ServerFixtures.veteran(b)
+		PvpService.join(world, b, T0, true)
+		a.data.pvp.played = 0
+		PvpService.join(world, a, T0, true)
+		expect((PvpService.equip(a, "KnockGlove1", true))).toBe(true)
+		expect(select(2, use(world, a, nil, T0 + 5))).toBe("your new-player shield is on")
+		expect(#moves).toBe(1)
+		done()
+	end)
+	it("a power punch pushes 1.5x and doubles the cooldown", function()
+		local world, a = setup()
+		expect(use(world, a, nil, T0 + 1, true)).toBe(true)
+		expect(math.abs(PvpKnockbackRules.horizontal(moves[1].push) - 5 * Config.PVP.CHARGE_PUSH) < 1e-9).toBe(true)
+		expect(knockEffects()[1].charged).toBe(true)
+		expect(PvpService.state(a).cooldowns.KnockGlove1).toBe(T0 + 1 + 1.5 * Config.PVP.CHARGE_COOLDOWN)
+		done()
+	end)
+	it("the Royal power punch stays inside the push and arc caps", function()
+		local world, a = setup("KnockGlove5")
+		expect(use(world, a, "KnockGlove5", T0 + 1, true)).toBe(true)
+		local push = moves[1].push
+		expect(PvpKnockbackRules.horizontal(push) <= Config.PVP.KNOCKBACK_MAX_PUSH + 1e-9).toBe(true)
+		expect(push.Y).toBe(6)
+		expect(knockEffects()[1].special).toBe("royal")
+		done()
+	end)
+	it("Bounce: the effect carries the pogo heights and the first bounce is the arc", function()
+		local world, a = setup("KnockGlove2")
+		expect(use(world, a, "KnockGlove2", T0 + 1)).toBe(true)
+		local e = knockEffects()[1]
+		expect(e.special).toBe("bounce")
+		expect(e.pogo).toEqual({ 6, 4, 2 })
+		expect(moves[1].push.Y).toBe(6)
+		done()
+	end)
+	it("Boom: the blast also pushes everyone within 5 studs of the target, away from it", function()
+		local world, a = setup("KnockGlove3")
+		third(world, { X = 208, Y = 3, Z = -200 }) -- 3 studs past the target
+		expect(use(world, a, "KnockGlove3", T0 + 1)).toBe(true)
+		expect(#moves).toBe(2)
+		expect(moves[2].userId).toBe(3)
+		expect(moves[2].push.X > 0).toBe(true)
+		local chained = knockEffects()[2]
+		expect(chained.chained).toBe(true)
+		expect(chained.target).toBe(3)
+		positions[3] = { X = 220, Y = 3, Z = -200 } -- too far for the blast
+		done()
+	end)
+	it("Thunder: lightning chains to at most 2 nearby players at half push", function()
+		local world, a = setup("KnockGlove4")
+		third(world, { X = 210, Y = 3, Z = -200 })
+		local d = ServerFixtures.join(world, 4, nil, 0)
+		ServerFixtures.veteran(d)
+		PvpService.join(world, d, T0, true)
+		positions[4] = { X = 205, Y = 3, Z = -195 }
+		local e = ServerFixtures.join(world, 5, nil, 0)
+		ServerFixtures.veteran(e)
+		PvpService.join(world, e, T0, true)
+		positions[5] = { X = 205, Y = 3, Z = -190 }
+		expect(use(world, a, "KnockGlove4", T0 + 1)).toBe(true)
+		expect(#moves).toBe(3) -- the target + 2 chained
+		for i = 2, 3 do
+			expect(math.abs(PvpKnockbackRules.horizontal(moves[i].push) - 7.5 * 0.5) < 1e-9).toBe(true)
+		end
 		done()
 	end)
 	it("honours the cooldown and starts none on a refusal", function()
@@ -220,28 +294,35 @@ describe("Knockback use", function()
 		expect(#events()).toBe(0)
 		done()
 	end)
-	it("makes a thief drop the stolen slime like the base slap", function()
+	it("a punched thief always sends the slime home, also when immune to the push", function()
 		local world = ServerFixtures.world()
 		current = world
 		moves, plot = {}, false
 		env.launch = record
 		positions = { [1] = ATTACKER, [2] = { X = 205, Y = 3, Z = -200 } }
 		PvpKnockback.register()
-		local a = ServerFixtures.join(world, 1, { Fixtures.slime("gem", 3) }, 1e12)
+		local a = ServerFixtures.join(world, 1, { Fixtures.slime("gem", 3), Fixtures.slime("ruby", 3) }, 1e12)
 		local thief = ServerFixtures.join(world, 2, nil, 1e12)
 		a.data.rebirths, thief.data.rebirths = 20, 20
 		ServerFixtures.unlock(a)
 		ServerFixtures.unlock(thief)
+		ServerFixtures.veteran(a)
 		PvpService.join(world, a, T0, true)
 		PvpService.join(world, thief, T0, true)
 		expect((PvpService.buy(world, a, "KnockGlove1", true))).toBe(true)
 		expect((PvpService.equip(a, "KnockGlove1", true))).toBe(true)
 		expect((StealService.steal(world, thief, "gem", 1, T0 + 101))).toBe(true)
-		expect(thief.carry ~= nil).toBe(true)
-		expect(use(world, a, nil, T0 + 102)).toBe(true) -- not on the plot, but a thief carrying a slime
+		PvpService.onSteal(thief, T0 + 101)
+		expect(use(world, a, nil, T0 + 102)).toBe(true)
 		expect(thief.carry).toBeNil()
 		expect(world.carriedBy.gem).toBeNil()
 		expect(world.escaping.gem ~= nil).toBe(true)
+		expect(#moves).toBe(1)
+		-- immune now: a second steal and punch still sends the slime home, without a push
+		world.escaping.gem = nil
+		expect((StealService.steal(world, thief, "ruby", 1, T0 + 103.6))).toBe(true)
+		expect(use(world, a, nil, T0 + 103.6)).toBe(true)
+		expect(thief.carry).toBeNil()
 		expect(#moves).toBe(1)
 		done()
 	end)

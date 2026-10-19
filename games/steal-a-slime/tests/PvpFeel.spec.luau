@@ -1,6 +1,6 @@
 --!strict
 -- PvP hit feel (FEATURES.PvP, CONTRACT.md §26 "Knockback feel"): launch velocity with the friction boost, the shared
--- client clamp, map-edge landing, trap hold / blaster slow values from the docs, applySlow / applyControl clamps and
+-- client clamp, map-edge landing, trap / blaster values from the docs, applySlow / applyControl clamps and
 -- the pure void-guard decision. All pure; flag-independent.
 local Config = require("../src/shared/Config")
 local PvpKnockbackRules = require("../src/shared/PvpKnockbackRules")
@@ -25,11 +25,16 @@ describe("Knockback launch velocity", function()
 	it("defaults to Roblox gravity", function()
 		expect(near(PvpKnockbackRules.velocity({ X = 0, Y = 2, Z = 0 }).Y, math.sqrt(2 * 196.2 * 2))).toBe(true)
 	end)
-	it("the strongest tier stays within the max horizontal speed (max push <= 8 studs)", function()
-		expect(P.KNOCKBACK_MAX_PUSH <= 8).toBe(true)
+	it("every glove's power punch stays within the max horizontal speed", function()
 		for _, tool in Config.PVP_TOOLS do
 			if tool.line == "Knockback" then
-				local _, push = PvpKnockbackRules.plan(tool, { X = 0, Y = 3, Z = 0 }, { X = 3, Y = 3, Z = 4 })
+				local _, push = PvpKnockbackRules.plan(
+					tool,
+					{ X = 0, Y = 3, Z = 0 },
+					{ X = 3, Y = 3, Z = 4 },
+					nil,
+					P.CHARGE_PUSH
+				)
 				local v = PvpKnockbackRules.velocity(push)
 				expect(math.sqrt(v.X * v.X + v.Z * v.Z) <= PvpKnockbackRules.maxHorizontalSpeed() + 1e-6).toBe(true)
 			end
@@ -73,19 +78,24 @@ describe("Trap hold and blaster slow values (docs/PVP.md)", function()
 	local function tool(id: string): any
 		return PvpRules.tool(id)
 	end
-	it("trap freeze is 1 / 1.5 / 2 s", function()
-		expect(tool("GooTrap1").control).toBe(1)
+	it("Puddle slows 50 % for 2 s; Sticky holds 1.5 s; Mega holds 2 s and pulls in 4 studs", function()
+		expect(tool("GooTrap1").control).toBeNil()
+		expect(tool("GooTrap1").slow).toBe(0.5)
+		expect(tool("GooTrap1").slowSeconds).toBe(2)
 		expect(tool("GooTrap2").control).toBe(1.5)
 		expect(tool("GooTrap3").control).toBe(2)
+		expect(tool("GooTrap3").pull).toBe(4)
 	end)
-	it("blaster slow is 30 % 2 s, 40 % 2.5 s, 50 % 3 s", function()
-		expect(tool("GooBlaster1").slow).toBe(0.3)
-		expect(tool("GooBlaster1").slowSeconds).toBe(2)
-		expect(tool("GooBlaster2").slow).toBe(0.4)
-		expect(tool("GooBlaster2").slowSeconds).toBe(2.5)
-		expect(tool("GooBlaster3").slow).toBe(0.5)
-		expect(tool("GooBlaster3").slowSeconds).toBe(3)
-	end)
+	it(
+		"the Squirter fires 6 shots per tank, the Blaster 3 blobs, the Cannon splashes 6 studs with a 4 s pool",
+		function()
+			expect(tool("GooBlaster1").shots).toBe(6)
+			expect(tool("GooBlaster2").blobs).toBe(3)
+			expect(tool("GooBlaster3").splash).toBe(6)
+			expect(tool("GooBlaster3").poolSeconds).toBe(4)
+			expect(P.SPLAT_SECONDS).toBe(5)
+		end
+	)
 	it("applyControl / applySlow clamp to the Config caps, then immunity", function()
 		local s = PvpRules.newState()
 		expect(PvpRules.applyControl(s, 99, 100)).toBe(P.CONTROL_MAX_SECONDS)

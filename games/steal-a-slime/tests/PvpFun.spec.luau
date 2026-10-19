@@ -1,5 +1,5 @@
 --!strict
--- The Fun items (FEATURES.PvP, CONTRACT.md §26): rank gating, prices, cooldowns, safe zones, per-item targeting, the
+-- The Fun items (FEATURES.PvP, CONTRACT.md §26): rank gating, prices, cooldowns, per-item targeting, the
 -- Bounce Pad record, Squeaky slap sharing, Hat Launcher friends, Effect events, flag-off refusal, nothing spawned.
 -- Every flag-dependent call passes the flag explicitly so the specs hold in the forced-flag runs too.
 local Config = require("../src/shared/Config")
@@ -11,7 +11,7 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
-local HERE = { X = 200, Y = 3, Z = -200 } -- clear of every safe zone
+local HERE = { X = 200, Y = 3, Z = -200 }
 local NEAR = { X = 205, Y = 3, Z = -200 }
 local FOUNTAIN = { X = 1, Y = 3, Z = 1 }
 local FUN = {
@@ -73,6 +73,8 @@ local function setup(id: string, rebirths: number?): (any, any, any)
 	local a = ServerFixtures.join(world, 1, nil, 1e12)
 	local b = ServerFixtures.join(world, 2, nil, 1e12)
 	a.data.rebirths, b.data.rebirths = rebirths or 20, 20
+	ServerFixtures.veteran(a)
+	ServerFixtures.veteran(b)
 	PvpService.join(world, a, T0, true)
 	PvpService.join(world, b, T0, true)
 	expect((PvpService.buy(world, a, id, true))).toBe(true)
@@ -137,7 +139,7 @@ describe("Fun item data and gating", function()
 end)
 
 describe("Confetti, Bubbles", function()
-	it("Confetti works in a safe zone, fires a Cosmetic Effect to everyone and a Cooldown to the user", function()
+	it("Confetti works anywhere, fires a Cosmetic Effect to everyone and a Cooldown to the user", function()
 		local world, a = setup("FunConfetti", 0)
 		positions[1] = FOUNTAIN
 		expect(use(world, a, "FunConfetti", T0 + 1)).toBe(true)
@@ -161,11 +163,9 @@ describe("Confetti, Bubbles", function()
 		expect(select(2, use(world, a, "FunConfetti", T0 + 20, 2))).toBe("no target needed")
 		done()
 	end)
-	it("Bubbles are refused in a safe zone", function()
+	it("Bubbles work anywhere, also by the fountain", function()
 		local world, a = setup("FunBubbles")
 		positions[1] = FOUNTAIN
-		expect(select(2, use(world, a, "FunBubbles", T0 + 1))).toBe("safe zone")
-		positions[1] = HERE
 		expect(use(world, a, "FunBubbles", T0 + 1)).toBe(true)
 		expect(effects()[1].itemId).toBe("FunBubbles")
 		done()
@@ -178,7 +178,7 @@ describe("Confetti, Bubbles", function()
 end)
 
 describe("Balloon", function()
-	it("needs an aim in range, outside safe zones, and fires decal params", function()
+	it("needs an aim in range and fires decal params", function()
 		local world, a = setup("FunBalloon")
 		expect(select(2, use(world, a, "FunBalloon", T0 + 1))).toBe("no aim")
 		expect(select(2, use(world, a, "FunBalloon", T0 + 1, nil, { X = 300, Y = 3, Z = -200 }))).toBe("too far away")
@@ -198,14 +198,14 @@ describe("Balloon", function()
 		expect(effects()[1].position).toBe(aim) -- sent on as the vector, so clients can draw it
 		done()
 	end)
-	it("is disabled in safe zones (user or aim) and hits no player", function()
+	it("works by the fountain too and hits no player", function()
 		local world, a = setup("FunBalloon")
 		positions[1] = FOUNTAIN
-		expect(select(2, use(world, a, "FunBalloon", T0 + 1, nil, { X = 2, Y = 3, Z = 2 }))).toBe("safe zone")
-		positions[1] = { X = 30, Y = 3, Z = 30 }
-		expect(select(2, use(world, a, "FunBalloon", T0 + 1, nil, { X = 1, Y = 3, Z = 1 }))).toBe("safe zone")
+		expect(use(world, a, "FunBalloon", T0 + 1, nil, { X = 2, Y = 3, Z = 2 })).toBe(true)
 		positions[1] = HERE
-		expect(select(2, use(world, a, "FunBalloon", T0 + 1, 2, { X = 205, Y = 3, Z = -200 }))).toBe("no target needed")
+		expect(select(2, use(world, a, "FunBalloon", T0 + 10, 2, { X = 205, Y = 3, Z = -200 }))).toBe(
+			"no target needed"
+		)
 		done()
 	end)
 end)
@@ -248,13 +248,10 @@ describe("Hat Launcher", function()
 		expect(launches).toEqual({})
 		done()
 	end)
-	it("a friend in a safe zone or under the new-player shield is refused", function()
+	it("a friend under the new-player shield is refused", function()
 		local world, a, b = setup("FunHatLauncher")
 		friends = true
-		positions[2] = FOUNTAIN
-		expect(select(2, use(world, a, "FunHatLauncher", T0 + 1, 2))).toBe("target is in a safe zone")
-		positions[2] = NEAR
-		b.data.rebirths = 0
+		b.data.pvp.played = 0
 		PvpService.join(world, b, T0, true)
 		expect(select(2, use(world, a, "FunHatLauncher", T0 + 1, 2))).toBe("target is shielded")
 		done()
@@ -288,13 +285,14 @@ describe("Squeaky Hammer", function()
 		expect(next((PvpService.state(a) :: any).cooldowns)).toBeNil()
 		done()
 	end)
-	it("a non-thief off the plot is refused; reach is checked", function()
+	it("a non-thief off the plot only hears a squeak; reach is checked", function()
 		local world, a = setup("FunSqueaky")
 		plot = false
-		expect(select(2, use(world, a, "FunSqueaky", T0 + 10, 2))).toBe("only on your plot or against a thief")
+		expect(use(world, a, "FunSqueaky", T0 + 10, 2)).toBe(true)
+		expect(launches).toEqual({})
 		plot = true
 		positions[2] = { X = 260, Y = 3, Z = -200 }
-		expect(select(2, use(world, a, "FunSqueaky", T0 + 10, 2))).toBe("too far away")
+		expect(select(2, use(world, a, "FunSqueaky", T0 + 20, 2))).toBe("too far away")
 		done()
 	end)
 end)

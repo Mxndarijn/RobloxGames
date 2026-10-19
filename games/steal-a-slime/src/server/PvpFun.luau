@@ -3,8 +3,7 @@
 	PvpFun (FEATURES.PvP, CONTRACT.md §26 "Fun items")
 
 	The `Fun` line handler for PvpService.registerLine (FunConfetti .. FunFireworks). PvpService has already
-	checked the flag, ownership, equipped item, cooldown, safe zones (FunConfetti alone may be used in one), shield
-	and the own-plot / thief rule. Here: each item's own targeting rule, then the PvpEvent "Effect".
+	checked the flag, ownership, equipped item, cooldown and the new-player shield. Here: each item's own targeting rule, then the PvpEvent "Effect".
 	The server creates NOTHING in Workspace: the look is client FX from the event. The Bounce Pad is a data record
 	(position + expiry, max `maxPlaced` per owner) announced with PvpEvent "TrapPlaced" / "TrapCleared" (itemId
 	FunBouncePad) so the client draws it; the server only watches steps in the per-player WorldView tick (PvpFun.tick).
@@ -70,7 +69,7 @@ local function confetti(call: PvpService.UseCall): (boolean, string?)
 	return true, nil
 end
 
--- An aim point within FUN_AIM_RANGE of the attacker and outside every safe zone.
+-- An aim point within FUN_AIM_RANGE of the attacker.
 local function aimPoint(call: PvpService.UseCall): (Vec?, string?)
 	local aim: any = call.aim
 	-- a Roblox Vector3 is a native vector (type "vector"); Lune tests also pass plain tables
@@ -83,9 +82,6 @@ local function aimPoint(call: PvpService.UseCall): (Vec?, string?)
 	end
 	if distance(call.position, point) > Config.PVP.FUN_AIM_RANGE then
 		return nil, "too far away"
-	end
-	if PvpRules.inSafeZone(point) then
-		return nil, "safe zone"
 	end
 	return aim :: any, nil -- the Vector3 itself: clients only draw effects at a Vector3 position
 end
@@ -336,7 +332,6 @@ function PvpFun.tick(world: World.World, session: Session, position: any, now: n
 				state
 				and isThief(session)
 				and not PvpService.isShielded(session, now)
-				and not PvpRules.inSafeZone(position)
 				and PvpRules.canControl(state, now)
 			then
 				local applied = PvpRules.applyControl(state, tool.control or 0, now)

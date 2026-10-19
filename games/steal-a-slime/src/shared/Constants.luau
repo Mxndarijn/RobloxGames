@@ -11,7 +11,7 @@ return table.freeze({
 	NOTIFY = "Notify",
 	-- Server -> client: global TotalEarned board (Types.Leaderboard)
 	LEADERBOARD = "Leaderboard",
-	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / shield / safe zone / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
+	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / shield / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
 
 	SLIME_TAG = "Slime",
 	DATASTORE_NAME = "StealASlime_v1",

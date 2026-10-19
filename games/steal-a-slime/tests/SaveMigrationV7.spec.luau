@@ -67,7 +67,6 @@ end
 
 describe("SaveData.migrateV6", function()
 	it("is one version above v6 and strips the mutation fields of every slime and trophy", function()
-		expect(Config.SAVE_VERSION).toBe(7)
 		local out = SaveData.migrateV6(v6Save())
 		expect(out.version).toBe(7)
 		expect(out.migratedFrom).toBe(6)
@@ -141,7 +140,7 @@ describe("SaveData.deserialize of a v6 save with mutations", function()
 	it("serializes with no mutation, stamp or removed-item fields and re-serializes equal", function()
 		local d = SaveData.deserialize(v6Save())
 		local out = SaveData.serialize(d, 2000)
-		expect(out.version).toBe(7)
+		expect(out.version).toBe(Config.SAVE_VERSION)
 		expect(out.stamps).toBeNil()
 		expect(out.stampRewards).toBeNil()
 		for _, slime in out.slimes :: { any } do

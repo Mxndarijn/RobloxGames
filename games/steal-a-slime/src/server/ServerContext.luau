@@ -23,6 +23,8 @@ local WorldView = require(script.Parent.WorldView)
 
 local ServerContext = {}
 
+ServerContext.GROUND_PROBE = 60 -- studs: how far below a Goo Blaster blob's end its splat looks for the ground
+
 local function rootOf(userId: number): BasePart?
 	return WorldView.rootPart(Players:GetPlayerByUserId(userId))
 end
@@ -100,6 +102,21 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 		slimePosition = function(slimeId: string)
 			local p = WorldView.slimePosition(slimeId)
 			return p and { X = p.X, Y = p.Y, Z = p.Z }
+		end,
+		-- Goo Blaster splats: the first solid surface up to GROUND_PROBE studs below the blob's end (characters ignored).
+		groundBelow = function(point)
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Exclude
+			local characters = {}
+			for _, player in Players:GetPlayers() do
+				if player.Character then
+					table.insert(characters, player.Character)
+				end
+			end
+			params.FilterDescendantsInstances = characters
+			local origin = Vector3.new(point.X, point.Y + 1, point.Z)
+			local hit = workspace:Raycast(origin, Vector3.new(0, -ServerContext.GROUND_PROBE, 0), params)
+			return hit and { X = hit.Position.X, Y = hit.Position.Y, Z = hit.Position.Z }
 		end,
 	}
 end

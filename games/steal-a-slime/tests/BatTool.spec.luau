@@ -14,7 +14,7 @@ local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
-local ORIGIN = { X = 200, Y = 3, Z = -200 } -- clear of every safe zone
+local ORIGIN = { X = 200, Y = 3, Z = -200 }
 local LOOK = { X = 1, Y = 0, Z = 0 } -- facing +X (never reassigned)
 
 local plot = true
@@ -218,17 +218,19 @@ describe("BatTool.swing with PvP on", function()
 		expect(#moves).toBe(1)
 		done()
 	end)
-	it("a non-thief off your plot, in a safe zone, or under the new-player shield is not hit", function()
+	it("a non-thief off your plot, or with either player under the new-player shield, is not hit", function()
 		local world, owner, _, bystander = pvpSetup()
 		plot = false
 		expect(select(2, BatTool.swing(world, owner, T0 + 101, bat, true))).toBe("not on your plot")
 		plot = true
+		local shield = PvpService.state(bystander).shieldUntil
 		PvpService.state(bystander).shieldUntil = T0 + 1000
 		expect(select(2, BatTool.swing(world, owner, T0 + 110, bat, true))).toBe("shielded")
-		PvpService.state(bystander).shieldUntil = 0
-		poses[3] = { X = 1, Y = 3, Z = 1 } -- the fountain safe zone
-		poses[1] = { X = -1, Y = 3, Z = 1 }
-		expect(select(2, BatTool.swing(world, owner, T0 + 120, bat, true))).toBe("safe zone")
+		PvpService.state(bystander).shieldUntil = shield
+		local mine = PvpService.state(owner).shieldUntil
+		PvpService.state(owner).shieldUntil = T0 + 1000
+		expect(select(2, BatTool.swing(world, owner, T0 + 120, bat, true))).toBe("shielded")
+		PvpService.state(owner).shieldUntil = mine
 		expect(#moves).toBe(0)
 		expect(owner.lastSlapAt < T0).toBe(true)
 		done()

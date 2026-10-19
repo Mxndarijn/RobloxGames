@@ -104,7 +104,7 @@ export type PvpView = {
 	equipped: string?,
 	cooldowns: { [string]: number }, -- item id -> server time it is ready again
 	shieldUntil: number?,
-	safeZone: string?, -- "Spawn" | "Shop" | "Fountain"
+	charges: { [string]: number }, -- Goo Trap id -> charges held
 }
 
 -- State.consumables (FEATURES.Consumables): this restock's items for this player.
