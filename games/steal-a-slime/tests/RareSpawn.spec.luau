@@ -151,6 +151,22 @@ describe("RareSpawn pose offsets", function()
 		end)
 	end)
 
+	it("puts nothing flat on the ground around a wild slime, at any tier", function()
+		withRobloxGlobals(function()
+			for tier = 2, #RareSpawn.TIERS do
+				local fx = RareSpawn.build(tier, 1)
+				RareSpawn.place(fx, roblox.CFrame.new(0, 0, 0), 0)
+				for _, child in fx:GetChildren() do
+					if child:IsA("BasePart") and child.Transparency < 1 then
+						local low = child.CFrame.Position.Y - child.Size.X / 2
+						local flat = child.Shape == roblox.Enum.PartType.Cylinder and child.Size.X < 0.3
+						expect(flat and low < 0.5).toBe(false)
+					end
+				end
+			end
+		end)
+	end)
+
 	it("keeps no weak-keyed offsets table in the module", function()
 		local src = fs.readFile("src/visuals/shared/RareSpawn.luau")
 		expect(string.find(src, "__mode", 1, true)).toBe(nil)

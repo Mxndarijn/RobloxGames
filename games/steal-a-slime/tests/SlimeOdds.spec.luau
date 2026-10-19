@@ -184,6 +184,13 @@ describe("Mythic and Secret looks", function()
 		expect(mythic ~= nil and mythic.column == nil).toBe(true)
 		expect(secret ~= nil and (secret.column or 0) > 0 and (secret.column or 0) <= 10).toBe(true)
 	end)
+	it("shows no disc under a Mythic or Secret pad slime: the pedestal only carries its light and sparkles", function()
+		expect(TopTierFx.PEDESTAL_TRANSPARENCY).toBe(1)
+		for _, tier in { MYTHIC, SECRET } do
+			local spec = TopTierFx.pedestal(tier)
+			expect(spec ~= nil and spec.brightness > 0 and spec.range > 0).toBe(true)
+		end
+	end)
 	it("the Secret marker orbits motes, and the fountain beam stays under the beam cap", function()
 		expect(RareSpawn.TIERS[SECRET].orbit).toBe(3)
 		expect(RareSpawn.TIERS[MYTHIC].orbit).toBeNil()

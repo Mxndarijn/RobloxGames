@@ -10,10 +10,11 @@
 	    attribute (CONTRACT §8.4, Legendary+) or else Tier, kept in a
 	    local workspace folder "ClientRareFx" and posed on the slime's pivot
 	    every frame; removed when the slime stops being wild or goes away.
-	  * Mythic / Secret looks (contract/slime-odds.md, TopTierFx): a pedestal glow under pad slimes of Tier >= 6
-	    (Secret: plus a sparkle column), one beam on the fountain crown while a Secret is wild, and the Secret
-	    "fountain eruption" (camera shake + sky tint for TopTierFx.ERUPTION_SECONDS, bound to render step only
-	    while it plays) when the workspace RareSpawnAt / RareSpawnTier name a fresh Secret drop.
+	  * Mythic / Secret looks (contract/slime-odds.md, TopTierFx): a pedestal light under pad slimes of Tier >= 6
+	    (Secret: plus a sparkle column) on an invisible disc, one beam on the fountain crown while a Secret is
+	    wild, and the Secret "fountain eruption" (camera shake + sky tint for TopTierFx.ERUPTION_SECONDS, bound
+	    to render step only while it plays) when the workspace RareSpawnAt / RareSpawnTier name a fresh Secret
+	    drop.
 	  * Plot skins (FEATURES.PlotSkins, CONTRACT.md §15): PlotDecor.applySkin from the plot's
 	    PlotSkin attribute (absent = flag off = untouched). Studio only: the SlimeUI attribute
 	    PcwPlotSkin (a skin id) forces Plot_1's skin, for the shots.
@@ -168,7 +169,7 @@ local function buildPedestal(tier: number, size: number): BasePart?
 	end
 	local color = RareSpawn.color(tier)
 	local d = spec.diameter * size
-	local disc = fxPart(`Pedestal_{tier}`, Vector3.new(0.15, d, d), color, 0.45)
+	local disc = fxPart(`Pedestal_{tier}`, Vector3.new(0.15, d, d), color, TopTierFx.PEDESTAL_TRANSPARENCY)
 	disc:SetAttribute("Tier", tier)
 	local light = Instance.new("PointLight")
 	light.Color = color
