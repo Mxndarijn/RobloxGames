@@ -212,15 +212,15 @@
   "habitat_barn_crate_overlay": {
     "assetId": "118838784104356",
     "assetType": "Model",
-    "sha256": "cc6ad8be9e9c6e78",
-    "uploadedAt": "2026-10-19T08:18:25Z",
-    "versions": 1,
     "meshId": "rbxassetid://118930034023522",
     "meshSize": [
       7.5,
       2.537,
       7.5
-    ]
+    ],
+    "sha256": "cc6ad8be9e9c6e78",
+    "uploadedAt": "2026-10-19T08:18:25Z",
+    "versions": 1
   },
   "habitat_candy_patch": {
     "assetId": "133666024913667",
@@ -238,15 +238,15 @@
   "habitat_candy_patch_overlay": {
     "assetId": "127018298955173",
     "assetType": "Model",
-    "sha256": "ae4bfd3361dac80e",
-    "uploadedAt": "2026-10-19T08:19:09Z",
-    "versions": 1,
     "meshId": "rbxassetid://115077316656898",
     "meshSize": [
       7.661,
       2.55,
       7.661
-    ]
+    ],
+    "sha256": "ae4bfd3361dac80e",
+    "uploadedAt": "2026-10-19T08:19:09Z",
+    "versions": 1
   },
   "habitat_crystal_grotto": {
     "assetId": "109901060316213",
@@ -264,15 +264,15 @@
   "habitat_crystal_grotto_overlay": {
     "assetId": "108153474046130",
     "assetType": "Model",
-    "sha256": "6c6d28a9346bb696",
-    "uploadedAt": "2026-10-19T08:19:16Z",
-    "versions": 1,
     "meshId": "rbxassetid://77383754861489",
     "meshSize": [
       7.706,
       2.572,
       7.706
-    ]
+    ],
+    "sha256": "6c6d28a9346bb696",
+    "uploadedAt": "2026-10-19T08:19:16Z",
+    "versions": 1
   },
   "habitat_flower_bed": {
     "assetId": "122318217311799",
@@ -290,15 +290,15 @@
   "habitat_flower_bed_overlay": {
     "assetId": "130689581528284",
     "assetType": "Model",
-    "sha256": "140fa223673d0c17",
-    "uploadedAt": "2026-10-19T08:18:14Z",
-    "versions": 1,
     "meshId": "rbxassetid://138049283294191",
     "meshSize": [
       7.577,
       1.836,
       7.574
-    ]
+    ],
+    "sha256": "140fa223673d0c17",
+    "uploadedAt": "2026-10-19T08:18:14Z",
+    "versions": 1
   },
   "habitat_hay_nest": {
     "assetId": "120365465161287",
@@ -316,15 +316,15 @@
   "habitat_hay_nest_overlay": {
     "assetId": "137655301198387",
     "assetType": "Model",
-    "sha256": "2ccc89573f747d67",
-    "uploadedAt": "2026-10-19T08:17:34Z",
-    "versions": 1,
     "meshId": "rbxassetid://76505649928641",
     "meshSize": [
       7.638,
       1.562,
       7.71
-    ]
+    ],
+    "sha256": "2ccc89573f747d67",
+    "uploadedAt": "2026-10-19T08:17:34Z",
+    "versions": 1
   },
   "habitat_mushroom_ring": {
     "assetId": "125411498762649",
@@ -342,15 +342,15 @@
   "habitat_mushroom_ring_overlay": {
     "assetId": "96204622852852",
     "assetType": "Model",
-    "sha256": "abfb75f798a0939b",
-    "uploadedAt": "2026-10-19T08:18:05Z",
-    "versions": 1,
     "meshId": "rbxassetid://117941213958347",
     "meshSize": [
       7.654,
       2.085,
       7.639
-    ]
+    ],
+    "sha256": "abfb75f798a0939b",
+    "uploadedAt": "2026-10-19T08:18:05Z",
+    "versions": 1
   },
   "habitat_rodeo_barrel": {
     "assetId": "98071962509034",
@@ -368,15 +368,15 @@
   "habitat_rodeo_barrel_overlay": {
     "assetId": "139158157244798",
     "assetType": "Model",
-    "sha256": "aeb47f6ba563a7b8",
-    "uploadedAt": "2026-10-19T08:18:35Z",
-    "versions": 1,
     "meshId": "rbxassetid://95288173500929",
     "meshSize": [
       7.5,
       2.56,
       7.5
-    ]
+    ],
+    "sha256": "aeb47f6ba563a7b8",
+    "uploadedAt": "2026-10-19T08:18:35Z",
+    "versions": 1
   },
   "habitat_show_stool": {
     "assetId": "74338867735483",
@@ -394,15 +394,15 @@
   "habitat_show_stool_overlay": {
     "assetId": "79817145042621",
     "assetType": "Model",
-    "sha256": "e9a1dafa9c28ac0b",
-    "uploadedAt": "2026-10-19T08:19:00Z",
-    "versions": 1,
     "meshId": "rbxassetid://123215620422100",
     "meshSize": [
       7.5,
       2.07,
       7.5
-    ]
+    ],
+    "sha256": "e9a1dafa9c28ac0b",
+    "uploadedAt": "2026-10-19T08:19:00Z",
+    "versions": 1
   },
   "habitat_syrup_pool": {
     "assetId": "84228432405913",
@@ -420,15 +420,15 @@
   "habitat_syrup_pool_overlay": {
     "assetId": "137859014161776",
     "assetType": "Model",
-    "sha256": "4f440400730ca639",
-    "uploadedAt": "2026-10-19T08:18:44Z",
-    "versions": 1,
     "meshId": "rbxassetid://98558816473840",
     "meshSize": [
       7.855,
       3.608,
       7.859
-    ]
+    ],
+    "sha256": "4f440400730ca639",
+    "uploadedAt": "2026-10-19T08:18:44Z",
+    "versions": 1
   },
   "merge_vat": {
     "assetId": "122090902536570",
@@ -1877,9 +1877,9 @@
   "slime_amethyst": {
     "assetId": "120514076751923",
     "assetType": "Model",
-    "sha256": "ee27bcfc9dbca601",
-    "uploadedAt": "2026-10-18T17:39:06Z",
-    "versions": 1
+    "sha256": "205a978573f1b426",
+    "uploadedAt": "2026-10-19T12:24:32Z",
+    "versions": 2
   },
   "slime_base": {
     "assetId": "133281767866632",
@@ -1897,107 +1897,107 @@
   "slime_blaze": {
     "assetId": "136135987150514",
     "assetType": "Model",
-    "sha256": "6e0dbc2a6dcf9ec6",
-    "uploadedAt": "2026-10-18T17:39:13Z",
-    "versions": 1
+    "sha256": "5adee553a6d87597",
+    "uploadedAt": "2026-10-19T12:24:50Z",
+    "versions": 2
   },
   "slime_bloom": {
     "assetId": "99167270842330",
     "assetType": "Model",
-    "sha256": "7bccac44ea9d6bb8",
-    "uploadedAt": "2026-10-18T17:39:28Z",
-    "versions": 1
+    "sha256": "15a1ab6407d97824",
+    "uploadedAt": "2026-10-19T12:25:09Z",
+    "versions": 2
   },
   "slime_boo": {
     "assetId": "96310373601330",
     "assetType": "Model",
-    "sha256": "0067196698c45377",
-    "uploadedAt": "2026-10-18T17:39:47Z",
-    "versions": 1
+    "sha256": "51f0ee18ce17c68b",
+    "uploadedAt": "2026-10-19T12:25:29Z",
+    "versions": 2
   },
   "slime_bubbles": {
     "assetId": "136117360920606",
     "assetType": "Model",
-    "sha256": "0dd1384a8614bb4d",
-    "uploadedAt": "2026-10-18T17:39:58Z",
-    "versions": 1
+    "sha256": "d9b362f756a56804",
+    "uploadedAt": "2026-10-19T12:25:39Z",
+    "versions": 2
   },
   "slime_bumble": {
     "assetId": "140176590528302",
     "assetType": "Model",
-    "sha256": "61aff071dca55eb0",
-    "uploadedAt": "2026-10-18T17:40:09Z",
-    "versions": 1
+    "sha256": "bb8af4f02fc1f8e3",
+    "uploadedAt": "2026-10-19T12:25:50Z",
+    "versions": 2
   },
   "slime_catfish": {
     "assetId": "76770603623417",
     "assetType": "Model",
-    "sha256": "dcdcf3c1b60aeb83",
-    "uploadedAt": "2026-10-18T17:40:28Z",
-    "versions": 1
+    "sha256": "06cc37e49201121b",
+    "uploadedAt": "2026-10-19T12:26:08Z",
+    "versions": 2
   },
   "slime_cheddar": {
     "assetId": "104100743814476",
     "assetType": "Model",
-    "sha256": "e62c57e70f4444db",
-    "uploadedAt": "2026-10-18T17:40:45Z",
-    "versions": 1
+    "sha256": "153b15997a2e74da",
+    "uploadedAt": "2026-10-19T12:26:17Z",
+    "versions": 2
   },
   "slime_chomp": {
     "assetId": "95926102417193",
     "assetType": "Model",
-    "sha256": "110136b8f9f72ab4",
-    "uploadedAt": "2026-10-18T17:40:56Z",
-    "versions": 1
+    "sha256": "58559def2099840f",
+    "uploadedAt": "2026-10-19T12:26:37Z",
+    "versions": 2
   },
   "slime_chrono": {
     "assetId": "80629324297687",
     "assetType": "Model",
-    "sha256": "84289b28daba52f7",
-    "uploadedAt": "2026-10-18T17:41:09Z",
-    "versions": 1
+    "sha256": "861775944ba1bbcf",
+    "uploadedAt": "2026-10-19T12:26:53Z",
+    "versions": 2
   },
   "slime_cosmo": {
     "assetId": "113712257623051",
     "assetType": "Model",
-    "sha256": "832a040cf41e3478",
-    "uploadedAt": "2026-10-18T17:41:30Z",
-    "versions": 1
+    "sha256": "a400ae38e274b45f",
+    "uploadedAt": "2026-10-19T12:27:11Z",
+    "versions": 2
   },
   "slime_cyber_ninja": {
     "assetId": "116106560463464",
     "assetType": "Model",
-    "sha256": "2676cd8d6684939d",
-    "uploadedAt": "2026-10-18T17:41:43Z",
-    "versions": 1
+    "sha256": "127f91d5984f46b2",
+    "uploadedAt": "2026-10-19T12:27:32Z",
+    "versions": 2
   },
   "slime_disco": {
     "assetId": "89692353422465",
     "assetType": "Model",
-    "sha256": "0c213b269e320529",
-    "uploadedAt": "2026-10-18T17:41:51Z",
-    "versions": 1
+    "sha256": "3db7732686f51bc8",
+    "uploadedAt": "2026-10-19T12:27:37Z",
+    "versions": 2
   },
   "slime_doodle": {
     "assetId": "74559390612314",
     "assetType": "Model",
-    "sha256": "a160b138d950a43e",
-    "uploadedAt": "2026-10-18T17:42:09Z",
-    "versions": 1
+    "sha256": "6b5f2b5b3c68ae04",
+    "uploadedAt": "2026-10-19T12:27:51Z",
+    "versions": 2
   },
   "slime_dragon_king": {
     "assetId": "88961374433419",
     "assetType": "Model",
-    "sha256": "277cdd67e47ef6e2",
-    "uploadedAt": "2026-10-18T17:42:19Z",
-    "versions": 1
+    "sha256": "ba26f8bd3a604a98",
+    "uploadedAt": "2026-10-19T12:27:56Z",
+    "versions": 2
   },
   "slime_drako": {
     "assetId": "85981669582151",
     "assetType": "Model",
-    "sha256": "c536d56297f57333",
-    "uploadedAt": "2026-10-18T17:42:30Z",
-    "versions": 1
+    "sha256": "d0c123927ca71394",
+    "uploadedAt": "2026-10-19T12:28:09Z",
+    "versions": 2
   },
   "slime_ears": {
     "assetId": "133539750305742",
@@ -2015,16 +2015,16 @@
   "slime_eclipse": {
     "assetId": "73912580635466",
     "assetType": "Model",
-    "sha256": "833375940ee3db24",
-    "uploadedAt": "2026-10-18T17:42:41Z",
-    "versions": 1
+    "sha256": "5701eae9ad5b055e",
+    "uploadedAt": "2026-10-19T12:28:14Z",
+    "versions": 2
   },
   "slime_flan": {
     "assetId": "89380442384228",
     "assetType": "Model",
-    "sha256": "dfac14e9bf6900fd",
-    "uploadedAt": "2026-10-18T17:42:51Z",
-    "versions": 1
+    "sha256": "6ec048b679b77c06",
+    "uploadedAt": "2026-10-19T12:28:28Z",
+    "versions": 2
   },
   "slime_fountain": {
     "assetId": "137335028699292",
@@ -2055,44 +2055,44 @@
   "slime_froggo": {
     "assetId": "71274428079528",
     "assetType": "Model",
-    "sha256": "bc974342a4e6ec0d",
-    "uploadedAt": "2026-10-18T17:43:08Z",
-    "versions": 1
+    "sha256": "b36e6e199818fd90",
+    "uploadedAt": "2026-10-19T12:28:33Z",
+    "versions": 2
   },
   "slime_frostbite": {
     "assetId": "137039779756480",
     "assetType": "Model",
-    "sha256": "7e25de813eee928b",
-    "uploadedAt": "2026-10-18T17:43:17Z",
-    "versions": 1
+    "sha256": "fa11c034dd0d7dc3",
+    "uploadedAt": "2026-10-19T12:28:49Z",
+    "versions": 2
   },
   "slime_glitch": {
     "assetId": "112653965607800",
     "assetType": "Model",
-    "sha256": "9f803359c53975ae",
-    "uploadedAt": "2026-10-18T17:43:32Z",
-    "versions": 1
+    "sha256": "db0500b30440a1cf",
+    "uploadedAt": "2026-10-19T12:28:54Z",
+    "versions": 2
   },
   "slime_goozilla": {
     "assetId": "95597031533993",
     "assetType": "Model",
-    "sha256": "d934a992c2a48ea2",
-    "uploadedAt": "2026-10-18T17:43:41Z",
-    "versions": 1
+    "sha256": "cd01c9459a7b83d0",
+    "uploadedAt": "2026-10-19T12:29:10Z",
+    "versions": 2
   },
   "slime_gummy": {
     "assetId": "109275905134159",
     "assetType": "Model",
-    "sha256": "f91b122fdb70182a",
-    "uploadedAt": "2026-10-18T17:38:44Z",
-    "versions": 1
+    "sha256": "1d670b96683630c6",
+    "uploadedAt": "2026-10-19T12:29:15Z",
+    "versions": 2
   },
   "slime_honey_toad": {
     "assetId": "76639819710103",
     "assetType": "Model",
-    "sha256": "29db22940977cc17",
-    "uploadedAt": "2026-10-18T17:43:53Z",
-    "versions": 1
+    "sha256": "58309566534152c0",
+    "uploadedAt": "2026-10-19T12:29:30Z",
+    "versions": 2
   },
   "slime_horns": {
     "assetId": "105609409091359",
@@ -2110,37 +2110,37 @@
   "slime_imp": {
     "assetId": "84166464527451",
     "assetType": "Model",
-    "sha256": "f13a16a7a596c81f",
-    "uploadedAt": "2026-10-18T17:44:13Z",
-    "versions": 1
+    "sha256": "67ffcb8e1f96a8d8",
+    "uploadedAt": "2026-10-19T12:29:50Z",
+    "versions": 2
   },
   "slime_isle": {
     "assetId": "106246529336627",
     "assetType": "Model",
-    "sha256": "aa1ce6cceb513785",
-    "uploadedAt": "2026-10-18T17:44:28Z",
-    "versions": 1
+    "sha256": "4eecc9cd278102c3",
+    "uploadedAt": "2026-10-19T12:29:57Z",
+    "versions": 2
   },
   "slime_king": {
     "assetId": "108773001876450",
     "assetType": "Model",
-    "sha256": "aa3d578ab41634ff",
-    "uploadedAt": "2026-10-18T17:44:54Z",
-    "versions": 1
+    "sha256": "2e66c18c6c019ee9",
+    "uploadedAt": "2026-10-19T12:23:06Z",
+    "versions": 2
   },
   "slime_kitsune": {
     "assetId": "129157153377304",
     "assetType": "Model",
-    "sha256": "5f5c4307b2411d9e",
-    "uploadedAt": "2026-10-18T17:45:11Z",
-    "versions": 1
+    "sha256": "83b1a93f10d90c6b",
+    "uploadedAt": "2026-10-19T12:30:15Z",
+    "versions": 2
   },
   "slime_kraken": {
     "assetId": "70503828098080",
     "assetType": "Model",
-    "sha256": "d5ccaa56d3323612",
-    "uploadedAt": "2026-10-18T17:45:22Z",
-    "versions": 1
+    "sha256": "824bb984b98db438",
+    "uploadedAt": "2026-10-19T12:30:29Z",
+    "versions": 2
   },
   "slime_lane": {
     "assetId": "87473643950432",
@@ -2158,191 +2158,191 @@
   "slime_lop": {
     "assetId": "107798862734190",
     "assetType": "Model",
-    "sha256": "f7035db4c65b9ed6",
-    "uploadedAt": "2026-10-18T17:45:34Z",
-    "versions": 1
+    "sha256": "3fcdefbd22137849",
+    "uploadedAt": "2026-10-19T12:30:34Z",
+    "versions": 2
   },
   "slime_mecha_goo": {
     "assetId": "78640546070601",
     "assetType": "Model",
-    "sha256": "44900934656b4d3f",
-    "uploadedAt": "2026-10-18T17:45:49Z",
-    "versions": 1
+    "sha256": "dfc2f42973c87971",
+    "uploadedAt": "2026-10-19T12:30:52Z",
+    "versions": 2
   },
   "slime_midas": {
     "assetId": "84348651618165",
     "assetType": "Model",
-    "sha256": "8f85a3be9942b7e9",
-    "uploadedAt": "2026-10-18T17:46:00Z",
-    "versions": 1
+    "sha256": "f82a5abcf703f8cd",
+    "uploadedAt": "2026-10-19T12:30:59Z",
+    "versions": 2
   },
   "slime_mochi": {
     "assetId": "88468109163483",
     "assetType": "Model",
-    "sha256": "2ba586a87c44c910",
-    "uploadedAt": "2026-10-18T17:46:11Z",
-    "versions": 1
+    "sha256": "b42286c0015f2df6",
+    "uploadedAt": "2026-10-19T12:31:15Z",
+    "versions": 2
   },
   "slime_moo": {
     "assetId": "120951185287411",
     "assetType": "Model",
-    "sha256": "122d3da983dc24d1",
-    "uploadedAt": "2026-10-18T17:46:21Z",
-    "versions": 1
+    "sha256": "809aae3ea2152fc2",
+    "uploadedAt": "2026-10-19T12:31:31Z",
+    "versions": 2
   },
   "slime_moo_shroom": {
     "assetId": "110396997416743",
     "assetType": "Model",
-    "sha256": "3c345882c6873a24",
-    "uploadedAt": "2026-10-18T17:46:32Z",
-    "versions": 1
+    "sha256": "0452a7679887677d",
+    "uploadedAt": "2026-10-19T12:31:53Z",
+    "versions": 2
   },
   "slime_mushie": {
     "assetId": "117092813936490",
     "assetType": "Model",
-    "sha256": "2d4c9fe4b6de8761",
-    "uploadedAt": "2026-10-18T17:46:52Z",
-    "versions": 1
+    "sha256": "f8e5e310dea67a26",
+    "uploadedAt": "2026-10-19T12:32:11Z",
+    "versions": 2
   },
   "slime_nightwing": {
     "assetId": "112164365401063",
     "assetType": "Model",
-    "sha256": "1368cb3b3dd163f9",
-    "uploadedAt": "2026-10-18T17:47:09Z",
-    "versions": 1
+    "sha256": "19dbfd38d0cb735f",
+    "uploadedAt": "2026-10-19T12:32:16Z",
+    "versions": 2
   },
   "slime_ninja": {
     "assetId": "99942777828950",
     "assetType": "Model",
-    "sha256": "76240f434362ec9b",
-    "uploadedAt": "2026-10-18T17:47:33Z",
-    "versions": 1
+    "sha256": "fa40e4e927d017e6",
+    "uploadedAt": "2026-10-19T12:32:36Z",
+    "versions": 2
   },
   "slime_octo": {
     "assetId": "121886155113536",
     "assetType": "Model",
-    "sha256": "b174915b143eff4a",
-    "uploadedAt": "2026-10-18T17:47:52Z",
-    "versions": 1
+    "sha256": "1210070be8c73427",
+    "uploadedAt": "2026-10-19T12:32:55Z",
+    "versions": 2
   },
   "slime_origami": {
     "assetId": "102661066928788",
     "assetType": "Model",
-    "sha256": "d03d3c5003cc9230",
-    "uploadedAt": "2026-10-18T17:48:14Z",
-    "versions": 1
+    "sha256": "1a17c937bbef56c6",
+    "uploadedAt": "2026-10-19T12:33:11Z",
+    "versions": 2
   },
   "slime_pebble": {
     "assetId": "124134851993528",
     "assetType": "Model",
-    "sha256": "0ee175e83758a120",
-    "uploadedAt": "2026-10-18T17:48:29Z",
-    "versions": 1
+    "sha256": "cca55ba55fb9d071",
+    "uploadedAt": "2026-10-19T12:33:18Z",
+    "versions": 2
   },
   "slime_pengoo": {
     "assetId": "96963913146270",
     "assetType": "Model",
-    "sha256": "e36f3a5fddee44ee",
-    "uploadedAt": "2026-10-18T17:48:35Z",
-    "versions": 1
+    "sha256": "e95536bcff503271",
+    "uploadedAt": "2026-10-19T12:33:33Z",
+    "versions": 2
   },
   "slime_prickles": {
     "assetId": "128744905531044",
     "assetType": "Model",
-    "sha256": "87b352e05b6e0bc2",
-    "uploadedAt": "2026-10-18T17:48:55Z",
-    "versions": 1
+    "sha256": "9f572ae02bda0a43",
+    "uploadedAt": "2026-10-19T12:33:53Z",
+    "versions": 2
   },
   "slime_prism": {
     "assetId": "97296414747568",
     "assetType": "Model",
-    "sha256": "6c13c88a8098dc85",
-    "uploadedAt": "2026-10-18T17:49:06Z",
-    "versions": 1
+    "sha256": "08f9a81cc63df121",
+    "uploadedAt": "2026-10-19T12:34:01Z",
+    "versions": 2
   },
   "slime_queen_jelly": {
     "assetId": "108716301261458",
     "assetType": "Model",
-    "sha256": "490ea0b08ba88201",
-    "uploadedAt": "2026-10-18T17:49:14Z",
-    "versions": 1
+    "sha256": "60e9174b50121b6c",
+    "uploadedAt": "2026-10-19T12:34:17Z",
+    "versions": 2
   },
   "slime_robo": {
     "assetId": "74626917754091",
     "assetType": "Model",
-    "sha256": "635172d4af20d9c4",
-    "uploadedAt": "2026-10-18T17:49:33Z",
-    "versions": 1
+    "sha256": "ceb241855ce1137d",
+    "uploadedAt": "2026-10-19T12:34:30Z",
+    "versions": 2
   },
   "slime_rocky_road": {
     "assetId": "74244309584071",
     "assetType": "Model",
-    "sha256": "9fe6dabd34bdb98d",
-    "uploadedAt": "2026-10-18T17:49:44Z",
-    "versions": 1
+    "sha256": "029338e1b31a0e32",
+    "uploadedAt": "2026-10-19T12:34:35Z",
+    "versions": 2
   },
   "slime_seraph": {
     "assetId": "130685970099047",
     "assetType": "Model",
-    "sha256": "dc4e7ba4cb66ff2d",
-    "uploadedAt": "2026-10-18T17:49:57Z",
-    "versions": 1
+    "sha256": "f64e4d7a027602d4",
+    "uploadedAt": "2026-10-19T12:34:57Z",
+    "versions": 2
   },
   "slime_snow_bunny": {
     "assetId": "122177895345867",
     "assetType": "Model",
-    "sha256": "e10cdc8c61ef5d7f",
-    "uploadedAt": "2026-10-18T17:50:12Z",
-    "versions": 1
+    "sha256": "7b542d8405018178",
+    "uploadedAt": "2026-10-19T12:35:13Z",
+    "versions": 2
   },
   "slime_soda": {
     "assetId": "95888248190580",
     "assetType": "Model",
-    "sha256": "ef9553d50fea2163",
-    "uploadedAt": "2026-10-18T17:50:21Z",
-    "versions": 1
+    "sha256": "eb3eea5db905888d",
+    "uploadedAt": "2026-10-19T12:35:21Z",
+    "versions": 2
   },
   "slime_sprout": {
     "assetId": "95596092652471",
     "assetType": "Model",
-    "sha256": "d06041045478f91b",
-    "uploadedAt": "2026-10-18T17:50:31Z",
-    "versions": 1
+    "sha256": "494a948c96860412",
+    "uploadedAt": "2026-10-19T12:35:34Z",
+    "versions": 2
   },
   "slime_steam": {
     "assetId": "107367947074628",
     "assetType": "Model",
-    "sha256": "6f7be04d15bc6918",
-    "uploadedAt": "2026-10-18T17:50:40Z",
-    "versions": 1
+    "sha256": "5250a98ec8b4e0fc",
+    "uploadedAt": "2026-10-19T12:35:39Z",
+    "versions": 2
   },
   "slime_sushi": {
     "assetId": "79864638354637",
     "assetType": "Model",
-    "sha256": "7570295985e3280d",
-    "uploadedAt": "2026-10-18T17:50:55Z",
-    "versions": 1
+    "sha256": "4f9081a92ba8b245",
+    "uploadedAt": "2026-10-19T12:35:56Z",
+    "versions": 2
   },
   "slime_thunderbee": {
     "assetId": "131233135861150",
     "assetType": "Model",
-    "sha256": "c18b8b1647a0b17a",
-    "uploadedAt": "2026-10-18T17:51:05Z",
-    "versions": 1
+    "sha256": "61b3d000fe9310b8",
+    "uploadedAt": "2026-10-19T12:36:03Z",
+    "versions": 2
   },
   "slime_truffle": {
     "assetId": "107050144207287",
     "assetType": "Model",
-    "sha256": "d003592bd2276ab7",
-    "uploadedAt": "2026-10-18T17:51:29Z",
-    "versions": 1
+    "sha256": "7fc6ad84e3fa082c",
+    "uploadedAt": "2026-10-19T12:36:14Z",
+    "versions": 2
   },
   "slime_whiskers": {
     "assetId": "133896172858214",
     "assetType": "Model",
-    "sha256": "6226118d9886611a",
-    "uploadedAt": "2026-10-18T17:51:37Z",
-    "versions": 1
+    "sha256": "8460cda66d09ede3",
+    "uploadedAt": "2026-10-19T12:36:19Z",
+    "versions": 2
   },
   "slime_wobble": {
     "assetId": "73195420238991",
@@ -2360,8 +2360,8 @@
   "slime_zap": {
     "assetId": "80334558020467",
     "assetType": "Model",
-    "sha256": "69f49aee1d3fc703",
-    "uploadedAt": "2026-10-18T17:51:57Z",
-    "versions": 1
+    "sha256": "c808c7ac80d44e1b",
+    "uploadedAt": "2026-10-19T12:36:40Z",
+    "versions": 2
   }
 }
