@@ -22,6 +22,14 @@ fs.writeFile(
 	serde.encode("json", {
 		laneY = ParadeLane.LANE_Y,
 		halfWidth = ParadeLane.HALF_WIDTH,
+		-- the width eases to endHalfWidth over the last taperLength studs before this circle (ParadeLane.halfWidthAt)
+		taper = {
+			endHalfWidth = ParadeLane.END_HALF_WIDTH,
+			length = ParadeLane.TAPER_LENGTH,
+			x = ParadeLane.DRAIN.x,
+			z = ParadeLane.DRAIN.z,
+			radius = ParadeLane.DRAIN.lipRadius,
+		},
 		color = ParadeLane.COLOR,
 		points = points,
 		-- the drain's outer curb disc (WorldLayout DrainCurb, centre z 52.475): the mesh end stops on its outer face
