@@ -83,8 +83,8 @@ minr = min(turn_radius(path[i - 1], path[i], path[i + 1]) for i in range(1, n - 
 assert minr > HW + 0.1, f"tightest bend radius {minr:.2f} <= half width {HW}: the sweep would fold"
 
 
-# Extend the lane's end along its own last curve (a circular arc through the last rings) until it touches the goo drain's
-# outer curb (src["drain"]: curb centre x, z and outer radius). Every ring that is already there stays as it is. The end is
+# Extend the lane's end from its own last curve (a circular arc through the last rings), easing it onto the drain's
+# centre, until it touches the goo drain's outer curb (src["drain"]: curb centre x, z and outer radius). Every ring that is already there stays as it is. The end is
 # cut to follow the curb arc (each lateral sample stops on the circle), so no corner rides onto the curb: the lane butts
 # against the curb's outer face with END_OVERLAP studs of overlap and no gap.
 END_OVERLAP = 0.05
@@ -103,14 +103,22 @@ if "drain" in src:
     turn = (1 if cross > 0 else -1) * STEP_EXT / r if r != float("inf") else 0.0   # heading change per ring (rad)
     ext = []
     x, z = last
+    entered = [False] * len(SPS)   # each lateral sample line has crossed into the curb circle
     for _ in range(40):
+        # steer the arc onto the drain centre (at most a radius-4 bend), so the lane's whole width reaches the curb
+        ax, az = dc[0] - x, dc[1] - z
+        aim = math.atan2(hx * az - hz * ax, hx * ax + hz * az)
+        turn = turn + (max(-STEP_EXT / 4, min(STEP_EXT / 4, aim * 0.5)) - turn) * 0.5
         c, s_ = math.cos(turn), math.sin(turn)
         hx, hz = hx * c - hz * s_, hx * s_ + hz * c
         x, z = x + hx * STEP_EXT, z + hz * STEP_EXT
         ext.append((x, z))
-        if math.dist((x, z), dc) < rcurb - HW - 0.5:
+        for j, s in enumerate(SPS):
+            if math.dist((x - hz * HW * s, z + hx * HW * s), dc) < rcurb:
+                entered[j] = True
+        if all(entered):
             break
-    assert math.dist(ext[-1], dc) < rcurb - HW, "the arc does not reach the drain"
+    assert all(entered), "the arc does not reach the drain with the lane's whole width (half width must stay under the curb radius)"
     path = path + ext
     n = len(path)
     tang = []
