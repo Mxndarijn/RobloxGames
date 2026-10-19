@@ -88,7 +88,7 @@ end
 	  "Hotbar" heading line (CELL.top), CELL.topGap,
 	  the hotbar plate: the MAX_SLOTS slots on PLATE.rows rows of PLATE.columns (keys 1-9), centred,
 	  PLATE.sectionGap, "Bag" heading line with the item count (CELL.top), CELL.topGap,
-	  the bag grid (scrolls; the footer line sits in the scroll canvas under the grid, after PLATE.footerGap).
+	  the bag grid (scrolls; its rows start CELL.gridPad down the canvas; the footer line sits in the scroll canvas under the grid, after PLATE.footerGap).
 	The plate never scrolls: on a short card its slots shrink (down to PLATE.min) so the grid keeps PLATE.minGrid.
 	Bag grid: square cells, `columns` per row (4 on a wide body, 3 below `wideMin`), each at most `max` px; at
 	least `minRows` rows and always whole rows: the cells after the items are empty slots.
@@ -104,6 +104,7 @@ InventoryLayout.CELL = table.freeze({
 	name = 18, -- name line under the picture
 	top = 28, -- a heading line
 	topGap = 10, -- between a heading line and what it heads
+	gridPad = 8, -- the bag grid's first row sits this far down its scroll canvas, clear of the "Bag" heading
 })
 
 InventoryLayout.PLATE = table.freeze({
@@ -203,7 +204,7 @@ function InventoryLayout.contentHeight(count: number, bodyWidth: number, footerH
 	local _, gridTop = InventoryLayout.bagTop(InventoryLayout.plateSlot(bodyWidth))
 	local grid = InventoryLayout.gridHeight(InventoryLayout.slotCount(count, bodyWidth), bodyWidth)
 	local footer = if footerHeight then InventoryLayout.PLATE.footerGap + footerHeight else 0
-	return gridTop + grid + footer
+	return gridTop + InventoryLayout.CELL.gridPad + grid + footer
 end
 
 return table.freeze(InventoryLayout)

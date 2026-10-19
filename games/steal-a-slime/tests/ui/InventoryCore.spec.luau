@@ -229,9 +229,9 @@ describe("InventoryLayout geometry", function()
 		expect(InventoryLayout.slotCount(9, 536)).toBe(12)
 		expect(InventoryLayout.slotCount(2, 440)).toBe(6)
 		local _, gridTop = InventoryLayout.bagTop(InventoryLayout.plateSlot(536))
-		expect(InventoryLayout.contentHeight(2, 536)).toBe(gridTop + InventoryLayout.gridHeight(8, 536))
+		expect(InventoryLayout.contentHeight(2, 536)).toBe(gridTop + c.gridPad + InventoryLayout.gridHeight(8, 536))
 		expect(InventoryLayout.contentHeight(2, 536, 30)).toBe(
-			gridTop + InventoryLayout.gridHeight(8, 536) + InventoryLayout.PLATE.footerGap + 30
+			gridTop + c.gridPad + InventoryLayout.gridHeight(8, 536) + InventoryLayout.PLATE.footerGap + 30
 		)
 	end)
 end)

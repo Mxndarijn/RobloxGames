@@ -904,7 +904,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		local x0 = math.floor((bodyW - gridW) / 2)
 		local function at(i: number): UDim2
 			local col, row = (i - 1) % cols, (i - 1) // cols
-			return fromOffset(x0 + col * (size + CELL.gap), row * (size + CELL.gap))
+			return fromOffset(x0 + col * (size + CELL.gap), CELL.gridPad + row * (size + CELL.gap))
 		end
 		for i, entry in entries do
 			local slot = gridCells[i]
@@ -948,7 +948,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		p.countChip.Text = if #entries == 1 then "1 item" else `{#entries} items`
 		local gridH = InventoryLayout.gridHeight(total, bodyW)
 		local footerH = Layout.wrappedHeight(footerText, P.hintSize, bodyW)
-		local footerY = gridH + InventoryLayout.PLATE.footerGap
+		local footerY = CELL.gridPad + gridH + InventoryLayout.PLATE.footerGap
 		p.footer.Position = fromOffset(0, footerY)
 		p.footer.Size = fromOffset(bodyW, footerH)
 		p.list.CanvasSize = fromOffset(0, footerY + footerH)
