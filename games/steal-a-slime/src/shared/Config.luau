@@ -677,7 +677,7 @@ local Config = {
 	PITY_LEGENDARY = 300, -- same for Legendary+
 	SECRET_TIER = 7, -- Config.RARITIES tier of the Secret slimes (SlimeRoster.SECRET_TIER)
 	RARE_ANNOUNCE_TIER = 5, -- wild drops of this tier or higher: Notify everyone + RareSpawn attributes
-	FREE_DROP_CHANCE = 0.25, -- share of wild slimes that cost nothing to grab
+	FREE_DROP_CHANCE = 0.01, -- share of wild slimes that cost nothing to grab
 	WILD_PRICE_SECONDS = 20, -- other wild slimes cost this many seconds of their income
 
 	-- Slime Rain event

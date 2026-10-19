@@ -41,7 +41,7 @@ What to report for v10: shop prompt or panel purchases that don't charge / don't
 
 ### Carry
 - [ ] Every ~4 s a wild slime drops from the volcano and lands around it (max 18 alive; each disappears after ~75 s).
-- [ ] Walk up: prompt says **Grab** (free, ~1 in 4) or **Buy $N**. Press **E**.
+- [ ] Walk up: prompt says **Grab** (free, ~1 in 100) or **Buy $N**. Press **E**.
 - [ ] A bought slime costs cash once; drop it (**Drop** button) and grab it again: free the second time.
 - [ ] While carrying: the slime sits above your head, you walk slower (rarer = slower), tools are unequipped, and you can't grab a second one.
 - [ ] Reset your character while carrying: the slime is dropped.
