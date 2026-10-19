@@ -755,6 +755,9 @@ local Config = {
 		DEFAULT_MUSIC_VOLUME = 0.35, -- 0..1, Music / Ambient SoundGroup
 		AMBIENT_VOLUME = 0.25, -- loop volume inside the Music group (low on purpose)
 		AMBIENT_FADE_SECONDS = 4, -- crossfade day <-> night
+		SFX_MIN_GAP = 0.05, -- seconds between two plays of the same SFX name
+		SFX_MAX_LIVE = 4, -- most copies of one SFX name sounding at once
+		SFX_MAX_SECONDS = 15, -- a Sound that never reports Ended is cleaned up after this
 		-- SFX registry name -> Notify sound name (Sounds.IDS) or a direct asset id.
 		SFX = table.freeze({
 			buy = "Cash",
@@ -766,9 +769,17 @@ local Config = {
 			error = "rbxasset://sounds/uuhhh.mp3",
 			click = "rbxasset://sounds/button.wav",
 		}),
-		-- Ambient loops (20 s seamless, Merijn-owned uploads).
-		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds (original procedural loop, uploaded via Open Cloud; moderation pending at upload)
-		AMBIENT_NIGHT_ID = "rbxassetid://132943569734014", -- crickets (same)
+		-- Ambience: a looped bed per time of day, plus a night one-shot played now and then over it.
+		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds: own 20 s seamless loop (Merijn's upload)
+		AMBIENT_NIGHT_ID = "", -- no night bed: nights are quiet apart from the owl
+		-- "Owl Hooting Reverberant Several 1 (SFX)", Pro Sound Effects, public domain, 16 s. Not a seamless loop,
+		-- so it plays whole, once per gap, never looped.
+		NIGHT_ONESHOT_ID = "rbxassetid://9117182190",
+		NIGHT_ONESHOT_MIN_SECONDS = 20, -- gap between owl calls, picked at random in MIN..MAX
+		NIGHT_ONESHOT_MAX_SECONDS = 45,
+		NIGHT_ONESHOT_VOLUME = 0.5, -- inside the Music group; louder than the beds, it is rare
+		NIGHT_ONESHOT_SPEED_JITTER = 0.05, -- PlaybackSpeed 1 +- this, so repeats don't sound identical
+		NIGHT_ONESHOT_MIN_LEVEL = 0.9, -- calls only once the night has (nearly) faded in
 	}),
 
 	-- Full steal alerts (FEATURES.StealAlerts, StealAlert / ui/StealAlertFx). Client timings in seconds.
