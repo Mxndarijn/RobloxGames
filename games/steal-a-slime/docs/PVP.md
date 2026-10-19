@@ -42,7 +42,7 @@ Ranks 15 and 30 add cosmetic gold skins / aura FX later (no item in this PR).
 
 Knockback: max push 8 studs (`KNOCKBACK_MAX_PUSH`), arc 2 studs, landing clamped inside `MAP_BOUNDS` minus 6 studs, launch over 0.35 s with a **1.5x horizontal friction boost** (`KNOCKBACK_FRICTION_BOOST`), vertical speed cap 110 studs/s (`KNOCKBACK_MAX_SPEED_Y`, the 25-stud Bounce Pad needs ~99). The server sets the velocity and holds `PlatformStand` for 0.35 s; the victim's client applies the `velocity` from the Effect payload to its own root (same clamp). Void guard: 5 s after a PvP launch or under control, a character below y = -20 is rescued (kill plane -60); nothing in PvP can kill, there is no fall damage. Trap hold 1 / 1.5 / 2 s and blaster slow 30 % 2 s / 40 % 2.5 s / 50 % 3 s are asserted in `tests/PvpFeel.spec`.
 
-Client effect sounds (Roblox-created, `AssetTypeId` 3, `IsPublicDomain` true, verified with economy.roblox.com/v2/assets/<id>/details on 2026-10-17):
+Client effect sounds (Roblox library sounds plus one Pro Sound Effects sound, all `AssetTypeId` 3 and `IsPublicDomain` true per economy.roblox.com/v2/assets/<id>/details):
 
 | `Sounds.IDS` | id | library name | used for |
 |---|---|---|---|
@@ -52,7 +52,7 @@ Client effect sounds (Roblox-created, `AssetTypeId` 3, `IsPublicDomain` true, ve
 | `PvpSquirt` | 12222103 | Rubber band sling shot.wav | blaster shot / splat |
 | `PvpBoing` | 12222124 | Short spring sound.wav | Bounce Pad |
 | `PvpPop` | 12221996 | flashbulb.wav | confetti / balloon / hat / dance |
-| `PvpSqueak` | 12221990 | electronicpingshort.wav | Squeaky Hammer |
+| `PvpSqueak` | 9125994570 | Squeeze Toy Squeaky Rubber (Pro Sound Effects, public domain) | Squeaky Hammer |
 | `PvpFirework` | 12222065 | Launching rocket.wav | fireworks |
 | `PvpBubble` | 12222054 | Kerplunk.wav | Bubble Wand |
 

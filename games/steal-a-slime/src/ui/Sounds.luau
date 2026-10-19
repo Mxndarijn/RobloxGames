@@ -6,30 +6,30 @@
 	Roblox APIs, no requires), so it loads unchanged in the client and under
 	Lune (tests/ui/Sounds.spec.luau).
 
-	The ids are classic public Roblox library SFX picked as stand-ins and not
-	verified in Studio; Merijn can swap them for final sounds later.
+	The ids are free, public-domain Creator Store sounds: classic Roblox library
+	SFX, the Roblox-licensed APM / Pro Sound Effects libraries and a few
+	community uploads. Every id here was loaded in a Studio check (TimeLength > 0).
 ]]
 
 local Sounds = {}
 
 Sounds.IDS = table.freeze({
-	Alarm = "rbxassetid://12222242",
+	Alarm = "rbxassetid://129496339606661", -- siren alarm
 	Grab = "rbxassetid://12221967",
-	Stolen = "rbxassetid://12222005",
+	Stolen = "rbxassetid://9045131605", -- APM "Red Handed - Hit3" sneaky sting
 	Escape = "rbxassetid://12222216",
-	Slap = "rbxassetid://12222084",
-	Lock = "rbxassetid://12222076",
+	Slap = "rbxassetid://132937320140224", -- cartoon bonk
+	Lock = "rbxassetid://9116324156", -- Pro Sound Effects key in lock + jingle
 	Unlock = "rbxassetid://12222095",
 	Merge = "rbxassetid://12222124",
 	Cash = "rbxassetid://12222140",
 	Deposit = "rbxassetid://12222152",
-	Rain = "rbxassetid://12222200",
-	Rebirth = "rbxassetid://12222225",
-	-- v13 (CONTRACT §8.6); stand-ins reusing the Rain / Cash sounds.
-	Rare = "rbxassetid://12222200",
-	Goal = "rbxassetid://12222140",
-	-- Secret spawn announcement; stand-in reusing the Rebirth fanfare.
-	Secret = "rbxassetid://12222225",
+	Rain = "rbxassetid://9120733724", -- Pro Sound Effects rising airy whoosh
+	Rebirth = "rbxassetid://1840076509", -- APM "Through the Roof (sting)"
+	-- Free Creator Store sounds, each its own so the big moments don't sound like a cash ring.
+	Rare = "rbxassetid://4612374036", -- bling_big_diamond_pickup (2.0 s)
+	Goal = "rbxassetid://4612373884", -- Achievement_unlocked ding (0.2 s)
+	Secret = "rbxassetid://71491555548135", -- Skybound_Gacha_GlowUp (1.9 s)
 	-- v22 PvP feel (FEATURES.PvP, docs/PVP.md): Roblox-created public-domain library sounds.
 	PvpHit = "rbxassetid://12222046", -- hit.wav
 	PvpCollide = "rbxassetid://12221984", -- collide.wav
@@ -37,7 +37,7 @@ Sounds.IDS = table.freeze({
 	PvpSquirt = "rbxassetid://12222103", -- Rubber band sling shot.wav
 	PvpBoing = "rbxassetid://12222124", -- Short spring sound.wav
 	PvpPop = "rbxassetid://12221996", -- flashbulb.wav
-	PvpSqueak = "rbxassetid://12221990", -- electronicpingshort.wav
+	PvpSqueak = "rbxassetid://9125994570", -- Pro Sound Effects rubber squeeze toy
 	PvpFirework = "rbxassetid://12222065", -- Launching rocket.wav
 	PvpBubble = "rbxassetid://12222054", -- Kerplunk.wav
 })
