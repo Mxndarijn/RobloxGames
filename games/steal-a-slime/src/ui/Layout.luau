@@ -293,18 +293,25 @@ Layout.MONEY = table.freeze({
 	cbadgeSize = 11,
 })
 
+-- Each status slot is an icon with its timer in a dark pill tucked `overlap` px up over the icon's bottom edge,
+-- centred under it. Off phones the row sits `raise` px above the money block's line, clear of the screen edge.
 Layout.STATUS = table.freeze({
-	count = 3,
+	count = 4,
 	slot = 92,
-	cslot = 62,
-	icon = 64,
-	cicon = 46,
-	label = 24, -- timer / boost text row under the icon
-	clabel = 18,
+	cslot = 64,
+	icon = 76,
+	cicon = 54,
+	label = 26, -- timer pill height
+	clabel = 20,
 	labelSize = 18,
 	clabelSize = 14,
-	gap = 2,
-	labelGap = 2,
+	overlap = 10,
+	coverlap = 7,
+	pillPad = 8, -- pill padding left and right of the text
+	cpillPad = 6,
+	gap = 4,
+	raise = 18,
+	phoneColumns = 2,
 })
 
 -- Tight phone row (portrait, 390 px wide: money | hotbar | events share one bottom row): smaller money block
@@ -323,10 +330,10 @@ Layout.MONEY_TIGHT = table.freeze({
 	rebirthSize = 11,
 	badgeSize = 8,
 })
-Layout.STATUS_TIGHT = table.freeze({ slot = 40, icon = 28, label = 14, labelSize = 10 })
+Layout.STATUS_TIGHT = table.freeze({ slot = 44, icon = 34, label = 15, labelSize = 10, overlap = 5, pillPad = 3 })
 
 -- Slot ids, left to right (HudClusters.STATUS_IDS lists the same).
-Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend" })
+Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend", "Secret" })
 
 -- One size class of the money block: coin diameter, chip height, chip overlap under the pill, the tab under
 -- the income chip, and how far the coin protrudes above / below the pill (`pad`).
@@ -445,40 +452,85 @@ function Layout.moneyTextBox(
 	return left, box.w - left - right
 end
 
+-- One size class of a status slot: slot width, icon, timer pill height / text size / side padding, and how far
+-- the pill tucks up over the icon.
+export type StatusMetrics = { slot: number, icon: number, pill: number, textSize: number, pad: number, overlap: number }
+function Layout.statusMetrics(compact: boolean, tight: boolean?): StatusMetrics
+	local s, t = Layout.STATUS, Layout.STATUS_TIGHT
+	if tight then
+		return {
+			slot = t.slot,
+			icon = t.icon,
+			pill = t.label,
+			textSize = t.labelSize,
+			pad = t.pillPad,
+			overlap = t.overlap,
+		}
+	elseif compact then
+		return {
+			slot = s.cslot,
+			icon = s.cicon,
+			pill = s.clabel,
+			textSize = s.clabelSize,
+			pad = s.cpillPad,
+			overlap = s.coverlap,
+		}
+	end
+	return { slot = s.slot, icon = s.icon, pill = s.label, textSize = s.labelSize, pad = s.pillPad, overlap = s.overlap }
+end
+
 function Layout.statusSlotWidth(compact: boolean, tight: boolean?): number
-	if tight then
-		return Layout.STATUS_TIGHT.slot
-	end
-	return if compact then Layout.STATUS.cslot else Layout.STATUS.slot
+	return Layout.statusMetrics(compact, tight).slot
 end
 
+-- One slot's height: the icon plus the part of the pill below it.
 function Layout.statusHeight(compact: boolean, tight: boolean?): number
-	local s = Layout.STATUS
-	if tight then
-		return Layout.STATUS_TIGHT.icon + s.labelGap + Layout.STATUS_TIGHT.label
-	end
-	return (if compact then s.cicon else s.icon) + s.labelGap + (if compact then s.clabel else s.label)
+	local sm = Layout.statusMetrics(compact, tight)
+	return sm.icon + sm.pill - sm.overlap
 end
 
-function Layout.statusWidth(compact: boolean, tight: boolean?): number
-	local s = Layout.STATUS
-	return s.count * Layout.statusSlotWidth(compact, tight) + (s.count - 1) * s.gap
+-- The timer pill's width for `text`: the text plus its padding, at least a square-ish pill, at most the slot.
+function Layout.statusPillWidth(text: string, compact: boolean, tight: boolean?): number
+	local sm = Layout.statusMetrics(compact, tight)
+	local w = math.ceil(Layout.lineWidth(text, sm.textSize, true)) + sm.pad * 2
+	return math.min(math.max(w, sm.pill * 2), sm.slot)
 end
 
--- The status cluster with its bottom-right corner at (right, bottom).
-function Layout.statusCluster(compact: boolean, right: number, bottom: number, tight: boolean?): StatusHud
+-- Slots per row: one row off phones; a phone shares its bottom row with the money block and the hotbar, so
+-- its events stack STATUS.phoneColumns wide.
+function Layout.statusColumns(phone: boolean?): number
+	return if phone then Layout.STATUS.phoneColumns else Layout.STATUS.count
+end
+
+function Layout.statusWidth(compact: boolean, tight: boolean?, phone: boolean?): number
+	local columns = Layout.statusColumns(phone)
+	return columns * Layout.statusSlotWidth(compact, tight) + (columns - 1) * Layout.STATUS.gap
+end
+
+-- The status cluster with its bottom-right corner at (right, bottom). Slots fill rows left to right, top row
+-- first, so the last slot is the bottom-right corner.
+function Layout.statusCluster(
+	compact: boolean,
+	right: number,
+	bottom: number,
+	tight: boolean?,
+	phone: boolean?
+): StatusHud
 	local s = Layout.STATUS
-	local w, h, slotW =
-		Layout.statusWidth(compact, tight), Layout.statusHeight(compact, tight), Layout.statusSlotWidth(compact, tight)
+	local columns = Layout.statusColumns(phone)
+	local rows = math.ceil(s.count / columns)
+	local slotW, slotH = Layout.statusSlotWidth(compact, tight), Layout.statusHeight(compact, tight)
+	local w, h = Layout.statusWidth(compact, tight, phone), rows * slotH + (rows - 1) * s.gap
 	local x, y = right - w, bottom - h
 	local slots = {}
 	for i = 1, s.count do
-		table.insert(slots, Layout.rect(x + (i - 1) * (slotW + s.gap), y, slotW, h))
+		local col, row = (i - 1) % columns, (i - 1) // columns
+		table.insert(slots, Layout.rect(x + col * (slotW + s.gap), y + row * (slotH + s.gap), slotW, slotH))
 	end
 	return { rect = Layout.rect(x, y, w, h), slots = slots }
 end
 
--- Slot rect for the `index`-th (1 = leftmost) of `shown` visible slots: they pack against the right edge.
+-- Slot rect for the `index`-th (1 = first) of `shown` visible slots: they pack towards the bottom-right corner.
 function Layout.statusSlot(status: StatusHud, index: number, shown: number): Rect
 	return status.slots[Layout.STATUS.count - shown + index]
 end
@@ -844,12 +896,14 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	local rise = if compact and not landscapePhone then math.ceil(Layout.TOUCH_RISE / scale) else 0
 	local rowBottom = H - inset - rise
 	local fullRowW = Layout.moneyWidth(compact)
-		+ Layout.statusWidth(compact)
+		+ Layout.statusWidth(compact, nil, phone)
 		+ InventoryLayout.barWidth(4, InventoryLayout.slotSize(compact, Layout.MIN_TOUCH_DESIGN))
 		+ 2 * (m + gap)
 	local tight = phone and W < fullRowW
 	local money = Layout.moneyCluster(compact, m, rowBottom, tight)
-	local status = Layout.statusCluster(compact, W - m, rowBottom, tight)
+	-- Off phones the events row stands STATUS.raise above the money line; on phones it shares the bottom row.
+	local statusRaise = if phone then 0 else Layout.STATUS.raise
+	local status = Layout.statusCluster(compact, W - m, rowBottom - statusRaise, tight, phone)
 	local hotbarH = InventoryLayout.height(compact, Layout.MIN_TOUCH_DESIGN, tight)
 
 	-- 1. "Short" (landscape phone): the default two nav columns won't fit above the money cluster, so
@@ -858,7 +912,7 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 	local top = if short or phone then Layout.TOP else Layout.NAV.top
 	-- Narrower than the carry card plus both clusters (portrait phones): the bottom cards sit above
 	-- the clusters instead of beside them.
-	local clusterH = math.max(money.rect.h, status.rect.h, if phone then hotbarH else 0)
+	local clusterH = math.max(money.rect.h, status.rect.h + statusRaise, if phone then hotbarH else 0)
 	local lift = if not short and W < Layout.CARRY.w + money.rect.w + status.rect.w + 2 * (m + gap)
 		then rise + clusterH + gap
 		else 0

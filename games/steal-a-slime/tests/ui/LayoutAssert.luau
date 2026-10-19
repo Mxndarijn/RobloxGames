@@ -308,21 +308,19 @@ function LayoutAssert.moneyTexts(screen: Layout.Screen): { TextDesc }
 	return out
 end
 
--- Bottom-right slot labels at their worst: the longest timer ("1:02:05"), a 3-digit friend bonus.
+-- Bottom-right timer pills at their worst: the longest timer ("1:02:05"), the featured Secret's week countdown
+-- ("6d 23h"), a 3-digit friend bonus. Each text fits its pill (Layout.statusPillWidth, the label itself).
 function LayoutAssert.statusTexts(screen: Layout.Screen): { TextDesc }
 	local out: { TextDesc } = {}
-	local S = Layout.STATUS
-	for _, text in { "1:02:05", "+100%", "Now" } do
+	local sm = Layout.statusMetrics(screen.compact, screen.tight)
+	for _, text in { "1:02:05", "6d 23h", "23h 59m", "+100%", "Now" } do
 		table.insert(out, {
-			name = `Status slot {text}`,
+			name = `Status pill {text}`,
 			text = text,
-			size = if screen.tight
-				then Layout.STATUS_TIGHT.labelSize
-				elseif screen.compact then S.clabelSize
-				else S.labelSize,
+			size = sm.textSize,
 			bold = true,
-			w = Layout.statusSlotWidth(screen.compact, screen.tight),
-			h = if screen.tight then Layout.STATUS_TIGHT.label elseif screen.compact then S.clabel else S.label,
+			w = Layout.statusPillWidth(text, screen.compact, screen.tight),
+			h = sm.pill,
 		})
 	end
 	return out
@@ -343,6 +341,7 @@ function LayoutAssert.tooltipCards(): { { title: string, body: string, time: str
 		),
 		HudClusters.event({ name = "Dusk", label = "Golden Dusk", luck = 2, endsAt = nil }, now, true),
 		HudClusters.friend({ count = 20, bonus = 1 }, true),
+		HudClusters.secret({ id = "kitsune", name = "Kitsune", endsAt = now + 6 * 86400 + 23 * 3600 }, now),
 	}
 	for _, slot in slots do
 		if slot then
@@ -1035,6 +1034,19 @@ function LayoutAssert.clusterChecks(check: Checker)
 	end
 	check.noOverlap("Money.income", screen.money.income, "Money.rebirths", screen.money.rebirths)
 	check.noOverlap("Money", screen.money.rect, "Status", screen.status.rect)
+	-- The events row: its slots side by side (2 x 2 on phones), clear of the hotbar; off phones it stands
+	-- STATUS.raise above the bottom line, off the screen edge.
+	for i, a in screen.status.slots do
+		for j = i + 1, #screen.status.slots do
+			check.noOverlap(`Status.slot{i}`, a, `Status.slot{j}`, screen.status.slots[j])
+		end
+	end
+	check.noOverlap("Status", screen.status.rect, "Hotbar.bar", screen.hotbar)
+	if not screen.phone and screen.status.rect.y + screen.status.rect.h > floor - Layout.STATUS.raise + EPS then
+		check.fail(
+			`Status {fmt(screen.status.rect)} is not raised {Layout.STATUS.raise} px above the bottom line {floor}`
+		)
+	end
 	for _, cluster in { { "Money", screen.money.rect }, { "Status", screen.status.rect } } do
 		local name, r = cluster[1] :: string, cluster[2] :: Rect
 		for _, other in

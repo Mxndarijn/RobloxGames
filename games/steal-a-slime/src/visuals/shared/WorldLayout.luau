@@ -279,6 +279,10 @@ WorldLayout.PAD_MESH = "phoenix_pad_crate"
 -- Where a slime sits on the stand at native size (kit model header): the Pad
 -- top goes here, so slimes rest on the mesh instead of sinking into it.
 WorldLayout.PAD_SEAT_Y = 2.4
+-- The crate's deck (models/_pad_crate.py, native size, from the stand bottom):
+-- habitat overlays rest on it at height y, on the rim band between the mat
+-- (half side matHalf) and the deck edge (half side half).
+WorldLayout.PAD_DECK = table.freeze({ y = 2.5, half = 3.75, matHalf = 2.6 })
 -- phoenix_gate's cream name board at native size (models/phoenix_gate.py
 -- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line;
 -- "SignRim" behind it ends 0.4 in front of the wall line).

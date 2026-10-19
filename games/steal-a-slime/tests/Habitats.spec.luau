@@ -90,68 +90,56 @@ describe("Habitats table", function()
 		expect(Habitats.forSlime(species("c", "moo"))).toBe("rodeo_barrel")
 		expect(Habitats.forSlime(species("b", "king"))).toBe("show_stool")
 	end)
-	it("gives every habitat its own uploaded mesh slot", function()
-		local expected = {}
+	it("gives every habitat but base its own overlay mesh", function()
 		for _, habitat in Habitats.LIST do
-			if habitat.id ~= BASE then
-				table.insert(expected, habitat.id)
-				expect(habitat.newMesh).toBe(true)
-				expect(habitat.kit).toBe("habitat_" .. habitat.id)
-				expect(MeshAssets.meshId(habitat.kit :: string) ~= nil).toBe(true)
-				expect(Habitats.slotMesh(habitat.id) ~= nil).toBe(true)
+			if habitat.id == BASE then
+				expect(habitat.overlay).toBe(nil)
+			else
+				expect(habitat.overlay).toBe(`habitat_{habitat.id}_overlay`)
+				expect(MeshAssets.get(habitat.overlay :: string) ~= nil).toBe(true)
 			end
 		end
-		table.sort(expected)
-		local slots = table.clone(Habitats.MESH_SLOTS)
-		table.sort(slots)
-		expect(slots).toEqual(expected)
 	end)
-	it("maps every roster type and tier family to a habitat with a mesh id", function()
+	it("maps every roster type and tier family to a habitat with an uploaded overlay", function()
 		for _, entry in SlimeRoster.ROSTER do
-			local habitat = Habitats.get(Habitats.forType(entry.id, nil)) :: Habitats.Habitat
-			expect(MeshAssets.meshId(habitat.kit :: string) ~= nil).toBe(true)
+			expect(Habitats.overlayMesh(Habitats.forType(entry.id, nil)) ~= nil).toBe(true)
 		end
 		for _, id in Habitats.FAMILY do
-			expect(Habitats.slotMesh(id) ~= nil).toBe(true)
+			expect(Habitats.overlayMesh(id) ~= nil).toBe(true)
 		end
 	end)
-	it("every habitat mesh follows FOUNTAIN_SIZES: 7.8 wide, 3.5-5.0 tall, seat 2.4", function()
+	it("every overlay fits the crate deck round the slime: <= 7.9 wide, 0.5-2.8 tall above the deck", function()
 		for _, habitat in Habitats.LIST do
-			if habitat.id ~= BASE then
-				local size = (MeshAssets.get(habitat.kit :: string) :: MeshAssets.Entry).size :: { number }
-				expect(size[1]).toBe(7.8)
-				expect(size[3]).toBe(7.8)
-				expect(size[2] >= 3.5 and size[2] <= 5.0).toBe(true)
-				expect(habitat.seat).toBe(2.4)
-				expect(habitat.seat < size[2]).toBe(true)
+			if habitat.overlay then
+				local size = (MeshAssets.get(habitat.overlay) :: MeshAssets.Entry).size :: { number }
+				expect(size[1] <= 7.9 and size[3] <= 7.9).toBe(true)
+				expect(habitat.drop >= 0 and habitat.drop < size[2]).toBe(true)
+				local above = size[2] - habitat.drop
+				expect(above >= 0.5 and above <= 2.8).toBe(true)
 			end
 		end
 	end)
-	it("ships with the Habitats feature on (every type has a mesh)", function()
+	it("ships with the Habitats feature on", function()
 		expect(Config.FEATURES.Habitats).toBe(true)
 	end)
-	it("keeps the placeholder for a mesh slot with no uploaded meshId", function()
-		for _, id in Habitats.MESH_SLOTS do
-			local kit = (Habitats.get(id) :: Habitats.Habitat).kit :: string
-			expect(Habitats.slotMesh(id) == nil).toBe(MeshAssets.meshId(kit) == nil)
-		end
-		local entry = MeshAssets.get("habitat_candy_patch") :: MeshAssets.Entry
+	it("draws the placeholder for an overlay with no uploaded meshId", function()
+		local entry = MeshAssets.get("habitat_candy_patch_overlay") :: MeshAssets.Entry
 		local saved = entry.meshId
 		entry.meshId = nil
-		expect(Habitats.slotMesh("candy_patch")).toBe(nil)
+		expect(Habitats.overlayMesh("candy_patch")).toBe(nil)
 		entry.meshId = saved
 	end)
-	it("resolves a mesh slot to its MeshAssets meshId and native size once uploaded", function()
-		local entry = MeshAssets.get("habitat_crystal_grotto") :: MeshAssets.Entry
+	it("resolves an overlay to its MeshAssets meshId, native size and drop", function()
+		local entry = MeshAssets.get("habitat_crystal_grotto_overlay") :: MeshAssets.Entry
 		local saved = entry.meshId
 		entry.meshId = "rbxassetid://123"
-		local slot = Habitats.slotMesh("crystal_grotto")
+		local overlay = Habitats.overlayMesh("crystal_grotto")
 		entry.meshId = saved
-		expect(slot).toEqual({ meshId = "rbxassetid://123", size = { 7.8, 5.0, 7.8 } })
+		expect(overlay).toEqual({ meshId = "rbxassetid://123", size = entry.size, drop = 0 })
 	end)
-	it("never gives base or unknown ids a slot mesh", function()
-		expect(Habitats.slotMesh(BASE)).toBe(nil)
-		expect(Habitats.slotMesh("not_a_habitat")).toBe(nil)
+	it("never gives base or unknown ids an overlay mesh", function()
+		expect(Habitats.overlayMesh(BASE)).toBe(nil)
+		expect(Habitats.overlayMesh("not_a_habitat")).toBe(nil)
 	end)
 end)
 
@@ -281,7 +269,7 @@ describe("HabitatPads (server pad state)", function()
 		expect(s.from).toBe("crystal_grotto")
 		client = run(client, s.id, Habitats.TRANSFORM_SECONDS)
 		expect(Habitats.isSettled(client, BASE)).toBe(true)
-		expect(Habitats.baseVisibility(client)).toBe(1)
+		expect(client).toEqual({})
 	end)
 	it("rapid swap ends at the latest habitat", function()
 		local world = ServerFixtures.world()

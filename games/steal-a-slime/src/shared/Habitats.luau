@@ -2,14 +2,15 @@
 --[[
 	Habitats (pure, FEATURES.Habitats, HABITATS.md)
 
-	Data table: slime type / family -> habitat id, and each habitat's kit look.
-	A pad whose slime sits on it shows that slime's habitat; an empty pad is
-	BASE (the pad as built today). Habitat ids are never saved.
+	Data table: slime type / family -> habitat id, and each habitat's overlay.
+	The pad itself never changes: a pad whose slime sits on it gets that
+	slime's habitat overlay (a themed frame and rim props on the crate deck);
+	an empty pad is BASE (no overlay). Habitat ids are never saved.
 
 	  Habitats.forSlime(slime)     type (SlimeRoster id) > tier family > BASE
 	  Habitats.resolve(id)         known id, else BASE (server and client)
-	  Habitats.slotMesh(id)        a mesh slot's uploaded mesh (MeshAssets),
-	                               nil = keep the primitive placeholder
+	  Habitats.overlayMesh(id)     the overlay's uploaded mesh (MeshAssets),
+	                               nil = draw the primitive placeholder
 	  Habitats.transition(prev, target, now)
 	                               server pad state; a change restamps `at`
 	  Habitats.initialWeights(id)  client, first sight: final state, no tween
@@ -26,52 +27,42 @@ local SlimeRoster = if script then require(script.Parent.SlimeRoster) else requi
 export type Habitat = {
 	id: string,
 	name: string,
-	kit: string?, -- shared/modeling-kit name of the look; nil = the pad's own stand
-	newMesh: boolean, -- true = no kit model fits yet: a mesh slot Archer fills (MESH_SLOTS)
-	seat: number, -- slime seat height on the look at native size (studs)
-	color: { number }, -- placeholder primitive colour, RGB 0..255
-	accent: { number }, -- placeholder accent colour
+	overlay: string?, -- shared/modeling-kit overlay mesh (habitat_<id>_overlay); nil = BASE, no overlay
+	drop: number, -- studs the overlay hangs below the crate deck (drips over the edge); 0 = rests on the deck
+	color: { number }, -- placeholder primitive colour and puff, RGB 0..255
+	accent: { number }, -- placeholder accent and puff colour
 }
 
 export type PadState = { id: string, from: string, at: number }
-export type SlotMesh = { meshId: string, size: { number } } -- size: native W x H x D studs
+export type OverlayMesh = { meshId: string, size: { number }, drop: number } -- size: native W x H x D studs
 
 local Habitats = {}
 
 Habitats.BASE = "base"
 Habitats.TRANSFORM_SECONDS = 1
 
-local function h(
-	id: string,
-	name: string,
-	kit: string?,
-	newMesh: boolean,
-	seat: number,
-	color: { number },
-	accent: { number }
-): Habitat
+local function h(id: string, name: string, drop: number, color: { number }, accent: { number }): Habitat
 	return table.freeze({
 		id = id,
 		name = name,
-		kit = kit,
-		newMesh = newMesh,
-		seat = seat,
+		overlay = if id == "base" then nil else `habitat_{id}_overlay`,
+		drop = drop,
 		color = table.freeze(color),
 		accent = table.freeze(accent),
 	})
 end
 
 local LIST: { Habitat } = {
-	h("base", "Pad", nil, false, 0, { 200, 200, 200 }, { 255, 255, 255 }),
-	h("hay_nest", "Hay Nest", "habitat_hay_nest", true, 2.4, { 222, 190, 110 }, { 250, 230, 160 }),
-	h("mushroom_ring", "Mushroom Ring", "habitat_mushroom_ring", true, 2.4, { 200, 60, 55 }, { 250, 240, 220 }),
-	h("flower_bed", "Flower Bed", "habitat_flower_bed", true, 2.4, { 120, 85, 55 }, { 255, 140, 190 }),
-	h("barn_crate", "Barn Crate", "habitat_barn_crate", true, 2.4, { 170, 120, 70 }, { 150, 50, 40 }),
-	h("rodeo_barrel", "Rodeo Barrel", "habitat_rodeo_barrel", true, 2.4, { 140, 90, 50 }, { 120, 220, 110 }),
-	h("syrup_pool", "Syrup Pool", "habitat_syrup_pool", true, 2.4, { 230, 150, 40 }, { 255, 210, 120 }),
-	h("show_stool", "Show Stool", "habitat_show_stool", true, 2.4, { 70, 110, 200 }, { 255, 215, 80 }),
-	h("candy_patch", "Candy Patch", "habitat_candy_patch", true, 2.4, { 255, 170, 210 }, { 120, 230, 200 }),
-	h("crystal_grotto", "Crystal Grotto", "habitat_crystal_grotto", true, 2.4, { 110, 100, 130 }, { 190, 150, 255 }),
+	h("base", "Pad", 0, { 200, 200, 200 }, { 255, 255, 255 }),
+	h("hay_nest", "Hay Nest", 0, { 222, 190, 110 }, { 250, 230, 160 }),
+	h("mushroom_ring", "Mushroom Ring", 0, { 200, 60, 55 }, { 250, 240, 220 }),
+	h("flower_bed", "Flower Bed", 0, { 120, 85, 55 }, { 255, 140, 190 }),
+	h("barn_crate", "Barn Crate", 0, { 170, 120, 70 }, { 150, 50, 40 }),
+	h("rodeo_barrel", "Rodeo Barrel", 0, { 140, 90, 50 }, { 120, 220, 110 }),
+	h("syrup_pool", "Syrup Pool", 1.058, { 230, 150, 40 }, { 255, 210, 120 }),
+	h("show_stool", "Show Stool", 0, { 70, 110, 200 }, { 255, 215, 80 }),
+	h("candy_patch", "Candy Patch", 0, { 255, 170, 210 }, { 120, 230, 200 }),
+	h("crystal_grotto", "Crystal Grotto", 0, { 110, 100, 130 }, { 190, 150, 255 }),
 }
 
 -- Look family per Config.RARITIES tier (SlimeRoster comments), 7 = SlimeRoster.SECRET_TIER.
@@ -112,20 +103,14 @@ local TYPE: { [string]: string } = {
 }
 
 local byId: { [string]: Habitat } = {}
-local slots: { string } = {}
 for _, habitat in LIST do
 	byId[habitat.id] = habitat
-	if habitat.newMesh then
-		table.insert(slots, habitat.id)
-	end
 end
 
 Habitats.LIST = table.freeze(LIST)
 Habitats.FAMILY_BY_TIER = table.freeze(FAMILY_BY_TIER)
 Habitats.FAMILY = table.freeze(FAMILY)
 Habitats.TYPE = table.freeze(TYPE)
--- Habitats that still need a new mesh from Archer (HABITATS.md "Mesh slots").
-Habitats.MESH_SLOTS = table.freeze(slots)
 
 function Habitats.get(id: string): Habitat?
 	return byId[id]
@@ -137,19 +122,19 @@ function Habitats.resolve(id: any): string
 	return if type(id) == "string" and byId[id] then id else Habitats.BASE
 end
 
--- The uploaded mesh for a mesh slot (newMesh habitat): its MeshAssets meshId
--- and native size. nil for BASE, the kit-pad looks, unknown ids, or a slot
--- whose kit has no meshId yet; HabitatFx then draws the primitive placeholder.
-function Habitats.slotMesh(id: string): SlotMesh?
+-- The overlay's uploaded mesh: its MeshAssets meshId, native size and drop
+-- below the deck. nil for BASE, unknown ids, or an overlay with no meshId yet;
+-- HabitatFx then draws the primitive placeholder.
+function Habitats.overlayMesh(id: string): OverlayMesh?
 	local habitat = byId[id]
-	if not habitat or not habitat.newMesh or not habitat.kit then
+	if not habitat or not habitat.overlay then
 		return nil
 	end
-	local entry = MeshAssets.get(habitat.kit)
+	local entry = MeshAssets.get(habitat.overlay)
 	if not entry or not entry.meshId or not entry.size then
 		return nil
 	end
-	return { meshId = entry.meshId, size = entry.size }
+	return { meshId = entry.meshId, size = entry.size, drop = habitat.drop }
 end
 
 -- Habitat for a slime type, given its tier for the family fallback.
@@ -175,8 +160,8 @@ function Habitats.transition(prev: PadState?, target: string, now: number): PadS
 	return { id = target, from = if prev then prev.id else Habitats.BASE, at = now }
 end
 
--- Client weights: habitat id -> 0..1 (how much of that look shows). BASE has
--- no look; the base stand shows 1 - (largest weight).
+-- Client weights: habitat id -> 0..1 (how much of that overlay shows). BASE
+-- has no overlay.
 export type Weights = { [string]: number }
 
 -- First sight of a pad (join in progress, streamed in): the final state.
@@ -214,15 +199,6 @@ function Habitats.isSettled(weights: Weights, id: string): boolean
 		end
 	end
 	return id == Habitats.BASE or weights[id] == 1
-end
-
--- Base stand visibility for a set of weights (1 = fully the base pad).
-function Habitats.baseVisibility(weights: Weights): number
-	local top = 0
-	for _, w in weights do
-		top = math.max(top, w)
-	end
-	return 1 - top
 end
 
 return table.freeze(Habitats)

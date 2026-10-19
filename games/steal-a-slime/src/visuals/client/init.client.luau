@@ -300,7 +300,7 @@ end
 
 task.spawn(setupVolcano)
 do
-	-- v30 C2: warm every kit mesh at once so nothing pops in after the first move.
+	-- Warm every kit mesh at once so nothing pops in after the first move.
 	local ok, err = pcall(function()
 		require(script:WaitForChild("Preload")).start()
 	end)

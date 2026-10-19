@@ -145,14 +145,22 @@ local function lookOf(p, id)
 	local root = rt.workspace:FindFirstChild("ClientHabitats")
 	return root and root:FindFirstChild(`{p.Parent.Name}_{p.Name}_{id}`)
 end
+-- The Stand's LocalTransparencyModifier: HabitatFx never sets it, and the fake
+-- runtime has no default for an unset one, so unset reads as 0 (shown).
+local function standHidden()
+	local ok, v = pcall(function()
+		return part.Stand.LocalTransparencyModifier
+	end)
+	return if ok then v else 0
+end
 local grown = lookOf(part, "crystal_grotto")
-local grownPlaceholder = { grown:FindFirstChild("Seat") ~= nil, grown:FindFirstChild("Mesh") ~= nil }
-local grownHidden = part.Stand.LocalTransparencyModifier
+local grownPlaceholder = { grown:FindFirstChild("Frame1") ~= nil, grown:FindFirstChild("Mesh") ~= nil }
+local grownHidden = standHidden()
 part:SetAttribute("Habitat", "not_a_habitat") -- table drift / bad attribute
 fire()
 frames(1.5)
 local driftLooks = looksOf(part)
-local driftHidden = part.Stand.LocalTransparencyModifier
+local driftHidden = standHidden()
 local function listeners(p)
 	local n = 0
 	for _, h in signalOf(p, "Attr:Habitat").handlers do
@@ -169,29 +177,54 @@ local after = listeners(part)
 local afterCount = HabitatFx.count()
 HabitatFx.clear()
 
--- Same pad once habitat_crystal_grotto has a meshId (set on the runtime's
--- MeshAssets copy only for this case): one FileMesh piece.
-meshAssets.entries.habitat_crystal_grotto.meshId = "rbxassetid://123"
+-- Same pad once habitat_crystal_grotto_overlay has a meshId (set on the
+-- runtime's MeshAssets copy only for this case): placeholder until the
+-- server's template lands in ReplicatedStorage.HabitatMeshes, then one clone
+-- of that MeshPart at native size, its bottom on the crate deck.
+local overlayEntry = meshAssets.entries.habitat_crystal_grotto_overlay
+local replicated = rt.game:GetService("ReplicatedStorage")
+local deckY = rt:require(replicated.Visuals.WorldLayout).PAD_DECK.y
+overlayEntry.meshId = "rbxassetid://123"
 part:SetAttribute("Habitat", "crystal_grotto")
 local meshConns = HabitatFx.attach(plots)
+local beforeTemplate = lookOf(part, "crystal_grotto")
+local waitedPlaceholder =
+	{ beforeTemplate:FindFirstChild("Frame1") ~= nil, beforeTemplate:FindFirstChild("Mesh") ~= nil }
+-- The booted server already made the folder (MeshSwap.publishHabitatTemplates;
+-- no CreateMeshPartAsync here, so it stays empty).
+local templates = replicated:FindFirstChild("HabitatMeshes")
+local serverFolder = templates ~= nil
+if not templates then
+	templates = roblox.Instance.new("Folder")
+	templates.Name = "HabitatMeshes"
+	templates.Parent = replicated
+end
+local template = roblox.Instance.new("MeshPart")
+template.Name = "habitat_crystal_grotto_overlay"
+template.Size = roblox.Vector3.new(overlayEntry.size[1], overlayEntry.size[2], overlayEntry.size[3])
+template.Parent = templates
+signalOf(replicated, "DescendantAdded"):Fire(template)
+rt:runDue()
 local meshLook = lookOf(part, "crystal_grotto")
 local meshPart = meshLook and meshLook:FindFirstChild("Mesh")
-local special = meshPart and meshPart:FindFirstChildOfClass("SpecialMesh")
 local meshShape = {
 	meshLook and #meshLook:GetChildren(),
-	special and special.MeshType == roblox.Enum.MeshType.FileMesh,
-	special and tostring(special.MeshId),
-	special and math.abs(special.Scale.Y - part.Size.Y / 2.4) < 1e-4,
-	meshPart and math.abs(meshPart.Size.X - 7.8) < 1e-4,
+	meshPart and meshPart.ClassName,
+	meshPart and math.abs(meshPart.Size.X - overlayEntry.size[1]) < 1e-4,
+	meshPart and math.abs(
+		meshPart.CFrame.Position.Y - meshPart.Size.Y / 2 - (part.CFrame.Position.Y - part.Size.Y / 2 + deckY)
+	) < 1e-4,
+	meshPart and meshPart.CanCollide == false and meshPart.CanQuery == false,
 }
 for _, c in meshConns do
 	c:Disconnect()
 end
 HabitatFx.clear()
+template:Destroy()
 
 local emitsLifecycle = emits
 -- Morph behaviour (HabitatMorph through HabitatFx), placeholder looks, camera near the pad.
-meshAssets.entries.habitat_crystal_grotto.meshId = nil
+overlayEntry.meshId = nil
 cameraAt(20)
 local standColor, padColor
 local function worldParts()
@@ -222,10 +255,7 @@ local function setHabitat(id)
 	fire()
 end
 local function atBase()
-	return part.Stand.Color == standColor
-		and part.Color == padColor
-		and part.Stand.LocalTransparencyModifier == 0
-		and looksOf(part) == 0
+	return part.Stand.Color == standColor and part.Color == padColor and standHidden() == 0 and looksOf(part) == 0
 end
 part:SetAttribute("Habitat", "base")
 HabitatFx.attach(plots)
@@ -235,20 +265,20 @@ local emitsBefore = emits
 setHabitat("crystal_grotto")
 frames(0.2)
 local early = lookOf(part, "crystal_grotto")
-local stagger = { early.Seat.Size.Y > 0.5, early.Crystal4.Size.Y < 0.3 } -- seat up, last prop not started
+local stagger = { early.Frame1.Size.X > 3, early.Crystal4.Size.Y < 0.3 } -- frame up, last prop not started
 local peak = 0
 for _ = 1, 18 do
 	frames(0.05)
-	peak = math.max(peak, early.Seat.Size.Y)
+	peak = math.max(peak, early.Frame1.Size.X)
 end
-local midTinted = part.Stand.Color ~= standColor
+local midUntouched = part.Stand.Color == standColor and part.Color == padColor and standHidden() == 0
 frames(1.5)
 local enterSig = sig("crystal_grotto")
-local enterSettled = { part.Stand.LocalTransparencyModifier, looksOf(part), emits - emitsBefore }
+local enterSettled = { standHidden(), looksOf(part), emits - emitsBefore }
 setHabitat("base")
 frames(0.5)
 local leaveMid = lookOf(part, "crystal_grotto")
-local leaving = leaveMid ~= nil and leaveMid.Seat.Size.Y < 7.2 and part.Stand.LocalTransparencyModifier < 1
+local leaving = leaveMid ~= nil and leaveMid.Frame1.Size.X < 7.5 and standHidden() == 0
 frames(1.2)
 local leftBase = atBase()
 local partsAfterLeave, meshesAfterLeave = worldParts()
@@ -296,19 +326,19 @@ local farLeft = atBase()
 HabitatFx.clear()
 
 describe("Habitat morph (HabitatFx + HabitatMorph, fake runtime)", function()
-	it("rises with stagger and overshoots, tinting the pad on the way", function()
+	it("rises with stagger and overshoots while the pad itself never changes", function()
 		expect(stagger).toEqual({ true, true })
-		expect(peak > 7.2).toBe(true)
-		expect(midTinted).toBe(true)
+		expect(peak > 7.5).toBe(true)
+		expect(midUntouched).toBe(true)
 	end)
 	it("settles to exactly the late-join static habitat", function()
-		expect(enterSettled).toEqual({ 1, 1, 1 })
+		expect(enterSettled).toEqual({ 0, 1, 1 })
 		expect(enterSig ~= "").toBe(true)
 		expect(interruptSig).toBe(enterSig)
 		expect(lateSig).toBe(enterSig)
 		expect(lateEmits).toBe(0)
 	end)
-	it("leave goes back through a shrinking look to the exact base pad", function()
+	it("leave goes back through a sinking overlay to the bare base pad", function()
 		expect(leaving).toBe(true)
 		expect(leftBase).toBe(true)
 		expect(interruptBase).toBe(true)
@@ -360,18 +390,22 @@ describe("HabitatFx client lifecycle (fake runtime)", function()
 		expect(settledLooks).toBe(0) -- ended at base: no look left
 		expect(#rt.errors).toBe(0)
 	end)
-	it("draws the placeholder for a mesh slot with no meshId in the repo", function()
+	it("draws the placeholder for an overlay with no meshId", function()
 		expect(grownPlaceholder).toEqual({ true, false })
 	end)
-	it("draws the slot mesh (FileMesh, seat fit to the pad) once a meshId exists", function()
-		expect(meshShape).toEqual({ 1, true, "rbxassetid://123", true, true })
+	it("keeps the placeholder until the server's overlay template arrives", function()
+		expect(waitedPlaceholder).toEqual({ true, false })
+		expect(serverFolder).toBe(true)
+	end)
+	it("then draws a clone of the template MeshPart at native size, bottom on the deck", function()
+		expect(meshShape).toEqual({ 1, "MeshPart", true, true, true })
 		expect(#rt.errors).toBe(0)
 	end)
-	it("shows the base pad for an unknown habitat id", function()
+	it("shows the bare base pad for an unknown habitat id", function()
 		expect(grownLooks).toBe(1)
-		expect(grownHidden).toBe(1) -- Stand hidden under the look
+		expect(grownHidden).toBe(0) -- the Stand stays under the overlay
 		expect(driftLooks).toBe(0)
-		expect(driftHidden).toBe(0) -- Stand shows again (old readId hid it for good)
+		expect(driftHidden).toBe(0)
 	end)
 	it("disconnects the pad's Habitat listener when the pad is removed", function()
 		expect(before).toBe(1)

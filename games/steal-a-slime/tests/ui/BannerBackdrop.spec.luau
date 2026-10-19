@@ -70,7 +70,6 @@ describe("banners never cover an open menu card's title or X", function()
 			{
 				"StealAlert",
 				"EggReveal",
-				"FeaturedSecret",
 			}
 		do
 			local isBanner = string.find(hud, `banner(banners, "{name}"`, 1, true) ~= nil

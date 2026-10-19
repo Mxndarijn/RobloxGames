@@ -797,15 +797,42 @@ local UNPLACED: { [string]: { string } } = {
 	plot_skin_mushroom = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_candy = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_crystal = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
-	habitat_crystal_grotto = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
-	habitat_candy_patch = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
-	habitat_barn_crate = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
-	habitat_flower_bed = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
-	habitat_hay_nest = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
-	habitat_mushroom_ring = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
-	habitat_rodeo_barrel = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
-	habitat_show_stool = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
-	habitat_syrup_pool = { "gojo", "habitat pad seat cloned by the client (HabitatPads), pad part is the surface" },
+	habitat_crystal_grotto_overlay = {
+		"gojo",
+		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
+	},
+	habitat_candy_patch_overlay = {
+		"gojo",
+		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
+	},
+	habitat_barn_crate_overlay = {
+		"gojo",
+		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
+	},
+	habitat_flower_bed_overlay = {
+		"gojo",
+		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
+	},
+	habitat_hay_nest_overlay = {
+		"gojo",
+		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
+	},
+	habitat_mushroom_ring_overlay = {
+		"gojo",
+		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
+	},
+	habitat_rodeo_barrel_overlay = {
+		"gojo",
+		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
+	},
+	habitat_show_stool_overlay = {
+		"gojo",
+		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
+	},
+	habitat_syrup_pool_overlay = {
+		"gojo",
+		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
+	},
 	slime_lane = { "jolt", "the parade lane strip (entry parade_lane), laid by ParadeView, not a MeshAsset slot" },
 }
 

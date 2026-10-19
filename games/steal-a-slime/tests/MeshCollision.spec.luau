@@ -201,7 +201,7 @@ local DECOR = {
 for _, group in
 	{
 		"ranch_border_", -- the world border pieces: beyond the invisible wall ring (WorldBorder), out of reach
-		"habitat_", -- 7.8 stud pad seats slimes rest in: low decor, players walk over
+		"habitat_", -- overlays on the pad deck round the slime: low client-only decor
 	}
 do
 	for _, name in MeshAssets.NAMES do
