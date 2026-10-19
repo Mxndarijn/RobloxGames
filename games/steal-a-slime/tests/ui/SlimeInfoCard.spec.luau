@@ -1,7 +1,7 @@
 --!strict
 -- Slime labels (contract/slime-labels.md): one floating tag per loose slime, rows stacked inside it, bottom edge
--- above the mesh top, staggered so a line of slimes doesn't stack them, culled by distance; a goo-dipped plank on the
--- pad crate for a pad slime; both re-rendered only on label attribute changes.
+-- above the mesh top at the same height for every slime, culled by distance; a goo-dipped plank on the pad crate
+-- for a pad slime; both re-rendered only on label attribute changes.
 local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
@@ -337,27 +337,12 @@ describe("SlimePadSign", function()
 	end)
 end)
 
-describe("SlimeInfoCard.stagger", function()
-	it("lifts tags made one after another to different heights, a whole tag apart, and wraps", function()
-		local levels = SlimeInfoCard.SIZE.staggerLevels
-		local seen = {}
-		for n = 0, levels - 1 do
-			local y = SlimeInfoCard.stagger(n).Y
-			expect(seen[y]).toBeNil()
-			seen[y] = true
-		end
-		expect(SlimeInfoCard.stagger(0).Y).toBe(0.5) -- the first sits right on its anchor
-		expect(SlimeInfoCard.stagger(1).Y - SlimeInfoCard.stagger(0).Y).toBe(SlimeInfoCard.SIZE.staggerStep)
-		expect(SlimeInfoCard.stagger(levels)).toBe(SlimeInfoCard.stagger(0))
-	end)
-	it("gives three slimes added in a row three different heights", function()
+describe("SlimeInfoCard.start heights", function()
+	it("puts every tag at the same height above its slime", function()
 		local models = { slimeModel({}), slimeModel({}), slimeModel({}) }
 		local stop = SlimeInfoCard.start({ collection = fakeCollection(models), tag = Constants.SLIME_TAG })
-		local seen = {}
 		for _, m in models do
-			local y = m:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME).SizeOffset.Y
-			expect(seen[y]).toBeNil()
-			seen[y] = true
+			expect(m:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME).SizeOffset.Y).toBe(0.5)
 		end
 		stop()
 	end)
