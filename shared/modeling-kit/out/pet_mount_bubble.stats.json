@@ -1,0 +1,109 @@
+{
+  "name": "pet_mount_bubble",
+  "model": "models/pet_mount_bubble.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1856,
+  "meshes": [
+    {
+      "name": "pet_mount_bubble",
+      "tris": 1856,
+      "verts": 936,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        3.3,
+        1.22,
+        2.4
+      ],
+      "materials": [
+        "pet_mount_bubble_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pet_mount_bubble_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    3.3,
+    1.22,
+    2.4
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pet_mount_bubble_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "out/pet_mount_bubble.fbx",
+  "fbx_bytes": 50956,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "out/.tiles/pet_mount_bubble_0.png"
+    },
+    {
+      "view": "side",
+      "path": "out/.tiles/pet_mount_bubble_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "out/.tiles/pet_mount_bubble_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "out/.tiles/pet_mount_bubble_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.109,
+    "stats_s": 0.002,
+    "setup_s": 0.001,
+    "render_s": [
+      0.881,
+      0.884,
+      0.889,
+      1.201
+    ],
+    "export_s": 0.1
+  },
+  "sheet": "out/pet_mount_bubble_sheet.png",
+  "timings": {
+    "wall_s": 4.51,
+    "blender_process_s": 4.42,
+    "compose_s": 0.086,
+    "model_s": 0.109,
+    "stats_s": 0.002,
+    "setup_s": 0.001,
+    "render_s": [
+      0.881,
+      0.884,
+      0.889,
+      1.201
+    ],
+    "export_s": 0.1
+  }
+}

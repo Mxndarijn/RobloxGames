@@ -1,0 +1,109 @@
+{
+  "name": "pet_mount_magic_carpet",
+  "model": "models/pet_mount_magic_carpet.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1776,
+  "meshes": [
+    {
+      "name": "pet_mount_magic_carpet",
+      "tris": 1776,
+      "verts": 910,
+      "ngons": 20,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        3.3,
+        0.566,
+        2.4
+      ],
+      "materials": [
+        "pet_mount_magic_carpet_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pet_mount_magic_carpet_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    3.3,
+    0.566,
+    2.4
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pet_mount_magic_carpet_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "out/pet_mount_magic_carpet.fbx",
+  "fbx_bytes": 46636,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "out/.tiles/pet_mount_magic_carpet_0.png"
+    },
+    {
+      "view": "side",
+      "path": "out/.tiles/pet_mount_magic_carpet_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "out/.tiles/pet_mount_magic_carpet_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "out/.tiles/pet_mount_magic_carpet_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.176,
+    "stats_s": 0.002,
+    "setup_s": 0.001,
+    "render_s": [
+      0.801,
+      1.174,
+      1.0,
+      0.833
+    ],
+    "export_s": 0.07
+  },
+  "sheet": "out/pet_mount_magic_carpet_sheet.png",
+  "timings": {
+    "wall_s": 4.49,
+    "blender_process_s": 4.41,
+    "compose_s": 0.08,
+    "model_s": 0.176,
+    "stats_s": 0.002,
+    "setup_s": 0.001,
+    "render_s": [
+      0.801,
+      1.174,
+      1.0,
+      0.833
+    ],
+    "export_s": 0.07
+  }
+}
