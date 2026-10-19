@@ -83,6 +83,7 @@ type Rig = {
 	pieces: { Piece },
 	skin: Piece?,
 	skinSize: Vector3?,
+	bodySize: Vector3, -- Body's size when the offsets and skinSize were measured
 	squash: SpecialMesh?,
 	params: SlimeLife.Params,
 	clock: SlimeLife.Clock,
@@ -174,8 +175,10 @@ local function release(model: Model)
 	for _, conn in rig.conns do
 		conn:Disconnect()
 	end
+	-- The server may have rescaled the model since acquire (ScaleTo): put the parts back at that scale.
+	local k = rig.body.Size.Y / math.max(rig.bodySize.Y, 1e-6)
 	if rig.skin and rig.skinSize and rig.skin.part.Parent then
-		rig.skin.part.Size = rig.skinSize
+		rig.skin.part.Size = rig.skinSize * k
 	end
 	if rig.squash then
 		rig.squash:Destroy()
@@ -187,7 +190,7 @@ local function release(model: Model)
 	model:SetAttribute("LifeMode", nil)
 	for _, piece in rig.pieces do
 		if piece.part.Parent == model and rig.body.Parent == model then
-			piece.part.CFrame = rig.body.CFrame * piece.offset
+			piece.part.CFrame = rig.body.CFrame * CFrame.new(piece.offset.Position * k) * piece.offset.Rotation
 		end
 		piece.constraint.Enabled = true
 	end
@@ -269,6 +272,7 @@ local function acquire(model: Model): Rig?
 		pieces = pieces,
 		skin = skin,
 		skinSize = if skin then skin.part.Size else nil,
+		bodySize = body.Size,
 		squash = squash,
 		params = params,
 		clock = SlimeLife.newClock(params, os.clock(), math.random),
@@ -285,6 +289,9 @@ local function acquire(model: Model): Rig?
 	table.insert(rig.conns, model:GetAttributeChangedSignal("State"):Connect(drop))
 	table.insert(rig.conns, model:GetAttributeChangedSignal(Constants.DESPAWN_AT_ATTRIBUTE):Connect(drop))
 	table.insert(rig.conns, body:GetPropertyChangedSignal("Anchored"):Connect(drop))
+	-- A server ScaleTo (the boss's fight / haul size, growth) leaves every measured size, offset and bone rest
+	-- frame stale: drop the rig, the next select builds it again at the new size.
+	table.insert(rig.conns, body:GetPropertyChangedSignal("Size"):Connect(drop))
 	table.insert(
 		rig.conns,
 		model.ChildAdded:Connect(function(child)
@@ -403,6 +410,9 @@ local function acquireAnim(model: Model): AnimRig?
 	table.insert(rig.conns, model:GetAttributeChangedSignal("State"):Connect(drop))
 	table.insert(rig.conns, model:GetAttributeChangedSignal(Constants.DESPAWN_AT_ATTRIBUTE):Connect(drop))
 	table.insert(rig.conns, body:GetPropertyChangedSignal("Anchored"):Connect(drop))
+	-- A server ScaleTo (the boss's fight / haul size, growth) leaves every measured size, offset and bone rest
+	-- frame stale: drop the rig, the next select builds it again at the new size.
+	table.insert(rig.conns, body:GetPropertyChangedSignal("Size"):Connect(drop))
 	return rig
 end
 
@@ -472,6 +482,9 @@ local function acquireMotor(model: Model): MotorRig?
 	table.insert(rig.conns, model:GetAttributeChangedSignal("State"):Connect(drop))
 	table.insert(rig.conns, model:GetAttributeChangedSignal(Constants.DESPAWN_AT_ATTRIBUTE):Connect(drop))
 	table.insert(rig.conns, body:GetPropertyChangedSignal("Anchored"):Connect(drop))
+	-- A server ScaleTo (the boss's fight / haul size, growth) leaves every measured size, offset and bone rest
+	-- frame stale: drop the rig, the next select builds it again at the new size.
+	table.insert(rig.conns, body:GetPropertyChangedSignal("Size"):Connect(drop))
 	return rig
 end
 
