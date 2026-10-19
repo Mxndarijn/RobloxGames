@@ -146,19 +146,25 @@ local PARENT = {
 local ORDER =
 	{ "Root", "Top", "SideL", "SideR", "SideF", "SideB", "Eyes", "Lids", "WingL", "WingR", "Tail-1", "Tail-2" }
 
-local function bonedSlime(): (any, { [string]: any })
+local MESH_SIZE = Vector3.new(2.6, 2.4, 2.2) -- the mesh's own (import) size: MeshSize
+
+-- `scale`: the model as a server ScaleTo leaves it (Body and Mesh sizes times `scale`; MeshSize and the bones'
+-- mesh-space CFrames stay, SlimeBones scales them by Size / MeshSize).
+local function bonedSlime(scale: number?): (any, { [string]: any })
+	local k = scale or 1
 	local model = new("Model")
 	model:SetAttribute("Tier", 4)
 	model:SetAttribute("State", "Wild")
 	local body = new("Part")
 	body.Name = "Body"
-	body.Size = Vector3.new(2, 2, 2)
+	body.Size = Vector3.new(2, 2, 2) * k
 	body.Anchored = true
 	body.Parent = model
 	model.PrimaryPart = body
 	local mesh = new("MeshPart")
 	mesh.Name = "Mesh"
-	mesh.Size = Vector3.new(2.6, 2.4, 2.2)
+	mesh.MeshSize = MESH_SIZE
+	mesh.Size = MESH_SIZE * k
 	mesh.Parent = model
 	local bones = {}
 	for _, name in ORDER do
@@ -322,5 +328,75 @@ describe("SlimeBones driver on a rigged species mesh", function()
 		SlimeMotor.release(motor)
 		expect(allRest(bones)).toBe(true)
 		expect(model:FindFirstChild("Body"):FindFirstChild("SkinRoot").Transform == CFrame.new()).toBe(true)
+	end)
+end)
+
+-- What a server ScaleTo does to a slime: Body and Mesh sizes change; MeshSize and the bones' CFrames don't.
+local function rescale(model: any, k: number)
+	local body, mesh = model:FindFirstChild("Body"), model:FindFirstChild("Mesh")
+	body.Size = body.Size * k
+	mesh.Size = mesh.Size * k
+end
+
+-- Every bone's Transform after stepping `motor` from `from` for `seconds` at 30 Hz (one snapshot per step).
+local function run(motor: any, bones: { [string]: any }, from: number, seconds: number, r: () -> number): { any }
+	local shots = {}
+	for i = 0, seconds * 30 do
+		SlimeMotor.step(motor, from + i / 30, r)
+		local shot = {}
+		for _, name in ORDER do
+			shot[name] = bones[name].Transform
+		end
+		table.insert(shots, shot)
+	end
+	return shots
+end
+
+-- Largest gap (studs, plus radians of turn) between two runs' bone poses.
+local function gapOf(a: { any }, b: { any }): number
+	local worst = 0
+	for i, shot in a do
+		for name, t in shot do
+			local u = b[i][name]
+			local turn = (t.Rotation * u.Rotation:Inverse()):ToAxisAngle()
+			worst = math.max(worst, (t.Position - u.Position).Magnitude, math.abs(select(2, turn) or 0))
+		end
+	end
+	return worst
+end
+
+describe("SlimeBones after a server rescale (the boss's fight / haul size, growth)", function()
+	local START, SECONDS = 5, 4
+
+	it("the scale is read from Size / MeshSize: a 1.5x slime's bones measure 1.5x taller", function()
+		local small = SlimeMotor.attach((bonedSlime(1)), 0, rand(1))
+		local big = SlimeMotor.attach((bonedSlime(1.5)), 0, rand(1))
+		expect(near(big.bones.H, small.bones.H * 1.5, 1e-5)).toBe(true)
+	end)
+
+	it("a rig rebuilt after the rescale moves the bones exactly like one built at the new size", function()
+		local fresh, freshBones = bonedSlime(1.5)
+		local want = run(SlimeMotor.attach(fresh, START, rand(31)), freshBones, START, SECONDS, rand(32))
+
+		local grown, grownBones = bonedSlime(1)
+		local old = SlimeMotor.attach(grown, 0, rand(7))
+		run(old, grownBones, 0, 1, rand(8)) -- alive at the old size
+		rescale(grown, 1.5)
+		SlimeMotor.release(old) -- SlimeLifeRunner drops the rig on the Body Size change...
+		expect(allRest(grownBones)).toBe(true)
+		local rebuilt = SlimeMotor.attach(grown, START, rand(31)) -- ...and the next select builds it again
+		local got = run(rebuilt, grownBones, START, SECONDS, rand(32))
+		expect(gapOf(want, got) < 1e-5).toBe(true)
+	end)
+
+	it("a rig kept from before the rescale is wrong (why the runner must rebuild it)", function()
+		local fresh, freshBones = bonedSlime(1.5)
+		local want = run(SlimeMotor.attach(fresh, START, rand(31)), freshBones, START, SECONDS, rand(32))
+
+		local grown, grownBones = bonedSlime(1)
+		local stale = SlimeMotor.attach(grown, START, rand(31))
+		rescale(grown, 1.5)
+		local got = run(stale, grownBones, START, SECONDS, rand(32))
+		expect(gapOf(want, got) > 1e-2).toBe(true)
 	end)
 end)

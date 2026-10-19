@@ -44,6 +44,7 @@ export type Motor = {
 	skinJoint: Motor6D,
 	skin: MeshPart?,
 	skinSize: Vector3?,
+	bodySize: Vector3, -- Body's size when skinSize was measured
 	squash: SpecialMesh?,
 	bones: SlimeBones.Rig?, -- the skin's Bones drive the squash instead of its Size
 	params: SlimeLife.Params,
@@ -96,6 +97,7 @@ function SlimeMotor.attach(model: Model, now: number, rand: Rand): Motor?
 		skinJoint = skinJoint,
 		skin = skin,
 		skinSize = if skin then skin.Size else nil,
+		bodySize = body.Size,
 		squash = squash,
 		bones = bones,
 		params = params,
@@ -186,7 +188,8 @@ local function rest(motor: Motor)
 	if motor.bones then
 		SlimeBones.release(motor.bones)
 	elseif motor.skin and motor.skinSize then
-		motor.skin.Size = motor.skinSize
+		-- at the model's current scale: the server may have rescaled it since attach
+		motor.skin.Size = motor.skinSize * (motor.body.Size.Y / math.max(motor.bodySize.Y, 1e-6))
 	end
 	if motor.squash then
 		motor.squash.Scale = Vector3.one
