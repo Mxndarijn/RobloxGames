@@ -172,6 +172,7 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"BuyEgg"` | none | Buys a Mystery Egg with cash only (`Shared.MysteryEgg.price` = `MYSTERY_EGG_PRICE` x rebirth multiplier). It hatches a slime rolled from `MYSTERY_EGG_DROPS` onto the lowest free pad via `PlayerData.addSlime`; `State.egg.hatched` carries it for the reveal banner. Failures: `"not enough cash"`, `"plot full"` (nothing charged). Save format unchanged. Events: server-only `Server/MysteryEgg.spawnForEvent(world, userId, count, now)` hatches free eggs, no remote. |
 | `"Drop"` | none | Drops what you're carrying. Wild → falls to the ground; stolen → escapes home. |
 | `"Appraise"` | `slimeId: string, kind: "size"` | Pays `Appraise.cost` (`APPRAISE_COST_FRACTION` = 30% of `Economy.sellPrice`) to reroll that owned, not-busy slime's size. Only `size` changes. Success returns `{ ok = true, appraisal = Types.Appraisal }`: `cost`, `beforeSize` / `afterSize`, `incomeBefore` / `incomeAfter` (`PlayerData.slimeIncome`) and `costAfter` (the next price), the values the next State sends. Fails with `"not your slime"`, `"not enough cash"`, `"slime is busy"`. `SlimeView.appraiseCost` is the current price. |
+| `"SetHotbar"` | `order: string` | Saves the player's hotbar order (`Shared.HotbarOrder`): up to 9 slot keys joined by `","`, slot 1 first; fewer parts = the rest empty, `""` = an empty slot. A key is the client's inventory entry key: `tool:<ToolName>`, `pvp:<Config.PVP_TOOLS id>` or `consumable:<Config.CONSUMABLES id>`, id up to 32 chars of ASCII letters, digits, space, `_ - . '` (no leading / trailing space). A `pvp:` / `consumable:` id must be a catalog id; a Tool name is free-form, but a Tool whose name has any other character (non-ASCII included) can't be placed on the bar. Example: `"tool:Bat,pvp:KnockGlove1,,consumable:LuckPotion"`. Refused with `"bad argument"`: not a string, longer than 400 chars, more than 9 parts, a malformed key, an unknown pvp / consumable id or the same key twice. Ownership is not checked (the client skips keys it doesn't hold). Stored as `hotbar` in the save (9 strings, no version bump) and sent back as `State.hotbar`; a stored key that is no longer legal loads as an empty slot. An all-empty order is stored as 9 `""`. Rate limit 0.3 s per player; a faster one answers `"too fast"` (the client sends the order again after the gap). |
 | `"Sync"` | none | The server re-sends `State` right away. The UI calls it once on start. At most one per `STATE_MIN_INTERVAL` (0.25 s); a faster one answers `"too fast"`. |
 
 `Notify` sound names: `"Alarm"` (your slime is being stolen), `"Grab"`, `"Stolen"`, `"Escape"`, `"Slap"`, `"Lock"`, `"Unlock"`, `"Merge"`, `"Cash"`, `"Deposit"`, `"Rain"`, `"Rebirth"`, or `nil`. The sound name doubles as the **effect hook**: clients may also play a particle burst or screen effect keyed on it (the world-space bursts themselves are server-played, §5.4). Purchases (pads, shop upgrades) and the daily reward use `"Cash"`; finishing the tutorial sends Notify "Tutorial complete!" (`"good"`, no sound).
@@ -263,11 +264,13 @@ The client always replaces its copy and never diffs.
 	},
 	egg: { price: number, hatched: { slime: SlimeData, at: number }? },  -- newest hatch, never saved
 	tutorialStep: number?,   -- 1..6 (§2 Tutorial); nil = finished
+	hotbar: { string }?,     -- saved hotbar order: exactly 9 slot keys ("" = empty), nil until the player first sends SetHotbar
 }
 ```
 
 - `daily.day` is the streak day the pending claim pays (1..`DAILY_STREAK_CAP`, `amount = DAILY_BASE × day × rebirthMultiplier`). When nothing is pending, it's the day the last claim paid.
 - `shop` keys are the UI's `ShopCatalog` item ids. Prices are final (what `Request` charges).
+- `hotbar` is what the last successful `Request("SetHotbar", order)` stored (§3), saved across sessions and rebirths. Keys may name items the player no longer holds; the client skips those.
 
 ### 5.2 Instance attributes (read by UI billboards and visuals)
 - **`workspace.Plots.Plot_<i>`:**

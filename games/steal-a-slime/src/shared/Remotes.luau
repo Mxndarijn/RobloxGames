@@ -15,6 +15,8 @@ export type RemoteDef = { name: string, class: RemoteClass, direction: Direction
 
 -- Argument type names for each `Request` action, in call order.
 -- "string?" means the argument may be nil; "number?" / "vector3?" likewise. "vector3" = a finite Roblox Vector3.
+-- "string" is an id (Validate.slimeId); "code" is free text up to 64 chars; "hotbar" is a string up to
+-- HotbarOrder.MAX_LENGTH whose keys HotbarOrder.parse checks.
 export type ActionDef = { args: { string } }
 
 local Remotes = {}
@@ -59,6 +61,7 @@ Remotes.ACTIONS = table.freeze({
 	OpenShop = table.freeze({ args = { "string" } }), -- shopId "ItemShop" | "UpgradeShop" (FEATURES.WorldShops, CONTRACT.md §27)
 	CloseShop = table.freeze({ args = {} }), -- clears the open shop
 	ShopBuy = table.freeze({ args = { "string", "string", "string?" } }), -- shopId, itemId, unused slot (string?); delegates to the item's existing buy action
+	SetHotbar = table.freeze({ args = { "hotbar" } }), -- order: up to 9 slot keys joined by "," ("" = empty slot) (HotbarOrder, CONTRACT.md §3)
 	Sync = table.freeze({ args = {} }), -- server re-sends State
 } :: { [string]: ActionDef })
 

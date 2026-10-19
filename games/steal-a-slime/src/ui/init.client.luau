@@ -266,6 +266,7 @@ local inventory = Inventory.new(gui, {
 	tools = InventoryTools.new(player),
 	serverNow = serverNow,
 	keyboard = game:GetService("UserInputService").KeyboardEnabled,
+	input = game:GetService("UserInputService"),
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
 InventoryTools.bindBag(inventory.isBagKey, inventory.toggleBag)

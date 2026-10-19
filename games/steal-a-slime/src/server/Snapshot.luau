@@ -126,6 +126,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		plotSkins = if Config.FEATURES.PlotSkins then PlotSkins.view(data) else nil,
 		stealAway = if Config.FEATURES.StealAlerts then StealAlert.summary(session.awayLog) else nil,
 		welcomeBack = session.welcome,
+		hotbar = if data.hotbar then table.clone(data.hotbar) else nil,
 		friends = { count = session.friends or 0, bonus = data.friendBonus or 0 },
 		rebirthTitle = Perks.title(rebirths),
 		rebirthTiers = Snapshot.rebirthTiers(rebirths),

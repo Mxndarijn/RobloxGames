@@ -19,6 +19,7 @@ local Appraise = if Shared then require(Shared.Appraise) else require("../shared
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
+local HotbarOrder = if Shared then require(Shared.HotbarOrder) else require("../shared/HotbarOrder")
 local Merge = if Shared then require(Shared.Merge) else require("../shared/Merge")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
@@ -137,6 +138,12 @@ function Actions.parseArgs(action: string, raw: { any }): ({ any }?, string?)
 		elseif kind == "code" then
 			-- Free text: only bounded here; Codes.normalize words the result.
 			if type(value) ~= "string" or #value > 64 then
+				return nil, "bad argument"
+			end
+			out[i] = value
+		elseif kind == "hotbar" then
+			-- Only bounded here; HotbarOrder.parse checks the keys.
+			if type(value) ~= "string" or #value > HotbarOrder.MAX_LENGTH then
 				return nil, "bad argument"
 			end
 			out[i] = value
@@ -596,6 +603,8 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return result(PvpService.equip(session, args[1], feature(ctx, "PvP")))
 	elseif action == "UsePvpItem" then
 		return result(PvpService.use(world, session, args[1], args[2], args[3], now, feature(ctx, "PvP"), ctx))
+	elseif action == "SetHotbar" then
+		return result(HotbarOrder.set(session.data, args[1]))
 	elseif action == "BuyEgg" then
 		return result(MysteryEgg.buy(world, session, now))
 	elseif action == "Drop" then
