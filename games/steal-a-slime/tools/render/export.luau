@@ -60,7 +60,7 @@ assert(SNOW_PHASE == "settle" or SNOW_PHASE == "melt", "--snow-phase needs settl
 -- The client quantizes the level and tints from the original colour (SnowGround): same maths here.
 local snowTints = if SNOW then SnowCover.tints(SnowCover.quantize(SNOW), SNOW_PHASE == "settle") else nil
 
--- Render staging: which pads show a new habitat mesh (plot, pad, habitat id).
+-- Render staging: which pads show a habitat overlay (plot, pad, habitat id).
 local HABITAT_PADS = {
 	{ 1, 2, "crystal_grotto" },
 	{ 1, 3, "candy_patch" },
@@ -285,26 +285,20 @@ for _, plot in built.plots:GetChildren() do
 	end
 end
 
--- Habitat pads (client HabitatFx): the mesh at native footprint on the pad
--- bottom, Y scaled to pad height / seat; the stand and pad hide.
+-- Habitat pads (client HabitatFx): the overlay mesh at native size, its
+-- bottom on the crate deck (or `drop` below it); the pad and stand stay.
 for _, h in HABITAT_PADS do
 	local pad = built.plots:FindFirstChild(`Plot_{h[1]}`):FindFirstChild(`Pad_{h[2]}`)
 	local habitat = Habitats.get(h[3])
-	local slot = Habitats.slotMesh(h[3])
-	if slot then
-		hidden[pad] = true
-		for _, d in pad:GetDescendants() do
-			hidden[d] = true
-		end
-		for i = #meshes, 1, -1 do
-			if meshes[i].path:find(pad:GetFullName(), 1, true) == 1 then
-				table.remove(meshes, i)
-			end
-		end
-		local sy = pad.Size.Y / habitat.seat
-		local size = { slot.size[1], slot.size[2] * sy, slot.size[3] }
-		local cf = pad.CFrame * CFrame.new(0, -pad.Size.Y / 2 + size[2] / 2, 0)
-		table.insert(meshes, { mesh = habitat.kit, cf = cfOf(cf), size = size, path = pad:GetFullName() .. ".Habitat" })
+	local overlay = Habitats.overlayMesh(h[3])
+	if habitat and overlay then
+		local size = overlay.size
+		local deck = -pad.Size.Y / 2 + WorldLayout.PAD_DECK.y
+		local cf = pad.CFrame * CFrame.new(0, deck + size[2] / 2 - overlay.drop, 0)
+		table.insert(
+			meshes,
+			{ mesh = habitat.overlay, cf = cfOf(cf), size = size, path = pad:GetFullName() .. ".Habitat" }
+		)
 	end
 end
 

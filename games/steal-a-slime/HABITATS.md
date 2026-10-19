@@ -1,69 +1,59 @@
 # Slime habitats (spec)
 
-**Status:** every type has its own uploaded mesh; `Config.FEATURES.Habitats = true`. **Date:** 2026-10-16. **Owners:** data + pad state Phoenix (`src/shared`, `src/server`), habitat FX Archer (`src/visuals`). Written by Jolt.
+**Status:** overlays; `Config.FEATURES.Habitats` is the only place the flag is set. **Owners:** data + pad state Phoenix (`src/shared`, `src/server`), habitat FX Archer (`src/visuals`).
 
-When a slime sits on a pad, the pad turns into that slime's habitat in about 1 s (tween + FX). When the pad empties (slime stolen, carried off, sold, merged, owner leaves) it turns back into the base pad.
+The pad never changes. When a slime sits on a pad, that slime's habitat **overlay** rises out of the crate deck in about 1 s (a themed frame round the mat plus rim props round the slime). When the pad empties (slime stolen, carried off, sold, merged, owner leaves) the overlay sinks away and the bare crate pad is left. Swapping one slime for another crossfades the two overlays on the same pad.
 
 ## Data: `src/shared/Habitats.luau` (pure)
 
-- **Habitat ids** are plain strings, never saved. `base` = the pad as built today (the one `WorldLayout.PAD_MESH` crate stand (all pads identical) plus the kit's `pad_trim` plinth).
+- **Habitat ids** are plain strings, never saved. `base` = the bare pad (the `WorldLayout.PAD_MESH` crate stand, no overlay).
 - **Lookup:** `Habitats.forSlime(slime)`: the per-type table (`TYPE`, by `SlimeRoster` id) wins, then the family of the slime's tier (`FAMILY_BY_TIER` -> `FAMILY`), else `base`. Merged / pre-v28 slimes have no `species`, so they fall back to their tier's family.
-- **Looks are per-type kit meshes** (`shared/modeling-kit/models/habitat_<id>.py`, ids in `MeshAssets`, `uploaded.json`): 7.8 wide, 3.6-5.0 tall, seat 2.4 (FOUNTAIN_SIZES.md). `base` keeps the pad stand + `pad_trim`.
+- **Overlays are kit meshes** `habitat_<id>_overlay` (`shared/modeling-kit/models/habitat_<id>_overlay.py`, helpers `models/_habitat_overlay.py`; ids in `MeshAssets`, `uploaded.json`). `Habitats.overlayMesh(id)` gives the meshId, native size and `drop` (studs it hangs below the deck, for drips over the crate edge; usually 0).
 
-| Habitat | Kit look | Seat | Used by |
-|---|---|---|---|
-| `base` | pad's own stand + `pad_trim` | (pad) | empty pad, flag off |
-| `hay_nest` | `habitat_hay_nest` | 2.4 | family field (Common); `golden_goose_goo` |
-| `mushroom_ring` | `habitat_mushroom_ring` | 2.4 | `clover`, `moonmilk` |
-| `flower_bed` | `habitat_flower_bed` | 2.4 | family sprout (Uncommon) |
-| `barn_crate` | `habitat_barn_crate` | 2.4 | family critter (Rare) |
-| `rodeo_barrel` | `habitat_rodeo_barrel` | 2.4 | `rodeo_ram` |
-| `syrup_pool` | `habitat_syrup_pool` | 2.4 | `pudding`, `puddle`, `honey_queen` |
-| `show_stool` | `habitat_show_stool` | 2.4 | family royal (Legendary) |
-| `candy_patch` | `habitat_candy_patch` | 2.4 | family horned (Epic); `gumdrop_titan` |
-| `crystal_grotto` | `habitat_crystal_grotto` | 2.4 | family crystal (Mythic), family secret |
+| Habitat | Overlay | Used by |
+|---|---|---|
+| `base` | none (bare crate) | empty pad, flag off |
+| `hay_nest` | straw frame, hay tufts, straws, an egg | family field (Common); `midas` |
+| `mushroom_ring` | `habitat_mushroom_ring_overlay` | `mushie`, `boo` |
+| `flower_bed` | `habitat_flower_bed_overlay` | family sprout (Uncommon); `sprout`, `prickles` |
+| `barn_crate` | `habitat_barn_crate_overlay` | family critter (Rare) |
+| `rodeo_barrel` | `habitat_rodeo_barrel_overlay` | `moo` |
+| `syrup_pool` | `habitat_syrup_pool_overlay` | `flan`, `bubbles`, `froggo`, `chomp`, `octo` |
+| `show_stool` | `habitat_show_stool_overlay` | family royal (Legendary) |
+| `candy_patch` | `habitat_candy_patch_overlay` | family horned (Epic); `cheddar` |
+| `crystal_grotto` | `habitat_crystal_grotto_overlay` | family crystal (Mythic), family secret |
+
+## Overlay mesh rules (kit)
+
+- z=0 = the crate deck (`WorldLayout.PAD_DECK.y` above the stand bottom). Frame + rim props only: no mound, bowl or seat.
+- Props stay on the rim band between the mat (`PAD_DECK.matHalf`) and the deck edge (`PAD_DECK.half`); nothing rises above the frame inside the mat square, so the slime is never buried. The model script prints `OVERLAY ... over_mat=0`.
+- Bbox centred on the pad (the FileMesh origin is its bbox centre), footprint <= 7.9, 0.5-2.8 studs above the deck (`tests/Habitats.spec`).
+- Sheets are judged with the crate drawn under the overlay: `HABITAT_PREVIEW=1 python iterate.py models/<name>.py --no-export`.
 
 ## Server owns pad state: `src/server/HabitatPads.luau` (pure) + `WorldView.updatePlots`
 
 - Each view tick the server works out every pad's target: the slime whose `pad` is that pad and whose Scene state is `Pad` (not carried, not escaping) gives `forSlime(slime)`; anything else is `base`. Free plots are all `base`.
 - On a change it stamps the pad and `WorldView` writes three attributes on `Pad_<j>` (`Constants.HABITAT_*`): `Habitat` (id), `HabitatFrom` (previous id), `HabitatAt` (server time of the change). Nothing is saved and no remote is added.
-- The server never waits for the animation: gameplay (income, steal prompt, pad top height) is unchanged. The pad part keeps its size; a habitat look is placed so its seat sits on the pad top.
+- The server never waits for the animation: gameplay (income, steal prompt, pad top height) is unchanged.
 
 ## Client animates: `src/visuals/client/HabitatFx.luau`
 
-- One local look per habitat per pad (folder `workspace.ClientHabitats`, CanCollide / CanQuery / CanTouch off). Each look has a weight 0..1 that moves toward 1 (current `Habitat`) or 0 (any other) at `1 / TRANSFORM_SECONDS` (1 s): scale + fade, a sparkle burst when a transform starts, and the base stand fades out locally (`LocalTransparencyModifier`) while a habitat shows. Revert is the same tween backwards.
-- Weights live in `Habitats.stepWeights` (pure, Lune-tested).
+- One local overlay per habitat per pad (folder `workspace.ClientHabitats`, CanCollide / CanQuery / CanTouch off), resting on the deck. The pad and its Stand are never hidden or recoloured.
+- Each overlay has a weight 0..1 that moves toward 1 (current `Habitat`) or 0 (any other) at `1 / TRANSFORM_SECONDS` (1 s): the overlay rises out of the deck and fades in, with a sparkle burst when a change starts; leaving is the same tween backwards. Weights live in `Habitats.stepWeights` (pure, Lune-tested).
+- No meshId yet = placeholder primitives in `Habitats` colours (four frame strips and four corner props).
 
 ## Animation feel: `src/shared/HabitatMorph.luau` (pure) + `Config.HABITAT_ANIM`
 
-Client only, on top of the weights above; no new mesh, no new remote, no replicated animation.
-
-- **Rise:** prop `i` of `n` starts at weight `STAGGER * (i-1)/(n-1)` and scales with easeOutBack (overshoot while rising only); leaving uses the same curve with the weight falling, so the last prop is the first to go. A mesh slot look is one prop (no stagger, still overshoots).
-- **Pad colour:** the pad and its Stand shift toward the habitat accent (fully by half way). The exact base colours are stored and restored when the look is gone.
-- **Puff:** the existing sparkle emitter, `BURST_FULL` particles (`BURST_SIMPLE` at mid distance).
+- **Rise:** the overlay mesh grows in height only (easeOutBack overshoot while rising), so its footprint never sweeps over the slime. Placeholder prop `i` of `n` starts at weight `STAGGER * (i-1)/(n-1)`; the last prop up is the first to go.
+- **Puff:** the sparkle emitter, `BURST_FULL` particles (`BURST_SIMPLE` at mid distance).
 - **Quality:** `HabitatMorph.quality` -> `snap` (LocalPlayer attribute `ReducedMotion` = true, camera beyond `SNAP_BEYOND` studs, or `MAX_ANIMATING` pads already morphing): the change shows its final state at once, no puff; `simple` (beyond half of `SNAP_BEYOND`): plain ease, small puff; else `full`.
-- **Late joiners** still snap to the final state (`initialWeights`); settled weights equal the static habitat exactly.
-- Proof: `tests/HabitatMorph.spec`, `tests/HabitatsLive.spec` (enter / leave / interrupt, exact base restore, no leftover parts, no mesh built); shots `105-h1-anim-*` (`"leave": true` plays the leave in `luau/habitat_set`).
+- **Late joiners** snap to the final state (`initialWeights`); settled weights equal the static overlay exactly.
+- Proof: `tests/HabitatMorph.spec`, `tests/HabitatsLive.spec` (enter / leave / interrupt, pad untouched, no leftover parts, overlay mesh on the deck).
 
 ## Edge cases
 
-- **Steal mid-transform:** the server flips the pad straight to `base` (`HabitatFrom` = the half-grown habitat). The client tweens the half-grown look back down from where it was; it ends at `base`.
-- **Rapid swap** (slimes swapped / merged within 1 s): only the latest `Habitat` is a target; every older look shrinks to 0. Ends at the latest.
+- **Steal mid-transform:** the server flips the pad straight to `base` (`HabitatFrom` = the half-grown habitat). The client sinks the half-grown overlay from where it was.
+- **Rapid swap** (slimes swapped / merged within 1 s): only the latest `Habitat` is a target; every older overlay sinks to 0 while the new one rises.
 - **Join in progress / pad streams in:** the first time a client sees a pad it snaps to the final state (`Habitats.initialWeights`), no animation or FX.
 - **Owner leaves / plot freed:** every pad of that plot goes `base`.
-- **Flag off:** the server never sets the attributes and `HabitatFx` never starts, so no parts, folders or attributes exist and behaviour is identical to v27 (tests: `Habitats.spec`, `LiveBoot.spec`).
-
-## Mesh slots Archer must fill (new meshes)
-
-Same slot rules as the pad kit (`models/_phoenix_pad.py`): footprint <= 7.96 x 7.96 (aim 7.8), flat seat for the slime, 1 Blender unit = 1 stud, tight tri budget (up to 64 pads per map).
-
-| Slot | Kit name | Size (W x H x D studs) | Seat | Look |
-|---|---|---|---|---|
-| `crystal_grotto` | `habitat_crystal_grotto` | 7.8 x 5.0 x 7.8 | 2.4 | rock bowl with a flat stone seat; lilac / aqua crystal clusters on the rim only (keep the seat area clear up to 5.0) |
-| `candy_patch` | `habitat_candy_patch` | 7.8 x 4.5 x 7.8 | 2.4 | sugar-soil mound with gumdrops and two lollipops at the rim, flat biscuit seat |
-
-Both models landed (Archer #57, `shared/modeling-kit/out/habitat_*.fbx`) but are **not uploaded**: `MeshAssets` lists them with sizes and no `meshId`. `Habitats.slotMesh(id)` returns the slot's meshId + native size once one is filled in, and `HabitatFx` then draws it (FileMesh SpecialMesh, Y fit so the 2.4 seat meets the pad top); until then both draw primitive placeholders. The seven kit pads are already uploaded; swapping their meshes into `HabitatFx` is a follow-up (MeshSwap is server-side today).
-
-## All habitats uploaded
-
-All nine looks are uploaded (Open Cloud, see `uploaded.json`) and wired in `MeshAssets`; `Habitats.slotMesh` draws them for every id. `tests/Habitats.spec` checks each type maps to a mesh id with a 7.8 footprint and seat 2.4. `tools/pipeline/pc-watcher/shots/` has a mid-morph and a done shot per habitat (TODO 16).
+- **Flag off:** the server never sets the attributes and `HabitatFx` never starts, so no parts, folders or attributes exist (tests: `Habitats.spec`, `LiveBoot.spec`).

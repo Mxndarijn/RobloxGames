@@ -69,7 +69,7 @@ def compose(stats, sheet_path, res):
     try:
         font = ImageFont.load_default(size=15)
         small = ImageFont.load_default(size=12)
-    except TypeError:  # Pillow < 10.1
+    except (TypeError, ImportError):  # Pillow < 10.1, or no FreeType (blocked DLL): bitmap font
         font = small = ImageFont.load_default()
     ok = stats["pass"]
     mode = "  QUICK: clay shape only, no FBX" if stats["mode"] == "quick" else ""

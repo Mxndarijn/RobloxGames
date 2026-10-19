@@ -10,7 +10,6 @@
 	  HabitatMorph.propScale(q, w, i, n, rising, cfg)
 	                              scale of prop i of n at weight w
 	  HabitatMorph.burst(cfg, q)  puff particles for a transform (0 = none)
-	  HabitatMorph.tint(w)        0..1 pad colour shift toward the habitat accent
 
 	Both ends are exact: propScale(_, 1, ...) == 1 and propScale(_, 0, ...) ==
 	FLOOR, so a settled look is the static habitat. No Roblox APIs.
@@ -80,11 +79,6 @@ function HabitatMorph.burst(cfg: Cfg, q: Quality): number
 		return cfg.BURST_SIMPLE
 	end
 	return 0
-end
-
--- Pad colour shift: the full accent by half way, exactly 0 at weight 0.
-function HabitatMorph.tint(w: number): number
-	return math.clamp(w * 2, 0, 1)
 end
 
 return table.freeze(HabitatMorph)

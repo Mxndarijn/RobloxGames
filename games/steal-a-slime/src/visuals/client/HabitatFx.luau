@@ -3,24 +3,23 @@
 	HabitatFx (VisualsClient module, FEATURES.Habitats, HABITATS.md)
 
 	Every Pad_<j> with the attribute Habitat (Constants.HABITAT_ATTRIBUTE,
-	set by the server) gets a client-only look per habitat in a local
-	workspace folder "ClientHabitats". Each look has a weight (Shared.Habitats
-	.stepWeights): the current habitat grows to 1 and every other look
-	shrinks to 0 over Habitats.TRANSFORM_SECONDS, with a sparkle burst when a
-	transform starts. The pad's own Stand fades out locally
-	(LocalTransparencyModifier) while a habitat shows, tinted toward the
-	habitat accent on the way (exact colours restored at base). Props rise
-	staggered with an overshoot and go in reverse (HabitatMorph). Quality
-	"snap" (reduced motion, far from the camera, too many pads morphing) or
-	"simple" (mid distance) cut the tween / puff. The first time a pad is seen
-	it snaps to its final state (join in progress), no burst.
+	set by the server) gets a client-only overlay per habitat in a local
+	workspace folder "ClientHabitats". The pad and its crate Stand never
+	change: an overlay (themed frame and rim props) rests on the crate deck
+	(WorldLayout.PAD_DECK) round the slime. Each overlay has a weight
+	(Shared.Habitats.stepWeights): the current habitat grows to 1 and every
+	other overlay shrinks to 0 over Habitats.TRANSFORM_SECONDS, so a swap
+	crossfades on the same pad, with a sparkle burst when a change starts.
+	Overlays rise out of the deck with an overshoot and sink back
+	(HabitatMorph). Quality "snap" (reduced motion, far from the camera, too
+	many pads morphing) or "simple" (mid distance) cut the tween / puff. The
+	first time a pad is seen it snaps to its final state (join in progress),
+	no burst.
 
-	Mesh slots (Habitats.MESH_SLOTS) draw their uploaded mesh when
-	Habitats.slotMesh(id) has one (MeshAssets meshId): a Part with a FileMesh
-	SpecialMesh (MeshPart.MeshId can't be set from a script), footprint at
-	native size, height fit so the mesh seat lands on the pad top. No meshId
-	yet = PLACEHOLDER primitive parts in Habitats colours, as do the seven kit
-	pad looks (swapping those in is a follow-up).
+	An overlay with an uploaded mesh (Habitats.overlayMesh) is one Part with a
+	FileMesh SpecialMesh (MeshPart.MeshId can't be set from a script) at
+	native size, its bottom on the deck (or `drop` below it). No meshId yet =
+	PLACEHOLDER primitive rim props in Habitats colours.
 	Reads attributes only; never fires remotes. Nothing replicates.
 ]]
 
@@ -33,6 +32,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
 local HabitatMorph = require(Shared:WaitForChild("HabitatMorph"))
 local Habitats = require(Shared:WaitForChild("Habitats"))
+local WorldLayout = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("WorldLayout"))
 
 local HabitatFx = {}
 
@@ -44,8 +44,7 @@ type Piece = {
 	size: Vector3,
 	offset: CFrame,
 	transparency: number,
-	mesh: SpecialMesh?, -- slot mesh look: Scale grows with the look, not Size
-	scale: Vector3?,
+	mesh: SpecialMesh?, -- overlay mesh: rises out of the deck (Y), Scale follows Size
 }
 type Look = { model: Model, pieces: { Piece } }
 type Track = {
@@ -56,7 +55,6 @@ type Track = {
 	quality: HabitatMorph.Quality,
 	looks: { [string]: Look },
 	burst: ParticleEmitter?,
-	colors: { [BasePart]: Color3 }, -- exact base colours, kept while the pad is tinted
 	conn: RBXScriptConnection, -- Habitat attribute listener, disconnected in drop
 }
 
@@ -103,33 +101,32 @@ local function piece(
 	return { part = part, size = size, offset = offset, transparency = transparency or 0 }
 end
 
--- One FileMesh piece for an uploaded slot mesh. Footprint stays native (the
--- slot is built to <= 7.96 on the 8-stud pad); Y scales by pad height / seat
--- so the mesh seat sits on the pad top, where the slime rests.
-local function meshPiece(model: Model, pad: BasePart, slot: Habitats.SlotMesh, seat: number): Piece
-	local native = Vector3.new(slot.size[1], slot.size[2], slot.size[3])
-	local scale = Vector3.new(1, if seat > 0 then pad.Size.Y / seat else 1, 1)
-	local size = native * scale
+-- One FileMesh piece for an uploaded overlay mesh at native size. FileMesh
+-- origin is its bbox centre: the bottom sits `drop` below the deck.
+local function meshPiece(model: Model, overlay: Habitats.OverlayMesh): Piece
+	local size = Vector3.new(overlay.size[1], overlay.size[2], overlay.size[3])
 	local p = piece(
 		model,
 		"Mesh",
 		Enum.PartType.Block,
 		size,
-		CFrame.new(0, size.Y / 2, 0), -- FileMesh origin is its bbox centre
+		CFrame.new(0, size.Y / 2 - overlay.drop, 0),
 		Color3.new(1, 1, 1),
 		Enum.Material.SmoothPlastic
 	)
 	local mesh = Instance.new("SpecialMesh")
 	mesh.MeshType = Enum.MeshType.FileMesh
-	mesh.MeshId = slot.meshId
-	mesh.Scale = scale
+	mesh.MeshId = overlay.meshId
 	mesh.Parent = p.part
 	p.mesh = mesh
-	p.scale = scale
 	return p
 end
 
--- Offsets are from the pad's bottom centre (pad local space, +Y up).
+-- Offsets are from the crate deck centre (pad local space, +Y up). The rim
+-- band runs between the crate mat and the deck edge; the slime sits inside.
+local DECK_EDGE = WorldLayout.PAD_DECK.half
+local MAT_EDGE = WorldLayout.PAD_DECK.matHalf
+local BAND = (DECK_EDGE + MAT_EDGE) / 2
 local CORNERS = { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }
 
 local function buildLook(pad: BasePart, id: string): Look?
@@ -139,53 +136,46 @@ local function buildLook(pad: BasePart, id: string): Look?
 	end
 	local model = Instance.new("Model")
 	model.Name = `{pad.Parent and pad.Parent.Name or "Plot"}_{pad.Name}_{id}`
-	local slot = Habitats.slotMesh(id)
-	if slot then
-		local pieces = { meshPiece(model, pad, slot, habitat.seat) }
+	local overlay = Habitats.overlayMesh(id)
+	if overlay then
+		local pieces = { meshPiece(model, overlay) }
 		model.Parent = folder()
 		return { model = model, pieces = pieces }
 	end
 	local color, accent = rgb(habitat.color), rgb(habitat.accent)
-	local seatH = pad.Size.Y
 	local pieces: { Piece } = {}
-	local cylinder = CFrame.Angles(0, 0, math.rad(90)) -- Cylinder parts run along X
-	-- Seat column: the slime keeps resting on the pad top while the Stand is hidden.
-	table.insert(
-		pieces,
-		piece(
-			model,
-			"Seat",
-			Enum.PartType.Cylinder,
-			Vector3.new(seatH, 7.2, 7.2),
-			CFrame.new(0, seatH / 2, 0) * cylinder,
-			color,
-			Enum.Material.SmoothPlastic
+	-- Frame: four flat strips on the deck round the mat.
+	local width = DECK_EDGE - MAT_EDGE
+	for k, side in { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } } do
+		local alongX = side[2] ~= 0
+		local size = if alongX
+			then Vector3.new(DECK_EDGE * 2, 0.14, width)
+			else Vector3.new(width, 0.14, DECK_EDGE * 2 - width * 2)
+		table.insert(
+			pieces,
+			piece(
+				model,
+				`Frame{k}`,
+				Enum.PartType.Block,
+				size,
+				CFrame.new(side[1] * BAND, 0.07, side[2] * BAND),
+				color,
+				Enum.Material.SmoothPlastic
+			)
 		)
-	)
-	table.insert(
-		pieces,
-		piece(
-			model,
-			"Ring",
-			Enum.PartType.Cylinder,
-			Vector3.new(0.4, 7.9, 7.9),
-			CFrame.new(0, 0.2, 0) * cylinder,
-			accent,
-			Enum.Material.SmoothPlastic
-		)
-	)
+	end
 	for k, c in CORNERS do
-		local at = CFrame.new(c[1] * 3.1, 0, c[2] * 3.1)
+		local at = CFrame.new(c[1] * BAND, 0, c[2] * BAND)
 		if id == "crystal_grotto" then
-			local h = 2.6 + (k % 2) * 1.4
+			local h = 1.6 + (k % 2) * 0.8
 			table.insert(
 				pieces,
 				piece(
 					model,
 					`Crystal{k}`,
 					Enum.PartType.Block,
-					Vector3.new(0.7, h, 0.7),
-					at * CFrame.new(0, h / 2 + 0.2, 0) * CFrame.Angles(math.rad(c[1] * 12), 0, math.rad(c[2] * 12)),
+					Vector3.new(0.6, h, 0.6),
+					at * CFrame.new(0, h / 2, 0) * CFrame.Angles(math.rad(c[2] * 14), 0, math.rad(-c[1] * 14)),
 					accent,
 					Enum.Material.Neon,
 					0.25
@@ -198,8 +188,8 @@ local function buildLook(pad: BasePart, id: string): Look?
 					model,
 					`Gumdrop{k}`,
 					Enum.PartType.Ball,
-					Vector3.new(1.1, 1.1, 1.1),
-					at * CFrame.new(0, 0.75, 0),
+					Vector3.new(0.9, 0.9, 0.9),
+					at * CFrame.new(0, 0.55, 0),
 					if k % 2 == 0 then accent else color,
 					Enum.Material.Glass,
 					0.1
@@ -212,8 +202,8 @@ local function buildLook(pad: BasePart, id: string): Look?
 					model,
 					`Tuft{k}`,
 					Enum.PartType.Block,
-					Vector3.new(0.9, 0.9, 0.9),
-					at * CFrame.new(0, 0.65, 0),
+					Vector3.new(0.8, 0.8, 0.8),
+					at * CFrame.new(0, 0.5, 0),
 					accent,
 					Enum.Material.SmoothPlastic
 				)
@@ -224,71 +214,22 @@ local function buildLook(pad: BasePart, id: string): Look?
 	return { model = model, pieces = pieces }
 end
 
--- Grows from the ground: each prop's scale follows HabitatMorph.propScale
--- (staggered, overshoot while rising); it fades in with the weight.
+-- Rises out of the deck: each prop's scale follows HabitatMorph.propScale
+-- (staggered, overshoot while rising) and fades in with the weight. The
+-- overlay mesh grows in height only (its footprint stays round the slime).
 local function poseLook(pad: BasePart, look: Look, w: number, rising: boolean, quality: HabitatMorph.Quality)
-	local bottom = pad.CFrame * CFrame.new(0, -pad.Size.Y / 2, 0)
+	local deck = pad.CFrame * CFrame.new(0, WorldLayout.PAD_DECK.y - pad.Size.Y / 2, 0)
 	local n = #look.pieces
 	for i, p in look.pieces do
 		local s = HabitatMorph.propScale(quality, w, i, n, rising, Config.HABITAT_ANIM)
 		local o = p.offset
-		p.part.Size = p.size * s
-		if p.mesh and p.scale then
-			p.mesh.Scale = p.scale * s
+		local grow = if p.mesh then Vector3.new(1, s, 1) else Vector3.new(s, s, s)
+		p.part.Size = p.size * grow
+		if p.mesh then
+			p.mesh.Scale = grow
 		end
-		p.part.CFrame = bottom * CFrame.new(o.Position * Vector3.new(1, s, 1)) * o.Rotation
+		p.part.CFrame = deck * CFrame.new(o.Position * Vector3.new(1, s, 1)) * o.Rotation
 		p.part.Transparency = 1 - math.min(1, w * 1.5) * (1 - p.transparency)
-	end
-end
-
-local function setStandVisible(pad: BasePart, visibility: number)
-	local stand = pad:FindFirstChild("Stand")
-	if not stand then
-		return
-	end
-	local modifier = 1 - visibility
-	if stand:IsA("BasePart") then
-		stand.LocalTransparencyModifier = modifier
-	end
-	for _, d in stand:GetDescendants() do
-		if d:IsA("BasePart") then
-			d.LocalTransparencyModifier = modifier
-		end
-	end
-end
-
--- Pad (and its Stand) colour shifts toward the habitat accent while a look
--- grows, and returns to the exact stored colours at base.
-local function tintPad(track: Track, id: string, amount: number)
-	local pad = track.pad
-	local parts: { BasePart } = { pad }
-	local stand = pad:FindFirstChild("Stand")
-	if stand then
-		if stand:IsA("BasePart") then
-			table.insert(parts, stand)
-		end
-		for _, d in stand:GetDescendants() do
-			if d:IsA("BasePart") then
-				table.insert(parts, d)
-			end
-		end
-	end
-	local habitat = Habitats.get(id)
-	for _, part in parts do
-		local base = track.colors[part]
-		if not base then
-			if amount <= 0 then
-				continue
-			end
-			base = part.Color
-			track.colors[part] = base
-		end
-		if amount <= 0 or not habitat then
-			part.Color = base
-			track.colors[part] = nil
-		else
-			part.Color = base:Lerp(rgb(habitat.accent), amount)
-		end
 	end
 end
 
@@ -326,12 +267,6 @@ local function readId(pad: BasePart): string
 end
 
 local function apply(track: Track)
-	local top, topId = 0, Habitats.BASE
-	for id, w in track.weights do
-		if w > top then
-			top, topId = w, id
-		end
-	end
 	for id, look in track.looks do
 		local w = track.weights[id]
 		if w then
@@ -341,8 +276,6 @@ local function apply(track: Track)
 			track.looks[id] = nil
 		end
 	end
-	setStandVisible(track.pad, Habitats.baseVisibility(track.weights))
-	tintPad(track, topId, HabitatMorph.tint(top))
 end
 
 local function ensureLooks(track: Track)
@@ -367,10 +300,6 @@ local function drop(pad: BasePart)
 	end
 	if track.burst and track.burst.Parent then
 		(track.burst.Parent :: Instance):Destroy()
-	end
-	if pad.Parent then
-		setStandVisible(pad, 1)
-		tintPad(track, Habitats.BASE, 0)
 	end
 	tracks[pad] = nil
 end
@@ -438,7 +367,6 @@ local function watch(pad: BasePart)
 		quality = "full",
 		looks = {},
 		burst = nil,
-		colors = {},
 		conn = pad:GetAttributeChangedSignal(Constants.HABITAT_ATTRIBUTE):Connect(function()
 			onHabitat(track)
 		end),

@@ -63,13 +63,12 @@ for _, root in nodes do
 	end)
 end
 
--- Habitat looks with their own mesh (Habitats.MESH_SLOTS, main #57/#58) are
--- placed by HabitatFx on the pads at runtime, not by WorldLayout.
+-- Habitat overlays are placed by HabitatFx on the pads at runtime, not by
+-- WorldLayout.
 local habitatMeshes: { [string]: boolean } = {}
-for _, id in Habitats.MESH_SLOTS do
-	local kit = (Habitats.get(id) :: any).kit
-	if kit then
-		habitatMeshes[kit] = true
+for _, h in Habitats.LIST do
+	if h.overlay then
+		habitatMeshes[h.overlay] = true
 	end
 end
 
@@ -105,8 +104,8 @@ describe("ranch props: every kit mesh is placed", function()
 			table.insert(names, mesh)
 		end
 		for _, h in Habitats.LIST do
-			if h.kit and not h.newMesh then
-				table.insert(names, h.kit)
+			if h.overlay then
+				table.insert(names, h.overlay)
 			end
 		end
 		local missing = {}
@@ -120,10 +119,6 @@ describe("ranch props: every kit mesh is placed", function()
 		-- The emerge slimes are uploaded now: a real slot on the fountain.
 		expect(MeshAssets.meshId("slime_fountain_emerge") ~= nil).toBe(true)
 		expect(#(slots.slime_fountain_emerge or {})).toBe(1)
-		-- New habitat looks without a kit mesh yet are no MeshAssets names.
-		for _, id in Habitats.MESH_SLOTS do
-			expect(MeshAssets.get(id)).toBe(nil)
-		end
 	end)
 	it("tags a pending mesh only while it has no asset id", function()
 		for mesh in pending do
@@ -266,7 +261,7 @@ describe("ranch props: keep-clear zones", function()
 		expect(#pieces > 30).toBe(true)
 	end)
 	it("keeps every prop off the habitat pads (the largest habitat look round each pad)", function()
-		-- HabitatFx grows the look round the pad (dressing up to ~4.6 from its
+		-- HabitatFx grows the overlay on the pad (dressing up to ~4 from its
 		-- centre on an 8-stud pad): a 10 x 10 footprint per pad holds it.
 		local half = 5
 		local s = WorldLayout.PLOT_SIZE
