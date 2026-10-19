@@ -6,13 +6,11 @@
 	Top menus have no button, your slimes are managed at their pads (SlimeManage), see init.client panelByKey). Shown as a grid of rounded tiles, icon over label (B5). Pure (tests/ui/Nav.spec.luau); the
 	buttons themselves are built in init.client.luau. Badges are short hints
 	derived from the latest State ("!" = something to do there); the SlimeDex tile shows its completion as a
-	slime jar instead (dexProgress, DexJarView).
+	slime jar instead (DexJarView).
 ]]
 
 -- `item` = the ItemIcons registry id of the tile's picture (B5); `icon` = the plain glyph for text (hint bubbles).
 export type Entry = { key: string, icon: string, label: string, item: string }
-
-local SlimeDex = if script then require(script.Parent.SlimeDex) else require("./SlimeDex")
 
 local Nav = {}
 
@@ -80,19 +78,6 @@ function Nav.badges(state: any): { [string]: string }
 		out.Rebirth = "!"
 	end
 	return out
-end
-
-export type DexProgress = { fraction: number, text: string }
-
--- SlimeDex completion for the jar on the Dex tile (DexJarView); nil until State has a dex.
-function Nav.dexProgress(state: any): DexProgress?
-	local dex = if type(state) == "table" and type(state.dex) == "table" then state.dex else {}
-	local total = num(dex.total)
-	if total <= 0 then
-		return nil
-	end
-	local summary = SlimeDex.summary(dex) -- the panel's percent, so both always agree
-	return { fraction = summary.fraction, text = summary.percent }
 end
 
 return table.freeze(Nav)

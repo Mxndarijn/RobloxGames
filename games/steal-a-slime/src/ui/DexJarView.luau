@@ -3,19 +3,21 @@
 	DexJarView
 
 	The SlimeDex nav tile as a jar of slime: green goo fills the tile from a floor puddle up to the dex
-	completion (Nav.dexProgress), a light rim marks its surface and the percent sits on the goo. When the
+	completion (DexJarView.progress), a light rim marks its surface and the percent sits on the goo. When the
 	percent rises the goo sloshes up to its new level (no tween with Reduced Motion). Built by init.client
 	inside the Dex tile; the goo draws under the tile's icon, the percent over it (Layout.NAV_TILE_Z,
 	tests/ui/DexJarView.spec.luau).
 
 	The goo is a tile-sized rounded frame (scale 1 / level of the clip) inside a rectangular clip that grows
-	from the bottom, so its bottom corners always follow the tile's and its surface stays flat.
+	from the bottom, so its bottom corners always follow the tile's and its surface stays flat. The rim hides
+	once the surface reaches the tile's rounded top corners, timed to the slosh.
 ]]
 
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 
 local Layout = if script then require(script.Parent.Layout) else require("./Layout")
+local SlimeDex = if script then require(script.Parent.SlimeDex) else require("./SlimeDex")
 local Widgets = if script then require(script.Parent.Widgets) else require("./Widgets")
 
 local Theme = Widgets.Theme
@@ -34,7 +36,7 @@ local JAR = table.freeze({
 	textH = 20,
 	textBottom = 3, -- percent box above the tile's bottom edge
 	slosh = 0.5, -- seconds for the goo to rise
-	sloshTop = 0.85, -- above this level the rise eases without the Back overshoot, which would leave the tile
+	overshoot = 0.1, -- Back easing peaks this share of the rise past its target
 })
 DexJarView.JAR = JAR
 
@@ -44,15 +46,43 @@ function DexJarView.level(fraction: number): number
 	return JAR.puddle + (1 - JAR.puddle) * f
 end
 
--- The rim would cross the tile's rounded top corners above this level, so it hides there.
+-- Highest level whose rim stays under the tile's rounded top corners.
+function DexJarView.rimTop(tileH: number, radius: number): number
+	return if tileH > 0 then 1 - radius / tileH else 1
+end
+
 function DexJarView.rimShown(level: number, tileH: number, radius: number): boolean
-	return tileH <= 0 or level <= 1 - radius / tileH
+	return level <= DexJarView.rimTop(tileH, radius)
+end
+
+-- A rise from `from` to `to` may bounce (Back) only if its overshoot peak keeps the rim under the corners;
+-- otherwise it eases in (Quad) without passing its target.
+function DexJarView.bounces(from: number, to: number, tileH: number, radius: number): boolean
+	return DexJarView.rimShown(to + JAR.overshoot * (to - from), tileH, radius)
+end
+
+-- Share of a Quad Out tween's time at which it has covered share `q` of the way.
+function DexJarView.quadTime(q: number): number
+	return 1 - math.sqrt(1 - math.clamp(q, 0, 1))
 end
 
 export type Progress = { fraction: number, text: string }
+
+-- SlimeDex completion for the jar, the same percent as the panel (SlimeDex.summary); nil until State has a dex.
+function DexJarView.progress(state: any): Progress?
+	local dex = if type(state) == "table" and type(state.dex) == "table" then state.dex else nil
+	if dex == nil or type(dex.total) ~= "number" or dex.total <= 0 then
+		return nil
+	end
+	local summary = SlimeDex.summary(dex)
+	return { fraction = summary.fraction, text = summary.percent }
+end
+
 export type View = {
 	update: (progress: Progress?) -> (),
 	setSelected: (selected: boolean) -> (),
+	-- Re-checks the rim after the layout resized the tile.
+	relayout: () -> (),
 	level: () -> number,
 }
 
@@ -108,29 +138,42 @@ function DexJarView.new(tile: Frame): View
 
 	local current: number? = nil
 	local tween: any = nil
+	local slosh = 0 -- bumps on every level change, so a stale rim timer does nothing
 
 	local function setLevel(level: number)
 		if level == current then
 			return
 		end
-		local rising = current ~= nil and level > current
+		local from = current
 		current = level
+		slosh += 1
 		if tween then
 			tween:Cancel() -- else a slosh still running would overwrite a later level
 			tween = nil
 		end
 		-- Tile-sized at the target level; while the clip is still rising the goo is taller than it, never shorter.
 		goo.Size = UDim2.fromScale(1, 1 / level)
-		rim.Visible = DexJarView.rimShown(level, tile.Size.Y.Offset, radius.Offset)
+		local tileH, r = tile.Size.Y.Offset, radius.Offset
 		local size = UDim2.fromScale(1, level)
-		if rising and not (GuiService :: any).ReducedMotionEnabled then
-			local style = if level <= JAR.sloshTop then Enum.EasingStyle.Back else Enum.EasingStyle.Quad
-			tween = TweenService:Create(clip, TweenInfo.new(JAR.slosh, style, Enum.EasingDirection.Out), {
-				Size = size,
-			})
-			tween:Play()
-		else
+		if from == nil or level < from or (GuiService :: any).ReducedMotionEnabled then
 			clip.Size = size
+			rim.Visible = DexJarView.rimShown(level, tileH, r)
+			return
+		end
+		local style = if DexJarView.bounces(from, level, tileH, r) then Enum.EasingStyle.Back else Enum.EasingStyle.Quad
+		tween = TweenService:Create(clip, TweenInfo.new(JAR.slosh, style, Enum.EasingDirection.Out), { Size = size })
+		tween:Play()
+		-- The rim rides the surface up and hides as the surface reaches the corners. A rise that ends past them
+		-- never bounces (its overshoot would be past them too), so the Quad timing holds.
+		local top = DexJarView.rimTop(tileH, r)
+		rim.Visible = from <= top
+		if level > top and rim.Visible then
+			local mine = slosh
+			task.delay(JAR.slosh * DexJarView.quadTime((top - from) / (level - from)), function()
+				if slosh == mine then
+					rim.Visible = false
+				end
+			end)
 		end
 	end
 
@@ -141,6 +184,11 @@ function DexJarView.new(tile: Frame): View
 			if progress then
 				text.Text = progress.text
 				setLevel(DexJarView.level(progress.fraction))
+			end
+		end,
+		relayout = function()
+			if current then
+				rim.Visible = DexJarView.rimShown(current, tile.Size.Y.Offset, radius.Offset)
 			end
 		end,
 		setSelected = function(selected: boolean)

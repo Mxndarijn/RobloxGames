@@ -399,6 +399,7 @@ type NavButton = {
 	icon: any, -- ItemIconView handle
 	stroke: UIStroke,
 	badge: TextLabel,
+	jar: DexJarView.View?, -- the SlimeDex tile's slime jar
 }
 
 local NAV_TILE_COLOR = Color3.fromRGB(58, 36, 110) -- the money plate's purple, like the reference tiles
@@ -406,7 +407,6 @@ local NAV_TILE_COLOR = Color3.fromRGB(58, 36, 110) -- the money plate's purple, 
 local openKey: string? = nil
 local soundButton: any = nil -- FEATURES.Audio only
 local navButtons: { [string]: NavButton } = {}
-local dexJar: DexJarView.View? = nil -- the SlimeDex tile's slime jar
 local screen: Layout.Screen? = nil
 local applyLayout: () -> ()
 local refreshHint: () -> ()
@@ -422,8 +422,8 @@ local function styleNav(btn: NavButton, selected: boolean)
 	btn.label.TextColor3 = if selected then Theme.Accent else Theme.Text
 	btn.stroke.Color = if selected then Color3.new(1, 1, 1) else Color3.fromRGB(10, 10, 20)
 	btn.stroke.Thickness = if selected then 4 else 3
-	if btn.button.Name == "Dex" and dexJar then
-		dexJar.setSelected(selected)
+	if btn.jar then
+		btn.jar.setSelected(selected)
 	end
 end
 
@@ -739,9 +739,6 @@ for _, entry in panels do
 		Parent = tile,
 	}, itemIcons)
 	icon.setActive(true)
-	if entry.key == "Dex" then
-		dexJar = DexJarView.new(tile)
-	end
 	local label = Widgets.label({
 		Name = "Label",
 		Text = navEntry.label,
@@ -786,6 +783,7 @@ for _, entry in panels do
 		icon = icon,
 		stroke = stroke,
 		badge = badge,
+		jar = if entry.key == "Dex" then DexJarView.new(tile) else nil,
 	}
 end
 
@@ -875,6 +873,9 @@ local function layoutNav(s: Layout.Screen)
 		btn.label.Position = UDim2.fromOffset(0, tileSize + N.labelGap)
 		btn.label.Size = UDim2.fromOffset(math.round(b.w), labelH)
 		btn.label.TextSize = if s.compact then N.clabelSize else N.labelSize
+		if btn.jar then
+			btn.jar.relayout()
+		end
 	end
 end
 
@@ -1020,8 +1021,9 @@ local function updateBadges(state: Types.State)
 			btn.badge.Text = text
 		end
 	end
-	if dexJar then
-		dexJar.update(Nav.dexProgress(state))
+	local dex = navButtons.Dex
+	if dex and dex.jar then
+		dex.jar.update(DexJarView.progress(state))
 	end
 end
 
