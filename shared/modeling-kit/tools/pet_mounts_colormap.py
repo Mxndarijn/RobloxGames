@@ -10,7 +10,8 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 KIT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-NAMES = ["storm_cloud", "rainbow_cloud", "sunset_cloud", "ice_cloud", "flame_cloud", "leaf", "bubble", "magic_carpet", "ufo", "lily_pad"]
+NAMES = ["storm_cloud", "rainbow_cloud", "sunset_cloud", "ice_cloud", "flame_cloud", "leaf", "bubble", "magic_carpet", "ufo", "lily_pad",
+         "star_cushion", "crescent_moon", "mushroom", "pancakes", "jelly", "hoverboard", "clam_shell", "royal_cushion"]
 
 
 def load_obj(path):

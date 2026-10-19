@@ -43,3 +43,31 @@ leaf float much lower (0.30, 0.25) because they have no pillar under them. Seat 
 - Ice shards are close in colour to the cloud, flame tufts are fairly pointed at the tips; rainbow arch is thin behind the pet.
 - The bubble is pale and iridescent but still opaque (no vertex alpha in Roblox); it reads as a pearl disc with bubbles.
 - Looks are Cycles estimates, not Studio screenshots; nothing was uploaded or run in Studio.
+
+## Round 3: cloud v3 + second set (2026-10-19)
+The five cloud mounts were rebuilt on the refined pet_cloud (cloud v3, see `pet_cloud_rounds.md`) with no change to their own
+code: `_r03.png`. Bolt, arch, shards and tufts still sit right on the new shape (checked against the old with-pet renders).
+
+| mount | round | tris | what changed |
+|---|---|---|---|
+| star_cushion | r01 | 1320 | Star outline `slab()` (60 segments), pillowed top and bottom by a bend, yellow top, orange rim. 2.64 deep. |
+| star_cushion | r02-r03 | 1320 | y scaled 0.92, then 0.9: inside 2.4. Keeps its own proportions (`NOFIT`): fitted to 3.3 x 2.4 it stops being a star. Final. |
+| crescent_moon | r01 | 1596 | Swept crescent (68 degree arc, round section, width tapering to the horns). Read as a banana from every view; craters invisible. |
+| crescent_moon | r02 | 1608 | Arc to 96 degrees (horns curl in), slimmer, richer gold. Still a banana from the top: the width tapered like a fruit. |
+| crescent_moon | r03 | 1608 | Nearly even width with flat faces: a crescent coin. Craters painted on both flat faces at positions computed on the arc. Reads as a moon. Final. |
+| mushroom | r01 | 1880 | Lathe cap with per-face colours (gill stripes underneath, red gradient), 9 raised spot lenses on the cap normal. Stem hidden under the cap. |
+| mushroom | r02 | 1880 | Cap underside raised 0.12, stem longer: the stem shows from the front. Final. |
+| pancakes | r01 | 2184 | 4 lathe cakes (browned faces, light side band), syrup slab, 6 tube drips. Over budget, syrup too orange. |
+| pancakes | r02 | 1944 | 30 segments, darker syrup. With the pet the drips read as crab legs (they leave the glaze sideways). |
+| pancakes | r03 | 1820 | The glaze outline reaches the rim at each drip; drips hang flat on the wall and end in a fat round drop (no separate beads). Final. |
+| jelly | r01 | 1626 | Squircle lathe, 3 layers as exact ring bands (per-face colour), wobble bend, cream + cherry on a corner. The glossy streak was a square patch (a sticker). |
+| jelly | r02 | 1626 | Streak narrowed to one column, lower two layers only, 50 %. Final. |
+| hoverboard | r01 | 2104 | `ring_slab` deck with neon stripes, kicked nose and tail, pods + glow cones. 3.41 long, over budget. |
+| hoverboard | r02 | 1928 | Shorter deck, 48 segments. Kept narrow (`NOFIT`). Final. |
+| clam_shell | r01 | 1376 | Fluted dish (11 ribs as bend + rib colour), the same shell flipped as the lid, hinged at the back and opened 135 degrees, pearl in front. Final. |
+| royal_cushion | r01 | 2100 | Squarish pillow with a button dimple, gold piping tube, corner tassels. Over budget. |
+| royal_cushion | r02 | 1724 | Lower pillow resolution, 34 piping points. With the pet the tassels floated off the corners. |
+| royal_cushion | r03 | 1724 | Tassels hang from the piping's corners (45 degrees on the squircle). Final. |
+
+Weak spots: the moon's craters read a little like cheese holes; the hoverboard and the clam lid are big decoration around a low
+seat; the star and hoverboard footprints are smaller than 3.3 x 2.4 on purpose. Still Cycles estimates: nothing uploaded or run in Studio.

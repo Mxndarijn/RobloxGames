@@ -1,6 +1,6 @@
 {
   "name": "pet_mount_flame_cloud",
-  "model": "models/pet_mount_flame_cloud.py",
+  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_mount_flame_cloud.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
   "tris": 1800,
   "meshes": [
@@ -12,7 +12,7 @@
       "non_manifold_edges": 0,
       "size_studs": [
         3.3,
-        1.552,
+        1.53,
         2.4
       ],
       "materials": [
@@ -33,7 +33,7 @@
   "mesh_count": 1,
   "size_studs": [
     3.3,
-    1.552,
+    1.53,
     2.4
   ],
   "non_manifold_edges": 0,
@@ -52,8 +52,8 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "out/pet_mount_flame_cloud.fbx",
-  "fbx_bytes": 62732,
+  "fbx": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_flame_cloud.fbx",
+  "fbx_bytes": 63500,
   "engine": "cycles",
   "mode": "full",
   "look": "default",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "out/.tiles/pet_mount_flame_cloud_0.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_flame_cloud_0.png"
     },
     {
       "view": "side",
-      "path": "out/.tiles/pet_mount_flame_cloud_1.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_flame_cloud_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "out/.tiles/pet_mount_flame_cloud_2.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_flame_cloud_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "out/.tiles/pet_mount_flame_cloud_3.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_flame_cloud_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.118,
-    "stats_s": 0.003,
-    "setup_s": 0.001,
+    "model_s": 0.262,
+    "stats_s": 0.007,
+    "setup_s": 0.12,
     "render_s": [
-      0.887,
-      0.738,
-      1.077,
-      1.034
+      1.302,
+      1.146,
+      1.386,
+      1.184
     ],
-    "export_s": 0.126
+    "export_s": 0.419
   },
-  "sheet": "out/pet_mount_flame_cloud_sheet.png",
+  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_flame_cloud_sheet.png",
   "timings": {
-    "wall_s": 4.45,
-    "blender_process_s": 4.37,
-    "compose_s": 0.088,
-    "model_s": 0.118,
-    "stats_s": 0.003,
-    "setup_s": 0.001,
+    "wall_s": 8.2,
+    "blender_process_s": 8.11,
+    "compose_s": 0.096,
+    "model_s": 0.262,
+    "stats_s": 0.007,
+    "setup_s": 0.12,
     "render_s": [
-      0.887,
-      0.738,
-      1.077,
-      1.034
+      1.302,
+      1.146,
+      1.386,
+      1.184
     ],
-    "export_s": 0.126
+    "export_s": 0.419
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "pet_mount_ice_cloud",
-  "model": "models/pet_mount_ice_cloud.py",
+  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_mount_ice_cloud.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
   "tris": 1894,
   "meshes": [
@@ -52,8 +52,8 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "out/pet_mount_ice_cloud.fbx",
-  "fbx_bytes": 68796,
+  "fbx": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_ice_cloud.fbx",
+  "fbx_bytes": 70012,
   "engine": "cycles",
   "mode": "full",
   "look": "default",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "out/.tiles/pet_mount_ice_cloud_0.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_ice_cloud_0.png"
     },
     {
       "view": "side",
-      "path": "out/.tiles/pet_mount_ice_cloud_1.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_ice_cloud_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "out/.tiles/pet_mount_ice_cloud_2.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_ice_cloud_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "out/.tiles/pet_mount_ice_cloud_3.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_ice_cloud_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.129,
-    "stats_s": 0.004,
-    "setup_s": 0.001,
+    "model_s": 0.272,
+    "stats_s": 0.006,
+    "setup_s": 0.112,
     "render_s": [
-      0.999,
-      1.052,
-      1.076,
-      0.907
+      1.318,
+      1.128,
+      1.295,
+      1.24
     ],
-    "export_s": 0.087
+    "export_s": 0.431
   },
-  "sheet": "out/pet_mount_ice_cloud_sheet.png",
+  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_ice_cloud_sheet.png",
   "timings": {
-    "wall_s": 4.71,
-    "blender_process_s": 4.64,
-    "compose_s": 0.076,
-    "model_s": 0.129,
-    "stats_s": 0.004,
-    "setup_s": 0.001,
+    "wall_s": 8.23,
+    "blender_process_s": 8.14,
+    "compose_s": 0.095,
+    "model_s": 0.272,
+    "stats_s": 0.006,
+    "setup_s": 0.112,
     "render_s": [
-      0.999,
-      1.052,
-      1.076,
-      0.907
+      1.318,
+      1.128,
+      1.295,
+      1.24
     ],
-    "export_s": 0.087
+    "export_s": 0.431
   }
 }

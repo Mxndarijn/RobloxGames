@@ -1,0 +1,109 @@
+{
+  "name": "pet_mount_jelly",
+  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_mount_jelly.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1626,
+  "meshes": [
+    {
+      "name": "pet_mount_jelly",
+      "tris": 1626,
+      "verts": 825,
+      "ngons": 2,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        3.3,
+        2.177,
+        2.4
+      ],
+      "materials": [
+        "pet_mount_jelly_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pet_mount_jelly_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    3.3,
+    2.177,
+    2.4
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pet_mount_jelly_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_jelly.fbx",
+  "fbx_bytes": 44316,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_jelly_0.png"
+    },
+    {
+      "view": "side",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_jelly_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_jelly_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_jelly_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.129,
+    "stats_s": 0.004,
+    "setup_s": 0.022,
+    "render_s": [
+      0.938,
+      0.617,
+      1.049,
+      1.252
+    ],
+    "export_s": 0.462
+  },
+  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_jelly_sheet.png",
+  "timings": {
+    "wall_s": 6.62,
+    "blender_process_s": 6.54,
+    "compose_s": 0.082,
+    "model_s": 0.129,
+    "stats_s": 0.004,
+    "setup_s": 0.022,
+    "render_s": [
+      0.938,
+      0.617,
+      1.049,
+      1.252
+    ],
+    "export_s": 0.462
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "name": "pet_mount_star_cushion",
+  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_mount_star_cushion.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1320,
+  "meshes": [
+    {
+      "name": "pet_mount_star_cushion",
+      "tris": 1320,
+      "verts": 662,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        3.093,
+        0.939,
+        2.379
+      ],
+      "materials": [
+        "pet_mount_star_cushion_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pet_mount_star_cushion_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    3.093,
+    0.939,
+    2.379
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pet_mount_star_cushion_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": null,
+  "fbx_bytes": null,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_star_cushion_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_star_cushion_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_star_cushion_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_star_cushion_roblox_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.101,
+    "stats_s": 0.003,
+    "setup_s": 0.018,
+    "render_s": [
+      0.381,
+      0.261,
+      0.273,
+      0.302
+    ],
+    "export_s": 0.0
+  },
+  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_star_cushion_roblox_sheet.png",
+  "timings": {
+    "wall_s": 3.42,
+    "blender_process_s": 3.19,
+    "compose_s": 0.231,
+    "model_s": 0.101,
+    "stats_s": 0.003,
+    "setup_s": 0.018,
+    "render_s": [
+      0.381,
+      0.261,
+      0.273,
+      0.302
+    ],
+    "export_s": 0.0
+  }
+}

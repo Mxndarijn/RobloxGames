@@ -20,7 +20,7 @@ def pet_parts():
 
 def placed(name, x=0.0, y=0.0, pet=True):
     """the shipped mount (same mesh as the FBX), scaled, moved to x, with a slime sitting on its seat."""
-    m = ship("pm_" + name, MOUNTS[name]())
+    m = ship("pm_" + name, MOUNTS[name](), fit=name not in NOFIT)
     seat = seat_z(m)
     m.scale = (MOUNT_SCALE,) * 3
     m.location = (x, y, 0)

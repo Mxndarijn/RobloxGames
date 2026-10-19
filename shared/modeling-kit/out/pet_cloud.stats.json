@@ -1,19 +1,19 @@
 {
   "name": "pet_cloud",
-  "model": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/models/pet_cloud.py",
+  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_cloud.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
-  "tris": 1800,
+  "tris": 1798,
   "meshes": [
     {
       "name": "pet_cloud",
-      "tris": 1800,
-      "verts": 902,
+      "tris": 1798,
+      "verts": 901,
       "ngons": 0,
       "non_manifold_edges": 0,
       "size_studs": [
-        3.261,
+        3.3,
         1.225,
-        2.393
+        2.4
       ],
       "materials": [
         "pet_cloud_vcol"
@@ -32,9 +32,9 @@
   ],
   "mesh_count": 1,
   "size_studs": [
-    3.261,
+    3.3,
     1.225,
-    2.393
+    2.4
   ],
   "non_manifold_edges": 0,
   "materials": [
@@ -52,8 +52,8 @@
   "pass": true,
   "fails": [],
   "warnings": [],
-  "fbx": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/pet_cloud.fbx",
-  "fbx_bytes": 59388,
+  "fbx": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_cloud.fbx",
+  "fbx_bytes": 61404,
   "engine": "cycles",
   "mode": "full",
   "look": "default",
@@ -62,48 +62,48 @@
   "tiles": [
     {
       "view": "front",
-      "path": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/.tiles/pet_cloud_0.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_cloud_0.png"
     },
     {
       "view": "side",
-      "path": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/.tiles/pet_cloud_1.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_cloud_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/.tiles/pet_cloud_2.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_cloud_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/.tiles/pet_cloud_3.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_cloud_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.226,
-    "stats_s": 0.004,
-    "setup_s": 0.002,
+    "model_s": 0.146,
+    "stats_s": 0.005,
+    "setup_s": 0.02,
     "render_s": [
-      0.809,
-      0.331,
-      0.366,
-      0.474
+      0.403,
+      0.27,
+      0.277,
+      0.305
     ],
-    "export_s": 0.102
+    "export_s": 0.277
   },
-  "sheet": "/workspace/roblox/wt-jolt-petcloud/shared/modeling-kit/out/pet_cloud_sheet.png",
+  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_cloud_sheet.png",
   "timings": {
-    "wall_s": 3.16,
-    "blender_process_s": 3.08,
-    "compose_s": 0.084,
-    "model_s": 0.226,
-    "stats_s": 0.004,
-    "setup_s": 0.002,
+    "wall_s": 3.65,
+    "blender_process_s": 3.58,
+    "compose_s": 0.068,
+    "model_s": 0.146,
+    "stats_s": 0.005,
+    "setup_s": 0.02,
     "render_s": [
-      0.809,
-      0.331,
-      0.366,
-      0.474
+      0.403,
+      0.27,
+      0.277,
+      0.305
     ],
-    "export_s": 0.102
+    "export_s": 0.277
   }
 }
