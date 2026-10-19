@@ -24,9 +24,12 @@ export type RequestResult = { ok: boolean, message: string?, appraisal: Appraisa
 export type Appraisal = {
 	slimeId: string,
 	kind: "size",
-	cost: number,
+	cost: number, -- what this reroll cost
 	beforeSize: number,
 	afterSize: number,
+	incomeBefore: number, -- cash/sec (PlayerData.slimeIncome), as SlimeView.income
+	incomeAfter: number,
+	costAfter: number, -- the next reroll's price (Appraise.cost), as SlimeView.appraiseCost
 }
 
 export type NotifyKind = "info" | "good" | "bad" | "badge"
@@ -252,6 +255,7 @@ export type State = {
 	plotSkins: { PlotSkinView }?, -- FEATURES.PlotSkins: every skin with its Dex-set progress (nil when off)
 	welcomeBack: { away: number, cash: number, grown: number }?, -- join report (seconds away, offline cash paid, pad slimes grown); nil = none (CONTRACT.md §19)
 	stealAway: string?, -- FEATURES.StealAlerts: "While you were away N slimes were stolen by ..." from the saved steal log; nil = none (CONTRACT.md §17)
+	hotbar: { string }?, -- saved hotbar order (HotbarOrder, CONTRACT.md §5.1): 9 slot keys, "" = empty; nil = never set
 }
 
 export type LeaderboardEntry = { rank: number, userId: number, name: string, value: number }

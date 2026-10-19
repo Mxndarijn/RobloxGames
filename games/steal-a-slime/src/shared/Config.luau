@@ -659,6 +659,7 @@ local Config = {
 
 	-- Appraise: reroll one owned slime's size
 	APPRAISE_COST_FRACTION = 0.3, -- of the slime's current value (Economy.sellPrice)
+	APPRAISE_SIZE_DECIMALS = 2, -- a rerolled size is rounded to this many decimals (Appraise.rollSize)
 
 	-- Fountain (wild slime spawns)
 	SPAWN_INTERVAL = 4,
@@ -768,9 +769,17 @@ local Config = {
 			error = "rbxasset://sounds/uuhhh.mp3",
 			click = "rbxasset://sounds/button.wav",
 		}),
-		-- Ambient loops (20 s seamless, Merijn-owned uploads).
-		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds (original procedural loop, uploaded via Open Cloud; moderation pending at upload)
-		AMBIENT_NIGHT_ID = "rbxassetid://132943569734014", -- crickets (same)
+		-- Ambience: a looped bed per time of day, plus a night one-shot played now and then over it.
+		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds: own 20 s seamless loop (Merijn's upload)
+		AMBIENT_NIGHT_ID = "", -- no night bed: nights are quiet apart from the owl
+		-- "Owl Hooting Reverberant Several 1 (SFX)", Pro Sound Effects, public domain, 16 s. Not a seamless loop,
+		-- so it plays whole, once per gap, never looped.
+		NIGHT_ONESHOT_ID = "rbxassetid://9117182190",
+		NIGHT_ONESHOT_MIN_SECONDS = 20, -- gap between owl calls, picked at random in MIN..MAX
+		NIGHT_ONESHOT_MAX_SECONDS = 45,
+		NIGHT_ONESHOT_VOLUME = 0.5, -- inside the Music group; louder than the beds, it is rare
+		NIGHT_ONESHOT_SPEED_JITTER = 0.05, -- PlaybackSpeed 1 +- this, so repeats don't sound identical
+		NIGHT_ONESHOT_MIN_LEVEL = 0.9, -- calls only once the night has (nearly) faded in
 	}),
 
 	-- Full steal alerts (FEATURES.StealAlerts, StealAlert / ui/StealAlertFx). Client timings in seconds.
@@ -830,7 +839,7 @@ local Config = {
 		PRIORITY_SECONDS = 5, -- head start for the top contributor in the haul
 		POINTS_PER_PLAYER = 25, -- meter target = this x players on the server
 		HIT_GAP = 0.4, -- one meter point per player per this many seconds
-		HIT_REACH = 22, -- studs from the swinger's root to the boss Body (the boss is SCALE x MAX_SIZE wide)
+		HIT_REACH = 13, -- studs from the swinger's root to the boss Body (about the boss's radius at SCALE + a bat's reach)
 		DRAIN_PER_SECOND = 0.02, -- share of the target lost per second with nobody hitting
 		DRAIN_GRACE = 1, -- seconds without a hit before the drain starts
 		SHED_EVERY = 0.25, -- meter share between sheds
@@ -838,15 +847,19 @@ local Config = {
 		BURST_COUNT = 6, -- wild slimes when the boss fails
 		DROP_LUCK = 3, -- luck multiplier on shed and burst slimes
 		CARRY_SLOW = 0.6, -- carrier walks at BASE_WALK_SPEED x (1 - this)
-		SCALE = 4, -- model scale in the fight phase
-		SPOT_ANGLE = -math.pi / 2, -- boss spot around the fountain centre (radians, 0 = +X)
-		SPOT_RADIUS = 54, -- studs: between the landing ring and the parade lane
+		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
+		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
+		SPOT_RADIUS = 51, -- studs: between the landing ring and the parade lane
+		WANDER_ARC = math.rad(45), -- the boss wanders within this either side of SPOT_ANGLE (BossWander; the lane and drain fence it in)
+		WANDER_SPEED = 5, -- studs per second while it walks
+		WANDER_PAUSE = table.freeze({ 1.5, 3.5 }), -- seconds it stands still between walks (min, max)
+		WANDER_CLEARANCE = 8, -- studs from its centre to the parade lane's edge and the goo drain's lip
 		HELPER_SHARE = 0.1, -- share of the top contribution a helper needs for the egg
 		HELPER_EGGS = 1,
 		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
-		TROPHY_GAP = 12, -- studs between trophy pedestals beside the plot (a MAX_SIZE boss mesh is about 10 wide)
+		TROPHY_GAP = 12, -- studs between trophy pedestals beside the Dex board (a MAX_SIZE boss mesh is about 9 wide)
 	}),
 
 	-- Day / night (DayNight)
@@ -985,7 +998,7 @@ local Config = {
 	GROWTH_OFFLINE_CAP_SECONDS = 8 * 60 * 60,
 	GROWTH_MAX_INCOME_BONUS = 0.5,
 	GROWTH_MAX_SCALE_BONUS = 0.1,
-	GROWTH_LABEL_GAP = 1.5, -- studs between the top of the slime and its "Growth %" label
+	GROWTH_LABEL_GAP = 0.4, -- studs between the top of the slime and the bottom edge of its floating tag (contract/slime-labels.md)
 
 	-- Daily reward
 	DAILY_BASE = 100,

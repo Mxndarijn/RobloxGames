@@ -1,6 +1,7 @@
 --!strict
 -- PetCloud (src/visuals/shared/PetCloud): what FollowPets mounts a pet on. Fallback Mount without a template, the
--- decor flags on the cloud clone, where the slime's foot sits, attaching a cloud later, and cleanup.
+-- decor flags on the cloud clone, the cloud's size against the slime, where the slime's foot sits (visible parts
+-- only), attaching a cloud later, and cleanup.
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
@@ -98,8 +99,9 @@ describe("PetCloud.mount with a template", function()
 		expect(cloud.ClassName).toBe("MeshPart")
 		expect(cloud.Parent).toBe(wrapper)
 		expect(cloud ~= source).toBe(true)
-		expect(cloud.Size.Y).toBeCloseTo(NATIVE.Y * PetCloud.CLOUD_SCALE, 1e-6)
-		expect(cloud.Size.X).toBeCloseTo(NATIVE.X * PetCloud.CLOUD_SCALE, 1e-6)
+		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(2, SLIME_HEIGHT, 2))
+		expect(cloud.Size.Y).toBeCloseTo(NATIVE.Y * scale, 1e-5)
+		expect(cloud.Size.X).toBeCloseTo(NATIVE.X * scale, 1e-5)
 		expect(PetCloud.hasCloud(wrapper)).toBe(true)
 		expect(UiHarness.find(wrapper, PetCloud.MOUNT_NAME)).toBeNil()
 	end)
@@ -186,6 +188,128 @@ describe("PetCloud cleanup", function()
 		wrapper:Destroy()
 		local after = UiHarness.stats.connects.RenderStepped + UiHarness.stats.connects.Heartbeat
 		expect(after).toBe(before)
+	end)
+end)
+
+describe("PetCloud.cloudScale", function()
+	it("keeps CLOUD_SCALE under a small slime", function()
+		expect(PetCloud.cloudScale(NATIVE, roblox.Vector3.new(1, 1, 1))).toBe(PetCloud.CLOUD_SCALE)
+	end)
+	it("grows the cloud to CLOUD_FIT x a wide slime's width", function()
+		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(4, 3, 1))
+		expect(NATIVE.X * scale).toBeCloseTo(4 * PetCloud.CLOUD_FIT, 1e-6)
+		expect(NATIVE.Z * scale >= 1 * PetCloud.CLOUD_FIT).toBe(true)
+	end)
+	it("stops at CLOUD_MAX_SCALE under a huge slime", function()
+		expect(PetCloud.cloudScale(NATIVE, roblox.Vector3.new(20, 3, 20))).toBe(PetCloud.CLOUD_MAX_SCALE)
+	end)
+	it("grows the cloud to CLOUD_FIT x a deep slime's depth", function()
+		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(1, 3, 3))
+		expect(NATIVE.Z * scale).toBeCloseTo(3 * PetCloud.CLOUD_FIT, 1e-6)
+		expect(NATIVE.X * scale >= 1 * PetCloud.CLOUD_FIT).toBe(true)
+	end)
+end)
+
+-- A species slime as SlimeMesh leaves it: an invisible Body ball lower and wider than the visible mesh on top of a
+-- thin ring, plus a hidden procedural crown floating above.
+local function species(width: number): any
+	local model = new("Model")
+	local body = new("Part")
+	body.Name = "Body"
+	body.Size = roblox.Vector3.new(width * 1.5, width * 1.5, width * 1.5)
+	body.CFrame = roblox.CFrame.new(0, -1, 0)
+	body.Transparency = 1
+	body.Parent = model
+	local mesh = new("MeshPart")
+	mesh.Name = "Mesh"
+	mesh.Size = roblox.Vector3.new(width, 2, width * 0.8)
+	mesh.CFrame = roblox.CFrame.new(0.5, 1, 0)
+	mesh.Parent = model
+	local ring = new("Part")
+	ring.Name = "TierRim"
+	ring.Size = roblox.Vector3.new(0.05, width, width) -- a cylinder turned upright
+	ring.CFrame = roblox.CFrame.new(0.5, 0.025, 0) * roblox.CFrame.Angles(0, 0, math.rad(90))
+	ring.Parent = model
+	local crown = new("Part")
+	crown.Name = "Crown"
+	crown.Size = roblox.Vector3.new(1, 1, 1)
+	crown.CFrame = roblox.CFrame.new(0, 6, 0)
+	crown.Transparency = 1
+	crown.Parent = model
+	return model
+end
+
+describe("PetCloud.visibleBox", function()
+	it("boxes only the parts that can be seen, turned parts by their real extent", function()
+		local centre, size = PetCloud.visibleBox(species(3))
+		expect(size.X).toBeCloseTo(3, 1e-5)
+		expect(size.Z).toBeCloseTo(3, 1e-5) -- the ring is as deep as it is wide
+		expect(centre.X).toBeCloseTo(0.5, 1e-5)
+		expect(centre.Y - size.Y / 2).toBeCloseTo(0, 1e-5) -- the ring's bottom, not Body's
+		expect(centre.Y + size.Y / 2).toBeCloseTo(2, 1e-5) -- the mesh's top, not the hidden crown
+	end)
+	it("leaves the see-through glow shells out", function()
+		local model = species(3)
+		local aura = new("Part")
+		aura.Name = "Aura"
+		aura.Size = roblox.Vector3.new(6, 6, 6)
+		aura.Transparency = 0.88
+		aura.Parent = model
+		local _, size = PetCloud.visibleBox(model)
+		expect(size.X).toBeCloseTo(3, 1e-5)
+	end)
+	it("falls back to the whole box when nothing can be seen", function()
+		local model = species(3)
+		for _, part in UiHarness.descendants(model) do
+			part.Transparency = 1
+		end
+		local _, size = PetCloud.visibleBox(model)
+		expect(size.X).toBeCloseTo(4.5, 1e-5)
+	end)
+end)
+
+describe("PetCloud.mount under a big species slime", function()
+	local source = template()
+	local wrapper = PetCloud.mount(species(3.5), 9, source)
+	local cloud = wrapper.PrimaryPart
+	local s = UiHarness.find(wrapper, PetCloud.SLIME_NAME)
+	it("grows the cloud past the slime's visible footprint", function()
+		local scale = PetCloud.cloudScale(NATIVE, roblox.Vector3.new(3.5, 2, 2.8)) -- the mesh alone, the ring is gone
+		expect(cloud.Size.X).toBeCloseTo(NATIVE.X * scale, 1e-5)
+		expect(cloud.Size.X >= 3.5 * PetCloud.CLOUD_FIT - 1e-4).toBe(true)
+		expect(cloud.Size.Z >= 2.8 * PetCloud.CLOUD_FIT - 1e-4).toBe(true) -- Size is float32
+	end)
+	it("drops the rarity ring: it is ground decor", function()
+		expect(UiHarness.find(wrapper, "TierRim")).toBeNil()
+		expect(UiHarness.find(wrapper, "Mesh") ~= nil).toBe(true)
+	end)
+	it("drops the goo puddle of a procedural slime too", function()
+		local model = slime()
+		local puddle = new("Part")
+		puddle.Name = "Puddle"
+		puddle.Parent = model
+		local pet = PetCloud.mount(model, 2, template())
+		expect(UiHarness.find(pet, "Puddle")).toBeNil()
+		expect(UiHarness.find(pet, "Body") ~= nil).toBe(true)
+	end)
+	it("gets the same cloud and seat when the cloud arrives late", function()
+		local late = PetCloud.mount(species(3.5), 9, nil)
+		PetCloud.attach(late, template())
+		local cloudLate = late.PrimaryPart
+		expect(cloudLate.Size.X).toBeCloseTo(cloud.Size.X, 1e-5)
+		expect(cloudLate.PivotOffset.Position.Y).toBeCloseTo(cloud.PivotOffset.Position.Y, 1e-5)
+		expect(UiHarness.find(late, "TierRim")).toBeNil()
+		local pivot = UiHarness.find(late, PetCloud.SLIME_NAME):GetPivot().Position
+		expect(pivot.Y).toBeCloseTo(cloudLate.Size.Y / 2 - PetCloud.CLOUD_SINK, 1e-5)
+	end)
+	it("keeps the grown cloud's bottom where a CLOUD_SCALE cloud's would be", function()
+		local bottom = cloud.PivotOffset:Inverse().Position.Y - cloud.Size.Y / 2
+		expect(bottom).toBeCloseTo(-NATIVE.Y * PetCloud.CLOUD_SCALE / 2, 1e-5)
+	end)
+	it("sinks the visible foot CLOUD_SINK into the cloud's top, centred on the visible parts", function()
+		local pivot = s:GetPivot().Position
+		expect(pivot.Y).toBeCloseTo(cloud.Size.Y / 2 - PetCloud.CLOUD_SINK, 1e-5) -- visible foot at y 0
+		expect(pivot.X).toBeCloseTo(-0.5, 1e-5)
 	end)
 end)
 

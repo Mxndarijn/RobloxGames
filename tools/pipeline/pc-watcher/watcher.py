@@ -1884,7 +1884,7 @@ def step_shots(run):
                     res["growth"] = gw
                     if gw.get("found") and gw.get("pos"):
                         # aim the camera at the real slime model
-                        # frame bottom (slime base) to top (real GrowthLabel) from outside the grown slime:
+                        # frame bottom (slime base) to top (the label height) from outside the grown slime:
                         # aim at the vertical midpoint, back off along the pad front far enough for the whole span
                         px, py, pz = gw["pos"]
                         lp = gw.get("label_pos")
@@ -1900,7 +1900,7 @@ def step_shots(run):
                         res["aim"] = run.need_luau("shot_aim", "Client", timeout=25, eye=eye, at=at)
                         time.sleep(1.0)  # BillboardGui replication to the Client
                     else:
-                        res["error"] = "pad slime has no Growth attribute / GrowthLabel (%s)" % json.dumps(gw)[:160]
+                        res["error"] = "pad slime has no Growth / LabelHeight attribute (%s)" % json.dumps(gw)[:160]
                 if shot.get("habitat") and (res.get("target") or {}).get("path"):
                     # morph proof: the Client sets the pad's Habitat and waits `wait` s (mid-morph < 1, done >= 1.2)
                     res["habitat"] = run.need_luau("habitat_set", "Client", timeout=30, path=res["target"]["path"],

@@ -109,11 +109,31 @@ def catmull(pts, n):
 
 
 # ---------------------------------------------------------------- body
+TUCK = 0.8  # studs: rounded underside of every species body (Body(tuck=...))
+
+
+def round_bottom(prof, h, n=6):
+    """profile with its flat bottom disc replaced by a quarter ellipse: from one vertex at z0 out to
+    the profile's own radius at z0 + h, meeting it with a vertical tangent."""
+    z0 = prof[0][0]
+    zh = z0 + h
+    rh = Body.radius_of(prof, zh)
+    out = []
+    for k in range(1, n + 1):
+        t = k / n * math.pi / 2
+        out.append((z0 + h * (1 - math.cos(t)), rh * math.sin(t)))
+    out[-1] = (zh, rh)
+    return [(z0, 0.0)] + out + [p for p in prof if p[0] > zh + 0.012]
+
+
 class Body:
     """Surface of revolution (smooth shaded) with optional oval cross-section, lean, bumps and a
     painted pattern. Yaw a: 0 = front (-Y), +90 = the slime's left / viewer's right (+X).
 
     profile: [(z, r), ...] bottom to top. First r > 0 -> flat bottom; last r == 0 -> tip vertex.
+    tuck: height (studs) of a rounded underside that replaces the flat bottom: the profile below
+      z0 + tuck becomes a quarter ellipse down to a single bottom vertex, so the slime rests on a
+      curved belly instead of a disc. Default TUCK for the main "Body", 0 (flat) for other names.
     sub: Catmull-Rom samples per profile segment (smooth from few points).
     sx, sy: cross-section scale (x wide, y deep). lean(z) -> y offset. bump(a, z) -> radius factor add.
     color: base rgba, or paint(a, z, p) -> rgba for a pattern painted per corner (soft edges).
@@ -123,7 +143,8 @@ class Body:
     """
 
     def __init__(self, profile, color=rgb(120, 220, 120), segs=40, sub=3, sx=1.0, sy=1.0, lean=None, bump=None,
-                 paint=None, bands=(), sectors=None, shade=1.0, gloss=1.0, name="Body", register_surface=True):
+                 paint=None, bands=(), sectors=None, shade=1.0, gloss=1.0, name="Body", register_surface=True,
+                 tuck=None):
         self.name = name
         self.sx, self.sy = sx, sy
         self.lean = lean or (lambda z: 0.0)
@@ -143,6 +164,9 @@ class Body:
         if ded[-1][0] < profile[-1][0] - 1e-6:
             ded.append(tuple(profile[-1]))
         self.prof = prof = ded
+        tuck = (TUCK if name == "Body" else 0.0) if tuck is None else tuck
+        if tuck > 0 and prof[0][1] > 0.2:
+            self.prof = prof = round_bottom(prof, min(tuck, 0.3 * (prof[-1][0] - prof[0][0])))
         self.H = prof[-1][0]
         self.color, self.paint, self.bands, self.sectors = color, paint, bands, sectors
         self.shade, self.gloss = shade, gloss
@@ -150,14 +174,18 @@ class Body:
         if register_surface:
             register(self.obj, name)
 
-    def radius(self, z):
-        P = self.prof
+    @staticmethod
+    def radius_of(P, z):
+        """radius of profile P at height z (piecewise linear; the end radii outside it)."""
         if z <= P[0][0]:
             return P[0][1]
         for (z0, r0), (z1, r1) in zip(P, P[1:]):
             if z0 <= z <= z1:
                 return r0 + (r1 - r0) * (z - z0) / max(z1 - z0, 1e-9)
         return P[-1][1]
+
+    def radius(self, z):
+        return Body.radius_of(self.prof, z)
 
     def point(self, a, z, extra=0.0):
         """surface point at yaw a (radians, 0 front) and height z (+extra studs radially)."""
@@ -169,6 +197,8 @@ class Body:
         prof = self.prof
         tip = prof[-1][1] < 1e-4
         ring_prof = prof[:-1] if tip else prof
+        if ring_prof[0][1] < 1e-4:  # rounded bottom: the pole vertex below closes it
+            ring_prof = ring_prof[1:]
         rings = []
         for z, r in ring_prof:
             rings.append([bm.verts.new(self.point(i * math.tau / segs, z)) for i in range(segs)])

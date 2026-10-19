@@ -12,6 +12,9 @@
 	  AudioLogic.fadeStep(current, target, dt, s)  linear fade towards target over `s` seconds
 	  AudioLogic.allowSfx(state, name, now, cfg)   per-name throttle (SFX_MIN_GAP, SFX_MAX_LIVE); true reserves a slot
 	  AudioLogic.releaseSfx(state, name)           frees the slot when that Sound is gone
+	  AudioLogic.oneshotId(cfg)                    -> NIGHT_ONESHOT_ID or nil (nil = no owl)
+	  AudioLogic.oneshotStep(timer, dt, level, cfg, rng) -> timer?, fire  night one-shot countdown (rng: () -> 0..1)
+	  AudioLogic.oneshotSpeed(cfg, rng)            PlaybackSpeed for one call
 ]]
 
 local Sounds = if script then require(script.Parent.Sounds) else require("./Sounds")
@@ -101,6 +104,10 @@ function AudioLogic.ambientFor(clockTime: number, cfg: any, dayNight: any): (str
 	return "day", validId(cfg.AMBIENT_DAY_ID)
 end
 
+function AudioLogic.oneshotId(cfg: any): string?
+	return validId(cfg.NIGHT_ONESHOT_ID)
+end
+
 function AudioLogic.fadeStep(current: number, target: number, dt: number, seconds: number): number
 	if seconds <= 0 or math.abs(target - current) < 1e-6 then
 		return target
@@ -134,6 +141,38 @@ end
 
 function AudioLogic.releaseSfx(state: SfxState, name: string)
 	state.live[name] = math.max(0, (state.live[name] or 0) - 1)
+end
+
+-- Seconds until the next night one-shot: uniform in NIGHT_ONESHOT_MIN..MAX_SECONDS.
+function AudioLogic.oneshotGap(cfg: any, rng: () -> number): number
+	local lo, hi = cfg.NIGHT_ONESHOT_MIN_SECONDS, cfg.NIGHT_ONESHOT_MAX_SECONDS
+	return lo + (hi - lo) * math.clamp(rng(), 0, 1)
+end
+
+-- One frame of the night one-shot countdown. Below NIGHT_ONESHOT_MIN_LEVEL (day, or the dusk / dawn fade) the
+-- timer is cleared; the first full-night frame starts a fresh gap. Returns the new timer and whether to play now.
+function AudioLogic.oneshotStep(
+	timer: number?,
+	dt: number,
+	level: number,
+	cfg: any,
+	rng: () -> number
+): (number?, boolean)
+	if level < cfg.NIGHT_ONESHOT_MIN_LEVEL then
+		return nil, false
+	end
+	if timer == nil then
+		return AudioLogic.oneshotGap(cfg, rng), false
+	end
+	local left = timer - math.max(dt, 0)
+	if left <= 0 then
+		return AudioLogic.oneshotGap(cfg, rng), true
+	end
+	return left, false
+end
+
+function AudioLogic.oneshotSpeed(cfg: any, rng: () -> number): number
+	return 1 + (math.clamp(rng(), 0, 1) * 2 - 1) * cfg.NIGHT_ONESHOT_SPEED_JITTER
 end
 
 return AudioLogic

@@ -21,12 +21,7 @@ Format.shortNumber = NumberFormat.short
 Format.formatCash = NumberFormat.cash
 
 -- Income per second. Small fractional rates keep one decimal: "$1.5/s".
-function Format.formatRate(value: number): string
-	if type(value) == "number" and value > 0 and value < 100 and value ~= math.floor(value) then
-		return "$" .. trimZero(string.format("%.1f", math.floor(value * 10) / 10)) .. "/s"
-	end
-	return Format.formatCash(value) .. "/s"
-end
+Format.formatRate = NumberFormat.rate
 
 -- 1.5 -> "x1.5", 2 -> "x2".
 function Format.formatMultiplier(value: number): string

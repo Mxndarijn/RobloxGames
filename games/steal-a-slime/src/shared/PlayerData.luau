@@ -68,6 +68,7 @@ export type Data = {
 	consumables: Consumables, -- restocking shop purchases (added without a version bump)
 	pvp: Pvp, -- FEATURES.PvP owned items (PvpRules, CONTRACT.md §26; added without a version bump)
 	trophies: { Slime }, -- boss trophies, one per boss species (contract/boss-event.md; added without a version bump)
+	hotbar: { string }?, -- HotbarOrder: 9 slot keys, "" = empty; nil until the player sets one (no version bump)
 }
 
 local PlayerData = {}

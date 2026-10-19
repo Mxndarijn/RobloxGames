@@ -53,6 +53,7 @@ local Nav = require(script.Nav)
 local PopupQueue = require(script.PopupQueue)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
+local SlimeInfoCard = require(script.SlimeInfoCard)
 local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
@@ -237,6 +238,10 @@ local ctx: { [string]: any } = {
 	actions = Remotes.ACTIONS,
 	send = send,
 	request = invoke,
+	-- Like request, but `done` also gets a refusal ({ ok = false, message }) for the panel to show.
+	ask = function(action: string, done: (any) -> (), ...: any)
+		call(action, done, done, ...)
+	end,
 	serverNow = serverNow,
 	playerName = playerName,
 	itemIcons = itemIcons,
@@ -265,6 +270,7 @@ local inventory = Inventory.new(gui, {
 	tools = InventoryTools.new(player),
 	serverNow = serverNow,
 	keyboard = game:GetService("UserInputService").KeyboardEnabled,
+	input = game:GetService("UserInputService"),
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
 InventoryTools.bindBag(inventory.isBagKey, inventory.toggleBag)
@@ -283,6 +289,8 @@ local tutorial = TutorialOverlay.new(gui, ctx)
 local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
+-- One label per slime, a tag above it or a sign on its pad (contract/slime-labels.md): event-driven, no frame work.
+SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = Constants.SLIME_TAG })
 
 -- The dimmed full-window backdrop (Layout.backdrop: the whole viewport, top bar included, square) behind an open menu card (screen.panel).
 -- Made before the panels so their cards draw over it; a tap on it closes
@@ -370,6 +378,10 @@ local applyLayout: () -> ()
 local refreshHint: () -> ()
 local pumpPopups: (state: Types.State) -> ()
 local layoutCards: () -> ()
+-- Panels that change their own height (Plot's Appraise screen) ask for a card relayout.
+ctx.relayout = function()
+	layoutCards()
+end
 
 local function styleNav(btn: NavButton, selected: boolean)
 	btn.tile.BackgroundColor3 = if selected then Theme.Accent else NAV_TILE_COLOR

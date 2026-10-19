@@ -792,15 +792,18 @@ scenario("boss", function()
 			and stateOf(USER_ID).boss.phase == "fight",
 		`model {model and model.Name}, scale {model and model:GetScale()}, phase {stateOf(USER_ID).boss.phase}`
 	)
-	-- Both swing until the meter fills; the stand-in hits more often, so it is the top contributor.
+	-- Both follow it and swing until the meter fills; the stand-in hits more often, so it is the top contributor.
 	local bossPos = S.WorldView.slimePosition(id)
 	local wildBefore = 0
 	for _ in world.wild do
 		wildBefore += 1
 	end
 	local swings = 0
+	local lastFightPos = bossPos
 	while world.boss.fight.phase == "fight" and swings < 400 do
 		swings += 1
+		bossPos = S.WorldView.slimePosition(id) or bossPos -- it wanders (BossWander)
+		lastFightPos = bossPos
 		face(player, bossPos + Vector3.new(0, 0, 8), bossPos)
 		bat(player).Activated:Fire()
 		if swings % 2 == 0 then
@@ -823,6 +826,15 @@ scenario("boss", function()
 		"boss: every helper gets a free egg",
 		session.egg ~= nil and helperSession.egg ~= nil,
 		`egg reveal: stand-in {session.egg ~= nil}, helper {helperSession.egg ~= nil}`
+	)
+	local haulPos = S.WorldView.slimePosition(id)
+	local moved = if haulPos and lastFightPos
+		then Vector3.new(haulPos.X - lastFightPos.X, 0, haulPos.Z - lastFightPos.Z).Magnitude
+		else math.huge
+	check(
+		"boss: the haul catches it where it stood (no snap back to the boss spot)",
+		moved < BOSS.WANDER_SPEED * (BOSS.HIT_GAP + 0.05) + 0.5, -- at most one swing round of walking
+		`moved {moved} studs between the last swing and the haul`
 	)
 	check(
 		"boss: it pops to carry size for the haul",
