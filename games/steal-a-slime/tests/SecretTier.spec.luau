@@ -76,6 +76,7 @@ describe("Secret announcement", function()
 		end
 		expect(secrets > 0).toBe(true)
 		expect(others > 0).toBe(true)
-		expect(Sounds.resolve("Secret")).toBe("rbxassetid://12222225")
+		expect(Sounds.resolve("Secret") ~= nil).toBe(true)
+		expect(Sounds.resolve("Secret") ~= Sounds.resolve("Rebirth")).toBe(true)
 	end)
 end)

@@ -182,6 +182,7 @@ function Widgets.button(props: { [string]: any }, color: Color3?, onClick: () ->
 	self.instance = inst
 	local function paint()
 		inst.AutoButtonColor = enabled
+		inst:SetAttribute("ClickMuted", if enabled then nil else true) -- ButtonClicks stays quiet
 		inst.BackgroundColor3 = if enabled then baseColor else Theme.Disabled
 		stroke.Transparency = if enabled then 0 else 1
 		if enabled then

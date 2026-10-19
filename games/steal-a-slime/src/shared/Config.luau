@@ -755,6 +755,9 @@ local Config = {
 		DEFAULT_MUSIC_VOLUME = 0.35, -- 0..1, Music / Ambient SoundGroup
 		AMBIENT_VOLUME = 0.25, -- loop volume inside the Music group (low on purpose)
 		AMBIENT_FADE_SECONDS = 4, -- crossfade day <-> night
+		SFX_MIN_GAP = 0.05, -- seconds between two plays of the same SFX name
+		SFX_MAX_LIVE = 4, -- most copies of one SFX name sounding at once
+		SFX_MAX_SECONDS = 15, -- a Sound that never reports Ended is cleaned up after this
 		-- SFX registry name -> Notify sound name (Sounds.IDS) or a direct asset id.
 		SFX = table.freeze({
 			buy = "Cash",

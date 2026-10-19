@@ -88,19 +88,32 @@ function SoundController.new(config: any, player: Player, dayNight: any)
 		return settings()
 	end
 
+	-- Throttled per name (AudioLogic.allowSfx). A throttled play still returns true so callers don't fall
+	-- back to their legacy sound path. The Sound goes when it ends, or after SFX_MAX_SECONDS if it never does.
+	local sfxState = AudioLogic.newSfxState()
 	function self.play(name: string): boolean
 		local id = AudioLogic.resolveSfx(cfg, name)
 		if not id then
 			return false
 		end
+		if not AudioLogic.allowSfx(sfxState, name, os.clock(), cfg) then
+			return true
+		end
 		local sound = Instance.new("Sound")
 		sound.SoundId = id
 		sound.SoundGroup = sfxGroup
 		sound.Parent = SoundService
+		local done = false
+		local function finish()
+			if not done then
+				done = true
+				AudioLogic.releaseSfx(sfxState, name)
+				sound:Destroy()
+			end
+		end
+		sound.Ended:Once(finish)
+		task.delay(cfg.SFX_MAX_SECONDS, finish)
 		sound:Play()
-		task.delay(5, function()
-			sound:Destroy()
-		end)
 		return true
 	end
 

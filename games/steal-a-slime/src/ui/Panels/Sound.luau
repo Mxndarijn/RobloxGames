@@ -128,7 +128,6 @@ function Sound.new(parent: Instance, controller: any)
 		Theme.Good,
 		function()
 			controller.setMuted(not controller.settings().muted)
-			controller.play("click")
 		end
 	)
 	mute.instance.Parent = content
@@ -207,7 +206,6 @@ function Sound.new(parent: Instance, controller: any)
 		UserInputService.InputEnded:Connect(function(input: InputObject)
 			if isPress(input) and dragging[kind] then
 				dragging[kind] = false
-				controller.play("click")
 			end
 		end)
 	end
