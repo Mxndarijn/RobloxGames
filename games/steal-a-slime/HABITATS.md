@@ -27,7 +27,7 @@ The pad never changes. When a slime sits on a pad, that slime's habitat **overla
 
 - z=0 = the crate deck (`WorldLayout.PAD_DECK.y` above the stand bottom). Frame + rim props only: no mound, bowl or seat.
 - Props stay on the rim band between the mat (`PAD_DECK.matHalf`) and the deck edge (`PAD_DECK.half`); nothing rises above the frame inside the mat square, so the slime is never buried. The model script prints `OVERLAY ... over_mat=0`.
-- Bbox centred on the pad (the FileMesh origin is its bbox centre), footprint <= 7.9, 0.5-2.8 studs above the deck (`tests/Habitats.spec`).
+- Bbox centred on the pad (a MeshPart's origin is its bbox centre), footprint <= 7.9, 0.5-2.8 studs above the deck (`tests/Habitats.spec`).
 - Sheets are judged with the crate drawn under the overlay: `HABITAT_PREVIEW=1 python iterate.py models/<name>.py --no-export`.
 
 ## Server owns pad state: `src/server/HabitatPads.luau` (pure) + `WorldView.updatePlots`
@@ -40,7 +40,8 @@ The pad never changes. When a slime sits on a pad, that slime's habitat **overla
 
 - One local overlay per habitat per pad (folder `workspace.ClientHabitats`, CanCollide / CanQuery / CanTouch off), resting on the deck. The pad and its Stand are never hidden or recoloured.
 - Each overlay has a weight 0..1 that moves toward 1 (current `Habitat`) or 0 (any other) at `1 / TRANSFORM_SECONDS` (1 s): the overlay rises out of the deck and fades in, with a sparkle burst when a change starts; leaving is the same tween backwards. Weights live in `Habitats.stepWeights` (pure, Lune-tested).
-- No meshId yet = placeholder primitives in `Habitats` colours (four frame strips and four corner props).
+- The mesh is a clone of the server's MeshPart template in `ReplicatedStorage.HabitatMeshes` (`Constants.HABITAT_MESHES`, `MeshSwap.publishHabitatTemplates`): a MeshPart keeps the kit's vertex colours, a script-made FileMesh SpecialMesh draws them white.
+- Until a template arrives (or with no meshId) the overlay is placeholder primitives in `Habitats` colours (four frame strips and four corner props); looks rebuild as the mesh when the template lands.
 
 ## Animation feel: `src/shared/HabitatMorph.luau` (pure) + `Config.HABITAT_ANIM`
 
