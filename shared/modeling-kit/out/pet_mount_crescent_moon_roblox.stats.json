@@ -1,19 +1,19 @@
 {
   "name": "pet_mount_crescent_moon",
-  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\models\\pet_mount_crescent_moon.py",
+  "model": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\moon-flat\\shared\\modeling-kit\\models\\pet_mount_crescent_moon.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
-  "tris": 1608,
+  "tris": 1950,
   "meshes": [
     {
       "name": "pet_mount_crescent_moon",
-      "tris": 1608,
-      "verts": 808,
-      "ngons": 2,
+      "tris": 1950,
+      "verts": 981,
+      "ngons": 4,
       "non_manifold_edges": 0,
       "size_studs": [
-        3.3,
-        2.228,
-        2.4
+        3.004,
+        0.88,
+        1.765
       ],
       "materials": [
         "pet_mount_crescent_moon_vcol"
@@ -32,9 +32,9 @@
   ],
   "mesh_count": 1,
   "size_studs": [
-    3.3,
-    2.228,
-    2.4
+    3.004,
+    0.88,
+    1.765
   ],
   "non_manifold_edges": 0,
   "materials": [
@@ -62,47 +62,47 @@
   "tiles": [
     {
       "view": "front",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_crescent_moon_roblox_0.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\moon-flat\\shared\\modeling-kit\\out\\.tiles\\pet_mount_crescent_moon_roblox_0.png"
     },
     {
       "view": "side",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_crescent_moon_roblox_1.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\moon-flat\\shared\\modeling-kit\\out\\.tiles\\pet_mount_crescent_moon_roblox_1.png"
     },
     {
       "view": "back-3/4",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_crescent_moon_roblox_2.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\moon-flat\\shared\\modeling-kit\\out\\.tiles\\pet_mount_crescent_moon_roblox_2.png"
     },
     {
       "view": "top-3/4",
-      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\.tiles\\pet_mount_crescent_moon_roblox_3.png"
+      "path": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\moon-flat\\shared\\modeling-kit\\out\\.tiles\\pet_mount_crescent_moon_roblox_3.png"
     }
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.186,
+    "model_s": 0.177,
     "stats_s": 0.004,
-    "setup_s": 0.022,
+    "setup_s": 0.023,
     "render_s": [
-      0.541,
-      0.352,
-      0.367,
-      0.337
+      0.486,
+      0.336,
+      0.331,
+      0.355
     ],
     "export_s": 0.0
   },
-  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\pet-mounts-v2\\shared\\modeling-kit\\out\\pet_mount_crescent_moon_roblox_sheet.png",
+  "sheet": "C:\\Users\\niels\\PycharmProjects\\RobloxGames\\.claude\\worktrees\\moon-flat\\shared\\modeling-kit\\out\\pet_mount_crescent_moon_roblox_sheet.png",
   "timings": {
-    "wall_s": 4.08,
-    "blender_process_s": 3.78,
-    "compose_s": 0.297,
-    "model_s": 0.186,
+    "wall_s": 4.06,
+    "blender_process_s": 3.79,
+    "compose_s": 0.269,
+    "model_s": 0.177,
     "stats_s": 0.004,
-    "setup_s": 0.022,
+    "setup_s": 0.023,
     "render_s": [
-      0.541,
-      0.352,
-      0.367,
-      0.337
+      0.486,
+      0.336,
+      0.331,
+      0.355
     ],
     "export_s": 0.0
   }
