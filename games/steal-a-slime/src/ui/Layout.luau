@@ -902,7 +902,8 @@ function Layout.screen(viewportW: number, viewportH: number, _options: ScreenOpt
 		+ 2 * (m + gap)
 	local tight = phone and W < fullRowW
 	local money = Layout.moneyCluster(compact, m, rowBottom, tight)
-	-- Off phones the events row stands STATUS.raise above the money line; on phones it shares the bottom row.
+	-- The events row stands STATUS.raise above the money line off phones (0: it shares that line); on phones it
+	-- always shares the bottom row.
 	local statusRaise = if phone then 0 else Layout.STATUS.raise
 	local status = Layout.statusCluster(compact, W - m, rowBottom - statusRaise, tight, phone)
 	local hotbarH = InventoryLayout.height(compact, Layout.MIN_TOUCH_DESIGN, tight)

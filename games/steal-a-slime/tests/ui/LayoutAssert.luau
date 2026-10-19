@@ -1035,7 +1035,7 @@ function LayoutAssert.clusterChecks(check: Checker)
 	check.noOverlap("Money.income", screen.money.income, "Money.rebirths", screen.money.rebirths)
 	check.noOverlap("Money", screen.money.rect, "Status", screen.status.rect)
 	-- The events row: its slots side by side (2 x 2 on phones), clear of the hotbar; off phones it stands
-	-- STATUS.raise above the bottom line, off the screen edge.
+	-- STATUS.raise above the bottom line (0: on it, level with the money block and hotbar).
 	for i, a in screen.status.slots do
 		for j = i + 1, #screen.status.slots do
 			check.noOverlap(`Status.slot{i}`, a, `Status.slot{j}`, screen.status.slots[j])
