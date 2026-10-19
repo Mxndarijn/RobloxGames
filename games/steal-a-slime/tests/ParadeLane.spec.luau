@@ -16,11 +16,13 @@ local Config = require("../src/shared/Config")
 local Fountain = require("../src/shared/Fountain")
 local FountainRide = require("../src/shared/FountainRide")
 local MinimapData = require("../src/visuals/shared/MinimapData")
+local ParadeChoreo = require("../src/shared/ParadeChoreo")
 local ParadeLane = require("../src/shared/ParadeLane")
 local PropClearance = require("../src/visuals/shared/PropClearance")
 local Runtime = require("../tools/livetest/Runtime")
 local Scene = require("../src/server/Scene")
 local ServerFixtures = require("./ServerFixtures")
+local SlimePersona = require("../src/shared/SlimePersona")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
@@ -577,8 +579,22 @@ for _ = 1, SIM * HZ do
 	local seen = {}
 	for _, model in (if folder then folder:GetChildren() else {}) do
 		local p = model:GetPivot().Position
-		local track = tracks[model] or { born = rt.T, frames = {}, gone = nil }
+		local track = tracks[model]
+			or {
+				born = rt.T,
+				frames = {},
+				gone = nil,
+				seed = model:GetAttribute("ChoreoSeed"),
+				species = model:GetAttribute("Species"),
+			}
 		tracks[model] = track
+		-- the species mesh (and its Species attribute) can arrive a few frames after the model
+		track.seed = track.seed or model:GetAttribute("ChoreoSeed")
+		track.species = track.species or model:GetAttribute("Species")
+		local laneAt = model:GetAttribute("LaneAt")
+		if not track.laneAt and laneAt then -- server time -> rt.T
+			track.laneAt = laneAt - (rt.workspace:GetServerTimeNow() - rt.T)
+		end
 		seen[model] = true
 		table.insert(track.frames, { t = rt.T, p = { p.X, p.Y, p.Z }, state = model:GetAttribute("State") })
 	end
@@ -613,6 +629,20 @@ for _ = 1, SIM * HZ do
 	end
 end
 
+-- Lane distance of a tracked slime at `t`: time left, plus its lane-beat offset (FEATURES.SlimeChoreo) when the
+-- server gave it a ChoreoSeed (timed from its LaneAt, the exact spawn time, on rt.T's clock).
+local function laneDistance(track, t: number): number
+	if not track.seed then
+		return ParadeLane.distance(track.born, track.born + LIFE, t)
+	end
+	local born = track.laneAt or track.born
+	local s = ParadeLane.distance(born, born + LIFE, t)
+	local startAt, seconds, lead = ParadeLane.walkTimes(born, born + LIFE)
+	local plan = ParadeChoreo.plan(track.seed, SlimePersona.of(track.species).temper, seconds, lead)
+	local ahead = ParadeChoreo.offset(plan, t - startAt) * ParadeLane.walkSpeed(LIFE)
+	return math.clamp(s + ahead, -ParadeLane.LEAD_LENGTH, ParadeLane.LENGTH)
+end
+
 describe("ParadeLane in the live server", function()
 	it("boots clean and lays Map.Plaza.ParadeLane: one walk-through goo strip per simplified lane segment", function()
 		expect(#rt.errors).toBe(0)
@@ -644,7 +674,7 @@ describe("ParadeLane in the live server", function()
 					local age = f.t - track.born
 					if age > RIDE + 0.3 and age < LIFE - ParadeLane.DRAIN_SECONDS - 0.3 then
 						checked += 1
-						local cx, cz = ParadeLane.pointAt(ParadeLane.distance(track.born, track.born + LIFE, f.t))
+						local cx, cz = ParadeLane.pointAt(laneDistance(track, f.t))
 						expect(hdist(f.p[1], f.p[3], cx, cz) <= ParadeLane.SPREAD / 2 + 1.5).toBe(true)
 						expect(math.abs(f.p[2] - ParadeLane.LANE_Y) <= 1e-3).toBe(true)
 					end
@@ -658,7 +688,7 @@ describe("ParadeLane in the live server", function()
 		end
 		expect(checked > 500).toBe(true)
 	end)
-	it("lane position is time left: slimes born 4 s apart walk 4 s of lane apart", function()
+	it("lane position is time left (plus its lane beats): slimes born 4 s apart walk 4 s of lane apart", function()
 		local first, second = nil, nil
 		for model, track in tracks do
 			if model ~= (grab and grab.model) and track.born < 12 then
@@ -683,7 +713,7 @@ describe("ParadeLane in the live server", function()
 		-- each is where its own time left says (server time = born time within a reconcile tick)
 		for _, track in { first, second } do
 			local f = frameAt(track)
-			local s = ParadeLane.distance(track.born, track.born + LIFE, f.t)
+			local s = laneDistance(track, f.t)
 			local x, z = ParadeLane.pointAt(s)
 			local tol = ParadeLane.SPREAD / 2
 				+ 0.1 * (ParadeLane.LEAD_LENGTH + ParadeLane.LENGTH) / (LIFE - RIDE - ParadeLane.DRAIN_SECONDS)

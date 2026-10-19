@@ -14,7 +14,7 @@
 
 	Driver (CFrame / Vector3 at call time only), used by SlimeMotor:
 	  SlimeBones.attach(mesh, now, rand) -> Rig?   nil when the mesh has no Bones
-	  SlimeBones.step(rig, params, clock, pose, now, rand)   near tier, every frame
+	  SlimeBones.step(rig, params, clock, pose, now, rand, extra?)   near tier, every frame
 	  SlimeBones.squish(rig, sy)                   mid tier: body squash only
 	  SlimeBones.release(rig)                      every Transform to identity (far tier, release)
 
@@ -300,13 +300,28 @@ local function writeBody(entry: Entry, topDy: number, bulge: number, drop: numbe
 	end
 end
 
+-- Extra life from contract/slime-life.md (ui/SlimeGait, SlimeBeats, SlimeReact), all optional:
+-- air 0..1 (a gait hop), vy (its vertical speed, studs / s: ears flop), jiggle (Top crown lag, radians, + = forward),
+-- closed 0..1 (lids shut: happy, asleep, squeeze), pop 0..1 (eyes bulge out: surprised).
+export type Extra = { air: number?, vy: number?, jiggle: number?, closed: number?, pop: number? }
+
+SlimeBones.POP_OUT = 0.5 -- share of the blink depth the eyes bulge out by at pop = 1
+SlimeBones.EAR_FLOP = 0.06 -- radians of ear flop per stud / s of falling speed
+SlimeBones.EAR_FLOP_MAX = 1.1
+
+-- Extra ear angle from the vertical speed: the ears fly up while the slime falls.
+function SlimeBones.earFlop(vy: number): number
+	return math.clamp(-vy * SlimeBones.EAR_FLOP, -0.3, SlimeBones.EAR_FLOP_MAX)
+end
+
 function SlimeBones.step(
 	rig: Rig,
 	params: SlimeLife.Params,
 	clock: SlimeLife.Clock,
 	pose: SlimeLife.Pose,
 	now: number,
-	rand: Rand
+	rand: Rand,
+	extra: Extra?
 )
 	rig.full = true
 	if now > rig.blinkAt + SlimeBones.BLINK_TIME then
@@ -318,13 +333,24 @@ function SlimeBones.step(
 	local topDy, bulge, drop = SlimeBones.body(pose.sy, rig.H)
 	local tilt = SlimeBones.tilt(params, t, hopDt)
 	local closed = SlimeBones.blink(now, rig.blinkAt, hopDt)
+	local pop, flop = 0, 0
+	if extra then
+		air = math.max(air, extra.air or 0)
+		tilt += extra.jiggle or 0
+		closed = math.max(closed, extra.closed or 0)
+		pop = math.clamp(extra.pop or 0, 0, 1) * (1 - closed)
+		flop = SlimeBones.earFlop(extra.vy or 0)
+	end
 	for _, entry in rig.entries do
 		local kind = entry.kind
 		if kind == KIND_ACC then
 			local angle = SlimeBones.accessory(entry.preset :: Preset, t, entry.phase, air)
+			if entry.preset == "Ear" then
+				angle += flop
+			end
 			entry.bone.Transform = turnAbout(CFrame.fromAxisAngle(entry.axis, angle), entry.shift, Vector3.zero)
 		elseif kind == KIND_EYES then
-			entry.bone.Transform = CFrame.new(entry.dir * (rig.eyeIn * closed))
+			entry.bone.Transform = CFrame.new(entry.dir * (rig.eyeIn * (closed - SlimeBones.POP_OUT * pop)))
 		elseif kind == KIND_LIDS then
 			entry.bone.Transform = CFrame.new(entry.dir * (rig.lidOut * closed))
 		else
