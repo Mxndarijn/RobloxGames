@@ -21,7 +21,7 @@ Guide.GAP = 8
 Guide.CONTENT_H = Guide.GOAL_H + Guide.GAP + GuideTips.MAX_TIPS * (Guide.TIP_H + Guide.GAP)
 
 function Guide.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "GuidePanel", "Guide", "🧙", Color3.fromRGB(90, 190, 110))
+	local panel = Widgets.panel(parent, "GuidePanel", "Guide", "🧙")
 	local content = Widgets.scroll({
 		Name = "Content",
 		AutomaticCanvasSize = Enum.AutomaticSize.None,

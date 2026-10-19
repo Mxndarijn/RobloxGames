@@ -1,11 +1,9 @@
 --!strict
 --[[
-	Codes panel (v29): a small card to redeem a code. A gift badge and a text
-	box, one Redeem button (Enter works too), a line for the active income
-	boost (State.codes) and a hint of what codes give. The server decides
-	(Codes.redeem); there are no toasts any more (B6), so a good code shows in the boost line and a failed try
-	just keeps the text. The typed text stays
-	after a failed try (typo?) and clears once State.codes.redeemed grows.
+	Codes panel: a small card to redeem a code. An ink-dark text box, one Redeem button (Enter
+	works too), a chip for the active income boost (State.codes) and a line on what codes give.
+	The server decides (Codes.redeem): a good code shows in the boost chip, a failed try just
+	keeps the text (typo?). The box clears once State.codes.redeemed grows.
 ]]
 
 local UI = script.Parent.Parent
@@ -20,20 +18,21 @@ local create = Widgets.create
 
 local Codes = {}
 
--- Body rows top to bottom (design px; the body is Layout.panelBody of the
--- Codes card, MENU_HEIGHTS.Codes tall).
+-- Body rows top to bottom (design px; the body is Layout.panelBody of the Codes card).
 Codes.ROWS = table.freeze({
-	input = { y = 0, h = 64 }, -- gift badge + text box
-	button = { y = 76, h = Layout.BUTTON },
-	boost = { y = 144, h = 40 },
-	note = { y = 192, h = 18 },
+	input = { y = 0, h = 56, size = 22, pad = 14 },
+	button = { y = 68, h = Layout.BUTTON, size = 22 },
+	boost = { y = 136, h = 28, size = 14 },
+	note = { y = 172, h = 18, size = 13 },
 })
-Codes.BADGE = 64
-Codes.CONTENT_H = 210 -- note.y + note.h
+Codes.CONTENT_H = 190 -- note.y + note.h
+Codes.BOOST_ICON = 22 -- potion icon at the left end of the boost chip
+Codes.CHIP_PAD = 10 -- Widgets.chip's side padding
 Codes.NO_BOOST = "No boost active"
+Codes.NOTE = "Each code works once and gives cash or a boost."
 
 function Codes.new(parent: Instance, ctx: any)
-	local panel = Widgets.panel(parent, "CodesPanel", "Codes", "🎁", Color3.fromRGB(190, 90, 200))
+	local panel = Widgets.panel(parent, "CodesPanel", "Codes", "🎁")
 	local rows = Codes.ROWS
 	-- Scrolls only when the card is shorter than the content (landscape
 	-- phones); a fixed canvas, nothing in it moves.
@@ -44,14 +43,6 @@ function Codes.new(parent: Instance, ctx: any)
 		Parent = panel.body,
 	})
 
-	ItemIconView.new({
-		Name = "Gift",
-		Id = "Gift",
-		Size = Codes.BADGE,
-		Position = UDim2.fromOffset(0, rows.input.y),
-		Parent = content,
-	}, ItemIcons.of(ctx)).setActive(true)
-
 	local box = create("TextBox", {
 		Name = "CodeBox",
 		Text = "",
@@ -59,14 +50,18 @@ function Codes.new(parent: Instance, ctx: any)
 		PlaceholderColor3 = Theme.Muted,
 		ClearTextOnFocus = false,
 		Font = Theme.Font,
-		TextSize = 22,
+		TextSize = rows.input.size,
 		TextColor3 = Theme.Text,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		BackgroundColor3 = Theme.Row,
-		Position = UDim2.fromOffset(Codes.BADGE + 12, rows.input.y),
-		Size = UDim2.new(1, -(Codes.BADGE + 12), 0, rows.input.h),
+		BackgroundColor3 = Theme.Ink,
+		Position = UDim2.fromOffset(0, rows.input.y),
+		Size = UDim2.new(1, 0, 0, rows.input.h),
 		Parent = content,
-	}, { Widgets.corner(12), Widgets.stroke(Color3.fromRGB(70, 75, 100), 2), Widgets.padding(12) }) :: TextBox
+	}, {
+		Widgets.corner(Widgets.KIT.radius),
+		Widgets.stroke(Theme.Ink, Widgets.KIT.stroke),
+		Widgets.padding(rows.input.pad),
+	}) :: TextBox
 
 	local function submit()
 		local text = string.gsub(box.Text, "^%s+", "")
@@ -83,43 +78,39 @@ function Codes.new(parent: Instance, ctx: any)
 
 	local redeem = Widgets.button({
 		Name = "RedeemButton",
-		Text = "🎁 Redeem",
-		TextSize = 20,
+		Text = "Redeem",
+		TextSize = rows.button.size,
 		Position = UDim2.fromOffset(0, rows.button.y),
 		Size = UDim2.new(1, 0, 0, rows.button.h),
 	}, Theme.Good, submit)
 	redeem.instance.Parent = content
 
-	local boost = Widgets.label({
+	local boost = Widgets.chip({
 		Name = "Boost",
-		Font = Theme.Font,
-		TextSize = 16,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		BackgroundTransparency = 0,
-		BackgroundColor3 = Theme.BgLight,
 		Text = Codes.NO_BOOST,
+		TextSize = rows.boost.size,
 		TextColor3 = Theme.Muted,
-		Position = UDim2.fromOffset(0, rows.boost.y),
-		Size = UDim2.new(1, 0, 0, rows.boost.h),
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, rows.boost.y),
+		Size = UDim2.fromOffset(0, rows.boost.h),
 		Parent = content,
 	})
-	Widgets.corner(10).Parent = boost
-	-- The active boost shows its potion icon at the left end of the chip.
+	local boostPad = boost:FindFirstChildOfClass("UIPadding") :: UIPadding
+	-- The active boost shows its potion icon at the left end of the chip, in the chip's left padding.
 	local boostIcon = ItemIconView.new({
 		Name = "BoostIcon",
 		Id = "Boost_Code",
-		Size = rows.boost.h - 8,
+		Size = Codes.BOOST_ICON,
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 4, 0.5, 0),
-		ZIndex = 2,
+		Position = UDim2.new(0, -(Codes.BOOST_ICON + Codes.CHIP_PAD / 2), 0.5, 0),
 		Parent = boost,
 	}, ItemIcons.of(ctx))
 	boostIcon.instance.Visible = false
 
 	Widgets.label({
 		Name = "Note",
-		Text = "Codes give 💰 cash or ⚡ boosts. One use each.",
-		TextSize = 13,
+		Text = Codes.NOTE,
+		TextSize = rows.note.size,
 		TextColor3 = Theme.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
 		Position = UDim2.fromOffset(0, rows.note.y),
@@ -134,15 +125,16 @@ function Codes.new(parent: Instance, ctx: any)
 	local function renderBoost(now: number)
 		local info = if last then last.codes else nil
 		local left = if info and info.boostMult > 1 then Format.remainingSeconds(info.boostEndsAt, now) else 0
-		if left > 0 then
-			boost.Text = `⚡ {Format.formatMultiplier(info.boostMult)} income · {Format.formatDuration(left)} left`
-			boost.TextColor3 = Theme.Gold
-			boostIcon.instance.Visible = true
+		local active = left > 0
+		if active then
+			boost.Text = `{Format.formatMultiplier(info.boostMult)} income · {Format.formatDuration(left)} left`
 		else
-			boostIcon.instance.Visible = false
 			boost.Text = Codes.NO_BOOST
-			boost.TextColor3 = Theme.Muted
 		end
+		boost.TextColor3 = if active then Theme.Gold else Theme.Muted
+		boostIcon.instance.Visible = active
+		boostPad.PaddingLeft =
+			UDim.new(0, if active then Codes.CHIP_PAD + Codes.BOOST_ICON + Codes.CHIP_PAD / 2 else Codes.CHIP_PAD)
 	end
 
 	function self.update(state: any)

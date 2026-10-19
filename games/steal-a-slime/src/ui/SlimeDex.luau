@@ -30,7 +30,7 @@ export type Line = {
 	kind: string, -- "header" | "cards"
 	tier: number,
 	title: string?, -- header
-	detail: string?, -- header: "3 / 6"
+	detail: string?, -- header: "3/6 found"
 	cards: { Card }?, -- cards line, left to right
 }
 
@@ -38,6 +38,8 @@ export type Grid = { columns: number, cardW: number, cardH: number, gap: number 
 
 -- Species name and colour for ingredient slots and previews (Panels/Dex builds it from SlimeRoster / SlimeLooks).
 export type Lookup = (id: string) -> (string?, { number }?)
+
+local Format = if script then require(script.Parent.Format) else require("./Format")
 
 local SlimeDex = {}
 
@@ -50,10 +52,10 @@ SlimeDex.BADGES = table.freeze({ hybrid = "Merge-only", boss = "Boss", event = "
 -- Card grid (design px): cards at least CARD_MIN_W wide, at most MAX_COLUMNS per line.
 SlimeDex.CARD = table.freeze({
 	minW = 150,
-	h = 188,
+	h = 172,
 	gap = 8,
 	maxColumns = 6,
-	preview = 76, -- square mesh preview at the top
+	preview = 80, -- square mesh preview at the top
 	header = 26, -- rarity header line
 })
 
@@ -142,7 +144,7 @@ function SlimeDex.lines(cards: { Card }, columns: number, config: any): { Line }
 		end
 		table.insert(
 			out,
-			{ key = `header:{tier}`, kind = "header", tier = tier, title = title, detail = `{found} / {#list}` }
+			{ key = `header:{tier}`, kind = "header", tier = tier, title = title, detail = `{found}/{#list} found` }
 		)
 		for start = 1, #list, columns do
 			table.insert(out, {
@@ -184,8 +186,8 @@ end
 export type Summary = {
 	percent: string,
 	fraction: number,
-	count: string, -- "Species 12 / 50"
-	secrets: string, -- "Secrets 1 / 7", empty without event Secrets
+	count: string, -- "Species 12/50"
+	secrets: string?, -- "Secrets 1/7" (nil without event Secrets)
 }
 
 function SlimeDex.summary(dex: any): Summary
@@ -195,46 +197,117 @@ function SlimeDex.summary(dex: any): Summary
 	end
 	local found, total = n(d.found), n(d.total)
 	local fraction = if total > 0 then math.clamp(found / total, 0, 1) else 0
-	local secrets = if n(d.bonusTotal) > 0 then `Secrets {n(d.bonusFound)} / {n(d.bonusTotal)}` else ""
 	return {
 		percent = `{math.floor(fraction * 100)}%`,
 		fraction = fraction,
-		count = `Species {found} / {total}`,
-		secrets = secrets,
+		count = `Species {found}/{total}`,
+		secrets = if n(d.bonusTotal) > 0 then `Secrets {n(d.bonusFound)}/{n(d.bonusTotal)}` else nil,
 	}
 end
 
--- Panel header above the list (Panels/Dex, design px): percent + count + secrets (40), the bar (to 64),
--- then the rewards line (36) when there is one.
-SlimeDex.HEADER = table.freeze({ count = 40, bar = 64, rewards = 36, gap = 4 })
+-- Panel header above the list (Panels/Dex, design px): the big percent on the left and the count chips beside
+-- it, wrapping onto more rows on a narrow body. Compact (short bodies): a smaller percent and one chip row.
+SlimeDex.HEADER = table.freeze({
+	percent = 44, -- big percent block height
+	percentW = 96,
+	compactW = 60, -- percent width in the compact header
+	chip = 26,
+	chipGap = 6,
+	gap = 8, -- header to list
+})
 -- The list keeps at least one rarity header and part of a card visible + scroll padding.
 SlimeDex.MIN_LIST = 72 + 12
 
-export type Header = { bar: boolean, rewards: boolean, rewardsY: number, listTop: number }
+export type Header = { compact: boolean, height: number, listTop: number }
 
--- What fits above the list in a `bodyH` tall panel body: the rewards line goes first, then the bar, until the
--- list is MIN_LIST tall (short landscape phones). The list height is never negative.
-function SlimeDex.header(bodyH: number, hasRewards: boolean): Header
+-- What fits above the list in a `bodyH` tall panel body with the chips on `chipRows` rows (a boolean means
+-- one row / two rows): the full header, else the compact one (one chip row) once the list would drop under
+-- MIN_LIST (short landscape phones). The list height is never negative.
+function SlimeDex.header(bodyH: number, chipRows: (number | boolean)?): Header
 	local h = SlimeDex.HEADER
-	local options = {
-		{ bar = true, rewards = hasRewards },
-		{ bar = true, rewards = false },
-		{ bar = false, rewards = false },
-	}
-	local out: Header
-	for _, o in options do
-		local top = if o.bar then h.bar else h.count
-		out = {
-			bar = o.bar,
-			rewards = o.rewards,
-			rewardsY = top,
-			listTop = top + h.gap + (if o.rewards then h.rewards else 0),
-		}
-		if bodyH - out.listTop >= SlimeDex.MIN_LIST then
-			break
+	local rows = if type(chipRows) == "number" then math.max(1, chipRows) elseif chipRows == true then 2 else 1
+	local full = math.max(h.percent, rows * h.chip + (rows - 1) * h.chipGap)
+	if bodyH - (full + h.gap) >= SlimeDex.MIN_LIST then
+		return { compact = false, height = full, listTop = full + h.gap }
+	end
+	return { compact = true, height = h.chip, listTop = h.chip + h.gap }
+end
+
+export type ChipSpot = { x: number, y: number, visible: boolean }
+
+-- Places chips `widths` (design px) left to right from `x0` in a `width` wide header, wrapping to a new row
+-- when one does not fit; past `maxRows` rows a chip is hidden. Returns the spots and the rows used.
+function SlimeDex.chipRows(widths: { number }, x0: number, width: number, maxRows: number): ({ ChipSpot }, number)
+	local h = SlimeDex.HEADER
+	local spots: { ChipSpot } = {}
+	local x, row = x0, 1
+	for i, w in widths do
+		if x > x0 and x + w > width then
+			x, row = x0, row + 1
+		end
+		spots[i] = { x = x, y = (row - 1) * (h.chip + h.chipGap), visible = row <= maxRows }
+		x += w + h.chipGap
+	end
+	return spots, math.min(row, maxRows)
+end
+
+export type RewardTick = { count: number, at: number, claimed: boolean, isNext: boolean }
+export type RewardCard = {
+	title: string, -- "Next reward at 8 species"
+	reward: string?, -- "+$5K and +2% income"
+	fraction: number, -- species found over the last species milestone
+	ticks: { RewardTick }, -- every species milestone, `at` placed to scale (0..1)
+}
+
+local function pct(fraction: number): string
+	return `{math.floor(fraction * 100 + 0.5)}%`
+end
+
+-- The SlimeDex reward card from State.dexRewards and State.dex.found: the next unclaimed species milestone
+-- and one bar from 0 to the last one with every milestone marked. nil on a server without species milestones.
+function SlimeDex.rewardCard(state: any): RewardCard?
+	local rewards = if type(state) == "table" then state.dexRewards else nil
+	if type(rewards) ~= "table" then
+		return nil
+	end
+	local function n(v: any): number
+		return if type(v) == "number" and v == v then v else 0
+	end
+	local found = if type(state.dex) == "table" then n(state.dex.found) else 0
+	local species: { any } = {}
+	local nextSpecies = nil
+	local last = 0
+	for _, r in rewards do
+		if type(r) == "table" then
+			table.insert(species, r)
+			last = math.max(last, n(r.count))
+			if r.claimed ~= true and nextSpecies == nil then
+				nextSpecies = r
+			end
 		end
 	end
-	return out
+	if #species == 0 or last <= 0 then
+		return nil
+	end
+	local ticks: { RewardTick } = {}
+	for _, r in species do
+		table.insert(ticks, {
+			count = n(r.count),
+			at = math.clamp(n(r.count) / last, 0, 1),
+			claimed = r.claimed == true,
+			isNext = r == nextSpecies,
+		})
+	end
+	return {
+		title = if nextSpecies
+			then `Next reward at {n(nextSpecies.count)} species`
+			else "Every species reward collected",
+		reward = if nextSpecies
+			then `+{Format.formatCash(n(nextSpecies.reward))} and +{pct(n(nextSpecies.bonus))} income`
+			else nil,
+		fraction = if nextSpecies then math.clamp(found / last, 0, 1) else 1,
+		ticks = ticks,
+	}
 end
 
 -- Plot skin cards (FEATURES.PlotSkins, CONTRACT.md §15) shown above the species: one per State.plotSkins entry,
@@ -243,8 +316,9 @@ export type SkinRow = {
 	key: string,
 	tier: number,
 	locked: boolean,
-	title: string,
-	detail: string,
+	title: string, -- the skin's name
+	detail: string, -- the set, or for a locked skin what unlocks it
+	fraction: number, -- set progress (1 once unlocked)
 	color: { number },
 	skin: { id: string, unlocked: boolean, equipped: boolean },
 }
@@ -260,18 +334,22 @@ function SlimeDex.skinRows(plotSkins: any, config: any): { SkinRow }
 	end
 	for _, skin in plotSkins :: { any } do
 		if type(skin) == "table" and type(skin.id) == "string" then
-			local set = if skin.setName then `{skin.setName} set` else "Default look"
 			local unlocked, equipped = skin.unlocked == true, skin.equipped == true
-			local detail = if equipped
-				then `Equipped · {set}`
-				elseif unlocked then `Unlocked · {set}`
-				else `{set}: {skin.owned}/{skin.needed} species to unlock`
+			local owned = if type(skin.owned) == "number" then skin.owned else 0
+			local needed = if type(skin.needed) == "number" then skin.needed else 0
+			local detail = if unlocked
+				then (if skin.setName then `{skin.setName} set` else "Default look")
+				else `Find {needed} {if skin.setName then `{skin.setName} ` else ""}species ({math.min(
+					owned,
+					needed
+				)}/{needed})`
 			table.insert(out, {
 				key = `skin:{skin.id}`,
 				tier = skin.tier or 0,
 				locked = not unlocked,
-				title = `Plot skin · {skin.name}`,
+				title = if type(skin.name) == "string" then skin.name else skin.id,
 				detail = detail,
+				fraction = if unlocked then 1 elseif needed > 0 then math.clamp(owned / needed, 0, 1) else 0,
 				color = floors[skin.id] or SlimeDex.SILHOUETTE,
 				skin = { id = skin.id, unlocked = unlocked, equipped = equipped },
 			})

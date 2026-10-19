@@ -5,6 +5,7 @@ local fs = require("@lune/fs")
 
 local Config = require("../../src/shared/Config")
 local GlyphCheck = require("./GlyphCheck")
+local InventoryLayout = require("../../src/ui/InventoryLayout")
 local ItemIcons = require("../../src/ui/ItemIcons")
 local Layout = require("../../src/ui/Layout")
 local TestRunner = require("../TestRunner")
@@ -174,21 +175,78 @@ describe("Inventory panel", function()
 		local grid = UiHarness.find(inv.panel.frame, "Grid")
 		local shown = 0
 		for _, cell in grid:GetChildren() do
-			if cell.Visible then
+			if cell.Visible and cell.Name == "Item" then
 				shown += 1
 				expect(UiHarness.find(cell, "Icon") ~= nil).toBe(true)
 			end
 		end
 		expect(shown).toBe(3)
+		expect(UiHarness.find(inv.panel.frame, "Count").Text).toBe("3 items")
 		inv.setPanelOpen(false)
 		expect(inv.panel.frame.Visible).toBe(false)
 	end)
 
-	it("sits in the Inventory menu card and steps aside for another menu / carrying", function()
+	it("fills whole rows with empty slots: 4 columns on a wide screen, 3 on a portrait phone", function()
+		for _, case in { { 1920, 1080, 4 }, { 390, 844, 3 } } do
+			local inv = mount(nil, { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } })
+			inv.layout(Layout.screen(case[1], case[2]))
+			inv.setPanelOpen(true)
+			local items, empties, rows = 0, 0, {}
+			for _, cell in UiHarness.find(inv.panel.frame, "Grid"):GetChildren() do
+				if cell.Visible then
+					if cell.Name == "Item" then
+						items += 1
+					elseif cell.Name == "Empty" then
+						empties += 1
+					end
+					local y = cell.Position.Y.Offset
+					rows[y] = (rows[y] or 0) + 1
+				end
+			end
+			expect(items).toBe(2)
+			expect(items + empties).toBe(InventoryLayout.CELL.minRows * case[3])
+			for _, n in rows do
+				expect(n).toBe(case[3])
+			end
+			expect(UiHarness.find(inv.panel.frame, "Count").Text).toBe("2 items")
+		end
+	end)
+
+	it("cells copy the hotbar: key number for items on the bar, the selection ring on the equipped one", function()
+		local inv = mount(nil, { { name = "Bat", equipped = true }, { name = "SpeedCoil", equipped = false } })
+		inv.setPanelOpen(true)
+		local cells = {}
+		for _, cell in UiHarness.find(inv.panel.frame, "Grid"):GetChildren() do
+			if cell.Visible and cell.Name == "Item" then
+				cells[UiHarness.find(cell, "Name").Text] = cell
+			end
+		end
+		local bat, coil = cells.Bat, cells["Speed Coil"]
+		expect(bat ~= nil and coil ~= nil).toBe(true)
+		expect(UiHarness.find(bat, "Number").Visible).toBe(true)
+		expect(UiHarness.find(bat, "Number").Text).toBe("1")
+		expect(UiHarness.find(coil, "Number").Text).toBe("2")
+		expect(bat.BackgroundColor3).toBe(Inventory.COLORS.selected)
+		expect(bat:FindFirstChildOfClass("UIStroke").Color).toBe(Inventory.COLORS.ring)
+		expect(coil.BackgroundColor3).toBe(Inventory.COLORS.slot)
+		expect(coil:FindFirstChildOfClass("UIStroke").Color).toBe(Inventory.COLORS.stroke)
+	end)
+
+	it("a click on a cell equips through the hotbar's path and closes the panel", function()
+		local inv, tools = mount(nil)
+		inv.setPanelOpen(true)
+		local bat = UiHarness.find(inv.panel.frame, "Item")
+		UiHarness.fire(bat, "Activated")
+		expect(tools.calls[1]).toBe("equip:Bat")
+		expect(inv.panelOpen()).toBe(false)
+	end)
+
+	it("sits in the Inventory menu card sized to its grid and steps aside for another menu / carrying", function()
 		local inv = mount(nil)
 		local s = Layout.screen(1920, 1080)
 		inv.layout(s)
-		local r = Layout.panelFor(s, "Inventory")
+		local body = Layout.panelBody(Layout.panelFor(s, "Inventory"))
+		local r = Layout.panelFor(s, "Inventory", InventoryLayout.contentHeight(1, body.w))
 		expect(inv.panel.frame.Position.X.Offset).toBe(r.x)
 		expect(inv.panel.frame.Size.Y.Offset).toBe(r.h)
 		inv.setPanelOpen(true)

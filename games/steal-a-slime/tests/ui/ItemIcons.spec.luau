@@ -328,7 +328,7 @@ describe("ItemIconView", function()
 			expect(classes.UIGradient and classes.UIStroke and classes.UICorner and classes.TextLabel).toBe(true)
 			local glyph = find(icon.instance, "Glyph")
 			expect(glyph.Text).toBe(registry.byId[id].glyph)
-			expect(glyph.Font.Name).toBe("GothamBold")
+			expect(glyph.Font).toBe(UiHarness.ui("Widgets").Theme.Font)
 			expect(icon.instance:GetAttribute("ItemId")).toBe(id)
 			icon.destroy()
 		end
@@ -485,9 +485,9 @@ describe("item icons on the surfaces", function()
 
 	it("Codes, Goals and the Daily popup draw item icons", function()
 		local codes = UiHarness.ui("Panels/Codes").new(UiHarness.root(), ctx())
-		expect(find(codes.frame, "Gift"):GetAttribute("ItemId")).toBe("Gift")
+		expect(find(codes.frame, "BoostIcon"):GetAttribute("ItemId")).toBe("Boost_Code")
 		local daily = UiHarness.ui("Panels/DailyPopup").new(UiHarness.root(), ctx())
-		expect(find(daily.frame, "DailyIcon"):GetAttribute("ItemId")).toBe("Daily")
+		expect(find(daily.frame, "Day1Icon"):GetAttribute("ItemId")).toBe("Cash")
 		local goals = UiHarness.ui("Panels/Goals").new(UiHarness.root(), ctx())
 		goals.update({ slimes = {}, padsUnlocked = 4, padsMax = 8, cash = 0 })
 		local found = 0
@@ -601,23 +601,26 @@ describe("item icon layout (LayoutAssert at the 5 gate viewports)", function()
 			local screen = Layout.screen(vp.w, vp.h)
 			local check = LayoutAssert.new(vp.name, screen)
 			local panel = Layout.panelFor(screen, "Goals")
+			-- Panels/Goals ROW: pad 10, ICON 50, gap 12; the reward top-right, "Next" right of the meta line.
 			local rowW = panel.w - Layout.PANEL_CHROME.pad * 2 - 10
-			local textW = rowW - (8 + 40 + 8) - 10 -- Panels/Goals: ICON 40
+			local textW = rowW - (10 + 50 + 12) - 10
+			local nextW = math.ceil(Layout.lineWidth("Next: $1.0B", 12)) + 2 + 6
+			local rewardW = math.ceil(Layout.lineWidth("+$12.5K", 15, true)) + 2 + 8
 			for _, g in Config.GOALS do
 				check.text({
-					name = `Goal {g.id} detail`,
-					text = "999.9K/1.0M · reward $1.0B · stage 5/5",
-					size = 13,
-					w = textW,
-					h = 16,
+					name = `Goal {g.id} meta`,
+					text = "999.9K/1.0M · Stage 5 of 5",
+					size = 12,
+					w = textW - nextW,
+					h = 14,
 				})
 			end
 			check.text({
 				name = "Goal title",
 				text = "Lock your base 100 times",
-				size = 16,
+				size = 17,
 				bold = true,
-				w = textW,
+				w = textW - rewardW,
 				h = 20,
 			})
 			expect(check.report()).toBe("")

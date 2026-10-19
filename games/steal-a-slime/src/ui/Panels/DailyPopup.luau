@@ -1,10 +1,9 @@
 --!strict
 --[[
-	Daily reward popup: a centred modal with the streak track, today's
-	amount and Claim (`Request("Daily")`). Opens by itself when a claim
-	becomes available and the tutorial is done (PopupQueue, init.client) and
-	from the HUD Daily button. Once the
-	server reports it claimed, it shows "Come back tomorrow" and closes.
+	Daily reward popup: a centred modal card (the shared Widgets.panel frame) with the streak
+	track, today's amount and Claim (`Request("Daily")`). Opens by itself when a claim becomes
+	available and the tutorial is done (PopupQueue, init.client) and from the HUD Daily button.
+	Once the server reports it claimed, it shows "Claimed!" and closes.
 ]]
 
 local UI = script.Parent.Parent
@@ -18,194 +17,196 @@ local Widgets = require(UI.Widgets)
 local Theme = Widgets.Theme
 local create = Widgets.create
 
-local CELL_COLORS = {
-	claimed = Theme.Good,
-	today = Theme.Gold,
-	upcoming = Theme.BgLight,
-}
-
 local DailyPopup = {}
+
+-- Body rows top to bottom (design px; the body is Layout.panelBody of a Layout.DAILY card).
+-- Claim is pinned to the body's bottom edge.
+DailyPopup.ROWS = table.freeze({
+	top = { y = 0, h = 26, size = 15, chipSize = 13 }, -- streak line + "Come back tomorrow" chip
+	track = { y = 34, h = 70 },
+	amount = { y = 110, h = 46, size = 40 },
+	claimSize = 22,
+})
+-- One tile per streak day; the last (cap) day is LAST_WEIGHT times wider with a bigger pile.
+DailyPopup.TILE = table.freeze({
+	gap = 6,
+	lastWeight = 1.6,
+	labelY = 4,
+	labelH = 17,
+	labelSize = 12,
+	lastLabelSize = 14,
+	iconY = 22,
+	icon = 24,
+	lastIcon = 30,
+	amountH = 16,
+	amountInset = 5, -- amount line above the tile's bottom edge
+	amountSize = 13,
+	lastAmountSize = 15,
+	minAmountSize = 8,
+})
+-- Share of the top line the chip may take; the streak line gets the rest.
+DailyPopup.CHIP_SHARE = 0.58
+DailyPopup.BACKDROP_TRANSPARENCY = 0.45
+
+-- The tile label: "Day N" for today and the last day, the bare number otherwise, a tick once claimed.
+function DailyPopup.dayLabel(day: number, state: string, cap: number): string
+	if state == "claimed" then
+		return "\u{2705}"
+	end
+	return if state == "today" or day == cap then `Day {day}` else tostring(day)
+end
 
 function DailyPopup.new(parent: Instance, ctx: any)
 	local cap: number = ctx.Config.DAILY_STREAK_CAP or 7
+	local rows = DailyPopup.ROWS
+	local tile = DailyPopup.TILE
+	local icons = ItemIcons.of(ctx)
 
 	local backdrop = create("TextButton", {
 		Name = "DailyPopup",
 		Visible = false,
 		Text = "",
 		AutoButtonColor = false,
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.5,
+		BackgroundColor3 = Theme.Ink,
+		BackgroundTransparency = DailyPopup.BACKDROP_TRANSPARENCY,
 		Size = UDim2.fromScale(1, 1),
-		ZIndex = Layout.ZINDEX.Daily, -- under the tutorial card (v15: it covered step 1)
+		ZIndex = Layout.ZINDEX.Daily, -- under the tutorial card
 		Parent = parent,
 	})
 
-	local card = create("Frame", {
-		Name = "Card",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(Layout.DAILY.w, Layout.DAILY.h),
-		BackgroundColor3 = Theme.Bg,
-		ZIndex = 21,
-		Parent = backdrop,
-	}, { Widgets.corner(14), Widgets.stroke(Theme.Gold, 3) })
+	local panel = Widgets.panel(backdrop, "Card", "Daily Reward", "📅")
+	local card = panel.frame
+	card.Visible = true -- the backdrop shows and hides the popup
+	card.Active = true -- a tap on the card is not a tap outside it
+	card.AnchorPoint = Vector2.new(0.5, 0.5)
+	card.Position = UDim2.fromScale(0.5, 0.5)
+	card.Size = UDim2.fromOffset(Layout.DAILY.w, Layout.DAILY.h)
+	local body = panel.body
 
-	local function text(props: { [string]: any }): TextLabel
-		props.ZIndex = 22
-		props.TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Center
-		props.Parent = card
-		return Widgets.label(props)
-	end
-
-	text({
-		Name = "Title",
-		Text = "Daily Reward",
-		Font = Theme.Font,
-		TextSize = 24,
-		Size = UDim2.new(1, 0, 0, 34),
-		Position = UDim2.fromOffset(0, 12),
-	})
-	ItemIconView.new({
-		Name = "DailyIcon",
-		Id = "Daily",
-		Size = 32,
-		Position = UDim2.fromOffset(14, 12),
-		ZIndex = 22,
-		Parent = card,
-	}, ItemIcons.of(ctx)).setActive(true)
-	local streakLine = text({
+	local streakLine = Widgets.label({
 		Name = "Streak",
+		TextSize = rows.top.size,
 		TextColor3 = Theme.Muted,
-		Size = UDim2.new(1, 0, 0, 20),
-		Position = UDim2.fromOffset(0, 46),
+		Position = UDim2.fromOffset(0, rows.top.y),
+		Size = UDim2.new(1 - DailyPopup.CHIP_SHARE, -tile.gap, 0, rows.top.h),
+		Parent = body,
+	})
+	local chip = Widgets.chip({
+		Name = "Tomorrow",
+		TextSize = rows.top.chipSize,
+		TextColor3 = Theme.Muted,
+		TextScaled = true,
+		AutomaticSize = Enum.AutomaticSize.None,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, rows.top.y),
+		Size = UDim2.new(DailyPopup.CHIP_SHARE, 0, 0, rows.top.h),
+		Visible = false,
+		Parent = body,
+	})
+	create("UITextSizeConstraint", {
+		MinTextSize = tile.minAmountSize,
+		MaxTextSize = rows.top.chipSize,
+		Parent = chip,
 	})
 
-	-- 7-day calendar: one reward tile per streak day, the last (cap) day wider.
-	local TILE_H, TILE_GAP, LAST_WEIGHT = 66, 4, 1.6
-	local weightSum = (cap - 1) + LAST_WEIGHT
+	local weightSum = (cap - 1) + tile.lastWeight
 	local track = create("Frame", {
 		Name = "Track",
 		BackgroundTransparency = 1,
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 72),
-		Size = UDim2.new(1, -24, 0, TILE_H),
-		ZIndex = 22,
-		Parent = card,
-	}, { Widgets.list(Enum.FillDirection.Horizontal, TILE_GAP, Enum.HorizontalAlignment.Center) })
-	local cells: { Frame } = {}
-	local dayLabels: { TextLabel } = {}
-	local dayAmounts: { TextLabel } = {}
+		Position = UDim2.fromOffset(0, rows.track.y),
+		Size = UDim2.new(1, 0, 0, rows.track.h),
+		Parent = body,
+	}, { Widgets.list(Enum.FillDirection.Horizontal, tile.gap, Enum.HorizontalAlignment.Center) })
+	type Tile = { frame: Frame, stroke: UIStroke, label: TextLabel, amount: TextLabel }
+	local tiles: { Tile } = {}
 	for day = 1, cap do
-		local weight = if day == cap then LAST_WEIGHT else 1
-		local cell = create("Frame", {
+		local last = day == cap
+		local weight = if last then tile.lastWeight else 1
+		local frame = Widgets.rowFrame({
 			Name = `Day{day}`,
 			LayoutOrder = day,
-			BackgroundColor3 = Theme.BgLight,
-			Size = UDim2.new(weight / weightSum, -TILE_GAP, 1, 0),
-			ZIndex = 23,
+			Size = UDim2.new(weight / weightSum, -tile.gap, 1, 0),
 			Parent = track,
-		}, { Widgets.corner(8) })
-		dayLabels[day] = Widgets.label({
-			Name = "DayLabel",
-			Text = `Day {day}`,
-			Font = Theme.Font,
-			TextSize = if day == cap then 12 else 10,
-			TextXAlignment = Enum.TextXAlignment.Center,
-			Size = UDim2.new(1, 0, 0, 14),
-			Position = UDim2.fromOffset(0, 3),
-			ZIndex = 24,
-			Parent = cell,
 		})
-		local iconSize = if day == cap then 30 else 22
+		Widgets.shade(frame)
+		local label = Widgets.label({
+			Name = "DayLabel",
+			Text = DailyPopup.dayLabel(day, "upcoming", cap),
+			Font = Theme.Font,
+			TextSize = if last then tile.lastLabelSize else tile.labelSize,
+			TextColor3 = Theme.Muted,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			TextTruncate = Enum.TextTruncate.None,
+			Size = UDim2.new(1, 0, 0, tile.labelH),
+			Position = UDim2.fromOffset(0, tile.labelY),
+			Parent = frame,
+		})
+		local iconSize = if last then tile.lastIcon else tile.icon
 		ItemIconView.new({
 			Name = `Day{day}Icon`,
 			Id = "Cash",
 			Size = iconSize,
 			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 18),
-			ZIndex = 24,
-			Parent = cell,
-		}, ItemIcons.of(ctx)).setActive(true)
-		local amountLabel = Widgets.label({
+			Position = UDim2.new(0.5, 0, 0, tile.iconY + (tile.icon - iconSize) / 2),
+			Parent = frame,
+		}, icons).setActive(true)
+		local amount = Widgets.label({
 			Name = "DayAmount",
 			Font = Theme.Font,
-			TextSize = 11,
+			TextSize = if last then tile.lastAmountSize else tile.amountSize,
 			TextScaled = true,
+			TextColor3 = Theme.Gold,
 			TextXAlignment = Enum.TextXAlignment.Center,
-			Size = UDim2.new(1, -4, 0, 14),
-			Position = UDim2.new(0, 2, 1, -17),
-			ZIndex = 24,
-			Parent = cell,
+			Size = UDim2.new(1, -4, 0, tile.amountH),
+			Position = UDim2.new(0, 2, 1, -(tile.amountH + tile.amountInset)),
+			Parent = frame,
 		})
-		create(
-			"UITextSizeConstraint",
-			{ MinTextSize = 8, MaxTextSize = if day == cap then 14 else 11, Parent = amountLabel }
-		)
-		dayAmounts[day] = amountLabel
-		cells[day] = cell
+		create("UITextSizeConstraint", {
+			MinTextSize = tile.minAmountSize,
+			MaxTextSize = if last then tile.lastAmountSize else tile.amountSize,
+			Parent = amount,
+		})
+		tiles[day] = {
+			frame = frame,
+			stroke = frame:FindFirstChildOfClass("UIStroke") :: UIStroke,
+			label = label,
+			amount = amount,
+		}
 	end
 
-	local amount = text({
+	local amount = Widgets.label({
 		Name = "Amount",
 		Font = Theme.Font,
-		TextSize = 36,
+		TextSize = rows.amount.size,
 		TextColor3 = Theme.Gold,
-		Size = UDim2.new(1, 0, 0, 44),
-		Position = UDim2.fromOffset(0, 146),
-	})
-	ItemIconView.new({
-		Name = "CashIcon",
-		Id = "Cash",
-		Size = 36,
-		Position = UDim2.fromOffset(16, 150),
-		ZIndex = 22,
-		Parent = card,
-	}, ItemIcons.of(ctx)).setActive(true)
-	local hint = text({
-		Name = "Hint",
-		TextSize = 13,
-		TextColor3 = Theme.Muted,
-		Size = UDim2.new(1, 0, 0, 18),
-		Position = UDim2.fromOffset(0, 192),
-		Text = "Come back every day to grow your streak.",
+		TextStrokeColor3 = Theme.Ink,
+		TextStrokeTransparency = 0,
+		TextXAlignment = Enum.TextXAlignment.Center,
+		Position = UDim2.fromOffset(0, rows.amount.y),
+		Size = UDim2.new(1, 0, 0, rows.amount.h),
+		Parent = body,
 	})
 
 	local claim = Widgets.button(
 		{
 			Name = "Claim",
 			Text = "Claim!",
-			TextSize = 20,
-			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -16),
-			Size = UDim2.fromOffset(200, Layout.BUTTON),
-			ZIndex = 22,
+			TextSize = rows.claimSize,
+			Position = UDim2.new(0, 0, 1, -Layout.BUTTON),
+			Size = UDim2.new(1, 0, 0, Layout.BUTTON),
 		},
 		Theme.Gold,
 		function()
 			ctx.send("Daily")
 		end
 	)
-	claim.instance.TextColor3 = Color3.fromRGB(40, 30, 10)
-	claim.instance.Parent = card
+	claim.instance.Parent = body
 
 	local self = { frame = backdrop }
 
-	local close = Widgets.button(
-		{
-			Name = "Close",
-			Text = "X",
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -10, 0, 10),
-			Size = UDim2.fromOffset(Layout.MIN_TOUCH_DESIGN, Layout.MIN_TOUCH_DESIGN),
-			ZIndex = 22,
-		},
-		Theme.BgLight,
-		function()
-			self.close()
-		end
-	)
-	close.instance.Parent = card
+	panel.close.Activated:Connect(function()
+		self.close()
+	end)
 
 	local closeToken = 0
 
@@ -240,25 +241,30 @@ function DailyPopup.new(parent: Instance, ctx: any)
 		local mult: number = state.rebirthMultiplier or 1
 		local day = Daily.dayOf(daily, base, mult, cap)
 		for _, c in Daily.track(day, cap, available) do
-			local cell = cells[c.day]
-			if cell then
-				local dim = c.state == "upcoming"
-				local ink = if dim then Theme.Muted else Color3.fromRGB(30, 30, 40)
-				cell.BackgroundColor3 = CELL_COLORS[c.state]
-				cell.BackgroundTransparency = if dim then 0.35 else 0
-				dayLabels[c.day].Text = if c.state == "claimed" then "\u{2705}" else `Day {c.day}`
-				dayLabels[c.day].TextColor3 = ink
-				dayAmounts[c.day].Text = Format.formatCash(Daily.reward(c.day, base, mult))
-				dayAmounts[c.day].TextColor3 = ink
+			local t = tiles[c.day]
+			if t then
+				local today = c.state == "today"
+				local fill = if today then Theme.Gold else Theme.Row
+				t.frame.BackgroundColor3 = fill
+				t.stroke.Thickness = if today then Widgets.KIT.stroke else Widgets.KIT.rowStroke
+				t.label.Text = DailyPopup.dayLabel(c.day, c.state, cap)
+				t.amount.Text = Format.formatCash(Daily.reward(c.day, base, mult))
+				if today then
+					Widgets.inkOn(t.label, fill)
+					Widgets.inkOn(t.amount, fill)
+				else
+					t.label.TextColor3 = if c.state == "claimed" then Theme.Good else Theme.Muted
+					t.amount.TextColor3 = if c.state == "claimed" then Theme.Muted else Theme.Gold
+				end
 			end
 		end
 		streakLine.Text = if available
 			then `Day {day} of your streak`
 			else `Streak: {daily.streak} day{if daily.streak == 1 then "" else "s"}`
+		local tomorrow = if base > 0 then Daily.reward(math.min(day + 1, cap), base, mult) else 0
+		chip.Text = `Come back tomorrow for {Format.formatCash(tomorrow)}`
+		chip.Visible = tomorrow > 0
 		amount.Text = if available then `+{Format.formatCash(daily.amount)}` else "Claimed!"
-		hint.Text = if available
-			then "Come back every day to grow your streak."
-			else "Come back tomorrow for the next reward."
 		claim.setEnabled(available)
 		claim.setText(if available then "Claim!" else "Claimed")
 

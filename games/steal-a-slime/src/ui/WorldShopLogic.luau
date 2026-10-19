@@ -17,7 +17,7 @@ local Shops = if Shared then require(Shared:WaitForChild("Shops")) else require(
 local Format = if script then require(script.Parent.Format) else require("./Format")
 local ShopCatalog = if script then require(script.Parent.ShopCatalog) else require("./ShopCatalog")
 
-export type Status = "buy" | "locked" | "maxed" | "owned" | "soldOut" | "unavailable"
+export type Status = "buy" | "locked" | "maxed" | "owned" | "soldOut" | "unavailable" -- ShopCatalog.Status
 
 export type Row = {
 	id: string, -- Shared.Shops item id (the ShopBuy itemId)
@@ -29,7 +29,10 @@ export type Row = {
 	enabled: boolean,
 	buttonText: string,
 	levelText: string?,
-	progress: number?, -- level / maxLevel of a leveled upgrade (the Upgrade Shop's level bar)
+	progress: number?, -- level / maxLevel of a leveled upgrade
+	level: number?, -- leveled upgrades: one pip per maxLevel, the first `level` filled
+	maxLevel: number?,
+	stockText: string?, -- restocking consumables: the "2/3 left" tag under the icon
 	price: number?,
 }
 
@@ -113,7 +116,7 @@ end
 -- The line under the cash that says what kind of shop this is (the Item Shop's restock timer takes its place).
 WorldShopLogic.TAGLINE = table.freeze({
 	ItemShop = "Tools, eggs & potions",
-	UpgradeShop = "Permanent - kept on rebirth",
+	UpgradeShop = "Kept when you rebirth",
 })
 
 function WorldShopLogic.tagline(shopId: string): string
@@ -156,20 +159,15 @@ local function staticRow(shopId: string, item: Shops.Item, state: any, actions: 
 		return nil
 	end
 	local view = ShopCatalog.view(catalogItem, state, actions, config)
-	local status = ShopCatalog.status(catalogItem, state)
-	local kind: Status = "buy"
-	if not view.available then
-		kind = "unavailable"
-	elseif view.maxed then
-		kind = if status and status.owned then "owned" else "maxed"
-	end
 	return row(shopId, item, {
 		description = view.description,
-		status = kind,
+		status = view.status,
 		enabled = view.enabled,
 		buttonText = view.buttonText,
 		levelText = view.levelText,
 		progress = view.progress,
+		level = view.level,
+		maxLevel = view.maxLevel,
 		price = view.price,
 	})
 end
@@ -189,22 +187,16 @@ local function upgradeRow(shopId: string, item: Shops.Item, state: any, actions:
 	if not view then
 		return nil
 	end
-	local kind: Status = "buy"
-	if not view.available then
-		kind = "unavailable"
-	elseif view.maxed then
-		kind = "maxed"
-	elseif entry.unlocked == false then
-		kind = "locked"
-	end
 	return row(shopId, item, {
 		name = view.item.name,
 		description = view.description,
-		status = kind,
+		status = view.status,
 		enabled = view.enabled,
 		buttonText = view.buttonText,
 		levelText = view.levelText,
 		progress = view.progress,
+		level = view.level,
+		maxLevel = view.maxLevel,
 		price = view.price,
 	})
 end
@@ -232,19 +224,14 @@ local function consumableRow(shopId: string, item: Shops.Item, state: any, actio
 		slimes = state.slimes,
 		favoriteId = state.favoriteId,
 	}, actions)[1]
-	local kind: Status = "buy"
-	if not catalog.available then
-		kind = "unavailable"
-	elseif catalog.maxed then
-		kind = "soldOut"
-	end
 	return row(shopId, item, {
 		name = entry.name or item.name,
 		description = (WorldShopLogic.CONSUMABLE_SHORT :: any)[item.id] or catalog.description,
-		status = kind,
+		status = catalog.status,
 		enabled = catalog.enabled,
 		buttonText = catalog.buttonText,
 		levelText = catalog.levelText,
+		stockText = catalog.stockText,
 		price = catalog.price,
 	})
 end
@@ -320,6 +307,29 @@ function WorldShopLogic.restockAt(shopId: string, state: any, features: any): nu
 	end
 	local view = if type(state) == "table" then state.consumables else nil
 	return if type(view) == "table" and type(view.restockAt) == "number" then view.restockAt else nil
+end
+
+export type Slot = {
+	kind: "buy" | "status" | "stamp", -- hold-to-buy button, sunken state well, or the small gold MAX stamp
+	text: string,
+	sub: string?, -- small second line of a status well
+	good: boolean?, -- status text in the buy green ("✅ Owned")
+}
+
+-- What a row shows on its right: the Buy button while it can be bought (disabled when you can't afford it),
+-- otherwise the state it is in. Takes a WorldShopLogic.Row or a ShopCatalog.ItemView.
+function WorldShopLogic.slot(r: { status: Status, buttonText: string }): Slot
+	local status = r.status
+	if status == "buy" then
+		return { kind = "buy", text = r.buttonText }
+	elseif status == "maxed" then
+		return { kind = "stamp", text = "MAX" }
+	elseif status == "owned" then
+		return { kind = "status", text = "✅ Owned", good = true }
+	elseif status == "locked" then
+		return { kind = "status", text = `🔒 {r.buttonText}`, sub = "to unlock" }
+	end
+	return { kind = "status", text = r.buttonText }
 end
 
 -- Request("ShopBuy", ...) arguments of a row: shopId, itemId.

@@ -1,7 +1,8 @@
 --!strict
 -- SlimePreview (src/ui/SlimePreview.luau) under tests/ui/UiHarness.luau: the
 -- Ball + eyes builder, locked silhouettes, viewport mount / recycle, and the
--- SlimeDex panel's ViewportFrame previews at every gate viewport.
+-- SlimeDex panel's ViewportFrame previews at every gate viewport, list virtualisation (syncNearest) and the
+-- Plot rows' previews.
 local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
@@ -242,7 +243,7 @@ describe("SlimeDex previews rebuild only while open", function()
 		panel.update({ dex = MORE })
 		expect(panel.builds()).toBe(1)
 		expect(cardIn(panel, "moo"):GetAttribute("Found")).toBe(false)
-		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`Species 4 / {SpeciesDex.TOTAL}`) -- header still live
+		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`Species 4/{SpeciesDex.TOTAL}`) -- header still live
 	end)
 	it("rebuilds on open when dirty (never built, or changed while closed)", function()
 		local panel = closedDex()
@@ -277,5 +278,175 @@ describe("SlimeDex previews rebuild only while open", function()
 		panel.update({ dex = DEX }) -- init.client updates right after opening
 		expect(panel.builds()).toBe(1)
 		expect(world:GetChildren()[1]).toBe(model)
+	end)
+end)
+
+describe("SlimePreview.syncNearest", function()
+	local function entries(n: number): { any }
+		local out = {}
+		for i = 1, n do
+			local slime = Fixtures.slime(`e{i}`)
+			table.insert(
+				out,
+				{ viewport = UiHarness.Instance.new("ViewportFrame"), slime = slime, y = (i - 1) * 50, h = 50 }
+			)
+		end
+		return out
+	end
+	local function liveSet(list: { any }): { [number]: boolean }
+		local out = {}
+		for i, e in list do
+			if e.viewport:GetAttribute("Look") ~= nil then
+				out[i] = true
+			end
+		end
+		return out
+	end
+	it("mounts the MAX_LIVE rows nearest the window centre and empties the rest", function()
+		local list = entries(SlimePreview.MAX_LIVE + 10)
+		SlimePreview.syncNearest(list, 0, nil)
+		local live = liveSet(list)
+		expect(live[1]).toBe(true)
+		expect(live[SlimePreview.MAX_LIVE]).toBe(true)
+		expect(live[SlimePreview.MAX_LIVE + 1]).toBe(nil)
+		expect(list[1].viewport.Visible).toBe(true)
+		expect(list[#list].viewport.Visible).toBe(false)
+		-- Scrolled to the bottom: the top rows are emptied, the bottom ones mount.
+		SlimePreview.syncNearest(list, #list * 50, nil)
+		live = liveSet(list)
+		expect(live[1]).toBe(nil)
+		expect(list[1].viewport.Visible).toBe(false)
+		expect(#list[1].viewport:GetChildren()).toBe(0)
+		expect(live[#list]).toBe(true)
+	end)
+	it("remounts a viewport only when the slime's look changes", function()
+		local builds = 0
+		local function build(genome: any): any
+			builds += 1
+			local model = UiHarness.Instance.new("Model")
+			model.Name = `Slime_{genome.id}`
+			return model
+		end
+		local vf = UiHarness.Instance.new("ViewportFrame")
+		local slime = Fixtures.slime("a")
+		SlimePreview.mountSlime(vf, slime, { slime = build })
+		SlimePreview.mountSlime(vf, table.clone(slime), { slime = build })
+		expect(builds).toBe(1)
+		SlimePreview.mountSlime(vf, Fixtures.slime("a", 1, { pattern = "Spots" }), { slime = build })
+		expect(builds).toBe(2)
+		expect(SlimePreview.lookOf(slime) ~= SlimePreview.lookOf(Fixtures.slime("a", 1, { size = 1.5 }))).toBe(true)
+	end)
+	it("shows the species mesh like the SlimeDex, and switches to it once it replicates", function()
+		local meshReady = false
+		local speciesAsked, generated = 0, 0
+		local builders = {
+			species = function(id: string): any
+				speciesAsked += 1
+				if not meshReady then
+					return nil
+				end
+				local model = UiHarness.Instance.new("Model")
+				model.Name = `Dex_{id}`
+				return model
+			end,
+			slime = function(genome: any): any
+				generated += 1
+				local model = UiHarness.Instance.new("Model")
+				model.Name = `Slime_{genome.id}`
+				return model
+			end,
+		}
+		local vf = UiHarness.Instance.new("ViewportFrame")
+		local slime = Fixtures.slime("a")
+		slime.species = "gummy"
+		-- No mesh yet: the generated model, built once however often the row updates.
+		SlimePreview.mountSlime(vf, slime, builders)
+		SlimePreview.mountSlime(vf, slime, builders)
+		expect(generated).toBe(1)
+		expect(vf.Visible).toBe(true)
+		-- The mesh arrives: the next update swaps it in, and later updates don't ask again.
+		meshReady = true
+		SlimePreview.mountSlime(vf, slime, builders)
+		local asked = speciesAsked
+		SlimePreview.mountSlime(vf, slime, builders)
+		expect(speciesAsked).toBe(asked)
+		expect(generated).toBe(1)
+		expect(string.sub(vf:GetAttribute("Look"), -5)).toBe(":mesh")
+		-- A slime without a species never asks for a mesh.
+		local plain = UiHarness.Instance.new("ViewportFrame")
+		local before = speciesAsked
+		local other = Fixtures.slime("b")
+		other.species = nil
+		SlimePreview.mountSlime(plain, other, builders)
+		expect(speciesAsked).toBe(before)
+	end)
+end)
+
+describe("Plot panel slime previews", function()
+	local Widgets = UiHarness.ui("Widgets")
+	local built: { string } = {}
+	local function fakeBuild(genome: any): any
+		local model = UiHarness.Instance.new("Model")
+		model.Name = `Slime_{genome.id}`
+		local body = UiHarness.Instance.new("Part")
+		body.Name = "Body"
+		body.Size = roblox.Vector3.new(4, 3, 4)
+		body.Parent = model
+		table.insert(built, genome.id)
+		return model
+	end
+	local N = SlimePreview.MAX_LIVE + 6
+	local function plotState(n: number): any
+		local slimes = {}
+		for i = 1, n do
+			table.insert(slimes, { slime = Fixtures.slime(string.format("p%02d", i)), income = 1, sellPrice = 5 })
+		end
+		return { slimes = slimes, padsUnlocked = n, incomePerSec = n }
+	end
+	local function plot(build: any): any
+		local c = ctx()
+		c.buildSlime = build
+		return UiHarness.ui("Panels/Plot").new(UiHarness.root(), c)
+	end
+	local function previewOf(panel: any, id: string): any
+		return UiHarness.find(UiHarness.find(UiHarness.find(panel.frame, "List"), id), "Preview")
+	end
+
+	it("the first rows show their built model in an ink well; rows past the cap keep the colour circle", function()
+		table.clear(built)
+		local panel = plot(fakeBuild)
+		panel.setOpen(true)
+		panel.update(plotState(N))
+		expect(#built).toBe(SlimePreview.MAX_LIVE)
+		local first = previewOf(panel, "p01")
+		expect(first.Visible).toBe(true)
+		expect(UiHarness.find(first, "Slime_p01") ~= nil).toBe(true)
+		expect(first.Parent.BackgroundColor3).toBe(Widgets.Theme.Row:Lerp(Widgets.Theme.Ink, SlimePreview.WELL_TINT))
+		local last = previewOf(panel, string.format("p%02d", N))
+		expect(last.Visible).toBe(false)
+		expect(last.Parent.BackgroundColor3).toBe(Widgets.color3(Fixtures.slime("x").color))
+	end)
+	it("a second State push with the same slimes does not rebuild", function()
+		table.clear(built)
+		local panel = plot(fakeBuild)
+		panel.setOpen(true)
+		panel.update(plotState(N))
+		panel.update(plotState(N))
+		expect(#built).toBe(SlimePreview.MAX_LIVE)
+	end)
+	it("a closed card mounts nothing; a failing builder falls back to the blob", function()
+		table.clear(built)
+		local closed = plot(fakeBuild)
+		closed.update(plotState(3))
+		expect(#built).toBe(0)
+		expect(previewOf(closed, "p01").Visible).toBe(false)
+		local failing = plot(function()
+			error("no Visuals")
+		end)
+		failing.setOpen(true)
+		failing.update(plotState(3))
+		local p = previewOf(failing, "p01")
+		expect(p.Visible).toBe(true)
+		expect(UiHarness.find(p, "Body") ~= nil).toBe(true)
 	end)
 end)

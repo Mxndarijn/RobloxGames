@@ -95,7 +95,8 @@ describe("menus at the five gate viewports (v28: full-window backdrop, content-s
 		local guide = read("src/ui/Panels/Guide.luau")
 		expect(has(guide, "Guide.TIP_H = 44")).toBe(true)
 		local rebirth = read("src/ui/Panels/Rebirth.luau")
-		expect(has(rebirth, "slime = { y = 120, h = 72 }")).toBe(true)
+		expect(has(rebirth, "need = { y = 24, h = 128 }")).toBe(true)
+		expect(has(rebirth, "gives = { y = 180, h = 50 }")).toBe(true)
 		expect(has(rebirth, "button = { y = 276, h = Layout.BUTTON }")).toBe(true)
 		expect(has(rebirth, "note = { y = 338, h = 18 }")).toBe(true)
 	end)
@@ -394,7 +395,7 @@ describe("landscape phone (v27 gate N1)", function()
 		expect(has(check.report(), "Dex list is")).toBe(true)
 	end)
 	it("init.client places panels via panel.layout", function()
-		expect(has(read("src/ui/init.client.luau"), "entry.panel.layout(r)")).toBe(true)
+		expect(has(read("src/ui/init.client.luau"), "entry.panel.layout(r, s)")).toBe(true)
 	end)
 end)
 
@@ -453,8 +454,10 @@ describe("touch-size buttons in the overlays", function()
 		expect(has(read("src/ui/Panels/Carry.luau"), "Size = UDim2.fromOffset(100, Layout.BUTTON)")).toBe(true)
 		expect(has(read("src/ui/Panels/Carry.luau"), "Slap")).toBe(false) -- the Bat Tool replaced the button
 		local daily = read("src/ui/Panels/DailyPopup.luau")
-		expect(has(daily, "Size = UDim2.fromOffset(200, Layout.BUTTON)")).toBe(true)
-		expect(has(daily, "Size = UDim2.fromOffset(Layout.MIN_TOUCH_DESIGN, Layout.MIN_TOUCH_DESIGN)")).toBe(true)
+		expect(has(daily, "Size = UDim2.new(1, 0, 0, Layout.BUTTON)")).toBe(true)
+		-- The close X comes from the shared panel frame (PANEL_CHROME.close = MIN_TOUCH_DESIGN).
+		expect(has(daily, 'Widgets.panel(backdrop, "Card", "Daily Reward"')).toBe(true)
+		expect(Layout.PANEL_CHROME.close >= Layout.MIN_TOUCH_DESIGN).toBe(true)
 		expect(has(read("src/ui/Panels/TutorialOverlay.luau"), "Size = UDim2.fromOffset(72, Layout.MIN_TOUCH_DESIGN)")).toBe(
 			true
 		)

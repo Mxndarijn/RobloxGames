@@ -127,7 +127,7 @@ describe("SlimeDex.grid / lines", function()
 		local lines = SlimeDex.lines(cards, 3, Config)
 		expect(lines[1].kind).toBe("header")
 		expect(lines[1].title).toBe(Config.RARITIES[1].name)
-		expect(lines[1].detail).toBe(`2 / {SpeciesDex.tierSize(1)}`)
+		expect(lines[1].detail).toBe(`2/{SpeciesDex.tierSize(1)} found`)
 		local headers, placed = {}, 0
 		for _, line in lines do
 			if line.kind == "header" then
@@ -145,11 +145,12 @@ describe("SlimeDex.grid / lines", function()
 end)
 
 describe("SlimeDex.summary", function()
-	it("shows species and bonus Secrets", function()
+	it("gives the species and bonus Secrets chips", function()
 		local s = SlimeDex.summary(DEX)
-		expect(s.count).toBe(`Species 3 / {SpeciesDex.TOTAL}`)
+		expect(s.count).toBe(`Species 3/{SpeciesDex.TOTAL}`)
 		expect(s.percent).toBe(`{math.floor(3 / SpeciesDex.TOTAL * 100)}%`)
-		expect(s.secrets).toBe(`Secrets 0 / {#SpeciesDex.BONUS}`)
+		expect(s.secrets).toBe(`Secrets 0/{#SpeciesDex.BONUS}`)
+		expect(SlimeDex.summary({ found = 0, total = 50 }).secrets).toBeNil()
 		expect(SlimeDex.summary(nil).percent).toBe("0%")
 	end)
 end)
@@ -181,8 +182,8 @@ describe("SlimeDex panel", function()
 	it("is titled SlimeDex and shows the species and Secrets counts", function()
 		local panel = openDex(390, 844, DEX)
 		expect(UiHarness.find(panel.frame, "Title").Text).toBe("SlimeDex")
-		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`Species 3 / {SpeciesDex.TOTAL}`)
-		expect(string.find(UiHarness.find(panel.frame, "Caption").Text, "Secrets 0", 1, true) ~= nil).toBe(true)
+		expect(UiHarness.find(panel.frame, "Count").Text).toBe(`Species 3/{SpeciesDex.TOTAL}`)
+		expect(UiHarness.find(panel.frame, "Secrets").Text).toBe(`Secrets 0/{#SpeciesDex.BONUS}`)
 	end)
 	it("a found card has its name; an unfound one is ??? with a ? glyph", function()
 		local panel = openDex(1920, 1080, DEX)
@@ -287,37 +288,80 @@ describe("SpeciesModel (the card's species mesh)", function()
 end)
 
 describe("SlimeDex.header (short panel bodies)", function()
-	it("keeps the bar and rewards on a tall body", function()
-		local h = SlimeDex.header(700, true)
-		expect(h.bar and h.rewards).toBe(true)
-		expect(h.rewardsY).toBe(SlimeDex.HEADER.bar)
-		expect(h.listTop).toBe(SlimeDex.HEADER.bar + SlimeDex.HEADER.gap + SlimeDex.HEADER.rewards)
-		expect(SlimeDex.header(700, false).listTop).toBe(SlimeDex.HEADER.bar + SlimeDex.HEADER.gap)
+	it("keeps the big percent and every chip row on a tall body", function()
+		local H = SlimeDex.HEADER
+		local one = SlimeDex.header(700, 1)
+		expect(one.compact).toBe(false)
+		expect(one.listTop).toBe(H.percent + H.gap)
+		local two = SlimeDex.header(700, true)
+		expect(two.listTop).toBe(math.max(H.percent, H.chip * 2 + H.chipGap) + H.gap)
+		expect(SlimeDex.header(700, false).listTop).toBe(H.percent + H.gap)
 	end)
-	it("drops the rewards, then the bar, until the list keeps MIN_LIST", function()
-		local noRewards = SlimeDex.header(160, true)
-		expect(noRewards.rewards).toBe(false)
-		expect(noRewards.bar).toBe(true)
+	it("turns compact (one chip row) when the list would drop under MIN_LIST", function()
 		local minimal = SlimeDex.header(131, true) -- the 844x332 body
-		expect(minimal.bar).toBe(false)
+		expect(minimal.compact).toBe(true)
 		expect(131 - minimal.listTop >= SlimeDex.MIN_LIST).toBe(true)
+		expect(SlimeDex.header(131, false).compact).toBe(true)
+	end)
+	it("chipRows wraps chips that do not fit and hides the ones past maxRows", function()
+		local spots, rows = SlimeDex.chipRows({ 100, 100, 100 }, 50, 250, 5)
+		expect(rows).toBe(3)
+		expect(spots[1].x).toBe(50)
+		expect(spots[2].x).toBe(50) -- 50 + 100 + 6 + 100 > 250: next row
+		expect(spots[2].y).toBe(SlimeDex.HEADER.chip + SlimeDex.HEADER.chipGap)
+		local capped = SlimeDex.chipRows({ 100, 100, 100 }, 50, 250, 1)
+		expect(capped[1].visible).toBe(true)
+		expect(capped[2].visible).toBe(false)
 	end)
 	for _, vp in { { 390, 844 }, { 844, 390 }, { 844, 332 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } } do
-		it(`{vp[1]}x{vp[2]}: the real panel's list is at least MIN_LIST tall`, function()
+		it(`{vp[1]}x{vp[2]}: the real panel's list is at least MIN_LIST tall, under the chips`, function()
 			local panel, r = openDex(vp[1], vp[2], DEX, {
 				dexRewards = { { ladder = "species", count = 8, reward = 1000, bonus = 0.02, claimed = false } },
 			})
 			local list = UiHarness.find(panel.frame, "List")
-			local bodyH = Layout.panelBody(r).h
+			local body = Layout.panelBody(r)
+			local bodyH = body.h
 			local listH = list.Size.Y.Scale * bodyH + list.Size.Y.Offset
 			expect(listH >= SlimeDex.MIN_LIST).toBe(true)
 			expect(list.Position.Y.Offset + listH <= bodyH + 1e-6).toBe(true)
-			local rewards = UiHarness.find(panel.frame, "Rewards")
-			if rewards.Visible then
-				expect(rewards.Position.Y.Offset + rewards.Size.Y.Offset <= list.Position.Y.Offset).toBe(true)
+			for _, name in { "Percent", "Count", "Secrets" } do
+				local item = UiHarness.find(panel.frame, name)
+				if item.Visible then
+					expect(item.Position.Y.Offset + item.Size.Y.Offset <= list.Position.Y.Offset).toBe(true)
+					expect(item.Position.X.Offset + item.Size.X.Offset <= body.w).toBe(true)
+				end
 			end
 		end)
 	end
+end)
+
+describe("SlimeDex.rewardCard", function()
+	local REWARDS = {
+		{ ladder = "species", count = 8, reward = 1000, bonus = 0.02, claimed = true },
+		{ ladder = "species", count = 15, reward = 5000, bonus = 0.03, claimed = false },
+		{ ladder = "species", count = 50, reward = 1e7, bonus = 0.15, claimed = false },
+	}
+	it("names the next species milestone, its pay and every tick to scale", function()
+		local rc = SlimeDex.rewardCard({ dex = { found = 10 }, dexRewards = REWARDS }) :: SlimeDex.RewardCard
+		expect(rc.title).toBe("Next reward at 15 species")
+		expect(rc.reward).toBe("+$5K and +3% income")
+		expect(rc.fraction).toBeCloseTo(10 / 50)
+		expect(#rc.ticks).toBe(3)
+		expect(rc.ticks[1].at).toBeCloseTo(8 / 50)
+		expect(rc.ticks[1].claimed).toBe(true)
+		expect(rc.ticks[2].isNext).toBe(true)
+		expect(rc.ticks[3].at).toBe(1)
+	end)
+	it("fills the bar once every species milestone is claimed; nil without species milestones", function()
+		local done = SlimeDex.rewardCard({
+			dex = { found = 50 },
+			dexRewards = { { ladder = "species", count = 50, reward = 1, bonus = 0.1, claimed = true } },
+		}) :: SlimeDex.RewardCard
+		expect(done.reward).toBeNil()
+		expect(done.fraction).toBe(1)
+		expect(SlimeDex.rewardCard({ dex = {} })).toBeNil()
+		expect(SlimeDex.rewardCard({ dexRewards = {} })).toBeNil()
+	end)
 end)
 
 describe("menu close button (Widgets.panel)", function()

@@ -14,6 +14,10 @@
 	(cooldown, safe zone, out of reach) shows as a short tip above the slot. The last cell is the bag: it opens the inventory panel, a grid of everything
 	held (also the items that did not fit the bar on a narrow phone). Hidden while carrying (the server
 	unequips tools then) and while a menu is open. Client-only: the stack counts come from State.consumables.
+
+	The bag panel's cells are hotbar slots (same fill, outline, selection ring and key number for the items on
+	the bar) with the name under the picture; empty Ink slots fill the grid to whole rows (InventoryLayout.CELL)
+	and the card is sized to that grid. A tap / click on a cell equips like the hotbar and closes the panel.
 ]]
 
 local InventoryCore = require(script.Parent.InventoryCore)
@@ -43,6 +47,15 @@ Inventory.COLORS = table.freeze({
 	selected = Color3.fromRGB(128, 86, 224),
 	stroke = Color3.fromRGB(10, 10, 20),
 	ring = Color3.fromRGB(255, 255, 255),
+})
+
+-- Bag panel text sizes and the empty slot's see-through Ink.
+Inventory.PANEL = table.freeze({
+	hintSize = 14,
+	chipSize = 13,
+	nameSize = 14,
+	emptyTransparency = 0.45,
+	chipRoom = 96, -- width the hint leaves for the count chip
 })
 
 local KEYS: { [Enum.KeyCode]: number } = {
@@ -375,6 +388,14 @@ function Inventory.new(parent: Instance, deps: Deps)
 	end)
 	bag.MouseLeave:Connect(hideTip)
 
+	-- The bar for the current entries and screen (geometry only).
+	local function barGeometry(): InventoryLayout.Bar
+		local zone = if screen then screen.hotbar else Layout.rect(0, 0, 600, 67)
+		local compact = if screen then screen.compact else false
+		local tight = if screen then screen.tight else false
+		return InventoryLayout.bar(zone, #entries, compact, Layout.MIN_TOUCH_DESIGN, tight)
+	end
+
 	-- Inventory panel -------------------------------------------------------------------------------
 	local backdrop = create("TextButton", {
 		Name = "InventoryBackdrop",
@@ -386,18 +407,46 @@ function Inventory.new(parent: Instance, deps: Deps)
 		ZIndex = Layout.ZINDEX.Menu,
 		Parent = parent,
 	}) :: TextButton
-	local panel = Widgets.panel(parent, "InventoryPanel", "Inventory", "🎒", Color3.fromRGB(120, 80, 210))
-	local list = Widgets.scroll({ Name = "Grid", Parent = panel.body })
+	local panel = Widgets.panel(parent, "InventoryPanel", "Inventory", "🎒")
+	local P = Inventory.PANEL
+	local CELL = InventoryLayout.CELL
+	Widgets.label({
+		Name = "Hint",
+		Text = `{if keyboard then "Click" else "Tap"} an item to equip it.`,
+		TextSize = P.hintSize,
+		TextColor3 = Theme.Muted,
+		Size = UDim2.new(1, -P.chipRoom, 0, CELL.top),
+		Parent = panel.body,
+	})
+	local countChip = Widgets.chip({
+		Name = "Count",
+		Font = Theme.FontBody,
+		TextSize = P.chipSize,
+		TextColor3 = Theme.Muted,
+		BackgroundColor3 = Theme.Row,
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 1),
+		Size = fromOffset(0, CELL.top - 2),
+		Parent = panel.body,
+	})
+	local list = Widgets.scroll({
+		Name = "Grid",
+		AutomaticCanvasSize = Enum.AutomaticSize.None,
+		Position = fromOffset(0, CELL.top + CELL.topGap),
+		Size = UDim2.new(1, 0, 1, -(CELL.top + CELL.topGap)),
+		Parent = panel.body,
+	})
 	local gridCells: { Slot } = {}
 	local cellNames: { TextLabel } = {}
+	local emptyCells: { Frame } = {}
 
 	local function makeCell(): (Slot, TextLabel)
-		local cell = InventoryLayout.CELL
-		local slot = makeSlot(list, cell.icon + 14, false)
-		slot.button.Size = fromOffset(cell.w, cell.h)
-		slot.icon.instance.Size = fromOffset(cell.icon, cell.icon)
+		local slot = makeSlot(list, CELL.max, false)
+		slot.button.Name = "Item"
+		Widgets.shade(slot.button)
 		slot.icon.instance.AnchorPoint = Vector2.new(0.5, 0)
-		slot.icon.instance.Position = UDim2.new(0.5, 0, 0, 8)
+		slot.count.AnchorPoint = Vector2.new(1, 0)
+		slot.count.Position = UDim2.new(1, -6, 0, 4)
 		bindSlot(slot, function(e: Entry)
 			perform(e)
 			setPanelOpen(false)
@@ -405,25 +454,57 @@ function Inventory.new(parent: Instance, deps: Deps)
 		local name = Widgets.label({
 			Name = "Name",
 			Font = Theme.Font,
-			TextSize = 13,
+			TextSize = P.nameSize,
+			TextColor3 = Theme.Text,
+			TextStrokeColor3 = Theme.Ink,
+			TextStrokeTransparency = 0,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			AnchorPoint = Vector2.new(0.5, 1),
-			Position = UDim2.new(0.5, 0, 1, -4),
-			Size = UDim2.new(1, -8, 0, 32),
-			TextWrapped = true,
-			TextTruncate = Enum.TextTruncate.AtEnd,
+			Position = UDim2.new(0.5, 0, 1, -CELL.inset / 2),
+			Size = UDim2.new(1, -CELL.inset, 0, CELL.name),
 			ZIndex = 6,
 			Parent = slot.button,
 		})
 		return slot, name
 	end
 
+	local function makeEmpty(): Frame
+		return create("Frame", {
+			Name = "Empty",
+			BackgroundColor3 = Theme.Ink,
+			BackgroundTransparency = P.emptyTransparency,
+			BorderSizePixel = 0,
+			Parent = list,
+		}, { Widgets.corner(10) })
+	end
+
+	local function bodyWidth(): number
+		return if screen then Layout.panelBody(Layout.panelFor(screen, "Inventory")).w else Layout.MENU_WIDTH
+	end
+
+	-- The card sized to its grid (Layout.panelFor clamps it to the backdrop; the grid scrolls past that).
+	local function placePanel()
+		if not screen then
+			return
+		end
+		local r = Layout.panelFor(screen, "Inventory", InventoryLayout.contentHeight(#entries, bodyWidth()))
+		panel.frame.Position = fromOffset(r.x, r.y)
+		panel.frame.Size = fromOffset(r.w, r.h)
+	end
+
 	local function refreshGrid(now: number)
-		local cell = InventoryLayout.CELL
-		local bodyW = if screen then Layout.panelBody(Layout.panelFor(screen, "Inventory")).w else 520
+		local bodyW = bodyWidth()
 		local cols = InventoryLayout.columns(bodyW)
-		local gridW = cols * cell.w + (cols - 1) * cell.gap
+		local size = InventoryLayout.cellSize(bodyW)
+		local total = InventoryLayout.slotCount(#entries, bodyW)
+		local gridW = cols * size + (cols - 1) * CELL.gap
 		local x0 = math.floor((bodyW - gridW) / 2)
+		local shown = if keyboard then barGeometry().shown else 0
+		local iconSize = size - CELL.inset * 2 - CELL.name
+		local function at(i: number): UDim2
+			local col, row = (i - 1) % cols, (i - 1) // cols
+			return fromOffset(x0 + col * (size + CELL.gap), row * (size + CELL.gap))
+		end
 		for i, entry in entries do
 			if gridCells[i] == nil then
 				gridCells[i], cellNames[i] = makeCell()
@@ -431,14 +512,35 @@ function Inventory.new(parent: Instance, deps: Deps)
 			local slot, name = gridCells[i], cellNames[i]
 			styleSlot(slot, entry, now)
 			name.Text = entry.name
+			slot.number.Visible = i <= shown
+			slot.number.Text = tostring(i)
 			slot.button.Visible = true
-			local col, row = (i - 1) % cols, math.floor((i - 1) / cols)
-			slot.button.Position = fromOffset(x0 + col * (cell.w + cell.gap), row * (cell.h + cell.gap))
+			slot.button.Size = fromOffset(size, size)
+			slot.button.Position = at(i)
+			slot.icon.instance.Size = fromOffset(iconSize, iconSize)
+			slot.icon.instance.Position = UDim2.new(0.5, 0, 0, CELL.inset)
 		end
 		for i = #entries + 1, #gridCells do
 			gridCells[i].button.Visible = false
 		end
-		list.CanvasSize = fromOffset(0, InventoryLayout.gridHeight(#entries, bodyW))
+		local empties = total - #entries
+		for k = 1, math.max(empties, #emptyCells) do
+			local cell = emptyCells[k]
+			if k <= empties then
+				if cell == nil then
+					cell = makeEmpty()
+					emptyCells[k] = cell
+				end
+				cell.Visible = true
+				cell.Size = fromOffset(size, size)
+				cell.Position = at(#entries + k)
+			elseif cell then
+				cell.Visible = false
+			end
+		end
+		countChip.Text = if #entries == 1 then "1 item" else `{#entries} items`
+		list.CanvasSize = fromOffset(0, InventoryLayout.gridHeight(total, bodyW))
+		placePanel()
 	end
 
 	-- Refresh --------------------------------------------------------------------------------------
@@ -471,10 +573,9 @@ function Inventory.new(parent: Instance, deps: Deps)
 
 	local function applyBar()
 		local now = deps.serverNow()
-		local zone = if screen then screen.hotbar else Layout.rect(0, 0, 600, 67)
 		local compact = if screen then screen.compact else false
 		local tight = if screen then screen.tight else false
-		local bar = InventoryLayout.bar(zone, #entries, compact, Layout.MIN_TOUCH_DESIGN, tight)
+		local bar = barGeometry()
 		root.Position = fromOffset(bar.rect.x, bar.rect.y)
 		root.Size = fromOffset(bar.rect.w, bar.rect.h)
 		local slotSize = if bar.slots[1]
@@ -551,10 +652,8 @@ function Inventory.new(parent: Instance, deps: Deps)
 		local back = Layout.backdrop(s, 0, 0)
 		backdrop.Position = fromOffset(back.x, back.y)
 		backdrop.Size = fromOffset(back.w, back.h)
-		local r = Layout.panelFor(s, "Inventory")
-		panel.frame.Position = fromOffset(r.x, r.y)
-		panel.frame.Size = fromOffset(r.w, r.h)
 		sync(true)
+		placePanel()
 	end
 
 	function self.update(newState: any)

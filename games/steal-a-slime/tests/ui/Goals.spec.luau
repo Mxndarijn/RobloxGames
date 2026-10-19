@@ -197,3 +197,49 @@ describe("Goals.quests", function()
 		expect(resets).toBe("")
 	end)
 end)
+
+describe("Goals row parts (reward, meta, next target, quest order)", function()
+	local CONFIG =
+		{ GOALS = { { id = "Catch", targets = { 1, 10, 50 } }, { id = "Earn", targets = { 1e9, 1e10 }, cash = true } } }
+	it("splits a server goal into reward, meta line and the next stage's target", function()
+		local rows = Goals.fromServer({
+			{ id = "Catch", title = "Catch 10 slimes", progress = 4, stage = 1, stages = 3, target = 10, reward = 500 },
+			{ id = "Earn", title = "Earn $10B", progress = 4.98e9, stage = 1, stages = 2, target = 1e10, reward = 5e8 },
+			{ id = "Lock", title = "Lock 100 times", progress = 120, stage = 3, stages = 3, done = true },
+		}, CONFIG) :: { Goals.Goal }
+		expect(rows[1].reward).toBe("+$500")
+		expect(rows[1].meta).toBe("4/10 · Stage 2 of 3")
+		expect(rows[1].nextShort).toBe("Next: 50")
+		expect(rows[2].meta).toBe("4.98B/10B · Last stage")
+		expect(rows[2].nextShort).toBeNil()
+		expect(rows[3].reward).toBeNil()
+		expect(rows[3].meta).toBe("All 3 stages done")
+		local plain = (Goals.fromServer({ { id = "Catch", progress = 4, stage = 0, stages = 3, target = 10 } }) :: any)[1]
+		expect(plain.nextShort).toBeNil() -- no config: no next target
+	end)
+	it("flags boost rewards and sinks claimed quests below the open ones", function()
+		local quests = Goals.quests({
+			resetsIn = 10,
+			quests = {
+				{
+					id = "A",
+					progress = 1,
+					target = 1,
+					done = true,
+					claimed = true,
+					reward = "+$1",
+					rewardKind = "cash",
+				},
+				{ id = "B", progress = 0, target = 2, reward = "2x income for 5m", rewardKind = "boost" },
+				{ id = "C", progress = 0, target = 2, reward = "+$2", rewardKind = "cash" },
+			},
+		})
+		expect(quests[1].boost).toBe(false)
+		expect(quests[2].boost).toBe(true)
+		local ids = {}
+		for i, q in Goals.sortedQuests(quests) do
+			ids[i] = q.id
+		end
+		expect(table.concat(ids, ",")).toBe("B,C,A")
+	end)
+end)

@@ -22,8 +22,8 @@ export type Opts = {
 
 local SlimePreview = {}
 
--- At most this many Dex rows (by list position) get a live ViewportFrame;
--- later rows keep the colour swatch.
+-- At most this many rows of one list (Dex cards, Merge and Plot slime rows) get a live ViewportFrame;
+-- the rest keep the colour swatch.
 SlimePreview.MAX_LIVE = 24
 
 SlimePreview.SILHOUETTE = Color3.fromRGB(28, 30, 38)
@@ -198,6 +198,104 @@ function SlimePreview.unmount(viewport: Instance)
 	for _, child in viewport:GetChildren() do
 		if child:IsA("WorldModel") or child:IsA("Camera") then
 			child:Destroy()
+		end
+	end
+end
+
+-- How far an avatar well behind a slime preview leans from Theme.Row towards Theme.Ink.
+SlimePreview.WELL_TINT = 0.4
+
+-- What a slime's preview looks like: the genome fields its model is built from. A viewport is remounted only
+-- when this changes.
+function SlimePreview.lookOf(slime: any): string
+	local c = if type(slime.color) == "table" then slime.color else {}
+	return table.concat({
+		tostring(slime.id),
+		tostring(slime.species),
+		tostring(slime.tier),
+		`{c[1]},{c[2]},{c[3]}`,
+		tostring(slime.size),
+		tostring(slime.pattern),
+		tostring(slime.eyes),
+		tostring(slime.mouth),
+	}, ":")
+end
+
+-- Where a slime preview's model comes from: `species` (ctx.buildSpecies) gives the species mesh the SlimeDex
+-- shows, `slime` (ctx.buildSlime) the generated model from the genome. Either may be nil.
+export type Builders = {
+	species: ((speciesId: string) -> Model?)?,
+	slime: ((genome: any) -> Model?)?,
+}
+
+-- Shows `slime` (a genome) in `viewport` the way the SlimeDex shows its species: the species mesh when it has
+-- replicated, else the generated model, else the Ball blob in the slime's colour. The mounted look names its
+-- source, so a row that fell back switches to the mesh once it arrives; a mesh look is never rebuilt and a
+-- failed fallback is not retried. The viewport is visible only while something is mounted.
+function SlimePreview.mountSlime(viewport: Instance, slime: any, builders: Builders?)
+	local base = SlimePreview.lookOf(slime)
+	local current = viewport:GetAttribute("Look")
+	if current == `{base}:mesh` then
+		return
+	end
+	local b: Builders = builders or {}
+	if b.species and type(slime.species) == "string" then
+		local built, model = pcall(b.species, slime.species)
+		if built and model ~= nil then
+			if SlimePreview.mountModel(viewport, model, nil) then
+				viewport:SetAttribute("Look", `{base}:mesh`);
+				(viewport :: ViewportFrame).Visible = true
+				return
+			end
+		end
+	end
+	if current == `{base}:built` then
+		return
+	end
+	local ok = false
+	if b.slime then
+		local built, model = pcall(b.slime, slime)
+		ok = built and model ~= nil and SlimePreview.mountModel(viewport, model, nil)
+	end
+	if not ok then
+		ok = SlimePreview.mount(viewport, if type(slime.color) == "table" then slime.color else {}, nil)
+	end
+	viewport:SetAttribute("Look", `{base}:built`);
+	(viewport :: ViewportFrame).Visible = ok
+end
+
+-- Empties a viewport mounted by mountSlime and hides it.
+function SlimePreview.unmountSlime(viewport: Instance)
+	if viewport:GetAttribute("Look") ~= nil then
+		SlimePreview.unmount(viewport)
+		viewport:SetAttribute("Look", nil)
+	end
+	(viewport :: ViewportFrame).Visible = false
+end
+
+export type ListEntry = {
+	viewport: Instance,
+	slime: any, -- the genome to show
+	y: number, -- the row's top inside the list canvas (design px)
+	h: number,
+}
+
+-- List virtualisation: the MAX_LIVE entries nearest `centre` (a canvas y, the middle of the scroll window)
+-- show their slime; every other entry is emptied. Ties go to the higher row.
+function SlimePreview.syncNearest(entries: { ListEntry }, centre: number, builders: Builders?)
+	local order = table.clone(entries)
+	table.sort(order, function(a, b)
+		local da, db = math.abs(a.y + a.h / 2 - centre), math.abs(b.y + b.h / 2 - centre)
+		if da ~= db then
+			return da < db
+		end
+		return a.y < b.y
+	end)
+	for i, entry in order do
+		if i <= SlimePreview.MAX_LIVE then
+			SlimePreview.mountSlime(entry.viewport, entry.slime, builders)
+		else
+			SlimePreview.unmountSlime(entry.viewport)
 		end
 	end
 end
