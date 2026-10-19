@@ -118,8 +118,9 @@ class Scenario:
     rain_interval: float = 3600
     rain_first: float = 300
     rain_duration: float = 180
-    rain_spawn_interval: float = 0.75
-    rain_luck: float = 3.0
+    rain_spawn_interval: float = 2.0
+    rain_wild_cap_mult: float = 2.0
+    rain_luck: float = 5.0
     boss_first: float = 480
     boss_interval: float = 1200
     boss_shower: int = 6  # extra wild slimes the boss bursts into (luck x3)
@@ -439,7 +440,7 @@ class Sim:
             rain = self.raining()
             if t >= next_spawn:
                 next_spawn = t + (sc.rain_spawn_interval if rain else sc.spawn_interval)
-                if len(self.wild) < sc.wild_cap * (2 if rain else 1):
+                if len(self.wild) < (int(sc.wild_cap * sc.rain_wild_cap_mult) if rain else sc.wild_cap):
                     self.spawn(sc.rain_luck if rain else 1.0)
             if t >= next_boss:
                 next_boss = t + sc.boss_interval
