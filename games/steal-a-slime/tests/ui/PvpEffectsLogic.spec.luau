@@ -131,16 +131,88 @@ describe("PvpEffectsLogic hit feel and animation cues", function()
 	end)
 end)
 
+describe("PvpEffectsLogic glove specials and goo blobs", function()
+	it("Bonk pops BONK!, Royal throws gold confetti, a power punch is bigger", function()
+		local bonk = plan({ effect = "Knockback", itemId = "KnockGlove1", special = "bonk", target = 2 })
+		expect(bonk.popup.text).toBe("BONK!")
+		local royal = plan({ effect = "Knockback", itemId = "KnockGlove5", special = "royal", target = 2 })
+		expect(royal.burst.count >= 40).toBe(true)
+		local tap = plan({ effect = "Knockback", itemId = "KnockGlove1", target = 2 })
+		local power = plan({ effect = "Knockback", itemId = "KnockGlove1", target = 2, charged = true })
+		expect(power.burst.count > tap.burst.count).toBe(true)
+		expect(power.shake.amplitude > tap.shake.amplitude).toBe(true)
+	end)
+	it("Bounce keeps at most 3 pogo heights within the arc cap; Thunder draws a bolt to a chained player", function()
+		local bounce =
+			plan({ effect = "Knockback", itemId = "KnockGlove2", special = "bounce", pogo = { 6, 4, 2, 9, 99 } })
+		expect(bounce.pogo).toEqual({ 6, 4, 2 })
+		local junk = plan({ effect = "Knockback", itemId = "KnockGlove2", special = "bounce", pogo = { "x", -1 } })
+		expect(junk.pogo).toBe(nil)
+		local chained = plan({ effect = "Knockback", itemId = "KnockGlove4", special = "thunder", chained = true })
+		expect(chained.bolt ~= nil).toBe(true)
+		expect(chained.attackerAnim).toBe(false) -- the attacker already punched once
+		local boom = plan({ effect = "Knockback", itemId = "KnockGlove3", special = "boom" })
+		expect(boom.ring.count >= 24).toBe(true)
+	end)
+	it("a goo blob flies its flight, then splats the victim's screen or leaves a ground splat", function()
+		local hit = plan({ effect = "Slow", itemId = "GooBlaster2", target = 2, from = 1, flight = 0.5, duration = 2 })
+		expect(hit.blob.size).toBe(Logic.BLOB_SIZES[2])
+		expect(hit.delay).toBe(0.5)
+		expect(hit.screenSplat).toBe(2)
+		expect(hit.beam).toBe(nil)
+		expect(hit.seconds >= 0.5 + 2).toBe(true)
+		local miss = plan({
+			effect = "Slow",
+			itemId = "GooBlaster3",
+			from = 1,
+			flight = 99,
+			splat = { radius = 6, seconds = 4 },
+		})
+		expect(miss.delay).toBe(Logic.MAX_FLIGHT)
+		expect(miss.screenSplat).toBe(nil)
+		expect(miss.splat.radius).toBe(6)
+		expect(miss.splat.seconds).toBe(4)
+		expect(miss.seconds >= Logic.MAX_FLIGHT + 4).toBe(true)
+	end)
+	it("the blob velocity lands on `to` after `t` under gravity", function()
+		local from, to, t, g = { X = 0, Y = 3, Z = 0 }, { X = 30, Y = 3, Z = 0 }, 0.5, P.BLOB_GRAVITY
+		local v = Logic.blobVelocity(from, to, t, g)
+		expect(math.abs(from.X + v.X * t - 30) < 1e-9).toBe(true)
+		expect(math.abs(from.Y + v.Y * t - 0.5 * g * t * t - 3) < 1e-9).toBe(true)
+	end)
+	it("each pogo bounce starts when the one before lands", function()
+		local times = Logic.pogoTimes({ 6, 4, 2 }, 196.2)
+		expect(#times).toBe(2)
+		expect(math.abs(times[1] - 2 * math.sqrt(12 / 196.2)) < 1e-9).toBe(true)
+		expect(times[2] > times[1]).toBe(true)
+	end)
+	it("a Mega Trap chomps; a Puddle only goos the feet", function()
+		expect(plan({ effect = "Freeze", itemId = "GooTrap3", target = 2, duration = 2, hold = 2 }).popup.text).toBe(
+			"CHOMP!"
+		)
+		local puddle = plan({ effect = "Freeze", itemId = "GooTrap1", target = 2, duration = 2, hold = 0 })
+		expect(puddle.burst).toBe(nil)
+		expect(puddle.ring ~= nil).toBe(true)
+	end)
+end)
+
 describe("PvpEffectsLogic markers", function()
 	local function tool(id: string): any
 		return PvpRules.tool(id)
 	end
-	it("a Goo Trap puddle is owner-only and sized by the trap radius", function()
-		local m = Logic.marker("GooTrap2", tool("GooTrap2"), P)
-		expect(m ~= nil and m.shape == "puddle" and m.diameter == tool("GooTrap2").radius * 2).toBe(true)
-		expect(Logic.markerVisible(m :: any, 1, 1)).toBe(true)
-		expect(Logic.markerVisible(m :: any, 1, 2)).toBe(false)
-	end)
+	it(
+		"a Goo Trap puddle is sized by its radius and seen by everyone: glowing for its owner, a shimmer for others",
+		function()
+			local m = Logic.marker("GooTrap2", tool("GooTrap2"), P)
+			expect(m ~= nil and m.shape == "puddle" and m.diameter == tool("GooTrap2").radius * 2).toBe(true)
+			expect(Logic.markerVisible(m :: any, 1, 1)).toBe(true)
+			expect(Logic.markerVisible(m :: any, 1, 2)).toBe(true)
+			local mine, theirs = Logic.markerLook(m :: any, true), Logic.markerLook(m :: any, false)
+			expect(mine.material).toBe("Neon")
+			expect(theirs.transparency > 0.8 and theirs.transparency > mine.transparency).toBe(true)
+			expect((m :: any).seconds >= P.TRAP_LIFETIME_SECONDS).toBe(true)
+		end
+	)
 	it("the Bounce Pad marker is public and expires after the pad lifetime", function()
 		local m = Logic.marker("FunBouncePad", tool("FunBouncePad"), P) :: any
 		expect(m.shape).toBe("pad")

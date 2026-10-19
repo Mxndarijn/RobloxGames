@@ -517,6 +517,20 @@ describe("Inventory PvP item use", function()
 		expect(tip.Text).toBe("Only on your plot or against a thief")
 	end)
 
+	it("a glove fires on the release: a tap punches, a long hold is a power punch", function()
+		local inv, sent = mountPvp(GLOVE)
+		expect(inv.pressHeld(SCREEN)).toBe(true)
+		expect(#sent).toBe(0) -- waits for the release
+		expect(inv.releaseHeld(SCREEN)).toBe(true)
+		expect(sent[1][1]).toBe("UsePvpItem")
+		expect(sent[1][5]).toBe(nil) -- a tap
+		expect(inv.releaseHeld(SCREEN)).toBe(false) -- no press pending
+		inv, sent = mountPvp(GLOVE)
+		inv.pressHeld(SCREEN, Config.PVP.CHARGE_SECONDS) -- a touch long press is already held this long
+		expect(inv.releaseHeld(SCREEN)).toBe(true)
+		expect(sent[1][5]).toBe(true)
+	end)
+
 	it("a cooling-down item says when it is ready and sends nothing", function()
 		local inv, sent, gui = mountPvp(GLOVE, nil, { [GLOVE] = 103 })
 		expect(inv.useHeld(SCREEN)).toBe(false)

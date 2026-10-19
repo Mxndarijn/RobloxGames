@@ -13,8 +13,9 @@
 	Request("EquipPvpItem"), a consumable (the stack count on its slot) goes into the hand client-side and is
 	used by clicking / tapping the world while held: Request("UseConsumable") (the server checks ownership and
 	stock and takes one off the stack). An equipped PvP item is used the same way: the click becomes
-	Request("UsePvpItem", id, targetUserId?, aim?) (InventoryCore.pvpUseRequest from deps.aim's sample); a refusal
-	(cooldown, safe zone, out of reach) shows as a short tip above the slot. The last cell is the bag: it opens the inventory panel, a grid of everything
+	Request("UsePvpItem", id, targetUserId?, aim?, charged?) (InventoryCore.pvpUseRequest from deps.aim's sample);
+	a glove or the Goo Cannon fires on the release (pressHeld / releaseHeld), so a hold is a power punch / an aimed
+	lob. A refusal (cooldown, shield, out of reach) shows as a short tip above the slot. The last cell is the bag: it opens the inventory panel, a grid of everything
 	held (also the items that did not fit the bar on a narrow phone). Hidden while carrying (the server
 	unequips tools then) and while a menu is open. Client-only: the stack counts come from State.consumables.
 
@@ -188,6 +189,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local heldConsumable: string? = nil -- the consumable in hand (client-side; the server only validates the use)
 	local lastUse = -math.huge
 	local lastPvpEquipped: string? = nil
+	local holdStartedAt: number? = nil -- os.clock() a press on a hold item (glove, Goo Cannon) went down, until released
 	local pendingOrder: { string }? = nil -- the order the player just made, until a State confirms it
 	local seen: { [string]: boolean }? = nil -- every entry key seen this session (nil until the first State)
 	local joinedAt = -math.huge -- os.clock() of the first State
@@ -1365,7 +1367,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	-- Click / tap in the world (`at` = its screen point) with a consumable in hand or a PvP item equipped:
 	-- asks the server to use it. False when nothing is held, the bar is hidden, the use is too soon after the
 	-- last, or there is nothing to send yet (then a tip says why).
-	function self.useHeld(at: (Vector2 | Vector3)?): boolean
+	function self.useHeld(at: (Vector2 | Vector3)?, held: number?): boolean
 		if menuOpen or carrying or panelOpen then
 			return false
 		end
@@ -1382,8 +1384,14 @@ function Inventory.new(parent: Instance, deps: Deps)
 				return false
 			end
 			local serverNow = deps.serverNow()
-			local use, reason =
-				InventoryCore.pvpUseRequest(pvpEntry, toolDef(pvpEntry.itemId), deps.aim(at), deps.Config, serverNow)
+			local use, reason = InventoryCore.pvpUseRequest(
+				pvpEntry,
+				toolDef(pvpEntry.itemId),
+				deps.aim(at),
+				deps.Config,
+				serverNow,
+				held
+			)
 			if deps.animate and InventoryCore.pvpReady(pvpEntry, serverNow) then
 				-- the swing / punch / throw shows at once, also for a whiff the server never hears about
 				lastUse = now
@@ -1396,7 +1404,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 				return false
 			end
 			lastUse = now
-			sendUse(pvpEntry, { use.action, use.itemId, use.target, use.aim }, 4)
+			sendUse(pvpEntry, { use.action, use.itemId, use.target, use.aim, use.charged }, 5)
 			return true
 		end
 		for _, entry in entries do
@@ -1412,6 +1420,28 @@ function Inventory.new(parent: Instance, deps: Deps)
 			end
 		end
 		return false
+	end
+
+	-- A press on the world (`alreadyHeld` = seconds a touch long press was held before it fired). A glove or the Goo
+	-- Cannon waits for the release; everything else is used at once (useHeld).
+	function self.pressHeld(at: Vector2 | Vector3, alreadyHeld: number?): boolean
+		local entry = if heldConsumable == nil then equippedPvp() else nil
+		if entry and not (menuOpen or carrying or panelOpen) and InventoryCore.pvpHolds(toolDef(entry.itemId)) then
+			holdStartedAt = os.clock() - (alreadyHeld or 0)
+			return true
+		end
+		holdStartedAt = nil
+		return self.useHeld(at)
+	end
+
+	-- The release of a held press: a glove punches (a power punch past CHARGE_SECONDS), the Cannon lobs at `at`.
+	function self.releaseHeld(at: Vector2 | Vector3): boolean
+		local started = holdStartedAt
+		holdStartedAt = nil
+		if started == nil then
+			return false
+		end
+		return self.useHeld(at, os.clock() - started)
 	end
 
 	function self.heldConsumable(): string?

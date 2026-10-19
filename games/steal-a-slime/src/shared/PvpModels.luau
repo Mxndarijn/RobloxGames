@@ -355,11 +355,25 @@ function PvpModels.meshId(id: string?): string?
 	return if item then MeshAssets.meshId(item.mesh) else nil
 end
 
+local function isMarker(itemId: string?): boolean
+	return itemId == "FunBouncePad" or (itemId ~= nil and string.sub(itemId, 1, 7) == "GooTrap")
+end
+
 -- The mesh a placed Goo Trap / Bounce Pad marker may use (TrapPlaced itemId), nil for other items.
 function PvpModels.markerMesh(itemId: string?): string?
-	if itemId == "FunBouncePad" or (itemId and string.sub(itemId, 1, 7) == "GooTrap") then
+	if isMarker(itemId) then
 		local item = PvpModels.get(itemId)
 		return item and item.mesh
+	end
+	return nil
+end
+
+-- The placeholder pieces a placed Goo Trap / Bounce Pad marker shows while its mesh has no meshId (the same pieces as
+-- in the hand), nil for other items.
+function PvpModels.markerParts(itemId: string?): { Piece }?
+	if isMarker(itemId) then
+		local item = PvpModels.get(itemId)
+		return item and item.pieces
 	end
 	return nil
 end

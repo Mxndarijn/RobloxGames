@@ -197,6 +197,28 @@ describe("H1 HUD: HudClusters (pure)", function()
 			expect(string.lower(id) ~= "weekend").toBe(true)
 		end
 		expect(table.concat(HudClusters.STATUS_IDS, ",")).toBe(table.concat(Layout.STATUS_SLOTS, ","))
+		expect(HudClusters.MAX_SLOTS).toBe(Layout.STATUS.count)
+	end)
+	it("the new-player shield is the first slot with its m:ss countdown, and five things still show four", function()
+		local slots = HudClusters.status(
+			{
+				shieldUntil = 1000 + 754,
+				rain = { active = true, endsAt = 1030 },
+				modifier = { label = "Dawn", luck = 2, endsAt = 1100 },
+				modifierEnabled = true,
+				friends = { count = 1, bonus = 0.1 },
+				friendsEnabled = true,
+				featuredSecret = { id = "x", name = "Glim", endsAt = 1000 + 3600 },
+			} :: any,
+			1000
+		)
+		expect(#slots).toBe(Layout.STATUS.count)
+		expect(slots[1].id).toBe("Shield")
+		expect(slots[1].text).toBe("12:34")
+		expect(slots[1].icon).toBe("Shield")
+		expect(HudClusters.tooltip(slots[1]).time).toBe("Time left: 12:34")
+		expect(HudClusters.shield(999, 1000)).toBeNil()
+		expect(HudClusters.shield(nil, 1000)).toBeNil()
 	end)
 end)
 
@@ -419,7 +441,7 @@ describe("H1 HUD: featured Secret status slot", function()
 	it("all four events fit at once at every gate size: inside the row, none overlapping", function()
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
 			local s = Layout.screen(vp.w, vp.h)
-			expect(#s.status.slots).toBe(#HudClusters.STATUS_IDS)
+			expect(#s.status.slots).toBe(HudClusters.MAX_SLOTS)
 			local check = LayoutAssert.new(vp.name, s)
 			LayoutAssert.clusterChecks(check)
 			expect(check.report()).toBe("")

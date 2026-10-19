@@ -127,6 +127,14 @@ describe("InventoryCore.entries", function()
 		expect(InventoryCore.entries(input())[1].count).toBe(nil)
 	end)
 
+	it("a Goo Trap shows its charges as the stack count", function()
+		local entries = InventoryCore.entries(input({
+			pvp = { owned = { GooTrap2 = true }, charges = { GooTrap2 = 4 }, cooldowns = {} },
+		}))
+		expect(ids(entries)).toEqual({ "tool:Bat", "pvp:GooTrap2" })
+		expect(entries[2].count).toBe(4)
+	end)
+
 	it("a Tool listed twice (Backpack and character) is one slot", function()
 		local entries = InventoryCore.entries(input({
 			tools = { { name = "Bat", equipped = false }, { name = "Bat", equipped = true } },
@@ -347,7 +355,28 @@ describe("InventoryCore.pvpUseRequest", function()
 			expect(type(mode)).toBe("string")
 		end
 		local args = Remotes.ACTIONS[InventoryCore.PVP_USE_ACTION].args
-		expect(table.concat(args, ",")).toBe("string,number?,vector3?")
+		expect(table.concat(args, ",")).toBe("string,number?,vector3?,boolean?")
+	end)
+
+	it("a glove held past CHARGE_SECONDS sends a power punch; a tap does not", function()
+		local players = { { userId = 2, position = at(4) } }
+		local entry = equipped("KnockGlove1")
+		local tool = PvpRules.tool("KnockGlove1")
+		local tap = InventoryCore.pvpUseRequest(entry, tool, { self = ME, players = players }, Config, 100, 0.1) :: any
+		expect(tap.charged).toBe(nil)
+		local hold = InventoryCore.pvpUseRequest(
+			entry,
+			tool,
+			{ self = ME, players = players },
+			Config,
+			100,
+			Config.PVP.CHARGE_SECONDS
+		) :: any
+		expect(hold.charged).toBe(true)
+		expect(InventoryCore.pvpHolds(tool)).toBe(true)
+		expect(InventoryCore.pvpHolds(PvpRules.tool("GooBlaster3"))).toBe(true)
+		expect(InventoryCore.pvpHolds(PvpRules.tool("GooBlaster1"))).toBe(false)
+		expect(InventoryCore.pvpCharged(PvpRules.tool("GooBlaster3"), 5, Config)).toBe(false)
 	end)
 
 	it("gloves target the clicked player in reach, else the nearest, thieves first", function()

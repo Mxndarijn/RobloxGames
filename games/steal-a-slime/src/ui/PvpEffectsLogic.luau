@@ -8,7 +8,9 @@
 	  PvpEffectsLogic.plan(payload, pvp, low)      -> Plan? (nil = nothing to show / unknown effect)
 	  PvpEffectsLogic.marker(itemId, tool, pvp)    -> Marker? (Goo Trap puddle / Bounce Pad disc, TrapPlaced)
 	  PvpEffectsLogic.markerFor(itemId, tools, pvp) the same, looking the tool up in Config.PVP_TOOLS
-	  PvpEffectsLogic.markerVisible(...)           traps only to their owner, the pad to everybody
+	  PvpEffectsLogic.markerLook(marker, isOwner)  a trap glows for its owner and is a faint shimmer for everyone else
+	  PvpEffectsLogic.blobVelocity(from, to, t, g)  the start velocity of the goo blob particle (the server's arc)
+	  PvpEffectsLogic.pogoTimes(heights, g)        when each Bounce Glove pogo lands (the next bounce starts there)
 	  PvpEffectsLogic.shakeOffset(t, seconds, amp) -> x, y camera offset (decaying)
 	  PvpEffectsLogic.scaleCount(n, low)           particle counts at low graphics quality
 	  PvpEffectsLogic.tracker()                    acquire / release counters (activeCount() must end at 0)
@@ -41,8 +43,23 @@ export type Plan = {
 	onTarget: boolean, -- emit at the target's character (else at payload.position)
 	attackerAnim: boolean, -- the attacker plays the item's use animation (ui/PvpAnim); false for traps / pads springing
 	targetHit: boolean, -- the target plays the `hit` recoil (it was pushed)
+	popup: { text: string, color: RGB, seconds: number }?, -- a word over the target ("BONK!", "CHOMP!")
+	bolt: { color: RGB, seconds: number }?, -- lightning from payload.from to the target (Thunder Glove chain)
+	pogo: { number }?, -- the victim's client bounces this high after the push (Bounce Glove), each studs
+	blob: { size: number, color: RGB }?, -- the flying goo blob (payload from / to / flight)
+	delay: number?, -- seconds the impact waits for the blob to land
+	splat: { radius: number, seconds: number, color: RGB }?, -- goo left on the ground at payload.position
+	screenSplat: number?, -- seconds of goo on the edge of the victim's screen
 }
-export type Marker = { shape: "puddle" | "pad", diameter: number, color: RGB, ownerOnly: boolean, seconds: number? }
+export type Marker = {
+	shape: "puddle" | "pad",
+	diameter: number,
+	color: RGB,
+	ownerOnly: boolean,
+	seconds: number?,
+	glows: boolean?, -- a trap: glowing for its owner, a faint shimmer for everyone else (markerLook)
+}
+export type MarkerLook = { transparency: number, material: string }
 
 PvpEffectsLogic.FX_RANGE = 220 -- studs: farther effects are skipped (clients may skip beyond their stream radius)
 PvpEffectsLogic.HIGHLIGHT_CAP = 8 -- Roblox allows ~31 Highlights in total; we stay far below
@@ -52,6 +69,14 @@ PvpEffectsLogic.FLASH_SECONDS = 0.22
 PvpEffectsLogic.FEET = -2.6 -- studs below the root: where a goo splash ring sits
 PvpEffectsLogic.MISS_BEAM_SECONDS = 0.4
 PvpEffectsLogic.BOUNCE_TRAIL_SECONDS = 0.6
+PvpEffectsLogic.POPUP_SECONDS = 0.8
+PvpEffectsLogic.BOLT_SECONDS = 0.3
+PvpEffectsLogic.MAX_FLIGHT = 2 -- seconds: a blob never flies longer (junk payloads)
+PvpEffectsLogic.MAX_SPLAT_SECONDS = 6 -- a ground splat / pool never lasts longer
+PvpEffectsLogic.MAX_POGO = 3 -- bounces
+PvpEffectsLogic.BLOB_SIZES = table.freeze({ 1, 1.3, 2.4 }) -- Squirter, Blaster, Cannon (studs)
+PvpEffectsLogic.MARKER_OWNER = table.freeze({ transparency = 0.25, material = "Neon" })
+PvpEffectsLogic.MARKER_OTHERS = table.freeze({ transparency = 0.88, material = "Glass" })
 
 local SPARK = "rbxasset://textures/particles/sparkles_main.dds"
 local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
@@ -68,6 +93,10 @@ local TIER_COLORS: { RGB } = {
 	{ 1, 0.35, 0.7 },
 }
 local CONFETTI: { RGB } = { { 1, 0.3, 0.4 }, { 1, 0.85, 0.2 }, { 0.3, 0.8, 1 }, { 0.5, 1, 0.4 }, { 0.8, 0.4, 1 } }
+local GOLD: RGB = { 1, 0.85, 0.23 }
+local GOLD_CONFETTI: { RGB } = { GOLD, { 1, 0.95, 0.6 }, { 0.95, 0.7, 0.15 } }
+local BOLT: RGB = { 1, 0.95, 0.35 }
+local BOOM: RGB = { 1, 0.55, 0.15 }
 
 local function clampSeconds(d: any, lo: number, hi: number): number
 	if type(d) ~= "number" or d ~= d then
@@ -160,7 +189,7 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 	local plan: Plan?
 	if effect == "Knockback" then
 		local color = TIER_COLORS[PvpEffectsLogic.tierOf(itemId)]
-		plan = {
+		local knock: Plan = {
 			effect = "Knockback",
 			seconds = fx,
 			sfx = "PvpHit",
@@ -178,9 +207,11 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 			shake = { amplitude = PvpEffectsLogic.SHAKE_AMPLITUDE, seconds = PvpEffectsLogic.SHAKE_SECONDS },
 			applyVelocity = true,
 			onTarget = true,
-			attackerAnim = true,
+			attackerAnim = payload.chained ~= true,
 			targetHit = true,
 		}
+		PvpEffectsLogic.special(knock, payload, pvp)
+		plan = knock
 	elseif effect == "Freeze" then
 		local seconds = clampSeconds(payload.duration, 0.1, pvp.CONTROL_MAX_SECONDS)
 		plan = {
@@ -204,6 +235,17 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 			attackerAnim = false,
 			targetHit = false,
 		}
+		local freeze = plan :: Plan
+		if itemId == "GooTrap3" then
+			freeze.popup = { text = "CHOMP!", color = GOO, seconds = PvpEffectsLogic.POPUP_SECONDS }
+			if freeze.burst then
+				freeze.burst.count *= 2
+			end
+		elseif type(payload.hold) == "number" and payload.hold <= 0 then
+			freeze.burst = nil -- a Puddle: goo on the feet only
+		end
+	elseif effect == "Slow" and type(payload.from) ~= "nil" then
+		plan = PvpEffectsLogic.blobPlan(payload, pvp)
 	elseif effect == "Slow" then
 		local hit = payload.target ~= nil
 		local seconds = clampSeconds(payload.duration, 0.1, pvp.SLOW_MAX_SECONDS)
@@ -215,7 +257,10 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 				burst = { count = 16, colors = { GOO, GOO_DARK }, texture = SMOKE, speed = 12, size = 1.1, lift = -10 },
 				ring = { count = 10, colors = { GOO }, texture = SMOKE, speed = 16, size = 0.9, lift = -6, ring = true },
 				highlight = { color = GOO, seconds = seconds, impact = WHITE },
-				beam = { seconds = PvpEffectsLogic.FLASH_SECONDS + 0.08, color = GOO, width = 0.9 },
+				-- a splash / pool victim was not shot at: no beam from the shooter's hand
+				beam = if payload.splash == true
+					then nil
+					else { seconds = PvpEffectsLogic.FLASH_SECONDS + 0.08, color = GOO, width = 0.9 },
 				applyVelocity = false,
 				onTarget = true,
 				attackerAnim = true,
@@ -292,6 +337,118 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 	return plan
 end
 
+-- Knockback specials (payload.special): the BONK! popup, the pogo, the boom ring, the lightning, the gold confetti;
+-- a power punch (payload.charged) is bigger. Mutates `plan`.
+function PvpEffectsLogic.special(plan: Plan, payload: any, pvp: any)
+	local special = payload.special
+	if payload.charged == true then
+		if plan.burst then
+			plan.burst.count = math.floor(plan.burst.count * 1.5)
+			plan.burst.speed *= 1.3
+		end
+		if plan.shake then
+			plan.shake.amplitude *= 1.5
+		end
+	end
+	if special == "bonk" then
+		plan.popup = { text = "BONK!", color = GOLD, seconds = PvpEffectsLogic.POPUP_SECONDS }
+	elseif special == "bounce" and type(payload.pogo) == "table" then
+		local heights = {}
+		for i, h in payload.pogo do
+			if i > PvpEffectsLogic.MAX_POGO then
+				break
+			end
+			if type(h) == "number" and h == h and h > 0 then
+				table.insert(heights, math.min(h, pvp.KNOCKBACK_ARC_HEIGHT))
+			end
+		end
+		plan.pogo = if #heights > 0 then heights else nil
+		plan.sfx = "PvpBoing"
+	elseif special == "boom" then
+		plan.ring = {
+			count = 24,
+			colors = { BOOM, WHITE },
+			texture = FIRE,
+			speed = 34,
+			size = 1.1,
+			lift = 0,
+			ring = true,
+		}
+	elseif special == "thunder" then
+		if plan.burst then
+			plan.burst.colors = { BOLT, WHITE }
+		end
+		if payload.chained == true then
+			plan.bolt = { color = BOLT, seconds = PvpEffectsLogic.BOLT_SECONDS }
+		end
+	elseif special == "royal" then
+		plan.burst = { count = 40, colors = GOLD_CONFETTI, texture = SPARK, speed = 22, size = 0.7, lift = -14 }
+	end
+end
+
+-- The look of one goo blob (an Effect "Slow" with `from`): the blob flies `flight` seconds, then splats on its
+-- target (goo on the victim's screen edge, a green tint) or on the ground (a splat / pool for its seconds).
+function PvpEffectsLogic.blobPlan(payload: any, pvp: any): Plan
+	local tier = PvpEffectsLogic.tierOf(payload.itemId)
+	local flight = clampSeconds(payload.flight, 0, PvpEffectsLogic.MAX_FLIGHT)
+	local hit = payload.target ~= nil
+	local seconds = clampSeconds(payload.duration, 0.1, pvp.SLOW_MAX_SECONDS)
+	local plan: Plan = {
+		effect = "Slow",
+		seconds = flight + math.max(pvp.FX_SECONDS, if hit then seconds else 0),
+		sfx = "PvpSquirt",
+		burst = { count = 14, colors = { GOO, GOO_DARK }, texture = SMOKE, speed = 12, size = 1.1, lift = -10 },
+		ring = { count = 10, colors = { GOO }, texture = SMOKE, speed = 16, size = 0.9, lift = -6, ring = true },
+		highlight = if hit then { color = GOO, seconds = seconds, impact = WHITE } else nil,
+		applyVelocity = false,
+		onTarget = hit,
+		attackerAnim = true,
+		targetHit = false,
+		blob = { size = PvpEffectsLogic.BLOB_SIZES[tier] or 1, color = GOO },
+		delay = flight,
+		screenSplat = if hit then seconds else nil,
+	}
+	local splat = payload.splat
+	if type(splat) == "table" and type(splat.radius) == "number" and splat.radius == splat.radius then
+		local lasts = clampSeconds(splat.seconds, 0.5, PvpEffectsLogic.MAX_SPLAT_SECONDS)
+		plan.splat = { radius = math.clamp(splat.radius, 0.5, 12), seconds = lasts, color = GOO_DARK }
+		plan.seconds = math.max(plan.seconds, flight + lasts)
+	end
+	return plan
+end
+
+-- Start velocity of a particle that leaves `from` and is at `to` after `t` seconds under gravity `g` (studs/s^2):
+-- the same arc the server tested (PvpBlasterRules.arc).
+function PvpEffectsLogic.blobVelocity(from: any, to: any, t: number, g: number): { X: number, Y: number, Z: number }
+	local time = math.max(t, 0.05)
+	return {
+		X = (to.X - from.X) / time,
+		Y = (to.Y - from.Y) / time + 0.5 * g * time,
+		Z = (to.Z - from.Z) / time,
+	}
+end
+
+-- Seconds after the push at which each pogo bounce starts: a bounce of height h lasts 2 * sqrt(2 h / g).
+function PvpEffectsLogic.pogoTimes(heights: { number }, g: number): { number }
+	local out = {}
+	local t = 0
+	for i, h in heights do
+		if i > 1 then
+			table.insert(out, t)
+		end
+		t += 2 * math.sqrt(2 * math.max(h, 0) / math.max(g, 1))
+	end
+	return out
+end
+
+-- How a placed trap looks to this client: glowing for its owner, a faint shimmer for everyone else.
+function PvpEffectsLogic.markerLook(marker: Marker, isOwner: boolean): MarkerLook
+	if not marker.glows then
+		return { transparency = 0.4, material = "SmoothPlastic" }
+	end
+	return if isOwner then PvpEffectsLogic.MARKER_OWNER else PvpEffectsLogic.MARKER_OTHERS
+end
+
 -- The ground marker of a TrapPlaced: nil for items without one.
 function PvpEffectsLogic.marker(itemId: any, tool: any, pvp: any): Marker?
 	if type(itemId) ~= "string" then
@@ -307,7 +464,14 @@ function PvpEffectsLogic.marker(itemId: any, tool: any, pvp: any): Marker?
 		}
 	end
 	if tool and tool.line == "Trap" and type(tool.radius) == "number" then
-		return { shape = "puddle", diameter = tool.radius * 2, color = GOO_DARK, ownerOnly = true, seconds = nil }
+		return {
+			shape = "puddle",
+			diameter = tool.radius * 2,
+			color = GOO_DARK,
+			ownerOnly = false,
+			seconds = pvp.TRAP_LIFETIME_SECONDS + 2,
+			glows = true,
+		}
 	end
 	return nil
 end

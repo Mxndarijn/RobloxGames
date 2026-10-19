@@ -59,19 +59,48 @@ function InventoryTools.bindBag(isBagKey: (Enum.KeyCode) -> boolean, onBag: () -
 	end)
 end
 
--- A click or tap that no GUI took (the world) uses the item in hand: `onUse` gets the screen point and decides
--- if anything is held. Touch uses TouchTap, so dragging the camera or the thumbstick never fires an item.
-function InventoryTools.bindUse(onUse: (screen: Vector2 | Vector3) -> ())
+-- A touch held this long fires TouchLongPress (Begin): the press counts as held for that long already.
+InventoryTools.LONG_PRESS_SECONDS = 0.5
+
+--[[
+	A click or tap that no GUI took (the world) uses the item in hand. `onPress` gets the screen point (and the
+	seconds the press was already held: a touch long press) when it goes down, `onRelease` when it comes up; the
+	inventory decides whether the item fires on the press or on the release (a hold: a glove's power punch, the
+	Goo Cannon's aim). Touch uses TouchTap / TouchLongPress, so dragging the camera or the thumbstick never fires an item.
+]]
+function InventoryTools.bindUse(
+	onPress: (screen: Vector2 | Vector3, alreadyHeld: number?) -> (),
+	onRelease: (screen: Vector2 | Vector3) -> ()
+)
 	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
 		if not processed and input.UserInputType == Enum.UserInputType.MouseButton1 then
-			onUse(input.Position)
+			onPress(input.Position)
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			onRelease(input.Position)
 		end
 	end)
 	UserInputService.TouchTap:Connect(function(positions: { Vector2 }, processed: boolean)
 		if not processed and positions[1] then
-			onUse(positions[1])
+			onPress(positions[1])
+			onRelease(positions[1])
 		end
 	end)
+	UserInputService.TouchLongPress:Connect(
+		function(positions: { Vector2 }, state: Enum.UserInputState, processed: boolean)
+			local at = positions[1]
+			if processed or not at then
+				return
+			end
+			if state == Enum.UserInputState.Begin then
+				onPress(at, InventoryTools.LONG_PRESS_SECONDS)
+			elseif state == Enum.UserInputState.End then
+				onRelease(at)
+			end
+		end
+	)
 end
 
 function InventoryTools.new(player: Player): Provider

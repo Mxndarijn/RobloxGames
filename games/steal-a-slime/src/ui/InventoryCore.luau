@@ -7,7 +7,8 @@
 	  * the Bat first (the Tool every player is given, BatTool), then any other Tool in the Backpack / character
 	    (the Speed Coil today), in name order. A Tool is the server's own holdable, so the list follows whatever
 	    the server puts there;
-	  * every owned PvP item (State.pvp.owned) in Config.PVP_TOOLS catalog order, equipped = State.pvp.equipped;
+	  * every owned PvP item (State.pvp.owned) in Config.PVP_TOOLS catalog order, equipped = State.pvp.equipped; a Goo
+	    Trap shows its charges (State.pvp.charges) as the stack count;
 	  * every consumable with a stack (State.consumables.held), in Config.CONSUMABLES order, with the stack as
 	    its count. "In hand" is the one thing kept client-side (`heldConsumable`, the id the player picked): the
 	    server has no hand slot for a consumable, it only validates the use;
@@ -107,6 +108,15 @@ local function count(input: Input, id: string): number?
 	return if type(n) == "number" and n >= 1 then math.floor(n) else nil
 end
 
+-- A Goo Trap's charges (State.pvp.charges), else the generic count.
+local function pvpCount(input: Input, pvp: any, id: string): number?
+	local n = if type(pvp.charges) == "table" then pvp.charges[id] else nil
+	if type(n) == "number" and n >= 1 then
+		return math.floor(n)
+	end
+	return count(input, id)
+end
+
 function InventoryCore.entries(input: Input): { Entry }
 	local out: { Entry } = {}
 	local byName: { [string]: ToolInfo } = {}
@@ -154,7 +164,7 @@ function InventoryCore.entries(input: Input): { Entry }
 					iconId = ItemIcons.shopIconId({ id = def.id, action = "BuyPvpItem" }),
 					name = def.name,
 					equipped = pvp.equipped == def.id,
-					count = count(input, def.id),
+					count = pvpCount(input, pvp, def.id),
 					readyAt = if type(readyAt) == "number" and input.now and readyAt > input.now then readyAt else nil,
 				})
 			end
@@ -215,7 +225,7 @@ export type Aim = {
 	hovered: number?, -- userId of the player under the click
 	players: { Other }, -- every other player with a character
 }
-export type PvpUse = { action: string, itemId: string, target: number?, aim: Vec? }
+export type PvpUse = { action: string, itemId: string, target: number?, aim: Vec?, charged: boolean? }
 
 InventoryCore.PVP_USE_ACTION = "UsePvpItem"
 
@@ -245,6 +255,21 @@ InventoryCore.PVP_AIM = table.freeze({
 
 function InventoryCore.pvpAimMode(tool: any): string
 	return InventoryCore.PVP_AIM[tool.id] or InventoryCore.PVP_AIM[tool.line] or "self"
+end
+
+-- Items used on release so a hold means something: gloves (hold = power punch) and the Goo Cannon (hold to aim the lob).
+InventoryCore.PVP_HOLD = table.freeze({ Knockback = true, GooBlaster3 = true })
+
+function InventoryCore.pvpHolds(tool: any): boolean
+	return tool ~= nil and (InventoryCore.PVP_HOLD[tool.id] == true or InventoryCore.PVP_HOLD[tool.line] == true)
+end
+
+-- A press held `seconds` on a glove is a power punch (Config.PVP.CHARGE_SECONDS or longer).
+function InventoryCore.pvpCharged(tool: any, seconds: number?, config: any): boolean
+	return tool ~= nil
+		and tool.line == "Knockback"
+		and type(seconds) == "number"
+		and seconds >= config.PVP.CHARGE_SECONDS
 end
 
 local function distance(a: Vec, b: Vec): number
@@ -297,14 +322,27 @@ end
 	pointed at, or (nil, player-facing reason) when there is nothing to send: not equipped, still cooling down,
 	nobody in reach, no point to aim at. Intent only: the server re-checks reach, zones, shields and cooldowns.
 ]]
-function InventoryCore.pvpUseRequest(entry: Entry, tool: any, aim: Aim, config: any, now: number): (PvpUse?, string?)
+function InventoryCore.pvpUseRequest(
+	entry: Entry,
+	tool: any,
+	aim: Aim,
+	config: any,
+	now: number,
+	held: number?
+): (PvpUse?, string?)
 	if entry.kind ~= "pvp" or not entry.equipped or tool == nil or tool.id ~= entry.itemId then
 		return nil, nil
 	end
 	if entry.readyAt and entry.readyAt > now then
 		return nil, `Ready in {math.ceil(entry.readyAt - now)}s`
 	end
-	local use: PvpUse = { action = InventoryCore.PVP_USE_ACTION, itemId = entry.itemId, target = nil, aim = nil }
+	local use: PvpUse = {
+		action = InventoryCore.PVP_USE_ACTION,
+		itemId = entry.itemId,
+		target = nil,
+		aim = nil,
+		charged = if InventoryCore.pvpCharged(tool, held, config) then true else nil,
+	}
 	local mode = InventoryCore.pvpAimMode(tool)
 	local reach = tool.reach or config.SLAP_REACH
 	if mode == "target" or mode == "targetOptional" or mode == "hovered" then
