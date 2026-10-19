@@ -6,7 +6,8 @@
 	uploaded animations don't load. No asset, no Animator.
 
 	  SlimeMotor.attach(model, now, rand) -> Motor?   nil unless Body + both Motor6Ds
-	  SlimeMotor.step(motor, now, rand) -> boolean    true on the frame a forced hop lands
+	  SlimeMotor.step(motor, now, rand, mods?) -> boolean    true on the frame a forced hop lands;
+	                                                  mods = gait / beat / reaction life (contract/slime-life.md)
 	  SlimeMotor.force(motor, kind, now)              "Hop" | "LookLeft" | "LookRight"
 	  SlimeMotor.release(motor)                       Transforms identity, Size back
 
@@ -36,6 +37,51 @@ SlimeMotor.SQUASH = "LifeSquash"
 SlimeMotor.SKIN_SIZE_ATTRIBUTE = "LifeSkinSize"
 SlimeMotor.FORCE_ATTRIBUTE = "LifeForce" -- client-only test hook (pc-watcher slime_motion): a kind to play now
 SlimeMotor.MODE_ATTRIBUTE = "LifeMode"
+
+-- Extra life on top of the idle pose (contract/slime-life.md), built by SlimeLifeRunner from ui/SlimeGait,
+-- SlimeBeats and SlimeReact. dx / dz: world studs from the Body to the visible slime; lift: studs at size 1;
+-- yaw: target turn from the heading (+ = left), taken by yawWeight 0..1; tilt (+ = nose down) and roll
+-- (+ = lean right): radians; sx / sy: squash multipliers; lean: studs sideways (+ = right); jiggle, air, vy, closed,
+-- pop: SlimeBones.Extra.
+export type Mods = {
+	dx: number,
+	dz: number,
+	lift: number,
+	yaw: number,
+	yawWeight: number,
+	tilt: number,
+	roll: number,
+	sx: number,
+	sy: number,
+	lean: number,
+	jiggle: number,
+	air: number,
+	vy: number,
+	closed: number,
+	pop: number,
+}
+
+SlimeMotor.SQUASH_LIMIT = { 0.45, 1.5 } -- sy with Mods (hops splat and stretch further than breathing)
+
+function SlimeMotor.newMods(): Mods
+	return {
+		dx = 0,
+		dz = 0,
+		lift = 0,
+		yaw = 0,
+		yawWeight = 0,
+		tilt = 0,
+		roll = 0,
+		sx = 1,
+		sy = 1,
+		lean = 0,
+		jiggle = 0,
+		air = 0,
+		vy = 0,
+		closed = 0,
+		pop = 0,
+	}
+end
 
 export type Motor = {
 	model: Model,
@@ -118,7 +164,7 @@ function SlimeMotor.force(motor: Motor, kind: string, now: number)
 	end
 end
 
-function SlimeMotor.step(motor: Motor, now: number, rand: Rand): boolean
+function SlimeMotor.step(motor: Motor, now: number, rand: Rand, mods: Mods?): boolean
 	local forced = motor.model:GetAttribute(SlimeMotor.FORCE_ATTRIBUTE)
 	if type(forced) == "string" then
 		motor.model:SetAttribute(SlimeMotor.FORCE_ATTRIBUTE, nil)
@@ -127,20 +173,32 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand): boolean
 	local landed = SlimeLife.advance(motor.clock, motor.params, now, rand)
 	motor.parked = false
 	local pose = SlimeLife.pose(motor.params, motor.clock, now, motor.pose)
+	local offset = Vector3.zero
+	if mods then
+		pose.lift += mods.lift
+		pose.yaw += (mods.yaw - pose.yaw) * math.clamp(mods.yawWeight, 0, 1)
+		pose.pitch -= mods.tilt -- a turn about +X lifts the nose
+		pose.roll -= mods.roll -- a turn about +Z leans left
+		pose.sy = math.clamp(pose.sy * mods.sy, SlimeMotor.SQUASH_LIMIT[1], SlimeMotor.SQUASH_LIMIT[2])
+		pose.sx *= mods.sx
+		pose.sz *= mods.sx
+		offset = motor.body.CFrame:VectorToObjectSpace(Vector3.new(mods.dx, 0, mods.dz)) + Vector3.new(mods.lean, 0, 0)
+		offset = Vector3.new(offset.X, 0, offset.Z)
+	end
 	local size = (motor.model:GetAttribute("Size") :: number?) or 1
 	local r = motor.body.Size.Y / 2
 	local lift = pose.lift * size
 	local bones = motor.bones
 	-- Rock and turn around the bottom centre; the squashed centre sits r * sy up
 	-- (bones squash the mesh from its foot, so a boned skin keeps its centre).
-	local transform = CFrame.new(0, -r + lift, 0)
+	local transform = CFrame.new(offset.X, -r + lift, offset.Z)
 		* CFrame.Angles(0, pose.yaw, 0)
 		* CFrame.Angles(pose.pitch, 0, pose.roll)
 		* CFrame.new(0, if bones then r else r * pose.sy, 0)
 	motor.face.Transform = transform
 	motor.skinJoint.Transform = transform
 	if bones then
-		SlimeBones.step(bones, motor.params, motor.clock, pose, now, rand)
+		SlimeBones.step(bones, motor.params, motor.clock, pose, now, rand, mods)
 		return landed
 	end
 	local scale = Vector3.new(pose.sx, pose.sy, pose.sz)
