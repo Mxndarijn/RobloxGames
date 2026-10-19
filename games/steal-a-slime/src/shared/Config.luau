@@ -765,7 +765,7 @@ local Config = {
 		}),
 		-- Ambient loops (20 s seamless, Merijn-owned uploads).
 		AMBIENT_DAY_ID = "rbxassetid://91856264327473", -- birds (original procedural loop, uploaded via Open Cloud; moderation pending at upload)
-		AMBIENT_NIGHT_ID = "rbxassetid://84154150702688", -- soft wind + distant owls (tools/audio/night_loop.py)
+		AMBIENT_NIGHT_ID = "rbxassetid://9117182190", -- owls hooting, 16 s (Pro Sound Effects, public domain)
 	}),
 
 	-- Full steal alerts (FEATURES.StealAlerts, StealAlert / ui/StealAlertFx). Client timings in seconds.
