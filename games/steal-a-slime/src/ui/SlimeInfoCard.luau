@@ -38,10 +38,14 @@ SlimeInfoCard.SIZE = table.freeze({
 	widthStuds = 3.4,
 	widthPx = 72,
 	rowStuds = 0.4, -- one weight-1 row
-	rowPx = 11,
+	rowPx = 14, -- the pixel floor: a far row stays about this tall on a phone
 	maxDistance = 60, -- studs: hidden beyond
 	maxTextSize = 72,
-	stroke = 2.5, -- px outline round every row
+	stroke = 2, -- px outline round every row
+	-- Slimes walk the lane in a line, so their tags would stack. Each new tag takes the next of `levels` heights, a
+	-- whole tag height apart (SizeOffset is a fraction of the tag's own size, so it holds at any distance).
+	staggerLevels = 3,
+	staggerStep = 1,
 })
 
 -- Rows, top to bottom, with heights relative to one row. The name is the largest; the price is next, so it
@@ -63,14 +67,9 @@ SlimeInfoCard.INK = table.freeze({
 	nameDarken = 0.6, -- the name's outline: the rarity colour mixed this far towards black
 })
 
--- The Secret rarity's fill runs through every rarity colour instead of one.
-SlimeInfoCard.RAINBOW_TIER = 7
-
 export type Row = { name: string, y: number, h: number } -- y / h: fractions of the tag's height
 
-local function rgb(color: { number }): Color3
-	return Color3.fromRGB(color[1], color[2], color[3])
-end
+local rgb = SlimePadSign.rgb
 
 -- Outline colour of the name row: the rarity colour, darkened.
 function SlimeInfoCard.nameStroke(color: { number }): Color3
@@ -80,14 +79,8 @@ end
 -- Fill of the rarity word: light at the top, the rarity colour at the bottom (never darker, so deep blues and
 -- reds stay readable on the dark outline); a rainbow for Secret.
 function SlimeInfoCard.rarityGradient(view: SlimeLabel.View): ColorSequence
-	if view.tier >= SlimeInfoCard.RAINBOW_TIER then
-		return ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 92, 120)),
-			ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 214, 64)),
-			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(96, 240, 140)),
-			ColorSequenceKeypoint.new(0.75, Color3.fromRGB(80, 200, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(196, 110, 255)),
-		})
+	if SlimeLabel.isRainbow(view) then
+		return SlimePadSign.rainbow()
 	end
 	local base = rgb(view.rarityColor)
 	return ColorSequence.new({
@@ -111,6 +104,13 @@ function SlimeInfoCard.rows(count: number): { Row }
 		y += h
 	end
 	return out
+end
+
+-- Where the `n`th tag made sits: SizeOffset that lifts it 0, 1, .. staggerLevels - 1 tag heights (bottom edge on
+-- the anchor at level 0), so slimes made one after another in a line don't stack their tags.
+function SlimeInfoCard.stagger(n: number): Vector2
+	local s = SlimeInfoCard.SIZE
+	return Vector2.new(0, 0.5 + (n % s.staggerLevels) * s.staggerStep)
 end
 
 -- BillboardGui size for `count` rows.
@@ -235,6 +235,7 @@ export type Options = {
 type Entry = {
 	gui: BillboardGui,
 	conn: RBXScriptConnection,
+	moved: RBXScriptConnection, -- AncestryChanged: the pad may only be findable once the model sits in its plot
 	sign: Part?,
 	signPad: BasePart?,
 }
@@ -245,6 +246,7 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 	-- Tagged models whose Body has not replicated yet: the tag can arrive before the model's children.
 	local waiting: { [Instance]: RBXScriptConnection } = {}
 	local ownFolder: Folder? = nil
+	local made = 0 -- tags made so far: picks each new tag's stagger level
 	local function signParent(): Instance
 		if opts.signParent then
 			return opts.signParent
@@ -296,6 +298,7 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 		if entry then
 			cards[model] = nil
 			entry.conn:Disconnect()
+			entry.moved:Disconnect()
 			entry.gui:Destroy()
 			dropSign(entry)
 		end
@@ -318,12 +321,17 @@ function SlimeInfoCard.start(opts: Options): () -> ()
 		end
 		local gui = SlimeInfoCard.build()
 		gui.Adornee = body
+		gui.SizeOffset = SlimeInfoCard.stagger(made)
+		made += 1
 		local conn = model.AttributeChanged:Connect(function(name: string)
 			if WATCHED[name] then
 				refresh(model)
 			end
 		end)
-		cards[model] = { gui = gui, conn = conn }
+		local moved = model.AncestryChanged:Connect(function()
+			refresh(model)
+		end)
+		cards[model] = { gui = gui, conn = conn, moved = moved }
 		refresh(model)
 		gui.Parent = body
 	end

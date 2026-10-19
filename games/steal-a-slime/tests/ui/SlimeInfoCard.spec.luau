@@ -1,6 +1,7 @@
 --!strict
--- Slime info card layout (contract/slime-labels.md): one card per tagged slime, rows stacked inside the card,
--- bottom edge above the mesh top, culled by distance, re-rendered only on label attribute changes.
+-- Slime labels (contract/slime-labels.md): one floating tag per loose slime, rows stacked inside it, bottom edge
+-- above the mesh top, staggered so a line of slimes doesn't stack them, culled by distance; a goo-dipped plank on the
+-- pad crate for a pad slime; both re-rendered only on label attribute changes.
 local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
@@ -330,6 +331,35 @@ describe("SlimePadSign", function()
 		expect(SlimePadSign.findPad(model, 3)).toBe(pad)
 		expect(SlimePadSign.findPad(model, 4)).toBeNil()
 		expect(SlimePadSign.findPad(slimeModel({}), 3)).toBeNil()
+		local plot = pad.Parent
+		model.Parent = plot -- parented to the plot itself, no Slimes folder
+		expect(SlimePadSign.findPad(model, 3)).toBe(pad)
+	end)
+end)
+
+describe("SlimeInfoCard.stagger", function()
+	it("lifts tags made one after another to different heights, a whole tag apart, and wraps", function()
+		local levels = SlimeInfoCard.SIZE.staggerLevels
+		local seen = {}
+		for n = 0, levels - 1 do
+			local y = SlimeInfoCard.stagger(n).Y
+			expect(seen[y]).toBeNil()
+			seen[y] = true
+		end
+		expect(SlimeInfoCard.stagger(0).Y).toBe(0.5) -- the first sits right on its anchor
+		expect(SlimeInfoCard.stagger(1).Y - SlimeInfoCard.stagger(0).Y).toBe(SlimeInfoCard.SIZE.staggerStep)
+		expect(SlimeInfoCard.stagger(levels)).toBe(SlimeInfoCard.stagger(0))
+	end)
+	it("gives three slimes added in a row three different heights", function()
+		local models = { slimeModel({}), slimeModel({}), slimeModel({}) }
+		local stop = SlimeInfoCard.start({ collection = fakeCollection(models), tag = Constants.SLIME_TAG })
+		local seen = {}
+		for _, m in models do
+			local y = m:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME).SizeOffset.Y
+			expect(seen[y]).toBeNil()
+			seen[y] = true
+		end
+		stop()
 	end)
 end)
 
@@ -364,6 +394,22 @@ describe("SlimeInfoCard.start on a pad", function()
 		UiHarness.fire(model, "AttributeChanged", Constants.LABEL_PAD_ATTRIBUTE)
 		expect(#signs:GetChildren()).toBe(0)
 		expect(tag.Enabled).toBe(true)
+		stop()
+	end)
+	it("finds the pad once the model moves into its plot (AncestryChanged)", function()
+		local plot, _, model = plotWithSlime(1, padAttrs(1))
+		model.Parent = nil
+		local signs = UiHarness.Instance.new("Folder")
+		local stop = SlimeInfoCard.start({
+			collection = fakeCollection({ model }),
+			tag = Constants.SLIME_TAG,
+			signParent = signs,
+		})
+		expect(#signs:GetChildren()).toBe(0)
+		model.Parent = plot:FindFirstChild("Slimes")
+		UiHarness.fire(model, "AncestryChanged", model, model.Parent)
+		expect(#signs:GetChildren()).toBe(1)
+		expect(model:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME).Enabled).toBe(false)
 		stop()
 	end)
 	it("keeps the tag when the pad part is not there, and removes the sign with the tag", function()

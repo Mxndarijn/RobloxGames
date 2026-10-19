@@ -35,7 +35,7 @@ SlimePadSign.SIZE = table.freeze({
 	front = 3.8, -- studs from the pad centre to the plank's back face (the crate side)
 	centreY = 1.25, -- studs above the pad's bottom
 	pixelsPerStud = 80,
-	maxDistance = 90,
+	maxDistance = 45, -- studs: the plank is too small to read beyond this
 	corner = 6,
 	edge = 4, -- px dark rim round the plank
 	paintStroke = 2, -- px outline round painted text
@@ -56,9 +56,6 @@ SlimePadSign.COLORS = table.freeze({
 
 -- Rarity colours at or above this brightness (0..255) get dark text in the goo.
 SlimePadSign.LIGHT_BAND = 150
-
--- The Secret rarity's goo runs through every rarity colour instead of one.
-SlimePadSign.RAINBOW_TIER = 7
 
 -- Layout as fractions of the plank (x across, y down). Text sits between the end drips.
 SlimePadSign.LAYOUT = table.freeze({
@@ -83,8 +80,20 @@ SlimePadSign.DRIPS = table.freeze({
 	{ x = 0.945, w = 18, len = 0.28 },
 })
 
-local function rgb(color: { number }): Color3
+-- { r, g, b } (Config.RARITIES, SlimeLabel.RAINBOW) as a Color3.
+function SlimePadSign.rgb(color: { number }): Color3
 	return Color3.fromRGB(color[1], color[2], color[3])
+end
+local rgb = SlimePadSign.rgb
+
+-- SlimeLabel.RAINBOW as an evenly spaced gradient (the tag and the sign share it).
+function SlimePadSign.rainbow(): ColorSequence
+	local stops = SlimeLabel.RAINBOW
+	local points = {}
+	for i, c in stops do
+		table.insert(points, ColorSequenceKeypoint.new((i - 1) / (#stops - 1), rgb(c)))
+	end
+	return ColorSequence.new(points)
 end
 
 -- Text in the goo: dark ink (the colour, deepened) on light goo, white edged in dark on deep goo.
@@ -98,14 +107,8 @@ end
 
 -- The goo's shading: a glossy light top over the rarity colour; a rainbow for Secret.
 function SlimePadSign.gooGradient(view: SlimeLabel.View): ColorSequence
-	if view.tier >= SlimePadSign.RAINBOW_TIER then
-		return ColorSequence.new({
-			ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 92, 120)),
-			ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 214, 64)),
-			ColorSequenceKeypoint.new(0.5, Color3.fromRGB(96, 240, 140)),
-			ColorSequenceKeypoint.new(0.75, Color3.fromRGB(80, 200, 255)),
-			ColorSequenceKeypoint.new(1, Color3.fromRGB(196, 110, 255)),
-		})
+	if SlimeLabel.isRainbow(view) then
+		return SlimePadSign.rainbow()
 	end
 	local base = rgb(view.rarityColor)
 	return ColorSequence.new({
@@ -119,7 +122,7 @@ end
 function SlimePadSign.dripGradient(view: SlimeLabel.View, x: number): ColorSequence
 	local shading = SlimePadSign.gooGradient(view)
 	-- Rainbow: the colour at x along the band; otherwise the band's own bottom colour.
-	local at = if view.tier >= SlimePadSign.RAINBOW_TIER then x else 1
+	local at = if SlimeLabel.isRainbow(view) then x else 1
 	local points = shading.Keypoints
 	local top = points[#points].Value
 	for i = 1, #points - 1 do
@@ -171,13 +174,8 @@ local function goo(name: string, props: { [string]: any }, parent: Instance, cor
 	return frame
 end
 
--- The pad part a slime rests on: the child of its plot with PadIndex `pad` (Pad_<pad> as a fallback), or nil.
-function SlimePadSign.findPad(model: Instance, pad: number): BasePart?
-	local folder = model.Parent
-	local plot = folder and folder.Parent
-	if not plot then
-		return nil
-	end
+-- The pad part `pad` among `plot`'s children: PadIndex `pad`, Pad_<pad> as a fallback; nil when it has none.
+local function padIn(plot: Instance, pad: number): BasePart?
 	for _, child in plot:GetChildren() do
 		if child:IsA("BasePart") and child:GetAttribute(Constants.PAD_INDEX_ATTRIBUTE) == pad then
 			return child
@@ -185,6 +183,17 @@ function SlimePadSign.findPad(model: Instance, pad: number): BasePart?
 	end
 	local named = plot:FindFirstChild(`Pad_{pad}`)
 	return if named and named:IsA("BasePart") then named else nil
+end
+
+-- The pad part a slime rests on, or nil. The model normally sits in its plot's Slimes folder; one parented to the
+-- plot itself is found too.
+function SlimePadSign.findPad(model: Instance, pad: number): BasePart?
+	local parent = model.Parent
+	if not parent then
+		return nil
+	end
+	local grand = parent.Parent
+	return (if grand then padIn(grand, pad) else nil) or padIn(parent, pad)
 end
 
 -- Where the plank sits for a pad part: on the crate's entrance side, facing out.
@@ -311,7 +320,7 @@ function SlimePadSign.render(part: Part, view: SlimeLabel.View)
 	local fill = (board:FindFirstChild("Track") :: Frame):FindFirstChild("Fill") :: Frame
 	local shading = SlimePadSign.gooGradient(view)
 	-- A rainbow runs along the band and the tube; the rarity shading runs top to bottom.
-	local rotation = if view.tier >= SlimePadSign.RAINBOW_TIER then 0 else 90
+	local rotation = if SlimeLabel.isRainbow(view) then 0 else 90
 	for _, piece in { band, fill } do
 		local shade = piece:FindFirstChild("Goo") :: UIGradient
 		shade.Color = shading

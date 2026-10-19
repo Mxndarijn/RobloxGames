@@ -281,7 +281,7 @@ local tutorial = TutorialOverlay.new(gui, ctx)
 local hintOverlay = HintOverlay.new(gui)
 local popups = PopupQueue.new()
 local worldBoards = WorldLeaderboard.start(workspace, player.UserId)
--- One info card above every slime (contract/slime-labels.md): event-driven, no frame work.
+-- One label per slime, a tag above it or a sign on its pad (contract/slime-labels.md): event-driven, no frame work.
 SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = Constants.SLIME_TAG })
 
 -- The dimmed full-window backdrop (Layout.backdrop: the whole viewport, top bar included, square) behind an open menu card (screen.panel).

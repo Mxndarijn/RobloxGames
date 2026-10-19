@@ -1,5 +1,5 @@
 --!strict
--- Slime info card text (contract/slime-labels.md): name, rarity, income, price, pad and growth,
+-- Slime label values (contract/slime-labels.md): name, rarity, income, price, pad and growth,
 -- and the income Scene hands to the label.
 local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")

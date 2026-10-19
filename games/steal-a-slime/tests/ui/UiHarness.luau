@@ -220,6 +220,8 @@ Mock.__index = function(self: any, key: string): any
 	end)
 	-- A signal table from the real Instance comes from the livetest Runtime's process-wide event shims (a spec that
 	-- booted the server ran first); UiHarness.fire can't reach it, so it gets a recording signal like any event.
+	-- Those shims stay installed for the rest of `lune run tests` (roblox.implementProperty can't be undone), so UI
+	-- specs still run after them; this keeps a mock's events its own either way.
 	if ok and not (type(value) == "table" and type(value.Connect) == "function") then
 		return value
 	end

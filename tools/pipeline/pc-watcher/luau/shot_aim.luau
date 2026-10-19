@@ -1,5 +1,5 @@
 -- Client datamodel: re-aims the camera lock of shot_camera at %%EYE%% looking at %%AT%% WITHOUT touching any
--- GUI (shot_camera hides every BillboardGui, which would hide the GrowthLabel WorldView just made).
+-- GUI (shot_camera hides every BillboardGui; the pad slime's label is the SurfaceGui pad sign, which stays).
 local RunService = game:GetService("RunService")
 local cam = workspace.CurrentCamera
 local eye, at = Vector3.new(%%EYE%%), Vector3.new(%%AT%%)

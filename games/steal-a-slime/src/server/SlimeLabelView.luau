@@ -2,8 +2,8 @@
 --[[
 	SlimeLabelView (Roblox adapter, contract/slime-labels.md)
 
-	Writes the info-card attributes on a slime model (the text is pure:
-	Shared.SlimeLabel; each client draws the card) and scales the model to its
+	Writes the label attributes on a slime model (the values are pure:
+	Shared.SlimeLabel; each client draws the tag or the pad sign) and scales the model to its
 	growth (FEATURES.GrowingSlimes). Every write is skipped when the value is
 	unchanged, so a reconcile a few times a second replicates almost nothing.
 	Studio only: a model attribute PcwGrowth (whole percent) replaces the real

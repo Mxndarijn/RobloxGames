@@ -52,7 +52,7 @@ function Growth.percentAt(fraction: number): number
 	return math.floor(Growth.clampFraction(fraction) * 100 + 0.5)
 end
 
--- Studs from the slime Body's centre to the label centre: `topAbove` = how far the model's
+-- Studs from the slime Body's centre to the bottom edge of its floating tag: `topAbove` = how far the model's
 -- highest part (crown, hat, halo) is above that centre, so the label clears the whole slime.
 function Growth.labelOffset(topAbove: number): number
 	return math.max(topAbove, 0) + Config.GROWTH_LABEL_GAP

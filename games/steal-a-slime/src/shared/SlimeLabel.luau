@@ -8,6 +8,7 @@
 	turns the attributes back into label values (`view`). No Roblox APIs.
 ]]
 
+local Config = if script then require(script.Parent.Config) else require("./Config")
 local Constants = if script then require(script.Parent.Constants) else require("./Constants")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Growth = if script then require(script.Parent.Growth) else require("./Growth")
@@ -53,6 +54,20 @@ local function finite(n: any): number?
 		return nil
 	end
 	return n
+end
+
+-- The top rarity (Secret) is drawn in every colour instead of one: these stops, left to right or top to bottom.
+SlimeLabel.RAINBOW = table.freeze({
+	table.freeze({ 255, 92, 120 }),
+	table.freeze({ 255, 214, 64 }),
+	table.freeze({ 96, 240, 140 }),
+	table.freeze({ 80, 200, 255 }),
+	table.freeze({ 196, 110, 255 }),
+})
+
+-- True for the top rarity, which labels draw as a rainbow (Config.MAX_TIER, so a new rarity moves it along).
+function SlimeLabel.isRainbow(view: View): boolean
+	return view.tier >= Config.MAX_TIER
 end
 
 -- "+$1.25K/s", "+$0.8/s" (NumberFormat.rate, as the HUD); garbage and negatives show "+$0/s".

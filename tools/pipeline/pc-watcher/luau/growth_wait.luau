@@ -1,7 +1,7 @@
 -- Server datamodel: waits (up to %%WAIT%% s) until the REAL pad slime (a tagged Slime model near the pad at
 -- %%PATH%%, never a PcwSeat / PcwPad clone) carries the Growth attribute and the LabelHeight attribute that the
--- server's SlimeLabelView sets (each client draws the info card from them). Returns {found, percent, label_text, path,
--- pos, label_pos} (label_pos = the Body position plus LabelHeight, i.e. the bottom edge of the info card).
+-- server's SlimeLabelView sets (each client draws the slime labels from them). Returns {found, percent, label_text, path,
+-- pos, label_pos} (label_pos = the Body position plus LabelHeight, i.e. the bottom edge of the floating tag).
 local CollectionService = game:GetService("CollectionService")
 local node = game
 for part in string.gmatch(%%PATH%%, "[^.]+") do
