@@ -126,6 +126,7 @@ local function startHaul(world: World, event: World.BossEvent, now: number)
 	local wild = event.slimeId and world.wild[event.slimeId]
 	if wild then
 		wild.expiresAt = fight.endsAt
+		wild.wanderUntil = now
 	end
 	for _, userId in BossFight.helpers(fight) do
 		local eggs = MysteryEgg.spawnForEvent(world, userId, BOSS.HELPER_EGGS, now)

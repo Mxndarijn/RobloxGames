@@ -205,7 +205,9 @@ describe("BossEvent haul", function()
 	it("pops to carry size; the top contributor grabs first, then anyone", function()
 		local w = world()
 		local id = arrive(w)
+		expect(w.wild[id].wanderUntil).toBeNil() -- it wanders while it fights
 		local t = fill(w, 1, 2)
+		expect(w.wild[id].wanderUntil).toBe(t - BOSS.HIT_GAP) -- and stops at the hit that filled the meter
 		local entry = Scene.describe(w, t)[id]
 		expect(entry.bossScale).toBeNil()
 		expect(entry.promptEnabled).toBe(true)
