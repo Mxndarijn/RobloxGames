@@ -800,10 +800,13 @@ end
 local function onSlimeRemoved(instance: Instance)
 	if instance:IsA("Model") then
 		slimes[instance] = nil
-		for _, conn in slimeConns[instance] or {} do
-			conn:Disconnect()
+		local conns = slimeConns[instance]
+		if conns then
+			for _, conn in conns do
+				conn:Disconnect()
+			end
+			slimeConns[instance] = nil
 		end
-		slimeConns[instance] = nil
 		release(instance)
 		releaseAnim(instance)
 		releaseMotor(instance)

@@ -120,11 +120,11 @@ local function pick(roll: number, weights: { [string]: number }): Kind
 		if w > 0 then
 			x -= w
 			if x <= 0 then
-				return k
+				return k :: Kind
 			end
 		end
 	end
-	return "look"
+	return "look" :: Kind
 end
 
 function ParadeChoreo.plan(seed: number, temper: string?, walkSeconds: number, leadSeconds: number?): Plan
@@ -141,7 +141,7 @@ function ParadeChoreo.plan(seed: number, temper: string?, walkSeconds: number, l
 	local last = walkSeconds - ParadeChoreo.QUIET_END
 	local at = (leadSeconds or 0) + ParadeChoreo.FIRST_AFTER + gaps[1] * rng:float()
 	while true do
-		local kind = pick(rng:float(), weights)
+		local kind: Kind = pick(rng:float(), weights)
 		local spec = ParadeChoreo.BEATS[kind]
 		local stop = spec.stop[1] + rng:float() * (spec.stop[2] - spec.stop[1])
 		local side = if rng:float() < 0.5 then -1 else 1
@@ -183,8 +183,8 @@ function ParadeChoreo.plan(seed: number, temper: string?, walkSeconds: number, l
 		key(s0 + stop + r + catchUp, catch)
 		local e = s0 + stop + r + catchUp + r
 		key(e, 1)
-		table.insert(beats, {
-			kind = kind,
+		local beat: Beat = {
+			kind = kind :: Kind,
 			t0 = at,
 			s0 = s0,
 			s1 = s0 + stop,
@@ -192,7 +192,8 @@ function ParadeChoreo.plan(seed: number, temper: string?, walkSeconds: number, l
 			stop = stop,
 			pre = spec.pre,
 			side = side,
-		})
+		}
+		table.insert(beats, beat)
 		at = e + gaps[1] + rng:float() * (gaps[2] - gaps[1])
 	end
 	key(math.max(walkSeconds, keys[#keys][1]), 1)
