@@ -28,6 +28,7 @@ as before (`Genome.sanitize`).
   placed at the body's bottom centre + `offset` (scaled) with `MeshAssets.IMPORT_YAW`, `Color` white, material from
   `SlimeLooks`. It keeps its `Bone` children (skinned rig: Root, Top, Side*, Eyes, Lids,
   accessory bones). The procedural face / pattern / tier-crown parts are hidden (`SlimeMesh.isReplacedPart`); Body,
-  TierRim, Aura and GlowShell stay. The per-type accessory path (`SlimeMesh.plan`, `Accessory`) is gone.
+  Aura and GlowShell stay. No slime has a rarity ring under it. The per-type accessory path (`SlimeMesh.plan`,
+  `Accessory`) is gone.
 - **`Config.REBIRTH_SLIMES`** uses the new ids: 1 bumble, 2 froggo, 3 lop, 4 moo, 5 blaze, 6 octo, 7 king, 8 ninja,
   9-10 cosmo, 15 midas, 20 eclipse.

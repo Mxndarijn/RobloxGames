@@ -144,7 +144,7 @@ local function hoppingSlime(): any
 	meshWeld.Part1 = mesh
 	meshWeld.Parent = mesh
 	local ring = new("Part")
-	ring.Name = "TierRim"
+	ring.Name = "Puddle"
 	ring.CFrame = CFrame.new(10, 0.5, -4)
 	ring.Parent = model
 	local ringWeld = new("WeldConstraint")
@@ -172,6 +172,6 @@ describe("PetRig.stripLife on a slime cloned mid-hop", function()
 	end)
 	it("leaves Body and the parts welded to Body where they are", function()
 		expect(at("Body").Position.Y).toBe(2)
-		expect(at("TierRim").Position.Y).toBeCloseTo(0.5, 1e-6)
+		expect(at("Puddle").Position.Y).toBeCloseTo(0.5, 1e-6)
 	end)
 end)
