@@ -124,6 +124,26 @@ local NAMES = {
 	"ranch_floor_deck",
 	"ranch_floor_paths",
 	"pet_cloud",
+	-- Held PvP items (Shared.PvpModels, server/PvpHeld): no entry until uploaded, the placeholder Parts stand in.
+	"pvp_knock_glove_1",
+	"pvp_knock_glove_2",
+	"pvp_knock_glove_3",
+	"pvp_knock_glove_4",
+	"pvp_knock_glove_5",
+	"pvp_goo_trap_1",
+	"pvp_goo_trap_2",
+	"pvp_goo_trap_3",
+	"pvp_goo_blaster_1",
+	"pvp_goo_blaster_2",
+	"pvp_goo_blaster_3",
+	"pvp_fun_confetti",
+	"pvp_fun_balloon",
+	"pvp_fun_bubbles",
+	"pvp_fun_bounce_pad",
+	"pvp_fun_squeaky",
+	"pvp_fun_hat_launcher",
+	"pvp_fun_dance_bomb",
+	"pvp_fun_fireworks",
 }
 
 local entries: { [string]: Entry } = {}

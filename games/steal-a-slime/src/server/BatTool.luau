@@ -14,7 +14,7 @@
 	The Tool: one per player (give() replaces any old copy), given on every spawn, CanBeDropped = false, single
 	collision-free handle Part (a few parts per player, only while equipped, never in the world part budget).
 	The model / icon / swing sound hookup is shared/BatModel (MESH_ID / ICON_ID / SWING_SOUND): change it there only.
-	Every click plays the swing (the default Animate tool slash + a whoosh, replicated to everyone), hit or miss.
+	Every click plays the swing (the BatSwingAt attribute every client animates + a whoosh), hit or miss.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -22,6 +22,7 @@ local BatModel = if Shared then require(Shared.BatModel) else require("../shared
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local BatRules = if Shared then require(Shared.BatRules) else require("../shared/BatRules")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
 local PvpKnockbackRules = if Shared then require(Shared.PvpKnockbackRules) else require("../shared/PvpKnockbackRules")
 local PvpRules = if Shared then require(Shared.PvpRules) else require("../shared/PvpRules")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
@@ -256,16 +257,16 @@ local function buildHandle(): any
 	return handle
 end
 
--- The swing everyone sees: the character's default Animate script plays its built-in tool slash when a StringValue
--- "toolanim" = "Slash" appears under the equipped Tool (it takes the value away itself; Debris is the fallback), plus
--- a whoosh from the handle. Played for every click, hit or miss, at most once per Config.BAT.SWING_GAP.
+-- The swing everyone sees: the Player attribute BatSwingAt (server time) makes every client play the procedural swing
+-- (ui/PvpAnim; the swinger's own client already played it on Activated), plus a whoosh from the handle. Played for
+-- every click, hit or miss, at most once per Config.BAT.SWING_GAP.
 local function playSwing(tool: any, whoosh: any)
-	local anim = Instance.new("StringValue")
-	anim.Name = "toolanim"
-	anim.Value = "Slash"
-	anim.Parent = tool
-	local debris: any = game:GetService("Debris")
-	debris:AddItem(anim, 1)
+	local character = tool.Parent
+	local players: any = game:GetService("Players")
+	local player = if character then players:GetPlayerFromCharacter(character) else nil
+	if player then
+		player:SetAttribute(Constants.BAT_SWING_ATTRIBUTE, workspace:GetServerTimeNow())
+	end
 	pcall(function() -- the Lune live-boot Sound stand-in has no Play
 		whoosh:Play()
 	end)

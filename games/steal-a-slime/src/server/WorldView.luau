@@ -48,6 +48,7 @@ local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local Progression = require(ReplicatedStorage.Shared.Progression)
 local PvpFun = require(script.Parent.PvpFun)
+local PvpHeld = require(script.Parent.PvpHeld)
 local PvpService = require(script.Parent.PvpService)
 local PvpTrap = require(script.Parent.PvpTrap)
 local Rescue = require(script.Parent.Rescue)
@@ -1260,6 +1261,8 @@ function WorldView.updatePlayer(
 	if Config.FEATURES.PvP then
 		setAttribute(player, Constants.PVP_SHIELD_ATTRIBUTE, PvpService.shieldUntil(session, now))
 		setAttribute(player, Constants.PVP_EQUIPPED_ATTRIBUTE, PvpService.equipped(session))
+		-- the held model (CONTRACT.md §26.3): put away while carrying, like the Tools
+		PvpHeld.sync(character, if carry then nil else PvpService.equipped(session))
 		local root = WorldView.rootPart(player)
 		PvpService.tick(world, session, root and root.Position, now)
 		PvpTrap.tick(world, session, root and root.Position, now)

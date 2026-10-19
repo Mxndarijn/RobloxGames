@@ -12,6 +12,7 @@ local Config = require("../src/shared/Config")
 local Habitats = require("../src/shared/Habitats")
 local MeshAssets = require("../src/shared/MeshAssets")
 local PropClearance = require("../src/visuals/shared/PropClearance")
+local PvpModels = require("../src/shared/PvpModels")
 local RanchProps = require("../src/visuals/shared/RanchProps")
 local TestRunner = require("./TestRunner")
 local WorldBorder = require("../src/visuals/shared/WorldBorder")
@@ -89,7 +90,8 @@ describe("ranch props: every kit mesh is placed", function()
 		local missing = {}
 		for _, name in MeshAssets.NAMES do
 			local reason = RanchProps.INTENTIONALLY_UNPLACED[name]
-			if not placed(name) and not (type(reason) == "string" and #reason > 0) then
+			local held = table.find(PvpModels.MESHES, name) ~= nil -- a held PvP item (server/PvpHeld), never a world slot
+			if not placed(name) and not held and not (type(reason) == "string" and #reason > 0) then
 				table.insert(missing, name)
 			end
 		end
