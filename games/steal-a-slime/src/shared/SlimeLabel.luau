@@ -10,6 +10,7 @@
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Constants = if script then require(script.Parent.Constants) else require("./Constants")
+local EggKind = if script then require(script.Parent.EggKind) else require("./EggKind")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
 local Growth = if script then require(script.Parent.Growth) else require("./Growth")
 local NumberFormat = if script then require(script.Parent.NumberFormat) else require("./NumberFormat")
@@ -34,6 +35,7 @@ export type Attributes = {
 	growth: any,
 	boss: any,
 	pad: any,
+	status: any,
 }
 
 local SlimeLabel = {}
@@ -47,6 +49,7 @@ SlimeLabel.ATTRIBUTES = table.freeze({
 	growth = Constants.GROWTH_ATTRIBUTE,
 	boss = Constants.BOSS_ATTRIBUTE,
 	pad = Constants.LABEL_PAD_ATTRIBUTE,
+	status = Constants.LABEL_STATUS_ATTRIBUTE,
 })
 
 local function finite(n: any): number?
@@ -86,9 +89,34 @@ function SlimeLabel.priceText(price: any): string?
 	return if p and p > 0 then NumberFormat.cash(p) else nil
 end
 
--- Name / tier attribute values for a slime (LabelIncome is written separately).
+-- Name / tier attribute values for a slime (LabelIncome is written separately); an egg shows its egg name and tier.
 function SlimeLabel.attributes(slime: Genome.Slime): (string, number)
+	local kind = EggKind.of(slime)
+	if kind then
+		return EggKind.displayName(kind), kind.tier
+	end
 	return slime.name, Genome.rarity(slime.tier).tier
+end
+
+-- "m:ss" for a non-negative number of seconds (rounded up).
+function SlimeLabel.clock(seconds: number): string
+	local s = math.max(0, math.ceil(seconds))
+	return string.format("%d:%02d", s // 60, s % 60)
+end
+
+-- The status row of a Mystery Egg at `now` (LabelStatus), nil for a slime.
+function SlimeLabel.eggStatus(slime: Genome.Slime, now: number): string?
+	local kind = EggKind.of(slime)
+	if not kind then
+		return nil
+	end
+	local hatchAt = slime.egg and slime.egg.hatchAt
+	if not hatchAt then
+		return `Hatches in {SlimeLabel.clock(kind.hatchSeconds)} on a pad`
+	elseif hatchAt <= now then
+		return "Ready to hatch!"
+	end
+	return `Hatches in {SlimeLabel.clock(hatchAt - now)}`
 end
 
 -- Label values from the attributes; nil when the model carries no LabelName yet.
@@ -103,7 +131,9 @@ function SlimeLabel.view(attrs: Attributes): View?
 		rarity = rarity.name,
 		tier = rarity.tier,
 		rarityColor = rarity.color,
-		income = SlimeLabel.incomeText(attrs.income),
+		income = if type(attrs.status) == "string" and attrs.status ~= ""
+			then attrs.status
+			else SlimeLabel.incomeText(attrs.income),
 		price = SlimeLabel.priceText(attrs.price),
 		growth = Growth.percentAt((finite(attrs.growth) or 0) / 100),
 		pad = if pad and pad >= 1 then math.floor(pad) else nil,

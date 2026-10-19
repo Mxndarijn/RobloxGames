@@ -24,6 +24,9 @@ function Merge.canMerge(a: Slime?, b: Slime?): (boolean, string?)
 	if a.id == b.id then
 		return false, "need two different slimes"
 	end
+	if a.egg or b.egg then
+		return false, "eggs can't be merged"
+	end
 	if a.tier ~= b.tier then
 		return false, "slimes must be the same rarity"
 	end
@@ -74,7 +77,7 @@ end
 function Merge.findPair(slimes: { Slime }, busy: { [string]: boolean }?, favoriteId: string?): (string?, string?)
 	local byTier: { [number]: { Slime } } = {}
 	for _, s in slimes do
-		if not (busy and busy[s.id]) then
+		if not (busy and busy[s.id]) and not s.egg then
 			byTier[s.tier] = byTier[s.tier] or {}
 			table.insert(byTier[s.tier], s)
 		end

@@ -57,7 +57,9 @@ export type Session = {
 	lastPushAt: number,
 	stealWaitSince: number?, -- tutorial Steal step: since when no other plot had a slime to steal, runtime only
 	friends: number?, -- friends in this server (Friends.refresh), runtime only
-	egg: { slime: Slime, at: number }?, -- newest boss helper egg hatch for the reveal banner (never saved)
+	egg: { slime: Slime, at: number }?, -- newest egg hatch (boss helper egg or Mystery Egg) for the reveal banner (never saved)
+	home: boolean?, -- standing in their own HomeZone (the adapter sets it); warms their Mystery Eggs, runtime only
+	eggsReady: { [string]: boolean }?, -- Mystery Egg ids whose "ready to hatch" toast went out, runtime only
 	welcome: WelcomeBack.Report?, -- away time, offline cash and slimes grown, read at join for the welcome card (never saved)
 	openShop: string?, -- FEATURES.WorldShops: the shop id the player has open (Request OpenShop), runtime only
 	awayLog: { StealAlert.Entry }?, -- FEATURES.StealAlerts: the saved thefts read at join, for the join notice (never saved)
@@ -117,6 +119,7 @@ export type World = {
 	escaping: { [string]: number }, -- slimeId -> time its bounce home ends
 	revenge: { [number]: { [number]: number } }, -- FEATURES.Revenge: victim userId -> thief userId -> window end (server/Revenge)
 	rng: Rng.Rng,
+	eggRng: Rng.Rng, -- FEATURES.MysteryEggs rolls, apart from `rng` so the fountain's slime sequence doesn't shift
 	newId: () -> string,
 	startedAt: number,
 	nextSpawnAt: number,
@@ -160,6 +163,7 @@ function World.new(options: Options): World
 		escaping = {},
 		revenge = {},
 		rng = Rng.new(options.seed or 1),
+		eggRng = Rng.new((options.seed or 1) + 7919),
 		newId = options.newId or function()
 			counter += 1
 			return `s{counter}`

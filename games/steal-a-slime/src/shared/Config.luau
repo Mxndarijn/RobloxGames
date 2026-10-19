@@ -735,6 +735,7 @@ local Config = {
 		WorldShops = true, -- CONTRACT.md §27: Item Shop + Upgrade Shop stands (ItemShopStand / UpgradeShopStand), Request OpenShop / CloseShop / ShopBuy, ShopEvent, range checks; false = the single ShopStand and the HUD Shop as before
 		WorldShopsStrict = true, -- CONTRACT.md §27.6: the old buy actions also need an open shop in range ("NotOpen"); on since the HUD Shop button is gone in HUD v2. Needs WorldShops
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
+		MysteryEggs = true, -- the fountain sometimes drops a Mystery Egg that incubates on a pad, can be stolen and hatches into a slime (MysteryEgg, EggKind, contract/mystery-egg.md); false = no egg drops (eggs already on plots still hatch)
 	}),
 
 	-- Server profiler (FEATURES.ServerProfiler, server/Profiler). BUDGET_MS = p95 ms per frame / call.
@@ -925,6 +926,73 @@ local Config = {
 		table.freeze({ tier = 4, weight = 14 }),
 		table.freeze({ tier = 5, weight = 5 }),
 		table.freeze({ tier = 6, weight = 1 }),
+	}),
+	-- Wild Mystery Eggs (FEATURES.MysteryEggs, contract/mystery-egg.md). Each KINDS entry: `id` (saved, never rename),
+	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
+	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `price` (cash to
+	-- grab a non-free one), `sell` (cash when sold, x the rebirth multiplier), `announce` (server toast on spawn) and
+	-- `drops` (tier weights of the slime inside).
+	MYSTERY_EGG = table.freeze({
+		DROP_CHANCE = 0.015, -- share of fountain drops that are an egg
+		RAIN_MULT = 3, -- DROP_CHANCE multiplier during Slime Rain
+		MAX_WILD = 1, -- loose eggs at once (on the lane or dropped)
+		RAIN_MAX_WILD = 2,
+		WARM_SPEED = 1.5, -- incubation speed while the owner stands in their HomeZone
+		HATCH_ANNOUNCE_TIER = 6, -- a hatch of this tier or higher is toasted to the whole server
+		KINDS = table.freeze({
+			table.freeze({
+				id = "speckled",
+				name = "Speckled",
+				tier = 3,
+				weight = 60,
+				hatchSeconds = 3 * 60,
+				price = 60,
+				sell = 40,
+				announce = false,
+				drops = table.freeze({
+					{ tier = 2, weight = 55 },
+					{ tier = 3, weight = 35 },
+					{ tier = 4, weight = 10 },
+				}),
+			}),
+			table.freeze({
+				id = "shiny",
+				name = "Shiny",
+				tier = 4,
+				weight = 27,
+				hatchSeconds = 6 * 60,
+				price = 250,
+				sell = 150,
+				announce = false,
+				drops = table.freeze({
+					{ tier = 3, weight = 50 },
+					{ tier = 4, weight = 40 },
+					{ tier = 5, weight = 10 },
+				}),
+			}),
+			table.freeze({
+				id = "golden",
+				name = "Golden",
+				tier = 5,
+				weight = 10,
+				hatchSeconds = 10 * 60,
+				price = 900,
+				sell = 600,
+				announce = true,
+				drops = table.freeze({ { tier = 4, weight = 55 }, { tier = 5, weight = 40 }, { tier = 6, weight = 5 } }),
+			}),
+			table.freeze({
+				id = "cosmic",
+				name = "Cosmic",
+				tier = 6,
+				weight = 3,
+				hatchSeconds = 15 * 60,
+				price = 3000,
+				sell = 2000,
+				announce = true,
+				drops = table.freeze({ { tier = 5, weight = 60 }, { tier = 6, weight = 35 }, { tier = 7, weight = 5 } }),
+			}),
+		}),
 	}),
 	-- Restocking consumables (FEATURES.Consumables, competitor-gaps.md #13). The stock of slot
 	-- floor(unix time / CONSUMABLES_RESTOCK_SECONDS) is a pure function of the slot, so every server

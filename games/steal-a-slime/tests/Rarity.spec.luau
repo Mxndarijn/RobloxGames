@@ -19,7 +19,7 @@ local function simulate(seed: number)
 	local counts, droughtEpic, droughtLegendary, sinceEpic, sinceLegendary = {}, 0, 0, 0, 0
 	local announced, rareEvents, rareModels = 0, 0, 0
 	for i = 1, DROPS do
-		local id = Spawner.spawnOne(world, T0 + i)
+		local id = Spawner.spawnSlime(world, T0 + i)
 		local wild = world.wild[id]
 		local tier = wild.slime.tier
 		counts[tier] = (counts[tier] or 0) + 1

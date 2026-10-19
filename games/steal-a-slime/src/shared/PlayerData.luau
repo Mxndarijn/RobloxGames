@@ -241,7 +241,8 @@ function PlayerData.setFavorite(data: Data, id: string?): boolean
 		data.favoriteId = nil
 		return true
 	end
-	if not PlayerData.findSlime(data, id) then
+	local slime = PlayerData.findSlime(data, id)
+	if not slime or slime.egg then
 		return false
 	end
 	data.favoriteId = id

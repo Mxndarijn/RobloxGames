@@ -18,10 +18,12 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
 local FountainTiers = if Shared then require(Shared.FountainTiers) else require("../shared/FountainTiers")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local MysteryEgg = if Shared then require(Shared.MysteryEgg) else require("../shared/MysteryEgg")
 local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
@@ -120,7 +122,7 @@ function Carry.grabWild(
 		slimeId = slimeId,
 		kind = "wild",
 		ownerUserId = nil,
-		timer = Steal.newCarry("wild", wild.slime.tier, now),
+		timer = Steal.newCarry("wild", EggKind.shownTier(wild.slime), now),
 		slime = wild.slime,
 		boss = if fight then true else nil,
 	}
@@ -182,7 +184,7 @@ end
 ]]
 -- Server toast when a Mythic or Secret wild slime is brought home ("Merijn caught Cosmo!"), else nil.
 function Carry.catchText(playerName: string, slime: Genome.Slime): string?
-	if slime.tier < Carry.CATCH_ANNOUNCE_TIER then
+	if slime.egg or slime.tier < Carry.CATCH_ANNOUNCE_TIER then
 		return nil
 	end
 	return `{playerName} caught {slime.name}!`
@@ -208,8 +210,9 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 		local slime = carry.slime
 		slime.pad = nil
 		slime.keep = nil -- a kept mark belongs to the previous owner
-		-- Lucky Charm (Perks.luckChance): one rarity higher on the way home.
-		if slime.tier < Config.MAX_TIER and world.rng:float() < Perks.luckChance(session.data) then
+		-- Lucky Charm (Perks.luckChance): one rarity higher on the way home. Never an egg: its slime is sealed.
+		local egg = slime.egg ~= nil
+		if not egg and slime.tier < Config.MAX_TIER and world.rng:float() < Perks.luckChance(session.data) then
 			local old = Genome.rarity(slime.tier).name
 			slime.tier += 1
 			World.notify(
@@ -221,10 +224,25 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 			)
 			name = Genome.displayName(slime)
 		end
+		if now then
+			MysteryEgg.startIncubating(slime, now)
+		end
 		PlayerData.addSlime(session.data, slime)
 		session.data.stats.caught += 1
 		World.markDirty(session)
-		World.notify(world, userId, `{name} joined your plot!`, "good", "Deposit")
+		if egg then
+			local kind = EggKind.of(slime)
+			local minutes = if kind then math.ceil(kind.hatchSeconds / 60) else 0
+			World.notify(
+				world,
+				userId,
+				`{name} is incubating! It hatches in {minutes} min (faster while you're home).`,
+				"good",
+				"Deposit"
+			)
+		else
+			World.notify(world, userId, `{name} joined your plot!`, "good", "Deposit")
+		end
 		local caught = Carry.catchText(session.name, slime)
 		if caught then
 			World.notify(world, nil, caught, "info", nil)

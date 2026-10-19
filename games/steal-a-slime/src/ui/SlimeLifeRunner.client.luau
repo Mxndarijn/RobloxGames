@@ -728,7 +728,8 @@ local function step(rig: Rig, now: number)
 end
 
 local function onSlime(instance: Instance)
-	if instance:IsA("Model") then
+	-- A Mystery Egg has no face or skin to animate (its looks are Visuals EggFx).
+	if instance:IsA("Model") and instance:GetAttribute(Constants.EGG_KIND_ATTRIBUTE) == nil then
 		slimes[instance] = true
 	end
 end

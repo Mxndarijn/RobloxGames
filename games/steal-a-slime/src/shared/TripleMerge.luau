@@ -47,6 +47,9 @@ function TripleMerge.canMerge(slimes: { Slime? }): (boolean, string?)
 	if a.id == b.id or b.id == c.id or a.id == c.id then
 		return false, "need three different slimes"
 	end
+	if a.egg or b.egg or c.egg then
+		return false, "eggs can't be merged"
+	end
 	if a.tier ~= b.tier or b.tier ~= c.tier then
 		return false, "slimes must be the same rarity"
 	end

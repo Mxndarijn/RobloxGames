@@ -23,6 +23,7 @@ export type Candidate = {
 	keep: boolean?,
 	favorite: boolean?,
 	busy: boolean?,
+	egg: boolean?, -- an unhatched Mystery Egg: never merged
 }
 export type Group = { tier: number, ids: { string } }
 export type Options = { tiers: { [number]: boolean }, limit: number? }
@@ -59,7 +60,9 @@ end
 
 -- Why `c` can't be auto-merged, or nil when it can.
 function MergePlan.excluded(c: Candidate): string?
-	if c.busy then
+	if c.egg then
+		return "egg"
+	elseif c.busy then
 		return "busy"
 	elseif c.keep then
 		return "kept"
@@ -151,6 +154,7 @@ function MergePlan.fromData(data: PlayerData.Data, busy: { [string]: boolean }?)
 			keep = slime.keep == true,
 			favorite = data.favoriteId == slime.id,
 			busy = busy ~= nil and busy[slime.id] == true,
+			egg = slime.egg ~= nil,
 		})
 	end
 	return list
@@ -169,6 +173,7 @@ function MergePlan.fromViews(views: { any }, favoriteId: string?): { Candidate }
 			keep = slime.keep == true,
 			favorite = favoriteId ~= nil and favoriteId == slime.id,
 			busy = view.stolenBy ~= nil,
+			egg = slime.egg ~= nil,
 		})
 	end
 	return list

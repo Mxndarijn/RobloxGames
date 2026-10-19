@@ -181,6 +181,8 @@ local function refreshView(t: number)
 		if not ok and reason then
 			World.notify(world, player.UserId, reason, "info", nil)
 		end
+	end, function(player: Player, slimeId: string)
+		Actions.triggerHatchPrompt(world, player.UserId, slimeId, now(), ctx)
 	end)
 	WorldView.updatePlots(world, t)
 	PlayerAttributes.syncCarrying(world)
