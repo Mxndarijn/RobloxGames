@@ -5,12 +5,12 @@
 	replicates; it never fires remotes.
 
 	Why a rig and not PivotTo: VisualsClient (Archer) already owns the model
-	pivot (bob, tilt, escape hops) and rebases whenever someone else moves it,
+	pivot (bob, tilt) and rebases whenever someone else moves it,
 	so a second PivotTo writer would make the two drift. Instead, for each
 	slime picked by SlimeLife.select this adds a local, invisible "LifeRoot"
 	part welded to Body and moves the decorations (eyes, mouth, rims, crown,
 	the "Mesh" skin) from their WeldConstraint onto Welds from LifeRoot.
-	Per frame only LifeRoot's weld C0 moves (hop, look, wobble) plus the
+	Per frame only LifeRoot's weld C0 moves (look, wobble, sway) plus the
 	skin's squash: the Mesh skin's Size, or a local SpecialMesh on the
 	procedural Body ball (a Ball part can't be sized non-uniformly). Body
 	itself never moves, so the pivot, the GrabPrompt and VisualsClient's
@@ -31,7 +31,7 @@
 	  "anim"   only with Config.FEATURES.SlimeAnimations on AND after a probe
 	           (one LoadAnimation of SlimeIdleSquish, off the select loop) saw
 	           Length > 0: the slime's Animator plays the uploaded
-	           SlimeIdleSquish (loop), SlimeHop and SlimeLookLeft / Right
+	           SlimeIdleSquish (loop) and SlimeLookLeft / Right
 	           (SlimeAnim schedules the events). A rig whose idle track is not
 	           playing with Length > 0 after SlimeAnim.LOAD_TIMEOUT marks the
 	           probe failed and every slime goes back to "motor".
@@ -418,16 +418,9 @@ local function stepAnim(rig: AnimRig, now: number)
 		end
 	end
 	for _, event in SlimeAnim.tick(rig.sched, rig.params, now, math.random) do
-		if event == "Land" then
-			if rig.sparkle and rig.params.landBurst > 0 then
-				rig.sparkle:Emit(rig.params.landBurst)
-			end
-		else
-			local key = if event == "Hop" then "hop" elseif event == "LookLeft" then "lookLeft" else "lookRight"
-			local track = rig.tracks:get(key)
-			if track then
-				track:Play(SlimeAnim.FADE)
-			end
+		local track = rig.tracks:get(if event == "LookLeft" then "lookLeft" else "lookRight")
+		if track then
+			track:Play(SlimeAnim.FADE)
 		end
 	end
 end

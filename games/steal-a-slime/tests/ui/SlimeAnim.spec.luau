@@ -16,44 +16,28 @@ local function lcg(seed: number): () -> number
 end
 
 describe("SlimeAnim.tick", function()
-	it("plays hops and looks over time, never two hops at once, and lands after every hop", function()
-		local rand = lcg(7)
-		local params = SlimeLife.params(3, "Wild")
-		local sched = SlimeAnim.newSchedule(params, 0, rand)
-		local hops, lands, looks = 0, 0, 0
-		local airborne = false
-		for i = 1, 6000 do
-			for _, event in SlimeAnim.tick(sched, params, i / 20, rand) do
-				if event == "Hop" then
-					expect(airborne).toBe(false)
-					airborne = true
-					hops += 1
-				elseif event == "Land" then
-					expect(airborne).toBe(true)
-					airborne = false
-					lands += 1
-				else
-					expect(airborne).toBe(false)
+	it("plays glances over time and never a hop (slimes glide)", function()
+		for _, state in { "Wild", "Pad" } do
+			local rand = lcg(7)
+			local params = SlimeLife.params(3, state)
+			local sched = SlimeAnim.newSchedule(params, 0, rand)
+			local looks = 0
+			for i = 1, 6000 do
+				for _, event in SlimeAnim.tick(sched, params, i / 20, rand) do
+					expect(event == "LookLeft" or event == "LookRight").toBe(true)
 					looks += 1
 				end
 			end
+			expect(looks > 20).toBe(true)
 		end
-		expect(hops > 20).toBe(true)
-		expect(looks > 20).toBe(true)
-		expect(hops - lands <= 1).toBe(true)
+		expect(SlimeAnim.NAMES.hop).toBeNil()
 	end)
 
-	it("doesn't queue catch-up hops after a long gap", function()
+	it("doesn't queue catch-up glances after a long gap", function()
 		local rand = lcg(3)
 		local params = SlimeLife.params(1, "Pad")
 		local sched = SlimeAnim.newSchedule(params, 0, rand)
-		local hops = 0
-		for _, event in SlimeAnim.tick(sched, params, 1000, rand) do
-			if event == "Hop" then
-				hops += 1
-			end
-		end
-		expect(hops <= 1).toBe(true)
+		expect(#SlimeAnim.tick(sched, params, 1000, rand) <= 1).toBe(true)
 	end)
 end)
 

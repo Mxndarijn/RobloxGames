@@ -135,7 +135,7 @@ describe("procedural fallback", function()
 			return nil
 		end)).toBeNil()
 		expect(SlimeAnim.ids(function(name: string)
-			return if name == "SlimeHop" then nil else "rbxassetid://1"
+			return if name == "SlimeLookLeft" then nil else "rbxassetid://1"
 		end)).toBeNil()
 		expect(SlimeAnim.ids(function(name: string)
 			return `rbxassetid://{#name}`

@@ -4,25 +4,30 @@
 
 	The goo parade: how an unclaimed wild slime leaves the plaza. It rides
 	the fountain slide (FountainRide) and its run-out lands it on ENTRY, the
-	head of a goo lane that loops round the plaza. It hops along the lane
-	and, at the far end, slides over the goo drain's curb and sinks in; the
-	server removes it at expiresAt with a splash at the drain.
+	head of a goo lane that loops round the plaza. It glides along the lane at
+	a steady pace (no hops; its heading eases through the bends) and, at the
+	far end, climbs over the goo drain's curb and sinks in; the server
+	removes it at expiresAt with a splash at the drain.
 
 	Lane position is time left. With lifetime = expiresAt - spawnedAt and
 	  progress = 1 - (expiresAt - now) / lifetime        (0 at spawn, 1 at expiry)
 	the slime is
-	  Ride   progress < HOP_SECONDS / lifetime: on the slide (WorldView plays
-	         the emerge + slide; it leaves the mouth at HOP_SECONDS)
+	  Ride   progress < RIDE_SECONDS / lifetime: on the slide (WorldView plays
+	         the emerge + slide; it leaves the mouth at RIDE_SECONDS)
 	  Walk   then walking at once from the slide mouth, through the lead-in
 	         to ENTRY and along the lane: LEAD_LENGTH + LENGTH * the share of
 	         the walk window gone, linear in time left, ending on the last
 	         waypoint
-	  Drain  the last DRAIN_SECONDS: hop onto the curb lip, slide into the
+	  Drain  the last DRAIN_SECONDS: climb onto the curb lip, slide into the
 	         funnel and sink below the plaza (DRAIN.sinkY)
 	  Gone   now >= expiresAt (Spawner removes it; DespawnTelegraph.shouldRemove)
 	Spawn cadence, cap and lifetimes don't change, and removal is still at
 	expiresAt. A slime that is carried, or was dropped somewhere
-	(wild.position set), is off the lane: it stays where it was put.
+	(wild.position set), is off the lane. A dropped one walks back
+	(returnPlan / returnPose, contract/slime-walk.md): from the drop spot
+	towards the nearest lane point, merging onto the lane a little ahead of it
+	along a quadratic Bezier, at its own lane pace; rejoin() sets its lane
+	times so it carries on from the merge point when it arrives.
 
 	Route (WAYPOINTS, Roblox x / z, fountain axis at the origin, wild angle
 	convention: (cos a, sin a)): from the slide exit side (+Z, just past the
@@ -45,9 +50,25 @@
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
+local Fountain = if script then require(script.Parent.Fountain) else require("./Fountain")
 local DespawnTelegraph = if script then require(script.Parent.DespawnTelegraph) else require("./DespawnTelegraph")
 
 export type Phase = "Ride" | "Walk" | "Drain" | "Gone"
+-- A dropped slime's walk back to the lane: a quadratic Bezier (from, nearest lane point, merge point); `s` = lane
+-- distance of the merge point, `length` its arc length in studs, `speed` studs / s.
+export type Return = {
+	fromX: number,
+	fromZ: number,
+	x1: number,
+	z1: number,
+	x2: number,
+	z2: number,
+	s: number,
+	startAt: number,
+	arriveAt: number,
+	speed: number,
+	length: number,
+}
 export type Pose = {
 	position: { number }, -- x, y (pivot = slime bottom), z
 	heading: { number }, -- unit x, z of travel
@@ -71,16 +92,22 @@ ParadeLane.STRIP_TOLERANCE = 0.1
 ParadeLane.LEAD_TOLERANCE = 0.2 -- the lead-in from the mouth and ENTRY's bend out to r 68 curve hardest: finer, so their corners stay soft
 -- Emerge + slide: the slime leaves the slide mouth at FountainRide's slideEndsAt (5.92 s) and walks on at once, no
 -- idle wait and no separate glide to the lane (tests/ParadeLane.spec keeps this within 0.25 s above it).
-ParadeLane.HOP_SECONDS = 6
+ParadeLane.RIDE_SECONDS = 6
 ParadeLane.DRAIN_SECONDS = 1.5
-ParadeLane.HOP_HEIGHT = 1.2 -- studs at the top of each hop while walking
-ParadeLane.HOP_PERIOD = 0.5 / Config.SLIME_MOVE_SPEED_MULT -- seconds per hop (rounded so the walk holds a whole number); slower with the pace
 ParadeLane.WARN_SECONDS = Config.DESPAWN_TELEGRAPH_SECONDS -- ring warn = despawn telegraph window
 -- ranch_goo_drain (WorldLayout Plaza.GooDrain, box centre z 52): the curb
 -- ring (r 3.3-4.4, 1 stud tall) sits on the +Z end of the box, its post on
 -- the fountain side.
 ParadeLane.DRAIN = table.freeze({ x = 0, z = 52.5, lipRadius = 4.4, lipY = 1, sinkY = -3 })
-ParadeLane.DRAIN_LIP_SHARE = 0.4 -- share of DRAIN_SECONDS spent hopping onto the lip
+ParadeLane.DRAIN_LIP_SHARE = 0.4 -- share of DRAIN_SECONDS spent climbing onto the lip
+-- The return walk of a dropped slime (contract/slime-walk.md).
+ParadeLane.RETURN_DELAY = 0.6 -- seconds from the drop to the first step (it falls out of the carrier's arms first)
+ParadeLane.RETURN_EASE = 0.8 -- seconds to speed up from a stand to its lane pace
+ParadeLane.RETURN_MERGE = 8 -- studs past the nearest lane point where it merges onto the lane (at most half the walk)
+ParadeLane.RETURN_SAMPLES = 24 -- Bezier chords for its arc length
+-- Farther than this from the lane is off the map (the ground is 640 x 640 round the fountain, its corners ~385 studs
+-- from the lane): no walk, it goes back to its fountain spot like any drop over the void (CONTRACT.md §8.11).
+ParadeLane.RETURN_MAX_GAP = 400
 
 -- Lane route as (wild angle in degrees, radius) controls; radii ease
 -- (smoothstep) between neighbours. Angles grow counter-clockwise from the
@@ -260,11 +287,13 @@ for i = 2, #route do
 end
 local LEAD_LENGTH = routeCumulative[#lead]
 local routeNormals: { { number } } = {}
+local routeTangents: { { number } } = {}
 for i = 1, #route do
 	local a, b = route[math.max(1, i - 1)], route[math.min(#route, i + 1)]
 	local dx, dz = b[1] - a[1], b[2] - a[2]
 	local len = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
 	routeNormals[i] = { -dz / len, dx / len }
+	routeTangents[i] = { dx / len, dz / len }
 end
 
 ParadeLane.WAYPOINTS = table.freeze(points) :: { { number } } -- { x, z }, entry first, drain approach last
@@ -419,9 +448,9 @@ function ParadeLane.walkWindow(lifetime: number): (number, number)
 	if lifetime <= 0 then
 		return 0, 0
 	end
-	local hop = math.min(ParadeLane.HOP_SECONDS, lifetime)
-	local drain = math.min(ParadeLane.DRAIN_SECONDS, lifetime - hop)
-	return hop / lifetime, 1 - drain / lifetime
+	local ride = math.min(ParadeLane.RIDE_SECONDS, lifetime)
+	local drain = math.min(ParadeLane.DRAIN_SECONDS, lifetime - ride)
+	return ride / lifetime, 1 - drain / lifetime
 end
 
 function ParadeLane.phase(spawnedAt: number, expiresAt: number, now: number): Phase
@@ -430,7 +459,7 @@ function ParadeLane.phase(spawnedAt: number, expiresAt: number, now: number): Ph
 	end
 	local p = ParadeLane.progress(spawnedAt, expiresAt, now)
 	local start, stop = ParadeLane.walkWindow(expiresAt - spawnedAt)
-	if p < start - 1e-9 then -- float slack: now = spawnedAt + HOP_SECONDS is the first Walk instant
+	if p < start - 1e-9 then -- float slack: now = spawnedAt + RIDE_SECONDS is the first Walk instant
 		return "Ride"
 	elseif p < stop then
 		return "Walk"
@@ -477,13 +506,15 @@ local function locate(s: number): (number, number, number)
 end
 
 -- Lane point `s` studs from ENTRY (negative: on the lead-in from the slide mouth; clamped) and the unit direction
--- of travel there.
+-- of travel there: the tangents at the two waypoints blended, so a walker turns smoothly through a bend instead of
+-- snapping at each waypoint.
 function ParadeLane.pointAt(s: number): (number, number, number, number)
 	local lo, hi, k = locate(s)
 	local a, b = route[lo], route[hi]
-	local dx, dz = b[1] - a[1], b[2] - a[2]
-	local len = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
-	return a[1] + dx * k, a[2] + dz * k, dx / len, dz / len
+	local ta, tb = routeTangents[lo], routeTangents[hi]
+	local hx, hz = ta[1] + (tb[1] - ta[1]) * k, ta[2] + (tb[2] - ta[2]) * k
+	local len = math.max(math.sqrt(hx * hx + hz * hz), 1e-9)
+	return a[1] + (b[1] - a[1]) * k, a[2] + (b[2] - a[2]) * k, hx / len, hz / len
 end
 
 -- Point `lateral` studs to the side of the centreline at `s` (along the
@@ -532,10 +563,10 @@ function ParadeLane.pose(spawnedAt: number, expiresAt: number, lateral: number, 
 		local lip = ParadeLane.DRAIN_LIP_SHARE
 		local x, y, z
 		if u < lip then
-			-- hop from the lane end onto the curb lip
+			-- climb from the lane end onto the curb lip
 			local k = u / lip
 			x, z = ex + (lipX - ex) * k, ez + (lipZ - ez) * k
-			y = ParadeLane.LANE_Y + (d.lipY - ParadeLane.LANE_Y) * k + math.sin(k * math.pi) * ParadeLane.HOP_HEIGHT
+			y = ParadeLane.LANE_Y + (d.lipY - ParadeLane.LANE_Y) * (k * k * (3 - 2 * k))
 		else
 			-- slide down the funnel to the centre and sink below the plaza
 			local k = (u - lip) / (1 - lip)
@@ -548,18 +579,138 @@ function ParadeLane.pose(spawnedAt: number, expiresAt: number, lateral: number, 
 	local s = ParadeLane.distance(spawnedAt, expiresAt, now)
 	local _, _, hx, hz = ParadeLane.pointAt(s)
 	local x, z = ParadeLane.offsetAt(s, lateral)
-	local y = ParadeLane.LANE_Y
-	if phase == "Walk" then
-		-- A whole number of hops (about HOP_PERIOD each) over the walk, so the
-		-- last one lands exactly as the drain slide starts.
-		local lifetime = expiresAt - spawnedAt
-		local start, stop = ParadeLane.walkWindow(lifetime)
-		local walk = (stop - start) * lifetime
-		local hops = math.max(1, math.floor(walk / ParadeLane.HOP_PERIOD + 0.5))
-		local walked = now - spawnedAt - start * lifetime
-		y += math.abs(math.sin(walked / walk * hops * math.pi)) * ParadeLane.HOP_HEIGHT
+	return { position = { x, ParadeLane.LANE_Y, z }, heading = { hx, hz }, phase = phase :: Phase }
+end
+
+-- Lane distance (0..LENGTH, never the lead-in) of the centreline point nearest (x, z), and how far away it is.
+function ParadeLane.nearest(x: number, z: number): (number, number)
+	local bestS, best = 0, math.huge
+	for i = #lead, #route - 1 do
+		local a, b = route[i], route[i + 1]
+		local dx, dz = b[1] - a[1], b[2] - a[2]
+		local len2 = dx * dx + dz * dz
+		local k = if len2 > 1e-12 then math.clamp(((x - a[1]) * dx + (z - a[2]) * dz) / len2, 0, 1) else 0
+		local px, pz = a[1] + dx * k, a[2] + dz * k
+		local d = (x - px) ^ 2 + (z - pz) ^ 2
+		if d < best then
+			best = d
+			bestS = routeCumulative[i] + (routeCumulative[i + 1] - routeCumulative[i]) * k - LEAD_LENGTH
+		end
 	end
-	return { position = { x, y, z }, heading = { hx, hz }, phase = phase :: Phase }
+	return math.clamp(bestS, 0, ParadeLane.LENGTH), math.sqrt(best)
+end
+
+-- Sideways lane offset of a wild slime from its Fountain.roll radius.
+function ParadeLane.wildLateral(radius: number): number
+	return ParadeLane.lateral(radius, Fountain.MIN_RADIUS, Fountain.MAX_RADIUS)
+end
+
+-- Lane times that put a slime living `lifetime` seconds at lane distance `s` at time `at`: (spawnedAt, expiresAt).
+function ParadeLane.rejoin(s: number, lifetime: number, at: number): (number, number)
+	local start, stop = ParadeLane.walkWindow(lifetime)
+	local share = (math.clamp(s, 0, ParadeLane.LENGTH) + LEAD_LENGTH) / (LEAD_LENGTH + ParadeLane.LENGTH)
+	local spawnedAt = at - (start + share * (stop - start)) * lifetime
+	return spawnedAt, spawnedAt + lifetime
+end
+
+local function bezier(plan: Return, u: number): (number, number)
+	local a, b, c = (1 - u) * (1 - u), 2 * (1 - u) * u, u * u
+	return a * plan.fromX + b * plan.x1 + c * plan.x2, a * plan.fromZ + b * plan.z1 + c * plan.z2
+end
+
+-- Bezier parameter `want` studs along the curve (the same RETURN_SAMPLES chords that measure its length).
+local function bezierAt(plan: Return, want: number): number
+	local walked = 0
+	local px, pz = plan.fromX, plan.fromZ
+	for i = 1, ParadeLane.RETURN_SAMPLES do
+		local x, z = bezier(plan, i / ParadeLane.RETURN_SAMPLES)
+		local chord = math.sqrt((x - px) ^ 2 + (z - pz) ^ 2)
+		if walked + chord >= want then
+			local k = if chord > 1e-9 then (want - walked) / chord else 0
+			return (i - 1 + k) / ParadeLane.RETURN_SAMPLES
+		end
+		walked += chord
+		px, pz = x, z
+	end
+	return 1
+end
+
+local function bezierLength(plan: Return): number
+	local length = 0
+	local px, pz = plan.fromX, plan.fromZ
+	for i = 1, ParadeLane.RETURN_SAMPLES do
+		local x, z = bezier(plan, i / ParadeLane.RETURN_SAMPLES)
+		length += math.sqrt((x - px) ^ 2 + (z - pz) ^ 2)
+		px, pz = x, z
+	end
+	return length
+end
+
+-- Studs walked `t` seconds after the first step: speeding up over RETURN_EASE, then `speed`.
+function ParadeLane.returnTravelled(t: number, speed: number): number
+	local ease = ParadeLane.RETURN_EASE
+	if t <= 0 then
+		return 0
+	elseif t < ease then
+		return speed * t * t / (2 * ease)
+	end
+	return speed * (t - ease / 2)
+end
+
+-- Seconds from the first step to the end of a `length`-stud walk (returnTravelled's inverse).
+local function walkSeconds(length: number, speed: number): number
+	local ease = ParadeLane.RETURN_EASE
+	if length <= speed * ease / 2 then
+		return math.sqrt(2 * ease * length / speed)
+	end
+	return length / speed + ease / 2
+end
+
+-- The walk back to the lane of a slime living `lifetime` seconds, dropped at world (x, z) at `now` (fountain axis
+-- at the origin, like the route). nil when the spot is more than RETURN_MAX_GAP from the lane.
+function ParadeLane.returnPlan(x: number, z: number, lateral: number, lifetime: number, now: number): Return?
+	local fromX, fromZ = Fountain.clearOfRing(x, z)
+	local near, away = ParadeLane.nearest(fromX, fromZ)
+	if away > ParadeLane.RETURN_MAX_GAP then
+		return nil
+	end
+	local x1, z1 = ParadeLane.offsetAt(near, lateral)
+	local gap = math.sqrt((x1 - fromX) ^ 2 + (z1 - fromZ) ^ 2)
+	local s = math.min(near + math.min(ParadeLane.RETURN_MERGE, gap / 2), ParadeLane.LENGTH)
+	local x2, z2 = ParadeLane.offsetAt(s, lateral)
+	local speed = ParadeLane.walkSpeed(lifetime)
+	local plan: Return = {
+		fromX = fromX,
+		fromZ = fromZ,
+		x1 = x1,
+		z1 = z1,
+		x2 = x2,
+		z2 = z2,
+		s = s,
+		startAt = now + ParadeLane.RETURN_DELAY,
+		arriveAt = 0,
+		speed = speed,
+		length = 0,
+	}
+	plan.length = bezierLength(plan)
+	plan.arriveAt = plan.startAt + walkSeconds(plan.length, speed)
+	return plan
+end
+
+-- Spot (x, z) and unit heading (hx, hz) of a returning slime at `now`: at the start until startAt, on the merge
+-- point from arriveAt on. The heading is the curve's tangent (the lane's where the curve has none).
+function ParadeLane.returnPose(plan: Return, now: number): (number, number, number, number)
+	local want = ParadeLane.returnTravelled(now - plan.startAt, plan.speed)
+	local u = if want < plan.length then bezierAt(plan, want) else 1
+	local x, z = bezier(plan, u)
+	local hx = 2 * (1 - u) * (plan.x1 - plan.fromX) + 2 * u * (plan.x2 - plan.x1)
+	local hz = 2 * (1 - u) * (plan.z1 - plan.fromZ) + 2 * u * (plan.z2 - plan.z1)
+	local len = math.sqrt(hx * hx + hz * hz)
+	if len < 1e-6 then
+		local _, _, lx, lz = ParadeLane.pointAt(plan.s)
+		return x, z, lx, lz
+	end
+	return x, z, hx / len, hz / len
 end
 
 -- On the lane = not carried and never dropped somewhere else.

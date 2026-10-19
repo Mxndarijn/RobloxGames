@@ -7,7 +7,9 @@
 	when the carrier enters their HomeZone) and dropping.
 
 	* Wild slime: free or costs its price, charged on grab. Dropped -> it
-	  lands where the carrier stood and its lifetime restarts.
+	  lands where the carrier stood. With FEATURES.Parade it then walks back
+	  to the lane and rejoins the flow with its lifetime kept
+	  (contract/slime-walk.md); otherwise its lifetime restarts there.
 	* Pad slime of another player: StealService.steal. Dropped -> escapes home.
 	* The hauled boss (contract/boss-event.md): grabbed only in the haul phase (top contributor first), carried at
 	  the boss carry slow, dropped on the spot, and deposited onto the trophy stand (no pad needed).
@@ -20,6 +22,7 @@ local Economy = if Shared then require(Shared.Economy) else require("../shared/E
 local Fountain = if Shared then require(Shared.Fountain) else require("../shared/Fountain")
 local FountainTiers = if Shared then require(Shared.FountainTiers) else require("../shared/FountainTiers")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
 local Perks = if Shared then require(Shared.Perks) else require("../shared/Perks")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
@@ -112,6 +115,7 @@ function Carry.grabWild(
 		return false, `need ${Economy.formatNumber(wild.price)}`
 	end
 	wild.price = 0 -- paid for: dropping it doesn't charge the next grabber
+	wild.returning = nil
 	session.carry = {
 		slimeId = slimeId,
 		kind = "wild",
@@ -258,9 +262,23 @@ function Carry.deposit(world: World, userId: number, now: number?): (boolean, st
 	return true, nil
 end
 
+-- World x / z of an adapter-defined drop position, when it has them (a Vector3 does; test stand-ins may not).
+local function spotOf(position: any?): (number?, number?)
+	if position == nil or type(position) == "string" then
+		return nil, nil
+	end
+	local x, z = position.X, position.Z
+	if type(x) == "number" and type(z) == "number" then
+		return x, z
+	end
+	return nil, nil
+end
+
 --[[
-	Ends any carry. Wild -> lands at `position` (opaque, adapter-defined) with
-	a fresh lifetime; stolen -> escapes home. `reason` is passed to
+	Ends any carry. Wild -> lands at `position` (opaque, adapter-defined; a
+	Vector3 in the server). A position with numeric X / Z walks back to the
+	parade lane (FEATURES.Parade); any other rests there with a fresh
+	lifetime. Stolen -> escapes home. `reason` is passed to
 	StealService.escape ("drop", "left", ...).
 ]]
 function Carry.release(world: World, userId: number, now: number, position: any?, reason: string): boolean
@@ -285,7 +303,19 @@ function Carry.release(world: World, userId: number, now: number, position: any?
 			end
 			World.markAllDirty(world)
 		else
-			wild.expiresAt = now + Fountain.wildLifetime(wild.slime)
+			local lifetime = Fountain.wildLifetime(wild.slime)
+			local x, z = spotOf(position)
+			local plan = if ParadeLane.enabled()
+					and x
+					and z
+				then ParadeLane.returnPlan(x, z, ParadeLane.wildLateral(wild.radius), lifetime, now)
+				else nil
+			if plan then
+				wild.returning = plan
+				wild.spawnedAt, wild.expiresAt = ParadeLane.rejoin(plan.s, lifetime, plan.arriveAt)
+			else
+				wild.expiresAt = now + lifetime
+			end
 		end
 	end
 	World.markDirty(session)

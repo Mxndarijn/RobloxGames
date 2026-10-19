@@ -1,5 +1,5 @@
 --!nocheck
--- The goo parade (TODO 16): wild slimes ride the slide onto a goo lane, hop
+-- The goo parade: wild slimes ride the slide onto a goo lane, glide
 -- round the plaza with lane position = time left, and slide into the goo
 -- drain with a splash as they expire. Checked here: the time mapping
 -- (progress = 1 - time left / lifetime), the route's clearance from every
@@ -28,7 +28,7 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
 local LIFE = Config.WILD_LIFETIME
-local HOP = ParadeLane.HOP_SECONDS
+local RIDE = ParadeLane.RIDE_SECONDS
 local DRAIN = ParadeLane.DRAIN
 local FPS = 30
 local PATH = WorldLayout.SLIDE_PATH
@@ -90,27 +90,26 @@ describe("ParadeLane timing: lane position is time left", function()
 			expect(ParadeLane.progress(T0, T0 + life, T0 + life + 30)).toBe(1)
 		end
 	end)
-	it("phases: Ride for HOP_SECONDS, Walk, Drain for the last DRAIN_SECONDS, Gone at expiresAt", function()
+	it("phases: Ride for RIDE_SECONDS, Walk, Drain for the last DRAIN_SECONDS, Gone at expiresAt", function()
 		local E = T0 + LIFE
 		expect(ParadeLane.phase(T0, E, T0)).toBe("Ride")
-		expect(ParadeLane.phase(T0, E, T0 + HOP - 0.01)).toBe("Ride")
-		expect(ParadeLane.phase(T0, E, T0 + HOP + 0.01)).toBe("Walk")
+		expect(ParadeLane.phase(T0, E, T0 + RIDE - 0.01)).toBe("Ride")
+		expect(ParadeLane.phase(T0, E, T0 + RIDE + 0.01)).toBe("Walk")
 		expect(ParadeLane.phase(T0, E, E - ParadeLane.DRAIN_SECONDS - 0.01)).toBe("Walk")
 		expect(ParadeLane.phase(T0, E, E - ParadeLane.DRAIN_SECONDS + 0.01)).toBe("Drain")
 		expect(ParadeLane.phase(T0, E, E - 0.01)).toBe("Drain")
 		expect(ParadeLane.phase(T0, E, E)).toBe("Gone")
 	end)
-	it("C9: wild pace reads Config.SLIME_MOVE_SPEED_MULT: the lane walk and hop rate are slower by it", function()
+	it("C9: wild pace reads Config.SLIME_MOVE_SPEED_MULT: the lane walk is slower by it", function()
 		local mult = Config.SLIME_MOVE_SPEED_MULT
 		expect(mult < 1 and mult >= 0.6 and mult <= 0.7).toBe(true) -- ~30-40% slower
 		local OLD_LIFE = Config.WILD_BASE_LIFETIME
 		local oldSpeed = ParadeLane.walkSpeed(OLD_LIFE)
 		local newSpeed = ParadeLane.walkSpeed(Config.WILD_LIFETIME)
 		expect(newSpeed < oldSpeed).toBe(true)
-		-- the lifetime stretches by ~1 / mult, so the speed drops by about mult (within the fixed hop + drain)
+		-- the lifetime stretches by ~1 / mult, so the speed drops by about mult (within the fixed ride + drain)
 		expect(newSpeed / oldSpeed <= 0.7 and newSpeed / oldSpeed >= 0.6).toBe(true)
 		expect(Config.WILD_LIFETIME).toBe(math.round(OLD_LIFE / mult))
-		expect(ParadeLane.HOP_PERIOD).toBeCloseTo(0.5 / mult, 1e-9)
 		-- the drain is still reached at expiry: the walk ends exactly DRAIN_SECONDS before it
 		local E = T0 + LIFE
 		expect(ParadeLane.distance(T0, E, E - ParadeLane.DRAIN_SECONDS)).toBeCloseTo(ParadeLane.LENGTH, 1e-6)
@@ -119,21 +118,21 @@ describe("ParadeLane timing: lane position is time left", function()
 		local b = ParadeLane.distance(T0, E, T0 + 50)
 		expect(b - a).toBeCloseTo(newSpeed * 10, 1e-6)
 		-- the ride still lands well before the walk starts and the warning still fits the walk
-		expect(HOP + ParadeLane.DRAIN_SECONDS < LIFE - Config.DESPAWN_TELEGRAPH_SECONDS).toBe(true)
+		expect(RIDE + ParadeLane.DRAIN_SECONDS < LIFE - Config.DESPAWN_TELEGRAPH_SECONDS).toBe(true)
 	end)
 	it(
 		"distance walked is linear in time left: equal time left, equal share of the route from the slide mouth",
 		function()
 			local total = ParadeLane.LEAD_LENGTH + ParadeLane.LENGTH
 			for _, life in { LIFE, LIFE * 2 } do
-				local walk = life - HOP - ParadeLane.DRAIN_SECONDS
+				local walk = life - RIDE - ParadeLane.DRAIN_SECONDS
 				local E = T0 + life
 				for _, share in { 0, 0.1, 0.25, 0.5, 0.9, 1 } do
 					-- time left at this share of the walk
 					local left = ParadeLane.DRAIN_SECONDS + walk * (1 - share)
 					expect(ParadeLane.walked(T0, E, E - left)).toBeCloseTo(total * share, 1e-6)
 				end
-				expect(ParadeLane.walked(T0, E, T0 + HOP)).toBeCloseTo(0, 1e-9)
+				expect(ParadeLane.walked(T0, E, T0 + RIDE)).toBeCloseTo(0, 1e-9)
 				expect(ParadeLane.distance(T0, E, T0 + 1)).toBe(-ParadeLane.LEAD_LENGTH)
 				expect(ParadeLane.distance(T0, E, E - 0.5)).toBe(ParadeLane.LENGTH)
 			end
@@ -146,8 +145,8 @@ describe("ParadeLane timing: lane position is time left", function()
 			for _, lateral in { -ParadeLane.SPREAD / 2, 0, ParadeLane.SPREAD / 2 } do
 				local ride = FountainRide.new(PATH, ParadeLane.entrySpot(lateral))
 				-- the walk begins when the slide ends (at most 0.25 s of rounding)
-				expect(HOP >= ride.slideEndsAt and HOP - ride.slideEndsAt <= 0.25).toBe(true)
-				local mouthPose = ParadeLane.pose(T0, T0 + LIFE, lateral, T0 + HOP - 0.01).position
+				expect(RIDE >= ride.slideEndsAt and RIDE - ride.slideEndsAt <= 0.25).toBe(true)
+				local mouthPose = ParadeLane.pose(T0, T0 + LIFE, lateral, T0 + RIDE - 0.01).position
 				expect(mouthPose[2]).toBeCloseTo(ParadeLane.LANE_Y, 1e-9)
 				-- the slide's last sample and the walk's first point are one spot (the lateral spread aside)
 				local p = FountainRide.sample(ride, ride.slideEndsAt)
@@ -156,7 +155,7 @@ describe("ParadeLane timing: lane position is time left", function()
 				-- moving on the very next frames: no wait before the first step
 				local prev = mouthPose
 				for f = 1, 6 do
-					local now = T0 + HOP + f / FPS
+					local now = T0 + RIDE + f / FPS
 					local q = ParadeLane.pose(T0, T0 + LIFE, lateral, now)
 					expect(q.phase).toBe("Walk")
 					expect(hdist(q.position[1], q.position[3], prev[1], prev[3]) > 1e-3).toBe(true)
@@ -192,23 +191,18 @@ describe("ParadeLane timing: lane position is time left", function()
 			end
 		end
 	end)
-	it(
-		"walking slimes stay on the lane: within SPREAD / 2 of the centreline, hopping no higher than HOP_HEIGHT",
-		function()
-			for _, lateral in { -ParadeLane.SPREAD / 2, 0.4, ParadeLane.SPREAD / 2 } do
-				for t = HOP + 0.01, LIFE - ParadeLane.DRAIN_SECONDS - 0.01, 0.37 do
-					local pose = ParadeLane.pose(T0, T0 + LIFE, lateral, T0 + t)
-					local p = pose.position
-					expect(pose.phase).toBe("Walk")
-					local cx, cz = ParadeLane.pointAt(ParadeLane.distance(T0, T0 + LIFE, T0 + t))
-					expect(hdist(p[1], p[3], cx, cz) <= ParadeLane.SPREAD / 2 + 1e-6).toBe(true)
-					expect(
-						p[2] >= ParadeLane.LANE_Y - 1e-9 and p[2] <= ParadeLane.LANE_Y + ParadeLane.HOP_HEIGHT + 1e-9
-					).toBe(true)
-				end
+	it("walking slimes glide on the lane: within SPREAD / 2 of the centreline, always at LANE_Y (no hop)", function()
+		for _, lateral in { -ParadeLane.SPREAD / 2, 0.4, ParadeLane.SPREAD / 2 } do
+			for t = RIDE + 0.01, LIFE - ParadeLane.DRAIN_SECONDS - 0.01, 0.37 do
+				local pose = ParadeLane.pose(T0, T0 + LIFE, lateral, T0 + t)
+				local p = pose.position
+				expect(pose.phase).toBe("Walk")
+				local cx, cz = ParadeLane.pointAt(ParadeLane.distance(T0, T0 + LIFE, T0 + t))
+				expect(hdist(p[1], p[3], cx, cz) <= ParadeLane.SPREAD / 2 + 1e-6).toBe(true)
+				expect(p[2]).toBeCloseTo(ParadeLane.LANE_Y, 1e-9)
 			end
 		end
-	)
+	end)
 	it("lateral offset spans the Fountain.roll radius band", function()
 		local lo = ParadeLane.lateral(Fountain.MIN_RADIUS, Fountain.MIN_RADIUS, Fountain.MAX_RADIUS)
 		local hi = ParadeLane.lateral(Fountain.MAX_RADIUS, Fountain.MIN_RADIUS, Fountain.MAX_RADIUS)
@@ -373,7 +367,7 @@ describe("ParadeLane: grab / buy / steal take a slime off the lane", function()
 	it("lane slimes keep their Grab / Buy prompt the whole way, drain slide included", function()
 		local world, id = laneWorld()
 		world.wild[id].price = 40
-		for _, t in { HOP + 1, LIFE / 2, LIFE - ParadeLane.DRAIN_SECONDS + 0.5, LIFE - 0.05 } do
+		for _, t in { RIDE + 1, LIFE / 2, LIFE - ParadeLane.DRAIN_SECONDS + 0.5, LIFE - 0.05 } do
 			local entry = Scene.describe(world, T0 + t)[id]
 			expect(entry.state).toBe("Wild")
 			expect(entry.promptEnabled).toBe(true)
@@ -642,20 +636,19 @@ describe("ParadeLane in the live server", function()
 			).toBe(true)
 		end
 	end)
-	it("walking slimes follow the lane: on the centreline band, hopping, never teleporting", function()
+	it("walking slimes follow the lane: on the centreline band, gliding at LANE_Y, never teleporting", function()
 		local checked = 0
 		for model, track in tracks do
 			if model ~= (grab and grab.model) then
 				for i, f in track.frames do
 					local age = f.t - track.born
-					if age > HOP + 0.3 and age < LIFE - ParadeLane.DRAIN_SECONDS - 0.3 then
+					if age > RIDE + 0.3 and age < LIFE - ParadeLane.DRAIN_SECONDS - 0.3 then
 						checked += 1
 						local cx, cz = ParadeLane.pointAt(ParadeLane.distance(track.born, track.born + LIFE, f.t))
 						expect(hdist(f.p[1], f.p[3], cx, cz) <= ParadeLane.SPREAD / 2 + 1.5).toBe(true)
-						expect(f.p[2] >= ParadeLane.LANE_Y - 1e-3).toBe(true)
-						expect(f.p[2] <= ParadeLane.LANE_Y + ParadeLane.HOP_HEIGHT + 1e-3).toBe(true)
+						expect(math.abs(f.p[2] - ParadeLane.LANE_Y) <= 1e-3).toBe(true)
 					end
-					if i > 1 and age > HOP + 0.1 then -- the frame the slide ends on still moves at slide speed
+					if i > 1 and age > RIDE + 0.1 then -- the frame the slide ends on still moves at slide speed
 						local q = track.frames[i - 1].p
 						local step = math.sqrt((f.p[1] - q[1]) ^ 2 + (f.p[2] - q[2]) ^ 2 + (f.p[3] - q[3]) ^ 2)
 						expect(step <= FountainRide.RUN_SPEED / HZ + 1e-3).toBe(true)
@@ -693,7 +686,7 @@ describe("ParadeLane in the live server", function()
 			local s = ParadeLane.distance(track.born, track.born + LIFE, f.t)
 			local x, z = ParadeLane.pointAt(s)
 			local tol = ParadeLane.SPREAD / 2
-				+ 0.1 * (ParadeLane.LEAD_LENGTH + ParadeLane.LENGTH) / (LIFE - HOP - ParadeLane.DRAIN_SECONDS)
+				+ 0.1 * (ParadeLane.LEAD_LENGTH + ParadeLane.LENGTH) / (LIFE - RIDE - ParadeLane.DRAIN_SECONDS)
 				+ 0.2
 			expect(hdist(f.p[1], f.p[3], x, z) <= tol).toBe(true)
 		end

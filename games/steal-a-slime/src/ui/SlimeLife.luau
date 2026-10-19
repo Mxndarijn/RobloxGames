@@ -3,8 +3,10 @@
 	SlimeLife (TODO v28 #17: slimes feel alive)
 
 	Pure numbers for the client-only idle life of wild and pad slimes:
-	squish & bounce, small hops, looking around and a per-rarity wobble and
-	sparkle. The Roblox side is SlimeLifeRunner.client.luau; this module has
+	squish & breathing, looking around, a per-rarity wobble and sparkle, and
+	a small walking sway on wild slimes (they glide along the parade lane,
+	contract/slime-walk.md). Nothing hops on its own: a hop plays only when
+	forced (SlimeMotor's LifeForce test hook, clock.hopAt). The Roblox side is SlimeLifeRunner.client.luau; this module has
 	no Roblox APIs, so tests/ui/SlimeLife.spec.luau covers it under Lune.
 
 	  SlimeLife.params(tier, state) -> Params   tier 1..7, state "Wild" | "Pad"
@@ -15,7 +17,7 @@
 	  SlimeLife.sparkleSet(cands, active) -> { [id]: true }
 	                                            at most MAX_SPARKLING, rarest first
 	  SlimeLife.newClock(params, now, rand) -> Clock
-	  SlimeLife.advance(clock, params, now, rand) -> boolean (true = just landed)
+	  SlimeLife.advance(clock, params, now, rand) -> boolean (true = a forced hop just landed)
 	  SlimeLife.pose(params, clock, now) -> Pose
 	                                            offset in Body space: lift (studs,
 	                                            times Size), yaw / pitch / roll
@@ -37,7 +39,7 @@ SlimeLife.SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds" --
 SlimeLife.MAX_SPARKLES_ALIVE = 16 -- per emitter, same limit as tests/Effects.spec
 SlimeLife.STATES = { Wild = true, Pad = true }
 
--- Hop shape (seconds and squash amounts).
+-- Hop shape (seconds and squash amounts), for a forced hop.
 SlimeLife.WINDUP = 0.14 -- squat before take-off
 SlimeLife.AIR = 0.42 -- time in the air
 SlimeLife.LAND = 0.18 -- squash after landing
@@ -45,6 +47,8 @@ SlimeLife.HOP_SQUASH = 0.16
 SlimeLife.HOP_STRETCH = 0.1
 SlimeLife.LOOK_TIME = 0.35 -- seconds to turn to a new look direction
 SlimeLife.SQUASH_LIMIT = { 0.78, 1.22 } -- sy is clamped to this
+SlimeLife.SWAY = 0.05 -- radians of side-to-side roll while a wild slime walks
+SlimeLife.SWAY_SPEED = 4.4 -- rad / s: one waddle about every 1.4 s
 
 export type Params = {
 	tier: number,
@@ -52,12 +56,13 @@ export type Params = {
 	squishSpeed: number, -- rad / s
 	wobble: number, -- roll / pitch amplitude, radians
 	wobbleSpeed: number, -- rad / s
-	hopEvery: { number }, -- {min, max} seconds between hops
-	hopHeight: number, -- studs at Size 1
+	hopHeight: number, -- studs at Size 1 (a forced hop)
+	sway: number, -- walking sway: roll amplitude, radians (0 = none); the yaw sways half as much
+	swaySpeed: number, -- rad / s
 	lookEvery: { number }, -- {min, max} seconds between look turns
 	lookYaw: number, -- max |yaw| of a look, radians
 	sparkleRate: number, -- particles / s, 0 = no emitter
-	landBurst: number, -- sparkles emitted on landing
+	landBurst: number, -- sparkles emitted when a forced hop lands
 }
 
 export type Candidate = {
@@ -71,7 +76,7 @@ export type Candidate = {
 
 export type Clock = {
 	phase: number, -- random time offset so slimes don't breathe in step
-	hopAt: number, -- take-off time of the next (or current) hop
+	hopAt: number, -- take-off time of the current forced hop (math.huge = none)
 	landedHop: number?, -- hopAt of the last landing reported by advance
 	lookFrom: number,
 	lookTo: number,
@@ -105,17 +110,17 @@ function SlimeLife.params(tier: number?, state: string?): Params
 	local t = clampTier(tier)
 	local k = t - 1 -- 0 (Common) .. 6 (Secret)
 	local pad = state == "Pad"
-	local often = 1 - 0.05 * k -- rarer slimes hop a bit more often
 	return {
 		tier = t,
 		squishAmp = 0.035 + 0.008 * k,
 		squishSpeed = 2.4 + 0.15 * k,
 		wobble = 0.02 + 0.012 * k,
 		wobbleSpeed = 3 + 0.3 * k,
-		hopEvery = if pad then { 7 * often, 14 * often } else { 4.5 * often, 9 * often },
 		hopHeight = if pad then 0.45 else 0.9,
+		sway = if pad then 0 else SlimeLife.SWAY,
+		swaySpeed = SlimeLife.SWAY_SPEED,
 		lookEvery = { 2.5, 6 },
-		lookYaw = if pad then 0.45 else 0.6,
+		lookYaw = if pad then 0.45 else 0.3, -- a walking slime mostly looks where it goes
 		sparkleRate = SPARKLE_RATE[t],
 		landBurst = LAND_BURST[t],
 	}
@@ -186,8 +191,7 @@ end
 function SlimeLife.newClock(params: Params, now: number, rand: Rand): Clock
 	return {
 		phase = rand() * 2 * math.pi,
-		-- First hop staggered over a whole interval so a crowd doesn't hop together.
-		hopAt = now + rand() * params.hopEvery[2],
+		hopAt = math.huge,
 		lookFrom = 0,
 		lookTo = 0,
 		lookAt = now,
@@ -208,8 +212,7 @@ function SlimeLife.advance(clock: Clock, params: Params, now: number, rand: Rand
 		landed = true
 	end
 	if now >= hopEnd(clock) then
-		-- Skipped frames (slime was off-screen) never queue up several hops.
-		clock.hopAt = math.max(clock.hopAt + SlimeLife.AIR + between(params.hopEvery, rand), now + SlimeLife.WINDUP)
+		clock.hopAt = math.huge -- no hop until the next forced one
 	end
 	if now >= clock.nextLook then
 		clock.lookFrom = SlimeLife.lookYaw(clock, now)
@@ -266,9 +269,10 @@ function SlimeLife.pose(params: Params, clock: Clock, now: number, out: Pose?): 
 	local sxz = 1 / math.sqrt(sy)
 	local pose: Pose = out or {} :: any
 	pose.lift = lift
-	pose.yaw = SlimeLife.lookYaw(clock, now)
+	local sway = math.sin(t * params.swaySpeed) * params.sway
+	pose.yaw = SlimeLife.lookYaw(clock, now) + sway * 0.5
 	pose.pitch = math.sin(t * params.wobbleSpeed * 0.7 + 1) * params.wobble * 0.6
-	pose.roll = math.sin(t * params.wobbleSpeed) * params.wobble
+	pose.roll = math.sin(t * params.wobbleSpeed) * params.wobble + sway
 	pose.sx = sxz
 	pose.sy = sy
 	pose.sz = sxz

@@ -1,6 +1,7 @@
 --!strict
 -- Living slimes (src/ui/SlimeLife.luau, TODO v28 #17): per-rarity params,
--- distance / count gating, sparkle cap, hop schedule and pose bounds.
+-- distance / count gating, sparkle cap, no hops of their own (a forced hop
+-- still works), the walking sway and pose bounds.
 local fs = require("@lune/fs")
 
 local SlimeLife = require("../../src/ui/SlimeLife")
@@ -40,7 +41,6 @@ describe("SlimeLife.params per rarity", function()
 			expect(hi.wobble > lo.wobble).toBe(true)
 			expect(hi.squishAmp >= lo.squishAmp).toBe(true)
 			expect(hi.sparkleRate >= lo.sparkleRate).toBe(true)
-			expect(hi.hopEvery[1] <= lo.hopEvery[1]).toBe(true)
 		end
 	end)
 
@@ -61,12 +61,12 @@ describe("SlimeLife.params per rarity", function()
 		end
 	end)
 
-	it("pad slimes hop lower, less often and look around less than wild ones", function()
+	it("wild slimes sway as they walk; pad slimes rest without a sway", function()
 		for tier = 1, SlimeLife.MAX_TIER do
 			local wild, pad = SlimeLife.params(tier, "Wild"), SlimeLife.params(tier, "Pad")
+			expect(wild.sway > 0 and wild.sway <= 0.1).toBe(true)
+			expect(pad.sway).toBe(0)
 			expect(pad.hopHeight < wild.hopHeight).toBe(true)
-			expect(pad.hopEvery[1] > wild.hopEvery[1]).toBe(true)
-			expect(pad.lookYaw < wild.lookYaw).toBe(true)
 		end
 	end)
 
@@ -155,9 +155,24 @@ describe("SlimeLife gating", function()
 end)
 
 describe("SlimeLife clock and pose", function()
-	it("hops on schedule: lift peaks at hopHeight mid-air, zero on the ground", function()
+	it("never hops on its own, wild or pad, however long it lives", function()
+		for _, state in { "Wild", "Pad" } do
+			local p = SlimeLife.params(4, state)
+			local rand = lcg(11)
+			local clock = SlimeLife.newClock(p, 0, rand)
+			local t = 0
+			while t < 300 do
+				expect(SlimeLife.advance(clock, p, t, rand)).toBe(false)
+				expect(SlimeLife.pose(p, clock, t).lift).toBe(0)
+				t += 1 / 30
+			end
+		end
+	end)
+
+	it("a forced hop: lift peaks at hopHeight mid-air, zero on the ground", function()
 		local p = SlimeLife.params(1, "Wild")
 		local clock = SlimeLife.newClock(p, 0, lcg(7))
+		clock.hopAt = 5
 		local at = clock.hopAt
 		expect((SlimeLife.hop(p, clock, at - 1))).toBe(0)
 		local peak = SlimeLife.hop(p, clock, at + SlimeLife.AIR / 2)
@@ -168,6 +183,7 @@ describe("SlimeLife clock and pose", function()
 	it("squats before take-off and squashes on landing", function()
 		local p = SlimeLife.params(1, "Wild")
 		local clock = SlimeLife.newClock(p, 0, lcg(3))
+		clock.hopAt = 5
 		local _, windup = SlimeLife.hop(p, clock, clock.hopAt - 0.01)
 		local _, rise = SlimeLife.hop(p, clock, clock.hopAt + 0.01)
 		local _, land = SlimeLife.hop(p, clock, clock.hopAt + SlimeLife.AIR + 0.01)
@@ -176,34 +192,20 @@ describe("SlimeLife clock and pose", function()
 		expect(land > 0).toBe(true)
 	end)
 
-	it("reports each landing once and schedules the next hop inside hopEvery", function()
+	it("reports a forced hop's landing once, then stays on the ground", function()
 		local p = SlimeLife.params(4, "Pad")
 		local rand = lcg(11)
 		local clock = SlimeLife.newClock(p, 0, rand)
-		local landings, lastHop = 0, clock.hopAt
-		local t = 0
-		while t < 120 do
+		clock.hopAt = 1
+		local landings, t = 0, 0
+		while t < 30 do
 			if SlimeLife.advance(clock, p, t, rand) then
 				landings += 1
 			end
-			if clock.hopAt ~= lastHop then
-				local gap = clock.hopAt - (lastHop + SlimeLife.AIR)
-				expect(gap >= p.hopEvery[1] - 1e-9 and gap <= p.hopEvery[2] + 1e-9).toBe(true)
-				lastHop = clock.hopAt
-			end
 			t += 1 / 60
 		end
-		expect(landings >= math.floor(120 / (p.hopEvery[2] + 1)) - 1).toBe(true)
-		expect(landings <= math.ceil(120 / p.hopEvery[1]) + 1).toBe(true)
-	end)
-
-	it("never queues several hops after a long gap (slime was off-screen)", function()
-		local p = SlimeLife.params(1, "Wild")
-		local rand = lcg(5)
-		local clock = SlimeLife.newClock(p, 0, rand)
-		SlimeLife.advance(clock, p, 1000, rand)
-		expect(clock.hopAt >= 1000).toBe(true)
-		expect(SlimeLife.advance(clock, p, 1000.01, rand)).toBe(false)
+		expect(landings).toBe(1)
+		expect(clock.hopAt).toBe(math.huge)
 	end)
 
 	it("keeps squash, wobble and look within bounds for every tier", function()
@@ -218,8 +220,8 @@ describe("SlimeLife clock and pose", function()
 					local pose = SlimeLife.pose(p, clock, t)
 					expect(pose.sy >= SlimeLife.SQUASH_LIMIT[1] and pose.sy <= SlimeLife.SQUASH_LIMIT[2]).toBe(true)
 					expect(math.abs(pose.sx * pose.sy * pose.sz - 1) < 1e-9).toBe(true)
-					expect(math.abs(pose.roll) <= p.wobble + 1e-9).toBe(true)
-					expect(math.abs(pose.yaw) <= p.lookYaw + 1e-9).toBe(true)
+					expect(math.abs(pose.roll) <= p.wobble + p.sway + 1e-9).toBe(true)
+					expect(math.abs(pose.yaw) <= p.lookYaw + p.sway / 2 + 1e-9).toBe(true)
 					expect(pose.lift >= 0 and pose.lift <= p.hopHeight + 1e-9).toBe(true)
 					t += 0.05
 				end
