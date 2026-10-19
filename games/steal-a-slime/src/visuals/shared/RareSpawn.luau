@@ -6,14 +6,16 @@
 	State == "Wild"), scaled by the factory's Tier attribute (1..7):
 
 	  tier 1  nothing
-	  tier 2  soft PointLight glow, faint ground ring
+	  tier 2  soft PointLight glow
 	  tier 3  + sparkles, short thin beam
-	  tier 4  + taller beam, brighter ring
+	  tier 4  + taller beam
 	  tier 5  + beam with a white core, more sparkles
-	  tier 6  + tallest beam (still MAX_BEAM_HEIGHT), second ring, strongest glow
+	  tier 6  + tallest beam (still MAX_BEAM_HEIGHT), strongest glow
 	            (VisualsClient cycles its colour)
 	  tier 7  the tier 6 look plus `orbit` Neon motes circling the slime
 	            (Secret; PlotVisuals also stands a beam on the fountain)
+
+	Nothing lies flat on the ground: no slime has a rarity ring under it.
 
 	RareSpawn.build(tier, size?) -> Model?   (nil for tier 1 / unknown)
 	RareSpawn.place(fx, pivot, t)            moves it to a slime's pivot
@@ -32,7 +34,6 @@ export type TierFx = {
 	glow: { brightness: number, range: number }?,
 	sparkles: number?, -- RareSparkle particles/s
 	beam: { height: number, width: number, core: boolean? }?,
-	rings: number?, -- ground rings
 	orbit: number?, -- Neon motes circling the slime (place() moves them)
 }
 
@@ -46,26 +47,23 @@ RareSpawn.BEAM_TRANSPARENCY = 0.7
 
 RareSpawn.TIERS = table.freeze({
 	{},
-	{ glow = { brightness = 1.5, range = 8 }, rings = 1 },
+	{ glow = { brightness = 1.5, range = 8 } },
 	{ glow = { brightness = 1.5, range = 10 }, sparkles = 4, beam = { height = 8, width = 0.3 } },
-	{ glow = { brightness = 2, range = 14 }, sparkles = 7, beam = { height = 12, width = 0.45 }, rings = 1 },
+	{ glow = { brightness = 2, range = 14 }, sparkles = 7, beam = { height = 12, width = 0.45 } },
 	{
 		glow = { brightness = 3, range = 18 },
 		sparkles = 10,
 		beam = { height = 16, width = 0.6, core = true },
-		rings = 1,
 	},
 	{
 		glow = { brightness = 4, range = 24 },
 		sparkles = 14,
 		beam = { height = 22, width = 0.8, core = true },
-		rings = 2,
 	},
 	{
 		glow = { brightness = 4.5, range = 26 },
 		sparkles = 16,
 		beam = { height = 24, width = 0.9, core = true },
-		rings = 2,
 		orbit = 3,
 	},
 }) :: { TierFx }
@@ -165,12 +163,6 @@ function RareSpawn.build(tier: number, size: number?): Model?
 		mote.Parent = model
 	end
 	model:SetAttribute("Diameter", d)
-	for k = 1, fx.rings or 0 do
-		local r = d * (1.3 + 0.6 * k)
-		local ring = part(`Ring_{k}`, Enum.PartType.Cylinder, Vector3.new(0.12, r, r), color, 0.35 + 0.2 * k)
-		at(ring, CFrame.new(0, 0.08 * k, 0) * CFrame.Angles(0, 0, math.rad(90)))
-		ring.Parent = model
-	end
 	return model
 end
 
@@ -196,8 +188,7 @@ function RareSpawn.place(fx: Model, pivot: CFrame, t: number)
 				local x, y, z = RareSpawn.orbitOffset(t, k, motes, d)
 				child.CFrame = base + Vector3.new(x, y, z)
 			elseif typeof(offset) == "CFrame" then
-				local spin = if string.find(child.Name, "^Ring_") then CFrame.Angles(t * 0.8, 0, 0) else CFrame.identity
-				child.CFrame = base * offset * spin
+				child.CFrame = base * offset
 			else
 				-- never leave a part behind at a stale spot: park it on the slime, invisible
 				child.CFrame = base
