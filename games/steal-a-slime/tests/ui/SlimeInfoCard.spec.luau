@@ -261,7 +261,7 @@ local function plotWithSlime(index: number, attrs: { [string]: any }): (any, any
 end
 
 describe("SlimePadSign", function()
-	it("is a plaque on the crate's entrance side that never collides, is never queried and is never cloned", function()
+	it("is a plank on the crate's entrance side that never collides, is never queried and is never cloned", function()
 		local sign = SlimePadSign.build()
 		expect(sign.ClassName).toBe("Part")
 		expect(sign.Anchored).toBe(true)
@@ -279,13 +279,24 @@ describe("SlimePadSign", function()
 		expect(math.abs(here.Y - (s.centreY - pad.Size.Y / 2)) < 1e-4).toBe(true)
 		expect(math.abs(here.X) < 1e-4).toBe(true)
 	end)
-	it("shows the rarity band, name, income and the growth bar", function()
+	it("is a wooden plank dipped in goo of the rarity colour, with the name, income and a goo tube", function()
 		local sign = SlimePadSign.build()
-		SlimePadSign.render(sign, view({ tier = 3, growth = 46 }))
+		expect(sign.Material).toBe(roblox.Enum.Material.WoodPlanks)
+		local v = view({ tier = 3, growth = 46 })
+		SlimePadSign.render(sign, v)
 		local board = sign:FindFirstChild("Face"):FindFirstChild("Board")
+		expect(board.BackgroundTransparency).toBe(1) -- the wood shows through
 		local band = board:FindFirstChild("Band")
 		local c = Config.RARITIES[3].color
-		expect(band.BackgroundColor3).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
+		local goo = band:FindFirstChild("Goo").Color.Keypoints
+		expect(goo[2].Value).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
+		for i, d in SlimePadSign.DRIPS do
+			local drip = band:FindFirstChild(`Drip{i}`)
+			expect(drip ~= nil).toBe(true)
+			-- a drip starts in the band's bottom colour, so there is no seam
+			expect(drip:FindFirstChild("Goo").Color.Keypoints[1].Value).toBe(goo[#goo].Value)
+			expect(d.x > 0 and d.x < 1).toBe(true)
+		end
 		expect(band:FindFirstChild("Rarity").Text).toBe(Config.RARITIES[3].name)
 		expect(board:FindFirstChild("Title").Text).toBe("Lop")
 		expect(board:FindFirstChild("Income").Text).toBe("+$1.25K/s")
@@ -296,6 +307,15 @@ describe("SlimePadSign", function()
 		SlimePadSign.render(sign, view({ growth = 0 }))
 		expect(fill.Visible).toBe(false)
 		expect(board:FindFirstChild("Growth").Text).toBe("0%")
+	end)
+	it("runs a rainbow along a Secret's band and tube, drips sampled where they hang", function()
+		local sign = SlimePadSign.build()
+		SlimePadSign.render(sign, view({ tier = Config.MAX_TIER }))
+		local band = sign:FindFirstChild("Face"):FindFirstChild("Board"):FindFirstChild("Band")
+		expect(band:FindFirstChild("Goo").Rotation).toBe(0)
+		local first = band:FindFirstChild("Drip1"):FindFirstChild("Goo").Color.Keypoints[1].Value
+		local last = band:FindFirstChild(`Drip{#SlimePadSign.DRIPS}`):FindFirstChild("Goo").Color.Keypoints[1].Value
+		expect(first ~= last).toBe(true)
 	end)
 	it("writes dark ink on a light rarity band and white on a deep one", function()
 		local light, strokeLight = SlimePadSign.bandInk(Config.RARITIES[1].color)
@@ -338,7 +358,7 @@ describe("SlimeInfoCard.start on a pad", function()
 		expect(sign.CFrame).toBe(SlimePadSign.cframe(pad))
 		model:SetAttribute(Constants.LABEL_INCOME_ATTRIBUTE, 2500)
 		UiHarness.fire(model, "AttributeChanged", Constants.LABEL_INCOME_ATTRIBUTE)
-		expect(signs:FindFirstChild(SlimePadSign.NAME)).toBe(sign) -- same plaque, new text
+		expect(signs:FindFirstChild(SlimePadSign.NAME)).toBe(sign) -- same plank, new text
 		expect(sign:FindFirstChild("Face"):FindFirstChild("Board"):FindFirstChild("Income").Text).toBe("+$2.5K/s")
 		model:SetAttribute(Constants.LABEL_PAD_ATTRIBUTE, nil)
 		UiHarness.fire(model, "AttributeChanged", Constants.LABEL_PAD_ATTRIBUTE)

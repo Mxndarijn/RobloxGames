@@ -7,16 +7,16 @@
 	panel. The species name in white edged in the rarity colour, the rarity
 	word filled with a gradient of that colour, the income per second and,
 	while it is for sale, the price. A slime resting on a pad (LabelPad set)
-	shows no tag: its label is a plaque on the pad crate (SlimePadSign). The
+	shows no tag: its label is a goo-dipped plank on the pad crate (SlimePadSign). The
 	server writes the values as model attributes; the text is
 	Shared.SlimeLabel. Client only, nothing replicates.
 
 	Cost: a BillboardGui per slime with MaxDistance (the engine culls it), sized
 	in studs plus pixels so it shrinks with distance and stays readable, and a
-	plaque per pad slime. Both are re-rendered only on AttributeChanged of the
+	plank per pad slime. Both are re-rendered only on AttributeChanged of the
 	label attributes: no frame loop, no tween, no polling. The tag is parented
 	to the Body (Archivable false, so a FollowPets clone never copies it); the
-	plaques go in one local folder. Both go with the model or its tag.
+	planks go in one local folder. Both go with the model or its tag.
 ]]
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -229,7 +229,7 @@ WATCHED[Constants.LABEL_HEIGHT_ATTRIBUTE] = true
 export type Options = {
 	collection: CollectionService,
 	tag: string,
-	signParent: Instance?, -- where pad plaques go; default a local Folder SIGN_FOLDER in workspace
+	signParent: Instance?, -- where pad planks go; default a local Folder SIGN_FOLDER in workspace
 }
 
 type Entry = {
