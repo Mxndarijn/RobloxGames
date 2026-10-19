@@ -82,7 +82,7 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 | Prompt (Constants) | Parent | KeyCode | ActionText | ObjectText |
 |---|---|---|---|---|
 | `LockPrompt` (`LOCK_PROMPT_NAME`) | `LockButton` | E | `"Lock base $<cost>"` while open, `"Extend lock $<cost>"` while locked, `"Lock is maxed"` at `LOCK_MAX_REMAINING` | `"<name>'s base: OPEN"` or `"<name>'s base: LOCKED m:ss"` (updated every reconcile) |
-| `BuyPadPrompt` (`BUY_PAD_PROMPT_NAME`) | the lowest locked `Pad_<j>`; moved as pads unlock; parked (disabled) on the last pad when all are unlocked | E | `"Buy pad $<cost>"` | `"Pad <j> of <PADS_MAX>"` |
+| `BuyPadPrompt` (`BUY_PAD_PROMPT_NAME`) | the lowest locked `Pad_<j>`; moved as pads unlock; parked (disabled) on the last pad when all are unlocked | E | `"Buy pad $<cost>"`; `"Build floor <f> $<cost>"` when `j` is the first pad of floor `f >= 2` | `"Pad <j> of <PADS_MAX>"` |
 | `MergePrompt` (`MERGE_PROMPT_NAME`) | `MergeVat` | E | `"Auto-merge"` | `"Merge vat"` |
 
 `LockPrompt` = `Request("Lock")`, `BuyPadPrompt` = `Request("BuyPad")`, `MergePrompt` = `Merge.findPair` + `Request("Merge")`. Results are Notifies.
