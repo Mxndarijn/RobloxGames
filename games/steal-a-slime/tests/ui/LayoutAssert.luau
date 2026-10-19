@@ -907,7 +907,7 @@ function LayoutAssert.navBadges(check: Checker)
 		local b = check.screen.navButtons[i]
 		local tile = Layout.navTile(check.screen.compact, b)
 		local label = Layout.rect(b.x, tile.y + tile.h, b.w, b.h - tile.h)
-		for _, text in { "!", "$", "100%" } do
+		for _, text in { "!", "$" } do
 			local name = `Nav.{entry.key} badge "{text}"`
 			local r = Layout.navBadge(b, text)
 			check.inside(name, r, `Nav.{entry.key}`, b)

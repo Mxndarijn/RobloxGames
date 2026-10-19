@@ -5,7 +5,8 @@
 	Left-bar entries and their badges (H1 HUD: Rebirth, Goals, SlimeDex, Codes; the Merge, Shop and
 	Top menus have no button, your slimes are managed at their pads (SlimeManage), see init.client panelByKey). Shown as a grid of rounded tiles, icon over label (B5). Pure (tests/ui/Nav.spec.luau); the
 	buttons themselves are built in init.client.luau. Badges are short hints
-	derived from the latest State ("!" = something to do there).
+	derived from the latest State ("!" = something to do there); the SlimeDex tile shows its completion as a
+	slime jar instead (dexProgress, DexJarView).
 ]]
 
 -- `item` = the ItemIcons registry id of the tile's picture (B5); `icon` = the plain glyph for text (hint bubbles).
@@ -76,12 +77,20 @@ function Nav.badges(state: any): { [string]: string }
 	if state.canRebirth == true then
 		out.Rebirth = "!"
 	end
-	local dex = if type(state.dex) == "table" then state.dex else {}
-	local total = num(dex.total)
-	if total > 0 then
-		out.Dex = `{math.floor(num(dex.found) / total * 100)}%`
-	end
 	return out
+end
+
+export type DexProgress = { fraction: number, text: string }
+
+-- SlimeDex completion for the jar on the Dex tile (DexJarView); nil until State has a dex.
+function Nav.dexProgress(state: any): DexProgress?
+	local dex = if type(state) == "table" and type(state.dex) == "table" then state.dex else {}
+	local total = num(dex.total)
+	if total <= 0 then
+		return nil
+	end
+	local fraction = math.clamp(num(dex.found) / total, 0, 1)
+	return { fraction = fraction, text = `{math.floor(fraction * 100)}%` }
 end
 
 return table.freeze(Nav)

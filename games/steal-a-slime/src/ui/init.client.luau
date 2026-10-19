@@ -38,6 +38,7 @@ local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local TripleMerge = require(Shared:WaitForChild("TripleMerge"))
 local Types = require(Shared:WaitForChild("Types"))
 
+local DexJarView = require(script.DexJarView)
 local Format = require(script.Format)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
@@ -705,6 +706,7 @@ if soundPanel then
 	player:GetAttributeChangedSignal("AudioMuted"):Connect(refreshIcon)
 end
 
+local dexJar: DexJarView.View? = nil
 for _, entry in panels do
 	local navEntry = entry.nav :: Nav.Entry
 	local button = Widgets.create("TextButton", {
@@ -733,6 +735,9 @@ for _, entry in panels do
 		Parent = tile,
 	}, itemIcons)
 	icon.setActive(true)
+	if entry.key == "Dex" then
+		dexJar = DexJarView.new(tile)
+	end
 	local label = Widgets.label({
 		Name = "Label",
 		Text = navEntry.label,
@@ -1011,6 +1016,9 @@ local function updateBadges(state: Types.State)
 			btn.badge.Text = text
 			btn.badge.BackgroundColor3 = if text == "!" then Theme.Bad else Theme.Info
 		end
+	end
+	if dexJar then
+		dexJar.update(Nav.dexProgress(state))
 	end
 end
 
