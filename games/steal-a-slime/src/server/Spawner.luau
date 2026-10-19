@@ -6,7 +6,7 @@
 	MAX_WILD_SLIMES are alive, expires unclaimed ones after their lifetime
 	(Fountain.wildLifetime: WILD_LIFETIME, longer for Mythic / Secret) and
 	runs the Slime Rain schedule (every RAIN_INTERVAL for RAIN_DURATION:
-	faster spawns, RAIN_LUCK, a raised cap), with a heads-up
+	RAIN_SPAWN_INTERVAL, RAIN_LUCK, a raised cap), with a heads-up
 	toast RAIN_WARNING_SECONDS before each rain.
 
 	FEATURES.Parade: a wild's spot is a pure function of time left

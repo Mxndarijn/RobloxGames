@@ -118,7 +118,7 @@ class Scenario:
     rain_interval: float = 3600
     rain_first: float = 300
     rain_duration: float = 180
-    rain_spawn_interval: float = 2.0
+    rain_spawn_interval: float = 4.0
     rain_wild_cap_mult: float = 2.0
     rain_luck: float = 5.0
     boss_first: float = 480
