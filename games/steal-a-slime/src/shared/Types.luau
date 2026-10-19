@@ -24,9 +24,12 @@ export type RequestResult = { ok: boolean, message: string?, appraisal: Appraisa
 export type Appraisal = {
 	slimeId: string,
 	kind: "size",
-	cost: number,
+	cost: number, -- what this reroll cost
 	beforeSize: number,
 	afterSize: number,
+	incomeBefore: number, -- cash/sec (PlayerData.slimeIncome), as SlimeView.income
+	incomeAfter: number,
+	costAfter: number, -- the next reroll's price (Appraise.cost), as SlimeView.appraiseCost
 }
 
 export type NotifyKind = "info" | "good" | "bad" | "badge"
