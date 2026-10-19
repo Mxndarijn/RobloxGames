@@ -56,7 +56,7 @@ Remotes.ACTIONS = table.freeze({
 	SetAudioSettings = table.freeze({ args = { "number", "number", "boolean" } }), -- musicVolume, sfxVolume (clamped 0..1), muted (FEATURES.Audio, CONTRACT.md §8.9c)
 	BuyPvpItem = table.freeze({ args = { "string" } }), -- Config.PVP_TOOLS id (FEATURES.PvP, CONTRACT.md §26)
 	EquipPvpItem = table.freeze({ args = { "string?" } }), -- owned Config.PVP_TOOLS id, nil unequips (FEATURES.PvP)
-	UsePvpItem = table.freeze({ args = { "string", "number?", "vector3?", "boolean?" } }), -- itemId, targetUserId, aim point, charged (held: power punch) (FEATURES.PvP)
+	UsePvpItem = table.freeze({ args = { "string", "number?", "vector3?", "boolean?" } }), -- itemId, targetUserId, aim point, charged (held: power punch, mega confetti, fireworks volley) (FEATURES.PvP)
 	OpenShop = table.freeze({ args = { "string" } }), -- shopId "ItemShop" | "UpgradeShop" (FEATURES.WorldShops, CONTRACT.md §27)
 	CloseShop = table.freeze({ args = {} }), -- clears the open shop
 	ShopBuy = table.freeze({ args = { "string", "string", "string?" } }), -- shopId, itemId, unused slot (string?); delegates to the item's existing buy action

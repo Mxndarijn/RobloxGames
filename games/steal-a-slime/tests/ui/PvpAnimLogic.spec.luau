@@ -17,6 +17,25 @@ local function magnitude(pose: any): number
 	return m
 end
 
+-- Like magnitude, but a whole turn (the backflip) counts as rest.
+local function offRest(pose: any): number
+	local m = 0
+	for _, angles in pose or {} do
+		for field, v in angles do
+			local a = math.abs(v)
+			if field ~= "py" then
+				a = a % (2 * math.pi)
+				a = math.min(a, 2 * math.pi - a)
+			end
+			m = math.max(m, a)
+		end
+	end
+	return m
+end
+
+-- Clips played on the affected player, not by the user (the user's clips must end before the next use).
+local VICTIM = { dance = true, flip = true, hit = true }
+
 describe("PvpAnimLogic.kindFor", function()
 	it("gives the Bat and every PvP item a clip by line", function()
 		expect(Logic.kindFor("Bat", Config.PVP_TOOLS)).toBe("swing")
@@ -28,8 +47,11 @@ describe("PvpAnimLogic.kindFor", function()
 		expect(Logic.kindFor("GooBlaster2", Config.PVP_TOOLS)).toBe("blast")
 		expect(Logic.kindFor("GooTrap1", Config.PVP_TOOLS)).toBe("throw")
 		expect(Logic.kindFor("FunBouncePad", Config.PVP_TOOLS)).toBe("throw")
-		expect(Logic.kindFor("FunSqueaky", Config.PVP_TOOLS)).toBe("swing")
-		expect(Logic.kindFor("FunConfetti", Config.PVP_TOOLS)).toBe("use")
+		expect(Logic.kindFor("FunSqueaky", Config.PVP_TOOLS)).toBe("bonk")
+		expect(Logic.kindFor("FunConfetti", Config.PVP_TOOLS)).toBe("pop")
+		expect(Logic.kindFor("FunBubbles", Config.PVP_TOOLS)).toBe("blow")
+		expect(Logic.kindFor("FunHatLauncher", Config.PVP_TOOLS)).toBe("blast")
+		expect(Logic.kindFor("FunDanceBomb", Config.PVP_TOOLS)).toBe("throw")
 	end)
 	it("unknown or missing ids play nothing", function()
 		expect(Logic.kindFor("Nope", Config.PVP_TOOLS)).toBeNil()
@@ -42,14 +64,15 @@ describe("PvpAnimLogic.pose", function()
 		for kind, clip in Logic.CLIPS do
 			expect(magnitude(Logic.pose(kind, clip.seconds * 0.4)) > 0.2).toBe(true)
 			expect(Logic.pose(kind, clip.seconds)).toBeNil()
-			expect(clip.seconds <= Config.PVP.MIN_COOLDOWN).toBe(true)
+			local limit = if VICTIM[kind] then Config.PVP.CONTROL_MAX_SECONDS else Config.PVP.MIN_COOLDOWN
+			expect(clip.seconds <= limit).toBe(true)
 		end
 		expect(Logic.CLIPS.swing.seconds <= Config.BAT.SWING_GAP).toBe(true)
 	end)
 	it("every clip starts and ends at rest, so no joint is left bent", function()
 		for kind, clip in Logic.CLIPS do
 			expect(magnitude(Logic.pose(kind, 0)) < 1e-6).toBe(true)
-			expect(magnitude(Logic.pose(kind, clip.seconds - 1e-4)) < 0.01).toBe(true)
+			expect(offRest(Logic.pose(kind, clip.seconds - 1e-4)) < 0.01).toBe(true)
 			expect(#clip.keys >= 3).toBe(true)
 			expect(clip.keys[1].t).toBe(0)
 			expect(clip.keys[#clip.keys].t).toBe(1)

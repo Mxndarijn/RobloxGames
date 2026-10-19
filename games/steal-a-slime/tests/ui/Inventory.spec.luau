@@ -449,6 +449,7 @@ describe("Inventory PvP item use", function()
 				aims += 1
 				return {
 					self = { X = 0, Y = 3, Z = 0 },
+					point = { X = 6, Y = 3, Z = 0 },
 					players = if alone
 						then {}
 						else { { userId = 7, position = { X = 4, Y = 3, Z = 0 }, carrying = true } },
@@ -493,6 +494,26 @@ describe("Inventory PvP item use", function()
 		expect(animated).toEqual({ GLOVE })
 		expect(inv.useHeld(SCREEN)).toBe(false) -- the whiff starts the gap too
 		expect(animated).toEqual({ GLOVE })
+	end)
+
+	it("a charging Fun item waits for the release; a long hold sends charged, a tap does not", function()
+		local inv, sent = mountPvp(GLOVE)
+		inv.update({ pvp = { owned = { FunConfetti = true }, equipped = "FunConfetti", cooldowns = {} } })
+		expect(inv.pressHeld(SCREEN)).toBe(true)
+		expect(#sent).toBe(0) -- waits for the release
+		expect(inv.releaseHeld(SCREEN)).toBe(true)
+		expect(sent[1][1]).toBe("UsePvpItem")
+		expect(sent[1][2]).toBe("FunConfetti")
+		expect(sent[1][3]).toBe(nil)
+		expect(sent[1][4].X).toBe(6)
+		expect(sent[1][5]).toBe(nil) -- a tap
+		expect(inv.releaseHeld(SCREEN)).toBe(false) -- one release per press
+		local hold, holdSent = mountPvp(GLOVE)
+		hold.update({ pvp = { owned = { FunFireworks = true }, equipped = "FunFireworks", cooldowns = {} } })
+		hold.pressHeld(SCREEN, Config.PVP.CHARGE_SECONDS) -- a touch long press is already held this long
+		expect(hold.releaseHeld(SCREEN)).toBe(true)
+		expect(holdSent[1][2]).toBe("FunFireworks")
+		expect(holdSent[1][5]).toBe(true)
 	end)
 
 	it("a cooling-down item plays no animation", function()

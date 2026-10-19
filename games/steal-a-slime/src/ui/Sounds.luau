@@ -40,6 +40,7 @@ Sounds.IDS = table.freeze({
 	PvpSqueak = "rbxassetid://9125994570", -- Pro Sound Effects rubber squeeze toy
 	PvpFirework = "rbxassetid://12222065", -- Launching rocket.wav
 	PvpBubble = "rbxassetid://12222054", -- Kerplunk.wav
+	PvpDisco = "rbxassetid://9047231371", -- APM "Copacetic - 15" (15 s), Dance Bomb disco bubble
 })
 
 -- "Alarm" -> its asset id; raw "rbxassetid://123" passes through; anything

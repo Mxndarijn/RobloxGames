@@ -44,7 +44,7 @@ export type UseCall = {
 	now: number,
 	position: PvpRules.Vec, -- attacker position
 	targetPosition: PvpRules.Vec?,
-	charged: boolean, -- the button was held (gloves: power punch)
+	charged: boolean, -- the button was held CHARGE_SECONDS (glove power punch, mega confetti pop, fireworks volley)
 }
 export type LineHandler = (call: UseCall) -> (boolean, string?, number?)
 -- What PvP needs from the engine. Actions.Context carries these fields (init.server builds one ctx for both);
@@ -68,6 +68,14 @@ export type Context = {
 	slimePosition: ((slimeId: string) -> PvpRules.Vec?)?,
 	-- the ground point straight below `point` (a goo splat lands there); nil = keep the point
 	groundBelow: ((point: PvpRules.Vec) -> PvpRules.Vec?)?,
+	-- the Bubble Wand lift (server/PvpFunView): `userId` floats `lift` studs in a clickable bubble for `seconds`;
+	-- `onPop(byUserId, now)` answers whether a click popped it. False = no character.
+	funBubble: ((
+		userId: number,
+		seconds: number,
+		lift: number,
+		onPop: (byUserId: number, now: number) -> boolean
+	) -> boolean)?,
 }
 
 local PvpService = {}

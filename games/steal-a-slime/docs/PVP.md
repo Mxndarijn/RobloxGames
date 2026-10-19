@@ -9,9 +9,10 @@ Flag: `Config.FEATURES.PvP`. Contract: `CONTRACT.md` §26 (`contract/pvp.md`). C
 3. Nothing deals damage or can kill. Knockback is mostly horizontal with a capped arc, and the landing point is clamped inside the map. A PvP fall causes no damage; the void guard puts anyone who still falls back.
 4. Max 2 s crowd control (slows max 3 s), then 3 s control immunity.
 5. **No safe zones.** Every PvP item works on anyone, anywhere, except players under the new-player shield. On a player who carries nothing the effect stays light (a push, a short slow, a laugh); nobody loses anything to it.
-6. **A caught thief loses the slime.** Whenever a glove, a trap, the Goo Blaster or the Goo Cannon hits a player carrying a stolen slime, the slime bounces home to its owner's plot (`PvpService.catchThief`, the same drop + bounce + notifications as the Bat).
-7. **New-player shield:** 15 minutes of play time (summed over sessions). Rebirths don't end it; stealing a slime does. A shielded player can't be hit by PvP items and can't use non-cosmetic items. Everyone sees a shield badge over a shielded player's head; the player sees a shield slot with a `mm:ss` countdown in the bottom-right status cluster.
-8. Show-off, not power gap: the top tier is about 2x the base effect.
+6. **A caught thief loses the slime.** Whenever a glove, a trap, the Goo Blaster, the Goo Cannon or a catching Fun item (below) hits a player carrying a stolen slime, the slime bounces home to its owner's plot (`PvpService.catchThief`, the same drop + bounce + notifications as the Bat).
+7. **New-player shield:** 15 minutes of play time (summed over sessions). Rebirths don't end it; stealing a slime does. A shielded player can't be hit by PvP items (a Fun item still gives them its cosmetic part) and can't use non-cosmetic items. Everyone sees a shield badge over a shielded player's head; the player sees a shield slot with a `mm:ss` countdown in the bottom-right status cluster.
+8. **Fun items are toys first** (CONTRACT.md §26.8): aimed with a click, no target pick, no plot of your own needed. Their control effects still respect the shield and the control cap.
+9. Show-off, not power gap: the top tier is about 2x the base effect.
 
 Price = `max(100, floor(k x Economy.rebirthCost(gate)))`, k = 0.03 for gloves and blasters, 0.01 for fun items, and a smaller k for one Goo Trap charge (traps are used up).
 
@@ -66,9 +67,20 @@ Real goo blobs fly a visible arc; the server owns the shot (start point, range, 
 | Goo Blaster | 3 blobs in a fan | slow; a hit on a thief sends the slime home |
 | Goo Cannon | hold to aim, a big lob | splashes everyone within 6 studs, leaves a slowing pool for 4 s; a hit on a thief sends the slime home |
 
-## Fun items (cooldown)
+## Fun items
 
-Confetti 5 s, Balloon 3 s (decals fade after 10 s, max 8), Bubbles 4 s, Bounce Pad 10 s (max 1, 25 studs straight up, thieves 1.2 s then immunity), Squeaky Hammer 3 s (2-stud nudge on a thief only), Hat Launcher 8 s (self or friends, 30 s), Dance Bomb 45 s (thieves only, 2 s), Fireworks 20 s (cosmetic).
+Tunables in `Config.PVP_FUN`, cooldowns in the `PVP_TOOLS` rows. Toys first, power second. Every one is aimed with a click (no target pick), works anywhere and needs no plot of your own.
+
+- **Confetti Popper:** aim anywhere, also straight up; the burst rains down over about 10 studs and sticks confetti on everyone under it for a few seconds. Hold to charge a mega pop.
+- **Goo Balloon:** lobbed in an arc; the splash paints everyone in it goo green for 10 s and leaves a splat on the ground. A thief in the splash is slowed a little.
+- **Bubble Wand:** blows a stream of floating bubbles. A player who touches one floats in a bubble for 1.5 s (control); anyone else can click the bubble to pop it early. A wild slime it touches floats up, drifts and lands (cosmetic).
+- **Bounce Pad:** a trampoline, at most 2 live, 60 s each. Everyone bounces on it, wild slimes too; the owner bounces higher with a flip.
+- **Squeaky Hammer:** bonk a slime (wild or on any pad) and it squashes flat with a squeak, wobbles and springs back with an excited bounce: no harm, no theft, no value change. Bonk a player and they pancake for 0.8 s, then spring back with a BOING and a small push. Three hits on the same target in quick succession is a giant squeak.
+- **Slime Hat Launcher:** a hit player wears a slime hat for 30 s (stacks to 3); a miss turns into a little hat-slime that hops around for 20 s.
+- **Dance Bomb:** a lobbed disco bubble with lights and music; everyone inside dances for 2 s (control).
+- **Goo Fireworks:** a rocket that bursts high in the colour of your favourite slime, visible across the map; nearby wild slimes cheer-hop. Hold to fire a 3-rocket volley.
+
+A thief carrying a stolen slime who gets lifted, bounced, bonked or made to dance drops it, and the slime goes home. Shielded players only get the cosmetic part (confetti, paint, hats, fireworks).
 
 ## Hit feel (sounds)
 
@@ -85,3 +97,5 @@ Client effect sounds (Roblox library sounds plus one Pro Sound Effects sound, al
 | `PvpSqueak` | 9125994570 | Squeeze Toy Squeaky Rubber (Pro Sound Effects, public domain) | Squeaky Hammer |
 | `PvpFirework` | 12222065 | Launching rocket.wav | fireworks |
 | `PvpBubble` | 12222054 | Kerplunk.wav | Bubble Wand |
+| `PvpDisco` | 9047231371 | APM "Copacetic - 15" (Roblox-licensed APM music) | Dance Bomb disco bubble |
+

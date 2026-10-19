@@ -14,8 +14,8 @@
 	used by clicking / tapping the world while held: Request("UseConsumable") (the server checks ownership and
 	stock and takes one off the stack). An equipped PvP item is used the same way: the click becomes
 	Request("UsePvpItem", id, targetUserId?, aim?, charged?) (InventoryCore.pvpUseRequest from deps.aim's sample);
-	a glove or the Goo Cannon fires on the release (pressHeld / releaseHeld), so a hold is a power punch / an aimed
-	lob. A refusal (cooldown, shield, out of reach) shows as a short tip above the slot. The last cell is the bag: it opens the inventory panel, a grid of everything
+	a glove, the Goo Cannon, the Confetti Popper and Goo Fireworks fire on the release (pressHeld / releaseHeld), so a
+	hold is a power punch / an aimed lob / a mega pop / a volley. A refusal (cooldown, shield, out of reach) shows as a short tip above the slot. The last cell is the bag: it opens the inventory panel, a grid of everything
 	held (also the items that did not fit the bar on a narrow phone). Hidden while carrying (the server
 	unequips tools then) and while a menu is open. Client-only: the stack counts come from State.consumables.
 
@@ -189,7 +189,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local heldConsumable: string? = nil -- the consumable in hand (client-side; the server only validates the use)
 	local lastUse = -math.huge
 	local lastPvpEquipped: string? = nil
-	local holdStartedAt: number? = nil -- os.clock() a press on a hold item (glove, Goo Cannon) went down, until released
+	local holdStartedAt: number? = nil -- os.clock() a press on a hold item (InventoryCore.pvpHolds) went down, until released
 	local pendingOrder: { string }? = nil -- the order the player just made, until a State confirms it
 	local seen: { [string]: boolean }? = nil -- every entry key seen this session (nil until the first State)
 	local joinedAt = -math.huge -- os.clock() of the first State
@@ -1422,8 +1422,8 @@ function Inventory.new(parent: Instance, deps: Deps)
 		return false
 	end
 
-	-- A press on the world (`alreadyHeld` = seconds a touch long press was held before it fired). A glove or the Goo
-	-- Cannon waits for the release; everything else is used at once (useHeld).
+	-- A press on the world (`alreadyHeld` = seconds a touch long press was held before it fired). A hold item
+	-- (InventoryCore.pvpHolds) waits for the release; everything else is used at once (useHeld).
 	function self.pressHeld(at: Vector2 | Vector3, alreadyHeld: number?): boolean
 		local entry = if heldConsumable == nil then equippedPvp() else nil
 		if entry and not (menuOpen or carrying or panelOpen) and InventoryCore.pvpHolds(toolDef(entry.itemId)) then
@@ -1434,7 +1434,8 @@ function Inventory.new(parent: Instance, deps: Deps)
 		return self.useHeld(at)
 	end
 
-	-- The release of a held press: a glove punches (a power punch past CHARGE_SECONDS), the Cannon lobs at `at`.
+	-- The release of a held press: sends the use with the seconds held (InventoryCore.pvpCharged: a power punch, a mega
+	-- pop, a volley), the Cannon lobs at `at`.
 	function self.releaseHeld(at: Vector2 | Vector3): boolean
 		local started = holdStartedAt
 		holdStartedAt = nil

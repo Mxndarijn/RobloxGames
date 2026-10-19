@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actions = require(script.Parent.Actions)
 local PlotPadGuard = require(script.Parent.PlotPadGuard)
+local PvpFunView = require(script.Parent.PvpFunView)
 local PvpLaunch = require(script.Parent.PvpLaunch)
 local Rng = require(ReplicatedStorage.Shared.Rng)
 local ShopGuard = require(script.Parent.ShopGuard)
@@ -95,6 +96,10 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 			local look = root.CFrame.LookVector
 			local p = root.Position
 			return { X = p.X, Y = p.Y, Z = p.Z }, { X = look.X, Y = 0, Z = look.Z }
+		end,
+		-- Bubble Wand lift (CONTRACT.md §26.8): the bubble part, its float and its pop click.
+		funBubble = function(userId: number, seconds: number, lift: number, onPop): boolean
+			return PvpFunView.bubble(rootOf(userId), userId, seconds, lift, onPop, now)
 		end,
 		toVector3 = function(position)
 			return Vector3.new(position.X, position.Y, position.Z)

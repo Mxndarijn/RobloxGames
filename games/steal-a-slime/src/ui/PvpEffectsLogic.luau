@@ -6,7 +6,7 @@
 	No Roblox APIs (colors are {r, g, b} 0..1 tables), so Lune tests it; ui/PvpEffects builds the instances.
 
 	  PvpEffectsLogic.plan(payload, pvp, low)      -> Plan? (nil = nothing to show / unknown effect)
-	  PvpEffectsLogic.marker(itemId, tool, pvp)    -> Marker? (Goo Trap puddle / Bounce Pad disc, TrapPlaced)
+	  PvpEffectsLogic.marker(itemId, tool, pvp)    -> Marker? (Goo Trap puddle, TrapPlaced; the Bounce Pad is ui/PvpFunFx's)
 	  PvpEffectsLogic.markerFor(itemId, tools, pvp) the same, looking the tool up in Config.PVP_TOOLS
 	  PvpEffectsLogic.markerLook(marker, isOwner)  a trap glows for its owner and is a faint shimmer for everyone else
 	  PvpEffectsLogic.blobVelocity(from, to, t, g)  the start velocity of the goo blob particle (the server's arc)
@@ -26,8 +26,8 @@ export type Burst = {
 	speed: number, -- studs/s
 	size: number,
 	lift: number, -- upward acceleration (balloons / bubbles float up), negative = falls
-	ring: boolean?, -- horizontal ring (Bounce)
-	height: number?, -- emit this many studs above the position (Fireworks); on a character, above its root (< 0 = feet)
+	ring: boolean?, -- horizontal ring (impact shock wave, goo splash)
+	height: number?, -- emit this many studs above the position; on a character, above its root (< 0 = feet)
 }
 export type Plan = {
 	effect: string,
@@ -38,10 +38,9 @@ export type Plan = {
 	highlight: { color: RGB, seconds: number, impact: RGB? }?, -- impact = the colour of the first instant
 	beam: { seconds: number, color: RGB, width: number? }?,
 	shake: { amplitude: number, seconds: number }?, -- victim only
-	trail: number?, -- seconds (Bounce)
 	applyVelocity: boolean, -- the victim's client launches its own root with payload.velocity
 	onTarget: boolean, -- emit at the target's character (else at payload.position)
-	attackerAnim: boolean, -- the attacker plays the item's use animation (ui/PvpAnim); false for traps / pads springing
+	attackerAnim: boolean, -- the attacker plays the item's use animation (ui/PvpAnim); false for a trap springing
 	targetHit: boolean, -- the target plays the `hit` recoil (it was pushed)
 	popup: { text: string, color: RGB, seconds: number }?, -- a word over the target ("BONK!", "CHOMP!")
 	bolt: { color: RGB, seconds: number }?, -- lightning from payload.from to the target (Thunder Glove chain)
@@ -52,7 +51,7 @@ export type Plan = {
 	screenSplat: number?, -- seconds of goo on the edge of the victim's screen
 }
 export type Marker = {
-	shape: "puddle" | "pad",
+	shape: "puddle",
 	diameter: number,
 	color: RGB,
 	ownerOnly: boolean,
@@ -68,7 +67,6 @@ PvpEffectsLogic.SHAKE_AMPLITUDE = 0.35 -- studs
 PvpEffectsLogic.FLASH_SECONDS = 0.22
 PvpEffectsLogic.FEET = -2.6 -- studs below the root: where a goo splash ring sits
 PvpEffectsLogic.MISS_BEAM_SECONDS = 0.4
-PvpEffectsLogic.BOUNCE_TRAIL_SECONDS = 0.6
 PvpEffectsLogic.POPUP_SECONDS = 0.8
 PvpEffectsLogic.BOLT_SECONDS = 0.3
 PvpEffectsLogic.MAX_FLIGHT = 2 -- seconds: a blob never flies longer (junk payloads)
@@ -92,7 +90,6 @@ local TIER_COLORS: { RGB } = {
 	{ 1, 0.55, 0.2 },
 	{ 1, 0.35, 0.7 },
 }
-local CONFETTI: { RGB } = { { 1, 0.3, 0.4 }, { 1, 0.85, 0.2 }, { 0.3, 0.8, 1 }, { 0.5, 1, 0.4 }, { 0.8, 0.4, 1 } }
 local GOLD: RGB = { 1, 0.85, 0.23 }
 local GOLD_CONFETTI: { RGB } = { GOLD, { 1, 0.95, 0.6 }, { 0.95, 0.7, 0.15 } }
 local BOLT: RGB = { 1, 0.95, 0.35 }
@@ -126,60 +123,11 @@ function PvpEffectsLogic.shakeOffset(t: number, seconds: number, amplitude: numb
 	return math.sin(t * 90) * k, math.cos(t * 70) * k
 end
 
-local function cosmetic(itemId: string, pvp: any, duration: any): Plan
-	local plan: Plan = {
-		effect = "Cosmetic",
-		seconds = pvp.FX_SECONDS,
-		sfx = "PvpPop",
-		burst = { count = 30, colors = CONFETTI, texture = SPARK, speed = 18, size = 0.5, lift = -20 },
-		applyVelocity = false,
-		onTarget = false,
-		attackerAnim = true,
-		targetHit = false,
-	}
-	local burst = plan.burst :: Burst
-	if itemId == "FunBalloon" then
-		plan.burst = {
-			count = 10,
-			colors = { { 1, 0.35, 0.5 }, { 0.4, 0.7, 1 } },
-			texture = SMOKE,
-			speed = 6,
-			size = 1.6,
-			lift = 14,
-		}
-	elseif itemId == "FunBubbles" then
-		plan.sfx = "PvpBubble"
-		plan.burst =
-			{ count = 16, colors = { { 0.7, 0.9, 1 }, WHITE }, texture = SMOKE, speed = 5, size = 1.0, lift = 6 }
-	elseif itemId == "FunHatLauncher" then
-		plan.burst = {
-			count = 14,
-			colors = { { 1, 0.85, 0.2 }, { 1, 0.55, 0.2 } },
-			texture = SPARK,
-			speed = 14,
-			size = 0.7,
-			lift = -10,
-		}
-	elseif itemId == "FunFireworks" then
-		plan.sfx = "PvpFirework"
-		plan.seconds = clampSeconds(duration, pvp.FX_SECONDS, pvp.FIREWORKS_SECONDS)
-		plan.burst = { count = 60, colors = CONFETTI, texture = FIRE, speed = 30, size = 0.8, lift = -12, height = 12 }
-	elseif itemId == "FunSqueaky" then
-		plan.sfx = "PvpSqueak"
-		plan.onTarget = true
-		plan.applyVelocity = true
-		plan.targetHit = true
-		plan.burst = { count = 8, colors = { { 1, 0.9, 0.3 } }, texture = SPARK, speed = 8, size = 0.5, lift = 0 }
-	else
-		plan.burst = burst -- FunConfetti and unknown cosmetics: the default confetti
-	end
-	return plan
-end
-
 --[[
-	The look of one PvpEvent `Effect` payload. `pvp` = Config.PVP (FX_SECONDS, CONTROL_MAX_SECONDS, SLOW_MAX_SECONDS,
-	FIREWORKS_SECONDS). `low` = low graphics quality (fewer particles). Durations are clamped: nothing outlives
-	FX_SECONDS except the highlight of a Freeze / Slow / Dance (its `duration`, at most the server's own cap) and Fireworks.
+	The look of one PvpEvent `Effect` payload (Knockback, Freeze, Slow; the Fun items' effects are ui/PvpFunFx's).
+	`pvp` = Config.PVP (FX_SECONDS, CONTROL_MAX_SECONDS, SLOW_MAX_SECONDS). `low` = low graphics quality (fewer
+	particles). Durations are clamped: nothing outlives FX_SECONDS except the highlight of a Freeze / Slow (its
+	`duration`, at most the server's own cap).
 ]]
 function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 	if type(payload) ~= "table" then
@@ -278,41 +226,6 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 				targetHit = false,
 			}
 		end
-	elseif effect == "Dance" then
-		local seconds = clampSeconds(payload.duration, 0.1, pvp.CONTROL_MAX_SECONDS)
-		plan = {
-			effect = "Dance",
-			seconds = math.max(fx, seconds),
-			sfx = "PvpPop",
-			burst = { count = 20, colors = CONFETTI, texture = SPARK, speed = 10, size = 0.6, lift = 4 },
-			highlight = { color = { 1, 0.7, 0.95 }, seconds = seconds },
-			applyVelocity = false,
-			onTarget = true,
-			attackerAnim = true,
-			targetHit = false,
-		}
-	elseif effect == "Bounce" then
-		plan = {
-			effect = "Bounce",
-			seconds = math.max(fx, PvpEffectsLogic.BOUNCE_TRAIL_SECONDS),
-			sfx = "PvpBoing",
-			burst = {
-				count = 12,
-				colors = { WHITE, { 0.8, 0.95, 1 } },
-				texture = SMOKE,
-				speed = 14,
-				size = 1.0,
-				lift = 0,
-				ring = true,
-			},
-			trail = PvpEffectsLogic.BOUNCE_TRAIL_SECONDS,
-			applyVelocity = true,
-			onTarget = true,
-			attackerAnim = false,
-			targetHit = true,
-		}
-	elseif effect == "Cosmetic" then
-		plan = cosmetic(type(itemId) == "string" and itemId or "", pvp, payload.duration)
 	end
 	if not plan then
 		return nil
@@ -323,13 +236,10 @@ function PvpEffectsLogic.plan(payload: any, pvp: any, low: boolean): Plan?
 	if plan.ring then
 		plan.ring.count = PvpEffectsLogic.scaleCount(plan.ring.count, low)
 	end
-	-- Nothing outlives its own `seconds`: the highlight / trail / beam fit inside it.
+	-- Nothing outlives its own `seconds`: the highlight / beam fit inside it.
 	local ceiling = plan.seconds
 	if plan.highlight then
 		plan.highlight.seconds = math.min(plan.highlight.seconds, ceiling)
-	end
-	if plan.trail then
-		plan.trail = math.min(plan.trail, ceiling)
 	end
 	if plan.beam then
 		plan.beam.seconds = math.min(plan.beam.seconds, ceiling)
@@ -453,15 +363,6 @@ end
 function PvpEffectsLogic.marker(itemId: any, tool: any, pvp: any): Marker?
 	if type(itemId) ~= "string" then
 		return nil
-	end
-	if itemId == "FunBouncePad" then
-		return {
-			shape = "pad",
-			diameter = pvp.BOUNCE_PAD_RADIUS * 2,
-			color = { 1, 0.4, 0.8 },
-			ownerOnly = false,
-			seconds = pvp.BOUNCE_PAD_SECONDS + 2,
-		}
 	end
 	if tool and tool.line == "Trap" and type(tool.radius) == "number" then
 		return {

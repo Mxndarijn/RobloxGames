@@ -5,8 +5,8 @@
 	The default melee Tool every player has instead of the old on-screen Slap button. `Tool.Activated` (tap on mobile,
 	click on desktop) fires on the server; the CLIENT SENDS NO TARGET and no remote is used. `BatTool.swing` takes the
 	swinger's own position and look vector, picks the nearest carrying thief in reach and in front (BatRules.pickTarget),
-	and routes the hit into the same StealService.slap the button used (reach SLAP_REACH, shared cooldown
-	Session.lastSlapAt with the Squeaky Hammer, drop + bounce home + notifications + StealAlerts FX), then adds a knockback
+	and routes the hit into the same StealService.slap the button used (reach SLAP_REACH, slap cooldown
+	Session.lastSlapAt, drop + bounce home + notifications + StealAlerts FX), then adds a knockback
 	push (PvpKnockbackRules.plan / PvpLaunch through `ctx.launch`; the victim's client applies the launch from the
 	PvpEvent "Knockback" effect). Swinging at nothing or at a non-thief does nothing with FEATURES.PvP off; with it ON a
 	non-thief on the swinger's own plot is pushed under the glove rules (no damage, ever; Humanoid health is never touched). A whiff never spends the slap cooldown; swings are only rate limited to Config.BAT.SWING_GAP.

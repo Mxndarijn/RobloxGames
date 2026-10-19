@@ -114,7 +114,7 @@ describe("BatTool.swing", function()
 	it("shares the slap cooldown and enforces reach", function()
 		local world, owner, thief = setup()
 		Carry.grab(world, 2, "gem", 1, T0 + 100)
-		owner.lastSlapAt = T0 + 100 -- e.g. a Squeaky Hammer hit a moment ago
+		owner.lastSlapAt = T0 + 100 -- a slap a moment ago
 		local hit, why = BatTool.swing(world, owner, T0 + 100 + Config.SLAP_COOLDOWN - 0.5, bat, false)
 		expect(hit).toBe(false)
 		expect(why).toBe("slap on cooldown")

@@ -3,12 +3,12 @@
 	PvpEffects (client, FEATURES.PvP, CONTRACT.md §26.1 "Client effects")
 
 	The look and sound of PvP, driven by PvpEvent `Effect` / `TrapPlaced` / `TrapCleared`. Built ONLY from Roblox
-	built-in instances (ParticleEmitter, Highlight, Beam, Trail, Attachment, Sound, BillboardGui; textures are rbxasset://
+	built-in instances (ParticleEmitter, Highlight, Beam, Attachment, Sound, BillboardGui; textures are rbxasset://
 	built-ins), all transient: each is destroyed within its plan's `seconds` (PvpEffectsLogic.plan) and counted, so
 	`activeCount()` is 0 once the effects ended. Zero BaseParts when idle: emitters sit on the characters' existing parts
 	or on an Attachment under Workspace.Terrain. The Parts are the client-only marker of a placed Goo Trap (seen by
-	everyone: glowing for its owner, a faint shimmer for others; the PvpModels placeholder or its uploaded mesh) / Bounce
-	Pad, destroyed on TrapCleared, and the flat goo splat a Goo Blaster blob leaves, gone after its seconds. A goo blob is
+	everyone: glowing for its owner, a faint shimmer for others; the PvpModels placeholder or its uploaded mesh),
+	destroyed on TrapCleared, and the flat goo splat a Goo Blaster blob leaves, gone after its seconds. A goo blob is
 	one particle flying the server's arc (PvpEffectsLogic.blobVelocity); its impact waits for the flight. Glove specials:
 	a BONK! / CHOMP! popup, lightning to a chained player, the Bounce Glove pogo (the victim's own client bounces), gold
 	confetti. The victim's client also applies the payload `velocity` to its own root (it owns the character; the
@@ -17,10 +17,12 @@
 
 	Animations ride the same events (CONTRACT.md §26.3): the attacker of a use plays its item's animation (not the
 	local player, whose own client already played it on the click; not the Bat, whose swing comes from BatSwingAt),
-	the owner of a placed trap / pad plays the throw and a pushed target plays the `hit` recoil (ui/PvpAnim).
+	the owner of a placed trap plays the throw and a pushed target plays the `hit` recoil (ui/PvpAnim).
 
-	PvpEffects.start(remote, anim?) connects PvpEvent (`anim` = the ui/PvpAnim handle); PvpEffects.play(payload)
-	is the same entry for a probe; PvpEffects.activeCount() / markerCount(); PvpEffects.stop().
+	Fun item events (CONTRACT.md §26.8) go to the `fun` handle (ui/PvpFunFx), which uses `applyLaunch` / `playSound`.
+
+	PvpEffects.start(remote, anim?, fun?) connects PvpEvent (`anim` = the ui/PvpAnim handle, `fun` = ui/PvpFunFx);
+	PvpEffects.play(payload) is the same entry for a probe; PvpEffects.activeCount() / markerCount(); PvpEffects.stop().
 ]]
 
 local Players = game:GetService("Players")
@@ -83,6 +85,7 @@ local highlightCount = 0
 local shakes: { { startedAt: number, seconds: number, amplitude: number } } = {}
 local SHAKE_BIND = "PvpEffectsShake"
 local anim: any = nil -- the ui/PvpAnim handle given to start (nil = no animations)
+local fun: any = nil -- the ui/PvpFunFx handle given to start (nil = Fun events are not drawn)
 
 local function lowQuality(): boolean
 	local ok, settings = pcall(function()
@@ -162,20 +165,26 @@ local function anchorAt(position: Vector3, seconds: number): Attachment
 	return attachment
 end
 
-local function playSfx(name: string?, parent: Instance?, involved: boolean)
+export type SoundOptions = { pitch: number?, volume: number?, looped: boolean? }
+
+-- Plays registry sound `name` (Sounds.IDS) at `parent`; `involved` = the local player is in it (2D through
+-- SoundController, unless `options` shape the sound). Returns the 3D Sound it made, if any.
+local function playSfx(name: string?, parent: Instance?, involved: boolean, options: SoundOptions?): Sound?
 	if not name then
-		return
+		return nil
 	end
-	if involved and SoundController.play(name) then
-		return
+	if involved and not options and SoundController.play(name) then
+		return nil
 	end
 	local id = Sounds.resolve(name)
 	if not id or not parent then
-		return
+		return nil
 	end
 	local sound = Instance.new("Sound")
 	sound.SoundId = id
-	sound.Volume = 0.8
+	sound.Volume = 0.8 * (if options and options.volume then options.volume else 1)
+	sound.PlaybackSpeed = if options and options.pitch then options.pitch else 1
+	sound.Looped = options ~= nil and options.looped == true
 	sound.RollOffMaxDistance = 90
 	local group = SoundService:FindFirstChild("SFX")
 	if group and group:IsA("SoundGroup") then
@@ -187,6 +196,7 @@ local function playSfx(name: string?, parent: Instance?, involved: boolean)
 	end)
 	track(sound, "sound", 4)
 	sound:Play()
+	return sound
 end
 
 local function emitBurst(parent: Instance, burst: Logic.Burst, seconds: number)
@@ -355,25 +365,6 @@ local function beam(
 	b.Segments = 1
 	b.Parent = a0
 	track(b, "beam", spec.seconds)
-end
-
-local function trail(root: BasePart, seconds: number, total: number)
-	local a0, a1 = Instance.new("Attachment"), Instance.new("Attachment")
-	a0.Position, a1.Position = Vector3.new(0, 1, 0), Vector3.new(0, -1, 0)
-	a0.Parent, a1.Parent = root, root
-	track(a0, "attachment", total)
-	track(a1, "attachment", total)
-	local t = Instance.new("Trail")
-	t.Attachment0, t.Attachment1 = a0, a1
-	t.Lifetime = 0.4
-	t.Color = ColorSequence.new(Color3.new(1, 1, 1))
-	t.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.2), NumberSequenceKeypoint.new(1, 1) })
-	t.LightEmission = 0.5
-	t.Parent = root
-	track(t, "trail", total)
-	task.delay(seconds, function()
-		t.Enabled = false
-	end)
 end
 
 -- The goo blob: one particle that leaves `from` and flies the server's arc to `to` in `flight` seconds.
@@ -636,9 +627,6 @@ function land(payload: { [string]: any }, plan: Logic.Plan)
 		end
 		beam(from, endAttachment, plan.beam)
 	end
-	if plan.trail and root then
-		trail(root, plan.trail, plan.seconds)
-	end
 	if plan.popup then
 		popup(targetCharacter, plan.popup)
 	end
@@ -749,8 +737,16 @@ local function placeMarker(payload: { [string]: any })
 	end)
 end
 
+PvpEffects.playSound = playSfx
+PvpEffects.lowQuality = lowQuality
+PvpEffects.applyLaunch = applyLaunch
+
 function PvpEffects.play(payload: any)
 	if type(payload) ~= "table" then
+		return
+	end
+	if fun and fun.handles(payload) then
+		fun.play(payload)
 		return
 	end
 	local kind = payload.kind
@@ -778,11 +774,12 @@ function PvpEffects.markerCount(): number
 	return tracker.count("marker")
 end
 
-function PvpEffects.start(remote: RemoteEvent, animHandle: any?)
+function PvpEffects.start(remote: RemoteEvent, animHandle: any?, funHandle: any?)
 	if connection then
 		return
 	end
 	anim = animHandle
+	fun = funHandle
 	connection = remote.OnClientEvent:Connect(function(payload: any)
 		local ok, err = pcall(PvpEffects.play, payload)
 		if not ok then
@@ -797,6 +794,7 @@ function PvpEffects.stop()
 		connection = nil
 	end
 	anim = nil
+	fun = nil
 	stopShake()
 	for _, marker in markers do
 		marker:Destroy()

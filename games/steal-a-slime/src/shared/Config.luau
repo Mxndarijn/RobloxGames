@@ -118,15 +118,13 @@ export type PvpTool = {
 	radius: number?, -- Trap: studs
 	pull: number?, -- Mega Trap: studs around it that are pulled in
 	spitArc: number?, -- Mega Trap: studs of vertical arc of the spit
-	control: number?, -- hard crowd control seconds (trap hold, dance, bounce), <= PVP.CONTROL_MAX_SECONDS
-	slow: number?, -- Blaster / Trap: speed taken away, 0.3 = 30 % (Squirter: per stacked hit)
-	slowSeconds: number?, -- Blaster / Trap: <= PVP.SLOW_MAX_SECONDS
-	nudge: number?, -- FunSqueaky: studs
-	height: number?, -- FunBouncePad: studs straight up
+	control: number?, -- hard crowd control seconds (trap hold, dance, bubble, pancake), <= PVP.CONTROL_MAX_SECONDS
+	slow: number?, -- Blaster / Trap / FunBalloon: speed taken away, 0.3 = 30 % (Squirter: per stacked hit)
+	slowSeconds: number?, -- Blaster / Trap / FunBalloon: <= PVP.SLOW_MAX_SECONDS
+	nudge: number?, -- FunSqueaky: studs of push when a squashed player springs back
+	height: number?, -- FunBouncePad: studs straight up for the pad's owner
 	maxPlaced: number?, -- placed objects at once
-	fadeSeconds: number?,
-	maxDecals: number?,
-	hatSeconds: number?,
+	hatSeconds: number?, -- FunHatLauncher: how long a hat stays on
 }
 
 local RARITIES: { Rarity } = {
@@ -552,14 +550,15 @@ local PVP_TOOLS: { PvpTool } = {
 		slowSeconds = 3,
 		catches = true,
 	}),
-	fun("FunConfetti", "Confetti Popper", 0, 5, true, { allowInSafeZone = true }),
-	fun("FunBalloon", "Goo Balloon", 1, 3, true, { fadeSeconds = 10, maxDecals = 8 }),
-	fun("FunBubbles", "Bubble Wand", 3, 4, true, {}),
-	fun("FunBouncePad", "Bounce Pad", 5, 10, false, { height = 25, control = 1.2, maxPlaced = 1 }),
-	fun("FunSqueaky", "Squeaky Hammer", 6, 3, false, { nudge = 2 }),
-	fun("FunHatLauncher", "Slime Hat Launcher", 7, 8, true, { hatSeconds = 30 }),
-	fun("FunDanceBomb", "Dance Bomb", 8, 45, false, { control = 2 }),
-	fun("FunFireworks", "Goo Fireworks", 10, 20, true, {}),
+	-- Fun items (CONTRACT.md §26.8): the rest of their tunables live in PVP_FUN.
+	fun("FunConfetti", "Confetti Popper", 0, 3, true, { allowInSafeZone = true }),
+	fun("FunBalloon", "Goo Balloon", 1, 3, true, { slow = 0.2, slowSeconds = 2 }), -- slows only a thief in the splash
+	fun("FunBubbles", "Bubble Wand", 3, 5, false, { control = 1.5 }),
+	fun("FunBouncePad", "Bounce Pad", 5, 8, false, { height = 30, maxPlaced = 2 }),
+	fun("FunSqueaky", "Squeaky Hammer", 6, 1.5, false, { control = 0.8, reach = 10, nudge = 4 }),
+	fun("FunHatLauncher", "Slime Hat Launcher", 7, 4, true, { hatSeconds = 30 }),
+	fun("FunDanceBomb", "Dance Bomb", 8, 20, false, { control = 2 }),
+	fun("FunFireworks", "Goo Fireworks", 10, 12, true, {}),
 }
 
 for _, list in { REBIRTH_TIERS, UPGRADES, DEX_MILESTONES.species } :: { { any } } do
@@ -1127,7 +1126,7 @@ local Config = {
 		KNOCKBACK_MAX_SPEED_Y = 110, -- studs/s: client-side cap on a launch's vertical speed (Bounce Pad 25 studs needs ~99)
 		LAUNCH_GUARD_SECONDS = 5, -- after a PvP launch / while under control the void guard (Rescue.PVP_SAFE_Y) is armed
 		KNOCKBACK_CONTROL_SECONDS = 0.6, -- a knockback counts as control (PvpRules.applyControl), then immunity
-		CHARGE_SECONDS = 0.5, -- hold the button this long for a power punch (client side; the server trades push for cooldown)
+		CHARGE_SECONDS = 0.5, -- hold the button this long for UsePvpItem `charged` (power punch, mega confetti pop, fireworks volley)
 		CHARGE_PUSH = 1.5, -- power punch: push x this
 		CHARGE_COOLDOWN = 2, -- power punch: cooldown x this
 		FUN_AIM_RANGE = 40, -- studs: how far a Balloon / Bounce Pad / Fireworks aim point may be
@@ -1150,6 +1149,75 @@ local Config = {
 		MAP_BOUNDS = table.freeze({ minX = -320, maxX = 320, minZ = -320, maxZ = 320 }), -- WorldBorder.GROUND_HALF = 320, Ground centred on the origin
 	}),
 	PVP_TOOLS = table.freeze(PVP_TOOLS),
+	-- Fun item tunables (CONTRACT.md §26.8, server/PvpFun, Shared.PvpFunRules, ui/PvpFunFx). Studs, seconds, studs/s.
+	PVP_FUN = table.freeze({
+		AIM_RANGE = 40, -- a thrown / placed fun item lands at most this far from the user
+		THROW_SPEED = 42, -- horizontal speed of a lobbed balloon / dance bomb
+		THROW_MIN_SECONDS = 0.35, -- shortest lob flight
+		THROW_MAX_SECONDS = 1.1, -- longest lob flight
+		LANDING_WINDOW = 0.6, -- a landing still catches players this long after it
+		CONFETTI = table.freeze({
+			RANGE = 22, -- the pop bursts this far along the aim
+			RADIUS = 10, -- the rain covers this far around the burst
+			MEGA_RADIUS = 16,
+			STICK_SECONDS = 4, -- confetti stays on a player this long
+		}),
+		BALLOON = table.freeze({
+			SPLASH_RADIUS = 7,
+			PAINT_SECONDS = 10,
+			SPLATS_MAX = 8, -- ground splats per client
+		}),
+		BUBBLES = table.freeze({
+			COUNT = 5, -- bubbles per stream
+			SPACING = 0.18, -- seconds between bubbles
+			SPEED = 10, -- along the aim
+			RISE = 1.5, -- upward drift
+			LIFETIME = 3.5,
+			SIZE = 2.6, -- bubble diameter
+			RADIUS = 2.6, -- a root this close touches a bubble
+			LIFT = 7, -- a bubbled player floats this high
+			POP_RANGE = 40, -- other players this close may click a bubble to pop it
+			STREAMS_MAX = 8, -- live streams on the server (the oldest goes)
+			SLIME_FLOAT_SECONDS = 2.5, -- a wild slime a bubble touches floats this long (client only)
+		}),
+		BOUNCE_PAD = table.freeze({
+			SECONDS = 60, -- a pad lives this long
+			RADIUS = 3.5, -- stepping this close to the centre bounces
+			HEIGHT = 18, -- everyone but the owner bounces this high
+			RETRIGGER = 1.2, -- the same player bounces again after this
+		}),
+		HAMMER = table.freeze({
+			AIM_RADIUS = 5, -- the bonked player / slime is this close to the aim point
+			COMBO_HITS = 3,
+			COMBO_WINDOW = 3.5, -- the combo hits land within this
+			COMBO_PUSH_SCALE = 1.5,
+			SLIME_SQUASH_SECONDS = 1.2, -- a slime's squash, wobble and spring (client)
+		}),
+		HATS = table.freeze({
+			RANGE = 40,
+			HIT_RADIUS = 3,
+			SPEED = 70, -- the flying hat (client)
+			MAX_STACK = 3,
+			SLIME_SECONDS = 20, -- a missed hat hops around as a hat-slime this long (client)
+			SLIMES_MAX = 6, -- hat-slimes per client
+		}),
+		DANCE = table.freeze({
+			RADIUS = 4.5, -- the disco bubble is ~9 studs across
+			SECONDS = 4, -- it stays this long; players walking in also dance
+		}),
+		FIREWORKS = table.freeze({
+			HEIGHT = 60, -- the burst is this high above the launch point
+			FLIGHT = 1.1, -- rocket rise time (client)
+			VOLLEY = 3, -- rockets at full charge
+			VOLLEY_GAP = 0.3, -- seconds between volley rockets (client)
+			SPREAD = 10, -- volley rockets fan out this far (client)
+			CHEER_RADIUS = 40, -- wild slimes this close to the launch cheer-hop (client)
+			SECONDS = 4, -- the burst and its goo rain (client)
+		}),
+		FX_MAX = 24, -- client: fun effects alive at once (the oldest goes)
+		PROXIES_MAX = 6, -- client: squash / float proxies at once
+		FX_RANGE = 220, -- client: farther fun effects are skipped (fireworks are seen from anywhere)
+	}),
 
 	-- Persistence
 	SAVE_VERSION = 8, -- CONTRACT.md §8.9 (v6: settings + normalised plotSkin / stealLog, SaveData.migrateV5; v7: mutation fields stripped, SaveData.migrateV6; v8: Goo Trap charges, SaveData.migrateV7)

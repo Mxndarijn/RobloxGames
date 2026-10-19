@@ -29,6 +29,7 @@ local PlayerData = if Shared then require(Shared.PlayerData) else require("../sh
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Trophies = if Shared then require(Shared.Trophies) else require("../shared/Trophies")
+local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
 local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
@@ -367,10 +368,11 @@ function Carry.walkSpeed(session: Session, now: number): number
 end
 
 -- The WalkSpeed the server enforces right now (Player attribute TargetWalkSpeed).
--- A PvP hold / slow (PvpSlow: Goo Traps, Goo Blasters; FEATURES.PvP, CONTRACT.md §26) multiplies in; 1 with the flag off.
+-- PvP holds / slows (PvpSlow: Goo Traps, Goo Blasters; PvpFun: the Goo Balloon slow; FEATURES.PvP, CONTRACT.md §26)
+-- multiply in; 1 with the flag off.
 function Carry.targetWalkSpeed(session: Session, now: number): number
 	local speed = if session.carry then Carry.walkSpeed(session, now) else Shop.walkSpeed(session.data)
-	return speed * PvpSlow.walkFactor(session, now)
+	return speed * PvpSlow.walkFactor(session, now) * PvpFun.walkFactor(session, now)
 end
 
 return Carry
