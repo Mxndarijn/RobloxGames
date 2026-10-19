@@ -2,7 +2,8 @@
 
 Every slime model has one label. A wild, carried or escaping slime shows a floating tag above the top of its mesh:
 species name, rarity, income per second and, while it is for sale, its price. A slime resting on a pad shows no tag;
-its label is a plaque on the front of the pad crate: rarity, name, income and a growth bar.
+its label is a wooden plank on the front of the pad crate, dipped in goo of its rarity colour: the rarity in the
+goo, the name and income painted on the wood, and a goo tube for its growth.
 The server decides every value and writes it as model attributes; each client draws the labels locally. No remote, no
 State field, no save-format change.
 
@@ -31,10 +32,12 @@ State field, no save-format change.
   the rarity word filled with a gradient of its colour (a rainbow for Secret), the income in green and the price in
   gold. Size mixes studs and pixels so it shrinks with distance but stays readable; `MaxDistance` hides it far away.
   Disabled while `LabelPad` is set and the pad is found.
-- **Pad sign (`src/ui/SlimePadSign`, driven by `SlimeInfoCard`).** A thin non-colliding, non-queried part with a
-  `SurfaceGui` on the pad crate's entrance side (pad-local -Z), in a local `SlimePadSigns` folder: a band in the
-  rarity colour with the rarity, the name and income, and a growth bar with its percent. The pad is the plot's part
-  with `PadIndex` = `LabelPad`. Moves when the slime changes pad; removed when it leaves the pad or loses its tag.
+- **Pad sign (`src/ui/SlimePadSign`, driven by `SlimeInfoCard`).** A thin non-colliding, non-queried WoodPlanks part with
+  a `SurfaceGui` on the pad crate's entrance side (pad-local -Z), in a local `SlimePadSigns` folder. Goo of the rarity
+  colour (a rainbow for Secret) runs along its top edge with the rarity written in it and drips down both ends; the
+  name (cream) and income (gold) are painted on the wood; the growth fills a goo tube, its percent beside it.
+  The pad is the plot's part with `PadIndex` = `LabelPad`. Moves when the slime changes pad; removed when it leaves
+  the pad or loses its tag.
 - Both are re-rendered only on `AttributeChanged` of the attributes above; no frame loop, no tween. Removed with the
   tag (model destroyed or streamed out). `FollowPets` clones never carry them.
 - **Replaces** the server `GrowthLabel` BillboardGui (growth now lives on the pad sign). The server still scales the
