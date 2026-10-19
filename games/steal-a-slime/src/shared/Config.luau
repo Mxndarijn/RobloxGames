@@ -845,7 +845,7 @@ local Config = {
 		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
-		TROPHY_GAP = 12, -- studs between trophy pedestals beside the plot (a MAX_SIZE boss mesh is about 10 wide)
+		TROPHY_GAP = 12, -- studs between trophy pedestals beside the Dex board (a MAX_SIZE boss mesh is about 9 wide)
 	}),
 
 	-- Day / night (DayNight)
