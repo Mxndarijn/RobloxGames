@@ -690,6 +690,7 @@ for _, entry in panels do
 		Text = navEntry.label,
 		Font = Theme.Font,
 		TextSize = Layout.NAV.labelSize,
+		TextXAlignment = Enum.TextXAlignment.Center,
 		TextStrokeTransparency = 0.2,
 		TextTruncate = Enum.TextTruncate.None,
 		Size = UDim2.fromOffset(Layout.NAV.cell, Layout.NAV.label),
