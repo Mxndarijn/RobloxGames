@@ -88,7 +88,7 @@ end
 
 describe("SlimeInfoCard rows", function()
 	for _, count in { 3, 4 } do
-		it(`{count} rows fill the card top to bottom without overlap`, function()
+		it(`{count} rows fill the tag top to bottom without overlap`, function()
 			local rows = SlimeInfoCard.rows(count)
 			expect(#rows).toBe(count)
 			local y = 0
@@ -102,7 +102,7 @@ describe("SlimeInfoCard rows", function()
 			expect(rows[1].h > rows[2].h).toBe(true) -- the name row is the largest
 		end)
 	end
-	it("the card grows with the extra row and keeps a pixel floor so it stays readable far away", function()
+	it("the tag grows with the price row and keeps a pixel floor so it stays readable far away", function()
 		local three, four = SlimeInfoCard.size(3), SlimeInfoCard.size(4)
 		expect(four.Y.Scale > three.Y.Scale).toBe(true)
 		expect(four.Y.Offset > three.Y.Offset).toBe(true)
@@ -118,11 +118,11 @@ describe("SlimeInfoCard render", function()
 		expect(gui.ClassName).toBe("BillboardGui")
 		expect(gui.MaxDistance).toBe(SlimeInfoCard.SIZE.maxDistance)
 		expect(gui.MaxDistance > 0 and gui.MaxDistance < math.huge).toBe(true)
-		expect(gui.SizeOffset.Y).toBe(0.5) -- bottom edge on the anchor, so the card is all above the mesh top
+		expect(gui.SizeOffset.Y).toBe(0.5) -- bottom edge on the anchor, so the tag is all above the mesh top
 		expect(gui.Archivable).toBe(false)
 		expect(gui.LightInfluence).toBe(0)
 	end)
-	it("shows name in the rarity colour, rarity, income and no extra row", function()
+	it("shows the name edged in the rarity colour, the rarity in its gradient and the income, with no panel", function()
 		local gui = SlimeInfoCard.build()
 		local v = view()
 		SlimeInfoCard.render(gui, v, 4.5)
@@ -132,18 +132,29 @@ describe("SlimeInfoCard render", function()
 		expect(#rows).toBe(3)
 		expect(rows[1].Text).toBe("Lop")
 		local c = Config.RARITIES[3].color
-		expect(rows[1].TextColor3).toBe(SlimeInfoCard.textColor(c))
-		expect(string.find(rows[2].Text, Config.RARITIES[3].name, 1, true) ~= nil).toBe(true)
+		expect(rows[1]:FindFirstChild("Stroke").Color).toBe(SlimeInfoCard.nameStroke(c))
+		expect(rows[2].Text).toBe(Config.RARITIES[3].name)
+		local fill = rows[2]:FindFirstChild("Fill").Color.Keypoints
+		expect(fill[#fill].Value).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
 		expect(rows[3].Text).toBe("+$1.25K/s")
 		expect(gui.Size).toBe(SlimeInfoCard.size(3))
-		expect(gui:FindFirstChild("Card"):FindFirstChild("Stroke").Color).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
+		expect(gui:FindFirstChild("Card").BackgroundTransparency).toBe(1)
+		for _, label in rows do
+			expect(label:FindFirstChild("Stroke") ~= nil).toBe(true)
+		end
 	end)
-	it("adds the extra row, inside the card", function()
+	it("fills Secret with a rainbow instead of one colour", function()
 		local gui = SlimeInfoCard.build()
-		SlimeInfoCard.render(gui, view({ growth = 46 }), 3)
+		SlimeInfoCard.render(gui, view({ tier = Config.MAX_TIER }), 3)
+		local fill = rowsOf(gui)[2]:FindFirstChild("Fill").Color.Keypoints
+		expect(#fill > 3).toBe(true)
+	end)
+	it("adds the price row, inside the tag", function()
+		local gui = SlimeInfoCard.build()
+		SlimeInfoCard.render(gui, view({ price = 500 }), 3)
 		local rows = rowsOf(gui)
 		expect(#rows).toBe(4)
-		expect(rows[4].Text).toBe("Growth 46%")
+		expect(rows[4].Text).toBe("$500")
 		expect(gui.Size).toBe(SlimeInfoCard.size(4))
 		for _, label in rows do
 			local top, height = label.Position.Y.Scale, label.Size.Y.Scale
@@ -152,7 +163,7 @@ describe("SlimeInfoCard render", function()
 			expect(label.TextScaled).toBe(true)
 		end
 	end)
-	it("drops the extra row again and hides without a view", function()
+	it("drops the price row again and hides without a view", function()
 		local gui = SlimeInfoCard.build()
 		SlimeInfoCard.render(gui, view({ price = 500 }), 3)
 		expect(#rowsOf(gui)).toBe(4)
@@ -226,5 +237,127 @@ describe("SlimeInfoCard.start", function()
 		expect(unnamed:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME).Enabled).toBe(false)
 		stop()
 		expect(body:FindFirstChild(SlimeInfoCard.NAME)).toBeNil()
+	end)
+end)
+
+local SlimePadSign = UiHarness.ui("SlimePadSign")
+
+-- A plot with one pad crate (PadIndex `index`) and a slime model resting in its Slimes folder.
+local function plotWithSlime(index: number, attrs: { [string]: any }): (any, any, any)
+	local plot = UiHarness.Instance.new("Model")
+	plot.Name = "Plot_1"
+	local pad = UiHarness.Instance.new("Part")
+	pad.Name = `Pad_{index}`
+	pad.Size = roblox.Vector3.new(8, 2.4, 8)
+	pad.CFrame = roblox.CFrame.new(10, 2.2, 20)
+	pad:SetAttribute(Constants.PAD_INDEX_ATTRIBUTE, index)
+	pad.Parent = plot
+	local folder = UiHarness.Instance.new("Folder")
+	folder.Name = "Slimes"
+	folder.Parent = plot
+	local model = slimeModel(attrs)
+	model.Parent = folder
+	return plot, pad, model
+end
+
+describe("SlimePadSign", function()
+	it("is a plaque on the crate's entrance side that never collides, is never queried and is never cloned", function()
+		local sign = SlimePadSign.build()
+		expect(sign.ClassName).toBe("Part")
+		expect(sign.Anchored).toBe(true)
+		expect(sign.CanCollide).toBe(false)
+		expect(sign.CanQuery).toBe(false)
+		expect(sign.CanTouch).toBe(false)
+		expect(sign.Archivable).toBe(false)
+		expect(sign:FindFirstChild("Face").Face).toBe(roblox.Enum.NormalId.Front)
+		local _, pad = plotWithSlime(2, {})
+		local at = SlimePadSign.cframe(pad)
+		local s = SlimePadSign.SIZE
+		-- CFrames are float32: compare positions to 1e-4.
+		local here = pad.CFrame:PointToObjectSpace(at.Position)
+		expect(math.abs(here.Z + s.front + s.thickness / 2) < 1e-4).toBe(true) -- -Z: towards the plot entrance
+		expect(math.abs(here.Y - (s.centreY - pad.Size.Y / 2)) < 1e-4).toBe(true)
+		expect(math.abs(here.X) < 1e-4).toBe(true)
+	end)
+	it("shows the rarity band, name, income and the growth bar", function()
+		local sign = SlimePadSign.build()
+		SlimePadSign.render(sign, view({ tier = 3, growth = 46 }))
+		local board = sign:FindFirstChild("Face"):FindFirstChild("Board")
+		local band = board:FindFirstChild("Band")
+		local c = Config.RARITIES[3].color
+		expect(band.BackgroundColor3).toBe(roblox.Color3.fromRGB(c[1], c[2], c[3]))
+		expect(band:FindFirstChild("Rarity").Text).toBe(Config.RARITIES[3].name)
+		expect(board:FindFirstChild("Title").Text).toBe("Lop")
+		expect(board:FindFirstChild("Income").Text).toBe("+$1.25K/s")
+		expect(board:FindFirstChild("Growth").Text).toBe("46%")
+		local fill = board:FindFirstChild("Track"):FindFirstChild("Fill")
+		expect(math.abs(fill.Size.X.Scale - 0.46) < EPS).toBe(true)
+		expect(fill.Visible).toBe(true)
+		SlimePadSign.render(sign, view({ growth = 0 }))
+		expect(fill.Visible).toBe(false)
+		expect(board:FindFirstChild("Growth").Text).toBe("0%")
+	end)
+	it("writes dark ink on a light rarity band and white on a deep one", function()
+		local light, strokeLight = SlimePadSign.bandInk(Config.RARITIES[1].color)
+		local deep, strokeDeep = SlimePadSign.bandInk(Config.RARITIES[3].color)
+		expect(light ~= SlimePadSign.COLORS.bandInk).toBe(true)
+		expect(strokeLight).toBe(1)
+		expect(deep).toBe(SlimePadSign.COLORS.bandInk)
+		expect(strokeDeep).toBe(0)
+	end)
+	it("finds the pad by PadIndex, nil without one", function()
+		local _, pad, model = plotWithSlime(3, {})
+		expect(SlimePadSign.findPad(model, 3)).toBe(pad)
+		expect(SlimePadSign.findPad(model, 4)).toBeNil()
+		expect(SlimePadSign.findPad(slimeModel({}), 3)).toBeNil()
+	end)
+end)
+
+describe("SlimeInfoCard.start on a pad", function()
+	local function padAttrs(pad: number?): { [string]: any }
+		return {
+			[Constants.LABEL_NAME_ATTRIBUTE] = "Lop",
+			[Constants.LABEL_TIER_ATTRIBUTE] = 2,
+			[Constants.LABEL_INCOME_ATTRIBUTE] = 40,
+			[Constants.LABEL_HEIGHT_ATTRIBUTE] = 3.25,
+			[Constants.LABEL_PAD_ATTRIBUTE] = pad,
+		}
+	end
+	it("swaps the floating tag for a sign on the pad, and back when the slime leaves it", function()
+		local _, pad, model = plotWithSlime(1, padAttrs(1))
+		local signs = UiHarness.Instance.new("Folder")
+		local stop = SlimeInfoCard.start({
+			collection = fakeCollection({ model }),
+			tag = Constants.SLIME_TAG,
+			signParent = signs,
+		})
+		local tag = model:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME)
+		expect(tag.Enabled).toBe(false)
+		local sign = signs:FindFirstChild(SlimePadSign.NAME)
+		expect(sign ~= nil).toBe(true)
+		expect(sign.CFrame).toBe(SlimePadSign.cframe(pad))
+		model:SetAttribute(Constants.LABEL_INCOME_ATTRIBUTE, 2500)
+		UiHarness.fire(model, "AttributeChanged", Constants.LABEL_INCOME_ATTRIBUTE)
+		expect(signs:FindFirstChild(SlimePadSign.NAME)).toBe(sign) -- same plaque, new text
+		expect(sign:FindFirstChild("Face"):FindFirstChild("Board"):FindFirstChild("Income").Text).toBe("+$2.5K/s")
+		model:SetAttribute(Constants.LABEL_PAD_ATTRIBUTE, nil)
+		UiHarness.fire(model, "AttributeChanged", Constants.LABEL_PAD_ATTRIBUTE)
+		expect(#signs:GetChildren()).toBe(0)
+		expect(tag.Enabled).toBe(true)
+		stop()
+	end)
+	it("keeps the tag when the pad part is not there, and removes the sign with the tag", function()
+		local _, _, model = plotWithSlime(1, padAttrs(5))
+		local signs = UiHarness.Instance.new("Folder")
+		local collection = fakeCollection({ model })
+		local stop = SlimeInfoCard.start({ collection = collection, tag = Constants.SLIME_TAG, signParent = signs })
+		expect(model:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME).Enabled).toBe(true)
+		expect(#signs:GetChildren()).toBe(0)
+		model:SetAttribute(Constants.LABEL_PAD_ATTRIBUTE, 1)
+		UiHarness.fire(model, "AttributeChanged", Constants.LABEL_PAD_ATTRIBUTE)
+		expect(#signs:GetChildren()).toBe(1)
+		collection.fire("removed", model)
+		expect(#signs:GetChildren()).toBe(0)
+		stop()
 	end)
 end)

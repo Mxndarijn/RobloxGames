@@ -696,7 +696,13 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 			end
 		end
 		-- After place(): the boss scale is applied there, and the label height is measured on the final scale.
-		SlimeLabelView.apply(record.model, record.body, entry.slime, entry.income)
+		SlimeLabelView.apply(
+			record.model,
+			record.body,
+			entry.slime,
+			entry.income,
+			if entry.state == "Pad" then entry.pad else nil
+		)
 	end
 	for id in failed do
 		if not entries[id] then

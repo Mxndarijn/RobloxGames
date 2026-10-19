@@ -48,11 +48,13 @@ function SlimeLabelView.applyGrowth(model: Model, slime: Genome.Slime)
 	model:ScaleTo(Growth.scaleAt(percent / 100))
 end
 
--- Name, tier and income; LabelHeight is re-measured after any scale change (growth, boss scale).
-function SlimeLabelView.apply(model: Model, body: BasePart, slime: Genome.Slime, incomePerSec: number)
+-- Name, tier, income and the pad it rests on (nil off a pad); LabelHeight is re-measured after any scale change
+-- (growth, boss scale).
+function SlimeLabelView.apply(model: Model, body: BasePart, slime: Genome.Slime, incomePerSec: number, pad: number?)
 	local name, tier = SlimeLabel.attributes(slime)
 	setIfChanged(model, Constants.LABEL_NAME_ATTRIBUTE, name)
 	setIfChanged(model, Constants.LABEL_TIER_ATTRIBUTE, tier)
+	setIfChanged(model, Constants.LABEL_PAD_ATTRIBUTE, pad)
 	if SlimeLabel.incomeChanged(model:GetAttribute(Constants.LABEL_INCOME_ATTRIBUTE), incomePerSec) then
 		model:SetAttribute(Constants.LABEL_INCOME_ATTRIBUTE, incomePerSec)
 	end

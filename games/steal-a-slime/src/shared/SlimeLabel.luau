@@ -2,9 +2,10 @@
 --[[
 	SlimeLabel (pure, contract/slime-labels.md)
 
-	The text of the info card above a slime. The server writes the model
-	attributes from a slime (`attributes`), the client turns the attributes
-	back into card lines (`view`). No Roblox APIs.
+	The text of a slime's label: the floating tag above a wild, carried or
+	escaping slime, and the sign on the pad of a slime resting on it. The
+	server writes the model attributes from a slime (`attributes`), the client
+	turns the attributes back into label values (`view`). No Roblox APIs.
 ]]
 
 local Constants = if script then require(script.Parent.Constants) else require("./Constants")
@@ -15,12 +16,15 @@ local NumberFormat = if script then require(script.Parent.NumberFormat) else req
 export type View = {
 	name: string, -- "Lop", "BOSS Lop"
 	rarity: string, -- "Rare"
+	tier: number, -- Config.RARITIES index
 	rarityColor: { number }, -- { r, g, b } of Config.RARITIES
 	income: string, -- "+$1.25K/s", "+$0.8/s"
-	extra: string?, -- "Buy $500" (priced wild) or "Growth 46%" (pad); nil = nothing
+	price: string?, -- "$500" for a priced wild slime; nil = not for sale
+	growth: number, -- whole percent 0..100 (the pad sign's bar)
+	pad: number?, -- pad index while the slime rests on a pad: the label is the pad sign, not the tag
 }
 
--- What the card reads; the attribute names are in `SlimeLabel.ATTRIBUTES`.
+-- What the label reads; the attribute names are in `SlimeLabel.ATTRIBUTES`.
 export type Attributes = {
 	name: any,
 	tier: any,
@@ -28,6 +32,7 @@ export type Attributes = {
 	price: any,
 	growth: any,
 	boss: any,
+	pad: any,
 }
 
 local SlimeLabel = {}
@@ -40,6 +45,7 @@ SlimeLabel.ATTRIBUTES = table.freeze({
 	price = "Price",
 	growth = Constants.GROWTH_ATTRIBUTE,
 	boss = Constants.BOSS_ATTRIBUTE,
+	pad = Constants.LABEL_PAD_ATTRIBUTE,
 })
 
 local function finite(n: any): number?
@@ -59,14 +65,10 @@ function SlimeLabel.incomeChanged(shown: any, perSec: number): boolean
 	return finite(shown) == nil or SlimeLabel.incomeText(shown) ~= SlimeLabel.incomeText(perSec)
 end
 
--- "Buy $500" for a priced wild slime, else "Growth 46%" while grown, else nil.
-function SlimeLabel.extraText(price: any, growth: any): string?
+-- "$500" for a priced wild slime; nil when it is free or not for sale.
+function SlimeLabel.priceText(price: any): string?
 	local p = finite(price)
-	if p and p > 0 then
-		return `Buy {NumberFormat.cash(p)}`
-	end
-	local g = finite(growth)
-	return if g then Growth.labelText(g) else nil
+	return if p and p > 0 then NumberFormat.cash(p) else nil
 end
 
 -- Name / tier attribute values for a slime (LabelIncome is written separately).
@@ -74,24 +76,28 @@ function SlimeLabel.attributes(slime: Genome.Slime): (string, number)
 	return slime.name, Genome.rarity(slime.tier).tier
 end
 
--- Card lines from the attributes; nil when the model carries no LabelName yet.
+-- Label values from the attributes; nil when the model carries no LabelName yet.
 function SlimeLabel.view(attrs: Attributes): View?
 	if type(attrs.name) ~= "string" or attrs.name == "" then
 		return nil
 	end
 	local rarity = Genome.rarity(finite(attrs.tier) or 1)
+	local pad = finite(attrs.pad)
 	return {
 		name = if attrs.boss == true then `BOSS {attrs.name}` else attrs.name,
 		rarity = rarity.name,
+		tier = rarity.tier,
 		rarityColor = rarity.color,
 		income = SlimeLabel.incomeText(attrs.income),
-		extra = SlimeLabel.extraText(attrs.price, attrs.growth),
+		price = SlimeLabel.priceText(attrs.price),
+		growth = Growth.percentAt((finite(attrs.growth) or 0) / 100),
+		pad = if pad and pad >= 1 then math.floor(pad) else nil,
 	}
 end
 
--- Number of text rows the card draws for a view: name, rarity line, income, extra.
+-- Number of text rows the floating tag draws for a view: name, rarity, income, then the price when for sale.
 function SlimeLabel.rows(view: View): number
-	return if view.extra then 4 else 3
+	return if view.price then 4 else 3
 end
 
 return table.freeze(SlimeLabel)
