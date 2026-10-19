@@ -21,6 +21,10 @@ describe("PvpShield", function()
 	it("uses a registered icon", function()
 		expect(ItemIcons.build(Config).get(PvpShield.BADGE.icon) ~= nil).toBe(true)
 	end)
+	it("is big enough to read at 30+ studs: at least 64 px and drawn well past 30 studs", function()
+		expect(PvpShield.BADGE.size >= 64).toBe(true)
+		expect(PvpShield.BADGE.maxDistance >= 60).toBe(true)
+	end)
 	it("starts, ticks and stops with no badge when nobody is shielded", function()
 		local handle = PvpShield.start({
 			attribute = "PvpShieldUntil",

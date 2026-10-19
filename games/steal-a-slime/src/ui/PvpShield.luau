@@ -2,7 +2,7 @@
 --[[
 	PvpShield (client, FEATURES.PvP, CONTRACT.md §26.7)
 
-	The new-player shield badge everyone sees: a small BillboardGui with the shield icon (ItemIcons "Shield") over the
+	The new-player shield badge everyone sees: a BillboardGui with the shield icon (ItemIcons "Shield") over the
 	head of every player whose replicated `PvpShieldUntil` attribute (Constants.PVP_SHIELD_ATTRIBUTE, server time) is
 	still in the future. The badges live in the local PlayerGui (Adornee = the head), so nothing replicates. The
 	shielded player's own countdown is the HUD's `Shield` status slot (HudClusters.shield).
@@ -17,10 +17,12 @@ local ItemIconView = require(script.Parent.ItemIconView)
 
 local PvpShield = {}
 
+-- The badge keeps its pixel size at any distance (an offset-sized BillboardGui), so it reads the same at 30+ studs
+-- as up close; it is drawn up to `maxDistance`.
 PvpShield.BADGE = table.freeze({
 	name = "PvpShieldBadge",
 	icon = "Shield", -- ItemIcons id
-	size = 34, -- px
+	size = 68, -- px
 	offsetY = 2.4, -- studs above the head
 	maxDistance = 120, -- studs
 	tickSeconds = 1,
