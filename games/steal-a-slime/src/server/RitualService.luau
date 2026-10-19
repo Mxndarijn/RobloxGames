@@ -6,7 +6,8 @@
 	(the Roblox adapter reads HumanoidRootPart positions), keeps only players with a loaded session
 	who have a slime (one on their plot, or one they carry), runs the Ritual state machine and
 	applies the result: a completed ritual sets data.ritualBonus ("Blessed", runtime only, never
-	saved) on each participant, and it is cleared when the blessing ends or the player leaves.
+	saved) and session.blessedUntil (State.blessed, the HUD's Blessed slot) on each participant;
+	both are cleared when the blessing ends or the player leaves.
 	Players never send anything; there is no remote.
 ]]
 
@@ -49,6 +50,7 @@ function RitualService.step(
 		local session = World.session(world, userId)
 		if session then
 			session.data.ritualBonus = nil
+			session.blessedUntil = nil
 			World.markDirty(session)
 			World.notify(world, userId, "Your Blessed income boost ended", "info", nil)
 		end
@@ -58,6 +60,7 @@ function RitualService.step(
 			local session = World.session(world, userId)
 			if session then
 				session.data.ritualBonus = done.bonus
+				session.blessedUntil = done.untilAt
 				World.markDirty(session)
 				World.notify(
 					world,
