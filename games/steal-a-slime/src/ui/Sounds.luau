@@ -8,7 +8,7 @@
 
 	The ids are free, public-domain Creator Store sounds: classic Roblox library
 	SFX, the Roblox-licensed APM / Pro Sound Effects libraries and a few
-	community uploads. The commented ones were checked to load in Studio.
+	community uploads. Every id here was loaded in a Studio check (TimeLength > 0).
 ]]
 
 local Sounds = {}

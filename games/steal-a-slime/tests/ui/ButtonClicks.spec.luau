@@ -28,7 +28,10 @@ local function signal()
 end
 
 local function instance(isButton: boolean): any
-	local self = { Activated = signal(), DescendantAdded = signal(), children = {} }
+	local self = { Activated = signal(), DescendantAdded = signal(), children = {}, attrs = {} }
+	function self.GetAttribute(_, key)
+		return self.attrs[key]
+	end
 	function self.IsA(_, cls)
 		return isButton and cls == "GuiButton"
 	end
@@ -74,6 +77,21 @@ describe("ButtonClicks", function()
 		root.DescendantAdded:Fire(frame)
 		frame.Activated:Fire()
 		expect(#played).toBe(0)
+	end)
+	it("stays quiet for hold-to-confirm and disabled buttons, checked on each press", function()
+		local root, played = setup()
+		local hold = instance(true)
+		hold.attrs.HoldConfirm = 1
+		local plain = instance(true)
+		root.DescendantAdded:Fire(hold)
+		root.DescendantAdded:Fire(plain)
+		hold.Activated:Fire()
+		plain.attrs.ClickMuted = true
+		plain.Activated:Fire()
+		expect(#played).toBe(0)
+		plain.attrs.ClickMuted = nil
+		plain.Activated:Fire()
+		expect(#played).toBe(1)
 	end)
 	it("goes quiet after cleanup", function()
 		local root, played, stop = setup()

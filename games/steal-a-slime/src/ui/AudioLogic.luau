@@ -10,6 +10,8 @@
 	  AudioLogic.isNight(clockTime)                ClockTime outside dayNight.SUNRISE..SUNSET (Shared.DayNight passed in)
 	  AudioLogic.ambientFor(clockTime, cfg, dayNight)      -> "day" | "night", id? (nil id = silent)
 	  AudioLogic.fadeStep(current, target, dt, s)  linear fade towards target over `s` seconds
+	  AudioLogic.allowSfx(state, name, now, cfg)   per-name throttle (SFX_MIN_GAP, SFX_MAX_LIVE); true reserves a slot
+	  AudioLogic.releaseSfx(state, name)           frees the slot when that Sound is gone
 ]]
 
 local Sounds = if script then require(script.Parent.Sounds) else require("./Sounds")
@@ -108,6 +110,30 @@ function AudioLogic.fadeStep(current: number, target: number, dt: number, second
 		return math.min(target, current + step)
 	end
 	return math.max(target, current - step)
+end
+
+export type SfxState = { last: { [string]: number }, live: { [string]: number } }
+
+function AudioLogic.newSfxState(): SfxState
+	return { last = {}, live = {} }
+end
+
+-- Click spam or a burst of hits must not stack dozens of copies of one sound.
+function AudioLogic.allowSfx(state: SfxState, name: string, now: number, cfg: any): boolean
+	local last = state.last[name]
+	if last and now - last < cfg.SFX_MIN_GAP then
+		return false
+	end
+	if (state.live[name] or 0) >= cfg.SFX_MAX_LIVE then
+		return false
+	end
+	state.last[name] = now
+	state.live[name] = (state.live[name] or 0) + 1
+	return true
+end
+
+function AudioLogic.releaseSfx(state: SfxState, name: string)
+	state.live[name] = math.max(0, (state.live[name] or 0) - 1)
 end
 
 return AudioLogic
