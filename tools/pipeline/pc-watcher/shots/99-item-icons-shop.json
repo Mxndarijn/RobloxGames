@@ -3,5 +3,5 @@
   "todo": "item-icons",
   "kind": "ui",
   "open": "shop",
-  "note": "Item icons: Shop rows show gradient item tiles (lock, longer locks, speed coil, mystery egg, upgrades) instead of bare emoji badges; gold frame on owned / maxed, green when buyable"
+  "note": "Item icons: Shop rows show gradient item tiles (lock, longer locks, speed coil, upgrades) instead of bare emoji badges; gold frame on owned / maxed, green when buyable"
 }

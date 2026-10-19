@@ -169,7 +169,6 @@ Every remote lives in the `ReplicatedStorage.Remotes` folder, which the server c
 | `"BuySpeedCoil"` | none | Buys the Speed Coil once for `SPEED_COIL_PRICE`. While you're not carrying, WalkSpeed is `SPEED_COIL_WALK_SPEED` instead of `BASE_WALK_SPEED`. Saved and kept on rebirth. An **item**, not an upgrade (Item Shop row, §27.1; a `SpeedCoil` Tool in the Backpack, hotbar slot, inventory panel). |
 | `"BuyConsumable"` | `itemId: string, slimeId: string?` | `FEATURES.Consumables`. Buys one Luck Potion / Weather Totem: checks the restock allowance, cash and the held cap (`CONSUMABLE_HELD_MAX`), then **adds one to the held stack** (`data.consumables.held`). Nothing is applied on purchase; `slimeId` is ignored. See [restocking-shop.md](contract/restocking-shop.md). |
 | `"UseConsumable"` | `itemId: string, slimeId: string?` | `FEATURES.Consumables`. Uses one held consumable: the server checks the item and that the stack is at least 1, runs the effect (spray onto the owned idle `slimeId`, luck potion, weather totem) and only then takes one off the stack. A refused effect keeps the stack. Rate limit 0.5 s. |
-| `"BuyEgg"` | none | Buys a Mystery Egg with cash only (`Shared.MysteryEgg.price` = `MYSTERY_EGG_PRICE` x rebirth multiplier). It hatches a slime rolled from `MYSTERY_EGG_DROPS` onto the lowest free pad via `PlayerData.addSlime`; `State.egg.hatched` carries it for the reveal banner. Failures: `"not enough cash"`, `"plot full"` (nothing charged). Save format unchanged. Events: server-only `Server/MysteryEgg.spawnForEvent(world, userId, count, now)` hatches free eggs, no remote. |
 | `"Drop"` | none | Drops what you're carrying. Wild → falls to the ground; stolen → escapes home. |
 | `"Appraise"` | `slimeId: string, kind: "size"` | Pays `Appraise.cost` (`APPRAISE_COST_FRACTION` = 30% of `Economy.sellPrice`) to reroll that owned, not-busy slime's size. Only `size` changes. Success returns `{ ok = true, appraisal = Types.Appraisal }`: `cost`, `beforeSize` / `afterSize`, `incomeBefore` / `incomeAfter` (`PlayerData.slimeIncome`) and `costAfter` (the next price), the values the next State sends. Fails with `"not your slime"`, `"not enough cash"`, `"slime is busy"`. `SlimeView.appraiseCost` is the current price. |
 | `"SetHotbar"` | `order: string` | Saves the player's hotbar order (`Shared.HotbarOrder`): up to 9 slot keys joined by `","`, slot 1 first; fewer parts = the rest empty, `""` = an empty slot. A key is the client's inventory entry key: `tool:<ToolName>`, `pvp:<Config.PVP_TOOLS id>` or `consumable:<Config.CONSUMABLES id>`, id up to 32 chars of ASCII letters, digits, space, `_ - . '` (no leading / trailing space). A `pvp:` / `consumable:` id must be a catalog id; a Tool name is free-form, but a Tool whose name has any other character (non-ASCII included) can't be placed on the bar. Example: `"tool:Bat,pvp:KnockGlove1,,consumable:LuckPotion"`. Refused with `"bad argument"`: not a string, longer than 400 chars, more than 9 parts, a malformed key, an unknown pvp / consumable id or the same key twice. Ownership is not checked (the client skips keys it doesn't hold). Stored as `hotbar` in the save (9 strings, no version bump) and sent back as `State.hotbar`; a stored key that is no longer legal loads as an empty slot. An all-empty order is stored as 9 `""`. Rate limit 0.3 s per player; a faster one answers `"too fast"` (the client sends the order again after the gap). |
@@ -260,15 +259,15 @@ The client always replaces its copy and never diffs.
 	shop: {
 		LockUpgrade: { price: number?, level: number, maxLevel: number },  -- price nil = maxed
 		SpeedCoil: { price: number?, owned: boolean },                      -- price nil = owned
-		MysteryEgg: { price: number },
 	},
-	egg: { price: number, hatched: { slime: SlimeData, at: number }? },  -- newest hatch, never saved
+	egg: { hatched: { slime: SlimeData, at: number }? },  -- newest boss helper egg hatch, never saved
 	tutorialStep: number?,   -- 1..6 (§2 Tutorial); nil = finished
 	hotbar: { string }?,     -- saved hotbar order: exactly 9 slot keys ("" = empty), nil until the player first sends SetHotbar
 }
 ```
 
 - `daily.day` is the streak day the pending claim pays (1..`DAILY_STREAK_CAP`, `amount = DAILY_BASE × day × rebirthMultiplier`). When nothing is pending, it's the day the last claim paid.
+- `egg.hatched` is the newest free egg a boss helper got (server-only `Server/MysteryEgg.spawnForEvent(world, userId, count, now)`, [boss-event.md](contract/boss-event.md), no remote): a slime rolled from `MYSTERY_EGG_DROPS` onto the lowest free pad via `PlayerData.addSlime`, shown in the reveal banner for `MYSTERY_EGG_REVEAL_SECONDS`.
 - `shop` keys are the UI's `ShopCatalog` item ids. Prices are final (what `Request` charges).
 - `hotbar` is what the last successful `Request("SetHotbar", order)` stored (§3), saved across sessions and rebirths. Keys may name items the player no longer holds; the client skips those.
 
@@ -356,7 +355,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `STATE_MIN_INTERVAL` / `LEADERBOARD_INTERVAL` | 0.25 / 60 | §5.1, §2 |
 
 | `LOCK_UPGRADE_MAX` / `LOCK_UPGRADE_SECONDS` / `LOCK_UPGRADE_COSTS` | 5 / 15 / 500, 2 000, 8 000, 30 000, 100 000 | shop: longer locks |
-| `MYSTERY_EGG_PRICE` / `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 2 000 / 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | mystery egg: cash-only hatch |
+| `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | boss helper egg: hatch banner, tier odds |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
 | `FEATURES` | every flag and its value live in `Config.FEATURES` only; not restated here | §2 Extras |

@@ -94,7 +94,6 @@ export type DailyView = { available: boolean, streak: number, amount: number, da
 export type ShopView = {
 	LockUpgrade: { price: number?, level: number, maxLevel: number },
 	SpeedCoil: { price: number?, owned: boolean },
-	MysteryEgg: { price: number },
 }
 
 -- State.pvp (FEATURES.PvP, CONTRACT.md §26.1): nil with the flag off.
@@ -129,9 +128,8 @@ export type ConsumablesView = {
 	held: { [string]: number }, -- item id -> stack held (every consumable with a stack, shown or not)
 }
 
--- State.egg: the newest hatch, for the reveal banner (never saved).
+-- State.egg: the newest boss helper egg hatch, for the reveal banner (never saved).
 export type EggView = {
-	price: number,
 	hatched: { slime: SlimeData, at: number }?,
 }
 

@@ -37,7 +37,6 @@ local Carry = if script then require(script.Parent.Carry) else require("./Carry"
 local PlotPadGuard = if script then require(script.Parent.PlotPadGuard) else require("./PlotPadGuard")
 local ShopGuard = if script then require(script.Parent.ShopGuard) else require("./ShopGuard")
 local ConsumableShop = if script then require(script.Parent.ConsumableShop) else require("./ConsumableShop")
-local MysteryEgg = if script then require(script.Parent.MysteryEgg) else require("./MysteryEgg")
 local MergeVat = if script then require(script.Parent.MergeVat) else require("./MergeVat")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
 local Rebirth = if script then require(script.Parent.Rebirth) else require("./Rebirth")
@@ -605,8 +604,6 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return result(PvpService.use(world, session, args[1], args[2], args[3], now, feature(ctx, "PvP"), ctx))
 	elseif action == "SetHotbar" then
 		return result(HotbarOrder.set(session.data, args[1]))
-	elseif action == "BuyEgg" then
-		return result(MysteryEgg.buy(world, session, now))
 	elseif action == "Drop" then
 		if not session.carry then
 			return fail("not carrying")

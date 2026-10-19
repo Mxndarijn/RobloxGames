@@ -25,7 +25,7 @@ describe("Shops catalogue", function()
 			return out
 		end
 		local item = ids("ItemShop")
-		for _, id in { "Lock", "MysteryEgg", "SpeedCoil", "LuckPotion", "WeatherTotem" } do
+		for _, id in { "Lock", "SpeedCoil", "LuckPotion", "WeatherTotem" } do
 			expect(table.find(item, id) ~= nil).toBe(true)
 		end
 		for _, tool in Config.PVP_TOOLS do
@@ -44,7 +44,6 @@ describe("Shops catalogue", function()
 		expect(Shops.shopOf("Lock")).toBe("ItemShop")
 		expect(Shops.shopOf("Luck")).toBe("UpgradeShop")
 		expect(Shops.shopOf("Nope")).toBeNil()
-		expect(Shops.shopOfAction("BuyEgg")).toBe("ItemShop")
 		expect(Shops.shopOfAction("BuySpeedCoil")).toBe("ItemShop")
 		expect(Shops.shopOf("SpeedCoil")).toBe("ItemShop")
 		expect(Shops.shopOfAction("Sell")).toBeNil()
@@ -59,12 +58,12 @@ describe("Shops catalogue", function()
 			return false
 		end
 		local on = Shops.items("ItemShop", { Consumables = false, PvP = true })
-		expect(has(on, "MysteryEgg")).toBe(true)
+		expect(has(on, "SpeedCoil")).toBe(true)
 		expect(has(on, "LuckPotion")).toBe(false)
 		expect(has(on, Config.PVP_TOOLS[1].id)).toBe(true)
 		local off = Shops.items("ItemShop", {})
 		expect(has(off, "Lock")).toBe(true)
-		expect(has(off, "MysteryEgg")).toBe(true)
+		expect(has(off, "SpeedCoil")).toBe(true)
 		expect(has(Shops.items("ItemShop", { Consumables = true }), "LuckPotion")).toBe(true)
 		expect(#Shops.items("Nope", {})).toBe(0)
 	end)
@@ -443,13 +442,12 @@ describe("WorldShopsStrict", function()
 			expect(res.ok).toBe(false)
 			expect(res.message).toBe("open the Upgrade Shop first")
 			expect(res.code).toBe("NotOpen")
-			expect(call(env, "BuyEgg").message).toBe("open the Item Shop first")
+			expect(call(env, "BuySpeedCoil").message).toBe("open the Item Shop first")
 			expect(call(env, "Lock").code).toBe("NotOpen")
 			expect(call(env, "BuyUpgrade", "Income").code).toBe("NotOpen")
 			expect(env.session.data.lockLevel).toBe(0)
 			call(env, "OpenShop", "UpgradeShop")
 			expect(call(env, "BuyLockUpgrade").ok).toBe(true)
-			expect(call(env, "BuyEgg").code).toBe("NotOpen") -- the Upgrade Shop is open, the egg is an Item Shop thing
 			expect(call(env, "BuySpeedCoil").code).toBe("NotOpen") -- the Speed Coil is an Item Shop thing
 			call(env, "OpenShop", "ItemShop")
 			env.access = { distance = RANGE + 1, alive = true }

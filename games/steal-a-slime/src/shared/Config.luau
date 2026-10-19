@@ -916,10 +916,8 @@ local Config = {
 		}),
 	}),
 
-	-- Mystery Egg: bought with in-game cash only, never Robux. The price is
-	-- MYSTERY_EGG_PRICE x the rebirth multiplier, so selling the hatch never beats the price.
+	-- Mystery Egg: the free egg every boss helper gets (BOSS.HELPER_EGGS).
 	-- `tier` is a Config.RARITIES tier, `weight` its share of the drop table (Common and Secret never drop).
-	MYSTERY_EGG_PRICE = 2000,
 	MYSTERY_EGG_REVEAL_SECONDS = 6, -- how long the hatch banner stays up
 	MYSTERY_EGG_DROPS = table.freeze({
 		table.freeze({ tier = 2, weight = 50 }),

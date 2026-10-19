@@ -47,7 +47,6 @@ Remotes.ACTIONS = table.freeze({
 	BuyLockUpgrade = table.freeze({ args = {} }),
 	BuySpeedCoil = table.freeze({ args = {} }),
 	BuyUpgrade = table.freeze({ args = { "string" } }), -- Config.UPGRADES id (CONTRACT.md §8.1)
-	BuyEgg = table.freeze({ args = {} }), -- Mystery Egg: cash only, hatches into a slime on your plot
 	Drop = table.freeze({ args = {} }),
 	Appraise = table.freeze({ args = { "string", "string" } }), -- slimeId, "size"
 	Redeem = table.freeze({ args = { "code" } }), -- typed code text (Codes.normalize on the server)
