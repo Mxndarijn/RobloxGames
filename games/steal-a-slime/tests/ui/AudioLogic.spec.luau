@@ -102,6 +102,47 @@ describe("AudioLogic sliders", function()
 	end)
 end)
 
+describe("AudioLogic night one-shot", function()
+	local ocfg = {
+		NIGHT_ONESHOT_ID = "rbxassetid://9",
+		NIGHT_ONESHOT_MIN_SECONDS = 20,
+		NIGHT_ONESHOT_MAX_SECONDS = 40,
+		NIGHT_ONESHOT_SPEED_JITTER = 0.05,
+		NIGHT_ONESHOT_MIN_LEVEL = 0.9,
+	}
+	local function fixed(v: number): () -> number
+		return function()
+			return v
+		end
+	end
+	it("never runs while the night is not faded in", function()
+		local timer, fire = AudioLogic.oneshotStep(5, 10, 0.5, ocfg, fixed(0))
+		expect(timer).toBe(nil)
+		expect(fire).toBe(false)
+	end)
+	it("starts a gap in MIN..MAX on the first full-night frame, then fires when it runs out", function()
+		local timer, fire = AudioLogic.oneshotStep(nil, 1, 1, ocfg, fixed(0.5))
+		expect(timer).toBe(30)
+		expect(fire).toBe(false)
+		timer, fire = AudioLogic.oneshotStep(timer, 29, 1, ocfg, fixed(0.5))
+		expect(timer).toBe(1)
+		expect(fire).toBe(false)
+		timer, fire = AudioLogic.oneshotStep(timer, 1, 1, ocfg, fixed(1))
+		expect(fire).toBe(true)
+		expect(timer).toBe(40)
+	end)
+	it("gap and speed stay inside their ranges", function()
+		expect(AudioLogic.oneshotGap(ocfg, fixed(0))).toBe(20)
+		expect(AudioLogic.oneshotGap(ocfg, fixed(2))).toBe(40)
+		expect(AudioLogic.oneshotSpeed(ocfg, fixed(0))).toBe(0.95)
+		expect(AudioLogic.oneshotSpeed(ocfg, fixed(1))).toBe(1.05)
+	end)
+	it("an empty id means no owl", function()
+		expect(AudioLogic.oneshotId({ NIGHT_ONESHOT_ID = "" })).toBe(nil)
+		expect(AudioLogic.oneshotId(ocfg)).toBe("rbxassetid://9")
+	end)
+end)
+
 describe("Audio flag", function()
 	it("is off by default", function()
 		expect(Config.FEATURES.Audio).toBe(false)

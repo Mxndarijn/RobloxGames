@@ -4,7 +4,8 @@
 
 	One place for UI / gameplay SFX and the ranch ambience. Creates the SoundGroups
 	"SFX" and "Music" under SoundService, plays registry sounds through them and
-	crossfades a day (birds) / night (crickets) loop from Lighting.ClockTime.
+	crossfades a day (birds) / night ambience from Lighting.ClockTime; at night an owl call
+	plays now and then (one-shot, random gap).
 	Settings (mute, SFX / music volume) live in LocalPlayer attributes AudioMuted /
 	AudioSfxVolume / AudioMusicVolume. They are saved server-side (save v6 `settings`):
 	`load` applies State.settings once on join, the UI sends changes (SetAudioSettings).
@@ -103,39 +104,66 @@ function SoundController.new(config: any, player: Player, dayNight: any)
 		return true
 	end
 
-	-- Ambience: one looped Sound per time of day, volumes faded towards 1 / 0.
-	local loops: { [string]: { sound: Sound, level: number } } = {}
-	local function loop(key: string, id: string?): { sound: Sound, level: number }?
+	-- Ambience: a level per time of day faded towards 1 / 0, driving that time's looped bed (when it has an id)
+	-- and, at night, the one-shot owl (AudioLogic.oneshotStep). A call that is playing at dawn plays out.
+	local levels: { [string]: number } = { day = 0, night = 0 }
+	local loops: { [string]: Sound } = {}
+	local function loop(key: string, id: string?): Sound?
 		if not id then
 			return nil
 		end
-		local l = loops[key]
-		if not l then
-			local sound = Instance.new("Sound")
+		local sound = loops[key]
+		if not sound then
+			sound = Instance.new("Sound")
 			sound.Name = "Ambient_" .. key
 			sound.SoundId = id
 			sound.Looped = true
 			sound.Volume = 0
 			sound.SoundGroup = musicGroup
 			sound.Parent = SoundService
-			l = { sound = sound, level = 0 }
-			loops[key] = l
+			loops[key] = sound
 		end
-		return l
+		return sound
 	end
+	local rng = Random.new()
+	local function roll(): number
+		return rng:NextNumber()
+	end
+	local oneshotId = AudioLogic.oneshotId(cfg)
+	local oneshot: Sound? = nil
+	if oneshotId then
+		local sound = Instance.new("Sound")
+		sound.Name = "Ambient_night_oneshot"
+		sound.SoundId = oneshotId
+		sound.Volume = cfg.NIGHT_ONESHOT_VOLUME
+		sound.SoundGroup = musicGroup
+		sound.Parent = SoundService
+		oneshot = sound
+	end
+	local oneshotTimer: number? = nil
 	local function ambientStep(dt: number)
 		local which = AudioLogic.ambientFor(Lighting.ClockTime, cfg, dayNight)
 		for _, key in { "day", "night" } do
+			local level = AudioLogic.fadeStep(levels[key], if key == which then 1 else 0, dt, cfg.AMBIENT_FADE_SECONDS)
+			levels[key] = level
 			local _, id = AudioLogic.ambientFor(if key == "day" then 12 else 0, cfg, dayNight)
-			local l = loop(key, id)
-			if l then
-				l.level = AudioLogic.fadeStep(l.level, if key == which then 1 else 0, dt, cfg.AMBIENT_FADE_SECONDS)
-				l.sound.Volume = l.level * cfg.AMBIENT_VOLUME
-				if l.level > 0 and not l.sound.IsPlaying then
-					l.sound:Play()
-				elseif l.level == 0 and l.sound.IsPlaying then
-					l.sound:Pause()
+			local sound = loop(key, id)
+			if sound then
+				sound.Volume = level * cfg.AMBIENT_VOLUME
+				if level > 0 and not sound.IsPlaying then
+					sound:Play()
+				elseif level == 0 and sound.IsPlaying then
+					sound:Pause()
 				end
+			end
+		end
+		if oneshot then
+			local fire
+			oneshotTimer, fire = AudioLogic.oneshotStep(oneshotTimer, dt, levels.night, cfg, roll)
+			if fire and not oneshot.IsPlaying then
+				oneshot.PlaybackSpeed = AudioLogic.oneshotSpeed(cfg, roll)
+				oneshot.TimePosition = 0
+				oneshot:Play()
 			end
 		end
 	end
@@ -143,8 +171,11 @@ function SoundController.new(config: any, player: Player, dayNight: any)
 
 	function self.destroy()
 		ambientConn:Disconnect()
-		for _, l in loops do
-			l.sound:Destroy()
+		for _, sound in loops do
+			sound:Destroy()
+		end
+		if oneshot then
+			oneshot:Destroy()
 		end
 		if active == self then
 			active = nil
