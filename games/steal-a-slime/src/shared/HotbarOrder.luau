@@ -4,29 +4,50 @@
 
 	The player's saved hotbar order (CONTRACT.md §3 `SetHotbar`, §5.1 `State.hotbar`): exactly SLOTS slot keys,
 	slot 1 first, "" = empty slot. A key is the client's inventory entry key, `tool:<ToolName>`,
-	`pvp:<Config.PVP_TOOLS id>` or `consumable:<Config.CONSUMABLES id>`. Ownership is not checked: the client
-	skips keys it doesn't hold. Reads / writes `data.hotbar` (nil until the player first sets an order).
+	`pvp:<Config.PVP_TOOLS id>` or `consumable:<Config.CONSUMABLES id>`: pvp / consumable ids must be catalog ids,
+	Tool names are free-form (the server names its Tools). Ownership is not checked: the client skips keys it
+	doesn't hold. Reads / writes `data.hotbar` (nil until the player first sets an order).
 	`parse` checks a client order string, `clean` a stored list (SaveData.deserialize); both use one key rule.
 ]]
 
+local Config = if script then require(script.Parent.Config) else require("./Config")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 
 local HotbarOrder = {}
 
 HotbarOrder.SLOTS = 9
 HotbarOrder.MAX_ID_LENGTH = 32
--- Long enough for SLOTS of the longest legal key ("consumable:" + MAX_ID_LENGTH) and the commas between them.
+-- Long enough for SLOTS keys of the longest prefix ("consumable:") + MAX_ID_LENGTH and the commas between them.
 HotbarOrder.MAX_LENGTH = 400
 
-local KINDS = table.freeze({ tool = true, pvp = true, consumable = true })
+local function ids(list: { any }): { [string]: boolean }
+	local out: { [string]: boolean } = {}
+	for _, def in list do
+		out[def.id] = true
+	end
+	return table.freeze(out)
+end
 
--- True for a well-formed non-empty key. Ids: letters, digits, space, `_`, `-`, `.`, `'`; no leading / trailing space.
+local KINDS = table.freeze({ tool = true, pvp = true, consumable = true })
+-- The ids a pvp / consumable key may name; a Tool name is free-form.
+local CATALOG: { [string]: { [string]: boolean } } = table.freeze({
+	pvp = ids(Config.PVP_TOOLS),
+	consumable = ids(Config.CONSUMABLES),
+})
+
+-- True for a well-formed non-empty key. Ids: letters, digits, space, `_`, `-`, `.`, `'` (ASCII only, so a Tool
+-- with any other character in its name can't be placed); no leading / trailing space. pvp / consumable ids must be
+-- in the catalog.
 function HotbarOrder.isKey(value: any): boolean
 	if type(value) ~= "string" then
 		return false
 	end
 	local kind, id = string.match(value, "^(%a+):(.+)$")
 	if not kind or not id or not KINDS[kind] or #id > HotbarOrder.MAX_ID_LENGTH then
+		return false
+	end
+	local catalog = CATALOG[kind]
+	if catalog and not catalog[id] then
 		return false
 	end
 	if string.find(id, "[^%w _%-%.']") or string.find(id, "^%s") or string.find(id, "%s$") then

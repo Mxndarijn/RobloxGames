@@ -565,9 +565,50 @@ describe("InventoryCore hotbar order", function()
 		end
 	)
 
+	it("placeNew on a bar full of slots kept for items no longer held reuses the first of them", function()
+		local ghosts = table.create(9, "")
+		for i = 1, 9 do
+			ghosts[i] = `tool:Gone{i}`
+		end
+		local out, changed = InventoryCore.placeNew(ghosts, { PVP, "tool:SpeedCoil" }, { [PVP] = true })
+		expect(changed).toBe(true)
+		expect(out[1]).toBe(PVP)
+		expect(out[2]).toBe("tool:SpeedCoil")
+		expect(out[3]).toBe("tool:Gone3")
+		-- owned keys keep their slot: only the unowned one is reused
+		local mixed = table.clone(ghosts)
+		local held = {}
+		for i = 1, 9 do
+			if i ~= 6 then
+				held[mixed[i]] = true
+			end
+		end
+		local placed = InventoryCore.placeNew(mixed, { PVP }, held)
+		for i = 1, 9 do
+			expect(placed[i]).toBe(if i == 6 then PVP else mixed[i])
+		end
+	end)
+
+	it("placeNew takes a truly empty slot before a slot kept for an item no longer held", function()
+		local saved = { "tool:Bat", "consumable:LuckPotion", "", "", "", "", "", "", "" }
+		local out = InventoryCore.placeNew(saved, { PVP }, { ["tool:Bat"] = true, [PVP] = true })
+		expect(InventoryCore.orderString(out)).toBe(`tool:Bat,consumable:LuckPotion,{PVP},,,,,,`)
+	end)
+
+	it("placeNew skips a key the server would refuse instead of taking a slot with it", function()
+		local saved = { "tool:Bat", "", "", "", "", "", "", "", "" }
+		local out, changed = InventoryCore.placeNew(saved, { "tool:Bad,Name" }, {})
+		expect(changed).toBe(false)
+		expect(InventoryCore.orderString(out)).toBe(InventoryCore.orderString(saved))
+	end)
+
 	it("cleanOrder empties keys the server would refuse, so one odd Tool name never sinks the order", function()
-		local out = InventoryCore.cleanOrder({ "tool:Bat", "tool:Bad,Name", "tool: Lead", PVP, "", "", "", "", "" })
+		local out, blanked =
+			InventoryCore.cleanOrder({ "tool:Bat", "tool:Bad,Name", "tool: Lead", PVP, "", "", "", "", "" })
 		expect(InventoryCore.orderString(out)).toBe(`tool:Bat,,,{PVP},,,,,`)
+		expect(blanked).toBe(true)
+		local _, none = InventoryCore.cleanOrder({ "tool:Bat", "", "", "", "", "", "", "", "" })
+		expect(none).toBe(false)
 	end)
 
 	it("SetHotbar is a real Remotes action", function()

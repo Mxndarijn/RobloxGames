@@ -25,9 +25,9 @@
 	the hotbar and closes the panel. Pressing one and moving past DRAG.threshold drags it instead: a ghost follows
 	the pointer, the plate slot under it gets a gold ring, and the drop rearranges the hotbar
 	(InventoryCore.applyDrop). The new order shows at once and goes to the server as Request("SetHotbar", order);
-	it wins over State.hotbar until a State carries it (or the server refuses it). An item first seen this
-	session while an order is saved goes on the first empty slot (InventoryCore.placeNew), so a new purchase
-	still lands on the bar.
+	it wins over State.hotbar until a State carries it (or the server refuses it, which shows a short tip). An
+	item first seen this session while an order is saved goes on the first empty slot, else on a slot kept for an
+	item the player no longer holds (InventoryCore.placeNew), so a new purchase still lands on the bar.
 ]]
 
 local InventoryCore = require(script.Parent.InventoryCore)
@@ -85,9 +85,17 @@ Inventory.DRAG = table.freeze({
 })
 
 Inventory.ORDER_GAP = 0.35 -- seconds between two SetHotbar sends (the server allows one per 0.3 s)
-Inventory.ORDER_TIMEOUT = 5 -- seconds an unconfirmed order (or an unanswered send) is trusted
--- Server refusals that pass on their own (Actions: rate limit, session not loaded yet): the order is sent again.
+Inventory.ORDER_TIMEOUT = 5 -- seconds an unconfirmed order (or an unanswered send) is trusted after its last send
+-- Server refusals that pass on their own (Actions: rate limit, session not loaded yet): the order is sent again,
+-- up to ORDER_RETRIES times.
 Inventory.ORDER_RETRY = table.freeze({ ["too fast"] = true, ["still loading"] = true })
+Inventory.ORDER_RETRIES = 10
+Inventory.JOIN_GRACE = 10 -- seconds after the first State in which an arriving Tool is not new (placeNewItems)
+Inventory.HINT = "Drag items here" -- the plate heading's hint
+Inventory.ORDER_TEXT = table.freeze({
+	refused = "Couldn't save your hotbar",
+	blanked = "That item can't go on the hotbar",
+})
 
 function Inventory.footerText(keyboard: boolean): string
 	return "Drag an item onto a hotbar slot to put it there. Drag it off the bar to take it off. "
@@ -179,9 +187,11 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local lastUse = -math.huge
 	local lastPvpEquipped: string? = nil
 	local pendingOrder: { string }? = nil -- the order the player just made, until a State confirms it
-	local pendingAt = -math.huge
 	local seen: { [string]: boolean }? = nil -- every entry key seen this session (nil until the first State)
+	local joinedAt = -math.huge -- os.clock() of the first State
+	local retries = 0 -- passing refusals of the pending order sent again so far
 	local setPanelOpen: (open: boolean) -> ()
+	local orderTip: (text: string) -> ()
 
 	-- Hotbar ------------------------------------------------------------------------------------------
 	local root = create("Frame", {
@@ -537,11 +547,13 @@ function Inventory.new(parent: Instance, deps: Deps)
 				local refused = type(result) == "table" and result.ok == false
 				if refused and pendingOrder == order then
 					local passing = Inventory.ORDER_RETRY[result.message] == true
-					if passing and os.clock() - pendingAt < Inventory.ORDER_TIMEOUT then
+					if passing and retries < Inventory.ORDER_RETRIES then
+						retries += 1
 						flight.queued = true -- the same order again, ORDER_GAP after this one
 					else
 						pendingOrder = nil -- refused: the server's order stands
 						sync(true)
+						orderTip(Inventory.ORDER_TEXT.refused)
 					end
 				end
 				if flight.queued then
@@ -569,28 +581,45 @@ function Inventory.new(parent: Instance, deps: Deps)
 			return false
 		end
 		pendingOrder = order
-		pendingAt = os.clock()
+		retries = 0
 		keys = order
 		sendOrder()
 		return true
 	end
 
-	-- Items first seen this session go on the first empty slot of a saved order.
+	--[[
+		Items first seen this session go on the first empty slot of a saved order, else on a slot kept for an item
+		the player no longer holds. PvP items and consumables come in State, so the first State lists all the
+		player already had. Tools reach the Backpack on their own schedule, often after that first State: for
+		JOIN_GRACE seconds after it an arriving Tool counts as already had, so a Tool the player took off the bar
+		stays off on rejoin, and no saved Tool slot is handed to another item while the Tools are still arriving.
+		After that a Tool seen this session keeps its slot while a respawn refills the Backpack.
+	]]
 	local function placeNewItems()
 		local known = seen
 		if known == nil then
 			return
 		end
+		local joining = os.clock() - joinedAt < Inventory.JOIN_GRACE
 		local fresh: { string } = {}
+		local owned: { [string]: boolean } = {}
 		for _, entry in entries do
+			owned[entry.key] = true
 			if not known[entry.key] then
 				known[entry.key] = true
-				table.insert(fresh, entry.key)
+				if not (joining and entry.kind == "tool") then
+					table.insert(fresh, entry.key)
+				end
 			end
 		end
 		local saved = savedOrder()
 		if #fresh > 0 and saved then
-			local placed, changed = InventoryCore.placeNew(saved, fresh)
+			for _, key in saved do
+				if string.sub(key, 1, 5) == "tool:" and (joining or known[key]) then
+					owned[key] = true
+				end
+			end
+			local placed, changed = InventoryCore.placeNew(saved, fresh, owned)
 			if changed then
 				setOrder(placed)
 			end
@@ -692,6 +721,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		bagHeading: Frame,
 		countChip: TextLabel,
 		barHeading: Frame,
+		hint: TextLabel,
 		plate: Frame,
 		plateSlots: { Slot },
 		list: ScrollingFrame,
@@ -721,9 +751,9 @@ function Inventory.new(parent: Instance, deps: Deps)
 			Parent = bagHeading,
 		})
 		local barHeading = heading("HotbarHeading", "Hotbar")
-		Widgets.label({
+		local hint = Widgets.label({
 			Name = "Hint",
-			Text = "Drag items here",
+			Text = Inventory.HINT,
 			TextSize = P.hintSize,
 			TextColor3 = Theme.Muted,
 			TextXAlignment = Enum.TextXAlignment.Right,
@@ -764,6 +794,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			bagHeading = bagHeading,
 			countChip = countChip,
 			barHeading = barHeading,
+			hint = hint,
 			plate = plate,
 			plateSlots = plateSlots,
 			list = list,
@@ -771,6 +802,26 @@ function Inventory.new(parent: Instance, deps: Deps)
 		}
 		parts = made
 		return made
+	end
+
+	-- A short note about the hotbar order: in the plate heading's hint while the panel is open, else above the bag.
+	local hintToken = 0
+	function orderTip(text: string)
+		local p = parts
+		if not (panelOpen and p) then
+			showTip(bag, text, Inventory.TIP_SECONDS)
+			return
+		end
+		hintToken += 1
+		local token = hintToken
+		p.hint.Text = text
+		p.hint.TextColor3 = Theme.Warn
+		task.delay(Inventory.TIP_SECONDS, function()
+			if hintToken == token then
+				p.hint.Text = Inventory.HINT
+				p.hint.TextColor3 = Theme.Muted
+			end
+		end)
 	end
 
 	local function makeTag(slot: Slot): TextLabel
@@ -1021,7 +1072,12 @@ function Inventory.new(parent: Instance, deps: Deps)
 	local function drop(from: InventoryCore.DragFrom, x: number, y: number)
 		local target = InventoryLayout.hit(plateHits, x, y)
 		local to: InventoryCore.DragTo = if target then { kind = "bar", index = target } else { kind = "bag" }
-		if setOrder(InventoryCore.applyDrop(keys, from, to)) then
+		local wanted = InventoryCore.applyDrop(keys, from, to)
+		local _, blanked = InventoryCore.cleanOrder(wanted)
+		if blanked then
+			orderTip(Inventory.ORDER_TEXT.blanked)
+		end
+		if setOrder(wanted) then
 			sync(true)
 		end
 	end
@@ -1217,7 +1273,9 @@ function Inventory.new(parent: Instance, deps: Deps)
 		if pending then
 			local server = InventoryCore.savedKeys(if newState then newState.hotbar else nil, MAX)
 			local confirmed = server ~= nil and InventoryCore.orderString(server) == InventoryCore.orderString(pending)
-			if confirmed or os.clock() - pendingAt > Inventory.ORDER_TIMEOUT then
+			-- unconfirmed: kept while a send is out, queued or waiting its gap, and ORDER_TIMEOUT after the last one
+			local idle = not (flight.busy or flight.queued or flight.delayed)
+			if confirmed or (idle and os.clock() - flight.at > Inventory.ORDER_TIMEOUT) then
 				pendingOrder = nil
 			end
 		end
@@ -1232,6 +1290,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 				known[entry.key] = true
 			end
 			seen = known
+			joinedAt = os.clock()
 		end
 	end
 

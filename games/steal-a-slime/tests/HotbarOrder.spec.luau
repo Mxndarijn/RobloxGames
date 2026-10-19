@@ -12,9 +12,9 @@ local EMPTY = { "", "", "", "", "", "", "", "", "" }
 describe("HotbarOrder.parse", function()
 	it("pads to 9 slots, slot 1 first, empty parts are empty slots", function()
 		expect(HotbarOrder.parse("")).toEqual(EMPTY)
-		expect(HotbarOrder.parse("tool:Bat,pvp:bonk_glove,,consumable:LuckPotion")).toEqual({
+		expect(HotbarOrder.parse("tool:Bat,pvp:KnockGlove1,,consumable:LuckPotion")).toEqual({
 			"tool:Bat",
-			"pvp:bonk_glove",
+			"pvp:KnockGlove1",
 			"",
 			"consumable:LuckPotion",
 			"",
@@ -51,14 +51,22 @@ describe("HotbarOrder.parse", function()
 		expect((HotbarOrder.parse("tool:" .. string.rep("a", HotbarOrder.MAX_ID_LENGTH + 1)))).toBeNil()
 		expect((HotbarOrder.parse(42 :: any))).toBeNil()
 	end)
-	it("accepts 9 of the longest legal keys within the length cap", function()
+	it("accepts 9 of the longest Tool keys, and the cap fits 9 ids of the longest prefix", function()
 		local keys = {}
 		for i = 1, HotbarOrder.SLOTS do
-			table.insert(keys, `consumable:{string.rep("a", HotbarOrder.MAX_ID_LENGTH - 1)}{i}`)
+			table.insert(keys, `tool:{string.rep("a", HotbarOrder.MAX_ID_LENGTH - 1)}{i}`)
 		end
-		local order = table.concat(keys, ",")
-		expect(#order <= HotbarOrder.MAX_LENGTH).toBe(true)
-		expect(HotbarOrder.parse(order)).toEqual(keys)
+		expect(HotbarOrder.parse(table.concat(keys, ","))).toEqual(keys)
+		local longest = #"consumable:" + HotbarOrder.MAX_ID_LENGTH
+		expect(HotbarOrder.SLOTS * longest + HotbarOrder.SLOTS - 1 <= HotbarOrder.MAX_LENGTH).toBe(true)
+	end)
+	it("refuses pvp / consumable ids that are not in the catalog; Tool names are free-form", function()
+		for _, bad in { "pvp:nonexistent", "consumable:Nope", "pvp:LuckPotion", "consumable:KnockGlove1" } do
+			local list, reason = HotbarOrder.parse(bad)
+			expect(list).toBeNil()
+			expect(reason).toBe("bad argument")
+		end
+		expect((HotbarOrder.parse("tool:Anything Goes")) ~= nil).toBe(true)
 	end)
 end)
 
@@ -82,10 +90,22 @@ describe("HotbarOrder.clean", function()
 		expect(HotbarOrder.clean(7)).toBeNil()
 	end)
 	it("turns junk entries and repeats into empty slots and drops entries past slot 9", function()
-		local raw = { "tool:Bat", 5, "nope", "tool:Bat", "pvp:bonk_glove", "", "", "", "", "consumable:LuckPotion" }
-		expect(HotbarOrder.clean(raw)).toEqual({ "tool:Bat", "", "", "", "pvp:bonk_glove", "", "", "", "" })
+		local raw = { "tool:Bat", 5, "nope", "tool:Bat", "pvp:KnockGlove1", "", "", "", "", "consumable:LuckPotion" }
+		expect(HotbarOrder.clean(raw)).toEqual({ "tool:Bat", "", "", "", "pvp:KnockGlove1", "", "", "", "" })
 		expect(HotbarOrder.clean({})).toEqual(EMPTY)
 		expect(HotbarOrder.clean({ [3] = "tool:Bat" })).toEqual({ "", "", "tool:Bat", "", "", "", "", "", "" })
+		-- an item id that left the catalog loads as an empty slot
+		expect(HotbarOrder.clean({ "pvp:Retired", "consumable:Retired", "tool:Bat" })).toEqual({
+			"",
+			"",
+			"tool:Bat",
+			"",
+			"",
+			"",
+			"",
+			"",
+			"",
+		})
 	end)
 end)
 
@@ -93,11 +113,11 @@ describe("HotbarOrder.set", function()
 	it("stores a parsed order and leaves the old one on a refusal", function()
 		local data = PlayerData.new()
 		expect(data.hotbar).toBeNil()
-		expect(HotbarOrder.set(data, "pvp:bonk_glove")).toBe(true)
-		expect(data.hotbar).toEqual({ "pvp:bonk_glove", "", "", "", "", "", "", "", "" })
-		local ok, reason = HotbarOrder.set(data, "pvp:bonk_glove,pvp:bonk_glove")
+		expect(HotbarOrder.set(data, "pvp:KnockGlove1")).toBe(true)
+		expect(data.hotbar).toEqual({ "pvp:KnockGlove1", "", "", "", "", "", "", "", "" })
+		local ok, reason = HotbarOrder.set(data, "pvp:KnockGlove1,pvp:KnockGlove1")
 		expect(ok).toBe(false)
 		expect(reason).toBe("bad argument")
-		expect((data.hotbar :: { string })[1]).toBe("pvp:bonk_glove")
+		expect((data.hotbar :: { string })[1]).toBe("pvp:KnockGlove1")
 	end)
 end)

@@ -732,6 +732,54 @@ describe("Inventory hotbar order and drag", function()
 		expect(#hotbarSends(sent)).toBe(1)
 	end)
 
+	it(
+		"a Tool arriving just after the first State is not new (one taken off the bar stays off); later ones land",
+		function()
+			UiHarness.virtualTime(true)
+			local inv, tools, sent = mountOrder(order("tool:Bat"), { { name = "Bat", equipped = false } })
+			-- rejoin: the Speed Coil the player took off the bar reaches the Backpack after the first State
+			tools.items = table.clone(COIL)
+			for _, cb in tools.listeners do
+				cb()
+			end
+			expect(#hotbarSends(sent)).toBe(0)
+			expect(#visibleSlots(inv)).toBe(1)
+			UiHarness.advance(Inventory.JOIN_GRACE + 1)
+			tools.items = { COIL[1], COIL[2], { name = "Grapple", equipped = false } }
+			for _, cb in tools.listeners do
+				cb()
+			end
+			expect(table.concat(hotbarSends(sent), "|")).toBe("tool:Bat,tool:Grapple,,,,,,,")
+			UiHarness.virtualTime(false)
+		end
+	)
+
+	it("a new item lands on a bar whose every slot is kept for items no longer held", function()
+		local ghosts: { string } = {}
+		for i = 2, 10 do
+			table.insert(ghosts, `pvp:{Config.PVP_TOOLS[i].id}`)
+		end
+		local inv, _, sent = mountOrder(ghosts)
+		expect(#visibleSlots(inv)).toBe(0)
+		inv.update({ hotbar = ghosts, pvp = { owned = { [PVP.id] = true }, cooldowns = {} } })
+		local want = table.clone(ghosts)
+		want[1] = `pvp:{PVP.id}`
+		expect(table.concat(hotbarSends(sent), "|")).toBe(table.concat(want, ","))
+		expect(#visibleSlots(inv)).toBe(1)
+	end)
+
+	it("dropping an item the server can't take on the bar says so and sends nothing", function()
+		local inv, _, sent, _, input = mountOrder(order("tool:Bat"), {
+			{ name = "Bat", equipped = false },
+			{ name = "Bad,Name", equipped = false },
+		})
+		inv.setPanelOpen(true)
+		mouseDrag(input, bagCell(inv, "Bad,Name"), centre(plateSlot(inv, 3)))
+		expect(#hotbarSends(sent)).toBe(0)
+		expect(UiHarness.find(inv.panel.frame, "Hint").Text).toBe(Inventory.ORDER_TEXT.blanked)
+		expect(plateSlot(inv, 3).BackgroundColor3).toBe(Theme.Ink)
+	end)
+
 	it("with no saved order a new item sends nothing (the default order already lists it)", function()
 		local inv, _, sent = mountOrder(nil)
 		inv.update({ pvp = { owned = { [PVP.id] = true }, cooldowns = {} } })
@@ -744,9 +792,11 @@ describe("Inventory hotbar order through request", function()
 	local Enum = require("@lune/roblox").Enum
 	local Theme = UiHarness.ui("Widgets").Theme
 
-	local function mountRequest(replies: { any })
+	-- `hold`: replies wait in the returned `dones` list until the test answers them.
+	local function mountRequest(replies: { any }, hold: boolean?)
 		local gui = UiHarness.root()
 		local calls: { { any } } = {}
+		local dones: { (any) -> () } = {}
 		local handlers: { any } = {}
 		local input = {
 			InputChanged = {
@@ -768,7 +818,11 @@ describe("Inventory hotbar order through request", function()
 			send = function() end,
 			request = function(action: string, done: (any) -> (), ...: any)
 				table.insert(calls, { action, ... })
-				done(replies[#calls] or { ok = true })
+				if hold then
+					table.insert(dones, done)
+				else
+					done(replies[#calls] or { ok = true })
+				end
 			end,
 			tools = fakeTools({ { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } }),
 			serverNow = function()
@@ -782,7 +836,7 @@ describe("Inventory hotbar order through request", function()
 		keys[1] = "tool:Bat"
 		inv.update({ hotbar = keys, pvp = { owned = {}, cooldowns = {} } })
 		inv.setPanelOpen(true)
-		return inv, calls, handlers
+		return inv, calls, handlers, dones
 	end
 
 	local function centre(gui: any): { X: number, Y: number }
@@ -825,10 +879,45 @@ describe("Inventory hotbar order through request", function()
 		UiHarness.virtualTime(false)
 	end)
 
-	it("a refusal for any other reason puts the server's order back", function()
+	it("a refusal for any other reason puts the server's order back and says the hotbar wasn't saved", function()
 		local inv, calls, handlers = mountRequest({ { ok = false, message = "bad argument" } })
 		dragCoilTo4(inv, handlers)
 		expect(#calls).toBe(1)
 		expect(UiHarness.find(inv.panel.frame, "HotbarSlot4").BackgroundColor3).toBe(Theme.Ink)
+		expect(UiHarness.find(inv.panel.frame, "Hint").Text).toBe(Inventory.ORDER_TEXT.refused)
 	end)
+
+	it(
+		"an order still being sent outlives ORDER_TIMEOUT: a stale State keeps it and a late refusal resends it",
+		function()
+			UiHarness.virtualTime(true)
+			local inv, calls, handlers, dones = mountRequest({}, true)
+			local function slot4(): string
+				local slot = UiHarness.find(inv.panel.frame, "HotbarSlot4")
+				return if slot.BackgroundColor3 == Theme.Ink then "" else UiHarness.find(slot, "Name").Text
+			end
+			local stale = table.create(9, "")
+			stale[1] = "tool:Bat"
+			dragCoilTo4(inv, handlers)
+			expect(#calls).toBe(1)
+			UiHarness.advance(Inventory.ORDER_TIMEOUT - 0.2)
+			dones[1]({ ok = false, message = "too fast" })
+			expect(#calls).toBe(2) -- the gap passed long ago: sent again at once
+			UiHarness.advance(0.4) -- ORDER_TIMEOUT since the drag, with the second send still out
+			inv.update({ hotbar = stale, pvp = { owned = {}, cooldowns = {} } })
+			expect(slot4()).toBe("Speed Coil")
+			dones[2]({ ok = false, message = "too fast" })
+			UiHarness.advance(Inventory.ORDER_GAP + 0.05)
+			expect(#calls).toBe(3)
+			expect(calls[3][2]).toBe("tool:Bat,,,tool:SpeedCoil,,,,,")
+			inv.update({ hotbar = stale, pvp = { owned = {}, cooldowns = {} } })
+			expect(slot4()).toBe("Speed Coil")
+			dones[3]({ ok = true })
+			local saved = table.clone(stale)
+			saved[4] = "tool:SpeedCoil"
+			inv.update({ hotbar = saved, pvp = { owned = {}, cooldowns = {} } })
+			expect(slot4()).toBe("Speed Coil")
+			UiHarness.virtualTime(false)
+		end
+	)
 end)

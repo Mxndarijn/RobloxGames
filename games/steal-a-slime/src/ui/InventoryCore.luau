@@ -347,7 +347,9 @@ end
 	The player-arranged hotbar (CONTRACT.md `SetHotbar`, `State.hotbar`). The order is a list of exactly `max` slot
 	keys (Entry.key, "" = empty slot), slot 1 first; the bar and number key i show slot i. With no saved order the
 	slots are the first `max` entries in list order. A saved key the player does not own right now (a used-up
-	potion) keeps its slot and shows empty there, so the item comes back to that slot when it is owned again.
+	potion) keeps its slot and shows empty there, so the item comes back to that slot when it is owned again,
+	unless a new item needs a slot and none is truly empty: then the first such reserved slot goes to the new
+	item (`placeNew`).
 ]]
 InventoryCore.HOTBAR_ACTION = "SetHotbar"
 
@@ -454,15 +456,17 @@ function InventoryCore.applyDrop(keys: { string }, from: DragFrom, to: DragTo): 
 end
 
 -- `keys` with every key the server would refuse (HotbarOrder.isKey: an odd Tool name) as an empty slot, so one
--- bad key never sinks the whole order.
-function InventoryCore.cleanOrder(keys: { string }): { string }
+-- bad key never sinks the whole order, and whether any key was blanked.
+function InventoryCore.cleanOrder(keys: { string }): ({ string }, boolean)
 	local out = table.clone(keys)
+	local blanked = false
 	for i, key in out do
 		if key ~= "" and not HotbarOrder.isKey(key) then
 			out[i] = ""
+			blanked = true
 		end
 	end
-	return out
+	return out, blanked
 end
 
 -- The SetHotbar argument: the keys joined by "," (slot 1 first, "" = empty slot).
@@ -470,14 +474,28 @@ function InventoryCore.orderString(keys: { string }): string
 	return table.concat(keys, ",")
 end
 
--- `keys` with each of `newKeys` that is on no slot yet put on the first empty slot (in order, while there is
--- room). Returns the new list and whether anything moved.
-function InventoryCore.placeNew(keys: { string }, newKeys: { string }): ({ string }, boolean)
+-- `keys` with each of `newKeys` that is on no slot yet (and that the server would take: HotbarOrder.isKey) put
+-- on the first empty slot, else on the first slot reserved for a key not in `owned` (an item the player no longer
+-- holds), in order while there is room. A key placed here counts as owned. Without `owned` only empty slots are
+-- used. Returns the new list and whether anything moved.
+function InventoryCore.placeNew(
+	keys: { string },
+	newKeys: { string },
+	owned: { [string]: boolean }?
+): ({ string }, boolean)
 	local out = table.clone(keys)
 	local changed = false
 	for _, key in newKeys do
-		if key ~= "" and not table.find(out, key) then
+		if key ~= "" and HotbarOrder.isKey(key) and not table.find(out, key) then
 			local free = table.find(out, "")
+			if free == nil and owned then
+				for i, held in out do
+					if not owned[held] and not table.find(newKeys, held) then
+						free = i
+						break
+					end
+				end
+			end
 			if free == nil then
 				break
 			end

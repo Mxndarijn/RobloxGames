@@ -97,7 +97,7 @@ describe("SaveData hotbar order", function()
 		local raw = SaveData.serialize(data, 1700000000)
 		expect((raw :: any).hotbar).toBeNil()
 		expect(SaveData.deserialize(serde.decode("json", serde.encode("json", raw))).hotbar).toBeNil()
-		data.hotbar = { "tool:Bat", "", "pvp:bonk_glove", "", "", "", "", "", "consumable:LuckPotion" }
+		data.hotbar = { "tool:Bat", "", "pvp:KnockGlove1", "", "", "", "", "", "consumable:LuckPotion" }
 		raw = SaveData.serialize(data, 1700000000)
 		local back = SaveData.deserialize(serde.decode("json", serde.encode("json", raw)))
 		expect(back.hotbar).toEqual(data.hotbar)
@@ -107,7 +107,7 @@ describe("SaveData hotbar order", function()
 		expect(SaveData.deserialize({ version = Config.SAVE_VERSION, hotbar = "tool:Bat" }).hotbar).toBeNil()
 		local back = SaveData.deserialize({
 			version = Config.SAVE_VERSION,
-			hotbar = { "tool:Bat", {}, "tool:Bat", "x:y", "", "", "", "", "", "pvp:bonk_glove" },
+			hotbar = { "tool:Bat", {}, "tool:Bat", "x:y", "", "", "", "", "", "pvp:KnockGlove1" },
 		})
 		expect(back.hotbar).toEqual({ "tool:Bat", "", "", "", "", "", "", "", "" })
 	end)
