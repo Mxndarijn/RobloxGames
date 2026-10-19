@@ -116,3 +116,62 @@ describe("PetRig.stripLife on a rigged, animated slime", function()
 		expect(joints).toBe(1)
 	end)
 end)
+
+-- A species slime cloned mid-hop: SkinRoot and the mesh welded to it are lifted off their rest pose, the ring
+-- welded to Body is not.
+local function hoppingSlime(): any
+	local model = new("Model")
+	local body = new("Part")
+	body.Name = "Body"
+	body.CFrame = CFrame.new(10, 2, -4)
+	body.Parent = model
+	local skin = new("Part")
+	skin.Name = "SkinRoot"
+	skin.CFrame = CFrame.new(10, 2.9, -4) * CFrame.Angles(0.2, 0, 0)
+	skin.Parent = model
+	local motor = new("Motor6D")
+	motor.Name = "SkinRoot"
+	motor.Part0 = body
+	motor.Part1 = skin
+	motor.Transform = CFrame.new(0, 0.9, 0) * CFrame.Angles(0.2, 0, 0)
+	motor.Parent = body
+	local mesh = new("MeshPart")
+	mesh.Name = "Mesh"
+	mesh.CFrame = skin.CFrame * CFrame.new(0, 0.5, 0)
+	mesh.Parent = model
+	local meshWeld = new("WeldConstraint")
+	meshWeld.Part0 = skin
+	meshWeld.Part1 = mesh
+	meshWeld.Parent = mesh
+	local ring = new("Part")
+	ring.Name = "TierRim"
+	ring.CFrame = CFrame.new(10, 0.5, -4)
+	ring.Parent = model
+	local ringWeld = new("WeldConstraint")
+	ringWeld.Part0 = body
+	ringWeld.Part1 = ring
+	ringWeld.Parent = ring
+	return model
+end
+
+describe("PetRig.stripLife on a slime cloned mid-hop", function()
+	local pet = hoppingSlime():Clone()
+	PetRig.stripLife(pet)
+	local function at(name: string): any
+		return pet:FindFirstChild(name).CFrame -- a part, not the Motor6D under Body that shares its name
+	end
+	it("puts the joint's part back at its rest pose on Body", function()
+		expect(at("SkinRoot").Position.Y).toBeCloseTo(2, 1e-5)
+		expect(at("SkinRoot").UpVector.Y).toBeCloseTo(1, 1e-5)
+	end)
+	it("moves the parts welded to it along", function()
+		expect(at("Mesh").Position.Y).toBeCloseTo(2.5, 1e-5)
+		expect(at("Mesh").Position.Z).toBeCloseTo(-4, 1e-5)
+		expect(at("Mesh").UpVector.Y).toBeCloseTo(1, 1e-5)
+		expect(at("Mesh").Position.X).toBeCloseTo(10, 1e-5)
+	end)
+	it("leaves Body and the parts welded to Body where they are", function()
+		expect(at("Body").Position.Y).toBe(2)
+		expect(at("TierRim").Position.Y).toBeCloseTo(0.5, 1e-6)
+	end)
+end)

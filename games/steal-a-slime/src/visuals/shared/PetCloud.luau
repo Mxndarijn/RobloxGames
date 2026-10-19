@@ -4,10 +4,15 @@
 
 	Builds the wrapper a FollowPets pet glides in: Model "Pet_<id>" = PrimaryPart + "Slime" standing on it. With a
 	cloud template (the MeshPart the server publishes under ReplicatedStorage.PetCloudMeshes, native size) the
-	PrimaryPart is a clone of it at CLOUD_SCALE and the slime's foot sinks CLOUD_SINK into its top. Without one a
-	small invisible Mount is the PrimaryPart and the slime stands level with the owner's feet. attach() swaps a
-	Mount for a cloud later, so a pet never waits for the template. The wrapper's pivot is the PrimaryPart centre:
-	PetFollow's goal. Every part made here is decor (no collision, query, touch or shadow).
+	PrimaryPart is a clone of it, at least CLOUD_SCALE and grown so it is CLOUD_FIT x the slime's visible footprint,
+	and the slime's foot sinks CLOUD_SINK into its top. A grown cloud keeps its bottom where a CLOUD_SCALE one would
+	hover (its pivot sits below its centre). Without a template a small invisible Mount is the PrimaryPart and the
+	slime stands level with the owner's feet. attach() swaps a Mount for a cloud later, so a pet never waits for the
+	template. The wrapper's pivot is the PrimaryPart pivot: PetFollow's goal. Every part made here is decor (no
+	collision, query, touch or shadow).
+
+	The slime is measured by its visible parts only (visibleBox): a species slime keeps an invisible Body ball and
+	hidden procedural parts that do not line up with its mesh.
 ]]
 
 local PetFollow = if script then require(script.Parent.PetFollow) else require("./PetFollow")
@@ -16,7 +21,8 @@ local PetCloud = {}
 
 PetCloud.MESH = "pet_cloud" -- MeshAssets name, and the template's name in the folder
 PetCloud.FOLDER = "PetCloudMeshes" -- ReplicatedStorage folder the server publishes the template into
-PetCloud.CLOUD_SCALE = 0.9 -- of the native 3.3 x 1.2 x 2.4 mesh
+PetCloud.CLOUD_SCALE = 0.9 -- smallest scale, of the native 3.3 x 1.2 x 2.4 mesh
+PetCloud.CLOUD_FIT = 1.15 -- the cloud is at least this x the slime's visible width and depth
 PetCloud.CLOUD_SINK = 0.12 -- the slime's foot sinks this far into the cloud's top (studs)
 PetCloud.CLOUD_NAME = "Cloud"
 PetCloud.MOUNT_NAME = "Mount"
@@ -31,10 +37,45 @@ function PetCloud.decor(part: BasePart)
 	part.CastShadow = false
 end
 
-local function makeCloud(template: BasePart): BasePart
+-- Box (centre, size) around the parts of `model` that can be seen, in world space. Falls back to the whole
+-- bounding box when every part is invisible.
+function PetCloud.visibleBox(model: Model): (Vector3, Vector3)
+	local lo, hi = Vector3.new(math.huge, math.huge, math.huge), Vector3.new(-math.huge, -math.huge, -math.huge)
+	for _, part in model:GetDescendants() do
+		if part:IsA("BasePart") and part.Transparency < 1 then
+			local cf, half = part.CFrame, part.Size / 2
+			-- Axis-aligned half extents of the turned part.
+			local ext = Vector3.new(
+				math.abs(cf.XVector.X) * half.X + math.abs(cf.YVector.X) * half.Y + math.abs(cf.ZVector.X) * half.Z,
+				math.abs(cf.XVector.Y) * half.X + math.abs(cf.YVector.Y) * half.Y + math.abs(cf.ZVector.Y) * half.Z,
+				math.abs(cf.XVector.Z) * half.X + math.abs(cf.YVector.Z) * half.Y + math.abs(cf.ZVector.Z) * half.Z
+			)
+			lo = lo:Min(cf.Position - ext)
+			hi = hi:Max(cf.Position + ext)
+		end
+	end
+	if lo.X > hi.X then
+		local box, size = model:GetBoundingBox()
+		return box.Position, size
+	end
+	return (lo + hi) / 2, hi - lo
+end
+
+-- Scale of the cloud under a slime whose visible box is `slime` big: CLOUD_SCALE, or more for a wide slime.
+function PetCloud.cloudScale(native: Vector3, slime: Vector3): number
+	local fit = PetCloud.CLOUD_FIT
+	return math.max(PetCloud.CLOUD_SCALE, slime.X * fit / native.X, slime.Z * fit / native.Z)
+end
+
+local function makeCloud(template: BasePart, slime: Model): BasePart
 	local cloud = template:Clone()
 	cloud.Name = PetCloud.CLOUD_NAME
-	cloud.Size = template.Size * PetCloud.CLOUD_SCALE
+	slime:PivotTo(CFrame.new())
+	local _, size = PetCloud.visibleBox(slime)
+	local scale = PetCloud.cloudScale(template.Size, size)
+	cloud.Size = template.Size * scale
+	-- Pivot below the centre, so a grown cloud rises instead of sinking towards the ground.
+	cloud.PivotOffset = CFrame.new(0, -template.Size.Y * (scale - PetCloud.CLOUD_SCALE) / 2, 0)
 	PetCloud.decor(cloud)
 	return cloud
 end
@@ -48,15 +89,16 @@ local function makeMount(): BasePart
 	return part
 end
 
--- Slime centred over `anchor` (at the origin), its foot sunk CLOUD_SINK into the cloud's top; on a Mount the
--- foot is at the owner's feet (PetFollow.OFFSET_Y is the root-to-anchor drop, the root sits 3 studs above them).
+-- Slime's visible parts centred over `anchor` (centre at the origin), its foot sunk CLOUD_SINK into the cloud's
+-- top; on a Mount the foot is at the owner's feet (PetFollow.OFFSET_Y is the root-to-anchor drop, the root sits 3
+-- studs above them).
 local function seat(slime: Model, anchor: BasePart, cloud: boolean)
 	local top = if cloud then anchor.Size.Y / 2 else -PetFollow.OFFSET_Y - 3
 	slime:PivotTo(CFrame.new())
-	local box, size = slime:GetBoundingBox()
-	local foot = box.Position.Y - size.Y / 2
+	local centre, size = PetCloud.visibleBox(slime)
+	local foot = centre.Y - size.Y / 2
 	local sink = if cloud then PetCloud.CLOUD_SINK else 0
-	slime:PivotTo(CFrame.new(-box.Position.X, top - sink - foot, -box.Position.Z))
+	slime:PivotTo(CFrame.new(-centre.X, top - sink - foot, -centre.Z))
 end
 
 -- The wrapper for `slime` (renamed "Slime"): on a clone of `template` or, without one, on a Mount.
@@ -64,7 +106,7 @@ function PetCloud.mount(slime: Model, userId: number, template: BasePart?): Mode
 	local wrapper = Instance.new("Model")
 	wrapper.Name = `Pet_{userId}`
 	slime.Name = PetCloud.SLIME_NAME
-	local anchor = if template then makeCloud(template) else makeMount()
+	local anchor = if template then makeCloud(template, slime) else makeMount()
 	anchor.CFrame = CFrame.new()
 	anchor.Parent = wrapper
 	wrapper.PrimaryPart = anchor
@@ -88,7 +130,7 @@ function PetCloud.attach(wrapper: Model, template: BasePart): boolean
 	end
 	local pivot = wrapper:GetPivot()
 	wrapper:PivotTo(CFrame.new())
-	local cloud = makeCloud(template)
+	local cloud = makeCloud(template, slime)
 	cloud.CFrame = CFrame.new()
 	cloud.Parent = wrapper
 	wrapper.PrimaryPart = cloud

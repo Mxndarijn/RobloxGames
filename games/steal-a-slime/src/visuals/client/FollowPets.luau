@@ -7,7 +7,7 @@
 	is cloned from the slime's replicated model (tag Constants.SLIME_TAG,
 	attribute SlimeId), stripped of prompts, tags, welds to the outside and
 	gameplay attributes, scaled to SCALE and anchored, and stands on a low-poly
-	cloud (PetCloud: a clone of the template the server publishes in
+	cloud sized to it (PetCloud: a clone of the template the server publishes in
 	ReplicatedStorage.PetCloudMeshes; the pet is made at once and gets the cloud
 	when the template shows up, or stays on its invisible Mount if it never does).
 	The cloud + pet glide after the owner with the pure PetFollow spring (one
@@ -29,7 +29,7 @@ local PetRig = require(script.Parent:WaitForChild("PetRig"))
 
 local FollowPets = {}
 
-FollowPets.SCALE = 0.55 -- the slime on the cloud: 1.65 studs wide, readable at phone size
+FollowPets.SCALE = 0.55 -- of the slime as built (its size and look kept); PetCloud grows the cloud to fit it
 FollowPets.POLL = 0.5
 FollowPets.MAX_DISTANCE = 200
 -- Follow motion (offset behind and right of the owner, spring, bob) lives in PetFollow.
