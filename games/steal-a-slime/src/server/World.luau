@@ -19,6 +19,7 @@ local Config = if Shared then require(Shared.Config) else require("../shared/Con
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
+local ParadeLane = if Shared then require(Shared.ParadeLane) else require("../shared/ParadeLane")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
 local Rng = if Shared then require(Shared.Rng) else require("../shared/Rng")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
@@ -70,6 +71,7 @@ export type Wild = {
 	angle: number, -- landing spot around the crater (Fountain.roll)
 	radius: number,
 	position: any?, -- set when a carrier drops it somewhere else (adapter-defined)
+	returning: ParadeLane.Return?, -- FEATURES.Parade: its walk back to the lane after a drop (contract/slime-walk.md)
 	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts toward the wild cap
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
 }

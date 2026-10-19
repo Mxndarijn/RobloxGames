@@ -5,7 +5,8 @@
 	Makes workspace match the pure World:
 	  * reconciles slime models against Scene.describe (ModelFactory.build,
 	    wrapped by SlimeMesh for the mesh look; parenting, attributes OwnerUserId / State / Price / DespawnAt, ProximityPrompt,
-	    pad placement, carry weld, volcano drop and escape-home bounce);
+	    pad placement, carry weld, volcano drop, the parade lane walk, a
+	    dropped slime's walk back to the lane and the escape-home glide);
 	  * plot attributes OwnerUserId / LockUntil / Rebirths (CONTRACT.md §5.2);
 	    with FEATURES.Habitats, Pad Habitat / HabitatFrom / HabitatAt (HabitatPads)
 	    and the owner / stats text on each plot Sign (PlotSigns);
@@ -292,12 +293,6 @@ local function animate(id: string, key: string, seconds: number, path: (t: numbe
 	end)
 end
 
-local function arc(from: CFrame, to: CFrame, height: number): (t: number) -> CFrame
-	return function(t: number): CFrame
-		return from:Lerp(to, t) + Vector3.new(0, math.sin(t * math.pi) * height, 0)
-	end
-end
-
 -- The fountain ride (FountainRide): out of the goo crown, down every
 -- waypoint of the spiral (WorldLayout.SLIDE_PATH), out of the mouth and round
 -- the plaza to the landing, clear of the low slide. The model stays anchored
@@ -317,7 +312,7 @@ end
 
 -- FEATURES.Parade: the slime's sideways offset on the goo lane and its pose there.
 local function laneLateral(wild: World.Wild): number
-	return ParadeLane.lateral(wild.radius, Fountain.MIN_RADIUS, Fountain.MAX_RADIUS)
+	return ParadeLane.wildLateral(wild.radius)
 end
 
 local function laneCFrame(wild: World.Wild, now: number): CFrame
@@ -327,11 +322,11 @@ local function laneCFrame(wild: World.Wild, now: number): CFrame
 	return CFrame.lookAt(at, at + Vector3.new(h[1], 0, h[2]))
 end
 
--- A parade slime's ride is the emerge + slide only: it leaves the mouth at ParadeLane.HOP_SECONDS and is
+-- A parade slime's ride is the emerge + slide only: it leaves the mouth at ParadeLane.RIDE_SECONDS and is
 -- already on the lane walk there (laneCFrame), so there is no run-out glide to the lane and no wait.
 local function laneRide(wild: World.Wild): (number, (t: number) -> CFrame)
 	local ride = FountainRide.new(WorldLayout.SLIDE_PATH, ParadeLane.entrySpot(laneLateral(wild)))
-	local seconds = ParadeLane.HOP_SECONDS
+	local seconds = ParadeLane.RIDE_SECONDS
 	return seconds,
 		function(t: number): CFrame
 			if t >= 1 then
@@ -363,6 +358,74 @@ local function followLane(id: string, key: string, wild: World.Wild)
 			RunService.Heartbeat:Wait()
 		end
 	end)
+end
+
+WorldView.WALK_STEP_UP = 3 -- studs above its last height a walking slime looks for the ground (steps, ramps)
+WorldView.WALK_RAY_DEPTH = 12 -- and how far below that
+WorldView.WALK_Y_RATE = 10 -- 1 / s: how fast its height follows the ground (no snapping over an edge)
+
+-- Ground height under a returning slime at (x, z), near `y`, easing onto the goo crown (LANE_Y) over its last
+-- lane width so it hands over to the lane pose without a step. Keeps `y` where there is no ground.
+local function walkHeight(plan: ParadeLane.Return, x: number, z: number, y: number, now: number): number
+	local up = WorldView.WALK_STEP_UP
+	local ground = surfaceBelow(Vector3.new(x, y + up, z), up + WorldView.WALK_RAY_DEPTH)
+	local target = if ground then ground.Y else y
+	local left = plan.length - ParadeLane.returnTravelled(now - plan.startAt, plan.speed)
+	local onto = 1 - math.clamp(left / (2 * ParadeLane.HALF_WIDTH), 0, 1)
+	return target + (ParadeLane.LANE_Y - target) * onto * onto * (3 - 2 * onto)
+end
+
+local function returnCFrame(plan: ParadeLane.Return, y: number, now: number): CFrame
+	local x, z, hx, hz = ParadeLane.returnPose(plan, now)
+	local at = Vector3.new(x, y, z)
+	return CFrame.lookAt(at, at + Vector3.new(hx, 0, hz))
+end
+
+-- Where a dropped slime lands before it walks back: the plan's start on the ground under the drop (LANE_Y when
+-- there is none), facing its first step.
+local function returnStart(wild: World.Wild, plan: ParadeLane.Return): CFrame
+	local fromY = if typeof(wild.position) == "Vector3" then wild.position.Y else ParadeLane.LANE_Y
+	local ground =
+		surfaceBelow(Vector3.new(plan.fromX, fromY + WorldView.DROP_RAY_UP, plan.fromZ), WorldView.DROP_RAY_DEPTH)
+	return returnCFrame(plan, if ground then ground.Y else ParadeLane.LANE_Y, plan.startAt)
+end
+
+-- Walks a dropped slime back to the parade lane (contract/slime-walk.md): the server pivots it along
+-- ParadeLane.returnPose every Heartbeat, on the ground under it, until its record changes (grabbed, or arrived:
+-- Spawner clears wild.returning and the lane takes over) or the model is gone.
+local function followReturn(id: string, key: string, plan: ParadeLane.Return, y0: number)
+	task.spawn(function()
+		local y = y0
+		local dt = 0
+		while true do
+			local record = records[id]
+			if not record or record.key ~= key or not record.model.Parent then
+				return
+			end
+			if os.clock() >= record.rideUntil then
+				local now = workspace:GetServerTimeNow()
+				local x, z = ParadeLane.returnPose(plan, now)
+				local target = walkHeight(plan, x, z, y, now)
+				y += (target - y) * math.min(1, dt * WorldView.WALK_Y_RATE)
+				record.model:PivotTo(returnCFrame(plan, y, now))
+			end
+			dt = RunService.Heartbeat:Wait()
+		end
+	end)
+end
+
+-- An escaped slime glides home flat (eased, facing its pad), no arc.
+local function glide(from: CFrame, to: CFrame): (t: number) -> CFrame
+	local flat = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+	local facing = if flat.Magnitude > 1e-3 then flat.Unit else to.LookVector
+	return function(t: number): CFrame
+		if t >= 1 then
+			return to
+		end
+		local u = t * t * (3 - 2 * t)
+		local at = from.Position:Lerp(to.Position, u)
+		return CFrame.lookAt(at, at + facing)
+	end
 end
 
 local function create(entry: Scene.Entry, onPrompt: (Player, string) -> ()): Record?
@@ -450,6 +513,24 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 			model:PivotTo(bossLanding())
 			return true
 		end
+		local plan = wild.returning
+		if ParadeLane.enabled() and plan then
+			-- Dropped: it falls out of the carrier's arms, then walks back to the lane.
+			local start = returnStart(wild, plan)
+			if previous ~= nil then
+				record.rideUntil = os.clock() + WorldView.FALL_SECONDS
+				animate(entry.id, entry.key, WorldView.FALL_SECONDS, function(t: number): CFrame
+					return from:Lerp(start, t * t)
+				end)
+				followReturn(entry.id, entry.key, plan, start.Y)
+			else
+				local now = workspace:GetServerTimeNow()
+				local y = if now > plan.startAt then ParadeLane.LANE_Y else start.Y
+				model:PivotTo(returnCFrame(plan, y, now))
+				followReturn(entry.id, entry.key, plan, y)
+			end
+			return true
+		end
 		if ParadeLane.enabled() and wild.position == nil then
 			-- Fresh drops ride the slide and walk on from its mouth; later ones (a rebuilt model) join where they are.
 			local now = workspace:GetServerTimeNow()
@@ -488,7 +569,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 		return true
 	end
 	if entry.state == "Escaping" and previous ~= nil then
-		animate(entry.id, entry.key, World.ESCAPE_BOUNCE_SECONDS, arc(from, target, 10))
+		animate(entry.id, entry.key, World.ESCAPE_BOUNCE_SECONDS, glide(from, target))
 	else
 		model:PivotTo(target)
 	end

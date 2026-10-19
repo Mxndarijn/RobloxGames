@@ -19,7 +19,7 @@ A species mesh (§30) is a rigged Model: `SlimeMesh` clones its MeshPart as the 
 - `H` = body height from the rig itself: the drawn `Top` sits at `0.45 H` above the drawn `Root`. `scale` = `Mesh.Size.Y / Mesh.MeshSize.Y` (1 when unknown). `eyeShare` = the mesh's `EyeShare` attribute when set, else `SlimeBones.EYE_SHARE`.
 - Directions come from each part's drawn position in the Mesh's own space (Y up): a side pushes along its horizontal offset from the axis, the eyes go in and the lids come out along the `Eyes` / `Lids` horizontal offset (the face side). So `MeshAssets.IMPORT_YAW` needs no special case.
 - `Bone.Transform` is in the bone's own space. At attach the client composes each bone's rest frame (its `CFrame` chain up to the Mesh) and turns every Mesh-space move and axis into that frame once; per frame it only builds the CFrames.
-- Blink: every `BLINK_EVERY` (random in the range) for `BLINK_TIME` s; the eyes stay closed (happy `^^`) through the middle of a hop's air time.
+- Blink: every `BLINK_EVERY` (random in the range) for `BLINK_TIME` s; the eyes stay closed (happy `^^`) through the middle of a hop's air time (hops only play when forced, §37).
 
 ### Accessory presets (angle about a Mesh-space axis at the bone's pivot)
 

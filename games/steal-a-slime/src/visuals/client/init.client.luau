@@ -6,7 +6,8 @@
 	  * idle jiggle (bob + tilt) and random blinks
 	  * "Carried": fast wriggle (animates the carry joint if it is a Weld /
 	    Motor6D) and nervous blinking
-	  * "Escaping": big bounces on top of the server's movement
+	  * "Escaping": the same calm idle as everywhere else; the server glides
+	    it home (no bounces, contract/slime-walk.md)
 	  * Slime Rain particles, goo blobs and a colour tint while workspace
 	    attribute Constants.RAIN_ATTRIBUTE ("SlimeRain") is true
 	  * tutorial arrow (TutorialArrow) for the Player attribute TutorialStepId
@@ -177,14 +178,9 @@ local function step(track: Track, now: number, cameraPos: Vector3)
 		return
 	end
 
-	if state == "Escaping" then
-		local hop = math.abs(math.sin(t * 7)) * 1.6 * size
-		animatePivot(track, CFrame.new(0, hop, 0) * CFrame.Angles(0, 0, math.sin(t * 7) * 0.15))
-	else
-		local bob = (math.sin(t * 3) * 0.5 + 0.5) * 0.08 * size
-		local tilt = math.sin(t * 2.2) * 0.04
-		animatePivot(track, CFrame.new(0, bob, 0) * CFrame.Angles(tilt * 0.5, 0, tilt))
-	end
+	local bob = (math.sin(t * 3) * 0.5 + 0.5) * 0.08 * size
+	local tilt = math.sin(t * 2.2) * 0.04
+	animatePivot(track, CFrame.new(0, bob, 0) * CFrame.Angles(tilt * 0.5, 0, tilt))
 end
 
 -- Slime Rain: client-only emitters that follow the camera, plus a tint.

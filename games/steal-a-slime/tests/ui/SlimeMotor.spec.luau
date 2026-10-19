@@ -86,7 +86,7 @@ describe("SlimeMotor (procedural motion on the rig)", function()
 		expect(SlimeMotor.attach(slime(true), 0, rand(1)) ~= nil).toBe(true)
 	end)
 
-	it("moves FaceRoot and SkinRoot together (one Transform), squishes the skin and hops", function()
+	it("moves FaceRoot and SkinRoot together (one Transform), squishes the skin and never hops on its own", function()
 		local model = slime()
 		local r = rand(5)
 		local motor = SlimeMotor.attach(model, 0, r)
@@ -105,7 +105,7 @@ describe("SlimeMotor (procedural motion on the rig)", function()
 		end
 		expect(distinctSizes > 20).toBe(true)
 		local minY, maxY = travel(slime(), 20)
-		expect(maxY - minY > 0.3).toBe(true) -- a hop is visible
+		expect(maxY - minY < 0.3).toBe(true) -- breathing only: slimes glide (contract/slime-walk.md)
 	end)
 
 	it("looks left and right on demand (yaw of the Transform) and hops on demand", function()
