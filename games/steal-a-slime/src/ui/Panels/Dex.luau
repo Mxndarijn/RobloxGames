@@ -38,7 +38,7 @@ local Dex = {}
 -- Design px and text sizes of the panel's parts.
 local STYLE = table.freeze({
 	percent = 56,
-	compactPercent = 26, -- the compact percent box is SlimeDex.HEADER.chip tall
+	compactPercent = SlimeDex.HEADER.chip, -- fills the compact percent box
 	chip = 15,
 	chipPad = 20, -- chip width beyond its text
 	chipGap = 10, -- percent to the first chip

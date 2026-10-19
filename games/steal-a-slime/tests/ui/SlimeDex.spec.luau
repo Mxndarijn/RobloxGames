@@ -9,6 +9,7 @@ local Constants = require("../../src/shared/Constants")
 local Fixtures = require("../Fixtures")
 local Genome = require("../../src/shared/Genome")
 local Layout = require("../../src/ui/Layout")
+local LayoutAssert = require("./LayoutAssert")
 local Remotes = require("../../src/shared/Remotes")
 local SlimeDex = require("../../src/ui/SlimeDex")
 local SlimeLooks = require("../../src/shared/SlimeLooks")
@@ -287,6 +288,34 @@ describe("SpeciesModel (the card's species mesh)", function()
 	end)
 end)
 
+-- "100%" in Theme.Font (FredokaOne) is this many em wide: Studio TextBounds 116 px at 56, 60 px at 28.
+local PERCENT_EM = 2.15
+
+-- The percent label is at least as wide and as tall as "100%" at its text size.
+local function expectPercentFits(panel: any)
+	local percent = UiHarness.find(panel.frame, "Percent")
+	expect(percent.Size.X.Offset >= PERCENT_EM * percent.TextSize).toBe(true)
+	expect(percent.Size.Y.Offset >= percent.TextSize).toBe(true)
+end
+
+-- Every gate and phone size, once each.
+local DEX_VIEWPORTS: { { name: string, w: number, h: number } } = {}
+do
+	local seen = {}
+	for _, list in { LayoutAssert.GATE_VIEWPORTS, LayoutAssert.PHONE_VIEWPORTS } do
+		for _, vp in list do
+			if not seen[vp.name] then
+				seen[vp.name] = true
+				table.insert(DEX_VIEWPORTS, vp)
+			end
+		end
+	end
+end
+
+-- Body height below every real screen's (the smallest, 844x332, is about 300): the list would drop under
+-- MIN_LIST with the full header.
+local SHORT_BODY = 131
+
 describe("SlimeDex.header (short panel bodies)", function()
 	it("keeps the big percent and every chip row on a tall body", function()
 		local H = SlimeDex.HEADER
@@ -298,10 +327,10 @@ describe("SlimeDex.header (short panel bodies)", function()
 		expect(SlimeDex.header(700, false).listTop).toBe(H.percent + H.gap)
 	end)
 	it("turns compact (one chip row) when the list would drop under MIN_LIST", function()
-		local minimal = SlimeDex.header(131, true) -- the 844x332 body
+		local minimal = SlimeDex.header(SHORT_BODY, true)
 		expect(minimal.compact).toBe(true)
-		expect(131 - minimal.listTop >= SlimeDex.MIN_LIST).toBe(true)
-		expect(SlimeDex.header(131, false).compact).toBe(true)
+		expect(SHORT_BODY - minimal.listTop >= SlimeDex.MIN_LIST).toBe(true)
+		expect(SlimeDex.header(SHORT_BODY, false).compact).toBe(true)
 	end)
 	it("chipRows wraps chips that do not fit and hides the ones past maxRows", function()
 		local spots, rows = SlimeDex.chipRows({ 100, 100, 100 }, 50, 250, 5)
@@ -313,57 +342,37 @@ describe("SlimeDex.header (short panel bodies)", function()
 		expect(capped[1].visible).toBe(true)
 		expect(capped[2].visible).toBe(false)
 	end)
-	for _, vp in { { 390, 844 }, { 844, 390 }, { 844, 332 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } } do
-		it(`{vp[1]}x{vp[2]}: the real panel's list is at least MIN_LIST tall, under the chips`, function()
-			local panel, r = openDex(vp[1], vp[2], DEX, {
-				dexRewards = { { ladder = "species", count = 8, reward = 1000, bonus = 0.02, claimed = false } },
-			})
-			local list = UiHarness.find(panel.frame, "List")
-			local body = Layout.panelBody(r)
-			local bodyH = body.h
-			local listH = list.Size.Y.Scale * bodyH + list.Size.Y.Offset
-			expect(listH >= SlimeDex.MIN_LIST).toBe(true)
-			expect(list.Position.Y.Offset + listH <= bodyH + 1e-6).toBe(true)
-			for _, name in { "Percent", "Count", "Secrets" } do
-				local item = UiHarness.find(panel.frame, name)
-				if item.Visible then
-					expect(item.Position.Y.Offset + item.Size.Y.Offset <= list.Position.Y.Offset).toBe(true)
-					expect(item.Position.X.Offset + item.Size.X.Offset <= body.w).toBe(true)
+	for _, vp in DEX_VIEWPORTS do
+		it(
+			`{vp.name}: the real panel keeps the big percent ("100%" fits) and a MIN_LIST tall list under the chips`,
+			function()
+				local panel, r = openDex(vp.w, vp.h, DEX, {
+					dexRewards = { { ladder = "species", count = 8, reward = 1000, bonus = 0.02, claimed = false } },
+				})
+				local list = UiHarness.find(panel.frame, "List")
+				local body = Layout.panelBody(r)
+				local bodyH = body.h
+				local listH = list.Size.Y.Scale * bodyH + list.Size.Y.Offset
+				expect(listH >= SlimeDex.MIN_LIST).toBe(true)
+				expect(list.Position.Y.Offset + listH <= bodyH + 1e-6).toBe(true)
+				for _, name in { "Percent", "Count", "Secrets" } do
+					local item = UiHarness.find(panel.frame, name)
+					if item.Visible then
+						expect(item.Position.Y.Offset + item.Size.Y.Offset <= list.Position.Y.Offset).toBe(true)
+						expect(item.Position.X.Offset + item.Size.X.Offset <= body.w).toBe(true)
+					end
 				end
+				expect(UiHarness.find(panel.frame, "Percent").Size.Y.Offset).toBe(SlimeDex.HEADER.percent)
+				expectPercentFits(panel)
 			end
-		end)
+		)
 	end
-end)
-
--- "100%" in Theme.Font (FredokaOne) is this many em wide: Studio TextBounds 116 px at 56, 60 px at 28.
-local PERCENT_EM = 2.15
-
--- The percent label fits "100%" (box at least as wide and as tall as the text) and the first chip starts past it.
-local function expectPercentFits(panel: any)
-	local percent = UiHarness.find(panel.frame, "Percent")
-	expect(percent.Size.X.Offset >= PERCENT_EM * percent.TextSize).toBe(true)
-	expect(percent.Size.Y.Offset >= percent.TextSize).toBe(true)
-	local count = UiHarness.find(panel.frame, "Count")
-	expect(count.Position.X.Offset >= percent.Position.X.Offset + percent.Size.X.Offset).toBe(true)
-end
-
-describe("SlimeDex percent header", function()
-	for _, vp in { { 390, 844 }, { 844, 390 }, { 844, 332 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } } do
-		it(`{vp[1]}x{vp[2]}: keeps the big percent, and "100%" fits it`, function()
-			local panel = openDex(vp[1], vp[2], DEX)
-			local percent = UiHarness.find(panel.frame, "Percent")
-			expect(percent.Size.Y.Offset).toBe(SlimeDex.HEADER.percent)
-			expectPercentFits(panel)
-		end)
-	end
-	it('a body too short for the big percent gets the compact one, and "100%" fits it', function()
+	it('a body shorter than any real screen gets the compact percent, and "100%" fits it', function()
 		local panel, r = openDex(844, 332, DEX)
-		local body = Layout.panelBody(r)
-		local short = Layout.rect(r.x, r.y, r.w, r.h - body.h + 131)
+		local short = Layout.rect(r.x, r.y, r.w, r.h - Layout.panelBody(r).h + SHORT_BODY)
 		panel.frame.Size = UDim2.fromOffset(short.w, short.h)
 		panel.layout(short)
-		local percent = UiHarness.find(panel.frame, "Percent")
-		expect(percent.Size.Y.Offset).toBe(SlimeDex.HEADER.chip)
+		expect(UiHarness.find(panel.frame, "Percent").Size.Y.Offset).toBe(SlimeDex.HEADER.chip)
 		expectPercentFits(panel)
 	end)
 end)
