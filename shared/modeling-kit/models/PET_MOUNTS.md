@@ -12,7 +12,7 @@ front -Y, 1 BU = 1 stud), same smooth, soft, rounded slime-cartoon style (smooth
 | `pet_mount_sunset_cloud` | 1800 | 3.30 x 1.23 x 2.40 | 1.22 | peach / pink / orange gradient cloud |
 | `pet_mount_ice_cloud` | 1894 | 3.30 x 1.70 x 2.40 | 1.22 | icy pale-blue cloud with crystal shards round the rim |
 | `pet_mount_flame_cloud` | 1800 | 3.30 x 1.55 x 2.40 | 1.22 | red / orange cloud with soft flame tufts, yellow tips |
-| `pet_mount_leaf` | 1712 | 3.30 x 0.71 x 2.40 | 0.25 | cupped green leaf raft, pointed tip, raised midrib + side veins, short stem curling up from the back |
+| `pet_mount_leaf` | 1864 | 3.30 x 0.71 x 2.40 | 0.25 | cupped green leaf raft, pointed tip, midrib + 5 side vein pairs painted light green into the vertex colours (no raised geometry), short stem curling up from the back |
 | `pet_mount_bubble` | 1856 | 3.30 x 1.22 x 2.40 | 1.22 | pale pearl soap-bubble disc, pastel sheen, white highlight, three bigger mini bubbles |
 | `pet_mount_magic_carpet` | 1776 | 3.30 x 0.57 x 2.40 | 0.30 | Persian carpet: crimson field, purple dash-motif border, gold diamond medallion, gold trim, short tassels on the short ends, gentle wave |
 | `pet_mount_ufo` | 1924 | 3.30 x 1.34 x 2.40 | 1.00 | saucer: blue-grey hull, 6 rim lamps, glass dome at the back, cyan underlight |

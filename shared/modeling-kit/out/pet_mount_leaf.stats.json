@@ -2,17 +2,17 @@
   "name": "pet_mount_leaf",
   "model": "models/pet_mount_leaf.py",
   "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
-  "tris": 1712,
+  "tris": 1864,
   "meshes": [
     {
       "name": "pet_mount_leaf",
-      "tris": 1712,
-      "verts": 882,
+      "tris": 1864,
+      "verts": 936,
       "ngons": 2,
       "non_manifold_edges": 0,
       "size_studs": [
         3.3,
-        0.712,
+        0.713,
         2.4
       ],
       "materials": [
@@ -33,7 +33,7 @@
   "mesh_count": 1,
   "size_studs": [
     3.3,
-    0.712,
+    0.713,
     2.4
   ],
   "non_manifold_edges": 0,
@@ -53,7 +53,7 @@
   "fails": [],
   "warnings": [],
   "fbx": "out/pet_mount_leaf.fbx",
-  "fbx_bytes": 44748,
+  "fbx_bytes": 48172,
   "engine": "cycles",
   "mode": "full",
   "look": "default",
@@ -79,31 +79,31 @@
   ],
   "turntable": [],
   "timings_blender": {
-    "model_s": 0.151,
+    "model_s": 0.126,
     "stats_s": 0.002,
     "setup_s": 0.001,
     "render_s": [
-      0.473,
-      0.47,
-      0.541,
-      0.431
+      0.342,
+      0.269,
+      0.309,
+      0.348
     ],
-    "export_s": 0.064
+    "export_s": 0.065
   },
   "sheet": "out/pet_mount_leaf_sheet.png",
   "timings": {
-    "wall_s": 2.59,
-    "blender_process_s": 2.47,
-    "compose_s": 0.114,
-    "model_s": 0.151,
+    "wall_s": 1.91,
+    "blender_process_s": 1.83,
+    "compose_s": 0.082,
+    "model_s": 0.126,
     "stats_s": 0.002,
     "setup_s": 0.001,
     "render_s": [
-      0.473,
-      0.47,
-      0.541,
-      0.431
+      0.342,
+      0.269,
+      0.309,
+      0.348
     ],
-    "export_s": 0.064
+    "export_s": 0.065
   }
 }

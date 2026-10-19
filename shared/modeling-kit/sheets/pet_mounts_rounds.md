@@ -14,6 +14,7 @@ with-pet renders `pet_mount_<name>_with_pet.png`, lineup `pet_mounts_lineup.png`
 | storm / sunset / ice / flame / rainbow cloud | r02 | 1842 / 1800 / 1894 / 1800 / 1786 | Own cloud builder removed: all five call `_pet_cloud.py cloud_parts()` (extra puffs for the flame tufts, a colour function for the rest), so they share the pet_cloud shape, one smooth pass and the footprint fit. Tri target 1800 via decimate (bolt, shards and rainbow tubes are budgeted out of it: rainbow 1150 + bands, ice 1250 + shards). Smooth-shaded, not faceted. |
 | leaf | r02 | 1528 | Redo: thin cupped blade, raised midrib + 5 side vein pairs as real tubes, short stem. Too bowl-like, veins hooked. |
 | leaf | r03 | 1712 | Flatter cup (edges up 0.15), pointed tip with a gentle upturn, thicker light veins on the blade, stem leaves the back edge and curls up (never near the ground), 52 segments. Final. |
+| leaf | r04 | 1864 | Veins no longer geometry (the raised tubes read as loose sticks from the side): midrib + 5 side vein pairs painted light yellow-green (226,250,146) into the vertex colours on the darker green blade. The blade top is now an even grid whose rows follow the vein curves (`leaf_blade`), so the painted lines sit exactly on vertices and stay crisp; outline, cup, stem and size unchanged. Sheet `pet_mount_leaf_r04.png`. |
 | bubble | r02 | 1856 | Pale pearl body with pastel pink / lilac / cyan / mint sheen gathered at the rim, strong white highlight plus a small bounce light, minis 2 to 3x bigger (r 0.36 / 0.27 / 0.17). Body resolution lowered to pay for them. |
 | magic_carpet | r02 | 1776 | Redo: crimson field, purple border band with a cream/purple dash motif between gold lines, smooth gold-rimmed diamond medallion with a 4-point star, gold trim edge, gentle wave and curled +x corners, only 10 short chunky tassels on the two short ends. Pattern edges are real mesh rings (`ring_slab`), rim sampled at equal arc length, 56 segments. |
 | ufo | r02 | 1924 | Hull 14 x 10 x 4 pillow, 6 lamps instead of 8, smaller underlight. |
@@ -27,7 +28,7 @@ with-pet renders `pet_mount_<name>_with_pet.png`, lineup `pet_mounts_lineup.png`
 | `pet_mount_sunset_cloud` | 2600 | 1800 | 3.30 x 1.23 x 2.40 | 1.22 |
 | `pet_mount_ice_cloud` | 2536 | 1894 | 3.30 x 1.70 x 2.40 | 1.22 |
 | `pet_mount_flame_cloud` | 2800 | 1800 | 3.30 x 1.55 x 2.40 | 1.22 |
-| `pet_mount_leaf` | 2684 | 1712 | 3.30 x 0.71 x 2.40 | 0.25 |
+| `pet_mount_leaf` | 2684 | 1864 | 3.30 x 0.71 x 2.40 | 0.25 |
 | `pet_mount_bubble` | 1904 | 1856 | 3.30 x 1.22 x 2.40 | 1.22 |
 | `pet_mount_magic_carpet` | 2476 | 1776 | 3.30 x 0.57 x 2.40 | 0.30 |
 | `pet_mount_ufo` | 2912 | 1924 | 3.30 x 1.34 x 2.40 | 1.00 |

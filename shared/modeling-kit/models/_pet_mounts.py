@@ -101,18 +101,86 @@ def flame_cloud():
 
 
 # ---------------------------------------------------------------- leaf
+NH = 9  # leaf blade columns each side of the midrib
+VEIN_ROWS = [0.65 - 0.26 * k for k in range(5)]  # u where the six side veins leave the midrib
+SWEEP = 0.26  # how far (in u) a vein curves toward the tip by the time it is out at v = 0.68
+
+
+def _vein_shift(ur, av):
+    """u offset of a row that starts at ur on the midrib, at |v| = av: the mesh rows ARE the vein curves."""
+    f = 1 - sstep(0.55, 1.0, abs(ur))
+    return SWEEP * min(1.0, (av / 0.68) ** 1.1) * f
+
+
+def leaf_rows():
+    """row positions ur along the blade: a vein row every 0.28 with two rows between, coarser at the tip and the back."""
+    mid = [VEIN_ROWS[0] - k * 0.065 for k in range(21)]  # 0.65 .. -0.65
+    return [-1.0, -0.96, -0.91, -0.85, -0.78, -0.72] + mid[::-1] + [0.72, 0.84, 0.9, 0.95, 0.98, 1.0]
+
+
+def leaf_blade(name, L, width, c, zp, bend, rows, Nh, nr, nb, e):
+    """The leaf blade: like slab(), but the top is a grid (rows along the vein curves, columns across the blade) instead
+    of a polar fan, so painted vein lines get evenly spaced vertices to sit on. Returns (object, {(x, y): (ur, j)})."""
+    bm = bmesh.new()
+    info = {}
+    Nu = len(rows) - 1
+
+    def P(x, y, z):
+        return bm.verts.new(bend(Vector((x, y, z + zp))))
+    grid = {}
+    for i in range(1, Nu):
+        for j in range(-Nh, Nh + 1):
+            u = rows[i] - _vein_shift(rows[i], abs(j) / Nh)
+            x, y = L * u, width(u) * j / Nh
+            grid[i, j] = P(x, y, c)
+            info[(round(x, 4), round(y, 4))] = (rows[i], j)
+    tip, back = P(-L, 0, c), P(L, 0, c)
+    info[(round(-L, 4), 0.0)] = (-1.0, 0)
+    info[(round(L, 4), 0.0)] = (1.0, 0)
+    for j in range(-Nh, Nh + 1):
+        grid[0, j], grid[Nu, j] = tip, back
+
+    def quad(*vs):
+        u = []
+        for v in vs:
+            if v not in u:
+                u.append(v)
+        if len(u) >= 3:
+            bm.faces.new(u)
+    for i in range(Nu):
+        for j in range(-Nh, Nh):
+            quad(grid[i, j], grid[i + 1, j], grid[i + 1, j + 1], grid[i, j + 1])
+    us = [rows[i] - _vein_shift(rows[i], 1.0) for i in range(Nu + 1)]
+    B = [(-L, 0.0)] + [(L * us[i], width(us[i])) for i in range(1, Nu)] + [(L, 0.0)] + [(L * us[i], -width(us[i])) for i in range(Nu - 1, 0, -1)]
+    M = len(B)
+    rings = [[tip] + [grid[i, Nh] for i in range(1, Nu)] + [back] + [grid[i, -Nh] for i in range(Nu - 1, 0, -1)]]
+    for j in range(1, nr):
+        ph = math.pi * j / nr
+        k = 1 + e * math.sin(ph)
+        rings.append([P(bx * k, by * k, c * math.cos(ph)) for bx, by in B])
+    for i in range(nb, 0, -1):
+        s = i / nb
+        rings.append([P(bx * s, by * s, -c) for bx, by in B])
+    bot = bm.verts.new(bend(Vector((0, 0, -c + zp))))
+    for k in range(M):
+        j = (k + 1) % M
+        bm.faces.new((bot, rings[-1][k], rings[-1][j]))
+    for r0, r1 in zip(rings, rings[1:]):
+        for k in range(M):
+            j = (k + 1) % M
+            bm.faces.new((r0[k], r0[j], r1[j], r1[k]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return obj_from_bm(name, bm), info
+
+
 def leaf():
     """A leaf raft, long axis x: pointed tip at -x (the front of the leaf), cupped blade with edges and tip curling
-    up, raised midrib + side veins (real geometry, they read from every view), a short curled stem out of the back."""
+    up, midrib + side veins painted into the vertex colours (no raised geometry), a short curled stem out of the back."""
     L, W, ZP, C = 1.62, 1.18, 0.42, 0.085
 
     def width(u):  # half width of the blade at u = x / L (tip -1, back +1)
         s = math.sqrt(max(0.0, 1 - u * u))
         return W * s ** (1.55 - 0.7 * u) * (1 + 0.1 * u)
-
-    def outline(t):
-        ct, st = math.cos(t), math.sin(t)
-        return (L * ct, math.copysign(width(ct), st))
 
     def bend(p):
         u = p.x / L
@@ -120,35 +188,33 @@ def leaf():
         z = p.z + 0.15 * min(v * v, 1.3) + 0.38 * max(0.0, -u) ** 2.6 + 0.07 * max(0.0, u) ** 2
         z += 0.025 * math.sin(u * 6.5 + 0.5) * min(v * v, 1.0)  # slightly wavy edge
         return Vector((p.x, p.y, z))
-    body = slab("Leaf", outline, C, pos=(0, 0, ZP), M=52, nt=6, nr=4, nb=3, e=0.07, bend=bend)
-    VEIN = rgb(214, 246, 130)
+    body, info = leaf_blade("Leaf", L, width, C, ZP, bend, leaf_rows(), NH, nr=4, nb=2, e=0.07)
+    VEIN = rgb(226, 250, 146)
+    dur = 0.065
+
+    def vein_w(co):  # painted vein weight 0..1 from the blade grid position of the vertex
+        ij = info.get((round(co.x, 4), round(co.y, 4)))
+        if ij is None:
+            return 0.0
+        ur, j = ij
+        av = abs(j) / NH
+        d = min(abs(ur - r) for r in VEIN_ROWS) / dur  # rows away from the nearest side vein
+        side = (1 - sstep(0.2, 1.4, d)) * (1 - sstep(0.62, 0.8, av)) * sstep(-0.7, -0.5, ur) * (1 - sstep(0.7, 0.8, ur))
+        mid = (1 - sstep(0.3, 1.25, abs(j))) * sstep(-0.95, -0.7, ur) * (1 - sstep(0.88, 1.0, ur))
+        return max(side * 0.95, mid)
 
     def f(co, n):
         u, v = co.x / L, co.y / max(width(max(-1.0, min(1.0, co.x / L))), 0.1)
-        c = mix(rgb(62, 160, 58), rgb(132, 208, 80), clamp(0.55 + 0.35 * n.z + 0.25 * (1 - abs(v))))
-        c = mix(c, rgb(56, 138, 56), sstep(0.7, 1.0, abs(v)) * 0.5)  # darker rim
-        return shade(mix(c, rgb(140, 190, 70), clamp(-n.z) * 0.5), 1 - 0.22 * clamp(-n.z))
+        c = mix(rgb(52, 140, 52), rgb(100, 182, 66), clamp(0.5 + 0.35 * n.z + 0.2 * (1 - abs(v))))
+        c = mix(c, rgb(46, 120, 48), sstep(0.7, 1.0, abs(v)) * 0.5)  # darker rim
+        c = shade(mix(c, rgb(120, 170, 60), clamp(-n.z) * 0.5), 1 - 0.22 * clamp(-n.z))
+        return mix(c, VEIN, vein_w(co) * clamp(n.z * 3.0 + 0.2))
     paint(body, f)
     parts = [body]
 
-    def top(x, y):  # a point on the blade's upper surface (for the veins)
+    def top(x, y):  # a point on the blade's upper surface
         return bend(Vector((x, y, ZP + C)))
 
-    def vein(name, pts, r0, r1, col):
-        ps = [top(x, y) + Vector((0, 0, 0.012)) for x, y in pts]
-        rs = [r0 + (r1 - r0) * i / (len(ps) - 1) for i in range(len(ps))]
-        t = soft_tube(name, [tuple(p) for p in ps], rs, segs=4)
-        paint(t, lambda co, n: col)
-        parts.append(t)
-    vein("Midrib", [(L * (0.88 - 1.8 * i / 7), 0.0) for i in range(8)], 0.085, 0.04, VEIN)
-    for k, u0 in enumerate((0.6, 0.32, 0.04, -0.24, -0.5)):
-        for sgn in (-1, 1):
-            pts = []
-            for i in range(5):
-                t = i / 4
-                x = L * (u0 - 0.27 * t)
-                pts.append((x, sgn * 0.68 * width(max(-1.0, x / L)) * t ** 0.9))
-            vein("Vein%d_%d" % (k, sgn), pts, 0.055, 0.03, VEIN)
     # short stem out of the back end, curling upward (never reaches the ground)
     z0 = top(L * 0.95, 0)[2]
     stem = soft_tube("Stem", [(L * 0.9, 0.0, z0 - 0.02), (L * 1.0 + 0.2, 0.0, z0 - 0.04), (L * 1.0 + 0.36, 0.0, z0 + 0.06), (L * 1.0 + 0.4, 0.0, z0 + 0.22)], [0.1, 0.085, 0.07, 0.045], segs=6)
