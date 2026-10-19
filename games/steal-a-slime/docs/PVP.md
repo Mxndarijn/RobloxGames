@@ -9,7 +9,7 @@ Flag: `Config.FEATURES.PvP`. Contract: `CONTRACT.md` §26 (`contract/pvp.md`). C
 3. Nothing deals damage or can kill. Knockback is mostly horizontal with a capped arc, and the landing point is clamped inside the map. A PvP fall causes no damage; the void guard puts anyone who still falls back.
 4. Max 2 s crowd control (slows max 3 s), then 3 s control immunity.
 5. **No safe zones.** Every PvP item works on anyone, anywhere, except players under the new-player shield. On a player who carries nothing the effect stays light (a push, a short slow, a laugh); nobody loses anything to it.
-6. **A caught thief loses the slime.** Whenever any PvP item hits a player carrying a stolen slime, the slime bounces home to its owner's plot (`PvpService.catchThief`, the same drop + bounce + notifications as the Bat).
+6. **A caught thief loses the slime.** Whenever a PvP item hits a player carrying a stolen slime (every item except the purely cosmetic Confetti Popper), the slime bounces home to its owner's plot (`PvpService.catchThief`, the same drop + bounce + notifications as the Bat).
 7. **New-player shield:** 15 minutes of play time (summed over sessions). Rebirths don't end it; stealing a slime does. A shielded player can't be hit by PvP items (a Fun item still gives them its cosmetic part) and can't use non-cosmetic items. Everyone sees a shield badge over a shielded player's head; the player sees a shield slot with a `mm:ss` countdown in the bottom-right status cluster.
 8. **Fun items are toys first** (CONTRACT.md §26.8): aimed with a click, no target pick, no plot of your own needed. Their control effects still respect the shield and the control cap.
 9. Show-off, not power gap: the top tier is about 2x the base effect.
@@ -71,7 +71,7 @@ Real goo blobs fly a visible arc; the server owns the shot (start point, range, 
 
 Tunables in `Config.PVP_FUN`, cooldowns in the `PVP_TOOLS` rows. Toys first, power second. Every one is aimed with a click (no target pick), works anywhere and needs no plot of your own.
 
-- **Confetti Popper:** aim anywhere, also straight up; the burst rains down over about 10 studs and sticks confetti on everyone under it for a few seconds. Hold to charge a mega pop.
+- **Confetti Popper:** aim anywhere, also straight up; the burst rains down over about 10 studs and sticks confetti on everyone under it for a few seconds. Purely cosmetic: it never catches a thief. Hold to charge a mega pop.
 - **Goo Balloon:** lobbed in an arc; the splash paints everyone in it goo green for 10 s and leaves a splat on the ground. A thief in the splash is slowed a little.
 - **Bubble Wand:** blows a stream of floating bubbles. A player who touches one floats in a bubble for 1.5 s (control); anyone else can click the bubble to pop it early. A wild slime it touches floats up, drifts and lands (cosmetic).
 - **Bounce Pad:** a trampoline, at most 2 live, 60 s each. Everyone bounces on it, wild slimes too; the owner bounces higher with a flip.
@@ -80,7 +80,7 @@ Tunables in `Config.PVP_FUN`, cooldowns in the `PVP_TOOLS` rows. Toys first, pow
 - **Dance Bomb:** a lobbed disco bubble with lights and music; everyone inside dances for 2 s (control).
 - **Goo Fireworks:** a rocket that bursts high in the colour of your favourite slime, visible across the map; nearby wild slimes cheer-hop. Hold to fire a 3-rocket volley.
 
-A thief carrying a stolen slime who gets confettied, splashed, lifted, bounced, bonked, hatted or made to dance drops it, and the slime goes home (the fireworks hit nobody). Shielded players only get the cosmetic part (confetti, paint, hats, fireworks).
+A thief carrying a stolen slime who gets splashed, lifted, bounced, bonked, hatted or made to dance drops it, and the slime goes home (confetti and fireworks catch nobody). Shielded players only get the cosmetic part (confetti, paint, hats, fireworks).
 
 ## Hit feel (sounds)
 
