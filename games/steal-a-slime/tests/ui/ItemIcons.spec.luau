@@ -226,7 +226,7 @@ describe("uploaded item icon images", function()
 				)
 			end
 		end
-		expect(n).toBe(48)
+		expect(n).toBe(49)
 	end)
 	it("ids awaiting an upload are real drawn-group ids with a UI-drawn scene", function()
 		local ItemIconArt = UiHarness.ui("ItemIconArt")

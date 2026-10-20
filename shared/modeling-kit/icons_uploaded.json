@@ -328,6 +328,13 @@
     "sha256": "7a457671ab80c9995c51b4ecd56c589ddb5f75cb9a2f5c4a9dc268d471993525",
     "uploadedAt": "2026-10-17T10:12:23Z"
   },
+  "Pet": {
+    "assetId": "79045760674420",
+    "assetType": "Decal",
+    "imageId": "118993346386827",
+    "sha256": "a4a3618c2bcf81c6d451fae9fa19f89a5e75f8db268cf6e1ed8a61cfce503705",
+    "uploadedAt": "2026-10-20T22:15:29Z"
+  },
   "PlotSkin_candy": {
     "assetId": "120970040244785",
     "assetType": "Decal",
