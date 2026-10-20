@@ -18,19 +18,7 @@ local SpeciesDex = if script then require(script.Parent.SpeciesDex) else require
 export type SlimeData = Genome.Slime
 
 -- Return value of every `Request` invoke.
-export type RequestResult = { ok: boolean, message: string?, appraisal: Appraisal?, code: string? } -- code: ShopEvent deny code (OpenShop / ShopBuy, CONTRACT.md §27.7)
-
--- Result of a successful Appraise (shared/Appraise): what was rerolled, before and after.
-export type Appraisal = {
-	slimeId: string,
-	kind: "size",
-	cost: number, -- what this reroll cost
-	beforeSize: number,
-	afterSize: number,
-	incomeBefore: number, -- cash/sec (PlayerData.slimeIncome), as SlimeView.income
-	incomeAfter: number,
-	costAfter: number, -- the next reroll's price (Appraise.cost), as SlimeView.appraiseCost
-}
+export type RequestResult = { ok: boolean, message: string?, code: string? } -- code: ShopEvent deny code (OpenShop / ShopBuy, CONTRACT.md §27.7)
 
 export type NotifyKind = "info" | "good" | "bad" | "badge"
 
@@ -38,7 +26,6 @@ export type SlimeView = {
 	slime: SlimeData,
 	income: number, -- cash/sec incl. rebirth multiplier (0 while stolenBy ~= nil)
 	sellPrice: number,
-	appraiseCost: number?, -- Appraise price (Appraise.cost)
 	stolenBy: number?, -- UserId of the player currently carrying it away
 }
 

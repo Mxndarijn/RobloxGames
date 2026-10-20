@@ -3,7 +3,7 @@
 	ItemIconView
 
 	Draws one ItemIcons spec as a square icon, the same everywhere items show
-	(shop rows, codes, goals, appraise ...):
+	(shop rows, codes, goals ...):
 
 	  * a rounded tile: vertical gradient in the item's colour, a darker
 	    stroke and a bold glyph. Always built, but only shown as the

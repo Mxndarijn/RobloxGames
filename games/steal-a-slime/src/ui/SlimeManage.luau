@@ -4,7 +4,7 @@
 
 	Your own slimes are managed at your base: every slime model on a pad whose `OwnerUserId` is the local player
 	gets a client-only ProximityPrompt `ManagePrompt` on its Body ("Manage", E). Triggering it calls
-	`onManage(slimeId)`, which opens that slime's card (Panels/Plot focus: favourite, sell, appraise, hatch).
+	`onManage(slimeId)`, which opens that slime's card (Panels/Plot focus: favourite, sell, hatch).
 	The server's GrabPrompt on the same Body is hidden from the owner (PromptHide), so E is free for this one.
 	The prompt goes when the slime leaves the pad (carried, escaping, sold, merged) and comes back when it returns.
 

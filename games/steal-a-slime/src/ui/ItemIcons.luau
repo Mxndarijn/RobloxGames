@@ -43,7 +43,6 @@ local ItemIcons = {}
 ItemIcons.HELD_TOOLS = table.freeze({ Bat = "Pvp_Bat" })
 
 ItemIcons.IMAGES = {
-	Appraise = 83435847821482,
 	Badge_Dex100 = 126553682019734,
 	Badge_Dex25 = 103035902991477,
 	Badge_Dex50 = 132537225738577,
@@ -293,14 +292,6 @@ local HAND: { Hand } = {
 		color = { 80, 170, 255 },
 		glyph = "🌧",
 		brief = "A blue storm cloud raining green slime droplets; front view.",
-	},
-	{
-		id = "Appraise",
-		name = "Appraise",
-		group = "misc",
-		color = { 120, 190, 220 },
-		glyph = "🔍",
-		brief = "A big magnifying glass with a gold frame over a sparkling slime; 3/4 view.",
 	},
 	{
 		id = "Daily",

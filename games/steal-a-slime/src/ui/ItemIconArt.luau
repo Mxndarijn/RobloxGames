@@ -404,14 +404,6 @@ RECIPES.Event_rain = function(p)
 	cloud(p, 0.5, 0.36, 0.9, rgb(95, 120, 170))
 end
 
-RECIPES.Appraise = function(p)
-	p:shape(0.76, 0.8, 0.14, 0.34, GOLD_D, { rot = -45, round = 0.3 })
-	p:circle(0.42, 0.42, 0.66, GOLD)
-	p:circle(0.42, 0.42, 0.5, rgb(190, 235, 255), { stroke = false })
-	blob(p, 0.42, 0.46, 0.3, rgb(110, 210, 90))
-	sparkle(p, 0.7, 0.18, 0.24)
-end
-
 RECIPES.Daily = function(p)
 	p:shape(0.46, 0.52, 0.7, 0.76, WHITE, { round = 0.1 })
 	p:shape(0.46, 0.26, 0.7, 0.24, RED, { round = 0.1 })

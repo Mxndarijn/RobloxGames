@@ -66,7 +66,7 @@ local function definitions(): { [string]: string }
 	for kind in Config.PET_PASSIVES.KINDS do
 		out[`Perk_{kind}`] = "Config.PET_PASSIVES"
 	end
-	for _, id in { "Lock", "Slap", "Appraise", "Daily", "Rebirth", "Cash", "Gift", "Quest" } do
+	for _, id in { "Lock", "Slap", "Daily", "Rebirth", "Cash", "Gift", "Quest" } do
 		out[id] = "gear / misc"
 	end
 	return out
@@ -226,7 +226,7 @@ describe("uploaded item icon images", function()
 				)
 			end
 		end
-		expect(n).toBe(48)
+		expect(n).toBe(47)
 	end)
 	it("ids awaiting an upload are real drawn-group ids with a UI-drawn scene", function()
 		local ItemIconArt = UiHarness.ui("ItemIconArt")
@@ -541,9 +541,7 @@ describe("item icons: server ids, Dex skins, gear", function()
 				end
 			end
 		end
-		for _, id in
-			{ "Daily", "Gift", "LockUpgrade", "SpeedCoil", "Appraise", "MysteryEgg", "Rebirth", "Lock", "Slap" }
-		do
+		for _, id in { "Daily", "Gift", "LockUpgrade", "SpeedCoil", "MysteryEgg", "Rebirth", "Lock", "Slap" } do
 			expect(`{id}: {ids[id] == true}`).toBe(`{id}: true`)
 		end
 	end)
