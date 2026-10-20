@@ -443,6 +443,71 @@
     "uploadedAt": "2026-10-16T23:21:26Z",
     "versions": 1
   },
+  "mystery_egg_cosmic": {
+    "assetId": "83469811451722",
+    "assetType": "Model",
+    "meshId": "rbxassetid://127150041778047",
+    "meshSize": [
+      1.809,
+      2.2,
+      1.792
+    ],
+    "sha256": "9341ed0ab9b79611",
+    "uploadedAt": "2026-10-19T21:37:24Z",
+    "versions": 1
+  },
+  "mystery_egg_golden": {
+    "assetId": "124740474802680",
+    "assetType": "Model",
+    "meshId": "rbxassetid://79281704120835",
+    "meshSize": [
+      1.858,
+      2.2,
+      1.96
+    ],
+    "sha256": "a89cbe8b15dc2c74",
+    "uploadedAt": "2026-10-19T21:37:12Z",
+    "versions": 1
+  },
+  "mystery_egg_nest": {
+    "assetId": "104020921300950",
+    "assetType": "Model",
+    "meshId": "rbxassetid://110322947252445",
+    "meshSize": [
+      3.416,
+      0.903,
+      3.416
+    ],
+    "sha256": "d816080b77a8e63a",
+    "uploadedAt": "2026-10-19T21:37:31Z",
+    "versions": 1
+  },
+  "mystery_egg_shiny": {
+    "assetId": "89189893144899",
+    "assetType": "Model",
+    "meshId": "rbxassetid://120597976593446",
+    "meshSize": [
+      1.923,
+      2.2,
+      1.93
+    ],
+    "sha256": "8546f926c3ae1648",
+    "uploadedAt": "2026-10-19T21:36:57Z",
+    "versions": 1
+  },
+  "mystery_egg_speckled": {
+    "assetId": "72448883434671",
+    "assetType": "Model",
+    "meshId": "rbxassetid://78500797880978",
+    "meshSize": [
+      1.727,
+      2.2,
+      1.714
+    ],
+    "sha256": "af252d59208ad915",
+    "uploadedAt": "2026-10-19T21:36:47Z",
+    "versions": 1
+  },
   "pet_cloud": {
     "assetId": "76853347194916",
     "assetType": "Model",

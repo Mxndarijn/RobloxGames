@@ -67,6 +67,8 @@ export type FriendsView = { count: number, bonus: number }
 export type WeekendView = { active: boolean, multiplier: number, endsAt: number? }
 -- The featured event Secret of the week (EventSecrets, CONTRACT.md §34); `endsAt` in server time.
 export type FeaturedSecretView = { id: string, name: string, endsAt: number }
+-- The co-op ritual's Blessed income bonus (FEATURES.CoopRitual); `endsAt` in server time.
+export type BlessedView = { bonus: number, endsAt: number }
 
 -- Follow-pet passive (CONTRACT.md §14): the favourite slime's perk, text "+5% luck".
 export type PetPerkView = { kind: string, value: number, icon: string, text: string }
@@ -128,7 +130,7 @@ export type ConsumablesView = {
 	held: { [string]: number }, -- item id -> stack held (every consumable with a stack, shown or not)
 }
 
--- State.egg: the newest boss helper egg hatch, for the reveal banner (never saved).
+-- State.egg: the newest Mystery Egg hatch, for the reveal banner (never saved).
 export type EggView = {
 	hatched: { slime: SlimeData, at: number }?,
 }
@@ -245,6 +247,7 @@ export type State = {
 	consumables: ConsumablesView?, -- FEATURES.Consumables (nil when off)
 	pvp: PvpView?, -- FEATURES.PvP (nil when off)
 	friends: FriendsView, -- FEATURES.FriendBonus (count 0 / bonus 0 when off)
+	blessed: BlessedView?, -- FEATURES.CoopRitual: the ritual's Blessed bonus while it lasts; nil = not blessed
 	weekend: WeekendView?, -- x2 Weekend window (server clock)
 	featuredSecret: FeaturedSecretView?, -- this week's event Secret in the Secret pool
 	petPerk: PetPerkView?, -- Perks.petPassive; nil without a favourite

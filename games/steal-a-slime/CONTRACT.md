@@ -260,14 +260,14 @@ The client always replaces its copy and never diffs.
 		LockUpgrade: { price: number?, level: number, maxLevel: number },  -- price nil = maxed
 		SpeedCoil: { price: number?, owned: boolean },                      -- price nil = owned
 	},
-	egg: { hatched: { slime: SlimeData, at: number }? },  -- newest boss helper egg hatch, never saved
+	egg: { hatched: { slime: SlimeData, at: number }? },  -- newest Mystery Egg hatch, never saved
 	tutorialStep: number?,   -- 1..6 (§2 Tutorial); nil = finished
 	hotbar: { string }?,     -- saved hotbar order: exactly 9 slot keys ("" = empty), nil until the player first sends SetHotbar
 }
 ```
 
 - `daily.day` is the streak day the pending claim pays (1..`DAILY_STREAK_CAP`, `amount = DAILY_BASE × day × rebirthMultiplier`). When nothing is pending, it's the day the last claim paid.
-- `egg.hatched` is the newest free egg a boss helper got (server-only `Server/MysteryEgg.spawnForEvent(world, userId, count, now)`, [boss-event.md](contract/boss-event.md), no remote): a slime rolled from `MYSTERY_EGG_DROPS` onto the lowest free pad via `PlayerData.addSlime`, shown in the reveal banner for `MYSTERY_EGG_REVEAL_SECONDS`.
+- `egg.hatched` is the newest Mystery Egg the player hatched (`HatchEgg`, [mystery-egg.md](contract/mystery-egg.md)), shown in the reveal banner for `MYSTERY_EGG_REVEAL_SECONDS`.
 - `shop` keys are the UI's `ShopCatalog` item ids. Prices are final (what `Request` charges).
 - `hotbar` is what the last successful `Request("SetHotbar", order)` stored (§3), saved across sessions and rebirths. Keys may name items the player no longer holds; the client skips those.
 
@@ -355,7 +355,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `STATE_MIN_INTERVAL` / `LEADERBOARD_INTERVAL` | 0.25 / 60 | §5.1, §2 |
 
 | `LOCK_UPGRADE_MAX` / `LOCK_UPGRADE_SECONDS` / `LOCK_UPGRADE_COSTS` | 5 / 15 / 500, 2 000, 8 000, 30 000, 100 000 | shop: longer locks |
-| `MYSTERY_EGG_REVEAL_SECONDS` / `MYSTERY_EGG_DROPS` | 6 / tiers 2-6, weights 50, 30, 14, 5, 1 | boss helper egg: hatch banner, tier odds |
+| `MYSTERY_EGG_REVEAL_SECONDS` | 6 | Mystery Egg hatch banner |
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
 | `RAIN_WARNING_SECONDS` | 60 | rain heads-up toast |
 | `FEATURES` | every flag and its value live in `Config.FEATURES` only; not restated here | §2 Extras |
@@ -420,3 +420,5 @@ Section numbers are kept, so references such as "CONTRACT.md §26.1" now mean `c
 | §36 | [species-dex.md](contract/species-dex.md) | Species Dex: 50 species and the milestone ladder |
 | §37 | [slime-walk.md](contract/slime-walk.md) | Slime walk: wild slimes glide the lane and walk back to it when dropped |
 | §38 | [slime-labels.md](contract/slime-labels.md) | Slime labels: a tag above every loose slime, a sign on every pad |
+| §39 | [slime-life.md](contract/slime-life.md) | Slime life: species gaits, hops, lane beats and reactions |
+| §40 | [mystery-egg.md](contract/mystery-egg.md) | Mystery Eggs: wild eggs that incubate on a pad, can be stolen, hatch into a slime (`FEATURES.MysteryEggs`) |

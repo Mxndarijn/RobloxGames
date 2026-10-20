@@ -52,7 +52,7 @@ describe("Secret announcement", function()
 		local secrets, others = 0, 0
 		for i = 1, 300000 do
 			world.outbox = {}
-			local id = Spawner.spawnOne(world, T0 + i)
+			local id = Spawner.spawnSlime(world, T0 + i)
 			local tier = world.wild[id].slime.tier
 			local secretNotes, text = 0, ""
 			for _, e in world.outbox do

@@ -43,7 +43,13 @@ function HabitatPads.targets(world: World): { [number]: { [number]: string } }
 		if pads then
 			for _, slime in session.data.slimes do
 				local pad = slime.pad
-				if pad and pads[pad] and not world.carriedBy[slime.id] and not world.escaping[slime.id] then
+				if
+					pad
+					and pads[pad]
+					and not slime.egg
+					and not world.carriedBy[slime.id]
+					and not world.escaping[slime.id]
+				then
 					pads[pad] = Habitats.forSlime(slime)
 				end
 			end

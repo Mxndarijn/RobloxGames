@@ -13,9 +13,11 @@
 	    Event  the live server modifier (State.modifier: dawn / dusk modifier, admin Luck event) with the
 	           time left;
 	    Friend the friend income bonus ("+10%", no timer);
+	    Blessed the co-op ritual's Blessed income bonus (State.blessed) with the time left;
 	    Secret this week's featured event Secret (State.featuredSecret) with the time until it rotates ("4h 6m").
-	  The weekend boost is never a slot (Merijn, HUD-DESIGN.md: "Weekend boost: NOT shown"). At most MAX_SLOTS
-	  (= Layout.STATUS.count) show: the last ones in the order above give way.
+	  The row has Layout.STATUS.count places, fewer than there are slots: the week-long Secret makes way
+	  first, then the last ones in the order above (the others last minutes; the Shield always shows).
+	  The weekend boost is never a slot (Merijn, HUD-DESIGN.md: "Weekend boost: NOT shown").
 	Tooltip (B8, 2026-10-18): each slot also carries its name and what it does; `tooltip` turns that plus the
 	live timer into the 3 lines of the card (name, effect, time left), and `nextTooltip` is the open / close
 	rule: mouse hover on PC, tap on touch (a second tap or a tap elsewhere closes it).
@@ -28,7 +30,7 @@ local RainTimer = if script then require(script.Parent.RainTimer) else require("
 
 export type Money = { cash: string, income: string, rebirths: string, rebirthCount: string, multiplier: string }
 export type Slot = {
-	id: string, -- "Shield" | "Rain" | "Event" | "Friend" | "Secret"
+	id: string, -- "Shield" | "Rain" | "Event" | "Friend" | "Blessed" | "Secret"
 	icon: string, -- ItemIcons id
 	text: string, -- the timer, or "+10%"
 	kind: string, -- "active" | "soon" | "boost" | "week"
@@ -42,17 +44,19 @@ export type Inputs = {
 	modifierEnabled: boolean,
 	friends: FriendBadge.View?,
 	friendsEnabled: boolean,
+	blessed: Blessed?,
 	featuredSecret: FeaturedSecret?,
 	shieldUntil: number?, -- the local player's PvpShieldUntil attribute (server time), nil = not shielded
 }
+-- State.blessed: the ritual's Blessed income bonus, `endsAt` in server time.
+export type Blessed = { bonus: number, endsAt: number }
 -- State.featuredSecret: this week's event Secret, `endsAt` in server time.
 export type FeaturedSecret = { id: string, name: string, endsAt: number }
 
 local HudClusters = {}
 
 -- Slot ids in display order, left to right (Layout.STATUS_SLOTS).
-HudClusters.STATUS_IDS = table.freeze({ "Shield", "Rain", "Event", "Friend", "Secret" })
-HudClusters.MAX_SLOTS = 4 -- slots shown at once (Layout.STATUS.count)
+HudClusters.STATUS_IDS = table.freeze({ "Shield", "Rain", "Event", "Friend", "Blessed", "Secret" })
 
 HudClusters.ICONS = table.freeze({
 	Cash = "Cash",
@@ -60,6 +64,7 @@ HudClusters.ICONS = table.freeze({
 	Rebirths = "Rebirth",
 	Rain = "Event_rain",
 	Friend = "FriendBoost",
+	Blessed = "Boost_Blessed",
 	Secret = "Badge_FirstSecret",
 	Shield = "Shield",
 })
@@ -172,6 +177,28 @@ function HudClusters.friend(view: FriendBadge.View?, enabled: boolean): Slot?
 	}
 end
 
+-- The ritual's Blessed slot; nil when not blessed, malformed or over.
+function HudClusters.blessed(view: Blessed?, now: number): Slot?
+	if type(view) ~= "table" or type(view.bonus) ~= "number" or view.bonus ~= view.bonus or view.bonus <= 0 then
+		return nil
+	end
+	if type(view.endsAt) ~= "number" or view.endsAt ~= view.endsAt then
+		return nil
+	end
+	local remaining = Format.remainingSeconds(view.endsAt, now)
+	if remaining <= 0 then
+		return nil
+	end
+	return {
+		id = "Blessed",
+		icon = HudClusters.ICONS.Blessed,
+		text = Format.formatDuration(remaining),
+		kind = "active",
+		name = "Blessed",
+		effect = `+{math.floor(view.bonus * 100 + 0.5)}% income from the Slime Ritual.`,
+	}
+end
+
 -- The featured event Secret slot; nil when absent, malformed or over.
 function HudClusters.secret(view: FeaturedSecret?, now: number): Slot?
 	if type(view) ~= "table" or type(view.name) ~= "string" or view.name == "" then
@@ -194,8 +221,8 @@ function HudClusters.secret(view: FeaturedSecret?, now: number): Slot?
 	}
 end
 
--- The shown slots, left to right (never more than MAX_SLOTS = Layout.STATUS.count).
-function HudClusters.status(input: Inputs, now: number): { Slot }
+-- The shown slots, left to right; at most `places` (Layout.STATUS.count), the featured Secret dropped first.
+function HudClusters.status(input: Inputs, now: number, places: number): { Slot }
 	local out: { Slot } = {}
 	local shield = HudClusters.shield(input.shieldUntil, now)
 	if shield then
@@ -213,11 +240,15 @@ function HudClusters.status(input: Inputs, now: number): { Slot }
 	if friend then
 		table.insert(out, friend)
 	end
+	local blessed = HudClusters.blessed(input.blessed, now)
+	if blessed then
+		table.insert(out, blessed)
+	end
 	local secret = HudClusters.secret(input.featuredSecret, now)
-	if secret then
+	if secret and #out < places then
 		table.insert(out, secret)
 	end
-	while #out > HudClusters.MAX_SLOTS do
+	while #out > places do
 		table.remove(out)
 	end
 	return out

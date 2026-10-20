@@ -14,6 +14,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local TutorialProgress = if Shared then require(Shared.TutorialProgress) else require("../shared/TutorialProgress")
@@ -83,7 +84,7 @@ function StealService.steal(
 		slimeId = slimeId,
 		kind = "stolen",
 		ownerUserId = owner.userId,
-		timer = Steal.newCarry("stolen", slime.tier, now),
+		timer = Steal.newCarry("stolen", EggKind.shownTier(slime), now),
 		slime = slime,
 	}
 	world.carriedBy[slimeId] = thief.userId

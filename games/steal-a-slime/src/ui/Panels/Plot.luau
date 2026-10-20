@@ -12,7 +12,9 @@
 	confirm, one request at a time; greyed out at the biggest size or without the cash); after a reroll a card
 	shows was -> now for size and income from the server's answer, and a refusal shows its reason. A slime
 	that is stolen or gone closes the screen.
-	Rows being stolen turn red and show the thief.
+	Rows being stolen turn red and show the thief. A Mystery Egg row shows its hatch time instead of income, no
+	star, no Appraise and no 3D preview; when the egg is ready, a Hatch button (HatchEgg(slimeId), hold to confirm)
+	takes the Appraise spot.
 ]]
 
 local UI = script.Parent.Parent
@@ -686,6 +688,24 @@ function Plot.new(parent: Instance, ctx: any)
 			end
 		)
 		appraise.instance.Parent = frame
+		-- A Mystery Egg row: Hatch, in the Appraise spot, while the egg is ready (contract/mystery-egg.md).
+		local hatch = Widgets.holdButton(
+			{
+				Name = "Hatch",
+				Text = "Hatch!",
+				TextSize = R.labelSize,
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, -(R.pad + R.sellW + R.buttonGap), 0, R.buttonY),
+				Size = UDim2.fromOffset(R.appraiseW, R.buttonH),
+				Visible = false,
+			},
+			Theme.Good,
+			function()
+				ctx.send("HatchEgg", id)
+			end,
+			ctx.Config.HOLD_CONFIRM_SECONDS
+		)
+		hatch.instance.Parent = frame
 		-- Follow-pet perk chip ("🍀 +5% luck"), only on the favourite row, left of the buttons.
 		local chip = Widgets.chip({
 			Name = "PerkChip",
@@ -708,6 +728,7 @@ function Plot.new(parent: Instance, ctx: any)
 			fav = fav,
 			sell = sell,
 			appraise = appraise,
+			hatch = hatch,
 		}
 	end
 
@@ -720,6 +741,7 @@ function Plot.new(parent: Instance, ctx: any)
 	local function updateRow(row: any, view: any)
 		local slime = view.slime
 		local rarity = ctx.Config.RARITIES[slime.tier]
+		local isEgg = slime.egg ~= nil
 		local isFav = slime.id == favoriteId
 		local isSecret = slime.tier == ctx.Config.SECRET_TIER
 		local stolen = view.stolenBy ~= nil
@@ -736,6 +758,7 @@ function Plot.new(parent: Instance, ctx: any)
 		end
 		row.sell.setText(priced("Sell", view.sellPrice))
 		local showChip = isFav and petPerk ~= nil and not stolen
+		row.fav.instance.Visible = not isEgg
 		row.chip.Visible = showChip
 		if showChip then
 			row.chip.Text = `{petPerk.icon} {petPerk.text}`
@@ -748,7 +771,23 @@ function Plot.new(parent: Instance, ctx: any)
 			row.sub.TextColor3 = Theme.Warn
 			row.sell.instance.Visible = false
 			row.appraise.instance.Visible = false
+			row.hatch.instance.Visible = false
+		elseif isEgg then
+			local hatchAt = slime.egg.hatchAt
+			local left = if hatchAt then hatchAt - ctx.serverNow() else nil
+			local ready = left ~= nil and left <= 0
+			row.instance.BackgroundColor3 = if ready then Theme.Row:Lerp(Theme.Good, R.favTint) else Theme.Row
+			row.sub.Text = if ready
+				then "🥚 Ready to hatch!"
+				elseif left then `🥚 Hatches in {math.max(1, math.ceil(left / 60))} min`
+				else "🥚 Incubating"
+			row.sub.Font = Theme.FontBody
+			row.sub.TextColor3 = if ready then Theme.Good else Theme.Muted
+			row.sell.instance.Visible = true
+			row.appraise.instance.Visible = false
+			row.hatch.instance.Visible = ready
 		else
+			row.hatch.instance.Visible = false
 			row.instance.BackgroundColor3 = if isFav then Theme.Row:Lerp(Theme.Gold, R.favTint) else Theme.Row
 			row.sub.Text = Format.formatRate(view.income)
 			row.sub.Font = Theme.FontBody
@@ -774,6 +813,9 @@ function Plot.new(parent: Instance, ctx: any)
 		local viewH = math.max(panel.frame.Size.Y.Offset - chrome.header - chrome.pad - head.listY, 0)
 		local entries: { SlimePreview.ListEntry } = {}
 		for _, row in rows.rows do
+			if row.slime.egg then
+				continue -- an egg keeps its colour circle: a slime preview would give away nothing true
+			end
 			table.insert(entries, {
 				viewport = row.preview,
 				slime = row.slime,

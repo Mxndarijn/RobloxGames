@@ -297,7 +297,7 @@ Layout.MONEY = table.freeze({
 -- centred under it. The row's bottom (the pills) sits on the money block's line, level with the hotbar
 -- (`raise` = 0, Merijn 2026-10-19: the old 18 px lift made the icons float above the rest of the bottom row).
 Layout.STATUS = table.freeze({
-	count = 4,
+	count = 4, -- places in the row; HudClusters.status drops the featured Secret when five events run at once
 	slot = 92,
 	cslot = 64,
 	icon = 76,
@@ -334,7 +334,7 @@ Layout.MONEY_TIGHT = table.freeze({
 Layout.STATUS_TIGHT = table.freeze({ slot = 44, icon = 34, label = 15, labelSize = 10, overlap = 5, pillPad = 3 })
 
 -- Slot ids, left to right (HudClusters.STATUS_IDS lists the same). At most STATUS.count show at once.
-Layout.STATUS_SLOTS = table.freeze({ "Shield", "Rain", "Event", "Friend", "Secret" })
+Layout.STATUS_SLOTS = table.freeze({ "Shield", "Rain", "Event", "Friend", "Blessed", "Secret" })
 
 -- One size class of the money block: coin diameter, chip height, chip overlap under the pill, the tab under
 -- the income chip, and how far the coin protrudes above / below the pill (`pad`).

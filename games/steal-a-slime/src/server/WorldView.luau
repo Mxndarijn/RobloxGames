@@ -4,7 +4,9 @@
 
 	Makes workspace match the pure World:
 	  * reconciles slime models against Scene.describe (ModelFactory.build,
-	    wrapped by SlimeMesh for the mesh look; parenting, attributes OwnerUserId / State / Price / DespawnAt, ProximityPrompt,
+	    wrapped by SlimeMesh for the mesh look; Mystery Eggs by Visuals.EggModel with the owner-only HatchPrompt and
+	    the EggKind / EggHatchAt / EggHatchSeconds attributes, rebuilt when the egg hatches; parenting, attributes
+	    OwnerUserId / State / Price / DespawnAt, ProximityPrompt,
 	    pad placement, carry weld, volcano drop, the parade lane walk, a
 	    dropped slime's walk back to the lane and the escape-home glide);
 	  * plot attributes OwnerUserId / LockUntil / Rebirths (CONTRACT.md §5.2);
@@ -32,12 +34,16 @@ local BossWander = require(ReplicatedStorage.Shared.BossWander)
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local EggKind = require(ReplicatedStorage.Shared.EggKind)
+local EggModel = require(ReplicatedStorage.Visuals.EggModel)
 local FallbackWorld = require(script.Parent.FallbackWorld)
 local Fountain = require(ReplicatedStorage.Shared.Fountain)
 local FountainRide = require(ReplicatedStorage.Shared.FountainRide)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local HabitatPads = require(script.Parent.HabitatPads)
+local MeshSwap = require(script.Parent.MeshSwap)
 local PadStyle = require(ReplicatedStorage.Shared.PadStyle)
+local ParadeChoreo = require(ReplicatedStorage.Shared.ParadeChoreo)
 local ParadeLane = require(ReplicatedStorage.Shared.ParadeLane)
 local Perks = require(ReplicatedStorage.Shared.Perks)
 local PlayerData = require(ReplicatedStorage.Shared.PlayerData)
@@ -57,6 +63,7 @@ local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local Scene = require(script.Parent.Scene)
 local SlimeLabelView = require(script.Parent.SlimeLabelView)
 local SlimeMesh = require(script.Parent.SlimeMesh)
+local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
 local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local StackGuard = require(script.Parent.StackGuard)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
@@ -68,6 +75,8 @@ type Record = {
 	model: Model,
 	body: BasePart,
 	prompt: ProximityPrompt,
+	hatch: ProximityPrompt?, -- Mystery Eggs: the owner-only HatchPrompt
+	egg: boolean, -- built as a Mystery Egg (a hatch rebuilds the model as its slime)
 	key: string,
 	weld: WeldConstraint?,
 	rideUntil: number, -- os.clock() when the fountain ride lands (0 = not riding)
@@ -80,6 +89,7 @@ local failed: { [string]: boolean } = {}
 local modelFactory: any = nil
 local plotCache: { [number]: Instance? } = {}
 local habitats = HabitatPads.new() -- FEATURES.Habitats pad state (never saved)
+local eggMeshes: { [string]: MeshPart | false } = {} -- uploaded Mystery Egg meshes (MeshAssets mystery_egg_*), by name
 
 WorldView.FALL_SECONDS = 0.3 -- a dropped slime falls to the ground
 WorldView.CARRY_HEIGHT = 3 -- studs above the HumanoidRootPart
@@ -136,6 +146,18 @@ function WorldView.setup()
 			end,
 		}
 	end
+	-- Uploaded egg meshes (MeshAssets mystery_egg_<kind> / mystery_egg_nest) load in the background; until then (or
+	-- without an upload) EggModel builds the primitive look.
+	task.spawn(function()
+		local names = { "mystery_egg_nest" }
+		for _, kind in EggKind.list() do
+			table.insert(names, `mystery_egg_{kind.id}`)
+		end
+		for _, name in names do
+			local ok, mesh = pcall(MeshSwap.load, name)
+			eggMeshes[name] = if ok and mesh then mesh else false
+		end
+	end)
 	WorldView.setRain(false) -- SlimeRain = false until the first rain
 	if not workspace:FindFirstChild(Constants.WILD_FOLDER) then
 		local folder = Instance.new("Folder")
@@ -330,8 +352,26 @@ local function laneLateral(wild: World.Wild): number
 	return ParadeLane.wildLateral(wild.radius)
 end
 
+-- FEATURES.SlimeChoreo: its lane beats (ParadeChoreo), built once per wild record.
+local plans: { [World.Wild]: ParadeChoreo.Plan } = setmetatable({}, { __mode = "k" }) :: any
+
+-- Studs a lane wild is ahead of (+) or behind (-) its plain lane spot at `now` (0 without a plan).
+local function laneAhead(wild: World.Wild, now: number): number
+	local choreo = wild.choreo
+	if not choreo then
+		return 0
+	end
+	local startAt, seconds, lead = ParadeLane.walkTimes(wild.spawnedAt, wild.expiresAt)
+	local plan = plans[wild]
+	if not plan then
+		plan = ParadeChoreo.plan(choreo.seed, SlimePersona.of(wild.slime.species).temper, seconds, lead)
+		plans[wild] = plan
+	end
+	return ParadeChoreo.offset(plan, now - startAt) * ParadeLane.walkSpeed(wild.expiresAt - wild.spawnedAt)
+end
+
 local function laneCFrame(wild: World.Wild, now: number): CFrame
-	local pose = ParadeLane.pose(wild.spawnedAt, wild.expiresAt, laneLateral(wild), now)
+	local pose = ParadeLane.pose(wild.spawnedAt, wild.expiresAt, laneLateral(wild), now, laneAhead(wild, now))
 	local p, h = pose.position, pose.heading
 	local at = Vector3.new(p[1], p[2], p[3])
 	return CFrame.lookAt(at, at + Vector3.new(h[1], 0, h[2]))
@@ -462,11 +502,35 @@ local function glide(from: CFrame, to: CFrame): (t: number) -> CFrame
 	end
 end
 
-local function create(entry: Scene.Entry, onPrompt: (Player, string) -> ()): Record?
-	if failed[entry.id] or not modelFactory then
+local function setAttr(instance: Instance, name: string, value: any)
+	if instance:GetAttribute(name) ~= value then
+		instance:SetAttribute(name, value)
+	end
+end
+
+local function eggMesh(name: string): MeshPart?
+	local mesh = eggMeshes[name]
+	if mesh == nil or mesh == false then
 		return nil
 	end
-	local ok, model = pcall(modelFactory.build, entry.slime)
+	return mesh :: MeshPart
+end
+
+-- Builds a Mystery Egg model: the uploaded meshes when they loaded, else primitives.
+local function buildEgg(entry: Scene.Entry): Model
+	local kind = (entry.slime.egg :: EggKind.Egg).kind
+	return EggModel.build(entry.id, kind, {
+		shell = eggMesh(`mystery_egg_{kind}`),
+		nest = eggMesh("mystery_egg_nest"),
+	})
+end
+
+local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHatch: (Player, string) -> ()): Record?
+	local isEgg = EggKind.isEgg(entry.slime)
+	if failed[entry.id] or (not modelFactory and not isEgg) then
+		return nil
+	end
+	local ok, model = pcall(if isEgg then buildEgg else modelFactory.build, if isEgg then entry else entry.slime)
 	if not ok or typeof(model) ~= "Instance" or not model:IsA("Model") then
 		failed[entry.id] = true
 		warn(`[Server] ModelFactory.build failed for {entry.id}: {model}`)
@@ -490,7 +554,33 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> ()): Rec
 	prompt.Triggered:Connect(function(player: Player)
 		onPrompt(player, id)
 	end)
-	return { model = model, body = body, prompt = prompt, key = "", weld = nil, rideUntil = 0 }
+	local hatch: ProximityPrompt? = nil
+	if isEgg then
+		local p = Instance.new("ProximityPrompt")
+		p.Name = Constants.HATCH_PROMPT_NAME
+		p.ActionText = "Hatch!"
+		p.ObjectText = Genome.displayName(entry.slime)
+		p.KeyboardKeyCode = Enum.KeyCode.F
+		p.RequiresLineOfSight = false
+		p.HoldDuration = Config.HOLD_CONFIRM_SECONDS
+		p.MaxActivationDistance = Config.STEAL_REACH - 2
+		p.Enabled = false
+		p.Parent = body
+		p.Triggered:Connect(function(player: Player)
+			onHatch(player, id)
+		end)
+		hatch = p
+	end
+	return {
+		model = model,
+		body = body,
+		prompt = prompt,
+		hatch = hatch,
+		egg = isEgg,
+		key = "",
+		weld = nil,
+		rideUntil = 0,
+	}
 end
 
 local function unweld(record: Record)
@@ -519,6 +609,15 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	model:SetAttribute("State", entry.state)
 	model:SetAttribute("Price", entry.price)
 	model:SetAttribute(Constants.BOSS_ATTRIBUTE, if entry.boss then true else nil)
+	-- The lane beats: the client rebuilds the same ParadeChoreo plan from these (contract/slime-life.md).
+	local choreo = if entry.state == "Wild"
+			and entry.wild
+			and entry.wild.position == nil
+		then entry.wild.choreo
+		else nil
+	model:SetAttribute(Constants.CHOREO_SEED_ATTRIBUTE, if choreo then choreo.seed else nil)
+	model:SetAttribute(Constants.LANE_AT_ATTRIBUTE, if choreo and entry.wild then entry.wild.spawnedAt else nil)
+	model:SetAttribute(Constants.LANE_UNTIL_ATTRIBUTE, if choreo and entry.wild then entry.wild.expiresAt else nil)
 	model:SetAttribute(Constants.RARE_ATTRIBUTE, entry.rare)
 
 	if entry.state == "Carried" then
@@ -715,10 +814,16 @@ end
 	Creates, moves and destroys slime models to match the World. Call a few
 	times a second and after any action.
 ]]
-function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player, string) -> ())
+function WorldView.reconcile(
+	world: World.World,
+	now: number,
+	onPrompt: (Player, string) -> (),
+	onHatch: (Player, string) -> ()
+)
 	local entries = Scene.describe(world, now)
 	for id, record in records do
-		if not entries[id] then
+		local entry = entries[id]
+		if not entry or record.egg ~= EggKind.isEgg(entry.slime) then
 			record.model:Destroy()
 			records[id] = nil
 			bossPlans[id] = nil
@@ -728,7 +833,7 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 		local record: Record? = records[id]
 		local isNew = false
 		if not record then
-			record = create(entry, onPrompt)
+			record = create(entry, onPrompt, onHatch)
 			if not record then
 				continue
 			end
@@ -740,9 +845,23 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 		record.prompt.Enabled = entry.promptEnabled
 		record.prompt:SetAttribute(Constants.PROMPT_HIDE_ATTRIBUTE, entry.hideFromUserId)
 		record.prompt.HoldDuration = entry.promptHold
+		if record.egg then
+			local egg = entry.slime.egg :: EggKind.Egg
+			local kind = EggKind.get(egg.kind)
+			setAttr(record.model, Constants.EGG_HATCH_AT_ATTRIBUTE, egg.hatchAt)
+			setAttr(record.model, Constants.EGG_HATCH_SECONDS_ATTRIBUTE, kind and kind.hatchSeconds)
+			EggModel.showNest(record.model, entry.state == "Pad")
+			local hatch = record.hatch
+			if hatch then
+				if hatch.Enabled ~= entry.hatchReady then
+					hatch.Enabled = entry.hatchReady
+				end
+				setAttr(hatch, Constants.PROMPT_OWNER_ATTRIBUTE, entry.ownerUserId)
+			end
+		end
 		-- Every reconcile, not only in place(): the telegraph window opens without a key change.
 		record.model:SetAttribute(Constants.DESPAWN_AT_ATTRIBUTE, entry.despawnAt)
-		SlimeLabelView.applyGrowth(record.model, entry.slime)
+		SlimeLabelView.applyGrowth(record.model, entry.slime, now)
 		if record.key ~= entry.key then
 			local previous = if isNew then nil else record.key
 			record.key = entry.key
@@ -759,7 +878,8 @@ function WorldView.reconcile(world: World.World, now: number, onPrompt: (Player,
 			record.body,
 			entry.slime,
 			entry.income,
-			if entry.state == "Pad" then entry.pad else nil
+			if entry.state == "Pad" then entry.pad else nil,
+			now
 		)
 	end
 	for id in failed do

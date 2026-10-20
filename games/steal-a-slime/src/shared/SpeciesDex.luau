@@ -73,9 +73,10 @@ function SpeciesDex.isSpecies(id: any): boolean
 end
 
 -- Marks the slime's species found. Returns whether the species is new.
-function SpeciesDex.record(data: Data, slime: { species: string? }): boolean
+function SpeciesDex.record(data: Data, slime: { species: string?, egg: any? }): boolean
 	local species = slime.species
-	if not SpeciesDex.isSpecies(species) then
+	-- An unhatched egg is recorded at its hatch (contract/mystery-egg.md).
+	if slime.egg ~= nil or not SpeciesDex.isSpecies(species) then
 		return false
 	end
 	local id = species :: string

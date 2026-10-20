@@ -183,21 +183,22 @@ describe("H1 HUD: HudClusters (pure)", function()
 				modifierEnabled = true,
 				friends = { count = 1, bonus = 0.1 },
 				friendsEnabled = true,
+				blessed = { bonus = 0.3, endsAt = 1179 },
 				weekend = { active = true, multiplier = 2, endsAt = 90000 },
 			} :: any,
-			1000
+			1000,
+			Layout.STATUS.count
 		)
 		local ids = {}
 		for _, slot in slots do
 			table.insert(ids, slot.id)
 		end
-		expect(table.concat(ids, ",")).toBe("Rain,Event,Friend")
+		expect(table.concat(ids, ",")).toBe("Rain,Event,Friend,Blessed")
 		expect(#slots <= Layout.STATUS.count).toBe(true)
 		for _, id in HudClusters.STATUS_IDS do
 			expect(string.lower(id) ~= "weekend").toBe(true)
 		end
 		expect(table.concat(HudClusters.STATUS_IDS, ",")).toBe(table.concat(Layout.STATUS_SLOTS, ","))
-		expect(HudClusters.MAX_SLOTS).toBe(Layout.STATUS.count)
 	end)
 	it("the new-player shield is the first slot with its m:ss countdown, and five things still show four", function()
 		local slots = HudClusters.status(
@@ -210,7 +211,8 @@ describe("H1 HUD: HudClusters (pure)", function()
 				friendsEnabled = true,
 				featuredSecret = { id = "x", name = "Glim", endsAt = 1000 + 3600 },
 			} :: any,
-			1000
+			1000,
+			Layout.STATUS.count
 		)
 		expect(#slots).toBe(Layout.STATUS.count)
 		expect(slots[1].id).toBe("Shield")
@@ -381,6 +383,60 @@ describe("H1 HUD: featured Secret status slot", function()
 		setAttributes()
 	end)
 
+	it("shows the ritual's Blessed boost with its time left, and nothing once it ends", function()
+		local blessed = HudClusters.blessed({ bonus = 0.3, endsAt = 1179 }, 1000) :: HudClusters.Slot
+		expect(blessed.text).toBe("2:59")
+		expect(blessed.icon).toBe("Boost_Blessed")
+		expect(blessed.kind).toBe("active")
+		local tip = HudClusters.tooltip(blessed)
+		expect(tip.title).toBe("Blessed")
+		expect(tip.body).toBe("+30% income from the Slime Ritual.")
+		expect(tip.time).toBe("Time left: 2:59")
+		expect(HudClusters.blessed(nil, 1000)).toBeNil()
+		expect(HudClusters.blessed({ bonus = 0.3, endsAt = 1000 }, 1000)).toBeNil()
+		expect(HudClusters.blessed({ bonus = 0, endsAt = 2000 }, 1000)).toBeNil()
+		expect(HudClusters.blessed({ bonus = 0.3, endsAt = 0 / 0 } :: any, 1000)).toBeNil()
+	end)
+
+	it("with all five events running, the featured Secret makes way for the row's four places", function()
+		local all = {
+			rain = { active = true, endsAt = 1097 },
+			modifier = { name = "Admin_luck", label = "Luck", luck = 3, endsAt = 1540 },
+			modifierEnabled = true,
+			friends = { count = 1, bonus = 0.1 },
+			friendsEnabled = true,
+			blessed = { bonus = 0.3, endsAt = 1179 },
+			featuredSecret = FEATURED,
+		}
+		local function ids(input: any): string
+			local out = {}
+			for _, s in HudClusters.status(input, 1000, Layout.STATUS.count) do
+				table.insert(out, s.id)
+			end
+			return table.concat(out, ",")
+		end
+		expect(ids(all)).toBe("Rain,Event,Friend,Blessed")
+		all.blessed = nil
+		expect(ids(all)).toBe("Rain,Event,Friend,Secret")
+	end)
+
+	it("the mounted Blessed slot sits between the friend boost and the featured Secret", function()
+		local hud, gui = mount(1920, 1080)
+		hud.update(state({
+			blessed = { bonus = 0.3, endsAt = 1179 },
+			featuredSecret = FEATURED,
+			friends = { count = 1, bonus = 0.1 },
+		}))
+		local blessed = slot(gui, "Blessed")
+		expect(blessed.Visible).toBe(true)
+		expect(UiHarness.find(blessed, "Timer").Text).toBe("2:59")
+		expect(UiHarness.find(blessed, "Icon"):GetAttribute("ItemId")).toBe(HudClusters.ICONS.Blessed)
+		expect(slot(gui, "Friend").Position.X.Offset < blessed.Position.X.Offset).toBe(true)
+		expect(blessed.Position.X.Offset < slot(gui, "Secret").Position.X.Offset).toBe(true)
+		hud.update(state({ featuredSecret = FEATURED }))
+		expect(blessed.Visible).toBe(false)
+	end)
+
 	it("hover shows the featured Secret tooltip", function()
 		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
 		local hud, gui = mount(1920, 1080)
@@ -403,10 +459,11 @@ describe("H1 HUD: featured Secret status slot", function()
 				hud.update(state({
 					featuredSecret = { id = "o", name = "Origami", endsAt = 1000 + 6 * 86400 + 23 * 3600 },
 					friends = { count = 20, bonus = 1 },
+					blessed = { bonus = 0.3, endsAt = 1000 + 179 },
 				}))
 				local sm = Layout.statusMetrics(screen.compact, screen.tight)
 				local check = LayoutAssert.new(vp.name, screen)
-				for _, id in { "Rain", "Friend", "Secret" } do
+				for _, id in { "Rain", "Friend", "Blessed", "Secret" } do
 					local frame = slot(gui, id)
 					local pill = UiHarness.find(frame, "Timer")
 					expect(`{id} anchor {pill.AnchorPoint.X} at {pill.Position.X.Scale}`).toBe(`{id} anchor 0.5 at 0.5`)
@@ -438,10 +495,10 @@ describe("H1 HUD: featured Secret status slot", function()
 		expect(Layout.statusMetrics(false).icon > Layout.MONEY.chip).toBe(true)
 	end)
 
-	it("all four events fit at once at every gate size: inside the row, none overlapping", function()
+	it("a full row of events fits at every gate size: inside the row, none overlapping", function()
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
 			local s = Layout.screen(vp.w, vp.h)
-			expect(#s.status.slots).toBe(HudClusters.MAX_SLOTS)
+			expect(#s.status.slots).toBe(Layout.STATUS.count)
 			local check = LayoutAssert.new(vp.name, s)
 			LayoutAssert.clusterChecks(check)
 			expect(check.report()).toBe("")
@@ -574,6 +631,7 @@ describe("H1 HUD: Studio hooks keep working", function()
 				"PcwStealAlert",
 				"PcwWelcome",
 				"PcwRain",
+				"PcwBlessed",
 				"PcwOpen",
 				"PcwTooltip",
 			}

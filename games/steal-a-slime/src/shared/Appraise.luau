@@ -48,6 +48,9 @@ function Appraise.reroll(
 	if not slime then
 		return false, "not your slime"
 	end
+	if slime.egg then
+		return false, "hatch the egg first"
+	end
 	if kind ~= "size" then
 		return false, "bad argument"
 	end

@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Constants = require(ReplicatedStorage.Shared.Constants)
+local EggKind = require(ReplicatedStorage.Shared.EggKind)
 local Genome = require(ReplicatedStorage.Shared.Genome)
 local Growth = require(ReplicatedStorage.Shared.Growth)
 local SlimeLabel = require(ReplicatedStorage.Shared.SlimeLabel)
@@ -38,8 +39,13 @@ local function setIfChanged(model: Model, name: string, value: any)
 	end
 end
 
--- Scales the model when its whole growth percent changes (model attribute Growth).
-function SlimeLabelView.applyGrowth(model: Model, slime: Genome.Slime)
+-- Scales the model when its whole growth percent changes (model attribute Growth). A Mystery Egg never scales: its
+-- Growth is the incubation progress at server time `now`, so the pad sign's bar fills up to the hatch.
+function SlimeLabelView.applyGrowth(model: Model, slime: Genome.Slime, now: number)
+	if slime.egg then
+		setIfChanged(model, Constants.GROWTH_ATTRIBUTE, math.floor(EggKind.progress(slime, now) * 100))
+		return
+	end
 	local percent = SlimeLabelView.percentFor(model, slime)
 	if model:GetAttribute(Constants.GROWTH_ATTRIBUTE) == percent then
 		return
@@ -48,10 +54,18 @@ function SlimeLabelView.applyGrowth(model: Model, slime: Genome.Slime)
 	model:ScaleTo(Growth.scaleAt(percent / 100))
 end
 
--- Name, tier, income and the pad it rests on (nil off a pad); LabelHeight is re-measured after any scale change
--- (growth, boss scale).
-function SlimeLabelView.apply(model: Model, body: BasePart, slime: Genome.Slime, incomePerSec: number, pad: number?)
+-- Name, tier, income, a Mystery Egg's status row (at server time `now`) and the pad it rests on (nil off a pad);
+-- LabelHeight is re-measured after any scale change (growth, boss scale).
+function SlimeLabelView.apply(
+	model: Model,
+	body: BasePart,
+	slime: Genome.Slime,
+	incomePerSec: number,
+	pad: number?,
+	now: number
+)
 	local name, tier = SlimeLabel.attributes(slime)
+	setIfChanged(model, Constants.LABEL_STATUS_ATTRIBUTE, SlimeLabel.eggStatus(slime, now))
 	setIfChanged(model, Constants.LABEL_NAME_ATTRIBUTE, name)
 	setIfChanged(model, Constants.LABEL_TIER_ATTRIBUTE, tier)
 	setIfChanged(model, Constants.LABEL_PAD_ATTRIBUTE, pad)

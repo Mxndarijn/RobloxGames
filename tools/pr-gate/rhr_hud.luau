@@ -144,7 +144,8 @@ end
 local manifest = { topbar = TOPBAR, cases = {} }
 local Z = Layout.ZINDEX
 
--- The four status slots as a running game shows them (rain, luck event, friend boost, featured Secret).
+-- A full status row as a running game shows it (rain, luck event, friend boost, Blessed; the featured Secret
+-- makes way when all five run).
 local NOW = 1000
 local SLOTS = HudClusters.status({
 	rain = { active = true, endsAt = NOW + 97 },
@@ -152,8 +153,9 @@ local SLOTS = HudClusters.status({
 	modifierEnabled = true,
 	friends = { count = 1, bonus = 0.1 },
 	friendsEnabled = true,
+	blessed = { bonus = 0.3, endsAt = NOW + 179 },
 	featuredSecret = { id = "origami", name = "Origami", endsAt = NOW + 4 * 3600 + 6 * 60 },
-}, NOW)
+}, NOW, Layout.STATUS.count)
 
 local function buildCase(vp: { name: string, w: number, h: number }, tooltipSlot: number?)
 	local gw, gh = vp.w, vp.h - TOPBAR

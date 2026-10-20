@@ -60,7 +60,7 @@ end
 
 -- Grows one slime by `seconds` of pad time. Returns true if it changed.
 function Growth.advance(slime: Slime, seconds: number): boolean
-	if not Growth.enabled() or seconds ~= seconds or seconds <= 0 then
+	if not Growth.enabled() or seconds ~= seconds or seconds <= 0 or slime.egg then
 		return false
 	end
 	local before = Genome.growthFraction(slime)

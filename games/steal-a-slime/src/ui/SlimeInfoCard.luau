@@ -206,6 +206,7 @@ function SlimeInfoCard.read(model: Instance): SlimeLabel.Attributes
 		growth = model:GetAttribute(a.growth),
 		boss = model:GetAttribute(a.boss),
 		pad = model:GetAttribute(a.pad),
+		status = model:GetAttribute(a.status),
 	}
 end
 

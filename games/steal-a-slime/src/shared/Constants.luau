@@ -83,12 +83,20 @@ return table.freeze({
 	PLOT_PRICE_ATTRIBUTE = "PlotPrice", -- Plot_<i>: reserved; nil while plots are free (v13)
 	RARE_ATTRIBUTE = "RareSpawn", -- wild slime model: tier, only on Legendary+ drops
 	RIDING_ATTRIBUTE = "Riding", -- wild slime model: true while it rides the fountain slide (emerge to landing / lane entry), else nil
+	CHOREO_SEED_ATTRIBUTE = "ChoreoSeed", -- lane wild model: ParadeChoreo seed of its lane beats (FEATURES.SlimeChoreo); nil off the lane
+	LANE_AT_ATTRIBUTE = "LaneAt", -- lane wild model: server time it spawned (wild.spawnedAt), with ChoreoSeed
+	LANE_UNTIL_ATTRIBUTE = "LaneUntil", -- lane wild model: server time it drains (wild.expiresAt), with ChoreoSeed
 	-- wild slime model: server time it despawns; nil outside the telegraph window / FEATURES.DespawnTelegraph off
 	DESPAWN_AT_ATTRIBUTE = "DespawnAt",
 	GROWTH_ATTRIBUTE = "Growth", -- slime model: whole percent 0..100 (FEATURES.GrowingSlimes)
 	LABEL_NAME_ATTRIBUTE = "LabelName", -- slime model: species name for its label (contract/slime-labels.md)
 	LABEL_TIER_ATTRIBUTE = "LabelTier", -- slime model: Config.RARITIES tier
 	LABEL_INCOME_ATTRIBUTE = "LabelIncome", -- slime model: cash per second of this slime
+	LABEL_STATUS_ATTRIBUTE = "LabelStatus", -- slime model: text that replaces the income row (a Mystery Egg's hatch countdown), else nil
+	EGG_KIND_ATTRIBUTE = "EggKind", -- Mystery Egg model: Config.MYSTERY_EGG.KINDS id (contract/mystery-egg.md)
+	EGG_HATCH_AT_ATTRIBUTE = "EggHatchAt", -- Mystery Egg model: server time it is ready; nil while not incubating
+	EGG_HATCH_SECONDS_ATTRIBUTE = "EggHatchSeconds", -- Mystery Egg model: its kind's full incubation time
+	HATCH_PROMPT_NAME = "HatchPrompt", -- owner-only ProximityPrompt on a ready Mystery Egg
 	LABEL_PAD_ATTRIBUTE = "LabelPad", -- slime model: pad index while it rests on a pad (the label is the pad sign), else nil
 	LABEL_HEIGHT_ATTRIBUTE = "LabelHeight", -- slime model: studs from the Body centre to the card's bottom edge
 	GROWTH_OVERRIDE_ATTRIBUTE = "PcwGrowth", -- slime model: Studio-only whole percent shown instead of the real growth (pc-watcher shot)

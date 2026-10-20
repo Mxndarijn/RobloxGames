@@ -18,6 +18,7 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local DespawnTelegraph = if Shared then require(Shared.DespawnTelegraph) else require("../shared/DespawnTelegraph")
+local EggKind = if Shared then require(Shared.EggKind) else require("../shared/EggKind")
 local Economy = if Shared then require(Shared.Economy) else require("../shared/Economy")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
 local PlayerData = if Shared then require(Shared.PlayerData) else require("../shared/PlayerData")
@@ -48,6 +49,7 @@ export type Entry = {
 	bossScale: number?, -- model scale of the fighting boss (Config.BOSS.SCALE); nil = 1
 	rare: number?, -- tier of an announced Legendary+ wild drop (model attribute RareSpawn)
 	despawnAt: number?, -- uncarried wild only, inside the telegraph window (model attribute DespawnAt)
+	hatchReady: boolean, -- a ready Mystery Egg resting on its owner's pad: the owner-only HatchPrompt is on
 	key: string, -- changes whenever the model must be re-placed
 }
 
@@ -89,6 +91,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 					Config.DESPAWN_TELEGRAPH_SECONDS,
 					Config.FEATURES.DespawnTelegraph
 				),
+			hatchReady = false,
 			key = `{state}|{carrier or 0}|{wild.position ~= nil}|{wild.spawnedAt}|{bossScale or 1}`,
 		}
 	end
@@ -120,6 +123,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 				bossScale = nil,
 				rare = nil,
 				despawnAt = nil,
+				hatchReady = state == "Pad" and EggKind.isReady(slime, now),
 				key = `{state}|{carrier or 0}|{session.plotIndex}|{slime.pad or 0}`,
 			}
 		end

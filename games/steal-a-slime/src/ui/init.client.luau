@@ -516,6 +516,22 @@ local function forceWeekend(state: any): any
 	return view
 end
 
+-- Studio-only: the SlimeUI attribute "PcwBlessed" = true fakes the ritual's Blessed boost (State.blessed, 179 s
+-- left from the first read) for the bottom-right status slot.
+local forcedBlessedEndsAt: number? = nil
+local function forceBlessed(state: any): any
+	if not isStudio or gui:GetAttribute("PcwBlessed") ~= true or type(state.serverTime) ~= "number" then
+		forcedBlessedEndsAt = nil
+		return state
+	end
+	if forcedBlessedEndsAt == nil or forcedBlessedEndsAt < state.serverTime then
+		forcedBlessedEndsAt = state.serverTime + 179
+	end
+	local view = table.clone(state)
+	view.blessed = { bonus = Config.RITUAL.BONUS[Config.RITUAL.MIN_PLAYERS], endsAt = forcedBlessedEndsAt }
+	return view
+end
+
 -- Studio-only: the SlimeUI attribute "PcwDexRows" = N marks the first N State.dex entries found (named)
 -- so the Dex grid can be shot with found cards and silhouettes side by side.
 local function forceDex(state: any): any
@@ -997,7 +1013,7 @@ end
 
 local function render(realState: Types.State)
 	local state: Types.State =
-		forceWelcome(forceStealAlert(forceDex(forceWeekend(forceAdminEvent(forceFriends(realState))))))
+		forceWelcome(forceStealAlert(forceDex(forceWeekend(forceBlessed(forceAdminEvent(forceFriends(realState)))))))
 	hud.update(state)
 	inventory.update(state)
 	stealFx.update(state)
@@ -1028,6 +1044,7 @@ if isStudio then
 			"PcwMergeVat",
 			"PcwWelcome",
 			"PcwRain",
+			"PcwBlessed",
 		}
 	do
 		gui:GetAttributeChangedSignal(attribute):Connect(function()

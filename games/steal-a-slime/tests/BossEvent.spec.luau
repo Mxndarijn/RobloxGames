@@ -1,6 +1,6 @@
 --!strict
 -- The boss event over World (src/server/BossEvent.luau, contract/boss-event.md): the schedule and its Slime Rain skip,
--- the rotation, the boss in the plaza, sheds, helper eggs, the haul through Carry, the trophy, the burst and State.boss.
+-- the rotation, the boss in the plaza, sheds, the haul through Carry, the trophy, the burst and State.boss.
 local BossEvent = require("../src/server/BossEvent")
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
@@ -190,17 +190,17 @@ describe("BossEvent fight", function()
 end)
 
 describe("BossEvent haul", function()
-	it("helpers with HELPER_SHARE of the top contribution get a free egg; others don't", function()
+	it("filling the meter hands out nothing: no egg, no slime for the helpers", function()
 		local w = world(3)
 		arrive(w)
 		local t = T0 + BOSS.WARNING_SECONDS
-		BossEvent.hit(w, w.sessions[3], t) -- 1 hit: below HELPER_SHARE of the top
+		BossEvent.hit(w, w.sessions[3], t)
 		fill(w, 1, 2)
 		expect(w.boss.fight.phase).toBe("haul")
-		expect(#w.sessions[1].data.slimes).toBe(1)
-		expect(#w.sessions[2].data.slimes).toBe(1)
-		expect(#w.sessions[3].data.slimes).toBe(0)
-		expect(w.sessions[1].egg ~= nil).toBe(true)
+		for userId = 1, 3 do
+			expect(#w.sessions[userId].data.slimes).toBe(0)
+			expect(w.sessions[userId].egg).toBeNil()
+		end
 	end)
 	it("pops to carry size; the top contributor grabs first, then anyone", function()
 		local w = world()
