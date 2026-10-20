@@ -4,4 +4,4 @@
 
 - **Rule (`Config.PET_PASSIVES`, `Perks.petPassive`):** the favourite slime's tier picks the kind (`KIND_BY_TIER`: income, income, luck, luck, income, luck, luck); value = `tier * perTier`, capped per kind (income 8%, luck 6%). No favourite (or not owned) = no perk; changing or clearing the favourite changes it on the next snapshot.
 - **Effects:** income is a factor of `Perks.bonusMultiplier` (so `incomePerSecond`, `slimeIncome`, offline income); luck is added to `Perks.luckChance` (rarity-up on deposit, `Carry`).
-- **State / UI:** `State.petPerk? = { kind, value, icon, text }`; the My Plot panel shows a chip (`🍀 +3% luck`) under the favourite's row (row grows from 56 to 80 px). Glyphs are existing emoji (supplementary plane, already allowed).
+- **State / UI:** `State.petPerk? = { kind, value, icon, text }`; the favourite's Favorite prompt at its pad (`src/ui/SlimeKeys`) shows it (`🍀 +3% luck`). Glyphs are existing emoji (supplementary plane, already allowed).
