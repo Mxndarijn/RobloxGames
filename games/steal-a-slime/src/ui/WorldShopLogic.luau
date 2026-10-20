@@ -236,7 +236,8 @@ local function consumableRow(shopId: string, item: Shops.Item, state: any, actio
 	})
 end
 
--- PvP tools (FEATURES.PvP): owned / rank gate from State.pvp, price from PvpRules.price.
+-- PvP tools (FEATURES.PvP): owned / rank gate from State.pvp, price from PvpRules.price. A Goo Trap is a stack of
+-- charges (State.pvp.charges): buyable until Config.PVP.TRAP_MAX_HELD, with the "2/5 held" tag.
 local function pvpRow(shopId: string, item: Shops.Item, state: any, actions: any, config: any): Row?
 	local tool: any = nil
 	for _, t in config.PVP_TOOLS do
@@ -250,13 +251,20 @@ local function pvpRow(shopId: string, item: Shops.Item, state: any, actions: any
 	local pvp = if type(state) == "table" then state.pvp else nil
 	local rank = if type(pvp) == "table" and type(pvp.rank) == "number" then pvp.rank else 0
 	local owned = type(pvp) == "table" and type(pvp.owned) == "table" and pvp.owned[item.id] == true
+	local stack = PvpRules.usesCharges(tool)
+	local held = 0
+	if stack and type(pvp) == "table" and type(pvp.charges) == "table" and type(pvp.charges[item.id]) == "number" then
+		held = pvp.charges[item.id]
+	end
 	local price = PvpRules.price(item.id)
 	local kind: Status = "buy"
 	local buttonText = Format.formatCash(price)
 	local enabled = cashOf(state) >= price
 	if actions.BuyPvpItem == nil then
 		kind, buttonText, enabled = "unavailable", "Coming soon", false
-	elseif owned then
+	elseif stack and held >= config.PVP.TRAP_MAX_HELD then
+		kind, buttonText, enabled = "maxed", "Full", false
+	elseif owned and not stack then
 		kind, buttonText, enabled = "owned", "Owned", false
 	elseif rank < tool.rebirths then
 		kind, buttonText, enabled = "locked", `Rebirth {tool.rebirths}`, false
@@ -268,6 +276,7 @@ local function pvpRow(shopId: string, item: Shops.Item, state: any, actions: any
 		enabled = enabled,
 		buttonText = buttonText,
 		levelText = nil,
+		stockText = if stack then `{held}/{config.PVP.TRAP_MAX_HELD} held` else nil,
 		price = price,
 	})
 end

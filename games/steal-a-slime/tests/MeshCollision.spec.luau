@@ -10,6 +10,7 @@ local roblox = require("@lune/roblox")
 
 local Config = require("../src/shared/Config")
 local MeshAssets = require("../src/shared/MeshAssets")
+local PvpModels = require("../src/shared/PvpModels")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
 
@@ -186,8 +187,6 @@ local DECOR = {
 	plot_skin_mushroom = "client-cloned plot skin template, not a world slot",
 	plot_skin_candy = "client-cloned plot skin template, not a world slot",
 	plot_skin_crystal = "client-cloned plot skin template, not a world slot",
-	fountain_tier_ring = "client-cloned tier decor, floats over the fountain",
-	fountain_tier_crest = "client-cloned tier decor, floats over the fountain",
 	pet_cloud = "follow pet cloud (published by MeshSwap, cloned by client FollowPets): CanCollide false, never placed in the world",
 	ranch_bat = "held Tool Handle mesh (Tool 'Bat'): CanCollide false, never placed in the world",
 	giant_broadleaf = "border tree beyond the world wall ring, out of reach, canopy overhead",
@@ -198,6 +197,9 @@ local DECOR = {
 	giant_cloud_tree = "border tree beyond the world wall ring, out of reach, canopy overhead",
 	slime_lane = "the goo parade lane: a 0.43 stud flat strip players walk over",
 }
+for _, name in PvpModels.MESHES do
+	DECOR[name] = "held PvP item (server/PvpHeld): CanCollide false, never placed in the world"
+end
 for _, group in
 	{
 		"ranch_border_", -- the world border pieces: beyond the invisible wall ring (WorldBorder), out of reach

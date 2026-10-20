@@ -80,7 +80,7 @@ for s = 0, ParadeLane.LENGTH, 0.25 do
 end
 -- Distance along the lane where it turns in towards the drain: the smoothed route eases onto the drain's curb over its
 -- last few studs (it used to turn in at the last r 68 waypoint); before that it keeps the box clear.
-local TURN_IN = ParadeLane.LENGTH - 4.5
+local TURN_IN = ParadeLane.LENGTH - 5 -- heading straight for the drain, it comes 1 stud closer per stud walked
 
 describe("ParadeLane timing: lane position is time left", function()
 	it("progress = 1 - time left / lifetime, for any lifetime", function()
@@ -652,7 +652,7 @@ describe("ParadeLane in the live server", function()
 		-- bug 4: once the uploaded slime_lane mesh loads it replaces the strip stand-ins (one MeshPart)
 		local isMesh = #parts == 1 and parts[1]:IsA("MeshPart")
 		if not isMesh then
-			expect(#parts).toBe(#ParadeLane.drawPoints() - 1)
+			expect(#parts).toBe(#ParadeLane.strips())
 		end
 		for _, part in parts do
 			expect(part.Anchored).toBe(true)

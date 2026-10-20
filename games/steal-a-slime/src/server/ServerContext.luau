@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Actions = require(script.Parent.Actions)
 local PlotPadGuard = require(script.Parent.PlotPadGuard)
+local PvpFunView = require(script.Parent.PvpFunView)
 local PvpLaunch = require(script.Parent.PvpLaunch)
 local Rng = require(ReplicatedStorage.Shared.Rng)
 local ShopGuard = require(script.Parent.ShopGuard)
@@ -22,6 +23,8 @@ local WorldProps = require(script.Parent.WorldProps)
 local WorldView = require(script.Parent.WorldView)
 
 local ServerContext = {}
+
+ServerContext.GROUND_PROBE = 60 -- studs: how far below a Goo Blaster blob's end its splat looks for the ground
 
 local function rootOf(userId: number): BasePart?
 	return WorldView.rootPart(Players:GetPlayerByUserId(userId))
@@ -94,12 +97,31 @@ function ServerContext.new(world: World.World, shopEvent: RemoteEvent, now: () -
 			local p = root.Position
 			return { X = p.X, Y = p.Y, Z = p.Z }, { X = look.X, Y = 0, Z = look.Z }
 		end,
+		-- Bubble Wand lift (CONTRACT.md §26.8): the bubble part, its float and its pop click.
+		funBubble = function(userId: number, seconds: number, lift: number, onPop): boolean
+			return PvpFunView.bubble(rootOf(userId), userId, seconds, lift, onPop, now)
+		end,
 		toVector3 = function(position)
 			return Vector3.new(position.X, position.Y, position.Z)
 		end,
 		slimePosition = function(slimeId: string)
 			local p = WorldView.slimePosition(slimeId)
 			return p and { X = p.X, Y = p.Y, Z = p.Z }
+		end,
+		-- Goo Blaster splats: the first solid surface up to GROUND_PROBE studs below the blob's end (characters ignored).
+		groundBelow = function(point)
+			local params = RaycastParams.new()
+			params.FilterType = Enum.RaycastFilterType.Exclude
+			local characters = {}
+			for _, player in Players:GetPlayers() do
+				if player.Character then
+					table.insert(characters, player.Character)
+				end
+			end
+			params.FilterDescendantsInstances = characters
+			local origin = Vector3.new(point.X, point.Y + 1, point.Z)
+			local hit = workspace:Raycast(origin, Vector3.new(0, -ServerContext.GROUND_PROBE, 0), params)
+			return hit and { X = hit.Position.X, Y = hit.Position.Y, Z = hit.Position.Z }
 		end,
 	}
 end

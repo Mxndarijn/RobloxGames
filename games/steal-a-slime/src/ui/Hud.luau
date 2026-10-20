@@ -576,6 +576,7 @@ function Hud.new(parent: Instance, ctx: any)
 			friendsEnabled = ctx.Config.FEATURES.FriendBonus == true,
 			blessed = current.blessed,
 			featuredSecret = current.featuredSecret,
+			shieldUntil = if ctx.shieldUntil then ctx.shieldUntil() else nil,
 		}, now, Layout.STATUS.count)
 		local parts = {}
 		for _, slot in slots do
@@ -621,7 +622,7 @@ function Hud.new(parent: Instance, ctx: any)
 		end
 	end
 
-	-- Studio only (PC watcher shot): opens the tooltip of a status slot id ("Rain" | "Event" | "Friend" | "Blessed" | "Secret"); nil closes.
+	-- Studio only (PC watcher shot): opens the tooltip of a status slot id (HudClusters.STATUS_IDS); nil closes.
 	function self.showTooltip(id: string?)
 		setTooltip(id)
 	end

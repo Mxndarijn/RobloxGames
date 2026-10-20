@@ -40,6 +40,12 @@
 	inside Visuals.PropClearance's keep-clear rings (landing band r 34-62,
 	lane / gate posts r 62.25-73.75), so kit props stay off it.
 
+	Width (halfWidthAt): HALF_WIDTH round the loop, easing smoothly down to
+	END_HALF_WIDTH over the last TAPER_LENGTH studs before the goo drain's
+	curb, so the lane's end can be cut onto the curb circle (r 4.4). The
+	tightest spots for CLEARANCE are the ring path beside the r 68 runs and
+	the ~12.4-stud gap between the landing ring and the spawn pad (about 6.2).
+
 	Readability of the despawn telegraph (DespawnTelegraphFx):
 	the warning window (DESPAWN_TELEGRAPH_SECONDS) starts while the slime is
 	still walking the lane next to the drain (WARN_SECONDS > DRAIN_SECONDS)
@@ -77,9 +83,13 @@ export type Pose = {
 
 local ParadeLane = {}
 
-ParadeLane.LANE_RADIUS = 68 -- FOUNTAIN_SIZES goo-parade centreline (PropClearance keeps r 64.75-71.25 clear)
-ParadeLane.HALF_WIDTH = 3.25 -- kit lane incl. edging: 6.5 studs wide
-ParadeLane.SPREAD = 3 -- slimes walk up to SPREAD / 2 either side of the centreline (from their Fountain.roll radius)
+ParadeLane.LANE_RADIUS = 68 -- FOUNTAIN_SIZES goo-parade centreline (PropClearance keeps r 62.25-73.75 clear)
+ParadeLane.HALF_WIDTH = 5 -- kit lane incl. edging: 10 studs wide round the loop
+ParadeLane.END_HALF_WIDTH = 4.2 -- at the goo drain's curb (r 4.4): narrower, so the end is cut onto the curb circle
+ParadeLane.TAPER_LENGTH = 8 -- studs before the curb over which the width eases from HALF_WIDTH to END_HALF_WIDTH
+ParadeLane.SPREAD = 4 -- slimes walk up to SPREAD / 2 either side of the centreline (from their Fountain.roll radius)
+-- Studs from the outermost walking line to the lane edge: the room a slime's zig-zag hops and sniffs lean into.
+ParadeLane.ROOM = ParadeLane.HALF_WIDTH - ParadeLane.SPREAD / 2
 ParadeLane.SLIME_RADIUS = Config.SLIME_BASE_DIAMETER * Config.MAX_SIZE / 2 -- the biggest slime
 ParadeLane.MARGIN = 1
 -- Air from the centreline to any prop: the lane edge or the widest slime, whichever is further, + MARGIN.
@@ -88,7 +98,7 @@ ParadeLane.CLEARANCE = math.max(ParadeLane.HALF_WIDTH, ParadeLane.SPREAD / 2 + P
 ParadeLane.LANE_Y = 0.35 -- top of the goo strip (ParadeView); slime pivots stand on it
 -- The goo strip is drawn with as few straight Parts as stay within this many studs of the route
 -- (stripPoints); the 2.5° route steps are far finer than the eye needs. Visual only.
-ParadeLane.STRIP_TOLERANCE = 0.1
+ParadeLane.STRIP_TOLERANCE = 0.12
 ParadeLane.LEAD_TOLERANCE = 0.2 -- the lead-in from the mouth and ENTRY's bend out to r 68 curve hardest: finer, so their corners stay soft
 -- Emerge + slide: the slime leaves the slide mouth at FountainRide's slideEndsAt (5.92 s) and walks on at once, no
 -- idle wait and no separate glide to the lane (tests/ParadeLane.spec keeps this within 0.25 s above it).
@@ -116,8 +126,8 @@ local CONTROLS: { { number } } = {
 	{ 124, 50 }, -- ENTRY: where the ride lands, just past the landing-ring gap, on the mouth's run-out line
 	{ 146, 68 },
 	{ 170, 68 },
-	{ 186, 49.8 }, -- inside the hub SpawnLocation (12 x 12 at r 64, 202.5°)
-	{ 219, 49.8 },
+	{ 186, 50.3 }, -- between the landing ring and the hub SpawnLocation (12 x 12 at r 64, 202.5°), centred in the gap between them
+	{ 219, 50.3 },
 	{ 235, 68 },
 	{ 262, 68 },
 	{ 276, 56 }, -- inside the podiums (285°-300°) and the signpost (337.5°)
@@ -360,13 +370,28 @@ function ParadeLane.drawPoints(): { { number } }
 	return out
 end
 
+-- Half width of the lane at (x, z): HALF_WIDTH, easing (smoothstep) down to END_HALF_WIDTH over the last
+-- TAPER_LENGTH studs before the goo drain's curb (ParadeLane.DRAIN, lipRadius). The mesh (models/slime_lane.py, from
+-- tools/render/lane_centreline) uses the same rule.
+function ParadeLane.halfWidthAt(x: number, z: number): number
+	local d = ParadeLane.DRAIN
+	local gap = math.sqrt((x - d.x) ^ 2 + (z - d.z) ^ 2) - d.lipRadius
+	local u = math.clamp(gap / ParadeLane.TAPER_LENGTH, 0, 1)
+	return ParadeLane.END_HALF_WIDTH + (ParadeLane.HALF_WIDTH - ParadeLane.END_HALF_WIDTH) * (u * u * (3 - 2 * u))
+end
+
 -- The goo channel ParadeView lays: { name, size = {x, y, z}, cf = CFrame components, length, width }, one
--- Cylinder per segment of drawPoints(), lying along the lane (its X axis). The cylinder is wide (CROWN_RADIUS)
--- and sunk so only its crown shows: the top is LANE_Y on the centreline and falls away to the ground at +-HALF_WIDTH,
--- a soft rounded edge with no step. Each piece is lengthened at a bend by HALF_WIDTH * tan(turn / 2) so the outer
--- edge runs to the mitre point and neighbours meet with no gap; at the small angle steps of the route the two
--- crowns coincide at the joint, so it does not show. `length` x `width` is the footprint on the ground.
-ParadeLane.CROWN_RADIUS = (ParadeLane.HALF_WIDTH ^ 2 + ParadeLane.LANE_Y ^ 2) / (2 * ParadeLane.LANE_Y)
+-- Cylinder per segment of drawPoints(), lying along the lane (its X axis). The cylinder is wide (crownRadius)
+-- and sunk so only its crown shows: the top is LANE_Y on the centreline and falls away to the ground at +-its half
+-- width, a soft rounded edge with no step. Each piece is lengthened at a bend by its half width * tan(turn / 2) so the
+-- outer edge runs to the mitre point and neighbours meet with no gap; at the small angle steps of the route the two
+-- crowns coincide at the joint, so it does not show. In the taper before the drain the segments are cut into
+-- pieces of TAPER_PIECE studs or more, each as wide as halfWidthAt its middle. `length` x `width` is the footprint on the ground.
+function ParadeLane.crownRadius(halfWidth: number): number
+	return (halfWidth ^ 2 + ParadeLane.LANE_Y ^ 2) / (2 * ParadeLane.LANE_Y)
+end
+ParadeLane.CROWN_RADIUS = ParadeLane.crownRadius(ParadeLane.HALF_WIDTH)
+ParadeLane.TAPER_PIECE = 2
 -- Every other piece stands STRIP_STEP higher: where two crowns overlap at a joint they would otherwise be the same
 -- surface twice and z-fight (bands across the lane); the higher one simply wins, a 0.02 step nobody can see.
 ParadeLane.STRIP_STEP = 0.02
@@ -374,20 +399,40 @@ ParadeLane.STRIP_STEP = 0.02
 ParadeLane.JOIN_OVERLAP = 0.1
 -- The lane as one mesh (MeshAssets "slime_lane", models/slime_lane.py): the MeshPart's centre (the mesh's bbox
 -- centre, world studs; out/slime_lane_pivot.json), laid like a MeshSwap slot (turned MeshAssets.IMPORT_YAW).
--- Its crown is LANE_Y, its edges sit EDGE_Y (under the ground), its width is 2 * HALF_WIDTH.
+-- Its crown is LANE_Y, its edges sit EDGE_Y (under the ground), its width is 2 * halfWidthAt.
 ParadeLane.MESH = "slime_lane"
-ParadeLane.MESH_PIVOT = table.freeze({ 0.472784, 0.135, -1.707947 })
+ParadeLane.MESH_PIVOT = table.freeze({ 0.46311, 0.135, -1.711067 })
 ParadeLane.EDGE_Y = -0.05
 ParadeLane.COLOR = table.freeze({ 140, 222, 200 }) -- the slide's water
-function ParadeLane.strips(): { any }
+
+-- drawPoints() with the segments in the taper cut into pieces of TAPER_PIECE studs or more.
+local function stripPointsTapered(): { { number } }
 	local pts = ParadeLane.drawPoints()
-	local hw = ParadeLane.HALF_WIDTH
+	local out: { { number } } = { pts[1] }
+	for i = 2, #pts do
+		local a, b = pts[i - 1], pts[i]
+		local mx, mz = (a[1] + b[1]) / 2, (a[2] + b[2]) / 2
+		local len = math.sqrt((b[1] - a[1]) ^ 2 + (b[2] - a[2]) ^ 2)
+		local d = ParadeLane.DRAIN
+		local near = math.sqrt((mx - d.x) ^ 2 + (mz - d.z) ^ 2) - d.lipRadius - len / 2 < ParadeLane.TAPER_LENGTH
+		local n = if near then math.max(1, math.floor(len / ParadeLane.TAPER_PIECE)) else 1
+		for k = 1, n do
+			local u = k / n
+			table.insert(out, { a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u })
+		end
+	end
+	return out
+end
+
+function ParadeLane.strips(): { any }
+	local pts = stripPointsTapered()
 	local count = #pts - 1
-	local ux, uz, len = {}, {}, {}
+	local ux, uz, len, hw = {}, {}, {}, {}
 	for i = 1, count do
 		local dx, dz = pts[i + 1][1] - pts[i][1], pts[i + 1][2] - pts[i][2]
 		len[i] = math.max(math.sqrt(dx * dx + dz * dz), 1e-9)
 		ux[i], uz[i] = dx / len[i], dz / len[i]
+		hw[i] = ParadeLane.halfWidthAt((pts[i][1] + pts[i + 1][1]) / 2, (pts[i][2] + pts[i + 1][2]) / 2)
 	end
 	-- Extension of strip i at the vertex shared with strip j.
 	local function reach(i: number, j: number): number
@@ -395,9 +440,8 @@ function ParadeLane.strips(): { any }
 			return 0
 		end
 		local cos = math.clamp(ux[i] * ux[j] + uz[i] * uz[j], -1, 1)
-		return hw * math.tan(math.acos(cos) / 2) + ParadeLane.JOIN_OVERLAP
+		return hw[i] * math.tan(math.acos(cos) / 2) + ParadeLane.JOIN_OVERLAP
 	end
-	local radius = ParadeLane.CROWN_RADIUS
 	local out = {}
 	for i = 1, count do
 		local ea, eb = reach(i, i - 1), reach(i, i + 1)
@@ -405,11 +449,12 @@ function ParadeLane.strips(): { any }
 		local a, b = pts[i], pts[i + 1]
 		local dx, dz = ux[i], uz[i]
 		local length = len[i] + ea + eb
+		local radius = ParadeLane.crownRadius(hw[i])
 		table.insert(out, {
 			name = `Lane{i}`,
 			size = { length, radius * 2, radius * 2 },
 			length = length,
-			width = hw * 2,
+			width = hw[i] * 2,
 			cf = {
 				(a[1] + b[1]) / 2 + dx * shift,
 				ParadeLane.LANE_Y - radius + (if i % 2 == 0 then ParadeLane.STRIP_STEP else 0),

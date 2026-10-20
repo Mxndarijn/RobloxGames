@@ -2,6 +2,7 @@
 -- Test helpers for the pure server modules: a World with joined players.
 
 local Collection = require("../src/shared/Collection")
+local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
 local Goals = require("../src/shared/Goals")
 local Sessions = require("../src/server/Sessions")
@@ -44,6 +45,11 @@ end
 -- Lifts the join lock so the plot can be stolen from.
 function ServerFixtures.unlock(session: World.Session)
 	session.lockUntil = 0
+end
+
+-- Marks the player's new-player shield time as used up (call before PvpService.join): a veteran PvP target.
+function ServerFixtures.veteran(session: World.Session)
+	session.data.pvp.played = Config.PVP.NEW_PLAYER_SHIELD_SECONDS
 end
 
 function ServerFixtures.notifications(world: World.World, userId: number?): { string }

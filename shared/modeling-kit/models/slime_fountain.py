@@ -90,10 +90,6 @@ def sb_of_z(z):
     raise ValueError(z)
 
 
-def ang_d(a, b):
-    return math.atan2(math.sin(a - b), math.cos(a - b))
-
-
 def collar(a):
     """arclength (from the rim top) the goo collar reaches at angle a: wavy, never round."""
     return 2.7 + 0.55 * math.sin(3 * a + 1.0) + 0.3 * math.sin(5 * a + 0.3)
@@ -116,7 +112,6 @@ def plank_tint(k):
 
 
 TINTS = [plank_tint(k) for k in range(SEGS // 2)]
-DOOR_A, DOOR_W, DOOR_TOP = -math.pi / 2, 0.29, 10.0  # 4 columns of red planks
 
 
 def silo():
@@ -132,8 +127,6 @@ def silo():
             r, z = PROF[j][0], PROF[j][1]
             if tag in ("wall", "trim") and k % 2 == 0 and 2.5 < z < WALL_TOP - 0.1:
                 r -= 0.16  # stave seams
-            if abs(ang_d(a, DOOR_A)) < DOOR_W and 2.4 < z <= DOOR_TOP + 0.01:
-                r -= 0.3  # door set into the staves
             row.append(bm.verts.new((math.cos(a) * r, math.sin(a) * r, z)))
         rows.append(row)
     apex = bm.verts.new((0, 0, APEX))
@@ -143,7 +136,6 @@ def silo():
 
     def paint(f, k, j):
         tag = PROF[j][2]
-        ac = (k + 0.5) * math.tau / SEGS
         for lp in f.loops:
             z = lp.vert.co.z
             if tag in ("pool", "rim_in", "rim"):
@@ -162,9 +154,6 @@ def silo():
             else:  # wall staves: dark foot -> light top, per-stave tint
                 t = min(1, max(0, (z - 2.4) / 24))
                 c = shade(mix(WOOD_D, WOOD, min(1, 0.25 + t * 1.2)), TINTS[k // 2])
-                if abs(ang_d(ac, DOOR_A)) < DOOR_W and z <= DOOR_TOP + 0.01:
-                    plank = 1.0 if (k % 2) else 0.9  # red barn-door planks, thin cream lintel only
-                    c = CREAM if PROF[j][1] > DOOR_TOP - 0.61 else shade(mix(ROOF_D, ROOF, min(1, z / 9)), plank)
             lp[col] = c
 
     for j in range(nrow - 1):

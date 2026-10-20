@@ -1,0 +1,109 @@
+{
+  "name": "pvp_goo_blaster_2",
+  "model": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-adc2fc850a3efb766\\shared\\modeling-kit\\models\\pvp_goo_blaster_2.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1484,
+  "meshes": [
+    {
+      "name": "pvp_goo_blaster_2",
+      "tris": 1484,
+      "verts": 762,
+      "ngons": 4,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        1.279,
+        2.769,
+        3.28
+      ],
+      "materials": [
+        "pvp_goo_blaster_2_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pvp_goo_blaster_2_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    1.279,
+    2.769,
+    3.28
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pvp_goo_blaster_2_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-adc2fc850a3efb766\\shared\\modeling-kit\\out\\pvp_goo_blaster_2.fbx",
+  "fbx_bytes": 38332,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-adc2fc850a3efb766\\shared\\modeling-kit\\out\\.tiles\\pvp_goo_blaster_2_0.png"
+    },
+    {
+      "view": "side",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-adc2fc850a3efb766\\shared\\modeling-kit\\out\\.tiles\\pvp_goo_blaster_2_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-adc2fc850a3efb766\\shared\\modeling-kit\\out\\.tiles\\pvp_goo_blaster_2_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-adc2fc850a3efb766\\shared\\modeling-kit\\out\\.tiles\\pvp_goo_blaster_2_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.158,
+    "stats_s": 0.002,
+    "setup_s": 0.024,
+    "render_s": [
+      0.189,
+      0.156,
+      0.129,
+      0.143
+    ],
+    "export_s": 0.251
+  },
+  "sheet": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-adc2fc850a3efb766\\shared\\modeling-kit\\out\\pvp_goo_blaster_2_sheet.png",
+  "timings": {
+    "wall_s": 1.49,
+    "blender_process_s": 1.44,
+    "compose_s": 0.05,
+    "model_s": 0.158,
+    "stats_s": 0.002,
+    "setup_s": 0.024,
+    "render_s": [
+      0.189,
+      0.156,
+      0.129,
+      0.143
+    ],
+    "export_s": 0.251
+  }
+}

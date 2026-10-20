@@ -30,9 +30,15 @@ export type Stats = { caught: number, merges: number, locks: number, sold: numbe
 -- (`held`: bought, not used yet; it survives the restock).
 export type Consumables = { slot: number, bought: { [string]: number }, held: { [string]: number } }
 
--- FEATURES.PvP purchases: best owned tier per line (Knockback / Trap / Blaster), owned fun item ids, play seconds
--- counted towards the new-player shield (capped at Config.PVP.NEW_PLAYER_SHIELD_SECONDS).
-export type Pvp = { tiers: { [string]: number }, fun: { [string]: boolean }, played: number }
+-- FEATURES.PvP purchases: best owned tier per line (Knockback / Blaster), Goo Trap charges per trap id (at most
+-- Config.PVP.TRAP_MAX_HELD each), owned fun item ids, play seconds counted towards the new-player shield (capped at
+-- Config.PVP.NEW_PLAYER_SHIELD_SECONDS).
+export type Pvp = {
+	tiers: { [string]: number },
+	traps: { [string]: number },
+	fun: { [string]: boolean },
+	played: number,
+}
 
 export type Data = {
 	version: number,
@@ -101,7 +107,7 @@ function PlayerData.new(): Data
 		stealLog = {},
 		settings = AudioSettings.defaults(),
 		consumables = { slot = 0, bought = {}, held = {} },
-		pvp = { tiers = {}, fun = {}, played = 0 },
+		pvp = { tiers = {}, traps = {}, fun = {}, played = 0 },
 		trophies = {},
 	}
 end

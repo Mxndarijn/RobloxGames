@@ -108,6 +108,11 @@ function Validate.pvpTools(tools: { any }, pvp: any, ranks: { any }): { string }
 		then
 			table.insert(problems, `{id}: slow longer than {pvp.SLOW_MAX_SECONDS}s`)
 		end
+		if
+			tool.shotGap ~= nil and not (type(tool.shotGap) == "number" and tool.shotGap >= Validate.ACTIONS.UsePvpItem)
+		then
+			table.insert(problems, `{id}: shot gap below the UsePvpItem rate limit`)
+		end
 		if tool.kind ~= "tool" and tool.kind ~= "fun" then
 			table.insert(problems, `{id}: bad kind`)
 		end

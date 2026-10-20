@@ -55,6 +55,9 @@ export type Entry = {
 	flag: Flag?,
 }
 
+local MeshAssets = require("../src/shared/MeshAssets")
+local ParadeLane = require("../src/shared/ParadeLane")
+
 local PropCollision = {}
 
 local FIDELITIES = { Box = true, Hull = true, Default = true, PreciseConvexDecomposition = true }
@@ -385,12 +388,13 @@ mesh(
 parts(
 	"parade_lane",
 	"jolt",
-	1,
+	-- the one lane mesh once it is uploaded, else its ParadeLane.strips() stand-ins (Lane1..n)
+	if MeshAssets.meshId(ParadeLane.MESH) then 1 else #ParadeLane.strips(),
 	"off",
 	"Map.Plaza.ParadeLane",
-	{ "^Lane$" },
+	{ "^Lane%d*$" },
 	"off",
-	"the goo parade lane: one 0.43-stud-thick curved strip on the ground that walkers cross",
+	"the goo parade lane: one 0.43-stud-thick curved strip on the ground that walkers cross (or its flat strip stand-ins)",
 	{ walk = false, flag = { name = "Parade", off = 0 } }
 )
 
@@ -786,14 +790,6 @@ local UNPLACED: { [string]: { string } } = {
 	ranch_border_chunk_b_m = { "jolt", "mirrored twin not placed in this seed's corners" },
 	ranch_border_chunk_d_m = { "jolt", "mirrored twin not placed in this seed's corners" },
 	ranch_lantern_post = { "jolt", "no RanchProps placement (decor, not in the map)" },
-	fountain_tier_ring = {
-		"jolt",
-		"client template cloned round the fountain at tier 2+ (FountainTierFx), visual only",
-	},
-	fountain_tier_crest = {
-		"jolt",
-		"client template cloned over the fountain at tier 3+ (FountainTierFx), visual only",
-	},
 	plot_skin_mushroom = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_candy = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_crystal = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },

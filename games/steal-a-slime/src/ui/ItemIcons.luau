@@ -137,7 +137,7 @@ ItemIcons.DRAWN_ONLY_GROUPS = table.freeze({
 
 -- Items an artist must still render: in a DRAWN group but with no recipe worth shipping. Empty now.
 -- The H1 HUD icons (group "hud", not drawn) keep their tile + glyph until Archer renders them.
-ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost" } :: { string })
+ItemIcons.FOR_ARCHER = table.freeze({ "Income", "FriendBoost", "Shield" } :: { string })
 
 -- Drawn-group ids that show their ItemIconArt scene until a picture is uploaded (ITEM-ICONS-NEEDED.md
 -- lists them): the SlimeDex milestone trophies whose count has no uploaded trophy yet.
@@ -341,6 +341,14 @@ local HAND: { Hand } = {
 		color = { 90, 200, 120 },
 		glyph = "👥",
 		brief = "Two smiling slimes (green and pink) side by side with a small gold plus sign; front view.",
+	},
+	{
+		id = "Shield",
+		name = "New-player shield",
+		group = "hud",
+		color = { 90, 170, 240 },
+		glyph = "🛡",
+		brief = "A rounded blue kite shield with a gold rim and a small smiling slime emblem in the middle; front view.",
 	},
 	{
 		id = "Gift",

@@ -1,7 +1,7 @@
 -- Client datamodel (play): PvP client effects cleanup probe (ADVISORY, FEATURES.PvP, CONTRACT.md §26.1). Plays one PvpEvent "Effect" payload of every
 -- kind through the client module StarterPlayerScripts.UI.PvpEffects (PvpEffects.play(payload), PvpEffects.activeCount()) and counts the Workspace
 -- descendants that are BasePart / ParticleEmitter / Highlight / Beam / Trail before and after the longest effect has expired
--- (Config.PVP.FX_SECONDS, FIREWORKS_SECONDS, CONTROL_MAX_SECONDS, +1 s). Pass: net delta == 0 and activeCount() == 0 afterwards.
+-- (Config.PVP.FX_SECONDS, PVP_FUN.FIREWORKS.SECONDS, CONTROL_MAX_SECONDS, +1 s). Pass: net delta == 0 and activeCount() == 0 afterwards.
 -- An idle drift sample (same wait, nothing played) is reported as `idle_drift` so replicated world noise can be told apart.
 -- Also plays TrapPlaced (GooTrap1..3, FunBouncePad, owner = the local player) then TrapCleared and expects markerCount() == 0 (markers_cleared).
 -- The shot forces FEATURES.PvP (flags field); flag_on asserts it. n/a (ok nil) while the module does not exist.
@@ -46,6 +46,7 @@ if not okReq or type(Effects) ~= "table" or type(Effects.play) ~= "function" the
 end
 local Config = require(RS.Shared.Config)
 local PVP = Config.PVP
+local FIREWORKS_SECONDS = Config.PVP_FUN.FIREWORKS.SECONDS
 set("flag_on", Config.FEATURES.PvP == true, { PvP = Config.FEATURES.PvP })
 
 local function count()
@@ -79,9 +80,9 @@ local KINDS = {
 	{ "GooBlaster1", "Slow", { duration = 2 } }, { "GooBlaster3", "Slow", { duration = 3 } },
 	{ "FunBouncePad", "Bounce", { duration = 1.2 } }, { "FunDanceBomb", "Dance", { duration = 2 } },
 	{ "FunConfetti", "Cosmetic", {} }, { "FunBalloon", "Cosmetic", {} }, { "FunBubbles", "Cosmetic", {} },
-	{ "FunSqueaky", "Cosmetic", {} }, { "FunHatLauncher", "Cosmetic", { duration = 3 } }, { "FunFireworks", "Cosmetic", { duration = PVP.FIREWORKS_SECONDS } },
+	{ "FunSqueaky", "Cosmetic", {} }, { "FunHatLauncher", "Cosmetic", { duration = 3 } }, { "FunFireworks", "Cosmetic", { duration = FIREWORKS_SECONDS } },
 }
-local longest = math.max(PVP.FX_SECONDS, PVP.FIREWORKS_SECONDS, PVP.CONTROL_MAX_SECONDS, 3)
+local longest = math.max(PVP.FX_SECONDS, FIREWORKS_SECONDS, PVP.CONTROL_MAX_SECONDS, 3)
 local SETTLE = longest + PVP.FX_SECONDS + 1
 
 local before = count()

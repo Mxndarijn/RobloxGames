@@ -11,7 +11,7 @@ return table.freeze({
 	NOTIFY = "Notify",
 	-- Server -> client: global TotalEarned board (Types.Leaderboard)
 	LEADERBOARD = "Leaderboard",
-	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / shield / safe zone / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
+	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / shield / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
 
 	SLIME_TAG = "Slime",
 	DATASTORE_NAME = "StealASlime_v1",
@@ -33,6 +33,10 @@ return table.freeze({
 	HOME_ZONE = "HomeZone",
 	-- Instance attributes (CONTRACT.md §5.2)
 	REVENGE_PLOTS_ATTRIBUTE = "RevengePlots", -- Player (victim only): "3,5" = plot indexes of thieves inside the revenge window (FEATURES.Revenge), nil = none
+	RITUAL_PHASE_ATTRIBUTE = "Phase", -- Map.RitualCircle: Ritual phase, "Idle" | "Charging" | "Cooldown"
+	RITUAL_CHARGE_ENDS_ATTRIBUTE = "ChargeEndsAt", -- Map.RitualCircle: server time the hold completes (Charging only, else nil)
+	RITUAL_READY_AT_ATTRIBUTE = "ReadyAt", -- Map.RitualCircle: server time the rest ends (Cooldown only, else nil)
+	RITUAL_TAKEN_ATTRIBUTE = "Taken", -- Map.RitualCircle.Spot_<i>: true while a counted player stands on it
 	CARRYING_ATTRIBUTE = "Carrying", -- Player: carried slime id, nil when empty-handed
 	WEATHER_ATTRIBUTE = "Weather", -- workspace, set by the server (WeatherService): "Clear" | "Rain" | "Snow" | "Starfall"
 	WEATHER_STARTED_ATTRIBUTE = "WeatherStartedAt", -- workspace, server time (GetServerTimeNow) the current weather began; set before WEATHER_ATTRIBUTE
@@ -68,6 +72,7 @@ return table.freeze({
 	TUTORIAL_STEP_ID_ATTRIBUTE = "TutorialStepId", -- Player: TutorialProgress.STEPS name, nil = done
 	WALK_SPEED_ATTRIBUTE = "TargetWalkSpeed", -- Player: WalkSpeed the server enforces right now
 	PVP_EQUIPPED_ATTRIBUTE = "PvpEquipped", -- Player: equipped PvP item id (FEATURES.PvP only; nil = none, CONTRACT.md §26.1)
+	BAT_SWING_ATTRIBUTE = "BatSwingAt", -- Player: server time of the last Bat swing (every client plays the swing, CONTRACT.md §26.2)
 	PVP_SHIELD_ATTRIBUTE = "PvpShieldUntil", -- Player: server time the new-player shield ends (FEATURES.PvP only; nil = not shielded, CONTRACT.md §26)
 	REBIRTH_TITLE_ATTRIBUTE = "RebirthTitle", -- Player: rank title (Config.REBIRTH_TIERS)
 	PLOT_LOCKED_ATTRIBUTE = "Locked", -- Plot_<i>: true while LockUntil > now
@@ -124,4 +129,5 @@ return table.freeze({
 	SLAP_HIT_ATTRIBUTE = "SlapHitAt", -- Player: server time the player was last slapped off a stolen slime (the client draws the hit effect)
 	HABITAT_FOLDER = "ClientHabitats", -- client-only workspace folder for habitat looks
 	HABITAT_MESHES = "HabitatMeshes", -- ReplicatedStorage folder: server-made overlay MeshPart templates (MeshSwap)
+	PVP_MARKER_MESHES = "PvpMarkerMeshes", -- ReplicatedStorage folder: placed trap / pad MeshPart templates (FEATURES.PvP, MeshSwap)
 })

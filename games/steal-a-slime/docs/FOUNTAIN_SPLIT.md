@@ -26,12 +26,8 @@ slide is walkable, COLLISION.md). Each piece's `offset` (MeshAssets) is its bbox
 (Roblox X, Y, Z = kit x, kit z, -kit y, rotated with the slot; `IMPORT_YAW` turns only the mesh). Piece asset / mesh ids: `MeshAssets`,
 `shared/modeling-kit/uploaded.json`.
 
-Silo-hole report (v224, "pale gap between two staves above the red band"): not an open face. The pieces have exactly the whole mesh's 4120
-faces, the whole mesh is watertight and consistently wound, no corner normal is flipped, and the only open edges are the cut seams
-(z 30.0, 31.3, 35.9) whose vertices coincide. The pale patch is paint in the source: the strip above the door's cream lintel (z 10.0..15.1,
-4 door columns) had cream bottom corners and wood top corners (cream-to-wood gradient). `slime_fountain_split.py` repaints those 8 corners
-as wood in the silo piece (`fix_door_strip`); silo re-uploaded (asset 70694440108004 v2, meshId rbxassetid://103574045671668). The whole
-`slime_fountain` mesh (fallback when a piece fails to load) still has the pale strip.
+The silo is plain staves all round: `models/slime_fountain.py` has no door (a red plank door near the foot read as a paint
+glitch), so the whole mesh and the silo piece draw the same staves and the split needs no colour fixes.
 
 The cut pieces are open surfaces (no caps, to keep the face set identical). Whether Roblox's PCD handles them as well as it
 handles the closed whole mesh is exactly what the ball-drop test measures.

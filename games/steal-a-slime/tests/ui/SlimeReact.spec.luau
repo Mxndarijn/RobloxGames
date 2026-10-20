@@ -3,6 +3,7 @@
 -- for a slime you can afford and reach, the other reactions by temperament, nerves before the drain, and a pose for
 -- every lane beat.
 local ParadeChoreo = require("../../src/shared/ParadeChoreo")
+local ParadeLane = require("../../src/shared/ParadeLane")
 local SlimeBeats = require("../../src/ui/SlimeBeats")
 local SlimeBones = require("../../src/ui/SlimeBones")
 local SlimeReact = require("../../src/ui/SlimeReact")
@@ -59,7 +60,7 @@ describe("SlimeBeats.pose", function()
 					local p = SlimeBeats.pose(kind, phase, u, 1, u * 3)
 					expect(p.sy >= 0.55 and p.sy <= 1.45).toBe(true)
 					expect(p.lift >= 0 and p.lift <= 2.5).toBe(true)
-					expect(math.abs(p.lean) <= 1.2).toBe(true)
+					expect(math.abs(p.lean) <= ParadeLane.ROOM).toBe(true) -- stays on the lane from the outermost line
 					if p.face or p.emote or p.yaw or p.lift > 0 or p.sy ~= 1 then
 						any = true
 					end

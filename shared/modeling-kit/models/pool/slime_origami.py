@@ -108,7 +108,8 @@ def plain(name, c0=P_D, c1=P_L):
     return lambda i, n: paper(c0, c1, n, (name, i))
 
 
-b = FacetBody([(0.0, 0.5), (0.3, 1.2), (0.75, 1.68), (1.55, 1.62), (2.4, 1.02)], 3.05, N=7, sx=1.04, sy=0.96)  # tapered belly
+_fold = round_top([(0.0, 0.5), (0.3, 1.2), (0.75, 1.68), (1.55, 1.62), (2.4, 1.02), (3.05, 0.0)], DOME, n=3)  # domed, few folds
+b = FacetBody(_fold[:-1], _fold[-1][0], N=7, sx=1.04, sy=0.96)  # tapered belly
 parts = [b.obj]
 
 # wings: long folded triangles rising up and out, a raised crease from the root to the tip

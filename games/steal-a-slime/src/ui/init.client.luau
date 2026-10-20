@@ -89,7 +89,22 @@ local notifyEvent = Remotes.get(Constants.NOTIFY) :: RemoteEvent
 local leaderboardEvent = Remotes.get("Leaderboard") :: RemoteEvent
 -- Hit / trap / blaster / fun FX + SFX and the victim-side launch from PvpEvent (CONTRACT.md §26.1). Always on: the live
 -- default Bat's knockback (itemId "Bat") rides the same event; with FEATURES.PvP off nothing else ever fires it.
-require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent)
+-- The Bat / PvP item use animations and hold pose (CONTRACT.md §26.3) ride the same events and replicated attributes.
+local pvpAnim = require(script.PvpAnim).start({
+	tools = Config.PVP_TOOLS,
+	equippedAttribute = Constants.PVP_EQUIPPED_ATTRIBUTE,
+	batSwingAttribute = Constants.BAT_SWING_ATTRIBUTE,
+	batName = Config.BAT.TOOL_NAME,
+	swingGap = Config.BAT.SWING_GAP,
+})
+-- Fun item looks (CONTRACT.md §26.8): PvpEffects hands their events over; stepped by the 10 Hz loop below.
+local pvpFunFx = require(script.PvpFunFx).start({
+	anim = pvpAnim,
+	serverNow = function(): number
+		return workspace:GetServerTimeNow() -- the clock of the PvpEvent times
+	end,
+})
+require(script.PvpEffects).start(Remotes.get(Constants.PVP_EVENT) :: RemoteEvent, pvpAnim, pvpFunFx)
 
 local gui = Widgets.create("ScreenGui", {
 	Name = "SlimeUI",
@@ -245,6 +260,11 @@ local ctx: { [string]: any } = {
 	serverNow = serverNow,
 	playerName = playerName,
 	itemIcons = itemIcons,
+	-- The HUD's Shield slot: the local player's new-player shield end (server time), nil when not shielded.
+	shieldUntil = function(): number?
+		local value = player:GetAttribute(Constants.PVP_SHIELD_ATTRIBUTE)
+		return if type(value) == "number" then value else nil
+	end,
 	buildSlime = if modelFactory then buildSlime else nil,
 	-- SlimeDex cards: species names / colours and the species mesh preview.
 	SlimeRoster = SlimeRoster,
@@ -255,6 +275,13 @@ local ctx: { [string]: any } = {
 }
 
 local hud = Hud.new(gui, ctx)
+-- The shield badge over every new player's head (CONTRACT.md §26.7); the attribute is only set with FEATURES.PvP on.
+local shieldBadges = require(script.PvpShield).start({
+	attribute = Constants.PVP_SHIELD_ATTRIBUTE,
+	registry = itemIcons,
+	serverNow = serverNow,
+	parent = player:WaitForChild("PlayerGui"),
+})
 -- S3 hotbar + inventory panel (replaces the default Roblox backpack bar).
 InventoryTools.hideDefaultBackpack()
 local inventory = Inventory.new(gui, {
@@ -267,6 +294,9 @@ local inventory = Inventory.new(gui, {
 	aim = function(screen: Vector2 | Vector3): any
 		return PvpAim.sample(screen, Constants.CARRYING_ATTRIBUTE)
 	end,
+	animate = function(itemId: string)
+		pvpAnim.playItem(player.UserId, itemId)
+	end,
 	tools = InventoryTools.new(player),
 	serverNow = serverNow,
 	keyboard = game:GetService("UserInputService").KeyboardEnabled,
@@ -274,7 +304,7 @@ local inventory = Inventory.new(gui, {
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
 InventoryTools.bindBag(inventory.isBagKey, inventory.toggleBag)
-InventoryTools.bindUse(inventory.useHeld)
+InventoryTools.bindUse(inventory.pressHeld, inventory.releaseHeld)
 local stealFx = StealAlertFx.new(gui, {
 	Config = Config,
 	Constants = Constants,
@@ -1116,6 +1146,7 @@ task.spawn(function()
 		if latest then
 			local now = serverNow()
 			hud.tick(now)
+			shieldBadges.tick(now)
 			inventory.tick()
 			carry.tick(now)
 			bossMeter.tick(now)
@@ -1124,6 +1155,7 @@ task.spawn(function()
 				panelByKey.WorldShop.tick()
 			end
 			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
+			pvpFunFx.tick(now)
 		end
 	end
 end)

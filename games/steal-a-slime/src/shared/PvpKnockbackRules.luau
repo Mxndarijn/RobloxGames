@@ -30,21 +30,31 @@ function PvpKnockbackRules.inReach(tool: Config.PvpTool, attacker: Vec, target: 
 end
 
 --[[
-	Where `target` lands when pushed away from `attacker`. Returns (landing, push) as PvpRules.clampKnockback
-	does (push.Y = the small arc). Standing on the same spot pushes along +Z.
+	Where `target` lands when pushed `push` studs straight away from `from` with an `arc` studs high. Returns
+	(landing, push) as PvpRules.clampKnockback does (capped, inside the map). Standing on the same spot pushes along +Z.
 ]]
-function PvpKnockbackRules.plan(tool: Config.PvpTool, attacker: Vec, target: Vec, bounds: PvpRules.Bounds?): (Vec, Vec)
-	local dx, dz = target.X - attacker.X, target.Z - attacker.Z
+function PvpKnockbackRules.away(from: Vec, target: Vec, push: number, arc: number, bounds: PvpRules.Bounds?): (Vec, Vec)
+	local dx, dz = target.X - from.X, target.Z - from.Z
 	local length = math.sqrt(dx * dx + dz * dz)
 	if length < 1e-6 or length ~= length then
 		dx, dz, length = 0, 1, 1
 	end
-	local push = tool.push or 0
-	return PvpRules.clampKnockback(
-		target,
-		{ X = dx / length * push, Y = Config.PVP.KNOCKBACK_ARC_HEIGHT, Z = dz / length * push },
-		bounds
-	)
+	return PvpRules.clampKnockback(target, { X = dx / length * push, Y = arc, Z = dz / length * push }, bounds)
+end
+
+--[[
+	The push of `tool` on `target` away from `attacker`: `tool.push` x `scale` (a power punch: Config.PVP.CHARGE_PUSH)
+	studs with the row's `arc` (default KNOCKBACK_DEFAULT_ARC). Returns (landing, push) like `away`.
+]]
+function PvpKnockbackRules.plan(
+	tool: Config.PvpTool,
+	attacker: Vec,
+	target: Vec,
+	bounds: PvpRules.Bounds?,
+	scale: number?
+): (Vec, Vec)
+	local push = (tool.push or 0) * (scale or 1)
+	return PvpKnockbackRules.away(attacker, target, push, tool.arc or Config.PVP.KNOCKBACK_DEFAULT_ARC, bounds)
 end
 
 -- Horizontal studs of an applied push.

@@ -5,8 +5,8 @@
 	The default melee Tool every player has instead of the old on-screen Slap button. `Tool.Activated` (tap on mobile,
 	click on desktop) fires on the server; the CLIENT SENDS NO TARGET and no remote is used. `BatTool.swing` takes the
 	swinger's own position and look vector, picks the nearest carrying thief in reach and in front (BatRules.pickTarget),
-	and routes the hit into the same StealService.slap the button used (reach SLAP_REACH, shared cooldown
-	Session.lastSlapAt with the Squeaky Hammer, drop + bounce home + notifications + StealAlerts FX), then adds a knockback
+	and routes the hit into the same StealService.slap the button used (reach SLAP_REACH, slap cooldown
+	Session.lastSlapAt, drop + bounce home + notifications + StealAlerts FX), then adds a knockback
 	push (PvpKnockbackRules.plan / PvpLaunch through `ctx.launch`; the victim's client applies the launch from the
 	PvpEvent "Knockback" effect). Swinging at nothing or at a non-thief does nothing with FEATURES.PvP off; with it ON a
 	non-thief on the swinger's own plot is pushed under the glove rules (no damage, ever; Humanoid health is never touched). A whiff never spends the slap cooldown; swings are only rate limited to Config.BAT.SWING_GAP.
@@ -14,7 +14,7 @@
 	The Tool: one per player (give() replaces any old copy), given on every spawn, CanBeDropped = false, single
 	collision-free handle Part (a few parts per player, only while equipped, never in the world part budget).
 	The model / icon / swing sound hookup is shared/BatModel (MESH_ID / ICON_ID / SWING_SOUND): change it there only.
-	Every click plays the swing (the default Animate tool slash + a whoosh, replicated to everyone), hit or miss.
+	Every click plays the swing (the BatSwingAt attribute every client animates + a whoosh), hit or miss.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -22,6 +22,7 @@ local BatModel = if Shared then require(Shared.BatModel) else require("../shared
 local BossEvent = if script then require(script.Parent.BossEvent) else require("./BossEvent")
 local BatRules = if Shared then require(Shared.BatRules) else require("../shared/BatRules")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local Constants = if Shared then require(Shared.Constants) else require("../shared/Constants")
 local PvpKnockbackRules = if Shared then require(Shared.PvpKnockbackRules) else require("../shared/PvpKnockbackRules")
 local PvpRules = if Shared then require(Shared.PvpRules) else require("../shared/PvpRules")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
@@ -49,16 +50,12 @@ local function knock(
 	target: World.Session,
 	origin: Vec,
 	targetPosition: Vec,
-	now: number,
-	pvp: boolean
+	now: number
 ): boolean
 	local state = PvpService.state(target) -- nil with FEATURES.PvP off
 	local launch = ctx.launch -- nil = no knockback, the slap still lands
 	if not launch or (state and not PvpRules.canControl(state, now)) then
 		return false
-	end
-	if pvp and (PvpRules.inSafeZone(origin) or PvpRules.inSafeZone(targetPosition)) then
-		return false -- with PvP on nobody is launched in or out of a safe zone (the glove rule)
 	end
 	local landing, push = PvpKnockbackRules.plan(KNOCK_TOOL, origin, targetPosition)
 	if not launch(target.userId, push, landing) then
@@ -114,9 +111,9 @@ end
 	  * A carrying thief in reach (any flag): StealService.slap (reach, shared cooldown, drop, bounce home, notifications,
 	    StealAlerts FX), then the knockback. Exactly one drop and one push per hit.
 	  * Flag OFF, anything else: nothing happens (no damage, no push), (false, "nothing in reach").
-	  * Flag ON, a non-thief: the PvP melee rules (PvpRules.canTarget's): only on the swinger's OWN plot, never from or into a
-	    safe zone, not a shielded (new) player, not a controlled / immune one, and the shared slap cooldown; the effect is the
-	    knockback only. No damage ever. A thief is always tried first.
+	  * Flag ON, a non-thief: only on the swinger's OWN plot, never by or on a player under the new-player shield, not a
+	    controlled / immune one, and the shared slap cooldown; the effect is the knockback only. No damage ever. A thief
+	    is always tried first.
 	A whiff never spends the slap cooldown. Never errors for a swing at nothing.
 ]]
 function BatTool.swing(
@@ -175,7 +172,7 @@ function BatTool.swing(
 		if not ok then
 			return false, reason
 		end
-		knock(world, ctx, session, target, origin, spot, now, pvp)
+		knock(world, ctx, session, target, origin, spot, now)
 		return true, nil
 	end
 	if targetId then
@@ -184,7 +181,7 @@ function BatTool.swing(
 		if not ok then
 			return false, reason
 		end
-		knock(world, ctx, session, target, origin, positions[targetId], now, pvp)
+		knock(world, ctx, session, target, origin, positions[targetId], now)
 		return true, nil
 	end
 	if bossInReach(world, ctx, session, origin, look) then
@@ -202,13 +199,10 @@ function BatTool.swing(
 	if now - session.lastSlapAt < Config.SLAP_COOLDOWN then
 		return false, "slap on cooldown"
 	end
-	if PvpRules.inSafeZone(origin) or PvpRules.inSafeZone(targetPosition) then
-		return false, "safe zone"
-	end
-	if PvpRules.isShielded(PvpService.state(target), now, target.data.rebirths) then
+	if PvpService.isShielded(target, now) or PvpService.isShielded(session, now) then
 		return false, "shielded"
 	end
-	if not knock(world, ctx, session, target, origin, targetPosition, now, pvp) then
+	if not knock(world, ctx, session, target, origin, targetPosition, now) then
 		return false, "can't push right now"
 	end
 	session.lastSlapAt = now
@@ -256,16 +250,16 @@ local function buildHandle(): any
 	return handle
 end
 
--- The swing everyone sees: the character's default Animate script plays its built-in tool slash when a StringValue
--- "toolanim" = "Slash" appears under the equipped Tool (it takes the value away itself; Debris is the fallback), plus
--- a whoosh from the handle. Played for every click, hit or miss, at most once per Config.BAT.SWING_GAP.
+-- The swing everyone sees: the Player attribute BatSwingAt (server time) makes every client play the procedural swing
+-- (ui/PvpAnim; the swinger's own client already played it on Activated), plus a whoosh from the handle. Played for
+-- every click, hit or miss, at most once per Config.BAT.SWING_GAP.
 local function playSwing(tool: any, whoosh: any)
-	local anim = Instance.new("StringValue")
-	anim.Name = "toolanim"
-	anim.Value = "Slash"
-	anim.Parent = tool
-	local debris: any = game:GetService("Debris")
-	debris:AddItem(anim, 1)
+	local character = tool.Parent
+	local players: any = game:GetService("Players")
+	local player = if character then players:GetPlayerFromCharacter(character) else nil
+	if player then
+		player:SetAttribute(Constants.BAT_SWING_ATTRIBUTE, workspace:GetServerTimeNow())
+	end
 	pcall(function() -- the Lune live-boot Sound stand-in has no Play
 		whoosh:Play()
 	end)

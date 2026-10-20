@@ -5,7 +5,9 @@
 	Builds the plaza ritual circle from plain parts (a flat disc, one glowing spot disc per required
 	player (Config.RITUAL.SPOTS = MIN_PLAYERS), a hovering orb with a BillboardGui) under workspace.Map.RitualCircle, and keeps it in sync
 	with the Ritual state: spots glow green while someone stands on them, the sign reads
-	"n/2 players", then "Hold still! 5s", then "Ritual resting 3:20". Also reads the players'
+	"n/2 players", then "Hold still! 5s", then "Ritual resting 3:20". The client effects
+	(visuals/client/RitualFx) read the attributes it sets: Phase, ChargeEndsAt and ReadyAt on the model,
+	Taken on each spot (the RITUAL_* names in Constants). Also reads the players'
 	HumanoidRootPart positions for RitualService.step. Everything is decor: anchored, no collision,
 	no queries. Holds no gameplay rules.
 ]]
@@ -16,15 +18,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local Ritual = require(ReplicatedStorage.Shared.Ritual)
+local RitualLook = require(ReplicatedStorage.Visuals.RitualLook)
 
 local RitualView = {}
 
 RitualView.MODEL_NAME = "RitualCircle"
 
-local IDLE = Color3.fromRGB(190, 160, 255)
-local TAKEN = Color3.fromRGB(120, 255, 160)
-local CHARGE = Color3.fromRGB(255, 226, 120)
-local REST = Color3.fromRGB(150, 150, 170)
+local function rgb(c: { number }): Color3
+	return Color3.fromRGB(c[1], c[2], c[3])
+end
+
+local IDLE = rgb(RitualLook.COLORS.idle)
+local TAKEN = rgb(RitualLook.COLORS.taken)
+local CHARGE = rgb(RitualLook.COLORS.charge)
+local REST = rgb(RitualLook.COLORS.rest)
 
 local spotParts: { BasePart } = {}
 local built: Model? = nil
@@ -148,7 +155,7 @@ function RitualView.setup(): Model?
 	rule.TextWrapped = true
 	rule.Text = Ritual.signText()
 
-	model:SetAttribute("Phase", "Idle")
+	model:SetAttribute(Constants.RITUAL_PHASE_ATTRIBUTE, "Idle")
 	model.Parent = parent
 	built = model
 	return model
@@ -166,6 +173,7 @@ function RitualView.update(state: Ritual.State, now: number)
 		local taken = state.spotUsers[i] ~= nil
 		part.Color = if resting then REST elseif taken then TAKEN else IDLE
 		part.Transparency = if resting then 0.55 elseif taken then 0 else 0.25
+		part:SetAttribute(Constants.RITUAL_TAKEN_ATTRIBUTE, taken and not resting)
 	end
 	if orb then
 		orb.Color = tint
@@ -177,7 +185,12 @@ function RitualView.update(state: Ritual.State, now: number)
 	if line then
 		line.Text = bottom
 	end
-	model:SetAttribute("Phase", state.phase)
+	model:SetAttribute(Constants.RITUAL_PHASE_ATTRIBUTE, state.phase)
+	model:SetAttribute(
+		Constants.RITUAL_CHARGE_ENDS_ATTRIBUTE,
+		if state.phase == "Charging" then state.chargeEndsAt else nil
+	)
+	model:SetAttribute(Constants.RITUAL_READY_AT_ATTRIBUTE, if resting then state.readyAt else nil)
 	model:SetAttribute("Players", state.count)
 end
 

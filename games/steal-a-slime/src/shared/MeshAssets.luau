@@ -111,8 +111,6 @@ local NAMES = {
 	"plot_skin_mushroom",
 	"plot_skin_candy",
 	"plot_skin_crystal",
-	"fountain_tier_ring",
-	"fountain_tier_crest",
 	"merge_vat",
 	"giant_broadleaf",
 	"giant_pine_layered",
@@ -124,6 +122,26 @@ local NAMES = {
 	"ranch_floor_deck",
 	"ranch_floor_paths",
 	"pet_cloud",
+	-- Held PvP items (Shared.PvpModels, server/PvpHeld): the placeholder Parts stand in while a mesh fails to load.
+	"pvp_knock_glove_1",
+	"pvp_knock_glove_2",
+	"pvp_knock_glove_3",
+	"pvp_knock_glove_4",
+	"pvp_knock_glove_5",
+	"pvp_goo_trap_1",
+	"pvp_goo_trap_2",
+	"pvp_goo_trap_3",
+	"pvp_goo_blaster_1",
+	"pvp_goo_blaster_2",
+	"pvp_goo_blaster_3",
+	"pvp_fun_confetti",
+	"pvp_fun_balloon",
+	"pvp_fun_bubbles",
+	"pvp_fun_bounce_pad",
+	"pvp_fun_squeaky",
+	"pvp_fun_hat_launcher",
+	"pvp_fun_dance_bomb",
+	"pvp_fun_fireworks",
 }
 
 local entries: { [string]: Entry } = {}
@@ -131,7 +149,7 @@ local entries: { [string]: Entry } = {}
 -- asset (2026-10-17) drops the splash-pool blob at the slide exit so the
 -- slime lane flows from the slide mouth. The WorldLayout slot uses this box.
 entries["slime_fountain"] =
-	{ assetId = 137335028699292, meshId = "rbxassetid://86763349242301", size = { 54.45, 43.316, 63.851 } }
+	{ assetId = 137335028699292, meshId = "rbxassetid://117431796782881", size = { 54.45, 43.316, 63.851 } }
 entries["phoenix_fence_segment"] =
 	{ assetId = 92327721520041, meshId = "rbxassetid://88430332942524", size = { 11, 9.02, 1.8 } }
 entries["phoenix_corner_post"] =
@@ -324,12 +342,6 @@ entries["ranch_fence_20"] =
 	{ assetId = 93657150564692, meshId = "rbxassetid://90306341034018", size = { 22, 9.02, 1.8 } }
 -- Per-type slime kit (SlimeLooks.kit; server SlimeMesh, NOT world slots: they are
 -- cloned per slime, so they never count against WorldLayout.MESH_SLOT_BUDGET).
--- FEATURES.FountainTiers decor (FountainTiers, client FountainTierFx): cloned round / over the fountain
--- at tier 2+ / 3+ from ReplicatedStorage.FountainTierMeshes and tinted per tier. NOT world slots.
-entries["fountain_tier_ring"] =
-	{ assetId = 119324558874420, meshId = "rbxassetid://102733858140081", size = { 32.2, 6.2, 32.2 } }
-entries["fountain_tier_crest"] =
-	{ assetId = 110270802039989, meshId = "rbxassetid://77008333593159", size = { 13.699, 6.203, 13.9 } }
 -- Plot vats (server MeshSwap.swapPlotVats, bug #16): stands over every plot's MergeVat disc, 1 MeshPart per plot.
 -- NOT a world slot.
 entries["merge_vat"] =
@@ -354,6 +366,48 @@ entries["giant_cloud_tree"] =
 entries["ranch_bat"] =
 	{ assetId = 111246965997524, meshId = "rbxassetid://94306599639554", size = { 1.351, 5.09, 1.351 } }
 
+-- Held PvP items (Shared.PvpModels, server/PvpHeld; a placed Goo Trap / Bounce Pad marker too, ui/PvpEffects).
+-- Held, no collision (not in COLLISION), NOT world slots. size = the native size Roblox reports (Open Cloud size-check);
+-- grips and orientation are in PvpModels.
+entries["pvp_knock_glove_1"] =
+	{ assetId = 110621726072655, meshId = "rbxassetid://71737885567877", size = { 1.635, 2.014, 1.405 } }
+entries["pvp_knock_glove_2"] =
+	{ assetId = 80334698499483, meshId = "rbxassetid://77260240652660", size = { 1.637, 2.214, 1.4 } }
+entries["pvp_knock_glove_3"] =
+	{ assetId = 132366088078656, meshId = "rbxassetid://106383629055084", size = { 2.277, 2.247, 1.84 } }
+entries["pvp_knock_glove_4"] =
+	{ assetId = 135418730632918, meshId = "rbxassetid://78867127184009", size = { 2.729, 2.604, 1.746 } }
+entries["pvp_knock_glove_5"] =
+	{ assetId = 120579710964122, meshId = "rbxassetid://75411549772769", size = { 1.973, 2.779, 1.979 } }
+entries["pvp_goo_trap_1"] =
+	{ assetId = 83895249562133, meshId = "rbxassetid://83180176668437", size = { 3.786, 0.836, 3.188 } }
+entries["pvp_goo_trap_2"] =
+	{ assetId = 116867489683181, meshId = "rbxassetid://117211964777374", size = { 3.626, 0.984, 3.686 } }
+entries["pvp_goo_trap_3"] =
+	{ assetId = 128824082093246, meshId = "rbxassetid://108663580351164", size = { 3.68, 1.003, 4.107 } }
+entries["pvp_goo_blaster_1"] =
+	{ assetId = 105327335446583, meshId = "rbxassetid://86172948277407", size = { 0.72, 2.383, 2.55 } }
+entries["pvp_goo_blaster_2"] =
+	{ assetId = 96662953983125, meshId = "rbxassetid://131920181581288", size = { 1.279, 2.769, 3.28 } }
+entries["pvp_goo_blaster_3"] =
+	{ assetId = 85444473478925, meshId = "rbxassetid://94914692256376", size = { 1.32, 2.902, 4.171 } }
+entries["pvp_fun_confetti"] =
+	{ assetId = 122751045559627, meshId = "rbxassetid://130187699965534", size = { 1.521, 3.031, 1.518 } }
+entries["pvp_fun_balloon"] =
+	{ assetId = 123184486250639, meshId = "rbxassetid://137566643890332", size = { 1.3, 1.57, 1.3 } }
+entries["pvp_fun_bubbles"] =
+	{ assetId = 100059116789802, meshId = "rbxassetid://95807555526303", size = { 1.267, 3.52, 0.86 } }
+entries["pvp_fun_bounce_pad"] =
+	{ assetId = 79473190619711, meshId = "rbxassetid://122940558174082", size = { 3, 0.913, 3 } }
+entries["pvp_fun_squeaky"] =
+	{ assetId = 70595131801050, meshId = "rbxassetid://80237357927975", size = { 2, 3.27, 1.44 } }
+entries["pvp_fun_hat_launcher"] =
+	{ assetId = 74305371572035, meshId = "rbxassetid://124667953574111", size = { 1.16, 1.944, 2.74 } }
+entries["pvp_fun_dance_bomb"] =
+	{ assetId = 127767437569765, meshId = "rbxassetid://128407491632382", size = { 1.485, 2.518, 1.462 } }
+entries["pvp_fun_fireworks"] =
+	{ assetId = 76466741614439, meshId = "rbxassetid://99068800603377", size = { 1.04, 1.678, 3.145 } }
+
 -- B11 floor (FloorLayout, concept c3): hub-centred, 8-fold symmetric baked boardwalk meshes (models/ranch_floor_deck.py,
 -- ranch_floor_paths.py). One world slot each at the hub (Map.Paths.DeckPlaza / Boardwalk); decor, no collision.
 entries["ranch_floor_deck"] =
@@ -377,10 +431,10 @@ entries["mystery_egg_nest"] =
 	{ assetId = 104020921300950, meshId = "rbxassetid://110322947252445", size = { 3.416, 0.903, 3.416 } }
 
 -- The goo parade lane as ONE curved mesh (models/slime_lane.py, bug 4): not a WorldLayout slot (ParadeView lays
--- it at ParadeLane.MESH_PIVOT). Uploaded 2026-10-17; ParadeView swaps the ParadeLane.strips() stand-ins for it
--- once it loads (they stay only if it fails to load). size = out/slime_lane_pivot.json "size".
+-- it at ParadeLane.MESH_PIVOT). ParadeView swaps the ParadeLane.strips() stand-ins for it once it loads (they stay
+-- only if it fails to load). size = out/slime_lane_pivot.json "size".
 entries["slime_lane"] =
-	{ assetId = 87473643950432, meshId = "rbxassetid://135233109223925", size = { 139.095, 0.43, 135.756 } }
+	{ assetId = 87473643950432, meshId = "rbxassetid://115422391363157", size = { 142.599, 0.43, 139.246 } }
 
 -- FEATURES.FountainSplit (default off; MeshSwap.swapFountainSplit): the slime_fountain mesh cut into 5 pieces by
 -- shared/modeling-kit/models/slime_fountain_split.py (out/fountain_split.json has the numbers, tris sum to the whole:
@@ -406,7 +460,7 @@ entries["fountain_split_eave"] = {
 }
 entries["fountain_split_silo"] = {
 	assetId = 70694440108004,
-	meshId = "rbxassetid://103574045671668",
+	meshId = "rbxassetid://124837877209980",
 	size = { 26.223, 30.673, 26.563 },
 	offset = { -6.51, -6.321, -7.572 },
 }
@@ -420,23 +474,23 @@ entries["fountain_split_slide"] = {
 -- Slime pool species (contract/slime-pool.md, SlimeLooks kit "slime_<id>"): rigged, fully coloured
 -- Models from shared/modeling-kit/models/pool, worn by server SlimeMesh, never world slots (not in
 -- NAMES). size = native size of a size-1 slime; offset = bbox centre minus the slime's bottom centre.
-entries["slime_gummy"] = { assetId = 109275905134159, size = { 3.008, 2.95, 3.034 }, offset = { 0, 1.475, -0.013 } }
-entries["slime_mochi"] = { assetId = 88468109163483, size = { 3.339, 2.159, 3.116 }, offset = { -0, 1.08, -0.01 } }
+entries["slime_gummy"] = { assetId = 109275905134159, size = { 3.008, 2.95, 3.041 }, offset = { 0, 1.475, -0.016 } }
+entries["slime_mochi"] = { assetId = 88468109163483, size = { 3.339, 2.159, 3.116 }, offset = { -0, 1.079, -0.01 } }
 entries["slime_bubbles"] = { assetId = 136117360920606, size = { 3.299, 3.86, 3.47 }, offset = { -0.1, 1.93, -0.185 } }
 entries["slime_pebble"] =
-	{ assetId = 124134851993528, size = { 3.176, 2.823, 3.177 }, offset = { 0.053, 1.412, -0.026 } }
+	{ assetId = 124134851993528, size = { 3.219, 2.823, 3.223 }, offset = { 0.032, 1.412, -0.003 } }
 entries["slime_sprout"] = { assetId = 95596092652471, size = { 2.783, 4.029, 2.987 }, offset = { 0, 2.014, -0.029 } }
 entries["slime_cheddar"] =
-	{ assetId = 104100743814476, size = { 2.907, 2.558, 2.914 }, offset = { 0.005, 1.279, -0.009 } }
+	{ assetId = 104100743814476, size = { 2.907, 2.543, 2.914 }, offset = { 0.005, 1.272, -0.009 } }
 entries["slime_bumble"] = { assetId = 140176590528302, size = { 3.141, 3.9, 4.131 }, offset = { 0, 1.95, 0.392 } }
 entries["slime_mushie"] = { assetId = 117092813936490, size = { 4.16, 3.487, 4.16 }, offset = { 0, 1.743, -0 } }
 entries["slime_prickles"] =
-	{ assetId = 128744905531044, size = { 4.823, 3.799, 3.05 }, offset = { 0.017, 1.899, 0.032 } }
+	{ assetId = 128744905531044, size = { 4.864, 3.799, 3.05 }, offset = { -0.004, 1.899, 0.032 } }
 entries["slime_froggo"] = { assetId = 71274428079528, size = { 3.698, 2.684, 3.113 }, offset = { 0, 1.311, -0.046 } }
-entries["slime_flan"] = { assetId = 89380442384228, size = { 3.156, 3.97, 3.108 }, offset = { 0.004, 1.985, -0.001 } }
+entries["slime_flan"] = { assetId = 89380442384228, size = { 3.156, 3.97, 3.136 }, offset = { 0.004, 1.985, 0.013 } }
 entries["slime_chomp"] = { assetId = 95926102417193, size = { 4.568, 3.62, 4.121 }, offset = { 0, 1.81, 0.368 } }
 entries["slime_whiskers"] =
-	{ assetId = 133896172858214, size = { 4.173, 3.003, 3.268 }, offset = { -0.36, 1.501, -0.005 } }
+	{ assetId = 133896172858214, size = { 4.173, 3.003, 3.297 }, offset = { -0.36, 1.501, -0.019 } }
 entries["slime_lop"] = { assetId = 107798862734190, size = { 3.541, 3.616, 3.447 }, offset = { 0.001, 1.808, 0.203 } }
 entries["slime_moo"] = { assetId = 120951185287411, size = { 3.935, 2.915, 3.633 }, offset = { 0, 1.457, -0.115 } }
 entries["slime_pengoo"] = { assetId = 96963913146270, size = { 4.596, 3.9, 3.2 }, offset = { 0, 1.947, -0.156 } }
@@ -448,50 +502,51 @@ entries["slime_imp"] = { assetId = 84166464527451, size = { 4.596, 3.491, 3.884 
 entries["slime_octo"] = { assetId = 121886155113536, size = { 5.058, 3.495, 4.192 }, offset = { 0, 1.673, -0.141 } }
 entries["slime_drako"] = { assetId = 85981669582151, size = { 4.194, 3.272, 3.993 }, offset = { 0, 1.636, 0.327 } }
 entries["slime_king"] = { assetId = 108773001876450, size = { 3.783, 3.812, 3.378 }, offset = { 0, 1.874, 0.093 } }
-entries["slime_ninja"] = { assetId = 99942777828950, size = { 3.747, 3.08, 3.633 }, offset = { 0.085, 1.54, 0.336 } }
-entries["slime_robo"] = { assetId = 74626917754091, size = { 3.904, 4.16, 3.679 }, offset = { 0, 2.08, 0.321 } }
+entries["slime_ninja"] = { assetId = 99942777828950, size = { 3.747, 3.08, 3.861 }, offset = { 0.085, 1.54, 0.45 } }
+entries["slime_robo"] = { assetId = 74626917754091, size = { 3.946, 4.16, 3.679 }, offset = { 0, 2.08, 0.321 } }
 entries["slime_cosmo"] = { assetId = 113712257623051, size = { 5.109, 3.66, 4.972 }, offset = { 0, 1.83, -0 } }
-entries["slime_seraph"] = { assetId = 130685970099047, size = { 5.69, 3.946, 2.966 }, offset = { 0, 1.973, -0.011 } }
+entries["slime_seraph"] = { assetId = 130685970099047, size = { 5.92, 3.946, 2.966 }, offset = { 0, 1.973, -0.011 } }
 entries["slime_amethyst"] =
-	{ assetId = 120514076751923, size = { 4.742, 4.732, 4.081 }, offset = { -0.081, 2.243, 0.377 } }
+	{ assetId = 120514076751923, size = { 4.851, 4.732, 4.11 }, offset = { -0.098, 2.243, 0.392 } }
 entries["slime_prism"] = { assetId = 97296414747568, size = { 4.266, 4.392, 4.155 }, offset = { -0.001, 2.005, 0.137 } }
 entries["slime_midas"] = { assetId = 84348651618165, size = { 3.895, 3.51, 3.729 }, offset = { 0.035, 1.665, 0.022 } }
 entries["slime_eclipse"] =
 	{ assetId = 73912580635466, size = { 4.872, 4.374, 3.446 }, offset = { 0.039, 2.114, 0.089 } }
 entries["slime_boo"] = { assetId = 96310373601330, size = { 4.198, 3.849, 2.926 }, offset = { 0.015, 1.846, -0.002 } }
 
-entries["slime_soda"] = { assetId = 95888248190580, size = { 3.602, 4.483, 3.085 }, offset = { -0.08, 2.242, -0.024 } }
+entries["slime_soda"] = { assetId = 95888248190580, size = { 3.602, 4.483, 3.085 }, offset = { -0.08, 2.242, -0.023 } }
 entries["slime_rocky_road"] =
-	{ assetId = 74244309584071, size = { 3.137, 3.485, 3.138 }, offset = { 0.009, 1.742, 0.004 } }
+	{ assetId = 74244309584071, size = { 3.137, 3.518, 3.138 }, offset = { 0.009, 1.759, 0.004 } }
 entries["slime_bloom"] = { assetId = 99167270842330, size = { 4.607, 3.658, 4.751 }, offset = { 0, 1.829, -0.092 } }
-entries["slime_honey_toad"] = { assetId = 76639819710103, size = { 3.698, 2.903, 3.158 }, offset = { 0, 1.42, -0.023 } }
+entries["slime_honey_toad"] = { assetId = 76639819710103, size = { 3.698, 2.903, 3.181 }, offset = { 0, 1.42, -0.012 } }
 entries["slime_truffle"] =
 	{ assetId = 107050144207287, size = { 3.813, 5.14, 3.734 }, offset = { -0.004, 2.57, 0.033 } }
-entries["slime_sushi"] = { assetId = 79864638354637, size = { 3.734, 3.746, 3.5 }, offset = { -0.201, 1.873, 0.329 } }
-entries["slime_snow_bunny"] = { assetId = 122177895345867, size = { 3.469, 4.842, 3.469 }, offset = { 0, 2.376, -0 } }
+entries["slime_sushi"] = { assetId = 79864638354637, size = { 3.734, 3.746, 3.506 }, offset = { -0.201, 1.873, 0.326 } }
+entries["slime_snow_bunny"] = { assetId = 122177895345867, size = { 3.482, 4.842, 3.482 }, offset = { 0, 2.376, -0 } }
 entries["slime_moo_shroom"] =
-	{ assetId = 110396997416743, size = { 3.993, 3.467, 3.691 }, offset = { 0, 1.734, -0.116 } }
+	{ assetId = 110396997416743, size = { 3.993, 3.467, 3.882 }, offset = { 0, 1.734, -0.021 } }
 entries["slime_catfish"] = { assetId = 76770603623417, size = { 4.699, 3.573, 4.43 }, offset = { 0, 1.764, 0.481 } }
-entries["slime_steam"] = { assetId = 107367947074628, size = { 4.794, 4.72, 3.26 }, offset = { 0, 2.36, -0.021 } }
+entries["slime_steam"] = { assetId = 107367947074628, size = { 4.794, 4.72, 3.279 }, offset = { 0, 2.36, -0.013 } }
 entries["slime_kraken"] =
 	{ assetId = 70503828098080, size = { 5.49, 4.449, 4.185 }, offset = { -0.025, 2.215, -0.041 } }
 entries["slime_thunderbee"] =
 	{ assetId = 131233135861150, size = { 4.66, 4.321, 4.21 }, offset = { -0.03, 2.16, 0.376 } }
 entries["slime_cyber_ninja"] =
-	{ assetId = 116106560463464, size = { 3.697, 3.63, 3.776 }, offset = { -0.04, 1.815, 0.326 } }
+	{ assetId = 116106560463464, size = { 3.697, 3.63, 4.006 }, offset = { -0.04, 1.815, 0.441 } }
 entries["slime_dragon_king"] =
-	{ assetId = 88961374433419, size = { 5.566, 4.129, 4.397 }, offset = { 0, 2.065, 0.314 } }
+	{ assetId = 88961374433419, size = { 5.566, 4.129, 4.424 }, offset = { 0, 2.065, 0.301 } }
 entries["slime_nightwing"] =
-	{ assetId = 112164365401063, size = { 6.135, 4.163, 3.798 }, offset = { -0.027, 2.081, 0.38 } }
+	{ assetId = 112164365401063, size = { 6.262, 4.163, 3.798 }, offset = { 0.036, 2.081, 0.38 } }
 entries["slime_goozilla"] = { assetId = 95597031533993, size = { 3.204, 3.927, 5.049 }, offset = { 0, 1.907, 0.617 } }
 entries["slime_queen_jelly"] =
 	{ assetId = 108716301261458, size = { 4.401, 4.653, 4.403 }, offset = { -0.032, 2.337, 0.024 } }
 entries["slime_mecha_goo"] = { assetId = 78640546070601, size = { 4.48, 3.5, 3.579 }, offset = { 0, 1.75, 0.091 } }
-entries["slime_glitch"] = { assetId = 112653965607800, size = { 5.304, 4.23, 3.1 }, offset = { -0.015, 2.115, -0 } }
+entries["slime_glitch"] =
+	{ assetId = 112653965607800, size = { 5.349, 4.23, 3.122 }, offset = { -0.037, 2.115, -0.011 } }
 entries["slime_doodle"] = { assetId = 74559390612314, size = { 4.192, 4.199, 3.276 }, offset = { 0, 2.025, -0.041 } }
 entries["slime_origami"] = { assetId = 102661066928788, size = { 6.542, 4.521, 4.442 }, offset = { 0, 2.261, 0.608 } }
 entries["slime_disco"] = { assetId = 89692353422465, size = { 5.368, 3.97, 3.485 }, offset = { -0.095, 1.985, -0.054 } }
-entries["slime_isle"] = { assetId = 106246529336627, size = { 4.664, 5.731, 3.95 }, offset = { 0.054, 2.815, 0.298 } }
+entries["slime_isle"] = { assetId = 106246529336627, size = { 4.667, 5.736, 3.95 }, offset = { 0.055, 2.818, 0.298 } }
 entries["slime_chrono"] = { assetId = 80629324297687, size = { 4.982, 4.791, 3.6 }, offset = { 0.013, 2.355, -0 } }
 entries["slime_kitsune"] = { assetId = 129157153377304, size = { 7.571, 5.424, 3.51 }, offset = { -0, 2.712, 0.216 } }
 

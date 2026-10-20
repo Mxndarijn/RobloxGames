@@ -1,23 +1,26 @@
-# PvP ladder (v22) - in-repo design reference
+# PvP ladder - in-repo design reference
 
-Flag: `Config.FEATURES.PvP` (default `false`). Contract: `CONTRACT.md` §26. Code: `src/shared/PvpRules.luau`, `src/server/PvpService.luau`, data in `Config.PVP` / `Config.PVP_TOOLS`.
+Flag: `Config.FEATURES.PvP`. Contract: `CONTRACT.md` §26 (`contract/pvp.md`). Code: `src/shared/PvpRules.luau`, `src/server/PvpService.luau` (+ `PvpKnockback`, `PvpTrap`, `PvpBlaster`, `PvpSlow`, `PvpFun`), data in `Config.PVP` / `Config.PVP_TOOLS`. Every number below is a starting value; `Config` holds the live one.
 
 ## Principles
 
 1. Cash plus rank, no Robux. Rank is checked on purchase and on every use.
-2. Server-enforced cooldown, never below 1.5 s.
-3. Nothing deals damage or can kill. Knockback is horizontal with a small arc, capped per tier, and the landing point is clamped inside the map. A PvP fall causes no damage.
-4. Max 2 s crowd control (slows max 3 s), then 3 s control immunity. Safe zones (spawn, shop, fountain) and the new-player shield (10 min played or first rebirth; ends early if the player steals) block all tools.
-5. Tools work only on your own plot, or against a thief carrying a slime. Purely cosmetic fun items are exempt from that rule but still respect safe zones and the shield (`FunConfetti` may be used inside a safe zone).
-6. Show-off, not power gap: the top tier is about 2x the base effect. A higher tier replaces the lower one.
+2. Server-enforced cooldown, never below 1.5 s (the Goo Squirter's cooldown is per tank of 6 shots).
+3. Nothing deals damage or can kill. Knockback is mostly horizontal with a capped arc, and the landing point is clamped inside the map. A PvP fall causes no damage; the void guard puts anyone who still falls back.
+4. Max 2 s crowd control (slows max 3 s), then 3 s control immunity.
+5. **No safe zones.** Every PvP item works on anyone, anywhere, except players under the new-player shield. On a player who carries nothing the effect stays light (a push, a short slow, a laugh); nobody loses anything to it.
+6. **A caught thief loses the slime.** Whenever a PvP item hits a player carrying a stolen slime (every item except the purely cosmetic Confetti Popper), the slime bounces home to its owner's plot (`PvpService.catchThief`, the same drop + bounce + notifications as the Bat).
+7. **New-player shield:** 15 minutes of play time (summed over sessions). Rebirths don't end it; stealing a slime does. A shielded player can't be hit by PvP items (a Fun item still gives them its cosmetic part) and can't use non-cosmetic items. Everyone sees a shield badge over a shielded player's head; the player sees a shield slot with a `mm:ss` countdown in the bottom-right status cluster.
+8. **Fun items are toys first** (CONTRACT.md §26.8): aimed with a click, no target pick, no plot of your own needed. Their control effects still respect the shield and the control cap.
+9. Show-off, not power gap: the top tier is about 2x the base effect.
 
-Price = `max(100, floor(k x Economy.rebirthCost(gate)))`, k = 0.03 for tools, 0.01 for fun items (the pacing sim tunes it). The base slap stays free (4 studs push, PR B).
+Price = `max(100, floor(k x Economy.rebirthCost(gate)))`, k = 0.03 for gloves and blasters, 0.01 for fun items, and a smaller k for one Goo Trap charge (traps are used up).
 
 ## Ladder
 
 | Rank (rebirths) | Knockback | Goo Trap | Goo Blaster | Fun |
 |---|---|---|---|---|
-| 0 Slime Rookie | base Slap | | | `FunConfetti` |
+| 0 Slime Rookie | Bat | | | `FunConfetti` |
 | 1 Goo Getter | `KnockGlove1` | | | `FunBalloon` |
 | 3 Slime Wrangler | | `GooTrap1` | | `FunBubbles` |
 | 5 Blob Baron | `KnockGlove2` | | | `FunBouncePad` |
@@ -28,19 +31,58 @@ Price = `max(100, floor(k x Economy.rebirthCost(gate)))`, k = 0.03 for tools, 0.
 | 12 Gel Emperor | `KnockGlove4` | | `GooBlaster2` | |
 | 20 Mythic Monarch | `KnockGlove5` | | `GooBlaster3` | |
 
-Ranks 15 and 30 add cosmetic gold skins / aura FX later (no item in this PR).
+## Gloves
 
-**Knockback** (reach 10, cooldown 1.5 s): Bonk Glove 5 studs, Bounce 6, Boom 7, Thunder 7.5, Royal 8.
+Tap = punch. Hold (at least `CHARGE_SECONDS`) and release = power punch: 1.5x push, longer cooldown. Punching a thief always sends the slime home, also when the push itself is refused by immunity.
 
-**Goo Trap** (own plot): Puddle 1 trap, freeze 1 s, re-arm 30 s, radius 3; Sticky 2 traps, 1.5 s, 25 s, 3.5; Mega 2 traps, 2 s, 20 s, 4.
+| Glove | Push | Special |
+|---|---|---|
+| Bonk | 5 | a clean punch and a "BONK!" popup |
+| Bounce | 6 | the target pogo-bounces 3 times, each lower |
+| Boom | 7 | a small blast also pushes everyone within 5 studs of the target |
+| Thunder | 7.5 | lightning chains to up to 2 nearby players at half push |
+| Royal | 10 | a long push in a high arc with gold confetti |
 
-**Goo Blaster** (server hitscan, range 40 / 45 / 50, only vs a thief carrying a slime): Squirter slow 30 % for 2 s, cooldown 12 s; Blaster 40 % / 2.5 s / 11 s; Cannon 50 % / 3 s / 10 s.
+Knockback caps (`KNOCKBACK_MAX_PUSH`, `KNOCKBACK_ARC_HEIGHT`, `KNOCKBACK_BOUNDS_MARGIN`) are raised just enough for the Royal power punch; the landing stays inside `MAP_BOUNDS` minus the margin, which also covers the friction-boost overshoot.
 
-**Fun items** (cooldown): Confetti 5 s, Balloon 3 s (decals fade after 10 s, max 8), Bubbles 4 s, Bounce Pad 10 s (own plot, max 1, 25 studs straight up, thieves 1.2 s then immunity), Squeaky Hammer 3 s (2-stud nudge on a thief only), Hat Launcher 8 s (self or friends, 30 s), Dance Bomb 45 s (own plot, thieves only, 2 s), Fireworks 20 s (own plot, cosmetic).
+## Goo Traps
 
-## Hit feel (tuning and sounds)
+Buying gives one trap charge (a stack, like consumables); at most 5 per tier. Click the ground to throw one (one charge). At most 5 live traps per player; a 6th removes the oldest. A trap lasts 3 minutes or until it catches someone. Charges are saved, live traps are not. The owner sees their traps glowing; others see a faint shimmer.
 
-Knockback: max push 8 studs (`KNOCKBACK_MAX_PUSH`), arc 2 studs, landing clamped inside `MAP_BOUNDS` minus 6 studs, launch over 0.35 s with a **1.5x horizontal friction boost** (`KNOCKBACK_FRICTION_BOOST`), vertical speed cap 110 studs/s (`KNOCKBACK_MAX_SPEED_Y`, the 25-stud Bounce Pad needs ~99). The server sets the velocity and holds `PlatformStand` for 0.35 s; the victim's client applies the `velocity` from the Effect payload to its own root (same clamp). Void guard: 5 s after a PvP launch or under control, a character below y = -20 is rescued (kill plane -60); nothing in PvP can kill, there is no fall damage. Trap hold 1 / 1.5 / 2 s and blaster slow 30 % 2 s / 40 % 2.5 s / 50 % 3 s are asserted in `tests/PvpFeel.spec`.
+| Trap | Radius | Effect |
+|---|---|---|
+| Goo Puddle | 3 | 50 % slow for 2 s, green goo on the feet, a squelch |
+| Sticky Trap | 3.5 | stuck 1.5 s, then slowed |
+| Mega Trap | 4 | jaws snap: held 2 s, then spat out with a small bounce; also pulls in anyone else within 4 studs |
+
+Any tier that catches a thief sends the slime home. The trap meshes (`pvp_goo_trap_1..3`) drop in through `PvpModels` once uploaded; until then the marker is the placeholder model on a goo disc.
+
+## Goo Blasters
+
+Real goo blobs fly a visible arc; the server owns the shot (start point, range, aim, rate) and decides the hit at fire time. A hit slows, splats goo on the edge of the victim's screen and tints them green. A miss leaves a slippery splat on the ground for 5 s; a thief who walks into a splat or a Cannon pool is caught too.
+
+| Blaster | Shot | Effect |
+|---|---|---|
+| Goo Squirter | rapid fire, 6 shots per tank, then a short refill | each hit stacks a little slow (the whole slow capped at 3 s); a hit on a thief sends the slime home |
+| Goo Blaster | 3 blobs in a fan | slow; a hit on a thief sends the slime home |
+| Goo Cannon | hold to aim, a big lob | splashes everyone within 6 studs, leaves a slowing pool for 4 s; a hit on a thief sends the slime home |
+
+## Fun items
+
+Tunables in `Config.PVP_FUN`, cooldowns in the `PVP_TOOLS` rows. Toys first, power second. Every one is aimed with a click (no target pick), works anywhere and needs no plot of your own.
+
+- **Confetti Popper:** aim anywhere, also straight up; the burst rains down over about 10 studs and sticks confetti on everyone under it for a few seconds. Purely cosmetic: it never catches a thief. Hold to charge a mega pop.
+- **Goo Balloon:** lobbed in an arc; the splash paints everyone in it goo green for 10 s and leaves a splat on the ground. A thief in the splash is slowed a little.
+- **Bubble Wand:** blows a stream of floating bubbles. A player who touches one floats in a bubble for 1.5 s (control); anyone else can click the bubble to pop it early. A wild slime it touches floats up, drifts and lands (cosmetic).
+- **Bounce Pad:** a trampoline, at most 2 live, 60 s each. Everyone bounces on it, wild slimes too; the owner bounces higher with a flip.
+- **Squeaky Hammer:** bonk a slime (wild or on any pad) and it squashes flat with a squeak, wobbles and springs back with an excited bounce: no harm, no theft, no value change. Bonk a player and they pancake for 0.8 s, then spring back with a BOING and a small push. Three hits on the same target in quick succession is a giant squeak.
+- **Slime Hat Launcher:** a hit player wears a slime hat for 30 s (stacks to 3); a miss turns into a little hat-slime that hops around for 20 s.
+- **Dance Bomb:** a lobbed disco bubble with lights and music; everyone inside dances for 2 s (control).
+- **Goo Fireworks:** a rocket that bursts high in the colour of your favourite slime, visible across the map; nearby wild slimes cheer-hop. Hold to fire a 3-rocket volley.
+
+A thief carrying a stolen slime who gets splashed, lifted, bounced, bonked, hatted or made to dance drops it, and the slime goes home (confetti and fireworks catch nobody). Shielded players only get the cosmetic part (confetti, paint, hats, fireworks).
+
+## Hit feel (sounds)
 
 Client effect sounds (Roblox library sounds plus one Pro Sound Effects sound, all `AssetTypeId` 3 and `IsPublicDomain` true per economy.roblox.com/v2/assets/<id>/details):
 
@@ -48,14 +90,12 @@ Client effect sounds (Roblox library sounds plus one Pro Sound Effects sound, al
 |---|---|---|---|
 | `PvpHit` | 12222046 | hit.wav | glove punch |
 | `PvpCollide` | 12221984 | collide.wav | spare impact |
-| `PvpGoo` | 12222152 | splat.wav | trap freeze goo |
+| `PvpGoo` | 12222152 | splat.wav | trap goo / squelch |
 | `PvpSquirt` | 12222103 | Rubber band sling shot.wav | blaster shot / splat |
-| `PvpBoing` | 12222124 | Short spring sound.wav | Bounce Pad |
+| `PvpBoing` | 12222124 | Short spring sound.wav | Bounce Pad, Bounce Glove pogo |
 | `PvpPop` | 12221996 | flashbulb.wav | confetti / balloon / hat / dance |
 | `PvpSqueak` | 9125994570 | Squeeze Toy Squeaky Rubber (Pro Sound Effects, public domain) | Squeaky Hammer |
 | `PvpFirework` | 12222065 | Launching rocket.wav | fireworks |
 | `PvpBubble` | 12222054 | Kerplunk.wav | Bubble Wand |
+| `PvpDisco` | 9047231371 | APM "Copacetic - 15" (Roblox-licensed APM music) | Dance Bomb disco bubble |
 
-## PR sequence
-
-A fairness core (this) - B knockback - C traps - D blaster - E fun items - F icons (done: all 19 Pvp_* icons rendered and uploaded, wired in `ItemIcons.IMAGES`, covered by `tests/ui/ShopIcons.spec.luau`). Then Jolt builds the hotbar and shop UI.

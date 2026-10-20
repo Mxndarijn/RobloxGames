@@ -54,7 +54,9 @@ local PlotPrompts = require(script.Parent.PlotPrompts)
 local PlotSigns = require(script.Parent.PlotSigns)
 local PlotSkins = require(ReplicatedStorage.Shared.PlotSkins)
 local Progression = require(ReplicatedStorage.Shared.Progression)
+local PvpBlaster = require(script.Parent.PvpBlaster)
 local PvpFun = require(script.Parent.PvpFun)
+local PvpHeld = require(script.Parent.PvpHeld)
 local PvpService = require(script.Parent.PvpService)
 local PvpTrap = require(script.Parent.PvpTrap)
 local Rescue = require(script.Parent.Rescue)
@@ -1393,9 +1395,12 @@ function WorldView.updatePlayer(
 	if Config.FEATURES.PvP then
 		setAttribute(player, Constants.PVP_SHIELD_ATTRIBUTE, PvpService.shieldUntil(session, now))
 		setAttribute(player, Constants.PVP_EQUIPPED_ATTRIBUTE, PvpService.equipped(session))
+		-- the held model (CONTRACT.md §26.3): put away while carrying, like the Tools
+		PvpHeld.sync(character, if carry then nil else PvpService.equipped(session))
 		local root = WorldView.rootPart(player)
 		PvpService.tick(world, session, root and root.Position, now)
-		PvpTrap.tick(world, session, root and root.Position, now)
+		PvpTrap.tick(world, session, root and root.Position, now, ctx)
+		PvpBlaster.tick(world, session, root and root.Position, now, ctx)
 		PvpFun.tick(world, session, root and root.Position, now, ctx)
 	end
 	local pet = Progression.keeper(data)
@@ -1403,9 +1408,9 @@ function WorldView.updatePlayer(
 	if data.speedCoil then
 		ensureSpeedCoil(player)
 	end
-	local target = Carry.targetWalkSpeed(session, now)
-	if Config.FEATURES.PvP and PvpTrap.frozen(session, now) then
-		target = 0 -- Goo Trap freeze (PvpTrap, <= CONTROL_MAX_SECONDS)
+	local target = Carry.targetWalkSpeed(session, now) -- PvP holds / slows multiply in (PvpSlow, PvpFun)
+	if Config.FEATURES.PvP and PvpFun.frozen(session, now) then
+		target = 0 -- Fun bubble lift / pancake / dance (<= CONTROL_MAX_SECONDS)
 	end
 	setAttribute(player, Constants.WALK_SPEED_ATTRIBUTE, target)
 	if not humanoid then

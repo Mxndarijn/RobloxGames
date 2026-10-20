@@ -8,7 +8,7 @@
     "dist": 95,
     "height": 24,
     "fountain_tier": 2,
-    "note": "v19 fountain tiers: the Orchard Fountain (tier 2, forced with SlimeUI.PcwFountainTier, FEATURES.FountainTiers off): ring of lantern posts at the foot, tinted and glowing for tier 2"
+    "note": "v19 fountain tiers: the Orchard Fountain (tier 2, forced with SlimeUI.PcwFountainTier, FEATURES.FountainTiers off): the goo glow of tier 2"
   },
   {
     "id": "19-fountain-tier-3",
@@ -19,7 +19,7 @@
     "dist": 95,
     "height": 24,
     "fountain_tier": 3,
-    "note": "v19 fountain tiers: the Frost Fountain (tier 3, forced with SlimeUI.PcwFountainTier, FEATURES.FountainTiers off): ring + floating crest over the goo crown, tinted and glowing for tier 3"
+    "note": "v19 fountain tiers: the Frost Fountain (tier 3, forced with SlimeUI.PcwFountainTier, FEATURES.FountainTiers off): the goo glow of tier 3"
   },
   {
     "id": "19-fountain-tier-4",
@@ -30,6 +30,6 @@
     "dist": 95,
     "height": 24,
     "fountain_tier": 4,
-    "note": "v19 fountain tiers: the Starlight Fountain (tier 4, forced with SlimeUI.PcwFountainTier, FEATURES.FountainTiers off): ring + floating crest over the goo crown, tinted and glowing for tier 4"
+    "note": "v19 fountain tiers: the Starlight Fountain (tier 4, forced with SlimeUI.PcwFountainTier, FEATURES.FountainTiers off): the goo glow of tier 4"
   }
 ]
