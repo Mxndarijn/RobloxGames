@@ -6,9 +6,8 @@
 	(tests/ui/ShopCatalog.spec.luau). Every purchase is `Request(action, ...)`;
 	the client never decides outcomes.
 
-	CONTRACT gaps (docs/archive/UI-CONTRACT-GAPS.md): only "Lock" exists today. The lock
-	upgrade and Speed Coil use the *expected* actions "BuyLockUpgrade" and
-	"BuySpeedCoil", and read prices from an expected optional `State.shop`:
+	Locks are not sold here: the lock button on your own plot buys them. The
+	Speed Coil uses "BuySpeedCoil" and reads its price from `State.shop`:
 
 		shop: { [itemId]: { price: number?, level: number?, maxLevel: number?, owned: boolean? } }?
 
@@ -54,27 +53,11 @@ local ShopCatalog = {}
 
 ShopCatalog.ITEMS = table.freeze({
 	table.freeze({
-		id = "Lock",
-		name = "Lock base",
-		icon = "🔒",
-		description = "Blocks thieves.",
-		action = "Lock",
-		args = {},
-	}),
-	table.freeze({
-		id = "LockUpgrade",
-		name = "Longer locks",
-		icon = "⏱️",
-		description = "Every lock lasts longer.",
-		action = "BuyLockUpgrade", -- TODO(CONTRACT): expected action name
-		args = {},
-	}),
-	table.freeze({
 		id = "SpeedCoil",
 		name = "Speed Coil",
 		icon = "⚡",
 		description = "Run faster, also while carrying",
-		action = "BuySpeedCoil", -- TODO(CONTRACT): expected action name
+		action = "BuySpeedCoil",
 		args = {},
 	}),
 } :: { Item })
@@ -109,14 +92,10 @@ function ShopCatalog.find(id: string): Item?
 	return nil
 end
 
--- Status for one item from a State snapshot. "Lock" is built from the real
--- lockCost / lockDuration fields; others read the expected `state.shop`.
+-- Status for one item from a State snapshot (`state.shop`).
 function ShopCatalog.status(item: Item, state: any): ItemStatus?
 	if type(state) ~= "table" then
 		return nil
-	end
-	if item.id == "Lock" then
-		return if type(state.lockCost) == "number" then { price = state.lockCost } else nil
 	end
 	local shop = state.shop
 	local entry = if type(shop) == "table" then shop[item.id] else nil
@@ -147,9 +126,7 @@ function ShopCatalog.view(item: Item, state: any, actions: { [string]: any }, co
 	local affordable = price == nil or cash >= price
 
 	local description = item.description
-	if item.id == "Lock" and type(state) == "table" and type(state.lockDuration) == "number" then
-		description = `Blocks thieves +{math.floor(state.lockDuration)}s.`
-	elseif item.id == "SpeedCoil" then
+	if item.id == "SpeedCoil" then
 		description = ShopCatalog.speedCoilText(config) or description
 	end
 

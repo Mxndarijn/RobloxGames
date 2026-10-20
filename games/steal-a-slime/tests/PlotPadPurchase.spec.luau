@@ -68,14 +68,13 @@ describe("PlotPadGuard", function()
 end)
 
 describe("plot pad prompts under WorldShopsStrict", function()
-	it(
-		"without the pad check, Request Lock far from the shop fails like the live bug (too far from the shop)",
-		function()
-			local env = setup()
-			env.ctx.plotPadAccess = nil
-			expect(request(env, "Lock").code).toBe("OutOfRange")
-		end
-	)
+	it("Request Lock never needs the shop: without a measured pad it is not gated", function()
+		local env = setup()
+		env.ctx.plotPadAccess = nil
+		local res = request(env, "Lock")
+		expect(res.ok).toBe(true)
+		expect(env.session.lockUntil > T0 + 100).toBe(true)
+	end)
 	it("Lock: the owner at their own pad locks, with the Item Shop far away", function()
 		local env = setup()
 		local cash = env.session.data.cash
@@ -119,7 +118,7 @@ describe("plot pad prompts under WorldShopsStrict", function()
 	it("only the three pad kinds go through handlePlotPad", function()
 		local env = setup()
 		expect(prompt(env, "BuySpeedCoil").message).toBe("unknown action")
-		expect(prompt(env, "BuyLockUpgrade").message).toBe("unknown action")
+		expect(prompt(env, "BuyUpgrade", "Income").message).toBe("unknown action")
 	end)
 	it("the bypass is private: the shared ctx still gates the shop purchases", function()
 		local env = setup()
@@ -127,30 +126,40 @@ describe("plot pad prompts under WorldShopsStrict", function()
 		expect(env.ctx.strictBypass).toBeNil()
 		env.session.lockUntil = 0
 		env.pad = { distance = 500, alive = true } -- far from the pad too
-		expect(request(env, "Lock").code).toBe("OutOfRange")
-		expect(request(env, "BuyLockUpgrade").code).toBe("OutOfRange")
+		expect(request(env, "Lock").message).toBe("walk closer to your lock pad")
+		expect(env.session.lockUntil).toBe(0)
+		expect(request(env, "BuyUpgrade", "Income").code).toBe("OutOfRange")
 		expect(request(env, "BuySpeedCoil").code).toBe("OutOfRange")
 		expect(request(env, "Sell", "nope").code).toBeNil() -- not a shop item: never gated
 	end)
-	it("HUD Request Lock works while standing at the pad (strict), else needs the shop as before", function()
+	it("HUD Request Lock works at the pad and is refused away from it, open shop or not", function()
 		local env = setup()
+		local cash = env.session.data.cash
 		env.pad = { distance = 2, alive = true }
 		expect(request(env, "Lock").ok).toBe(true)
+		expect(env.session.data.cash < cash).toBe(true)
 		env.session.lockUntil = 0
+		cash = env.session.data.cash
 		env.pad = { distance = RANGE + 1, alive = true }
-		expect(request(env, "Lock").code).toBe("OutOfRange")
-		request(env, "OpenShop", "ItemShop") -- far: refused
+		local far = request(env, "Lock")
+		expect(far.ok).toBe(false)
+		expect(far.message).toBe(PlotPadGuard.MESSAGES.OutOfRange)
 		env.shop = { distance = 3, alive = true }
 		expect(request(env, "OpenShop", "ItemShop").ok).toBe(true)
-		expect(request(env, "Lock").ok).toBe(true) -- shop path unchanged
+		expect(request(env, "Lock").message).toBe(PlotPadGuard.MESSAGES.OutOfRange) -- the shop is no way to lock
+		env.pad = { distance = 1, alive = false }
+		expect(request(env, "Lock").ok).toBe(false)
+		expect(env.session.lockUntil).toBe(0)
+		expect(env.session.data.cash).toBe(cash)
 	end)
-	it("ShopBuy ItemShop/Lock stays on the shop path (pad position is irrelevant)", function()
+	it("ShopBuy ItemShop/Lock is not a shop item, at the pad or at the open shop", function()
 		local env = setup()
 		env.pad = { distance = 2, alive = true }
-		expect(request(env, "ShopBuy", "ItemShop", "Lock").code).toBe("NotOpen")
+		expect(request(env, "ShopBuy", "ItemShop", "Lock").code).toBe("NotInShop")
 		env.shop = { distance = 3, alive = true }
 		request(env, "OpenShop", "ItemShop")
-		expect(request(env, "ShopBuy", "ItemShop", "Lock").ok).toBe(true)
+		expect(request(env, "ShopBuy", "ItemShop", "Lock").code).toBe("NotInShop")
+		expect(env.session.lockUntil).toBe(0)
 	end)
 end)
 

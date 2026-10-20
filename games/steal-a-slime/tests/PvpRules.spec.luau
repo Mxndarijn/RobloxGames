@@ -78,7 +78,9 @@ describe("PvpRules pricing and gating", function()
 		expect(PvpRules.price("KnockGlove1")).toBe(math.floor(0.03 * Economy.rebirthCost(1)))
 		expect(PvpRules.price("KnockGlove5")).toBe(math.floor(0.03 * Economy.rebirthCost(20)))
 		expect(PvpRules.price("FunBalloon")).toBe(math.floor(0.01 * Economy.rebirthCost(1)))
-		expect(PvpRules.price("FunConfetti")).toBe(PVP.PRICE_MIN) -- gate 0: 50 -> the minimum
+		expect(PvpRules.price("FunConfetti")).toBe(
+			math.max(PVP.PRICE_MIN, math.floor(PVP.PRICE_FACTOR_FUN * Economy.rebirthCost(0)))
+		)
 		expect(PvpRules.price("GooTrap2")).toBe(
 			math.max(PVP.PRICE_MIN, math.floor(PVP.PRICE_FACTOR_TRAP * Economy.rebirthCost(6)))
 		)
