@@ -99,7 +99,7 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 
 ## 8.8 Progression
 
-- **Rebirth cost:** `REBIRTH_BASE_COST x REBIRTH_COST_GROWTH^min(r, REBIRTH_LATE_FROM) x REBIRTH_COST_GROWTH_LATE^max(0, r - REBIRTH_LATE_FROM)` with 5000 / 3 / 5 / 2 (unchanged up to rebirth 5, then x2 per rebirth).
+- **Rebirth cost:** `REBIRTH_BASE_COST x REBIRTH_COST_GROWTH^min(r, REBIRTH_LATE_FROM) x REBIRTH_COST_GROWTH_LATE^max(0, r - REBIRTH_LATE_FROM)` (values in `Config`).
 - **Ranks** (`Config.REBIRTH_TIERS`, reached at rebirth count; perks don't stack, the best unlocked value wins):
 
 | Rebirths | Title | Perk |
@@ -110,9 +110,9 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
 | 5 | Blob Baron | unlocks the Luck upgrade |
 | 6 | Goo Tycoon | keep 2 slimes on rebirth |
 | 7 | Jelly Magnate | +10 % income |
-| 8 | Ooze Overlord | +30 s locks |
+| 8 | Ooze Overlord | +15 % income |
 | 10 | Slime Sovereign | keep 3 slimes, +25 % income |
-| 12 | Gel Emperor | +60 s locks |
+| 12 | Gel Emperor | +35 % income |
 | 15 | Gelatinous Legend | keep 4 slimes, +50 % income |
 | 20 | Mythic Monarch | +100 % income |
 | 30 | Slime Deity | keep 5 slimes, +200 % income |
@@ -143,15 +143,21 @@ All three carry `ShowOnlyToUserId = owner`, are `Enabled = false` on a free plot
   Stats: `caught` (wild slimes deposited), `merges`, `locks` (locks bought), `sold`, `stolen` (= `totalStolen`), `earned` (= `totalEarned`), `rebirths`, `pads` (= `padsUnlocked`).
 - **Slimedex rewards**: replaced by the species Dex ladder (`Config.DEX_MILESTONES`, `src/shared/Collection.luau`), see `contract/species-dex.md` §36.3.
 
-## 8.8a Rebirth needs a slime (v29)
+## 8.8a Rebirth needs slimes and uses them up
 
-Rebirth number N also needs one owned slime (`data.slimes`, i.e. on a pad) of the
-`Config.REBIRTH_SLIMES[N]` species (a SlimeRoster id; a level without an entry uses the
-last entry below it). The cash cost stays. `Progression.canRebirth` rejects with
-`need a <Species Name>` when it is missing. The slime is **not consumed**: the normal
-rebirth wipe and keeper rule apply, so it only survives as a keeper. State gains
-`rebirthSlime: { id, name, tier, color, owned }?` (nil at `MAX_REBIRTHS`); `canRebirth`
-already includes the slime check.
+Rebirth number N also needs the slimes listed in `Config.REBIRTH_SLIMES[N]` (one to three
+SlimeRoster ids; a repeated id needs that many slimes) owned in `data.slimes` (on a pad, not an
+egg). Every level has its own list (`#REBIRTH_SLIMES == MAX_REBIRTHS`, no two lists alike), a
+family species only appears once a player of that rank can catch it, a hybrid once its recipe's
+inputs can be caught, and event Secrets are never asked for. The cash cost stays.
+`Progression.canRebirth` rejects with `need a <Species Name>` for the first missing one.
+
+The rebirth **uses those slimes up** (`Progression.payment`): for each listed species the
+matching slime cheapest to lose is taken (anything but the favourite first, then the lowest
+income). They can't be keepers; the normal wipe and keeper rule apply to the rest.
+
+State has `rebirthSlimes: { { id, name, tier, color, owned } }`, one row per required slime
+(empty at `MAX_REBIRTHS`); `canRebirth` already includes the slime check.
 
 ## 8.9 DataStore schema v3 (superseded by v4, §8.9a)
 

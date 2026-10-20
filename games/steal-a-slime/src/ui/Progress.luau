@@ -15,7 +15,7 @@ local Format = if script then require(script.Parent.Format) else require("./Form
 export type Tier = {
 	rebirth: number, -- rebirth count once reached
 	multiplier: number,
-	lockSeconds: number, -- lock bought at this tier (incl. current lock upgrades)
+	lockSeconds: number, -- lock bought at this tier (at most LOCK_MAX_REMAINING)
 	cost: number?, -- nil for the current tier
 	current: boolean,
 }
@@ -27,6 +27,7 @@ export type DexProgress = { count: number, total: number, fraction: number, perc
 export type Cfg = {
 	REBIRTH_MULTIPLIER_STEP: number,
 	LOCK_SECONDS_PER_REBIRTH: number,
+	LOCK_MAX_REMAINING: number,
 	MAX_REBIRTHS: number,
 }
 
@@ -51,7 +52,7 @@ function Progress.rebirthTiers(state: any, cfg: Cfg, costOf: (number) -> number,
 		table.insert(out, {
 			rebirth = r + k,
 			multiplier = mult + k * cfg.REBIRTH_MULTIPLIER_STEP,
-			lockSeconds = lock + k * cfg.LOCK_SECONDS_PER_REBIRTH,
+			lockSeconds = math.min(lock + k * cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_REMAINING),
 			cost = if k == 1 then num(state.rebirthCost) else costOf(r + k - 1),
 			current = false,
 		})
@@ -95,9 +96,9 @@ export type NextRebirth = {
 	need: string, -- "$3.7K more" / "Ready!" / "Max rebirths"
 	progress: string, -- "$1.2K / $5K"
 	multiplier: number, -- income multiplier after it
-	lockGain: number, -- extra lock seconds it adds
-	slime: SlimeNeed?, -- v29: the species this rebirth also needs (nil at max / from an older server)
-	slimeMissing: boolean, -- slime required and not owned
+	lockGain: number, -- extra lock seconds it adds (0 once locks are at LOCK_MAX_REMAINING)
+	slimes: { SlimeNeed }, -- the slimes this rebirth needs and uses up (empty at max)
+	missing: { SlimeNeed }, -- the ones of `slimes` the player doesn't have yet
 }
 
 -- v28 Rebirth panel: only what the NEXT rebirth needs (its cash cost and
@@ -108,17 +109,25 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 	local have = num(state.cash)
 	local maxed = r >= cfg.MAX_REBIRTHS
 	local ready = not maxed and state.canRebirth == true
-	local raw = state.rebirthSlime
-	local slime: SlimeNeed? = nil
-	if not maxed and type(raw) == "table" and type(raw.name) == "string" then
-		slime = {
-			id = tostring(raw.id),
-			name = raw.name,
-			tier = num(raw.tier),
-			color = if type(raw.color) == "table" then raw.color else { 170, 220, 170 },
-			owned = raw.owned == true,
-		}
+	local slimes: { SlimeNeed } = {}
+	local missing: { SlimeNeed } = {}
+	local list = if not maxed and type(state.rebirthSlimes) == "table" then state.rebirthSlimes else {}
+	for _, raw in list do
+		if type(raw) == "table" and type(raw.name) == "string" then
+			local need: SlimeNeed = {
+				id = tostring(raw.id),
+				name = raw.name,
+				tier = num(raw.tier),
+				color = if type(raw.color) == "table" then raw.color else { 170, 220, 170 },
+				owned = raw.owned == true,
+			}
+			table.insert(slimes, need)
+			if not need.owned then
+				table.insert(missing, need)
+			end
+		end
 	end
+	local lock = num(state.lockDuration)
 	local fraction = if maxed or ready then 1 elseif cost > 0 then math.clamp(have / cost, 0, 1) else 1
 	return {
 		maxed = maxed,
@@ -133,9 +142,9 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 			else `{Format.formatCash(math.max(0, cost - have))} more`,
 		progress = `{Format.formatCash(have)} / {Format.formatCash(cost)}`,
 		multiplier = num(state.rebirthMultiplier) + cfg.REBIRTH_MULTIPLIER_STEP,
-		lockGain = cfg.LOCK_SECONDS_PER_REBIRTH,
-		slime = slime,
-		slimeMissing = slime ~= nil and not slime.owned,
+		lockGain = math.max(0, math.min(lock + cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_REMAINING) - lock),
+		slimes = slimes,
+		missing = missing,
 	}
 end
 

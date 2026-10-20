@@ -28,7 +28,6 @@ local function base(): any
 		dex = { found = 2, total = 50 },
 		daily = { available = true, streak = 2, amount = 300, day = 3 },
 		shop = {
-			LockUpgrade = { price = 500, level = 1, maxLevel = 5 },
 			SpeedCoil = { price = nil, owned = true },
 		},
 	}
@@ -56,8 +55,8 @@ describe("Goals.derive", function()
 		expect(g.Rebirth.fraction).toBeCloseTo(0.2)
 		expect(g.Dex.title).toBe("Discover 5% of the SlimeDex")
 		expect(g.Dex.detail).toBe("2/3 species (4%)")
-		expect(g.LockUpgrade.detail).toBe("Level 1/5")
 		expect(g.SpeedCoil.done).toBe(true)
+		expect(g.LockUpgrade).toBeNil() -- locks have no upgrade to max out
 	end)
 	it("marks finished goals and moves the dex milestone on", function()
 		local s = base()

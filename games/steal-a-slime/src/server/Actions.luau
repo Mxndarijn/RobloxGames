@@ -245,23 +245,6 @@ local function redeem(world: World, session: Session, text: string, now: number)
 	return OK
 end
 
-local function buyLockUpgrade(world: World, session: Session): Result
-	local ok, value = Shop.buyLockUpgrade(session.data)
-	if not ok then
-		return fail(value :: string)
-	end
-	local level = session.data.lockLevel
-	World.notify(
-		world,
-		session.userId,
-		`Longer locks level {level}! Locks last longer now.`,
-		"good",
-		"Cash",
-		"LockUpgrade"
-	)
-	return OK
-end
-
 local function buySpeedCoil(world: World, session: Session): Result
 	local ok, value = Shop.buySpeedCoil(session.data)
 	if not ok then
@@ -435,9 +418,6 @@ end
 
 -- Level after a purchase, for ShopEvent Purchased (leveled upgrades only).
 local function levelOf(session: Session, itemId: string): number?
-	if itemId == "LockUpgrade" then
-		return session.data.lockLevel
-	end
 	local level = session.data.upgrades[itemId]
 	return if Perks.upgradeDef(itemId) then level or 0 else nil
 end
@@ -499,9 +479,11 @@ local function strictGate(session: Session, action: string, ctx: Context): Resul
 	if ctx.strictBypass or not (ctx.shopAccess and strictOn(ctx)) then
 		return nil
 	end
-	-- The HUD Lock button also works while standing at the owner's own lock pad (same check as the pad prompt).
-	if action == "Lock" and ctx.plotPadAccess and not PlotPadGuard.check(ctx.plotPadAccess(session.userId, "Lock")) then
-		return nil
+	-- Locks are not sold in a shop: the HUD Lock button works while standing at the owner's own lock pad
+	-- (same check as the pad prompt).
+	if action == "Lock" then
+		local code = if ctx.plotPadAccess then PlotPadGuard.check(ctx.plotPadAccess(session.userId, "Lock")) else nil
+		return if code then fail(PlotPadGuard.MESSAGES[code]) else nil
 	end
 	local shopId = Shops.shopOfAction(action)
 	if not shopId then
@@ -571,8 +553,6 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 		return claimQuest(world, session, args[1], now)
 	elseif action == "Redeem" then
 		return redeem(world, session, args[1], now)
-	elseif action == "BuyLockUpgrade" then
-		return buyLockUpgrade(world, session)
 	elseif action == "BuySpeedCoil" then
 		return buySpeedCoil(world, session)
 	elseif action == "BuyUpgrade" then

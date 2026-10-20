@@ -5,8 +5,8 @@
 	What a player's progression does (CONTRACT.md §8.8), as plain formulas
 	over PlayerData fields and Config, so PlayerData / Economy users can apply
 	them without a require cycle:
-	  * rebirth ranks (Config.REBIRTH_TIERS): title, keep count, income and
-	    lock bonuses; the best unlocked value wins, they don't stack;
+	  * rebirth ranks (Config.REBIRTH_TIERS): title, keep count and income
+	    bonus; the best unlocked value wins, they don't stack;
 	  * upgrade levels (Config.UPGRADES): income, carry slowdown, offline cap,
 	    luck;
 	  * SlimeDex milestone bonus (Config.DEX_MILESTONES: data.speciesRewards paid).
@@ -69,7 +69,7 @@ local function upgradeDef(id: string): Config.Upgrade?
 	return nil
 end
 
--- "unlocks Strong Arms, keep 2 slimes, +25% income, +30s locks" (empty for the first rank).
+-- "unlocks Strong Arms, keep 2 slimes, +25% income" (empty for the first rank).
 function Perks.tierText(tier: Config.RebirthTier): string
 	local parts = {}
 	if tier.unlock then
@@ -81,9 +81,6 @@ function Perks.tierText(tier: Config.RebirthTier): string
 	end
 	if tier.income then
 		table.insert(parts, `+{math.floor(tier.income * 100 + 0.5)}% income`)
-	end
-	if tier.lock then
-		table.insert(parts, `+{tier.lock}s locks`)
 	end
 	-- Only with the feature on: a rank card never promises a family the server won't drop.
 	if tier.family and Config.FEATURES.FountainTiers then
@@ -111,11 +108,6 @@ end
 
 function Perks.rankIncomeBonus(rebirths: number): number
 	return best(rebirths, "income", 0)
-end
-
--- Extra seconds on every bought lock (Steal.lockDuration).
-function Perks.lockBonus(rebirths: number): number
-	return best(rebirths, "lock", 0)
 end
 
 ---------------------------------------------------------------------------

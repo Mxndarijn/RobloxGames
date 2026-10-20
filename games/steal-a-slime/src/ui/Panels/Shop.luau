@@ -2,8 +2,7 @@
 --[[
 	Shop panel: the ONE shop menu (v28) for FEATURES.WorldShops off. Opened from the nav, the HUD Shop
 	button or "Open Shop" (E) at the ShopStand (init.client, ShopPrompt).
-	Lists every ShopCatalog item in one scroll list: lock time, lock
-	upgrades, the Speed Coil and the v13 upgrades (Slime Snacks, Strong
+	Lists every ShopCatalog item in one scroll list: the Speed Coil and the v13 upgrades (Slime Snacks, Strong
 	Arms, ...). Each row is built from the same parts as the world shop card (Panels/WorldShop): an icon
 	tile with a gold level / stock tag under it, the name, a short (at most two-line) description and on the
 	right the green hold Buy that calls `Request(item.action, ...item.args)`, a status well ("✅ Owned",

@@ -117,9 +117,7 @@ describe("ItemIcons registry", function()
 		for _, u in Config.UPGRADES do
 			expect(registry.get(`Upgrade_{u.id}`) ~= nil).toBe(true)
 		end
-		for _, id in
-			{ "FillPads", "AllPads", "Daily", "BestTier", "Rebirth", "Dex", "LockUpgrade", "SpeedCoil", "Catch" }
-		do
+		for _, id in { "FillPads", "AllPads", "Daily", "BestTier", "Rebirth", "Dex", "SpeedCoil", "Catch" } do
 			expect(registry.byId[ItemIcons.forGoal(registry, id)] ~= nil).toBe(true)
 		end
 		expect(ItemIcons.forGoal(registry, "Catch")).toBe("Goal_Catch")
@@ -447,10 +445,8 @@ describe("item icons on the surfaces", function()
 		panel.update({
 			cash = 1e6,
 			shop = {
-				LockUpgrade = { price = 5, level = 0, maxLevel = 5 },
 				SpeedCoil = { price = 9 },
 			},
-			lockCost = 50,
 			upgrades = {
 				{
 					id = "Income",
@@ -479,7 +475,7 @@ describe("item icons on the surfaces", function()
 				expect(registry.byId[inst:GetAttribute("ItemId")] ~= nil).toBe(true)
 			end
 		end
-		expect(seen).toBe(5)
+		expect(seen).toBe(3) -- the Speed Coil and the two upgrades
 	end)
 
 	it("Codes, Goals and the Daily popup draw item icons", function()
@@ -541,7 +537,7 @@ describe("item icons: server ids, Dex skins, gear", function()
 				end
 			end
 		end
-		for _, id in { "Daily", "Gift", "LockUpgrade", "SpeedCoil", "MysteryEgg", "Rebirth", "Lock", "Slap" } do
+		for _, id in { "Daily", "Gift", "SpeedCoil", "MysteryEgg", "Rebirth", "Lock", "Slap" } do
 			expect(`{id}: {ids[id] == true}`).toBe(`{id}: true`)
 		end
 	end)

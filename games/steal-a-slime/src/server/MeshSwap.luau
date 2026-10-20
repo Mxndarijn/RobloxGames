@@ -277,11 +277,6 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	if not target:IsA("Model") and target:GetAttribute("MeshTint") == true then
 		mesh.Color = target.Color
 	end
-	-- A skinned Model carries its tint as a Color3 (Props.STAND_STYLES: the blue Upgrade Shop stand).
-	local modelTint = if target:IsA("Model") then target:GetAttribute("MeshTint") else nil
-	if typeof(modelTint) == "Color3" then
-		mesh.Color = modelTint
-	end
 	-- B9: a skinned Model whose solid is its own invisible "Collider" part (the Top Earners board) widens that part to the
 	-- skin's width and height, keeping its depth and front (the hand collider was 15 wide under a 20.6 wide mesh). A mesh
 	-- that has a fidelity is the collider itself.
@@ -299,8 +294,7 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	mesh.CanTouch = false
 	if target:IsA("Model") then
 		for _, d in target:GetDescendants() do
-			-- MeshKeep parts are decor beside the skin (the shop stands' crates, anvil...): they stay visible.
-			if d:IsA("BasePart") and d:GetAttribute("MeshKeep") ~= true then
+			if d:IsA("BasePart") then
 				hide(d)
 			end
 		end

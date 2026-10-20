@@ -28,6 +28,8 @@ describe("MeshAssets.COLLISION", function()
 	end)
 	it("makes the shop stands solid with a hull (CONTRACT.md §27.2)", function()
 		expect(MeshAssets.collision("ranch_shop_stand")).toBe("Hull")
+		expect(MeshAssets.collision("ranch_item_shop")).toBe("Hull")
+		expect(MeshAssets.collision("ranch_upgrade_cabinet")).toBe("Hull")
 	end)
 	it("makes the fountain-top slimes solid with a hull (cheap, no standing in the gaps)", function()
 		expect(MeshAssets.collision("slime_fountain_emerge")).toBe("Box")
@@ -73,6 +75,13 @@ describe("MeshSwap collision in the live server", function()
 		expect(asked[emerge]).toBe(roblox.Enum.CollisionFidelity.Box)
 		local solid = {}
 		local want = 0
+		-- the shop stand skins FEATURES.WorldShops does not place: the single ShopStand's with the flag on, else the Item
+		-- and Upgrade stands'
+		local WorldLayout = require("../src/visuals/shared/WorldLayout")
+		local standUnplaced = {}
+		for name, stand in WorldLayout.SHOP_STANDS do
+			standUnplaced[stand.mesh] = (name == "ShopStand") == (Config.FEATURES.WorldShops == true)
+		end
 		-- the FEATURES.FountainSplit pieces are only created with the flag on (tests/FountainSplit.spec)
 		local splitPieces = {}
 		for _, piece in MeshAssets.FOUNTAIN_SPLIT do
@@ -84,6 +93,9 @@ describe("MeshSwap collision in the live server", function()
 			end
 			if name == "fountain_split_slide" and not Config.FEATURES.SlidePCD then
 				continue -- the slide piece is PCD only with FEATURES.SlidePCD (MeshSwap.splitFidelity)
+			end
+			if standUnplaced[name] then
+				continue -- a shop stand skin FEATURES.WorldShops does not place
 			end
 			solid[MeshAssets.meshId(name)] = (roblox.Enum.CollisionFidelity :: any)[fidelity]
 			want += 1
@@ -176,10 +188,10 @@ local DECOR = {
 	phoenix_gate = "the entrance: a Box would close the 14-stud opening, the GatePost stand-ins keep the posts (PCD would be the mesh route)",
 	phoenix_pad_crate = "the pad's own Pad part is the gameplay surface; the stand is its decor",
 	phoenix_top_earners_board = "WorldProps Model: its invisible Collider keeps the Model's bounds",
+	ranch_guide = "WorldProps Model: the TutorialNpc's hidden primitive body parts stay the collider",
 	ranch_landing_ring = "mesh stays decor (bbox 10 deep x 3.1 tall: Box/Hull = invisible wall); the stones are solid through thin Plaza colliders (LandingCurb/LandingStake, PropCollision landing_ring)",
 	ranch_goo_drain = "mesh stays decor; solid through the DrainCurb disc + post + plaque colliders (PropCollision goo_drain), so the slide exit stays open",
 	ranch_horseshoe_pit = "1.8 stud flat sand pit, walk over it",
-	ranch_lantern_post = "not placed (RanchProps.INTENTIONALLY_UNPLACED); its arm hangs overhead",
 	ranch_pumpkin_patch = "low foliage patch, walk through",
 	ranch_sunflower_patch = "foliage, walk through",
 	plot_skin_mushroom = "client-cloned plot skin template, not a world slot",

@@ -62,14 +62,13 @@ describe("world shop placement", function()
 		local item = polar(67.5, 90)
 		expect(spots.ItemShopStand.pos[1]).toBeCloseTo(item[1], 3)
 		expect(spots.ItemShopStand.pos[3]).toBeCloseTo(item[2], 3)
-		expect(WorldLayout.PROP_MESHES.ItemShopStand).toBe(WorldLayout.BUY_STAND_MESH)
-		expect(WorldLayout.PROP_MESHES.UpgradeShopStand).toBe(WorldLayout.BUY_STAND_MESH)
+		expect(WorldLayout.PROP_MESHES.ItemShopStand).toBe("ranch_item_shop")
+		expect(WorldLayout.PROP_MESHES.UpgradeShopStand).toBe("ranch_upgrade_cabinet")
 	end)
 	it("keeps the stands' footprints off the lane, ring path, plots, entrances and the other zones", function()
-		local Props = StaticWorld.visual("Props")
-		local stand = Props.shopStand()
-		local size = WorldLayout.meshSize(WorldLayout.BUY_STAND_MESH, WorldLayout.BUY_STAND_SCALE)
 		for _, name in { Constants.SHOP_STAND_ITEM, Constants.SHOP_STAND_UPGRADE } do
+			local stand = WorldLayout.SHOP_STANDS[name]
+			local size = WorldLayout.meshSize(stand.mesh, stand.scale)
 			local spot = spots[name]
 			local hits = PropClearance.conflicts({ pos = spot.pos, size = size, yaw = spot.yaw })
 			for _, hit in hits do
@@ -78,7 +77,6 @@ describe("world shop placement", function()
 				end
 			end
 		end
-		expect(stand ~= nil).toBe(true)
 	end)
 	it("keeps every ranch prop out of the 12 stud spot circle of each stand", function()
 		for _, name in { Constants.SHOP_STAND_ITEM, Constants.SHOP_STAND_UPGRADE } do
@@ -179,7 +177,7 @@ describe("world shop stands in the booted server", function()
 			expect(pivot.X).toBeCloseTo(spot.pos[1], 2)
 			expect(pivot.Z).toBeCloseTo(spot.pos[3], 2)
 			expect(stand:FindFirstChild("Text", true).Text).toBe(def.sign)
-			expect(stand:GetAttribute("MeshAsset")).toBe(WorldLayout.BUY_STAND_MESH)
+			expect(stand:GetAttribute("MeshAsset")).toBe(WorldLayout.SHOP_STANDS[def.model].mesh)
 		end
 	end)
 	it("collides through the Hull mesh and adds no collider parts of its own", function()
