@@ -33,6 +33,10 @@ return table.freeze({
 	HOME_ZONE = "HomeZone",
 	-- Instance attributes (CONTRACT.md §5.2)
 	REVENGE_PLOTS_ATTRIBUTE = "RevengePlots", -- Player (victim only): "3,5" = plot indexes of thieves inside the revenge window (FEATURES.Revenge), nil = none
+	RITUAL_PHASE_ATTRIBUTE = "Phase", -- Map.RitualCircle: Ritual phase, "Idle" | "Charging" | "Cooldown"
+	RITUAL_CHARGE_ENDS_ATTRIBUTE = "ChargeEndsAt", -- Map.RitualCircle: server time the hold completes (Charging only, else nil)
+	RITUAL_READY_AT_ATTRIBUTE = "ReadyAt", -- Map.RitualCircle: server time the rest ends (Cooldown only, else nil)
+	RITUAL_TAKEN_ATTRIBUTE = "Taken", -- Map.RitualCircle.Spot_<i>: true while a counted player stands on it
 	CARRYING_ATTRIBUTE = "Carrying", -- Player: carried slime id, nil when empty-handed
 	WEATHER_ATTRIBUTE = "Weather", -- workspace, set by the server (WeatherService): "Clear" | "Rain" | "Snow" | "Starfall"
 	WEATHER_STARTED_ATTRIBUTE = "WeatherStartedAt", -- workspace, server time (GetServerTimeNow) the current weather began; set before WEATHER_ATTRIBUTE
