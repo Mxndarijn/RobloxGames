@@ -16,5 +16,5 @@
     },
     "timeout": 50
   },
-  "note": "bug 8 (advisory, #251): the real character walks into its own locked plot (also after LoadCharacter); a locked plot it does not own blocks MoveTo, ejects a teleported-in character exactly once (real WorldView.enforceLocks on a mirror World) and does not hold a thrown slime body suspended"
+  "note": "bug 8 (advisory, #251): the real character walks over the bridge into its own locked jar (also after LoadCharacter); a locked jar it does not own blocks the walk at the stopper, lets a teleported-in character walk out through the door (real WorldView.enforceLocks on a mirror World) and does not hold a thrown slime body suspended against the stopper"
 }

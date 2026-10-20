@@ -8,7 +8,7 @@
     "dist": 24,
     "height": 14,
     "plot_skin": "mushroom",
-    "note": "gaps #15: Plot_1 wears the mushroom plot skin (forced with SlimeUI.PcwPlotSkin, FEATURES.PlotSkins off): floor colour, fence + gate tint and the skin decor standing in the Mailbox_1 slot"
+    "note": "gaps #15: Plot_1 wears the mushroom plot skin (forced with SlimeUI.PcwPlotSkin, FEATURES.PlotSkins off): floor colour, cork and trim tint (bridge, jar floor, parked stopper, lid) and the skin decor standing in the Mailbox_1 slot"
   },
   {
     "id": "22-plot-skin-candy",
@@ -19,7 +19,7 @@
     "dist": 24,
     "height": 14,
     "plot_skin": "candy",
-    "note": "gaps #15: Plot_1 wears the candy plot skin (forced with SlimeUI.PcwPlotSkin, FEATURES.PlotSkins off): floor colour, fence + gate tint and the skin decor standing in the Mailbox_1 slot"
+    "note": "gaps #15: Plot_1 wears the candy plot skin (forced with SlimeUI.PcwPlotSkin, FEATURES.PlotSkins off): floor colour, cork and trim tint (bridge, jar floor, parked stopper, lid) and the skin decor standing in the Mailbox_1 slot"
   },
   {
     "id": "22-plot-skin-crystal",
@@ -30,7 +30,7 @@
     "dist": 24,
     "height": 14,
     "plot_skin": "crystal",
-    "note": "gaps #15: Plot_1 wears the crystal plot skin (forced with SlimeUI.PcwPlotSkin, FEATURES.PlotSkins off): floor colour, fence + gate tint and the skin decor standing in the Mailbox_1 slot"
+    "note": "gaps #15: Plot_1 wears the crystal plot skin (forced with SlimeUI.PcwPlotSkin, FEATURES.PlotSkins off): floor colour, cork and trim tint (bridge, jar floor, parked stopper, lid) and the skin decor standing in the Mailbox_1 slot"
   },
   {
     "id": "22-plot-skin-picker",

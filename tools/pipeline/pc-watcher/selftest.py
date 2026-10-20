@@ -479,7 +479,7 @@ def t_geometry():
         "bench_faces_campfire": {"items": [{"name": "b", "dot": 0.99}]},
         "shops_face_centre": {"items": [{"name": "a", "dot": 1.0}, {"name": "b", "dot": 0.95}]},
         "silo_centred": {"items": [{"name": "s", "dist": 0.01}]},
-        "plot_signs": {"items": [{"name": "p", "dot_out": 0.99, "dot_gate_front": 0.98, "mirrored": False, "enabled": True}]},
+        "plot_signs": {"items": [{"name": "p", "face": "Front", "dot_out": 0.99, "mirrored": False, "enabled": True}]},
     }
     v = watcher.geometry_verdict(good, checks)
     check("geometry all pass", all(x["pass"] for x in v.values()), v)
@@ -492,6 +492,11 @@ def t_geometry():
     check("geometry fails flagged", [k for k, x in v.items() if not x["pass"]] ==
           ["bench_faces_campfire", "shops_face_centre", "silo_centred", "plot_signs"], v)
     check("geometry missing check fails", not watcher.geometry_verdict({}, checks)["silo_centred"]["pass"])
+    sign = lambda **kw: watcher.geometry_verdict({"plot_signs": {"items": [dict(good["plot_signs"]["items"][0], **kw)]}},
+                                                 checks)["plot_signs"]["pass"]
+    check("plot sign facing into the jar fails", not sign(dot_out=-0.99))
+    check("plot sign text on the wrong face fails", not sign(face="Back"))
+    check("plot sign needs no gate", "gate" not in checks["plot_signs"] and "front_parts" not in checks)
     t = {"pos": [10, 0, 0], "look": [0, 0, -1], "front": [1, 0, 0], "size": [4, 4, 4]}
     eye, at = watcher.shot_camera_from(t, "front", dist=10, height=3)
     check("shot from front", eye == (20.0, 3.0, 0.0) and at == (10, 0, 0), eye)
@@ -924,10 +929,10 @@ def t_bugs():
     check("shot-map: every bug shot is also selected by a source-area rule", all(any(watcher.shot_selected_by(s, r) for r in other) for s in probes),
           [s["id"] for s in probes if not any(watcher.shot_selected_by(s, r) for r in other)])
     expect = {"bug08_lock_enter": ("owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "leaves_freely", "thrown_slime_not_stuck", "enforceLocks", "LoadCharacter",
-                            "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze", "corner_jump", "LockBarrier", "junctions"),
+                            "door_walk", "door_jump", "glass_push", "glass_jump", "owner_door", "LockBarrier", "Stopper", "jarRadius", "doorway"),
               "bug09_slide_stand": ("can_climb", "cannot_enter_from_side", "stays_on", "slimes_still_ride", "bottom_reachable"),
               "bug10_fountain_statues": ("pushed_out_or_on_top", "jump_no_snag"),
-              "bug11_char_walk": ("stile_over", "barn_loft", "fence_line_walk", "ranch_fence_stile", "ranch_barn_loft"),
+              "bug11_char_walk": ("stile_over", "barn_loft", "ranch_fence_stile", "ranch_barn_loft"),
               "bug11_collision_fidelity": ("CreateMeshPartAsync", "PreciseConvexDecomposition", "Hull", "parts_saved", "colliders", "mesh_pcd", "mesh_hull", "split_pcd", "FOUNTAIN_SPLIT")}
     for name, words in expect.items():
         src = open(os.path.join(HERE, "luau", name + ".luau"), encoding="utf-8").read()
@@ -939,7 +944,7 @@ def t_bugs():
     order = re.findall(r'"(\w+)"', m.group(1)) if m else []
     check("bug08 BASE_ORDER lists the five old checks only; other PARTs list just themselves", re.search(r'local BASE_ORDER = \{ "owner_passes", "owner_passes_after_respawn", "non_owner_blocked", "leaves_freely", "thrown_slime_not_stuck" \}', b08) is not None
           and "local ORDER = if PART == \"base\" then BASE_ORDER else { PART }" in b08)
-    parts = {"bug08_lock_enter": {"base", "fence_jump_over", "fence_push_through", "gate_post_squeeze", "corner_squeeze", "corner_jump", "owner_gate", "leave_on_lock"}, "bug11_char_walk": {"stile_over", "barn_loft", "fence_line_walk"}}
+    parts = {"bug08_lock_enter": {"base", "door_walk", "door_jump", "glass_push", "glass_jump", "owner_door", "leave_on_lock"}, "bug11_char_walk": {"stile_over", "barn_loft"}}
     for lname, want in parts.items():
         got = {s["bug_probe"]["args"]["PART"] for s in probes if s["bug_probe"].get("luau") == lname}
         lsrc = open(os.path.join(HERE, "luau", lname + ".luau"), encoding="utf-8").read()

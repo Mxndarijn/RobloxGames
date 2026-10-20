@@ -1,0 +1,20 @@
+{
+  "id": "bug08-door-walk",
+  "todo": "bug 8",
+  "kind": "world",
+  "target": "Plot_2",
+  "from": "front",
+  "dist": 60,
+  "height": 22,
+  "bug_probe": {
+    "bug": 8,
+    "title": "Locked base: real character walking at the stopper from the bridge, centre, both stopper / glass seams and 45 degree seam approaches (door_walk)",
+    "luau": "bug08_lock_enter",
+    "ctx": "Server",
+    "args": {
+      "PART": "door_walk"
+    },
+    "timeout": 45
+  },
+  "note": "bug 8 (advisory): real character vs the locked foreign jar, one wall check per call (luau/bug08_lock_enter PART=door_walk; every call < 40 s)"
+}

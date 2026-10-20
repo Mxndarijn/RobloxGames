@@ -1,0 +1,20 @@
+{
+  "id": "bug08-door-jump",
+  "todo": "bug 8",
+  "kind": "world",
+  "target": "Plot_2",
+  "from": "front",
+  "dist": 60,
+  "height": 22,
+  "bug_probe": {
+    "bug": 8,
+    "title": "Locked base: real character jumping at the stopper from the bridge, centre and both seams, plus a running jump (door_jump)",
+    "luau": "bug08_lock_enter",
+    "ctx": "Server",
+    "args": {
+      "PART": "door_jump"
+    },
+    "timeout": 45
+  },
+  "note": "bug 8 (advisory): real character vs the locked foreign jar, one wall check per call (luau/bug08_lock_enter PART=door_jump; every call < 40 s)"
+}

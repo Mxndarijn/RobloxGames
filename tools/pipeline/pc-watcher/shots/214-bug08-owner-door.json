@@ -1,0 +1,20 @@
+{
+  "id": "bug08-owner-door",
+  "todo": "bug 8",
+  "kind": "world",
+  "target": "Plot_1",
+  "from": "centre",
+  "dist": 100,
+  "height": 55,
+  "bug_probe": {
+    "bug": 8,
+    "title": "Locked base: the OWNER walks through the doorway in and out (3 lanes) and the doorway stays clear for the slime carry (owner_door)",
+    "luau": "bug08_lock_enter",
+    "ctx": "Server",
+    "args": {
+      "PART": "owner_door"
+    },
+    "timeout": 45
+  },
+  "note": "bug 8 (advisory): the stopper and the glass round the doorway must not block the owner or the carry route (luau/bug08_lock_enter PART=owner_door; one call < 40 s)"
+}
