@@ -11,7 +11,6 @@
 ]]
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
-local RareSpawn = if script then require(script.Parent.RareSpawn) else require("./RareSpawn")
 
 export type Pedestal = {
 	diameter: number, -- studs, at size 1 (scaled by the slime's Size): the area the sparkles rise from
@@ -25,11 +24,11 @@ local TopTierFx = {}
 TopTierFx.MYTHIC_TIER = Config.SECRET_TIER - 1
 TopTierFx.SECRET_TIER = Config.SECRET_TIER
 
--- Under the shared beam cap so it reads as a marker on the crown, not a sky pillar.
+-- A marker on the crown, not a sky pillar: at night a tall Neon beam reads as a glowing streak.
 TopTierFx.FOUNTAIN_BEAM = table.freeze({
-	height = RareSpawn.MAX_BEAM_HEIGHT,
-	width = RareSpawn.MAX_BEAM_WIDTH,
-	transparency = RareSpawn.BEAM_TRANSPARENCY,
+	height = 24,
+	width = 1,
+	transparency = 0.7,
 })
 
 TopTierFx.ERUPTION_SECONDS = 2

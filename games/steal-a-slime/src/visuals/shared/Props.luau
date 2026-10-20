@@ -48,8 +48,6 @@
 	      Value labels), at most Props.LEADERBOARD_ROWS.
 ]]
 
-local RareSpawn = if script then require(script.Parent.RareSpawn) else require("./RareSpawn")
-
 local Props = {}
 
 Props.LEADERBOARD_ROWS = 10
@@ -592,9 +590,9 @@ Props.ARROW_BANDS = 3
 Props.ARROW_CHEVRONS = 14 -- pool size; at most this many show
 Props.ARROW_SPACING = 6 -- studs between chevrons along the curve
 Props.ARROW_CURVE = 6 -- studs the beam rises out of / drops onto its ends
--- Same cap as the rare-spawn beams (v30 C11): a 256-stud neon Beam is a night streak, so the arrow is a short
--- marker leading off from the character towards the target (guarded by the fx_streaks watcher shot).
-Props.ARROW_MAX_LENGTH = RareSpawn.MAX_BEAM_HEIGHT
+-- A 256-stud neon Beam is a night streak, so the arrow is a short marker leading off from the character
+-- towards the target (guarded by the fx_streaks watcher shot, which allows 30 studs).
+Props.ARROW_MAX_LENGTH = 24
 
 -- Local CFrame at `position` in `p` whose X axis (Beam curve axis) is world-up.
 local function upFrame(p: BasePart, position: Vector3): CFrame
