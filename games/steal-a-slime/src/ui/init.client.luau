@@ -710,6 +710,12 @@ if soundPanel then
 	player:GetAttributeChangedSignal("AudioMuted"):Connect(refreshIcon)
 end
 
+-- Reduced Motion: Roblox's own setting or the game's (the LocalPlayer attribute HabitatFx reads too).
+local function reducedMotion(): boolean
+	return (GuiService :: any).ReducedMotionEnabled == true
+		or player:GetAttribute(Config.HABITAT_ANIM.REDUCED_ATTRIBUTE) == true
+end
+
 for _, entry in panels do
 	local navEntry = entry.nav :: Nav.Entry
 	local button = Widgets.create("TextButton", {
@@ -783,7 +789,7 @@ for _, entry in panels do
 		icon = icon,
 		stroke = stroke,
 		badge = badge,
-		jar = if entry.key == "Dex" then DexJarView.new(tile) else nil,
+		jar = if entry.key == "Dex" then DexJarView.new(tile, reducedMotion) else nil,
 	}
 end
 

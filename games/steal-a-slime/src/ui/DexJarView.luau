@@ -9,8 +9,9 @@
 	tests/ui/DexJarView.spec.luau).
 
 	The goo is a tile-sized rounded frame (scale 1 / level of the clip) inside a rectangular clip that grows
-	from the bottom, so its bottom corners always follow the tile's and its surface stays flat. The rim hides
-	once the surface reaches the tile's rounded top corners, timed to the slosh.
+	from the bottom, so its bottom corners always follow the tile's and its surface stays flat. The rim is a
+	square bar, so it only shows while the surface is clear of the tile's rounded corners, top and bottom;
+	it follows the clip's real height (its Size changes every frame of a slosh), so no timer or frame loop.
 ]]
 
 local GuiService = game:GetService("GuiService")
@@ -51,19 +52,19 @@ function DexJarView.rimTop(tileH: number, radius: number): number
 	return if tileH > 0 then 1 - radius / tileH else 1
 end
 
+-- Lowest level whose rim (hanging JAR.rim under the surface) stays above the tile's rounded bottom corners.
+function DexJarView.rimBottom(tileH: number, radius: number): number
+	return if tileH > 0 then (radius + JAR.rim) / tileH else 0
+end
+
 function DexJarView.rimShown(level: number, tileH: number, radius: number): boolean
-	return level <= DexJarView.rimTop(tileH, radius)
+	return level >= DexJarView.rimBottom(tileH, radius) and level <= DexJarView.rimTop(tileH, radius)
 end
 
--- A rise from `from` to `to` may bounce (Back) only if its overshoot peak keeps the rim under the corners;
--- otherwise it eases in (Quad) without passing its target.
+-- A rise from `from` to `to` may bounce (Back) only if its overshoot peak stays under the top corners, so
+-- the rim does not flicker off and on; otherwise it eases in (Quad) without passing its target.
 function DexJarView.bounces(from: number, to: number, tileH: number, radius: number): boolean
-	return DexJarView.rimShown(to + JAR.overshoot * (to - from), tileH, radius)
-end
-
--- Share of a Quad Out tween's time at which it has covered share `q` of the way.
-function DexJarView.quadTime(q: number): number
-	return 1 - math.sqrt(1 - math.clamp(q, 0, 1))
+	return to + JAR.overshoot * (to - from) <= DexJarView.rimTop(tileH, radius)
 end
 
 export type Progress = { fraction: number, text: string }
@@ -86,7 +87,13 @@ export type View = {
 	level: () -> number,
 }
 
-function DexJarView.new(tile: Frame): View
+-- Roblox's own Reduced Motion setting; init.client also passes the game's (DexJarView.new `reducedMotion`).
+local function systemReducedMotion(): boolean
+	return (GuiService :: any).ReducedMotionEnabled == true
+end
+
+function DexJarView.new(tile: Frame, reducedMotion: (() -> boolean)?): View
+	local calm = reducedMotion or systemReducedMotion
 	local corner = tile:FindFirstChildOfClass("UICorner")
 	local radius = if corner then corner.CornerRadius else UDim.new()
 	local clip = create("Frame", {
@@ -138,7 +145,19 @@ function DexJarView.new(tile: Frame): View
 
 	local current: number? = nil
 	local tween: any = nil
-	local slosh = 0 -- bumps on every level change, so a stale rim timer does nothing
+
+	-- The rim at the clip's real height (mid-slosh too), so it shows only clear of the tile's corners.
+	local function syncRim()
+		rim.Visible = DexJarView.rimShown(clip.Size.Y.Scale, tile.Size.Y.Offset, radius.Offset)
+	end
+	clip:GetPropertyChangedSignal("Size"):Connect(syncRim)
+
+	local function stopSlosh()
+		if tween then
+			tween:Cancel() -- else a slosh still running would overwrite a later level
+			tween = nil
+		end
+	end
 
 	local function setLevel(level: number)
 		if level == current then
@@ -146,35 +165,20 @@ function DexJarView.new(tile: Frame): View
 		end
 		local from = current
 		current = level
-		slosh += 1
-		if tween then
-			tween:Cancel() -- else a slosh still running would overwrite a later level
-			tween = nil
-		end
+		stopSlosh()
 		-- Tile-sized at the target level; while the clip is still rising the goo is taller than it, never shorter.
 		goo.Size = UDim2.fromScale(1, 1 / level)
-		local tileH, r = tile.Size.Y.Offset, radius.Offset
 		local size = UDim2.fromScale(1, level)
-		if from == nil or level < from or (GuiService :: any).ReducedMotionEnabled then
+		if from == nil or level < from or calm() then
 			clip.Size = size
-			rim.Visible = DexJarView.rimShown(level, tileH, r)
+			syncRim()
 			return
 		end
-		local style = if DexJarView.bounces(from, level, tileH, r) then Enum.EasingStyle.Back else Enum.EasingStyle.Quad
+		local style = if DexJarView.bounces(from, level, tile.Size.Y.Offset, radius.Offset)
+			then Enum.EasingStyle.Back
+			else Enum.EasingStyle.Quad
 		tween = TweenService:Create(clip, TweenInfo.new(JAR.slosh, style, Enum.EasingDirection.Out), { Size = size })
 		tween:Play()
-		-- The rim rides the surface up and hides as the surface reaches the corners. A rise that ends past them
-		-- never bounces (its overshoot would be past them too), so the Quad timing holds.
-		local top = DexJarView.rimTop(tileH, r)
-		rim.Visible = from <= top
-		if level > top and rim.Visible then
-			local mine = slosh
-			task.delay(JAR.slosh * DexJarView.quadTime((top - from) / (level - from)), function()
-				if slosh == mine then
-					rim.Visible = false
-				end
-			end)
-		end
 	end
 
 	return {
@@ -184,13 +188,14 @@ function DexJarView.new(tile: Frame): View
 			if progress then
 				text.Text = progress.text
 				setLevel(DexJarView.level(progress.fraction))
+			elseif tween then
+				-- Hidden mid-slosh: land on the level now, so showing it again needs no slosh to finish.
+				stopSlosh()
+				clip.Size = UDim2.fromScale(1, current or DexJarView.level(0))
+				syncRim()
 			end
 		end,
-		relayout = function()
-			if current then
-				rim.Visible = DexJarView.rimShown(current, tile.Size.Y.Offset, radius.Offset)
-			end
-		end,
+		relayout = syncRim,
 		setSelected = function(selected: boolean)
 			goo.BackgroundColor3 = if selected then Theme.Ink else Theme.Good
 			goo.BackgroundTransparency = if selected then JAR.selectedGoo else JAR.goo
