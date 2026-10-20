@@ -1,5 +1,5 @@
 --!strict
--- The Knockback glove line (FEATURES.PvP, CONTRACT.md §26.4): reach, the shield rules, cooldown, control immunity,
+-- The Knockback glove line (FEATURES.PvP, CONTRACT.md §26.4): reach, cooldown, control immunity,
 -- push clamp / map bounds per tier, the power punch, the specials, caught thieves, flag-off refusal, nothing spawned. Every flag-dependent call passes the
 -- flag explicitly so the specs hold in the forced-flag runs too.
 local Config = require("../src/shared/Config")
@@ -48,8 +48,6 @@ local function setup(tier: string?): (any, any, any)
 	local a = ServerFixtures.join(world, 1, nil, 1e12)
 	local b = ServerFixtures.join(world, 2, nil, 1e12)
 	a.data.rebirths, b.data.rebirths = 20, 20
-	ServerFixtures.veteran(a)
-	ServerFixtures.veteran(b)
 	PvpService.join(world, a, T0, true)
 	PvpService.join(world, b, T0, true)
 	for _, id in TIERS do
@@ -70,10 +68,9 @@ local function use(world: any, a: any, id: string?, at: number, charged: boolean
 	return PvpService.use(world, a, id or "KnockGlove1", target or 2, nil, at, true, env, charged)
 end
 
--- A third player at `position` (a veteran, so not shielded).
+-- A third player at `position`.
 local function third(world: any, position: any): any
 	local c = ServerFixtures.join(world, 3, nil, 0)
-	ServerFixtures.veteran(c)
 	PvpService.join(world, c, T0, true)
 	positions[3] = position
 	return c
@@ -182,21 +179,13 @@ describe("Knockback use", function()
 		expect(next((PvpService.state(a) :: any).cooldowns)).toBeNil()
 		done()
 	end)
-	it("works on anyone anywhere, but never on or by a shielded player", function()
-		local world, a, b = setup()
+	it("works on anyone anywhere, also by and on players who just joined", function()
+		local world, a = setup()
 		plot = false -- off the attacker's plot, a player who carries nothing
 		positions[1], positions[2] = { X = 0, Y = 3, Z = 0 }, { X = 3, Y = 3, Z = 1 } -- by the fountain
-		expect(use(world, a, nil, T0 + 1)).toBe(true)
-		b.data.pvp.played = 0
-		PvpService.join(world, b, T0, true) -- a fresh player: shielded
-		expect(select(2, use(world, a, nil, T0 + 5))).toBe("target is shielded")
-		ServerFixtures.veteran(b)
-		PvpService.join(world, b, T0, true)
-		a.data.pvp.played = 0
-		PvpService.join(world, a, T0, true)
-		expect((PvpService.equip(a, "KnockGlove1", true))).toBe(true)
-		expect(select(2, use(world, a, nil, T0 + 5))).toBe("your new-player shield is on")
+		expect(use(world, a, nil, T0 + 1)).toBe(true) -- both joined at T0, a brand-new save each
 		expect(#moves).toBe(1)
+		expect(moves[1].userId).toBe(2)
 		done()
 	end)
 	it("a power punch pushes 1.5x and doubles the cooldown", function()
@@ -242,11 +231,9 @@ describe("Knockback use", function()
 		local world, a = setup("KnockGlove4")
 		third(world, { X = 210, Y = 3, Z = -200 })
 		local d = ServerFixtures.join(world, 4, nil, 0)
-		ServerFixtures.veteran(d)
 		PvpService.join(world, d, T0, true)
 		positions[4] = { X = 205, Y = 3, Z = -195 }
 		local e = ServerFixtures.join(world, 5, nil, 0)
-		ServerFixtures.veteran(e)
 		PvpService.join(world, e, T0, true)
 		positions[5] = { X = 205, Y = 3, Z = -190 }
 		expect(use(world, a, "KnockGlove4", T0 + 1)).toBe(true)
@@ -306,13 +293,11 @@ describe("Knockback use", function()
 		a.data.rebirths, thief.data.rebirths = 20, 20
 		ServerFixtures.unlock(a)
 		ServerFixtures.unlock(thief)
-		ServerFixtures.veteran(a)
 		PvpService.join(world, a, T0, true)
 		PvpService.join(world, thief, T0, true)
 		expect((PvpService.buy(world, a, "KnockGlove1", true))).toBe(true)
 		expect((PvpService.equip(a, "KnockGlove1", true))).toBe(true)
 		expect((StealService.steal(world, thief, "gem", 1, T0 + 101))).toBe(true)
-		PvpService.onSteal(thief, T0 + 101)
 		expect(use(world, a, nil, T0 + 102)).toBe(true)
 		expect(thief.carry).toBeNil()
 		expect(world.carriedBy.gem).toBeNil()

@@ -15,7 +15,7 @@
 	stock and takes one off the stack). An equipped PvP item is used the same way: the click becomes
 	Request("UsePvpItem", id, targetUserId?, aim?, charged?) (InventoryCore.pvpUseRequest from deps.aim's sample);
 	a glove, the Goo Cannon, the Confetti Popper and Goo Fireworks fire on the release (pressHeld / releaseHeld), so a
-	hold is a power punch / an aimed lob / a mega pop / a volley. A refusal (cooldown, shield, out of reach) shows as a short tip above the slot. The last cell is the bag: it opens the inventory panel, a grid of everything
+	hold is a power punch / an aimed lob / a mega pop / a volley. A refusal (cooldown, out of reach) shows as a short tip above the slot. The last cell is the bag: it opens the inventory panel, a grid of everything
 	held (also the items that did not fit the bar on a narrow phone). Hidden while carrying (the server
 	unequips tools then) and while a menu is open. Client-only: the stack counts come from State.consumables.
 

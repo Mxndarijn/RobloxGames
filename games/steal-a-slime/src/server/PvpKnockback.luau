@@ -3,7 +3,7 @@
 	PvpKnockback (FEATURES.PvP, CONTRACT.md §26.4)
 
 	The `Knockback` line handler for PvpService.registerLine (KnockGlove1-5). PvpService has already checked the
-	flag, ownership, equipped item, cooldown and the new-player shield on both sides. Here: reach, catching a thief
+	flag, ownership, equipped item and cooldown. Here: reach, catching a thief
 	(PvpService.catchThief, every tier, also when the push is refused), the push (control immunity respected), the
 	power punch (`call.charged`: push x CHARGE_PUSH, cooldown x CHARGE_COOLDOWN), the glove's special and the
 	PvpEvent "Effect"s. The server creates NOTHING in Workspace (the look is client FX from the events).
@@ -11,7 +11,7 @@
 	Specials (`tool.special`): bonk (a clean punch, clients pop "BONK!"), bounce (the victim's client pogo-bounces
 	`tool.pogo`), boom (everyone else within `blastRadius` of the target is pushed `blastPush` away from it), thunder
 	(up to `chain` other players within `chainRange` of the target take `push x chainFactor`), royal (a long push in a
-	high `arc`). A blast / chain victim is caught when carrying a stolen slime and skips shielded and immune players.
+	high `arc`). A blast / chain victim is caught when carrying a stolen slime and skips immune players.
 
 	The push goes through `ctx.launch` (init.server passes the Roblox one; Lune tests pass a recorder). No Humanoid
 	health is ever changed; Roblox has no fall damage and Rescue puts anyone who still reaches the void back.
@@ -63,7 +63,7 @@ local function nearby(
 		return found
 	end
 	for userId, other in call.world.sessions do
-		if other ~= call.session and other ~= skip and not PvpService.isShielded(other, call.now) then
+		if other ~= call.session and other ~= skip then
 			local position = positionOf(userId)
 			if position then
 				local d = PvpKnockbackRules.distance(center, position)

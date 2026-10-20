@@ -109,9 +109,9 @@ function PvpTrapRules.inRadius(trap: Trap, position: Vec): boolean
 	return PvpTrapRules.within(trap.position, trap.radius, position)
 end
 
--- Does `victim` spring `trap`? Anyone but the owner and shielded players, in the radius, before it expires.
-function PvpTrapRules.triggers(trap: Trap, victimUserId: number, position: Vec, shielded: boolean, now: number): boolean
-	if victimUserId == trap.owner or shielded or PvpTrapRules.expired(trap, now) then
+-- Does `victim` spring `trap`? Anyone but the owner, in the radius, before it expires.
+function PvpTrapRules.triggers(trap: Trap, victimUserId: number, position: Vec, now: number): boolean
+	if victimUserId == trap.owner or PvpTrapRules.expired(trap, now) then
 		return false
 	end
 	return PvpTrapRules.inRadius(trap, position)

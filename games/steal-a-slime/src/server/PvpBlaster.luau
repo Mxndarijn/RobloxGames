@@ -3,9 +3,9 @@
 	PvpBlaster (FEATURES.PvP, CONTRACT.md §26.6)
 
 	The `Blaster` line handler for PvpService.registerLine (GooBlaster1-3). PvpService has already checked the flag,
-	ownership, equipped item, cooldown and the attacker's new-player shield. The server owns the shot: each goo blob
+	ownership, equipped item and cooldown. The server owns the shot: each goo blob
 	leaves the attacker's server position and flies a ballistic arc (Shared.PvpBlasterRules) toward the aim, clamped
-	to the tool's range; the first non-shielded player the arc passes (at fire time) is hit. The client only sends
+	to the tool's range; the first player the arc passes (at fire time) is hit. The client only sends
 	the aim and draws the same arc from the PvpEvent "Effect".
 
 	  Squirter  rapid fire: `shots` per tank, `shotGap` apart; the cooldown (the refill) starts after the last shot.
@@ -14,8 +14,8 @@
 	  Cannon    one big lob: everyone within `splash` of the impact is slowed and a slowing pool stays `poolSeconds`.
 	Every player a blob, a splash, a pool or a splat hits is caught when carrying a stolen slime (PvpService.catchThief,
 	immunity or not). A blob that hits nobody leaves a slippery splat (SPLAT_*). Pools and splats are server-side zones
-	(no Instance) stepped in the per-player WorldView tick; they slow whoever walks in (not the shooter, not shielded
-	players, immunity respected). No Humanoid health is ever changed.
+	(no Instance) stepped in the per-player WorldView tick; they slow whoever walks in (not the shooter, immunity
+	respected). No Humanoid health is ever changed.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -212,7 +212,7 @@ local function handler(call: PvpService.UseCall): (boolean, string?, number?)
 	end
 	local candidates: { PvpBlasterRules.Candidate } = {}
 	for userId, other in call.world.sessions do
-		if other ~= call.session and not PvpService.isShielded(other, now) then
+		if other ~= call.session then
 			local position = positionOf(userId)
 			if position then
 				table.insert(candidates, { id = userId, position = position })
@@ -262,7 +262,7 @@ function PvpBlaster.tick(
 		end
 	end
 	local state = PvpService.state(victim)
-	if not position or not state or PvpService.isShielded(victim, now) then
+	if not position or not state then
 		return 0
 	end
 	for _, list in zones do
