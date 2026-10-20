@@ -11,7 +11,7 @@ INV, INV_D = hexc("7a2bff"), hexc("4a14b8")   # the colour-inverted band
 VOID = rgb(14, 10, 22)
 
 PROFILE = [(0, 1.15), (0.15, 1.42), (0.5, 1.55), (1.1, 1.48), (1.8, 1.18), (2.4, 0.72), (2.8, 0.22), (2.92, 0)]
-_m = Body(PROFILE, register_surface=False, name="Master", segs=8)
+_m = Body(PROFILE, register_surface=False, name="Master", segs=8, dome=DOME)
 radius = _m.radius
 H = _m.H
 bpy.data.objects.remove(_m.obj)
