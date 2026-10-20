@@ -354,7 +354,7 @@ def drop_tube_glass(version):
     along the path, flaring to a mouth at the bottom."""
     pts = tube_path(version)
     radii = [1.9] * (len(pts) - 6) + [1.95, 2.05, 2.2, 2.45, 2.75, 3.1]
-    return [tube("Glass", pts, radii, mix(GOO_HI, GLASS, 0.5), segs=16)]
+    return [tube("Glass", pts, radii, mix(GOO_HI, GLASS, 0.5), segs=16, twist_free=True)]
 
 
 def drop_tube_goo(version):
@@ -366,7 +366,7 @@ def drop_tube_goo(version):
     cb, sb = math.cos(back), math.sin(back)
     fill = mix(GOO, GOO_HI, 0.3)
     radii = [1.72] * (len(pts) - 6) + [1.76, 1.82, 1.9, 2.0, 2.0, 1.6]
-    out = [painted(tube("Goo", pts, radii, fill, segs=14, seed=5, jitter=0.04), shade(fill, 0.95), mix(GOO, GOO_HI, 0.55))]
+    out = [painted(tube("Goo", pts, radii, fill, segs=14, seed=5, jitter=0.04, twist_free=True), shade(fill, 0.95), mix(GOO, GOO_HI, 0.55))]
     rr = random.Random(30 + version)
     for k in range(2, len(pts) - 6, 3):
         c = Vector(pts[k])
