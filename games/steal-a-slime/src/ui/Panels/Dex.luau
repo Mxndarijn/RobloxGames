@@ -37,8 +37,8 @@ local Dex = {}
 
 -- Design px and text sizes of the panel's parts.
 local STYLE = table.freeze({
-	percent = 40,
-	compactPercent = 24,
+	percent = 56,
+	compactPercent = SlimeDex.HEADER.chip, -- fills the compact percent box
 	chip = 15,
 	chipPad = 20, -- chip width beyond its text
 	chipGap = 10, -- percent to the first chip
@@ -138,7 +138,7 @@ function Dex.new(parent: Instance, ctx: any)
 		TextStrokeColor3 = Theme.Ink,
 		TextStrokeTransparency = 0,
 		TextTruncate = Enum.TextTruncate.None,
-		Size = UDim2.fromOffset(H.percentW, H.percent),
+		Size = UDim2.fromOffset(0, H.percent),
 		Parent = panel.body,
 	})
 	local function chip(name: string, color: Color3): TextLabel
@@ -191,17 +191,20 @@ function Dex.new(parent: Instance, ctx: any)
 				table.insert(widths, w)
 			end
 		end
-		local spots, rows = SlimeDex.chipRows(widths, H.percentW + STYLE.chipGap, width, math.huge)
+		-- The chips start right after the percent text, so a low percent keeps them close.
+		local percentW = SlimeDex.percentWidth(percent.Text, STYLE.percent)
+		local spots, rows = SlimeDex.chipRows(widths, percentW + STYLE.chipGap, width, math.huge)
 		local header = SlimeDex.header(bodyH or math.huge, rows)
 		local chipY = 0
 		if header.compact then
-			spots = SlimeDex.chipRows(widths, H.compactW + STYLE.chipGap, width, 1)
+			local compactW = SlimeDex.percentWidth(percent.Text, STYLE.compactPercent)
+			spots = SlimeDex.chipRows(widths, compactW + STYLE.chipGap, width, 1)
 			percent.TextSize = STYLE.compactPercent
-			percent.Size = UDim2.fromOffset(H.compactW, H.chip)
+			percent.Size = UDim2.fromOffset(compactW, H.chip)
 			percent.Position = UDim2.fromOffset(0, 0)
 		else
 			percent.TextSize = STYLE.percent
-			percent.Size = UDim2.fromOffset(H.percentW, H.percent)
+			percent.Size = UDim2.fromOffset(percentW, H.percent)
 			percent.Position = UDim2.fromOffset(0, (header.height - H.percent) // 2)
 			chipY = math.max(0, (header.height - (rows * H.chip + (rows - 1) * H.chipGap)) // 2)
 		end

@@ -61,7 +61,7 @@ export type Mods = {
 	pop: number,
 }
 
-SlimeMotor.SQUASH_LIMIT = { 0.45, 1.5 } -- sy with Mods (hops splat and stretch further than breathing)
+SlimeMotor.SQUASH_LIMIT = { 0.65, 1.35 } -- sy with Mods: hops splat and stretch further than breathing, but never so far the face sinks in
 
 function SlimeMotor.newMods(): Mods
 	return {

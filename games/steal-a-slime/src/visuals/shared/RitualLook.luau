@@ -7,14 +7,15 @@
 	Roblox APIs, so the specs run under Lune.
 
 	  ring     fill 0..1 of the ground ring: the HOLD_SECONDS countdown while Charging, the
-	           SERVER_COOLDOWN while resting, empty while Idle
+	           SERVER_COOLDOWN recharge while resting, empty while Idle
+	  dash     how lit one ring dash is for a fill, so the next dash fades in instead of popping
 	  orb      bob (studs), spin (rad/s) and scale of the orb for a phase and charge
 	  shock    radius and transparency of the completion shockwave at progress k (0..1)
 ]]
 
 local Config = if script then require(script.Parent.Parent.Shared.Config) else require("../../shared/Config")
 
-export type Tint = "idle" | "taken" | "charge" | "rest"
+export type Tint = "idle" | "taken" | "charge" | "rest" | "recharge"
 
 local RitualLook = {}
 
@@ -23,6 +24,7 @@ RitualLook.COLORS = table.freeze({
 	taken = table.freeze({ 120, 255, 160 }),
 	charge = table.freeze({ 255, 226, 120 }),
 	rest = table.freeze({ 150, 150, 170 }),
+	recharge = table.freeze({ 225, 215, 255 }), -- lit ring dashes while the circle rests
 })
 
 -- The rgb colour for a tint.
@@ -32,6 +34,7 @@ function RitualLook.color(tint: Tint): { number }
 		then c.taken
 		elseif tint == "charge" then c.charge
 		elseif tint == "rest" then c.rest
+		elseif tint == "recharge" then c.recharge
 		else c.idle
 end
 
@@ -61,7 +64,7 @@ function RitualLook.ring(phase: string, chargeEndsAt: number?, readyAt: number?,
 	if phase == "Charging" then
 		return RitualLook.charge(phase, chargeEndsAt, now), "charge"
 	elseif phase == "Cooldown" and type(readyAt) == "number" then
-		return clamp01(1 - (readyAt - now) / Config.RITUAL.SERVER_COOLDOWN), "rest"
+		return clamp01(1 - (readyAt - now) / Config.RITUAL.SERVER_COOLDOWN), "recharge"
 	end
 	return 0, "idle"
 end
@@ -96,9 +99,20 @@ function RitualLook.completed(before: string?, after: string): boolean
 	return before == "Charging" and after == "Cooldown"
 end
 
--- Ring dashes lit for a fill (0..1).
-function RitualLook.litSegments(fill: number): number
-	return math.floor(clamp01(fill) * RitualLook.RING_SEGMENTS + 0.5)
+RitualLook.DASH_LIT = 0.1 -- transparency of a fully lit dash
+RitualLook.DASH_TRACK = 0.7 -- transparency of an unlit dash while recharging (the track still to fill)
+
+-- How lit dash `index` (1..RING_SEGMENTS) is for a fill (0..1): 0 off, 1 fully lit, in between for the
+-- dash being filled right now.
+function RitualLook.dashLevel(fill: number, index: number): number
+	return clamp01(clamp01(fill) * RitualLook.RING_SEGMENTS - (index - 1))
+end
+
+-- Transparency of a ring dash at `level` (0..1). While recharging, unlit dashes stay faintly visible as
+-- a track so the ring reads as "filling up"; otherwise they are hidden.
+function RitualLook.dashTransparency(level: number, tint: Tint): number
+	local off = if tint == "recharge" then RitualLook.DASH_TRACK else 1
+	return off + (RitualLook.DASH_LIT - off) * clamp01(level)
 end
 
 return table.freeze(RitualLook)

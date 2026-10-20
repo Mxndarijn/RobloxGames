@@ -10,8 +10,9 @@
 	    faster, and the dashes of the ground ring light up with the HOLD_SECONDS countdown
 	  * completion (Charging -> Cooldown): a short light flash, one shockwave ring over the ground and a
 	    gold / goo sparkle shower
-	  * Cooldown: the orb (dimmed by the server) gives off a thin wisp, its light goes out, and the ring
-	    refills in grey as the rest runs down
+	  * Cooldown: the orb (dimmed by the server) gives off a thin wisp and its light goes out; the ring
+	    shows as a faint grey track whose dashes light up again (bright lilac, the next one fading in) as
+	    the rest runs down
 	The look numbers live in Visuals.RitualLook and the particle presets in Visuals.Effects. Everything it
 	adds is local; it never fires remotes. Past RitualLook.MAX_DISTANCE from the camera it stops the
 	emitters and skips the per-frame work. Call `tick` once a frame from the client's frame loop.
@@ -175,18 +176,28 @@ local function build(model: Model): Rig?
 		i += 1
 	end
 
-	local ring: { BasePart } = {}
+	-- The dashes lie on the raised "Ring" band (between the Inner and Ring discs), just above its top.
+	local ringPart = model:FindFirstChild("Ring")
+	local innerPart = model:FindFirstChild("Inner")
 	local ringRadius = radius - 0.7
+	local dashY = 0.1
+	if ringPart and ringPart:IsA("BasePart") then
+		local outer = ringPart.Size.Y / 2
+		local inner = if innerPart and innerPart:IsA("BasePart") then innerPart.Size.Y / 2 else outer - 0.9
+		ringRadius = (outer + inner) / 2
+		dashY = ringPart.Position.Y + ringPart.Size.X / 2 - top + 0.05
+	end
+	local ring: { BasePart } = {}
 	local n = RitualLook.RING_SEGMENTS
 	local dash = 2 * math.pi * ringRadius / n * 0.6
 	for s = 1, n do
 		-- Dash 1 starts at the top of the ring as seen from the plaza and they light clockwise.
 		local a = (s - 0.5) / n * 2 * math.pi
-		local p = centre + Vector3.new(math.sin(a) * ringRadius, 0.06, math.cos(a) * ringRadius)
+		local p = centre + Vector3.new(math.sin(a) * ringRadius, dashY, math.cos(a) * ringRadius)
 		local seg = Instance.new("Part")
 		seg.Name = `RingDash_{s}`
 		seg.Material = Enum.Material.Neon
-		seg.Size = Vector3.new(0.35, 0.06, dash)
+		seg.Size = Vector3.new(0.4, 0.08, dash)
 		seg.CFrame = CFrame.lookAt(p, p + Vector3.new(math.cos(a), 0, -math.sin(a)))
 		seg.Transparency = 1
 		decor(seg)
@@ -322,11 +333,12 @@ local function apply(rig: Rig, dt: number, t: number, now: number)
 		end
 	end
 
-	local lit = RitualLook.litSegments(fill)
-	local ringColor = rgb(RitualLook.color(tint))
+	local litColor = rgb(RitualLook.color(tint))
+	local trackColor = rgb(RitualLook.COLORS.rest)
 	for s, seg in rig.ring do
-		seg.Transparency = if s <= lit then (if resting then 0.45 else 0.1) else 1
-		seg.Color = ringColor
+		local level = RitualLook.dashLevel(fill, s)
+		seg.Transparency = RitualLook.dashTransparency(level, tint)
+		seg.Color = if level > 0 then litColor else trackColor
 	end
 
 	local shockAt = rig.shockAt
