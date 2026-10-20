@@ -808,6 +808,7 @@ local Config = {
 		WorldShopsStrict = true, -- CONTRACT.md §27.6: the old buy actions also need an open shop in range ("NotOpen"); on since the HUD Shop button is gone in HUD v2. Needs WorldShops
 		Parade = true, -- wilds hop the goo-parade lane round the plaza into the goo drain (ParadeLane); false = landing band as before
 		MysteryEggs = true, -- the fountain sometimes drops a Mystery Egg that incubates on a pad, can be stolen and hatches into a slime (MysteryEgg, EggKind, contract/mystery-egg.md); false = no egg drops (eggs already on plots still hatch)
+		MoveSlime = true, -- E "Move" on your own pad slimes: pick one up and place it on another pad (swap if taken), Request MoveSlime (ui/SlimeMove); false = no Move prompt and MoveSlime is refused
 		SlimeChoreo = true, -- species gaits and hops, lane beats and reactions to players (SlimePersona, ParadeChoreo, ui/SlimeGait, contract/slime-life.md); false = every slime glides the lane at one pace
 	}),
 
