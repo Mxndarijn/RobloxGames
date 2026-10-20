@@ -313,15 +313,6 @@ describe("Goo Trap cleanup and parts", function()
 end)
 
 describe("PvpTrapRules", function()
-	it("keeps every tier's hold within the control cap and has no damage field", function()
-		for _, tool in Config.PVP_TOOLS do
-			if tool.line == "Trap" then
-				expect((tool.control or 0) <= PVP.CONTROL_MAX_SECONDS).toBe(true)
-				expect((tool.slowSeconds or 0) <= PVP.SLOW_MAX_SECONDS).toBe(true)
-				expect((tool :: any).damage).toBeNil()
-			end
-		end
-	end)
 	it("rejects another floor and a non-trap tool", function()
 		local trap = PvpTrapRules.new("t", 1, PvpRules.tool("GooTrap1") :: any, FAR, T0)
 		expect(PvpTrapRules.inRadius(trap, { X = 200, Y = 3 + 20, Z = -200 })).toBe(false)

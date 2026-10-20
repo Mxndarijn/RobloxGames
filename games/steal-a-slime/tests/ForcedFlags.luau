@@ -9,12 +9,9 @@ local ForcedFlags = {}
 
 -- All flags off: these need the named flag(s) on.
 ForcedFlags.off = {
-	["world shops config > WorldShops is on by default"] = "WorldShops",
-	["world shops config > WorldShopsStrict is on by default"] = "WorldShopsStrict",
 	["world shop stands in the booted server"] = "WorldShops",
 	["plot pad prompts on the real world (WorldShopsStrict on)"] = "WorldShopsStrict",
 	["AdminEvents gate"] = "AdminEvents",
-	["PvpRules config > is on by default (Merijn 2026-10-17: PvP ships on)"] = "PvP",
 	["AdminEvents parse + validate"] = "AdminEvents",
 	["AdminEvents effects"] = "AdminEvents",
 	["WeeklyEvents vs live admin events (#130)"] = "AdminEvents",
@@ -44,7 +41,6 @@ ForcedFlags.off = {
 	["welcome-back on join > carries the offline cash and the slimes that grew"] = "GrowingSlimes",
 	["Habitats table"] = "Habitats",
 	["LiveBoot (server Script in the fake runtime) > with FEATURES.Habitats on, every pad carries a known habitat id and the server builds no looks"] = "Habitats",
-	["Revenge config"] = "Revenge",
 	["Revenge window"] = "Revenge",
 	["Revenge lock cost"] = "Revenge",
 	["Revenge several thieves and victims"] = "Revenge",
@@ -53,8 +49,6 @@ ForcedFlags.off = {
 	["RitualService.step"] = "CoopRitual",
 	["SlideColliders specs"] = "SlideCollision",
 	["SlideColliders in the live server"] = "SlideCollision",
-	["FountainSplit data > is behind FEATURES.FountainSplit, default on"] = "FountainSplit",
-	["FountainSplit data > the slide is PCD behind FEATURES.SlidePCD, default on"] = "SlidePCD",
 }
 
 -- Spec modules that assert a flag at load time.
@@ -72,22 +66,15 @@ ForcedFlags.on = {
 -- switch on every built feature). They only make sense with that flag off, so they run in the
 -- all-flags-off mode alone and are skipped in the default and the all-on runs (and in the cloud tests).
 ForcedFlags.needOff = {
-	["Audio flag > is off by default"] = "Audio",
-	["StealAlerts arrow and flash vs the banners and nav > the StealAlerts flag stays default off"] = "StealAlerts",
-	["FountainTiers: the ladder > is behind FEATURES.FountainTiers, default off"] = "FountainTiers",
 	["FountainTiers: the ladder > rank cards only mention a family with the feature on (off: tierText is unchanged)"] = "FountainTiers",
 	["FountainTiers: server > the world starts at tier 1 and the tier step is a no-op with the feature off"] = "FountainTiers",
 	["FountainTiers: server > a spawned drop is Classic with the feature off even at tier 4"] = "FountainTiers",
 	["FountainTiers: server > the catch gate: a family slime needs the family's rank, Classic and stolen slimes never do"] = "FountainTiers",
 	["FountainTiers: server > a refused family grab costs nothing and a rank-ready player grabs it"] = "FountainTiers",
-	["plot skins: config > is behind FEATURES.PlotSkins, default off"] = "PlotSkins",
 	["plot skins: equip > the Request refuses a locked skin, and equips an unlocked one"] = "PlotSkins",
 	["plot skins: equip > with the flag off the Request is refused, even for an unlocked skin"] = "PlotSkins",
 	["plot skins: equip > flag off: State carries no plot skin fields"] = "PlotSkins",
-	["StealAlert config > is behind FEATURES.StealAlerts, default off"] = "StealAlerts",
-	["TripleMerge: rules > is behind FEATURES.MergeVat3, default off"] = "MergeVat3",
 	["TripleMerge: server action > is refused with the flag off and merges with it on"] = "MergeVat3",
-	["driver choice > ships with the uploaded animations off"] = "SlimeAnimations",
 	-- FEATURES.FountainSplit on: the fountain is 5 PCD pieces and the hand-placed colliders stay off (tests/FountainSplit.spec);
 	-- these pin the single Mesh child and the colliders turned on by it
 	["fountain collider, mesh loading > stays that way while the fountain's CreateMeshPartAsync is in flight"] = "FountainSplit",
@@ -101,7 +88,6 @@ ForcedFlags.needOff = {
 	["fountain top collider, profile > stacks invisible upright cylinders on the silo axis from the eave to the basin floor"] = "FountainSplit",
 	["fountain top collider, no holes > loaded: the collision covers the dome, never under the profile, never far over it"] = "FountainSplit",
 	["fountain top collider, no holes > loaded: every radius from the axis to the eave edge has a collider top above the wall"] = "FountainSplit",
-	["fountain top collider, no holes > states: loaded and loading are never both off or both on"] = "FountainSplit",
 	["MeshSwap uniform scale (live boot, every upload answered) > swaps every uploaded MeshAsset slot"] = "FountainSplit",
 }
 

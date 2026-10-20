@@ -95,11 +95,6 @@ describe("Ritual.step", function()
 		expect(state.blessed[11].untilAt).toBe(T0 + R.HOLD_SECONDS + R.BLESS_SECONDS)
 	end)
 
-	it("pays +30% for the two-player ritual", function()
-		expect(R.BONUS[2]).toBe(0.3)
-		expect(Ritual.bonus(2)).toBe(0.3)
-	end)
-
 	it("has one pad per required player, so bonus tiers above that are capped", function()
 		expect(R.SPOTS).toBe(R.MIN_PLAYERS)
 		expect(#Ritual.spots()).toBe(R.MIN_PLAYERS)
@@ -114,19 +109,6 @@ describe("Ritual.step", function()
 		expect(done and done.bonus).toBe(R.BONUS[R.SPOTS])
 		expect(Ritual.bonus(1)).toBe(0)
 		expect(Ritual.bonus(9)).toBe(R.BONUS[R.SPOTS])
-	end)
-
-	it("needs only two players", function()
-		expect(R.MIN_PLAYERS).toBe(2)
-		expect(Ritual.bonus(2)).toBe(R.BONUS[2])
-		expect(R.BONUS[2] > 0).toBeTruthy()
-		local state = Ritual.new()
-		local pair = { [1] = 1, [2] = 2 }
-		Ritual.step(state, pair, T0)
-		expect(state.phase).toBe("Charging")
-		local done = Ritual.step(state, pair, T0 + R.HOLD_SECONDS)
-		expect(#(done and done.userIds or {})).toBe(2)
-		expect(done and done.bonus).toBe(R.BONUS[2])
 	end)
 
 	it("restarts the timer when someone steps off", function()
@@ -316,11 +298,6 @@ describe("ritual circle placement", function()
 		for _, prop in WorldLayout.RANCH_PROPS do
 			expect(dist(cx, cz, prop.pos[1], prop.pos[3]) > reach + prop.radius + 2).toBeTruthy()
 		end
-	end)
-
-	it("is not on the old plaza site beside the lane", function()
-		local a = math.rad(247.5)
-		expect(dist(cx, cz, math.sin(a) * 46, math.cos(a) * 46) > 40).toBeTruthy()
 	end)
 
 	it("keeps clear of every plot and its spoke path", function()

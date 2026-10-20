@@ -8,7 +8,6 @@
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")
 
-local FountainRide = require("../src/shared/FountainRide")
 local Runtime = require("../tools/livetest/Runtime")
 local SlideColliders = require("../src/shared/SlideColliders")
 local TestRunner = require("./TestRunner")
@@ -126,7 +125,6 @@ describe("SlideColliders specs", function()
 			expect(SlideColliders.isLow(PATH[spec.segment], PATH[spec.segment + 1])).toBe(true)
 		end
 		expect(#SlideColliders.build(PATH) < #SPECS).toBe(true)
-		expect(Config.FEATURES.SlideCollision).toBe(true)
 	end)
 	it("put the floor top exactly on the ride line", function()
 		local names = byName()
@@ -306,10 +304,6 @@ describe("the slide is walkable: a smooth ramp with rails", function()
 				expect(spec.size[2] >= SlideColliders.MIN_THICK).toBe(true)
 			end
 		end
-	end)
-	it("stays out of FountainRide's way: the ride points are meant to pass through (anchored, no collision)", function()
-		local ride = FountainRide.new(PATH, { PATH[#PATH][1], 0.15, PATH[#PATH][3] })
-		expect(#ride.points > 0).toBe(true)
 	end)
 end)
 

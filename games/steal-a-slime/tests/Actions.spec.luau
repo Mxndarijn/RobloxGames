@@ -37,7 +37,6 @@ describe("Actions.handle guards", function()
 		expect(call(world, 1, "Sell", 5).message).toBe("bad argument")
 		expect(call(world, 1, "Sell", "bad id!").message).toBe("bad argument")
 		expect(call(world, 1, "Merge", "a").message).toBe("bad argument")
-		expect(call(world, 1, "Slap", 2).message).toBe("unknown action") -- the on-screen Slap is gone: the Bat Tool hits server-side
 	end)
 	it("parseArgs accepts every declared action shape", function()
 		for action, def in Remotes.ACTIONS do

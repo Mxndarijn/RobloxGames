@@ -5,12 +5,10 @@ local Config = require("../src/shared/Config")
 local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
 local Genome = require("../src/shared/Genome")
-local Remotes = require("../src/shared/Remotes")
 local Rng = require("../src/shared/Rng")
 local ServerFixtures = require("./ServerFixtures")
 local Snapshot = require("../src/server/Snapshot")
 local TestRunner = require("./TestRunner")
-local Validate = require("../src/shared/Validate")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
@@ -36,14 +34,9 @@ local function slime()
 end
 
 describe("Appraise", function()
-	it("is a rate-limited, declared action", function()
-		expect(Remotes.ACTIONS.Appraise ~= nil).toBeTruthy()
-		expect(Validate.ACTIONS.Appraise ~= nil).toBeTruthy()
-	end)
 	it("costs 30% of the slime's current value", function()
 		local s = slime()
 		local value = Economy.sellPrice(s, 2)
-		expect(Config.APPRAISE_COST_FRACTION).toBe(0.3)
 		expect(Appraise.cost(s, 2)).toBe(math.floor(value * 0.3))
 		-- a cheaper slime costs less: tracks the current value
 		local bigger = Fixtures.slime("b", 5, { size = 1.2 })

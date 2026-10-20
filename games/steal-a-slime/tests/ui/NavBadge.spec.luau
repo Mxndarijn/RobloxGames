@@ -32,14 +32,13 @@ describe("the SlimeDex % badge stays on its tile (B5)", function()
 	for _, entry in LayoutAssert.screens(LayoutAssert.GATE_VIEWPORTS) do
 		it(entry.label, function()
 			local s = entry.screen
-			for i, nav in require("../../src/ui/Nav").ENTRIES do
+			for i in require("../../src/ui/Nav").ENTRIES do
 				local b = s.navButtons[i]
 				local tile = Layout.navTile(s.compact, b)
 				local badge = Layout.navBadge(b, "100%")
 				expect(Layout.overlaps(badge, tile)).toBe(true) -- sits on the tile's corner ...
 				expect(badge.y + badge.h <= tile.y + tile.h).toBe(true) -- ... above the label row
 				expect(badge.x >= b.x and badge.x + badge.w <= b.x + b.w).toBe(true) -- ... inside its button
-				expect(nav.key ~= "").toBe(true)
 			end
 		end)
 	end

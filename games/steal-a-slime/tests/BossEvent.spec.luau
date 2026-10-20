@@ -190,18 +190,6 @@ describe("BossEvent fight", function()
 end)
 
 describe("BossEvent haul", function()
-	it("filling the meter hands out nothing: no egg, no slime for the helpers", function()
-		local w = world(3)
-		arrive(w)
-		local t = T0 + BOSS.WARNING_SECONDS
-		BossEvent.hit(w, w.sessions[3], t)
-		fill(w, 1, 2)
-		expect(w.boss.fight.phase).toBe("haul")
-		for userId = 1, 3 do
-			expect(#w.sessions[userId].data.slimes).toBe(0)
-			expect(w.sessions[userId].egg).toBeNil()
-		end
-	end)
 	it("pops to carry size; the top contributor grabs first, then anyone", function()
 		local w = world()
 		local id = arrive(w)

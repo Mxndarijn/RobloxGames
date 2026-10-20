@@ -2,8 +2,8 @@
 -- FEATURES.Habitats on, through the REAL server Script (tools/livetest/Runtime,
 -- memory store): WorldView writes Habitat / HabitatFrom / HabitatAt on the
 -- owner's Pad_<j> and flips it back to base when the slime is carried off.
--- The flag is switched on in the built place's Config source only; the
--- shipped Config keeps it off (Habitats.spec, LiveBoot.spec).
+-- The shipped Config has the flag on; the spec checks the built place's
+-- Config source before it runs.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
 local roblox = require("@lune/roblox")

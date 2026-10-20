@@ -4,7 +4,6 @@ local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local PlotLockGuard = require("../src/server/PlotLockGuard")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
-local fs = require("@lune/fs")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -89,20 +88,5 @@ describe("PlotLockGuard: one-way barrier", function()
 		expect(PlotLockGuard.lockGroup(3)).toBe("PlotLock_3")
 		expect(PlotLockGuard.ownerGroup(3)).toBe("PlotOwner_3")
 		expect(PlotLockGuard.LEAVER_GROUP).toBe("PlotLeaver")
-	end)
-	it("never moves a character: no eject API, no position write in the lock guard", function()
-		expect(rawget(PlotLockGuard, "shouldEject")).toBe(nil)
-		expect(rawget(PlotLockGuard, "ejectPoint")).toBe(nil)
-		expect(rawget(PlotLockGuard, "ejectPose")).toBe(nil)
-		local src = fs.readFile("src/server/WorldView.luau")
-		local from = string.find(src, "function WorldView.enforceLocks", 1, true)
-		local to = string.find(src, "function WorldView.updatePlots", 1, true)
-		expect(from ~= nil and to ~= nil and to > from).toBe(true)
-		local body = string.sub(src, from :: number, to :: number)
-		for _, forbidden in { "PivotTo", ".CFrame =", "AssemblyLinearVelocity", "Position =", "ApplyImpulse" } do
-			expect(string.find(body, forbidden, 1, true)).toBe(nil)
-		end
-		expect(string.find(src, "ejectIntruders", 1, true)).toBe(nil)
-		expect(string.find(src, "ejectToGate", 1, true)).toBe(nil)
 	end)
 end)

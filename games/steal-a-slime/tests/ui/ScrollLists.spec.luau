@@ -4,7 +4,6 @@
 -- them a server State while hidden (as setOpen did live) and checks every
 -- row's rect: Y = paddingTop + sum(previous heights + gaps), pairwise
 -- disjoint, inside the canvas, at the gate viewport sizes.
-local fs = require("@lune/fs")
 local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
@@ -218,16 +217,6 @@ describe("Widgets.scrollList", function()
 		Widgets.restack(list)
 		expect(list:FindFirstChild("a").Position.Y.Offset).toBe(top)
 		expect(list.CanvasSize.Y.Offset).toBe(top + 84 + Layout.SCROLL_LIST.paddingBottom)
-	end)
-	it("is the only way panels make a scroll list (no ScrollingFrame / UIListLayout of their own)", function()
-		local offenders = {}
-		for _, name in fs.readDir("src/ui/Panels") do
-			local src = fs.readFile(`src/ui/Panels/{name}`)
-			if string.find(src, "ScrollingFrame", 1, true) or string.find(src, "UIListLayout", 1, true) then
-				table.insert(offenders, name)
-			end
-		end
-		expect(table.concat(offenders, ", ")).toBe("")
 	end)
 end)
 

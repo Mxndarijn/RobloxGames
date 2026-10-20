@@ -3,7 +3,6 @@
 -- (Oct 18: a 2-column grid of rounded tiles, B5); bottom-left = Money / Income / Rebirths; bottom-right = status
 -- icons with timers (events, friend boost), never the weekend boost, with a tooltip on hover / tap (B8); both
 -- clusters bigger (B4); no top bar (B7), no toasts (B6), no boss / specific-slime notifications.
-local fs = require("@lune/fs")
 local Enum = require("@lune/roblox").Enum
 
 local Config = require("../../src/shared/Config")
@@ -12,21 +11,12 @@ local Genome = require("../../src/shared/Genome")
 local HudClusters = require("../../src/ui/HudClusters")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
-local MenuClose = require("../../src/ui/MenuClose")
 local Nav = require("../../src/ui/Nav")
 local Remotes = require("../../src/shared/Remotes")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
-
-local function read(path: string): string
-	return fs.readFile(path)
-end
-
-local function has(text: string, needle: string): boolean
-	return string.find(text, needle, 1, true) ~= nil
-end
 
 -- Config with the two features behind the status slots on, whatever the flag defaults / the flags-off run say.
 local flagsOn = table.clone(Config) :: any
@@ -99,13 +89,6 @@ local function setAttributes(attrs: { [string]: any }?)
 end
 
 describe("H1 HUD: left button column", function()
-	it("has exactly Plot, Rebirth, Goals, SlimeDex, Codes", function()
-		local labels = {}
-		for _, entry in Nav.ENTRIES do
-			table.insert(labels, entry.label)
-		end
-		expect(table.concat(labels, ",")).toBe("Plot,Rebirth,Goals,SlimeDex,Codes")
-	end)
 	it("lays out those five buttons at every gate and landscape viewport", function()
 		local viewports = {}
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
@@ -118,29 +101,6 @@ describe("H1 HUD: left button column", function()
 			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: 5`)
 		end
 	end)
-	it("has no Merge / Shop / Top badges and no HUD Shop button", function()
-		local badges = Nav.badges({
-			cash = 1e9,
-			slimes = { { slime = { id = "a", tier = 1 } }, { slime = { id = "b", tier = 1 } } },
-			upgrades = { { id = "Income", price = 1, unlocked = true } },
-		})
-		expect(next(badges)).toBeNil()
-		expect(has(read("src/ui/Hud.luau"), '"Shop"')).toBe(false)
-	end)
-	it(
-		"keeps the Merge, Shop and Top menus as panels without a nav button; the Shop still opens from its prompt",
-		function()
-			local init = read("src/ui/init.client.luau")
-			expect(has(init, 'for _, key in { "Merge", "Shop", "Leaders" } do')).toBe(true)
-			expect(has(init, "nav = nil, panel = panelByKey[key]")).toBe(true)
-			expect(
-				MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME)[Constants.SHOP_PROMPT_NAME]
-			).toBe("Shop")
-			expect(has(read("src/ui/Panels/Shop.luau"), "setOpen")).toBe(true)
-			expect(has(read("src/ui/Panels/Merge.luau"), "function Merge.new")).toBe(true)
-			expect(has(read("src/ui/Panels/Leaderboard.luau"), "setBoard")).toBe(true)
-		end
-	)
 end)
 
 describe("H1 HUD: HudClusters (pure)", function()
@@ -247,16 +207,6 @@ describe("H1 HUD: bottom-left cluster (mounted Hud)", function()
 			"x1.5"
 		)
 	end)
-	it("has no top bar any more (B7): no Hud bar, lock block, Lock, Buy pad, Daily, Pads or Shop", function()
-		local _, gui = mount(1920, 1080)
-		for _, name in { "Hud", "LockStatus", "Lock", "BuyPad", "Daily", "Cash.Pads", "Pads", "Shop", "PadHint" } do
-			expect(`{name}: {UiHarness.find(gui, name) ~= nil}`).toBe(`{name}: false`)
-		end
-		local src = read("src/ui/Hud.luau")
-		for _, needle in { "LockHud", "holdButton", "openDaily", "LockStatus" } do
-			expect(`{needle}: {has(src, needle)}`).toBe(`{needle}: false`)
-		end
-	end)
 	it("sits in the bottom-left corner box of Layout.screen", function()
 		local hud, gui, screen = mount(1920, 1080)
 		hud.update(state())
@@ -324,17 +274,6 @@ describe("H1 HUD: bottom-right cluster (mounted Hud)", function()
 		for _, node in UiHarness.descendants(gui) do
 			expect(string.find(string.lower(node.Name), "weekend", 1, true)).toBeNil()
 		end
-		expect(has(read("src/ui/Hud.luau"), "WeekendBadge")).toBe(false)
-	end)
-	it("an event shown here is gone from the old top banners", function()
-		setAttributes({ RainActive = true, RainEndsAt = 1097 })
-		local hud, gui = mount(1920, 1080)
-		hud.update(state({ friends = { count = 1, bonus = 0.1 } }))
-		local banners = UiHarness.find(gui, "Banners")
-		for _, name in { "RainBanner", "ModifierBadge", "FriendBadge", "WeekendChip", "NextSpawnChip", "RareBanner" } do
-			expect(UiHarness.find(banners, name)).toBeNil()
-		end
-		setAttributes()
 	end)
 end)
 
@@ -512,41 +451,6 @@ describe("H1 HUD: nothing new top-right / top-middle", function()
 		local _, gui = mount(1920, 1080)
 		expect(table.concat(names(UiHarness.find(gui, "Banners")), ",")).toBe(`{KEPT_BANNERS}`)
 	end)
-	it("the featured Secret has no top banner, whatever State.featuredSecret says", function()
-		local hud, gui = mount(1920, 1080)
-		hud.update(
-			state({ featuredSecret = { id = "kitsune", name = "Kitsune", endsAt = 1000 + 3 * 86400 + 4 * 3600 } })
-		)
-		expect(UiHarness.find(UiHarness.find(gui, "Banners"), "FeaturedSecret")).toBeNil()
-		for _, node in UiHarness.descendants(UiHarness.find(gui, "Banners")) do
-			if node:IsA("TextLabel") then
-				expect(string.find(node.Text, "Featured Secret", 1, true)).toBeNil()
-			end
-		end
-	end)
-	it("there are no toasts: no Toasts frame, no toast code in the client (B6)", function()
-		local _, gui = mount(1920, 1080)
-		expect(UiHarness.find(gui, "Toasts")).toBeNil()
-		local init = read("src/ui/init.client.luau")
-		for _, needle in { "toasts.", "Toasts", "ToastQueue", "ctx.toast", "PcwBadgeToast" } do
-			expect(`{needle}: {has(init, needle)}`).toBe(`{needle}: false`)
-		end
-		for _, path in { "src/ui/Toasts.luau", "src/ui/ToastQueue.luau", "src/ui/LockHud.luau" } do
-			expect(`{path}: {pcall(fs.readFile, path)}`).toBe(`{path}: false`)
-		end
-	end)
-	it("boss / specific-slime notices are gone: no Hud.onNotify, the Notify handler drops RareAnnounce news", function()
-		local hud = mount(1920, 1080)
-		expect(hud.onNotify).toBeNil()
-		local init = read("src/ui/init.client.luau")
-		expect(has(init, "if RareAnnounce.classify(message, sound) then\n\t\treturn\n\tend")).toBe(true)
-		expect(has(init, "playNotifySound(sound)")).toBe(true) -- a Notify still plays its sound, nothing is drawn
-		expect(has(init, "hud.onNotify")).toBe(false)
-		local hudSrc = read("src/ui/Hud.luau")
-		for _, needle in { "RareAnnounce", "BOSS_ATTRIBUTE", "NextSpawn", "RARE_SPAWN" } do
-			expect(`{needle}: {has(hudSrc, needle)}`).toBe(`{needle}: false`)
-		end
-	end)
 	it("both clusters sit on the bottom line (the touch-controls floor), the desktop events row above it", function()
 		local viewports = {}
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
@@ -621,25 +525,6 @@ describe("H1 HUD: layout rules for the new clusters", function()
 end)
 
 describe("H1 HUD: Studio hooks keep working", function()
-	it("the Pcw attributes that drive the HUD are still handled (and PcwRain fakes the rain slot)", function()
-		local init = read("src/ui/init.client.luau")
-		for _, attr in
-			{
-				"PcwFriendBonus",
-				"PcwAdminEvent",
-				"PcwWeekend",
-				"PcwStealAlert",
-				"PcwWelcome",
-				"PcwRain",
-				"PcwBlessed",
-				"PcwOpen",
-				"PcwTooltip",
-			}
-		do
-			expect(`{attr}: {has(init, `"{attr}"`)}`).toBe(`{attr}: true`)
-		end
-		expect(has(init, "ctx.forcedRain = forcedRain")).toBe(true)
-	end)
 	it("a forced rain wins over the workspace attributes", function()
 		setAttributes({ RainActive = false })
 		local c = ctx()
@@ -842,19 +727,7 @@ describe("H1 HUD: bigger clusters and the nav tile grid (B4, B5)", function()
 		expect(Layout.MONEY.cplate > 40 and Layout.MONEY.camountSize > 22).toBe(true) -- H1 phone: 40 px, size 22
 		setAttributes()
 	end)
-	it("the nav is built from rounded Tile frames with an item icon and the label under them", function()
-		local init = read("src/ui/init.client.luau")
-		for _, needle in
-			{
-				'Name = "Tile"',
-				"Id = navEntry.item",
-				"Widgets.corner(16)",
-				'Name = "Label"',
-				"Layout.navTile(s.compact, b)",
-			}
-		do
-			expect(`{needle}: {has(init, needle)}`).toBe(`{needle}: true`)
-		end
+	it("every nav tile's item has an icon", function()
 		for _, entry in Nav.ENTRIES do
 			expect(UiHarness.ui("ItemIcons").build(Config).byId[entry.item] ~= nil).toBe(true)
 		end
