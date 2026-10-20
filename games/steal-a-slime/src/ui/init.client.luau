@@ -315,15 +315,10 @@ SlimeInfoCard.start({ collection = game:GetService("CollectionService"), tag = C
 -- The dimmed full-window backdrop (Layout.backdrop: the whole viewport, top bar included, square) behind an open menu card (screen.panel).
 -- Made before the panels so their cards draw over it; a tap on it closes
 -- the menu, like the X.
-local backdrop = Widgets.create("TextButton", {
+local backdrop = Widgets.backdrop({
 	Name = "MenuBackdrop",
-	Text = "",
-	AutoButtonColor = false,
-	BackgroundColor3 = Color3.new(0, 0, 0),
-	BackgroundTransparency = 0.45,
-	Visible = false,
 	Parent = gui,
-}) :: TextButton
+})
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
 -- order: Rebirth, Goals, SlimeDex, Codes) or a world prompt, closed with their X, the backdrop, Esc or
@@ -917,12 +912,12 @@ function applyLayout()
 	local s = Layout.screen(size.X, size.Y)
 	screen = s
 	hud.layout(s)
-	inventory.layout(s)
+	inventory.layout(s, GuiService:GetGuiInset())
 	stealFx.layout(s, hud.bannerHeight)
 	bossMeter.layout(s, hud.bannerHeight)
 	carry.layout(s)
 	tutorial.layout(s)
-	dailyPopup.layout(s)
+	dailyPopup.layout(s, GuiService:GetGuiInset())
 	layoutNav(s)
 	syncMenus() -- the nav's phone / desktop visibility follows the new size
 	if soundButton then
