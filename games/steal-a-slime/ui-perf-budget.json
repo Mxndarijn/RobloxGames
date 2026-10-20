@@ -3,9 +3,9 @@
   "measured_by": "tests/ui/PerfMeasure.luau (Lune, UiHarness mock Roblox): HUD, StealAlertFx and every menu card mounted as init.client does; virtual clock for task.wait loops",
   "ratchet": "tools/pr-gate/ui_perf_check.luau and tests/ui/UiPerfBudget.spec.luau: a number above its limit fails; a number below it fails too until the limit is lowered here (instance counts get 3% slack)",
   "limits": {
-    "gui_instances_idle": 920,
-    "gui_instances_menu_open_max": 920,
-    "gui_instances_after_close": 920,
+    "gui_instances_idle": 837,
+    "gui_instances_menu_open_max": 837,
+    "gui_instances_after_close": 837,
     "tweens_created": 0,
     "frame_conns_idle": 1,
     "frame_conns_after_menus": 1,

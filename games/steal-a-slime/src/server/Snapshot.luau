@@ -11,7 +11,6 @@
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local AudioSettings = if Shared then require(Shared.AudioSettings) else require("../shared/AudioSettings")
-local Appraise = if Shared then require(Shared.Appraise) else require("../shared/Appraise")
 local Codes = if Shared then require(Shared.Codes) else require("../shared/Codes")
 local Collection = if Shared then require(Shared.Collection) else require("../shared/Collection")
 local Consumables = if Shared then require(Shared.Consumables) else require("../shared/Consumables")
@@ -57,7 +56,6 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			slime = EggKind.mask(slime), -- an egg never shows the slime inside (contract/mystery-egg.md)
 			income = if carrier then 0 else PlayerData.slimeIncome(data, slime),
 			sellPrice = Economy.sellPrice(slime, rebirths),
-			appraiseCost = Appraise.cost(slime, rebirths),
 			stolenBy = carrier,
 		})
 	end

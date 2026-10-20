@@ -395,10 +395,6 @@ local applyLayout: () -> ()
 local refreshHint: () -> ()
 local pumpPopups: (state: Types.State) -> ()
 local layoutCards: () -> ()
--- Panels that change their own height (Plot's Appraise screen) ask for a card relayout.
-ctx.relayout = function()
-	layoutCards()
-end
 
 local function styleNav(btn: NavButton, selected: boolean)
 	btn.tile.BackgroundColor3 = if selected then Theme.Accent else NAV_TILE_COLOR
@@ -581,7 +577,7 @@ end
 local function panelState(key: string, realState: any): any
 	local state = forceWelcome(forcePlotSkins(forceFriends(realState)))
 	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
-		-- Studio-only: one fake owned slime so the My Plot row shows its Appraise button.
+		-- Studio-only: one fake owned slime so the My Plot row shows its buttons.
 		local view = table.clone(state)
 		view.slimes = {
 			{
@@ -598,7 +594,6 @@ local function panelState(key: string, realState: any): any
 				},
 				income = 12,
 				sellPrice = 450,
-				appraiseCost = 135,
 			},
 		}
 		view.padsUnlocked = math.max(1, state.padsUnlocked or 1)
@@ -803,7 +798,7 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 	end
 end)
 
--- "Manage" on each of your slimes at its pad opens that slime's card (favourite, sell, appraise, hatch).
+-- "Manage" on each of your slimes at its pad opens that slime's card (favourite, sell, hatch).
 SlimeManage.start({
 	root = workspace,
 	localUserId = player.UserId,

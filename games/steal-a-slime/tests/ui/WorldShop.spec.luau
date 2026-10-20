@@ -98,8 +98,8 @@ local function baseState(extra: { [string]: any }?): any
 		},
 		pvp = { rank = 3, owned = { KnockGlove1 = true }, best = {}, cooldowns = {} },
 		slimes = {
-			{ slime = { id = "s1", tier = 2 }, income = 1, sellPrice = 1, appraiseCost = 1 },
-			{ slime = { id = "s2", tier = 5 }, income = 1, sellPrice = 1, appraiseCost = 1 },
+			{ slime = { id = "s1", tier = 2 }, income = 1, sellPrice = 1 },
+			{ slime = { id = "s2", tier = 5 }, income = 1, sellPrice = 1 },
 		},
 		favoriteId = nil,
 	}
