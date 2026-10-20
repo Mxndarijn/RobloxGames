@@ -645,6 +645,7 @@ MeshAssets.COLLISION = table.freeze({
 	ranch_feed_sacks = "Hull", -- 5.2x3.5x5.3 pile of sacks
 	ranch_goo_bucket = "Hull", -- 2.2x2.8x2.1 bucket
 	ranch_goo_hive = "Hull", -- 3.8x5.7x4.8 dome
+	ranch_lantern_post = "Hull", -- 3.7x9.3x1.6 post with a lantern arm: the hull is the post, the arm hangs overhead
 	ranch_log_pile = "Hull", -- 10.9x4x6.8 stacked logs
 	ranch_milk_churn = "Hull", -- 2.7x6.1x2.5 churn
 	ranch_rain_barrel = "Hull", -- 3.3x5.6x5.5 barrel with a pipe

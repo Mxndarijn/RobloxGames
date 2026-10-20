@@ -180,7 +180,6 @@ local DECOR = {
 	ranch_landing_ring = "mesh stays decor (bbox 10 deep x 3.1 tall: Box/Hull = invisible wall); the stones are solid through thin Plaza colliders (LandingCurb/LandingStake, PropCollision landing_ring)",
 	ranch_goo_drain = "mesh stays decor; solid through the DrainCurb disc + post + plaque colliders (PropCollision goo_drain), so the slide exit stays open",
 	ranch_horseshoe_pit = "1.8 stud flat sand pit, walk over it",
-	ranch_lantern_post = "not placed (RanchProps.INTENTIONALLY_UNPLACED); its arm hangs overhead",
 	ranch_pumpkin_patch = "low foliage patch, walk through",
 	ranch_sunflower_patch = "foliage, walk through",
 	plot_skin_mushroom = "client-cloned plot skin template, not a world slot",
