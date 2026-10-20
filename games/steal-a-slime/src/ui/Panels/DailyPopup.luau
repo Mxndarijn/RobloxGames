@@ -46,7 +46,6 @@ DailyPopup.TILE = table.freeze({
 })
 -- Share of the top line the chip may take; the streak line gets the rest.
 DailyPopup.CHIP_SHARE = 0.58
-DailyPopup.BACKDROP_TRANSPARENCY = 0.45
 
 -- The tile label: "Day N" for today and the last day, the bare number otherwise, a tick once claimed.
 function DailyPopup.dayLabel(day: number, state: string, cap: number): string
@@ -62,13 +61,8 @@ function DailyPopup.new(parent: Instance, ctx: any)
 	local tile = DailyPopup.TILE
 	local icons = ItemIcons.of(ctx)
 
-	local backdrop = create("TextButton", {
+	local backdrop = Widgets.backdrop({
 		Name = "DailyPopup",
-		Visible = false,
-		Text = "",
-		AutoButtonColor = false,
-		BackgroundColor3 = Theme.Ink,
-		BackgroundTransparency = DailyPopup.BACKDROP_TRANSPARENCY,
 		Size = UDim2.fromScale(1, 1),
 		ZIndex = Layout.ZINDEX.Daily, -- under the tutorial card
 		Parent = parent,
@@ -221,7 +215,11 @@ function DailyPopup.new(parent: Instance, ctx: any)
 	end
 
 	-- Card size from Layout.screen (narrower on small screens).
-	function self.layout(screen: Layout.Screen)
+	-- `guiInset` (GuiService:GetGuiInset) lets the dim reach under the Roblox top bar, like the menu backdrop.
+	function self.layout(screen: Layout.Screen, guiInset: Vector2?)
+		local back = Layout.backdrop(screen, if guiInset then guiInset.X else 0, if guiInset then guiInset.Y else 0)
+		backdrop.Position = UDim2.fromOffset(back.x, back.y)
+		backdrop.Size = UDim2.fromOffset(back.w, back.h)
 		card.Size = UDim2.fromOffset(screen.daily.w, screen.daily.h)
 	end
 
