@@ -110,6 +110,7 @@ def catmull(pts, n):
 
 # ---------------------------------------------------------------- body
 TUCK = 0.8  # studs: rounded underside of every species body (Body(tuck=...))
+DOME = 0.75  # share of the way the upper body bends to a full dome (Body(dome=...)); no gumdrop point
 
 
 def round_bottom(prof, h, n=6):
@@ -126,6 +127,28 @@ def round_bottom(prof, h, n=6):
     return [(z0, 0.0)] + out + [p for p in prof if p[0] > zh + 0.012]
 
 
+def round_top(prof, amount, p=2.3, n=12):
+    """profile whose upper body bends towards a full dome, so no species ends in a gumdrop point:
+    from the widest ring up to the top, the radius moves `amount` (0..1) of the way to a
+    superellipse cap (exponent p; 2 = ellipse, higher = fuller) that reaches the top flat. The
+    height, the widest ring and everything below it are unchanged, so faces and the parts that
+    sit on top stay where they were."""
+    H = prof[-1][0]
+    rmax = max(r for _, r in prof)
+    zmax = max(z for z, r in prof if r >= 0.97 * rmax)
+    if H - zmax < 0.05:
+        return prof
+    out = [q for q in prof if q[0] <= zmax]
+    for k in range(1, n + 1):
+        u = k / n
+        z = zmax + (H - zmax) * u
+        cap = rmax * max(0.0, 1 - u ** p) ** (1 / p)
+        r = Body.radius_of(prof, z)
+        out.append((z, r + (cap - r) * amount))
+    out[-1] = (H, 0.0)
+    return out
+
+
 class Body:
     """Surface of revolution (smooth shaded) with optional oval cross-section, lean, bumps and a
     painted pattern. Yaw a: 0 = front (-Y), +90 = the slime's left / viewer's right (+X).
@@ -134,6 +157,9 @@ class Body:
     tuck: height (studs) of a rounded underside that replaces the flat bottom: the profile below
       z0 + tuck becomes a quarter ellipse down to a single bottom vertex, so the slime rests on a
       curved belly instead of a disc. Default TUCK for the main "Body", 0 (flat) for other names.
+    dome: 0..1, how far the upper body (widest ring to top) bends towards a full dome that reaches
+      the top flat, for profiles that end in a point or a narrow top (round_top). Default DOME for
+      the main "Body", 0 (keep the shape) for other names.
     sub: Catmull-Rom samples per profile segment (smooth from few points).
     sx, sy: cross-section scale (x wide, y deep). lean(z) -> y offset. bump(a, z) -> radius factor add.
     color: base rgba, or paint(a, z, p) -> rgba for a pattern painted per corner (soft edges).
@@ -144,7 +170,7 @@ class Body:
 
     def __init__(self, profile, color=rgb(120, 220, 120), segs=40, sub=3, sx=1.0, sy=1.0, lean=None, bump=None,
                  paint=None, bands=(), sectors=None, shade=1.0, gloss=1.0, name="Body", register_surface=True,
-                 tuck=None):
+                 tuck=None, dome=None):
         self.name = name
         self.sx, self.sy = sx, sy
         self.lean = lean or (lambda z: 0.0)
@@ -167,6 +193,11 @@ class Body:
         tuck = (TUCK if name == "Body" else 0.0) if tuck is None else tuck
         if tuck > 0 and prof[0][1] > 0.2:
             self.prof = prof = round_bottom(prof, min(tuck, 0.3 * (prof[-1][0] - prof[0][0])))
+        dome = (DOME if name == "Body" else 0.0) if dome is None else dome
+        if dome > 0 and len(prof) > 3 and prof[-1][1] < 0.3 * max(r for _, r in prof):
+            if prof[-1][1] > 1e-4:  # a narrow flat top: close it at the same height
+                prof = prof + [(prof[-1][0] + 1e-3, 0.0)]
+            self.prof = prof = round_top(prof, dome)
         self.H = prof[-1][0]
         self.color, self.paint, self.bands, self.sectors = color, paint, bands, sectors
         self.shade, self.gloss = shade, gloss
