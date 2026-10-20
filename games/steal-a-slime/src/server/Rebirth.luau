@@ -2,10 +2,10 @@
 --[[
 	Rebirth (pure)
 
-	Request("Rebirth"): Shared.Progression.rebirth wipes cash and slimes but
-	keeps the favourite (or the best slime) and adds income multiplier and
-	lock time. Slimes being carried or bouncing home can't be the keeper, and
-	any carry of a wiped slime ends.
+	Request("Rebirth"): Shared.Progression.rebirth uses up the required slimes,
+	wipes cash and the other slimes but keeps the favourite (or the best slime)
+	and adds income multiplier and lock time. Slimes being carried or bouncing
+	home can't be the keeper, and any carry of a wiped slime ends.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil

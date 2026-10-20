@@ -8,7 +8,6 @@ local TestRunner = require("../TestRunner")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local EXPECTED = {
-	"Lock",
 	"SpeedCoil",
 	"Consumable_LuckPotion",
 	"Consumable_WeatherTotem",
@@ -31,7 +30,6 @@ local EXPECTED = {
 	"Pvp_FunHatLauncher",
 	"Pvp_FunDanceBomb",
 	"Pvp_FunFireworks",
-	"LockUpgrade",
 	"Upgrade_Income",
 	"Upgrade_CarrySpeed",
 	"Upgrade_OfflineCap",

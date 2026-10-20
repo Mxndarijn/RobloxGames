@@ -12,9 +12,10 @@
 	           time left;
 	    Friend the friend income bonus ("+10%", no timer);
 	    Blessed the co-op ritual's Blessed income bonus (State.blessed) with the time left;
+	    Pet    the follow pet's perk (State.petPerk: "+3%", no timer) while the favourite rides along on its cloud;
 	    Secret this week's featured event Secret (State.featuredSecret) with the time until it rotates ("4h 6m").
 	  The row has Layout.STATUS.count places, fewer than there are slots: the week-long Secret makes way
-	  first, then the last ones in the order above (the others last minutes).
+	  first, then the last ones in the order above (the always-on Pet next; the others last minutes).
 	  The weekend boost is never a slot (Merijn, HUD-DESIGN.md: "Weekend boost: NOT shown").
 	Tooltip (B8, 2026-10-18): each slot also carries its name and what it does; `tooltip` turns that plus the
 	live timer into the 3 lines of the card (name, effect, time left), and `nextTooltip` is the open / close
@@ -28,10 +29,10 @@ local RainTimer = if script then require(script.Parent.RainTimer) else require("
 
 export type Money = { cash: string, income: string, rebirths: string, rebirthCount: string, multiplier: string }
 export type Slot = {
-	id: string, -- "Rain" | "Event" | "Friend" | "Blessed" | "Secret"
+	id: string, -- "Rain" | "Event" | "Friend" | "Blessed" | "Pet" | "Secret"
 	icon: string, -- ItemIcons id
 	text: string, -- the timer, or "+10%"
-	kind: string, -- "active" | "soon" | "boost" | "week"
+	kind: string, -- "active" | "soon" | "boost" | "pet" | "week"
 	name: string, -- tooltip title: "Slime Rain"
 	effect: string, -- tooltip body: what the event does
 }
@@ -43,17 +44,20 @@ export type Inputs = {
 	friends: FriendBadge.View?,
 	friendsEnabled: boolean,
 	blessed: Blessed?,
+	petPerk: PetPerk?,
 	featuredSecret: FeaturedSecret?,
 }
 -- State.blessed: the ritual's Blessed income bonus, `endsAt` in server time.
 export type Blessed = { bonus: number, endsAt: number }
+-- State.petPerk: the favourite follow pet's passive (Perks.petPassive), `value` 0.03 = +3 %.
+export type PetPerk = { kind: string, value: number, icon: string, text: string }
 -- State.featuredSecret: this week's event Secret, `endsAt` in server time.
 export type FeaturedSecret = { id: string, name: string, endsAt: number }
 
 local HudClusters = {}
 
 -- Slot ids in display order, left to right (Layout.STATUS_SLOTS).
-HudClusters.STATUS_IDS = table.freeze({ "Rain", "Event", "Friend", "Blessed", "Secret" })
+HudClusters.STATUS_IDS = table.freeze({ "Rain", "Event", "Friend", "Blessed", "Pet", "Secret" })
 
 HudClusters.ICONS = table.freeze({
 	Cash = "Cash",
@@ -62,6 +66,7 @@ HudClusters.ICONS = table.freeze({
 	Rain = "Event_rain",
 	Friend = "FriendBoost",
 	Blessed = "Boost_Blessed",
+	Pet = "Pet",
 	Secret = "Badge_FirstSecret",
 })
 
@@ -175,6 +180,27 @@ function HudClusters.blessed(view: Blessed?, now: number): Slot?
 	}
 end
 
+-- The follow pet's perk slot; nil without a favourite, an unknown kind or a malformed value.
+function HudClusters.pet(view: PetPerk?): Slot?
+	if type(view) ~= "table" or type(view.value) ~= "number" or view.value ~= view.value or view.value <= 0 then
+		return nil
+	end
+	if view.kind ~= "income" and view.kind ~= "luck" then
+		return nil
+	end
+	local percent = `+{math.floor(view.value * 100 + 0.5)}%`
+	return {
+		id = "Pet",
+		icon = HudClusters.ICONS.Pet,
+		text = percent,
+		kind = "pet",
+		name = "Pet bonus",
+		effect = if view.kind == "income"
+			then `{percent} income from your favourite slime riding along with you.`
+			else `{percent} luck from your favourite slime riding along with you: rarer slimes show up more often.`,
+	}
+end
+
 -- The featured event Secret slot; nil when absent, malformed or over.
 function HudClusters.secret(view: FeaturedSecret?, now: number): Slot?
 	if type(view) ~= "table" or type(view.name) ~= "string" or view.name == "" then
@@ -216,6 +242,10 @@ function HudClusters.status(input: Inputs, now: number, places: number): { Slot 
 	if blessed then
 		table.insert(out, blessed)
 	end
+	local pet = HudClusters.pet(input.petPerk)
+	if pet then
+		table.insert(out, pet)
+	end
 	local secret = HudClusters.secret(input.featuredSecret, now)
 	if secret and #out < places then
 		table.insert(out, secret)
@@ -233,6 +263,8 @@ function HudClusters.tooltip(slot: Slot): Tooltip
 		time = `Ends in {slot.text}`
 	elseif slot.kind == "boost" then
 		time = "Active while friends are here"
+	elseif slot.kind == "pet" then
+		time = "Active while your pet follows you"
 	elseif string.find(slot.text, ":", 1, true) == nil then
 		time = "Active now" -- an untimed modifier ("x3") or a rain without an end time ("Now")
 	elseif slot.kind == "soon" then

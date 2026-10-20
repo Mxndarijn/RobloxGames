@@ -30,18 +30,18 @@ local function worldParts(model: any, name: string): { any }
 	return out
 end
 
--- WorldProps builds both shop stands from Props.shopStand under their own names (CONTRACT.md §27.2).
-local function renamedStand(name: string): () -> any
+-- WorldProps builds both shop stands from Props.shopStand(shopId) under their own names (CONTRACT.md §27.2).
+local function renamedStand(name: string, shopId: string): () -> any
 	return function()
-		local model = Props.shopStand()
+		local model = Props.shopStand(shopId)
 		model.Name = name
 		return model
 	end
 end
 
 local PROPS = {
-	[Constants.SHOP_STAND_ITEM] = renamedStand(Constants.SHOP_STAND_ITEM),
-	[Constants.SHOP_STAND_UPGRADE] = renamedStand(Constants.SHOP_STAND_UPGRADE),
+	[Constants.SHOP_STAND_ITEM] = renamedStand(Constants.SHOP_STAND_ITEM, "ItemShop"),
+	[Constants.SHOP_STAND_UPGRADE] = renamedStand(Constants.SHOP_STAND_UPGRADE, "UpgradeShop"),
 	[Constants.LEADERBOARD_BOARD] = Props.leaderboardBoard,
 	[Constants.TUTORIAL_NPC] = Props.tutorialNpc,
 }
@@ -96,29 +96,41 @@ describe("Props placed by WorldProps", function()
 		local sign = Props.shopStand().Sign
 		expect(sign.SignGui.LightInfluence).toBe(0)
 	end)
-	it("gives each shop stand its own look: sign colours, decor that survives the skin, a centred box", function()
+	it("gives each shop stand its own skin and sign colours, its box exactly the skin's box round the pivot", function()
 		local item, upgrade = Props.shopStand("ItemShop"), Props.shopStand("UpgradeShop")
 		expect(item.Sign.Color ~= upgrade.Sign.Color).toBe(true)
-		expect(upgrade:GetAttribute("MeshTint")).toBe(Props.STAND_STYLES.UpgradeShop.tint)
-		for _, stand in { item, upgrade } do
-			local kept, lo, hi = 0, math.huge, -math.huge
+		for style, stand in { ItemShop = item, UpgradeShop = upgrade, Plain = Props.shopStand() } do
+			local def =
+				WorldLayout.SHOP_STANDS[if style == "Plain" then "ShopStand" else Props.STAND_STYLES[style].stand]
+			local skin = WorldLayout.meshSize(def.mesh, def.scale)
+			local lo = { math.huge, math.huge, math.huge }
+			local hi = { -math.huge, -math.huge, -math.huge }
 			for _, d in stand:GetDescendants() do
 				if d:IsA("BasePart") then
-					lo = math.min(lo, d.CFrame.Position.X - d.Size.X / 2)
-					hi = math.max(hi, d.CFrame.Position.X + d.Size.X / 2)
-					if d:GetAttribute("MeshKeep") == true then
-						kept += 1
-						expect(d.CanCollide).toBe(false)
-						expect(d.CanQuery).toBe(false)
-					end
+					local p, s = d.CFrame.Position, d.Size
+					lo = {
+						math.min(lo[1], p.X - s.X / 2),
+						math.min(lo[2], p.Y - s.Y / 2),
+						math.min(lo[3], p.Z - s.Z / 2),
+					}
+					hi = {
+						math.max(hi[1], p.X + s.X / 2),
+						math.max(hi[2], p.Y + s.Y / 2),
+						math.max(hi[3], p.Z + s.Z / 2),
+					}
 				end
 			end
-			expect(kept > 0).toBe(true)
-			expect(lo).toBeCloseTo(-hi, 3) -- the skin lands on the box centre: decor never shifts it
+			for axis = 1, 3 do
+				expect(hi[axis] - lo[axis]).toBeCloseTo(skin[axis], 3)
+			end
+			expect(lo[1]).toBeCloseTo(-hi[1], 3) -- centred on the pivot
+			expect(lo[3]).toBeCloseTo(-hi[3], 3)
+			expect(lo[2]).toBeCloseTo(0, 3) -- on the ground
+			-- the Counter (prompt parent) fills the skin's counter, its top on the skin's counter top
+			local counter = stand.Counter
+			expect(counter.CFrame.Position.Z).toBeCloseTo(-def.counter.z * def.scale, 3)
+			expect(stand.CounterTop.CFrame.Position.Y + 0.2).toBeCloseTo(def.counter.top * def.scale, 3)
 		end
-		expect(item:FindFirstChild("DecorEgg") ~= nil).toBe(true)
-		expect(upgrade:FindFirstChild("DecorAnvilTop") ~= nil).toBe(true)
-		expect(Props.shopStand():FindFirstChild("DecorEgg")).toBeNil() -- the single ShopStand keeps its plain look
 	end)
 	it("builds the SpeedCoil tool with an unanchored Handle", function()
 		local tool = Props.speedCoil()
@@ -137,9 +149,13 @@ describe("Props placed by WorldProps", function()
 				local half = StaticWorld.SPAWN_SIZE[1] / 2 + 2
 				expect(math.abs(p.X - spawn[1]) < half and math.abs(p.Z - spawn[3]) < half).toBe(false)
 				for i = 1, Config.PLOT_COUNT do
-					local c = WorldLayout.plotCentre(i)
+					-- in the plot's own turned frame (PropClearance's plot rect), not an axis-aligned square
+					local c, yaw = WorldLayout.plotCentre(i)
+					local a = math.rad(yaw)
+					local dx, dz = p.X - c[1], p.Z - c[3]
+					local x, z = dx * math.cos(a) - dz * math.sin(a), dx * math.sin(a) + dz * math.cos(a)
 					local h = WorldLayout.PLOT_SIZE / 2
-					expect(math.abs(p.X - c[1]) < h and math.abs(p.Z - c[3]) < h).toBe(false)
+					expect(math.abs(x) < h and math.abs(z) < h).toBe(false)
 				end
 			end
 		end

@@ -184,7 +184,7 @@ describe("shops face the map centre (TODO #10)", function()
 			-- Props front is local -Z: kit-front bearing = yaw + 180
 			local diff = angleDiff(spot.yaw + 180, bearing(spot.pos, WorldLayout.FOUNTAIN_CENTRE))
 			expect(math.abs(diff) < FACE_TOL).toBe(true)
-			expect(WorldLayout.PROP_MESHES[name]).toBe(WorldLayout.BUY_STAND_MESH)
+			expect(WorldLayout.PROP_MESHES[name]).toBe(WorldLayout.SHOP_STANDS[name].mesh)
 		end
 	end)
 	it(

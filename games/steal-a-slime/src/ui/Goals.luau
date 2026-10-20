@@ -123,11 +123,6 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 
 	local shop = state.shop
 	if type(shop) == "table" then
-		local lock = shop.LockUpgrade
-		if type(lock) == "table" then
-			local level, max = num(lock.level), num(lock.maxLevel)
-			table.insert(out, goal("LockUpgrade", "Max out Longer locks", `Level {level}/{max}`, level, max))
-		end
 		local coil = shop.SpeedCoil
 		if type(coil) == "table" then
 			local owned = coil.owned == true

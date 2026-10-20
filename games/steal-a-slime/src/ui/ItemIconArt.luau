@@ -170,15 +170,6 @@ RECIPES.Lock = function(p)
 	padlock(p, 0.5, 0.5, 0.9, BLUE)
 end
 
-RECIPES.LockUpgrade = function(p)
-	padlock(p, 0.4, 0.55, 0.74, rgb(60, 180, 190))
-	p:circle(0.72, 0.3, 0.38, WHITE)
-	p:circle(0.72, 0.3, 0.28, rgb(60, 180, 190), { stroke = false, flat = true })
-	p:shape(0.72, 0.25, 0.05, 0.12, WHITE, { stroke = false, flat = true })
-	p:shape(0.76, 0.3, 0.1, 0.05, WHITE, { stroke = false, flat = true })
-	p:text("⬆️", 0.74, 0.74, 0.3, GREEN)
-end
-
 RECIPES.SpeedCoil = function(p)
 	for i = 0, 4 do
 		p:shape(
@@ -384,6 +375,14 @@ RECIPES.Perk_luck = function(p)
 	p:shape(0.58, 0.4, 0.03, 0.28, INK, { stroke = false, flat = true })
 	p:circle(0.54, 0.34, 0.05, INK, { stroke = false, flat = true })
 	p:circle(0.63, 0.45, 0.05, INK, { stroke = false, flat = true })
+end
+
+RECIPES.Pet = function(p)
+	cloud(p, 0.5, 0.78, 0.86, rgb(190, 222, 255))
+	blob(p, 0.5, 0.48, 0.6, rgb(255, 150, 60))
+	p:shape(0.5, 0.66, 0.5, 0.07, RED, { round = 0.5 })
+	p:circle(0.5, 0.72, 0.11, GOLD)
+	sparkle(p, 0.16, 0.24, 0.18)
 end
 
 RECIPES.Event_luck = function(p)

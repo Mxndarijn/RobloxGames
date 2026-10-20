@@ -515,7 +515,6 @@ function SaveData.deserialize(stored: any): Data
 		data.favoriteId = raw.favoriteId
 	end
 
-	data.lockLevel = num(raw.lockLevel, 0, 0, Config.LOCK_UPGRADE_MAX)
 	data.speedCoil = raw.speedCoil == true
 	if raw.tutorialStep ~= nil then
 		local step = num(raw.tutorialStep, 0, 0, #TutorialProgress.STEPS)
@@ -660,7 +659,6 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 		found = found,
 		totalEarned = math.floor(data.totalEarned),
 		totalStolen = data.totalStolen,
-		lockLevel = data.lockLevel,
 		speedCoil = data.speedCoil,
 		tutorialStep = data.tutorialStep,
 		upgrades = table.clone(data.upgrades),

@@ -148,3 +148,22 @@ def event_rain():
     for i, (x, z) in enumerate(((-2.4, 1.0), (-0.9, -0.4), (0.7, 0.9), (2.2, -0.2), (-1.6, -2.0), (0.0, -2.3), (1.7, -1.9))):
         parts.append(group([drop((0, 0, 0), 0.5, C["green"], f"D{i}")], (x, -1.2, z + 0.8), name="drop"))
     return parts
+
+
+@icon("Pet", view=FRONT)
+def pet():
+    """The follow pet (HUD Pet bonus slot): an orange slime with a red collar and a gold heart tag, riding a cloud."""
+    parts = []
+    puffs = ((-1.95, 0.3, -0.25, 1.0), (-0.7, 0.0, -0.05, 1.2), (0.75, 0.0, -0.1, 1.15), (1.95, 0.3, -0.3, 0.95),
+             (0.0, 1.0, 0.1, 1.15), (-1.3, -0.7, -0.6, 0.85), (0.1, -0.9, -0.65, 0.95), (1.4, -0.7, -0.65, 0.8))
+    for i, (x, y, z, r) in enumerate(puffs):
+        parts.append(blobc(f"Puff{i}", r, (x, y, z), rgb(200, 228, 255) if i % 3 else rgb(140, 195, 255),
+                           squash=(1, 1, 0.7)))
+    z0 = 1.05  # the slime's foot, sunk into the cloud top
+    parts.append(slime((255, 135, 40), "happy", (0, 0, z0), (0, 0, 0), 1.0))
+    parts.append(torus("Collar", 1.5, 0.19, C["red"], (0, 0, z0 + 0.36), (90, 0, 0), segs=24, rsegs=6))
+    parts.append(disc("Ring", 0.16, 0.1, C["gold"], (0, -1.64, z0 + 0.2), (90, 0, 0), segs=12))
+    parts.append(prism("Tag", heart_pts(0.62), 0.24, C["gold"], (0, -1.74, z0 - 0.12), bevel_w=0.08))
+    parts.append(sparkle((-2.5, -0.8, 3.3), 0.42, C["yellow"], "S0"))
+    parts.append(sparkle((2.4, -0.8, 3.7), 0.32, C["yellow"], "S1"))
+    return parts

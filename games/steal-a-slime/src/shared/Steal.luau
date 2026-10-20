@@ -4,9 +4,10 @@
 
 	Pure rules for base locks, stealing, carrying, wriggling free and slapping.
 
-	* Lock: every plot is locked for JOIN_LOCK_SECONDS after joining. The lock
-	  button buys LOCK_SECONDS (+LOCK_SECONDS_PER_REBIRTH per rebirth) more,
-	  stacking on top of any remaining lock but never past LOCK_MAX_REMAINING.
+	* Lock: every plot is locked for JOIN_LOCK_SECONDS after joining. The plot's
+	  lock button buys LOCK_SECONDS (+LOCK_SECONDS_PER_REBIRTH per rebirth) more,
+	  stacking on top of any remaining lock. Neither one purchase nor the stack
+	  goes past LOCK_MAX_REMAINING.
 	* Steal: a slime on an unlocked plot can be grabbed by anyone else within
 	  STEAL_REACH who isn't already carrying something.
 	* Carry: carrying slows you by the rarity's carrySlow. A stolen slime adds
@@ -21,7 +22,6 @@
 local Config = if script then require(script.Parent.Config) else require("./Config")
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 local Genome = if script then require(script.Parent.Genome) else require("./Genome")
-local Perks = if script then require(script.Parent.Perks) else require("./Perks")
 local PlayerData = if script then require(script.Parent.PlayerData) else require("./PlayerData")
 
 type Slime = Genome.Slime
@@ -59,15 +59,10 @@ local Steal = {}
 -- Lock
 ---------------------------------------------------------------------------
 
--- Seconds one lock purchase adds: base + per rebirth + per Shop lock upgrade level.
--- Seconds one bought lock adds: base + per rebirth + lock upgrade + rank bonus (Perks.lockBonus).
-function Steal.lockDuration(rebirths: number, lockLevel: number?): number
+-- Seconds one bought lock adds: base + per rebirth, never more than LOCK_MAX_REMAINING.
+function Steal.lockDuration(rebirths: number): number
 	local r = math.max(0, math.floor(tonumber(rebirths) or 0))
-	local l = math.clamp(math.floor(tonumber(lockLevel) or 0), 0, Config.LOCK_UPGRADE_MAX)
-	return Config.LOCK_SECONDS
-		+ r * Config.LOCK_SECONDS_PER_REBIRTH
-		+ l * Config.LOCK_UPGRADE_SECONDS
-		+ Perks.lockBonus(r)
+	return math.min(Config.LOCK_SECONDS + r * Config.LOCK_SECONDS_PER_REBIRTH, Config.LOCK_MAX_REMAINING)
 end
 
 function Steal.joinLockUntil(now: number): number
@@ -101,8 +96,7 @@ function Steal.buyLock(
 	if not PlayerData.spend(data, cost) then
 		return false, lockUntil, "not enough cash"
 	end
-	local newRemaining =
-		math.min(remaining + Steal.lockDuration(data.rebirths, data.lockLevel), Config.LOCK_MAX_REMAINING)
+	local newRemaining = math.min(remaining + Steal.lockDuration(data.rebirths), Config.LOCK_MAX_REMAINING)
 	return true, now + newRemaining, cost
 end
 

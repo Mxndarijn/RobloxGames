@@ -12,8 +12,9 @@
 	         62.25-73.75), ring path (r 74-82)
 	  rect   each plot (80 x 80, props stay outside the fence) and its
 	         entrance corridor (the 20-stud gate slot out to the ring path)
-	  circle PROP_SPOTS (shop, leaderboard board, tutorial NPC: 12 like
-	         WorldLayout's decor), the plaza showpieces (signpost, podiums =
+	  circle PROP_SPOTS (shop, leaderboard board: 12 like WorldLayout's
+	         decor; the tutorial NPC only its own footprint, SPOT_RADII, so its
+	         corner can be dressed), the plaza showpieces (signpost, podiums =
 	         the leaderboard stands)
 	  edge   the WorldBorder wall ring (inner face r 292) and its edge decor:
 	         props stay inside r EDGE_RADIUS (12 studs short of the walls)
@@ -43,6 +44,13 @@ local PropClearance = {}
 PropClearance.MARGIN = 1
 PropClearance.EDGE_RADIUS = WorldBorder.RADIUS - 12
 PropClearance.SPOT_RADIUS = 12
+-- Spots whose own corner is dressed (RanchProps "Guide*" rows stand round the Guide): their circle is the prop's own
+-- footprint, and the rows keep the walk-up side towards the plaza open.
+PropClearance.SPOT_RADII = table.freeze({ TutorialNpc = 3 }) :: { [string]: number }
+
+function PropClearance.spotRadius(name: string): number
+	return PropClearance.SPOT_RADII[name] or PropClearance.SPOT_RADIUS
+end
 -- Lane half width incl. edging (kit: r 64.75..71.25) and the gate arch posts.
 PropClearance.LANE_INNER = ParadeLane.LANE_RADIUS - 3.25
 PropClearance.LANE_OUTER = ParadeLane.LANE_RADIUS + 3.25
@@ -146,7 +154,7 @@ for _, name in spotNames do
 	local spot = WorldLayout.PROP_SPOTS[name]
 	table.insert(
 		zones,
-		{ name = name, kind = "circle", x = spot.pos[1], z = spot.pos[3], radius = PropClearance.SPOT_RADIUS }
+		{ name = name, kind = "circle", x = spot.pos[1], z = spot.pos[3], radius = PropClearance.spotRadius(name) }
 	)
 end
 for _, def in WorldLayout.PLAZA_PROPS do

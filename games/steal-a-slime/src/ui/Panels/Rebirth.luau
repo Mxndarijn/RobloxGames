@@ -2,8 +2,9 @@
 --[[
 	Rebirth panel: only the NEXT rebirth, its number in the title. Two
 	requirement cards side by side: the cash (cost, a progress bar, what you
-	have) and, when the rebirth asks for one, the slime (its picture, name and
-	Missing / done mark). Then what it gives (income multiplier, lock time),
+	have) and the slimes the rebirth uses up: one slime gets its picture, name
+	and Missing / done mark, two or three get one small row each (picture,
+	name, a tick once owned). Then what it gives (income multiplier, lock time),
 	the keeper and either a status line saying what is missing or the Rebirth
 	button (state.canRebirth, hold to confirm). Progress.nextRebirth has the
 	numbers.
@@ -58,6 +59,11 @@ Rebirth.CARD = table.freeze({
 	descY = 98,
 	descH = 18,
 	descSize = 13,
+	-- Two or three slimes: one row each under the label.
+	listY = 32,
+	listRowH = 30,
+	listImage = 26,
+	listNameSize = 15,
 })
 
 -- Reward tiles, keeper chip, status, footer (design px).
@@ -104,6 +110,18 @@ local function tickBadge(name: string, parent: Instance): Frame
 	return badge
 end
 
+-- "Zap", "Zap and Imp", "Zap, Imp and Octo".
+local function missingNames(list: { Progress.SlimeNeed }): string
+	local names = {}
+	for _, need in list do
+		table.insert(names, need.name)
+	end
+	if #names <= 1 then
+		return names[1] or "a slime"
+	end
+	return `{table.concat(names, ", ", 1, #names - 1)} and {names[#names]}`
+end
+
 function Rebirth.new(parent: Instance, ctx: any)
 	local panel = Widgets.panel(parent, "RebirthPanel", "Rebirth", "♻️")
 	local rows = Rebirth.ROWS
@@ -127,8 +145,8 @@ function Rebirth.new(parent: Instance, ctx: any)
 		Parent = content,
 	})
 
-	local function cardLabel(text: string, card: Frame)
-		Widgets.label({
+	local function cardLabel(text: string, card: Frame): TextLabel
+		return Widgets.label({
 			Name = "Label",
 			Text = text,
 			TextSize = C.labelSize,
@@ -183,7 +201,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 		Size = UDim2.new(0.5, -C.gap / 2, 0, rows.need.h),
 		Parent = content,
 	})
-	cardLabel("This slime", slimeCard)
+	local slimeLabel = cardLabel("This slime", slimeCard)
 	local slimeTick = tickBadge("SlimeTick", slimeCard)
 	local slimeState = Widgets.label({
 		Name = "SlimeState",
@@ -240,6 +258,100 @@ function Rebirth.new(parent: Instance, ctx: any)
 		Parent = slimeCard,
 	})
 	local slimeDesc = cardDesc("SlimeDesc", slimeCard)
+	local single: { GuiObject } = { slimeImage, slimeName, slimeDesc }
+
+	-- Two or three slimes: a row each (small picture, name, a tick once owned), made the first time one is shown.
+	type ListRow = {
+		frame: Frame,
+		image: Frame,
+		view: ViewportFrame,
+		glyph: TextLabel,
+		name: TextLabel,
+		tick: Frame,
+	}
+	local listRows: { ListRow } = {}
+	local function listRow(i: number): ListRow
+		if listRows[i] then
+			return listRows[i]
+		end
+		local row = create("Frame", {
+			Name = `Need{i}`,
+			BackgroundTransparency = 1,
+			Position = UDim2.fromOffset(C.pad, C.listY + (i - 1) * C.listRowH),
+			Size = UDim2.new(1, -C.pad * 2, 0, C.listRowH),
+			Parent = slimeCard,
+		})
+		local image = create("Frame", {
+			Name = "Image",
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.fromScale(0, 0.5),
+			Size = UDim2.fromOffset(C.listImage, C.listImage),
+			BackgroundTransparency = 0.55,
+			Parent = row,
+		}, { Widgets.corner(Widgets.KIT.radius), Widgets.stroke(Theme.Ink, Widgets.KIT.rowStroke) })
+		local view = create("ViewportFrame", {
+			Name = "Preview",
+			BackgroundTransparency = 1,
+			Size = UDim2.fromScale(1, 1),
+			Visible = false,
+			Parent = image,
+		})
+		local glyph = Widgets.label({
+			Name = "Glyph",
+			Text = "?",
+			Font = Theme.Font,
+			TextSize = C.listNameSize,
+			TextColor3 = Theme.Muted,
+			TextXAlignment = Enum.TextXAlignment.Center,
+			ZIndex = Layout.ZINDEX.Menu, -- over the viewport, its sibling
+			Size = UDim2.fromScale(1, 1),
+			Parent = image,
+		})
+		local rowNameX = C.listImage + 8
+		local name = Widgets.label({
+			Name = "SlimeName",
+			Font = Theme.Font,
+			TextSize = C.listNameSize,
+			Position = UDim2.fromOffset(rowNameX, 0),
+			Size = UDim2.new(1, -(rowNameX + C.tick + 4), 1, 0),
+			Parent = row,
+		})
+		local tick = tickBadge("Tick", row)
+		tick.AnchorPoint = Vector2.new(1, 0.5)
+		tick.Position = UDim2.fromScale(1, 0.5)
+		listRows[i] = { frame = row, image = image, view = view, glyph = glyph, name = name, tick = tick }
+		return listRows[i]
+	end
+
+	-- Puts `need`'s slime into `view` (the real model, else a coloured blob; dark while missing).
+	local function showSlime(view: ViewportFrame, glyph: TextLabel, slime: Progress.SlimeNeed)
+		local look = `{slime.id}:{slime.owned}`
+		if view:GetAttribute("Look") ~= look then
+			local opts = { locked = not slime.owned }
+			local ok = false
+			if ctx.buildSlime then
+				local genome = {
+					id = `Rebirth_{slime.id}`,
+					name = slime.name,
+					tier = slime.tier,
+					color = slime.color,
+					size = 1,
+					pattern = "Plain",
+					eyes = "Round",
+					mouth = "Smile",
+					species = slime.id,
+				}
+				local built, model = pcall(ctx.buildSlime, genome)
+				ok = built and model ~= nil and SlimePreview.mountModel(view, model, opts)
+			end
+			if not ok then
+				ok = SlimePreview.mount(view, slime.color, opts)
+			end
+			view:SetAttribute("Look", look)
+			view.Visible = ok
+		end
+		glyph.Visible = not slime.owned and not view.Visible
+	end
 
 	-- What the next rebirth gives: two Ink tiles, a green number over a muted word.
 	local gets = Widgets.label({
@@ -324,7 +436,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 
 	Widgets.label({
 		Name = "Note",
-		Text = "Resets cash and slimes. Keeps ★ slimes, pads and upgrades.",
+		Text = "Uses up the slimes above. Keeps ★ slimes, pads and upgrades.",
 		TextSize = T.noteSize,
 		TextColor3 = Theme.Muted,
 		TextXAlignment = Enum.TextXAlignment.Center,
@@ -337,16 +449,17 @@ function Rebirth.new(parent: Instance, ctx: any)
 
 	function self.update(state: any)
 		local nextUp = Progress.nextRebirth(state, ctx.Config)
-		local slimeNeed = nextUp.slime
+		local needs = nextUp.slimes
+		local hasSlimes = #needs > 0
 		local cashMet = nextUp.maxed or nextUp.have >= nextUp.cost
 		panel.title.Text = if nextUp.maxed then "Rebirth" else `Rebirth {nextUp.rebirth}`
 		sub.Text = if nextUp.maxed
 			then "All rebirths done!"
-			elseif slimeNeed then "To rebirth you need both:"
+			elseif hasSlimes then "To rebirth you need both:"
 			else "To rebirth you need:"
 
 		need.Visible = not nextUp.maxed
-		need.Size = UDim2.new(if slimeNeed then 0.5 else 1, if slimeNeed then -C.gap / 2 else 0, 0, rows.need.h)
+		need.Size = UDim2.new(if hasSlimes then 0.5 else 1, if hasSlimes then -C.gap / 2 else 0, 0, rows.need.h)
 		cashTick.Visible = cashMet
 		cost.Text = Format.formatCash(nextUp.cost)
 		setBar(nextUp.fraction)
@@ -356,52 +469,48 @@ function Rebirth.new(parent: Instance, ctx: any)
 		incomeTile.Visible = not nextUp.maxed
 		lockTile.Visible = not nextUp.maxed
 		incomeValue.Text = Format.formatMultiplier(nextUp.multiplier)
-		lockValue.Text = `+{nextUp.lockGain}s`
+		lockValue.Text = if nextUp.lockGain > 0 then `+{nextUp.lockGain}s` else "Max"
 
 		local fav = Selection.findSlime(state.slimes, state.favoriteId)
 		keepLine.Text = `★ Keeps {if fav then ctx.Genome.displayName(fav.slime) else "your best slime"}`
 
-		slimeCard.Visible = slimeNeed ~= nil
-		if slimeNeed then
-			slimeName.Text = slimeNeed.name
-			slimeName.TextColor3 = if slimeNeed.owned then Theme.Text else Theme.Muted
-			slimeState.Visible = not slimeNeed.owned
-			slimeTick.Visible = slimeNeed.owned
-			slimeDesc.Text = if slimeNeed.owned then "You have one" else "Catch or merge one first"
-			slimeImage.BackgroundColor3 = Widgets.color3(slimeNeed.color)
-			local look = `{slimeNeed.id}:{slimeNeed.owned}`
-			if slimeView:GetAttribute("Look") ~= look then
-				local opts = { locked = not slimeNeed.owned }
-				local ok = false
-				if ctx.buildSlime then
-					local genome = {
-						id = `Rebirth_{slimeNeed.id}`,
-						name = slimeNeed.name,
-						tier = slimeNeed.tier,
-						color = slimeNeed.color,
-						size = 1,
-						pattern = "Plain",
-						eyes = "Round",
-						mouth = "Smile",
-						species = slimeNeed.id,
-					}
-					local built, model = pcall(ctx.buildSlime, genome)
-					ok = built and model ~= nil and SlimePreview.mountModel(slimeView, model, opts)
-				end
-				if not ok then
-					ok = SlimePreview.mount(slimeView, slimeNeed.color, opts)
-				end
-				slimeView:SetAttribute("Look", look)
-				slimeView.Visible = ok
+		slimeCard.Visible = hasSlimes
+		if hasSlimes then
+			local allOwned = #nextUp.missing == 0
+			local one = #needs == 1
+			slimeLabel.Text = if one then "This slime" else "These slimes"
+			slimeState.Visible = not allOwned
+			slimeTick.Visible = allOwned
+			for _, item in single do
+				item.Visible = one
 			end
-			slimeGlyph.Visible = not slimeNeed.owned and not slimeView.Visible
+			if one then
+				local slimeNeed = needs[1]
+				slimeName.Text = slimeNeed.name
+				slimeName.TextColor3 = if slimeNeed.owned then Theme.Text else Theme.Muted
+				slimeDesc.Text = if slimeNeed.owned then "Used up on rebirth" else "Catch or merge one first"
+				slimeImage.BackgroundColor3 = Widgets.color3(slimeNeed.color)
+				showSlime(slimeView, slimeGlyph, slimeNeed)
+			end
+			for i = 1, 3 do
+				local slimeNeed = if one then nil else needs[i]
+				if slimeNeed then
+					local row = listRow(i)
+					row.frame.Visible = true
+					row.name.Text = slimeNeed.name
+					row.name.TextColor3 = if slimeNeed.owned then Theme.Text else Theme.Muted
+					row.tick.Visible = slimeNeed.owned
+					row.image.BackgroundColor3 = Widgets.color3(slimeNeed.color)
+					showSlime(row.view, row.glyph, slimeNeed)
+				elseif listRows[i] then
+					listRows[i].frame.Visible = false
+				end
+			end
 		end
 
 		reasonLine.Text = if nextUp.maxed
 			then "🏆 All rebirths done"
-			elseif
-				nextUp.slimeMissing and cashMet
-			then `🔒 Get {slimeNeed and slimeNeed.name or "a slime"} to rebirth`
+			elseif #nextUp.missing > 0 and cashMet then `🔒 Get {missingNames(nextUp.missing)} to rebirth`
 			else `🔒 Need {nextUp.need}`
 		reasonLine.Visible = not nextUp.ready
 		btn.instance.Visible = nextUp.ready

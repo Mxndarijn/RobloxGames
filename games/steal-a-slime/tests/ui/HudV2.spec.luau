@@ -358,6 +358,66 @@ describe("H1 HUD: featured Secret status slot", function()
 		expect(ids(all)).toBe("Rain,Event,Friend,Secret")
 	end)
 
+	it("shows the follow pet's perk as an untimed Pet slot with its own icon and tooltip", function()
+		local luck = HudClusters.pet({ kind = "luck", value = 0.03, icon = "x", text = "+3% luck" }) :: HudClusters.Slot
+		expect(luck.id).toBe("Pet")
+		expect(luck.text).toBe("+3%")
+		expect(luck.icon).toBe(HudClusters.ICONS.Pet)
+		local tip = HudClusters.tooltip(luck)
+		expect(tip.title).toBe("Pet bonus")
+		expect(string.find(tip.body, "+3% luck", 1, true) ~= nil).toBe(true)
+		expect(tip.time).toBe("Active while your pet follows you")
+		local income = HudClusters.pet({ kind = "income", value = 0.08, icon = "x", text = "+8% income" }) :: any
+		expect(income.text).toBe("+8%")
+		expect(string.find(income.effect, "+8% income", 1, true) ~= nil).toBe(true)
+		expect(HudClusters.pet(nil)).toBeNil()
+		expect(HudClusters.pet({ kind = "luck", value = 0, icon = "x", text = "" })).toBeNil()
+		expect(HudClusters.pet({ kind = "luck", value = 0 / 0, icon = "x", text = "" } :: any)).toBeNil()
+		expect(HudClusters.pet({ kind = "speed", value = 0.03, icon = "x", text = "" })).toBeNil()
+	end)
+
+	it("the Pet slot makes way after the featured Secret when the row is full", function()
+		local all: any = {
+			rain = { active = true, endsAt = 1097 },
+			modifier = { name = "Admin_luck", label = "Luck", luck = 3, endsAt = 1540 },
+			modifierEnabled = true,
+			friends = { count = 1, bonus = 0.1 },
+			friendsEnabled = true,
+			blessed = { bonus = 0.3, endsAt = 1179 },
+			petPerk = { kind = "luck", value = 0.03, icon = "x", text = "+3% luck" },
+			featuredSecret = FEATURED,
+		}
+		local function ids(): string
+			local out = {}
+			for _, s in HudClusters.status(all, 1000, Layout.STATUS.count) do
+				table.insert(out, s.id)
+			end
+			return table.concat(out, ",")
+		end
+		expect(ids()).toBe("Rain,Event,Friend,Blessed")
+		all.blessed = nil
+		expect(ids()).toBe("Rain,Event,Friend,Pet")
+		all.rain = nil
+		expect(ids()).toBe("Event,Friend,Pet,Secret")
+	end)
+
+	it("the mounted Pet slot sits between Blessed and the featured Secret", function()
+		local hud, gui = mount(1920, 1080)
+		hud.update(state({
+			blessed = { bonus = 0.3, endsAt = 1179 },
+			petPerk = { kind = "income", value = 0.05, icon = "x", text = "+5% income" },
+			featuredSecret = FEATURED,
+		}))
+		local pet = slot(gui, "Pet")
+		expect(pet.Visible).toBe(true)
+		expect(UiHarness.find(pet, "Timer").Text).toBe("+5%")
+		expect(UiHarness.find(pet, "Icon"):GetAttribute("ItemId")).toBe(HudClusters.ICONS.Pet)
+		expect(slot(gui, "Blessed").Position.X.Offset < pet.Position.X.Offset).toBe(true)
+		expect(pet.Position.X.Offset < slot(gui, "Secret").Position.X.Offset).toBe(true)
+		hud.update(state({ featuredSecret = FEATURED }))
+		expect(pet.Visible).toBe(false)
+	end)
+
 	it("the mounted Blessed slot sits between the friend boost and the featured Secret", function()
 		local hud, gui = mount(1920, 1080)
 		hud.update(state({

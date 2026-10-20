@@ -59,7 +59,6 @@ describe("Nav.badges", function()
 			cash = 600,
 			slimes = { view("a", 1, 7), view("b", 2), view("c", 2) },
 			shop = {
-				LockUpgrade = { price = 500, level = 0, maxLevel = 5 },
 				SpeedCoil = { price = 1500, owned = false },
 			},
 			canRebirth = true,
@@ -75,7 +74,7 @@ describe("Nav.badges", function()
 		local badges = Nav.badges({
 			cash = 10,
 			slimes = { view("a", 1) },
-			shop = { LockUpgrade = { price = nil, level = 5, maxLevel = 5 }, SpeedCoil = { price = 1500 } },
+			shop = { SpeedCoil = { price = 1500 } },
 			canRebirth = false,
 			dex = { found = 0, total = 0 },
 		})

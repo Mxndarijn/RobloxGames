@@ -103,7 +103,7 @@ function WorldProps.worldShops(): boolean
 	return Config.FEATURES.WorldShops == true
 end
 
--- A shop stand builder: Props.shopStand in the look of `shopId` (Props.STAND_STYLES), renamed, its sign text set.
+-- A shop stand builder: Props.shopStand with the skin and sign of `shopId` (Props.STAND_STYLES), renamed, its sign text set.
 local function standBuilder(Props: any, name: string, shopId: string?): (() -> Instance)?
 	if not (Props and Props.shopStand) then
 		return nil
@@ -154,8 +154,11 @@ function WorldProps.place(): { [string]: Model }
 		end
 		if model then
 			anchorAll(model)
-			-- Slime Ranch skin (server/MeshSwap) once the kit mesh is uploaded.
-			local mesh = WorldLayout and WorldLayout.PROP_MESHES and WorldLayout.PROP_MESHES[spotName]
+			-- Slime Ranch skin (server/MeshSwap) once the kit mesh is uploaded; each shop stand has its own.
+			local stand = WorldLayout and WorldLayout.SHOP_STANDS and WorldLayout.SHOP_STANDS[name]
+			local mesh = if stand
+				then stand.mesh
+				else WorldLayout and WorldLayout.PROP_MESHES and WorldLayout.PROP_MESHES[spotName]
 			if mesh and model:GetAttribute("MeshAsset") == nil then
 				model:SetAttribute("MeshAsset", mesh)
 			end
