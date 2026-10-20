@@ -167,11 +167,12 @@ function Spawner.spawnEgg(world: World, now: number): string
 		)
 		World.emit(world, { type = "Rare", slimeId = id, tier = kind.tier })
 	end
+	local at = Spawner.slot(world, now)
 	world.wild[id] = {
 		slime = slime,
 		price = MysteryEgg.price(kind, rng:float()),
-		spawnedAt = now,
-		expiresAt = now + Fountain.wildLifetime(slime),
+		spawnedAt = at,
+		expiresAt = at + Fountain.wildLifetime(slime),
 		angle = rng:float() * math.pi * 2,
 		radius = Fountain.MIN_RADIUS + rng:float() * (Fountain.MAX_RADIUS - Fountain.MIN_RADIUS),
 		position = nil,
@@ -216,6 +217,20 @@ function Spawner.choreoFor(
 end
 
 -- One fountain drop: now and then a Mystery Egg (Spawner.rollEgg), else a slime.
+Spawner.SLIDE_GAP = 1.6 -- seconds between two drops down the fountain slide: they never ride or walk inside each other
+
+-- The spawn time of a drop asked for at `now`: the next free slide slot (FEATURES.Parade), at least SLIDE_GAP after
+-- the last one, so a boss burst of six rides down one after another. A drop whose slot is still to come exists in
+-- World (it counts for the cap) but has no model yet (Scene.describe).
+function Spawner.slot(world: World, now: number): number
+	if not ParadeLane.enabled() then
+		return now
+	end
+	local at = math.max(now, world.slideFreeAt or now)
+	world.slideFreeAt = at + Spawner.SLIDE_GAP
+	return at
+end
+
 function Spawner.spawnOne(world: World, now: number): string
 	if Spawner.rollEgg(world) then
 		return Spawner.spawnEgg(world, now)
@@ -253,16 +268,17 @@ function Spawner.spawnSlime(world: World, now: number): string
 		World.notify(world, nil, Spawner.rareText(drop.slime), "good", sound)
 		World.emit(world, { type = "Rare", slimeId = id, tier = tier })
 	end
+	local at = Spawner.slot(world, now)
 	world.wild[id] = {
 		slime = drop.slime,
 		price = Spawner.price(drop.slime, world.rng:float()),
-		spawnedAt = now,
-		expiresAt = now + Fountain.wildLifetime(drop.slime),
+		spawnedAt = at,
+		expiresAt = at + Fountain.wildLifetime(drop.slime),
 		angle = drop.angle,
 		radius = drop.radius,
 		position = nil,
 		rare = rare,
-		choreo = Spawner.choreoFor(world, id, drop.slime, now),
+		choreo = Spawner.choreoFor(world, id, drop.slime, at),
 	}
 	return id
 end
@@ -274,15 +290,16 @@ function Spawner.spawnBonus(world: World, now: number, count: number, luckMult: 
 	for _ = 1, count do
 		local id = world.newId()
 		local drop = Fountain.roll(world.rng, id, false, nil, luckMult)
+		local at = Spawner.slot(world, now)
 		world.wild[id] = {
 			slime = drop.slime,
 			price = 0,
-			spawnedAt = now,
-			expiresAt = now + Fountain.wildLifetime(drop.slime),
+			spawnedAt = at,
+			expiresAt = at + Fountain.wildLifetime(drop.slime),
 			angle = drop.angle,
 			radius = drop.radius,
 			position = nil,
-			choreo = Spawner.choreoFor(world, id, drop.slime, now),
+			choreo = Spawner.choreoFor(world, id, drop.slime, at),
 		}
 		table.insert(ids, id)
 	end
