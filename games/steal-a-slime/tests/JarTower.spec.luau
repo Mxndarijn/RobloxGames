@@ -5,6 +5,7 @@
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local PlotLockGuard = require("../src/server/PlotLockGuard")
+local SlimeRoster = require("../src/shared/SlimeRoster")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -222,6 +223,22 @@ describe("jar tower: fits the plot", function()
 	end)
 	it("keeps the top floor inside the lock guard's height window", function()
 		expect(WorldLayout.floorTop(FLOORS) + 8 <= PlotLockGuard.MAX_Y).toBe(true)
+	end)
+	it("stands a trophy pedestal for every boss species on the Base, clear of the moat", function()
+		expect(#WorldLayout.TROPHY_SPOTS >= #SlimeRoster.ofKind("boss")).toBe(true)
+		local half = 4.5 -- the 9 x 9 pedestal
+		for _, spot in WorldLayout.TROPHY_SPOTS do
+			local nearX, nearZ = math.abs(spot[1]) - half, math.abs(spot[2]) - half
+			expect(math.sqrt(nearX * nearX + nearZ * nearZ) > WorldLayout.MOAT.inner).toBe(true)
+			expect(math.abs(spot[1]) + half <= HALF and math.abs(spot[2]) + half <= HALF).toBe(true)
+		end
+	end)
+	it("spawns players on the walkway between the stair and the pads, in front of the door", function()
+		local s = WorldLayout.SPAWN_SPOT
+		local r = math.sqrt(s[1] * s[1] + s[2] * s[2])
+		expect(r > WorldLayout.STAIR.hole + 1).toBe(true)
+		expect(r < WorldLayout.PAD_RINGS[1] - 4 - 1).toBe(true)
+		expect(s[2] < 0).toBe(true)
 	end)
 	it("lets a character through the door", function()
 		expect(WorldLayout.DOOR.width >= 6).toBe(true)

@@ -79,6 +79,9 @@ export type Context = {
 	-- ShopEvent to one player (CONTRACT.md §27.4); the adapter adds serverTime. nil = fire nothing.
 	shopEvent: ((userId: number, payload: { [string]: any }) -> ())?,
 	requestWeather: ((id: string) -> boolean)?, -- Weather Totem: makes `id` the next weather (nil = no Weather service)
+	-- Drop tube (CONTRACT.md §5.3): moves the player's character to plot `plotIndex`'s splash pool; false = no
+	-- character or no plot. nil = no world: the drop is refused.
+	dropDown: ((userId: number, plotIndex: number) -> boolean)?,
 }
 
 local Actions = {}
@@ -747,6 +750,23 @@ function Actions.triggerPlotPrompt(
 		World.notify(world, userId, res.message, "info", nil)
 	end
 	return res
+end
+
+-- A player took plot `plotIndex`'s drop tube (any upper jar's DropPrompt, CONTRACT.md §5.3). Anyone may, except a
+-- player carrying a slime: they must walk out through the door.
+function Actions.useDropTube(world: World, userId: number, plotIndex: number, ctx: Context): Result
+	if not World.session(world, userId) then
+		return fail("not loaded")
+	end
+	if Carry.carryingId(world, userId) then
+		local text = "You can't take the goo tube while carrying a slime. Walk out through the door!"
+		World.notify(world, userId, text, "bad", nil)
+		return fail(text)
+	end
+	if not (ctx.dropDown and ctx.dropDown(userId, plotIndex)) then
+		return fail("no drop")
+	end
+	return OK
 end
 
 return Actions

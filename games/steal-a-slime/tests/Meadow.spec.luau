@@ -157,11 +157,12 @@ describe("meadow: clearances", function()
 				local dx, dz = p.pos[1] - centre[1], p.pos[3] - centre[3]
 				local x = dx * math.cos(a) - dz * math.sin(a)
 				local z = dx * math.sin(a) + dz * math.cos(a)
-				-- the gate side faces the fountain (local -Z): nothing on the walk
-				-- from the gate in to the fountain
+				-- the entrance faces the fountain (local -Z): nothing on the walk
+				-- from the fountain to the bridge, the ENTRANCE_CLEAR corridor
+				-- plus a part's reach either side
 				local inFront = z < -WorldLayout.PLOT_SIZE / 2
 					and z > -WorldLayout.PLOT_RING_RADIUS
-					and math.abs(x) < WorldLayout.GATE_SLOT
+					and math.abs(x) < WorldLayout.ENTRANCE_CLEAR
 				expect(inFront).toBe(false)
 			end
 		end

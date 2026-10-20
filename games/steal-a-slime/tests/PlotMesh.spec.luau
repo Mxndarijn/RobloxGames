@@ -1,11 +1,11 @@
 --!strict
--- Plot kit meshes (v31): MeshSwap fits a mesh to its slot box, so every slot
--- must be the mesh's native size times one scale. Pad stands, gates and the
--- ranch hay bale were squashed (stand 1.03/0.23/1.03, gate 0.99/0.67/0.38,
--- hay bale 1.25/1.53/1.95), and the stand and gate slots ignored the plot yaw.
+-- Plot kit meshes: MeshSwap fits a mesh to its slot box, so every slot must be
+-- the mesh's native size times one scale, turned with the plot. Also the plot
+-- Sign (the jar's name label) and the DexBoard placement.
 local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
+local PlotSigns = require("../src/server/PlotSigns")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -79,8 +79,8 @@ describe("kit mesh slots keep the mesh's proportions", function()
 			end
 		end)
 		expect(table.concat(bad, "; ")).toBe("")
-		-- 8 plots x (PADS_PER_FLOOR stands + gate + 4 corner posts) + plaza + decor
-		expect(checked >= Config.PLOT_COUNT * (Config.PADS_PER_FLOOR + 5)).toBe(true)
+		-- every plot's PADS_PER_FLOOR stands and DexBoard, + plaza + decor
+		expect(checked >= Config.PLOT_COUNT * (Config.PADS_PER_FLOOR + 1)).toBe(true)
 	end)
 	it("gives the ranch hay bale behind the plots its native proportions", function()
 		local found = 0
@@ -98,7 +98,7 @@ describe("kit mesh slots keep the mesh's proportions", function()
 end)
 
 describe("pad stands", function()
-	it("puts each stand on the Base at native size, turned with the plot", function()
+	it("puts each stand on the Base at native size, turned square to the jar's centre", function()
 		for i, plot in plots do
 			local _, yaw = WorldLayout.plotCentre(i)
 			for j = 1, Config.PADS_PER_FLOOR do
@@ -111,12 +111,17 @@ describe("pad stands", function()
 				expect(r[3]).toBeCloseTo(1)
 				local p = toPlot(i, stand.pos :: Vec)
 				expect(p[2] - (stand.size :: Vec)[2] / 2).toBeCloseTo(BASE_TOP)
-				expect(sameAngle((stand.rot :: Vec)[2], yaw)).toBe(true)
-				expect(sameAngle((pad.rot :: Vec)[2], yaw)).toBe(true)
+				local turn = yaw + WorldLayout.padYaw(j)
+				expect(sameAngle((stand.rot :: Vec)[2], turn)).toBe(true)
+				expect(sameAngle((pad.rot :: Vec)[2], turn)).toBe(true)
 				-- same spot as the Pad
 				local q = toPlot(i, pad.pos :: Vec)
 				expect(p[1]).toBeCloseTo(q[1])
 				expect(p[3]).toBeCloseTo(q[3])
+				-- its local Z axis runs along the line to the jar's centre
+				local rel = math.rad((stand.rot :: Vec)[2] - yaw)
+				local d = math.sqrt(p[1] ^ 2 + p[3] ^ 2)
+				expect(math.abs(math.sin(rel) * p[1] + math.cos(rel) * p[3]) / d).toBeCloseTo(1)
 			end
 		end
 	end)
@@ -151,57 +156,41 @@ describe("pad stands", function()
 	end)
 end)
 
-describe("plot gate", function()
-	local board = WorldLayout.GATE_BOARD
-	it("fills the gate slot at native size, board facing out of the entrance", function()
-		for i, plot in plots do
-			local _, yaw = WorldLayout.plotCentre(i)
-			local mesh = child(child(plot, "Gate"), "GateMesh")
-			local r = ratios(mesh, "phoenix_gate")
-			expect(r[1]).toBeCloseTo(1)
-			expect(r[2]).toBeCloseTo(1)
-			expect(r[3]).toBeCloseTo(1)
-			expect(math.abs((mesh.size :: Vec)[1] - WorldLayout.GATE_SLOT) < 0.5).toBe(true)
-			local p = toPlot(i, mesh.pos :: Vec)
-			expect(p[1]).toBeCloseTo(0)
-			expect(p[2] - (mesh.size :: Vec)[2] / 2).toBeCloseTo(BASE_TOP)
-			expect(p[3]).toBeCloseTo(-WorldLayout.PLOT_SIZE / 2 + 0.5)
-			-- kit fronts face Roblox +Z, the entrance is local -Z
-			expect(sameAngle((mesh.rot :: Vec)[2], yaw + 180)).toBe(true)
-		end
-	end)
-	it("puts the plot Sign on the mesh's name board, text on its front face only", function()
-		local wallZ = -WorldLayout.PLOT_SIZE / 2 + 0.5
-		for i, plot in plots do
-			local sign = child(plot, "Sign")
-			local size = sign.size :: Vec
-			local p = toPlot(i, sign.pos :: Vec)
-			expect(size[1]).toBeCloseTo(board.width)
-			expect(size[2]).toBeCloseTo(board.height)
-			expect(p[1]).toBeCloseTo(0)
-			expect(p[2]).toBeCloseTo(BASE_TOP + board.centreY)
-			-- bottom edge stays >= 9 above the walkway
-			expect(p[2] - size[2] / 2 >= BASE_TOP + 9).toBe(true)
-			-- front face just proud of the board, back face on the board's rim
-			-- (in front of the beam, which spans the wall line +-0.5)
-			local front, back = p[3] - size[3] / 2, p[3] + size[3] / 2
-			expect(front < wallZ - board.front and front > wallZ - board.front - 0.2).toBe(true)
-			expect(back).toBeCloseTo(wallZ - board.back)
-			expect(back < wallZ - 0.3).toBe(true)
-			-- inside the gate mesh's top, which ends 13.4 up
-			expect(p[2] + size[2] / 2 < BASE_TOP + native("phoenix_gate")[2]).toBe(true)
-		end
-	end)
-	it("hides the primitive sign board, posts and beam once the gate mesh lands", function()
-		for _, plot in plots do
-			local sign = child(plot, "Sign")
-			expect((sign.attributes :: any).MeshStandIn).toBe("phoenix_gate")
-			for _, c in sign.children or {} do
-				expect((c.attributes :: any).MeshStandIn).toBe("phoenix_gate")
+describe("plot sign", function()
+	it(
+		"hangs the name label just outside jar 1's glass, its Front face (the text face) pointing out of the jar",
+		function()
+			expect(PlotSigns.FACES).toEqual({ "Front" })
+			local label = WorldLayout.LABEL
+			local glass = WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL
+			for i, plot in plots do
+				local _, yaw = WorldLayout.plotCentre(i)
+				local sign = child(plot, "Sign")
+				local size = sign.size :: Vec
+				local p = toPlot(i, sign.pos :: Vec)
+				expect(size[1]).toBeCloseTo(label.width)
+				expect(size[2]).toBeCloseTo(label.height)
+				expect(p[2]).toBeCloseTo(label.y)
+				-- above a character's head, within jar 1's storey
+				expect(p[2] - size[2] / 2 >= BASE_TOP + 5).toBe(true)
+				expect(p[2] + size[2] / 2 <= WorldLayout.floorTop(2)).toBe(true)
+				-- on the label's angle, its back face clear of the glass
+				local d = math.sqrt(p[1] ^ 2 + p[3] ^ 2)
+				local a = math.deg(math.atan2(p[3], p[1]))
+				expect(math.abs((a - label.angle + 180) % 360 - 180) < 1e-4).toBe(true)
+				expect(d - size[3] / 2 >= glass - 1e-6).toBe(true)
+				expect(d - size[3] / 2 <= glass + 0.5).toBe(true)
+				-- Roblox's Front face is local -Z: it points along the outward radial
+				local rel = math.rad((sign.rot :: Vec)[2] - yaw)
+				local fx, fz = -math.sin(rel), -math.cos(rel)
+				expect((fx * p[1] + fz * p[3]) / d).toBeCloseTo(1)
+				-- a plain board: no mesh, no stand-ins
+				expect(meshOf(sign)).toBe(nil)
+				expect((sign.attributes or {} :: any).MeshStandIn).toBe(nil)
+				expect(#(sign.children or {})).toBe(0)
 			end
-			expect(#(sign.children or {})).toBe(3)
 		end
-	end)
+	)
 end)
 
 -- max / min of the per-axis slot / native ratios: 1 = the mesh's own proportions.
@@ -210,36 +199,9 @@ local function anisotropy(node: Node, mesh: string): number
 	return math.max(r[1], r[2], r[3]) / math.min(r[1], r[2], r[3])
 end
 
-describe("plot walls and DexBoard (C6)", function()
+describe("plot DexBoard", function()
 	local h = WorldLayout.PLOT_SIZE / 2
-	it("skins every fence piece with a kit fence mesh at FENCE_SCALE, the Box meshes are the colliders", function()
-		local fenceMeshes = {
-			[WorldLayout.FENCE_SEGMENT] = true,
-			[WorldLayout.FENCE_MESH] = true,
-			[WorldLayout.GATE_POST_MESH] = true,
-		}
-		for _, plot in plots do
-			local slots = 0
-			walk(child(plot, "Fence").children, function(node)
-				local mesh = meshOf(node)
-				if node.class == "Part" then
-					expect(mesh ~= nil and fenceMeshes[mesh] == true).toBe(true)
-					slots += 1
-					expect(anisotropy(node, mesh :: string)).toBeCloseTo(1)
-					expect(ratios(node, mesh :: string)[1]).toBeCloseTo(WorldLayout.FENCE_SCALE)
-					-- the slot box collides until MeshSwap lands the mesh (which has a Box fidelity and takes over)
-					expect(node.canCollide ~= false).toBe(true)
-					expect(MeshAssets.collision(mesh :: string)).toBe("Box")
-				end
-			end)
-			-- + the GatePost closing the fence run at the gate's right stub
-			expect(slots).toBe(if WorldLayout.fenceUploaded() then 17 else 31)
-			for _, name in { "WallBack", "WallLeft", "WallRight", "WallFrontL", "WallFrontR" } do
-				expect(pcall(child, plot, name)).toBe(false) -- the invisible walls were removed: the meshes collide
-			end
-		end
-	end)
-	it("skins the DexBoard with DEX_MESH at DEX_SCALE, on the Base, facing the entrance, clear of the fence", function()
+	it("skins the DexBoard with DEX_MESH at DEX_SCALE, on the Base behind the jar, facing the entrance", function()
 		for i, plot in plots do
 			local _, yaw = WorldLayout.plotCentre(i)
 			local dex = child(plot, "DexBoard")
@@ -256,8 +218,9 @@ describe("plot walls and DexBoard (C6)", function()
 			local p, size = toPlot(i, slot.pos :: Vec), slot.size :: Vec
 			expect(p[1]).toBeCloseTo(0)
 			expect(p[2] - size[2] / 2).toBeCloseTo(BASE_TOP)
-			-- back face in front of the fence pieces (1.64 deep on the line h - 0.5)
-			expect(p[3] + size[3] / 2 < h - 0.5 - 0.82).toBe(true)
+			-- on the Base, behind jar 1's glass
+			expect(p[3] + size[3] / 2 <= h).toBe(true)
+			expect(p[3] - size[3] / 2 >= WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL).toBe(true)
 		end
 	end)
 	it("keeps the dex text, bar and gems on the mesh's front panel and hides only the primitive frame", function()

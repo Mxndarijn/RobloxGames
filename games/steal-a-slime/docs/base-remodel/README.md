@@ -1,6 +1,6 @@
 # Base remodel: the goo jar tower
 
-Status: **design approved, build paused** (2026-10-20). Branch `feat/base-floors`.
+Status: **built with primitive stand-ins; kit meshes and the runtime part budget still to do** (2026-10-20). Branch `feat/base-floors`.
 
 A base now grows by **floors of 8 pads, up to 32 pads**. Each floor is a glass jar stacked on the one below, so a player's version reads from across the map. The design replaces the square fenced yard, the crate pads and the wooden gate.
 
@@ -48,36 +48,15 @@ The renders come from `shared/modeling-kit/models/_goo_jar_tower_scene.py` (`JAR
 | `feat: bases grow by floors of 8 pads, up to 32` | `Config.BASE_FLOORS` pricing, `Economy.floorOf` / `floorsShown`, the "Build floor N" prompt, `server/BaseFloors` (build/remove upper floors through an injected builder), `MeshSwap.applyUnder`, `HomeZone.ReachUp`, and the fallback world with 32 flat pads. All tests pass. |
 | `feat(modeling-kit): concept scenes` | Concept and jar scenes, plus `rbx_transparency` for glass previews in `--look roblox`. |
 | `docs: contract for the goo jar tower base` | CONTRACT.md §5.3: jars, door, stopper lock, radial lock guard, drop tube. |
-| WIP commit | Jar geometry in `WorldLayout` (radii, pad ring, stair, deck ring, glass wall, lid, drop hatch, `WorldLayout.floor` for upper jars), `WorldBuilder.buildFloor`, lids hidden under a jar above (`BaseFloors`), `tests/JarTower.spec.luau`. The static ground plot is **not** switched yet. |
+| WIP commit | Jar geometry in `WorldLayout` (radii, pad ring, stair, deck ring, glass wall, lid, drop hatch, `WorldLayout.floor` for upper jars), `WorldBuilder.buildFloor`, lids hidden under a jar above (`BaseFloors`), `tests/JarTower.spec.luau`. The static ground plot was switched in the next row. |
+| Jar tower switch | Round lock guard (`PlotLockGuard`: jar radius at the character's height plus the doorway) with its spec first; the static ground plot is jar 1 (moat, jar floor, bridge, glass with the door, lid, ring pads, the `Stopper` as `LockBarrier`, `ParkedStopper`); vat, lock button, label sign, trophies and spawn moved (`WorldLayout` `VAT_SPOT`, `LOCK_BUTTON_SPOT`, `LABEL`, `TROPHY_SPOTS`, `SPAWN_SPOT`); rebirth decor and plot-skin `trim` on the jar; the drop tube (`DropPrompt` from `BaseFloors`, `Actions.useDropTube` refuses carriers, tube and splash pool); the client mascot and ooze (`PlotMascot`); fence and gate specs, tools and the pc-watcher reworked. |
+
+## Checked in a hidden Studio
+
+With `PADS_START` raised to 17 in the throwaway Studio copy (so jars 2 and 3 stand): the player spawns on the walkway; jars 2 and 3 build with their DropPrompts and the lids under them hide; the owner walks in through the locked stopper while an NPC outsider is stopped at its face; a player climbs both stairs to jar 3; the drop tube puts them on the splash pool; the client builds the mascot (version 3 on the owner's plot, 1 on free plots). Not checked in Studio: the drop refusal while carrying (covered by `tests/DropTube.spec`), and a real non-owner leaving through the stopper (needs two players; covered by `tests/PlotLockGuard.spec`).
 
 ## Still to do
 
-Order matters: the lock guard comes before any fence is removed.
-
-1. **Lock guard for a round jar** (`server/PlotLockGuard`, `WorldView.enforceLocks`). Today "inside" is the whole 80×80 square, so with the jar a non-owner on the bridge or the moat would count as a leaver and walk through the stopper. Inside has to be the jar interior at the character's height (radius < `jarRadius(floor)`) plus the doorway. Write the spec first: a point on the bridge while locked is not a leaver. Keep `Base` as the 80×80 box: `enforceLocks` reads `half` from `Base.Size.X`.
-2. **Static ground jar** in `WorldLayout.plot()` (Archer's file). Remove `Fence`, `Gate`, the crate pad grid and the old `LockBarrier` panels. Add the foot, moat, bridge, jar 1 glass wall with the door lintel, `Lid` (`JarLid = 1`), the pads on the ring (turned with `padYaw`), and `LockBarrier` = a doorway collider plus the stopper. Then regenerate `world/*.rbxmx` with `lune run scripts/gen-world`. Today's plot is 82 parts; fence 17, gate 3, pads 16 and barrier 4 are freed.
-3. **Move the vat, lock button and sign.** `MergeVat` at (-19, -14) and `LockButton` at (19, -14) collide with the new pad ring. Put the vat inside jar 1 between two pads and the button on the bridge. `Sign` (PlotSigns writes on its Front face) goes on jar 1's label board. `LockSign` follows the button.
-4. **What hung on the fence** (mostly Archer's files):
-   - `PlotDecor` rebirth bands (trims, pillars, banners, crown) need new spots on the jar.
-   - Plot skins (`PlotDecor.applySkin`): the fence tint has nothing left to tint. Retint the cork and trim, and keep the mailbox decor.
-   - DexBoard behind the glass at the back. Its trophy slots (`WorldView.trophySpot`, about z 31) land on the glass line, so move them.
-5. **Specs and tools that assume the square fence and gate:**
-   - Fence and gate: `FenceJoints`, `RanchProps` (fence/gate sections, keep-clear zones), `MeshCollision`, `PlotMesh`, `SlimeRanch`, `WorldBudget` (fence/gate/post counts), `PlotSkins` (fence tint), `WorldPlacement`.
-   - Lock: `LockBarrier`, `PlotLockGuard`.
-   - Ground and props: `PropWalk`, `Meadow`, `YardDress`, `FloorLayout` (gate ramp), `Ritual`.
-   - `PropCollision` inventory counts.
-   - Tools: `tools/placement/export.luau`, `tools/render/export.luau`.
-   - Docs: `docs/COLLISION.md`.
-   - Full list with line numbers: ask a bot to re-run the dependency survey, or see the PR description.
-6. **Drop tube.** Server `DropPrompt` on each `DropHatch` (`Constants.DROP_PROMPT_NAME`): refuse while carrying, otherwise move the character to `WorldLayout.dropLanding()`. Add the tube visuals.
-7. **Habitats are ON.** The overlays are made for the crate's square deck (`PAD_DECK`). Keep the crate stand mesh until a round cork stand and matching overlays exist, or fit the overlays to the round dish.
-8. **Kit meshes** (modeling-kit loop, **no upload without Merijn's OK**): cork stand, door frame and stopper, jar shoulder with ribs, goo ooze ring, drop tube, mascot slime. Until they're uploaded, the primitive stand-ins stay.
-9. **Mascot and goo decor** (client, `src/visuals`): mascot size per version, crown at 4, ooze and drips.
-10. **Check in a hidden Studio** (`tools/pipeline/pc-watcher/studio_hidden.py`):
-    - Buy pads 8 → 9 and the jar appears.
-    - A thief walks up the stairs, steals, and walks out.
-    - The stopper blocks entry while locked; a leaver walks out.
-    - The drop tube refuses carriers.
-    - The runtime part count with 8 maxed plots: about 70 parts per upper jar.
-
-Owners (game `CLAUDE.md`): `src/visuals` is Archer's, `src/ui` is Jolt's. This remodel needs both, so agree it with them, or have Merijn sign off, before editing their files.
+1. **Runtime part budget.** An upper jar is about 62 Parts (24 glass segments, 16 deck pieces, the 17-part stair, 8 pads with stands, lid, hatch, tube). In Studio the world was at 2443 parts with two upper jars on one plot; eight maxed plots add about 1,500 more, well past the 2900 warn level. The kit meshes below are the fix: one glass mesh per jar (24 to 1), one deck mesh (16 to 1), one stair mesh (17 to 1).
+2. **Kit meshes** (modeling-kit loop, **no upload without Merijn's OK**): jar glass with ribs and shoulder, deck, stair, cork stand, door frame and stopper, goo ooze ring, drop tube, mascot slime. Until then the primitive stand-ins stay; the round cork stand also needs habitat overlays fitted to the round dish (today the crate stand stays, so the overlays still fit).
+3. Leftover `MeshAssets` entries for the retired `ranch_fence_20`, `phoenix_fence_segment` and `phoenix_gate` (no slot uses them).

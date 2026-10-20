@@ -463,7 +463,7 @@ end
 
 -- Bug #16: every plot's MergeVat disc wears the merge_vat model (1 MeshPart per plot, child "VatMesh" of the disc),
 -- independent of FEATURES.MergeVat3 (the 3-slime gameplay stays behind its flag; only the look changes). The disc
--- keeps its name, position, collision and MergePrompt; it and its Goo are only made invisible, and only once the
+-- keeps its name, position, collision and MergePrompt; it is only made invisible, and only once the
 -- mesh is placed (template not loaded = the cylinder stays). Idempotent. Yields; returns how many vats got the model.
 local VAT_MESH_NAME = "VatMesh"
 function MeshSwap.swapPlotVats(): number
@@ -495,10 +495,6 @@ function MeshSwap.swapPlotVats(): number
 			mesh.CanTouch = false
 			mesh.Parent = vat
 			hide(vat)
-			local goo = vat:FindFirstChild("Goo")
-			if goo and goo:IsA("BasePart") then
-				hide(goo)
-			end
 			count += 1
 		end
 	end

@@ -1,9 +1,8 @@
 --!strict
 -- Slime Ranch place wiring: kit mesh slots name real MeshAssets entries, the
--- 80-stud plots don't overlap, one gated entrance with a 14-stud opening,
--- and the map stays inside its mesh slot budget (THEME.md asks <= 150; the kit
--- fence and ranch props take it past that on purpose; tests/WorldBudget.spec
--- counts both fence modes).
+-- 80-stud plots don't overlap, each plot's jar has one door a character fits
+-- through with a bridge to it, and every mesh slot names a known kit mesh
+-- (budgets: tests/WorldBudget.spec).
 local Config = require("../src/shared/Config")
 local MeshAssets = require("../src/shared/MeshAssets")
 local TestRunner = require("./TestRunner")
@@ -115,18 +114,32 @@ describe("Slime Ranch layout", function()
 			expect(part.canCollide).toBe(false)
 		end
 	end)
-	it("gives every plot one gate with a 14-stud opening", function()
+	it("gives every plot one door a character walks through, with a bridge at least as wide", function()
 		local plots = nodes[2].children
 		expect(#plots).toBe(Config.PLOT_COUNT)
-		local clear = WorldLayout.GATE_CLEAR
-		expect(clear).toBe(14)
+		-- a Roblox character is about 4 studs wide (arms out) and 5.5 tall
+		local door = WorldLayout.DOOR
+		expect(door.width >= 4).toBe(true)
+		expect(door.height >= 6).toBe(true)
+		expect(WorldLayout.BRIDGE_WIDTH >= door.width).toBe(true)
 		for _, plot in plots do
-			local names = {}
+			local counts = {}
 			for _, c in plot.children do
-				names[c.name] = c
+				counts[c.name] = (counts[c.name] or 0) + 1
 			end
-			expect(names.Gate ~= nil and names.Fence ~= nil).toBe(true)
-			expect(names.WallFrontL).toBe(nil) -- the fence meshes collide now (bug #11)
+			expect(counts.Bridge).toBe(1)
+			expect(counts.Jar).toBe(1)
+			local lintels = 0
+			for _, c in plot.children do
+				if c.name == "Jar" then
+					for _, part in c.children do
+						if part.name == "DoorLintel" then
+							lintels += 1
+						end
+					end
+				end
+			end
+			expect(lintels).toBe(1)
 		end
 	end)
 end)

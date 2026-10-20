@@ -627,47 +627,6 @@ mesh(
 --------------------------------------------------------------------------------------------------------------------
 
 mesh(
-	"plot_fence_20",
-	"ranch_fence_20",
-	"gojo",
-	112,
-	"Box",
-	"Plots",
-	ON_MESH,
-	"22x9x1.8 panel, a flat wall (replaces the old Wall* blocks)"
-)
-mesh("plot_fence_segment", "phoenix_fence_segment", "gojo", 16, "Box", "Plots", ON_MESH, "half panel beside the gate")
-mesh(
-	"plot_gate_corner_post",
-	"phoenix_corner_post",
-	"gojo",
-	8,
-	"Box",
-	"Plots",
-	ON_MESH,
-	"square post at the gate's right stub"
-)
-mesh(
-	"plot_gate_mesh",
-	"phoenix_gate",
-	"gojo",
-	8,
-	"off",
-	"Plots",
-	"mesh off, slot off",
-	"a Box or Hull would close the 14-stud gate opening; the GatePostL/R stand-ins keep the posts"
-)
-parts(
-	"plot_gate_posts",
-	"gojo",
-	16,
-	"colliders",
-	"Plots",
-	{ "^GatePostL$", "^GatePostR$" },
-	"on",
-	"the gate's posts as simple blocks (the gate mesh is decor)"
-)
-mesh(
 	"plot_pad_stand",
 	"phoenix_pad_crate",
 	"gojo",
@@ -692,12 +651,55 @@ parts(
 parts(
 	"plot_sign",
 	"gojo",
-	32,
+	8,
 	"colliders",
 	"Plots",
-	{ "^Sign$", "^Beam$", "^PostL$", "^PostR$" },
-	"on (board, beam, two posts)",
-	"plot name sign on posts"
+	{ "^Sign$" },
+	"on",
+	"the plot name board, 0.3 thick, flat on jar 1's glass"
+)
+parts(
+	"plot_jar_glass",
+	"gojo",
+	8 * 24,
+	"colliders",
+	"Plots",
+	{ "^Wall_%d+$", "^DoorLintel$" },
+	"on (canQuery / canTouch off)",
+	"jar 1's glass wall segments and the lintel over the door: the tower's walls, open only at the doorway",
+	{ walk = false }
+)
+parts(
+	"plot_jar_lid",
+	"gojo",
+	8,
+	"colliders",
+	"Plots",
+	{ "^Lid$" },
+	"on",
+	"the cork lid on jar 1, the roof over the glass",
+	{ walk = false }
+)
+parts(
+	"plot_bridge",
+	"gojo",
+	8,
+	"colliders",
+	"Plots",
+	{ "^Bridge$" },
+	"on (canQuery off)",
+	"0.4 stud plank walkway over the moat to the door, a stand-on surface",
+	{ walk = false }
+)
+parts(
+	"plot_jar_decor",
+	"gojo",
+	24,
+	"off",
+	"Plots",
+	{ "^Moat$", "^JarFloor$", "^ParkedStopper$" },
+	"off",
+	"flat goo moat and cork floor discs on the Base (the Base is the floor), and the parked cork lying in the moat"
 )
 parts(
 	"plot_lock_button",
@@ -722,12 +724,12 @@ parts(
 parts(
 	"plot_lock_barrier",
 	"gojo",
-	32,
+	8,
 	"off",
 	"Plots",
-	{ "^Right$", "^Left$", "^Back$", "^Front$" },
-	"off (client-toggled while the base is locked)",
-	"locked-base barrier (Gojo, B1): a one-way panel toggled with the lock; it only blocks entering and nobody is ejected, so it is no prop to walk into",
+	{ "^Stopper$" },
+	"off (server-toggled while the base is locked)",
+	"the cork Stopper filling jar 1's doorway: hidden and off while the plot is open, made solid only while it is locked, so it is no prop to walk into",
 	{ walk = false }
 )
 mesh(
@@ -753,7 +755,7 @@ parts(
 parts(
 	"plot_rebirth_decor",
 	"gojo",
-	112,
+	96,
 	"off",
 	"Plots",
 	{ "^Crown$", "^Banner_[RL]$", "^PillarCap_%d+$", "^Pillar_%d+$", "^Trim_%a+$" },
@@ -830,6 +832,9 @@ local UNPLACED: { [string]: { string } } = {
 		"habitat overlay on the pad deck, drawn by the client (HabitatFx), pad part is the surface",
 	},
 	slime_lane = { "jolt", "the parade lane strip (entry parade_lane), laid by ParadeView, not a MeshAsset slot" },
+	phoenix_gate = { "gojo", "no world slot: the plot's way in is jar 1's glass doorway (primitives)" },
+	ranch_fence_20 = { "gojo", "no world slot: plots are a goo jar tower, not a fenced yard" },
+	phoenix_fence_segment = { "gojo", "no world slot: plots are a goo jar tower, not a fenced yard" },
 }
 
 PropCollision.ENTRIES = entries

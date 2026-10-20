@@ -74,6 +74,9 @@ RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
 	merge_vat = "plot merge vat: MeshSwap.swapPlotVats stands it over every plot's MergeVat disc, no world slot",
 	pet_cloud = "follow pet cloud (FollowPets): the client clones the server-published ReplicatedStorage.PetCloudMeshes template under the owner's pet slime, decor, no world slot",
 	ranch_bat = "default melee Bat: the Handle mesh of Tool 'Bat' (held, no collision), no world slot",
+	ranch_fence_20 = "plot fence panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
+	phoenix_fence_segment = "plot fence half panel: the goo jar tower's glass encloses each plot (CONTRACT.md §5.3), no fence slot",
+	phoenix_gate = "plot gate: the goo jar tower's door and bridge are the plot entrance (CONTRACT.md §5.3), no gate slot",
 }) :: { [string]: string }
 
 local rows: { Placement } = {}

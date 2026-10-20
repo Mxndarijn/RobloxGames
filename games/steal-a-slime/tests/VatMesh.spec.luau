@@ -1,7 +1,7 @@
 --!nocheck
 -- Bug #16: every plot's MergeVat disc wears the merge_vat model, independent of FEATURES.MergeVat3 (the flag only
 -- gates the 3-slime gameplay). Booted in the fake runtime: the mesh stands on the disc via VatDecor.pose, the disc
--- and its Goo are invisible but keep name, position, collision and the MergePrompt; with no mesh template the
+-- is invisible but keep name, position, collision and the MergePrompt; with no mesh template the
 -- cylinder stays visible (no invisible vat).
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -72,12 +72,10 @@ describe("plot vats wear the merge_vat model (bug #16)", function()
 			expect(mesh.CanQuery).toBe(false)
 		end
 	end)
-	it("keeps the disc with its name, collision and MergePrompt, only invisible with its Goo", function()
+	it("keeps the disc with its name, collision and MergePrompt, only invisible", function()
 		for _, e in vats(ok) do
 			expect(e.vat.Transparency).toBe(1)
 			expect(e.vat.CanCollide).toBe(true)
-			local goo = e.vat:FindFirstChild("Goo")
-			expect(goo ~= nil and goo.Transparency == 1).toBe(true)
 			local prompt = e.vat:FindFirstChild(Constants.MERGE_PROMPT_NAME)
 			expect(prompt ~= nil and prompt:IsA("ProximityPrompt")).toBe(true)
 		end
@@ -88,8 +86,6 @@ describe("plot vats wear the merge_vat model (bug #16)", function()
 		for _, e in list do
 			expect(e.vat:FindFirstChild("VatMesh") == nil).toBe(true)
 			expect(e.vat.Transparency < 1).toBe(true)
-			local goo = e.vat:FindFirstChild("Goo")
-			expect(goo ~= nil and goo.Transparency < 1).toBe(true)
 			expect(e.vat:FindFirstChild(Constants.MERGE_PROMPT_NAME) ~= nil).toBe(true)
 		end
 	end)

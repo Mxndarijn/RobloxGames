@@ -227,6 +227,14 @@ WorldView.addPlotPrompts(function(player: Player, index: number, kind: string)
 	refreshView(now())
 end)
 
+-- The drop tube on every upper jar (BaseFloors adds the DropPrompt as each jar is built).
+if floors then
+	floors.drop = function(player: Player, index: number)
+		Actions.useDropTube(world, player.UserId, index, ctx)
+		refreshView(now())
+	end
+end
+
 -- "Open Shop" (ShopStand) and "Talk" (TutorialNpc) prompts: the client opens
 -- the Shop / Guide menu; purchases go through Request from the Shop menu.
 WorldProps.addShopPrompts(function(player: Player, shopId: string)

@@ -740,22 +740,15 @@ local TROPHY_PEDESTAL = Vector3.new(9, 2, 9)
 local TROPHY_COLOR = Color3.fromRGB(255, 205, 70)
 local trophyModels: { [string]: Instance } = {}
 
--- Pedestal `slot` (1-based) of `plotIndex`, on the Base in front of the back wall and facing the gate (the Base's -Z):
--- slot 1 left of the Dex board, slot 2 right of it, slot 3 further left, Config.BOSS.TROPHY_GAP apart.
+-- Pedestal `slot` (1-based) of `plotIndex`: WorldLayout.TROPHY_SPOTS on the Base, clear of the jar and the moat.
 local function trophySpot(plotIndex: number, slot: number): CFrame?
 	local plot = WorldView.plot(plotIndex)
 	local base = plot and plot:FindFirstChild("Base")
-	local board = plot and plot:FindFirstChild("DexBoard")
-	if not (base and base:IsA("BasePart") and board and board:IsA("Model")) then
+	local spot = WorldLayout.TROPHY_SPOTS[slot]
+	if not (base and base:IsA("BasePart") and spot) then
 		return nil
 	end
-	local boardAt, boardSize = board:GetBoundingBox()
-	local boardLocal = base.CFrame:PointToObjectSpace(boardAt.Position)
-	local ring = math.ceil(slot / 2) -- 1, 1, 2
-	local side = if slot % 2 == 1 then -1 else 1
-	local x = boardLocal.X + side * (boardSize.X / 2 + Config.BOSS.TROPHY_GAP * (ring - 0.5))
-	local z = boardLocal.Z - boardSize.Z / 2 - TROPHY_PEDESTAL.Z / 2
-	return base.CFrame * CFrame.new(x, base.Size.Y / 2, z)
+	return base.CFrame * CFrame.new(spot[1], base.Size.Y / 2, spot[2])
 end
 
 local function buildTrophy(slime: Genome.Slime, spot: CFrame, parent: Instance): Instance?
@@ -1109,8 +1102,9 @@ function setBarrierSolid(plot: Instance, index: number, solid: boolean)
 	end
 end
 
--- Plot-local z of the front LockBarrier slab's outer face (the real layout constant).
-local FRONT_Z = WorldLayout.frontBarrier().zOuter
+-- Jar 1's doorway passage (the real layout constants): the lock guard's "inside" includes it.
+local DOORWAY = WorldLayout.doorway()
+local DOOR: PlotLockGuard.Door = { halfWidth = DOORWAY.halfWidth, zOuter = DOORWAY.zOuter }
 
 local function setPartGroup(part: Instance, group: string)
 	if part:IsA("BasePart") and part.CollisionGroup ~= group then
@@ -1197,8 +1191,8 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 					p.X,
 					p.Y,
 					p.Z,
-					base.Size.X / 2,
-					FRONT_Z,
+					WorldLayout.jarRadius(WorldLayout.floorAt(p.Y + base.Size.Y / 2)),
+					DOOR,
 					wasIn == index
 				)
 			then
@@ -1308,12 +1302,31 @@ function WorldView.pointInHomeZone(position: Vector3, plotIndex: number): boolea
 	return math.abs(p.X) <= half.X and math.abs(p.Z) <= half.Z and p.Y >= -half.Y - 4 and p.Y <= top
 end
 
+-- Drop tube (CONTRACT.md §5.3): puts the player's character in plot `plotIndex`'s splash pool, still. False when
+-- there is no character or no plot.
+function WorldView.dropDown(userId: number, plotIndex: number): boolean
+	local player = Players:GetPlayerByUserId(userId)
+	local character = player and player.Character
+	local root = WorldView.rootPart(player)
+	local plot = WorldView.plot(plotIndex)
+	local base = plot and plot:FindFirstChild("Base")
+	if not (character and root and base and base:IsA("BasePart")) then
+		return false
+	end
+	local land = WorldLayout.dropLanding()
+	local y = land[2] - WorldLayout.PLOT_FLOOR_TOP + base.Size.Y / 2
+	character:PivotTo(base.CFrame * CFrame.new(land[1], y, land[3]))
+	root.AssemblyLinearVelocity = Vector3.zero
+	return true
+end
+
 -- Spawn point on top of the plot's Base.
 function WorldView.plotSpawn(plotIndex: number): CFrame?
 	local plot = WorldView.plot(plotIndex)
 	local base = plot and plot:FindFirstChild("Base")
 	if base and base:IsA("BasePart") then
-		return base.CFrame * CFrame.new(0, base.Size.Y / 2 + 4, 0)
+		local spot = WorldLayout.SPAWN_SPOT
+		return base.CFrame * CFrame.new(spot[1], base.Size.Y / 2 + 4, spot[2])
 	end
 	return nil
 end

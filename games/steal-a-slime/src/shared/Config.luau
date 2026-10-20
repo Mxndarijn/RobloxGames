@@ -72,14 +72,14 @@ export type DailyQuest = {
 export type DexMilestone = { count: number, reward: number, bonus: number }
 
 -- Plot skins (FEATURES.PlotSkins, CONTRACT.md §15). `set` = rarity tier whose SlimeDex set must be
--- `threshold` complete. Colours are RGB 0..255; `fence` multiplies the fence / gate mesh colours (white = none).
+-- `threshold` complete. Colours are RGB 0..255; `trim` multiplies the jar's cork and trim colours (white = none).
 export type PlotSkin = {
 	id: string, -- permanent save id; never rename
 	name: string,
 	set: number?, -- Config.RARITIES tier; nil = always unlocked
 	threshold: number?,
 	floor: { color: { number }, material: string }?, -- plot Base; nil = leave as built
-	fence: { number }?,
+	trim: { number }?,
 	decor: string?, -- MeshAssets name that stands in for the plot's mailbox slot
 }
 
@@ -405,7 +405,7 @@ local PLOT_SKINS: { PlotSkin } = {
 		set = 1,
 		threshold = 0.75,
 		floor = { color = { 112, 150, 72 }, material = "Grass" },
-		fence = { 255, 214, 196 },
+		trim = { 255, 214, 196 },
 		decor = "plot_skin_mushroom",
 	},
 	{
@@ -414,7 +414,7 @@ local PLOT_SKINS: { PlotSkin } = {
 		set = 2,
 		threshold = 0.75,
 		floor = { color = { 224, 142, 172 }, material = "Sand" },
-		fence = { 255, 190, 214 },
+		trim = { 255, 190, 214 },
 		decor = "plot_skin_candy",
 	},
 	{
@@ -423,7 +423,7 @@ local PLOT_SKINS: { PlotSkin } = {
 		set = 3,
 		threshold = 0.75,
 		floor = { color = { 148, 124, 190 }, material = "Slate" },
-		fence = { 214, 196, 255 },
+		trim = { 214, 196, 255 },
 		decor = "plot_skin_crystal",
 	},
 }
@@ -568,8 +568,8 @@ for _, skin in PLOT_SKINS do
 		table.freeze(skin.floor.color)
 		table.freeze(skin.floor)
 	end
-	if skin.fence then
-		table.freeze(skin.fence)
+	if skin.trim then
+		table.freeze(skin.trim)
 	end
 	table.freeze(skin)
 end
@@ -909,7 +909,6 @@ local Config = {
 		ROTATION = table.freeze({ "goozilla", "queen_jelly", "goozilla", "queen_jelly", "mecha_goo" }),
 		SECRET_FOUNTAIN_TIER = 4, -- a Secret-tier boss needs this fountain tier (Starlight)
 		SECRET_FALLBACK = "goozilla",
-		TROPHY_GAP = 12, -- studs between trophy pedestals beside the Dex board (a MAX_SIZE boss mesh is about 9 wide)
 	}),
 
 	-- Day / night (DayNight)

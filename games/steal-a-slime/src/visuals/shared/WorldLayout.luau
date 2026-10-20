@@ -19,12 +19,12 @@
 	           pines, hills, rocks along the edge). Kit meshes go on MeshAsset
 	           slots via server/MeshSwap.
 	  Plots    Plot_1..PLOT_COUNT in a ring around the fountain, each facing
-	           it (entrance at local -Z): Base, Pad_1..PADS_MAX, HomeZone,
-	           MergeVat, LockButton, Sign, walls (invisible colliders) +
-	           Fence (ranch_fence_20 + phoenix_fence_segment slots), Slimes
-	           folder, and the
-	           PlotDecor cosmetics (LockBarrier, LockSign, BuyStand,
-	           RebirthDecor, DexBoard)
+	           it (door at local -Z): Base, jar 1 of the goo jar tower (Jar
+	           glass wall + Lid, Moat, JarFloor, Bridge) with Pad_1..PADS_PER_FLOOR
+	           on its pad ring, HomeZone, MergeVat, LockButton, Sign (the jar's
+	           name label), Slimes folder, and the PlotDecor cosmetics
+	           (LockBarrier stopper, ParkedStopper, LockSign, RebirthDecor,
+	           DexBoard). Upper jars come from WorldLayout.floor (server/BaseFloors)
 	Every Part is anchored (WorldBuilder forces it). PROP_SPOTS suggests
 	where Props go.
 
@@ -43,6 +43,7 @@ local LayoutMath = if script then require(script.Parent.LayoutMath) else require
 local Meadow = if script then require(script.Parent.Meadow) else require("./Meadow")
 local PlotDecor = if script then require(script.Parent.PlotDecor) else require("./PlotDecor")
 local RanchProps = if script then require(script.Parent.RanchProps) else require("./RanchProps")
+local VatDecor = if script then require(script.Parent.VatDecor) else require("./VatDecor")
 local WorldBorder = if script then require(script.Parent.WorldBorder) else require("./WorldBorder")
 
 type Vec = LayoutMath.Vec
@@ -140,31 +141,10 @@ WorldLayout.VOLCANO_HEIGHT = WorldLayout.FOUNTAIN_HEIGHT
 -- The old straight chute bearing was yaw 22.5; that slide is gone.
 WorldLayout.RING_PATH_RADIUS = 78
 WorldLayout.RING_PATH_WIDTH = 8
-WorldLayout.GATE_SLOT = 20 -- fence gap at the entrance
-WorldLayout.GATE_CLEAR = 14 -- walkable opening inside the slot
-WorldLayout.WALL_HEIGHT = 8
--- Plot fence look: kit ranch_fence_20 panels on a 20-stud grid, 4 per side.
--- The gate side is 30 + 20 (GATE_SLOT) + 30, so it takes a panel at each
--- corner and a 10-stud phoenix_fence_segment beside each gate post: 14
--- panels + 2 segments per plot. Both kit pieces are 11 native studs per 10
--- grid studs with one post, at their -X end (the neighbour's post closes the
--- +X end), so one uniform scale of 10/11 tiles them on the grid at the same
--- 8.2 height. Until ranch_fence_20
--- is uploaded each panel slot is a Model tagged FenceMesh = FENCE_MESH holding
--- two FENCE_SEGMENT halves (the same look: the panel is two segments sharing
--- the mid post).
-WorldLayout.FENCE_MESH = "ranch_fence_20"
-WorldLayout.FENCE_SEGMENT = "phoenix_fence_segment"
--- Closes the fence run that ends at the gate's right stub (GatePost slot).
-WorldLayout.GATE_POST_MESH = "phoenix_corner_post"
-WorldLayout.FENCE_GRID = 20
-WorldLayout.FENCE_SEGMENT_GRID = 10
-WorldLayout.FENCE_SCALE = 10 / 11
--- Post centre in from a piece's -X end: the kit post cap is 1.8 wide, and
--- its centre 0.9 in from the bbox edge, at FENCE_SCALE.
-WorldLayout.FENCE_POST_INSET = 0.9 * WorldLayout.FENCE_SCALE
--- Mesh slots in the whole world, as the pc-watcher counts MeshParts (MeshAsset + pending BorderMesh / FenceMesh
--- slots + the WorldProps skins), counted with ranch_fence_20 uploaded (tests/WorldBudget.spec).
+-- Props keep this corridor clear in front of every plot's bridge (PropClearance).
+WorldLayout.ENTRANCE_CLEAR = 20
+-- Mesh slots in the whole world, as the pc-watcher counts MeshParts (MeshAsset + pending BorderMesh
+-- slots + the WorldProps skins) (tests/WorldBudget.spec).
 -- MeshParts are a SOFT budget now: MESH_SLOT_BUDGET mirrors tools/pipeline/pc-watcher/budgets.json
 -- mesh_parts.warn (500; tools/pr-gate/budget_check.py fails if they drift) and only warns. The real mesh limits
 -- are world triangles (<= 500000, pr-gate budget.sh from the kit FBX) and unique meshes (<= 120, runtime budget).
@@ -186,93 +166,6 @@ WorldLayout.RUNTIME_SLOT_ALLOWANCE = 16
 WorldLayout.PART_BUDGET = 1400
 WorldLayout.BORDER_PART_BUDGET = 700
 
-export type FenceSegment = {
-	name: string,
-	side: string,
-	x: number,
-	z: number,
-	yaw: number,
-	length: number, -- FENCE_GRID (a ranch_fence_20 panel) or FENCE_SEGMENT_GRID
-}
-
--- Whether the 20-stud panel mesh is uploaded (read at build time).
-function WorldLayout.fenceUploaded(): boolean
-	return MeshAssets.meshId(WorldLayout.FENCE_MESH) ~= nil
-end
-
--- Plot-local fence pieces (centre on the wall line, yaw relative to the
--- plot, kit front facing out). The front leaves the gate slot open.
-function WorldLayout.fenceSegments(): { FenceSegment }
-	local s, g, h = WorldLayout.PLOT_SIZE, WorldLayout.FENCE_GRID, WorldLayout.FENCE_SEGMENT_GRID
-	local line = s / 2 - 0.5
-	local slot = WorldLayout.GATE_SLOT / 2
-	-- Gate side: panels in from each corner, then segments up to the slot.
-	local front: { { number } } = {}
-	for _, dir in { -1, 1 } do
-		local t = s / 2
-		while t - g >= slot do
-			table.insert(front, { dir * (t - g / 2), g })
-			t -= g
-		end
-		while t - h >= slot do
-			table.insert(front, { dir * (t - h / 2), h })
-			t -= h
-		end
-	end
-	table.sort(front, function(a, b)
-		return a[1] < b[1]
-	end)
-	local full: { { number } } = {}
-	for k = 0, s // g - 1 do
-		table.insert(full, { -s / 2 + g / 2 + k * g, g })
-	end
-	local out: { FenceSegment } = {}
-	for _, side in
-		{
-			{
-				"Back",
-				0,
-				function(t: number): (number, number)
-					return t, line
-				end,
-			},
-			{
-				"Left",
-				270,
-				function(t: number): (number, number)
-					return -line, t
-				end,
-			},
-			{
-				"Right",
-				90,
-				function(t: number): (number, number)
-					return line, t
-				end,
-			},
-			{
-				"Front",
-				180,
-				function(t: number): (number, number)
-					return t, -line
-				end,
-			},
-		}
-	do
-		for n, piece in (if side[1] == "Front" then front else full) do
-			local x, z = (side[3] :: any)(piece[1])
-			table.insert(out, {
-				name = `Segment{side[1]}_{n}`,
-				side = side[1] :: string,
-				x = x,
-				z = z,
-				yaw = side[2] :: number,
-				length = piece[2],
-			})
-		end
-	end
-	return out
-end
 -- Every slime spot uses the one square crate pad (red mat rectangle); only
 -- the habitat on top changes per slime type (Habitats / HabitatFx).
 WorldLayout.PAD_MESH = "phoenix_pad_crate"
@@ -300,11 +193,21 @@ WorldLayout.DOOR = table.freeze({ angle = -90, width = 9.2, height = 11 })
 WorldLayout.STAIR = table.freeze({ post = 2, outer = 8, hole = 8.6, angle = 22.5, firstAngle = 90 })
 WorldLayout.MOAT = table.freeze({ inner = 35.5, outer = 38.6 })
 -- The drop tube runs down the back; every upper jar's hatch sits at this angle, the splash pool outside the moat.
+-- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
 WorldLayout.DROP_ANGLE = 70
--- phoenix_gate's cream name board at native size (models/phoenix_gate.py
--- "Sign": 9 x 2.4, centre 10.5 up, front face 1.1 in front of the wall line;
--- "SignRim" behind it ends 0.4 in front of the wall line).
-WorldLayout.GATE_BOARD = table.freeze({ width = 9, height = 2.4, centreY = 10.5, front = 1.1, back = 0.4 })
+WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3 })
+-- Jar 1's ground pieces (plot-local; angles as above). The bridge crosses the moat to the door. The MergeVat stands
+-- at the back between two pads, outside the pad ring; the LockButton (with its LockSign) sits on the front corner
+-- by the bridge, clear of the moat. The name label (Sign, PlotSigns writes on its Front face) hangs on the glass
+-- front-left of the door, the rebirth banners either side of the door. Players spawn on the walkway between the
+-- stair and the pads, in front of the door. Boss trophies stand on the plot corners, clear of the moat.
+WorldLayout.BRIDGE_WIDTH = 10
+WorldLayout.VAT_SPOT = table.freeze({ angle = 90, radius = 27 })
+WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ 30, -30 })
+WorldLayout.LABEL = table.freeze({ angle = -55, width = 9, height = 2.4, y = 9 })
+WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
+WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
+WorldLayout.TROPHY_SPOTS = table.freeze({ { -31, 31 }, { 31, 31 }, { -31, -31 } })
 -- The plot SlimeDex board skins the two-sided phoenix_top_earners_board at
 -- DEX_SCALE (14.8 x 14 x 2.9, about the gate's height). DEX_FACE = its front
 -- cream panel at native size, measured on out/phoenix_top_earners_board.fbx
@@ -1099,15 +1002,6 @@ function WorldLayout.plotCentre(i: number): (Vec, number)
 	return { -n[1] * r, 0, -n[3] * r }, yaw
 end
 
--- A fence piece: collides (the placeholder box until its mesh lands, then the mesh), never blocks prompts or
--- raycasts. FenceCollider marks it for the placement export.
-local function solid(node: WorldNode): WorldNode
-	node.canQuery = false
-	node.canTouch = false
-	node.attributes = { FenceCollider = true }
-	return node
-end
-
 -- Decor only: anchored, never collides, never blocks prompts or raycasts.
 local function ghost(node: WorldNode, transparency: number?): WorldNode
 	node.canCollide = false
@@ -1117,77 +1011,91 @@ local function ghost(node: WorldNode, transparency: number?): WorldNode
 	return node
 end
 
--- Bug #8: the front LockBarrier panel is a slab, not a 0.3 sheet. The GatePost (and the 1.8-thick front fence
--- pieces) stand on the front fence line and stick out through a thin sheet; a jumping character wedged on that
--- protruding post got depenetrated through it. The slab encloses the whole depth of the post (the deepest front
--- piece) and ends at the PlotLockGuard limit (PlotLockGuard.MARGIN in from the plot edge), full width plus the
--- side panels' thickness. Plot-local: size {x, y, z} and centre {x, y, z}.
-WorldLayout.BARRIER_SIDE_THICKNESS = 0.3
-WorldLayout.BARRIER_FRONT_OUTER_PAD = 0.5 -- slab outer face beyond the post's outer face
-WorldLayout.BARRIER_FRONT_INNER_INSET = 2 -- = PlotLockGuard.MARGIN (tests/LockBarrier.spec checks)
-function WorldLayout.frontBarrier(): { size: Vec, centre: Vec, zOuter: number, zInner: number }
-	local s = WorldLayout.PLOT_SIZE
-	local wallZ = -s / 2 + 0.5
-	local depth = math.max(
-		meshSize(WorldLayout.GATE_POST_MESH, WorldLayout.FENCE_SCALE)[3],
-		meshSize(WorldLayout.FENCE_SEGMENT, WorldLayout.FENCE_SCALE)[3],
-		meshSize(WorldLayout.FENCE_MESH, WorldLayout.FENCE_SCALE)[3]
-	)
-	local zOuter = wallZ - depth / 2 - WorldLayout.BARRIER_FRONT_OUTER_PAD
-	local zInner = -(s / 2 - WorldLayout.BARRIER_FRONT_INNER_INSET)
-	local wall = PlotDecor.BARRIER_HEIGHT
+-- The doorway through jar 1's glass (plot-local, door at -Z). The stopper's collider (LockBarrier.Stopper) fills it
+-- from DOOR_OUTER_PAD outside the glass to the PlotLockGuard limit (DOOR_INNER_INSET in from the glass), so a
+-- character in the passage counts as inside and the stopper can never squeeze one in or out.
+WorldLayout.DOOR_OUTER_PAD = 0.5
+WorldLayout.DOOR_INNER_INSET = 2 -- = PlotLockGuard.MARGIN (tests/LockBarrier.spec checks)
+function WorldLayout.doorway(): { size: Vec, centre: Vec, halfWidth: number, zOuter: number, zInner: number }
+	local r = WorldLayout.jarRadius(1)
+	local zOuter = -(r + WorldLayout.JAR_WALL + WorldLayout.DOOR_OUTER_PAD)
+	local zInner = -(r - WorldLayout.DOOR_INNER_INSET)
+	local d = WorldLayout.DOOR
 	return {
-		size = { s + WorldLayout.BARRIER_SIDE_THICKNESS, wall, zInner - zOuter },
-		centre = { 0, 1 + wall / 2, (zOuter + zInner) / 2 },
+		size = { d.width, d.height, zInner - zOuter },
+		centre = { 0, WorldLayout.PLOT_FLOOR_TOP + d.height / 2, (zOuter + zInner) / 2 },
+		halfWidth = d.width / 2,
 		zOuter = zOuter,
 		zInner = zInner,
 	}
 end
 
--- Attribute-driven plot cosmetics (PlotDecor; VisualsClient shows / hides
--- them locally): lock barrier + lock sign, rebirth
--- trim / pillars / banners / crown, SlimeDex board. Shipped in their neutral
--- state: free plot, unlocked, no rebirths, empty dex.
+-- The floor (jar) whose storey holds plot-local height y, clamped to the tower.
+function WorldLayout.floorAt(y: number): number
+	return math.clamp(
+		math.floor((y - WorldLayout.PLOT_FLOOR_TOP) / WorldLayout.FLOOR_HEIGHT) + 1,
+		1,
+		#WorldLayout.JAR_RADII
+	)
+end
+
+local JAR_GLASS = { 200, 240, 244 }
+local JAR_CORK = { 214, 170, 116 }
+local JAR_GOO = { 110, 226, 170 }
+WorldLayout.JAR_GLASS_TRANSPARENCY = 0.6
+
+-- A box whose local +Z points out along plot-local angle `deg` at radius `r`, `size` = { tangential, height,
+-- radial }, its centre `y` up.
+local function radial(
+	name: string,
+	size: Vec,
+	r: number,
+	deg: number,
+	y: number,
+	at: (Vec) -> Vec,
+	yaw: number
+): WorldNode
+	local x, z = polar(r, deg)
+	return block(name, size, at({ x, y, z }), JAR_GLASS, "Glass", { 0, yaw + 90 - deg, 0 })
+end
+
+-- Attribute-driven plot cosmetics (PlotDecor; VisualsClient shows / hides them locally): the stopper lock and the
+-- lock sign, rebirth trim / pillars / banners / crown, SlimeDex board. Shipped in their neutral state: free plot,
+-- unlocked, no rebirths, empty dex.
 local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode }
 	local r = { 0, yaw, 0 }
 	local h = s / 2
 	local nodes: { WorldNode } = {}
 
-	-- Lock barrier: four ForceField panels around the plot (hidden = unlocked).
-	local wall = PlotDecor.BARRIER_HEIGHT
+	-- Lock: the cork Stopper fills jar 1's doorway (hidden and non-colliding = unlocked; the server makes it solid
+	-- while locked). The ParkedStopper lies in the moat beside the door while the plot is open.
+	local door = WorldLayout.doorway()
 	local barrier: WorldNode = { name = "LockBarrier", class = "Model", children = {} }
-	local front = WorldLayout.frontBarrier()
-	for _, side in
-		{
-			{ "Front", front.size, front.centre },
-			{ "Back", { s, wall, 0.3 }, { 0, 1 + wall / 2, h } },
-			{ "Left", { 0.3, wall, s }, { -h, 1 + wall / 2, 0 } },
-			{ "Right", { 0.3, wall, s }, { h, 1 + wall / 2, 0 } },
-		}
-	do
-		local panel = block(side[1], side[2], at(side[3]), PlotDecor.BARRIER_COLOR, "ForceField", r)
-		table.insert(barrier.children :: { WorldNode }, ghost(panel, 1))
-	end
+	local stopper = block("Stopper", door.size, at(door.centre), JAR_CORK, "Wood", r)
+	table.insert(barrier.children :: { WorldNode }, ghost(stopper, 1))
 	table.insert(nodes, barrier)
+	local moat = (WorldLayout.MOAT.inner + WorldLayout.MOAT.outer) / 2
+	local px, pz = polar(moat, WorldLayout.DOOR.angle - 22)
+	local parked = disc("ParkedStopper", 2.6, WorldLayout.DOOR.width * 0.8, at({ px, 1.4, pz }), JAR_CORK, "Wood", yaw)
+	table.insert(nodes, ghost(parked))
 
-	-- Lock sign next to the LockButton, facing the entrance (Front face). Wood
-	-- like the kit fence, not gunmetal (read as a grey slab: tools/render review).
-	local lockSign = ghost(block("LockSign", { 7, 2.6, 0.3 }, at({ 19, 7.2, -17.2 }), SIGN_BOARD, "Wood", r))
+	-- Lock sign behind the LockButton, facing out of the plot (Front face).
+	local bx, bz = WorldLayout.LOCK_BUTTON_SPOT[1], WorldLayout.LOCK_BUTTON_SPOT[2]
+	local lockSign = ghost(block("LockSign", { 7, 2.6, 0.3 }, at({ bx, 7.2, bz + 3.2 }), SIGN_BOARD, "Wood", r))
 	lockSign.children = {
-		ghost(block("Post", { 0.5, 5.6, 0.5 }, at({ 19, 3.8, -16.8 }), FENCE, "Wood", r)),
-		ghost(disc("Lamp", 0.4, 1.3, at({ 19, 8.7, -17.2 }), { 90, 220, 110 }, "Neon", yaw)),
+		ghost(block("Post", { 0.5, 5.6, 0.5 }, at({ bx, 3.8, bz + 3.6 }), FENCE, "Wood", r)),
+		ghost(disc("Lamp", 0.4, 1.3, at({ bx, 8.7, bz + 3.2 }), { 90, 220, 110 }, "Neon", yaw)),
 	}
 	table.insert(nodes, lockSign)
 
-	-- Rebirth cosmetics (PlotDecor.band): trim, pillars, banners, crown.
+	-- Rebirth cosmetics (PlotDecor.band): the trim ring round the moat, corner pillars, banners on the glass either
+	-- side of the door, the crown over the door.
 	local rebirth: WorldNode = { name = "RebirthDecor", class = "Model", children = {} }
 	local function add(node: WorldNode)
 		table.insert(rebirth.children :: { WorldNode }, ghost(node, 1))
 	end
 	local metal = { 168, 148, 110 } -- ranch_metal (pewter); blue-grey is off the ranch palette
-	add(block("Trim_Back", { s, 0.4, 1.3 }, at({ 0, 4.2, h - 0.5 }), metal, "Metal", r))
-	add(block("Trim_Left", { 1.3, 0.4, s }, at({ -h + 0.5, 4.2, 0 }), metal, "Metal", r))
-	add(block("Trim_Right", { 1.3, 0.4, s }, at({ h - 0.5, 4.2, 0 }), metal, "Metal", r))
+	add(disc("Trim_Moat", 0.3, (WorldLayout.MOAT.outer + 0.8) * 2, at({ 0, 0.92, 0 }), metal, "Metal", yaw))
 	for k, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
 		local x, z = corner[1] * (h - 1), corner[2] * (h - 1)
 		add(block(`Pillar_{k}`, { 2.2, 10, 2.2 }, at({ x, 6, z }), metal, "Marble", r))
@@ -1195,11 +1103,14 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 		cap.pos, cap.rot, cap.color, cap.material = at({ x, 12.3, z }), r, metal, "Neon"
 		add(cap)
 	end
-	-- Banners hang on both sides of the entrance Sign (posts at x = +-8.4).
-	add(block("Banner_L", { 3, 7, 0.15 }, at({ -10.4, 8.5, -h + 0.4 }), metal, "Fabric", r))
-	add(block("Banner_R", { 3, 7, 0.15 }, at({ 10.4, 8.5, -h + 0.4 }), metal, "Fabric", r))
+	local glassOut = WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL + 0.1
+	for k, deg in WorldLayout.BANNER_ANGLES do
+		local banner = radial(if k == 1 then "Banner_R" else "Banner_L", { 3, 7, 0.15 }, glassOut, deg, 8.5, at, yaw)
+		banner.color, banner.material = metal, "Fabric"
+		add(banner)
+	end
 	local crown = { name = "Crown", class = "Part", shape = "Ball", size = { 3, 3, 3 } } :: WorldNode
-	crown.pos, crown.rot, crown.color, crown.material = at({ 0, 15.5, -h + 0.5 }), r, metal, "Neon"
+	crown.pos, crown.rot, crown.color, crown.material = at({ 0, 14, -(glassOut + 1.5) }), r, metal, "Neon"
 	add(crown)
 	table.insert(nodes, rebirth)
 
@@ -1303,18 +1214,6 @@ local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): Wo
 	return pad
 end
 
-local JAR_GLASS = { 200, 240, 244 }
-local JAR_CORK = { 214, 170, 116 }
-local JAR_GOO = { 110, 226, 170 }
-WorldLayout.JAR_GLASS_TRANSPARENCY = 0.6
-
--- A box whose local +Z points out along plot-local angle `deg` at radius `r`, `size` = { tangential, height,
--- radial }, its centre `y` up.
-local function radial(name: string, size: Vec, r: number, deg: number, y: number, at: (Vec) -> Vec, yaw: number): WorldNode
-	local x, z = polar(r, deg)
-	return block(name, size, at({ x, y, z }), JAR_GLASS, "Glass", { 0, yaw + 90 - deg, 0 })
-end
-
 -- Jar f's glass wall: JAR_WALL_SEGMENTS collidable segments from floor f up to the deck (or lid) above; jar 1 has the
 -- door in the segment at DOOR.angle (a lintel over the opening). Glass never blocks prompts or raycasts.
 local function jarWall(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
@@ -1329,7 +1228,8 @@ local function jarWall(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		local node
 		if f == 1 and k == 1 then
 			local dh = WorldLayout.DOOR.height
-			node = radial("DoorLintel", { width, h - dh, WorldLayout.JAR_WALL }, r, deg, base + dh + (h - dh) / 2, at, yaw)
+			node =
+				radial("DoorLintel", { width, h - dh, WorldLayout.JAR_WALL }, r, deg, base + dh + (h - dh) / 2, at, yaw)
 		else
 			node = radial(`Wall_{k}`, { width, h, WorldLayout.JAR_WALL }, r, deg, base + h / 2, at, yaw)
 		end
@@ -1351,7 +1251,15 @@ local function jarDeck(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local width = 2 * outer * math.sin(math.pi / n) * 1.02
 	for k = 1, n do
 		local deg = (k - 0.5) * 360 / n
-		local node = radial(`Deck_{k}`, { width, 1, outer - inner }, (inner + outer) / 2, deg, WorldLayout.floorTop(f) - 0.5, at, yaw)
+		local node = radial(
+			`Deck_{k}`,
+			{ width, 1, outer - inner },
+			(inner + outer) / 2,
+			deg,
+			WorldLayout.floorTop(f) - 0.5,
+			at,
+			yaw
+		)
 		node.color = JAR_GOO
 		node.material = "SmoothPlastic"
 		table.insert(out, node)
@@ -1367,7 +1275,15 @@ local function jarStair(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local out = { disc("StairPost", h, st.post * 2, at({ 0, base + h / 2, 0 }), JAR_GOO, "SmoothPlastic", yaw) }
 	local mid = (st.post + st.outer) / 2
 	for k = 1, WorldLayout.stairSteps() do
-		local node = radial(`Tread_{k}`, { 2.9, 1, st.outer - st.post + 0.4 }, mid, WorldLayout.treadAngle(f, k), base + k - 0.5, at, yaw)
+		local node = radial(
+			`Tread_{k}`,
+			{ 2.9, 1, st.outer - st.post + 0.4 },
+			mid,
+			WorldLayout.treadAngle(f, k),
+			base + k - 0.5,
+			at,
+			yaw
+		)
 		node.color = JAR_CORK
 		node.material = "Wood"
 		table.insert(out, node)
@@ -1415,7 +1331,54 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 	hatch.color = JAR_CORK
 	hatch.material = "Wood"
 	table.insert(children, hatch)
-	local nodes: { WorldNode } = { { name = `Floor_{f}`, class = "Model", attributes = { FloorIndex = f }, children = children } }
+	-- The goo tube (decor, never collides): an arm from the hatch out through the glass, and this floor's length of
+	-- the upright tube down to the next arm below (floor 2's reaches the ground and its splash pool).
+	local tube = WorldLayout.DROP_TUBE
+	local armIn = WorldLayout.jarRadius(f) + WorldLayout.JAR_WALL
+	local armY = WorldLayout.floorTop(f) + 2
+	local arm = radial(
+		"TubeArm",
+		{ tube.width, tube.width, tube.radius - armIn },
+		(armIn + tube.radius) / 2,
+		WorldLayout.DROP_ANGLE,
+		armY,
+		at,
+		yaw
+	)
+	local lo = if f == 2 then WorldLayout.PLOT_FLOOR_TOP else WorldLayout.floorTop(f - 1) + 2
+	local tx, tz = polar(tube.radius, WorldLayout.DROP_ANGLE)
+	local pipe = disc(
+		"Tube",
+		armY + tube.width / 2 - lo,
+		tube.width,
+		at({ tx, (lo + armY + tube.width / 2) / 2, tz }),
+		JAR_GOO,
+		"Glass",
+		yaw
+	)
+	for _, node in { arm, pipe } do
+		node.color, node.material, node.transparency = JAR_GOO, "Glass", WorldLayout.JAR_GLASS_TRANSPARENCY
+		table.insert(children, ghost(node, WorldLayout.JAR_GLASS_TRANSPARENCY))
+	end
+	if f == 2 then
+		local land = WorldLayout.dropLanding()
+		table.insert(
+			children,
+			ghost(
+				disc(
+					"SplashPool",
+					0.2,
+					6,
+					at({ land[1], WorldLayout.PLOT_FLOOR_TOP + 0.1, land[3] }),
+					JAR_GOO,
+					"Glass",
+					yaw
+				)
+			)
+		)
+	end
+	local nodes: { WorldNode } =
+		{ { name = `Floor_{f}`, class = "Model", attributes = { FloorIndex = f }, children = children } }
 	for j = (f - 1) * Config.PADS_PER_FLOOR + 1, f * Config.PADS_PER_FLOOR do
 		table.insert(nodes, padNode(j, at, yaw, color))
 	end
@@ -1426,15 +1389,16 @@ local function plot(i: number): WorldNode
 	local centre, yaw = WorldLayout.plotCentre(i)
 	local at = frame(centre, yaw)
 	local s = WorldLayout.PLOT_SIZE
+	local r = { 0, yaw, 0 }
 	local color = PLOT_COLORS[(i - 1) % #PLOT_COLORS + 1]
 	local children: { WorldNode } = {
-		block("Base", { s, 1, s }, at({ 0, 0.5, 0 }), mix(color, PLOT_BASE_GREY, 0.55), "Pavement", { 0, yaw, 0 }),
+		block("Base", { s, 1, s }, at({ 0, 0.5, 0 }), mix(color, PLOT_BASE_GREY, 0.55), "Pavement", r),
 	}
 	for j = 1, Config.PADS_PER_FLOOR do
 		table.insert(children, padNode(j, at, yaw, color))
 	end
 
-	local zone = block("HomeZone", { s, 14, s }, at({ 0, 8, 0 }), color, "SmoothPlastic", { 0, yaw, 0 })
+	local zone = block("HomeZone", { s, 14, s }, at({ 0, 8, 0 }), color, "SmoothPlastic", r)
 	zone.transparency = 1
 	zone.canCollide = false
 	zone.canQuery = false
@@ -1442,146 +1406,61 @@ local function plot(i: number): WorldNode
 	zone.attributes = { ReachUp = (#Config.BASE_FLOORS - 1) * WorldLayout.FLOOR_HEIGHT }
 	table.insert(children, zone)
 
-	local vat = disc("MergeVat", 4, 9, at({ -19, 3, -14 }), { 150, 160, 180 }, "Metal", yaw)
-	vat.children = { disc("Goo", 0.4, 7.6, at({ -19, 5.1, -14 }), GOO, "Neon", yaw) }
-	table.insert(children, vat)
-
-	local button = disc("LockButton", 0.6, 4, at({ 19, 2.8, -14 }), { 255, 70, 70 }, "Neon", yaw)
-	button.children = { block("Pedestal", { 5, 1.5, 5 }, at({ 19, 1.75, -14 }), FENCE, "WoodPlanks", { 0, yaw, 0 }) }
-	table.insert(children, button)
-
-	-- Sign = the gate mesh's cream name board (PlotSigns writes on its Front
-	-- face), its bottom edge >= 9 above the walkway. Its front face sits just
-	-- proud of the board, its back face on the board's rim back: the text
-	-- sits on the board, nothing floats behind the beam (v28: "Plot 2 / Empty
-	-- plot" hung off the gate's back). Board, posts and beam are stand-ins:
-	-- the mesh draws them once it lands.
-	local wallZ = -s / 2 + 0.5
-	local board = WorldLayout.GATE_BOARD
-	local signY = 1 + board.centreY
-	local signFront, signBack = wallZ - board.front - 0.05, wallZ - board.back
-	local sign = standIn(
-		block(
-			"Sign",
-			{ board.width, board.height, signBack - signFront },
-			at({ 0, signY, (signFront + signBack) / 2 }),
-			SIGN,
-			"WoodPlanks",
-			{ 0, yaw, 0 }
-		),
-		"phoenix_gate"
+	-- Jar 1 (the static part of the tower): the goo moat and the cork floor inside it (decor on the Base, which stays
+	-- the walking surface), the bridge to the door, the glass wall with the door, and the lid.
+	local moat = WorldLayout.MOAT
+	table.insert(children, ghost(disc("Moat", 0.2, moat.outer * 2, at({ 0, 1, 0 }), JAR_GOO, "Glass", yaw)))
+	table.insert(children, ghost(disc("JarFloor", 0.2, moat.inner * 2, at({ 0, 1.02, 0 }), JAR_CORK, "Wood", yaw)))
+	local bridgeLen = s / 2 - WorldLayout.jarRadius(1)
+	local bridge = block(
+		"Bridge",
+		{ WorldLayout.BRIDGE_WIDTH, 0.4, bridgeLen },
+		at({ 0, 1.2, -(s / 2 - bridgeLen / 2) }),
+		WOOD,
+		"WoodPlanks",
+		r
 	)
-	local postH = signY + 1.2 - 1
-	sign.children = {
-		standIn(
-			block("PostL", { 0.8, postH, 0.8 }, at({ -8.4, 1 + postH / 2, wallZ }), WOOD, "Wood", { 0, yaw, 0 }),
-			"phoenix_gate"
-		),
-		standIn(
-			block("PostR", { 0.8, postH, 0.8 }, at({ 8.4, 1 + postH / 2, wallZ }), WOOD, "Wood", { 0, yaw, 0 }),
-			"phoenix_gate"
-		),
-		standIn(
-			block("Beam", { 17.6, 1.2, 0.8 }, at({ 0, signY + 1.2 + 0.6, wallZ }), WOOD, "Wood", { 0, yaw, 0 }),
-			"phoenix_gate"
-		),
-	}
-	table.insert(children, sign)
+	bridge.canQuery = false
+	table.insert(children, bridge)
+	local jar: WorldNode = { name = "Jar", class = "Model", children = jarWall(1, at, yaw) }
+	table.insert(jar.children :: { WorldNode }, jarLid(1, at, yaw))
+	table.insert(children, jar)
 
-	-- Fence: FENCE_MESH panels on the 20-stud grid on three sides plus the front either side of the GATE_SLOT
-	-- (FENCE_SEGMENT halves until it is uploaded, and beside the gate), so the gate is the only way in. The panels
-	-- are the collision (bug #11: MeshAssets.COLLISION Box, the whole panel is a wall; the invisible Wall* blocks
-	-- are gone). `solid`: the slot box collides until MeshSwap places the mesh, which then collides itself.
-	-- The gate is a kit mesh slot too.
-	local wh, r = WorldLayout.WALL_HEIGHT, { 0, yaw, 0 }
-	local slot, clear = WorldLayout.GATE_SLOT, WorldLayout.GATE_CLEAR
-	local fence: WorldNode = { name = "Fence", class = "Model", children = {} }
-	local panelUp = WorldLayout.fenceUploaded()
-	for _, seg in WorldLayout.fenceSegments() do
-		local turn = { 0, yaw + seg.yaw, 0 }
-		-- One kit slot `offset` studs along the piece (its local +X).
-		local function piece(name: string, mesh: string, offset: number): WorldNode
-			local a = math.rad(seg.yaw)
-			local size = meshSize(mesh, WorldLayout.FENCE_SCALE)
-			local pos = at({ seg.x + math.cos(a) * offset, 1 + size[2] / 2, seg.z - math.sin(a) * offset })
-			return meshSlot(solid(block(name, size, pos, FENCE, "WoodPlanks", turn)), mesh)
-		end
-		local node: WorldNode
-		if seg.length == WorldLayout.FENCE_SEGMENT_GRID then
-			node = piece(seg.name, WorldLayout.FENCE_SEGMENT, 0)
-		elseif panelUp then
-			node = piece(seg.name, WorldLayout.FENCE_MESH, 0)
-		else
-			local q = WorldLayout.FENCE_SEGMENT_GRID / 2
-			node = {
-				name = seg.name,
-				class = "Model",
-				primaryPart = "A",
-				attributes = { FenceMesh = WorldLayout.FENCE_MESH },
-				children = {
-					piece("A", WorldLayout.FENCE_SEGMENT, -q),
-					piece("B", WorldLayout.FENCE_SEGMENT, q),
-				},
-			}
-		end
-		table.insert(fence.children :: { WorldNode }, node)
-	end
-	-- Each piece has its post at its -X end and the sides run one way round
-	-- the loop (Back +X, Right -Z, Front -X, Left +Z), so the next piece's
-	-- post closes every joint and corner: one post each, never two. The gate
-	-- breaks the loop: the left gate segment starts there (post 0.82 out from
-	-- the stub), the right one ends there without a post, so a GATE_POST_MESH
-	-- mirrors that post on the right (one GatePost a plot).
-	local postSize = meshSize(WorldLayout.GATE_POST_MESH, WorldLayout.FENCE_SCALE)
-	local postX = slot / 2 + WorldLayout.FENCE_POST_INSET
+	local vat = WorldLayout.VAT_SPOT
+	local vx, vz = polar(vat.radius, vat.angle)
+	-- The VatDecor mesh (server/MeshSwap) is the vat's look; the stand-in is the plain tub.
 	table.insert(
-		fence.children :: { WorldNode },
-		meshSlot(
-			solid(block("GatePost", postSize, at({ postX, 1 + postSize[2] / 2, wallZ }), FENCE, "Wood", r)),
-			WorldLayout.GATE_POST_MESH
+		children,
+		disc(
+			"MergeVat",
+			VatDecor.DISC_HEIGHT,
+			VatDecor.DISC_DIAMETER,
+			at({ vx, 1 + VatDecor.DISC_HEIGHT / 2, vz }),
+			{ 150, 160, 180 },
+			"Metal",
+			yaw
 		)
 	)
-	table.insert(children, fence)
-	local postW = (slot - clear) / 2
-	-- The kit gate is built for this slot (14 clear, stubs to +-10): native size.
-	-- Kit FBX fronts face Roblox +Z (LESSONS kit gotcha): turn it 180 so the
-	-- name board faces out of the entrance.
-	local gateSize = meshSize("phoenix_gate", 1)
-	local gate: WorldNode = {
-		name = "Gate",
-		class = "Model",
-		primaryPart = "GateMesh",
-		children = {
-			meshSlot(
-				block("GateMesh", gateSize, at({ 0, 1 + gateSize[2] / 2, wallZ }), WOOD, nil, { 0, yaw + 180, 0 }),
-				"phoenix_gate",
-				true
-			),
-			standIn(
-				block(
-					"GatePostL",
-					{ postW, wh + 1, 1.2 },
-					at({ -(clear + postW) / 2, 1 + (wh + 1) / 2, -s / 2 + 0.5 }),
-					WOOD,
-					"Wood",
-					r
-				),
-				"phoenix_gate"
-			),
-			standIn(
-				block(
-					"GatePostR",
-					{ postW, wh + 1, 1.2 },
-					at({ (clear + postW) / 2, 1 + (wh + 1) / 2, -s / 2 + 0.5 }),
-					WOOD,
-					"Wood",
-					r
-				),
-				"phoenix_gate"
-			),
-		},
-	}
-	table.insert(children, gate)
+
+	local bx, bz = WorldLayout.LOCK_BUTTON_SPOT[1], WorldLayout.LOCK_BUTTON_SPOT[2]
+	local button = disc("LockButton", 0.6, 4, at({ bx, 2.8, bz }), { 255, 70, 70 }, "Neon", yaw)
+	button.children = { block("Pedestal", { 5, 1.5, 5 }, at({ bx, 1.75, bz }), FENCE, "WoodPlanks", r) }
+	table.insert(children, button)
+
+	-- Sign = jar 1's name label on the glass (PlotSigns writes on its Front face, which faces out of the jar).
+	local label = WorldLayout.LABEL
+	local lr = WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL + 0.2
+	local lx, lz = polar(lr, label.angle)
+	local sign = block(
+		"Sign",
+		{ label.width, label.height, 0.3 },
+		at({ lx, label.y, lz }),
+		SIGN,
+		"WoodPlanks",
+		{ 0, yaw + 270 - label.angle, 0 }
+	)
+	sign.canQuery = false
+	table.insert(children, sign)
 
 	for _, node in cosmetics(at, yaw, s) do
 		table.insert(children, node)

@@ -9,7 +9,7 @@
 
 	Plot attributes read (CONTRACT.md §5.2 + new ones, all optional):
 	  OwnerUserId  0 = free      -> LockSign shows no text
-	  LockUntil    server time   -> LockBarrier + LockSign "LOCKED m:ss" / "UNLOCKED"
+	  LockUntil    server time   -> LockBarrier stopper / ParkedStopper + LockSign "LOCKED m:ss" / "UNLOCKED"
 	  Locked       boolean (§8.4) -> used only when LockUntil is missing
 	  Rebirths                   -> RebirthDecor by PlotDecor.band (bands start at
 	                                the §8.8 ranks Goo Getter / Slime Wrangler /
@@ -32,9 +32,6 @@ local MeshAssets = if script
 
 local PlotDecor = {}
 
-PlotDecor.BARRIER_HEIGHT = 16
-PlotDecor.BARRIER_COLOR = { 90, 200, 255 }
-PlotDecor.BARRIER_TRANSPARENCY = 0.35 -- ForceField: lower = denser shimmer
 PlotDecor.GEM_OFF = { 70, 72, 84 }
 PlotDecor.DEX_TOTAL = 50 -- one entry per species (State.dexTotal)
 PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
@@ -142,10 +139,11 @@ end
 local function applyLock(plot: Instance, owned: boolean, locked: boolean, remaining: number)
 	local barrier = plot:FindFirstChild("LockBarrier")
 	if barrier then
-		for _, panel in barrier:GetChildren() do
-			show(panel, owned and locked, PlotDecor.BARRIER_TRANSPARENCY)
+		for _, part in barrier:GetChildren() do
+			show(part, owned and locked)
 		end
 	end
+	show(plot:FindFirstChild("ParkedStopper"), not (owned and locked))
 	local sign = plot:FindFirstChild("LockSign")
 	if not sign then
 		return
@@ -285,22 +283,24 @@ local function recall(part: BasePart)
 	end
 end
 
--- Fence panels, gate and gate post as they show: kit Mesh children, or the primitive
--- placeholders while no mesh landed (hidden placeholders are skipped).
-local function eachFencePart(plot: Instance, visit: (BasePart) -> ())
-	for _, name in { "Fence", "Gate" } do
-		local group = plot:FindFirstChild(name)
-		if group then
-			for _, d in group:GetDescendants() do
-				if d:IsA("BasePart") and d.Transparency < 1 then
-					visit(d)
-				end
-			end
+-- The jar's cork and trim as they show: the bridge, the jar floor, the parked stopper and every jar lid (hidden
+-- parts, like a lid under an upper jar, are skipped).
+PlotDecor.TRIM_PARTS = table.freeze({ "Bridge", "JarFloor", "ParkedStopper" })
+local function eachTrimPart(plot: Instance, visit: (BasePart) -> ())
+	for _, name in PlotDecor.TRIM_PARTS do
+		local part = plot:FindFirstChild(name)
+		if part and part:IsA("BasePart") and part.Transparency < 1 then
+			visit(part)
+		end
+	end
+	for _, d in plot:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("JarLid") ~= nil and d.Transparency < 1 then
+			visit(d)
 		end
 	end
 end
 
--- Floor colour / material, fence + gate tint and the decor mesh of one plot for skin `id`.
+-- Floor colour / material, cork and trim tint and the decor mesh of one plot for skin `id`.
 -- `slot` = the plot's Mailbox_<i> kit slot (Map.Decor) and `templates` =
 -- ReplicatedStorage.PlotSkinMeshes: the skin decor is a clone of its template standing where the
 -- slot's own mesh stands (that mesh is only hidden), so no world mesh slot is added. Idempotent;
@@ -318,8 +318,8 @@ function PlotDecor.applySkin(plot: Instance, id: any, slot: Instance?, templates
 			recall(base)
 		end
 	end
-	local tint = skin.fence
-	eachFencePart(plot, function(part)
+	local tint = skin.trim
+	eachTrimPart(plot, function(part)
 		if tint then
 			remember(part)
 			local own = part:GetAttribute(ORIG_COLOR)
