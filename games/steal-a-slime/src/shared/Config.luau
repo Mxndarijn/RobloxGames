@@ -34,7 +34,6 @@ export type RebirthTier = {
 	unlock: string?, -- upgrade id this rank unlocks (also Config.UPGRADES[i].requires)
 	keep: number?, -- slimes kept on rebirth
 	income: number?, -- income bonus (0.25 = +25 %)
-	lock: number?, -- extra seconds per bought lock
 	family: string?, -- FountainTiers family id this rank opens (FEATURES.FountainTiers; FountainTiers.FAMILIES)
 }
 
@@ -193,25 +192,66 @@ local RARITIES: { Rarity } = {
 	},
 }
 
--- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player
--- to own one slime of this SlimeRoster species (data.slimes, i.e. on a pad).
--- Not consumed: the normal rebirth wipe applies, so keep it as the keeper if
--- the next level needs it again. Rarity escalates; a level without an entry
--- uses the last entry below it (Progression.requiredSpecies).
-local REBIRTH_SLIMES: { [number]: string } = {
-	[1] = "bumble", -- Uncommon
-	[2] = "froggo",
-	[3] = "lop", -- Rare
-	[4] = "moo",
-	[5] = "blaze", -- Epic
-	[6] = "octo",
-	[7] = "king", -- Legendary
-	[8] = "ninja",
-	[9] = "cosmo", -- Mythic
-	[10] = "cosmo",
-	[15] = "midas", -- Secret
-	[20] = "eclipse",
+-- Rebirth N (the Nth rebirth, i.e. done at N-1 rebirths) also needs the player to own these SlimeRoster
+-- species (data.slimes, i.e. on a pad; a repeated id needs that many). Every level has its own list, and
+-- the rebirth uses them up: those slimes are gone, even the favourite (Progression.rebirth). A family
+-- species only shows up once that family is open (FountainTiers), merge hybrids follow their recipe's
+-- inputs, and event Secrets are never asked for.
+local REBIRTH_SLIMES: { { string } } = {
+	{ "bumble" }, -- 1
+	{ "froggo" },
+	{ "whiskers" },
+	{ "prickles" },
+	{ "lop" }, -- 5
+	{ "flan", "bumble" },
+	{ "moo", "mushie" },
+	{ "blaze" },
+	{ "pengoo", "chomp" },
+	{ "octo" }, -- 10
+	{ "moo_shroom" },
+	{ "frostbite", "whiskers" },
+	{ "zap", "lop" },
+	{ "imp" },
+	{ "king" }, -- 15
+	{ "drako", "froggo" },
+	{ "bloom", "honey_toad" },
+	{ "ninja" },
+	{ "truffle", "rocky_road" },
+	{ "robo" }, -- 20
+	{ "snow_bunny", "catfish" },
+	{ "blaze", "octo" },
+	{ "sushi" },
+	{ "frostbite", "zap", "imp" },
+	{ "cosmo" }, -- 25
+	{ "steam" },
+	{ "king", "ninja" },
+	{ "kraken" },
+	{ "drako", "imp", "octo" },
+	{ "seraph" }, -- 30
+	{ "thunderbee" },
+	{ "robo", "king" },
+	{ "amethyst" },
+	{ "steam", "kraken" },
+	{ "prism" }, -- 35
+	{ "dragon_king" },
+	{ "seraph", "amethyst" },
+	{ "cyber_ninja" },
+	{ "cosmo", "prism" },
+	{ "midas" }, -- 40
+	{ "goozilla" },
+	{ "dragon_king", "cyber_ninja" },
+	{ "queen_jelly" },
+	{ "boo" },
+	{ "cosmo", "seraph", "amethyst" }, -- 45
+	{ "eclipse" },
+	{ "nightwing" },
+	{ "midas", "boo" },
+	{ "mecha_goo" },
+	{ "eclipse", "nightwing", "mecha_goo" }, -- 50
 }
+for _, list in REBIRTH_SLIMES do
+	table.freeze(list)
+end
 
 local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 0, title = "Slime Rookie" },
@@ -220,9 +260,9 @@ local REBIRTH_TIERS: { RebirthTier } = {
 	{ rebirths = 5, title = "Blob Baron", unlock = "Luck" },
 	{ rebirths = 6, title = "Goo Tycoon", keep = 2, family = "frost" },
 	{ rebirths = 7, title = "Jelly Magnate", income = 0.1 },
-	{ rebirths = 8, title = "Ooze Overlord", lock = 30 },
+	{ rebirths = 8, title = "Ooze Overlord", income = 0.15 },
 	{ rebirths = 10, title = "Slime Sovereign", keep = 3, income = 0.25, family = "starlight" },
-	{ rebirths = 12, title = "Gel Emperor", lock = 60 },
+	{ rebirths = 12, title = "Gel Emperor", income = 0.35 },
 	{ rebirths = 15, title = "Gelatinous Legend", keep = 4, income = 0.5 },
 	{ rebirths = 20, title = "Mythic Monarch", income = 1 },
 	{ rebirths = 30, title = "Slime Deity", keep = 5, income = 2 },
@@ -505,16 +545,16 @@ local function fun(
 	return tool
 end
 local PVP_TOOLS: { PvpTool } = {
-	knock("KnockGlove1", "Bonk Glove", 1, 1, 5, { special = "bonk" }),
-	knock("KnockGlove2", "Bounce Glove", 2, 5, 6, { special = "bounce", pogo = { 6, 4, 2 } }),
-	knock("KnockGlove3", "Boom Glove", 3, 8, 7, { special = "boom", blastRadius = 5, blastPush = 4 }),
-	knock("KnockGlove4", "Thunder Glove", 4, 12, 7.5, {
+	knock("KnockGlove1", "Bonk Glove", 1, 1, 12, { special = "bonk" }),
+	knock("KnockGlove2", "Bounce Glove", 2, 5, 15, { special = "bounce", pogo = { 6, 4, 2 } }),
+	knock("KnockGlove3", "Boom Glove", 3, 8, 18, { special = "boom", blastRadius = 6, blastPush = 8 }),
+	knock("KnockGlove4", "Thunder Glove", 4, 12, 22, {
 		special = "thunder",
 		chain = 2,
 		chainRange = 12,
 		chainFactor = 0.5,
 	}),
-	knock("KnockGlove5", "Royal Glove", 5, 20, 10, { special = "royal", arc = 6 }),
+	knock("KnockGlove5", "Royal Glove", 5, 20, 26, { special = "royal", arc = 8 }),
 	trap("GooTrap1", "Goo Puddle", 1, 3, { radius = 3, slow = 0.5, slowSeconds = 2 }),
 	trap("GooTrap2", "Sticky Trap", 2, 6, { radius = 3.5, control = 1.5, slow = 0.5, slowSeconds = 1.5 }),
 	trap("GooTrap3", "Mega Trap", 3, 10, { radius = 4, control = 2, pull = 4, push = 4, spitArc = 3 }),
@@ -632,13 +672,13 @@ local Config = {
 	WELCOME_BACK_MIN_SECONDS = 4 * 60 * 60, -- away at least this long = a welcome-back card on join
 
 	-- Rebirth
-	REBIRTH_BASE_COST = 5000,
-	REBIRTH_COST_GROWTH = 3,
+	REBIRTH_BASE_COST = 40000,
+	REBIRTH_COST_GROWTH = 4.5,
 	REBIRTH_MULTIPLIER_STEP = 0.5, -- +50 % income per rebirth
 	MAX_REBIRTHS = 50,
-	REBIRTH_LATE_FROM = 5, -- from this many rebirths on, the cost grows by REBIRTH_COST_GROWTH_LATE
-	REBIRTH_COST_GROWTH_LATE = 2,
-	REBIRTH_SLIMES = table.freeze(REBIRTH_SLIMES), -- required species per rebirth level
+	REBIRTH_LATE_FROM = 4, -- from this many rebirths on, the cost grows by REBIRTH_COST_GROWTH_LATE
+	REBIRTH_COST_GROWTH_LATE = 2.25,
+	REBIRTH_SLIMES = table.freeze(REBIRTH_SLIMES), -- species each rebirth needs and uses up, one list per level
 	REBIRTH_TIERS = table.freeze(REBIRTH_TIERS), -- ranks (CONTRACT.md §8.8)
 
 	-- Permanent upgrades (Request("BuyUpgrade", id)), goals and SlimeDex rewards (CONTRACT.md §8.8)
@@ -653,8 +693,8 @@ local Config = {
 	-- Lock / steal
 	JOIN_LOCK_SECONDS = 45,
 	LOCK_SECONDS = 60,
-	LOCK_SECONDS_PER_REBIRTH = 10,
-	LOCK_MAX_REMAINING = 300, -- extending can never push the lock past 5 min
+	LOCK_SECONDS_PER_REBIRTH = 10, -- a bought lock lasts this much longer per rebirth, up to LOCK_MAX_REMAINING
+	LOCK_MAX_REMAINING = 180, -- the longest lock: one purchase or several stacked never go past 3 min
 	LOCK_BASE_COST = 25,
 	REVENGE_SECONDS = 60, -- FEATURES.Revenge: how long a robbed player sees the thief's plot, and the thief pays more for locks
 	REVENGE_LOCK_COST_MULT = 2, -- FEATURES.Revenge: lock price multiplier for a thief inside any victim's window
@@ -681,9 +721,6 @@ local Config = {
 	BASE_WALK_SPEED = 16,
 
 	-- Shop (permanent, kept on rebirth)
-	LOCK_UPGRADE_MAX = 5,
-	LOCK_UPGRADE_SECONDS = 15, -- every bought lock lasts this much longer per level
-	LOCK_UPGRADE_COSTS = table.freeze({ 500, 2000, 8000, 30000, 100000 }), -- price of level 1..MAX
 	SPEED_COIL_PRICE = 1500,
 	SPEED_COIL_WALK_SPEED = 22, -- base WalkSpeed; the carry slowdown applies to it
 
@@ -886,8 +923,7 @@ local Config = {
 		DRAIN_GRACE = 1, -- seconds without a hit before the drain starts
 		SHED_EVERY = 0.25, -- meter share between sheds
 		SHED_COUNT = 2, -- wild slimes per shed
-		BURST_COUNT = 6, -- wild slimes when the boss fails
-		DROP_LUCK = 3, -- luck multiplier on shed and burst slimes
+		DROP_LUCK = 3, -- luck multiplier on shed slimes
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
@@ -1171,12 +1207,12 @@ local Config = {
 		PRICE_FACTOR_TRAP = 0.006, -- one Goo Trap charge (used up when it catches someone)
 		PRICE_MIN = 100,
 		-- Knockback: the push is capped, the arc is capped, and the landing point stays inside the map.
-		KNOCKBACK_MAX_PUSH = 15, -- studs (the Royal Glove power punch, 10 x CHARGE_PUSH)
-		KNOCKBACK_ARC_HEIGHT = 6, -- studs of vertical arc at most (Royal Glove, the first Bounce Glove pogo)
-		KNOCKBACK_DEFAULT_ARC = 2, -- studs of arc of a glove row without its own `arc`
-		KNOCKBACK_BOUNDS_MARGIN = 10, -- studs kept clear of the map edge (covers the friction-boost overshoot of a max push)
+		KNOCKBACK_MAX_PUSH = 40, -- studs (the Royal Glove power punch, 26 x CHARGE_PUSH); gloves push 2.4-5x the Bat
+		KNOCKBACK_ARC_HEIGHT = 8, -- studs of vertical arc at most (Royal Glove)
+		KNOCKBACK_DEFAULT_ARC = 3, -- studs of arc of a glove row without its own `arc`
+		KNOCKBACK_BOUNDS_MARGIN = 20, -- studs kept clear of the map edge (covers the friction-boost overshoot of a max push)
 		KNOCKBACK_SECONDS = 0.35, -- the launch covers the push in this long
-		KNOCKBACK_FRICTION_BOOST = 1.5, -- horizontal launch speed x this, ground friction eats the rest (the landing stays clamped inside the map margin)
+		KNOCKBACK_FRICTION_BOOST = 1, -- horizontal launch speed x this; 1 = the target lands about `push` studs away (Studio-measured: PlatformStand keeps friction off during the push)
 		KNOCKBACK_MAX_SPEED_Y = 110, -- studs/s: client-side cap on a launch's vertical speed (Bounce Pad 25 studs needs ~99)
 		LAUNCH_GUARD_SECONDS = 5, -- after a PvP launch / while under control the void guard (Rescue.PVP_SAFE_Y) is armed
 		KNOCKBACK_CONTROL_SECONDS = 0.6, -- a knockback counts as control (PvpRules.applyControl), then immunity

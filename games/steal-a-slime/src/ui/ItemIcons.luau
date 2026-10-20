@@ -77,7 +77,6 @@ ItemIcons.IMAGES = {
 	Goal_Rebirth = 123035773985810,
 	Goal_Steal = 94010775081099,
 	Lock = 80470044151843,
-	LockUpgrade = 127943211946057,
 	MysteryEgg = 140462029142577,
 	Perk_income = 94766482619711,
 	Perk_luck = 80060700315838,
@@ -165,14 +164,6 @@ local HAND: { Hand } = {
 		color = { 90, 140, 230 },
 		glyph = "🔒",
 		brief = "Chunky brass padlock, closed, shackle up, blue enamel face plate; 3/4 view from front-left, soft shadow underneath. Defence gear.",
-	},
-	{
-		id = "LockUpgrade",
-		name = "Longer locks",
-		group = "shop",
-		color = { 70, 180, 200 },
-		glyph = "⏱️",
-		brief = "The brass padlock with a small stopwatch hung on its shackle and a little green up-arrow; 3/4 view, teal accents.",
 	},
 	{
 		id = "SpeedCoil",

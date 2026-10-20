@@ -14,10 +14,11 @@
 	      Model's box is the skin's box.
 	  Props.speedCoil(): Tool            "SpeedCoil"; "Handle" Part with
 	      welded coil rings, all Massless, CanCollide false, unanchored.
-	  Props.tutorialNpc(): Model         "TutorialNpc"; R6-ish primitives
-	      (HumanoidRootPart (PrimaryPart), Torso, Head, Left/Right Arm,
-	      Left/Right Leg), slime hat, "NameTag" BillboardGui, and an
-	      Attachment "ArrowStart" above the head. Anchored, no Humanoid.
+	  Props.tutorialNpc(): Model         "TutorialNpc"; R6-ish primitives laid
+	      out like its ranch_guide skin (HumanoidRootPart (PrimaryPart), Torso,
+	      Head, Left/Right Arm, Left/Right Leg), straw hat, slime hat, an
+	      invisible "Bounds" part (the skin's box), "NameTag" BillboardGui on
+	      Head, and an Attachment "ArrowStart" above the hat. Anchored, no Humanoid.
 	  Props.leaderboardBoard(): Model    "LeaderboardBoard"; PrimaryPart
 	      "Board" with SurfaceGui "BoardGui" (Front face) > Frame "Content"
 	      > TextLabel "Title" + Frame "Rows" (UIListLayout). The UI fills Rows.
@@ -318,43 +319,68 @@ end
 
 -- Tutorial NPC -------------------------------------------------------------
 
+-- The primitive Guide follows the ranch_guide skin's layout (shared/modeling-kit/models/ranch_guide.py), at
+-- GUIDE_SCALE studs per kit unit: the skin's head lands on Head (the NameTag's part), and the body parts it hides
+-- are its colliders. Kit (x, y, z-up, front -y) -> Model local (-x, z, y), front -Z.
+local GUIDE_SCALE = 0.7825
+-- The skin's bounding box in kit units (centre, size): an invisible Bounds part pins the Model's box to it, so
+-- MeshSwap centres the skin exactly on this body.
+local GUIDE_BOUNDS_CENTRE = { 0.3396, 0.05, 3.9935 }
+local GUIDE_BOUNDS_SIZE = { 4.765, 3.481, 7.987 }
+local GUIDE_TOP = 7.987 -- kit z of the skin's top (the slime on the hat)
+
+local function guidePos(x: number, y: number, z: number): Vector3
+	return Vector3.new(-x, z, y) * GUIDE_SCALE
+end
+
+local function guideSize(x: number, y: number, z: number): Vector3
+	return Vector3.new(x, z, y) * GUIDE_SCALE
+end
+
+-- A limb from `top` (kit) along the kit x-z direction (dx, dz), `length` kit units long, as a Part whose Y axis is
+-- the limb's axis.
+local function guideLimb(m: Model, name: string, top: { number }, dx: number, dz: number, length: number, color: Color3)
+	local d = math.sqrt(dx * dx + dz * dz)
+	dx, dz = dx / d, dz / d
+	local centre = guidePos(top[1] + dx * length / 2, top[2], top[3] + dz * length / 2)
+	-- Model-local axis pointing from the far end back to the top.
+	local up = Vector3.new(dx, -dz, 0)
+	local right = Vector3.new(up.Y, -up.X, 0)
+	local cf = CFrame.fromMatrix(centre, right, up, Vector3.new(0, 0, 1))
+	return part(m, name, guideSize(0.85, 0.85, length), cf, color, {})
+end
+
 function Props.tutorialNpc(): Model
 	local m = Instance.new("Model")
 	m.Name = "TutorialNpc"
-	local skin, shirt, pants = rgb(255, 214, 170), rgb(80, 170, 255), rgb(60, 70, 110)
+	local skin, shirt, denim = rgb(255, 210, 166), rgb(214, 92, 84), rgb(84, 140, 214)
+	local straw, goo = rgb(252, 216, 110), rgb(110, 226, 170)
 	local root = part(
 		m,
 		"HumanoidRootPart",
-		Vector3.new(2, 2, 1),
-		CFrame.new(0, 3, 0),
+		guideSize(2.1, 1.15, 2.1),
+		CFrame.new(guidePos(0, 0, 3.3)),
 		shirt,
 		{ transparency = 1, canCollide = false }
 	)
-	part(m, "Torso", Vector3.new(2, 2, 1), CFrame.new(0, 3, 0), shirt, {})
-	part(m, "Left Leg", Vector3.new(1, 2, 1), CFrame.new(-0.5, 1, 0), pants, {})
-	part(m, "Right Leg", Vector3.new(1, 2, 1), CFrame.new(0.5, 1, 0), pants, {})
-	part(m, "Left Arm", Vector3.new(1, 2, 1), CFrame.new(-1.5, 3, 0), skin, {})
-	-- Right arm raised, waving / pointing.
-	part(
-		m,
-		"Right Arm",
-		Vector3.new(1, 2, 1),
-		CFrame.new(1.5, 4, 0) * CFrame.Angles(0, 0, math.rad(150)) * CFrame.new(0, -0.5, 0),
-		skin,
-		{}
-	)
-	local head = part(m, "Head", Vector3.new(2, 1, 1), CFrame.new(0, 4.5, 0), skin, {})
-	local mesh = Instance.new("SpecialMesh")
-	mesh.MeshType = Enum.MeshType.Head
-	mesh.Scale = Vector3.new(1.25, 1.25, 1.25)
-	mesh.Parent = head
-	for side, x in { L = -0.3, R = 0.3 } do
+	part(m, "Torso", guideSize(2.1, 1.15, 2.1), CFrame.new(guidePos(0, 0, 3.3)), shirt, {})
+	local bib =
+		part(m, "Bib", guideSize(1.3, 0.2, 1.4), CFrame.new(guidePos(0, -0.56, 2.95)), denim, { canCollide = false })
+	bib.CanQuery = false
+	-- Kit -x is the Guide's right (local +X).
+	part(m, "Right Leg", guideSize(0.9, 1.0, 2.3), CFrame.new(guidePos(-0.5, 0, 1.15)), denim, {})
+	part(m, "Left Leg", guideSize(0.9, 1.0, 2.3), CFrame.new(guidePos(0.5, 0, 1.15)), denim, {})
+	-- Right arm relaxed, left arm raised in a wave (hands included).
+	guideLimb(m, "Right Arm", { -1.4, 0, 4.1 }, -math.sin(math.rad(8)), -math.cos(math.rad(8)), 2.2, shirt)
+	guideLimb(m, "Left Arm", { 1.3, 0, 4.0 }, math.sin(math.rad(145)), -math.cos(math.rad(145)), 2.25, shirt)
+	local head = part(m, "Head", guideSize(1.75, 1.55, 1.65), CFrame.new(guidePos(0, 0, 5.375)), skin, {})
+	for side, x in { L = 0.36, R = -0.36 } do
 		local eye = part(
 			m,
 			`Eye{side}`,
-			Vector3.new(0.18, 0.28, 0.05),
-			CFrame.new(x, 4.6, -0.6),
-			rgb(30, 30, 40),
+			guideSize(0.22, 0.06, 0.32),
+			CFrame.new(guidePos(x, -0.8, 5.45)),
+			rgb(40, 34, 44),
 			{ canCollide = false }
 		)
 		eye.CanQuery = false
@@ -362,29 +388,57 @@ function Props.tutorialNpc(): Model
 	local smile = part(
 		m,
 		"Smile",
-		Vector3.new(0.5, 0.08, 0.05),
-		CFrame.new(0, 4.25, -0.6),
-		rgb(150, 50, 60),
+		guideSize(0.5, 0.06, 0.1),
+		CFrame.new(guidePos(0, -0.8, 5.0)),
+		rgb(40, 34, 44),
 		{ canCollide = false }
 	)
 	smile.CanQuery = false
+	for _, piece in
+		{
+			{ "HatBrim", 0.45, 3.5, 6.23 },
+			{ "HatCrown", 1.1, 1.9, 6.7 },
+		}
+	do
+		local p = part(
+			m,
+			piece[1],
+			Vector3.new(piece[2], piece[3], piece[3]) * GUIDE_SCALE,
+			CFrame.new(guidePos(0, 0.05, piece[4])) * UPRIGHT,
+			straw,
+			{ shape = "Cylinder", canCollide = false }
+		)
+		p.CanQuery = false
+	end
 	local hat = part(
 		m,
 		"SlimeHat",
-		Vector3.new(1.8, 1.3, 1.8),
-		CFrame.new(0, 5.6, 0),
-		rgb(120, 255, 140),
-		{ shape = "Ball", material = "Glass", transparency = 0.15, canCollide = false }
+		Vector3.one * 1.24 * GUIDE_SCALE,
+		CFrame.new(guidePos(0.05, 0.2, GUIDE_TOP - 0.62)),
+		goo,
+		{ shape = "Ball", canCollide = false }
 	)
 	hat.CanQuery = false
 	local arrowStart = Instance.new("Attachment")
 	arrowStart.Name = "ArrowStart"
-	arrowStart.Position = Vector3.new(0, 1.2, 0)
+	arrowStart.Position = Vector3.new(0, 0.6, 0)
 	arrowStart.Parent = hat
+	local c, s = GUIDE_BOUNDS_CENTRE, GUIDE_BOUNDS_SIZE
+	local bounds = part(
+		m,
+		"Bounds",
+		guideSize(s[1], s[2], s[3]),
+		CFrame.new(guidePos(c[1], c[2], c[3])),
+		shirt,
+		{ transparency = 1, canCollide = false }
+	)
+	bounds.CanQuery = false
+	bounds.CanTouch = false
 	local tag = Instance.new("BillboardGui")
 	tag.Name = "NameTag"
 	tag.Size = UDim2.fromOffset(160, 40)
-	tag.StudsOffset = Vector3.new(0, 2.6, 0)
+	-- Straight above the head, clear of the slime on the hat.
+	tag.StudsOffset = Vector3.new(0, (GUIDE_TOP - 5.375) * GUIDE_SCALE + 0.9, 0)
 	tag.AlwaysOnTop = false
 	tag.MaxDistance = 80
 	tag.Parent = head

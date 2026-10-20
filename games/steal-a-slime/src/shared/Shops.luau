@@ -4,8 +4,8 @@
 
 	The catalogue of the two world shops, one source for the server (ShopBuy item membership, which existing
 	action a purchase delegates to) and for the client UI. Names / icons / text come from Config (UPGRADES,
-	CONSUMABLES, PVP_TOOLS); Lock, Longer locks and Speed Coil are the strings the HUD Shop already
-	shows. Ids are action args and save keys: never rename. Pure: no Roblox APIs.
+	CONSUMABLES, PVP_TOOLS); Speed Coil is the string the HUD Shop already shows. Locks are not sold
+	here: the lock button on your own plot buys them (Steal.buyLock). Ids are action args and save keys: never rename. Pure: no Roblox APIs.
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -53,7 +53,6 @@ local function item(
 end
 
 local itemRows: { Item } = {
-	item("Lock", "Lock base", "🔒", "Blocks thieves.", "Lock", false, nil),
 	-- An item, not an upgrade: it works while it is held in the hand (a Tool in the Backpack, a hotbar slot).
 	item("SpeedCoil", "Speed Coil", "⚡", "Run faster, also while carrying", "BuySpeedCoil", false, nil),
 }
@@ -64,9 +63,7 @@ for _, tool in Config.PVP_TOOLS do
 	table.insert(itemRows, item(tool.id, tool.name, "🎯", tool.name, "BuyPvpItem", true, "PvP"))
 end
 
-local upgradeRows: { Item } = {
-	item("LockUpgrade", "Longer locks", "⏱️", "Every lock lasts longer.", "BuyLockUpgrade", false, nil),
-}
+local upgradeRows: { Item } = {}
 local UPGRADE_ICONS: { [string]: string } = { Income = "🍪", CarrySpeed = "💪", OfflineCap = "🌙", Luck = "🍀" }
 for _, def in Config.UPGRADES do
 	table.insert(
@@ -144,7 +141,7 @@ function Shops.shopOf(itemId: any): string?
 	return nil
 end
 
--- The shop whose purchase action is `action` (Lock, BuySpeedCoil, BuyUpgrade, ...), or nil for any other action.
+-- The shop whose purchase action is `action` (BuySpeedCoil, BuyUpgrade, ...), or nil for any other action.
 function Shops.shopOfAction(action: any): string?
 	for _, shopId in Shops.ORDER do
 		for _, row in (Shops.SHOPS[shopId] :: Shop).items do

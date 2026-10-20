@@ -4,7 +4,7 @@
 
 	The boss event over World: the schedule (world.nextBossAt, skipped around Slime Rain), the rotation
 	(world.bossIndex), the running event (world.boss = Shared.BossFight state + the wild boss slime), Bat hits on the
-	boss, sheds and bursts (Spawner.spawnBonus), the slap that drops the
+	boss, its sheds (Spawner.spawnBonus), the slap that drops the
 	hauled boss on the spot, and State.boss. Grabbing and bringing the boss home go through Carry (grabWild /
 	depositBoss). Every change marks every session dirty, so State.boss is pushed to everyone.
 ]]
@@ -135,8 +135,8 @@ local function startHaul(world: World, event: World.BossEvent, now: number)
 	World.notify(world, nil, text, "good", "Rain")
 end
 
--- Fight or haul lost: the boss (carried or not) bursts into BOSS.BURST_COUNT wild slimes.
-local function burst(world: World, event: World.BossEvent, now: number, reason: string)
+-- Fight or haul lost: the boss (carried or not) gets away. No slimes: the sheds were the fight's reward.
+local function escape(world: World, event: World.BossEvent, now: number, reason: string)
 	local id = event.slimeId
 	if id then
 		local carrier = world.carriedBy[id]
@@ -147,10 +147,9 @@ local function burst(world: World, event: World.BossEvent, now: number, reason: 
 		world.carriedBy[id] = nil
 		event.slimeId = nil
 	end
-	Spawner.spawnBonus(world, now, BOSS.BURST_COUNT, BOSS.DROP_LUCK)
 	local text = if reason == "fight"
-		then "The boss got away! It burst into wild slimes. Grab them!"
-		else "Nobody brought the boss home! It burst into wild slimes. Grab them!"
+		then "The boss got away! Fill the meter faster next time."
+		else "Nobody brought the boss home! It got away."
 	World.notify(world, nil, text, "info", "Rain")
 end
 
@@ -184,7 +183,7 @@ function BossEvent.step(world: World, now: number)
 		elseif e.kind == "haul" then
 			startHaul(world, event, now)
 		elseif e.kind == "fail" then
-			burst(world, event, now, (e :: any).reason)
+			escape(world, event, now, (e :: any).reason)
 		end
 		World.markAllDirty(world)
 	end

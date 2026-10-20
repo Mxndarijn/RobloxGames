@@ -78,7 +78,9 @@ describe("PvpRules pricing and gating", function()
 		expect(PvpRules.price("KnockGlove1")).toBe(math.floor(0.03 * Economy.rebirthCost(1)))
 		expect(PvpRules.price("KnockGlove5")).toBe(math.floor(0.03 * Economy.rebirthCost(20)))
 		expect(PvpRules.price("FunBalloon")).toBe(math.floor(0.01 * Economy.rebirthCost(1)))
-		expect(PvpRules.price("FunConfetti")).toBe(PVP.PRICE_MIN) -- gate 0: 50 -> the minimum
+		expect(PvpRules.price("FunConfetti")).toBe(
+			math.max(PVP.PRICE_MIN, math.floor(PVP.PRICE_FACTOR_FUN * Economy.rebirthCost(0)))
+		)
 		expect(PvpRules.price("GooTrap2")).toBe(
 			math.max(PVP.PRICE_MIN, math.floor(PVP.PRICE_FACTOR_TRAP * Economy.rebirthCost(6)))
 		)
@@ -301,12 +303,12 @@ describe("PvpRules.clampKnockback", function()
 		expect(landing.X).toBe(PVP.MAP_BOUNDS.maxX - PVP.KNOCKBACK_BOUNDS_MARGIN)
 		expect(landing.Z).toBe(PVP.MAP_BOUNDS.minZ + PVP.KNOCKBACK_BOUNDS_MARGIN)
 		local custom = PvpRules.clampKnockback({ X = 0, Y = 0, Z = 0 }, { X = 8, Y = 0, Z = 0 }, {
-			minX = -10,
-			maxX = 10,
-			minZ = -10,
-			maxZ = 10,
+			minX = -40,
+			maxX = 40,
+			minZ = -40,
+			maxZ = 40,
 		})
-		expect(custom.X).toBe(10 - PVP.KNOCKBACK_BOUNDS_MARGIN)
+		expect(custom.X).toBe(math.min(8, 40 - PVP.KNOCKBACK_BOUNDS_MARGIN))
 	end)
 	it("pulls an origin that is already outside back in and survives NaN", function()
 		local landing = PvpRules.clampKnockback({ X = 5000, Y = 0, Z = -5000 }, { X = 0 / 0, Y = 0 / 0, Z = 1 })

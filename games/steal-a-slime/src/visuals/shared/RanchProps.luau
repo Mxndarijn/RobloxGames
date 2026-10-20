@@ -61,7 +61,6 @@ RanchProps.CLUSTERS = table.freeze({ "plaza", "entrance", "farm", "yard" })
 -- every MeshAssets entry has a slot today. Add { mesh = reason } here rather
 -- than leaving an asset silently unused (tests/RanchProps.spec enforces it).
 RanchProps.INTENTIONALLY_UNPLACED = table.freeze({
-	ranch_lantern_post = "its entrance slots became the odd plots' mailboxes (v29 B2); no spare decor slot",
 	ranch_border_fence_broken = "border v3 slot trim: merged into a sibling design to stay under the 400 mesh-slot gate; mesh kept uploaded",
 	ranch_border_hedge_stepped = "border v3 slot trim: merged into a sibling design to stay under the 400 mesh-slot gate; mesh kept uploaded",
 	ranch_border_pine_twin = "border v3 slot trim: merged into a sibling design to stay under the 400 mesh-slot gate; mesh kept uploaded",
@@ -115,6 +114,14 @@ polar("HorseshoePit", "ranch_horseshoe_pit", "plaza", 292.5, 90, 180, 1.2)
 polar("GooSign", "ranch_goo_sign", "plaza", 337.5, 91, 180, 1.2)
 polar("Birdhouse", "ranch_birdhouse", "plaza", 330, 93, 180, 1.2)
 polar("Planter", "ranch_flower_planter", "plaza", 56, 90, 180, 1.2)
+-- The Guide's corner (TutorialNpc spot, 247.5 / r 90, PropClearance.SPOT_RADII): the ranch hand's hay, feed and
+-- goo round the sides and back, a lantern behind; the plaza side stays open to walk up to the Guide.
+polar("GuideHay", "ranch_hay_bale", "plaza", 243.4, 91, 180, 1.2)
+polar("GuideBucket", "ranch_goo_bucket", "plaza", 240.4, 89.5, 200, 1.1)
+polar("GuideSacks", "ranch_feed_sacks", "plaza", 243, 96.5, 170, 1)
+polar("GuideCrate", "ranch_crate_goo", "plaza", 251.6, 91, 165, 1)
+polar("GuideBarrel", "ranch_barrel", "plaza", 253.8, 94, 180, 1.1)
+polar("GuideLantern", "ranch_lantern_post", "plaza", 250.5, 96, 180, 1)
 
 -- Entrances --------------------------------------------------------------
 -- A mailbox by the gate on every

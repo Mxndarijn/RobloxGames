@@ -36,13 +36,13 @@ Tap = punch. Hold (at least `CHARGE_SECONDS`) and release = power punch: 1.5x pu
 
 | Glove | Push | Special |
 |---|---|---|
-| Bonk | 5 | a clean punch and a "BONK!" popup |
-| Bounce | 6 | the target pogo-bounces 3 times, each lower |
-| Boom | 7 | a small blast also pushes everyone within 5 studs of the target |
-| Thunder | 7.5 | lightning chains to up to 2 nearby players at half push |
-| Royal | 10 | a long push in a high arc with gold confetti |
+| Bonk | 12 | a clean punch and a "BONK!" popup |
+| Bounce | 15 | the target pogo-bounces 3 times, each lower |
+| Boom | 18 | a blast also pushes everyone within 6 studs of the target |
+| Thunder | 22 | lightning chains to up to 2 nearby players at half push |
+| Royal | 26 | a long push in a high arc with gold confetti |
 
-Knockback caps (`KNOCKBACK_MAX_PUSH`, `KNOCKBACK_ARC_HEIGHT`, `KNOCKBACK_BOUNDS_MARGIN`) are raised just enough for the Royal power punch; the landing stays inside `MAP_BOUNDS` minus the margin, which also covers the friction-boost overshoot.
+Gloves push 2.4-5x the Bat (5 studs), so buying one is a clear upgrade. The launch speed is spread over the arc's time in the air (`PvpKnockbackRules.flightSeconds`), so the target lands about `push` studs away (checked in Studio). Knockback caps (`KNOCKBACK_MAX_PUSH`, `KNOCKBACK_ARC_HEIGHT`, `KNOCKBACK_BOUNDS_MARGIN`) cover the Royal power punch (39 studs); the landing stays inside `MAP_BOUNDS` minus the margin, which also covers the friction-boost overshoot.
 
 ## Goo Traps
 

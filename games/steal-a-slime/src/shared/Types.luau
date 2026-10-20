@@ -34,6 +34,9 @@ export type Appraisal = {
 
 export type NotifyKind = "info" | "good" | "bad" | "badge"
 
+-- One slime the next rebirth needs (State.rebirthSlimes). A species asked for twice is two rows.
+export type RebirthSlimeView = { id: string, name: string, tier: number, color: { number }, owned: boolean }
+
 export type SlimeView = {
 	slime: SlimeData,
 	income: number, -- cash/sec incl. rebirth multiplier (0 while stolenBy ~= nil)
@@ -94,7 +97,6 @@ export type DailyView = { available: boolean, streak: number, amount: number, da
 
 -- Keys are the UI's ShopCatalog item ids. price nil = maxed / owned.
 export type ShopView = {
-	LockUpgrade: { price: number?, level: number, maxLevel: number },
 	SpeedCoil: { price: number?, owned: boolean },
 }
 
@@ -210,7 +212,7 @@ export type State = {
 	rebirthMultiplier: number,
 	rebirthCost: number,
 	canRebirth: boolean,
-	rebirthSlime: { id: string, name: string, tier: number, color: { number }, owned: boolean }?, -- v29: species the next rebirth also needs (nil at max)
+	rebirthSlimes: { RebirthSlimeView }, -- the slimes the next rebirth needs and uses up, one row per slime (empty at max)
 	padsUnlocked: number,
 	padsMax: number,
 	nextPadCost: number?, -- nil when every pad is unlocked

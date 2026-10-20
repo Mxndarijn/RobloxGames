@@ -249,7 +249,7 @@ LayoutAssert.BIG_STATE = table.freeze({
 	padsMax = Config.PADS_MAX,
 	nextPadCost = 987.6e12,
 	lockCost = 987.6e12,
-	lockDuration = Config.LOCK_SECONDS + Config.MAX_REBIRTHS * Config.LOCK_SECONDS_PER_REBIRTH,
+	lockDuration = Config.LOCK_MAX_REMAINING,
 	lockUntil = 100 + Config.LOCK_MAX_REMAINING / 2,
 	slimes = {},
 	daily = { available = true, streak = Config.DAILY_STREAK_CAP or 7, amount = 987.6e12 },

@@ -7,40 +7,38 @@ local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
-local ALL = { Lock = {}, BuyLockUpgrade = {}, BuySpeedCoil = {} }
+local ALL = { Lock = {}, BuySpeedCoil = {} }
 
 local function item(id: string): ShopCatalog.Item
 	return ShopCatalog.find(id) :: ShopCatalog.Item
 end
 
 describe("ShopCatalog.ITEMS", function()
-	it("has unique ids, a lock upgrade and a speed coil", function()
+	it("has unique ids and starts with the speed coil", function()
 		local seen = {}
 		for _, entry in ShopCatalog.ITEMS do
 			expect(seen[entry.id]).toBeNil()
 			seen[entry.id] = true
 			expect(type(entry.action)).toBe("string")
+			expect(Remotes.ACTIONS[entry.action] ~= nil).toBe(true)
 		end
-		expect(ShopCatalog.find("LockUpgrade")).toBeTruthy()
-		expect(ShopCatalog.find("SpeedCoil")).toBeTruthy()
+		expect(ShopCatalog.ITEMS[1].id).toBe("SpeedCoil")
 		expect(ShopCatalog.find("Nope")).toBeNil()
 	end)
-	it("buys lock time with the contracted Lock action", function()
-		expect(item("Lock").action).toBe("Lock")
-		expect(Remotes.ACTIONS.Lock).toBeTruthy()
+	it("does not sell locks or a lock upgrade (locks are bought on the plot)", function()
+		expect(ShopCatalog.find("Lock")).toBeNil()
+		expect(ShopCatalog.find("LockUpgrade")).toBeNil()
+		for _, entry in ShopCatalog.ITEMS do
+			expect(entry.action ~= "Lock").toBe(true)
+		end
 	end)
 end)
 
 describe("ShopCatalog.view", function()
-	it("prices Lock from lockCost / lockDuration", function()
-		local view = ShopCatalog.view(item("Lock"), { cash = 500, lockCost = 200, lockDuration = 70 }, Remotes.ACTIONS)
-		expect(view.available).toBe(true)
-		expect(view.enabled).toBe(true)
-		expect(view.buttonText).toBe("$200")
-		expect(string.find(view.description, "+70s", 1, true) ~= nil).toBe(true)
-	end)
 	it("disables what the player can't afford", function()
-		local view = ShopCatalog.view(item("Lock"), { cash = 50, lockCost = 200, lockDuration = 60 }, Remotes.ACTIONS)
+		local state = { cash = 50, shop = { SpeedCoil = { price = 200, owned = false } } }
+		local view = ShopCatalog.view(item("SpeedCoil"), state, Remotes.ACTIONS)
+		expect(view.available).toBe(true)
 		expect(view.enabled).toBe(false)
 		expect(view.buttonText).toBe("$200")
 	end)
@@ -50,22 +48,14 @@ describe("ShopCatalog.view", function()
 		expect(view.enabled).toBe(false)
 		expect(view.buttonText).toBe("Coming soon")
 	end)
-	it("reads level / price from state.shop", function()
-		local state = { cash = 1000, shop = { LockUpgrade = { price = 750, level = 2, maxLevel = 5 } } }
-		local view = ShopCatalog.view(item("LockUpgrade"), state, ALL)
+	it("reads the price from state.shop", function()
+		local state = { cash = 1000, shop = { SpeedCoil = { price = 750, owned = false } } }
+		local view = ShopCatalog.view(item("SpeedCoil"), state, ALL)
 		expect(view.enabled).toBe(true)
 		expect(view.buttonText).toBe("$750")
-		expect(view.levelText).toBe("Lv 2/5")
+		expect(view.levelText).toBeNil()
 	end)
-	it("marks max level and owned items", function()
-		local maxed = ShopCatalog.view(
-			item("LockUpgrade"),
-			{ cash = 1, shop = { LockUpgrade = { level = 5, maxLevel = 5 } } },
-			ALL
-		)
-		expect(maxed.maxed).toBe(true)
-		expect(maxed.enabled).toBe(false)
-		expect(maxed.buttonText).toBe("Max")
+	it("marks owned items", function()
 		local owned = ShopCatalog.view(item("SpeedCoil"), { cash = 1, shop = { SpeedCoil = { owned = true } } }, ALL)
 		expect(owned.buttonText).toBe("Owned")
 		expect(owned.enabled).toBe(false)
