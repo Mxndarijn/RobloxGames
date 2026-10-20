@@ -63,6 +63,12 @@ export type Context = {
 	toVector3: ((position: any) -> any)?,
 	slimePosition: ((slimeId: string) -> any?)?,
 	groundBelow: ((point: any) -> any?)?,
+	funBubble: ((
+		userId: number,
+		seconds: number,
+		lift: number,
+		onPop: (byUserId: number, now: number) -> boolean
+	) -> boolean)?,
 	-- What the adapter measured for `shopId`: the character's distance to the stand's Counter and whether it is
 	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, strict never applies.
 	shopAccess: ((userId: number, shopId: string) -> ShopGuard.Access)?,

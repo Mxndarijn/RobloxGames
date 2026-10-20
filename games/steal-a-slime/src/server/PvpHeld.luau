@@ -13,9 +13,10 @@
 	or removes the model so the character shows exactly `itemId` (nil = nothing). No loop of its own.
 ]]
 
-local Shared = (game:GetService("ReplicatedStorage") :: any).Shared
-local MeshAssets = require(Shared.MeshAssets)
-local PvpModels = require(Shared.PvpModels)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
+local PvpModels = require(ReplicatedStorage.Shared.PvpModels)
 
 local PvpHeld = {}
 

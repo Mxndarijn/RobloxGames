@@ -694,7 +694,8 @@ end
 
 -- Drops everything of `session` (leave, flag off): its pads (TrapCleared), streams, landings, holds, slows, hats.
 function PvpFun.clear(world: World.World, session: Session)
-	for _, pad in table.clone(pads[session] or {}) do
+	local owned: { Pad } = table.clone(pads[session] or {})
+	for _, pad in owned do
 		clearPad(world, pad, nil)
 	end
 	pads[session] = nil

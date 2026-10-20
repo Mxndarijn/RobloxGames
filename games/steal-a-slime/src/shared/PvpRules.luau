@@ -125,7 +125,11 @@ function PvpRules.useCharge(data: Data, id: string): boolean
 	if n <= 0 or not pvp then
 		return false
 	end
-	pvp.traps[id] = if n > 1 then n - 1 else nil
+	if n > 1 then
+		pvp.traps[id] = n - 1
+	else
+		pvp.traps[id] = nil
+	end
 	return true
 end
 
