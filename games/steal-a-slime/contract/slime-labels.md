@@ -2,8 +2,8 @@
 
 Every slime model has one label. A wild, carried or escaping slime shows a floating tag above the top of its mesh:
 species name, rarity, income per second and, while it is for sale, its price. A slime resting on a pad shows no tag;
-its label is a wooden plank on the front of the pad crate, dipped in goo of its rarity colour: the rarity in the
-goo, the name and income painted on the wood, and a goo tube for its growth.
+its label is a plain wooden plank on the front of the pad crate: the name and income painted on the wood and a goo
+tube for its growth. No rarity band or rarity word: the slime itself shows its rarity.
 The server decides every value and writes it as model attributes; each client draws the labels locally. No remote, no
 State field, no save-format change.
 
@@ -34,9 +34,9 @@ State field, no save-format change.
   away. Every tag sits at the same height above its slime, so neighbours on the lane can overlap. Disabled while
   `LabelPad` is set and the pad is found.
 - **Pad sign (`src/ui/SlimePadSign`, driven by `SlimeInfoCard`).** A thin non-colliding, non-queried WoodPlanks part with
-  a `SurfaceGui` on the pad crate's entrance side (pad-local -Z), in a local `SlimePadSigns` folder. Goo of the rarity
-  colour (a rainbow for Secret) runs along its top edge with the rarity written in it and drips down both ends; the
-  name (cream) and income (gold) are painted on the wood; the growth fills a goo tube, its percent beside it.
+  a `SurfaceGui` on the pad crate's entrance side (pad-local -Z), in a local `SlimePadSigns` folder. The name (cream)
+  and income (gold) are painted on the wood; the growth fills a goo tube of the rarity colour (a rainbow for Secret),
+  its percent beside it. No rarity band, drips or rarity word.
   `MaxDistance` 45: the plank is too small to read beyond that. The pad is the plot's part with `PadIndex` =
   `LabelPad`. Moves when the slime changes pad; looked up again when the model moves (it may land in its plot after
   `LabelPad` arrives); removed when it leaves the pad or loses its tag.

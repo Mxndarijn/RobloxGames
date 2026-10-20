@@ -7,15 +7,13 @@
 
 	  tier 1  nothing
 	  tier 2  soft PointLight glow
-	  tier 3  + sparkles, short thin beam
-	  tier 4  + taller beam
-	  tier 5  + beam with a white core, more sparkles
-	  tier 6  + tallest beam (still MAX_BEAM_HEIGHT), strongest glow
-	            (VisualsClient cycles its colour)
+	  tier 3  + sparkles
+	  tier 4..6  stronger glow, more sparkles
 	  tier 7  the tier 6 look plus `orbit` Neon motes circling the slime
 	            (Secret; PlotVisuals also stands a beam on the fountain)
 
-	Nothing lies flat on the ground: no slime has a rarity ring under it.
+	No beam stands on a slime and nothing lies flat on the ground: no slime
+	has a rarity ring under it.
 
 	RareSpawn.build(tier, size?) -> Model?   (nil for tier 1 / unknown)
 	RareSpawn.place(fx, pivot, t)            moves it to a slime's pivot
@@ -33,37 +31,27 @@ local Effects = if script then require(script.Parent.Effects) else require("./Ef
 export type TierFx = {
 	glow: { brightness: number, range: number }?,
 	sparkles: number?, -- RareSparkle particles/s
-	beam: { height: number, width: number, core: boolean? }?,
 	orbit: number?, -- Neon motes circling the slime (place() moves them)
 }
 
 local RareSpawn = {}
 
--- A beam is a marker over its slime, not a sky pillar: at night the Neon beams (rarity colours, bloom) read as
--- huge glowing streaks, so every tier stays under these bounds (guarded by tests/RareSpawn.spec.luau).
-RareSpawn.MAX_BEAM_HEIGHT = 24
-RareSpawn.MAX_BEAM_WIDTH = 1
-RareSpawn.BEAM_TRANSPARENCY = 0.7
-
 RareSpawn.TIERS = table.freeze({
 	{},
 	{ glow = { brightness = 1.5, range = 8 } },
-	{ glow = { brightness = 1.5, range = 10 }, sparkles = 4, beam = { height = 8, width = 0.3 } },
-	{ glow = { brightness = 2, range = 14 }, sparkles = 7, beam = { height = 12, width = 0.45 } },
+	{ glow = { brightness = 1.5, range = 10 }, sparkles = 4 },
+	{ glow = { brightness = 2, range = 14 }, sparkles = 7 },
 	{
 		glow = { brightness = 3, range = 18 },
 		sparkles = 10,
-		beam = { height = 16, width = 0.6, core = true },
 	},
 	{
 		glow = { brightness = 4, range = 24 },
 		sparkles = 14,
-		beam = { height = 22, width = 0.8, core = true },
 	},
 	{
 		glow = { brightness = 4.5, range = 26 },
 		sparkles = 16,
-		beam = { height = 24, width = 0.9, core = true },
 		orbit = 3,
 	},
 }) :: { TierFx }
@@ -106,7 +94,7 @@ end
 
 function RareSpawn.build(tier: number, size: number?): Model?
 	local fx = RareSpawn.TIERS[tier]
-	if not fx or not (fx.glow or fx.beam or fx.sparkles) then
+	if not fx or not (fx.glow or fx.sparkles) then
 		return nil
 	end
 	local color = RareSpawn.color(tier)
@@ -133,27 +121,6 @@ function RareSpawn.build(tier: number, size: number?): Model?
 		e.Rate = fx.sparkles
 		e.Color = ColorSequence.new(color, Color3.new(1, 1, 1))
 		e.Parent = core
-	end
-	if fx.beam then
-		local b = fx.beam
-		-- Roblox cylinders run along X: roll 90 degrees to stand them up.
-		local up = CFrame.new(0, b.height / 2, 0) * CFrame.Angles(0, 0, math.rad(90))
-		local beam = part(
-			"Beam",
-			Enum.PartType.Cylinder,
-			Vector3.new(b.height, b.width, b.width),
-			color,
-			RareSpawn.BEAM_TRANSPARENCY
-		)
-		at(beam, up)
-		beam.Parent = model
-		if b.core then
-			local w = b.width * 0.4
-			local inner =
-				part("BeamCore", Enum.PartType.Cylinder, Vector3.new(b.height, w, w), Color3.new(1, 1, 1), 0.5)
-			at(inner, up)
-			inner.Parent = model
-		end
 	end
 	for k = 1, fx.orbit or 0 do
 		local m = 0.18 * d
@@ -195,10 +162,6 @@ function RareSpawn.place(fx: Model, pivot: CFrame, t: number)
 				child.Transparency = 1
 			end
 		end
-	end
-	local beam = fx:FindFirstChild("Beam")
-	if beam and beam:IsA("BasePart") and beam:GetAttribute(RareSpawn.OFFSET_ATTRIBUTE) ~= nil then
-		beam.Transparency = RareSpawn.BEAM_TRANSPARENCY + 0.1 * math.sin(t * 3)
 	end
 end
 
