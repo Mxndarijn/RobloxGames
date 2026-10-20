@@ -77,7 +77,7 @@ function BossMeterLogic.view(boss: any, now: number): View?
 		return {
 			icon = "💨",
 			title = `{name} got away!`,
-			detail = "Fill the meter faster next time.",
+			detail = "Better luck with the next one!",
 			meter = meter,
 			timer = nil,
 			tone = "bad",

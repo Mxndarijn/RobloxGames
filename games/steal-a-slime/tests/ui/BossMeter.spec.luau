@@ -51,6 +51,7 @@ describe("BossMeterLogic.view", function()
 		local failed = BossMeterLogic.view(boss({ phase = "failed" }), 0) :: BossMeterLogic.View
 		expect(failed.icon).toBe("💨")
 		expect(failed.title).toBe("Goozilla got away!")
+		expect(failed.detail).toBe("Better luck with the next one!")
 	end)
 end)
 

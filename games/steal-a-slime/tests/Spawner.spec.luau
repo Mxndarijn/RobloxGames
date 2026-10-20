@@ -191,7 +191,7 @@ describe("Spawner and the boss event", function()
 		if not Config.FEATURES.Parade then
 			return
 		end
-		local BONUS = 6 -- a crossed meter share or two at once
+		local BONUS = 3 * Config.BOSS.SHED_COUNT -- every shed share crossed in one step
 		local world = ServerFixtures.world()
 		Spawner.spawnOne(world, T0)
 		local ids = Spawner.spawnBonus(world, T0, BONUS, Config.BOSS.DROP_LUCK)
