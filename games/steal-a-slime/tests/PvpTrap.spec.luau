@@ -1,6 +1,6 @@
 --!strict
 -- Goo Traps (CONTRACT.md §26.5): charges (buy / held cap / use / save), placing anywhere in range, the live cap
--- (a 6th removes the oldest), the lifetime, who springs a trap and what each tier does, caught thieves, cleanup and
+-- (a 6th removes the oldest), the replay to a late joiner, the lifetime, who springs a trap and what each tier does, caught thieves, cleanup and
 -- zero parts. Server-side zones: nothing is ever created in Workspace.
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
@@ -161,6 +161,35 @@ describe("Goo Trap placement", function()
 		expect(PvpTrap.list(owner)[1].id ~= oldest).toBe(true)
 		expect(kinds()[1]).toBe("TrapCleared")
 		expect(events()[1].payload.trapId).toBe(oldest)
+		done()
+	end)
+	it("a player who joins later gets every live trap, to them only, as a replay", function()
+		local world, owner = setup()
+		own(world, owner, "GooTrap2", 2)
+		local aim = { X = FAR.X + 3, Y = 3, Z = FAR.Z }
+		expect(place(world, owner, "GooTrap2", aim)).toBe(true)
+		expect(place(world, owner, "GooTrap2", FAR, T0 + 100)).toBe(true)
+		local first = PvpTrap.list(owner)[1].id
+		local late = ServerFixtures.join(world, 3, nil, 1e12)
+		ServerFixtures.clearEvents(current) -- the fixture's join may already have replayed (flag on)
+		PvpService.join(world, late, T0 + 110, true)
+		table.insert(joined, late)
+		expect(kinds()).toEqual({ "TrapPlaced", "TrapPlaced" })
+		for _, e in events() do
+			expect(e.target).toBe(3)
+			expect(e.payload.replay).toBe(true)
+			expect(e.payload.owner).toBe(1)
+		end
+		local again = events()[1].payload.trapId == first and events()[1] or events()[2]
+		expect(again.payload.trapId).toBe(first)
+		expect(again.payload.position).toEqual(aim)
+		-- a cleared trap is not replayed
+		PvpService.leave(world, owner, T0 + 120)
+		local later = ServerFixtures.join(world, 4, nil, 1e12)
+		ServerFixtures.clearEvents(current)
+		PvpService.join(world, later, T0 + 130, true)
+		table.insert(joined, later)
+		expect(kinds()).toEqual({})
 		done()
 	end)
 	it("a trap that caught nobody is gone after its lifetime", function()

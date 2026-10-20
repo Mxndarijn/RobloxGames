@@ -8,7 +8,7 @@
 	  PvpEffectsLogic.plan(payload, pvp, low)      -> Plan? (nil = nothing to show / unknown effect)
 	  PvpEffectsLogic.marker(itemId, tool, pvp)    -> Marker? (Goo Trap puddle, TrapPlaced; the Bounce Pad is ui/PvpFunFx's)
 	  PvpEffectsLogic.markerFor(itemId, tools, pvp) the same, looking the tool up in Config.PVP_TOOLS
-	  PvpEffectsLogic.markerLook(marker, isOwner)  a trap glows for its owner and is a faint shimmer for everyone else
+	  PvpEffectsLogic.markerLook(marker, isOwner)  a trap glows goo green for its owner and red for everyone else
 	  PvpEffectsLogic.blobVelocity(from, to, t, g)  the start velocity of the goo blob particle (the server's arc)
 	  PvpEffectsLogic.pogoTimes(heights, g)        when each Bounce Glove pogo lands (the next bounce starts there)
 	  PvpEffectsLogic.shakeOffset(t, seconds, amp) -> x, y camera offset (decaying)
@@ -56,15 +56,18 @@ export type Marker = {
 	color: RGB,
 	ownerOnly: boolean,
 	seconds: number?,
-	glows: boolean?, -- a trap: glowing for its owner, a faint shimmer for everyone else (markerLook)
+	glows: boolean?, -- a trap: glowing green for its owner, red for everyone else (markerLook)
 }
 -- `transparency` / `material`: the ground disc. `modelTransparency` / `modelMaterial`: the trap's mesh or placeholder
 -- pieces on it (`modelMaterial` nil = the model keeps its own material and colours, so the mesh reads as itself).
+-- `color` / `modelColor`: a tint over the disc's own colour and the model's colours (nil = keep them).
 export type MarkerLook = {
 	transparency: number,
 	material: string,
+	color: RGB?,
 	modelTransparency: number,
 	modelMaterial: string?,
+	modelColor: RGB?,
 }
 
 PvpEffectsLogic.FX_RANGE = 220 -- studs: farther effects are skipped (clients may skip beyond their stream radius)
@@ -80,10 +83,17 @@ PvpEffectsLogic.MAX_FLIGHT = 2 -- seconds: a blob never flies longer (junk paylo
 PvpEffectsLogic.MAX_SPLAT_SECONDS = 6 -- a ground splat / pool never lasts longer
 PvpEffectsLogic.MAX_POGO = 3 -- bounces
 PvpEffectsLogic.BLOB_SIZES = table.freeze({ 1, 1.3, 2.4 }) -- Squirter, Blaster, Cannon (studs)
--- The owner sees a glowing goo disc around a solid trap; everyone else a faint shimmer of both.
+-- The owner sees a glowing goo disc around a solid trap; everyone else sees both red: a visible danger.
+PvpEffectsLogic.TRAP_RED = table.freeze({ 1, 0.12, 0.12 })
 PvpEffectsLogic.MARKER_OWNER = table.freeze({ transparency = 0.25, material = "Neon", modelTransparency = 0 })
-PvpEffectsLogic.MARKER_OTHERS =
-	table.freeze({ transparency = 0.88, material = "Glass", modelTransparency = 0.88, modelMaterial = "Glass" })
+PvpEffectsLogic.MARKER_OTHERS = table.freeze({
+	transparency = 0.3,
+	material = "Neon",
+	color = PvpEffectsLogic.TRAP_RED,
+	modelTransparency = 0,
+	modelMaterial = "SmoothPlastic",
+	modelColor = PvpEffectsLogic.TRAP_RED,
+})
 
 local SPARK = "rbxasset://textures/particles/sparkles_main.dds"
 local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
@@ -360,7 +370,7 @@ function PvpEffectsLogic.pogoTimes(heights: { number }, g: number): { number }
 	return out
 end
 
--- How a placed trap looks to this client: glowing for its owner, a faint shimmer for everyone else.
+-- How a placed trap looks to this client: glowing goo green for its owner, red for everyone else.
 function PvpEffectsLogic.markerLook(marker: Marker, isOwner: boolean): MarkerLook
 	if not marker.glows then
 		return { transparency = 0.4, material = "SmoothPlastic", modelTransparency = 0.4 }

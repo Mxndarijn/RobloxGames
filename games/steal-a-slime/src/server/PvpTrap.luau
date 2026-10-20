@@ -13,6 +13,7 @@
 	ends. A thief is always caught (PvpService.catchThief: the slime goes home). Holds / slows go through PvpRules
 	(clamped, then immunity) and PvpSlow (the walk speed); a player who is immune and carries nothing passes and the
 	trap stays. A trap that caught someone, or that is TRAP_LIFETIME_SECONDS old, is removed. No damage, ever.
+	A player who joins later gets every live trap re-sent to them only (`replay`), so everyone sees every trap.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -35,6 +36,8 @@ local PVP = Config.PVP
 type Spit = { at: number, from: Vec, push: number, arc: number, itemId: string, owner: number }
 
 local traps: { [Session]: { PvpTrapRules.Trap } } = setmetatable({}, { __mode = "k" }) :: any
+-- trapId -> the TrapPlaced payload it was announced with (re-sent to a player who joins later)
+local placed: { [string]: { [string]: any } } = {}
 local spits: { [Session]: Spit } = setmetatable({}, { __mode = "k" }) :: any
 local nextId = 0
 
@@ -58,6 +61,7 @@ local function out(ctx: PvpService.Context?, position: Vec): any
 end
 
 local function cleared(world: World.World, trap: PvpTrapRules.Trap, now: number?, ctx: PvpService.Context?)
+	placed[trap.id] = nil
 	PvpService.fireTrap(world, "TrapCleared", {
 		owner = trap.owner,
 		trapId = trap.id,
@@ -83,14 +87,31 @@ local function handler(call: PvpService.UseCall): (boolean, string?, number?)
 	nextId += 1
 	local trap = PvpTrapRules.new(`trap{nextId}`, session.userId, call.tool, call.aim :: any, call.now)
 	table.insert(list, trap)
-	PvpService.fireTrap(call.world, "TrapPlaced", {
+	local payload = {
 		owner = trap.owner,
 		trapId = trap.id,
 		itemId = trap.itemId,
 		position = call.aim,
-	}, call.now, true)
+	}
+	placed[trap.id] = payload
+	PvpService.fireTrap(call.world, "TrapPlaced", payload, call.now, true)
 	return true, nil
 end
+
+-- A player who joins sees every live trap: one TrapPlaced (`replay = true`, no throw) each, to them only.
+local function replay(world: World.World, joiner: Session, now: number)
+	for _, list in traps do
+		for _, trap in list do
+			local payload = placed[trap.id]
+			if payload then
+				local event = table.clone(payload)
+				event.replay = true
+				PvpService.fireTrap(world, "TrapPlaced", event, now, true, joiner.userId)
+			end
+		end
+	end
+end
+PvpTrap.replay = replay
 
 --[[
 	What the trap does to one `victim` (owner = the trap owner's session, may be nil after leave). Returns true when
@@ -269,6 +290,7 @@ PvpTrap.clear = clear
 function PvpTrap.register()
 	PvpService.registerLine("Trap", handler)
 	PvpService.onCleanup(clear)
+	PvpService.onJoin(replay)
 end
 
 return PvpTrap
