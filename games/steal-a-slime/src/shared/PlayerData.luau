@@ -51,7 +51,6 @@ export type Data = {
 	found: { [string]: boolean }, -- SlimeDex species found (SpeciesDex, CONTRACT.md §36)
 	totalEarned: number,
 	totalStolen: number,
-	lockLevel: number, -- Shop: lock upgrade level 0..LOCK_UPGRADE_MAX
 	speedCoil: boolean, -- Shop: Speed Coil owned
 	tutorialStep: number, -- TutorialProgress: 1..#STEPS, 0 = finished
 	-- v3 (CONTRACT.md §8.9)
@@ -91,7 +90,6 @@ function PlayerData.new(): Data
 		found = {},
 		totalEarned = 0,
 		totalStolen = 0,
-		lockLevel = 0,
 		speedCoil = false,
 		tutorialStep = 1,
 		upgrades = {},

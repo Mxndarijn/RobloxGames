@@ -68,13 +68,7 @@ Counts: 15 / +4 / +5 / +8 = 32. A new player has the whole ladder from minute on
 
 Drop rule change: today 30 % of drops are a family slime (`FAMILY_DROP_CHANCE`, weighted 5/3/2) and the rest are Classic. With families that fill different tiers, that rule would make the Starlight Mythics rarer than Cosmo for no reason. Proposal: **roll the tier, then pick uniformly among the species of that tier in every open family** (drop `FAMILY_DROP_CHANCE` and the family weights). `FountainTiers.luck` (family drops get extra luck) goes too, since the tier is rolled before the species.
 
-`REBIRTH_SLIMES` (each rebirth needs one slime of a given species on a pad) points at old ids and needs a new list. Proposal, each entry catchable at that rank:
-
-| Rebirth # | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 15 | 20 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| species | bumble | froggo | lop | moo | blaze | octo | king | ninja | cosmo | dragon_king (hybrid: king x3) | midas | eclipse |
-
-Rebirth 10 asking for a hybrid teaches recipes right before Starlight opens.
+`REBIRTH_SLIMES`: every rebirth has its own list of one to three species, and the rebirth uses those slimes up (contract/v13-additions.md §8.8a). The list in `Config` climbs through the Classic species, opens a family's species once the family is catchable, mixes in merge hybrids (rebirth 11 asks for Moo-shroom, the first recipe most players can make) and ends on boss slimes and Secrets.
 
 ---
 

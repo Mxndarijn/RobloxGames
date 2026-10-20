@@ -6,14 +6,12 @@
 
 | Shop | Id | Name | Bought with (existing logic, reused) |
 |---|---|---|---|
-| ItemShop | `Lock` | "Lock base" | `Request("Lock")` (`StealService.buyLock`) |
 | ItemShop | `SpeedCoil` | "Speed Coil" (once; **moved here from the Upgrade Shop 2026-10-18, Merijn: it is an item because it works while held**; still a `SpeedCoil` Tool in the Backpack, so it has a hotbar slot and shows in the inventory panel) | `BuySpeedCoil` |
 | ItemShop | `LuckPotion` / `WeatherTotem` | "Luck Potion" / "Weather Totem" (`FEATURES.Consumables`, restocking; bought into a held stack, used later with `UseConsumable`, see restocking-shop.md) | `BuyConsumable(itemId, slimeId?)` (`slimeId` ignored) |
 | ItemShop | `Config.PVP_TOOLS` ids | per `PVP_TOOLS[id].name` (`FEATURES.PvP`, default off; listed only when on) | `BuyPvpItem(itemId)` |
-| UpgradeShop | `LockUpgrade` | "Longer locks" (5 levels) | `BuyLockUpgrade` |
 | UpgradeShop | `Income` / `CarrySpeed` / `OfflineCap` / `Luck` | "Slime Snacks" / "Strong Arms" / "Night Shift" / "Lucky Charm" (`Config.UPGRADES`, rank-gated by `requires`) | `BuyUpgrade(id)` |
 
-Rule (Speed Coil: Merijn 2026-10-18, an item because it works while held, so it counts as held): consumed / restocking things = Item Shop; permanent, saved-and-kept-on-rebirth things = Upgrade Shop. Pads (`BuyPad`) stay on the plot, not in a shop.
+Rule (Speed Coil: Merijn 2026-10-18, an item because it works while held, so it counts as held): consumed / restocking things = Item Shop; permanent, saved-and-kept-on-rebirth things = Upgrade Shop. Pads (`BuyPad`) and locks (`Lock`) stay on the plot, not in a shop; there is no lock-time upgrade.
 
 ## 27.2 World placement (`WorldLayout.PROP_SPOTS`, bearing 0 = +Z, x = sin(b) r, z = cos(b) r, r 90, yaw = bearing so the front faces the fountain)
 
@@ -30,8 +28,8 @@ Both sit beyond the ring path (outer edge r 82; lane r 64.75-71.25, gate posts t
 - **Range:** `Config.SHOP_RANGE = 14` studs. Checked on the server on `OpenShop` and on **every** purchase: distance from the character `HumanoidRootPart` to the stand's `Counter` (XZ+Y) must be <= `SHOP_RANGE`, character alive. Leaving range closes the shop (`ShopEvent` `Close`, reason `"range"`), checked in the existing per-player step (`stepPlayers`, every 0.25 s while a shop is open; no new loop). The distance is 3D, HumanoidRootPart to the Counter; exactly `SHOP_RANGE` still counts as in range.
 
 ## 27.4 Remotes (names final; reuse, do not duplicate purchase logic)
-- **Reused unchanged:** `Lock`, `BuyConsumable`, `BuyPvpItem`, `BuyLockUpgrade`, `BuySpeedCoil`, `BuyUpgrade`. With `WorldShops` on they additionally require an open shop of the right type and range (see 27.6); the old HUD path is described in 27.6.
-- **New `Request` actions** (rate limit 0.5 s, `Validate.ACTIONS`, both in `Remotes.ACTIONS`): `OpenShop(shopId: string)` validates flag, shopId, range and sets `OpenShop`; `CloseShop()` clears it; `ShopBuy(shopId: string, itemId: string, arg: string?)` validates flag, range, that `itemId` belongs to `shopId` (`Shared.Shops`), then **delegates to the matching existing action** from the table in 27.1 (`arg` is not needed for any item). Returns `(ok, message?)` as every action; on a shop failure the result is `{ ok = false, message = <readable text>, code = <27.7 code> }` (`Types.RequestResult.code`; the same `Denied` event fires). `ShopBuy` validates in this order (`server/ShopGuard.check`): flag, shopId, item membership, open shop (`WorldShopsStrict` only), alive, range; an item whose feature flag is off (`Shops.Item.flag`) answers `Unavailable`; the delegated action keeps its own rate limit (`Busy`). `Purchased.price` is the cash the existing handler took, `level` the new level of `LockUpgrade` / `Config.UPGRADES` items. Delegated refusals map to codes by their text (`ShopGuard.classify`).
+- **Reused unchanged:** `BuyConsumable`, `BuyPvpItem`, `BuySpeedCoil`, `BuyUpgrade`. With `WorldShops` on they additionally require an open shop of the right type and range (see 27.6); the old HUD path is described in 27.6.
+- **New `Request` actions** (rate limit 0.5 s, `Validate.ACTIONS`, both in `Remotes.ACTIONS`): `OpenShop(shopId: string)` validates flag, shopId, range and sets `OpenShop`; `CloseShop()` clears it; `ShopBuy(shopId: string, itemId: string, arg: string?)` validates flag, range, that `itemId` belongs to `shopId` (`Shared.Shops`), then **delegates to the matching existing action** from the table in 27.1 (`arg` is not needed for any item). Returns `(ok, message?)` as every action; on a shop failure the result is `{ ok = false, message = <readable text>, code = <27.7 code> }` (`Types.RequestResult.code`; the same `Denied` event fires). `ShopBuy` validates in this order (`server/ShopGuard.check`): flag, shopId, item membership, open shop (`WorldShopsStrict` only), alive, range; an item whose feature flag is off (`Shops.Item.flag`) answers `Unavailable`; the delegated action keeps its own rate limit (`Busy`). `Purchased.price` is the cash the existing handler took, `level` the new level of `Config.UPGRADES` items. Delegated refusals map to codes by their text (`ShopGuard.classify`).
 - **New RemoteEvent `ShopEvent`** (`Constants.SHOP_EVENT = "ShopEvent"`, ServerToClient, in `Remotes.DEFINITIONS`), one table arg with `kind` and `serverTime`:
 
 | kind | Fields |
