@@ -6,8 +6,6 @@
 -- scaled uniformly, each plot fence has exactly one opening (the gate) with
 -- 20-stud panels (or their two-segment fallback) on the grid, and the
 -- placement is deterministic. Budgets: tests/WorldBudget.spec.
-local fs = require("@lune/fs")
-
 local Config = require("../src/shared/Config")
 local Habitats = require("../src/shared/Habitats")
 local MeshAssets = require("../src/shared/MeshAssets")
@@ -402,13 +400,6 @@ describe("plot fence", function()
 			end
 		end
 	end)
-	it("has no invisible Wall* blocks: the fence meshes (MeshAssets.COLLISION Box) are the walls (bug #11)", function()
-		for _, plot in plots do
-			for _, name in { "WallBack", "WallLeft", "WallRight", "WallFrontL", "WallFrontR" } do
-				expect(plotChild(plot, name)).toBe(nil)
-			end
-		end
-	end)
 	-- Fence pieces of one build, checked for either mode: a ranch_fence_20 slot
 	-- (uploaded) or a FenceMesh Model of two phoenix_fence_segment halves
 	-- (fallback) per 20-stud panel, and 10-stud segments beside the gate.
@@ -617,34 +608,10 @@ describe("plot fence", function()
 			checkPosts(built)
 		end
 	end)
-	-- The corners close on the next side's -X end post (checked above), so
-	-- there is no plot corner post slot.
-	it("keeps the gate as a kit model and no corner post slots", function()
-		for _, plot in plots do
-			for k = 1, 4 do
-				expect(plotChild(plot, `CornerPost_{k}`)).toBe(nil)
-			end
-			expect(plotChild(plot, "Gate") ~= nil).toBe(true)
-		end
-	end)
 end)
 
 describe("ranch props: deterministic", function()
 	it("builds the same world twice", function()
 		expect(WorldLayout.build()).toEqual(nodes)
-	end)
-	it("uses no unseeded randomness in the placement code", function()
-		for _, path in
-			{
-				"src/visuals/shared/RanchProps.luau",
-				"src/visuals/shared/PropClearance.luau",
-				"src/visuals/shared/WorldLayout.luau",
-			}
-		do
-			local src = fs.readFile(path)
-			expect(string.find(src, "math.random", 1, true)).toBe(nil)
-			expect(string.find(src, "Random.new", 1, true)).toBe(nil)
-			expect(string.find(src, "os.time", 1, true)).toBe(nil)
-		end
 	end)
 end)

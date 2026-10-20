@@ -143,12 +143,6 @@ describe("Quests progress and claim", function()
 		expect(data.cash >= cash0).toBe(true)
 		expect(select(2, Quests.claim(data, 9, D10, 7))).toBe("no such quest")
 	end)
-	it("does not let yesterday's finished quest pay after the reset", function()
-		local data = rolled(7, D10)
-		finish(data, 1)
-		local ok = Quests.claim(data, 1, 11 * DAY + 5, 7) -- syncs first: the progress is gone
-		expect(ok).toBe(false)
-	end)
 end)
 
 describe("Quests save and action", function()

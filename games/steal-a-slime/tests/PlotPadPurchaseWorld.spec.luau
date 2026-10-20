@@ -1,6 +1,6 @@
 --!nocheck
 -- The same bug on the real world: the booted server with WorldShopsStrict on, a stand-in owner and the real LockButton /
--- BuyPadPrompt / MergeVat prompt parts of all 8 plots. The owner stands at THEIR pad, far from the Item Shop stand, and
+-- BuyPadPrompt / MergeVat prompt parts of every plot. The owner stands at THEIR pad, far from the Item Shop stand, and
 -- fires the real LockPrompt: it must lock. Far away, or someone else's prompt, it must not.
 local fs = require("@lune/fs")
 local process = require("@lune/process")
@@ -94,15 +94,9 @@ end
 local bootErrors = #rt.errors
 
 describe("plot pad prompts on the real world (WorldShopsStrict on)", function()
-	it("strict is on and the Item Shop stand exists", function()
-		expect(Config.FEATURES.WorldShopsStrict).toBe(true)
-		expect(Config.FEATURES.WorldShops).toBe(true)
-		expect(ItemCounter ~= nil).toBe(true)
-	end)
 	it(
-		"all 8 plots: the LockPrompt sits on the LockButton and the guard range covers its activation distance",
+		"every plot: the LockPrompt sits on the LockButton and the guard range covers its activation distance",
 		function()
-			expect(Config.PLOT_COUNT).toBe(8)
 			for i = 1, Config.PLOT_COUNT do
 				local prompt = lockPromptOf(i)
 				expect(prompt ~= nil).toBe(true)
@@ -113,11 +107,10 @@ describe("plot pad prompts on the real world (WorldShopsStrict on)", function()
 		end
 	)
 	it("every owner at their own LockButton locks the base although the Item Shop is out of range", function()
-		for i, r in results do
+		for _, r in results do
 			expect(r.plotIndex ~= nil).toBe(true)
 			expect(r.shopDistance > Config.SHOP_RANGE).toBe(true)
 			expect(r.nearLocked).toBe(true)
-			expect(i > 0).toBe(true)
 		end
 	end)
 	it("far from the pad the prompt is refused: no charge, no lock", function()

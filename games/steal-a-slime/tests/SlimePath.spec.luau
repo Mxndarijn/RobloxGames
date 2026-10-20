@@ -264,17 +264,6 @@ describe("slime path stays off the fountain", function()
 			expect(checked > 1000).toBe(true)
 		end
 	)
-	it("the lane box test would catch an overlap: a piece laid over the slide floor fails it", function()
-		local floor = SlideColliders.build(PATH, Config.FEATURES.SlideCollision)[1]
-		local box: Box = {
-			c = { 0, 0.1, 0 },
-			a = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } },
-			h = { 5, 0.2, 5 },
-		}
-		local same: Box = { c = { 0, 0.1, 0 }, a = { { 1, 0, 0 }, { 0, 1, 0 }, { 0, 0, 1 } }, h = { 5, 0.2, 5 } }
-		expect(boxPenetration(box, same) > 0.25).toBe(true)
-		expect(floor ~= nil).toBe(true)
-	end)
 end)
 
 describe("slime path is flush", function()

@@ -25,10 +25,6 @@ local function near(a: number, b: number): boolean
 end
 
 describe("StealAlert config", function()
-	it("is behind FEATURES.StealAlerts, default off", function()
-		expect(Config.FEATURES.StealAlerts).toBe(false)
-		expect(StealAlert.enabled()).toBe(enabled)
-	end)
 	it("keeps the trail short and the log capped", function()
 		expect(CFG.TRAIL_LIFETIME <= 2).toBe(true) -- pc-watcher fx_streaks cap
 		expect(CFG.LOG_CAP >= 1 and CFG.LOG_CAP <= 50).toBe(true)

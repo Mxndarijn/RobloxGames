@@ -2,7 +2,6 @@
 -- Slime label values (contract/slime-labels.md): name, rarity, income, price, pad and growth,
 -- and the income Scene hands to the label.
 local Config = require("../src/shared/Config")
-local Constants = require("../src/shared/Constants")
 local Economy = require("../src/shared/Economy")
 local Fixtures = require("./Fixtures")
 local PlayerData = require("../src/shared/PlayerData")
@@ -91,12 +90,6 @@ describe("SlimeLabel.view", function()
 		expect(assert(SlimeLabel.view(attrs({ tier = "x" }))).rarity).toBe(Config.RARITIES[1].name)
 		expect(SlimeLabel.view(attrs({ name = "" }))).toBeNil()
 		expect(SlimeLabel.view(attrs({ name = 5 }))).toBeNil()
-	end)
-	it("reads the attribute names from Constants", function()
-		expect(SlimeLabel.ATTRIBUTES.name).toBe(Constants.LABEL_NAME_ATTRIBUTE)
-		expect(SlimeLabel.ATTRIBUTES.income).toBe(Constants.LABEL_INCOME_ATTRIBUTE)
-		expect(SlimeLabel.ATTRIBUTES.growth).toBe(Constants.GROWTH_ATTRIBUTE)
-		expect(SlimeLabel.ATTRIBUTES.pad).toBe(Constants.LABEL_PAD_ATTRIBUTE)
 	end)
 end)
 

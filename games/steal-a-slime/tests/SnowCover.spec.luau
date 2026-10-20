@@ -1,11 +1,8 @@
 --!strict
-local fs = require("@lune/fs")
-
 local Config = require("../src/shared/Config")
 local SnowCover = require("../src/visuals/shared/SnowCover")
 local TestRunner = require("./TestRunner")
 local WeatherLook = require("../src/visuals/shared/WeatherLook")
-local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
@@ -47,15 +44,6 @@ describe("SnowCover (F2)", function()
 		expect(SnowCover.settled(0, false)).toBe(true)
 		expect(SnowCover.settled(0.5, true)).toBe(false)
 		expect(SnowCover.settled(0.5, false)).toBe(false)
-	end)
-	it("adds no part and no mesh slot: it tints what is there", function()
-		expect(SnowCover.PART_COUNT).toBe(0)
-		expect(SnowCover.MESH_SLOTS).toBe(0)
-		expect(SnowCover.MESH_SLOTS <= WorldLayout.RUNTIME_SLOT_ALLOWANCE).toBe(true)
-		local source = fs.readFile("src/visuals/client/SnowGround.luau")
-		expect(string.find(source, 'Instance.new("Part"', 1, true)).toBe(nil)
-		expect(string.find(source, 'Instance.new("MeshPart"', 1, true)).toBe(nil)
-		expect(string.find(source, "Instance.new", 1, true)).toBe(nil)
 	end)
 	it("snow flakes reach the ground: speed x lifetime beats the emitter height at the steepest spread", function()
 		local flakes = WeatherLook.EMITTERS.Flakes

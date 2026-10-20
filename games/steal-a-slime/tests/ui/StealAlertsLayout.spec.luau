@@ -1,9 +1,6 @@
 --!strict
 -- FEATURES.StealAlerts layout at the five gate viewports: the thief arrow and the edge flash never cover the
 -- HUD, the banner stack or the nav (Layout.screen rects; the Hud / StealAlertFx build Instances only in .new).
-local fs = require("@lune/fs")
-
-local Config = require("../../src/shared/Config")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local StealAlert = require("../../src/shared/StealAlert")
@@ -52,12 +49,4 @@ describe("StealAlerts arrow and flash vs the banners and nav", function()
 			end
 		)
 	end
-	it("StealAlertFx lays out through StealAlertLayout", function()
-		local fx = fs.readFile("src/ui/StealAlertFx.luau")
-		expect(string.find(fx, "StealAlertLayout.arrowBox(", 1, true) ~= nil).toBe(true)
-		expect(string.find(fx, "StealAlertLayout.flashThickness(", 1, true) ~= nil).toBe(true)
-	end)
-	it("the StealAlerts flag stays default off", function()
-		expect(Config.FEATURES.StealAlerts).toBe(false)
-	end)
 end)

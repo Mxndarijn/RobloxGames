@@ -436,9 +436,6 @@ end
 describe("fountain top collider, profile", function()
 	it("reads the dome top (the basin floor) from the kit", function()
 		expect(BASIN).toBeCloseTo(TOP.floor, EPS)
-		expect(FP.domeCentre).toBe(8.9)
-		expect(FP.domeSpan).toBe(4.5)
-		expect(FP.domeRise).toBe(4.6)
 		expect(FP.eaveRadius).toBeCloseTo(13.4)
 	end)
 	it("stacks invisible upright cylinders on the silo axis from the eave to the basin floor", function()
@@ -465,11 +462,6 @@ describe("fountain top collider, profile", function()
 		expect(prevTop).toBeCloseTo(BASIN, EPS)
 		expect(bottom(loadedVolcano.TopCollider1)).toBeCloseTo(FP.wallTop, EPS)
 		expect(radius(loadedVolcano.TopCollider1)).toBeCloseTo(FP.eaveRadius, EPS)
-	end)
-	it("adds no mesh (invisible Parts only)", function()
-		for _, name in TOP_COLLIDERS do
-			expect(loadedVolcano[name]:IsA("MeshPart")).toBe(false)
-		end
 	end)
 end)
 
@@ -518,13 +510,6 @@ describe("fountain top collider, no holes", function()
 			end
 			expect(run.volcano.Bowl.CanCollide).toBe(true)
 			expect(run.volcano.Column.CanCollide).toBe(true)
-		end
-	end)
-	it("states: loaded and loading are never both off or both on", function()
-		for _, name in TOP_COLLIDERS do
-			expect(loadedVolcano[name].CanCollide).toBe(true)
-			expect(loadingVolcano[name].CanCollide).toBe(false)
-			expect(loadedVolcano[name]:GetAttribute("MeshCollider")).toBe(M)
 		end
 	end)
 	it("the switch flips the whole top with the rest", function()

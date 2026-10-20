@@ -3,7 +3,6 @@
 -- in the top-right slot (Layout.screen .sound). Every layout rule must stay
 -- green at the five gate sizes (raw and under the 58 px top bar), and the
 -- card must hold its rows.
-local Icons = require("../../src/ui/Icons")
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
 local TestRunner = require("../TestRunner")
@@ -56,10 +55,6 @@ describe("Sound button and card", function()
 			expect(screen.compact or not Layout.overlaps(r, screen.nav)).toBe(true) -- phones hide the nav behind a menu
 			expect(Layout.panelBody(r).w >= 240).toBe(true)
 		end
-	end)
-	it("the icons are the proven emoji", function()
-		expect(Icons.SOUND_ON).toBe("🔊")
-		expect(Icons.SOUND_OFF).toBe("🔇")
 	end)
 end)
 

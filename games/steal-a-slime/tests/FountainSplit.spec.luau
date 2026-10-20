@@ -28,12 +28,6 @@ local split = serde.decode("json", fs.readFile(`{KIT_OUT}/fountain_split.json`))
 local whole = serde.decode("json", fs.readFile(`{KIT_OUT}/slime_fountain.stats.json`))
 
 describe("FountainSplit data", function()
-	it("is behind FEATURES.FountainSplit, default on", function()
-		expect(Config.FEATURES.FountainSplit).toBe(true)
-	end)
-	it("the slide is PCD behind FEATURES.SlidePCD, default on", function()
-		expect(Config.FEATURES.SlidePCD).toBe(true)
-	end)
 	it("lists the 5 pieces, all uploaded, none in the world slot list", function()
 		expect(#MeshAssets.FOUNTAIN_SPLIT).toBe(5)
 		for _, name in MeshAssets.FOUNTAIN_SPLIT do

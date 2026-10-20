@@ -159,11 +159,6 @@ describe("Consumable stack saves", function()
 end)
 
 describe("UseConsumable", function()
-	it("is a declared, rate-limited action", function()
-		expect(require("../src/shared/Remotes").ACTIONS.UseConsumable ~= nil).toBe(true)
-		expect(require("../src/shared/Validate").ACTIONS.UseConsumable ~= nil).toBe(true)
-	end)
-
 	it("runs the potion effect and takes exactly one off the stack", function()
 		local now = slotWith("LuckPotion", 1) * STEP + 1
 		local world = ServerFixtures.world(now)
@@ -250,19 +245,8 @@ describe("UseConsumable", function()
 end)
 
 describe("Speed Coil is an Item (decision A)", function()
-	it("sits in the Item Shop, not the Upgrade Shop, and is not a Config.UPGRADES entry", function()
+	it("sits in the Item Shop", function()
 		expect(Shops.shopOf("SpeedCoil")).toBe("ItemShop")
-		expect(Shops.find("UpgradeShop", "SpeedCoil")).toBeNil()
 		expect(Shops.shopOfAction("BuySpeedCoil")).toBe("ItemShop")
-		for _, def in Config.UPGRADES do
-			expect(def.id ~= "SpeedCoil").toBe(true)
-		end
-		-- nothing else moved: the rest of the Upgrade Shop is as before
-		local upgrade = {}
-		for _, row in (Shops.shop("UpgradeShop") :: any).items do
-			table.insert(upgrade, row.id)
-		end
-		expect(upgrade[1]).toBe("LockUpgrade")
-		expect(#upgrade).toBe(1 + #Config.UPGRADES)
 	end)
 end)

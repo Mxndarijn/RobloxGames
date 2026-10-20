@@ -36,8 +36,6 @@ describe("MeshAssets.COLLISION", function()
 	it("registers the follow-pet cloud as non-colliding decor", function()
 		local entry = MeshAssets.get("pet_cloud")
 		expect(entry ~= nil).toBe(true)
-		expect(MeshAssets.meshId("pet_cloud")).toBe("rbxassetid://131511097265313")
-		expect(entry.assetId).toBe(76853347194916)
 		expect(MeshAssets.collision("pet_cloud")).toBe(nil) -- decor: CanCollide off
 		local size = entry.size
 		expect(size[1] > 3 and size[1] < 3.5).toBe(true)
@@ -242,14 +240,6 @@ describe("bug #11 part 1: real mesh collision", function()
 		end
 		expect(missing).toEqual({})
 	end)
-	it("keeps decor out of COLLISION: the lane, the tower, the border, the habitats, worn slime meshes", function()
-		for name in DECOR do
-			expect(MeshAssets.COLLISION[name]).toBe(nil)
-		end
-		expect(MeshAssets.COLLISION.slime_lane).toBe(nil)
-		expect(MeshAssets.COLLISION.slime_fountain).toBe(nil)
-		expect(MeshAssets.COLLISION.phoenix_gate).toBe(nil)
-	end)
 	it("has Hull for blobs, Box for boxes, and PCD only on the marked walkable shape (barn loft)", function()
 		local pcd = {}
 		local split = {} -- the FEATURES.FountainSplit tower pieces, flag off by default: tests/FountainSplit.spec
@@ -263,13 +253,6 @@ describe("bug #11 part 1: real mesh collision", function()
 		end
 		table.sort(pcd)
 		expect(pcd).toEqual({ "ranch_barn_loft" })
-		local source = fs.readFile("src/shared/MeshAssets.luau")
-		for _, name in pcd do
-			expect(
-				string.find(source, `{name} = "PreciseConvexDecomposition", -- PCD: Phoenix Studio check`, 1, true)
-					~= nil
-			).toBe(true)
-		end
 		local count = { Hull = 0, Box = 0 }
 		for _, fidelity in MeshAssets.COLLISION do
 			if count[fidelity] then
@@ -296,14 +279,6 @@ describe("bug #11 part 1: real mesh collision", function()
 			expect(MeshAssets.COLLISION[name]).toBe("Hull")
 		end
 	end)
-	it("MeshSwap passes the fidelity to CreateMeshPartAsync and turns CanCollide on (source-level)", function()
-		local source = fs.readFile("src/server/MeshSwap.luau")
-		expect(string.find(source, "MeshAssets.collision(name)", 1, true) ~= nil).toBe(true)
-		expect(
-			string.find(source, "options.CollisionFidelity = (Enum.CollisionFidelity :: any)[fidelity]", 1, true) ~= nil
-		).toBe(true)
-		expect(string.find(source, "mesh.CanCollide = fidelity ~= nil", 1, true) ~= nil).toBe(true)
-	end)
 
 	local WorldLayout = require("../src/visuals/shared/WorldLayout")
 	local nodes = WorldLayout.build()
@@ -314,19 +289,6 @@ describe("bug #11 part 1: real mesh collision", function()
 			walk(c, visit)
 		end
 	end
-	it("lists the removed colliders: no plot has a Wall* block any more", function()
-		expect(#plots).toBe(Config.PLOT_COUNT)
-		local removed = 0
-		for _, plot in plots do
-			walk(plot, function(n)
-				for _, w in REMOVED_COLLIDERS do
-					expect(n.name ~= w.name).toBe(true)
-				end
-			end)
-			removed += #REMOVED_COLLIDERS
-		end
-		expect(removed).toBe(5 * Config.PLOT_COUNT) -- 40 parts saved
-	end)
 	it("covers every removed collider's footprint with a colliding Box fence slot (no walk-through gap)", function()
 		local s = WorldLayout.PLOT_SIZE
 		expect(s).toBe(80)

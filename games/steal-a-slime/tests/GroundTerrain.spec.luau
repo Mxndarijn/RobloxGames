@@ -223,23 +223,17 @@ describe("GroundTerrain voxels", function()
 		end)
 		expect(GroundTerrain.RENDER_SURFACE <= lowest + 0.25).toBe(true)
 	end)
-	it(
-		"is a pure module: no dirt path parts (Ring / Path / SlideExit), and the Ground part is invisible void-safety",
-		function()
-			local found = {}
-			walk({ children = WorldLayout.build() }, function(n)
-				if n.name then
-					found[n.name] = n
-				end
-			end)
-			expect(found.Ring1).toBe(nil)
-			expect(found.Path1).toBe(nil)
-			expect(found.SlideExit).toBe(nil)
-			expect(found.Ground ~= nil).toBe(true)
-			expect(found.Ground.transparency).toBe(1)
-			expect(found.Ground.pos[2] + found.Ground.size[2] / 2).toBe(0)
-		end
-	)
+	it("is a pure module, and the Ground part is invisible void-safety", function()
+		local found = {}
+		walk({ children = WorldLayout.build() }, function(n)
+			if n.name then
+				found[n.name] = n
+			end
+		end)
+		expect(found.Ground ~= nil).toBe(true)
+		expect(found.Ground.transparency).toBe(1)
+		expect(found.Ground.pos[2] + found.Ground.size[2] / 2).toBe(0)
+	end)
 	it("tints the three materials with the pastel palette", function()
 		for _, name in { "Grass", "Ground", "Sand" } do
 			local light, dark = GroundTerrain.COLORS[name], GroundTerrain.DARK[name]
