@@ -86,7 +86,6 @@ end
 task.spawn(safeCall, "BorderTerrainView.place", BorderTerrainView.place) -- hills behind the world border
 task.spawn(safeCall, "MeshSwap.applyAll", MeshSwap.applyAll) -- kit meshes, merge vats, then WorldMeshesReady
 task.spawn(safeCall, "MeshSwap.publishSkinTemplates", MeshSwap.publishSkinTemplates) -- FEATURES.PlotSkins
-task.spawn(safeCall, "MeshSwap.publishFountainTierTemplates", MeshSwap.publishFountainTierTemplates) -- FEATURES.FountainTiers
 task.spawn(safeCall, "MeshSwap.publishHabitatTemplates", MeshSwap.publishHabitatTemplates) -- FEATURES.Habitats
 task.spawn(safeCall, "MeshSwap.publishPetCloudTemplate", MeshSwap.publishPetCloudTemplate) -- the follow pet's cloud
 task.spawn(safeCall, "MeshSwap.publishPvpMarkerTemplates", MeshSwap.publishPvpMarkerTemplates) -- FEATURES.PvP placed traps

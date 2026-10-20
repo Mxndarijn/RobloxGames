@@ -15,7 +15,7 @@
 	  * follow pets (FollowPets) for the Player attribute PetSlimeId
 	  * despawn warning (DespawnTelegraphFx) on wild slimes with DespawnAt
 	  * revenge (RevengeFx, FEATURES.Revenge): highlight on the plots in the local Player attribute RevengePlots
-	  * fountain tiers (FountainTierFx, FEATURES.FountainTiers): ring / crest / glow from the workspace attribute FountainTier
+	  * fountain tiers (FountainTierFx, FEATURES.FountainTiers): goo glow from the workspace attribute FountainTier
 	  * weather (WeatherFx, FEATURES.Weather): Rain / Snow / Starfall emitters + tint from the workspace attribute Weather
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
 	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst

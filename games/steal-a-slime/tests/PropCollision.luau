@@ -790,14 +790,6 @@ local UNPLACED: { [string]: { string } } = {
 	ranch_border_chunk_b_m = { "jolt", "mirrored twin not placed in this seed's corners" },
 	ranch_border_chunk_d_m = { "jolt", "mirrored twin not placed in this seed's corners" },
 	ranch_lantern_post = { "jolt", "no RanchProps placement (decor, not in the map)" },
-	fountain_tier_ring = {
-		"jolt",
-		"client template cloned round the fountain at tier 2+ (FountainTierFx), visual only",
-	},
-	fountain_tier_crest = {
-		"jolt",
-		"client template cloned over the fountain at tier 3+ (FountainTierFx), visual only",
-	},
 	plot_skin_mushroom = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_candy = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
 	plot_skin_crystal = { "gojo", "client plot-skin decor over Mailbox_<i> (PlotDecor.applySkin), visual only" },
