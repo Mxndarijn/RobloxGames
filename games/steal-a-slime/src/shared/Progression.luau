@@ -4,12 +4,12 @@
 
 	Rebirth, daily reward and Slime Rain schedule. Pure: no Roblox APIs.
 
-	Rebirth: costs Economy.rebirthCost(rebirths) cash. Wipes cash (back to
-	STARTING_CASH) and every slime except one keeper: the favourite, or the
-	highest-income slime if no favourite is set. Pads stay unlocked. Gives
-	+REBIRTH_MULTIPLIER_STEP income multiplier and +10 s lock duration.
-	v29: it also needs the Config.REBIRTH_SLIMES species for that level to be
-	owned (in data.slimes). The slime is not consumed beyond the normal wipe.
+	Rebirth: costs Economy.rebirthCost(rebirths) cash and needs the
+	Config.REBIRTH_SLIMES species of that level on the player's pads. Those
+	slimes are used up. Then it wipes cash (back to STARTING_CASH) and every
+	other slime except the rank's keepers: the favourite first, then the
+	highest-income slimes. Pads stay unlocked. Gives +REBIRTH_MULTIPLIER_STEP
+	income multiplier and a longer lock (Steal.lockDuration).
 ]]
 
 local Config = if script then require(script.Parent.Config) else require("./Config")
@@ -30,45 +30,68 @@ local Progression = {}
 -- Rebirth
 ---------------------------------------------------------------------------
 
--- SlimeRoster species id the next rebirth (data.rebirths + 1) needs: the
--- Config.REBIRTH_SLIMES entry for that level, else the last one below it.
-function Progression.requiredSpecies(rebirths: number): string?
-	for level = rebirths + 1, 1, -1 do
-		local id = Config.REBIRTH_SLIMES[level]
-		if id then
-			return id
-		end
-	end
-	return nil
+-- SlimeRoster species ids the next rebirth (data.rebirths + 1) needs, one per slime (empty at max).
+function Progression.requiredSpecies(rebirths: number): { string }
+	return Config.REBIRTH_SLIMES[rebirths + 1] or {}
 end
 
-function Progression.ownsSpecies(data: PlayerData.Data, species: string): boolean
-	for _, s in data.slimes do
-		if s.species == species and not s.egg then
-			return true
-		end
-	end
-	return false
+local function isSpecies(slime: Slime, species: string): boolean
+	return slime.species == species and not slime.egg
 end
 
--- { id, name, tier, color, owned } of the slime the next rebirth needs; nil at max or when none is required.
-function Progression.requiredSlime(data: PlayerData.Data): Requirement?
+--[[
+	The slimes the next rebirth uses up: for each required species the matching slime
+	that is cheapest to lose (not the favourite, then the lowest income). Returns the
+	picked slimes (in requirement order, nil where nothing matches) and whether every
+	requirement found one.
+]]
+function Progression.payment(data: PlayerData.Data): ({ [number]: Slime }, boolean)
+	local picked: { [number]: Slime } = {}
+	local used: { [string]: boolean } = {}
+	local complete = true
+	for i, species in Progression.requiredSpecies(data.rebirths) do
+		local best: Slime? = nil
+		local bestCost = math.huge
+		for _, s in data.slimes do
+			if not used[s.id] and isSpecies(s, species) then
+				-- The favourite only when nothing else matches; otherwise the lowest income.
+				local cost = Genome.baseIncome(s) + (if s.id == data.favoriteId then 1e300 else 0)
+				if not best or cost < bestCost then
+					best, bestCost = s, cost
+				end
+			end
+		end
+		if best then
+			picked[i] = best
+			used[best.id] = true
+		else
+			complete = false
+		end
+	end
+	return picked, complete
+end
+
+-- One { id, name, tier, color, owned } row per slime the next rebirth needs; empty at max.
+function Progression.requiredSlimes(data: PlayerData.Data): { Requirement }
+	local out: { Requirement } = {}
 	if data.rebirths >= Config.MAX_REBIRTHS then
-		return nil
+		return out
 	end
-	local id = Progression.requiredSpecies(data.rebirths)
-	local entry = id and SlimeRoster.get(id)
-	if not entry then
-		return nil
+	local picked = Progression.payment(data)
+	for i, id in Progression.requiredSpecies(data.rebirths) do
+		local entry = SlimeRoster.get(id)
+		if entry then
+			local look = SlimeLooks.get(entry.id)
+			table.insert(out, {
+				id = entry.id,
+				name = entry.name,
+				tier = entry.tier,
+				color = if look then { look.color[1], look.color[2], look.color[3] } else { 170, 220, 170 },
+				owned = picked[i] ~= nil,
+			})
+		end
 	end
-	local look = SlimeLooks.get(entry.id)
-	return {
-		id = entry.id,
-		name = entry.name,
-		tier = entry.tier,
-		color = if look then { look.color[1], look.color[2], look.color[3] } else { 170, 220, 170 },
-		owned = Progression.ownsSpecies(data, entry.id),
-	}
+	return out
 end
 
 function Progression.canRebirth(data: PlayerData.Data): (boolean, string?)
@@ -78,9 +101,10 @@ function Progression.canRebirth(data: PlayerData.Data): (boolean, string?)
 	if data.cash < Economy.rebirthCost(data.rebirths) then
 		return false, "not enough cash"
 	end
-	local need = Progression.requiredSlime(data)
-	if need and not need.owned then
-		return false, `need a {need.name}`
+	for _, need in Progression.requiredSlimes(data) do
+		if not need.owned then
+			return false, `need a {need.name}`
+		end
 	end
 	return true, nil
 end
@@ -122,15 +146,20 @@ end
 
 --[[
 	Applies a rebirth in place. `exclude` lists slime ids that can't be kept
-	(e.g. currently being stolen). The rank's Perks.keepCount slimes stay
-	(favourite first). Returns (ok, firstKeptSlimeOrReason).
+	(e.g. currently being stolen). The required slimes (Progression.payment) are
+	used up and can't be kept either; of the rest the rank's Perks.keepCount
+	slimes stay (favourite first). Returns (ok, firstKeptSlimeOrReason).
 ]]
 function Progression.rebirth(data: PlayerData.Data, exclude: { [string]: boolean }?): (boolean, Slime? | string)
 	local ok, reason = Progression.canRebirth(data)
 	if not ok then
 		return false, reason
 	end
-	local kept = Progression.keepers(data, Perks.keepCount(data.rebirths), exclude)
+	local skip = table.clone(exclude or {})
+	for _, slime in Progression.payment(data) do
+		skip[slime.id] = true
+	end
+	local kept = Progression.keepers(data, Perks.keepCount(data.rebirths), skip)
 	data.rebirths += 1
 	data.cash = Config.STARTING_CASH
 	data.slimes = {}

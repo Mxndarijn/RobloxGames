@@ -894,6 +894,7 @@ WorldLayout.PROP_MESHES = table.freeze({
 	ItemShopStand = WorldLayout.BUY_STAND_MESH,
 	UpgradeShopStand = WorldLayout.BUY_STAND_MESH,
 	LeaderboardBoard = "phoenix_top_earners_board",
+	TutorialNpc = "ranch_guide",
 })
 
 local function visualMesh(node: WorldNode, mesh: string): WorldNode

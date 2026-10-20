@@ -30,5 +30,4 @@ as before (`Genome.sanitize`).
   accessory bones). The procedural face / pattern / tier-crown parts are hidden (`SlimeMesh.isReplacedPart`); Body,
   Aura and GlowShell stay. No slime has a rarity ring under it. The per-type accessory path (`SlimeMesh.plan`,
   `Accessory`) is gone.
-- **`Config.REBIRTH_SLIMES`** uses the new ids: 1 bumble, 2 froggo, 3 lop, 4 moo, 5 blaze, 6 octo, 7 king, 8 ninja,
-  9-10 cosmo, 15 midas, 20 eclipse.
+- **`Config.REBIRTH_SLIMES`** uses the new ids: one list per rebirth, see contract/v13-additions.md §8.8a.

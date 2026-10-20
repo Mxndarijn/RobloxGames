@@ -608,14 +608,17 @@ local function panelState(key: string, realState: any): any
 		return view
 	end
 	local force = if isStudio and key == "Rebirth" then gui:GetAttribute("PcwRebirthSlime") else nil
-	local need = state.rebirthSlime
-	if (force ~= "owned" and force ~= "missing") or type(need) ~= "table" then
+	local needs = state.rebirthSlimes
+	if (force ~= "owned" and force ~= "missing") or type(needs) ~= "table" then
 		return state
 	end
 	local view = table.clone(state)
-	view.rebirthSlime = table.clone(need)
-	view.rebirthSlime.owned = force == "owned"
-	view.canRebirth = view.rebirthSlime.owned and state.cash >= state.rebirthCost
+	view.rebirthSlimes = {}
+	for i, need in needs do
+		view.rebirthSlimes[i] = table.clone(need)
+		view.rebirthSlimes[i].owned = force == "owned"
+	end
+	view.canRebirth = force == "owned" and state.cash >= state.rebirthCost
 	return view
 end
 
