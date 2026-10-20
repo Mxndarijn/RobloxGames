@@ -7,5 +7,5 @@
 - **Remote:** `Request("EquipPlotSkin", skinId)` (`string`; rate limit 0.5 s). Refused unless the skin exists and is unlocked, or when the flag is off. Equipping `classic` always works.
 - **State (flag on only):** `plotSkin: string`, `plotSkins: { { id, name, setName, tier, owned, total, needed, fraction, unlocked, equipped } }` (classic first).
 - **Plot attribute (flag on only):** `Plot_<i>.PlotSkin = <id>` ("classic" for a free plot). Clients paint from it.
-- **Visuals (client, `PlotDecor.applySkin`):** floor `Base` colour + material, fence / gate mesh tint, and the skin's decor mesh stands in for the plot's `Mailbox_<i>` slot. **No new mesh slots:** the decor meshes are templates in `ReplicatedStorage.PlotSkinMeshes` (server-published), not world slots. `WorldLayout.build` is unchanged.
+- **Visuals (client, `PlotDecor.applySkin`):** floor `Base` colour + material, the jar's cork and trim tint (`trim`: the bridge, jar floor, parked stopper and lids), and the skin's decor mesh stands in for the plot's `Mailbox_<i>` slot. **No new mesh slots:** the decor meshes are templates in `ReplicatedStorage.PlotSkinMeshes` (server-published), not world slots. `WorldLayout.build` is unchanged.
 - **Studio-only debug:** SlimeUI attribute `PcwPlotSkin` (skin id) forces Plot_1's skin and the picker view for shots.
