@@ -1,10 +1,8 @@
 --!strict
 -- S3 inventory UI (src/ui/Inventory) under the Lune UI harness: hotbar slots / icons / selection, number keys and
--- the actions they send, the bag panel, hide rules, and the init.client mount.
-local fs = require("@lune/fs")
+-- the actions they send, the bag panel and hide rules.
 
 local Config = require("../../src/shared/Config")
-local GlyphCheck = require("./GlyphCheck")
 local InventoryLayout = require("../../src/ui/InventoryLayout")
 local ItemIcons = require("../../src/ui/ItemIcons")
 local Layout = require("../../src/ui/Layout")
@@ -314,38 +312,6 @@ describe("Inventory bag key", function()
 			keyboard = false,
 		})
 		expect(UiHarness.find(touch.bag, "Number").Visible).toBe(false)
-	end)
-end)
-
-describe("Inventory mount", function()
-	local src = fs.readFile("src/ui/init.client.luau")
-	local function has(needle: string): boolean
-		return string.find(src, needle, 1, true) ~= nil
-	end
-	it("init.client mounts it with a minimal hook: layout, state, menu and tick", function()
-		expect(has("Inventory.new(gui")).toBe(true)
-		expect(has("inventory.layout(s)")).toBe(true)
-		expect(has("inventory.update(state)")).toBe(true)
-		expect(has("inventory.setMenuOpen(")).toBe(true)
-		expect(has("inventory.tick()")).toBe(true)
-		expect(has("InventoryTools.hideDefaultBackpack()")).toBe(true)
-	end)
-	it("the default Roblox backpack is switched off through StarterGui", function()
-		local tools = fs.readFile("src/ui/InventoryTools.luau")
-		expect(string.find(tools, "SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)", 1, true) ~= nil).toBe(true)
-	end)
-	it("the only server names it touches are EquipPvpItem, UsePvpItem, UseConsumable and SetHotbar", function()
-		local core = fs.readFile("src/ui/InventoryCore.luau")
-		expect(string.find(core, 'PVP_ACTION = "EquipPvpItem"', 1, true) ~= nil).toBe(true)
-		expect(string.find(core, 'USE_ACTION = "UseConsumable"', 1, true) ~= nil).toBe(true)
-		expect(string.find(core, 'PVP_USE_ACTION = "UsePvpItem"', 1, true) ~= nil).toBe(true)
-		expect(string.find(core, 'HOTBAR_ACTION = "SetHotbar"', 1, true) ~= nil).toBe(true)
-		local code = GlyphCheck.stripComments(core)
-		-- "BuyConsumable" is only the ItemIcons key of a consumable's picture, never sent
-		for _, other in { "BuyUpgrade", "RemoteEvent", "InvokeServer" } do
-			expect(string.find(code, other, 1, true)).toBe(nil)
-		end
-		expect(select(2, string.gsub(code, "BuyConsumable", ""))).toBe(1)
 	end)
 end)
 

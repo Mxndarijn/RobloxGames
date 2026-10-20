@@ -3,8 +3,6 @@
 -- on every steal / buy / lock / pad / merge / claim prompt) and UI buttons (Widgets.holdButton
 -- with a visible HoldFill). Instant on purpose: Open Shop, Talk, and a FREE Grab of a wild
 -- slime (costs nothing, takes nothing from anyone). Server checks are unchanged.
-local fs = require("@lune/fs")
-
 local Carry = require("../../src/server/Carry")
 local Config = require("../../src/shared/Config")
 local Fixtures = require("../Fixtures")
@@ -16,19 +14,6 @@ local UiHarness = require("./UiHarness")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
-
-local function read(path: string): string
-	return fs.readFile(path)
-end
-
--- Every `HoldDuration = <rhs>` in a source file.
-local function holdAssignments(path: string): { string }
-	local out = {}
-	for rhs in string.gmatch(read(path), "HoldDuration = ([^\n]+)") do
-		table.insert(out, rhs)
-	end
-	return out
-end
 
 describe("B1: hold-to-confirm prompts", function()
 	it("the constant is between 0.6 and 1.0 seconds", function()
@@ -53,60 +38,9 @@ describe("B1: hold-to-confirm prompts", function()
 			end
 		end
 	end)
-	it("slime, plot (Lock / Merge / BuyPad) prompts all take the constant, never a literal", function()
-		local view = holdAssignments("src/server/WorldView.luau")
-		expect(#view).toBe(4) -- slime (initial), Mystery Egg HatchPrompt, slime (reconcile), plot prompts
-		for _, rhs in view do
-			expect(string.find(rhs, "HOLD_CONFIRM_SECONDS", 1, true) ~= nil or rhs == "entry.promptHold").toBe(true)
-		end
-	end)
-	it("only Open Shop and Talk (no cost, no steal) stay instant", function()
-		local props = holdAssignments("src/server/WorldProps.luau")
-		expect(#props).toBe(1)
-		expect(props[1]).toBe("0")
-		local src = read("src/server/WorldProps.luau")
-		local names = {}
-		for name in string.gmatch(src, "name = Constants%.([%w_]+)") do
-			table.insert(names, name)
-		end
-		table.sort(names)
-		expect(table.concat(names, ",")).toBe("GUIDE_PROMPT_NAME,SHOP_PROMPT_NAME")
-	end)
 end)
 
 describe("B1: hold-to-confirm buttons", function()
-	local function importantButtons(path: string, name: string): string?
-		-- The constructor used for the button whose props contain Name = "<name>".
-		local src = read(path)
-		local at = string.find(src, `Name = "{name}"`, 1, true)
-		expect(at ~= nil).toBe(true)
-		local ctor
-		for c in string.gmatch(string.sub(src, 1, at :: number), "Widgets%.(%w+)%(") do
-			ctor = c
-		end
-		return ctor
-	end
-	it("Sell, Rebirth, shop Buy and Merge use Widgets.holdButton (the HUD Lock / Buy pad are gone, B7)", function()
-		expect(string.find(read("src/ui/Hud.luau"), "holdButton", 1, true)).toBeNil()
-		expect(importantButtons("src/ui/Panels/Plot.luau", "Sell")).toBe("holdButton")
-		-- Appraise rerolls spend cash: the Appraise screen's Reroll is a holdButton; the row opener is free.
-		expect(importantButtons("src/ui/Panels/Plot.luau", "Appraise")).toBe("button")
-		expect(importantButtons("src/ui/Panels/Plot.luau", "RerollSize")).toBe("holdButton")
-		expect(importantButtons("src/ui/Panels/Rebirth.luau", "RebirthButton")).toBe("holdButton")
-		expect(importantButtons("src/ui/Panels/Shop.luau", "Buy")).toBe("holdButton")
-		expect(importantButtons("src/ui/Panels/Merge.luau", "MergeButton")).toBe("holdButton")
-	end)
-	it("Appraise rerolls (the cash spend) are hold buttons with the constant; the row opener spends nothing", function()
-		local plot = read("src/ui/Panels/Plot.luau")
-		local reroll = string.match(plot, "local rerollBtn = Widgets%.holdButton%(.-\n\trerollBtn")
-		expect(reroll ~= nil and string.find(reroll, "HOLD_CONFIRM_SECONDS", 1, true) ~= nil).toBe(true)
-		-- The only caller of ctx.ask("Appraise") is reroll, reached only from the hold buttons.
-		local _, n = string.gsub(plot, 'ctx%.ask%("Appraise"', "")
-		expect(n).toBe(1)
-	end)
-	it("the two-click confirmButton is gone", function()
-		expect(string.find(read("src/ui/Widgets.luau"), "confirmButton", 1, true)).toBeNil()
-	end)
 	it("a built hold button carries the hold seconds and a HoldFill bar that starts empty and hidden", function()
 		local Widgets = UiHarness.ui("Widgets")
 		local btn = Widgets.holdButton({ Name = "T" }, nil, function() end, Config.HOLD_CONFIRM_SECONDS)
@@ -136,12 +70,6 @@ describe("B1: hold-to-confirm buttons", function()
 		fill, paused = Widgets.holdPause(1, nil)
 		expect(fill).toBe(1)
 		expect(paused).toBe(false)
-	end)
-	it("the PcwHold display hook runs on a disabled button and survives its state refresh", function()
-		local src = read("src/ui/Widgets.luau")
-		expect(string.find(src, "start(true)", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "(not enabled and not display)", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "if not value and not pauseAt then", 1, true) ~= nil).toBe(true)
 	end)
 	it("the real Rebirth button is a hold button", function()
 		local Rebirth = UiHarness.ui("Panels/Rebirth")

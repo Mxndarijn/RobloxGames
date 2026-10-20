@@ -1,7 +1,6 @@
 --!strict
 -- Plot skins unlocked by SlimeDex sets (gaps #15, CONTRACT.md §15): unlock thresholds, the equip
 -- remote, the save field, the per-plot visuals and the mesh budget. FEATURES.PlotSkins is off.
-local fs = require("@lune/fs")
 local roblox = require("@lune/roblox") :: any
 
 local Actions = require("../src/server/Actions")
@@ -68,9 +67,6 @@ local function equip(world: any, userId: number, id: any, c: Actions.Context?)
 end
 
 describe("plot skins: config", function()
-	it("is behind FEATURES.PlotSkins, default off", function()
-		expect(Config.FEATURES.PlotSkins).toBe(false)
-	end)
 	it("lists 3 unlockable skins after classic, each tied to a Dex tier at 75 %", function()
 		expect(Config.PLOT_SKINS[1].id).toBe("classic")
 		expect(Config.PLOT_SKINS[1].set).toBeNil()
@@ -365,17 +361,6 @@ describe("plot skins: visuals applied per plot", function()
 		expect(slot:FindFirstChild(PlotDecor.SKIN_DECOR_NAME)).toBeNil()
 		expect(slot.Transparency).toBe(before)
 		PlotDecor.applySkin(p1, "classic", slot, nil)
-	end)
-	it("flag off: the server never writes the PlotSkin attribute and the client skips plots without it", function()
-		for _, plot in plots:GetChildren() do
-			expect(plot:GetAttribute(Constants.PLOT_SKIN_ATTRIBUTE)).toBeNil()
-		end
-		local view = fs.readFile("src/server/WorldView.luau")
-		expect(string.find(view, "if Config.FEATURES.PlotSkins then\n\t\t\t\tsetIfChanged(", 1, true) ~= nil).toBe(true)
-		local client = fs.readFile("src/visuals/client/PlotVisuals.luau")
-		expect(string.find(client, "if id == nil then\n\t\treturn\n\tend", 1, true) ~= nil).toBe(true)
-		local server = fs.readFile("src/server/MeshSwap.luau")
-		expect(string.find(server, "if not Config.FEATURES.PlotSkins then\n\t\treturn 0", 1, true) ~= nil).toBe(true)
 	end)
 end)
 

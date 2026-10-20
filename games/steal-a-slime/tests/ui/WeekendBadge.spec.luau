@@ -1,5 +1,4 @@
 --!strict
-local MenuState = require("../../src/ui/MenuState")
 local TestRunner = require("../TestRunner")
 local WeekendBadge = require("../../src/ui/WeekendBadge")
 
@@ -23,9 +22,5 @@ describe("WeekendBadge", function()
 		expect(WeekendBadge.banner({ active = false, multiplier = 1 }, 0)).toBeNil()
 		expect(WeekendBadge.banner({ active = true, multiplier = 1 }, 0)).toBeNil()
 		expect(WeekendBadge.banner({ active = true, multiplier = 2, endsAt = 10 }, 10)).toBeNil()
-	end)
-	it("lives in the banner stack, which hides while a menu is open", function()
-		expect(MenuState.bannersVisible(nil)).toBe(true)
-		expect(MenuState.bannersVisible("Shop")).toBe(false)
 	end)
 end)

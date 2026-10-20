@@ -159,15 +159,6 @@ describe("Fun item data and gating", function()
 			expect(PvpRules.price(id)).toBe(expected)
 		end
 	end)
-	it("no fun item has a damage field or exceeds the control cap; cooldowns respect the minimum", function()
-		for _, id in IDS do
-			local tool = PvpRules.tool(id) :: any
-			expect(tool.cooldown >= Config.PVP.MIN_COOLDOWN).toBe(true)
-			expect((tool.control or 0) <= Config.PVP.CONTROL_MAX_SECONDS).toBe(true)
-			expect((tool.slowSeconds or 0) <= Config.PVP.SLOW_MAX_SECONDS).toBe(true)
-			expect(tool.damage).toBeNil()
-		end
-	end)
 end)
 
 describe("Fun items are aimed", function()

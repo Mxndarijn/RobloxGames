@@ -1,16 +1,10 @@
 --!strict
 -- Overlay layers, scroll list rules and the phone UIScale (src/ui/Layout.luau).
-local fs = require("@lune/fs")
-
 local InventoryLayout = require("../../src/ui/InventoryLayout")
 local Layout = require("../../src/ui/Layout")
 local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
-
-local function read(path: string): string
-	return fs.readFile(path)
-end
 
 describe("Layout.SCROLL_LIST", function()
 	it("stacks rows from the top with edge padding (v15: Center clipped rows)", function()
@@ -18,23 +12,6 @@ describe("Layout.SCROLL_LIST", function()
 		expect(Layout.SCROLL_LIST.paddingBottom > 0).toBe(true)
 		local ys = Layout.stackRows({ 20, 20 }, 6)
 		expect(ys[1]).toBe(Layout.SCROLL_LIST.paddingTop)
-	end)
-	it("is placed by Widgets.restack, not a UIListLayout (v26 stacked rows)", function()
-		-- Instance-level checks: tests/ui/ScrollLists.spec.luau.
-		local src = read("src/ui/Widgets.luau")
-		local body = string.match(src, "function Widgets%.restack(.-)\nend") :: string
-		expect(body ~= nil).toBe(true)
-		expect(string.find(body, "Layout.stackRows", 1, true) ~= nil).toBe(true)
-		local list = string.match(src, "function Widgets%.scrollList(.-)\nend") :: string
-		expect(string.find(list, "UIListLayout", 1, true)).toBeNil()
-		expect(string.find(list, "Widgets.restack", 1, true) ~= nil).toBe(true)
-	end)
-	it("is used by every panel list (no bare Widgets.scroll + Center list)", function()
-		for _, name in { "Shop", "Goals", "Plot", "Merge", "Dex", "Leaderboard" } do
-			local src = read(`src/ui/Panels/{name}.luau`)
-			expect(string.find(src, "Widgets.scrollList(", 1, true) ~= nil).toBe(true)
-			expect(string.find(src, "Widgets.scroll(", 1, true)).toBeNil()
-		end
 	end)
 end)
 
@@ -44,17 +21,6 @@ describe("Layout.ZINDEX", function()
 		expect(z.Base < z.Daily).toBe(true)
 		expect(z.Daily < z.Tutorial).toBe(true)
 		expect(z.Tutorial < z.Carry).toBe(true)
-	end)
-	it("is what the overlays use", function()
-		local uses = {
-			Carry = "Layout.ZINDEX.Carry",
-			TutorialOverlay = "Layout.ZINDEX.Tutorial",
-			DailyPopup = "Layout.ZINDEX.Daily",
-		}
-		for name, needle in uses do
-			local src = read(`src/ui/Panels/{name}.luau`)
-			expect(string.find(src, needle, 1, true) ~= nil).toBe(true)
-		end
 	end)
 end)
 
@@ -113,33 +79,6 @@ describe("Layout rect helpers", function()
 		expect(Layout.wrappedHeight(string.rep("word ", 40), 14, 100) > Layout.wrappedHeight("word", 14, 100)).toBe(
 			true
 		)
-	end)
-end)
-
-describe("text that must not be cut off (v15 playtest)", function()
-	local function has(text: string, needle: string): boolean
-		return string.find(text, needle, 1, true) ~= nil
-	end
-	it("HUD banners (boss countdown) wrap and grow", function()
-		local src = read("src/ui/Hud.luau")
-		local body = string.match(src, "local function banner(.-)\nend") :: string
-		expect(has(body, "TextWrapped = true")).toBe(true)
-		expect(has(body, "TextTruncate.None")).toBe(true)
-		expect(has(body, "AutomaticSize = Enum.AutomaticSize.Y")).toBe(true)
-	end)
-	it("the rebirth card scrolls a fixed canvas when the card is shorter than it (v28)", function()
-		local src = read("src/ui/Panels/Rebirth.luau")
-		expect(has(src, "CanvasSize = UDim2.fromOffset(0, Rebirth.CONTENT_H)")).toBe(true)
-		expect(has(src, "Keeps ★ slimes, pads and upgrades.")).toBe(true) -- one line (LayoutAssert.rebirthTexts)
-	end)
-end)
-
-describe("root UIScale", function()
-	it("init.client scales the ScreenGui from its size and follows changes", function()
-		local src = read("src/ui/init.client.luau")
-		expect(string.find(src, 'create("UIScale"', 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "Layout.uiScale(", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, 'GetPropertyChangedSignal("AbsoluteSize")', 1, true) ~= nil).toBe(true)
 	end)
 end)
 

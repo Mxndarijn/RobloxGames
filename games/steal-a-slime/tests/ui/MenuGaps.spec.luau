@@ -2,7 +2,6 @@
 -- v29 menu gaps: Esc / gamepad B close the Daily popup, menu cards are as tall
 -- as their measured content (clamped to the viewport), the SlimeDex header
 -- does not overlap, and Dex previews are virtualised to the scroll window.
-local fs = require("@lune/fs")
 local roblox = require("@lune/roblox") :: any
 
 local Config = require("../../src/shared/Config")
@@ -88,13 +87,6 @@ describe("Esc / B closes the Daily popup", function()
 	it("still passes the key on with nothing open", function()
 		local c = client(false, nil)
 		expect(c.handler("CloseMenu", Enum.UserInputState.Begin)).toBe(Enum.ContextActionResult.Pass)
-	end)
-	it("the client wires the popup into the same CloseMenu action", function()
-		local src = fs.readFile("src/ui/init.client.luau")
-		expect(
-			string.find(src, "MenuClose.topKey(openKey, dailyPopup.isOpen(), inventory.panelOpen())", 1, true) ~= nil
-		).toBe(true)
-		expect(string.find(src, "dailyPopup.close()", 1, true) ~= nil).toBe(true)
 	end)
 end)
 

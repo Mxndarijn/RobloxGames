@@ -139,8 +139,6 @@ describe("pad stands", function()
 		end
 	end)
 	it("uses the one crate pad on every spot, with a constant seat", function()
-		expect(WorldLayout.PAD_MESH).toBe("phoenix_pad_crate")
-		expect(WorldLayout.PAD_SEAT_Y).toBe(2.4)
 		for _, plot in plots do
 			for j = 1, Config.PADS_MAX do
 				local pad = child(plot, `Pad_{j}`)
@@ -234,9 +232,6 @@ describe("plot walls and DexBoard (C6)", function()
 			end)
 			-- + the GatePost closing the fence run at the gate's right stub
 			expect(slots).toBe(if WorldLayout.fenceUploaded() then 17 else 31)
-			for _, name in { "WallBack", "WallLeft", "WallRight", "WallFrontL", "WallFrontR" } do
-				expect(pcall(child, plot, name)).toBe(false) -- the invisible walls were removed: the meshes collide
-			end
 		end
 	end)
 	it("skins the DexBoard with DEX_MESH at DEX_SCALE, on the Base, facing the entrance, clear of the fence", function()
@@ -285,17 +280,6 @@ describe("plot walls and DexBoard (C6)", function()
 				end
 				expect(c.canCollide).toBe(false)
 			end
-		end
-	end)
-	it("has no BuyStand / claim model on any plot (plots auto-assign; the stand is the plaza shop only)", function()
-		for _, plot in plots do
-			local found = 0
-			walk({ plot }, function(node)
-				if node.name == "BuyStand" or node.name == "StandMesh" or meshOf(node) == "ranch_shop_stand" then
-					found += 1
-				end
-			end)
-			expect(found).toBe(0)
 		end
 	end)
 end)

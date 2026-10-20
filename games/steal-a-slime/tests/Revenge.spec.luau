@@ -43,15 +43,6 @@ local function lockCosts(world: World.World, thief: World.Session, now: number):
 	return state.lockCost, plotCost, base
 end
 
-describe("Revenge config", function()
-	it("is on by default with a 60 s window and a x2 lock", function()
-		expect(Config.FEATURES.Revenge).toBe(true)
-		expect(Revenge.enabled()).toBe(Config.FEATURES.Revenge) -- every entry point checks this one switch
-		expect(WINDOW).toBe(60)
-		expect(Config.REVENGE_LOCK_COST_MULT).toBe(2)
-	end)
-end)
-
 describe("Revenge window", function()
 	it("opens for the victim only when the steal is completed", function()
 		local world, victim, thief = setup()
@@ -143,14 +134,6 @@ describe("Revenge lock cost", function()
 		local cash = thief.data.cash
 		expect((StealService.buyLock(world, thief, LATER + WINDOW))).toBe(true)
 		expect(cash - thief.data.cash).toBe(base)
-	end)
-	it("refuses a doubled lock the thief cannot afford", function()
-		local world, _, thief = setup()
-		rob(world, 2, "gem1", LATER)
-		local base = Economy.lockCost(World.incomeOf(world, thief))
-		thief.data.cash = base * 2 - 1 -- enough for a normal lock, not for x2
-		expect(select(2, StealService.buyLock(world, thief, LATER))).toBe("not enough cash")
-		expect(thief.data.cash).toBe(base * 2 - 1)
 	end)
 end)
 

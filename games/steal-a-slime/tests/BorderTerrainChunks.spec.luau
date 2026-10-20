@@ -69,7 +69,6 @@ describe("BorderTerrain.chunks", function()
 		for i = 2, #chunks do
 			expect(dist(chunks[i - 1]) <= dist(chunks[i])).toBe(true)
 		end
-		expect(dist(chunks[1])).toBe(dist(chunks[1])) -- nearest touches the Ground edge ring
 		expect(BorderTerrain.chunks()).toEqual(chunks)
 		expect(#BorderTerrain.chunks(32)).toBe(#tiles)
 	end)

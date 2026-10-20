@@ -181,8 +181,6 @@ describe("WorldLayout matches the server's expectations", function()
 	end
 
 	it("uses the shared folder names", function()
-		expect(Constants.MAP_FOLDER).toBe("Map")
-		expect(Constants.PLOT_SLIMES_FOLDER).toBe("Slimes")
 		expect(WorldLayout.MAP_NAME).toBe(Constants.MAP_FOLDER)
 		expect(WorldLayout.SLIMES_FOLDER).toBe(Constants.PLOT_SLIMES_FOLDER)
 		expect(layout[1].name).toBe(Constants.MAP_FOLDER)

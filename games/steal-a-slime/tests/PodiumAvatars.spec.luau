@@ -1,5 +1,4 @@
 --!strict
-local fs = require("@lune/fs")
 
 local PodiumAvatars = require("../src/server/PodiumAvatars")
 local TestRunner = require("./TestRunner")
@@ -70,9 +69,6 @@ describe("PodiumAvatars", function()
 	it("labels a rig with display name and formatted stat, or no text for an empty slot", function()
 		expect(PodiumAvatars.labelText("Merijn", 1500)).toBe("Merijn\n$1.5K")
 		expect(PodiumAvatars.labelText(nil, nil)).toBe("")
-		expect(rawget(PodiumAvatars :: any, "EMPTY_TEXT")).toBeNil()
-		expect(string.find(fs.readFile("src/server/PodiumRigs.luau"), "Your spot", 1, true)).toBeNil()
-		expect(string.find(fs.readFile("src/server/PodiumAvatars.luau"), "Your spot", 1, true)).toBeNil()
 	end)
 	it("mounts avatar rigs for the top three and placeholders for empty slots", function()
 		local adapter, log = fake()

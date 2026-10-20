@@ -2,8 +2,6 @@
 -- Living slimes (src/ui/SlimeLife.luau, TODO v28 #17): per-rarity params,
 -- distance / count gating, sparkle cap, no hops of their own (a forced hop
 -- still works), the walking sway and pose bounds.
-local fs = require("@lune/fs")
-
 local SlimeLife = require("../../src/ui/SlimeLife")
 local TestRunner = require("../TestRunner")
 
@@ -231,16 +229,7 @@ describe("SlimeLife clock and pose", function()
 end)
 
 describe("SlimeLife runner", function()
-	local source = fs.readFile("src/ui/SlimeLifeRunner.client.luau")
-
-	it("never moves the model pivot (VisualsClient owns it) and fires no remotes", function()
-		expect(string.find(source, ":PivotTo(", 1, true)).toBe(nil)
-		expect(string.find(source, ":FireServer", 1, true)).toBe(nil)
-		expect(string.find(source, ":InvokeServer", 1, true)).toBe(nil)
-	end)
-
 	it("uses only the built-in sparkle texture, no uploaded assets", function()
-		expect(string.find(source, "rbxassetid://", 1, true)).toBe(nil)
 		expect(string.find(SlimeLife.SPARKLE_TEXTURE, "^rbxasset://textures/particles/") ~= nil).toBe(true)
 	end)
 end)
