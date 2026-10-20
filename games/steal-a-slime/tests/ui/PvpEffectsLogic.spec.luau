@@ -42,51 +42,122 @@ describe("PvpEffectsLogic.plan", function()
 		expect(miss.burst).toBe(nil)
 		expect(miss.onTarget).toBe(false)
 	end)
-	it("Cosmetic: each item has its own colours / sfx; Fireworks lasts FIREWORKS_SECONDS at most", function()
-		local ids = { "FunConfetti", "FunBalloon", "FunBubbles", "FunHatLauncher", "FunFireworks", "FunSqueaky" }
-		local seen: { [string]: boolean } = {}
-		for _, id in ids do
-			local p = plan({ effect = "Cosmetic", itemId = id, duration = 99 })
-			expect(p ~= nil).toBe(true)
-			expect(p.seconds <= math.max(P.FX_SECONDS, P.FIREWORKS_SECONDS)).toBe(true)
-			expect(Sounds.resolve(p.sfx) ~= nil).toBe(true)
-			seen[p.sfx] = true
-		end
-		expect(plan({ effect = "Cosmetic", itemId = "FunSqueaky" }).sfx).toBe("PvpSqueak")
-		expect(plan({ effect = "Cosmetic", itemId = "FunFireworks", duration = 99 }).seconds).toBe(P.FIREWORKS_SECONDS)
-		expect(plan({ effect = "Cosmetic", itemId = "FunBubbles" }).sfx).toBe("PvpBubble")
-		expect(plan({ effect = "Cosmetic", itemId = "FunConfetti" }).seconds).toBe(P.FX_SECONDS)
-	end)
-	it("Dance and Bounce", function()
-		local d = plan({ effect = "Dance", duration = 2, target = 2 })
-		expect(d.highlight.seconds).toBe(2)
-		local b = plan({ effect = "Bounce", target = 2, duration = 1.2 })
-		expect(b.sfx).toBe("PvpBoing")
-		expect(b.trail <= 0.6 and b.trail > 0).toBe(true)
-		expect(b.applyVelocity).toBe(true)
-	end)
-	it("unknown / junk payloads show nothing", function()
+	it("unknown / junk payloads show nothing; Fun effects are not planned here (ui/PvpFunFx)", function()
 		expect(plan({ effect = "Nope" })).toBe(nil)
+		expect(plan({ effect = "Cosmetic", itemId = "FunConfetti" })).toBe(nil)
+		expect(plan({ effect = "Bounce", itemId = "FunBouncePad", target = 2 })).toBe(nil)
 		expect(plan({})).toBe(nil)
 		expect(Logic.plan("x", P, false)).toBe(nil)
 	end)
 	it("nothing outlives its plan.seconds; every sfx name resolves", function()
-		for _, effect in { "Knockback", "Freeze", "Slow", "Dance", "Bounce", "Cosmetic" } do
-			local p = plan({ effect = effect, target = 2, duration = 99, itemId = "FunFireworks" })
-			expect(p.seconds <= math.max(P.FX_SECONDS, P.CONTROL_MAX_SECONDS, P.SLOW_MAX_SECONDS, P.FIREWORKS_SECONDS)).toBe(
-				true
-			)
+		for _, effect in { "Knockback", "Freeze", "Slow" } do
+			local p = plan({ effect = effect, target = 2, duration = 99, itemId = "GooTrap1" })
+			expect(p.seconds <= math.max(P.FX_SECONDS, P.CONTROL_MAX_SECONDS, P.SLOW_MAX_SECONDS)).toBe(true)
 			expect((p.highlight == nil) or p.highlight.seconds <= p.seconds).toBe(true)
-			expect((p.trail == nil) or p.trail <= p.seconds).toBe(true)
 			expect((p.beam == nil) or p.beam.seconds <= p.seconds).toBe(true)
 			expect(Sounds.resolve(p.sfx) ~= nil).toBe(true)
 		end
 	end)
 	it("low quality halves particle counts (never below 1)", function()
-		local full = plan({ effect = "Cosmetic", itemId = "FunFireworks" }).burst.count
-		local low = plan({ effect = "Cosmetic", itemId = "FunFireworks" }, true).burst.count
+		local full = plan({ effect = "Knockback", itemId = "KnockGlove1", target = 2 }).burst.count
+		local low = plan({ effect = "Knockback", itemId = "KnockGlove1", target = 2 }, true).burst.count
 		expect(low).toBe(math.floor(full / 2))
 		expect(Logic.scaleCount(1, true)).toBe(1)
+	end)
+end)
+
+describe("PvpEffectsLogic hit feel and animation cues", function()
+	it("a push opens with a white impact flash, a shock ring and the victim's recoil", function()
+		local p = plan({ effect = "Knockback", itemId = "KnockGlove2", target = 2 })
+		expect(p.highlight.impact).toEqual({ 1, 1, 1 })
+		expect(p.ring.ring).toBe(true)
+		expect(p.ring.count > 0).toBe(true)
+		expect(p.attackerAnim).toBe(true)
+		expect(p.targetHit).toBe(true)
+	end)
+	it("a trap freeze splashes a goo ring at the feet; the trap owner plays nothing (it sprang by itself)", function()
+		local p = plan({ effect = "Freeze", duration = 1, target = 2 })
+		expect(p.ring.height < 0).toBe(true)
+		expect(p.attackerAnim).toBe(false)
+		expect(p.targetHit).toBe(false)
+	end)
+	it("a blaster hit is a wider beam plus a splat ring; a miss still animates the shooter", function()
+		local hit = plan({ effect = "Slow", target = 2, duration = 2 })
+		local miss = plan({ effect = "Slow", position = 1, duration = 0.4 })
+		expect(hit.beam.width > miss.beam.width).toBe(true)
+		expect(hit.ring ~= nil).toBe(true)
+		expect(miss.ring).toBeNil()
+		expect(hit.attackerAnim and miss.attackerAnim).toBe(true)
+	end)
+	it("low quality halves the ring too", function()
+		local high = plan({ effect = "Knockback", itemId = "KnockGlove1", target = 2 }, false)
+		local low = plan({ effect = "Knockback", itemId = "KnockGlove1", target = 2 }, true)
+		expect(low.ring.count < high.ring.count).toBe(true)
+	end)
+end)
+
+describe("PvpEffectsLogic glove specials and goo blobs", function()
+	it("Bonk pops BONK!, Royal throws gold confetti, a power punch is bigger", function()
+		local bonk = plan({ effect = "Knockback", itemId = "KnockGlove1", special = "bonk", target = 2 })
+		expect(bonk.popup.text).toBe("BONK!")
+		local royal = plan({ effect = "Knockback", itemId = "KnockGlove5", special = "royal", target = 2 })
+		expect(royal.burst.count >= 40).toBe(true)
+		local tap = plan({ effect = "Knockback", itemId = "KnockGlove1", target = 2 })
+		local power = plan({ effect = "Knockback", itemId = "KnockGlove1", target = 2, charged = true })
+		expect(power.burst.count > tap.burst.count).toBe(true)
+		expect(power.shake.amplitude > tap.shake.amplitude).toBe(true)
+	end)
+	it("Bounce keeps at most 3 pogo heights within the arc cap; Thunder draws a bolt to a chained player", function()
+		local bounce =
+			plan({ effect = "Knockback", itemId = "KnockGlove2", special = "bounce", pogo = { 6, 4, 2, 9, 99 } })
+		expect(bounce.pogo).toEqual({ 6, 4, 2 })
+		local junk = plan({ effect = "Knockback", itemId = "KnockGlove2", special = "bounce", pogo = { "x", -1 } })
+		expect(junk.pogo).toBe(nil)
+		local chained = plan({ effect = "Knockback", itemId = "KnockGlove4", special = "thunder", chained = true })
+		expect(chained.bolt ~= nil).toBe(true)
+		expect(chained.attackerAnim).toBe(false) -- the attacker already punched once
+		local boom = plan({ effect = "Knockback", itemId = "KnockGlove3", special = "boom" })
+		expect(boom.ring.count >= 24).toBe(true)
+	end)
+	it("a goo blob flies its flight, then splats the victim's screen or leaves a ground splat", function()
+		local hit = plan({ effect = "Slow", itemId = "GooBlaster2", target = 2, from = 1, flight = 0.5, duration = 2 })
+		expect(hit.blob.size).toBe(Logic.BLOB_SIZES[2])
+		expect(hit.delay).toBe(0.5)
+		expect(hit.screenSplat).toBe(2)
+		expect(hit.beam).toBe(nil)
+		expect(hit.seconds >= 0.5 + 2).toBe(true)
+		local miss = plan({
+			effect = "Slow",
+			itemId = "GooBlaster3",
+			from = 1,
+			flight = 99,
+			splat = { radius = 6, seconds = 4 },
+		})
+		expect(miss.delay).toBe(Logic.MAX_FLIGHT)
+		expect(miss.screenSplat).toBe(nil)
+		expect(miss.splat.radius).toBe(6)
+		expect(miss.splat.seconds).toBe(4)
+		expect(miss.seconds >= Logic.MAX_FLIGHT + 4).toBe(true)
+	end)
+	it("the blob velocity lands on `to` after `t` under gravity", function()
+		local from, to, t, g = { X = 0, Y = 3, Z = 0 }, { X = 30, Y = 3, Z = 0 }, 0.5, P.BLOB_GRAVITY
+		local v = Logic.blobVelocity(from, to, t, g)
+		expect(math.abs(from.X + v.X * t - 30) < 1e-9).toBe(true)
+		expect(math.abs(from.Y + v.Y * t - 0.5 * g * t * t - 3) < 1e-9).toBe(true)
+	end)
+	it("each pogo bounce starts when the one before lands", function()
+		local times = Logic.pogoTimes({ 6, 4, 2 }, 196.2)
+		expect(#times).toBe(2)
+		expect(math.abs(times[1] - 2 * math.sqrt(12 / 196.2)) < 1e-9).toBe(true)
+		expect(times[2] > times[1]).toBe(true)
+	end)
+	it("a Mega Trap chomps; a Puddle only goos the feet", function()
+		expect(plan({ effect = "Freeze", itemId = "GooTrap3", target = 2, duration = 2, hold = 2 }).popup.text).toBe(
+			"CHOMP!"
+		)
+		local puddle = plan({ effect = "Freeze", itemId = "GooTrap1", target = 2, duration = 2, hold = 0 })
+		expect(puddle.burst).toBe(nil)
+		expect(puddle.ring ~= nil).toBe(true)
 	end)
 end)
 
@@ -94,22 +165,27 @@ describe("PvpEffectsLogic markers", function()
 	local function tool(id: string): any
 		return PvpRules.tool(id)
 	end
-	it("a Goo Trap puddle is owner-only and sized by the trap radius", function()
-		local m = Logic.marker("GooTrap2", tool("GooTrap2"), P)
-		expect(m ~= nil and m.shape == "puddle" and m.diameter == tool("GooTrap2").radius * 2).toBe(true)
-		expect(Logic.markerVisible(m :: any, 1, 1)).toBe(true)
-		expect(Logic.markerVisible(m :: any, 1, 2)).toBe(false)
-	end)
-	it("the Bounce Pad marker is public and expires after the pad lifetime", function()
-		local m = Logic.marker("FunBouncePad", tool("FunBouncePad"), P) :: any
-		expect(m.shape).toBe("pad")
-		expect(Logic.markerVisible(m, 1, 2)).toBe(true)
-		expect(m.seconds >= P.BOUNCE_PAD_SECONDS).toBe(true)
-	end)
+	it(
+		"a Goo Trap puddle is sized by its radius and seen by everyone: glowing for its owner, a shimmer for others",
+		function()
+			local m = Logic.marker("GooTrap2", tool("GooTrap2"), P)
+			expect(m ~= nil and m.shape == "puddle" and m.diameter == tool("GooTrap2").radius * 2).toBe(true)
+			expect(Logic.markerVisible(m :: any, 1, 1)).toBe(true)
+			expect(Logic.markerVisible(m :: any, 1, 2)).toBe(true)
+			local mine, theirs = Logic.markerLook(m :: any, true), Logic.markerLook(m :: any, false)
+			expect(mine.material).toBe("Neon")
+			expect(theirs.transparency > 0.8 and theirs.transparency > mine.transparency).toBe(true)
+			-- the owner's trap model keeps its own colours and is solid; others only see it shimmer
+			expect(mine.modelTransparency).toBe(0)
+			expect(mine.modelMaterial).toBeNil()
+			expect(theirs.modelTransparency > 0.8).toBe(true)
+			expect((m :: any).seconds >= P.TRAP_LIFETIME_SECONDS).toBe(true)
+		end
+	)
 	it("a TrapPlaced finds its tool by id in the PVP_TOOLS list", function()
 		local m = Logic.markerFor("GooTrap3", Config.PVP_TOOLS, P)
 		expect(m ~= nil and m.shape == "puddle" and m.diameter == tool("GooTrap3").radius * 2).toBe(true)
-		expect((Logic.markerFor("FunBouncePad", Config.PVP_TOOLS, P) :: any).shape).toBe("pad")
+		expect(Logic.markerFor("FunBouncePad", Config.PVP_TOOLS, P)).toBe(nil) -- the trampoline is ui/PvpFunFx's
 		expect(Logic.markerFor("KnockGlove1", Config.PVP_TOOLS, P)).toBe(nil)
 		expect(Logic.markerFor("Nope", Config.PVP_TOOLS, P)).toBe(nil)
 	end)
@@ -152,8 +228,18 @@ describe("PvpEffectsLogic shake, range, tracker", function()
 end)
 
 describe("PvP sounds", function()
-	local PVP_NAMES =
-		{ "PvpHit", "PvpCollide", "PvpGoo", "PvpSquirt", "PvpBoing", "PvpPop", "PvpSqueak", "PvpFirework", "PvpBubble" }
+	local PVP_NAMES = {
+		"PvpHit",
+		"PvpCollide",
+		"PvpGoo",
+		"PvpSquirt",
+		"PvpBoing",
+		"PvpPop",
+		"PvpSqueak",
+		"PvpFirework",
+		"PvpBubble",
+		"PvpDisco",
+	}
 	it("every PvP sound is a numeric rbxassetid", function()
 		for _, name in PVP_NAMES do
 			local id = Sounds.IDS[name]

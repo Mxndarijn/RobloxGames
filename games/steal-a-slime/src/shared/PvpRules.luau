@@ -2,15 +2,16 @@
 --[[
 	PvpRules (pure, FEATURES.PvP, CONTRACT.md §26, docs/PVP.md)
 
-	The fairness core of the v22 PvP ladder: prices, rank gating, ownership, the new-player shield, safe
-	zones, control limits, the cooldown registry, who may be targeted, and the knockback clamp. No Roblox
-	APIs: positions are any table with X / Y / Z (a Vector3 works), so Lune tests it directly.
+	The fairness core of the PvP ladder: prices, rank gating, ownership (Goo Trap charges included), the new-player
+	shield, control limits, the cooldown registry, who may be targeted, and the knockback clamp. No Roblox APIs:
+	positions are any table with X / Y / Z (a Vector3 works), so Lune tests it directly.
 
 	GUARANTEE: no PvP item ever reduces Humanoid health. Nothing in this module or in Config.PVP_TOOLS has a
-	damage field (Validate.pvpTools asserts it at load), knockback is a capped horizontal push with a small
-	arc, and the landing point is clamped inside the map. Control is bounded: at most
-	Config.PVP.CONTROL_MAX_SECONDS, then Config.PVP.CONTROL_IMMUNITY_SECONDS of immunity.
+	damage field (Validate.pvpTools asserts it at load), knockback is a capped push with a capped arc, and the
+	landing point is clamped inside the map. Control is bounded: at most Config.PVP.CONTROL_MAX_SECONDS (slows
+	SLOW_MAX_SECONDS), then Config.PVP.CONTROL_IMMUNITY_SECONDS of immunity.
 
+	There are no safe zones: PvP works everywhere, except on and by players under the new-player shield.
 	With the flag off every gate answers "no" (price / ownership helpers stay pure and still work).
 ]]
 
@@ -18,14 +19,19 @@ local Config = if script then require(script.Parent.Config) else require("./Conf
 local Economy = if script then require(script.Parent.Economy) else require("./Economy")
 
 export type Vec = { X: number, Y: number, Z: number }
-export type Pvp = { tiers: { [string]: number }, fun: { [string]: boolean }, played: number }
+export type Pvp = {
+	tiers: { [string]: number }, -- Knockback / Blaster -> best owned tier
+	traps: { [string]: number }, -- Goo Trap id -> charges held
+	fun: { [string]: boolean },
+	played: number,
+}
 -- What PvpRules reads from PlayerData.Data.
 export type Data = { cash: number, rebirths: number, pvp: Pvp? }
 -- Per-player runtime state (server/PvpService keeps one per session; never saved).
 export type State = {
 	joinedAt: number, -- when this session started (play time counts towards the shield)
 	shieldUntil: number, -- time the new-player shield ends (0 = none)
-	controlUntil: number, -- time the current control ends
+	controlUntil: number, -- time the current control / slow ends
 	immuneUntil: number, -- no new control before this
 	cooldowns: { [string]: number }, -- tool id -> time it is ready again
 }
@@ -33,7 +39,7 @@ export type Fighter = {
 	position: Vec,
 	state: State?,
 	rebirths: number?,
-	carrying: boolean?, -- a thief with a slime in their arms
+	carrying: boolean?, -- a thief with a stolen slime in their arms
 }
 
 local PvpRules = {}
@@ -49,6 +55,8 @@ for _, tool in Config.PVP_TOOLS do
 end
 
 PvpRules.LINES = table.freeze({ "Knockback", "Trap", "Blaster" })
+-- Lines owned as a stack of charges (one per buy, used up), not as a best tier.
+PvpRules.CHARGE_LINE = "Trap"
 
 local function enabled(override: boolean?): boolean
 	if override ~= nil then
@@ -77,16 +85,24 @@ function PvpRules.toolAt(line: string, tier: number): Config.PvpTool?
 end
 
 function PvpRules.emptyPvp(): Pvp
-	return { tiers = {}, fun = {}, played = 0 }
+	return { tiers = {}, traps = {}, fun = {}, played = 0 }
 end
 
--- Price in cash: factor x Economy.rebirthCost(gate), never below PRICE_MIN.
+-- A tool used up per use and bought as charges (the Goo Traps).
+function PvpRules.usesCharges(tool: Config.PvpTool): boolean
+	return tool.kind == "tool" and tool.line == PvpRules.CHARGE_LINE
+end
+
+-- Price in cash: factor x Economy.rebirthCost(gate), never below PRICE_MIN (one charge for a trap).
 function PvpRules.price(id: string): number
 	local tool = BY_ID[id]
 	if not tool then
 		return 0
 	end
-	local factor = if tool.kind == "fun" then PVP.PRICE_FACTOR_FUN else PVP.PRICE_FACTOR_TOOL
+	local factor = if tool.kind == "fun"
+		then PVP.PRICE_FACTOR_FUN
+		elseif PvpRules.usesCharges(tool) then PVP.PRICE_FACTOR_TRAP
+		else PVP.PRICE_FACTOR_TOOL
 	return math.max(PVP.PRICE_MIN, math.floor(factor * Economy.rebirthCost(tool.rebirths)))
 end
 
@@ -95,10 +111,44 @@ function PvpRules.isUnlocked(data: Data, id: string): boolean
 	return tool ~= nil and data.rebirths >= tool.rebirths
 end
 
--- Best owned tier of a line (0 = none).
+-- Charges held of a trap id (0 for anything else).
+function PvpRules.charges(data: Data, id: string): number
+	local pvp = data.pvp
+	local n = if pvp and pvp.traps then pvp.traps[id] else nil
+	return if type(n) == "number" and n > 0 then math.floor(n) else 0
+end
+
+-- Uses one charge of a trap id. False when there is none.
+function PvpRules.useCharge(data: Data, id: string): boolean
+	local n = PvpRules.charges(data, id)
+	local pvp = data.pvp
+	if n <= 0 or not pvp then
+		return false
+	end
+	if n > 1 then
+		pvp.traps[id] = n - 1
+	else
+		pvp.traps[id] = nil
+	end
+	return true
+end
+
+-- Best owned tier of a line (0 = none). Traps: the highest tier with a charge.
 function PvpRules.bestTier(data: Data, line: string): number
 	local pvp = data.pvp
-	return if pvp then pvp.tiers[line] or 0 else 0
+	if not pvp then
+		return 0
+	end
+	if line == PvpRules.CHARGE_LINE then
+		local best = 0
+		for _, tool in Config.PVP_TOOLS do
+			if tool.line == line and PvpRules.charges(data, tool.id) > 0 then
+				best = math.max(best, tool.tier)
+			end
+		end
+		return best
+	end
+	return pvp.tiers[line] or 0
 end
 
 -- The owned tool of a line (the best tier replaces the lower ones), or nil.
@@ -107,7 +157,7 @@ function PvpRules.bestTool(data: Data, line: string): Config.PvpTool?
 	return if tier > 0 then PvpRules.toolAt(line, tier) else nil
 end
 
--- Owned = bought, or superseded by a higher tier of the same line.
+-- Owned = bought (a trap: a charge left), or superseded by a higher glove / blaster tier of the same line.
 function PvpRules.owns(data: Data, id: string): boolean
 	local tool = BY_ID[id]
 	if not tool or not data.pvp then
@@ -115,6 +165,9 @@ function PvpRules.owns(data: Data, id: string): boolean
 	end
 	if tool.kind == "fun" then
 		return data.pvp.fun[id] == true
+	end
+	if PvpRules.usesCharges(tool) then
+		return PvpRules.charges(data, id) > 0
 	end
 	return (data.pvp.tiers[tool.line] or 0) >= tool.tier
 end
@@ -127,7 +180,11 @@ function PvpRules.canBuy(data: Data, id: any, flag: boolean?): (boolean, string?
 	if not tool then
 		return false, "unknown item"
 	end
-	if PvpRules.owns(data, tool.id) then
+	if PvpRules.usesCharges(tool) then
+		if PvpRules.charges(data, tool.id) >= PVP.TRAP_MAX_HELD then
+			return false, `you can only hold {PVP.TRAP_MAX_HELD}`
+		end
+	elseif PvpRules.owns(data, tool.id) then
 		return false, "already owned"
 	end
 	if not PvpRules.isUnlocked(data, tool.id) then
@@ -139,7 +196,7 @@ function PvpRules.canBuy(data: Data, id: any, flag: boolean?): (boolean, string?
 	return true, nil
 end
 
--- Pays and records the item (a higher tier replaces the lower ones of its line). Returns (ok, reason).
+-- Pays and records the item (a higher tier replaces the lower ones of its line; a trap adds one charge).
 function PvpRules.buy(data: Data, id: any, flag: boolean?): (boolean, string?)
 	local ok, reason = PvpRules.canBuy(data, id, flag)
 	if not ok then
@@ -151,6 +208,8 @@ function PvpRules.buy(data: Data, id: any, flag: boolean?): (boolean, string?)
 	data.pvp = pvp
 	if tool.kind == "fun" then
 		pvp.fun[tool.id] = true
+	elseif PvpRules.usesCharges(tool) then
+		pvp.traps[tool.id] = PvpRules.charges(data, tool.id) + 1
 	else
 		pvp.tiers[tool.line] = tool.tier
 	end
@@ -161,45 +220,17 @@ function PvpRules.newState(): State
 	return { joinedAt = 0, shieldUntil = 0, controlUntil = 0, immuneUntil = 0, cooldowns = {} }
 end
 
--- When a shield that starts at `now` ends: none once the player has rebirthed or played the full shield time.
-function PvpRules.shieldEnd(played: number, rebirths: number, now: number): number
-	if rebirths > 0 or played >= PVP.NEW_PLAYER_SHIELD_SECONDS then
+-- When a shield that starts at `now` ends: none once the player has played the full shield time.
+function PvpRules.shieldEnd(played: number, now: number): number
+	if played >= PVP.NEW_PLAYER_SHIELD_SECONDS then
 		return 0
 	end
 	return now + (PVP.NEW_PLAYER_SHIELD_SECONDS - math.max(0, played))
 end
 
--- Shielded = a shield end in the future and no rebirth yet (the first rebirth ends it).
-function PvpRules.isShielded(state: State?, now: number, rebirths: number?): boolean
-	if not state or (rebirths or 0) > 0 then
-		return false
-	end
-	return now < state.shieldUntil
-end
-
-local function inDisc(zone: any, x: number, z: number): boolean
-	local dx, dz = x - zone.x, z - zone.z
-	return dx * dx + dz * dz <= zone.radius * zone.radius
-end
-
--- Whether the XZ position is inside any Config.PVP.SAFE_ZONES disc (Y ignored).
-function PvpRules.inSafeZone(position: Vec): boolean
-	for _, zone in PVP.SAFE_ZONES do
-		if inDisc(zone, position.X, position.Z) then
-			return true
-		end
-	end
-	return false
-end
-
--- The SAFE_ZONES id (lowercase) of the first disc containing the XZ position, or nil.
-function PvpRules.safeZoneAt(position: Vec): string?
-	for _, zone in PVP.SAFE_ZONES do
-		if inDisc(zone, position.X, position.Z) then
-			return zone.id
-		end
-	end
-	return nil
+-- Shielded = a shield end in the future.
+function PvpRules.isShielded(state: State?, now: number): boolean
+	return state ~= nil and now < state.shieldUntil
 end
 
 -- Control: false while the target is controlled or immune.
@@ -230,34 +261,52 @@ function PvpRules.applySlow(state: State, duration: number, now: number): number
 	return applied
 end
 
+--[[
+	A stacking slow (Goo Squirter): a running slow that started at `startedAt` and ends at `untilTime` is extended by
+	`add` seconds, but never past startedAt + SLOW_MAX_SECONDS; immunity moves with its end. Returns the new end
+	(= untilTime when nothing could be added).
+]]
+function PvpRules.extendSlow(state: State, startedAt: number, untilTime: number, add: number, now: number): number
+	if add ~= add or add <= 0 or now >= untilTime then
+		return untilTime
+	end
+	local newEnd = math.min(startedAt + PVP.SLOW_MAX_SECONDS, untilTime + add)
+	if newEnd > untilTime then
+		state.controlUntil = math.max(state.controlUntil, newEnd)
+		state.immuneUntil = math.max(state.immuneUntil, newEnd + PVP.CONTROL_IMMUNITY_SECONDS)
+	end
+	return math.max(newEnd, untilTime)
+end
+
 -- Cooldown registry. Unknown tools are never ready.
 function PvpRules.ready(state: State, id: string, now: number): boolean
 	local tool = BY_ID[id]
 	return tool ~= nil and now >= (state.cooldowns[id] or -math.huge)
 end
 
-function PvpRules.markUsed(state: State, id: string, now: number)
+-- Starts the cooldown: `seconds` (default the tool's), never below MIN_COOLDOWN.
+function PvpRules.markUsed(state: State, id: string, now: number, seconds: number?)
 	local tool = BY_ID[id]
 	if tool then
-		state.cooldowns[id] = now + math.max(tool.cooldown, PVP.MIN_COOLDOWN)
+		state.cooldowns[id] = now + math.max(seconds or tool.cooldown, PVP.MIN_COOLDOWN)
 	end
 end
 
 export type TargetContext = {
 	now: number,
 	toolId: string,
-	onAttackerPlot: boolean, -- the target stands on the attacker's own plot
 	enabled: boolean?, -- FEATURES.PvP override (tests)
 	data: Data?, -- the attacker's save: when given, they must own the tool and have its rank
 }
 
 --[[
-	May `attacker` use `ctx.toolId` on `target`? Returns (ok, reason).
-	  * the flag is on; the tool exists (and the attacker owns it and has the rank, when ctx.data is given)
-	  * neither player stands in a safe zone (a cosmetic with allowInSafeZone skips the attacker's check)
-	  * the target is not shielded (new-player shield)
-	  * non-cosmetic tools: only on the attacker's own plot, or against a thief carrying a slime
-	    (cosmetic fun items are exempt from this movement rule; `target` may then be nil for a self effect)
+	May `attacker` use `ctx.toolId` on `target`? Returns (ok, reason). Anyone may be hit anywhere, except:
+	  * the flag is off; the tool is unknown (or not owned / its rank not reached, when ctx.data is given)
+	  * the tool is cooling down
+	  * a non-cosmetic tool while the attacker is under the new-player shield
+	  * a target under the new-player shield
+	  * a non-cosmetic tool without a target, or one that controls / slows a target under control or immunity
+	Cosmetic fun items may have no target (a self effect).
 ]]
 function PvpRules.canTarget(attacker: Fighter, target: Fighter?, ctx: TargetContext): (boolean, string?)
 	if not enabled(ctx.enabled) then
@@ -278,23 +327,15 @@ function PvpRules.canTarget(attacker: Fighter, target: Fighter?, ctx: TargetCont
 	if attacker.state and not PvpRules.ready(attacker.state, tool.id, ctx.now) then
 		return false, "not ready"
 	end
-	if not (tool.allowInSafeZone and tool.cosmetic) and PvpRules.inSafeZone(attacker.position) then
-		return false, "safe zone"
+	if not tool.cosmetic and PvpRules.isShielded(attacker.state, ctx.now) then
+		return false, "your new-player shield is on"
 	end
-	if target then
-		if PvpRules.inSafeZone(target.position) then
-			return false, "target is in a safe zone"
-		end
-		if PvpRules.isShielded(target.state, ctx.now, target.rebirths) then
-			return false, "target is shielded"
-		end
+	if target and PvpRules.isShielded(target.state, ctx.now) then
+		return false, "target is shielded"
 	end
 	if not tool.cosmetic then
 		if not target then
 			return false, "no target"
-		end
-		if not (ctx.onAttackerPlot or target.carrying == true) then
-			return false, "only on your plot or against a thief"
 		end
 		if target.state and not PvpRules.canControl(target.state, ctx.now) and (tool.control or tool.slowSeconds) then
 			return false, "target is immune"

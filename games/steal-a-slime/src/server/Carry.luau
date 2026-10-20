@@ -31,7 +31,9 @@ local PlayerData = if Shared then require(Shared.PlayerData) else require("../sh
 local Shop = if Shared then require(Shared.Shop) else require("../shared/Shop")
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Trophies = if Shared then require(Shared.Trophies) else require("../shared/Trophies")
-local PvpBlaster = if script then require(script.Parent.PvpBlaster) else require("./PvpBlaster")
+local PvpFun = if script then require(script.Parent.PvpFun) else require("./PvpFun")
+local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
+local PvpSlow = if script then require(script.Parent.PvpSlow) else require("./PvpSlow")
 local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local StealAlert = if Shared then require(Shared.StealAlert) else require("../shared/StealAlert")
 local StealService = if script then require(script.Parent.StealService) else require("./StealService")
@@ -153,7 +155,11 @@ function Carry.grab(world: World, userId: number, slimeId: string, distance: num
 	if world.wild[slimeId] then
 		return Carry.grabWild(world, session, slimeId, distance, now)
 	end
-	return StealService.steal(world, session, slimeId, distance, now)
+	local ok, reason = StealService.steal(world, session, slimeId, distance, now)
+	if ok then
+		PvpService.onSteal(session, now) -- stealing ends the new-player shield
+	end
+	return ok, reason
 end
 
 -- The boss carrier got home: the boss goes on the trophy stand (Trophies.award) and the fight is won.
@@ -381,10 +387,11 @@ function Carry.walkSpeed(session: Session, now: number): number
 end
 
 -- The WalkSpeed the server enforces right now (Player attribute TargetWalkSpeed).
--- A Goo Blaster slow (FEATURES.PvP, CONTRACT.md §26) multiplies in; 1 with the flag off.
+-- PvP holds / slows (PvpSlow: Goo Traps, Goo Blasters; PvpFun: the Goo Balloon slow; FEATURES.PvP, CONTRACT.md §26)
+-- multiply in; 1 with the flag off.
 function Carry.targetWalkSpeed(session: Session, now: number): number
 	local speed = if session.carry then Carry.walkSpeed(session, now) else Shop.walkSpeed(session.data)
-	return speed * PvpBlaster.walkFactor(session, now)
+	return speed * PvpSlow.walkFactor(session, now) * PvpFun.walkFactor(session, now)
 end
 
 return Carry

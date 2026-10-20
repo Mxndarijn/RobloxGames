@@ -9,6 +9,7 @@ local roblox = require("@lune/roblox")
 local Config = require("../src/shared/Config")
 local MeshAssets = require("../src/shared/MeshAssets")
 local PropCollision = require("./PropCollision")
+local PvpModels = require("../src/shared/PvpModels")
 local Runtime = require("../tools/livetest/Runtime")
 local TestRunner = require("./TestRunner")
 local VatDecor = require("../src/visuals/shared/VatDecor")
@@ -107,8 +108,12 @@ describe("PropCollision inventory", function()
 				expect(inventory[mesh]).toBe(true)
 				expect(PropCollision.UNPLACED[mesh]).toBe(nil)
 			end
+			local held: { [string]: boolean } = {} -- held PvP items (server/PvpHeld): never a world slot, no entry until uploaded
+			for _, name in PvpModels.MESHES do
+				held[name] = true
+			end
 			for _, name in MeshAssets.NAMES do
-				expect(inventory[name] == true or PropCollision.UNPLACED[name] ~= nil).toBe(true)
+				expect(inventory[name] == true or PropCollision.UNPLACED[name] ~= nil or held[name] == true).toBe(true)
 				if PropCollision.UNPLACED[name] then
 					expect(inventory[name]).toBe(nil)
 					expect(#PropCollision.UNPLACED[name][2] > 10).toBe(true)

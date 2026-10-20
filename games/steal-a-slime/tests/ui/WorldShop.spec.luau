@@ -254,6 +254,20 @@ describe("WorldShopLogic.rows", function()
 		expect(poor.enabled).toBe(false)
 	end)
 
+	it("a Goo Trap row sells charges with a held tag until the stack is full", function()
+		local state = baseState()
+		state.pvp.charges = { GooTrap1 = 2 }
+		state.pvp.owned.GooTrap1 = true
+		local trap = find(WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config), "GooTrap1") -- rank 3
+		expect(trap.status).toBe("buy")
+		expect(trap.enabled).toBe(true)
+		expect(trap.stockText).toBe(`2/{Config.PVP.TRAP_MAX_HELD} held`)
+		state.pvp.charges.GooTrap1 = Config.PVP.TRAP_MAX_HELD
+		local full = find(WorldShopLogic.rows("ItemShop", state, ACTIONS, features(), Config), "GooTrap1")
+		expect(full.status).toBe("maxed")
+		expect(full.enabled).toBe(false)
+	end)
+
 	it("the restock time is the Item Shop's only", function()
 		local state = baseState()
 		expect(WorldShopLogic.restockAt("ItemShop", state, features())).toBe(1190)

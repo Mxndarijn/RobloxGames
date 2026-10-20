@@ -333,8 +333,8 @@ Layout.MONEY_TIGHT = table.freeze({
 })
 Layout.STATUS_TIGHT = table.freeze({ slot = 44, icon = 34, label = 15, labelSize = 10, overlap = 5, pillPad = 3 })
 
--- Slot ids, left to right (HudClusters.STATUS_IDS lists the same).
-Layout.STATUS_SLOTS = table.freeze({ "Rain", "Event", "Friend", "Blessed", "Secret" })
+-- Slot ids, left to right (HudClusters.STATUS_IDS lists the same). At most STATUS.count show at once.
+Layout.STATUS_SLOTS = table.freeze({ "Shield", "Rain", "Event", "Friend", "Blessed", "Secret" })
 
 -- One size class of the money block: coin diameter, chip height, chip overlap under the pill, the tab under
 -- the income chip, and how far the coin protrudes above / below the pill (`pad`).

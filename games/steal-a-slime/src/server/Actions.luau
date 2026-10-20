@@ -62,6 +62,13 @@ export type Context = {
 	pose: ((userId: number) -> (any?, any?))?,
 	toVector3: ((position: any) -> any)?,
 	slimePosition: ((slimeId: string) -> any?)?,
+	groundBelow: ((point: any) -> any?)?,
+	funBubble: ((
+		userId: number,
+		seconds: number,
+		lift: number,
+		onPop: (byUserId: number, now: number) -> boolean
+	) -> boolean)?,
 	-- What the adapter measured for `shopId`: the character's distance to the stand's Counter and whether it is
 	-- alive (distance nil = no character or no stand). nil = no world: shop range is never satisfied, strict never applies.
 	shopAccess: ((userId: number, shopId: string) -> ShopGuard.Access)?,
@@ -147,11 +154,14 @@ function Actions.parseArgs(action: string, raw: { any }): ({ any }?, string?)
 				return nil, "bad argument"
 			end
 			out[i] = value
-		elseif kind == "boolean" then
-			if type(value) ~= "boolean" then
+		elseif kind == "boolean" or kind == "boolean?" then
+			if value == nil and kind == "boolean?" then
+				out[i] = nil
+			elseif type(value) ~= "boolean" then
 				return nil, "bad argument"
+			else
+				out[i] = value
 			end
-			out[i] = value
 		elseif kind == "number" or kind == "number?" then
 			if value == nil and kind == "number?" then
 				out[i] = nil
@@ -604,7 +614,7 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	elseif action == "EquipPvpItem" then
 		return result(PvpService.equip(session, args[1], feature(ctx, "PvP")))
 	elseif action == "UsePvpItem" then
-		return result(PvpService.use(world, session, args[1], args[2], args[3], now, feature(ctx, "PvP"), ctx))
+		return result(PvpService.use(world, session, args[1], args[2], args[3], now, feature(ctx, "PvP"), ctx, args[4]))
 	elseif action == "SetHotbar" then
 		return result(HotbarOrder.set(session.data, args[1]))
 	elseif action == "Drop" then

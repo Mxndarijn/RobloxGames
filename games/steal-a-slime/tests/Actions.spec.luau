@@ -43,7 +43,7 @@ describe("Actions.handle guards", function()
 		for action, def in Remotes.ACTIONS do
 			local args = {}
 			for i, kind in def.args do
-				if kind == "vector3?" then
+				if kind == "vector3?" or kind == "boolean?" then
 					args[i] = nil
 				else
 					args[i] = if kind == "number" or kind == "number?"

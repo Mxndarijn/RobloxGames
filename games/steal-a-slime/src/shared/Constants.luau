@@ -11,7 +11,7 @@ return table.freeze({
 	NOTIFY = "Notify",
 	-- Server -> client: global TotalEarned board (Types.Leaderboard)
 	LEADERBOARD = "Leaderboard",
-	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / shield / safe zone / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
+	PVP_EVENT = "PvpEvent", -- ServerToClient RemoteEvent: PvP cooldown / shield / effect / trap events (FEATURES.PvP, CONTRACT.md §26.1)
 
 	SLIME_TAG = "Slime",
 	DATASTORE_NAME = "StealASlime_v1",
@@ -68,6 +68,7 @@ return table.freeze({
 	TUTORIAL_STEP_ID_ATTRIBUTE = "TutorialStepId", -- Player: TutorialProgress.STEPS name, nil = done
 	WALK_SPEED_ATTRIBUTE = "TargetWalkSpeed", -- Player: WalkSpeed the server enforces right now
 	PVP_EQUIPPED_ATTRIBUTE = "PvpEquipped", -- Player: equipped PvP item id (FEATURES.PvP only; nil = none, CONTRACT.md §26.1)
+	BAT_SWING_ATTRIBUTE = "BatSwingAt", -- Player: server time of the last Bat swing (every client plays the swing, CONTRACT.md §26.2)
 	PVP_SHIELD_ATTRIBUTE = "PvpShieldUntil", -- Player: server time the new-player shield ends (FEATURES.PvP only; nil = not shielded, CONTRACT.md §26)
 	REBIRTH_TITLE_ATTRIBUTE = "RebirthTitle", -- Player: rank title (Config.REBIRTH_TIERS)
 	PLOT_LOCKED_ATTRIBUTE = "Locked", -- Plot_<i>: true while LockUntil > now
@@ -124,4 +125,5 @@ return table.freeze({
 	SLAP_HIT_ATTRIBUTE = "SlapHitAt", -- Player: server time the player was last slapped off a stolen slime (the client draws the hit effect)
 	HABITAT_FOLDER = "ClientHabitats", -- client-only workspace folder for habitat looks
 	HABITAT_MESHES = "HabitatMeshes", -- ReplicatedStorage folder: server-made overlay MeshPart templates (MeshSwap)
+	PVP_MARKER_MESHES = "PvpMarkerMeshes", -- ReplicatedStorage folder: placed trap / pad MeshPart templates (FEATURES.PvP, MeshSwap)
 })

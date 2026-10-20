@@ -1,0 +1,109 @@
+{
+  "name": "pvp_knock_glove_3",
+  "model": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a7eb05cdcddf8eaea\\shared\\modeling-kit\\models\\pvp_knock_glove_3.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 1226,
+  "meshes": [
+    {
+      "name": "pvp_knock_glove_3",
+      "tris": 1226,
+      "verts": 641,
+      "ngons": 2,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        2.277,
+        2.247,
+        1.84
+      ],
+      "materials": [
+        "pvp_knock_glove_3_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pvp_knock_glove_3_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    2.277,
+    2.247,
+    1.84
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pvp_knock_glove_3_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a7eb05cdcddf8eaea\\shared\\modeling-kit\\out\\pvp_knock_glove_3.fbx",
+  "fbx_bytes": 44764,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "default",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a7eb05cdcddf8eaea\\shared\\modeling-kit\\out\\.tiles\\pvp_knock_glove_3_0.png"
+    },
+    {
+      "view": "side",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a7eb05cdcddf8eaea\\shared\\modeling-kit\\out\\.tiles\\pvp_knock_glove_3_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a7eb05cdcddf8eaea\\shared\\modeling-kit\\out\\.tiles\\pvp_knock_glove_3_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a7eb05cdcddf8eaea\\shared\\modeling-kit\\out\\.tiles\\pvp_knock_glove_3_3.png"
+    }
+  ],
+  "turntable": [],
+  "timings_blender": {
+    "model_s": 0.2,
+    "stats_s": 0.003,
+    "setup_s": 0.03,
+    "render_s": [
+      0.163,
+      0.132,
+      0.129,
+      0.148
+    ],
+    "export_s": 0.258
+  },
+  "sheet": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a7eb05cdcddf8eaea\\shared\\modeling-kit\\out\\pvp_knock_glove_3_sheet.png",
+  "timings": {
+    "wall_s": 1.53,
+    "blender_process_s": 1.48,
+    "compose_s": 0.053,
+    "model_s": 0.2,
+    "stats_s": 0.003,
+    "setup_s": 0.03,
+    "render_s": [
+      0.163,
+      0.132,
+      0.129,
+      0.148
+    ],
+    "export_s": 0.258
+  }
+}

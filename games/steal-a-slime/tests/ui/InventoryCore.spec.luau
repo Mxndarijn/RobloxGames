@@ -127,6 +127,14 @@ describe("InventoryCore.entries", function()
 		expect(InventoryCore.entries(input())[1].count).toBe(nil)
 	end)
 
+	it("a Goo Trap shows its charges as the stack count", function()
+		local entries = InventoryCore.entries(input({
+			pvp = { owned = { GooTrap2 = true }, charges = { GooTrap2 = 4 }, cooldowns = {} },
+		}))
+		expect(ids(entries)).toEqual({ "tool:Bat", "pvp:GooTrap2" })
+		expect(entries[2].count).toBe(4)
+	end)
+
 	it("a Tool listed twice (Backpack and character) is one slot", function()
 		local entries = InventoryCore.entries(input({
 			tools = { { name = "Bat", equipped = false }, { name = "Bat", equipped = true } },
@@ -332,9 +340,9 @@ describe("InventoryCore.pvpUseRequest", function()
 		}))
 		return entries[2]
 	end
-	local function use(id: string, aim: any, readyAt: number?): (InventoryCore.PvpUse?, string?)
+	local function use(id: string, aim: any, readyAt: number?, held: number?): (InventoryCore.PvpUse?, string?)
 		aim.players = aim.players or {}
-		return InventoryCore.pvpUseRequest(equipped(id, readyAt), PvpRules.tool(id), aim, Config, 100)
+		return InventoryCore.pvpUseRequest(equipped(id, readyAt), PvpRules.tool(id), aim, Config, 100, held)
 	end
 	local function at(x: number): any
 		return { X = x, Y = 3, Z = 0 }
@@ -347,7 +355,28 @@ describe("InventoryCore.pvpUseRequest", function()
 			expect(type(mode)).toBe("string")
 		end
 		local args = Remotes.ACTIONS[InventoryCore.PVP_USE_ACTION].args
-		expect(table.concat(args, ",")).toBe("string,number?,vector3?")
+		expect(table.concat(args, ",")).toBe("string,number?,vector3?,boolean?")
+	end)
+
+	it("a glove held past CHARGE_SECONDS sends a power punch; a tap does not", function()
+		local players = { { userId = 2, position = at(4) } }
+		local entry = equipped("KnockGlove1")
+		local tool = PvpRules.tool("KnockGlove1")
+		local tap = InventoryCore.pvpUseRequest(entry, tool, { self = ME, players = players }, Config, 100, 0.1) :: any
+		expect(tap.charged).toBe(nil)
+		local hold = InventoryCore.pvpUseRequest(
+			entry,
+			tool,
+			{ self = ME, players = players },
+			Config,
+			100,
+			Config.PVP.CHARGE_SECONDS
+		) :: any
+		expect(hold.charged).toBe(true)
+		expect(InventoryCore.pvpHolds(tool)).toBe(true)
+		expect(InventoryCore.pvpHolds(PvpRules.tool("GooBlaster3"))).toBe(true)
+		expect(InventoryCore.pvpHolds(PvpRules.tool("GooBlaster1"))).toBe(false)
+		expect(InventoryCore.pvpCharged(PvpRules.tool("GooBlaster3"), 5, Config)).toBe(false)
 	end)
 
 	it("gloves target the clicked player in reach, else the nearest, thieves first", function()
@@ -389,47 +418,37 @@ describe("InventoryCore.pvpUseRequest", function()
 		expect(why).toBe("Aim somewhere")
 	end)
 
-	it("traps and the balloon need a clicked point", function()
+	it("traps need a clicked point", function()
 		expect((use("GooTrap1", { self = ME, point = at(6) }) :: any).aim.X).toBe(6)
-		expect((use("FunBalloon", { self = ME, point = at(6) }) :: any).aim.X).toBe(6)
 		local none, why = use("GooTrap1", { self = ME, far = at(200) })
 		expect(none).toBe(nil)
 		expect(why).toBe("Aim at the ground")
 	end)
 
-	it("bounce pad and fireworks use the point only within FUN_AIM_RANGE, else your own spot", function()
-		local near = at(Config.PVP.FUN_AIM_RANGE - 1)
-		local far = at(Config.PVP.FUN_AIM_RANGE + 1)
-		expect((use("FunBouncePad", { self = ME, point = near }) :: any).aim.X).toBe(near.X)
-		local own = use("FunFireworks", { self = ME, point = far }) :: any
-		expect(own.aim).toBe(nil)
-		expect(own.target).toBe(nil)
-	end)
-
-	it("self items send no target and no aim, whoever is around", function()
-		local players = { { userId = 2, position = at(2) } }
-		local r = use("FunConfetti", { self = ME, players = players, hovered = 2, point = at(2) }) :: any
-		expect(r.itemId).toBe("FunConfetti")
-		expect(r.target).toBe(nil)
-		expect(r.aim).toBe(nil)
-		expect((use("FunBubbles", { self = ME, players = players }) :: any).target).toBe(nil)
-	end)
-
-	it("the hat launcher targets only the clicked player, the squeaky hammer only a nearby thief", function()
+	it("every Fun item aims like a shot: the clicked player, else the point, else far along the ray", function()
 		local players = { { userId = 2, position = at(3) }, { userId = 3, position = at(5), carrying = true } }
-		expect((use("FunHatLauncher", { self = ME, players = players }) :: any).target).toBe(nil)
-		expect((use("FunHatLauncher", { self = ME, players = players, hovered = 2 }) :: any).target).toBe(2)
-		expect((use("FunSqueaky", { self = ME, players = players }) :: any).target).toBe(3)
-		local calm = { { userId = 2, position = at(3) } }
-		local squeak = use("FunSqueaky", { self = ME, players = calm }) :: any
-		expect(squeak ~= nil and squeak.target == nil).toBe(true)
+		for _, def in Config.PVP_TOOLS do
+			if def.line == "Fun" then
+				local r = use(def.id, { self = ME, players = players, point = at(12) }) :: any
+				expect(r.target).toBe(nil) -- the server picks who is hit (CONTRACT.md §26.8)
+				expect(r.aim.X).toBe(12)
+				expect((use(def.id, { self = ME, players = players, hovered = 2, point = at(12) }) :: any).aim.X).toBe(
+					3
+				)
+				expect((use(def.id, { self = ME, far = at(200) }) :: any).aim.X).toBe(200)
+			end
+		end
 	end)
 
-	it("the dance bomb needs a player in reach", function()
-		local players = { { userId = 3, position = at(5), carrying = true } }
-		expect((use("FunDanceBomb", { self = ME, players = players }) :: any).target).toBe(3)
-		local none = use("FunDanceBomb", { self = ME, players = {} })
-		expect(none).toBe(nil)
+	it("the Confetti Popper and Goo Fireworks fire on release; a hold past CHARGE_SECONDS sends charged", function()
+		local hold = Config.PVP.CHARGE_SECONDS
+		for _, id in { "FunConfetti", "FunFireworks" } do
+			expect(InventoryCore.pvpHolds(PvpRules.tool(id))).toBe(true)
+			expect((use(id, { self = ME, point = at(6) }, nil, hold) :: any).charged).toBe(true)
+			expect((use(id, { self = ME, point = at(6) }, nil, hold * 0.5) :: any).charged).toBe(nil)
+		end
+		expect(InventoryCore.pvpHolds(PvpRules.tool("FunBalloon"))).toBe(false)
+		expect((use("FunBalloon", { self = ME, point = at(6) }, nil, hold * 4) :: any).charged).toBe(nil)
 	end)
 
 	it("an item that is not the equipped PvP item sends nothing, silently", function()

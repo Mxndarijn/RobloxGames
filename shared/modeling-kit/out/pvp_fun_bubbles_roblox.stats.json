@@ -1,0 +1,164 @@
+{
+  "name": "pvp_fun_bubbles",
+  "model": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\models\\pvp_fun_bubbles.py",
+  "units": "1 Blender unit = 1 stud; size_studs is Roblox [X, Y(up), Z]",
+  "tris": 836,
+  "meshes": [
+    {
+      "name": "pvp_fun_bubbles",
+      "tris": 836,
+      "verts": 428,
+      "ngons": 0,
+      "non_manifold_edges": 0,
+      "size_studs": [
+        1.267,
+        3.52,
+        0.86
+      ],
+      "materials": [
+        "pvp_fun_bubbles_vcol"
+      ],
+      "color_attributes": [
+        "Col"
+      ],
+      "modifiers": [],
+      "materials_used": [
+        "pvp_fun_bubbles_vcol"
+      ],
+      "materials_not_vcol": [],
+      "image_textures": [],
+      "vertex_alpha_below_1": false
+    }
+  ],
+  "mesh_count": 1,
+  "size_studs": [
+    1.267,
+    3.52,
+    0.86
+  ],
+  "non_manifold_edges": 0,
+  "materials": [
+    "pvp_fun_bubbles_vcol"
+  ],
+  "budget": {
+    "tri_target": [
+      500,
+      2000
+    ],
+    "tri_fail_per_mesh": 10000,
+    "axis_fail_studs": 2048,
+    "fbx_fail_bytes": 20971520
+  },
+  "pass": true,
+  "fails": [],
+  "warnings": [],
+  "fbx": null,
+  "fbx_bytes": null,
+  "engine": "cycles",
+  "mode": "full",
+  "look": "roblox",
+  "res": 256,
+  "samples": 16,
+  "tiles": [
+    {
+      "view": "front",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_0.png"
+    },
+    {
+      "view": "side",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_1.png"
+    },
+    {
+      "view": "back-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_2.png"
+    },
+    {
+      "view": "top-3/4",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_3.png"
+    }
+  ],
+  "turntable": [
+    {
+      "view": "0deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_tt0.png"
+    },
+    {
+      "view": "45deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_tt1.png"
+    },
+    {
+      "view": "90deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_tt2.png"
+    },
+    {
+      "view": "135deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_tt3.png"
+    },
+    {
+      "view": "180deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_tt4.png"
+    },
+    {
+      "view": "225deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_tt5.png"
+    },
+    {
+      "view": "270deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_tt6.png"
+    },
+    {
+      "view": "315deg",
+      "path": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\.tiles\\pvp_fun_bubbles_roblox_tt7.png"
+    }
+  ],
+  "timings_blender": {
+    "model_s": 0.161,
+    "stats_s": 0.001,
+    "setup_s": 0.027,
+    "render_s": [
+      0.178,
+      0.145,
+      0.152,
+      0.148
+    ],
+    "turntable_s": [
+      0.13,
+      0.135,
+      0.132,
+      0.135,
+      0.125,
+      0.125,
+      0.132,
+      0.143
+    ],
+    "export_s": 0.0
+  },
+  "turntable_png": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\pvp_fun_bubbles_roblox_turntable.png",
+  "turntable_gif": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\pvp_fun_bubbles_roblox_turntable.gif",
+  "sheet": "D:\\SoftwareProjects\\RobloxGames\\.claude\\worktrees\\agent-a199710cb70e788ab\\shared\\modeling-kit\\out\\pvp_fun_bubbles_roblox_sheet.png",
+  "timings": {
+    "wall_s": 2.67,
+    "blender_process_s": 2.28,
+    "compose_s": 0.386,
+    "model_s": 0.161,
+    "stats_s": 0.001,
+    "setup_s": 0.027,
+    "render_s": [
+      0.178,
+      0.145,
+      0.152,
+      0.148
+    ],
+    "turntable_s": [
+      0.13,
+      0.135,
+      0.132,
+      0.135,
+      0.125,
+      0.125,
+      0.132,
+      0.143
+    ],
+    "export_s": 0.0
+  }
+}

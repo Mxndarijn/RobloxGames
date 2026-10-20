@@ -1,73 +1,78 @@
 --!strict
--- Goo Trap line (CONTRACT.md §26 "Goo Trap line"): placement, thief-only trigger, freeze clamp + immunity,
--- re-arm, cleanup and zero parts. Server-side zones: nothing is ever created in Workspace.
+-- Goo Traps (CONTRACT.md §26.5): charges (buy / held cap / use / save), placing anywhere in range, the live cap
+-- (a 6th removes the oldest), the lifetime, who springs a trap and what each tier does, caught thieves, cleanup and
+-- zero parts. Server-side zones: nothing is ever created in Workspace.
 local Config = require("../src/shared/Config")
+local Fixtures = require("./Fixtures")
 local PvpRules = require("../src/shared/PvpRules")
 local PvpService = require("../src/server/PvpService")
+local PvpSlow = require("../src/server/PvpSlow")
 local PvpTrap = require("../src/server/PvpTrap")
 local PvpTrapRules = require("../src/shared/PvpTrapRules")
 local ServerFixtures = require("./ServerFixtures")
+local StealService = require("../src/server/StealService")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
-local FAR = { X = 200, Y = 3, Z = -200 } -- clear of every safe zone
-local SPAWN = { X = 0, Y = 3, Z = 0 }
+local PVP = Config.PVP
+local FAR = { X = 200, Y = 3, Z = -200 }
 
 local current: any = nil -- the world of the running test
 local function events(): { ServerFixtures.PvpEvent }
 	return ServerFixtures.pvpEvents(current)
 end
 local positions: { [number]: any } = {}
-local onPlot = true
+local launches: { { userId: number, push: any } } = {}
 local joined: { any } = {}
-local env = {
+local env: PvpService.Context = {
 	positionOf = function(userId: number): any?
 		return positions[userId]
 	end,
-	onOwnPlot = function(): boolean
+	launch = function(userId: number, push: any): boolean
+		table.insert(launches, { userId = userId, push = push })
 		return true
-	end,
-	pointOnOwnPlot = function(): boolean
-		return onPlot
 	end,
 }
 
 local function setup(): (any, any, any)
-	onPlot = true
 	joined = {}
+	launches = {}
 	positions = { [1] = FAR, [2] = FAR }
 	PvpTrap.register()
 	local world = ServerFixtures.world()
 	current = world
-	local owner = ServerFixtures.join(world, 1, nil, 1e12)
-	local thief = ServerFixtures.join(world, 2, nil, 1e12)
-	owner.data.rebirths, thief.data.rebirths = 10, 10
+	local owner = ServerFixtures.join(world, 1, { Fixtures.slime("gem", 3) }, 1e12)
+	local victim = ServerFixtures.join(world, 2, nil, 1e12)
+	owner.data.rebirths, victim.data.rebirths = 10, 10
+	ServerFixtures.veteran(owner)
+	ServerFixtures.veteran(victim)
+	ServerFixtures.unlock(owner)
+	ServerFixtures.unlock(victim)
 	PvpService.join(world, owner, T0, true)
-	PvpService.join(world, thief, T0, true)
-	joined = { owner, thief }
-	return world, owner, thief
+	PvpService.join(world, victim, T0, true)
+	joined = { owner, victim }
+	return world, owner, victim
 end
 
 local function done()
 	for _, session in joined do
 		PvpTrap.clear(current, session) -- module state outlives the weak session keys
+		PvpSlow.clear(session)
 	end
 	PvpService.registerLine("Trap", nil)
 end
 
-local function own(session: any, id: string)
-	PvpRules.buy(session.data, id, true)
-	session.data.cash = 1e12
-	PvpService.equip(session, id, true)
+-- Buys `n` charges of `id` and equips it.
+local function own(world: any, session: any, id: string, n: number?)
+	for _ = 1, n or 1 do
+		expect((PvpService.buy(world, session, id, true))).toBe(true)
+	end
+	expect((PvpService.equip(session, id, true))).toBe(true)
 end
 
 local function place(world: any, owner: any, id: string, aim: any, now: number?): (boolean, string?)
 	return PvpService.use(world, owner, id, nil, aim, now or T0, true, env)
-end
-
-local function makeThief(thief: any, ownerId: number)
-	thief.carry = { slimeId = "s1", kind = "stolen", ownerUserId = ownerId }
 end
 
 local function kinds(): { string }
@@ -78,177 +83,202 @@ local function kinds(): { string }
 	return out
 end
 
-describe("Goo Trap placement", function()
-	it("places on the own plot, fires TrapPlaced and creates no Instance", function()
-		local world, owner = setup()
-		own(owner, "GooTrap3")
-		local ok = place(world, owner, "GooTrap3", FAR)
-		expect(ok).toBe(true)
-		expect(PvpTrap.count(owner)).toBe(1)
-		expect(PvpService.spawnedCount()).toBe(0)
-		local placed
-		for _, e in events() do
-			if e.payload.kind == "TrapPlaced" then
-				placed = e
-			end
+local function effects(name: string): { { [string]: any } }
+	local out = {}
+	for _, e in events() do
+		if e.payload.kind == "Effect" and e.payload.effect == name then
+			table.insert(out, e.payload)
 		end
-		expect(placed ~= nil).toBe(true)
-		expect(placed.target).toBeNil()
-		expect(placed.payload.owner).toBe(1)
-		expect(placed.payload.itemId).toBe("GooTrap3")
-		expect(placed.payload.trapId).toBe(PvpTrap.list(owner)[1].id)
+	end
+	return out
+end
+
+describe("Goo Trap charges", function()
+	it("each buy adds one charge; a 6th charge of a tier is refused and costs nothing", function()
+		local world, owner = setup()
+		own(world, owner, "GooTrap1", PVP.TRAP_MAX_HELD)
+		expect(PvpRules.charges(owner.data, "GooTrap1")).toBe(5)
+		local cash = owner.data.cash
+		local ok, reason = PvpService.buy(world, owner, "GooTrap1", true)
+		expect(ok).toBe(false)
+		expect(reason).toBe("you can only hold 5")
+		expect(owner.data.cash).toBe(cash)
+		expect((PvpService.view(owner, T0) :: any).charges).toEqual({ GooTrap1 = 5 })
 		done()
 	end)
-	it("refuses off the own plot, in a safe zone, with a bad aim, and starts no cooldown", function()
+	it("placing uses one charge; the last one unequips the item", function()
 		local world, owner = setup()
-		own(owner, "GooTrap1")
-		onPlot = false
-		local ok, reason = place(world, owner, "GooTrap1", FAR)
-		expect(ok).toBe(false)
-		expect(reason).toBe("only on your own plot")
-		onPlot = true
-		positions[1] = { X = 60, Y = 3, Z = 0 } -- just outside the fountain zone, in reach of its rim
-		ok, reason = place(world, owner, "GooTrap1", { X = 40, Y = 3, Z = 0 })
-		expect(ok).toBe(false)
-		expect(reason).toBe("safe zone")
-		ok, reason = place(world, owner, "GooTrap1", nil)
-		expect(ok).toBe(false)
-		expect(reason).toBe("no aim")
-		ok = place(world, owner, "GooTrap1", { X = 0 / 0, Y = 0, Z = 0 })
-		expect(ok).toBe(false)
-		expect(PvpTrap.count(owner)).toBe(0)
-		expect(PvpRules.ready(PvpService.state(owner) :: any, "GooTrap1", T0)).toBe(true)
-		done()
-	end)
-	it("refuses an aim beyond TRAP_PLACE_RANGE of the owner's server position, whatever the client sends", function()
-		local world, owner = setup()
-		own(owner, "GooTrap1")
-		local range = Config.PVP.TRAP_PLACE_RANGE
-		local edge = { X = FAR.X + range, Y = FAR.Y, Z = FAR.Z }
-		local past = { X = FAR.X + range + 1, Y = FAR.Y, Z = FAR.Z }
-		local ok, reason = place(world, owner, "GooTrap1", past)
-		expect(ok).toBe(false)
-		expect(reason).toBe("too far away")
-		expect(PvpTrap.count(owner)).toBe(0)
-		expect(PvpRules.ready(PvpService.state(owner) :: any, "GooTrap1", T0)).toBe(true)
-		expect(place(world, owner, "GooTrap1", edge)).toBe(true)
-		done()
-		world, owner = setup()
-		own(owner, "GooTrap1")
-		positions[1] = { X = FAR.X - 100, Y = FAR.Y, Z = FAR.Z } -- the owner walked away from the aim point
-		ok, reason = place(world, owner, "GooTrap1", FAR)
-		expect(ok).toBe(false)
-		expect(reason).toBe("too far away")
-		expect(place(world, owner, "GooTrap1", { X = FAR.X, Y = FAR.Y + range + 1, Z = FAR.Z })).toBe(false)
-		done()
-	end)
-	it("refuses beyond the tier's trap count (does not replace the oldest)", function()
-		local world, owner = setup()
-		own(owner, "GooTrap1") -- 1 trap
+		own(world, owner, "GooTrap1", 2)
 		expect(place(world, owner, "GooTrap1", FAR)).toBe(true)
-		local first = PvpTrap.list(owner)[1].id
-		local ok, reason = place(world, owner, "GooTrap1", FAR, T0 + 100)
-		expect(ok).toBe(false)
-		expect(reason).toBe("too many traps")
-		expect(PvpTrap.list(owner)[1].id).toBe(first)
-		done()
-		world, owner = setup()
-		own(owner, "GooTrap2") -- 2 traps
-		expect(place(world, owner, "GooTrap2", FAR, T0)).toBe(true)
-		expect(place(world, owner, "GooTrap2", FAR, T0 + 100)).toBe(true)
-		expect(place(world, owner, "GooTrap2", FAR, T0 + 200)).toBe(false)
-		expect(PvpTrap.count(owner)).toBe(2)
-		done()
-	end)
-	it("refuses with the flag off", function()
-		local world, owner = setup()
-		own(owner, "GooTrap1")
-		local ok, reason = PvpService.use(world, owner, "GooTrap1", nil, FAR, T0, false, env)
-		expect(ok).toBe(false)
-		expect(reason).toBe("PvP is not open yet")
-		expect(PvpTrapRules.canPlace(Config.PVP_TOOLS[1], 0, FAR, FAR, true, false)).toBe(false)
-		expect(PvpTrap.count(owner)).toBe(0)
+		expect(PvpRules.charges(owner.data, "GooTrap1")).toBe(1)
+		expect(PvpService.equipped(owner)).toBe("GooTrap1")
+		expect(place(world, owner, "GooTrap1", FAR, T0 + PVP.MIN_COOLDOWN + 1)).toBe(true)
+		expect(PvpRules.charges(owner.data, "GooTrap1")).toBe(0)
+		expect(PvpService.equipped(owner)).toBe(nil)
+		expect(select(2, place(world, owner, "GooTrap1", FAR, T0 + 10))).toBe("not equipped")
 		done()
 	end)
 end)
 
-describe("Goo Trap trigger", function()
-	local function armed(id: string): (any, any, any)
-		local world, owner, thief = setup()
-		own(owner, id)
-		place(world, owner, id, FAR)
-		return world, owner, thief
-	end
-	it("freezes only a thief carrying the owner's slime, with Effect Freeze and no damage field", function()
-		local _, owner, thief = armed("GooTrap3")
-		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(0) -- empty-handed
-		thief.carry = { slimeId = "w", kind = "wild" }
-		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(0) -- wild slime
-		makeThief(thief, 99)
-		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(0) -- someone else's slime
-		makeThief(thief, 1)
-		expect(PvpTrap.tick(current, thief, { X = 200 + 5, Y = 3, Z = -200 }, T0)).toBe(0) -- outside radius 4
-		expect(PvpTrap.tick(current, owner, FAR, T0)).toBe(0) -- the owner never triggers it
-		expect(PvpTrap.frozen(thief, T0)).toBe(false)
-		expect(PvpTrap.tick(current, thief, { X = 202, Y = 3, Z = -200 }, T0)).toBe(2)
-		expect(PvpTrap.frozen(thief, T0 + 1.9)).toBe(true)
-		expect(PvpTrap.frozen(thief, T0 + 2)).toBe(false)
-		local effect
-		for _, e in events() do
-			if e.payload.kind == "Effect" then
-				effect = e.payload
-			end
-		end
-		expect(effect.effect).toBe("Freeze")
-		expect(effect.target).toBe(2)
-		expect(effect.attacker).toBe(1)
-		expect(effect.duration).toBe(2)
-		expect(effect.damage).toBeNil()
+describe("Goo Trap placement", function()
+	it("places anywhere within range, fires TrapPlaced and creates no Instance", function()
+		local world, owner = setup()
+		own(world, owner, "GooTrap2")
+		positions[1] = { X = 0, Y = 3, Z = 0 } -- the fountain: no safe zones
+		expect(place(world, owner, "GooTrap2", { X = 3, Y = 3, Z = 0 })).toBe(true)
+		expect(PvpTrap.count(owner)).toBe(1)
+		expect(kinds()).toEqual({ "TrapPlaced", "Cooldown" })
+		local placed = events()[1]
+		expect(placed.target).toBeNil()
+		expect(placed.payload.owner).toBe(1)
+		expect(placed.payload.itemId).toBe("GooTrap2")
+		expect(PvpService.spawnedCount()).toBe(0)
 		done()
 	end)
-	it(
-		"clamps the freeze to CONTROL_MAX_SECONDS, then 3 s immunity: an immune thief passes, the trap stays armed",
-		function()
-			local _, owner, thief = armed("GooTrap3")
-			makeThief(thief, 1)
-			local trap = PvpTrap.list(owner)[1]
-			trap.control = 9 -- a bad value can never freeze longer than the cap
-			trap.rearm = 1 -- re-arms before the immunity ends
-			expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(Config.PVP.CONTROL_MAX_SECONDS)
-			expect(PvpTrap.tick(current, thief, FAR, T0 + 1.5)).toBe(0) -- still frozen / disarmed
-			-- control over at +2, immune until +5; the trap is armed again at +1 but the thief passes through
-			expect(PvpTrap.tick(current, thief, FAR, T0 + 3)).toBe(0)
-			expect(PvpTrapRules.isArmed(trap, T0 + 3)).toBe(true)
-			expect(PvpTrap.frozen(thief, T0 + 3)).toBe(false)
-			expect(PvpTrap.tick(current, thief, FAR, T0 + 5)).toBe(2) -- immunity over: frozen again
+	it("refuses an aim out of range or junk, with no charge used and no cooldown", function()
+		local world, owner = setup()
+		own(world, owner, "GooTrap1")
+		local far = { X = FAR.X + PVP.TRAP_PLACE_RANGE + 1, Y = 3, Z = FAR.Z }
+		expect(select(2, place(world, owner, "GooTrap1", far))).toBe("too far away")
+		expect(select(2, place(world, owner, "GooTrap1", nil))).toBe("no aim")
+		expect(select(2, place(world, owner, "GooTrap1", { X = 0 / 0, Y = 0, Z = 0 }))).toBe("no aim")
+		expect(PvpRules.charges(owner.data, "GooTrap1")).toBe(1)
+		expect(next((PvpService.state(owner) :: any).cooldowns)).toBeNil()
+		done()
+	end)
+	it("a shielded player can't place one", function()
+		local world, owner = setup()
+		own(world, owner, "GooTrap1")
+		owner.data.pvp.played = 0
+		PvpService.join(world, owner, T0, true)
+		expect((PvpService.equip(owner, "GooTrap1", true))).toBe(true)
+		expect(select(2, place(world, owner, "GooTrap1", FAR))).toBe("your new-player shield is on")
+		done()
+	end)
+	it("keeps at most 5 live traps: the 6th removes the oldest", function()
+		local world, owner = setup()
+		own(world, owner, "GooTrap1", 5)
+		PvpService.buy(world, owner, "GooTrap2", true)
+		local now = T0
+		for _ = 1, 5 do
+			expect(place(world, owner, "GooTrap1", FAR, now)).toBe(true)
+			now += PVP.MIN_COOLDOWN + 0.5
+		end
+		local oldest = PvpTrap.list(owner)[1].id
+		expect((PvpService.equip(owner, "GooTrap2", true))).toBe(true)
+		ServerFixtures.clearEvents(current)
+		expect(place(world, owner, "GooTrap2", FAR, now)).toBe(true)
+		expect(PvpTrap.count(owner)).toBe(PVP.TRAP_MAX_LIVE)
+		expect(PvpTrap.list(owner)[1].id ~= oldest).toBe(true)
+		expect(kinds()[1]).toBe("TrapCleared")
+		expect(events()[1].payload.trapId).toBe(oldest)
+		done()
+	end)
+	it("a trap that caught nobody is gone after its lifetime", function()
+		local world, owner, victim = setup()
+		own(world, owner, "GooTrap1")
+		place(world, owner, "GooTrap1", FAR)
+		positions[2] = { X = 500, Y = 3, Z = 0 }
+		ServerFixtures.clearEvents(current)
+		PvpTrap.tick(world, victim, positions[2], T0 + PVP.TRAP_LIFETIME_SECONDS - 1, env)
+		expect(PvpTrap.count(owner)).toBe(1)
+		PvpTrap.tick(world, victim, positions[2], T0 + PVP.TRAP_LIFETIME_SECONDS, env)
+		expect(PvpTrap.count(owner)).toBe(0)
+		expect(kinds()).toEqual({ "TrapCleared" })
+		done()
+	end)
+end)
+
+describe("Goo Trap springing", function()
+	it("Puddle: anyone but the owner is slowed 50 % for 2 s, then the trap is gone", function()
+		local world, owner, victim = setup()
+		own(world, owner, "GooTrap1")
+		place(world, owner, "GooTrap1", FAR)
+		ServerFixtures.clearEvents(current)
+		expect(PvpTrap.tick(world, owner, FAR, T0, env)).toBe(false) -- the owner never springs it
+		expect(PvpTrap.tick(world, victim, { X = 210, Y = 3, Z = -200 }, T0, env)).toBe(false) -- outside the radius
+		expect(PvpTrap.tick(world, victim, FAR, T0, env)).toBe(true)
+		expect(PvpSlow.walkFactor(victim, T0 + 1)).toBe(0.5)
+		expect(PvpSlow.walkFactor(victim, T0 + 2)).toBe(1)
+		expect(PvpTrap.count(owner)).toBe(0)
+		local e = effects("Freeze")[1]
+		expect(e.attacker).toBe(1)
+		expect(e.target).toBe(2)
+		expect(e.hold).toBe(0)
+		expect(e.duration).toBe(2)
+		expect(e.damage).toBeNil()
+		expect(kinds()[#kinds()]).toBe("TrapCleared")
+		done()
+	end)
+	it("Sticky: held 1.5 s, then slowed", function()
+		local world, owner, victim = setup()
+		own(world, owner, "GooTrap2")
+		place(world, owner, "GooTrap2", FAR)
+		expect(PvpTrap.tick(world, victim, FAR, T0, env)).toBe(true)
+		expect(PvpSlow.walkFactor(victim, T0 + 1)).toBe(0)
+		expect(PvpSlow.walkFactor(victim, T0 + 2)).toBe(0.5)
+		expect(PvpSlow.walkFactor(victim, T0 + 3.1)).toBe(1)
+		expect(effects("Freeze")[1].hold).toBe(1.5)
+		done()
+	end)
+	it("Mega: holds 2 s, pulls in a player within 4 studs, then spits both out with a bounce", function()
+		local world, owner, victim = setup()
+		local other = ServerFixtures.join(world, 3, nil, 0)
+		ServerFixtures.veteran(other)
+		PvpService.join(world, other, T0, true)
+		table.insert(joined, other)
+		positions[3] = { X = 206, Y = 3, Z = -200 } -- 6 studs off: inside radius 4 + pull 4
+		own(world, owner, "GooTrap3")
+		place(world, owner, "GooTrap3", FAR)
+		expect(PvpTrap.tick(world, victim, FAR, T0, env)).toBe(true)
+		expect(PvpSlow.walkFactor(victim, T0 + 1)).toBe(0)
+		expect(PvpSlow.walkFactor(other, T0 + 1)).toBe(0) -- pulled in and held too
+		expect(#launches).toBe(1) -- the pull
+		expect(launches[1].userId).toBe(3)
+		expect(launches[1].push.X < 0).toBe(true) -- toward the trap
+		PvpTrap.tick(world, victim, FAR, T0 + 1.9, env)
+		expect(#launches).toBe(1) -- still held
+		PvpTrap.tick(world, victim, FAR, T0 + 2, env)
+		expect(#launches).toBe(2) -- spat out
+		expect(launches[2].push.Y > 0).toBe(true)
+		local spits = effects("Knockback")
+		expect(#spits).toBe(1)
+		expect(spits[1].itemId).toBe("GooTrap3")
+		done()
+	end)
+	it("any tier sends a caught thief's slime home, even when the thief is immune", function()
+		for _, id in { "GooTrap1", "GooTrap2", "GooTrap3" } do
+			local world, owner, victim = setup()
+			own(world, owner, id)
+			place(world, owner, id, FAR)
+			expect((StealService.steal(world, victim, "gem", 1, T0))).toBe(true)
+			PvpRules.applyControl(PvpService.state(victim) :: any, 1, T0) -- immune: no hold, still caught
+			expect(PvpTrap.tick(world, victim, FAR, T0 + 0.5, env)).toBe(true)
+			expect(victim.carry).toBeNil()
+			expect(world.escaping.gem ~= nil).toBe(true)
+			expect(PvpTrap.count(owner)).toBe(0)
 			done()
 		end
-	)
-	it("re-arms after `rearm` seconds and stays a zone", function()
-		local _, owner, thief = armed("GooTrap3") -- rearm 20 s
-		makeThief(thief, 1)
-		local trap = PvpTrap.list(owner)[1]
-		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(2)
-		expect(PvpTrapRules.isArmed(trap, T0 + 19.9)).toBe(false)
-		expect(PvpTrapRules.isArmed(trap, T0 + 20)).toBe(true)
+	end)
+	it("an immune player who carries nothing passes and the trap stays", function()
+		local world, owner, victim = setup()
+		own(world, owner, "GooTrap2")
+		place(world, owner, "GooTrap2", FAR)
+		PvpRules.applyControl(PvpService.state(victim) :: any, 1, T0)
+		expect(PvpTrap.tick(world, victim, FAR, T0 + 0.5, env)).toBe(false)
 		expect(PvpTrap.count(owner)).toBe(1)
-		expect(PvpTrap.tick(current, thief, FAR, T0 + 20)).toBe(2)
 		done()
 	end)
-	it("never triggers for a shielded new player", function()
-		local _, _, thief = armed("GooTrap3")
-		thief.data.rebirths = 0
-		PvpService.join(current, thief, T0, true) -- fresh shield
-		makeThief(thief, 1)
-		expect(PvpService.isShielded(thief, T0)).toBe(true)
-		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(0)
-		done()
-	end)
-	it("does nothing without PvP state (flag off join)", function()
-		local _, _, thief = armed("GooTrap3")
-		makeThief(thief, 1)
-		PvpService.join(current, thief, T0, false)
-		expect(PvpTrap.tick(current, thief, FAR, T0)).toBe(0)
+	it("never springs for a shielded new player or without PvP state", function()
+		local world, owner, victim = setup()
+		own(world, owner, "GooTrap1")
+		place(world, owner, "GooTrap1", FAR)
+		victim.data.pvp.played = 0
+		PvpService.join(world, victim, T0, true)
+		expect(PvpTrap.tick(world, victim, FAR, T0 + 1, env)).toBe(false)
+		PvpService.join(world, victim, T0, false) -- flag off: no state
+		expect(PvpTrap.tick(world, victim, FAR, T0 + 1, env)).toBe(false)
+		expect(PvpTrap.count(owner)).toBe(1)
 		done()
 	end)
 end)
@@ -256,26 +286,25 @@ end)
 describe("Goo Trap cleanup and parts", function()
 	it("removes the owner's traps on leave and fires TrapCleared", function()
 		local world, owner = setup()
-		own(owner, "GooTrap2")
+		own(world, owner, "GooTrap2", 2)
 		place(world, owner, "GooTrap2", FAR)
 		place(world, owner, "GooTrap2", FAR, T0 + 100)
 		ServerFixtures.clearEvents(current)
-		PvpService.leave(world, owner, T0 + 10)
+		PvpService.leave(world, owner, T0 + 110)
 		expect(PvpTrap.count(owner)).toBe(0)
 		expect(kinds()).toEqual({ "TrapCleared", "TrapCleared" })
 		expect(events()[1].payload.owner).toBe(1)
 		done()
 	end)
-	it("clears a thief's freeze when they leave and keeps spawnedCount at 0 throughout", function()
-		local world, owner, thief = setup()
-		own(owner, "GooTrap1")
+	it("clears a held player's hold when they leave and keeps spawnedCount at 0 throughout", function()
+		local world, owner, victim = setup()
+		own(world, owner, "GooTrap2")
 		expect(PvpService.spawnedCount()).toBe(0)
-		place(world, owner, "GooTrap1", FAR)
-		makeThief(thief, 1)
-		PvpTrap.tick(current, thief, FAR, T0)
-		expect(PvpTrap.frozen(thief, T0)).toBe(true)
-		PvpService.leave(world, thief, T0 + 1)
-		expect(PvpTrap.frozen(thief, T0 + 1)).toBe(false)
+		place(world, owner, "GooTrap2", FAR)
+		PvpTrap.tick(world, victim, FAR, T0, env)
+		expect(PvpSlow.held(victim, T0)).toBe(true)
+		PvpService.leave(world, victim, T0 + 1)
+		expect(PvpSlow.held(victim, T0 + 1)).toBe(false)
 		expect(PvpService.spawnedCount()).toBe(0)
 		PvpService.leave(world, owner, T0 + 2)
 		expect(PvpService.spawnedCount()).toBe(0)
@@ -284,19 +313,21 @@ describe("Goo Trap cleanup and parts", function()
 end)
 
 describe("PvpTrapRules", function()
-	it("keeps every tier's freeze within the control cap", function()
+	it("keeps every tier's hold within the control cap and has no damage field", function()
 		for _, tool in Config.PVP_TOOLS do
 			if tool.line == "Trap" then
-				expect((tool.control or 0) <= Config.PVP.CONTROL_MAX_SECONDS).toBe(true)
-				expect(tool.damage).toBeNil()
+				expect((tool.control or 0) <= PVP.CONTROL_MAX_SECONDS).toBe(true)
+				expect((tool.slowSeconds or 0) <= PVP.SLOW_MAX_SECONDS).toBe(true)
+				expect((tool :: any).damage).toBeNil()
 			end
 		end
 	end)
-	it("rejects another floor", function()
+	it("rejects another floor and a non-trap tool", function()
 		local trap = PvpTrapRules.new("t", 1, PvpRules.tool("GooTrap1") :: any, FAR, T0)
 		expect(PvpTrapRules.inRadius(trap, { X = 200, Y = 3 + 20, Z = -200 })).toBe(false)
 		expect(PvpTrapRules.inRadius(trap, { X = 200, Y = 3 + 4, Z = -200 })).toBe(true)
-		expect(PvpTrapRules.canPlace(PvpRules.tool("KnockGlove1") :: any, 0, FAR, FAR, true, true)).toBe(false)
-		expect(PvpRules.inSafeZone(SPAWN)).toBe(true)
+		expect((PvpTrapRules.canPlace(PvpRules.tool("KnockGlove1") :: any, 1, FAR, FAR, true))).toBe(false)
+		expect(PvpTrapRules.overflow(4)).toBe(0)
+		expect(PvpTrapRules.overflow(5)).toBe(1)
 	end)
 end)

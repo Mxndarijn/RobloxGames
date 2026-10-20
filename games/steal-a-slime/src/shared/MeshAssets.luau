@@ -124,6 +124,26 @@ local NAMES = {
 	"ranch_floor_deck",
 	"ranch_floor_paths",
 	"pet_cloud",
+	-- Held PvP items (Shared.PvpModels, server/PvpHeld): the placeholder Parts stand in while a mesh fails to load.
+	"pvp_knock_glove_1",
+	"pvp_knock_glove_2",
+	"pvp_knock_glove_3",
+	"pvp_knock_glove_4",
+	"pvp_knock_glove_5",
+	"pvp_goo_trap_1",
+	"pvp_goo_trap_2",
+	"pvp_goo_trap_3",
+	"pvp_goo_blaster_1",
+	"pvp_goo_blaster_2",
+	"pvp_goo_blaster_3",
+	"pvp_fun_confetti",
+	"pvp_fun_balloon",
+	"pvp_fun_bubbles",
+	"pvp_fun_bounce_pad",
+	"pvp_fun_squeaky",
+	"pvp_fun_hat_launcher",
+	"pvp_fun_dance_bomb",
+	"pvp_fun_fireworks",
 }
 
 local entries: { [string]: Entry } = {}
@@ -353,6 +373,48 @@ entries["giant_cloud_tree"] =
 -- (the red wrap centre, 1.2 above the pommel; mesh centre = bbox centre). 606 tris. models/ranch_bat.py.
 entries["ranch_bat"] =
 	{ assetId = 111246965997524, meshId = "rbxassetid://94306599639554", size = { 1.351, 5.09, 1.351 } }
+
+-- Held PvP items (Shared.PvpModels, server/PvpHeld; a placed Goo Trap / Bounce Pad marker too, ui/PvpEffects).
+-- Held, no collision (not in COLLISION), NOT world slots. size = the native size Roblox reports (Open Cloud size-check);
+-- grips and orientation are in PvpModels.
+entries["pvp_knock_glove_1"] =
+	{ assetId = 110621726072655, meshId = "rbxassetid://71737885567877", size = { 1.635, 2.014, 1.405 } }
+entries["pvp_knock_glove_2"] =
+	{ assetId = 80334698499483, meshId = "rbxassetid://77260240652660", size = { 1.637, 2.214, 1.4 } }
+entries["pvp_knock_glove_3"] =
+	{ assetId = 132366088078656, meshId = "rbxassetid://106383629055084", size = { 2.277, 2.247, 1.84 } }
+entries["pvp_knock_glove_4"] =
+	{ assetId = 135418730632918, meshId = "rbxassetid://78867127184009", size = { 2.729, 2.604, 1.746 } }
+entries["pvp_knock_glove_5"] =
+	{ assetId = 120579710964122, meshId = "rbxassetid://75411549772769", size = { 1.973, 2.779, 1.979 } }
+entries["pvp_goo_trap_1"] =
+	{ assetId = 83895249562133, meshId = "rbxassetid://83180176668437", size = { 3.786, 0.836, 3.188 } }
+entries["pvp_goo_trap_2"] =
+	{ assetId = 116867489683181, meshId = "rbxassetid://117211964777374", size = { 3.626, 0.984, 3.686 } }
+entries["pvp_goo_trap_3"] =
+	{ assetId = 128824082093246, meshId = "rbxassetid://108663580351164", size = { 3.68, 1.003, 4.107 } }
+entries["pvp_goo_blaster_1"] =
+	{ assetId = 105327335446583, meshId = "rbxassetid://86172948277407", size = { 0.72, 2.383, 2.55 } }
+entries["pvp_goo_blaster_2"] =
+	{ assetId = 96662953983125, meshId = "rbxassetid://131920181581288", size = { 1.279, 2.769, 3.28 } }
+entries["pvp_goo_blaster_3"] =
+	{ assetId = 85444473478925, meshId = "rbxassetid://94914692256376", size = { 1.32, 2.902, 4.171 } }
+entries["pvp_fun_confetti"] =
+	{ assetId = 122751045559627, meshId = "rbxassetid://130187699965534", size = { 1.521, 3.031, 1.518 } }
+entries["pvp_fun_balloon"] =
+	{ assetId = 123184486250639, meshId = "rbxassetid://137566643890332", size = { 1.3, 1.57, 1.3 } }
+entries["pvp_fun_bubbles"] =
+	{ assetId = 100059116789802, meshId = "rbxassetid://95807555526303", size = { 1.267, 3.52, 0.86 } }
+entries["pvp_fun_bounce_pad"] =
+	{ assetId = 79473190619711, meshId = "rbxassetid://122940558174082", size = { 3, 0.913, 3 } }
+entries["pvp_fun_squeaky"] =
+	{ assetId = 70595131801050, meshId = "rbxassetid://80237357927975", size = { 2, 3.27, 1.44 } }
+entries["pvp_fun_hat_launcher"] =
+	{ assetId = 74305371572035, meshId = "rbxassetid://124667953574111", size = { 1.16, 1.944, 2.74 } }
+entries["pvp_fun_dance_bomb"] =
+	{ assetId = 127767437569765, meshId = "rbxassetid://128407491632382", size = { 1.485, 2.518, 1.462 } }
+entries["pvp_fun_fireworks"] =
+	{ assetId = 76466741614439, meshId = "rbxassetid://99068800603377", size = { 1.04, 1.678, 3.145 } }
 
 -- B11 floor (FloorLayout, concept c3): hub-centred, 8-fold symmetric baked boardwalk meshes (models/ranch_floor_deck.py,
 -- ranch_floor_paths.py). One world slot each at the hub (Map.Paths.DeckPlaza / Boardwalk); decor, no collision.

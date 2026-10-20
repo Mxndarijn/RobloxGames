@@ -428,10 +428,13 @@ end)
 
 describe("Inventory PvP item use", function()
 	local GLOVE = "KnockGlove1"
+	local animated: { string } = {}
+	local alone = false -- nobody else in the world
 	local function mountPvp(equipped: string?, reply: any?, cooldowns: any?)
 		local gui = UiHarness.root()
 		local sent: { { any } } = {}
 		local aims = 0
+		animated = {}
 		local inv = Inventory.new(gui, {
 			Config = Config,
 			itemIcons = ItemIcons.build(Config),
@@ -446,8 +449,14 @@ describe("Inventory PvP item use", function()
 				aims += 1
 				return {
 					self = { X = 0, Y = 3, Z = 0 },
-					players = { { userId = 7, position = { X = 4, Y = 3, Z = 0 }, carrying = true } },
+					point = { X = 6, Y = 3, Z = 0 },
+					players = if alone
+						then {}
+						else { { userId = 7, position = { X = 4, Y = 3, Z = 0 }, carrying = true } },
 				}
+			end,
+			animate = function(itemId: string)
+				table.insert(animated, itemId)
 			end,
 			tools = fakeTools({ { name = "Bat", equipped = false } }),
 			serverNow = function()
@@ -473,6 +482,46 @@ describe("Inventory PvP item use", function()
 		expect(#sent).toBe(1)
 	end)
 
+	it("a click plays the item's use animation at once, also a whiff with nobody in reach", function()
+		local inv, sent = mountPvp(GLOVE)
+		inv.useHeld(SCREEN)
+		expect(animated).toEqual({ GLOVE })
+		alone = true
+		inv, sent = mountPvp(GLOVE)
+		expect(inv.useHeld(SCREEN)).toBe(false)
+		alone = false
+		expect(#sent).toBe(0)
+		expect(animated).toEqual({ GLOVE })
+		expect(inv.useHeld(SCREEN)).toBe(false) -- the whiff starts the gap too
+		expect(animated).toEqual({ GLOVE })
+	end)
+
+	it("a charging Fun item waits for the release; a long hold sends charged, a tap does not", function()
+		local inv, sent = mountPvp(GLOVE)
+		inv.update({ pvp = { owned = { FunConfetti = true }, equipped = "FunConfetti", cooldowns = {} } })
+		expect(inv.pressHeld(SCREEN)).toBe(true)
+		expect(#sent).toBe(0) -- waits for the release
+		expect(inv.releaseHeld(SCREEN)).toBe(true)
+		expect(sent[1][1]).toBe("UsePvpItem")
+		expect(sent[1][2]).toBe("FunConfetti")
+		expect(sent[1][3]).toBe(nil)
+		expect(sent[1][4].X).toBe(6)
+		expect(sent[1][5]).toBe(nil) -- a tap
+		expect(inv.releaseHeld(SCREEN)).toBe(false) -- one release per press
+		local hold, holdSent = mountPvp(GLOVE)
+		hold.update({ pvp = { owned = { FunFireworks = true }, equipped = "FunFireworks", cooldowns = {} } })
+		hold.pressHeld(SCREEN, Config.PVP.CHARGE_SECONDS) -- a touch long press is already held this long
+		expect(hold.releaseHeld(SCREEN)).toBe(true)
+		expect(holdSent[1][2]).toBe("FunFireworks")
+		expect(holdSent[1][5]).toBe(true)
+	end)
+
+	it("a cooling-down item plays no animation", function()
+		local inv = mountPvp(GLOVE, nil, { [GLOVE] = 103 })
+		inv.useHeld(SCREEN)
+		expect(animated).toEqual({})
+	end)
+
 	it("nothing equipped: a click sends nothing and samples nothing", function()
 		local inv, sent, _, aims = mountPvp(nil)
 		expect(inv.useHeld(SCREEN)).toBe(false)
@@ -487,6 +536,20 @@ describe("Inventory PvP item use", function()
 		local tip = UiHarness.find(gui, "Tip")
 		expect(tip.Visible).toBe(true)
 		expect(tip.Text).toBe("Only on your plot or against a thief")
+	end)
+
+	it("a glove fires on the release: a tap punches, a long hold is a power punch", function()
+		local inv, sent = mountPvp(GLOVE)
+		expect(inv.pressHeld(SCREEN)).toBe(true)
+		expect(#sent).toBe(0) -- waits for the release
+		expect(inv.releaseHeld(SCREEN)).toBe(true)
+		expect(sent[1][1]).toBe("UsePvpItem")
+		expect(sent[1][5]).toBe(nil) -- a tap
+		expect(inv.releaseHeld(SCREEN)).toBe(false) -- no press pending
+		inv, sent = mountPvp(GLOVE)
+		inv.pressHeld(SCREEN, Config.PVP.CHARGE_SECONDS) -- a touch long press is already held this long
+		expect(inv.releaseHeld(SCREEN)).toBe(true)
+		expect(sent[1][5]).toBe(true)
 	end)
 
 	it("a cooling-down item says when it is ready and sends nothing", function()
