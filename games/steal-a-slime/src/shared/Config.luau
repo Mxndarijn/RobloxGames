@@ -886,8 +886,7 @@ local Config = {
 		DRAIN_GRACE = 1, -- seconds without a hit before the drain starts
 		SHED_EVERY = 0.25, -- meter share between sheds
 		SHED_COUNT = 2, -- wild slimes per shed
-		BURST_COUNT = 6, -- wild slimes when the boss fails
-		DROP_LUCK = 3, -- luck multiplier on shed and burst slimes
+		DROP_LUCK = 3, -- luck multiplier on shed slimes
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane

@@ -53,10 +53,10 @@ describe("LaneTraffic.step", function()
 		expect(LaneTraffic.holdLimit(0, 4)).toBe(0)
 		expect(LaneTraffic.holdLimit(10, 4) > 0).toBe(true)
 	end)
-	it("keeps a whole lane of beats and a boss burst apart from spawn to drain", function()
+	it("keeps a whole lane of beats and a run of bonus drops apart from spawn to drain", function()
 		local LIFE = Config.WILD_LIFETIME
 		local slimes = {}
-		local times = { 0, 4, 8, 9.6, 11.2, 12.8, 14.4, 16, 20, 24 } -- regular drops and a burst on SLIDE_GAP slots
+		local times = { 0, 4, 8, 9.6, 11.2, 12.8, 14.4, 16, 20, 24 } -- regular drops and bonus drops on SLIDE_GAP slots
 		for i, at in times do
 			local id = `w{i}`
 			local startAt, seconds, lead = ParadeLane.walkTimes(at, at + LIFE)
