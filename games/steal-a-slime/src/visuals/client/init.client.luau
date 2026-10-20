@@ -18,6 +18,7 @@
 	  * fountain tiers (FountainTierFx, FEATURES.FountainTiers): ring / crest / glow from the workspace attribute FountainTier
 	  * weather (WeatherFx, FEATURES.Weather): Rain / Snow / Starfall emitters + tint from the workspace attribute Weather
 	  * pad habitat looks (HabitatFx, FEATURES.Habitats) from the Pad Habitat attribute
+	  * ritual circle effects (RitualFx, FEATURES.CoopRitual): motes, beams, charge ring and the completion burst
 	  * Mystery Egg cracks, glow and ready sparkles (EggFx) from the egg's EggHatchAt / EggHatchSeconds
 	  * plot cosmetics (PlotVisuals: PlotDecor on plot attributes) and
 	    rare-spawn beams / glow on wild slimes by Tier (RareSpawn)
@@ -446,6 +447,15 @@ do
 		warn(`[VisualsClient] habitats disabled: {err}`)
 	end
 end
+local ritualFx: any = nil
+do
+	local ok, err = pcall(function()
+		ritualFx = require(script:WaitForChild("RitualFx")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] ritual fx disabled: {err}`)
+	end
+end
 local eggFx: any = nil
 do
 	local ok, err = pcall(function()
@@ -477,6 +487,9 @@ RunService.RenderStepped:Connect(function()
 	stepVolcano(now)
 	if eggFx then
 		eggFx.tick(camera)
+	end
+	if ritualFx then
+		ritualFx.tick(camera)
 	end
 	for model, track in tracks do
 		if model.Parent then

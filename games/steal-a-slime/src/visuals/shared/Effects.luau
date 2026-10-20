@@ -201,6 +201,65 @@ Effects.EMITTERS = {
 		rotSpeed = 120,
 		texture = SPARK,
 	},
+	-- Ritual circle (RitualFx, client only). Kept small and few: the circle sits next to plot 1's entrance.
+	RitualMote = { -- Idle: lilac motes drifting up off the disc
+		colors = { { 214, 196, 255 }, { 190, 160, 255 } },
+		size = { 0.35, 0.05 },
+		lifetime = { 2, 3 },
+		speed = { 1, 2 },
+		spread = 10,
+		rate = 3,
+		lightEmission = 0.4,
+		transparency = { 0.2, 1 },
+		texture = SPARK,
+	},
+	RitualSwirl = { -- Charging: sparks pulled in to the orb (RitualFx sets Shape Sphere, ShapeInOut Inward)
+		colors = { { 255, 240, 170 }, { 255, 226, 120 } },
+		size = { 0.3, 0.05 },
+		lifetime = { 0.6, 0.9 },
+		speed = { 5, 7 },
+		rate = 14,
+		lightEmission = 0.6,
+		rotSpeed = 180,
+		transparency = { 0.1, 1 },
+		texture = SPARK,
+	},
+	RitualJoin = { -- a player steps on a spot: a small puff
+		colors = { { 170, 255, 200 }, { 120, 255, 160 } },
+		size = { 0.4, 0.05 },
+		lifetime = { 0.4, 0.7 },
+		speed = { 5, 8 },
+		spread = 40,
+		count = 12,
+		lightEmission = 0.5,
+		drag = 3,
+		gravity = -6,
+		texture = SPARK,
+	},
+	RitualShower = { -- completion: gold and goo sparkles falling round the orb
+		colors = { { 255, 226, 120 }, { 157, 255, 176 } },
+		size = { 0.45, 0.1 },
+		lifetime = { 1, 1.5 },
+		speed = { 6, 10 },
+		spread = 70,
+		count = 30,
+		lightEmission = 0.6,
+		drag = 1.5,
+		gravity = -14,
+		rotSpeed = 180,
+		texture = SPARK,
+	},
+	RitualRest = { -- Cooldown: a thin wisp off the dimmed orb
+		colors = { { 190, 186, 214 }, { 160, 156, 186 } },
+		size = { 0.6, 1.4 },
+		lifetime = { 2, 3 },
+		speed = { 0.8, 1.4 },
+		spread = 12,
+		rate = 1,
+		transparency = { 0.6, 1 },
+		rotSpeed = 30,
+		texture = SMOKE,
+	},
 } :: { [string]: EmitterPreset }
 
 Effects.LIGHTS = {
@@ -209,6 +268,7 @@ Effects.LIGHTS = {
 	CrystalGlow = { color = { 120, 255, 200 }, brightness = 0.8, range = 10 },
 	MergeFlash = { color = { 200, 150, 255 }, brightness = 4, range = 16 },
 	RebirthFlash = { color = { 255, 220, 120 }, brightness = 6, range = 28 },
+	RitualGlow = { color = { 190, 160, 255 }, brightness = 0.8, range = 12 }, -- the orb; RitualFx tints it per phase and flashes it on completion
 } :: { [string]: LightPreset }
 
 -- Burst kind -> emitter presets (+ optional light flash).
