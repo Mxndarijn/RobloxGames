@@ -184,14 +184,17 @@ WorldLayout.PAD_DECK = table.freeze({ y = 2.5, half = 3.75, matHalf = 2.6 })
 -- degrees), up through the hole in the deck above; each stair starts a quarter turn past where the one below
 -- arrived. Upper floors (Config.BASE_FLOORS beyond 1) are built at runtime by server/BaseFloors.
 WorldLayout.FLOOR_HEIGHT = 16
-WorldLayout.JAR_RADII = table.freeze({ 34, 31, 29, 27 })
-WorldLayout.PAD_RINGS = table.freeze({ 21, 20, 19, 18 })
+WorldLayout.JAR_RADII = table.freeze({ 31, 27, 24, 21.5 })
+WorldLayout.PAD_RINGS = table.freeze({ 19, 17, 15.5, 14.3 })
+-- The gameplay Pad box (collision, prompt, PivotTo top) under each round cork stand; the stand's dish keeps the
+-- crate deck's size (PAD_DECK.half), so the habitat overlays still fit on it.
+WorldLayout.PAD_SIZE = 6.4
 WorldLayout.JAR_WALL = 1 -- glass thickness
 WorldLayout.JAR_WALL_SEGMENTS = 24
 WorldLayout.DECK_SEGMENTS = 16
-WorldLayout.DOOR = table.freeze({ angle = -90, width = 9.2, height = 11 })
-WorldLayout.STAIR = table.freeze({ post = 2, outer = 8, hole = 8.6, angle = 22.5, firstAngle = 90 })
-WorldLayout.MOAT = table.freeze({ inner = 35.5, outer = 38.6 })
+WorldLayout.DOOR = table.freeze({ angle = -90, width = 8, height = 11 }) -- no wider than one glass segment
+WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22.5, firstAngle = 90 })
+WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- The drop tube runs down the back; every upper jar's hatch sits at this angle, the splash pool outside the moat.
 -- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
 WorldLayout.DROP_ANGLE = 70
@@ -202,7 +205,7 @@ WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3 })
 -- front-left of the door, the rebirth banners either side of the door. Players spawn on the walkway between the
 -- stair and the pads, in front of the door. Boss trophies stand on the plot corners, clear of the moat.
 WorldLayout.BRIDGE_WIDTH = 10
-WorldLayout.VAT_SPOT = table.freeze({ angle = 90, radius = 27 })
+WorldLayout.VAT_SPOT = table.freeze({ angle = 90, radius = 25.5 })
 WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ 30, -30 })
 WorldLayout.LABEL = table.freeze({ angle = -55, width = 9, height = 2.4, y = 9 })
 WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
@@ -1043,6 +1046,9 @@ local JAR_GLASS = { 200, 240, 244 }
 local JAR_CORK = { 214, 170, 116 }
 local JAR_GOO = { 110, 226, 170 }
 WorldLayout.JAR_GLASS_TRANSPARENCY = 0.6
+-- The jar glass meshes have an outer and an inner surface (Roblox culls back faces), so each is clearer; seen through
+-- both it stacks to about the single primitive pane's look.
+WorldLayout.JAR_GLASS_MESH_TRANSPARENCY = 0.8
 
 -- A box whose local +Z points out along plot-local angle `deg` at radius `r`, `size` = { tangential, height,
 -- radial }, its centre `y` up.
@@ -1071,7 +1077,9 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	-- while locked). The ParkedStopper lies in the moat beside the door while the plot is open.
 	local door = WorldLayout.doorway()
 	local barrier: WorldNode = { name = "LockBarrier", class = "Model", children = {} }
-	local stopper = block("Stopper", door.size, at(door.centre), JAR_CORK, "Wood", r)
+	-- Half a stud wider than the opening each side, so it seals against the glass segments beside the door.
+	local stopper =
+		block("Stopper", { door.size[1] + 1, door.size[2], door.size[3] }, at(door.centre), JAR_CORK, "Wood", r)
 	table.insert(barrier.children :: { WorldNode }, ghost(stopper, 1))
 	table.insert(nodes, barrier)
 	local moat = (WorldLayout.MOAT.inner + WorldLayout.MOAT.outer) / 2
@@ -1206,7 +1214,8 @@ local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): Wo
 	local turn = { 0, yaw + WorldLayout.padYaw(j), 0 }
 	local look = WorldLayout.PAD_MESH
 	local seat = WorldLayout.PAD_SEAT_Y
-	local pad = block(`Pad_{j}`, { 8, seat, 8 }, at({ x, y + seat / 2, z }), color, "SmoothPlastic", turn)
+	local ps = WorldLayout.PAD_SIZE
+	local pad = block(`Pad_{j}`, { ps, seat, ps }, at({ x, y + seat / 2, z }), color, "SmoothPlastic", turn)
 	pad.attributes = { PadIndex = j }
 	standIn(pad, look)
 	local stand = meshSize(look, 1)

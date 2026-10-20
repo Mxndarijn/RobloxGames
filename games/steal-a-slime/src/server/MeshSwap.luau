@@ -277,6 +277,21 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	if not target:IsA("Model") and target:GetAttribute("MeshTint") == true then
 		mesh.Color = target.Color
 	end
+	-- MeshMaterial / MeshTransparency (the jar tower's glass): the mesh wears that material and transparency instead of
+	-- opaque SmoothPlastic, so a glass shell stays see-through.
+	local material = target:GetAttribute("MeshMaterial")
+	if typeof(material) == "string" then
+		local ok, value = pcall(function()
+			return (Enum.Material :: any)[material]
+		end)
+		if ok and value then
+			mesh.Material = value
+		end
+	end
+	local clear = target:GetAttribute("MeshTransparency")
+	if typeof(clear) == "number" then
+		mesh.Transparency = math.clamp(clear, 0, 1)
+	end
 	-- A skinned Model carries its tint as a Color3 (Props.STAND_STYLES: the blue Upgrade Shop stand).
 	local modelTint = if target:IsA("Model") then target:GetAttribute("MeshTint") else nil
 	if typeof(modelTint) == "Color3" then

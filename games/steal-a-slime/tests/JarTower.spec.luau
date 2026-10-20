@@ -25,7 +25,8 @@ local function padCorners(j: number): { Pt }
 	local tx, tz = -rz, rx -- tangential
 	local out = {}
 	for _, s in { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } } do
-		table.insert(out, { x = cx + 4 * s[1] * rx + 4 * s[2] * tx, z = cz + 4 * s[1] * rz + 4 * s[2] * tz })
+		local h = WorldLayout.PAD_SIZE / 2
+		table.insert(out, { x = cx + h * s[1] * rx + h * s[2] * tx, z = cz + h * s[1] * rz + h * s[2] * tz })
 	end
 	return out
 end
@@ -84,22 +85,26 @@ local function named(list: { any }, prefix: string): { any }
 end
 
 describe("jar tower: pads", function()
-	it("keeps a 3-stud walkway between neighbouring pads on every jar", function()
+	it("keeps a 2.5-stud walkway between neighbouring pads, and their habitat decks apart, on every jar", function()
 		for f = 1, FLOORS do
 			for k = 1, PER do
 				local j = (f - 1) * PER + k
 				local nxt = (f - 1) * PER + k % PER + 1
-				expect(polyDist(padCorners(j), padCorners(nxt)) >= 3).toBe(true)
+				expect(polyDist(padCorners(j), padCorners(nxt)) >= 2.5).toBe(true)
+				local ax, az = WorldLayout.padOffset(j)
+				local bx, bz = WorldLayout.padOffset(nxt)
+				local deck = WorldLayout.PAD_DECK.half * math.sqrt(2) -- an overlay's corner reach
+				expect(math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2) >= 2 * deck).toBe(true)
 			end
 		end
 	end)
-	it("keeps every pad clear of the stair hole and 4.5 studs from the glass", function()
+	it("keeps every pad 2.5 studs clear of the stair hole and 3.5 studs from the glass", function()
 		for j = 1, Config.PADS_MAX do
 			local f = WorldLayout.padFloor(j)
 			for _, c in padCorners(j) do
 				local r = math.sqrt(c.x * c.x + c.z * c.z)
-				expect(r >= WorldLayout.STAIR.hole + 3).toBe(true)
-				expect(r <= WorldLayout.jarRadius(f) - 4.5).toBe(true)
+				expect(r >= WorldLayout.STAIR.hole + 2.5).toBe(true)
+				expect(r <= WorldLayout.jarRadius(f) - 3.5).toBe(true)
 			end
 		end
 	end)
@@ -237,7 +242,7 @@ describe("jar tower: fits the plot", function()
 		local s = WorldLayout.SPAWN_SPOT
 		local r = math.sqrt(s[1] * s[1] + s[2] * s[2])
 		expect(r > WorldLayout.STAIR.hole + 1).toBe(true)
-		expect(r < WorldLayout.PAD_RINGS[1] - 4 - 1).toBe(true)
+		expect(r < WorldLayout.PAD_RINGS[1] - WorldLayout.PAD_SIZE / 2 - 1).toBe(true)
 		expect(s[2] < 0).toBe(true)
 	end)
 	it("lets a character through the door", function()
