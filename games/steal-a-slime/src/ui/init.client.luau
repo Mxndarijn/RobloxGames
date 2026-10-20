@@ -262,11 +262,6 @@ local ctx: { [string]: any } = {
 	serverNow = serverNow,
 	playerName = playerName,
 	itemIcons = itemIcons,
-	-- The HUD's Shield slot: the local player's new-player shield end (server time), nil when not shielded.
-	shieldUntil = function(): number?
-		local value = player:GetAttribute(Constants.PVP_SHIELD_ATTRIBUTE)
-		return if type(value) == "number" then value else nil
-	end,
 	buildSlime = if modelFactory then buildSlime else nil,
 	-- SlimeDex cards: species names / colours and the species mesh preview.
 	SlimeRoster = SlimeRoster,
@@ -277,13 +272,6 @@ local ctx: { [string]: any } = {
 }
 
 local hud = Hud.new(gui, ctx)
--- The shield badge over every new player's head (CONTRACT.md §26.7); the attribute is only set with FEATURES.PvP on.
-local shieldBadges = require(script.PvpShield).start({
-	attribute = Constants.PVP_SHIELD_ATTRIBUTE,
-	registry = itemIcons,
-	serverNow = serverNow,
-	parent = player:WaitForChild("PlayerGui"),
-})
 -- S3 hotbar + inventory panel (replaces the default Roblox backpack bar).
 InventoryTools.hideDefaultBackpack()
 local inventory = Inventory.new(gui, {
@@ -1182,7 +1170,6 @@ task.spawn(function()
 		if latest then
 			local now = serverNow()
 			hud.tick(now)
-			shieldBadges.tick(now)
 			inventory.tick()
 			carry.tick(now)
 			bossMeter.tick(now)

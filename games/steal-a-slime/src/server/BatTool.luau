@@ -111,9 +111,8 @@ end
 	  * A carrying thief in reach (any flag): StealService.slap (reach, shared cooldown, drop, bounce home, notifications,
 	    StealAlerts FX), then the knockback. Exactly one drop and one push per hit.
 	  * Flag OFF, anything else: nothing happens (no damage, no push), (false, "nothing in reach").
-	  * Flag ON, a non-thief: only on the swinger's OWN plot, never by or on a player under the new-player shield, not a
-	    controlled / immune one, and the shared slap cooldown; the effect is the knockback only. No damage ever. A thief
-	    is always tried first.
+	  * Flag ON, a non-thief: only on the swinger's OWN plot, not a controlled / immune one, and the shared slap
+	    cooldown; the effect is the knockback only. No damage ever. A thief is always tried first.
 	A whiff never spends the slap cooldown. Never errors for a swing at nothing.
 ]]
 function BatTool.swing(
@@ -198,9 +197,6 @@ function BatTool.swing(
 	local targetPosition = positions[targetId]
 	if now - session.lastSlapAt < Config.SLAP_COOLDOWN then
 		return false, "slap on cooldown"
-	end
-	if PvpService.isShielded(target, now) or PvpService.isShielded(session, now) then
-		return false, "shielded"
 	end
 	if not knock(world, ctx, session, target, origin, targetPosition, now) then
 		return false, "can't push right now"

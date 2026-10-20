@@ -311,7 +311,7 @@ end
 --[[
 	The UsePvpItem request for the equipped PvP `entry` (tool = its Config.PVP_TOOLS row) from what the click
 	pointed at, or (nil, player-facing reason) when there is nothing to send: not equipped, still cooling down,
-	nobody in reach, no point to aim at. Intent only: the server re-checks reach, zones, shields and cooldowns.
+	nobody in reach, no point to aim at. Intent only: the server re-checks reach, zones and cooldowns.
 ]]
 function InventoryCore.pvpUseRequest(
 	entry: Entry,
