@@ -505,16 +505,16 @@ local function fun(
 	return tool
 end
 local PVP_TOOLS: { PvpTool } = {
-	knock("KnockGlove1", "Bonk Glove", 1, 1, 5, { special = "bonk" }),
-	knock("KnockGlove2", "Bounce Glove", 2, 5, 6, { special = "bounce", pogo = { 6, 4, 2 } }),
-	knock("KnockGlove3", "Boom Glove", 3, 8, 7, { special = "boom", blastRadius = 5, blastPush = 4 }),
-	knock("KnockGlove4", "Thunder Glove", 4, 12, 7.5, {
+	knock("KnockGlove1", "Bonk Glove", 1, 1, 12, { special = "bonk" }),
+	knock("KnockGlove2", "Bounce Glove", 2, 5, 15, { special = "bounce", pogo = { 6, 4, 2 } }),
+	knock("KnockGlove3", "Boom Glove", 3, 8, 18, { special = "boom", blastRadius = 6, blastPush = 8 }),
+	knock("KnockGlove4", "Thunder Glove", 4, 12, 22, {
 		special = "thunder",
 		chain = 2,
 		chainRange = 12,
 		chainFactor = 0.5,
 	}),
-	knock("KnockGlove5", "Royal Glove", 5, 20, 10, { special = "royal", arc = 6 }),
+	knock("KnockGlove5", "Royal Glove", 5, 20, 26, { special = "royal", arc = 8 }),
 	trap("GooTrap1", "Goo Puddle", 1, 3, { radius = 3, slow = 0.5, slowSeconds = 2 }),
 	trap("GooTrap2", "Sticky Trap", 2, 6, { radius = 3.5, control = 1.5, slow = 0.5, slowSeconds = 1.5 }),
 	trap("GooTrap3", "Mega Trap", 3, 10, { radius = 4, control = 2, pull = 4, push = 4, spitArc = 3 }),
@@ -886,8 +886,7 @@ local Config = {
 		DRAIN_GRACE = 1, -- seconds without a hit before the drain starts
 		SHED_EVERY = 0.25, -- meter share between sheds
 		SHED_COUNT = 2, -- wild slimes per shed
-		BURST_COUNT = 6, -- wild slimes when the boss fails
-		DROP_LUCK = 3, -- luck multiplier on shed and burst slimes
+		DROP_LUCK = 3, -- luck multiplier on shed slimes
 		CARRY_SLOW = 0.5, -- carrier walks at BASE_WALK_SPEED x (1 - this): half speed
 		SCALE = 1.5, -- model scale in the fight phase (a MAX_SIZE boss mesh is about 9 studs wide at 1)
 		SPOT_ANGLE = math.rad(35), -- boss spot around the fountain centre (radians, 0 = +X): the widest stretch inside the lane
@@ -1171,12 +1170,12 @@ local Config = {
 		PRICE_FACTOR_TRAP = 0.006, -- one Goo Trap charge (used up when it catches someone)
 		PRICE_MIN = 100,
 		-- Knockback: the push is capped, the arc is capped, and the landing point stays inside the map.
-		KNOCKBACK_MAX_PUSH = 15, -- studs (the Royal Glove power punch, 10 x CHARGE_PUSH)
-		KNOCKBACK_ARC_HEIGHT = 6, -- studs of vertical arc at most (Royal Glove, the first Bounce Glove pogo)
-		KNOCKBACK_DEFAULT_ARC = 2, -- studs of arc of a glove row without its own `arc`
-		KNOCKBACK_BOUNDS_MARGIN = 10, -- studs kept clear of the map edge (covers the friction-boost overshoot of a max push)
+		KNOCKBACK_MAX_PUSH = 40, -- studs (the Royal Glove power punch, 26 x CHARGE_PUSH); gloves push 2.4-5x the Bat
+		KNOCKBACK_ARC_HEIGHT = 8, -- studs of vertical arc at most (Royal Glove)
+		KNOCKBACK_DEFAULT_ARC = 3, -- studs of arc of a glove row without its own `arc`
+		KNOCKBACK_BOUNDS_MARGIN = 20, -- studs kept clear of the map edge (covers the friction-boost overshoot of a max push)
 		KNOCKBACK_SECONDS = 0.35, -- the launch covers the push in this long
-		KNOCKBACK_FRICTION_BOOST = 1.5, -- horizontal launch speed x this, ground friction eats the rest (the landing stays clamped inside the map margin)
+		KNOCKBACK_FRICTION_BOOST = 1, -- horizontal launch speed x this; 1 = the target lands about `push` studs away (Studio-measured: PlatformStand keeps friction off during the push)
 		KNOCKBACK_MAX_SPEED_Y = 110, -- studs/s: client-side cap on a launch's vertical speed (Bounce Pad 25 studs needs ~99)
 		LAUNCH_GUARD_SECONDS = 5, -- after a PvP launch / while under control the void guard (Rescue.PVP_SAFE_Y) is armed
 		KNOCKBACK_CONTROL_SECONDS = 0.6, -- a knockback counts as control (PvpRules.applyControl), then immunity

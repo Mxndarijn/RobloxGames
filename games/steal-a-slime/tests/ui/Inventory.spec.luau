@@ -210,7 +210,7 @@ describe("Inventory panel", function()
 		end
 	end)
 
-	it("cells copy the hotbar: a gold key tag for items on the bar, the selection ring on the equipped one", function()
+	it("cells copy the hotbar: no key tag, the selection ring on the equipped one", function()
 		local inv = mount(nil, { { name = "Bat", equipped = true }, { name = "SpeedCoil", equipped = false } })
 		inv.setPanelOpen(true)
 		local cells = {}
@@ -222,9 +222,8 @@ describe("Inventory panel", function()
 		local bat, coil = cells.Bat, cells["Speed Coil"]
 		expect(bat ~= nil and coil ~= nil).toBe(true)
 		expect(UiHarness.find(bat, "Number").Visible).toBe(false)
-		expect(UiHarness.find(bat, "OnBar").Visible).toBe(true)
-		expect(UiHarness.find(bat, "OnBar").Text).toBe("1")
-		expect(UiHarness.find(coil, "OnBar").Text).toBe("2")
+		expect(UiHarness.find(bat, "Amount").Visible).toBe(false) -- on the bar, but a Tool has no stack
+		expect(UiHarness.find(coil, "Amount").Visible).toBe(false)
 		expect(bat.BackgroundColor3).toBe(Inventory.COLORS.selected)
 		expect(bat:FindFirstChildOfClass("UIStroke").Color).toBe(Inventory.COLORS.ring)
 		expect(coil.BackgroundColor3).toBe(Inventory.COLORS.slot)
@@ -338,6 +337,32 @@ describe("Inventory consumable stacks (S3)", function()
 		expect(UiHarness.find(slots[2], "Count").Visible).toBe(false) -- a Tool has no stack
 	end)
 
+	it("bag cells show the stack amount on the gold tag and no second count", function()
+		local inv = mount(stackState({ consumables = { held = { LuckPotion = 1, WeatherTotem = 120 } } }), COIL)
+		inv.setPanelOpen(true)
+		local cells = {}
+		for _, cell in UiHarness.find(inv.panel.frame, "Grid"):GetChildren() do
+			if cell.Visible and cell.Name == "Item" then
+				cells[UiHarness.find(cell, "Name").Text] = cell
+			end
+		end
+		local potion, totem = cells["Luck Potion"], cells["Weather Totem"]
+		expect(potion ~= nil and totem ~= nil).toBe(true)
+		expect(UiHarness.find(potion, "Amount").Visible).toBe(true)
+		expect(UiHarness.find(potion, "Amount").Text).toBe("1")
+		expect(UiHarness.find(potion, "Count").Visible).toBe(false)
+		expect(UiHarness.find(totem, "Amount").Text).toBe("99+")
+		expect(UiHarness.find(totem, "Amount").Size.X.Offset).toBe(Inventory.PANEL.tagWide)
+		expect(UiHarness.find(cells["Speed Coil"], "Amount").Visible).toBe(false)
+		local tagged = 0
+		for _, cell in cells do
+			if UiHarness.find(cell, "Amount").Visible then
+				tagged += 1
+			end
+		end
+		expect(tagged).toBe(2)
+	end)
+
 	it("a number key puts the consumable in hand, the same number again puts it away; nothing is sent", function()
 		local inv, tools, sent = mount(stackState(), COIL)
 		expect(inv.pressKey(4)).toBe(true)
@@ -377,18 +402,6 @@ describe("Inventory consumable stacks (S3)", function()
 		inv.update(stackState({ carrying = { slimeId = "x" } }))
 		expect(inv.heldConsumable()).toBeNil()
 		expect(inv.useHeld()).toBe(false)
-	end)
-
-	it("the bag panel lists the stacks too", function()
-		local inv = mount(stackState(), COIL)
-		inv.setPanelOpen(true)
-		local seen = 0
-		for _, child in UiHarness.find(inv.panel.frame, "Grid"):GetChildren() do
-			if child.Visible and UiHarness.find(child, "Count") and UiHarness.find(child, "Count").Visible then
-				seen += 1
-			end
-		end
-		expect(seen).toBe(2)
 	end)
 end)
 
@@ -654,7 +667,6 @@ describe("Inventory hotbar order and drag", function()
 		local inv, tools, sent, gui, input = mountOrder(order("tool:Bat"))
 		inv.setPanelOpen(true)
 		local coil = bagCell(inv, "Speed Coil")
-		expect(UiHarness.find(coil, "OnBar").Visible).toBe(false)
 		local from, to = centre(coil), centre(plateSlot(inv, 4))
 		UiHarness.fire(coil, "InputBegan", { UserInputType = MOUSE, Position = from })
 		input.InputChanged:Fire({ UserInputType = MOVE, Position = { X = from.X + 3, Y = from.Y } })
@@ -673,7 +685,6 @@ describe("Inventory hotbar order and drag", function()
 		expect(ghost.Visible).toBe(false)
 		expect(UiHarness.find(coil, "Lift")).toBeNil()
 		expect(UiHarness.find(plateSlot(inv, 4), "Name").Text).toBe("Speed Coil")
-		expect(UiHarness.find(coil, "OnBar").Text).toBe("4")
 		-- a State still carrying the old order does not undo the drop; one with the new order confirms it
 		inv.update({ hotbar = order("tool:Bat"), pvp = { owned = {}, cooldowns = {} } })
 		expect(UiHarness.find(plateSlot(inv, 4), "Name").Text).toBe("Speed Coil")

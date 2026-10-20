@@ -41,8 +41,8 @@ Design: `docs/SLIME-ECONOMY.md` §3. The boss is one of the three `kind = "boss"
   spot; anyone can grab it again. Dropping never resets the haul deadline.
 - **Win.** The carrier reaches their HomeZone (`Carry.deposit`, no free pad needed): the boss slime goes to
   `data.trophies` (below), a server-wide toast names the winner.
-- **Fail.** Meter not full by the fight deadline, or not home by the haul deadline: the boss (carried or not) is removed
-  and bursts into `BOSS.BURST_COUNT` wild slimes (luck `BOSS.DROP_LUCK`, outside the wild cap).
+- **Fail.** Meter not full by the fight deadline, or not home by the haul deadline: the boss (carried or not) is removed:
+  it gets away. No slimes drop; the sheds are the fight's reward.
 - Bosses never count toward the wild cap and are never a random merge or fountain result.
 
 ## Trophies: `data.trophies` (save)
@@ -89,7 +89,7 @@ None new. Hits are Bat swings (no remote), grabs are the slime's ProximityPrompt
 ## Config (`Config.BOSS`)
 
 `FIRST_AT INTERVAL WARNING_SECONDS RAIN_GAP SKIP_DELAY FIGHT_SECONDS HAUL_SECONDS LINGER_SECONDS PRIORITY_SECONDS
-POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT BURST_COUNT DROP_LUCK CARRY_SLOW
+POINTS_PER_PLAYER HIT_GAP HIT_REACH DRAIN_PER_SECOND DRAIN_GRACE SHED_EVERY SHED_COUNT DROP_LUCK CARRY_SLOW
 SCALE SPOT_ANGLE SPOT_RADIUS WANDER_ARC WANDER_SPEED WANDER_CLEARANCE ROTATION SECRET_FOUNTAIN_TIER SECRET_FALLBACK
 TROPHY_GAP`. Values live in `Config.luau` only.
 
