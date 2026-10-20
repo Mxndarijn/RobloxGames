@@ -222,7 +222,7 @@ def jar_deck(f):
     """Jar f's floor above the ground: a goo pool in a wooden ring, the stair hole in the middle with a cork rim, a few
     bubbles. Top of the goo at z = 0 (the floor's walking surface)."""
     r, hole = radius(f), D["stair"]["hole"]
-    out = [painted(lathe("Wood", [(hole, -1.0), (r - 1.0, -1.0), (r - 1.0, -0.05)], WOOD_D, double=False), shade(WOOD_D, 0.9), WOOD_D)]
+    out = [painted(lathe("Wood", [(hole, -1.0), (r - 1.0, -1.0), (r - 1.0, -0.05)], CORK, double=False), shade(CORK, 0.95), CORK)]
     out.append(painted(lathe("Pool", [(r - 0.4, 0.0), (hole + 0.4, 0.0)], GOO, double=False), shade(GOO, 0.85), GOO))
     out.append(loop("HoleRim", hole + 0.2, 0.4, (0, 0, 0.05), "z", CORK, segs=32))
     rr = random.Random(90 + f)
@@ -350,23 +350,49 @@ def tube_path(version):
 
 
 def drop_tube_glass(version):
-    """The tube's glass (Glass in the game): a round 16-sided tube along the path, flaring to a mouth at the bottom."""
+    """The tube's glass (Glass in the game, lightly goo-tinted so the pipe reads as full of goo): a round 16-sided tube
+    along the path, flaring to a mouth at the bottom."""
     pts = tube_path(version)
     radii = [1.9] * (len(pts) - 6) + [1.95, 2.05, 2.2, 2.45, 2.75, 3.1]
-    return [tube("Glass", pts, radii, GLASS, segs=16)]
+    return [tube("Glass", pts, radii, mix(GOO_HI, GLASS, 0.5), segs=16)]
 
 
 def drop_tube_goo(version):
-    """The bright goo core with bubbles rising in it, brass collars along the tube, the cork hatch where it leaves the top
-    jar and a cork-capped branch to every other upper jar's hatch, and the splash pool with droplets under the mouth."""
+    """The pipe full of slimes: small round slimes in every colour packed along the whole tube (eyes looking out, away
+    from the jars) with goo bubbles between them, a brass collar at each floor, cork-ringed branches into every upper
+    jar's hatch, and the splash pool with droplets under the mouth."""
     pts = tube_path(version)
     back = math.radians(D["dropAngle"])
     cb, sb = math.cos(back), math.sin(back)
-    out = [painted(tube("Goo", pts, [1.25] * len(pts), mix(GOO, GOO_HI, 0.2), segs=12), shade(GOO, 0.95), mix(GOO, GOO_HI, 0.4))]
+    out = []
+    cols = [PINK, LILAC, BUTTER, GOO, rgb(120, 190, 250), rgb(250, 160, 90), rgb(240, 110, 120)]
     rr = random.Random(30 + version)
-    for k in range(0, len(pts) - 4, 5):
-        x, y, z = pts[k]
-        out.append(blob(f"Bubble{k}", rr.uniform(0.4, 0.7), (x + rr.uniform(-0.4, 0.4), y + rr.uniform(-0.4, 0.4), z), GOO_HI, subdiv=1, jitter=0))
+    run, k, n = 0.0, 1, 0
+    while k < len(pts) - 3:
+        run += (Vector(pts[k]) - Vector(pts[k - 1])).length
+        if run >= 1.9:
+            run = 0.0
+            n += 1
+            c = Vector(pts[k])
+            d = (Vector(pts[k + 1]) - Vector(pts[k - 1])).normalized()
+            # a sideways nudge so they tumble instead of standing in a line
+            side = d.cross(Vector((0, 0, 1)))
+            side = side.normalized() if side.length > 1e-3 else Vector((1, 0, 0))
+            c = c + side * rr.uniform(-0.35, 0.35)
+            col = cols[n % len(cols)]
+            sz = rr.uniform(1.3, 1.55)
+            out.append(painted(blob(f"Slime{n}", sz, tuple(c), col, subdiv=2, squash=(1, 1, 0.85), jitter=0.03), shade(col, 0.85), col))
+            # eyes on the side facing away from the tower (outward along the back angle)
+            ox, oy = cb, sb
+            tx, ty = -oy, ox
+            for s2 in (-1, 1):
+                ex, ey = c.x + ox * sz * 0.82 + tx * s2 * sz * 0.33, c.y + oy * sz * 0.82 + ty * s2 * sz * 0.33
+                out.append(blob(f"Eye{n}{s2}", sz * 0.2, (ex, ey, c.z + sz * 0.18), EYE_W, subdiv=1, jitter=0))
+                out.append(blob(f"Pupil{n}{s2}", sz * 0.11, (ex + ox * sz * 0.1, ey + oy * sz * 0.1, c.z + sz * 0.16), EYE_D, subdiv=1, jitter=0))
+            if n % 2 == 0:
+                bx = c + side * 1.0 * (1 if n % 4 == 0 else -1)
+                out.append(blob(f"Bubble{n}", rr.uniform(0.35, 0.55), tuple(bx), GOO_HI, subdiv=1, jitter=0))
+        k += 1
     # one thin brass collar where the tube passes each floor, and a cork-ringed branch into every upper jar's hatch
     def collar_at(z):
         k = min(range(len(pts) - 6), key=lambda i: abs(pts[i][2] - z))

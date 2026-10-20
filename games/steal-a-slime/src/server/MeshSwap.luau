@@ -292,6 +292,10 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	if typeof(clear) == "number" then
 		mesh.Transparency = math.clamp(clear, 0, 1)
 	end
+	-- MeshCastShadow = false (the jar and tube glass): see-through glass casts no shadow, so the jars stay light inside.
+	if target:GetAttribute("MeshCastShadow") == false then
+		mesh.CastShadow = false
+	end
 	-- JarHidden: a jar look that is not showing right now (server/BaseFloors shows it when its jar changes).
 	if target:GetAttribute("JarHidden") == true then
 		mesh.Transparency = 1

@@ -1041,6 +1041,8 @@ WorldLayout.JAR_GLASS_TRANSPARENCY = 0.6
 -- The jar glass meshes have an outer and an inner surface (Roblox culls back faces), so each is clearer; seen through
 -- both it stacks to about the single primitive pane's look.
 WorldLayout.JAR_GLASS_MESH_TRANSPARENCY = 0.7
+-- The drop tube's goo-tinted glass is clearer still, so the slimes packed in it show.
+WorldLayout.DROP_TUBE_GLASS_TRANSPARENCY = 0.55
 -- The jar meshes' shape above each floor (shared/modeling-kit/models/_goo_jar.py builds to these). A jar with another
 -- on it: straight glass `wall` high, then a rounded shoulder `shoulder` high in to the next jar's neck. The top jar:
 -- straight glass `topWall` high, then a round dome `topDome` high in to a neck of `topNeck` x its radius, a glass lip
@@ -1385,11 +1387,13 @@ local function jarLook(
 	return meshSlot(node, mesh, true)
 end
 
--- Glass slots: the mesh wears Glass at the mesh glass transparency (server/MeshSwap reads these).
-local function glassy(node: WorldNode): WorldNode
+-- Glass slots: the mesh wears Glass at the mesh glass transparency (or `clear`) and casts no shadow, so the jars and
+-- the tube stay light inside (server/MeshSwap reads these).
+local function glassy(node: WorldNode, clear: number?): WorldNode
 	local a = node.attributes or {}
 	a.MeshMaterial = "Glass"
-	a.MeshTransparency = WorldLayout.JAR_GLASS_MESH_TRANSPARENCY
+	a.MeshTransparency = clear or WorldLayout.JAR_GLASS_MESH_TRANSPARENCY
+	a.MeshCastShadow = false
 	node.attributes = a
 	return node
 end
@@ -1403,6 +1407,30 @@ local function variant(node: WorldNode, floor: number, show: string): WorldNode
 	a.JarHidden = show == "covered"
 	node.attributes = a
 	return node
+end
+
+-- An opaque jar look that casts no shadow (the decks, trim and stair): the floor under them stays light.
+local function noShadow(node: WorldNode): WorldNode
+	local a = node.attributes or {}
+	a.MeshCastShadow = false
+	node.attributes = a
+	return node
+end
+
+-- Jar f's lamp: an invisible point under its ceiling holding a JarGlow light, so the jar is light inside.
+local function jarLamp(f: number, at: (Vec) -> Vec): WorldNode
+	local lamp = block(
+		"JarLamp",
+		{ 0.5, 0.5, 0.5 },
+		at({ 0, WorldLayout.floorTop(f) + WorldLayout.FLOOR_HEIGHT - 4, 0 }),
+		JAR_GLASS
+	)
+	lamp.transparency = 1
+	lamp.canCollide = false
+	lamp.canQuery = false
+	lamp.canTouch = false
+	lamp.children = { { name = "Glow", class = "PointLight", preset = "JarGlow" } }
+	return lamp
 end
 
 local function standIns(nodes: { WorldNode }, mesh: string)
@@ -1431,7 +1459,8 @@ local function jarLooks(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local last = f >= #Config.BASE_FLOORS
 	local out = {
 		variant(glassy(jarLook("GlassTop", `goo_jar_glass_{f}_top`, base, at, yaw)), f, "top"),
-		variant(jarLook("TrimTop", `goo_jar_trim_{f}_top`, base, at, yaw), f, "top"),
+		variant(noShadow(jarLook("TrimTop", `goo_jar_trim_{f}_top`, base, at, yaw)), f, "top"),
+		jarLamp(f, at),
 	}
 	local m = WorldLayout.MASCOT
 	local size = m.base + m.grow * f
@@ -1447,13 +1476,14 @@ local function jarLooks(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		-- jar f - 1 in its covered form (a wide neck this jar stands in): it only shows while this jar stands
 		local below = { 0, WorldLayout.floorTop(f - 1), 0 }
 		table.insert(out, glassy(jarLook("GlassBelow", `goo_jar_glass_{f - 1}_mid`, below, at, yaw)))
-		table.insert(out, jarLook("TrimBelow", `goo_jar_trim_{f - 1}_mid`, below, at, yaw))
-		table.insert(out, jarLook("DeckLook", `goo_jar_deck_{f}`, base, at, yaw))
+		table.insert(out, noShadow(jarLook("TrimBelow", `goo_jar_trim_{f - 1}_mid`, below, at, yaw)))
+		table.insert(out, noShadow(jarLook("DeckLook", `goo_jar_deck_{f}`, base, at, yaw)))
 		-- the stair mesh is built on floor 1's treads; each floor's stair starts a quarter turn further round
 		local turn = -(WorldLayout.treadAngle(f - 1, 1) - WorldLayout.treadAngle(1, 1))
-		table.insert(out, jarLook("StairLook", "goo_jar_stair", below, at, yaw, turn))
+		table.insert(out, noShadow(jarLook("StairLook", "goo_jar_stair", below, at, yaw, turn)))
 		local ground = { 0, WorldLayout.floorTop(1) - 1, 0 }
-		table.insert(out, variant(glassy(jarLook("TubeGlass", `goo_drop_tube_glass_{f}`, ground, at, yaw)), f, "top"))
+		local tubeGlass = jarLook("TubeGlass", `goo_drop_tube_glass_{f}`, ground, at, yaw)
+		table.insert(out, variant(glassy(tubeGlass, WorldLayout.DROP_TUBE_GLASS_TRANSPARENCY), f, "top"))
 		table.insert(out, variant(jarLook("TubeGoo", `goo_drop_tube_goo_{f}`, ground, at, yaw), f, "top"))
 	end
 	return out

@@ -268,7 +268,8 @@ Effects.LIGHTS = {
 	CrystalGlow = { color = { 120, 255, 200 }, brightness = 0.8, range = 10 },
 	MergeFlash = { color = { 200, 150, 255 }, brightness = 4, range = 16 },
 	RebirthFlash = { color = { 255, 220, 120 }, brightness = 6, range = 28 },
-	RitualGlow = { color = { 190, 160, 255 }, brightness = 0.8, range = 12 }, -- the orb; RitualFx tints it per phase and flashes it on completion
+	RitualGlow = { color = { 190, 160, 255 }, brightness = 0.8, range = 12 },
+	JarGlow = { color = { 200, 250, 220 }, brightness = 1.4, range = 30 }, -- a goo lamp under each jar's ceiling -- the orb; RitualFx tints it per phase and flashes it on completion
 } :: { [string]: LightPreset }
 
 -- Burst kind -> emitter presets (+ optional light flash).
