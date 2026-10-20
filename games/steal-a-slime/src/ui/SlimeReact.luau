@@ -63,7 +63,7 @@ function SlimeReact.toPlayer(
 	if afford and near then
 		-- "Pick me": faces you and bounces, so you can read the lane at a glance.
 		p.yaw, p.weight = toYaw, 0.85 * w
-		p.lift = 0.35 * math.abs(math.sin(now * 7)) * w
+		p.lift = 0.22 * (0.5 - 0.5 * math.cos(now * 5)) * w -- a soft bounce, about 0.8 Hz
 		p.face = "happy"
 		p.emote = "love"
 		if temper == "Curious" or temper == "Bouncy" then
@@ -79,7 +79,7 @@ function SlimeReact.toPlayer(
 		p.yaw, p.weight = toYaw, 0.9 * w
 		p.sy = 1 + 0.08 * w
 		p.lean = towards * 0.5 * w
-		p.lift = 0.25 * math.max(0, math.sin(now * 9)) * w
+		p.lift = 0.15 * (0.5 - 0.5 * math.cos(now * 6)) * w
 		p.face = "angry"
 		p.emote = "angry"
 	elseif near and temper == "Showoff" then

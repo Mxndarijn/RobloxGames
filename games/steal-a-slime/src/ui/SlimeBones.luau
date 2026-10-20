@@ -168,6 +168,7 @@ export type Rig = {
 	lidOut: number,
 	blinkAt: number,
 	full: boolean, -- eyes / accessories were posed since the last rest
+	hasLids: boolean, -- the mesh has closed-eye arcs (Lids): without them a shut face would hide the eyes
 }
 
 type Rand = () -> number
@@ -281,6 +282,12 @@ function SlimeBones.attach(mesh: BasePart, now: number, rand: Rand): Rig?
 			phase = math.atan2(at.Z, at.X),
 		})
 	end
+	local hasLids = false
+	for _, e in entries do
+		if e.kind == KIND_LIDS then
+			hasLids = true
+		end
+	end
 	return {
 		mesh = mesh,
 		entries = entries,
@@ -289,6 +296,7 @@ function SlimeBones.attach(mesh: BasePart, now: number, rand: Rand): Rig?
 		lidOut = SlimeBones.LID_OUT * scale / share,
 		blinkAt = now + rand() * SlimeBones.BLINK_EVERY[2],
 		full = false,
+		hasLids = hasLids,
 	}
 end
 
@@ -337,7 +345,10 @@ function SlimeBones.step(
 	if extra then
 		air = math.max(air, extra.air or 0)
 		tilt += extra.jiggle or 0
-		closed = math.max(closed, extra.closed or 0)
+		-- A face shuts the eyes only fully and only on a mesh with lids (a half shut eye is a sunk, missing eye).
+		if rig.hasLids and (extra.closed or 0) >= 0.5 then
+			closed = 1
+		end
 		pop = math.clamp(extra.pop or 0, 0, 1) * (1 - closed)
 		flop = SlimeBones.earFlop(extra.vy or 0)
 	end

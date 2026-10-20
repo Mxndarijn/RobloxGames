@@ -125,6 +125,7 @@ export type World = {
 	newId: () -> string,
 	startedAt: number,
 	nextSpawnAt: number,
+	slideFreeAt: number, -- FEATURES.Parade: the next free fountain-slide slot (Spawner.slot): drops never stack
 	lastSecondAt: number,
 	raining: boolean,
 	rainForcedUntil: number?, -- seconds since start (Progression.rainStatus)
@@ -172,6 +173,7 @@ function World.new(options: Options): World
 		end,
 		startedAt = options.now,
 		nextSpawnAt = options.now,
+		slideFreeAt = options.now,
 		lastSecondAt = options.now,
 		raining = false,
 		rainForcedUntil = nil,

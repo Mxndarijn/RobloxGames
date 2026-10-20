@@ -72,3 +72,23 @@ rides on its Transform and the species bones. On the slide itself (`Riding` and 
   take-off spot to the slime for the first quarter of the jump.
 - **Cleanup.** Releasing a rig (LOD, state change, despawn) puts every Transform back, hides its emote and destroys
   its emitter and beam.
+
+## Slimes never walk into each other (server)
+
+- **Slide slots (`Spawner.slot`).** Every drop (regular, Mystery Egg, boss shed or burst) takes the next free
+  fountain-slide slot, at least `Spawner.SLIDE_GAP` seconds after the last one (`world.slideFreeAt`). A drop whose slot
+  is still to come exists in World (it counts for the cap) but has no model yet (`Scene.describe` skips it).
+- **Lane queue (`Shared.LaneTraffic`).** One loop in `WorldView` pivots every lane walker each Heartbeat. Front to back,
+  a slime is never drawn closer to the slime ahead (when their sideways places overlap) than their two radii plus
+  `LaneTraffic.GAP`; it waits, then catches up at most `LaneTraffic.CATCH_SPEED` x its pace, never backwards. The hold
+  is capped by `LaneTraffic.holdLimit` (what it can still make up), so it reaches the drain on time.
+- **Walking back.** A dropped slime walking back to the lane steps round other slimes and the boss
+  (`LaneTraffic.push`), easing back onto its path and arriving exactly on the merge point.
+
+## Smooth on the client
+
+The Body replicates in steps. `SlimeActor` draws a lane slime from its lane math (the server's own `ParadeLane.pose`
+plus its beats, at `GetServerTimeNow() - REPLICATION_LAG`) with a slow correction towards the Body (`CORRECT_RATE`;
+it absorbs the lane queue), and anything else from a filtered Body. Turns are capped at `MAX_TURN`; within
+`NEAR_DEAD_ZONE` of the player the slime keeps its last look. Wiggles stay around 1-2 Hz. A face shuts the eyes only
+fully and only on a mesh with `Lids` (a half-shut blink pose leaves the eyes sunk with no arcs).

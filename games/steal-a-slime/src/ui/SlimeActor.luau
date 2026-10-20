@@ -33,21 +33,29 @@ local SlimeReact = require(script.Parent:WaitForChild("SlimeReact"))
 local SlimeActor = {}
 
 SlimeActor.NERVES_LOOK_DISTANCE = 26 -- studs: a nervous slime looks back at a player this close
-SlimeActor.TURN_RATE = 9 -- 1 / s: how fast the body turns to a new look (shortest way round)
+SlimeActor.TURN_RATE = 6 -- 1 / s: how fast the body turns to a new look (shortest way round)
+SlimeActor.MAX_TURN = 4.5 -- rad / s: never turns faster than this (no snapping when a player walks round it)
+SlimeActor.NEAR_DEAD_ZONE = 3.5 -- studs: a player this close keeps the slime's last look (the angle swings too fast up close)
+SlimeActor.CORRECT_RATE = 2.5 -- 1 / s: a lane slime's drawn spot absorbs what the server adds on top of lane math (spacing)
+SlimeActor.FOLLOW_RATE = 10 -- 1 / s: off the lane the drawn spot follows the stepwise Body this fast
+SlimeActor.SNAP = 6 -- studs: further than this from the Body the drawn spot jumps (a teleport, the end of the ride)
+SlimeActor.LATERAL_RATE = 2 -- 1 / s: the estimate of the slime's sideways place on the lane
 -- The Body replicates about this late: beats are looked up this far back, so a pose starts when the slime stops.
 SlimeActor.REPLICATION_LAG = 0.12
 SlimeActor.BUMP_SECONDS = 0.35
 SlimeActor.BUMPED_SECONDS = 0.5
 -- Face -> bones: lids shut (closed) or eyes bulging (pop), SlimeBones.Extra.
+-- The lids are a blink: the eyes sink in while the closed-eye arcs slide out, so a face is either fully shut
+-- (closed = 1) or open (0). Anything in between leaves the eyes half sunk with no arcs: they look gone.
 local FACES: { [string]: { closed: number, pop: number } } = table.freeze({
 	happy = { closed = 1, pop = 0 },
 	asleep = { closed = 1, pop = 0 },
 	squeeze = { closed = 1, pop = 0 },
-	sleepy = { closed = 0.6, pop = 0 },
-	smug = { closed = 0.5, pop = 0 },
-	dizzy = { closed = 0.5, pop = 0 },
-	angry = { closed = 0.35, pop = 0 },
-	focus = { closed = 0.3, pop = 0 },
+	sleepy = { closed = 0, pop = 0 },
+	smug = { closed = 0, pop = 0 },
+	dizzy = { closed = 0, pop = 0.3 },
+	angry = { closed = 0, pop = 0 },
+	focus = { closed = 0, pop = 0 },
 	surprised = { closed = 0, pop = 1 },
 	excited = { closed = 0, pop = 0.8 },
 	worried = { closed = 0, pop = 0.4 },
@@ -71,6 +79,15 @@ export type Actor = {
 	mods: SlimeMotor.Mods,
 	yaw: number, -- smoothed turn from the heading
 	yawWeight: number, -- smoothed share of that turn
+	reactYaw: number, -- last turn towards the local player (kept inside NEAR_DEAD_ZONE)
+	ax: number, -- smooth anchor: where the Body is, without its replication steps
+	az: number,
+	hasAnchor: boolean,
+	corrX: number, -- lane slimes: the Body minus the lane math, filtered
+	corrZ: number,
+	hasCorr: boolean,
+	lateral: number, -- lane slimes: sideways place on the lane (estimated from the Body)
+	hasLateral: boolean,
 	lastNow: number,
 	species: string?,
 	plan: ParadeChoreo.Plan?,
@@ -157,6 +174,15 @@ function SlimeActor.attach(model: Model, motor: SlimeMotor.Motor, now: number): 
 		mods = SlimeMotor.newMods(),
 		yaw = 0,
 		yawWeight = 0,
+		reactYaw = 0,
+		ax = p.X,
+		az = p.Z,
+		hasAnchor = false,
+		corrX = 0,
+		corrZ = 0,
+		hasCorr = false,
+		lateral = 0,
+		hasLateral = false,
 		lastNow = now,
 		species = if type(species) == "string" then species else nil,
 		plan = nil,
@@ -212,6 +238,77 @@ local function wrap(a: number): number
 	return (a + math.pi) % (2 * math.pi) - math.pi
 end
 
+-- A lane slime's spot by lane math at server time `t` (the same ParadeLane.pose + ParadeChoreo the server runs),
+-- and its velocity. nil off the lane or outside the walk (ride, drain).
+local function laneSpot(actor: Actor, pos: Vector3, t: number, dt: number): (number?, number, number, number)
+	local model = actor.model
+	local at = model:GetAttribute(Constants.LANE_AT_ATTRIBUTE)
+	local untilAt = model:GetAttribute(Constants.LANE_UNTIL_ATTRIBUTE)
+	if type(at) ~= "number" or type(untilAt) ~= "number" or ParadeLane.phase(at, untilAt, t) ~= "Walk" then
+		actor.hasLateral = false
+		return nil, 0, 0, 0
+	end
+	local plan, startAt = planOf(actor)
+	local lifetime = untilAt - at
+	local function ahead(when: number): number
+		return if plan then ParadeChoreo.offset(plan, when - startAt) * ParadeLane.walkSpeed(lifetime) else 0
+	end
+	-- Sideways place: the Body's offset from the centreline along the lane normal, filtered.
+	local s = math.clamp(ParadeLane.distance(at, untilAt, t) + ahead(t), -ParadeLane.LEAD_LENGTH, ParadeLane.LENGTH)
+	local cx, cz = ParadeLane.offsetAt(s, 0)
+	local nx, nz = ParadeLane.offsetAt(s, 1)
+	nx, nz = nx - cx, nz - cz
+	local n2 = nx * nx + nz * nz
+	if n2 > 1e-6 then
+		local lateral = ((pos.X - cx) * nx + (pos.Z - cz) * nz) / n2
+		if actor.hasLateral then
+			actor.lateral += (lateral - actor.lateral) * (1 - math.exp(-dt * SlimeActor.LATERAL_RATE))
+		else
+			actor.lateral, actor.hasLateral = lateral, true
+		end
+	end
+	local p1 = ParadeLane.pose(at, untilAt, actor.lateral, t, ahead(t)).position
+	local p0 = ParadeLane.pose(at, untilAt, actor.lateral, t - 0.1, ahead(t - 0.1)).position
+	return p1[1], p1[3], (p1[1] - p0[1]) / 0.1, (p1[3] - p0[3]) / 0.1
+end
+
+-- Where the slime is drawn from, smooth at frame rate. The Body replicates in steps; a lane slime follows its
+-- lane math plus a slow correction towards the Body, anything else a fast filter of the Body.
+local function anchor(
+	actor: Actor,
+	pos: Vector3,
+	onLane: boolean,
+	serverNow: number,
+	dt: number
+): (number, number, number?, number?)
+	local lx, lz, vx, vz = nil, 0, 0, 0
+	if onLane then
+		lx, lz, vx, vz = laneSpot(actor, pos, serverNow - SlimeActor.REPLICATION_LAG, dt)
+	end
+	if lx then
+		local cx, cz = pos.X - lx, pos.Z - lz
+		if not actor.hasCorr or cx * cx + cz * cz > SlimeActor.SNAP ^ 2 then
+			actor.corrX, actor.corrZ, actor.hasCorr = cx, cz, true
+		else
+			local k = 1 - math.exp(-dt * SlimeActor.CORRECT_RATE)
+			actor.corrX += (cx - actor.corrX) * k
+			actor.corrZ += (cz - actor.corrZ) * k
+		end
+		actor.ax, actor.az, actor.hasAnchor = lx + actor.corrX, lz + actor.corrZ, true
+		return actor.ax, actor.az, vx, vz
+	end
+	actor.hasCorr = false
+	local dx, dz = pos.X - actor.ax, pos.Z - actor.az
+	if not actor.hasAnchor or dx * dx + dz * dz > SlimeActor.SNAP ^ 2 then
+		actor.ax, actor.az, actor.hasAnchor = pos.X, pos.Z, true
+	else
+		local k = 1 - math.exp(-dt * SlimeActor.FOLLOW_RATE)
+		actor.ax += dx * k
+		actor.az += dz * k
+	end
+	return actor.ax, actor.az, nil, nil
+end
+
 -- Yaw from the slime's heading to world point `at` (+ = left).
 local function yawTo(body: BasePart, from: Vector3, at: Vector3): (number, number)
 	local rel = body.CFrame:VectorToObjectSpace(at - from)
@@ -230,17 +327,26 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 	local riding = model:GetAttribute(Constants.RIDING_ATTRIBUTE) == true
 		and (type(laneAt) ~= "number" or serverNow - laneAt < ParadeLane.RIDE_SECONDS)
 
-	-- Gait (frozen to the anchor while it rides the slide)
+	local dt = math.max(now - actor.lastNow, 0)
+	actor.lastNow = now
+
+	-- Gait (frozen to the Body while it rides the slide), from the smooth anchor
+	local ax, az, vx, vz = anchor(actor, pos, wild and not riding, serverNow, dt)
 	local g = actor.gaitPose
 	if riding then
 		local st = actor.gait
 		st.stage, st.visX, st.visZ, st.side, st.lastX, st.lastZ, st.lastT = "ground", pos.X, pos.Z, 0, pos.X, pos.Z, now
-		st.vx, st.vz, st.landedAt = 0, 0, now - 10
+		st.vx, st.vz, st.landedAt, st.changedAt = 0, 0, now - 10, now
+		actor.ax, actor.az = pos.X, pos.Z
+		ax, az = pos.X, pos.Z
 	end
-	SlimeGait.step(actor.gait, actor.persona, pos.X, pos.Z, look.X, look.Z, now, rand, g)
+	SlimeGait.step(actor.gait, actor.persona, ax, az, look.X, look.Z, now, rand, g, vx, vz)
 	if riding then
 		g.dx, g.dz, g.lift, g.sx, g.sy, g.tilt, g.roll = 0, 0, 0, 1, 1, 0, 0
 	end
+	-- Offsets are from the smooth anchor; the Transform needs them from the replicated Body.
+	g.dx += ax - pos.X
+	g.dz += az - pos.Z
 	mods.dx, mods.dz, mods.lift = g.dx, g.dz, g.lift
 	mods.sx, mods.sy, mods.tilt, mods.roll = g.sx, g.sy, g.tilt, g.roll
 	mods.jiggle = g.jiggle
@@ -293,7 +399,7 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 			if k > 0 then
 				faceName = faceName or "worried"
 				emote = emote or "sweat"
-				mods.lift += 0.25 * math.abs(math.sin(now * 11)) * k
+				mods.lift += 0.15 * (0.5 - 0.5 * math.cos(now * 8)) * k
 				local player = frame.player
 				local yaw, dist = 0, math.huge
 				if player then
@@ -309,9 +415,14 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 		end
 	end
 
-	-- The local player
+	-- The local player (looked at from the anchor, not the hop: a jump must not swing the turn)
 	if wild and not riding and frame.player then
-		local yaw, dist = yawTo(body, actor.visible, frame.player)
+		local yaw, dist = yawTo(body, Vector3.new(ax, pos.Y, az), frame.player)
+		if dist < SlimeActor.NEAR_DEAD_ZONE then
+			yaw = actor.reactYaw
+		else
+			actor.reactYaw = yaw
+		end
 		local price = model:GetAttribute("Price")
 		local afford = frame.cash ~= nil and (type(price) ~= "number" or price <= (frame.cash :: number))
 		local r = SlimeReact.toPlayer(actor.persona.temper, dist, yaw, afford, now, actor.reactPose)
@@ -320,7 +431,8 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 			if r.weight * keep > mods.yawWeight then
 				mods.yaw, mods.yawWeight = r.yaw, r.weight * keep
 			end
-			mods.lift += r.lift * keep
+			-- a hopper's hops are bounce enough
+			mods.lift += r.lift * keep * (if actor.persona.gait == "Hop" then 0.3 else 1)
 			mods.sy *= 1 + (r.sy - 1) * keep
 			mods.lean += r.lean * keep
 			if not standing and not g.air then
@@ -362,15 +474,16 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 		emote = emote or "ask"
 	end
 
-	-- Turn smoothly, the shortest way round. A spin (a turn past half a circle) plays as given.
-	local dt = math.max(now - actor.lastNow, 0)
-	actor.lastNow = now
+	-- Turn smoothly, the shortest way round and never faster than MAX_TURN. A spin (a turn past half a circle)
+	-- plays as given.
 	local k = 1 - math.exp(-dt * SlimeActor.TURN_RATE)
 	if math.abs(mods.yaw) > math.pi + 1e-3 then
 		actor.yaw, actor.yawWeight = mods.yaw, mods.yawWeight
 	else
 		local target = wrap(mods.yaw)
-		actor.yaw = wrap(actor.yaw + wrap(target - actor.yaw) * (if mods.yawWeight > 0.01 then k else 0))
+		local turn = if mods.yawWeight > 0.01 then wrap(target - actor.yaw) * k else 0
+		local most = SlimeActor.MAX_TURN * dt
+		actor.yaw = wrap(actor.yaw + math.clamp(turn, -most, most))
 		actor.yawWeight += (mods.yawWeight - actor.yawWeight) * k
 	end
 	mods.yaw, mods.yawWeight = actor.yaw, actor.yawWeight
