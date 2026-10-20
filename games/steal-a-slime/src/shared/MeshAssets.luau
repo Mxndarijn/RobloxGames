@@ -378,9 +378,9 @@ entries["mystery_egg_nest"] =
 
 -- The goo parade lane as ONE curved mesh (models/slime_lane.py, bug 4): not a WorldLayout slot (ParadeView lays
 -- it at ParadeLane.MESH_PIVOT). ParadeView swaps the ParadeLane.strips() stand-ins for it once it loads (they stay
--- only if it fails to load). size = out/slime_lane_pivot.json "size". The mesh at the current width is exported
--- but not uploaded: no ids, so the strips draw the lane until its upload fills them in.
-entries["slime_lane"] = { size = { 142.599, 0.43, 139.246 } }
+-- only if it fails to load). size = out/slime_lane_pivot.json "size".
+entries["slime_lane"] =
+	{ assetId = 87473643950432, meshId = "rbxassetid://115422391363157", size = { 142.599, 0.43, 139.246 } }
 
 -- FEATURES.FountainSplit (default off; MeshSwap.swapFountainSplit): the slime_fountain mesh cut into 5 pieces by
 -- shared/modeling-kit/models/slime_fountain_split.py (out/fountain_split.json has the numbers, tris sum to the whole:
