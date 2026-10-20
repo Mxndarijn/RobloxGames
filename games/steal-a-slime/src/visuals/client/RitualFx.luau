@@ -294,7 +294,7 @@ local function apply(rig: Rig, dt: number, t: number, now: number)
 	rig.glow.Enabled = not resting or flash > 0
 	rig.glow.Color = if flash > 0
 		then Color3.new(1, 1, 1)
-		else rgb(RitualLook.COLORS[if phase == "Charging" then "charge" else "idle"])
+		else rgb(RitualLook.color(if phase == "Charging" then "charge" else "idle"))
 	rig.glow.Brightness = base * (1 + 1.5 * charge) + 3 * flash
 
 	rig.motes.Enabled = phase == "Idle"
@@ -323,7 +323,7 @@ local function apply(rig: Rig, dt: number, t: number, now: number)
 	end
 
 	local lit = RitualLook.litSegments(fill)
-	local ringColor = rgb(RitualLook.COLORS[tint])
+	local ringColor = rgb(RitualLook.color(tint))
 	for s, seg in rig.ring do
 		seg.Transparency = if s <= lit then (if resting then 0.45 else 0.1) else 1
 		seg.Color = ringColor

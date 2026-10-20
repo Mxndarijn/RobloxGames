@@ -72,7 +72,7 @@ describe("RitualLook motion and burst", function()
 	end)
 	it("has a colour for every tint", function()
 		for _, tint in { "idle", "taken", "charge", "rest" } do
-			expect(#RitualLook.COLORS[tint]).toBe(3)
+			expect(#RitualLook.color(tint :: RitualLook.Tint)).toBe(3)
 		end
 	end)
 end)

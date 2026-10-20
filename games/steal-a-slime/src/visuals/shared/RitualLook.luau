@@ -23,7 +23,17 @@ RitualLook.COLORS = table.freeze({
 	taken = table.freeze({ 120, 255, 160 }),
 	charge = table.freeze({ 255, 226, 120 }),
 	rest = table.freeze({ 150, 150, 170 }),
-}) :: { [Tint]: { number } }
+})
+
+-- The rgb colour for a tint.
+function RitualLook.color(tint: Tint): { number }
+	local c = RitualLook.COLORS
+	return if tint == "taken"
+		then c.taken
+		elseif tint == "charge" then c.charge
+		elseif tint == "rest" then c.rest
+		else c.idle
+end
 
 RitualLook.MAX_DISTANCE = 150 -- studs: further away the effects pause and the emitters stop
 RitualLook.RING_SEGMENTS = 24 -- neon dashes round the ground ring
