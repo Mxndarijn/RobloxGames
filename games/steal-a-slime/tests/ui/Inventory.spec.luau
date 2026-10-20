@@ -337,7 +337,7 @@ describe("Inventory consumable stacks (S3)", function()
 		expect(UiHarness.find(slots[2], "Count").Visible).toBe(false) -- a Tool has no stack
 	end)
 
-	it("bag cells show the stack amount on the gold tag, not the key or a second count", function()
+	it("bag cells show the stack amount on the gold tag and no second count", function()
 		local inv = mount(stackState({ consumables = { held = { LuckPotion = 1, WeatherTotem = 120 } } }), COIL)
 		inv.setPanelOpen(true)
 		local cells = {}
@@ -354,6 +354,13 @@ describe("Inventory consumable stacks (S3)", function()
 		expect(UiHarness.find(totem, "Amount").Text).toBe("99+")
 		expect(UiHarness.find(totem, "Amount").Size.X.Offset).toBe(Inventory.PANEL.tagWide)
 		expect(UiHarness.find(cells["Speed Coil"], "Amount").Visible).toBe(false)
+		local tagged = 0
+		for _, cell in cells do
+			if UiHarness.find(cell, "Amount").Visible then
+				tagged += 1
+			end
+		end
+		expect(tagged).toBe(2)
 	end)
 
 	it("a number key puts the consumable in hand, the same number again puts it away; nothing is sent", function()
@@ -395,18 +402,6 @@ describe("Inventory consumable stacks (S3)", function()
 		inv.update(stackState({ carrying = { slimeId = "x" } }))
 		expect(inv.heldConsumable()).toBeNil()
 		expect(inv.useHeld()).toBe(false)
-	end)
-
-	it("the bag panel lists the stacks too", function()
-		local inv = mount(stackState(), COIL)
-		inv.setPanelOpen(true)
-		local seen = 0
-		for _, child in UiHarness.find(inv.panel.frame, "Grid"):GetChildren() do
-			if child.Visible and UiHarness.find(child, "Amount") and UiHarness.find(child, "Amount").Visible then
-				seen += 1
-			end
-		end
-		expect(seen).toBe(2)
 	end)
 end)
 
