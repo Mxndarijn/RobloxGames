@@ -292,6 +292,10 @@ local function swap(target: BasePart | Model, name: string, scope: Instance): bo
 	if typeof(clear) == "number" then
 		mesh.Transparency = math.clamp(clear, 0, 1)
 	end
+	-- JarHidden: a jar look that is not showing right now (server/BaseFloors shows it when its jar changes).
+	if target:GetAttribute("JarHidden") == true then
+		mesh.Transparency = 1
+	end
 	-- A skinned Model carries its tint as a Color3 (Props.STAND_STYLES: the blue Upgrade Shop stand).
 	local modelTint = if target:IsA("Model") then target:GetAttribute("MeshTint") else nil
 	if typeof(modelTint) == "Color3" then

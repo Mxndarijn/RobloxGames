@@ -391,7 +391,7 @@ describe("plot jar", function()
 			local walls = collidersAt(jar, floor + 2.5)
 			local samples = {}
 			for k = 0, n - 1 do
-				local x, z = WorldLayout.polar(r, k * 360 / n)
+				local x, z = WorldLayout.jarWallPoint(1, k * 360 / n)
 				table.insert(samples, { x = x, z = z, closed = covered(i, walls, x, z) })
 			end
 			local runs, open = 0, {}

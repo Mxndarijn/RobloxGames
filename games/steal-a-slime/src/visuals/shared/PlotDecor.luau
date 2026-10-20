@@ -136,14 +136,33 @@ local function labels(part: Instance, rows: { number }): { TextLabel }
 	return out
 end
 
+-- The swapped mesh under a jar tower look slot (server/MeshSwap names it "Mesh"), or nil before it lands.
+local function lookMesh(plot: Instance, name: string): BasePart?
+	local slot = plot:FindFirstChild(name)
+	local mesh = slot and slot:FindFirstChild("Mesh")
+	return if mesh and mesh:IsA("BasePart") then mesh else nil
+end
+
 local function applyLock(plot: Instance, owned: boolean, locked: boolean, remaining: number)
+	local shut = owned and locked
 	local barrier = plot:FindFirstChild("LockBarrier")
+	-- With the stopper meshes in, they are the look (the Stopper box stays the invisible collider); before they land,
+	-- the primitive stopper and parked stopper show.
+	local meshes = lookMesh(plot, "StopperShut")
 	if barrier then
 		for _, part in barrier:GetChildren() do
-			show(part, owned and locked)
+			show(part, shut and meshes == nil)
 		end
 	end
-	show(plot:FindFirstChild("ParkedStopper"), not (owned and locked))
+	show(plot:FindFirstChild("ParkedStopper"), not shut and meshes == nil)
+	if meshes then
+		show(meshes, shut)
+		show(lookMesh(plot, "StopperParked"), not shut)
+	end
+	local ring = lookMesh(plot, "DoorRing")
+	if ring then
+		set(ring, "Color", if shut then rgb(PlotDecor.LOCKED_COLOR) else rgb(PlotDecor.RING_COLOR))
+	end
 	local sign = plot:FindFirstChild("LockSign")
 	if not sign then
 		return
@@ -286,6 +305,7 @@ end
 -- The jar's cork and trim as they show: the bridge, the jar floor, the parked stopper and every jar lid (hidden
 -- parts, like a lid under an upper jar, are skipped).
 PlotDecor.TRIM_PARTS = table.freeze({ "Bridge", "JarFloor", "ParkedStopper" })
+PlotDecor.RING_COLOR = { 168, 148, 110 } -- the door's lock ring while open (ranch_metal brass)
 local function eachTrimPart(plot: Instance, visit: (BasePart) -> ())
 	for _, name in PlotDecor.TRIM_PARTS do
 		local part = plot:FindFirstChild(name)

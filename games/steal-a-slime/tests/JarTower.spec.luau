@@ -170,14 +170,19 @@ describe("jar tower: deck and glass", function()
 			end
 		end
 	end)
-	it("closes every upper jar's wall all the way round, floor to deck", function()
+	it("closes every upper jar's wall all the way round, floor to deck, inside the glass", function()
+		local n = WorldLayout.JAR_WALL_SEGMENTS
 		for f = 2, FLOORS do
 			local walls = named(floorParts(1, f), "Wall_")
-			expect(#walls).toBe(WorldLayout.JAR_WALL_SEGMENTS)
-			local r = WorldLayout.jarRadius(f) + WorldLayout.JAR_WALL / 2
+			expect(#walls).toBe(n)
+			local rc = WorldLayout.jarWallRadius(f)
+			-- the inner faces' corners sit on the glass, never outside it
+			expect((rc - WorldLayout.JAR_WALL / 2) / math.cos(math.pi / n) <= WorldLayout.jarRadius(f) + 1e-6).toBe(
+				true
+			)
 			for _, h in { 0.5, 7, WorldLayout.FLOOR_HEIGHT - 1.5 } do
 				for deg = 0, 359, 2 do
-					local x, z = WorldLayout.polar(r, deg)
+					local x, z = WorldLayout.jarWallPoint(f, deg)
 					local hit = false
 					for _, w in walls do
 						if insideBox(w, 1, x, WorldLayout.floorTop(f) + h, z) then

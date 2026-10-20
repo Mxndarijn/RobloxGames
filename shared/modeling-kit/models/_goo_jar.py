@@ -32,10 +32,12 @@ EYE_W, EYE_D = rgb(246, 250, 250), rgb(56, 42, 38)
 
 FLOOR_H = D["floorHeight"]
 FLOORS = len(D["floors"])
-WALL_H = 9.0  # straight glass above the floor, then the shoulder
-SHOULDER = (2.0, 1.6)  # the two shoulder steps' heights
-NECK_Z = 0.2 + WALL_H + sum(SHOULDER)  # 12.8: top of the shoulder, bottom of the neck/lid
-TOP_NECK = 0.55  # the top jar's neck, as a share of its radius
+SHAPE = D["jarShape"]
+WALL_H = SHAPE["wall"]  # straight glass above the floor, then the shoulder
+SHOULDER = tuple(SHAPE["shoulder"])  # the two shoulder steps' heights
+NECK_Z = 0.2 + WALL_H + sum(SHOULDER)  # top of the shoulder, bottom of the neck/lid
+TOP_NECK = SHAPE["topNeck"]  # the top jar's neck, as a share of its radius
+CORK_H, LID_H = SHAPE["cork"], SHAPE["lid"]
 SEGS = 48
 
 
@@ -160,17 +162,17 @@ def jar_trim(f, top, crown=False):
     for k in range(2):
         out.append(cylinder(f"Thread{k}", nk + 0.6, 0.45, (0, 0, NECK_Z + 0.2 + k * 0.7), METAL, segs=SEGS))
     if top and not crown:  # the top jar while growing: a tall cork stopper, wider at the top
-        out.append(painted(cylinder("Cork", nk + 0.2, 3.2, (0, 0, NECK_Z), CORK, segs=SEGS, r_top=nk + 1.0), shade(CORK, 0.8), CORK))
-        out.append(cylinder("CorkRing", nk + 1.1, 0.5, (0, 0, NECK_Z + 2.4), shade(CORK, 0.88), segs=SEGS))
-        lid_top = NECK_Z + 3.2
+        out.append(painted(cylinder("Cork", nk + 0.2, CORK_H, (0, 0, NECK_Z), CORK, segs=SEGS, r_top=nk + 1.0), shade(CORK, 0.8), CORK))
+        out.append(cylinder("CorkRing", nk + 1.1, 0.5, (0, 0, NECK_Z + CORK_H - 0.8), shade(CORK, 0.88), segs=SEGS))
+        lid_top = NECK_Z + CORK_H
     elif top:  # the crowned top jar: a flat cork lid the mascot sits on
-        out.append(painted(cylinder("Lid", nk + 0.3, 1.6, (0, 0, NECK_Z), CORK, segs=SEGS), shade(CORK, 0.85), CORK))
-        lid_top = NECK_Z + 1.6
+        out.append(painted(cylinder("Lid", nk + 0.3, LID_H, (0, 0, NECK_Z), CORK, segs=SEGS), shade(CORK, 0.85), CORK))
+        lid_top = NECK_Z + LID_H
     else:  # a cork ring the next jar stands in (its deck covers the middle, the stair comes up through it)
         inner = radius(f + 1) - 1.2
-        out.append(painted(lathe("Lid", [(nk + 0.3, NECK_Z), (nk + 0.3, NECK_Z + 1.6), (inner, NECK_Z + 1.6)], CORK, double=False),
+        out.append(painted(lathe("Lid", [(nk + 0.3, NECK_Z), (nk + 0.3, NECK_Z + LID_H), (inner, NECK_Z + LID_H)], CORK, double=False),
                            shade(CORK, 0.85), CORK))
-        lid_top = NECK_Z + 1.6
+        lid_top = NECK_Z + LID_H
     out += ooze("Ooze", nk + 0.6, lid_top - (0.4 if not top else 0.2), 1.0 + 0.15 * f, 7 + f, seed=40 + f)
     rr = random.Random(70 + f)
     for k in range(2):
@@ -359,4 +361,22 @@ def crown():
 
 def mascot_size(version):
     """Mascot radius for a tower of `version` jars (the design: 3.4 + 1.3 per version)."""
-    return 3.4 + 1.3 * version
+    return D["mascot"]["base"] + D["mascot"]["grow"] * version
+
+
+def ship(name, parts):
+    """finish() a game mesh, mirrored in X first. The builders work in game axes (blender x, y, z = game x, z, y), which
+    is a mirror of the kit's FBX axes; mirroring x here makes the uploaded mesh the builder's shape turned half round,
+    and WorldLayout's jar look slots turn it back (they add 180 to undo MeshSwap's IMPORT_YAW). Checked in Studio: the
+    drop tube's top and splash pool land where the builder put them, the mascot faces the door."""
+    for o in parts:
+        bm = bmesh.new()
+        bm.from_mesh(o.data)
+        bmesh.ops.transform(bm, matrix=o.matrix_world.copy(), verts=bm.verts)
+        for v in bm.verts:
+            v.co.x = -v.co.x
+        bmesh.ops.reverse_faces(bm, faces=bm.faces[:])
+        bm.to_mesh(o.data)
+        bm.free()
+        o.matrix_world = o.matrix_world.Identity(4)
+    return finish(name, parts)

@@ -187,6 +187,38 @@ end)
 -- Every mesh has a collision decision --------------------------------------------------------------------------
 -- Every MeshAssets name is either solid (COLLISION) or listed here as decor with its reason, so a new mesh forces a decision.
 local DECOR = {
+	goo_cork_stand = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_foot = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_stair = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_door = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_door_ring = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_stopper = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_lock_button = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_mascot = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_crown = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_1_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_2_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_3_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_1_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_2_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_3_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_glass_4_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_1_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_2_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_3_mid = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_1_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_2_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_3_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_trim_4_top = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_deck_2 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_deck_3 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_jar_deck_4 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_glass_2 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_glass_3 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_glass_4 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_goo_2 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_goo_3 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
+	goo_drop_tube_goo_4 = "goo jar tower look: decor over primitive colliders (the jar walls, decks, stair, lid, pads, stopper, button)",
 	slime_fountain = "the tower: hand-placed Basin / Trim / Silo / Top + SlideColliders stay (docs/COLLISION.md, #252)",
 	ranch_floor_deck = "B11 floor: flat timber plaza deck, 0.21 studs on the terrain; the terrain is the walk surface",
 	ranch_floor_paths = "B11 floor: flat boardwalk ring + spokes, 0.21 studs on the terrain; the terrain is the walk surface (the gate ramps are parts)",
@@ -333,6 +365,38 @@ end)
 -- Plot-level collision: every plot mesh has a decided collision, and the goo jar keeps the owner's way in open ----
 -- mesh -> expected MeshAssets.COLLISION fidelity (false = decor mesh; its collision is then the slot box / a part).
 local PLOT_MESHES = {
+	goo_cork_stand = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_foot = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_stair = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_door = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_door_ring = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_stopper = false, -- goo jar tower look, the primitives under it collide
+	goo_lock_button = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_mascot = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_crown = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_1_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_2_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_3_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_1_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_2_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_3_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_glass_4_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_1_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_2_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_3_mid = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_1_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_2_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_3_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_trim_4_top = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_deck_2 = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_deck_3 = false, -- goo jar tower look, the primitives under it collide
+	goo_jar_deck_4 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_glass_2 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_glass_3 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_glass_4 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_goo_2 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_goo_3 = false, -- goo jar tower look, the primitives under it collide
+	goo_drop_tube_goo_4 = false, -- goo jar tower look, the primitives under it collide
 	phoenix_pad_crate = false, -- Pad_<j> (8 x 2.4 x 8, solid) is the surface
 	phoenix_top_earners_board = false, -- shared with the world board (own Collider); the plot DexMesh slot box collides
 }
@@ -439,7 +503,7 @@ describe("plot-level collision", function()
 			end
 			for _, h in { 0.5, 7, WorldLayout.FLOOR_HEIGHT - 1.5 } do
 				for deg = 0, 359.5, 0.5 do
-					local x, z = WorldLayout.polar(r, deg)
+					local x, z = WorldLayout.jarWallPoint(1, deg)
 					local inDoor = z < 0 and math.abs(x) < door.halfWidth and h < WorldLayout.DOOR.height
 					if inDoor and math.abs(x) < door.halfWidth - 0.5 then
 						expect(covered(x, f1 + h, z)).toBe(false)

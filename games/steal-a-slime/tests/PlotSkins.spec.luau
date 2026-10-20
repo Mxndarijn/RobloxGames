@@ -323,7 +323,7 @@ describe("plot skins: visuals applied per plot", function()
 					expect(d.Color ~= classic1[d:GetFullName()][1]).toBe(true)
 				end
 			end
-			expect(tinted).toBe(#PlotDecor.TRIM_PARTS + 1)
+			expect(tinted).toBe(#PlotDecor.TRIM_PARTS) -- the lid is an invisible roof now; its look is the jar trim mesh
 			local mesh = slot:FindFirstChild(PlotDecor.SKIN_DECOR_NAME)
 			expect(mesh ~= nil and mesh:GetAttribute("Skin") == s.decor).toBe(true)
 			expect(slot.Transparency).toBe(1)

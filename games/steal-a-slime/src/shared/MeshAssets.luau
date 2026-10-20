@@ -112,6 +112,38 @@ local NAMES = {
 	"plot_skin_candy",
 	"plot_skin_crystal",
 	"merge_vat",
+	"goo_cork_stand",
+	"goo_drop_tube_glass_2",
+	"goo_drop_tube_glass_3",
+	"goo_drop_tube_glass_4",
+	"goo_drop_tube_goo_2",
+	"goo_drop_tube_goo_3",
+	"goo_drop_tube_goo_4",
+	"goo_jar_crown",
+	"goo_jar_deck_2",
+	"goo_jar_deck_3",
+	"goo_jar_deck_4",
+	"goo_jar_door",
+	"goo_jar_door_ring",
+	"goo_jar_foot",
+	"goo_jar_glass_1_mid",
+	"goo_jar_glass_1_top",
+	"goo_jar_glass_2_mid",
+	"goo_jar_glass_2_top",
+	"goo_jar_glass_3_mid",
+	"goo_jar_glass_3_top",
+	"goo_jar_glass_4_top",
+	"goo_jar_mascot",
+	"goo_jar_stair",
+	"goo_jar_stopper",
+	"goo_jar_trim_1_mid",
+	"goo_jar_trim_1_top",
+	"goo_jar_trim_2_mid",
+	"goo_jar_trim_2_top",
+	"goo_jar_trim_3_mid",
+	"goo_jar_trim_3_top",
+	"goo_jar_trim_4_top",
+	"goo_lock_button",
 	"giant_broadleaf",
 	"giant_pine_layered",
 	"giant_round_canopy",
@@ -346,6 +378,71 @@ entries["ranch_fence_20"] =
 -- NOT a world slot.
 entries["merge_vat"] =
 	{ assetId = 122090902536570, meshId = "rbxassetid://94063238729318", size = { 10.808, 7.625, 10.764 } }
+-- Goo jar tower (shared/modeling-kit/models/_goo_jar.py; JarMeshes holds where each sits). Open Cloud size-check.
+entries["goo_cork_stand"] =
+	{ assetId = 73579765961535, meshId = "rbxassetid://118479492434509", size = { 7.8, 2.45, 7.8 } }
+entries["goo_drop_tube_glass_2"] =
+	{ assetId = 99828185885518, meshId = "rbxassetid://102336183433275", size = { 7.847, 25.266, 12.469 } }
+entries["goo_drop_tube_glass_3"] =
+	{ assetId = 111629425406934, meshId = "rbxassetid://98446466624450", size = { 8.873, 41.266, 15.288 } }
+entries["goo_drop_tube_glass_4"] =
+	{ assetId = 93007991700620, meshId = "rbxassetid://90793122953894", size = { 9.728, 57.266, 17.638 } }
+entries["goo_drop_tube_goo_2"] =
+	{ assetId = 86160375582751, meshId = "rbxassetid://85975063085011", size = { 11.924, 24.499, 19.586 } }
+entries["goo_drop_tube_goo_3"] =
+	{ assetId = 120298905383196, meshId = "rbxassetid://103761335127529", size = { 12.95, 40.499, 22.405 } }
+entries["goo_drop_tube_goo_4"] =
+	{ assetId = 138133715514605, meshId = "rbxassetid://117053967957291", size = { 13.805, 56.499, 24.754 } }
+entries["goo_jar_crown"] =
+	{ assetId = 71380888344034, meshId = "rbxassetid://104778303876847", size = { 0.787, 0.52, 0.809 } }
+entries["goo_jar_deck_2"] =
+	{ assetId = 99170740533300, meshId = "rbxassetid://112998186219517", size = { 53.2, 1.789, 53.2 } }
+entries["goo_jar_deck_3"] =
+	{ assetId = 125659145472027, meshId = "rbxassetid://131159441601467", size = { 47.2, 1.789, 47.2 } }
+entries["goo_jar_deck_4"] =
+	{ assetId = 130699055260662, meshId = "rbxassetid://135909106798190", size = { 42.2, 1.73, 42.2 } }
+entries["goo_jar_door"] =
+	{ assetId = 139300292465170, meshId = "rbxassetid://132323286639653", size = { 11.596, 11.6, 2.6 } }
+entries["goo_jar_door_ring"] =
+	{ assetId = 104855077088726, meshId = "rbxassetid://85299355296782", size = { 12.898, 12.9, 0.9 } }
+entries["goo_jar_foot"] =
+	{ assetId = 94414503603615, meshId = "rbxassetid://98725034418022", size = { 77.0, 1.251, 77.0 } }
+entries["goo_jar_glass_1_mid"] =
+	{ assetId = 131865809092333, meshId = "rbxassetid://113961135141168", size = { 62.0, 14.0, 62.0 } }
+entries["goo_jar_glass_1_top"] =
+	{ assetId = 123313069381994, meshId = "rbxassetid://96670775678177", size = { 62.0, 14.0, 62.0 } }
+entries["goo_jar_glass_2_mid"] =
+	{ assetId = 94980896972924, meshId = "rbxassetid://139616386548664", size = { 54.0, 14.0, 54.0 } }
+entries["goo_jar_glass_2_top"] =
+	{ assetId = 136580412796651, meshId = "rbxassetid://89522626094645", size = { 54.0, 14.0, 54.0 } }
+entries["goo_jar_glass_3_mid"] =
+	{ assetId = 100018316137117, meshId = "rbxassetid://136349002707714", size = { 48.0, 14.0, 48.0 } }
+entries["goo_jar_glass_3_top"] =
+	{ assetId = 139876522959966, meshId = "rbxassetid://137012134591697", size = { 48.0, 14.0, 48.0 } }
+entries["goo_jar_glass_4_top"] =
+	{ assetId = 77025236169848, meshId = "rbxassetid://91417962605420", size = { 43.0, 14.0, 43.0 } }
+entries["goo_jar_mascot"] =
+	{ assetId = 98686118721094, meshId = "rbxassetid://71405131358303", size = { 2.2, 1.567, 2.138 } }
+entries["goo_jar_stair"] =
+	{ assetId = 98196001176088, meshId = "rbxassetid://140624281565813", size = { 11.4, 16.0, 11.4 } }
+entries["goo_jar_stopper"] =
+	{ assetId = 121171735307209, meshId = "rbxassetid://133585692355026", size = { 9.4, 9.4, 4.44 } }
+entries["goo_jar_trim_1_mid"] =
+	{ assetId = 125609985796662, meshId = "rbxassetid://132236025538911", size = { 60.247, 15.088, 58.258 } }
+entries["goo_jar_trim_1_top"] =
+	{ assetId = 81111284959159, meshId = "rbxassetid://117098777148097", size = { 60.247, 16.888, 58.258 } }
+entries["goo_jar_trim_2_mid"] =
+	{ assetId = 98169175981967, meshId = "rbxassetid://96730337257047", size = { 53.016, 15.247, 53.601 } }
+entries["goo_jar_trim_2_top"] =
+	{ assetId = 121872413785229, meshId = "rbxassetid://136666528866785", size = { 53.016, 17.047, 53.601 } }
+entries["goo_jar_trim_3_mid"] =
+	{ assetId = 119020744731896, meshId = "rbxassetid://122732664090612", size = { 47.643, 15.412, 48.08 } }
+entries["goo_jar_trim_3_top"] =
+	{ assetId = 115479272829253, meshId = "rbxassetid://115859724942925", size = { 47.239, 17.212, 47.83 } }
+entries["goo_jar_trim_4_top"] =
+	{ assetId = 118248174951144, meshId = "rbxassetid://72091253151537", size = { 41.008, 15.788, 43.02 } }
+entries["goo_lock_button"] =
+	{ assetId = 132032016681033, meshId = "rbxassetid://119356147242243", size = { 4.136, 4.28, 4.2 } }
 -- Border v5 giant trees (WorldBorder.giants; 3-5x the border pines, MeshPart.Color tints the canopy). Open Cloud size-check.
 entries["giant_broadleaf"] =
 	{ assetId = 114689108547101, meshId = "rbxassetid://115148865966963", size = { 80.613, 78.349, 65.201 } }

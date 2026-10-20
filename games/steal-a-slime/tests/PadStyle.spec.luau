@@ -79,7 +79,7 @@ describe("PadStyle (v17)", function()
 				if n.name:match("^Pad_%d+$") then
 					pads += 1
 					count += #(n.children or {})
-					expect(n.size[1]).toBe(8)
+					expect(n.size[1]).toBe(WorldLayout.PAD_SIZE)
 				end
 				walk(n.children)
 			end

@@ -149,8 +149,16 @@ function PlotMascot.apply(plot: Instance)
 	if not (base and base:IsA("BasePart")) then
 		return
 	end
-	local version = PlotMascot.version(plot)
 	local current = plot:FindFirstChild(PlotMascot.NAME)
+	-- The jar tower meshes carry their own mascot, crown and goo ooze (the jars' MascotLook slots): no local decor then.
+	local looks = plot:FindFirstChild("JarLooks")
+	if looks and looks:FindFirstChild("MascotLook") then
+		if current then
+			current:Destroy()
+		end
+		return
+	end
+	local version = PlotMascot.version(plot)
 	if current and current:GetAttribute("Version") == version then
 		return
 	end

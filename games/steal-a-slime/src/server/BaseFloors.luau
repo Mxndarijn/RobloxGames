@@ -72,15 +72,30 @@ local function removeFloor(plot: Instance, floor: number)
 	end
 end
 
--- Every lid of the plot: shown and solid only while it is the top jar's (no Floor_<n + 1> above it).
+-- Every lid of the plot: solid only while it is the top jar's (no Floor_<n + 1> above it); its look is the jar trim
+-- mesh. Every jar look with JarFloor / JarShow: "top" shows only while no jar stands on jar n, "covered" only while
+-- one does (JarHidden, and the swapped Mesh's transparency).
 local function setLids(plot: Instance)
 	for _, d in plot:GetDescendants() do
+		if not d:IsA("BasePart") then
+			continue
+		end
 		local n = d:GetAttribute("JarLid")
-		if typeof(n) == "number" and d:IsA("BasePart") then
+		if typeof(n) == "number" then
 			local covered = plot:FindFirstChild(`Floor_{n + 1}`) ~= nil
-			d.Transparency = if covered then 1 else 0
 			d.CanCollide = not covered
 			d.CanQuery = not covered
+		end
+		local f, show = d:GetAttribute("JarFloor"), d:GetAttribute("JarShow")
+		if typeof(f) == "number" and (show == "top" or show == "covered") then
+			local covered = plot:FindFirstChild(`Floor_{f + 1}`) ~= nil
+			local hidden = (show == "top") == covered
+			d:SetAttribute("JarHidden", hidden)
+			local mesh = d:FindFirstChild("Mesh")
+			if mesh and mesh:IsA("BasePart") then
+				local clear = d:GetAttribute("MeshTransparency")
+				mesh.Transparency = if hidden then 1 elseif typeof(clear) == "number" then clear else 0
+			end
 		end
 	end
 end

@@ -43,6 +43,8 @@ local function dims(): { [string]: any }
 		plotSize = WorldLayout.PLOT_SIZE,
 		jarWall = WorldLayout.JAR_WALL,
 		glassTransparency = WorldLayout.JAR_GLASS_MESH_TRANSPARENCY,
+		jarShape = WorldLayout.JAR_SHAPE,
+		mascot = WorldLayout.MASCOT,
 		padSize = WorldLayout.PAD_SIZE,
 		padSeatY = WorldLayout.PAD_SEAT_Y,
 		padDeck = WorldLayout.PAD_DECK,

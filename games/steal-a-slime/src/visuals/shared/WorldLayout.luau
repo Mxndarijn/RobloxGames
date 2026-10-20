@@ -44,6 +44,7 @@ local Meadow = if script then require(script.Parent.Meadow) else require("./Mead
 local PlotDecor = if script then require(script.Parent.PlotDecor) else require("./PlotDecor")
 local RanchProps = if script then require(script.Parent.RanchProps) else require("./RanchProps")
 local VatDecor = if script then require(script.Parent.VatDecor) else require("./VatDecor")
+local JarMeshes = if script then require(script.Parent.JarMeshes) else require("./JarMeshes")
 local WorldBorder = if script then require(script.Parent.WorldBorder) else require("./WorldBorder")
 
 type Vec = LayoutMath.Vec
@@ -168,7 +169,7 @@ WorldLayout.BORDER_PART_BUDGET = 700
 
 -- Every slime spot uses the one square crate pad (red mat rectangle); only
 -- the habitat on top changes per slime type (Habitats / HabitatFx).
-WorldLayout.PAD_MESH = "phoenix_pad_crate"
+WorldLayout.PAD_MESH = "goo_cork_stand"
 -- Where a slime sits on the stand at native size (kit model header): the Pad
 -- top goes here, so slimes rest on the mesh instead of sinking into it.
 WorldLayout.PAD_SEAT_Y = 2.4
@@ -190,7 +191,7 @@ WorldLayout.PAD_RINGS = table.freeze({ 19, 17, 15.5, 14.3 })
 -- crate deck's size (PAD_DECK.half), so the habitat overlays still fit on it.
 WorldLayout.PAD_SIZE = 6.4
 WorldLayout.JAR_WALL = 1 -- glass thickness
-WorldLayout.JAR_WALL_SEGMENTS = 24
+WorldLayout.JAR_WALL_SEGMENTS = 12
 WorldLayout.DECK_SEGMENTS = 16
 WorldLayout.DOOR = table.freeze({ angle = -90, width = 8, height = 11 }) -- no wider than one glass segment
 WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22.5, firstAngle = 90 })
@@ -336,7 +337,6 @@ local PLOT_COLORS = {
 	{ 100, 156, 226 },
 	{ 214, 214, 222 },
 }
-local PLOT_BASE_GREY = { 150, 140, 128 } -- warm grey mixed into the plot accent
 
 local GRASS = { 98, 160, 70 }
 local SAND = { 206, 178, 132 } -- paths
@@ -350,14 +350,6 @@ local SIGN = { 222, 178, 120 }
 local FENCE = { 150, 104, 68 }
 local SIGN_BOARD = { 62, 42, 30 } -- dark wood: the lock sign's coloured text stays readable
 local GOO = { 120, 255, 140 }
-
-local function mix(a: Vec, b: Vec, t: number): Vec
-	return {
-		math.round(a[1] * t + b[1] * (1 - t)),
-		math.round(a[2] * t + b[2] * (1 - t)),
-		math.round(a[3] * t + b[3] * (1 - t)),
-	}
-end
 
 local function light(preset: string): WorldNode
 	return { name = preset, class = "PointLight", preset = preset }
@@ -1049,6 +1041,13 @@ WorldLayout.JAR_GLASS_TRANSPARENCY = 0.6
 -- The jar glass meshes have an outer and an inner surface (Roblox culls back faces), so each is clearer; seen through
 -- both it stacks to about the single primitive pane's look.
 WorldLayout.JAR_GLASS_MESH_TRANSPARENCY = 0.8
+-- The jar meshes' shape above each floor (shared/modeling-kit/models/_goo_jar.py builds to these): straight glass,
+-- the two shoulder steps in to the neck, the top jar's neck as a share of its radius, the top jar's tall cork stopper
+-- and the flat lid (under the next jar, or the crowned last jar's). The mascot sits on the top cork.
+WorldLayout.JAR_SHAPE =
+	table.freeze({ wall = 9, shoulder = table.freeze({ 2, 1.6 }), topNeck = 0.55, cork = 3.2, lid = 1.6 })
+-- Mascot radius for a tower of v jars: MASCOT.base + MASCOT.grow * v (the mesh is built at radius 1).
+WorldLayout.MASCOT = table.freeze({ base = 3.4, grow = 1.3, crownUp = 1.45 })
 
 -- A box whose local +Z points out along plot-local angle `deg` at radius `r`, `size` = { tangential, height,
 -- radial }, its centre `y` up.
@@ -1223,29 +1222,68 @@ local function padNode(j: number, at: (Vec) -> Vec, yaw: number, color: Vec): Wo
 	return pad
 end
 
--- Jar f's glass wall: JAR_WALL_SEGMENTS collidable segments from floor f up to the deck (or lid) above; jar 1 has the
--- door in the segment at DOOR.angle (a lintel over the opening). Glass never blocks prompts or raycasts.
+-- Radius of the centre of jar f's collision wall segments: their inner faces are a polygon inscribed in the jar's
+-- glass (its corners on the glass), so nobody stands inside the glass mesh.
+function WorldLayout.jarWallRadius(f: number): number
+	return WorldLayout.jarRadius(f) * math.cos(math.pi / WorldLayout.JAR_WALL_SEGMENTS) + WorldLayout.JAR_WALL / 2
+end
+
+-- The point (x, z) at plot-local angle `deg` on the centre plane of jar f's wall segments (the polygon round the jar).
+function WorldLayout.jarWallPoint(f: number, deg: number): (number, number)
+	local step = 360 / WorldLayout.JAR_WALL_SEGMENTS
+	local off = ((deg - WorldLayout.DOOR.angle + step / 2) % step) - step / 2
+	return polar(WorldLayout.jarWallRadius(f) / math.cos(math.rad(off)), deg)
+end
+
+-- Jar f's glass wall collision: JAR_WALL_SEGMENTS collidable segments from floor f up to the deck (or lid) above (the
+-- glass mesh is the look; they show as glass until it lands). Jar 1's segment at DOOR.angle is the door: two jambs
+-- either side of the opening and the lintel over it. Glass never blocks prompts or raycasts.
 local function jarWall(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local out = {}
 	local n = WorldLayout.JAR_WALL_SEGMENTS
-	local r = WorldLayout.jarRadius(f) + WorldLayout.JAR_WALL / 2
-	local width = 2 * r * math.sin(math.pi / n) + 0.3
+	local r = WorldLayout.jarWallRadius(f)
+	local width = 2 * (r + WorldLayout.JAR_WALL / 2) * math.tan(math.pi / n) + 0.3
 	local h = WorldLayout.FLOOR_HEIGHT - 1
 	local base = WorldLayout.floorTop(f)
+	local t = WorldLayout.JAR_WALL
 	for k = 1, n do
 		local deg = WorldLayout.DOOR.angle + (k - 1) * 360 / n
-		local node
+		local nodes
 		if f == 1 and k == 1 then
-			local dh = WorldLayout.DOOR.height
-			node =
-				radial("DoorLintel", { width, h - dh, WorldLayout.JAR_WALL }, r, deg, base + dh + (h - dh) / 2, at, yaw)
+			local dh, dw = WorldLayout.DOOR.height, WorldLayout.DOOR.width
+			local jw = (width - dw) / 2
+			local x, z = polar(r, deg)
+			local tx, tz = -math.sin(math.rad(deg)), math.cos(math.rad(deg))
+			local turn = { 0, yaw + 90 - deg, 0 }
+			local off = dw / 2 + jw / 2
+			nodes = {
+				radial("DoorLintel", { width, h - dh, t }, r, deg, base + dh + (h - dh) / 2, at, yaw),
+				block(
+					"DoorJambL",
+					{ jw, dh, t },
+					at({ x - tx * off, base + dh / 2, z - tz * off }),
+					JAR_GLASS,
+					"Glass",
+					turn
+				),
+				block(
+					"DoorJambR",
+					{ jw, dh, t },
+					at({ x + tx * off, base + dh / 2, z + tz * off }),
+					JAR_GLASS,
+					"Glass",
+					turn
+				),
+			}
 		else
-			node = radial(`Wall_{k}`, { width, h, WorldLayout.JAR_WALL }, r, deg, base + h / 2, at, yaw)
+			nodes = { radial(`Wall_{k}`, { width, h, t }, r, deg, base + h / 2, at, yaw) }
 		end
-		node.transparency = WorldLayout.JAR_GLASS_TRANSPARENCY
-		node.canQuery = false
-		node.canTouch = false
-		table.insert(out, node)
+		for _, node in nodes do
+			node.transparency = WorldLayout.JAR_GLASS_TRANSPARENCY
+			node.canQuery = false
+			node.canTouch = false
+			table.insert(out, node)
+		end
 	end
 	return out
 end
@@ -1305,7 +1343,105 @@ local function jarLid(f: number, at: (Vec) -> Vec, yaw: number): WorldNode
 	local r = WorldLayout.jarRadius(f) + WorldLayout.JAR_WALL
 	local lid = disc("Lid", 1, r * 2, at({ 0, WorldLayout.floorTop(f + 1) - 0.5, 0 }), JAR_CORK, "Wood", yaw)
 	lid.attributes = { JarLid = f }
+	lid.transparency = 1 -- the roof's look is the jar trim mesh (cork lid or stopper)
 	return lid
+end
+
+-- Goo jar tower meshes (JarMeshes: every uploaded kit piece's box round its build anchor). jarLook makes the mesh slot
+-- for `mesh`: an invisible decor box exactly where the kit builder put the piece, round plot-local `anchor`, turned
+-- `turn` degrees (Roblox yaw) and scaled by `scale`. The primitives it replaces carry MeshStandIn = that mesh, so
+-- they hide (and keep their collision) once it lands.
+local function jarLook(
+	name: string,
+	mesh: string,
+	anchor: Vec,
+	at: (Vec) -> Vec,
+	yaw: number,
+	turn: number?,
+	scale: number?
+): WorldNode
+	local m = (JarMeshes :: any)[mesh]
+	assert(m, `no JarMeshes entry for {mesh}`)
+	local k = scale or 1
+	local t = math.rad(turn or 0)
+	local cx, cy, cz = m.centre[1] * k, m.centre[2] * k, m.centre[3] * k
+	local x = cx * math.cos(t) + cz * math.sin(t)
+	local z = -cx * math.sin(t) + cz * math.cos(t)
+	local size = { m.size[1] * k, m.size[2] * k, m.size[3] * k }
+	local pos = at({ anchor[1] + x, anchor[2] + cy, anchor[3] + z })
+	-- These meshes are built in game axes; MeshSwap turns a Part slot's mesh by MeshAssets.IMPORT_YAW (180), so the
+	-- slot turns half round more to undo it (measured in Studio: the drop tube's ends land where the builder put them).
+	local node = block(name, size, pos, JAR_CORK, nil, { 0, yaw + (turn or 0) + 180, 0 })
+	return meshSlot(node, mesh, true)
+end
+
+-- Glass slots: the mesh wears Glass at the mesh glass transparency (server/MeshSwap reads these).
+local function glassy(node: WorldNode): WorldNode
+	local a = node.attributes or {}
+	a.MeshMaterial = "Glass"
+	a.MeshTransparency = WorldLayout.JAR_GLASS_MESH_TRANSPARENCY
+	node.attributes = a
+	return node
+end
+
+-- A look shown only while jar `floor` is the top jar ("top") or only while a jar stands on it ("covered");
+-- server/BaseFloors flips JarHidden (and the mesh) as jars come and go. Built as jar `floor` alone on top.
+local function variant(node: WorldNode, floor: number, show: string): WorldNode
+	local a = node.attributes or {}
+	a.JarFloor = floor
+	a.JarShow = show
+	a.JarHidden = show == "covered"
+	node.attributes = a
+	return node
+end
+
+local function standIns(nodes: { WorldNode }, mesh: string)
+	for _, node in nodes do
+		standIn(node, mesh)
+	end
+end
+
+-- Height of a jar's neck (the top of its shoulder) above its floor.
+local function jarNeckY(): number
+	local sh = WorldLayout.JAR_SHAPE
+	return 0.2 + sh.wall + sh.shoulder[1] + sh.shoulder[2]
+end
+
+-- The looks of jar f: glass and trim in the "top" form (a narrow neck with the cork stopper, or the crowned lid on the
+-- last jar; hidden while a jar stands on it) and the mascot on its top cork (crowned on the last jar). Above floor 1
+-- also jar f - 1 in its "covered" form (a wide neck this jar stands in), this jar's deck, the stair up into it and the
+-- drop tube for a tower of f jars.
+local function jarLooks(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
+	local base = { 0, WorldLayout.floorTop(f), 0 }
+	local last = f >= #Config.BASE_FLOORS
+	local out = {
+		variant(glassy(jarLook("GlassTop", `goo_jar_glass_{f}_top`, base, at, yaw)), f, "top"),
+		variant(jarLook("TrimTop", `goo_jar_trim_{f}_top`, base, at, yaw), f, "top"),
+	}
+	local m = WorldLayout.MASCOT
+	local size = m.base + m.grow * f
+	local lidTop = WorldLayout.floorTop(f)
+		+ jarNeckY()
+		+ (if last then WorldLayout.JAR_SHAPE.lid else WorldLayout.JAR_SHAPE.cork)
+	table.insert(out, variant(jarLook("MascotLook", "goo_jar_mascot", { 0, lidTop, 0 }, at, yaw, 0, size), f, "top"))
+	if last then
+		local crown = { 0, lidTop + size * m.crownUp, 0 }
+		table.insert(out, variant(jarLook("CrownLook", "goo_jar_crown", crown, at, yaw, 0, size), f, "top"))
+	end
+	if f >= 2 then
+		-- jar f - 1 in its covered form (a wide neck this jar stands in): it only shows while this jar stands
+		local below = { 0, WorldLayout.floorTop(f - 1), 0 }
+		table.insert(out, glassy(jarLook("GlassBelow", `goo_jar_glass_{f - 1}_mid`, below, at, yaw)))
+		table.insert(out, jarLook("TrimBelow", `goo_jar_trim_{f - 1}_mid`, below, at, yaw))
+		table.insert(out, jarLook("DeckLook", `goo_jar_deck_{f}`, base, at, yaw))
+		-- the stair mesh is built on floor 1's treads; each floor's stair starts a quarter turn further round
+		local turn = -(WorldLayout.treadAngle(f - 1, 1) - WorldLayout.treadAngle(1, 1))
+		table.insert(out, jarLook("StairLook", "goo_jar_stair", below, at, yaw, turn))
+		local ground = { 0, WorldLayout.floorTop(1) - 1, 0 }
+		table.insert(out, variant(glassy(jarLook("TubeGlass", `goo_drop_tube_glass_{f}`, ground, at, yaw)), f, "top"))
+		table.insert(out, variant(jarLook("TubeGoo", `goo_drop_tube_goo_{f}`, ground, at, yaw), f, "top"))
+	end
+	return out
 end
 
 -- Plot-local landing point (x, y, z) of the drop tube: the splash pool behind the tower.
@@ -1322,7 +1458,11 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 	local at = frame(centre, yaw)
 	local color = PLOT_COLORS[(i - 1) % #PLOT_COLORS + 1]
 	local children: { WorldNode } = {}
-	for _, list in { jarDeck(f, at, yaw), jarWall(f, at, yaw), jarStair(f - 1, at, yaw) } do
+	local deck, wall, stair = jarDeck(f, at, yaw), jarWall(f, at, yaw), jarStair(f - 1, at, yaw)
+	standIns(deck, `goo_jar_deck_{f}`)
+	standIns(wall, `goo_jar_glass_{f}_top`)
+	standIns(stair, "goo_jar_stair")
+	for _, list in { deck, wall, stair, jarLooks(f, at, yaw) } do
 		for _, node in list do
 			table.insert(children, node)
 		end
@@ -1367,7 +1507,7 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 	)
 	for _, node in { arm, pipe } do
 		node.color, node.material, node.transparency = JAR_GOO, "Glass", WorldLayout.JAR_GLASS_TRANSPARENCY
-		table.insert(children, ghost(node, WorldLayout.JAR_GLASS_TRANSPARENCY))
+		table.insert(children, standIn(ghost(node, WorldLayout.JAR_GLASS_TRANSPARENCY), `goo_drop_tube_goo_{f}`))
 	end
 	if f == 2 then
 		local land = WorldLayout.dropLanding()
@@ -1386,6 +1526,11 @@ function WorldLayout.floor(i: number, f: number): { WorldNode }
 			)
 		)
 	end
+	for _, node in children do
+		if node.name == "SplashPool" then
+			standIn(node, "goo_drop_tube_goo_2")
+		end
+	end
 	local nodes: { WorldNode } =
 		{ { name = `Floor_{f}`, class = "Model", attributes = { FloorIndex = f }, children = children } }
 	for j = (f - 1) * Config.PADS_PER_FLOOR + 1, f * Config.PADS_PER_FLOOR do
@@ -1401,7 +1546,8 @@ local function plot(i: number): WorldNode
 	local r = { 0, yaw, 0 }
 	local color = PLOT_COLORS[(i - 1) % #PLOT_COLORS + 1]
 	local children: { WorldNode } = {
-		block("Base", { s, 1, s }, at({ 0, 0.5, 0 }), mix(color, PLOT_BASE_GREY, 0.55), "Pavement", r),
+		-- sand like the plaza round it, so the round jar foot reads (the plot colour is on the jar's trim and labels)
+		block("Base", { s, 1, s }, at({ 0, 0.5, 0 }), { 232, 214, 178 }, "Sand", r),
 	}
 	for j = 1, Config.PADS_PER_FLOOR do
 		table.insert(children, padNode(j, at, yaw, color))
@@ -1418,8 +1564,13 @@ local function plot(i: number): WorldNode
 	-- Jar 1 (the static part of the tower): the goo moat and the cork floor inside it (decor on the Base, which stays
 	-- the walking surface), the bridge to the door, the glass wall with the door, and the lid.
 	local moat = WorldLayout.MOAT
-	table.insert(children, ghost(disc("Moat", 0.2, moat.outer * 2, at({ 0, 1, 0 }), JAR_GOO, "Glass", yaw)))
-	table.insert(children, ghost(disc("JarFloor", 0.2, moat.inner * 2, at({ 0, 1.02, 0 }), JAR_CORK, "Wood", yaw)))
+	local moatDisc = ghost(disc("Moat", 0.2, moat.outer * 2, at({ 0, 1, 0 }), JAR_GOO, "Glass", yaw))
+	local floorDisc = ghost(disc("JarFloor", 0.2, moat.inner * 2, at({ 0, 1.02, 0 }), JAR_CORK, "Wood", yaw))
+	standIns({ moatDisc, floorDisc }, "goo_jar_foot")
+	table.insert(children, moatDisc)
+	table.insert(children, floorDisc)
+	local f1 = WorldLayout.floorTop(1)
+	table.insert(children, jarLook("FootLook", "goo_jar_foot", { 0, f1, 0 }, at, yaw))
 	local bridgeLen = s / 2 - WorldLayout.jarRadius(1)
 	local bridge = block(
 		"Bridge",
@@ -1431,9 +1582,26 @@ local function plot(i: number): WorldNode
 	)
 	bridge.canQuery = false
 	table.insert(children, bridge)
-	local jar: WorldNode = { name = "Jar", class = "Model", children = jarWall(1, at, yaw) }
+	local wall1 = jarWall(1, at, yaw)
+	standIns(wall1, "goo_jar_glass_1_top")
+	local jar: WorldNode = { name = "Jar", class = "Model", children = wall1 }
 	table.insert(jar.children :: { WorldNode }, jarLid(1, at, yaw))
 	table.insert(children, jar)
+	-- jar 1's mesh looks (decor slots) beside the solid Jar
+	table.insert(children, { name = "JarLooks", class = "Model", children = jarLooks(1, at, yaw) })
+	-- the round door, its lock ring (MeshTint: PlotDecor turns it red while locked) and the two stopper looks
+	-- (PlotDecor shows StopperShut while locked, StopperParked while open)
+	table.insert(children, jarLook("DoorLook", "goo_jar_door", { 0, f1, 0 }, at, yaw))
+	local ring = jarLook("DoorRing", "goo_jar_door_ring", { 0, f1, 0 }, at, yaw)
+	ring.color = { 168, 148, 110 }
+	local ringAttrs = ring.attributes or {}
+	ringAttrs.MeshTint = true
+	ring.attributes = ringAttrs
+	table.insert(children, ring)
+	local dz = WorldLayout.doorway().zOuter + 0.6
+	local dy = WorldLayout.DOOR.height / 2 + 0.1
+	table.insert(children, jarLook("StopperShut", "goo_jar_stopper", { 0, f1 + dy - 4.6, dz + 0.3 }, at, yaw))
+	table.insert(children, jarLook("StopperParked", "goo_jar_stopper", { -8.5, f1, dz - 3.2 }, at, yaw))
 
 	local vat = WorldLayout.VAT_SPOT
 	local vx, vz = polar(vat.radius, vat.angle)
@@ -1453,8 +1621,11 @@ local function plot(i: number): WorldNode
 
 	local bx, bz = WorldLayout.LOCK_BUTTON_SPOT[1], WorldLayout.LOCK_BUTTON_SPOT[2]
 	local button = disc("LockButton", 0.6, 4, at({ bx, 2.8, bz }), { 255, 70, 70 }, "Neon", yaw)
-	button.children = { block("Pedestal", { 5, 1.5, 5 }, at({ bx, 1.75, bz }), FENCE, "WoodPlanks", r) }
+	local pedestal = block("Pedestal", { 5, 1.5, 5 }, at({ bx, 1.75, bz }), FENCE, "WoodPlanks", r)
+	standIns({ button, pedestal }, "goo_lock_button")
+	button.children = { pedestal }
 	table.insert(children, button)
+	table.insert(children, jarLook("ButtonLook", "goo_lock_button", { bx, WorldLayout.floorTop(1), bz }, at, yaw))
 
 	-- Sign = jar 1's name label on the glass (PlotSigns writes on its Front face, which faces out of the jar).
 	local label = WorldLayout.LABEL

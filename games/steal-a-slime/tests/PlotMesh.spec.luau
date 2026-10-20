@@ -143,8 +143,8 @@ describe("pad stands", function()
 			end
 		end
 	end)
-	it("uses the one crate pad on every spot, with a constant seat", function()
-		expect(WorldLayout.PAD_MESH).toBe("phoenix_pad_crate")
+	it("uses the one cork stand on every spot, with a constant seat", function()
+		expect(WorldLayout.PAD_MESH).toBe("goo_cork_stand")
 		expect(WorldLayout.PAD_SEAT_Y).toBe(2.4)
 		for _, plot in plots do
 			for j = 1, Config.PADS_PER_FLOOR do

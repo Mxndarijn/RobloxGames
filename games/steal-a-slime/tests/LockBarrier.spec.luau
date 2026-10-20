@@ -58,15 +58,15 @@ describe("LockBarrier stopper", function()
 		expect(math.abs(door.zInner + (WorldLayout.jarRadius(1) - PlotLockGuard.MARGIN)) < EPS).toBe(true)
 	end)
 
-	it("closes the gap between the wall segments either side of the door", function()
+	it("closes the gap between the door jambs either side of the door", function()
 		local s = toLocal(barrier.children[1])
 		local found = 0
 		for _, seg in jar.children do
-			if seg.name == "Wall_2" or seg.name == `Wall_{WorldLayout.JAR_WALL_SEGMENTS}` then
+			if seg.name == "DoorJambL" or seg.name == "DoorJambR" then
 				found += 1
 				local p = toLocal(seg)
-				local a = math.atan2(p.z, p.x)
-				local tx, tz = -math.sin(a), math.cos(a)
+				-- the jambs are turned like the door segment (its tangent is the plot's x axis at the door)
+				local tx, tz = 1, 0
 				local best
 				for _, sign in { -1, 1 } do
 					local ex, ez = p.x + sign * tx * seg.size[1] / 2, p.z + sign * tz * seg.size[1] / 2

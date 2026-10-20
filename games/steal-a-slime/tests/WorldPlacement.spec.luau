@@ -316,6 +316,10 @@ describe("ground contact (TODO #9)", function()
 			if mesh == "slime_fountain_emerge" then
 				return
 			end
+			-- the goo jar tower's looks sit on jars and lids or round the door, by design (the stands and button stand)
+			if string.match(mesh, "^goo_jar_") or string.match(mesh, "^goo_drop_") then
+				return
+			end
 			n += 1
 			local p, size = node.pos :: Vec, node.size :: Vec
 			local bottom = p[2] - size[2] / 2
