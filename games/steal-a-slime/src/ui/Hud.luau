@@ -575,6 +575,7 @@ function Hud.new(parent: Instance, ctx: any)
 			friends = current.friends,
 			friendsEnabled = ctx.Config.FEATURES.FriendBonus == true,
 			blessed = current.blessed,
+			petPerk = current.petPerk,
 			featuredSecret = current.featuredSecret,
 		}, now, Layout.STATUS.count)
 		local parts = {}

@@ -21,12 +21,14 @@ local PetFollow = if script then require(script.Parent.PetFollow) else require("
 
 local PetCloud = {}
 
+PetCloud.PET_SIZE = 1.5 -- studs: a pet's longest visible side, whatever the slime's size (a hand-sized pet)
+PetCloud.PET_MAX_SCALE = 0.55 -- a pet is never more than this x the slime as built
 PetCloud.MESH = "pet_cloud" -- MeshAssets name, and the template's name in the folder
 PetCloud.FOLDER = "PetCloudMeshes" -- ReplicatedStorage folder the server publishes the template into
-PetCloud.CLOUD_SCALE = 0.9 -- smallest scale, of the native 3.3 x 1.2 x 2.4 mesh
+PetCloud.CLOUD_SCALE = 0.55 -- smallest scale, of the native 3.3 x 1.2 x 2.4 mesh
 PetCloud.CLOUD_FIT = 1.15 -- the cloud is at least this x the slime's visible width and depth
-PetCloud.CLOUD_MAX_SCALE = 1.6 -- a huge slime overhangs its cloud rather than riding a giant one
-PetCloud.CLOUD_SINK = 0.12 -- the slime's foot sinks this far into the cloud's top (studs)
+PetCloud.CLOUD_MAX_SCALE = 0.8 -- a wide pet overhangs its cloud rather than riding a giant one
+PetCloud.CLOUD_SINK = 0.08 -- the slime's foot sinks this far into the cloud's top (studs)
 PetCloud.CLOUD_NAME = "Cloud"
 PetCloud.MOUNT_NAME = "Mount"
 PetCloud.SLIME_NAME = "Slime"
@@ -64,6 +66,16 @@ function PetCloud.visibleBox(model: Model): (Vector3, Vector3)
 		return box.Position, size
 	end
 	return (lo + hi) / 2, hi - lo
+end
+
+-- Factor that shrinks a slime whose visible box is `slime` big to a pet: its longest side becomes PET_SIZE, at most
+-- PET_MAX_SCALE. Multiply the model's current scale by it.
+function PetCloud.petScale(slime: Vector3): number
+	local longest = math.max(slime.X, slime.Y, slime.Z)
+	if not (longest > 0) then
+		return PetCloud.PET_MAX_SCALE
+	end
+	return math.min(PetCloud.PET_SIZE / longest, PetCloud.PET_MAX_SCALE)
 end
 
 -- Scale of the cloud under a slime whose visible box is `slime` big: CLOUD_SCALE, more for a wide slime, at most

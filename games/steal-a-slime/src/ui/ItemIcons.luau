@@ -80,6 +80,7 @@ ItemIcons.IMAGES = {
 	MysteryEgg = 140462029142577,
 	Perk_income = 94766482619711,
 	Perk_luck = 80060700315838,
+	Pet = 118993346386827,
 	PlotSkin_candy = 75125399713715,
 	PlotSkin_classic = 75405645541984,
 	PlotSkin_crystal = 91231773101915,
@@ -268,6 +269,14 @@ local HAND: { Hand } = {
 		color = { 90, 200, 100 },
 		glyph = "🍀",
 		brief = "A green clover leaf with a ladybug on it, front view.",
+	},
+	{
+		id = "Pet",
+		name = "Pet bonus",
+		group = "boost",
+		color = { 255, 150, 60 },
+		glyph = "💗",
+		brief = "An orange slime with a red collar and a gold heart tag, riding a small light-blue cloud; front view.",
 	},
 	{
 		id = "Event_luck",

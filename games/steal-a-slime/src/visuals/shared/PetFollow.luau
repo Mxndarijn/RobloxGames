@@ -29,15 +29,15 @@ export type State = {
 
 local PetFollow = {}
 
-PetFollow.OFFSET_X = 2.6 -- right of the owner
-PetFollow.OFFSET_Z = 3.2 -- behind the owner
-PetFollow.OFFSET_Y = -1.6 -- from the HumanoidRootPart centre to the cloud centre (feet at -3, cloud hovers ~0.8 above)
+PetFollow.OFFSET_X = 2.1 -- right of the owner
+PetFollow.OFFSET_Z = 2.4 -- behind the owner
+PetFollow.OFFSET_Y = -1.7 -- from the HumanoidRootPart centre to the cloud centre (feet at -3, cloud hovers ~1 above)
 PetFollow.OMEGA = 9 -- spring stiffness (1/s): ~0.5 s to settle, ~3.5 studs of lag at a 16 stud/s sprint
 PetFollow.YAW_RATE = 8 -- 1/s
 PetFollow.TURN_SPEED = 1.5 -- studs/s of own horizontal speed above which the pet faces its travel direction
 PetFollow.SNAP_DISTANCE = 60
 PetFollow.MAX_DT = 0.25 -- a hitch longer than this is treated as 0.25 s
-PetFollow.BOB_AMPLITUDE = 0.18
+PetFollow.BOB_AMPLITUDE = 0.14
 PetFollow.BOB_RATE = 3.2 -- rad/s
 
 function PetFollow.new(phase: number?): State
