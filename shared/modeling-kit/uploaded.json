@@ -2210,15 +2210,15 @@
   "slime_lane": {
     "assetId": "87473643950432",
     "assetType": "Model",
-    "meshId": "rbxassetid://135233109223925",
+    "meshId": "rbxassetid://115422391363157",
     "meshSize": [
-      139.095,
+      142.599,
       0.43,
-      135.756
+      139.246
     ],
-    "sha256": "16df4b72178881b8",
-    "uploadedAt": "2026-10-18T14:59:53Z",
-    "versions": 4
+    "sha256": "221e4e1a08b667c1",
+    "uploadedAt": "2026-10-19T22:16:38Z",
+    "versions": 5
   },
   "slime_lop": {
     "assetId": "107798862734190",

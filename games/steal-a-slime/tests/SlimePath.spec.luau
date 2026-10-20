@@ -11,6 +11,7 @@ local WorldLayout = require("../src/visuals/shared/WorldLayout")
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local HW = ParadeLane.HALF_WIDTH
+local TAPER_STEP = 0.3 -- studs a drain-taper piece may fall short of halfWidthAt at its far end
 local FOUNTAIN_BODY_RADIUS = 14.5 -- BasinRim, the widest solid part of the fountain (Volcano Rock1 / BasinRim)
 
 type Rect = { cx: number, cz: number, ux: number, uz: number, hl: number, hw: number }
@@ -294,14 +295,14 @@ describe("slime path is flush", function()
 		end
 	end)
 	it("the crown falls to the ground at the lane's edges: a soft rounded edge, not a step", function()
-		local r = ParadeLane.CROWN_RADIUS
-		local edge = ParadeLane.LANE_Y - (r - math.sqrt(r * r - ParadeLane.HALF_WIDTH ^ 2))
-		expect(math.abs(edge) < 0.01).toBe(true)
-		-- every piece is the same section, so neighbours match in width and height at their joint
+		-- every piece is the section of its own width (the same round the loop, narrowing through the drain taper)
 		for _, strip in ParadeLane.strips() do
+			local r = ParadeLane.crownRadius(strip.width / 2)
 			expect(strip.size[2]).toBe(strip.size[3])
 			expect(strip.size[2]).toBe(r * 2)
+			expect(math.abs(ParadeLane.LANE_Y - (r - math.sqrt(r * r - (strip.width / 2) ^ 2))) < 0.01).toBe(true)
 		end
+		expect(ParadeLane.crownRadius(ParadeLane.HALF_WIDTH)).toBe(ParadeLane.CROWN_RADIUS)
 	end)
 	it("has no gap: the centreline and both edges are covered at every vertex and every 0.5 studs", function()
 		local pts = ParadeLane.drawPoints()
@@ -311,8 +312,12 @@ describe("slime path is flush", function()
 			local len = math.sqrt(dx * dx + dz * dz)
 			local ux, uz = dx / len, dz / len
 			for s = 0, len, 0.5 do
-				for _, lateral in { -HW + 0.02, 0, HW - 0.02 } do
-					expect(covered(RECTS, a[1] + ux * s - uz * lateral, a[2] + uz * s + ux * lateral)).toBe(true)
+				-- in the drain taper each piece is as wide as its middle: up to TAPER_STEP narrower at its far end
+				local x, z = a[1] + ux * s, a[2] + uz * s
+				local hw = ParadeLane.halfWidthAt(x, z)
+				local edge = if hw < HW - 1e-6 then hw - TAPER_STEP else HW - 0.02
+				for _, lateral in { -edge, 0, edge } do
+					expect(covered(RECTS, x - uz * lateral, z + ux * lateral)).toBe(true)
 				end
 			end
 		end

@@ -55,6 +55,9 @@ export type Entry = {
 	flag: Flag?,
 }
 
+local MeshAssets = require("../src/shared/MeshAssets")
+local ParadeLane = require("../src/shared/ParadeLane")
+
 local PropCollision = {}
 
 local FIDELITIES = { Box = true, Hull = true, Default = true, PreciseConvexDecomposition = true }
@@ -385,12 +388,13 @@ mesh(
 parts(
 	"parade_lane",
 	"jolt",
-	1,
+	-- the one lane mesh once it is uploaded, else its ParadeLane.strips() stand-ins (Lane1..n)
+	if MeshAssets.meshId(ParadeLane.MESH) then 1 else #ParadeLane.strips(),
 	"off",
 	"Map.Plaza.ParadeLane",
-	{ "^Lane$" },
+	{ "^Lane%d*$" },
 	"off",
-	"the goo parade lane: one 0.43-stud-thick curved strip on the ground that walkers cross",
+	"the goo parade lane: one 0.43-stud-thick curved strip on the ground that walkers cross (or its flat strip stand-ins)",
 	{ walk = false, flag = { name = "Parade", off = 0 } }
 )
 
