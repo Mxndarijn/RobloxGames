@@ -208,13 +208,25 @@ end
 -- Panel header above the list (Panels/Dex, design px): the big percent on the left and the count chips beside
 -- it, wrapping onto more rows on a narrow body. Compact (short bodies): a smaller percent and one chip row.
 SlimeDex.HEADER = table.freeze({
-	percent = 44, -- big percent block height
-	percentW = 96,
-	compactW = 60, -- percent width in the compact header
+	percent = 60, -- big percent block height
 	chip = 26,
 	chipGap = 6,
 	gap = 8, -- header to list
 })
+-- Advance width (em) of the percent's characters in Theme.Font (FredokaOne), from Studio TextService at 26 and
+-- 56 px, rounded up so small sizes still fit.
+local PERCENT_EM = table.freeze({ ["1"] = 0.35, ["%"] = 0.73 })
+local DIGIT_EM = 0.53
+
+-- Width (px) of percent text like "42%" at `size`, so the chips can start right after it.
+function SlimeDex.percentWidth(text: string, size: number): number
+	local em = 0
+	for i = 1, #text do
+		em += PERCENT_EM[string.sub(text, i, i)] or DIGIT_EM
+	end
+	return math.ceil(em * size)
+end
+
 -- The list keeps at least one rarity header and part of a card visible + scroll padding.
 SlimeDex.MIN_LIST = 72 + 12
 

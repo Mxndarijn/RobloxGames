@@ -38,6 +38,7 @@ local StealAlert = require(Shared:WaitForChild("StealAlert"))
 local TripleMerge = require(Shared:WaitForChild("TripleMerge"))
 local Types = require(Shared:WaitForChild("Types"))
 
+local DexJarView = require(script.DexJarView)
 local Format = require(script.Format)
 local Hint = require(script.Hint)
 local Hud = require(script.Hud)
@@ -398,6 +399,7 @@ type NavButton = {
 	icon: any, -- ItemIconView handle
 	stroke: UIStroke,
 	badge: TextLabel,
+	jar: DexJarView.View?, -- the SlimeDex tile's slime jar
 }
 
 local NAV_TILE_COLOR = Color3.fromRGB(58, 36, 110) -- the money plate's purple, like the reference tiles
@@ -420,6 +422,9 @@ local function styleNav(btn: NavButton, selected: boolean)
 	btn.label.TextColor3 = if selected then Theme.Accent else Theme.Text
 	btn.stroke.Color = if selected then Color3.new(1, 1, 1) else Color3.fromRGB(10, 10, 20)
 	btn.stroke.Thickness = if selected then 4 else 3
+	if btn.jar then
+		btn.jar.setSelected(selected)
+	end
 end
 
 -- Open state is derived from the cards' own Visible: the backdrop, nav
@@ -705,6 +710,12 @@ if soundPanel then
 	player:GetAttributeChangedSignal("AudioMuted"):Connect(refreshIcon)
 end
 
+-- Reduced Motion: Roblox's own setting or the game's (the LocalPlayer attribute HabitatFx reads too).
+local function reducedMotion(): boolean
+	return (GuiService :: any).ReducedMotionEnabled == true
+		or player:GetAttribute(Config.HABITAT_ANIM.REDUCED_ATTRIBUTE) == true
+end
+
 for _, entry in panels do
 	local navEntry = entry.nav :: Nav.Entry
 	local button = Widgets.create("TextButton", {
@@ -728,6 +739,7 @@ for _, entry in panels do
 		Name = "Icon",
 		Id = navEntry.item,
 		Size = Layout.NAV.tile - Layout.NAV.iconInset * 2,
+		ZIndex = Layout.NAV_TILE_Z.icon,
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Parent = tile,
@@ -777,6 +789,7 @@ for _, entry in panels do
 		icon = icon,
 		stroke = stroke,
 		badge = badge,
+		jar = if entry.key == "Dex" then DexJarView.new(tile, reducedMotion) else nil,
 	}
 end
 
@@ -866,6 +879,9 @@ local function layoutNav(s: Layout.Screen)
 		btn.label.Position = UDim2.fromOffset(0, tileSize + N.labelGap)
 		btn.label.Size = UDim2.fromOffset(math.round(b.w), labelH)
 		btn.label.TextSize = if s.compact then N.clabelSize else N.labelSize
+		if btn.jar then
+			btn.jar.relayout()
+		end
 	end
 end
 
@@ -1009,8 +1025,11 @@ local function updateBadges(state: Types.State)
 		btn.badge.Visible = text ~= nil
 		if text then
 			btn.badge.Text = text
-			btn.badge.BackgroundColor3 = if text == "!" then Theme.Bad else Theme.Info
 		end
+	end
+	local dex = navButtons.Dex
+	if dex and dex.jar then
+		dex.jar.update(DexJarView.progress(state))
 	end
 end
 
