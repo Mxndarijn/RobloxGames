@@ -388,11 +388,11 @@ entries["goo_drop_tube_glass_3"] =
 entries["goo_drop_tube_glass_4"] =
 	{ assetId = 93007991700620, meshId = "rbxassetid://82544594440289", size = { 10.992, 53.871, 19.174 } }
 entries["goo_drop_tube_goo_2"] =
-	{ assetId = 86160375582751, meshId = "rbxassetid://86837847473510", size = { 11.423, 21.3, 17.763 } }
+	{ assetId = 86160375582751, meshId = "rbxassetid://117380863850397", size = { 11.56, 21.932, 18.183 } }
 entries["goo_drop_tube_goo_3"] =
-	{ assetId = 120298905383196, meshId = "rbxassetid://136440803032547", size = { 12.449, 37.332, 20.582 } }
+	{ assetId = 120298905383196, meshId = "rbxassetid://94152959384542", size = { 12.586, 37.83, 20.984 } }
 entries["goo_drop_tube_goo_4"] =
-	{ assetId = 138133715514605, meshId = "rbxassetid://88184391101615", size = { 13.304, 53.322, 22.931 } }
+	{ assetId = 138133715514605, meshId = "rbxassetid://79300270108493", size = { 13.541, 53.83, 23.333 } }
 entries["goo_jar_crown"] =
 	{ assetId = 71380888344034, meshId = "rbxassetid://104778303876847", size = { 0.787, 0.52, 0.809 } }
 entries["goo_jar_deck_2"] =
