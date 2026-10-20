@@ -46,7 +46,7 @@ Knockback caps (`KNOCKBACK_MAX_PUSH`, `KNOCKBACK_ARC_HEIGHT`, `KNOCKBACK_BOUNDS_
 
 ## Goo Traps
 
-Buying gives one trap charge (a stack, like consumables); at most 5 per tier. Click the ground to throw one (one charge). At most 5 live traps per player; a 6th removes the oldest. A trap lasts 3 minutes or until it catches someone. Charges are saved, live traps are not. The owner sees their traps glowing; others see a faint shimmer.
+Buying gives one trap charge (a stack, like consumables); at most 5 per tier. Click the ground to throw one (one charge). At most 5 live traps per player; a 6th removes the oldest. A trap lasts 3 minutes or until it catches someone. Charges are saved, live traps are not. Everyone sees every trap: the owner sees their own glowing green, everyone else sees them red. Players who join later see the traps already placed.
 
 | Trap | Radius | Effect |
 |---|---|---|
