@@ -166,7 +166,7 @@ function SlimeGait.shape(stage: string, u: number, height: number, kind: string)
 	local o: Shape = { lift = 0, sx = 1, sy = 1, tilt = 0, face = nil, vy = 0 }
 	if stage == "crouch" then
 		local c = smooth(u)
-		o.sy = 1 - 0.24 * k * c
+		o.sy = 1 - 0.18 * k * c
 		o.sx = 1 + 0.16 * k * c
 		o.tilt = -0.1 * c -- leans back, loading the spring
 		o.face = if kind == "boing" then "excited" else nil
@@ -174,8 +174,8 @@ function SlimeGait.shape(stage: string, u: number, height: number, kind: string)
 		o.lift = height * 4 * u * (1 - u)
 		o.vy = height * 4 * (1 - 2 * u)
 		local st = math.abs(math.cos(math.pi * u)) ^ 1.6 -- stretched while fast, round at the top
-		o.sy = 1 + 0.3 * k * st
-		o.sx = 1 - 0.15 * k * st
+		o.sy = 1 + 0.22 * k * st
+		o.sx = 1 - 0.11 * k * st
 		o.tilt = 0.18 * -math.cos(math.pi * u) -- nose up going up, nose down coming down
 		if kind == "boing" then
 			o.tilt = 2 * math.pi * smooth((u - 0.12) / 0.72) -- a full forward flip
@@ -189,17 +189,17 @@ function SlimeGait.shape(stage: string, u: number, height: number, kind: string)
 	else
 		if kind == "belly" then
 			if u < 0.55 then
-				o.sy = 0.5 + 0.05 * math.sin(u * 30) * (1 - u / 0.55)
-				o.sx = 1.45
+				o.sy = 0.68 + 0.04 * math.sin(u * 12) * (1 - u / 0.55)
+				o.sx = 1.22
 				o.face = "dizzy"
 			else
 				local v = u - 0.55
-				o.sy = 1 - 0.5 * math.exp(-6 * v) * math.cos(12 * v)
+				o.sy = 1 - 0.32 * math.exp(-6 * v) * math.cos(12 * v)
 				o.sx = 1 / math.sqrt(math.max(0.4, o.sy))
 				o.face = if v < 0.3 then "dizzy" else nil
 			end
 		else
-			local a = (if kind == "boing" then 0.48 elseif kind == "small" then 0.16 else 0.32) * k
+			local a = (if kind == "boing" then 0.32 elseif kind == "small" then 0.12 else 0.22) * k
 			o.sy = 1 - a * math.exp(-7 * u) * math.cos(17 * u) -- splat, then a jelly wobble that dies out
 			o.sx = 1 / math.sqrt(math.max(0.4, o.sy))
 			if u < 0.12 then

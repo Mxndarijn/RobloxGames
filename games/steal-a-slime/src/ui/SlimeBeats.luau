@@ -153,7 +153,7 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 	elseif kind == "hide" then
 		if phase == "stop" then
 			local v = math.sin(math.pi * math.clamp(u * 1.2, 0, 1))
-			p.sy = 1 - 0.35 * v
+			p.sy = 1 - 0.25 * v
 			p.sx = 1 + 0.15 * v
 			p.roll = math.sin(now * 12) * 0.025 * v
 			p.yaw = math.sin(now * 2) * 0.8 * v
