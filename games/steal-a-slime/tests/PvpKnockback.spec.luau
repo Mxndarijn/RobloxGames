@@ -121,14 +121,15 @@ describe("Knockback geometry", function()
 			expect(corner.X <= limit and corner.Z <= limit).toBe(true)
 		end
 	end)
-	it("a coincident target is pushed along +Z; the launch velocity covers the push in KNOCKBACK_SECONDS", function()
+	it("a coincident target is pushed along +Z; the launch velocity covers the push in its flight time", function()
 		local tool = PvpRules.tool("KnockGlove3") :: any
 		local _, push = PvpKnockbackRules.plan(tool, ATTACKER, ATTACKER)
-		expect(math.abs(push.Z - 7) < 1e-9 and math.abs(push.X) < 1e-9).toBe(true)
+		expect(math.abs(push.Z - tool.push) < 1e-9 and math.abs(push.X) < 1e-9).toBe(true)
 		local v = PvpKnockbackRules.velocity(push, 196.2)
-		expect(math.abs(v.Z * Config.PVP.KNOCKBACK_SECONDS / Config.PVP.KNOCKBACK_FRICTION_BOOST - push.Z) < 1e-9).toBe(
-			true
-		)
+		expect(
+			math.abs(v.Z * PvpKnockbackRules.flightSeconds(push, 196.2) / Config.PVP.KNOCKBACK_FRICTION_BOOST - push.Z)
+				< 1e-9
+		).toBe(true)
 		expect(v.Y > 0).toBe(true)
 	end)
 end)
@@ -139,7 +140,7 @@ describe("Knockback use", function()
 		expect(use(world, a, nil, T0 + 1)).toBe(true)
 		expect(#moves).toBe(1)
 		expect(moves[1].userId).toBe(2)
-		expect(math.abs(moves[1].push.X - 5) < 1e-9).toBe(true)
+		expect(math.abs(moves[1].push.X - (PvpRules.tool("KnockGlove1") :: any).push) < 1e-9).toBe(true)
 		expect(events()[1].target).toBeNil()
 		local e = events()[1].payload
 		expect(e.kind).toBe("Effect")
@@ -147,7 +148,7 @@ describe("Knockback use", function()
 		expect(e.attacker).toBe(1)
 		expect(e.target).toBe(2)
 		expect(e.itemId).toBe("KnockGlove1")
-		expect(math.abs(e.push - 5) < 1e-9).toBe(true)
+		expect(math.abs(e.push - (PvpRules.tool("KnockGlove1") :: any).push) < 1e-9).toBe(true)
 		expect(e.duration).toBe(Config.PVP.FX_SECONDS)
 		expect(e.velocity).toEqual(PvpKnockbackRules.velocity(moves[1].push)) -- the victim's client applies the same push
 		expect(e.position).toEqual(positions[2])
@@ -191,7 +192,12 @@ describe("Knockback use", function()
 	it("a power punch pushes 1.5x and doubles the cooldown", function()
 		local world, a = setup()
 		expect(use(world, a, nil, T0 + 1, true)).toBe(true)
-		expect(math.abs(PvpKnockbackRules.horizontal(moves[1].push) - 5 * Config.PVP.CHARGE_PUSH) < 1e-9).toBe(true)
+		expect(
+			math.abs(
+				PvpKnockbackRules.horizontal(moves[1].push)
+					- (PvpRules.tool("KnockGlove1") :: any).push * Config.PVP.CHARGE_PUSH
+			) < 1e-9
+		).toBe(true)
 		expect(knockEffects()[1].charged).toBe(true)
 		expect(PvpService.state(a).cooldowns.KnockGlove1).toBe(T0 + 1 + 1.5 * Config.PVP.CHARGE_COOLDOWN)
 		done()
@@ -201,7 +207,7 @@ describe("Knockback use", function()
 		expect(use(world, a, "KnockGlove5", T0 + 1, true)).toBe(true)
 		local push = moves[1].push
 		expect(PvpKnockbackRules.horizontal(push) <= Config.PVP.KNOCKBACK_MAX_PUSH + 1e-9).toBe(true)
-		expect(push.Y).toBe(6)
+		expect(push.Y).toBe((PvpRules.tool("KnockGlove5") :: any).arc)
 		expect(knockEffects()[1].special).toBe("royal")
 		done()
 	end)
@@ -214,7 +220,7 @@ describe("Knockback use", function()
 		expect(moves[1].push.Y).toBe(6)
 		done()
 	end)
-	it("Boom: the blast also pushes everyone within 5 studs of the target, away from it", function()
+	it("Boom: the blast also pushes everyone within its blast radius of the target, away from it", function()
 		local world, a = setup("KnockGlove3")
 		third(world, { X = 208, Y = 3, Z = -200 }) -- 3 studs past the target
 		expect(use(world, a, "KnockGlove3", T0 + 1)).toBe(true)
@@ -239,7 +245,10 @@ describe("Knockback use", function()
 		expect(use(world, a, "KnockGlove4", T0 + 1)).toBe(true)
 		expect(#moves).toBe(3) -- the target + 2 chained
 		for i = 2, 3 do
-			expect(math.abs(PvpKnockbackRules.horizontal(moves[i].push) - 7.5 * 0.5) < 1e-9).toBe(true)
+			expect(
+				math.abs(PvpKnockbackRules.horizontal(moves[i].push) - (PvpRules.tool("KnockGlove4") :: any).push * 0.5)
+					< 1e-9
+			).toBe(true)
 		end
 		done()
 	end)
