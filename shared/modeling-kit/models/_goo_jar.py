@@ -33,13 +33,15 @@ EYE_W, EYE_D = rgb(246, 250, 250), rgb(56, 42, 38)
 FLOOR_H = D["floorHeight"]
 FLOORS = len(D["floors"])
 SHAPE = D["jarShape"]
-WALL_H = SHAPE["wall"]  # straight glass above the floor, then the shoulder
-SHOULDER = tuple(SHAPE["shoulder"])  # the two shoulder steps' heights
-NECK_Z = 0.2 + WALL_H + sum(SHOULDER)  # top of the shoulder, bottom of the neck/lid
+WALL_H = SHAPE["wall"]  # a covered jar: straight glass above the floor, then the rounded shoulder in to the next jar
+SHOULDER_H = SHAPE["shoulder"]
+NECK_Z = 0.2 + WALL_H + SHOULDER_H  # a covered jar's neck: the next jar stands in its lid here
+TOP_WALL, TOP_DOME = SHAPE["topWall"], SHAPE["topDome"]  # the top jar: straight glass, then a round dome
 TOP_NECK = SHAPE["topNeck"]  # the top jar's neck, as a share of its radius
+LIP = SHAPE["lip"]  # the glass lip round the top jar's neck, the cork sits on it
 CORK_H, LID_H = SHAPE["cork"], SHAPE["lid"]
-SEGS = 48
-
+DOOR_H = D["door"]["height"]
+SEGS = 64
 
 def radius(f):
     return D["floors"][f - 1]["radius"]
@@ -49,6 +51,31 @@ def neck(f, top):
     """Neck radius of jar f: the next jar's radius (it stands on this lid) or, for the top jar, a narrow neck."""
     return radius(f) * TOP_NECK if top or f >= FLOORS else radius(f + 1) - 0.6
 
+
+def wall_top(f, top):
+    """Height of jar f's straight glass: jar 1's clears its door, so its shoulder or dome starts above the door."""
+    w = 0.2 + (TOP_WALL if top else WALL_H)
+    return max(w, DOOR_H + 0.3) if f == 1 else w
+
+
+def neck_z(f, top):
+    """Height of jar f's neck: the top of its shoulder (covered) or of its dome (top). The top jar's lip sits above."""
+    return wall_top(f, top) + (TOP_DOME if top else max(1.2, NECK_Z - wall_top(f, top)))
+
+
+def glass_profile(f, top):
+    """Jar f's glass outline (r, z) from its rounded foot under the floor to the neck (and the top jar's lip): a quarter
+    ellipse from the straight wall in to the neck, so the jar rounds over instead of stopping."""
+    r, nk = radius(f), neck(f, top)
+    wt, nz = wall_top(f, top), neck_z(f, top)
+    pts = [(r - 1.8, -1.2), (r, 0.2), (r, wt)]
+    steps = 8 if top else 5
+    for k in range(1, steps + 1):
+        t = k / steps * math.pi / 2
+        pts.append((nk + (r - nk) * math.cos(t), wt + (nz - wt) * math.sin(t)))
+    if top:
+        pts.append((nk, nz + LIP))
+    return pts
 
 def door_half_angle():
     return math.degrees(math.asin((D["door"]["width"] / 2 + 0.3) / radius(1)))
@@ -126,59 +153,62 @@ def ooze(name, r, z_rim, thick, drops, seed):
 
 # --- Pieces --------------------------------------------------------------------------------------------------------
 def jar_glass(f, top):
-    """Jar f's glass shell from just under its floor to its neck: a rounded glass foot, the straight wall (jar 1 with
-    the door cut out below the door's top), and the two-step shoulder. Material Glass in the game (MeshMaterial)."""
+    """Jar f's glass shell (Glass in the game, MeshMaterial): the rounded foot, the straight wall (jar 1 with the door
+    cut out below the door's top), the shoulder or dome rounding in to the neck, a rounded glass bead on the rim, and
+    two soft shine streaks down the front-left (white, so they show faintly through the transparency)."""
+    prof = glass_profile(f, top)
     r, nk = radius(f), neck(f, top)
-    sh = r - (r - nk) * 0.38
-    door_top = D["door"]["height"]
-    lower = [(r - 1.8, -1.2), (r, 0.2)]
+    parts = []
     if f == 1:
         ha = door_half_angle()
-        parts = [lathe("GlassFoot", lower, GLASS),
-                 lathe("GlassLow", [(r, 0.2), (r, door_top)], GLASS, a0=-90 + ha, a1=270 - ha),
-                 lathe("GlassHigh", [(r, door_top), (r, 0.2 + WALL_H), (sh, 0.2 + WALL_H + SHOULDER[0]), (nk, NECK_Z)], GLASS)]
+        low = [p for p in prof if p[1] <= DOOR_H]
+        high = [(r, DOOR_H)] + [p for p in prof if p[1] > DOOR_H]
+        parts += [lathe("GlassLow", low + [(r, DOOR_H)], GLASS, a0=-90 + ha, a1=270 - ha), lathe("GlassHigh", high, GLASS)]
     else:
-        parts = [lathe("Glass", lower + [(r, 0.2 + WALL_H), (sh, 0.2 + WALL_H + SHOULDER[0]), (nk, NECK_Z)], GLASS)]
+        parts.append(lathe("Glass", prof, GLASS))
+    rim_z = prof[-1][1]
+    parts.append(loop("Rim", nk + 0.05, 0.32, (0, 0, rim_z), "z", mix(GLASS, CREAM, 0.4), segs=SEGS))
+    shine = [(pr + 0.07, pz) for pr, pz in prof if pz >= 0.6 and pz <= prof[-1][1] - 0.3]
+    for k, (a0, a1) in enumerate(((-128.0, -125.0), (-120.0, -118.6))):
+        parts.append(lathe(f"Shine{k}", shine, rgb(255, 255, 255), a0=a0, a1=a1, segs=360, double=False))
     return parts
 
-
 def jar_trim(f, top, crown=False):
-    """Jar f's opaque trim: brass ribs up the wall and over the shoulder, the threaded neck, the cork lid (a band the
-    next jar stands in, or the top jar's tall stopper / flat crown lid), goo oozing from under the lid with teardrop
-    drips, goo smears on the glass, and (above floor 1) the jam-jar label in the plot colour with goo floor dots."""
+    """Jar f's opaque trim: brass ribs up the wall and over the shoulder or dome to the neck, the threaded neck, the cork
+    (a ring the next jar stands in, the top jar's tall stopper, or the crowned last jar's flat lid), goo oozing over the
+    lid with teardrop drips, goo smears on the glass, and above floor 1 the jam-jar label with goo floor dots."""
     r, nk = radius(f), neck(f, top)
-    sh = r - (r - nk) * 0.38
-    wt = 0.2 + WALL_H
+    prof = [p for p in glass_profile(f, top) if p[1] >= 0.2]
+    nz = neck_z(f, top)
     out = []
     ha = door_half_angle() if f == 1 else 0
-    for k, (x, y) in enumerate(ring_xy(8, r + 0.15, math.pi / 8)):
+    for k, (x, y) in enumerate(ring_xy(8, 1.0, math.pi / 8)):
         a = math.degrees(math.atan2(y, x))
         if f == 1 and abs(((a + 90 + 180) % 360) - 180) < ha + 2:
             continue  # no rib over the door
-        ux, uy = x / (r + 0.15), y / (r + 0.15)
-        out.append(cylinder(f"Rib{k}", 0.35, WALL_H, (x, y, 0.2), METAL, segs=6))
-        out.append(tube(f"RibTop{k}", [(ux * (r + 0.15), uy * (r + 0.15), wt), (ux * (sh + 0.15), uy * (sh + 0.15), wt + SHOULDER[0]),
-                                       (ux * (nk + 0.2), uy * (nk + 0.2), NECK_Z)], [0.35] * 3, METAL, segs=6))
+        pts = [(x * (pr + 0.18), y * (pr + 0.18), pz) for pr, pz in prof]
+        out.append(tube(f"Rib{k}", pts, [0.35] * len(pts), METAL, segs=6))
+    lip_top = nz + (LIP if top else 0.0)
     for k in range(2):
-        out.append(cylinder(f"Thread{k}", nk + 0.6, 0.45, (0, 0, NECK_Z + 0.2 + k * 0.7), METAL, segs=SEGS))
+        out.append(cylinder(f"Thread{k}", nk + 0.55, 0.4, (0, 0, lip_top - 0.75 + k * 0.55), METAL, segs=SEGS))
     if top and not crown:  # the top jar while growing: a tall cork stopper, wider at the top
-        out.append(painted(cylinder("Cork", nk + 0.2, CORK_H, (0, 0, NECK_Z), CORK, segs=SEGS, r_top=nk + 1.0), shade(CORK, 0.8), CORK))
-        out.append(cylinder("CorkRing", nk + 1.1, 0.5, (0, 0, NECK_Z + CORK_H - 0.8), shade(CORK, 0.88), segs=SEGS))
-        lid_top = NECK_Z + CORK_H
-    elif top:  # the crowned top jar: a flat cork lid the mascot sits on
-        out.append(painted(cylinder("Lid", nk + 0.3, LID_H, (0, 0, NECK_Z), CORK, segs=SEGS), shade(CORK, 0.85), CORK))
-        lid_top = NECK_Z + LID_H
+        out.append(painted(cylinder("Cork", nk + 0.1, CORK_H, (0, 0, lip_top), CORK, segs=SEGS, r_top=nk + 0.9), shade(CORK, 0.8), CORK))
+        out.append(cylinder("CorkRing", nk + 1.0, 0.5, (0, 0, lip_top + CORK_H - 0.8), shade(CORK, 0.88), segs=SEGS))
+        lid_top = lip_top + CORK_H
+    elif top:  # the crowned last jar: a flat cork lid the mascot sits on
+        out.append(painted(cylinder("Lid", nk + 0.4, LID_H, (0, 0, lip_top), CORK, segs=SEGS), shade(CORK, 0.85), CORK))
+        lid_top = lip_top + LID_H
     else:  # a cork ring the next jar stands in (its deck covers the middle, the stair comes up through it)
         inner = radius(f + 1) - 1.2
-        out.append(painted(lathe("Lid", [(nk + 0.3, NECK_Z), (nk + 0.3, NECK_Z + LID_H), (inner, NECK_Z + LID_H)], CORK, double=False),
+        out.append(painted(lathe("Lid", [(nk + 0.3, nz), (nk + 0.3, nz + LID_H), (inner, nz + LID_H)], CORK, double=False),
                            shade(CORK, 0.85), CORK))
-        lid_top = NECK_Z + LID_H
+        lid_top = nz + LID_H
     out += ooze("Ooze", nk + 0.6, lid_top - (0.4 if not top else 0.2), 1.0 + 0.15 * f, 7 + f, seed=40 + f)
     rr = random.Random(70 + f)
     for k in range(2):
         deg = rr.choice([rr.uniform(-40, 50), rr.uniform(130, 220)])
         a = math.radians(deg)
-        out.append(blob(f"Smear{k}", rr.uniform(1.0, 1.6), ((r + 0.3) * math.cos(a), (r + 0.3) * math.sin(a), rr.uniform(2.5, 7.5)),
+        out.append(blob(f"Smear{k}", rr.uniform(1.0, 1.6), ((r + 0.3) * math.cos(a), (r + 0.3) * math.sin(a), rr.uniform(2.5, 6.5)),
                         mix(GOO, GOO_HI, 0.5), subdiv=2, squash=(1.3, 0.3, 1.1), jitter=0.05, rot=(0, 0, deg + 90)))
     if f > 1:
         lw, lz, lh = r * 0.5, 4.5, 2.8
@@ -187,7 +217,6 @@ def jar_trim(f, top, crown=False):
         for k in range(f):
             out.append(blob(f"Dot{k}", 0.55, ((k - (f - 1) / 2) * 1.6, -r - 0.7, lz - 0.3), GOO, subdiv=1, jitter=0))
     return out
-
 
 def jar_deck(f):
     """Jar f's floor above the ground: a goo pool in a wooden ring, the stair hole in the middle with a cork rim, a few
@@ -280,57 +309,85 @@ def lock_button():
             blob("Button", 1.6, (0, 0, 3.4), RED, subdiv=2, squash=(1, 1, 0.55), jitter=0)]
 
 
+def catmull(points, per=8):
+    """A smooth centripetal-ish Catmull-Rom through `points` (x, y, z), `per` samples a span."""
+    pts = [points[0]] + list(points) + [points[-1]]
+    out = []
+    for i in range(1, len(pts) - 2):
+        p0, p1, p2, p3 = (Vector(pts[i - 1]), Vector(pts[i]), Vector(pts[i + 1]), Vector(pts[i + 2]))
+        for k in range(per):
+            t = k / per
+            t2, t3 = t * t, t * t * t
+            out.append(tuple(0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3)))
+    out.append(tuple(pts[-2]))
+    return out
+
+
+TUBE_OUT = 3.2  # the tube's centre stands this far out from each jar's glass
+
+
 def tube_path(version):
-    """The drop tube's centreline for a tower of `version` jars: from a hatch on the back of the top jar down the back,
-    hugging each jar and sliding in over the shoulders, then out over the moat into the splash pool (game numbers)."""
+    """The drop tube's centreline (game numbers) for a tower of `version` jars, all on the back at DROP_ANGLE: out of a
+    hatch low on the top jar, a short elbow out, then straight down past each jar a little off the glass, easing out
+    over each wider jar below, down past jar 1, and out over the moat to a flared mouth above the splash pool."""
     back = math.radians(D["dropAngle"])
     cb, sb = math.cos(back), math.sin(back)
 
-    def rad_at(z):
-        f = max(1, min(version, int(z // FLOOR_H) + 1))
-        h = z - (f - 1) * FLOOR_H
-        here = radius(f) + 2.6
-        if f < version and h > 9.2:
-            t = min(1.0, (h - 9.2) / 6.8)
-            t = t * t * (3 - 2 * t)
-            return here + (radius(f + 1) + 2.6 - here) * t
-        return here
+    def at(r, z):
+        return (r * cb, r * sb, z)
 
-    z_hi = (version - 1) * FLOOR_H + 7.5
-    pts = []
-    for i in range(61):
-        z = z_hi + (2.0 - z_hi) * i / 60
-        r = rad_at(z)
-        pts.append((r * cb, r * sb, z))
+    top_z = (version - 1) * FLOOR_H
+    ctrl = [at(radius(version) - 0.4, top_z + 3.0), at(radius(version) + TUBE_OUT * 0.6, top_z + 3.4),
+            at(radius(version) + TUBE_OUT, top_z + 1.0)]
+    for f in range(version - 1, 0, -1):
+        z = f * FLOOR_H  # the floor of jar f + 1 / top of jar f
+        ctrl.append(at(radius(f + 1) + TUBE_OUT, z + 0.5))
+        ctrl.append(at(radius(f) + TUBE_OUT, z - 3.5))
     land = D["dropLanding"]
     lr = math.hypot(land[0], land[2])
-    for k, (d, zz) in enumerate(((0.35, 1.2), (0.7, 0.7), (1.0, 0.5))):
-        r = pts[-1][0] / cb + (lr - pts[-1][0] / cb) * d if cb else lr
-        pts.append((r * cb, r * sb, zz))
-    return pts
+    ctrl += [at(radius(1) + TUBE_OUT, 4.5), at((radius(1) + TUBE_OUT + lr) / 2, 3.0), at(lr, 2.6)]
+    return catmull(ctrl, per=10)
 
 
 def drop_tube_glass(version):
+    """The tube's glass (Glass in the game): a round 16-sided tube along the path, flaring to a mouth at the bottom."""
     pts = tube_path(version)
-    return [tube("Glass", pts, [2.3] * len(pts), GLASS, segs=12)]
+    radii = [1.9] * (len(pts) - 6) + [1.95, 2.05, 2.2, 2.45, 2.75, 3.1]
+    return [tube("Glass", pts, radii, GLASS, segs=16)]
 
 
 def drop_tube_goo(version):
-    """The goo inside the tube, the brass collars where it meets each upper jar, the cork hatches and the splash pool."""
+    """The bright goo core with bubbles rising in it, brass collars along the tube, the cork hatch where it leaves the top
+    jar and a cork-capped branch to every other upper jar's hatch, and the splash pool with droplets under the mouth."""
     pts = tube_path(version)
     back = math.radians(D["dropAngle"])
     cb, sb = math.cos(back), math.sin(back)
-    out = [painted(tube("Goo", pts, [1.6] * len(pts), GOO, segs=10), shade(GOO, 0.85), GOO_HI)]
+    out = [painted(tube("Goo", pts, [1.25] * len(pts), mix(GOO, GOO_HI, 0.2), segs=12), shade(GOO, 0.95), mix(GOO, GOO_HI, 0.4))]
+    rr = random.Random(30 + version)
+    for k in range(0, len(pts) - 4, 5):
+        x, y, z = pts[k]
+        out.append(blob(f"Bubble{k}", rr.uniform(0.4, 0.7), (x + rr.uniform(-0.4, 0.4), y + rr.uniform(-0.4, 0.4), z), GOO_HI, subdiv=1, jitter=0))
+    # one thin brass collar where the tube passes each floor, and a cork-ringed branch into every upper jar's hatch
+    def collar_at(z):
+        k = min(range(len(pts) - 6), key=lambda i: abs(pts[i][2] - z))
+        d = (Vector(pts[min(k + 1, len(pts) - 1)]) - Vector(pts[max(k - 1, 0)])).normalized()
+        c = Vector(pts[k])
+        return tube(f"Collar{int(z)}", [tuple(c - d * 0.25), tuple(c + d * 0.25)], [2.1, 2.1], METAL, segs=16)
+
+    for f in range(1, version):
+        out.append(collar_at(f * FLOOR_H + 0.5))
     for f in range(2, version + 1):
         r = radius(f)
-        hz = (f - 1) * FLOOR_H + 4.0
-        out.append(cylinder(f"Hatch{f}", 2.6, 0.9, ((r + 0.2) * cb, (r + 0.2) * sb, hz - 2.6), CORK, segs=14))
-    ex, ey, _ = pts[-1]
-    out.append(painted(blob("Splash", 4.0, (ex, ey, 0.4), GOO, subdiv=2, squash=(1.3, 1.3, 0.28), jitter=0.06), shade(GOO, 0.9), GOO_HI))
-    for k, (x, y) in enumerate(ring_xy(5, 4.6, 0.3)):
-        out.append(blob(f"Splat{k}", 0.8, (ex + x, ey + y, 0.5), GOO_HI, subdiv=1, jitter=0.1))
+        hz = (f - 1) * FLOOR_H + 3.0
+        if f < version:
+            out.append(tube(f"Branch{f}", [((r - 0.3) * cb, (r - 0.3) * sb, hz), ((r + TUBE_OUT) * cb, (r + TUBE_OUT) * sb, hz)],
+                            [1.2, 1.2], mix(GLASS, GOO, 0.4), segs=12))
+        out.append(tube(f"Flange{f}", [((r - 0.1) * cb, (r - 0.1) * sb, hz), ((r + 0.7) * cb, (r + 0.7) * sb, hz)], [1.7, 1.7], CORK, segs=16))
+    ex, ey, ez = pts[-1]
+    out.append(painted(blob("Splash", 4.2, (ex, ey, 0.35), GOO, subdiv=3, squash=(1.3, 1.3, 0.22), jitter=0.05, lumps=0.1), shade(GOO, 0.9), GOO_HI))
+    for k, (x, y) in enumerate(ring_xy(7, 4.9, 0.3)):
+        out.append(blob(f"Splat{k}", 0.7 + 0.2 * (k % 2), (ex + x, ey + y, 0.5), GOO_HI, subdiv=1, jitter=0.1))
     return out
-
 
 def mascot():
     """The slime mascot on the top lid: a big goo slime with eyes, pupils, pink cheeks and a shine, in a goo puddle.

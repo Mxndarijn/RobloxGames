@@ -207,7 +207,7 @@ WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3 })
 -- stair and the pads, in front of the door. Boss trophies stand on the plot corners, clear of the moat.
 WorldLayout.BRIDGE_WIDTH = 10
 WorldLayout.VAT_SPOT = table.freeze({ angle = 90, radius = 25.5 })
-WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ 30, -30 })
+WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
 WorldLayout.LABEL = table.freeze({ angle = -55, width = 9, height = 2.4, y = 9 })
 WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
 WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
@@ -1040,12 +1040,22 @@ local JAR_GOO = { 110, 226, 170 }
 WorldLayout.JAR_GLASS_TRANSPARENCY = 0.6
 -- The jar glass meshes have an outer and an inner surface (Roblox culls back faces), so each is clearer; seen through
 -- both it stacks to about the single primitive pane's look.
-WorldLayout.JAR_GLASS_MESH_TRANSPARENCY = 0.8
--- The jar meshes' shape above each floor (shared/modeling-kit/models/_goo_jar.py builds to these): straight glass,
--- the two shoulder steps in to the neck, the top jar's neck as a share of its radius, the top jar's tall cork stopper
--- and the flat lid (under the next jar, or the crowned last jar's). The mascot sits on the top cork.
-WorldLayout.JAR_SHAPE =
-	table.freeze({ wall = 9, shoulder = table.freeze({ 2, 1.6 }), topNeck = 0.55, cork = 3.2, lid = 1.6 })
+WorldLayout.JAR_GLASS_MESH_TRANSPARENCY = 0.7
+-- The jar meshes' shape above each floor (shared/modeling-kit/models/_goo_jar.py builds to these). A jar with another
+-- on it: straight glass `wall` high, then a rounded shoulder `shoulder` high in to the next jar's neck. The top jar:
+-- straight glass `topWall` high, then a round dome `topDome` high in to a neck of `topNeck` x its radius, a glass lip
+-- `lip` high, and on it the tall cork stopper (`cork`) or, on the last jar, the flat crown lid (`lid`). The mascot
+-- sits on the top cork.
+WorldLayout.JAR_SHAPE = table.freeze({
+	wall = 9,
+	shoulder = 3.6,
+	topWall = 7.5,
+	topDome = 6.5,
+	topNeck = 0.5,
+	lip = 0.8,
+	cork = 3.2,
+	lid = 1.6,
+})
 -- Mascot radius for a tower of v jars: MASCOT.base + MASCOT.grow * v (the mesh is built at radius 1).
 WorldLayout.MASCOT = table.freeze({ base = 3.4, grow = 1.3, crownUp = 1.45 })
 
@@ -1088,10 +1098,10 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 
 	-- Lock sign behind the LockButton, facing out of the plot (Front face).
 	local bx, bz = WorldLayout.LOCK_BUTTON_SPOT[1], WorldLayout.LOCK_BUTTON_SPOT[2]
-	local lockSign = ghost(block("LockSign", { 7, 2.6, 0.3 }, at({ bx, 7.2, bz + 3.2 }), SIGN_BOARD, "Wood", r))
+	local lockSign = ghost(block("LockSign", { 6, 2.6, 0.3 }, at({ bx + 1.5, 7.2, bz + 2.6 }), SIGN_BOARD, "Wood", r))
 	lockSign.children = {
-		ghost(block("Post", { 0.5, 5.6, 0.5 }, at({ bx, 3.8, bz + 3.6 }), FENCE, "Wood", r)),
-		ghost(disc("Lamp", 0.4, 1.3, at({ bx, 8.7, bz + 3.2 }), { 90, 220, 110 }, "Neon", yaw)),
+		ghost(block("Post", { 0.5, 5.6, 0.5 }, at({ bx + 1.5, 3.8, bz + 3.0 }), FENCE, "Wood", r)),
+		ghost(disc("Lamp", 0.4, 1.3, at({ bx + 1.5, 8.7, bz + 2.6 }), { 90, 220, 110 }, "Neon", yaw)),
 	}
 	table.insert(nodes, lockSign)
 
@@ -1401,10 +1411,15 @@ local function standIns(nodes: { WorldNode }, mesh: string)
 	end
 end
 
--- Height of a jar's neck (the top of its shoulder) above its floor.
-local function jarNeckY(): number
+-- Height of top jar f's neck lip (where its cork or crown lid sits) above its floor. Jar 1's straight glass clears
+-- its door, so its dome starts higher.
+local function jarNeckY(f: number): number
 	local sh = WorldLayout.JAR_SHAPE
-	return 0.2 + sh.wall + sh.shoulder[1] + sh.shoulder[2]
+	local wall = 0.2 + sh.topWall
+	if f == 1 then
+		wall = math.max(wall, WorldLayout.DOOR.height + 0.3)
+	end
+	return wall + sh.topDome + sh.lip
 end
 
 -- The looks of jar f: glass and trim in the "top" form (a narrow neck with the cork stopper, or the crowned lid on the
@@ -1421,7 +1436,7 @@ local function jarLooks(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local m = WorldLayout.MASCOT
 	local size = m.base + m.grow * f
 	local lidTop = WorldLayout.floorTop(f)
-		+ jarNeckY()
+		+ jarNeckY(f)
 		+ (if last then WorldLayout.JAR_SHAPE.lid else WorldLayout.JAR_SHAPE.cork)
 	table.insert(out, variant(jarLook("MascotLook", "goo_jar_mascot", { 0, lidTop, 0 }, at, yaw, 0, size), f, "top"))
 	if last then

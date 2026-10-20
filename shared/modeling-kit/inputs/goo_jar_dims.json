@@ -269,15 +269,15 @@
       "treads": {}
     }
   ],
-  "glassTransparency": 0.8,
+  "glassTransparency": 0.7,
   "jarShape": {
     "cork": 3.2,
     "lid": 1.6,
-    "shoulder": [
-      2,
-      1.6
-    ],
-    "topNeck": 0.55,
+    "lip": 0.8,
+    "shoulder": 3.6,
+    "topDome": 6.5,
+    "topNeck": 0.5,
+    "topWall": 7.5,
     "wall": 9
   },
   "jarWall": 1,
@@ -288,8 +288,8 @@
     "y": 9
   },
   "lockButtonSpot": [
-    30,
-    -30
+    8.5,
+    -36.5
   ],
   "mascot": {
     "base": 3.4,

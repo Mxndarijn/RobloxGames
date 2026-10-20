@@ -87,7 +87,7 @@ if V >= 2:
     place(drop_tube_goo(V), dz=top(1) - 1.0)
 
 # the mascot on the top lid, crowned at the last version
-lid_top = top(V) + NECK_Z + (1.6 if V >= FLOORS else 3.2)
+lid_top = top(V) + neck_z(V, True) + LIP + (LID_H if V >= FLOORS else CORK_H)
 s = mascot_size(V)
 place(mascot(), dz=lid_top, scale=s)
 if V >= FLOORS:
