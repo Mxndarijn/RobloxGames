@@ -9,7 +9,7 @@
 	Session.lastSlapAt, drop + bounce home + notifications + StealAlerts FX), then adds a knockback
 	push (PvpKnockbackRules.plan / PvpLaunch through `ctx.launch`; the victim's client applies the launch from the
 	PvpEvent "Knockback" effect). Swinging at nothing or at a non-thief does nothing with FEATURES.PvP off; with it ON a
-	non-thief on the swinger's own plot is pushed under the glove rules (no damage, ever; Humanoid health is never touched). A whiff never spends the slap cooldown; swings are only rate limited to Config.BAT.SWING_GAP.
+	non-thief anywhere on the map is pushed under the glove rules (no safe zones) (no damage, ever; Humanoid health is never touched). A whiff never spends the slap cooldown; swings are only rate limited to Config.BAT.SWING_GAP.
 
 	The Tool: one per player (give() replaces any old copy), given on every spawn, CanBeDropped = false, single
 	collision-free handle Part (a few parts per player, only while equipped, never in the world part budget).
@@ -104,14 +104,14 @@ end
 
 --[[
 	One swing by `session`. Returns (hit, reason): hit = something was hit. `ctx.pose` gives every character's root
-	and look (nil = no bat), `ctx.pointOnOwnPlot` the own-plot test (nil = no non-thief hits). `flag` overrides
+	and look (nil = no bat). `flag` overrides
 	FEATURES.PvP (tests).
 	  * The boss carrier in reach (any flag): BossEvent.slapCarrier drops the boss on the spot, then the knockback.
 	  * The fighting boss in reach (Config.BOSS.HIT_REACH, in front): BossEvent.hit fills the goo meter.
 	  * A carrying thief in reach (any flag): StealService.slap (reach, shared cooldown, drop, bounce home, notifications,
 	    StealAlerts FX), then the knockback. Exactly one drop and one push per hit.
 	  * Flag OFF, anything else: nothing happens (no damage, no push), (false, "nothing in reach").
-	  * Flag ON, a non-thief: only on the swinger's OWN plot, not a controlled / immune one, and the shared slap
+	  * Flag ON, a non-thief: anywhere (no safe zones), not a controlled / immune one, and the shared slap
 	    cooldown; the effect is the knockback only. No damage ever. A thief is always tried first.
 	A whiff never spends the slap cooldown. Never errors for a swing at nothing.
 ]]
@@ -122,7 +122,7 @@ function BatTool.swing(
 	ctx: PvpService.Context,
 	flag: boolean?
 ): (boolean, string?)
-	local pose, onOwnPlot = ctx.pose, ctx.pointOnOwnPlot
+	local pose = ctx.pose
 	if not pose then
 		return false, "no bat"
 	end
@@ -138,7 +138,6 @@ function BatTool.swing(
 	local pvp = PvpService.enabled(flag)
 	local thieves: { BatRules.Candidate } = {}
 	local others: { BatRules.Candidate } = {}
-	local offPlot: { BatRules.Candidate } = {}
 	local positions: { [number]: Vec } = {}
 	for userId, other in world.sessions do
 		if userId ~= session.userId then
@@ -148,10 +147,8 @@ function BatTool.swing(
 				local entry = { userId = userId, position = position, carrying = true }
 				if isThief(other) then
 					table.insert(thieves, entry)
-				elseif pvp and onOwnPlot and onOwnPlot(session, position) then
-					table.insert(others, entry)
 				elseif pvp then
-					table.insert(offPlot, entry)
+					table.insert(others, entry)
 				end
 			end
 		end
@@ -189,9 +186,6 @@ function BatTool.swing(
 	targetId = BatRules.pickTarget(origin, look, others, session.userId)
 	local target = if targetId then world.sessions[targetId] else nil
 	if not targetId or not target then
-		if BatRules.pickTarget(origin, look, offPlot, session.userId) then
-			return false, "not on your plot"
-		end
 		return false, "nothing in reach"
 	end
 	local targetPosition = positions[targetId]
