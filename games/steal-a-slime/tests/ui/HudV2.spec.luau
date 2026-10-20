@@ -1,5 +1,5 @@
 --!strict
--- H1 HUD layout (Merijn, 2026-10-17, hud_design_ref.png): left column = Plot, Rebirth, Goals, SlimeDex, Codes
+-- H1 HUD layout (Merijn, 2026-10-17, hud_design_ref.png): left column = Rebirth, Goals, SlimeDex, Codes (slimes are managed at their pads)
 -- (Oct 18: a 2-column grid of rounded tiles, B5); bottom-left = Money / Income / Rebirths; bottom-right = status
 -- icons with timers (events, friend boost), never the weekend boost, with a tooltip on hover / tap (B8); both
 -- clusters bigger (B4); no top bar (B7), no toasts (B6), no boss / specific-slime notifications.
@@ -89,7 +89,7 @@ local function setAttributes(attrs: { [string]: any }?)
 end
 
 describe("H1 HUD: left button column", function()
-	it("lays out those five buttons at every gate and landscape viewport", function()
+	it("lays out the four nav buttons at every gate and landscape viewport", function()
 		local viewports = {}
 		for _, vp in LayoutAssert.GATE_VIEWPORTS do
 			table.insert(viewports, vp)
@@ -98,7 +98,7 @@ describe("H1 HUD: left button column", function()
 			table.insert(viewports, vp)
 		end
 		for _, vp in viewports do
-			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: 5`)
+			expect(`{vp.name}: {#Layout.screen(vp.w, vp.h).navButtons}`).toBe(`{vp.name}: 4`)
 		end
 	end)
 end)

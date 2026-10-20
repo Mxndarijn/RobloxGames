@@ -7,7 +7,7 @@
 
 		local check = LayoutAssert.new("390x844 collapsed", screen)
 		check.onScreen("Nav", screen.nav)
-		check.touch("Nav.Plot", screen.navButtons[1])
+		check.touch("Nav.Rebirth", screen.navButtons[1])
 		check.text({ name = "Label", text = "SlimeDex", size = 14, bold = true, w = 78, h = 18 })
 		expect(check.report()).toBe("")
 

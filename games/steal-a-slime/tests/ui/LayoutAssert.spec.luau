@@ -183,9 +183,9 @@ describe("v18 viewports", function()
 				local col = (i - 1) % 2
 				expect(b.x).toBe(s.nav.x + col * (b.w + Layout.navGap(s.compact)))
 			end
-			expect(s.navButtons[2].y).toBe(s.navButtons[1].y) -- row 1: Plot, Rebirth
-			expect(s.navButtons[3].y > s.navButtons[2].y).toBe(true) -- row 2: Goals, SlimeDex
-			expect(s.navButtons[5].x).toBe(s.navButtons[1].x) -- row 3: Codes alone
+			expect(s.navButtons[2].y).toBe(s.navButtons[1].y) -- row 1: Rebirth, Goals
+			expect(s.navButtons[3].y > s.navButtons[2].y).toBe(true) -- row 2: SlimeDex, Codes
+			expect(s.navButtons[3].x).toBe(s.navButtons[1].x)
 		end
 	end)
 	it("the bottom clusters are bigger than the H1 sizes (B4) and clear the touch controls", function()

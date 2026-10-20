@@ -44,7 +44,7 @@ describe("Hint.place", function()
 		local s = Layout.screen(1920, 1080)
 		local view = Hint.fromState({ tutorialStepId = "Rebirth" }) :: Hint.View
 		local p = Hint.place(s, view) :: Hint.Placement
-		expect(p.target).toBe(s.navButtons[2]) -- Plot, Rebirth
+		expect(p.target).toBe(s.navButtons[1]) -- Rebirth first
 		expect(p.ring.x).toBe(p.target.x - Hint.RING)
 		expect(p.ring.w).toBe(p.target.w + Hint.RING * 2)
 		expect(p.bubble.x).toBe(s.nav.x + s.nav.w + Hint.GAP)
