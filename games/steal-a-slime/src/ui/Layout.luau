@@ -718,7 +718,6 @@ Layout.PANEL_CHROME = table.freeze({
 -- same column; heights per Nav key (design px), clamped to the backdrop.
 Layout.MENU_WIDTH = 560
 Layout.MENU_HEIGHTS = table.freeze({
-	Plot = 520,
 	Merge = 520,
 	Shop = 520,
 	WorldShop = 520,

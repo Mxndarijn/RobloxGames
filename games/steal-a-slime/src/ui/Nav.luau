@@ -3,7 +3,7 @@
 	Nav
 
 	Left-bar entries and their badges (H1 HUD: Rebirth, Goals, SlimeDex, Codes; the Merge, Shop and
-	Top menus have no button, your slimes are managed at their pads (SlimeManage), see init.client panelByKey). Shown as a grid of rounded tiles, icon over label (B5). Pure (tests/ui/Nav.spec.luau); the
+	Top menus have no button, your slimes are managed at their pads with keys (SlimeKeys), see init.client panelByKey). Shown as a grid of rounded tiles, icon over label (B5). Pure (tests/ui/Nav.spec.luau); the
 	buttons themselves are built in init.client.luau. Badges are short hints
 	derived from the latest State ("!" = something to do there); the SlimeDex tile shows its completion as a
 	slime jar instead (DexJarView).

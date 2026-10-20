@@ -1751,8 +1751,6 @@ def step_shots(run):
                 if shot.get("dex_weather"):  # TODO 21: Wet / Frozen discovered in the real player data (Studio hook)
                     res["dex_weather"] = run.need_luau("pcw_attr", "Server", timeout=15, name="PcwDexWeather", value=True)
                     time.sleep(0.6)  # State push
-                if shot.get("plot_slime"):  # fake owned slime so the plot row shows
-                    res["plot_slime"] = run.need_luau("plot_slime", "Client", timeout=15, state="1")
                 opened = open_panel(run, key) if key else None
                 if shot.get("welcome_back"):  # v20: the welcome-back card from a faked State.welcomeBack (Studio only)
                     wb = res["welcome_back"] = run.need_luau("welcome_back", "Client", timeout=15, on=True)
@@ -1819,8 +1817,6 @@ def step_shots(run):
                     run.luau("steal_alert", "Client", timeout=15, on=False)
                 if shot.get("plot_skin"):
                     run.luau("plot_skin", "Client", timeout=15, skin="classic")
-                if shot.get("plot_slime"):
-                    run.luau("plot_slime", "Client", timeout=15, state="")
                 if shot.get("dex_rows"):
                     run.luau("dex_rows", "Client", timeout=15, count=0)
                 if shot.get("daily_popup"):

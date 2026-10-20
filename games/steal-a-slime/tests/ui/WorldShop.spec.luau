@@ -760,12 +760,12 @@ describe("init.client wiring", function()
 	end)
 
 	it("the world shop card follows the one-open-menu state", function()
-		local keys = { "Plot", "WorldShop", "Shop" }
+		local keys = { "Merge", "WorldShop", "Shop" }
 		local view = MenuState.view("WorldShop", keys)
 		expect(view.backdrop).toBe(true)
 		expect(view.cards.WorldShop).toBe(true)
 		expect(view.cards.Shop).toBe(false)
-		expect(view.cards.Plot).toBe(false)
+		expect(view.cards.Merge).toBe(false)
 		expect(MenuState.view(nil, keys).cards.WorldShop).toBe(false)
 	end)
 end)
