@@ -65,12 +65,13 @@ end
 
 -- The shop stands are WorldProps Models (server-built), not layout nodes: their spots and scale are layout data too.
 for name, spot in WorldLayout.PROP_SPOTS do
-	if name:match("ShopStand$") then
-		local size = WorldLayout.meshSize(WorldLayout.BUY_STAND_MESH, WorldLayout.BUY_STAND_SCALE)
+	local stand = WorldLayout.SHOP_STANDS[name]
+	if stand then
+		local size = WorldLayout.meshSize(stand.mesh, stand.scale)
 		table.insert(nodes, {
 			path = `Map.Props.{name}`,
 			name = name,
-			mesh = WorldLayout.BUY_STAND_MESH,
+			mesh = stand.mesh,
 			node = { pos = { spot.pos[1], size[2] / 2, spot.pos[3] }, size = size, rot = { 0, spot.yaw, 0 } },
 		})
 	end
@@ -771,8 +772,10 @@ if IN_ROBLOX then
 			local native = MeshAssets.get(e.mesh).size
 			return v.hy * 2 / native[2]
 		end
-		if e.mesh == WorldLayout.BUY_STAND_MESH then
-			return WorldLayout.BUY_STAND_SCALE
+		for _, stand in WorldLayout.SHOP_STANDS do
+			if e.mesh == stand.mesh then
+				return stand.scale
+			end
 		end
 		return 1
 	end
