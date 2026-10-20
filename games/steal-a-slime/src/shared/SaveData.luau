@@ -37,7 +37,7 @@
 	SlimeDex (CONTRACT.md §36.2, no version bump): found = { speciesId }, speciesRewards = milestones paid;
 	missing -> empty / 0, unknown ids dropped, owned slimes always count as found. The combination Dex fields `dex` / `dexRewards` of older saves are ignored.
 	pvp (FEATURES.PvP, CONTRACT.md §26) is optional: { tiers = { Knockback = tier, Blaster = tier }, traps = { [id] = charges },
-	fun = { id }, played = seconds }; missing / junk -> nothing owned, ids that are not Config.PVP_TOOLS are ignored,
+	fun = { id } }; missing / junk -> nothing owned, ids that are not Config.PVP_TOOLS are ignored,
 	numbers are clamped (SaveData.cleanPvp).
 	hotbar (CONTRACT.md §5.1) is optional and needs no version bump: 9 slot keys, "" = empty; missing / not a list -> nil,
 	bad or repeated keys -> empty slots, entries past slot 9 dropped (HotbarOrder.clean).
@@ -101,11 +101,10 @@ end
 
 -- Sanitizes the pvp field of a raw save (read) or of PlayerData (write; `fun` is a set there, a list in the save).
 function SaveData.cleanPvp(raw: any): PlayerData.Pvp
-	local out: PlayerData.Pvp = { tiers = {}, traps = {}, fun = {}, played = 0 }
+	local out: PlayerData.Pvp = { tiers = {}, traps = {}, fun = {} }
 	if type(raw) ~= "table" then
 		return out
 	end
-	out.played = num(raw.played, 0, 0, Config.PVP.NEW_PLAYER_SHIELD_SECONDS)
 	if type(raw.traps) == "table" then
 		for _, tool in Config.PVP_TOOLS do
 			if tool.line == TRAP_LINE then
@@ -684,7 +683,7 @@ function SaveData.serialize(data: Data, now: number?): { [string]: any }
 			bought = table.clone(data.consumables.bought),
 			held = table.clone(data.consumables.held),
 		},
-		pvp = { tiers = pvp.tiers, traps = pvp.traps, fun = pvpFun, played = pvp.played },
+		pvp = { tiers = pvp.tiers, traps = pvp.traps, fun = pvpFun },
 		trophies = SaveData.cleanTrophies(data.trophies),
 		hotbar = HotbarOrder.clean(data.hotbar), -- nil until set: the key is left out
 	}

@@ -1461,12 +1461,10 @@ function WorldView.updatePlayer(
 	setAttribute(player, Constants.SPEED_COIL_ATTRIBUTE, if data.speedCoil then true else nil)
 	setAttribute(player, Constants.REBIRTH_TITLE_ATTRIBUTE, Perks.title(data.rebirths))
 	if Config.FEATURES.PvP then
-		setAttribute(player, Constants.PVP_SHIELD_ATTRIBUTE, PvpService.shieldUntil(session, now))
 		setAttribute(player, Constants.PVP_EQUIPPED_ATTRIBUTE, PvpService.equipped(session))
 		-- the held model (CONTRACT.md §26.3): put away while carrying, like the Tools
 		PvpHeld.sync(character, if carry then nil else PvpService.equipped(session))
 		local root = WorldView.rootPart(player)
-		PvpService.tick(world, session, root and root.Position, now)
 		PvpTrap.tick(world, session, root and root.Position, now, ctx)
 		PvpBlaster.tick(world, session, root and root.Position, now, ctx)
 		PvpFun.tick(world, session, root and root.Position, now, ctx)

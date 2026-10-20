@@ -8,7 +8,7 @@
 	zone (Shared.PvpTrapRules data) checked in the existing per-player WorldView tick: it creates NO Instance. The
 	look is client FX from PvpEvent "TrapPlaced" / "TrapCleared" / "Effect".
 
-	Anyone but the owner and shielded players springs a trap. Puddle: slowed. Sticky: held, then slowed. Mega: held,
+	Anyone but the owner springs a trap. Puddle: slowed. Sticky: held, then slowed. Mega: held,
 	everyone else within `pull` is pulled in and held too, and they are spat out with a small bounce when the hold
 	ends. A thief is always caught (PvpService.catchThief: the slime goes home). Holds / slows go through PvpRules
 	(clamped, then immunity) and PvpSlow (the walk speed); a player who is immune and carries nothing passes and the
@@ -166,7 +166,7 @@ local function pullIn(
 		return
 	end
 	for userId, other in world.sessions do
-		if other ~= first and userId ~= trap.owner and not PvpService.isShielded(other, now) then
+		if other ~= first and userId ~= trap.owner then
 			local position = positionOf(userId)
 			if position and PvpTrapRules.within(trap.position, trap.radius + radius, position) then
 				local state = PvpService.state(other)
@@ -239,10 +239,9 @@ function PvpTrap.tick(
 	if not PvpService.state(victim) then
 		return false
 	end
-	local shielded = PvpService.isShielded(victim, now)
 	for owner, list in traps do
 		for i, trap in list do
-			if PvpTrapRules.triggers(trap, victim.userId, position, shielded, now) then
+			if PvpTrapRules.triggers(trap, victim.userId, position, now) then
 				if spring(world, ctx, trap, owner, victim, now) then
 					table.remove(list, i)
 					cleared(world, trap, now, ctx)

@@ -105,7 +105,6 @@ export type PvpView = {
 	best: { [string]: string }, -- Knockback / Trap / Blaster -> best owned item id
 	equipped: string?,
 	cooldowns: { [string]: number }, -- item id -> server time it is ready again
-	shieldUntil: number?,
 	charges: { [string]: number }, -- Goo Trap id -> charges held
 }
 

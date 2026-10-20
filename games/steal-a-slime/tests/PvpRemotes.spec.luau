@@ -46,8 +46,6 @@ local function setup(): (any, any, any)
 	local a = ServerFixtures.join(world, 1, nil, 1e12)
 	local b = ServerFixtures.join(world, 2, nil, 1e12)
 	a.data.rebirths, b.data.rebirths = 5, 5
-	ServerFixtures.veteran(a)
-	ServerFixtures.veteran(b)
 	PvpService.join(world, a, T0, true)
 	PvpService.join(world, b, T0, true)
 	return world, a, b
@@ -133,7 +131,6 @@ describe("PvP equip / use with the flag off", function()
 		ok, reason = PvpService.use(world, s, "KnockGlove1", nil, nil, T0, false, env)
 		expect(ok).toBe(false)
 		expect(reason).toBe("PvP is not open yet")
-		PvpService.tick(world, s, FAR, T0)
 		PvpService.fireEffect(current, { attacker = 1, itemId = "KnockGlove1", effect = "Knockback" }, T0, false)
 		PvpService.fireTrap(current, "TrapPlaced", { owner = 1 }, T0, false)
 		expect(PvpService.state(s)).toBeNil()
@@ -248,8 +245,8 @@ describe("PvpService.use", function()
 		expect(#events()).toBe(0)
 		done()
 	end)
-	it("applies the shield and unknown-target rules before the handler, anywhere on the map", function()
-		local world, a, b = armed()
+	it("applies the unknown-target rules before the handler, anywhere on the map", function()
+		local world, a = armed()
 		local calls = 0
 		PvpService.registerLine("Knockback", function(call)
 			calls += 1
@@ -258,12 +255,7 @@ describe("PvpService.use", function()
 		end)
 		expect(select(2, use(world, a, 99, T0 + 1))).toBe("no such player")
 		expect(select(2, use(world, a, 1, T0 + 1))).toBe("can't target yourself")
-		b.data.pvp.played = 0
-		PvpService.join(world, b, T0, true)
-		expect(select(2, use(world, a, 2, T0 + 1))).toBe("target is shielded")
 		expect(calls).toBe(0)
-		ServerFixtures.veteran(b)
-		PvpService.join(world, b, T0, true)
 		positions[1], positions[2] = { X = 0, Y = 3, Z = 0 }, { X = 1, Y = 3, Z = 1 } -- the old fountain zone
 		expect((PvpService.use(world, a, "KnockGlove1", 2, nil, T0 + 1, true, { positionOf = env.positionOf }))).toBe(
 			true
@@ -306,22 +298,6 @@ describe("PvpService.use", function()
 end)
 
 describe("PvpService events", function()
-	it("sends Shield changes from the per-player tick", function()
-		local _, a = setup()
-		a.data.pvp.played = 0
-		PvpService.join(current, a, T0, true) -- a fresh player: shielded
-		PvpService.tick(current, a, FAR, T0 + 1)
-		expect(kinds()).toEqual({ "Shield" })
-		expect(events()[1].payload.endsAt).toBe(T0 + Config.PVP.NEW_PLAYER_SHIELD_SECONDS)
-		expect(events()[1].target).toBe(1)
-		PvpService.tick(current, a, { X = 1, Y = 3, Z = 1 }, T0 + 2)
-		expect(#events()).toBe(1) -- unchanged: nothing re-sent, and no zone events exist
-		PvpService.tick(current, a, FAR, T0 + Config.PVP.NEW_PLAYER_SHIELD_SECONDS)
-		expect(events()[2].payload.kind).toBe("Shield")
-		expect(events()[2].payload.endsAt).toBeNil()
-		expect(events()[2].payload.serverTime).toBe(T0 + Config.PVP.NEW_PLAYER_SHIELD_SECONDS)
-		done()
-	end)
 	it("fireEffect and fireTrap go to every client with serverTime", function()
 		setup()
 		PvpService.fireEffect(
@@ -370,7 +346,6 @@ describe("State.pvp", function()
 			return true, nil
 		end)
 		expect(PvpService.use(world, a, "KnockGlove2", 2, nil, T0 + 1, true, env)).toBe(true)
-		PvpService.tick(current, a, FAR, T0 + 2)
 		expect((PvpService.buy(world, a, "GooTrap1", true))).toBe(true) -- one trap charge
 		local pvp = (Snapshot.build(world, a, T0 + 2) :: any).pvp
 		expect(pvp.rank).toBe(5)
@@ -379,7 +354,6 @@ describe("State.pvp", function()
 		expect(pvp.best).toEqual({ Knockback = "KnockGlove2", Trap = "GooTrap1" })
 		expect(pvp.equipped).toBe("KnockGlove2")
 		expect(pvp.cooldowns.KnockGlove2).toBe(PvpService.state(a).cooldowns.KnockGlove2)
-		expect(pvp.shieldUntil).toBe(nil) -- a veteran has no shield
 		expect(pvp.charges).toEqual({ GooTrap1 = 1 })
 		expect(pvp.owned.GooTrap1).toBe(true)
 		expect(PvpRules.tool("KnockGlove2") ~= nil).toBe(true)

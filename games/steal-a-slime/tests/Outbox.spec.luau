@@ -76,7 +76,7 @@ describe("Outbox.flush", function()
 		env.players[1] = player
 		World.emit(env.world, { type = "PvpEvent", userId = 1, payload = { kind = "Cooldown" } })
 		World.emit(env.world, { type = "PvpEvent", payload = { kind = "Effect", serverTime = 7 } })
-		World.emit(env.world, { type = "PvpEvent", userId = 2, payload = { kind = "Shield" } }) -- left the server
+		World.emit(env.world, { type = "PvpEvent", userId = 2, payload = { kind = "TrapPlaced" } }) -- left the server
 		Outbox.flush(env.world, deps)
 		expect(#env.pvp).toBe(2)
 		expect(env.pvp[1].player).toBe(player)
