@@ -3,7 +3,6 @@
 -- (2.5 deep) and the 1.6-thick front fence pieces; a non-owner jumping against the protruding post corner got
 -- depenetrated through it (pc-watcher shot 189, gate_post_squeeze). The front panel is now a slab that encloses
 -- all of them and ends at the PlotLockGuard limit. Built from WorldLayout.build() like the real world.
-local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local PlotDecor = require("../src/visuals/shared/PlotDecor")
@@ -140,6 +139,5 @@ describe("LockBarrier front slab (bug #8)", function()
 				true
 			)
 		end
-		expect(Config.PLOT_COUNT > 0).toBe(true)
 	end)
 end)

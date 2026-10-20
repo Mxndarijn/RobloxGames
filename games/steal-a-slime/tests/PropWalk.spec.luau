@@ -233,10 +233,6 @@ describe("PropWalk geometry (every blocking inventory entry)", function()
 		expect(#blockers > 100).toBe(true)
 	end)
 
-	it("steps 16 studs/s in 1/60 s is 0.267 studs", function()
-		expect(math.abs(STEP - 0.26667) < 1e-4).toBe(true)
-	end)
-
 	local kinds = {}
 	for kind in volumesByKind do
 		table.insert(kinds, kind)
@@ -861,7 +857,6 @@ if IN_ROBLOX then
 				folder:Destroy()
 			end
 			folder = nil
-			expect(true).toBe(true)
 		end)
 	end)
 

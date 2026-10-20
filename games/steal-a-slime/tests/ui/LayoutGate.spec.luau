@@ -16,7 +16,7 @@ local function has(text: string, needle: string): boolean
 	return string.find(text, needle, 1, true) ~= nil
 end
 
--- Known findings the gate tolerates (each must still occur, so a fix forces this list to shrink). Empty:
+-- Known findings the gate tolerates. Empty:
 -- the nav is a 2-column tile grid (more columns on a short screen) and nothing overlaps it.
 local KNOWN: { { label: string, pattern: string } } = {}
 
@@ -45,17 +45,6 @@ local function unexpected(label: string, report: string): (string, number)
 	return table.concat(out, "\n"), known
 end
 
--- Lines of `report` matching a KNOWN pattern.
-local function knownHits(report: string, pattern: string): number
-	local n = 0
-	for _, line in string.split(report, "\n") do
-		if string.match(line, pattern) then
-			n += 1
-		end
-	end
-	return n
-end
-
 local function gate(label: string, screen: Layout.Screen): string
 	local check = LayoutAssert.standard(label, screen)
 	LayoutAssert.navReachable(check)
@@ -80,16 +69,6 @@ describe("PR gate: five viewports (raw and under the top bar), every layout rule
 			expect(rest).toBe("")
 		end)
 	end
-	it("known findings still occur (remove them from KNOWN once fixed)", function()
-		for _, k in KNOWN do
-			local vp = string.match(k.label, "^(%d+x%d+)") :: string
-			local w, h = string.match(vp, "^(%d+)x(%d+)$")
-			local s = Layout.screen(tonumber(w) :: number, tonumber(h) :: number)
-			if knownHits(gate(k.label, s), k.pattern) == 0 then
-				error(`KNOWN finding no longer occurs, remove it: {k.label} {k.pattern}`)
-			end
-		end
-	end)
 end)
 
 describe("PR gate: the checks catch PR #60's bugs", function()

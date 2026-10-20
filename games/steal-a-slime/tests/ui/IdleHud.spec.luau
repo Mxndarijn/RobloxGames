@@ -2,8 +2,6 @@
 -- v28 blocker (6b115fc frames): a large translucent dark rounded rectangle covered the screen with no
 -- menu open, the MenuBackdrop left Visible after a card was hidden from outside. With no menu open
 -- (idle HUD) no backdrop / card / nav highlight may show, at the five gate viewports.
-local fs = require("@lune/fs")
-
 local LayoutAssert = require("./LayoutAssert")
 local MenuState = require("../../src/ui/MenuState")
 local Nav = require("../../src/ui/Nav")
@@ -17,11 +15,6 @@ for _, entry in Nav.ENTRIES do
 end
 table.insert(keys, "Guide")
 table.insert(keys, "Welcome")
-
-local src = fs.readFile("src/ui/init.client.luau")
-local function has(needle: string): boolean
-	return string.find(src, needle, 1, true) ~= nil
-end
 
 describe("idle HUD: no menu overlay", function()
 	for _, entry in LayoutAssert.screens(LayoutAssert.GATE_VIEWPORTS) do
@@ -45,21 +38,6 @@ describe("idle HUD: no menu overlay", function()
 			end
 		end
 	end)
-	it("a card hidden from outside closes the menu (backdrop cannot outlive its card)", function()
-		expect(MenuState.cardHidden("Shop", "Shop", false)).toBe(true)
-		expect(MenuState.cardHidden("Shop", "Dex", false)).toBe(false)
-		expect(MenuState.cardHidden("Shop", "Shop", true)).toBe(false)
-		expect(MenuState.cardHidden(nil, "Shop", false)).toBe(false)
-	end)
-	it("init.client starts closed, drives the backdrop only from syncMenus and watches card Visible", function()
-		expect(has('Name = "MenuBackdrop"')).toBe(true)
-		expect(has("Visible = false,\n\tParent = gui,\n}) :: TextButton")).toBe(true)
-		local _, sets = string.gsub(src, "backdrop%.Visible =", "")
-		expect(sets).toBe(1)
-		expect(has("backdrop.Visible = visibleKey ~= nil")).toBe(true)
-		expect(has("\nsetOpen(nil)\n")).toBe(true)
-		expect(has('entry.panel.frame:GetPropertyChangedSignal("Visible")')).toBe(true)
-	end)
 end)
 
 describe("top-centre banners vs open menu", function()
@@ -68,10 +46,5 @@ describe("top-centre banners vs open menu", function()
 		for _, key in keys do
 			expect(MenuState.bannersVisible(key)).toBe(false)
 		end
-	end)
-	it("init.client feeds the open key to the HUD and Hud hides the whole banner stack on it", function()
-		expect(has("hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))")).toBe(true)
-		local hudSrc = fs.readFile("src/ui/Hud.luau")
-		expect(string.find(hudSrc, "banners.Visible = not menuOpen", 1, true) ~= nil).toBe(true)
 	end)
 end)

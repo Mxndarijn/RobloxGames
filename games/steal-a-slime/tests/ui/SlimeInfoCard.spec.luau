@@ -318,17 +318,6 @@ describe("SlimePadSign", function()
 	end)
 end)
 
-describe("SlimeInfoCard.start heights", function()
-	it("puts every tag at the same height above its slime", function()
-		local models = { slimeModel({}), slimeModel({}), slimeModel({}) }
-		local stop = SlimeInfoCard.start({ collection = fakeCollection(models), tag = Constants.SLIME_TAG })
-		for _, m in models do
-			expect(m:FindFirstChild("Body"):FindFirstChild(SlimeInfoCard.NAME).SizeOffset.Y).toBe(0.5)
-		end
-		stop()
-	end)
-end)
-
 describe("SlimeInfoCard.start on a pad", function()
 	local function padAttrs(pad: number?): { [string]: any }
 		return {

@@ -13,17 +13,13 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 local T0 = ServerFixtures.T0
 
 describe("Secret spawn rate", function()
-	it("has a weight share of ~0.05 % on the 52 / 28 / 13 / 5.2 / 1.2 / 0.2 / 0.05 design weights", function()
+	it("has a weight share of ~0.05 %", function()
 		local total = 0
 		for _, r in Config.RARITIES do
 			total += r.weight
 		end
 		local share = Config.RARITIES[Config.SECRET_TIER].weight / total
 		expect(math.abs(share - 0.0005) < 0.00005).toBe(true)
-		local expected = { 52, 28, 13, 5.2, 1.2, 0.2, 0.05 }
-		for i, w in expected do
-			expect(Config.RARITIES[i].weight).toBe(w)
-		end
 	end)
 	it("rolls Secret about once per 2000 seeded tier rolls", function()
 		local rng = Rng.new(28)

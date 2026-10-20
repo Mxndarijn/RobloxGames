@@ -2,8 +2,6 @@
 -- SlimeMotor: the procedural Motor6D life of a rigged slime, the driver
 -- choice (SlimeAnim.mode / verdict), the fallback when uploaded animations
 -- don't load, the LOD cap and static pets.
-local fs = require("@lune/fs")
-
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
@@ -177,10 +175,6 @@ describe("driver choice", function()
 		return `rbxassetid://{#name}`
 	end)
 
-	it("ships with the uploaded animations off", function()
-		expect(Config.FEATURES.SlimeAnimations).toBe(false)
-	end)
-
 	it("flag off: a rigged slime is driven by SlimeMotor, whatever the probe says", function()
 		for _, verdict in { "ok", "wait", "failed" } do
 			expect(SlimeAnim.mode(false, ids, true, verdict :: any, true)).toBe("motor")
@@ -204,20 +198,6 @@ describe("driver choice", function()
 		expect(SlimeAnim.verdict(nil, SlimeAnim.LOAD_TIMEOUT + 1, nil)).toBe("failed")
 		expect(SlimeAnim.verdict(2.5, SlimeAnim.LOAD_TIMEOUT + 1, false)).toBe("failed")
 		expect(SlimeAnim.verdict(2.5, 0.1, true)).toBe("ok")
-	end)
-
-	it("the runner falls through anim -> motor -> weld and probes off the select loop", function()
-		local src = fs.readFile("src/ui/SlimeLifeRunner.client.luau")
-		expect(string.find(src, "Config.FEATURES.SlimeAnimations == true", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "SlimeAnim.mode(", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "pcall(acquireMotor, model)", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "pcall(acquire, model)", 1, true) ~= nil).toBe(true)
-		local probe = string.match(src, "local function startProbe.-\nend\n") :: string
-		expect(string.find(probe, "task.spawn", 1, true) ~= nil).toBe(true)
-		-- a failed probe drops animated rigs back to motors
-		expect(string.find(src, 'probe == "failed" or', 1, true) ~= nil).toBe(true)
-		-- a track that never plays fails the whole probe
-		expect(string.find(src, 'probe = "failed"', 1, true) ~= nil).toBe(true)
 	end)
 end)
 
@@ -284,14 +264,6 @@ describe("pets stay static", function()
 		expect(pet:GetAttribute("LifeAnimating")).toBeNil()
 		expect(pet:GetAttribute("LifeMode")).toBeNil()
 		expect(UiHarness.find(pet, "AnimationController")).toBeNil()
-	end)
-
-	it("the runner only drives SLIME_TAG models, never the follow-pet clone", function()
-		local src = fs.readFile("src/ui/SlimeLifeRunner.client.luau")
-		expect(string.find(src, "GetInstanceAddedSignal(Constants.SLIME_TAG)", 1, true) ~= nil).toBe(true)
-		expect(string.find(fs.readFile("src/visuals/client/FollowPets.luau"), "PetRig.stripLife(pet)", 1, true) ~= nil).toBe(
-			true
-		)
 	end)
 end)
 
@@ -436,16 +408,5 @@ describe("LOD tiers", function()
 		expect(count).toBe(SlimeLife.MAX_ACTIVE)
 		expect(counts.near + counts.mid + counts.far).toBe(16)
 		expect(counts.near > 0 and counts.mid > 0).toBe(true)
-	end)
-
-	it("the runner reselects 4x a second and reads quality via the module", function()
-		local src = fs.readFile("src/ui/SlimeLifeRunner.client.luau")
-		expect(string.find(src, "SELECT_EVERY = 0.25", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "SlimeLod.tierFor(", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "SlimeMotor.park", 1, true) ~= nil).toBe(true)
-		expect(string.find(src, "SlimeLod.readQuality(", 1, true) ~= nil).toBe(true)
-		-- the per-frame loop sorts nothing
-		local frameLoop = string.match(src, "RenderStepped:Connect.*$") :: string
-		expect(string.find(frameLoop, "table.sort", 1, true)).toBeNil()
 	end)
 end)

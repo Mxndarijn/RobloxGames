@@ -2,10 +2,10 @@
 --[[
 	FriendBadge
 
-	HUD badge text for the friend income bonus (State.friends, FEATURES.FriendBonus):
-	"👥 +20% friends". `line` is the same bonus as an income-breakdown line
-	("Friends +20% income"). nil with no friends or the feature
-	off. Pure (tests/ui/FriendBadge.spec.luau).
+	HUD text for the friend income bonus (State.friends, FEATURES.FriendBonus):
+	`label` is "+20%" for the status slot, `line` the same bonus as an
+	income-breakdown line ("Friends +20% income"). nil with no friends or the
+	feature off. Pure (tests/ui/FriendBadge.spec.luau).
 ]]
 
 export type View = { count: number, bonus: number }
@@ -24,14 +24,7 @@ local function active(view: any, enabled: boolean): boolean
 		and view.bonus > 0
 end
 
-function FriendBadge.banner(view: View?, enabled: boolean): string?
-	if not active(view, enabled) then
-		return nil
-	end
-	return `👥 {percent((view :: View).bonus)} friends`
-end
-
--- "+20%" alone (the bottom-right status slot); nil like `banner`.
+-- "+20%" alone (the bottom-right status slot); nil with no friends or the feature off.
 function FriendBadge.label(view: View?, enabled: boolean): string?
 	if not active(view, enabled) then
 		return nil

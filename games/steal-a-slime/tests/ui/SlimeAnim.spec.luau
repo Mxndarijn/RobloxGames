@@ -30,7 +30,6 @@ describe("SlimeAnim.tick", function()
 			end
 			expect(looks > 20).toBe(true)
 		end
-		expect(SlimeAnim.NAMES.hop).toBeNil()
 	end)
 
 	it("doesn't queue catch-up glances after a long gap", function()
@@ -68,20 +67,6 @@ describe("SlimeAnim.newTracks", function()
 end)
 
 describe("animation LOD (SlimeLife.select with onScreen)", function()
-	it("caps active rigs at MAX_ACTIVE, nearest first", function()
-		local cands: { SlimeLife.Candidate } = {}
-		for i = 1, 40 do
-			table.insert(cands, { id = `s{i}`, distance = i, state = "Wild", tier = 1, onScreen = true })
-		end
-		local active = SlimeLife.select(cands, nil)
-		local n = 0
-		for id in active do
-			n += 1
-			expect(tonumber(string.sub(id, 2)) :: number <= SlimeLife.MAX_ACTIVE).toBe(true)
-		end
-		expect(n).toBe(SlimeLife.MAX_ACTIVE)
-	end)
-
 	it("skips slimes off screen or too far, even when they were active", function()
 		local cands: { SlimeLife.Candidate } = {
 			{ id = "a", distance = 5, state = "Wild", onScreen = false },

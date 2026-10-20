@@ -37,8 +37,7 @@ local function v7Save(pvp: any): { [string]: any }
 end
 
 describe("SaveData.migrateV7", function()
-	it("is the current version, one above v7", function()
-		expect(Config.SAVE_VERSION).toBe(8)
+	it("stamps a v7 save as version 8, migrated from 7", function()
 		local out = SaveData.migrateV7(v7Save({ tiers = { Knockback = 4, Trap = 2 }, fun = {}, played = 600 }))
 		expect(out.version).toBe(8)
 		expect(out.migratedFrom).toBe(7)

@@ -66,8 +66,6 @@ describe("Nav.badges", function()
 			dex = { found = 2, total = 50 },
 		})
 		expect(badges.Plot).toBe("!")
-		expect(badges.Merge).toBeNil()
-		expect(badges.Shop).toBeNil()
 		expect(badges.Rebirth).toBe("!")
 		expect(badges.Dex).toBe("4%")
 	end)

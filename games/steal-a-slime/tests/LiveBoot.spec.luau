@@ -97,63 +97,48 @@ describe("LiveBoot (server Script in the fake runtime)", function()
 		show(ownerSigns)
 		expect(ownerSigns.ok).toBe(true)
 	end)
-	it("has no BuyStand and no ClaimPrompt anywhere in the live world (C6 v30)", function()
-		local bad = {}
+	it("one 'Open Shop' prompt on the ShopStand, one 'Talk' prompt on the Guide NPC", function()
+		local prompts = {}
 		for _, d in rt.workspace:GetDescendants() do
-			if d.Name == "BuyStand" or d.Name == "ClaimPrompt" then
-				table.insert(bad, d:GetFullName())
+			if d:IsA("ProximityPrompt") then
+				local model = d:FindFirstAncestorWhichIsA("Model")
+				local owner = if model then model.Name else "?"
+				prompts[owner] = prompts[owner] or {}
+				table.insert(prompts[owner], d)
 			end
 		end
-		expect(#bad).toBe(0)
-	end)
-	it(
-		"v28: one 'Open Shop' prompt on the ShopStand, one 'Talk' prompt on the Guide NPC, no per-item prompts",
-		function()
-			local prompts = {}
-			for _, d in rt.workspace:GetDescendants() do
-				if d:IsA("ProximityPrompt") then
-					local model = d:FindFirstAncestorWhichIsA("Model")
-					local owner = if model then model.Name else "?"
-					prompts[owner] = prompts[owner] or {}
-					table.insert(prompts[owner], d)
-				end
-			end
-			local guide = prompts[Constants.TUTORIAL_NPC] or {}
-			if Config.FEATURES.WorldShops then
-				-- CONTRACT.md §27.3: one ShopPrompt on each stand's Counter
-				expect(prompts[Constants.SHOP_STAND]).toBeNil()
-				local rows: { any } = {
-					{ Constants.SHOP_STAND_ITEM, "ItemShop", "Item Shop", "Browse items" },
-					{ Constants.SHOP_STAND_UPGRADE, "UpgradeShop", "Upgrade Shop", "Browse upgrades" },
-				}
-				for _, row in rows do
-					local name, shopId, objectText, actionText = row[1], row[2], row[3], row[4]
-					local shop = prompts[name] or {}
-					expect(#shop).toBe(1)
-					expect(shop[1].Name).toBe(Constants.SHOP_PROMPT_NAME)
-					expect(shop[1].ObjectText).toBe(objectText)
-					expect(shop[1].ActionText).toBe(actionText)
-					expect(shop[1].HoldDuration).toBe(0)
-					expect(shop[1].MaxActivationDistance).toBe(12)
-					expect(shop[1].KeyboardKeyCode.Name).toBe("E")
-					expect(shop[1].Parent.Name).toBe("Counter")
-					expect(shop[1].Parent.Parent:GetAttribute(Constants.SHOP_ID_ATTRIBUTE)).toBe(shopId)
-				end
-			else
-				local shop = prompts[Constants.SHOP_STAND] or {}
+		local guide = prompts[Constants.TUTORIAL_NPC] or {}
+		if Config.FEATURES.WorldShops then
+			-- CONTRACT.md §27.3: one ShopPrompt on each stand's Counter
+			expect(prompts[Constants.SHOP_STAND]).toBeNil()
+			local rows: { any } = {
+				{ Constants.SHOP_STAND_ITEM, "ItemShop", "Item Shop", "Browse items" },
+				{ Constants.SHOP_STAND_UPGRADE, "UpgradeShop", "Upgrade Shop", "Browse upgrades" },
+			}
+			for _, row in rows do
+				local name, shopId, objectText, actionText = row[1], row[2], row[3], row[4]
+				local shop = prompts[name] or {}
 				expect(#shop).toBe(1)
 				expect(shop[1].Name).toBe(Constants.SHOP_PROMPT_NAME)
-				expect(shop[1].ActionText).toBe("Open Shop")
+				expect(shop[1].ObjectText).toBe(objectText)
+				expect(shop[1].ActionText).toBe(actionText)
+				expect(shop[1].HoldDuration).toBe(0)
+				expect(shop[1].MaxActivationDistance).toBe(12)
 				expect(shop[1].KeyboardKeyCode.Name).toBe("E")
+				expect(shop[1].Parent.Name).toBe("Counter")
+				expect(shop[1].Parent.Parent:GetAttribute(Constants.SHOP_ID_ATTRIBUTE)).toBe(shopId)
 			end
-			expect(#guide).toBe(1)
-			expect(guide[1].Name).toBe(Constants.GUIDE_PROMPT_NAME)
-			expect(guide[1].ActionText).toBe("Talk")
-			for _, d in rt.workspace:GetDescendants() do
-				expect(string.find(d.Name, "ShopPrompt_", 1, true)).toBeNil()
-			end
+		else
+			local shop = prompts[Constants.SHOP_STAND] or {}
+			expect(#shop).toBe(1)
+			expect(shop[1].Name).toBe(Constants.SHOP_PROMPT_NAME)
+			expect(shop[1].ActionText).toBe("Open Shop")
+			expect(shop[1].KeyboardKeyCode.Name).toBe("E")
 		end
-	)
+		expect(#guide).toBe(1)
+		expect(guide[1].Name).toBe(Constants.GUIDE_PROMPT_NAME)
+		expect(guide[1].ActionText).toBe("Talk")
+	end)
 	it("with FEATURES.Habitats on, every pad carries a known habitat id and the server builds no looks", function()
 		local found = {}
 		local pads = 0

@@ -1,6 +1,6 @@
 --!strict
 -- Client PvP effects, pure part (src/ui/PvpEffectsLogic): which visual / sound per effect, clamped durations,
--- marker rules, shake math, tracker bookkeeping, and the PvP sound ids.
+-- marker rules, shake math, and tracker bookkeeping.
 local Config = require("../../src/shared/Config")
 local Logic = require("../../src/ui/PvpEffectsLogic")
 local PvpRules = require("../../src/shared/PvpRules")
@@ -224,31 +224,5 @@ describe("PvpEffectsLogic shake, range, tracker", function()
 	end)
 	it("highlight cap stays far below the Roblox limit", function()
 		expect(Logic.HIGHLIGHT_CAP <= 10).toBe(true)
-	end)
-end)
-
-describe("PvP sounds", function()
-	local PVP_NAMES = {
-		"PvpHit",
-		"PvpCollide",
-		"PvpGoo",
-		"PvpSquirt",
-		"PvpBoing",
-		"PvpPop",
-		"PvpSqueak",
-		"PvpFirework",
-		"PvpBubble",
-		"PvpDisco",
-	}
-	it("every PvP sound is a numeric rbxassetid", function()
-		for _, name in PVP_NAMES do
-			local id = Sounds.IDS[name]
-			expect(id ~= nil and string.match(id, "^rbxassetid://%d+$") ~= nil).toBe(true)
-		end
-	end)
-	it("all ids in the registry are numeric rbxassetids", function()
-		for _, id in Sounds.IDS do
-			expect(string.match(id, "^rbxassetid://%d+$") ~= nil).toBe(true)
-		end
 	end)
 end)

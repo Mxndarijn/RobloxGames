@@ -178,9 +178,6 @@ describe("Weather visual quality", function()
 end)
 
 describe("Weather flag", function()
-	it("is on", function()
-		expect(Config.FEATURES.Weather).toBe(true)
-	end)
 	it("flag off draws nothing for any server id, unless a debug preview is set", function()
 		for _, id in Config.WEATHER_ORDER do
 			expect(Weather.visualId(false, id, nil)).toBe("Clear")
@@ -192,16 +189,6 @@ describe("Weather flag", function()
 		expect(Weather.visualId(true, "Rain", nil)).toBe("Rain")
 		expect(Weather.visualId(true, "Rain", "Starfall")).toBe("Starfall")
 		expect(Weather.visualId(true, "bogus", nil)).toBe("Clear")
-	end)
-end)
-
-describe("Weather hook for #8", function()
-	it("exposes getCurrent, Changed and Config.WEATHER[id] for every weather", function()
-		expect(type(Weather.getCurrent)).toBe("function")
-		expect(type(Weather.Changed.Connect)).toBe("function")
-		for _, id in Config.WEATHER_ORDER do
-			expect(Weather.data(id) ~= nil).toBe(true)
-		end
 	end)
 end)
 

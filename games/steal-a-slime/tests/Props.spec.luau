@@ -155,7 +155,6 @@ describe("MinimapData", function()
 			kinds[p.kind] = (kinds[p.kind] or 0) + 1
 		end
 		expect(kinds.Fountain).toBe(1)
-		expect(kinds.Volcano).toBeNil()
 		expect(kinds.Plot).toBe(Config.PLOT_COUNT)
 		expect(kinds.Spawn).toBe(1)
 		for name in WorldLayout.PROP_SPOTS do

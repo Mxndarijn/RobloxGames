@@ -133,6 +133,5 @@ describe("VisualsClient fountain wiring", function()
 				expect(names[name]).toBe(true)
 			end
 		end
-		expect(string.find(src, "LavaCrack", 1, true)).toBeNil()
 	end)
 end)

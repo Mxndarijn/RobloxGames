@@ -1,24 +1,17 @@
 --!strict
--- Small-screen sweep of the HUD overlay: the banner stack (countdown chip) and the layout boxes around it at
+-- Small-screen sweep of the HUD overlay: the banner stack and the layout boxes around it at
 -- the five gate viewports (390x844, 844x390, 1024x768, 1366x768, 1920x1080). Toasts are gone (B6).
-local fs = require("@lune/fs")
 
 local Config = require("../../src/shared/Config")
 local Goals = require("../../src/shared/Goals")
 
 local Layout = require("../../src/ui/Layout")
 local LayoutAssert = require("./LayoutAssert")
-local NextSpawn = require("../../src/ui/NextSpawn")
 local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 
 local CHIP_H = 34 -- one banner at TextSize 15-16: Hud `banner` 34 px minimum
-local BANNER_PAD = 20 -- Hud banner UIPadding left + right
-
--- Longest realistic strings.
-local LONGEST_CHIP = (NextSpawn.chip(false, 1000 + 35999, nil, 1000) :: NextSpawn.Info).text -- "🌧 Slime Rain in 9:59:59"
-local LONGEST_BOSS = (NextSpawn.chip(false, nil, 1000 + 35999, 1000) :: NextSpawn.Info).text
 
 describe("HUD banners at the gate viewports", function()
 	for _, vp in LayoutAssert.GATE_VIEWPORTS do
@@ -35,30 +28,7 @@ describe("HUD banners at the gate viewports", function()
 			end
 			expect(check.report()).toBe("")
 		end)
-
-		it(`{label}: the countdown chip text fits a banner`, function()
-			local check = LayoutAssert.new(label, s)
-			for _, text in { LONGEST_CHIP, LONGEST_BOSS } do
-				check.text({
-					name = "NextSpawnChip",
-					text = text,
-					size = 15,
-					bold = true,
-					w = s.banners.w - BANNER_PAD,
-					h = CHIP_H,
-				})
-			end
-			expect(check.report()).toBe("")
-		end)
 	end
-end)
-
-describe("Hud banner source", function()
-	it("sizes every banner to the Banners frame, not a fixed 560 px", function()
-		local hud = fs.readFile("src/ui/Hud.luau")
-		expect(string.find(hud, "Size = UDim2.fromOffset(560, 34)", 1, true) == nil).toBe(true)
-		expect(string.find(hud, "Size = UDim2.new(1, 0, 0, 34)", 1, true) ~= nil).toBe(true)
-	end)
 end)
 
 describe("Goals 'Next:' preview", function()

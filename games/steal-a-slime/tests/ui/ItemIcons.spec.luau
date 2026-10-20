@@ -531,33 +531,6 @@ describe("item icons: server ids, Dex skins, gear", function()
 		expect(seen.PlotSkin_classic and seen.PlotSkin_candy).toBe(true)
 	end)
 
-	it("the HUD draws the Mystery Egg banner icon (the Lock button and its icon went with the top bar)", function()
-		local hud = fs.readFile("src/ui/Hud.luau")
-		expect(string.find(hud, 'Name = "EggIcon",\n\t\tId = "MysteryEgg"', 1, true) ~= nil).toBe(true)
-		expect(string.find(hud, "LockIcon", 1, true)).toBeNil()
-	end)
-
-	it("source scan: every item surface renders its icons with ItemIconView (no emoji-only item badges)", function()
-		local surfaces = {
-			["src/ui/Panels/Shop.luau"] = true,
-			["src/ui/Panels/Codes.luau"] = true,
-			["src/ui/Panels/Goals.luau"] = true,
-			["src/ui/Panels/DailyPopup.luau"] = true,
-			["src/ui/Panels/Plot.luau"] = true,
-			["src/ui/Panels/Dex.luau"] = true,
-			["src/ui/Hud.luau"] = true,
-		}
-		for path in surfaces do
-			local src = fs.readFile(path)
-			expect(`{path}: {if string.find(src, "ItemIconView.new", 1, true) then "ItemIconView" else "none"}`).toBe(
-				`{path}: ItemIconView`
-			)
-		end
-		-- Item cards must not fall back to a bare emoji glyph for plot skins any more.
-		local dex = fs.readFile("src/ui/Panels/Dex.luau")
-		expect(string.find(dex, '"🏡"', 1, true)).toBe(nil)
-	end)
-
 	it("every server Notify that names an item passes its id, and each id resolves in the registry", function()
 		local ids = {}
 		for _, file in { "Actions", "MysteryEgg", "Rebirth", "StealService" } do

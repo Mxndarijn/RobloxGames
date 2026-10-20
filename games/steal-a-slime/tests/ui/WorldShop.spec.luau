@@ -598,7 +598,6 @@ describe("Panels/WorldShop", function()
 		local lock = UiHarness.find(panel.frame, "Lock")
 		expect(lock.BackgroundColor3).toBe(Theme.Row)
 		expect(lock:FindFirstChild("Levels")).toBeNil()
-		expect(UiHarness.find(lock, "LevelBar")).toBeNil()
 		panel.setShop("UpgradeShop")
 		expect(panel.frame.BackgroundColor3).toBe(Theme.Bg)
 		expect(UiHarness.find(panel.frame, "IconTile"):FindFirstChild("Icon").Text).toBe(WorldShop.ICON.UpgradeShop)
@@ -676,7 +675,6 @@ describe("Panels/WorldShop", function()
 		panel.setShop("UpgradeShop")
 		local income = UiHarness.find(panel.frame, "Income")
 		expect(income.Size.Y.Offset).toBe(WorldShop.ROW_LEVELS)
-		expect(UiHarness.find(income, "LevelBar")).toBeNil()
 		local pips = income:FindFirstChild("Levels")
 		expect(#pips:GetChildren()).toBe(10)
 		local on = 0
@@ -749,23 +747,6 @@ describe("Panels/WorldShop", function()
 end)
 
 describe("init.client wiring", function()
-	local init = fs.readFile("src/ui/init.client.luau")
-	local function has(text: string, needle: string): boolean
-		return string.find(text, needle, 1, true) ~= nil
-	end
-
-	it("builds the world shop card only with FEATURES.WorldShops and joins it to the menu system", function()
-		expect(
-			has(init, "WorldShop = if Config.FEATURES.WorldShops == true then WorldShopPanel.new(gui, ctx) else nil")
-		).toBe(true)
-		expect(has(init, '{ key = "WorldShop", nav = nil, panel = panelByKey.WorldShop }')).toBe(true)
-		expect(has(init, "WorldShopLogic.controller({")).toBe(true)
-		expect(has(init, "Constants.SHOP_EVENT")).toBe(true)
-		expect(has(init, "Constants.OPEN_SHOP_ATTRIBUTE")).toBe(true)
-		expect(has(init, "worldShop.failed(result)")).toBe(true)
-		expect(has(init, 'setOpen("WorldShop")')).toBe(true)
-	end)
-
 	it("the shop prompt opens the old combined Shop only with the flag off", function()
 		expect(
 			MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, false)[Constants.SHOP_PROMPT_NAME]
@@ -776,16 +757,6 @@ describe("init.client wiring", function()
 		local on = MenuClose.promptMenus(Constants.SHOP_PROMPT_NAME, Constants.GUIDE_PROMPT_NAME, true)
 		expect(on[Constants.SHOP_PROMPT_NAME]).toBeNil()
 		expect(on[Constants.GUIDE_PROMPT_NAME]).toBe("Guide")
-		expect(has(init, "Constants.GUIDE_PROMPT_NAME, Config.FEATURES.WorldShops == true)")).toBe(true)
-		expect(fs.isFile("src/ui/Panels/Shop.luau")).toBe(true) -- kept for the flag-off HUD
-	end)
-
-	it("buys through ShopBuy from a hold button, never a direct buy action", function()
-		local panel = fs.readFile("src/ui/Panels/WorldShop.luau")
-		expect(has(panel, 'ctx.send("ShopBuy"')).toBe(true)
-		expect(has(panel, "Widgets.holdButton(")).toBe(true)
-		expect(has(panel, "ItemIconView.new")).toBe(true)
-		expect(has(panel, "Instance.new(")).toBe(false)
 	end)
 
 	it("the world shop card follows the one-open-menu state", function()

@@ -1,7 +1,6 @@
 --!strict
 local Config = require("../src/shared/Config")
 local HabitatMorph = require("../src/shared/HabitatMorph")
-local Habitats = require("../src/shared/Habitats")
 local TestRunner = require("./TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -67,8 +66,5 @@ describe("HabitatMorph.quality / burst / tint", function()
 		expect(HabitatMorph.burst(cfg, "full")).toBe(cfg.BURST_FULL)
 		expect(HabitatMorph.burst(cfg, "simple") < cfg.BURST_FULL).toBe(true)
 		expect(HabitatMorph.burst(cfg, "snap")).toBe(0)
-	end)
-	it("one whole morph still takes Habitats.TRANSFORM_SECONDS", function()
-		expect(Habitats.TRANSFORM_SECONDS).toBe(1)
 	end)
 end)

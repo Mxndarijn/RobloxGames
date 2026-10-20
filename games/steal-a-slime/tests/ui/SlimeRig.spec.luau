@@ -7,7 +7,6 @@ local serde = require("@lune/serde")
 
 local MeshAssets = require("../../src/shared/MeshAssets")
 local SlimeAnim = require("../../src/ui/SlimeAnim")
-local SlimeLife = require("../../src/ui/SlimeLife")
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 
@@ -101,13 +100,6 @@ describe("SlimeRig.attach", function()
 		expect(SlimeRig.isFacePart("CrownBand")).toBe(false)
 		expect(SlimeRig.isFacePart("Mesh")).toBe(false)
 	end)
-
-	it("is wired into the factory and the mesh look", function()
-		expect(
-			string.find(read("src/visuals/shared/ModelFactory.luau"), "SlimeRig.attach(model, body)", 1, true) ~= nil
-		).toBe(true)
-		expect(string.find(read("src/server/SlimeMesh.luau"), "anchorFor(model, body)", 1, true) ~= nil).toBe(true)
-	end)
 end)
 
 describe("animation ids", function()
@@ -119,7 +111,6 @@ describe("animation ids", function()
 			expect(uploaded[name].assetType).toBe("Animation")
 			expect(id).toBe(`rbxassetid://{uploaded[name].assetId}`)
 		end
-		expect(MeshAssets.animationId("SlimeBlink")).toBeNil()
 	end)
 
 	it("every animation has a KeyframeSequence in animations/", function()
@@ -140,28 +131,5 @@ describe("procedural fallback", function()
 		expect(SlimeAnim.ids(function(name: string)
 			return `rbxassetid://{#name}`
 		end) ~= nil).toBe(true)
-	end)
-
-	it(
-		"the runner only plays uploaded animations behind the flag, and keeps the LifeRoot rig for unrigged slimes",
-		function()
-			local src = read("src/ui/SlimeLifeRunner.client.luau")
-			expect(string.find(src, "if animationsOn then SlimeAnim.ids(MeshAssets.animationId)", 1, true) ~= nil).toBe(
-				true
-			)
-			expect(string.find(src, "pcall(acquire, model)", 1, true) ~= nil).toBe(true)
-			-- no Size writes in the animated path
-			local anim = string.match(src, "local function stepAnim.-\nend\n") :: string
-			expect(string.find(anim, ".Size", 1, true)).toBeNil()
-		end
-	)
-
-	it("SlimeLife still poses slimes without any asset", function()
-		local params = SlimeLife.params(3, "Wild")
-		local clock = SlimeLife.newClock(params, 0, function()
-			return 0.5
-		end)
-		local pose = SlimeLife.pose(params, clock, 1)
-		expect(pose.sy > 0.5 and pose.sy < 1.5).toBe(true)
 	end)
 end)

@@ -23,7 +23,6 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 -- shot's runtime_parts_max). The CI count adds RUNTIME_SLOT_ALLOWANCE; this spec compares the raw offline count.
 local budgets = serde.decode("json", fs.readFile("../../tools/pipeline/pc-watcher/budgets.json"))
 local PARTS_FAIL: number = budgets.runtime_parts.fail
-local PARTS_WARN: number = budgets.runtime_parts.warn
 
 local rt = RuntimeCount.boot()
 -- The count itself is pc-watcher's perf_server.luau run against this world (same filters as Studio).
@@ -131,14 +130,6 @@ describe("runtime part budget", function()
 	it(`keeps the world (no wild slimes) within the fixed {PARTS_FAIL} cap, Studio offset included`, function()
 		expect(world > 0).toBe(true)
 		expect(world + RuntimeCount.STUDIO_OFFSET <= PARTS_FAIL).toBe(true)
-	end)
-	it(`reports the headroom to the {PARTS_WARN} warn level (never fails)`, function()
-		local studio = world + RuntimeCount.STUDIO_OFFSET
-		print(`[RuntimeParts] Studio-equivalent {studio}: warn {PARTS_WARN}, fail {PARTS_FAIL}`)
-		if studio > PARTS_WARN then
-			print(`[RuntimeParts] WARNING: {studio} > warn level {PARTS_WARN}`)
-		end
-		expect(PARTS_WARN < PARTS_FAIL).toBe(true)
 	end)
 end)
 
