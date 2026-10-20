@@ -139,6 +139,9 @@
       "Visuals": {
         "$path": "src/visuals/shared"
       },
+      "Lib": {
+        "$path": "../../shared/luau/src"
+      },
       "Packages": {
         "$path": {
           "optional": "Packages"

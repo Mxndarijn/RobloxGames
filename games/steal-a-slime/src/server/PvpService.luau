@@ -92,6 +92,15 @@ function PvpService.onCleanup(hook: (world: World.World, session: Session) -> ()
 	table.insert(cleanupHooks, hook)
 end
 
+-- Called on every join with the flag on (after the session's PvP state exists): a line catches the joiner up.
+local joinHooks: { (world: World.World, session: Session, now: number) -> () } = {}
+
+function PvpService.onJoin(hook: (world: World.World, session: Session, now: number) -> ())
+	if not table.find(joinHooks, hook) then
+		table.insert(joinHooks, hook)
+	end
+end
+
 -- Queues a PvpEvent for `target` (nil = every client). The adapter stamps serverTime when `now` is nil.
 local function send(world: World.World, target: number?, payload: { [string]: any }, now: number?)
 	payload.serverTime = payload.serverTime or now
@@ -148,13 +157,21 @@ function PvpService.fireEffect(world: World.World, payload: { [string]: any }, n
 end
 
 -- kind = "TrapPlaced" | "TrapCleared"; payload { owner, trapId, itemId, position }. No-op with the flag off.
-function PvpService.fireTrap(world: World.World, kind: string, payload: { [string]: any }, now: number?, flag: boolean?)
+-- `target` = one userId (a replay to a joiner), nil = every client.
+function PvpService.fireTrap(
+	world: World.World,
+	kind: string,
+	payload: { [string]: any },
+	now: number?,
+	flag: boolean?,
+	target: number?
+)
 	if not PvpRules.enabled(flag) then
 		return
 	end
 	local event = table.clone(payload)
 	event.kind = kind
-	send(world, nil, event, now)
+	send(world, target, event, now)
 end
 
 function PvpService.enabled(override: boolean?): boolean
@@ -172,7 +189,7 @@ local function start(session: Session)
 end
 
 -- Called by Sessions.join. `flag` overrides FEATURES.PvP (tests).
-function PvpService.join(world: World.World, session: Session, _now: number, flag: boolean?)
+function PvpService.join(world: World.World, session: Session, now: number, flag: boolean?)
 	if not PvpService.enabled(flag) then
 		states[session] = nil
 		extras[session] = nil
@@ -180,6 +197,9 @@ function PvpService.join(world: World.World, session: Session, _now: number, fla
 		return
 	end
 	start(session)
+	for _, hook in joinHooks do
+		hook(world, session, now)
+	end
 end
 
 -- Called by Sessions.leave before the save.

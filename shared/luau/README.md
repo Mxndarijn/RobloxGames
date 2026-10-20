@@ -15,6 +15,10 @@ Game-agnostic Luau systems for every game in this repo. Each system has a pure c
 | | `ToolProvider` | adapter, client | Lists / equips Roblox Tools, hides the default backpack, number-key and world-press input |
 | `src/core` | `Rng`, `NumberFormat`, `RateLimiter`, `Migrations`, `Signal` | pure | Seeded random, number and duration formatting, per-key action limits, versioned save migrations + sanitizers, a small signal |
 | `src/data` | `SessionLock`, `DataService` | pure, server | Session-locked load / save with retries, injected backend, and refusal to overwrite data from a newer save format |
+| `src/guide` | `GuideTarget` | pure | Picks the closest candidate on the ground plane, keeping the current pick unless another is clearly closer |
+| | `GuideTrail` | pure | Lays out ground-trail arrows along a route: spacing, scroll phase, fade at both ends, length and count caps |
+| | `GuideEdge` | pure | Screen-edge pointer position and angle for an off-screen target (flips targets behind the camera) |
+| | `GuideView` | adapter, client | Leads the local player to a target: neon chevrons snapped to the ground (optional pathfinding route), ring, labelled marker, Highlight outline, screen-edge pointer; colours, sizes and the arrow template can be overridden |
 | `testing` | `TestRunner` | Lune only | describe / it / expect used by these specs; games can reuse it |
 
 ## Mounting in a game
@@ -80,3 +84,19 @@ rojo build -o lib.rbxm
 ```
 
 `HotbarView` and `ToolProvider` need Roblox and are not covered by the Lune specs; check them in Studio when you change them.
+
+## Guide: leading the player to a target
+
+```lua
+local GuideView = require(ReplicatedStorage.Lib.guide.GuideView)
+local guide = GuideView.new({
+	color = Color3.fromRGB(255, 226, 60), -- every option is optional
+	trail = { spacing = 4, maxLength = 120 }, -- GuideTrail.Options
+	usePathfinding = true, -- false: a straight line on the ground
+	getIgnore = function() return { workspace.Enemies } end, -- the trail never lands on these
+})
+guide:setTarget(model, "Buy $40") -- any PVInstance; nil or guide:clear() hides everything
+guide:destroy()
+```
+
+Picking the target is the game's job: build the candidates it allows (affordable, unlocked...) and let `GuideTarget.pick(candidates, from, currentKey)` choose, so the guide does not flick between two targets at nearly the same distance.

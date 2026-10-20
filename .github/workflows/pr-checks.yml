@@ -35,6 +35,7 @@ jobs:
               - 'games/steal-a-slime/**'
               - 'shared/modeling-kit/out/**'
               - 'shared/modeling-kit/models/slime_fountain.py'
+              - 'shared/luau/**'
               - 'tools/pr-gate/**'
               - '.github/workflows/**'
             escape:
