@@ -123,7 +123,7 @@ class Scenario:
     rain_luck: float = 5.0
     boss_first: float = 480
     boss_interval: float = 1200
-    boss_shower: int = 6  # extra wild slimes the boss bursts into (luck x3)
+    boss_shower: int = 6  # wild slimes the boss sheds in the fight (3 sheds x 2, luck x3)
     merge_jump: float = 0.2
     jump_max_tier: int = 6  # a +2 jump may land at most here (today: anything below Secret)
     merge_max_tier: int = 7  # a random (non-recipe) merge result is at most this tier (today: Mythic x3 -> Secret)
