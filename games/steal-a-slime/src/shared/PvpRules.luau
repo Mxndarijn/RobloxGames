@@ -2,8 +2,8 @@
 --[[
 	PvpRules (pure, FEATURES.PvP, CONTRACT.md §26, docs/PVP.md)
 
-	The fairness core of the PvP ladder: prices, rank gating, ownership (Goo Trap charges included), the new-player
-	shield, control limits, the cooldown registry, who may be targeted, and the knockback clamp. No Roblox APIs:
+	The fairness core of the PvP ladder: prices, rank gating, ownership (Goo Trap charges included), control limits,
+	the cooldown registry, who may be targeted, and the knockback clamp. No Roblox APIs:
 	positions are any table with X / Y / Z (a Vector3 works), so Lune tests it directly.
 
 	GUARANTEE: no PvP item ever reduces Humanoid health. Nothing in this module or in Config.PVP_TOOLS has a
@@ -11,7 +11,7 @@
 	landing point is clamped inside the map. Control is bounded: at most Config.PVP.CONTROL_MAX_SECONDS (slows
 	SLOW_MAX_SECONDS), then Config.PVP.CONTROL_IMMUNITY_SECONDS of immunity.
 
-	There are no safe zones: PvP works everywhere, except on and by players under the new-player shield.
+	There are no safe zones: PvP works everywhere, on everyone.
 	With the flag off every gate answers "no" (price / ownership helpers stay pure and still work).
 ]]
 
@@ -23,14 +23,11 @@ export type Pvp = {
 	tiers: { [string]: number }, -- Knockback / Blaster -> best owned tier
 	traps: { [string]: number }, -- Goo Trap id -> charges held
 	fun: { [string]: boolean },
-	played: number,
 }
 -- What PvpRules reads from PlayerData.Data.
 export type Data = { cash: number, rebirths: number, pvp: Pvp? }
 -- Per-player runtime state (server/PvpService keeps one per session; never saved).
 export type State = {
-	joinedAt: number, -- when this session started (play time counts towards the shield)
-	shieldUntil: number, -- time the new-player shield ends (0 = none)
 	controlUntil: number, -- time the current control / slow ends
 	immuneUntil: number, -- no new control before this
 	cooldowns: { [string]: number }, -- tool id -> time it is ready again
@@ -85,7 +82,7 @@ function PvpRules.toolAt(line: string, tier: number): Config.PvpTool?
 end
 
 function PvpRules.emptyPvp(): Pvp
-	return { tiers = {}, traps = {}, fun = {}, played = 0 }
+	return { tiers = {}, traps = {}, fun = {} }
 end
 
 -- A tool used up per use and bought as charges (the Goo Traps).
@@ -217,20 +214,7 @@ function PvpRules.buy(data: Data, id: any, flag: boolean?): (boolean, string?)
 end
 
 function PvpRules.newState(): State
-	return { joinedAt = 0, shieldUntil = 0, controlUntil = 0, immuneUntil = 0, cooldowns = {} }
-end
-
--- When a shield that starts at `now` ends: none once the player has played the full shield time.
-function PvpRules.shieldEnd(played: number, now: number): number
-	if played >= PVP.NEW_PLAYER_SHIELD_SECONDS then
-		return 0
-	end
-	return now + (PVP.NEW_PLAYER_SHIELD_SECONDS - math.max(0, played))
-end
-
--- Shielded = a shield end in the future.
-function PvpRules.isShielded(state: State?, now: number): boolean
-	return state ~= nil and now < state.shieldUntil
+	return { controlUntil = 0, immuneUntil = 0, cooldowns = {} }
 end
 
 -- Control: false while the target is controlled or immune.
@@ -303,8 +287,6 @@ export type TargetContext = {
 	May `attacker` use `ctx.toolId` on `target`? Returns (ok, reason). Anyone may be hit anywhere, except:
 	  * the flag is off; the tool is unknown (or not owned / its rank not reached, when ctx.data is given)
 	  * the tool is cooling down
-	  * a non-cosmetic tool while the attacker is under the new-player shield
-	  * a target under the new-player shield
 	  * a non-cosmetic tool without a target, or one that controls / slows a target under control or immunity
 	Cosmetic fun items may have no target (a self effect).
 ]]
@@ -326,12 +308,6 @@ function PvpRules.canTarget(attacker: Fighter, target: Fighter?, ctx: TargetCont
 	end
 	if attacker.state and not PvpRules.ready(attacker.state, tool.id, ctx.now) then
 		return false, "not ready"
-	end
-	if not tool.cosmetic and PvpRules.isShielded(attacker.state, ctx.now) then
-		return false, "your new-player shield is on"
-	end
-	if target and PvpRules.isShielded(target.state, ctx.now) then
-		return false, "target is shielded"
 	end
 	if not tool.cosmetic then
 		if not target then

@@ -576,7 +576,6 @@ function Hud.new(parent: Instance, ctx: any)
 			friendsEnabled = ctx.Config.FEATURES.FriendBonus == true,
 			blessed = current.blessed,
 			featuredSecret = current.featuredSecret,
-			shieldUntil = if ctx.shieldUntil then ctx.shieldUntil() else nil,
 		}, now, Layout.STATUS.count)
 		local parts = {}
 		for _, slot in slots do

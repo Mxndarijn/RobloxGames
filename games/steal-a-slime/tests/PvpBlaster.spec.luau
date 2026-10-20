@@ -1,6 +1,6 @@
 --!strict
 -- The Goo Blasters (FEATURES.PvP, CONTRACT.md §26.6): the blob arc, hit / miss / range, the Squirter tank and its
--- stacking slow, the Blaster fan, the Cannon splash and pool, the missed blob's splat, caught thieves, the shield,
+-- stacking slow, the Blaster fan, the Cannon splash and pool, the missed blob's splat, caught thieves,
 -- walk speed restore, flag-off refusal, nothing spawned. Every flag-dependent call passes the flag explicitly so the
 -- specs hold in the forced-flag runs too.
 local Carry = require("../src/server/Carry")
@@ -47,7 +47,6 @@ local function setup(tier: string?): (any, any, any, any)
 	local c = ServerFixtures.join(world, 3, nil, 1e12)
 	a.data.rebirths, b.data.rebirths, c.data.rebirths = 20, 20, 20
 	for _, s in { a, b, c } do
-		ServerFixtures.veteran(s)
 		ServerFixtures.unlock(s)
 		PvpService.join(world, s, T0, true)
 	end
@@ -252,20 +251,6 @@ describe("Blaster use", function()
 		expect(PvpSlow.walkFactor(c, T0 + 1.5) < 1).toBe(true)
 		expect(#PvpBlaster.zones(a)).toBe(1)
 		expect((shots()[1] :: any).splat.seconds).toBe(4)
-		done()
-	end)
-	it("a shielded player is never hit, and a shielded shooter can't fire", function()
-		local world, a, b = setup("GooBlaster3")
-		b.data.pvp.played = 0
-		PvpService.join(world, b, T0, true)
-		positions[3] = { X = 500, Y = 3, Z = 0 }
-		expect(fire(world, a, positions[2], T0 + 1, "GooBlaster3")).toBe(true)
-		expect(shots()[1].target).toBeNil()
-		expect(PvpSlow.walkFactor(b, T0 + 1.5)).toBe(1)
-		a.data.pvp.played = 0
-		PvpService.join(world, a, T0, true)
-		expect((PvpService.equip(a, "GooBlaster3", true))).toBe(true)
-		expect(select(2, fire(world, a, positions[2], T0 + 20, "GooBlaster3"))).toBe("your new-player shield is on")
 		done()
 	end)
 	it("immunity after the slow: a second hit lands but slows nothing", function()

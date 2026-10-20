@@ -160,27 +160,26 @@ describe("H1 HUD: HudClusters (pure)", function()
 		end
 		expect(table.concat(HudClusters.STATUS_IDS, ",")).toBe(table.concat(Layout.STATUS_SLOTS, ","))
 	end)
-	it("the new-player shield is the first slot with its m:ss countdown, and five things still show four", function()
+	it("five things running still show four: the featured Secret makes way", function()
 		local slots = HudClusters.status(
 			{
-				shieldUntil = 1000 + 754,
 				rain = { active = true, endsAt = 1030 },
 				modifier = { label = "Dawn", luck = 2, endsAt = 1100 },
 				modifierEnabled = true,
 				friends = { count = 1, bonus = 0.1 },
 				friendsEnabled = true,
+				blessed = { bonus = 0.3, endsAt = 1179 },
 				featuredSecret = { id = "x", name = "Glim", endsAt = 1000 + 3600 },
 			} :: any,
 			1000,
 			Layout.STATUS.count
 		)
 		expect(#slots).toBe(Layout.STATUS.count)
-		expect(slots[1].id).toBe("Shield")
-		expect(slots[1].text).toBe("12:34")
-		expect(slots[1].icon).toBe("Shield")
-		expect(HudClusters.tooltip(slots[1]).time).toBe("Time left: 12:34")
-		expect(HudClusters.shield(999, 1000)).toBeNil()
-		expect(HudClusters.shield(nil, 1000)).toBeNil()
+		local ids = {}
+		for _, slot in slots do
+			table.insert(ids, slot.id)
+		end
+		expect(table.concat(ids, ",")).toBe("Rain,Event,Friend,Blessed")
 	end)
 end)
 
