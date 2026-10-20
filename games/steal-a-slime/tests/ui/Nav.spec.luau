@@ -54,7 +54,7 @@ describe("Nav.shopAffordable", function()
 end)
 
 describe("Nav.badges", function()
-	it("flags rebirth and dex % (no Plot / Merge / Shop badges: those buttons are gone)", function()
+	it("flags rebirth (no Plot / Merge / Shop badges: those buttons are gone, the dex is a jar)", function()
 		local badges = Nav.badges({
 			cash = 600,
 			slimes = { view("a", 1, 7), view("b", 2), view("c", 2) },
@@ -69,7 +69,7 @@ describe("Nav.badges", function()
 		expect(badges.Merge).toBeNil()
 		expect(badges.Shop).toBeNil()
 		expect(badges.Rebirth).toBe("!")
-		expect(badges.Dex).toBe("4%")
+		expect(badges.Dex).toBeNil()
 	end)
 	it("stays quiet when there is nothing to do", function()
 		local badges = Nav.badges({
