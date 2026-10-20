@@ -263,7 +263,7 @@ add({
 	count = 1,
 	collision = "colliders",
 	now = "Collider + Frame + PostL/PostR on (Collider widened to the skin's 20.6 x 19.5)",
-	reason = "the board Model keeps its own Collider; MeshSwap widens it to the skin's width and height (20.6 x 19.5; depth and front unchanged) so the overhanging sides are solid. Not a COLLISION entry: the same mesh is the plots' DexMesh (Gojo)",
+	reason = "the board Model keeps its own Collider; MeshSwap widens it to the skin's width and height (20.6 x 19.5; depth and front unchanged) so the overhanging sides are solid. Not a COLLISION entry: the plots used the same mesh for their SlimeDex board (removed)",
 	find = { under = MAP, names = { "^LeaderboardBoard$" } },
 	was = "Collider 15 x 17 x 1.6 under a 20.6 wide mesh: 2.8 studs each side walkable",
 })
@@ -811,26 +811,6 @@ parts(
 	"off (server-toggled while the base is locked)",
 	"the cork Stopper filling jar 1's doorway: hidden and off while the plot is open, made solid only while it is locked, so it is no prop to walk into",
 	{ walk = false }
-)
-mesh(
-	"plot_dex_mesh",
-	"phoenix_top_earners_board",
-	"gojo",
-	8,
-	"colliders",
-	"Plots",
-	"mesh off; slot box on (canQuery / canTouch off)",
-	"the plot's SlimeDex board skin is decor (phoenix_top_earners_board is shared with the world board and has no fidelity): the slot box is its collider, flat against the back wall (WorldLayout B9 plot audit); its frame and legs are primitives (plot_dex_board)"
-)
-parts(
-	"plot_dex_board",
-	"gojo",
-	112,
-	"off",
-	"Plots",
-	{ "^Gem_%d+$", "^BarFill$", "^BarBack$", "^Shelf$", "^LegR$", "^LegL$", "^Frame$", "^Board$" },
-	"off",
-	"SlimeDex board primitives, all decor today (legs are 0.4 studs thick)"
 )
 parts(
 	"plot_rebirth_decor",

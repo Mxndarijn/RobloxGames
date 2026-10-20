@@ -59,7 +59,7 @@ for f in range(1, V + 1):
             place([painted(blob(f"Slime{f}{k}", 1.7, (pad["x"], pad["z"], top(f) + D["padSeatY"] + 1.33), col, subdiv=2,
                                 squash=(1, 1, 0.78), jitter=0.02), shade(col, 0.82), col)])
 
-# door, lock ring, stopper (plugged while locked, parked beside the door while open), lock button
+# door, lock ring, stopper (plugged while locked, parked beside the door while open), lock button in the back bay
 place(jar_door(), dz=top(1))
 ring = jar_door_ring()
 for o in ring:
@@ -73,15 +73,10 @@ else:
 bx, bz = D["lockButtonSpot"]
 place(lock_button(), dx=bx, dy=bz, dz=top(1))
 
-# merge vat (its own kit mesh in the game; a stand-in barrel here) and the name label on the glass
+# merge vat (its own kit mesh in the game; a stand-in barrel here)
 va = math.radians(D["vatSpot"]["angle"])
 vr = D["vatSpot"]["radius"]
 place([painted(cylinder("Vat", 4.5, 3.6, (vr * math.cos(va), vr * math.sin(va), top(1)), WOOD, segs=20), shade(WOOD, 0.85), WOOD)])
-lab = D["label"]
-la = math.radians(lab["angle"])
-place([box("Sign", (lab["width"], 0.4, lab["height"]), ((radius(1) + 0.4) * math.cos(la), (radius(1) + 0.4) * math.sin(la), top(1) + lab["y"]), CREAM,
-           rot=(0, 0, lab["angle"] + 90))])
-
 if V >= 2:
     place(drop_tube_glass(V), dz=top(1) - 1.0, into=glass)
     place(drop_tube_goo(V), dz=top(1) - 1.0)

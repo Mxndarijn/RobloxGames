@@ -62,7 +62,7 @@ local function count(nodes: { any }): Counts
 			elseif n.name == "Stand" then
 				c.pads += 1
 			else
-				if mesh == WorldLayout.DEX_MESH and n.name == "DexMesh" then
+				if n.name == "DexMesh" then
 					c.dex += 1
 				elseif mesh == WorldLayout.BUY_STAND_MESH and n.name == "StandMesh" then
 					c.buy += 1
@@ -95,8 +95,8 @@ describe("world budget: mesh slots", function()
 		expect(uploaded.props).toBe(#WorldLayout.RANCH_PROPS)
 		expect(uploaded.pads).toBe(Config.PADS_PER_FLOOR * P)
 	end)
-	it("skins one DexBoard a plot (C6), paid for by one entrance prop a plot", function()
-		expect(uploaded.dex).toBe(P)
+	it("skins no SlimeDex board on the plots, and keeps one entrance prop a plot", function()
+		expect(uploaded.dex).toBe(0)
 		local entrance = 0
 		for _, p in WorldLayout.RANCH_PROPS do
 			if p.cluster == "entrance" then

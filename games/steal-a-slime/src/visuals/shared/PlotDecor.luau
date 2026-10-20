@@ -14,12 +14,9 @@
 	  Rebirths                   -> RebirthDecor by PlotDecor.band (bands start at
 	                                the §8.8 ranks Goo Getter / Slime Wrangler /
 	                                Goo Tycoon / Slime Sovereign / Mythic Monarch)
-	  DexCount / DexTotal        -> DexBoard text + bar (DexTotal default 1152)
-	  DexTierMask  number?       -> DexBoard gem k lit when bit k-1 is set;
-	                                absent = gems light by progress (k/6 of total)
 
-	PlotDecor.locked(lockUntil, now) / band(rebirths) / clock(seconds) /
-	dexGems(count, total, mask?) are pure (Lune-safe, used by the render proof).
+	PlotDecor.locked(lockUntil, now) / band(rebirths) / clock(seconds) are pure
+	(Lune-safe, used by the render proof).
 	PlotDecor.apply builds its SurfaceGuis on first use and only writes
 	properties that changed, so calling it every frame is cheap.
 ]]
@@ -32,8 +29,6 @@ local MeshAssets = if script
 
 local PlotDecor = {}
 
-PlotDecor.GEM_OFF = { 70, 72, 84 }
-PlotDecor.DEX_TOTAL = 50 -- one entry per species (State.dexTotal)
 PlotDecor.LOCKED_COLOR = { 255, 70, 70 }
 PlotDecor.UNLOCKED_COLOR = { 90, 220, 110 }
 PlotDecor.FREE_COLOR = { 255, 205, 60 }
@@ -70,19 +65,6 @@ end
 function PlotDecor.clock(seconds: number): string
 	local s = math.max(0, math.ceil(seconds))
 	return string.format("%d:%02d", s // 60, s % 60)
-end
-
--- Which of the tier gems are lit.
-function PlotDecor.dexGems(count: number, total: number, mask: number?): { boolean }
-	local lit = {}
-	for k = 1, #Config.RARITIES do
-		if mask then
-			lit[k] = bit32.btest(mask, bit32.lshift(1, k - 1))
-		else
-			lit[k] = total > 0 and count >= math.ceil(total * k / #Config.RARITIES)
-		end
-	end
-	return lit
 end
 
 local function rgb(c: { number }): Color3
@@ -222,49 +204,6 @@ local function applyRebirth(plot: Instance, band: number)
 			if color then
 				set(glow, "Color", color)
 			end
-		end
-	end
-end
-
-local function applyDex(plot: Instance, owned: boolean)
-	local dex = plot:FindFirstChild("DexBoard")
-	if not dex then
-		return
-	end
-	local total = plot:GetAttribute("DexTotal")
-	total = if type(total) == "number" and total > 0 then total else PlotDecor.DEX_TOTAL
-	local count = plot:GetAttribute("DexCount")
-	count = if owned and type(count) == "number" then math.clamp(count, 0, total) else 0
-	local mask = plot:GetAttribute("DexTierMask")
-	local frac = count / total
-
-	local board = dex:FindFirstChild("Board")
-	if board then
-		local lines = labels(board, { 0.3, 0.32 })
-		set(lines[1], "Text", "SLIMEDEX")
-		set(lines[2], "Text", if owned then `{count} / {total}  ({math.floor(frac * 100)}%)` else "")
-	end
-	local back, fill = dex:FindFirstChild("BarBack"), dex:FindFirstChild("BarFill")
-	if back and fill and back:IsA("BasePart") and fill:IsA("BasePart") then
-		local width = back.Size.X * frac
-		show(fill, width > 0.05)
-		if width > 0.05 then
-			set(fill, "Size", Vector3.new(width, fill.Size.Y, fill.Size.Z))
-			-- Grow from the viewer's left: the Front face reads along local -X,
-			-- so anchor at the +X edge, keeping fill's own Z offset.
-			local rel = back.CFrame:ToObjectSpace(fill.CFrame)
-			local target = back.CFrame * CFrame.new(back.Size.X / 2 - width / 2, 0, rel.Position.Z)
-			if (fill.CFrame.Position - target.Position).Magnitude > 1e-3 then
-				fill.CFrame = target
-			end
-		end
-	end
-	local lit = PlotDecor.dexGems(count, total, if owned and type(mask) == "number" then mask else nil)
-	for k, on in lit do
-		local gem = dex:FindFirstChild(`Gem_{k}`)
-		if gem and gem:IsA("BasePart") then
-			set(gem, "Color", rgb(if on then Config.RARITIES[k].color else PlotDecor.GEM_OFF))
-			set(gem, "Material", if on then Enum.Material.Neon else Enum.Material.Glass)
 		end
 	end
 end
@@ -412,7 +351,6 @@ function PlotDecor.apply(plot: Instance, now: number)
 	local rebirths = plot:GetAttribute("Rebirths")
 	applyLock(plot, owned, locked, remaining)
 	applyRebirth(plot, if owned and type(rebirths) == "number" then PlotDecor.band(rebirths) else 0)
-	applyDex(plot, owned)
 end
 
 return table.freeze(PlotDecor)

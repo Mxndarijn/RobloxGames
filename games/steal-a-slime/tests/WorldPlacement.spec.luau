@@ -276,15 +276,13 @@ describe("prop facing audit (TODO #11)", function()
 			end
 		end
 	end)
-	it("faces dex boards at the entrance and the jar's name label out of the jar", function()
+	it("faces each plot's name board out of the plot", function()
 		for i = 1, Config.PLOT_COUNT do
 			local centre = WorldLayout.plotCentre(i)
 			-- the Sign's text is on its Front face (local -Z), half a turn from a kit front
 			local sign = find(`/Plots/Plot_{i}/Sign`)
 			local out = bearing(centre, sign.pos :: Vec)
-			expect(math.abs(angleDiff(slotYaw(sign) + 180, out)) < FACE_TOL).toBe(true)
-			local dex = find(`/Plots/Plot_{i}/DexBoard/DexMesh`)
-			expect(math.abs(angleDiff(slotYaw(dex), bearing(dex.pos :: Vec, centre))) < FACE_TOL).toBe(true)
+			expect(math.abs(angleDiff(slotYaw(sign) + 180, out)) < 45).toBe(true)
 		end
 	end)
 end)

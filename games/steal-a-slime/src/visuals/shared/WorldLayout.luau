@@ -21,10 +21,10 @@
 	  Plots    Plot_1..PLOT_COUNT in a ring around the fountain, each facing
 	           it (door at local -Z): Base, jar 1 of the goo jar tower (Jar
 	           glass wall + Lid, Moat, JarFloor, Bridge) with Pad_1..PADS_PER_FLOOR
-	           on its pad ring, HomeZone, MergeVat, LockButton, Sign (the jar's
-	           name label), Slimes folder, and the PlotDecor cosmetics
-	           (LockBarrier stopper, ParkedStopper, LockSign, RebirthDecor,
-	           DexBoard). Upper jars come from WorldLayout.floor (server/BaseFloors)
+	           on its pad ring, HomeZone, MergeVat, LockButton, Sign (the
+	           plot's name board), Slimes folder, and the PlotDecor cosmetics
+	           (LockBarrier stopper, ParkedStopper, LockSign, RebirthDecor).
+	           Upper jars come from WorldLayout.floor (server/BaseFloors)
 	Every Part is anchored (WorldBuilder forces it). PROP_SPOTS suggests
 	where Props go.
 
@@ -41,7 +41,6 @@ local MeshAssets = if script
 local FloorLayout = if script then require(script.Parent.FloorLayout) else require("./FloorLayout")
 local LayoutMath = if script then require(script.Parent.LayoutMath) else require("./LayoutMath")
 local Meadow = if script then require(script.Parent.Meadow) else require("./Meadow")
-local PlotDecor = if script then require(script.Parent.PlotDecor) else require("./PlotDecor")
 local RanchProps = if script then require(script.Parent.RanchProps) else require("./RanchProps")
 local VatDecor = if script then require(script.Parent.VatDecor) else require("./VatDecor")
 local JarMeshes = if script then require(script.Parent.JarMeshes) else require("./JarMeshes")
@@ -200,15 +199,19 @@ WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
 -- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
 WorldLayout.DROP_ANGLE = 70
 WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3 })
--- Jar 1's ground pieces (plot-local; angles as above). The bridge crosses the moat to the door. The MergeVat stands
--- at the back between two pads, outside the pad ring; the LockButton (with its LockSign) sits on the front corner
--- by the bridge, clear of the moat. The name label (Sign, PlotSigns writes on its Front face) hangs on the glass
--- front-left of the door, the rebirth banners either side of the door. Players spawn on the walkway between the
--- stair and the pads, in front of the door. Boss trophies stand on the plot corners, clear of the moat.
+-- Jar 1's ground pieces (plot-local; angles as above). The bridge crosses the moat to the door. Floor 1's pads stand
+-- FLOOR1_PAD_STEP apart either side of the door, leaving a bay at the back (round the stair's foot) where the
+-- MergeVat and the LockButton stand side by side: locking and merging happen inside, on the ground floor, so nobody
+-- camps an owner's button from outside. The LockSign (status) stands outside by the bridge with the plot's name
+-- board (Sign, PlotSigns writes on its Front face) on the same post, the rebirth banners either side of the door.
+-- Players spawn on the walkway between the stair and the pads, in front of the door. Boss trophies stand on the plot
+-- corners, clear of the moat.
 WorldLayout.BRIDGE_WIDTH = 10
-WorldLayout.VAT_SPOT = table.freeze({ angle = 90, radius = 25.5 })
-WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
-WorldLayout.LABEL = table.freeze({ angle = -55, width = 9, height = 2.4, y = 9 })
+WorldLayout.FLOOR1_PAD_STEP = 36
+WorldLayout.VAT_SPOT = table.freeze({ angle = 106, radius = 22.5 })
+WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ 6.2, 21.6 }) -- in the back bay beside the vat (angle 74, radius 22.5)
+WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
+WorldLayout.NAME_BOARD = table.freeze({ width = 9, height = 2.4, y = 10.7 }) -- above the LockSign, on its post
 WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
 WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
 WorldLayout.TROPHY_SPOTS = table.freeze({ { -31, 31 }, { 31, 31 }, { -31, -31 } })
@@ -949,11 +952,21 @@ function WorldLayout.padFloor(j: number): number
 	return math.ceil(j / Config.PADS_PER_FLOOR)
 end
 
--- Plot-local angle (degrees) of pad j on its jar's pad ring: the ring starts half a step past the door.
+-- Plot-local angle (degrees) of pad j on its jar's pad ring, counting round from half a step past the door. Upper
+-- floors fill the ring; floor 1's pads keep the same gap at the door but stand FLOOR1_PAD_STEP apart, half either
+-- side of it, so the back bay stays free for the vat and the lock button.
 function WorldLayout.padAngle(j: number): number
-	local k = (j - 1) % Config.PADS_PER_FLOOR
-	local step = 360 / Config.PADS_PER_FLOOR
-	return WorldLayout.DOOR.angle + step / 2 + k * step
+	local n = Config.PADS_PER_FLOOR
+	local k = (j - 1) % n
+	local gap = 360 / n / 2
+	if WorldLayout.padFloor(j) > 1 then
+		return WorldLayout.DOOR.angle + gap + k * 2 * gap
+	end
+	local step = WorldLayout.FLOOR1_PAD_STEP
+	if k < n // 2 then
+		return WorldLayout.DOOR.angle + gap + k * step
+	end
+	return WorldLayout.DOOR.angle + 360 - gap - (n - 1 - k) * step
 end
 
 -- Local pad centre (x, z) for pad index 1..PADS_MAX on its jar's pad ring.
@@ -1098,12 +1111,13 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	local parked = disc("ParkedStopper", 2.6, WorldLayout.DOOR.width * 0.8, at({ px, 1.4, pz }), JAR_CORK, "Wood", yaw)
 	table.insert(nodes, ghost(parked))
 
-	-- Lock sign behind the LockButton, facing out of the plot (Front face).
-	local bx, bz = WorldLayout.LOCK_BUTTON_SPOT[1], WorldLayout.LOCK_BUTTON_SPOT[2]
+	-- Lock sign by the bridge, facing out of the plot (Front face); the post carries the name board (Sign) above it.
+	local bx, bz = WorldLayout.LOCK_SIGN_SPOT[1], WorldLayout.LOCK_SIGN_SPOT[2]
+	local postH = WorldLayout.NAME_BOARD.y + WorldLayout.NAME_BOARD.height / 2 - 1
 	local lockSign = ghost(block("LockSign", { 6, 2.6, 0.3 }, at({ bx + 1.5, 7.2, bz + 2.6 }), SIGN_BOARD, "Wood", r))
 	lockSign.children = {
-		ghost(block("Post", { 0.5, 5.6, 0.5 }, at({ bx + 1.5, 3.8, bz + 3.0 }), FENCE, "Wood", r)),
-		ghost(disc("Lamp", 0.4, 1.3, at({ bx + 1.5, 8.7, bz + 2.6 }), { 90, 220, 110 }, "Neon", yaw)),
+		ghost(block("Post", { 0.5, postH, 0.5 }, at({ bx + 1.5, 1 + postH / 2, bz + 3.0 }), FENCE, "Wood", r)),
+		ghost(disc("Lamp", 0.4, 1.3, at({ bx - 1.8, 7.2, bz + 2.6 }), { 90, 220, 110 }, "Neon", yaw)),
 	}
 	table.insert(nodes, lockSign)
 
@@ -1132,86 +1146,6 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	crown.pos, crown.rot, crown.color, crown.material = at({ 0, 14, -(glassOut + 1.5) }), r, metal, "Neon"
 	add(crown)
 	table.insert(nodes, rebirth)
-
-	-- SlimeDex board on the back wall, facing the entrance: a DEX_MESH slot
-	-- (kit front turned 180 to face the entrance, back clear of the fence) with
-	-- the dark Board (PlotDecor's text), bar and gems on its front panel. Frame,
-	-- legs and shelf are the primitive look until the mesh lands.
-	local k, a, face = WorldLayout.DEX_SCALE, WorldLayout.DEX_CONTENT_SCALE, WorldLayout.DEX_FACE
-	local dexSize = meshSize(WorldLayout.DEX_MESH, k)
-	local dexZ = h - 1.4 - dexSize[3] / 2
-	local panelZ = dexZ - face.front * k
-	-- Content offsets are the old board's (centre 9.2 up, h - 1.2): x, y and
-	-- z (toward +Z = the back wall) from the Board centre, scaled by `a`. The
-	-- content spans y -3.6..3.4, so the Board sits 0.1 above the panel centre.
-	local cx, cy, cz = -face.x * k, 1 + face.y * k + 0.1 * a, panelZ - 0.02 - 0.2 * a
-	local function on(x: number, y: number, z: number): Vec
-		return at({ cx + x * a, cy + y * a, cz + z * a })
-	end
-	local legH = cy + 0.8 * a - 1
-	-- B9: the board is boxy and flat against the back wall; phoenix_top_earners_board is decor in MeshAssets.COLLISION
-	-- (the world board has its own Collider), so the slot box is the collider: it stays on under the mesh and the
-	-- Frame / Legs / Shelf stand-ins stay ghosts. Never queried or touched.
-	local dexSlot = meshSlot(
-		block("DexMesh", dexSize, at({ 0, 1 + dexSize[2] / 2, dexZ }), WOOD, nil, { 0, yaw + 180, 0 }),
-		WorldLayout.DEX_MESH,
-		true
-	)
-	dexSlot.canCollide = true
-	local dex: WorldNode = {
-		name = "DexBoard",
-		class = "Model",
-		primaryPart = "Board",
-		children = {
-			dexSlot,
-			ghost(block("Board", { 14 * a, 6 * a, 0.4 * a }, on(0, 0, 0), { 46, 52, 70 }, "SmoothPlastic", r)),
-			standIn(
-				ghost(block("Frame", { 14.8 * a, 6.8 * a, 0.3 * a }, on(0, 0, 0.2), WOOD, "Wood", r)),
-				WorldLayout.DEX_MESH
-			),
-			standIn(
-				ghost(
-					block(
-						"LegL",
-						{ 0.6 * a, legH, 0.6 * a },
-						at({ cx - 6.8 * a, 1 + legH / 2, cz + 0.3 * a }),
-						WOOD,
-						"Wood",
-						r
-					)
-				),
-				WorldLayout.DEX_MESH
-			),
-			standIn(
-				ghost(
-					block(
-						"LegR",
-						{ 0.6 * a, legH, 0.6 * a },
-						at({ cx + 6.8 * a, 1 + legH / 2, cz + 0.3 * a }),
-						WOOD,
-						"Wood",
-						r
-					)
-				),
-				WorldLayout.DEX_MESH
-			),
-			standIn(
-				ghost(block("Shelf", { 14 * a, 0.4 * a, 1.8 * a }, on(0, -3.8, -0.8), WOOD, "WoodPlanks", r)),
-				WorldLayout.DEX_MESH
-			),
-			ghost(block("BarBack", { 12 * a, 0.9 * a, 0.2 * a }, on(0, -2, -0.3), { 25, 25, 35 }, "SmoothPlastic", r)),
-			ghost(block("BarFill", { 12 * a, 0.7 * a, 0.2 * a }, on(0, -2, -0.4), GOO, "Neon", r), 1),
-		},
-	}
-	for g = 1, #Config.RARITIES do
-		local d = 1.3 * a
-		local gem = { name = `Gem_{g}`, class = "Part", shape = "Ball", size = { d, d, d } } :: WorldNode
-		-- Front faces read along local -X, so tier 1 sits at +X (the viewer's left).
-		gem.pos, gem.rot = on((4 - g) * 1.75, -2.95, -0.8), r
-		gem.color, gem.material = PlotDecor.GEM_OFF, "Glass"
-		table.insert(dex.children :: { WorldNode }, ghost(gem))
-	end
-	table.insert(nodes, dex)
 
 	return nodes
 end
@@ -1672,18 +1606,11 @@ local function plot(i: number): WorldNode
 	table.insert(children, button)
 	table.insert(children, jarLook("ButtonLook", "goo_lock_button", { bx, WorldLayout.floorTop(1), bz }, at, yaw))
 
-	-- Sign = jar 1's name label on the glass (PlotSigns writes on its Front face, which faces out of the jar).
-	local label = WorldLayout.LABEL
-	local lr = WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL + 0.2
-	local lx, lz = polar(lr, label.angle)
-	local sign = block(
-		"Sign",
-		{ label.width, label.height, 0.3 },
-		at({ lx, label.y, lz }),
-		SIGN,
-		"WoodPlanks",
-		{ 0, yaw + 270 - label.angle, 0 }
-	)
+	-- Sign = the plot's name board on the LockSign's post by the bridge (PlotSigns writes on its Front face, out of
+	-- the plot).
+	local board = WorldLayout.NAME_BOARD
+	local sx, sz = WorldLayout.LOCK_SIGN_SPOT[1] + 1.5, WorldLayout.LOCK_SIGN_SPOT[2] + 2.6
+	local sign = block("Sign", { board.width, board.height, 0.3 }, at({ sx, board.y, sz }), SIGN, "WoodPlanks", r)
 	sign.canQuery = false
 	table.insert(children, sign)
 

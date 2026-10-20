@@ -30,12 +30,12 @@ local JarMeshes = {
 	goo_jar_stopper = { size = { 9.400, 9.400, 4.440 }, centre = { 0.000, 4.600, -2.220 } },
 	goo_jar_trim_1_mid = { size = { 60.321, 15.088, 58.307 }, centre = { 1.004, 7.744, 0.000 } },
 	goo_jar_trim_1_top = { size = { 60.321, 22.688, 58.307 }, centre = { 1.004, 11.544, 0.000 } },
-	goo_jar_trim_2_mid = { size = { 53.091, 15.247, 53.626 }, centre = { 1.084, 7.823, -1.355 } },
-	goo_jar_trim_2_top = { size = { 53.091, 19.247, 53.626 }, centre = { 1.084, 9.823, -1.355 } },
-	goo_jar_trim_3_mid = { size = { 47.643, 15.412, 48.080 }, centre = { 0.803, 7.906, -1.128 } },
-	goo_jar_trim_3_top = { size = { 47.314, 19.412, 47.854 }, centre = { 0.967, 9.906, -1.241 } },
-	goo_jar_trim_4_top = { size = { 41.082, 17.988, 43.044 }, centre = { 0.162, 9.194, -1.146 } },
-	goo_lock_button = { size = { 4.136, 4.280, 4.200 }, centre = { 0.000, 2.140, 0.000 } },
+	goo_jar_trim_2_mid = { size = { 53.091, 15.247, 50.916 }, centre = { 1.084, 7.823, 0.000 } },
+	goo_jar_trim_2_top = { size = { 53.091, 19.247, 50.916 }, centre = { 1.084, 9.823, 0.000 } },
+	goo_jar_trim_3_mid = { size = { 47.643, 15.412, 45.978 }, centre = { 0.803, 7.906, -0.077 } },
+	goo_jar_trim_3_top = { size = { 47.314, 19.412, 45.373 }, centre = { 0.967, 9.906, 0.000 } },
+	goo_jar_trim_4_top = { size = { 41.082, 17.988, 40.753 }, centre = { 0.162, 9.194, 0.000 } },
+	goo_lock_button = { size = { 5.000, 3.966, 5.000 }, centre = { 0.000, 1.983, 0.000 } },
 }
 
 return table.freeze(JarMeshes)

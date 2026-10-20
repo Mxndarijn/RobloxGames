@@ -122,16 +122,4 @@ describe("UI gaps closed (docs/archive/UI-CONTRACT-GAPS.md)", function()
 		expect(Constants.TUTORIAL_STEP_ATTRIBUTE).toBe("TutorialStep")
 		expect(Constants.SPEED_COIL_ATTRIBUTE).toBe("SpeedCoil")
 	end)
-	it("names the plot attributes Archer's PlotDecor reads (CONTRACT.md §8.4)", function()
-		local source = (require("@lune/fs") :: any).readFile("src/visuals/shared/PlotDecor.luau")
-		for _, name in
-			{
-				Constants.PLOT_DEX_COUNT_ATTRIBUTE,
-				Constants.PLOT_DEX_TOTAL_ATTRIBUTE,
-				Constants.PLOT_DEX_TIER_MASK_ATTRIBUTE,
-			}
-		do
-			expect(string.find(source, `"{name}"`, 1, true) ~= nil).toBe(true)
-		end
-	end)
 end)

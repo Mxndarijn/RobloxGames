@@ -158,32 +158,31 @@ end)
 
 describe("plot sign", function()
 	it(
-		"hangs the name label just outside jar 1's glass, its Front face (the text face) pointing out of the jar",
+		"puts the name board on the LockSign's post by the bridge, its Front face (the text face) out of the plot",
 		function()
 			expect(PlotSigns.FACES).toEqual({ "Front" })
-			local label = WorldLayout.LABEL
-			local glass = WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL
+			local board = WorldLayout.NAME_BOARD
+			local spot = WorldLayout.LOCK_SIGN_SPOT
 			for i, plot in plots do
 				local _, yaw = WorldLayout.plotCentre(i)
 				local sign = child(plot, "Sign")
+				local lock = child(plot, "LockSign")
 				local size = sign.size :: Vec
 				local p = toPlot(i, sign.pos :: Vec)
-				expect(size[1]).toBeCloseTo(label.width)
-				expect(size[2]).toBeCloseTo(label.height)
-				expect(p[2]).toBeCloseTo(label.y)
-				-- above a character's head, within jar 1's storey
+				local q = toPlot(i, lock.pos :: Vec)
+				expect(size[1]).toBeCloseTo(board.width)
+				expect(size[2]).toBeCloseTo(board.height)
+				expect(p[2]).toBeCloseTo(board.y)
+				-- right above the lock sign, over the moat in front of the jar, above a character's head
+				expect(p[1]).toBeCloseTo(q[1])
+				expect(p[3]).toBeCloseTo(q[3])
+				expect(p[1]).toBeCloseTo(spot[1] + 1.5)
+				expect(p[2] - size[2] / 2 >= q[2] + (lock.size :: Vec)[2] / 2).toBe(true)
 				expect(p[2] - size[2] / 2 >= BASE_TOP + 5).toBe(true)
-				expect(p[2] + size[2] / 2 <= WorldLayout.floorTop(2)).toBe(true)
-				-- on the label's angle, its back face clear of the glass
-				local d = math.sqrt(p[1] ^ 2 + p[3] ^ 2)
-				local a = math.deg(math.atan2(p[3], p[1]))
-				expect(math.abs((a - label.angle + 180) % 360 - 180) < 1e-4).toBe(true)
-				expect(d - size[3] / 2 >= glass - 1e-6).toBe(true)
-				expect(d - size[3] / 2 <= glass + 0.5).toBe(true)
-				-- Roblox's Front face is local -Z: it points along the outward radial
+				expect(math.abs(p[3]) > WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL).toBe(true)
+				-- Roblox's Front face is local -Z: it points out of the plot (plot-local -Z, the entrance side)
 				local rel = math.rad((sign.rot :: Vec)[2] - yaw)
-				local fx, fz = -math.sin(rel), -math.cos(rel)
-				expect((fx * p[1] + fz * p[3]) / d).toBeCloseTo(1)
+				expect(-math.cos(rel)).toBeCloseTo(-1)
 				-- a plain board: no mesh, no stand-ins
 				expect(meshOf(sign)).toBe(nil)
 				expect((sign.attributes or {} :: any).MeshStandIn).toBe(nil)
@@ -193,63 +192,7 @@ describe("plot sign", function()
 	)
 end)
 
--- max / min of the per-axis slot / native ratios: 1 = the mesh's own proportions.
-local function anisotropy(node: Node, mesh: string): number
-	local r = ratios(node, mesh)
-	return math.max(r[1], r[2], r[3]) / math.min(r[1], r[2], r[3])
-end
-
-describe("plot DexBoard", function()
-	local h = WorldLayout.PLOT_SIZE / 2
-	it("skins the DexBoard with DEX_MESH at DEX_SCALE, on the Base behind the jar, facing the entrance", function()
-		for i, plot in plots do
-			local _, yaw = WorldLayout.plotCentre(i)
-			local dex = child(plot, "DexBoard")
-			local slot = child(dex, "DexMesh")
-			expect(meshOf(slot)).toBe(WorldLayout.DEX_MESH)
-			expect(anisotropy(slot, WorldLayout.DEX_MESH)).toBeCloseTo(1)
-			expect(ratios(slot, WorldLayout.DEX_MESH)[2]).toBeCloseTo(WorldLayout.DEX_SCALE)
-			-- invisible slot the mesh lands in; B9: its box is the (decor-mesh) board's collider, never queried or touched
-			expect(slot.transparency).toBe(1)
-			expect(slot.canCollide).toBe(true)
-			expect(slot.canQuery).toBe(false)
-			expect(slot.canTouch).toBe(false)
-			expect(sameAngle((slot.rot :: Vec)[2], yaw + 180)).toBe(true)
-			local p, size = toPlot(i, slot.pos :: Vec), slot.size :: Vec
-			expect(p[1]).toBeCloseTo(0)
-			expect(p[2] - size[2] / 2).toBeCloseTo(BASE_TOP)
-			-- on the Base, behind jar 1's glass
-			expect(p[3] + size[3] / 2 <= h).toBe(true)
-			expect(p[3] - size[3] / 2 >= WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL).toBe(true)
-		end
-	end)
-	it("keeps the dex text, bar and gems on the mesh's front panel and hides only the primitive frame", function()
-		local k, face = WorldLayout.DEX_SCALE, WorldLayout.DEX_FACE
-		for i, plot in plots do
-			local dex = child(plot, "DexBoard")
-			local slot = toPlot(i, child(dex, "DexMesh").pos :: Vec)
-			local panelZ = slot[3] - face.front * k
-			local fx, fy = -face.x * k, BASE_TOP + face.y * k
-			local w, hh = face.width * k / 2, face.height * k / 2
-			for _, c in dex.children or {} do
-				if c.name == "DexMesh" then
-					continue
-				end
-				local stand = (c.attributes or {} :: any).MeshStandIn
-				local p, size = toPlot(i, c.pos :: Vec), c.size :: Vec
-				if c.name == "Frame" or c.name == "LegL" or c.name == "LegR" or c.name == "Shelf" then
-					expect(stand).toBe(WorldLayout.DEX_MESH)
-				else
-					-- PlotDecor draws on these: they stay, in front of the panel, inside it
-					expect(stand).toBe(nil)
-					expect(p[3] + size[3] / 2 <= panelZ + 1e-6).toBe(true)
-					expect(math.abs(p[1] - fx) + size[1] / 2 <= w).toBe(true)
-					expect(math.abs(p[2] - fy) + size[2] / 2 <= hh).toBe(true)
-				end
-				expect(c.canCollide).toBe(false)
-			end
-		end
-	end)
+describe("plot stands", function()
 	it("has no BuyStand / claim model on any plot (plots auto-assign; the stand is the plaza shop only)", function()
 		for _, plot in plots do
 			local found = 0

@@ -176,7 +176,7 @@ def jar_glass(f, top):
 def jar_trim(f, top, crown=False):
     """Jar f's opaque trim: brass ribs up the wall and over the shoulder or dome to the neck, the threaded neck, the cork
     (a ring the next jar stands in, the top jar's tall stopper, or the crowned last jar's flat lid), goo oozing over the
-    lid with teardrop drips, goo smears on the glass, and above floor 1 the jam-jar label with goo floor dots."""
+    lid with teardrop drips and goo smears on the glass."""
     r, nk = radius(f), neck(f, top)
     prof = [p for p in glass_profile(f, top) if p[1] >= 0.2]
     nz = neck_z(f, top)
@@ -210,12 +210,6 @@ def jar_trim(f, top, crown=False):
         a = math.radians(deg)
         out.append(blob(f"Smear{k}", rr.uniform(1.0, 1.6), ((r + 0.3) * math.cos(a), (r + 0.3) * math.sin(a), rr.uniform(2.5, 6.5)),
                         mix(GOO, GOO_HI, 0.5), subdiv=2, squash=(1.3, 0.3, 1.1), jitter=0.05, rot=(0, 0, deg + 90)))
-    if f > 1:
-        lw, lz, lh = r * 0.5, 4.5, 2.8
-        out.append(painted(box("Label", (lw, 0.5, lh), (0, -r - 0.35, lz), CREAM), shade(CREAM, 0.95), CREAM))
-        out.append(painted(box("LabelBand", (lw + 0.3, 0.6, 0.9), (0, -r - 0.4, lz + lh / 2 + 0.2), TRIM), shade(TRIM, 0.9), TRIM))
-        for k in range(f):
-            out.append(blob(f"Dot{k}", 0.55, ((k - (f - 1) / 2) * 1.6, -r - 0.7, lz - 0.3), GOO, subdiv=1, jitter=0))
     return out
 
 def jar_deck(f):
@@ -303,10 +297,23 @@ def jar_stopper():
 
 
 def lock_button():
-    """The lock button: a red goo button on a cork post."""
-    return [painted(cylinder("Post", 2.0, 3.2, (0, 0, 0), CORK, segs=18), shade(CORK, 0.85), CORK),
-            cylinder("Band", 2.1, 0.35, (0, 0, 2.6), METAL, segs=18),
-            blob("Button", 1.6, (0, 0, 3.4), RED, subdiv=2, squash=(1, 1, 0.55), jitter=0)]
+    """The lock button, in the jar tower's style: a cork stand like the slime stands (brass bands, a goo ring), a brass
+    bezel holding a big glossy red goo button with a shine and a drip down its side, and a brass padlock plate on the
+    front (-Y, toward the door)."""
+    out = [painted(cylinder("Foot", 2.5, 0.4, (0, 0, 0), shade(CORK, 0.85), segs=24), shade(CORK, 0.75), shade(CORK, 0.85)),
+           painted(cylinder("Body", 2.05, 2.3, (0, 0, 0.4), CORK, segs=24, r_top=1.8), shade(CORK, 0.8), CORK),
+           cylinder("Band", 2.12, 0.3, (0, 0, 0.8), METAL, segs=24),
+           painted(cylinder("GooRing", 1.98, 0.22, (0, 0, 1.6), GOO, segs=24), shade(GOO, 0.9), GOO_HI),
+           cylinder("Bezel", 2.15, 0.5, (0, 0, 2.7), METAL, segs=24, r_top=1.95),
+           painted(blob("Button", 1.7, (0, 0, 3.15), RED, subdiv=3, squash=(1, 1, 0.48), jitter=0.01),
+                   shade(RED, 0.75), mix(RED, rgb(255, 210, 200), 0.35)),
+           blob("Shine", 0.45, (-0.55, -0.6, 3.75), rgb(255, 225, 220), subdiv=2, squash=(1, 0.6, 0.35), jitter=0)]
+    # a red drip over the bezel's rim, and the padlock plate (body and shackle) on the front of the stand
+    out += [painted(o, shade(RED, 0.8), RED) for o in teardrop("Drip", 1.4, -1.7, 3.1, 0.9, 0.32)]
+    out.append(box("LockPlate", (1.2, 0.3, 1.0), (0, -1.95, 1.05), METAL))
+    out.append(loop("Shackle", 0.38, 0.14, (0, -1.98, 1.6), "y", METAL, segs=16, arc=(0, 180)))
+    out.append(box("KeyHole", (0.18, 0.1, 0.4), (0, -2.12, 1.0), shade(METAL, 0.45)))
+    return out
 
 
 def catmull(points, per=8):

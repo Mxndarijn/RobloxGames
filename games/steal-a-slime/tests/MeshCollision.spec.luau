@@ -452,41 +452,36 @@ describe("plot-level collision", function()
 		end
 		expect(seen > 0).toBe(true)
 	end)
-	it(
-		"the pads, dex board, pedestal, bridge, sign and the jar's glass, lintel and lid are solid; its moat is decor",
-		function()
-			for _, plot in plots do
-				local n = byName(plot)
-				for _, name in { "DexMesh", "Pad_1", "Pad_8", "Pedestal", "Bridge", "Sign" } do
-					expect(n[name].canCollide ~= false).toBe(true)
-				end
-				expect(n.DexMesh.canQuery).toBe(false)
-				expect(n.DexMesh.canTouch).toBe(false)
-				-- pads stay steppable: flat and low
-				expect(n.Pad_1.size[2] <= 3).toBe(true)
-				local walls, lintel, lid = 0, 0, 0
-				for _, part in n.Jar.children do
-					expect(part.canCollide ~= false).toBe(true)
-					if string.match(part.name, "^Wall_%d+$") then
-						walls += 1
-						expect(part.canQuery).toBe(false) -- prompts and raycasts reach through the glass
-					elseif part.name == "DoorLintel" then
-						lintel += 1
-					elseif part.name == "Lid" then
-						lid += 1
-						expect(part.attributes.JarLid).toBe(1)
-					end
-				end
-				expect(walls).toBe(WorldLayout.JAR_WALL_SEGMENTS - 1)
-				expect(lintel).toBe(1)
-				expect(lid).toBe(1)
-				for _, name in { "Moat", "JarFloor", "ParkedStopper" } do
-					expect(n[name].canCollide).toBe(false)
-				end
-				expect(n.Stopper.canCollide).toBe(false) -- shipped unlocked; the server makes it solid while locked
+	it("the pads, pedestal, bridge, sign and the jar's glass, lintel and lid are solid; its moat is decor", function()
+		for _, plot in plots do
+			local n = byName(plot)
+			for _, name in { "Pad_1", "Pad_8", "Pedestal", "Bridge", "Sign" } do
+				expect(n[name].canCollide ~= false).toBe(true)
 			end
+			-- pads stay steppable: flat and low
+			expect(n.Pad_1.size[2] <= 3).toBe(true)
+			local walls, lintel, lid = 0, 0, 0
+			for _, part in n.Jar.children do
+				expect(part.canCollide ~= false).toBe(true)
+				if string.match(part.name, "^Wall_%d+$") then
+					walls += 1
+					expect(part.canQuery).toBe(false) -- prompts and raycasts reach through the glass
+				elseif part.name == "DoorLintel" then
+					lintel += 1
+				elseif part.name == "Lid" then
+					lid += 1
+					expect(part.attributes.JarLid).toBe(1)
+				end
+			end
+			expect(walls).toBe(WorldLayout.JAR_WALL_SEGMENTS - 1)
+			expect(lintel).toBe(1)
+			expect(lid).toBe(1)
+			for _, name in { "Moat", "JarFloor", "ParkedStopper" } do
+				expect(n[name].canCollide).toBe(false)
+			end
+			expect(n.Stopper.canCollide).toBe(false) -- shipped unlocked; the server makes it solid while locked
 		end
-	)
+	end)
 	it("closes jar 1's glass all the way round, open only at the doorway, and the lid sits on it", function()
 		local f1 = WorldLayout.floorTop(1)
 		local r = WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL / 2
