@@ -300,7 +300,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 			Visible = false,
 			Font = Theme.Font,
 			TextSize = 18,
-			BackgroundColor3 = Color3.new(0, 0, 0),
+			BackgroundColor3 = Theme.Ink,
 			BackgroundTransparency = 0.45,
 			TextXAlignment = Enum.TextXAlignment.Center,
 			TextTruncate = Enum.TextTruncate.None,
@@ -631,16 +631,11 @@ function Inventory.new(parent: Instance, deps: Deps)
 	end
 
 	-- Inventory panel -------------------------------------------------------------------------------
-	local backdrop = create("TextButton", {
+	local backdrop = Widgets.backdrop({
 		Name = "InventoryBackdrop",
-		Text = "",
-		AutoButtonColor = false,
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.45,
-		Visible = false,
 		ZIndex = Layout.ZINDEX.Menu,
 		Parent = parent,
-	}) :: TextButton
+	})
 	local panel = Widgets.panel(parent, "InventoryPanel", "Inventory", "🎒")
 
 	local function bodyWidth(): number
@@ -1253,9 +1248,10 @@ function Inventory.new(parent: Instance, deps: Deps)
 		setPanelOpen(false)
 	end)
 
-	function self.layout(s: Layout.Screen)
+	-- `guiInset` (GuiService:GetGuiInset) lets the dim reach under the Roblox top bar.
+	function self.layout(s: Layout.Screen, guiInset: Vector2?)
 		screen = s
-		local back = Layout.backdrop(s, 0, 0)
+		local back = Layout.backdrop(s, if guiInset then guiInset.X else 0, if guiInset then guiInset.Y else 0)
 		backdrop.Position = fromOffset(back.x, back.y)
 		backdrop.Size = fromOffset(back.w, back.h)
 		sync(true)

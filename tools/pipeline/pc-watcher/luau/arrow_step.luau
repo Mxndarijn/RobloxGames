@@ -1,7 +1,7 @@
--- Client datamodel: v30 C11 TutorialArrow probe. Forces the local Player's TutorialStepId to "%%STEP%%" (client-only
--- attribute; "" restores the real one) so VisualsClient/TutorialArrow draws its Beam towards a target that is far
--- from the character, waits for its 0.5 s poll, then reports the TutorialArrow Beam's attachment distance next to
--- the character-to-target distance. Pair with fx_streaks, which fails any Beam longer than its cap.
+-- Client datamodel: TutorialArrow probe. Forces the local Player's TutorialStepId to "%%STEP%%" (client-only
+-- attribute; "" restores the real one) so VisualsClient/TutorialArrow lays its ground trail (shared GuideView,
+-- workspace.Guide) towards that step's target, waits for its poll, then reports whether trail arrows show and how far
+-- the farthest visible arrow is from the character. Pair with fx_streaks, which fails any long Neon part.
 local player = game:GetService("Players").LocalPlayer
 local step = %%STEP%%
 if step == "" then
@@ -15,10 +15,15 @@ end
 player:SetAttribute("TutorialStepId", step)
 task.wait(1.5)
 local found, length = false, 0
-for _, d in workspace:GetDescendants() do
-	if d:IsA("Beam") and d.Name == "TutorialArrow" and d.Attachment0 and d.Attachment1 then
+local guide = workspace:FindFirstChild("Guide")
+local character = player.Character
+local root = character and character:FindFirstChild("HumanoidRootPart")
+for _, d in if guide then guide:GetDescendants() else {} do
+	if d:IsA("BasePart") and d.Transparency < 1 and d.Parent and string.find(d.Parent.Name, "^Arrow_") then
 		found = true
-		length = math.max(length, (d.Attachment0.WorldPosition - d.Attachment1.WorldPosition).Magnitude)
+		if root then
+			length = math.max(length, (d.Position - root.Position).Magnitude)
+		end
 	end
 end
 return { found = found, length = length }

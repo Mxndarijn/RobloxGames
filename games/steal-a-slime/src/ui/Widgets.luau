@@ -59,6 +59,26 @@ end
 
 local create = Widgets.create
 
+-- How see-through the dim behind a menu or popup is: a light Ink (purple) tint, so the world stays readable.
+Widgets.BACKDROP_TRANSPARENCY = 0.6
+
+-- The full-window dim behind a menu or popup: an Ink tint, not black. A TextButton so a tap on it can close
+-- the menu. The caller sizes it (Layout.backdrop) and sets ZIndex.
+function Widgets.backdrop(props: { [string]: any }): TextButton
+	local base: { [string]: any } = {
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundColor3 = Theme.Ink,
+		BackgroundTransparency = Widgets.BACKDROP_TRANSPARENCY,
+		BorderSizePixel = 0,
+		Visible = false,
+	}
+	for k, v in props do
+		base[k] = v
+	end
+	return create("TextButton", base)
+end
+
 function Widgets.corner(radius: number?): UICorner
 	return create("UICorner", { CornerRadius = UDim.new(0, radius or 8) })
 end

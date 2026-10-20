@@ -1,5 +1,5 @@
 -- Client datamodel: v30 C11 night-streak probe. Scans the whole workspace for Beams, Trails and Neon parts that
--- are longer than %%MAX%% studs (rare-spawn beams once stood 150 studs tall). RareSpawn's own cap is 24 and the TutorialArrow Beam shares it (Props.ARROW_MAX_LENGTH),
+-- are longer than %%MAX%% studs (rare-spawn beams once stood 150 studs tall). RareSpawn's own cap is 24 and the tutorial guide trail is short flat chevrons,
 -- so any hit is a regression. Reports the offenders and the largest sizes seen; ok = none.
 local max = %%MAX%%
 local bad, longest, beams, trails = {}, 0, 0, 0
