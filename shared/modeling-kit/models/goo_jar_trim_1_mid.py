@@ -1,0 +1,4 @@
+# Goo jar tower game mesh (models/_goo_jar.py builds it to inputs/goo_jar_dims.json).
+from models._goo_jar import *
+
+finish("goo_jar_trim_1_mid", jar_trim(1, False))

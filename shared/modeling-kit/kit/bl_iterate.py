@@ -396,6 +396,9 @@ def apply_roblox_materials(objs):
         # Transparent BSDF the way Roblox blends a transparent part. Meshes for upload never set it.
         t = o.get("rbx_transparency")
         if t:
+            # several glass layers stack up (a jar's outer and inner surface, the jars behind it): let rays through them
+            cyc = bpy.context.scene.cycles
+            cyc.transparent_max_bounces = max(cyc.transparent_max_bounces, 24)
             for m in new:
                 nt = m.node_tree
                 out = nt.nodes["Material Output"]
