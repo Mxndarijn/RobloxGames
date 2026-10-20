@@ -17,7 +17,8 @@
 	snaps it back.
 
 	  SlimeGait.new(x, z, now, phase?) -> State
-	  SlimeGait.step(state, persona, x, z, hx, hz, now, rand, out?) -> Pose
+	  SlimeGait.step(state, persona, x, z, hx, hz, now, rand, out?, vx?, vz?) -> Pose
+	      vx / vz: the anchor's velocity when the caller knows it (else it is measured from x / z)
 	      (x, z) anchor; (hx, hz) unit heading of the Body (used while it stands)
 	  SlimeGait.shape(stage, u, height, kind) -> Shape    one hop moment (pure)
 ]]
@@ -31,12 +32,13 @@ local SlimeGait = {}
 SlimeGait.CROUCH = 0.13 -- seconds of anticipation squat before every jump
 SlimeGait.MAX_GAP = 9 -- studs between the visible body and the anchor before it snaps back
 SlimeGait.MIN_SPEED = 0.3 -- studs / s: slower than this counts as standing (no new jump)
-SlimeGait.VELOCITY_RATE = 8 -- 1 / s: how fast the anchor velocity estimate follows (the Body replicates in steps)
+SlimeGait.VELOCITY_RATE = 5 -- 1 / s: how fast the anchor velocity estimate follows (the Body replicates in steps)
+SlimeGait.STILL_AFTER = 0.25 -- seconds without a Body update before the slime counts as standing
 SlimeGait.STRING_SHARE = 0.28 -- share of the air time the goo string hangs on
 -- studs to the side a zig-zag hop lands: a third to 0.6 of the lane room beside the outermost walking line
 SlimeGait.ZIG = table.freeze({ ParadeLane.ROOM / 3, ParadeLane.ROOM * 0.6 })
 SlimeGait.SHY = 0.7 -- Shy hoppers jump this much lower
-SlimeGait.JIGGLE = { stiff = 45, damp = 4.5, gain = 0.04, max = 0.35 } -- crown lag: spring on the visible acceleration
+SlimeGait.JIGGLE = { stiff = 40, damp = 7, gain = 0.025, max = 0.25 } -- crown lag: spring on the visible acceleration (well damped: a sway, never a buzz)
 
 export type Kind = "normal" | "big" | "small" | "boing" | "belly" | "zig"
 
@@ -93,6 +95,7 @@ export type State = {
 	visVX: number, -- last visible spot (crown lag)
 	visVZ: number,
 	fwd: number, -- last visible forward speed
+	changedAt: number, -- when the anchor last moved (the Body replicates in steps)
 	phase: number, -- per-slime offset for the float bob
 }
 
@@ -152,6 +155,7 @@ function SlimeGait.new(x: number, z: number, now: number, phase: number?): State
 		visVX = x,
 		visVZ = z,
 		fwd = 0,
+		changedAt = now,
 		phase = phase or 0,
 	}
 end
@@ -172,7 +176,7 @@ function SlimeGait.shape(stage: string, u: number, height: number, kind: string)
 		local st = math.abs(math.cos(math.pi * u)) ^ 1.6 -- stretched while fast, round at the top
 		o.sy = 1 + 0.3 * k * st
 		o.sx = 1 - 0.15 * k * st
-		o.tilt = 0.3 * -math.cos(math.pi * u) -- nose up going up, nose down coming down
+		o.tilt = 0.18 * -math.cos(math.pi * u) -- nose up going up, nose down coming down
 		if kind == "boing" then
 			o.tilt = 2 * math.pi * smooth((u - 0.12) / 0.72) -- a full forward flip
 			o.face = "excited"
@@ -214,11 +218,11 @@ local function nextKind(persona: SlimePersona.Persona, st: State, rand: Rand): K
 	end
 	local temper = persona.temper
 	local x = rand()
-	if temper == "Bouncy" and x < 0.08 then
+	if temper == "Bouncy" and x < 0.04 then
 		return "boing"
-	elseif (temper == "Bouncy" or temper == "Curious") and x < 0.13 then
+	elseif (temper == "Bouncy" or temper == "Curious") and x < 0.07 then
 		return "belly"
-	elseif temper ~= "Shy" and temper ~= "Lazy" and x < 0.25 then
+	elseif temper ~= "Shy" and temper ~= "Lazy" and x < 0.18 then
 		return "zig"
 	end
 	return if st.n % 3 == 2 then "big" else "normal"
@@ -360,21 +364,34 @@ function SlimeGait.step(
 	hz: number,
 	now: number,
 	rand: Rand,
-	out: Pose?
+	out: Pose?,
+	knownVx: number?,
+	knownVz: number?
 ): Pose
 	local p = blankPose(out)
 	local dt = now - st.lastT
 	if dt > 0 then
-		-- The Body replicates in steps: follow its velocity smoothly.
-		local k = 1 - math.exp(-dt * SlimeGait.VELOCITY_RATE)
-		local mx, mz = (x - st.lastX) / dt, (z - st.lastZ) / dt
-		if mx * mx + mz * mz > 60 * 60 then -- a teleport, not a walk
-			mx, mz = st.vx, st.vz
+		local moved = math.sqrt((x - st.lastX) ^ 2 + (z - st.lastZ) ^ 2)
+		if knownVx and knownVz then
+			-- The caller knows the anchor's velocity (a lane slime's spot is lane math): no estimate, no jitter.
+			st.vx, st.vz = knownVx, knownVz
+			st.travelled += moved
+			st.lastX, st.lastZ, st.lastT, st.changedAt = x, z, now, now
+		elseif moved > 1e-4 or now - st.changedAt > SlimeGait.STILL_AFTER then
+			-- The Body replicates in steps (several frames apart): measure over the whole step, not per frame.
+			local span = math.max(now - st.changedAt, dt)
+			local mx, mz = (x - st.lastX) / span, (z - st.lastZ) / span
+			if mx * mx + mz * mz > 60 * 60 then -- a teleport, not a walk
+				mx, mz = st.vx, st.vz
+			end
+			local k = 1 - math.exp(-span * SlimeGait.VELOCITY_RATE)
+			st.vx += (mx - st.vx) * k
+			st.vz += (mz - st.vz) * k
+			st.travelled += moved
+			st.lastX, st.lastZ, st.lastT, st.changedAt = x, z, now, now
+		else
+			st.lastT = now
 		end
-		st.vx += (mx - st.vx) * k
-		st.vz += (mz - st.vz) * k
-		st.travelled += math.sqrt((x - st.lastX) ^ 2 + (z - st.lastZ) ^ 2)
-		st.lastX, st.lastZ, st.lastT = x, z, now
 	end
 	if persona.gait == "Hop" then
 		hop(st, persona, x, z, hx, hz, now, rand, p)

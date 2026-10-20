@@ -76,7 +76,7 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 			p.yaw = -side * 1.2 * smooth(u * 3)
 			p.tilt = 0.35
 			if u > 0.15 and u < 0.75 then
-				p.sy = 1 + 0.05 * math.sin(now * 38)
+				p.sy = 1 + 0.04 * math.sin(now * 12)
 			end
 			p.face = if u < 0.8 then "focus" else "happy"
 			p.emote = if u < 0.75 then "dots" else "note"
@@ -84,7 +84,7 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 	elseif kind == "slurp" then
 		if phase == "stop" then
 			local dip = math.sin(math.pi * u)
-			p.sy = (1 - 0.22 * dip) * (1 + 0.06 * math.sin(now * 20) * dip)
+			p.sy = (1 - 0.22 * dip) * (1 + 0.05 * math.sin(now * 9) * dip)
 			p.sx = 1 + 0.18 * dip
 			p.tilt = 0.6 * dip
 			p.face = if u < 0.7 then "focus" else "happy"
@@ -122,7 +122,7 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 				p.sx = 1 + 0.2 * math.sin(math.pi * v)
 				p.face = "surprised"
 			else
-				p.yaw = math.sin(now * 22) * 0.5 * (1 - u)
+				p.yaw = math.sin(now * 8) * 0.35 * (1 - u)
 				p.face = "dizzy"
 				p.emote = "dizzy"
 			end
@@ -155,7 +155,7 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 			local v = math.sin(math.pi * math.clamp(u * 1.2, 0, 1))
 			p.sy = 1 - 0.35 * v
 			p.sx = 1 + 0.15 * v
-			p.roll = math.sin(now * 40) * 0.03 * v
+			p.roll = math.sin(now * 12) * 0.025 * v
 			p.yaw = math.sin(now * 2) * 0.8 * v
 			p.face = "worried"
 			if u > 0.3 then
@@ -168,7 +168,7 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 			p.face = "excited"
 			p.emote = "alert"
 		elseif phase == "stop" then
-			p.sy = 1 + 0.06 * math.sin(now * 16)
+			p.sy = 1 + 0.05 * math.sin(now * 8)
 			p.face = "happy"
 			p.emote = "note"
 		end
@@ -182,7 +182,7 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 				p.emote = "angry"
 			end
 			if u > 0.55 and u < 0.8 then
-				p.lift = 0.35 * math.abs(math.sin(now * 18))
+				p.lift = 0.25 * (0.5 - 0.5 * math.cos(now * 10))
 			end
 		end
 	elseif kind == "stuck" then
@@ -192,7 +192,7 @@ function SlimeBeats.pose(kind: string, phase: string, u: number, side: number, n
 				local tug = math.max(0, math.sin(math.pi * ((u / 0.82) * 2.5)))
 				p.sy = 1 + 0.38 * tug
 				p.sx = 1 - 0.18 * tug
-				p.roll = math.sin(now * 26) * 0.06 * (1 - tug)
+				p.roll = math.sin(now * 11) * 0.05 * (1 - tug)
 				p.face = if tug > 0.5 then "focus" else "worried"
 				if u > 0.3 then
 					p.emote = if u > 0.5 then "sweat" else "alert"
