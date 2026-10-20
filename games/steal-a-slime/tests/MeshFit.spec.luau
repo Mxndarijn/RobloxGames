@@ -147,7 +147,7 @@ describe("MeshSwap uniform scale (live boot, every upload answered)", function()
 				print(name, ratios)
 			end
 		end
-		expect(seen).toBe(if Config.FEATURES.WorldShops then 3 else 1)
+		expect(seen).toBe(if Config.FEATURES.WorldShops then 4 else 2)
 		expect(WorldLayout.PROP_MESHES[Constants.SHOP_STAND_ITEM] ~= nil).toBe(true)
 		expect(WorldLayout.PROP_MESHES[Constants.LEADERBOARD_BOARD] ~= nil).toBe(true)
 	end)

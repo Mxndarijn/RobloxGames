@@ -69,6 +69,7 @@ local NAMES = {
 	"ranch_well",
 	"ranch_wheelbarrow",
 	"ranch_windmill",
+	"ranch_guide",
 	"slime_fountain_emerge",
 	"ranch_border_fence_straight",
 	"ranch_border_fence_broken",
@@ -256,6 +257,9 @@ entries["ranch_wheelbarrow"] =
 	{ assetId = 76889567988116, meshId = "rbxassetid://109036150127137", size = { 6.595, 3.45, 3.799 } }
 entries["ranch_windmill"] =
 	{ assetId = 122612940835932, meshId = "rbxassetid://120542952502577", size = { 8.382, 17.386, 9.65 } }
+-- The Guide's skin (WorldProps TutorialNpc): decor only, the primitive body parts under it stay the collider.
+entries["ranch_guide"] =
+	{ assetId = 106088623869567, meshId = "rbxassetid://120047572318324", size = { 4.765, 7.987, 3.481 } }
 entries["slime_fountain_emerge"] =
 	{ assetId = 100517882708695, meshId = "rbxassetid://74501501975558", size = { 19.436, 12.798, 11.353 } }
 -- World border v3 pieces (WorldBorder layers: fence/hedge inner, trees + rocks mid, hills outer): Open Cloud size-check.

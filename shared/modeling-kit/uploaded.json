@@ -2675,5 +2675,18 @@
     "sha256": "586b7b1cbc7700f1",
     "uploadedAt": "2026-10-20T12:59:06Z",
     "versions": 3
+  },
+  "ranch_guide": {
+    "assetId": "106088623869567",
+    "assetType": "Model",
+    "meshId": "rbxassetid://120047572318324",
+    "meshSize": [
+      4.765,
+      7.987,
+      3.481
+    ],
+    "sha256": "7953fc49413fd60f",
+    "uploadedAt": "2026-10-20T21:30:51Z",
+    "versions": 1
   }
 }

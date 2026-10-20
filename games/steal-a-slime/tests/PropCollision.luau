@@ -274,10 +274,11 @@ parts(
 	"colliders",
 	MAP,
 	{ "^TutorialNpc$" },
-	"body parts on (Head, Torso, arms, legs); hat and face off",
-	"a standing NPC is solid; the hat and face details are tiny",
+	"body parts on (Head, Torso, arms, legs); hat and face off; the ranch_guide skin is decor",
+	"a standing NPC is solid; the hat and face details are tiny; the hidden primitive body under the skin is the collider",
 	{ models = true }
 )
+entries[#entries].mesh = "ranch_guide"
 parts(
 	"ground_and_hub_spawn",
 	"jolt",
