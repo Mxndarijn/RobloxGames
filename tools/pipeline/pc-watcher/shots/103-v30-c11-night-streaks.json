@@ -34,7 +34,7 @@
       -289.8
     ],
     "wait": 2.0,
-    "note": "v30 C11: at NIGHT with a TutorialArrow towards the far volcano crater the arrow Beam is a short marker; the probe fails the shot when any Beam / Trail / Neon part (TutorialArrow included) is longer than 30 studs, and notes it when no TutorialArrow beam exists",
+    "note": "v30 C11: at NIGHT with the tutorial guide on the Grab step the ground trail is short flat chevrons; the probe fails the shot when any Beam / Trail / Neon part (guide arrows included) is longer than 30 studs, and notes it when no guide trail shows",
     "device": "desktop",
     "clock": 0,
     "fx_streaks": 30,

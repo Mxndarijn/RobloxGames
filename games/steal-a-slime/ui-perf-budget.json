@@ -13,7 +13,7 @@
     "poll_wakeups_per_sec": 0,
     "poll_wait_sites": 3,
     "client_tick_hz": 10,
-    "frame_connect_sites": 14
+    "frame_connect_sites": 13
   },
   "not_measurable_in_lune": "real frame time, GPU cost, texture / image memory, the layout engine, replication; check those on a device (pc-watcher perf shots)"
 }

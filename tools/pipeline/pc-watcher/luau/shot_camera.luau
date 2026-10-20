@@ -73,21 +73,23 @@ if char then
 	end
 end
 
--- The tutorial arrow rebuilds when its target changes, so it is hidden every frame (TutorialArrow.luau names).
-local function hideArrow(cam: Camera)
-	local beam = root and root:FindFirstChild("TutorialArrow")
-	if beam and beam:IsA("Beam") then
-		if beam.Enabled then
-			beam:SetAttribute("PcwHidden", true)
-		end
-		beam.Enabled = false
-	end
-	local chevrons = cam:FindFirstChild("TutorialChevrons")
-	if chevrons then
-		for _, d in chevrons:GetDescendants() do
+-- The tutorial guide (shared GuideView: workspace.Guide + PlayerGui.GuideEdge / GuideLabel) redraws every frame, so it is hidden every frame.
+local function hideArrow(_cam: Camera)
+	local guide = workspace:FindFirstChild("Guide")
+	if guide then
+		for _, d in guide:GetDescendants() do
 			if d:IsA("BasePart") then
 				d.LocalTransparencyModifier = 1
+			elseif d:IsA("BillboardGui") or d:IsA("Highlight") then
+				d.Enabled = false
 			end
+		end
+	end
+	local gui = player:FindFirstChildOfClass("PlayerGui")
+	for _, name in { "GuideEdge", "GuideLabel" } do
+		local g = gui and gui:FindFirstChild(name)
+		if g and g:IsA("LayerCollector") then
+			g.Enabled = false
 		end
 	end
 end

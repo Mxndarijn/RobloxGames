@@ -2004,10 +2004,10 @@ def step_shots(run):
                     res["anim"] = run.need_luau("slime_anim", "Client", timeout=30, path=res["target"]["path"],
                                                 anim=shot["anim"], id=shot["animId"], wait=float(shot.get("wait", 0.5)))
                 if shot.get("tutorial_arrow"):
-                    # v30 C11: force a TutorialArrow towards a far target; fx_streaks below must see it capped
+                    # v30 C11: force the tutorial guide on; fx_streaks below must see no long neon
                     res["tutorial_arrow"] = run.need_luau("arrow_step", "Client", timeout=30, step=shot["tutorial_arrow"])
                     if not res["tutorial_arrow"].get("found"):
-                        run.note("shot %s: no TutorialArrow Beam for step %s" % (sid, shot["tutorial_arrow"]))
+                        run.note("shot %s: no tutorial guide trail for step %s" % (sid, shot["tutorial_arrow"]))
                 if shot.get("fx_streaks"):
                     # v30 C11 night proof: no Beam / Trail / Neon part longer than `fx_streaks` studs anywhere in the workspace
                     res["fx_streaks"] = run.need_luau("fx_streaks", "Client", timeout=30, max=float(shot["fx_streaks"]))
