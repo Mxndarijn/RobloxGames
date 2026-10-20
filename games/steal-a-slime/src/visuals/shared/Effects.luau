@@ -204,7 +204,7 @@ Effects.EMITTERS = {
 	-- Ritual circle (RitualFx, client only). Kept small and few: the circle sits next to plot 1's entrance.
 	RitualMote = { -- Idle: lilac motes drifting up off the disc
 		colors = { { 214, 196, 255 }, { 190, 160, 255 } },
-		size = { 0.35, 0.05 },
+		size = { 0.5, 0.1 },
 		lifetime = { 2, 3 },
 		speed = { 1, 2 },
 		spread = 10,

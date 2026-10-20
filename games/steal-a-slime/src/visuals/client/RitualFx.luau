@@ -49,7 +49,7 @@ type Rig = {
 	shower: ParticleEmitter,
 	spots: { Spot },
 	ring: { BasePart },
-	shock: BasePart,
+	shock: { BasePart }, -- dashes of the expanding completion ring
 	added: { Instance }, -- local instances parented into the server's parts (removed on stop)
 	phase: string,
 	yaw: number,
@@ -194,16 +194,18 @@ local function build(model: Model): Rig?
 		table.insert(ring, seg)
 	end
 
-	local shock = Instance.new("Part")
-	shock.Name = "Shockwave"
-	shock.Shape = Enum.PartType.Cylinder
-	shock.Material = Enum.Material.Neon
-	shock.Color = Color3.fromRGB(255, 250, 225)
-	shock.Size = Vector3.new(0.05, 1, 1)
-	shock.CFrame = CFrame.new(centre + Vector3.new(0, 0.08, 0)) * CFrame.Angles(0, 0, math.rad(90))
-	shock.Transparency = 1
-	decor(shock)
-	shock.Parent = folder
+	local shock: { BasePart } = {}
+	for s = 1, n do
+		local seg = Instance.new("Part")
+		seg.Name = `ShockDash_{s}`
+		seg.Material = Enum.Material.Neon
+		seg.Color = rgb(RitualLook.COLORS.charge)
+		seg.Size = Vector3.new(0.3, 0.05, 1)
+		seg.Transparency = 1
+		decor(seg)
+		seg.Parent = folder
+		table.insert(shock, seg)
+	end
 
 	folder.Parent = workspace
 	local phase = model:GetAttribute(Constants.RITUAL_PHASE_ATTRIBUTE)
@@ -293,7 +295,7 @@ local function apply(rig: Rig, dt: number, t: number, now: number)
 	rig.glow.Color = if flash > 0
 		then Color3.new(1, 1, 1)
 		else rgb(RitualLook.COLORS[if phase == "Charging" then "charge" else "idle"])
-	rig.glow.Brightness = base * (1 + 1.5 * charge) + 6 * flash
+	rig.glow.Brightness = base * (1 + 1.5 * charge) + 3 * flash
 
 	rig.motes.Enabled = phase == "Idle"
 	rig.swirl.Enabled = phase == "Charging"
@@ -330,10 +332,20 @@ local function apply(rig: Rig, dt: number, t: number, now: number)
 	local shockAt = rig.shockAt
 	if shockAt and t - shockAt < RitualLook.SHOCK_SECONDS then
 		local r, transparency = RitualLook.shock((t - shockAt) / RitualLook.SHOCK_SECONDS)
-		rig.shock.Size = Vector3.new(0.05, r * 2, r * 2)
-		rig.shock.Transparency = transparency
-	elseif rig.shock.Transparency < 1 then
-		rig.shock.Transparency = 1
+		local count = #rig.shock
+		local dash = 2 * math.pi * r / count * 0.6
+		for s, seg in rig.shock do
+			local a = (s - 0.5) / count * 2 * math.pi
+			local p = rig.centre + Vector3.new(math.sin(a) * r, 0.1, math.cos(a) * r)
+			seg.Size = Vector3.new(0.3, 0.05, dash)
+			seg.CFrame = CFrame.lookAt(p, p + Vector3.new(math.cos(a), 0, -math.sin(a)))
+			seg.Transparency = transparency
+		end
+	elseif shockAt then
+		for _, seg in rig.shock do
+			seg.Transparency = 1
+		end
+		rig.shockAt = nil
 	end
 end
 
