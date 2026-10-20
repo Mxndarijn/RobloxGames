@@ -111,8 +111,6 @@ local NAMES = {
 	"plot_skin_mushroom",
 	"plot_skin_candy",
 	"plot_skin_crystal",
-	"fountain_tier_ring",
-	"fountain_tier_crest",
 	"merge_vat",
 	"giant_broadleaf",
 	"giant_pine_layered",
@@ -151,7 +149,7 @@ local entries: { [string]: Entry } = {}
 -- asset (2026-10-17) drops the splash-pool blob at the slide exit so the
 -- slime lane flows from the slide mouth. The WorldLayout slot uses this box.
 entries["slime_fountain"] =
-	{ assetId = 137335028699292, meshId = "rbxassetid://86763349242301", size = { 54.45, 43.316, 63.851 } }
+	{ assetId = 137335028699292, meshId = "rbxassetid://117431796782881", size = { 54.45, 43.316, 63.851 } }
 entries["phoenix_fence_segment"] =
 	{ assetId = 92327721520041, meshId = "rbxassetid://88430332942524", size = { 11, 9.02, 1.8 } }
 entries["phoenix_corner_post"] =
@@ -344,12 +342,6 @@ entries["ranch_fence_20"] =
 	{ assetId = 93657150564692, meshId = "rbxassetid://90306341034018", size = { 22, 9.02, 1.8 } }
 -- Per-type slime kit (SlimeLooks.kit; server SlimeMesh, NOT world slots: they are
 -- cloned per slime, so they never count against WorldLayout.MESH_SLOT_BUDGET).
--- FEATURES.FountainTiers decor (FountainTiers, client FountainTierFx): cloned round / over the fountain
--- at tier 2+ / 3+ from ReplicatedStorage.FountainTierMeshes and tinted per tier. NOT world slots.
-entries["fountain_tier_ring"] =
-	{ assetId = 119324558874420, meshId = "rbxassetid://102733858140081", size = { 32.2, 6.2, 32.2 } }
-entries["fountain_tier_crest"] =
-	{ assetId = 110270802039989, meshId = "rbxassetid://77008333593159", size = { 13.699, 6.203, 13.9 } }
 -- Plot vats (server MeshSwap.swapPlotVats, bug #16): stands over every plot's MergeVat disc, 1 MeshPart per plot.
 -- NOT a world slot.
 entries["merge_vat"] =
@@ -468,7 +460,7 @@ entries["fountain_split_eave"] = {
 }
 entries["fountain_split_silo"] = {
 	assetId = 70694440108004,
-	meshId = "rbxassetid://103574045671668",
+	meshId = "rbxassetid://124837877209980",
 	size = { 26.223, 30.673, 26.563 },
 	offset = { -6.51, -6.321, -7.572 },
 }

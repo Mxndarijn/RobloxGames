@@ -1,18 +1,15 @@
 --!strict
 -- Fountain tiers + slime families per rank (FEATURES.FountainTiers, CONTRACT.md §19): the tier ladder, the
--- family pool and the drop rule (contract/slime-odds.md), species / save safety, the catch gate, the server tier step and the tier decor.
+-- family pool and the drop rule (contract/slime-odds.md), species / save safety, the catch gate, the server tier step and the tier looks.
 -- The flag is off by default, so the flag-on paths are driven through the `enabled` arguments.
 local Carry = require("../src/server/Carry")
 local Config = require("../src/shared/Config")
 local Constants = require("../src/shared/Constants")
 local Fixtures = require("./Fixtures")
 local Fountain = require("../src/shared/Fountain")
-local FountainTierDecor = require("../src/visuals/shared/FountainTierDecor")
 local FountainTiers = require("../src/shared/FountainTiers")
 local Genome = require("../src/shared/Genome")
-local MeshAssets = require("../src/shared/MeshAssets")
 local Perks = require("../src/shared/Perks")
-local RanchProps = require("../src/visuals/shared/RanchProps")
 local Rng = require("../src/shared/Rng")
 local SaveData = require("../src/shared/SaveData")
 local ServerFixtures = require("./ServerFixtures")
@@ -20,14 +17,9 @@ local SlimeLooks = require("../src/shared/SlimeLooks")
 local SlimeRoster = require("../src/shared/SlimeRoster")
 local Spawner = require("../src/server/Spawner")
 local TestRunner = require("./TestRunner")
-local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
 local T0 = ServerFixtures.T0
-
-local function materialOk(name: string): boolean
-	return SlimeLooks.isMaterial(name) or name == "Foil" or name == "Neon"
-end
 
 describe("FountainTiers: the ladder", function()
 	it("is behind FEATURES.FountainTiers, default off", function()
@@ -59,18 +51,17 @@ describe("FountainTiers: the ladder", function()
 		expect(FountainTiers.tierFor(10)).toBe(4)
 		expect(FountainTiers.tierFor(99)).toBe(FountainTiers.MAX_TIER)
 	end)
-	it("has a look per tier: tier 1 adds nothing, ring from tier 2, crest from tier 3", function()
+	it("has a look per tier: tier 1 keeps the built glow, each tier after glows brighter", function()
 		expect(#FountainTiers.LOOKS).toBe(FountainTiers.MAX_TIER)
-		expect(FountainTiers.look(1).ring or FountainTiers.look(1).crest).toBe(false)
-		expect(FountainTiers.look(2).ring).toBe(true)
-		expect(FountainTiers.look(2).crest).toBe(false)
-		expect(FountainTiers.look(3).crest).toBe(true)
-		expect(FountainTiers.look(4).crest).toBe(true)
+		expect(FountainTiers.look(1).glowBrightness).toBe(1)
+		for tier = 2, FountainTiers.MAX_TIER do
+			expect(FountainTiers.look(tier).glowBrightness > FountainTiers.look(tier - 1).glowBrightness).toBe(true)
+		end
 		expect(FountainTiers.look(0)).toBe(FountainTiers.look(1))
 		expect(FountainTiers.look(99)).toBe(FountainTiers.look(FountainTiers.MAX_TIER))
 		for tier, look in FountainTiers.LOOKS do
 			expect(look.name ~= "").toBe(true)
-			expect(materialOk(look.material)).toBe(true)
+			expect(#look.glow).toBe(3)
 			expect(tier >= 1).toBe(true)
 		end
 	end)
@@ -332,60 +323,7 @@ describe("FountainTiers: saves", function()
 	end)
 end)
 
-describe("FountainTiers: decor", function()
-	it("tier 1 shows nothing, tier 2 the ring, tier 3+ ring and crest, tinted by the tier", function()
-		local p1 = FountainTierDecor.poses(1)
-		expect(p1.ring).toBeNil()
-		expect(p1.crest).toBeNil()
-		local p2 = FountainTierDecor.poses(2)
-		expect(p2.ring ~= nil and p2.crest == nil).toBe(true)
-		expect((p2.ring :: any).color).toEqual(FountainTiers.look(2).color)
-		local p4 = FountainTierDecor.poses(4)
-		expect(p4.ring ~= nil and p4.crest ~= nil).toBe(true)
-		expect((p4.crest :: any).material).toBe("Neon")
-	end)
-	it("the ring stands on the ground round the silo axis, the crest floats over the fountain top", function()
-		local p = FountainTierDecor.poses(4)
-		local ring, crest = p.ring :: FountainTierDecor.Pose, p.crest :: FountainTierDecor.Pose
-		expect(ring.position[1]).toBe(0)
-		expect(ring.position[3]).toBe(0)
-		expect(math.abs(ring.position[2] - ring.size[2] / 2) < 1e-9).toBe(true)
-		local underside = crest.position[2] - crest.size[2] / 2
-		expect(underside > WorldLayout.FOUNTAIN_HEIGHT).toBe(true)
-		-- the ring posts (r 14.6) stay clear of the plinth (r 13.1)
-		expect(ring.size[1] / 2 >= 14.6).toBe(true)
-	end)
-	it("the crest bobs by at most BOB and spins a full turn at SPIN", function()
-		for t = 0, 40 do
-			local bob, yaw = FountainTierDecor.crestMotion(t / 3)
-			expect(math.abs(bob) <= FountainTierDecor.BOB + 1e-9).toBe(true)
-			expect(yaw >= 0 and yaw < math.pi * 2).toBe(true)
-		end
-	end)
-	it("both meshes are uploaded kit meshes, run-time only (no WorldLayout slot)", function()
-		for _, name in { "fountain_tier_ring", "fountain_tier_crest" } do
-			expect(MeshAssets.meshId(name) ~= nil).toBe(true)
-			expect(MeshAssets.get(name).size ~= nil).toBe(true)
-			expect(RanchProps.INTENTIONALLY_UNPLACED[name] ~= nil).toBe(true)
-		end
-	end)
-	it("takes no world mesh slot: WorldLayout.build() places neither mesh", function()
-		local function scan(node: any)
-			local a = node.attributes or {}
-			for _, key in { "MeshAsset", "BorderMesh" } do
-				expect(a[key] ~= "fountain_tier_ring" and a[key] ~= "fountain_tier_crest").toBe(true)
-			end
-			for _, c in node.children or {} do
-				scan(c)
-			end
-		end
-		for _, root in WorldLayout.build() do
-			scan(root)
-		end
-		for _, prop in WorldLayout.RANCH_PROPS do
-			expect(prop.mesh ~= "fountain_tier_ring" and prop.mesh ~= "fountain_tier_crest").toBe(true)
-		end
-	end)
+describe("FountainTiers: replication", function()
 	it("the workspace attribute is named once", function()
 		expect(Constants.FOUNTAIN_TIER_ATTRIBUTE).toBe("FountainTier")
 	end)

@@ -10,7 +10,7 @@
 -- scene[_pending]_skin_<id>.json. --pending also swaps meshes that are in the kit but
 -- not uploaded yet (ranch_fence_20, the BorderMesh ring): the intended look. (default) stands the merge_vat model
 -- (real VatDecor.pose) over every plot's MergeVat disc; --cylinder keeps the old primitive and writes scene[_pending]_cylinder.json. --fountain-tier <1..4> shows the
--- FEATURES.FountainTiers look (real FountainTierDecor poses + FountainTiers.LOOKS glow) and writes
+-- FEATURES.FountainTiers look (FountainTiers.LOOKS glow on the CraterGlow light) and writes
 -- scene[_pending]_tier_<n>.json.
 -- --snow <level 0..1> [--snow-phase settle|melt] shows SnowGround v2 (the same SnowCover tints and colour lerp as the
 -- client) on the part colours and the border terrain colours, and writes scene[_pending]_snow_<phase>_<level>.json.
@@ -25,7 +25,6 @@ local serde = require("@lune/serde")
 local BorderTerrain = require("../../src/visuals/shared/BorderTerrain")
 local Config = require("../../src/shared/Config")
 local FloorLayout = require("../../src/visuals/shared/FloorLayout")
-local FountainTierDecor = require("../../src/visuals/shared/FountainTierDecor")
 local FountainTiers = require("../../src/shared/FountainTiers")
 local GroundTerrain = require("../../src/visuals/shared/GroundTerrain")
 local Habitats = require("../../src/shared/Habitats")
@@ -242,19 +241,6 @@ for _, scope in { built.map, built.plots } do
 		if d:IsA("BasePart") and s and swapped[scope][s] then
 			hidden[d] = true
 		end
-	end
-end
-
--- Fountain tier decor (client FountainTierFx): the ring / crest poses at the tier, tinted like MeshPart.Color.
-if TIER then
-	for _, pose in FountainTierDecor.poses(TIER) do
-		table.insert(meshes, {
-			tint = { pose.color[1] / 255, pose.color[2] / 255, pose.color[3] / 255 },
-			mesh = pose.mesh,
-			cf = cfOf(CFrame.new(pose.position[1], pose.position[2], pose.position[3])),
-			size = pose.size,
-			path = `Workspace.FountainTier.{pose.mesh}`,
-		})
 	end
 end
 

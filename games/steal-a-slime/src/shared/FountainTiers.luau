@@ -5,7 +5,7 @@
 	The central fountain upgrades with rank. Rank thresholds are the Config.REBIRTH_TIERS entries that carry a
 	`family`: Slime Wrangler (3 rebirths) opens Garden, Goo Tycoon (6) Frost & Sea, Slime Sovereign (10) Starlight.
 	  * Fountain tier (1..4): the best rank seen on this server since it started (World.fountainTier, never
-	    goes back down while the server lives). It drives the look (ring / crest / glow; client FountainTierFx
+	    goes back down while the server lives). It drives the look (goo glow; client FountainTierFx
 	    reads the workspace attribute Constants.FOUNTAIN_TIER_ATTRIBUTE) and the drop pool.
 	  * Drop pool: Classic (Meadow) always, plus every family the tier has opened. A drop rolls its rarity first,
 	    then a species uniformly over that tier's species in the pool (Genome.speciesPool, contract/slime-odds.md).
@@ -26,10 +26,6 @@ export type Family = {
 
 export type Look = {
 	name: string, -- the fountain's name at this tier
-	ring: boolean, -- lantern-post ring round the foot
-	crest: boolean, -- floating crown over the goo
-	color: { number }, -- tint of ring and crest (MeshPart.Color)
-	material: string, -- Enum.Material name of ring and crest
 	glow: { number }, -- colour of the goo crown light (Map.Volcano.Crater.CraterGlow)
 	glowBrightness: number,
 }
@@ -47,32 +43,20 @@ FountainTiers.FAMILIES = table.freeze(FAMILIES)
 -- Display name of the Classic species (family nil).
 FountainTiers.CLASSIC_NAME = "Meadow"
 
-local function look(
-	name: string,
-	ring: boolean,
-	crest: boolean,
-	color: { number },
-	material: string,
-	glow: { number },
-	brightness: number
-): Look
+local function look(name: string, glow: { number }, brightness: number): Look
 	return table.freeze({
 		name = name,
-		ring = ring,
-		crest = crest,
-		color = table.freeze(color),
-		material = material,
 		glow = table.freeze(glow),
 		glowBrightness = brightness,
 	})
 end
 
--- Index = tier. Tier 1 is the fountain as shipped: nothing is added, the glow is left as built.
+-- Index = tier. Tier 1 is the fountain as shipped: the glow is left as built.
 FountainTiers.LOOKS = table.freeze({
-	look("Meadow Fountain", false, false, { 255, 255, 255 }, "SmoothPlastic", { 150, 255, 200 }, 1),
-	look("Garden Fountain", true, false, { 205, 127, 50 }, "SmoothPlastic", { 255, 170, 90 }, 2),
-	look("Frost & Sea Fountain", true, true, { 205, 215, 230 }, "Foil", { 150, 220, 255 }, 3),
-	look("Starlight Fountain", true, true, { 255, 200, 60 }, "Neon", { 255, 225, 120 }, 4),
+	look("Meadow Fountain", { 150, 255, 200 }, 1),
+	look("Garden Fountain", { 255, 170, 90 }, 2),
+	look("Frost & Sea Fountain", { 150, 220, 255 }, 3),
+	look("Starlight Fountain", { 255, 225, 120 }, 4),
 })
 
 local byId: { [string]: Family } = {}

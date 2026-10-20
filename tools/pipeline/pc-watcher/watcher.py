@@ -1868,7 +1868,7 @@ def step_shots(run):
                     res["pad_seat"] = pad_seat
                 if shot.get("plot_skin"):  # gaps #15: Plot_1 wears the skin (floor, fence tint, decor mesh), Studio only
                     res["plot_skin"] = run.need_luau("plot_skin", "Client", timeout=15, skin=shot["plot_skin"])
-                if shot.get("fountain_tier"):  # v19: the fountain wears this tier's ring / crest / glow, Studio only
+                if shot.get("fountain_tier"):  # v19: the fountain wears this tier's glow, Studio only
                     res["fountain_tier"] = run.need_luau("fountain_tier", "Client", timeout=15, tier=int(shot["fountain_tier"]))
                 if shot.get("merge_vat"):  # v19: the vat mesh over Plot_1's vat disc, Studio only
                     res["merge_vat"] = run.need_luau("merge_vat", "Client", timeout=15, on=True)
