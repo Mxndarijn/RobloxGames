@@ -21,20 +21,7 @@ local TweenService = game:GetService("TweenService")
 
 local LoadingGate = require(script:WaitForChild("LoadingGate"))
 
--- The loading screen's own look (the HUD's Widgets.Theme lives in PlayerScripts, which arrives later).
-local LOOK = table.freeze({
-	bg = Color3.fromRGB(28, 30, 44),
-	barBack = Color3.fromRGB(52, 56, 78),
-	bar = Color3.fromRGB(110, 230, 140),
-	text = Color3.fromRGB(240, 242, 255),
-	muted = Color3.fromRGB(165, 170, 200),
-	font = Enum.Font.GothamBold,
-	titleSize = 54,
-	labelSize = 20,
-	barSize = UDim2.fromOffset(360, 14),
-	fade = 0.6, -- seconds
-	displayOrder = 1000,
-})
+local LOOK = require(script:WaitForChild("LoadingLook"))
 local BATCH = 40 -- assets per PreloadAsync call: keeps the bar moving
 
 ReplicatedFirst:RemoveDefaultLoadingScreen()
