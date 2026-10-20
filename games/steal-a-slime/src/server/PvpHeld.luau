@@ -3,9 +3,10 @@
 	PvpHeld (Roblox adapter, FEATURES.PvP, CONTRACT.md §26.3)
 
 	The equipped PvP item in the character's right hand: one Model `PvpModels.MODEL_NAME` under the character,
-	each part welded to the hand at RightGripAttachment * grip^-1 (Tool.Grip convention). The look comes from
-	Shared.PvpModels only: the uploaded mesh (one MeshPart from AssetService:CreateMeshPartAsync, cached per mesh
-	id, fitted into the item's `size`) or, while there is none or it failed, the placeholder pieces.
+	each part welded to the hand. The look comes from Shared.PvpModels only: the uploaded mesh (one MeshPart from
+	AssetService:CreateMeshPartAsync, cached per mesh id, fitted into the item's `size` x `held`) welded at
+	RightGripAttachment * grip^-1 (Tool.Grip convention, grip.pos scaled with `held`), or, while there is none or it
+	failed, the placeholder pieces on the bare RightGripAttachment.
 	Every part is collision-free, Massless, CanQuery / CanTouch false and casts no shadow.
 
 	`PvpHeld.sync(character, itemId)` is called from the per-player WorldView.updatePlayer tick: it builds, swaps
@@ -103,34 +104,39 @@ local function handOf(character: Model): BasePart?
 	return if hand and hand:IsA("BasePart") then hand else nil
 end
 
--- The hand-space CFrame of the item origin: RightGripAttachment * grip^-1 (the attachment, else the palm).
-local function baseOf(item: PvpModels.Item, hand: BasePart): CFrame
+-- The hand-space CFrame of the grip point: RightGripAttachment (else the palm).
+local function gripPointOf(hand: BasePart): CFrame
 	local attachment = hand:FindFirstChild("RightGripAttachment")
-	local grip = cframeOf(item.grip.pos, item.grip.rotDeg)
-	local at = if attachment and attachment:IsA("Attachment")
+	return if attachment and attachment:IsA("Attachment")
 		then attachment.CFrame
 		else CFrame.new(0, -hand.Size.Y / 2, 0) * CFrame.Angles(math.rad(-90), 0, 0)
-	return at * grip:Inverse()
+end
+
+-- The hand-space CFrame of the model origin: grip point * grip^-1 (PvpModels.mount: mesh or placeholder).
+local function baseOf(item: PvpModels.Item, hand: BasePart, mesh: boolean, scale: number?): CFrame
+	local grip = PvpModels.mount(item, mesh, scale)
+	return gripPointOf(hand) * cframeOf(grip.pos, grip.rotDeg):Inverse()
 end
 
 local function build(character: Model, itemId: string, item: PvpModels.Item, hand: BasePart): Model
 	local model = Instance.new("Model")
 	model.Name = PvpModels.MODEL_NAME
 	model:SetAttribute(PvpModels.ITEM_ATTRIBUTE, itemId)
-	local base = baseOf(item, hand)
 	local meshId = PvpModels.meshId(itemId)
 	local mesh = if meshId then template(meshId) else nil
 	if mesh then
 		local part = mesh:Clone()
 		part.Name = "Mesh"
-		local size = MeshAssets.fit(item.mesh, item.size) -- one uniform scale, never stretched
+		local held = item.held or 1
+		local box = { item.size[1] * held, item.size[2] * held, item.size[3] * held }
+		local size, scale = MeshAssets.fit(item.mesh, box) -- one uniform scale, never stretched
 		part.Size = Vector3.new(size[1], size[2], size[3])
 		quiet(part)
-		weld(part, hand, base)
+		weld(part, hand, baseOf(item, hand, true, scale or held))
 		part.Parent = model
 		model:SetAttribute(PvpModels.MESH_ATTRIBUTE, true)
 	else
-		placeholder(item, hand, base, model)
+		placeholder(item, hand, baseOf(item, hand, false), model)
 	end
 	model.Parent = character
 	return model

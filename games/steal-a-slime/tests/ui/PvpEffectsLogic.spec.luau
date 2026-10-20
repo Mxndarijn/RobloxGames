@@ -175,6 +175,10 @@ describe("PvpEffectsLogic markers", function()
 			local mine, theirs = Logic.markerLook(m :: any, true), Logic.markerLook(m :: any, false)
 			expect(mine.material).toBe("Neon")
 			expect(theirs.transparency > 0.8 and theirs.transparency > mine.transparency).toBe(true)
+			-- the owner's trap model keeps its own colours and is solid; others only see it shimmer
+			expect(mine.modelTransparency).toBe(0)
+			expect(mine.modelMaterial).toBeNil()
+			expect(theirs.modelTransparency > 0.8).toBe(true)
 			expect((m :: any).seconds >= P.TRAP_LIFETIME_SECONDS).toBe(true)
 		end
 	)

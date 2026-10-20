@@ -58,7 +58,14 @@ export type Marker = {
 	seconds: number?,
 	glows: boolean?, -- a trap: glowing for its owner, a faint shimmer for everyone else (markerLook)
 }
-export type MarkerLook = { transparency: number, material: string }
+-- `transparency` / `material`: the ground disc. `modelTransparency` / `modelMaterial`: the trap's mesh or placeholder
+-- pieces on it (`modelMaterial` nil = the model keeps its own material and colours, so the mesh reads as itself).
+export type MarkerLook = {
+	transparency: number,
+	material: string,
+	modelTransparency: number,
+	modelMaterial: string?,
+}
 
 PvpEffectsLogic.FX_RANGE = 220 -- studs: farther effects are skipped (clients may skip beyond their stream radius)
 PvpEffectsLogic.HIGHLIGHT_CAP = 8 -- Roblox allows ~31 Highlights in total; we stay far below
@@ -73,8 +80,10 @@ PvpEffectsLogic.MAX_FLIGHT = 2 -- seconds: a blob never flies longer (junk paylo
 PvpEffectsLogic.MAX_SPLAT_SECONDS = 6 -- a ground splat / pool never lasts longer
 PvpEffectsLogic.MAX_POGO = 3 -- bounces
 PvpEffectsLogic.BLOB_SIZES = table.freeze({ 1, 1.3, 2.4 }) -- Squirter, Blaster, Cannon (studs)
-PvpEffectsLogic.MARKER_OWNER = table.freeze({ transparency = 0.25, material = "Neon" })
-PvpEffectsLogic.MARKER_OTHERS = table.freeze({ transparency = 0.88, material = "Glass" })
+-- The owner sees a glowing goo disc around a solid trap; everyone else a faint shimmer of both.
+PvpEffectsLogic.MARKER_OWNER = table.freeze({ transparency = 0.25, material = "Neon", modelTransparency = 0 })
+PvpEffectsLogic.MARKER_OTHERS =
+	table.freeze({ transparency = 0.88, material = "Glass", modelTransparency = 0.88, modelMaterial = "Glass" })
 
 local SPARK = "rbxasset://textures/particles/sparkles_main.dds"
 local SMOKE = "rbxasset://textures/particles/smoke_main.dds"
@@ -354,7 +363,7 @@ end
 -- How a placed trap looks to this client: glowing for its owner, a faint shimmer for everyone else.
 function PvpEffectsLogic.markerLook(marker: Marker, isOwner: boolean): MarkerLook
 	if not marker.glows then
-		return { transparency = 0.4, material = "SmoothPlastic" }
+		return { transparency = 0.4, material = "SmoothPlastic", modelTransparency = 0.4 }
 	end
 	return if isOwner then PvpEffectsLogic.MARKER_OWNER else PvpEffectsLogic.MARKER_OTHERS
 end

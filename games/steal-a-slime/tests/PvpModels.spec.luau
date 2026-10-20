@@ -59,11 +59,57 @@ describe("PvpModels", function()
 			expect(b > a).toBe(true)
 		end
 	end)
+	it(
+		"fits each uploaded mesh at its native size; only traps and the Bounce Pad are scaled down in the hand",
+		function()
+			for id, item in PvpModels.ITEMS do
+				local entry = MeshAssets.get(item.mesh)
+				if entry and entry.size then
+					expect(`{id} {table.concat(item.size, ",")}`).toBe(`{id} {table.concat(entry.size, ",")}`)
+				end
+				local placed = PvpModels.markerMesh(id) ~= nil
+				if placed then
+					expect(item.held ~= nil and item.held > 0 and item.held < 1).toBe(true)
+				else
+					expect(`{id} {item.held}`).toBe(`{id} nil`)
+				end
+			end
+		end
+	)
+	it("welds the mesh with its grip scaled like the mesh, the placeholder on the bare grip attachment", function()
+		local trap = PvpModels.ITEMS.GooTrap2
+		local mesh = PvpModels.mount(trap, true)
+		for axis = 1, 3 do
+			expect(mesh.pos[axis]).toBe(trap.grip.pos[axis] * (trap.held :: number))
+		end
+		expect(mesh.rotDeg).toEqual(trap.grip.rotDeg)
+		local glove = PvpModels.ITEMS.KnockGlove1
+		expect(PvpModels.mount(glove, true).pos).toEqual(glove.grip.pos)
+		expect(PvpModels.mount(glove, true, 2).pos[2]).toBe(glove.grip.pos[2] * 2)
+		for _, item in PvpModels.ITEMS do
+			local bare = PvpModels.mount(item, false)
+			expect(bare.pos).toEqual({ 0, 0, 0 })
+			expect(bare.rotDeg).toEqual({ 0, 0, 0 })
+		end
+		expect(glove.grip.rotDeg[1]).toBe(90) -- the punch turn applies to the mesh only
+	end)
 	it("offers the trap and pad meshes for placed markers only", function()
 		expect(PvpModels.markerMesh("GooTrap2")).toBe("pvp_goo_trap_2")
 		expect(PvpModels.markerMesh("FunBouncePad")).toBe("pvp_fun_bounce_pad")
 		expect(PvpModels.markerMesh("KnockGlove1")).toBeNil()
 		expect(PvpModels.markerMesh(nil)).toBeNil()
+	end)
+	it("lists every placed-marker mesh for the server's templates, uploaded and sized", function()
+		expect(PvpModels.MARKER_MESHES).toEqual({
+			"pvp_fun_bounce_pad",
+			"pvp_goo_trap_1",
+			"pvp_goo_trap_2",
+			"pvp_goo_trap_3",
+		})
+		for _, name in PvpModels.MARKER_MESHES do
+			local entry = MeshAssets.get(name)
+			expect(`{name} {entry ~= nil and entry.meshId ~= nil and entry.size ~= nil}`).toBe(`{name} true`)
+		end
 	end)
 	it("a placed trap shows its hand placeholder pieces until the mesh is uploaded", function()
 		local pieces = PvpModels.markerParts("GooTrap3")

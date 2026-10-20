@@ -117,4 +117,5 @@ return table.freeze({
 	SLAP_HIT_ATTRIBUTE = "SlapHitAt", -- Player: server time the player was last slapped off a stolen slime (the client draws the hit effect)
 	HABITAT_FOLDER = "ClientHabitats", -- client-only workspace folder for habitat looks
 	HABITAT_MESHES = "HabitatMeshes", -- ReplicatedStorage folder: server-made overlay MeshPart templates (MeshSwap)
+	PVP_MARKER_MESHES = "PvpMarkerMeshes", -- ReplicatedStorage folder: placed trap / pad MeshPart templates (FEATURES.PvP, MeshSwap)
 })

@@ -89,6 +89,7 @@ task.spawn(safeCall, "MeshSwap.publishSkinTemplates", MeshSwap.publishSkinTempla
 task.spawn(safeCall, "MeshSwap.publishFountainTierTemplates", MeshSwap.publishFountainTierTemplates) -- FEATURES.FountainTiers
 task.spawn(safeCall, "MeshSwap.publishHabitatTemplates", MeshSwap.publishHabitatTemplates) -- FEATURES.Habitats
 task.spawn(safeCall, "MeshSwap.publishPetCloudTemplate", MeshSwap.publishPetCloudTemplate) -- the follow pet's cloud
+task.spawn(safeCall, "MeshSwap.publishPvpMarkerTemplates", MeshSwap.publishPvpMarkerTemplates) -- FEATURES.PvP placed traps
 
 local request = Remotes.get(Constants.REQUEST) :: RemoteFunction
 local stateEvent = Remotes.get(Constants.STATE) :: RemoteEvent

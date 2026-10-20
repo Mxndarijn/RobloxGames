@@ -37,6 +37,7 @@ local FountainColliders = require(script.Parent.FountainColliders)
 local Habitats = require(ReplicatedStorage.Shared.Habitats)
 local MeshAssets = require(ReplicatedStorage.Shared.MeshAssets)
 local PetCloud = require(ReplicatedStorage.Visuals.PetCloud)
+local PvpModels = require(ReplicatedStorage.Shared.PvpModels)
 local Retry = require(ReplicatedStorage.Shared.Retry)
 local VatDecor = require(ReplicatedStorage.Visuals.VatDecor)
 
@@ -406,6 +407,41 @@ function MeshSwap.publishHabitatTemplates(): number
 		local entry = name and MeshAssets.get(name)
 		local base = meshId and template(meshId)
 		if name and entry and entry.size and base and not (folder :: Folder):FindFirstChild(name) then
+			local mesh = base:Clone()
+			mesh.Name = name
+			mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])
+			mesh.Anchored = true
+			mesh.CanCollide = false
+			mesh.CanQuery = false
+			mesh.CanTouch = false
+			mesh.CastShadow = false
+			mesh.Parent = folder
+			count += 1
+		end
+	end
+	return count
+end
+
+-- FEATURES.PvP: one MeshPart template per placed-marker mesh (PvpModels.MARKER_MESHES: Goo Traps, Bounce Pad) in
+-- ReplicatedStorage.PvpMarkerMeshes (named by mesh, native size, decor). The client (ui/PvpEffects) clones them for a
+-- placed trap: a MeshPart keeps the kit's vertex colours, a script-made FileMesh draws white. Yields; returns how many
+-- were published.
+function MeshSwap.publishPvpMarkerTemplates(): number
+	if not Config.FEATURES.PvP then
+		return 0
+	end
+	local folder = ReplicatedStorage:FindFirstChild(Constants.PVP_MARKER_MESHES)
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = Constants.PVP_MARKER_MESHES
+		folder.Parent = ReplicatedStorage
+	end
+	local count = 0
+	for _, name in PvpModels.MARKER_MESHES do
+		local meshId = MeshAssets.meshId(name)
+		local entry = MeshAssets.get(name)
+		local base = meshId and template(meshId)
+		if entry and entry.size and base and not (folder :: Folder):FindFirstChild(name) then
 			local mesh = base:Clone()
 			mesh.Name = name
 			mesh.Size = Vector3.new(entry.size[1], entry.size[2], entry.size[3])

@@ -33,7 +33,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
-local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
+local Constants = require(Shared:WaitForChild("Constants"))
 local PvpKnockbackRules = require(Shared:WaitForChild("PvpKnockbackRules"))
 local PvpModels = require(Shared:WaitForChild("PvpModels"))
 
@@ -638,32 +638,31 @@ function land(payload: { [string]: any }, plan: Logic.Plan)
 	end
 end
 
--- The placeholder pieces of a placed trap (PvpModels.markerParts), or its uploaded mesh, centred on `center`.
+-- A placed trap's uploaded mesh (cloned from the server's template in ReplicatedStorage.PvpMarkerMeshes), or its
+-- placeholder pieces (PvpModels.markerParts) while there is none, centred on `center`.
 local function markerModel(itemId: string, center: CFrame, look: Logic.MarkerLook, model: Model)
-	local material = (Enum.Material :: any)[look.material] or Enum.Material.SmoothPlastic
+	local material = if look.modelMaterial then (Enum.Material :: any)[look.modelMaterial] else nil
 	local meshName = PvpModels.markerMesh(itemId)
-	local meshId = if meshName then MeshAssets.meshId(meshName) else nil
-	local item = PvpModels.get(itemId)
 	local function quiet(part: BasePart)
 		part.Anchored = true
 		part.CanCollide = false
 		part.CanQuery = false
 		part.CanTouch = false
 		part.CastShadow = false
-		part.Material = material
-		part.Transparency = math.max(part.Transparency, look.transparency)
+		if material then
+			part.Material = material
+		end
+		part.Transparency = math.max(part.Transparency, look.modelTransparency)
 		part.Parent = model
 	end
-	if meshId and item then
-		local part = Instance.new("Part")
+	local folder = if meshName then ReplicatedStorage:FindFirstChild(Constants.PVP_MARKER_MESHES) else nil
+	local template = if folder and meshName then folder:FindFirstChild(meshName) else nil
+	if template and template:IsA("BasePart") then
+		-- the server's MeshPart template (native size): it keeps the mesh's vertex colours
+		local part = template:Clone()
 		part.Name = "Mesh"
-		part.Size = Vector3.new(item.size[1], item.size[2], item.size[3]) * LOOK.markerScale
+		part.Size = template.Size * LOOK.markerScale
 		part.CFrame = center * CFrame.new(0, part.Size.Y / 2, 0)
-		local mesh = Instance.new("SpecialMesh")
-		mesh.MeshType = Enum.MeshType.FileMesh
-		mesh.MeshId = meshId
-		mesh.Scale = Vector3.one * LOOK.markerScale
-		mesh.Parent = part
 		quiet(part)
 		return
 	end
@@ -688,6 +687,7 @@ local function markerModel(itemId: string, center: CFrame, look: Logic.MarkerLoo
 			* CFrame.Angles(math.rad(r[1]), math.rad(r[2]), math.rad(r[3]))
 			* turn
 		part.Color = Color3.fromRGB(piece.color[1], piece.color[2], piece.color[3])
+		part.Material = (Enum.Material :: any)[piece.material or "SmoothPlastic"] or Enum.Material.SmoothPlastic
 		part.Transparency = piece.transparency or 0
 		quiet(part)
 	end
