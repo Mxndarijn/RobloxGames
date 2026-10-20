@@ -104,8 +104,7 @@ describe("PR gate: the checks catch PR #60's bugs", function()
 	end
 	for _, case in
 		{
-			{ w = 844, h = 390, keys = { "Codes" } },
-			{ w = 844, h = 332, keys = { "Dex" } },
+			{ w = 844, h = 332, keys = { "Codes" } },
 		}
 	do
 		it(`{case.w}x{case.h} one nav column: {table.concat(case.keys, " / ")} under the money cluster`, function()

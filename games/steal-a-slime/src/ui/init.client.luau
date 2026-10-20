@@ -54,6 +54,7 @@ local PopupQueue = require(script.PopupQueue)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
 local SlimeInfoCard = require(script.SlimeInfoCard)
+local SlimeManage = require(script.SlimeManage)
 local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
@@ -336,7 +337,7 @@ local backdrop = Widgets.create("TextButton", {
 }) :: TextButton
 
 -- Menu cards: one open at a time, toggled from the left nav (Nav.ENTRIES
--- order: Plot, Rebirth, Goals, SlimeDex, Codes) or a world prompt, closed with their X, the backdrop, Esc or
+-- order: Rebirth, Goals, SlimeDex, Codes) or a world prompt, closed with their X, the backdrop, Esc or
 -- gamepad B.
 local panelByKey: { [string]: any } = {
 	Plot = PlotPanel.new(gui, ctx),
@@ -357,10 +358,11 @@ for _, navEntry in Nav.ENTRIES do
 		table.insert(panels, { key = navEntry.key, nav = navEntry, panel = panel })
 	end
 end
--- Every menu: the nav ones plus the cards without a nav button: Merge, Shop (opened by the ShopStand prompt;
--- the in-world shops reuse it) and Top (H1 HUD: Merijn removed their buttons), the Guide and Welcome cards.
+-- Every menu: the nav ones plus the cards without a nav button: Plot (a slime's card, opened by its Manage prompt
+-- at the pad), Merge, Shop (opened by the ShopStand prompt; the in-world shops reuse it) and Top (H1 HUD: Merijn
+-- removed their buttons), the Guide and Welcome cards.
 local allPanels: { PanelEntry } = table.clone(panels)
-for _, key in { "Merge", "Shop", "Leaders" } do
+for _, key in { "Plot", "Merge", "Shop", "Leaders" } do
 	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
 end
 if panelByKey.WorldShop then
@@ -801,6 +803,21 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 		setOpen(key)
 	end
 end)
+
+-- "Manage" on each of your slimes at its pad opens that slime's card (favourite, sell, appraise, hatch).
+SlimeManage.start({
+	root = workspace,
+	localUserId = player.UserId,
+	newPrompt = function(): ProximityPrompt
+		return Instance.new("ProximityPrompt")
+	end,
+	keyCode = Enum.KeyCode.E,
+	distance = Config.PLOT_PAD_PROMPT_DISTANCE,
+	onManage = function(slimeId: string)
+		panelByKey.Plot.focus(slimeId)
+		setOpen("Plot")
+	end,
+})
 
 -- World shops (FEATURES.WorldShops, CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
 -- this client with ShopEvent and the OpenShop attribute; the card closes on ShopEvent Close / attribute nil, and

@@ -1,6 +1,8 @@
 --!strict
 --[[
-	Plot panel: every slime on the plot with its income and sell price.
+	Plot panel: the card a slime's in-world Manage prompt opens (SlimeManage): that one slime's row, `focus(id)`.
+	Unfocused (Studio's PcwOpen) it lists every slime on the plot with its income and sell price.
+	A focused slime that is sold, merged or gone closes the card.
 	Top line: pads in use and income per second as two chips. Each row: a round
 	avatar well with the slime's 3D preview (SlimePreview; the rows nearest the
 	scroll window, at most SlimePreview.MAX_LIVE, the rest show a colour circle), the name in its rarity colour (Secrets in a rainbow), income
@@ -164,6 +166,8 @@ function Plot.new(parent: Instance, ctx: any)
 	})
 
 	local favoriteId: string? = nil
+	local focusId: string? = nil -- the one slime the card shows; nil = the whole plot
+	local lastState: any = nil
 	local open = false
 	local petPerk: any = nil -- State.petPerk: the favourite's passive, shown as a chip on its row
 	local latestViews: { [string]: any } = {}
@@ -442,7 +446,7 @@ function Plot.new(parent: Instance, ctx: any)
 	local backBtn = Widgets.button(
 		{
 			Name = "Done",
-			Text = "Back to My Plot",
+			Text = "Back",
 			TextSize = P.backSize,
 			Size = UDim2.new(1, 0, 0, P.backH),
 		},
@@ -583,7 +587,7 @@ function Plot.new(parent: Instance, ctx: any)
 		list.Visible = not on
 		padsChip.Visible = not on
 		incomeChip.Visible = not on
-		panel.title.Text = if on then "Appraise" else "My Plot"
+		panel.title.Text = if on then "Appraise" elseif focusId then "My Slime" else "My Plot"
 		panel.icon.Visible = not on
 		appraiseArt.instance.Visible = on
 		appraiseArt.setActive(on)
@@ -841,13 +845,30 @@ function Plot.new(parent: Instance, ctx: any)
 
 	function self.setOpen(isOpen: boolean)
 		open = isOpen
-		if not isOpen and popupId ~= nil then
-			setAppraise(nil)
+		if not isOpen then
+			focusId = nil
+			panel.title.Text = "My Plot"
+			if popupId ~= nil then
+				setAppraise(nil)
+			end
 		end
 		refreshPreviews()
 	end
 
+	-- Shows only slime `id` (nil = every slime) and redraws from the last State.
+	function self.focus(id: string?)
+		focusId = id
+		if popupId ~= nil then
+			setAppraise(nil)
+		end
+		panel.title.Text = if id then "My Slime" else "My Plot"
+		if lastState then
+			self.update(lastState)
+		end
+	end
+
 	function self.update(state: any)
+		lastState = state
 		favoriteId = state.favoriteId
 		petPerk = state.petPerk
 		cash = state.cash
@@ -861,8 +882,16 @@ function Plot.new(parent: Instance, ctx: any)
 		local count = #state.slimes
 		padsChip.Text = `🟢 {count}/{state.padsUnlocked} pads`
 		incomeChip.Text = Format.formatRate(state.incomePerSec)
+		local focused = focusId and latestViews[focusId]
+		if focusId and not focused then
+			focusId = nil
+			panel.title.Text = "My Plot"
+			if open then
+				panel.frame.Visible = false -- the slime left the plot: nothing left to manage here
+			end
+		end
 		empty.Visible = count == 0
-		rows.sync(Selection.sorted(state.slimes, favoriteId))
+		rows.sync(if focused then { focused } else Selection.sorted(state.slimes, favoriteId))
 		refreshPreviews()
 	end
 
