@@ -157,6 +157,44 @@ describe("SlimeMesh kits", function()
 		expect(model).toBe(factory.built[3])
 		expect(#warnings).toBe(3) -- two dress failures + the fake model's type look
 	end)
+
+	it("names a slime's kit as pending until it loads, and never for a kit that failed", function()
+		local fetches: { () -> () } = {}
+		local mesh = SlimeMesh.new({
+			factory = fakeFactory() :: any,
+			loadAsset = function(assetId: number): any
+				if assetId == (MeshAssets.get("slime_lop") :: any).assetId then
+					error("HTTP 404")
+				end
+				return meshAsset()
+			end,
+			spawn = function(fetch: () -> ())
+				table.insert(fetches, fetch) -- kits arrive only when the test runs these
+			end,
+			warn = function() end,
+		})
+		SlimeMesh.load(mesh)
+		local gummy = Fixtures.slime("g", 1, { species = "gummy" })
+		local lop = Fixtures.slime("l", 1, { species = "lop" })
+		expect(SlimeMesh.pendingKit(mesh, gummy)).toBe("slime_gummy")
+		expect(SlimeMesh.hasKit(mesh, "slime_gummy")).toBe(false)
+		expect(SlimeMesh.pendingKit(mesh, lop)).toBe("slime_lop")
+
+		for _, fetch in fetches do
+			fetch()
+		end
+		expect(SlimeMesh.hasKit(mesh, "slime_gummy")).toBe(true)
+		expect(SlimeMesh.pendingKit(mesh, gummy)).toBeNil()
+		expect(SlimeMesh.hasKit(mesh, "slime_lop")).toBe(false)
+		expect(SlimeMesh.pendingKit(mesh, lop)).toBeNil() -- failed: it never arrives, so nothing waits on it
+	end)
+
+	it("has no pending kit for a slime without a species", function()
+		local mesh = setup(function(): any
+			return meshAsset()
+		end)
+		expect(SlimeMesh.pendingKit(mesh, Fixtures.slime("p", 1))).toBeNil()
+	end)
 end)
 
 -- Roblox globals SlimeMesh uses at call time; swapped in only while dressing a real Model.

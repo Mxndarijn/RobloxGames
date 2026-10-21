@@ -81,6 +81,7 @@ type Record = {
 	weld: WeldConstraint?,
 	rideUntil: number, -- os.clock() when the fountain ride lands (0 = not riding)
 	ghost: Model?, -- StealGhost: the see-through copy left on the pad while a thief carries it
+	pendingKit: string?, -- built before this species kit loaded (shared mesh look): rebuilt once it arrives
 }
 
 local WorldView = {}
@@ -91,6 +92,7 @@ type LaneWalk = { key: string, wild: World.Wild }
 local laneWalks: { [string]: LaneWalk } = {}
 local failed: { [string]: boolean } = {}
 local modelFactory: any = nil
+local slimeMesh: SlimeMesh.SlimeMesh? = nil
 local plotCache: { [number]: Instance? } = {}
 local habitats = HabitatPads.new() -- FEATURES.Habitats pad state (never saved)
 local eggMeshes: { [string]: MeshPart | false } = {} -- uploaded Mystery Egg meshes (MeshAssets mystery_egg_*), by name
@@ -149,6 +151,7 @@ function WorldView.setup(): any?
 			end,
 		})
 		workspace:SetAttribute(Constants.SLIME_LOOK_ATTRIBUTE, SlimeMesh.load(mesh))
+		slimeMesh = mesh
 		modelFactory = {
 			build = function(slimeData: any): Model
 				return SlimeMesh.build(mesh, slimeData)
@@ -666,6 +669,7 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		key = "",
 		weld = nil,
 		rideUntil = 0,
+		pendingKit = if slimeMesh and not isEgg then SlimeMesh.pendingKit(slimeMesh, entry.slime) else nil,
 	}
 end
 
@@ -837,6 +841,17 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	return true
 end
 
+-- A slime built before its species kit loaded wears the shared mesh; once the kit is in, it is rebuilt in its own
+-- look. Only while it sits on a pad or walks wild: a carried, escaping or riding slime waits until it lands.
+local function kitArrived(record: Record, entry: Scene.Entry, clock: number): boolean
+	local kit = record.pendingKit
+	return kit ~= nil
+		and slimeMesh ~= nil
+		and SlimeMesh.hasKit(slimeMesh, kit)
+		and (entry.state == "Pad" or entry.state == "Wild")
+		and clock >= record.rideUntil
+end
+
 --[[
 	Creates, moves and destroys slime models to match the World. Call a few
 	times a second and after any action.
@@ -848,9 +863,10 @@ function WorldView.reconcile(
 	onHatch: (Player, string) -> ()
 )
 	local entries = Scene.describe(world, now)
+	local clock = os.clock()
 	for id, record in records do
 		local entry = entries[id]
-		if not entry or record.egg ~= EggKind.isEgg(entry.slime) then
+		if not entry or record.egg ~= EggKind.isEgg(entry.slime) or kitArrived(record, entry, clock) then
 			clearGhost(record)
 			record.model:Destroy()
 			records[id] = nil
