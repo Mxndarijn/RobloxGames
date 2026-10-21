@@ -167,8 +167,8 @@ describe("Upgrades (BuyUpgrade)", function()
 		world.wild[x].slime.tier, world.wild[y].slime.tier = 6, 6
 		Carry.grab(world, 1, x, 1, T0)
 		Carry.grab(world, 2, y, 1, T0)
-		local slowA = 1 - Carry.walkSpeed(a, T0) / Config.BASE_WALK_SPEED
-		local slowB = 1 - Carry.walkSpeed(b, T0) / Config.BASE_WALK_SPEED
+		local slowA = 1 - Carry.walkSpeed(a) / Config.BASE_WALK_SPEED
+		local slowB = 1 - Carry.walkSpeed(b) / Config.BASE_WALK_SPEED
 		expect(slowB).toBeCloseTo(slowA * 0.4, 1e-6)
 		local data = Fixtures.data({ Fixtures.slime("s", 1) }, 0)
 		data.upgrades.OfflineCap = 2

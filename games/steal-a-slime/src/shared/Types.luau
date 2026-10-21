@@ -37,7 +37,6 @@ export type CarryView = {
 	kind: "wild" | "stolen",
 	ownerUserId: number?, -- victim, only when kind == "stolen"
 	startedAt: number,
-	escapeAt: number?, -- only when kind == "stolen"
 	walkSpeed: number, -- current server-applied WalkSpeed
 }
 

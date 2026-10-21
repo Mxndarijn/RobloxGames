@@ -36,7 +36,6 @@ local BossEvent = if script then require(script.Parent.BossEvent) else require("
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local DexSources = if script then require(script.Parent.DexSources) else require("./DexSources")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
-local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
 
@@ -68,8 +67,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 			kind = carry.kind,
 			ownerUserId = carry.ownerUserId,
 			startedAt = carry.timer.startedAt,
-			escapeAt = carry.timer.escapeAt,
-			walkSpeed = Carry.walkSpeed(session, now),
+			walkSpeed = Carry.walkSpeed(session),
 		}
 	end
 
@@ -97,7 +95,7 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		favoriteId = data.favoriteId,
 		lockUntil = session.lockUntil,
 		lockStartedAt = session.lockStartedAt,
-		lockCost = Economy.lockCost(income) * Revenge.lockMultiplier(world, session.userId, now),
+		lockCost = Economy.lockCost(income),
 		lockDuration = Steal.lockDuration(rebirths),
 		carrying = carrying,
 		rain = { active = rainActive, endsAt = endsAt, nextAt = nextAt },

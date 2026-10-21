@@ -30,16 +30,16 @@ describe("GameLoop end to end", function()
 		end
 		expect(alice.data.cash > cashAfterGrab).toBeTruthy()
 
-		-- Alice's join lock runs out; Bob steals and never makes it home.
+		-- Alice's join lock runs out; Bob steals, holds it a long while, then drops it.
 		t = T0 + Config.JOIN_LOCK_SECONDS
 		GameLoop.step(world, t)
 		expect((Carry.grab(world, 2, id, 2, t))).toBe(true)
-		local escapeAt = (bob.carry :: any).timer.escapeAt
-		while bob.carry do
+		for _ = 1, 240 do
 			t += 0.25
 			GameLoop.step(world, t)
 		end
-		expect(t <= escapeAt + 1).toBeTruthy()
+		expect(bob.carry ~= nil).toBeTruthy()
+		expect((Carry.release(world, 2, t, nil, "drop"))).toBe(true)
 		expect(world.escaping[id] ~= nil).toBeTruthy()
 		for _ = 1, 10 do
 			t += 0.25

@@ -15,7 +15,6 @@ local PlayerData = if Shared then require(Shared.PlayerData) else require("../sh
 local Steal = if Shared then require(Shared.Steal) else require("../shared/Steal")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local PvpService = if script then require(script.Parent.PvpService) else require("./PvpService")
-local Revenge = if script then require(script.Parent.Revenge) else require("./Revenge")
 local Income = if script then require(script.Parent.Income) else require("./Income")
 local Milestones = if script then require(script.Parent.Milestones) else require("./Milestones")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -76,7 +75,6 @@ function Sessions.leave(world: World, userId: number, now: number): Session?
 	end
 	Carry.release(world, userId, now, nil, "left")
 	PvpService.leave(world, session, now)
-	Revenge.forget(world, userId)
 	world.sessions[userId] = nil
 	if world.plots[session.plotIndex] == userId then
 		world.plots[session.plotIndex] = nil

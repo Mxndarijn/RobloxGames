@@ -1,0 +1,12 @@
+{
+  "id": "thief-plot-highlight",
+  "todo": "thief plot",
+  "kind": "world",
+  "target": "Plot_2",
+  "from": "centre",
+  "dist": 60,
+  "height": 40,
+  "thief_plot": 2,
+  "wait": 1.5,
+  "note": "Thief plot: the victim's client sees the thief's Plot_2 in red while the steal is on (ThiefPlotHighlight on its Base, AlwaysOnTop; the client-only Player attribute ThiefPlots=2 stands in for a thief carrying the victim's slime)"
+}

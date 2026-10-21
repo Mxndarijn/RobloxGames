@@ -1,15 +1,15 @@
 --!strict
 --[[
-	RevengePlots (pure, FEATURES.Revenge)
+	ThiefPlots (pure, CONTRACT.md §16)
 
-	Wire format of the victim-only Player attribute Constants.REVENGE_PLOTS_ATTRIBUTE:
-	plot indexes of the thieves in the player's revenge window, "3,5". Written by
-	WorldView.setRevengePlots, read by VisualsClient/RevengeFx.
+	Wire format of the victim-only Player attribute Constants.THIEF_PLOTS_ATTRIBUTE:
+	plot indexes of the players carrying one of the player's slimes right now, "3,5".
+	Written by WorldView.setThiefPlots, read by VisualsClient/ThiefPlotFx.
 ]]
 
-local RevengePlots = {}
+local ThiefPlots = {}
 
-function RevengePlots.format(plots: { number }): string?
+function ThiefPlots.format(plots: { number }): string?
 	if #plots == 0 then
 		return nil
 	end
@@ -21,7 +21,7 @@ function RevengePlots.format(plots: { number }): string?
 end
 
 -- Unique positive integer indexes in the order given; anything malformed is skipped.
-function RevengePlots.parse(value: any): { number }
+function ThiefPlots.parse(value: any): { number }
 	local out = {}
 	if type(value) ~= "string" then
 		return out
@@ -37,4 +37,4 @@ function RevengePlots.parse(value: any): { number }
 	return out
 end
 
-return RevengePlots
+return ThiefPlots

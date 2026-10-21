@@ -32,7 +32,7 @@ return table.freeze({
 	PAD_INDEX_ATTRIBUTE = "PadIndex", -- Pad_<j> part: j
 	HOME_ZONE = "HomeZone",
 	-- Instance attributes (CONTRACT.md §5.2)
-	REVENGE_PLOTS_ATTRIBUTE = "RevengePlots", -- Player (victim only): "3,5" = plot indexes of thieves inside the revenge window (FEATURES.Revenge), nil = none
+	THIEF_PLOTS_ATTRIBUTE = "ThiefPlots", -- Player (victim only): "3,5" = plot indexes of players carrying one of my slimes right now, nil = none
 	RITUAL_PHASE_ATTRIBUTE = "Phase", -- Map.RitualCircle: Ritual phase, "Idle" | "Charging" | "Cooldown"
 	RITUAL_CHARGE_ENDS_ATTRIBUTE = "ChargeEndsAt", -- Map.RitualCircle: server time the hold completes (Charging only, else nil)
 	RITUAL_READY_AT_ATTRIBUTE = "ReadyAt", -- Map.RitualCircle: server time the rest ends (Cooldown only, else nil)

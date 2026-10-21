@@ -60,7 +60,6 @@ local PvpHeld = require(script.Parent.PvpHeld)
 local PvpService = require(script.Parent.PvpService)
 local PvpTrap = require(script.Parent.PvpTrap)
 local Rescue = require(script.Parent.Rescue)
-local RevengePlots = require(ReplicatedStorage.Shared.RevengePlots)
 local SafeCall = require(script.Parent.SafeCall)
 local Scene = require(script.Parent.Scene)
 local SlimeLabelView = require(script.Parent.SlimeLabelView)
@@ -68,6 +67,7 @@ local SlimeMesh = require(script.Parent.SlimeMesh)
 local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
 local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local StackGuard = require(script.Parent.StackGuard)
+local ThiefPlots = require(ReplicatedStorage.Shared.ThiefPlots)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
 local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
@@ -1501,9 +1501,9 @@ function WorldView.setCarrying(player: Player, slimeId: string?)
 	end
 end
 
--- Player attribute `RevengePlots` (FEATURES.Revenge): thief plot indexes, "3,5", nil = none. Victim only.
-function WorldView.setRevengePlots(player: Player, plots: { number })
-	setAttribute(player, Constants.REVENGE_PLOTS_ATTRIBUTE, RevengePlots.format(plots))
+-- Player attribute `ThiefPlots`: plots of players carrying one of my slimes, "3,5", nil = none. Victim only.
+function WorldView.setThiefPlots(player: Player, plots: { number })
+	setAttribute(player, Constants.THIEF_PLOTS_ATTRIBUTE, ThiefPlots.format(plots))
 end
 
 function WorldView.setRain(active: boolean, endsAt: number?, nextAt: number?)
