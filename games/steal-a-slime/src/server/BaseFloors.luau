@@ -9,7 +9,7 @@
 	on floor 1 first, so the prompt record never points at a destroyed pad, and sets anyone standing in that jar
 	down on floor 1 (straight below, on the plot's Base) so nobody falls through the tower. A jar's lid (parts with the JarLid
 	attribute) is hidden and non-colliding while the jar above it stands. Each new jar's DropHatch gets the
-	DropPrompt (anyone; `ctx.drop` runs the rule, Actions.useDropTube). Holds no gameplay rules.
+	DropPrompt (`ctx.drop` runs the rule, Actions.useDropTube: the owner, not while carrying). Holds no gameplay rules.
 ]]
 
 local Players = game:GetService("Players")

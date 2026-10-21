@@ -755,8 +755,15 @@ end
 -- A player took plot `plotIndex`'s drop tube (any upper jar's DropPrompt, CONTRACT.md §5.3). Anyone may, except a
 -- player carrying a slime: they must walk out through the door.
 function Actions.useDropTube(world: World, userId: number, plotIndex: number, ctx: Context): Result
-	if not World.session(world, userId) then
+	local session = World.session(world, userId)
+	if not session then
 		return fail("not loaded")
+	end
+	if session.plotIndex ~= plotIndex then
+		-- owners only: a visitor walks the stair down (and a thief carries the slime out through the door)
+		local text = "Only this base's owner can take its goo tube. Take the stairs down!"
+		World.notify(world, userId, text, "bad", nil)
+		return fail(text)
 	end
 	if Carry.carryingId(world, userId) then
 		local text = "You can't take the goo tube while carrying a slime. Walk out through the door!"

@@ -1,6 +1,6 @@
 --!strict
 -- The goo jar tower's drop tube (CONTRACT.md §5.3): every upper jar has a DropHatch on the back with a tube down to
--- the splash pool outside the moat. Anyone may take it except a player carrying a slime.
+-- the splash pool outside the moat. Only the plot's owner may take it, and not while carrying a slime.
 local Actions = require("../src/server/Actions")
 local Config = require("../src/shared/Config")
 local Fixtures = require("./Fixtures")
@@ -40,17 +40,23 @@ local function notices(world: any, userId: number): { any }
 end
 
 describe("Actions.useDropTube", function()
-	it("drops a player who carries nothing down their own or anyone's tube", function()
-		local world, _, ctx, drops = setup()
-		expect(Actions.useDropTube(world, 1, 1, ctx).ok).toBe(true)
-		expect(Actions.useDropTube(world, 1, 3, ctx).ok).toBe(true)
-		expect(#drops).toBe(2)
-		expect(drops[2][2]).toBe(3)
+	it("drops the owner down their own tube, and refuses anyone else's with a toast", function()
+		local world, session, ctx, drops = setup()
+		local own = session.plotIndex
+		expect(Actions.useDropTube(world, 1, own, ctx).ok).toBe(true)
+		expect(#drops).toBe(1)
+		expect(drops[1][2]).toBe(own)
+		local other = own % Config.PLOT_COUNT + 1
+		expect(Actions.useDropTube(world, 1, other, ctx).ok).toBe(false)
+		expect(#drops).toBe(1)
+		local said = notices(world, 1)
+		expect(#said).toBe(1)
+		expect(said[1].kind).toBe("bad")
 	end)
 	it("refuses a player carrying a slime, tells them to walk out, and never moves them", function()
 		local world, session, ctx, drops = setup()
 		session.carry = { slimeId = "x", kind = "wild", slime = Fixtures.slime("x") } :: any
-		local res = Actions.useDropTube(world, 1, 1, ctx)
+		local res = Actions.useDropTube(world, 1, session.plotIndex, ctx)
 		expect(res.ok).toBe(false)
 		expect(#drops).toBe(0)
 		local said = notices(world, 1)
@@ -58,9 +64,9 @@ describe("Actions.useDropTube", function()
 		expect(said[1].kind).toBe("bad")
 	end)
 	it("refuses with no world to move the character in, and for a player who is not loaded", function()
-		local world, _, ctx = setup()
+		local world, session, ctx = setup()
 		ctx.dropDown = nil
-		expect(Actions.useDropTube(world, 1, 1, ctx).ok).toBe(false)
+		expect(Actions.useDropTube(world, 1, session.plotIndex, ctx).ok).toBe(false)
 		expect(Actions.useDropTube(world, 99, 1, ctx).ok).toBe(false)
 	end)
 end)
