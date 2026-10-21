@@ -66,6 +66,9 @@ local function label(gui: Instance, deps: Deps, name: string, y: number, height:
 	made.Font = deps.Enum.Font.FredokaOne
 	made.TextScaled = true
 	made.TextColor3 = deps.Color3.fromRGB(rgb[1], rgb[2], rgb[3])
+	-- a light outline keeps the dark text readable on the wood from a distance
+	made.TextStrokeColor3 = deps.Color3.fromRGB(255, 244, 222)
+	made.TextStrokeTransparency = 0.35
 	made.Text = ""
 	made.Parent = gui
 	return made
@@ -89,8 +92,8 @@ function PlotSigns.ensure(sign: Instance, deps: Deps?): { TextLabel }
 			created.Parent = sign
 			gui = created
 		end
-		table.insert(labels, label(gui :: Instance, d, "Title", 0.06, 0.52, { 70, 45, 25 }))
-		table.insert(labels, label(gui :: Instance, d, "Stats", 0.6, 0.32, { 40, 120, 60 }))
+		table.insert(labels, label(gui :: Instance, d, "Title", 0.05, 0.5, { 60, 36, 18 }))
+		table.insert(labels, label(gui :: Instance, d, "Stats", 0.57, 0.38, { 22, 92, 44 }))
 	end
 	return labels
 end

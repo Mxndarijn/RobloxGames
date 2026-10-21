@@ -93,20 +93,18 @@ describe("drop tube geometry", function()
 			expect(named(parts, "SplashPool") ~= nil).toBe(f == 2)
 		end
 	end)
-	it("runs the tube outside jar 1's glass and inside the plot, and lands outside the moat", function()
+	it("runs the tube outside jar 1's glass and inside the plot, and lands in the goo moat", function()
 		local tube = WorldLayout.DROP_TUBE
 		expect(tube.radius - tube.width / 2 > WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL).toBe(true)
 		expect(tube.radius + tube.width / 2 < WorldLayout.PLOT_SIZE / 2).toBe(true)
 		local land = WorldLayout.dropLanding()
-		expect(math.sqrt(land[1] ^ 2 + land[3] ^ 2) > WorldLayout.MOAT.outer).toBe(true)
+		local r = math.sqrt(land[1] ^ 2 + land[3] ^ 2)
+		expect(r > WorldLayout.MOAT.inner and r < WorldLayout.MOAT.outer).toBe(true)
 	end)
-	it("keeps the landing clear of the trophy stands, the lock button and the rebirth pillars", function()
+	it("keeps the landing clear of the lock button and the rebirth pillars", function()
 		local land = WorldLayout.dropLanding()
 		local function far(x: number, z: number, clear: number)
 			return math.abs(land[1] - x) > clear or math.abs(land[3] - z) > clear
-		end
-		for _, spot in WorldLayout.TROPHY_SPOTS do
-			expect(far(spot[1], spot[2], 4.5 + 2)).toBe(true)
 		end
 		expect(far(WorldLayout.LOCK_BUTTON_SPOT[1], WorldLayout.LOCK_BUTTON_SPOT[2], 2.5 + 2)).toBe(true)
 		local h = WorldLayout.PLOT_SIZE / 2 - 1

@@ -187,6 +187,11 @@ def jar_trim(f, top, crown=False):
         if f == 1 and abs(((a + 90 + 180) % 360) - 180) < ha + 2:
             continue  # no rib over the door
         pts = [(x * (pr + 0.18), y * (pr + 0.18), pz) for pr, pz in prof]
+        if not top and f < FLOORS:
+            # a covered jar: carry the rib on from its neck straight up to the next jar's floor, at that jar's rib
+            # radius, so the brass bars run unbroken up the tower
+            ru = radius(f + 1) + 0.18
+            pts += [(x * ru, y * ru, pts[-1][2] + 0.3), (x * ru, y * ru, FLOOR_H + 0.25)]
         out.append(tube(f"Rib{k}", pts, [0.35] * len(pts), METAL, segs=6))
     lip_top = nz + (LIP if top else 0.0)
     for k in range(2):
@@ -227,11 +232,17 @@ def jar_deck(f):
 
 
 def jar_foot():
-    """The ground under jar 1, lying on the plot's Base (z = 0 is the Base top, the floor players walk on): a low round
-    wooden foot, the goo moat round it on a sandy bed, jar 1's goo pool with bubbles. All of it is decor a few tenths
-    of a stud thick, so feet hardly sink in."""
+    """The whole round plot floor (z = 0 is its top, the floor players walk on; the game's PlotFloor collider is under
+    it): a sandy ring out to the plot's edge with a cork rim and its 1-stud edge down to the ground, a low round
+    wooden foot, the goo moat round it on a sandy bed, jar 1's goo pool with bubbles. The top is decor a few tenths of
+    a stud thick, so feet hardly sink in."""
     r1, m = radius(1), D["moat"]
-    out = [painted(cylinder("Foot", m["inner"], 0.3, (0, 0, 0), WOOD, segs=SEGS), shade(WOOD, 0.85), WOOD)]
+    edge = D["plotFloorRadius"]
+    sand = rgb(232, 214, 178)
+    out = [painted(lathe("Sand", [(edge, -1.0), (edge, 0.0), (edge - 0.4, 0.06), (m["outer"] - 0.2, 0.06)], sand, double=False),
+                   shade(sand, 0.82), sand),
+           painted(lathe("Rim", [(edge + 0.05, -0.15), (edge + 0.05, 0.12), (edge - 0.5, 0.12)], WOOD_D, double=False), shade(WOOD_D, 0.85), WOOD_D)]
+    out.append(painted(cylinder("Foot", m["inner"], 0.3, (0, 0, 0), WOOD, segs=SEGS), shade(WOOD, 0.85), WOOD))
     out.append(painted(lathe("MoatBed", [(m["outer"], 0.0), (m["outer"], 0.06), (m["inner"], 0.06)], shade(PATH, 0.95), double=False)))
     out.append(painted(lathe("MoatRim", [(m["outer"], 0.06), (m["outer"], 0.3), (m["outer"] - 0.4, 0.3)], WOOD_D, double=False)))
     out.append(painted(lathe("Moat", [(m["outer"] - 0.3, 0.18), (m["inner"], 0.18)], GOO, double=False), shade(GOO, 0.9), GOO))
@@ -457,16 +468,14 @@ def drop_tube_goo(version):
 
     for f in range(1, version):
         out.append(collar_at(f * FLOOR_H + 0.5))
-    for f in range(2, version + 1):
-        r = radius(f)
-        hz = (f - 1) * FLOOR_H + 3.0
-        if f < version:
-            out.append(tube(f"Branch{f}", [((r - 0.3) * cb, (r - 0.3) * sb, hz), ((r + TUBE_OUT) * cb, (r + TUBE_OUT) * sb, hz)],
-                            [1.2, 1.2], mix(GLASS, GOO, 0.4), segs=12))
-        out.append(tube(f"Flange{f}", [((r - 0.1) * cb, (r - 0.1) * sb, hz), ((r + 0.7) * cb, (r + 0.7) * sb, hz)], [1.7, 1.7], CORK, segs=16))
+    # the tube is only entered from the top jar (the game keeps the lower jars' hatches shut): one cork flange there
+    r = radius(version)
+    hz = (version - 1) * FLOOR_H + 3.0
+    out.append(tube("Flange", [((r - 0.1) * cb, (r - 0.1) * sb, hz), ((r + 0.7) * cb, (r + 0.7) * sb, hz)], [1.7, 1.7], CORK, segs=16))
     ex, ey, ez = pts[-1]
-    out.append(painted(blob("Splash", 4.2, (ex, ey, 0.35), GOO, subdiv=3, squash=(1.3, 1.3, 0.22), jitter=0.05, lumps=0.1), shade(GOO, 0.9), GOO_HI))
-    for k, (x, y) in enumerate(ring_xy(7, 4.9, 0.3)):
+    # the splash where it lands in the moat (kept small: it sits on the moat ring, inside the round plot floor)
+    out.append(painted(blob("Splash", 2.6, (ex, ey, 0.35), GOO, subdiv=3, squash=(1.3, 1.3, 0.22), jitter=0.05, lumps=0.1), shade(GOO, 0.9), GOO_HI))
+    for k, (x, y) in enumerate(ring_xy(7, 3.1, 0.3)):
         out.append(blob(f"Splat{k}", 0.7 + 0.2 * (k % 2), (ex + x, ey + y, 0.5), GOO_HI, subdiv=1, jitter=0.1))
     return out
 

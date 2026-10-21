@@ -6,7 +6,6 @@ local Config = require("../src/shared/Config")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
 local MeshAssets = require("../src/shared/MeshAssets")
 local PlotLockGuard = require("../src/server/PlotLockGuard")
-local SlimeRoster = require("../src/shared/SlimeRoster")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -230,23 +229,15 @@ describe("jar tower: fits the plot", function()
 		end
 		expect(WorldLayout.MOAT.outer < HALF).toBe(true)
 	end)
-	it("lands the drop tube outside the moat and inside the plot", function()
+	it("lands the drop tube in the goo moat, on the round plot floor", function()
 		local p = WorldLayout.dropLanding()
 		local r = math.sqrt(p[1] * p[1] + p[3] * p[3])
-		expect(r > WorldLayout.MOAT.outer).toBe(true)
+		expect(r > WorldLayout.MOAT.inner and r < WorldLayout.MOAT.outer).toBe(true)
+		expect(r < WorldLayout.PLOT_FLOOR_RADIUS).toBe(true)
 		expect(math.abs(p[1]) < HALF and math.abs(p[3]) < HALF).toBe(true)
 	end)
 	it("keeps the top floor inside the lock guard's height window", function()
 		expect(WorldLayout.floorTop(FLOORS) + 8 <= PlotLockGuard.MAX_Y).toBe(true)
-	end)
-	it("stands a trophy pedestal for every boss species on the Base, clear of the moat", function()
-		expect(#WorldLayout.TROPHY_SPOTS >= #SlimeRoster.ofKind("boss")).toBe(true)
-		local half = 4.5 -- the 9 x 9 pedestal
-		for _, spot in WorldLayout.TROPHY_SPOTS do
-			local nearX, nearZ = math.abs(spot[1]) - half, math.abs(spot[2]) - half
-			expect(math.sqrt(nearX * nearX + nearZ * nearZ) > WorldLayout.MOAT.inner).toBe(true)
-			expect(math.abs(spot[1]) + half <= HALF and math.abs(spot[2]) + half <= HALF).toBe(true)
-		end
 	end)
 	it("spawns players on the walkway between the stair and the pads, in front of the door", function()
 		local s = WorldLayout.SPAWN_SPOT

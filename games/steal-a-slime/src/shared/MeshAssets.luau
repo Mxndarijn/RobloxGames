@@ -392,17 +392,17 @@ entries["merge_vat"] =
 entries["goo_cork_stand"] =
 	{ assetId = 73579765961535, meshId = "rbxassetid://118479492434509", size = { 7.8, 2.45, 7.8 } }
 entries["goo_drop_tube_glass_2"] =
-	{ assetId = 99828185885518, meshId = "rbxassetid://91979384405931", size = { 9.111, 21.871, 14.005 } }
+	{ assetId = 99828185885518, meshId = "rbxassetid://82506489920464", size = { 8.084, 21.781, 11.371 } }
 entries["goo_drop_tube_glass_3"] =
-	{ assetId = 111629425406934, meshId = "rbxassetid://94453244170953", size = { 10.137, 37.871, 16.825 } }
+	{ assetId = 111629425406934, meshId = "rbxassetid://134072741391884", size = { 9.111, 37.781, 14.19 } }
 entries["goo_drop_tube_glass_4"] =
-	{ assetId = 93007991700620, meshId = "rbxassetid://135183145161178", size = { 10.992, 53.871, 19.174 } }
+	{ assetId = 93007991700620, meshId = "rbxassetid://123554779154481", size = { 9.966, 53.781, 16.54 } }
 entries["goo_drop_tube_goo_2"] =
-	{ assetId = 86160375582751, meshId = "rbxassetid://104395328336712", size = { 11.56, 21.932, 18.183 } }
+	{ assetId = 86160375582751, meshId = "rbxassetid://125189402569959", size = { 8.657, 21.794, 13.688 } }
 entries["goo_drop_tube_goo_3"] =
-	{ assetId = 120298905383196, meshId = "rbxassetid://75674884969859", size = { 12.586, 37.83, 20.984 } }
+	{ assetId = 120298905383196, meshId = "rbxassetid://130227040228962", size = { 9.683, 37.692, 16.489 } }
 entries["goo_drop_tube_goo_4"] =
-	{ assetId = 138133715514605, meshId = "rbxassetid://131181061813732", size = { 13.541, 53.83, 23.333 } }
+	{ assetId = 138133715514605, meshId = "rbxassetid://119367874672705", size = { 10.638, 53.692, 18.838 } }
 entries["goo_jar_crown"] =
 	{ assetId = 71380888344034, meshId = "rbxassetid://104778303876847", size = { 0.787, 0.52, 0.809 } }
 entries["goo_jar_deck_2"] =
@@ -416,7 +416,7 @@ entries["goo_jar_door"] =
 entries["goo_jar_door_ring"] =
 	{ assetId = 104855077088726, meshId = "rbxassetid://85299355296782", size = { 12.898, 12.9, 0.9 } }
 entries["goo_jar_foot"] =
-	{ assetId = 94414503603615, meshId = "rbxassetid://98725034418022", size = { 77.0, 1.251, 77.0 } }
+	{ assetId = 94414503603615, meshId = "rbxassetid://124886986404874", size = { 80.1, 2.076, 80.1 } }
 entries["goo_jar_glass_1_mid"] =
 	{ assetId = 131865809092333, meshId = "rbxassetid://129991589789782", size = { 62.0, 14.32, 62.0 } }
 entries["goo_jar_glass_1_top"] =
@@ -438,15 +438,15 @@ entries["goo_jar_stair"] =
 entries["goo_jar_stopper"] =
 	{ assetId = 121171735307209, meshId = "rbxassetid://98488330645221", size = { 9.889, 9.66, 1.508 } }
 entries["goo_jar_trim_1_mid"] =
-	{ assetId = 125609985796662, meshId = "rbxassetid://96432006767602", size = { 60.321, 15.088, 58.307 } }
+	{ assetId = 125609985796662, meshId = "rbxassetid://130215893669639", size = { 60.321, 16.05, 58.307 } }
 entries["goo_jar_trim_1_top"] =
 	{ assetId = 81111284959159, meshId = "rbxassetid://125794987301481", size = { 60.321, 22.688, 58.307 } }
 entries["goo_jar_trim_2_mid"] =
-	{ assetId = 98169175981967, meshId = "rbxassetid://103911778415198", size = { 53.091, 15.247, 50.916 } }
+	{ assetId = 98169175981967, meshId = "rbxassetid://108375268575125", size = { 53.091, 16.05, 50.916 } }
 entries["goo_jar_trim_2_top"] =
 	{ assetId = 121872413785229, meshId = "rbxassetid://72836074236220", size = { 53.091, 19.247, 50.916 } }
 entries["goo_jar_trim_3_mid"] =
-	{ assetId = 119020744731896, meshId = "rbxassetid://90613511454890", size = { 47.643, 15.412, 45.978 } }
+	{ assetId = 119020744731896, meshId = "rbxassetid://103107135493684", size = { 47.643, 16.05, 45.978 } }
 entries["goo_jar_trim_3_top"] =
 	{ assetId = 115479272829253, meshId = "rbxassetid://75683994927695", size = { 47.314, 19.412, 45.373 } }
 entries["goo_jar_trim_4_top"] =

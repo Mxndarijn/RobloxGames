@@ -751,9 +751,9 @@ parts(
 	8,
 	"colliders",
 	"Plots",
-	{ "^Base$" },
+	{ "^PlotFloor$" },
 	"on",
-	"plot floor, the stand-on surface",
+	"the round plot floor, the stand-on surface (the square Base is the plot's invisible anchor and never collides)",
 	{ walk = false }
 )
 parts(

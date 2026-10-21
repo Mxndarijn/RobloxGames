@@ -12,7 +12,7 @@
 	  (contract/slime-walk.md); otherwise its lifetime restarts there.
 	* Pad slime of another player: StealService.steal. Dropped -> escapes home.
 	* The hauled boss (contract/boss-event.md): grabbed only in the haul phase (top contributor first), carried at
-	  the boss carry slow, dropped on the spot, and deposited onto the trophy stand (no pad needed).
+	  the boss carry slow, dropped on the spot, and deposited as a trophy (data.trophies; no pad needed).
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
@@ -169,9 +169,9 @@ function Carry.depositBoss(world: World, session: Session, carry: World.CarrySta
 	World.markAllDirty(world)
 	World.notify(world, nil, `{session.name} brought {carry.slime.name} home!`, "good", "Rain")
 	if result == "owned" then
-		World.notify(world, session.userId, `Your {trophy.name} trophy is already on the stand.`, "info", "Cash")
+		World.notify(world, session.userId, `You already have the {trophy.name} trophy.`, "info", "Cash")
 	else
-		World.notify(world, session.userId, `{trophy.name} is on your trophy stand!`, "good", "Deposit")
+		World.notify(world, session.userId, `{trophy.name} trophy won!`, "good", "Deposit")
 	end
 	World.effect(world, "Collect", { userId = session.userId })
 	return true, nil
