@@ -84,7 +84,7 @@ Packages/        -> ReplicatedStorage.Packages (Wally, optional, git-ignored)
 - **Spawner:** a wild slime drops every `SPAWN_INTERVAL`, up to `MAX_WILD_SLIMES` alive (`Fountain.roll`). Each lives for `WILD_LIFETIME`.
   - `FREE_DROP_CHANCE` of drops are free.
   - The rest cost `WILD_PRICE_SECONDS × income`, charged on grab.
-  - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Spawns keep the normal pace, the wild cap is ×2 and luck is ×5 (`Progression.rainStatus`, `Fountain.wildCap`).
+  - **Slime Rain:** every `RAIN_INTERVAL` (1 h) for `RAIN_DURATION` (3 min). Drops come twice as fast (`RAIN_SPAWN_INTERVAL` = `SPAWN_INTERVAL / 2`), the wild cap is ×2 and luck is ×5 (`Progression.rainStatus`, `Fountain.wildCap`).
 - **Carry:** grabbing and stealing use a **ProximityPrompt** (`GrabPrompt`) that the server puts on each slime's `Body`. There is no remote for this.
   - The prompt's `ActionText` is `"Grab"`, `"Buy $<price>"` (`Economy.formatNumber`) or `"Steal"`. `ObjectText` is `Genome.displayName`.
   - Steal prompts (HoldDuration 0.4) are enabled only while the plot is unlocked. They are **hidden from the slime's owner**: the server sets the prompt attribute `HideFromUserId = <owner UserId>` (`Constants.PROMPT_HIDE_ATTRIBUTE`, §5.2) and the client hides it locally. If a client doesn't hide it, triggering it is still refused with "that's your own slime".
@@ -357,7 +357,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `PADS_START` / `PADS_PER_FLOOR` / `BASE_FLOORS` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 4 floors / 32 (`#BASE_FLOORS * PADS_PER_FLOOR`) / 8 | a base grows by floors of 8 pads; each `BASE_FLOORS` row prices its floor's pads (`Economy.padCost`) |
 | `OFFLINE_RATE` / `OFFLINE_CAP_SECONDS` | 0.5 / 7200 | capped offline income |
 | `REBIRTH_BASE_COST` / `REBIRTH_COST_GROWTH` / `REBIRTH_MULTIPLIER_STEP` | see `Config` | rebirth gives a multiplier, keeps one favourite (§8.8) |
-| `SPAWN_INTERVAL` / `MAX_WILD_SLIMES` / `FREE_DROP_CHANCE` / `WILD_PRICE_SECONDS` | 4 / 18 / 0.25 / 20 | "buy cheap ones … or grab a free drop" |
+| `SPAWN_INTERVAL` / `MAX_WILD_SLIMES` / `FREE_DROP_CHANCE` / `WILD_PRICE_SECONDS` | 4 / 72 / 0.25 / 20 | "buy cheap ones … or grab a free drop" |
 | `STATE_MIN_INTERVAL` / `LEADERBOARD_INTERVAL` | 0.25 / 60 | §5.1, §2 |
 
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 22 | shop: speed coil |
