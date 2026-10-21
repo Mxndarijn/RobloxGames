@@ -9,7 +9,8 @@
 	math; it touches no Roblox API.
 
 	HomePlotMarker.ownPlot(plots, userId) -> index?
-	HomePlotMarker.fade(distance, plotSize) -> 0..1      -- 0 = hidden (standing on the plot)
+	HomePlotMarker.pastEdge(dx, dz, halfX, halfZ) -> studs outside the plot floor (0 = on it)
+	HomePlotMarker.fade(pastEdge) -> 0..1                 -- 0 = hidden (standing on the plot)
 	HomePlotMarker.edgeArrow(view, point, insets?) -> Arrow?
 ]]
 
@@ -42,11 +43,19 @@ function HomePlotMarker.ownPlot(plots: { PlotInfo }, userId: number): number?
 	return nil
 end
 
--- How visible the far-away markers are at `distance` (flat studs from the plot centre):
+-- Flat studs from a point to the plot floor rectangle. `dx`, `dz` = the point in the
+-- floor's own axes, relative to its centre; `halfX`, `halfZ` = half the floor size.
+-- 0 anywhere on the floor, corners included.
+function HomePlotMarker.pastEdge(dx: number, dz: number, halfX: number, halfZ: number): number
+	local ox = math.max(math.abs(dx) - halfX, 0)
+	local oz = math.max(math.abs(dz) - halfZ, 0)
+	return math.sqrt(ox * ox + oz * oz)
+end
+
+-- How visible the far-away markers are `pastEdge` studs outside the plot:
 -- 0 while standing on the plot, rising to 1 over FADE_BAND studs past its edge.
-function HomePlotMarker.fade(distance: number, plotSize: number): number
-	local edge = plotSize / 2
-	return math.clamp((distance - edge) / HomePlotMarker.FADE_BAND, 0, 1)
+function HomePlotMarker.fade(pastEdge: number): number
+	return math.clamp(pastEdge / HomePlotMarker.FADE_BAND, 0, 1)
 end
 
 -- Where the off-screen arrow goes. `point` is the plot centre in screen pixels and
