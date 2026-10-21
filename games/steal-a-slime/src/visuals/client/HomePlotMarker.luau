@@ -21,7 +21,9 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Constants = require(Shared:WaitForChild("Constants"))
+local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
 local Look = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("HomePlotMarker"))
 
 local HomePlotMarker = {}
@@ -344,18 +346,26 @@ local function stepArrow(b: Built, camera: Camera, fade: number)
 	if not (gui and frame and tip) then
 		return
 	end
-	local view = camera.ViewportSize
-	local screen, inFront = camera:WorldToViewportPoint(b.centre + Vector3.new(0, Look.TAG_HEIGHT * 0.5, 0))
-	local arrow = if fade > 0
-		then Look.edgeArrow({ width = view.X, height = view.Y }, { x = screen.X, y = screen.Y, inFront = inFront })
-		else nil
-	gui.Enabled = arrow ~= nil
-	if not arrow then
+	if fade <= 0 then
+		gui.Enabled = false
 		return
 	end
+	-- Viewport px (IgnoreGuiInset): the camera looks at the viewport centre.
+	local view = camera.ViewportSize
+	local inset = Look.EDGE_INSETS
+	local rect = { left = inset.left, top = inset.top, right = view.X - inset.right, bottom = view.Y - inset.bottom }
+	local target = b.centre + Vector3.new(0, Look.TAG_HEIGHT * 0.5, 0)
+	local rel = camera.CFrame:PointToObjectSpace(target)
+	local screen = camera:WorldToViewportPoint(target)
+	if rel.Z < 0 and EdgeArrow.inside({ x = screen.X, y = screen.Y }, rect) then
+		gui.Enabled = false -- on screen: the beacon and tag show the way
+		return
+	end
+	local dx, dy = EdgeArrow.direction({ x = rel.X, y = rel.Y, z = rel.Z })
+	local arrow = EdgeArrow.place({ x = view.X / 2, y = view.Y / 2 }, dx, dy, rect)
+	gui.Enabled = true
 	frame.Position = UDim2.fromOffset(arrow.x, arrow.y)
-	local a = math.rad(arrow.angle)
-	tip.Position = UDim2.fromOffset(arrow.x + math.cos(a) * 44, arrow.y + math.sin(a) * 44)
+	tip.Position = UDim2.fromOffset(arrow.x + dx * 44, arrow.y + dy * 44)
 	tip.Rotation = arrow.angle
 end
 

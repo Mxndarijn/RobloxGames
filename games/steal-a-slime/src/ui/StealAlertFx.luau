@@ -38,11 +38,12 @@ local TRAIL_POLL = 0.2 -- seconds between trail / slap-attribute sweeps
 
 local StealAlertFx = {}
 
--- ctx: Config, Constants, StealAlert (Shared module), serverNow, playerName.
+-- ctx: Config, Constants, StealAlert and EdgeArrow (Shared modules), serverNow, playerName.
 function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 	local Config = ctx.Config
 	local Constants = ctx.Constants
 	local StealAlert = ctx.StealAlert
+	local EdgeArrow = ctx.EdgeArrow
 	local cfg = Config.STEAL_ALERT
 	local isStudio = RunService:IsStudio()
 
@@ -95,13 +96,13 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 		bar("HeadRight", Vector2.new(8, 22), Vector2.new(30, 13), -45),
 	})
 	local arrowLabel = create("TextLabel", {
-		Name = "ThiefDistance",
+		Name = "ThiefLabel",
 		AnchorPoint = Vector2.new(0.5, 0),
 		Size = UDim2.fromOffset(StealAlertLayout.LABEL_W, StealAlertLayout.LABEL_H),
 		Visible = false,
 		ZIndex = Layout.ZINDEX.Banners + 1,
 		BackgroundTransparency = 1,
-		Text = "",
+		Text = "Thief",
 		TextSize = 16,
 		Font = Theme.Font,
 		TextColor3 = Color3.new(1, 1, 1),
@@ -403,7 +404,7 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			hideArrow()
 			return
 		end
-		local angle, distance = StealAlert.bearing(
+		local _, distance = StealAlert.bearing(
 			{ x = cameraPos.X, z = cameraPos.Z },
 			{ x = target.X, z = target.Z },
 			{ x = look.X, z = look.Z }
@@ -418,20 +419,27 @@ function StealAlertFx.new(gui: ScreenGui, ctx: { [string]: any })
 			setPing(character)
 			return
 		end
-		local box = if screen
-			then StealAlertLayout.arrowBox(screen, bannerHeight(), StealAlert.edgePoint, angle)
-			else nil
-		if not box then
+		if not screen then
 			hideArrow()
 			return
 		end
-		local x, y = StealAlertLayout.arrowCentre(box)
-		arrow.Position = UDim2.fromOffset(x, y)
-		arrow.Rotation = StealAlert.arrowRotation(angle)
+		-- GUI design px: screen px (inset applied) over the UIScale.
+		local scale = if screen.scale > 0 then screen.scale else 1
+		local rect = StealAlertLayout.arrowRect(screen, bannerHeight())
+		local rel = camera.CFrame:PointToObjectSpace(target)
+		local spot = camera:WorldToScreenPoint(target)
+		if rel.Z < 0 and EdgeArrow.inside({ x = spot.X / scale, y = spot.Y / scale }, rect) and not debug then
+			hideArrow() -- on screen: the ping marks them
+			return
+		end
+		local ahead = camera:WorldToScreenPoint(cameraPos + look * 10)
+		local dx, dy = EdgeArrow.direction({ x = rel.X, y = rel.Y, z = rel.Z })
+		local placed = EdgeArrow.place({ x = ahead.X / scale, y = ahead.Y / scale }, dx, dy, rect)
+		arrow.Position = UDim2.fromOffset(placed.x, placed.y)
+		arrow.Rotation = placed.angle + 90 -- the glyph points up
 		arrow.Visible = true
-		arrowLabel.Position = UDim2.fromOffset(x, y + StealAlertLayout.LABEL_DROP)
+		arrowLabel.Position = UDim2.fromOffset(placed.x, placed.y + StealAlertLayout.LABEL_DROP)
 		arrowLabel.Visible = true
-		arrowLabel.Text = `{math.floor(distance + 0.5)} studs`
 	end
 
 	RunService.RenderStepped:Connect(self.step)

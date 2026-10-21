@@ -133,6 +133,7 @@ function PerfMeasure.measure(): { [string]: any }
 		Config = Config,
 		Constants = Constants,
 		StealAlert = require("../../src/shared/StealAlert"),
+		EdgeArrow = require("../../src/shared/EdgeArrow"),
 		serverNow = ctx.serverNow,
 	})
 	UiHarness.ui("Panels/Carry").new(gui, ctx)
