@@ -505,7 +505,7 @@ describe("H1 HUD: featured Secret status slot", function()
 end)
 
 describe("H1 HUD: nothing new top-right / top-middle", function()
-	local KEPT_BANNERS = "EggReveal,StealAlert" -- top centre; the featured Secret is a status slot
+	local KEPT_BANNERS = "StealAlert" -- top centre; the featured Secret is a status slot
 	it("the top banner stack holds only the kept (no-slot) notices", function()
 		local _, gui = mount(1920, 1080)
 		expect(table.concat(names(UiHarness.find(gui, "Banners")), ",")).toBe(`{KEPT_BANNERS}`)

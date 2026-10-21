@@ -988,7 +988,6 @@ local Config = {
 		}),
 	}),
 
-	MYSTERY_EGG_REVEAL_SECONDS = 6, -- how long the Mystery Egg hatch banner stays up
 	-- Wild Mystery Eggs (FEATURES.MysteryEggs, contract/mystery-egg.md). Each KINDS entry: `id` (saved, never rename),
 	-- `name` (shown as "<name> Mystery Egg"), `tier` (the Config.RARITIES tier the egg shows: label colour, lifetime,
 	-- carry slowdown), `weight` (share of egg drops), `hatchSeconds` (incubation on a pad, real time), `price` (cash to
