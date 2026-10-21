@@ -217,17 +217,12 @@ local function chores(world: World, bot: Bot, session: Session, t: number, keep:
 	end
 end
 
--- Best wild slime this bot can afford and catch, by value; a missing rebirth species wins outright.
+-- Best wild slime this bot can afford, by value; a missing rebirth species wins outright.
 local function pickWild(world: World, bot: Bot, missing: { [string]: boolean }): (string?, number)
 	local options = {}
 	local best, bestScore, bestValue = nil, -1, 0
 	for id, wild in world.wild do
-		if
-			not wild.boss
-			and wild.price <= bot.data.cash
-			and not world.carriedBy[id]
-			and not Carry.familyBlock(bot.data.rebirths, wild.slime)
-		then
+		if not wild.boss and wild.price <= bot.data.cash and not world.carriedBy[id] then
 			local v = value(wild.slime)
 			local score = v + (if missing[wild.slime.species] and not wild.slime.egg then 1e300 else 0)
 			table.insert(options, id)
