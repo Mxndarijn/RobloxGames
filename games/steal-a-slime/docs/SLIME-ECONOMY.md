@@ -14,7 +14,7 @@ The numbers come from the simulation in [economy-sim/](economy-sim/): `slime_eco
 | Recipes | All three inputs one tier, hybrid one tier up (the vat rule stays "same rarity"). Hybrids show in the Dex as silhouettes; each input reveals itself once you have found that species. |
 | Bosses | A giant boss every 20 min: a team fight (fill its goo meter with hits), then a carry race where it can be slapped loose and stolen. The depositor gets the boss slime on an unstealable trophy stand; every helper gets a free egg. |
 | Top layer | **No eighth tier.** Make Mythic and Secret feel special with size, aura, a longer parade, and louder announcements. Bosses and the Secret-tier hybrid are the "beyond Secret" chase. |
-| Dex | Species Dex (50 entries), one per species, with a milestone ladder that pays cash and permanent income. |
+| Dex | Species Dex (53 entries), one per species, with a milestone ladder that pays cash and permanent income. |
 | Saves | `SAVE_VERSION` 7: every saved slime gets a new species through a fixed legacy map, the new Dex is seeded from owned slimes, and old ids stay loadable forever. |
 
 Sim headline (proposed rules, active player, 6-player mixed server, medians of 24 runs): first Mythic **0.9 h**, first Secret **3.4 h**, all 32 spawning species **21.5 h**, all 15 hybrids **23.5 h**, full 50-entry Dex **30 h** (p90 38.5 h). A casual player needs **47 h** for the full Dex. Details in §7.3.
@@ -179,10 +179,10 @@ Today `FEATURES.BossSlime` drops a free, max-size Epic+ wild slime every 15 min.
 | Step | What happens |
 |---|---|
 | Schedule | First boss 8 min after server start, then every **20 min** (`BOSS_INTERVAL` 1200). It skips (moves 5 min later) if Slime Rain is running or due within 3 min. A 60 s heads-up toast and fountain rumble come first. |
-| Which boss | Rotation Goozilla, Queen Jelly, Goozilla, Queen Jelly, **Mecha Goo**. Mecha Goo (Secret tier) only comes on a server whose fountain is Starlight (tier 4); otherwise that slot is Goozilla. The boss is tier 6 (Goozilla, Queen Jelly) or 7 (Mecha Goo), shown 1.5x a MAX_SIZE slime, wandering the plaza inside the parade lane near the boss spot. |
+| Which boss | Rotation Goozilla, Queen Jelly, Klawdius, Pumpking, **Mecha Goo**, Goozilla, Queen Jelly, Klawdius, Pumpking, **Goomancer** (`Config.BOSS.ROTATION`). The Secret-tier bosses (Mecha Goo, Goomancer) only come on a server whose fountain is Starlight (tier 4); otherwise that slot is Goozilla. The boss is tier 6 (Goozilla, Queen Jelly, Klawdius, Pumpking) or 7 (Mecha Goo, Goomancer), shown 1.5x a MAX_SIZE slime, wandering the plaza inside the parade lane near the boss spot. |
 | 1. Fight (max 90 s) | The boss sits in the plaza with a **goo meter**. Bat hits and slaps on it fill the meter, 1 point per hit per player, at most one hit per 0.4 s. The meter needs **25 x players on the server** points, so it takes about the same time on any server. With nobody hitting it drains 2 %/s. Every 25 % the boss sheds 2 wild slimes (luck x3). The server keeps each player's contribution. |
 | 2. Haul (max 90 s) | When the meter is full the boss pops down to carry size. The top contributor may grab it for the first 5 s, then anyone can. The carrier walks at the boss carry slow (`Config.BOSS.CARRY_SLOW`) and can't use the Speed Coil. A slap makes the carrier **drop it on the spot** (not "escape home": it has no home yet), and anyone can grab it again. That is the steal moment. |
-| Win | The player who brings it home gets the **boss slime**: species `goozilla` / `queen_jelly` / `mecha_goo`, MAX_SIZE. It goes on a **trophy stand** inside the plot, beside the Dex board: no pad needed, it earns income, and it **can't be stolen or merged** (one per boss species). |
+| Win | The player who brings it home gets the **boss slime**: species `goozilla` / `queen_jelly` / `klawdius` / `pumpking` / `mecha_goo` / `goomancer`, MAX_SIZE. It goes on a **trophy stand** inside the plot, beside the Dex board: no pad needed, it earns income, and it **can't be stolen or merged** (one per boss species). |
 | Fail | Meter not full in 90 s, or nobody brings it home in 90 s: the boss gets away. No slimes drop: the sheds during the fight are the reward for helping, so losing never pays more than winning and nobody gains from spoiling a haul. |
 
 Why this shape: the fight is teamwork that a solo player on a quiet server can still finish (the meter scales with players). The haul is the game's own "steal" verb. The trophy can't be robbed afterwards, because losing a 3-minute team prize to a random steal later feels bad when the next boss is 20 min away. Frequency: 3 bosses an hour, so on a 6-player server each player wins one about every 2 h and helps in all of them. Mecha Goo comes once every 100 min on Starlight servers.
@@ -220,7 +220,7 @@ All of this is visuals and Notify text (Archer and Jolt), plus two Config number
 
 With baked species meshes, pattern and eyes no longer show (POOL.md), so the Dex counts what players can see:
 
-- **Species entries: 50** (32 spawning + 15 hybrids + 3 bosses). One per species, set the first time you own one (catch, steal, merge, recipe, boss, egg).
+- **Species entries: 53** (32 spawning + 15 hybrids + 6 bosses). One per species, set the first time you own one (catch, steal, merge, recipe, boss, egg).
 
 Dex milestones (`DEX_MILESTONES`). Cash x rebirth multiplier. The income bonuses add up to 0.45:
 
