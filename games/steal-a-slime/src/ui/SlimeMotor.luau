@@ -54,6 +54,7 @@ export type Mods = {
 	lift: number,
 	yaw: number,
 	yawWeight: number,
+	spin: number, -- radians of a spin added after the yaw blend (a spin never changes how much of the turn shows)
 	tilt: number,
 	roll: number,
 	sx: number,
@@ -78,6 +79,7 @@ function SlimeMotor.newMods(): Mods
 		lift = 0,
 		yaw = 0,
 		yawWeight = 0,
+		spin = 0,
 		tilt = 0,
 		roll = 0,
 		sx = 1,
@@ -187,6 +189,7 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand, mods: Mods?): bo
 	if mods then
 		pose.lift += mods.lift
 		pose.yaw += (mods.yaw - pose.yaw) * math.clamp(mods.yawWeight, 0, 1)
+		pose.yaw += mods.spin
 		pose.yaw += mods.heading
 		pose.pitch -= mods.tilt -- a turn about +X lifts the nose
 		pose.roll -= mods.roll -- a turn about +Z leans left
@@ -202,12 +205,21 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand, mods: Mods?): bo
 	local grown = motor.body.Size.Y / math.max(motor.bodySize.Y, 1e-6)
 	local lift = pose.lift * size * grown
 	local bones = motor.bones
-	-- Rock and turn around the bottom centre; the squashed centre sits r * sy up
-	-- (bones squash the mesh from its foot, so a boned skin keeps its centre).
-	local transform = CFrame.new(offset.X, offset.Y - r + lift, offset.Z)
+	-- On the ground it rocks and turns about its bottom centre; in the air it turns about its middle (a flip tumbles
+	-- round its centre instead of swinging round its feet like a hinge). The pivot moves up as it leaves the ground,
+	-- so it never jumps. The squashed centre sits r * sy up (bones squash the mesh from its foot, so a boned skin
+	-- keeps its centre).
+	local centre = if bones then r else r * pose.sy
+	-- the pivot rises with the lift, and with a big tilt even on the ground (a belly flop, the end of a flip): turned
+	-- far about its foot a slime swings forward and sinks into the floor; about its middle it tips in place
+	local up = math.clamp(lift / math.max(r, 1e-3), 0, 1)
+	local tipped = math.clamp((math.max(math.abs(pose.pitch), math.abs(pose.roll)) - 0.3) / 0.5, 0, 1)
+	up = math.max(up, tipped)
+	up = up * up * (3 - 2 * up)
+	local transform = CFrame.new(offset.X, offset.Y - r + lift + centre * up, offset.Z)
 		* CFrame.Angles(0, pose.yaw, 0)
 		* CFrame.Angles(pose.pitch, 0, pose.roll)
-		* CFrame.new(0, if bones then r else r * pose.sy, 0)
+		* CFrame.new(0, centre * (1 - up), 0)
 	local lead = if mods then mods.faceLead else 0
 	motor.face.Transform = if lead ~= 0 then transform * CFrame.Angles(0, lead, 0) else transform
 	motor.skinJoint.Transform = transform

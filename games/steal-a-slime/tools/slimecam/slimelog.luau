@@ -28,6 +28,9 @@
 	  squashY/X       a SpecialMesh squash scale, when the skin squashes through one
 	  bones, boneMax  how many bones the skin has, and the largest bone offset this frame
 	  tagX/Y/Z        where the name tag hangs (TagAnchor)
+	  stage, kind, fidget, emote, yawW, spin   what the slime is doing (gait stage, hop kind, fidget, emote, turn
+	                  weight, spin angle): only in a test build whose SlimeActor writes Dbg* attributes for a model
+	                  with the PcwLog attribute (slimelog sets it); blank otherwise
 ]]
 local CS = game:GetService("CollectionService")
 local RS = game:GetService("RunService")
@@ -55,6 +58,7 @@ if not target then
 	return "no slime to log"
 end
 local body = target.PrimaryPart :: BasePart
+target:SetAttribute("PcwLog", true) -- a test build with the debug hook fills Dbg* attributes for this slime
 local log = { rows = {}, species = target:GetAttribute("Species"), id = target:GetAttribute("SlimeId") }
 _G.SlimeLog = log
 
@@ -156,6 +160,13 @@ conn = RS.RenderStepped:Connect(function()
 				end
 				return ",,"
 			end)(),
+			-- what the slime is doing (Dbg* attributes from a test build's SlimeActor debug hook; blank otherwise)
+			tostring(target:GetAttribute("DbgStage") or ""),
+			tostring(target:GetAttribute("DbgKind") or ""),
+			tostring(target:GetAttribute("DbgFidget") or ""),
+			tostring(target:GetAttribute("DbgEmote") or ""),
+			tostring(target:GetAttribute("DbgYawW") or ""),
+			tostring(target:GetAttribute("DbgSpin") or ""),
 		})
 	end)
 end)
@@ -163,7 +174,8 @@ end)
 function log.csv(): string
 	local lines = {
 		"t,left,state,tier,bx,by,bz,dx,dy,dz,yaw,pitch,roll,faceYaw,meshY,meshX,scale,despawn,"
-			.. "bodyX,bodyY,meshZ,mx,my,mz,meshLTM,skinTx,skinTy,skinTz,faceTy,squashY,squashX,bones,boneMax,tagX,tagY,tagZ",
+			.. "bodyX,bodyY,meshZ,mx,my,mz,meshLTM,skinTx,skinTy,skinTz,faceTy,squashY,squashX,bones,boneMax,tagX,tagY,tagZ,"
+			.. "stage,kind,fidget,emote,yawW,spin",
 	}
 	for _, row in log.rows do
 		table.insert(lines, table.concat(row, ","))

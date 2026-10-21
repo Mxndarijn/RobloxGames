@@ -183,7 +183,7 @@ describe("SlimeActor on pads (FEATURES.SlimeAlive)", function()
 		for f = 7, 2 * 60 do
 			local t = f / 60
 			step(r, t)
-			local yaw = r.actor.mods.yaw
+			local yaw = r.actor.mods.yaw * r.actor.mods.yawWeight + r.actor.mods.spin
 			if prev then
 				local d = math.abs((yaw - prev + math.pi) % (2 * math.pi) - math.pi)
 				worst = math.max(worst, d)
