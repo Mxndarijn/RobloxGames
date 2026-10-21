@@ -42,10 +42,13 @@ SlimeMotor.MODE_ATTRIBUTE = "LifeMode"
 -- SlimeBeats and SlimeReact. dx / dz: world studs from the Body to the visible slime; lift: studs at size 1;
 -- yaw: target turn from the heading (+ = left), taken by yawWeight 0..1; tilt (+ = nose down) and roll
 -- (+ = lean right): radians; sx / sy: squash multipliers; lean: studs sideways (+ = right); jiggle, air, vy, closed,
--- pop: SlimeBones.Extra.
+-- pop: SlimeBones.Extra. dy: world studs up (the smooth track off the lane); heading: radians added after the look
+-- mix (turns the drawn slime from the Body's stepwise yaw to the smooth one).
 export type Mods = {
 	dx: number,
+	dy: number,
 	dz: number,
+	heading: number,
 	lift: number,
 	yaw: number,
 	yawWeight: number,
@@ -66,7 +69,9 @@ SlimeMotor.SQUASH_LIMIT = { 0.65, 1.35 } -- sy with Mods: hops splat and stretch
 function SlimeMotor.newMods(): Mods
 	return {
 		dx = 0,
+		dy = 0,
 		dz = 0,
+		heading = 0,
 		lift = 0,
 		yaw = 0,
 		yawWeight = 0,
@@ -179,13 +184,14 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand, mods: Mods?): bo
 	if mods then
 		pose.lift += mods.lift
 		pose.yaw += (mods.yaw - pose.yaw) * math.clamp(mods.yawWeight, 0, 1)
+		pose.yaw += mods.heading
 		pose.pitch -= mods.tilt -- a turn about +X lifts the nose
 		pose.roll -= mods.roll -- a turn about +Z leans left
 		pose.sy = math.clamp(pose.sy * mods.sy, SlimeMotor.SQUASH_LIMIT[1], SlimeMotor.SQUASH_LIMIT[2])
 		pose.sx *= mods.sx
 		pose.sz *= mods.sx
-		offset = motor.body.CFrame:VectorToObjectSpace(Vector3.new(mods.dx, 0, mods.dz)) + Vector3.new(mods.lean, 0, 0)
-		offset = Vector3.new(offset.X, 0, offset.Z)
+		offset = motor.body.CFrame:VectorToObjectSpace(Vector3.new(mods.dx, mods.dy, mods.dz))
+			+ Vector3.new(mods.lean, 0, 0)
 	end
 	local size = (motor.model:GetAttribute("Size") :: number?) or 1
 	local r = motor.body.Size.Y / 2
@@ -193,7 +199,7 @@ function SlimeMotor.step(motor: Motor, now: number, rand: Rand, mods: Mods?): bo
 	local bones = motor.bones
 	-- Rock and turn around the bottom centre; the squashed centre sits r * sy up
 	-- (bones squash the mesh from its foot, so a boned skin keeps its centre).
-	local transform = CFrame.new(offset.X, -r + lift, offset.Z)
+	local transform = CFrame.new(offset.X, offset.Y - r + lift, offset.Z)
 		* CFrame.Angles(0, pose.yaw, 0)
 		* CFrame.Angles(pose.pitch, 0, pose.roll)
 		* CFrame.new(0, if bones then r else r * pose.sy, 0)

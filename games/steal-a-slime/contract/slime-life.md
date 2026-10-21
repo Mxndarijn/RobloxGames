@@ -97,3 +97,47 @@ sudden jump in it (`SNAP` studs in one frame) is a teleport: the queue can hold 
 spot, and snapping on that gap drew it straight from the stepwise Body. Turns are capped at `MAX_TURN`; within
 `NEAR_DEAD_ZONE` of the player the slime keeps its last look. Wiggles stay around 1-2 Hz. A face shuts the eyes only
 fully and only on a mesh with `Lids` (a half-shut blink pose leaves the eyes sunk with no arcs).
+
+## One pose writer, smooth off the lane
+
+- **One writer.** `VisualsClient` bobs and tilts the pivot only of slimes `SlimeLifeRunner` does not animate (no model
+  attribute `LifeMode`). When the runner takes a slime over, `VisualsClient` puts the pivot back once. The Body then
+  only ever holds the server's pivot, so a replication step can't land between the bob and the frame (the old
+  double write drew a walking slime still on one frame and a double step on the next).
+- **Smooth tracking (`Lib` `core/StepTrack`, pure, shared/luau).** Off the lane math (the slide, escaping, the walk back after a drop, a
+  pad), the drawn spot follows the stepwise Body in 3D: velocity measured between replication steps, extrapolated at
+  most `StepTrack.LEAD` step intervals, a short follow filter on top. A jump of `StepTrack.SNAP` studs or more is a
+  teleport. The heading has its own filter: `Mods.heading` (radians) turns the drawn slime from the Body's stepwise
+  yaw to the smooth one, added after the look / beat yaw. `Mods.dy` (world studs) carries the vertical part.
+- **Rigs survive a State change** between the animated states (`Wild`, `Pad`, `Escaping`; `SlimeLife.STATES`): the
+  runner updates the params and tells the actor (`SlimeActor.setState`) instead of dropping and rebuilding the rig.
+  `Carried` still releases (the carry weld and `VisualsClient`'s wriggle take over). Any State change, and a new
+  slime, selects on the next frame instead of at the next 4 Hz selection.
+
+## Alive motion (`FEATURES.SlimeAlive`, client only)
+
+No remote, State field or save. Pure parts have Lune specs.
+
+- **Jelly springs (`Lib` `core/Spring`, pure, shared/luau).** Second-order dynamics (frequency `f` Hz, damping `zeta`, response `r`).
+  Each actor runs a lean spring (forward acceleration of the drawn spot -> tilt: it rocks back when it sets off and
+  forward when it stops) and a squash spring that put-downs, Move hops and fidgets kick, so the body overshoots and
+  wobbles out.
+- **Own rhythm.** `SlimeLife.newClock` gives every slime its own breathing rate and depth (`SlimeLife.RHYTHM_JITTER`),
+  so a row of pads never breathes in step.
+- **Pad fidgets (`ui/SlimeFidget`, pure).** A pad slime picks a fidget every `SlimeFidget.EVERY` seconds, weighted
+  by temperament and never the same one twice in a row: `hop` (a small hop in place), `bounce` (two quick ones),
+  `shake` (a wet-dog shake), `stretch` (rises tall, then settles), `spin` (a hop with a full turn), `nap` (sinks,
+  eyes shut), `peek` (leans forward and looks round), `huff` (two stamps), `wiggle` (a little dance). Each has a pose
+  curve, a face and an emote.
+- **Pad reactions.** A pad slime within `SlimeReact.REACT_DISTANCE` of the local player reacts by temperament
+  (`SlimeReact.toPlayer`, nothing to afford); your own slime (`OwnerUserId`) perks up instead: faces you, bounces, ♥.
+- **Put-down.** A slime that turns `Pad` (a deposit, the end of an escape) drops in from `SlimeFidget.DROP_HEIGHT`,
+  splats, shakes off and looks round (only when it is rigged within `PUT_DOWN_WINDOW` of the change). A pad slime whose Body jumps (Move, a swap) hops in an arc from its old spot to
+  the new one (`SlimeFidget.MOVE_HOP` seconds) and splats there.
+- **Escaping.** Escaping slimes are rigged too: stretched along the glide home, leaning into it, a quick ripple, a
+  worried face and a sweat drop. Still no bounces (contract/slime-walk.md).
+- **Slide.** A slime on the fountain slide sits back, stretched and grinning, rocking with the spiral.
+- **Carry wriggle (`visuals/shared/CarryWriggle`, pure).** A carried slime struggles in bursts
+  (`CarryWriggle.BURST`, about 4.5 Hz, wide) and rests between them (`CarryWriggle.REST`: slow sway, looking round),
+  instead of one constant buzz. A rigged slime wriggles through its `FaceRoot` / `SkinRoot` Transforms (face and
+  skin together); the server's carry weld is a WeldConstraint, so a rig root is never taken for the carry joint.

@@ -78,11 +78,11 @@ describe("SlimeLife.params per rarity", function()
 end)
 
 describe("SlimeLife gating", function()
-	it("only animates Wild and Pad slimes that aren't despawning", function()
+	it("only animates Wild, Pad and Escaping slimes that aren't despawning", function()
 		expect(SlimeLife.eligible(cand("a", 10, "Wild"))).toBe(true)
 		expect(SlimeLife.eligible(cand("a", 10, "Pad"))).toBe(true)
+		expect(SlimeLife.eligible(cand("a", 10, "Escaping"))).toBe(true)
 		expect(SlimeLife.eligible(cand("a", 10, "Carried"))).toBe(false)
-		expect(SlimeLife.eligible(cand("a", 10, "Escaping"))).toBe(false)
 		expect(SlimeLife.eligible({ id = "a", distance = 10 })).toBe(false)
 		expect(SlimeLife.eligible(cand("a", 10, "Wild", { despawning = true }))).toBe(false)
 	end)
@@ -231,5 +231,47 @@ end)
 describe("SlimeLife runner", function()
 	it("uses only the built-in sparkle texture, no uploaded assets", function()
 		expect(string.find(SlimeLife.SPARKLE_TEXTURE, "^rbxasset://textures/particles/") ~= nil).toBe(true)
+	end)
+end)
+
+describe("SlimeLife rhythm", function()
+	it("every slime breathes at its own rate and depth, within RHYTHM_JITTER", function()
+		local p = SlimeLife.params(2, "Pad")
+		local rand = lcg(17)
+		local rates, depths = {}, {}
+		for _ = 1, 40 do
+			local clock = SlimeLife.newClock(p, 0, rand)
+			expect(math.abs(clock.rate - 1) <= SlimeLife.RHYTHM_JITTER + 1e-9).toBe(true)
+			expect(math.abs(clock.depth - 1) <= SlimeLife.RHYTHM_JITTER + 1e-9).toBe(true)
+			rates[math.floor(clock.rate * 100)] = true
+			depths[math.floor(clock.depth * 100)] = true
+		end
+		local nr, nd = 0, 0
+		for _ in rates do
+			nr += 1
+		end
+		for _ in depths do
+			nd += 1
+		end
+		expect(nr > 10 and nd > 10).toBe(true)
+	end)
+
+	it("two pad slimes drift out of step instead of breathing together", function()
+		local p = SlimeLife.params(2, "Pad")
+		local a = SlimeLife.newClock(p, 0, function()
+			return 0
+		end)
+		local b = SlimeLife.newClock(p, 0, function()
+			return 0.999
+		end)
+		b.phase = a.phase -- even from the same start
+		local apart = 0
+		for f = 0, 600 do
+			local t = f / 30
+			if math.abs(SlimeLife.squishY(p, a, t, 1) - SlimeLife.squishY(p, b, t, 1)) > p.squishAmp * 0.5 then
+				apart += 1
+			end
+		end
+		expect(apart > 100).toBe(true)
 	end)
 end)

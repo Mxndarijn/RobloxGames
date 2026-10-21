@@ -17,9 +17,13 @@
 	blinks and bob are untouched; our motion rides on top of the bob.
 
 	Released (parts put back, WeldConstraints re-enabled) as soon as the
-	slime leaves the active set, changes State (Carried / Escaping: the
-	carry weld and VisualsClient's wriggle take over), gets DespawnAt
-	(DespawnTelegraphFx shrinks it) or gains / loses a part.
+	slime leaves the active set, changes State to one SlimeLife does not
+	animate (Carried: the carry weld and VisualsClient's wriggle take over),
+	gets DespawnAt (DespawnTelegraphFx shrinks it) or gains / loses a part.
+	A motor rig survives a change between animated states (Wild / Pad /
+	Escaping): it gets the new params and SlimeActor.setState. Any State
+	change reselects on the next frame, so a slime put down on its pad is
+	rigged (and drops in) the frame it arrives.
 
 	Three drivers, picked per slime by SlimeAnim.mode (never none, a slime
 	must not freeze):
@@ -144,6 +148,13 @@ local slotCounter = 0
 local lifeOn = Config.FEATURES.SlimeChoreo == true
 local emotes: SlimeEmotes.Pool? = nil
 local slimeConns: { [Model]: { RBXScriptConnection } } = {}
+-- The State each slime had before its current one (SlimeActor.attach: a Carried slime put on its pad drops in).
+local prevStates: { [Model]: string? } = setmetatable({}, { __mode = "k" }) :: any
+local lastStates: { [Model]: string? } = setmetatable({}, { __mode = "k" }) :: any
+local stateAt: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -- os.clock() of the last State change
+-- A put-down plays only if the rig comes this soon after the State change (a slime rigged later just sits there).
+local PUT_DOWN_WINDOW = 0.3
+local nextSelect = 0
 -- Contract/slime-life.md social reactions: how far away neighbours notice a slime leaving.
 local DRAIN_WATCH_DISTANCE = 20
 local DRAIN_WATCH_SECONDS = 1.6
@@ -494,7 +505,14 @@ local function acquireMotor(model: Model): MotorRig?
 		tier = "near",
 		slot = slotCounter,
 		motor = motor,
-		actor = if lifeOn then SlimeActor.attach(model, motor, os.clock()) else nil,
+		actor = if lifeOn
+			then SlimeActor.attach(
+				model,
+				motor,
+				os.clock(),
+				if os.clock() - (stateAt[model] or -math.huge) < PUT_DOWN_WINDOW then prevStates[model] else nil
+			)
+			else nil,
 		params = motor.params,
 		sparkle = nil,
 		conns = {},
@@ -503,7 +521,21 @@ local function acquireMotor(model: Model): MotorRig?
 	local function drop()
 		releaseMotor(model)
 	end
-	table.insert(rig.conns, model:GetAttributeChangedSignal("State"):Connect(drop))
+	local state = model:GetAttribute("State")
+	table.insert(
+		rig.conns,
+		model:GetAttributeChangedSignal("State"):Connect(function()
+			local prev = state
+			state = model:GetAttribute("State")
+			if not (type(state) == "string" and SlimeLife.STATES[state] and rig.actor) then
+				drop()
+				return
+			end
+			rig.motor.params = SlimeLife.params(model:GetAttribute("Tier") :: number?, state :: string)
+			rig.params = rig.motor.params
+			SlimeActor.setState(rig.actor :: SlimeActor.Actor, prev :: string?, state :: string, os.clock())
+		end)
+	)
 	table.insert(rig.conns, model:GetAttributeChangedSignal(Constants.DESPAWN_AT_ATTRIBUTE):Connect(drop))
 	table.insert(rig.conns, body:GetPropertyChangedSignal("Anchored"):Connect(drop))
 	-- A server ScaleTo (the boss's fight / haul size, growth) leaves every measured size, offset and bone rest
@@ -803,16 +835,30 @@ local function onSlime(instance: Instance)
 		and instance:GetAttribute(Constants.EGG_KIND_ATTRIBUTE) == nil
 	then
 		slimes[instance] = true
-		if lifeOn then
-			slimeConns[instance] = {
-				instance:GetAttributeChangedSignal("State"):Connect(function()
+		nextSelect = 0 -- a new slime (off the fountain, put down) is rigged on the next frame
+		local state = instance:GetAttribute("State")
+		lastStates[instance] = if type(state) == "string" then state else nil
+		local conns = {
+			instance:GetAttributeChangedSignal("State"):Connect(function()
+				local now = instance:GetAttribute("State")
+				prevStates[instance] = lastStates[instance]
+				lastStates[instance] = if type(now) == "string" then now else nil
+				stateAt[instance] = os.clock()
+				nextSelect = 0 -- rig (or release) it on the next frame, not at the next 4 Hz selection
+				if lifeOn then
 					onStateChanged(instance)
-				end),
+				end
+			end),
+		}
+		if lifeOn then
+			table.insert(
+				conns,
 				instance:GetAttributeChangedSignal(Constants.DESPAWN_AT_ATTRIBUTE):Connect(function()
 					onDespawnAt(instance)
-				end),
-			}
+				end)
+			)
 		end
+		slimeConns[instance] = conns
 	end
 end
 
@@ -833,12 +879,13 @@ local function onSlimeRemoved(instance: Instance)
 end
 
 -- What every actor needs from this frame: the local character and its cash (leaderstats).
-local lifeFrame: SlimeActor.Frame = { player = nil, cash = nil }
+local lifeFrame: SlimeActor.Frame = { player = nil, cash = nil, userId = nil }
 local function readFrame()
 	local player = Players.LocalPlayer
 	local character = player and player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	lifeFrame.player = if root and root:IsA("BasePart") then root.Position else nil
+	lifeFrame.userId = if player then player.UserId else nil
 	local stats = player and player:FindFirstChild("leaderstats")
 	local cash = stats and stats:FindFirstChild("Cash")
 	lifeFrame.cash = if cash and cash:IsA("ValueBase") then tonumber((cash :: any).Value) else nil
@@ -910,7 +957,6 @@ for _, model in CollectionService:GetTagged(Constants.SLIME_TAG) do
 	onSlime(model)
 end
 
-local nextSelect = 0
 RunService.RenderStepped:Connect(function()
 	local camera = workspace.CurrentCamera
 	if not camera then
