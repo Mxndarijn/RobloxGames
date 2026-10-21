@@ -111,7 +111,7 @@ describe("StealAlert flag and saves", function()
 end)
 
 describe("StealAlert degenerate geometry", function()
-	it("bearing and edgePoint never produce NaN for zero, vertical or NaN-free extreme input", function()
+	it("bearing never produces NaN for zero, vertical or NaN-free extreme input", function()
 		local cases = {
 			{ { x = 0, z = 0 }, { x = 0, z = 0 }, { x = 0, z = 0 } },
 			{ { x = 0, z = 0 }, { x = 1e-9, z = 0 }, { x = 0, z = 0 } },
@@ -121,8 +121,6 @@ describe("StealAlert degenerate geometry", function()
 		for _, c in cases do
 			local angle, distance = StealAlert.bearing(c[1], c[2], c[3])
 			expect(angle == angle and distance == distance).toBe(true)
-			local x, y = StealAlert.edgePoint(angle, 0, 0, CFG.ARROW_MARGIN)
-			expect(x == x and y == y).toBe(true)
 		end
 	end)
 	it("flash and alarm stay in range for huge, negative and NaN time", function()

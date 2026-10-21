@@ -27,6 +27,7 @@ local SoundService = game:GetService("SoundService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
 local Constants = require(Shared:WaitForChild("Constants"))
+local EdgeArrow = require(Shared:WaitForChild("EdgeArrow"))
 local FriendBonus = require(Shared:WaitForChild("FriendBonus"))
 local Genome = require(Shared:WaitForChild("Genome"))
 local MeshAssets = require(Shared:WaitForChild("MeshAssets"))
@@ -301,6 +302,7 @@ local stealFx = StealAlertFx.new(gui, {
 	Config = Config,
 	Constants = Constants,
 	StealAlert = StealAlert,
+	EdgeArrow = EdgeArrow,
 	serverNow = serverNow,
 })
 local carry = CarryPanel.new(gui, ctx)

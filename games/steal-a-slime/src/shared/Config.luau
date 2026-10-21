@@ -852,7 +852,6 @@ local Config = {
 		FLASH_PULSES = 2,
 		ALARM_REPEAT = 3, -- the toast already plays the first Alarm; it sounds again this often ...
 		ALARM_REPEATS = 2, -- ... at most this many extra times per theft
-		ARROW_MARGIN = 56, -- px from the viewport edge the direction arrow stays inside
 		PING_HIDE_STUDS = 14, -- thief ping hides inside this distance (you can see them)
 		TRAIL_LIFETIME = 0.6, -- the thief's trail (under the 2 s fx cap)
 		SLAP_FX_SECONDS = 0.5,
