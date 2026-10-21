@@ -55,7 +55,7 @@ local PopupQueue = require(script.PopupQueue)
 local PvpAim = require(script.PvpAim)
 local RareAnnounce = require(script.RareAnnounce)
 local SlimeInfoCard = require(script.SlimeInfoCard)
-local SlimeManage = require(script.SlimeManage)
+local SlimeKeys = require(script.SlimeKeys)
 local SoundController = require(script.SoundController)
 local Sounds = require(script.Sounds)
 local SpeciesModel = require(script.SpeciesModel)
@@ -74,7 +74,6 @@ local GuidePanel = require(Panels.Guide)
 local HintOverlay = require(Panels.HintOverlay)
 local LeaderboardPanel = require(Panels.Leaderboard)
 local MergePanel = require(Panels.Merge)
-local PlotPanel = require(Panels.Plot)
 local RebirthPanel = require(Panels.Rebirth)
 local ShopPanel = require(Panels.Shop)
 local SoundPanel = require(Panels.Sound)
@@ -324,7 +323,6 @@ local backdrop = Widgets.backdrop({
 -- order: Rebirth, Goals, SlimeDex, Codes) or a world prompt, closed with their X, the backdrop, Esc or
 -- gamepad B.
 local panelByKey: { [string]: any } = {
-	Plot = PlotPanel.new(gui, ctx),
 	Merge = MergePanel.new(gui, ctx),
 	Shop = ShopPanel.new(gui, ctx),
 	WorldShop = if Config.FEATURES.WorldShops == true then WorldShopPanel.new(gui, ctx) else nil,
@@ -342,11 +340,10 @@ for _, navEntry in Nav.ENTRIES do
 		table.insert(panels, { key = navEntry.key, nav = navEntry, panel = panel })
 	end
 end
--- Every menu: the nav ones plus the cards without a nav button: Plot (a slime's card, opened by its Manage prompt
--- at the pad), Merge, Shop (opened by the ShopStand prompt; the in-world shops reuse it) and Top (H1 HUD: Merijn
+-- Every menu: the nav ones plus the cards without a nav button: Merge, Shop (opened by the ShopStand prompt; the in-world shops reuse it) and Top (H1 HUD: Merijn
 -- removed their buttons), the Guide and Welcome cards.
 local allPanels: { PanelEntry } = table.clone(panels)
-for _, key in { "Plot", "Merge", "Shop", "Leaders" } do
+for _, key in { "Merge", "Shop", "Leaders" } do
 	table.insert(allPanels, { key = key, nav = nil, panel = panelByKey[key] })
 end
 if panelByKey.WorldShop then
@@ -576,32 +573,6 @@ end
 
 local function panelState(key: string, realState: any): any
 	local state = forceWelcome(forcePlotSkins(forceFriends(realState)))
-	if isStudio and key == "Plot" and gui:GetAttribute("PcwPlotSlime") == true and #state.slimes == 0 then
-		-- Studio-only: one fake owned slime so the My Plot row shows its buttons.
-		local view = table.clone(state)
-		view.slimes = {
-			{
-				slime = {
-					id = "pcw-plot",
-					name = "Blorp",
-					tier = 3,
-					color = { 90, 200, 120 },
-					size = 1.2,
-					pattern = "None",
-					eyes = "Round",
-					mouth = "Smile",
-					pad = 1,
-				},
-				income = 12,
-				sellPrice = 450,
-			},
-		}
-		view.padsUnlocked = math.max(1, state.padsUnlocked or 1)
-		-- ... which is also the favourite, so its row shows the follow-pet perk chip.
-		view.favoriteId = "pcw-plot"
-		view.petPerk = { kind = "luck", value = 0.03, icon = "🍀", text = "+3% luck" }
-		return view
-	end
 	local force = if isStudio and key == "Rebirth" then gui:GetAttribute("PcwRebirthSlime") else nil
 	local needs = state.rebirthSlimes
 	if (force ~= "owned" and force ~= "missing") or type(needs) ~= "table" then
@@ -798,19 +769,19 @@ ProximityPromptService.PromptTriggered:Connect(function(prompt: ProximityPrompt,
 	end
 end)
 
--- "Manage" on each of your slimes at its pad opens that slime's card (favourite, sell, hatch).
-SlimeManage.start({
+-- Your slimes are managed at their pads with keys: R Favorite, X hold to Sell (Hatch stays the server's F prompt).
+local slimeKeys = SlimeKeys.start({
 	root = workspace,
 	localUserId = player.UserId,
 	newPrompt = function(): ProximityPrompt
 		return Instance.new("ProximityPrompt")
 	end,
-	keyCode = Enum.KeyCode.E,
+	favoriteKey = { keyboard = Enum.KeyCode.R, gamepad = Enum.KeyCode.DPadUp },
+	sellKey = { keyboard = Enum.KeyCode.X, gamepad = Enum.KeyCode.DPadDown },
 	distance = Config.PLOT_PAD_PROMPT_DISTANCE,
-	onManage = function(slimeId: string)
-		panelByKey.Plot.focus(slimeId)
-		setOpen("Plot")
-	end,
+	holdSeconds = Config.HOLD_CONFIRM_SECONDS,
+	formatCash = Format.formatCash,
+	send = send,
 })
 
 -- World shops (FEATURES.WorldShops, CONTRACT.md §27): the server opens a shop at the stand's ShopPrompt and tells
@@ -948,13 +919,6 @@ if game:GetService("RunService"):IsStudio() then
 		end
 		setOpen(if type(key) == "string" and key ~= "" then key else nil)
 	end)
-	gui:GetAttributeChangedSignal("PcwPlotSlime"):Connect(function()
-		for _, entry in allPanels do
-			if entry.key == "Plot" and latest and entry.panel.frame.Visible then
-				entry.panel.update(panelState(entry.key, latest))
-			end
-		end
-	end)
 	gui:GetAttributeChangedSignal("PcwRebirthSlime"):Connect(function()
 		for _, entry in allPanels do
 			if entry.key == "Rebirth" and latest and entry.panel.frame.Visible then
@@ -1033,6 +997,7 @@ local function render(realState: Types.State)
 		forceWelcome(forceStealAlert(forceDex(forceWeekend(forceBlessed(forceAdminEvent(forceFriends(realState)))))))
 	hud.update(state)
 	inventory.update(state)
+	slimeKeys.update(state)
 	stealFx.update(state)
 	carry.update(state)
 	bossMeter.update(state)

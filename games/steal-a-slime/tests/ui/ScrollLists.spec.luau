@@ -1,6 +1,6 @@
 --!strict
 -- v26: scroll list rows must not stack. Builds the real Shop, Goals, Merge,
--- Dex, Plot, Rebirth and Leaderboard panels (tests/ui/UiHarness.luau), feeds
+-- Dex, Rebirth and Leaderboard panels (tests/ui/UiHarness.luau), feeds
 -- them a server State while hidden (as setOpen did live) and checks every
 -- row's rect: Y = paddingTop + sum(previous heights + gaps), pairwise
 -- disjoint, inside the canvas, at the gate viewport sizes.
@@ -119,7 +119,6 @@ local function state(): any
 	end
 	local world = ServerFixtures.world()
 	local session = ServerFixtures.join(world, 1, slimes, 5000)
-	session.data.favoriteId = "s3" -- tier 1: the Plot row shows its perk chip
 	return Snapshot.build(world, session, ServerFixtures.T0)
 end
 
@@ -137,7 +136,7 @@ local function openPanel(key: string, w: number, h: number): (any, Layout.Rect)
 	local module = UiHarness.ui(`Panels/{key}`)
 	local panel = module.new(UiHarness.root(), ctx())
 	panel.frame.Visible = false
-	local layoutKey = if key == "Leaderboard" then "Plot" else key
+	local layoutKey = if key == "Leaderboard" then "Merge" else key
 	local raw = Layout.panelFor(Layout.screen(w, h), layoutKey)
 	-- UDim offsets are integers (Roblox truncates; Lune rejects fractions).
 	local r = Layout.rect(math.floor(raw.x), math.floor(raw.y), math.floor(raw.w), math.floor(raw.h))
@@ -220,7 +219,7 @@ describe("Widgets.scrollList", function()
 	end)
 end)
 
-local PANELS = { "Shop", "Goals", "Merge", "Dex", "Plot", "Leaderboard" }
+local PANELS = { "Shop", "Goals", "Merge", "Dex", "Leaderboard" }
 
 describe("Scroll list panels (opened hidden, as setOpen did)", function()
 	for _, key in PANELS do

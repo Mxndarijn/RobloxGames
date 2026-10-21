@@ -30,7 +30,6 @@ local function ctx(): any
 end
 
 local MENUS = {
-	Plot = "Plot",
 	Merge = "Merge",
 	Shop = "Shop",
 	Rebirth = "Rebirth",

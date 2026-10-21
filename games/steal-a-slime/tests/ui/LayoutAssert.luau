@@ -726,7 +726,6 @@ end
 -- Panel titles as Widgets.panel shows them (Panels/*.luau), per menu key
 -- (the Nav keys plus the Guide card, which has no nav button).
 LayoutAssert.PANEL_TITLES = table.freeze({
-	Plot = "My Plot",
 	Merge = "Merge Vat",
 	Shop = "Shop",
 	Rebirth = "Rebirth", -- built with this; the open card shows "Rebirth 50" at most (rebirthTexts)

@@ -1,6 +1,6 @@
 --!strict
--- The owner's Manage prompt on their pad slimes (src/ui/SlimeManage.luau), driven through mock instances.
-local SlimeManage = require("../../src/ui/SlimeManage")
+-- The owner's key prompts on their pad slimes (src/ui/SlimeKeys.luau): R Favorite, X hold Sell, through mock instances.
+local SlimeKeys = require("../../src/ui/SlimeKeys")
 local TestRunner = require("../TestRunner")
 
 local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expect
@@ -126,8 +126,11 @@ local function parent(root: any, node: any, under: any)
 end
 
 -- A slime model with its Body and the server's GrabPrompt, not yet parented.
-local function slime(id: string, owner: number?, state: string): (any, any)
+local function slime(id: string, owner: number?, state: string, egg: boolean?): (any, any)
 	local model = instance("Model", `Slime_{id}`)
+	if egg then
+		model:SetAttribute("EggKind", "Golden")
+	end
 	model:SetAttribute("SlimeId", id)
 	model:SetAttribute("OwnerUserId", owner)
 	model:SetAttribute("State", state)
@@ -139,27 +142,49 @@ local function slime(id: string, owner: number?, state: string): (any, any)
 	return model, body
 end
 
-local function start(root: any, managed: { string }): () -> ()
-	return SlimeManage.start({
+local function cash(n: number): string
+	return `${n}`
+end
+
+local function start(root: any, sent: { string }): SlimeKeys.Handle
+	return SlimeKeys.start({
 		root = root,
 		localUserId = ME,
 		newPrompt = function(): any
 			return instance("ProximityPrompt", "ProximityPrompt")
 		end,
-		keyCode = "E" :: any,
+		favoriteKey = { keyboard = "R" :: any, gamepad = "DPadUp" :: any },
+		sellKey = { keyboard = "X" :: any, gamepad = "DPadDown" :: any },
 		distance = 10,
-		onManage = function(id: string)
-			table.insert(managed, id)
+		holdSeconds = 0.8,
+		formatCash = cash,
+		send = function(action: string, id: string?)
+			table.insert(sent, `{action}:{id or "nil"}`)
 		end,
 	})
 end
 
-local function manage(body: any): any
-	return body:FindFirstChild(SlimeManage.PROMPT_NAME)
+local function fav(body: any): any
+	return body:FindFirstChild(SlimeKeys.FAVORITE_PROMPT)
 end
 
-describe("SlimeManage", function()
-	it("puts Manage on my pad slimes only, named after the slime", function()
+local function sell(body: any): any
+	return body:FindFirstChild(SlimeKeys.SELL_PROMPT)
+end
+
+local function state(favoriteId: string?, perk: any?): any
+	return {
+		slimes = {
+			{ slime = { id = "a" }, sellPrice = 450 },
+			{ slime = { id = "e" }, sellPrice = 90 },
+		},
+		favoriteId = favoriteId,
+		petPerk = perk,
+	}
+end
+
+describe("SlimeKeys", function()
+	it("puts R Favorite (tap) and X Sell (hold) on my pad slimes only", function()
 		local root = instance("Workspace", "Workspace")
 		local mineModel, mine = slime("a", ME, "Pad")
 		local _, theirs = slime("b", OTHER, "Pad")
@@ -168,50 +193,90 @@ describe("SlimeManage", function()
 		start(root, {})
 		parent(root, theirs.Parent, root)
 		parent(root, wild.Parent, root)
-		local prompt = manage(mine)
-		expect(prompt).toBeTruthy()
-		expect(prompt.ActionText).toBe(SlimeManage.ACTION_TEXT)
-		expect(prompt.ObjectText).toBe("Blorp")
-		expect(prompt.HoldDuration).toBe(0)
-		expect(prompt.MaxActivationDistance).toBe(10)
-		expect(manage(theirs)).toBeNil()
-		expect(manage(wild)).toBeNil()
+		local f, s = fav(mine), sell(mine)
+		expect(f.KeyboardKeyCode).toBe("R")
+		expect(f.GamepadKeyCode).toBe("DPadUp")
+		expect(f.HoldDuration).toBe(0)
+		expect(f.ActionText).toBe("Favorite")
+		expect(f.ObjectText).toBe("Blorp")
+		expect(s.KeyboardKeyCode).toBe("X")
+		expect(s.GamepadKeyCode).toBe("DPadDown")
+		expect(s.HoldDuration).toBe(0.8)
+		expect(s.ActionText).toBe("Sell")
+		expect(s.MaxActivationDistance).toBe(10)
+		expect(fav(theirs)).toBeNil()
+		expect(sell(theirs)).toBeNil()
+		expect(fav(wild)).toBeNil()
+		expect(sell(wild)).toBeNil()
+		expect(mine:FindFirstChild("ManagePrompt")).toBeNil()
 	end)
 
-	it("opens the card for that slime when triggered", function()
+	it("shows the sell price and the favourite's perk from State", function()
 		local root = instance("Workspace", "Workspace")
-		local managed = {}
-		start(root, managed)
+		local keys = start(root, {})
 		local model, body = slime("a", ME, "Pad")
 		parent(root, model, root)
-		manage(body).Triggered:Fire()
-		expect(table.concat(managed, ",")).toBe("a")
+		keys.update(state(nil))
+		expect(sell(body).ActionText).toBe("Sell $450")
+		expect(fav(body).ActionText).toBe("Favorite")
+		keys.update(state("a", { icon = "*", text = "+3% luck" }))
+		expect(fav(body).ActionText).toBe("Unfavorite")
+		expect(fav(body).ObjectText).toBe("* +3% luck")
+		keys.update(state("a"))
+		expect(fav(body).ObjectText).toBe("Blorp")
 	end)
 
-	it("drops the prompt while the slime is carried and brings it back on the pad", function()
+	it("Favorite toggles through Request; Sell sends the slime", function()
 		local root = instance("Workspace", "Workspace")
-		local managed = {}
-		start(root, managed)
+		local sent = {}
+		local keys = start(root, sent)
 		local model, body = slime("a", ME, "Pad")
 		parent(root, model, root)
-		local first = manage(body)
+		keys.update(state(nil))
+		fav(body).Triggered:Fire()
+		keys.update(state("a"))
+		fav(body).Triggered:Fire()
+		sell(body).Triggered:Fire()
+		expect(table.concat(sent, ",")).toBe("Favorite:a,Favorite:nil,Sell:a")
+	end)
+
+	it("gives a Mystery Egg Sell (named) but no Favorite", function()
+		local root = instance("Workspace", "Workspace")
+		local keys = start(root, {})
+		local model, body = slime("e", ME, "Pad", true)
+		parent(root, model, root)
+		keys.update(state(nil))
+		expect(fav(body)).toBeNil()
+		expect(sell(body).ActionText).toBe("Sell $90")
+		expect(sell(body).ObjectText).toBe("Blorp")
+	end)
+
+	it("drops the prompts while the slime is carried and brings them back on the pad", function()
+		local root = instance("Workspace", "Workspace")
+		local sent = {}
+		start(root, sent)
+		local model, body = slime("a", ME, "Pad")
+		parent(root, model, root)
+		local first = sell(body)
 		model:SetAttribute("State", "Carried")
-		expect(manage(body)).toBeNil()
+		expect(fav(body)).toBeNil()
+		expect(sell(body)).toBeNil()
 		expect(first.destroyed).toBe(true)
 		first.Triggered:Fire()
-		expect(#managed).toBe(0)
+		expect(#sent).toBe(0)
 		model:SetAttribute("State", "Pad")
-		expect(manage(body)).toBeTruthy()
+		expect(fav(body)).toBeTruthy()
+		expect(sell(body)).toBeTruthy()
 	end)
 
-	it("follows ownership and cleans up on removal and stop", function()
+	it("follows ownership and cleans up on removal and destroy", function()
 		local root = instance("Workspace", "Workspace")
-		local stop = start(root, {})
+		local keys = start(root, {})
 		local model, body = slime("a", OTHER, "Pad")
 		parent(root, model, root)
-		expect(manage(body)).toBeNil()
+		expect(sell(body)).toBeNil()
 		model:SetAttribute("OwnerUserId", ME)
-		local prompt = manage(body)
+		local prompt = sell(body)
 		expect(prompt).toBeTruthy()
 		model:Destroy()
 		body.AncestryChanged:Fire()
@@ -219,8 +284,9 @@ describe("SlimeManage", function()
 
 		local model2, body2 = slime("b", ME, "Pad")
 		parent(root, model2, root)
-		local prompt2 = manage(body2)
-		stop()
-		expect(prompt2.destroyed).toBe(true)
+		local f2, s2 = fav(body2), sell(body2)
+		keys.destroy()
+		expect(f2.destroyed).toBe(true)
+		expect(s2.destroyed).toBe(true)
 	end)
 end)
