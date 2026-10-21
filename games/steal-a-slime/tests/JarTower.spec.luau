@@ -96,7 +96,7 @@ describe("jar tower: stair", function()
 		local d = (deg - start) % 360
 		return d / span * WorldLayout.FLOOR_HEIGHT
 	end
-	it("climbs from floor f to floor f + 1 in one turn of gentle ramp, then a landing flush with the deck", function()
+	it("climbs from floor f to floor f + 1 in one turn of gentle ramp, ending where the next ramp starts", function()
 		expect(WorldLayout.stairSteps()).toBe(WorldLayout.FLOOR_HEIGHT)
 		expect(span).toBe(360)
 		for f = 2, FLOORS do
@@ -116,8 +116,9 @@ describe("jar tower: stair", function()
 			local rise = WorldLayout.FLOOR_HEIGHT / ramp.segments
 			expect(math.abs(first[2] - WorldLayout.floorTop(f - 1) - rise / 2) < 1).toBe(true)
 			expect(math.abs(last[2] - (WorldLayout.floorTop(f) - rise / 2)) < 1).toBe(true)
-			local landing = toLocal(named(parts, "Landing")[1], 1)
-			expect(math.abs(landing[2] + 0.5 - WorldLayout.floorTop(f)) < 1e-6).toBe(true)
+			-- one unbroken spiral: no landing, and each floor's ramp starts at the angle the one below ends
+			expect(#named(parts, "Landing")).toBe(0)
+			expect(WorldLayout.treadAngle(f, 1)).toBe(WorldLayout.treadAngle(f - 1, 1))
 		end
 	end)
 	it("keeps a rail along the outer edge, open at the bottom and before the top to step on and off", function()

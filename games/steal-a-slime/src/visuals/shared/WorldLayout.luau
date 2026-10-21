@@ -182,8 +182,8 @@ WorldLayout.PAD_DECK = table.freeze({ y = 2.4, half = 3.75, matHalf = 2.6 })
 -- entrance side (-Z), where jar 1's door is. Jars shrink upwards; each jar's pads sit on PAD_RINGS[f] facing the
 -- centre, with at least a 3-stud walkway between pads and 4.5 studs to the glass. The spiral stair from floor f to
 -- f + 1 winds round the centre post (STAIR: post radius, tread outer radius, one 1-stud step per STAIR.angle
--- degrees), up through the hole in the deck above; each stair starts a quarter turn past where the one below
--- arrived. Upper floors (Config.BASE_FLOORS beyond 1) are built at runtime by server/BaseFloors.
+-- degrees), up through the hole in the deck above; each stair starts exactly where the one below arrives, so the
+-- ramps make one unbroken spiral from the ground to the top jar. Upper floors (Config.BASE_FLOORS beyond 1) are built at runtime by server/BaseFloors.
 WorldLayout.FLOOR_HEIGHT = 16
 WorldLayout.JAR_RADII = table.freeze({ 31, 27, 24, 21.5 })
 WorldLayout.PAD_RINGS = table.freeze({ 22, 19, 16.5, 14.1 })
@@ -196,8 +196,8 @@ WorldLayout.DECK_SEGMENTS = 16
 WorldLayout.DOOR = table.freeze({ angle = -90, width = 8, height = 11 }) -- no wider than one glass segment
 WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22.5, firstAngle = 90 })
 -- The stair is a smooth spiral ramp (easy on a thumbstick): `segments` sloped boxes climb FLOOR_HEIGHT over one turn,
--- from half a step before tread 1's angle (WorldLayout.treadAngle) to tread FLOOR_HEIGHT's angle, then a flat
--- landing one STAIR.angle long, flush with the deck above. The boxes slope as the helix does at radius `walk` (where
+-- from half a step before tread 1's angle (WorldLayout.treadAngle) to tread FLOOR_HEIGHT's angle, ending flush
+-- with the deck above, where the next floor's ramp goes on. The boxes slope as the helix does at radius `walk` (where
 -- feet go). The rail is an invisible wall along the outer edge, straight up from floor f to just under the deck
 -- above (a sloped or stepped top edge is something a Humanoid can climb over, onto the floor above), open for
 -- `railStart` degrees at the bottom and `railEnd` degrees before the top, so you step on and off the side.
@@ -1024,7 +1024,7 @@ end
 -- k studs above floor f; the last tread is flush with the deck above.
 function WorldLayout.treadAngle(f: number, k: number): number
 	local st = WorldLayout.STAIR
-	local turn = 360 + 90 -- one full turn per floor, then a quarter turn on to the next stair's first tread
+	local turn = 360 -- one full turn per floor: the next stair goes on from where this one arrives
 	return (st.firstAngle + (f - 1) * turn + (k - 1) * st.angle) % 360
 end
 
@@ -1310,8 +1310,8 @@ local function jarDeck(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	return out
 end
 
--- The spiral stair from floor f up to floor f + 1: the centre post, the sloped ramp boxes, the landing at the top and
--- the rail along the outer edge (WorldLayout.RAMP). Plot-local yaw: a box's local X runs along the ring towards lower
+-- The spiral stair from floor f up to floor f + 1: the centre post, the sloped ramp boxes (the next floor's ramp
+-- goes on from the top, at the same angle) and the rail along the outer edge (WorldLayout.RAMP). Plot-local yaw: a box's local X runs along the ring towards lower
 -- angles, so a negative Z tilt makes it climb as the angle grows.
 local function jarStair(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local st = WorldLayout.STAIR
@@ -1342,10 +1342,6 @@ local function jarStair(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		node.material = "Wood"
 		table.insert(out, node)
 	end
-	local landing = radial("Landing", { 2.9, 1, width }, mid, start + span + st.angle / 2, base + h - 0.5, at, yaw)
-	landing.color = JAR_CORK
-	landing.material = "Wood"
-	table.insert(out, landing)
 	-- the rail: upright wall pieces two ramp boxes wide, from the floor to just under the deck above, from railStart
 	-- to railEnd degrees before the top
 	local railR = st.outer + 0.15
@@ -1494,7 +1490,7 @@ local function jarLooks(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		table.insert(out, glassy(jarLook("GlassBelow", `goo_jar_glass_{f - 1}_mid`, below, at, yaw)))
 		table.insert(out, noShadow(jarLook("TrimBelow", `goo_jar_trim_{f - 1}_mid`, below, at, yaw)))
 		table.insert(out, noShadow(jarLook("DeckLook", `goo_jar_deck_{f}`, base, at, yaw)))
-		-- the stair mesh is built on floor 1's treads; each floor's stair starts a quarter turn further round
+		-- the stair mesh is built on floor 1's treads (today every floor's stair starts at the same angle)
 		local turn = -(WorldLayout.treadAngle(f - 1, 1) - WorldLayout.treadAngle(1, 1))
 		table.insert(out, noShadow(jarLook("StairLook", "goo_jar_stair", below, at, yaw, turn)))
 		local ground = { 0, WorldLayout.floorTop(1) - 1, 0 }

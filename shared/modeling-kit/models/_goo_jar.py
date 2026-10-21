@@ -218,12 +218,13 @@ def jar_trim(f, top, crown=False):
     return out
 
 def jar_deck(f):
-    """Jar f's floor above the ground: a goo pool in a wooden ring, the stair hole in the middle with a cork rim, a few
-    bubbles. Top of the goo at z = 0 (the floor's walking surface)."""
+    """Jar f's floor above the ground: a goo pool in a wooden ring and a few bubbles, the stair hole in the middle with
+    no rim: the goo rolls over its edge and lines the hole's wall, so the floor's thickness doesn't show from the stair.
+    Top of the goo at z = 0 (the floor's walking surface)."""
     r, hole = radius(f), D["stair"]["hole"]
-    out = [painted(lathe("Wood", [(hole, -1.0), (r - 1.0, -1.0), (r - 1.0, -0.05)], CORK, double=False), shade(CORK, 0.95), CORK)]
-    out.append(painted(lathe("Pool", [(r - 0.4, 0.0), (hole + 0.4, 0.0)], GOO, double=False), shade(GOO, 0.85), GOO))
-    out.append(loop("HoleRim", hole + 0.2, 0.4, (0, 0, 0.05), "z", CORK, segs=32))
+    out = [painted(lathe("Wood", [(hole + 0.2, -1.0), (r - 1.0, -1.0), (r - 1.0, -0.05)], CORK, double=False), shade(CORK, 0.95), CORK)]
+    out.append(painted(lathe("Pool", [(r - 0.4, 0.0), (hole + 0.3, 0.0), (hole, -0.25), (hole, -1.05)], GOO, double=False),
+                       shade(GOO, 0.8), GOO))
     rr = random.Random(90 + f)
     for k in range(7):
         a, d = rr.uniform(0, math.tau), rr.uniform(hole + 2, r - 3)
@@ -256,8 +257,8 @@ def jar_foot():
 
 def jar_stair():
     """The stair from a floor up to the next, as a smooth spiral ramp (WorldLayout.RAMP): the goo centre post, a cork
-    ramp climbing FLOOR_H in one turn from half a step before floor 1's first tread angle, a flat landing at the top, a
-    goo line along the inner edge and a brass hand rail on balusters along the outer edge (open where the game's rail
+    ramp climbing FLOOR_H in one turn from half a step before floor 1's first tread angle, ending where the next floor's
+    ramp starts (stacked, they make one unbroken spiral), a goo line along the inner edge and a brass hand rail on balusters along the outer edge (open where the game's rail
     is open, at the bottom and before the top). The game turns the mesh for higher floors."""
     import bmesh
     from lib.shapes import obj_from_bm
@@ -275,7 +276,7 @@ def jar_stair():
         return min(FLOOR_H, max(0.0, (deg - start) / span * FLOOR_H))
 
     n = 72
-    angles = [start + span * i / n for i in range(n + 1)] + [start + span + st["angle"] * j / 4 for j in (1, 2, 3, 4)]
+    angles = [start + span * i / n for i in range(n + 1)]  # the next floor's ramp goes on from the top
     bm = bmesh.new()
     rows = []
     for deg in angles:

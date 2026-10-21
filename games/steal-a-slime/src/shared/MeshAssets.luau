@@ -406,11 +406,11 @@ entries["goo_drop_tube_goo_4"] =
 entries["goo_jar_crown"] =
 	{ assetId = 71380888344034, meshId = "rbxassetid://104778303876847", size = { 0.787, 0.52, 0.809 } }
 entries["goo_jar_deck_2"] =
-	{ assetId = 99170740533300, meshId = "rbxassetid://121583338947402", size = { 53.2, 1.789, 53.2 } }
+	{ assetId = 99170740533300, meshId = "rbxassetid://131484761587119", size = { 53.2, 1.839, 53.2 } }
 entries["goo_jar_deck_3"] =
-	{ assetId = 125659145472027, meshId = "rbxassetid://115580191005219", size = { 47.2, 1.789, 47.2 } }
+	{ assetId = 125659145472027, meshId = "rbxassetid://111404470712420", size = { 47.2, 1.839, 47.2 } }
 entries["goo_jar_deck_4"] =
-	{ assetId = 130699055260662, meshId = "rbxassetid://115829631257177", size = { 42.2, 1.73, 42.2 } }
+	{ assetId = 130699055260662, meshId = "rbxassetid://128065437982156", size = { 42.2, 1.78, 42.2 } }
 entries["goo_jar_door"] =
 	{ assetId = 139300292465170, meshId = "rbxassetid://74526508452664", size = { 11.596, 11.6, 2.6 } }
 entries["goo_jar_door_ring"] =
@@ -434,7 +434,7 @@ entries["goo_jar_glass_4_top"] =
 entries["goo_jar_mascot"] =
 	{ assetId = 98686118721094, meshId = "rbxassetid://71405131358303", size = { 2.2, 1.567, 2.138 } }
 entries["goo_jar_stair"] =
-	{ assetId = 98196001176088, meshId = "rbxassetid://86738719353582", size = { 10.99, 16.853, 10.995 } }
+	{ assetId = 98196001176088, meshId = "rbxassetid://81662598331092", size = { 10.99, 16.776, 10.99 } }
 entries["goo_jar_stopper"] =
 	{ assetId = 121171735307209, meshId = "rbxassetid://98488330645221", size = { 9.889, 9.66, 1.508 } }
 entries["goo_jar_trim_1_mid"] =
