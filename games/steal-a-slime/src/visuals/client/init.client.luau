@@ -4,8 +4,11 @@
 
 	Client-only looks on every model tagged Constants.SLIME_TAG:
 	  * idle jiggle (bob + tilt) and random blinks
-	  * "Carried": fast wriggle (animates the carry joint if it is a Weld /
-	    Motor6D) and nervous blinking
+	  * "Carried": struggles in bursts with rests between (CarryWriggle) and
+	    nervous blinking. A rigged slime wriggles through its FaceRoot /
+	    SkinRoot Motor6D Transforms (face and skin together; SlimeLifeRunner
+	    lets go of a carried slime); an unrigged one through the carry joint
+	    if it is a Weld / Motor6D
 	  * "Escaping": the same calm idle as everywhere else; the server glides
 	    it home (no bounces, contract/slime-walk.md)
 	  * Slime Rain particles, goo blobs and a colour tint while workspace
@@ -29,7 +32,10 @@
 	Reads attributes only; never fires remotes. One RenderStepped loop, slimes
 	far from the camera are skipped.
 
-	Pivot animation only touches anchored Bodies (pad, wild, escaping). Each
+	Pivot animation only touches anchored Bodies (pad, wild, escaping) that
+	SlimeLifeRunner does not animate (model attribute LifeMode "motor": its
+	Transform carries the life, and a second pivot writer would show the
+	replication steps); a slime it takes over gets its pivot back once. Each
 	frame it checks whether the server moved the model since our last write
 	and, if so, rebases on the server's pivot, so it never fights replication.
 	The walking boss (model attributes BossWalkSeed / BossWalkAt / BossWalkUntil)
@@ -44,12 +50,14 @@ local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 
 local BossWander = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("BossWander"))
+local CarryWriggle = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("CarryWriggle"))
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local Effects = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("Effects"))
 
 local MAX_DISTANCE = 150
 local BLINK_TIME = 0.12
+local LIFE_MODE_ATTRIBUTE = "LifeMode" -- SlimeLifeRunner (ui/SlimeMotor.MODE_ATTRIBUTE): which driver animates the slime
 local RAIN_ATTRIBUTE = Constants.RAIN_ATTRIBUTE
 local ERUPT_EVERY = { 9, 16 } -- seconds between fountain splash bursts
 local ERUPT_EVERY_RAIN = { 3, 6 }
@@ -59,12 +67,14 @@ type Track = {
 	body: BasePart,
 	eyes: { BasePart },
 	phase: number,
+	seed: number, -- per slime, for CarryWriggle
 	base: CFrame?, -- server pivot we animate around
 	written: CFrame?, -- last pivot we wrote
 	nextBlink: number,
 	blinkUntil: number,
 	joint: JointInstance?,
 	jointC1: CFrame?,
+	wriggling: boolean, -- the rig roots' Transforms hold a carry wriggle
 }
 
 local tracks: { [Model]: Track } = {}
@@ -114,9 +124,24 @@ local function onSlime(instance: Instance)
 		body = body,
 		eyes = eyes,
 		phase = math.random() * math.pi * 2,
+		seed = math.random(1, 1000000),
 		nextBlink = os.clock() + 1 + math.random() * 4,
 		blinkUntil = 0,
+		wriggling = false,
 	}
+end
+
+-- SlimeRig's FaceRoot / SkinRoot Motor6Ds on Body: one Transform on both moves face and skin together.
+local RIG_ROOTS = { "FaceRoot", "SkinRoot" }
+local function rigRoots(body: BasePart): { Motor6D }
+	local out = {}
+	for _, name in RIG_ROOTS do
+		local m = body:FindFirstChild(name)
+		if m and m:IsA("Motor6D") and m.Part0 == body then
+			table.insert(out, m)
+		end
+	end
+	return out
 end
 
 local function restoreJoint(track: Track)
@@ -124,6 +149,15 @@ local function restoreJoint(track: Track)
 		track.joint.C1 = track.jointC1
 	end
 	track.joint, track.jointC1 = nil, nil
+	if track.wriggling then
+		track.wriggling = false
+		-- SlimeLifeRunner may already own the Transforms again (it rigs a slime the frame it is put down)
+		if track.model:GetAttribute(LIFE_MODE_ATTRIBUTE) ~= "motor" then
+			for _, m in rigRoots(track.body) do
+				m.Transform = CFrame.new()
+			end
+		end
+	end
 end
 
 local function onSlimeRemoved(instance: Instance)
@@ -141,10 +175,14 @@ local function onSlimeRemoved(instance: Instance)
 end
 
 -- The server's carry joint: a Weld / Motor6D on Body that the factory did
--- not make (the factory only uses WeldConstraints).
+-- not make (the factory uses WeldConstraints, SlimeRig its FaceRoot / SkinRoot motors).
 local function findCarryJoint(body: BasePart): JointInstance?
 	for _, joint in body:GetJoints() do
-		if joint:IsA("JointInstance") and (joint.Part0 == body or joint.Part1 == body) then
+		if
+			joint:IsA("JointInstance")
+			and (joint.Part0 == body or joint.Part1 == body)
+			and not (joint:IsA("Motor6D") and table.find(RIG_ROOTS, joint.Name))
+		then
 			return joint
 		end
 	end
@@ -233,18 +271,39 @@ local function step(track: Track, now: number, cameraPos: Vector3)
 
 	if state == "Carried" then
 		track.base, track.written = nil, nil
+		local pitch, yaw, roll, lift = CarryWriggle.pose(now, track.seed)
+		local roots = rigRoots(body)
+		if #roots > 0 then
+			local wriggle = CFrame.new(0, lift * size, 0) * CFrame.Angles(pitch, yaw, roll)
+			for _, m in roots do
+				m.Transform = wriggle
+			end
+			track.wriggling = true
+			return
+		end
 		if not track.joint or not track.joint.Parent then
 			track.joint = findCarryJoint(body)
 			track.jointC1 = if track.joint then track.joint.C1 else nil
 		end
 		if track.joint and track.jointC1 then
-			local wriggle = CFrame.Angles(math.sin(t * 17) * 0.12, math.sin(t * 11) * 0.25, math.sin(t * 23) * 0.18)
-			track.joint.C1 = track.jointC1 * wriggle
+			track.joint.C1 = track.jointC1 * CFrame.new(0, -lift * size, 0) * CFrame.Angles(pitch, yaw, roll)
 		end
 		return
 	end
 	restoreJoint(track)
 	if not body.Anchored then
+		track.base, track.written = nil, nil
+		return
+	end
+	-- SlimeLifeRunner draws this one through its Transform: leave the pivot to the server (put our bob back once).
+	-- The walking boss keeps its frame-rate walk from here.
+	if
+		track.model:GetAttribute(LIFE_MODE_ATTRIBUTE) == "motor"
+		and track.model:GetAttribute(Constants.BOSS_WALK_SEED_ATTRIBUTE) == nil
+	then
+		if track.base and track.written and samePivot(track.model:GetPivot(), track.written) then
+			track.model:PivotTo(track.base)
+		end
 		track.base, track.written = nil, nil
 		return
 	end

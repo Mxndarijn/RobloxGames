@@ -39,7 +39,9 @@ SlimeLife.MAX_TIER = 7 -- Secret
 SlimeLife.SPARKLE_LIFETIME = { 0.6, 1.1 } -- seconds, per particle
 SlimeLife.SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds" -- built-in, same as Effects SPARK
 SlimeLife.MAX_SPARKLES_ALIVE = 16 -- per emitter, same limit as tests/Effects.spec
-SlimeLife.STATES = { Wild = true, Pad = true }
+SlimeLife.STATES = { Wild = true, Pad = true, Escaping = true }
+-- Each slime breathes at its own rate and depth: x (1 +- this), drawn once per clock, so pads never breathe in step.
+SlimeLife.RHYTHM_JITTER = 0.15
 
 -- Hop shape (seconds and squash amounts), for a forced hop.
 SlimeLife.WINDUP = 0.14 -- squat before take-off
@@ -78,6 +80,8 @@ export type Candidate = {
 
 export type Clock = {
 	phase: number, -- random time offset so slimes don't breathe in step
+	rate: number, -- this slime's breathing speed multiplier (RHYTHM_JITTER)
+	depth: number, -- this slime's breathing depth multiplier
 	hopAt: number, -- take-off time of the current forced hop (math.huge = none)
 	landedHop: number?, -- hopAt of the last landing reported by advance
 	lookFrom: number,
@@ -191,8 +195,11 @@ local function between(range: { number }, rand: Rand): number
 end
 
 function SlimeLife.newClock(params: Params, now: number, rand: Rand): Clock
+	local j = SlimeLife.RHYTHM_JITTER
 	return {
 		phase = rand() * 2 * math.pi,
+		rate = 1 + (rand() * 2 - 1) * j,
+		depth = 1 + (rand() * 2 - 1) * j,
 		hopAt = math.huge,
 		lookFrom = 0,
 		lookTo = 0,
@@ -257,7 +264,10 @@ end
 
 -- Idle breathing only, scaled by `amp` (the LOD mid tier): the sy of pose() without hop or wobble.
 function SlimeLife.squishY(params: Params, clock: Clock, now: number, amp: number): number
-	local squash = math.sin((now + clock.phase) * params.squishSpeed) * params.squishAmp * amp
+	local squash = math.sin((now + clock.phase) * params.squishSpeed * (clock.rate or 1))
+		* params.squishAmp
+		* (clock.depth or 1)
+		* amp
 	return math.clamp(1 - squash, SlimeLife.SQUASH_LIMIT[1], SlimeLife.SQUASH_LIMIT[2])
 end
 
@@ -265,7 +275,8 @@ end
 function SlimeLife.pose(params: Params, clock: Clock, now: number, out: Pose?): Pose
 	local t = now + clock.phase
 	local lift, hopSquash = SlimeLife.hop(params, clock, now)
-	local squash = math.sin(t * params.squishSpeed) * params.squishAmp + hopSquash
+	local squash = math.sin(t * params.squishSpeed * (clock.rate or 1)) * params.squishAmp * (clock.depth or 1)
+		+ hopSquash
 	local sy = math.clamp(1 - squash, SlimeLife.SQUASH_LIMIT[1], SlimeLife.SQUASH_LIMIT[2])
 	-- Keep the volume roughly constant: flatter = wider.
 	local sxz = 1 / math.sqrt(sy)
@@ -273,8 +284,9 @@ function SlimeLife.pose(params: Params, clock: Clock, now: number, out: Pose?): 
 	pose.lift = lift
 	local sway = math.sin(t * params.swaySpeed) * params.sway
 	pose.yaw = SlimeLife.lookYaw(clock, now) + sway * 0.5
-	pose.pitch = math.sin(t * params.wobbleSpeed * 0.7 + 1) * params.wobble * 0.6
-	pose.roll = math.sin(t * params.wobbleSpeed) * params.wobble + sway
+	local rate = clock.rate or 1
+	pose.pitch = math.sin(t * params.wobbleSpeed * rate * 0.7 + 1) * params.wobble * 0.6
+	pose.roll = math.sin(t * params.wobbleSpeed * rate) * params.wobble + sway
 	pose.sx = sxz
 	pose.sy = sy
 	pose.sz = sxz
