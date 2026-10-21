@@ -31,9 +31,10 @@ end
 
 -- The tutorial card and its hint ring / bubble sit over a content-sized card's
 -- inputs on phone landscape (Codes box + Redeem): they show only with no menu
--- open. The step itself is untouched; closing the menu brings the same card back.
-function MenuState.tutorialVisible(openKey: string?): boolean
-	return openKey == nil
+-- open. The open bag panel (`bagOpen`) hides it too: the card would draw over the bag grid.
+-- The step itself is untouched; closing the menu or the bag brings the same card back.
+function MenuState.tutorialVisible(openKey: string?, bagOpen: boolean?): boolean
+	return openKey == nil and not bagOpen
 end
 
 return MenuState

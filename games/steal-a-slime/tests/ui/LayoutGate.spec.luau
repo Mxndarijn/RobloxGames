@@ -1,6 +1,6 @@
 --!strict
--- PR gate layout (tools/pr-gate/layout.sh): every rule at the five gate
--- viewports (390x844, 844x390, 1024x768, 1366x768, 1920x1080), each raw and
+-- PR gate layout (tools/pr-gate/layout.sh): every rule at the six gate
+-- viewports (390x844, 844x390, 768x1024, 1024x768, 1366x768, 1920x1080), each raw and
 -- minus the 58 px top bar (the ScreenGui's real size, IgnoreGuiInset off):
 -- LayoutAssert.standard, navReachable (on screen, nothing drawn
 -- over a nav button), noNegativeSizes and notSquashed (aspect ratio). The
@@ -62,13 +62,50 @@ local function navIndex(key: string): number
 	error(`no nav entry {key}`)
 end
 
-describe("PR gate: five viewports (raw and under the top bar), every layout rule", function()
+describe("PR gate: six viewports (raw and under the top bar), every layout rule", function()
 	for _, entry in LayoutAssert.screens(VIEWPORTS) do
 		it(`{entry.label}: on screen, unoccluded, not squashed, text fits`, function()
 			local rest = unexpected(entry.label, gate(entry.label, entry.screen))
 			expect(rest).toBe("")
 		end)
 	end
+end)
+
+-- Touch devices: Roblox's jump button sits bottom-right, so the status cluster steps left of it. The gate
+-- viewports plus the 640x360 small phone; the full rule set also holds for the gate viewports.
+describe("PR gate: touch layouts keep the status icons off the jump button", function()
+	local sizes = {}
+	for _, vp in VIEWPORTS do
+		table.insert(sizes, vp)
+	end
+	table.insert(sizes, { name = "640x360", w = 640, h = 360 })
+	table.insert(sizes, { name = "640x302", w = 640, h = 302 })
+	for _, vp in sizes do
+		it(`{vp.name} touch: Status clears the jump rect`, function()
+			local check = LayoutAssert.new(`{vp.name} touch`, Layout.screen(vp.w, vp.h, { touch = true }))
+			LayoutAssert.jumpClear(check)
+			expect(check.report()).toBe("")
+		end)
+	end
+	for _, vp in VIEWPORTS do
+		it(`{vp.name} touch: every layout rule holds`, function()
+			local label = `{vp.name} touch`
+			local rest = unexpected(label, gate(label, Layout.screen(vp.w, vp.h, { touch = true })))
+			expect(rest).toBe("")
+		end)
+	end
+	it("without touch the layout is untouched (the status icons keep the bottom-right corner)", function()
+		for _, vp in VIEWPORTS do
+			local plain, touch = Layout.screen(vp.w, vp.h), Layout.screen(vp.w, vp.h, { touch = true })
+			expect(plain.status.rect.x + plain.status.rect.w).toBe(plain.width - Layout.MARGIN)
+			expect(touch.status.rect.x <= plain.status.rect.x).toBe(true)
+		end
+	end)
+	it("a status cluster on the jump button fails the rule", function()
+		local check = LayoutAssert.new("844x390 on the jump button", Layout.screen(844, 390))
+		LayoutAssert.jumpClear(check)
+		expect(has(check.report(), "overlaps JumpButton")).toBe(true)
+	end)
 end)
 
 describe("PR gate: the checks catch PR #60's bugs", function()

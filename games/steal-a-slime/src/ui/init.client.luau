@@ -23,6 +23,7 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"))
@@ -292,8 +293,8 @@ local inventory = Inventory.new(gui, {
 	end,
 	tools = InventoryTools.new(player),
 	serverNow = serverNow,
-	keyboard = game:GetService("UserInputService").KeyboardEnabled,
-	input = game:GetService("UserInputService"),
+	keyboard = UserInputService.KeyboardEnabled,
+	input = UserInputService,
 })
 InventoryTools.bindKeys(inventory.keyCodeToSlot, inventory.pressKey)
 InventoryTools.bindBag(inventory.isBagKey, inventory.toggleBag)
@@ -593,6 +594,11 @@ local function panelState(key: string, realState: any): any
 	return view
 end
 
+-- The tutorial card steps aside for an open menu card and for the open bag panel.
+local function syncTutorial()
+	tutorial.setMenuOpen(not MenuState.tutorialVisible(openKey, inventory.panelOpen()))
+end
+
 local function syncMenus()
 	local visibleKey: string? = nil
 	for _, entry in allPanels do
@@ -623,7 +629,7 @@ local function syncMenus()
 	end
 	hud.setMenuOpen(not MenuState.bannersVisible(visibleKey))
 	inventory.setMenuOpen(visibleKey ~= nil)
-	tutorial.setMenuOpen(not MenuState.tutorialVisible(visibleKey))
+	syncTutorial()
 	backdrop.Visible = visibleKey ~= nil
 	-- Phones: the open menu card spans the nav's width (Layout.screen columnX), so the tiles step aside.
 	nav.Visible = not (screen ~= nil and screen.compact and visibleKey ~= nil)
@@ -644,6 +650,7 @@ end
 for _, entry in allPanels do
 	entry.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
 end
+inventory.panel.frame:GetPropertyChangedSignal("Visible"):Connect(syncTutorial)
 
 -- Sound button (FEATURES.Audio): icon only, shown with no menu open; the open card has its own X.
 if soundPanel then
@@ -922,7 +929,7 @@ function applyLayout()
 		return
 	end
 	uiScale.Scale = Layout.uiScale(size.X, size.Y)
-	local s = Layout.screen(size.X, size.Y)
+	local s = Layout.screen(size.X, size.Y, { touch = UserInputService.TouchEnabled })
 	screen = s
 	hud.layout(s)
 	inventory.layout(s, GuiService:GetGuiInset())
@@ -1194,7 +1201,7 @@ task.spawn(function()
 			if panelByKey.WorldShop then
 				panelByKey.WorldShop.tick()
 			end
-			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey))
+			hintOverlay.tick(now, tutorial.shown() and MenuState.tutorialVisible(openKey, inventory.panelOpen()))
 			pvpFunFx.tick(now)
 			if slimeMove then
 				slimeMove.tick()

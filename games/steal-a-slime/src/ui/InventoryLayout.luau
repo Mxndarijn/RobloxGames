@@ -90,6 +90,9 @@ end
 	  PLATE.sectionGap, "Bag" heading line with the item count (CELL.top), CELL.topGap,
 	  the bag grid (scrolls; its rows start CELL.gridPad down the canvas; the footer line sits in the scroll canvas under the grid, after PLATE.footerGap).
 	The plate never scrolls: on a short card its slots shrink (down to PLATE.min) so the grid keeps PLATE.minGrid.
+	When even that leaves the grid less than one cell tall (a landscape phone), the body goes side by side
+	(InventoryLayout.arrange): the plate as a 3x3 block on the left, both headings on the top line, and the bag
+	grid (it scrolls) filling the body's height to its right.
 	Bag grid: square cells, `columns` per row (4 on a wide body, 3 below `wideMin`), each at most `max` px; at
 	least `minRows` rows and always whole rows: the cells after the items are empty slots.
 ]]
@@ -117,6 +120,8 @@ InventoryLayout.PLATE = table.freeze({
 	minGrid = 80, -- grid height a short card keeps under the plate
 	sectionGap = 14, -- plate to the "Bag" heading
 	footerGap = 8, -- grid to the footer line
+	sideColumns = 3, -- side by side: the plate is a 3x3 block
+	sideMax = 64, -- side by side: slot edge cap, the grid keeps the rest of the width
 })
 
 local function plateFixed(): number
@@ -205,6 +210,70 @@ function InventoryLayout.contentHeight(count: number, bodyWidth: number, footerH
 	local grid = InventoryLayout.gridHeight(InventoryLayout.slotCount(count, bodyWidth), bodyWidth)
 	local footer = if footerHeight then InventoryLayout.PLATE.footerGap + footerHeight else 0
 	return gridTop + InventoryLayout.CELL.gridPad + grid + footer
+end
+
+export type Arrangement = {
+	side: boolean, -- plate left, grid right (a short body)
+	slot: number, -- plate slot edge
+	plate: Rect, -- relative to the body
+	slots: { Rect }, -- relative to the plate
+	barHeadingW: number, -- the "Hotbar" heading line's width (it starts at the body's left)
+	bagHeadingX: number, -- the "Bag" heading line's left edge ...
+	bagHeadingY: number,
+	gridX: number, -- the bag grid (scroll frame) top-left, relative to the body
+	gridY: number,
+	gridW: number, -- width its cells are laid out in
+}
+
+-- Everything the panel places: stacked (the default) or, when `bodyHeight` is known and the stacked plate would
+-- leave the grid less than one cell tall, side by side.
+function InventoryLayout.arrange(bodyWidth: number, bodyHeight: number?): Arrangement
+	local c, p = InventoryLayout.CELL, InventoryLayout.PLATE
+	local slot = InventoryLayout.plateSlot(bodyWidth, bodyHeight)
+	local headingY, gridY = InventoryLayout.bagTop(slot)
+	if bodyHeight == nil or bodyHeight - gridY >= InventoryLayout.cellSize(bodyWidth) then
+		local plate, slots = InventoryLayout.plate(bodyWidth, slot)
+		return {
+			side = false,
+			slot = slot,
+			plate = plate,
+			slots = slots,
+			barHeadingW = bodyWidth,
+			bagHeadingX = 0,
+			bagHeadingY = headingY,
+			gridX = 0,
+			gridY = gridY,
+			gridW = bodyWidth,
+		}
+	end
+	local n = p.sideColumns
+	local top = c.top + c.topGap
+	local fit = math.floor((bodyHeight - top - p.pad * 2 - (n - 1) * p.gap) / n)
+	local sideSlot = math.clamp(fit, p.min, p.sideMax)
+	local w = n * sideSlot + (n - 1) * p.gap + p.pad * 2
+	local slots: { Rect } = {}
+	for i = 1, InventoryLayout.MAX_SLOTS do
+		local col, row = (i - 1) % n, (i - 1) // n
+		slots[i] = {
+			x = p.pad + col * (sideSlot + p.gap),
+			y = p.pad + row * (sideSlot + p.gap),
+			w = sideSlot,
+			h = sideSlot,
+		}
+	end
+	local gridX = w + c.gap
+	return {
+		side = true,
+		slot = sideSlot,
+		plate = { x = 0, y = top, w = w, h = n * sideSlot + (n - 1) * p.gap + p.pad * 2 },
+		slots = slots,
+		barHeadingW = w,
+		bagHeadingX = gridX,
+		bagHeadingY = 0,
+		gridX = gridX,
+		gridY = top,
+		gridW = bodyWidth - gridX,
+	}
 end
 
 return table.freeze(InventoryLayout)

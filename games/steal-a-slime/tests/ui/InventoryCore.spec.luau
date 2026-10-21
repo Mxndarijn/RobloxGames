@@ -660,6 +660,43 @@ describe("InventoryLayout hotbar plate", function()
 		expect(303 - gridTop >= P.minGrid).toBe(true)
 		expect(InventoryLayout.plateSlot(536, 10)).toBe(P.min)
 	end)
+	-- The body as the panel gets it: content-sized, clamped to the backdrop.
+	local function bodyOf(s: Layout.Screen): Layout.Rect
+		local w = Layout.panelBody(Layout.panelFor(s, "Inventory")).w
+		return Layout.panelBody(Layout.panelFor(s, "Inventory", InventoryLayout.contentHeight(12, w, 40)))
+	end
+	it(
+		"a landscape phone puts the plate left of the bag grid, whole tappable cells (844x332, 640x360, 844x390)",
+		function()
+			for _, vp in { { 844, 332 }, { 640, 360 }, { 844, 390 } } do
+				local s = Layout.screen(vp[1], vp[2])
+				local body = bodyOf(s)
+				local a = InventoryLayout.arrange(body.w, body.h)
+				expect(a.side).toBe(true)
+				local cell = InventoryLayout.cellSize(a.gridW)
+				expect(cell * s.scale >= Layout.MIN_TOUCH).toBe(true)
+				expect(body.h - a.gridY >= cell + InventoryLayout.CELL.gridPad).toBe(true) -- a whole row shows
+				expect(a.plate.x + a.plate.w < a.gridX).toBe(true)
+				expect(a.gridX + a.gridW).toBe(body.w)
+				expect(a.plate.y + a.plate.h <= body.h).toBe(true)
+				expect(a.slot >= P.min and a.slot <= P.sideMax).toBe(true)
+				for _, slot in a.slots do
+					expect(slot.x + slot.w <= a.plate.w and slot.y + slot.h <= a.plate.h).toBe(true)
+				end
+			end
+		end
+	)
+	it("a roomy body keeps the stacked plate and grid", function()
+		for _, vp in { { 390, 844 }, { 1024, 768 }, { 1366, 768 }, { 1920, 1080 } } do
+			local s = Layout.screen(vp[1], vp[2])
+			local body = bodyOf(s)
+			local a = InventoryLayout.arrange(body.w, body.h)
+			expect(a.side).toBe(false)
+			expect(a.gridX).toBe(0)
+			expect(a.gridW).toBe(body.w)
+		end
+		expect(InventoryLayout.arrange(536).side).toBe(false)
+	end)
 	it("hit finds the rect under a point", function()
 		local rects = { { x = 0, y = 0, w = 10, h = 10 }, { x = 20, y = 0, w = 10, h = 10 } }
 		expect(InventoryLayout.hit(rects, 25, 5)).toBe(2)

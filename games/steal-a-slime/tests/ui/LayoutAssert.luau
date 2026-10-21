@@ -92,10 +92,11 @@ LayoutAssert.VIEWPORTS = table.freeze({
 })
 
 -- The gate viewports (ScrollLists.spec too): full-window menus are checked
--- at all five, the whole `standard` rule set at VIEWPORTS.
+-- at all six, the whole `standard` rule set at VIEWPORTS.
 LayoutAssert.GATE_VIEWPORTS = table.freeze({
 	table.freeze({ name = "390x844", w = 390, h = 844 }),
 	table.freeze({ name = "844x390", w = 844, h = 390 }),
+	table.freeze({ name = "768x1024", w = 768, h = 1024 }),
 	table.freeze({ name = "1024x768", w = 1024, h = 768 }),
 	table.freeze({ name = "1366x768", w = 1366, h = 768 }),
 	table.freeze({ name = "1920x1080", w = 1920, h = 1080 }),
@@ -1171,6 +1172,24 @@ function LayoutAssert.phoneRowChecks(check: Checker, bar: Rect)
 	check.noOverlap("Hotbar.bar", bar, "Status", status)
 	check.noOverlap("Money", money, "Status", status)
 	check.noOverlap("Nav", screen.nav, "Money", money)
+end
+
+-- Touch layouts (Layout.screen { touch = true }): the status icons take taps, so the cluster keeps JUMP_CLEAR
+-- px off Roblox's jump button (Layout.jumpRect).
+function LayoutAssert.jumpClear(check: Checker)
+	local screen = check.screen
+	local jump = Layout.jumpRect(screen.viewportW, screen.viewportH)
+	local clear = Layout.JUMP_CLEAR
+	local zone = Layout.rect(
+		(jump.x - clear) / screen.scale,
+		(jump.y - clear) / screen.scale,
+		(jump.w + clear * 2) / screen.scale,
+		(jump.h + clear * 2) / screen.scale
+	)
+	check.noOverlap("Status", screen.status.rect, "JumpButton", zone)
+	for i, slot in screen.status.slots do
+		check.noOverlap(`Status.slot{i}`, slot, "JumpButton", zone)
+	end
 end
 
 function LayoutAssert.standard(label: string, screen: Layout.Screen): Checker

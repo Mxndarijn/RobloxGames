@@ -873,10 +873,12 @@ function Inventory.new(parent: Instance, deps: Deps)
 		local p = ensureParts()
 		local bodyW = bodyWidth()
 		local bodyH = placePanel()
-		-- Hotbar plate.
-		local slotSize = InventoryLayout.plateSlot(bodyW, bodyH)
-		local plateRect, plateRects = InventoryLayout.plate(bodyW, slotSize)
+		-- Hotbar plate (stacked over the grid, or left of it on a short body).
+		local a = InventoryLayout.arrange(bodyW, bodyH)
+		local plateRect, plateRects = a.plate, a.slots
 		p.barHeading.Position = fromOffset(0, 0)
+		p.barHeading.Size = if a.side then fromOffset(a.barHeadingW, CELL.top) else UDim2.new(1, 0, 0, CELL.top)
+		p.hint.Size = UDim2.new(0, if a.side then a.barHeadingW - P.headingRoom / 2 else P.headingRoom * 2, 1, 0)
 		p.plate.Position = fromOffset(plateRect.x, plateRect.y)
 		p.plate.Size = fromOffset(plateRect.w, plateRect.h)
 		local plateX, plateY = offsetOf(p.plate)
@@ -893,15 +895,16 @@ function Inventory.new(parent: Instance, deps: Deps)
 			plateHits[i] = { x = plateX + r.x, y = plateY + r.y, w = r.w, h = r.h }
 		end
 		-- Bag.
-		local headingY, gridY = InventoryLayout.bagTop(slotSize)
-		p.bagHeading.Position = fromOffset(0, headingY)
-		p.list.Position = fromOffset(0, gridY)
-		p.list.Size = UDim2.new(1, 0, 1, -gridY)
-		local cols = InventoryLayout.columns(bodyW)
-		local size = InventoryLayout.cellSize(bodyW)
-		local total = InventoryLayout.slotCount(#entries, bodyW)
+		p.bagHeading.Position = fromOffset(a.bagHeadingX, a.bagHeadingY)
+		p.bagHeading.Size = UDim2.new(1, -a.bagHeadingX, 0, CELL.top)
+		p.list.Position = fromOffset(a.gridX, a.gridY)
+		p.list.Size = UDim2.new(1, -a.gridX, 1, -a.gridY)
+		local gridBodyW = a.gridW
+		local cols = InventoryLayout.columns(gridBodyW)
+		local size = InventoryLayout.cellSize(gridBodyW)
+		local total = InventoryLayout.slotCount(#entries, gridBodyW)
 		local gridW = cols * size + (cols - 1) * CELL.gap
-		local x0 = math.floor((bodyW - gridW) / 2)
+		local x0 = math.floor((gridBodyW - gridW) / 2)
 		local function at(i: number): UDim2
 			local col, row = (i - 1) % cols, (i - 1) // cols
 			return fromOffset(x0 + col * (size + CELL.gap), CELL.gridPad + row * (size + CELL.gap))
@@ -947,11 +950,11 @@ function Inventory.new(parent: Instance, deps: Deps)
 			end
 		end
 		p.countChip.Text = if #entries == 1 then "1 item" else `{#entries} items`
-		local gridH = InventoryLayout.gridHeight(total, bodyW)
-		local footerH = Layout.wrappedHeight(footerText, P.hintSize, bodyW)
+		local gridH = InventoryLayout.gridHeight(total, gridBodyW)
+		local footerH = Layout.wrappedHeight(footerText, P.hintSize, gridBodyW)
 		local footerY = CELL.gridPad + gridH + InventoryLayout.PLATE.footerGap
 		p.footer.Position = fromOffset(0, footerY)
-		p.footer.Size = fromOffset(bodyW, footerH)
+		p.footer.Size = fromOffset(gridBodyW, footerH)
 		p.list.CanvasSize = fromOffset(0, footerY + footerH)
 	end
 
