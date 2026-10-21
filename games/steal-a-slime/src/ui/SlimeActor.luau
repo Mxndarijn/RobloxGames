@@ -1,7 +1,7 @@
 --!strict
 --[[
 	SlimeActor (contract/slime-life.md): the life of one animated slime on top
-	of SlimeMotor's idle pose, for SlimeLifeRunner's near LOD tier. Each frame
+	of SlimeMotor's idle pose, for every SlimeLifeRunner motor rig. Each frame
 	it combines
 	  ui/SlimeGait    its species gait (real hops, surges, waddles, hovering)
 	  ui/SlimeBeats   the lane beat its ParadeChoreo plan says it is in
@@ -11,7 +11,10 @@
 	replicated attributes, never decides anything.
 
 	  SlimeActor.attach(model, motor, now) -> Actor
-	  SlimeActor.update(actor, frame, now, serverNow, rand)   fills actor.mods / emote
+	  SlimeActor.update(actor, frame, now, serverNow, rand, full)   fills actor.mods / emote
+	    full (default true) = the near tier: reactions to the player, emote, hop effects.
+	    false = mid / far: the smooth lane glide, gait and lane beats only, so a slime
+	    across the plaza moves without the Body's replication steps and still hops.
 	  SlimeActor.frighten(actor, now, watch, delay)           a neighbour was grabbed
 	  SlimeActor.watch(actor, at, untilAt, face)              look at a spot for a while
 	  SlimeActor.bump(actor, now, hit)                        caught up with the slime ahead
@@ -37,8 +40,13 @@ SlimeActor.TURN_RATE = 6 -- 1 / s: how fast the body turns to a new look (shorte
 SlimeActor.MAX_TURN = 4.5 -- rad / s: never turns faster than this (no snapping when a player walks round it)
 SlimeActor.NEAR_DEAD_ZONE = 3.5 -- studs: a player this close keeps the slime's last look (the angle swings too fast up close)
 SlimeActor.CORRECT_RATE = 2.5 -- 1 / s: a lane slime's drawn spot absorbs what the server adds on top of lane math (spacing)
+-- ... and up to this much faster while the Body is CATCH_ERROR studs or more off the drawn spot (the lane queue holds
+-- it back or lets it catch up), so a queued slime is drawn within about half a stud of its Body. The replication
+-- wobble (a few hundredths of a stud) stays on the slow rate.
+SlimeActor.CATCH_RATE = 8
+SlimeActor.CATCH_ERROR = 1
 SlimeActor.FOLLOW_RATE = 10 -- 1 / s: off the lane the drawn spot follows the stepwise Body this fast
-SlimeActor.SNAP = 6 -- studs: further than this from the Body the drawn spot jumps (a teleport, the end of the ride)
+SlimeActor.SNAP = 6 -- studs: a jump this big in one frame is a teleport (or the end of the ride): the drawn spot jumps too
 SlimeActor.LATERAL_RATE = 2 -- 1 / s: the estimate of the slime's sideways place on the lane
 -- The Body replicates about this late: beats are looked up this far back, so a pose starts when the slime stops.
 SlimeActor.REPLICATION_LAG = 0.12
@@ -197,7 +205,6 @@ function SlimeActor.attach(model: Model, motor: SlimeMotor.Motor, now: number): 
 		bumpAt = -math.huge,
 		bumpedAt = -math.huge,
 	}
-	effects(actor)
 	return actor
 end
 
@@ -286,13 +293,19 @@ local function anchor(
 		lx, lz, vx, vz = laneSpot(actor, pos, serverNow - SlimeActor.REPLICATION_LAG, dt)
 	end
 	if lx then
+		-- The correction can grow large on purpose (the lane queue holds a slime back several studs), so only a
+		-- sudden jump in it is a teleport. Snapping on its size made every queued slime follow the stepwise Body.
 		local cx, cz = pos.X - lx, pos.Z - lz
-		if not actor.hasCorr or cx * cx + cz * cz > SlimeActor.SNAP ^ 2 then
+		local jx, jz = cx - actor.corrX, cz - actor.corrZ
+		if not actor.hasCorr or jx * jx + jz * jz > SlimeActor.SNAP ^ 2 then
 			actor.corrX, actor.corrZ, actor.hasCorr = cx, cz, true
 		else
-			local k = 1 - math.exp(-dt * SlimeActor.CORRECT_RATE)
-			actor.corrX += (cx - actor.corrX) * k
-			actor.corrZ += (cz - actor.corrZ) * k
+			local err = math.sqrt(jx * jx + jz * jz)
+			local rate = SlimeActor.CORRECT_RATE
+				+ SlimeActor.CATCH_RATE * math.clamp(err / SlimeActor.CATCH_ERROR, 0, 1)
+			local k = 1 - math.exp(-dt * rate)
+			actor.corrX += jx * k
+			actor.corrZ += jz * k
 		end
 		actor.ax, actor.az, actor.hasAnchor = lx + actor.corrX, lz + actor.corrZ, true
 		return actor.ax, actor.az, vx, vz
@@ -316,7 +329,18 @@ local function yawTo(body: BasePart, from: Vector3, at: Vector3): (number, numbe
 	return math.atan2(-rel.X, -rel.Z), flat.Magnitude
 end
 
-function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: number, rand: () -> number)
+function SlimeActor.update(
+	actor: Actor,
+	frame: Frame,
+	now: number,
+	serverNow: number,
+	rand: () -> number,
+	full: boolean?
+)
+	local detailed = full ~= false
+	if detailed then
+		effects(actor) -- once, the first time the slime is near (no-op for non-hoppers)
+	end
 	local model, body, mods = actor.model, actor.motor.body, actor.mods
 	local pos = body.Position
 	local look = body.CFrame.LookVector
@@ -358,11 +382,11 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 	local emote: string? = nil
 	actor.visible = Vector3.new(pos.X + g.dx, pos.Y, pos.Z + g.dz)
 	actor.speed = math.sqrt(actor.gait.vx ^ 2 + actor.gait.vz ^ 2)
-	if g.landed > 0 and actor.splat then
+	if detailed and g.landed > 0 and actor.splat then
 		actor.splat:Emit(math.max(3, math.floor(6 * g.landed + 0.5)))
 	end
 	if actor.string and actor.stringAt then
-		local on = g.stringX ~= nil and g.stringAlpha > 0
+		local on = detailed and g.stringX ~= nil and g.stringAlpha > 0
 		actor.string.Enabled = on
 		if on then
 			actor.stringAt.WorldPosition =
@@ -415,8 +439,8 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 		end
 	end
 
-	-- The local player (looked at from the anchor, not the hop: a jump must not swing the turn)
-	if wild and not riding and frame.player then
+	-- The local player (looked at from the anchor, not the hop: a jump must not swing the turn). Near tier only.
+	if detailed and wild and not riding and frame.player then
 		local yaw, dist = yawTo(body, Vector3.new(ax, pos.Y, az), frame.player)
 		if dist < SlimeActor.NEAR_DEAD_ZONE then
 			yaw = actor.reactYaw
@@ -489,7 +513,7 @@ function SlimeActor.update(actor: Actor, frame: Frame, now: number, serverNow: n
 	mods.yaw, mods.yawWeight = actor.yaw, actor.yawWeight
 
 	face(mods, faceName)
-	actor.emote = emote
+	actor.emote = if detailed then emote else nil
 end
 
 function SlimeActor.frighten(actor: Actor, now: number, watch: Vector3, delay: number)

@@ -41,10 +41,15 @@
 
 	LOD (SlimeLod, Config.SLIME_LOD):
 	the "motor" rigs get a tier per reselect from the camera distance and the
-	saved graphics quality. near = full motion every frame, mid = squish only
-	(smaller, every MID_EVERY frames), far = Transform reset once, then
-	skipped. The model attribute LifeTier ("near" | "mid" | "far", client-only)
-	says which; pc-watcher counts it.
+	saved graphics quality. With FEATURES.SlimeChoreo (an actor on every rig):
+	every tier is drawn every frame from the smooth lane anchor, so no slime
+	shows the Body's replication steps. near = the full SlimeActor life, for
+	at most SLIME_LOD.NEAR_MAX rigs (SlimeLod.capNear); mid and far = the light
+	detail (glide, gait, lane beats; no reactions, emotes or hop effects).
+	Without it: near = full motion every frame, mid = squish only (smaller,
+	every MID_EVERY frames), far = Transform reset once, then skipped. The
+	model attribute LifeTier ("near" | "mid" | "far", client-only) says which;
+	pc-watcher counts it.
 
 	Cost: at most SlimeLife.MAX_ACTIVE rigs within SlimeLife.MAX_DISTANCE of
 	the camera, 3-4 property writes each per frame, selection 4x a second,
@@ -69,7 +74,7 @@ local SlimeMotor = require(script.Parent:WaitForChild("SlimeMotor"))
 local SlimeReact = require(script.Parent:WaitForChild("SlimeReact"))
 
 local SELECT_EVERY = 0.25
-local ACQUIRE_PER_TICK = 4
+local ACQUIRE_PER_TICK = 8
 local ROOT_NAME = "LifeRoot"
 local SQUASH_NAME = "LifeSquash"
 local SKIN_NAME = "Mesh" -- SlimeMesh.MESH_NAME
@@ -696,16 +701,25 @@ local function reselect(camera: Camera)
 	for model in motorRigs do
 		active[slimeId(model)] = true
 	end
-	-- LOD tiers for the motor rigs, from the distances this selection already measured.
+	-- LOD tiers for the motor rigs, from the distances this selection already measured; only the
+	-- NEAR_MAX nearest keep the full near life.
 	refreshQuality()
+	local ranked: { SlimeLod.Ranked & { rig: MotorRig } } = {}
 	for _, c in cands do
 		local rig = motorRigs[(c :: any).model]
 		if rig then
-			local tier = SlimeLod.tierFor(lodConfig, qualityLevel, c.distance, rig.tier)
-			if tier ~= rig.tier then
-				rig.tier = tier
-				rig.model:SetAttribute("LifeTier", tier)
-			end
+			table.insert(ranked, {
+				rig = rig,
+				distance = c.distance,
+				tier = SlimeLod.tierFor(lodConfig, qualityLevel, c.distance, rig.tier),
+			})
+		end
+	end
+	SlimeLod.capNear(lodConfig, ranked :: any)
+	for _, r in ranked do
+		if r.tier ~= r.rig.tier then
+			r.rig.tier = r.tier
+			r.rig.model:SetAttribute("LifeTier", r.tier)
 		end
 	end
 	local sparkling = SlimeLife.sparkleSet(cands, active)
@@ -926,8 +940,10 @@ RunService.RenderStepped:Connect(function()
 			local tier = rig.tier
 			local ok, result = true, false :: any
 			local actor = rig.actor
-			if tier == "near" and actor then
-				ok, result = pcall(SlimeActor.update, actor, lifeFrame, now, serverNow, math.random)
+			if actor then
+				-- Every tier, every frame: the Transform carries the smooth lane anchor, so skipping a frame
+				-- would show the Body's replication step. The full life only on the near tier.
+				ok, result = pcall(SlimeActor.update, actor, lifeFrame, now, serverNow, math.random, tier == "near")
 				if ok then
 					ok, result = pcall(SlimeMotor.step, rig.motor, now, math.random, actor.mods)
 				end
@@ -936,7 +952,9 @@ RunService.RenderStepped:Connect(function()
 			elseif SlimeLod.due(tier, frame, rig.slot, lodConfig) then
 				ok, result = pcall(SlimeMotor.stepSquish, rig.motor, now, lodConfig.MID_AMPLITUDE)
 			elseif tier == "far" then
-				ok, result = pcall(SlimeMotor.park, rig.motor)
+				-- park's true means "reset this frame", not a landing: never a sparkle burst
+				local okPark, err = pcall(SlimeMotor.park, rig.motor)
+				ok, result = okPark, if okPark then false else err
 			end
 			if not ok then
 				warn(`[SlimeLife] motor step: {result}`)

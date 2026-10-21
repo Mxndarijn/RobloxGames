@@ -202,15 +202,15 @@ describe("driver choice", function()
 end)
 
 describe("LOD", function()
-	it("at most MAX_ACTIVE slimes within 80 studs and on screen get a motor", function()
+	it("at most MAX_ACTIVE slimes within MAX_DISTANCE and on screen get a motor", function()
 		local cands, models = {}, {}
-		for i = 1, 40 do
+		for i = 1, 80 do
 			local m = slime()
 			m:SetAttribute("SlimeId", `s{i}`)
 			models[`s{i}`] = m
 			table.insert(cands, {
 				id = `s{i}`,
-				distance = 5 + i * 2.5, -- 7.5 .. 105
+				distance = 5 + i * 3, -- 8 .. 245
 				onScreen = i % 5 ~= 0,
 				state = "Wild",
 				tier = 3,
@@ -387,9 +387,9 @@ describe("LOD tiers", function()
 		expect(SlimeMotor.park(motor)).toBe(true)
 	end)
 
-	it("the cap of 16 and the on-screen check hold with the LOD on", function()
+	it("the MAX_ACTIVE cap and the on-screen check hold with the LOD on", function()
 		local cands = {}
-		for i = 1, 40 do
+		for i = 1, 120 do
 			table.insert(
 				cands,
 				{ id = `s{i}`, distance = 5 + i * 1.8, onScreen = i % 4 ~= 0, state = "Wild", tier = 3 }
@@ -406,7 +406,36 @@ describe("LOD tiers", function()
 			end
 		end
 		expect(count).toBe(SlimeLife.MAX_ACTIVE)
-		expect(counts.near + counts.mid + counts.far).toBe(16)
-		expect(counts.near > 0 and counts.mid > 0).toBe(true)
+		expect(counts.near + counts.mid + counts.far).toBe(SlimeLife.MAX_ACTIVE)
+		expect(counts.near > 0 and counts.mid > 0 and counts.far > 0).toBe(true)
+	end)
+
+	it("capNear keeps only the NEAR_MAX nearest near rigs, the rest draw as mid", function()
+		local rigs = {}
+		for i = 1, cfg.NEAR_MAX + 6 do
+			-- shuffled distances: 1 + (i * 7) % n keeps them distinct
+			table.insert(rigs, { tier = "near", distance = 1 + (i * 7) % (cfg.NEAR_MAX + 6) })
+		end
+		table.insert(rigs, { tier = "far", distance = 0.5 }) -- never promoted
+		SlimeLod.capNear(cfg, rigs)
+		local near, worstNear, bestMid = 0, -1, math.huge
+		for _, r in rigs do
+			if r.tier == "near" then
+				near += 1
+				worstNear = math.max(worstNear, r.distance)
+			elseif r.tier == "mid" then
+				bestMid = math.min(bestMid, r.distance)
+			end
+		end
+		expect(near).toBe(cfg.NEAR_MAX)
+		expect(worstNear < bestMid).toBe(true)
+		expect(rigs[#rigs].tier).toBe("far")
+	end)
+
+	it("capNear leaves a small near set alone", function()
+		local rigs = { { tier = "near", distance = 3 }, { tier = "mid", distance = 40 } }
+		SlimeLod.capNear(cfg, rigs)
+		expect(rigs[1].tier).toBe("near")
+		expect(rigs[2].tier).toBe("mid")
 	end)
 end)

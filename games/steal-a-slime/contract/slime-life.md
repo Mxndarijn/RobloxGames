@@ -41,8 +41,10 @@ gets `SlimePersona.DEFAULT`. One table, read by the server (temperament picks th
 
 ## Client life (`src/ui`)
 
-All of it runs inside `SlimeLifeRunner`'s one frame loop, only for the `SlimeLife.MAX_ACTIVE` near rigs (LOD "near";
-mid and far tiers keep today's squish / rest). Pure parts have Lune specs. With the flag on every rig runs on the
+All of it runs inside `SlimeLifeRunner`'s one frame loop for the `SlimeLife.MAX_ACTIVE` (40) nearest on-screen rigs
+within `SlimeLife.MAX_DISTANCE` (200 studs), every frame at every LOD tier. The full life (reactions, emotes, hop
+effects) is for the near tier only, at most `SLIME_LOD.NEAR_MAX` (16) rigs (`SlimeLod.capNear`); mid and far rigs get
+the light detail: the smooth lane anchor, the gait and the lane beats. Pure parts have Lune specs. With the flag on every rig runs on the
 procedural `SlimeMotor` path (the uploaded KeyframeSequences of `FEATURES.SlimeAnimations` stay off), since the life
 rides on its Transform and the species bones. On the slide itself (`Riding` and less than `RIDE_SECONDS` since
 `LaneAt`) the gait waits; the lead-in from the slide mouth already walks.
@@ -89,6 +91,9 @@ rides on its Transform and the species bones. On the slide itself (`Riding` and 
 
 The Body replicates in steps. `SlimeActor` draws a lane slime from its lane math (the server's own `ParadeLane.pose`
 plus its beats, at `GetServerTimeNow() - REPLICATION_LAG`) with a slow correction towards the Body (`CORRECT_RATE`;
-it absorbs the lane queue), and anything else from a filtered Body. Turns are capped at `MAX_TURN`; within
+it absorbs the lane queue), and anything else from a filtered Body. The correction speeds up with the gap
+(`CATCH_RATE` at `CATCH_ERROR` studs) so a queued slime is drawn within about half a stud of its Body, and only a
+sudden jump in it (`SNAP` studs in one frame) is a teleport: the queue can hold a slime many studs behind its lane
+spot, and snapping on that gap drew it straight from the stepwise Body. Turns are capped at `MAX_TURN`; within
 `NEAR_DEAD_ZONE` of the player the slime keeps its last look. Wiggles stay around 1-2 Hz. A face shuts the eyes only
 fully and only on a mesh with `Lids` (a half-shut blink pose leaves the eyes sunk with no arcs).
