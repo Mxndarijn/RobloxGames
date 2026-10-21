@@ -27,7 +27,7 @@ export type Plot = {
 	ownerUserId: number?, -- ShowOnlyToUserId on every prompt; nil = free plot
 	locked: boolean,
 	lockCost: number, -- 0 on a free plot
-	padsUnlocked: number, -- 0 on a free plot
+	padsUnlocked: number, -- pads the owner has (cash and rebirth pads), 0 on a free plot
 	nextPadCost: number?,
 	lock: Prompt,
 	buyPad: Prompt & { pad: number }, -- pad the prompt sits on
@@ -74,22 +74,27 @@ function PlotPrompts.describe(world: World.World, plotIndex: number, now: number
 		else `Lock base {price}`
 	local status = if locked then `LOCKED {PlotPrompts.clock(remaining)}` else "OPEN"
 
+	local owned = Economy.padsOwned(data.padsUnlocked, data.rebirths)
 	local padCost = Economy.padCost(data.padsUnlocked)
-	local nextPad = math.min(data.padsUnlocked + 1, Config.PADS_MAX)
+	-- the prompt sits on the next pad for sale; once the cash pads are done it rests (disabled) on the last owned pad
+	local nextPad = if padCost then owned + 1 else math.max(owned, 1)
 	local floor = Economy.floorOf(nextPad)
 	local buyText = if floor > 1 and nextPad == (floor - 1) * Config.PADS_PER_FLOOR + 1
 		then `Build floor {floor}`
 		else "Buy pad"
+	local doneText = if owned >= Config.PADS_MAX
+		then "All pads unlocked"
+		else `Rebirth for +{Config.PADS_PER_REBIRTH} pads`
 	return {
 		ownerUserId = session.userId,
 		locked = locked,
 		lockCost = cost,
-		padsUnlocked = data.padsUnlocked,
+		padsUnlocked = owned,
 		nextPadCost = padCost,
 		lock = { actionText = lockText, objectText = `{session.name}'s base: {status}`, enabled = true },
 		buyPad = {
-			actionText = if padCost then `{buyText} ${Economy.formatNumber(padCost)}` else "All pads unlocked",
-			objectText = `Pad {nextPad} of {Config.PADS_MAX}`,
+			actionText = if padCost then `{buyText} ${Economy.formatNumber(padCost)}` else doneText,
+			objectText = if padCost then `Pad {nextPad} of {Config.PADS_MAX}` else `{owned} of {Config.PADS_MAX} pads`,
 			enabled = padCost ~= nil,
 			pad = nextPad,
 		},

@@ -43,11 +43,20 @@ describe("PlotPrompts.describe", function()
 		expect(view.buyPad.actionText).toBe(`Buy pad ${first}`)
 		expect(view.buyPad.objectText).toBe(`Pad {Config.PADS_START + 1} of {Config.PADS_MAX}`)
 		expect(view.nextPadCost).toBe(first)
-		s.data.padsUnlocked = Config.PADS_MAX
+		-- every cash pad bought: the prompt rests on the last pad and points at rebirths
+		s.data.padsUnlocked = Config.CASH_PADS_MAX
+		local cashDone = PlotPrompts.describe(world, s.plotIndex, T0)
+		expect(cashDone.buyPad.enabled).toBe(false)
+		expect(cashDone.nextPadCost).toBeNil()
+		expect(cashDone.buyPad.pad).toBe(Config.CASH_PADS_MAX)
+		expect(cashDone.buyPad.actionText).toBe(`Rebirth for +{Config.PADS_PER_REBIRTH} pads`)
+		expect(cashDone.padsUnlocked).toBe(Config.CASH_PADS_MAX)
+		s.data.rebirths = 8
 		local full = PlotPrompts.describe(world, s.plotIndex, T0)
 		expect(full.buyPad.enabled).toBe(false)
-		expect(full.nextPadCost).toBeNil()
 		expect(full.buyPad.pad).toBe(Config.PADS_MAX)
+		expect(full.buyPad.actionText).toBe("All pads unlocked")
+		expect(full.padsUnlocked).toBe(Config.PADS_MAX)
 	end)
 	it("sells a floor's first pad as building that floor", function()
 		local world = ServerFixtures.world()

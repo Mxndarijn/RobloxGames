@@ -95,23 +95,45 @@ function Economy.floorOf(pad: number): number
 	return math.max(1, math.ceil(pad / Config.PADS_PER_FLOOR))
 end
 
--- How many floors a plot shows: every floor with an unlocked pad, plus the next one once the top one is full
--- (its pads locked, so the next pad can be bought there). Never more than #BASE_FLOORS.
-function Economy.floorsShown(padsUnlocked: number): number
-	return math.min(#Config.BASE_FLOORS, count(padsUnlocked) // Config.PADS_PER_FLOOR + 1)
+-- Pads a player owns: the ones bought with cash (`padsUnlocked`, at most CASH_PADS_MAX) and, once every cash pad is
+-- bought, PADS_PER_REBIRTH more per rebirth (rebirths done before that count too). Never more than PADS_MAX.
+function Economy.padsOwned(padsUnlocked: number, rebirths: number?): number
+	local cash = math.min(count(padsUnlocked), Config.CASH_PADS_MAX)
+	if cash < Config.CASH_PADS_MAX then
+		return cash
+	end
+	return math.min(Config.PADS_MAX, cash + Config.PADS_PER_REBIRTH * count(rebirths))
 end
 
--- Price of the next pad, or nil when every pad is unlocked (Config.BASE_FLOORS).
+-- Pads the next rebirth adds right away (0 while cash pads are left to buy, or the tower is full).
+function Economy.rebirthPadGain(padsUnlocked: number, rebirths: number?): number
+	if count(padsUnlocked) < Config.CASH_PADS_MAX then
+		return 0
+	end
+	local r = count(rebirths)
+	return Economy.padsOwned(padsUnlocked, r + 1) - Economy.padsOwned(padsUnlocked, r)
+end
+
+-- How many floors a plot shows: every floor with an owned pad, plus the next one while its first pad is for sale
+-- (shown with its pads locked, so it can be bought there). Floors that come from rebirths only appear once a rebirth
+-- puts a pad on them. Never more than #BASE_FLOORS, never less than 1.
+function Economy.floorsShown(padsUnlocked: number, rebirths: number?): number
+	local owned = Economy.padsOwned(padsUnlocked, rebirths)
+	local top = if Economy.padCost(padsUnlocked) then owned + 1 else owned
+	return math.clamp(Economy.floorOf(top), 1, #Config.BASE_FLOORS)
+end
+
+-- Price of the next cash pad, or nil when every cash pad is bought (the rest come from rebirths).
 function Economy.padCost(padsUnlocked: number): number?
 	local owned = count(padsUnlocked)
-	if owned >= Config.PADS_MAX then
+	if owned >= Config.CASH_PADS_MAX then
 		return nil
 	end
 	local nextPad = owned + 1
 	local floor = Economy.floorOf(nextPad)
 	local row = Config.BASE_FLOORS[floor]
 	local first = if floor == 1 then Config.PADS_START + 1 else (floor - 1) * Config.PADS_PER_FLOOR + 1
-	return math.floor(row.firstPadCost * row.growth ^ math.max(0, nextPad - first))
+	return math.floor((row.firstPadCost :: number) * (row.growth :: number) ^ math.max(0, nextPad - first))
 end
 
 -- x REBIRTH_COST_GROWTH per rebirth up to REBIRTH_LATE_FROM, then x REBIRTH_COST_GROWTH_LATE.

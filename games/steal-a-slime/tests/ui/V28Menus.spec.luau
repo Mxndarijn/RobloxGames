@@ -234,6 +234,37 @@ describe("v28 item 4: Rebirth shows only the next rebirth", function()
 		expect(maxed.maxed).toBe(true)
 		expect(maxed.ready).toBe(false)
 	end)
+	it("Progress.nextRebirth: the pads it adds now, or banks until the cash pads are bought", function()
+		local s = rebirthState(2, 0)
+		s.padsUnlocked, s.padsMax = Config.CASH_PADS_MAX, Config.PADS_MAX
+		s.rebirthPads, s.cashPadsDone = 2, true
+		local now = Progress.nextRebirth(s, Config)
+		expect(now.padGain).toBe(2)
+		expect(now.padsLater).toBe(false)
+		s.padsUnlocked, s.rebirthPads, s.cashPadsDone = 10, 0, false
+		local later = Progress.nextRebirth(s, Config)
+		expect(later.padGain).toBe(0)
+		expect(later.padsLater).toBe(true)
+		s.padsUnlocked, s.cashPadsDone = Config.PADS_MAX, true
+		expect(Progress.nextRebirth(s, Config).padsLater).toBe(false)
+	end)
+	it("the panel shows a third gains tile for the pads a rebirth adds", function()
+		local Rebirth = UiHarness.ui("Panels/Rebirth")
+		local panel = Rebirth.new(UiHarness.root(), ctx())
+		local s = rebirthState(2, 0)
+		s.padsUnlocked, s.padsMax, s.rebirthPads, s.cashPadsDone = Config.CASH_PADS_MAX, Config.PADS_MAX, 2, true
+		panel.update(s)
+		local pads = UiHarness.find(panel.frame, "Pads")
+		expect(pads.Visible).toBe(true)
+		expect(pads:FindFirstChild("Value").Text).toBe("+2")
+		expect(pads:FindFirstChild("Word").Text).toBe("pads")
+		s.padsUnlocked, s.rebirthPads, s.cashPadsDone = Config.CASH_PADS_MAX - 3, 0, false
+		panel.update(s)
+		expect(pads:FindFirstChild("Word").Text).toBe(`pads after {Config.CASH_PADS_MAX}`)
+		s.padsUnlocked, s.cashPadsDone = Config.PADS_MAX, true
+		panel.update(s)
+		expect(pads.Visible).toBe(false)
+	end)
 	it("the panel has one requirement card and no ladder of later tiers", function()
 		local Rebirth = UiHarness.ui("Panels/Rebirth")
 		local panel = Rebirth.new(UiHarness.root(), ctx())

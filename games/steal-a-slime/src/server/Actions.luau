@@ -534,6 +534,14 @@ dispatch = function(world: World, session: Session, action: string, args: { any 
 	elseif action == "ShopBuy" then
 		return shopBuy(world, session, args[1], args[2], args[3], now, ctx)
 	end
+	-- A pad is bought at the pad (its BuyPadPrompt, handlePlotPad): a Request("BuyPad") from anywhere else is refused
+	-- wherever the adapter measures the range, strict mode or not.
+	if action == "BuyPad" and not ctx.strictBypass and ctx.plotPadAccess then
+		local code = PlotPadGuard.check(ctx.plotPadAccess(session.userId, "BuyPad"))
+		if code then
+			return fail(PlotPadGuard.MESSAGES[code])
+		end
+	end
 	local blocked = strictGate(session, action, ctx)
 	if blocked then
 		return blocked

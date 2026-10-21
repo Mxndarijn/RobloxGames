@@ -42,7 +42,7 @@ export type Data = {
 	version: number,
 	cash: number,
 	rebirths: number,
-	padsUnlocked: number,
+	padsUnlocked: number, -- pads bought with cash (Config.CASH_PADS_MAX at most); PlayerData.padsOwned adds rebirth pads
 	slimes: { Slime },
 	favoriteId: string?,
 	lastOnline: number, -- unix seconds of the last save while playing
@@ -127,6 +127,11 @@ function PlayerData.slimeOnPad(data: Data, pad: number): Slime?
 end
 
 -- Lowest unlocked pad with no slime on it, or nil if the plot is full.
+-- Pads the player owns: cash pads plus the ones rebirths add (Economy.padsOwned). `padsUnlocked` is the cash pads.
+function PlayerData.padsOwned(data: Data): number
+	return Economy.padsOwned(data.padsUnlocked, data.rebirths)
+end
+
 function PlayerData.freePad(data: Data): number?
 	local used = {}
 	for _, slime in data.slimes do
@@ -134,7 +139,7 @@ function PlayerData.freePad(data: Data): number?
 			used[slime.pad] = true
 		end
 	end
-	for pad = 1, data.padsUnlocked do
+	for pad = 1, PlayerData.padsOwned(data) do
 		if not used[pad] then
 			return pad
 		end
@@ -160,7 +165,7 @@ function PlayerData.addSlime(data: Data, slime: Slime, pad: number?): (boolean, 
 	end
 	local target = pad
 	if target then
-		if target < 1 or target > data.padsUnlocked or PlayerData.slimeOnPad(data, target) then
+		if target < 1 or target > PlayerData.padsOwned(data) or PlayerData.slimeOnPad(data, target) then
 			return false, "pad taken"
 		end
 	else
@@ -181,7 +186,7 @@ function PlayerData.moveSlime(data: Data, id: string, pad: number): (boolean, st
 	if not slime or slime.pad == nil then
 		return false, "not your slime"
 	end
-	if pad ~= math.floor(pad) or pad < 1 or pad > data.padsUnlocked then
+	if pad ~= math.floor(pad) or pad < 1 or pad > PlayerData.padsOwned(data) then
 		return false, "pad is locked"
 	end
 	if slime.pad == pad then

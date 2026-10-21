@@ -33,7 +33,7 @@ describe("SaveData round trip", function()
 		expect(back.slimes).toEqual(data.slimes)
 		expect(back.found).toEqual(data.found)
 		expect(next(back.found) ~= nil).toBe(true) -- generated slimes have a species
-		expect(back.padsUnlocked).toBe(Config.PADS_MAX)
+		expect(back.padsUnlocked).toBe(Config.CASH_PADS_MAX)
 	end)
 	it("keeps the SlimeDex: found species and the species reward ladder", function()
 		local data = Fixtures.data(nil, 0)
@@ -126,7 +126,7 @@ describe("SaveData.deserialize", function()
 			SaveData.deserialize({ version = 2, cash = -50, rebirths = 1e9, padsUnlocked = 999, lastOnline = 0 / 0 })
 		expect(d.cash).toBe(0)
 		expect(d.rebirths).toBe(Config.MAX_REBIRTHS)
-		expect(d.padsUnlocked).toBe(Config.PADS_MAX)
+		expect(d.padsUnlocked).toBe(Config.CASH_PADS_MAX) -- cash pads only; rebirths add the rest
 		expect(d.lastOnline).toBe(0)
 	end)
 	it("drops invalid and duplicate slimes, fixes clashing pads", function()
@@ -150,14 +150,20 @@ describe("SaveData.deserialize", function()
 		end
 		expect(PlayerData.findSlime(d, "a").pad).toBe(2)
 	end)
-	it("unlocks pads to fit saved slimes and drops overflow beyond PADS_MAX", function()
+	it("unlocks pads to fit saved slimes and drops overflow beyond the pads owned", function()
 		local slimes = {}
 		for i = 1, Config.PADS_MAX + 3 do
 			table.insert(slimes, { id = `s{i}`, tier = 1 })
 		end
-		local d = SaveData.deserialize({ version = 2, padsUnlocked = 4, slimes = slimes })
+		-- 8 rebirths: every cash pad plus 16 rebirth pads hold PADS_MAX slimes
+		local d = SaveData.deserialize({ version = 2, padsUnlocked = 4, rebirths = 8, slimes = slimes })
 		expect(#d.slimes).toBe(Config.PADS_MAX)
-		expect(d.padsUnlocked).toBe(Config.PADS_MAX)
+		expect(d.padsUnlocked).toBe(Config.CASH_PADS_MAX)
+		-- no rebirths: only the cash pads
+		local fresh = SaveData.deserialize({ version = 2, padsUnlocked = 4, slimes = slimes })
+		expect(#fresh.slimes).toBe(Config.CASH_PADS_MAX)
+		local few = SaveData.deserialize({ version = 2, padsUnlocked = 4, slimes = { slimes[1], slimes[2], slimes[3], slimes[4], slimes[5], slimes[6] } })
+		expect(few.padsUnlocked).toBe(6)
 	end)
 	it("ignores a favourite that isn't owned", function()
 		local d = SaveData.deserialize({ version = 2, favoriteId = "ghost", slimes = { { id = "a", tier = 1 } } })

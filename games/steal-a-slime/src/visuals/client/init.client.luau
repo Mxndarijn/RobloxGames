@@ -14,6 +14,7 @@
 	  * Slime Rain particles, goo blobs and a colour tint while workspace
 	    attribute Constants.RAIN_ATTRIBUTE ("SlimeRain") is true
 	  * tutorial arrow (TutorialArrow) for the Player attribute TutorialStepId
+	  * price tag over the next buyable pad (PadPriceTag)
 	  * night sky (NightSky): Sky + Atmosphere, night look on ClockTime
 	  * follow pets (FollowPets) for the Player attribute PetSlimeId
 	  * despawn warning (DespawnTelegraphFx) on wild slimes with DespawnAt
@@ -477,6 +478,14 @@ do
 	end)
 	if not ok then
 		warn(`[VisualsClient] tutorial arrow disabled: {err}`)
+	end
+end
+do
+	local ok, err = pcall(function()
+		require(script:WaitForChild("PadPriceTag")).start()
+	end)
+	if not ok then
+		warn(`[VisualsClient] pad price tag disabled: {err}`)
 	end
 end
 do

@@ -625,17 +625,25 @@ end
 -- 1 = the old pace, 0.65 = 35% slower. The lane walk is a fixed route over the slime's lifetime, so the lifetime
 -- stretches by 1 / mult to keep the drain reached right at expiry (WILD_LIFETIME below).
 local SLIME_MOVE_SPEED_MULT = 0.65
--- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). Row f prices floor f's pads: its first pad you
--- buy costs `firstPadCost`, every next one on that floor `growth` times the one before. Floor 1's first bought pad is
--- pad PADS_START + 1; on a higher floor it is the floor's first pad, so its price is also the price of the new floor.
--- Adding a row adds a floor.
+-- A base grows by floors of PADS_PER_FLOOR pads (CONTRACT.md §5.3). A floor row with a price is bought with cash: its
+-- first pad you buy costs `firstPadCost`, every next one on that floor `growth` times the one before. Floor 1's first
+-- bought pad is pad PADS_START + 1; on floor 2 it is the floor's first pad, so its price is also the price of the new
+-- floor. The floors after the priced ones come from rebirths (`rebirth = true`): once every cash pad is bought, each
+-- rebirth adds PADS_PER_REBIRTH pads (Economy.padsOwned). Prices keep pace with the rebirth ladder: floor 2 full is
+-- about rebirth 2's cost; rebirths 1..8 then fill floors 3 and 4. Adding a row adds a floor.
 local PADS_PER_FLOOR = 8
-local BASE_FLOORS = table.freeze({
+local BASE_FLOORS: { { firstPadCost: number?, growth: number?, rebirth: boolean? } } = table.freeze({
 	table.freeze({ firstPadCost = 100, growth = 2.5 }),
-	table.freeze({ firstPadCost = 25_000, growth = 1.6 }),
-	table.freeze({ firstPadCost = 2_500_000, growth = 1.6 }),
-	table.freeze({ firstPadCost = 250_000_000, growth = 1.6 }),
+	table.freeze({ firstPadCost = 30_000, growth = 1.35 }),
+	table.freeze({ rebirth = true }),
+	table.freeze({ rebirth = true }),
 })
+local CASH_FLOORS = 0
+for _, row in BASE_FLOORS do
+	if row.firstPadCost then
+		CASH_FLOORS += 1
+	end
+end
 local SPAWN_INTERVAL = 4 -- seconds between fountain drops; Slime Rain keeps this pace
 local RITUAL_MIN_PLAYERS = 2 -- Config.RITUAL.MIN_PLAYERS; also the number of stand spots
 local WILD_BASE_LIFETIME = 75 -- seconds at the old pace
@@ -669,6 +677,8 @@ local Config = {
 	PADS_PER_FLOOR = PADS_PER_FLOOR,
 	BASE_FLOORS = BASE_FLOORS,
 	PADS_MAX = #BASE_FLOORS * PADS_PER_FLOOR,
+	CASH_PADS_MAX = CASH_FLOORS * PADS_PER_FLOOR, -- pads 1..this are bought with cash; the rest come from rebirths
+	PADS_PER_REBIRTH = 2,
 	SELL_SECONDS = 30, -- a slime sells for this many seconds of its income
 	OFFLINE_RATE = 0.5, -- fraction of income earned while offline
 	OFFLINE_CAP_SECONDS = 2 * 60 * 60, -- offline income stops accruing after 2 h

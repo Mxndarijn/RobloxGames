@@ -88,9 +88,11 @@ function Snapshot.build(world: World, session: Session, now: number): Types.Stat
 		rebirthCost = Economy.rebirthCost(rebirths),
 		canRebirth = canRebirth,
 		rebirthSlimes = Progression.requiredSlimes(data),
-		padsUnlocked = data.padsUnlocked,
+		padsUnlocked = PlayerData.padsOwned(data), -- every pad the player has (cash and rebirth pads)
 		padsMax = Config.PADS_MAX,
-		nextPadCost = Economy.padCost(data.padsUnlocked),
+		nextPadCost = Economy.padCost(data.padsUnlocked), -- nil once every cash pad is bought
+		rebirthPads = Economy.rebirthPadGain(data.padsUnlocked, data.rebirths), -- pads the next rebirth adds now
+		cashPadsDone = data.padsUnlocked >= Config.CASH_PADS_MAX,
 		slimes = slimes,
 		favoriteId = data.favoriteId,
 		lockUntil = session.lockUntil,

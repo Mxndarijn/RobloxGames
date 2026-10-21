@@ -83,11 +83,13 @@ describe("Economy prices", function()
 		assert(first and second, "precondition")
 		expect(first).toBe(Config.BASE_FLOORS[1].firstPadCost)
 		expect(second > first).toBeTruthy()
+		expect(Economy.padCost(Config.CASH_PADS_MAX)).toBeNil() -- the rest come from rebirths
 		expect(Economy.padCost(Config.PADS_MAX)).toBeNil()
 	end)
-	it("prices every pad up to PADS_MAX higher than the one before, a new floor jumping up", function()
+	it("prices every cash pad higher than the one before, a new floor jumping up", function()
+		expect(Config.CASH_PADS_MAX).toBe(2 * Config.PADS_PER_FLOOR)
 		local last = 0
-		for owned = Config.PADS_START, Config.PADS_MAX - 1 do
+		for owned = Config.PADS_START, Config.CASH_PADS_MAX - 1 do
 			local cost = Economy.padCost(owned) :: number
 			expect(cost > last).toBeTruthy()
 			local nextPad = owned + 1
@@ -107,9 +109,39 @@ describe("Economy prices", function()
 		expect(Economy.floorOf(Config.PADS_MAX)).toBe(#Config.BASE_FLOORS)
 		expect(Economy.floorsShown(0)).toBe(1)
 		expect(Economy.floorsShown(per - 1)).toBe(1)
-		expect(Economy.floorsShown(per)).toBe(2)
+		expect(Economy.floorsShown(per)).toBe(2) -- floor 2 is for sale: shown with its pads locked
 		expect(Economy.floorsShown(per + 1)).toBe(2)
-		expect(Economy.floorsShown(Config.PADS_MAX)).toBe(#Config.BASE_FLOORS)
+		-- the rebirth floors appear only once a rebirth puts a pad on them
+		local cash = Config.CASH_PADS_MAX
+		expect(Economy.floorsShown(cash, 0)).toBe(2)
+		expect(Economy.floorsShown(cash, 1)).toBe(3)
+		expect(Economy.floorsShown(cash, 4)).toBe(3)
+		expect(Economy.floorsShown(cash, 5)).toBe(4)
+		expect(Economy.floorsShown(cash, 99)).toBe(#Config.BASE_FLOORS)
+		expect(Economy.floorsShown(cash - 4, 5)).toBe(2) -- banked rebirth pads wait for the last cash pad
+	end)
+	it("owns the cash pads, then PADS_PER_REBIRTH more per rebirth once every cash pad is bought", function()
+		local cash = Config.CASH_PADS_MAX
+		expect(Config.PADS_PER_REBIRTH).toBe(2)
+		expect(Economy.padsOwned(8, 3)).toBe(8)
+		expect(Economy.padsOwned(cash, 0)).toBe(cash)
+		expect(Economy.padsOwned(cash, 1)).toBe(cash + 2)
+		expect(Economy.padsOwned(cash, 8)).toBe(Config.PADS_MAX)
+		expect(Economy.padsOwned(cash, 20)).toBe(Config.PADS_MAX)
+		expect(Economy.padsOwned(99, 0)).toBe(cash) -- an old save's extra cash pads fold into the cap
+		expect(Economy.rebirthPadGain(cash - 1, 0)).toBe(0)
+		expect(Economy.rebirthPadGain(cash, 0)).toBe(2)
+		expect(Economy.rebirthPadGain(cash, 7)).toBe(2)
+		expect(Economy.rebirthPadGain(cash, 8)).toBe(0)
+	end)
+	it("keeps the cash floors in step with the rebirth ladder", function()
+		-- floor 2 bought out costs about rebirth 2; the next pads come from rebirths 1..8
+		local total = 0
+		for owned = Config.PADS_PER_FLOOR, Config.CASH_PADS_MAX - 1 do
+			total += Economy.padCost(owned) :: number
+		end
+		expect(total > Economy.rebirthCost(1)).toBe(true)
+		expect(total < Economy.rebirthCost(3)).toBe(true)
 	end)
 	it("rebirth cost grows geometrically", function()
 		expect(Economy.rebirthCost(0)).toBe(Config.REBIRTH_BASE_COST)

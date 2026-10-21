@@ -31,7 +31,7 @@ end
 -- Fresh profile with the given slimes placed on pads 1..n.
 function Fixtures.data(slimes: { Genome.Slime }?, cash: number?): PlayerData.Data
 	local data = PlayerData.new()
-	data.padsUnlocked = Config.PADS_MAX
+	data.padsUnlocked = Config.CASH_PADS_MAX -- every cash pad (rebirth pads come from data.rebirths)
 	for _, s in slimes or {} do
 		PlayerData.addSlime(data, s)
 	end

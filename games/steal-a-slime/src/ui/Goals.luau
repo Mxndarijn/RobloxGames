@@ -53,6 +53,7 @@ function Goals.derive(state: any, rarityNames: { string }): { Goal }
 
 	local padDetail = if type(state.nextPadCost) == "number"
 		then `{padsUnlocked}/{padsMax} · next {Format.formatCash(state.nextPadCost)}`
+		elseif padsUnlocked < padsMax then `{padsUnlocked}/{padsMax} · next: rebirth`
 		else `{padsUnlocked}/{padsMax}`
 	table.insert(out, goal("AllPads", "Unlock every pad", padDetail, padsUnlocked, padsMax))
 

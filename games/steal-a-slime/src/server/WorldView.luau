@@ -34,6 +34,7 @@ local BaseFloors = require(script.Parent.BaseFloors)
 local BossWander = require(ReplicatedStorage.Shared.BossWander)
 local Carry = require(script.Parent.Carry)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Economy = require(ReplicatedStorage.Shared.Economy)
 local Constants = require(ReplicatedStorage.Shared.Constants)
 local EggKind = require(ReplicatedStorage.Shared.EggKind)
 local EggModel = require(ReplicatedStorage.Visuals.EggModel)
@@ -1318,7 +1319,10 @@ function WorldView.updatePlots(world: World.World, now: number, floors: BaseFloo
 			local userId = world.plots[index]
 			local session = userId and world.sessions[userId]
 			if floors then
-				BaseFloors.sync(plot, index, if session then session.data.padsUnlocked else 0, floors)
+				local shown = if session
+					then Economy.floorsShown(session.data.padsUnlocked, session.data.rebirths)
+					else 1
+				BaseFloors.sync(plot, index, shown, floors)
 			end
 			local view = PlotPrompts.describe(world, index, now)
 			setIfChanged(plot, "OwnerUserId", if session then session.userId else 0)

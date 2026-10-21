@@ -41,7 +41,7 @@ function Goals.stat(data: Data, stat: string): number
 	elseif stat == "rebirths" then
 		return data.rebirths
 	elseif stat == "pads" then
-		return data.padsUnlocked
+		return PlayerData.padsOwned(data)
 	end
 	local value = (data.stats :: any)[stat]
 	return if type(value) == "number" then value else 0

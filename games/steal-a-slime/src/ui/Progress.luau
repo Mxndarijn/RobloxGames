@@ -97,6 +97,8 @@ export type NextRebirth = {
 	progress: string, -- "$1.2K / $5K"
 	multiplier: number, -- income multiplier after it
 	lockGain: number, -- extra lock seconds it adds (0 once locks are at LOCK_MAX_REMAINING)
+	padGain: number, -- pads it adds (State.rebirthPads; 0 while cash pads are left or the tower is full)
+	padsLater: boolean, -- it banks pads that arrive once every cash pad is bought (State.cashPadsDone false)
 	slimes: { SlimeNeed }, -- the slimes this rebirth needs and uses up (empty at max)
 	missing: { SlimeNeed }, -- the ones of `slimes` the player doesn't have yet
 }
@@ -145,6 +147,10 @@ function Progress.nextRebirth(state: any, cfg: Cfg): NextRebirth
 		lockGain = math.max(0, math.min(lock + cfg.LOCK_SECONDS_PER_REBIRTH, cfg.LOCK_MAX_REMAINING) - lock),
 		slimes = slimes,
 		missing = missing,
+		padGain = num(state.rebirthPads),
+		padsLater = not maxed
+			and state.cashPadsDone == false
+			and num(state.padsUnlocked) < num(state.padsMax),
 	}
 end
 

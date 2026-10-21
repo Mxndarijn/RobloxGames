@@ -395,6 +395,16 @@ function Rebirth.new(parent: Instance, ctx: any)
 	end
 	local incomeTile, incomeValue = gainTile("Income", "income", UDim.new(0, 0))
 	local lockTile, lockValue = gainTile("LockTime", "lock time", UDim.new(0.5, C.gap / 2))
+	local padTile, padValue = gainTile("Pads", "pads", UDim.new(0, 0))
+	local padWord = padTile:FindFirstChild("Word") :: TextLabel
+	-- Two tiles side by side, or three in thirds while the rebirth also gives pads.
+	local function layTiles(tiles: { Frame })
+		local n = #tiles
+		for i, tile in tiles do
+			tile.Position = UDim2.new((i - 1) / n, (i - 1) * C.gap / n, 0, rows.gives.y)
+			tile.Size = UDim2.new(1 / n, -C.gap * (n - 1) / n, 0, rows.gives.h)
+		end
+	end
 
 	local keepLine = Widgets.chip({
 		Name = "Keeper",
@@ -470,6 +480,15 @@ function Rebirth.new(parent: Instance, ctx: any)
 		lockTile.Visible = not nextUp.maxed
 		incomeValue.Text = Format.formatMultiplier(nextUp.multiplier)
 		lockValue.Text = if nextUp.lockGain > 0 then `+{nextUp.lockGain}s` else "Max"
+		-- pads: added now, or banked until the cash pads are all bought
+		local pads = if nextUp.padGain > 0
+			then nextUp.padGain
+			elseif nextUp.padsLater then ctx.Config.PADS_PER_REBIRTH
+			else 0
+		padTile.Visible = not nextUp.maxed and pads > 0
+		padValue.Text = `+{pads}`
+		padWord.Text = if nextUp.padGain > 0 then "pads" else `pads after {ctx.Config.CASH_PADS_MAX}`
+		layTiles(if padTile.Visible then { incomeTile, lockTile, padTile } else { incomeTile, lockTile })
 
 		local fav = Selection.findSlime(state.slimes, state.favoriteId)
 		keepLine.Text = `★ Keeps {if fav then ctx.Genome.displayName(fav.slime) else "your best slime"}`

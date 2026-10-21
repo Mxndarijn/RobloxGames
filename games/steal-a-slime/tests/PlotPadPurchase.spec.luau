@@ -115,6 +115,19 @@ describe("plot pad prompts under WorldShopsStrict", function()
 		expect(prompt(env, "Merge", "a", "b").ok).toBe(true)
 		expect(env.session.data.slimes[1].tier).toBe(2)
 	end)
+	it("a Request BuyPad works at the pad and is refused away from it, strict mode or not", function()
+		for _, strict in { true, false } do
+			local env = setup()
+			env.ctx.features = { WorldShops = true, WorldShopsStrict = strict }
+			env.session.data.padsUnlocked = Config.PADS_START
+			env.pad = { distance = 500, alive = true }
+			expect(request(env, "BuyPad").message).toBe(PlotPadGuard.MESSAGES.OutOfRange)
+			expect(env.session.data.padsUnlocked).toBe(Config.PADS_START)
+			env.pad = { distance = 3, alive = true }
+			expect(request(env, "BuyPad").ok).toBe(true)
+			expect(env.session.data.padsUnlocked).toBe(Config.PADS_START + 1)
+		end
+	end)
 	it("only the three pad kinds go through handlePlotPad", function()
 		local env = setup()
 		expect(prompt(env, "BuySpeedCoil").message).toBe("unknown action")

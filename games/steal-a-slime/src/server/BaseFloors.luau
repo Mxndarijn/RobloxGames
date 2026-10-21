@@ -3,7 +3,7 @@
 	BaseFloors (Roblox adapter, owner: Phoenix)
 
 	Keeps each plot's upper floors (CONTRACT.md §5.3) in step with its owner's pads: floor f (2..#BASE_FLOORS)
-	stands while Economy.floorsShown(padsUnlocked) >= f (0 pads on a free plot), and goes when that stops (the owner
+	stands while Economy.floorsShown(padsUnlocked, rebirths) >= f (`floors`, 1 on a free plot), and goes when that stops (the owner
 	left). `ctx.build` adds a floor's instances (WorldBuilder.buildFloor), `ctx.meshes` gives their slots the kit
 	meshes (MeshSwap.applyUnder, run in its own thread because it yields). Removing a floor parks the BuyPadPrompt
 	on floor 1 first, so the prompt record never points at a destroyed pad, and sets anyone standing in that jar
@@ -17,7 +17,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Constants = require(ReplicatedStorage.Shared.Constants)
-local Economy = require(ReplicatedStorage.Shared.Economy)
 local PlotLookup = require(script.Parent.PlotLookup)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
 
@@ -128,9 +127,9 @@ local function setLids(plot: Instance)
 	end
 end
 
--- Builds or removes plot `plotIndex`'s upper floors for an owner with `padsUnlocked` pads (0 = free plot).
-function BaseFloors.sync(plot: Instance, plotIndex: number, padsUnlocked: number, ctx: Context)
-	local shown = if padsUnlocked > 0 then Economy.floorsShown(padsUnlocked) else 1
+-- Builds or removes plot `plotIndex`'s upper floors so `floors` jars stand (Economy.floorsShown; 1 = a free plot).
+function BaseFloors.sync(plot: Instance, plotIndex: number, floors: number, ctx: Context)
+	local shown = math.clamp(floors, 1, #Config.BASE_FLOORS)
 	local changed = false
 	for floor = 2, #Config.BASE_FLOORS do
 		local present = plot:FindFirstChild(`Floor_{floor}`) ~= nil

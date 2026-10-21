@@ -464,7 +464,8 @@ function SaveData.deserialize(stored: any): Data
 
 	data.cash = num(raw.cash, Config.STARTING_CASH, 0, MAX_CASH)
 	data.rebirths = num(raw.rebirths, 0, 0, Config.MAX_REBIRTHS)
-	data.padsUnlocked = num(raw.padsUnlocked, Config.PADS_START, Config.PADS_START, Config.PADS_MAX)
+	-- Cash pads only (the rest come from rebirths, PlayerData.padsOwned); an older save's extra pads fold into that.
+	data.padsUnlocked = num(raw.padsUnlocked, Config.PADS_START, Config.PADS_START, Config.CASH_PADS_MAX)
 	data.lastOnline = num(raw.lastOnline, 0, 0, 1e11)
 	data.totalEarned = num(raw.totalEarned, 0, 0, MAX_CASH)
 	data.totalStolen = num(raw.totalStolen, 0, 0, 1e9)
@@ -493,13 +494,16 @@ function SaveData.deserialize(stored: any): Data
 			end
 		end
 	end
-	data.padsUnlocked = math.max(data.padsUnlocked, math.min(#clean, Config.PADS_MAX))
+	-- Every saved slime gets a pad: raise the cash pads until they fit (rebirth pads count once all cash pads are in).
+	while PlayerData.padsOwned(data) < math.min(#clean, Config.PADS_MAX) and data.padsUnlocked < Config.CASH_PADS_MAX do
+		data.padsUnlocked += 1
+	end
 
 	-- First keep slimes whose pad is valid and unique, then re-home the rest.
 	local homeless = {}
 	for _, slime in clean do
 		local pad = slime.pad
-		if pad and pad <= data.padsUnlocked and not PlayerData.slimeOnPad(data, pad) then
+		if pad and pad <= PlayerData.padsOwned(data) and not PlayerData.slimeOnPad(data, pad) then
 			table.insert(data.slimes, slime)
 			PlayerData.discover(data, slime)
 		else
