@@ -357,7 +357,7 @@ Client-only ambience (VisualsClient, no server part): emitters `Smoke` / `Embers
 | `PADS_START` / `PADS_PER_FLOOR` / `BASE_FLOORS` / `PADS_MAX` / `PLOT_COUNT` | 4 / 8 / 4 floors / 32 (`#BASE_FLOORS * PADS_PER_FLOOR`) / 8 | a base grows by floors of 8 pads; each `BASE_FLOORS` row prices its floor's pads (`Economy.padCost`) |
 | `OFFLINE_RATE` / `OFFLINE_CAP_SECONDS` | 0.5 / 7200 | capped offline income |
 | `REBIRTH_BASE_COST` / `REBIRTH_COST_GROWTH` / `REBIRTH_MULTIPLIER_STEP` | see `Config` | rebirth gives a multiplier, keeps one favourite (§8.8) |
-| `SPAWN_INTERVAL` / `MAX_WILD_SLIMES` / `FREE_DROP_CHANCE` / `WILD_PRICE_SECONDS` | 4 / 72 / 0.25 / 20 | "buy cheap ones … or grab a free drop" |
+| `SPAWN_INTERVAL` / `MAX_WILD_SLIMES` / `FREE_DROP_CHANCE` / `WILD_PRICE_SECONDS` | 4 / 144 / 0.25 / 20 | "buy cheap ones … or grab a free drop" |
 | `STATE_MIN_INTERVAL` / `LEADERBOARD_INTERVAL` | 0.25 / 60 | §5.1, §2 |
 
 | `SPEED_COIL_PRICE` / `SPEED_COIL_WALK_SPEED` | 1 500 / 24 | shop: speed coil |
