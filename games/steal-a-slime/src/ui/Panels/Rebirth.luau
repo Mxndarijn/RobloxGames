@@ -398,7 +398,7 @@ function Rebirth.new(parent: Instance, ctx: any)
 
 	local keepLine = Widgets.chip({
 		Name = "Keeper",
-		Font = Theme.FontBody,
+		FontFace = Theme.FontBody,
 		TextSize = T.keeperSize,
 		TextColor3 = Theme.Muted,
 		BackgroundColor3 = Theme.Row,

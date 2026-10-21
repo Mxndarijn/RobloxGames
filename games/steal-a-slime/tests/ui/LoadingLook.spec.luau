@@ -1,5 +1,5 @@
 --!strict
--- The join loading screen wears the HUD's purple palette, not its own dark navy.
+-- The join loading screen wears the HUD's Goo palette, not a look of its own.
 local TestRunner = require("../TestRunner")
 local UiHarness = require("./UiHarness")
 

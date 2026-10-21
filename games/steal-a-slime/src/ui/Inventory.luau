@@ -741,7 +741,7 @@ function Inventory.new(parent: Instance, deps: Deps)
 		local bagHeading = heading("BagHeading", "Bag")
 		local countChip = Widgets.chip({
 			Name = "Count",
-			Font = Theme.FontBody,
+			FontFace = Theme.FontBody,
 			TextSize = P.chipSize,
 			TextColor3 = Theme.Muted,
 			BackgroundColor3 = Theme.Row,

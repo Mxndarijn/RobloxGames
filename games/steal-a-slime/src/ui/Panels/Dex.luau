@@ -116,7 +116,7 @@ local function headingRow(name: string): any
 	})
 	local detail = Widgets.chip({
 		Name = "Detail",
-		Font = Theme.FontBody,
+		FontFace = Theme.FontBody,
 		TextSize = STYLE.softChip,
 		BackgroundColor3 = Theme.Row,
 		AnchorPoint = Vector2.new(1, 0.5),
@@ -229,10 +229,10 @@ function Dex.new(parent: Instance, ctx: any)
 			Size = UDim2.new(1, -STYLE.scrollBar, 0, 0),
 			Parent = list,
 		})
-		local function line(name: string, size: number, color: Color3, font: Enum.Font): TextLabel
+		local function line(name: string, size: number, color: Color3, font: any): TextLabel
 			return Widgets.label({
 				Name = name,
-				Font = font,
+				[Widgets.fontKey(font)] = font,
 				TextSize = size,
 				TextColor3 = color,
 				TextWrapped = true,

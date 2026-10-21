@@ -578,6 +578,7 @@ globals = {
 	Vector3 = roblox.Vector3,
 	CFrame = roblox.CFrame,
 	Color3 = roblox.Color3,
+	Font = roblox.Font,
 	ColorSequence = roblox.ColorSequence,
 	ColorSequenceKeypoint = roblox.ColorSequenceKeypoint,
 	NumberSequence = roblox.NumberSequence,
