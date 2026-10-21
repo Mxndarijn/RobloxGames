@@ -31,7 +31,6 @@ local RitualService = require(script.Parent.RitualService)
 local RitualView = require(script.Parent.RitualView)
 local SafeCall = require(script.Parent.SafeCall)
 local Spawner = require(script.Parent.Spawner)
-local StealService = require(script.Parent.StealService)
 local World = require(script.Parent.World)
 local WorldView = require(script.Parent.WorldView)
 
@@ -103,7 +102,6 @@ local function stepPlayers(loop: Loop, t: number)
 				Actions.shopTick(session, ctx) -- out of range / died / flag off closes the shop
 			end
 			PlayerAttributes.syncOpenShop(world, player)
-			WorldView.setThiefPlots(player, StealService.thiefPlots(world, userId))
 			LeaderboardView.updateStats(player, session)
 		end
 	end

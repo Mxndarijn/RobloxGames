@@ -67,7 +67,7 @@ local SlimeMesh = require(script.Parent.SlimeMesh)
 local SlimePersona = require(ReplicatedStorage.Shared.SlimePersona)
 local SpeciesDex = require(ReplicatedStorage.Shared.SpeciesDex)
 local StackGuard = require(script.Parent.StackGuard)
-local ThiefPlots = require(ReplicatedStorage.Shared.ThiefPlots)
+local StealGhost = require(script.Parent.StealGhost)
 local TutorialProgress = require(ReplicatedStorage.Shared.TutorialProgress)
 local World = require(script.Parent.World)
 local WorldLayout = require(ReplicatedStorage.Visuals.WorldLayout)
@@ -82,6 +82,7 @@ type Record = {
 	key: string,
 	weld: WeldConstraint?,
 	rideUntil: number, -- os.clock() when the fountain ride lands (0 = not riding)
+	ghost: Model?, -- StealGhost: the see-through copy left on the pad while a thief carries it
 }
 
 local WorldView = {}
@@ -672,6 +673,31 @@ local function unweld(record: Record)
 	record.body.Anchored = true
 end
 
+local function clearGhost(record: Record)
+	if record.ghost then
+		record.ghost:Destroy()
+		record.ghost = nil
+	end
+end
+
+-- Leaves a see-through copy on the pad while a thief carries the slime off (before the model moves to them).
+local function syncGhost(record: Record, entry: Scene.Entry)
+	if not StealGhost.wants(entry) then
+		clearGhost(record)
+		return
+	end
+	if record.ghost and record.ghost.Parent then
+		return
+	end
+	local plotIndex, pad = entry.plotIndex :: number, entry.pad :: number
+	local plot = WorldView.plot(plotIndex)
+	local target = padTop(plotIndex, pad)
+	if not plot or not target then
+		return
+	end
+	record.ghost = StealGhost.build(record.model, target, plot, Config.STEAL_GHOST_TRANSPARENCY)
+end
+
 -- Returns false when the model couldn't be placed yet (retried next reconcile).
 local function place(record: Record, entry: Scene.Entry, previous: string?): boolean
 	local model = record.model
@@ -701,6 +727,7 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	model:SetAttribute(Constants.LANE_UNTIL_ATTRIBUTE, if choreo and entry.wild then entry.wild.expiresAt else nil)
 	model:SetAttribute(Constants.RARE_ATTRIBUTE, entry.rare)
 
+	syncGhost(record, entry)
 	if entry.state == "Carried" then
 		local carrier = entry.carrierUserId and Players:GetPlayerByUserId(entry.carrierUserId)
 		local root = WorldView.rootPart(carrier)
@@ -905,6 +932,7 @@ function WorldView.reconcile(
 	for id, record in records do
 		local entry = entries[id]
 		if not entry or record.egg ~= EggKind.isEgg(entry.slime) then
+			clearGhost(record)
 			record.model:Destroy()
 			records[id] = nil
 			bossPlans[id] = nil
@@ -1499,11 +1527,6 @@ function WorldView.setCarrying(player: Player, slimeId: string?)
 	if player:GetAttribute(Constants.CARRYING_ATTRIBUTE) ~= slimeId then
 		player:SetAttribute(Constants.CARRYING_ATTRIBUTE, slimeId)
 	end
-end
-
--- Player attribute `ThiefPlots`: plots of players carrying one of my slimes, "3,5", nil = none. Victim only.
-function WorldView.setThiefPlots(player: Player, plots: { number })
-	setAttribute(player, Constants.THIEF_PLOTS_ATTRIBUTE, ThiefPlots.format(plots))
 end
 
 function WorldView.setRain(active: boolean, endsAt: number?, nextAt: number?)

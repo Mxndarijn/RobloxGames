@@ -183,20 +183,6 @@ function StealService.tickTutorial(world: World, now: number)
 	end
 end
 
--- Plot indexes (ascending) of the players carrying one of the victim's slimes right now: the victim sees
--- these plots in red (Player attribute ThiefPlots, CONTRACT.md §16) until the steal ends.
-function StealService.thiefPlots(world: World, victimId: number): { number }
-	local plots = {}
-	for _, session in world.sessions do
-		local carry = session.carry
-		if carry and carry.kind == "stolen" and carry.ownerUserId == victimId and session.userId ~= victimId then
-			table.insert(plots, session.plotIndex)
-		end
-	end
-	table.sort(plots)
-	return plots
-end
-
 -- Call every frame: finishes escape bounces and pushes State on lock expiry.
 function StealService.step(world: World, now: number)
 	for id, untilTime in world.escaping do
