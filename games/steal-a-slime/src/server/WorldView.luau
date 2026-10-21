@@ -889,11 +889,13 @@ function WorldView.reconcile(
 		record.prompt.Enabled = entry.promptEnabled
 		record.prompt:SetAttribute(Constants.PROMPT_HIDE_ATTRIBUTE, entry.hideFromUserId)
 		record.prompt.HoldDuration = entry.promptHold
-		-- The hatch show (contract/mystery-egg.md §40.6): set before a new model is parented in place().
+		-- The hatch show (contract/mystery-egg.md §40.6): on the egg model during the wobble, then on the slime
+		-- model (set before a new model is parented in place()).
 		local hatched = entry.hatch
 		setAttr(record.model, Constants.HATCHED_AT_ATTRIBUTE, hatched and hatched.at)
 		setAttr(record.model, Constants.HATCHED_FROM_ATTRIBUTE, hatched and hatched.kind)
 		setAttr(record.model, Constants.HATCH_LUCKY_ATTRIBUTE, if hatched and hatched.lucky then true else nil)
+		setAttr(record.model, Constants.HATCH_TIER_ATTRIBUTE, if hatched and record.egg then hatched.tier else nil)
 		if record.egg then
 			local egg = entry.slime.egg :: EggKind.Egg
 			local kind = EggKind.get(egg.kind)

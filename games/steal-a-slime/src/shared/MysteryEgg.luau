@@ -168,6 +168,14 @@ function MysteryEgg.hatchEgg(
 	return true, slime, { kind = kind.id, lucky = lucky, guaranteed = guaranteed }
 end
 
+-- What the pad shows of a slime hatched at `at` from a `kindId` egg while the hatch show's wobble plays
+-- (HATCH_BURST_SECONDS): a copy that is still that egg, ready since `at`. The record itself is untouched.
+function MysteryEgg.shell(slime: Genome.Slime, kindId: string, at: number): Genome.Slime
+	local copy = table.clone(slime)
+	copy.egg = { kind = kindId, hatchAt = at }
+	return copy
+end
+
 function MysteryEgg.view(hatched: { slime: Genome.Slime, at: number }?): Types.EggView
 	return { hatched = hatched }
 end
