@@ -200,7 +200,7 @@ local function handler(call: PvpService.UseCall): (boolean, string?, number?)
 	if not PvpBlasterRules.direction(origin, aim) then
 		return false, "bad aim"
 	end
-	local tank = tanks[call.session]
+	local tank = if tool.shots then tanks[call.session] else nil -- only the Squirter has a tank
 	if tool.shots then
 		if not tank then
 			tank = { left = tool.shots, lastShot = -math.huge }
