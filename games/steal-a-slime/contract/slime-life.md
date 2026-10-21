@@ -176,13 +176,19 @@ then replays and captures it).
   (`TILT`); scaled by how engaged it is (the reaction's weight). Pad slimes and wild slimes alike.
 - **The eyes lead.** The face turns on its own (`SlimeMotor` `Mods.faceLead`, about the slime's centre) by
   `SlimeActor.FACE_LEAD_SHARE` of the turn the body still has to make, plus the attention glances, capped at
-  `SlimeActor.FACE_LEAD`: the eyes look first and the body follows, and a glance moves only the eyes.
+  `SlimeActor.FACE_LEAD`: the eyes look first and the body follows, and a glance moves only the eyes. The lead eases
+  (`SlimeActor.FACE_LEAD_RATE`): the eyes dart in about 50 ms, never in a single frame.
 - **Fidget mood.** A pad slime within `SlimeReact.NEAR` of the local player is in mood `"near"`: it greets them within
   `SlimeFidget.GREET` seconds, then fidgets every `SlimeFidget.NEAR_EVERY` seconds from `WEIGHTS_NEAR` (no naps). A
   curious `tilt` fidget joins the set. A pad slime leans at most `SlimeActor.PAD_LEAN` towards you (it stays on its pad).
 - **Hop jelly.** The hop pose (`SlimeGait.shape`) squats deeper before a jump, shoots out tall at take-off and splats
   on landing; the wobble after it is the actor's squash spring, kicked on take-off and landing
-  (`SlimeActor.HOP_JELLY`), so it rings on through the next squat instead of restarting every hop.
+  (`SlimeActor.HOP_JELLY`), so it rings on through the next squat instead of restarting every hop. No frame snaps
+  the pose: it pushes off with its feet down for the first `SlimeGait.PUSH` of the flight (out of the squat into the
+  stretch), lands still a little long and splats in over `SlimeGait.SPLAT_IN`; tricks (a boing flip, a belly flop)
+  take over from the squat's lean-back. `SlimeMotor` turns it about its foot on the ground and about its middle in the
+  air or when tipped far, so a flip tumbles round its centre and a belly flop never sinks into the floor. A spin (beat
+  or fidget) is `Mods.spin`, added after the yaw blend: it never changes how much of a turn shows.
 - **The player is solid.** `SlimeSpacing.step` takes the local character as a solid: a walking slime steps round you
   instead of sinking into your legs. Pad slimes are `rooted` (you don't shove them off their pads). Mystery Eggs
   within `EGG_SOLID_DISTANCE` of the camera are solids too (they have no rig), so no slime walks into one.

@@ -30,7 +30,9 @@ local SlimePersona = if Shared then require(Shared.SlimePersona) else require(".
 local SlimeGait = {}
 
 SlimeGait.CROUCH = 0.15 -- seconds of anticipation squat before every jump
-SlimeGait.PUSH = 0.1 -- share of the flight over which it springs out of the squat into the take-off stretch
+-- share of the flight it spends pushing off: still on the ground, it springs out of the squat into the take-off
+-- stretch (over several frames, never one) and only then leaves the ground
+SlimeGait.PUSH = 0.16
 SlimeGait.FALL_STRETCH = 0.08 -- how long it is as it lands (x k): small, so the splat isn't a jump in height
 SlimeGait.SPLAT_IN = 0.025 -- seconds over which the landing splat comes in
 SlimeGait.LEVEL_OUT = 0.06 -- seconds over which the landing tilt eases level
@@ -182,31 +184,38 @@ function SlimeGait.shape(stage: string, u: number, height: number, kind: string)
 		o.tilt = -0.18 * c -- leans back, loading the spring (as far as the take-off starts, so it doesn't snap)
 		o.face = if kind == "boing" then "excited" else nil
 	elseif stage == "air" then
-		o.lift = height * 4 * u * (1 - u)
-		o.vy = height * 4 * (1 - 2 * u)
-		-- shot out tall at take-off (eased out of the squat over the first PUSH of the flight, never a one-frame
-		-- snap), round at the top, a little long again as it drops onto its feet
-		local st = 0.3 * (1 - u) ^ 3 + SlimeGait.FALL_STRETCH * u ^ 4
+		-- the push-off (the first PUSH of the flight) keeps its feet down while it springs out of the squat; the arc is
+		-- the rest. Shot out tall as it leaves the ground, round at the top, a little long again as it drops.
+		local w = math.clamp((u - SlimeGait.PUSH) / (1 - SlimeGait.PUSH), 0, 1)
+		o.lift = height * 4 * w * (1 - w)
+		o.vy = if u < SlimeGait.PUSH then 0 else height * 4 * (1 - 2 * w) / (1 - SlimeGait.PUSH)
+		local st = 0.3 * (1 - w) ^ 3 + SlimeGait.FALL_STRETCH * w ^ 4
 		local push = smooth(math.min(u / SlimeGait.PUSH, 1))
 		local squatY, squatX = 1 - 0.26 * k, 1 + 0.2 * k
 		o.sy = squatY + (1 + k * st - squatY) * push
 		o.sx = squatX + (1 - 0.5 * k * st - squatX) * push
-		o.tilt = 0.18 * -math.cos(math.pi * u) -- nose up going up, nose down coming down
+		o.tilt = 0.18 * -math.cos(math.pi * w) -- nose up going up, nose down coming down
+		-- the tricks take over from the squat's lean-back (-0.18) as it leaves the ground, never in one frame
+		local fade = 1 - smooth(math.min(w / 0.15, 1))
 		if kind == "boing" then
-			o.tilt = 2 * math.pi * smooth((u - 0.12) / 0.72) -- a full forward flip
+			o.tilt = -0.18 * fade + 2 * math.pi * smooth((w - 0.05) / 0.8) -- a full forward flip, off the ground
 			o.face = "excited"
 		elseif kind == "belly" then
-			o.tilt = if u < 0.55 then 0.3 * -math.cos(math.pi * u) else 1.35 * smooth((u - 0.55) / 0.45)
-			o.face = if u > 0.55 then "surprised" else "happy"
-		elseif u > 0.18 and u < 0.82 then
+			local flop = if w < 0.55 then 0.3 * -math.cos(math.pi * w) else 1.35 * smooth((w - 0.55) / 0.45)
+			o.tilt = flop + (-0.18 - -0.3) * fade
+			o.face = if w > 0.55 then "surprised" else "happy"
+		elseif w > 0.18 and w < 0.82 then
 			o.face = "happy"
 		end
 	else
 		if kind == "belly" then
 			-- flat on its belly: the flop's forward tip eases out instead of snapping upright
-			o.tilt = 1.35 * math.exp(-u / (3 * SlimeGait.LEVEL_OUT))
+			o.tilt = 1.35 * math.exp(-u / (5 * SlimeGait.LEVEL_OUT))
 			if u < 0.55 then
-				o.sy = 0.68 + 0.04 * math.sin(u * 12) * (1 - u / 0.55)
+				-- it flattens out over SPLAT_IN, like any landing, from the fall's stretch
+				local ramp = 1 - math.exp(-u / SlimeGait.SPLAT_IN)
+				local fallY = 1 + k * SlimeGait.FALL_STRETCH
+				o.sy = fallY + (0.68 + 0.04 * math.sin(u * 12) * (1 - u / 0.55) - fallY) * ramp
 				o.sx = 1.22
 				o.face = "dizzy"
 			else

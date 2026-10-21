@@ -92,6 +92,7 @@ SlimeActor.PAD_LEAN = 0.3 -- studs: a pad slime leans towards you at most this f
 -- takes the attention glances on its own, so the eyes move first and the body follows.
 SlimeActor.FACE_LEAD_SHARE = 0.5
 SlimeActor.FACE_LEAD = 0.22 -- more and the face parts of a side-on slime (Gummy) slide off its silhouette
+SlimeActor.FACE_LEAD_RATE = 20 -- 1 / s: the eyes dart there in about 50 ms, never in a single frame
 SlimeActor.BUMP_SECONDS = 0.35
 SlimeActor.BUMPED_SECONDS = 0.5
 -- Face -> bones: lids shut (closed) or eyes bulging (pop), SlimeBones.Extra.
@@ -179,6 +180,7 @@ export type Actor = {
 	tagZ: Spring.Spring,
 	tagY: Spring.Spring, -- how far the tag rises with the slime's lift (studs)
 	hopLift: number, -- this frame's hop arc (part of mods.lift the tag leaves out)
+	faceLead: number, -- the face's turn on top of the body, eased (radians)
 	hasTag: boolean,
 	tagOffset: Vector3, -- the TagAnchor's offset from the Body (world axes)
 }
@@ -304,6 +306,7 @@ function SlimeActor.attach(
 		tagZ = Spring.new(SlimeActor.TAG.f, SlimeActor.TAG.zeta, SlimeActor.TAG.r, p.Z),
 		tagY = Spring.new(SlimeActor.TAG_LIFT.f, SlimeActor.TAG_LIFT.zeta, SlimeActor.TAG_LIFT.r, 0),
 		hopLift = 0,
+		faceLead = 0,
 		hasTag = false,
 		tagOffset = Vector3.zero,
 	}
@@ -791,8 +794,11 @@ function SlimeActor.update(
 	local k = 1 - math.exp(-dt * SlimeActor.TURN_RATE)
 	-- the eyes lead: the face is already turned part of the way the body is still turning, and glances on its own
 	local toGo = if math.abs(mods.yaw) > math.pi + 1e-3 then 0 else wrap(wrap(mods.yaw) - actor.yaw) * mods.yawWeight
-	mods.faceLead =
+	-- eased: a reaction starting or ending (or a new turn) moved the target by up to FACE_LEAD in one frame
+	local leadTarget =
 		math.clamp(toGo * SlimeActor.FACE_LEAD_SHARE + faceGlance, -SlimeActor.FACE_LEAD, SlimeActor.FACE_LEAD)
+	actor.faceLead += (leadTarget - actor.faceLead) * (1 - math.exp(-dt * SlimeActor.FACE_LEAD_RATE))
+	mods.faceLead = actor.faceLead
 	if math.abs(mods.yaw) > math.pi + 1e-3 then
 		actor.yaw, actor.yawWeight = mods.yaw, mods.yawWeight
 	else
@@ -803,9 +809,7 @@ function SlimeActor.update(
 		actor.yawWeight += (mods.yawWeight - actor.yawWeight) * k
 	end
 	mods.yaw, mods.yawWeight = actor.yaw, actor.yawWeight
-	if spin ~= 0 then
-		mods.yaw, mods.yawWeight = actor.yaw + spin, 1
-	end
+	mods.spin = spin
 
 	face(mods, faceName)
 	actor.emote = if detailed then emote else nil

@@ -160,9 +160,10 @@ describe("SlimeGait.shape", function()
 	it("squats, stretches in the air, is round at the top and splats on landing", function()
 		local crouch = SlimeGait.shape("crouch", 1, 1.5, "normal")
 		expect(crouch.sy < 1).toBe(true)
-		local launch = SlimeGait.shape("air", 0.15, 1.5, "normal")
+		local launch = SlimeGait.shape("air", SlimeGait.PUSH, 1.5, "normal")
 		expect(launch.sy > 1.1).toBe(true)
-		local apex = SlimeGait.shape("air", 0.5, 1.5, "normal")
+		expect(SlimeGait.shape("air", SlimeGait.PUSH / 2, 1.5, "normal").lift).toBe(0) -- feet down while it pushes
+		local apex = SlimeGait.shape("air", SlimeGait.PUSH + (1 - SlimeGait.PUSH) / 2, 1.5, "normal")
 		expect(apex.lift).toBeCloseTo(1.5, 1e-9)
 		expect(math.abs(apex.sy - 1) < 0.06).toBe(true) -- nearly round at the top
 		expect(apex.face).toBe("happy")
@@ -173,15 +174,25 @@ describe("SlimeGait.shape", function()
 		expect(math.abs(settled.sy - 1) < 0.01).toBe(true)
 	end)
 	it("never snaps the pose: the squat flows into the take-off and the flight into the landing", function()
-		for _, kind in { "normal", "big", "small", "zig" } do
+		local function turn(a: number, b: number): number -- angle difference, a full turn counts as none
+			return math.abs((a - b + math.pi) % (2 * math.pi) - math.pi)
+		end
+		for _, kind in { "normal", "big", "small", "zig", "boing", "belly" } do
 			local crouchEnd = SlimeGait.shape("crouch", 1, 1.5, kind)
 			local takeOff = SlimeGait.shape("air", 0, 1.5, kind)
 			expect(math.abs(crouchEnd.sy - takeOff.sy) < 0.02).toBe(true)
-			expect(math.abs(crouchEnd.tilt - takeOff.tilt) < 0.02).toBe(true)
+			expect(turn(crouchEnd.tilt, takeOff.tilt) < 0.02).toBe(true)
 			local fallEnd = SlimeGait.shape("air", 1, 1.5, kind)
 			local touchDown = SlimeGait.shape("land", 0, 1.5, kind)
 			expect(math.abs(fallEnd.sy - touchDown.sy) < 0.02).toBe(true)
-			expect(math.abs(fallEnd.tilt - touchDown.tilt) < 0.02).toBe(true)
+			expect(turn(fallEnd.tilt, touchDown.tilt) < 0.02).toBe(true)
+			-- in the air, no frame tips it more than 0.25 rad (a flip takes about 20 frames)
+			local prevAir = SlimeGait.shape("air", 0, 1.5, kind)
+			for f = 1, 30 do
+				local cur = SlimeGait.shape("air", f / 30, 1.5, kind)
+				expect(turn(cur.tilt, prevAir.tilt) < 0.5).toBe(true) -- two 60 fps frames per step
+				prevAir = cur
+			end
 			-- at 60 frames a second no frame changes the height more than a quarter or the tilt more than 0.1 rad
 			local prev = SlimeGait.shape("land", 0, 1.5, kind)
 			for f = 1, 30 do
