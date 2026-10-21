@@ -300,8 +300,8 @@ def jar_door_ring():
 
 
 def jar_stopper():
-    """Jar 1's round door (the game shows it shut in the doorway while locked, swung into the jar on its hinges while
-    open): a round plank door, inner face at y = 0, outer face at -Y (toward the bridge), with a cork rim, goo
+    """Jar 1's round door (the game shows it shut in the doorway while locked, swung out of the jar on its hinges
+    while open): a round plank door, inner face at y = 0, outer face at -Y (toward the bridge), with a cork rim, goo
     dripping over its top, two brass hinge straps reaching to the hinge pin on its left (-X) and a brass ring pull on
     the right. Bottom at z = 0."""
     r, t = 4.6, 1.0

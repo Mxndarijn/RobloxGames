@@ -68,7 +68,7 @@ place(ring, dz=top(1))
 cx, cy, cz = door_center()
 if LOCKED:
     place(jar_stopper(), dx=0, dy=cy + 0.3, dz=top(1) + cz - 4.6)
-else:  # swung into the jar round its hinge pin (WorldLayout DOOR_SWING)
+else:  # swung out of the jar round its hinge pin (WorldLayout DOOR_SWING)
     sw = D["doorSwing"]
     hx, hy = sw["hinge"][0], cy + 0.3 + sw["hinge"][1]
     t = math.radians(sw["angle"])

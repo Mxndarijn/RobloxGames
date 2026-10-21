@@ -214,9 +214,10 @@ WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the 
 WorldLayout.NAME_BOARD = table.freeze({ width = 9, height = 2.4, y = 10.7 }) -- above the LockSign, on its post
 WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
 -- Jar 1's door is a round plank door on two hinges on its left (-X). Locked, it sits shut in the doorway (StopperShut);
--- open, it swings DOOR_SWING.angle degrees into the jar round its hinge pin (StopperParked). hinge = the pin's plot x
--- and its z offset from the shut door's inner face (the door is 1 stud thick, the pin in its middle).
-WorldLayout.DOOR_SWING = table.freeze({ hinge = { -4.75, -0.5 }, angle = -100 })
+-- open, it swings DOOR_SWING.angle degrees out of the jar round its hinge pin (StopperParked), folded back towards
+-- the glass so its far edge stays on the plot (a 90 degree swing would reach past the plot's edge). hinge = the pin's
+-- plot x and its z offset from the shut door's inner face (the door is 1 stud thick, the pin in its middle).
+WorldLayout.DOOR_SWING = table.freeze({ hinge = { -4.75, -0.5 }, angle = 130 })
 WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
 WorldLayout.TROPHY_SPOTS = table.freeze({ { -31, 31 }, { 31, 31 }, { -31, -31 } })
 -- The plot SlimeDex board skins the two-sided phoenix_top_earners_board at
@@ -1585,7 +1586,7 @@ local function plot(i: number): WorldNode
 	local dy = WorldLayout.DOOR.height / 2 + 0.1
 	local doorY, doorZ = f1 + dy - 4.6, dz + 0.3
 	table.insert(children, jarLook("StopperShut", "goo_jar_stopper", { 0, doorY, doorZ }, at, yaw))
-	-- open: the same door swung into the jar round its hinge pin (DOOR_SWING)
+	-- open: the same door swung out of the jar round its hinge pin (DOOR_SWING)
 	local swing = WorldLayout.DOOR_SWING
 	local hx, hz = swing.hinge[1], doorZ + swing.hinge[2]
 	local t = math.rad(swing.angle)
