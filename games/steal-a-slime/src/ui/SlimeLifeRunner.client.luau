@@ -155,10 +155,23 @@ local lastStates: { [Model]: string? } = setmetatable({}, { __mode = "k" }) :: a
 local stateAt: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -- os.clock() of the last State change
 -- A put-down plays only if the rig comes this soon after the State change (a slime rigged later just sits there).
 local PUT_DOWN_WINDOW = 0.3
+-- A pad slime whose Body jumps (a Move, a swap) while it has no rig (it was off screen) still hops over from where it
+-- was: the jump is noted when it lands, the slime is rigged on the next frame and starts from the old spot.
+local MOVE_JUMP = 1.5 -- studs (SlimeActor.MOVE_JUMP)
+local padSpot: { [Model]: Vector3 } = setmetatable({}, { __mode = "k" }) :: any
+local movedFrom: { [Model]: { at: Vector3, t: number } } = setmetatable({}, { __mode = "k" }) :: any
+local hopping: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -- os.clock() until it keeps its rig
+local HOP_KEEP = 1.2 -- seconds a moved pad slime keeps its rig (its hop over, SlimeFidget.MOVE_HOP, and the splat)
+local hiddenFor: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any -- frame it shows again
 local nextSelect = 0
+-- What every actor needs from this frame: the local character and its cash (leaderstats); filled by readFrame.
+local lifeFrame: SlimeActor.Frame = { player = nil, cash = nil, userId = nil }
 local lastFrameAt = os.clock()
 local spacing: { SlimeSpacing.Item } = {} -- reused every frame
 local spaced: { MotorRig } = {}
+local PLAYER_RADIUS = 1.2 -- studs: the local character's footprint for SlimeSpacing
+local playerSolid: SlimeSpacing.Solid = { x = 0, z = 0, r = PLAYER_RADIUS }
+local playerSolids = { playerSolid }
 -- Contract/slime-life.md social reactions: how far away neighbours notice a slime leaving.
 local DRAIN_WATCH_DISTANCE = 20
 local DRAIN_WATCH_SECONDS = 1.6
@@ -518,7 +531,12 @@ local function acquireMotor(model: Model): MotorRig?
 				model,
 				motor,
 				os.clock(),
-				if os.clock() - (stateAt[model] or -math.huge) < PUT_DOWN_WINDOW then prevStates[model] else nil
+				if os.clock() - (stateAt[model] or -math.huge) < PUT_DOWN_WINDOW then prevStates[model] else nil,
+				(function()
+					local m = movedFrom[model]
+					movedFrom[model] = nil
+					return if m and os.clock() - m.t < PUT_DOWN_WINDOW then m.at else nil
+				end)()
 			)
 			else nil,
 		params = motor.params,
@@ -660,6 +678,22 @@ local function reselect(camera: Camera)
 	end
 	local cands = candidates(camera)
 	local wanted = SlimeLife.select(cands, active)
+	-- A slime in the middle of a put-down or a Move hop keeps (or gets) its rig, even if its Body has already
+	-- jumped off screen: it hops away instead of vanishing from the pad it leaves.
+	local clock = os.clock()
+	for model, untilAt in hopping do
+		if untilAt < clock then
+			hopping[model] = nil
+		elseif model:IsDescendantOf(workspace) then
+			wanted[slimeId(model)] = true
+		end
+	end
+	for model, rig in motorRigs do
+		local kind = rig.actor and rig.actor.fidget.kind
+		if (kind == "arrive" or kind == "drop") and model:IsDescendantOf(workspace) then
+			wanted[slimeId(model)] = true
+		end
+	end
 	local byId: { [string]: Model } = {}
 	for _, c in cands do
 		byId[c.id] = (c :: any).model
@@ -835,6 +869,42 @@ local function onDespawnAt(model: Model)
 	end
 end
 
+-- A pad slime's Body jumping to another pad (a Move, a swap): its mesh is already drawn there this frame (the
+-- callback runs after physics) and its rig only puts it back on the old spot next frame, so it is hidden for those
+-- frames instead of a jump and back; it keeps (or gets) a rig through the hop, and the actor hops it over.
+local function watchPad(instance: Model, body: BasePart): RBXScriptConnection
+	if instance:GetAttribute("State") == "Pad" then
+		padSpot[instance] = body.Position
+	end
+	return body:GetPropertyChangedSignal("CFrame"):Connect(function()
+		if instance:GetAttribute("State") ~= "Pad" then
+			padSpot[instance] = nil
+			return
+		end
+		local p = body.Position
+		local was = padSpot[instance]
+		padSpot[instance] = p
+		if not was then
+			return
+		end
+		local dx, dz = p.X - was.X, p.Z - was.Z
+		if dx * dx + dz * dz <= MOVE_JUMP * MOVE_JUMP then
+			return
+		end
+		for _, d in instance:GetDescendants() do
+			if d:IsA("BasePart") then
+				d.LocalTransparencyModifier = 1
+			end
+		end
+		hiddenFor[instance] = frame + 3 -- the frame it lands, the one its rig catches up in, and the next
+		hopping[instance] = os.clock() + HOP_KEEP
+		if not motorRigs[instance] then
+			movedFrom[instance] = { at = was, t = os.clock() }
+		end
+		nextSelect = 0
+	end)
+end
+
 local function onSlime(instance: Instance)
 	-- A Mystery Egg has no face or skin to animate (its looks are Visuals EggFx).
 	if
@@ -844,6 +914,21 @@ local function onSlime(instance: Instance)
 	then
 		slimes[instance] = true
 		nextSelect = 0 -- a new slime (off the fountain, put down) is rigged on the next frame
+		local body = bodyOf(instance)
+		local bodyConn = if body then watchPad(instance, body) else nil
+		local waitConn: RBXScriptConnection? = nil
+		if not body then
+			-- the tag can arrive before the Body replicates: watch it once it does
+			waitConn = instance.ChildAdded:Connect(function(child)
+				if child.Name == "Body" and child:IsA("BasePart") and waitConn then
+					waitConn:Disconnect()
+					local conns = slimeConns[instance]
+					if conns then
+						table.insert(conns, watchPad(instance, child))
+					end
+				end
+			end)
+		end
 		local state = instance:GetAttribute("State")
 		lastStates[instance] = if type(state) == "string" then state else nil
 		local conns = {
@@ -853,6 +938,8 @@ local function onSlime(instance: Instance)
 				lastStates[instance] = if type(now) == "string" then now else nil
 				stateAt[instance] = os.clock()
 				nextSelect = 0 -- rig (or release) it on the next frame, not at the next 4 Hz selection
+				local b = bodyOf(instance)
+				padSpot[instance] = if now == "Pad" and b then b.Position else nil
 				if lifeOn then
 					onStateChanged(instance)
 				end
@@ -865,6 +952,12 @@ local function onSlime(instance: Instance)
 					onDespawnAt(instance)
 				end)
 			)
+		end
+		if bodyConn then
+			table.insert(conns, bodyConn)
+		end
+		if waitConn then
+			table.insert(conns, waitConn)
 		end
 		slimeConns[instance] = conns
 	end
@@ -887,7 +980,6 @@ local function onSlimeRemoved(instance: Instance)
 end
 
 -- What every actor needs from this frame: the local character and its cash (leaderstats).
-local lifeFrame: SlimeActor.Frame = { player = nil, cash = nil, userId = nil }
 local function readFrame()
 	local player = Players.LocalPlayer
 	local character = player and player.Character
@@ -985,6 +1077,16 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 	frame += 1
+	for model, at in hiddenFor do
+		if frame >= at then
+			hiddenFor[model] = nil
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") then
+					d.LocalTransparencyModifier = 0
+				end
+			end
+		end
+	end
 	if lifeOn then
 		readFrame()
 	end
@@ -1001,10 +1103,14 @@ RunService.RenderStepped:Connect(function()
 			local ok, err = pcall(SlimeActor.update, actor, lifeFrame, now, serverNow, math.random, rig.tier == "near")
 			if ok then
 				local r = rig.motor.body.Size.X / 2
-				table.insert(
-					spacing,
-					{ x = actor.visible.X, z = actor.visible.Z, r = r, px = actor.pushX, pz = actor.pushZ }
-				)
+				table.insert(spacing, {
+					x = actor.visible.X,
+					z = actor.visible.Z,
+					r = r,
+					px = actor.pushX,
+					pz = actor.pushZ,
+					rooted = actor.state == "Pad", -- a pad slime stays put when you walk past
+				})
 				table.insert(spaced, rig)
 			else
 				warn(`[SlimeLife] actor: {err}`)
@@ -1014,7 +1120,13 @@ RunService.RenderStepped:Connect(function()
 		end
 	end
 	-- Second pass: drawn slimes never sink into each other (SlimeSpacing), then each tag follows its slime.
-	SlimeSpacing.step(spacing, dt)
+	-- the local character is solid too: a slime steps round you instead of sinking into your legs
+	local solid = nil
+	if lifeFrame.player then
+		playerSolid.x, playerSolid.z = lifeFrame.player.X, lifeFrame.player.Z
+		solid = playerSolids
+	end
+	SlimeSpacing.step(spacing, dt, solid)
 	for i, rig in spaced do
 		local actor = rig.actor :: SlimeActor.Actor
 		local item = spacing[i]

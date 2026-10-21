@@ -16,8 +16,9 @@
 	an escaping slime races home stretched and sweating; a riding slime sits back on the slide; a lean spring and a
 	squash spring (Lib Spring) add follow-through on top.
 
-	  SlimeActor.attach(model, motor, now, prevState?) -> Actor
+	  SlimeActor.attach(model, motor, now, prevState?, movedFrom?) -> Actor
 	    prevState = the model's State before this rig (a Carried slime put on its pad drops in)
+	    movedFrom = where its Body stood before it jumped to this pad unrigged (it hops over from there)
 	  SlimeActor.setState(actor, prev, state, now)            the State changed and the rig stays (Wild / Pad / Escaping)
 	  SlimeActor.settle(actor, pushX, pushZ, dt)               after SlimeSpacing: the push, and where the tag hangs
 	  SlimeActor.update(actor, frame, now, serverNow, rand, full)   fills actor.mods / emote
@@ -37,6 +38,7 @@ local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild(
 local ParadeChoreo = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ParadeChoreo"))
 local ParadeLane = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ParadeLane"))
 local Lib = ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core")
+local SlimeAttention = require(script.Parent:WaitForChild("SlimeAttention"))
 local SlimeBeats = require(script.Parent:WaitForChild("SlimeBeats"))
 local SlimeFidget = require(script.Parent:WaitForChild("SlimeFidget"))
 local SlimeGait = require(script.Parent:WaitForChild("SlimeGait"))
@@ -68,7 +70,10 @@ SlimeActor.SNAP_JUMP = 60 -- studs: further than this a pad move is a teleport, 
 -- spot (gain rad per stud / s^2, capped at max), so a slime rocks back as it sets off and forward as it stops.
 -- Squash: kicked by landings (kick = squash speed per unit of splat), capped at max either way.
 SlimeActor.LEAN = table.freeze({ f = 2.2, zeta = 0.32, r = 0, gain = 0.018, max = 0.3 })
-SlimeActor.SQUASH = table.freeze({ f = 3.4, zeta = 0.24, r = 0, kick = 1.3, max = 0.3 })
+SlimeActor.SQUASH = table.freeze({ f = 2.6, zeta = 0.2, r = 0, kick = 1.3, max = 0.3 })
+-- A hop's jelly: squash speed kicked into the squash spring per unit of landing (down) and take-off (up), so the
+-- body rings two or three times after every jump.
+SlimeActor.HOP_JELLY = table.freeze({ land = 1.9, launch = 1.1 })
 SlimeActor.ESCAPE_SPEED = 10 -- studs / s: an escaping slime this fast leans and stretches fully
 -- A slime on the move faces where it goes: a reaction (the player, nerves, a fright) only turns it this far
 -- (radians), a glance; it turns round to face you only while it stands still.
@@ -79,6 +84,7 @@ SlimeActor.AIR_RATE = 14 -- 1 / s: how fast that share fades in and out
 -- The name tag and the Buy card hang on a TagAnchor that follows the drawn slime through this spring (Lib Spring:
 -- f Hz, zeta, r): it glides along with a hopper's leaps instead of jumping, and never steps with the Body.
 SlimeActor.TAG = table.freeze({ f = 3, zeta = 1, r = 0.5 })
+SlimeActor.PAD_LEAN = 0.3 -- studs: a pad slime leans towards you at most this far (it stays on its pad)
 SlimeActor.BUMP_SECONDS = 0.35
 SlimeActor.BUMPED_SECONDS = 0.5
 -- Face -> bones: lids shut (closed) or eyes bulging (pop), SlimeBones.Extra.
@@ -158,6 +164,7 @@ export type Actor = {
 	squash: Spring.Spring,
 	fidget: SlimeFidget.State,
 	fidgetPose: SlimeFidget.Pose,
+	attention: SlimeAttention.State, -- glances and head tilts while it watches something
 	airK: number, -- 0..1: how much a hopper's crouch / jump holds back look turns
 	pushX: number, -- SlimeSpacing push (world studs), carried between frames
 	pushZ: number,
@@ -223,7 +230,13 @@ local function effects(actor: Actor)
 	actor.feet, actor.splat, actor.stringAt, actor.string = feet, splat, at, beam
 end
 
-function SlimeActor.attach(model: Model, motor: SlimeMotor.Motor, now: number, prevState: string?): Actor
+function SlimeActor.attach(
+	model: Model,
+	motor: SlimeMotor.Motor,
+	now: number,
+	prevState: string?,
+	movedFrom: Vector3?
+): Actor
 	local species = model:GetAttribute(Constants.SPECIES_ATTRIBUTE)
 	local persona = SlimePersona.of(if type(species) == "string" then species else nil)
 	local p = motor.body.CFrame.Position
@@ -274,6 +287,7 @@ function SlimeActor.attach(model: Model, motor: SlimeMotor.Motor, now: number, p
 		squash = Spring.new(SlimeActor.SQUASH.f, SlimeActor.SQUASH.zeta, SlimeActor.SQUASH.r, 0),
 		fidget = SlimeFidget.new(persona.temper, now, math.random),
 		fidgetPose = {} :: any,
+		attention = SlimeAttention.new(now, math.random),
 		airK = 0,
 		pushX = 0,
 		pushZ = 0,
@@ -286,6 +300,9 @@ function SlimeActor.attach(model: Model, motor: SlimeMotor.Motor, now: number, p
 	actor.state = if type(state) == "string" then state else nil
 	if ALIVE and actor.state == "Pad" and prevState == "Carried" then
 		SlimeFidget.play(actor.fidget, "drop", now) -- put down on its pad
+	elseif ALIVE and actor.state == "Pad" and movedFrom then
+		actor.moveX, actor.moveZ = movedFrom.X - p.X, movedFrom.Z - p.Z
+		SlimeFidget.play(actor.fidget, "arrive", now) -- moved while it had no rig: it hops over all the same
 	end
 	return actor
 end
@@ -490,6 +507,7 @@ function SlimeActor.update(
 	if riding or not wild then
 		g.dx, g.dz, g.lift, g.sx, g.sy, g.tilt, g.roll, g.jiggle = 0, 0, 0, 1, 1, 0, 0, 0
 		g.air, g.vy, g.face, g.landed, g.stringX, g.stringZ, g.stringAlpha = false, 0, nil, 0, nil, nil, 0
+		g.launched = 0
 	end
 	-- Offsets are from the smooth anchor; the Transform needs them from the replicated Body.
 	g.dx += ax - pos.X
@@ -582,6 +600,11 @@ function SlimeActor.update(
 			r.yaw = math.clamp(wrap(r.yaw), -SlimeActor.GLANCE, SlimeActor.GLANCE) -- on the move: a glance
 		end
 		if r.weight > 0 then
+			local glance, headTilt = SlimeAttention.step(actor.attention, now, rand, r.weight)
+			r.yaw += glance
+			mods.roll += headTilt * (if standing then 0.35 else 1) * (if g.air then 0 else 1)
+		end
+		if r.weight > 0 then
 			local keep = if standing then 0.35 else 1 -- a beat in progress mostly wins
 			if r.weight * keep > mods.yawWeight then
 				mods.yaw, mods.yawWeight = r.yaw, r.weight * keep
@@ -616,6 +639,12 @@ function SlimeActor.update(
 			faceName = "worried"
 			emote = "sweat"
 		elseif pad then
+			-- The local player: close by, the slime greets them and fidgets more often (SlimeFidget mood "near").
+			local toYaw, toDist = 0, math.huge
+			if detailed and frame.player then
+				toYaw, toDist = yawTo(body, Vector3.new(ax, pos.Y, az), frame.player)
+			end
+			SlimeFidget.setMood(actor.fidget, if toDist < SlimeReact.NEAR then "near" else "idle", now, rand)
 			local fp = SlimeFidget.step(actor.fidget, now, rand, actor.fidgetPose)
 			local fidgeting = actor.fidget.kind ~= nil
 			mods.lift += fp.lift
@@ -638,7 +667,7 @@ function SlimeActor.update(
 			end
 			-- The local player: your own slime greets you (the "pick me" pose); anyone else's reacts by temperament.
 			if detailed and frame.player and fp.yawWeight < 0.5 then
-				local yaw, dist = yawTo(body, Vector3.new(ax, pos.Y, az), frame.player)
+				local yaw, dist = toYaw, toDist
 				if dist < SlimeActor.NEAR_DEAD_ZONE then
 					yaw = actor.reactYaw
 				else
@@ -648,12 +677,15 @@ function SlimeActor.update(
 				local r = SlimeReact.toPlayer(actor.persona.temper, dist, yaw, own, now, actor.reactPose)
 				if r.weight > 0 then
 					local keep = if fidgeting then 0.35 else 1
+					-- watching is never a frozen stare: quick glances round you and a head tilt now and then
+					local glance, headTilt = SlimeAttention.step(actor.attention, now, rand, r.weight)
 					if r.weight * keep > mods.yawWeight then
-						mods.yaw, mods.yawWeight = r.yaw, r.weight * keep
+						mods.yaw, mods.yawWeight = r.yaw + glance, r.weight * keep
 					end
+					mods.roll += headTilt * keep
 					mods.lift += r.lift * keep
 					mods.sy *= 1 + (r.sy - 1) * keep
-					mods.lean += r.lean * keep
+					mods.lean += math.clamp(r.lean, -SlimeActor.PAD_LEAN, SlimeActor.PAD_LEAN) * keep
 					if not fidgeting then
 						faceName = r.face or faceName
 					end
@@ -674,7 +706,13 @@ function SlimeActor.update(
 		actor.fwd = fwd
 		local L = SlimeActor.LEAN
 		mods.tilt += math.clamp(Spring.step(actor.lean, dt, target), -L.max, L.max)
-		-- Jelly: the squash spring rings out after a kick (put-downs, fidget landings).
+		-- Jelly: the squash spring rings out after a kick (hops, put-downs, fidget landings).
+		if g.landed > 0 then
+			Spring.kick(actor.squash, -g.landed * SlimeActor.HOP_JELLY.land)
+		end
+		if g.launched > 0 then
+			Spring.kick(actor.squash, g.launched * SlimeActor.HOP_JELLY.launch)
+		end
 		local S = SlimeActor.SQUASH
 		local sq = math.clamp(Spring.step(actor.squash, dt, 0), -S.max, S.max)
 		mods.sy *= 1 + sq

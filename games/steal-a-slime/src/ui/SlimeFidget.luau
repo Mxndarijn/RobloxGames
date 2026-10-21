@@ -10,6 +10,8 @@
 	  SlimeFidget.new(temper, now, rand) -> State
 	  SlimeFidget.step(state, now, rand, out?) -> Pose        the pose now (blank between fidgets)
 	  SlimeFidget.play(state, kind, now)                       start a fidget or put-down now ("drop", "arrive", ...)
+	  SlimeFidget.setMood(state, mood, now, rand)              "near" (the player is close: it greets them soon, then
+	                                                           fidgets more often, from WEIGHTS_NEAR) | "idle"
 	  SlimeFidget.pose(kind, u, out?) -> Pose                  one moment of a fidget, u = seconds since it started
 
 	Pose: lift (studs at size 1), sx / sy (squash multipliers), tilt (+ = nose down), roll (+ = lean right),
@@ -30,6 +32,7 @@ export type Kind =
 	| "peek"
 	| "huff"
 	| "wiggle"
+	| "tilt"
 	| "drop"
 	| "arrive"
 
@@ -47,8 +50,11 @@ export type Pose = {
 	splat: number,
 }
 
+export type Mood = "idle" | "near"
+
 export type State = {
 	temper: string,
+	mood: Mood,
 	kind: Kind?,
 	t0: number,
 	nextAt: number,
@@ -60,6 +66,8 @@ type Rand = () -> number
 
 SlimeFidget.EVERY = table.freeze({ 4, 9 }) -- seconds between fidgets
 SlimeFidget.FIRST = table.freeze({ 1, 5 }) -- seconds before a new pad slime's first fidget
+SlimeFidget.NEAR_EVERY = table.freeze({ 1.6, 3.4 }) -- seconds between fidgets while the player is close
+SlimeFidget.GREET = table.freeze({ 0.3, 0.9 }) -- seconds from the player coming close to the greeting fidget
 SlimeFidget.DROP_HEIGHT = 2.6 -- studs at size 1: a put-down falls from this high
 SlimeFidget.MOVE_HOP = 0.62 -- seconds of a Move hop from crouch to landing
 
@@ -74,6 +82,7 @@ SlimeFidget.SECONDS = table.freeze({
 	peek = 1.8,
 	huff = 1.0,
 	wiggle = 1.6,
+	tilt = 1.1,
 	drop = 2.2,
 	arrive = 1.4,
 } :: { [string]: number })
@@ -82,10 +91,20 @@ SlimeFidget.SECONDS = table.freeze({
 SlimeFidget.WEIGHTS = table.freeze({
 	Bouncy = table.freeze({ hop = 3, bounce = 3, wiggle = 2, shake = 1, stretch = 1, spin = 1 }),
 	Lazy = table.freeze({ nap = 4, stretch = 3, shake = 1, peek = 1 }),
-	Curious = table.freeze({ peek = 4, hop = 2, shake = 1, stretch = 1, wiggle = 1 }),
-	Shy = table.freeze({ peek = 2, shake = 2, stretch = 2, nap = 1, hop = 1 }),
+	Curious = table.freeze({ peek = 4, tilt = 3, hop = 2, shake = 1, stretch = 1, wiggle = 1 }),
+	Shy = table.freeze({ peek = 2, shake = 2, stretch = 2, nap = 1, hop = 1, tilt = 1 }),
 	Showoff = table.freeze({ spin = 3, wiggle = 3, stretch = 1, hop = 1, bounce = 1 }),
 	Feisty = table.freeze({ huff = 4, shake = 2, hop = 2, bounce = 1 }),
+} :: { [string]: { [string]: number } })
+
+-- While the player is close (mood "near"): livelier picks, no naps.
+SlimeFidget.WEIGHTS_NEAR = table.freeze({
+	Bouncy = table.freeze({ bounce = 3, hop = 2, wiggle = 3, spin = 1 }),
+	Lazy = table.freeze({ stretch = 2, wiggle = 1, shake = 1, tilt = 1 }),
+	Curious = table.freeze({ tilt = 3, peek = 2, hop = 2, wiggle = 1 }),
+	Shy = table.freeze({ shake = 2, peek = 2, tilt = 1, stretch = 1 }),
+	Showoff = table.freeze({ spin = 3, wiggle = 3, bounce = 1 }),
+	Feisty = table.freeze({ huff = 3, hop = 1, bounce = 1, shake = 1 }),
 } :: { [string]: { [string]: number } })
 
 -- Splat moments (seconds since the start) per kind: where the squash spring gets its kick.
@@ -226,6 +245,14 @@ function SlimeFidget.pose(kind: string, u: number, out: Pose?): Pose
 		p.sy = 1 + 0.05 * math.abs(math.cos(2 * math.pi * 2.4 * u)) * env
 		p.face = "happy"
 		p.emote = "note"
+	elseif kind == "tilt" then
+		-- a curious head tilt: cocks its head to one side, holds, straightens up
+		local k = smooth(u / 0.25) * smooth((D - u) / 0.3)
+		p.roll = 0.22 * k
+		p.lift = 0.06 * k
+		p.sy = 1 + 0.04 * k
+		p.face = if u < 0.35 then "surprised" else "happy"
+		p.emote = "ask"
 	elseif kind == "drop" then
 		local fall = 0.3
 		if u < fall then
@@ -264,7 +291,8 @@ function SlimeFidget.pose(kind: string, u: number, out: Pose?): Pose
 end
 
 local function pick(st: State, rand: Rand): Kind
-	local weights = SlimeFidget.WEIGHTS[st.temper] or SlimeFidget.WEIGHTS.Bouncy
+	local set = if st.mood == "near" then SlimeFidget.WEIGHTS_NEAR else SlimeFidget.WEIGHTS
+	local weights = set[st.temper] or set.Bouncy
 	local total = 0
 	for kind, w in weights do
 		if kind ~= st.last then
@@ -292,12 +320,23 @@ end
 function SlimeFidget.new(temper: string, now: number, rand: Rand): State
 	return {
 		temper = temper,
+		mood = "idle",
 		kind = nil,
 		t0 = now,
 		nextAt = now + between(SlimeFidget.FIRST, rand),
 		last = nil,
 		splats = 0,
 	}
+end
+
+function SlimeFidget.setMood(st: State, mood: Mood, now: number, rand: Rand)
+	if st.mood == mood then
+		return
+	end
+	st.mood = mood
+	if not st.kind then
+		st.nextAt = now + between(if mood == "near" then SlimeFidget.GREET else SlimeFidget.EVERY, rand)
+	end
 end
 
 function SlimeFidget.play(st: State, kind: Kind, now: number)
@@ -309,7 +348,7 @@ function SlimeFidget.step(st: State, now: number, rand: Rand, out: Pose?): Pose
 	if kind and now - st.t0 > (SlimeFidget.SECONDS[kind] or 1) then
 		st.last = if kind == "drop" or kind == "arrive" then st.last else kind
 		st.kind = nil
-		st.nextAt = now + between(SlimeFidget.EVERY, rand)
+		st.nextAt = now + between(if st.mood == "near" then SlimeFidget.NEAR_EVERY else SlimeFidget.EVERY, rand)
 		kind = nil
 	end
 	if not kind and now >= st.nextAt then

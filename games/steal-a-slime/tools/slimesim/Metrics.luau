@@ -40,6 +40,7 @@ function Metrics.compute(trace: any): any
 	local crabFrames, airFrames, flips = 0, 0, 0
 	local overlapFrames, overlapWorst = 0, 0
 	local nearFrames = 0
+	local playerHits, playerWorst = 0, 0
 	-- frame index -> list of near slimes' drawn spots (overlap)
 	local byFrame: { [number]: { any } } = {}
 	for _, rec in trace.slimes do
@@ -82,6 +83,15 @@ function Metrics.compute(trace: any): any
 				end
 				table.insert(liftJerk, math.abs((c[3] - b[3]) - (b[3] - a[3])) / (dt * dt))
 				local k = rec.first + i - 1
+				local pl = trace.player[k]
+				if pl and c[3] < rec.radius * 2 then
+					local pd = math.sqrt((c[1] - pl[1]) ^ 2 + (c[2] - pl[2]) ^ 2)
+					local room = rec.radius + 1.2
+					if pd < room * 0.85 then
+						playerHits += 1
+						playerWorst = math.max(playerWorst, 1 - pd / room)
+					end
+				end
 				byFrame[k] = byFrame[k] or {}
 				if k > 30 then -- the first half second: the server queue warms up from nothing in the simulation
 					table.insert(byFrame[k], { c[1], c[2], rec.radius, c[14], c[15], c[3] })
@@ -139,6 +149,7 @@ function Metrics.compute(trace: any): any
 		},
 		lift_jerk_p99 = r3(pct(liftJerk, 0.99)),
 		overlap = { frames = overlapFrames, worst = r3(overlapWorst), body_frames = bodyOverlapFrames },
+		player = { frames = playerHits, worst = r3(playerWorst) },
 	}
 end
 
@@ -151,6 +162,7 @@ function Metrics.report(m: any): string
 		`crab hops (rad)           p50 {m.crab.p50}  p90 {m.crab.p90}  share > 0.8 rad {m.crab.share_over_0_8}`,
 		`turn rate (rad/s)         p95 {m.turn.p95}  p99 {m.turn.p99}  snaps (>8 rad/s) per s {m.turn.flips_per_s}`,
 		`lift jerk p99 (studs/s^2) {m.lift_jerk_p99}`,
+		`slime inside the player    frames {m.player.frames}  worst {m.player.worst}`,
 		`overlap (drawn)           frames {m.overlap.frames}  worst {m.overlap.worst}   (server Bodies overlap in {m.overlap.body_frames} frames)`,
 	}, "\n")
 end
