@@ -309,7 +309,7 @@ function GoalsPanel.new(parent: Instance, ctx: any)
 	local questHeader = headingRow("QuestHeader", "Daily quests", ORDER.questHeader)
 	local headerReset = Widgets.chip({
 		Name = "Reset",
-		Font = Theme.FontBody,
+		FontFace = Theme.FontBody,
 		TextSize = TOP.resetChip,
 		BackgroundColor3 = Theme.Row,
 		AnchorPoint = Vector2.new(1, 0.5),

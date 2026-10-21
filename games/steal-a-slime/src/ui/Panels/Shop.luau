@@ -46,7 +46,7 @@ function Shop.new(parent: Instance, ctx: any)
 	-- Consumables restock countdown (FEATURES.Consumables); only visible while State.consumables exists.
 	local restock = Widgets.chip({
 		Name = "RestockTimer",
-		Font = Theme.FontBody,
+		FontFace = Theme.FontBody,
 		TextSize = SIZE.softChip,
 		BackgroundColor3 = Theme.Row,
 		AnchorPoint = Vector2.new(1, 0),
@@ -127,7 +127,7 @@ function Shop.new(parent: Instance, ctx: any)
 		})
 		local desc = Widgets.label({
 			Name = "Description",
-			Font = Theme.FontBody,
+			FontFace = Theme.FontBody,
 			TextSize = SIZE.desc,
 			TextColor3 = Theme.Muted,
 			TextWrapped = true,

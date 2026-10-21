@@ -78,7 +78,7 @@ end
 -- The status well's text: one line, or the main line over a small body-font line.
 function WorldShop.statusText(slot: WorldShopLogic.Slot): string
 	if slot.sub then
-		return `{slot.text}\n<font face="{Theme.FontBody.Name}" size="{SIZE.statusSub}">{slot.sub}</font>`
+		return `{slot.text}\n<font family="{Theme.FontBody.Family}" weight="bold" size="{SIZE.statusSub}">{slot.sub}</font>`
 	end
 	return slot.text
 end
@@ -141,7 +141,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 	local function softChip(name: string, visible: boolean): TextLabel
 		return Widgets.chip({
 			Name = name,
-			Font = Theme.FontBody,
+			FontFace = Theme.FontBody,
 			TextSize = SIZE.softChip,
 			BackgroundColor3 = Theme.Row,
 			AnchorPoint = Vector2.new(1, 0),
@@ -210,7 +210,7 @@ function WorldShop.new(parent: Instance, ctx: any)
 		})
 		local desc = Widgets.label({
 			Name = "Description",
-			Font = Theme.FontBody,
+			FontFace = Theme.FontBody,
 			TextSize = SIZE.desc,
 			TextColor3 = Theme.Muted,
 			TextWrapped = true,

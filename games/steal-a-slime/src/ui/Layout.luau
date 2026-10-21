@@ -689,7 +689,7 @@ Layout.CARRY = table.freeze({ w = 420, h = 96 })
 Layout.CARRY_TEXT_RESERVE = 190
 Layout.CARRY_MIN_W = 320 -- narrowest carry card (short screens, beside the tutorial card)
 Layout.TUTORIAL_BESIDE_MIN = 260 -- narrowest tutorial card beside the carry card
-Layout.DAILY = table.freeze({ w = 420, h = 300 })
+Layout.DAILY = table.freeze({ w = 420, h = 308 })
 Layout.TUTORIAL = table.freeze({ w = 520, bodyTop = 68, bodyTextSize = 14, padX = 14, padBottom = 12 })
 -- Short (landscape phone) screens: the tutorial card sits this many screen px
 -- above the bottom edge, below the banner stack.
@@ -708,8 +708,29 @@ Layout.PANEL_CHROME = table.freeze({
 	icon = 60, -- the corner icon tile left of the title (a copy of the nav tile)
 	iconRise = 12, -- how far the tile pokes up above the card's top edge
 	iconSize = 32, -- the emoji on that tile
-	bodyGap = 8, -- space between the band's ink rule and the body
-	header = Layout.MIN_TOUCH_DESIGN + 12 + 8, -- the band (closeInset above and below the X) plus bodyGap
+	bodyGap = 16, -- space between the band and the body: the goo lip and drips hang in it
+	header = Layout.MIN_TOUCH_DESIGN + 12 + 16, -- the band (closeInset above and below the X) plus bodyGap
+})
+
+-- The goo edge under a panel's band (Widgets.gooEdge): a lip of `scallops` round bumps hanging `lip` px,
+-- and drips { x (fraction of the width), drop width, neck length } px. A drip's lowest point is
+-- length + 0.6 * width, kept under PANEL_CHROME.bodyGap so goo never runs over the body. No drip sits over
+-- the corner icon tile (x < 0.14).
+-- The glint on a jelly (Widgets.shine): a fixed w x h px frame near the top-left, at a fraction of the jelly's
+-- width plus a few px so it sits inside a pill's rounded end.
+Layout.SHINE = table.freeze({ x = 0.08, offsetX = 6, y = 0.16, w = 14, h = 4 })
+
+Layout.GOO_EDGE = table.freeze({
+	inset = 18,
+	scallops = 16,
+	lip = 6,
+	drips = table.freeze({
+		table.freeze({ 0.2, 10, 6 }),
+		table.freeze({ 0.33, 8, 3 }),
+		table.freeze({ 0.52, 11, 7 }),
+		table.freeze({ 0.71, 8, 4 }),
+		table.freeze({ 0.86, 10, 6 }),
+	}),
 })
 
 -- v28 (Merijn: "like Steal a Brainrot"): every menu is a card sized to its
@@ -727,7 +748,7 @@ Layout.MENU_HEIGHTS = table.freeze({
 	Dex = 600,
 	Leaders = 460,
 	Codes = 300,
-	Sound = 283,
+	Sound = 291,
 	Guide = 380,
 	Welcome = 380,
 })
