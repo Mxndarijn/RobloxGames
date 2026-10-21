@@ -106,3 +106,45 @@ describe("Tutorial.fromState", function()
 		expect(Tutorial.fromState(nil)).toBeNil()
 	end)
 end)
+
+describe("Tutorial device wording", function()
+	local function body(id: string, kind: Tutorial.Kind): string
+		return (Tutorial.viewById(id, kind) :: Tutorial.StepView).body
+	end
+	local function has(text: string, needle: string): boolean
+		return string.find(text, needle, 1, true) ~= nil
+	end
+	it("keyboard is the default and holds E for the hold prompts", function()
+		expect(body("Lock", "keyboard")).toBe((Tutorial.find("Lock") :: Tutorial.Step).body)
+		expect(Tutorial.fromState({ tutorialStepId = "Lock" }).body).toBe(body("Lock", "keyboard"))
+		expect(has(body("Lock", "keyboard"), 'Hold E on "Lock base"')).toBe(true)
+		expect(has(body("BuyPad", "keyboard"), 'Hold E on "Buy pad $X"')).toBe(true)
+		expect(has(body("Merge", "keyboard"), "Hold E at the merge vat")).toBe(true)
+		expect(has(body("Steal", "keyboard"), 'hold E on "Steal"')).toBe(true)
+	end)
+	it("touch taps and holds the prompt, gamepad uses X", function()
+		expect(has(body("Grab", "touch"), "tap the prompt")).toBe(true)
+		expect(has(body("Lock", "touch"), 'Tap and hold the prompt on "Lock base"')).toBe(true)
+		expect(has(body("Steal", "touch"), 'tap and hold the prompt on "Steal"')).toBe(true)
+		expect(has(body("Grab", "gamepad"), "press X")).toBe(true)
+		expect(has(body("Lock", "gamepad"), 'Hold X on "Lock base"')).toBe(true)
+		expect(has(body("Merge", "gamepad"), "Hold X at the merge vat")).toBe(true)
+		expect(has(body("Steal", "gamepad"), 'hold X on "Steal"')).toBe(true)
+	end)
+	it("no key name leaks into the other devices and no placeholder is left", function()
+		for _, step in Tutorial.STEPS do
+			expect(has(step.bodies.touch, " E")).toBe(false)
+			expect(has(step.bodies.gamepad, " E ")).toBe(false)
+			for _, kind in Tutorial.KINDS do
+				expect(string.find(step.bodies[kind], "{", 1, true)).toBeNil()
+				expect(#step.bodies[kind] <= 160).toBe(true)
+			end
+		end
+	end)
+	it("only the prompt wording differs between devices", function()
+		for _, id in { "Deposit", "Rebirth" } do
+			expect(body(id, "touch")).toBe(body(id, "keyboard"))
+			expect(body(id, "gamepad")).toBe(body(id, "keyboard"))
+		end
+	end)
+end)

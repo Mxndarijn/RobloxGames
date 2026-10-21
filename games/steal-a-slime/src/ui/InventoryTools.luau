@@ -43,6 +43,20 @@ function InventoryTools.bindKeys(slotFor: (Enum.KeyCode) -> number?, onSlot: (nu
 	end)
 end
 
+-- Gamepad bumpers: L1 -> -1 (previous hotbar slot), R1 -> +1 (next). Not while typing / when a GUI took the button.
+function InventoryTools.bindBumpers(onStep: (step: number) -> ())
+	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+		if processed then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.ButtonL1 then
+			onStep(-1)
+		elseif input.KeyCode == Enum.KeyCode.ButtonR1 then
+			onStep(1)
+		end
+	end)
+end
+
 -- The bag key on a keyboard or gamepad (not while typing in a TextBox / when another script used the key).
 function InventoryTools.bindBag(isBagKey: (Enum.KeyCode) -> boolean, onBag: () -> ())
 	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
@@ -72,14 +86,33 @@ function InventoryTools.bindUse(
 	onPress: (screen: Vector2 | Vector3, alreadyHeld: number?) -> (),
 	onRelease: (screen: Vector2 | Vector3) -> ()
 )
+	-- A gamepad has no pointer: R2 aims from the screen centre (a Tool such as the Bat gets Tool.Activated from R2
+	-- itself; onPress ignores it because only a consumable or a PvP item is used from here).
+	local function centre(): Vector2?
+		local camera = workspace.CurrentCamera
+		return if camera then camera.ViewportSize / 2 else nil
+	end
 	UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
-		if not processed and input.UserInputType == Enum.UserInputType.MouseButton1 then
+		if processed then
+			return
+		end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			onPress(input.Position)
+		elseif input.KeyCode == Enum.KeyCode.ButtonR2 then
+			local at = centre()
+			if at then
+				onPress(at)
+			end
 		end
 	end)
 	UserInputService.InputEnded:Connect(function(input: InputObject)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
 			onRelease(input.Position)
+		elseif input.KeyCode == Enum.KeyCode.ButtonR2 then
+			local at = centre()
+			if at then
+				onRelease(at)
+			end
 		end
 	end)
 	UserInputService.TouchTap:Connect(function(positions: { Vector2 }, processed: boolean)

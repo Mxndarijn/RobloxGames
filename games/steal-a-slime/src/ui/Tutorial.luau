@@ -13,53 +13,67 @@
 	advances it.
 ]]
 
-export type Step = { id: string, title: string, body: string }
+local InputKind = if script then require(script.Parent.InputKind) else require("./InputKind")
+
+export type Kind = InputKind.Kind
+export type Step = { id: string, title: string, body: string, bodies: { [Kind]: string } }
 export type StepView = { id: string, index: number, total: number, title: string, body: string, counter: string }
 
 local Tutorial = {}
 
+Tutorial.KINDS = table.freeze({ "keyboard", "touch", "gamepad" } :: { Kind })
+
+-- What each device does for a tap ({grab}) and for the 0.8 s hold prompts ({hold}, {Hold}).
+local WORDS: { [Kind]: { [string]: string } } = {
+	keyboard = { grab = "press E (or tap the prompt)", hold = "hold E", Hold = "Hold E" },
+	touch = { grab = "tap the prompt", hold = "tap and hold the prompt", Hold = "Tap and hold the prompt" },
+	gamepad = { grab = "press X", hold = "hold X", Hold = "Hold X" },
+}
+
+local function define(id: string, title: string, template: string): Step
+	local bodies = {} :: { [Kind]: string }
+	for _, kind in Tutorial.KINDS do
+		bodies[kind] = (template:gsub("{(%w+)}", WORDS[kind]))
+	end
+	return table.freeze({ id = id, title = title, body = bodies.keyboard, bodies = table.freeze(bodies) })
+end
+
 Tutorial.STEPS = table.freeze({
-	table.freeze({
-		id = "Grab",
-		title = "Grab a slime",
-		body = "Slimes spill from the fountain. Walk up to one and press E (or tap the prompt). "
-			.. '"Grab" is free; "Buy $X" costs cash.',
-	}),
-	table.freeze({
-		id = "Deposit",
-		title = "Bring it home",
-		body = "Walk into your plot while carrying it - no button needed. "
-			.. "It hops onto a free pad and earns cash every second.",
-	}),
-	table.freeze({
-		id = "Lock",
-		title = "Lock your base",
-		body = 'Press E on "Lock base" at your plot. '
-			.. "While it says LOCKED, nobody can steal. UNLOCKED = vulnerable!",
-	}),
-	table.freeze({
-		id = "BuyPad",
-		title = "Buy a pad",
-		body = 'More pads = more slimes. Press E on "Buy pad $X" at the glowing pad on your plot.',
-	}),
-	table.freeze({
-		id = "Merge",
-		title = "Merge",
-		body = "Slimes of the same rarity merge into a rarer one. Press E at the merge vat on your plot to pick them.",
-	}),
-	table.freeze({
-		id = "Steal",
-		title = "Steal and chase",
-		body = 'On an unlocked plot, hold E on "Steal" by a slime. '
+	define(
+		"Grab",
+		"Grab a slime",
+		"Slimes spill from the fountain. Walk up to one and {grab}. " .. '"Grab" is free; "Buy $X" costs cash.'
+	),
+	define(
+		"Deposit",
+		"Bring it home",
+		"Walk into your plot while carrying it - no button needed. "
+			.. "It hops onto a free pad and earns cash every second."
+	),
+	define(
+		"Lock",
+		"Lock your base",
+		'{Hold} on "Lock base" at your plot. ' .. "While it says LOCKED, nobody can steal. UNLOCKED = vulnerable!"
+	),
+	define("BuyPad", "Buy a pad", 'More pads = more slimes. {Hold} on "Buy pad $X" at the glowing pad on your plot.'),
+	define(
+		"Merge",
+		"Merge",
+		"Slimes of the same rarity merge into a rarer one. {Hold} at the merge vat on your plot to pick them."
+	),
+	define(
+		"Steal",
+		"Steal and chase",
+		'On an unlocked plot, {hold} on "Steal" by a slime. '
 			.. "Chase thieves and hit them with your bat! "
-			.. "Alone here? This step skips itself soon.",
-	}),
-	table.freeze({
-		id = "Rebirth",
-		title = "Rebirth",
-		body = "Rich enough? Open Rebirth in the left menu for a permanent cash multiplier. "
-			.. "Your ★ favourite slime stays.",
-	}),
+			.. "Alone here? This step skips itself soon."
+	),
+	define(
+		"Rebirth",
+		"Rebirth",
+		"Rich enough? Open Rebirth in the left menu for a permanent cash multiplier. "
+			.. "Your ★ favourite slime stays."
+	),
 } :: { Step })
 
 -- v12 servers (no tutorialStepId): numeric steps in this order.
@@ -86,32 +100,32 @@ function Tutorial.stepOf(state: any): number?
 	return math.floor(step)
 end
 
-local function makeView(entry: Step, index: number, total: number): StepView
+local function makeView(entry: Step, index: number, total: number, kind: Kind?): StepView
 	return {
 		id = entry.id,
 		index = index,
 		total = total,
 		title = entry.title,
-		body = entry.body,
+		body = entry.bodies[kind or "keyboard"],
 		counter = `Step {index} of {total}`,
 	}
 end
 
 -- View for a step id (CONTRACT §8.3 order), nil when unknown.
-function Tutorial.viewById(id: any): StepView?
+function Tutorial.viewById(id: any, kind: Kind?): StepView?
 	if type(id) ~= "string" then
 		return nil
 	end
 	for index, entry in Tutorial.STEPS do
 		if entry.id == id then
-			return makeView(entry, index, #Tutorial.STEPS)
+			return makeView(entry, index, #Tutorial.STEPS, kind)
 		end
 	end
 	return nil
 end
 
 -- View for a 1-based step in `ids` (default: the v13 order), nil outside it.
-function Tutorial.view(step: number?, ids: { string }?): StepView?
+function Tutorial.view(stepNo: number?, ids: { string }?, kind: Kind?): StepView?
 	local order = ids
 	if order == nil then
 		order = {}
@@ -119,22 +133,22 @@ function Tutorial.view(step: number?, ids: { string }?): StepView?
 			order[i] = entry.id
 		end
 	end
-	if step == nil or step < 1 or step > #order then
+	if stepNo == nil or stepNo < 1 or stepNo > #order then
 		return nil
 	end
-	local entry = Tutorial.find(order[step])
-	return if entry then makeView(entry, step, #order) else nil
+	local entry = Tutorial.find(order[stepNo])
+	return if entry then makeView(entry, stepNo, #order, kind) else nil
 end
 
 -- The overlay's view for a State snapshot (see header).
-function Tutorial.fromState(state: any): StepView?
+function Tutorial.fromState(state: any, kind: Kind?): StepView?
 	if type(state) ~= "table" then
 		return nil
 	end
 	if state.tutorialStepId ~= nil then
-		return Tutorial.viewById(state.tutorialStepId)
+		return Tutorial.viewById(state.tutorialStepId, kind)
 	end
-	return Tutorial.view(Tutorial.stepOf(state), Tutorial.LEGACY_IDS)
+	return Tutorial.view(Tutorial.stepOf(state), Tutorial.LEGACY_IDS, kind)
 end
 
 return table.freeze(Tutorial)

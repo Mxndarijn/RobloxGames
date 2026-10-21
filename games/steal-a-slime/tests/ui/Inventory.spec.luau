@@ -977,3 +977,80 @@ describe("Inventory hotbar order through request", function()
 		end
 	)
 end)
+
+describe("Inventory gamepad", function()
+	local Enum = require("@lune/roblox").Enum
+	local ITEMS = { { name = "Bat", equipped = false }, { name = "SpeedCoil", equipped = false } }
+
+	it("the bumpers cycle the filled slots through the number-key path, wrapping both ways", function()
+		local inv, tools, sent = mount(pvpState(nil), ITEMS) -- slots: Bat, Speed Coil, the PvP item
+		expect(inv.cycleSlot(1)).toBe(true) -- nothing in hand: the first
+		expect(tools.calls[#tools.calls]).toBe("equip:Bat")
+		tools.items[1].equipped = true
+		inv.update(pvpState(nil))
+		expect(inv.cycleSlot(1)).toBe(true)
+		expect(tools.calls[#tools.calls]).toBe("equip:SpeedCoil")
+		tools.items[1].equipped, tools.items[2].equipped = false, true
+		inv.update(pvpState(nil))
+		inv.cycleSlot(1)
+		expect(sent[#sent][1]).toBe("EquipPvpItem")
+		expect(sent[#sent][2]).toBe(PVP.id)
+		inv.update(pvpState(PVP.id))
+		inv.cycleSlot(1) -- wraps to the Bat
+		expect(tools.calls[#tools.calls]).toBe("equip:Bat")
+		tools.items[1].equipped, tools.items[2].equipped = true, false
+		inv.update(pvpState(nil))
+		inv.cycleSlot(-1) -- wraps back to the last
+		expect(sent[#sent][2]).toBe(PVP.id)
+	end)
+
+	it("with nothing in hand the previous bumper picks the last slot", function()
+		local inv, _, sent = mount(pvpState(nil), ITEMS)
+		expect(inv.cycleSlot(-1)).toBe(true)
+		expect(sent[1][2]).toBe(PVP.id)
+	end)
+
+	it("skips an empty slot and does nothing with a single filled slot already in hand", function()
+		local inv, tools = mount(nil, { { name = "Bat", equipped = true } })
+		expect(inv.cycleSlot(1)).toBe(false)
+		expect(#tools.calls).toBe(0)
+	end)
+
+	it("follows the keyboard guards: carrying, a menu and the open bag", function()
+		local inv = mount(nil, ITEMS)
+		inv.update({ carrying = { slimeId = "x" } })
+		expect(inv.cycleSlot(1)).toBe(false)
+		inv.update({})
+		inv.setMenuOpen(true)
+		expect(inv.cycleSlot(1)).toBe(false)
+		inv.setMenuOpen(false)
+		inv.setPanelOpen(true)
+		expect(inv.cycleSlot(1)).toBe(false)
+	end)
+
+	it("opening the bag on a gamepad focuses the first hotbar plate slot, closing clears it", function()
+		local gui = UiHarness.guiService
+		UiHarness.lastInputType = Enum.UserInputType.Gamepad1
+		local inv = mount(nil)
+		inv.setPanelOpen(true)
+		expect(gui.SelectedObject ~= nil).toBe(true)
+		expect(gui.SelectedObject.Name).toBe("HotbarSlot1")
+		inv.setPanelOpen(false)
+		expect(gui.SelectedObject).toBeNil()
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+	end)
+
+	it("leaves the focus alone with a mouse or touch, and a focus outside the panel on close", function()
+		local gui = UiHarness.guiService
+		UiHarness.lastInputType = Enum.UserInputType.Touch
+		local inv = mount(nil)
+		inv.setPanelOpen(true)
+		expect(gui.SelectedObject).toBeNil()
+		local other = UiHarness.root()
+		gui.SelectedObject = other
+		inv.setPanelOpen(false)
+		expect(gui.SelectedObject).toBe(other)
+		gui.SelectedObject = nil
+		UiHarness.lastInputType = Enum.UserInputType.MouseMovement
+	end)
+end)
