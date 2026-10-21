@@ -22,7 +22,7 @@
 	         PromptHide
 	  boss   two stand-ins fight the boss with their bats (meter, sheds),
 	         race the haul (head start, boss carry slow, a slap drops it)
-	         and bring it home onto the trophy stand
+	         and bring it home for the win and its boss badges
 
 	Prints PASS / FAIL per check and exits 1 on any FAIL. The cloud twin is
 	tools/livetest/cloud/session.luau (Luau Execution, ci/run.py).
@@ -727,7 +727,7 @@ scenario("ui", function()
 end)
 
 ---------------------------------------------------------------------------
--- boss: two stand-ins fight the boss, race the haul and win a trophy (contract/boss-event.md)
+-- boss: two stand-ins fight the boss, race the haul and win boss badges (contract/boss-event.md)
 ---------------------------------------------------------------------------
 scenario("boss", function()
 	local RS = rt.game:GetService("ReplicatedStorage")
@@ -871,16 +871,18 @@ scenario("boss", function()
 	moveTo(S.WorldView.plotSpawn(session.plotIndex).Position)
 	rt:advance(1)
 	local after = stateOf(USER_ID)
-	local plot = S.WorldView.plot(session.plotIndex)
-	local stand = plot and plot:FindFirstChild(`Trophy_{fight.species}`)
+	local hauler = false
+	for _, badge in after.bossBadges do
+		hauler = hauler or badge.key == "BossHauler"
+	end
 	check(
-		"boss: home is a win: the trophy stands by the plot and earns",
-		#session.data.trophies == 1
+		"boss: home is a win: a haul and its badge in the save and State, no income",
+		session.data.boss.hauls == 1
 			and after.boss.phase == "won"
-			and after.boss.trophies == 1
-			and stand ~= nil
-			and after.incomePerSec > income,
-		`trophies {#session.data.trophies}, phase {after.boss.phase}, stand {stand and stand:GetFullName()}, income {income} -> {after.incomePerSec}`
+			and after.boss.badges == #after.bossBadges
+			and hauler
+			and after.incomePerSec == income,
+		`hauls {session.data.boss.hauls}, wins {session.data.boss.wins[fight.species]}, phase {after.boss.phase}, badges {after.boss.badges}, hauler {hauler}, income {income} -> {after.incomePerSec}`
 	)
 	rt:advance(BOSS.LINGER_SECONDS + 0.5)
 	check("boss: the event clears after the result", world.boss == nil and stateOf(USER_ID).boss.phase == nil, "")

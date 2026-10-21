@@ -6,15 +6,18 @@
 	(world.bossIndex), the running event (world.boss = Shared.BossFight state + the wild boss slime), Bat hits on the
 	boss, its sheds (Spawner.spawnBonus), the slap that drops the
 	hauled boss on the spot, and State.boss. Grabbing and bringing the boss home go through Carry (grabWild /
-	depositBoss). Every change marks every session dirty, so State.boss is pushed to everyone.
+	depositBoss); hits and wins are credited through BossCredit. Every change marks every session dirty, so State.boss
+	is pushed to everyone.
 ]]
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
+local BossBadges = if Shared then require(Shared.BossBadges) else require("../shared/BossBadges")
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
 local SlimeRoster = if Shared then require(Shared.SlimeRoster) else require("../shared/SlimeRoster")
-local Trophies = if Shared then require(Shared.Trophies) else require("../shared/Trophies")
+local BossSlime = if Shared then require(Shared.BossSlime) else require("../shared/BossSlime")
 local Types = if Shared then require(Shared.Types) else require("../shared/Types")
+local BossCredit = if script then require(script.Parent.BossCredit) else require("./BossCredit")
 local Carry = if script then require(script.Parent.Carry) else require("./Carry")
 local Spawner = if script then require(script.Parent.Spawner) else require("./Spawner")
 local World = if script then require(script.Parent.World) else require("./World")
@@ -95,7 +98,7 @@ end
 -- The boss slime arrives at the plaza boss spot (WorldView), outside the wild cap.
 local function arrive(world: World, event: World.BossEvent, now: number)
 	local id = world.newId()
-	local slime = Trophies.bossSlime(world.rng, id, event.fight.species)
+	local slime = BossSlime.build(world.rng, id, event.fight.species)
 	if not slime then
 		return
 	end
@@ -207,6 +210,7 @@ function BossEvent.hit(world: World, session: Session, now: number): (boolean, s
 		return false, reason
 	end
 	World.markAllDirty(world)
+	BossCredit.record(world, session, { kind = "hit" }, now)
 	BossEvent.step(world, now)
 	return true, nil
 end
@@ -244,7 +248,7 @@ end
 
 -- State.boss for `session` (contract/boss-event.md).
 function BossEvent.view(world: World, session: Session, now: number): Types.BossView
-	local trophies = #session.data.trophies
+	local badges = BossBadges.count(session.data)
 	local event = world.boss
 	if not event then
 		return {
@@ -253,7 +257,7 @@ function BossEvent.view(world: World, session: Session, now: number): Types.Boss
 			nextAt = world.nextBossAt,
 			yourPoints = 0,
 			yourShare = 0,
-			trophies = trophies,
+			badges = badges,
 		}
 	end
 	local fight = event.fight
@@ -275,7 +279,7 @@ function BossEvent.view(world: World, session: Session, now: number): Types.Boss
 		priorityName = if priorityOn then nameOf(world, fight.priorityUserId) else nil,
 		priorityUntil = if priorityOn then fight.priorityUntil else nil,
 		winnerName = if fight.phase == "won" then nameOf(world, fight.winnerUserId) else nil,
-		trophies = trophies,
+		badges = badges,
 	}
 end
 

@@ -8,7 +8,7 @@ local describe, it, expect = TestRunner.describe, TestRunner.it, TestRunner.expe
 
 local function boss(fields: { [string]: any }): any
 	local out: { [string]: any } =
-		{ active = true, name = "Goozilla", meter = 0, yourPoints = 0, yourShare = 0, trophies = 0 }
+		{ active = true, name = "Goozilla", meter = 0, yourPoints = 0, yourShare = 0, badges = 0 }
 	for k, v in fields do
 		out[k] = v
 	end
@@ -64,7 +64,7 @@ describe("Panels/BossMeter", function()
 			end,
 		})
 		local frame = UiHarness.find(root, "BossMeter")
-		panel.update({ boss = { active = false, meter = 0, yourPoints = 0, yourShare = 0, trophies = 0 } })
+		panel.update({ boss = { active = false, meter = 0, yourPoints = 0, yourShare = 0, badges = 0 } })
 		expect(frame.Visible).toBe(false)
 		panel.update({ boss = boss({ phase = "fight", meter = 0.5, endsAt = 1030 }) })
 		expect(frame.Visible).toBe(true)
