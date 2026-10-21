@@ -1,10 +1,9 @@
 --!nocheck
 -- The plot lock's stopper (CONTRACT.md §5.3): one cork collider that fills jar 1's doorway from just outside the
--- glass to the PlotLockGuard limit, closes the gap between the wall segments either side of the door, and is too
+-- glass to DOOR_INNER_INSET inside it, closes the gap between the wall segments either side of the door, and is too
 -- tall to jump over under the lintel. Built from WorldLayout.build() like the real world.
 local Constants = require("../src/shared/Constants")
 local LayoutMath = require("../src/visuals/shared/LayoutMath")
-local PlotLockGuard = require("../src/server/PlotLockGuard")
 local TestRunner = require("./TestRunner")
 local WorldLayout = require("../src/visuals/shared/WorldLayout")
 
@@ -48,14 +47,13 @@ describe("LockBarrier stopper", function()
 		expect(stopper.canQuery).toBe(false)
 	end)
 
-	it("fills the doorway from outside the glass to the PlotLockGuard limit", function()
+	it("fills the doorway from outside the glass to DOOR_INNER_INSET inside it", function()
 		local s = toLocal(barrier.children[1])
-		expect(WorldLayout.DOOR_INNER_INSET).toBe(PlotLockGuard.MARGIN)
 		expect(math.abs(s.x) < EPS).toBe(true)
 		expect(math.abs(s.z - s.sz / 2 - door.zOuter) < EPS).toBe(true)
 		expect(math.abs(s.z + s.sz / 2 - door.zInner) < EPS).toBe(true)
 		expect(door.zOuter < -(WorldLayout.jarRadius(1) + WorldLayout.JAR_WALL)).toBe(true)
-		expect(math.abs(door.zInner + (WorldLayout.jarRadius(1) - PlotLockGuard.MARGIN)) < EPS).toBe(true)
+		expect(math.abs(door.zInner + (WorldLayout.jarRadius(1) - WorldLayout.DOOR_INNER_INSET)) < EPS).toBe(true)
 	end)
 
 	it("closes the gap between the door jambs either side of the door", function()

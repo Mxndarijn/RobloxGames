@@ -187,6 +187,11 @@ def jar_trim(f, top, crown=False):
         if f == 1 and abs(((a + 90 + 180) % 360) - 180) < ha + 2:
             continue  # no rib over the door
         pts = [(x * (pr + 0.18), y * (pr + 0.18), pz) for pr, pz in prof]
+        if not top and f < FLOORS:
+            # a covered jar: carry the rib on from its neck straight up to the next jar's floor, at that jar's rib
+            # radius, so the brass bars run unbroken up the tower
+            ru = radius(f + 1) + 0.18
+            pts += [(x * ru, y * ru, pts[-1][2] + 0.3), (x * ru, y * ru, FLOOR_H + 0.25)]
         out.append(tube(f"Rib{k}", pts, [0.35] * len(pts), METAL, segs=6))
     lip_top = nz + (LIP if top else 0.0)
     for k in range(2):
@@ -213,12 +218,13 @@ def jar_trim(f, top, crown=False):
     return out
 
 def jar_deck(f):
-    """Jar f's floor above the ground: a goo pool in a wooden ring, the stair hole in the middle with a cork rim, a few
-    bubbles. Top of the goo at z = 0 (the floor's walking surface)."""
+    """Jar f's floor above the ground: a goo pool in a wooden ring and a few bubbles, the stair hole in the middle with
+    no rim: the goo rolls over its edge and lines the hole's wall, so the floor's thickness doesn't show from the stair.
+    Top of the goo at z = 0 (the floor's walking surface)."""
     r, hole = radius(f), D["stair"]["hole"]
-    out = [painted(lathe("Wood", [(hole, -1.0), (r - 1.0, -1.0), (r - 1.0, -0.05)], CORK, double=False), shade(CORK, 0.95), CORK)]
-    out.append(painted(lathe("Pool", [(r - 0.4, 0.0), (hole + 0.4, 0.0)], GOO, double=False), shade(GOO, 0.85), GOO))
-    out.append(loop("HoleRim", hole + 0.2, 0.4, (0, 0, 0.05), "z", CORK, segs=32))
+    out = [painted(lathe("Wood", [(hole + 0.2, -1.0), (r - 1.0, -1.0), (r - 1.0, -0.05)], CORK, double=False), shade(CORK, 0.95), CORK)]
+    out.append(painted(lathe("Pool", [(r - 0.4, 0.0), (hole + 0.3, 0.0), (hole, -0.25), (hole, -1.05)], GOO, double=False),
+                       shade(GOO, 0.8), GOO))
     rr = random.Random(90 + f)
     for k in range(7):
         a, d = rr.uniform(0, math.tau), rr.uniform(hole + 2, r - 3)
@@ -227,11 +233,17 @@ def jar_deck(f):
 
 
 def jar_foot():
-    """The ground under jar 1, lying on the plot's Base (z = 0 is the Base top, the floor players walk on): a low round
-    wooden foot, the goo moat round it on a sandy bed, jar 1's goo pool with bubbles. All of it is decor a few tenths
-    of a stud thick, so feet hardly sink in."""
+    """The whole round plot floor (z = 0 is its top, the floor players walk on; the game's PlotFloor collider is under
+    it): a sandy ring out to the plot's edge with a cork rim and its 1-stud edge down to the ground, a low round
+    wooden foot, the goo moat round it on a sandy bed, jar 1's goo pool with bubbles. The top is decor a few tenths of
+    a stud thick, so feet hardly sink in."""
     r1, m = radius(1), D["moat"]
-    out = [painted(cylinder("Foot", m["inner"], 0.3, (0, 0, 0), WOOD, segs=SEGS), shade(WOOD, 0.85), WOOD)]
+    edge = D["plotFloorRadius"]
+    sand = rgb(232, 214, 178)
+    out = [painted(lathe("Sand", [(edge, -1.0), (edge, 0.0), (edge - 0.4, 0.06), (m["outer"] - 0.2, 0.06)], sand, double=False),
+                   shade(sand, 0.82), sand),
+           painted(lathe("Rim", [(edge + 0.05, -0.15), (edge + 0.05, 0.12), (edge - 0.5, 0.12)], WOOD_D, double=False), shade(WOOD_D, 0.85), WOOD_D)]
+    out.append(painted(cylinder("Foot", m["inner"], 0.3, (0, 0, 0), WOOD, segs=SEGS), shade(WOOD, 0.85), WOOD))
     out.append(painted(lathe("MoatBed", [(m["outer"], 0.0), (m["outer"], 0.06), (m["inner"], 0.06)], shade(PATH, 0.95), double=False)))
     out.append(painted(lathe("MoatRim", [(m["outer"], 0.06), (m["outer"], 0.3), (m["outer"] - 0.4, 0.3)], WOOD_D, double=False)))
     out.append(painted(lathe("Moat", [(m["outer"] - 0.3, 0.18), (m["inner"], 0.18)], GOO, double=False), shade(GOO, 0.9), GOO))
@@ -244,16 +256,53 @@ def jar_foot():
 
 
 def jar_stair():
-    """The spiral stair from a floor up to the next: the goo centre post and one cork tread per stud of height, tread 1
-    at the first tread angle of floor 1 (the game turns the mesh for higher floors)."""
-    st = D["stair"]
-    angles = D["floors"][0]["treads"]
-    out = [painted(cylinder("Post", st["post"], FLOOR_H, (0, 0, 0), GOO, segs=16), shade(GOO, 0.85), mix(GOO, GOO_HI, 0.4))]
-    mid = (st["post"] + st["outer"]) / 2
-    for k, deg in enumerate(angles, start=1):
+    """The stair from a floor up to the next, as a smooth spiral ramp (WorldLayout.RAMP): the goo centre post, a cork
+    ramp climbing FLOOR_H in one turn from half a step before floor 1's first tread angle, ending where the next floor's
+    ramp starts (stacked, they make one unbroken spiral), a goo line along the inner edge and a brass hand rail on balusters along the outer edge (open where the game's rail
+    is open, at the bottom and before the top). The game turns the mesh for higher floors."""
+    import bmesh
+    from lib.shapes import obj_from_bm
+    st, rp = D["stair"], D["ramp"]
+    start = D["floors"][0]["treads"][0] - st["angle"]
+    span = st["angle"] * round(FLOOR_H)
+    post, outer = st["post"], st["outer"]
+    out = [painted(cylinder("Post", post, FLOOR_H, (0, 0, 0), GOO, segs=16), shade(GOO, 0.85), mix(GOO, GOO_HI, 0.4))]
+
+    def at(r, deg, z):
         a = math.radians(deg)
-        out.append(painted(box(f"Tread{k}", (st["outer"] - st["post"] + 0.4, 2.2, 1.0), (mid * math.cos(a), mid * math.sin(a), k - 0.5), CORK,
-                               rot=(0, 0, deg)), shade(CORK, 0.85), CORK))
+        return (r * math.cos(a), r * math.sin(a), z)
+
+    def surface(deg):
+        return min(FLOOR_H, max(0.0, (deg - start) / span * FLOOR_H))
+
+    n = 72
+    angles = [start + span * i / n for i in range(n + 1)]  # the next floor's ramp goes on from the top
+    bm = bmesh.new()
+    rows = []
+    for deg in angles:
+        z = surface(deg)
+        rows.append([bm.verts.new(at(post, deg, z)), bm.verts.new(at(outer, deg, z)),
+                     bm.verts.new(at(outer, deg, z - 0.6)), bm.verts.new(at(post, deg, z - 0.6))])
+    for k in range(len(rows) - 1):
+        a, b = rows[k], rows[k + 1]
+        bm.faces.new((a[0], a[1], b[1], b[0]))  # top
+        bm.faces.new((a[1], a[2], b[2], b[1]))  # outer side
+        bm.faces.new((a[2], a[3], b[3], b[2]))  # underside
+    bm.faces.new(tuple(reversed(rows[0])))
+    bm.faces.new(tuple(rows[-1]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    out.append(painted(obj_from_bm("Ramp", bm, CORK), shade(CORK, 0.82), CORK))
+    # goo line along the inner edge
+    inner = [at(post + 0.2, deg, surface(deg) + 0.08) for deg in angles[::3]]
+    out.append(painted(tube("GooEdge", inner, [0.2] * len(inner), GOO, segs=6), shade(GOO, 0.9), GOO_HI))
+    # the brass rail where the game's rail wall stands
+    r0, r1 = start + rp["railStart"], start + span - rp["railEnd"]
+    steps = max(2, int((r1 - r0) / 7.5))
+    rail_angles = [r0 + (r1 - r0) * i / steps for i in range(steps + 1)]
+    rail = [at(outer - 0.15, deg, surface(deg) + 1.5) for deg in rail_angles]
+    out.append(tube("Rail", rail, [0.14] * len(rail), METAL, segs=8))
+    for k, deg in enumerate(rail_angles[::2]):
+        out.append(cylinder(f"Baluster{k}", 0.08, 1.5, at(outer - 0.15, deg, surface(deg)), METAL, segs=6))
     return out
 
 
@@ -420,16 +469,14 @@ def drop_tube_goo(version):
 
     for f in range(1, version):
         out.append(collar_at(f * FLOOR_H + 0.5))
-    for f in range(2, version + 1):
-        r = radius(f)
-        hz = (f - 1) * FLOOR_H + 3.0
-        if f < version:
-            out.append(tube(f"Branch{f}", [((r - 0.3) * cb, (r - 0.3) * sb, hz), ((r + TUBE_OUT) * cb, (r + TUBE_OUT) * sb, hz)],
-                            [1.2, 1.2], mix(GLASS, GOO, 0.4), segs=12))
-        out.append(tube(f"Flange{f}", [((r - 0.1) * cb, (r - 0.1) * sb, hz), ((r + 0.7) * cb, (r + 0.7) * sb, hz)], [1.7, 1.7], CORK, segs=16))
+    # the tube is only entered from the top jar (the game keeps the lower jars' hatches shut): one cork flange there
+    r = radius(version)
+    hz = (version - 1) * FLOOR_H + 3.0
+    out.append(tube("Flange", [((r - 0.1) * cb, (r - 0.1) * sb, hz), ((r + 0.7) * cb, (r + 0.7) * sb, hz)], [1.7, 1.7], CORK, segs=16))
     ex, ey, ez = pts[-1]
-    out.append(painted(blob("Splash", 4.2, (ex, ey, 0.35), GOO, subdiv=3, squash=(1.3, 1.3, 0.22), jitter=0.05, lumps=0.1), shade(GOO, 0.9), GOO_HI))
-    for k, (x, y) in enumerate(ring_xy(7, 4.9, 0.3)):
+    # the splash where it lands in the moat (kept small: it sits on the moat ring, inside the round plot floor)
+    out.append(painted(blob("Splash", 2.6, (ex, ey, 0.35), GOO, subdiv=3, squash=(1.3, 1.3, 0.22), jitter=0.05, lumps=0.1), shade(GOO, 0.9), GOO_HI))
+    for k, (x, y) in enumerate(ring_xy(7, 3.1, 0.3)):
         out.append(blob(f"Splat{k}", 0.7 + 0.2 * (k % 2), (ex + x, ey + y, 0.5), GOO_HI, subdiv=1, jitter=0.1))
     return out
 

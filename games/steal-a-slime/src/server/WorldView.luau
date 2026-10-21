@@ -81,6 +81,7 @@ type Record = {
 	weld: WeldConstraint?,
 	rideUntil: number, -- os.clock() when the fountain ride lands (0 = not riding)
 	ghost: Model?, -- StealGhost: the see-through copy left on the pad while a thief carries it
+	pendingKit: string?, -- built before this species kit loaded (shared mesh look): rebuilt once it arrives
 }
 
 local WorldView = {}
@@ -91,6 +92,7 @@ type LaneWalk = { key: string, wild: World.Wild }
 local laneWalks: { [string]: LaneWalk } = {}
 local failed: { [string]: boolean } = {}
 local modelFactory: any = nil
+local slimeMesh: SlimeMesh.SlimeMesh? = nil
 local plotCache: { [number]: Instance? } = {}
 local habitats = HabitatPads.new() -- FEATURES.Habitats pad state (never saved)
 local eggMeshes: { [string]: MeshPart | false } = {} -- uploaded Mystery Egg meshes (MeshAssets mystery_egg_*), by name
@@ -149,6 +151,7 @@ function WorldView.setup(): any?
 			end,
 		})
 		workspace:SetAttribute(Constants.SLIME_LOOK_ATTRIBUTE, SlimeMesh.load(mesh))
+		slimeMesh = mesh
 		modelFactory = {
 			build = function(slimeData: any): Model
 				return SlimeMesh.build(mesh, slimeData)
@@ -666,6 +669,7 @@ local function create(entry: Scene.Entry, onPrompt: (Player, string) -> (), onHa
 		key = "",
 		weld = nil,
 		rideUntil = 0,
+		pendingKit = if slimeMesh and not isEgg then SlimeMesh.pendingKit(slimeMesh, entry.slime) else nil,
 	}
 end
 
@@ -837,82 +841,15 @@ local function place(record: Record, entry: Scene.Entry, previous: string?): boo
 	return true
 end
 
----------------------------------------------------------------------------
--- Trophy stands (contract/boss-event.md): one pedestal per boss trophy beside the plot's Dex board
----------------------------------------------------------------------------
-
-local TROPHY_PEDESTAL = Vector3.new(9, 2, 9)
-local TROPHY_COLOR = Color3.fromRGB(255, 205, 70)
-local trophyModels: { [string]: Instance } = {}
-
--- Pedestal `slot` (1-based) of `plotIndex`: WorldLayout.TROPHY_SPOTS on the Base, clear of the jar and the moat.
-local function trophySpot(plotIndex: number, slot: number): CFrame?
-	local plot = WorldView.plot(plotIndex)
-	local base = plot and plot:FindFirstChild("Base")
-	local spot = WorldLayout.TROPHY_SPOTS[slot]
-	if not (base and base:IsA("BasePart") and spot) then
-		return nil
-	end
-	return base.CFrame * CFrame.new(spot[1], base.Size.Y / 2, spot[2])
-end
-
-local function buildTrophy(slime: Genome.Slime, spot: CFrame, parent: Instance): Instance?
-	if not modelFactory then
-		return nil
-	end
-	local ok, model = pcall(modelFactory.build, Genome.copy(slime))
-	if not ok or typeof(model) ~= "Instance" or not model:IsA("Model") then
-		return nil
-	end
-	local stand = Instance.new("Model")
-	stand.Name = `Trophy_{slime.species or slime.id}`
-	local pedestal = Instance.new("Part")
-	pedestal.Name = "Pedestal"
-	pedestal.Shape = Enum.PartType.Cylinder
-	pedestal.Size = Vector3.new(TROPHY_PEDESTAL.Y, TROPHY_PEDESTAL.X, TROPHY_PEDESTAL.Z)
-	pedestal.CFrame = spot * CFrame.new(0, TROPHY_PEDESTAL.Y / 2, 0) * CFrame.Angles(0, 0, math.pi / 2)
-	pedestal.Color = TROPHY_COLOR
-	pedestal.Material = Enum.Material.SmoothPlastic
-	pedestal.Anchored = true
-	pedestal.Parent = stand
-	for _, part in model:GetDescendants() do
-		if part:IsA("BasePart") then
-			part.Anchored = true
-			part.CanCollide = false
-			part.CanTouch = false
-		end
-	end
-	model:PivotTo(spot * CFrame.new(0, TROPHY_PEDESTAL.Y, 0))
-	model.Parent = stand
-	stand.Parent = parent
-	return stand
-end
-
--- Builds and removes trophy stands to match every session's data.trophies.
-local function reconcileTrophies(world: World.World)
-	local wanted: { [string]: { slime: Genome.Slime, plotIndex: number, slot: number } } = {}
-	for _, session in world.sessions do
-		for slot, slime in session.data.trophies do
-			local key = `{session.plotIndex}|{slot}|{slime.species}`
-			wanted[key] = { slime = slime, plotIndex = session.plotIndex, slot = slot }
-		end
-	end
-	for key, model in trophyModels do
-		if not wanted[key] or not model.Parent then
-			model:Destroy()
-			trophyModels[key] = nil
-		end
-	end
-	for key, want in wanted do
-		if not trophyModels[key] then
-			local plot = WorldView.plot(want.plotIndex)
-			local spot = trophySpot(want.plotIndex, want.slot)
-			local model = if plot and spot then buildTrophy(want.slime, spot, plot) else nil
-			if model then
-				trophyModels[key] = model
-			end
-		end
-	end
+-- A slime built before its species kit loaded wears the shared mesh; once the kit is in, it is rebuilt in its own
+-- look. Only while it sits on a pad or walks wild: a carried, escaping or riding slime waits until it lands.
+local function kitArrived(record: Record, entry: Scene.Entry, clock: number): boolean
+	local kit = record.pendingKit
+	return kit ~= nil
+		and slimeMesh ~= nil
+		and SlimeMesh.hasKit(slimeMesh, kit)
+		and (entry.state == "Pad" or entry.state == "Wild")
+		and clock >= record.rideUntil
 end
 
 --[[
@@ -926,9 +863,10 @@ function WorldView.reconcile(
 	onHatch: (Player, string) -> ()
 )
 	local entries = Scene.describe(world, now)
+	local clock = os.clock()
 	for id, record in records do
 		local entry = entries[id]
-		if not entry or record.egg ~= EggKind.isEgg(entry.slime) then
+		if not entry or record.egg ~= EggKind.isEgg(entry.slime) or kitArrived(record, entry, clock) then
 			clearGhost(record)
 			record.model:Destroy()
 			records[id] = nil
@@ -1004,7 +942,6 @@ function WorldView.reconcile(
 			failed[id] = nil
 		end
 	end
-	reconcileTrophies(world)
 end
 
 -- A slime model's Body (Effects target), or nil if it has no model.
@@ -1150,9 +1087,8 @@ end
 
 -- Lock enforcement. The LockBarrier panels ship non-colliding (client cosmetics); the server makes
 -- them solid while the plot is locked. Panels sit in PlotLock_<i>, the owner's character in
--- PlotOwner_<i>, and that pair does not collide, so the owner walks through. The barrier is one-way: a non-owner
--- standing inside a locked plot is put in PlotLeaver (collides with no panel) until it is out, so it can leave.
--- Nobody is ever moved by the server.
+-- PlotOwner_<i>, and that pair does not collide, so the owner walks through. Everyone else is blocked both ways
+-- (PlotLockGuard): no way in, and an intruder inside stays in until the lock ends.
 local groupsReady = false
 local function ensureGroups()
 	if groupsReady then
@@ -1169,19 +1105,6 @@ local function ensureGroups()
 		if not ok then
 			warn(`[WorldView] collision groups for plot {index}: {err}`)
 		end
-	end
-	local ok, err = pcall(function()
-		PhysicsService:RegisterCollisionGroup(PlotLockGuard.LEAVER_GROUP)
-		for index = 1, Config.PLOT_COUNT do
-			PhysicsService:CollisionGroupSetCollidable(
-				PlotLockGuard.LEAVER_GROUP,
-				PlotLockGuard.lockGroup(index),
-				false
-			)
-		end
-	end)
-	if not ok then
-		warn(`[WorldView] leaver collision group: {err}`)
 	end
 end
 
@@ -1208,7 +1131,12 @@ end
 
 -- Jar 1's doorway passage (the real layout constants): the lock guard's "inside" includes it.
 local DOORWAY = WorldLayout.doorway()
-local DOOR: PlotLockGuard.Door = { halfWidth = DOORWAY.halfWidth, zOuter = DOORWAY.zOuter }
+local DOOR: PlotLockGuard.Door = {
+	halfWidth = DOORWAY.halfWidth,
+	zOuter = DOORWAY.zOuter,
+	zInner = DOORWAY.zInner,
+	height = WorldLayout.PLOT_FLOOR_TOP + WorldLayout.DOOR.height,
+}
 
 local function setPartGroup(part: Instance, group: string)
 	if part:IsA("BasePart") and part.CollisionGroup ~= group then
@@ -1220,8 +1148,6 @@ end
 
 -- The group each live character is meant to be in; parts added later (tools, accessories) join it.
 local characterGroups: { [Model]: string } = setmetatable({}, { __mode = "k" }) :: any
--- Per user: the plot index they currently pass the barrier of (leaver state, for the exit hysteresis).
-local leavingPlot: { [number]: number? } = {}
 
 local function setCharacterGroup(character: Model, group: string)
 	if characterGroups[character] == nil then
@@ -1260,10 +1186,10 @@ local function ejectFromStack(character: Model, root: BasePart): boolean
 	return true
 end
 
--- Per player: the character's collision group. The owner's character is in PlotOwner_<i> (walks through its
--- barrier). Any character that is not the owner of a locked plot it stands inside is a leaver (PlotLeaver: passes
--- the panels, so it can walk out; the exit hysteresis is PlotLockGuard.EXIT_MARGIN). Everyone else collides, so
--- entering stays blocked. Nothing here ever changes a character's position.
+-- Per player: the character's collision group. The owner's character is in PlotOwner_<i> (walks through its own
+-- barrier); everyone else is in Default, which every locked barrier blocks both ways. A non-owner caught in a locked
+-- plot's doorway (standing there as the lock starts) is set down just outside it, on the bridge
+-- (PlotLockGuard.wedged / doorwayExit), the only time this moves anyone.
 function WorldView.enforceLocks(world: World.World, player: Player)
 	local root = WorldView.rootPart(player)
 	local character = player.Character
@@ -1272,8 +1198,6 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 	end
 	local own = World.session(world, player.UserId)
 	local wanted = if own then PlotLockGuard.ownerGroup(own.plotIndex) else "Default"
-	local wasIn = leavingPlot[player.UserId]
-	local leaving: number? = nil
 	for index = 1, world.plotCount do
 		local ownerId = world.plots[index]
 		local session = ownerId and world.sessions[ownerId]
@@ -1287,27 +1211,17 @@ function WorldView.enforceLocks(world: World.World, player: Player)
 			and plot:GetAttribute(Constants.PLOT_LOCKED_ATTRIBUTE) == true
 		then
 			local p = base.CFrame:PointToObjectSpace(root.Position)
-			if
-				PlotLockGuard.isLeaver(
-					player.UserId,
-					session.userId,
-					true,
-					p.X,
-					p.Y,
-					p.Z,
-					WorldLayout.jarRadius(WorldLayout.floorAt(p.Y + base.Size.Y / 2)),
-					DOOR,
-					wasIn == index
+			local y = p.Y + base.Size.Y / 2
+			if PlotLockGuard.wedged(player.UserId, session.userId, true, p.X, y, p.Z, DOOR) then
+				character:PivotTo(
+					base.CFrame
+						* CFrame.new(p.X, p.Y, PlotLockGuard.doorwayExit(DOOR))
+						* (base.CFrame.Rotation:Inverse() * root.CFrame.Rotation)
 				)
-			then
-				leaving = index
+				root.AssemblyLinearVelocity = Vector3.zero
 				break
 			end
 		end
-	end
-	leavingPlot[player.UserId] = leaving
-	if leaving then
-		wanted = PlotLockGuard.LEAVER_GROUP
 	end
 	if root.CollisionGroup ~= wanted or characterGroups[character] ~= wanted then
 		ensureGroups()

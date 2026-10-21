@@ -182,11 +182,11 @@ WorldLayout.PAD_DECK = table.freeze({ y = 2.4, half = 3.75, matHalf = 2.6 })
 -- entrance side (-Z), where jar 1's door is. Jars shrink upwards; each jar's pads sit on PAD_RINGS[f] facing the
 -- centre, with at least a 3-stud walkway between pads and 4.5 studs to the glass. The spiral stair from floor f to
 -- f + 1 winds round the centre post (STAIR: post radius, tread outer radius, one 1-stud step per STAIR.angle
--- degrees), up through the hole in the deck above; each stair starts a quarter turn past where the one below
--- arrived. Upper floors (Config.BASE_FLOORS beyond 1) are built at runtime by server/BaseFloors.
+-- degrees), up through the hole in the deck above; each stair starts exactly where the one below arrives, so the
+-- ramps make one unbroken spiral from the ground to the top jar. Upper floors (Config.BASE_FLOORS beyond 1) are built at runtime by server/BaseFloors.
 WorldLayout.FLOOR_HEIGHT = 16
 WorldLayout.JAR_RADII = table.freeze({ 31, 27, 24, 21.5 })
-WorldLayout.PAD_RINGS = table.freeze({ 19, 17, 15.5, 14.1 })
+WorldLayout.PAD_RINGS = table.freeze({ 22, 19, 16.5, 14.1 })
 -- The gameplay Pad box (collision, prompt, PivotTo top) under each round cork stand; the stand's dish keeps the
 -- crate deck's size (PAD_DECK.half), so the habitat overlays still fit on it.
 WorldLayout.PAD_SIZE = 6.4
@@ -195,24 +195,35 @@ WorldLayout.JAR_WALL_SEGMENTS = 12
 WorldLayout.DECK_SEGMENTS = 16
 WorldLayout.DOOR = table.freeze({ angle = -90, width = 8, height = 11 }) -- no wider than one glass segment
 WorldLayout.STAIR = table.freeze({ post = 1.5, outer = 5.5, hole = 6, angle = 22.5, firstAngle = 90 })
+-- The stair is a smooth spiral ramp (easy on a thumbstick): `segments` sloped boxes climb FLOOR_HEIGHT over one turn,
+-- from half a step before tread 1's angle (WorldLayout.treadAngle) to tread FLOOR_HEIGHT's angle, ending flush
+-- with the deck above, where the next floor's ramp goes on. The boxes slope as the helix does at radius `walk` (where
+-- feet go). The rail is an invisible wall along the outer edge, straight up from floor f to just under the deck
+-- above (a sloped or stepped top edge is something a Humanoid can climb over, onto the floor above), open for
+-- `railStart` degrees at the bottom and `railEnd` degrees before the top, so you step on and off the side.
+WorldLayout.RAMP = table.freeze({ segments = 24, walk = 4.2, railStart = 30, railEnd = 45 })
 WorldLayout.MOAT = table.freeze({ inner = 34.5, outer = 38.5 })
--- The drop tube runs down the back; every upper jar's hatch sits at this angle, the splash pool outside the moat.
+-- The drop tube runs down the back; the top jar's hatch sits at this angle, the tube lands in the goo moat.
 -- DROP_TUBE: the tube's radius out from the jar centre (over the moat, outside jar 1's glass) and its width.
 WorldLayout.DROP_ANGLE = 70
 WorldLayout.DROP_TUBE = table.freeze({ radius = 37, width = 3 })
--- Jar 1's ground pieces (plot-local; angles as above). The bridge crosses the moat to the door. Floor 1's pads stand
--- FLOOR1_PAD_STEP apart either side of the door, leaving a bay at the back (round the stair's foot) where the
--- MergeVat and the LockButton stand side by side: locking and merging happen inside, on the ground floor, so nobody
--- camps an owner's button from outside. The LockSign (status) stands outside by the bridge with the plot's name
+-- Jar 1's ground pieces (plot-local; angles as above). The bridge crosses the moat to the door. Floor 1's pads spread
+-- evenly from FLOOR1_PAD_ARC[1] to FLOOR1_PAD_ARC[2] degrees round from the door, leaving the front either side of the
+-- door free: the MergeVat and the LockButton stand there, one each side, the first things you see coming in (inside
+-- and on the ground floor, so nobody camps an owner's button from outside). The LockSign (status) stands outside by the bridge with the plot's name
 -- board (Sign, PlotSigns writes on its Front face) on the same post, the rebirth banners either side of the door.
--- Players spawn on the walkway between the stair and the pads, in front of the door. Boss trophies stand on the plot
--- corners, clear of the moat.
+-- Players spawn on the walkway between the stair and the pads, in front of the door.
 WorldLayout.BRIDGE_WIDTH = 10
-WorldLayout.FLOOR1_PAD_STEP = 36
-WorldLayout.VAT_SPOT = table.freeze({ angle = 106, radius = 22.5 })
-WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ 6.2, 21.6 }) -- in the back bay beside the vat (angle 74, radius 22.5)
+WorldLayout.FLOOR1_PAD_ARC = table.freeze({ 60, 300 })
+WorldLayout.VAT_SPOT = table.freeze({ angle = -62, radius = 24 }) -- inside, left of the door as you come in
+WorldLayout.LOCK_BUTTON_SPOT = table.freeze({ -11.27, -21.19 }) -- inside, right of the door (angle -118, radius 24)
+-- The plot floor is round (the old square sand plate is gone): a collider disc PLOT_FLOOR_RADIUS in radius
+-- (PlotFloor), its look the goo_jar_foot mesh; the square Base part stays as the plot's anchor (invisible, never
+-- collides).
+WorldLayout.PLOT_FLOOR_RADIUS = 40
 WorldLayout.LOCK_SIGN_SPOT = table.freeze({ 8.5, -36.5 }) -- on the moat by the bridge, across from the parked stopper
-WorldLayout.NAME_BOARD = table.freeze({ width = 9, height = 2.4, y = 10.7 }) -- above the LockSign, on its post
+WorldLayout.NAME_BOARD = table.freeze({ width = 12, height = 3.6, y = 11 }) -- above the LockSign, on its post
+WorldLayout.LOCK_SIGN = table.freeze({ width = 8, height = 3.2, y = 7 }) -- the lock status board by the bridge
 WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
 -- Jar 1's door is a round plank door on two hinges on its left (-X). Locked, it sits shut in the doorway (StopperShut);
 -- open, it swings DOOR_SWING.angle degrees out of the jar round its hinge pin (StopperParked): past square, so it
@@ -221,7 +232,6 @@ WorldLayout.BANNER_ANGLES = table.freeze({ -108, -72 })
 -- plot x and its z offset from the shut door's inner face (the door is 1 stud thick, the pin in its middle).
 WorldLayout.DOOR_SWING = table.freeze({ hinge = { -4.75, -0.5 }, angle = 130 })
 WorldLayout.SPAWN_SPOT = table.freeze({ 0, -12.5 })
-WorldLayout.TROPHY_SPOTS = table.freeze({ { -31, 31 }, { 31, 31 }, { -31, -31 } })
 -- DEX_FACE = the front cream panel of phoenix_top_earners_board (the plaza
 -- Top Earners board's skin) at native size, measured on
 -- out/phoenix_top_earners_board.fbx in the mesh's own frame (front +Z): centre
@@ -982,8 +992,8 @@ function WorldLayout.padFloor(j: number): number
 end
 
 -- Plot-local angle (degrees) of pad j on its jar's pad ring, counting round from half a step past the door. Upper
--- floors fill the ring; floor 1's pads keep the same gap at the door but stand FLOOR1_PAD_STEP apart, half either
--- side of it, so the back bay stays free for the vat and the lock button.
+-- floors fill the ring; floor 1's pads spread evenly over FLOOR1_PAD_ARC (degrees from the door), so the front either
+-- side of the door stays free for the vat and the lock button.
 function WorldLayout.padAngle(j: number): number
 	local n = Config.PADS_PER_FLOOR
 	local k = (j - 1) % n
@@ -991,11 +1001,8 @@ function WorldLayout.padAngle(j: number): number
 	if WorldLayout.padFloor(j) > 1 then
 		return WorldLayout.DOOR.angle + gap + k * 2 * gap
 	end
-	local step = WorldLayout.FLOOR1_PAD_STEP
-	if k < n // 2 then
-		return WorldLayout.DOOR.angle + gap + k * step
-	end
-	return WorldLayout.DOOR.angle + 360 - gap - (n - 1 - k) * step
+	local arc = WorldLayout.FLOOR1_PAD_ARC
+	return WorldLayout.DOOR.angle + arc[1] + k * (arc[2] - arc[1]) / (n - 1)
 end
 
 -- Local pad centre (x, z) for pad index 1..PADS_MAX on its jar's pad ring.
@@ -1017,7 +1024,7 @@ end
 -- k studs above floor f; the last tread is flush with the deck above.
 function WorldLayout.treadAngle(f: number, k: number): number
 	local st = WorldLayout.STAIR
-	local turn = 360 + 90 -- one full turn per floor, then a quarter turn on to the next stair's first tread
+	local turn = 360 -- one full turn per floor: the next stair goes on from where this one arrives
 	return (st.firstAngle + (f - 1) * turn + (k - 1) * st.angle) % 360
 end
 
@@ -1049,10 +1056,10 @@ local function ghost(node: WorldNode, transparency: number?): WorldNode
 end
 
 -- The doorway through jar 1's glass (plot-local, door at -Z). The stopper's collider (LockBarrier.Stopper) fills it
--- from DOOR_OUTER_PAD outside the glass to the PlotLockGuard limit (DOOR_INNER_INSET in from the glass), so a
--- character in the passage counts as inside and the stopper can never squeeze one in or out.
+-- from DOOR_OUTER_PAD outside the glass to DOOR_INNER_INSET in from the glass; a non-owner caught in it as the lock
+-- starts is set down outside on the bridge (PlotLockGuard.wedged).
 WorldLayout.DOOR_OUTER_PAD = 0.5
-WorldLayout.DOOR_INNER_INSET = 2 -- = PlotLockGuard.MARGIN (tests/LockBarrier.spec checks)
+WorldLayout.DOOR_INNER_INSET = 2 -- the stopper reaches this far inside the glass
 function WorldLayout.doorway(): { size: Vec, centre: Vec, halfWidth: number, zOuter: number, zInner: number }
 	local r = WorldLayout.jarRadius(1)
 	local zOuter = -(r + WorldLayout.JAR_WALL + WorldLayout.DOOR_OUTER_PAD)
@@ -1119,11 +1126,10 @@ local function radial(
 end
 
 -- Attribute-driven plot cosmetics (PlotDecor; VisualsClient shows / hides them locally): the stopper lock and the
--- lock sign, rebirth trim / pillars / banners / crown, SlimeDex board. Shipped in their neutral state: free plot,
--- unlocked, no rebirths, empty dex.
-local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode }
+-- lock sign, rebirth trim / pillars / banners / crown. Shipped in their neutral state: free plot, unlocked, no
+-- rebirths.
+local function cosmetics(at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local r = { 0, yaw, 0 }
-	local h = s / 2
 	local nodes: { WorldNode } = {}
 
 	-- Lock: the cork Stopper fills jar 1's doorway (hidden and non-colliding = unlocked; the server makes it solid
@@ -1143,10 +1149,14 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	-- Lock sign by the bridge, facing out of the plot (Front face); the post carries the name board (Sign) above it.
 	local bx, bz = WorldLayout.LOCK_SIGN_SPOT[1], WorldLayout.LOCK_SIGN_SPOT[2]
 	local postH = WorldLayout.NAME_BOARD.y + WorldLayout.NAME_BOARD.height / 2 - 1
-	local lockSign = ghost(block("LockSign", { 6, 2.6, 0.3 }, at({ bx + 1.5, 7.2, bz + 2.6 }), SIGN_BOARD, "Wood", r))
+	local ls = WorldLayout.LOCK_SIGN
+	local lockSign =
+		ghost(block("LockSign", { ls.width, ls.height, 0.3 }, at({ bx + 1.5, ls.y, bz + 2.6 }), SIGN_BOARD, "Wood", r))
 	lockSign.children = {
 		ghost(block("Post", { 0.5, postH, 0.5 }, at({ bx + 1.5, 1 + postH / 2, bz + 3.0 }), FENCE, "Wood", r)),
-		ghost(disc("Lamp", 0.4, 1.3, at({ bx - 1.8, 7.2, bz + 2.6 }), { 90, 220, 110 }, "Neon", yaw)),
+		ghost(
+			disc("Lamp", 0.4, 1.3, at({ bx + 1.5 - ls.width / 2 - 0.4, ls.y, bz + 2.6 }), { 90, 220, 110 }, "Neon", yaw)
+		),
 	}
 	table.insert(nodes, lockSign)
 
@@ -1159,7 +1169,9 @@ local function cosmetics(at: (Vec) -> Vec, yaw: number, s: number): { WorldNode 
 	local metal = { 168, 148, 110 } -- ranch_metal (pewter); blue-grey is off the ranch palette
 	add(disc("Trim_Moat", 0.3, (WorldLayout.MOAT.outer + 0.8) * 2, at({ 0, 0.92, 0 }), metal, "Metal", yaw))
 	for k, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
-		local x, z = corner[1] * (h - 1), corner[2] * (h - 1)
+		-- on the round floor's edge, on the diagonals
+		local d = (WorldLayout.PLOT_FLOOR_RADIUS - 1.3) / math.sqrt(2)
+		local x, z = corner[1] * d, corner[2] * d
 		add(block(`Pillar_{k}`, { 2.2, 10, 2.2 }, at({ x, 6, z }), metal, "Marble", r))
 		local cap = { name = `PillarCap_{k}`, class = "Part", shape = "Ball", size = { 2.6, 2.6, 2.6 } } :: WorldNode
 		cap.pos, cap.rot, cap.color, cap.material = at({ x, 12.3, z }), r, metal, "Neon"
@@ -1298,26 +1310,54 @@ local function jarDeck(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	return out
 end
 
--- The spiral stair from floor f up to floor f + 1: the centre post and one tread per stud of height.
+-- The spiral stair from floor f up to floor f + 1: the centre post, the sloped ramp boxes (the next floor's ramp
+-- goes on from the top, at the same angle) and the rail along the outer edge (WorldLayout.RAMP). Plot-local yaw: a box's local X runs along the ring towards lower
+-- angles, so a negative Z tilt makes it climb as the angle grows.
 local function jarStair(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	local st = WorldLayout.STAIR
 	local base = WorldLayout.floorTop(f)
 	local h = WorldLayout.FLOOR_HEIGHT
+	local ramp = WorldLayout.RAMP
 	local out = { disc("StairPost", h, st.post * 2, at({ 0, base + h / 2, 0 }), JAR_GOO, "SmoothPlastic", yaw) }
 	local mid = (st.post + st.outer) / 2
-	for k = 1, WorldLayout.stairSteps() do
-		local node = radial(
-			`Tread_{k}`,
-			{ 2.9, 1, st.outer - st.post + 0.4 },
-			mid,
-			WorldLayout.treadAngle(f, k),
-			base + k - 0.5,
-			at,
-			yaw
-		)
+	local width = st.outer - st.post + 0.4
+	local start = WorldLayout.treadAngle(f, 1) - st.angle
+	local span = st.angle * WorldLayout.stairSteps()
+	local n = ramp.segments
+	local seg, rise = span / n, h / n
+	local slope = math.atan(rise / (math.rad(seg) * ramp.walk))
+	-- long enough to cover the outer edge's chord along the slope, overlapping the next box a little
+	local length = 2 * st.outer * math.sin(math.rad(seg) / 2) / math.cos(slope) + 0.3
+	local function sloped(name: string, size: Vec, r: number, deg: number, y: number): WorldNode
+		local node = radial(name, size, r, deg, y, at, yaw)
+		local rot = node.rot :: Vec
+		node.rot = { rot[1], rot[2], -math.deg(slope) }
+		return node
+	end
+	for i = 1, n do
+		-- the top face's middle sits on the helix: centre half a box lower, along the box's own up
+		local deg = start + (i - 0.5) * seg
+		local node = sloped(`Ramp_{i}`, { length, 1, width }, mid, deg, base + (i - 0.5) * rise - 0.5 / math.cos(slope))
 		node.color = JAR_CORK
 		node.material = "Wood"
 		table.insert(out, node)
+	end
+	-- the rail: upright wall pieces two ramp boxes wide, from the floor to just under the deck above, from railStart
+	-- to railEnd degrees before the top
+	local railR = st.outer + 0.15
+	local pair = 2 * seg
+	local railLength = 2 * (railR + 0.15) * math.sin(math.rad(pair) / 2) + 0.2
+	local railHeight = h - 1
+	local k = 0
+	local deg = start + ramp.railStart + pair / 2
+	while deg + pair / 2 <= start + span - ramp.railEnd + 1e-6 do
+		k += 1
+		local rail = radial(`RampRail_{k}`, { railLength, railHeight, 0.3 }, railR, deg, base + railHeight / 2, at, yaw)
+		rail.transparency = 1
+		rail.canQuery = false
+		rail.canTouch = false
+		table.insert(out, rail)
+		deg += pair
 	end
 	return out
 end
@@ -1450,7 +1490,7 @@ local function jarLooks(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 		table.insert(out, glassy(jarLook("GlassBelow", `goo_jar_glass_{f - 1}_mid`, below, at, yaw)))
 		table.insert(out, noShadow(jarLook("TrimBelow", `goo_jar_trim_{f - 1}_mid`, below, at, yaw)))
 		table.insert(out, noShadow(jarLook("DeckLook", `goo_jar_deck_{f}`, base, at, yaw)))
-		-- the stair mesh is built on floor 1's treads; each floor's stair starts a quarter turn further round
+		-- the stair mesh is built on floor 1's treads (today every floor's stair starts at the same angle)
 		local turn = -(WorldLayout.treadAngle(f - 1, 1) - WorldLayout.treadAngle(1, 1))
 		table.insert(out, noShadow(jarLook("StairLook", "goo_jar_stair", below, at, yaw, turn)))
 		local ground = { 0, WorldLayout.floorTop(1) - 1, 0 }
@@ -1461,9 +1501,9 @@ local function jarLooks(f: number, at: (Vec) -> Vec, yaw: number): { WorldNode }
 	return out
 end
 
--- Plot-local landing point (x, y, z) of the drop tube: the splash pool behind the tower.
+-- Plot-local landing point (x, y, z) of the drop tube: in the goo moat behind the tower.
 function WorldLayout.dropLanding(): Vec
-	local x, z = polar(WorldLayout.MOAT.outer + 1.0, WorldLayout.DROP_ANGLE)
+	local x, z = polar((WorldLayout.MOAT.inner + WorldLayout.MOAT.outer) / 2, WorldLayout.DROP_ANGLE)
 	return { x, WorldLayout.PLOT_FLOOR_TOP + 3, z }
 end
 
@@ -1563,9 +1603,14 @@ local function plot(i: number): WorldNode
 	local r = { 0, yaw, 0 }
 	local color = PLOT_COLORS[(i - 1) % #PLOT_COLORS + 1]
 	local children: { WorldNode } = {
-		-- sand like the plaza round it, so the round jar foot reads (the plot colour is on the jar's trim and labels)
-		block("Base", { s, 1, s }, at({ 0, 0.5, 0 }), { 232, 214, 178 }, "Sand", r),
+		-- the plot's anchor (PrimaryPart, every plot-local frame): invisible and never collides; the round floor is
+		-- PlotFloor (collider) under the goo_jar_foot mesh
+		ghost(block("Base", { s, 1, s }, at({ 0, 0.5, 0 }), { 232, 214, 178 }, "Sand", r), 1),
 	}
+	local floor =
+		disc("PlotFloor", 1, WorldLayout.PLOT_FLOOR_RADIUS * 2, at({ 0, 0.5, 0 }), { 232, 214, 178 }, "Sand", yaw)
+	standIn(floor, "goo_jar_foot") -- the foot mesh is the whole round floor's look
+	table.insert(children, floor)
 	for j = 1, Config.PADS_PER_FLOOR do
 		table.insert(children, padNode(j, at, yaw, color))
 	end
@@ -1659,7 +1704,7 @@ local function plot(i: number): WorldNode
 	sign.canQuery = false
 	table.insert(children, sign)
 
-	for _, node in cosmetics(at, yaw, s) do
+	for _, node in cosmetics(at, yaw) do
 		table.insert(children, node)
 	end
 
