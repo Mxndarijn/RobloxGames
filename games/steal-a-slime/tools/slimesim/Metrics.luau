@@ -65,11 +65,15 @@ function Metrics.compute(trace: any): any
 				end
 				-- how far the drawn slime is from its tag / card
 				table.insert(offset, math.sqrt((c[1] - c[5]) ^ 2 + (c[2] - c[6]) ^ 2))
-				-- facing vs the way it jumps
-				local csp = math.sqrt(v2x * v2x + v2z * v2z)
+				-- facing vs the way it jumps: travel over a few frames either side, so the foot swinging back as the body
+				-- tilts into a jump (a few hundredths of a stud) doesn't count as moving backwards
+				local w0, w1 = fr[math.max(1, i - 3)], fr[math.min(#fr, i + 3)]
+				local span = (math.min(#fr, i + 3) - math.max(1, i - 3)) * dt
+				local tvx, tvz = (w1[1] - w0[1]) / span, (w1[2] - w0[2]) / span
+				local csp = math.sqrt(tvx * tvx + tvz * tvz)
 				if c[9] == "air" and csp > 2 then
 					airFrames += 1
-					local travel = math.atan2(-v2x, -v2z)
+					local travel = math.atan2(-tvx, -tvz)
 					local off = math.abs(wrap(c[4] - travel))
 					table.insert(crab, off)
 					if off > 0.8 then
@@ -84,7 +88,8 @@ function Metrics.compute(trace: any): any
 				table.insert(liftJerk, math.abs((c[3] - b[3]) - (b[3] - a[3])) / (dt * dt))
 				local k = rec.first + i - 1
 				local pl = trace.player[k]
-				if pl and c[3] < rec.radius * 2 then
+				-- after the first 1.5 s: scenarios put the player down right next to a slime
+				if pl and k > 90 and c[3] < rec.radius * 2 then
 					local pd = math.sqrt((c[1] - pl[1]) ^ 2 + (c[2] - pl[2]) ^ 2)
 					local room = rec.radius + 1.2
 					if pd < room * 0.85 then
@@ -93,7 +98,7 @@ function Metrics.compute(trace: any): any
 					end
 				end
 				byFrame[k] = byFrame[k] or {}
-				if k > 30 then -- the first half second: the server queue warms up from nothing in the simulation
+				if k > 90 then -- the first 1.5 s: the server queue warms up from nothing and the player is put down
 					table.insert(byFrame[k], { c[1], c[2], rec.radius, c[14], c[15], c[3] })
 				end
 			end
