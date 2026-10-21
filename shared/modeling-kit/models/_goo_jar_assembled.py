@@ -34,9 +34,7 @@ def top(f):
     return D["floors"][f - 1]["top"]
 
 
-# The plot's square Base (80 x 80, top at the plot floor), sand coloured like the plaza.
-half = D["plotSize"] / 2
-place([painted(box("Base", (2 * half, 2 * half, 1.0), (0, 0, 0.5), P["ranch_plaza"]), shade(P["ranch_plaza"], 0.92), P["ranch_plaza"])])
+# the round plot floor is the foot mesh (jar_foot)
 place(jar_foot(), dz=top(1))
 # the bridge over the moat to the door
 bw = D["bridgeWidth"]

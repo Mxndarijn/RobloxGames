@@ -8,7 +8,8 @@
 	meshes (MeshSwap.applyUnder, run in its own thread because it yields). Removing a floor parks the BuyPadPrompt
 	on floor 1 first, so the prompt record never points at a destroyed pad, and sets anyone standing in that jar
 	down on floor 1 (straight below, on the plot's Base) so nobody falls through the tower. A jar's lid (parts with the JarLid
-	attribute) is hidden and non-colliding while the jar above it stands. Each new jar's DropHatch gets the
+	attribute) is hidden and non-colliding while the jar above it stands. Only the top jar's DropHatch is open (shown,
+	its DropPrompt on): the tube is taken from the top of the tower, never from a jar in between. Each new jar's DropHatch gets the
 	DropPrompt (`ctx.drop` runs the rule, Actions.useDropTube: the owner, not while carrying). Holds no gameplay rules.
 ]]
 
@@ -104,6 +105,25 @@ end
 -- mesh. Every jar look with JarFloor / JarShow: "top" shows only while no jar stands on jar n, "covered" only while
 -- one does (JarHidden, and the swapped Mesh's transparency).
 local function setLids(plot: Instance)
+	local top = 1
+	for f = 2, #Config.BASE_FLOORS do
+		if plot:FindFirstChild(`Floor_{f}`) then
+			top = f
+		end
+	end
+	for f = 2, #Config.BASE_FLOORS do
+		local model = plot:FindFirstChild(`Floor_{f}`)
+		local hatch = model and model:FindFirstChild("DropHatch")
+		if hatch and hatch:IsA("BasePart") then
+			local open = f == top
+			hatch.Transparency = if open then 0 else 1
+			hatch.CanCollide = open
+			local prompt = hatch:FindFirstChild(Constants.DROP_PROMPT_NAME)
+			if prompt and prompt:IsA("ProximityPrompt") then
+				prompt.Enabled = open
+			end
+		end
+	end
 	for _, d in plot:GetDescendants() do
 		if not d:IsA("BasePart") then
 			continue
