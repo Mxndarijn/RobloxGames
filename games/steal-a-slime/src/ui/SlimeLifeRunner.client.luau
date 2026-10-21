@@ -171,7 +171,12 @@ local spacing: { SlimeSpacing.Item } = {} -- reused every frame
 local spaced: { MotorRig } = {}
 local PLAYER_RADIUS = 1.2 -- studs: the local character's footprint for SlimeSpacing
 local playerSolid: SlimeSpacing.Solid = { x = 0, z = 0, r = PLAYER_RADIUS }
-local playerSolids = { playerSolid }
+-- Mystery Eggs are solid too (they have no rig; VisualsClient glides them): a slime never walks into one.
+local EGG_RADIUS = 1.2 -- studs: about half EggModel.WIDTH
+local EGG_SOLID_DISTANCE = 120 -- studs from the camera
+local eggs: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local solids: { SlimeSpacing.Solid } = {} -- reused every frame: the player, then nearby eggs
+local eggSolids: { SlimeSpacing.Solid } = {} -- pool
 -- Contract/slime-life.md social reactions: how far away neighbours notice a slime leaving.
 local DRAIN_WATCH_DISTANCE = 20
 local DRAIN_WATCH_SECONDS = 1.6
@@ -906,7 +911,11 @@ local function watchPad(instance: Model, body: BasePart): RBXScriptConnection
 end
 
 local function onSlime(instance: Instance)
-	-- A Mystery Egg has no face or skin to animate (its looks are Visuals EggFx).
+	-- A Mystery Egg has no face or skin to animate (its looks are Visuals EggFx); it is only a solid.
+	if instance:IsA("Model") and instance:GetAttribute(Constants.EGG_KIND_ATTRIBUTE) ~= nil then
+		eggs[instance] = true
+		return
+	end
 	if
 		instance:IsA("Model")
 		and not slimes[instance]
@@ -966,6 +975,7 @@ end
 local function onSlimeRemoved(instance: Instance)
 	if instance:IsA("Model") then
 		slimes[instance] = nil
+		eggs[instance] = nil
 		local conns = slimeConns[instance]
 		if conns then
 			for _, conn in conns do
@@ -1121,12 +1131,30 @@ RunService.RenderStepped:Connect(function()
 	end
 	-- Second pass: drawn slimes never sink into each other (SlimeSpacing), then each tag follows its slime.
 	-- the local character is solid too: a slime steps round you instead of sinking into your legs
-	local solid = nil
+	table.clear(solids)
 	if lifeFrame.player then
 		playerSolid.x, playerSolid.z = lifeFrame.player.X, lifeFrame.player.Z
-		solid = playerSolids
+		table.insert(solids, playerSolid)
 	end
-	SlimeSpacing.step(spacing, dt, solid)
+	local eye = camera.CFrame.Position
+	local nEggs = 0
+	for egg in eggs do
+		local body = egg.PrimaryPart
+		if body and egg.Parent and egg:GetAttribute("State") ~= "Carried" then
+			local p = body.Position
+			if (p - eye).Magnitude < EGG_SOLID_DISTANCE then
+				nEggs += 1
+				local e = eggSolids[nEggs]
+				if not e then
+					e = { x = 0, z = 0, r = EGG_RADIUS }
+					eggSolids[nEggs] = e
+				end
+				e.x, e.z = p.X, p.Z
+				table.insert(solids, e)
+			end
+		end
+	end
+	SlimeSpacing.step(spacing, dt, if #solids > 0 then solids else nil)
 	for i, rig in spaced do
 		local actor = rig.actor :: SlimeActor.Actor
 		local item = spacing[i]

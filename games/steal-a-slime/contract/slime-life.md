@@ -83,7 +83,9 @@ rides on its Transform and the species bones. On the slide itself (`Riding` and 
 - **Lane queue (`Shared.LaneTraffic`).** One loop in `WorldView` pivots every lane walker each Heartbeat. Front to back,
   a slime is never drawn closer to the slime ahead (when their sideways places overlap) than their two radii plus
   `LaneTraffic.GAP`; it waits, then catches up at most `LaneTraffic.CATCH_SPEED` x its pace, never backwards. The hold
-  is capped by `LaneTraffic.holdLimit` (what it can still make up), so it reaches the drain on time.
+  is capped by `LaneTraffic.holdLimit` (what it can still make up), so it reaches the drain on time, and by
+  `LaneTraffic.MAX_HOLD` studs (below `LaneTraffic.RESET`, the restart-at-plan jump for a rejoin or rebuild): held that
+  long it walks on with its plan, pressing on the slime ahead, so a long hold never ends in a jump.
 - **Walking back.** A dropped slime walking back to the lane steps round other slimes and the boss
   (`LaneTraffic.push`), easing back onto its path and arriving exactly on the merge point.
 
@@ -178,4 +180,7 @@ then replays and captures it).
   on landing; the wobble after it is the actor's squash spring, kicked on take-off and landing
   (`SlimeActor.HOP_JELLY`), so it rings on through the next squat instead of restarting every hop.
 - **The player is solid.** `SlimeSpacing.step` takes the local character as a solid: a walking slime steps round you
-  instead of sinking into your legs. Pad slimes are `rooted` (you don't shove them off their pads).
+  instead of sinking into your legs. Pad slimes are `rooted` (you don't shove them off their pads). Mystery Eggs
+  within `EGG_SOLID_DISTANCE` of the camera are solids too (they have no rig), so no slime walks into one.
+- **Unrigged slimes glide.** VisualsClient draws the pivot of every slime it animates (a Mystery Egg, a slime too far
+  away for a rig) through a `StepTrack`, so it moves at frame rate instead of in replication steps.

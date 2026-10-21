@@ -38,6 +38,21 @@ describe("LaneTraffic.step", function()
 		end
 		expect(state.b).toBe(26)
 	end)
+	it("a long hold ends at MAX_HOLD behind the plan and walks on from there, never jumping", function()
+		local state = {}
+		LaneTraffic.step({ walker("a", 30), walker("b", 20) }, state, 0)
+		local prev = state.b
+		for f = 1, 600 do
+			-- a stands still for 20 s; b's plan walks on 80 studs
+			local plan = 20 + f * 4 / 30
+			LaneTraffic.step({ walker("a", 30), walker("b", plan) }, state, 1 / 30)
+			expect(plan - state.b <= LaneTraffic.MAX_HOLD + 1e-9).toBe(true)
+			expect(state.b - prev <= LaneTraffic.CATCH_SPEED * 4 / 30 + 1e-9).toBe(true)
+			expect(state.b >= prev - 1e-9).toBe(true)
+			prev = state.b
+		end
+		expect(LaneTraffic.MAX_HOLD < LaneTraffic.RESET).toBe(true)
+	end)
 	it("slimes side by side don't hold each other up", function()
 		local state = {}
 		LaneTraffic.step({ walker("a", 20, -2), walker("b", 20, 2) }, state, 1 / 30)
@@ -73,6 +88,8 @@ describe("LaneTraffic.step", function()
 		local pace = ParadeLane.walkSpeed(LIFE)
 		local state = {}
 		local worst = math.huge
+		local was: { [string]: number } = {}
+		local biggestStep = 0
 		for f = 0, math.floor((24 + LIFE) * 30) do
 			local now = f / 30
 			local walkers = {}
@@ -92,6 +109,12 @@ describe("LaneTraffic.step", function()
 				end
 			end
 			LaneTraffic.step(walkers, state, 1 / 30)
+			for _, w in walkers do
+				if was[w.id] then
+					biggestStep = math.max(biggestStep, state[w.id] - was[w.id])
+				end
+				was[w.id] = state[w.id]
+			end
 			for i = 1, #walkers do
 				for j = i + 1, #walkers do
 					local a, b = walkers[i], walkers[j]
@@ -103,6 +126,7 @@ describe("LaneTraffic.step", function()
 			end
 		end
 		expect(worst >= -1e-6).toBe(true)
+		expect(biggestStep < 1).toBe(true) -- no jumps: never more than a stud in a frame
 	end)
 end)
 

@@ -39,6 +39,9 @@
 	replication steps); a slime it takes over gets its pivot back once. Each
 	frame it checks whether the server moved the model since our last write
 	and, if so, rebases on the server's pivot, so it never fights replication.
+	The base is drawn through a StepTrack (Lib core): a wild slime it animates
+	(a Mystery Egg on the lane, a slime too far away for a rig) glides at frame
+	rate instead of stepping at the replication rate.
 	The walking boss (model attributes BossWalkSeed / BossWalkAt / BossWalkUntil)
 	instead rebases every frame on its BossWander pose at server time: the same
 	plan the server walks, drawn at frame rate instead of at replication rate.
@@ -55,6 +58,7 @@ local CarryWriggle = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForCh
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Constants = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Constants"))
 local Effects = require(ReplicatedStorage:WaitForChild("Visuals"):WaitForChild("Effects"))
+local StepTrack = require(ReplicatedStorage:WaitForChild("Lib"):WaitForChild("core"):WaitForChild("StepTrack"))
 
 local MAX_DISTANCE = 150
 local BLINK_TIME = 0.12
@@ -71,6 +75,9 @@ type Track = {
 	seed: number, -- per slime, for CarryWriggle
 	base: CFrame?, -- server pivot we animate around
 	written: CFrame?, -- last pivot we wrote
+	glide: StepTrack.Track?, -- the base position, smooth at frame rate
+	yaw: number, -- the base heading, smooth at frame rate
+	glidedAt: number,
 	nextBlink: number,
 	blinkUntil: number,
 	joint: JointInstance?,
@@ -128,6 +135,8 @@ local function onSlime(instance: Instance)
 		seed = math.random(1, 1000000),
 		nextBlink = os.clock() + 1 + math.random() * 4,
 		blinkUntil = 0,
+		yaw = 0,
+		glidedAt = 0,
 		wriggling = false,
 	}
 end
@@ -236,17 +245,45 @@ local function bossWalkPose(model: Model, y: number): CFrame?
 	return CFrame.lookAt(spot, spot + Vector3.new(face[1], 0, face[2]))
 end
 
-local function animatePivot(track: Track, offset: CFrame)
+local function headingOf(cf: CFrame): number
+	local look = cf.LookVector
+	return math.atan2(-look.X, -look.Z)
+end
+
+-- The server's pivot (stepwise, at the replication rate) drawn smooth: position through a StepTrack, heading
+-- eased the same way; its tilt is kept.
+local function glided(track: Track, base: CFrame, now: number): CFrame
+	local p = base.Position
+	local g = track.glide
+	if not g then
+		g = StepTrack.new(p.X, p.Y, p.Z, now)
+		track.glide = g
+		track.yaw = headingOf(base)
+		track.glidedAt = now
+	end
+	local x, y, z = StepTrack.step(g, p.X, p.Y, p.Z, now)
+	local target = headingOf(base)
+	track.yaw = StepTrack.angle(track.yaw, target, now - track.glidedAt)
+	track.glidedAt = now
+	return CFrame.new(x, y, z) * CFrame.Angles(0, track.yaw - target, 0) * base.Rotation
+end
+
+local function animatePivot(track: Track, offset: CFrame, now: number)
 	local current = track.model:GetPivot()
 	if not (track.base and track.written and samePivot(current, track.written)) then
 		track.base = current
 	end
 	-- The walking boss: its pose comes from the plan every frame, on the ground height the server last sent.
 	local walk = bossWalkPose(track.model, (track.base :: CFrame).Y)
+	local drawn
 	if walk then
 		track.base = walk
+		track.glide = nil
+		drawn = walk
+	else
+		drawn = glided(track, track.base :: CFrame, now)
 	end
-	local target = (track.base :: CFrame) * offset
+	local target = drawn * offset
 	track.written = target
 	track.model:PivotTo(target)
 end
@@ -271,7 +308,7 @@ local function step(track: Track, now: number, cameraPos: Vector3)
 	end
 
 	if state == "Carried" then
-		track.base, track.written = nil, nil
+		track.base, track.written, track.glide = nil, nil, nil
 		local pitch, yaw, roll, lift = CarryWriggle.pose(now, track.seed)
 		local roots = rigRoots(body)
 		if #roots > 0 then
@@ -293,7 +330,7 @@ local function step(track: Track, now: number, cameraPos: Vector3)
 	end
 	restoreJoint(track)
 	if not body.Anchored then
-		track.base, track.written = nil, nil
+		track.base, track.written, track.glide = nil, nil, nil
 		return
 	end
 	-- SlimeLifeRunner draws this one through its Transform: leave the pivot to the server (put our bob back once).
@@ -305,13 +342,13 @@ local function step(track: Track, now: number, cameraPos: Vector3)
 		if track.base and track.written and samePivot(track.model:GetPivot(), track.written) then
 			track.model:PivotTo(track.base)
 		end
-		track.base, track.written = nil, nil
+		track.base, track.written, track.glide = nil, nil, nil
 		return
 	end
 
 	local bob = (math.sin(t * 3) * 0.5 + 0.5) * 0.08 * size
 	local tilt = math.sin(t * 2.2) * 0.04
-	animatePivot(track, CFrame.new(0, bob, 0) * CFrame.Angles(tilt * 0.5, 0, tilt))
+	animatePivot(track, CFrame.new(0, bob, 0) * CFrame.Angles(tilt * 0.5, 0, tilt), now)
 end
 
 -- Slime Rain: client-only emitters that follow the camera, plus a tint.
