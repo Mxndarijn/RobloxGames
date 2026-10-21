@@ -19,6 +19,7 @@
 	  SlimeActor.attach(model, motor, now, prevState?) -> Actor
 	    prevState = the model's State before this rig (a Carried slime put on its pad drops in)
 	  SlimeActor.setState(actor, prev, state, now)            the State changed and the rig stays (Wild / Pad / Escaping)
+	  SlimeActor.settle(actor, pushX, pushZ, dt)               after SlimeSpacing: the push, and where the tag hangs
 	  SlimeActor.update(actor, frame, now, serverNow, rand, full)   fills actor.mods / emote
 	    full (default true) = the near tier: reactions to the player, emote, hop effects.
 	    false = mid / far: the smooth lane glide, gait and lane beats only, so a slime
@@ -69,6 +70,15 @@ SlimeActor.SNAP_JUMP = 60 -- studs: further than this a pad move is a teleport, 
 SlimeActor.LEAN = table.freeze({ f = 2.2, zeta = 0.32, r = 0, gain = 0.018, max = 0.3 })
 SlimeActor.SQUASH = table.freeze({ f = 3.4, zeta = 0.24, r = 0, kick = 1.3, max = 0.3 })
 SlimeActor.ESCAPE_SPEED = 10 -- studs / s: an escaping slime this fast leans and stretches fully
+-- A slime on the move faces where it goes: a reaction (the player, nerves, a fright) only turns it this far
+-- (radians), a glance; it turns round to face you only while it stands still.
+SlimeActor.GLANCE = 0.45
+SlimeActor.MOVING = 0.8 -- studs / s: faster than this a slime counts as on the move
+SlimeActor.AIR_TURN = 0.85 -- share of a look turn a hopper drops while it squats and jumps (it jumps nose first)
+SlimeActor.AIR_RATE = 14 -- 1 / s: how fast that share fades in and out
+-- The name tag and the Buy card hang on a TagAnchor that follows the drawn slime through this spring (Lib Spring:
+-- f Hz, zeta, r): it glides along with a hopper's leaps instead of jumping, and never steps with the Body.
+SlimeActor.TAG = table.freeze({ f = 3, zeta = 1, r = 0.5 })
 SlimeActor.BUMP_SECONDS = 0.35
 SlimeActor.BUMPED_SECONDS = 0.5
 -- Face -> bones: lids shut (closed) or eyes bulging (pop), SlimeBones.Extra.
@@ -148,6 +158,13 @@ export type Actor = {
 	squash: Spring.Spring,
 	fidget: SlimeFidget.State,
 	fidgetPose: SlimeFidget.Pose,
+	airK: number, -- 0..1: how much a hopper's crouch / jump holds back look turns
+	pushX: number, -- SlimeSpacing push (world studs), carried between frames
+	pushZ: number,
+	tagX: Spring.Spring, -- where the tag hangs (world x / z), following the drawn slime
+	tagZ: Spring.Spring,
+	hasTag: boolean,
+	tagOffset: Vector3, -- the TagAnchor's offset from the Body (world axes)
 }
 
 local function rootOf(motor: SlimeMotor.Motor): BasePart?
@@ -257,6 +274,13 @@ function SlimeActor.attach(model: Model, motor: SlimeMotor.Motor, now: number, p
 		squash = Spring.new(SlimeActor.SQUASH.f, SlimeActor.SQUASH.zeta, SlimeActor.SQUASH.r, 0),
 		fidget = SlimeFidget.new(persona.temper, now, math.random),
 		fidgetPose = {} :: any,
+		airK = 0,
+		pushX = 0,
+		pushZ = 0,
+		tagX = Spring.new(SlimeActor.TAG.f, SlimeActor.TAG.zeta, SlimeActor.TAG.r, p.X),
+		tagZ = Spring.new(SlimeActor.TAG.f, SlimeActor.TAG.zeta, SlimeActor.TAG.r, p.Z),
+		hasTag = false,
+		tagOffset = Vector3.zero,
 	}
 	local state = model:GetAttribute("State")
 	actor.state = if type(state) == "string" then state else nil
@@ -534,6 +558,9 @@ function SlimeActor.update(
 				local want = if dist < SlimeActor.NERVES_LOOK_DISTANCE then 0.7 * k else 0.5 * k
 				if want > mods.yawWeight then
 					mods.yaw = if dist < SlimeActor.NERVES_LOOK_DISTANCE then yaw else math.pi * 0.8
+					if actor.speed > SlimeActor.MOVING then
+						mods.yaw = math.clamp(wrap(mods.yaw), -SlimeActor.GLANCE, SlimeActor.GLANCE)
+					end
 					mods.yawWeight = want
 				end
 			end
@@ -551,6 +578,9 @@ function SlimeActor.update(
 		local price = model:GetAttribute("Price")
 		local afford = frame.cash ~= nil and (type(price) ~= "number" or price <= (frame.cash :: number))
 		local r = SlimeReact.toPlayer(actor.persona.temper, dist, yaw, afford, now, actor.reactPose)
+		if actor.speed > SlimeActor.MOVING then
+			r.yaw = math.clamp(wrap(r.yaw), -SlimeActor.GLANCE, SlimeActor.GLANCE) -- on the move: a glance
+		end
 		if r.weight > 0 then
 			local keep = if standing then 0.35 else 1 -- a beat in progress mostly wins
 			if r.weight * keep > mods.yawWeight then
@@ -663,6 +693,9 @@ function SlimeActor.update(
 	local watchAt = actor.watchAt
 	if watchAt and now < actor.watchUntil then
 		local yaw = yawTo(body, actor.visible, watchAt)
+		if wild and actor.speed > SlimeActor.MOVING then
+			yaw = math.clamp(yaw, -2 * SlimeActor.GLANCE, 2 * SlimeActor.GLANCE)
+		end
 		mods.yaw, mods.yawWeight = yaw, 0.9
 		if jump <= 0 and not g.air then
 			faceName = actor.watchFace or faceName
@@ -684,6 +717,15 @@ function SlimeActor.update(
 		emote = emote or "ask"
 	end
 
+	-- A hopper jumps nose first: while it squats and flies, look turns let go (a spin beat plays as given).
+	if actor.persona.gait == "Hop" and wild then
+		local want = if actor.gait.stage ~= "ground" then 1 else 0
+		actor.airK += (want - actor.airK) * (1 - math.exp(-dt * SlimeActor.AIR_RATE))
+		if math.abs(mods.yaw) <= math.pi + 1e-3 then
+			mods.yawWeight *= 1 - SlimeActor.AIR_TURN * actor.airK
+		end
+	end
+
 	-- Turn smoothly, the shortest way round and never faster than MAX_TURN. A spin (a turn past half a circle)
 	-- plays as given.
 	local k = 1 - math.exp(-dt * SlimeActor.TURN_RATE)
@@ -700,6 +742,32 @@ function SlimeActor.update(
 
 	face(mods, faceName)
 	actor.emote = if detailed then emote else nil
+	-- Where the slime stands this frame, its sideways lean included (SlimeSpacing keeps these apart).
+	local right = body.CFrame.RightVector
+	actor.visible =
+		Vector3.new(pos.X + mods.dx + right.X * mods.lean, actor.visible.Y, pos.Z + mods.dz + right.Z * mods.lean)
+end
+
+-- After SlimeSpacing (the runner's second pass): adds the push that keeps this slime clear of its neighbours and
+-- moves the tag after the drawn slime. Call once a frame after update.
+function SlimeActor.settle(actor: Actor, pushX: number, pushZ: number, dt: number)
+	local mods = actor.mods
+	actor.pushX, actor.pushZ = pushX, pushZ
+	mods.dx += pushX
+	mods.dz += pushZ
+	local pos = actor.motor.body.CFrame.Position
+	local right = actor.motor.body.CFrame.RightVector
+	local x, z = pos.X + mods.dx + right.X * mods.lean, pos.Z + mods.dz + right.Z * mods.lean
+	actor.visible = Vector3.new(x, actor.visible.Y, z)
+	if not actor.hasTag or dt <= 0 then
+		Spring.reset(actor.tagX, x)
+		Spring.reset(actor.tagZ, z)
+		actor.hasTag = true
+	else
+		Spring.step(actor.tagX, dt, x)
+		Spring.step(actor.tagZ, dt, z)
+	end
+	actor.tagOffset = Vector3.new(actor.tagX.y - pos.X, mods.dy, actor.tagZ.y - pos.Z)
 end
 
 function SlimeActor.frighten(actor: Actor, now: number, watch: Vector3, delay: number)

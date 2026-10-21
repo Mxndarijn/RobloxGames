@@ -141,3 +141,21 @@ No remote, State field or save. Pure parts have Lune specs.
   (`CarryWriggle.BURST`, about 4.5 Hz, wide) and rests between them (`CarryWriggle.REST`: slow sway, looking round),
   instead of one constant buzz. A rigged slime wriggles through its `FaceRoot` / `SkinRoot` Transforms (face and
   skin together); the server's carry weld is a WeldConstraint, so a rig root is never taken for the carry joint.
+
+## Clean lane (client only, no flag: fixes)
+
+What the player sees next to a lane slime, measured with `tools/slimesim` (a headless run of the real client code
+against the server's lane, queue and replication; `lune run tools/slimesim <scenario>`, `view.py` for the viewer).
+
+- **The tag follows the slime.** The name tag (`SlimeInfoCard`) and the Buy card (`SlimeKeyCard`) hang on
+  `Constants.TAG_ANCHOR`, a client-only Attachment on the Body that `SlimeInfoCard` makes. `SlimeLifeRunner` moves it
+  every frame to where the slime is drawn, through a spring (`SlimeActor.TAG`), so it never steps with the replicated
+  Body and glides along with a hopper's leaps. Released rigs put it back on the Body.
+- **On the move it faces where it goes.** A wild slime faster than `SlimeActor.MOVING` only glances at the player
+  (`SlimeActor.GLANCE`), also for nerves and watching a carrier; it turns round to you only while it stands. A hopper
+  lets go of look turns while it squats and flies (`SlimeActor.AIR_TURN`): it jumps nose first.
+- **Drawn slimes never overlap (`ui/SlimeSpacing`, pure).** After every actor has placed its slime (lean included),
+  `SlimeSpacing.step` eases overlapping pairs apart: half the overlap each, a push that grows fast and eases back
+  slowly, at most `MAX_PUSH`. Then `SlimeActor.settle` adds the push and moves the tag; then the motors step.
+- **A hopper never sits stranded.** More than `SlimeGait.CATCH_UP` studs behind its anchor, it cuts a long landing (a
+  belly flop's lie-down) short and jumps even while its anchor stands still for a beat.

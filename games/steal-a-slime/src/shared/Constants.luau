@@ -102,6 +102,8 @@ return table.freeze({
 	HATCH_PROMPT_NAME = "HatchPrompt", -- owner-only ProximityPrompt on a ready Mystery Egg
 	LABEL_PAD_ATTRIBUTE = "LabelPad", -- slime model: pad index while it rests on a pad (the label is the pad sign), else nil
 	LABEL_HEIGHT_ATTRIBUTE = "LabelHeight", -- slime model: studs from the Body centre to the card's bottom edge
+	TAG_ANCHOR = "TagAnchor", -- client-only Attachment on a slime's Body: the name tag and the Buy card hang on it;
+	-- SlimeLifeRunner moves it after the drawn slime (contract/slime-life.md "Clean lane")
 	GROWTH_OVERRIDE_ATTRIBUTE = "PcwGrowth", -- slime model: Studio-only whole percent shown instead of the real growth (pc-watcher shot)
 	FOUNTAIN_TIER_ATTRIBUTE = "FountainTier", -- workspace: fountain tier 1..4 (FEATURES.FountainTiers, FountainTiers); clients draw the ring / crest / glow from it
 	RARE_SPAWN_ID_ATTRIBUTE = "RareSpawnId", -- workspace: latest rare drop

@@ -571,6 +571,7 @@ globals = {
 		end,
 	}, { __index = os }),
 	workspace = {
+		Terrain = newInstance("Folder"), -- a parent for world attachments (SlimeActor's goo string)
 		GetAttribute = function(_self: any, name: string): any
 			return UiHarness.workspaceAttributes[name]
 		end,

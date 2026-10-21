@@ -21,6 +21,7 @@
 ]]
 
 local UI = script.Parent
+local Constants = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Constants"))
 local Widgets = require(UI.Widgets)
 
 local Theme = Widgets.Theme
@@ -268,7 +269,9 @@ function SlimeKeyCard.start(opts: Options): () -> ()
 		end
 		local height = y - C.gap + C.pad
 		card.Size = UDim2.fromOffset(C.w, height)
-		card.Adornee = best
+		-- Over the drawn slime: the TagAnchor (SlimeInfoCard, moved by SlimeLifeRunner) when the Body has one.
+		local anchor = best:FindFirstChild(Constants.TAG_ANCHOR)
+		card.Adornee = if anchor and anchor:IsA("Attachment") then anchor else best
 		card.StudsOffsetWorldSpace = Vector3.new(0, best.Size.Y / 2 + C.lift, 0)
 		card.Enabled = #list > 0
 	end

@@ -101,6 +101,41 @@ describe("SlimeGait hops", function()
 		end
 		expect(peak("lop") / SlimePersona.of("lop").hop.height < peak("gummy") / GUMMY.hop.height).toBe(true)
 	end)
+	it(
+		"a hopper left behind (a long landing, then its anchor stops for a beat) catches up instead of sitting there",
+		function()
+			local rand = lcg(4)
+			local st = SlimeGait.new(0, 0, 0, 0)
+			st.kind, st.landedAt = "belly", 0 -- lying flat after a belly flop
+			-- meanwhile the anchor runs ahead (a beat's catch-up), then stands still (the next beat)
+			local x = 0
+			local p
+			for f = 1, 4 * FPS do
+				local t = f / FPS
+				local v = if t < 0.8 then 5 else 0
+				if t < 0.8 then
+					x = 5 * t
+				end
+				-- a lane slime's anchor speed is known from lane math: it drops to 0 the moment the beat stops it
+				p = SlimeGait.step(st, GUMMY, x, 0, 1, 0, t, rand, nil, v, 0)
+			end
+			-- four seconds in: drawn within one hop's wait of where it should stand, not stranded behind
+			expect(math.abs(p.dx) <= SlimeGait.CATCH_UP).toBe(true)
+		end
+	)
+	it("cuts a belly flop's lie-down short when it falls CATCH_UP behind", function()
+		local rand = lcg(2)
+		local st = SlimeGait.new(0, 0, 0, 0)
+		st.kind, st.landedAt = "belly", 0 -- just landed a belly flop
+		local worst = 0
+		for f = 1, 2 * FPS do
+			local t = f / FPS
+			local p = SlimeGait.step(st, GUMMY, 6 * t, 0, 1, 0, t, rand)
+			worst = math.max(worst, -p.dx)
+		end
+		-- the flop would lie 0.75 s longer; at 6 studs / s that is 4.5 studs behind
+		expect(worst < SlimeGait.CATCH_UP + 6 * (GUMMY.hop.settle + SlimeGait.CROUCH) + 0.5).toBe(true)
+	end)
 end)
 
 describe("SlimeGait.shape", function()
