@@ -32,6 +32,7 @@ export type Options = {
 	holdSeconds: number, -- Sell's hold (Config.HOLD_CONFIRM_SECONDS)
 	formatCash: (n: number) -> string, -- Format.formatCash
 	send: (action: string, ...any) -> (), -- Request through the client's sender
+	style: Enum.ProximityPromptStyle?, -- Custom in the game: SlimeKeyCard draws one card for all of them
 	moveKey: Key?, -- FEATURES.MoveSlime: the Move prompt's keys; nil = no Move prompt
 	onMove: ((slimeId: string, model: Model) -> ())?,
 }
@@ -59,6 +60,7 @@ local STATE_ATTRIBUTE = "State"
 local ID_ATTRIBUTE = "SlimeId"
 local EGG_ATTRIBUTE = "EggKind"
 local GRAB_PROMPT_NAME = "GrabPrompt"
+local HATCH_PROMPT_NAME = "HatchPrompt" -- the server's, on a ready Mystery Egg (Constants.HATCH_PROMPT_NAME)
 
 -- The slime model a `Body` part belongs to, or nil.
 local function slimeModel(body: Instance): Model?
@@ -142,6 +144,9 @@ function SlimeKeys.start(opts: Options): Handle
 		prompt.KeyboardKeyCode = key.keyboard
 		prompt.GamepadKeyCode = key.gamepad
 		prompt.HoldDuration = hold
+		if opts.style then
+			prompt.Style = opts.style
+		end
 		prompt.RequiresLineOfSight = false
 		prompt.MaxActivationDistance = opts.distance
 		local conn = prompt.Triggered:Connect(onTrigger)
@@ -239,6 +244,11 @@ function SlimeKeys.start(opts: Options): Handle
 			entry.move = prompt
 			entry.triggers.move = conn
 		end
+		-- The server's HatchPrompt (on only while the egg can hatch) joins the card: same style as ours.
+		local hatch = body:FindFirstChild(HATCH_PROMPT_NAME)
+		if opts.style and hatch and hatch:IsA("ProximityPrompt") then
+			hatch.Style = opts.style
+		end
 		label(body, entry)
 	end
 
@@ -273,6 +283,11 @@ function SlimeKeys.start(opts: Options): Handle
 				model:GetAttributeChangedSignal(OWNER_ATTRIBUTE):Connect(refresh),
 				model:GetAttributeChangedSignal(STATE_ATTRIBUTE):Connect(refresh),
 				model:GetAttributeChangedSignal(EGG_ATTRIBUTE):Connect(refresh),
+				body.ChildAdded:Connect(function(child: Instance)
+					if child.Name == HATCH_PROMPT_NAME then
+						refresh()
+					end
+				end),
 				body.AncestryChanged:Connect(function()
 					if not body:IsDescendantOf(opts.root) then
 						unbind(body)
