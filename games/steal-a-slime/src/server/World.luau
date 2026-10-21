@@ -16,6 +16,7 @@
 
 local Shared = if script then (game:GetService("ReplicatedStorage") :: any).Shared else nil
 local Config = if Shared then require(Shared.Config) else require("../shared/Config")
+local BossChoreo = if Shared then require(Shared.BossChoreo) else require("../shared/BossChoreo")
 local BossFight = if Shared then require(Shared.BossFight) else require("../shared/BossFight")
 local CycleModifier = if Shared then require(Shared.CycleModifier) else require("../shared/CycleModifier")
 local Genome = if Shared then require(Shared.Genome) else require("../shared/Genome")
@@ -77,7 +78,7 @@ export type Wild = {
 	position: any?, -- set when a carrier drops it somewhere else (adapter-defined)
 	returning: ParadeLane.Return?, -- FEATURES.Parade: its walk back to the lane after a drop (contract/slime-walk.md)
 	boss: boolean?, -- the boss of the boss event (server/BossEvent); never counts toward the wild cap
-	wanderUntil: number?, -- the boss: server time the haul started; its BossWander pose stays there
+	move: BossChoreo.Move?, -- the boss: its current move (BossChoreo; model attribute BossMove)
 	rare: number?, -- tier, on announced Legendary+ fountain drops (model attribute RareSpawn)
 	choreo: { seed: number }?, -- FEATURES.SlimeChoreo: seed of its lane beats (ParadeChoreo); nil once it leaves the lane
 }
@@ -105,7 +106,12 @@ export type Event = {
 }
 
 -- The running boss event: the pure fight and the wild boss slime once it has arrived.
-export type BossEvent = { fight: BossFight.State, slimeId: string?, lastStepAt: number }
+export type BossEvent = {
+	fight: BossFight.State,
+	slimeId: string?,
+	lastStepAt: number,
+	rng: Rng.Rng, -- the boss's own choices (where it strolls), apart from world.rng
+}
 
 export type AdminEvent = {
 	def: { id: string, label: string, icon: string },

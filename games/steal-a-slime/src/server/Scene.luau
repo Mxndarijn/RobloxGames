@@ -70,8 +70,15 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 		local carrier = world.carriedBy[id]
 		local state: SlimeState = if carrier then "Carried" else "Wild"
 		local boss = wild.boss == true
-		-- The boss is grabbable only in the haul phase; it fights at BOSS.SCALE and never despawns on its own.
-		local bossScale = if boss and bossPhase == "fight" then Config.BOSS.SCALE else nil
+		-- The boss fights at BOSS.SCALE and never despawns on its own. When the meter fills it shrinks for
+		-- BOSS.SHRINK_SECONDS (clients draw that), then it is carry size and grabbable.
+		local move = wild.move
+		local shrinking = boss
+			and bossPhase == "haul"
+			and move ~= nil
+			and move.kind == "down"
+			and now < move.at + Config.BOSS.SHRINK_SECONDS
+		local bossScale = if boss and (bossPhase == "fight" or shrinking) then Config.BOSS.SCALE else nil
 		entries[id] = {
 			id = id,
 			slime = wild.slime,
@@ -85,7 +92,7 @@ function Scene.describe(world: World, now: number): { [string]: Entry }
 			wild = wild,
 			promptText = Carry.actionText(wild.price),
 			promptHold = Carry.holdDuration(wild.price),
-			promptEnabled = carrier == nil and (not boss or bossPhase == "haul"),
+			promptEnabled = carrier == nil and (not boss or (bossPhase == "haul" and not shrinking)),
 			hideFromUserId = nil,
 			boss = boss,
 			bossScale = bossScale,
